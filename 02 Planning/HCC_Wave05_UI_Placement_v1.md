@@ -1,6 +1,6 @@
 # Wave 0.5 — where SCC and ETP features go in the HCC UI (proposal)
 
-24 Oct 2026 · Status: **proposed, owner to confirm** · Sources: `HCC_FirstParty_Reuse_ETP_SCC_v1.md` §3a, current navigation `03 Prototype/src/app/navmap.ts` (10 categories), SCC modules `payroll`, `leave`, `tax`, `expense`. Mockups were shown in chat (24 Oct). Keeps the current UI: Modules Home tiles → category page → page with tabs on desktop, `ChipFilter` sections and cards on phone, Maroon & Sand theme, 48 px phone targets.
+24 Oct 2026 · Status: **APPROVED by the owner 24 Oct 2026 (APR-006, DEC-055…058)** · Sources: `HCC_FirstParty_Reuse_ETP_SCC_v1.md` §3a, current navigation `03 Prototype/src/app/navmap.ts` (10 categories), SCC modules `payroll`, `leave`, `tax`, `expense`. Mockups were shown in chat (24 Oct). Keeps the current UI: Modules Home tiles → category page → page with tabs on desktop, `ChipFilter` sections and cards on phone, Maroon & Sand theme, 48 px phone targets.
 
 ## 1. Placement
 

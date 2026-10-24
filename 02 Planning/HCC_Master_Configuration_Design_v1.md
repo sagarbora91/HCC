@@ -1,6 +1,6 @@
 # HCC master configuration panel — design (proposal)
 
-24 Oct 2026 · Status: **proposed, owner to confirm** · Part of Wave 0.5 (with `HCC_Wave05_UI_Placement_v1.md`). Mockup shown in chat 24 Oct.
+24 Oct 2026 · Status: **APPROVED by the owner 24 Oct 2026 (APR-006, DEC-055…058)** · Part of Wave 0.5 (with `HCC_Wave05_UI_Placement_v1.md`). Mockup shown in chat 24 Oct.
 
 ## 1. Why
 The owner wants one place to customise the software. Today HCC has a good base: `Admin & Setup › Hotel configuration` uses one settings registry (`AdminSettingDef`: key, category, type, unit, editable, approver, effective, help), with dated tariff and tax schedules. But several settings live inside their own modules: yield guardrails (`YLD_GUARD_SET`), payroll rates (`HR_RATES_SET`), assistant thresholds (`AI_SETTINGS`), guest-service SLAs (`GSV_SETTINGS`), POS menu toggles, group credit limits, message templates and accounting mapping. Two more sets are coming: statutory rates and compliance obligations from SCC.
