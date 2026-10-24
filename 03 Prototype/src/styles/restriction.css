@@ -1,0 +1,26 @@
+/* W0-C · stay-restriction notice (RestrictionNotice.tsx). Amber warning, always with a text label. */
+.rst-notice{border:1px solid #d9b46a;background:#fcf4e2;color:#5a3d0c;border-radius:7px;padding:14px 16px;font-size:11px;line-height:1.6;display:flex;flex-direction:column;gap:10px}
+.rst-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rst-head svg{color:#8a5a10}
+.rst-head strong{color:#2b1d16}
+.rst-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:#8a5a10;color:#fff;border-radius:4px;padding:3px 6px}
+.rst-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.rst-code{font-weight:600;margin-right:6px}
+.rst-code:after{content:':'}
+.rst-override{display:flex;flex-direction:column;gap:10px}
+.form .rst-check,.rst-check{flex-direction:row;align-items:center;gap:10px;color:#2b1d16;font-size:11px}
+.form .rst-check input,.rst-check input{width:18px;height:18px;flex-shrink:0;accent-color:#7a1f2b}
+.form .rst-reason,.rst-reason{display:flex;flex-direction:column;gap:6px;color:#2b1d16}
+.rst-err{color:#8a3a1c!important}
+.rst-ask{margin:0;color:#5a3d0c;font-size:11px;font-weight:600}
+.rst-booked{flex-basis:100%;width:100%;border:1px solid #d9b46a;background:#fcf4e2;color:#5a3d0c;border-radius:6px;padding:10px 12px;font-size:11px}
+.rst-booked p{display:flex;gap:8px;align-items:flex-start;margin:0;color:#5a3d0c;line-height:1.6}
+.rst-booked svg{margin-top:2px;color:#8a5a10}
+.rst-booked strong{color:#2b1d16}
+/* Phone sheet: 16 px text, 48 px targets. */
+.m-sheet .rst-notice,.m-sheet .rst-booked,.m-sheet .rst-booked p{font-size:16px}
+.m-sheet .rst-check{font-size:16px;min-height:48px}
+.m-sheet .rst-check input{width:24px;height:24px}
+.m-sheet .rst-reason input{min-height:48px;font-size:16px}
+.m-sheet .rst-ask{font-size:16px}
+.m-sheet .rst-label{font-size:12px}

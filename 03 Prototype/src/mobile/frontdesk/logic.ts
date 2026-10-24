@@ -2,6 +2,7 @@
 // No React here, so tests/stream-mobile-frontdesk.mjs can bundle and test it directly. Names start with `mf`.
 import {State,Booking,Room,Permission,addDays,nights,resStatus,resSearch,resCalendarShows,resHoldActive,blockedDuring,roomHold,
   stayArrivals,stayRoomEligibility,guestForBooking,guestComplete,RES_PHONE,RES_GSTIN,RES_CAPACITY} from '../../services/mock';
+import {rstState} from '../../features/reservations/restriction';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const TYPE_ORDER=['Classic','Deluxe','Suite'];
@@ -37,12 +38,14 @@ export function mfAgendaStrip(s:State,start:string,type:string,days=7){
 
 // ── M05 Booking wizard ──
 export type MfBookingDraft={arrival:string;departure:string;people:number;children:number;type:string;room:string;
-  guest:string;phone:string;email:string;source:string;otaChannel:string;company:string;gstin:string;notes:string};
+  guest:string;phone:string;email:string;source:string;otaChannel:string;company:string;gstin:string;notes:string;
+  /** Stay-restriction override (DEC-053): ticked + reason; only approvers see the controls. */
+  rstOverride?:boolean;rstReason?:string};
 export const mfWizardSteps=['Dates & party','Pick room','Guest details','Review'];
 export function mfDraft(s:State,room?:string,arrival?:string):MfBookingDraft{
   const pre=s.rooms.find(r=>r.id===room);const start=arrival&&DATE.test(arrival)&&arrival>=s.date?arrival:s.date;
   return {arrival:start,departure:addDays(start,arrival?1:2),people:1,children:0,type:pre?.type||'All',room:pre?.id||'',
-    guest:'',phone:'',email:'',source:'Direct',otaChannel:'',company:'',gstin:'',notes:''};
+    guest:'',phone:'',email:'',source:'Direct',otaChannel:'',company:'',gstin:'',notes:'',rstOverride:false,rstReason:''};
 }
 /** Same rules and messages as the desktop NewReservation dialog. */
 export function mfDateError(s:State,d:Pick<MfBookingDraft,'arrival'|'departure'>){
@@ -66,23 +69,31 @@ export function mfGuestErrors(d:MfBookingDraft){
   if(gstin&&!RES_GSTIN.test(gstin))e.gstin='Use the 15-character format, e.g. 27AAAAA0000A1Z5.';
   return e;
 }
-/** Errors that stop the wizard from leaving `step` (0-based). */
-export function mfWizardErrors(s:State,step:number,d:MfBookingDraft):Record<string,string>{
+/** Stay restrictions for the room the wizard would book (picked or auto-assigned). `uid` decides who may override. */
+export function mfRestriction(s:State,d:MfBookingDraft,uid?:string){
+  const room=mfDateError(s,d)?undefined:mfPick(s,d).chosen;
+  return rstState(s,uid,room?.type||'',d.arrival,d.departure,d.rstOverride?d.rstReason||'':null);
+}
+const RST_ERROR='This stay breaks a stay restriction. Choose other dates, or ask a manager to override with a reason.';
+/** Errors that stop the wizard from leaving `step` (0-based). Pass `uid` so an approver's override can clear the restriction. */
+export function mfWizardErrors(s:State,step:number,d:MfBookingDraft,uid?:string):Record<string,string>{
   if(step===0){const de=mfDateError(s,d);if(de)return {dates:de};
     if(d.people<1)return {party:'At least one adult.'};
     if(d.type!=='All'&&d.people+d.children>(RES_CAPACITY[d.type]??4))return {party:`A ${d.type} room sleeps ${RES_CAPACITY[d.type]??4}. Choose another type or fewer guests.`};
     return {};}
-  if(step===1){const p=mfPick(s,d);if(p.chosen)return {};
+  if(step===1){const p=mfPick(s,d);if(p.chosen)return mfRestriction(s,d,uid).canSubmit?{}:{restriction:RST_ERROR};
     return {room:p.pickedExcluded?`Room ${p.pickedExcluded.room.id} is not available: ${p.pickedExcluded.reason}.`:p.available.length?'Select one of the available rooms, or Auto-assign.':'No room is available for this search. Change dates, party size or type.'};}
   if(step===2)return mfGuestErrors(d);
   // Review: everything must still hold (availability may have changed meanwhile).
-  return {...mfWizardErrors(s,0,d),...mfWizardErrors(s,1,d),...mfGuestErrors(d)};
+  return {...mfWizardErrors(s,0,d),...mfWizardErrors(s,1,d,uid),...mfGuestErrors(d)};
 }
-/** The BOOK command the wizard sends — identical fields to the desktop dialog. */
+/** The BOOK command the wizard sends — identical fields to the desktop dialog. restrictionOverride only when the override is
+ *  ticked with a reason and the stay is restricted (the server checks the approve permission). */
 export function mfBookCommand(s:State,d:MfBookingDraft,hold:boolean,key?:string){
-  const room=mfPick(s,d).chosen;const t=(v:string)=>String(v||'').trim();const company=t(d.company),gstin=t(d.gstin).toUpperCase();
+  const room=mfPick(s,d).chosen;const reason=String(d.rstReason||'').trim();
+  const restricted=!!room&&!mfDateError(s,d)&&rstState(s,undefined,room.type,d.arrival,d.departure).violations.length>0;const t=(v:string)=>String(v||'').trim();const company=t(d.company),gstin=t(d.gstin).toUpperCase();
   return {type:'BOOK' as const,guest:t(d.guest),phone:t(d.phone),email:t(d.email),people:d.people,children:d.children,room:room?.id||'',arrival:d.arrival,departure:d.departure,
-    source:d.source,otaChannel:d.source==='OTA'?t(d.otaChannel):undefined,company:company?{name:company,gstin:gstin||undefined}:undefined,notes:t(d.notes),hold,key};
+    source:d.source,otaChannel:d.source==='OTA'?t(d.otaChannel):undefined,company:company?{name:company,gstin:gstin||undefined}:undefined,notes:t(d.notes),hold,restrictionOverride:restricted&&d.rstOverride&&reason?reason:undefined,key};
 }
 
 // ── M04 Reservations ──
