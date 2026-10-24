@@ -1,6 +1,6 @@
 import React from 'react';
 import {ArrowUpRight} from 'lucide-react';
-import {Booking,money,nights,totals,resStatus,resHoldLeftLabel} from '../../services/mock';
+import {Booking,money,nights,totals,resStatus,resHoldLeftLabel,plural} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate} from '../../components/ui';
 const tone=(st:string)=>st==='In house'?'green':st==='Confirmed'?'blue':st==='Held'?'orange':'neutral';
@@ -10,7 +10,7 @@ export function BookingTable({list,compact=false}:{list:Booking[];compact?:boole
     {list.map(b=>{const st=resStatus(s,b),room=s.rooms.find(r=>r.id===b.room);return <tr key={b.id}>
       <td><button className="guest-link" onClick={()=>booking(b.id)}><span className="avatar">{b.guest.split(' ').map(x=>x[0]).slice(0,2).join('')}</span><span><strong>{b.guest}</strong><small>{b.id} · {b.source}{b.otaChannel?' · '+b.otaChannel:''}{b.company?' · '+b.company.name:''}</small></span></button></td>
       <td><span className="room-number">{b.room}</span>{room&&<small>{room.type}</small>}</td>
-      <td>{shortDate(b.arrival)} — {shortDate(b.departure)}<small>{nights(b.arrival,b.departure)} nights · {b.people} guest{b.people===1?'':'s'}{b.children?` + ${b.children} child${b.children===1?'':'ren'}`:''}</small></td>
+      <td>{shortDate(b.arrival)} — {shortDate(b.departure)}<small>{plural(nights(b.arrival,b.departure),'night')} · {b.people} guest{b.people===1?'':'s'}{b.children?` + ${b.children} child${b.children===1?'':'ren'}`:''}</small></td>
       <td><Pill tone={tone(st)}>{st}</Pill>{b.status==='Held'&&<small>{resHoldLeftLabel(s,b)}</small>}</td>
       {!compact&&<td className="number">{money(totals(b).paid)}</td>}
       {!compact&&<td className="number">{money(totals(b).balance)}</td>}

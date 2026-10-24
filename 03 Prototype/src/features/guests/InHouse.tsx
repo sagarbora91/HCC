@@ -2,7 +2,7 @@
 import React,{useState} from 'react';
 import {ArrowRight,Info,AlertCircle,Printer,MoveRight,CalendarPlus} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant} from '../../services/mock';
+import {Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant,plural} from '../../services/mock';
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 
 /** Stay detail body (shared by the In-house page and the 'stay-detail' modal). */
@@ -11,7 +11,7 @@ export function StayDetail({b}:{b:Booking;inModal?:boolean}){
   const segs=staySegments(b);const left=b.status==='In house'?Math.max(0,nights(s.date,b.departure)):0;
   return <div className="gs-stay">
     <div className="gs-stay-head"><div><div className="eyebrow">{b.id} · ROOM {b.room}</div><h2>{b.guest}</h2>
-      <div className="inline"><Pill tone={b.status==='In house'?'green':'neutral'}>{b.status}</Pill><span className="muted">{shortDate(b.arrival)} — {shortDate(b.departure)} · {nights(b.arrival,b.departure)} nights{b.status==='In house'?` · ${left} night${left===1?'':'s'} left`:''}</span></div></div></div>
+      <div className="inline"><Pill tone={b.status==='In house'?'green':'neutral'}>{b.status}</Pill><span className="muted">{shortDate(b.arrival)} — {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')}{b.status==='In house'?` · ${left} night${left===1?'':'s'} left`:''}</span></div></div></div>
     <h3 className="gs-sub">Room segments</h3>
     <p className="gs-seg-label">{staySegmentLabel(b)||'—'}</p>
     <ol className="gs-timeline">{segs.map((x,i)=><li key={i} className={x.to?'':'open'}><span className="room-number">{x.room}</span><span>{shortDate(x.from)} — {x.to?shortDate(x.to):'now (to '+shortDate(b.departure)+')'}</span><small>{x.to?(nights(x.from,x.to)?`${nights(x.from,x.to)} night${nights(x.from,x.to)>1?'s':''}`:'same-day move'):'current room'}</small></li>)}</ol>

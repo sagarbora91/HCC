@@ -3,7 +3,7 @@
 import React,{useState} from 'react';
 import {UserPlus,Printer,TriangleAlert,Lock} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Guest,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,money,totals,nights,staySegmentLabel} from '../../services/mock';
+import {Guest,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,money,totals,nights,staySegmentLabel,plural} from '../../services/mock';
 import {Fab,ListCard} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from '../../features/guests/GuestForm';
@@ -63,7 +63,7 @@ function MfGuestView({g,back,onEdit}:{g:Guest;back:React.ReactNode;onEdit?:()=>v
     <MfSection title="Party" meta={`${g.party.length}`}>{g.party.length?<ul className="mf-party">{g.party.map((p,i)=><li key={i}><strong>{p.name}</strong><span>{p.ageBand}{p.relation?' · '+p.relation:''}</span></li>)}</ul>:<p className="mf-note">No accompanying guests recorded.</p>}</MfSection>
     <MfSection title="History" meta={`${stays.length} stay${stays.length===1?'':'s'}`} open={stays.length>0}>
       {stays.length?stays.map(b=><div key={b.id} className="mf-hist">
-        <ListCard title={`${b.id} · ${staySegmentLabel(b)||'Room '+b.room}`} sub={`${shortDate(b.arrival)} – ${shortDate(b.departure)} · ${nights(b.arrival,b.departure)} nights`}
+        <ListCard title={`${b.id} · ${staySegmentLabel(b)||'Room '+b.room}`} sub={`${shortDate(b.arrival)} – ${shortDate(b.departure)} · ${plural(nights(b.arrival,b.departure),'night')}`}
           right={<><MfStatus status={b.status}/>{permission('billing')&&<small className="mf-bal">{money(totals(b).total)}</small>}</>} onClick={()=>booking(b.id)}/>
         {b.registered&&<button type="button" className="text-btn" onClick={()=>open({type:'guest-regcard',id:b.id})}><Printer size={14}/>Registration card</button>}</div>)
         :<p className="mf-note">No stays linked to this profile yet.</p>}</MfSection>

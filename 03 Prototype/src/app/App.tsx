@@ -60,6 +60,9 @@ function AppShell({initial}:{initial:Restored}){
   const display=useDisplayMode();
   const [tabKey,setTabKey]=useState('');
   const [depth,setDepth]=useState(0); // HCC page entries pushed on top of the first one (Android back)
+  // T-05: the depth lives in each history entry (idx), so it can never drift from the real stack.
+  const histIdx=()=>{try{const st=history.state as {idx?:number}|null;return typeof st?.idx==='number'?st.idx:0;}catch{return 0;}};
+  const popSeen=useRef(false);
   const modalRef=useRef<Modal>(null);modalRef.current=modal;
   const modalPushed=useRef(false),dirty=useRef(false),skipPop=useRef(false);
   const setDirty=useCallback((v:boolean)=>{dirty.current=v;},[]);
@@ -73,24 +76,26 @@ function AppShell({initial}:{initial:Restored}){
   const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotice(null),6500);},[]);
   function persist(next:State){setS(next);stateRef.current=next;if(!saveStored(next))setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true});}
   const open=(x:{type:string;id?:string;room?:string})=>{setError('');dirty.current=false;
-    if(!modalPushed.current){try{history.pushState({hcc:'modal',page},'');modalPushed.current=true;}catch{/* history unavailable */}}
+    if(!modalPushed.current){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');modalPushed.current=true;}catch{/* history unavailable */}}
     setModal({...x,key:newKey(x.type)});};
   const closeModal=()=>{if(dirty.current&&!window.confirm('Discard the details you entered?'))return;dirty.current=false;setModal(null);setError('');};
   const booking=(id:string)=>open({type:'booking',id});
   function go(p:string,opts:{tab?:string;replace?:boolean}={}){
-    if(p!==page&&!opts.replace){try{history.pushState({hcc:'page',page:p},'');setDepth(d=>d+1);}catch{/* history unavailable */}}
+    if(p!==page&&!opts.replace){try{const idx=histIdx()+1;history.pushState({hcc:'page',page:p,idx},'');setDepth(idx);}catch{/* history unavailable */}}
+    else if(p!==page){try{history.replaceState({hcc:'page',page:p,idx:histIdx()},'');}catch{/* ignore */}}
     if(display.isMobile&&p!==page)window.setTimeout(()=>window.scrollTo(0,0),0);
     setTabKey(opts.tab??'');setPage(p);setSearch('');setFilter('All');setMobile(false);setError('');}
   // Android back / browser back (MB-02, AC-M03): closes the sheet first, then returns to the previous page.
-  useEffect(()=>{try{history.replaceState({hcc:'page',page},'');}catch{/* ignore */}},[]);// eslint-disable-line
+  useEffect(()=>{try{history.replaceState({hcc:'page',page,idx:0},'');}catch{/* ignore */}},[]);// eslint-disable-line
   useEffect(()=>{if(!modal&&modalPushed.current){modalPushed.current=false;skipPop.current=true;try{history.back();}catch{/* ignore */}}},[modal]);
   useEffect(()=>{const onPop=(e:PopStateEvent)=>{
+      popSeen.current=true;
       if(skipPop.current){skipPop.current=false;return;}
       if(modalRef.current){
-        if(dirty.current&&!window.confirm('Discard the details you entered?')){try{history.pushState({hcc:'modal',page},'');}catch{/* ignore */}return;}
+        if(dirty.current&&!window.confirm('Discard the details you entered?')){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');}catch{/* ignore */}return;}
         modalPushed.current=false;dirty.current=false;setModal(null);setError('');return;}
       const st=e.state as {hcc?:string;page?:string}|null;
-      if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey('');setDepth(d=>Math.max(0,d-1));}
+      if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey('');setDepth(histIdx());}
     };window.addEventListener('popstate',onPop);return ()=>window.removeEventListener('popstate',onPop);},[page]);
   const back=()=>{if(depth>0){try{history.back();return;}catch{/* ignore */}}go(HOME_PAGE,{replace:true});};
   // Android hardware back button (APK only, plan D1): sheet → wizard step → previous page → landing page → "Exit?" confirmation.
@@ -105,7 +110,10 @@ function AppShell({initial}:{initial:Restored}){
     const act=decideBack({sheetOpen:!!modalRef.current,stepBack:hasStepBack(),depth,atLanding:page===HOME_PAGE});
     if(act==='close-sheet')closeModal();
     else if(act==='step-back')runStepBack();
-    else if(act==='history-back'){try{history.back();}catch{/* ignore */}}
+    else if(act==='history-back'){
+      // Fallback (T-05): if history has nowhere to go, no popstate arrives — treat it as the landing page instead of doing nothing.
+      popSeen.current=false;try{history.back();}catch{/* ignore */}
+      window.setTimeout(()=>{if(!popSeen.current){setDepth(0);if(page===HOME_PAGE)setExitAsk(true);else go(HOME_PAGE,{replace:true});}},400);}
     else if(act==='go-landing')go(HOME_PAGE,{replace:true});
     else setExitAsk(true);
   };

@@ -3,7 +3,7 @@
 import React from 'react';
 import {MoveRight,CalendarPlus,Printer,ArrowRight,UserRound} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse} from '../../services/mock';
+import {money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,plural} from '../../services/mock';
 import {ListCard} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {mfInitials} from './logic';
@@ -35,7 +35,7 @@ export function MfStayDetail({id}:{id?:string}){
   return <><div className="mf-stay-head">
       <div className="mf-stay-room"><span>ROOM</span><strong>{b.room}</strong></div>
       <div className="mf-stay-main"><div className="eyebrow">{b.id}</div><h2>{b.guest}</h2>
-        <p>{shortDate(b.arrival)} – {shortDate(b.departure)} · {nights(b.arrival,b.departure)} nights{inHouse?` · ${left} left`:''}</p>
+        <p>{shortDate(b.arrival)} – {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')}{inHouse?` · ${left} left`:''}</p>
         <MfStatus status={b.status}/></div>
       {finance&&<div className={'mf-stay-bal '+(t.balance>0?'due':'clear')}><span>{t.balance<0?'Credit':'Balance due'}</span><strong>{money(t.balance)}</strong>{t.deposit>0&&<small>Deposit held {money(t.deposit)}</small>}</div>}
     </div>

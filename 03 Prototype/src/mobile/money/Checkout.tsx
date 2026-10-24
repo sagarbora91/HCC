@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React from 'react';
 import {Check,AlertTriangle,ArrowRight,Printer,Building2,Receipt,Hotel,Info} from 'lucide-react';
-import {money,totals,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT} from '../../services/mock';
+import {money,totals,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate} from '../../components/ui';
 import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
@@ -55,7 +55,7 @@ export function MmInvoice({id}:{id?:string}){
       <div className="invoice-top mm-inv-top"><Hotel size={30}/><div><h2>{s.settings.hotel}</h2><p>Hotel Control Centre · Fictional property</p></div></div>
       <div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>
       <div className="mm-inv-meta">
-        <div><small>GUEST</small><strong>{b.guest}</strong><span>Room {b.room} · {b.people} guests · {b.id}</span>{b.company&&<span>Bill to: {b.company.name}{b.company.gstin?` · GSTIN (placeholder) ${b.company.gstin}`:''}</span>}</div>
+        <div><small>GUEST</small><strong>{b.guest}</strong><span>Room {b.room} · {plural(b.people,'guest')} · {b.id}</span>{b.company&&<span>Bill to: {b.company.name}{b.company.gstin?` · GSTIN (placeholder) ${b.company.gstin}`:''}</span>}</div>
         <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><strong>{b.invoiceNo??'Not yet issued'}</strong><span>{shortDate(b.arrival)} — {shortDate(b.departure)}</span><span>{b.invoiceNo?'Allocated once at checkout':'Number allocated once at checkout'}</span></div>
       </div>
       <table className="mm-inv-table"><thead><tr><th>Description</th><th>Date</th><th className="number">Net</th><th className="number">Tax</th></tr></thead>

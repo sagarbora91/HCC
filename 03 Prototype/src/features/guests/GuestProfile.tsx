@@ -3,7 +3,7 @@ import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Printer,Hotel,ShieldCheck,UserPlus,Lock} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel} from '../../services/mock';
+import {Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
 import {PageTitle,SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 
@@ -33,7 +33,7 @@ export function StayHistory({g}:{g:Guest}){
   if(!stays.length)return <p className="muted padded">No stays linked to this profile yet.</p>;
   return <div className="table-wrap"><table><thead><tr><th>Booking</th><th>Room(s)</th><th>Stay</th><th>Status</th>{permission('billing')&&<th>Folio total</th>}<th></th></tr></thead><tbody>
     {stays.map(b=><tr key={b.id}><td><button className="guest-link" onClick={()=>booking(b.id)}><strong>{b.id}</strong></button><small>{b.source}</small></td>
-      <td>{staySegmentLabel(b)||b.room}</td><td>{shortDate(b.arrival)} — {shortDate(b.departure)}<small>{nights(b.arrival,b.departure)} nights</small></td>
+      <td>{staySegmentLabel(b)||b.room}</td><td>{shortDate(b.arrival)} — {shortDate(b.departure)}<small>{plural(nights(b.arrival,b.departure),'night')}</small></td>
       <td><Pill tone={statusTone(b.status)}>{b.status}</Pill></td>{permission('billing')&&<td className="number">{money(totals(b).total)}</td>}
       <td>{b.registered&&<button className="text-btn" onClick={()=>open({type:'guest-regcard',id:b.id})}><Printer size={13}/>Card</button>}</td></tr>)}
   </tbody></table></div>;

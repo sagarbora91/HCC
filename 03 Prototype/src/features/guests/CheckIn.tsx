@@ -2,7 +2,7 @@
 import React,{useState,useRef,useEffect} from 'react';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,Room,money,nights,addDays,totals,taxRateFor,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments} from '../../services/mock';
+import {Booking,Room,money,nights,addDays,totals,taxRateFor,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural} from '../../services/mock';
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestDetails,statusTone} from './GuestProfile';
@@ -32,7 +32,7 @@ export function ArrivalsPage(){
       {list.map(b=>{const g=guestForBooking(s,b);const v=g?guestView(s,uid,g):undefined;return <tr key={b.id}>
         <td><strong>{b.guest}</strong><small>{b.id} · {b.source}{v?' · '+v.phone:''}</small></td>
         <td><span className="room-number">{b.room}</span><small>{s.rooms.find(r=>r.id===b.room)?.type}</small></td>
-        <td>{shortDate(b.arrival)} — {shortDate(b.departure)}<small>{nights(b.arrival,b.departure)} nights{b.arrival<s.date?' · overdue arrival':''}</small></td>
+        <td>{shortDate(b.arrival)} — {shortDate(b.departure)}<small>{plural(nights(b.arrival,b.departure),'night')}{b.arrival<s.date?' · overdue arrival':''}</small></td>
         <td>{b.registered?<Pill tone="green">✓ Verified</Pill>:<Pill tone="blue">Not yet</Pill>}</td>
         <td><RoomState b={b}/></td>
         <td className="number">{money(totals(b).paid)}</td>

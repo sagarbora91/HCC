@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
-import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT} from '../../services/mock';
+import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
 import {bookingActionSlots} from '../../app/registry';
@@ -45,7 +45,7 @@ export function BookingModal({id}:{id:string}){
   const approvals=folioApprovalsFor(s,b.id);
   const closed=(d:string)=>s.closedDates.includes(d);
   return <><div className="modal-heading"><div className="eyebrow">{b.id} · ROOM {b.room}{b.invoiceNo?` · INVOICE ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
-      <div className="inline">{(()=>{const st=resStatus(s,b);return <Pill tone={st==='In house'?'green':st==='Confirmed'?'blue':st==='Held'?'orange':'neutral'}>{st}</Pill>;})()}<span>{shortDate(b.arrival)} — {shortDate(b.departure)} · {nights(b.arrival,b.departure)} nights · {b.people} guests</span>
+      <div className="inline">{(()=>{const st=resStatus(s,b);return <Pill tone={st==='In house'?'green':st==='Confirmed'?'blue':st==='Held'?'orange':'neutral'}>{st}</Pill>;})()}<span>{shortDate(b.arrival)} — {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')} · {plural(b.people,'guest')}</span>
         <span className={'folio-nights '+(n.posted<n.agreed?'short':'')} title="Room nights are posted by the nightly audit">Nights posted {n.posted} of {n.agreed} agreed</span></div>
       {b.company&&<p className="folio-company"><Building2 size={14}/>{b.company.name}{b.company.gstin?` · GSTIN (placeholder) ${b.company.gstin}`:''}</p>}</div>
     <div className="booking-actions">
@@ -163,7 +163,7 @@ export function InvoiceModal({id}:{id:string}){
   const t=totals(b);
   return <><div className="invoice"><div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>Hotel Control Centre · Fictional property</p></div></div>
     <div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>
-    <div className="invoice-meta"><div><small>GUEST</small><h3>{b.guest}</h3><p>Room {b.room} · {b.people} guests</p>{b.company&&<p>Bill to: {b.company.name}{b.company.gstin?<><br/>GSTIN (placeholder): {b.company.gstin}</>:null}</p>}</div>
+    <div className="invoice-meta"><div><small>GUEST</small><h3>{b.guest}</h3><p>Room {b.room} · {plural(b.people,'guest')}</p>{b.company&&<p>Bill to: {b.company.name}{b.company.gstin?<><br/>GSTIN (placeholder): {b.company.gstin}</>:null}</p>}</div>
       <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><h3>{b.invoiceNo??'Not yet issued'}</h3><p>{b.invoiceNo?'Allocated once at checkout':'A number is allocated once at checkout'}</p><p>{shortDate(b.arrival)} — {shortDate(b.departure)} · {b.id}</p></div></div>
     <table><thead><tr><th>Description</th><th>Date</th><th>Net</th><th>Synthetic tax</th></tr></thead><tbody>{b.lines.map(l=><tr key={l.id}><td>{l.label}</td><td>{shortDate(l.date)}</td><td>{money(l.amount)}</td><td>{money(Math.round(l.amount*l.taxBps/10000))}</td></tr>)}</tbody></table>
     <div className="summary-list invoice-summary"><div><span>Total including test tax</span><strong>{money(t.total)}</strong></div><div><span>Net receipts applied</span><strong>{money(t.paid)}</strong></div>

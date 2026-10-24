@@ -2,7 +2,7 @@
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import React,{useState} from 'react';
 import {Receipt,Plus,MoreHorizontal,RotateCcw,Printer,LogOut,Percent,CalendarRange,XCircle,FileMinus,PencilLine,Building2} from 'lucide-react';
-import {money,totals,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS} from '../../services/mock';
+import {money,totals,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ListCard,KpiCard,ChipFilter} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
@@ -57,7 +57,7 @@ export function MmFolioSheet({id}:{id?:string}){
   const userName=(uid?:string)=>s.users.find(u=>u.id===uid)?.name.split(' · ')[0]??uid??'—';
   return <>
     <div className="modal-heading mm-folio-head"><div className="eyebrow">{b.id} · ROOM {b.room}{b.invoiceNo?` · ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
-      <p className="mm-meta"><Pill tone={statusTone(st)}>{st}</Pill> {shortDate(b.arrival)} – {shortDate(b.departure)} · {nights(b.arrival,b.departure)} nights · {b.people} guests</p>
+      <p className="mm-meta"><Pill tone={statusTone(st)}>{st}</Pill> {shortDate(b.arrival)} – {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')} · {plural(b.people,'guest')}</p>
       <p className={'mm-meta '+(n.posted<n.agreed?'mm-warn-text':'')}>Nights posted {n.posted} of {n.agreed} agreed</p>
       {b.company&&<p className="mm-meta"><Building2 size={14}/> {b.company.name}</p>}</div>
     <section className={'mm-hero mm-hero-'+h.state} aria-label="Folio balance">
