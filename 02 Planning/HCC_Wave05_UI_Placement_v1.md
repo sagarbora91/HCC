@@ -31,3 +31,6 @@ Fictional staff and figures only; statutory rates are dated settings, never cons
 1. Cash book under **Cash and billing** (daily use by the cashier) — or under Accounts and reports?
 2. Compliance calendar visible to **Owner + Accountant** only, or also the Manager?
 3. Payslips: PDF via share sheet only, or also a simulated WhatsApp send as in SCC?
+
+## 5. Master configuration panel
+See `HCC_Master_Configuration_Design_v1.md`: one settings hub in Admin and setup (12 groups, search, live summaries, list/details on desktop and phone, modules on/off, dated values, approvals and history). The new payroll, leave, compliance and cash-book settings are registered there rather than on their own pages.
