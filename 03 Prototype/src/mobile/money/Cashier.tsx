@@ -16,13 +16,13 @@ export function MmCashier(){
   const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
   const [reason,setReason]=useState('');
   const sh=s.shift,a=sh?.approval?s.approvals.find(x=>x.id===sh.approval):undefined;
-  const cashIn=ex.payments+ex.deposits+ex.other,cashOut=ex.refunds+ex.returns+ex.expenses;
+  const cashIn=ex.payments+ex.deposits+ex.restaurant+ex.other,cashOut=ex.refunds+ex.returns+ex.expenses;
   return <div className="mm-page">
     <section className="mm-hero mm-hero-cash" aria-label="Expected cash">
       <div className="mm-hero-main"><span>Expected cash in drawer</span><strong className="number">{money(ex.expected)}</strong></div>
       <div className="mm-hero-status"><Pill tone={st==='Open'?'green':st==='Submitted'?'orange':'neutral'}>{st==='Open'?'Shift open':st==='Submitted'?'Awaiting approval':'Shift closed'}</Pill><span>{dateLabel(s.date)}</span></div>
       <div className="mm-hero-sub"><div><span>Opening float</span><strong className="number">{money(ex.opening)}</strong></div><div><span>Cash in</span><strong className="number">+{money(cashIn)}</strong></div><div><span>Cash out</span><strong className="number">−{money(cashOut)}</strong></div></div>
-      <p className="mm-formula">{money(ex.opening)} + {money(cashIn)} − {money(cashOut)} = {money(ex.expected)}. UPI, card, bank and vendor credit are excluded.</p>
+      <p className="mm-formula">{money(ex.opening)} + {money(cashIn)} − {money(cashOut)} = {money(ex.expected)}. Cash in includes restaurant cash {money(ex.restaurant)} (one shared till). UPI, card, bank, vendor credit and room charges are excluded.</p>
     </section>
 
     {st==='Submitted'&&sh&&<section className="mm-card mm-diffcard" aria-label="Difference approval">
@@ -52,9 +52,9 @@ export function MmCashier(){
 
     <h2 className="m-group">TODAY’S CASH MOVEMENTS · {mv.length}</h2>
     {mv.map(m=><ListCard key={m.id} title={m.label} sub={`${m.id} · ${m.reference}`} meta={`${m.guest?m.guest+' · ':''}by ${name(m.actor)}`}
-      onClick={m.booking&&(permission('billing')||permission('reservations'))?()=>booking(m.booking!):undefined}
+      onClick={m.booking&&(permission('billing')||permission('reservations'))?()=>booking(m.booking!):m.order&&permission('billing')?()=>go('pos'):undefined}
       right={<strong className={'number '+(m.amount<0?'mm-out':'mm-in')}>{m.amount>=0?'+':'−'}{money(Math.abs(m.amount))}</strong>}/>)}
-    {!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds and posted cash expenses appear here."/>}
+    {!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds, restaurant cash bills and posted cash expenses appear here."/>}
 
     {st==='Open'&&!closed&&permission('payments')&&<StickyFooter><button className="btn primary" onClick={()=>open({type:'mm-count'})}><Calculator size={18}/> Count drawer</button></StickyFooter>}
   </div>;

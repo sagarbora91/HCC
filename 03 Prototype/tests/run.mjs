@@ -1,3 +1,4 @@
+import {tillClear} from './_till.mjs';
 import {build} from 'esbuild';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -9,7 +10,7 @@ let passed=0;const results=[];
 function test(name,fn){try{fn();passed++;results.push({name,status:'passed'});console.log('PASS',name);}catch(e){results.push({name,status:'failed',error:e.message});console.error('FAIL',name,e);process.exitCode=1;}}
 function book(s=seed(),uid='owner'){const next=execute(s,uid,{type:'BOOK',guest:'Journey Test',room:'105',arrival:s.date,departure:'2026-10-26',people:2});return [next,next.bookings.at(-1).id];}
 function inhouse(){let [s,id]=book();s=execute(s,'owner',{type:'REGISTER',id});s=execute(s,'owner',{type:'CHECKIN',id});return [s,id];}
-test('Fixture totals are derived, not hardcoded',()=>{const s=seed();assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1020000);});
+test('Fixture totals are derived, not hardcoded',()=>{const s=seed();assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1075000);});
 test('Overlapping room reservation rejected without altering original state',()=>{const [s]=book();const copy=JSON.stringify(s);assert.throws(()=>book(s),/not available/);assert.equal(JSON.stringify(s),copy);});
 test('Adjacent non-overlapping stays accepted',()=>{const [s]=book();assert.equal(available(s,'105','2026-10-26','2026-10-28'),true);});
 test('Blocked room reservation rejected',()=>{assert.throws(()=>execute(seed(),'owner',{type:'BOOK',guest:'Test',room:'308',arrival:'2026-10-24',departure:'2026-10-26',people:1}),/not available/);});
@@ -36,7 +37,7 @@ test('Cash receipts rejected after shift closes',()=>{let s=seed();s=execute(s,'
 test('Existing tax snapshots survive settings changes',()=>{const [s,id]=inhouse();let next=execute(s,'owner',{type:'POST_NIGHTS',id});const before=totals(next.bookings.find(b=>b.id===id));next=execute(next,'owner',{type:'SETTINGS',...next.settings,taxBps:1500});assert.deepEqual(totals(next.bookings.find(b=>b.id===id)),before);next=execute(next,'owner',{type:'CHARGE',id,label:'New tax snapshot',amount:10000});assert.equal(next.bookings.find(b=>b.id===id).lines.at(-1).taxBps,1500);});
 test('Room move conflict preserves original allocation',()=>{const [s,id]=inhouse(),copy=JSON.stringify(s);assert.throws(()=>execute(s,'owner',{type:'MOVE',id,room:'101',departure:'2026-10-27'}),/unavailable/);assert.equal(JSON.stringify(s),copy);});
 test('Refund cannot exceed receipts',()=>{assert.throws(()=>execute(seed(),'owner',{type:'REFUND_REQUEST',id:'HCC-1041',receiptId:'seed-pay-0',amount:99999999,reason:'Test'}),e=>e.code==='VALIDATION'&&/cannot exceed/.test(e.message));});
-test('End-to-end close and next day preserve opening cash',()=>{let s=seed();for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});s=execute(s,'owner',{type:'NIGHT_POST'});const expected=drawer(s);s=execute(s,'owner',{type:'SHIFT_CLOSE',counted:expected});s=execute(s,'owner',{type:'DAY_CLOSE'});assert.throws(()=>execute(s,'owner',{type:'NIGHT_POST'}),/closed/);s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(s.date,'2026-10-25');assert.equal(s.openingCash,expected);assert.equal(s.shiftOpen,true);});
+test('End-to-end close and next day preserve opening cash',()=>{let s=seed();for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});s=execute(s,'owner',{type:'NIGHT_POST'});const expected=drawer(s);s=execute(s,'owner',{type:'SHIFT_CLOSE',counted:expected});s=tillClear(M,s);s=execute(s,'owner',{type:'DAY_CLOSE'});assert.throws(()=>execute(s,'owner',{type:'NIGHT_POST'}),/closed/);s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(s.date,'2026-10-25');assert.equal(s.openingCash,expected);assert.equal(s.shiftOpen,true);});
 await import('./m1.mjs').then(x=>x.register({test,M,assert}));
 // Stream test suites: tests/stream-*.mjs, each exporting register({test,M,assert}).
 for(const f of (await (await import('node:fs/promises')).readdir(new URL('.',import.meta.url))).filter(f=>/^stream-.*\.mjs$/.test(f)).sort())await import('./'+f).then(x=>x.register({test,M,assert}));

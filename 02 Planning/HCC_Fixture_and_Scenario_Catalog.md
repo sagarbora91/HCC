@@ -85,9 +85,12 @@ Verified by running the current domain code, 24 Oct 2026:
 | Today's receipts (payments) | ₹21,500 | ₹19,500 in-house + ₹2,000 advances |
 | Outstanding balances | ₹1,950 | 10% synthetic tax on each 23 Oct night |
 | Posted expenses today | ₹1,800 | EXP-101 |
-| Expected drawer | **₹10,200** | ₹5,000 + ₹7,000 cash receipts − ₹1,800 cash expense |
+| Expected drawer | **₹10,750** | ₹5,000 + ₹7,000 cash receipts + ₹550 restaurant cash (POS-F01, ₹500 + ₹50 tax) − ₹1,800 cash expense |
+| Restaurant (POS) today | ₹1,298 settled · 2 checks open | POS-F01 ₹550 cash (in the drawer) · POS-F02 ₹748 UPI (non-cash) · POS-F03 table T2 and POS-F04 room 201 open — they block day close until settled, charged to the room or voided |
 
-**Known test defect:** the test "Fixture totals are derived, not hardcoded" expects ₹10,700. The derivation above gives ₹10,200, so the **test oracle is wrong**, not the domain. (₹10,700 is the drawer after the walkthrough's ₹500 cash deposit.) Fix in backlog BL-001.
+**Figure change (24 Oct 2026, DEC-052 shared till, W0-B):** expected drawer **₹10,200 → ₹10,750** = ₹10,200 + ₹550 POS-F01 cash breakfast, which now counts once in the front-desk drawer. No fixture record changed; only the drawer formula (Financial Rulebook §4 + POS cash sales − same-day POS cash voids).
+
+**Historical note (fixed in BL-001):** the test "Fixture totals are derived, not hardcoded" expects ₹10,700. The derivation above gives ₹10,200, so the **test oracle is wrong**, not the domain. (₹10,700 is the drawer after the walkthrough's ₹500 cash deposit.) Fix in backlog BL-001.
 
 ## 3. Scenarios
 
@@ -109,19 +112,19 @@ Recommended multi-day version (DEC-029 option B). New booking ID in the current 
 
 | Step | Business date | Actor | Actions | Expected result |
 |---|---|---|---|---|
-| 1 | 24 Oct | Owner | Open Overview; review room board, cash card | 8 occupied, 23 sellable, drawer ₹10,200, outstanding ₹1,950 |
+| 1 | 24 Oct | Owner | Open Overview; review room board, cash card | 8 occupied, 23 sellable, drawer ₹10,750 (was ₹10,200 before DEC-052), outstanding ₹1,950 |
 | 2 | 24 Oct | Reception | Calendar → Room 105, 24→26 Oct, 2 guests, source Phone; record advance ₹1,000 UPI `DEMO-UPI-0001` | Booking Confirmed; folio balance −₹1,000; drawer unchanged |
 | 3 | 24 Oct | Reception | Guest profile "Rahul Verma (fictional)" → register → check in | Room 105 Occupied; arrivals list updated; audit entries |
-| 3b | 24 Oct | Cashier | Record refundable deposit ₹500 cash | Deposit held ₹500; balance still −₹1,000; drawer ₹10,700 |
-| 4a | 24 Oct | Manager | Approve EXP-102 (UPI); close cash shift counting ₹10,700; night audit posts 24 Oct; close day; open 25 Oct | 105 folio balance ₹1,200; 24 Oct closed; opening float ₹10,700 |
+| 3b | 24 Oct | Cashier | Record refundable deposit ₹500 cash | Deposit held ₹500; balance still −₹1,000; drawer ₹11,250 (was ₹10,700) |
+| 4a | 24 Oct | Manager | Approve EXP-102 (UPI); settle the open restaurant checks (POS-F03 table T2, POS-F04 room 201 — UPI, or charge 201 to the room); close cash shift counting ₹11,250; night audit posts 24 Oct; close day; open 25 Oct | 105 folio balance ₹1,200; 24 Oct closed; opening float ₹11,250 (was ₹10,700) |
 | 4b | 25 Oct | Reception | Add Laundry service ₹500; request discount ₹500 "Service delay goodwill" | Discount above ₹250 → APR pending; balance ₹1,750 |
 | 5 | 25 Oct | Reception → Manager | Reception tries to approve → **denied**; Housekeeper tries to record payment → **denied**; Manager approves | Discount line −₹500 (tax −₹50); balance ₹1,200 |
-| 5b | 25 Oct | Manager | Night audit posts 25 Oct; shift close ₹10,700; close day; open 26 Oct | 105 balance ₹3,400 — total ₹4,400 (net ₹4,000 + tax ₹400) |
-| 6 | 26 Oct | Cashier | Settle ₹2,000 cash + ₹1,400 UPI `DEMO-UPI-0002`; return deposit ₹500 cash | Balance ₹0; deposit ₹0; drawer ₹12,200 |
+| 5b | 25 Oct | Manager | Night audit posts 25 Oct; shift close ₹11,250 (was ₹10,700); close day; open 26 Oct | 105 balance ₹3,400 — total ₹4,400 (net ₹4,000 + tax ₹400) |
+| 6 | 26 Oct | Cashier | Settle ₹2,000 cash + ₹1,400 UPI `DEMO-UPI-0002`; return deposit ₹500 cash | Balance ₹0; deposit ₹0; drawer ₹12,750 (was ₹12,200) |
 | 7 | 26 Oct | Reception | Checkout; print sample invoice | Stay CheckedOut; room 105 Dirty; exactly one HK task (Ravi); invoice ₹4,400 |
 | 8 | 26 Oct | Housekeeper → Supervisor | Ravi starts, ticks 3 items, completes; Neha inspects | Room 105 Ready |
-| 9 | 26 Oct | Cashier → Manager | Expense "Aqua Water Cans" ₹300 cash; manager approves/posts | Drawer ₹11,900 |
-| 10 | 26 Oct | Manager | Night audit 26 Oct; shift close counting ₹11,900; close day; rerun close/post | Day closed; rerun → "already closed", totals unchanged |
+| 9 | 26 Oct | Cashier → Manager | Expense "Aqua Water Cans" ₹300 cash; manager approves/posts | Drawer ₹12,450 (was ₹11,900) |
+| 10 | 26 Oct | Manager | Night audit 26 Oct; shift close counting ₹12,450 (was ₹11,900); close day; rerun close/post | Day closed; rerun → "already closed", totals unchanged |
 | 11 | 26 Oct | Owner | Reports → drill from receipts, tax, deposits, expenses to the Room 105 records | Room 105 shows ₹4,000 net / ₹400 tax; deposit in ₹500 / out ₹500; expense ₹300 |
 | 12 | 26 Oct | Owner | Remove a permission from Reception; disable user Aarav; switch to Aarav and try a booking | Next command → "User disabled"; audit shows policy change and denial |
 

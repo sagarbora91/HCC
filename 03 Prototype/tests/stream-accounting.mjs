@@ -1,4 +1,5 @@
 // Module 20 · Accounting automation — domain/command tests. Names prefixed [ACC].
+import {tillClear} from './_till.mjs';
 export function register({test,M,assert}){
   const D='2026-10-24',Y='2026-10-23';
   const allBalanced=vs=>vs.every(v=>{const t=M.accVoucherTotals(v);return t.debit===t.credit&&t.debit>0;});
@@ -8,7 +9,7 @@ export function register({test,M,assert}){
     for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=M.execute(s,'owner',{type:'REGISTER',id:b.id});s=M.execute(s,'owner',{type:'CHECKIN',id:b.id});}
     s=M.execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});
     s=M.execute(s,'owner',{type:'NIGHT_POST'});s=M.execute(s,'owner',{type:'SHIFT_CLOSE',counted:M.drawer(s)});
-    return M.execute(s,'owner',{type:'DAY_CLOSE'});
+    s=tillClear(M,s);return M.execute(s,'owner',{type:'DAY_CLOSE'});
   }
 
   test('[ACC] module slice defaults to empty',()=>{const s=M.seed();assert.deepEqual(M.accSlice(s),{});assert.equal(M.accMapping(s)['line:room'],'4000');});
@@ -31,7 +32,7 @@ export function register({test,M,assert}){
   test('[ACC] every voucher traces to a stable, unique source ID and existing record',()=>{
     const s=M.seed(),vs=[...M.accVouchers(s,Y),...M.accVouchers(s,D)];
     assert.equal(new Set(vs.map(v=>v.source.id)).size,vs.length);
-    for(const v of vs){const src=M.accSourceOf(s,v);assert.ok(src.line||src.receipt||src.expense,v.source.id);}
+    for(const v of vs){const src=M.accSourceOf(s,v);assert.ok(src.line||src.receipt||src.expense||src.posReceipt,v.source.id);}
     assert.deepEqual(M.accLiveVouchers(s,D).map(v=>v.no+v.source.id),M.accLiveVouchers(s,D).map(v=>v.no+v.source.id));
   });
   test('[ACC] full day flow (charge, discount, deposit, return, refund, UPI) stays balanced and reconciles',()=>{
@@ -137,5 +138,5 @@ export function register({test,M,assert}){
     assert.equal(Math.round(dr*100),Math.round(cr*100));assert.equal(Math.round(dr*100),M.accTotals(vs).debit);
     assert.ok(rows.slice(1).every(r=>r.startsWith(D+',')));
   });
-  test('[ACC] base fixture figures unchanged by the module',()=>{const s=M.seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1020000);assert.equal(s.accountingX,undefined);});
+  test('[ACC] base fixture figures unchanged by the module',()=>{const s=M.seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1075000);assert.equal(s.accountingX,undefined);});
 }

@@ -4,6 +4,7 @@
 import type {State,Booking,Expense,Receipt,Line} from '../types';
 import {money,addDays} from '../money';
 import {drawer,blockedDuring,totals} from '../selectors';
+import {posSlice,posOpenOrders,posOrderTotals,posSpot} from './pos';
 
 // ── Limits (RBAC Matrix §6, demonstration defaults) ──
 /** Manager may accept a cash difference up to ₹200; above → Owner (PERM-SHF-002). */
@@ -32,7 +33,11 @@ export type ClosingRecord={
   occupancy:{sellable:number;occupied:number;occupancy:string;roomRevenue:number;adr:string;revpar:string};
   cash:{opening:number;expected:number;counted:number;difference:number;reason?:string;approvedBy?:string;
     /** Cash taken out of the drawer after the count (bank drop / owner handover) so the next opening float is restored. FY26 history only. */
-    banked?:number};
+    banked?:number;
+    /** Restaurant / room-service cash (net of same-day voids) inside expected cash (shared till, DEC-052). */
+    restaurant?:number};
+  /** Outlet (POS) receipts by method, net of same-day voids; Room folio = room-service charged to a stay (a charge, not a receipt). */
+  outlet?:{byMethod:Record<string,number>;net:number;roomFolio:number;bills:number};
   nightAudit:{stays:number;resumed:boolean};
   exceptions:string[];
 };
@@ -43,14 +48,21 @@ export function shiftStatus(s:State):ShiftStatus{
   if(s.shiftOpen)return 'Open';
   return s.shift?.date===s.date&&s.shift.status==='Submitted'?'Submitted':'Closed';
 }
-export type CashMovement={id:string;kind:string;label:string;booking?:string;guest?:string;reference:string;amount:number;actor:string};
-/** Today's cash movements, signed (+ into the drawer, − out). Sum + opening float = drawer(s). */
+export type CashMovement={id:string;kind:string;label:string;booking?:string;guest?:string;reference:string;amount:number;actor:string;
+  /** POS check behind a restaurant / room-service movement. */ order?:string};
+/** Today's cash movements, signed (+ into the drawer, − out). Sum + opening float = drawer(s).
+ *  Shared till (DEC-052): POS cash sales and same-day voids count once here; UPI/card bills and room charges to a folio do not. */
 export function shiftMovements(s:State):CashMovement[]{
   const rec=s.bookings.flatMap(b=>b.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
     label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor})));
   const exp=s.expenses.filter(e=>e.date===s.date&&e.method==='Cash'&&expenseCounts(e)).map(e=>({id:e.id,kind:e.reversalOf?'expense-reversal':'expense',
     label:e.reversalOf?'Expense reversal · '+e.vendor:'Cash expense · '+e.vendor,reference:e.reversalOf?'Reverses '+e.reversalOf:e.category,amount:-e.amount,actor:e.actor}));
-  return [...rec,...exp];
+  const p=posSlice(s);
+  const pos=p.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>{
+    const o=p.orders.find(x=>x.id===r.order),outlet=p.outlets.find(x=>x.id===r.outlet)?.name??r.outlet,bill=o?.settlement?.billNo??r.order;
+    return {id:r.id,kind:r.kind==='void'?'pos-void':'pos-sale',label:`${outlet}${r.kind==='void'?' void':''} · ${bill}`,guest:o?.guest,order:r.order,
+      reference:o?posSpot(o)+' · '+r.reference:r.reference,amount:r.amount,actor:r.actor};});
+  return [...rec,...pos,...exp];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
 /** The expected-cash formula with its parts (Financial Rulebook §4). parts.expected always equals drawer(s). */
@@ -58,8 +70,8 @@ export function shiftExpected(s:State){
   const mv=shiftMovements(s),sum=(k:string[])=>mv.filter(m=>k.includes(m.kind)).reduce((a,m)=>a+m.amount,0);
   const neg=(n:number)=>0-n||0; // avoid −0 ("-₹0" on screen)
   const parts={opening:s.openingCash,payments:sum(['payment']),deposits:sum(['deposit']),refunds:neg(sum(['refund'])),returns:neg(sum(['deposit-return'])),
-    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit'])};
-  const expected=parts.opening+parts.payments+parts.deposits+parts.other-parts.refunds-parts.returns-parts.expenses;
+    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void'])};
+  const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other-parts.refunds-parts.returns-parts.expenses;
   return {...parts,expected,consistent:expected===drawer(s)};
 }
 /** Denomination grid → paise. counts[note]=number of notes; coins = rupee amount. */
@@ -102,6 +114,8 @@ export function closingPreflight(s:State):PreflightIssue[]{
       items:pendingApprovals.map(a=>({label:`${approvalKindLabel(a.kind)} · ${money(a.amount)} · ${a.id}`,page:a.kind==='cash-difference'?'cashier':'expenses'}))},
     {id:'expenses',title:'Expenses resolved',hint:'Approve or reject pending expenses.',page:'expenses',
       items:s.expenses.filter(e=>e.status==='Pending').map(e=>({label:`${e.vendor} · ${money(e.amount)} · ${e.id}`,page:'expenses'}))},
+    {id:'pos',title:'Restaurant checks settled',hint:'Settle each open check, charge it to the room, or void it (with approval above the limit).',page:'pos',
+      items:posOpenOrders(s).map(o=>({label:`${posSpot(o)} · ${o.id}${o.guest?' · '+o.guest:''} · ${money(posOrderTotals(s,o).total)} open`,page:'pos'}))},
     {id:'shift',title:'Cash shift reconciled',hint:st==='Submitted'?'The count awaits difference approval.':'Count the drawer and submit the shift.',page:'cashier',
       items:st==='Closed'?[]:[{label:st==='Submitted'?'Count submitted · difference awaiting approval':'Cash shift open · '+money(drawer(s))+' expected',page:'cashier'}]},
   ];
@@ -127,11 +141,20 @@ export function closingSummary(s:State,closedBy=''):ClosingRecord{
     deposits:{received:v('receipts','deposit-in'),returned:0-v('receipts','deposit-out')||0,heldAtClose:s.bookings.reduce((a,b)=>a+totals(b).deposit,0)},
     expenses:{cash:v('expenses','cash'),nonCash:v('expenses','noncash'),vendorCredit:v('expenses','vendor'),total:v('expenses','total')},
     occupancy:{sellable:occ.sellable,occupied:occ.occupied,occupancy:reportPct(occ.occupied,occ.sellable),roomRevenue:occ.roomRevenue,adr:reportRatioMoney(occ.roomRevenue,occ.occupied),revpar:reportRatioMoney(occ.roomRevenue,occ.sellable)},
-    cash:{opening:s.openingCash,expected,counted,difference:counted-expected,reason:counted!==expected?sh?.reason:undefined,approvedBy:counted!==expected?sh?.decidedBy:undefined},
+    cash:{opening:s.openingCash,expected,counted,difference:counted-expected,reason:counted!==expected?sh?.reason:undefined,approvedBy:counted!==expected?sh?.decidedBy:undefined,restaurant:ex.restaurant},
+    outlet:closingOutlet(s,d),
     nightAudit:{stays:closingNightTargets(s).length,resumed:!!(s.closeProgress?.date===d&&s.closeProgress.runs>1)},
     exceptions};
 }
 const userName=(s:State,id:string)=>s.users.find(u=>u.id===id)?.name??id;
+/** Outlet receipts of a business date by method (sales − same-day voids) and room-service bills charged to folios. */
+export function closingOutlet(s:State,d:string){
+  const p=posSlice(s),byMethod:Record<string,number>={Cash:0,UPI:0,Card:0};
+  for(const r of p.receipts)if(r.date===d)byMethod[r.method]=(byMethod[r.method]??0)+r.amount;
+  const folio=p.orders.filter(o=>o.settlement?.mode==='folio'&&o.settlement.date===d);
+  return {byMethod,net:Object.values(byMethod).reduce((a,v)=>a+v,0),roomFolio:folio.reduce((a,o)=>a+o.settlement!.total,0),
+    bills:p.orders.filter(o=>o.status==='Settled'&&o.settlement?.date===d).length};
+}
 
 // ── Reports (SCR-15, REQ-RPT-002..006) ──
 export type DrillRow={date:string;ref:string;booking?:string;guest?:string;room?:string;detail:string;method?:string;kind?:string;amount:number};

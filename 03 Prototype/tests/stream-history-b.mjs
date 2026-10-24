@@ -1,4 +1,5 @@
 // Phase B tests: FY26 daily operations, closing records, cash continuity, reports over months, accounting, housekeeping history.
+import {tillClear} from './_till.mjs';
 const FROM='2026-04-01',TO='2026-10-23';
 const addDays=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
 const range=(a,b)=>{const out=[];for(let d=a;d<=b;d=addDays(d,1))out.push(d);return out;};
@@ -70,7 +71,7 @@ export function register({test,M,assert}){
     let x=loadScenario('FY26');
     for(const b of x.bookings.filter(b=>b.status==='Confirmed')){x=execute(x,'owner',{type:'REGISTER',id:b.id});x=execute(x,'owner',{type:'CHECKIN',id:b.id});}
     x=execute(x,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});x=execute(x,'owner',{type:'NIGHT_POST'});
-    const exp=drawer(x);x=execute(x,'owner',{type:'SHIFT_CLOSE',counted:exp});x=execute(x,'owner',{type:'DAY_CLOSE'});
+    const exp=drawer(x);x=execute(x,'owner',{type:'SHIFT_CLOSE',counted:exp});x=tillClear(M,x);x=execute(x,'owner',{type:'DAY_CLOSE'});
     assert.equal(x.closings['2026-10-24'].cash.opening,500000);assert.equal(Object.keys(x.closings).length,207);
     x=execute(x,'owner',{type:'NEXT_DAY'});assert.equal(x.date,'2026-10-25');assert.equal(x.openingCash,exp);
   });

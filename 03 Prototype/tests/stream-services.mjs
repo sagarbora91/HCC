@@ -7,7 +7,7 @@ export function register({test,M,assert}){
 
   test('[GSV] module slice defaults to empty',()=>{const s=baseFixture();delete s.servicesX;const x=M.gsvSlice(s);assert.deepEqual([x.requests.length,x.complaints.length,x.items.length],[0,0,0]);});
   test('[GSV] fixture leaves core figures untouched and seeds registers',()=>{
-    const s=baseFixture();assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1020000);
+    const s=baseFixture();assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1075000);
     const x=M.gsvSlice(s);assert.equal(x.requests.length,6);assert.equal(x.complaints.length,3);assert.equal(x.items.length,4);
     assert.equal(M.gsvOverdue(s,req(s,'SR-903')),true);assert.equal(M.gsvLate(req(s,'SR-902')),true);assert.equal(M.gsvLate(req(s,'SR-901')),false);
     assert.equal(M.gsvDisposable(s,x.items.find(i=>i.id==='LF-902')),true);assert.equal(M.gsvDisposable(s,x.items.find(i=>i.id==='LF-901')),false);

@@ -1,10 +1,13 @@
 // FY history Phase B: daily operations on top of the generated stays — expenses, cash counts with differences and their approvals,
 // one closing record per business day (computed by the real closingSummary selector), closed dates, compact housekeeping history
 // (plan H-06) and the audit trail (one summary entry per closed day plus every approval / reversal / override event).
+// Two steps (shared till, DEC-052): addOperations draws every random choice; closeHistoryDays runs after the POS history exists
+// (modules-sales.ts) so restaurant cash enters each day's expected cash and count, and the records come from the full day.
 import type {State,Booking,Expense,Approval,Task,Audit} from '../../domain/types';
+import type {POSOrder,POSReceipt} from '../../domain/streams/pos';
 import {addDays,money} from '../../domain/money';
 import {drawer} from '../../domain/selectors';
-import {closingSummary,reportDates,EXPENSE_MANAGER_LIMIT} from '../../domain/streams/closing';
+import {closingSummary,reportDates,expenseCounts,EXPENSE_MANAGER_LIMIT} from '../../domain/streams/closing';
 import type {HistoryDay} from '../../domain/streams/history';
 import type {Rng} from './prng';
 
@@ -24,22 +27,13 @@ const MONTHLY:readonly (readonly [number,string,string,number,number])[]=[
 
 export function addOperations(s:State,rng:Rng,o:{from:string;to:string}):void{
   const dates=reportDates(o.from,o.to);
-  const live=(b:Booking)=>b.status==='Departed'||b.status==='In house';
 
-  // Per-day indexes so each day's closing record is computed from the few folios that touch it (not all 1,300).
-  const touch=new Map<string,number[]>();
-  const add=(d:string,i:number)=>{if(d>o.to||d<o.from)return;let l=touch.get(d);if(!l){l=[];touch.set(d,l);}if(l[l.length-1]!==i)l.push(i);};
+  // Folio cash per day keeps cash expenses within the drawer (restaurant cash only adds to it, so the guard stays safe).
   const cashNet=new Map<string,number>();
-  s.bookings.forEach((b,i)=>{
-    const seen=new Set<string>();
-    const mark=(d:string)=>{if(!seen.has(d)){seen.add(d);add(d,i);}};
-    if(live(b))for(let d=b.arrival;d<b.departure&&d<=o.to;d=addDays(d,1))mark(d);
-    b.lines.forEach(l=>mark(l.date));
-    b.receipts.forEach(r=>{mark(r.date);
-      if(r.method==='Cash'&&r.date<=o.to)cashNet.set(r.date,(cashNet.get(r.date)??0)+(r.kind==='payment'||r.kind==='deposit'?r.amount:-r.amount));});
-  });
+  for(const b of s.bookings)for(const r of b.receipts)
+    if(r.method==='Cash'&&r.date<=o.to)cashNet.set(r.date,(cashNet.get(r.date)??0)+(r.kind==='payment'||r.kind==='deposit'?r.amount:-r.amount));
 
-  const events:Event[]=[],expenses:Expense[]=[],approvals:Approval[]=[],closings:NonNullable<State['closings']>={};
+  const events:Event[]=[],expenses:Expense[]=[],approvals:Approval[]=[];
   const reversalsDue=new Map<string,Expense[]>();
   let en=0,ap=0;
   let opening=HISTORY_FLOAT;
@@ -86,30 +80,18 @@ export function addOperations(s:State,rng:Rng,o:{from:string;to:string}):void{
     dayExp.filter(e=>e.status==='Rejected').forEach(e=>events.push({at:d+'T17:30',actor:'manager',action:'Expense rejected',detail:`${e.id} · ${e.vendor} · ${money(e.amount)} · ${e.reason}`}));
     expenses.push(...dayExp);
 
-    // ── Cash shift and closing record ──
-    const views=(touch.get(d)??[]).map(i=>{const b=s.bookings[i];return {...b,lines:b.lines.filter(l=>l.date<=d),receipts:b.receipts.filter(r=>r.date<=d)};});
-    const base0:State={...s,date:d,clock:d+'T20:00',openingCash:opening,shiftOpen:true,shiftClose:undefined,shift:undefined,closeProgress:undefined,closings:undefined,
-      bookings:views,expenses:dayExp,approvals:[]};
-    const expected=drawer(base0);
-    let counted=expected,shift:State['shift']=undefined;
+    // ── Cash shift as the folios and expenses see it; restaurant cash and the closing record are added in closeHistoryDays ──
+    const expected=opening+(cashNet.get(d)??0)-dayExp.filter(e=>e.method==='Cash'&&expenseCounts(e)).reduce((a,e)=>a+e.amount,0);
+    let counted=expected;
     if(!final&&rng.chance(0.08)){
       const diff=(rng.chance(0.5)?1:-1)*rng.int(1,20)*1000;counted=expected+diff;
       const aid='APR-HC'+pad(++ap,3),reason=diff<0?rng.pick(['Short change given at the desk','Count error found next morning','Float shortfall, cashier to recheck']):rng.pick(['Guest overpaid, refund declined','Unrecorded tip left at the desk']);
-      approvals.push({id:aid,booking:'',amount:Math.abs(diff),reason,status:'Approved',actor:'cashier',version:ap,kind:'cash-difference',target:d,approver:'manager',decidedAt:d+'T21:30',meta:{command:'SHIFT_DIFFERENCE_DECIDE',expected,counted}});
-      shift={date:d,status:'Closed',expected,counted,reason,submittedBy:'cashier',approval:aid,decidedBy:'manager'};
+      // meta.expected / meta.counted are set by closeHistoryDays once restaurant cash is known; the difference drawn here is kept.
+      approvals.push({id:aid,booking:'',amount:Math.abs(diff),reason,status:'Approved',actor:'cashier',version:ap,kind:'cash-difference',target:d,approver:'manager',decidedAt:d+'T21:30',meta:{command:'SHIFT_DIFFERENCE_DECIDE',diff}});
       events.push({at:d+'T21:30',actor:'manager',action:'Cash difference approved',detail:`${aid} · ${money(diff)} (${diff>0?'over':'short'}) · ${reason}`});
     }
-    const banked=Math.max(0,counted-HISTORY_FLOAT);
-    const ws:State={...base0,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected,counted},shift};
-    const rec=closingSummary(ws,'manager');
-    rec.nightAudit={stays:rec.occupancy.occupied,resumed:false};
-    rec.cash.banked=banked;
-    closings[d]=rec;
-    events.push({at:d+'T23:30',actor:'manager',action:'Day closed',
-      detail:`${d} · occupancy ${rec.occupancy.occupancy} · net revenue ${money(rec.revenue.net)} · receipts ${money(rec.receipts.net)} · cash ${shift?'difference '+money(counted-expected):'counted exactly'}`});
-    opening=counted-banked;
+    opening=Math.min(counted,HISTORY_FLOAT);
   }
-  if(opening!==s.openingCash)throw new Error(`History cash does not join up with BASE: closes with ${opening}, BASE opens with ${s.openingCash}`);
 
   // Discount / company-credit approvals created with the stays also belong in the audit trail.
   for(const a of s.approvals.filter(a=>a.id.startsWith('APR-H')&&!a.id.startsWith('APR-HC'))){
@@ -136,14 +118,68 @@ export function addOperations(s:State,rng:Rng,o:{from:string;to:string}):void{
     }
   }
 
-  // Audit trail: newest first, ids stable by sort order.
-  const audit:Audit[]=events.sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:a.detail<b.detail?1:-1).map((e,i)=>({id:'h-a-'+pad(i+1,5),at:e.at,actor:e.actor,action:e.action,detail:e.detail}));
-
   s.expenses=[...expenses,...s.expenses];
   s.approvals=[...approvals,...s.approvals];
-  s.closings={...(s.closings??{}),...closings};
   s.closedDates=[...dates];
   s.tasks=[...tasks,...s.tasks];
   s.historyX={from:o.from,to:o.to,days};
-  s.audit=audit;
+  s.audit=auditTrail(events);
+}
+
+/** Audit trail: newest first, ids stable by sort order. */
+function auditTrail(events:Event[]):Audit[]{
+  return events.sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:a.detail<b.detail?1:-1).map((e,i)=>({id:'h-a-'+pad(i+1,5),at:e.at,actor:e.actor,action:e.action,detail:e.detail}));
+}
+const groupBy=<T,>(xs:T[],keys:(x:T)=>(string|undefined)[])=>{
+  const m=new Map<string,T[]>();
+  for(const x of xs)for(const k of new Set(keys(x)))if(k){let l=m.get(k);if(!l){l=[];m.set(k,l);}l.push(x);}
+  return m;
+};
+
+/** Step 2 (after the POS history): one closing record per history day from the real closingSummary, with folio, expense AND
+ *  restaurant cash in the drawer (shared till). The cash difference drawn in step 1 is kept; cash above the ₹5,000 float is banked. */
+export function closeHistoryDays(s:State,o:{from:string;to:string}):void{
+  const dates=reportDates(o.from,o.to);
+  const live=(b:Booking)=>b.status==='Departed'||b.status==='In house';
+  // Per-day indexes so each day's closing record is computed from the few folios and checks that touch it (not all 1,300).
+  const touch=new Map<string,number[]>();
+  const add=(d:string,i:number)=>{if(d>o.to||d<o.from)return;let l=touch.get(d);if(!l){l=[];touch.set(d,l);}if(l[l.length-1]!==i)l.push(i);};
+  s.bookings.forEach((b,i)=>{
+    const seen=new Set<string>();
+    const mark=(d:string)=>{if(!seen.has(d)){seen.add(d);add(d,i);}};
+    if(live(b))for(let d=b.arrival;d<b.departure&&d<=o.to;d=addDays(d,1))mark(d);
+    b.lines.forEach(l=>mark(l.date));
+    b.receipts.forEach(r=>mark(r.date));
+  });
+  const p=s.posX;
+  const posOrders=groupBy<POSOrder>(p?.orders??[],x=>[x.date,x.settlement?.date]),posReceipts=groupBy<POSReceipt>(p?.receipts??[],r=>[r.date]);
+  const dayExpenses=groupBy<Expense>(s.expenses,e=>[e.date]);
+  const diffs=new Map(s.approvals.filter(a=>a.kind==='cash-difference'&&a.id.startsWith('APR-HC')).map(a=>[a.target!,a]));
+  const closings:NonNullable<State['closings']>={},events:Event[]=[];
+  let opening=HISTORY_FLOAT;
+  for(const d of dates){
+    const views=(touch.get(d)??[]).map(i=>{const b=s.bookings[i];return {...b,lines:b.lines.filter(l=>l.date<=d),receipts:b.receipts.filter(r=>r.date<=d)};});
+    const base0:State={...s,date:d,clock:d+'T20:00',openingCash:opening,shiftOpen:true,shiftClose:undefined,shift:undefined,closeProgress:undefined,closings:undefined,
+      bookings:views,expenses:dayExpenses.get(d)??[],approvals:[],posX:p&&{...p,orders:posOrders.get(d)??[],receipts:posReceipts.get(d)??[]}};
+    const expected=drawer(base0);
+    let counted=expected,shift:State['shift']=undefined;
+    const a=diffs.get(d);
+    if(a){
+      counted=expected+Number(a.meta!.diff);
+      a.meta={command:'SHIFT_DIFFERENCE_DECIDE',expected,counted};
+      shift={date:d,status:'Closed',expected,counted,reason:a.reason,submittedBy:'cashier',approval:a.id,decidedBy:'manager'};
+    }
+    const banked=Math.max(0,counted-HISTORY_FLOAT);
+    const ws:State={...base0,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected,counted},shift};
+    const rec=closingSummary(ws,'manager');
+    rec.nightAudit={stays:rec.occupancy.occupied,resumed:false};
+    rec.cash.banked=banked;
+    closings[d]=rec;
+    events.push({at:d+'T23:30',actor:'manager',action:'Day closed',
+      detail:`${d} · occupancy ${rec.occupancy.occupancy} · net revenue ${money(rec.revenue.net)} · receipts ${money(rec.receipts.net)} · cash ${shift?'difference '+money(counted-expected):'counted exactly'}`});
+    opening=counted-banked;
+  }
+  if(opening!==s.openingCash)throw new Error(`History cash does not join up with BASE: closes with ${opening}, BASE opens with ${s.openingCash}`);
+  s.closings={...(s.closings??{}),...closings};
+  s.audit=auditTrail([...s.audit.map(({at,actor,action,detail})=>({at,actor,action,detail})),...events]);
 }

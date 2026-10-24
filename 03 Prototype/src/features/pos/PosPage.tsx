@@ -61,12 +61,12 @@ export function PosSummary(){
     <div className="pos-sum-head"><p>Settled bills by settlement date; open checks as of {s.clock.slice(11,16)} (simulated clock).</p><button className="btn" onClick={()=>open({type:'pos-report'})}><Printer size={15}/> Print summary</button></div>
     <div className="stats pos-stats">
       <Stat title="Outlet sales (incl. tax)" value={money(d.gross)} sub={`${d.checks} bill${d.checks===1?'':'s'} · net ${money(d.net)}`}/>
-      <Stat title="Outlet cash" value={money(d.outletCash)} sub="Separate from the cashier drawer"/>
+      <Stat title="Outlet cash" value={money(d.outletCash)} sub="Counted in the front-desk drawer"/>
       <Stat title="Posted to room folios" value={money(d.byMode['Room folio']||0)} sub="Collected at checkout"/>
       <Stat title="Open checks" value={String(d.open.count)} sub={`${money(d.open.value)} running · ${d.pendingVoids} void request${d.pendingVoids===1?'':'s'} pending`}/>
     </div>
     <PosSummaryTables d={d}/>
     {d.top.length>0&&<><h3 className="pos-h3">Top items today</h3><ol className="pos-top">{d.top.map(t=><li key={t.name}><span>{t.name}</span><b>{t.qty}</b><span>{money(t.value)}</span></li>)}</ol></>}
-    <div className="info-note"><Info size={16}/>Known gap: outlet cash is recorded in the POS module only. The front-desk cashier shift (drawer) does not include it yet — count outlet cash separately.</div>
+    <div className="info-note"><Info size={16}/>One shared till: cash bills (net of same-day voids) are counted in the front-desk drawer on the cashier shift. UPI and card are non-cash; room-service charged to a room is a folio charge, collected at checkout. Open checks block day close.</div>
   </div>;
 }

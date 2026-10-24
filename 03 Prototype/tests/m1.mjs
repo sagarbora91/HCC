@@ -1,4 +1,5 @@
 // M1 tests: typed errors, simulated clock, scenarios, fault simulation, persistence, scope rules, S0 walkthrough oracle.
+import {tillClear} from './_till.mjs';
 export function register({test,M,assert}){
   const {execute,loadScenario,scenarios,baseFixture,drawer,metrics,totals,executeWithFault,restoreState,HccError,SCHEMA}=M;
   const code=(fn)=>{try{fn();}catch(e){return e instanceof HccError?e.code:'UNTYPED:'+e.message;}return 'NO_ERROR';};
@@ -28,7 +29,7 @@ export function register({test,M,assert}){
   // BL-007 scenarios + persistence (AC-024)
   test('Scenarios: every available scenario loads with its own ID and schema',()=>{for(const x of scenarios.filter(x=>x.available)){const s=loadScenario(x.id);assert.equal(s.scenario,x.id);assert.equal(s.schema,SCHEMA);assert.equal(s.rooms.length,24);}});
   test('Scenarios: unbuilt scenarios refuse to load',()=>{for(const x of scenarios.filter(x=>!x.available))assert.throws(()=>loadScenario(x.id),/not available/);});
-  test('Scenario S0: catalogue figures (drawer ₹10,200, no arrivals today)',()=>{const s=loadScenario('S0'),m=metrics(s);assert.equal(drawer(s),1020000);assert.equal(m.occupied,8);assert.equal(s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).length,0);});
+  test('Scenario S0: catalogue figures (drawer ₹10,750 = ₹10,200 + ₹550 restaurant cash, no arrivals today)',()=>{const s=loadScenario('S0'),m=metrics(s);assert.equal(drawer(s),1075000);assert.equal(m.occupied,8);assert.equal(s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).length,0);});
   test('Scenario S1: empty hotel, all rooms sellable and ready',()=>{const s=loadScenario('S1'),m=metrics(s);assert.equal(m.occupied,0);assert.equal(m.available,24);assert.equal(drawer(s),500000);assert.equal(s.tasks.length,0);});
   test('Scenario S2: 105 blocked; arrival in dirty 108 cannot check in',()=>{let s=loadScenario('S2');assert.equal(code(()=>execute(s,'reception',{type:'BOOK',guest:'Test Guest',room:'105',arrival:s.date,departure:'2026-10-25',people:1})),'NOT_AVAILABLE');s=execute(s,'reception',{type:'REGISTER',id:'HCC-1051'});assert.equal(code(()=>execute(s,'reception',{type:'CHECKIN',id:'HCC-1051'})),'NOT_AVAILABLE');});
   test('Scenario S3: overdue unpaid departure blocks checkout; stale approval rejected',()=>{const s=loadScenario('S3');assert.equal(totals(s.bookings.find(b=>b.id==='HCC-1042')).balance,20000);assert.equal(code(()=>execute(s,'reception',{type:'CHECKOUT',id:'HCC-1042'})),'INVALID_TRANSITION');assert.equal(code(()=>execute(s,'manager',{type:'APPROVAL',id:'APR-1001',approve:true})),'STALE_VERSION');});
@@ -46,7 +47,7 @@ export function register({test,M,assert}){
   test('S0 walkthrough: Room 105 ₹4,400, drawer figures, room ready, rerun safe, disabled user denied',()=>{
     const w=walkthrough();
     assert.deepEqual(w.folio26,{net:400000,tax:40000,total:440000,paid:440000,deposit:0,balance:0});
-    assert.equal(w.balance25,340000);assert.deepEqual(w.drawers,[1020000,1070000,1070000,1220000,1190000]);
+    assert.equal(w.balance25,340000);assert.deepEqual(w.drawers,[1075000,1125000,1125000,1275000,1245000]);
     assert.equal(w.s.rooms.find(r=>r.id==='105').hk,'Ready');
     assert.equal(w.s.tasks.filter(t=>t.booking===w.id).length,1);
     assert.equal(w.rerun,'DAY_CLOSED');assert.equal(w.disabled,'FORBIDDEN');assert.equal(w.selfApprove,'FORBIDDEN');
@@ -60,13 +61,13 @@ export function register({test,M,assert}){
     X('reception',{type:'REGISTER',id});X('reception',{type:'CHECKIN',id});
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit',key:'w-dep'});drawers.push(drawer(s));
     X('manager',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});X('manager',{type:'NIGHT_POST'});
-    X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});drawers.push(drawer(s));
+    X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});drawers.push(drawer(s));
     X('reception',{type:'CHARGE',id,amount:50000,label:'Laundry service'});
     X('reception',{type:'DISCOUNT',id,amount:50000,reason:'Service delay goodwill'});
     const apr=s.approvals.at(-1).id;const selfApprove=code(()=>execute(s,'reception',{type:'APPROVAL',id:apr,approve:true}));
     X('manager',{type:'APPROVAL',id:apr,approve:true});X('manager',{type:'NIGHT_POST'});
     const balance25=totals(s.bookings.find(b=>b.id===id)).balance;
-    X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
     X('cashier',{type:'PAYMENT',id,amount:200000,method:'Cash',kind:'payment'});
     X('cashier',{type:'PAYMENT',id,amount:140000,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'});
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit-return'});drawers.push(drawer(s));
@@ -77,7 +78,7 @@ export function register({test,M,assert}){
     X('housekeeper',{type:'TASK',id:t.id,action:'complete'});X('supervisor',{type:'TASK',id:t.id,action:'inspect'});
     X('cashier',{type:'EXPENSE',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash'});
     X('manager',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});drawers.push(drawer(s));
-    X('manager',{type:'NIGHT_POST'});X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});
+    X('manager',{type:'NIGHT_POST'});X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});
     const rerun=code(()=>execute(s,'manager',{type:'DAY_CLOSE'}));
     X('owner',{type:'USER',id:'reception'});
     const disabled=code(()=>execute(s,'reception',{type:'BOOK',guest:'X Y',room:'106',arrival:'2026-10-27',departure:'2026-10-28',people:1}));

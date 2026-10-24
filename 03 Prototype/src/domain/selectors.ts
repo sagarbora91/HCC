@@ -51,12 +51,16 @@ export function withHoldExempt<T>(id:string,fn:()=>T):T{const prev=holdExempt;ho
 export function available(s:State,room:string,a:string,d:string,except=''){return availableRaw(s,room,a,d,except)&&!roomHold(s,room,a,d);}
 export function occupant(s:State,room:string){return s.bookings.find(b=>b.room===room&&b.status==='In house');}
 /** A reversed expense still counts on its own date; its negative reversal record offsets it on the reversal date (stream F, BL-029). */
-/** Expected drawer cash = opening float + cash receipts/deposits − cash refunds/returns − posted cash expenses (Financial Rulebook §4). */
+/** Expected drawer cash = opening float + cash receipts/deposits − cash refunds/returns + restaurant / room-service cash (net of same-day voids)
+ *  − posted cash expenses (Financial Rulebook §4; shared till, DEC-052). */
 export function drawer(s:State){
   const receipts=s.bookings.flatMap(b=>b.receipts).filter(r=>r.date===s.date&&r.method==='Cash').reduce((a,r)=>a+(['payment','deposit'].includes(r.kind)?r.amount:-r.amount),0);
+  const outlet=drawerOutletCash(s);
   const expenses=s.expenses.filter(e=>e.date===s.date&&(e.status==='Posted'||e.status==='Reversed')&&e.method==='Cash').reduce((a,e)=>a+e.amount,0);
-  return s.openingCash+receipts-expenses;
+  return s.openingCash+receipts+outlet-expenses;
 }
+/** POS cash settled today (sale receipts +, void receipts −). Room-service bills charged to a folio have no POS receipt. */
+export function drawerOutletCash(s:State){return (s.posX?.receipts??[]).filter(r=>r.date===s.date&&r.method==='Cash').reduce((a,r)=>a+r.amount,0);}
 export function metrics(s:State){
   const active=s.bookings.filter(b=>b.status==='In house'),sellable=s.rooms.filter(r=>!blockedTonight(s,r)).length;
   const lines=s.bookings.flatMap(b=>b.lines).filter(l=>l.date===s.date),receipts=s.bookings.flatMap(b=>b.receipts).filter(r=>r.date===s.date);

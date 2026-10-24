@@ -41,7 +41,7 @@ export function register({test,M,assert}){
     assert.deepEqual([r.revenue,r.occupied,r.sellable,r.posted,r.agreed,r.adr,r.revpar],[1950000,8,23,0,8,243750,84783]);
     a=M.aiAnswer(s,'owner','ADR');assert.ok(a.figures.some(f=>f.label==='ADR'&&f.value===M.money(243750)));
     a=M.aiAnswer(s,'owner','collections vs outstanding');assert.equal(a.figures[0].value,M.money(2150000));
-    a=M.aiAnswer(s,'owner','cash drawer');assert.ok(a.figures.some(f=>f.label==='Expected'&&f.value===M.money(1020000)));
+    a=M.aiAnswer(s,'owner','cash drawer');assert.ok(a.figures.some(f=>f.label==='Expected'&&f.value===M.money(1075000)));
     assert.ok(a.how.length>20&&a.links.some(l=>l.page==='cashier'));
   });
   test('[AI] posted night replaces the agreed rate in ADR (no double count)',()=>{

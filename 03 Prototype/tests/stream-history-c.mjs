@@ -196,7 +196,7 @@ export function register({test,M,assert}){
     assert.equal(accDayStatus(s,'2026-10-24'),'Open');
   });
   test('[HIST-C] the whole scenario still joins up: today equals BASE, reports and a normal day work, size and speed budgets hold',()=>{
-    assert.deepEqual(metrics(s),metrics(base));assert.equal(drawer(s),1020000);
+    assert.deepEqual(metrics(s),metrics(base));assert.equal(drawer(s),1075000);
     const sizes={};for(const k of Object.keys(s))sizes[k]=JSON.stringify(s[k]).length;
     const top=Object.entries(sizes).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`${k} ${(v/1e6).toFixed(2)}MB`).join(', ');
     const runs=[];for(let i=0;i<3;i++){const t=performance.now();loadScenario('FY26');runs.push(performance.now()-t);}runs.sort((a,b)=>a-b);

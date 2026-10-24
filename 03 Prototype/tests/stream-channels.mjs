@@ -8,7 +8,7 @@ export function register({test,M,assert}){
   test('[CHN] fixture: 4 channels, 6 pending messages, core figures untouched',()=>{
     const s=seed(),st=M.chnSlice(s);
     assert.equal(st.channels.length,4);assert.equal(M.chnPending(s).length,6);assert.equal(st.outbox.length,3);
-    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1020000);
+    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1075000);
     assert.deepEqual(M.chnSlice({...s,channelsX:undefined}).channels,[]);
   });
   test('[CHN] accept New → Confirmed OTA booking via BOOK (hotel tariff, channel name, first free room)',()=>{

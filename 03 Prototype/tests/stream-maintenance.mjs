@@ -10,7 +10,7 @@ export function register({test,M,assert}){
     const s=baseFixture(),m=x(s);
     assert.equal(m.assets.length,17);assert.equal(m.vendors.length,4);assert.equal(m.amcs.length,3);assert.equal(m.spares.length,9);assert.equal(m.plans.length,7);
     assert.deepEqual(M.mntSummary(s),{open:1,inProgress:1,onHold:1,done:1,verified:4,breached:2});
-    assert.equal(M.metrics(s).occupied,8);assert.equal(M.drawer(s),1020000);
+    assert.equal(M.metrics(s).occupied,8);assert.equal(M.drawer(s),1075000);
     assert.equal(M.mntAmcStatus(m.amcs.find(a=>a.id==='AMC-03'),s.date),'Expiring');
     assert.deepEqual(M.mntLowSpares(s).map(x=>x.id).sort(),['SP-02','SP-03','SP-09']);
     assert.deepEqual(M.mntPendingRepairs(s).map(t=>t.id),['repair-308']);

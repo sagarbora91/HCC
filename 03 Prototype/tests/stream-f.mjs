@@ -1,17 +1,18 @@
 // Stream F tests: cashier shift (BL-028), expenses (BL-029), day closing/resume/correction (BL-030), reports (BL-031).
+import {tillClear} from './_till.mjs';
 export function register({test,M,assert}){
   const {execute,loadScenario,baseFixture,drawer,totals,HccError}=M;
   const code=(fn)=>{try{fn();}catch(e){return e instanceof HccError?e.code:'UNTYPED:'+e.message;}return 'NO_ERROR';};
   const nightsOn=(s,id,d)=>s.bookings.find(b=>b.id===id).lines.filter(l=>l.kind==='room'&&l.date===d).length;
   /** S1 with all routine blockers clear: shift open, no bookings. */
-  const closeable=(s,u='manager')=>{s=execute(s,u,{type:'CLOSE_RUN'});s=execute(s,u,{type:'SHIFT_CLOSE',counted:drawer(s)});return execute(s,u,{type:'DAY_CLOSE'});};
+  const closeable=(s,u='manager')=>{s=execute(s,u,{type:'CLOSE_RUN'});s=execute(s,u,{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);return execute(s,u,{type:'DAY_CLOSE'});};
 
   // ── BL-028 Cashier shift ──
   test('[F] Shift: expected-cash formula parts equal drawer(); movements listed',()=>{
     const s=baseFixture(),x=M.shiftExpected(s);
-    assert.equal(x.expected,drawer(s));assert.equal(x.expected,1020000);assert.equal(x.consistent,true);
+    assert.equal(x.expected,drawer(s));assert.equal(x.expected,1075000);assert.equal(x.consistent,true);
     assert.equal(x.payments,700000);assert.equal(x.expenses,180000);
-    assert.equal(M.shiftMovements(s).length,5);
+    assert.equal(x.restaurant,55000);assert.equal(M.shiftMovements(s).length,6); // + POS-F01 cash breakfast ₹550 (shared till)
   });
   test('[F] Shift: exact SHIFT_SUBMIT by cashier closes the shift; cash receipts then rejected',()=>{
     let s=baseFixture();const exp=drawer(s);
@@ -27,9 +28,9 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:-1})),'VALIDATION');
     assert.equal(code(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp,denominations:{500:1}})),'VALIDATION');
     assert.throws(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp-10000}),/reason is required/);
-    // A matching denomination grid is accepted: ₹10,200 = 20×500 + 1×200
-    const ok=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp,denominations:{500:20,200:1,coins:0}});
-    assert.equal(ok.shift.denominations[500],20);
+    // A matching denomination grid is accepted: ₹10,750 (₹10,200 + ₹550 restaurant cash) = 21×500 + 1×200 + 1×50
+    const ok=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp,denominations:{500:21,200:1,50:1,coins:0}});
+    assert.equal(ok.shift.denominations[500],21);
   });
   test('[F] Shift: difference → approval; receipts blocked; no self-approval; manager limit; owner approves with difference recorded',()=>{
     let s=baseFixture();const exp=drawer(s);
@@ -173,7 +174,7 @@ export function register({test,M,assert}){
   // ── BL-031 Reports ──
   test('[F] Reports: S0 walkthrough — every total equals its drill-down rows; Room 105 figures; CSV header',()=>{
     const w=walkthrough();const s=w.s;
-    assert.deepEqual(w.drawers,[1020000,1070000,1070000,1220000,1190000]);
+    assert.deepEqual(w.drawers,[1075000,1125000,1125000,1275000,1245000]);
     assert.deepEqual(w.folio26,{net:400000,tax:40000,total:440000,paid:440000,deposit:0,balance:0});
     assert.equal(w.rerun,'DAY_CLOSED');
     const p=M.reportPack(s,'2026-10-24','2026-10-26');
@@ -190,7 +191,7 @@ export function register({test,M,assert}){
       assert.equal(one.tabs.find(t=>t.id==='revenue').metrics.find(m=>m.id==='net').value,c.revenue.net,d);
       assert.equal(one.tabs.find(t=>t.id==='receipts').metrics.find(m=>m.id==='net').value,c.receipts.net,d);
     }
-    assert.deepEqual([s.closings['2026-10-24'].cash.counted,s.closings['2026-10-25'].cash.counted,s.closings['2026-10-26'].cash.counted],[1070000,1070000,1190000]);
+    assert.deepEqual([s.closings['2026-10-24'].cash.counted,s.closings['2026-10-25'].cash.counted,s.closings['2026-10-26'].cash.counted],[1125000,1125000,1245000]);
     // per-date table rows sum to the range metric
     const rev=tab('revenue');assert.equal(rev.table.rows.reduce((a,r)=>a+r[5],0),val('revenue','net').value);
     const csv=M.reportCsv(s,p,'revenue');
@@ -220,11 +221,11 @@ export function register({test,M,assert}){
     X('reception',{type:'REGISTER',id});X('reception',{type:'CHECKIN',id});
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit',key:'w-dep'});drawers.push(drawer(s));
     X('manager',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});X('manager',{type:'CLOSE_RUN',interruptAfter:4});X('manager',{type:'CLOSE_RUN'});
-    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});drawers.push(drawer(s));
+    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});drawers.push(drawer(s));
     X('reception',{type:'CHARGE',id,amount:50000,label:'Laundry service'});
     X('reception',{type:'DISCOUNT',id,amount:50000,reason:'Service delay goodwill'});
     X('manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});X('manager',{type:'CLOSE_RUN'});
-    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
     X('cashier',{type:'PAYMENT',id,amount:200000,method:'Cash',kind:'payment'});
     X('cashier',{type:'PAYMENT',id,amount:140000,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'});
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit-return'});drawers.push(drawer(s));
@@ -232,7 +233,7 @@ export function register({test,M,assert}){
     X('reception',{type:'CHECKOUT',id,key:'checkout:'+id});
     X('cashier',{type:'EXPENSE',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash'});
     X('manager',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});drawers.push(drawer(s));
-    X('manager',{type:'CLOSE_RUN'});X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});
+    X('manager',{type:'CLOSE_RUN'});X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});
     const rerun=code(()=>execute(s,'manager',{type:'DAY_CLOSE'}));
     return {s,id,folio26,drawers,rerun};
   }
