@@ -161,3 +161,9 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - Booking-ID lookup added to Arrivals & check-in (desktop `features\guests\CheckIn.tsx`, phone `mobile\frontdesk\Arrivals.tsx`).
 - 475 tests pass (+9 in `tests\stream-customers.mjs`), tsc clean, build 1,869 KB; browser-checked desktop + 360 px.
 - NEXT: rebuild the APK (bump versionCode) and check on the tablet; finish Phase D leftovers. Known gap: FY26 history bookings carry no guestId, so only ~10 customers have saved profiles.
+
+### Session 8 — APK rebuilt with the new navigation (versionCode 5) and checked on the Tab S7
+- `05 Delivery Evidence\APK\HCC-0.1.0-proto-debug.apk` (versionCode 5, 5.8 MB); installed over the old app on SM-T875 (R52N807PTTE), data kept. Screenshots: `05 Delivery Evidence\APK\Tab-S7\nav1-signin.png` … `nav9-customers.png` (`-s` = downsized).
+- Verified on the tablet (portrait, desktop layout): staff picker → Modules Home tiles with badges → hamburger drawer (collapsible categories, Sign out/Demo/Display) → Front Desk > Arrivals with breadcrumb → booking-ID lookup (HCC-H0595 → Zoya Agarwal, Departed) → Customers list (1,156).
+- Not yet checked on the tablet: Android back closing the drawer, nine-role tab check, AC-M05…M08, CSV/print, Reset.
+- Observation: in portrait the Arrivals table's last column ("Start check-in") scrolls sideways; the top bar wraps onto several rows. Cosmetic, pre-existing table behaviour.
