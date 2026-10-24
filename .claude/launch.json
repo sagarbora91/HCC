@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hcc-prototype",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["03 Prototype/serve.mjs"],
+      "port": 4173
+    }
+  ]
+}
