@@ -142,3 +142,9 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - **After:** tsc clean · `npm test` **462/462** (446 + 7 A2 + 9 navmap from Session 8) · build 1,838 KB · donor repos clean.
 - **Multi-agent plan (owner asked):** `02 Planning\HCC_Multi_Agent_Plan_v1.md` — prerequisite `git init` (workspace is not a repo), Wave 0 = 4 agents (W0-A navigation = Session 8, W0-B till, W0-C booking restriction UX, W0-D acceptance/APK last), Wave 1 = production P0 foundation then P1–P5 parallel, P6–P7 after, gated by prototype acceptance + A4 authorization.
 - **NEXT:** owner answers (till A/B, override authority, approve git init + Wave 0); then launch Wave 0 per the plan. A4 production construction stays unauthorized until D5/D6 acceptance.
+
+### Session 8 — UI redesign Step 2 DONE (staff-picker sign-in, Modules Home, breadcrumb)
+- `03 Prototype\src\app\ModulesHome.tsx` (new): `SignIn` staff picker (enabled users, no PIN), `ModulesHome` (Dashboard + category tiles, role-filtered, badges: arrivals, open tasks, in-house, pending expenses/approvals), `CategoryPage` (page tiles), `Breadcrumb` (Home › Category › Page, clickable). `src\styles\home.css` (new).
+- `navmap.ts`: `HOME_PAGE='home'`, virtual `cat:<id>` pages, `PAGE_BLURB`, `crumbsFor`, `pagesOfCategory`. App landing for every role is now Modules Home (`landing` in nav.ts kept for the mobile test). Session id kept in localStorage `hcc-session`; `signOut` in ctx (user menu sheet + desktop top bar). Sidebar and phone More both have a "Modules Home" entry until Step 3.
+- A category with one visible page opens that page directly. 466 tests pass; tsc clean; build 1,849 KB. Browser-checked: desktop flow and 360 px (no sideways scroll).
+- NEXT: Step 3 hamburger drawer (replaces sidebar and phone More), Step 4 Customers tile + booking-ID search on Arrivals. APK not rebuilt yet (rebuild after Step 3, bump versionCode).
