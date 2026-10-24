@@ -185,3 +185,25 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - **24 Oct, owner decisions:** **DEC-054** production server = **.NET 10 ASP.NET Core + SQL Server 2025 Express**, reusing ETP platform code (supersedes DEC-05 NestJS; contracts package §7, multi-agent plan Wave 1 updated). The owner also wants SCC's **payroll, leave, tax-compliance calendar and cash book** reused (`02 Planning\HCC_FirstParty_Reuse_ETP_SCC_v1.md` §3a): port the rules to C# in Wave 1/2 with the CA checking hotel-specific rates; nothing copied yet.
 - **D-A walkthrough done:** BL-023 15/15 S0 steps pass, 2 S4 defects (BL-01, BL-02) — `05 Delivery Evidence\Acceptance\BL023_Walkthrough.md`.
 - **24 Oct, APR-006:** owner approved the Wave 0.5 placement (`02 Planning\HCC_Wave05_UI_Placement_v1.md`) and the master configuration design (`02 Planning\HCC_Master_Configuration_Design_v1.md`): DEC-055 placement (cash book under Cash and billing, compliance for Owner + Accountant), DEC-056 payslips via share sheet + simulated WhatsApp, DEC-057 Master configuration hub + module switch-off list, DEC-058 Owner changes all; Tech admin non-money groups only. **Wave 0.5 starts after W0-D closes** (agents on Sonnet per owner preference, max 3 at once for heat).
+
+## Assembly instructions reconciled — 25 October 2026
+- Reviewed latest progress and completed a documentation-only task: updated the component selection plan, coding instructions and assembly starter prompt to reflect DEC-054 (.NET/C# + SQL Server), completed A0/A1/A2 work, approved Wave 0.5 timing, and outstanding W0-D acceptance.
+- Review and concrete remaining work: `05 Delivery Evidence/Assembly/2026-10-25_Development_Review.md`.
+- Historical source evidence retained. No application code edited, tests/builds rerun, APK rebuilt, emulator started or database touched. Existing uncommitted AC-01 compatibility edits left alone; no changes staged or committed.
+
+## AC-01 source verification completed — 25 October 2026
+- Retained/reviewed pending currency and JSON-clone fixes; removed additional unguarded Array.at and String.replaceAll uses from application sources using equivalent older APIs.
+- Added isolated missing-API regression tests. Typecheck passed; full suite 492/492; final focused compatibility suite 3/3 (third test added after full run started; full 493 not rerun). HTML build passed, SHA-256 9dd453b09e479fa41b530c37fed3951e5b234e719752885556665650559c6e96.
+- Evidence: `05 Delivery Evidence/Acceptance/AC01_Source_Verification_2026-10-25.md`; logs in `05 Delivery Evidence/Assembly/compat-*-2026-10-25.log`.
+- No attached device; owner-paused emulator not restarted. APK unchanged and AC-01 remains open pending rebuilt APK verification on the affected WebView. No commits/pushes. Next: rebuild with new versionCode and complete affected-device acceptance when testing resumes.
+
+## BL-01 / BL-02 fixes completed — 25 October 2026
+- BL-01: completed Approved discounts no longer become Expired in the shared folio selector. Pending discounts and unused refund/company-credit approvals still expire. No financial records rewritten.
+- BL-02: identified immediate permission saves plus a separate generic limit Save as the cause of accidental inherited-limit overrides. Added a labelled Save limit editor that rejects unchanged/invalid values and clarified submission behavior.
+- Typecheck passed; full suite **497/497**; HTML build passed (SHA-256 583d6d2b605c207290fbf8faa64f178cc9f3cd7d771c706a515869a143d7c7dc); prototype whitespace check passed.
+- Evidence: `05 Delivery Evidence/Acceptance/BL01_BL02_Fixes_2026-10-25.md`. Source and automated verification complete; browser/device confirmation and APK rebuild remain pending. No commits or pushes.
+
+## Shared-till report and POS wording fixed — 25 October 2026
+- Expenses & cash now includes POS cash sales in inflows and signed cash voids in outflows, with receipt-level drill-down and CSV totals. Non-cash POS and room-folio charges excluded; historical date ranges reconcile. Corrected D-01 settlement-dialog wording.
+- Typecheck/build passed. Initial full run 499/500 (one new test had incomplete void/settlement prerequisites); corrected test workflow, final focused 3/3 passed. All 497 pre-existing tests passed in the full run; no final full 500 run claimed.
+- Evidence: `05 Delivery Evidence/Acceptance/Shared_Till_Reports_2026-10-25.md`. HTML hash 879ce6805db071c124530193e795bb41c631901ce0d70a067aaf0b20a44ad9d6. APK unchanged; browser/device confirmation remains pending. No commit/push.

@@ -1,0 +1,4 @@
+PASS [COMPAT] JSON fallback matches native command results and rejected commands preserve input
+PASS [COMPAT] missing modern APIs: FY26 loads, commands isolate input and remain repeat-safe
+PASS [COMPAT] legacy currency options handle whole rupees, paise and negative amounts
+3/3 compatibility tests passed

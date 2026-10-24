@@ -1,0 +1,503 @@
+
+> hcc-interactive-prototype@1.0.0 test
+> node tests/run.mjs
+
+PASS Fixture totals are derived, not hardcoded
+PASS Overlapping room reservation rejected without altering original state
+PASS Adjacent non-overlapping stays accepted
+PASS Blocked room reservation rejected
+PASS Invalid departure rejected
+PASS Guest registration required before check-in
+PASS Dirty room check-in denied
+PASS Stay charges post once on repeat
+PASS Unpaid checkout rejected
+PASS Worked ₹4,400 journey and deposit separation
+PASS Approval cannot be self-approved
+PASS Stale approval rejected after folio mutation
+PASS Housekeeper cannot post payments
+PASS Housekeeper cannot act on another assignee
+PASS Cleaning requires checklist and supervisor inspection
+PASS Inspection does not clear an inventory block
+PASS Disabling user denies next command
+PASS Role permission edits affect command authorization
+PASS Last owner remains protected
+PASS Expense self approval blocked; posted cash counted once
+PASS Night posting is repeat-safe
+PASS Day close blocks unresolved arrivals
+PASS Cash count mismatch rejected
+PASS Cash receipts rejected after shift closes
+PASS Existing tax snapshots survive settings changes
+PASS Room move conflict preserves original allocation
+PASS Refund cannot exceed receipts
+PASS End-to-end close and next day preserve opening cash
+PASS Typed error: overlapping booking → NOT_AVAILABLE
+PASS Typed error: housekeeper payment → FORBIDDEN
+PASS Typed error: action on closed day → DAY_CLOSED
+PASS Typed error: unknown booking → NOT_FOUND; bad input → VALIDATION
+PASS Clock: audit uses simulated time; each command advances one minute
+PASS Clock: opening the next day resets to 08:00 on the new date
+PASS Determinism: same scenario + same commands → identical state
+PASS Determinism: no real-clock dependency (Date.now shifted)
+PASS Idempotency: repeated keyed receipt has one effect
+PASS Idempotency: disabled user is denied even with a previously used key
+PASS Fault: reject leaves state unchanged
+PASS Fault: stale leaves state unchanged
+PASS Fault: lost response commits once; retry with same key does not duplicate
+PASS Fault: latency mode executes normally
+PASS Scenarios: every available scenario loads with its own ID and schema
+PASS Scenarios: unbuilt scenarios refuse to load
+PASS Scenario S0: catalogue figures (drawer ₹10,750 = ₹10,200 + ₹550 restaurant cash, no arrivals today)
+PASS Scenario S1: empty hotel, all rooms sellable and ready
+PASS Scenario S2: 105 blocked; arrival in dirty 108 cannot check in
+PASS Scenario S3: overdue unpaid departure blocks checkout; stale approval rejected
+PASS Scenario S6: disabled second owner and housekeeper are denied
+PASS Persistence: empty storage → base scenario, no reset notice
+PASS Persistence: valid stored state round-trips
+PASS Persistence: older schema, corrupt data or legacy key → safe reset with reason
+PASS Roles: Maintenance limited to assigned tasks
+PASS Roles: cannot edit own role (self-escalation) or delegate admin
+PASS Fixture: demo property renamed; 10 demo users; 23 Oct recorded as closed
+PASS S0 walkthrough: Room 105 ₹4,400, drawer figures, room ready, rerun safe, disabled user denied
+PASS [A] BOOK hold:true creates Held with holdUntil = clock + 120 min
+PASS [A] Held room blocks an overlapping booking (NOT_AVAILABLE) and availability
+PASS [A] Hold expiry releases inventory; status derives to Expired
+PASS [A] Hold expires by advancing the clock through other commands; never extended
+PASS [A] CONFIRM a running hold → Confirmed; after expiry → INVALID_TRANSITION, state unchanged
+PASS [A] CONFIRM rejects non-held bookings and needs reservations permission
+PASS [A] CANCEL works on a running hold (releases room); not on an expired one; no-show not allowed for holds
+PASS [A] CANCEL still requires advances refunded; no-show only from arrival date
+PASS [A] Capacity: Classic 2, Deluxe 3, Suite 4 (children counted) → VALIDATION
+PASS [A] BOOK stores children, company + GSTIN and OTA channel; validates them
+PASS [A] BOOK keeps the old minimal command shape
+PASS [A] Search exclusion reasons: blocked, occupied, booked, held, over capacity
+PASS [A] BASE has a running hold on 106; S3 has an expired one; S0 figures unchanged
+PASS [A] Calendar: stay spanning the range start is clipped; cells correct
+PASS [A] Calendar: stay crossing the range end is clipped; holds labelled with time left; groups by type; filter
+PASS [A] Change dates: conflict leaves the original intact; valid move applied with rate preserved
+PASS [A] Change dates: stale version, in-house stay, capacity and past arrival rejected
+PASS [A] Change dates on a hold keeps its expiry (no extension)
+PASS [A] Idempotent BOOK key creates one booking
+PASS [TILL] BASE: drawer ₹10,750 = ₹10,200 folio/expense cash + ₹550 restaurant cash (POS-F01); UPI POS-F02 excluded
+PASS [TILL] cash POS sale enters the drawer once
+PASS [TILL] UPI / card POS sale is non-cash: drawer unchanged, shown in outlet receipts by method
+PASS [TILL] room service charged to a folio adds a folio charge and no cash
+PASS [TILL] same-day void of a cash bill nets to zero in the drawer
+PASS [TILL] POS cash is rejected after the shift closes (sale and cash void); UPI still allowed
+PASS [TILL] replay with the same key changes nothing
+PASS [TILL] an open POS check blocks DAY_CLOSE (preflight item + command); settling it lets the day close
+PASS [TILL] drawer === shiftExpected().expected on BASE and on FY26 23 Oct (restaurant cash included)
+PASS [TILL] FY26 closing records equal a full recompute; float restored by banking; every day has restaurant cash counted
+PASS [A2UI] no violations → submit, no override sent
+PASS [A2UI] violations + reception → cannot submit and cannot override
+PASS [A2UI] violations + manager: ticked with reason ≥ 3 → submit with override; short reason or unticked → cannot
+PASS [A2UI] group rooming in a restricted window: block-level state, override passes through GRP_ROOMING
+PASS [A2UI] phone wizard: restricted room step blocks Next for reception; manager override clears it; BOOK payload end-to-end
+PASS [A2] violations helper: min stay and closed-to-arrival, structured codes
+PASS [A2] BOOK: min-stay and CTA rejected with RESTRICTED; permitted stay accepted; state untouched on failure
+PASS [A2] override: approver with reason succeeds and is recorded; reception cannot; short reason rejected
+PASS [A2] CHANGE_DATES into a restricted arrival is rejected; original reservation preserved
+PASS [A2] group pickup inside a restricted window is rejected; approver override passes through
+PASS [A2] OTA accept and web booking request follow the same restriction
+PASS [A2] in-house extension (MOVE) is not restricted — arrival already happened
+PASS [ACC] module slice defaults to empty
+PASS [ACC] fixture 24 Oct: 10 receipt vouchers + 1 expense voucher, all balanced, collections ₹21,500
+PASS [ACC] 23 Oct sales vouchers: Dr guest ledger = room revenue + 10% tax; trial balance agrees
+PASS [ACC] every voucher traces to a stable, unique source ID and existing record
+PASS [ACC] full day flow (charge, discount, deposit, return, refund, UPI) stays balanced and reconciles
+PASS [ACC] closed day reconciles to the closing record, cash difference posts to over/short
+PASS [ACC] lock requires a closed day; lock freezes snapshot; second lock rejected; idempotent key
+PASS [ACC] mapping change after lock does not alter locked vouchers but changes live unlocked ones
+PASS [ACC] unmapped classification → Suspense, error exception, blocks lock until mapped
+PASS [ACC] mapping validation: admin only, no suspense, unknown key, no-op rejected
+PASS [ACC] lock permissions: cashier/housekeeper denied; unlock is owner-only with a reason
+PASS [ACC] snapshot drift warning when sources for a locked date change
+PASS [ACC] unbalanced voucher detection and expense reversal swaps sides
+PASS [ACC] CSV export: generic header, one row per entry, debit total = credit total
+PASS [ACC] base fixture figures unchanged by the module
+PASS [AI] module slice defaults to empty and old saves without the slice work
+PASS [AI] intent matching by keywords, specific intents win ties
+PASS [AI] base figures: occupancy, ADR, RevPAR, collections, drawer match the fixture
+PASS [AI] posted night replaces the agreed rate in ADR (no double count)
+PASS [AI] occupancy forecast: tomorrow and 7 days use stays on the books and dated blocks
+PASS [AI] arrivals, departures, approvals, rooms, backlog, expenses, balances answers
+PASS [AI] day-close readiness mirrors the closing preflight
+PASS [AI] permissions: housekeeper and maintenance never receive money
+PASS [AI] AI_ASK records per user, snapshot answer, simulated clock; other users unaffected
+PASS [AI] AI_ASK is idempotent by key; validation of empty / long questions
+PASS [AI] AI_ASK allowed on a closed day; restricted answer recorded for housekeeper; disabled user denied
+PASS [AI] history capped at 50; AI_CLEAR clears only own history
+PASS [AI] unknown question → helpful fallback listing permitted topics
+PASS [AI] anomaly flags in AI1: departed balance, large discount, dirty rooms aged on the clock, pending
+PASS [AI] cash difference flag and AI_SETTINGS permissions
+PASS [AI] briefing respects role and links to screens
+PASS [B] Fixture: 10 fictional guest profiles linked to base bookings; in-house stays have an open segment
+PASS [B] Duplicate detection: same phone (different formatting) and same normalised name
+PASS [B] Masking selector by role: ID "Restricted", phone masked last 4 without checkin permission
+PASS [B] GUEST_SAVE: validation errors, create, edit with stale version, permission
+PASS [B] REGISTER with details validates and saves the profile
+PASS [B] Backward-compatible REGISTER {id}: auto-creates a minimal demo-verified profile; seeded profile reused
+PASS [B] Check-in denied for a dirty room with same-type alternatives listed; switch via MOVE then check in
+PASS [B] Walk-in sequence: BOOK → REGISTER(details) → CHECKIN with own keys; retries are idempotent; partial failure recoverable
+PASS [B] In-house move creates dated segments, label, and exactly one HK task for the old room
+PASS [B] Failed move leaves state unchanged (conflict, dirty target, blocked target) and lists alternatives
+PASS [B] Shorten bounds: not before business date + 1; posted future nights block shortening
+PASS [B] Arrivals and in-house selectors
+PASS [C] Mixed tender creates one receipt per tender once; same-key retry creates none
+PASS [C] Mixed tender: sum ≠ amount, missing reference, or closed shift is rejected with no effect
+PASS [C] Single-tender PAYMENT shape stays backward compatible
+PASS [C] Direct PAYMENT refund is rejected and points to the refund request
+PASS [C] Refund flow: request → approve (SoD) → execute once, against the original receipt
+PASS [C] Refund approval is invalidated by a folio change; deposits cannot be refunded
+PASS [C] S4 fixture: HCC-1052 in room 203, ₹6,600 due, company and GSTIN placeholder, 22 Oct closed
+PASS [C] S4 company-credit checkout: request, manager approval, receivable receipt, invoice number
+PASS [C] Company credit above ₹10,000 needs an Owner; stale credit falls back to the settle rule
+PASS [C] Correction: approved request posts a linked reversal; posted lines never edited
+PASS [C] Invoice number allocated once per stay, sequentially, at checkout
+PASS [C] Credit note after departure needs approval, then enables a refund against the credit
+PASS [C] New approvals expire after 24 simulated hours; expired approve fails, dismiss marks Expired
+PASS [C] AC-006 ₹4,400 journey with a mixed-tender settlement still holds
+PASS [C] Pending non-discount request blocks checkout; discount message unchanged
+PASS [CHN] fixture: 4 channels, 6 pending messages, core figures untouched
+PASS [CHN] accept New → Confirmed OTA booking via BOOK (hotel tariff, channel name, first free room)
+PASS [CHN] accept with staff-chosen room; wrong type rejected
+PASS [CHN] overbooking prevented: no free Suite → NOT_AVAILABLE, state unchanged; reject needs a reason
+PASS [CHN] pre-checks: capacity, unmapped type, past arrival, duplicate ref
+PASS [CHN] modification: pending request updated; accepted booking moved via CHANGE_DATES
+PASS [CHN] cancellation: accepted booking cancelled; pending request withdrawn; disconnected channel delivers nothing
+PASS [CHN] push preview: availability, markup, stop-sell, unmapped; push refused unless connected
+PASS [CHN] channel save: commission/markup bounds, codes, reception denied
+PASS [CHN] commission report: 18% / 15% of agreed room revenue, cancelled excluded
+PASS [CHN] web quote: synthetic tax, rooms left, capacity, search errors
+PASS [CHN] web request → Held booking; confirm → Confirmed; second confirm refused
+PASS [CHN] web decline releases the hold; expired hold cannot be confirmed but can be declined
+PASS [CHN] sold-out web request refused; day-closed blocks accept
+PASS [COMPAT] missing modern APIs: FY26 loads, commands isolate input and remain repeat-safe
+PASS [COMPAT] legacy currency options handle whole rupees, paise and negative amounts
+PASS [CUST] every booking belongs to exactly one customer
+PASS [CUST] customers are matched by mobile number, even when the name is spelled differently
+PASS [CUST] a customer lists stays newest first with totals only over stays that happened
+PASS [CUST] saved guest profiles attach to their customer (preferences, masked ID source)
+PASS [CUST] search by name finds the customer; every typed word must match
+PASS [CUST] search by mobile digits needs 3+ digits and a role that sees phones
+PASS [CUST] booking IDs are NOT matched by customer search (owner decision)
+PASS [CUST] requests and complaints are linked through the stay booking
+PASS [CUST] booking-ID lookup: partial ID, any status, 3+ characters, newest first
+PASS [D] blockedDuring: interval [from,to) overlap, back-to-back, open-ended, undated, unblocked
+PASS [D] Dated block lets bookings outside its dates through; overlapping booking rejected
+PASS [D] BLOCK overlapping an active/future allocation rejected with M1 message; non-overlapping allowed
+PASS [D] BLOCK validation, permissions, UNBLOCK and legacy toggle
+PASS [D] Expired dated block is released by hkExpireBlocks (for NEXT_DAY)
+PASS [D] Inspection reject requires a reason, stored on the task
+PASS [D] Stayover generation: idempotent, one per in-house room, readiness unchanged, no inspection
+PASS [D] Repair request goes to Maintenance; housekeeper cannot start it; completion keeps block
+PASS [D] Inspection keeps a dated block
+PASS [D] Checkout clean: start → checklist → complete with timestamps; inspection policy off → Ready
+PASS [D] Guest view for HK has no financial fields
+PASS [D] BACKUP_SIMULATE requires admin and only appends audit
+PASS [D] Roadmap lists areas 13–26
+PASS [E] authorize: reception discount within limit allowed, over limit needs approval
+PASS [E] authorize: cashier executes refunds on own shift only; reception cannot execute
+PASS [E] authorize: housekeeper denied finance; assigned-scope work outside assignment denied
+PASS [E] authorize: tech admin manages users but every financial action is an explicit deny
+PASS [E] authorize: accountant export, finance reports and expense approval allowed; no discounts
+PASS [E] authorize: every role × permission cell matches the matrix code
+PASS [E] explicit deny exception overrides an allow (S6 cashier export conflict; deny wins)
+PASS [E] allow exception grants until expiry, then stops applying
+PASS [E] expired user denied by can(), authorize() and execute()
+PASS [E] disabled user denied first, whatever the role grants
+PASS [E] DEC-033: last active owner cannot be disabled; a second owner can be
+PASS [E] DEC-033 (S6): disabled or expired owners do not count as active; demotion is guarded too
+PASS [E] self-role edit and self-exception denied; tech admin financial grant → VALIDATION
+PASS [E] policy change bumps version and records before → after in audit and history
+PASS [E] tech admin role edit becomes an Owner approval; self-approval denied; stale version invalidates
+PASS [E] user create / update need admin; reception cannot; role change records assignment
+PASS [E] effective access lists every permission with its deciding rule
+PASS [E] approvals inbox derives Expired and Invalidated; decide block explains SoD
+PASS [E] audit filter by actor, action, text and date over the full log
+PASS [E] rateFor / taxRateFor follow effective dates; past dates rejected
+PASS [E] demo 3: BOOK picks the scheduled rate; existing bookings keep theirs
+PASS [E] demo 4: tax effective date — posted lines keep snapshot, later nights use new rate
+PASS [E] demos 1, 2 and 5: discount threshold, inspection rule, check-in/out warning
+PASS [E] impact preview counts for tariff and tax changes
+PASS [E] SETTINGS merges (keeps other fields) and keeps tax schedule consistent
+PASS [F] Shift: expected-cash formula parts equal drawer(); movements listed
+PASS [F] Shift: exact SHIFT_SUBMIT by cashier closes the shift; cash receipts then rejected
+PASS [F] Shift: denial paths — housekeeper denied, negative count, grid mismatch, missing reason
+PASS [F] Shift: difference → approval; receipts blocked; no self-approval; manager limit; owner approves with difference recorded
+PASS [F] Shift: manager accepts ≤ ₹200 but not above; cashier submits, manager approves; next opening float = counted
+PASS [F] Shift: rejected difference reopens the shift for recount
+PASS [F] Expense: draft → submit → approve → reverse; drawer counted exactly once
+PASS [F] Expense: vendor credit has no drawer effect; manager limit; reject without reason still works; duplicate warning
+PASS [F] Close: CLOSE_RUN interrupt/resume posts each night exactly once
+PASS [F] Close: S5 resume posts only the remaining 5 nights
+PASS [F] Close: closing record is immutable; rerun and later activity leave it unchanged
+PASS [F] Close: preflight lists blockers with drill links; expired hold blocks close
+PASS [F] Close: closed-date correction needs Owner approval and posts a dated adjustment today
+PASS [F] Reports: S0 walkthrough — every total equals its drill-down rows; Room 105 figures; CSV header
+PASS [F] Reports: occupancy dictionary edge cases (zero sellable / zero occupied → "—", 1 dp)
+PASS [GRP-HOLD] unpicked block rooms are held as specific rooms and not bookable by others
+PASS [GRP-HOLD] calendar shows held nights as blocked with the group label; room board shows Blocked on the night
+PASS [GRP-HOLD] the block itself can pick up its held rooms; holds shrink as rooms are picked up
+PASS [GRP-HOLD] releasing a block frees its rooms
+PASS [GRP] module slice defaults to empty
+PASS [GRP] fixture: fictional companies, 4 blocks, core figures unchanged
+PASS [GRP] pickup lines and company exposure figures
+PASS [GRP] block creation validates dates, cut-off and inventory (incl. other blocks)
+PASS [GRP] rooming list books real rooms at the block rate, billed to the company
+PASS [GRP] rooming list is atomic and respects allotment, type and availability
+PASS [GRP] credit limit: refusal, approver override with reason, reception cannot override
+PASS [GRP] credit-limit change: admin sets, reception requests, no self-approval
+PASS [GRP] housekeeping and accountant roles cannot use group commands
+PASS [GRP] company save validates GSTIN shape and duplicate names; new limit via request
+PASS [GRP] allotment change cannot go below pickup; manual release closes pickup
+PASS [GRP] auto-release after the business date passes the cut-off (NEXT_DAY)
+PASS [GRP] cancelled member gives the room back; master folio totals aggregate members
+PASS [GRP] day-closed rule blocks group writes
+PASS [HOV] fixture: 6 templates, 8 runs, 3 notes; core figures unchanged
+PASS [HOV] absent slice reads as empty (old saves)
+PASS [HOV] shift windows and night roll-over
+PASS [HOV] opening run at 08:00: 2/7 done = 29 %, item due 07:30 overdue
+PASS [HOV] my checklists are filtered by role
+PASS [HOV] first tick on a not-started template creates the run with a snapshot
+PASS [HOV] template edit bumps version; existing run keeps its items
+PASS [HOV] only Owner/Manager edit templates; validation
+PASS [HOV] deactivated template hides from today unless started; cannot start
+PASS [HOV] wrong role cannot tick another role’s checklist
+PASS [HOV] photo item needs a photo file name; notes limited
+PASS [HOV] submit blocked by mandatory items, then by unacknowledged incoming note
+PASS [HOV] reopen: manager only, reason required
+PASS [HOV] acknowledge: own note forbidden, other desk forbidden, idempotent key, once only
+PASS [HOV] handover note: desk membership, cash only front desk with payments, replace until ack
+PASS [HOV] housekeepers never see money or front-desk notes
+PASS [HOV] carry-forward items close once, by desk members
+PASS [HOV] demo clock: managers only, capped, drives overdue flags
+PASS [HOV] day closed rejects ticks and notes
+PASS [HOV] dashboard completion by role and desk
+PASS [HOV] revoked grants remove access (coarse permissions respected)
+PASS [HIST-A] FY26 is the first scenario, the startup default, and loads with the current schema
+PASS [HIST-A] generator is deterministic (same seed → identical hash; other seed differs)
+PASS [HIST-A] BASE is untouched: its bookings, rooms and today figures are identical in FY26
+PASS [HIST-A] history stays inside 1 Apr – 23 Oct 2026; ids, receipts and approvals are unique
+PASS [HIST-A] no room is double-booked and room 308 stays out of service
+PASS [HIST-A] departed stays: one room-night line per night, tax snapshot, folio balanced, deposits returned, invoice numbered
+PASS [HIST-A] receivables: 1–6 company-credit folios, each within the manager limit with an executed approval
+PASS [HIST-A] cancelled stays net to zero, no-shows are charged only against an advance, neither holds a room
+  [HIST-A] stats: nights 2655, occupancy 56.0%, ADR ₹2614, room revenue ₹69.4 lakh, bookings 1269, departed 1155
+PASS [HIST-A] realistic totals: occupancy ≈56 %, ADR ≈₹2,650, 1,200–1,400 bookings, room revenue ₹65–75 lakh (±10 %)
+  [HIST-A] budgets: generate 610 ms (median of 3), JSON 7.78 MB, one execute() 154 ms
+PASS [HIST-A] budgets: generation ≤1.5 s, state JSON ≤12 MB, a command on FY26 stays fast
+PASS [HIST-A] restoreState: default scenario FY26 only when asked; pure default stays BASE
+PASS [HIST-A] storage: empty store opens on FY26 without a reset notice
+PASS [HIST-A] storage: writes are debounced into one IndexedDB put and round-trip
+PASS [HIST-A] storage: without IndexedDB small states fall back to localStorage; oversized states report an error
+PASS [HIST-A] storage: an older saved schema is reset to the default scenario with a reason
+PASS [HIST-B] every history day is closed with exactly one closing record; 24 Oct stays open
+PASS [HIST-B] stored closing record equals the recomputed closingSummary for every day (full-state recompute)
+PASS [HIST-B] monthly totals equal the sum of the daily records and the report pack for the month
+PASS [HIST-B] every report metric over the whole FY equals the sum of its drill-down rows
+PASS [HIST-B] cash drawer continuity: opening = previous counted − banked; float ₹5,000; joins up with BASE on 24 Oct
+PASS [HIST-B] cash differences: ~8 % of days, ±₹10–₹200, each with a reason and an approved manager decision
+PASS [HIST-B] no posting on closed days: history is read-only except through the correction commands
+PASS [HIST-B] today (24 Oct) can run the normal close → next-day flow on top of FY26 history
+PASS [HIST-B] accounting: every day balanced, no blocking exceptions, vouchers reconcile with the reports and the cash count
+PASS [HIST-B] expenses: bills each month, weekly laundry, limits respected, rejected ones do not count, reversals offset
+PASS [HIST-B] discounts above the manager limit carry an approved approval; folios still balance
+PASS [HIST-B] room moves keep both rooms free of overlaps (segments and booking room agree)
+PASS [HIST-B] housekeeping history: 30 days of Done tasks, compact summary rows for every day, BASE tasks untouched
+PASS [HIST-B] audit trail: one "Day closed" per day, every override event present, newest first, unique ids
+PASS [HIST-B] history summary: months and FY-to-date equal the closing records and the FY report pack
+  [HIST-B] generate 683 ms (median of 3), JSON 7.78 MB, FY report pack 513 ms
+PASS [HIST-B] budgets: FY generation ≤1.5 s and FY-to-date report ≤1 s
+PASS [HIST-B] 24 Oct figures still equal BASE with the full history in place
+PASS [HIST-C] yield: historic seasons exist and weekly publishes equal the rates the stays were sold at
+PASS [HIST-C] groups: four past blocks whose members are real stays that match the block
+PASS [HIST-C] maintenance: corrective ~1 per 3 days, preventive per plan, every work order verified within sequence
+PASS [HIST-C] maintenance downtime: the nights of every downtime work order have no stay in that room
+PASS [HIST-C] inventory: consumption ≈ standard × occupied room-nights (shampoo flagged, others within 10 %)
+PASS [HIST-C] inventory: laundry batches reconcile with moves and losses; counts and receipts reconcile
+PASS [HIST-C] staff: Apr–Sep payroll runs are locked and equal their recalculation; advances recovered
+PASS [HIST-C] guest services: ~0.3 requests per occupied night, SLAs mostly met, complaints and recoveries tie to folio lines
+PASS [HIST-C] checklists & handover: 30 days of runs for every template; older days summarised
+PASS [HIST-C] POS: bills reconcile with receipts and folio lines; numbering and KOTs are consistent
+PASS [HIST-C] POS: voids carry approvals; room-service folio lines are in the stay and the closing records
+PASS [HIST-C] channels: OTA bookings arrive as applied messages; commission report equals the channel rates
+PASS [HIST-C] messages & documents: 60 days of outbox, no false pending triggers, documents point at real records
+PASS [HIST-C] accounting: every day of April–September is locked, balanced and free of drift; October is closed but open for locking
+  [HIST-C] generate 628 ms, JSON 7.78 MB (accountingX 2.20MB, posX 1.23MB, bookings 1.23MB, inventoryX 0.80MB, messagingX 0.60MB, servicesX 0.43MB, handoverX 0.30MB, channelsX 0.21MB), FY pack 487 ms, one command 134 ms
+PASS [HIST-C] the whole scenario still joins up: today equals BASE, reports and a normal day work, size and speed budgets hold
+PASS [INV] slice: absent slice reads as empty; fixture seeds 17 items, alerts and history
+PASS [INV] fixture keeps core figures unchanged
+PASS [INV] issue store → floor moves stock; over-issue rejected without change
+PASS [INV] permissions: reception/accountant denied; housekeeper cannot GRN or post counts; cost entry only for money roles
+PASS [INV] GRN: supervisor receives to store and clears the alert; manager cost → weighted average
+PASS [INV] use: supplies only, from a floor pantry; linen change sends used pieces to soiled
+PASS [INV] laundry send → receive short: clean to store, damaged + missing to loss register, charge computed
+PASS [INV] fixture batch LB-S2 receives in full
+PASS [INV] loss needs reason (Other needs note), cannot exceed stock, records value
+PASS [INV] count: match posts at once; variance needs another reviewer; approve adjusts by variance keeping later moves
+PASS [INV] fixture count CNT-S2 (by Ravi) can be rejected by the supervisor with no stock change
+PASS [INV] consumption per occupied room-night uses history + bookings and flags shampoo
+PASS [INV] item settings: par & minimum change alerts; validation
+PASS [INV] closed business day blocks stock movements
+PASS [INV] commands on an old save without the slice start an empty module safely
+PASS [MNT] Fixture: register, AMCs, spares, plans and work orders seeded; core figures unchanged
+PASS [MNT] Absent slice (old save) reads as empty and commands still work
+PASS [MNT] SLA, MTTR, PM compliance, ages and downtime derive from fixture data
+PASS [MNT] Repair request → work order → start → hold → part → resume → complete → verify; repair task follows
+PASS [MNT] Verification: return with reason; no self-verification even for a manager who did the work
+PASS [MNT] Technician scope: own work orders only, cannot assign/verify/block/cancel; housekeeper cannot create
+PASS [MNT] Assign + start rules; asset marked faulty then working after verification
+PASS [MNT] Room block from a work order: refuses overlapping allocations; downtime tracked; cancel rules
+PASS [MNT] PM generation: due occurrences by business date, idempotent, advances plans; day-closed refused
+PASS [MNT] Registers: asset, plan, vendor, AMC (money permission), spare receive; validation
+PASS [MSG] module slice defaults to empty
+PASS [MSG] fixture: templates, rules, seeded outbox; only today's pre-arrival triggers pending
+PASS [MSG] placeholders filled from booking/guest; unknown flagged
+PASS [MSG] manual compose: in-house only, consent respected, nothing for housekeeper
+PASS [MSG] delivery advances on the simulated clock and via Simulate delivery
+PASS [MSG] outcome is deterministic; invalid number fails; failed can be retried once
+PASS [MSG] trigger rules: new booking → pending confirmation; queue is idempotent; opted-out recorded as Not sent
+PASS [MSG] opt-out stops still-queued messages; disabled rule does not fire
+PASS [MSG] template edit validates placeholders and length; manager allowed, reception denied
+PASS [MSG] ID capture: low confidence needs review; applies ID type + last 4 only; no full number stored
+PASS [MSG] vendor bill → expense draft through EXPENSE; permissions and day-closed respected
+PASS [MSG] company letter applies company + GSTIN; discard is final
+PASS [MSG] S1 empty hotel and old saves without the slice work
+PASS [MA] Report chips map 1:1 to desktop report tabs; KPI and drill-down totals equal desktop reportPack
+PASS [MA] Restricted scope masks guest names on phone but never changes a figure
+PASS [MA] Date range rules match desktop: future, reversed and > 62 days refused
+PASS [MA] Closing stepper: blockers are tappable rows that point at the record or page to fix
+PASS [MA] Closing stepper shows resume after an interrupted night audit; resume posts the rest once
+PASS [MA] AC-M08 Manager closes the day following the phone stepper; summary equals desktop closing record
+PASS [MA] Approval cards: own request disabled with explanation; another manager may approve or reject with reason
+PASS [MA] Expense cards: submitter cannot decide own expense; housekeeper never can
+PASS [MA] Audit filter sheet: count of active filters and options derive from the log
+PASS [MA] Users list: own account and last active owner protected; enable/disable via USER
+PASS [MA] Roadmap areas 13–26 show the current prototype build; external ones say simulated
+PASS [MF] Initials and room types
+PASS [MF] Agenda day groups rooms of one type with the occupying booking, free and blocked nights
+PASS [MF] Agenda strip counts per night match the day rows
+PASS [MF] Wizard step 1 validates dates and party like the desktop dialog
+PASS [MF] Wizard step 2: auto-assign, picked room, excluded room with a reason
+PASS [MF] Wizard step 3 guest validation (phone, OTA, GSTIN)
+PASS [MF] Wizard BOOK command creates the reservation (confirm and hold) and is idempotent
+PASS [MF] Reservation filter by status and search
+PASS [MF] Needs attention only lists permitted pages with counts
+PASS [MF] Room list by floor and status; arrival lookup for the room sheet
+PASS [MF] AC-M05: wizard booking → register → check-in step state on the phone flow
+PASS [MM] AC-M06: phone split ₹2,000 cash + ₹1,400 UPI, deposit return, checkout, expense, shift close — S0 figures
+PASS [MM] Keypad amounts parse to paise; invalid text rejected
+PASS [MM] Payment checks match the command: totals, references, deposit-return limits; single tender = desktop shape
+PASS [MM] Lost response: payment saved once; retry with the same sheet key reports it, never duplicates
+PASS [MM] Count difference → reason → approval request; no self-approval; manager accepts within limit
+PASS [MM] Checkout checklist names each blocker (nights, balance, deposit, pending request)
+PASS [MM] Expense sheet: draft vs submit keys, duplicate detected for the inline warning
+PASS [MO] View per role: housekeeper My tasks, maintenance My repairs, others board
+PASS [MO] Tab/URL focus: Inspect tab or #inspect opens the Inspect segment; Report repair tab opens report mode
+PASS [MO] My tasks: own tasks only, active work first; no other assignee leaks
+PASS [MO] Supervisor segments partition all tasks; Inspect holds room 303
+PASS [MO] Assign picker lists only enabled staff of the right role (repair → maintenance)
+PASS [MO] Report-repair rooms: own open rooms; an open repair is flagged; REPAIR_REQUEST scoped
+PASS [MO] AC-M07 phone flow: housekeeper cleans Room 105 after checkout, supervisor passes inspection
+PASS [MO] Phone page shows no financial data to housekeeper or maintenance; maintenance sees block info
+PASS [MO] Registration: phone page + sheets registered with allowed IDs
+PASS [MO] Walkthrough steps: S0 has 15 steps with valid actors and a housekeeping step for Ravi
+PASS [MO] Manifest: names, colours, standalone, PNG icons decode to a maroon square with a white H
+PASS [MB] Display mode: Auto follows width/APK, Desktop and Mobile are forced
+PASS [MB] Every role gets 1–4 permitted bottom tabs; landing page reachable
+PASS [MB] Tabs hide pages a role loses (access edit applies on phone too)
+(node:24840) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS [NATIVE] back button: sheet → wizard step → previous page → landing → confirm exit
+PASS [NATIVE] Android app: phone-sized screens get the phone layout, tablets the desktop layout
+PASS [NATIVE] step-back registry: latest sheet wins and unregisters cleanly
+PASS [NATIVE] file names are safe, prefixed HCC- and dated
+PASS [NATIVE] outside the APK nothing is native (browser fallbacks stay in charge)
+PASS [NATIVE] CSV in the APK is written to Documents/HCC with a BOM and offered through the share sheet
+PASS [NATIVE] a cancelled share sheet or a failing plugin reports "failed", never throws
+PASS [NATIVE] non-ASCII text (₹, names) survives the base64 round trip
+PASS [NATIVE] printing uses the Android print service; if it fails the page is shared as an HTML file
+PASS [NATIVE] back-button listener registers on the App plugin and removes itself
+PASS [NATIVE] printable page is standalone, escapes the title and hides action buttons
+PASS [NAV] can() accepts an any-of permission list
+PASS [NAV] My shifts & pay reachable by every enabled role; checklists by floor and desk staff
+PASS [NAV] ten categories; every registered page except the Dashboard belongs to exactly one
+PASS [NAV] the mapping names no page that does not exist (customers is built in step 4)
+PASS [NAV] agreed placement: Guests profile under Customers; stay functions under Guests & Services; Dashboard has no category
+PASS [NAV] search actions open dialogs that exist
+PASS [NAV] search finds pages by label, keyword and synonym and shows the exact path
+PASS [NAV] search finds quick actions with a three-part path; typing order and case do not matter
+PASS [NAV] every word must match; empty and nonsense queries return nothing; booking IDs are not searchable globally
+PASS [NAV] results respect the role: housekeeper cannot find folios, reception can book, owner finds everything
+PASS [NAV] every page can be found by its own label for a role that may open it
+PASS [NAV] Home and category pages are virtual, recognised and never collide with real pages
+PASS [NAV] every page has a one-line tile description; every category tile pages are real nav items
+PASS [NAV] breadcrumb is Home › Category › Page with the earlier parts clickable
+PASS [NAV] every role sees at least one tile on Modules Home
+PASS [POS] fixture: outlets, menu, checks; core figures unchanged
+PASS [POS] open → add (merges unsent) → qty/remove → KOT → kitchen flow
+PASS [POS] settle at outlet: UPI reference, cash needs open shift, idempotent, cash counted once in the drawer
+PASS [POS] settle blocked with unsent items; empty check cannot settle
+PASS [POS] post to room folio: CHARGE line shape, tax snapshot, once only
+PASS [POS] folio post rules: in-house only, day closed, restaurant check charged to a room
+PASS [POS] room service: only for in-house rooms; one open check per room
+PASS [POS] void item ≤ ₹500 immediate; unsent item cannot be voided; reason required
+PASS [POS] void above ₹500 needs approval: lock, no self-approval, inbox routing, executed
+PASS [POS] void reject unlocks; housekeeper has no POS access
+PASS [POS] void settled outlet bill reverses outlet receipt; menu 86 toggle
+PASS [POS] stale approval: check changed after request
+PASS [GSV] module slice defaults to empty
+PASS [GSV] fixture leaves core figures untouched and seeds registers
+PASS [GSV] request: create sets SLA due time on the simulated clock; urgent halves it
+PASS [GSV] request: only in-house stays; type, wake-up time and permission validated
+PASS [GSV] request: housekeeper works only own assignment; completion needs a guest note; idempotent
+PASS [GSV] request: assignment pool by department; supervisor may assign HK, not front desk; cancel needs reason
+PASS [GSV] SLA: overdue label follows the simulated clock; report figures derived
+PASS [GSV] complaint: log → investigate → resolve requires root cause + action → follow-up closes
+PASS [GSV] complaint: High severity can only be closed by a user with approve
+PASS [GSV] recovery discount above limit goes through the existing DISCOUNT approval; no self-approval
+PASS [GSV] recovery discount within limit posts a discount line; needs a linked stay; closed day refused
+PASS [GSV] lost & found: valuables to the safe; housekeeper may log; claim needs ID note without full number
+PASS [GSV] lost & found: disposal only after retention; valuables need approve and cannot be destroyed
+PASS [GSV] settings: approve permission; SLA bounds; retention affects disposal date
+PASS [GSV] state with module data survives JSON round trip (no undefined fields)
+PASS [HR] fixture: 12 fictional staff, 8 linked logins, locked August run, advance partly recovered
+PASS [HR] slice absent (old save) reads as empty
+PASS [HR] role visibility: salaries for Owner/Accountant only; managing for approve holders
+PASS [HR] payroll line formula (monthly): LOP, late rule, OT, illustrative PF/ESIC/PT, advance capped by balance
+PASS [HR] payroll line formula (daily wage) and ESIC under ceiling; advance never makes net negative
+PASS [HR] payroll permissions and completed-month rule
+PASS [HR] maker-checker lock, advance recovery posted once, locked run immutable
+PASS [HR] stale draft cannot be locked after rates change; recalculation fixes it; locked runs keep their rate snapshot
+PASS [HR] self check-in: late after shift start + grace, once per day, own record only, not on weekly off
+PASS [HR] manager attendance: overtime bounds, correction, day-closed block, no money moved
+PASS [HR] roster: past dates are history, future overrides apply, copy week
+PASS [HR] leave: balance, overlap, daily-wage LOP only, no backdating, weekly offs excluded
+PASS [HR] leave approval: no self-approval (requester or person on leave), rejection needs a reason
+PASS [HR] staff master: managers cannot set salary; payroll roles can; user link unique
+PASS [HR] advances: payroll only, one open per staff, installment ≤ amount
+PASS [HR] payroll register CSV: header, one row per staff, totals, disclaimer
+PASS [HR] exited staff leave the roster and later payroll; unmarked days are warned and counted absent
+PASS [YLD] module slice: fixture rules loaded, absent slice falls back to defaults
+PASS [YLD] fixture leaves core figures and tariffs unchanged
+PASS [YLD] base → weekday → occupancy explanation (Sat 24 Oct Classic)
+PASS [YLD] low occupancy tier lowers the rate; season applies only to listed types
+PASS [YLD] highest occupancy tier only + ceiling clamp + ₹50 rounding
+PASS [YLD] forecast occupancy = max(on the books, simulated forecast) over sellable rooms
+PASS [YLD] base follows a manual tariff schedule, never yield-owned rows
+PASS [YLD] publish writes effective-dated tariffs; new bookings use them; existing bookings untouched
+PASS [YLD] publish is idempotent by key and fails when nothing changes
+PASS [YLD] partial window keeps later nights unchanged
+PASS [YLD] cannot publish past nights, closed business day, or beyond the window
+PASS [YLD] rule changes are Owner-only (Manager, Accountant, Tech admin, Reception denied)
+PASS [YLD] seasons: add, priority on overlap, validation, remove with history
+PASS [YLD] occupancy rules validated (direction, duplicates)
+PASS [YLD] guardrails clamp the floor
+PASS [YLD] override replaces computed rate and can be cleared
+PASS [YLD] rate plans derive from BAR; BAR fixed; day-use closes on very high demand
+PASS [YLD] quotes report restrictions: min stay, closed to arrival, plan rules
+PASS [YLD] restrictions: Owner adds/removes; validation
+PASS [YLD] Manager proposes → Owner approves → tariffs published; self-approval blocked
+PASS [YLD] stale or rejected proposals do not publish
+PASS [YLD] proposal expires on the simulated clock
+492/492 tests passed

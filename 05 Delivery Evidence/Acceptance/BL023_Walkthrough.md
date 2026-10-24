@@ -45,3 +45,6 @@
 
 ## Screenshot index (`bl023\`)
 `01-overview-24oct.jpg`, `02-booking-105-advance.jpg`, `03-checked-in-105.jpg`, `04-deposit-500.jpg`, `05-shift-count-11250-24oct.jpg`, `06-closed-24oct.jpg`, `07-laundry-discount-pending.jpg`, `08-invoice-4400.jpg`, `09-shift-count-12450-26oct.jpg`, `10-reports-24-26oct.jpg` (earlier shots replaced). Console: no errors during the run.
+
+## Follow-up — 25 October 2026
+BL-01 and BL-02 have source fixes and passing automated regression evidence in `BL01_BL02_Fixes_2026-10-25.md` (497/497 full suite). The original observations above remain historical evidence. Fresh browser/device confirmation is still pending; this does not close all W0-D acceptance.

@@ -1,0 +1,4 @@
+PASS [REPORT-TILL] BASE shared cash report includes POS once, matching drawer and drill-down
+PASS [REPORT-TILL] cash void is signed outflow; room-folio settlement and UPI do not add cash
+PASS [REPORT-TILL] inclusive range filters POS by receipt date; historical daily flows match closing cash
+3/3 passed
