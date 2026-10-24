@@ -24,7 +24,7 @@ HCC is an internal operations application for the owner's hotel/lodging business
 
 Core design objective **[C §9]**: reception must not manually update five modules for one stay. One command (e.g. checkout) produces all its consequences (folio closed, room dirty, housekeeping task raised, report figures updated) consistently.
 
-Delivery path **[C DEC-17, P §3]**: clickable React + TypeScript prototype with fictional data → owner acceptance → production design → NestJS + SQL Server 2025 Express vertical slice → MVP → pilot.
+Delivery path **[C DEC-17, P §3]**: clickable React + TypeScript prototype with fictional data → owner acceptance → production design → NestJS + SQL Server 2025 Express (server stack changed to .NET 10 by DEC-054, 24 Oct 2026) vertical slice → MVP → pilot.
 
 ## 2. Users and usage contexts
 

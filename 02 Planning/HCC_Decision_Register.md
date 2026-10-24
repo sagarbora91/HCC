@@ -24,7 +24,7 @@ Version: 1.0 · Updated: 24 October 2026 · Owner: Sagar
 | DEC-02 | Scope | 26 areas in 3 phases; first 12 = MVP | Agreed (fine-grained acceptance pending) | C | PRD §3 |
 | DEC-03 | Database | SQL Server 2025 Express is the authoritative production store | Agreed; schema/performance pending; edition limits **Unverified** | C | M4–M6 |
 | DEC-04 | Architecture | Modular monolith + hexagonal + DDD bounded contexts + internal events | Agreed | C | M4 |
-| DEC-05 | Backend | NestJS + TypeScript | Agreed direction; driver/ORM pending SQL Server spike | C | M4 |
+| DEC-05 | Backend | NestJS + TypeScript | **Superseded by DEC-054 (24 Oct 2026)** | C | M4 |
 | DEC-06 | Frontend | React + TypeScript, responsive | Agreed; design system pending approval | C | M1–M3 |
 | DEC-07 | Desktop delivery | Windows-hosted server, browser frontend, optional wrapper | Agreed | C | M6 |
 | DEC-08 | Android | Responsive browser/PWA over hotel LAN | Agreed; PWA behaviour pending | C | M6 |
@@ -69,8 +69,11 @@ Version: 1.0 · Updated: 24 October 2026 · Owner: Sagar
 | DEC-042 | Business date | Business date changes only through day close → open next day; calendar midnight does not change it. | Proposed | P | AC-018 |
 | DEC-052 | Till model (A2.3) | **Approved option A — shared till:** restaurant / room-service cash goes into the front-desk drawer; POS cash sales and voids count once in the cashier's expected cash; room-service charged to a folio is a charge, not cash; open POS checks block day close. | Agreed (O, APR-005) | O | `HCC_A2_Till_Decision_Pack.md`, W0-B |
 | DEC-053 | Stay-restriction override (A2.1) | Min-stay / closed-to-arrival restrictions are enforced for every booking source; users with the approve permission (Owner, Manager) may override with a reason, recorded on the booking and in the audit log. | Agreed (O, APR-005) | O | W0-C, contracts package §7 |
+| DEC-054 | Production server stack | **.NET 10 (ASP.NET Core Web API, C#) + SQL Server 2025 Express**, reusing the owner's ETP Reporting Engine platform code (migrations with backup gate, backups/restore drills, Task Scheduler operations, installer, Excel/PDF/e-mail, Tally export) with provenance; React web + Capacitor APK stay as the clients. Supersedes DEC-05. Production construction still needs the A4 go-ahead. | Agreed (O, 24 Oct 2026) | O | `HCC_FirstParty_Reuse_ETP_SCC_v1.md`, contracts package §5, multi-agent plan Wave 1 |
 | DEC-043 | Source reuse in prototype | Prototype uses original components only; no third-party code imported, so no Source Reuse Register entries yet. | Proposed | P | Reuse register |
 
 ## 4. Superseded / changed decisions
 
-None yet.
+| Old | New | Date | Impact |
+|---|---|---|---|
+| DEC-05 NestJS + TypeScript backend | DEC-054 .NET 10 + ETP platform reuse | 24 Oct 2026 | Production server in C#; prototype business rules are ported with the prototype tests as golden figures; Node SQL-driver spike no longer needed (Microsoft.Data.SqlClient, as ETP); T-SQL spike results unchanged |

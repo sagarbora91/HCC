@@ -27,18 +27,18 @@ W0-A, W0-B and W0-C run **in parallel** (no shared files; W0-C touches `features
 **Gate after Wave 0:** owner accepts the prototype (D5/D6 + walkthrough) and authorizes A4 production construction (DEC-17).
 
 ## 4. Wave 1 — production platform and first guest slice (`08 Production/`, after authorization)
-Module layout per contracts package §3–§4 and instructions §5. All agents code against the contracts in `HCC_Production_Contracts_and_Schema_v1.md`; the lead freezes `packages/contracts` before agents start.
+Module layout per contracts package §3–§4 and instructions §5. All agents code against the contracts in `HCC_Production_Contracts_and_Schema_v1.md`; the lead freezes `Hcc.Contracts` (C# DTOs + generated OpenAPI/TypeScript client types) before agents start. Server stack = .NET 10 + ETP platform reuse (DEC-054); C# projects follow contracts package §7.
 
 | Agent | Scope | Owns | Depends on |
 |---|---|---|---|
-| **P0 Foundation** (lead or first agent, sequential) | Workspace (NestJS app, TypeScript, lint), Node SQL driver choice spike (BIGINT/Unicode/TLS/rowversion), migrations tool, money/date kernel (promote lab H02/H04 with provenance into `third-party/source-reuse.json`), error types, idempotency + outbox + audit infrastructure, test DB harness on `.\SQLEXPRESS` | `apps/api` bootstrap, `packages/contracts`, `modules/platform/*`, `database/migrations/0001…`, `tests/harness`, `third-party/*` | Authorization |
+| **P0 Foundation** (lead or first agent, sequential) | .NET 10 solution (`Hcc.slnx`, warnings as errors, deterministic build as in ETP), reuse ETP's migration runner/backup gate/connection policy with provenance, rerun the SQL spike through Microsoft.Data.SqlClient, money/date kernel in C# (port lab H02/H04 with notices into `third-party/source-reuse.json`), error types, idempotency + outbox + audit, disposable-DB test harness on `.\SQLEXPRESS`, golden-figure tests generated from the prototype fixtures | `src/Hcc.Api` bootstrap, `src/Hcc.Contracts`, `src/Hcc.Infrastructure.SqlServer` platform parts, `database/migrations/0001…`, `tests/Hcc.Platform.Tests`, `third-party/*` | Authorization |
 | **P1 Identity & access** | Users, roles, grants, sessions, policy engine (DEC-040), capabilities query, PERM coverage from `permission-coverage.json` | `modules/access/*`, its migrations, `tests/access/*` | P0 |
 | **P2 Inventory & reservations** | room_night allocation, holds, group-block capacity (explicit block context, no global exemption), quotes, restrictions (`RESTRICTED`), amend/cancel | `modules/inventory/*` | P0 |
 | **P3 Stays & housekeeping** | registration, check-in, segments, checkout (dirty + outbox), housekeeping tasks/inspection, maintenance blocks | `modules/stays/*`, `modules/housekeeping/*` | P0; P2 interfaces |
 | **P4 Billing & cashier** | folio, room-night posting, receipts, refunds (row-locked remainder), approvals binding (DEC-041), tills per W0-B decision | `modules/billing/*`, `modules/payments/*` | P0 |
 | **P5 Web client boundary** | typed feature clients, mock adapter over today's `execute()`, HTTP adapter for availability → quote → book → booking details; production build excludes demo controls | `apps/web/src/clients/*`, `apps/web/src/features/reservations` wiring | P0 contracts |
 | **P6 Closing & reports** (second half) | resumable business-day close, late-write barrier, closing snapshot, owner reports from the same transactions | `modules/closing/*`, `modules/reporting/*` | P2–P4 merged |
-| **P7 Deployment & recovery** (second half) | Windows service, LAN TLS certificate, backup via Task Scheduler (Express has no Agent), restore into a separate DB, APK server-address/session handling | `deployment/windows/*`, `04 Android` connection settings | P0 |
+| **P7 Deployment & recovery** (second half) | Windows service, LAN TLS certificate, ETP's backup/restore-drill/Task Scheduler scripts and Inno Setup installer adapted for HCC, APK server-address/session handling | `deployment/windows/*`, `04 Android` connection settings | P0 |
 
 Run P1–P5 in parallel after P0; then P6–P7. The lead then runs the **first real vertical slice** (instructions §9, 10 steps) with two independent clients against a disposable SQL database — the Wave 1 exit gate. Remaining MVP modules (expenses, masters, corrections) become Wave 2 with the same pattern.
 

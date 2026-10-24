@@ -4,7 +4,7 @@ Version 1.0 · 24 Oct 2026 · Status: **design package + verified SQL spike. Pro
 
 ## 1. Identity and session model
 - **Principal** = staff user (`plat.app_user`: id, display name, enabled, valid_from/until, property scope). Demo users, the role switcher and fixture identities never ship.
-- **Credential**: local password (Argon2id) or PIN + device binding for shared tablets — owner decision (§9 Q4). No donor identity stack.
+- **Credential**: local password (PBKDF2-SHA256 via .NET `Rfc2898DeriveBytes`, or Argon2id if a reviewed library is approved) or PIN + device binding for shared tablets — owner decision (§9 Q4). No donor identity stack.
 - **Session**: server-issued opaque token (HttpOnly cookie for the browser, secure storage in the APK), idle timeout 30 min, absolute 12 h, revocation on disable/role change takes effect on the next request (tested as AS-07).
 - **Authorization**: every command/query resolves `principal → roles → grants (PERM ID, scope, limit) − explicit denies` (DEC-040 order). Menu visibility comes from a `/me/capabilities` query; the server re-checks every request. Actor identity comes from the session, never a client `uid`.
 - **Scopes**: property · own shift (cashier) · assigned task/work order (housekeeping/maintenance) · field masks (ID document numbers, salaries, money for housekeeping/maintenance).
@@ -72,12 +72,15 @@ Draft DDL subset (executable): `07 Integration Lab/sql-spike/01-schema.sql`. Ful
 ## 5. Spike evidence (24 Oct 2026)
 `node "07 Integration Lab/sql-spike/run-spike.mjs"` → **15/15 passed** on Microsoft SQL Server 2025 (RTM) 17.0.1000.7 Express, local instance `.\SQLEXPRESS`, Windows authentication, disposable database created and dropped (no other database touched). Results: `07 Integration Lab/evidence/sql-spike-results.json`.
 
-Not covered by this spike (A4): Node driver/library choice and its BIGINT/DECIMAL/Unicode/TLS behaviour (needs an npm dependency in `08 Production` with lockfile review — candidates: `mssql`/`tedious`, `msnodesqlv8`); TLS with a real certificate (spike used `-C` trust-server-certificate); migrations tool; SQL Server 2025 Express edition limits (database size, cores, memory — **Unverified** here, read Microsoft's current edition page before sizing; DEC-03); backup/restore (no SQL Agent in Express — schedule via Windows Task Scheduler); restart during day close.
+Not covered by this spike (A4): the .NET data layer (Microsoft.Data.SqlClient 6.x as in ETP) and its BIGINT/Unicode/TLS/rowversion behaviour — rerun T01–T10 and C1–C4 through the C# adapter; TLS with a real certificate (spike used `-C` trust-server-certificate); SQL Server 2025 Express edition limits (**Unverified** — read Microsoft's current edition page before sizing; DEC-03); backup/restore (no SQL Agent in Express — reuse ETP's Task Scheduler scripts); restart during day close.
 
 ## 6. Frontend boundary
 Typed client interface per feature (`ReservationsClient`, `FolioClient`, …) with a mock adapter wrapping today's `execute()` for regression and an HTTP adapter for production; first migrate availability → quote → create reservation → booking details (instructions §8). Production builds cannot select the mock adapter; demo toolbar, scenario switcher, simulated clock and Reset are excluded at build time. On API loss: read-only banner, critical mutations disabled, no IndexedDB writes presented as committed.
 
-## 7. Open decisions (owner)
+## 7. Server stack (DEC-054, 24 Oct 2026)
+.NET 10 ASP.NET Core Web API (C#) hosted as a Windows service on the hotel PC, SQL Server 2025 Express (`.\SQLEXPRESS`, its own `Hcc` database next to ETP's), Microsoft.Data.SqlClient, Windows-integrated SQL login for the service account. Clients: the existing React web app and the Capacitor APK over LAN HTTPS. Solution layout mirrors ETP: `Hcc.Domain` (rules, no I/O), `Hcc.Application` (use cases + authorization), `Hcc.Infrastructure.SqlServer` (transactions, migrations, outbox, audit), `Hcc.Reporting` (OpenXML/PDFsharp exports), `Hcc.Api` (HTTP, sessions), `Hcc.Operations` (backup, restore drill, scheduled jobs), plus tests. ETP platform code (migration runner with backup gate + `DBCC CHECKDB`, connection policy, backup/restore/drill scripts, installer template, exporters, e-mail, Tally export) is reused with provenance recorded per file; shared pieces may later move to a common `Saagar.Platform` library used by both products. Prototype business rules are ported to C#, with the prototype's tests and fixtures as golden figures. Lab adaptations H02/H04 are ported to C# keeping their Apache-2.0 notices.
+
+## 8. Open decisions (owner)
 1. Till model — shared vs separate outlet tills (`HCC_A2_Till_Decision_Pack.md`).
 2. Stay-restriction override — prototype default: users with the approve permission (Owner/Manager) may override with a reason (A2.1). Confirm, or restrict to Owner only.
 3. Closed-date corrections: adjustment-only vs controlled reopen (DEC-028).

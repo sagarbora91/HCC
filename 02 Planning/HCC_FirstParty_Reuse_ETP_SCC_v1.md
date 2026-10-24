@@ -41,7 +41,24 @@ SCC is a single offline WebView app (vanilla JS, Capacitor, SQLite in the WebVie
 | `app-i18n.js` | Language switching framework | Hindi/Marathi staff screens later | Reference |
 | `storage-capacity-policy.js`, `storage-recovery-policy.js`, `sqlite-store.js` | Storage limits and recovery on the phone | Not needed — HCC production is server-authoritative (no offline writes by design) | Low |
 
-## 4. The one decision: which language for the HCC server?
+### 3a. SCC business modules to adopt (owner, 24 Oct 2026): payroll, leave, tax compliance, cash book
+HCC's prototype has payroll, leave and expenses, but with **illustrative** rates (`HR_RATES_SET`, "illustrative payroll rates"). It has no compliance calendar and no separate cash book. SCC's modules carry the **real Indian statutory rules** the owner already uses at Saagar Traders. A first scan of `www/modules/*/index.html` found:
+
+| SCC module | What it contains (scan) | HCC area it replaces or extends | How to reuse |
+|---|---|---|---|
+| `payroll` (266 KB) | PF, ESIC (100+ references), Maharashtra Professional Tax, overtime, half-day | Module 17 Staff & payroll — replace the illustrative rates with the real calculation | Port the rules to C# (`Hcc.Domain/Payroll`); SCC's worked examples become golden tests |
+| `leave` (164 KB) | Staff Leave Manager: leave types, half-day leave | Module 17 leave requests/approvals | Port the rules (entitlements, half-day, approvals); keep HCC's approval-binding rules |
+| `tax` (229 KB) | Compliance calendar: TDS, GSTR-1, GSTR-3B, GSTR-9, EPF/ESIC, Professional Tax due dates | **New for HCC** — due-date reminders on the owner dashboard / assistant | Port the calendar rules + reminders; add hotel-specific items |
+| `expense` (161 KB) "Central Ledger" + ETP `CashBookRepository.cs` / `CashBalanceReconciliationService.cs` | Opening balance, carry-forward, GST rates on expenses; ETP has the C# cash book and reconciliation | Cash book for day close + shared till (DEC-052) and expenses | Use **ETP's C# cash book** as the base (same language); SCC's ledger rules as reference |
+
+Before go-live:
+- **Hotel ≠ retail shop.** Minimum-wage schedules, service charge/tips, meals and accommodation given to staff, and the GST rates on room tariffs and restaurant bills all differ. They need checking by your CA. SCC's rates are a starting point, not proof.
+- **Effective dates:** keep statutory rates as dated settings, not constants.
+- **No real data:** no real employee or salary data is copied. Prototype and test data stay fictional.
+
+Timing: the prototype's illustrative payroll can stay until acceptance. The real rules land in the .NET server (Wave 1/2), so this work isn't done twice.
+
+## 4. The server-language decision — DECIDED: Option A, .NET 10 (DEC-054, 24 Oct 2026)
 
 | | **Option A — .NET 10 server (ASP.NET Core)** | **Option B — NestJS (current plan)** |
 |---|---|---|
