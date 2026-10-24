@@ -1,0 +1,53 @@
+/* Module 18 · Guest services, complaints, lost & found. Classes prefixed gsv- . */
+.pill.gsv-red{color:#9a3b2a;background:#fbe9e5;font-weight:600}
+.gsv-stats{margin-bottom:20px}
+.gsv-toolbar{padding:16px 23px 0;margin-bottom:12px}
+.gsv-tags{display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 12px}
+.gsv-summary{padding:0;margin-bottom:12px}
+.gsv-desc{font-size:12px;color:#2b1d16;margin:0 0 10px}
+.gsv-form h3,.gsv-recovery h3,.modal .form h3{font-size:13px;color:#2b1d16;margin-top:6px}
+.modal .form+.form{margin-top:14px;padding-top:14px;border-top:1px solid #e6d9c8}
+.gsv-inline{display:flex;flex-direction:row;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.gsv-inline label{flex:1 1 220px}
+.gsv-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.gsv-history{margin-top:14px;font-size:11px;color:#6b5547}
+.gsv-history summary{cursor:pointer;color:#7a1f2b;font-weight:600;padding:6px 0;min-height:32px}
+.gsv-history ul{margin:6px 0 0;padding-left:18px;line-height:1.7}
+.gsv-history li span{color:#2b1d16;font-variant-numeric:tabular-nums}
+.gsv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.gsv-card{padding:16px;display:flex;flex-direction:column;gap:8px}
+.gsv-card h3{font-size:14px;color:#2b1d16}
+.gsv-card p{font-size:11px;margin:0}
+.gsv-card-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.gsv-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.gsv-work{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.gsv-work .btn{flex:1}
+.gsv-report h3{font-size:13px;color:#2b1d16;margin:18px 0 8px}
+.gsv-report .small-stats{margin-bottom:6px}
+.gsv-report td,.gsv-report th{white-space:normal}
+/* Phone */
+.gsv-m{padding-bottom:96px}
+.gsv-m .m-chips{margin-bottom:12px}
+.gsv-m-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.gsv-m-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.m-shell .gsv-m .pill,.m-sheet .gsv-tags .pill{font-size:14px;padding:5px 8px}
+.gsv-m .m-list-card .m-lc-main{min-width:0}
+.gsv-m .m-list-card .m-lc-main>*{overflow-wrap:anywhere}
+.gsv-m-task{margin-bottom:14px}
+.gsv-m-task .m-list-card{margin-bottom:6px}
+.gsv-big{min-height:52px!important;font-size:16px!important}
+.gsv-m-report{padding:14px}
+.gsv-m-report .table-wrap{overflow-x:auto}
+.gsv-m-report td,.gsv-m-report th{font-size:14px;padding:10px}
+.m-sheet .gsv-desc,.m-sheet .gsv-summary>div,.m-sheet .gsv-history{font-size:15px}
+.m-sheet .gsv-actions .btn{min-height:48px;font-size:15px;flex:1 1 40%}
+.modal.m-sheet .gsv-inline .btn{min-height:48px;font-size:15px;flex:0 0 auto}
+.modal.m-sheet .form.gsv-inline{flex-direction:column;flex-wrap:nowrap;align-items:stretch}
+.modal.m-sheet .form.gsv-inline label{flex:0 0 auto}
+.m-sheet .gsv-history summary{min-height:48px;display:flex;align-items:center}
+.m-sheet .form h3{font-size:16px}
+.m-sheet .info-note{font-size:14px}
+.m-sheet .gsv-summary>div{flex-wrap:wrap}
+.m-sheet .gsv-summary strong{text-align:left;overflow-wrap:anywhere}
+@media print{.gsv-print .modal-actions{display:none}.gsv-report table{font-size:10px}}
+.gsv-report .small-stats strong{white-space:nowrap}

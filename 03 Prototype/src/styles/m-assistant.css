@@ -1,0 +1,96 @@
+/* Module 26 · AI management assistant. Classes prefixed ai- . */
+.ai-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ai-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#5e1620;background:#f5e4e6;border:1px solid #e3c3c8;border-radius:20px;padding:6px 12px;white-space:nowrap}
+.ai-sim{margin-top:0}
+.ai-sim b{color:#2b1d16;font-weight:600}
+.ai-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start;margin-bottom:24px}
+.ai-side{display:flex;flex-direction:column;gap:22px;min-width:0}
+.ai-side .card{margin-bottom:0}
+.ai-chat{display:flex;flex-direction:column;margin-bottom:0}
+.ai-chat .section-title h2,.ai-brief h2,.ai-flags h2{display:flex;align-items:center;gap:7px}
+/* Thread */
+.ai-thread{display:flex;flex-direction:column;gap:14px;padding:6px 23px 18px;max-height:560px;min-height:260px;overflow:auto;scrollbar-width:thin}
+.ai-msg{display:flex;gap:9px;align-items:flex-start;max-width:100%}
+.ai-me{justify-content:flex-end}
+.ai-me .ai-bubble{background:#7a1f2b;color:#fff;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:13px;line-height:1.5;max-width:75%;overflow-wrap:anywhere}
+.ai-bot .ai-bubble{background:#fffcf8;border:1px solid #e6d9c8;border-radius:4px 14px 14px 14px;padding:12px 15px;max-width:calc(100% - 40px);min-width:0;overflow-wrap:anywhere}
+.ai-avatar{width:30px;height:30px;flex-shrink:0;border-radius:50%;background:#f5e4e6;color:#7a1f2b;display:inline-flex;align-items:center;justify-content:center}
+.ai-answer-title{display:block;font-size:13px;color:#2b1d16;margin-bottom:4px}
+.ai-answer-text{font-size:13px;color:#2b1d16;line-height:1.6}
+.ai-answer.restricted .ai-answer-title{color:#9a3b2a}
+.ai-figs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:10px 0 0}
+.ai-figs>div{background:#fff;border:1px solid #e6d9c8;border-radius:7px;padding:8px 10px;min-width:0}
+.ai-figs dt{font-size:11px;color:#6b5547}
+.ai-figs dd{margin:3px 0 0;font-size:15px;font-weight:600;color:#2b1d16;white-space:normal}
+.ai-items{margin:10px 0 0;padding-left:18px;font-size:12px;color:#2b1d16;line-height:1.6}
+.ai-items li{margin:2px 0}
+.ai-how{margin-top:10px;font-size:12px;color:#6b5547}
+.ai-how summary{cursor:pointer;color:#7a1f2b;font-weight:600;min-height:28px;display:list-item}
+.ai-how p{font-size:12px;margin-top:4px}
+.ai-answer-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;padding-top:9px;border-top:1px dashed #e6d9c8}
+.ai-answer-foot small{font-size:11px}
+.ai-links{display:flex;flex-wrap:wrap;gap:6px}
+.ai-links .btn{font-size:11px}
+/* Compose */
+.ai-compose{border-top:1px solid #e6d9c8;padding:14px 23px 18px;background:#fffcf8}
+.ai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ai-chip{border:1px solid #cdb9a3;background:#fff;color:#4a372c;border-radius:16px;padding:6px 11px;font-size:11px;min-height:30px}
+.ai-chip:hover{background:#f5e4e6;border-color:#9e4a55;color:#5e1620}
+.ai-input{display:flex;gap:8px}
+.ai-input input{flex:1;min-width:0;border:1px solid #cdb9a3;border-radius:7px;padding:10px 12px;font-size:13px;color:#2b1d16;background:#fff}
+.ai-input input::placeholder,.ai-m-input input::placeholder{color:#6b5547}
+/* Briefing + flags */
+.ai-brief-list,.ai-flag-list{list-style:none;margin:0;padding:0 23px 18px}
+.ai-brief-list li,.ai-flag-list li{padding:11px 0;border-bottom:1px solid #e6d9c8}
+.ai-brief-list li:last-child,.ai-flag-list li:last-child{border-bottom:0}
+.ai-brief-main{display:flex;align-items:center;gap:8px}
+.ai-brief-label{font-size:12px;color:#2b1d16;flex:1;min-width:0}
+.ai-brief-main strong{font-size:13px;color:#2b1d16}
+.ai-brief-list small{display:block;font-size:11px;margin-top:3px}
+.ai-brief-go{font-size:11px}
+.ai-tone,.ai-sev{font-size:10px;font-weight:700;border-radius:5px;padding:3px 7px;white-space:nowrap;line-height:1.3}
+.ai-tone-ok{color:#2e6b34;background:#eaf4e4}
+.ai-tone-warn{color:#7a4d0b;background:#fbf1dc}
+.ai-tone-alert{color:#9a3b2a;background:#fbe9e4}
+.ai-tone-info{color:#2f5a73;background:#e8f1f6}
+.ai-sev-high{color:#8e3424;background:#fbe9e4;border:1px solid #efc9bf}
+.ai-sev-medium{color:#7a4d0b;background:#fbf1dc;border:1px solid #eedbb2}
+.ai-sev-low{color:#2f5a73;background:#e8f1f6;border:1px solid #cfe0ea}
+.ai-flag-head{display:flex;align-items:flex-start;gap:8px}
+.ai-flag-head strong{font-size:12px;color:#2b1d16;line-height:1.4}
+.ai-flag-list p{font-size:11px;margin:4px 0 2px;color:#6b5547;line-height:1.55}
+.ai-flag-list .text-btn{font-size:11px}
+@media (max-width:1100px){.ai-layout{grid-template-columns:minmax(0,1fr)}}
+/* Phone */
+.ai-m{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ai-m-label{display:flex;align-items:flex-start;gap:6px;font-size:14px;color:#5e1620;background:#f5e4e6;border:1px solid #e3c3c8;border-radius:8px;padding:8px 10px;line-height:1.45}
+.ai-m-label svg{margin-top:2px}
+.ai-thread-phone{max-height:none;min-height:0;overflow:visible;padding:4px 0 8px}
+.ai-thread-phone .ai-me .ai-bubble{font-size:16px;max-width:85%}
+.ai-thread-phone .ai-answer-title{font-size:16px}
+.ai-thread-phone .ai-answer-text{font-size:16px}
+.ai-thread-phone .ai-figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ai-thread-phone .ai-figs dt{font-size:14px}
+.ai-thread-phone .ai-figs dd{font-size:16px}
+.ai-thread-phone .ai-items,.ai-thread-phone .ai-how,.ai-thread-phone .ai-how p{font-size:15px}
+.ai-thread-phone .ai-how summary{min-height:44px;display:flex;align-items:center}
+.ai-thread-phone .ai-answer-foot small{font-size:14px}
+.ai-thread-phone .ai-links .btn{font-size:14px;min-height:48px;padding:8px 12px}
+.ai-m-dock{position:sticky;bottom:calc(var(--tabbar,64px) + env(safe-area-inset-bottom));z-index:5;margin:0 -16px;padding:8px 16px 10px;background:#faf6f0;border-top:1px solid #e6d9c8;box-shadow:0 -4px 10px #2b1d160c}
+.ai-chips-phone{padding-bottom:8px}
+.ai-chips-phone button{min-height:48px}
+.ai-m-input{display:flex;gap:8px}
+.ai-m-input input{flex:1;min-width:0;min-height:48px;border:1px solid #cdb9a3;border-radius:24px;padding:0 16px;font-size:16px;background:#fff;color:#2b1d16}
+.ai-m-input .btn{min-width:56px;min-height:48px;border-radius:24px}
+.ai-phone-card{margin-bottom:0}
+.ai-phone-card .section-title{padding:16px}
+.ai-phone-card .section-title p{font-size:14px}
+.ai-phone-card h2{font-size:18px}
+.ai-phone-card .ai-brief-list,.ai-phone-card .ai-flag-list{padding:0 16px 12px}
+.ai-phone-card .ai-brief-label,.ai-phone-card .ai-brief-main strong,.ai-phone-card .ai-flag-head strong{font-size:16px}
+.ai-phone-card .ai-brief-list small,.ai-phone-card .ai-flag-list p{font-size:15px}
+.ai-phone-card .ai-tone,.ai-phone-card .ai-sev{font-size:14px}
+.ai-phone-card .text-btn{font-size:15px;min-height:48px}
+.ai-phone-card .padded{font-size:16px}
+@media print{.ai-compose,.ai-m-dock,.ai-links,.ai-again{display:none!important}.ai-thread{max-height:none;overflow:visible}}
+.ai-thread-phone .ai-end{scroll-margin-bottom:220px}

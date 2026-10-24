@@ -1,0 +1,17 @@
+Run: 2026-10-24T04:20:47Z on device, Node v22.23.4
+start {"date":"2026-10-24","drawer":10200}
+metrics {"occupied":8,"available":10,"sellable":23,"occupancy":35,"revenue":0,"tax":0,"collections":2150000,"deposits":0,"outstanding":195000,"expenses":180000}
+after checkin+deposit {"date":"2026-10-24","drawer":10700}
+day25 open {"date":"2026-10-25","drawer":10700}
+reception self-approve: Access denied: approve permission is required.
+folio d25 {"net":400000,"tax":40000,"total":440000,"paid":100000,"deposit":50000,"balance":340000}
+day26 open {"date":"2026-10-26","drawer":10700}
+folio d26 {"net":400000,"tax":40000,"total":440000,"paid":440000,"deposit":0,"balance":0}
+task {"id":"task-1130","room":"105","booking":"HCC-1101","assignee":"housekeeper","status":"To do","checked":[false,false,false]} room {"id":"105","floor":1,"type":"Classic","rate":200000,"hk":"Dirty","blocked":false}
+room after {"id":"105","floor":1,"type":"Classic","rate":200000,"hk":"Ready","blocked":false}
+before close 26 {"date":"2026-10-26","drawer":11900}
+rerun close: This business day is closed. Open the next business day first.
+rerun post: This business day is closed. Open the next business day first.
+metrics26 {"occupied":8,"available":10,"sellable":23,"occupancy":35,"revenue":1950000,"tax":195000,"collections":340000,"deposits":0,"outstanding":6630000,"expenses":30000}
+disabled: This demo user is disabled. Switch to an enabled user.
+audit tail 34

@@ -1,0 +1,12 @@
+{
+  "appId": "in.hcc.prototype",
+  "appName": "Hotel Control Centre",
+  "webDir": "www",
+  "backgroundColor": "#faf6f0",
+  "server": { "androidScheme": "https" },
+  "android": { "backgroundColor": "#7a1f2b", "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 700, "launchAutoHide": true, "backgroundColor": "#faf6f0", "androidScaleType": "CENTER_INSIDE", "showSpinner": false },
+    "StatusBar": { "backgroundColor": "#7a1f2b", "style": "DARK", "overlaysWebView": false }
+  }
+}

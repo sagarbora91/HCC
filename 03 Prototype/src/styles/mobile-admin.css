@@ -1,0 +1,95 @@
+/* MB-08 closing, reports, admin, config, audit, backup, roadmap (M17–M23). Classes prefixed ma- (scoped under .m-shell / .m-sheet).
+   Touch targets ≥ 48 px, body ≥ 16 px, labels ≥ 14 px, AA contrast, no horizontal scroll at 360 px. */
+.ma-page{display:flex;flex-direction:column;gap:12px;min-width:0;font-size:16px;color:#2b1d16}
+.ma-page>*{min-width:0}
+.ma-page .btn,.modal.m-sheet .ma-presets .btn,.ma-card .btn{min-height:48px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.ma-intro{font-size:15px;line-height:1.5;color:#5c4636;margin:0}
+.ma-h{display:flex;align-items:center;justify-content:space-between;gap:10px}.ma-h h2,.ma-h2{font-size:18px;font-weight:700;color:#2b1d16;margin:8px 2px 0}
+.ma-sub{display:block;font-size:14px;color:#5c4636;line-height:1.45;margin-top:2px}
+.ma-why{display:block;font-size:14px;color:#8a3a1c;line-height:1.45;margin-top:6px}
+.ma-tag{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;border-radius:6px;padding:4px 8px;line-height:1.2;white-space:nowrap;background:#f6efe6;color:#4a372c}
+.ma-tag.ok{background:#eaf4e4;color:#2e6b34}.ma-tag.warn{background:#fbf0dc;color:#7a4b0c}.ma-tag.info{background:#e7f0f7;color:#1f5577}.ma-tag.err{background:#f8e6e2;color:#8f2f1f}
+.ma-badges{display:flex;flex-wrap:wrap;gap:6px}
+.ma-card{background:#fff;border:1px solid #e6d9c8;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;font-size:16px}
+.ma-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.ma-card-top>div{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.ma-card-top strong{font-size:16px;font-weight:600}.ma-card-top span{font-size:14px;color:#5c4636}
+.ma-cap{text-transform:capitalize}
+.ma-amt{font-size:18px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ma-rows{margin:0;display:flex;flex-direction:column;gap:6px}
+.ma-rows>div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #f0e6d8;padding-top:6px;min-width:0}
+.ma-rows dt{font-size:14px;color:#5c4636;flex-shrink:0;max-width:45%}
+.ma-rows dd{margin:0;font-size:15px;text-align:right;min-width:0;overflow-wrap:anywhere}
+.ma-rows .number{font-variant-numeric:tabular-nums}
+.ma-actions{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px}.ma-actions>*{flex:1 1 130px}
+.ma-guard{display:flex;flex-direction:column;min-width:0}.ma-guard .btn{width:100%}
+.ma-note,.ma-warn{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:12px;font-size:15px;line-height:1.5;background:#eef4f7;color:#1f4a63}
+.ma-note svg,.ma-warn svg{margin-top:2px}
+.ma-warn{background:#fbf0dc;color:#5f3b08}
+.ma-ok{display:flex;gap:8px;align-items:center;color:#2e6b34;font-weight:600;margin:0}
+.ma-locked{flex-direction:row;align-items:flex-start;color:#5c4636}.ma-locked p{margin:0;font-size:15px}
+.ma-wide,.ma-more,.ma-clear,.ma-back{width:100%}
+.ma-back{justify-content:flex-start!important}
+.ma-filter-btn{min-height:48px}
+.ma-form{display:flex;flex-direction:column;gap:12px}
+.ma-form label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:#4a372c}
+.ma-form input,.ma-form select{font-size:16px;min-height:48px;padding:10px 12px;width:100%}
+/* Audit list */
+.ma-audit{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ma-audit li{background:#fff;border:1px solid #e6d9c8;border-left:4px solid #7a1f2b;border-radius:10px;padding:12px;overflow-wrap:anywhere}
+.ma-audit strong{font-size:15px}.ma-audit p{margin:4px 0;font-size:15px;color:#3d2b20;line-height:1.45}.ma-audit small{font-size:13px;color:#5c4636}
+/* Reports */
+.ma-range{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;background:#fff;border:1px solid #cdb9a3;border-radius:12px;padding:10px 14px;text-align:left;color:#2b1d16}
+.ma-range svg{color:#7a1f2b}.ma-range span{flex:1;display:flex;flex-direction:column}.ma-range small{font-size:13px;color:#5c4636}.ma-range strong{font-size:17px}
+.ma-range em{font-style:normal;font-weight:600;color:#7a1f2b;font-size:15px}
+.ma-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ma-kpis .m-kpi{min-width:0;overflow-wrap:anywhere}.ma-kpis .m-kpi-value{font-size:21px}
+.ma-footer-actions{display:flex;gap:10px}.ma-footer-actions .btn{flex:1}
+.ma-presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.ma-presets .btn{flex:1 1 100px}
+.ma-total{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f5e4e6;color:#5e1620;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:15px}
+.ma-total strong{font-size:19px;font-variant-numeric:tabular-nums}
+.ma-drill{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+.ma-drill li>button,.ma-drill li>div{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:#fff;border:1px solid #e6d9c8;border-radius:10px;padding:12px;min-height:56px;color:#2b1d16}
+.ma-drill-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.ma-drill-main strong{font-size:15px}.ma-drill-main small{font-size:13px;color:#5c4636}
+.ma-drill .number{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:16px}
+/* Day closing stepper */
+.ma-closing-head{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e6d9c8;border-radius:12px;padding:12px 14px}
+.ma-closing-head>div{flex:1;display:flex;flex-direction:column}.ma-closing-head small{font-size:13px;color:#5c4636}.ma-closing-head strong{font-size:18px}
+.ma-print{min-height:48px}
+.ma-resume{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid #b5541e;background:#fbf0dc;color:#5f3b08;border-radius:12px;padding:12px 14px;min-height:64px}
+.ma-resume span{flex:1;display:flex;flex-direction:column;gap:2px}.ma-resume strong{font-size:16px}.ma-resume small{font-size:14px;color:#5f3b08}
+.ma-vsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;position:relative}
+.ma-vsteps>li{position:relative;padding-left:0;margin-bottom:10px;background:#fff;border:1px solid #e6d9c8;border-radius:12px}
+.ma-vsteps>li:not(:last-child)::after{content:"";position:absolute;left:31px;bottom:-11px;width:2px;height:10px;background:#cdb9a3}
+.ma-vsteps>li.focus{border-color:#7a1f2b;box-shadow:0 0 0 1px #7a1f2b}
+.ma-vstep-head{width:100%;display:flex;align-items:center;gap:12px;background:transparent;border:0;padding:12px 14px;min-height:64px;text-align:left;color:#2b1d16}
+.ma-dot{width:34px;height:34px;border-radius:50%;border:2px solid #cdb9a3;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;background:#fff;color:#4a372c}
+li.done .ma-dot{background:#2e6b34;border-color:#2e6b34;color:#fff}
+li.focus .ma-dot{border-color:#7a1f2b;color:#7a1f2b}
+li.blocked .ma-dot{border-color:#b5541e;color:#7a4b0c}
+.ma-vstep-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ma-vstep-text strong{font-size:16px}.ma-vstep-text small{font-size:14px;color:#5c4636;line-height:1.4}
+.ma-chev{color:#6b5547;transition:transform .15s}[aria-expanded="true"] .ma-chev{transform:rotate(180deg)}
+.ma-vstep-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:16px}
+.ma-vstep-body p{margin:0;font-size:15px;line-height:1.5;color:#3d2b20}
+.ma-blockers .m-list-card{margin-bottom:6px}
+.m-list-card.ma-blocker{border-left:4px solid #b5541e}
+.ma-subtle{background:#f6efe6!important}
+.ma-summary .f-summary{grid-template-columns:1fr;gap:12px}
+.ma-summary .f-summary h4{font-size:13px}
+.ma-summary .summary-list div{font-size:15px;display:flex;justify-content:space-between;gap:10px}
+.ma-summary .footnote{font-size:14px}
+.ma-primary{flex:1;display:flex;flex-direction:column}.ma-primary .btn{width:100%;min-height:52px;font-size:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+/* Settings / access / backup */
+.ma-display .card{margin:0;border-radius:12px}.ma-display .section-title{padding:14px}.ma-display .section-title h2{font-size:17px}.ma-display .section-title p,.ma-display .muted{font-size:14px}
+.ma-display .display-toggle{display:flex;width:100%}.ma-display .display-toggle button{flex:1;justify-content:center;min-height:48px}
+.ma-inv summary{display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;cursor:pointer}
+.ma-inv ul{margin:0;padding-left:20px;font-size:15px;line-height:1.7}
+.ma-sched{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15px}.ma-sched>span:first-child{flex:1 1 140px}
+.ma-sched.ma-card{flex-direction:row}
+.ma-desktop-only{display:flex;gap:12px;align-items:flex-start;background:#f5e4e6;color:#5e1620;border-radius:12px;padding:14px}
+.ma-desktop-only strong{font-size:16px}.ma-desktop-only p{margin:4px 0 0;font-size:15px;color:#5e1620;line-height:1.5}
+.ma-ol{padding-left:34px;margin:0;font-size:15px;line-height:1.6}
+@media print{.ma-page{display:none!important}}
+/* Keep toasts above the closing page sticky primary button (mobile plan §2: toasts never cover the primary button). */
+body:has(.ma-closing .m-sticky-footer) .m-toast.toast{bottom:calc(64px + env(safe-area-inset-bottom) + 88px)}

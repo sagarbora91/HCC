@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "recorded": "2026-10-24",
+  "scope": "Integration Lab only. Nothing listed here is active in 03 Prototype or in any production workspace. Becomes third-party/source-reuse.json in 08 Production once that workspace is authorized.",
+  "entries": [
+    {
+      "candidate_id": "H02",
+      "source_repository": "https://github.com/TelivityAI/haip.git",
+      "pinned_commit": "3a2f1c89139e8d7d915528abac706a512af16970",
+      "source_paths": ["apps/api/src/modules/rate-plan/rate-pricing.util.ts"],
+      "source_hashes": {"apps/api/src/modules/rate-plan/rate-pricing.util.ts": "3dcac4f4d29e800654c8f6f84fb6ac0d78670e15c13fcda7534dbcd18fac7c57"},
+      "license_and_notices": "Apache-2.0 (HAIP root LICENSE, sha256 8688f03a7e252cf6166e18ae4827d3f14e1cd700edf70685555c409bc6d3253b). No NOTICE file in HAIP; no per-file copyright header in the source. Root LICENSE copied beside the adapted file; change notice in the file header (Apache-2.0 §4(b)).",
+      "imported_dependencies": [],
+      "destination_paths": ["07 Integration Lab/qualifications/H02-los-tier-pricing/src/rate-adjustments.ts", "07 Integration Lab/qualifications/H02-los-tier-pricing/src/LICENSE-HAIP-Apache-2.0.txt"],
+      "derivation": "adapted",
+      "modifications_and_rationale": "Integer paise + integer basis points (HCC DEC-023); validated tiers; half-open non-overlapping occupancy bands (donor inclusive bands can match a boundary twice); bps summed and rounded once, half away from zero; negative result is an error; donor nightsBetween() dropped in favour of HCC nights().",
+      "upstream_tests_run": "rate-pricing.util.spec.ts run UNCHANGED against the UNMODIFIED donor util via the lab vitest shim: 4/4 passed (not the donor's vitest runner).",
+      "HCC_tests_run": "qualifications/H02-los-tier-pricing/hcc.test.ts: 11/11 passed (upstream cases re-expressed in paise/bps + boundaries, overlaps, rounding, negative/fractional/overflow).",
+      "unrun_tests": "Accepted-quote stability after activation (not activated). Integration with yldNight/yldQuote not built.",
+      "accepted_use": "Length-of-stay tier selection and occupancy-band selection inside a future HCC pricing domain (rate-adjustments.ts) when the owner approves LOS discounts (A8 / module 13).",
+      "excluded_uses": "Rate-plan service, database schema, any donor pricing service; float arithmetic.",
+      "rollback_method": "Delete the lab folder; no prototype or production file references it."
+    },
+    {
+      "candidate_id": "H04",
+      "source_repository": "https://github.com/TelivityAI/haip.git",
+      "pinned_commit": "3a2f1c89139e8d7d915528abac706a512af16970",
+      "source_paths": ["apps/api/src/common/date/property-business-date.ts"],
+      "source_hashes": {"apps/api/src/common/date/property-business-date.ts": "e8b250e22136e584340bedf5a12b4223a3174595e60280ef0ba0d1f82a8499b7"},
+      "license_and_notices": "Apache-2.0 (HAIP root LICENSE). Root LICENSE copied beside the adapted file; change notice in header.",
+      "imported_dependencies": ["Node/browser built-in Intl.DateTimeFormat with IANA zone data (full ICU)"],
+      "destination_paths": ["07 Integration Lab/qualifications/H04-property-calendar-date/src/calendar-date.ts", "07 Integration Lab/qualifications/H04-property-calendar-date/src/LICENSE-HAIP-Apache-2.0.txt"],
+      "derivation": "adapted",
+      "modifications_and_rationale": "Invalid timezone throws InvalidTimeZoneError instead of silently using UTC; invalid instant rejected; assertTimeZone() added for configuration save; documented as calendar-date only, never the business date (DEC-042).",
+      "upstream_tests_run": "property-business-date.spec.ts unchanged via shim against the unmodified donor function: 2/2 passed (one of them asserts the UTC fallback HCC deliberately removes).",
+      "HCC_tests_run": "qualifications/H04-property-calendar-date/hcc.test.ts: 7/7 passed (IST 18:30Z boundary, FY/year boundary, invalid zone, invalid instant, 48-instant parity with donor, business date unchanged across midnight).",
+      "unrun_tests": "Android WebView / Windows server ICU parity (to run in A4 on the target host and in the APK).",
+      "accepted_use": "Production clock/date adapter: converting UTC event timestamps to the property's calendar date for display and validation.",
+      "excluded_uses": "Deciding or advancing the business date; night audit; fiscal-period assignment.",
+      "rollback_method": "Delete the lab folder."
+    },
+    {"candidate_id": "H01", "derivation": "reference only", "imported": false, "note": "No donor code copied. HCC transition map (hcc-transition-map.ts) is original; donor spec executed read-only (37/37) for comparison; HCC conformance 46/46."},
+    {"candidate_id": "H03", "derivation": "reference only", "imported": false, "note": "No donor code copied. HCC folioRefundable() already covers the remainder rule and is stricter (reserves pending requests). Donor spec not run (decimal.js/drizzle). HCC scenarios 8/8."},
+    {"candidate_id": "O01", "derivation": "rejected for now (no gap)", "imported": false, "note": "Donor test run read-only 1/1. HCC has one room per reservation and one segment at check-in."},
+    {"candidate_id": "O02", "derivation": "reference / defer", "imported": false, "note": "Donor test run read-only 1/1. HCC releases inventory from the agreed or explicitly shortened departure; checkout needs all agreed nights posted."}
+  ]
+}

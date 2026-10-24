@@ -1,0 +1,735 @@
+{
+ "run_at_utc": "2026-10-24T15:35:00.384Z",
+ "node": "v25.9.0",
+ "runner": "07 Integration Lab/run.mjs (esbuild from 03 Prototype + shims; not vitest)",
+ "totals": {
+  "suites": 11,
+  "tests": 122,
+  "passed": 122,
+  "failed": 0,
+  "not_run": 1
+ },
+ "suites": [
+  {
+   "suite": "H01-upstream",
+   "candidate": "H01",
+   "kind": "upstream",
+   "entry": "06 Reference Repositories/haip/apps/api/src/modules/reservation/reservation-state-machine.spec.ts",
+   "sha256": "e5650f34b6b9003ba8ea1cd62098abe6efd360dde1ac777765770d69dac939a2",
+   "tests": 37,
+   "passed": 37,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "H02-upstream",
+   "candidate": "H02",
+   "kind": "upstream",
+   "entry": "06 Reference Repositories/haip/apps/api/src/modules/rate-plan/rate-pricing.util.spec.ts",
+   "sha256": "4e2cba602c85f833b36450bd4a2e694abb01a5473f73e2909475ef88c1eb35c0",
+   "tests": 4,
+   "passed": 4,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "H04-upstream",
+   "candidate": "H04",
+   "kind": "upstream",
+   "entry": "06 Reference Repositories/haip/apps/api/src/common/date/property-business-date.spec.ts",
+   "sha256": "3d777f434cc266e0b858f1c0d16dbde5851040c56ffb241a5c486b691ae019ef",
+   "tests": 2,
+   "passed": 2,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "O01-upstream",
+   "candidate": "O01",
+   "kind": "upstream-script",
+   "entry": "06 Reference Repositories/open-hotel-pms/src/lib/checkin-room-selection.test.ts",
+   "sha256": "034f61117b992e5ebf1e3f45f5ce70afe2aa81917ad971d688924b1db14dd5a9",
+   "tests": 1,
+   "passed": 1,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "O02-upstream",
+   "candidate": "O02",
+   "kind": "upstream-script",
+   "entry": "06 Reference Repositories/open-hotel-pms/src/lib/checkout-night-release.test.mts",
+   "sha256": "9b7b27ce2ed44638745ed476fa6a66fdd3d51cf73563044e644ffb8ed72e9193",
+   "tests": 1,
+   "passed": 1,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "H03-upstream",
+   "candidate": "H03",
+   "kind": "not-run",
+   "entry": "06 Reference Repositories/haip/apps/api/src/modules/payment/payment-ledger.spec.ts",
+   "sha256": "a321a69e611e1a7a8d14a1e144560fe582c38c150f4ec32ac09d8ef4751267d4",
+   "status": "not run",
+   "reason": "Requires decimal.js, drizzle-orm and @telivityhaip/database (donor dependencies not installed; installing donor packages is out of scope). Scenarios re-run against HCC in H03-hcc."
+  },
+  {
+   "suite": "H01-hcc",
+   "candidate": "H01",
+   "kind": "hcc",
+   "entry": "07 Integration Lab/qualifications/H01-reservation-transitions/hcc-conformance.test.ts",
+   "sha256": "1311f99f3f2b7e1d6784677cc4ad40376e9966c26f634a6e6ae0970d70f4f1f4",
+   "tests": 46,
+   "passed": 46,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "H02-hcc",
+   "candidate": "H02",
+   "kind": "hcc",
+   "entry": "07 Integration Lab/qualifications/H02-los-tier-pricing/hcc.test.ts",
+   "sha256": "1fc6f85ec4d5e812e5da61a2f9abeba33001381fa4ffd286b21a5cc32de2e46d",
+   "tests": 11,
+   "passed": 11,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "H03-hcc",
+   "candidate": "H03",
+   "kind": "hcc",
+   "entry": "07 Integration Lab/qualifications/H03-refund-remainder/hcc-scenarios.test.ts",
+   "sha256": "d44eaa0131ab9c15b6d98e7785d6d51e2e4c2404552d49cdcbad671193b8f900",
+   "tests": 8,
+   "passed": 8,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "H04-hcc",
+   "candidate": "H04",
+   "kind": "hcc",
+   "entry": "07 Integration Lab/qualifications/H04-property-calendar-date/hcc.test.ts",
+   "sha256": "eab8519ba45d2245d58a060219533a75f6806fa15553d1faa2e7033a3ee42a17",
+   "tests": 7,
+   "passed": 7,
+   "failed": 0,
+   "failures": []
+  },
+  {
+   "suite": "O01O02-hcc",
+   "candidate": "O01/O02",
+   "kind": "hcc",
+   "entry": "07 Integration Lab/qualifications/O01-O02-room-night-helpers/hcc-comparison.test.ts",
+   "sha256": "387f9f4329e224c832c2991f19272059a7469c4696a8a678ceeacd9f2ba33c76",
+   "tests": 5,
+   "passed": 5,
+   "failed": 0,
+   "failures": []
+  }
+ ],
+ "results": [
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow pending → confirmed",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow pending → cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow confirmed → assigned",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow confirmed → cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow confirmed → no_show",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow assigned → checked_in",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow assigned → cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow assigned → no_show",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow checked_in → stayover",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow checked_in → checked_out",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow stayover → due_out",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow stayover → checked_out",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should allow due_out → checked_out",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject pending → checked_in",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject pending → checked_out",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject pending → no_show",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject pending → assigned",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject confirmed → checked_in",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject confirmed → checked_out",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject assigned → confirmed",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject checked_in → cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject checked_in → no_show",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject checked_in → assigned",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject checked_out → checked_in",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject checked_out → cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject cancelled → confirmed",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject cancelled → pending",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject no_show → confirmed",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject no_show → checked_in",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject due_out → cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › validateTransition › should reject stayover → cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › assertTransition › should not throw for valid transition",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › assertTransition › should throw BadRequestException for invalid transition",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › assertTransition › should include valid transitions in error message",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › getValidTransitions › should return valid transitions for pending",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › getValidTransitions › should return empty array for terminal states",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-upstream",
+   "name": "ReservationStateMachine › getValidTransitions › should return multiple transitions for confirmed",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-upstream",
+   "name": "rate-pricing.util › selects the highest qualifying LOS tier",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-upstream",
+   "name": "rate-pricing.util › selects occupancy band by percentage range",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-upstream",
+   "name": "rate-pricing.util › applies percentage and fixed adjustments",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-upstream",
+   "name": "rate-pricing.util › computes nights between dates",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-upstream",
+   "name": "calendarDateInTimeZone › returns the property calendar date at a UTC midnight boundary",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-upstream",
+   "name": "calendarDateInTimeZone › falls back to UTC when the timezone is invalid",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Held + CONFIRM → Confirmed",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Held + CANCEL → Cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Held + NO_SHOW → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Held + CHECKIN → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Held + CHECKOUT → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Held + CHANGE_DATES → Held",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Expired + CONFIRM → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Expired + CANCEL → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Expired + NO_SHOW → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Expired + CHECKIN → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Expired + CHECKOUT → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Expired + CHANGE_DATES → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Confirmed + CONFIRM → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Confirmed + CANCEL → Cancelled",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Confirmed + NO_SHOW → No show",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Confirmed + CHECKIN → In house",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Confirmed + CHECKOUT → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Confirmed + CHANGE_DATES → Confirmed",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › In house + CONFIRM → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › In house + CANCEL → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › In house + NO_SHOW → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › In house + CHECKIN → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › In house + CHECKOUT → Departed",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › In house + CHANGE_DATES → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Departed + CONFIRM → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Departed + CANCEL → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Departed + NO_SHOW → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Departed + CHECKIN → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Departed + CHECKOUT → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Departed + CHANGE_DATES → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Cancelled + CONFIRM → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Cancelled + CANCEL → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Cancelled + NO_SHOW → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Cancelled + CHECKIN → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Cancelled + CHECKOUT → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › Cancelled + CHANGE_DATES → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › No show + CONFIRM → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › No show + CANCEL → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › No show + NO_SHOW → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › No show + CHECKIN → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › No show + CHECKOUT → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 HCC transition map conformance › No show + CHANGE_DATES → rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 timing and repeats › no-show before the arrival date is rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 timing and repeats › confirming twice: the second CONFIRM is rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 timing and repeats › checkout replay with the same idempotency key returns the same state",
+   "status": "passed"
+  },
+  {
+   "suite": "H01-hcc",
+   "name": "H01 timing and repeats › a cancelled booking with money on it cannot be cancelled (refund first)",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 LOS tiers › upstream case: highest qualifying tier at 6/7/13/14/21/30 nights",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 LOS tiers › rejects duplicate, zero and fractional tiers and invalid night counts",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 occupancy bands (half-open) › upstream case re-expressed: 40 / 65 / 90 select the three bands; 101 rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 occupancy bands (half-open) › boundary 50 % matches exactly one band; 0 % and 100 % are covered",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 occupancy bands (half-open) › overlapping or inverted bands are rejected (donor inclusive bands [0,50]+[50,80] would match 50 twice)",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 occupancy bands (half-open) › a gap returns null (no adjustment), not a neighbouring band",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 integer-paise arithmetic › upstream case: ₹200 −10 % = ₹180, +12 % = ₹224 (exact paise, no float tolerance)",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 integer-paise arithmetic › rounds once, half away from zero, symmetric for negative results",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 integer-paise arithmetic › LOS and occupancy bps are summed then rounded once (differs from sequential application)",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 integer-paise arithmetic › fixed discount larger than the base rate is an error, not a silent clamp",
+   "status": "passed"
+  },
+  {
+   "suite": "H02-hcc",
+   "name": "H02 integer-paise arithmetic › rejects fractional paise, negative base and unsafe magnitudes",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › ₹1,000 receipt: ₹250 then ₹750 refunds succeed; the next paisa is rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › negative, zero and fractional-paise refunds are rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › outstanding requests reserve the remainder (serial analogue of two concurrent refunds)",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › HCC remainder equals the donor formula when nothing is pending, and is stricter when requests are pending",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › original receipt is retained; refund is an appended linked row; net paid falls by the refund",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › refundable deposit cannot be refunded as a payment (deposit return is separate)",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › requester cannot execute their own refund (DEC-031); approver ≠ requester",
+   "status": "passed"
+  },
+  {
+   "suite": "H03-hcc",
+   "name": "H03 refund remainder on HCC › executing the same approval twice is rejected",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-hcc",
+   "name": "H04 Asia/Kolkata calendar date › IST is UTC+5:30: 18:29:59Z is still the 23rd, 18:30:00Z is the 24th",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-hcc",
+   "name": "H04 Asia/Kolkata calendar date › year boundary: 31 Mar 18:30Z is 1 Apr in India (fiscal-year start)",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-hcc",
+   "name": "H04 Asia/Kolkata calendar date › upstream case: America/New_York and UTC at a UTC-midnight boundary",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-hcc",
+   "name": "H04 configuration errors (deliberate change from donor) › invalid timezone throws InvalidTimeZoneError; donor silently returns the UTC date",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-hcc",
+   "name": "H04 configuration errors (deliberate change from donor) › invalid instant is rejected (donor would throw a RangeError from toISOString)",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-hcc",
+   "name": "H04 configuration errors (deliberate change from donor) › adapted and donor results agree for valid zones across a day of instants",
+   "status": "passed"
+  },
+  {
+   "suite": "H04-hcc",
+   "name": "H04 calendar date is not the business date (DEC-042) › crossing local midnight does not change HCC business date; only day close + next day does",
+   "status": "passed"
+  },
+  {
+   "suite": "O01O02-hcc",
+   "name": "O01 check-in room-night selection › HCC books one assigned room per reservation; check-in opens exactly one segment for that room",
+   "status": "passed"
+  },
+  {
+   "suite": "O01O02-hcc",
+   "name": "O01 check-in room-night selection › there is no pre-planned per-night room list to choose from (no gap for O01)",
+   "status": "passed"
+  },
+  {
+   "suite": "O01O02-hcc",
+   "name": "O02 checkout release date › early departure is an explicit MOVE that shortens the stay; the released nights become bookable",
+   "status": "passed"
+  },
+  {
+   "suite": "O01O02-hcc",
+   "name": "O02 checkout release date › a stay cannot be shortened below a night that is already posted",
+   "status": "passed"
+  },
+  {
+   "suite": "O01O02-hcc",
+   "name": "O02 checkout release date › checkout requires all agreed nights posted, so release always starts at the agreed departure",
+   "status": "passed"
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+// Copy to tests/stream-<id>.mjs. Each stream owns exactly one such file.
+export function register({test,M,assert}){
+  test('[A] example',()=>{const s=M.loadScenario('BASE');assert.equal(s.rooms.length,24);});
+}

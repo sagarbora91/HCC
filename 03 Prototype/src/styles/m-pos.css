@@ -1,0 +1,142 @@
+/* Module 23 · Restaurant POS & room service. Classes prefixed pos- . */
+.pos-sim{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#6b5547;background:#f6efe6;border:1px solid #e6d9c8;border-radius:6px;padding:6px 10px}
+.pos-pad{padding:18px 23px}
+.pos-card{overflow:visible}
+.pos-status{display:inline-flex;align-items:center;font-size:11px;font-weight:600;border-radius:5px;padding:3px 7px;white-space:nowrap;line-height:1.3}
+.pos-st-new{background:#f6efe6;color:#4a372c}
+.pos-st-prep{background:#faf0dc;color:#6e4a0e}
+.pos-st-ready{background:#eaf4e4;color:#2e6b34}
+.pos-st-served{background:#e8f0f6;color:#2f5670}
+.pos-st-void{background:#fbeae6;color:#9a3b2a}
+.pos-layout{display:grid;grid-template-columns:220px minmax(0,1fr) 360px;min-height:520px}
+.pos-col{padding:18px;min-width:0}
+.pos-col+.pos-col{border-left:1px solid #e6d9c8}
+.pos-col-check{background:#fdfbf8}
+.pos-seg{display:flex;gap:4px;background:#f6efe6;border:1px solid #e6d9c8;border-radius:8px;padding:3px;margin-bottom:14px}
+.pos-seg button{flex:1;border:0;background:transparent;border-radius:6px;padding:8px 6px;font-size:12px;color:#4a372c;min-height:36px}
+.pos-seg button.on{background:#fff;color:#7a1f2b;font-weight:600;box-shadow:0 1px 2px #2b1d1620}
+.pos-spots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pos-spot{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:#fff;border:1px solid #e6d9c8;border-radius:8px;padding:10px;min-height:84px;color:#2b1d16;min-width:0}
+.pos-spot strong{font-size:13px}.pos-spot span{font-size:11px;color:#6b5547;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pos-spot small{font-size:11px;color:#4a372c}
+.pos-spot.busy{border-color:#cdb9a3;background:#fffaf3}
+.pos-spot.on{border-color:#7a1f2b;box-shadow:0 0 0 2px #7a1f2b33}
+.pos-spot:hover{border-color:#9e4a55}
+.pos-recent{margin-top:18px}.pos-recent h3{font-size:12px;color:#6b5547;margin-bottom:6px}
+.pos-recent-row{display:flex;justify-content:space-between;gap:8px;width:100%;border:0;border-top:1px solid #e6d9c8;background:transparent;padding:8px 0;font-size:11px;text-align:left;color:#2b1d16}
+.pos-recent-row span:last-child{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.pos-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pos-cats button{border:1px solid #cdb9a3;background:#fff;color:#4a372c;border-radius:18px;padding:6px 12px;font-size:12px;min-height:34px}
+.pos-cats button.on{background:#7a1f2b;border-color:#7a1f2b;color:#fff;font-weight:600}
+.pos-hint{font-size:12px;color:#6b5547;margin:4px 0 10px}
+.pos-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pos-item{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:#fff;border:1px solid #e6d9c8;border-radius:9px;padding:12px 12px 10px;min-height:88px;color:#2b1d16}
+.pos-item strong{font-size:13px;line-height:1.3;padding-right:22px}
+.pos-item .pos-price{font-size:13px;color:#7a1f2b;font-weight:600}
+.pos-item small{font-size:11px;color:#9a3b2a}
+.pos-item:not(:disabled):hover{border-color:#9e4a55;background:#fffaf3}
+.pos-item.off{background:#f6efe6}
+.pos-item:disabled{opacity:1}.pos-item:disabled strong,.pos-item:disabled .pos-price{opacity:.75}
+.pos-veg{position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:1.5px solid}
+.pos-veg.veg{color:#2e6b34;border-color:#2e6b34}.pos-veg.nonveg{color:#9a3b2a;border-color:#9a3b2a}
+.pos-inc{position:absolute;bottom:8px;right:10px;font-size:12px;color:#fff;background:#7a1f2b;border-radius:10px;padding:0 7px;line-height:20px}
+.pos-inc:empty{display:none}
+.pos-check-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}
+.pos-check-head h2{font-size:19px;margin:2px 0 4px}.pos-check-head p{font-size:11px;line-height:1.5}
+.pos-check .eyebrow{font-size:10px;letter-spacing:1.2px;color:#6b5547}
+.pos-note{margin:8px 0 12px}.pos-note small{display:block;margin-top:4px}
+.pos-lines{list-style:none;margin:0;padding:0;border-top:1px solid #e6d9c8}
+.pos-lines li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #e6d9c8}
+.pos-lines li.void .pos-line-main strong{text-decoration:line-through;color:#6b5547}
+.pos-line-main{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pos-line-main strong{font-size:13px}.pos-line-main>span{font-size:11px;color:#6b5547}.pos-line-main b{color:#2b1d16;font-weight:600}
+.pos-line-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.pos-line-meta small{font-size:11px}
+.pos-empty-line{color:#6b5547;font-size:12px;justify-content:center!important}
+.pos-qty{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.pos-qty button{width:32px;height:32px;border:1px solid #cdb9a3;background:#fff;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:#7a1f2b}
+.pos-qty span{min-width:22px;text-align:center;font-weight:600}
+.pos-totals{display:flex;flex-direction:column;gap:6px;padding:12px 0;font-size:12px}
+.pos-totals div{display:flex;justify-content:space-between;gap:10px}.pos-totals span{color:#6b5547}
+.pos-totals .pos-grand{border-top:1px solid #cdb9a3;padding-top:8px;font-size:15px}.pos-totals .pos-grand span{color:#2b1d16;font-weight:600}
+.pos-settled{font-size:11px;color:#4a372c;background:#f6efe6;border-radius:6px;padding:8px 10px;margin:4px 0 8px}
+.pos-actions,.pos-row-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pos-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pos-board-col{background:#f6efe6;border:1px solid #e6d9c8;border-radius:9px;padding:12px;min-height:200px}
+.pos-board-col h3{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px}.pos-board-col h3 span{font-size:11px;background:#fff;border-radius:10px;padding:1px 8px;color:#4a372c}
+.pos-kot{background:#fff;border:1px solid #e6d9c8;border-left:4px solid #cdb9a3;border-radius:8px;padding:10px 12px;margin-bottom:10px;color:#2b1d16}
+.pos-kot.pos-st-prep{border-left-color:#b5841e}.pos-kot.pos-st-ready{border-left-color:#3b7530}.pos-kot.pos-st-served{border-left-color:#4c7084}
+.pos-kot header{display:flex;justify-content:space-between;gap:8px;align-items:center}.pos-kot header strong{font-size:13px}
+.pos-kot small{display:block;margin:2px 0 6px}
+.pos-kot ul{margin:0 0 4px;padding-left:16px;font-size:12px}.pos-kot li.void{color:#6b5547;text-decoration:line-through}
+.pos-86{margin-top:18px;border:1px solid #e6d9c8;border-radius:8px;background:#fff;padding:10px 14px}
+.pos-86 summary{cursor:pointer;font-size:12px;font-weight:600;color:#4a372c;min-height:28px;display:flex;align-items:center}
+.pos-86-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 14px;margin-top:10px}
+.pos-86-grid label{display:flex;gap:8px;align-items:center;font-size:12px;min-height:30px}
+.pos-sum-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.pos-sum-head p{font-size:12px}
+.pos-stats .stat{min-height:0}
+.pos-sum-grid{display:grid;grid-template-columns:3fr 2fr;gap:18px}
+.pos-sum-grid table{width:100%;border-collapse:collapse;font-size:12px}
+.pos-sum-grid caption{text-align:left;font-weight:600;font-size:13px;padding:6px 0;color:#2b1d16}
+.pos-sum-grid th,.pos-sum-grid td{padding:7px 6px;border-bottom:1px solid #e6d9c8;text-align:left;color:#2b1d16}
+.pos-sum-grid th{color:#6b5547;font-weight:500}
+.pos-sum-grid .number{text-align:right}
+.pos-total-row td{font-weight:600;background:#f6efe6}
+.pos-h3{margin:20px 0 8px;font-size:13px}
+.pos-top{margin:0;padding:0;list-style:none;max-width:520px}
+.pos-top li{display:grid;grid-template-columns:1fr 50px 100px;gap:10px;padding:6px 0;border-bottom:1px solid #e6d9c8;font-size:12px}.pos-top li span:last-child{text-align:right}
+.pos-modes{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}
+.pos-modes legend{font-size:11px;color:#6b5547;margin-bottom:8px}
+.form .pos-modes label{flex-direction:row;align-items:center;gap:6px;border:1px solid #cdb9a3;border-radius:7px;padding:8px 12px;font-size:13px;color:#2b1d16;background:#fff;min-height:44px;cursor:pointer}
+.form .pos-modes label.on{border-color:#7a1f2b;background:#f5e4e6;color:#5e1620;font-weight:600}
+.form .pos-modes input{width:auto;min-height:0;margin:0}
+.pos-change{font-size:14px;font-weight:600;color:#2e6b34}.pos-change.short{color:#9a3b2a}
+/* Print documents (KOT / bill / report): readable at A4 and on a phone print preview. */
+.pos-doc{color:#2b1d16;max-width:640px;margin:0 auto}
+.pos-doc h2{font-size:20px;text-align:center}.pos-doc h3{font-size:14px;margin:16px 0 6px}
+.pos-doc-sub{text-align:center;font-size:12px;color:#4a372c;margin:4px 0 10px}
+.pos-doc-big{text-align:center;font-size:28px;font-weight:700;color:#2b1d16;margin:6px 0}
+.pos-doc-meta{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;font-size:12px;color:#4a372c;border-top:1px dashed #cdb9a3;border-bottom:1px dashed #cdb9a3;padding:8px 0;margin-bottom:10px}
+.pos-doc table{width:100%;border-collapse:collapse;font-size:13px}
+.pos-doc th,.pos-doc td{padding:6px 4px;border-bottom:1px solid #e6d9c8;text-align:left;color:#2b1d16}.pos-doc .number{text-align:right}
+.pos-doc-qty{font-size:18px;font-weight:700;width:50px}
+.pos-kot-doc td{font-size:16px}
+.pos-doc-totals{max-width:280px;margin-left:auto}
+@media print{.pos-doc{max-width:none}.pos-doc .pos-sum-grid{grid-template-columns:1fr}.pos-doc th,.pos-doc td{color:#000}}
+@media(max-width:1180px){.pos-layout{grid-template-columns:200px minmax(0,1fr) 320px}}
+/* ── Phone (inside .m-shell / sheets) ── */
+.pos-m .m-chips button{min-height:48px}
+.pos-m .pos-spots{grid-template-columns:1fr 1fr;gap:10px}
+.pos-m .pos-spot{min-height:96px;padding:12px}
+.pos-m .pos-spot strong{font-size:17px}.pos-m .pos-spot span,.pos-m .pos-spot small{font-size:14px}
+.pos-m .pos-status{font-size:13px}
+.pos-m-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.pos-m-head>div{display:flex;align-items:center;gap:8px}.pos-m-head strong{font-size:18px}
+.pos-m .pos-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.pos-m .pos-cats button{flex-shrink:0;min-height:48px;font-size:15px;padding:0 16px}
+.pos-m .pos-hint{font-size:15px}
+.pos-m .pos-items{grid-template-columns:1fr 1fr;gap:10px}
+.pos-m .pos-item{min-height:104px;padding:14px}
+.pos-m .pos-item strong{font-size:16px}.pos-m .pos-item .pos-price{font-size:16px}.pos-m .pos-item small{font-size:14px}
+.pos-m .pos-inc{font-size:14px;line-height:24px}
+.pos-cart-btn{min-height:52px!important;font-size:16px!important}
+.pos-m .pos-kot{padding:14px}.pos-m .pos-kot header strong{font-size:16px}.pos-m .pos-kot ul{font-size:16px}.pos-m .pos-kot small{font-size:14px}
+.pos-m .pos-86-grid{grid-template-columns:1fr}.pos-m .pos-86-grid label{font-size:16px;min-height:48px}.pos-m .pos-86-grid input{width:22px;height:22px}
+.pos-m .pos-86 summary{font-size:15px;min-height:48px}
+.pos-m-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.pos-m-card{padding:12px}
+.pos-m .pos-sum-grid,.m-sheet .pos-sum-grid{grid-template-columns:1fr}
+.pos-m .pos-sum-grid table,.m-sheet .pos-sum-grid table{font-size:14px}
+.m-sheet .pos-check-head h2{font-size:22px}.m-sheet .pos-check-head p{font-size:14px}
+.m-sheet .pos-line-main strong{font-size:16px}.m-sheet .pos-line-main>span{font-size:14px}
+.m-sheet .pos-qty button{width:48px;height:48px}.m-sheet .pos-qty span{font-size:17px;min-width:28px}
+.m-sheet .pos-totals{font-size:15px}.m-sheet .pos-totals .pos-grand{font-size:18px}
+.m-sheet .pos-settled{font-size:14px}
+.m-sheet .pos-actions .btn{flex:1 1 calc(50% - 8px)}
+.m-sheet .pos-status{font-size:13px}
+.m-sheet .pos-doc-meta,.m-sheet .pos-doc-sub{font-size:14px}.m-sheet .pos-doc table{font-size:15px}
+.m-sheet .form .pos-modes label{min-height:48px;font-size:16px;flex:1 1 calc(50% - 8px)}
+.m-sheet .pos-modes legend{font-size:14px}
+.pos-spot .pos-status{white-space:normal;max-width:100%}
+.m-sheet .pos-check .btn,.m-sheet .pos-row-actions .btn,.pos-m .pos-kot .btn{min-height:48px;font-size:15px}
+.pos-m .pos-sum-grid th,.pos-m .pos-sum-grid td{font-size:14px}
+.m-sheet .pos-form .info-note,.m-sheet .pos-note,.pos-m .info-note{font-size:14px}.m-sheet .pos-form small{font-size:14px}.m-sheet .pos-check .eyebrow{font-size:13px}
+.m-sheet .pos-doc td,.m-sheet .pos-doc th,.pos-m .pos-sum-grid td,.pos-m .pos-sum-grid th{font-size:14px}.m-sheet .pos-doc .footnote{font-size:13px}

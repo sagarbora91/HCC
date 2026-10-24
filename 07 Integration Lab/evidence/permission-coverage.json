@@ -1,0 +1,2395 @@
+{
+ "generated": "2026-10-24T15:29:48.826Z",
+ "commands": 165,
+ "shadowedBuiltins": [
+  "BOOK",
+  "REGISTER",
+  "CHECKIN",
+  "CANCEL",
+  "MOVE",
+  "CHARGE",
+  "DISCOUNT",
+  "APPROVAL",
+  "PAYMENT",
+  "CHECKOUT",
+  "TASK",
+  "BLOCK",
+  "EXPENSE",
+  "EXPENSE_APPROVE",
+  "NIGHT_POST",
+  "DAY_CLOSE",
+  "NEXT_DAY",
+  "USER",
+  "SETTINGS"
+ ],
+ "withoutPermissionCheck": [],
+ "rows": [
+  {
+   "command": "ACC_LOCK",
+   "file": "src/services/mock/handlers/accounting.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "ACC_UNLOCK",
+   "file": "src/services/mock/handlers/accounting.ts",
+   "builtin": false,
+   "req": [
+    "reports",
+    "admin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "ACC_MAP_SET",
+   "file": "src/services/mock/handlers/accounting.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "ACC_MAP_RESET",
+   "file": "src/services/mock/handlers/accounting.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "USER",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-001"
+   ],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "USER_CREATE",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-001"
+   ],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "USER_UPDATE",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-001"
+   ],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POLICY_DECIDE",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-002",
+    "PERM-ADM-003"
+   ],
+   "customGate": true,
+   "intended": [
+    "PERM-ADM-002",
+    "PERM-ADM-003"
+   ],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "SETTINGS",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-003"
+   ],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "SETTING_SET",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-003"
+   ],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "TARIFF_SCHEDULE",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-003"
+   ],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "TAX_SCHEDULE",
+   "file": "src/services/mock/handlers/admin.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [
+    "PERM-ADM-003"
+   ],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "AI_ASK",
+   "file": "src/services/mock/handlers/assistant.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false,
+   "openByDesign": true
+  },
+  {
+   "command": "AI_CLEAR",
+   "file": "src/services/mock/handlers/assistant.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false,
+   "openByDesign": true
+  },
+  {
+   "command": "AI_SETTINGS",
+   "file": "src/services/mock/handlers/assistant.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_CHANNEL_STATUS",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_CHANNEL_SAVE",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_STOP_SELL",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_PUSH",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_PULL",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_ACCEPT",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_REJECT",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_WEB_REQUEST",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_WEB_CONFIRM",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHN_WEB_DECLINE",
+   "file": "src/services/mock/handlers/channels.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "NIGHT_POST",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "close"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-CLS-002"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CLOSE_RUN",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "close"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-SHF-001"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "SHIFT_SUBMIT",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "payments"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-SHF-002",
+    "PERM-SOD-001"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "SHIFT_DIFFERENCE_DECIDE",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [
+    "PERM-EXP-001"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "EXPENSE",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "expenses"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "EXPENSE_SUBMIT",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "expenses"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [
+    "PERM-EXP-002",
+    "PERM-EXP-003"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "EXPENSE_APPROVE",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [
+    "PERM-EXP-003"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "EXPENSE_REVERSE",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-CLS-002"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "DAY_CLOSE",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "close"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-CLS-002"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "NEXT_DAY",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "close"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-CLS-003"
+   ],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CORRECTION_ADJUST",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "close"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-CLS-004"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "CORRECTION_ADJUST_DECIDE",
+   "file": "src/services/mock/handlers/closing.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "PAYMENT",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "payments"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-PAY-001"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "CHARGE",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-FOL-002"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "DISCOUNT",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-FOL-003",
+    "PERM-APR-001"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "REFUND_REQUEST",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "payments"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-PAY-003"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "REFUND_EXECUTE",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "payments"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [
+    "PERM-PAY-004"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "COMPANY_CREDIT_REQUEST",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "checkout"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-STY-003"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CORRECTION_REQUEST",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-FOL-005"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CREDIT_NOTE",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-FOL-005"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "APPROVAL",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [
+    "PERM-APR-001"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHECKOUT",
+   "file": "src/services/mock/handlers/folio.ts",
+   "builtin": false,
+   "req": [
+    "checkout"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-STY-003"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_COMPANY_SAVE",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_LIMIT_SET",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_LIMIT_DECIDE",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_BLOCK_CREATE",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_BLOCK_ALLOT",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_ROOMING",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations",
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_RELEASE",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_SWEEP",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GRP_BLOCK_CANCEL",
+   "file": "src/services/mock/handlers/groups.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GUEST_SAVE",
+   "file": "src/services/mock/handlers/guests.ts",
+   "builtin": false,
+   "req": [
+    "checkin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "REGISTER",
+   "file": "src/services/mock/handlers/guests.ts",
+   "builtin": false,
+   "req": [
+    "checkin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-STY-001"
+   ],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHECKIN",
+   "file": "src/services/mock/handlers/guests.ts",
+   "builtin": false,
+   "req": [
+    "checkin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-STY-002"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MOVE",
+   "file": "src/services/mock/handlers/guests.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_TEMPLATE_SAVE",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_TEMPLATE_TOGGLE",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_ITEM",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_RUN_SUBMIT",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_RUN_REOPEN",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_NOTE_SUBMIT",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [
+    "payments"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_NOTE_ACK",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_CARRY_DONE",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HOV_CLOCK",
+   "file": "src/services/mock/handlers/handover.ts",
+   "builtin": false,
+   "req": [
+    "close"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "TASK",
+   "file": "src/services/mock/handlers/housekeeping.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping",
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [
+    "PERM-HK-001",
+    "PERM-HK-002",
+    "PERM-ROOM-002",
+    "PERM-HK-004"
+   ],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "BLOCK",
+   "file": "src/services/mock/handlers/housekeeping.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-ROOM-002"
+   ],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "UNBLOCK",
+   "file": "src/services/mock/handlers/housekeeping.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-ROOM-002",
+    "PERM-ROOM-001"
+   ],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "REPAIR_REQUEST",
+   "file": "src/services/mock/handlers/housekeeping.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "STAYOVER_GENERATE",
+   "file": "src/services/mock/handlers/housekeeping.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-HK-002"
+   ],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "BACKUP_SIMULATE",
+   "file": "src/services/mock/handlers/housekeeping.ts",
+   "builtin": false,
+   "req": [
+    "admin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [
+    "PERM-ADM-005"
+   ],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "INV_GRN",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping",
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "INV_ISSUE",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "INV_USE",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "INV_ROOM_CHANGE",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "INV_LAUNDRY_SEND",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping",
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "INV_LAUNDRY_RECEIVE",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "INV_LOSS",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "INV_COUNT_SUBMIT",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "INV_COUNT_POST",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "INV_ITEM_SET",
+   "file": "src/services/mock/handlers/inventory.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_CREATE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping",
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_FROM_REPAIR",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_ASSIGN",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_START",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_HOLD",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_PART",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_COMPLETE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_VERIFY",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_CANCEL",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_WO_BLOCK",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_PM_GENERATE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_PLAN_SAVE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_ASSET_SAVE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_VENDOR_SAVE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_AMC_SAVE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "expenses"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "MNT_SPARE_RECEIVE",
+   "file": "src/services/mock/handlers/maintenance.ts",
+   "builtin": false,
+   "req": [
+    "inspect"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_SEND",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_RUN_RULES",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_SIMULATE",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_RETRY",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_CONSENT",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "checkin"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_TEMPLATE",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_RULE",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_DOC_EXTRACT",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "checkin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_DOC_CONFIRM",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "checkin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "MSG_DOC_DISCARD",
+   "file": "src/services/mock/handlers/messaging.ts",
+   "builtin": false,
+   "req": [
+    "checkin"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POS_ORDER_OPEN",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "POS_ITEM_ADD",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "POS_ITEM_QTY",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "POS_KOT_SEND",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POS_KOT_STATUS",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POS_SETTLE",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "folio",
+    "billing",
+    "payments"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POS_VOID_ITEM",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POS_VOID_BILL",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing",
+    "payments"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POS_VOID_DECIDE",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POS_MENU_TOGGLE",
+   "file": "src/services/mock/handlers/pos.ts",
+   "builtin": false,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "BOOK",
+   "file": "src/services/mock/handlers/reservations.ts",
+   "builtin": false,
+   "req": [
+    "reservations",
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "CONFIRM",
+   "file": "src/services/mock/handlers/reservations.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CANCEL",
+   "file": "src/services/mock/handlers/reservations.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "CHANGE_DATES",
+   "file": "src/services/mock/handlers/reservations.ts",
+   "builtin": false,
+   "req": [
+    "reservations",
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_REQUEST_CREATE",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_REQUEST_ASSIGN",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_REQUEST_START",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_REQUEST_COMPLETE",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_REQUEST_CANCEL",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_COMPLAINT_LOG",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_COMPLAINT_UPDATE",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_COMPLAINT_RESOLVE",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_COMPLAINT_RECOVERY",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_COMPLAINT_FOLLOWUP",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations",
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_LF_LOG",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "housekeeping"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_LF_CLAIM",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_LF_HANDOVER",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_LF_DISPOSE",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "reservations",
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "GSV_SETTINGS",
+   "file": "src/services/mock/handlers/services.ts",
+   "builtin": false,
+   "req": [
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "HR_STAFF_SAVE",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "HR_STAFF_ACTIVE",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HR_ROSTER_SET",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HR_ROSTER_COPY",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HR_ATT_MARK",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "HR_LEAVE_REQUEST",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HR_LEAVE_DECIDE",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HR_LEAVE_CANCEL",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HR_ADVANCE_ADD",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "HR_RATES_SET",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "HR_PAYROLL_RUN",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "HR_PAYROLL_LOCK",
+   "file": "src/services/mock/handlers/staff.ts",
+   "builtin": false,
+   "req": [],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_PLAN_SAVE",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_SEASON_SAVE",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_DOW_SET",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_OCC_SAVE",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_GUARD_SET",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_RESTRICTION_SAVE",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_OVERRIDE",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_PUBLISH",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_PROPOSE",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports",
+    "approve"
+   ],
+   "authorize": [],
+   "customGate": false,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "YLD_DECIDE",
+   "file": "src/services/mock/handlers/yield.ts",
+   "builtin": false,
+   "req": [
+    "reports"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "POST_NIGHTS",
+   "file": "src/services/mock/commands.ts",
+   "builtin": true,
+   "req": [
+    "billing"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": false,
+   "shadowed": false
+  },
+  {
+   "command": "SHIFT_CLOSE",
+   "file": "src/services/mock/commands.ts",
+   "builtin": true,
+   "req": [
+    "close"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": true,
+   "amountCheck": true,
+   "shadowed": false
+  },
+  {
+   "command": "GRANT",
+   "file": "src/services/mock/commands.ts",
+   "builtin": true,
+   "req": [
+    "admin"
+   ],
+   "authorize": [],
+   "customGate": true,
+   "intended": [],
+   "dayClosedGuard": false,
+   "amountCheck": false,
+   "shadowed": false
+  }
+ ]
+}

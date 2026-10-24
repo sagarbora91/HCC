@@ -1,0 +1,147 @@
+/* Module 19 · Checklists & shift handover. Classes prefixed hov- . */
+.hov-page .page-title{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.hov-tabs-card{margin-bottom:18px}
+.hov-sub{font-size:14px;margin:18px 0 10px;display:flex;align-items:center;gap:10px}
+.hov-run-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;align-items:start}
+.hov-run{padding:18px 20px;margin:0}
+.hov-run-head{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center;margin-bottom:10px}
+.hov-run-head h3{font-size:15px;margin:0}
+.hov-run-head>div small{font-size:12px}
+.hov-run-meter{text-align:right;display:flex;flex-direction:column}
+.hov-run-meter strong{font-size:22px;color:#7a1f2b;line-height:1.1}
+.hov-run-meter small{font-size:11px}
+.hov-run-head .hov-progress{grid-column:1/-1}
+.hov-run-head .hov-pills{grid-column:1/-1}
+.hov-progress{height:8px;border-radius:5px;background:#efe4d6;overflow:hidden;min-width:60px}
+.hov-progress span{display:block;height:100%;background:#7a1f2b;border-radius:5px;transition:width .2s}
+.hov-pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hov-pills .pill,.hov-item-meta .pill{font-size:11px}
+.pill.hov-overdue{background:#fbe9e5;color:#9a3b2a;font-weight:600}
+.pill.hov-req{background:#f5e4e6;color:#7a1f2b}
+.hov-items{list-style:none;margin:0;padding:0;border-top:1px solid #e6d9c8}
+.hov-item{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid #e6d9c8}
+.hov-item.overdue{background:linear-gradient(90deg,#fbe9e5,transparent 60%)}
+.hov-check{width:44px;height:44px;border-radius:9px;border:2px solid #cdb9a3;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;padding:0}
+.hov-item.done .hov-check{background:#2e6b34;border-color:#2e6b34}
+.hov-item.overdue .hov-check{border-color:#9a3b2a}
+.hov-item-body{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hov-item-text{font-size:13px;color:#2b1d16;line-height:1.4}
+.hov-item.done .hov-item-text{color:#6b5547}
+.hov-item-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.hov-item-meta small{font-size:11px;color:#2e6b34}
+.hov-item-note{display:flex;gap:6px;align-items:flex-start;font-size:12px;color:#6b5547;background:#f6efe6;border-radius:6px;padding:6px 8px}
+.hov-item-actions{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.btn.hov-mini{font-size:11px;min-height:32px;padding:5px 10px;white-space:nowrap}
+.hov-hint{font-size:11px;color:#6b5547}
+.hov-run-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;padding-top:12px}
+.hov-run-actions small{margin-right:auto;font-size:12px}
+.hov-banner{display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:16px;border:1px solid #e3b9a8;background:#fdf1ec;border-radius:9px;color:#7b2e1f;width:100%;text-align:left;font:inherit}
+.hov-banner>div{flex:1;display:flex;flex-direction:column;gap:2px}
+.hov-banner strong{font-size:14px;color:#7b2e1f}
+.hov-banner span{font-size:12px;color:#6b3a2c}
+.hov-mini-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.hov-mini-list>div{background:#fff;border:1px solid #e6d9c8;border-radius:8px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.hov-mini-list small{font-size:11px}
+.hov-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.hov-two{align-items:start}
+.hov-note-card{margin-bottom:14px}
+.hov-note{display:flex;flex-direction:column;gap:12px}
+.hov-note-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.hov-note-grid>div,.hov-carry{background:#faf6f0;border:1px solid #e6d9c8;border-radius:8px;padding:10px 12px}
+.hov-note-grid span,.hov-carry>span{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#6b5547;text-transform:uppercase;letter-spacing:.4px}
+.hov-note-grid p{font-size:13px;color:#2b1d16;margin-top:4px}
+.hov-carry ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.hov-carry li{display:flex;align-items:center;gap:8px;font-size:13px}
+.hov-carry li>span:not(.hov-dot){flex:1}
+.hov-carry li.done{color:#6b5547}
+.hov-carry li.done svg{color:#2e6b34}
+.hov-dot{width:9px;height:9px;border-radius:50%;background:#b5541e;flex-shrink:0}
+.hov-note-foot{font-size:11px}
+.hov-await{color:#84673b}
+.hov-carry-desk{margin-bottom:12px}
+.hov-carry-desk h3{margin-bottom:6px}
+.hov-carry-desk ul{margin:0;padding-left:18px;font-size:12px;line-height:1.7}
+.hov-stats strong{font-size:22px;color:#7a1f2b}
+.hov-cell-bar{display:flex;align-items:center;gap:8px}
+.hov-cell-bar .hov-progress{flex:1;min-width:80px}
+.hov-overdue-list{list-style:none;margin:0;padding:6px 20px 14px}
+.hov-overdue-list li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #e6d9c8;font-size:12px}
+.hov-overdue-list small{font-size:11px}
+.hov-tpl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.hov-tpl{margin:0}
+.hov-tpl.inactive{opacity:.8;background:#faf6f0}
+.hov-tpl p{font-size:12px}
+.hov-clock{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#6b5547;background:#f6efe6;border:1px dashed #cdb9a3;border-radius:8px;padding:6px 10px}
+.hov-form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.form .hov-inline,.hov-inline{flex-direction:row;align-items:center;gap:8px;font-size:12px;color:#2b1d16}
+.hov-inline input[type=checkbox]{width:20px;height:20px;accent-color:#7a1f2b}
+.hov-fieldset{border:1px solid #e6d9c8;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin:0}
+.hov-fieldset legend{font-size:12px;font-weight:600;color:#2b1d16;padding:0 4px}
+.hov-carry-input{display:flex;gap:8px}
+.hov-carry-input input{flex:1;min-width:0}
+.btn.hov-icon-btn{min-width:36px;padding:6px}
+.hov-role-row{display:flex;flex-wrap:wrap;gap:14px}
+.hov-tpl-items{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px}
+.hov-tpl-items li>input{width:100%}
+.hov-tpl-opts{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:6px}
+.hov-tpl-move{display:flex;gap:4px;margin-left:auto}
+.hov-photo-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hov-photo-row small{flex:1;min-width:180px}
+.hov-dash-cards{display:flex;flex-direction:column;gap:10px;padding:12px}
+.hov-dash-card{border:1px solid #e6d9c8;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.hov-dash-card>div{display:flex;justify-content:space-between;font-size:16px}
+.hov-dash-card small{font-size:14px}
+
+/* ── Phone (mobile shell / sheets): 56 px checkboxes, ≥16 px text ── */
+.m-shell .hov-m{display:flex;flex-direction:column;gap:12px;padding-bottom:96px}
+.m-shell .hov-run-head h3{font-size:18px}
+.m-shell .hov-run-head>div small,.m-shell .hov-run-meter small{font-size:14px}
+.m-shell .hov-item{grid-template-columns:56px 1fr;gap:12px;padding:14px 4px}
+.m-shell .hov-check{width:56px;height:56px;border-radius:12px}
+.m-shell .hov-item-text{font-size:17px}
+.m-shell .hov-item-meta .pill,.m-shell .hov-pills .pill{font-size:13px;padding:6px 9px}
+.m-shell .hov-item-meta small,.m-shell .hov-item-note{font-size:14px}
+.m-shell .hov-item-actions{grid-column:2;flex-direction:row;flex-wrap:wrap}
+.m-shell .btn.hov-mini{min-height:48px;font-size:15px;padding:8px 14px}
+.m-shell .hov-hint{font-size:14px}
+.m-shell .btn.hov-back{align-self:flex-start;min-height:48px;font-size:15px}
+.m-shell .hov-m-detail{display:flex;flex-direction:column;gap:12px}
+.m-shell .hov-m-done{font-size:15px;color:#2e6b34;background:#eaf4e4;border-radius:8px;padding:12px}
+.m-shell .hov-banner strong{font-size:16px}
+.m-shell .hov-banner span{font-size:14px}
+.m-shell .hov-m-banner{min-height:56px;margin:0}
+.m-shell .hov-lc-meta{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.m-shell .m-list-card.hov-lc-overdue{border-left:4px solid #9a3b2a}
+.m-shell .hov-m-note,.m-shell .hov-m-carry{padding:14px;margin:0}
+.m-shell .hov-m-note-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;font-size:16px}
+.m-shell .hov-note-grid{grid-template-columns:1fr}
+.m-shell .hov-note-grid p,.m-shell .hov-carry li{font-size:16px}
+.m-shell .hov-note-grid span,.m-shell .hov-carry>span{font-size:14px}
+.m-shell .hov-note-foot{font-size:14px}
+.m-shell .hov-m-ack{margin-top:12px;min-height:52px;font-size:16px;width:100%}
+.m-shell .hov-m-carry h3{font-size:16px;margin-bottom:6px}
+.m-shell .hov-m-carry ul{margin:0;padding-left:20px;font-size:16px;line-height:1.6}
+.m-shell .hov-clock{font-size:14px}
+.m-shell .hov-stats strong{font-size:22px}
+.m-shell .hov-toolbar select{min-height:48px;font-size:16px}
+.m-shell .hov-toolbar .f-seg button{min-height:48px;font-size:15px;padding:8px 14px}
+.m-shell .hov-overdue-list{padding:6px 14px 14px}
+.m-shell .hov-overdue-list li{font-size:15px}
+.m-shell .hov-overdue-list small{font-size:14px}
+.modal.m-sheet .hov-inline{font-size:16px;min-height:48px}
+.modal.m-sheet .hov-inline input[type=checkbox]{width:26px;height:26px}
+.modal.m-sheet .hov-fieldset legend{font-size:15px}
+.modal.m-sheet .hov-fieldset small,.modal.m-sheet .hov-photo-row small{font-size:14px}
+.modal.m-sheet .btn.hov-icon-btn{min-width:48px;min-height:48px}
+.modal.m-sheet .hov-tpl-move{margin-left:0}
+.modal.m-sheet .hov-note-grid{grid-template-columns:1fr}
+.modal.m-sheet .hov-note-grid p,.modal.m-sheet .hov-carry li{font-size:16px}
+.modal.m-sheet .hov-note-foot{font-size:14px}
+.modal.m-sheet .hov-photo-row .btn{min-height:48px;font-size:15px}
+@media (max-width:760px){.hov-run-grid{grid-template-columns:1fr}.hov-item{grid-template-columns:48px 1fr}.hov-item-actions{grid-column:2;flex-direction:row;flex-wrap:wrap}}
+@media print{.hov-clock,.hov-toolbar .btn,.hov-tabs-card,.hov-item-actions,.hov-run-actions .btn{display:none!important}.hov-run-grid{grid-template-columns:1fr}}
+.m-shell .hov-run-head{grid-template-columns:1fr}
+.m-shell .hov-run-meter{text-align:left;flex-direction:row;align-items:baseline;gap:10px}
+.m-shell .hov-stats span,.m-shell .hov-toolbar .hov-inline{font-size:14px}
+.m-shell .hov-stats{grid-template-columns:1fr 1fr;gap:10px}
+.m-shell .hov-stats>div{padding:14px}

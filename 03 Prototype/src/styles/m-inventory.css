@@ -1,0 +1,66 @@
+/* Module 16 · Linen, laundry & stock. Classes prefixed inv- . */
+.inv-actions{display:flex;gap:10px;flex-wrap:wrap}
+.inv-actions .btn,.inv-toolbar .btn{display:inline-flex;align-items:center;gap:6px}
+.inv-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.inv-toolbar p{margin:0;max-width:720px}
+.inv-table td small,.inv-table td strong{display:block}
+.inv-table td small{margin-top:3px;color:#6b5547}
+.inv-table td{white-space:normal}
+.inv-table td.number{white-space:nowrap}
+.inv-table th.number,.inv-table td.number{text-align:right}
+.inv-h3{font-size:13px;color:#2b1d16;margin:22px 0 10px}
+.inv-alerts .section-title h2{display:flex;align-items:center;gap:7px}
+.pill.inv-low{color:#9a3b2a;background:#fbe9e4}
+.inv-bad{color:#9a3b2a;font-weight:600}
+.inv-ok{color:#2e6b34;font-weight:600}
+.inv-why{font-size:12px;color:#9a3b2a;margin:6px 0}
+.inv-seg{display:inline-flex;flex-wrap:wrap;border:1px solid #e6d9c8;border-radius:6px;overflow:hidden;margin-bottom:12px}
+.inv-seg button{border:0;border-right:1px solid #e6d9c8;background:#fff;padding:7px 12px;font-size:12px;color:#6b5547;min-height:34px}
+.inv-seg button:last-child{border-right:0}
+.inv-seg button.on{background:#f5e4e6;color:#7a1f2b;font-weight:600}
+.inv-line{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end;padding:10px;border:1px solid #efe4d6;border-radius:8px;background:#faf6f0}
+.inv-avail{font-size:12px;color:#6b5547;background:#f6efe6;border-radius:6px;padding:8px 10px}
+.inv-avail strong{color:#2b1d16}
+.inv-recv,.inv-count-group{border:1px solid #e6d9c8;border-radius:8px;padding:10px 12px;display:grid;gap:10px;margin:0}
+.inv-recv{grid-template-columns:1fr 1fr auto;align-items:end}
+.inv-recv legend,.inv-count-group legend{font-size:12px;font-weight:600;color:#2b1d16;padding:0 4px}
+.inv-count-group{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.inv-count-line{display:flex;flex-direction:column;gap:4px}
+.inv-count-line.diff .inv-qty input{border-color:#9a3b2a;background:#fff8f6}
+.inv-count-line .inv-bad{font-size:11px}
+.inv-range{display:flex;gap:10px;align-items:end}
+.inv-range label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#6b5547}
+.inv-range input{padding:7px 9px;border:1px solid #cdb9a3;border-radius:6px;color:#2b1d16;background:#fff}
+.inv-print-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.inv-print-head h2{font-size:16px;margin:0 0 4px;color:#2b1d16}
+.inv-print-head p{margin:0;font-size:11px;color:#6b5547}
+.inv-print .inv-table td,.inv-print .inv-table th{padding:7px 8px;font-size:11px}
+/* Phone */
+.inv-m{padding:0 0 88px;display:flex;flex-direction:column;gap:10px}
+.inv-m-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.inv-m-kpis .m-kpi{min-height:84px;padding:10px}
+.inv-m-kpis .m-kpi-label{font-size:14px}
+.inv-m-select{display:flex;flex-direction:column;gap:6px;font-size:14px;color:#4a372c}
+.inv-m-select select{min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cdb9a3;border-radius:8px;background:#fff;color:#2b1d16}
+.inv-m-qty{display:flex;flex-direction:column;align-items:flex-end}
+.inv-m-qty strong{font-size:22px;color:#2b1d16}
+.inv-m-qty small{font-size:13px;color:#6b5547}
+.inv-m-links{display:grid;gap:8px;margin-top:6px}
+.inv-m-links .btn{min-height:48px;font-size:16px;display:flex;align-items:center;justify-content:center;gap:6px}
+.inv-m-note{font-size:14px}
+.inv-m .m-list-card .pill{font-size:13px}
+.inv-m .inv-count .inv-count-group{grid-template-columns:1fr}
+.inv-stepper .m-stepper-num>span{font-size:15px;color:#2b1d16;overflow-wrap:anywhere}
+.modal.m-sheet .inv-line,.modal.m-sheet .inv-recv{grid-template-columns:1fr}
+.modal.m-sheet .inv-seg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.modal.m-sheet .inv-seg button{min-height:48px;font-size:15px;border-bottom:1px solid #e6d9c8}
+.modal.m-sheet .inv-why,.m-shell .inv-why{font-size:14px}
+.modal.m-sheet .inv-avail{font-size:15px}
+.modal.m-sheet .inv-count-group{grid-template-columns:1fr}
+.modal.m-sheet .inv-print-head{flex-direction:column}
+.modal.m-sheet .inv-print .table-wrap,.modal.m-sheet .inv-print{overflow-x:auto}
+.modal.m-sheet .inv-recv legend,.modal.m-sheet .inv-count-group legend{font-size:15px}
+.modal.m-sheet .text-btn,.m-shell .inv-m .text-btn{min-height:48px}
+@media print{.inv-print{color:#2b1d16}.inv-print .inv-table{white-space:normal}.inv-print .inv-table td,.inv-print .inv-table th{color:#2b1d16;border-bottom:1px solid #cdb9a3}@page{size:A4;margin:14mm}}
+.inv-m .inv-count .modal-actions{position:sticky;bottom:calc(var(--tabbar,64px) + env(safe-area-inset-bottom));z-index:5;background:#fff;padding:12px 16px;margin:0 -16px;border-top:1px solid #e6d9c8}
+.inv-m .inv-count .modal-actions .btn{width:100%;min-height:52px;font-size:16px;justify-content:center}

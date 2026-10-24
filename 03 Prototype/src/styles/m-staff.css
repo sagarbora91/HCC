@@ -1,0 +1,80 @@
+/* Module 17 · HR & payroll. Classes prefixed hr- . */
+.hr-tabs-card{padding-top:16px}
+.hr-tabs-card .tabs{border-bottom:0}
+.pill.hr-red{color:#9a3b2a;background:#fbe9e4}
+.hr-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.hr-weeknav{gap:8px}
+.hr-weeknav .btn{min-height:34px;padding:6px 9px}
+.hr-weeknav strong{font-size:12px;min-width:120px;text-align:center}
+.section-title select{min-height:38px}
+/* roster grid */
+.hr-roster td,.hr-roster th{padding:8px 6px;text-align:center}
+.hr-roster td:first-child,.hr-roster th:first-child{text-align:left;padding-left:23px}
+.hr-th-today{background:#f5e4e6!important;color:#5e1620!important;font-weight:700!important}
+.hr-cell{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:74px;min-height:42px;border:1px solid #e6d9c8;border-radius:6px;background:#fff;padding:4px 6px;font-size:10px;color:#2b1d16;line-height:1.3}
+.hr-cell b{font-weight:600;font-size:11px}.hr-cell small{font-size:9px;color:#6b5547;margin:0}
+button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
+.hr-s-M{background:#eaf4e4;border-color:#bfd9b0}.hr-s-E{background:#eef4f7;border-color:#cfdde6}.hr-s-N{background:#efe9f5;border-color:#d8cce6}.hr-s-G{background:#f6efe6}
+.hr-s-OFF{background:repeating-linear-gradient(135deg,#fff,#fff 4px,#f6efe6 4px,#f6efe6 6px);color:#6b5547}
+.hr-over{outline:2px solid #7a1f2b;outline-offset:-2px}
+.hr-row-today td{background:#fffaf2}
+/* modals */
+.hr-fieldset{border:1px solid #e6d9c8;border-radius:8px;padding:12px 14px 14px;margin:0}
+.hr-fieldset legend{font-size:11px;color:#6b5547;padding:0 6px}
+.hr-shift-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.hr-shift-pick .btn{flex-direction:column;align-items:flex-start;min-height:60px;font-size:12px}
+.hr-shift-pick .btn span{font-size:11px;font-weight:400}
+.hr-status-pick{display:flex;flex-wrap:wrap;gap:8px}
+.form .hr-status-pick label{flex-direction:row;align-items:center;gap:6px;border:1px solid #cdb9a3;border-radius:20px;padding:8px 14px;min-height:40px;color:#2b1d16;cursor:pointer}
+.form .hr-status-pick label.on{background:#7a1f2b;border-color:#7a1f2b;color:#fff}
+.form .hr-status-pick input{width:auto;accent-color:#fff;margin:0}
+.hr-who{font-size:12px;color:#2b1d16}
+.hr-warn{background:#fdf6e7;border-color:#ecd9a8;color:#5e4a1c}
+.hr-warn svg{color:#84673b}
+.hr-notes:empty{display:none}
+.hr-notes{padding-top:0;padding-bottom:0}
+.hr-register td,.hr-register th{padding-left:10px;padding-right:10px}
+.hr-total td{background:#fffcf8;border-top:2px solid #cdb9a3}
+.hr-disclaimer{display:flex;align-items:center;gap:6px;color:#84542a!important;font-size:11px!important}
+/* payslip */
+.hr-ps-head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.hr-ps-head small{font-size:9px;letter-spacing:1px}
+.hr-ps-head h3{margin:6px 0 4px;font-size:15px;color:#2b1d16}
+.hr-ps-head p{font-size:11px}
+.hr-ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.hr-ps-grid h4{font-size:12px;margin:8px 0 2px;color:#2b1d16}
+.hr-ps-grid h4 em{font-weight:400;color:#6b5547}
+.hr-ps-grid .summary-list>div{padding:8px 0}
+.hr-ps-net{display:flex;justify-content:space-between;align-items:center;background:#f5e4e6;border:1px solid #e6c9cd;border-radius:8px;padding:14px 16px;margin:18px 0 6px}
+.hr-ps-net span{font-size:13px;color:#5e1620;font-weight:600}
+.hr-ps-net strong{font-size:24px;color:#5e1620}
+/* phone */
+.hr-m{padding-bottom:8px}
+.hr-m .info-note{font-size:14px}
+.hr-m-today{margin:4px 0 12px}
+.hr-m-today h2{font-size:20px;margin:6px 0 10px}
+.hr-m-today .eyebrow{font-size:12px;margin:0}
+.hr-m-today .muted{font-size:14px}
+.hr-m .pill{font-size:13px;padding:6px 9px}
+.m-list-card.hr-today{border-color:#7a1f2b;background:#fffaf2}
+.hr-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 12px}
+.hr-m-note{font-size:14px;color:#5c4636;margin:4px 4px 12px}
+.hr-m-leave{margin-bottom:10px}
+.hr-m-leave .m-list-card{margin-bottom:6px}
+.hr-m-actions{display:flex;gap:10px}
+.hr-m-actions .btn{flex:1;min-height:48px;font-size:15px}
+.hr-m .hr-weeknav{justify-content:space-between;margin-bottom:10px}
+.hr-m .hr-weeknav .btn{min-height:48px;min-width:48px}
+.hr-m .hr-weeknav strong{font-size:16px}
+.hr-m-run{margin-bottom:12px}
+.hr-m-run .muted{font-size:13px}
+.hr-m-run .m-kpi-value{font-size:20px}
+.hr-m h2{font-size:18px}
+.hr-m .summary-list{padding:0}
+.hr-m .summary-list>div{font-size:15px;flex-wrap:wrap}
+.hr-m .hr-disclaimer{font-size:14px!important;align-items:flex-start;margin:6px 0 10px}
+.hr-m .footnote{font-size:13px}
+.m-sheet .hr-ps-head p,.m-sheet .hr-ps-grid .summary-list>div{font-size:14px}
+@media(max-width:760px){.hr-ps-grid{grid-template-columns:1fr;gap:6px}.hr-shift-pick .btn{min-height:56px;font-size:15px}.form .hr-status-pick label{min-height:48px;font-size:15px}}
+@media print{.hr-payslip{font-family:Arial,sans-serif;color:#2b1d16}.hr-ps-net{background:#fff;border:2px solid #2b1d16}.hr-ps-net span,.hr-ps-net strong{color:#2b1d16}.hr-ps-grid{grid-template-columns:1fr 1fr}.hr-ps-grid section{break-inside:avoid}}
+@media print and (max-width:500px){.hr-ps-grid{grid-template-columns:1fr}}

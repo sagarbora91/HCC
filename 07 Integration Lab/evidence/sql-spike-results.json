@@ -1,0 +1,89 @@
+{
+ "run_at_utc": "2026-10-24T15:33:58.872Z",
+ "server": "17.0.1000.7 Express Edition (64-bit)",
+ "database": "HCC_Spike_A3_202610241533",
+ "dropped": true,
+ "client": "sqlcmd (ODBC 18, Windows authentication, -C trust server certificate — lab only)",
+ "totals": {
+  "tests": 15,
+  "passed": 15,
+  "failed": 0
+ },
+ "results": [
+  {
+   "id": "S00",
+   "status": "passed",
+   "detail": "draft schema + procedures applied"
+  },
+  {
+   "id": "T01",
+   "status": "passed",
+   "detail": "Unicode NVARCHAR round trip"
+  },
+  {
+   "id": "T02",
+   "status": "passed",
+   "detail": "Overlap rejected (PK violation 2627); full rollback; original allocation intact"
+  },
+  {
+   "id": "T03",
+   "status": "passed",
+   "detail": "Adjacent stay accepted"
+  },
+  {
+   "id": "T04",
+   "status": "passed",
+   "detail": "Stale rowversion update affects 0 rows"
+  },
+  {
+   "id": "T05",
+   "status": "passed",
+   "detail": "Paise CHECKs: 0 / negative / over limit / unlinked refund rejected"
+  },
+  {
+   "id": "T06",
+   "status": "passed",
+   "detail": "Refund remainder enforced; parent receipt retained"
+  },
+  {
+   "id": "T07",
+   "status": "passed",
+   "detail": "Night posting idempotent (locked check + filtered unique index); replay returns existing charge"
+  },
+  {
+   "id": "T08",
+   "status": "passed",
+   "detail": "Idempotency key bound to principal+operation; payload hash mismatch detectable"
+  },
+  {
+   "id": "T09",
+   "status": "passed",
+   "detail": "Outbox atomic with booking; redelivery deduplicated per consumer"
+  },
+  {
+   "id": "T10",
+   "status": "passed",
+   "detail": "DATE for calendar/business dates, DATETIME2(3) for UTC events"
+  },
+  {
+   "id": "C1",
+   "status": "passed",
+   "detail": "A committed (3074 ms); B blocked 2351 ms then failed with PK violation; room 102 nights = C1A:2026-11-01 C1A:2026-11-02"
+  },
+  {
+   "id": "C2",
+   "status": "passed",
+   "detail": "A rolled back; B waited 1410 ms then booked; room 201 owner = C2B"
+  },
+  {
+   "id": "C3",
+   "status": "passed",
+   "detail": "A refunded ₹750; B blocked 2381 ms then rejected (remainder); total refunded = 750 ₹"
+  },
+  {
+   "id": "C4",
+   "status": "passed",
+   "detail": "12 parallel connections → 1 committed, 11 rejected, 0 deadlocks, 1 reservation row(s)"
+  }
+ ]
+}

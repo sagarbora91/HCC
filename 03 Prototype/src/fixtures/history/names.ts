@@ -1,0 +1,7 @@
+// Fictional name lists for generated guests and companies (Indian context). No real people or real companies.
+export const FIRST_NAMES=['Aarav','Aditi','Akash','Alka','Amit','Ananya','Anil','Anjali','Arjun','Asha','Bhavna','Chetan','Deepak','Divya','Farhan','Gauri','Harsh','Isha','Jay','Kavita','Kiran','Lata','Manoj','Meena','Neha','Nikhil','Omkar','Pooja','Prakash','Rahul','Rekha','Rohan','Sachin','Sana','Shruti','Sneha','Suresh','Tanvi','Uday','Vandana','Vijay','Yash','Zoya'];
+export const LAST_NAMES=['Agarwal','Bhosale','Chavan','Deshmukh','Gaikwad','Ghate','Iyer','Jadhav','Joshi','Kale','Kamble','Kulkarni','Mehta','More','Nair','Naik','Patil','Pawar','Rao','Salunke','Shah','Shinde','Sharma','Thakur','Wagh','Yadav','Zende'];
+/** Made-up businesses; every name ends with "(fictional)". */
+export const COMPANIES=['Sahyadri Agro Tools (fictional)','Marathwada Seeds Co (fictional)','Latur Drip Systems (fictional)','Godavari Pumps Ltd (fictional)','Nirmal Foods (fictional)','Kaveri Logistics (fictional)','Bhima Engineering (fictional)','Tulja Textiles (fictional)','Panchganga Infra (fictional)','Harihar Pharma (fictional)','Siddhi Packaging (fictional)','Vitthal Motors (fictional)'];
+export const STAY_SERVICES:readonly (readonly [string,number,number])[]=[['Laundry',8000,45000],['Minibar',5000,30000]];
+export const CANCEL_REASONS=['Change of travel plans','Found alternative stay','Family emergency','Event postponed','Duplicate booking'];

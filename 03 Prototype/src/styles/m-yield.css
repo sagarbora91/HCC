@@ -1,0 +1,122 @@
+/* Module 13 · Advanced tariff & yield. Classes prefixed yld- . */
+.yld-up{color:#7a1f2b}
+.yld-down{color:#2e6b34}
+.yld-note{margin:0 0 18px}
+.yld-stats{margin-bottom:18px}
+.yld-tabs{display:flex;gap:22px;padding:0 23px;border-bottom:1px solid #e6d9c8;overflow-x:auto}
+.yld-tabs button{border:0;background:transparent;font-size:12px;color:#6b5547;padding:16px 0 13px;position:relative;white-space:nowrap;cursor:pointer}
+.yld-tabs button.active{color:#7a1f2b;font-weight:600}
+.yld-tabs button.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#7a1f2b}
+.yld-lead{margin:0 0 12px;font-size:11px}
+.yld-sub{padding:18px 0 10px!important;border:0!important}
+.yld-wrap{white-space:normal;max-width:260px}
+.yld-lock{display:flex;gap:6px;align-items:center;margin-top:14px}
+.yld-cal-wrap{max-width:100%;overflow-x:auto}
+.yld-cal{border-collapse:separate;border-spacing:0;width:100%}
+.yld-cal th,.yld-cal td{padding:5px 2px;text-align:center;vertical-align:middle}
+.yld-cal thead th{font-size:10px;color:#6b5547}
+.yld-cal th small,.yld-cal td small{display:block;font-size:9px;color:#6b5547;font-weight:400}
+.yld-cal tbody th{text-align:left;font-size:11px;padding-left:10px;white-space:nowrap}
+.yld-cal .yld-wkend{background:#f6efe6}
+.yld-occ{display:inline-block;font-size:10px;padding:3px 6px;border-radius:5px;background:#f6efe6;color:#6b5547}
+.yld-occ.high{background:#f5e4e6;color:#7a1f2b;font-weight:600}
+.yld-occ.low{background:#eaf4e4;color:#2e6b34}
+.yld-cell{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;min-width:58px;min-height:48px;padding:6px 2px;border:1px solid #e6d9c8;border-radius:6px;background:#fff;cursor:pointer;font:inherit;color:#2b1d16}
+.yld-cell strong{font-size:11px;font-weight:600}
+.yld-cell.changed{border-color:#cdb9a3;background:#faf6f0;box-shadow:inset 3px 0 0 #b0753b}
+.yld-cell.override{box-shadow:inset 3px 0 0 #7a1f2b}
+.yld-cell:hover,.yld-cell:focus-visible{border-color:#7a1f2b;outline:none}
+.yld-badges{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.yld-badges em{font-style:normal;font-size:8px;font-weight:600;padding:1px 3px;border-radius:3px;background:#faf3e6;color:#6e5226}
+.yld-steps small{display:block;color:#6b5547;font-size:9px}
+.yld-total{border-top:1px solid #cdb9a3;font-weight:600}
+.yld-total strong,.yld-total b{color:#7a1f2b}
+.yld-h3{font-size:12px;margin:16px 0 8px;color:#2b1d16}
+.yld-plan-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.yld-plan-chip{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid #e6d9c8;border-radius:6px;background:#fff}
+.yld-plan-chip span{font-weight:600}
+.yld-plan-chip small{font-size:9px;color:#6b5547}
+.yld-plan-chip.off{background:#f6efe6}
+.yld-plan-chip.off span{color:#6b5547;text-decoration:line-through}
+.yld-list{margin:0;padding-left:18px;font-size:11px}
+.yld-list li{margin:4px 0}
+.yld-override{margin-top:6px}
+.yld-types{border:1px solid #e6d9c8;border-radius:6px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:#6b5547}
+.yld-types legend{padding:0 4px}
+.yld-check{display:flex!important;flex-direction:row!important;align-items:center;gap:8px!important;min-height:32px;color:#2b1d16!important}
+.yld-check input{width:18px!important;height:18px;margin:0}
+.yld-check-row{align-self:end}
+.yld-err{color:#9a3b2a;font-size:11px;margin:0}
+.yld-preview{display:flex;flex-direction:column;gap:8px;font-size:11px}
+.yld-preview-table{max-height:260px;overflow:auto}
+.yld-dow-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.yld-dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.yld-dow>div{border:1px solid #e6d9c8;border-radius:6px;padding:10px;text-align:center;display:flex;flex-direction:column;gap:4px;font-size:11px;color:#6b5547;background:#fff}
+.yld-dow strong{font-size:14px;color:#2b1d16}
+.yld-inline{display:flex;align-items:center;gap:8px;font-size:11px;color:#6b5547}
+.yld-inline select{padding:8px 10px;border:1px solid #cdb9a3;border-radius:6px;background:#fff;color:#2b1d16}
+.yld-quote{margin-top:6px}
+.yld-quote-form{margin-bottom:12px}
+.yld-quote-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.yld-issues{margin:10px 0 0;padding:10px 14px 10px 30px;border-radius:6px;background:#fbeeea;color:#9a3b2a;font-size:11px}
+.yld-ok{margin:10px 0 0;padding:10px 14px;border-radius:6px;background:#eaf4e4;color:#2e6b34;font-size:11px}
+.yld-proposals{margin-bottom:18px}
+.yld-prop-list{display:flex;flex-direction:column}
+.yld-prop{display:flex;align-items:center;gap:14px;padding:12px 23px;border-top:1px solid #e6d9c8;flex-wrap:wrap}
+.yld-prop>div:first-child{flex:1;min-width:220px;display:flex;flex-direction:column;gap:3px;font-size:12px}
+.yld-prop small{font-size:10px;color:#6b5547}
+.yld-prop-actions{display:flex;gap:8px}
+.yld-pub{border:1px solid #e6d9c8;border-radius:6px;margin-bottom:8px;background:#fff}
+.yld-pub summary{padding:10px 12px;cursor:pointer;font-size:11px;min-height:24px}
+.yld-pub small{display:block;color:#6b5547;font-size:9px}
+@media(max-width:700px){.yld-dow{grid-template-columns:repeat(4,minmax(0,1fr))}.yld-dow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ── Phone ── */
+.yld-m{display:flex;flex-direction:column;gap:12px;padding-bottom:88px}
+.yld-m-sim{margin:0;font-size:14px;color:#6b5547;background:#f6efe6;border:1px solid #e6d9c8;border-radius:8px;padding:8px 12px}
+.yld-m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.yld-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.yld-strip button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:72px;padding:6px 0;border:1px solid #e6d9c8;border-radius:10px;background:#fff;color:#2b1d16;font:inherit;min-width:0}
+.yld-strip button span{font-size:14px;color:#6b5547}
+.yld-strip button strong{font-size:17px}
+.yld-strip button em{font-style:normal;font-size:14px;color:#6b5547}
+.yld-strip button em.high{color:#7a1f2b;font-weight:600}
+.yld-strip button em.low{color:#2e6b34}
+.yld-strip button.changed{box-shadow:inset 0 -3px 0 #b0753b}
+.yld-strip button.on{background:#7a1f2b;border-color:#7a1f2b;color:#fff}
+.yld-strip button.on span,.yld-strip button.on em,.yld-strip button.on em.high,.yld-strip button.on em.low{color:#fff}
+.yld-m-card{background:#fff;border:1px solid #e6d9c8;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:16px}
+.yld-m-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.yld-m-head>div{display:flex;flex-direction:column;gap:2px}
+.yld-m-head span{font-size:14px;color:#6b5547}
+.yld-m-head strong{font-size:26px;color:#2b1d16}
+.yld-m-head .pill{font-size:14px;padding:6px 8px}
+.yld-m-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.yld-m-steps li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #efe4d6;font-size:16px}
+.yld-m-steps li span{min-width:0;overflow-wrap:anywhere}
+.yld-m-steps li b{white-space:nowrap}
+.yld-m-occ{margin:0;font-size:14px;color:#6b5547}
+.yld-m-plans{display:flex;flex-wrap:wrap;gap:6px}
+.yld-m-chip{font-size:14px;padding:8px 10px;border-radius:16px;background:#f6efe6;color:#2b1d16;min-height:36px;display:inline-flex;align-items:center;gap:4px}
+.yld-m-chip.off{color:#6b5547;background:#efe4d6}
+.yld-m-chip.off b{font-weight:500}
+.yld-m-restr{margin:0;font-size:14px;color:#6e5226;background:#faf3e6;border-radius:8px;padding:8px 10px}
+.yld-m-more{min-height:48px;font-size:16px;justify-content:center}
+.yld-m .yld-proposals{margin:0}
+.yld-m .yld-prop{padding:12px 14px}
+.yld-m .yld-prop>div:first-child{min-width:0;font-size:16px}
+.yld-m .yld-prop small{font-size:14px}
+.yld-m .yld-prop-actions{width:100%}
+.yld-m .yld-prop-actions .btn{flex:1;min-height:48px;font-size:16px;justify-content:center}
+.yld-m .yld-proposals .section-title p{font-size:14px}
+.yld-m .m-sticky-footer .btn{width:100%;min-height:48px;font-size:16px;justify-content:center}
+.yld-quote .summary-list small{display:block;font-size:9px;color:#6b5547}
+/* Phone sheets */
+.modal.m-sheet .yld-steps>div,.modal.m-sheet .yld-preview,.modal.m-sheet .yld-list,.modal.m-sheet .yld-err{font-size:16px}
+.modal.m-sheet .yld-steps small,.modal.m-sheet .footnote,.modal.m-sheet .yld-plan-chip small{font-size:14px}
+.modal.m-sheet .yld-h3{font-size:16px}
+.modal.m-sheet .yld-plan-chip{font-size:16px}
+.modal.m-sheet .yld-types{font-size:14px}
+.modal.m-sheet .yld-check{min-height:48px;font-size:16px}
+.modal.m-sheet .yld-check input{width:22px!important;height:22px}
+.modal.m-sheet .yld-preview-table{max-height:none}

@@ -1,0 +1,19 @@
+/* FY history summary card + "Show more" paging (scenario FY26). Maroon & Sand; status always has text. */
+.hist-card{margin-bottom:16px}
+.hist-card h2{display:flex;align-items:center;gap:8px}
+.hist-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0 14px}
+.hist-tile{display:flex;flex-direction:column;gap:3px;background:#FAF6F0;border:1px solid #E6D9C8;border-radius:10px;padding:10px 12px;min-width:0}
+.hist-tile span{font-size:12px;color:#6B5547}.hist-tile strong{font-size:20px;color:#2B1D16}.hist-tile small{font-size:12px;color:#6B5547;overflow-wrap:anywhere}
+.hist-months{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.hist-months li{display:grid;grid-template-columns:76px minmax(60px,1fr) minmax(0,2fr);gap:10px;align-items:center}
+.hist-label{font-weight:600;color:#2B1D16}
+.hist-bar{display:block;height:12px;background:#EFE6D8;border-radius:6px;overflow:hidden}
+.hist-bar i{display:block;height:100%;background:#7A1F2B;border-radius:6px}
+.hist-val{display:flex;flex-direction:column;min-width:0}.hist-val strong{color:#2B1D16}.hist-val small{font-size:12px;color:#6B5547;overflow-wrap:anywhere}
+.hist-compact .hist-tile strong{font-size:18px}
+.hist-compact .hist-months li{grid-template-columns:1fr;gap:4px}
+.hist-compact .hist-label{font-size:16px}
+.show-more{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 4px;color:#6B5547;font-size:14px}
+.show-more .btn{min-height:44px}
+@media (max-width:480px){.hist-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.hist-months li{grid-template-columns:1fr;gap:4px}}
+@media print{.show-more{display:none}}

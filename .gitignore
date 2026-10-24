@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Downloaded donor repositories (each is its own git clone; kept read-only)
+06 Reference Repositories/
+
+# Prototype build and generated test output
+03 Prototype/dist/
+03 Prototype/tests/.generated/
+03 Prototype/evidence/
+
+# Android build output, Gradle caches and the private build trust store
+04 Android/.build/
+04 Android/android/.gradle/
+04 Android/android/build/
+04 Android/android/app/build/
+04 Android/android/capacitor-cordova-android-plugins/build/
+04 Android/android/local.properties
+*.jks
+*.keystore
+*.apk
+*.aab
+
+# Integration lab bundles
+07 Integration Lab/.generated/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vs/
+.idea/

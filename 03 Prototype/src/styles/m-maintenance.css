@@ -1,0 +1,99 @@
+/* Module 15 · Maintenance. Classes prefixed mnt- . Maroon & Sand; status colours keep hue + text label; AA contrast. */
+.pill.mnt-red{color:#9a3b2a;background:#fbeae6}
+.pill.mnt-teal{color:#2e6b34;background:#eaf4e4;outline:1px dashed #9cc49a}
+.mnt-tabs-card{margin-bottom:18px}.mnt-tabs-card .tabs{border-bottom:0;padding-top:14px}
+.mnt-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+.mnt-stat-alert{border-color:#e3b9ae!important;background:#fff7f4!important}.mnt-stat-alert strong{color:#9a3b2a}
+.mnt-filters{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;padding:18px 23px;border-bottom:1px solid #e6d9c8}
+.mnt-filters label{display:flex;flex-direction:column;gap:6px;font-size:10px;color:#6b5547}
+.mnt-filters select,.mnt-filters input{border:1px solid #cdb9a3;border-radius:6px;padding:8px 10px;background:#fff;font-size:11px;color:#2b1d16;min-width:130px}
+.mnt-grow{flex:1;min-width:180px}.mnt-filters .muted{margin-left:auto;padding-bottom:9px}
+.mnt-table td small{display:block}
+.mnt-table td{vertical-align:top}
+.mnt-rowlink{border:0;background:transparent;padding:0;text-align:left;color:inherit}
+.mnt-rowlink strong{color:#7a1f2b}.mnt-rowlink:hover strong{text-decoration:underline}
+.mnt-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mnt-subhead{margin:26px 0 14px;font-size:15px}
+/* Technician cards */
+.mnt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:10px}
+.mnt-card{background:#fff;border:1px solid #cdb9a3;border-left:4px solid #cdb9a3;border-radius:9px;padding:16px;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.mnt-cards .mnt-card{margin-bottom:0}
+.mnt-card.mnt-urgent{border-left-color:#9a3b2a}
+.mnt-card h3{font-size:16px;color:#2b1d16;line-height:1.35}
+.mnt-card-top{display:flex;justify-content:space-between;align-items:center;color:#6b5547}
+.mnt-card-id{font-size:11px;font-weight:600;letter-spacing:.4px;color:#6b5547}
+.mnt-where{display:flex;align-items:center;gap:5px;font-size:12px;color:#4a372c}
+.mnt-meta{font-size:11px;color:#6b5547;line-height:1.5}.mnt-meta>svg{vertical-align:-2px;margin-right:4px}
+.mnt-note{display:flex;gap:7px;align-items:flex-start;font-size:11px;line-height:1.5;padding:9px 10px;border-radius:6px;background:#f6efe6;color:#4a372c}
+.mnt-note.warn{background:#faf3e6;color:#6e4f1f}
+.mnt-note svg{margin-top:2px}
+.mnt-card-actions{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.mnt-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mnt-row2>.btn:only-child{grid-column:1/-1}
+.mnt-link{align-self:flex-start}
+.btn.mnt-big{min-height:52px;font-size:13px;font-weight:600}
+/* WO dialog */
+.mnt-wo-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:26px}
+.mnt-summary>div{font-size:11px}
+.mnt-summary strong{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.mnt-h3{font-size:12px;margin:4px 0 10px;color:#2b1d16}
+.mnt-mini{border:1px solid #e6d9c8;border-radius:6px;margin-bottom:16px}.mnt-mini td,.mnt-mini th{padding:9px 12px}
+.mnt-history{list-style:none;margin:0;padding:0 0 0 12px;border-left:2px solid #e6d9c8;max-height:220px;overflow:auto;font-size:11px;color:#4a372c}
+.mnt-history li{padding:0 0 10px;line-height:1.5}.mnt-history small{display:block;color:#6b5547}
+.mnt-assign{margin-top:18px}.mnt-assign label{max-width:360px}
+.mnt-inline-form{margin-top:16px}
+.mnt-warn{margin:0}
+.mnt-error{color:#9a3b2a!important}
+.mnt-seg{display:inline-flex;border:1px solid #cdb9a3;border-radius:7px;overflow:hidden;align-self:flex-start}
+.mnt-seg button{border:0;background:#fff;color:#4a372c;padding:9px 16px;font-size:11px;min-height:38px}
+.mnt-seg button+button{border-left:1px solid #e6d9c8}
+.mnt-seg button.on{background:#7a1f2b;color:#fff;font-weight:600}
+/* PM + reports */
+.mnt-pm-row{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.mnt-big-num{display:block;font-size:34px;font-weight:550;letter-spacing:-1px;margin:4px 0}
+.mnt-pm-gen{display:flex;flex-direction:column;align-items:flex-end;gap:10px;max-width:460px}.mnt-pm-gen p{font-size:11px;margin:0;text-align:right}
+.mnt-two{align-items:start}.mnt-two>.card{margin-bottom:0}
+.mnt-report .two-col{margin-bottom:22px}
+.mnt-bar .track span{background:#9e4a55!important}
+.mnt-print-head{display:none}
+@media print{
+  .mnt-noprint,.mnt-tabs-card{display:none!important}
+  body:has(.mnt-report) :is(.sidebar,.topbar,.page-title,.toast,.demo-toolbar,.page-footer){display:none!important}
+  body:has(.mnt-report) .app-shell main{margin:0!important;width:100%!important}body:has(.mnt-report) .content{padding:0!important}
+  .mnt-print-head{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;font-size:12px}
+  .mnt-report .card,.mnt-report .stat{break-inside:avoid;box-shadow:none}
+  .m-shell .mnt-m{display:block}
+}
+/* Phone */
+.mnt-m{padding-bottom:88px;min-width:0}
+.mnt-m-title{font-size:24px;letter-spacing:-.4px;margin:2px 0 10px}
+.mnt-m-sub{font-size:15px;margin-bottom:12px}
+.mnt-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:4px 0 12px}
+.mnt-m .mnt-card{padding:16px 14px;gap:10px}
+.mnt-m .mnt-card h3{font-size:18px}
+.mnt-m .mnt-where{font-size:16px}
+.mnt-m .mnt-meta,.mnt-m .mnt-note,.mnt-m .mnt-card-id{font-size:14px}
+.mnt-m .pill{font-size:13px}
+.mnt-m .btn.mnt-big,.m-shell .btn.mnt-big{min-height:56px;font-size:16px}
+.mnt-m .btn.full.mnt-big{margin:6px 0 10px}
+.mnt-m .mnt-link{min-height:48px;font-size:15px}
+.mnt-m .m-list-card .mnt-tags{margin-top:4px}
+.mnt-m .m-lc-main span{overflow-wrap:anywhere}
+.m-shell .mnt-row2{grid-template-columns:1fr}
+.modal.m-sheet .mnt-wo-grid{grid-template-columns:1fr;gap:10px}
+.modal.m-sheet .mnt-summary>div,.modal.m-sheet .mnt-history,.modal.m-sheet .mnt-mini td,.modal.m-sheet .mnt-mini th{font-size:15px}
+.modal.m-sheet .mnt-h3{font-size:16px}
+.modal.m-sheet .mnt-seg{display:flex}.modal.m-sheet .mnt-seg button{flex:1;min-height:48px;font-size:15px}
+.modal.m-sheet .mnt-assign label{max-width:none}
+.modal.m-sheet .mnt-history{max-height:none}
+.modal.m-sheet .pill{font-size:13px}
+/* Report / details inside phone sheets: readable sizes (sheets are outside .m-shell). */
+.modal.m-sheet .mnt-report small,.modal.m-sheet .mnt-report .section-title p,.modal.m-sheet .mnt-wo-grid .muted,.modal.m-sheet .mnt-history small{font-size:14px}
+.modal.m-sheet .mnt-report .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.modal.m-sheet .mnt-report .stat{min-height:0;padding:14px}.modal.m-sheet .mnt-report .stat-label{font-size:14px}
+.modal.m-sheet .mnt-report .stat>strong{font-size:26px}.modal.m-sheet .mnt-report .stat>strong.money-stat{font-size:22px}
+.modal.m-sheet .mnt-report .two-col{grid-template-columns:1fr;gap:16px}
+.modal.m-sheet .mnt-report td,.modal.m-sheet .mnt-report th,.modal.m-sheet .mnt-report .bar-row>div:first-child,.modal.m-sheet .mnt-report .bar-row strong{font-size:14px}
+.modal.m-sheet .mnt-report .section-title{padding:16px 14px;flex-wrap:wrap}
+.modal.m-sheet .mnt-report .btn{min-height:48px;font-size:15px}
+.modal.m-sheet .mnt-inline-form .muted{font-size:14px}

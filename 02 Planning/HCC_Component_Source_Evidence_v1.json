@@ -1,0 +1,563 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-10-24T15:02:07.3493895Z",
+  "workspace": "V:\\Codex\\Hotel Control Centre",
+  "scope": "Targeted static assessment. Inspection levels distinguish full reads, excerpts, test names and path discovery. Hashes identify files; they do not certify functionality or security.",
+  "donor_tests_executed": false,
+  "hcc_tests_executed_this_assessment": false,
+  "latest_reported_hcc_baseline": "HANDOFF Session 7b: 446 tests; APK versionCode 4; physical Tab S7 installation. Not independently rerun for this assessment.",
+  "repositories": [
+    {
+      "name": "haip",
+      "origin": "https://github.com/TelivityAI/haip.git",
+      "pinned_commit": "3a2f1c89139e8d7d915528abac706a512af16970",
+      "verified_head": "3a2f1c89139e8d7d915528abac706a512af16970",
+      "checkout_clean": true,
+      "root_license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "8688f03a7e252cf6166e18ae4827d3f14e1cd700edf70685555c409bc6d3253b"
+        }
+      ]
+    },
+    {
+      "name": "open-hotel-pms",
+      "origin": "https://github.com/peeraseepat-cell/open-hotel-pms.git",
+      "pinned_commit": "3f6956a54aa9faef44311f9e943ce7d44b6934e3",
+      "verified_head": "3f6956a54aa9faef44311f9e943ce7d44b6934e3",
+      "checkout_clean": true,
+      "root_license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "ddd2eebd1a2ccd24eacfc311229fce3788d34608dbaa7275cdf0990904718b30"
+        }
+      ]
+    },
+    {
+      "name": "kamra-pms",
+      "origin": "https://github.com/Kamra-PMS/kamra-pms.git",
+      "pinned_commit": "8c9e63922c81011623b56014cc8e6505539ae100",
+      "verified_head": "8c9e63922c81011623b56014cc8e6505539ae100",
+      "checkout_clean": true,
+      "root_license_files": [
+        {
+          "path": "license.txt",
+          "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+        }
+      ]
+    },
+    {
+      "name": "QloApps",
+      "origin": "https://github.com/Qloapps/QloApps.git",
+      "pinned_commit": "10251e3591f4e0528a34e1bcf99c30594a93055a",
+      "verified_head": "10251e3591f4e0528a34e1bcf99c30594a93055a",
+      "checkout_clean": true,
+      "root_license_files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "63463308db2ff88567cdd796c82e6019bddc99f1ee06432a23e1a3cccfdc3f08"
+        }
+      ]
+    },
+    {
+      "name": "hoteldruid",
+      "origin": "https://github.com/digital-druid/hoteldruid.git",
+      "pinned_commit": "c05efc2f9295315f5bf8a8fd04b001ac4ba39d48",
+      "verified_head": "c05efc2f9295315f5bf8a8fd04b001ac4ba39d48",
+      "checkout_clean": true,
+      "root_license_files": [
+        {
+          "path": "COPYING",
+          "sha256": "282751b8c98ee9e445346eb57a992c9ecbe25ed8dd554df046777313e19b10f9"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "6da1054eef20b8949622f2acc5a89c3243ff3b3d7aa8c2bb8fa5c04d15113c00"
+        }
+      ]
+    },
+    {
+      "name": "minical",
+      "origin": "https://github.com/pankaj9296/minical.git",
+      "pinned_commit": "03cf549916e89170b00f366ac96d91c98cd6cb88",
+      "verified_head": "03cf549916e89170b00f366ac96d91c98cd6cb88",
+      "checkout_clean": true,
+      "root_license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "5ef00d9b772918b7e026f48dc41c0eb21df56546aa8be7369ccca940bee44df0"
+        }
+      ]
+    }
+  ],
+  "donor_files": [
+    {
+      "candidate_id": "H01",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/reservation-state-machine.ts",
+      "inspection_level": "full_source",
+      "sha256": "a6c4c83fb8a0e3aef434c35b23d00ba20aa7a8479e9a6ebc72cf31a950f8cea8",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H01",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/reservation-state-machine.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "e5650f34b6b9003ba8ea1cd62098abe6efd360dde1ac777765770d69dac939a2",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H02",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/rate-plan/rate-pricing.util.ts",
+      "inspection_level": "full_source",
+      "sha256": "3dcac4f4d29e800654c8f6f84fb6ac0d78670e15c13fcda7534dbcd18fac7c57",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H02",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/rate-plan/rate-pricing.util.spec.ts",
+      "inspection_level": "test_names",
+      "sha256": "4e2cba602c85f833b36450bd4a2e694abb01a5473f73e2909475ef88c1eb35c0",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H03",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/packages/shared/src/payment-ledger.ts",
+      "inspection_level": "full_source",
+      "sha256": "c756a4ef60e63795e01db25736a295f9f159ea5970165bb06a454f7dd2e33d65",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H03",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/payment/payment-ledger.ts",
+      "inspection_level": "source_excerpt",
+      "sha256": "32c69d14d58cea3d3da98cc0a8215cd450387032e0ba5298236f79155898ac9a",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H03",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/payment/payment-ledger.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "a321a69e611e1a7a8d14a1e144560fe582c38c150f4ec32ac09d8ef4751267d4",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H03",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/packages/booking-requests/src/domain/booking-request-money.ts",
+      "inspection_level": "full_source",
+      "sha256": "4cecde91c607dcc0221912afa5aecbb9714ac4553fa6d8b4cec43bc90607e2f2",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H03",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/packages/booking-requests/src/domain/booking-request-money.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "49e40d5d3d95da950c10418acf2b3f579405287b60f05c50338c238f93a344f8",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H04",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/common/date/property-business-date.ts",
+      "inspection_level": "full_source",
+      "sha256": "e8b250e22136e584340bedf5a12b4223a3174595e60280ef0ba0d1f82a8499b7",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H05",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/reservation.service.ts",
+      "inspection_level": "imports_and_transaction_locations",
+      "sha256": "048f4483e80a192058c88322cba61f12443fc9922a123dffa6f3ddff04ac8d6b",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H05",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/availability.service.ts",
+      "inspection_level": "path_only",
+      "sha256": "a89e02dbe8b1a84c00849384ab281f32e1563180a3c6bb57dc3b03ecdcbfbd64",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H05",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/reservation-race.spec.ts",
+      "inspection_level": "test_names_and_excerpts",
+      "sha256": "abaf121c287a5ab10864443bee4dd7fdc3a71ab4e4ffaceb63eeaa9130370939",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H05",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/check-in.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "413d3f9843aa5c1f2315b3bb6232da22aa070c668c1a1dcd2fc67229174abab7",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H05",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/check-out.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "415c8513bedeb6071414986c47d8f7dde521323391c5ecfb3a5e6970db53765e",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H05",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/reservation/move-room.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "f98d26e4bacca5ea1b58693d10b4a82f77647fabf0084bb45f4b5fed29775b79",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H05",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/packages/database/src/schema/reservation.ts",
+      "inspection_level": "source_excerpt",
+      "sha256": "b62692665a3fd6513019a50f692315523aeba6f07af82bc29352e0667009a917",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H06",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/folio/folio.service.ts",
+      "inspection_level": "imports_and_transaction_locations",
+      "sha256": "ab802ed6c953a7e1cb36f9db824fac23a4d290e56748f37a34fa89badbd6f45e",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H06",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/folio/folio-stay-amendment.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "ca5dc10a864673f9d7595449f842557b7c10cfcb9bc26d2b88a333bec1bd48b4",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H06",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/folio/folio-charge-validation.spec.ts",
+      "inspection_level": "path_only",
+      "sha256": "9bc8a0261ffdc9409049357de510f8c20dd3a4edc70998d73259a56f45046c68",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H06",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/night-audit/night-audit.service.ts",
+      "inspection_level": "imports_and_source_excerpt",
+      "sha256": "64048960d4c85813696560106cdcfb58ce7c538bd6086f4252b3daeeef3fd0e7",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H06",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/night-audit/night-audit.service.spec.ts",
+      "inspection_level": "test_names",
+      "sha256": "6a53ffdb7c63fe48d246683490db4c1e698108d1a8830cd99783c96f785fb216",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H07",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/room/room-status.service.ts",
+      "inspection_level": "source_excerpt",
+      "sha256": "b3017df55c2b968b3f67733fc613c45e09fbafb7c3193fe2bf5179251b2e685a",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "H07",
+      "repository": "haip",
+      "path": "06 Reference Repositories/haip/apps/api/src/modules/housekeeping/housekeeping.service.ts",
+      "inspection_level": "imports_and_source_excerpt",
+      "sha256": "2c2e7e69de31c2e0a3e443e9438654441bf6e6adfe0c2885aa488cc2c0dba06a",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O01",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/lib/checkin-room-selection.ts",
+      "inspection_level": "full_source",
+      "sha256": "1b027685810e1a2272bdb7891de55e5ba04edd551ee94407e2168264c7ba58a3",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O01",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/lib/checkin-room-selection.test.ts",
+      "inspection_level": "path_only",
+      "sha256": "034f61117b992e5ebf1e3f45f5ce70afe2aa81917ad971d688924b1db14dd5a9",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O02",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/lib/checkout-night-release.ts",
+      "inspection_level": "full_source",
+      "sha256": "54eba402155dae741c7e0a2d52e4c0b2e3a5575df3f5b1565346554ef5325779",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O02",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/lib/checkout-night-release.test.mts",
+      "inspection_level": "path_only",
+      "sha256": "9b7b27ce2ed44638745ed476fa6a66fdd3d51cf73563044e644ffb8ed72e9193",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O03",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/components/room-planner/use-draft-engine.ts",
+      "inspection_level": "source_excerpt",
+      "sha256": "80826dba5afdf1b0749b5c62c7a07583d573fb1ff86c6319b01b403a9b34d611",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O03",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/components/room-planner/review-panel.tsx",
+      "inspection_level": "path_only",
+      "sha256": "51666ead1d27b38f2df6d7beae253546e9a134e00e11f0c073428d92e626b2c2",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O03",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/components/room-grid.tsx",
+      "inspection_level": "source_excerpt",
+      "sha256": "9c47dc86f889cae3a2ee1699a01239ad9d3105b38b3f6099c0d66a142b67005a",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O04",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/components/pms/housekeeping/extra-tasks/task-card.tsx",
+      "inspection_level": "source_excerpt",
+      "sha256": "b29700f0a6f7ac580040be0e3b3f2d64bf6c2815aa8bb6cbe7d5c839621816ae",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O05",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/lib/folio-fees.ts",
+      "inspection_level": "source_excerpt",
+      "sha256": "cb9600e141de6e763baea5ee19153f4ce135d0353485903f7039afaf6e82c059",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "O05",
+      "repository": "open-hotel-pms",
+      "path": "06 Reference Repositories/open-hotel-pms/src/lib/folio/printFolioHtml.ts",
+      "inspection_level": "source_excerpt",
+      "sha256": "1be8e648b4c6de0a48e8d392250084d78bd71819b75215d773462a59560a7a87",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "K01",
+      "repository": "kamra-pms",
+      "path": "06 Reference Repositories/kamra-pms/kamra/cashier.py",
+      "inspection_level": "source_excerpt",
+      "sha256": "3ade744dfacff210f8b8eb789104d4cbf83d453bfc4a50c5904372dee7086699",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "K01",
+      "repository": "kamra-pms",
+      "path": "06 Reference Repositories/kamra-pms/kamra/night_audit.py",
+      "inspection_level": "source_excerpt",
+      "sha256": "c2c3bd22bb926430da378929777a9d5278bd0491228e9805511bc391e0cdc245",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "K01",
+      "repository": "kamra-pms",
+      "path": "06 Reference Repositories/kamra-pms/kamra/tests/test_cashier_terminals.py",
+      "inspection_level": "path_only",
+      "sha256": "a8fdcb55462900c9be879913426f6ab067564e72bab82d14f2be1e07a039ffc1",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "K01",
+      "repository": "kamra-pms",
+      "path": "06 Reference Repositories/kamra-pms/kamra/tests/test_night_audit.py",
+      "inspection_level": "source_excerpt",
+      "sha256": "1186f275916b313d9f8da6d42c90366c5630be28d4bf07b35e38b0435c3c1bf6",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "K02",
+      "repository": "kamra-pms",
+      "path": "06 Reference Repositories/kamra-pms/kamra/folio.py",
+      "inspection_level": "source_excerpt_and_function_names",
+      "sha256": "181578a57e70868d91d802855ea6d918706a11ece0297661962db270749a058c",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "K02",
+      "repository": "kamra-pms",
+      "path": "06 Reference Repositories/kamra-pms/kamra/reservation_state.py",
+      "inspection_level": "source_excerpt",
+      "sha256": "0bc059aaa8a86b317a26a36679ad2475c12904168e5bea07bd98a963da5e8764",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "Q01",
+      "repository": "QloApps",
+      "path": "06 Reference Repositories/QloApps/modules/hotelreservationsystem/classes/HotelRoomTypeFeaturePricing.php",
+      "inspection_level": "source_excerpt",
+      "sha256": "941e111cf74061b53fe8c71ac0de56f9624d6a5436a4e746add215d290b881e8",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "Q01",
+      "repository": "QloApps",
+      "path": "06 Reference Repositories/QloApps/modules/hotelreservationsystem/classes/HotelRoomTypeFeaturePricingRestriction.php",
+      "inspection_level": "function_names_and_queries",
+      "sha256": "b041e3023e8771a428f577d4903fdc152a40597130af534fcf994663508b15b8",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "Q01",
+      "repository": "QloApps",
+      "path": "06 Reference Repositories/QloApps/modules/hotelreservationsystem/classes/HotelRoomTypeRestrictionDateRange.php",
+      "inspection_level": "path_only",
+      "sha256": "53d231ae85d142b1575793fcc549a74347177814b35b97fa513d854964bb4b72",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "Q01",
+      "repository": "QloApps",
+      "path": "06 Reference Repositories/QloApps/modules/hotelreservationsystem/classes/HotelRoomDisableDates.php",
+      "inspection_level": "function_names_and_queries",
+      "sha256": "1393dabc5456eac6c0fa05f2f7c46e7d3f862f8a259230a8eef04091657168c7",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "D01",
+      "repository": "hoteldruid",
+      "path": "06 Reference Repositories/hoteldruid/includes/funzioni_appartamenti.php",
+      "inspection_level": "source_excerpt",
+      "sha256": "d65b3ffa76246e35239c2bc2a12502d6b6c5ee63339593d45ad8d1ba8c8bdd69",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "D01",
+      "repository": "hoteldruid",
+      "path": "06 Reference Repositories/hoteldruid/includes/funzioni_quadro_disp.php",
+      "inspection_level": "path_only",
+      "sha256": "a335bff7b8a3907e256d0b30be5c5689b99deb083c3e1704f718b40e422d47c1",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "D01",
+      "repository": "hoteldruid",
+      "path": "06 Reference Repositories/hoteldruid/includes/funzioni_ins_prenota.php",
+      "inspection_level": "path_only",
+      "sha256": "334d8505491af2e77a0b82802a5afaabe2dd2419a555c821d1dbb967dc4fd897",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "M01",
+      "repository": "minical",
+      "path": "06 Reference Repositories/minical/api/application/models/availability_model.php",
+      "inspection_level": "source_excerpt",
+      "sha256": "f4ede911735c3506556c0a2169e82889c580dd36eb1c9c67d03c6fb323215f52",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "M01",
+      "repository": "minical",
+      "path": "06 Reference Repositories/minical/api/application/models/booking_model.php",
+      "inspection_level": "path_only",
+      "sha256": "f49693db9b1c9529b1a0b560e9049075e4cc9b9bebfc1d95a7f726ea2a6b048a",
+      "tests_executed": false
+    },
+    {
+      "candidate_id": "M01",
+      "repository": "minical",
+      "path": "06 Reference Repositories/minical/public/js/calendar.js",
+      "inspection_level": "path_only",
+      "sha256": "d453f880a1283613fa10472cea9250b0bc589c8efe2e1e1c9d80cd3d03c45c72",
+      "tests_executed": false
+    }
+  ],
+  "hcc_integration_points": [
+    {
+      "path": "03 Prototype/src/app/App.tsx",
+      "inspection_level": "targeted_source_review",
+      "sha256": "a2fd655d59e494149f9572107aa9e74b851d004014a1347d922352ea96b67cd0"
+    },
+    {
+      "path": "03 Prototype/src/app/context.tsx",
+      "inspection_level": "targeted_source_review",
+      "sha256": "3ba324de4983f4503616ec4fe8e4746754ce85f563ecf137f118f6a6dd20f77d"
+    },
+    {
+      "path": "03 Prototype/src/app/native.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "ed9b27ab5f30abf142f76fc7c7545c669db0eb9cfb9f7241b618fc387280a4a8"
+    },
+    {
+      "path": "03 Prototype/src/app/display.tsx",
+      "inspection_level": "targeted_source_review",
+      "sha256": "89eceed4137ea82ab2e54075fa0e2fb7c316b9db01f369548349df810b0e47c7"
+    },
+    {
+      "path": "03 Prototype/src/app/storage.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "e2b96cbc86661351b947d61062090f4157b5b1ea60c502c5d0d9bedb36af5661"
+    },
+    {
+      "path": "03 Prototype/src/domain/selectors.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "a60e7dd6eb9dda7b89d31956a4ff676173a843e790e4c646cc2383fe67544296"
+    },
+    {
+      "path": "03 Prototype/src/domain/money.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "912e2f8c329e21bbb63405e4faa003f403ef627704b74e6ff9b7baa73f26de92"
+    },
+    {
+      "path": "03 Prototype/src/domain/streams/admin.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "5329d87779beba66f7a060f38940a55c734f20b16b72c31b9cc289c1fb22db67"
+    },
+    {
+      "path": "03 Prototype/src/domain/streams/closing.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "2d731ef255b34cfcfac0265aa6aec0d34b022e459ceef099f9c8b97bb1b6a2a5"
+    },
+    {
+      "path": "03 Prototype/src/domain/streams/yield.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "9a0ee4c88bbe6c3ed3729cabbb1238b0d4b5d1c64000c2899f72f4540df3ece4"
+    },
+    {
+      "path": "03 Prototype/src/services/mock/handlers/index.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "b128b95d15b97ac7af69e790c2827ae49c89b0c21f51efa3be27f4693858da4b"
+    },
+    {
+      "path": "03 Prototype/src/services/mock/handlers/reservations.ts",
+      "inspection_level": "targeted_source_review",
+      "sha256": "21ff726f69b2d8499918b35bdcdd9c8e2ee8464cd90af4f269af90b95418d11b"
+    }
+  ],
+  "notes": [
+    "No donor application installed or executed.",
+    "No donor source imported into HCC by this assessment.",
+    "Root license files are evidence, not file-specific reuse approval.",
+    "Recheck current HCC files and latest handoff before implementation; active development may change hashes."
+  ]
+}

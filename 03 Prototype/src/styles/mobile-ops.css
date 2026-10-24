@@ -1,0 +1,76 @@
+/* MB-07/09/10 housekeeping, maintenance, demo sheet, manifest (M12–M14, M24). Classes prefixed mo- (scoped under .m-shell / .m-sheet). */
+.mo-page{display:flex;flex-direction:column;gap:12px;padding-bottom:16px;font-size:16px}
+.mo-head h2{font-size:22px;color:#2b1d16;margin:0 0 4px}
+.mo-head p{font-size:15px;line-height:1.5;color:#6b5547}
+.mo-empty{font-size:16px;color:#6b5547;background:#fff;border:1px dashed #cdb9a3;border-radius:12px;padding:20px 16px;text-align:center}
+.mo-card{background:#fff;border:1px solid #e6d9c8;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;color:#2b1d16}
+.mo-card .pill{font-size:13px;padding:4px 10px;display:inline-flex;align-items:center;gap:4px}
+.mo-task.in-progress{border-left:5px solid #2f5d8a}
+.mo-task.inspection{border-left:5px solid #b5541e}
+.mo-task.to-do{border-left:5px solid #7a1f2b}
+.mo-task.done{border-left:5px solid #2e6b34;opacity:.92}
+.mo-task-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mo-room{display:inline-flex;align-items:center;gap:8px;font-size:24px;font-weight:700;letter-spacing:-.4px;color:#2b1d16}
+.mo-room svg{color:#7a1f2b}
+.mo-tags{display:flex;flex-wrap:wrap;gap:6px}
+.mo-sub{font-size:15px;color:#6b5547;line-height:1.4}
+.mo-note{display:flex;gap:8px;align-items:flex-start;font-size:15px;line-height:1.45;color:#4a372c;background:#f6efe6;border-radius:10px;padding:10px 12px}
+.mo-note.warn{color:#7a4a12;background:#fbf0de}
+.mo-note svg{flex-shrink:0;margin-top:2px}
+.mo-assignee{display:flex;align-items:center;gap:8px;font-size:16px;color:#2b1d16;border-top:1px solid #efe4d6;padding-top:10px}
+.mo-assignee span{flex:1}
+.mo-checklist{display:flex;flex-direction:column;gap:8px}
+.mo-checklist label{position:relative;display:flex;align-items:center;gap:14px;min-height:56px;padding:8px 14px;border:1.5px solid #cdb9a3;border-radius:12px;font-size:17px;color:#2b1d16;background:#fff;cursor:pointer}
+.mo-checklist label.on{background:#eaf4e4;border-color:#2e6b34;color:#1f4d24}
+.mo-checklist input{position:absolute;opacity:0;width:100%;height:100%;inset:0;margin:0;cursor:pointer}
+.mo-checklist input:focus-visible+.mo-box{outline:3px solid #7a1f2b;outline-offset:2px}
+.mo-box{width:30px;height:30px;flex-shrink:0;border:2px solid #7a1f2b;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fff;color:#fff}
+.mo-checklist label.on .mo-box{background:#2e6b34;border-color:#2e6b34}
+.mo-actions{display:flex;flex-direction:column;gap:10px}
+.mo-actions>.pill{align-self:flex-start}
+.btn.mo-big{min-height:56px;width:100%;justify-content:center;font-size:17px;gap:8px;border-radius:12px}
+.btn.mo-btn{min-height:48px;justify-content:center;font-size:16px;gap:8px}
+.btn.mo-btn.full{width:100%}
+.btn.mo-btn-sm{min-height:48px;padding:0 14px;font-size:15px;gap:6px;flex-shrink:0}
+.mo-pair{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.btn.mo-reject{color:#9a3b2a;border-color:#d9a99c;background:#fff}
+.mo-hint{display:flex;align-items:center;gap:6px;font-size:14px;color:#6b5547;line-height:1.4}
+.mo-hint.error{color:#9a3b2a}
+.mo-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#efe4d6;border-radius:12px;padding:4px;position:sticky;top:0;z-index:2}
+.mo-seg button{min-height:52px;border:0;border-radius:9px;background:transparent;color:#4a372c;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 2px}
+.mo-seg button b{font-size:15px}
+.mo-seg button.on{background:#7a1f2b;color:#fff;font-weight:600}
+.mo-repair-row{flex-direction:row;align-items:center;justify-content:space-between}
+.mo-repair-row>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mo-repair-row strong{font-size:19px}
+.mo-repair-row span{font-size:14px;color:#6b5547}
+/* Sheets: assign picker, quick reasons */
+.mo-pick{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.mo-pick button{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 14px;border:1.5px solid #e6d9c8;border-radius:12px;background:#fff;text-align:left;color:#2b1d16}
+.mo-pick button span{flex:1;display:flex;flex-direction:column}
+.mo-pick button strong{font-size:17px}
+.mo-pick button small{font-size:14px;color:#6b5547}
+.mo-pick button.on{border-color:#7a1f2b;background:#f5e4e6}
+.mo-pick button.on>svg:last-child{color:#7a1f2b}
+.mo-quick{display:flex;flex-wrap:wrap;gap:8px}
+.mo-quick button{min-height:48px;padding:0 14px;border:1px solid #cdb9a3;border-radius:24px;background:#fff;color:#4a372c;font-size:15px}
+.mo-quick button.on{background:#7a1f2b;border-color:#7a1f2b;color:#fff}
+/* Demo sheet (M24) + phone walkthrough (MB-09) */
+.modal.m-sheet .mo-device-note{margin:0 0 14px;font-size:15px;line-height:1.5;color:#4a372c}
+.modal.m-sheet .mo-guide-path{font-size:14px;margin:8px 0}
+.mo-fault-help{font-size:14px;color:#6b5547;line-height:1.45}
+.mo-demo-steps{margin:18px 0 8px}
+.mo-demo-steps ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.mo-demo-steps li{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e6d9c8;border-radius:10px;padding:8px 10px}
+.mo-demo-steps li>div{flex:1;min-width:0;display:flex;flex-direction:column}
+.mo-demo-steps strong{font-size:15px;color:#2b1d16}
+.mo-demo-steps small{font-size:13px;color:#6b5547}
+.mo-step-no{flex-shrink:0;min-width:34px;height:34px;padding:0 6px;border-radius:17px;background:#f5e4e6;color:#7a1f2b;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+.mo-steps{list-style:none;margin:8px 0 16px;padding:0;display:flex;flex-direction:column;gap:10px}
+.mo-step{background:#fff;border:1px solid #e6d9c8;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.mo-step-head{display:flex;gap:10px;align-items:center}
+.mo-step-head h3{font-size:17px;color:#2b1d16}
+.mo-step-head small{font-size:14px;color:#6b5547}
+.mo-step p{font-size:15px;line-height:1.5;color:#4a372c}
+.mo-step-expect{background:#eaf4e4;color:#1f4d24!important;border-radius:8px;padding:8px 10px}
+@media(max-width:360px){.mo-room{font-size:21px}.mo-seg button{font-size:13px}}

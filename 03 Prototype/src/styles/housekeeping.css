@@ -1,0 +1,39 @@
+/* Stream D · Housekeeping, room blocks, backup, roadmap */
+.hk-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:0 0 18px}
+.hk-filters label{display:flex;flex-direction:column;gap:5px;font-size:10px;color:#6b5547}
+.hk-filters select{border:1px solid #cdb9a3;border-radius:5px;padding:8px 10px;background:#fff;font-size:11px;color:#2b1d16;min-width:150px}
+.hk-filters .muted{font-size:10px;margin-left:auto;align-self:center}
+.hk-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.hk-card>p{margin:8px 0 10px}
+.hk-note{display:flex;gap:6px;align-items:flex-start;font-size:10px;line-height:1.45;color:#6b5547;background:#f6efe6;border-radius:5px;padding:7px 8px;margin:0 0 8px}
+.hk-note.warn{color:#936535;background:#fbf3e8}
+.hk-note svg{flex-shrink:0;margin-top:1px}
+.hk-reason{display:block;font-size:10px;color:#6b5547;margin-top:6px;line-height:1.4}
+.hk-reason.error{color:#ac422d}
+.hk-links{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px;border-top:1px solid #e6d9c8;padding-top:8px}
+.hk-links small{font-size:9px}
+.hk-chips{display:flex;flex-wrap:wrap;gap:6px}
+.hk-chips .small-btn{border:1px solid #cdb9a3;background:#fff;border-radius:5px;font-size:10px;padding:6px 9px;color:#7a1f2b}
+.hk-conflict{color:#936535;background:#fbf3e8;border-color:#f0dfc4}
+.hk-block-info{margin:4px 0 12px}
+.hk-action{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+/* My tasks (housekeeper / maintenance): own tasks first, large touch targets (REQ-HK-006) */
+.hk-mine{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.hk-large{padding:18px 16px}
+.hk-large h2{font-size:20px}
+.hk-large .btn.hk-big{min-height:52px;font-size:14px;margin-top:6px}
+.hk-big-check label{font-size:13px;min-height:44px;padding:4px 0}
+.hk-big-check input{width:22px;height:22px}
+.hk-large .text-btn{font-size:12px;min-height:40px}
+/* Backup */
+.hk-sim-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 16px;margin-bottom:20px;border:1px solid #f0d3b8;background:#fdf1e6;color:#8a4f22;border-radius:8px;font-size:12px}
+.hk-sim-banner span{font-size:10px;color:#8a5a34}
+.hk-backup-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hk-backup-stats .stat{min-height:0}
+.stat>strong.hk-stat-text{font-size:18px;letter-spacing:0}
+.hk-table{width:100%;border-collapse:collapse;text-align:left}
+.hk-table td{vertical-align:top}
+.hk-steps{margin:0;padding:0 23px 4px 45px;font-size:11px;line-height:1.7;color:#2b1d16}
+.hk-steps li{margin-bottom:6px}
+@media(max-width:760px){.hk-backup-stats{grid-template-columns:1fr}.hk-filters .muted{margin-left:0}}
+@media(max-width:520px){.kanban{grid-template-columns:1fr}.hk-mine{grid-template-columns:1fr}.hk-filters select{min-width:0;width:100%}.hk-filters label{flex:1 1 140px}.hk-action{align-items:stretch}}

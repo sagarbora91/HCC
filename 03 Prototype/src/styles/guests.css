@@ -1,0 +1,81 @@
+/* Stream B · Guests, check-in and in-house stays. All classes prefixed gs- (plus .sr-only). */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.gs-req{color:#95533e}
+.gs-field-error{color:#8e5741;font-size:10px;line-height:1.5}
+.form input[aria-invalid="true"],.form select[aria-invalid="true"]{border-color:#e2b49f;background:#fffaf7}
+.gs-form-summary{background:#fff2ec;border:1px solid #edcdbd;color:#995d46;border-radius:5px;padding:10px 12px;font-size:11px}
+.gs-dup{display:flex;gap:10px;align-items:flex-start;background:#fbf4e6;border:1px solid #eee0c2;color:#81693d;border-radius:6px;padding:12px 14px;font-size:11px;line-height:1.6}
+.gs-dup>div{flex:1;min-width:0}.gs-dup small{display:block;color:#736448}
+.gs-dup-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed #eadbb9}
+.gs-party{border:1px solid #cdb9a3;border-radius:7px;padding:12px 14px;margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
+.gs-party legend{font-size:11px;color:#6b5547;padding:0 6px}
+.gs-party-row{display:grid;grid-template-columns:2fr 1fr 1.3fr auto;gap:10px;align-items:end}
+.gs-sub{font-size:12px;margin:20px 0 10px;color:#2b1d16}
+.gs-details{padding:0}.gs-details strong{overflow-wrap:anywhere}
+.gs-party-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.gs-party-list li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11px;border:1px solid #e6d9c8;border-radius:6px;padding:9px 12px}
+.gs-party-list span{color:#6b5547}
+.gs-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:22px;margin-bottom:22px;align-items:start}
+.gs-split>.card{margin-bottom:0}
+.gs-list{list-style:none;margin:0;padding:0 12px 12px;max-height:620px;overflow:auto}
+.gs-list-item{width:100%;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid transparent;background:transparent;border-radius:7px;padding:10px;min-width:0}
+.gs-list-item:hover{background:#f6efe6}.gs-list-item.active{background:#f5e4e6;border-color:#cdb9a3}
+.gs-list-main{flex:1;min-width:0}.gs-list-main strong{display:block;font-size:12px}.gs-list-main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-list-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:10px}
+.gs-panel{padding:0 23px 23px}.gs-actions{margin-top:18px}
+.gs-simple-list{list-style:none;margin:0;padding:0 23px 18px}.gs-simple-list li{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #e6d9c8;font-size:11px;flex-wrap:wrap}.gs-simple-list li .text-btn{margin-left:auto}
+/* Stepper */
+.gs-steps{list-style:none;margin:0 0 18px;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.gs-steps button{width:100%;border:1px solid #cdb9a3;background:#fff;border-radius:7px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:9px;color:#6b5547;min-height:58px}
+.gs-steps li.done button{background:#eaf4e4;color:#517246;border-color:#bfd9b0}
+.gs-steps li.current button{border-color:#7a1f2b;box-shadow:0 0 0 1px #2b1d16;color:#7a1f2b;font-weight:600}
+.gs-step-no{width:20px;height:20px;border-radius:50%;background:#efe4d6;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.gs-steps li.done .gs-step-no{background:#3b7530;color:#fff}
+.gs-step-name{text-align:center;line-height:1.3}
+.gs-step-body .gs-sub{margin-top:4px}
+.gs-pick{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}
+.gs-pick button{width:100%;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #cdb9a3;background:#fff;border-radius:7px;padding:10px 12px;text-align:left}
+.gs-pick button.active{border-color:#7a1f2b;background:#f5e4e6}.gs-pick small{flex:1;min-width:150px}
+.gs-ok,.gs-deny{display:flex;gap:10px;align-items:flex-start;border-radius:6px;padding:12px 14px;font-size:11px;line-height:1.6;margin:10px 0}
+.gs-ok{background:#f6efe6;border:1px solid #cdb9a3;color:#6b5547}.gs-ok p,.gs-deny p{font-size:10px;margin-top:3px}
+.gs-deny{background:#fff2ec;border:1px solid #edcdbd;color:#995d46}.gs-deny ul{margin:4px 0 0;padding-left:18px}
+.gs-deny .inline{margin-top:10px}
+.gs-rooms{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.gs-rooms li{display:flex;align-items:center;gap:12px;border:1px solid #cdb9a3;border-radius:7px;padding:9px 12px;font-size:11px;flex-wrap:wrap}
+.gs-rooms li>span:nth-child(2){flex:1;min-width:120px}.gs-rooms small{display:block}
+.gs-radio{flex-direction:row!important;align-items:center;gap:12px!important;width:100%;cursor:pointer}.gs-radio input{width:auto!important}
+.gs-check{display:flex;align-items:center;gap:10px;font-size:11px;color:#2b1d16;margin:16px 0;cursor:pointer}.gs-check input{width:18px;height:18px;accent-color:#7a1f2b}
+.gs-success{text-align:center;padding:20px 10px;color:#6b5547}.gs-success h3{color:#2b1d16;font-size:15px;margin:10px 0 6px}.gs-success .modal-actions{justify-content:center}
+/* Walk-in sequence */
+.gs-seq ol{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+.gs-seq li{display:flex;align-items:center;gap:10px;border:1px solid #cdb9a3;border-radius:7px;padding:10px 12px;font-size:11px}
+.gs-seq li span{flex:1}.gs-seq li strong{font-size:10px}
+.gs-seq-done{background:#eaf4e4;color:#517246}.gs-seq-failed{background:#fff2ec;color:#995d46;border-color:#edcdbd!important}.gs-seq-running{background:#f6efe6}
+.gs-dot{width:8px;height:8px;border-radius:50%;background:#efe4d6;display:inline-block}
+.gs-spin{animation:gs-spin 1s linear infinite}@keyframes gs-spin{to{transform:rotate(360deg)}}
+.gs-walkin-stay{margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #e6d9c8}
+/* Stay detail */
+.gs-stay h2{font-size:18px;margin-bottom:6px}
+.gs-seg-label{font-size:12px;color:#2b1d16;font-weight:600;font-variant-numeric:tabular-nums}
+.gs-timeline{list-style:none;margin:8px 0 0;padding:0 0 0 14px;border-left:2px solid #cdb9a3;display:flex;flex-direction:column;gap:8px}
+.gs-timeline li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;position:relative}
+.gs-timeline li:before{content:'';position:absolute;left:-20px;width:10px;height:10px;border-radius:50%;background:#efe4d6;border:2px solid #fff}
+.gs-timeline li.open:before{background:#9e4a55}
+.gs-tabs{padding:0;margin-bottom:18px}
+.gs-alts{border-top:1px solid #e6d9c8;padding-top:6px}
+/* Registration card (print) */
+/* Watermark is positioned against the .modal (not the card) so it never covers the dialog close button. */
+.gs-regcard:after{content:attr(data-watermark);position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-size:38px;font-weight:700;color:#2b1d16;white-space:nowrap;pointer-events:none;letter-spacing:2px}
+.gs-regcard table{margin-top:4px}
+.gs-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin:34px 0 10px;font-size:10px;color:#6b5547}
+.gs-sign span{display:block;border-bottom:1px solid #9e4a55;height:34px;margin-bottom:6px}
+@media(max-width:1050px){.gs-split{grid-template-columns:1fr}}
+@media(max-width:760px){
+  .gs-steps{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .gs-party-row{grid-template-columns:1fr 1fr}
+  .gs-party-row label:first-child{grid-column:1/-1}
+  .gs-regcard:after{font-size:26px}
+  .gs-sign{grid-template-columns:1fr}
+  .gs-list-item{flex-wrap:wrap}.gs-list-tags{flex-direction:row;width:100%;justify-content:flex-start;padding-left:46px}
+}
+@media print{.gs-regcard:after{color:#2b1d16}.gs-regcard{color:#2b1d16}}

@@ -1,0 +1,7 @@
+node_modules/
+.build/
+www/
+android/build/
+android/app/build/
+android/.gradle/
+
