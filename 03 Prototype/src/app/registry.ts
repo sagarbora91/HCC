@@ -4,6 +4,7 @@ import type {Booking} from '../services/mock';
 import type {NavItem} from './nav';
 import {registration as reservations} from '../features/reservations/register';
 import {registration as guests} from '../features/guests/register';
+import {registration as customers} from '../features/customers/register';
 import {registration as folio} from '../features/folio/register';
 import {registration as housekeeping} from '../features/housekeeping/register';
 import {registration as admin} from '../features/admin/register';
@@ -41,7 +42,7 @@ export type FeatureRegistration={
   /** Phone versions (MB-05+): page / modal components that replace the desktop ones when the mobile shell is shown. */
   mobile?:{pages?:Record<string,React.ComponentType>;modals?:Record<string,React.ComponentType<ModalProps>>};
 };
-export const registrations:FeatureRegistration[]=[reservations,guests,folio,housekeeping,admin,closing,
+export const registrations:FeatureRegistration[]=[reservations,guests,customers,folio,housekeeping,admin,closing,
   yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,
   m_frontdesk,m_money,m_ops,m_admin];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;

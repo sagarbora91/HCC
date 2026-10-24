@@ -5,7 +5,8 @@ import {useHcc} from '../../app/context';
 import {Booking,Room,money,nights,addDays,totals,taxRateFor,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments} from '../../services/mock';
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
-import {GuestDetails} from './GuestProfile';
+import {GuestDetails,statusTone} from './GuestProfile';
+import {bookingIdLookup} from '../../domain/streams/customers';
 
 const stepNames=['Find reservation','Verify guest','Room eligibility','Confirm tariff','Advance / deposit','Check in'];
 
@@ -15,13 +16,18 @@ function RoomState({b}:{b:Booking}){const {s}=useHcc();const e=stayRoomEligibili
 
 /** Page 'arrivals': today's arrivals (Confirmed, arrival ≤ business date) + Walk-in. */
 export function ArrivalsPage(){
-  const {s,uid,open,permission,search,setSearch}=useHcc();
+  const {s,uid,open,booking,permission,search,setSearch}=useHcc();
   const list=stayArrivals(s).filter(b=>`${b.guest} ${b.id} ${b.room}`.toLowerCase().includes(search.toLowerCase()));
+  // Booking-ID lookup (any status): the one place to find a booking by its ID (Customers search by name or mobile only).
+  const found=bookingIdLookup(s,search).filter(b=>!list.some(x=>x.id===b.id));
   const today=s.bookings.filter(b=>b.status==='In house'&&staySegments(b)[0]?.from===s.date);
   const canWalkin=permission('reservations')&&permission('checkin');
   return <><PageTitle title="Arrivals & check-in" sub={`Expected today and overdue arrivals · business date ${shortDate(s.date)} · check-in from ${s.settings.checkin}`}
       action={canWalkin?<button className="btn primary" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={16}/>Walk-in</button>:<span className="muted">Walk-in needs reservation and check-in permissions.</span>}/>
-    <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking…"/><span className="muted">{list.length} awaiting check-in</span></div>
+    <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking ID…"/><span className="muted">{list.length} awaiting check-in</span></div>
+    {found.length>0&&<section className="card" aria-label="Booking ID lookup"><div className="section-title"><h2>Booking ID lookup</h2><span className="muted">{found.length} found</span></div>
+      <ul className="gs-simple-list">{found.map(b=><li key={b.id}><strong>{b.id}</strong><span>{b.guest} · room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)}</span><Pill tone={statusTone(b.status)}>{b.status}</Pill>
+        <button className="text-btn" onClick={()=>booking(b.id)}>Open booking</button>{b.status==='Confirmed'&&b.arrival>s.date&&<small>Arrives {shortDate(b.arrival)} — check-in opens that day</small>}</li>)}</ul></section>}
     <section className="card"><div className="table-wrap"><table><thead><tr><th>Guest / booking</th><th>Room</th><th>Stay</th><th>Registration</th><th>Room status</th><th>Advance</th><th></th></tr></thead><tbody>
       {list.map(b=>{const g=guestForBooking(s,b);const v=g?guestView(s,uid,g):undefined;return <tr key={b.id}>
         <td><strong>{b.guest}</strong><small>{b.id} · {b.source}{v?' · '+v.phone:''}</small></td>

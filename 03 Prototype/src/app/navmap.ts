@@ -28,7 +28,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   folios:'cash',cashier:'cash',pos:'cash',expenses:'cash',
   housekeeping:'hkm',maintenance:'hkm',handover:'hkm',
   inhouse:'guestsvc','guest-services':'guestsvc','gsv-my-requests':'guestsvc',messages:'guestsvc',documents:'guestsvc',
-  guests:'customers',customers:'customers',
+  customers:'customers',
   yield:'revenue',groups:'revenue',channels:'revenue','booking-site':'revenue',
   inventory:'stock',
   staff:'people','my-hr':'people',
@@ -49,7 +49,9 @@ export function crumbsFor(page:string,pageLabel:string):{label:string;page?:stri
   if(cid)return [home,{label:categoryOf(cid).label}];
   const cat=PAGE_CATEGORY[page];
   if(!cat)return [home,{label:page==='overview'?DASHBOARD.label:pageLabel}];
-  return [home,{label:categoryOf(cat).label,page:catPage(cat)},{label:pageLabel}];
+  const cl=categoryOf(cat).label;
+  if(cl===pageLabel)return [home,{label:cl}]; // single-page category (e.g. Customers): no repeated crumb
+  return [home,{label:cl,page:catPage(cat)},{label:pageLabel}];
 }
 
 /** One line under each page tile. */
@@ -59,7 +61,7 @@ export const PAGE_BLURB:Record<string,string>={
   folios:'Guest bills, payments and balances',cashier:'Shift cash, drawer and counts',pos:'Restaurant and room-service checks',expenses:'Record and approve petty expenses',
   housekeeping:'Cleaning tasks and room inspection',maintenance:'Repairs, work orders and preventive upkeep',handover:'Shift checklists and handover notes',
   inhouse:'Guests staying now: extend, move, depart','guest-services':'Guest requests, complaints, lost & found','gsv-my-requests':'Requests assigned to you',messages:'Guest messages and templates',documents:'Scan and file IDs and bills',
-  guests:'Guest profiles, ID details and preferences',customers:'Customer search and full stay history',
+  customers:'Search by name or mobile: full history and profile',
   yield:'Tariff, seasons and rate restrictions',groups:'Group blocks, companies and credit',channels:'OTA channels and commissions','booking-site':'Direct booking website',
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
@@ -86,8 +88,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'gsv-my-requests':['guest requests','my requests','tasks from guests','towels','water'],
   messages:['message','messages','whatsapp','sms','email','notification','confirmation','template'],
   documents:['document','documents','scan','id card','ocr','capture','vendor bill','letter'],
-  guests:['guest profile','profile','id','preferences','notes','guest details','kyc'],
-  customers:['customer','customers','history','stay history','lifetime','repeat guest','loyalty','mobile number'],
+  customers:['customer','customers','guest','guests','guest profile','profile','id','preferences','notes','history','stay history','lifetime','repeat guest','loyalty','mobile number','phone'],
   yield:['tariff','rate','rates','yield','season','pricing','restriction','publish','dynamic'],
   groups:['group','groups','corporate','company','block','allotment','credit limit','rooming list','wedding'],
   channels:['ota','channel','channels','booknest','stayhub','tripkart','commission','inbound','booking.com'],

@@ -18,11 +18,11 @@ export function register({test,M,assert}){
   });
   test('[NAV] the mapping names no page that does not exist (customers is built in step 4)',()=>{
     const ids=new Set(X.navItems.map(n=>n.id));
-    for(const id of Object.keys(X.PAGE_CATEGORY))assert.ok(ids.has(id)||id==='customers','unknown page in PAGE_CATEGORY: '+id);
-    for(const id of Object.keys(X.PAGE_KEYWORDS))assert.ok(ids.has(id)||id==='customers','keywords for unknown page: '+id);
+    for(const id of Object.keys(X.PAGE_CATEGORY))assert.ok(ids.has(id),'unknown page in PAGE_CATEGORY: '+id);
+    for(const id of Object.keys(X.PAGE_KEYWORDS))assert.ok(ids.has(id),'keywords for unknown page: '+id);
   });
   test('[NAV] agreed placement: Guests profile under Customers; stay functions under Guests & Services; Dashboard has no category',()=>{
-    assert.equal(X.PAGE_CATEGORY.guests,'customers');
+    assert.equal(X.PAGE_CATEGORY.customers,'customers');assert.equal(X.PAGE_CATEGORY.guests,undefined);assert.ok(!X.navItems.some(n=>n.id==='guests'));
     for(const p of ['inhouse','guest-services','gsv-my-requests','messages','documents'])assert.equal(X.PAGE_CATEGORY[p],'guestsvc',p);
     for(const p of ['rooms','calendar','reservations','arrivals'])assert.equal(X.PAGE_CATEGORY[p],'front',p);
     for(const p of ['yield','groups','channels','booking-site'])assert.equal(X.PAGE_CATEGORY[p],'revenue',p);
@@ -68,7 +68,7 @@ export function register({test,M,assert}){
   test('[NAV] every page has a one-line tile description; every category tile pages are real nav items',()=>{
     for(const p of [...Object.keys(X.PAGE_CATEGORY),'overview'])assert.ok(X.PAGE_BLURB[p]&&X.PAGE_BLURB[p].length>8,'blurb '+p);
     const ids=new Set(X.navItems.map(n=>n.id));
-    for(const c of X.NAV_CATEGORIES)for(const p of X.pagesOfCategory(c.id))if(p!=='customers')assert.ok(ids.has(p),c.id+' lists missing page '+p);
+    for(const c of X.NAV_CATEGORIES)for(const p of X.pagesOfCategory(c.id))assert.ok(ids.has(p),c.id+' lists missing page '+p);
   });
   test('[NAV] breadcrumb is Home › Category › Page with the earlier parts clickable',()=>{
     assert.deepEqual(X.crumbsFor('home',''),[{label:'Modules Home'}]);
