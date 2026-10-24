@@ -1,12 +1,12 @@
 // App shell: state, the single run() command path, navigation, header and demo toolbar.
 import React,{useState,useRef,useMemo,useCallback,useEffect} from 'react';
-import {Search,Hotel,Building2,ShieldCheck,Menu,CalendarDays,AlertCircle,CheckCircle2,X,Clock,Wifi,LogOut,LayoutGrid} from 'lucide-react';
+import {Search,Hotel,Menu,CalendarDays,AlertCircle,CheckCircle2,X,Clock,Wifi,LogOut} from 'lucide-react';
 import {State,Command,Permission,Room,addDays,metrics,can,roomStatus as statusOf,errorTitle,codeOf,assignedScopeRoles,loadScenario as buildScenario,isDayClosed} from '../services/mock';
 import {executeWithFault,FaultMode,LATENCY_MS} from '../services/mock/faults';
 import {HccContext,Ctx,Modal,RunOptions} from './context';
 import {loadStored,saveStored,onStorageError} from './storage';
 import type {Restored} from '../services/mock';
-import {navGroups,navItems} from './nav';
+import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoToolbar} from './demo/DemoToolbar';
@@ -14,6 +14,7 @@ import {extraPages,mobilePages} from './registry';
 import {ModalHost} from './ModalHost';
 import {useDisplayMode,DisplayToggle} from './display';
 import {SearchPalette} from './SearchPalette';
+import {NavDrawer} from './NavDrawer';
 import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,exitApp} from './native';
 import {MobileShell} from './mobile/MobileShell';
 import {announceTab,type MobileTab} from './mobile/tabs';
@@ -94,12 +95,13 @@ function AppShell({initial}:{initial:Restored}){
   const back=()=>{if(depth>0){try{history.back();return;}catch{/* ignore */}}go(HOME_PAGE,{replace:true});};
   // Android hardware back button (APK only, plan D1): sheet → wizard step → previous page → landing page → "Exit?" confirmation.
   const [exitAsk,setExitAsk]=useState(false);
-  const [searchOpen,setSearchOpen]=useState(false);
+  const [searchOpen,setSearchOpen]=useState(false),[menuOpen,setMenuOpen]=useState(false);
   useEffect(()=>{const on=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearchOpen(v=>!v);}};window.addEventListener('keydown',on);return ()=>window.removeEventListener('keydown',on);},[]);
   const nativeBack=useRef<()=>void>(()=>{});
   nativeBack.current=()=>{
     if(exitAsk){setExitAsk(false);return;}
     if(searchOpen){setSearchOpen(false);return;}
+    if(menuOpen){setMenuOpen(false);return;}
     const act=decideBack({sheetOpen:!!modalRef.current,stepBack:hasStepBack(),depth,atLanding:page===HOME_PAGE});
     if(act==='close-sheet')closeModal();
     else if(act==='step-back')runStepBack();
@@ -138,7 +140,7 @@ function AppShell({initial}:{initial:Restored}){
     if(u){writeSession(id);go(HOME_PAGE,{replace:true});}
   }
   function signIn(id:string){setUid(id);setSignedIn(true);writeSession(id);setPage(HOME_PAGE);setModal(null);setError('');setSearch('');setFilter('All');}
-  function signOut(){writeSession(null);setSignedIn(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
+  function signOut(){writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
   function loadScenario(id:string){try{persist(buildScenario(id));setModal(null);setUid('owner');writeSession('owner');setPage(HOME_PAGE);toast(`Scenario ${id} loaded. All fictional records restored from the fixture.`);}catch(e){toast((e as Error).message,true);}}
   const resetScenario=()=>loadScenario(s.scenario);
 
@@ -150,7 +152,7 @@ function AppShell({initial}:{initial:Restored}){
   const taskList=s.tasks.filter(t=>(!assignedScopeRoles.includes(user.role)||t.assignee===uid)&&!(t.status==='Done'&&t.date&&t.date<addDays(s.date,-2)));
   const roomStatus=(r:Room)=>statusOf(s,r);
 
-  const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>setSearchOpen(true),signOut};
+  const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>setSearchOpen(true),openMenu:()=>setMenuOpen(true),signOut};
   const pages:Record<string,()=>React.ReactNode>={overview:()=><Overview/>,rooms:()=><RoomBoard/>,reservations:()=><Reservations/>,folios:()=><Reservations folio/>,housekeeping:()=><Housekeeping/>,expenses:()=><Expenses/>,closing:()=><DayClosing/>,reports:()=><Reports/>,access:()=><AccessControl/>,settings:()=><HotelSettings/>};
   for(const [id,Page] of Object.entries(extraPages))pages[id]=()=><Page/>;
   const closed=isDayClosed(s);
@@ -162,23 +164,13 @@ function AppShell({initial}:{initial:Restored}){
   if(!signedIn)return <HccContext.Provider value={ctx}><SignIn onPick={signIn}/></HccContext.Provider>;
   if(display.isMobile)return <HccContext.Provider value={ctx}>
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
-    {toastEl}<ModalHost/>{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
+    {toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
   </HccContext.Provider>;
   return <HccContext.Provider value={ctx}>
     <div className="app-shell">
-      <aside className={'sidebar '+(mobile?'visible':'')}>
-        <a className="brand" href="#" onClick={e=>{e.preventDefault();go(HOME_PAGE);}}><span className="brand-mark"><Hotel size={25}/></span><span>HOTEL<span>CONTROL CENTRE</span></span></a>
-        <div className="property"><span className="property-mark"><Building2 size={18}/></span><div><strong>{s.settings.hotel}</strong><small>Demo property · India</small></div></div>
-        <nav aria-label="Main"><div className="nav-group sidebar-home"><button type="button" data-page={HOME_PAGE} className={'nav-item '+(current===HOME_PAGE?'active':'')} aria-current={current===HOME_PAGE?'page':undefined} onClick={()=>go(HOME_PAGE)}><LayoutGrid size={19}/><span>Modules Home</span></button></div>{navGroups.map(g=>{const items=g.items.filter(n=>allowedIds.includes(n.id));if(!items.length)return null;return <div className="nav-group" key={g.label||'top'}>
-          {g.label&&<div className="nav-heading">{g.label}</div>}
-          {items.map(n=><button key={n.id} data-page={n.id} className={'nav-item '+(current===n.id?'active':'')} aria-current={current===n.id?'page':undefined} onClick={()=>go(n.id)}><n.icon size={19}/><span>{n.label}</span>{n.id==='housekeeping'&&<b>{taskList.filter(t=>t.status!=='Done').length}</b>}</button>)}
-        </div>;})}</nav>
-        <div className="sidebar-bottom"><div className="sidebar-person"><span className="avatar">{user.name[0]}</span><div><strong>{user.name.split(' · ')[0]}</strong><small>{user.role}{user.enabled?'':' · disabled'}</small></div><ShieldCheck size={18}/></div></div>
-      </aside>
-      {mobile&&<button className="sidebar-overlay" aria-label="Close navigation" onClick={()=>setMobile(false)}/>}
       <main>
         <header className="topbar">
-          <div className="topbar-left"><button className="icon-btn mobile-menu" aria-label="Open navigation" onClick={()=>setMobile(true)}><Menu size={22}/></button><Breadcrumb page={current} label={navItems.find(n=>n.id===current)?.label||'Access unavailable'}/></div>
+          <div className="topbar-left"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><Breadcrumb page={current} label={navItems.find(n=>n.id===current)?.label||'Access unavailable'}/></div>
           <div className="topbar-right">
             <button type="button" className="search-btn" onClick={()=>setSearchOpen(true)} aria-label="Search pages and actions (Control+K)"><Search size={16}/>Search<kbd>Ctrl K</kbd></button>
             <span className="today" title="Simulated business date"><CalendarDays size={15}/>Business date {dateLabel(s.date)} · <b className={closed?'day-closed':'day-open'}>{closed?'Closed':'Open'}</b></span>
@@ -198,6 +190,6 @@ function AppShell({initial}:{initial:Restored}){
       </main>
     </div>
     {toastEl}
-    <ModalHost/>{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
+    <ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
   </HccContext.Provider>;
 }

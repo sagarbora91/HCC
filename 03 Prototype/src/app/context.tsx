@@ -27,6 +27,8 @@ export type Ctx={
   setDirty:(v:boolean)=>void;
   /** Opens the global search palette (Ctrl+K). */
   openSearch:()=>void;
+  /** Opens the hamburger menu drawer. */
+  openMenu:()=>void;
   /** Back to the staff-picker sign-in screen. */
   signOut:()=>void;
 };

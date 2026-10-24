@@ -39,3 +39,31 @@
 .m-crumbs .crumbs button{min-height:40px;padding:8px 2px}
 .sidebar-home{margin:0 0 6px}
 @media (max-width:640px){.tiles{grid-template-columns:1fr}.signin{align-items:flex-start;padding-top:max(24px,env(safe-area-inset-top))}}
+
+/* Hamburger drawer (replaces the sidebar). The old sidebar CSS stays but nothing renders it. */
+.app-shell main{margin-left:0!important;width:100%!important}
+.mobile-menu{display:inline-flex!important}
+.drawer-overlay{position:fixed;inset:0;z-index:2500;background:rgba(43,29,22,.45);display:flex;justify-content:flex-start}
+.drawer{width:min(340px,88vw);height:100%;background:#FAF6F0;color:#2B1D16;display:flex;flex-direction:column;box-shadow:6px 0 28px rgba(0,0,0,.28);animation:drawer-in .16s ease-out;padding-top:env(safe-area-inset-top)}
+@keyframes drawer-in{from{transform:translateX(-100%)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.drawer{animation:none}}
+.drawer-head{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;background:#7A1F2B;color:#fff}
+.drawer-head .brand-mark{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.16);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.drawer-head div{flex:1;min-width:0}.drawer-head strong{display:block;font-size:13px;letter-spacing:.06em}.drawer-head small{font-size:13px;opacity:.9}
+.drawer-close{border:0;background:transparent;color:#fff;min-width:48px;min-height:48px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.drawer-search{margin:12px 12px 6px;min-height:48px;display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid #D9C9B6;border-radius:12px;background:#fff;color:#6B5547;font:inherit;font-size:15px;cursor:pointer;text-align:left}
+.drawer-search kbd{margin-left:auto;font:inherit;font-size:11px;border:1px solid #D9C9B6;border-bottom-width:2px;border-radius:5px;padding:0 5px}
+.drawer-nav{flex:1;overflow-y:auto;padding:6px 8px}
+.drawer-item,.drawer-sub{width:100%;min-height:48px;display:flex;align-items:center;gap:12px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:inherit;font:inherit;font-size:16px;text-align:left;cursor:pointer}
+.drawer-item:hover,.drawer-sub:hover,.drawer-item:focus-visible,.drawer-sub:focus-visible{background:#F3E9DC;outline:none}
+.drawer-item svg:first-child,.drawer-sub svg:first-child{color:#7A1F2B;flex:none}
+.drawer-item.on,.drawer-sub.on{background:#F3E4E6;font-weight:600;outline:2px solid #7A1F2B;outline-offset:-2px}
+.drawer-cat-btn span{flex:1}.drawer-cat-btn.here{font-weight:600}
+.drawer-cat-btn .flip{transform:rotate(180deg)}
+.drawer-pages{list-style:none;margin:0 0 4px 22px;padding:0 0 0 8px;border-left:2px solid #E6D9C8}
+.drawer-sub{font-size:15px;min-height:44px}.drawer-sub span{flex:1}
+.drawer-sub b{background:#7A1F2B;color:#fff;border-radius:999px;font-size:12px;padding:2px 8px}
+.drawer-foot{border-top:1px solid #E6D9C8;padding:8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.drawer-person{display:flex;align-items:center;gap:10px;padding:6px 12px}
+.drawer-person .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.drawer-person small{display:block;color:#6B5547;font-size:13px}

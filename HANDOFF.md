@@ -148,3 +148,8 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - `navmap.ts`: `HOME_PAGE='home'`, virtual `cat:<id>` pages, `PAGE_BLURB`, `crumbsFor`, `pagesOfCategory`. App landing for every role is now Modules Home (`landing` in nav.ts kept for the mobile test). Session id kept in localStorage `hcc-session`; `signOut` in ctx (user menu sheet + desktop top bar). Sidebar and phone More both have a "Modules Home" entry until Step 3.
 - A category with one visible page opens that page directly. 466 tests pass; tsc clean; build 1,849 KB. Browser-checked: desktop flow and 360 px (no sideways scroll).
 - NEXT: Step 3 hamburger drawer (replaces sidebar and phone More), Step 4 Customers tile + booking-ID search on Arrivals. APK not rebuilt yet (rebuild after Step 3, bump versionCode).
+
+### Session 8 — UI redesign Step 3 DONE (hamburger drawer)
+- `03 Prototype\src\app\NavDrawer.tsx` (new): slide-in drawer on desktop and phone — Modules Home, Dashboard, 10 collapsible categories (current one open), search button, user, Demo controls, Display mode, Sign out. `openMenu` in ctx. Android back closes it first.
+- Desktop sidebar removed from `App.tsx` (hamburger button always visible in the top bar); phone bottom-bar "More" tab is now "Menu" (opens the drawer); `MorePage` deleted. CSS in `styles\home.css`. 466 tests pass, tsc clean, build 1,852 KB; browser-checked at desktop and 360 px.
+- NEXT: Step 4 (Customers tile, booking-ID search on Arrivals); then rebuild APK (bump versionCode).
