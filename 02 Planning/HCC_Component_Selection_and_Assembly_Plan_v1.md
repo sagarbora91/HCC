@@ -1,5 +1,14 @@
 # HCC component selection and assembly plan
 
+> **Current implementation direction — 25 October 2026 (revision 1.1).** DEC-054 supersedes the original NestJS proposal: production is **.NET 10 ASP.NET Core (C#) + SQL Server 2025 Express**, retaining React/Capacitor clients. Follow `HCC_Production_Contracts_and_Schema_v1.md` §7 and `HCC_FirstParty_Reuse_ETP_SCC_v1.md`. ETP platform reuse and SCC payroll/leave/compliance/cash-book rules are selected for evaluation/adaptation; this does not mean their code is already integrated or verified.
+>
+> **Resume, do not restart:** A0/A1 and the A3 T-SQL spike are reported complete; A2 shared till and restriction overrides were merged (APR-005, DEC-052/053). Read the qualification register and existing evidence before doing new work. H01/H03 are references, H02/H04 are lab-only adaptations, O01 is rejected for now and O02 deferred. Port accepted server rules to C# with provenance and parity tests; TypeScript source filenames below describe historical candidate/lab work, not the production server language.
+>
+> **Current gate:** finish W0-D acceptance and defect verification; Wave 0.5 is approved after W0-D closes (APR-006), while production construction still needs A4 authorization. Latest merged baseline reports 490 tests; APK v6 predates the uncommitted AC-01 compatibility fix. Tablet CSV, print and Reset now have passing evidence; emulator role/AC-flow completion and remaining defects must be checked in the acceptance reports. No tests were rerun for this documentation update. Preserve existing work and do not launch extra emulators/checkpoint processes from older recovery notes without checking their current state.
+>
+> The detailed original assessment below is retained for traceability. This update and the latest decision register take precedence over its historical baseline, completed-work instructions and unresolved-policy descriptions. See `05 Delivery Evidence/Assembly/2026-10-25_Development_Review.md` for the current evidence checklist.
+
+
 Prepared: 24 October 2026. Version 1.0. Status: proposed implementation specification, grounded in the downloaded source revisions.
 
 ## 1. Decision in one paragraph
@@ -231,9 +240,11 @@ Decision labels: **KEEP** existing HCC; **ADAPT** small donor extraction after q
 | 25 OCR | HCC simulated capture | No donor OCR selected | Actual capture/provider/privacy approval; later |
 | 26 Assistant | HCC rule-based preview | No donor AI weights/services selected | Explicitly scoped later; no autonomous financial posting |
 
-No SCC or ETP implementation is included in the six local clones. HCC already contains original expense/workforce mock workflows. Do not make the current assembly depend on uninspected first-party source; ETP remains deferred.
+No SCC or ETP implementation is included in the six local clones. HCC already contains original expense/workforce mock workflows. Do not make the current assembly depend on uninspected first-party source; ETP was deferred at this original assessment; DEC-054 now selects its platform for production reuse, subject to per-file qualification.
 
 ## 6. Assembly architecture
+
+Current production solution: Hcc.Domain, Hcc.Application, Hcc.Infrastructure.SqlServer, Hcc.Reporting, Hcc.Api and Hcc.Operations, plus tests and the retained React frontend. Use the contracts package section 7 as the authoritative project layout; the older conceptual folders below describe responsibilities, not required TypeScript projects.
 
 Use the unused `08 Production/` directory for the future production workspace; `04 Android/` is already occupied and must not be repurposed. Qualification experiments go in `07 Integration Lab/`, outside the prototype and donor clones.
 
@@ -242,7 +253,7 @@ Use the unused `08 Production/` directory for the future production workspace; `
   qualifications/          one isolated extraction/comparison per candidate
   evidence/                original tests, adapted tests, dependency/license records
 08 Production/            only after production construction is authorized
-  apps/api/               NestJS bootstrap, identity/session and HTTP adapters
+  apps/api/               ASP.NET Core HTTP host (Hcc.Api); see current solution layout below
   apps/web/               retained HCC UI adapted through typed feature clients
   modules/<context>/
     domain/               original rules + accepted attributed extractions

@@ -1,5 +1,6 @@
 // SCR-16 Access control (BL-024/025): users, role templates, effective access, exceptions, policy history.
 import React,{useState} from 'react';
+import {PolicyLimitEditor} from './PolicyLimitEditor';
 import {ShieldCheck,Info,UserPlus} from 'lucide-react';
 import {permissions,Role,money,authorize,adminPolicy,adminUserStatus,adminOtherActiveOwners,adminEffectiveAccess,adminCellCode,adminDescribeCell,adminLimitFor,adminExceptionActive,adminApprovalInbox,ADMIN_PERMS,ADMIN_ROLE_ORDER,ADMIN_FINANCIAL_MODULES,adminScopeText} from '../../services/mock';
 import type {User,PolicyCell} from '../../services/mock';
@@ -63,7 +64,7 @@ function TemplatesTab(){
     <div className="table-wrap adm-matrix-wrap"><table className="adm-matrix"><thead><tr><th>Permission</th>{ADMIN_ROLE_ORDER.map(r=><th key={r}><button className={'text-btn'+(r===role?' adm-sel':'')} onClick={()=>setRole(r)} aria-pressed={r===role}>{r}</button></th>)}</tr></thead><tbody>
       {ADMIN_PERMS.map(p=><tr key={p.id}><td><strong>{p.id}</strong><small>{p.action}</small></td>{ADMIN_ROLE_ORDER.map(r=>{const c=pol.templates[r]?.[p.id];const code=adminCellCode(c);return <td key={r} className={'adm-code adm-'+code[0]+(r===role?' adm-selcol':'')} title={`${r}: ${adminDescribeCell(c)}`}>{code}</td>;})}</tr>)}
     </tbody></table></div>
-    <div className="section-title"><div><h2>Edit role template</h2><p>Changes bump the policy version, are audited with before → after, and apply on the next command of every user holding the role.</p></div>
+    <div className="section-title"><div><h2>Edit role template</h2><p>Permission and scope changes submit immediately, with approval where required. Save limit applies only to its edited amount. Applied changes are audited.</p></div>
       <label className="adm-inline-label">Role<select aria-label="Role to edit" value={role} onChange={e=>setRole(e.target.value as Role)}>{ADMIN_ROLE_ORDER.map(r=><option key={r}>{r}</option>)}</select></label></div>
     {lock&&<p className="adm-lock" role="note"><ShieldCheck size={15}/> {lock}</p>}
     {groups.map(g=><div key={g} className="adm-group"><h3>{g}</h3>
@@ -74,11 +75,11 @@ function TemplatesTab(){
             {CELL_OPTIONS.map(([v,l])=><option key={v} value={v} disabled={(tadFin&&!['none','deny'].includes(v))||(v==='limit'&&!p.limit)}>{l}</option>)}</select>
           <select aria-label={`${p.id} scope for ${role}`} disabled={!!lock||busy||!c||c.effect==='deny'} value={c?.scope||'P'} onChange={e=>set(p.id,cellValue(c),e.target.value)}>
             {(['P','S','A','O'] as const).map(x=><option key={x} value={x}>{x} · {adminScopeText[x]}</option>)}</select>
-          {p.limit&&c?.effect==='limit'?<form className="adm-limit" onSubmit={e=>submit(e,f=>{const raw=Number(f.get('limit'));run({type:'POLICY_SET',role,perm:p.id,limit:p.limit!.unit==='percent'?Math.round(raw):Math.round(raw*100)},d.decision==='approval'?'Limit change sent for Owner approval':'Limit updated');})}>
-            <label>{p.limit.unit==='percent'?'Limit %':'Limit ₹'}<input name="limit" type="number" min="0" step={p.limit.unit==='percent'?1:0.01} disabled={!!lock||busy} defaultValue={lim===undefined?'':p.limit.unit==='percent'?lim:lim/100} key={String(lim)} placeholder="not set"/></label>
-            <button className="btn small-btn" disabled={!!lock||busy}>Save</button>
+          {p.limit&&c?.effect==='limit'?<div>
+            <PolicyLimitEditor key={`${role}:${p.id}:${lim}`} unit={p.limit.unit==='percent'?'percent':'money'} current={lim} disabled={!!lock||busy}
+              onSave={limit=>run({type:'POLICY_SET',role,perm:p.id,limit},d.decision==='approval'?'Limit change sent for Owner approval':'Limit updated')}/>
             {role==='Reception'&&p.id==='PERM-FOL-003'&&pol.limits.Reception?.[p.id]===undefined&&<small>Follows Hotel configuration → discount threshold ({money(s.settings.discountLimit)})</small>}
-          </form>:<span/>}
+          </div>:<span/>}
         </div>;})}
     </div>)}
     <div className="section-title"><div><h2>Module access</h2><p>The coarse module gate used by every screen and command. A module that is off denies the whole area, whatever the template says.</p></div></div>

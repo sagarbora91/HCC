@@ -78,7 +78,7 @@ export function PosCheck({o,compact}:{o:POSOrder;compact?:boolean}){
     <div className="pos-actions">
       {isOpen&&permission('billing')&&<button className="btn primary" disabled={busy||!unsent.length||lockedVoid} onClick={()=>run({type:'POS_KOT_SEND',id:o.id},'KOT sent to the kitchen')}><Send size={15}/> Send KOT{unsent.length?` (${unsent.reduce((a,l)=>a+l.qty,0)})`:''}</button>}
       {isOpen&&(permission('payments')||permission('billing'))&&<button className="btn primary" disabled={busy||!posActiveLines(o).length||!!unsent.length||lockedVoid} onClick={()=>open({type:'pos-settle',id:o.id})}><Wallet size={15}/> Settle</button>}
-      {o.kots.length>0&&<button className="btn" onClick={()=>open({type:'pos-print',id:o.id,room:o.kots.at(-1)!.id})}><Printer size={15}/> Print KOT</button>}
+      {o.kots.length>0&&<button className="btn" onClick={()=>open({type:'pos-print',id:o.id,room:o.kots.slice(-1)[0]!.id})}><Printer size={15}/> Print KOT</button>}
       {posActiveLines(o).length>0||o.settlement?<button className="btn" onClick={()=>open({type:'pos-print',id:o.id,room:'bill'})}><Printer size={15}/> {o.settlement?'Print bill':'Print pro-forma'}</button>:null}
       {permission('billing')&&!lockedVoid&&(isOpen&&o.lines.length>0||o.status==='Settled'&&o.settlement?.mode==='outlet'&&o.settlement.date===s.date&&permission('payments'))&&
         <button className="btn danger" disabled={busy} onClick={()=>open({type:'pos-void',id:o.id,room:'bill'})}><Ban size={15}/> Void bill</button>}

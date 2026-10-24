@@ -129,10 +129,10 @@ export function msgTimeline(m:MSGMessage,clock:string):{status:MSGStatus;at:stri
   const e=msgElapsed(m,clock),real=Math.max(0,msgMinutes(m.queuedAt,clock));
   return msgSteps(m).filter(x=>x.offset<=e).map(x=>({status:x.status,at:addMinutes(m.queuedAt,Math.min(x.offset,real))}));
 }
-export const msgStatus=(m:MSGMessage,clock:string):MSGStatus=>msgTimeline(m,clock).at(-1)!.status;
+export const msgStatus=(m:MSGMessage,clock:string):MSGStatus=>msgTimeline(m,clock).slice(-1)[0]!.status;
 export const msgFinal=(st:MSGStatus)=>st==='Read'||st==='Failed'||st==='Not sent'||st==='Delivered';
 /** Is the message at its final step for its path? (Delivered is final for SMS/Email or when outcome is Delivered.) */
-export function msgDone(m:MSGMessage,clock:string){const st=msgSteps(m);return msgElapsed(m,clock)>=st.at(-1)!.offset;}
+export function msgDone(m:MSGMessage,clock:string){const st=msgSteps(m);return msgElapsed(m,clock)>=st.slice(-1)[0]!.offset;}
 /** Minutes to add so the message reaches its next step (0 when done). */
 export function msgNextBoost(m:MSGMessage,clock:string){const e=msgElapsed(m,clock),n=msgSteps(m).find(x=>x.offset>e);return n?n.offset-e:0;}
 export const MSG_STATUS_TONE:Record<MSGStatus,string>={Queued:'neutral',Sent:'blue',Delivered:'green',Read:'green',Failed:'msg-fail','Not sent':'orange'};

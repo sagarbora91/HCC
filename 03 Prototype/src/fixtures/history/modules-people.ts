@@ -139,10 +139,10 @@ function handoverHistory(s:State,rng:Rng,o:HistoryWindow){
         const skip=!i.mandatory&&rng.chance(0.3);
         if(skip||(miss&&i.mandatory&&rng.chance(0.4)))return;
         i.done=true;i.by=rng.chance(0.8)?a:b;i.at=hovAt(d,t.shift,i.due??'09:00');
-        if(i.photo)i.photoName=`IMG_${d.replaceAll('-','')}_${pad(rng.int(700,2100))}.jpg`;
+        if(i.photo)i.photoName=`IMG_${d.split('-').join('')}_${pad(rng.int(700,2100))}.jpg`;
       });
       const late=miss;
-      Object.assign(r,{status:'Submitted',submittedBy:a,submittedAt:hovAt(d,t.shift,t.items.at(-1)?.due??'12:00'),late});
+      Object.assign(r,{status:'Submitted',submittedBy:a,submittedAt:hovAt(d,t.shift,t.items.slice(-1)[0]?.due??'12:00'),late});
       runs.push(r);
     }
     const note=(desk:HOVNote['desk'],shift:HOVNote['shift'],toShift:HOVNote['toShift'],author:string,key:string,ack:string):HOVNote=>{

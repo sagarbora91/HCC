@@ -66,7 +66,7 @@ export const yldRoomTypes=(s:State)=>[...new Set(s.rooms.map(r=>r.type))];
 const roomOf=(s:State,type:string):Room|undefined=>s.rooms.find(r=>r.type===type);
 export const yldRack=(s:State,type:string)=>roomOf(s,type)?.rate??0;
 const key=(type:string,date:string)=>type+'|'+date;
-const latest=<T extends {effectiveFrom:string}>(xs:T[])=>xs.slice().sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:a.effectiveFrom>b.effectiveFrom?1:0).at(-1);
+const latest=<T extends {effectiveFrom:string}>(xs:T[])=>xs.slice().sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:a.effectiveFrom>b.effectiveFrom?1:0).slice(-1)[0];
 
 /** Whether a tariff row was written by this module (and not since overwritten by a manual schedule). */
 export function yldIsOwned(s:State,t:{type:string;rate:number;effectiveFrom:string}){return yldSlice(s).owned[key(t.type,t.effectiveFrom)]===t.rate;}

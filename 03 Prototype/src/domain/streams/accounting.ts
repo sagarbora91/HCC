@@ -77,7 +77,7 @@ const lineTax=(l:Line)=>Math.round(l.amount*l.taxBps/10000);
 const cr=(account:string,amount:number):ACCEntry=>amount>=0?{account,debit:0,credit:amount}:{account,debit:-amount,credit:0};
 const dr=(account:string,amount:number):ACCEntry=>cr(account,-amount);
 const RECEIPT_IN=['payment','deposit'];
-const ymd=(d:string)=>d.replaceAll('-','');
+const ymd=(d:string)=>d.split('-').join('');
 const PREFIX:Record<ACCVoucherType,string>={Sales:'SAL',Receipt:'RCT',Payment:'PMT',Journal:'JRN'};
 
 /** All vouchers for a business date, derived live from the source records with the current mapping (pure). */
@@ -227,7 +227,7 @@ export function accMapRows(s:State):ACCMapRow[]{
 }
 
 // ── Export (generic voucher import format) ──
-const csvCell=(v:string|number)=>{const t=String(v);return /[",\r\n]/.test(t)?'"'+t.replaceAll('"','""')+'"':t;};
+const csvCell=(v:string|number)=>{const t=String(v);return /[",\r\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
 const rupees=(p:number)=>(p/100).toFixed(2);
 export const ACC_CSV_HEADER=['Date','Voucher No','Voucher Type','Ledger','Debit','Credit','Narration','Source ID'];
 /** One row per voucher entry. Generic import format (not Tally-specific); amounts in rupees, 2 decimals; CRLF. */

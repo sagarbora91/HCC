@@ -264,10 +264,10 @@ export const adminSettingHistory=(s:State,key:string)=>(s.configHistory||[]).fil
 
 /** Latest dated tariff for a room type with effectiveFrom ≤ date (undefined = none scheduled). */
 export function adminTariffOn(s:State,type:string,date:string){
-  return (s.tariffs||[]).filter(t=>t.type===type&&t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).at(-1);
+  return (s.tariffs||[]).filter(t=>t.type===type&&t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0];
 }
 export function adminTaxScheduled(s:State,date:string){
-  const e=(s.taxSchedule||[]).filter(t=>t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).at(-1);
+  const e=(s.taxSchedule||[]).filter(t=>t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0];
   return e?e.bps:s.settings.taxBps;
 }
 export const adminRoomTypes=(s:State)=>[...new Set(s.rooms.map(r=>r.type))];

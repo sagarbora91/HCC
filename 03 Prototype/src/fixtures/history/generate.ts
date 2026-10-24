@@ -1,6 +1,7 @@
 // FY 2026-27 history generator (plan Phase A): bookings, folios, receipts and room allocations for 1 Apr – 23 Oct 2026.
 // Deterministic (seeded PRNG, no real clock). Built as data, not by replaying commands (plan H-04); invariants are proved in
 // tests/stream-history-a.mjs. BASE is never edited: the result is BASE plus history.
+import {clone} from '../../domain/clone';
 import type {State,Booking,Line,Receipt,Approval} from '../../domain/types';
 import type {POSOrder} from '../../domain/streams/pos';
 import {addDays,nights} from '../../domain/money';
@@ -28,7 +29,7 @@ type Guest={name:string;phone:string;email:string};
 
 export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
   const o={...HISTORY_DEFAULTS,...opts};
-  const s=structuredClone(base);
+  const s=clone(base);
   const rng=createRng(o.seed);
   const days=nights(o.from,o.to)+1;
   const sellable=s.rooms.filter(r=>!r.blocked);

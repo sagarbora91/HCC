@@ -180,7 +180,7 @@ export function hrVisiblePayslips(s:State,uid:string):{run:HRRun;line:HRLine}[]{
     .sort((a,b)=>b.run.month.localeCompare(a.run.month));
 }
 const rupees=(p:number)=>(p/100).toFixed(2);
-const csvCell=(v:string|number)=>{const t=String(v);return /[",\n]/.test(t)?'"'+t.replaceAll('"','""')+'"':t;};
+const csvCell=(v:string|number)=>{const t=String(v);return /[",\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
 /** Payroll register CSV (rupees with 2 decimals). */
 export function hrRegisterCsv(s:State,run:HRRun):string{
   const head=['Month','Staff ID','Name','Department','Designation','Pay type','Payable days','Basic earned','Overtime','Gross','PF (illustrative)','ESIC (illustrative)','PT (illustrative)','Advance recovery','Total deductions','Net pay'];

@@ -90,7 +90,7 @@ export const handlers:Record<string,Handler>={
     if(msg.kind==='New'){
       call(k,'BOOK',{type:'BOOK',guest:msg.guest,email:msg.email||'',phone:msg.phone||'',people:msg.adults,children:msg.children,room:chk.room,
         arrival:msg.arrival,departure:msg.departure,source:'OTA',otaChannel:c.name,notes:`${c.name} reservation ${msg.ref} · simulated channel import`});
-      const bk=s.bookings.at(-1)!;msg.booking=bk.id;msg.room=bk.room;done('Accepted');
+      const bk=s.bookings.slice(-1)[0]!;msg.booking=bk.id;msg.room=bk.room;done('Accepted');
       return `${c.name} ${msg.ref} → ${bk.id} · ${msg.guest} · room ${bk.room} · ${msg.arrival} → ${msg.departure}${chk.warning?' · '+chk.warning:''}`;
     }
     const o=chk.original!;
@@ -136,7 +136,7 @@ export const handlers:Record<string,Handler>={
     assert(room,`${cmd.roomType} is sold out for these dates.`,'NOT_AVAILABLE');
     call(k,'BOOK',{type:'BOOK',guest,email,phone,people:adults,children,room,arrival:cmd.arrival,departure:cmd.departure,source:CHN_WEB_SOURCE,hold:true,
       notes:'Direct website request (preview) · pending hotel confirmation'+(notes?' · '+notes:'')});
-    const bk=s.bookings.at(-1)!,wid=id('WEB');
+    const bk=s.bookings.slice(-1)[0]!,wid=id('WEB');
     slice(s).webRequests.push({id:wid,booking:bk.id,guest,phone,email,roomType:cmd.roomType,arrival:cmd.arrival,departure:cmd.departure,adults,children,
       net:q.net,tax:q.tax,total:q.total,createdAt:s.clock,status:'Pending',notes:notes||undefined});
     return `${wid} · ${guest} · ${cmd.roomType} · ${cmd.arrival} → ${cmd.departure} · ${money(q.total)} incl. synthetic tax · held as ${bk.id}`;

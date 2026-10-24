@@ -1,6 +1,7 @@
 // Module 23 · Restaurant POS & room service — fixture extensions (fictional data only).
 // Outlet sales live in s.posX: no money is posted into existing bookings. Cash bills count in the front-desk drawer (shared till, DEC-052):
 // POS-F01 adds ₹550 to the BASE drawer (₹10,200 → ₹10,750); POS-F02 is UPI (non-cash). POS-F03/F04 are open checks that block day close.
+import {clone} from '../../domain/clone';
 import type {State} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
 import type {POSMenuItem,POSOrder,POSState} from '../../domain/streams/pos';
@@ -44,7 +45,7 @@ export function extendBase(s:State):void{
   const st=(o:POSOrder)=>o.settlement!;
   const p:POSState={
     outlets:[{id:R,name:'Restaurant',kind:'table',tables:['T1','T2','T3','T4','T5','T6','T7','T8']},{id:RS,name:'Room service',kind:'room'}],
-    menu:structuredClone(POS_FIXTURE_MENU),orders,
+    menu:clone(POS_FIXTURE_MENU),orders,
     receipts:orders.filter(o=>o.settlement).map(o=>({id:st(o).receiptId!,order:o.id,outlet:o.outlet,method:st(o).method!,amount:st(o).total,net:st(o).net,tax:st(o).tax,taxBps:tax,
       reference:st(o).reference??'Outlet cash',date:d,actor:'cashier',kind:'sale' as const})),
     kotSeq:{[R+':'+d]:3,[RS+':'+d]:1},billSeq:2,

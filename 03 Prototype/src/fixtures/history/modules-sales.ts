@@ -58,7 +58,7 @@ function posHistory(s:State,rng:Rng,o:HistoryWindow,ctx:HistoryContext){
     const x=big.splice(rng.int(0,big.length-1),1)[0],st=x.settlement!,aid='APR-HP'+pad(++ap,3);
     approvals.push({id:aid,booking:'',amount:st.total,reason:rng.pick(['Wrong table billed','Duplicate bill','Guest left before service']),status:'Executed',actor:'cashier',version:x.version,kind:'pos-void',target:x.id,approver:'manager',decidedAt:x.date+'T'+hm(23*60-30),
       expiresAt:addDays(x.date,1)+'T21:00',meta:{command:'POS_VOID_DECIDE',scope:'bill',summary:'Void bill · Table '+x.table}});
-    const a=approvals.at(-1)!;
+    const a=approvals.slice(-1)[0]!;
     x.lines.forEach(l=>{l.voided=true;l.voidReason=a.reason;l.voidBy='cashier';l.voidDate=x.date;l.voidApproval=aid;});
     x.status='Void';x.voidReason=a.reason;x.voidedBy='cashier';x.voidedAt=x.date+'T'+hm(23*60-30);x.version++;
     receipts.push({id:'POSR-H'+pad(++rc,5),order:x.id,outlet:'restaurant',method:st.method!,amount:-st.total,net:-st.net,tax:-st.tax,taxBps:st.taxBps,reference:'Void of billNo',date:x.date,actor:'cashier',kind:'void'});

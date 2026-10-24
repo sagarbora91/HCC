@@ -204,6 +204,9 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   const L=(k?:Line['kind'])=>lines.filter(x=>!k||x.l.kind===k).map(x=>lineRow(x.b,x.l,x.l.amount));
   const taxRows=lines.map(x=>lineRow(x.b,x.l,lineTax(x.l)));
   const R=(kinds:string[],method?:string)=>rec.filter(x=>kinds.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));
+  // Shared till: POS receipts are separate source records; folio transfers create no receipt here.
+  const posCash:DrillRow[]=posSlice(s).receipts.filter(r=>r.method==='Cash'&&inRange(r.date,from,to)).map(r=>({
+    date:r.date,ref:r.id,detail:`POS ${r.kind} · ${r.order} · ${r.reference}`,method:r.method,kind:'pos-'+r.kind,amount:r.amount}));
   const stayRows=dates.flatMap(d=>reportStaysOn(s,d).map(b=>({date:d,ref:b.id+':'+d,booking:b.id,guest:b.guest,room:b.room,detail:'Occupied room night · '+b.status,amount:1})));
   const sellRows=dates.flatMap(d=>reportSellableOn(s,d).map(r=>({date:d,ref:'room:'+r.id+':'+d,room:r.id,detail:`Sellable room ${r.id} · ${r.type}`,amount:1})));
   const arrRows=s.bookings.filter(b=>(b.status==='In house'||b.status==='Departed')&&inRange(b.arrival,from,to)).map(b=>({date:b.arrival,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Arrival · '+b.source,amount:1}));
@@ -238,7 +241,8 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
         rows:dates.map(d=>[d,...tenders.map(t=>sumBy(R(['payment','refund'],t),d)),sumBy(pay.rows,d),sumBy(R(['deposit']),d),sumBy(R(['deposit-return']),d)])}},
     {id:'expenses',label:'Expenses & cash',ratios:[],metrics:[metric('cash','Drawer-cash expenses',E(e=>e.method==='Cash')),metric('noncash','UPI / bank expenses',E(e=>e.method==='UPI'||e.method==='Bank transfer')),
       metric('vendor','Vendor-credit expenses (no drawer effect)',E(e=>e.method==='Vendor credit')),metric('reversals','Reversals included above',E(e=>!!e.reversalOf)),expTotal,
-      metric('cash-in','Cash into drawer (payments + deposits)',R(['payment','deposit'],'Cash')),metric('cash-out','Cash out of drawer (refunds + returns)',R(['refund','deposit-return'],'Cash'))],
+      metric('cash-in','Cash into drawer (payments + deposits + POS sales)',[...R(['payment','deposit'],'Cash'),...posCash.filter(r=>r.kind==='pos-sale')]),
+      metric('cash-out','Cash out of drawer (refunds + returns + POS voids)',[...R(['refund','deposit-return'],'Cash'),...posCash.filter(r=>r.kind==='pos-void')])],
       table:{columns:['Business date','Day','Opening float','Expected cash','Counted','Difference','Cash expenses'],units:['text','text','money','money','money','money','money'],
         rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(E(e=>e.method==='Cash'),d)];})}},
     {id:'occupancy',label:'Occupancy',ratios,metrics:[occ.sellable,occ.occupied,occ.room],
@@ -258,9 +262,10 @@ export const reportDictionary:[string,string,string][]=[
   ['Deposits held','Σ deposits − deposit returns across all folios, at the current moment','—'],
   ['Outstanding','Σ positive folio balances of open stays','—'],
   ['Expenses','Σ posted expenses by business date, split by funding source; a reversal is a negative record on its own date','—'],
+  ['Drawer cash flows','Cash in = guest payments + deposits + POS cash sales; cash out = negative refunds + deposit returns + POS cash voids. Filtered by receipt date; cash expenses are separate.','Opening float + cash in + signed cash out − net cash expenses = expected cash for that day, before banking'],
   ['Synthetic tax','Per-line tax rounded half-up to the paisa at the line’s snapshot rate; test data, not GST','—'],
 ];
-const csvCell=(v:string|number)=>'"'+String(v).replaceAll('"','""')+'"';
+const csvCell=(v:string|number)=>'"'+String(v).split('"').join('""')+'"';
 const rupees=(p:number)=>(p/100).toFixed(2);
 /** CSV for one report tab with a scenario/date header. Money in rupees with 2 decimals. */
 export function reportCsv(s:State,pack:ReportPack,tabId:string){

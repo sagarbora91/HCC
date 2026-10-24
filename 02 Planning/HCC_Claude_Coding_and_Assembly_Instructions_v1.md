@@ -1,5 +1,14 @@
 # Claude coding and assembly instructions — HCC
 
+> **Current implementation direction — 25 October 2026 (revision 1.1).** DEC-054 supersedes the original NestJS proposal: production is **.NET 10 ASP.NET Core (C#) + SQL Server 2025 Express**, retaining React/Capacitor clients. Follow `HCC_Production_Contracts_and_Schema_v1.md` §7 and `HCC_FirstParty_Reuse_ETP_SCC_v1.md`. ETP platform reuse and SCC payroll/leave/compliance/cash-book rules are selected for evaluation/adaptation; this does not mean their code is already integrated or verified.
+>
+> **Resume, do not restart:** A0/A1 and the A3 T-SQL spike are reported complete; A2 shared till and restriction overrides were merged (APR-005, DEC-052/053). Read the qualification register and existing evidence before doing new work. H01/H03 are references, H02/H04 are lab-only adaptations, O01 is rejected for now and O02 deferred. Port accepted server rules to C# with provenance and parity tests; TypeScript source filenames below describe historical candidate/lab work, not the production server language.
+>
+> **Current gate:** finish W0-D acceptance and defect verification; Wave 0.5 is approved after W0-D closes (APR-006), while production construction still needs A4 authorization. Latest merged baseline reports 490 tests; APK v6 predates the uncommitted AC-01 compatibility fix. Tablet CSV, print and Reset now have passing evidence; emulator role/AC-flow completion and remaining defects must be checked in the acceptance reports. No tests were rerun for this documentation update. Preserve existing work and do not launch extra emulators/checkpoint processes from older recovery notes without checking their current state.
+>
+> The detailed original assessment below is retained for traceability. This update and the latest decision register take precedence over its historical baseline, completed-work instructions and unresolved-policy descriptions. See `05 Delivery Evidence/Assembly/2026-10-25_Development_Review.md` for the current evidence checklist.
+
+
 Version 1.0 · 24 October 2026. Use with `HCC_Component_Selection_and_Assembly_Plan_v1.md`.
 
 ## 1. Mission and current starting point
@@ -91,7 +100,7 @@ contracts/      public commands, queries, event definitions
 tests/          focused domain/contract/adapter tests
 ```
 
-Domain imports may not reach React, NestJS, database libraries, browser storage or donor source folders. No module directly writes another module's tables. An application coordinator can invoke module-owned interfaces in the same transaction when atomicity requires it. Reporting uses approved projections or explicit read interfaces, not unrestricted client access to all schemas.
+The production C# domain may not depend on React, ASP.NET Core, database libraries, browser storage or donor source folders. No module directly writes another module's tables. An application coordinator can invoke module-owned interfaces in the same transaction when atomicity requires it. Reporting uses approved projections or explicit read interfaces, not unrestricted client access to all schemas.
 
 Do not perpetuate the global mutable `withHoldExempt` variable from the synchronous mock in concurrent server code. Pass the allowed group-block exemption as explicit per-command context and revalidate it server-side.
 

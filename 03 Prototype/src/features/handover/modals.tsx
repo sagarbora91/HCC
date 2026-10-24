@@ -15,7 +15,7 @@ export function HovItemModal({id,room}:ModalProps){
   const item=r?.items.find(i=>i.id===room);
   const [note,setNote]=useState(item?.note??'');const [photo,setPhoto]=useState(item?.photoName??'');
   if(!t||!r||!item)return <Empty title="This checklist item is unavailable"/>;
-  const simulate=()=>setPhoto(`IMG_${s.clock.slice(0,10).replaceAll('-','')}_${s.clock.slice(11,16).replace(':','')}.jpg`);
+  const simulate=()=>setPhoto(`IMG_${s.clock.slice(0,10).split('-').join('')}_${s.clock.slice(11,16).replace(':','')}.jpg`);
   const save=(tick:boolean)=>run({type:'HOV_ITEM',template:t.id,item:item.id,note,photo,...(tick?{done:true}:{}),key:hovKey(s,'item',t.id,item.id,tick)},tick?'Saved and ticked':'Note / photo saved',{close:true});
   return <form className="form" onSubmit={e=>{e.preventDefault();save(!item.done);}}>
     <div className="modal-heading"><h2>{item.text}</h2><p>{r.name} · {r.shift}{item.due?' · due '+item.due:''}{item.mandatory?' · mandatory':''}</p></div>

@@ -1,0 +1,8 @@
+/* Last in the stylesheet bundle: the app's sand canvas must not fill unused paper. */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; height: auto !important; min-height: 0 !important; }
+  .invoice, .f-print-doc, .print-doc, .table-wrap { overflow: visible !important; max-height: none !important; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+}

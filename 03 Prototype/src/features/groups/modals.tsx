@@ -150,7 +150,7 @@ export function RoomingForm({id,mobile}:{id?:string;mobile?:boolean}){
             {mobile?<NumberStepper label="Guests" value={r.people} min={1} max={4} onChange={v=>set(i,{people:v})}/>:<label>Guests<input type="number" inputMode="numeric" min={1} max={4} value={r.people} onChange={e=>set(i,{people:Math.max(1,Math.min(4,Number(e.target.value)||1))})}/></label>}
           </div>;})}
       </div>
-      <button type="button" className="btn grp-add" disabled={rows.length>=50} onClick={()=>setRows([...rows,{guest:'',phone:'',type:rows.at(-1)?.type||types[0]||'',room:'',people:1}])}><Plus size={16}/> Add guest</button>
+      <button type="button" className="btn grp-add" disabled={rows.length>=50} onClick={()=>setRows([...rows,{guest:'',phone:'',type:rows.slice(-1)[0]?.type||types[0]||'',room:'',people:1}])}><Plus size={16}/> Add guest</button>
       {over.length>0&&<div className="info-note grp-warn" role="alert"><AlertTriangle size={16}/>More {over.join(', ')} guests than unpicked rooms. Increase the allotment first.</div>}
       <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={`this block (${dateLabel(a)} → ${dateLabel(blk.departure)})`}/>
       {bill&&<div className={'grp-credit-box '+level} aria-live="polite"><div><b>Credit check · {c!.name}</b><span>Exposure {money(k!.exposure)} + this list {money(added)} = <b>{money(after)}</b> of {money(c!.creditLimit)} limit</span></div><GrpCreditPill level={level}/></div>}

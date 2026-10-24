@@ -62,7 +62,7 @@ export function styleStatusBar(){
 export function nativeFileName(title:string,ext:string,date=''):string{
   const slug=title.replace(/\.[a-z0-9]{2,4}$/i,'').replace(/[^A-Za-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'document';
   const withHcc=/^HCC-/i.test(slug)?slug:'HCC-'+slug;
-  return withHcc+(date?'-'+date.replaceAll('-',''):'')+'.'+ext.replace(/^\./,'');
+  return withHcc+(date?'-'+date.split('-').join(''):'')+'.'+ext.replace(/^\./,'');
 }
 export type SaveResult='downloaded'|'shared'|'failed';
 const toBase64=(text:string)=>{const bytes=new TextEncoder().encode(text);let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(bin);};
@@ -88,7 +88,7 @@ export const saveCsv=(name:string,csv:string)=>saveTextFile(name,csv,'text/csv',
 /** Standalone printable page from a fragment of the screen. */
 export function printablePage(title:string,bodyHtml:string,css:string):string{
   const esc=(t:string)=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${css}</style><style>body{background:#fff;padding:16px}.no-print,.modal-actions{display:none!important}</style></head><body>${bodyHtml}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${css}</style><style>html,body{background:#fff!important;height:auto!important;min-height:0!important}body{margin:0;padding:16px}.no-print,.modal-actions{display:none!important}@page{size:A4;margin:14mm}@media print{body{padding:0}.invoice,.f-print-doc,.print-doc,.table-wrap{overflow:visible!important;max-height:none!important}thead{display:table-header-group}tr{break-inside:avoid}}</style></head><body>${bodyHtml}</body></html>`;
 }
 /** The part of the screen worth printing: the open sheet's document, else the page. */
 function printTarget():{title:string;html:string}{

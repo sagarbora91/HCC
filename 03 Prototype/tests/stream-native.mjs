@@ -72,5 +72,6 @@ export function register({test,assert}){
   test('[NATIVE] printable page is standalone, escapes the title and hides action buttons',()=>{
     const h=N.printablePage('A <b> & C','<div class="invoice">x</div>','.invoice{color:#000}');
     assert.match(h,/^<!doctype html>/);assert.match(h,/<title>A &lt;b> &amp; C<\/title>/);assert.match(h,/\.no-print,\.modal-actions\{display:none!important\}/);assert.match(h,/<div class="invoice">x<\/div>/);
+    assert.match(h,/html,body\{background:#fff!important/);assert.match(h,/@page\{size:A4;margin:14mm\}/);
   });
 }

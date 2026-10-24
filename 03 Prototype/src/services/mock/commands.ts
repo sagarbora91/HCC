@@ -1,5 +1,6 @@
 // Mock command service. Every mutation goes through execute(); it validates permission, scope and state,
 // returns a NEW state (input is never mutated) or throws a typed HccError. See HCC_Business_Workflow_Spec_v1.md.
+import {clone} from '../../domain/clone';
 import {State,Command,Permission,Receipt,Role,Booking,User,roles,permissions,assignedScopeRoles} from '../../domain/types';
 import {registry} from './handlers';
 import {HccError,ErrorCode} from '../../domain/errors';
@@ -15,7 +16,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
   if(current!.expiresOn&&input.date>current!.expiresOn)fail('FORBIDDEN',`This demo user’s access expired on ${current!.expiresOn}. Switch to an active user.`);
   // Idempotency: a key already executed returns the earlier result unchanged (AC-005, AC-022).
   if(cmd.key&&input.processed.includes(cmd.key))return input;
-  const s=structuredClone(input),u=s.users.find(x=>x.id===uid);
+  const s=clone(input),u=s.users.find(x=>x.id===uid);
   const user=u!;
   const req=(p:Permission)=>{if(!can(s,uid,p))fail('FORBIDDEN',`Access denied: ${p} permission is required.`);};
   const id=(prefix:string)=>prefix+'-'+(++s.sequence);
@@ -184,7 +185,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
   if(cmd.key)s.processed.push(cmd.key);
   // Simulated clock: every successful command advances one minute (deterministic, DEC-030).
   if(cmd.type!=='NEXT_DAY')s.clock=addMinutes(s.clock,1);
-  s.audit.unshift({id:id('audit'),at:s.clock,actor:user.name,action:cmd.type.replaceAll('_',' '),detail});
+  s.audit.unshift({id:id('audit'),at:s.clock,actor:user.name,action:cmd.type.split('_').join(' '),detail});
   return s;
 }
 

@@ -249,7 +249,7 @@ const TARIFF_SCHEDULE:Handler=k=>{
   assert(cmd.effectiveFrom>=s.date,'Effective date cannot be before the current business date.');
   assert(Number.isSafeInteger(cmd.rate)&&cmd.rate>0&&cmd.rate<=10000000,'Enter a nightly rate greater than zero (maximum ₹1,00,000).');
   const room=s.rooms.find(r=>r.type===cmd.roomType)!;
-  const prev=list.filter(t=>t.type===cmd.roomType&&t.effectiveFrom<=cmd.effectiveFrom).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).at(-1)?.rate??room.rate;
+  const prev=list.filter(t=>t.type===cmd.roomType&&t.effectiveFrom<=cmd.effectiveFrom).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0]?.rate??room.rate;
   s.tariffs=list.filter(t=>!(t.type===cmd.roomType&&t.effectiveFrom===cmd.effectiveFrom));s.tariffs.push({type:cmd.roomType,rate:cmd.rate,effectiveFrom:cmd.effectiveFrom});
   history(k,'tariff:'+cmd.roomType,money(prev),money(cmd.rate),cmd.effectiveFrom,cmd.reason||'');
   return `Tariff ${cmd.roomType} · ${money(prev)} → ${money(cmd.rate)} from ${cmd.effectiveFrom} · existing bookings keep agreed rates`;

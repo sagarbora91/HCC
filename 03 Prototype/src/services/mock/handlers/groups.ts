@@ -145,7 +145,7 @@ export const handlers:Record<string,Handler>={
       try{withHoldExempt(blk.id,()=>reservations.BOOK({...k,cmd:{type:'BOOK',guest:row.guest,room,arrival:a,departure:blk.departure,people,children:row.children,phone:row.phone,
         source:'Group · '+blk.id,restrictionOverride:cmd.restrictionOverride,company:bill?{name:company!.name,gstin:company!.gstin||undefined}:undefined,notes:`Group block ${blk.id} · ${blk.name}`}}));}
       catch(e){const err=e as Error&{code?:string};fail((err.code||'VALIDATION') as never,`Row ${n} (${str(row.guest,40)||'guest'}): ${err.message}`);}
-      const b=s.bookings.at(-1)!;b.rate=blk.rates[type]||b.rate;
+      const b=s.bookings.slice(-1)[0]!;b.rate=blk.rates[type]||b.rate;
       blk.members.push({booking:b.id,type});made.push(`${b.id} ${b.room}`);
     });
     let extra='';

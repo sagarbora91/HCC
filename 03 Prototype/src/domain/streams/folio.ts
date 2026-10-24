@@ -23,8 +23,8 @@ export const folioExpiresAt=(clock:string)=>addMinutes(clock,FOLIO_APPROVAL_TTL_
 /** Approval kind, normalising the M1 discount (no kind). */
 export const folioKind=(a:Approval)=>a.kind??'discount';
 export const folioKindLabel:Record<string,string>={discount:'Discount','refund':'Refund','company-credit':'Company credit','correction':'Correction','credit-note':'Credit note'};
-/** True when a still-Pending/Approved request has passed its expiry on the simulated clock. */
-export function folioApprovalExpired(s:State,a:Approval){return !!a.expiresAt&&s.clock>a.expiresAt&&(a.status==='Pending'||a.status==='Approved');}
+/** Discounts post at approval; their completed decision never expires. Refund/credit authorizations still expire before execution. */
+export function folioApprovalExpired(s:State,a:Approval){return !!a.expiresAt&&s.clock>a.expiresAt&&(a.status==='Pending'||(a.status==='Approved'&&folioKind(a)!=='discount'));}
 /** Status as shown to users: a request past its expiry reads "Expired" even before anyone touches it. */
 export function folioApprovalStatus(s:State,a:Approval):Approval['status']{return folioApprovalExpired(s,a)?'Expired':a.status;}
 /** Folio approvals (stream C kinds) for one booking, newest first. */
@@ -65,7 +65,7 @@ export const folioReceiptLabel:Record<string,string>={payment:'Payment / advance
 export function folioCompanyCreditState(s:State,b:Booking,balance:number):{state:'none'|'pending'|'approved'|'stale';approval?:Approval}{
   const list=s.approvals.filter(a=>a.booking===b.id&&a.kind==='company-credit'&&!folioApprovalExpired(s,a));
   const pending=list.find(a=>a.status==='Pending');if(pending)return {state:'pending',approval:pending};
-  const approved=list.filter(a=>a.status==='Approved').at(-1);
+  const approved=list.filter(a=>a.status==='Approved').slice(-1)[0];
   if(approved)return {state:approved.amount===balance&&approved.version===b.version?'approved':'stale',approval:approved};
   return {state:'none'};
 }

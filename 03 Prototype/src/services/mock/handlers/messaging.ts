@@ -142,7 +142,7 @@ export const handlers:Record<string,Handler>={
       const smp=msgSampleDocs.find(m=>m.id===d!.sample);
       ex!({...k,cmd:{type:'EXPENSE',vendor:val('vendor'),category:val('category'),amount,method,draft:true,
         receipt:`${smp?.file||d!.id} (simulated capture)`,notes:`Bill ${val('billNo')} dated ${val('billDate')} · from document capture ${d!.id}`}});
-      target=s.expenses.at(-1)!.id;
+      target=s.expenses.slice(-1)[0]!.id;
     }else{
       const g=(s.guests||[]).find(g=>g.id===cmd.guestId);assert(g,'Choose the guest profile to update.','NOT_FOUND');
       if(d!.kind==='id-card'){

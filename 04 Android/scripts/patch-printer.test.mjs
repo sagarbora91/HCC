@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {patchPrinter} from './patch-printer.mjs';
+const source=readFileSync(new URL('../node_modules/@capgo/capacitor-printer/android/src/main/java/com/capgo/printer/Printer.java',import.meta.url),'utf8');
+const original=source.replaceAll('.setMediaSize(PrintAttributes.MediaSize.ISO_A4)','');
+const patched=patchPrinter(original);
+assert.equal(patched.split('MediaSize.ISO_A4').length-1,2);
+assert.equal(patchPrinter(patched),patched);
+assert.equal(patched.replaceAll('.setMediaSize(PrintAttributes.MediaSize.ISO_A4)',''),original);
+assert.throws(()=>patchPrinter('unexpected plugin source'),/source changed/);
+assert.throws(()=>patchPrinter(patched.replace('MediaSize.ISO_A4','MediaSize.NA_LETTER')),/Unexpected/);
+console.log('PASS: 5 printer patch assertions (two HTML paths, idempotence, scope, changed-source rejection).');
