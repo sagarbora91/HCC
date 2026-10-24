@@ -9,6 +9,8 @@ import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
 import {GrpCreditPill,grpRupees,grpPaise,grpSimNote,grpUserName} from './parts';
 import {MasterFolio,PickupTable} from './Groups';
+import {RestrictionNotice} from '../reservations/RestrictionNotice';
+import {rstState} from '../reservations/restriction';
 
 const Head=({eyebrow,title,sub}:{eyebrow:string;title:string;sub:string})=><div className="modal-heading"><div className="eyebrow">{eyebrow}</div><h2>{title}</h2><p>{sub}</p></div>;
 
@@ -117,10 +119,11 @@ export function CancelBlockModal({id}:{id?:string}){
 type Row={guest:string;phone:string;type:string;room:string;people:number};
 /** Rooming list → bookings. Desktop: grid rows; phone (mobile=true): one card per guest, larger controls. */
 export function RoomingForm({id,mobile}:{id?:string;mobile?:boolean}){
-  const {s,run,modal,closeModal,busy,permission}=useHcc();const blk=grpBlock(s,id);
+  const {s,uid,run,modal,closeModal,busy,permission}=useHcc();const blk=grpBlock(s,id);
   const types=blk?Object.keys(blk.allot).filter(t=>grpRemaining(s,blk,t)>0):[];
   const [rows,setRows]=useState<Row[]>(()=>[{guest:'',phone:'',type:types[0]||'',room:'',people:1}]);
   const [override,setOverride]=useState(false),[reason,setReason]=useState('');
+  const [rstOn,setRstOn]=useState(false),[rstReason,setRstReason]=useState('');
   if(!blk)return <Empty title="This block is unavailable"/>;
   const a=blk.arrival<s.date?s.date:blk.arrival;
   const set=(i:number,p:Partial<Row>)=>setRows(rows.map((r,j)=>j===i?{...r,...p}:r));
@@ -130,8 +133,10 @@ export function RoomingForm({id,mobile}:{id?:string;mobile?:boolean}){
   const added=rows.reduce((n,r)=>n+(r.type?grpStayValue(s,blk.rates[r.type]||0,a,blk.departure):0),0);
   const k=bill?grpCredit(s,c!):undefined,after=k?k.exposure+added:0,level=k?grpCreditLevel(c!.creditLimit,after):'ok';
   const needOverride=!!bill&&after>c!.creditLimit,canOverride=permission('approve');
-  const ok=rows.every(r=>r.guest.trim().length>=2&&r.type)&&!over.length&&(!needOverride||(canOverride&&override&&reason.trim().length>=3));
-  const send=()=>run({type:'GRP_ROOMING',block:blk.id,rows:rows.map(r=>({guest:r.guest.trim(),phone:r.phone.trim()||undefined,type:r.type,room:r.room||undefined,people:r.people})),override:needOverride&&override||undefined,overrideReason:needOverride?reason.trim():undefined,key:modal!.key},`${rows.length} booking${rows.length>1?'s':''} created`,{close:true});
+  // Stay restrictions (DEC-053) for the block dates and the room types on this list; one override covers the whole list.
+  const rst=rstState(s,uid,rows.map(r=>r.type),a,blk.departure,rstOn?rstReason:null);
+  const ok=rows.every(r=>r.guest.trim().length>=2&&r.type)&&!over.length&&(!needOverride||(canOverride&&override&&reason.trim().length>=3))&&rst.canSubmit;
+  const send=()=>run({type:'GRP_ROOMING',block:blk.id,rows:rows.map(r=>({guest:r.guest.trim(),phone:r.phone.trim()||undefined,type:r.type,room:r.room||undefined,people:r.people})),override:needOverride&&override||undefined,overrideReason:needOverride?reason.trim():undefined,restrictionOverride:rst.restrictionOverride,key:modal!.key},`${rows.length} booking${rows.length>1?'s':''} created`,{close:true});
   return <><Head eyebrow={'ROOMING LIST · '+blk.id} title={blk.name} sub={`${dateLabel(a)} → ${dateLabel(blk.departure)} · each guest becomes a confirmed booking at the block rate${bill?', billed to '+c!.name:''}.`}/>
     <div className={mobile?"grp-remaining grp-remaining-m":"grp-remaining"}>{Object.keys(blk.allot).map(t=><span key={t} className={'pill '+(used(t)>grpRemaining(s,blk,t)?'grp-red':'neutral')}>{t}: {used(t)} / {grpRemaining(s,blk,t)} left</span>)}</div>
     <form className="form" onSubmit={e=>{e.preventDefault();if(ok)send();}}>
@@ -147,6 +152,7 @@ export function RoomingForm({id,mobile}:{id?:string;mobile?:boolean}){
       </div>
       <button type="button" className="btn grp-add" disabled={rows.length>=50} onClick={()=>setRows([...rows,{guest:'',phone:'',type:rows.at(-1)?.type||types[0]||'',room:'',people:1}])}><Plus size={16}/> Add guest</button>
       {over.length>0&&<div className="info-note grp-warn" role="alert"><AlertTriangle size={16}/>More {over.join(', ')} guests than unpicked rooms. Increase the allotment first.</div>}
+      <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={`this block (${dateLabel(a)} → ${dateLabel(blk.departure)})`}/>
       {bill&&<div className={'grp-credit-box '+level} aria-live="polite"><div><b>Credit check · {c!.name}</b><span>Exposure {money(k!.exposure)} + this list {money(added)} = <b>{money(after)}</b> of {money(c!.creditLimit)} limit</span></div><GrpCreditPill level={level}/></div>}
       {needOverride&&(canOverride?<><label className="checkbox-line"><input type="checkbox" checked={override} onChange={e=>setOverride(e.target.checked)}/>Override the credit limit (audited)</label>
         {override&&<label>Override reason<input value={reason} minLength={3} maxLength={200} onChange={e=>setReason(e.target.value)} placeholder="e.g. Advance cheque received" enterKeyHint="send"/></label>}</>

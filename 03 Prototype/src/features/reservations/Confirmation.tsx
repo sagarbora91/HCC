@@ -5,6 +5,7 @@ import {Hotel,Printer,Hourglass,Info} from 'lucide-react';
 import {Booking,money,nights,totals,resStatus,resHoldActive,resHoldLeftLabel} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,Pill,dateLabel} from '../../components/ui';
+import {RestrictionOverrideNote} from './RestrictionNotice';
 
 /** 'confirmation' modal (wide). Props: id = booking ID. */
 export function BookingConfirmation({id}:{id?:string}){
@@ -30,6 +31,7 @@ export function ResBookingActions({b}:{b:Booking}){
   const {s,act,run,open,permission}=useHcc();
   const status=resStatus(s,b),held=b.status==='Held'&&resHoldActive(s,b);
   return <>
+    <RestrictionOverrideNote b={b}/>
     {held&&<><Pill tone="orange"><Hourglass size={11}/>Held · {resHoldLeftLabel(s,b)}</Pill>
       {act('reservations',()=>run({type:'CONFIRM',id:b.id,key:'confirm:'+b.id},'Hold confirmed. The reservation is now Confirmed.'),'Confirm hold','btn primary')}
       {act('reservations',()=>open({type:'move',id:b.id}),'Change dates / room','btn subtle')}

@@ -4,6 +4,8 @@ import {ArrowRight,Info,Hourglass,TriangleAlert} from 'lucide-react';
 import {money,occupant,addDays,nights,rateFor,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {field,submit,shortDate,Empty} from '../../components/ui';
+import {RestrictionNotice} from './RestrictionNotice';
+import {rstState} from './restriction';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const err=(m?:string)=>m?<small className="res-field-error" role="alert">{m}</small>:null;
@@ -13,7 +15,7 @@ const err=(m?:string)=>m?<small className="res-field-error" role="alert">{m}</sm
  * used by the calendar's empty cells. Saves as Confirmed, or as Held for 2 h of simulated time.
  */
 export function NewReservation({room,id}:{room?:string;id?:string}){
-  const {s,run,modal,closeModal,busy,booking}=useHcc();
+  const {s,uid,run,modal,closeModal,busy,booking}=useHcc();
   const pre=s.rooms.find(r=>r.id===room);
   const start=id&&DATE.test(id)&&id>=s.date?id:s.date;
   const [arrival,setArrival]=useState(start),[departure,setDeparture]=useState(addDays(start,id?1:2));
@@ -26,6 +28,9 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
   const pickedExcluded=pick&&!chosen?q.excluded.find(r=>r.room.id===pick):undefined;
   const dateError=!DATE.test(arrival)||!DATE.test(departure)?'Choose both dates.':arrival<s.date?'Arrival cannot be before the current business date.':nights(arrival,departure)<=0?'Departure must follow arrival.':nights(arrival,departure)>30?'Maximum 30 nights in this demo.':'';
   const n=dateError?0:nights(arrival,departure);
+  // Stay restrictions (DEC-053) for the room that would be booked; approvers may override with a reason.
+  const [rstOn,setRstOn]=useState(false),[rstReason,setRstReason]=useState('');
+  const rst=rstState(s,uid,dateError?'':chosen?.type||'',arrival,departure,rstOn?rstReason:null);
   const save=(form:HTMLFormElement,hold:boolean)=>{
     const f=new FormData(form),e:Record<string,string>={};
     const guest=field(f,'guest').trim(),phone=field(f,'phone').trim(),ota=field(f,'otaChannel').trim(),company=field(f,'companyName').trim(),gstin=field(f,'gstin').trim().toUpperCase();
@@ -35,11 +40,12 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
     if(gstin&&!company)e.companyName='Enter the company name for the GSTIN.';
     if(gstin&&!RES_GSTIN.test(gstin))e.gstin='Use the 15-character format, e.g. 27AAAAA0000A1Z5.';
     if(dateError)e.dates=dateError;
+    if(!rst.canSubmit)e.restriction='Resolve the stay restriction first.';
     if(!chosen)e.room=q.available.length?'Select one of the available rooms, or Auto-assign.':'No room is available for this search. Change dates, party size or type.';
     setErrors(e);if(Object.keys(e).length)return;
     const predicted='HCC-'+(s.sequence+1);
     run({type:'BOOK',guest,phone,email:field(f,'email'),people,children,room:chosen!.id,arrival,departure,source,otaChannel:source==='OTA'?ota:undefined,
-      company:company?{name:company,gstin:gstin||undefined}:undefined,notes:field(f,'notes'),hold,key:modal!.key},
+      company:company?{name:company,gstin:gstin||undefined}:undefined,notes:field(f,'notes'),hold,restrictionOverride:rst.restrictionOverride,key:modal!.key},
       hold?'Room held for 2 hours of simulated time. Confirm it before the hold expires.':'Reservation confirmed. Open it to register the guest and check in.',
       {after:()=>booking(predicted)});
   };
@@ -78,11 +84,12 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
           <label>GSTIN (optional, fictional)<input name="gstin" placeholder="27AAAAA0000A1Z5" maxLength={15} style={{textTransform:'uppercase'}} aria-invalid={!!errors.gstin}/>{err(errors.gstin)}</label></div>
         <label>Notes<textarea name="notes" rows={2} placeholder="Preferences or arrival notes…" maxLength={300}/></label>
       </fieldset>
+      <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={chosen?`room ${chosen.id} (${chosen.type})`:undefined}/>
       {chosen&&<div className="summary-list res-summary"><div><span>Room {chosen.id} · {chosen.type}{pick?'':' (auto-assigned)'}</span><strong>{money(rateFor(s,chosen,arrival))} / night</strong></div><div><span>{n} night{n===1?'':'s'} · {shortDate(arrival)} — {shortDate(departure)}</span><strong>{money(rateFor(s,chosen,arrival)*n)} + synthetic tax</strong></div></div>}
       <div className="info-note"><Hourglass size={16}/>A hold reserves the room for 2 hours of simulated time, then releases it automatically. Availability is rechecked for the full date range when you save. No external booking or message is sent.</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button>
-        <button type="button" className="btn" disabled={busy} onClick={e=>save(e.currentTarget.form!,true)}><Hourglass size={15}/> Hold 2 hours</button>
-        <button className="btn primary" disabled={busy}>Confirm reservation <ArrowRight size={16}/></button></div>
+        <button type="button" className="btn" disabled={busy||!rst.canSubmit} onClick={e=>save(e.currentTarget.form!,true)}><Hourglass size={15}/> Hold 2 hours</button>
+        <button className="btn primary" disabled={busy||!rst.canSubmit}>Confirm reservation <ArrowRight size={16}/></button></div>
     </form></>;
 }
 
@@ -122,22 +129,25 @@ export function MoveReservation({id}:{id?:string}){
   return <ChangeDates id={b.id}/>;
 }
 function ChangeDates({id}:{id:string}){
-  const {s,run,booking,modal,busy}=useHcc();const b=s.bookings.find(b=>b.id===id)!;
+  const {s,uid,run,booking,modal,busy}=useHcc();const b=s.bookings.find(b=>b.id===id)!;
   const [version]=useState(b.version);
   const [room,setRoom]=useState(b.room),[arrival,setArrival]=useState(b.arrival<s.date?s.date:b.arrival),[departure,setDeparture]=useState(b.departure);
   const editable=b.status==='Confirmed'||(b.status==='Held'&&resHoldActive(s,b));
   const q=resSearch(s,{arrival,departure,people:b.people,children:b.children||0,except:b.id});
   const rows=[...q.available,...q.excluded].sort((a,c)=>a.room.id.localeCompare(c.room.id)),target=rows.find(r=>r.room.id===room);
   const unchanged=room===b.room&&arrival===b.arrival&&departure===b.departure,stale=b.version!==version;
+  const [rstOn,setRstOn]=useState(false),[rstReason,setRstReason]=useState('');
+  const rst=rstState(s,uid,q.valid&&!unchanged?target?.room.type||'':'',arrival,departure,rstOn?rstReason:null);
   return <><div className="modal-heading"><div className="eyebrow">{b.id} · {resStatus(s,b).toUpperCase()}</div><h2>Move / change dates</h2><p>{b.guest} · now Room {b.room}, {shortDate(b.arrival)} — {shortDate(b.departure)}. The agreed tariff {money(b.rate)}/night is kept.</p></div>
     {!editable&&<div className="info-note"><Info size={16}/>This booking is {resStatus(s,b)}; its dates can no longer be changed here.</div>}
     {stale&&<div className="info-note"><TriangleAlert size={16}/>This reservation changed after you opened this dialog. Saving will be rejected — reopen it to see the latest version.</div>}
-    <form className="form" noValidate onSubmit={e=>{e.preventDefault();run({type:'CHANGE_DATES',id:b.id,room,arrival,departure,version,key:modal!.key},'Reservation updated. Full interval revalidated.',{after:()=>booking(b.id)});}}>
+    <form className="form" noValidate onSubmit={e=>{e.preventDefault();if(!rst.canSubmit)return;run({type:'CHANGE_DATES',id:b.id,room,arrival,departure,version,restrictionOverride:rst.restrictionOverride,key:modal!.key},'Reservation updated. Full interval revalidated.',{after:()=>booking(b.id)});}}>
       <div className="form-row"><label>Arrival<input type="date" required min={s.date} value={arrival} onChange={e=>setArrival(e.target.value)}/></label><label>Departure<input type="date" required min={addDays(arrival||s.date,1)} value={departure} onChange={e=>setDeparture(e.target.value)}/></label></div>
       <label>Room<select value={room} onChange={e=>setRoom(e.target.value)}>{rows.map(r=><option key={r.room.id} value={r.room.id}>{r.room.id} · {r.room.type} · {r.ok?'Available':r.reason}{r.room.id===b.room?' (current)':''}</option>)}</select></label>
       {q.valid&&target&&!target.ok&&<div className="info-note res-conflict" role="alert"><TriangleAlert size={16}/>Conflict: {target.reason}. Saving will be rejected and the original reservation kept.</div>}
       {!q.valid&&<small className="res-field-error" role="alert">Departure must follow arrival.</small>}
+      <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={target?`room ${target.room.id} (${target.room.type})`:undefined}/>
       {b.status==='Held'&&<div className="info-note"><Hourglass size={16}/>Changing dates does not extend the hold ({resHoldLeftLabel(s,b)}).</div>}
       <div className="info-note"><Info size={16}/>Non-drag alternative to moving a bar on the calendar. The whole new interval is revalidated; capacity for {b.people+(b.children||0)} guest(s) is checked.</div>
-      <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back</button><button className="btn primary" disabled={busy||!editable||unchanged}>{unchanged?'No changes yet':'Save changes'}</button></div></form></>;
+      <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back</button><button className="btn primary" disabled={busy||!editable||unchanged||!rst.canSubmit}>{unchanged?'No changes yet':'Save changes'}</button></div></form></>;
 }

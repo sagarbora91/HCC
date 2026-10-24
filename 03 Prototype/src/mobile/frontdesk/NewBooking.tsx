@@ -7,24 +7,26 @@ import {useHcc} from '../../app/context';
 import {money,rateFor,nights,addDays,occupant,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS} from '../../services/mock';
 import {Stepper,NumberStepper,ChipFilter} from '../../app/mobile/components';
 import {shortDate,dateLabel,Empty} from '../../components/ui';
-import {mfDraft,mfPick,mfWizardErrors,mfWizardSteps,mfBookCommand,MfBookingDraft} from './logic';
+import {mfDraft,mfPick,mfWizardErrors,mfWizardSteps,mfBookCommand,mfRestriction,MfBookingDraft} from './logic';
+import {RestrictionNotice} from '../../features/reservations/RestrictionNotice';
 import {MfRows} from './shared';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const Err=({m}:{m?:string})=>m?<small className="mf-err" role="alert">{m}</small>:null;
 
 export function MfNewBooking({room,id}:{room?:string;id?:string}){
-  const {s,run,modal,busy,closeModal,booking,open,permission,setDirty}=useHcc();
+  const {s,uid,run,modal,busy,closeModal,booking,open,permission,setDirty}=useHcc();
   const [d,setD]=useState<MfBookingDraft>(()=>mfDraft(s,room,id));
   const [step,setStep]=useState(0);const [tried,setTried]=useState(-1);const [done,setDone]=useState('');
   useStepBack(step>0&&!done,()=>{setTried(-1);setStep(x=>Math.max(0,x-1));});
   const set=<K extends keyof MfBookingDraft>(k:K,v:MfBookingDraft[K])=>setD(x=>({...x,[k]:v}));
-  const errors=mfWizardErrors(s,step,d);const shown=tried===step?errors:{};
+  const errors=mfWizardErrors(s,step,d,uid);const shown=tried===step?errors:{};
+  const rst=mfRestriction(s,d,uid);
   const p=mfPick(s,d);const n=p.valid?nights(d.arrival,d.departure):0;
   if(!permission('reservations'))return <Empty title="Not permitted" body="New bookings need the reservations permission."/>;
   const next=()=>{setTried(step);if(Object.keys(errors).length)return;setTried(-1);setDirty(true);setStep(step+1);document.querySelector('.m-sheet')?.scrollTo?.({top:0});};
   const back=()=>{setTried(-1);setStep(step-1);};
-  const save=(hold:boolean)=>{setTried(3);if(Object.keys(mfWizardErrors(s,3,d)).length)return;
+  const save=(hold:boolean)=>{setTried(3);if(Object.keys(mfWizardErrors(s,3,d,uid)).length)return;
     const predicted='HCC-'+(s.sequence+1);
     run(mfBookCommand(s,d,hold,modal!.key),hold?'Room held for 2 hours of simulated time. Confirm it before the hold expires.':'Reservation confirmed.',{after:()=>{setDirty(false);setDone(predicted);}});};
 
@@ -44,8 +46,8 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
   const actions=<div className="modal-actions">
     {step===0?<button type="button" className="btn" onClick={closeModal}>Cancel</button>:<button type="button" className="btn" onClick={back}><ArrowLeft size={16}/>Back</button>}
     {step<3?<button type="button" className="btn primary" onClick={next}>Next <ArrowRight size={16}/></button>
-      :<><button type="button" className="btn" disabled={busy} onClick={()=>save(true)}><Hourglass size={16}/>Hold 2 h</button>
-        <button type="button" className="btn primary" disabled={busy} onClick={()=>save(false)}><Check size={16}/>Confirm</button></>}
+      :<><button type="button" className="btn" disabled={busy||!rst.canSubmit} onClick={()=>save(true)}><Hourglass size={16}/>Hold 2 h</button>
+        <button type="button" className="btn primary" disabled={busy||!rst.canSubmit} onClick={()=>save(false)}><Check size={16}/>Confirm</button></>}
   </div>;
   return <><div className="modal-heading"><div className="eyebrow">FRONT DESK · NEW BOOKING</div><h2>{mfWizardSteps[step]}</h2><p>Step {step+1} of 4</p></div>
     <Stepper steps={mfWizardSteps} current={step}/>
@@ -70,6 +72,8 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
         </div>:<Empty title="No availability" body="No room fits these dates and party size. Go back and change dates, guests or type."/>}
         {p.pickedExcluded&&<div className="info-note"><TriangleAlert size={16}/>Room {p.pickedExcluded.room.id} is not available: {p.pickedExcluded.reason}. Choose another room.</div>}
         <Err m={shown.room}/>
+        {p.chosen&&<RestrictionNotice st={rst} on={!!d.rstOverride} reason={d.rstReason||''} onToggle={v=>set('rstOverride',v)} onReason={v=>set('rstReason',v)} subject={`room ${p.chosen.id} (${p.chosen.type})`}/>}
+        <Err m={shown.restriction}/>
         {p.excluded.length>0&&<details className="mf-excluded"><summary>{p.excluded.length} room{p.excluded.length===1?'':'s'} excluded — see why</summary>
           <ul>{p.excluded.map(x=><li key={x.room.id}><strong>{x.room.id}</strong><span>{x.room.type}</span><em>{x.reasons.length>1?x.reason+' · '+x.reasons.slice(1).join(', ').toLowerCase():x.reason}</em></li>)}</ul></details>}
       </>}
@@ -88,7 +92,8 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
           ['Party',`${d.people} adult${d.people===1?'':'s'}${d.children?` · ${d.children} child${d.children===1?'':'ren'}`:''}`],
           ['Room',p.chosen?`${p.chosen.id} · ${p.chosen.type}${d.room?'':' (auto-assigned)'}`:'—'],
           ['Tariff',p.chosen?`${money(chosenRate)} / night`:'—'],['Room charges',p.chosen?`${money(chosenRate*n)} + synthetic tax`:'—'],
-          ['Source',d.source+(d.source==='OTA'&&d.otaChannel?' · '+d.otaChannel:'')],...(d.company?[['Company',d.company+(d.gstin?' · '+d.gstin:'')]] as [string,string][]:[])]}/>
+          ['Source',d.source+(d.source==='OTA'&&d.otaChannel?' · '+d.otaChannel:'')],...(d.company?[['Company',d.company+(d.gstin?' · '+d.gstin:'')]] as [string,string][]:[]),
+          ...(rst.overridden?[['Restriction',`Overridden: ${rst.restrictionOverride}`]] as [string,string][]:[])]}/>
         {Object.values(shown).map(m=><Err key={m} m={m}/>)}
         <div className="info-note"><Info size={16}/>A hold reserves the room for 2 hours of simulated time, then releases it. Availability is rechecked when you save. No message is sent (simulated).</div>
       </>}
