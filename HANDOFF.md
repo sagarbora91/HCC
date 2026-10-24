@@ -207,3 +207,19 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - Expenses & cash now includes POS cash sales in inflows and signed cash voids in outflows, with receipt-level drill-down and CSV totals. Non-cash POS and room-folio charges excluded; historical date ranges reconcile. Corrected D-01 settlement-dialog wording.
 - Typecheck/build passed. Initial full run 499/500 (one new test had incomplete void/settlement prerequisites); corrected test workflow, final focused 3/3 passed. All 497 pre-existing tests passed in the full run; no final full 500 run claimed.
 - Evidence: `05 Delivery Evidence/Acceptance/Shared_Till_Reports_2026-10-25.md`. HTML hash 879ce6805db071c124530193e795bb41c631901ce0d70a067aaf0b20a44ad9d6. APK unchanged; browser/device confirmation remains pending. No commit/push.
+
+## Session 10 (25 Oct 2026, 00:00–02:30) — W0-D nearly closed — STOPPED HERE FOR THE DAY
+**Done**
+- Overnight **Codex** fixes reviewed and committed (`5f1de52`): AC-01 old-WebView compatibility (`domain/clone.ts` guard, no `.at`/`replaceAll`, explicit Intl digits, `tests/stream-compat.mjs`), BL-01 approved discount no longer "Expired", BL-02 `PolicyLimitEditor` saves only a changed limit, D-01 settle wording + "Expenses & cash" report includes POS cash once (`tests/stream-report-till.mjs`), T-03 A4 print CSS + build-time A4 default for `@capgo/capacitor-printer` 8.1.8 (`04 Android/scripts/patch-printer.mjs`, MPL-2.0 file patched, test 5/5). Optional `tests/check-print-layout.mjs` needs an external Playwright (not installed here).
+- Lead fixes (`4f46af8`): **T-04** `plural()` → "1 night · 1 guest" (8 screens, `tests/stream-t04.mjs`); **T-05** Android Back depth now stored per history entry (`idx`) instead of a drifting counter, native Back falls back to the exit prompt when history is exhausted (browser-checked idx 2→1→0).
+- **Tests 501/501**, tsc clean, build 1,882 KB (dist SHA-256 631f4589…5012).
+- **APK versionCode 7** (`28a7475`): `05 Delivery Evidence\APK\HCC-0.1.0-proto-debug.apk`, SHA-256 E87C692B…73EF, web bundle byte-identical to dist.
+- Final emulator agent [`local_3dd816e5…`, brief `02 Planning\agents\W0-D_Final_Emulator_Brief.md`]: **Part 1 done — AC-01 fixed on WebView 83** (sign-in, cashier ₹10,750, payment posted; screenshots `Acceptance\d5-ac\v7-ac01-*`). Stopped by the owner during Part 2.
+
+**Resume tomorrow (in order)**
+1. Restart the 7-minute save: `bash tools/checkpoint.sh` (workspace root).
+2. Resume the emulator agent (SendMessage to `local_3dd816e5-e545-4c34-84c9-3713cb41efb2`, or start a new Sonnet agent with the same brief): read the Progress lines in `05 Delivery Evidence\Acceptance\D5_Roles.md` / `D5_AC.md`, then Part 2 (10 users, Back incl. after print/share/display switch, Reset, CSV, A4 print, D-01/T-04 wording) and Part 3 (AC-M05…M08 + BL-01) on `codex_api35_google` — one emulator at a time (heat).
+3. Optional: connect the Tab S7 and re-check T-03/T-04/T-05 on v7 (`adb install -r`).
+4. Owner decisions still open: **T-01** (portrait top bar ≈25 % of the screen) and **T-02** (desktop-layout controls 32–38 dp, below 48 dp touch size).
+5. Lead: consolidate `02 Planning\HCC_Acceptance_Matrix.md` + `05 Delivery Evidence\Acceptance\W0-D_Acceptance_Report.md` from BL023_Walkthrough.md, D6_TabS7.md, D5_Roles.md, D5_AC.md and the fix notes; then ask the owner to accept the prototype. After acceptance: **Wave 0.5** (APR-006: SCC payroll/leave/compliance/cash book, ETP exports, Master configuration), agents on Sonnet, max 3 at once.
+- GitHub remote `origin` (public repo) — still **not pushed**; owner to decide.
