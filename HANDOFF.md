@@ -175,3 +175,9 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - **Verified on merged main:** tsc clean · `npm test` **490/490** · build 1,879 KB · lab 122/122 · 165/165 commands guarded · donor repos clean · browser (Manager, desktop): cashier shift ₹10,750 incl. ₹550 restaurant line, New reservation 7→8 Nov shows the restriction + override, no console errors.
 - **Known gaps from agents:** group rooming dialog not browser-checked; on phone the override note shows only under "More". APK versionCode 5 was built before the W0-B/W0-C merge — rebuild in W0-D.
 - **NEXT:** W0-D acceptance (BL-023 walkthrough, D5 emulator 9 roles + AC-M05…M08, D6 Tab S7 incl. CSV/print/Reset, acceptance matrix, APK rebuild with versionCode 6). Then the production go-ahead decision (Wave 1).
+
+## W0-D parallel acceptance — IN PROGRESS (started 22:50 IST, 24 Oct 2026) — crash-recovery notes
+- Laptop overheating/crashing: `bash tools/checkpoint.sh` (run from the workspace root) commits `05 Delivery Evidence`, HANDOFF.md and the acceptance matrix to local git every 7 min. **After a crash, restart it first.**
+- Four agents in the main checkout, brief `02 Planning\agents\W0-D_Parallel_Acceptance_Brief.md`: D-A browser walkthrough → `05 Delivery Evidence\Acceptance\BL023_Walkthrough.md`; D-B emulator `codex_api35_google` port 5554 → `D5_Roles.md`; D-C emulator `codex_apk_review` port 5556 → `D5_AC.md`; D-D Tab S7 `R52N807PTTE` → `D6_TabS7.md`. Each report has a "Progress" line (last done / next) — resume from it. APK under test: versionCode 6, SHA-256 49c184d3…946b.
+- Known defect D-01: the POS settle dialog says outlet cash is "separate from the front-desk drawer" (contradicts DEC-052).
+- When all four are done: lead consolidates into `02 Planning\HCC_Acceptance_Matrix.md` + `05 Delivery Evidence\Acceptance\W0-D_Acceptance_Report.md`, fixes defects, commits.
