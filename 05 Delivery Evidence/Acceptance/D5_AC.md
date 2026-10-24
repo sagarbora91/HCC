@@ -20,6 +20,13 @@
 
 **Test-only shim tried (abandoned):** a CDP `Page.addScriptToEvaluateOnNewDocument` script (scratchpad only; nothing in the APK or repo changed) wrapped `Intl.NumberFormat`. Loading then failed at the next incompatibility, `ReferenceError: structuredClone is not defined` (needs Chrome 98+; used in `03 Prototype\src\services\mock\commands.ts:18` `execute()` and in fixtures). Shimming further was not pursued: results would not represent the real APK, and the owner paused the run.
 
+## AC-01 fix (product code, uncommitted, owner-approved 24 Oct)
+
+- `03 Prototype\src\domain\money.ts`: `minimumFractionDigits` now set with `maximumFractionDigits`.
+- New `03 Prototype\src\domain\clone.ts` (`clone` = JSON deep copy); `structuredClone` replaced in `fixtures\ext\pos.ts`, `fixtures\history\generate.ts`, `services\mock\commands.ts`, `services\mock\handlers\assistant.ts`.
+- `npx tsc --noEmit` clean; `npm test` 490/490 (one earlier run showed 489/490, then 490/490 on re-run twice; likely a timing-sensitive test — not investigated).
+- NOT yet rebuilt: `dist\index.html` and the APK still contain the old bundle, so AC-01 stays open until the lead rebuilds (versionCode 7) and the AC flows are re-run. Other Chrome-83 gaps beyond these two were not checked.
+
 ## Defects
 
 | ID | Severity | Steps | Expected | Actual | Evidence |
