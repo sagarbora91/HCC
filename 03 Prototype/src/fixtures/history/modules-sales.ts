@@ -8,10 +8,12 @@ import type {CHNMessage,CHNPush,CHNWebRequest} from '../../domain/streams/channe
 import {MSG_DEFAULT_TEMPLATES,MSG_DEFAULT_RULES,msgTriggerEvents,msgRender,msgValues,msgRecipient,type MSGMessage,type MSGChannel,type MSGDoc} from '../../domain/streams/messaging';
 import {accLiveVouchers,accTotals,type ACCLock,type ACCLockEvent} from '../../domain/streams/accounting';
 import type {Rng} from './prng';
+import {closeHistoryDays} from './operations';
 import {pad,type HistoryContext,type HistoryWindow} from './util';
 
 export function addSalesHistory(s:State,rng:Rng,o:HistoryWindow,ctx:HistoryContext):void{
   posHistory(s,rng,o,ctx);
+  closeHistoryDays(s,o); // day closings need the restaurant cash (shared till) and must exist before the accounting locks
   channelsHistory(s,rng,o);
   messagingHistory(s,rng,o);
   accountingLocks(s,o);

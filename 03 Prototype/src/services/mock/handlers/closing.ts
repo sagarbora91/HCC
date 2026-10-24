@@ -6,6 +6,7 @@ import type {Expense} from '../../../domain/types';
 import {money,addDays,OPENING_TIME} from '../../../domain/money';
 import {drawer,taxRateFor} from '../../../domain/selectors';
 import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
+import {posOpenOrders} from '../../../domain/streams/pos';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
   closingUnlimitedRoles,EXPENSE_METHODS} from '../../../domain/streams/closing';
 
@@ -136,6 +137,8 @@ export const handlers:Record<string,Handler>={
     assert(!s.bookings.some(b=>{const h=(b as {holdUntil?:string}).holdUntil;return b.status==='Held'&&!!h&&h<s.clock;}),'Release expired holds before closing.','INVALID_TRANSITION');
     assert(!s.bookings.some(b=>b.status==='In house'&&!closingHasNight(b,s.date)),'Post room nights before closing.','INVALID_TRANSITION');
     assert(!s.approvals.some(a=>a.status==='Pending'&&a.kind!=='policy')&&!s.expenses.some(e=>e.status==='Pending'),'Resolve pending approvals and expenses.','INVALID_TRANSITION');
+    const openChecks=posOpenOrders(s);
+    assert(!openChecks.length,`Settle, charge to the room or void ${openChecks.length} open restaurant / room-service check${openChecks.length===1?'':'s'} first (${openChecks.map(o=>o.id).join(', ')}).`,'INVALID_TRANSITION');
     assert(!s.shiftOpen,'Close and reconcile the cash shift first.','INVALID_TRANSITION');
     s.closedDates.push(s.date);
     // One immutable closing record per date; nothing writes to it after this point.

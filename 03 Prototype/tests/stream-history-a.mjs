@@ -79,7 +79,7 @@ export function register({test,M,assert}){
   });
   test('[HIST-A] BASE is untouched: its bookings, rooms and today figures are identical in FY26',()=>{
     for(const b of base.bookings)assert.deepEqual(fy.bookings.find(x=>x.id===b.id),b);
-    assert.deepEqual(fy.rooms,base.rooms);assert.deepEqual(metrics(fy),metrics(base));assert.equal(drawer(fy),drawer(base));assert.equal(drawer(fy),1020000);
+    assert.deepEqual(fy.rooms,base.rooms);assert.deepEqual(metrics(fy),metrics(base));assert.equal(drawer(fy),drawer(base));assert.equal(drawer(fy),1075000);
     assert.equal(metrics(fy).occupied,8);assert.equal(metrics(fy).collections,2150000);
     assert.equal(fy.rooms.find(r=>r.id==='308').blocked,true);assert.equal(fy.closedDates.includes('2026-10-23'),true);
   });

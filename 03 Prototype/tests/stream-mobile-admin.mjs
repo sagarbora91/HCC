@@ -1,4 +1,5 @@
 // MB-08 phone admin / closing / reports (M17–M23): the phone helpers re-shape desktop selectors — figures must be identical.
+import {tillClear} from './_till.mjs';
 import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
 export async function register({test,M,assert}){
@@ -81,7 +82,7 @@ export async function register({test,M,assert}){
   test('[MA] AC-M08 Manager closes the day following the phone stepper; summary equals desktop closing record',()=>{
     let s=busyDay();
     s=execute(s,'manager',{type:'CLOSE_RUN',interruptAfter:2});s=execute(s,'manager',{type:'CLOSE_RUN'});
-    s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});
+    s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);
     let md=X.maClosingModel(s);
     assert.equal(md.steps[2].state,'done');assert.equal(md.steps[3].state,'current',JSON.stringify(md.steps[3]));assert.equal(md.focus,3);
     const preview=M.closingSummary(s);

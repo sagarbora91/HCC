@@ -56,7 +56,7 @@ function MobileSummary(){
   return <>
     <div className="pos-m-kpis">
       <KpiCard label="Outlet sales" value={money(d.gross)} sub={`${d.checks} bills · net ${money(d.net)}`}/>
-      <KpiCard label="Outlet cash" value={money(d.outletCash)} sub="Not in cashier drawer"/>
+      <KpiCard label="Outlet cash" value={money(d.outletCash)} sub="In front-desk drawer"/>
       <KpiCard label="To room folios" value={money(d.byMode['Room folio']||0)}/>
       <KpiCard label="Open checks" value={d.open.count} sub={money(d.open.value)}/>
     </div>

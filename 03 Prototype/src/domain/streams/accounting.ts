@@ -3,7 +3,8 @@
 // Spec: 02 Planning/modules/HCC_Module_20_Accounting_Spec.md. Money = integer paise.
 import type {State,Booking,Line,Receipt,Expense} from '../types';
 import {drawer} from '../selectors';
-import {reportPack,expenseCounts} from './closing';
+import {reportPack,expenseCounts,closingOutlet} from './closing';
+import {posSlice,type POSReceipt} from './pos';
 
 // ── Chart of accounts (synthetic) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
@@ -43,16 +44,18 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   'expense:Supplies':'5000','expense:Laundry':'5010','expense:Maintenance':'5020','expense:Utilities':'5030','expense:Petty cash':'5040',
   'funding:Cash':'1000','funding:UPI':'1010','funding:Card':'1020','funding:Bank transfer':'1030','funding:Vendor credit':'2200',
   'closing:cash-difference':'5900',
+  // Restaurant / room-service bills settled at the outlet (shared till, DEC-052). Bills charged to a folio stay in the folio flow.
+  'pos:sales':'4100','pos:tax':'2100',
 };
-const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record'};
+const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
 export const accKeyValue=(key:string)=>key.slice(key.indexOf(':')+1);
-export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing):.+$/;
+export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos):.+$/;
 
 // ── State slice ──
 export type ACCEntry={account:string;debit:number;credit:number};
 export type ACCVoucherType='Sales'|'Receipt'|'Payment'|'Journal';
-export type ACCSourceKind='line'|'receipt'|'expense'|'closing';
+export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos';
 export type ACCVoucher={no:string;date:string;type:ACCVoucherType;narration:string;
   source:{kind:ACCSourceKind;id:string;sub:string;booking?:string};entries:ACCEntry[];unmapped:string[]};
 export type ACCLock={date:string;lockedAt:string;lockedBy:string;vouchers:ACCVoucher[];debit:number;credit:number;count:number};
@@ -101,6 +104,12 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
         inflow?[dr(tender,r.amount),cr(counter,r.amount)]:[dr(counter,r.amount),cr(tender,r.amount)]);
     }
   }
+  // One Sales voucher per outlet receipt: Dr tender, Cr outlet revenue + tax. A void receipt (negative) reverses its sale.
+  for(const r of posSlice(s).receipts.filter(r=>r.date===date&&r.amount!==0)){
+    const miss:string[]=[];
+    push({date,type:'Sales',narration:`${r.kind==='void'?'Outlet bill void':'Outlet bill'} · ${r.outlet} · ${r.method} · ${r.reference} · ${r.order}`,source:{kind:'pos',id:r.id,sub:r.kind}},miss,
+      [dr(map('method:'+r.method,miss),r.amount),cr(map('pos:sales',miss),r.net),cr(map('pos:tax',miss),r.tax)]);
+  }
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0)){
     const miss:string[]=[],head=map('expense:'+e.category,miss),fund=map('funding:'+e.method,miss);
     push({date,type:e.method==='Vendor credit'?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor} · ${e.category} · ${e.method}`,
@@ -139,6 +148,7 @@ export function accTrialBalance(vs:ACCVoucher[]):ACCTBRow[]{
 export function accDates(s:State):string[]{
   const d=new Set<string>([s.date,...s.closedDates,...Object.keys(accSlice(s).locks??{}),...Object.keys(s.closings??{})]);
   s.bookings.forEach(b=>{b.lines.forEach(l=>d.add(l.date));b.receipts.forEach(r=>d.add(r.date));});
+  posSlice(s).receipts.forEach(r=>d.add(r.date));
   s.expenses.filter(expenseCounts).forEach(e=>d.add(e.date));
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
@@ -193,6 +203,7 @@ export function accReconcile(s:State,date:string):ACCCheck[]{
     c('collections','Net receipts (payments − refunds)',v('receipts','net'),tenderMove(['payment','refund']),'Overview “collections” · Reports › Receipts'),
     c('deposits','Deposits net (in − out)',v('receipts','deposit-in')+v('receipts','deposit-out'),tenderMove(['deposit','deposit-return']),'Reports › Receipts · deposits'),
     c('expenses','Posted expenses',v('expenses','total'),expenseMove,'Reports › Expenses · total'),
+    c('outlet','Outlet bills settled (net of voids)',closingOutlet(s,date).net,vs.filter(x=>x.source.kind==='pos').reduce((a,x)=>a+x.entries.filter(e=>isTender(e.account,map)).reduce((b,e)=>b+e.debit-e.credit,0),0),'Restaurant › Day summary · outlet receipts'),
   ];
   const cashLedger=-net(map['method:Cash']);
   const rec=s.closings?.[date];
@@ -208,6 +219,7 @@ export function accMapRows(s:State):ACCMapRow[]{
   const add=(k:string)=>{uses[k]=(uses[k]??0)+1;};
   s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l))add('folio:tax');});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
   s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);});
+  posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax)add('pos:tax');add('method:'+r.method);});
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
   return keys.sort((a,b)=>order.indexOf(a.split(':')[0])-order.indexOf(b.split(':')[0])).map(key=>{const account=map[key]??'';
@@ -231,8 +243,9 @@ export function accDaySummary(s:State,date:string){
     errors:accBlocking(ex).length,warnings:ex.filter(x=>x.severity==='warning').length,checks:accReconcile(s,date)};
 }
 /** Source record lookup for a voucher (dialog "trace to source"). */
-export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;receipt?:Receipt;expense?:Expense}{
+export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;receipt?:Receipt;expense?:Expense;posReceipt?:POSReceipt}{
   if(v.source.kind==='expense')return {expense:s.expenses.find(e=>e.id===v.source.id)};
+  if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
   if(v.source.kind==='closing')return {};
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
   return v.source.kind==='line'?{booking,line:booking?.lines.find(l=>l.id===rid)}:{booking,receipt:booking?.receipts.find(r=>r.id===rid)};

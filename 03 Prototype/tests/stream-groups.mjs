@@ -1,4 +1,5 @@
 // Module 14 · Group & corporate — domain/command tests. Names prefixed [GRP].
+import {tillClear} from './_till.mjs';
 export function register({test,M,assert}){
   const {seed,execute}=M;
   const blk=(s,id)=>M.grpSlice(s).blocks.find(b=>b.id===id);
@@ -8,7 +9,7 @@ export function register({test,M,assert}){
   function nextDay(s){
     for(const b of s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date)){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}
     for(const e of s.expenses.filter(e=>e.status==='Pending'))s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:e.id,approve:true});
-    s=execute(s,'owner',{type:'NIGHT_POST'});s=execute(s,'owner',{type:'SHIFT_CLOSE',counted:M.drawer(s)});s=execute(s,'owner',{type:'DAY_CLOSE'});
+    s=execute(s,'owner',{type:'NIGHT_POST'});s=execute(s,'owner',{type:'SHIFT_CLOSE',counted:M.drawer(s)});s=tillClear(M,s);s=execute(s,'owner',{type:'DAY_CLOSE'});
     return execute(s,'owner',{type:'NEXT_DAY'});
   }
 
@@ -17,7 +18,7 @@ export function register({test,M,assert}){
     const s=seed(),x=M.grpSlice(s);
     assert.equal(x.companies.length,3);assert.equal(x.blocks.length,4);
     for(const c of x.companies){assert.match(c.name,/fictional/);assert.match(c.gstin,/^\d{2}ZZFIC\d{4}F/);assert.ok(M.GRP_GSTIN.test(c.gstin));}
-    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1020000);
+    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1075000);
   });
   test('[GRP] pickup lines and company exposure figures',()=>{
     const s=seed(),g1=M.grpBlockTotals(s,blk(s,'GB-1'));

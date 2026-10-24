@@ -34,7 +34,7 @@ Evidence sources available today:
 | AC-021 | Invalid/missing data and no-result states | REQ-BOOK-001, REQ-GUEST-004 | all | — | Partial | Not run | E1 "Invalid departure", "Guest registration required…"; S1 empty states pending |
 | AC-022 | Lost response / stale version / retry | NFR-REL-002 | SCR-09/10 | WF-PAY-001 | Not built | Not built | Fault simulation (SCR-20) to build |
 | AC-023 | Responsive and keyboard walkthrough at target sizes | NFR-UX-001/002 | all | — | — | Not run | Screenshots at 5 sizes pending |
-| AC-024 | Refresh, fixture reset, clean startup | DEC-022 | SCR-20 | — | **Failed** | Not run | E1 "Fixture totals are derived…": expected ₹10,700, got ₹10,200. Analysis shows the test oracle is wrong (catalogue §2.4) — fix BL-001 |
+| AC-024 | Refresh, fixture reset, clean startup | DEC-022 | SCR-20 | — | **Failed** | Not run | E1 "Fixture totals are derived…": expected ₹10,700, got ₹10,200. Analysis shows the test oracle is wrong (catalogue §2.4) — fix BL-001. **S0 oracle since DEC-052 (shared till, W0-B):** drawer ₹10,200 → ₹10,750 (+ ₹550 POS-F01 restaurant cash); walkthrough drawer path ₹10,750 → ₹11,250 → ₹11,250 → ₹12,750 → ₹12,450 (was ₹10,200 → ₹10,700 → ₹10,700 → ₹12,200 → ₹11,900); open POS checks must be settled before day close (`tests/stream-a2-till.mjs`). |
 | AC-025 | DB access / authorisation bypass attempts | NFR-SEC-001 | — | — | Production | Production | M5 |
 | AC-026 | Outbox failure and replay | NFR-REL-001 | — | — | Production | Production | M5 |
 | AC-027 | Backup restore to separate environment | NFR-DR-001 | SCR-19 | — | Production | Production | M6 |

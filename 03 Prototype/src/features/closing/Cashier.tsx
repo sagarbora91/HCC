@@ -20,13 +20,14 @@ export function Cashier(){
           {row('Opening float',ex.opening,'')}
           {row('Cash payments / advances',ex.payments,'+')}
           {row('Cash refundable deposits',ex.deposits,'+')}
+          {row('Restaurant / room-service cash (net of voids)',ex.restaurant,'+')}
           {ex.other!==0&&row('Other cash movements',ex.other,'+')}
           {row('Cash payment refunds',ex.refunds,'−')}
           {row('Cash deposit returns',ex.returns,'−')}
           {row('Drawer-cash expenses (net of reversals)',ex.expenses,'−')}
           <div className="f-total"><span>= Expected cash in drawer</span><strong>{money(ex.expected)}</strong></div>
         </div>
-        <p className="footnote padded">{money(ex.opening)} + {money(ex.payments)} + {money(ex.deposits)} − {money(ex.refunds)} − {money(ex.returns)} − {money(ex.expenses)} = {money(ex.expected)}. UPI, card, bank and vendor-credit amounts are excluded.</p>
+        <p className="footnote padded">{money(ex.opening)} + {money(ex.payments)} + {money(ex.deposits)} + {money(ex.restaurant)} − {money(ex.refunds)} − {money(ex.returns)} − {money(ex.expenses)} = {money(ex.expected)}. Restaurant and room-service cash bills go into this drawer (one shared till); UPI, card, bank, vendor-credit amounts and room charges to a folio are excluded.</p>
       </section>
       <section className="card"><div className="section-title"><h2>{st==='Open'?'Count the drawer':st==='Submitted'?'Difference approval':'Shift result'}</h2></div>
         <div className="padded">{st==='Open'?(closed?<Empty title="Business day closed" body="Open the next business day to start a new shift."/>:<ShiftCountForm/>):st==='Submitted'?<DifferencePanel/>:<ClosedPanel name={name}/>}</div>
@@ -35,9 +36,9 @@ export function Cashier(){
     <section className="card"><div className="section-title"><h2>Today’s cash movements</h2><span className="muted">{mv.length} movement{mv.length===1?'':'s'} · cash only</span></div>
       <div className="table-wrap"><table><thead><tr><th>Reference</th><th>Movement</th><th>Guest / detail</th><th>Recorded by</th><th className="number">Drawer effect</th></tr></thead><tbody>
         {mv.map(m=><tr key={m.id}><td><strong>{m.id}</strong><small>{m.reference}</small></td><td>{m.label}</td>
-          <td>{m.booking?(permission('billing')||permission('reservations')?<button className="text-btn" onClick={()=>booking(m.booking!)}>{m.guest} · {m.booking}</button>:<span>{m.booking}</span>):<span className="muted">{m.kind==='expense-reversal'?'Reversal':'Expense'}</span>}</td>
+          <td>{m.booking?(permission('billing')||permission('reservations')?<button className="text-btn" onClick={()=>booking(m.booking!)}>{m.guest} · {m.booking}</button>:<span>{m.booking}</span>):m.order?(permission('billing')?<button className="text-btn" onClick={()=>go('pos')}>{m.guest??'Outlet bill'} · {m.order}</button>:<span>{m.order}</span>):<span className="muted">{m.kind==='expense-reversal'?'Reversal':'Expense'}</span>}</td>
           <td>{name(m.actor)}</td><td className="number">{m.amount>=0?'+':'−'}{money(Math.abs(m.amount))}</td></tr>)}
-      </tbody></table>{!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds and posted cash expenses appear here."/>}</div></section></>;
+      </tbody></table>{!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds, restaurant cash bills and posted cash expenses appear here."/>}</div></section></>;
 }
 
 function DifferencePanel(){

@@ -1,5 +1,6 @@
 // MB-06 money (phone): command builders used by the phone screens (src/mobile/money/logic.ts), replayed through M.execute.
 // AC-M06: cashier settles ₹3,400 split (₹2,000 cash + ₹1,400 UPI), returns the deposit and closes the shift — S0 oracle figures.
+import {tillClear} from './_till.mjs';
 import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
 export async function register({test,M,assert}){
@@ -20,17 +21,17 @@ export async function register({test,M,assert}){
     X('reception',{type:'REGISTER',id});X('reception',{type:'CHECKIN',id});
     X('cashier',L.mmPaymentCommand(id,'deposit','500',one,'mm-dep'));
     X('manager',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});X('manager',{type:'CLOSE_RUN'});
-    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
     X('reception',{type:'CHARGE',id,amount:50000,label:'Laundry service'});
     X('reception',{type:'DISCOUNT',id,amount:50000,reason:'Service delay goodwill'});
     X('manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});X('manager',{type:'CLOSE_RUN'});
-    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
     return {s,id};
   }
 
   test('[MM] AC-M06: phone split ₹2,000 cash + ₹1,400 UPI, deposit return, checkout, expense, shift close — S0 figures',()=>{
     let {s,id}=s0To26();const X=(u,c)=>{s=execute(s,u,c);};const bk=()=>s.bookings.find(b=>b.id===id);
-    assert.equal(s.date,'2026-10-26');assert.equal(drawer(s),1070000);
+    assert.equal(s.date,'2026-10-26');assert.equal(drawer(s),1125000);
     assert.equal(totals(bk()).balance,340000);assert.equal(totals(bk()).deposit,50000);
     assert.equal(L.mmBalanceHero(bk()).state,'due');
     assert.equal(L.mmCheckoutChecklist(s,bk()).clear,false);
@@ -43,27 +44,27 @@ export async function register({test,M,assert}){
     const again=execute(s,'cashier',pay);assert.deepEqual(again,s,'retrying the same request never duplicates');
     const rs=bk().receipts.filter(r=>r.date==='2026-10-26');
     assert.equal(rs.length,2);assert.equal(rs[0].tenderGroup,rs[1].tenderGroup);
-    assert.equal(totals(bk()).balance,0);assert.equal(drawer(s),1270000);
+    assert.equal(totals(bk()).balance,0);assert.equal(drawer(s),1325000);
     // Return the deposit (single tender, prefilled with the deposit held)
     assert.notEqual(L.mmPaymentProblem('deposit-return','500',split,50000),'');
     X('cashier',L.mmPaymentCommand(id,'deposit-return',L.mmRupeeText(totals(bk()).deposit),one,'payment:mm-2'));
     assert.deepEqual(totals(bk()),{net:400000,tax:40000,total:440000,paid:440000,deposit:0,balance:0});
-    assert.equal(drawer(s),1220000);
+    assert.equal(drawer(s),1275000);
     assert.equal(L.mmBalanceHero(bk()).state,'settled');
     // M11: checklist all ticked → reception confirms checkout (cashier lacks checkout)
     const c=L.mmCheckoutChecklist(s,bk());assert.equal(c.clear,true);assert.ok(c.items.every(i=>i.ok));
     assert.equal(code(()=>execute(s,'cashier',L.mmCheckoutCommand(id))),'FORBIDDEN');
     X('reception',L.mmCheckoutCommand(id));assert.equal(bk().status,'Departed');assert.ok(bk().invoiceNo);
     assert.deepEqual(execute(s,'reception',L.mmCheckoutCommand(id)),s);
-    // M16: Aqua Water Cans ₹300 cash; manager approves → drawer ₹11,900
+    // M16: Aqua Water Cans ₹300 cash; manager approves → drawer ₹12,450 (₹11,900 + ₹550 restaurant cash carried in the float)
     X('cashier',L.mmExpenseCommand({vendor:'Aqua Water Cans',category:'Supplies',method:'Cash',amount:'300',receipt:'aqua-water-0026.jpg',notes:''},false,'expense:mm'));
     const e=s.expenses.at(-1);assert.equal(e.status,'Pending');assert.equal(e.amount,30000);assert.equal(e.receipt,'aqua-water-0026.jpg');
-    X('manager',{type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id});assert.equal(drawer(s),1190000);
-    // M15: denomination count 23×₹500 + 2×₹200 = ₹11,900 → exact → shift closes on the phone
-    const den=L.mmDenominations({500:23,200:2},'');assert.equal(L.mmCountTotal(den),1190000);
+    X('manager',{type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id});assert.equal(drawer(s),1245000);
+    // M15: denomination count 24×₹500 + 2×₹200 + 1×₹50 = ₹12,450 → exact → shift closes on the phone
+    const den=L.mmDenominations({500:24,200:2,50:1},'');assert.equal(L.mmCountTotal(den),1245000);
     X('cashier',L.mmShiftSubmitCommand(L.mmCountTotal(den),'',den,'mm-count:1'));
-    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:1190000,counted:1190000});assert.equal(M.shiftStatus(s),'Closed');
-    X('manager',{type:'CLOSE_RUN'});X('manager',{type:'DAY_CLOSE'});assert.ok(s.closedDates.includes('2026-10-26'));
+    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:1245000,counted:1245000});assert.equal(M.shiftStatus(s),'Closed');
+    X('manager',{type:'CLOSE_RUN'});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});assert.ok(s.closedDates.includes('2026-10-26'));
   });
 
   test('[MM] Keypad amounts parse to paise; invalid text rejected',()=>{
@@ -94,7 +95,7 @@ export async function register({test,M,assert}){
 
   test('[MM] Count difference → reason → approval request; no self-approval; manager accepts within limit',()=>{
     let {s}=s0To26();const exp=drawer(s);
-    const den=L.mmDenominations({500:21},'50');assert.equal(L.mmCountTotal(den),exp-15000);
+    const den=L.mmDenominations({500:22},'100'); // ₹11,250 expected − ₹150 = ₹11,100assert.equal(L.mmCountTotal(den),exp-15000);
     assert.equal(L.mmDiffKind(L.mmCountTotal(den)-exp),'short');
     assert.equal(code(()=>execute(s,'cashier',L.mmShiftSubmitCommand(L.mmCountTotal(den),'',den))),'VALIDATION');
     s=execute(s,'cashier',L.mmShiftSubmitCommand(L.mmCountTotal(den),'₹100 note given as change twice',den,'mm-count:2'));

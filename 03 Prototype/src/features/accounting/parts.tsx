@@ -63,8 +63,9 @@ export function AccVoucherModal({id}:{id?:string}){
       {src.line&&<div><span>Folio line</span><strong>{src.line.label} · {money(src.line.amount)} · tax {src.line.taxBps/100}%</strong></div>}
       {src.receipt&&<div><span>Receipt</span><strong>{src.receipt.method} · {money(src.receipt.amount)} · {src.receipt.reference}</strong></div>}
       {src.expense&&<div><span>Expense</span><strong>{src.expense.vendor} · {src.expense.category} · {src.expense.status}</strong></div>}
+      {src.posReceipt&&<div><span>Outlet receipt</span><strong>{src.posReceipt.order} · {src.posReceipt.method} · {money(src.posReceipt.amount)} · {src.posReceipt.reference}</strong></div>}
       {v.source.kind==='closing'&&<div><span>Closing record</span><strong>Cash difference accepted for {shortDate(date)}</strong></div>}
-      {(src.line||src.receipt)===undefined&&v.source.kind!=='closing'&&!src.expense&&<div><span>Status</span><strong>Source record no longer present (snapshot kept)</strong></div>}
+      {(src.line||src.receipt)===undefined&&v.source.kind!=='closing'&&!src.expense&&!src.posReceipt&&<div><span>Status</span><strong>Source record no longer present (snapshot kept)</strong></div>}
     </div>
     <div className="modal-actions">{src.booking&&<button className="btn" onClick={()=>booking(src.booking!.id)}><Link2 size={16}/> Open folio {src.booking.id}</button>}<button className="btn primary" onClick={closeModal}>Done</button></div></>;
 }

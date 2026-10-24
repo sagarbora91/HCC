@@ -99,7 +99,7 @@ export function PosReportModal(){
   return <><div className="pos-doc invoice"><h2>Outlet day summary</h2><p className="pos-doc-sub">{s.settings.hotel} · business date {dateLabel(d.date)} · printed {clockTime(s.clock)}</p>
     <PosSummaryTables d={d}/>
     {open.length>0&&<><h3>Open checks</h3><table><tbody>{open.map(o=><tr key={o.id}><td>{posSpot(o)} · {o.id}</td><td className="number">{money(posOrderTotals(s,o).total)}</td></tr>)}</tbody></table></>}
-    <p className="footnote">Outlet cash is listed separately from the front-desk cashier drawer in this prototype. Synthetic tax; fictional data.</p></div>
+    <p className="footnote">Outlet cash is counted in the front-desk cashier drawer (one shared till). Synthetic tax; fictional data.</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / share</button></div></>;
 }
 export function PosSummaryTables({d}:{d:ReturnType<typeof posDaySummary>}){
@@ -108,7 +108,7 @@ export function PosSummaryTables({d}:{d:ReturnType<typeof posDaySummary>}){
       <tbody>{d.byOutlet.map(x=><tr key={x.id}><td>{x.name}</td><td className="number">{x.checks}</td><td className="number">{money(x.net)}</td><td className="number">{money(x.tax)}</td><td className="number">{money(x.gross)}</td></tr>)}
       <tr className="pos-total-row"><td>All outlets</td><td className="number">{d.checks}</td><td className="number">{money(d.net)}</td><td className="number">{money(d.tax)}</td><td className="number">{money(d.gross)}</td></tr></tbody></table>
     <table><caption>By settlement</caption><tbody>{Object.entries(d.byMode).map(([k,v])=><tr key={k}><td>{k}</td><td className="number">{money(v)}</td></tr>)}
-      <tr className="pos-total-row"><td>Outlet cash (separate from drawer)</td><td className="number">{money(d.outletCash)}</td></tr>
+      <tr className="pos-total-row"><td>Outlet cash (counted in the front-desk drawer)</td><td className="number">{money(d.outletCash)}</td></tr>
       <tr><td>Voids ({d.voids.count} item{d.voids.count===1?'':'s'})</td><td className="number">{money(d.voids.value)}</td></tr>
       <tr><td>Open checks ({d.open.count})</td><td className="number">{money(d.open.value)}</td></tr></tbody></table>
   </div>;

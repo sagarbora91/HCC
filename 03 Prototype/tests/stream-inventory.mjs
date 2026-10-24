@@ -10,7 +10,7 @@ export function register({test,M,assert}){
     assert.equal(invAlerts(s).find(a=>a.item.id==='LIN-BT').suggest,65); // max(60, 2×55−45)
     assert.equal(invParRequired(s,it(s,'LIN-BS')),144); // 24 rooms × 2 × 3 sets
   });
-  test('[INV] fixture keeps core figures unchanged',()=>{const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1020000);});
+  test('[INV] fixture keeps core figures unchanged',()=>{const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1075000);});
   test('[INV] issue store → floor moves stock; over-issue rejected without change',()=>{
     let s=seed();s=execute(s,'housekeeper',{type:'INV_ISSUE',item:'LIN-BS',qty:10,from:'store',to:'floor1'});
     assert.equal(it(s,'LIN-BS').stock.store,30);assert.equal(it(s,'LIN-BS').stock.floor1,16);

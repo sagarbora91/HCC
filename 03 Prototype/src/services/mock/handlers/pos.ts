@@ -104,14 +104,15 @@ const POS_SETTLE:Handler=k=>{
   assert(cmd.mode==='outlet','Choose how the bill is settled.');
   assert((POS_TENDERS as readonly string[]).includes(cmd.method),'Select Cash, UPI or Card.');
   const reference=String(cmd.reference??'').trim();
-  if(cmd.method==='Cash')assert(s.shiftOpen,'The cash shift is closed. Open the next business day first.','INVALID_TRANSITION');
+  // Shared till (DEC-052): outlet cash goes into the front-desk drawer, so it needs the open cash shift like folio cash.
+  if(cmd.method==='Cash')assert(s.shiftOpen,'The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.','INVALID_TRANSITION');
   else assert(reference,'Enter a demonstration transaction reference.');
   const rid=id('POSR');
   p.receipts.push({id:rid,order:o.id,outlet:o.outlet,method:cmd.method,amount:total,net,tax,taxBps,reference:reference||'Outlet cash',date:s.date,actor:uid,kind:'sale'});
   o.settlement={mode:'outlet',billNo,method:cmd.method,reference:reference||undefined,net,taxBps,tax,total,date:s.date,at:s.clock,by:uid,receiptId:rid};
   if(o.settlement.reference===undefined)delete o.settlement.reference;
   p.billSeq++;o.status='Settled';o.version++;
-  return `${o.id} · bill ${billNo} · ${money(total)} ${cmd.method} at ${outletName(k,o)} (outlet receipt ${rid})`;
+  return `${o.id} · bill ${billNo} · ${money(total)} ${cmd.method} at ${outletName(k,o)} (outlet receipt ${rid}${cmd.method==='Cash'?' · counted in the front-desk drawer':''})`;
 };
 
 /** Executes a void (item or bill). Shared by direct voids and approved requests. */

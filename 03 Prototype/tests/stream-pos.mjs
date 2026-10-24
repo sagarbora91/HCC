@@ -16,7 +16,7 @@ export function register({test,M,assert}){
   test('[POS] fixture: outlets, menu, checks; core figures unchanged',()=>{
     const s=seed();
     assert.equal(P(s).outlets.length,2);assert.ok(P(s).menu.length>=20);assert.equal(P(s).orders.length,4);
-    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1020000);
+    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1075000);
     const sum=M.posDaySummary(s);
     assert.equal(sum.checks,2);assert.equal(sum.net,118000);assert.equal(sum.tax,11800);assert.equal(sum.gross,129800);
     assert.equal(sum.byMode.Cash,55000);assert.equal(sum.byMode.UPI,74800);assert.equal(sum.outletCash,55000);
@@ -49,7 +49,7 @@ export function register({test,M,assert}){
     assert.ok(M.posKitchen(s).some(x=>x.kot.id===k.id));
   });
 
-  test('[POS] settle at outlet: UPI reference, cash needs open shift, idempotent, drawer untouched',()=>{
+  test('[POS] settle at outlet: UPI reference, cash needs open shift, idempotent, cash counted once in the drawer',()=>{
     let [s,id]=table();const before=drawer(s);
     assert.equal(M.posOrderTotals(s,ord(s,id)).net,36000); // 280 + 2×40
     assert.throws(()=>execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'UPI'}),/reference/);
@@ -61,7 +61,7 @@ export function register({test,M,assert}){
     assert.equal(o.settlement.billNo,'POS/2610/0003');
     assert.deepEqual(execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash',key:'pos-settle-1'}),s);
     assert.equal(code(()=>execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash'})),'INVALID_TRANSITION');
-    assert.equal(drawer(s),before); // documented gap: outlet cash is separate
+    assert.equal(drawer(s),before+39600); // shared till (DEC-052): the ₹396 cash bill enters the front-desk drawer once
     assert.equal(M.posDaySummary(s).outletCash,55000+39600);
     assert.equal(code(()=>execute(s,'cashier',{type:'POS_ITEM_ADD',id,item:'m-tea'})),'INVALID_TRANSITION');
   });
