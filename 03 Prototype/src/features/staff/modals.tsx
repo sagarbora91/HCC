@@ -1,29 +1,34 @@
 // Module 17 · HR & payroll — dialogs (render as full-screen sheets on phones). Modal IDs start with 'hr-'.
+// W05-B: SCC statutory payslip (PF / ESIC / MH PT breakdown, amount in words, PDF via the native share/print hook, simulated WhatsApp — DEC-056),
+// dated statutory rates, leave policy, half-day leave, pay-run unlock and full-and-final settlement.
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
-import {Printer,Info,Hotel} from 'lucide-react';
+import {Printer,Info,Hotel,MessageCircle,Plus,Trash2} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {dateLabel,shortDate,Empty} from '../../components/ui';
 import {
-  money,hrSlice,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,
-  HR_SHIFTS,HR_WEEKDAYS,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_DISCLAIMER,hrKey,
-  type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,
+  money,hrSlice,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,hrRatesFor,
+  hrLastLockedMonth,hrNextMonth,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
+  HR_SHIFTS,HR_WEEKDAYS,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,hrKey,
+  type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,
 } from '../../services/mock';
 
 const rs=(v:string)=>Math.round(Number(v)*100);
 const toRs=(p:number)=>p?String(p/100):'';
 export const hrUserName=(s:ReturnType<typeof useHcc>['s'],id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
 
-/** 'hr-staff': id = staff ID (edit) or undefined (new). Salary fields only for payroll roles. */
+/** 'hr-staff': id = staff ID (edit) or undefined (new). Salary, PF / ESIC and bank fields only for payroll roles. */
 export function HRStaffModal({id}:{id?:string}){
   const {s,uid,run,closeModal,busy}=useHcc();const x=hrSlice(s),st=id?hrStaffById(s,id):undefined,pay=hrCanPay(s,uid);
   const [f,setF]=useState({name:st?.name??'',dept:st?.dept??x.depts[0]?.id??'',designation:st?.designation??'',userId:st?.userId??'',
-    defaultShift:st?.defaultShift??'G',weeklyOff:String(st?.weeklyOff??0),phone:st?.phone??'',payType:st?.payType??'monthly',monthly:toRs(st?.monthly??0),daily:toRs(st?.daily??0)});
+    defaultShift:st?.defaultShift??'G',weeklyOff:String(st?.weeklyOff??0),phone:st?.phone??'',gender:st?.gender??'M',payType:st?.payType??'monthly',monthly:toRs(st?.monthly??0),daily:toRs(st?.daily??0),
+    structure:st?.structure??'',pf:st?.pfApplicable===undefined?'':st.pfApplicable?'yes':'no',esic:st?.esicApplicable===false?'no':'yes',bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''});
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   const linked=new Set(x.staff.filter(o=>o.id!==id&&o.userId).map(o=>o.userId));
   function save(e:React.FormEvent){e.preventDefault();
-    const cmd:Record<string,unknown>={type:'HR_STAFF_SAVE',id,name:f.name,dept:f.dept,designation:f.designation,userId:f.userId||undefined,defaultShift:f.defaultShift,weeklyOff:Number(f.weeklyOff),phone:f.phone};
-    if(pay)Object.assign(cmd,{payType:f.payType,monthly:f.payType==='monthly'?rs(f.monthly):0,daily:f.payType==='daily'?rs(f.daily):0});
+    const cmd:Record<string,unknown>={type:'HR_STAFF_SAVE',id,name:f.name,dept:f.dept,designation:f.designation,userId:f.userId||undefined,defaultShift:f.defaultShift,weeklyOff:Number(f.weeklyOff),phone:f.phone,gender:f.gender};
+    if(pay)Object.assign(cmd,{payType:f.payType,monthly:f.payType==='monthly'?rs(f.monthly):0,daily:f.payType==='daily'?rs(f.daily):0,
+      ...(f.structure?{structure:f.structure}:{}),...(f.pf?{pfApplicable:f.pf==='yes'}:{}),esicApplicable:f.esic==='yes',bankName:f.bankName,accountNo:f.accountNo,ifsc:f.ifsc.toUpperCase()});
     run(cmd as {type:string},id?'Staff record updated':'Staff member added',{close:true});}
   return <><div className="modal-heading"><h2>{st?'Edit staff record':'Add staff member'}</h2><p>Fictional staff only. A staff record may link to a demo login; cooks, security and helpers usually have none.</p></div>
     <form className="form" onSubmit={save}>
@@ -33,12 +38,19 @@ export function HRStaffModal({id}:{id?:string}){
       <div className="form-row"><label>Default shift<select value={f.defaultShift} onChange={set('defaultShift')}>{HR_SHIFTS.filter(h=>h.code!=='OFF').map(h=><option key={h.code} value={h.code}>{h.label} {h.start}–{h.end}</option>)}</select></label>
         <label>Weekly off<select value={f.weeklyOff} onChange={set('weeklyOff')}>{HR_WEEKDAYS.map((d,i)=><option key={d} value={i}>{d}</option>)}</select></label></div>
       <div className="form-row"><label>Demo login<select value={f.userId} onChange={set('userId')}><option value="">No login (non-login staff)</option>{s.users.filter(u=>!linked.has(u.id)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
-        <label>Phone (fictional)<input inputMode="tel" maxLength={20} value={f.phone} onChange={set('phone')}/></label></div>
-      {pay?<fieldset className="hr-fieldset"><legend>Salary (payroll roles only)</legend>
+        <label>Mobile (fictional, for payslips)<input inputMode="tel" maxLength={20} value={f.phone} onChange={set('phone')}/></label></div>
+      <label>Professional-tax slab<select value={f.gender} onChange={set('gender')}><option value="M">Men’s slab</option><option value="F">Women’s slab (exempt up to ₹25,000)</option></select></label>
+      {pay?<fieldset className="hr-fieldset"><legend>Salary and statutory (payroll roles only)</legend>
         <div className="form-row"><label>Pay type<select value={f.payType} onChange={set('payType')}><option value="monthly">Monthly salary</option><option value="daily">Daily wage</option></select></label>
           {f.payType==='monthly'?<label>Monthly salary (₹)<input required type="number" inputMode="decimal" min="0" max="1000000" step="0.01" value={f.monthly} onChange={set('monthly')}/></label>
-            :<label>Daily wage (₹)<input required type="number" inputMode="decimal" min="0" max="100000" step="0.01" value={f.daily} onChange={set('daily')}/></label>}</div></fieldset>
-        :<div className="info-note"><Info size={16}/>Salary details are set by the Owner or Accountant.</div>}
+            :<label>Daily wage (₹)<input required type="number" inputMode="decimal" min="0" max="100000" step="0.01" value={f.daily} onChange={set('daily')}/></label>}</div>
+        <div className="form-row"><label>Structure<select value={f.structure} onChange={set('structure')}><option value="">Default ({f.payType==='daily'?'basic only':'structured'})</option><option value="S">Structured (basic / HRA / washing / special)</option><option value="B">Basic only</option></select></label>
+          <label>PF<select value={f.pf} onChange={set('pf')}><option value="">Default (structured pay only)</option><option value="yes">Applies</option><option value="no">Not applicable</option></select></label></div>
+        <label>ESIC<select value={f.esic} onChange={set('esic')}><option value="yes">Applies while earned ≤ ceiling</option><option value="no">Not applicable</option></select></label>
+        <div className="form-row"><label>Bank (fictional)<input maxLength={60} value={f.bankName} onChange={set('bankName')}/></label>
+          <label>Account number<input inputMode="numeric" maxLength={18} value={f.accountNo} onChange={set('accountNo')}/></label></div>
+        <label>IFSC<input maxLength={11} value={f.ifsc} onChange={set('ifsc')} placeholder="DEMO0000101"/></label></fieldset>
+        :<div className="info-note"><Info size={16}/>Salary, PF / ESIC and bank details are set by the Owner or Accountant.</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>{st?'Save changes':'Add staff member'}</button></div>
     </form></>;
 }
@@ -72,26 +84,29 @@ export function HRAttModal({id}:{id?:string}){
     </form></>;
 }
 
-/** 'hr-leave': id = staff ID (optional for managers). Own request for everyone else. */
+/** 'hr-leave': id = staff ID (optional for managers). Own request for everyone else. Full day or half day (SCC). */
 export function HRLeaveModal({id}:{id?:string}){
   const {s,uid,run,closeModal,busy}=useHcc();const x=hrSlice(s),mgr=hrCanManage(s,uid),me=hrStaffOfUser(s,uid);
   const [sid,setSid]=useState(id??me?.id??(mgr?x.staff.find(t=>t.active)?.id:'')??'');
   const st=hrStaffById(s,sid);
-  const [f,setF]=useState({type:(st?.payType==='daily'?'LOP':'CL') as HRLeaveType,from:s.date,to:s.date,reason:''});
+  const [f,setF]=useState({type:(st?.payType==='daily'?'LOP':'CL') as HRLeaveType,from:s.date,to:s.date,reason:'',part:'full' as 'full'|'AM'|'PM'});
   if(!st)return <Empty title="No staff record linked" body="Your demo user is not linked to a staff record."/>;
-  const types:HRLeaveType[]=st.payType==='daily'?['LOP']:['CL','SL','EL','LOP'];
+  const types:HRLeaveType[]=st.payType==='daily'?['LOP']:HR_LEAVE_TYPES;
   const type=types.includes(f.type)?f.type:types[0];
-  const days=f.to>=f.from?hrLeaveDays(s,st,f.from,f.to):0;const bal=hrLeaveBalance(s,st.id,f.from.slice(0,4));
-  return <><div className="modal-heading"><h2>Request leave</h2><p>Another manager approves — nobody can approve their own request. Weekly offs inside the dates are not counted.</p></div>
-    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_LEAVE_REQUEST',staffId:st.id,leaveType:type,from:f.from,to:f.to,reason:f.reason},'Leave request sent for approval',{close:true});}}>
+  const half=f.part==='full'?undefined:f.part,to=half?f.from:f.to;
+  const days=to>=f.from?hrLeaveDays(s,st,f.from,to,half):0;const bal=hrLeaveBalance(s,st.id,f.from);
+  return <><div className="modal-heading"><h2>Request leave</h2><p>Another manager approves — nobody can approve their own request. Weekly offs are not counted. At most {hrLeavePolicy(s).deptCap[st.dept]??hrLeavePolicy(s).defaultCap} {hrDeptName(s,st.dept)} staff can be off on the same day.</p></div>
+    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_LEAVE_REQUEST',staffId:st.id,leaveType:type,from:f.from,to,...(half?{half}:{}),reason:f.reason},'Leave request sent for approval',{close:true});}}>
       {mgr&&!id&&<label>Staff member<select value={sid} onChange={e=>setSid(e.target.value)}>{x.staff.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>}
       {(!mgr||id)&&<p className="hr-who"><strong>{st.name}</strong> · {st.designation}</p>}
-      <label>Leave type<select value={type} onChange={e=>setF({...f,type:e.target.value as HRLeaveType})}>{types.map(t=><option key={t} value={t}>{HR_LEAVE_LABEL[t]} ({t})</option>)}</select></label>
-      <div className="form-row"><label>From<input type="date" required min={s.date} value={f.from} onChange={e=>setF({...f,from:e.target.value,to:e.target.value>f.to?e.target.value:f.to})}/></label>
-        <label>To<input type="date" required min={f.from} value={f.to} onChange={e=>setF({...f,to:e.target.value})}/></label></div>
+      <label>Leave type<select value={type} onChange={e=>setF({...f,type:e.target.value as HRLeaveType})}>{types.map(t=><option key={t} value={t}>{HR_LEAVE_LABEL[t]} ({t}){hrPaidLeave(t)?'':' — unpaid'}</option>)}</select></label>
+      <div className="hr-status-pick" role="radiogroup" aria-label="Full or half day">{([['full','Full day(s)'],['AM','First half'],['PM','Second half']] as const).map(([k,l])=>
+        <label key={k} className={f.part===k?'on':''}><input type="radio" name="hr-part" checked={f.part===k} onChange={()=>setF({...f,part:k})}/>{l}</label>)}</div>
+      <div className="form-row"><label>{half?'Date':'From'}<input type="date" required min={s.date} value={f.from} onChange={e=>setF({...f,from:e.target.value,to:e.target.value>f.to?e.target.value:f.to})}/></label>
+        {!half&&<label>To<input type="date" required min={f.from} value={f.to} onChange={e=>setF({...f,to:e.target.value})}/></label>}</div>
       <label>Reason<input required minLength={3} maxLength={120} value={f.reason} onChange={e=>setF({...f,reason:e.target.value})} enterKeyHint="send"/></label>
-      <div className="info-note"><Info size={16}/><span>{days} working day{days===1?'':'s'} · {st.payType==='daily'?'Daily-wage staff: leave without pay only (illustrative policy).':'Balance this year (illustrative): '+bal.map(b=>`${b.type} ${b.left}/${b.entitled}`).join(' · ')}</span></div>
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||days<1}>Send request</button></div>
+      <div className="info-note"><Info size={16}/><span>{days} working day{days===1?'':'s'} · {st.payType==='daily'?'Daily-wage staff: leave without pay only (illustrative policy).':`Balance ${hrFy(f.from).label}: `+bal.map(b=>`${b.type} ${b.left}/${b.entitled}`).join(' · ')}</span></div>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||days<=0}>Send request</button></div>
     </form></>;
 }
 
@@ -100,68 +115,152 @@ export function HRLeaveDecideModal({id,room}:{id?:string;room?:string}){
   const {s,run,closeModal,busy}=useHcc();const l=hrSlice(s).leaves.find(x=>x.id===id);const [note,setNote]=useState('');
   if(!l)return <Empty title="Leave request unavailable"/>;
   const approve=room!=='reject',st=hrStaffById(s,l.staffId);
-  return <><div className="modal-heading"><h2>{approve?'Approve leave':'Reject leave'}</h2><p>{l.id} · {st?.name} · {HR_LEAVE_LABEL[l.type]} · {shortDate(l.from)}{l.to!==l.from?` – ${shortDate(l.to)}`:''} · {l.days} day{l.days===1?'':'s'} · “{l.reason}” · requested by {hrUserName(s,l.requestedBy)}</p></div>
+  return <><div className="modal-heading"><h2>{approve?'Approve leave':'Reject leave'}</h2><p>{l.id} · {st?.name} · {HR_LEAVE_LABEL[l.type]}{l.half?` (${l.half==='AM'?'first':'second'} half)`:''} · {shortDate(l.from)}{l.to!==l.from?` – ${shortDate(l.to)}`:''} · {l.days} day{l.days===1?'':'s'} · “{l.reason}” · requested by {hrUserName(s,l.requestedBy)}</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_LEAVE_DECIDE',id:l.id,approve,note},approve?'Leave approved':'Leave rejected',{close:true});}}>
       <label>{approve?'Note (optional)':'Reason for rejecting'}<input required={!approve} maxLength={120} value={note} onChange={e=>setNote(e.target.value)} enterKeyHint="done"/></label>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className={'btn '+(approve?'primary':'danger')} disabled={busy}>{approve?'Approve':'Reject'}</button></div>
     </form></>;
 }
 
-/** 'hr-advance': salary advance with monthly recovery. */
+/** 'hr-advance': salary advance with monthly recovery (0 = full balance next payroll, SCC). */
 export function HRAdvanceModal(){
   const {s,run,closeModal,busy}=useHcc();const x=hrSlice(s);
-  const [f,setF]=useState({staffId:x.staff.find(t=>t.active)?.id??'',amount:'',installment:'',reason:''});
+  const [f,setF]=useState({staffId:x.staff.find(t=>t.active)?.id??'',amount:'',installment:'',fromMonth:s.date.slice(0,7),reason:''});
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
-  return <><div className="modal-heading"><h2>Salary advance</h2><p>Recovered from net pay each month when payroll is locked. Paid by simulated bank transfer — no effect on the cash drawer.</p></div>
-    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_ADVANCE_ADD',staffId:f.staffId,amount:rs(f.amount),installment:rs(f.installment),reason:f.reason},'Advance recorded',{close:true});}}>
+  const months=[s.date.slice(0,7),hrNextMonth(s.date.slice(0,7)),hrNextMonth(hrNextMonth(s.date.slice(0,7)))];
+  return <><div className="modal-heading"><h2>Salary advance</h2><p>Recovered from net pay when payroll is locked (never more than net pay). Paid by simulated bank transfer — no effect on the cash drawer.</p></div>
+    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_ADVANCE_ADD',staffId:f.staffId,amount:rs(f.amount),installment:rs(f.installment||'0'),fromMonth:f.fromMonth,reason:f.reason},'Advance recorded',{close:true});}}>
       <label>Staff member<select value={f.staffId} onChange={set('staffId')}>{x.staff.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
       <div className="form-row"><label>Amount (₹)<input required type="number" inputMode="decimal" min="1" max="1000000" step="0.01" value={f.amount} onChange={set('amount')}/></label>
-        <label>Monthly recovery (₹)<input required type="number" inputMode="decimal" min="1" step="0.01" value={f.installment} onChange={set('installment')}/></label></div>
+        <label>Monthly recovery (₹, blank = all at once)<input type="number" inputMode="decimal" min="0" step="0.01" value={f.installment} onChange={set('installment')}/></label></div>
+      <label>Recover from<select value={f.fromMonth} onChange={set('fromMonth')}>{months.map(m=><option key={m} value={m}>{hrMonthLabel(m)} payroll</option>)}</select></label>
       <label>Reason<input required maxLength={120} value={f.reason} onChange={set('reason')} enterKeyHint="done"/></label>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Record advance</button></div>
     </form></>;
 }
 
-/** 'hr-rates': illustrative payroll configuration (Owner). */
+/** 'hr-rates': new dated statutory rate version (Owner). */
 export function HRRatesModal(){
-  const {s,run,closeModal,busy}=useHcc();const r=hrSlice(s).rates;
-  const [f,setF]=useState({basic:String(r.basicBps/100),pf:String(r.pfBps/100),pfCap:toRs(r.pfCap),esic:String(r.esicBps/100),esicCeiling:toRs(r.esicCeiling),pt:toRs(r.pt),ptThreshold:toRs(r.ptThreshold),ot:String(r.otBps/10000),late:String(r.lateBlock)});
-  const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement>)=>setF({...f,[k]:e.target.value});
-  const pct=(v:string)=>Math.round(Number(v)*100);
+  const {s,run,closeModal,busy}=useHcc();
+  const last=hrLastLockedMonth(s),first=last?hrNextMonth(last):s.date.slice(0,7);
+  const months=[first];for(let i=0;i<11;i++)months.push(hrNextMonth(months[months.length-1]));
+  const r=hrRatesFor(s,first);
+  const pc=(b:number)=>String(b/100);
+  const [f,setF]=useState({from:first,basic:pc(r.basicBps),hra:pc(r.hraBps),wash:pc(r.washBps),pfEe:pc(r.pfEeBps),pfEr:pc(r.pfErBps),pfCap:toRs(r.pfWageCap),esicEe:pc(r.esicEeBps),esicEr:pc(r.esicErBps),esicCeiling:toRs(r.esicCeiling),
+    ptMaleExempt:toRs(r.ptMaleExempt),ptMaleMid:toRs(r.ptMaleMid),ptMaleMidAmt:toRs(r.ptMaleMidAmt),ptStd:toRs(r.ptStd),ptFeb:toRs(r.ptFeb),ptFemaleExempt:toRs(r.ptFemaleExempt),ot:String(r.otBps/10000),late:String(r.lateBlock),rounding:r.rounding});
+  const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
+  const bps=(v:string)=>Math.round(Number(v)*100);
   function save(e:React.FormEvent){e.preventDefault();
-    const next:HRRates={basicBps:pct(f.basic),pfBps:pct(f.pf),pfCap:rs(f.pfCap),esicBps:pct(f.esic),esicCeiling:rs(f.esicCeiling),pt:rs(f.pt),ptThreshold:rs(f.ptThreshold),otBps:Math.round(Number(f.ot)*10000),lateBlock:Number(f.late)};
-    run({type:'HR_RATES_SET',...next},'Illustrative rates saved',{close:true});}
+    const next:Omit<HRRates,'from'>={basicBps:bps(f.basic),hraBps:bps(f.hra),washBps:bps(f.wash),pfEeBps:bps(f.pfEe),pfErBps:bps(f.pfEr),pfWageCap:rs(f.pfCap),esicEeBps:bps(f.esicEe),esicErBps:bps(f.esicEr),esicCeiling:rs(f.esicCeiling),
+      ptMaleExempt:rs(f.ptMaleExempt),ptMaleMid:rs(f.ptMaleMid),ptMaleMidAmt:rs(f.ptMaleMidAmt),ptStd:rs(f.ptStd),ptFeb:rs(f.ptFeb),ptFemaleExempt:rs(f.ptFemaleExempt),otBps:Math.round(Number(f.ot)*10000),lateBlock:Number(f.late),rounding:f.rounding as HRRates['rounding']};
+    run({type:'HR_STAT_RATES_SET',from:f.from+'-01',...next},'Statutory rates saved',{close:true});}
   const num=(k:keyof typeof f,label:string,step='0.01')=><label>{label}<input required type="number" inputMode="decimal" min="0" step={step} value={f[k]} onChange={set(k)}/></label>;
-  return <><div className="modal-heading"><h2>Illustrative payroll rates</h2><p>{HR_DISCLAIMER} Locked payroll runs keep the rates they were calculated with.</p></div>
+  return <><div className="modal-heading"><h2>Statutory rates — new version</h2><p>Illustrative — CA to confirm for a hotel. A version takes effect from the 1st of a month after the last locked pay-run ({last?hrMonthLabel(last):'none yet'}); locked runs keep the rates they were calculated with.</p></div>
     <form className="form" onSubmit={save}>
-      <div className="form-row">{num('basic','Basic share of earned pay (%)')}{num('pf','PF placeholder rate (%)')}</div>
-      <div className="form-row">{num('pfCap','PF wage cap (₹)')}{num('esic','ESIC placeholder rate (%)')}</div>
-      <div className="form-row">{num('esicCeiling','ESIC gross ceiling (₹)')}{num('pt','PT placeholder (₹ / month)')}</div>
-      <div className="form-row">{num('ptThreshold','PT applies from gross (₹)')}{num('ot','Overtime multiplier (×)')}</div>
-      <label>Late marks per ½-day loss of pay (0 = off)<input required type="number" inputMode="numeric" min="0" max="10" step="1" value={f.late} onChange={set('late')}/></label>
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Save rates</button></div>
+      <label>Effective from<select value={f.from} onChange={set('from')}>{months.map(m=><option key={m} value={m}>1 {hrMonthLabel(m)}</option>)}</select></label>
+      <fieldset className="hr-fieldset"><legend>Salary structure</legend><div className="form-row">{num('basic','Basic (% of earned)')}{num('hra','HRA (% of basic)')}</div>{num('wash','Washing allowance (% of basic)')}</fieldset>
+      <fieldset className="hr-fieldset"><legend>Provident Fund</legend><div className="form-row">{num('pfEe','Employee (%)')}{num('pfEr','Employer (%)')}</div>{num('pfCap','PF wage cap (₹)')}</fieldset>
+      <fieldset className="hr-fieldset"><legend>ESIC</legend><div className="form-row">{num('esicEe','Employee (%)')}{num('esicEr','Employer (%)')}</div>{num('esicCeiling','Applies while earned pay ≤ (₹)')}</fieldset>
+      <fieldset className="hr-fieldset"><legend>Professional tax (Maharashtra)</legend>
+        <div className="form-row">{num('ptMaleExempt','Men: nil up to (₹)')}{num('ptMaleMid','Men: middle slab up to (₹)')}</div>
+        <div className="form-row">{num('ptMaleMidAmt','Middle slab (₹ / month)')}{num('ptStd','Standard (₹ / month)')}</div>
+        <div className="form-row">{num('ptFeb','February top slab (₹)')}{num('ptFemaleExempt','Women: nil up to (₹)')}</div></fieldset>
+      <div className="form-row">{num('ot','Overtime (× ordinary rate)')}<label>Late marks per ½-day loss (0 = off)<input required type="number" inputMode="numeric" min="0" max="10" step="1" value={f.late} onChange={set('late')}/></label></div>
+      <label>Rounding<select value={f.rounding} onChange={set('rounding')}><option value="paise">To paise (SCC)</option><option value="rupee">PF nearest rupee · ESIC next higher rupee</option></select></label>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Save version</button></div>
     </form></>;
 }
 
-/** 'hr-payslip': id = "runId|staffId". Own payslip or payroll roles; printable on A4 and phone. */
-export function HRPayslipModal({id}:{id?:string}){
-  const {s,uid,closeModal}=useHcc();const [runId,staffId]=(id??'').split('|');
-  const run=hrSlice(s).runs.find(r=>r.id===runId),line=run?.lines.find(l=>l.staffId===staffId);
-  const me=hrStaffOfUser(s,uid),allowed=hrCanPay(s,uid)||(me?.id===staffId&&run?.status==='Locked');
-  if(!run||!line||!allowed)return <Empty title="Payslip unavailable" body="Payslips are released when payroll is locked. You can see only your own."/>;
-  const c=line.counts,R=(label:string,v:React.ReactNode)=><div key={label}><span>{label}</span><strong className="number">{v}</strong></div>;
-  return <><div className="hr-payslip invoice">
+/** 'hr-leave-policy': SCC entitlements and max staff off per department per day (Owner). */
+export function HRLeavePolicyModal(){
+  const {s,run,closeModal,busy}=useHcc();const p=hrLeavePolicy(s),depts=hrSlice(s).depts;
+  const [f,setF]=useState({CL:String(p.ent.CL),SL:String(p.ent.SL),EL:String(p.ent.EL),cap:String(p.defaultCap),dept:Object.fromEntries(depts.map(d=>[d.id,p.deptCap[d.id]!==undefined?String(p.deptCap[d.id]):''])) as Record<string,string>});
+  function save(e:React.FormEvent){e.preventDefault();
+    const deptCap:Record<string,number>={};for(const [d,v] of Object.entries(f.dept))if(v!=='')deptCap[d]=Number(v);
+    run({type:'HR_LEAVE_POLICY_SET',ent:{CL:Number(f.CL),SL:Number(f.SL),EL:Number(f.EL)},defaultCap:Number(f.cap),deptCap},'Leave policy saved',{close:true});}
+  const n=(v:string,on:(v:string)=>void,label:string,max=60,req=true)=><label>{label}<input required={req} type="number" inputMode="numeric" min={req?0:1} max={max} step="1" value={v} onChange={e=>on(e.target.value)}/></label>;
+  return <><div className="modal-heading"><h2>Leave policy</h2><p>Days per financial year (April–March). Applies to new requests; existing requests keep their dates.</p></div>
+    <form className="form" onSubmit={save}>
+      <div className="form-row">{n(f.CL,v=>setF({...f,CL:v}),'Casual leave')}{n(f.SL,v=>setF({...f,SL:v}),'Sick leave')}</div>
+      <div className="form-row">{n(f.EL,v=>setF({...f,EL:v}),'Earned leave')}<label>Max staff off per department per day<input required type="number" inputMode="numeric" min="1" max="20" step="1" value={f.cap} onChange={e=>setF({...f,cap:e.target.value})}/></label></div>
+      <fieldset className="hr-fieldset"><legend>Department limits (blank = {f.cap||'default'})</legend><div className="hr-cap-grid">{depts.map(d=>n(f.dept[d.id],v=>setF({...f,dept:{...f.dept,[d.id]:v}}),d.name,20,false))}</div></fieldset>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Save policy</button></div>
+    </form></>;
+}
+
+/** 'hr-unlock': id = run ID. Owner unlock with a reason (SCC unlockRun). */
+export function HRUnlockModal({id}:{id?:string}){
+  const {s,run,closeModal,busy}=useHcc();const r=hrSlice(s).runs.find(x=>x.id===id);const [reason,setReason]=useState('');
+  if(!r)return <Empty title="Payroll run unavailable"/>;
+  return <><div className="modal-heading"><h2>Unlock {hrMonthLabel(r.month)} payroll</h2><p>Payslips are withdrawn, advance recoveries of this run are reversed and the run goes back to Draft. Recalculate and lock again (maker-checker).</p></div>
+    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_PAYROLL_UNLOCK',id:r.id,reason},'Payroll unlocked',{close:true});}}>
+      <label>Reason<input required minLength={5} maxLength={120} value={reason} onChange={e=>setReason(e.target.value)} enterKeyHint="done"/></label>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn danger" disabled={busy}>Unlock</button></div>
+    </form></>;
+}
+
+/** 'hr-fnf': id = staff ID. Full and final settlement preview + confirm (SCC fnfCompose / fnfGenerate). */
+export function HRFnfModal({id}:{id?:string}){
+  const {s,run,closeModal,busy}=useHcc();const st=id?hrStaffById(s,id):undefined;
+  const [adj,setAdj]=useState<{label:string;kind:'add'|'ded';amount:string}[]>([]);
+  if(!st||!st.exitedOn)return <Empty title="Record the exit first" body="Full and final is prepared after the staff member is marked as exited."/>;
+  const clean:HRFnfAdj[]=adj.filter(a=>a.label.trim()&&Number(a.amount)>0).map(a=>({label:a.label.trim(),kind:a.kind,amount:rs(a.amount)}));
+  const c=hrFnfCompute(s,st,clean),enc=hrElEncashment(s,st);
+  const row=(l:string,v:number,sign='')=><div key={l}><span>{l}</span><strong className="number">{sign}{money(v)}</strong></div>;
+  return <><div className="modal-heading"><h2>Full and final · {st.name}</h2><p>Last day {dateLabel(c.lastDay)}. {c.salaryIncluded?`Includes ${hrMonthLabel(c.month)} salary to the last day.`:`${hrMonthLabel(c.month)} salary was already paid in the locked run.`} The full outstanding advance is recovered. Simulated bank transfer.</p></div>
+    <form className="form" onSubmit={e=>{e.preventDefault();if(window.confirm('Issue the full and final settlement? This cannot be undone.'))run({type:'HR_FNF_SETTLE',staffId:st.id,adjustments:clean},'Full and final settlement issued',{close:true});}}>
+      <div className="summary-list hr-fnf-sum">
+        {c.line&&row(`Salary ${hrMonthLabel(c.month)} (${c.line.payableDays} days)`,c.line.earned,'+ ')}{c.line&&!!c.line.ot&&row('Overtime',c.line.ot,'+ ')}
+        {clean.filter(a=>a.kind==='add').map(a=>row(a.label,a.amount,'+ '))}
+        {c.line&&!!c.line.pf&&row('PF (employee)',c.line.pf,'− ')}{c.line&&!!c.line.esic&&row('ESIC (employee)',c.line.esic,'− ')}{c.line&&!!c.line.pt&&row('Professional tax',c.line.pt,'− ')}
+        {!!c.advanceOutstanding&&row('Advance outstanding (full recovery)',c.advanceOutstanding,'− ')}
+        {clean.filter(a=>a.kind==='ded').map(a=>row(a.label,a.amount,'− '))}
+      </div>
+      <div className="hr-ps-net"><span>{c.net<0?'Recoverable from employee':'Net payable'}</span><strong className="number">{money(Math.abs(c.net))}</strong></div>
+      <fieldset className="hr-fieldset"><legend>Adjustments (up to 4)</legend>
+        {adj.map((a,i)=><div key={i} className="hr-adj-row">
+          <input aria-label="Adjustment label" maxLength={80} value={a.label} placeholder="Label" onChange={e=>setAdj(adj.map((q,j)=>j===i?{...q,label:e.target.value}:q))}/>
+          <select aria-label="Addition or deduction" value={a.kind} onChange={e=>setAdj(adj.map((q,j)=>j===i?{...q,kind:e.target.value as 'add'|'ded'}:q))}><option value="add">Addition</option><option value="ded">Deduction</option></select>
+          <input aria-label="Amount in rupees" type="number" inputMode="decimal" min="0" step="0.01" value={a.amount} placeholder="₹" onChange={e=>setAdj(adj.map((q,j)=>j===i?{...q,amount:e.target.value}:q))}/>
+          <button type="button" className="btn" aria-label="Remove adjustment" onClick={()=>setAdj(adj.filter((_,j)=>j!==i))}><Trash2 size={16}/></button></div>)}
+        <div className="inline">{adj.length<4&&<button type="button" className="btn" onClick={()=>setAdj([...adj,{label:'',kind:'add',amount:''}])}><Plus size={16}/> Add adjustment</button>}
+          {adj.length<4&&enc>0&&!adj.some(a=>/encashment/i.test(a.label))&&<button type="button" className="btn" onClick={()=>setAdj([...adj,{label:'Earned leave encashment',kind:'add',amount:String(enc/100)}])}><Plus size={16}/> EL encashment {money(enc)}</button>}</div></fieldset>
+      <p className="footnote">{HR_DISCLAIMER} Gratuity is not calculated in this prototype.</p>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Issue settlement</button></div>
+    </form></>;
+}
+
+/** Payslip body (shared by the dialog and My shifts & pay). */
+export function HRPayslipDoc({run,line}:{run:HRRun;line:HRLine}){
+  const {s}=useHcc();const c=line.counts,R=(label:string,v:React.ReactNode)=><div key={label}><span>{label}</span><strong className="number">{v}</strong></div>;
+  return <div className="hr-payslip invoice">
     <div className="invoice-top"><Hotel size={28}/><div><h2>{s.settings.hotel}</h2><p>Payslip · {hrMonthLabel(run.month)} · {run.id}</p></div></div>
-    <div className="invoice-stamp">{run.status==='Locked'?'DEMONSTRATION PAYSLIP':'DRAFT — NOT FINAL'} · FICTIONAL DATA · ILLUSTRATIVE DEDUCTIONS — NOT STATUTORY ADVICE</div>
+    <div className="invoice-stamp">{run.status==='Locked'?'DEMONSTRATION PAYSLIP':'DRAFT — NOT FINAL'} · FICTIONAL DATA · ILLUSTRATIVE — CA TO CONFIRM FOR A HOTEL</div>
     <div className="hr-ps-head"><div><small>EMPLOYEE</small><h3>{line.name}</h3><p>{line.designation} · {hrDeptName(s,line.dept)} · {line.staffId}</p></div>
       <div><small>PAY BASIS</small><h3>{line.payType==='monthly'?`${money(line.base)} / month`:`${money(line.base)} / day`}</h3><p>{c.days} calendar days · payable {line.payableDays}</p></div></div>
     <div className="hr-ps-grid">
-      <section><h4>Attendance</h4><div className="summary-list">{R('Present',c.P)}{R('Late',c.L)}{R('Half-days',c.H)}{R('Absent',c.A+c.unmarked)}{R('Paid leave',c.paidLeave)}{R('Leave without pay',c.lopLeave)}{R('Weekly offs',c.off)}{!!c.OFFW&&R('Worked on off day',c.OFFW)}{R('Overtime',`${Math.round(c.otMin/6)/10} h`)}{!!line.latePenaltyHalf&&R('Late rule (½-days)',line.latePenaltyHalf)}</div></section>
-      <section><h4>Earnings</h4><div className="summary-list">{R('Basic earned',money(line.basic))}{R('Overtime',money(line.ot))}{R('Gross',money(line.gross))}</div>
-        <h4>Deductions <em>(illustrative)</em></h4><div className="summary-list">{R('PF placeholder',money(line.pf))}{R('ESIC placeholder',money(line.esic))}{R('PT placeholder',money(line.pt))}{R('Advance recovery',money(line.advance))}{R('Total deductions',money(line.deductions))}</div></section>
+      <section><h4>Attendance</h4><div className="summary-list">{R('Present',c.P)}{R('Late',c.L)}{R('Half-days',c.H+c.HL)}{R('Absent / not marked',c.A+c.unmarked)}{R('Paid leave',c.paidLeave)}{R('Leave without pay',c.lopLeave)}{R('Weekly offs',c.off)}{!!c.OFFW&&R('Worked on off day',c.OFFW)}{R('Overtime',`${Math.round(c.otMin/6)/10} h`)}{!!line.latePenaltyHalf&&R('Late rule (½-days)',line.latePenaltyHalf)}</div></section>
+      <section><h4>Earnings</h4><div className="summary-list">{R('Basic',money(line.basic))}{line.structure==='S'&&<>{R('HRA',money(line.hra))}{R('Washing allowance',money(line.washing))}{R('Special allowance',money(line.special))}</>}{R('Overtime',money(line.ot))}{R('Gross earnings',money(line.gross))}</div>
+        <h4>Deductions</h4><div className="summary-list">{R('Provident Fund (12%)',money(line.pf))}{R('ESIC (0.75%)',money(line.esic))}{R('Professional tax (MH)',money(line.pt))}{R('Advance recovery',money(line.advance))}{R('Total deductions',money(line.deductions))}</div>
+        <h4>Employer contributions <em>(not deducted)</em></h4><div className="summary-list">{R('PF employer',money(line.pfEr))}{R('ESIC employer',money(line.esicEr))}</div></section>
     </div>
     <div className="hr-ps-net"><span>Net pay</span><strong className="number">{money(line.net)}</strong></div>
-    <p className="footnote">{HR_DISCLAIMER} Prepared by {hrUserName(s,run.preparedBy)}{run.lockedBy?` · locked by ${hrUserName(s,run.lockedBy)} at ${run.lockedAt?.slice(11)} on ${dateLabel(run.lockedAt!.slice(0,10))} (simulated clock)`:''}. Payment by simulated bank transfer.</p>
-  </div>
-  <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
+    <p className="hr-ps-words">{hrAmountWords(line.net)}</p>
+    <p className="footnote">{HR_DISCLAIMER} Rates from {run.rates.from}. Prepared by {hrUserName(s,run.preparedBy)}{run.lockedBy?` · locked by ${hrUserName(s,run.lockedBy)} at ${run.lockedAt?.slice(11)} on ${dateLabel(run.lockedAt!.slice(0,10))} (simulated clock)`:''}. Payment by simulated bank transfer.</p>
+  </div>;
+}
+
+/** 'hr-payslip': id = "runId|staffId". Own payslip or payroll roles; PDF via the share/print hook; simulated WhatsApp for payroll roles. */
+export function HRPayslipModal({id}:{id?:string}){
+  const {s,uid,closeModal,run:exec,busy}=useHcc();const [runId,staffId]=(id??'').split('|');
+  const run=hrSlice(s).runs.find(r=>r.id===runId),line=run?.lines.find(l=>l.staffId===staffId);
+  const me=hrStaffOfUser(s,uid),pay=hrCanPay(s,uid),allowed=pay||(me?.id===staffId&&run?.status==='Locked');
+  if(!run||!line||!allowed)return <Empty title="Payslip unavailable" body="Payslips are released when payroll is locked. You can see only your own."/>;
+  const st=hrStaffById(s,staffId),wa=st?hrWaNumber(st.phone):'',sent=(run.sent??[]).filter(x=>x.staffId===staffId);
+  return <><HRPayslipDoc run={run} line={line}/>
+    {pay&&run.status==='Locked'&&<div className="hr-wa no-print"><div><strong><MessageCircle size={15}/> WhatsApp (simulated)</strong><small>{wa?`To +${wa}`:'No usable mobile number'}{sent.length?` · sent ${sent.length}× · last ${sent.at(-1)!.at.slice(11)} ${shortDate(sent.at(-1)!.at.slice(0,10))}`:''}</small></div>
+      <pre>{hrPayslipMessage(s,run,line)}</pre></div>}
+    <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button>
+      {pay&&run.status==='Locked'&&<button className="btn" disabled={busy||!wa} onClick={()=>exec({type:'HR_PAYSLIP_SEND',runId:run.id,staffId},'Payslip sent on WhatsApp (simulated — nothing left this device)')}><MessageCircle size={16}/> Send on WhatsApp</button>}
+      <button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Payslip PDF</button></div></>;
 }
