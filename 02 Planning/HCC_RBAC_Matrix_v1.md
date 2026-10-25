@@ -3,7 +3,7 @@
 Version: 1.0 preliminary (M0) · 24 October 2026 · Final version due at M4
 Status: **Proposed** — role templates are demonstration baselines, not approved staff assignments.
 
-> **Revised 25 Oct 2026 — DEC-063.** The owner accepted all 13 RBAC rulings (G1–G13, `RBAC_Mismatch_Rulings_Proposed.md`, APR-010). This matrix now matches the prototype: cells changed in §5 (RES-001, GST-001, FOL-005, PAY-004, HK-001, EXP-001, EXP-003, CLS-001, RPT-001, ADM-003, ADM-004, ADM-005), limits and routes in §6–§7, role rules the coarse grants cannot express in §5a. The in-app policy baseline (`src/domain/streams/admin.ts`) carries the same cells; role rules live in `src/domain/streams/rbac.ts`.
+> **Revised 25 Oct 2026 — DEC-063.** The owner accepted all 13 RBAC rulings (G1–G13, `RBAC_Mismatch_Rulings_Proposed.md`, APR-010). This matrix now matches the prototype: cells changed in §5 (RES-001, GST-001, FOL-005, PAY-004, HK-001, EXP-001, EXP-003, CLS-001, RPT-001, ADM-003, ADM-004, ADM-005), limits and routes in §6–§7, role rules the coarse grants cannot express in §5a. The in-app policy baseline (`src/domain/streams/admin.ts`) carries the same cells; role rules live in `src/domain/streams/rbac.ts`. Lead decisions on leftovers: the Day pack (printed day summary) stays visible to the Accountant (G4, read-only Day closing view); the Accounting voucher CSV/Excel export is hidden from and refused for the Cashier (G13).
 
 ## 1. Model
 
