@@ -328,6 +328,9 @@
     "allot": {
      "Classic": 2
     },
+    "rates": {
+     "Classic": 175000
+    },
     "picked": {
      "Classic": 2
     }
@@ -342,6 +345,10 @@
     "allot": {
      "Classic": 6,
      "Deluxe": 3
+    },
+    "rates": {
+     "Classic": 180000,
+     "Deluxe": 270000
     },
     "picked": {
      "Classic": 0,
@@ -359,6 +366,10 @@
      "Classic": 5,
      "Suite": 1
     },
+    "rates": {
+     "Classic": 190000,
+     "Suite": 420000
+    },
     "picked": {
      "Classic": 0,
      "Suite": 0
@@ -373,6 +384,9 @@
     "status": "Open",
     "allot": {
      "Deluxe": 3
+    },
+    "rates": {
+     "Deluxe": 250000
     },
     "picked": {
      "Deluxe": 0

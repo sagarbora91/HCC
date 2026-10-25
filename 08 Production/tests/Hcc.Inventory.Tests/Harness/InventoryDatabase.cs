@@ -191,14 +191,17 @@ public sealed class P2Services
     public Task<int> DriftAsync() => Db.CountAsync("SELECT COUNT(*) FROM inv.v_type_night_count_drift;");
 
     /// <summary>Running a raw allocator change in its own command (for count-level concurrency tests).</summary>
-    public Task<CommandResult<int>> AllocateAsync(long reservationId, StayAllocation? from, StayAllocation? to, int principal = FakeAccessPolicy.Owner)
+    public Task<CommandResult<Done>> AllocateAsync(long reservationId, StayAllocation? from, StayAllocation? to, int principal = FakeAccessPolicy.Owner)
         => Runner.RunAsync(Ctx(principal, "TestAllocate"), new { reservationId, k = Guid.NewGuid() }, async (tx, ct) =>
         {
             await Allocator.ChangeAsync(tx, 1, reservationId, from, to, true, ct);
             await tx.AuditAsync("TestAllocate", reservationId.ToString(CultureInfo.InvariantCulture), "test", ct);
-            return 1;
+            return new Done(true);
         });
 }
+
+/// <summary>Command result for test-only commands (the idempotency record must hold a JSON object, CK_idempotency_result).</summary>
+public sealed record Done(bool Ok);
 
 /// <summary>Runs an async call and returns its HCC error code name, or "OK".</summary>
 public static class Outcome

@@ -27,7 +27,7 @@ const raw={
   roomTypes:[...new Set(s.rooms.map(r=>r.type))].map(t=>({code:t,maxOccupancy:resCapacity(s.rooms.find(r=>r.type===t)),rackRatePaise:s.rooms.find(r=>r.type===t).rate})),
   rooms:s.rooms.map(r=>({roomNo:r.id,type:r.type,blocked:!!r.blocked,blockFrom:r.blockFrom??null,blockTo:r.blockTo??null})),
   bookings:s.bookings.filter(live).map(b=>({id:b.id,room:b.room,guest:b.guest,arrival:b.arrival,departure:b.departure,status:b.status,holdUntil:b.holdUntil??null,people:b.people,children:b.children??0})),
-  blocks:grpSlice(s).blocks.map(b=>({id:b.id,name:b.name,arrival:b.arrival,departure:b.departure,cutoff:b.cutoff,status:b.status,allot:b.allot,
+  blocks:grpSlice(s).blocks.map(b=>({id:b.id,name:b.name,arrival:b.arrival,departure:b.departure,cutoff:b.cutoff,status:b.status,allot:b.allot,rates:b.rates,
     picked:Object.fromEntries(Object.keys(b.allot).map(t=>[t,b.members.filter(m=>m.type===t&&s.bookings.find(x=>x.id===m.booking&&live(x))).length]))})),
   restrictions:yldSlice(s).restrictions.map(x=>({id:x.id,type:x.type,from:x.from,to:x.to,minStay:x.minStay,cta:x.cta,note:x.note})),
 };

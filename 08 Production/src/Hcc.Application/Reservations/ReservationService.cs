@@ -226,9 +226,9 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
     private async Task<QuoteRecord> UsableQuoteAsync(ICommandTransaction tx, int propertyId, long quoteId, byte[] version, DateTime now, CancellationToken ct)
     {
         var quote = await inventory.GetQuoteForUpdateAsync(tx, propertyId, quoteId, ct).ConfigureAwait(false) ?? throw InventoryErrors.NotFound("Quote");
-        if (!InventoryErrors.VersionEquals(quote.RowVersion, version)) throw InventoryErrors.Stale("This quote");
         if (quote.UsedByReservationId is not null) throw HccException.Validation("This quote was already used for a booking. Request a new quote.");
         if (now >= quote.ExpiresUtc) throw HccException.Validation("This quote expired. Request a new quote.");
+        if (!InventoryErrors.VersionEquals(quote.RowVersion, version)) throw InventoryErrors.Stale("This quote");
         return quote;
     }
 

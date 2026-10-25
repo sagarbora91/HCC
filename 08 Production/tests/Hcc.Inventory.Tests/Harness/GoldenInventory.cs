@@ -72,7 +72,7 @@ public sealed record GoldenInventory(string GeneratedBy, string Source, bool Fic
                 var picked = g.Picked.TryGetValue(type, out var p) ? p : 0;
                 // A released block keeps allotted = picked (prototype grpSweep / GRP_RELEASE).
                 var allotted = g.Status == "Released" ? picked : allot;
-                sql.AppendLine(CultureInfo.InvariantCulture, $"INSERT inv.group_block_type(group_block_id, room_type_id, allotted, picked, released) SELECT g.group_block_id, t.room_type_id, {allotted}, {picked}, {allot - allotted} FROM inv.group_block g CROSS JOIN inv.room_type t WHERE g.code = '{g.Id}' AND t.code = '{type}';");
+                sql.AppendLine(CultureInfo.InvariantCulture, $"INSERT inv.group_block_type(group_block_id, room_type_id, allotted, picked, released, rate_paise) SELECT g.group_block_id, t.room_type_id, {allotted}, {picked}, {allot - allotted}, {(g.Rates.TryGetValue(type, out var rate) ? rate.ToString(CultureInfo.InvariantCulture) : "NULL")} FROM inv.group_block g CROSS JOIN inv.room_type t WHERE g.code = '{g.Id}' AND t.code = '{type}';");
             }
         }
 
@@ -95,7 +95,7 @@ public sealed record GoldenRoom(string RoomNo, string Type, bool Blocked, string
 
 public sealed record GoldenBooking(string Id, string Room, string Guest, string Arrival, string Departure, string Status, string? HoldUntil, int People, int Children);
 
-public sealed record GoldenBlock(string Id, string Name, string Arrival, string Departure, string Cutoff, string Status, Dictionary<string, int> Allot, Dictionary<string, int> Picked);
+public sealed record GoldenBlock(string Id, string Name, string Arrival, string Departure, string Cutoff, string Status, Dictionary<string, int> Allot, Dictionary<string, int> Picked, Dictionary<string, long> Rates);
 
 public sealed record GoldenRestriction(string Id, string Type, string From, string To, int MinStay, bool Cta, string Note);
 
