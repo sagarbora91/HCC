@@ -1,7 +1,7 @@
 // Day pack: one A4 printable pack (summary, cash, receipts, expenses) for a business date, printed through printDocument (ETP ReportPackageService.cs idea: one pack per day).
 import React,{useState} from 'react';
 import {Printer,Hotel,X} from 'lucide-react';
-import {money,reportPack,closingSummary,isDayClosed} from '../../services/mock';
+import {money,reportPack,closingSummary,isDayClosed,rbacCanDayPack} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {printDocument} from '../../app/native';
 import {dateLabel,shortDate} from '../../components/ui';
@@ -41,6 +41,7 @@ export function DayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
 }
 /** Day closing button: opens the pack for `date`. */
 export function DayPackButton({date,label}:{date:string;label?:string}){
-  const [on,setOn]=useState(false);
+  const [on,setOn]=useState(false);const {s,uid}=useHcc();
+  if(!rbacCanDayPack(s,uid))return null; // DEC-063 G4: Owner, Manager and Accountant (read-only closing view)
   return <><button className="btn" onClick={()=>setOn(true)}><Printer size={15}/> {label??'Day pack (A4 PDF)'}</button>{on&&<DayPackSheet date={date} onClose={()=>setOn(false)}/>}</>;
 }
