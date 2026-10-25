@@ -5,6 +5,7 @@ import {useHcc} from './context';
 import {navItems} from './nav';
 import {NAV_CATEGORIES,DASHBOARD,PAGE_BLURB,catPage,crumbsFor,pagesOfCategory,parseCatPage,navFilterModules,type CategoryId} from './navmap';
 import {Empty} from '../components/ui';
+import {cmpBadge} from '../services/mock';
 
 /** Home › Category › Page, each earlier part clickable. */
 export function Breadcrumb({page,label}:{page:string;label:string}){
@@ -25,13 +26,13 @@ function Tile({icon:Icon,label,blurb,badge,onClick}:{icon:React.ComponentType<{s
 }
 
 export function ModulesHome(){
-  const {s,go,user,permission,arrivals,taskList}=useHcc();
+  const {s,uid,go,user,permission,arrivals,taskList}=useHcc();
   const allowed=new Set(navFilterModules(s,navItems).filter(n=>permission(n.p)).map(n=>n.id));
   const inHouse=s.bookings.filter(b=>b.status==='In house').length;
   const openTasks=taskList.filter(t=>t.status!=='Done').length;
   const pendingApprovals=s.approvals.filter(a=>a.status==='Pending').length;
   const pendingExpenses=s.expenses.filter(e=>e.status==='Pending').length;
-  const badge:Partial<Record<CategoryId,number>>={front:arrivals.length,hkm:openTasks,guestsvc:inHouse,cash:pendingExpenses,admin:pendingApprovals};
+  const badge:Partial<Record<CategoryId,number>>={front:arrivals.length,hkm:openTasks,guestsvc:inHouse,cash:pendingExpenses,admin:pendingApprovals,accounts:cmpBadge(s,uid)};
   const cats=NAV_CATEGORIES.map(c=>({c,pages:pagesOfCategory(c.id).filter(p=>allowed.has(p))})).filter(x=>x.pages.length);
   const first=user.name.split(' · ')[0];
   return <div className="home">

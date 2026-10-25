@@ -242,6 +242,7 @@ export type State={
   staffX?:import('./streams/staff').HRState;
   accountingX?:import('./streams/accounting').ACCState;
   assistantX?:import('./streams/assistant').AIState;
+  complianceX?:import('./streams/compliance').CMPState;
   cashbookX?:import('./streams/cashbook').CBState;
   /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
   configX?:import('./streams/config').CFGState;

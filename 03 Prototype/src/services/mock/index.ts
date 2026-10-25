@@ -29,5 +29,6 @@ export * from '../../domain/streams/pos';
 export * from '../../domain/streams/staff';
 export * from '../../domain/streams/accounting';
 export * from '../../domain/streams/assistant';
+export * from '../../domain/streams/compliance';
 export {buildHistory,HISTORY_DEFAULTS} from '../../fixtures/history/generate';
 export * from '../../domain/streams/history';

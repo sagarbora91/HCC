@@ -14,12 +14,11 @@
 //                        (its validation applies; the hub's DEC-058 rule replaces the module's permission check).
 // A later provider with an existing key replaces that key; unregisterSettingsGroup(id) removes a provider.
 //
-// ── Wiring at merge (lead) — add these lines at the very bottom of THIS file ─────────────────────────────────────
-//     import {hrSettingDefs} from './staff';        registerSettingsGroup({id:'hr-statutory',group:'people',defs:hrSettingDefs});
-//     import {cmpSettingDefs} from './compliance';  registerSettingsGroup({id:'compliance',group:'compliance',defs:cmpSettingDefs});
-// (imports may sit with the other imports). If hrSettingDefs() covers PF/ESIC/PT, also call unregisterSettingsGroup('hr-rates')
-// to drop the interim hr.* wrappers below. Nothing else changes: the hub UI, search, summaries, history, export and tests
-// pick the new settings up automatically.
+// ── Wired providers (merge of integration/w05) ───────────────────────────────────────────────────────────────────
+//     registerSettingsGroup({id:'hr-statutory',group:'people',defs:hrStatutoryDefs});      // W05-B hrSettingDefs() → per-field wrappers
+//     registerSettingsGroup({id:'compliance',group:'compliance',defs:cmpDefs});            // W05-C cmpSettingDefs(s) → wrappers
+// See the adapters hrStatutoryDefs / cmpDefs at the bottom: each composite W05-B rate (e.g. PF = employee %, employer %, wage cap)
+// becomes one editable hub setting per field, saved through HR_STAT_RATES_SET (dated from the 1st of a month by the payroll module).
 import type {State,Command,Role} from '../types';
 import {SCHEMA} from '../types';
 import {money,addDays} from '../money';
@@ -29,7 +28,8 @@ import {yldSlice,yldPct,YLD_ROUND_OPTIONS} from './yield';
 import {aiDirtyHours} from './assistant';
 import {gsvSettings,GSV_REQUEST_TYPES} from './services';
 import {posSlice} from './pos';
-import {hrSlice} from './staff';
+import {hrRatesFor,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
+import {cmpSettingDefs,type CMPSettingDef} from './compliance';
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
 export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'data';
@@ -477,19 +477,9 @@ function builtins(){
     {key:'hk.maxRoomsPerAttendant',label:'Rooms per attendant (guide)',type:'integer',min:4,max:20,default:12,suffix:'rooms',unit:'rooms per shift',help:'Planning guide shown on the housekeeping board.',affects:'Planning hints only.'},
     {key:'mnt.pmLeadDays',label:'Preventive maintenance lead time',type:'integer',min:1,max:30,default:7,suffix:'days',unit:'days',help:'Preventive work orders are listed this many days ahead.',affects:'Preventive plans generated after the change.'},
   ]});
-  // Interim wrappers over HR_RATES_SET (Wave 0). W05-B's hrSettingDefs() replaces them: unregisterSettingsGroup('hr-rates').
-  const hr=(f:'pfBps'|'esicBps'|'pt'|'otBps')=>({read:(s:State)=>hrSlice(s).rates[f],command:(s:State,v:unknown)=>({type:'HR_RATES_SET',...hrSlice(s).rates,[f]:v})});
-  registerSettingsGroup({id:'hr-rates',group:'people',defs:[
-    {key:'hr.pfBps',label:'PF employee rate',type:'percent',min:0,max:3000,unit:'% of basic',illustrative:true,help:'Illustrative — CA to confirm for a hotel.',...hr('pfBps'),affects:'Pay runs calculated after the change; locked runs keep their snapshot.'},
-    {key:'hr.esicBps',label:'ESIC employee rate',type:'percent',min:0,max:1000,unit:'% of gross',illustrative:true,help:'Illustrative — CA to confirm for a hotel.',...hr('esicBps'),affects:'Pay runs calculated after the change; locked runs keep their snapshot.'},
-    {key:'hr.pt',label:'Professional tax per month',type:'money',min:0,max:100000,unit:'₹ per month',illustrative:true,help:'Illustrative — CA to confirm for a hotel.',...hr('pt'),affects:'Pay runs calculated after the change; locked runs keep their snapshot.'},
-    {key:'hr.otBps',label:'Overtime multiplier',type:'percent',min:10000,max:30000,unit:'× hourly (stored in basis points)',help:'Overtime pay as a multiple of the hourly rate.',show:v=>(Number(v)/10000)+'×',...hr('otBps'),affects:'Pay runs calculated after the change.'},
-  ]});
-  registerSettingsGroup({id:'compliance',group:'compliance',defs:[
-    {key:'cmp.caName',label:'Chartered accountant (CA) contact',type:'text',maxLength:80,default:'R. Kulkarni & Associates (fictional)',unit:'text',help:'Receives the simulated CA pack.'},
-    {key:'cmp.caEmail',label:'CA e-mail (simulated)',type:'text',maxLength:80,default:'ca.demo@example.invalid',pattern:/^[^@\s]+@[^@\s]+\.[^@\s]+$/,patternMsg:'Enter an e-mail address.',unit:'e-mail',help:'Nothing is sent in the prototype.'},
-    {key:'cmp.reminderDays',label:'“Due soon” window',type:'integer',min:1,max:30,default:7,suffix:'days',unit:'days',help:'Obligations due within this window show on the Dashboard.',affects:'Dashboard “Due this week” card.'},
-  ]});
+  // W05-B statutory rates and leave policy (dated rate versions; hrSettingDefs) and W05-C compliance settings (cmpSettingDefs).
+  registerSettingsGroup({id:'hr-statutory',group:'people',defs:hrStatutoryDefs});
+  registerSettingsGroup({id:'compliance',group:'compliance',defs:cmpDefs});
   registerSettingsGroup({id:'modules',group:'modules',defs:CFG_MODULES.map(m=>({key:'module.'+m.id,label:m.label,type:'boolean' as const,unit:'on / off',help:m.note,store:{kind:'switch' as const,module:m.id},
     affects:'Menus, tiles, search, reminders and phone tabs; commands are refused while off. Data is kept.',
     impact:(s:State,v:unknown)=>v===false&&m.id==='pos'?[`${posSlice(s).orders.filter(o=>o.status==='Open').length} open restaurant check(s) stay open and can be settled after switching back on.`]:[]}))});
@@ -513,3 +503,50 @@ function builtins(){
 }
 /** Role names allowed to decide a request with this approver (for UI text). */
 export const cfgApproverRoles=(a:CfgApprover):Role[]=>a==='Manager'?['Manager','Owner']:['Owner'];
+
+// ───────────────────────────── Adapters for W05-B / W05-C settings ─────────────────────────────
+type HRField={label:string;type:CfgType;min?:number;max?:number;options?:string[];show?:(v:unknown)=>string};
+const HR_FIELDS:Record<string,HRField>={
+  basicBps:{label:'basic share of earned pay',type:'percent',min:1000,max:10000},hraBps:{label:'HRA (% of basic)',type:'percent',min:0,max:10000},washBps:{label:'washing allowance (% of basic)',type:'percent',min:0,max:10000},
+  pfEeBps:{label:'employee rate',type:'percent',min:0,max:2500},pfErBps:{label:'employer rate',type:'percent',min:0,max:2500},pfWageCap:{label:'wage cap',type:'money',min:0,max:100000000},
+  esicEeBps:{label:'employee rate',type:'percent',min:0,max:1000},esicErBps:{label:'employer rate',type:'percent',min:0,max:1000},esicCeiling:{label:'earned-pay ceiling',type:'money',min:0,max:100000000},
+  ptMaleExempt:{label:'men nil slab up to',type:'money',min:0,max:100000000},ptMaleMid:{label:'men middle slab up to',type:'money',min:0,max:100000000},ptMaleMidAmt:{label:'men middle slab amount',type:'money',min:0,max:100000000},
+  ptStd:{label:'standard amount',type:'money',min:0,max:100000000},ptFeb:{label:'February amount',type:'money',min:0,max:100000000},ptFemaleExempt:{label:'women nil slab up to',type:'money',min:0,max:100000000},
+  otBps:{label:'multiplier (% of ordinary rate)',type:'percent',min:10000,max:30000,show:v=>(Number(v)/10000)+'×'},lateBlock:{label:'late marks per ½ day (0 = off)',type:'integer',min:0,max:10},
+  rounding:{label:'rounding',type:'choice',options:['paise','rupee'],show:v=>v==='paise'?'To paise (SCC)':'PF nearest ₹ · ESIC next ₹'},
+};
+const curYm=(s:State)=>s.date.slice(0,7);
+/** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET (the payroll module dates them from the 1st of a
+ *  month after the last locked pay-run); leave entitlements and the per-department cap wrap HR_LEAVE_POLICY_SET; the rest is shown read-only. */
+export function hrStatutoryDefs():CfgProviderDef[]{
+  const out:CfgProviderDef[]=[];
+  for(const d of hrSettingDefs() as HRSettingDef[]){
+    const base={unit:d.unit,help:d.help,illustrative:d.category==='Statutory rates',approver:d.approver,affects:d.affects};
+    if(d.command==='HR_STAT_RATES_SET'&&d.fields?.length){
+      for(const f of d.fields as (keyof HRRates)[]){const m=HR_FIELDS[f as string];if(!m)continue;
+        out.push({...base,key:`${d.key}.${String(f)}`,label:`${d.label} · ${m.label}`,type:m.type,min:m.min,max:m.max,options:m.options,show:m.show,
+          help:d.help+' Saved as a new dated rate version (from the 1st of the month).',
+          read:s=>hrRatesFor(s,curYm(s))[f],command:(_s,v)=>({type:'HR_STAT_RATES_SET',[f]:v})});}
+    }else if(d.key==='hr.leave.ent'){
+      for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:60,unit:'days per financial year',
+        read:s=>hrLeavePolicy(s).ent[lt],command:(s,v)=>({type:'HR_LEAVE_POLICY_SET',ent:{...hrLeavePolicy(s).ent,[lt]:v}})});
+    }else if(d.key==='hr.leave.cap'){
+      out.push({...base,key:'hr.leave.cap.default',label:d.label,type:'integer',min:1,max:20,unit:'staff per department per day',help:d.help+' Department overrides are set in Staff and payroll.',
+        read:s=>hrLeavePolicy(s).defaultCap,command:(_s,v)=>({type:'HR_LEAVE_POLICY_SET',defaultCap:v})});
+    }else out.push({...base,key:d.key,label:d.label,type:'fixed',read:s=>hrSettingValue(s,d.key),fixedReason:d.editable?'Edited in Staff and payroll':d.approval});
+  }
+  return out;
+}
+/** W05-C cmpSettingDefs(s) → hub settings: CA name, CA e-mail and the due-soon window wrap CMP_SETTINGS_SET; due rules are dated and edited in the calendar. */
+export function cmpDefs(s:State):CfgProviderDef[]{
+  const field:Record<string,'caName'|'caEmail'|'dueSoonDays'>={'cmp.caName':'caName','cmp.caEmail':'caEmail','cmp.dueSoonDays':'dueSoonDays'};
+  const valueOf=(x:State,key:string)=>(cmpSettingDefs(x) as CMPSettingDef[]).find(d=>d.key===key)?.value;
+  return (cmpSettingDefs(s) as CMPSettingDef[]).map(d=>{
+    const f=field[d.key];
+    if(!f)return {key:d.key,label:d.label,type:'fixed' as const,unit:d.unit,help:d.help,read:(x:State)=>String(valueOf(x,d.key)??'—'),fixedReason:'Dated rule — edit in Compliance calendar › Manage obligations'};
+    return {key:d.key,label:d.label,type:d.type==='integer'?'integer' as const:'text' as const,unit:d.unit,help:d.help,
+      ...(f==='caName'?{maxLength:60,validate:(v:unknown)=>String(v).trim().length<3?'CA name must be 3–60 characters.':undefined}:f==='caEmail'?{maxLength:80,pattern:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,patternMsg:'Enter a valid e-mail address.'}:{min:1,max:30,suffix:'days'}),
+      affects:f==='dueSoonDays'?'Dashboard “Due this week” card and the Accounts tile badge.':'The simulated CA pack.',
+      read:(x:State)=>valueOf(x,d.key),command:(_x:State,v:unknown)=>({type:'CMP_SETTINGS_SET',[f]:v})};
+  });
+}

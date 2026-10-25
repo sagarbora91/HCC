@@ -10,7 +10,7 @@ const N=await import('./.generated/config-nav.mjs');
 export function register({test,M,assert}){
   const {seed,execute,drawer,cfgDefs,cfgDef,cfgCanChange,cfgGroupAccess,cfgValueOn,cfgRaw,cfgGroupSummary,cfgSearch,cfgExport,cfgImportPlan,cfgPageOn,cfgModuleOn,
     cfgModuleOfCommand,cfgRevertBlock,cfgScheduled,cfgDecideBlock,cfgDisplay,registerSettingsGroup,unregisterSettingsGroup,adminApprovalInbox,adminDecideBlock,
-    CFG_GROUPS,CFG_MODULES,CFG_SECTIONS,yldSlice,aiDirtyHours,gsvSettings,posSlice,hrSlice}=M;
+    CFG_GROUPS,CFG_MODULES,CFG_SECTIONS,yldSlice,aiDirtyHours,gsvSettings,posSlice,hrRatesFor,hrLeavePolicy,cmpSlice}=M;
   const code=fn=>{try{fn();return 'OK';}catch(e){return e.code;}};
   const msg=fn=>{try{fn();return '';}catch(e){return e.message;}};
   const set=(s,uid,setting,value,extra={})=>execute(s,uid,{type:'SETTING_SET',setting,value,...extra});
@@ -60,7 +60,7 @@ export function register({test,M,assert}){
     assert.match(cfgGroupAccess(s,'reception','property').reason,/Owner changes this/);});
   test('[CFG] commands enforce DEC-058: Tech admin money → FORBIDDEN, non-money → saved; no admin grant → FORBIDDEN',()=>{
     let s=seed();
-    for(const [k,v] of [['discountLimit',60000],['approvalExpiryHours',12],['invoicePrefix','HCC-25'],['fd.deposit',200000],['yld.floorBps',-1000],['hr.pt',25000],['cmp.reminderDays',5],['pos.menu.'+posSlice(s).menu[0].id,false]])
+    for(const [k,v] of [['discountLimit',60000],['approvalExpiryHours',12],['invoicePrefix','HCC-25'],['fd.deposit',200000],['yld.floorBps',-1000],['hr.pt.ptStd',25000],['cmp.dueSoonDays',5],['hr.leave.cap.default',3],['pos.menu.'+posSlice(s).menu[0].id,false]])
       assert.equal(code(()=>set(s,'techadmin',k,v)),'FORBIDDEN',k);
     s=set(s,'techadmin','hotel','HCC Demo Residency West');assert.equal(s.settings.hotel,'HCC Demo Residency West');
     s=set(s,'techadmin','brand.printFormat','A5');assert.equal(cfgValueOn(s,'brand.printFormat'),'A5');
@@ -165,7 +165,11 @@ export function register({test,M,assert}){
     s=set(s,'techadmin','gsv.sla.Taxi',45);assert.equal(gsvSettings(s).sla.Taxi,45);
     assert.equal(code(()=>set(s,'owner','gsv.valuableRetentionDays',40)),'VALIDATION','module rule: valuables ≥ normal retention');
     const item=posSlice(s).menu[0];s=set(s,'owner','pos.menu.'+item.id,!item.available);assert.equal(posSlice(s).menu[0].available,!item.available);
-    s=set(s,'owner','hr.pfBps',1000);assert.equal(hrSlice(s).rates.pfBps,1000);assert.equal(hrSlice(s).rates.esicBps,hrSlice(seed()).rates.esicBps);
+    const ym=s.date.slice(0,7);
+    s=set(s,'owner','hr.pf.pfEeBps',1000);assert.equal(hrRatesFor(s,ym).pfEeBps,1000);assert.equal(hrRatesFor(s,ym).esicEeBps,hrRatesFor(seed(),ym).esicEeBps);
+    assert.equal(cfgValueOn(s,'hr.pf.pfEeBps'),1000);assert.equal(code(()=>set(s,'owner','hr.ot.otBps',5000)),'VALIDATION');
+    s=set(s,'owner','hr.leave.ent.CL',10);assert.equal(hrLeavePolicy(s).ent.CL,10);assert.equal(hrLeavePolicy(s).ent.SL,hrLeavePolicy(seed()).ent.SL);
+    s=set(s,'owner','cmp.dueSoonDays',10);assert.equal(cmpSlice(s).settings.dueSoonDays,10);assert.equal(code(()=>set(s,'owner','cmp.caEmail','nope')),'VALIDATION');
     s=execute(s,'owner',{type:'AI_SETTINGS',dirtyHours:8});assert.equal(cfgValueOn(s,'ai.dirtyHours'),8);
     s=execute(s,'manager',{type:'GSV_SETTINGS',sla:{Taxi:30}});assert.equal(cfgValueOn(s,'gsv.sla.Taxi'),30);});
 
@@ -191,7 +195,7 @@ export function register({test,M,assert}){
   test('[CFG] payroll off refuses pay-run commands only; attendance stays on',()=>{
     let s=set(seed(),'owner','module.payroll',false);
     assert.equal(code(()=>execute(s,'owner',{type:'HR_PAYROLL_RUN',month:'2026-09'})),'FORBIDDEN');
-    assert.equal(code(()=>execute(s,'owner',{type:'HR_RATES_SET',...hrSlice(s).rates})),'FORBIDDEN');
+    assert.equal(code(()=>execute(s,'owner',{type:'HR_RATES_SET',otBps:12000})),'FORBIDDEN');
     assert.match(msg(()=>execute(s,'owner',{type:'HR_PAYROLL_RUN',month:'2026-09'})),/^Payroll is switched off/);
     assert.doesNotMatch(msg(()=>execute(s,'owner',{type:'HR_ATT_MARK'})),/switched off/);});
 
@@ -245,6 +249,17 @@ export function register({test,M,assert}){
       assert.throws(()=>registerSettingsGroup({id:'x',group:'nope',defs:[]}),/Unknown configuration group/);
     }finally{unregisterSettingsGroup('test-statutory');}
     assert.equal(cfgDef(seed(),'test.pfCeiling'),undefined);});
+  test('[CFG] W05-B / W05-C settings are wired through the provider API',()=>{
+    const s=seed(),defs=cfgDefs(s);
+    const hr=defs.filter(d=>d.source==='hr-statutory'),cmp=defs.filter(d=>d.source==='compliance');
+    assert.ok(hr.length>=20);assert.ok(hr.every(d=>d.group==='people'&&d.money));
+    for(const k of ['hr.pf.pfEeBps','hr.pf.pfErBps','hr.pf.pfWageCap','hr.esic.esicEeBps','hr.pt.ptStd','hr.ot.otBps','hr.late.lateBlock','hr.rounding.rounding','hr.leave.ent.EL','hr.leave.cap.default','hr.leave.half'])assert.ok(hr.some(d=>d.key===k),k);
+    assert.ok(hr.filter(d=>d.key.startsWith('hr.pf.')).every(d=>d.illustrative&&/Illustrative — CA to confirm for a hotel/.test(d.help)));
+    assert.equal(cfgDef(s,'hr.leave.half').editable,false);
+    for(const k of ['cmp.caName','cmp.caEmail','cmp.dueSoonDays'])assert.ok(cmp.some(d=>d.key===k&&d.editable),k);
+    assert.ok(cmp.some(d=>d.key.startsWith('cmp.rule.')&&!d.editable));
+    assert.equal(cfgCanChange(s,'techadmin',cfgDef(s,'cmp.caName')).mode,'deny');assert.equal(cfgCanChange(s,'techadmin',cfgDef(s,'hr.pf.pfEeBps')).mode,'deny');
+    assert.equal(new Set(defs.map(d=>d.key)).size,defs.length);});
   test('[CFG] idempotency: a repeated SETTING_SET key returns the earlier state',()=>{
     const s=set(seed(),'owner','hotel','Once',{key:'cfg-once'});assert.deepEqual(set(s,'owner','hotel','Twice',{key:'cfg-once'}),s);});
 }
