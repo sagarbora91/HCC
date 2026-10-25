@@ -4,7 +4,7 @@ import type {Handler,Kit} from '../commands';
 import type {Booking} from '../../../domain/types';
 import {blockedTonight,available,occupant} from '../../../domain/selectors';
 import {nights} from '../../../domain/money';
-import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments} from '../../../domain/streams/guests';
+import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError} from '../../../domain/streams/guests';
 
 /** Throws VALIDATION with the first message, prefixed by its field label. */
 function validate(k:Kit,d:GuestDraft,registration:boolean){
@@ -19,6 +19,11 @@ function upsert(k:Kit,d:GuestDraft,existingId:string|undefined,verified:boolean)
     const g=s.guests.find(g=>g.id===existingId);k.assert(g,'Guest profile not found.','NOT_FOUND');
     if(k.cmd.version!==undefined)k.assert(g!.version===k.cmd.version,'This guest profile changed since you opened it. Reload and try again.','STALE_VERSION');
     delete g!.company;delete g!.gstin;
+    // No new number typed: keep the stored one (the edit form never carries it); it must still fit a changed ID type.
+    if(!clean.idNumber&&g!.idNumber){
+      k.assert(!guestIdNumberError(clean.idType,g!.idNumber),'The ID type changed — enter the ID number for the new type.');
+      clean.idNumber=g!.idNumber;clean.idLast4=g!.idLast4;
+    }else if(!clean.idNumber&&g!.idType===clean.idType)clean.idLast4=clean.idLast4||g!.idLast4;
     Object.assign(g!,clean,{verified:verified||(g!.verified&&!!clean.idLast4&&!!clean.address),origin:g!.origin==='auto'?'manual':g!.origin,version:(g!.version||1)+1});
     return g!;
   }
@@ -37,9 +42,17 @@ export const handlers:Record<string,Handler>={
     validate(k,cmd.guest,!!cmd.verified);
     let bk:Booking|undefined;
     if(cmd.booking){bk=s.bookings.find(b=>b.id===cmd.booking);k.assert(bk,'Booking not found.','NOT_FOUND');k.mutable(bk!);}
+    const before=cmd.id?s.guests?.find(x=>x.id===cmd.id)?.idNumber:undefined;
     const g=upsert(k,cmd.guest,cmd.id,!!cmd.verified);
+    const idNote=g.idNumber&&g.idNumber!==before?' · ID number '+(before?'changed':'recorded'):'';
     if(bk){link(bk,g);if(bk.guest!==g.name&&bk.status==='Confirmed'){bk.guest=g.name;}}
-    return `${g.id} · ${g.name}${cmd.id?' · profile updated':' · profile created'}${g.verified?' · verified':''}${bk?' · linked to '+bk.id:''}`;
+    return `${g.id} · ${g.name}${cmd.id?' · profile updated':' · profile created'}${g.verified?' · verified':''}${idNote}${bk?' · linked to '+bk.id:''}`;
+  },
+  /** Deliberate "Show ID" (DEC-068): logs who/when in the audit trail — never the number. {id:guestId}. Intended PERM-GST-003 (guest.idDetails.view). */
+  GUEST_ID_VIEW:k=>{
+    k.req('checkin');const g=(k.s.guests||[]).find(x=>x.id===k.cmd.id);k.assert(g,'Guest profile not found.','NOT_FOUND');
+    k.assert(g!.idNumber,'The full ID number is not on file for this guest.','NOT_FOUND');
+    return `${g!.id} · ID number viewed (${g!.idType})`;
   },
   /** Verify registration. Backward compatible: REGISTER {id} with no details auto-creates a minimal demo-verified profile from the booking name. */
   REGISTER:k=>{
