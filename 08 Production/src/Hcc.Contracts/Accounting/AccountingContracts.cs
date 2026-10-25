@@ -23,6 +23,7 @@ public static class AccountingEvents
     public const string ExpenseReversed = "ExpenseReversed";
     public const string PayrollPosted = "PayrollPosted";
     public const string PayrollPaid = "PayrollPaid";
+    public const string PayRunUnlocked = "PayRunUnlocked";   // W3-b: reversal of that lock's PayrollPosted voucher
 
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
@@ -30,7 +31,7 @@ public static class AccountingEvents
     public const string AccountingPeriodUnlocked = "AccountingPeriodUnlocked";
 
     public static readonly IReadOnlyList<string> Consumed =
-        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid];
+        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked];
 }
 
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
@@ -47,12 +48,22 @@ public sealed record PosBillSettledEvent(long BillId, string Kind, DateOnly Busi
 /// <summary>W2-4 Expenses: a posted expense (or its reversal record, negative amount, <c>ReversalOf</c> = original id). Funding = Cash | UPI | Card | Bank transfer | Vendor credit.</summary>
 public sealed record ExpensePostedEvent(long ExpenseId, DateOnly BusinessDate, string Category, string Funding, long AmountPaise, string Vendor, long? ReversalOf);
 
-/// <summary>W2-2 Payroll: a locked pay run. Gross = net + employee PF + employee ESIC + PT + advance recovery + other deductions.</summary>
+/// <summary>
+/// W2-2 Payroll: a locked pay run. Gross = net + employee PF + employee ESIC + PT + advance recovery + other deductions.
+/// <see cref="LockSeq"/> = which lock of the run (1 = first; a re-lock after an unlock is 2, …) — one voucher per lock.
+/// </summary>
 public sealed record PayrollPostedEvent(long PayRunId, string Period, DateOnly BusinessDate, long GrossPaise, long EmployerPfPaise, long EmployerEsicPaise,
-    long EmployeePfPaise, long EmployeeEsicPaise, long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise);
+    long EmployeePfPaise, long EmployeeEsicPaise, long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise, int LockSeq = 1);
 
-/// <summary>W2-2 Payroll: net pay paid out (bank file / cash). Funding as for expenses.</summary>
-public sealed record PayrollPaidEvent(long PayRunId, DateOnly BusinessDate, string Funding, long AmountPaise, string Reference);
+/// <summary>W2-2 Payroll: net pay paid out (first bank file of a lock). Funding as for expenses.</summary>
+public sealed record PayrollPaidEvent(long PayRunId, DateOnly BusinessDate, string Funding, long AmountPaise, string Reference, int LockSeq = 1);
+
+/// <summary>
+/// W2-2 Payroll: lock <see cref="LockSeq"/> of the run was unlocked on <see cref="BusinessDate"/>. Accounting books the exact reversal of that
+/// lock's PayrollPosted voucher (once). The PayrollPaid voucher of a bank file already issued (<see cref="BankFilesIssued"/> &gt; 0) is kept —
+/// the money may have left the bank — and the reversal's narration says so.
+/// </summary>
+public sealed record PayRunUnlockedEvent(long RunId, string Month, int LockSeq, int BankFilesIssued, DateOnly? BusinessDate = null);
 
 // ── API ──
 

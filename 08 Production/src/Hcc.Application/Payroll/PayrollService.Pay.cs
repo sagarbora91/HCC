@@ -169,7 +169,7 @@ public sealed partial class PayrollService
             var postedOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
             var other = t.Gross - t.Net - t.Pf - t.Esic - t.Pt - t.Advance; // gross = net + employee deductions
             await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPosted, run.RunId, new Contracts.Accounting.PayrollPostedEvent(run.RunId, run.Month.ToString(),
-                postedOn, t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net), c2).ConfigureAwait(false);
+                postedOn, t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net, lockSeq), c2).ConfigureAwait(false);
             return RunResult(run.RunId, run.Month, "Locked", lines, version, run.Warnings, text);
         }, ct).ConfigureAwait(false);
     }
@@ -203,7 +203,10 @@ public sealed partial class PayrollService
                        + (sent > 0 ? $" · {sent} sent payslip{(sent == 1 ? "" : "s")} marked superseded" : "")
                        + (files.Count > 0 ? " · bank file already issued — next file must not pay twice" : "") + " · reason: " + reason;
             await tx.AuditAsync("HR_PAYROLL_UNLOCKED", Target("hr.run", run.RunId), Clip(text, 1000), c2).ConfigureAwait(false);
-            await tx.PublishAsync("PayRunUnlocked", run.RunId, new { runId = run.RunId, month = run.Month.ToString(), lockSeq = run.LockSeq, bankFilesIssued = files.Count }, c2).ConfigureAwait(false);
+            // Accounting (W3-b) books the exact reversal of this lock's PayrollPosted voucher; a bank file's payment voucher is kept and flagged.
+            var unlockedOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
+            await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayRunUnlocked, run.RunId,
+                new Contracts.Accounting.PayRunUnlockedEvent(run.RunId, run.Month.ToString(), run.LockSeq, files.Count, unlockedOn), c2).ConfigureAwait(false);
             return RunResult(run.RunId, run.Month, "Draft", lines, version, run.Warnings, text);
         }, ct).ConfigureAwait(false);
     }
@@ -230,7 +233,7 @@ public sealed partial class PayrollService
                 // The first bank file of this lock is the salary payment Accounting books (PayrollPaidEvent); a re-issue is not a second payment.
                 var paidOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
                 await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPaid, run.RunId, new Contracts.Accounting.PayrollPaidEvent(run.RunId, paidOn, "Bank transfer", net,
-                    $"Bank file {issueNo} · {run.Month.Label}"), c2).ConfigureAwait(false);
+                    $"Bank file {issueNo} · {run.Month.Label}", run.LockSeq), c2).ConfigureAwait(false);
             }
             var text = $"{run.Month.Label} bank transfer file {issueNo} · net {Rs(net)}{(prior.Count > 0 ? $" · REISSUE (earlier file {Rs(prior[^1].Net)})" : "")} (simulated — no money moves)";
             await tx.AuditAsync("HR_BANK_FILE", Target("hr.run", run.RunId), text, c2).ConfigureAwait(false);

@@ -53,18 +53,20 @@ Start-Service HccServer
 **Check:** open a browser on the server PC: `http://127.0.0.1:5080/api/v1/system/health` should show `"status":"ok"`, the database name `Hcc` and a schema version. From another device on the Wi-Fi: `https://192.168.1.20:5443/api/v1/system/health` (works without a warning only after the CA certificate is installed, see below).
 If it does not start: Event Viewer > Windows Logs > Application, source "HccServer" / ".NET Runtime": the message lists exactly which setting is wrong.
 
-## 6. First Owner (once)
-HCC needs a property record and the first Owner account. This is only possible **on the server PC itself** (the address `127.0.0.1`) and only while no user exists.
-1. Property (name/time zone are yours; code is a short word). PowerShell:
+## 6. Set up the hotel and the first Owner (once)
+HCC needs to know your hotel and needs its first Owner account. One script does both, in one step. It works **only on the server PC itself** and **only on a new, empty installation**: once the hotel exists, it refuses to run again (nothing is changed).
+PowerShell (Admin), scripts folder (replace the values in quotes with yours):
 ```
-sqlcmd -S .\SQLEXPRESS -E -C -d Hcc -Q "INSERT INTO inv.property(code,name,time_zone,business_date) VALUES ('MAIN', N'Your Hotel Name', 'Asia/Kolkata', CAST(SYSDATETIME() AS date)); SELECT property_id FROM inv.property;"
+.\Initialize-HccProperty.ps1 -HotelName "Your Hotel Name" -Address "Street, City, PIN" -Gstin "27ABCDE1234F1Z5" -OwnerLogin "owner" -OwnerDisplayName "Your Name"
 ```
-Note the number it prints (normally 1). Rooms, rates and other master data are loaded by the later setup steps of HCC (not part of this installer).
-2. First Owner (replace the values; pick a long password, 12+ characters):
-```
-curl.exe -X POST http://127.0.0.1:5080/api/v1/auth/bootstrap-owner -H "Content-Type: application/json" -d "{\"propertyId\":1,\"loginName\":\"owner\",\"displayName\":\"Your Name\",\"password\":\"YOUR-LONG-PASSWORD\"}"
-```
-It answers with the new user. Now sign in from the app as `owner`. Then add staff in Admin > Users. (The command is recorded in the PowerShell history: close the window after, and change the password in the app if you like.)
+- It asks for the Owner password twice (12 or more characters; it is not shown on screen and not saved in the PowerShell history).
+- Leave out `-Gstin` if the hotel has no GSTIN yet. A Maharashtra GSTIN starts with 27; the script refuses one from another state.
+- Already filled in for you (add the option only to change it): state `-State "Maharashtra"`, time zone `-TimeZone "Asia/Kolkata"`, check-in `-CheckInTime "14:00"`, checkout `-CheckOutTime "11:00"`, business date `-BusinessDate` = today (write it as `2026-11-01` if you start on another day).
+- Add `-WhatIf` first to see what it will send (the password is shown as `********`, nothing is sent).
+
+It answers "Hotel '...' is set up. Sign in as 'owner' ...". Now sign in from the app as `owner` with that password, then add staff in Admin > Users. The hotel name, address, GSTIN and check-in/checkout times are also in Master configuration, where the Owner can change them later. Rooms, rates and other master data are loaded by the later setup steps of HCC (not part of this installer).
+**Check:** `http://127.0.0.1:5080/api/v1/setup/status` in a browser on the server PC shows `"setupRequired":false`.
+(No SQL commands are needed any more. On an older installation where the hotel row was already typed in by hand but no Owner exists, the earlier `auth/bootstrap-owner` call still works.)
 
 ## 7. Backups (do not skip)
 PowerShell (Admin), scripts folder:

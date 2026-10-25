@@ -52,7 +52,8 @@ public sealed partial class HccServer : IAsyncDisposable
 
     public int PropertyId { get; private set; }
 
-    public static async Task<HccServer> StartAsync(string seedSql, CancellationToken ct = default)
+    /// <param name="beforeMap">Optional middleware added before the HCC pipeline (e.g. a simulated LAN client address in the setup tests).</param>
+    public static async Task<HccServer> StartAsync(string seedSql, CancellationToken ct = default, Action<WebApplication>? beforeMap = null)
     {
         var server = Environment.GetEnvironmentVariable("HCC_TEST_SQL_SERVER") is { Length: > 0 } s ? s : @".\SQLEXPRESS";
         var name = "HccTest_" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "_" + Guid.NewGuid().ToString("N")[..8];
@@ -76,6 +77,7 @@ public sealed partial class HccServer : IAsyncDisposable
             builder.Configuration["Hcc:Access:PinIterations"] = "20000";
             builder.Services.AddHcc(builder.Configuration, h.Platform);
             h._app = builder.Build();
+            beforeMap?.Invoke(h._app);
             h._app.MapHcc();
             await h._app.StartAsync(ct);
             h.BaseAddress = new Uri(h._app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First());

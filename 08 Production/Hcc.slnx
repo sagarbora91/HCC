@@ -54,6 +54,7 @@
     <File Path="database/migrations/1600_messaging.sql" />
     <File Path="database/migrations/1700_handover.sql" />
     <File Path="database/migrations/1800_yield_tariffs.sql" />
+    <File Path="database/migrations/1900_property_setup.sql" />
     <File Path="database/migrations/1500_guest_services.sql" />
     <File Path="database/migrations/0900_payroll.sql" />
     <File Path="database/migrations/0901_payroll_rbac_seed.sql" />
