@@ -3,6 +3,7 @@ import React,{useState} from 'react';
 import {Printer,ChefHat,ClipboardList,BarChart3,Info} from 'lucide-react';
 import {money,posSlice,posOpenOrderAt,posKitchen,posDaySummary,posOpenOrders,posOrderTotals,posSpot,posMenuFor,isDayClosed} from '../../services/mock';
 import {useHcc} from '../../app/context';
+import {CfgHubLink} from '../admin/config/panels'; // W05-A: settings also in Master configuration
 import {PageTitle,Empty,Stat,dateLabel} from '../../components/ui';
 import {PosSpots,PosMenu,PosCheck,PosKotCard,posKitchenColumns,PosStatus} from './parts';
 import {PosSummaryTables} from './modals';
@@ -52,7 +53,7 @@ export function PosKitchenBoard(){
 export function PosAvailability(){
   const {s,run,busy,permission}=useHcc();const p=posSlice(s);
   if(!permission('billing'))return null;
-  return <details className="pos-86"><summary>Menu availability (86 list) · {p.menu.filter(m=>!m.available).length} off</summary><div className="pos-86-grid">{p.menu.map(m=><label key={m.id}><input type="checkbox" checked={m.available} disabled={busy} onChange={()=>run({type:'POS_MENU_TOGGLE',item:m.id},m.available?`${m.name} marked unavailable`:`${m.name} available again`)}/>{m.name}</label>)}</div></details>;
+  return <details className="pos-86"><summary>Menu availability (86 list) · {p.menu.filter(m=>!m.available).length} off</summary><div className="pos-86-grid">{p.menu.map(m=><label key={m.id}><input type="checkbox" checked={m.available} disabled={busy} onChange={()=>run({type:'POS_MENU_TOGGLE',item:m.id},m.available?`${m.name} marked unavailable`:`${m.name} available again`)}/>{m.name}</label>)}</div><CfgHubLink what="Menu availability switches" group="pos"/></details>;
 }
 
 export function PosSummary(){

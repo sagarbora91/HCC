@@ -4,6 +4,7 @@ import {Upload,Send,Info,Plus,Pencil,Lock} from 'lucide-react';
 import {money,yldSlice,yldSummary,yldCalendar,yldWindow,yldOcc,yldRoomTypes,yldPct,yldPlanRate,yldPlanAvailable,yldNight,yldQuote,yldProposals,yldProposalStatus,YLD_DOW_NAMES} from '../../services/mock';
 import type {Approval} from '../../services/mock';
 import {useHcc} from '../../app/context';
+import {CfgHubLink} from '../admin/config/panels'; // W05-A: settings also in Master configuration
 import {PageTitle,Pill,Empty,shortDate,clockTime} from '../../components/ui';
 import {useYldRole,yldDayLabel} from './modals';
 
@@ -108,7 +109,7 @@ function Rules(){
       {y.occ.slice().sort((a,b)=>b.occ-a.occ).map(r=><tr key={r.id}><td>{r.op==='>='?'at or above':'below'} {r.occ}%</td><td className="number">{yldPct(r.adjBps)}</td>{owner&&<td><button className="text-btn" onClick={()=>edit('occ',r.id)}><Pencil size={14}/> Edit</button></td>}</tr>)}
     </tbody></table></div>:<Empty title="No occupancy tiers"/>}
     <div className="section-title yld-sub"><div><h2>Guardrails</h2><p>Total adjustment kept within limits, then rounded.</p></div>{owner&&<button className="btn" onClick={()=>edit('guard')}><Pencil size={15}/> Edit</button>}</div>
-    <div className="summary-list"><div><span>Floor</span><strong>{yldPct(y.guard.floorBps)}</strong></div><div><span>Ceiling</span><strong>{yldPct(y.guard.ceilBps)}</strong></div><div><span>Rounding</span><strong>{money(y.guard.roundTo)}</strong></div></div>
+    <div className="summary-list"><div><span>Floor</span><strong>{yldPct(y.guard.floorBps)}</strong></div><div><span>Ceiling</span><strong>{yldPct(y.guard.ceilBps)}</strong></div><div><span>Rounding</span><strong>{money(y.guard.roundTo)}</strong></div></div><CfgHubLink what="Rate guardrails" group="rooms"/>
     {!owner&&<p className="muted yld-lock"><Lock size={14}/> Only the Owner changes rules.</p>}
   </div>;
 }

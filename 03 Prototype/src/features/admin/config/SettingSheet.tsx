@@ -35,7 +35,7 @@ export function CfgSettingSheet({id}:{id?:string}){
   const eff=cfgEffectiveFrom(s,def,def.effectiveMode==='date'?from:undefined);
   const effDate='date' in eff?eff.date:s.date;
   const err=def.editable?cfgValidate(s,def,raw):undefined;
-  const legacy=def.key==='checkin'||def.key==='checkout'?adminImpactPreview(s,{kind:'times',checkin:def.key==='checkin'?String(raw):s.settings.checkin,checkout:def.key==='checkout'?String(raw):s.settings.checkout})
+  const legacy=effDate>s.date?undefined:def.key==='checkin'||def.key==='checkout'?adminImpactPreview(s,{kind:'times',checkin:def.key==='checkin'?String(raw):s.settings.checkin,checkout:def.key==='checkout'?String(raw):s.settings.checkout})
     :def.key==='discountLimit'?adminImpactPreview(s,{kind:'discount',limit:Number(raw)||0}):def.key==='inspection'?adminImpactPreview(s,{kind:'inspection',on:raw===true}):undefined;
   const sched=cfgScheduled(s,def.key);const pend=cfgPendingRequests(s,def.key);
   const block=dec.mode==='deny'?dec.reason:pend.length?'A change to this setting is already waiting for approval.':undefined;

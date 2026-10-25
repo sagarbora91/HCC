@@ -60,3 +60,4 @@
 .cfg-m .cfg-link{min-height:48px;font-size:15px;margin-bottom:8px}
 .cfg-m .cfg-box p,.cfg-m .cfg-inv li{font-size:15px}
 .cfg-m .ma-card .btn{min-height:48px}
+@media(max-width:600px){.cfg-affects li,.cfg-hist li,.cfg-eff{font-size:15px}}
