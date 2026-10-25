@@ -82,6 +82,7 @@ The project rule is "bump SCHEMA when state shape changes". IndexedDB saves made
 - Old custom rates are silently dropped. Old `pfBps:1000` comes back as the default 1200 for October.
 - Old staff have no `gender`, so women default to the men's PT slab.
 
+**Note:** CLAUDE.md says the lead will bump SCHEMA 7 → 8 when `integration/w05` merges to main. That covers this finding **only if** the bump actually ships with W05-B's code. Until then, the integration branch and the APK builds made from it are exposed.
 **Fix:** Either bump `SCHEMA` to 8 (old saves reset to FY26, the project's accepted path), or add a one-time migration in `hrEnsure`/restore:
 - Map `rates` to one `rateVersions` entry.
 - Mark old runs `legacy:true` and fill missing line fields from what can be derived (`earned = basic`, others 0, `ym = run.month`, `HL = 0`).
@@ -171,7 +172,7 @@ Lock maker-checker catches salary and OT only if the Owner reads every line.
 ### F-13 · R-01: housekeeping and maintenance see their own pay on "My shifts & pay" · Confirmed, needs a decision
 **Where:** `register.tsx:15` (nav includes `housekeeping`, which the Maintenance role also holds) and `MyHr.tsx` (`PayslipCard` plus the payslip list).
 **Assessment:** Only the user's **own** locked payslip is shown (`hrVisiblePayslips` filters on the linked staff record; the payslip dialog checks `me.id===staffId && Locked`). No hotel money (folios, cash, revenue, other people's pay) reaches these roles. The CLAUDE.md rule "housekeeping/maintenance never see money" was written about hotel money, and every employee is legally entitled to their own payslip. The real exposure is F-03: relinking makes "own" mean someone else's.
-**Recommendation:** Keep the feature. Record a decision (new DEC) saying "own payslip and own leave balance are allowed for all staff; hotel money stays hidden". Fix F-03 and F-11 so "own" cannot be redirected. Optionally, hide amounts behind a tap ("Show my pay") on shared phones.
+**Recommendation:** Keep the feature. CLAUDE.md now cites **DEC-061** ("they may see only their own pay"), which matches this assessment, so only the enforcement gaps remain. Fix F-03 and F-11 so "own" cannot be redirected. Optionally, hide amounts behind a tap ("Show my pay") on shared phones.
 
 ---
 
