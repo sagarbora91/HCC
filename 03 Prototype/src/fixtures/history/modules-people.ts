@@ -1,7 +1,7 @@
 // FY history Phase C (part 2): module 17 staff & payroll (W05-B: runs recomputed with the SCC rules, half-day leave), 18 guest services, 19 checklists & handover.
 import type {State} from '../../domain/types';
 import {addDays,nights} from '../../domain/money';
-import {hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrLeaveDays,hrMonthEnd,type HRStaff,type HRRun,type HRLeave} from '../../domain/streams/staff';
+import {hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrBankSnapshot,hrLeaveDays,hrMonthEnd,type HRStaff,type HRRun,type HRLeave} from '../../domain/streams/staff';
 import {gsvSlaMinutes,gsvDefaultDept,gsvAssignable,GSV_REQUEST_TYPES,type GSVRequest,type GSVComplaint,type GSVItem,type GSVComplaintCategory,type GSVSeverity} from '../../domain/streams/services';
 import {hovNewRun,hovAt,type HOVNote,type HOVRun,type HOVTemplate} from '../../domain/streams/handover';
 import type {Rng} from './prng';
@@ -54,7 +54,7 @@ function staffHistory(s:State,rng:Rng,o:HistoryWindow){
     if(ym!=='2026-09'){genAtt(hrMonthDates(ym));halfLeaves(ym);}
     const c=hrComputeRun(s,ym),next=addDays(hrMonthEnd(ym),1);
     const run:HRRun={id:'HR-PAY-H'+(++rn),month:ym,status:'Locked',rates:{...hrRatesFor(s,ym)},lines:c.lines,warnings:c.warnings,preparedBy:'accountant',preparedAt:addDays(next,1)+'T11:10',lockedBy:'owner',lockedAt:addDays(next,1)+'T17:40'};
-    runs.push(run);hrApplyRecoveries(x,run);x.runs=[...x.runs,run].sort((a,b)=>a.month<b.month?-1:1);
+    runs.push(run);hrApplyRecoveries(x,run);hrBankSnapshot(x,run);x.runs=[...x.runs,run].sort((a,b)=>a.month<b.month?-1:1);
     if(ym!=='2026-09')for(const k of Object.keys(x.att))if(k.startsWith(ym))delete x.att[k]; // raw marks dropped once locked (as for August)
   }
 }

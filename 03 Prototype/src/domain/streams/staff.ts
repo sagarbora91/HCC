@@ -65,8 +65,11 @@ export type HRLine={staffId:string;name:string;dept:string;designation:string;pa
   pfWages:number;pf:number;pfEr:number;esicWages:number;esic:number;esicEr:number;pt:number;advance:number;deductions:number;net:number;
   /** Employer cost = gross + PF employer + ESIC employer. */ ctc:number};
 export type HRSend={staffId:string;to:string;at:string;by:string};
+/** Bank details as frozen in a locked run (F-02: the bank file pays where the checker approved, not the live staff master). */
+export type HRBank={bankName:string;accountNo:string;ifsc:string};
 export type HRRun={id:string;month:string;status:'Draft'|'Locked';rates:HRRates;lines:HRLine[];warnings:string[];
   preparedBy:string;preparedAt:string;lockedBy?:string;lockedAt?:string;
+  /** Bank details per staff ID, copied at lock (F-02). Absent on runs locked before the snapshot existed. */ bank?:Record<string,HRBank>;
   /** Simulated WhatsApp payslip sends. */ sent?:HRSend[];
   /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. */ unlocks?:{at:string;by:string;reason:string}[]};
 export type HRFnfAdj={label:string;kind:'add'|'ded';amount:number};
@@ -311,6 +314,12 @@ export function hrRunTotals(run:{lines:HRLine[]}){
   for(const l of run.lines){t.earned+=l.earned;t.basic+=l.basic;t.ot+=l.ot;t.gross+=l.gross;t.pf+=l.pf;t.pfEr+=l.pfEr;t.esic+=l.esic;t.esicEr+=l.esicEr;t.pt+=l.pt;t.advance+=l.advance;t.deductions+=l.deductions;t.net+=l.net;t.ctc+=l.ctc;}
   return t;
 }
+/** F-02: copy each line's bank details from the staff master into the run (called at lock). */
+export function hrBankSnapshot(x:HRState,run:HRRun){
+  run.bank=Object.fromEntries(run.lines.map(l=>{const st=x.staff.find(t=>t.id===l.staffId);return [l.staffId,{bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''}];}));
+}
+/** Masked account number for audit text: last 4 digits only. */
+export const hrMaskAccount=(a?:string)=>a?'••••'+a.slice(-4):'(none)';
 /** Applies a run's advance recoveries to the advances (used when locking). */
 export function hrApplyRecoveries(x:HRState,run:HRRun){
   for(const l of run.lines){if(!l.advance)continue;const a=hrAdvanceFor(x,l.staffId,run.month);
@@ -338,12 +347,15 @@ export function hrRegisterCsv(s:State,run:HRRun):string{
   const total=[run.month,'','TOTAL','','','','',...[t.earned,t.basic,hra,wash,spec,t.ot,t.gross,pfw,t.pf,t.esic,t.pt,t.advance,t.deductions,t.pfEr,t.esicEr,t.net].map(rupees)];
   return csv([head,...run.lines.map(row),total])+csvCell(`${run.status} run · fictional data · ${HR_DISCLAIMER}`)+'\n';
 }
-/** Bank transfer file (SCC reportBankCsv): one row per staff member with net pay; account numbers keep a leading apostrophe for Excel. */
+/** Bank transfer file (SCC reportBankCsv): one row per staff member with net pay; account numbers keep a leading apostrophe for Excel.
+ *  F-02: a locked run pays to the bank details frozen at lock; later staff-master edits apply to future runs only. */
 export function hrBankCsv(s:State,run:HRRun):string{
   const rows:(string|number)[][]=[['Sr','Employee Name','Employee ID','Bank Name','Account No','IFSC','Net Amount']];
-  run.lines.forEach((l,i)=>{const st=hrStaffById(s,l.staffId);rows.push([i+1,l.name,l.staffId,st?.bankName??'',"'"+(st?.accountNo??''),st?.ifsc??'',rupees(l.net)]);});
+  run.lines.forEach((l,i)=>{const st=hrStaffById(s,l.staffId),b=run.bank?.[l.staffId]??{bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''};
+    rows.push([i+1,l.name,l.staffId,b.bankName,"'"+b.accountNo,b.ifsc,rupees(l.net)]);});
   rows.push(['','TOTAL','','','','',rupees(hrRunTotals(run).net)]);
-  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status} · fictional bank details · simulated transfer — no money moves`)+'\n';
+  const src=run.bank?'bank details as locked':'bank details from the staff master (run locked before bank snapshots)';
+  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status} · ${src} · fictional bank details · simulated transfer — no money moves`)+'\n';
 }
 /** Statutory summary + member-wise register (SCC reportStatutoryCsv + statutoryMemberRows). */
 export function hrStatutoryCsv(s:State,run:HRRun):string{

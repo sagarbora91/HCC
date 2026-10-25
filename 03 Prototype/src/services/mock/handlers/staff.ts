@@ -8,7 +8,7 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrEntitled,hrBankSnapshot,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
 import {addDays} from '../../../domain/money';
@@ -67,9 +67,12 @@ export const handlers:Record<string,Handler>={
     }
     const statKeys=['structure','pfApplicable','esicApplicable','bankName','accountNo','ifsc'] as const;
     const statGiven=statKeys.some(f=>cmd[f]!==undefined);
+    const norm=(v:unknown)=>v===undefined?undefined:String(v).trim()||undefined;
+    const bankChanged=!!existing&&(['bankName','accountNo','ifsc'] as const).some(f=>cmd[f]!==undefined&&norm(cmd[f])!==existing[f]);
     if(statGiven){
       const changed=!existing||statKeys.some(f=>cmd[f]!==undefined&&cmd[f]!==existing[f]);
       if(changed&&!pay)fail('FORBIDDEN','Only the Owner or Accountant can set PF / ESIC and bank details.');
+      if(bankChanged&&isOwn(k,existing!))fail('FORBIDDEN','You cannot change the bank details on your own staff record (no self-approval). Ask the other payroll user.');
       if(cmd.structure!==undefined)assert(cmd.structure==='S'||cmd.structure==='B','Choose a salary structure.');
       if(cmd.ifsc)assert(/^[A-Z]{4}0[A-Z0-9]{6}$/.test(String(cmd.ifsc)),'IFSC is 11 characters, e.g. DEMO0000001.');
       if(cmd.accountNo)assert(/^\d{6,18}$/.test(String(cmd.accountNo)),'Account number: 6–18 digits.');
@@ -79,8 +82,12 @@ export const handlers:Record<string,Handler>={
     const stat=(st:HRStaff)=>{if(!pay)return;
       if(cmd.structure!==undefined)st.structure=cmd.structure;if(cmd.pfApplicable!==undefined)st.pfApplicable=!!cmd.pfApplicable;if(cmd.esicApplicable!==undefined)st.esicApplicable=!!cmd.esicApplicable;
       for(const f of ['bankName','accountNo','ifsc'] as const)if(cmd[f]!==undefined){const v=String(cmd[f]).trim();if(v)st[f]=v;else delete st[f];}};
-    if(existing){if(!cmd.userId)delete existing.userId;Object.assign(existing,base);if(pay&&salaryGiven){existing.payType=cmd.payType??existing.payType;existing.monthly=cmd.monthly??existing.monthly;existing.daily=cmd.daily??existing.daily;}
-      stat(existing);return `${existing.id} · ${existing.name} updated`;}
+    if(existing){const notes:string[]=[],was={...existing};
+      if(!cmd.userId)delete existing.userId;Object.assign(existing,base);if(pay&&salaryGiven){existing.payType=cmd.payType??existing.payType;existing.monthly=cmd.monthly??existing.monthly;existing.daily=cmd.daily??existing.daily;}
+      stat(existing);
+      // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock.
+      if(bankChanged)notes.push(`bank ${was.bankName??'(none)'} ${hrMaskAccount(was.accountNo)} ${was.ifsc??''} → ${existing.bankName??'(none)'} ${hrMaskAccount(existing.accountNo)} ${existing.ifsc??''} (future runs only; locked runs keep their frozen details)`);
+      return `${existing.id} · ${existing.name} updated${notes.length?' · '+notes.join(' · '):''}`;}
     const st:HRStaff={id:k.id('HR-S'),...base,payType:pay&&cmd.payType?cmd.payType:'monthly',monthly:pay?cmd.monthly??0:0,daily:pay?cmd.daily??0:0,joined:s.date,active:true};
     stat(st);x.staff.push(st);return `${st.id} · ${st.name} added${pay?'':' (salary to be set by payroll)'}`;
   },
@@ -227,8 +234,8 @@ export const handlers:Record<string,Handler>={
     const errs=hrRunErrors(run!);assert(!errs.length,'Fix before locking: '+errs.join('; ')+'.');
     const fresh=hrComputeRun(s,run!.month);
     assert(JSON.stringify(fresh.lines)===JSON.stringify(run!.lines)&&JSON.stringify(hrRatesFor(s,run!.month))===JSON.stringify(run!.rates),'Attendance, leave, advances or rates changed after this draft. Recalculate before locking.','STALE_VERSION');
-    run!.status='Locked';run!.lockedBy=k.uid;run!.lockedAt=s.clock;hrApplyRecoveries(x,run!);
-    return `${run!.id} · ${hrMonthLabel(run!.month)} locked · payslips released`;
+    run!.status='Locked';run!.lockedBy=k.uid;run!.lockedAt=s.clock;hrApplyRecoveries(x,run!);hrBankSnapshot(x,run!);
+    return `${run!.id} · ${hrMonthLabel(run!.month)} locked · bank details frozen · payslips released`;
   },
   /** SCC unlockRun: Owner only, latest locked run only, with a reason; advance recoveries are reversed and the run returns to Draft. */
   HR_PAYROLL_UNLOCK:k=>{
@@ -240,7 +247,7 @@ export const handlers:Record<string,Handler>={
     assert(!(x.fnf??[]).some(f=>f.month>=run!.month),'A full and final settlement was made after this run. It cannot be unlocked.','INVALID_TRANSITION');
     hrReverseRecoveries(x,run!.id);
     run!.unlocks=[...(run!.unlocks??[]),{at:s.clock,by:k.uid,reason:String(cmd.reason).trim()}];
-    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;
+    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;delete run!.bank;
     return `${run!.id} · ${hrMonthLabel(run!.month)} unlocked · advance recoveries reversed · payslips withdrawn`;
   },
   /** DEC-056: simulated WhatsApp send of a locked payslip (nothing leaves the device). */
