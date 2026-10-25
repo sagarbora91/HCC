@@ -43,6 +43,7 @@ public static class HccComposition
         services.AddGuestServicesModule();               // W2-9 guest services
         services.AddPayrollModule();                     // W2-2 payroll and leave
         services.AddSetupModule();                       // W3-b first-time hotel setup (loopback, empty install only)
+        services.AddWebBookingModule(configuration);     // W3-2 booking website (public quote/request, staff queue, deposit link)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -82,6 +83,7 @@ public static class HccComposition
         api.MapGuestServicesEndpoints(); // W2-9
         api.MapPayrollEndpoints();       // W2-2
         api.MapSetupEndpoints();         // W3-b first-time setup
+        api.MapWebBookingEndpoints();    // W3-2 booking website
         return api;
     }
 }
