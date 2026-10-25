@@ -73,12 +73,12 @@ const num=(s:State,key:GstKey,date:string)=>Number(gstValueOn(s,key,date));
 /** Tax on one line in paise: amount × bps / 10000, rounded half away from zero (integer arithmetic, no float drift). */
 export function gstLineTax(amount:number,bps:number):number{
   const p=amount*bps,a=Math.abs(p),q=Math.floor(a/10000),r=a-q*10000,t=q+(r>=5000?1:0);
-  return p<0?-t:t;
+  return p<0&&t?-t:t;
 }
 /** Tax of a stored folio line (its snapshot rate). */
 export const lineTax=(l:{amount:number;taxBps:number})=>gstLineTax(l.amount,l.taxBps);
 /** Intra-state split: SGST = half rounded toward zero, CGST = the rest (takes the odd paisa) — always sums to the line tax. */
-export function gstSplit(tax:number):{cgst:number;sgst:number}{const sgst=Math.trunc(tax/2);return {cgst:tax-sgst,sgst};}
+export function gstSplit(tax:number):{cgst:number;sgst:number}{const sgst=Math.trunc(tax/2)||0;return {cgst:tax-sgst,sgst};}
 /** CGST / SGST for a line, split per line (never on totals) so documents, vouchers and reports agree to the paisa. */
 export function gstLineSplit(l:{amount:number;taxBps:number}){const tax=lineTax(l);return {tax,...gstSplit(tax)};}
 /** Sum of per-line splits. */

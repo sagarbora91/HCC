@@ -1,6 +1,6 @@
 // Module 23 · Restaurant POS & room service — fixture extensions (fictional data only).
 // Outlet sales live in s.posX: no money is posted into existing bookings. Cash bills count in the front-desk drawer (shared till, DEC-052):
-// POS-F01 adds ₹550 to the BASE drawer (₹10,200 → ₹10,750); POS-F02 is UPI (non-cash). POS-F03/F04 are open checks that block day close.
+// POS-F01 adds ₹525 to the BASE drawer (₹10,200 → ₹10,725; DEC-069 GST 5 %, was ₹550); POS-F02 is UPI (non-cash). POS-F03/F04 are open checks that block day close.
 import {clone} from '../../domain/clone';
 import type {State} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
