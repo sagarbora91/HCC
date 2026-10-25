@@ -1,0 +1,11 @@
+{
+  "SqlInstance": ".\\SQLEXPRESS",
+  "Database": "Hcc",
+  "BackupDirectory": "D:\\HccBackups",
+  "LogDirectory": "D:\\HccBackups\\Logs",
+  "ScratchDirectory": "D:\\HccBackups\\DrillScratch",
+  "RetentionDays": 30,
+  "KeepMinFulls": 3,
+  "PreMigrateRetentionDays": 90,
+  "TrustServerCertificate": false
+}
