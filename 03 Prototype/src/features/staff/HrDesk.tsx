@@ -14,7 +14,7 @@ import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/compone
 import {
   money,addDays,isDayClosed,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
-  hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrLastLockedMonth,hrSettingDefs,hrSettingValue,hrWeekday,
+  hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
   HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
 } from '../../services/mock';
 import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
@@ -204,6 +204,11 @@ function Payroll({phone}:{phone:boolean}){
   const canUnlock=r?.status==='Locked'&&hrCanRates(s,uid)&&hrLastLockedMonth(s)===ym;
   const file=(kind:'register'|'bank'|'statutory')=>{const name={register:'payroll-register',bank:'bank-transfer',statutory:'statutory-pf-esic-pt'}[kind]+'-'+ym+'.csv';
     downloadCsv(name,kind==='register'?hrRegisterCsv(s,r!):kind==='bank'?hrBankCsv(s,r!):hrStatutoryCsv(s,r!));toast(`${name} saved (fictional data)`);};
+  // F-09: the bank file is recorded; a repeat (also after an unlock) warns about paying twice.
+  const issued=r?hrBankFilesIssued(r):[];
+  const bankFile=async()=>{const again=issued.length>0;
+    if(again&&!window.confirm(`A bank file for ${hrMonthLabel(ym)} was already generated on ${issued[issued.length-1].at} (net ${money(issued[issued.length-1].net)}). Paying a full file again may pay staff twice. Generate it again?`))return;
+    if(await run({type:'HR_PAYROLL_BANK_FILE',id:r!.id,...(again?{confirmReissue:true}:{})},again?'Bank file generated again (reissue recorded)':'Bank file recorded'))file('bank');};
   const xlsx=()=>{void saveBinaryFile(`payroll-register-${ym}.xlsx`,registerXlsx(s,r!),XLSX_MIME);toast('Payroll register Excel saved (fictional data)');};
   const runBtn=<button className={'btn'+(r?'':' primary')} disabled={busy||r?.status==='Locked'} onClick={()=>run({type:'HR_PAYROLL_RUN',month:ym},r?'Payroll recalculated':'Payroll draft prepared')}><Calculator size={16}/> {r?'Recalculate':'Run payroll'}</button>;
   const lockBtn=r?.status==='Draft'&&<button className="btn primary" disabled={busy||own||errors.length>0} title={own?'Prepared by you — the other payroll user locks':undefined} onClick={()=>{if(window.confirm(`Lock ${hrMonthLabel(ym)} payroll? Figures freeze, advance recoveries are posted and payslips are released.`))run({type:'HR_PAYROLL_LOCK',id:r.id},'Payroll locked · payslips released');}}><Lock size={16}/> Lock pay-run</button>;
@@ -212,6 +217,8 @@ function Payroll({phone}:{phone:boolean}){
   const notes=<>{r&&!!r.warnings.length&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/><div>{r.warnings.map(w=><div key={w}>{w}</div>)}</div></div>}
     {!!errors.length&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>Fix before locking: {errors.join('; ')}.</div>}
     {stale&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>Attendance, leave, advances or rates changed after this draft — recalculate before locking.</div>}
+    {r&&issued.length>0&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>A bank file for this month was already generated {issued.length}× (last {issued[issued.length-1].at}, net {money(issued[issued.length-1].net)}){r.status==='Draft'?' before the unlock':''}. Do not pay a full file twice.</div>}
+    {r&&r.lines.some(l=>hrPayslipMark(r,l.staffId)==='resend')&&<div className="info-note hr-warn"><AlertTriangle size={16}/>Re-send payslips: {r.lines.filter(l=>hrPayslipMark(r,l.staffId)==='resend').map(l=>l.name).join(', ')} received figures that changed after the unlock.</div>}
     {own&&<div className="info-note"><Lock size={16}/>You prepared this draft. Maker-checker: the other payroll user (Owner / Accountant) locks it.</div>}
     {!r&&!hrMonthComplete(s,ym)&&<div className="info-note">This month is still in progress.</div>}
     {preview&&<div className="info-note">Preview: {preview.lines.length} staff · estimated net {money(hrRunTotals(preview).net)}. Run payroll to create a draft.</div>}</>;
@@ -229,13 +236,13 @@ function Payroll({phone}:{phone:boolean}){
       <div className="inline hr-pay-actions"><select aria-label="Payroll month" value={ym} onChange={e=>setYm(e.target.value)}>{monthOpts.map(o=><option key={o.id} value={o.id}>{o.label}{hrRunFor(s,o.id)?` · ${hrRunFor(s,o.id)!.status}`:''}</option>)}</select>{status}
         {r?.status!=='Locked'&&runBtn}{lockBtn}{canUnlock&&<button className="btn" disabled={busy} onClick={()=>open({type:'hr-unlock',id:r!.id})}><Unlock size={16}/> Unlock</button>}</div></div>
     {r&&<div className="inline padded hr-pay-files"><button className="btn" onClick={()=>file('register')}><Download size={16}/> Register CSV</button><button className="btn" onClick={xlsx}><FileSpreadsheet size={16}/> Register Excel</button>
-      <button className="btn" disabled={r.status!=='Locked'} title={r.status!=='Locked'?'Bank file after the pay-run is locked':undefined} onClick={()=>file('bank')}><Landmark size={16}/> Bank transfer file</button>
+      <button className="btn" disabled={busy||r.status!=='Locked'} title={r.status!=='Locked'?'Bank file after the pay-run is locked':undefined} onClick={()=>{void bankFile();}}><Landmark size={16}/> Bank transfer file{issued.length?` · issued ${issued.length}×`:''}</button>
       <button className="btn" onClick={()=>file('statutory')}><Download size={16}/> PF / ESIC / PT statement</button></div>}
     <div className="padded hr-notes">{notes}</div>
     {r&&t?<div className="table-wrap"><table className="hr-register"><thead><tr><th>Staff</th><th className="number">Days</th><th className="number">Earned</th><th className="number">OT</th><th className="number">Gross</th><th className="number">PF</th><th className="number">ESIC</th><th className="number">PT</th><th className="number">Advance</th><th className="number">Net pay</th><th></th></tr></thead><tbody>
       {r.lines.map(l=><tr key={l.staffId}><td><strong>{l.name}</strong><small>{l.designation} · {l.payType==='monthly'?money(l.base)+'/mo':money(l.base)+'/day'}{l.structure==='B'?' · basic only':''}</small></td><td className="number">{l.payableDays}</td>
         {[l.earned,l.ot,l.gross,l.pf,l.esic,l.pt,l.advance].map((v,i)=><td key={i} className="number">{money(v)}</td>)}<td className="number"><strong>{money(l.net)}</strong></td>
-        <td><button className="text-btn" onClick={()=>open({type:'hr-payslip',id:r.id+'|'+l.staffId})}><Printer size={13}/> Payslip{(r.sent??[]).some(x=>x.staffId===l.staffId)?' · sent':''}</button></td></tr>)}
+        <td><button className="text-btn" onClick={()=>open({type:'hr-payslip',id:r.id+'|'+l.staffId})}><Printer size={13}/> Payslip{{sent:' · sent',resend:' · re-send (figures changed)',superseded:' · earlier copy superseded','':''}[hrPayslipMark(r,l.staffId)]}</button></td></tr>)}
       <tr className="hr-total"><td><strong>Total · {t.staff} staff</strong></td><td></td>{[t.earned,t.ot,t.gross,t.pf,t.esic,t.pt,t.advance,t.net].map((v,i)=><td key={i} className="number"><strong>{money(v)}</strong></td>)}<td></td></tr>
     </tbody></table></div>:<Empty title={`No payroll for ${hrMonthLabel(ym)} yet`} body="Run payroll to calculate a draft from attendance, leave, overtime and advances."/>}
     {t&&<p className="footnote padded">Employer contributions (not deducted): PF {money(t.pfEr)} · ESIC {money(t.esicEr)} · employer cost {money(t.ctc)}.</p>}

@@ -166,4 +166,28 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const s=seed();assert.match(M.HR_NOT_PORTED,/extra-days rule/);assert.match(M.HR_NOT_PORTED,/day-based overtime/);
     for(const phone of [false,true]){assert.match(UI.renderSection(s,'manager','LeavePolicy',phone),/Not ported from SCC/);assert.match(UI.renderSection(s,'owner','Rates',phone),/Not ported from SCC/);}
   });
+
+  test('[PAY-FIX F-09] unlock supersedes "sent" payslip marks and records an issued bank file (confirm to unlock; warn and confirm on re-generate)',()=>{
+    let s=execute(seed(),'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});const id=M.hrRunFor(s,'2026-09').id;
+    s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id});
+    s=execute(s,'accountant',{type:'HR_PAYSLIP_SEND',runId:id,staffId:'HR-S05'});
+    s=execute(s,'accountant',{type:'HR_PAYROLL_BANK_FILE',id});assert.equal(M.hrRunFor(s,'2026-09').bankFiles.length,1);
+    assert.throws(()=>execute(s,'accountant',{type:'HR_PAYROLL_BANK_FILE',id}),code('INVALID_TRANSITION'),'second full file needs confirmation');
+    // unlock: refused without confirming the issued bank file
+    assert.throws(()=>execute(s,'owner',{type:'HR_PAYROLL_UNLOCK',id,reason:'Attendance correction'}),e=>e.code==='INVALID_TRANSITION'&&/pay(ing)? twice/.test(e.message));
+    let u=execute(s,'owner',{type:'HR_PAYROLL_UNLOCK',id,reason:'Attendance correction',confirmBankFile:true});
+    let r=M.hrRunFor(u,'2026-09');assert.equal(r.sent,undefined,'sent marks cleared');assert.equal(r.unlocks[0].sent[0].staffId,'HR-S05');assert.equal(r.unlocks[0].bankFiles.length,1);
+    assert.equal(r.unlocks[0].nets['HR-S05'],r.lines.find(l=>l.staffId==='HR-S05').net);
+    assert.match(u.audit[0].detail,/marked superseded/);
+    // correct Ravi's attendance (an absent day), recalculate and relock: his payslip is flagged for a re-send
+    const key=Object.keys(u.staffX.att).find(k=>k.startsWith('2026-09')&&k.endsWith('|HR-S05')&&u.staffX.att[k].status==='P');
+    u=structuredClone(u);u.staffX.att[key].status='A';
+    u=execute(u,'owner',{type:'HR_PAYROLL_RUN',month:'2026-09'});u=execute(u,'accountant',{type:'HR_PAYROLL_LOCK',id});
+    r=M.hrRunFor(u,'2026-09');assert.equal(M.hrPayslipMark(r,'HR-S05'),'resend');assert.equal(M.hrPayslipMark(r,'HR-S02'),'');
+    assert.equal(M.hrBankFilesIssued(r).length,1,'the issued file survives the unlock');
+    // the next bank file after the relock is a recorded reissue
+    assert.throws(()=>execute(u,'accountant',{type:'HR_PAYROLL_BANK_FILE',id}),code('INVALID_TRANSITION'));
+    const again=execute(u,'accountant',{type:'HR_PAYROLL_BANK_FILE',id,confirmReissue:true});assert.match(again.audit[0].detail,/REISSUE/);
+    assert.match(UI.renderModal(s,'owner','hr-unlock',id),/already generated/);
+  });
 }

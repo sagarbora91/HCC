@@ -72,13 +72,21 @@ export type HRLine={staffId:string;name:string;dept:string;designation:string;pa
   /** F-07: ESIC coverage for this month under the contribution-period rule (absent when the month-by-month rule applied). */ esicCovered?:boolean;
   /** Employer cost = gross + PF employer + ESIC employer. */ ctc:number};
 export type HRSend={staffId:string;to:string;at:string;by:string};
+export type HRBankFile={at:string;by:string;net:number};
+export type HRUnlock={at:string;by:string;reason:string;
+  /** Payslips sent before this unlock — superseded. */ sent?:HRSend[];
+  /** Bank files generated before this unlock (already given to the bank). */ bankFiles?:HRBankFile[];
+  /** Net pay per staff ID in the lock that was undone. */ nets?:Record<string,number>};
 /** Bank details as frozen in a locked run (F-02: the bank file pays where the checker approved, not the live staff master). */
 export type HRBank={bankName:string;accountNo:string;ifsc:string};
 export type HRRun={id:string;month:string;status:'Draft'|'Locked';rates:HRRates;lines:HRLine[];warnings:string[];
   preparedBy:string;preparedAt:string;lockedBy?:string;lockedAt?:string;
   /** Bank details per staff ID, copied at lock (F-02). Absent on runs locked before the snapshot existed. */ bank?:Record<string,HRBank>;
   /** Simulated WhatsApp payslip sends. */ sent?:HRSend[];
-  /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. */ unlocks?:{at:string;by:string;reason:string}[];
+  /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. F-09: the payslip sends, bank files and net figures of the
+   *  lock that was undone are kept here (superseded), so a relock shows who must get a new payslip and that a bank file was already issued. */
+  unlocks?:HRUnlock[];
+  /** F-09: bank transfer files generated for the current lock (simulated). */ bankFiles?:HRBankFile[];
   /** F-04: run saved before W05-B (illustrative rules), migrated on restore; employer contributions and the pay split were not recorded. */ legacy?:boolean};
 export type HRFnfAdj={label:string;kind:'add'|'ded';amount:number};
 export type HRFnf={id:string;staffId:string;name:string;lastDay:string;month:string;
@@ -414,6 +422,16 @@ export function hrApplyRecoveries(x:HRState,run:HRRun){
 export function hrReverseRecoveries(x:HRState,runId:string){
   for(const a of x.advances){const mine=a.recoveries.filter(r=>r.runId===runId);if(!mine.length)continue;
     a.recovered-=mine.reduce((n,r)=>n+r.amount,0);a.recoveries=a.recoveries.filter(r=>r.runId!==runId);}
+}
+/** F-09: bank files issued for this month so far (current lock and any lock undone since). */
+export const hrBankFilesIssued=(run:HRRun)=>[...(run.unlocks??[]).flatMap(u=>u.bankFiles??[]),...(run.bankFiles??[])];
+/** F-09: payslip state per staff member after an unlock: 'sent' (this lock), 'resend' (sent before an unlock and the net changed or
+ *  not yet re-sent — the staff member holds superseded figures), else ''. */
+export function hrPayslipMark(run:HRRun,staffId:string):'sent'|'resend'|'superseded'|''{
+  if((run.sent??[]).some(x=>x.staffId===staffId))return 'sent';
+  const u=[...(run.unlocks??[])].reverse().find(q=>(q.sent??[]).some(x=>x.staffId===staffId));if(!u)return '';
+  const now=run.lines.find(l=>l.staffId===staffId)?.net;
+  return now!==undefined&&u.nets?.[staffId]!==undefined&&u.nets[staffId]!==now?'resend':'superseded';
 }
 /** Payslips visible to a user: payroll roles see all; others only their own, from locked runs. */
 export function hrVisiblePayslips(s:State,uid:string):{run:HRRun;line:HRLine}[]{

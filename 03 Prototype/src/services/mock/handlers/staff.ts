@@ -8,7 +8,7 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrEntitled,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
 import {addDays} from '../../../domain/money';
@@ -268,10 +268,24 @@ export const handlers:Record<string,Handler>={
     assert(!x.runs.some(r=>r.status==='Locked'&&r.month>run!.month),'A later month is locked. Unlock the latest month first.','INVALID_TRANSITION');
     assert(Object.keys(x.att).some(key=>key.startsWith(run!.month)),'Attendance for this month is archived — the run cannot be unlocked.','INVALID_TRANSITION');
     assert(!(x.fnf??[]).some(f=>f.month>=run!.month),'A full and final settlement was made after this run. It cannot be unlocked.','INVALID_TRANSITION');
+    // F-09: a bank file already given to the bank needs explicit confirmation; payslip sends and bank files of this lock are kept as superseded.
+    const files=run!.bankFiles??[],sent=run!.sent??[];
+    if(files.length&&!cmd.confirmBankFile)k.fail('INVALID_TRANSITION',`A bank transfer file for ${hrMonthLabel(run!.month)} was already generated (${files.length}×, last ${files[files.length-1].at}). Unlocking may lead to paying twice — confirm to unlock.`);
     hrReverseRecoveries(x,run!.id);
-    run!.unlocks=[...(run!.unlocks??[]),{at:s.clock,by:k.uid,reason:String(cmd.reason).trim()}];
-    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;delete run!.bank;
-    return `${run!.id} · ${hrMonthLabel(run!.month)} unlocked · advance recoveries reversed · payslips withdrawn`;
+    run!.unlocks=[...(run!.unlocks??[]),{at:s.clock,by:k.uid,reason:String(cmd.reason).trim(),...(sent.length?{sent}:{}),...(files.length?{bankFiles:files}:{}),
+      nets:Object.fromEntries(run!.lines.map(l=>[l.staffId,l.net]))}];
+    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;delete run!.bank;delete run!.sent;delete run!.bankFiles;
+    return `${run!.id} · ${hrMonthLabel(run!.month)} unlocked · advance recoveries reversed · payslips withdrawn${sent.length?` · ${sent.length} sent payslip${sent.length===1?'':'s'} marked superseded`:''}${files.length?' · bank file already issued — next file must not pay twice':''}`;
+  },
+  /** F-09: record (and allow) a bank transfer file for a locked run; a repeat — including after an unlock — needs confirmReissue. */
+  HR_PAYROLL_BANK_FILE:k=>{
+    payroll(k);const {s,cmd,assert,fail}=k,x=hrEnsure(s),run=x.runs.find(r=>r.id===cmd.id);
+    assert(run,'Payroll run not found.','NOT_FOUND');assert(run!.status==='Locked','The bank file is made after the pay-run is locked.','INVALID_TRANSITION');
+    const prior=hrBankFilesIssued(run!);
+    if(prior.length&&!cmd.confirmReissue)fail('INVALID_TRANSITION',`A bank file for ${hrMonthLabel(run!.month)} was already generated on ${prior[prior.length-1].at} (net ${money(prior[prior.length-1].net)}). Paying this file in full again may pay twice — confirm to generate it again.`);
+    const net=run!.lines.reduce((n,l)=>n+l.net,0);
+    run!.bankFiles=[...(run!.bankFiles??[]),{at:s.clock,by:k.uid,net}];
+    return `${run!.id} · ${hrMonthLabel(run!.month)} bank transfer file · net ${money(net)}${prior.length?` · REISSUE (earlier file ${money(prior[prior.length-1].net)})`:''} (simulated — no money moves)`;
   },
   /** DEC-056: simulated WhatsApp send of a locked payslip (nothing leaves the device). */
   HR_PAYSLIP_SEND:k=>{

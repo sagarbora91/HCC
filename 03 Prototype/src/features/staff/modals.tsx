@@ -3,7 +3,7 @@
 // dated statutory rates, leave policy, half-day leave, pay-run unlock and full-and-final settlement.
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
-import {Printer,Info,Hotel,MessageCircle,Plus,Trash2} from 'lucide-react';
+import {Printer,Info,Hotel,MessageCircle,Plus,Trash2,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {dateLabel,shortDate,Empty} from '../../components/ui';
 import {
@@ -200,12 +200,16 @@ export function HRLeavePolicyModal(){
 
 /** 'hr-unlock': id = run ID. Owner unlock with a reason (SCC unlockRun). */
 export function HRUnlockModal({id}:{id?:string}){
-  const {s,run,closeModal,busy}=useHcc();const r=hrSlice(s).runs.find(x=>x.id===id);const [reason,setReason]=useState('');
+  const {s,run,closeModal,busy}=useHcc();const r=hrSlice(s).runs.find(x=>x.id===id);const [reason,setReason]=useState('');const [ack,setAck]=useState(false);
   if(!r)return <Empty title="Payroll run unavailable"/>;
+  const files=r.bankFiles??[],sent=r.sent??[];
   return <><div className="modal-heading"><h2>Unlock {hrMonthLabel(r.month)} payroll</h2><p>Payslips are withdrawn, advance recoveries of this run are reversed and the run goes back to Draft. Recalculate and lock again (maker-checker).</p></div>
-    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_PAYROLL_UNLOCK',id:r.id,reason},'Payroll unlocked',{close:true});}}>
+    {sent.length>0&&<div className="info-note hr-warn"><AlertTriangle size={16}/><span>{sent.length} payslip{sent.length===1?' was':'s were'} already sent on WhatsApp. They are marked superseded; staff whose net changes are flagged for a re-send after the relock.</span></div>}
+    {files.length>0&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/><span>A bank transfer file was already generated ({files.length}×, last {files[files.length-1].at}, net {money(files[files.length-1].net)}). If the bank has paid it, a new full file would pay twice.</span></div>}
+    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_PAYROLL_UNLOCK',id:r.id,reason,...(files.length?{confirmBankFile:ack}:{})},'Payroll unlocked',{close:true});}}>
       <label>Reason<input required minLength={5} maxLength={120} value={reason} onChange={e=>setReason(e.target.value)} enterKeyHint="done"/></label>
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn danger" disabled={busy}>Unlock</button></div>
+      {files.length>0&&<label className="check"><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)}/> I understand the bank file was already issued</label>}
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn danger" disabled={busy||(files.length>0&&!ack)}>Unlock</button></div>
     </form></>;
 }
 
