@@ -240,7 +240,7 @@ Supervisor and Maintenance hand shop bills to Reception or the Cashier (DEC-063 
 
 | Item | Proposal |
 |---|---|
-| File | `08 Production/database/migrations/2001_rbac_v2_seed.sql` (1900 is the last number on the integration branch; Wave 3 table migrations should start at 2100 or above so this seed runs first. If another Wave 3 agent has already taken 2001, use the next free number; only the order matters) |
+| File | `08 Production/database/migrations/2600_rbac_v2_seed.sql` (2600 is the first free block after Wave 3: 1900 property setup, 2000–2599 Wave 3 modules; it runs after all module seeds. If another Wave 3 agent has already taken 2001, use the next free number; only the order matters) |
 | Contents | (1) insert the RST role; (2) insert every `PERM-<MOD>-nnn` row with `kind` and `is_money`; (3) insert grants from the grids above; (4) add `HR-004` scope O for RST |
 | Style | Same as 0901 / 1001: one header comment naming the decisions, generated from this document, verified by a coverage test |
 | Wave 3 modules | Seeded in this same file even though their tables arrive later, so the Access control screen and the tests already know them. Their grants stay inactive until the module switch is on (DEC-057) |
@@ -250,7 +250,7 @@ Supervisor and Maintenance hand shop bills to Reception or the Cashier (DEC-063 
 
 | Step | What happens | Risk |
 |---|---|---|
-| 1. Add | Seed 2001 adds the new ids. **Old grants are not touched.** No behaviour changes yet | None |
+| 1. Add | Seed 2600 adds the new ids. **Old grants are not touched.** No behaviour changes yet | None |
 | 2. Switch callers | Module by module, the `…Ports.cs` constants change from the borrowed id to the dedicated id. Each switch is its own small change with its own tests. Order: money-hiding modules first (stock, maintenance, handover, guest services), then POS, messaging, yield, configuration | One module at a time; revert is one constant |
 | 3. Retire | After all callers have switched and a release has run: remove the now-unused hand-written guards (for example the Reception check in maintenance). Old matrix ids stay seeded because the core hotel still uses them. A later migration may drop borrowed grants that nothing reads | Low |
 
@@ -283,7 +283,7 @@ Supervisor and Maintenance hand shop bills to Reception or the Cashier (DEC-063 
 | # | Decision | Recommended answer |
 |---|---|---|
 | D1 | Add a **Restaurant (RST)** role, PIN sign-in, owner-assigned, POS operate only (no settle, no void approval, no day sales)? | **Yes.** Without it, waiters need Reception or Cashier rights, which carry money powers |
-| D2 | Approve the dedicated-permission-per-module design and the numbering (001 view, 002 act, 003 approve, 004 reveal money, 005+ extras)? | **Yes.** Seed one new migration (2001), keep old grants until callers switch |
+| D2 | Approve the dedicated-permission-per-module design and the numbering (001 view, 002 act, 003 approve, 004 reveal money, 005+ extras)? | **Yes.** Seed one new migration (2600), keep old grants until callers switch |
 | D3 | Cashier loses stock and maintenance money (C1)? | **Yes.** The Cashier does not buy stock or approve work orders |
 | D4 | Tech admin may edit message templates and non-money configuration (C2), as DEC-058 already says? | **Yes.** Money, tax, payroll, compliance and approval limits stay Owner only |
 | D5 | POS menu prices and tax category (`POS-006`): Owner only, Manager may request? | **Yes.** Prices are money; the Manager proposes, the Owner decides |
