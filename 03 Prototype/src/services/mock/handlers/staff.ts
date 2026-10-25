@@ -8,7 +8,7 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrBankSnapshot,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrEntitled,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
 import {addDays} from '../../../domain/money';
@@ -53,10 +53,18 @@ export const handlers:Record<string,Handler>={
     assert(['M','E','N','G'].includes(cmd.defaultShift),'Choose a default shift.');
     assert(Number.isInteger(cmd.weeklyOff)&&cmd.weeklyOff>=0&&cmd.weeklyOff<=6,'Choose a weekly off day.');
     if(cmd.gender!==undefined)assert(cmd.gender==='M'||cmd.gender==='F','Choose M or F for the professional-tax slab.');
-    if(cmd.userId){assert(s.users.some(u=>u.id===cmd.userId),'Linked demo user not found.');
-      assert(!x.staff.some(st=>st.userId===cmd.userId&&st.id!==cmd.id),'That demo user is already linked to another staff record.');}
     const existing=cmd.id?x.staff.find(st=>st.id===cmd.id):undefined;
     if(cmd.id)assert(existing,'Staff member not found.','NOT_FOUND');
+    // F-03: the login link decides whose payslips a user sees as "own" — Owner only, never your own link, audited old → new.
+    const newUser=cmd.userId?String(cmd.userId):undefined,linkChanged=newUser!==existing?.userId;
+    if(linkChanged){
+      if(!hrCanLink(s,k.uid))fail('FORBIDDEN','Only the Owner can link or unlink a demo login — payslip access follows the link.');
+      if(newUser===k.uid||(!!existing?.userId&&existing.userId===k.uid))fail('FORBIDDEN','You cannot change the login link of your own staff record.');
+      const slips=existing?hrLockedPayslipCount(s,existing.id):0;
+      if(newUser){assert(s.users.some(u=>u.id===newUser),'Linked demo user not found.');
+        assert(!x.staff.some(st=>st.userId===newUser&&st.id!==cmd.id),'That demo user is already linked to another staff record.');}
+      if(existing&&newUser&&slips&&!cmd.confirmRelink)fail('INVALID_TRANSITION',`${existing.name} has payslips in ${slips} locked pay-run${slips===1?'':'s'}. The linked login will see them — confirm the relink.`);
+    }
     const salaryGiven=cmd.payType!==undefined||cmd.monthly!==undefined||cmd.daily!==undefined;
     if(salaryGiven){
       const changed=!existing||existing.payType!==(cmd.payType??existing.payType)||existing.monthly!==(cmd.monthly??existing.monthly)||existing.daily!==(cmd.daily??existing.daily);
@@ -85,11 +93,12 @@ export const handlers:Record<string,Handler>={
     if(existing){const notes:string[]=[],was={...existing};
       if(!cmd.userId)delete existing.userId;Object.assign(existing,base);if(pay&&salaryGiven){existing.payType=cmd.payType??existing.payType;existing.monthly=cmd.monthly??existing.monthly;existing.daily=cmd.daily??existing.daily;}
       stat(existing);
+      if(linkChanged)notes.push(`login ${was.userId??'(none)'} → ${existing.userId??'(none)'}`);
       // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock.
       if(bankChanged)notes.push(`bank ${was.bankName??'(none)'} ${hrMaskAccount(was.accountNo)} ${was.ifsc??''} → ${existing.bankName??'(none)'} ${hrMaskAccount(existing.accountNo)} ${existing.ifsc??''} (future runs only; locked runs keep their frozen details)`);
       return `${existing.id} · ${existing.name} updated${notes.length?' · '+notes.join(' · '):''}`;}
     const st:HRStaff={id:k.id('HR-S'),...base,payType:pay&&cmd.payType?cmd.payType:'monthly',monthly:pay?cmd.monthly??0:0,daily:pay?cmd.daily??0:0,joined:s.date,active:true};
-    stat(st);x.staff.push(st);return `${st.id} · ${st.name} added${pay?'':' (salary to be set by payroll)'}`;
+    stat(st);x.staff.push(st);return `${st.id} · ${st.name} added${st.userId?` · login ${st.userId}`:''}${pay?'':' (salary to be set by payroll)'}`;
   },
   /** Deactivate (exit) or reactivate a staff record. */
   HR_STAFF_ACTIVE:k=>{

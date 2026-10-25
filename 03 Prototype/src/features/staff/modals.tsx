@@ -8,7 +8,7 @@ import {useHcc} from '../../app/context';
 import {dateLabel,shortDate,Empty} from '../../components/ui';
 import {
   money,hrSlice,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,hrRatesFor,
-  hrLastLockedMonth,hrNextMonth,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
+  hrLastLockedMonth,hrNextMonth,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
   HR_SHIFTS,HR_WEEKDAYS,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,hrKey,
   type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,
 } from '../../services/mock';
@@ -25,8 +25,12 @@ export function HRStaffModal({id}:{id?:string}){
     structure:st?.structure??'',pf:st?.pfApplicable===undefined?'':st.pfApplicable?'yes':'no',esic:st?.esicApplicable===false?'no':'yes',bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''});
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   const linked=new Set(x.staff.filter(o=>o.id!==id&&o.userId).map(o=>o.userId));
+  // F-03: only the Owner links logins, and never on their own record.
+  const canLink=hrCanLink(s,uid)&&st?.userId!==uid;
   function save(e:React.FormEvent){e.preventDefault();
     const cmd:Record<string,unknown>={type:'HR_STAFF_SAVE',id,name:f.name,dept:f.dept,designation:f.designation,userId:f.userId||undefined,defaultShift:f.defaultShift,weeklyOff:Number(f.weeklyOff),phone:f.phone,gender:f.gender};
+    const slips=st?hrLockedPayslipCount(s,st.id):0;
+    if(st&&f.userId&&f.userId!==(st.userId??'')&&slips){if(!window.confirm(`${st.name} has payslips in ${slips} locked pay-run${slips===1?'':'s'}. The newly linked login will see them. Relink?`))return;cmd.confirmRelink=true;}
     if(pay)Object.assign(cmd,{payType:f.payType,monthly:f.payType==='monthly'?rs(f.monthly):0,daily:f.payType==='daily'?rs(f.daily):0,
       ...(f.structure?{structure:f.structure}:{}),...(f.pf?{pfApplicable:f.pf==='yes'}:{}),esicApplicable:f.esic==='yes',bankName:f.bankName,accountNo:f.accountNo,ifsc:f.ifsc.toUpperCase()});
     run(cmd as {type:string},id?'Staff record updated':'Staff member added',{close:true});}
@@ -37,7 +41,7 @@ export function HRStaffModal({id}:{id?:string}){
         <label>Designation<input required maxLength={60} value={f.designation} onChange={set('designation')}/></label></div>
       <div className="form-row"><label>Default shift<select value={f.defaultShift} onChange={set('defaultShift')}>{HR_SHIFTS.filter(h=>h.code!=='OFF').map(h=><option key={h.code} value={h.code}>{h.label} {h.start}–{h.end}</option>)}</select></label>
         <label>Weekly off<select value={f.weeklyOff} onChange={set('weeklyOff')}>{HR_WEEKDAYS.map((d,i)=><option key={d} value={i}>{d}</option>)}</select></label></div>
-      <div className="form-row"><label>Demo login<select value={f.userId} onChange={set('userId')}><option value="">No login (non-login staff)</option>{s.users.filter(u=>!linked.has(u.id)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+      <div className="form-row"><label>Demo login{!canLink&&<small> (Owner only)</small>}<select value={f.userId} disabled={!canLink} onChange={set('userId')}><option value="">No login (non-login staff)</option>{s.users.filter(u=>!linked.has(u.id)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
         <label>Mobile (fictional, for payslips)<input inputMode="tel" maxLength={20} value={f.phone} onChange={set('phone')}/></label></div>
       <label>Professional-tax slab<select value={f.gender} onChange={set('gender')}><option value="M">Men’s slab</option><option value="F">Women’s slab (exempt up to ₹25,000)</option></select></label>
       {pay?<fieldset className="hr-fieldset"><legend>Salary and statutory (payroll roles only)</legend>

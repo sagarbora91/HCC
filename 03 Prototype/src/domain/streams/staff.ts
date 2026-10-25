@@ -151,6 +151,10 @@ export function hrCanPay(s:State,uid:string){const u=s.users.find(x=>x.id===uid)
 export const hrCanRates=(s:State,uid:string)=>hrCanPay(s,uid)&&can(s,uid,'admin');
 export const hrStaffOfUser=(s:State,uid:string)=>hrSlice(s).staff.find(x=>x.userId===uid);
 export const hrStaffById=(s:State,id:string)=>hrSlice(s).staff.find(x=>x.id===id);
+/** F-03: linking a staff record to a demo login decides whose payslips "My shifts & pay" shows — Owner only (payroll + admin), never on your own record. */
+export const hrCanLink=(s:State,uid:string)=>hrCanRates(s,uid);
+/** Locked runs that hold a payslip for this staff member (relinking such a record needs the Owner's explicit confirmation). */
+export const hrLockedPayslipCount=(s:State,staffId:string)=>hrSlice(s).runs.filter(r=>r.status==='Locked'&&r.lines.some(l=>l.staffId===staffId)).length;
 export const hrDeptName=(s:State,id:string)=>hrSlice(s).depts.find(d=>d.id===id)?.name??id;
 export const hrStructureOf=(st:HRStaff):HRStructure=>st.structure??(st.payType==='daily'?'B':'S');
 export const hrPfOn=(st:HRStaff)=>st.pfApplicable??hrStructureOf(st)==='S';
