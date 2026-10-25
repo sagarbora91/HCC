@@ -58,7 +58,8 @@ public sealed record PendingApproval(long ApprovalId, string Action, Paise Amoun
 public sealed record ActiveShift(long ShiftId, string TillCode, string Status, DateOnly BusinessDate, Paise Expected);
 
 public sealed record PreflightData(DateOnly BusinessDate, IReadOnlyList<PendingArrival> Arrivals, IReadOnlyList<OverdueDeparture> Departures,
-    IReadOnlyList<ExpiredHold> Holds, IReadOnlyList<NightTarget> Nights, IReadOnlyList<PendingApproval> Approvals, IReadOnlyList<ActiveShift> Shifts);
+    IReadOnlyList<ExpiredHold> Holds, IReadOnlyList<NightTarget> Nights, IReadOnlyList<PendingApproval> Approvals, IReadOnlyList<ActiveShift> Shifts,
+    IReadOnlyList<PreflightItem>? PosChecks = null, IReadOnlyList<PreflightItem>? PosVoids = null);
 
 /// <summary>
 /// Closing checks ported from the prototype (<c>closingPreflight</c>, <c>DAY_CLOSE</c> in <c>03 Prototype/src/domain/streams/closing.ts</c>
@@ -71,10 +72,12 @@ public static class CloseRules
     public const string Holds = "holds";
     public const string Nights = "nights";
     public const string Approvals = "approvals";
+    public const string Pos = "pos";
+    public const string PosVoidRequests = "posVoids";
     public const string Shift = "shift";
 
     /// <summary>Checks the preflight step blocks on (before the night posting).</summary>
-    public static readonly IReadOnlySet<string> PreflightBlocking = new HashSet<string>(StringComparer.Ordinal) { Arrivals, Departures, Holds, Approvals };
+    public static readonly IReadOnlySet<string> PreflightBlocking = new HashSet<string>(StringComparer.Ordinal) { Arrivals, Departures, Holds, Approvals, Pos, PosVoidRequests };
 
     /// <summary>Checks the cash step blocks on.</summary>
     public static readonly IReadOnlySet<string> CashBlocking = new HashSet<string>(StringComparer.Ordinal) { Shift };
@@ -104,6 +107,8 @@ public static class CloseRules
                 data.Nights.Where(n => !n.HasNight).Select(n => new PreflightItem($"{n.Guest}{Room(n.RoomNo)} · {n.PublicNo}", "stay:" + n.StayId))),
             Check(Approvals, "Approvals resolved", "Approve or reject pending requests.",
                 data.Approvals.Select(a => new PreflightItem($"{Label(a.Action)} · {a.Amount} · approval {a.ApprovalId}", "approval:" + a.ApprovalId))),
+            Check(Pos, "Restaurant checks settled", "Settle each open check, charge it to the room, or void it (with approval above the limit).", data.PosChecks ?? []),
+            Check(PosVoidRequests, "POS void requests decided", "Approve or reject each pending void request.", data.PosVoids ?? []),
             Check(Shift, "Cash shifts reconciled", "Count every drawer and submit the shift; a difference must be decided.",
                 data.Shifts.Select(s => new PreflightItem(s.Status == "Submitted"
                     ? $"Till {s.TillCode} · count submitted · difference awaiting approval"

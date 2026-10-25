@@ -42,7 +42,20 @@ public sealed class BillingPosFolioPort(IBillingStore store, IGstChargeSnapshots
 }
 
 /// <summary>Business-day close preflight over the POS store.</summary>
-public sealed class PosCloseGate(IPosStore store) : IPosCloseGate
+public sealed class PosCloseGate(IPosStore store, IPosTaxRates? taxRates = null) : IPosCloseGate
 {
+    public async Task<PosCloseList> ListAsync(int propertyId, DateOnly date, CancellationToken ct = default)
+    {
+        var bps = taxRates is null ? 0 : (await taxRates.FoodAsync(null, propertyId, date, ct).ConfigureAwait(false)).Bps;
+        var open = (await store.OpenChecksAsync(propertyId, ct).ConfigureAwait(false)).Where(c => c.BusinessDate <= date).ToList();
+        static string No(long id) => "POS-" + id.ToString("D4", System.Globalization.CultureInfo.InvariantCulture);
+        var checks = open.Select(c => new PosCloseItem(
+            $"{c.Spot} · {No(c.OrderId)}{(c.Guest is null ? "" : " · " + c.Guest)} · {Hcc.Domain.Pos.PosRules.Totals([new Hcc.Domain.Pos.PosLineAmount(new Hcc.Domain.Money.Paise(c.NetPaise), 1)], bps).Total} open",
+            "pos-check:" + c.OrderId.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToList();
+        var voids = open.Where(c => c.PendingVoidId is not null).Select(c => new PosCloseItem(
+            $"Void request · {c.Spot} · {No(c.OrderId)} · awaiting a different approver", "pos-void:" + c.PendingVoidId!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToList();
+        return new PosCloseList(checks, voids);
+    }
+
     public Task<Contracts.Pos.PosCloseBlockers> BlockersAsync(int propertyId, CancellationToken ct = default) => store.BlockersAsync(propertyId, ct);
 }
