@@ -15,13 +15,20 @@ namespace Hcc.Application.Yield;
 /// The Owner (admin.configuration) changes rules and publishes; a Manager (approval.decide) can only propose a publish, which the
 /// Owner decides; nobody decides their own proposal.
 /// </summary>
-public sealed class YieldService(IYieldStore store, IRatePublicationPort publication, ICommandRunner runner, IAccessPolicy access, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null)
+public sealed class YieldService(IYieldStore store, IRatePublicationPort publication, ICommandRunner runner, IAccessPolicy access, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null, Hcc.Application.Configuration.ISettingsReader? settings = null)
 {
     /// <summary>Publish window in nights from the business date (prototype YLD_WINDOW).</summary>
     public const int WindowNights = 14;
 
-    /// <summary>CONFIG: proposal lifetime; becomes the Master-configuration "approval expiry" setting (prototype approvalExpiryHours = 24).</summary>
-    public static readonly TimeSpan ProposalLifetime = TimeSpan.FromHours(24);
+    /// <summary>Default proposal lifetime (prototype approvalExpiryHours = 24); the Master-configuration setting <see cref="YieldSettings.ProposalHoursKey"/> overrides it.</summary>
+    public static readonly TimeSpan ProposalLifetime = TimeSpan.FromHours(YieldSettings.DefaultProposalHours);
+
+    private async Task<TimeSpan> LifetimeAsync(ICommandTransaction tx, int propertyId, CancellationToken ct)
+    {
+        if (settings is null) return ProposalLifetime;
+        var v = await settings.GetAsync(tx, propertyId, YieldSettings.ProposalHoursKey, null, ct).ConfigureAwait(false);
+        return v.Kind == Hcc.Domain.Configuration.ConfigValueKind.Number && v.Number > 0 ? TimeSpan.FromHours(v.Number) : ProposalLifetime;
+    }
 
     private static readonly int[] RoundOptions = [100, 1000, 5000, 10000];
 
@@ -271,7 +278,7 @@ public sealed class YieldService(IYieldStore store, IRatePublicationPort publica
             if (preview.Rows.Count == 0) throw HccException.Validation("Nothing to publish: the live tariffs already match the suggested rates.");
             var changed = preview.Rows.Count(x => x.Before != x.After);
             var reason = string.IsNullOrWhiteSpace(r.Reason) ? $"Publish yield tariffs {StayDates.ToWire(from)} to {StayDates.ToWire(to)}" : r.Reason.Trim();
-            var draft = new YieldProposalDraft(from, to, ctx.PrincipalId, now, now + ProposalLifetime, reason, YieldEngine.TariffSignature(inputs.Tariffs, types), changed, types, rates);
+            var draft = new YieldProposalDraft(from, to, ctx.PrincipalId, now, now + await LifetimeAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), reason, YieldEngine.TariffSignature(inputs.Tariffs, types), changed, types, rates);
             var id = await store.InsertProposalAsync(tx, ctx.PropertyId, draft, c).ConfigureAwait(false);
             var rec = await store.GetProposalAsync(ctx.PropertyId, id, tx, c).ConfigureAwait(false) ?? throw YieldVersion.NotFound("Proposal");
             var summary = $"Tariff publish {StayDates.ToWire(from)} to {StayDates.ToWire(to)} · {changed} night rate{(changed == 1 ? "" : "s")}";

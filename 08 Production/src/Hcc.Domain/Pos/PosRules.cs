@@ -15,7 +15,7 @@ public sealed record PosTotals(Paise Net, int TaxBps, Paise Tax, Paise Total, in
 /// <summary>Restaurant POS rules ported from <c>03 Prototype/src/domain/streams/pos.ts</c> and the POS handlers (module 23 spec §4).</summary>
 public static class PosRules
 {
-    /// <summary>Void value above which a different user with approval rights must decide (₹500). // CONFIG: Master configuration (W2-1) later.</summary>
+    /// <summary>Void value above which a different user with approval rights must decide (₹500). Default of the Master-configuration setting <c>pos.voidLimit</c> (dated, Owner-only).</summary>
     public const long VoidLimitPaise = 50_000;
 
     public static readonly TimeSpan VoidRequestTtl = TimeSpan.FromHours(24);
@@ -60,5 +60,5 @@ public static class PosRules
     }
 
     /// <summary>True when a void of this value needs a second person's approval.</summary>
-    public static bool NeedsApproval(long valuePaise) => valuePaise > VoidLimitPaise;
+    public static bool NeedsApproval(long valuePaise, long limitPaise = VoidLimitPaise) => valuePaise > limitPaise;
 }

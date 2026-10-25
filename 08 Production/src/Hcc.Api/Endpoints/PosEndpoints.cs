@@ -21,6 +21,7 @@ public static class PosEndpoints
         services.AddSingleton<IPosTaxRates, GstMasterPosTaxRates>();   // DEC-069 GST master (food; specified premises) via IGstRateResolver
         services.AddSingleton<IPosFolioPort, BillingPosFolioPort>();   // room posting through Billing's folio (IBillingStore)
         services.AddSingleton<IPosCloseGate, PosCloseGate>();          // open checks / pending voids block the day close
+        services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(PosSettings.Provider); // pos.voidLimit in Master configuration
         services.AddSingleton<PosService>();                           // cash goes through ICashDrawerPort (CashierService, DEC-052)
         services.AddSingleton<PosQueries>();
         return services;

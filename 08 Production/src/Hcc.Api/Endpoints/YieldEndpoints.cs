@@ -17,6 +17,7 @@ public static class YieldEndpoints
     {
         services.AddSingleton<IYieldStore>(sp => new SqlYieldStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IRatePublicationPort>(sp => new SqlRatePublicationPort(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(YieldSettings.Provider); // yld.proposalHours in Master configuration
         services.AddSingleton<YieldService>();
         services.AddSingleton<YieldQueries>();
         services.AddSingleton<IYieldRateQuery>(sp => sp.GetRequiredService<YieldQueries>()); // for P2's quote/availability (see README)

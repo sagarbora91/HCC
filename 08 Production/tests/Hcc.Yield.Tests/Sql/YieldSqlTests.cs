@@ -353,3 +353,31 @@ public sealed class YieldRulesSqlTests : YieldSqlTest
         Assert.True(await CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action LIKE 'Yield:%';") >= 1);
     }
 }
+
+[Trait("Category", "Sql")]
+public sealed class YieldProposalLifetimeSettingTests : YieldSqlTest
+{
+    private async Task SetHoursAsync(int hours, string from) => await ExecAsync(
+        "DECLARE @u INT = (SELECT TOP 1 user_id FROM plat.app_user); " +
+        "IF NOT EXISTS (SELECT 1 FROM cfg.setting WHERE property_id = 1 AND setting_key = 'yld.proposalHours') INSERT cfg.setting(property_id, setting_key, created_utc, changed_utc) VALUES (1, 'yld.proposalHours', '2026-01-01', '2026-01-01'); " +
+        $"INSERT cfg.setting_change(property_id, setting_key, effective_from, value_json, before_json, before_text, after_text, source, changed_by, changed_utc) VALUES (1, 'yld.proposalHours', '{from}', '{hours}', '24', 'b', 'a', 'change', @u, '2026-01-01');");
+
+    private async Task<TimeSpan> LifetimeAsync(string from, string to)
+    {
+        var p = (await F.Service.ProposeAsync(F.Ctx(F.Manager, "ProposeYieldPublish"), new ProposeYieldPublishRequest(from, to, [F.TypeIds["Classic"]], "t"), Ct)).Value;
+        return DateTime.Parse(p.ExpiresUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal) - F.Clock.GetUtcNow().UtcDateTime;
+    }
+
+    [Fact]
+    public async Task Proposal_lifetime_follows_the_setting_from_its_effective_date()
+    {
+        var bd = Convert.ToDateTime(await ScalarAsync("SELECT business_date FROM inv.property WHERE property_id = 1;"), System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(TimeSpan.FromHours(24), await LifetimeAsync("2026-10-30", "2026-10-30"));                   // default 24 h
+        await ExecAsync("UPDATE yld.proposal SET status = 'Rejected', decided_by = " + F.Owner + ", decided_utc = '2026-10-24' WHERE status = 'Pending';");
+        await SetHoursAsync(72, bd.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(TimeSpan.FromHours(24), await LifetimeAsync("2026-10-30", "2026-10-30"));                   // not yet effective
+        await ExecAsync("UPDATE yld.proposal SET status = 'Rejected', decided_by = " + F.Owner + ", decided_utc = '2026-10-24' WHERE status = 'Pending';");
+        await ExecAsync($"UPDATE inv.property SET business_date = '{bd.AddDays(1):yyyy-MM-dd}' WHERE property_id = 1;");
+        Assert.Equal(TimeSpan.FromHours(72), await LifetimeAsync("2026-10-30", "2026-10-30"));                   // from its effective date
+    }
+}
