@@ -77,6 +77,7 @@ public class DatesAndErrorsTests
             [HccErrorCode.NOT_AVAILABLE] = 409, [HccErrorCode.RESTRICTED] = 409, [HccErrorCode.INVALID_TRANSITION] = 409,
             [HccErrorCode.STALE_VERSION] = 409, [HccErrorCode.DAY_CLOSED] = 409, [HccErrorCode.APPROVAL_REQUIRED] = 403,
             [HccErrorCode.IDEMPOTENCY_MISMATCH] = 409, [HccErrorCode.UNAVAILABLE] = 503,
+            [HccErrorCode.UNAUTHENTICATED] = 401,
         };
         Assert.Equal(expected.Count, names.Length);
         foreach (var (code, status) in expected)
@@ -92,6 +93,9 @@ public class DatesAndErrorsTests
         var (status, body) = HccErrorMiddleware.Map(new HccException(HccErrorCode.STALE_VERSION, "Record changed"));
         Assert.Equal(409, status);
         Assert.Equal("STALE_VERSION", body.Code);
+        (status, body) = HccErrorMiddleware.Map(new HccException(HccErrorCode.UNAUTHENTICATED, "Your session has ended. Sign in again."));
+        Assert.Equal(401, status);
+        Assert.Equal("UNAUTHENTICATED", body.Code);
         (status, body) = HccErrorMiddleware.Map(new InvalidOperationException("secret connection detail"));
         Assert.Equal(500, status);
         Assert.DoesNotContain("secret", body.Message, StringComparison.Ordinal);

@@ -46,11 +46,15 @@ public sealed partial class EmbeddedMigrationSource : IMigrationSource
 
     public static IReadOnlyList<MigrationScript> Validate(IEnumerable<MigrationScript> scripts)
     {
+        // Wave 1 numbered blocks (0001-0099 platform, 0100-0199 access, 0200 inventory, 0300 stays, 0400 billing, ...):
+        // versions must be positive and unique; gaps between blocks are allowed. Applied order is ascending version.
         var ordered = scripts.OrderBy(s => s.Version).ToList();
         for (var i = 0; i < ordered.Count; i++)
         {
-            if (ordered[i].Version != i + 1)
-                throw new InvalidOperationException($"Migration versions must be contiguous from 0001; found {ordered[i].Version:0000} at position {i + 1}.");
+            if (ordered[i].Version < 1)
+                throw new InvalidOperationException($"Migration version {ordered[i].Version} is not positive.");
+            if (i > 0 && ordered[i].Version == ordered[i - 1].Version)
+                throw new InvalidOperationException($"Migration version {ordered[i].Version:0000} appears twice ({ordered[i - 1].Name}, {ordered[i].Name}).");
         }
 
         return ordered;

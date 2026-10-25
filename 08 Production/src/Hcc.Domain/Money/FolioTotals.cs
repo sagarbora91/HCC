@@ -19,7 +19,8 @@ public sealed record FolioTotalsResult(Paise Net, Paise Tax, Paise Total, Paise 
 /// <summary>
 /// Folio totals ported from the prototype's <c>totals()</c> (<c>03 Prototype/src/domain/selectors.ts</c>):
 /// tax per line at its snapshot rate; deposits are held separately and never reduce the balance; company credit moves
-/// the balance to a receivable (Financial Rulebook §2). P0 kernel; ownership moves to P4 (billing).
+/// the balance to a receivable (Financial Rulebook §2). Owner since Wave 1 integration: Billing (P4; wrapped by
+/// <c>Hcc.Domain.Billing.FolioStatement</c>). The file stays here (namespace <c>Hcc.Domain.Money</c>) to avoid churn.
 /// </summary>
 public static class FolioTotals
 {

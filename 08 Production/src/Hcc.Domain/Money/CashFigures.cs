@@ -17,7 +17,8 @@ public sealed record CashExpense(DateOnly Date, ExpenseStatus Status, string Met
 /// <summary>
 /// Collections and expected drawer cash, ported from the prototype's <c>metrics().collections</c> and <c>drawer()</c>
 /// (<c>03 Prototype/src/domain/selectors.ts</c>; Financial Rulebook §4; shared till DEC-052). P0 kernel used by the golden
-/// tests; ownership moves to P4 (cashier) / P6 (closing), which must keep these figures.
+/// tests. Owner since Wave 1 integration: Billing/Payments (P4; wrapped by <c>Hcc.Domain.Billing</c>), closing (P6) later.
+/// The file stays here (namespace <c>Hcc.Domain.Money</c>) to avoid churn; it is no longer part of the frozen P0 kernel.
 /// </summary>
 public static class CashFigures
 {

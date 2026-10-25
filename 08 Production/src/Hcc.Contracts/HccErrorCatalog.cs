@@ -16,6 +16,7 @@ public static class HccErrorCatalog
         HccErrorCode.APPROVAL_REQUIRED => 403,
         HccErrorCode.IDEMPOTENCY_MISMATCH => 409,
         HccErrorCode.UNAVAILABLE => 503,
+        HccErrorCode.UNAUTHENTICATED => 401,
         _ => throw new ArgumentOutOfRangeException(nameof(code), code, "Unknown error code."),
     };
 
@@ -32,6 +33,7 @@ public static class HccErrorCatalog
         HccErrorCode.APPROVAL_REQUIRED => "Approval required",
         HccErrorCode.IDEMPOTENCY_MISMATCH => "Request key already used",
         HccErrorCode.UNAVAILABLE => "Server unavailable",
+        HccErrorCode.UNAUTHENTICATED => "Sign in again",
         _ => throw new ArgumentOutOfRangeException(nameof(code), code, "Unknown error code."),
     };
 }

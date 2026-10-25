@@ -21,14 +21,15 @@ public class MigrationRunnerTests
         var runner = db.Platform().Migrations;
         var first = await runner.MigrateAsync(Ct);
         Assert.Equal(0, first.FromVersion);
-        Assert.Equal([1, 2], first.Applied);
+        var embedded = new EmbeddedMigrationSource().Load().Select(s => s.Version).ToArray();
+        Assert.Equal(embedded, first.Applied);
         Assert.False(first.BackupTaken);
         foreach (var t in ExpectedTables) Assert.Equal(1, await db.CountAsync($"SELECT CASE WHEN OBJECT_ID('{t}') IS NULL THEN 0 ELSE 1 END", Ct));
         foreach (var s in new[] { "inv", "gst", "bill", "pay", "ops", "cls", "plat" }) Assert.Equal(1, await db.CountAsync($"SELECT COUNT(*) FROM sys.schemas WHERE name = '{s}'", Ct));
 
         var second = await runner.MigrateAsync(Ct);
         Assert.Empty(second.Applied);
-        Assert.Equal(2, second.ToVersion);
+        Assert.Equal(embedded[^1], second.ToVersion);
         var scripts = new EmbeddedMigrationSource().Load();
         foreach (var s in scripts)
             Assert.Equal(s.Checksum, (string?)await db.ScalarAsync($"SELECT checksum_sha256 FROM dbo.schema_migration WHERE version = {s.Version}", Ct));
@@ -54,12 +55,12 @@ public class MigrationRunnerTests
         await using var db = await DisposableDatabase.CreateAsync(migrate: true, Ct);
         var options = db.Options(backupDirectory: "NUL"); // real DBCC CHECKDB + BACKUP DATABASE, stream discarded
         var gate = new SqlBackupGate(options);
-        var extra = new MigrationScript(3, "test_extra", "CREATE TABLE ops.test_extra(id INT NOT NULL PRIMARY KEY);");
+        var extra = new MigrationScript(9001, "test_extra", "CREATE TABLE ops.test_extra(id INT NOT NULL PRIMARY KEY);");
         var runner = new MigrationRunner(new SqlConnectionFactory(options), new ExtraMigrationSource(extra), gate);
         var result = await runner.MigrateAsync(Ct);
         Assert.True(result.BackupTaken);
         Assert.Equal("NUL", gate.LastBackupTarget);
-        Assert.Equal([3], result.Applied);
+        Assert.Equal([9001], result.Applied);
         Assert.Contains(gate.LastMessages, m => m.StartsWith("BACKUP DATABASE successfully processed", StringComparison.Ordinal));
     }
 
@@ -68,13 +69,13 @@ public class MigrationRunnerTests
     {
         await using var db = await DisposableDatabase.CreateAsync(migrate: true, Ct);
         var options = db.Options();
-        var bad = new MigrationScript(3, "bad", "CREATE TABLE ops.half_done(id INT);\nGO\nSELECT 1/0 AS boom;");
-        var later = new MigrationScript(4, "later", "CREATE TABLE ops.never(id INT);");
+        var bad = new MigrationScript(9001, "bad", "CREATE TABLE ops.half_done(id INT);\nGO\nSELECT 1/0 AS boom;");
+        var later = new MigrationScript(9002, "later", "CREATE TABLE ops.never(id INT);");
         var runner = new MigrationRunner(new SqlConnectionFactory(options), new ExtraMigrationSource(bad, later), new SqlBackupGate(options));
         await Assert.ThrowsAnyAsync<Exception>(() => runner.MigrateAsync(Ct));
         Assert.Equal(0, await db.CountAsync("SELECT CASE WHEN OBJECT_ID('ops.half_done') IS NULL THEN 0 ELSE 1 END", Ct));
         Assert.Equal(0, await db.CountAsync("SELECT CASE WHEN OBJECT_ID('ops.never') IS NULL THEN 0 ELSE 1 END", Ct));
-        Assert.Equal(2, await db.CountAsync("SELECT MAX(version) FROM dbo.schema_migration", Ct));
+        Assert.Equal(LatestEmbedded, await db.CountAsync("SELECT MAX(version) FROM dbo.schema_migration", Ct));
     }
 
     [Fact]
@@ -82,14 +83,22 @@ public class MigrationRunnerTests
     {
         await using var db = await DisposableDatabase.CreateAsync(migrate: false, Ct);
         var results = await Task.WhenAll(db.Platform().Migrations.MigrateAsync(Ct), db.Platform().Migrations.MigrateAsync(Ct));
-        Assert.Equal([1, 2], results.SelectMany(r => r.Applied).Order().ToArray());
-        Assert.Equal(2, await db.CountAsync("SELECT COUNT(*) FROM dbo.schema_migration", Ct));
+        var embedded = new EmbeddedMigrationSource().Load().Select(s => s.Version).ToArray();
+        Assert.Equal(embedded, results.SelectMany(r => r.Applied).Order().ToArray());
+        Assert.Equal(embedded.Length, await db.CountAsync("SELECT COUNT(*) FROM dbo.schema_migration", Ct));
     }
 
     [Fact]
-    public void Migration_versions_must_be_contiguous()
+    public void Migration_versions_are_unique_and_ascending_with_gaps_between_blocks()
     {
-        Assert.Equal([1, 2], new EmbeddedMigrationSource().Load().Select(s => s.Version).ToArray());
-        Assert.Throws<InvalidOperationException>(() => new ExtraMigrationSource(new MigrationScript(4, "gap", "SELECT 1;")).Load());
+        var versions = new EmbeddedMigrationSource().Load().Select(s => s.Version).ToArray();
+        Assert.Equal([1, 2], versions[..2]);
+        Assert.Equal(versions.Order().Distinct().ToArray(), versions);
+        var withGap = new ExtraMigrationSource(new MigrationScript(9001, "gap", "SELECT 1;")).Load();
+        Assert.Equal(9001, withGap[^1].Version);
+        Assert.Throws<InvalidOperationException>(() => new ExtraMigrationSource(new MigrationScript(2, "duplicate", "SELECT 1;")).Load());
+        Assert.Throws<InvalidOperationException>(() => EmbeddedMigrationSource.Validate([new MigrationScript(0, "zero", "SELECT 1;")]));
     }
+
+    private static int LatestEmbedded => new EmbeddedMigrationSource().Load()[^1].Version;
 }
