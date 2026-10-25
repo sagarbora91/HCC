@@ -9,7 +9,8 @@
     (-GrantDrillRights).
   - Creates the backup folder and gives the SQL Server service (NT Service\MSSQL$<instance>) Modify rights, because BACKUP is
     performed by the SQL Server process, not by the script.
-  After this, run:  Hcc.Api.exe migrate   (or the installer does) to build the tables.
+  After this, run:  Hcc.Api.exe migrate   (or the installer does) to build the tables, start the service, then
+  Initialize-HccProperty.ps1 once to create the hotel and the first Owner (first-time setup; no manual SQL).
   -WhatIf prints the SQL and folder actions and changes nothing (no connection is opened).
 # ETP-REUSE: replace/align with ETP's database/login provisioning step of the installer when V:\ETP is available.
 #>
@@ -41,6 +42,7 @@ if ($GrantDrillRights) { $steps += ('ALTER SERVER ROLE dbcreator ADD MEMBER {0};
 if (-not $PSCmdlet.ShouldProcess("$SqlInstance database [$Database]", 'Create database, login, permissions, backup folder')) {
     foreach ($s in $steps) { Write-Host "DRY RUN SQL: $s" }
     Write-Host "DRY RUN: create folder $BackupDirectory; grant Modify to $sqlService"
+    Write-Host 'DRY RUN: next steps: Hcc.Api.exe migrate, Start-Service HccServer, Initialize-HccProperty.ps1 (first-time setup)'
     return
 }
 foreach ($s in $steps) { Invoke-HccSql -Instance $SqlInstance -Query $s -TrustServerCertificate:$TrustServerCertificate | Out-Null }
@@ -48,3 +50,4 @@ if (-not (Test-Path -LiteralPath $BackupDirectory)) { New-Item -ItemType Directo
 & icacls.exe $BackupDirectory /grant ("{0}:(OI)(CI)M" -f $sqlService) | Out-Null
 if ($LASTEXITCODE -ne 0) { Write-Warning "icacls could not grant $sqlService on $BackupDirectory; grant it manually (SQL Server must be able to write backups there)." }
 Write-Host "Database [$Database] ready on $SqlInstance. Login $ServiceAccount has db_owner. Backup folder: $BackupDirectory"
+Write-Host 'Next: Hcc.Api.exe migrate, Start-Service HccServer, then .\Initialize-HccProperty.ps1 (creates the hotel and the first Owner).'

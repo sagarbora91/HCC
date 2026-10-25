@@ -117,10 +117,17 @@ Check 'New-HccCertificate -WhatIf prints names and files, creates nothing' {
 }
 Check 'Initialize-HccDatabase -WhatIf prints SQL only' {
     $r = DryRun 'Initialize-HccDatabase.ps1' @('-ServiceAccount', 'NT SERVICE\HccServer', '-BackupDirectory', 'D:\HccBackups', '-GrantDrillRights')
-    $r.Exit -eq 0 -and $r.Out -match 'CREATE DATABASE \[Hcc\]' -and $r.Out -match 'db_owner' -and $r.Out -match 'dbcreator' -and $r.Out -match 'MSSQL\$SQLEXPRESS'
+    $r.Exit -eq 0 -and $r.Out -match 'CREATE DATABASE \[Hcc\]' -and $r.Out -match 'db_owner' -and $r.Out -match 'dbcreator' -and $r.Out -match 'MSSQL\$SQLEXPRESS' -and $r.Out -match 'Initialize-HccProperty'
 }
 Check 'Initialize-HccDatabase refuses a non-HCC database' {
     (DryRun 'Initialize-HccDatabase.ps1' @('-Database', 'EtpReporting', '-ServiceAccount', 'x\y', '-BackupDirectory', 'D:\b')).Exit -ne 0
+}
+Check 'Initialize-HccProperty -WhatIf prints the setup request, password hidden, sends nothing' {
+    $r = DryRun 'Initialize-HccProperty.ps1' @('-HotelName', 'Hotel Sagar', '-Address', 'Station Road, Latur', '-OwnerDisplayName', 'Sagar', '-Gstin', '27aaaaa0000a1z5')
+    $r.Exit -eq 0 -and $r.Out -match 'POST http://127\.0\.0\.1:5080/api/v1/setup/SetupProperty' -and $r.Out -match '27AAAAA0000A1Z5' -and $r.Out -match 'Maharashtra' -and $r.Out -match 'Asia/Kolkata' -and $r.Out -match '\*{8}'
+}
+Check 'Initialize-HccProperty refuses a server address that is not this PC' {
+    (DryRun 'Initialize-HccProperty.ps1' @('-HotelName', 'H', '-Address', 'A', '-OwnerDisplayName', 'S', '-ServerUrl', 'https://192.168.1.20:5443')).Exit -ne 0
 }
 Check 'Install-HccService -WhatIf prints plan; -Uninstall -WhatIf changes nothing' {
     $r = DryRun 'Install-HccService.ps1' @()

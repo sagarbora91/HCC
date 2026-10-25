@@ -42,6 +42,7 @@ public static class HccComposition
         services.AddYieldModule();                       // W2-12 yield & tariffs
         services.AddGuestServicesModule();               // W2-9 guest services
         services.AddPayrollModule();                     // W2-2 payroll and leave
+        services.AddSetupModule();                       // W3-b first-time hotel setup (loopback, empty install only)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -80,6 +81,7 @@ public static class HccComposition
         api.MapYieldEndpoints();         // W2-12
         api.MapGuestServicesEndpoints(); // W2-9
         api.MapPayrollEndpoints();       // W2-2
+        api.MapSetupEndpoints();         // W3-b first-time setup
         return api;
     }
 }

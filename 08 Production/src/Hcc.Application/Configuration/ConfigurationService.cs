@@ -174,6 +174,34 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
         }, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// First-time hotel setup (W3-b <c>SetupProperty</c>): writes the initial values inside the setup transaction, as that transaction's
+    /// principal (the new Owner), effective on the new business date. No permission gate — the caller is the empty-install command —
+    /// but the same cleaning, validation, history row, audit (<c>SETTING_SET</c>) and outbox <c>SettingChanged</c> as any change.
+    /// Values equal to the registry default are skipped. Returns how many settings were written.
+    /// </summary>
+    public async Task<int> SeedAsync(ICommandTransaction tx, IReadOnlyList<KeyValuePair<string, ConfigValue>> values, string reason, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(values);
+        var ctx = tx.Context;
+        var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, ct).ConfigureAwait(false);
+        var written = 0;
+        foreach (var (key, raw) in values)
+        {
+            var s = registry.Find(key) ?? throw new InvalidOperationException($"Setting {key} is not registered.");
+            if (!s.Editable || s.Secret) throw new InvalidOperationException($"Setting {key} cannot be seeded.");
+            var value = SettingRules.Clean(s, raw);
+            if (SettingRules.Validate(s, value) is { } err) throw HccException.Validation($"{s.Label}: {err}");
+            if (value == s.Default) continue;
+            await store.LockSettingAsync(tx, ctx.PropertyId, s.Key, ct).ConfigureAwait(false);
+            await ApplyAsync(tx, ctx, s, value, bd, bd, reason, "change", ctx.PrincipalId, null, null, null, ct).ConfigureAwait(false);
+            written++;
+        }
+
+        return written;
+    }
+
     // ───────────── shared rules ─────────────
 
     /// <summary>Hub gate: PERM-ADM-003 at any mode (Owner A, Tech admin V); DEC-058 rights for the rest of the command.</summary>
