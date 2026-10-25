@@ -109,7 +109,7 @@ public class ExpenseCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         var after = await db.Queries.GetAsync(db.PropertyId, Who.Manager, e.ExpenseId, Ct);
         Assert.Equal("Pending", after.Status);
         Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM pay.cash_movement WHERE source_type = 'expense' AND source_id = @i", ("@i", SqlDbType.BigInt, e.ExpenseId)));
-        Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ExpenseApproved' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, e.ExpenseId)));
+        Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ExpensePosted' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, e.ExpenseId)));
         await Fails(HccErrorCode.NOT_FOUND, () => db.Commands.DecideAsync(db.Ctx(Who.Manager), new DecideExpenseRequest(9_999_999, e.Version, true), Ct));
     }
 
@@ -126,10 +126,10 @@ public class ExpenseCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         Assert.True(again.Replayed);
         Assert.Equal(first.Value.CashMovementId, again.Value.CashMovementId);
         Assert.Equal(155_000, await db.ExpectedCashAsync(shift.ShiftId));
-        Assert.Equal(1, await db.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ExpenseApproved' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, e.ExpenseId)));
+        Assert.Equal(1, await db.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ExpensePosted' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, e.ExpenseId)));
         Assert.Equal(1, await db.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'EXPENSE_POSTED' AND target = @t", ("@t", SqlDbType.VarChar, "expense:" + e.ExpenseId)));
 
-        using var approved = JsonDocument.Parse((string)(await db.ScalarAsync("SELECT payload FROM plat.outbox WHERE event_type = 'ExpenseApproved' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, e.ExpenseId)))!);
+        using var approved = JsonDocument.Parse((string)(await db.ScalarAsync("SELECT payload FROM plat.outbox WHERE event_type = 'ExpensePosted' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, e.ExpenseId)))!);
         var p = approved.RootElement;
         Assert.Equal((45_000L, "Cash", "Utilities", "2026-10-24", Who.Reception, Who.Manager), (p.GetProperty("amountPaise").GetInt64(), p.GetProperty("method").GetString(),
             p.GetProperty("category").GetString(), p.GetProperty("businessDate").GetString(), p.GetProperty("submittedBy").GetInt32(), p.GetProperty("approvedBy").GetInt32()));
@@ -137,8 +137,13 @@ public class ExpenseCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         var rev = (await db.Commands.ReverseAsync(db.Ctx(Who.Accountant), new ReverseExpenseRequest(e.ExpenseId, first.Value.Expense.Version, "Billed twice", till), Ct)).Value;
         using var reversed = JsonDocument.Parse((string)(await db.ScalarAsync("SELECT payload FROM plat.outbox WHERE event_type = 'ExpenseReversed' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, rev.Reversal.ExpenseId)))!);
         var r = reversed.RootElement;
-        Assert.Equal((e.ExpenseId, 45_000L, -45_000L, "Billed twice"), (r.GetProperty("originalExpenseId").GetInt64(), r.GetProperty("amountPaise").GetInt64(),
+        Assert.Equal((e.ExpenseId, 45_000L, -45_000L, "Billed twice"), (r.GetProperty("originalExpenseId").GetInt64(), r.GetProperty("originalAmountPaise").GetInt64(),
             r.GetProperty("reversalAmountPaise").GetInt64(), r.GetProperty("reason").GetString()));
+        // Accounting's ExpensePostedEvent reads both payloads: the reversal record is negative and points at the original.
+        var posted = System.Text.Json.JsonSerializer.Deserialize<Hcc.Contracts.Accounting.ExpensePostedEvent>(p.GetRawText(), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        var reversal = System.Text.Json.JsonSerializer.Deserialize<Hcc.Contracts.Accounting.ExpensePostedEvent>(r.GetRawText(), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Assert.Equal((e.ExpenseId, "Cash", 45_000L, (long?)null), (posted.ExpenseId, posted.Funding, posted.AmountPaise, posted.ReversalOf));
+        Assert.Equal((rev.Reversal.ExpenseId, "Cash", -45_000L, (long?)e.ExpenseId), (reversal.ExpenseId, reversal.Funding, reversal.AmountPaise, reversal.ReversalOf));
         Assert.Equal(200_000, await db.ExpectedCashAsync(shift.ShiftId));
     }
 

@@ -19,7 +19,7 @@ namespace Hcc.Application.Expenses;
 /// (DEC-052) through <see cref="ICashDrawerPort"/> inside the same transaction, exactly once; every approved or reversed expense
 /// publishes an outbox event for Accounting.
 /// </summary>
-public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock)
+public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null)
 {
     public const string OpSubmit = "SubmitExpense";
     public const string OpSubmitDraft = "SubmitExpenseDraft";
@@ -42,7 +42,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
         return await runner.RunAsync(ctx with { Operation = OpSubmit }, req, async (tx, c) =>
         {
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
-            // P6-GUARD: refuse when business date bd is closed (IBusinessDayGuard, DAY_CLOSED).
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
             var status = req.Draft ? ExpenseState.Draft : ExpenseState.Pending;
             var e = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, n.Vendor, n.Category, n.Amount, n.Method, bd, status, ctx.PrincipalId,
                 n.Notes, n.Receipt, null, null, null, null, UtcNow), c).ConfigureAwait(false);
@@ -66,7 +66,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             ExpenseRules.EnsureCanSubmitDraft(e.Status, e.SubmittedBy, ctx.PrincipalId);
             VersionToken.EnsureMatches(e.Version, expected, "This expense");
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
-            // P6-GUARD: refuse when business date bd is closed (IBusinessDayGuard, DAY_CLOSED).
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
             var u = await store.UpdateAsync(tx, e with { Status = ExpenseState.Pending, BusinessDate = bd }, expected, UtcNow, c).ConfigureAwait(false);
             var dups = ExpenseRules.Duplicates(await store.FactsOnAsync(tx, ctx.PropertyId, bd, c).ConfigureAwait(false), u.Vendor, u.Amount, bd, u.ExpenseId);
             await tx.AuditAsync("EXPENSE_SUBMITTED", Target(u.ExpenseId), $"{u.Vendor} · {u.Amount} · draft sent for approval", c).ConfigureAwait(false);
@@ -94,7 +94,10 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             VersionToken.EnsureMatches(e.Version, expected, "This expense");
             if (req.Approve && e.Amount != peek.Amount) throw new HccException(HccErrorCode.STALE_VERSION, "This expense was changed by someone else. Reload and try again.");
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
-            // P6-GUARD: refuse when e.BusinessDate or bd is closed (IBusinessDayGuard, DAY_CLOSED; prototype DEC-065 checks the expense date).
+            // P6: the posting date bd must be open; a cash expense also needs bd's cash book unlocked (DEC-065; approval re-dates the expense to bd).
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
+            if (days is not null && req.Approve && e.Method == ExpenseMethods.Cash)
+                await days.EnsureCashBookOpenAsync(tx, ctx.PropertyId, bd, "a cash expense", c).ConfigureAwait(false);
             long? movementId = null;
             int? till = null;
             if (req.Approve && ExpenseRules.DrawerMovement(e.Method, e.Amount, reversal: false) is { } move)
@@ -118,9 +121,11 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 $"{u.Vendor} · {u.Amount} · {u.Method}{(reason is null ? string.Empty : " · " + reason)}", c).ConfigureAwait(false);
             if (req.Approve)
             {
-                await tx.PublishAsync(ExpenseEvents.Approved, u.ExpenseId, new
+                await tx.PublishAsync(ExpenseEvents.Posted, u.ExpenseId, new
                 {
                     expenseId = u.ExpenseId,
+                    funding = u.Method,
+                    reversalOf = (long?)null,
                     vendor = u.Vendor,
                     category = u.Category,
                     method = u.Method,
@@ -152,7 +157,9 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             ExpenseRules.EnsureCanReverse(e.Status, e.IsReversal);
             VersionToken.EnsureMatches(e.Version, expected, "This expense");
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
-            // P6-GUARD: refuse when e.BusinessDate or bd is closed (IBusinessDayGuard, DAY_CLOSED; prototype DEC-065 checks the original's date).
+            // P6: the reversal posts on the open business date; the original's cash-book day must not be locked (DEC-065, like Billing corrections).
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
+            if (days is not null) await days.EnsureCashBookOpenAsync(tx, ctx.PropertyId, e.BusinessDate, "reversing this expense", c).ConfigureAwait(false);
             var needsDrawer = ExpenseRules.DrawerMovement(e.Method, e.Amount, reversal: true);
             int? till = null;
             if (needsDrawer is not null) till = req.TillId ?? throw HccException.Validation("Choose the till that takes this cash back.");
@@ -173,12 +180,16 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 $"{ExpenseMapping.Ref(e.ExpenseId)} reversed by {ExpenseMapping.Ref(rev.ExpenseId)} · {e.Amount} · {reason}", c).ConfigureAwait(false);
             await tx.PublishAsync(ExpenseEvents.Reversed, rev.ExpenseId, new
             {
+                expenseId = rev.ExpenseId,
+                reversalOf = e.ExpenseId,
                 reversalId = rev.ExpenseId,
                 originalExpenseId = e.ExpenseId,
                 vendor = e.Vendor,
                 category = e.Category,
                 method = e.Method,
-                amountPaise = e.Amount.Value,
+                funding = e.Method,
+                amountPaise = rev.Amount.Value, // the reversal record (negative), as Accounting's ExpensePostedEvent expects
+                originalAmountPaise = e.Amount.Value,
                 reversalAmountPaise = rev.Amount.Value,
                 businessDate = StayDates.ToWire(bd),
                 originalBusinessDate = StayDates.ToWire(e.BusinessDate),

@@ -16,7 +16,7 @@ namespace Hcc.Application.Configuration;
 /// settings with an approver) → history (raw before/after kept for revert) → value applied now or scheduled. Every command runs
 /// through <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox <c>SettingChanged</c>); actor = the session.
 /// </summary>
-public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy policy, SettingsRegistry registry, IConfigurationStore store, TimeProvider clock)
+public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy policy, SettingsRegistry registry, IConfigurationStore store, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null)
 {
     public const string OpSet = "SetSetting";
     public const string OpDecide = "DecideSettingRequest";
@@ -89,7 +89,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
             var value = ConfigValue.Parse(r.ValueJson);
             if (SettingRules.Validate(s, value) is { } err) throw HccException.Validation(err);
             var requester = await store.DisplayNameAsync(tx, r.RequestedBy, c).ConfigureAwait(false);
-            // P6-GUARD: refuse when the business date is closed (IBusinessDayGuard, P6); the effective date is never before it.
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             var applied = await ApplyAsync(tx, ctx, s, value, effectiveFrom, bd, $"Approved request {r.RequestId} from {requester}", "approval",
                 r.RequestedBy, ctx.PrincipalId, r.RequestId, r.RevertOf, c).ConfigureAwait(false);
             await store.DecideRequestAsync(tx, r.RequestId, expected, "Executed", ctx.PrincipalId, now, reason, applied.ChangeId, c).ConfigureAwait(false);
@@ -116,7 +116,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
             var dec = SettingRules.Decide(s, authority);
             if (dec.Mode != ChangeMode.Allow)
                 throw new HccException(HccErrorCode.FORBIDDEN, dec.Mode == ChangeMode.Request ? "Ask the approver to withdraw this scheduled change." : dec.Reason);
-            // P6-GUARD: refuse when the business date is closed (IBusinessDayGuard, P6); only future-dated values are touched.
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             await store.WithdrawChangeAsync(tx, row.ChangeId, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await store.TouchSettingAsync(tx, ctx.PropertyId, s.Key, UtcNow, c).ConfigureAwait(false);
             var when = SettingRules.Wire(row.EffectiveFrom);
@@ -160,7 +160,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
             if (plan.Errors.Count > 0)
                 throw HccException.Validation(string.Join(" · ", plan.Errors.Take(3)) + (plan.Errors.Count > 3 ? $" (+{plan.Errors.Count - 3} more)" : ""));
             if (plan.Apply.Count == 0) throw HccException.Validation($"Nothing to import: {plan.Unchanged} unchanged, {plan.Skipped.Count} skipped.");
-            // P6-GUARD: refuse when the business date is closed (IBusinessDayGuard, P6); effective dates are never before it.
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             foreach (var (s, value, eff) in plan.Apply)
             {
                 await store.LockSettingAsync(tx, ctx.PropertyId, s.Key, c).ConfigureAwait(false);
@@ -193,7 +193,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
         var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
         var (effectiveFrom, dateError) = SettingRules.EffectiveFrom(s, bd, requestedDate);
         if (dateError is not null) throw HccException.Validation(dateError);
-        // P6-GUARD: refuse when the business date is closed (IBusinessDayGuard, P6); the effective date is never before it.
+        if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
         if (dec.Mode == ChangeMode.Request)
         {
             if (await store.PendingRequestAsync(tx, ctx.PropertyId, s.Key, c).ConfigureAwait(false) is not null)

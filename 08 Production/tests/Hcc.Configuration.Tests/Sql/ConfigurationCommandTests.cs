@@ -248,7 +248,8 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
         await Set(h, h.Owner, "module.groups", false);
         var x = await db.Queries.ExportAsync(h.PropertyId, h.Owner);
         var text = JsonSerializer.Serialize(x, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        Assert.Equal((ConfigurationServiceFormat, 1, 700), (x.Format, x.Version, x.Schema));
+        // Schema = the database's current migration version (the newest embedded module block, not 0700 once later modules are merged).
+        Assert.Equal((ConfigurationServiceFormat, 1, new Hcc.Infrastructure.SqlServer.Migrations.EmbeddedMigrationSource().Load()[^1].Version), (x.Format, x.Version, x.Schema));
         Assert.DoesNotContain("sk-demo-123", text, StringComparison.Ordinal);
         Assert.Contains("msg.gatewayKey", x.Excluded);
         Assert.False(x.Values.ContainsKey("msg.gatewayKey"));

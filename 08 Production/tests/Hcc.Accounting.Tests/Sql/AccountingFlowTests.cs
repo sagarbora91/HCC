@@ -57,6 +57,8 @@ public sealed class AccountingFlowTests(AccountingDb db) : IClassFixture<Account
         Assert.Contains(before.Exceptions, x => x.Kind == "pending");
 
         Assert.True(await db.ProjectAsync() >= 10);
+        // Vouchers took CGST/SGST from agent C's per-charge GST records (room nights, laundry, discount, reversal), not a recomputation.
+        Assert.Equal(5, await db.LongAsync("SELECT COUNT(*) FROM tax.charge_gst g JOIN bill.charge c ON c.charge_id = g.charge_id WHERE c.folio_id = @f;", ("@f", SqlDbType.BigInt, f)));
         Assert.Equal(0, await db.ProjectAsync()); // exactly once per event
 
         var day = await db.Queries.DayAsync(db.As("ACC"), D, Ct);

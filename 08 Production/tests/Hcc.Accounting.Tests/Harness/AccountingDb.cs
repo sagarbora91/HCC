@@ -117,7 +117,8 @@ public sealed partial class AccountingDb : IAsyncLifetime
 
         var policy = new SqlAccessPolicy(Platform.Connections, Clock, [new SqlShiftScopeResolver(Platform.Connections)]);
         var billingStore = new SqlBillingStore(Platform.Connections);
-        Billing = new BillingService(Platform.Commands, billingStore, policy, Stays, new Hcc.Application.Tax.FixedGstRateResolver(), Clock); // pinned DEC-039 10 % (the accounting goldens); GST master figures: Hcc.GstIds.Tests
+        Billing = new BillingService(Platform.Commands, billingStore, policy, Stays, new Hcc.Application.Tax.FixedGstRateResolver(), Clock,
+            new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(Platform.Connections)); // pinned 10 % (the accounting goldens); vouchers read the stored tax.charge_gst split
         Cashier = new CashierService(Platform.Commands, billingStore, policy, Clock);
         BillingQueries = new BillingQueries(billingStore, policy, Clock);
         Store = new SqlAccountingStore(Platform.Connections);

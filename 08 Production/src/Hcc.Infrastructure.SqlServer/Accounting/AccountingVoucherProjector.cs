@@ -12,10 +12,9 @@ using Microsoft.Data.SqlClient;
 namespace Hcc.Infrastructure.SqlServer.Accounting;
 
 /// <summary>
-/// The ONE adapter that reads a charge's stored CGST / SGST for vouchers (lead, 25 Oct 2026: never recompute tax). It reads agent
-/// C's per-charge GST snapshot <c>tax.charge_gst</c> when that table exists (migration 0600, merged later) and otherwise splits the
-/// tax amount STORED on the charge with the same rule (SGST = half toward zero, CGST = the rest). Wire a different implementation
-/// here at merge if needed.
+/// The ONE adapter that reads a charge's stored CGST / SGST for vouchers (lead, 25 Oct 2026: never recompute tax): agent C's per-charge
+/// GST record <c>tax.charge_gst</c> (migration 0600, written by Billing and the POS folio port). A line without a record (posted before
+/// DEC-069 or seeded by tests) falls back to splitting the tax STORED on the charge with the same rule (SGST = half toward zero).
 /// </summary>
 public interface IChargeGstReader
 {
@@ -26,10 +25,7 @@ public sealed class StoredChargeGstReader : IChargeGstReader
 {
     public async Task<(long Cgst, long Sgst)> ReadAsync(SqlConnection connection, SqlTransaction transaction, long chargeId, long storedTaxPaise, CancellationToken ct)
     {
-        await using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'tax.charge_gst', N'U') IS NOT NULL
-              EXEC sp_executesql N'SELECT cgst_paise, sgst_paise FROM tax.charge_gst WHERE charge_id = @c;', N'@c BIGINT', @c = @c;
-            """, connection, transaction);
+        await using var cmd = new SqlCommand("SELECT cgst_paise, sgst_paise FROM tax.charge_gst WHERE charge_id = @c;", connection, transaction);
         cmd.Parameters.Set("@c", SqlDbType.BigInt, chargeId);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await rd.ReadAsync(ct).ConfigureAwait(false))

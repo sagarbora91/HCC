@@ -12,11 +12,14 @@ public static class ExpensePermissions
     public const string PostReverse = "PERM-EXP-003";
 }
 
-/// <summary>Outbox event names the Accounting agent consumes (one per approved / reversed expense).</summary>
+/// <summary>
+/// Outbox event names = Accounting's contract (<see cref="Contracts.Accounting.AccountingEvents"/>, payload <c>ExpensePostedEvent</c>): one per
+/// posted (approved) expense and one per reversal record (negative amount, <c>reversalOf</c> = the original).
+/// </summary>
 public static class ExpenseEvents
 {
-    public const string Approved = "ExpenseApproved";
-    public const string Reversed = "ExpenseReversed";
+    public const string Posted = Contracts.Accounting.AccountingEvents.ExpensePosted;
+    public const string Reversed = Contracts.Accounting.AccountingEvents.ExpenseReversed;
 }
 
 public sealed record ExpenseRecord(long ExpenseId, int PropertyId, string Vendor, string Category, Paise Amount, string Method, DateOnly BusinessDate,
