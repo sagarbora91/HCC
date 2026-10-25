@@ -13,7 +13,7 @@ namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Closing + reporting (P6): POST /commands/{RunBusinessDayClose|LockCashBookDay|ReopenCashBookDay}; GET /closing/preflight?date=,
-/// /closing/runs/{date}, /closing/snapshots/{date}, /cashbook/{date}, /reports/daily?from=&amp;to=. All require a session.
+/// /closing/runs/{date}, /closing/snapshots/{date}, /cashbook/{date}, /cashbook?from=&amp;to= (range), /cashbook/{date}/book (day with entries), /reports/daily?from=&amp;to=. All require a session.
 /// </summary>
 public static class ClosingEndpoints
 {
@@ -35,6 +35,8 @@ public static class ClosingEndpoints
             sp.GetRequiredService<ICloseStepObserver>(), sp.GetRequiredService<TimeProvider>(),
             sp.GetService<Hcc.Application.Pos.IPosCloseGate>())); // POS open checks / pending voids block the close
         services.AddSingleton<ReportingQueries>();
+        services.AddSingleton<ICashBookSource>(sp => new SqlCashBookSource(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<CashBookQueries>();
         return services;
     }
 
@@ -53,6 +55,10 @@ public static class ClosingEndpoints
             Results.Ok(await s.GetSnapshotAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
         g.MapGet("/cashbook/{date}", async (HttpContext http, ClosingService s, DateOnly date, CancellationToken ct) =>
             Results.Ok(await s.GetCashBookDayAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
+        g.MapGet("/cashbook", async (HttpContext http, CashBookQueries q, DateOnly from, DateOnly? to, CancellationToken ct) =>
+            Results.Ok(await q.GetRangeAsync(http.HccCaller(), from, to ?? from, ct).ConfigureAwait(false)));
+        g.MapGet("/cashbook/{date}/book", async (HttpContext http, CashBookQueries q, DateOnly date, CancellationToken ct) =>
+            Results.Ok(await q.GetDayAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
         g.MapGet("/reports/daily", async (HttpContext http, ReportingQueries q, DateOnly from, DateOnly? to, CancellationToken ct) =>
             Results.Ok(await q.GetDailyReportAsync(http.HccCaller(), from, to ?? from, ct).ConfigureAwait(false)));
         return api;
