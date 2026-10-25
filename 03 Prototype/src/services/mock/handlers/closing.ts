@@ -9,6 +9,7 @@ import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
 import {posOpenOrders} from '../../../domain/streams/pos';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
   closingUnlimitedRoles,EXPENSE_METHODS} from '../../../domain/streams/closing';
+import {rbacCanDecideCash,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanRequestClosedCorrection} from '../../../domain/streams/rbac';
 
 /** Resumable room-night posting for the business date (WF-DAY-001, REQ-CLOSE-003/005). Returns [newly posted, done, total, interrupted]. */
 function postNights(k:Kit,interruptAfter?:number){
@@ -26,6 +27,8 @@ function postNights(k:Kit,interruptAfter?:number){
   return {added,done:targets.filter(t=>p.posted.includes(t.id)).length,total:targets.length,interrupted:p.interrupted};
 }
 const limited=(role:string)=>!closingUnlimitedRoles.includes(role);
+/** DEC-063 G4: role-aware guard (the Accountant decides cash/expense items without the broad 'approve' grant). */
+const need=(k:Kit,ok:(s:Kit['s'],uid:string)=>boolean,what:string)=>{if(!ok(k.s,k.uid))k.fail('FORBIDDEN',`Access denied: ${what}.`);};
 const closeShift=(k:Kit,expected:number,counted:number)=>{k.s.shiftClose={expected,counted};k.s.shiftOpen=false;};
 
 export const handlers:Record<string,Handler>={
@@ -68,7 +71,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-SHF-002 shift.difference.approve · PERM-SOD-001/004 (approver ≠ submitter)
   SHIFT_DIFFERENCE_DECIDE:k=>{
-    const {s,cmd,req,open,assert,fail,uid,user}=k;req('approve');open();
+    const {s,cmd,open,assert,fail,uid,user}=k;need(k,rbacCanDecideCash,'approve permission or the Accountant role is required');open();
     const a=s.approvals.find(a=>a.id===cmd.id&&a.kind==='cash-difference');
     assert(a,'Cash difference request not found.','NOT_FOUND');
     assert(a!.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
@@ -88,7 +91,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-EXP-001 expense.submit. draft:true saves a Draft (own); otherwise submits for approval.
   EXPENSE:k=>{
-    const {s,cmd,req,open,assert,positive,id,uid}=k;req('expenses');open();positive(cmd.amount);
+    const {s,cmd,open,assert,positive,id,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();positive(cmd.amount);
     assert(cmd.vendor?.trim(),'Enter a vendor.');
     assert(cmd.category?.trim(),'Choose a category.');
     assert(EXPENSE_METHODS.includes(cmd.method),'Choose a funding source.');
@@ -99,7 +102,7 @@ export const handlers:Record<string,Handler>={
     return (cmd.draft?'Expense draft saved · ':'Expense submitted · ')+e.vendor;
   },
   EXPENSE_SUBMIT:k=>{
-    const {s,cmd,req,open,assert,uid}=k;req('expenses');open();
+    const {s,cmd,open,assert,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();
     const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
     assert(e!.status==='Draft','Only a draft can be submitted.','INVALID_TRANSITION');
     assert(e!.actor===uid,'You can submit only your own drafts.','FORBIDDEN');
@@ -107,7 +110,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-EXP-002 expense.approve / reject (manager ≤ ₹5,000) + PERM-EXP-003 post
   EXPENSE_APPROVE:k=>{
-    const {s,cmd,req,open,assert,fail,uid,user}=k;req('approve');open();
+    const {s,cmd,open,assert,fail,uid,user}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required');open();
     const e=s.expenses.find(e=>e.id===cmd.id);
     assert(e&&e.status==='Pending','Expense is no longer pending.','INVALID_TRANSITION');
     assert(e!.actor!==uid,'You cannot approve your own expense.','FORBIDDEN');
@@ -119,7 +122,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-EXP-003 expense.reverse: Posted → Reversed + negative Posted record on today's business date
   EXPENSE_REVERSE:k=>{
-    const {s,cmd,req,open,assert,id,uid}=k;req('approve');open();
+    const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required (not the Cashier, DEC-063)');open();
     const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
     assert(e!.status==='Posted'&&!e!.reversalOf,'Only a posted expense can be reversed.','INVALID_TRANSITION');
     assert(cmd.reason?.trim(),'A reason is required to reverse an expense.');
@@ -154,7 +157,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-CLS-003 close.correction.request (DEC-028: adjustment in the open day, referencing the closed date)
   CORRECTION_ADJUST:k=>{
-    const {s,cmd,req,open,assert,b,id,uid}=k;req('close');open();
+    const {s,cmd,open,assert,b,id,uid}=k;need(k,rbacCanRequestClosedCorrection,'close permission or the Accountant role is required');open();
     const x=b();
     assert(['In house','Confirmed','Departed'].includes(x.status),'Corrections apply to active or departed stays only.','INVALID_TRANSITION');
     assert(s.closedDates.includes(cmd.date),'Choose a closed business date to correct.');

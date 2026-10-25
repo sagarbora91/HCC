@@ -3,20 +3,20 @@ import React from 'react';
 import {Wrench,Lock,Play,PauseCircle,CheckCircle2,PackagePlus,TriangleAlert,Clock3,MapPin,Undo2} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Pill,clockTime,shortDate} from '../../components/ui';
-import {mntSla,mntAge,mntDuration,mntWhere,mntAsset,mntSpare,mntAssigneeLabel,MNT_PRIORITY,mntSlaDue,type MNTWorkOrder,type MNTStatus,type MNTPriority} from '../../services/mock';
+import {mntSla,mntAge,mntDuration,mntWhere,mntAsset,mntSpare,mntAssigneeLabel,MNT_PRIORITY,mntSlaDue,type MNTWorkOrder,type MNTWorkOrderView,type MNTStatus,type MNTPriority} from '../../services/mock';
 
 const statusTone:Record<MNTStatus,string>={'Open':'neutral','In progress':'blue','On hold':'orange','Done':'mnt-teal','Verified':'green','Cancelled':'neutral'};
 export const mntStatusLabel=(st:MNTStatus)=>st==='Done'?'Done · awaiting check':st==='On hold'?'On hold (parts)':st;
 export function MntStatus({st}:{st:MNTStatus}){return <Pill tone={statusTone[st]}>{mntStatusLabel(st)}</Pill>;}
 export function MntPriority({p}:{p:MNTPriority}){return <Pill tone={p==='P1'?'mnt-red':p==='P2'?'orange':'neutral'}>{p} · {MNT_PRIORITY[p].label}</Pill>;}
-export function MntSla({w}:{w:MNTWorkOrder}){
+export function MntSla({w}:{w:MNTWorkOrderView}){
   const {s}=useHcc();const st=mntSla(w,s.clock);if(st==='n/a')return null;
   return <Pill tone={st==='Breached'?'mnt-red':st==='Due soon'?'orange':'green'}>{st==='Breached'&&<TriangleAlert size={11}/>}SLA {st.toLowerCase()}</Pill>;
 }
 export const mntWhen=(at?:string)=>at?`${shortDate(at.slice(0,10))} ${clockTime(at)}`:'—';
 
 /** Technician card: one big card per work order with the next action (Start / Resume / Complete). */
-export function MntWoCard({w,large}:{w:MNTWorkOrder;large?:boolean}){
+export function MntWoCard({w,large}:{w:MNTWorkOrderView;large?:boolean}){
   const {s,run,open,busy}=useHcc();
   const asset=mntAsset(s,w.assetId),room=w.room?s.rooms.find(r=>r.id===w.room):undefined;
   const btn='btn full'+(large?' mnt-big':'');

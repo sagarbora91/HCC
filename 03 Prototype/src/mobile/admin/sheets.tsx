@@ -2,7 +2,7 @@
 // 'ma-dictionary'. Rendered full-screen by ModalHost; primary action sits in the sticky .modal-actions.
 import React,{useState} from 'react';
 import {X,Check,Download} from 'lucide-react';
-import {money,adminApprovalInbox,reportDrillCsv,reportDictionary,reportRangeLimit,reportRangePresets,reportMonthRange,historyMonths} from '../../services/mock';
+import {money,adminApprovalInbox,reportDrillCsv,reportDictionary,reportRangeLimit,reportRangePresets,reportMonthRange,historyMonths,rbacCanExportReports} from '../../services/mock';
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate,dateLabel} from '../../components/ui';
@@ -69,7 +69,7 @@ export function MaDrillSheet({id,room}:{id?:string;room?:string}){
       {r.booking&&!mask?<button type="button" onClick={()=>booking(r.booking!)}><DrillBody r={r} v={fmt(r.amount)}/></button>:<div><DrillBody r={r} v={fmt(r.amount)}/></div>}</li>)}</ul><ShowMore p={pg}/></>
       :<Empty title="No source records" body="Nothing matches this figure in the selected range."/>}
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Close</button>
-      <button type="button" className="btn primary" onClick={()=>{downloadCsv(`HCC-Demo-rows-${m.id}-${pack.from}_${pack.to}.csv`,reportDrillCsv(s,pack,m));toast('Source rows downloaded');}}><Download size={18}/>Rows CSV</button></div></>;
+      {rbacCanExportReports(s,uid)&&<button type="button" className="btn primary" onClick={()=>{downloadCsv(`HCC-Demo-rows-${m.id}-${pack.from}_${pack.to}.csv`,reportDrillCsv(s,pack,m));toast('Source rows downloaded');}}><Download size={18}/>Rows CSV</button>}</div></>;
 }
 function DrillBody({r,v}:{r:{date:string;ref:string;booking?:string;guest?:string;room?:string;detail:string;method?:string};v:string}){
   return <><span className="ma-drill-main"><strong>{r.booking?`${r.guest??''} · ${r.booking}`:r.room?`Room ${r.room}`:r.detail}</strong><small>{r.detail}{r.method?' · '+r.method:''}</small><small>{shortDate(r.date)} · {r.ref}</small></span><strong className="number">{v}</strong></>;

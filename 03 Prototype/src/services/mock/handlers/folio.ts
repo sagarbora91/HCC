@@ -5,6 +5,7 @@ import type {Handler,Kit} from '../commands';
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
 import {totals,taxRateFor} from '../../../domain/selectors';
+import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
@@ -60,11 +61,14 @@ const CHARGE:Handler=({s,cmd,req,b,financial,positive,assert,id})=>{
 };
 
 const DISCOUNT:Handler=k=>{
-  // PERM-FOL-003 (+ PERM-APR-001 above the limit)
-  const {s,cmd,req,b,financial,positive,assert,id}=k;
-  req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.reason?.trim(),'A reason is required.');
+  // PERM-FOL-003 (+ PERM-APR-001 above the limit). DEC-063 G1: Owner, Manager, Reception only (never the Cashier);
+  // own limit per role (Reception ≤ hotel threshold ₹250, Manager ≤ ₹1,000, Owner none).
+  const {s,cmd,req,b,financial,positive,assert,id,uid,fail}=k;
+  req('billing');if(!rbacCanDiscount(s,uid))fail('FORBIDDEN','Access denied: discounts are given by Reception, a Manager or the Owner — not at the cash counter (DEC-063).');
+  const x=b();financial(x);positive(cmd.amount);assert(cmd.reason?.trim(),'A reason is required.');
   assert(cmd.amount<=totals(x).net,'Discount cannot exceed existing net charges.');
-  if(cmd.amount>s.settings.discountLimit){
+  const limit=rbacDiscountLimit(s,uid);
+  if(limit!==undefined&&cmd.amount>limit){
     assert(!pendingOf(k,x.id,'discount'),'A discount request is already pending.','INVALID_TRANSITION');
     request(k,x,{amount:cmd.amount,reason:cmd.reason,kind:undefined});
     return x.id+' · approval requested';
@@ -125,9 +129,9 @@ const COMPANY_CREDIT_REQUEST:Handler=k=>{
 };
 
 const CORRECTION_REQUEST:Handler=k=>{
-  // PERM-FOL-005 folio.correction (coarse: billing)
-  const {s,cmd,req,b,financial,assert}=k;
-  req('billing');const x=b();financial(x);
+  // PERM-FOL-005 folio.correction: DEC-063 G3 — Reception, Cashier, Accountant, Manager (and Owner) request; Owner approves.
+  const {s,cmd,b,financial,assert,fail,uid}=k;
+  if(!rbacCanRequestCorrection(s,uid))fail('FORBIDDEN','Access denied: billing permission or the Accountant role is required.');const x=b();financial(x);
   assert(String(cmd.reason??'').trim(),'A reason is required.');
   const l=x.lines.find(l=>l.id===cmd.lineId);assert(l,'Select the posted line to correct.','NOT_FOUND');
   assert(!l!.reversalOf,'A reversal line cannot itself be reversed.','INVALID_TRANSITION');
@@ -137,9 +141,9 @@ const CORRECTION_REQUEST:Handler=k=>{
 };
 
 const CREDIT_NOTE:Handler=k=>{
-  // PERM-FOL-005 credit note (coarse: billing)
-  const {s,cmd,req,b,open,positive,assert}=k;
-  req('billing');open();const x=b();positive(cmd.amount);
+  // PERM-FOL-005 credit note: DEC-063 G3 — as CORRECTION_REQUEST.
+  const {s,cmd,b,open,positive,assert,fail,uid}=k;
+  if(!rbacCanRequestCorrection(s,uid))fail('FORBIDDEN','Access denied: billing permission or the Accountant role is required.');open();const x=b();positive(cmd.amount);
   assert(x.status==='Departed','A credit note applies only to a departed (invoiced) stay. Use a correction while the guest is in house.','INVALID_TRANSITION');
   assert(String(cmd.reason??'').trim(),'A reason is required.');
   assert(cmd.amount<=totals(x).net,'Credit note cannot exceed the net charges on this folio.');
@@ -160,6 +164,9 @@ const APPROVAL:Handler=k=>{
     fail('INVALID_TRANSITION','This request expired (24 simulated hours). Dismiss it and request again.');
   }
   const kind=folioKind(a!);
+  // DEC-063 G3: corrections and credit notes are approved by an Owner. G1: a Manager approves discounts only up to the Manager limit.
+  if(cmd.approve&&RBAC_OWNER_DECIDES.includes(kind))assert(user.role==='Owner','Corrections and credit notes are approved by an Owner (DEC-063).','FORBIDDEN');
+  if(cmd.approve&&kind==='discount'){const lim=rbacApprovalLimit(s,uid);if(lim!==undefined)assert(a!.amount<=lim,`Discounts above ${money(lim)} need an Owner’s approval.`,'FORBIDDEN');}
   const x=s.bookings.find(b=>b.id===a!.booking);
   const stale=()=>assert(x!.version===a!.version,STALE_MSG,'STALE_VERSION');
   let extra='';

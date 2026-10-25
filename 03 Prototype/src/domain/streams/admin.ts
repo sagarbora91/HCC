@@ -218,7 +218,21 @@ export function adminDecideBlock(s:State,uid:string,row:AdminInboxRow):string|un
   if(row.kind==='policy'){const d=authorize(s,uid,'PERM-ADM-002');if(d.decision!=='allow')return 'Only a user allowed to edit role templates (Owner) can decide policy requests. '+d.reason;}
   // W05-A Master configuration requests (CFG_DECIDE): decided by the setting's approver role or the Owner (DEC-058).
   else if(row.kind==='config'){const ap=String(row.a.meta?.approver||'Owner');if(u.role!=='Owner'&&!(ap==='Manager'&&u.role==='Manager'))return ap==='Manager'?'Only a Manager or the Owner can decide this configuration request.':'Only the Owner can decide this configuration request.';}
+  // DEC-063 G4: the Accountant decides cash differences (no 'approve' grant needed). G3: corrections / credit notes and closed-date
+  // corrections are approved by an Owner. G1: a Manager approves discounts only up to the Manager limit (APR-001 = L).
+  else if(row.kind==='cash-difference'&&u.role==='Accountant')return undefined;
   else if(!(s.grants[u.role]||[]).includes('approve'))return `Role ${u.role} lacks the approve permission.`;
+  else if(['correction','credit-note','closed-date-correction'].includes(row.kind)&&u.role!=='Owner')return 'Only an Owner can approve this request.';
+  else if(row.kind==='discount'&&adminPolicy(s).templates[u.role]?.['PERM-APR-001']?.effect==='limit'){
+    const lim=adminLimitFor(s,u.role,'PERM-APR-001')??0;if(row.a.amount>lim)return `Above the ${u.role} approval limit of ${money(lim)} — an Owner approves.`;}
+  return undefined;
+}
+/** Why the current user may not decide a pending expense (undefined = may decide). DEC-063 G4: approve holders and the Accountant. */
+export function adminExpenseBlock(s:State,uid:string,actor:string):string|undefined{
+  const u=s.users.find(x=>x.id===uid);
+  if(!u||!adminUserActive(s,u))return 'Your account is not active.';
+  if(actor===uid)return 'You submitted this expense — another user must decide it.';
+  if(u.role!=='Accountant'&&!(s.grants[u.role]||[]).includes('approve'))return `Role ${u.role} lacks the approve permission.`;
   return undefined;
 }
 

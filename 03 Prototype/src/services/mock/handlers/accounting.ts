@@ -1,6 +1,7 @@
 // Module 20 · Accounting automation — command handlers. Command types MUST start with 'ACC_'. Return value = audit/summary text.
 import type {Handler,Kit} from '../commands';
 import {money} from '../../../domain/money';
+import {rbacMoneyAdmin} from '../../../domain/streams/rbac';
 import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accAccount,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accLedgerName,type ACCState} from '../../../domain/streams/accounting';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
@@ -33,7 +34,8 @@ export const handlers:Record<string,Handler>={
   },
   // Change the ledger for one source classification (affects unlocked dates only).
   ACC_MAP_SET:k=>{
-    const {s,cmd,req,assert,uid,id}=k;req('admin');
+    // DEC-063 G11: ledger mapping is a money decision — Owner only (admin + reports), never the Tech admin.
+    const {s,cmd,assert,uid,id,fail}=k;if(!rbacMoneyAdmin(s,uid))fail('FORBIDDEN','Access denied: only the Owner changes the ledger mapping (DEC-063).');
     const key=String(cmd.source??'');
     assert(ACC_KEY_PATTERN.test(key)&&(key in ACC_DEFAULT_MAP||accMapRows(s).some(r=>r.key===key)),'Unknown source classification.','NOT_FOUND');
     const acct=accAccount(String(cmd.account??''));
@@ -45,7 +47,7 @@ export const handlers:Record<string,Handler>={
     return `Mapping ${key} → ${acct!.code} ${acct!.name}${before?' (was '+before+' '+accLedgerName(before)+')':''} · locked periods unchanged`;
   },
   ACC_MAP_RESET:k=>{
-    const {s,cmd,req,assert,uid,id}=k;req('admin');
+    const {s,cmd,assert,uid,id,fail}=k;if(!rbacMoneyAdmin(s,uid))fail('FORBIDDEN','Access denied: only the Owner changes the ledger mapping (DEC-063).');
     const key=String(cmd.source??''),x=accSlice(s);
     assert(x.mapping&&key in x.mapping,'This classification already uses its default ledger.','INVALID_TRANSITION');
     const before=x.mapping![key],w=slice(k),m={...(w.mapping??{})};delete m[key];w.mapping=m;

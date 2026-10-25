@@ -2,7 +2,7 @@
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import React,{useState} from 'react';
 import {Receipt,Plus,MoreHorizontal,RotateCcw,Printer,LogOut,Percent,CalendarRange,XCircle,FileMinus,PencilLine,Building2} from 'lucide-react';
-import {money,totals,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural} from '../../services/mock';
+import {money,totals,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ListCard,KpiCard,ChipFilter} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
@@ -45,11 +45,11 @@ export function MmFolios(){
 
 /** Phone override of the 'booking' dialog: the folio sheet (M09). */
 export function MmFolioSheet({id}:{id?:string}){
-  const {s,permission,open,busy}=useHcc();
+  const {s,uid,permission,open,busy}=useHcc();
   const [tab,setTab]=useState<'charges'|'receipts'|'requests'>('charges');
   const b=s.bookings.find(x=>x.id===id);
   if(!b)return <Empty title="This record is unavailable" body="The booking may have been removed when a scenario was reloaded."/>;
-  if(!permission('billing')&&!permission('reservations'))return <Empty title="Access denied" body="Your role cannot open guest folios."/>;
+  if(!rbacCanViewFolios(s,uid))return <Empty title="Access denied" body="Your role cannot open guest folios."/>;
   const h=mmBalanceHero(b),n=folioNights(b),st=resStatus(s,b),active=['Confirmed','In house'].includes(b.status);
   const approvals=folioApprovalsFor(s,b.id);
   const canPay=permission('payments')&&!['Held','Expired','Cancelled','No show'].includes(st);
@@ -72,7 +72,7 @@ export function MmFolioSheet({id}:{id?:string}){
       {tab==='charges'&&(b.lines.length?b.lines.map(l=>{const reversed=folioLineReversed(b,l.id),tax=Math.round(l.amount*l.taxBps/10000);
         return <div key={l.id} className={'mm-row'+(reversed||l.reversalOf?' mm-muted':'')}>
           <div className="mm-row-main"><strong>{l.label}</strong><small>{shortDate(l.date)} · {l.kind}{l.reversalOf?' · reversal':''}{reversed?' · reversed':''}{s.closedDates.includes(l.date)?' · closed date':''}</small>
-            {canCharge&&!reversed&&folioLineCorrectable(s,b,l)&&<button type="button" className="text-btn mm-inline-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}><PencilLine size={14}/> Request correction</button>}</div>
+            {active&&rbacCanRequestCorrection(s,uid)&&!reversed&&folioLineCorrectable(s,b,l)&&<button type="button" className="text-btn mm-inline-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}><PencilLine size={14}/> Request correction</button>}</div>
           <div className="mm-row-amt"><strong className="number">{money(l.amount)}</strong><small className="number">tax {money(tax)}</small></div></div>;})
         :<Empty title="No charges yet" body="Room nights are posted by the nightly audit."/>)}
       {tab==='receipts'&&(b.receipts.length?b.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0,out=['refund','deposit-return'].includes(r.kind);
@@ -93,7 +93,7 @@ export function MmFolioSheet({id}:{id?:string}){
 
 /** 'mm-folio-more': discount, refund, correction, checkout, invoice, stay actions (+ other streams' booking actions). */
 export function MmFolioMore({id}:{id?:string}){
-  const {s,permission,open,booking}=useHcc();
+  const {s,uid,permission,open,booking}=useHcc();
   const b=s.bookings.find(x=>x.id===id);
   if(!b)return <Empty title="This record is unavailable"/>;
   const active=['Confirmed','In house'].includes(b.status);
@@ -102,13 +102,13 @@ export function MmFolioMore({id}:{id?:string}){
   const item=(show:boolean,icon:React.ReactNode,title:string,sub:string,fn:()=>void)=>show?<ListCard key={title} title={<span className="m-lc-title">{icon}{title}</span>} sub={sub} onClick={fn}/>:null;
   return <><div className="modal-heading"><div className="eyebrow">{b.id} · ROOM {b.room}</div><h2>More actions</h2><p>{b.guest} · balance {money(totals(b).balance)}</p></div>
     <div className="mm-more-list">
-      {item(active&&permission('billing'),<Percent size={20}/>,'Discount','Above the limit, another user approves',()=>open({type:'discount',id:b.id}))}
+      {item(active&&rbacCanDiscount(s,uid),<Percent size={20}/>,'Discount','Above the limit, another user approves',()=>open({type:'discount',id:b.id}))}
       {item(!!firstRefundable&&permission('payments'),<RotateCcw size={20}/>,'Request refund',`Against ${firstRefundable?.id} (pick another on the Receipts tab)`,()=>open({type:'refund',id:b.id,room:firstRefundable!.id}))}
-      {item(active&&!!firstCorrectable&&permission('billing'),<PencilLine size={20}/>,'Request correction',`Reverse “${firstCorrectable?.label}” (pick another on the Charges tab)`,()=>open({type:'correction',id:b.id,room:firstCorrectable!.id}))}
+      {item(active&&!!firstCorrectable&&rbacCanRequestCorrection(s,uid),<PencilLine size={20}/>,'Request correction',`Reverse “${firstCorrectable?.label}” (pick another on the Charges tab)`,()=>open({type:'correction',id:b.id,room:firstCorrectable!.id}))}
       {item(b.status==='In house'&&permission('checkout'),<LogOut size={20}/>,'Checkout','Checklist, then confirm',()=>open({type:'checkout',id:b.id}))}
       {item(active&&permission('reservations'),<CalendarRange size={20}/>,b.status==='In house'?'Move / extend stay':'Change dates / room','Shows conflicts before saving',()=>open({type:b.status==='In house'?'stay-move':'move',id:b.id}))}
       {item(b.status==='Confirmed'&&permission('reservations'),<XCircle size={20}/>,'Cancel / no-show','Refund advances first',()=>open({type:'cancel',id:b.id}))}
-      {item(b.status==='Departed'&&permission('billing'),<FileMinus size={20}/>,'Request credit note','Departed stays only',()=>open({type:'credit-note',id:b.id}))}
+      {item(b.status==='Departed'&&rbacCanRequestCorrection(s,uid),<FileMinus size={20}/>,'Request credit note','Departed stays only',()=>open({type:'credit-note',id:b.id}))}
       {item(true,<Printer size={20}/>,b.invoiceNo?'Sample invoice '+b.invoiceNo:'Folio preview','View and print (wireless printer)',()=>open({type:'invoice',id:b.id}))}
     </div>
     {bookingActionSlots.length>0&&<div className="mm-slot-actions">{bookingActionSlots.map((Slot,i)=><Slot key={i} b={b}/>)}</div>}

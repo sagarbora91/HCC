@@ -4,7 +4,7 @@ import {Info,CheckCircle2,AlertTriangle,Download} from 'lucide-react';
 import {saveTextFile} from '../../app/native';
 import {useHcc} from '../../app/context';
 import {money,accDates,accVouchers,accTrialBalance,accVouchersUpTo,accExceptions,accReconcile,accMapRows,accLockOf,accDayStatus,accTotals,accLockBlocker,accLedgerName,accTallyXml,TALLY_MAX_DAYS,addDays,
-  ACC_CHART,ACC_SUSPENSE} from '../../services/mock';
+  ACC_CHART,ACC_SUSPENSE,rbacCanTally} from '../../services/mock';
 import {PageTitle,Empty,Stat,shortDate,clockTime} from '../../components/ui';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accMoney,accUserName,useAccPerms,accVoucherDebit} from './parts';
 
@@ -14,7 +14,8 @@ export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:strin
     {dates.map(d=><option key={d} value={d}>{shortDate(d)} {d.slice(0,4)}</option>)}</select></label>;
 }
 export function AccountingPage(){
-  const {s,open}=useHcc();const {canMap}=useAccPerms();
+  const {s,uid,open}=useHcc();const {canMap}=useAccPerms();
+  const tally=rbacCanTally(s,uid); // DEC-063 G13: Tally export tab = Owner + Accountant (Manager/Cashier keep Accounting without it)
   const dates=useMemo(()=>accDates(s),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
   const [tab,setTab]=useState<Tab>('vouchers');const [cum,setCum]=useState(false);
@@ -24,7 +25,7 @@ export function AccountingPage(){
   const tb=useMemo(()=>accTrialBalance(cum?accVouchersUpTo(s,date):vs),[s,date,vs,cum]);
   const t=accTotals(vs),status=accDayStatus(s,date),lock=accLockOf(s,date),why=accLockBlocker(s,date);
   const errors=ex.filter(x=>x.severity==='error').length,reconOk=recon.every(c=>c.ok);
-  const tabs:[Tab,string,number?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],['chart','Chart of accounts'],['tally','Tally export']];
+  const tabs:[Tab,string,number?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],['chart','Chart of accounts'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
   const tbT=tb.reduce((a,r)=>({debit:a.debit+r.debit,credit:a.credit+r.credit}),{debit:0,credit:0});
   return <div className="acc-page">
     <PageTitle title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · synthetic 10% tax"
@@ -61,7 +62,7 @@ export function AccountingPage(){
         <tbody>{recon.map(c=><tr key={c.id}><td><strong>{c.label}</strong></td><td className="acc-num number">{money(c.report)}</td><td className="acc-num number">{money(c.ledger)}</td>
           <td>{c.ok?<span className="pill green"><CheckCircle2 size={12}/>Agrees</span>:<span className="pill acc-sev-error"><AlertTriangle size={12}/>Differs {money(c.ledger-c.report)}</span>}</td><td><small>{c.note}</small></td></tr>)}</tbody></table></div>}
       {tab==='mapping'&&<MappingTable/>}
-      {tab==='tally'&&<TallyExport/>}
+      {tab==='tally'&&tally&&<TallyExport/>}
       {tab==='chart'&&<div className="table-wrap"><table className="acc-table"><thead><tr><th>Code</th><th>Ledger</th><th>Group</th><th>Note</th></tr></thead>
         <tbody>{ACC_CHART.map(a=><tr key={a.code}><td className="number">{a.code}</td><td><strong>{a.name}</strong></td><td>{a.group}</td><td><small>{a.note??''}</small></td></tr>)}</tbody></table></div>}
     </section>

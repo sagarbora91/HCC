@@ -104,9 +104,9 @@ export async function register({test,M,assert}){
     s=execute(s,'owner',{type:'BOOK',guest:'Card Test (fictional)',room:'105',arrival:s.date,departure:'2026-10-26',people:2});
     const id=s.bookings.at(-1).id;
     s=execute(s,'owner',{type:'REGISTER',id});s=execute(s,'owner',{type:'CHECKIN',id});s=execute(s,'owner',{type:'POST_NIGHTS',id});
-    s=execute(s,'owner',{type:'DISCOUNT',id,amount:50000,reason:'Service recovery'});
+    s=execute(s,'reception',{type:'DISCOUNT',id,amount:50000,reason:'Service recovery'});
     const row=()=>M.adminApprovalInbox(s).find(r=>r.a.booking===id&&r.a.status==='Pending');
-    const own=X.maApprovalActions(s,'owner',row());
+    const own=X.maApprovalActions(s,'reception',row());
     assert.equal(own.own,true);assert.match(own.approveBlock,/raised this request/);assert.ok(own.rejectBlock);
     const mgr=X.maApprovalActions(s,'manager',row());
     assert.equal(mgr.approveBlock,undefined);assert.equal(mgr.rejectBlock,undefined);assert.equal(mgr.live,true);

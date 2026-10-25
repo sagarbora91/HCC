@@ -1,4 +1,5 @@
-// Grouped navigation (Prototype Spec §1). Screens that arrive in M2/M3 are added here when built — never shown disabled.
+// Grouped navigation (Prototype Spec §1). DEC-063 G4: 'reports' on folios/expenses/closing adds the Accountant's read-only views
+// (Owner/Manager/Cashier already reach them); navRoleOk (navmap.ts) keeps the Cashier off Day closing. Screens that arrive in M2/M3 are added here when built — never shown disabled.
 import {LayoutDashboard,Grid2X2,CalendarDays,Receipt,Brush,Wallet,Sunset,ChartNoAxesCombined,ShieldCheck,Settings} from 'lucide-react';
 import {Permission,Role} from '../services/mock';
 /** p: one permission, or several (any-of) when different roles reach the page through different permissions. */
@@ -6,9 +7,9 @@ export type NavItem={id:string;label:string;icon:typeof LayoutDashboard;p:Permis
 const baseGroups:{label:string;items:NavItem[]}[]=[
   {label:'',items:[{id:'overview',label:'Overview',icon:LayoutDashboard,p:'reports'}]},
   {label:'FRONT DESK',items:[{id:'rooms',label:'Room board',icon:Grid2X2,p:'reservations'},{id:'reservations',label:'Reservations',icon:CalendarDays,p:'reservations'}]},
-  {label:'CASH & BILLING',items:[{id:'folios',label:'Guests & folios',icon:Receipt,p:'billing'}]},
-  {label:'OPERATIONS',items:[{id:'housekeeping',label:'Housekeeping',icon:Brush,p:'housekeeping'},{id:'expenses',label:'Expenses',icon:Wallet,p:'expenses'}]},
-  {label:'CLOSING & REPORTS',items:[{id:'closing',label:'Day closing',icon:Sunset,p:'close'},{id:'reports',label:'Reports',icon:ChartNoAxesCombined,p:'reports'}]},
+  {label:'CASH & BILLING',items:[{id:'folios',label:'Guests & folios',icon:Receipt,p:['billing','reports']}]},
+  {label:'OPERATIONS',items:[{id:'housekeeping',label:'Housekeeping',icon:Brush,p:'housekeeping'},{id:'expenses',label:'Expenses',icon:Wallet,p:['expenses','reports']}]},
+  {label:'CLOSING & REPORTS',items:[{id:'closing',label:'Day closing',icon:Sunset,p:['close','reports']},{id:'reports',label:'Reports',icon:ChartNoAxesCombined,p:'reports'}]},
   {label:'ADMINISTRATION',items:[{id:'access',label:'Access control',icon:ShieldCheck,p:'admin'},{id:'settings',label:'Master configuration',icon:Settings,p:'admin'}]},
 ];
 import {extraNav,extraLanding} from './registry';
