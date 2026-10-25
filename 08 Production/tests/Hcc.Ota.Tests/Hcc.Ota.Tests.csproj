@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- W3-1 OTA channel tests: pure commission rules with the prototype figures (no database) and SQL/HTTP integration with the real access policy on disposable HccTest_* databases.
+       The P2 test harness (BASE fixture loader, database, test sessions) is linked, not copied, so it stays in step with P2. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Ota.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hcc.Api\Hcc.Api.csproj" />
+    <ProjectReference Include="..\..\src\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Hcc.Inventory.Tests\Harness\GoldenInventory.cs" Link="Linked\GoldenInventory.cs" />
+    <Compile Include="..\Hcc.Inventory.Tests\Harness\InventoryDatabase.cs" Link="Linked\InventoryDatabase.cs" />
+    <Compile Include="..\Hcc.Inventory.Tests\Harness\TestSessions.cs" Link="Linked\TestSessions.cs" />
+    <None Include="..\Hcc.Inventory.Tests\Golden\inventory-base.golden.json" Link="Golden\inventory-base.golden.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
