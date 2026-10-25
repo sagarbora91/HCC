@@ -37,7 +37,7 @@ export function GuestForm({initial,guestId,registration,submitLabel,onSubmit,onU
       <label><span>ID type{registration&&<span className="gs-req" aria-hidden> *</span>}</span><select name="idType" value={d.idType} onChange={set('idType')} aria-invalid={!!shown.idType} disabled={disabled}><option value="">Choose…</option>{guestIdTypes.map(x=><option key={x}>{x}</option>)}{d.idType&&!guestIdTypes.includes(d.idType)&&<option>{d.idType}</option>}</select>{shown.idType&&<span className="gs-field-error">{shown.idType}</span>}</label>
       {f('idNumber',idLabel,{maxLength:24,placeholder:idHint[guestIdKind(d.idType)],autoComplete:'off',inputMode:guestIdKind(d.idType)==='aadhaar'?'numeric':undefined},registration&&!d.idLast4)}
     </div>
-    {onFile!==undefined&&<p className="muted gs-idcur">Current ID on file: {onFile?guestIdMask(d.idLast4)+' (full number stored — leave the field blank to keep it)':d.idLast4?guestIdMask(d.idLast4)+' — full number not on file':'none'}</p>}
+    {onFile!==undefined&&<p className="muted gs-idcur">Current ID on file: {onFile?guestIdMask(stored?.idLast4)+' (full number stored — leave the field blank to keep it)':stored?.idLast4?guestIdMask(stored.idLast4)+' — full number not on file':'none'}</p>}
     {guestIdKind(d.idType)==='aadhaar'&&<p className="info-note gs-aadhaar-note" role="note"><Info size={16}/>Stored in full by owner decision DEC-068 — confirm legality with your CA/lawyer.</p>}
     <div className="form-row">{f('nationality','Nationality',{maxLength:40})}{f('company','Company (optional)',{maxLength:80})}</div>
     {f('gstin','Company GSTIN (optional, fictional format)',{maxLength:15,placeholder:'27ABCDE1234F1Z5'})}
