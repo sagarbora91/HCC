@@ -40,8 +40,10 @@ public class MigrationRunnerTests
     {
         await using var db = await DisposableDatabase.CreateAsync(migrate: false, Ct);
         var result = await db.Platform().Migrations.MigrateAsync(Ct);
-        Assert.Equal([1, 2, 100, 101, 200, 300, 400], result.Applied);
-        Assert.Equal("1,2,100,101,200,300,400", await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct));
+        // Wave 1 blocks first and in order; Wave 2 modules append their own blocks (0700+), so only the Wave 1 prefix is fixed here.
+        Assert.Equal([1, 2, 100, 101, 200, 300, 400], result.Applied.Take(7));
+        Assert.True(result.Applied.Zip(result.Applied.Skip(1)).All(p => p.First < p.Second), "applied in ascending order");
+        Assert.StartsWith("1,2,100,101,200,300,400", (string?)await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct), StringComparison.Ordinal);
 
         // Module tables exist (P1 access, P2 inventory, P3 stays/housekeeping, P4 billing/cashier).
         foreach (var t in new[] { "plat.app_user", "plat.session", "plat.role_grant", "inv.type_night_count", "inv.room_block", "inv.reservation_night", "bill.quote",

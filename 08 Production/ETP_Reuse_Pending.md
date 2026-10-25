@@ -23,4 +23,6 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 17 | `src/Hcc.Operations/ScriptBackupGate.cs` (P7) | `IBackupGate` that runs CHECKDB then `Backup-HccDatabase.ps1 -CopyOnly -Tag premigrate_X_to_Y`; chosen by `Hcc:Operations:BackupScript` in the `migrate` command | ETP backup-gate contract once #3/#4 are aligned |
 | 18 | `src/Hcc.Api/Hosting/HccHosting.cs` (P7) | `UseWindowsService`, production config validator (integrated auth only, no TrustServerCertificate, backup folder, thumbprint), Kestrel HTTPS from machine store | ETP service hosting/config validation/TLS binding |
 
+| 19 | `src/Hcc.Application/Compliance/ComplianceCommands.cs` `GenerateCaPackAsync` (W2-5) | CA pack is simulated: the position lines are stored in `cmp.ca_pack`, nothing is e-mailed or rendered as PDF/Excel | ETP e-mail sender and PDF/Excel pack exporters (attach the pack lines, send to the CA e-mail in `cmp.setting`) |
+
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).

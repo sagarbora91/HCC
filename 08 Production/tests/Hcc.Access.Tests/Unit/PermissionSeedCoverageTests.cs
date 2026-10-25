@@ -67,6 +67,15 @@ public sealed partial class PermissionSeedCoverageTests
         var used = UsedInSource();
         used.UnionWith(DeclaredByModules());
         Assert.True(used.Count >= 30, $"Expected the module PERM ids in source, found {used.Count}.");
+        // Wave 2 modules seed their own PERM ids (and grants) in their own migration blocks (permission rows with a matching grant).
+        var later = Directory.EnumerateFiles(Path.Combine(ProductionRoot().FullName, "database", "migrations"), "*.sql")
+            .Where(f => !f.EndsWith("0101_access_rbac_seed.sql", StringComparison.Ordinal)).Select(File.ReadAllText).ToList();
+        foreach (var text in later)
+        {
+            foreach (Match m in SeededPermission().Matches(text)) seeded.Add(m.Groups[1].Value);
+            foreach (Match m in SeededGrant().Matches(text)) granted.Add(m.Groups[1].Value);
+        }
+
         var notSeeded = used.Where(p => !seeded.Contains(p)).ToList();
         var notGranted = used.Where(p => !granted.Contains(p)).ToList();
         Assert.True(notSeeded.Count == 0, "Not seeded by 0101: " + string.Join(", ", notSeeded));
