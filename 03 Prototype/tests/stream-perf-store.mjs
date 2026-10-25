@@ -10,7 +10,9 @@ const ST=await import('./.generated/perf-store.mjs');
 
 const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 /** sha256 of JSON.stringify(loadScenario('FY26')) on main b04f596, before this change. A deliberate fixture change must update it. */
-const FY26_SHA_BEFORE='2aadeee553c53d74d4e24c640709887437cdfc6664ffa340fc939a5662c84a63';
+// Updated at the integration merge (lead): DEC-068 guest profiles now carry fictional full ID numbers, so FY26 changed on purpose.
+// old 2aadeee5…2c84a63 → new 26889bd0…1f7f2e7c; worker, main-thread and direct generation must still all match it.
+const FY26_SHA_BEFORE='26889bd06e73f13b8ad2ac01cfe75998fe923d6834dea1cf2551b6ef1f7f2e7c';
 
 // ── fake IndexedDB with real transaction semantics: writes are staged and applied only on commit; `failPut` aborts the
 // transaction when a put for that key is issued (nothing of that transaction is applied) ──
