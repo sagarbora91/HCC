@@ -64,6 +64,31 @@ public interface IRoomBlockReader
     Task<IReadOnlyList<int>> BlockedRoomsAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct = default);
 }
 
+/// <summary>
+/// Port toward P1: may this principal be assigned a task of this kind (prototype: enabled Housekeeper for cleans, enabled
+/// Maintenance user for repairs)? P1's staff/role directory should implement it; <see cref="PolicyTaskAssigneeEligibility"/>
+/// is the interim rule over <see cref="IAccessPolicy"/>.
+/// </summary>
+public interface ITaskAssigneeEligibility
+{
+    Task<bool> CanBeAssignedAsync(int propertyId, int principalId, string taskKind, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Interim eligibility from grants: cleans need PERM-HK-003; repairs need PERM-ROOM-001 without PERM-HK-003 (the
+/// Maintenance profile in RBAC v1). Disabled users hold no grants, so they are never eligible.
+/// </summary>
+public sealed class PolicyTaskAssigneeEligibility(IAccessPolicy policy) : ITaskAssigneeEligibility
+{
+    public async Task<bool> CanBeAssignedAsync(int propertyId, int principalId, string taskKind, CancellationToken ct = default)
+    {
+        if (principalId <= 0) return false;
+        var cleans = await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.Work, null, ct).ConfigureAwait(false);
+        if (taskKind != HkTaskKind.Repair) return cleans;
+        return !cleans && await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.RepairWork, null, ct).ConfigureAwait(false);
+    }
+}
+
 /// <summary>Housekeeping settings. Inspection policy belongs to Master configuration (DEC-057); default = prototype (on).</summary>
 public sealed class HousekeepingOptions
 {

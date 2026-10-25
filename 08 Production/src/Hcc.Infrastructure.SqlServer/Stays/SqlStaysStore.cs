@@ -327,7 +327,7 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
 
 /// <summary>
 /// Default <see cref="IStayFolioPort"/> over the 0002 billing tables, until P4's folio service replaces it.
-/// ETP-REUSE: none (HCC billing rules). P4: company credit, pending approvals and the folio status belong to Billing.
+/// P4: company credit, pending approvals and the folio status belong to Billing.
 /// </summary>
 public sealed class Sql0002StayFolioPort : IStayFolioPort
 {

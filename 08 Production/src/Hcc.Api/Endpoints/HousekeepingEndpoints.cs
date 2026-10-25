@@ -22,6 +22,7 @@ public static class HousekeepingEndpoints
         services.AddSingleton<IRoomBlockReader>(sp => new SqlRoomBlockReader(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IAssignedScopeSource>(sp => new SqlAssignedScopeSource(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton(sp => new HousekeepingTaskProjector(sp.GetRequiredService<SqlPlatform>().Outbox));
+        services.TryAddSingleton<ITaskAssigneeEligibility, PolicyTaskAssigneeEligibility>(); // P1 staff directory replaces
         services.AddSingleton<HousekeepingCommands>();
         services.AddSingleton<HousekeepingQueries>();
         services.AddHostedService<HousekeepingProjectorWorker>();
@@ -54,6 +55,7 @@ public static class HousekeepingEndpoints
 }
 
 /// <summary>Polls the outbox for <c>StayDeparted</c> every 2 s (at-least-once delivery, exactly-once effect per consumer).</summary>
+// ETP-REUSE: align with ETP background-job hosting (Windows service worker, retry/back-off, logging) when ETP (V: drive) is available.
 public sealed partial class HousekeepingProjectorWorker(HousekeepingTaskProjector projector, ILogger<HousekeepingProjectorWorker> logger) : BackgroundService
 {
     public static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);

@@ -16,7 +16,7 @@ namespace Hcc.Application.Housekeeping;
 /// the policy is asked with an <see cref="AccessScopes.HkTask"/>/<see cref="AccessScopes.Room"/> scope, and the handler
 /// re-checks the assignee under the row lock when the principal is not property-wide.
 /// </summary>
-public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy policy, IHousekeepingStore store, IHousekeepingReadStore reads, HousekeepingOptions options, TimeProvider clock)
+public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy policy, IHousekeepingStore store, IHousekeepingReadStore reads, ITaskAssigneeEligibility eligibility, HousekeepingOptions options, TimeProvider clock)
 {
     public const string OpTransition = "TransitionHousekeepingTask";
     public const string OpBlockRoom = "BlockRoom";
@@ -47,8 +47,7 @@ public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy po
         var wide = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, perm, AccessScopes.Property(ctx.PropertyId), ct).ConfigureAwait(false);
         if (action == HkAction.Assign)
         {
-            if (req.AssigneeId is not { } a || a <= 0
-                || !await policy.HasAsync(ctx.PropertyId, a, HousekeepingPermissions.WorkFor(kind), null, ct).ConfigureAwait(false))
+            if (req.AssigneeId is not { } a || !await eligibility.CanBeAssignedAsync(ctx.PropertyId, a, kind, ct).ConfigureAwait(false))
                 throw HccException.Validation(kind == HkTaskKind.Repair ? "Select an enabled maintenance user." : "Select an enabled housekeeper.");
         }
 
