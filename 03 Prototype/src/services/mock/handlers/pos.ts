@@ -115,13 +115,15 @@ const POS_SETTLE:Handler=k=>{
   return `${o.id} · bill ${billNo} · ${money(total)} ${cmd.method} at ${outletName(k,o)} (outlet receipt ${rid}${cmd.method==='Cash'?' · counted in the front-desk drawer':''})`;
 };
 
+import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 /** Executes a void (item or bill). Shared by direct voids and approved requests. */
 function applyVoid(k:Kit,o:POSOrder,scope:'item'|'bill',lineId:string|undefined,reason:string,by:string,approval?:string){
   const {s,id,assert}=k;
   const mark=(l:POSOrder['lines'][number])=>{l.voided=true;l.voidReason=reason;l.voidBy=by;l.voidDate=s.date;if(approval)l.voidApproval=approval;};
   if(scope==='item'){const l=o.lines.find(l=>l.id===lineId)!;mark(l);o.version++;return `${o.id} · void ${l.qty}× ${l.name} (${money(posLineValue(l))}) · ${reason}`;}
   if(o.status==='Settled'){
-    const st=o.settlement!;assert(st.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
+    const st=o.settlement!;assert(!cbIsLocked(s,st.date),cbLockedMessage(st.date,'voiding a bill settled that day'),'DAY_CLOSED'); // DEC-065
+    assert(st.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
     if(st.method==='Cash')assert(s.shiftOpen,'The cash shift is closed. A cash bill cannot be reversed now.','INVALID_TRANSITION');
     slice(k).receipts.push({id:id('POSR'),order:o.id,outlet:o.outlet,method:st.method!,amount:-st.total,net:-st.net,tax:-st.tax,taxBps:st.taxBps,reference:'Void of '+st.billNo,date:s.date,actor:by,kind:'void'});
   }
@@ -154,6 +156,7 @@ const POS_VOID_BILL:Handler=k=>{
   assert(!o.pendingVoid,'A void request is pending for this check. Ask a manager to decide it first.','INVALID_TRANSITION');
   if(o.status==='Settled'){
     req('payments');
+    assert(!cbIsLocked(s,o.settlement!.date),cbLockedMessage(o.settlement!.date,'voiding a bill settled that day'),'DAY_CLOSED'); // DEC-065
     assert(o.settlement!.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
     assert(o.settlement!.date===s.date,'Only bills settled on the current business date can be voided.','INVALID_TRANSITION');
     return voidOrRequest(k,o,'bill',o.settlement!.total);

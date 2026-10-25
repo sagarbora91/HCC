@@ -9,6 +9,7 @@ import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
 import {saveCsv,saveBinaryFile,saveAndReport} from '../../app/native';
 import {XLSX_MIME} from '../../app/xlsx';
+import {CashLockNote} from './LockNote';
 import {cbXlsx} from './exportXlsx';
 import {cbRangeMemo} from '../../domain/memo';
 
@@ -53,7 +54,8 @@ export function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}
         </tbody></table></div>}
       <ShowMore p={pg}/></section>
     <section className="card"><div className="section-title"><h2>Day lock</h2></div>
-      {d.locked?<p>Locked by <strong>{who(s.users,d.locked.lockedBy)}</strong> at {d.locked.lockedAt.replace('T',' ')}.</p>:<p className="muted">{d.status==='Closed'?'Not locked yet. A different person from the one who counted checks and locks the day.':'The day can be locked after it is closed.'}</p>}
+      {d.locked&&<CashLockNote date={d.date}/>}
+      {d.locked?<p>Locked by <strong>{who(s.users,d.locked.lockedBy)}</strong> at {d.locked.lockedAt.replace('T',' ')}. No cash change dated this day can be posted until the Owner reopens it.</p>:<p className="muted">{d.status==='Closed'?'Not locked yet. A different person from the one who counted checks and locks the day.':'The day can be locked after it is closed.'}</p>}
       <div className="cb-actions">
         {!d.locked&&<button className="btn primary" disabled={busy||!lock.ok} onClick={()=>run({type:'CB_LOCK',date:d.date,key:'cb-lock:'+d.date+':'+hist.length},'Day locked')}><Lock size={15}/> Lock this day</button>}
         {d.locked&&<button className="btn" disabled={busy||!canReopen} onClick={()=>open({type:'cb-reopen',id:d.date})}><Unlock size={15}/> Reopen…</button>}
