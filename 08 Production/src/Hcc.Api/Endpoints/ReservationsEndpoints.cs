@@ -13,6 +13,7 @@ public static class ReservationsEndpoints
     public static IServiceCollection AddReservationsModule(this IServiceCollection services)
     {
         services.AddSingleton<IReservationStore, SqlReservationStore>();
+        services.AddSingleton<IAgreedNightRateSource, SqlAgreedNightRateSource>();
         services.AddSingleton<ReservationService>();
         return services;
     }

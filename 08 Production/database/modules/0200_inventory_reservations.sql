@@ -2,8 +2,8 @@
 -- AmendReservation/CancelReservation/MarkNoShow; §4 rules 1, 2, 7, 8, 9, 10). Original HCC design; no donor migrations.
 -- Extends the 0002 inventory tables (never edits 0002). Lock order used by every writer (deadlock-free by construction):
 --   inv.group_block_type rows (block id asc) → inv.type_night_count (room type asc, night asc) → inv.room_night (room, night asc).
--- Wave 1 note: lives in database/migrations-wave1/ until the lead relaxes EmbeddedMigrationSource.Validate (contiguous
--- versions) for the per-agent blocks 0100/0200/0300/0400 — see "Requested changes" in the P2 report.
+-- Wave 1 note: lives in database/modules/ (with P3/P4) until the Wave 1 integration step relaxes EmbeddedMigrationSource.Validate
+-- (unique, ascending, gaps allowed) and moves the module scripts into database/migrations/.
 
 -- ── Room types: rack rate (fallback tariff, prototype room.rate) and display order ──
 ALTER TABLE inv.room_type ADD

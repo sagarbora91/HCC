@@ -45,3 +45,16 @@ public interface IReservationStore
 
     Task<ReservationDetails?> GetDetailsAsync(int propertyId, long reservationId, DateTime nowUtc, CancellationToken ct = default);
 }
+
+/// <summary>The agreed price of one reservation night (snapshot taken at booking/amend).</summary>
+public sealed record AgreedNight(long ReservationId, DateOnly Night, long RatePaise, int TaxBps, long TaxPaise);
+
+/// <summary>
+/// Port for billing (P4 <c>IStayNightSource</c>): the agreed nightly rate and tax snapshot of a reservation night, read inside
+/// the caller's command transaction. Null when the reservation has no such night. The stay → reservation and folio mapping
+/// belongs to P3/P4; the integration adapter composes them with this port.
+/// </summary>
+public interface IAgreedNightRateSource
+{
+    Task<AgreedNight?> GetAsync(ICommandTransaction tx, int propertyId, long reservationId, DateOnly night, CancellationToken ct = default);
+}

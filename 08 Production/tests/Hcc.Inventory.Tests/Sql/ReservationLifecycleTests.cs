@@ -367,6 +367,13 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
         Assert.StartsWith("HCC-", d.PublicNo, StringComparison.Ordinal);
         Assert.Equal((3, 600000L, 60000L, 660000L), (d.Nights.Count, d.NetPaise, d.TaxPaise, d.TotalPaise));
         Assert.Equal("+91 90000 12345", d.Phone);
+        var night = await S.Runner.RunAsync(P2Services.Ctx(1, "TestNightRate"), new { r.ReservationId }, async (tx, ct) =>
+        {
+            var n = await new Hcc.Infrastructure.SqlServer.Reservations.SqlAgreedNightRateSource(f.Db.Platform.Connections).GetAsync(tx, 1, r.ReservationId, new DateOnly(2026, 12, 21), ct);
+            await tx.AuditAsync("TestNightRate", "x", "x", ct);
+            return n!;
+        }, Ct);
+        Assert.Equal((200000L, 1000, 20000L), (night.Value.RatePaise, night.Value.TaxBps, night.Value.TaxPaise));
         Assert.Equal(1, await f.Db.CountAsync($"SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ReservationCreated' AND aggregate_id = {r.ReservationId};", Ct));
         Assert.Equal(1, await f.Db.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CreateReservation' AND target = '{d.PublicNo}';", Ct));
         Assert.Equal(r.ReservationId, Convert.ToInt64(await f.Db.ScalarAsync($"SELECT used_by_reservation_id FROM bill.quote WHERE quote_id = (SELECT quote_id FROM inv.reservation WHERE reservation_id = {r.ReservationId});", Ct), CultureInfo.InvariantCulture));

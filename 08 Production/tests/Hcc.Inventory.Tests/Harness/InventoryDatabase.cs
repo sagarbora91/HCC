@@ -16,7 +16,7 @@ using Microsoft.Data.SqlClient;
 namespace Hcc.Inventory.Tests.Harness;
 
 /// <summary>
-/// Embedded platform migrations (0001–0002) plus the P2 block (database/migrations-wave1/0200_*.sql, copied next to the tests).
+/// Embedded platform migrations (0001–0002) plus the P2 block (database/modules/02xx_*.sql, copied next to the tests).
 /// Bypasses EmbeddedMigrationSource.Validate's contiguity rule, which the lead is asked to relax for the per-agent blocks.
 /// </summary>
 public sealed class P2MigrationSource : IMigrationSource

@@ -17,7 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Golden\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\database\migrations-wave1\*.sql" Link="Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\database\modules\02*.sql" Link="Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />
   </ItemGroup>

@@ -13,6 +13,6 @@
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
     <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
-    <File Path="database/migrations-wave1/0200_inventory_reservations.sql" />
+    <File Path="database/modules/0200_inventory_reservations.sql" />
   </Folder>
 </Solution>
