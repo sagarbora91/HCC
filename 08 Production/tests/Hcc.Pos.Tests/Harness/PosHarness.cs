@@ -12,6 +12,7 @@ using Hcc.Contracts.Billing;
 using Hcc.Contracts.Pos;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer;
+using Hcc.Infrastructure.SqlServer.Access;
 using Hcc.Infrastructure.SqlServer.Billing;
 using Hcc.Infrastructure.SqlServer.Connection;
 using Hcc.Infrastructure.SqlServer.Pos;
@@ -27,38 +28,6 @@ public static class Who
     public const int Reception = 3;
     public const int Cashier = 4;
     public const int Housekeeper = 6;
-}
-
-/// <summary>
-/// Fake <see cref="IAccessPolicy"/> with the POS ids from the RBAC matrix (P1 supplies the real one): PERM-FOL-002 and PERM-PAY-001 for
-/// Owner/Manager/Reception/Cashier, PERM-APR-001 Owner unlimited and Manager up to Rs 1,000 (DEC-063 G1), PERM-ADM-003 Owner only.
-/// </summary>
-public sealed class FakeAccessPolicy : IAccessPolicy
-{
-    private const long Unlimited = long.MaxValue;
-
-    private readonly Dictionary<int, Dictionary<string, long>> _grants = new()
-    {
-        [Who.Owner] = new() { ["PERM-FOL-001"] = Unlimited, ["PERM-FOL-002"] = Unlimited, ["PERM-PAY-001"] = Unlimited, ["PERM-APR-001"] = Unlimited, ["PERM-ADM-003"] = Unlimited, ["PERM-SHF-001"] = Unlimited },
-        [Who.Manager] = new() { ["PERM-FOL-002"] = Unlimited, ["PERM-PAY-001"] = Unlimited, ["PERM-APR-001"] = 100_000, ["PERM-SHF-001"] = Unlimited },
-        [Who.Reception] = new() { ["PERM-FOL-002"] = Unlimited, ["PERM-PAY-001"] = Unlimited, ["PERM-SHF-001"] = Unlimited },
-        [Who.Cashier] = new() { ["PERM-FOL-002"] = Unlimited, ["PERM-PAY-001"] = Unlimited, ["PERM-SHF-001"] = Unlimited },
-        [Who.Housekeeper] = [],
-    };
-
-    public ConcurrentQueue<(int Principal, string Permission, AccessScope? Scope, long? Amount)> Calls { get; } = new();
-
-    public Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default)
-    {
-        Calls.Enqueue((principalId, permissionId, scope, amountPaise));
-        if (!_grants.TryGetValue(principalId, out var g) || !g.TryGetValue(permissionId, out var limit))
-            throw new HccException(HccErrorCode.FORBIDDEN, $"Access denied: {permissionId} permission is required.");
-        if (amountPaise is { } a && a > limit) throw new HccException(HccErrorCode.APPROVAL_REQUIRED, $"{permissionId} above your limit needs approval.");
-        return Task.CompletedTask;
-    }
-
-    public Task<bool> HasAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, CancellationToken ct = default)
-        => Task.FromResult(_grants.TryGetValue(principalId, out var g) && g.ContainsKey(permissionId));
 }
 
 public sealed class ManualClock(DateTimeOffset start) : TimeProvider
@@ -97,7 +66,7 @@ public sealed partial class PosDb : IAsyncLifetime
 
     public SqlOptions Options => new() { ConnectionString = SqlConnectionFactory.LocalDevConnectionString(Server, Name), BackupDirectory = "NUL" };
 
-    public FakeAccessPolicy Policy { get; } = new();
+    public SqlAccessPolicy Policy { get; private set; } = null!;
 
     public ManualClock Clock { get; } = new(new DateTimeOffset(2026, 10, 24, 8, 0, 0, TimeSpan.Zero));
 
@@ -158,6 +127,14 @@ public sealed partial class PosDb : IAsyncLifetime
             """), CultureInfo.InvariantCulture);
         await ScalarAsync("INSERT inv.room_type(property_id, code, max_occupancy) VALUES (@p, 'Classic', 2);", ("@p", SqlDbType.Int, PropertyId));
         var connections = platform.Connections;
+        Policy = new SqlAccessPolicy(connections, Clock, [new SqlShiftScopeResolver(connections)]);
+        // Real P1 roles; principal ids line up with Who (fresh database: identity starts at 1; id 5 is an unused filler).
+        foreach (var (login, role, expected) in new[] { ("owner", "OWN", Who.Owner), ("manager", "MGR", Who.Manager), ("reception", "REC", Who.Reception), ("cashier", "CSH", Who.Cashier), ("supervisor", "SUP", 5), ("housekeeper", "HKP", Who.Housekeeper) })
+        {
+            var uid = Convert.ToInt32(await ScalarAsync($"INSERT plat.app_user(property_id, login_name, display_name, created_utc) OUTPUT INSERTED.user_id VALUES (@p, '{login}', N'{login}', '2026-01-01');", ("@p", SqlDbType.Int, PropertyId)), CultureInfo.InvariantCulture);
+            if (uid != expected) throw new InvalidOperationException($"Seeded {login} got user id {uid}, expected {expected}.");
+            await ScalarAsync($"INSERT plat.user_role(user_id, role_code, valid_from_utc, assigned_utc) VALUES ({uid}, '{role}', '2026-01-01', '2026-01-01');");
+        }
         var billingStore = new SqlBillingStore(connections);
         // The real DEC-069 GST master (seed: restaurant 5 % without ITC, not specified premises = the prototype golden figures) and the P6 guard.
         var gstStore = new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(connections);

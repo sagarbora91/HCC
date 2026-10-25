@@ -400,7 +400,9 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
     {
         ArgumentNullException.ThrowIfNull(caller);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.VoidDecide, ct: ct).ConfigureAwait(false);
+        // Holding the approve-void permission is enough to reject; the role's void limit is checked against the amount only when approving.
+        if (!await policy.HasAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.VoidDecide, ct: ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, $"Access denied: {PosPermissions.VoidDecide} permission is required.");
         var decisionReason = BillingText.Optional(req.Reason, 200);
         return await runner.RunAsync(Ctx(caller, "DecideVoid", key), req, async (tx, ct2) =>
         {
