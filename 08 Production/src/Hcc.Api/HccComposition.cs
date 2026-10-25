@@ -44,6 +44,7 @@ public static class HccComposition
         services.AddPayrollModule();                     // W2-2 payroll and leave
         services.AddSetupModule();                       // W3-b first-time hotel setup (loopback, empty install only)
         services.AddDocumentsModule();                   // W3-3 ID document capture / OCR (needs the guest ID key)
+        services.AddCustomersModule();                   // W3-5 customers / CRM (customer 360, merge duplicates)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -84,6 +85,7 @@ public static class HccComposition
         api.MapPayrollEndpoints();       // W2-2
         api.MapSetupEndpoints();         // W3-b first-time setup
         api.MapDocumentsEndpoints();     // W3-3 ID document capture
+        api.MapCustomersEndpoints();     // W3-5
         return api;
     }
 }

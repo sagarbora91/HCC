@@ -19,6 +19,7 @@
     <Project Path="tests/Hcc.Closing.Tests/Hcc.Closing.Tests.csproj" />
     <Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
     <Project Path="tests/Hcc.Configuration.Tests/Hcc.Configuration.Tests.csproj" />
+    <Project Path="tests/Hcc.Customers.Tests/Hcc.Customers.Tests.csproj" />
     <Project Path="tests/Hcc.Expenses.Tests/Hcc.Expenses.Tests.csproj" />
     <Project Path="tests/Hcc.Accounting.Tests/Hcc.Accounting.Tests.csproj" />
     <Project Path="tests/Hcc.Compliance.Tests/Hcc.Compliance.Tests.csproj" />
@@ -57,6 +58,8 @@
     <File Path="database/migrations/1700_handover.sql" />
     <File Path="database/migrations/1800_yield_tariffs.sql" />
     <File Path="database/migrations/1900_property_setup.sql" />
+    <File Path="database/migrations/2300_customers.sql" />
+    <File Path="database/migrations/2301_customers_rbac_seed.sql" />
     <File Path="database/migrations/1500_guest_services.sql" />
     <File Path="database/migrations/0900_payroll.sql" />
     <File Path="database/migrations/0901_payroll_rbac_seed.sql" />
