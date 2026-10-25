@@ -131,8 +131,22 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             }
 
             case AccountingEvents.PosBillSettled:
-                source = AccountingEventMapper.PosBill(Parse<PosBillSettledEvent>(evt));
+            {
+                // A room-posted bill is one folio service line: booked once from its ChargePosted (guest ledger), never here as well.
+                var e = Parse<PosBillSettledEvent>(evt);
+                if (e.Mode != "folio") source = AccountingEventMapper.PosBill(e);
                 break;
+            }
+
+            case AccountingEvents.PosBillVoided:
+            {
+                var e = Parse<PosBillSettledEvent>(evt);
+                source = AccountingEventMapper.PosBill(e with
+                {
+                    Kind = "void", TotalPaise = -Math.Abs(e.TotalPaise), NetPaise = -Math.Abs(e.NetPaise), CgstPaise = -Math.Abs(e.CgstPaise), SgstPaise = -Math.Abs(e.SgstPaise),
+                });
+                break;
+            }
             case AccountingEvents.ExpensePosted:
             case AccountingEvents.ExpenseReversed:
                 source = AccountingEventMapper.Expense(Parse<ExpensePostedEvent>(evt));

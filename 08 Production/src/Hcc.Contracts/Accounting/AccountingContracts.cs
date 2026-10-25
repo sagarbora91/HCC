@@ -17,7 +17,8 @@ public static class AccountingEvents
     public const string ShiftDifferenceDecided = "ShiftDifferenceDecided";
 
     // W2-6 POS, W2-4 Expenses, W2-2 Payroll.
-    public const string PosBillSettled = "PosBillSettled";
+    public const string PosBillSettled = "PosBillSettled";   // POS publishes for every settled bill; mode = folio is skipped (booked from its ChargePosted)
+    public const string PosBillVoided = "PosBillVoided";     // POS: a settled outlet bill voided the same day (positive amounts, booked as a negative Sales voucher)
     public const string ExpensePosted = "ExpensePosted";
     public const string ExpenseReversed = "ExpenseReversed";
     public const string PayrollPosted = "PayrollPosted";
@@ -29,7 +30,7 @@ public static class AccountingEvents
     public const string AccountingPeriodUnlocked = "AccountingPeriodUnlocked";
 
     public static readonly IReadOnlyList<string> Consumed =
-        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid];
+        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid];
 }
 
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
@@ -41,7 +42,7 @@ public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, 
 /// per-bill amounts. Total = net + cgst + sgst.
 /// </summary>
 public sealed record PosBillSettledEvent(long BillId, string Kind, DateOnly BusinessDate, string Outlet, string Tender, long TotalPaise, long NetPaise,
-    long CgstPaise, long SgstPaise, string Reference);
+    long CgstPaise, long SgstPaise, string Reference, string? Mode = null);
 
 /// <summary>W2-4 Expenses: a posted expense (or its reversal record, negative amount, <c>ReversalOf</c> = original id). Funding = Cash | UPI | Card | Bank transfer | Vendor credit.</summary>
 public sealed record ExpensePostedEvent(long ExpenseId, DateOnly BusinessDate, string Category, string Funding, long AmountPaise, string Vendor, long? ReversalOf);

@@ -21,6 +21,25 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
     private static string Key() => AccountingDb.Key();
 
     [Fact]
+    public async Task Room_posted_pos_bill_is_booked_only_from_its_folio_line_and_a_void_is_a_negative_sales_voucher()
+    {
+        var d = new DateOnly(2026, 12, 5); // a date no other test of this fixture uses
+        // mode = folio: the folio line's ChargePosted books it (guest ledger); PosBillSettled must not book it a second time.
+        await db.PublishAsync(AccountingEvents.PosBillSettled, 41, new PosBillSettledEvent(41, "sale", d, "room service", null!, 46_200, 44_000, 1_100, 1_100, "Room posting", "folio"));
+        await db.PublishAsync(AccountingEvents.PosBillSettled, 42, new PosBillSettledEvent(42, "sale", d, "restaurant", "UPI", 52_500, 50_000, 1_250, 1_250, "DEMO-UPI", "outlet"));
+        await db.PublishAsync(AccountingEvents.PosBillVoided, 42, new PosBillSettledEvent(42, "void", d, "restaurant", "UPI", 52_500, 50_000, 1_250, 1_250, "Void of bill 42", "outlet"));
+        await db.ProjectAsync();
+        var day = await db.Queries.DayAsync(db.As("ACC"), d, Ct);
+        Assert.Equal(["pos-void:42", "pos:42"], day.Vouchers.Select(v => v.SourceKey).Order(StringComparer.Ordinal));
+        Assert.All(day.Vouchers, v => Assert.True(v.Balanced, v.Number));
+        static Dictionary<string, long> Net(VoucherView v) => v.Entries.GroupBy(e => e.Account).ToDictionary(g => g.Key, g => g.Sum(e => e.DebitPaise - e.CreditPaise));
+        var sale = Net(day.Vouchers.Single(v => v.SourceKey == "pos:42"));
+        var reversal = Net(day.Vouchers.Single(v => v.SourceKey == "pos-void:42"));
+        Assert.Equal(sale.OrderBy(k => k.Key).Select(k => (k.Key, -k.Value)), reversal.OrderBy(k => k.Key).Select(k => (k.Key, k.Value)));
+        Assert.Contains(sale, k => k.Value == 52_500); // the tender is debited the bill total once
+    }
+
+    [Fact]
     public async Task Pos_expense_and_payroll_events_post_balanced_vouchers_and_unmapped_blocks_lock_until_mapped()
     {
         await db.PublishAsync(AccountingEvents.PosBillSettled, 11, new PosBillSettledEvent(11, "sale", S1, "restaurant", "Cash", 52_500, 50_000, 1_250, 1_250, "Outlet cash"));
