@@ -277,8 +277,9 @@ public class AdminAndPolicyTests(AccessDatabase db) : IClassFixture<AccessDataba
 
         var h = await m.Capabilities.GetAsync(hkp);
         Assert.Equal(["HKP"], h.Roles);
-        Assert.Equal(["PERM-HK-001", "PERM-HK-003", "PERM-ROOM-001"], h.Permissions.Select(p => p.PermissionId).ToArray());
-        Assert.All(h.Permissions, p => Assert.Equal("A", p.Scope));
+        // PERM-HR-004 (0901 payroll): own roster, check-in, leave and OWN payslip, scope O (DEC-061).
+        Assert.Equal(["PERM-HK-001", "PERM-HK-003", "PERM-HR-004", "PERM-ROOM-001"], h.Permissions.Select(p => p.PermissionId).ToArray());
+        Assert.All(h.Permissions, p => Assert.Equal(p.PermissionId == "PERM-HR-004" ? "O" : "A", p.Scope));
         Assert.Equal((FieldMasks.Hidden, FieldMasks.OwnOnly), (h.FieldMasks[FieldMasks.HotelMoney], h.FieldMasks[FieldMasks.StaffPay]));
         Assert.Equal("PIN", h.CredentialKind);
 

@@ -432,11 +432,16 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
 
     // ── rates ──
 
-    public async Task<IReadOnlyList<PayrollRates>> RateVersionsAsync(int propertyId, CancellationToken ct)
+    private async Task<List<PayrollRates>> StoredRateVersionsAsync(int propertyId, CancellationToken ct)
     {
         var c = Cmd("SELECT rates_json FROM hr.rate_version WHERE property_id = @p ORDER BY effective_from;");
         P(c, "@p", SqlDbType.Int, propertyId);
-        var list = await ReadAsync(c, r => PayrollJson.Read<PayrollRates>(r.GetString(0)), ct).ConfigureAwait(false);
+        return await ReadAsync(c, r => PayrollJson.Read<PayrollRates>(r.GetString(0)), ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<PayrollRates>> RateVersionsAsync(int propertyId, CancellationToken ct)
+    {
+        var list = await StoredRateVersionsAsync(propertyId, ct).ConfigureAwait(false);
         return list.Count > 0 ? list : [PayrollRates.Defaults()];
     }
 
@@ -446,7 +451,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         ArgumentNullException.ThrowIfNull(versions);
         ArgumentNullException.ThrowIfNull(changed);
         ArgumentNullException.ThrowIfNull(carried);
-        var existing = (await RateVersionsAsync(propertyId, ct).ConfigureAwait(false)).ToDictionary(v => v.From);
+        var existing = (await StoredRateVersionsAsync(propertyId, ct).ConfigureAwait(false)).ToDictionary(v => v.From);
         foreach (var v in versions)
         {
             if (existing.TryGetValue(v.From, out var old) && old == v) continue;

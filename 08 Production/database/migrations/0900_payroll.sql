@@ -238,5 +238,5 @@ CREATE TABLE hr.advance_recovery(
   recorded_utc DATETIME2(3) NOT NULL,
   reversed_by INT NULL,
   reversed_utc DATETIME2(3) NULL,
-  CONSTRAINT CK_advance_recovery_source CHECK ((run_id IS NULL) <> (fnf_id IS NULL)));
+  CONSTRAINT CK_advance_recovery_source CHECK ((run_id IS NULL AND fnf_id IS NOT NULL) OR (run_id IS NOT NULL AND fnf_id IS NULL)));
 CREATE INDEX IX_advance_recovery_run ON hr.advance_recovery(run_id) WHERE run_id IS NOT NULL;
