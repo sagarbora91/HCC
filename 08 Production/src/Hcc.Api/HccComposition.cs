@@ -30,6 +30,7 @@ public static class HccComposition
         services.AddTaxModule();                         // Wave 1 C: GST master (DEC-069), THE IGstRateResolver
         services.AddGuestIdModule(configuration);        // Wave 1 C: encrypted full guest ID numbers (DEC-068)
         services.AddClosingModule();                     // P6 closing + reports; installs the late-write barrier runner for P2-P4
+        services.AddHccConfiguration();                  // W2-1 Master configuration (settings registry, reader, module gate)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -56,6 +57,7 @@ public static class HccComposition
         api.MapTaxEndpoints();           // Wave 1 C (GST master)
         api.MapGuestIdEndpoints();       // Wave 1 C (guest ID reveal / rekey)
         api.MapClosingEndpoints();       // P6
+        api.MapConfigurationEndpoints(); // W2-1
         return api;
     }
 }

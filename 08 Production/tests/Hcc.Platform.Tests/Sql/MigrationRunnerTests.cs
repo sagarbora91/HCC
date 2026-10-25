@@ -40,8 +40,15 @@ public class MigrationRunnerTests
     {
         await using var db = await DisposableDatabase.CreateAsync(migrate: false, Ct);
         var result = await db.Platform().Migrations.MigrateAsync(Ct);
-        Assert.Equal([1, 2, 100, 101, 200, 300, 400, 500, 600, 601], result.Applied);
-        Assert.Equal("1,2,100,101,200,300,400,500,600,601", await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct));
+        // Wave 1 prefix exactly; every later module block (Wave 2: 0700+) only has to be unique and ascending, so new modules
+        // don't edit this test. The applied order (applied_utc, version) must equal the ascending version order.
+        int[] wave1 = [1, 2, 100, 101, 200, 300, 400, 500, 600, 601];
+        Assert.Equal(wave1, result.Applied.Take(wave1.Length));
+        var later = result.Applied.Skip(wave1.Length).ToArray();
+        Assert.All(later, v => Assert.True(v >= 700, $"Migration {v} is after the Wave 1 block but numbered below 0700."));
+        Assert.Equal(later.Order().Distinct(), later);
+        Assert.Equal(new EmbeddedMigrationSource().Load().Select(s => s.Version), result.Applied);
+        Assert.Equal(string.Join(",", result.Applied), await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct));
 
         // Module tables exist (P1 access, P2 inventory, P3 stays/housekeeping, P4 billing/cashier).
         foreach (var t in new[] { "plat.app_user", "plat.session", "plat.role_grant", "inv.type_night_count", "inv.room_block", "inv.reservation_night", "bill.quote",
