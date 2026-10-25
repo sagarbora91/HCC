@@ -31,7 +31,7 @@ Internal hotel-operations app for the owner's hotel business in India (owner: Sa
 - Phone versions: `FeatureRegistration.mobile.{pages,modals}` (registry.ts) replace desktop page/modal IDs when the mobile shell is shown; shared phone components in `src/app/mobile/components.tsx`; phone rules = 48 px targets, 16 px text, cards not tables, no sideways scroll at 360 px.
 - Modules 13–26: one folder per module (`src/features/<m>`, `src/domain/streams/<m>.ts`, `src/services/mock/handlers/<m>.ts`, `src/fixtures/ext/<m>.ts`, `tests/stream-<m>.mjs`), state slice `s.<m>X`, prefixed names/commands.
 - Availability: `available()` = `availableRaw()` minus room holds (group blocks via `registerRoomHold`); use `withHoldExempt(blockId, …)` for a block's own pickup.
-- Permissions: `can()` / `NavItem.p` accept one permission or an any-of array. Housekeeping/maintenance never see money.
+- Permissions: `can()` / `NavItem.p` accept one permission or an any-of array. Housekeeping/maintenance never see hotel money (they may see only their own pay on "My shifts & pay", DEC-061).
 - Theme Maroon & Sand: primary #7A1F2B, background #FAF6F0, text #2B1D16, muted #6B5547; WCAG AA; status colours always with text labels.
 
 ## Working preferences
