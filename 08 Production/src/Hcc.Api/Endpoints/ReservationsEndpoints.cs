@@ -1,3 +1,4 @@
+using Hcc.Application.Billing;
 using Hcc.Application.Reservations;
 using Hcc.Contracts.Reservations;
 using Hcc.Infrastructure.SqlServer.Reservations;
@@ -6,7 +7,8 @@ namespace Hcc.Api;
 
 /// <summary>
 /// Reservation endpoints (P2): POST /commands/CreateReservation, AmendReservation, CancelReservation, MarkNoShow, ConfirmHold;
-/// GET /reservations/{id}. Every command needs Idempotency-Key; versioned commands carry expectedVersion in the body.
+/// GET /reservations/{id}. Every route requires a session; every command needs Idempotency-Key; versioned commands carry
+/// expectedVersion in the body.
 /// </summary>
 public static class ReservationsEndpoints
 {
@@ -14,6 +16,7 @@ public static class ReservationsEndpoints
     {
         services.AddSingleton<IReservationStore, SqlReservationStore>();
         services.AddSingleton<IAgreedNightRateSource, SqlAgreedNightRateSource>();
+        services.AddSingleton<IReservationMoneyCheck, BillingReservationMoney>(); // billing owns folio figures
         services.AddSingleton<ReservationService>();
         return services;
     }
@@ -21,20 +24,21 @@ public static class ReservationsEndpoints
     public static RouteGroupBuilder MapReservationsEndpoints(this RouteGroupBuilder api)
     {
         ArgumentNullException.ThrowIfNull(api);
-        api.MapPost("/commands/CreateReservation", async (HttpContext http, IRequestActorResolver actors, ReservationService svc, CreateReservationRequest body, CancellationToken ct) =>
-            InventoryEndpoints.Respond(http, await svc.CreateAsync(InventoryEndpoints.Context(http, actors, "CreateReservation"), body, ct)));
-        api.MapPost("/commands/AmendReservation", async (HttpContext http, IRequestActorResolver actors, ReservationService svc, AmendReservationRequest body, CancellationToken ct) =>
-            InventoryEndpoints.Respond(http, await svc.AmendAsync(InventoryEndpoints.Context(http, actors, "AmendReservation"), body, ct)));
-        api.MapPost("/commands/CancelReservation", async (HttpContext http, IRequestActorResolver actors, ReservationService svc, CancelReservationRequest body, CancellationToken ct) =>
-            InventoryEndpoints.Respond(http, await svc.CancelAsync(InventoryEndpoints.Context(http, actors, "CancelReservation"), body, ct)));
-        api.MapPost("/commands/MarkNoShow", async (HttpContext http, IRequestActorResolver actors, ReservationService svc, CancelReservationRequest body, CancellationToken ct) =>
-            InventoryEndpoints.Respond(http, await svc.MarkNoShowAsync(InventoryEndpoints.Context(http, actors, "MarkNoShow"), body, ct)));
-        api.MapPost("/commands/ConfirmHold", async (HttpContext http, IRequestActorResolver actors, ReservationService svc, ConfirmHoldRequest body, CancellationToken ct) =>
-            InventoryEndpoints.Respond(http, await svc.ConfirmHoldAsync(InventoryEndpoints.Context(http, actors, "ConfirmHold"), body, ct)));
-        api.MapGet("/reservations/{id:long}", async (HttpContext http, IRequestActorResolver actors, ReservationService svc, long id, CancellationToken ct) =>
+        var g = api.MapHccSecured();
+        g.MapPost("/commands/CreateReservation", async (HttpContext http, ReservationService svc, CreateReservationRequest body, CancellationToken ct) =>
+            http.HccReply(await svc.CreateAsync(http.HccCommand("CreateReservation"), body, ct)));
+        g.MapPost("/commands/AmendReservation", async (HttpContext http, ReservationService svc, AmendReservationRequest body, CancellationToken ct) =>
+            http.HccReply(await svc.AmendAsync(http.HccCommand("AmendReservation"), body, ct)));
+        g.MapPost("/commands/CancelReservation", async (HttpContext http, ReservationService svc, CancelReservationRequest body, CancellationToken ct) =>
+            http.HccReply(await svc.CancelAsync(http.HccCommand("CancelReservation"), body, ct)));
+        g.MapPost("/commands/MarkNoShow", async (HttpContext http, ReservationService svc, CancelReservationRequest body, CancellationToken ct) =>
+            http.HccReply(await svc.MarkNoShowAsync(http.HccCommand("MarkNoShow"), body, ct)));
+        g.MapPost("/commands/ConfirmHold", async (HttpContext http, ReservationService svc, ConfirmHoldRequest body, CancellationToken ct) =>
+            http.HccReply(await svc.ConfirmHoldAsync(http.HccCommand("ConfirmHold"), body, ct)));
+        g.MapGet("/reservations/{id:long}", async (HttpContext http, ReservationService svc, long id, CancellationToken ct) =>
         {
-            var a = actors.Resolve(http);
-            return Results.Ok(await svc.GetAsync(a.PropertyId, a.PrincipalId, id, ct));
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await svc.GetAsync(property, principal, id, ct));
         });
         return api;
     }

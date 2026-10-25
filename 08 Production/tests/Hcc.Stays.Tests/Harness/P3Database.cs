@@ -2,12 +2,17 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Hcc.Application.Access;
+using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Application.Housekeeping;
 using Hcc.Application.Stays;
 using Hcc.Infrastructure.SqlServer;
+using Hcc.Infrastructure.SqlServer.Billing;
 using Hcc.Infrastructure.SqlServer.Connection;
 using Hcc.Infrastructure.SqlServer.Housekeeping;
+using Hcc.Infrastructure.SqlServer.Inventory;
+using Hcc.Infrastructure.SqlServer.Reservations;
 using Hcc.Infrastructure.SqlServer.Migrations;
 using Hcc.Infrastructure.SqlServer.Stays;
 using Microsoft.Data.SqlClient;
@@ -97,13 +102,16 @@ public sealed class P3World : IAsyncDisposable
         Db = db;
         Seed = seed;
         var conns = db.Platform.Connections;
-        Scope = new SqlAssignedScopeSource(conns);
+        Scope = SqlHousekeepingScopeResolver.All(conns).ToList();
         Policy = new FakeAccessPolicy(Scope);
         Clock = new TestClock(new DateTimeOffset(2026, 10, 24, 8, 0, 0, TimeSpan.Zero));
         HkReads = new SqlHousekeepingReadStore(conns);
-        Stays = new StaysCommands(db.Platform.Commands, Policy, new SqlStaysStore(), new Sql0002StayFolioPort(), Clock);
+        var billingStore = new SqlBillingStore(conns);
+        Billing = new BillingService(db.Platform.Commands, billingStore, Policy,
+            new StayNightSource(billingStore, new SqlAgreedNightRateSource(conns), new FixedTaxRateSource()), new FixedTaxRateSource(), Clock);
+        Stays = new StaysCommands(db.Platform.Commands, Policy, new SqlStaysStore(), new BillingStayFolioPort(billingStore, Billing), Clock);
         StayQueries = new StaysQueries(Policy, new SqlStaysReadStore(conns));
-        Housekeeping = new HousekeepingCommands(db.Platform.Commands, Policy, new SqlHousekeepingStore(), HkReads, new PolicyTaskAssigneeEligibility(Policy), Options, Clock);
+        Housekeeping = new HousekeepingCommands(db.Platform.Commands, Policy, new SqlHousekeepingStore(), HkReads, new PolicyTaskAssigneeEligibility(Policy), new SqlRoomBlockPort(conns), Options, Clock);
         Board = new HousekeepingQueries(Policy, HkReads);
         Projector = new HousekeepingTaskProjector(db.Platform.Outbox);
         Blocks = new SqlRoomBlockReader(conns);
@@ -113,7 +121,9 @@ public sealed class P3World : IAsyncDisposable
 
     public Seed Seed { get; }
 
-    public SqlAssignedScopeSource Scope { get; }
+    public IReadOnlyList<IAccessScopeResolver> Scope { get; }
+
+    public BillingService Billing { get; }
 
     public FakeAccessPolicy Policy { get; }
 

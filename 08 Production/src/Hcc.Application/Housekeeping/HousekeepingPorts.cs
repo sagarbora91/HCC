@@ -24,45 +24,11 @@ public static class HousekeepingPermissions
     public static string WorkFor(string kind) => kind == HkTaskKind.Repair ? RepairWork : Work;
 }
 
-/// <summary>
-/// Scope conventions for <see cref="IAccessPolicy"/> calls made by P3 (proposed to P1, see the P3 report):
-/// <list type="bullet">
-/// <item><c>scope = null</c> — the principal holds the permission at any scope.</item>
-/// <item><c>Property(propertyId)</c> — the principal holds it property-wide (not only for assigned records).</item>
-/// <item><c>HkTask(taskId)</c> — property-wide, or an assigned-scope ("A") grant and the principal is the task's assignee.</item>
-/// <item><c>Room(roomId)</c> — property-wide, or an assigned-scope grant and the principal has an open task on the room.</item>
-/// </list>
-/// P1 resolves the assigned cases through <see cref="IAssignedScopeSource"/>.
-/// </summary>
-public static class AccessScopes
-{
-    public const string PropertyKind = "Property";
-    public const string HkTaskKind = "HkTask";
-    public const string RoomKind = "Room";
-
-    public static AccessScope Property(int propertyId) => new(PropertyKind, propertyId);
-
-    public static AccessScope HkTask(long taskId) => new(HkTaskKind, taskId);
-
-    public static AccessScope Room(int roomId) => new(RoomKind, roomId);
-}
-
-/// <summary>Port toward P1: answers "is this record assigned to this principal?" for assigned-scope grants (RBAC §4 scope A).</summary>
-public interface IAssignedScopeSource
-{
-    Task<bool> IsAssignedAsync(int propertyId, int principalId, AccessScope scope, CancellationToken ct = default);
-}
-
-/// <summary>
-/// Port toward P2 (inventory): a room with an active block covering any night of [from, to) is not allocatable
-/// (prototype <c>availableRaw → blockedDuring</c>). P2 may call this or read <c>ops.v_room_block_active</c> in its own SQL.
-/// </summary>
-public interface IRoomBlockReader
-{
-    Task<bool> IsBlockedDuringAsync(int roomId, DateOnly from, DateOnly to, CancellationToken ct = default);
-
-    Task<IReadOnlyList<int>> BlockedRoomsAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct = default);
-}
+// Scope conventions: Hcc.Application.Access.AccessScopes / AccessScopeKinds (one set for every module since the Wave 1
+// integration). Housekeeping uses HkTask(taskId) and Room(roomId) (assigned scope "A", resolved by
+// Infrastructure.SqlServer.Housekeeping.SqlHousekeepingScopeResolver), Property(...) to ask "property-wide?", and Any for
+// list screens that then filter to the principal's own tasks. Room blocks reach inventory through
+// Hcc.Application.Inventory.IRoomBlockPort (P2), called inside the Block/Unblock command transaction.
 
 /// <summary>
 /// Port toward P1: may this principal be assigned a task of this kind (prototype: enabled Housekeeper for cleans, enabled
@@ -83,9 +49,9 @@ public sealed class PolicyTaskAssigneeEligibility(IAccessPolicy policy) : ITaskA
     public async Task<bool> CanBeAssignedAsync(int propertyId, int principalId, string taskKind, CancellationToken ct = default)
     {
         if (principalId <= 0) return false;
-        var cleans = await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.Work, null, ct).ConfigureAwait(false);
+        var cleans = await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.Work, AccessScopes.Any, ct).ConfigureAwait(false);
         if (taskKind != HkTaskKind.Repair) return cleans;
-        return !cleans && await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.RepairWork, null, ct).ConfigureAwait(false);
+        return !cleans && await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.RepairWork, AccessScopes.Any, ct).ConfigureAwait(false);
     }
 }
 

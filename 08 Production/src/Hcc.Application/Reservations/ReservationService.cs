@@ -18,7 +18,7 @@ namespace Hcc.Application.Reservations;
 /// same check order and messages. Lapsed holds and past-cut-off blocks are swept in a short transaction before each command.
 /// </summary>
 public sealed class ReservationService(IReservationStore reservations, IInventoryStore inventory, InventoryService inventoryService,
-    ICommandRunner runner, IAccessPolicy access, TimeProvider clock)
+    ICommandRunner runner, IAccessPolicy access, IReservationMoneyCheck money, TimeProvider clock)
 {
     public async Task<CommandResult<ReservationResult>> CreateAsync(CommandContext context, CreateReservationRequest request, CancellationToken ct = default)
     {
@@ -210,7 +210,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             var held = ReservationStatusMap.HoldRunning(x.Status, x.HoldUntilUtc, now);
             ReservationStatusMap.EnsureCancellable(x.Status, x.HoldUntilUtc, now, noShow, x.Arrival, property.BusinessDate);
             if (!InventoryErrors.VersionEquals(x.RowVersion, expected)) throw InventoryErrors.Stale("This reservation");
-            if (await reservations.HasUnsettledMoneyAsync(tx, x.ReservationId, c).ConfigureAwait(false))
+            if (await money.HasUnsettledMoneyAsync(tx, x.ReservationId, c).ConfigureAwait(false))
                 throw new HccException(HccErrorCode.INVALID_TRANSITION, "Refund the advance and return any deposit before cancelling.");
             var reason = (request.Reason ?? "").Trim();
             if (reason.Length > 200) reason = reason[..200];

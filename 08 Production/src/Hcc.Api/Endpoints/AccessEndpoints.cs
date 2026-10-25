@@ -18,6 +18,9 @@ public static class AccessEndpoints
 {
     private const string SessionItem = "hcc.session";
 
+    /// <summary>Response header on a replayed command (same Idempotency-Key and body as an earlier request).</summary>
+    public const string ReplayedHeader = "Idempotent-Replayed";
+
     /// <summary>DI registration (one line in Program.cs). Binds <c>Hcc:Access</c>; scope resolvers registered by other modules are picked up.</summary>
     public static IServiceCollection AddHccAccess(this IServiceCollection services, IConfiguration configuration, SqlPlatform platform)
     {
@@ -33,7 +36,7 @@ public static class AccessEndpoints
         return services;
     }
 
-    /// <summary>Validates the session (cookie or bearer token) before the handler runs; FORBIDDEN (reason SESSION_INVALID) otherwise.</summary>
+    /// <summary>Validates the session (cookie or bearer token) before the handler runs; UNAUTHENTICATED (401, reason SESSION_INVALID) otherwise.</summary>
     public static TBuilder RequireHccSession<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
         builder.AddEndpointFilter(async (ctx, next) =>
         {
@@ -47,6 +50,48 @@ public static class AccessEndpoints
     {
         ArgumentNullException.ThrowIfNull(http);
         return http.Items[SessionItem] as AuthenticatedSession ?? throw new InvalidOperationException("Endpoint is missing RequireHccSession().");
+    }
+
+    /// <summary>
+    /// A route group under <paramref name="api"/> whose endpoints all require a valid session (every module's endpoints go here;
+    /// handlers read the actor with <see cref="HccActor"/> / <see cref="HccCommand"/>, never from the body).
+    /// </summary>
+    public static RouteGroupBuilder MapHccSecured(this RouteGroupBuilder api)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        return api.MapGroup(string.Empty).RequireHccSession();
+    }
+
+    /// <summary>The signed-in actor: (property, principal) of the validated session.</summary>
+    public static (int PropertyId, int PrincipalId) HccActor(this HttpContext http)
+    {
+        var s = http.GetHccSession();
+        return (s.PropertyId, s.UserId);
+    }
+
+    /// <summary>
+    /// Command context from the session and the Idempotency-Key header (VALIDATION when missing/too long). With
+    /// <paramref name="keyRequired"/> false (QuoteStay, contracts §3) a missing key gets a fresh server key, so a retry repeats the command.
+    /// </summary>
+    public static CommandContext HccCommand(this HttpContext http, string operation, bool keyRequired = true)
+    {
+        ArgumentNullException.ThrowIfNull(http);
+        var session = http.GetHccSession();
+        var key = http.Request.Headers[ApiConventions.IdempotencyKeyHeader].ToString();
+        if (!keyRequired && string.IsNullOrWhiteSpace(key)) key = "auto-" + Guid.NewGuid().ToString("N");
+        else key = http.Request.IdempotencyKey();
+        var ctx = session.CommandContext(operation, key);
+        ctx.Validate();
+        return ctx;
+    }
+
+    /// <summary>200 with the command result; marks a replay with <see cref="ReplayedHeader"/>.</summary>
+    public static IResult HccReply<T>(this HttpContext http, CommandResult<T> result)
+    {
+        ArgumentNullException.ThrowIfNull(http);
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.Replayed) http.Response.Headers[ReplayedHeader] = "true";
+        return Results.Ok(result.Value);
     }
 
     public static string IdempotencyKey(this HttpRequest request)
@@ -121,8 +166,7 @@ public static class AccessEndpoints
         group.MapPost("/" + name, async (TBody body, HttpContext http, IUserAdministration users, CancellationToken ct) =>
         {
             var result = await run(users, http.GetHccSession(), http.Request.IdempotencyKey(), body, ct).ConfigureAwait(false);
-            if (result.Replayed) http.Response.Headers["Idempotent-Replayed"] = "true";
-            return Results.Ok(result.Value);
+            return http.HccReply(result);
         });
 
     private static string? TokenOf(HttpRequest request)

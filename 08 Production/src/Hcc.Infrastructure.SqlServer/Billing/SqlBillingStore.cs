@@ -42,6 +42,44 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
 
     // ── folio ──
 
+    public async Task<long> EnsureFolioAsync(ICommandTransaction tx, long reservationId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, """
+            DECLARE @f BIGINT = (SELECT folio_id FROM bill.folio WITH (UPDLOCK, HOLDLOCK) WHERE reservation_id = @r);
+            IF @f IS NULL
+            BEGIN
+              INSERT bill.folio(reservation_id) VALUES (@r);
+              SET @f = SCOPE_IDENTITY();
+            END
+            SELECT @f;
+            """);
+        cmd.Parameters.Add("@r", SqlDbType.BigInt).Value = reservationId;
+        return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public async Task<long?> FolioIdForReservationAsync(ICommandTransaction tx, long reservationId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "SELECT folio_id FROM bill.folio WHERE reservation_id = @r;");
+        cmd.Parameters.Add("@r", SqlDbType.BigInt).Value = reservationId;
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as long?;
+    }
+
+    public async Task<(long ReservationId, long FolioId)?> StayFolioAsync(ICommandTransaction tx, int propertyId, long stayId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "SELECT reservation_id, folio_id FROM gst.stay WHERE stay_id = @s AND property_id = @p;");
+        cmd.Parameters.Add("@s", SqlDbType.BigInt).Value = stayId;
+        cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await rd.ReadAsync(ct).ConfigureAwait(false) ? (rd.GetInt64(0), rd.GetInt64(1)) : null;
+    }
+
+    public async Task<Paise?> ReservationNightlyRateAsync(ICommandTransaction tx, long reservationId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "SELECT nightly_rate_paise FROM inv.reservation WHERE reservation_id = @r;");
+        cmd.Parameters.Add("@r", SqlDbType.BigInt).Value = reservationId;
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is long v ? new Paise(v) : null;
+    }
+
     public async Task<FolioHeader?> LockFolioAsync(ICommandTransaction tx, long folioId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, $"""

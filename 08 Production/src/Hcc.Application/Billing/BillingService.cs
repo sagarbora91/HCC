@@ -94,7 +94,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             _ => throw HccException.Validation("Receipt type must be payment, deposit or deposit-return."),
         };
         var permission = kind == ReceiptKind.Payment ? BillingPermissions.PaymentRecord : BillingPermissions.DepositRecord;
-        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         var amount = Paise.FromWire(req.AmountPaise).EnsureReceiptAmount();
         var reference = BillingText.Optional(req.Reference, 120);
         var tender = Tenders.Validate(req.Tender, reference);
@@ -337,73 +337,107 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         ArgumentNullException.ThrowIfNull(caller);
         ArgumentNullException.ThrowIfNull(req);
         VersionToken.Validate(req.ExpectedVersion);
-        return await runner.RunAsync(Ctx(caller, "ExecuteAdjustment", idempotencyKey), req, async (tx, ct2) =>
+        return await runner.RunAsync(Ctx(caller, "ExecuteAdjustment", idempotencyKey), req, (tx, ct2) => ExecuteCoreAsync(tx, caller, req, checkVersion: true, ct2), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checkout settlement inside the caller's (P3 CheckoutStay) command transaction: executes an approved company credit when
+    /// one is named (DEC-041 binding: amount = balance, folio version unchanged since approval), then requires every agreed night
+    /// [arrival, departure) posted, balance 0, deposit returned and no pending approval on the folio. Locks the folio row.
+    /// </summary>
+    public async Task SettleForCheckoutAsync(ICommandTransaction tx, Caller caller, long folioId, DateOnly arrival, DateOnly departure, long? companyCreditApprovalId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(caller);
+        var f = await RequireFolioAsync(tx, caller, folioId, ct).ConfigureAwait(false);
+        if (companyCreditApprovalId is { } approvalId)
         {
-            var peek = await store.PeekApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false);
-            if (peek is null || peek.PropertyId != caller.PropertyId) throw NotFound("Approval request not found.");
-            if (peek.Action is not (AdjustmentAction.Refund or AdjustmentAction.Credit))
-                throw Invalid("Discounts and corrections are posted when they are approved; only refunds and company credit are executed separately.");
-            var permission = peek.Action == AdjustmentAction.Refund ? BillingPermissions.RefundExecute : BillingPermissions.Checkout;
-            await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, ct: ct2).ConfigureAwait(false);
+            var peek = await store.PeekApprovalAsync(tx, approvalId, ct).ConfigureAwait(false);
+            if (peek is null || peek.PropertyId != caller.PropertyId || peek.FolioId != f.FolioId) throw NotFound("Company credit approval not found for this folio.");
+            if (peek.Action != AdjustmentAction.Credit) throw Invalid("The approval named at checkout is not a company credit.");
+            await ExecuteCoreAsync(tx, caller, new ExecuteAdjustmentRequest(approvalId, peek.Version, null, null, null), checkVersion: false, ct).ConfigureAwait(false);
+        }
 
-            var f = await RequireFolioAsync(tx, caller, peek.FolioId!.Value, ct2).ConfigureAwait(false);
-            var a = (await store.LockApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false))!;
-            EnsureVersion(a.Version, req.ExpectedVersion, "The approval request");
-            var now = Now;
-            if (a.Status == ApprovalStatus.Executed) throw Invalid("This request has already been executed.");
-            if (a.Status != ApprovalStatus.Approved) throw Invalid("Only an approved request can be executed.");
-            if (ApprovalRules.IsExpired(a.Status, a.Action, a.ExpiresUtc, now)) throw Invalid("This approval has expired. Request it again.");
+        var lines = await store.LinesAsync(tx, f.FolioId, ct).ConfigureAwait(false);
+        var reversed = lines.Where(l => l.ReversesChargeId is not null).Select(l => l.ReversesChargeId!.Value).ToHashSet();
+        var nights = lines.Where(l => l.Kind == ChargeKind.Room && l.ReversesChargeId is null && !reversed.Contains(l.ChargeId)).Select(l => l.ServiceDate).ToHashSet();
+        for (var d = arrival; d < departure; d = d.AddDays(1))
+            if (!nights.Contains(d)) throw Invalid("Post all agreed stay charges before checkout.");
+        var figures = FolioStatement.Compute(lines, await store.ReceiptsAsync(tx, f.FolioId, ct).ConfigureAwait(false));
+        if (figures.Balance != Paise.Zero) throw Invalid("Settle the folio exactly before checkout. Refund any excess receipt.");
+        if (figures.Deposit != Paise.Zero) throw Invalid("Return the refundable deposit before checkout.");
+        var now = Now;
+        var approvals = await store.ApprovalsForFolioAsync(tx, f.FolioId, ct).ConfigureAwait(false);
+        if (approvals.Any(a => a.Status == ApprovalStatus.Pending && !ApprovalRules.IsExpired(a.Status, a.Action, a.ExpiresUtc, now)))
+            throw Invalid("Decide the pending approval requests on this folio before checkout.");
+    }
 
-            var receipts = await store.ReceiptsAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
-            var lines = await store.LinesAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
-            var figures = FolioStatement.Compute(lines, receipts);
-            NewReceipt receipt;
-            if (a.Action == AdjustmentAction.Refund)
+    private async Task<ApprovalResult> ExecuteCoreAsync(ICommandTransaction tx, Caller caller, ExecuteAdjustmentRequest req, bool checkVersion, CancellationToken ct2)
+    {
+        var peek = await store.PeekApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false);
+        if (peek is null || peek.PropertyId != caller.PropertyId) throw NotFound("Approval request not found.");
+        if (peek.Action is not (AdjustmentAction.Refund or AdjustmentAction.Credit))
+            throw Invalid("Discounts and corrections are posted when they are approved; only refunds and company credit are executed separately.");
+        var permission = peek.Action == AdjustmentAction.Refund ? BillingPermissions.RefundExecute : BillingPermissions.Checkout;
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, AccessScopes.Any, ct: ct2).ConfigureAwait(false);
+
+        var f = await RequireFolioAsync(tx, caller, peek.FolioId!.Value, ct2).ConfigureAwait(false);
+        var a = (await store.LockApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false))!;
+        if (checkVersion) EnsureVersion(a.Version, req.ExpectedVersion, "The approval request");
+        var now = Now;
+        if (a.Status == ApprovalStatus.Executed) throw Invalid("This request has already been executed.");
+        if (a.Status != ApprovalStatus.Approved) throw Invalid("Only an approved request can be executed.");
+        if (ApprovalRules.IsExpired(a.Status, a.Action, a.ExpiresUtc, now)) throw Invalid("This approval has expired. Request it again.");
+
+        var receipts = await store.ReceiptsAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
+        var lines = await store.LinesAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
+        var figures = FolioStatement.Compute(lines, receipts);
+        NewReceipt receipt;
+        if (a.Action == AdjustmentAction.Refund)
+        {
+            if (a.RequestedBy == caller.PrincipalId)
+                throw Forbidden("The person who requested a refund cannot also execute it (DEC-031).");
+            var parent = await store.LockReceiptAsync(tx, a.TargetId, ct2).ConfigureAwait(false) ?? throw NotFound("The original receipt no longer exists.");
+            var approvals = await store.ApprovalsForFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
+            // Under the parent-receipt lock the physical remainder (captured − executed refunds) decides, first come first served
+            // (spike C3). Requests and decisions also reserve outstanding approvals, so for any consistent state this equals the
+            // prototype's check; it differs only for an over-committed state, where the prototype would refuse every execution.
+            var remainder = await RefundRemainderAsync(tx, parent.Receipt, [], a.ApprovalId, now, ct2).ConfigureAwait(false);
+            if (a.Amount > remainder) throw Invalid("Refund cannot exceed the refundable remainder of this receipt.");
+            if (f.ReservationStatus == "Departed" && a.Amount > RefundRules.DepartedLimit(figures.Balance, OutstandingRefunds(approvals, a.ApprovalId, now)))
+                throw Invalid("A settled departed stay requires a credit note before a refund.");
+            var reference = BillingText.Optional(req.Reference, 120);
+            if (reference.Length == 0) reference = $"Refund of receipt {parent.Receipt.ReceiptId}";
+            var tender = Tenders.Validate(req.Tender ?? parent.Receipt.Tender, reference);
+            int? tillId = null;
+            long? shiftId = null;
+            if (tender == Tenders.Cash)
             {
-                if (a.RequestedBy == caller.PrincipalId)
-                    throw Forbidden("The person who requested a refund cannot also execute it (DEC-031).");
-                var parent = await store.LockReceiptAsync(tx, a.TargetId, ct2).ConfigureAwait(false) ?? throw NotFound("The original receipt no longer exists.");
-                var approvals = await store.ApprovalsForFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
-                // Under the parent-receipt lock the physical remainder (captured − executed refunds) decides, first come first served
-                // (spike C3). Requests and decisions also reserve outstanding approvals, so for any consistent state this equals the
-                // prototype's check; it differs only for an over-committed state, where the prototype would refuse every execution.
-                var remainder = await RefundRemainderAsync(tx, parent.Receipt, [], a.ApprovalId, now, ct2).ConfigureAwait(false);
-                if (a.Amount > remainder) throw Invalid("Refund cannot exceed the refundable remainder of this receipt.");
-                if (f.ReservationStatus == "Departed" && a.Amount > RefundRules.DepartedLimit(figures.Balance, OutstandingRefunds(approvals, a.ApprovalId, now)))
-                    throw Invalid("A settled departed stay requires a credit note before a refund.");
-                var reference = BillingText.Optional(req.Reference, 120);
-                if (reference.Length == 0) reference = $"Refund of receipt {parent.Receipt.ReceiptId}";
-                var tender = Tenders.Validate(req.Tender ?? parent.Receipt.Tender, reference);
-                int? tillId = null;
-                long? shiftId = null;
-                if (tender == Tenders.Cash)
-                {
-                    if (req.TillId is not { } t) throw HccException.Validation("Choose the till that pays out the cash.");
-                    var shift = await CashDesk.RequireOpenShiftAsync(store, tx, caller.PropertyId, t, f.BusinessDate, ct2).ConfigureAwait(false);
-                    await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, new AccessScope(BillingPermissions.ShiftScope, shift.ShiftId), ct: ct2).ConfigureAwait(false);
-                    (tillId, shiftId) = (shift.TillId, shift.ShiftId);
-                }
-
-                receipt = new NewReceipt(f.FolioId, ReceiptKind.Refund, tender, a.Amount, parent.Receipt.ReceiptId, f.BusinessDate, tillId, shiftId, reference, a.ApprovalId, caller.PrincipalId, now);
-            }
-            else
-            {
-                if (f.ReservationStatus != "InHouse") throw Invalid("This stay is not in house.");
-                if (figures.Balance != a.Amount || a.TargetVersion != f.Version) throw Stale("The folio changed after this approval. Request company credit again.");
-                receipt = new NewReceipt(f.FolioId, ReceiptKind.CompanyCredit, Tenders.CompanyCredit, a.Amount, null, f.BusinessDate, null, null,
-                    $"Company credit · approval {a.ApprovalId}", a.ApprovalId, caller.PrincipalId, now);
+                if (req.TillId is not { } t) throw HccException.Validation("Choose the till that pays out the cash.");
+                var shift = await CashDesk.RequireOpenShiftAsync(store, tx, caller.PropertyId, t, f.BusinessDate, ct2).ConfigureAwait(false);
+                await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, new AccessScope(BillingPermissions.ShiftScope, shift.ShiftId), ct: ct2).ConfigureAwait(false);
+                (tillId, shiftId) = (shift.TillId, shift.ShiftId);
             }
 
-            var receiptId = await store.InsertReceiptAsync(tx, receipt, ct2).ConfigureAwait(false);
-            if (receipt.ShiftId is { } sid)
-                await CashDesk.RecordReceiptMovementAsync(store, tx, sid, receipt.TillId!.Value, f.BusinessDate, receipt.Kind, receiptId, receipt.Amount, f.FolioId, receipt.Reference, caller.PrincipalId, now, ct2).ConfigureAwait(false);
-            var folioVersion = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
-            var newVersion = await store.UpdateApprovalAsync(tx, a.ApprovalId, a.Version,
-                new ApprovalChange(ApprovalStatus.Executed, a.DecidedBy, null, null, caller.PrincipalId, now, receiptId), ct2).ConfigureAwait(false);
-            await tx.AuditAsync("ADJUSTMENT_EXECUTED", Target("approval", a.ApprovalId), $"{BillingCodes.Code(a.Action)} · {a.Amount} · receipt {receiptId} · {receipt.Tender}", ct2).ConfigureAwait(false);
-            await tx.PublishAsync("ReceiptRecorded", f.FolioId, new { folioId = f.FolioId, receiptId, kind = FolioTotals.KindCode(receipt.Kind), tender = receipt.Tender, amountPaise = a.Amount.Value, businessDate = f.BusinessDate }, ct2).ConfigureAwait(false);
-            return new ApprovalResult(a.ApprovalId, BillingCodes.Code(a.Action), nameof(ApprovalStatus.Executed), a.Amount.Value, newVersion, receiptId, folioVersion, null);
-        }, ct).ConfigureAwait(false);
+            receipt = new NewReceipt(f.FolioId, ReceiptKind.Refund, tender, a.Amount, parent.Receipt.ReceiptId, f.BusinessDate, tillId, shiftId, reference, a.ApprovalId, caller.PrincipalId, now);
+        }
+        else
+        {
+            if (f.ReservationStatus != "InHouse") throw Invalid("This stay is not in house.");
+            if (figures.Balance != a.Amount || a.TargetVersion != f.Version) throw Stale("The folio changed after this approval. Request company credit again.");
+            receipt = new NewReceipt(f.FolioId, ReceiptKind.CompanyCredit, Tenders.CompanyCredit, a.Amount, null, f.BusinessDate, null, null,
+                $"Company credit · approval {a.ApprovalId}", a.ApprovalId, caller.PrincipalId, now);
+        }
+
+        var receiptId = await store.InsertReceiptAsync(tx, receipt, ct2).ConfigureAwait(false);
+        if (receipt.ShiftId is { } sid)
+            await CashDesk.RecordReceiptMovementAsync(store, tx, sid, receipt.TillId!.Value, f.BusinessDate, receipt.Kind, receiptId, receipt.Amount, f.FolioId, receipt.Reference, caller.PrincipalId, now, ct2).ConfigureAwait(false);
+        var folioVersion = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
+        var newVersion = await store.UpdateApprovalAsync(tx, a.ApprovalId, a.Version,
+            new ApprovalChange(ApprovalStatus.Executed, a.DecidedBy, null, null, caller.PrincipalId, now, receiptId), ct2).ConfigureAwait(false);
+        await tx.AuditAsync("ADJUSTMENT_EXECUTED", Target("approval", a.ApprovalId), $"{BillingCodes.Code(a.Action)} · {a.Amount} · receipt {receiptId} · {receipt.Tender}", ct2).ConfigureAwait(false);
+        await tx.PublishAsync("ReceiptRecorded", f.FolioId, new { folioId = f.FolioId, receiptId, kind = FolioTotals.KindCode(receipt.Kind), tender = receipt.Tender, amountPaise = a.Amount.Value, businessDate = f.BusinessDate }, ct2).ConfigureAwait(false);
+        return new ApprovalResult(a.ApprovalId, BillingCodes.Code(a.Action), nameof(ApprovalStatus.Executed), a.Amount.Value, newVersion, receiptId, folioVersion, null);
     }
 
     // ── helpers ──

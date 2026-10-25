@@ -37,13 +37,16 @@ public interface IReservationStore
     Task<SavedReservation> SetStatusAsync(ICommandTransaction tx, int propertyId, ReservationRecord current, string status, string? reason,
         DateTime nowUtc, CancellationToken ct = default);
 
-    /// <summary>
-    /// Net payments (payment − refund) or a deposit balance on the reservation's folio, if any (prototype CANCEL guard).
-    /// Reads 0002 <c>bill.folio</c>/<c>pay.receipt</c> only; P4 may replace it with its folio service.
-    /// </summary>
-    Task<bool> HasUnsettledMoneyAsync(ICommandTransaction tx, long reservationId, CancellationToken ct = default);
-
     Task<ReservationDetails?> GetDetailsAsync(int propertyId, long reservationId, DateTime nowUtc, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Cancel/no-show guard (prototype CANCEL): net payments (payment − refund) or a deposit balance on the reservation's folio.
+/// Implemented by billing (<c>Hcc.Application.Billing.BillingReservationMoney</c>), which owns folio figures.
+/// </summary>
+public interface IReservationMoneyCheck
+{
+    Task<bool> HasUnsettledMoneyAsync(ICommandTransaction tx, long reservationId, CancellationToken ct = default);
 }
 
 /// <summary>The agreed price of one reservation night (snapshot taken at booking/amend).</summary>

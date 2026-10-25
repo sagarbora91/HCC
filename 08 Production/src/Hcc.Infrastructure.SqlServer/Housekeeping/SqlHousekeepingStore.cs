@@ -203,8 +203,11 @@ public sealed class SqlHousekeepingStore : IHousekeepingStore
     }
 }
 
-/// <summary><see cref="IRoomBlockReader"/> over ops.room_block (for P2's allocation checks and the board).</summary>
-public sealed class SqlRoomBlockReader(SqlConnectionFactory connections) : IRoomBlockReader
+/// <summary>
+/// Reads ops.room_block (housekeeping's block record; the board and check-in). The inventory effect of a block lives in
+/// P2's inv.room_block, written through <see cref="Application.Inventory.IRoomBlockPort"/> in the same command.
+/// </summary>
+public sealed class SqlRoomBlockReader(SqlConnectionFactory connections)
 {
     internal const string BlockColumns = "block_id, room_id, from_date, to_date, reason, source, row_ver";
 
@@ -320,16 +323,25 @@ public sealed class SqlHousekeepingReadStore(SqlConnectionFactory connections) :
     }
 }
 
-/// <summary><see cref="IAssignedScopeSource"/> for P1's policy: HkTask → assignee; Room → an open task on the room assigned to the principal.</summary>
-public sealed class SqlAssignedScopeSource(SqlConnectionFactory connections) : IAssignedScopeSource
+/// <summary>
+/// Assigned-scope ("A") resolver for P1's policy, one instance per kind: <c>task</c> → the principal is the task's assignee;
+/// <c>room</c> → the principal has an open (not Done) task on the room.
+/// </summary>
+public sealed class SqlHousekeepingScopeResolver(SqlConnectionFactory connections, string kind) : IAccessScopeResolver
 {
-    public async Task<bool> IsAssignedAsync(int propertyId, int principalId, AccessScope scope, CancellationToken ct = default)
+    public string Kind { get; } = kind is AccessScopeKinds.Task or AccessScopeKinds.Room ? kind : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Housekeeping resolves task and room scopes.");
+
+    public static IEnumerable<IAccessScopeResolver> All(SqlConnectionFactory connections) =>
+        [new SqlHousekeepingScopeResolver(connections, AccessScopeKinds.Task), new SqlHousekeepingScopeResolver(connections, AccessScopeKinds.Room)];
+
+    public async Task<bool> IsOwnAsync(int propertyId, int principalId, AccessScope scope, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(scope);
+        if (scope.Kind != Kind) return false;
         var sql = scope.Kind switch
         {
-            AccessScopes.HkTaskKind => "SELECT COUNT(*) FROM ops.hk_task WHERE task_id = @id AND property_id = @p AND assignee_id = @u;",
-            AccessScopes.RoomKind => "SELECT COUNT(*) FROM ops.hk_task WHERE room_id = @id AND property_id = @p AND assignee_id = @u AND status <> 'Done';",
+            AccessScopeKinds.Task => "SELECT COUNT(*) FROM ops.hk_task WHERE task_id = @id AND property_id = @p AND assignee_id = @u;",
+            AccessScopeKinds.Room => "SELECT COUNT(*) FROM ops.hk_task WHERE room_id = @id AND property_id = @p AND assignee_id = @u AND status <> 'Done';",
             _ => null,
         };
         if (sql is null) return false;

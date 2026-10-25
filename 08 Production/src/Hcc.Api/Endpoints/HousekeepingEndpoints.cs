@@ -1,8 +1,8 @@
+using Hcc.Application.Access;
 using Hcc.Application.Housekeeping;
 using Hcc.Contracts.Housekeeping;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Housekeeping;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hcc.Api.Endpoints;
 
@@ -15,14 +15,14 @@ public static class HousekeepingEndpoints
 {
     public static IServiceCollection AddHccHousekeeping(this IServiceCollection services)
     {
-        services.TryAddSingleton<Application.Access.IAccessPolicy, DenyAllAccessPolicy>();
         services.AddSingleton(new HousekeepingOptions()); // inspection policy → Master configuration (DEC-057) later
         services.AddSingleton<IHousekeepingStore, SqlHousekeepingStore>();
         services.AddSingleton<IHousekeepingReadStore>(sp => new SqlHousekeepingReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
-        services.AddSingleton<IRoomBlockReader>(sp => new SqlRoomBlockReader(sp.GetRequiredService<SqlPlatform>().Connections));
-        services.AddSingleton<IAssignedScopeSource>(sp => new SqlAssignedScopeSource(sp.GetRequiredService<SqlPlatform>().Connections));
+        // Assigned-scope resolvers for P1's policy (scope kinds "task" and "room").
+        services.AddSingleton<IAccessScopeResolver>(sp => new SqlHousekeepingScopeResolver(sp.GetRequiredService<SqlPlatform>().Connections, AccessScopeKinds.Task));
+        services.AddSingleton<IAccessScopeResolver>(sp => new SqlHousekeepingScopeResolver(sp.GetRequiredService<SqlPlatform>().Connections, AccessScopeKinds.Room));
         services.AddSingleton(sp => new HousekeepingTaskProjector(sp.GetRequiredService<SqlPlatform>().Outbox));
-        services.TryAddSingleton<ITaskAssigneeEligibility, PolicyTaskAssigneeEligibility>(); // P1 staff directory replaces
+        services.AddSingleton<ITaskAssigneeEligibility, PolicyTaskAssigneeEligibility>(); // grants-based: HK-003 for cleans, ROOM-001 without HK-003 for repairs
         services.AddSingleton<HousekeepingCommands>();
         services.AddSingleton<HousekeepingQueries>();
         services.AddHostedService<HousekeepingProjectorWorker>();
@@ -32,22 +32,23 @@ public static class HousekeepingEndpoints
     public static RouteGroupBuilder MapHousekeepingEndpoints(this RouteGroupBuilder api)
     {
         ArgumentNullException.ThrowIfNull(api);
-        api.MapPost("/commands/" + HousekeepingCommands.OpTransition, async (HttpContext http, TransitionHousekeepingTaskRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
-            P3Session.Reply(http, await cmds.TransitionAsync(P3Session.Context(http, HousekeepingCommands.OpTransition), body, ct)));
-        api.MapPost("/commands/" + HousekeepingCommands.OpBlockRoom, async (HttpContext http, BlockRoomRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
-            P3Session.Reply(http, await cmds.BlockRoomAsync(P3Session.Context(http, HousekeepingCommands.OpBlockRoom), body, ct)));
-        api.MapPost("/commands/" + HousekeepingCommands.OpUnblockRoom, async (HttpContext http, UnblockRoomRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
-            P3Session.Reply(http, await cmds.UnblockRoomAsync(P3Session.Context(http, HousekeepingCommands.OpUnblockRoom), body, ct)));
-        api.MapPost("/commands/" + HousekeepingCommands.OpRequestRepair, async (HttpContext http, RequestRepairRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
-            P3Session.Reply(http, await cmds.RequestRepairAsync(P3Session.Context(http, HousekeepingCommands.OpRequestRepair), body, ct)));
-        api.MapGet("/rooms/board", async (HttpContext http, HousekeepingQueries q, CancellationToken ct, int page = 1, int pageSize = 50) =>
+        var g = api.MapHccSecured();
+        g.MapPost("/commands/" + HousekeepingCommands.OpTransition, async (HttpContext http, TransitionHousekeepingTaskRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.TransitionAsync(http.HccCommand(HousekeepingCommands.OpTransition), body, ct)));
+        g.MapPost("/commands/" + HousekeepingCommands.OpBlockRoom, async (HttpContext http, BlockRoomRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.BlockRoomAsync(http.HccCommand(HousekeepingCommands.OpBlockRoom), body, ct)));
+        g.MapPost("/commands/" + HousekeepingCommands.OpUnblockRoom, async (HttpContext http, UnblockRoomRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.UnblockRoomAsync(http.HccCommand(HousekeepingCommands.OpUnblockRoom), body, ct)));
+        g.MapPost("/commands/" + HousekeepingCommands.OpRequestRepair, async (HttpContext http, RequestRepairRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.RequestRepairAsync(http.HccCommand(HousekeepingCommands.OpRequestRepair), body, ct)));
+        g.MapGet("/rooms/board", async (HttpContext http, HousekeepingQueries q, CancellationToken ct, int page = 1, int pageSize = 50) =>
         {
-            var (property, principal) = P3Session.Actor(http);
+            var (property, principal) = http.HccActor();
             return Results.Ok(await q.BoardAsync(property, principal, page, pageSize, ct));
         });
-        api.MapGet("/housekeeping/tasks", async (HttpContext http, HousekeepingQueries q, CancellationToken ct, int page = 1, int pageSize = 50) =>
+        g.MapGet("/housekeeping/tasks", async (HttpContext http, HousekeepingQueries q, CancellationToken ct, int page = 1, int pageSize = 50) =>
         {
-            var (property, principal) = P3Session.Actor(http);
+            var (property, principal) = http.HccActor();
             return Results.Ok(await q.OpenTasksAsync(property, principal, page, pageSize, ct));
         });
         return api;

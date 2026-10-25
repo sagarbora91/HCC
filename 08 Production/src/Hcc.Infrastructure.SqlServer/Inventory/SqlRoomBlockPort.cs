@@ -78,6 +78,24 @@ public sealed class SqlRoomBlockPort(SqlConnectionFactory connections) : IRoomBl
         await up.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task RemoveBySourceAsync(ICommandTransaction tx, int propertyId, string source, long sourceRef, CancellationToken ct = default)
+    {
+        var s = SqlScope.Of(tx, connections);
+        long? id;
+        await using (var q = s.Command("""
+            SELECT TOP (1) b.room_block_id FROM inv.room_block b WITH (UPDLOCK, ROWLOCK) JOIN inv.room r ON r.room_id = b.room_id
+            WHERE b.source = @src AND b.source_ref = @ref AND b.active = 1 AND r.property_id = @p;
+            """))
+        {
+            q.Parameters.Add("@src", SqlDbType.VarChar, 20).Value = source;
+            q.Parameters.Big("@ref", sourceRef);
+            q.Parameters.Int("@p", propertyId);
+            id = await q.ExecuteScalarAsync(ct).ConfigureAwait(false) as long?;
+        }
+
+        if (id is { } blockId) await RemoveAsync(tx, propertyId, blockId, ct).ConfigureAwait(false);
+    }
+
     private static async Task<(int Type, string RoomNo)> RoomAsync(SqlScope s, int propertyId, int roomId, CancellationToken ct)
     {
         await using var q = s.Command("SELECT room_type_id, room_no FROM inv.room WHERE room_id = @r AND property_id = @p;");

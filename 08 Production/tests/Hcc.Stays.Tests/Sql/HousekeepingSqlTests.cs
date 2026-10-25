@@ -62,7 +62,7 @@ public class HousekeepingSqlTests : IAsyncLifetime
         var started = await T(Users.Housekeeper, _w.Seed.Tasks["task-0"], "start", "x5");
         Assert.Equal(("InProgress", "Cleaning"), (started.Task.Status, started.RoomHk));
         Assert.Equal("STALE_VERSION", await Expect.CodeAsync(() => _w.Housekeeping.TransitionAsync(_w.Ctx(Users.Housekeeper, "x6"), new TransitionHousekeepingTaskRequest(_w.Seed.Tasks["task-0"], "AAAAAAAAAAA=", "check", Index: 0), Ct)));
-        Assert.Contains(_w.Policy.Calls, c => c.Perm == "PERM-HK-003" && c.Scope?.Kind == "HkTask");
+        Assert.Contains(_w.Policy.Calls, c => c.Perm == "PERM-HK-003" && c.Scope?.Kind == "task");
     }
 
     [Fact]

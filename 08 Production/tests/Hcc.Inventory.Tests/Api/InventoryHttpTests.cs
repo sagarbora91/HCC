@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Hcc.Api;
+using Hcc.Api.Endpoints;
 using Hcc.Application.Access;
 using Hcc.Application.Commands;
 using Hcc.Contracts;
@@ -19,15 +20,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hcc.Inventory.Tests.Api;
-
-/// <summary>Test actor: principal from the X-Test-Principal header (P1 supplies the real session resolver).</summary>
-internal sealed class HeaderActorResolver : IRequestActorResolver
-{
-    public RequestActor Resolve(HttpContext http)
-        => int.TryParse(http.Request.Headers["X-Test-Principal"].ToString(), CultureInfo.InvariantCulture, out var u)
-            ? new RequestActor(1, u)
-            : throw new HccException(HccErrorCode.FORBIDDEN, "Sign in to continue.");
-}
 
 /// <summary>
 /// HTTP smoke test of the P2 endpoints on Kestrel (no extra packages): availability → quote → book → details, RESTRICTED body
@@ -47,10 +39,11 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         builder.Services.AddSingleton<SqlConnectionFactory>(platform.Connections);
         builder.Services.AddSingleton<ICommandRunner>(platform.Commands);
         builder.Services.AddSingleton<TimeProvider>(f.Services.Clock);
-        builder.Services.AddSingleton<IAccessPolicy>(new FakeAccessPolicy());
-        builder.Services.AddSingleton<IRequestActorResolver, HeaderActorResolver>();
         builder.Services.AddInventoryModule();
         builder.Services.AddReservationsModule();
+        builder.Services.AddBillingModule(); // tax rates + folio money check
+        builder.Services.AddSingleton<IAccessPolicy>(new FakeAccessPolicy());
+        builder.Services.AddSingleton<ISessionService>(new TestSessions(1));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
         var app = builder.Build();
         app.UseMiddleware<HccErrorMiddleware>();
@@ -59,7 +52,7 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         api.MapReservationsEndpoints();
         await app.StartAsync(Ct);
         var http = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
-        http.DefaultRequestHeaders.Add("X-Test-Principal", "3");
+        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", TestSessions.Token(3));
         return (app, http);
     }
 
@@ -119,9 +112,11 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         Assert.Equal("MIN_STAY", doc.RootElement.GetProperty("details").GetProperty("violations")[0].GetProperty("code").GetString());
 
         using var hk = new HttpRequestMessage(HttpMethod.Get, $"{ApiConventions.BasePath}/availability?arrival=2026-10-24&departure=2026-10-25&adults=1");
-        hk.Headers.Add("X-Test-Principal", "4");
+        hk.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", TestSessions.Token(4));
         using var other = new HttpClient { BaseAddress = http.BaseAddress };
         var denied = await other.SendAsync(hk, Ct);
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        var anonymous = await other.GetAsync($"{ApiConventions.BasePath}/availability?arrival=2026-10-24&departure=2026-10-25&adults=1", Ct);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
     }
 }

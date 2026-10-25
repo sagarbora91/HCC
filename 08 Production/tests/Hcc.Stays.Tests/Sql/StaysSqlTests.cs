@@ -205,7 +205,8 @@ public class StaysSqlTests : IAsyncLifetime
         var e = await Expect.ErrorAsync(HccErrorCode.INVALID_TRANSITION, () => _w.Stays.CheckoutStayAsync(_w.Ctx(Users.Reception, "u2"), req, Ct));
         Assert.Contains("deposit", e.Message, StringComparison.Ordinal);
         await _w.Seed.ReceiptAsync(folio, "deposit-return", "Cash", 50000, Ct);
-        await Expect.ErrorAsync(HccErrorCode.INVALID_TRANSITION, () => _w.Stays.CheckoutStayAsync(_w.Ctx(Users.Reception, "u3"), req with { CompanyCreditApprovalId = 1 }, Ct));
+        // An unknown company-credit approval is refused by billing (the real IStayFolioPort since the Wave 1 integration).
+        await Expect.ErrorAsync(HccErrorCode.NOT_FOUND, () => _w.Stays.CheckoutStayAsync(_w.Ctx(Users.Reception, "u3"), req with { CompanyCreditApprovalId = 1 }, Ct));
         var ok = await _w.Stays.CheckoutStayAsync(_w.Ctx(Users.Reception, "u4"), req, Ct);
         Assert.Equal("Dirty", ok.Value.RoomHk);
         Assert.Equal(0, await _w.Db.CountAsync($"SELECT COUNT(*) FROM gst.stay_segment WHERE stay_id = {stay} AND to_date IS NULL;", Ct));

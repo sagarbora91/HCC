@@ -37,21 +37,50 @@ public interface ISecretHasher
     bool Verify(string secret, HashedSecret stored);
 }
 
-/// <summary>Scope kinds a caller passes in <see cref="AccessScope.Kind"/> and the grant scope letter each one needs.</summary>
+/// <summary>
+/// Scope kinds a caller passes in <see cref="AccessScope.Kind"/> and the grant scope letter each one needs. One convention for
+/// every module (Wave 1 integration):
+/// <list type="bullet">
+/// <item><c>scope = null</c> — property-wide grants only (fail closed: a scoped grant needs its record to be named).</item>
+/// <item><see cref="Any"/> — the principal holds the permission at any scope ("may use this screen at all"); the handler must
+/// then check the record itself (a scoped call, or a filter such as "only my tasks").</item>
+/// <item><see cref="Property"/> — explicitly property-wide (same as null; used to ask "is this principal property-wide?").</item>
+/// <item><see cref="Shift"/> (S, P4 shifts), <see cref="Task"/>/<see cref="Room"/>/<see cref="WorkOrder"/> (A, P3 tasks), <see cref="Submission"/> (O) —
+/// resolved by the owning module's <see cref="IAccessScopeResolver"/>.</item>
+/// </list>
+/// </summary>
 public static class AccessScopeKinds
 {
+    public const string Any = "any";
+    public const string Property = "property";
     public const string Shift = "shift";
     public const string Task = "task";
+    public const string Room = "room";
     public const string WorkOrder = "workOrder";
     public const string Submission = "submission";
 
     public static GrantScope? GrantScopeFor(string kind) => kind switch
     {
         Shift => GrantScope.OwnShift,
-        Task or WorkOrder => GrantScope.Assigned,
+        Task or Room or WorkOrder => GrantScope.Assigned,
         Submission => GrantScope.OwnSubmission,
         _ => null,
     };
+}
+
+/// <summary>Ready-made scopes for <see cref="IAccessPolicy"/> calls (see <see cref="AccessScopeKinds"/>).</summary>
+public static class AccessScopes
+{
+    /// <summary>Holds the permission at any scope (menus, list screens that filter to the principal's own records).</summary>
+    public static AccessScope Any { get; } = new(AccessScopeKinds.Any, 0);
+
+    public static AccessScope Property(int propertyId) => new(AccessScopeKinds.Property, propertyId);
+
+    public static AccessScope Shift(long shiftId) => new(AccessScopeKinds.Shift, shiftId);
+
+    public static AccessScope HkTask(long taskId) => new(AccessScopeKinds.Task, taskId);
+
+    public static AccessScope Room(int roomId) => new(AccessScopeKinds.Room, roomId);
 }
 
 /// <summary>
@@ -87,7 +116,7 @@ public interface ISessionService
     /// <summary>Returns the session and its opaque token (the token is never stored, only its SHA-256).</summary>
     Task<(AuthenticatedSession Session, string Token)> SignInAsync(SignInRequest request, string? deviceToken, CancellationToken ct = default);
 
-    /// <summary>Throws FORBIDDEN (details.reason = SESSION_INVALID) when the session is unknown, expired, revoked or its user changed.</summary>
+    /// <summary>Throws UNAUTHENTICATED (401; details.reason = SESSION_INVALID) when the session is missing, unknown, expired, revoked or its user changed.</summary>
     Task<AuthenticatedSession> ValidateAsync(string? token, CancellationToken ct = default);
 
     Task SignOutAsync(string? token, CancellationToken ct = default);

@@ -151,19 +151,6 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
         return new SavedReservation(current.ReservationId, current.PublicNo, (byte[])o!);
     }
 
-    public async Task<bool> HasUnsettledMoneyAsync(ICommandTransaction tx, long reservationId, CancellationToken ct = default)
-    {
-        await using var q = SqlScope.Of(tx, connections).Command("""
-            SELECT ISNULL(SUM(CASE r.kind WHEN 'payment' THEN r.amount_paise WHEN 'refund' THEN -r.amount_paise ELSE 0 END), 0),
-                   ISNULL(SUM(CASE r.kind WHEN 'deposit' THEN r.amount_paise WHEN 'deposit-return' THEN -r.amount_paise ELSE 0 END), 0)
-            FROM pay.receipt r JOIN bill.folio f ON f.folio_id = r.folio_id WHERE f.reservation_id = @r;
-            """);
-        q.Parameters.Big("@r", reservationId);
-        await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        await rd.ReadAsync(ct).ConfigureAwait(false);
-        return rd.GetInt64(0) != 0 || rd.GetInt64(1) != 0;
-    }
-
     public async Task<ReservationDetails?> GetDetailsAsync(int propertyId, long reservationId, DateTime nowUtc, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);

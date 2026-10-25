@@ -15,9 +15,8 @@ public static class StaysPermissions
 }
 
 /// <summary>
-/// Port toward P4 (Billing). The default adapter (<c>Sql0002StayFolioPort</c>) works directly on the 0002 tables
-/// (<c>bill.folio</c>, <c>bill.charge</c>, <c>pay.receipt</c>) with the frozen <c>FolioTotals</c> kernel; P4 replaces it
-/// with its folio service. Both methods run inside the caller's command transaction.
+/// Port toward P4 (Billing), implemented by <c>Hcc.Application.Billing.BillingStayFolioPort</c> over the billing folio
+/// service. Both methods run inside the caller's command transaction (the actor is <c>tx.Context</c>).
 /// </summary>
 public interface IStayFolioPort
 {

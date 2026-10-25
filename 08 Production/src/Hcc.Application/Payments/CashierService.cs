@@ -45,7 +45,7 @@ public sealed class CashierService(ICommandRunner runner, IBillingStore store, I
     {
         ArgumentNullException.ThrowIfNull(caller);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.ShiftCount, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.ShiftCount, AccessScopes.Any, ct: ct).ConfigureAwait(false); // own-shift holders may open a shift (it becomes theirs)
         return await runner.RunAsync(Ctx(caller, "OpenShift", idempotencyKey), req, async (tx, ct2) =>
         {
             var till = await CashDesk.RequireTillAsync(store, tx, caller.PropertyId, req.TillId, ct2).ConfigureAwait(false);

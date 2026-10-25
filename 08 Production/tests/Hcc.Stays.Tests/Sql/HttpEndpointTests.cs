@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
-using System.Security.Claims;
 using System.Text.Json;
 using Hcc.Api;
 using Hcc.Api.Endpoints;
@@ -23,7 +22,8 @@ namespace Hcc.Stays.Tests.Sql;
 
 /// <summary>
 /// The P3 endpoints over real HTTP (Kestrel on 127.0.0.1, ephemeral port; no test-host package): the same DI lines and
-/// Map calls as Program.cs, the fake policy, and a test-only header standing in for P1's session.
+/// Map calls as Program.cs, the fake policy, and a test <see cref="ISessionService"/> (bearer token "test-&lt;principal&gt;")
+/// behind P1's real RequireHccSession filter.
 /// </summary>
 [Trait("Category", "Sql")]
 public class HttpEndpointTests : IAsyncLifetime
@@ -43,18 +43,16 @@ public class HttpEndpointTests : IAsyncLifetime
         builder.Services.AddSingleton(_w.Db.Platform.Connections);
         builder.Services.AddSingleton<ICommandRunner>(_w.Db.Platform.Commands);
         builder.Services.AddSingleton<TimeProvider>(_w.Clock);
-        builder.Services.AddSingleton<IAccessPolicy>(_w.Policy);
+        builder.Services.AddInventoryModule();
+        builder.Services.AddReservationsModule();
+        builder.Services.AddBillingModule();
         builder.Services.AddHccStays();
         builder.Services.AddHccHousekeeping();
+        builder.Services.AddSingleton<IAccessPolicy>(_w.Policy);
+        builder.Services.AddSingleton<ISessionService>(new TestSessions(_w.PropertyId));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
         _app = builder.Build();
         _app.UseMiddleware<HccErrorMiddleware>();
-        _app.Use((ctx, next) =>
-        {
-            if (ctx.Request.Headers.TryGetValue("X-Test-Principal", out var p))
-                ctx.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, p.ToString()), new Claim(P3Session.PropertyClaim, _w.PropertyId.ToString(CultureInfo.InvariantCulture))], "test"));
-            return next(ctx);
-        });
         var api = _app.MapGroup(ApiConventions.BasePath);
         api.MapStaysEndpoints();
         api.MapHousekeepingEndpoints();
@@ -74,7 +72,7 @@ public class HttpEndpointTests : IAsyncLifetime
     private HttpRequestMessage Req(HttpMethod m, string path, int? principal, object? body = null, string? key = null)
     {
         var r = new HttpRequestMessage(m, ApiConventions.BasePath + path);
-        if (principal is not null) r.Headers.Add("X-Test-Principal", principal.Value.ToString(CultureInfo.InvariantCulture));
+        if (principal is not null) r.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", TestSessions.Token(principal.Value));
         if (key is not null) r.Headers.Add(ApiConventions.IdempotencyKeyHeader, key);
         if (body is not null) r.Content = JsonContent.Create(body, options: new JsonSerializerOptions(JsonSerializerDefaults.Web));
         return r;
@@ -84,7 +82,7 @@ public class HttpEndpointTests : IAsyncLifetime
     public async Task Board_and_commands_over_HTTP_use_the_contract_errors_and_the_background_projector()
     {
         using (var anon = await _http.SendAsync(Req(HttpMethod.Get, "/rooms/board", null), Ct))
-            Assert.Equal(HttpStatusCode.Forbidden, anon.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, anon.StatusCode);
         using (var hk = await _http.SendAsync(Req(HttpMethod.Get, "/rooms/board?pageSize=100", Users.Housekeeper), Ct))
         {
             Assert.Equal(HttpStatusCode.OK, hk.StatusCode);
@@ -118,7 +116,7 @@ public class HttpEndpointTests : IAsyncLifetime
         }
 
         using (var replay = await _http.SendAsync(Req(HttpMethod.Post, "/commands/CheckoutStay", Users.Reception, body, "k2"), Ct))
-            Assert.Equal("true", replay.Headers.GetValues(P3Session.ReplayedHeader).Single());
+            Assert.Equal("true", replay.Headers.GetValues(AccessEndpoints.ReplayedHeader).Single());
 
         // The hosted projector picks up StayDeparted on its own.
         for (var i = 0; i < 50 && await _w.Db.CountAsync($"SELECT COUNT(*) FROM ops.hk_task WHERE stay_id = {stay};", Ct) == 0; i++)

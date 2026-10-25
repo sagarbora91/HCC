@@ -1,5 +1,6 @@
 using System.Globalization;
 using Hcc.Application.Access;
+using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Contracts;
 using Hcc.Contracts.Inventory;
@@ -144,7 +145,7 @@ public sealed class InventoryService(IInventoryStore store, ICommandRunner runne
     public async Task<IReadOnlyList<PricedNight>> PriceAsync(int propertyId, DateOnly a, DateOnly d, long ratePaise, CancellationToken ct)
     {
         var bps = new Dictionary<DateOnly, int>();
-        foreach (var n in StayDates.EachNight(a, d)) bps[n] = await taxes.TaxBpsOnAsync(propertyId, n, ct).ConfigureAwait(false);
+        foreach (var n in StayDates.EachNight(a, d)) bps[n] = taxes.TaxBpsOn(propertyId, n);
         return StayPricing.Nights(a, d, ratePaise, n => bps[n]);
     }
 

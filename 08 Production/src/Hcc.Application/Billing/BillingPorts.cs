@@ -36,8 +36,8 @@ public sealed record Caller(int PropertyId, int PrincipalId);
 public sealed record StayNight(long FolioId, Paise Rate, int TaxBps);
 
 /// <summary>
-/// Integration port to stays (P3) and the agreed nightly rate (P2 quote nights). P4 does not own either table; until they are
-/// merged the API registers <c>UnwiredStayNightSource</c> (UNAVAILABLE) and tests use a fake. Requested change in the P4 report.
+/// Integration port to stays (P3) and the agreed nightly rate (P2 reservation nights). Implemented by <see cref="StayNightSource"/>
+/// (BillingIntegration.cs); billing unit tests use a fake.
 /// </summary>
 public interface IStayNightSource
 {
@@ -116,6 +116,18 @@ public sealed record FolioSnapshot(FolioHeader Header, IReadOnlyList<PostedLine>
 public interface IBillingStore
 {
     Task<FolioHeader?> LockFolioAsync(ICommandTransaction tx, long folioId, CancellationToken ct);
+
+    /// <summary>The reservation's folio id, creating the folio (UPDLOCK + HOLDLOCK on the business key) when none exists yet.</summary>
+    Task<long> EnsureFolioAsync(ICommandTransaction tx, long reservationId, CancellationToken ct);
+
+    /// <summary>The reservation's folio id, or null when it has none.</summary>
+    Task<long?> FolioIdForReservationAsync(ICommandTransaction tx, long reservationId, CancellationToken ct);
+
+    /// <summary>The stay's reservation and folio (P3 gst.stay) inside the command transaction; null when the stay is unknown at the property.</summary>
+    Task<(long ReservationId, long FolioId)?> StayFolioAsync(ICommandTransaction tx, int propertyId, long stayId, CancellationToken ct);
+
+    /// <summary>The reservation's booked nightly rate (P2 <c>inv.reservation.nightly_rate_paise</c>), the fallback when no agreed night snapshot exists.</summary>
+    Task<Paise?> ReservationNightlyRateAsync(ICommandTransaction tx, long reservationId, CancellationToken ct);
 
     /// <summary>Bumps the folio's version (any line or receipt change invalidates approvals bound to the old one, DEC-041).</summary>
     Task<string> TouchFolioAsync(ICommandTransaction tx, long folioId, CancellationToken ct);

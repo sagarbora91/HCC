@@ -135,7 +135,7 @@ public class SignInAndSessionTests(AccessDatabase db) : IClassFixture<AccessData
         await m.Sessions.ValidateAsync(token);            // 58 min since sign-in, 29 idle: alive
         clock.Advance(TimeSpan.FromMinutes(30));
         var ex = await Assert.ThrowsAsync<HccException>(() => m.Sessions.ValidateAsync(token));
-        Assert.Equal((HccErrorCode.FORBIDDEN, "IDLE_TIMEOUT"), (ex.Code, SessionEnd(ex)));
+        Assert.Equal((HccErrorCode.UNAUTHENTICATED, "IDLE_TIMEOUT"), (ex.Code, SessionEnd(ex)));
         Assert.Equal("REVOKED", SessionEnd(await Assert.ThrowsAsync<HccException>(() => m.Sessions.ValidateAsync(token))));
     }
 

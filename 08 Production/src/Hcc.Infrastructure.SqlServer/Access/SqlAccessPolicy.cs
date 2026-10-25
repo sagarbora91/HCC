@@ -113,8 +113,8 @@ public sealed class SqlAccessPolicy(SqlConnectionFactory connections, TimeProvid
         if (snapshot is null || snapshot.PropertyId != propertyId) return new AccessDecision(DecisionOutcome.Deny, "Unknown user for this property");
 
         ScopeMatch match;
-        if (capability) match = ScopeMatch.Any;
-        else if (scope is null) match = ScopeMatch.None;
+        if (capability || scope?.Kind == AccessScopeKinds.Any) match = ScopeMatch.Any;
+        else if (scope is null || scope.Kind == AccessScopeKinds.Property) match = ScopeMatch.None;
         else
         {
             var needed = AccessScopeKinds.GrantScopeFor(scope.Kind);

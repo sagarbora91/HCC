@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hcc.Application.Access;
 using Hcc.Application.Commands;
+using Hcc.Application.Inventory;
 using Hcc.Application.Stays;
 using Hcc.Contracts;
 using Hcc.Contracts.Housekeeping;
@@ -16,12 +17,15 @@ namespace Hcc.Application.Housekeeping;
 /// the policy is asked with an <see cref="AccessScopes.HkTask"/>/<see cref="AccessScopes.Room"/> scope, and the handler
 /// re-checks the assignee under the row lock when the principal is not property-wide.
 /// </summary>
-public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy policy, IHousekeepingStore store, IHousekeepingReadStore reads, ITaskAssigneeEligibility eligibility, HousekeepingOptions options, TimeProvider clock)
+public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy policy, IHousekeepingStore store, IHousekeepingReadStore reads, ITaskAssigneeEligibility eligibility, IRoomBlockPort inventoryBlocks, HousekeepingOptions options, TimeProvider clock)
 {
     public const string OpTransition = "TransitionHousekeepingTask";
     public const string OpBlockRoom = "BlockRoom";
     public const string OpUnblockRoom = "UnblockRoom";
     public const string OpRequestRepair = "RequestRepair";
+
+    /// <summary><c>inv.room_block.source</c> for blocks placed by housekeeping/maintenance (source_ref = ops.room_block.block_id).</summary>
+    public const string InventoryBlockSource = "Maintenance";
 
     private DateTime UtcNow => clock.GetUtcNow().UtcDateTime;
 
@@ -35,7 +39,7 @@ public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy po
 
         var kind = await reads.TaskKindAsync(ctx.PropertyId, req.TaskId, ct).ConfigureAwait(false);
         // Board permission first so a principal with no housekeeping access cannot probe task ids.
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HousekeepingPermissions.Board, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HousekeepingPermissions.Board, AccessScopes.Any, null, ct).ConfigureAwait(false);
         if (kind is null) throw new HccException(HccErrorCode.NOT_FOUND, "Task not found.");
         var perm = action switch
         {
@@ -98,8 +102,15 @@ public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy po
                 throw new HccException(HccErrorCode.NOT_AVAILABLE, "Resolve active and future allocations before blocking this room.");
             // Prototype BLOCK on a blocked room replaces the block (one active block per room).
             var current = await store.LockActiveBlockAsync(tx, room.RoomId, c).ConfigureAwait(false);
-            if (current is not null) await store.ReleaseBlockAsync(tx, current.BlockId, current.Version, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            if (current is not null)
+            {
+                await store.ReleaseBlockAsync(tx, current.BlockId, current.Version, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+                await inventoryBlocks.RemoveBySourceAsync(tx, ctx.PropertyId, InventoryBlockSource, current.BlockId, c).ConfigureAwait(false);
+            }
+
             var (blockId, version) = await store.InsertBlockAsync(tx, ctx.PropertyId, room.RoomId, from, to, reason, "manual", ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            // Inventory side (P2): the room leaves the sellable count for the blocked nights in the same transaction.
+            await inventoryBlocks.PlaceAsync(tx, ctx.PropertyId, room.RoomId, from, to, reason, InventoryBlockSource, blockId, c).ConfigureAwait(false);
             var range = $"{StayDates.ToWire(from)} → {(to is { } x ? StayDates.ToWire(x) : "open-ended")}";
             await tx.AuditAsync("BLOCK", Target("room", room.RoomId), $"Room {room.RoomNo} · blocked for {reason} · {range}", c).ConfigureAwait(false);
             return new BlockRoomResult(blockId, room.RoomId, room.RoomNo, StayDates.ToWire(from), to is { } y ? StayDates.ToWire(y) : null, VersionToken.ToWire(version));
@@ -121,6 +132,7 @@ public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy po
                 ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "This room is not blocked.");
             VersionToken.EnsureMatches(block.Version, expected, "This block");
             await store.ReleaseBlockAsync(tx, block.BlockId, expected, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            await inventoryBlocks.RemoveBySourceAsync(tx, ctx.PropertyId, InventoryBlockSource, block.BlockId, c).ConfigureAwait(false);
             await tx.AuditAsync("UNBLOCK", Target("room", room.RoomId), $"Room {room.RoomNo} · unblocked (was: {block.Reason})", c).ConfigureAwait(false);
             return new UnblockRoomResult(block.BlockId, room.RoomId, room.RoomNo);
         }, ct).ConfigureAwait(false);
@@ -163,7 +175,7 @@ public sealed class HousekeepingQueries(IAccessPolicy policy, IHousekeepingReadS
     public async Task<RoomBoardPage> BoardAsync(int propertyId, int principalId, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         (page, pageSize) = Paging(page, pageSize);
-        await policy.RequireAsync(propertyId, principalId, HousekeepingPermissions.Board, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, HousekeepingPermissions.Board, AccessScopes.Any, null, ct).ConfigureAwait(false);
         var wide = await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.Board, AccessScopes.Property(propertyId), ct).ConfigureAwait(false);
         var bd = await reads.BusinessDateAsync(propertyId, ct).ConfigureAwait(false);
         var rooms = await reads.BoardAsync(propertyId, ct).ConfigureAwait(false);
@@ -196,7 +208,7 @@ public sealed class HousekeepingQueries(IAccessPolicy policy, IHousekeepingReadS
     public async Task<HousekeepingTaskPage> OpenTasksAsync(int propertyId, int principalId, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         (page, pageSize) = Paging(page, pageSize);
-        await policy.RequireAsync(propertyId, principalId, HousekeepingPermissions.Board, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, HousekeepingPermissions.Board, AccessScopes.Any, null, ct).ConfigureAwait(false);
         var wide = await policy.HasAsync(propertyId, principalId, HousekeepingPermissions.Board, AccessScopes.Property(propertyId), ct).ConfigureAwait(false);
         var tasks = await reads.OpenTasksAsync(propertyId, wide ? null : principalId, ct).ConfigureAwait(false);
         return new HousekeepingTaskPage(page, pageSize, tasks.Count, tasks.Skip((page - 1) * pageSize).Take(pageSize).ToList(), !wide);

@@ -14,7 +14,7 @@ public sealed class SqlCapabilitiesQuery(SqlConnectionFactory connections, Acces
         PrincipalSnapshot? snapshot;
         await using (var conn = await connections.OpenAsync(ct).ConfigureAwait(false))
             snapshot = await AccessSnapshotLoader.LoadAsync(connections, conn, null, session.UserId, null, ct).ConfigureAwait(false);
-        if (snapshot is null) throw new Domain.Errors.HccException(Contracts.HccErrorCode.FORBIDDEN, "Your session has ended. Sign in again.");
+        if (snapshot is null) throw new Domain.Errors.HccException(Contracts.HccErrorCode.UNAUTHENTICATED, "Your session has ended. Sign in again.");
         var now = clock.GetUtcNow().UtcDateTime;
         var roles = snapshot.ActiveRoles(now);
         var grants = new List<CapabilityGrant>();

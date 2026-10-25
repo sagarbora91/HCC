@@ -41,19 +41,12 @@ public interface IRoomBlockPort
         long? sourceRef, CancellationToken ct = default);
 
     Task RemoveAsync(ICommandTransaction tx, int propertyId, long roomBlockId, CancellationToken ct = default);
+
+    /// <summary>Removes the active block placed for <paramref name="sourceRef"/> (e.g. a housekeeping ops.room_block id); no-op when none is active.</summary>
+    Task RemoveBySourceAsync(ICommandTransaction tx, int propertyId, string source, long sourceRef, CancellationToken ct = default);
 }
 
-/// <summary>Tax rate (basis points) effective on a service date. STUB in Wave 1 — the tax schedule belongs to P4/admin configuration.</summary>
-public interface ITaxRateSource
-{
-    Task<int> TaxBpsOnAsync(int propertyId, DateOnly date, CancellationToken ct = default);
-}
-
-/// <summary>Wave 1 stand-in: one synthetic tax rate (prototype settings.taxBps = 1000, 10 %, no GST claim) until P4 provides the schedule.</summary>
-public sealed class ConfiguredTaxRateSource(int taxBps = 1000) : ITaxRateSource
-{
-    public Task<int> TaxBpsOnAsync(int propertyId, DateOnly date, CancellationToken ct = default) => Task.FromResult(taxBps);
-}
+// Tax rate per service date: Hcc.Application.Billing.ITaxRateSource (billing owns the tax schedule; one port since the Wave 1 integration).
 
 public sealed record QuoteDraft(int PropertyId, int PrincipalId, int RoomTypeId, int? RoomId, DateOnly Arrival, DateOnly Departure,
     int Adults, int Children, string RatePlan, IReadOnlyList<PricedNight> Nights, DateTime CreatedUtc, DateTime ExpiresUtc);

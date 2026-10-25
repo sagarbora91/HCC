@@ -320,6 +320,7 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
     private static HccException Forbidden(string message, string reason) =>
         new(HccErrorCode.FORBIDDEN, message, SqlAccessPolicy.Details(("reason", reason)));
 
+    /// <summary>No session, or it expired / was revoked / its user changed: 401 UNAUTHENTICATED (details.reason stays SESSION_INVALID).</summary>
     private static HccException Invalid(string reason) =>
-        new(HccErrorCode.FORBIDDEN, "Your session has ended. Sign in again.", SqlAccessPolicy.Details(("reason", "SESSION_INVALID"), ("sessionEnd", reason)));
+        new(HccErrorCode.UNAUTHENTICATED, "Your session has ended. Sign in again.", SqlAccessPolicy.Details(("reason", "SESSION_INVALID"), ("sessionEnd", reason)));
 }

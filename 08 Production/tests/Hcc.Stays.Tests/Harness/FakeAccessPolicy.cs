@@ -20,9 +20,10 @@ public static class Users
 
 /// <summary>
 /// Test stand-in for P1's policy: grants from RBAC matrix v1 §5 for the P3 PERM ids ('P' property-wide, 'A' assigned only),
-/// implementing the scope conventions in <see cref="AccessScopes"/> through the real <see cref="IAssignedScopeSource"/>.
+/// implementing the shared scope conventions (<see cref="AccessScopeKinds"/>: null/property = property-wide, any = any scope,
+/// task/room = assigned) through the real housekeeping <see cref="IAccessScopeResolver"/>s.
 /// </summary>
-public sealed class FakeAccessPolicy(IAssignedScopeSource? assigned = null) : IAccessPolicy
+public sealed class FakeAccessPolicy(IEnumerable<IAccessScopeResolver>? resolvers = null) : IAccessPolicy
 {
     private static readonly string[] Full = ["PERM-GST-001", "PERM-GST-002", "PERM-GST-003", "PERM-STY-001", "PERM-STY-003",
         "PERM-HK-001", "PERM-HK-002", "PERM-HK-003", "PERM-HK-004", "PERM-ROOM-001", "PERM-ROOM-002"];
@@ -49,17 +50,22 @@ public sealed class FakeAccessPolicy(IAssignedScopeSource? assigned = null) : IA
     public async Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default)
     {
         lock (Calls) Calls.Add((principalId, permissionId, scope));
-        if (!await HasAsync(propertyId, principalId, permissionId, scope, ct).ConfigureAwait(false))
-            throw new HccException(HccErrorCode.FORBIDDEN, scope?.Kind is AccessScopes.HkTaskKind or AccessScopes.RoomKind
+        if (!await HoldsAsync(propertyId, principalId, permissionId, scope, nullMeansAny: false, ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, scope?.Kind is AccessScopeKinds.Task or AccessScopeKinds.Room
                 ? "Only your assigned tasks are accessible." : "Access denied.");
     }
 
-    public async Task<bool> HasAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, CancellationToken ct = default)
+    /// <summary>As P1: <c>HasAsync</c> with no scope is a capability check (any scope); <c>RequireAsync</c> with no scope is property-wide only.</summary>
+    public Task<bool> HasAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, CancellationToken ct = default)
+        => HoldsAsync(propertyId, principalId, permissionId, scope, nullMeansAny: true, ct);
+
+    private async Task<bool> HoldsAsync(int propertyId, int principalId, string permissionId, AccessScope? scope, bool nullMeansAny, CancellationToken ct)
     {
         if (!_grants.TryGetValue(principalId, out var g) || !g.TryGetValue(permissionId, out var s)) return false;
-        if (scope is null || s == 'P') return true;
-        if (scope.Kind == AccessScopes.PropertyKind) return false;
-        return assigned is not null && await assigned.IsAssignedAsync(propertyId, principalId, scope, ct).ConfigureAwait(false);
+        if (s == 'P' || scope?.Kind == AccessScopeKinds.Any || (scope is null && nullMeansAny)) return true;
+        if (scope is null || scope.Kind == AccessScopeKinds.Property) return false;
+        var resolver = resolvers?.FirstOrDefault(r => r.Kind == scope.Kind);
+        return resolver is not null && await resolver.IsOwnAsync(propertyId, principalId, scope, ct).ConfigureAwait(false);
     }
 }
 
