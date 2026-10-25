@@ -291,3 +291,5 @@ function Rates({phone}:{phone:boolean}){
     {!edit&&<p className="footnote padded">Only the Owner adds a rate version (DEC-058). Locked pay-runs keep the rates they were calculated with.</p>}</section>;
 }
 export const HrDeskMobile=()=><HrDesk phone/>;
+/** Section components, exported for render tests. */
+export const HR_SECTIONS={People,Roster,Attendance,Leave,LeaveRequests,LeaveCalendar,LeavePolicy,Payroll,Advances,Fnf,Rates};

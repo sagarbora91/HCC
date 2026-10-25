@@ -1,7 +1,28 @@
 // W05-B · payroll, leave and payslips ported from SCC (payroll\index.html, leave\index.html). Names prefixed [PAY-SCC].
 // Every statutory rule is tested at its ceiling / threshold and with its rounding. Money = integer paise.
-export function register({test,M,assert}){
+import {build} from 'esbuild';
+import {writeFile} from 'node:fs/promises';
+export async function register({test,M,assert}){
   const {seed,execute}=M;
+  // Render harness (server-side render of the HR desk sections, My shifts & pay and the dialogs; desktop and phone).
+  await writeFile('tests/.generated/payroll-ui-entry.tsx',`
+import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
+import {HccContext} from '../../src/app/context';
+import {can} from '../../src/services/mock';
+import {HR_SECTIONS,HrDesk} from '../../src/features/staff/HrDesk';
+import {MyHr} from '../../src/features/staff/MyHr';
+import {registration} from '../../src/features/staff/register';
+function ctx(s:any,uid:string,mobile:boolean){const user=s.users.find((u:any)=>u.id===uid);
+  return {s,uid,user,busy:false,run:async()=>true,open(){},closeModal(){},toast(){},setDirty(){},permission:(p:any)=>can(s,uid,p),display:{isMobile:mobile}} as any;}
+const wrap=(s:any,uid:string,mobile:boolean,el:any)=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid,mobile)}>{el}</HccContext.Provider>);
+export const sections=Object.keys(HR_SECTIONS);
+export function renderSection(s:any,uid:string,name:string,phone:boolean){const C=(HR_SECTIONS as any)[name];return wrap(s,uid,phone,<C phone={phone}/>);}
+export function renderDesk(s:any,uid:string,phone:boolean){return wrap(s,uid,phone,<HrDesk phone={phone}/>);}
+export function renderMine(s:any,uid:string,phone:boolean){return wrap(s,uid,phone,<MyHr phone={phone}/>);}
+export function renderModal(s:any,uid:string,type:string,id?:string){const C=(registration.modals as any)[type];return wrap(s,uid,false,<C id={id}/>);}
+`);
+  await build({entryPoints:['tests/.generated/payroll-ui-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/payroll-ui.mjs',logLevel:'error',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'},banner:{js:"import {createRequire as __pyReq} from 'node:module';const require=__pyReq(import.meta.url);"}});
+  const UI=await import('./.generated/payroll-ui.mjs');
   const code=c=>e=>e.code===c;
   const x=s=>M.hrSlice(s);
   const R=M.hrDefaultRates();
@@ -202,5 +223,23 @@ export function register({test,M,assert}){
     assert.ok(defs.some(d=>d.key==='hr.leave.cap'&&d.command==='HR_LEAVE_POLICY_SET'));
     for(const d of defs)assert.notEqual(M.hrSettingValue(s,d.key),'—',d.key);
     assert.match(M.hrSettingValue(s,'hr.pf'),/12% \+ 13%/);assert.match(M.hrSettingValue(s,'hr.leave.ent'),/CL 12 · SL 7 · EL 15/);
+  });
+  test('[PAY-SCC] UI renders: every HR section (desktop + phone), My shifts & pay payslip card, dialogs; phone has no tables',()=>{
+    const fy=M.loadScenario('FY26');
+    for(const s of [seed(),fy])for(const name of UI.sections)for(const phone of [false,true]){
+      const html=UI.renderSection(s,'owner',name,phone);assert.ok(html.length>50,name);
+      if(phone&&['Payroll','Rates','Fnf','LeaveCalendar','LeavePolicy','Advances'].includes(name))assert.ok(!html.includes('<table'),'phone '+name+' uses cards');}
+    const pay=UI.renderSection(fy,'accountant','Payroll',false);assert.match(pay,/Bank transfer file/);assert.match(pay,/PF \/ ESIC \/ PT statement/);assert.match(pay,/Register Excel/);
+    assert.match(UI.renderSection(fy,'owner','Payroll',false),/Unlock/);assert.doesNotMatch(UI.renderSection(fy,'accountant','Payroll',false),/Unlock/);
+    assert.match(UI.renderSection(seed(),'owner','Rates',false),/Illustrative — CA to confirm for a hotel/);assert.match(UI.renderSection(seed(),'owner','Rates',true),/tablet or desktop/);
+    assert.match(UI.renderSection(seed(),'owner','LeaveCalendar',false),/Kavya · CL \(pending\)/);
+    const mine=UI.renderMine(seed(),'housekeeper',true);assert.match(mine,/LATEST PAYSLIP/);assert.match(mine,/Payslip PDF/);assert.match(mine,/Provident Fund/);assert.match(mine,/Casual leave/);
+    assert.doesNotMatch(UI.renderMine(seed(),'housekeeper',false),/Meera/);
+    assert.match(UI.renderDesk(seed(),'housekeeper',true),/LATEST PAYSLIP/,'non-HR roles fall back to My shifts & pay');
+    const slip=UI.renderModal(seed(),'accountant','hr-payslip','HR-PAY-1|HR-S05');assert.match(slip,/Send on WhatsApp/);assert.match(slip,/Rupees /);assert.match(slip,/Payslip PDF/);
+    assert.doesNotMatch(UI.renderModal(seed(),'housekeeper','hr-payslip','HR-PAY-1|HR-S05'),/Send on WhatsApp/);assert.match(UI.renderModal(seed(),'housekeeper','hr-payslip','HR-PAY-1|HR-S04'),/Payslip unavailable/);
+    const ex=execute(seed(),'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false});assert.match(UI.renderModal(ex,'accountant','hr-fnf','HR-S05'),/Net payable|Recoverable/);
+    for(const m of ['hr-rates','hr-leave-policy','hr-leave','hr-advance','hr-staff'])assert.ok(UI.renderModal(seed(),'owner',m).length>50,m);
+    assert.match(UI.renderModal(seed(),'owner','hr-unlock','HR-PAY-1'),/Unlock/);
   });
 }
