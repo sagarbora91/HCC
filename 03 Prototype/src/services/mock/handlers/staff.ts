@@ -37,6 +37,7 @@ function ratesFrom(k:Kit):{r:HRRates;base:HRRates}{
   int('otBps',0,30000,'overtime multiplier');int('lateBlock',0,10,'late rule');
   for(const f of ['pfWageCap','esicCeiling','ptMaleExempt','ptMaleMid','ptMaleMidAmt','ptStd','ptFeb','ptFemaleExempt'] as const)if(cmd[f]!==undefined){assert(rupee(cmd[f]),`Invalid amount for ${f}.`);r[f]=cmd[f];}
   if(cmd.rounding!==undefined){assert(cmd.rounding==='paise'||cmd.rounding==='rupee','Rounding is paise or rupee.');r.rounding=cmd.rounding;}
+  if(cmd.esicPeriod!==undefined){assert(typeof cmd.esicPeriod==='boolean','ESIC contribution-period rule is on or off.');r.esicPeriod=cmd.esicPeriod;}
   rateRules(k,r);
   return {r,base};
 }

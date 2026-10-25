@@ -151,7 +151,7 @@ export function HRRatesModal(){
   const pc=(b:number)=>String(b/100);
   // F-05: the form starts from the version in force on the chosen month and sends only the fields that differ from it.
   const formFor=(m:string)=>{const r=hrRatesFor(s,m);return {from:m,basic:pc(r.basicBps),hra:pc(r.hraBps),wash:pc(r.washBps),pfEe:pc(r.pfEeBps),pfEr:pc(r.pfErBps),pfCap:toRs(r.pfWageCap),esicEe:pc(r.esicEeBps),esicEr:pc(r.esicErBps),esicCeiling:toRs(r.esicCeiling),
-    ptMaleExempt:toRs(r.ptMaleExempt),ptMaleMid:toRs(r.ptMaleMid),ptMaleMidAmt:toRs(r.ptMaleMidAmt),ptStd:toRs(r.ptStd),ptFeb:toRs(r.ptFeb),ptFemaleExempt:toRs(r.ptFemaleExempt),ot:String(r.otBps/10000),late:String(r.lateBlock),rounding:r.rounding as string};};
+    ptMaleExempt:toRs(r.ptMaleExempt),ptMaleMid:toRs(r.ptMaleMid),ptMaleMidAmt:toRs(r.ptMaleMidAmt),ptStd:toRs(r.ptStd),ptFeb:toRs(r.ptFeb),ptFemaleExempt:toRs(r.ptFemaleExempt),ot:String(r.otBps/10000),late:String(r.lateBlock),rounding:r.rounding as string,esicPeriod:r.esicPeriod?'yes':'no'};};
   const [f,setF]=useState(()=>formFor(hrRatesDefaultFrom(s).slice(0,7)));
   const past=hrRatesPastMonths(s,f.from+'-01');
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF(k==='from'?formFor(e.target.value):{...f,[k]:e.target.value});
@@ -159,7 +159,7 @@ export function HRRatesModal(){
   const laterVersions=hrRateVersions(s).filter(v=>v.from>f.from+'-01').map(v=>v.from);
   function save(e:React.FormEvent){e.preventDefault();
     const next:Omit<HRRates,'from'>={basicBps:bps(f.basic),hraBps:bps(f.hra),washBps:bps(f.wash),pfEeBps:bps(f.pfEe),pfErBps:bps(f.pfEr),pfWageCap:rs(f.pfCap),esicEeBps:bps(f.esicEe),esicErBps:bps(f.esicEr),esicCeiling:rs(f.esicCeiling),
-      ptMaleExempt:rs(f.ptMaleExempt),ptMaleMid:rs(f.ptMaleMid),ptMaleMidAmt:rs(f.ptMaleMidAmt),ptStd:rs(f.ptStd),ptFeb:rs(f.ptFeb),ptFemaleExempt:rs(f.ptFemaleExempt),otBps:Math.round(Number(f.ot)*10000),lateBlock:Number(f.late),rounding:f.rounding as HRRates['rounding']};
+      ptMaleExempt:rs(f.ptMaleExempt),ptMaleMid:rs(f.ptMaleMid),ptMaleMidAmt:rs(f.ptMaleMidAmt),ptStd:rs(f.ptStd),ptFeb:rs(f.ptFeb),ptFemaleExempt:rs(f.ptFemaleExempt),otBps:Math.round(Number(f.ot)*10000),lateBlock:Number(f.late),rounding:f.rounding as HRRates['rounding'],esicPeriod:f.esicPeriod==='yes'};
     const cur=hrRatesFor(s,f.from),diff=Object.fromEntries(Object.entries(next).filter(([k,v])=>cur[k as keyof HRRates]!==v));
     run({type:'HR_STAT_RATES_SET',from:f.from+'-01',...diff},'Statutory rates saved',{close:true});}
   const num=(k:keyof typeof f,label:string,step='0.01')=><label>{label}<input required type="number" inputMode="decimal" min="0" step={step} value={f[k]} onChange={set(k)}/></label>;
@@ -169,7 +169,8 @@ export function HRRatesModal(){
       <div className="info-note"><Info size={16}/><span>Values below are the version in force for {hrMonthLabel(f.from)}; only the fields you change are saved.{past.length?` Warning: ${past.map(hrMonthLabel).join(', ')} ${past.length===1?'is':'are'} complete but not locked — ${past.length===1?'its':'their'} payroll changes and must be recalculated.`:''}{laterVersions.length?` A later version exists (from ${laterVersions.join(', ')}): your change is carried into it unless it set its own value for that field.`:''}</span></div>
       <fieldset className="hr-fieldset"><legend>Salary structure</legend><div className="form-row">{num('basic','Basic (% of earned)')}{num('hra','HRA (% of basic)')}</div>{num('wash','Washing allowance (% of basic)')}</fieldset>
       <fieldset className="hr-fieldset"><legend>Provident Fund</legend><div className="form-row">{num('pfEe','Employee (%)')}{num('pfEr','Employer (%)')}</div>{num('pfCap','PF wage cap (₹)')}</fieldset>
-      <fieldset className="hr-fieldset"><legend>ESIC</legend><div className="form-row">{num('esicEe','Employee (%)')}{num('esicEr','Employer (%)')}</div>{num('esicCeiling','Applies while earned pay ≤ (₹)')}</fieldset>
+      <fieldset className="hr-fieldset"><legend>ESIC</legend><div className="form-row">{num('esicEe','Employee (%)')}{num('esicEr','Employer (%)')}</div>{num('esicCeiling','Wage ceiling (₹)')}
+        <label>Coverage rule <small>(illustrative — CA to confirm)</small><select value={f.esicPeriod} onChange={set('esicPeriod')}><option value="yes">Contribution period (Apr–Sep / Oct–Mar): decided at the period start, kept to its end</option><option value="no">Month by month on earned pay (SCC)</option></select></label></fieldset>
       <fieldset className="hr-fieldset"><legend>Professional tax (Maharashtra)</legend>
         <div className="form-row">{num('ptMaleExempt','Men: nil up to (₹)')}{num('ptMaleMid','Men: middle slab up to (₹)')}</div>
         <div className="form-row">{num('ptMaleMidAmt','Middle slab (₹ / month)')}{num('ptStd','Standard (₹ / month)')}</div>

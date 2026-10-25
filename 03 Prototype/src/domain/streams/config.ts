@@ -514,6 +514,7 @@ const HR_FIELDS:Record<string,HRField>={
   ptStd:{label:'standard amount',type:'money',min:0,max:100000000},ptFeb:{label:'February amount',type:'money',min:0,max:100000000},ptFemaleExempt:{label:'women nil slab up to',type:'money',min:0,max:100000000},
   otBps:{label:'multiplier (% of ordinary rate)',type:'percent',min:10000,max:30000,show:v=>(Number(v)/10000)+'×'},lateBlock:{label:'late marks per ½ day (0 = off)',type:'integer',min:0,max:10},
   rounding:{label:'rounding',type:'choice',options:['paise','rupee'],show:v=>v==='paise'?'To paise (SCC)':'PF nearest ₹ · ESIC next ₹'},
+  esicPeriod:{label:'contribution-period rule',type:'boolean',show:v=>v?'Apr–Sep / Oct–Mar (coverage kept to period end)':'Month by month on earned pay (SCC)'},
 };
 const curYm=(s:State)=>s.date.slice(0,7);
 /** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET with an explicit `from` (W05-B review F-06:

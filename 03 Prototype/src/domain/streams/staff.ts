@@ -52,7 +52,10 @@ export type HRRates={from:string;
   esicEeBps:number;esicErBps:number;esicCeiling:number;
   ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;
   otBps:number;lateBlock:number;
-  /** paise = SCC (round to 0.01); rupee = PF nearest rupee, ESIC next higher rupee. */ rounding:HRRounding};
+  /** paise = SCC (round to 0.01); rupee = PF nearest rupee, ESIC next higher rupee. */ rounding:HRRounding;
+  /** F-07 ESIC contribution-period rule (Apr–Sep / Oct–Mar): coverage is decided once per period from the contractual wage and then
+   *  continues to the period end even if pay crosses the ceiling. Absent/false = SCC month-by-month test on earned pay. Illustrative — CA to confirm. */
+  esicPeriod?:boolean};
 export type HRLeavePolicy={ent:{CL:number;SL:number;EL:number};
   /** Max staff off per department per day (pending + approved). */ defaultCap:number;deptCap:Record<string,number>};
 export type HRCounts={ym:string;days:number;P:number;L:number;H:number;
@@ -63,6 +66,7 @@ export type HRLine={staffId:string;name:string;dept:string;designation:string;pa
   /** Earned (pro-rated) pay = SCC grossPayable. */ earned:number;basic:number;hra:number;washing:number;special:number;ot:number;
   /** earned + overtime. */ gross:number;
   pfWages:number;pf:number;pfEr:number;esicWages:number;esic:number;esicEr:number;pt:number;advance:number;deductions:number;net:number;
+  /** F-07: ESIC coverage for this month under the contribution-period rule (absent when the month-by-month rule applied). */ esicCovered?:boolean;
   /** Employer cost = gross + PF employer + ESIC employer. */ ctc:number};
 export type HRSend={staffId:string;to:string;at:string;by:string};
 /** Bank details as frozen in a locked run (F-02: the bank file pays where the checker approved, not the live staff master). */
@@ -89,7 +93,7 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
 export const HR_DISCLAIMER='Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff.';
 export const hrDefaultRates=():HRRates=>({from:'2025-04-01',basicBps:5000,hraBps:8000,washBps:1000,pfEeBps:1200,pfErBps:1300,pfWageCap:1500000,
   esicEeBps:75,esicErBps:325,esicCeiling:2100000,ptMaleExempt:750000,ptMaleMid:1000000,ptMaleMidAmt:17500,ptStd:20000,ptFeb:30000,ptFemaleExempt:2500000,
-  otBps:10000,lateBlock:3,rounding:'paise'});
+  otBps:10000,lateBlock:3,rounding:'paise',esicPeriod:true});
 export const hrDefaultLeavePolicy=():HRLeavePolicy=>({ent:{CL:12,SL:7,EL:15},defaultCap:2,deptCap:{}});
 export const hrEmpty=():HRState=>({depts:[],staff:[],roster:{},att:{},leaves:[],advances:[],rateVersions:[hrDefaultRates()],runs:[]});
 export const hrSlice=(s:State):HRState=>s.staffX??hrEmpty();
@@ -324,8 +328,23 @@ export function hrPt(base:number,gender:HRGender,ym:string,r:HRRates):number{
   if(base<=r.ptMaleMid)return r.ptMaleMidAmt;
   return top;
 }
-/** One payroll line. Pure: staff + counts + rate version + advance → figures (rounded to paise, half-up, in this order). */
-export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:number;balance:number}):HRLine{
+// ── F-07: ESIC contribution periods (Apr–Sep, Oct–Mar) ──
+/** First month (YYYY-MM) of the ESIC contribution period containing a month. */
+export function hrEsicPeriodStart(ym:string){const y=+ym.slice(0,4),m=+ym.slice(5,7);return m>=10?`${y}-10`:m>=4?`${y}-04`:`${y-1}-10`;}
+/** Contractual monthly wage for the coverage test: monthly salary, or daily wage × 26 (illustrative — CA to confirm). */
+export const hrEsicContractWage=(st:HRStaff)=>st.payType==='monthly'?st.monthly:st.daily*26;
+/** Coverage under the contribution-period rule: the earliest LOCKED run of the same period decides; with none yet, the contractual wage
+ *  at this month (≤ ceiling = covered). Undefined when the rate version uses the month-by-month rule. */
+export function hrEsicCovered(s:State,st:HRStaff,ym:string,r:HRRates):boolean|undefined{
+  if(!r.esicPeriod)return undefined;
+  const ps=hrEsicPeriodStart(ym);
+  const prior=hrSlice(s).runs.filter(x=>x.status==='Locked'&&x.month>=ps&&x.month<ym).sort((a,b)=>a.month<b.month?-1:1)
+    .map(x=>x.lines.find(l=>l.staffId===st.id)).find(l=>typeof l?.esicCovered==='boolean');
+  return prior?prior.esicCovered:hrEsicContractWage(st)<=r.esicCeiling;
+}
+/** One payroll line. Pure: staff + counts + rate version + advance → figures (rounded to paise, half-up, in this order).
+ *  `esicCovered` = contribution-period coverage from hrEsicCovered (defaults to the contractual-wage test). */
+export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:number;balance:number},esicCovered?:boolean):HRLine{
   const D=c.days,late=r.lateBlock>0?Math.floor(c.L/r.lateBlock):0,structure=hrStructureOf(st),gender=hrGenderOf(st);
   let payHalf:number,earned:number,ot:number;
   if(st.payType==='monthly'){
@@ -341,7 +360,8 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
   const special=earned-basic-hra-washing,gross=earned+ot;
   const pfWages=hrPfOn(st)?Math.min(basic,r.pfWageCap):0;
   const pf=pfWages?hrPct(pfWages,r.pfEeBps,r.rounding):0,pfEr=pfWages?hrPct(pfWages,r.pfErBps,r.rounding):0;
-  const esicWages=hrEsicOn(st)&&earned>0&&earned<=r.esicCeiling?earned-washing:0;
+  const period=!!r.esicPeriod,covered=period?(esicCovered??hrEsicContractWage(st)<=r.esicCeiling):earned<=r.esicCeiling;
+  const esicWages=hrEsicOn(st)&&earned>0&&covered?earned-washing:0;
   const esic=esicWages?hrPct(esicWages,r.esicEeBps,r.rounding,'esic'):0,esicEr=esicWages?hrPct(esicWages,r.esicErBps,r.rounding,'esic'):0;
   const pt=earned>0?hrPt(earned,gender,c.ym,r):0;
   const due=adv?(adv.installment>0?Math.min(adv.installment,adv.balance):adv.balance):0;
@@ -349,7 +369,7 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
   const deductions=pf+esic+pt+advance;
   return {staffId:st.id,name:st.name,dept:st.dept,designation:st.designation,payType:st.payType,structure,gender,base:st.payType==='monthly'?st.monthly:st.daily,
     counts:c,latePenaltyHalf:late,payableDays:payHalf/2,earned,basic,hra,washing,special,ot,gross,pfWages,pf,pfEr,esicWages,esic,esicEr,pt,advance,deductions,
-    net:gross-deductions,ctc:gross+pfEr+esicEr};
+    net:gross-deductions,ctc:gross+pfEr+esicEr,...(period?{esicCovered:hrEsicOn(st)&&covered}:{})};
 }
 /** Staff settled full-and-final with the exit month's salary inside the settlement. */
 const settledFor=(x:HRState,staffId:string,ym:string)=>(x.fnf??[]).some(f=>f.staffId===staffId&&f.salaryIncluded&&f.month===ym);
@@ -361,7 +381,7 @@ export function hrComputeRun(s:State,ym:string,rates=hrRatesFor(s,ym)):{lines:HR
     if(c.unmarked)warnings.push(`${st.name}: ${c.unmarked} unmarked day${c.unmarked===1?'':'s'} counted as absent.`);
     if((st.payType==='monthly'?st.monthly:st.daily)<=0)warnings.push(`${st.name}: salary not set — pays ₹0.`);
     const a=hrAdvanceFor(x,st.id,ym);
-    return hrComputeLine(st,c,rates,a?{installment:a.installment,balance:hrAdvanceBalance(a)}:undefined);
+    return hrComputeLine(st,c,rates,a?{installment:a.installment,balance:hrAdvanceBalance(a)}:undefined,hrEsicCovered(s,st,ym,rates));
   });
   return {lines,warnings};
 }
@@ -457,7 +477,7 @@ export function hrAmountWords(paise:number){
 export function hrFnfCompute(s:State,st:HRStaff,adjustments:HRFnfAdj[]){
   const x=hrSlice(s),lastDay=st.exitedOn??s.date,month=lastDay.slice(0,7),rates=hrRatesFor(s,month);
   const paid=x.runs.some(r=>r.month===month&&r.status==='Locked'&&r.lines.some(l=>l.staffId===st.id));
-  const line=paid?undefined:hrComputeLine(st,hrCounts(s,st,month),rates);
+  const line=paid?undefined:hrComputeLine(st,hrCounts(s,st,month),rates,undefined,hrEsicCovered(s,st,month,rates));
   const advanceOutstanding=x.advances.filter(a=>a.staffId===st.id).reduce((n,a)=>n+hrAdvanceBalance(a),0);
   const add=adjustments.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0),ded=adjustments.filter(a=>a.kind==='ded').reduce((n,a)=>n+a.amount,0);
   const earnings=(line?line.gross:0)+add,recoveries=(line?line.pf+line.esic+line.pt:0)+advanceOutstanding+ded;
@@ -486,7 +506,7 @@ export function hrSettingDefs():HRSettingDef[]{
   return [
     rate('hr.structure','Salary structure (structured pay)','percent','% basic of earned · HRA and washing % of basic',['basicBps','hraBps','washBps'],'SCC: basic 50%, HRA 80% of basic, washing 10% of basic, special = rest.'),
     rate('hr.pf','Provident Fund','percent','% of PF wages · wage cap ₹',['pfEeBps','pfErBps','pfWageCap'],'Employee 12%, employer 13% on basic capped at ₹15,000 (SCC).'),
-    rate('hr.esic','ESIC','percent','% of earned − washing · ceiling ₹',['esicEeBps','esicErBps','esicCeiling'],'Employee 0.75%, employer 3.25% while earned pay ≤ ₹21,000 (SCC).'),
+    rate('hr.esic','ESIC','percent','% of earned − washing · ceiling ₹',['esicEeBps','esicErBps','esicCeiling','esicPeriod'],'Employee 0.75%, employer 3.25% on earned − washing. Coverage: contribution-period rule (decided at the start of Apr–Sep / Oct–Mar from the contractual wage ≤ ₹21,000, kept to the period end); off = SCC month-by-month test on earned pay.'),
     rate('hr.pt','Professional tax (Maharashtra)','money','₹ per month by slab',['ptMaleExempt','ptMaleMid','ptMaleMidAmt','ptStd','ptFeb','ptFemaleExempt'],'Men nil ≤ ₹7,500, ₹175 to ₹10,000, then ₹200 (₹300 in February); women nil ≤ ₹25,000 (SCC ptFor).'),
     rate('hr.ot','Overtime rate','percent','× ordinary hourly rate',['otBps'],'SCC pays overtime at the ordinary daily rate (1×).'),
     rate('hr.late','Late marks rule','integer','late marks per ½-day loss of pay',['lateBlock'],'SCC: 3 late marks = ½ day.'),
@@ -505,7 +525,7 @@ export function hrSettingValue(s:State,key:string,ym=s.date.slice(0,7)):string{
   switch(key){
     case 'hr.structure':return `Basic ${pctOf(r.basicBps)} · HRA ${pctOf(r.hraBps)} · washing ${pctOf(r.washBps)} (from ${r.from})`;
     case 'hr.pf':return `${pctOf(r.pfEeBps)} + ${pctOf(r.pfErBps)} on wages up to ${rs(r.pfWageCap)}`;
-    case 'hr.esic':return `${pctOf(r.esicEeBps)} + ${pctOf(r.esicErBps)} while earned ≤ ${rs(r.esicCeiling)}`;
+    case 'hr.esic':return `${pctOf(r.esicEeBps)} + ${pctOf(r.esicErBps)} · ${r.esicPeriod?`covered for the contribution period when the contractual wage ≤ ${rs(r.esicCeiling)}`:`while earned ≤ ${rs(r.esicCeiling)} (month by month)`}`;
     case 'hr.pt':return `Men ${rs(r.ptMaleMidAmt)} / ${rs(r.ptStd)} (Feb ${rs(r.ptFeb)}) · women exempt ≤ ${rs(r.ptFemaleExempt)}`;
     case 'hr.ot':return `${r.otBps/10000}× ordinary rate`;
     case 'hr.late':return r.lateBlock?`${r.lateBlock} late = ½ day`:'Off';

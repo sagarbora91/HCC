@@ -286,7 +286,7 @@ function Rates({phone}:{phone:boolean}){
     {phone?<div className="info-note"><Info size={16}/>Rate versions are added on the tablet or desktop (Owner).</div>:<>
       <h3 className="padded hr-sub">Versions</h3>
       <div className="table-wrap"><table><thead><tr><th>Effective from</th><th>PF</th><th>ESIC</th><th>PT (men / women)</th><th>Overtime</th><th>Rounding</th><th>Locked runs</th></tr></thead><tbody>
-        {versions.map(v=><tr key={v.from}><td><strong>{dateLabel(v.from)}</strong>{v.from===now.from&&<small>In force now</small>}</td><td>{v.pfEeBps/100}% + {v.pfErBps/100}% · cap {money(v.pfWageCap)}</td><td>{v.esicEeBps/100}% + {v.esicErBps/100}% · ≤ {money(v.esicCeiling)}</td>
+        {versions.map(v=><tr key={v.from}><td><strong>{dateLabel(v.from)}</strong>{v.from===now.from&&<small>In force now</small>}</td><td>{v.pfEeBps/100}% + {v.pfErBps/100}% · cap {money(v.pfWageCap)}</td><td>{v.esicEeBps/100}% + {v.esicErBps/100}% · ≤ {money(v.esicCeiling)}{v.esicPeriod?' · per contribution period':' · month by month'}</td>
           <td>{money(v.ptStd)} (Feb {money(v.ptFeb)}) · women exempt ≤ {money(v.ptFemaleExempt)}</td><td>{v.otBps/10000}×</td><td>{v.rounding==='paise'?'Paise':'Rupee'}</td><td>{usedBy(v.from)||'—'}</td></tr>)}</tbody></table></div></>}
     {!edit&&<p className="footnote padded">Only the Owner adds a rate version (DEC-058). Locked pay-runs keep the rates they were calculated with.</p>}</section>;
 }

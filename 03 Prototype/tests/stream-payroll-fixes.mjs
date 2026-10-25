@@ -138,4 +138,27 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     // FY26 (September locked): the default is October as before
     assert.equal(M.hrRatesDefaultFrom(M.loadScenario('FY26')),'2026-10-01');
   });
+
+  test('[PAY-FIX F-07] ESIC contribution-period rule (dated, illustrative): ₹22,000 + 2 LOP stays uncovered; covered at period start stays covered after a raise',()=>{
+    const R=M.hrDefaultRates();assert.equal(R.esicPeriod,true);
+    const full=(ym,days,extra={})=>({ym,days,P:days,L:0,H:0,HL:0,A:0,OFFW:0,off:0,paidLeave:0,lopLeave:0,unmarked:0,na:0,otMin:0,...extra});
+    const mon=(monthly,extra={})=>({id:'T',name:'T',dept:'FO',designation:'x',payType:'monthly',monthly,daily:0,...extra});
+    // reviewer's t1: ₹22,000, 2 days LOP → earned ₹20,533.33; month-by-month charged ESIC ₹146.30 / ₹633.97 for that month only
+    const lop=M.hrComputeLine(mon(2200000),full('2026-09',30,{P:28,A:2}),R);
+    assert.equal(lop.earned,2053333);assert.equal(lop.esic,0);assert.equal(lop.esicEr,0);assert.equal(lop.esicCovered,false);
+    const scc=M.hrComputeLine(mon(2200000),full('2026-09',30,{P:28,A:2}),{...R,esicPeriod:false});assert.equal(scc.esic,14630);assert.equal(scc.esicEr,63397);
+    // covered at the start of Oct–Mar (₹20,000), raised to ₹23,000 in December: still covered until March, not from April
+    let s=execute(seed(),'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id:M.hrRunFor(s,'2026-09').id});
+    const st={...x(s).staff.find(t=>t.id==='HR-S02'),monthly:2000000};
+    const oct=structuredClone(s);oct.staffX.runs.push({id:'T-OCT',month:'2026-10',status:'Locked',rates:R,lines:[M.hrComputeLine(st,full('2026-10',31),R,undefined,M.hrEsicCovered(s,st,'2026-10',R))],warnings:[],preparedBy:'accountant',preparedAt:'x'});
+    assert.equal(oct.staffX.runs.at(-1).lines[0].esicCovered,true);
+    const raised={...st,monthly:2300000};
+    assert.equal(M.hrEsicCovered(oct,raised,'2026-12',R),true);assert.equal(M.hrEsicCovered(oct,raised,'2027-03',R),true);assert.equal(M.hrEsicCovered(oct,raised,'2027-04',R),false);
+    const dec=M.hrComputeLine(raised,full('2026-12',31),R,undefined,M.hrEsicCovered(oct,raised,'2026-12',R));assert.ok(dec.esic>0,'contributes to the period end above the ceiling');
+    assert.deepEqual([M.hrEsicPeriodStart('2026-04'),M.hrEsicPeriodStart('2026-09'),M.hrEsicPeriodStart('2026-10'),M.hrEsicPeriodStart('2027-03')],['2026-04','2026-04','2026-10','2026-10']);
+    // dated setting, Owner-only, shown with the CA flag; old versions without the field keep the SCC rule (locked snapshots recompute unchanged)
+    const v=execute(seed(),'owner',{type:'HR_STAT_RATES_SET',from:'2026-11-01',esicPeriod:false});assert.equal(M.hrRatesFor(v,'2026-11').esicPeriod,false);assert.equal(M.hrRatesFor(v,'2026-10').esicPeriod,true);
+    assert.throws(()=>execute(seed(),'accountant',{type:'HR_STAT_RATES_SET',from:'2026-11-01',esicPeriod:false}),code('FORBIDDEN'));
+    assert.match(M.hrSettingValue(seed(),'hr.esic'),/contribution period/);assert.ok(M.cfgDef(seed(),'hr.esic.esicPeriod').illustrative);
+  });
 }

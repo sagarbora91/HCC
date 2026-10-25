@@ -47,8 +47,9 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.deepEqual([at.basic,at.washing,at.esicWages],[1050000,105000,1995000]);assert.equal(at.esic,14963);assert.equal(at.esicEr,64838);// 14,962.5 → 14,963 · 64,837.5 → 64,838
     const above=M.hrComputeLine(mon(2100001),full(),R);assert.equal(above.esic,0);assert.equal(above.esicEr,0);assert.equal(above.esicWages,0);
     const off=M.hrComputeLine(mon(1500000,{esicApplicable:false}),full(),R);assert.equal(off.esic,0);
-    // earned (not contractual) pay decides: ₹25,000 salary with 6 days LOP earns ₹20,000 → covered
-    const lop=M.hrComputeLine(mon(2500000),full('2026-09',30,{P:24,A:6}),R);assert.equal(lop.earned,2000000);assert.ok(lop.esic>0);
+    // SCC month-by-month rule (esicPeriod off): earned (not contractual) pay decides — ₹25,000 salary with 6 days LOP earns ₹20,000 → covered.
+    // The default version uses the contribution-period rule instead (review F-07, tests/stream-payroll-fixes.mjs).
+    const lop=M.hrComputeLine(mon(2500000),full('2026-09',30,{P:24,A:6}),{...R,esicPeriod:false});assert.equal(lop.earned,2000000);assert.ok(lop.esic>0);
   });
   test('[PAY-SCC] rupee rounding option: PF to the nearest rupee, ESIC up to the next rupee',()=>{
     const rr={...R,rounding:'rupee'};
