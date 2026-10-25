@@ -1,7 +1,14 @@
 // Stream E · Access & configuration (owns USER, GRANT, SETTINGS) — pure domain helpers and selectors (re-exported by services/mock/index.ts for UI and tests).
 // Fine-grained policy layer (BL-024, RBAC matrix v1, DEC-040), approvals inbox (BL-026) and configuration selectors (BL-027).
-import type {State,Role,User,Booking,Approval,Audit,Permission} from '../types';
-import {money} from '../money';
+import type {State,Role,User,Booking,Approval,Audit,Permission,Command} from '../types';
+import {SCHEMA} from '../types';
+import {money,addDays} from '../money';
+// W05-A Master configuration: thin wrappers read module state through each module's own selectors.
+import {yldSlice,yldPct,YLD_ROUND_OPTIONS} from './yield';
+import {aiDirtyHours} from './assistant';
+import {gsvSettings,GSV_REQUEST_TYPES} from './services';
+import {posSlice} from './pos';
+import {hrDefaultRates} from './staff';
 
 // ───────────────────────────── Policy model ─────────────────────────────
 export type PolicyEffect='allow'|'deny'|'limit'|'request';
