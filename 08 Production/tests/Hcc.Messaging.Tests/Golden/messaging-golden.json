@@ -1,0 +1,2269 @@
+{
+ "businessDate": "2026-10-24",
+ "placeholders": [
+  "guest",
+  "firstName",
+  "hotel",
+  "booking",
+  "room",
+  "arrival",
+  "departure",
+  "nights",
+  "checkin",
+  "checkout",
+  "amount",
+  "balance",
+  "invoiceLink",
+  "feedbackLink"
+ ],
+ "templates": [
+  {
+   "id": "booking-confirmation",
+   "name": "Booking confirmation",
+   "channel": "WhatsApp",
+   "subject": "Your booking {booking} is confirmed",
+   "body": "Namaste {firstName}, your stay at {hotel} is confirmed. Booking {booking}, room {room}, {arrival} to {departure} ({nights} nights). Check-in from {checkin}."
+  },
+  {
+   "id": "pre-arrival",
+   "name": "Pre-arrival",
+   "channel": "WhatsApp",
+   "subject": "See you soon at {hotel}",
+   "body": "Hello {firstName}, we look forward to welcoming you on {arrival}. Check-in is from {checkin}. Reply here for airport pickup or early arrival requests."
+  },
+  {
+   "id": "checkin-welcome",
+   "name": "Check-in welcome",
+   "channel": "WhatsApp",
+   "subject": "Welcome to {hotel}",
+   "body": "Welcome to {hotel}, {firstName}! You are in room {room} until {departure}. Checkout is at {checkout}. Dial 9 for the front desk."
+  },
+  {
+   "id": "payment-receipt",
+   "name": "Payment receipt",
+   "channel": "SMS",
+   "subject": "Payment received · {booking}",
+   "body": "{hotel}: payment of {amount} received for booking {booking}. Balance due {balance}. Thank you."
+  },
+  {
+   "id": "checkout-invoice",
+   "name": "Checkout invoice link",
+   "channel": "Email",
+   "subject": "Your invoice for booking {booking}",
+   "body": "Dear {guest}, thank you for staying with us. Your sample invoice for {booking} is at {invoiceLink} (simulated link)."
+  },
+  {
+   "id": "feedback",
+   "name": "Feedback request",
+   "channel": "WhatsApp",
+   "subject": "How was your stay?",
+   "body": "Hi {firstName}, how was your stay at {hotel}? Rate us in one tap: {feedbackLink} (simulated link)."
+  }
+ ],
+ "rules": [
+  {
+   "id": "R1",
+   "event": "booking-confirmed",
+   "template": "booking-confirmation",
+   "channel": "WhatsApp",
+   "enabled": true
+  },
+  {
+   "id": "R2",
+   "event": "pre-arrival",
+   "template": "pre-arrival",
+   "channel": "WhatsApp",
+   "enabled": true
+  },
+  {
+   "id": "R3",
+   "event": "checked-in",
+   "template": "checkin-welcome",
+   "channel": "WhatsApp",
+   "enabled": true
+  },
+  {
+   "id": "R4",
+   "event": "payment-received",
+   "template": "payment-receipt",
+   "channel": "SMS",
+   "enabled": true
+  },
+  {
+   "id": "R5",
+   "event": "checked-out",
+   "template": "checkout-invoice",
+   "channel": "Email",
+   "enabled": true
+  },
+  {
+   "id": "R6",
+   "event": "checked-out",
+   "template": "feedback",
+   "channel": "WhatsApp",
+   "enabled": false
+  }
+ ],
+ "hotel": "HCC Demo Residency",
+ "checkin": "14:00",
+ "checkout": "11:00",
+ "bookings": [
+  {
+   "id": "HCC-1041",
+   "room": "101",
+   "status": "In house",
+   "arrival": "2026-10-23",
+   "departure": "2026-10-26",
+   "guest": "Ananya Rao",
+   "phone": null,
+   "email": "guest1@example.test"
+  },
+  {
+   "id": "HCC-1042",
+   "room": "102",
+   "status": "In house",
+   "arrival": "2026-10-23",
+   "departure": "2026-10-26",
+   "guest": "Vikram Shah",
+   "phone": null,
+   "email": "guest2@example.test"
+  },
+  {
+   "id": "HCC-1043",
+   "room": "104",
+   "status": "In house",
+   "arrival": "2026-10-23",
+   "departure": "2026-10-26",
+   "guest": "Riya Mehta",
+   "phone": null,
+   "email": "guest3@example.test"
+  },
+  {
+   "id": "HCC-1044",
+   "room": "201",
+   "status": "In house",
+   "arrival": "2026-10-23",
+   "departure": "2026-10-26",
+   "guest": "Arjun Kapoor",
+   "phone": null,
+   "email": "guest4@example.test"
+  },
+  {
+   "id": "HCC-1045",
+   "room": "202",
+   "status": "In house",
+   "arrival": "2026-10-23",
+   "departure": "2026-10-26",
+   "guest": "Nisha Desai",
+   "phone": null,
+   "email": "guest5@example.test"
+  },
+  {
+   "id": "HCC-1046",
+   "room": "206",
+   "status": "In house",
+   "arrival": "2026-10-23",
+   "departure": "2026-10-26",
+   "guest": "Kabir Sen",
+   "phone": null,
+   "email": "guest6@example.test"
+  }
+ ],
+ "rendered": [
+  {
+   "booking": "HCC-1041",
+   "template": "booking-confirmation",
+   "body": "Namaste Ananya, your stay at HCC Demo Residency is confirmed. Booking HCC-1041, room 101, 23 Oct 2026 to 26 Oct 2026 (3 nights). Check-in from 14:00.",
+   "subject": "Your booking HCC-1041 is confirmed",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1041",
+   "template": "pre-arrival",
+   "body": "Hello Ananya, we look forward to welcoming you on 23 Oct 2026. Check-in is from 14:00. Reply here for airport pickup or early arrival requests.",
+   "subject": "See you soon at HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1041",
+   "template": "checkin-welcome",
+   "body": "Welcome to HCC Demo Residency, Ananya! You are in room 101 until 26 Oct 2026. Checkout is at 11:00. Dial 9 for the front desk.",
+   "subject": "Welcome to HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1041",
+   "template": "payment-receipt",
+   "body": "HCC Demo Residency: payment of ₹2,200 received for booking HCC-1041. Balance due ₹200. Thank you.",
+   "subject": "Payment received · HCC-1041",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1041",
+   "template": "checkout-invoice",
+   "body": "Dear Ananya Rao, thank you for staying with us. Your sample invoice for HCC-1041 is at https://demo.invalid/inv/HCC-1041 (simulated link).",
+   "subject": "Your invoice for booking HCC-1041",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1041",
+   "template": "feedback",
+   "body": "Hi Ananya, how was your stay at HCC Demo Residency? Rate us in one tap: https://demo.invalid/fb/HCC-1041 (simulated link).",
+   "subject": "How was your stay?",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1042",
+   "template": "booking-confirmation",
+   "body": "Namaste Vikram, your stay at HCC Demo Residency is confirmed. Booking HCC-1042, room 102, 23 Oct 2026 to 26 Oct 2026 (3 nights). Check-in from 14:00.",
+   "subject": "Your booking HCC-1042 is confirmed",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1042",
+   "template": "pre-arrival",
+   "body": "Hello Vikram, we look forward to welcoming you on 23 Oct 2026. Check-in is from 14:00. Reply here for airport pickup or early arrival requests.",
+   "subject": "See you soon at HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1042",
+   "template": "checkin-welcome",
+   "body": "Welcome to HCC Demo Residency, Vikram! You are in room 102 until 26 Oct 2026. Checkout is at 11:00. Dial 9 for the front desk.",
+   "subject": "Welcome to HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1042",
+   "template": "payment-receipt",
+   "body": "HCC Demo Residency: payment of ₹2,200 received for booking HCC-1042. Balance due ₹200. Thank you.",
+   "subject": "Payment received · HCC-1042",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1042",
+   "template": "checkout-invoice",
+   "body": "Dear Vikram Shah, thank you for staying with us. Your sample invoice for HCC-1042 is at https://demo.invalid/inv/HCC-1042 (simulated link).",
+   "subject": "Your invoice for booking HCC-1042",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1042",
+   "template": "feedback",
+   "body": "Hi Vikram, how was your stay at HCC Demo Residency? Rate us in one tap: https://demo.invalid/fb/HCC-1042 (simulated link).",
+   "subject": "How was your stay?",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1043",
+   "template": "booking-confirmation",
+   "body": "Namaste Riya, your stay at HCC Demo Residency is confirmed. Booking HCC-1043, room 104, 23 Oct 2026 to 26 Oct 2026 (3 nights). Check-in from 14:00.",
+   "subject": "Your booking HCC-1043 is confirmed",
+   "amountText": "₹3,300",
+   "balanceText": "₹300"
+  },
+  {
+   "booking": "HCC-1043",
+   "template": "pre-arrival",
+   "body": "Hello Riya, we look forward to welcoming you on 23 Oct 2026. Check-in is from 14:00. Reply here for airport pickup or early arrival requests.",
+   "subject": "See you soon at HCC Demo Residency",
+   "amountText": "₹3,300",
+   "balanceText": "₹300"
+  },
+  {
+   "booking": "HCC-1043",
+   "template": "checkin-welcome",
+   "body": "Welcome to HCC Demo Residency, Riya! You are in room 104 until 26 Oct 2026. Checkout is at 11:00. Dial 9 for the front desk.",
+   "subject": "Welcome to HCC Demo Residency",
+   "amountText": "₹3,300",
+   "balanceText": "₹300"
+  },
+  {
+   "booking": "HCC-1043",
+   "template": "payment-receipt",
+   "body": "HCC Demo Residency: payment of ₹3,300 received for booking HCC-1043. Balance due ₹300. Thank you.",
+   "subject": "Payment received · HCC-1043",
+   "amountText": "₹3,300",
+   "balanceText": "₹300"
+  },
+  {
+   "booking": "HCC-1043",
+   "template": "checkout-invoice",
+   "body": "Dear Riya Mehta, thank you for staying with us. Your sample invoice for HCC-1043 is at https://demo.invalid/inv/HCC-1043 (simulated link).",
+   "subject": "Your invoice for booking HCC-1043",
+   "amountText": "₹3,300",
+   "balanceText": "₹300"
+  },
+  {
+   "booking": "HCC-1043",
+   "template": "feedback",
+   "body": "Hi Riya, how was your stay at HCC Demo Residency? Rate us in one tap: https://demo.invalid/fb/HCC-1043 (simulated link).",
+   "subject": "How was your stay?",
+   "amountText": "₹3,300",
+   "balanceText": "₹300"
+  },
+  {
+   "booking": "HCC-1044",
+   "template": "booking-confirmation",
+   "body": "Namaste Arjun, your stay at HCC Demo Residency is confirmed. Booking HCC-1044, room 201, 23 Oct 2026 to 26 Oct 2026 (3 nights). Check-in from 14:00.",
+   "subject": "Your booking HCC-1044 is confirmed",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1044",
+   "template": "pre-arrival",
+   "body": "Hello Arjun, we look forward to welcoming you on 23 Oct 2026. Check-in is from 14:00. Reply here for airport pickup or early arrival requests.",
+   "subject": "See you soon at HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1044",
+   "template": "checkin-welcome",
+   "body": "Welcome to HCC Demo Residency, Arjun! You are in room 201 until 26 Oct 2026. Checkout is at 11:00. Dial 9 for the front desk.",
+   "subject": "Welcome to HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1044",
+   "template": "payment-receipt",
+   "body": "HCC Demo Residency: payment of ₹2,200 received for booking HCC-1044. Balance due ₹200. Thank you.",
+   "subject": "Payment received · HCC-1044",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1044",
+   "template": "checkout-invoice",
+   "body": "Dear Arjun Kapoor, thank you for staying with us. Your sample invoice for HCC-1044 is at https://demo.invalid/inv/HCC-1044 (simulated link).",
+   "subject": "Your invoice for booking HCC-1044",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1044",
+   "template": "feedback",
+   "body": "Hi Arjun, how was your stay at HCC Demo Residency? Rate us in one tap: https://demo.invalid/fb/HCC-1044 (simulated link).",
+   "subject": "How was your stay?",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1045",
+   "template": "booking-confirmation",
+   "body": "Namaste Nisha, your stay at HCC Demo Residency is confirmed. Booking HCC-1045, room 202, 23 Oct 2026 to 26 Oct 2026 (3 nights). Check-in from 14:00.",
+   "subject": "Your booking HCC-1045 is confirmed",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1045",
+   "template": "pre-arrival",
+   "body": "Hello Nisha, we look forward to welcoming you on 23 Oct 2026. Check-in is from 14:00. Reply here for airport pickup or early arrival requests.",
+   "subject": "See you soon at HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1045",
+   "template": "checkin-welcome",
+   "body": "Welcome to HCC Demo Residency, Nisha! You are in room 202 until 26 Oct 2026. Checkout is at 11:00. Dial 9 for the front desk.",
+   "subject": "Welcome to HCC Demo Residency",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1045",
+   "template": "payment-receipt",
+   "body": "HCC Demo Residency: payment of ₹2,200 received for booking HCC-1045. Balance due ₹200. Thank you.",
+   "subject": "Payment received · HCC-1045",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1045",
+   "template": "checkout-invoice",
+   "body": "Dear Nisha Desai, thank you for staying with us. Your sample invoice for HCC-1045 is at https://demo.invalid/inv/HCC-1045 (simulated link).",
+   "subject": "Your invoice for booking HCC-1045",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1045",
+   "template": "feedback",
+   "body": "Hi Nisha, how was your stay at HCC Demo Residency? Rate us in one tap: https://demo.invalid/fb/HCC-1045 (simulated link).",
+   "subject": "How was your stay?",
+   "amountText": "₹2,200",
+   "balanceText": "₹200"
+  },
+  {
+   "booking": "HCC-1046",
+   "template": "booking-confirmation",
+   "body": "Namaste Kabir, your stay at HCC Demo Residency is confirmed. Booking HCC-1046, room 206, 23 Oct 2026 to 26 Oct 2026 (3 nights). Check-in from 14:00.",
+   "subject": "Your booking HCC-1046 is confirmed",
+   "amountText": "₹4,950",
+   "balanceText": "₹450"
+  },
+  {
+   "booking": "HCC-1046",
+   "template": "pre-arrival",
+   "body": "Hello Kabir, we look forward to welcoming you on 23 Oct 2026. Check-in is from 14:00. Reply here for airport pickup or early arrival requests.",
+   "subject": "See you soon at HCC Demo Residency",
+   "amountText": "₹4,950",
+   "balanceText": "₹450"
+  },
+  {
+   "booking": "HCC-1046",
+   "template": "checkin-welcome",
+   "body": "Welcome to HCC Demo Residency, Kabir! You are in room 206 until 26 Oct 2026. Checkout is at 11:00. Dial 9 for the front desk.",
+   "subject": "Welcome to HCC Demo Residency",
+   "amountText": "₹4,950",
+   "balanceText": "₹450"
+  },
+  {
+   "booking": "HCC-1046",
+   "template": "payment-receipt",
+   "body": "HCC Demo Residency: payment of ₹4,950 received for booking HCC-1046. Balance due ₹450. Thank you.",
+   "subject": "Payment received · HCC-1046",
+   "amountText": "₹4,950",
+   "balanceText": "₹450"
+  },
+  {
+   "booking": "HCC-1046",
+   "template": "checkout-invoice",
+   "body": "Dear Kabir Sen, thank you for staying with us. Your sample invoice for HCC-1046 is at https://demo.invalid/inv/HCC-1046 (simulated link).",
+   "subject": "Your invoice for booking HCC-1046",
+   "amountText": "₹4,950",
+   "balanceText": "₹450"
+  },
+  {
+   "booking": "HCC-1046",
+   "template": "feedback",
+   "body": "Hi Kabir, how was your stay at HCC Demo Residency? Rate us in one tap: https://demo.invalid/fb/HCC-1046 (simulated link).",
+   "subject": "How was your stay?",
+   "amountText": "₹4,950",
+   "balanceText": "₹450"
+  }
+ ],
+ "recipients": [
+  {
+   "booking": "HCC-1041",
+   "channel": "WhatsApp",
+   "masked": "••••••1041",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1041",
+   "channel": "SMS",
+   "masked": "••••••1041",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1041",
+   "channel": "Email",
+   "masked": "g•••@example.test",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1042",
+   "channel": "WhatsApp",
+   "masked": "••••••1042",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1042",
+   "channel": "SMS",
+   "masked": "••••••1042",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1042",
+   "channel": "Email",
+   "masked": "g•••@example.test",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1043",
+   "channel": "WhatsApp",
+   "masked": "••••••7777",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1043",
+   "channel": "SMS",
+   "masked": "••••••7777",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1043",
+   "channel": "Email",
+   "masked": "g•••@example.test",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1044",
+   "channel": "WhatsApp",
+   "masked": "••••••1044",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1044",
+   "channel": "SMS",
+   "masked": "••••••1044",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1044",
+   "channel": "Email",
+   "masked": "g•••@example.test",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1045",
+   "channel": "WhatsApp",
+   "masked": "••••••1045",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1045",
+   "channel": "SMS",
+   "masked": "••••••1045",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1045",
+   "channel": "Email",
+   "masked": "g•••@example.test",
+   "valid": true,
+   "block": "",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": false
+   }
+  },
+  {
+   "booking": "HCC-1046",
+   "channel": "WhatsApp",
+   "masked": "••••••7777",
+   "valid": true,
+   "block": "Guest opted out of messages",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": true,
+    "updatedAt": "2026-10-23T15:00",
+    "by": "reception"
+   }
+  },
+  {
+   "booking": "HCC-1046",
+   "channel": "SMS",
+   "masked": "••••••7777",
+   "valid": true,
+   "block": "Guest opted out of messages",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": true,
+    "updatedAt": "2026-10-23T15:00",
+    "by": "reception"
+   }
+  },
+  {
+   "booking": "HCC-1046",
+   "channel": "Email",
+   "masked": "g•••@example.test",
+   "valid": true,
+   "block": "Guest opted out of messages",
+   "consent": {
+    "whatsapp": true,
+    "sms": true,
+    "email": true,
+    "optOut": true,
+    "updatedAt": "2026-10-23T15:00",
+    "by": "reception"
+   }
+  }
+ ],
+ "outcomes": [
+  {
+   "id": "MSG-1",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-1",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-1",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-1",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-1",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-1",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-2",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-2",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-2",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-2",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-2",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-2",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-3",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-3",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-3",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-3",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-3",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-3",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-4",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-4",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-4",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-4",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-4",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-4",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-5",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-5",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-5",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-5",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-5",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-5",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-6",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-6",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-6",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-6",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-6",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-6",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-7",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-7",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-7",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-7",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-7",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-7",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-8",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-8",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-8",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-8",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-8",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-8",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-9",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-9",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-9",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-9",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-9",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-9",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-10",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-10",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-10",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-10",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-10",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-10",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-11",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-11",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-11",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-11",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-11",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-11",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-12",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-12",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-12",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-12",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-12",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-12",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-13",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-13",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-13",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-13",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-13",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-13",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-14",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-14",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-14",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-14",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-14",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-14",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-15",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-15",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-15",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-15",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-15",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-15",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-16",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-16",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-16",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-16",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-16",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-16",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-17",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-17",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-17",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-17",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-17",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-17",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-18",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-18",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-18",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-18",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-18",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-18",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-19",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-19",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-19",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-19",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-19",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-19",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-20",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-20",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-20",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-20",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-20",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-20",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-21",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-21",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-21",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-21",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-21",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-21",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-22",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-22",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-22",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-22",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-22",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-22",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-23",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-23",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-23",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-23",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-23",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-23",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-24",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-24",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-24",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-24",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-24",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-24",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-25",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-25",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-25",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-25",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-25",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-25",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-26",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-26",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-26",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-26",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-26",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-26",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-27",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-27",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-27",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-27",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-27",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-27",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-28",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-28",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-28",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-28",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-28",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-28",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-29",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-29",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-29",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-29",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-29",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-29",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-30",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-30",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-30",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-30",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-30",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-30",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-31",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-31",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-31",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-31",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-31",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-31",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-32",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-32",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-32",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-32",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-32",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-32",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-33",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-33",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-33",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-33",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-33",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-33",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-34",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-34",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-34",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-34",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-34",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-34",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-35",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-35",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-35",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-35",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-35",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-35",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-36",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-36",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-36",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-36",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-36",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-36",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-37",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-37",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-37",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-37",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-37",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-37",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-38",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-38",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-38",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-38",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-38",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-38",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-39",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-39",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-39",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-39",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-39",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-39",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-40",
+   "channel": "WhatsApp",
+   "valid": true,
+   "outcome": "Read"
+  },
+  {
+   "id": "MSG-40",
+   "channel": "WhatsApp",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-40",
+   "channel": "SMS",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-40",
+   "channel": "SMS",
+   "valid": false,
+   "outcome": "Failed"
+  },
+  {
+   "id": "MSG-40",
+   "channel": "Email",
+   "valid": true,
+   "outcome": "Delivered"
+  },
+  {
+   "id": "MSG-40",
+   "channel": "Email",
+   "valid": false,
+   "outcome": "Failed"
+  }
+ ],
+ "steps": {
+  "Read": [
+   {
+    "status": "Queued",
+    "offset": 0
+   },
+   {
+    "status": "Sent",
+    "offset": 1
+   },
+   {
+    "status": "Delivered",
+    "offset": 3
+   },
+   {
+    "status": "Read",
+    "offset": 8
+   }
+  ],
+  "Delivered": [
+   {
+    "status": "Queued",
+    "offset": 0
+   },
+   {
+    "status": "Sent",
+    "offset": 1
+   },
+   {
+    "status": "Delivered",
+    "offset": 3
+   }
+  ],
+  "Failed": [
+   {
+    "status": "Queued",
+    "offset": 0
+   },
+   {
+    "status": "Sent",
+    "offset": 1
+   },
+   {
+    "status": "Failed",
+    "offset": 2
+   }
+  ],
+  "blocked": [
+   {
+    "status": "Not sent",
+    "offset": 0
+   }
+  ]
+ },
+ "sms": [
+  {
+   "length": 0,
+   "segments": 1
+  },
+  {
+   "length": 1,
+   "segments": 1
+  },
+  {
+   "length": 159,
+   "segments": 1
+  },
+  {
+   "length": 160,
+   "segments": 1
+  },
+  {
+   "length": 161,
+   "segments": 2
+  },
+  {
+   "length": 306,
+   "segments": 2
+  },
+  {
+   "length": 307,
+   "segments": 3
+  },
+  {
+   "length": 459,
+   "segments": 3
+  },
+  {
+   "length": 460,
+   "segments": 4
+  }
+ ],
+ "unknown": [
+  [
+   "Hi {guest} {nope} {x}",
+   [
+    "nope",
+    "x"
+   ]
+  ],
+  [
+   "{firstName} ok",
+   []
+  ]
+ ],
+ "pending": [
+  {
+   "key": "R2:HCC-1049",
+   "rule": "R2",
+   "booking": "HCC-1049"
+  },
+  {
+   "key": "R2:HCC-1050",
+   "rule": "R2",
+   "booking": "HCC-1050"
+  }
+ ],
+ "allEvents": 22,
+ "inHouse": [
+  "HCC-1041",
+  "HCC-1042",
+  "HCC-1043"
+ ]
+}

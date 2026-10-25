@@ -22,5 +22,6 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 16 | `deployment/windows/installer/Hcc.iss`, `Build-Installer.ps1` (P7) | Inno Setup 6 outline (files, keep settings on upgrade, stop/start service); not compiled on this PC | ETP Inno Setup template (branding, prerequisite checks, upgrade rules) |
 | 17 | `src/Hcc.Operations/ScriptBackupGate.cs` (P7) | `IBackupGate` that runs CHECKDB then `Backup-HccDatabase.ps1 -CopyOnly -Tag premigrate_X_to_Y`; chosen by `Hcc:Operations:BackupScript` in the `migrate` command | ETP backup-gate contract once #3/#4 are aligned |
 | 18 | `src/Hcc.Api/Hosting/HccHosting.cs` (P7) | `UseWindowsService`, production config validator (integrated auth only, no TrustServerCertificate, backup folder, thumbprint), Kestrel HTTPS from machine store | ETP service hosting/config validation/TLS binding |
+| 19 | `src/Hcc.Application/Messaging/MessagingPorts.cs` `FakeMessageGateway`, `MessagingEndpoints.cs` `MessagingTriggerWorker` (W2-10) | Simulated WhatsApp/SMS/e-mail gateway (deterministic outcome, nothing leaves the server) behind `IMessageGateway`; 2 s outbox polling worker | ETP notification/e-mail sender + background-job hosting (retry/back-off, logging) |
 
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).
