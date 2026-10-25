@@ -1,4 +1,5 @@
 using Hcc.Api.Endpoints;
+using Hcc.Api.Hosting;
 using Hcc.Application.Commands;
 using Hcc.Contracts;
 using Hcc.Infrastructure.SqlServer;
@@ -41,6 +42,7 @@ public static class HccComposition
             var version = await MigrationRunner.CurrentVersionAsync(conn, ct);
             return Results.Ok(new HealthResult("ok", conn.Database, version, clock.GetUtcNow().ToString("O", System.Globalization.CultureInfo.InvariantCulture)));
         });
+        api.MapHccDiscovery();           // P7: GET /system/discovery (no auth, no secrets)
         api.MapAccessEndpoints();        // P1 (sign-in/out, /me/capabilities, admin)
         api.MapInventoryEndpoints();     // P2
         api.MapReservationsEndpoints();  // P2

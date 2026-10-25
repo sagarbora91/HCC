@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- P7: config validation, discovery endpoint, script backup gate, deployment-script dry runs (no database touched). -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Operations.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hcc.Api\Hcc.Api.csproj" />
+    <ProjectReference Include="..\..\src\Hcc.Operations\Hcc.Operations.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Hcc.Integration.Tests\xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
