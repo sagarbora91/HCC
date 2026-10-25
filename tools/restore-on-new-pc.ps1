@@ -1,4 +1,4 @@
-# Restore Hotel Control Centre from the migration package and verify it (see MIGRATION.md).
+﻿# Restore Hotel Control Centre from the migration package and verify it (see MIGRATION.md).
 # Usage: powershell -ExecutionPolicy Bypass -File restore-on-new-pc.ps1 -Package "D:\HCC-Migration-2026-10-25" -Target "V:\Codex\Hotel Control Centre"
 param(
   [Parameter(Mandatory=$true)][string]$Package,
@@ -19,15 +19,15 @@ foreach($line in Get-Content $sums){
   if(-not (Test-Path $file)){ Write-Host "MISSING $rel" -ForegroundColor Red; $bad++; continue }
   if((Get-FileHash $file -Algorithm SHA256).Hash -ne $hash.ToUpper()){ Write-Host "CHANGED $rel" -ForegroundColor Red; $bad++ }
 }
-if($bad){ throw "$bad package file(s) missing or changed — copy the package again." }
+if($bad){ throw "$bad package file(s) missing or changed - copy the package again." }
 Write-Host 'All package files match.'
 
 Step 'Checking tools'
-foreach($t in 'git','node','npm'){ if(-not (Get-Command $t -ErrorAction SilentlyContinue)){ throw "$t is not installed (see MIGRATION.md §2)." } }
-Write-Host ("git: " + (git --version) + " · node: " + (node -v))
+foreach($t in 'git','node','npm'){ if(-not (Get-Command $t -ErrorAction SilentlyContinue)){ throw "$t is not installed (see MIGRATION.md section 2)." } }
+Write-Host ("git: " + (git --version) + " | node: " + (node -v))
 
 Step "Cloning repository into $Target"
-if(Test-Path (Join-Path $Target '.git')){ throw "$Target already contains a git repository — choose an empty folder." }
+if(Test-Path (Join-Path $Target '.git')){ throw "$Target already contains a git repository - choose an empty folder." }
 git -c core.autocrlf=false clone --branch main (Join-Path $Package 'HCC.bundle') $Target   # keep files byte-identical to the old PC
 Set-Location $Target
 git config core.autocrlf false
@@ -56,4 +56,4 @@ if(-not $SkipTests){
   Pop-Location
 }
 Step 'Done'
-Write-Host "Next: copy claude-memory and reference-inputs as described in MIGRATION.md §3, then tell Claude 'resume after migration'."
+Write-Host "Next: copy claude-memory and reference-inputs as described in MIGRATION.md section 3, then tell Claude 'resume after migration'."

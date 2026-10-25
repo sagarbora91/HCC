@@ -1,4 +1,4 @@
-<#
+﻿<#
   Hotel Control Centre - work-PC setup.
   1. Checks every essential first and prints a table (Installed / Missing / Wrong version).
   2. Installs ONLY what is missing, ALWAYS under E:\ (tools, SDKs, caches, emulators, SQL data).
@@ -64,6 +64,31 @@ function AddUserPath($dir){
   $env:Path = $dir + ';' + $env:Path
 }
 function SetUserEnv($n,$v){ [Environment]::SetEnvironmentVariable($n,$v,'User'); Set-Item -Path "Env:$n" -Value $v }
+# Installed-program lookup in the Windows uninstall registry (finds programs wherever their installer put them).
+function FindInstallDir($namePattern){
+  $keys = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
+  foreach($k in $keys){
+    foreach($e in (Get-ItemProperty $k -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like $namePattern })){
+      if($e.InstallLocation -and (Test-Path $e.InstallLocation)){ return $e.InstallLocation.TrimEnd('\') }
+      if($e.UninstallString){ $d = Split-Path ($e.UninstallString.Trim('"') -replace '"','') -ErrorAction SilentlyContinue; if($d -and (Test-Path $d)){ return $d } }
+    }
+  }
+  return $null
+}
+function FindStudioDir(){
+  foreach($d in @($Paths.Studio,'C:\Program Files\Android\Android Studio',(FindInstallDir 'Android Studio*'))){ if($d -and (Test-Path (Join-Path $d 'bin\studio64.exe'))){ return $d } }
+  return $null
+}
+function FindJavaHome(){
+  $cands = @()
+  $s = FindStudioDir; if($s){ $cands += (Join-Path $s 'jbr') }
+  $cands += $Paths.Jdk
+  $cands += (Get-ChildItem 'C:\Program Files\Microsoft','E:\Program Files\Microsoft' -Directory -Filter 'jdk-21*' -ErrorAction SilentlyContinue | ForEach-Object FullName)
+  $j = FindInstallDir 'Microsoft Build of OpenJDK*21*'; if($j){ $cands += $j }
+  foreach($c in $cands){ if($c -and (Test-Path (Join-Path $c 'bin\java.exe'))){ return $c } }
+  return $null
+}
+function OnE($dir){ $dir -and ($dir.ToUpper().StartsWith($Root.ToUpper().TrimEnd('\'))) }
 function Download($url,$file){
   if(Test-Path $file){ Say "  using cached $file"; return }
   Say "  downloading $url"
@@ -102,12 +127,13 @@ if(-not $SkipDotnet){
 }
 
 if(-not $SkipAndroid){
-  $studio = @('C:\Program Files\Android\Android Studio\bin\studio64.exe', (Join-Path $Paths.Studio 'bin\studio64.exe')) | Where-Object { Test-Path $_ } | Select-Object -First 1
-  if($studio){ Check 'Android Studio' 'Installed' $studio 'none' } else { Check 'Android Studio' 'Missing' '' 'install' }
+  $studio = FindStudioDir
+  if($studio){ Check 'Android Studio' 'Installed' $studio $(if(OnE $studio){'none'}else{'installed outside E: (see MIGRATION.md to move)'}) } else { Check 'Android Studio' 'Missing' '' 'install' }
   $sdk = @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT, "$env:LOCALAPPDATA\Android\Sdk", $Paths.Sdk) | Where-Object { $_ -and (Test-Path (Join-Path $_ 'platform-tools\adb.exe')) } | Select-Object -First 1
   if($sdk){ Check 'Android SDK' 'Installed' $sdk 'check packages' } else { Check 'Android SDK' 'Missing' '' 'install' }
-  $java = @((Join-Path $Paths.Studio 'jbr\bin\java.exe'),'C:\Program Files\Android\Android Studio\jbr\bin\java.exe',(Join-Path $Paths.Jdk 'bin\java.exe')) | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $java = FindJavaHome
   if($java){ Check 'Java 21 (JBR/JDK)' 'Installed' $java 'none' } else { Check 'Java 21 (JBR/JDK)' 'Missing' '' 'comes with Android Studio' }
+  if($env:JAVA_HOME -and -not (Test-Path (Join-Path $env:JAVA_HOME 'bin\java.exe'))){ Check 'JAVA_HOME' 'Invalid' $env:JAVA_HOME 'will be reset to the real Java' }
   if($env:ANDROID_HOME -and $env:ANDROID_SDK_ROOT -and ($env:ANDROID_HOME -ne $env:ANDROID_SDK_ROOT)){ Check 'ANDROID_HOME = ANDROID_SDK_ROOT' 'Mismatch' "$env:ANDROID_HOME vs $env:ANDROID_SDK_ROOT" 'set both to the same SDK' }
 }
 
@@ -180,13 +206,26 @@ if(-not $SkipAndroid){
   if($env:ANDROID_AVD_HOME -and (Test-Path $env:ANDROID_AVD_HOME)){ $Paths.Avd = $env:ANDROID_AVD_HOME } else { SetUserEnv 'ANDROID_AVD_HOME' $Paths.Avd }
   if($env:GRADLE_USER_HOME){ $Paths.Gradle = $env:GRADLE_USER_HOME } else { SetUserEnv 'GRADLE_USER_HOME' $Paths.Gradle }
   New-Item -ItemType Directory -Force $Paths.Sdk,$Paths.Avd,$Paths.Gradle | Out-Null
-  $studioExe = @('C:\Program Files\Android\Android Studio\bin\studio64.exe',(Join-Path $Paths.Studio 'bin\studio64.exe')) | Where-Object { Test-Path $_ } | Select-Object -First 1
-  if(-not $studioExe){ WingetInstall 'Google.AndroidStudio' $Paths.Studio; $studioExe = Join-Path $Paths.Studio 'bin\studio64.exe' }
-  $jbr = Join-Path (Split-Path (Split-Path $studioExe)) 'jbr'
-  if(-not (Test-Path (Join-Path $jbr 'bin\java.exe'))){
-    Say '  Android Studio JBR not found - installing Microsoft OpenJDK 21 instead'
-    WingetInstall 'Microsoft.OpenJDK.21' $Paths.Jdk; $jbr = $Paths.Jdk
+  $studioDir = FindStudioDir
+  if(-not $studioDir){
+    # winget's --location is ignored by this NSIS installer: pass /D= ourselves (must be last, unquoted).
+    if(-not (HasWinget)){ throw 'winget is not available to install Android Studio.' }
+    Say "  winget install Google.AndroidStudio -> $($Paths.Studio)"
+    winget install --id Google.AndroidStudio -e --override "/S /D=$($Paths.Studio)" --accept-package-agreements --accept-source-agreements --disable-interactivity | Out-Host
+    $studioDir = FindStudioDir
+    if(-not $studioDir){ throw 'Android Studio installer finished but studio64.exe was not found.' }
   }
+  Say "  Android Studio: $studioDir"
+  if(-not (OnE $studioDir)){ Say "  NOTE: Android Studio is outside $Root. It works; to move it, uninstall it (Settings > Apps) and run this script again." 'Yellow' }
+  $jbr = FindJavaHome
+  if(-not $jbr){
+    Say '  No Java 21 found - installing Microsoft OpenJDK 21'
+    if(-not (HasWinget)){ throw 'winget is not available to install OpenJDK.' }
+    winget install --id Microsoft.OpenJDK.21 -e --override "/quiet /norestart INSTALLDIR=`"$($Paths.Jdk)`"" --accept-package-agreements --accept-source-agreements --disable-interactivity | Out-Host
+    $jbr = FindJavaHome
+    if(-not $jbr){ throw 'OpenJDK installed but java.exe was not found.' }
+  }
+  Say "  Java (JAVA_HOME): $jbr"
   SetUserEnv 'JAVA_HOME' $jbr
   $sdkm = Join-Path $Paths.Sdk 'cmdline-tools\latest\bin\sdkmanager.bat'
   if(-not (Test-Path $sdkm)){ $alt = Get-ChildItem (Join-Path $Paths.Sdk 'cmdline-tools') -Filter sdkmanager.bat -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1; if($alt){ $sdkm = $alt.FullName } }
@@ -206,12 +245,14 @@ if(-not $SkipAndroid){
     $yes = ('y' + [Environment]::NewLine) * 30
     $yes | & $sdkm --sdk_root=$($Paths.Sdk) --licenses | Out-Null
     & $sdkm --sdk_root=$($Paths.Sdk) @missing | Out-Host
+    if($LASTEXITCODE -ne 0){ throw "sdkmanager failed (exit $LASTEXITCODE). JAVA_HOME=$env:JAVA_HOME" }
   } else { Say '  SDK packages already present' }
   AddUserPath (Join-Path $Paths.Sdk 'platform-tools'); AddUserPath (Join-Path $Paths.Sdk 'emulator')
   $avdm = Join-Path (Split-Path $sdkm) 'avdmanager.bat'
   if(-not (Test-Path (Join-Path $Paths.Avd 'codex_api35_google.avd'))){
     Say '  creating AVD codex_api35_google (Android 15) in E:\Android\avd'
     'no' | & $avdm create avd -n codex_api35_google -k 'system-images;android-35;google_apis;x86_64' -d pixel_6 | Out-Host
+    if($LASTEXITCODE -ne 0){ Say "  AVD creation failed (exit $LASTEXITCODE) - create it later in Android Studio Device Manager." 'Yellow' }
   } else { Say '  AVD codex_api35_google already exists' }
   Say '  Old-WebView test AVD (codex_apk_review): create it in Android Studio Device Manager if needed (any API 28-30 image with the stock WebView).' 'Yellow'
 }
