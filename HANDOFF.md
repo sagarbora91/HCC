@@ -224,3 +224,18 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 5. Lead: consolidate `02 Planning\HCC_Acceptance_Matrix.md` + `05 Delivery Evidence\Acceptance\W0-D_Acceptance_Report.md` from BL023_Walkthrough.md, D6_TabS7.md, D5_Roles.md, D5_AC.md and the fix notes; then ask the owner to accept the prototype. After acceptance: **Wave 0.5** (APR-006: SCC payroll/leave/compliance/cash book, ETP exports, Master configuration), agents on Sonnet, max 3 at once.
 - GitHub remote `origin` (public repo) — still **not pushed**; owner to decide.
 - **New defect AC-02 (S2):** on WebView < 87 (tested 83) sheets/modals are invisible — CSS `inset:0` is unsupported, so `.modal-overlay` lands below the viewport. Fix = add `top:0;right:0;bottom:0;left:0` fallbacks wherever `inset` is used (grep `inset:` in `03 Prototype/src/styles*`), rebuild APK v8, re-test on `codex_apk_review`. Evidence: `05 Delivery Evidence\Acceptance\defects\AC-02-*`. Parts 2–3 of the final emulator brief did not run (API 35 emulator stayed offline >10 min); nothing else changed.
+
+## Print, tablet, Back reliability and first-party map — 25 October 2026
+- Completed local print verification: white root canvas, A4 CSS/native HTML defaults; short PDF 1 A4 page and 62-row report 4 A4 pages, all rows recovered and all five page images inspected. Printer patch 5 assertions passed. See `05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verification_2026-10-25.md`.
+- Tablet: compact coarse-pointer header, collapsed drawer Demo/display tools with Sign out accessible, >=48px measured header/reservation controls. Local portrait 673x1006 header 85px; landscape 1078x601 header 65px and drawer nav 349px. Screenshots/measurements in `05 Delivery Evidence/Acceptance/tablet-local/`.
+- Back: retained lead Session 10 history fix, cancelled stale recovery timers on new navigation/controls and reset stored idx when history is exhausted. Real-app browser tests with mocked native App bridge passed normal history, menu dismissal, root exit, no-popstate recovery and navigation-race checks. Original Android lifecycle incident still needs physical confirmation.
+- Verification: full suite 501/501 before final idx-reset/touch-specificity refinements; final browser checks, final typecheck/build and whitespace checks passed. HTML SHA-256 b3942c51537e3bc3c2a91d1c0607e83fb4e4bb0d5d1f80be215b7c6d153867a9. No second full-suite claim.
+- ETP/SCC: `02 Planning/HCC_FirstParty_Implementation_Map_2026-10-25.md` maps 8 ETP + 4 SCC packages, exact paths, dependencies, existing test candidates, HCC adaptations and new acceptance proof. Companion JSON pins 49 files; recheck found 0 hash mismatches. No source copied/tests run/scripts executed in either donor, no DB access.
+- No APK rebuilt or installed by this task (lead's existing v7 is separate), no emulator launched, no commit/push. Physical print/touch/long-session Back checks and AC-02 remain outstanding. Production construction still follows the existing approval gate.
+
+## AC-02 usage-limit checkpoint — 25 October 2026
+- User requested save/stop at 2% usage. All source changes and test scripts saved locally.
+- Replaced 9 inset declarations in 7 CSS files with explicit positional edges. Build and focused compatibility test PASS.
+- Browser harness incomplete: timed out clicking .modal-close after Demo controls (check-overlay-compat.mjs:32). Fix selector and rerun; no browser-pass claim.
+- Detailed resume instructions: 05 Delivery Evidence/Acceptance/AC02_Source_Verification_2026-10-25.md.
+- AC-02 acceptance remains OPEN pending local browser completion and real WebView83 check. No APK rebuild (user restriction), install, commit or push.

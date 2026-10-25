@@ -1,0 +1,892 @@
+[
+  {
+    "name": "portrait",
+    "headerHeight": 85,
+    "navHeight": 754,
+    "controls": [
+      {
+        "label": "Open menu",
+        "height": 48
+      },
+      {
+        "label": "SearchCtrl K",
+        "height": 48
+      }
+    ]
+  },
+  {
+    "name": "landscape",
+    "headerHeight": 65,
+    "navHeight": 349,
+    "controls": [
+      {
+        "label": "Open menu",
+        "height": 48
+      },
+      {
+        "label": "SearchCtrl K",
+        "height": 48
+      }
+    ]
+  },
+  {
+    "reservationControls": [
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "INPUT",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "SELECT",
+        "height": 48
+      },
+      {
+        "tag": "INPUT",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      },
+      {
+        "tag": "BUTTON",
+        "height": 48
+      }
+    ]
+  },
+  {
+    "back": "menu closes; normal history unwinds; exhausted history recovers; new navigation cancels fallback",
+    "errors": []
+  }
+]
