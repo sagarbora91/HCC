@@ -152,36 +152,42 @@ CREATE TABLE ivc.credit_note_line(
   CONSTRAINT CK_ivc_cn_line_split CHECK (cgst_paise + sgst_paise + igst_paise = tax_paise));
 CREATE INDEX IX_ivc_cn_line_invoice ON ivc.credit_note_line(invoice_id, invoice_line_no) INCLUDE (taxable_paise, tax_paise);
 GO
--- Immutability: an issued document is never edited or deleted (corrections are credit notes).
-CREATE TRIGGER ivc.TR_invoice_immutable ON ivc.invoice AFTER UPDATE, DELETE AS
+-- Immutability: an issued document is never edited or deleted (corrections are credit notes). INSTEAD OF triggers refuse before any
+-- constraint is checked, so the refusal is always this error.
+CREATE TRIGGER ivc.TR_invoice_immutable ON ivc.invoice INSTEAD OF UPDATE, DELETE AS
 BEGIN
   SET NOCOUNT ON;
-  IF EXISTS (SELECT 1 FROM deleted) THROW 52400, 'An issued invoice is immutable: it cannot be changed or deleted. Issue a credit note.', 1;
+  THROW 52400, 'An issued invoice is immutable: it cannot be changed or deleted. Issue a credit note.', 1;
 END;
 GO
-CREATE TRIGGER ivc.TR_invoice_line_immutable ON ivc.invoice_line AFTER UPDATE, DELETE AS
+CREATE TRIGGER ivc.TR_invoice_line_immutable ON ivc.invoice_line INSTEAD OF UPDATE, DELETE AS
 BEGIN
   SET NOCOUNT ON;
-  IF EXISTS (SELECT 1 FROM deleted) THROW 52401, 'Invoice lines are immutable once issued.', 1;
+  THROW 52401, 'Invoice lines are immutable once issued.', 1;
 END;
 GO
-CREATE TRIGGER ivc.TR_credit_note_immutable ON ivc.credit_note AFTER UPDATE, DELETE AS
+CREATE TRIGGER ivc.TR_credit_note_immutable ON ivc.credit_note INSTEAD OF UPDATE, DELETE AS
 BEGIN
   SET NOCOUNT ON;
-  IF EXISTS (SELECT 1 FROM deleted) THROW 52402, 'An issued credit note is immutable: it cannot be changed or deleted.', 1;
+  THROW 52402, 'An issued credit note is immutable: it cannot be changed or deleted.', 1;
 END;
 GO
-CREATE TRIGGER ivc.TR_credit_note_line_immutable ON ivc.credit_note_line AFTER UPDATE, DELETE AS
+CREATE TRIGGER ivc.TR_credit_note_line_immutable ON ivc.credit_note_line INSTEAD OF UPDATE, DELETE AS
 BEGIN
   SET NOCOUNT ON;
-  IF EXISTS (SELECT 1 FROM deleted) THROW 52403, 'Credit-note lines are immutable once issued.', 1;
+  THROW 52403, 'Credit-note lines are immutable once issued.', 1;
 END;
 GO
 -- A series only moves forward by one (gap-free) and is never deleted.
-CREATE TRIGGER ivc.TR_series_forward ON ivc.series AFTER UPDATE, DELETE AS
+CREATE TRIGGER ivc.TR_series_no_delete ON ivc.series INSTEAD OF DELETE AS
 BEGIN
   SET NOCOUNT ON;
-  IF NOT EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted) THROW 52404, 'A numbering series cannot be deleted.', 1;
+  THROW 52404, 'A numbering series cannot be deleted.', 1;
+END;
+GO
+CREATE TRIGGER ivc.TR_series_forward ON ivc.series AFTER UPDATE AS
+BEGIN
+  SET NOCOUNT ON;
   IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON d.property_id = i.property_id AND d.fy_code = i.fy_code AND d.doc_type = i.doc_type
              WHERE i.last_seq <> d.last_seq + 1 OR i.prefix <> d.prefix)
     THROW 52405, 'A numbering series only advances by one; its prefix is fixed for the financial year.', 1;

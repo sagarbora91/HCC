@@ -82,7 +82,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
 
     public async Task<long?> InvoiceIdForSourceAsync(ICommandTransaction tx, int propertyId, string sourceKind, long sourceId, CancellationToken ct)
     {
-        await using var cmd = Sql(tx).Command("SELECT invoice_id FROM ivc.invoice WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND source_kind = @k AND source_id = @s;");
+        await using var cmd = Sql(tx).Command("SELECT invoice_id FROM ivc.invoice WHERE property_id = @p AND source_kind = @k AND source_id = @s;");
         P(cmd, "@p", SqlDbType.Int, propertyId);
         P(cmd, "@k", SqlDbType.VarChar, sourceKind, 10);
         P(cmd, "@s", SqlDbType.BigInt, sourceId);
@@ -91,9 +91,13 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
 
     public async Task<(string Prefix, int Seq)> NextNumberAsync(ICommandTransaction tx, int propertyId, string fyCode, InvoiceDocType type, string prefixIfNew, DateTime utc, CancellationToken ct)
     {
-        // Locked check-then-insert on the series key, then a single-row advance under the same lock (gap-free within the transaction).
+        // An exclusive transaction-scoped app lock per series serializes numbering (also the first use of a series, where two key-range
+        // locks would otherwise deadlock on the insert); then check-then-insert or a single-row advance (gap-free within the transaction).
         await using var cmd = Sql(tx).Command("""
-            DECLARE @prefix VARCHAR(6), @seq INT;
+            DECLARE @prefix VARCHAR(6), @seq INT, @lock INT;
+            DECLARE @res NVARCHAR(255) = CONCAT(N'ivc.series:', @p, N':', @fy, N':', @t);
+            EXEC @lock = sp_getapplock @Resource = @res, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 30000;
+            IF @lock < 0 THROW 52406, 'The numbering series is busy; try again.', 1;
             SELECT @prefix = prefix, @seq = last_seq FROM ivc.series WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND fy_code = @fy AND doc_type = @t;
             IF @prefix IS NULL
             BEGIN
@@ -193,7 +197,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
         inter_state, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise, amount_words, issued_by, issued_utc
         """;
 
-    private const string LineColumns = "invoice_id, line_no, source_line_id, kind, service_date, description, category, sac, taxable_paise, tax_bps, tax_paise, cgst_paise, sgst_paise, igst_paise";
+    private const string LineColumns = "l.invoice_id, l.line_no, l.source_line_id, l.kind, l.service_date, l.description, l.category, l.sac, l.taxable_paise, l.tax_bps, l.tax_paise, l.cgst_paise, l.sgst_paise, l.igst_paise";
 
     private static InvoiceRecord ReadHeader(SqlDataReader rd) => new(
         rd.GetInt64(0), rd.GetInt32(1), InvoiceNumbering.Parse(rd.GetString(2)), rd.GetString(3), rd.GetString(4), rd.GetInt32(5), D(rd, 6), rd.GetString(7), rd.GetInt64(8),
@@ -222,7 +226,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
     public Task<InvoiceRecord?> ReadInvoiceAsync(ICommandTransaction? tx, int propertyId, long invoiceId, CancellationToken ct) =>
         WithAsync(tx, $"""
             SELECT {InvoiceColumns} FROM ivc.invoice WHERE invoice_id = @i AND property_id = @p;
-            SELECT {LineColumns} FROM ivc.invoice_line WHERE invoice_id = @i AND EXISTS (SELECT 1 FROM ivc.invoice x WHERE x.invoice_id = @i AND x.property_id = @p) ORDER BY line_no;
+            SELECT {LineColumns} FROM ivc.invoice_line l WHERE l.invoice_id = @i AND EXISTS (SELECT 1 FROM ivc.invoice x WHERE x.invoice_id = @i AND x.property_id = @p) ORDER BY line_no;
             """, async cmd =>
         {
             P(cmd, "@i", SqlDbType.BigInt, invoiceId);
@@ -233,7 +237,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
     public Task<IReadOnlyList<InvoiceRecord>> InvoicesInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct) =>
         WithAsync<IReadOnlyList<InvoiceRecord>>(null, $"""
             SELECT {InvoiceColumns} FROM ivc.invoice WHERE property_id = @p AND invoice_date BETWEEN @f AND @t ORDER BY invoice_date, invoice_no;
-            SELECT {LineColumns.Replace("invoice_id,", "l.invoice_id,", StringComparison.Ordinal)} FROM ivc.invoice_line l JOIN ivc.invoice i ON i.invoice_id = l.invoice_id
+            SELECT {LineColumns} FROM ivc.invoice_line l JOIN ivc.invoice i ON i.invoice_id = l.invoice_id
              WHERE i.property_id = @p AND i.invoice_date BETWEEN @f AND @t;
             """, async cmd =>
         {
@@ -280,7 +284,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
 
     public async Task<CreditNoteRequestRow?> PendingRequestAsync(ICommandTransaction tx, long invoiceId, CancellationToken ct)
     {
-        await using var cmd = Sql(tx).Command($"SELECT {RequestColumns} FROM ivc.credit_note_request WITH (UPDLOCK, HOLDLOCK) WHERE invoice_id = @i AND status = 'Pending';");
+        await using var cmd = Sql(tx).Command($"SELECT {RequestColumns} FROM ivc.credit_note_request WITH (UPDLOCK) WHERE invoice_id = @i AND status = 'Pending';");
         P(cmd, "@i", SqlDbType.BigInt, invoiceId);
         return await OneRequestAsync(cmd, ct).ConfigureAwait(false);
     }

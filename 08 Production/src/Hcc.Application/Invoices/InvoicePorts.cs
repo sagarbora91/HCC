@@ -83,7 +83,7 @@ public interface IInvoiceStore
 
     Task<FolioParty?> FolioPartyAsync(ICommandTransaction tx, long folioId, CancellationToken ct);
 
-    /// <summary>The invoice already issued for the source (UPDLOCK + HOLDLOCK on the key), or null.</summary>
+    /// <summary>The invoice already issued for the source, or null (callers hold the source lock, which serializes issues of one source).</summary>
     Task<long?> InvoiceIdForSourceAsync(ICommandTransaction tx, int propertyId, string sourceKind, long sourceId, CancellationToken ct);
 
     /// <summary>
@@ -99,7 +99,7 @@ public interface IInvoiceStore
     /// <summary>Taxable value and tax already credited per invoice line (issued credit notes).</summary>
     Task<IReadOnlyDictionary<int, (Paise Taxable, Paise Tax)>> CreditedAsync(ICommandTransaction? tx, long invoiceId, CancellationToken ct);
 
-    /// <summary>The invoice's pending request under UPDLOCK + HOLDLOCK, or null.</summary>
+    /// <summary>The invoice's pending request under UPDLOCK, or null (callers hold the source lock).</summary>
     Task<CreditNoteRequestRow?> PendingRequestAsync(ICommandTransaction tx, long invoiceId, CancellationToken ct);
 
     Task<CreditNoteRequestRow> InsertRequestAsync(ICommandTransaction tx, NewCreditNoteRequest request, CancellationToken ct);
