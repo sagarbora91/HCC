@@ -243,14 +243,14 @@ export function HRPayslipDoc({run,line}:{run:HRRun;line:HRLine}){
     <div className="hr-ps-head"><div><small>EMPLOYEE</small><h3>{line.name}</h3><p>{line.designation} · {hrDeptName(s,line.dept)} · {line.staffId}</p></div>
       <div><small>PAY BASIS</small><h3>{line.payType==='monthly'?`${money(line.base)} / month`:`${money(line.base)} / day`}</h3><p>{c.days} calendar days · payable {line.payableDays}</p></div></div>
     <div className="hr-ps-grid">
-      <section><h4>Attendance</h4><div className="summary-list">{R('Present',c.P)}{R('Late',c.L)}{R('Half-days',c.H+c.HL)}{R('Absent / not marked',c.A+c.unmarked)}{R('Paid leave',c.paidLeave)}{R('Leave without pay',c.lopLeave)}{R('Weekly offs',c.off)}{!!c.OFFW&&R('Worked on off day',c.OFFW)}{R('Overtime',`${Math.round(c.otMin/6)/10} h`)}{!!line.latePenaltyHalf&&R('Late rule (½-days)',line.latePenaltyHalf)}</div></section>
+      <section><h4>Attendance</h4><div className="summary-list">{R('Present',c.P)}{R('Late',c.L)}{R('Half-days',(c.H||0)+(c.HL||0))}{R('Absent / not marked',c.A+c.unmarked)}{R('Paid leave',c.paidLeave)}{R('Leave without pay',c.lopLeave)}{R('Weekly offs',c.off)}{!!c.OFFW&&R('Worked on off day',c.OFFW)}{R('Overtime',`${Math.round(c.otMin/6)/10} h`)}{!!line.latePenaltyHalf&&R('Late rule (½-days)',line.latePenaltyHalf)}</div></section>
       <section><h4>Earnings</h4><div className="summary-list">{R('Basic',money(line.basic))}{line.structure==='S'&&<>{R('HRA',money(line.hra))}{R('Washing allowance',money(line.washing))}{R('Special allowance',money(line.special))}</>}{R('Overtime',money(line.ot))}{R('Gross earnings',money(line.gross))}</div>
         <h4>Deductions</h4><div className="summary-list">{R('Provident Fund (12%)',money(line.pf))}{R('ESIC (0.75%)',money(line.esic))}{R('Professional tax (MH)',money(line.pt))}{R('Advance recovery',money(line.advance))}{R('Total deductions',money(line.deductions))}</div>
         <h4>Employer contributions <em>(not deducted)</em></h4><div className="summary-list">{R('PF employer',money(line.pfEr))}{R('ESIC employer',money(line.esicEr))}</div></section>
     </div>
     <div className="hr-ps-net"><span>Net pay</span><strong className="number">{money(line.net)}</strong></div>
     <p className="hr-ps-words">{hrAmountWords(line.net)}</p>
-    <p className="footnote">{HR_DISCLAIMER} Rates from {run.rates.from}. Prepared by {hrUserName(s,run.preparedBy)}{run.lockedBy?` · locked by ${hrUserName(s,run.lockedBy)} at ${run.lockedAt?.slice(11)} on ${dateLabel(run.lockedAt!.slice(0,10))} (simulated clock)`:''}. Payment by simulated bank transfer.</p>
+    <p className="footnote">{HR_DISCLAIMER} Rates from {run.rates?.from??'—'}{run.legacy?' (legacy run saved before the SCC rules — employer share and pay split not recorded)':''}. Prepared by {hrUserName(s,run.preparedBy)}{run.lockedBy?` · locked by ${hrUserName(s,run.lockedBy)} at ${run.lockedAt?.slice(11)} on ${dateLabel(run.lockedAt!.slice(0,10))} (simulated clock)`:''}. Payment by simulated bank transfer.</p>
   </div>;
 }
 

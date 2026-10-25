@@ -1,7 +1,24 @@
 // W05-B code-review fixes (05 Delivery Evidence\Assembly\W05B_Payroll_Code_Review_2026-10-25.md). One regression test per finding, names [PAY-FIX F-nn].
 // Money = integer paise; simulated clock only; fictional staff.
+import {build} from 'esbuild';
+import {writeFile} from 'node:fs/promises';
 export async function register({test,M,assert}){
   const {seed,execute}=M;
+  // Render harness (payslip dialog, HR sections) — same pattern as stream-payroll-scc.mjs, own bundle.
+  await writeFile('tests/.generated/payfix-ui-entry.tsx',`
+import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
+import {HccContext} from '../../src/app/context';
+import {can} from '../../src/services/mock';
+import {HR_SECTIONS} from '../../src/features/staff/HrDesk';
+import {registration} from '../../src/features/staff/register';
+function ctx(s:any,uid:string){const user=s.users.find((u:any)=>u.id===uid);
+  return {s,uid,user,busy:false,run:async()=>true,open(){},closeModal(){},toast(){},setDirty(){},permission:(p:any)=>can(s,uid,p),display:{isMobile:false}} as any;}
+const wrap=(s:any,uid:string,el:any)=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid)}>{el}</HccContext.Provider>);
+export function renderSection(s:any,uid:string,name:string,phone=false){const C=(HR_SECTIONS as any)[name];return wrap(s,uid,<C phone={phone}/>);}
+export function renderModal(s:any,uid:string,type:string,id?:string){const C=(registration.modals as any)[type];return wrap(s,uid,<C id={id}/>);}
+`);
+  await build({entryPoints:['tests/.generated/payfix-ui-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/payfix-ui.mjs',logLevel:'error',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'},banner:{js:"import {createRequire as __pfReq} from 'node:module';const require=__pfReq(import.meta.url);"}});
+  const UI=await import('./.generated/payfix-ui.mjs');
   const x=s=>M.hrSlice(s);
   const code=c=>e=>e.code===c;
 
@@ -56,5 +73,33 @@ export async function register({test,M,assert}){
     assert.equal(S(execute(s,'manager',staffCmd(S(s,'HR-S05'),{designation:'Senior room attendant'})),'HR-S05').designation,'Senior room attendant');
     // the dialog shows the link as Owner-only for others
     const html=M.hrCanLink(s,'manager');assert.equal(html,false);assert.equal(M.hrCanLink(s,'owner'),true);
+    assert.match(UI.renderModal(s,'manager','hr-staff','HR-S05'),/Owner only/);
+  });
+
+  test('[PAY-FIX F-04] a v7 save with old `rates` is migrated on restore: custom rates kept, old runs readable, no NaN / undefined in files or payslips',()=>{
+    const v7=structuredClone(seed());const sx=v7.staffX;
+    delete sx.rateVersions;sx.rates={basicBps:5000,pfBps:1000,pfCap:1500000,esicBps:75,esicCeiling:2100000,pt:20000,ptThreshold:1000000,otBps:15000,lateBlock:2};
+    for(const st of sx.staff){delete st.gender;delete st.bankName;delete st.accountNo;delete st.ifsc;}
+    const run=sx.runs[0];delete run.bank;run.rates={...sx.rates};
+    run.lines=run.lines.map(l=>{const {staffId,name,dept,designation,payType,base,latePenaltyHalf,payableDays,ot,gross,pf,esic,pt,advance,deductions,net}=l;
+      const {ym,HL,...counts}=l.counts;return {staffId,name,dept,designation,payType,base,counts,latePenaltyHalf,payableDays,basic:gross-ot,ot,gross,pf,esic,pt,advance,deductions,net};});
+    v7.schema=7;
+    const r=M.restoreState(JSON.stringify(v7));assert.equal(r.reset,false);assert.equal(r.state.schema,M.SCHEMA);
+    const s=r.state,v=M.hrRateVersions(s);
+    assert.equal(s.staffX.rates,undefined);assert.equal(v.length,1);assert.equal(v[0].from,'2025-04-01');
+    assert.equal(v[0].pfEeBps,1000,'custom PF rate kept (was silently reset to 12%)');assert.equal(v[0].lateBlock,2,'custom late rule kept');
+    assert.equal(v[0].otBps,10000,'old default (1.5×) is not a customisation: SCC default applies');assert.equal(v[0].pfErBps,1300);
+    const old=M.hrRunFor(s,'2026-08');assert.equal(old.legacy,true);assert.equal(typeof old.rates.from,'string');
+    const t=M.hrRunTotals(old);for(const [k,val] of Object.entries(t))assert.ok(Number.isFinite(val),k);
+    for(const csv of [M.hrStatutoryCsv(s,old),M.hrRegisterCsv(s,old),M.hrBankCsv(s,old)])assert.doesNotMatch(csv,/NaN|undefined/);
+    assert.match(M.hrStatutoryCsv(s,old),/legacy run/);
+    const slip=UI.renderModal(s,'accountant','hr-payslip',old.id+'|HR-S05');assert.doesNotMatch(slip,/NaN|undefined/);assert.match(slip,/Rates from 2025-04-01/);
+    assert.doesNotMatch(UI.renderSection(s,'accountant','Payroll'),/NaN|undefined/);
+    // the migrated state computes new runs with the kept custom rate, and old net figures are unchanged
+    const n=execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});assert.equal(M.hrRunFor(n,'2026-09').rates.pfEeBps,1000);
+    assert.deepEqual(old.lines.map(l=>l.net),seed().staffX.runs[0].lines.map(l=>l.net));
+    // idempotent: a current-shape save round-trips unchanged; older schemas still reset
+    const cur=seed();assert.deepEqual(M.restoreState(JSON.stringify(cur)).state,cur);
+    assert.equal(M.restoreState(JSON.stringify({...v7,schema:6})).reset,true);
   });
 }

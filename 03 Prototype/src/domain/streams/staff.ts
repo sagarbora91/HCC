@@ -71,7 +71,8 @@ export type HRRun={id:string;month:string;status:'Draft'|'Locked';rates:HRRates;
   preparedBy:string;preparedAt:string;lockedBy?:string;lockedAt?:string;
   /** Bank details per staff ID, copied at lock (F-02). Absent on runs locked before the snapshot existed. */ bank?:Record<string,HRBank>;
   /** Simulated WhatsApp payslip sends. */ sent?:HRSend[];
-  /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. */ unlocks?:{at:string;by:string;reason:string}[]};
+  /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. */ unlocks?:{at:string;by:string;reason:string}[];
+  /** F-04: run saved before W05-B (illustrative rules), migrated on restore; employer contributions and the pay split were not recorded. */ legacy?:boolean};
 export type HRFnfAdj={label:string;kind:'add'|'ded';amount:number};
 export type HRFnf={id:string;staffId:string;name:string;lastDay:string;month:string;
   /** False when the exit month was already paid in a locked run. */ salaryIncluded:boolean;line?:HRLine;rates:HRRates;
@@ -94,6 +95,51 @@ export const hrEmpty=():HRState=>({depts:[],staff:[],roster:{},att:{},leaves:[],
 export const hrSlice=(s:State):HRState=>s.staffX??hrEmpty();
 /** For handlers: returns the slice, creating it on the (cloned) state if absent. */
 export function hrEnsure(s:State):HRState{if(!s.staffX)s.staffX=hrEmpty();if(!s.staffX.rateVersions?.length)s.staffX.rateVersions=[hrDefaultRates()];return s.staffX;}
+
+// ── F-04: saves made before W05-B (schema ≤ 7: `rates` instead of `rateVersions`, shorter run lines) ──
+/** Pre-W05-B rate shape and its defaults (only values that differ from these are carried over as the owner's custom rates). */
+type HRLegacyRates={basicBps:number;pfBps:number;pfCap:number;esicBps:number;esicCeiling:number;pt:number;ptThreshold:number;otBps:number;lateBlock:number};
+const HR_LEGACY_DEFAULTS:HRLegacyRates={basicBps:5000,pfBps:1200,pfCap:1500000,esicBps:75,esicCeiling:2100000,pt:20000,ptThreshold:1000000,otBps:15000,lateBlock:3};
+const okInt=(v:unknown):v is number=>Number.isSafeInteger(v)&&(v as number)>=0;
+/** Old `rates` → one dated version from the first default date: SCC defaults, overlaid with every old value the owner had customised. */
+export function hrRatesFromLegacy(old:Partial<HRLegacyRates>,from=hrDefaultRates().from):HRRates{
+  const r={...hrDefaultRates(),from},custom=(k:keyof HRLegacyRates)=>okInt(old[k])&&old[k]!==HR_LEGACY_DEFAULTS[k]?old[k] as number:undefined;
+  const set=<K extends keyof HRRates>(k:K,v:HRRates[K]|undefined)=>{if(v!==undefined)r[k]=v;};
+  set('basicBps',custom('basicBps'));set('pfEeBps',custom('pfBps'));set('pfWageCap',custom('pfCap'));set('esicEeBps',custom('esicBps'));set('esicCeiling',custom('esicCeiling'));
+  set('ptStd',custom('pt'));const th=custom('ptThreshold');if(th!==undefined&&th>0){r.ptMaleMid=th-1;r.ptMaleExempt=Math.min(r.ptMaleExempt,r.ptMaleMid-1);}
+  set('otBps',custom('otBps'));const lb=old.lateBlock;if(okInt(lb)&&lb<=10&&lb!==HR_LEGACY_DEFAULTS.lateBlock)r.lateBlock=lb;
+  return r;
+}
+/** Fills the fields a pre-W05-B run line lacks from what it did record (old `basic` = earned pay; no employer share or pay split). */
+function hrLegacyLine(l:Partial<HRLine>&Record<string,unknown>,ym:string,st:HRStaff|undefined,r:HRRates):HRLine{
+  const n=(v:unknown)=>Number.isFinite(v)?v as number:0;
+  const gross=n(l.gross),ot=n(l.ot),earned=Number.isFinite(l.earned)?l.earned as number:Math.max(0,gross-ot),pf=n(l.pf),esic=n(l.esic);
+  const c=(l.counts??{}) as Partial<HRCounts>;
+  return {...l,staffId:String(l.staffId??''),name:String(l.name??''),dept:String(l.dept??''),designation:String(l.designation??''),payType:l.payType==='daily'?'daily':'monthly',
+    structure:l.structure??'B',gender:l.gender??(st?hrGenderOf(st):'M'),base:n(l.base),
+    counts:{ym,days:n(c.days)||hrDaysInMonth(ym),P:n(c.P),L:n(c.L),H:n(c.H),HL:n(c.HL),A:n(c.A),OFFW:n(c.OFFW),off:n(c.off),paidLeave:n(c.paidLeave),lopLeave:n(c.lopLeave),unmarked:n(c.unmarked),na:n(c.na),otMin:n(c.otMin)},
+    latePenaltyHalf:n(l.latePenaltyHalf),payableDays:n(l.payableDays),earned,basic:Number.isFinite(l.basic)?l.basic as number:earned,hra:n(l.hra),washing:n(l.washing),special:n(l.special),ot,gross,
+    pfWages:Number.isFinite(l.pfWages)?l.pfWages as number:pf?Math.min(hrMulDiv(earned,r.basicBps,1,10000),r.pfWageCap):0,pf,pfEr:n(l.pfEr),
+    esicWages:Number.isFinite(l.esicWages)?l.esicWages as number:esic?gross:0,esic,esicEr:n(l.esicEr),pt:n(l.pt),advance:n(l.advance),deductions:n(l.deductions),net:n(l.net),
+    ctc:Number.isFinite(l.ctc)?l.ctc as number:gross+n(l.pfEr)+n(l.esicEr)};
+}
+/** One-time migration for state saved before W05-B (run from restoreState for schema ≤ 7; a no-op on current-shape state, so it is idempotent).
+ *  Old `rates` → `rateVersions` (custom values kept); old runs keep their figures, get a full rate snapshot and the missing line fields, marked legacy. */
+export function hrMigrateLegacy(s:State):boolean{
+  const x=s.staffX as (HRState&{rates?:Partial<HRLegacyRates>})|undefined;if(!x)return false;
+  let changed=false;
+  if(!x.rateVersions?.length){x.rateVersions=[x.rates?hrRatesFromLegacy(x.rates):hrDefaultRates()];changed=true;}
+  if(x.rates){delete x.rates;changed=true;}
+  for(const run of x.runs??[]){
+    const rr=run.rates as Partial<HRRates>&Partial<HRLegacyRates>;
+    const old=!rr||typeof rr.from!=='string'||run.lines.some(l=>!Number.isFinite((l as Partial<HRLine>).earned)||!Number.isFinite((l as Partial<HRLine>).pfEr)||typeof (l.counts as Partial<HRCounts>)?.ym!=='string');
+    if(!old)continue;
+    if(!rr||typeof rr.from!=='string')run.rates=hrRatesFromLegacy(rr??{});
+    run.lines=run.lines.map(l=>hrLegacyLine(l as HRLine&Record<string,unknown>,run.month,x.staff.find(t=>t.id===l.staffId),run.rates));
+    run.legacy=true;changed=true;
+  }
+  return changed;
+}
 
 export const HR_SHIFTS:{code:HRShiftCode;label:string;start:string;end:string}[]=[
   {code:'M',label:'Morning',start:'07:00',end:'15:00'},{code:'E',label:'Evening',start:'15:00',end:'23:00'},
@@ -315,7 +361,8 @@ export const hrRunErrors=(run:{lines:HRLine[]})=>run.lines.filter(l=>l.base<=0).
 export const hrRunFor=(s:State,ym:string)=>hrSlice(s).runs.find(r=>r.month===ym);
 export function hrRunTotals(run:{lines:HRLine[]}){
   const t={staff:run.lines.length,earned:0,basic:0,ot:0,gross:0,pf:0,pfEr:0,esic:0,esicEr:0,pt:0,advance:0,deductions:0,net:0,ctc:0};
-  for(const l of run.lines){t.earned+=l.earned;t.basic+=l.basic;t.ot+=l.ot;t.gross+=l.gross;t.pf+=l.pf;t.pfEr+=l.pfEr;t.esic+=l.esic;t.esicEr+=l.esicEr;t.pt+=l.pt;t.advance+=l.advance;t.deductions+=l.deductions;t.net+=l.net;t.ctc+=l.ctc;}
+  // F-04: a missing field (old save) counts as 0, never NaN.
+  for(const l of run.lines)for(const k of ['earned','basic','ot','gross','pf','pfEr','esic','esicEr','pt','advance','deductions','net','ctc'] as const){const v=l[k];if(Number.isFinite(v))t[k]+=v;}
   return t;
 }
 /** F-02: copy each line's bank details from the staff master into the run (called at lock). */
@@ -340,7 +387,7 @@ export function hrVisiblePayslips(s:State,uid:string):{run:HRRun;line:HRLine}[]{
   return hrSlice(s).runs.filter(r=>r.status==='Locked').flatMap(run=>run.lines.filter(l=>pay||l.staffId===me?.id).map(line=>({run,line})))
     .sort((a,b)=>b.run.month.localeCompare(a.run.month));
 }
-const rupees=(p:number)=>(p/100).toFixed(2);
+const rupees=(p:number)=>(Number.isFinite(p)?p/100:0).toFixed(2);
 const csvCell=(v:string|number)=>{const t=String(v);return /[",\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
 const csv=(rows:(string|number)[][])=>rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n';
 /** Payroll register CSV (rupees with 2 decimals). */
@@ -368,7 +415,7 @@ export function hrStatutoryCsv(s:State,run:HRRun):string{
     ['Provident Fund',rupees(t.pf),rupees(t.pfEr),rupees(t.pf+t.pfEr)],['ESIC',rupees(t.esic),rupees(t.esicEr),rupees(t.esic+t.esicEr)],['Professional Tax (Maharashtra)',rupees(t.pt),'0.00',rupees(t.pt)],[],
     ['Sr','Staff ID','Name','Earned','PF wages','PF EE','PF ER','ESIC wages','ESIC EE','ESIC ER','PT']];
   run.lines.forEach((l,i)=>rows.push([i+1,l.staffId,l.name,...[l.earned,l.pfWages,l.pf,l.pfEr,l.esicWages,l.esic,l.esicEr,l.pt].map(rupees)]));
-  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · rates from ${run.rates.from} · ${HR_DISCLAIMER}`)+'\n';
+  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · rates from ${run.rates?.from??'—'}${run.legacy?' · legacy run (before SCC rules; employer share not recorded)':''} · ${HR_DISCLAIMER}`)+'\n';
 }
 /** Pending leave queue a user may decide (excludes own requests and own leave). */
 export function hrDecidable(s:State,uid:string){
