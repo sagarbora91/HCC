@@ -25,8 +25,10 @@ function staffHistory(s:State,rng:Rng,o:HistoryWindow){
     const st=rng.pick(people.filter(p=>p.joined<=ym+'-01'));
     const from=ym+'-'+pad(rng.int(3,24),2),len=rng.int(1,2),to=addDays(from,len-1);
     if(leaves.some(l=>l.staffId===st.id&&l.from<=to&&l.to>=from))continue;
-    const type=rng.weighted([['CL',50],['SL',35],['EL',15]] as const);
-    leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:st.id,type,from,to,days:hrLeaveDays(s,st,from,to),reason:type==='SL'?'Unwell (fictional)':type==='CL'?'Personal work (fictional)':'Family visit (fictional)',
+    const drawn=rng.weighted([['CL',50],['SL',35],['EL',15]] as const);
+    // Review F-16: daily-wage staff take leave without pay only (live rule); the draw is still made so the seeded history is unchanged otherwise.
+    const type:HRLeave['type']=st.payType==='daily'?'LOP':drawn;
+    leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:st.id,type,from,to,days:hrLeaveDays(s,st,from,to),reason:drawn==='SL'?'Unwell (fictional)':drawn==='CL'?'Personal work (fictional)':'Family visit (fictional)',
       status:'Approved',requestedBy:st.userId??'manager',requestedAt:addDays(from,-3)+'T10:00',decidedBy:'manager',decidedAt:addDays(from,-2)+'T12:00'});
   }
   x.leaves=[...leaves.filter(l=>l.days>0),...x.leaves];

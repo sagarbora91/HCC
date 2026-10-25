@@ -247,4 +247,32 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.equal((x(execute(d,'accountant',{type:'HR_FNF_DISCARD',id:f.id})).fnf??[]).length,0);
     assert.match(UI.renderSection(d,'owner','Fnf'),/Confirm/);assert.match(UI.renderSection(d,'accountant','Fnf'),/the other payroll user confirms/);
   });
+
+  test('[PAY-FIX F-14] payslip deduction labels come from the run\'s own rate version',()=>{
+    let s=execute(seed(),'owner',{type:'HR_STAT_RATES_SET',from:'2026-09-01',pfEeBps:1000,esicEeBps:100});
+    s=execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});const id=M.hrRunFor(s,'2026-09').id;
+    const slip=UI.renderModal(s,'accountant','hr-payslip',id+'|HR-S05');assert.match(slip,/Provident Fund \(10%\)/);assert.match(slip,/ESIC \(1%\)/);assert.doesNotMatch(slip,/\(12%\)|\(0\.75%\)/);
+    assert.match(UI.renderModal(seed(),'accountant','hr-payslip','HR-PAY-1|HR-S05'),/Provident Fund \(12%\)/);
+  });
+  test('[PAY-FIX F-15] cutting an entitlement never shows a negative balance: 0 left and "over by N"; the policy dialog warns',()=>{
+    let s=execute(seed(),'reception',{type:'HR_LEAVE_REQUEST',staffId:'HR-S02',leaveType:'CL',from:'2026-11-16',to:'2026-11-20',reason:'Trip'});
+    s=execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',ent:{CL:2,SL:7,EL:15}});
+    const cl=M.hrLeaveBalance(s,'HR-S02','2026-11-16').find(b=>b.type==='CL');assert.equal(cl.left,0);assert.equal(cl.over,2);
+    assert.equal(M.hrLeaveOverCount(seed(),{CL:2,SL:7,EL:15}),0);assert.equal(M.hrLeaveOverCount(s,{CL:2,SL:7,EL:15}),1);
+    assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:x(s).leaves.at(-1).id,approve:true}),/no longer sufficient/);
+  });
+  test('[PAY-FIX F-16] FY26 history gives daily-wage staff leave without pay only (no paid leave on their payslips)',()=>{
+    const fy=M.loadScenario('FY26'),daily=x(fy).staff.filter(t=>t.payType==='daily').map(t=>t.id);
+    const theirs=x(fy).leaves.filter(l=>l.id.startsWith('HR-LV-H')&&daily.includes(l.staffId));assert.ok(theirs.length>0);
+    assert.ok(theirs.every(l=>l.type==='LOP'),theirs.map(l=>l.id+':'+l.type).join(' '));
+    for(const r of x(fy).runs)for(const l of r.lines.filter(l=>l.payType==='daily'))assert.equal(l.counts.paidLeave,0,r.month);
+  });
+  test('[PAY-FIX F-17] statutory CSV says Draft for a draft run; CSV text cells cannot start a formula',()=>{
+    const s=execute(seed(),'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'}),r=M.hrRunFor(s,'2026-09');
+    assert.match(M.hrStatutoryCsv(s,r),/DRAFT — NOT FINAL/);assert.match(M.hrStatutoryCsv(seed(),M.hrRunFor(seed(),'2026-08')),/Locked run/);
+    const t=structuredClone(seed());t.staffX.runs[0].lines[0].name='=HYPERLINK("x")';t.staffX.runs[0].lines[1].name='@SUM(A1)';t.staffX.runs[0].lines[2].name='-cmd';
+    const csv=M.hrRegisterCsv(t,t.staffX.runs[0]);assert.ok(csv.includes(`"'=HYPERLINK(""x"")"`));assert.ok(csv.includes(",'@SUM(A1),"));assert.ok(csv.includes(",'-cmd,"));
+    assert.doesNotMatch(M.hrBankCsv(t,t.staffX.runs[0]),/,=|,@/);
+    assert.match(M.hrStatutoryCsv(seed(),M.hrRunFor(seed(),'2026-08')),/^Component,Employee,Employer,Total\nProvident Fund,\d+\.\d\d,/,'numbers are untouched');
+  });
 }

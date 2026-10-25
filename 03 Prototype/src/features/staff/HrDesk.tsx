@@ -237,7 +237,7 @@ function Payroll({phone}:{phone:boolean}){
         {r?.status!=='Locked'&&runBtn}{lockBtn}{canUnlock&&<button className="btn" disabled={busy} onClick={()=>open({type:'hr-unlock',id:r!.id})}><Unlock size={16}/> Unlock</button>}</div></div>
     {r&&<div className="inline padded hr-pay-files"><button className="btn" onClick={()=>file('register')}><Download size={16}/> Register CSV</button><button className="btn" onClick={xlsx}><FileSpreadsheet size={16}/> Register Excel</button>
       <button className="btn" disabled={busy||r.status!=='Locked'} title={r.status!=='Locked'?'Bank file after the pay-run is locked':undefined} onClick={()=>{void bankFile();}}><Landmark size={16}/> Bank transfer file{issued.length?` · issued ${issued.length}×`:''}</button>
-      <button className="btn" onClick={()=>file('statutory')}><Download size={16}/> PF / ESIC / PT statement</button></div>}
+      <button className="btn" onClick={()=>file('statutory')}><Download size={16}/> PF / ESIC / PT statement{r.status==='Draft'?' (draft)':''}</button></div>}
     <div className="padded hr-notes">{notes}</div>
     {r&&t?<div className="table-wrap"><table className="hr-register"><thead><tr><th>Staff</th><th className="number">Days</th><th className="number">Earned</th><th className="number">OT</th><th className="number">Gross</th><th className="number">PF</th><th className="number">ESIC</th><th className="number">PT</th><th className="number">Advance</th><th className="number">Net pay</th><th></th></tr></thead><tbody>
       {r.lines.map(l=><tr key={l.staffId}><td><strong>{l.name}</strong><small>{l.designation} · {l.payType==='monthly'?money(l.base)+'/mo':money(l.base)+'/day'}{l.structure==='B'?' · basic only':''}</small></td><td className="number">{l.payableDays}</td>

@@ -8,7 +8,7 @@ import {useHcc} from '../../app/context';
 import {dateLabel,shortDate,Empty} from '../../components/ui';
 import {
   money,hrSlice,hrRateVersions,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,hrRatesFor,
-  hrLastLockedMonth,hrNextMonth,hrRatesDefaultFrom,hrRatesPastMonths,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
+  hrLastLockedMonth,hrLeaveOverCount,hrNextMonth,hrRatesDefaultFrom,hrRatesPastMonths,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
   HR_SHIFTS,HR_WEEKDAYS,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,hrKey,
   type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,
 } from '../../services/mock';
@@ -110,7 +110,7 @@ export function HRLeaveModal({id}:{id?:string}){
       <div className="form-row"><label>{half?'Date':'From'}<input type="date" required min={s.date} value={f.from} onChange={e=>setF({...f,from:e.target.value,to:e.target.value>f.to?e.target.value:f.to})}/></label>
         {!half&&<label>To<input type="date" required min={f.from} value={f.to} onChange={e=>setF({...f,to:e.target.value})}/></label>}</div>
       <label>Reason<input required minLength={3} maxLength={120} value={f.reason} onChange={e=>setF({...f,reason:e.target.value})} enterKeyHint="send"/></label>
-      <div className="info-note"><Info size={16}/><span>{days} working day{days===1?'':'s'} · {st.payType==='daily'?'Daily-wage staff: leave without pay only (illustrative policy).':`Balance ${hrFy(f.from).label}: `+bal.map(b=>`${b.type} ${b.left}/${b.entitled}`).join(' · ')}</span></div>
+      <div className="info-note"><Info size={16}/><span>{days} working day{days===1?'':'s'} · {st.payType==='daily'?'Daily-wage staff: leave without pay only (illustrative policy).':`Balance ${hrFy(f.from).label}: `+bal.map(b=>`${b.type} ${b.left}/${b.entitled}${b.over?` (over by ${b.over})`:''}`).join(' · ')}</span></div>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||days<=0}>Send request</button></div>
     </form></>;
 }
@@ -190,11 +190,13 @@ export function HRLeavePolicyModal(){
   function save(e:React.FormEvent){e.preventDefault();
     const deptCap:Record<string,number>={};for(const [d,v] of Object.entries(f.dept))if(v!=='')deptCap[d]=Number(v);
     run({type:'HR_LEAVE_POLICY_SET',ent:{CL:Number(f.CL),SL:Number(f.SL),EL:Number(f.EL)},defaultCap:Number(f.cap),deptCap},'Leave policy saved',{close:true});}
+  const over=hrLeaveOverCount(s,{CL:Number(f.CL),SL:Number(f.SL),EL:Number(f.EL)});// F-15
   const n=(v:string,on:(v:string)=>void,label:string,max=60,req=true)=><label>{label}<input required={req} type="number" inputMode="numeric" min={req?0:1} max={max} step="1" value={v} onChange={e=>on(e.target.value)}/></label>;
   return <><div className="modal-heading"><h2>Leave policy</h2><p>Days per financial year (April–March). Applies to new requests; existing requests keep their dates.</p></div>
     <form className="form" onSubmit={save}>
       <div className="form-row">{n(f.CL,v=>setF({...f,CL:v}),'Casual leave')}{n(f.SL,v=>setF({...f,SL:v}),'Sick leave')}</div>
       <div className="form-row">{n(f.EL,v=>setF({...f,EL:v}),'Earned leave')}<label>Max staff off per department per day<input required type="number" inputMode="numeric" min="1" max="20" step="1" value={f.cap} onChange={e=>setF({...f,cap:e.target.value})}/></label></div>
+      {over>0&&<div className="info-note hr-warn"><Info size={16}/><span>{over} staff member{over===1?' has':'s have'} already taken or requested more than these entitlements this year. Their balance shows 0 left and "over by N"; approved leave is not changed.</span></div>}
       <fieldset className="hr-fieldset"><legend>Department limits (blank = {f.cap||'default'})</legend><div className="hr-cap-grid">{depts.map(d=>n(f.dept[d.id],v=>setF({...f,dept:{...f.dept,[d.id]:v}}),d.name,20,false))}</div></fieldset>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Save policy</button></div>
     </form></>;
@@ -258,7 +260,7 @@ export function HRPayslipDoc({run,line}:{run:HRRun;line:HRLine}){
     <div className="hr-ps-grid">
       <section><h4>Attendance</h4><div className="summary-list">{R('Present',c.P)}{R('Late',c.L)}{R('Half-days',(c.H||0)+(c.HL||0))}{R('Absent / not marked',c.A+c.unmarked)}{R('Paid leave',c.paidLeave)}{R('Leave without pay',c.lopLeave)}{R('Weekly offs',c.off)}{!!c.OFFW&&R('Worked on off day',c.OFFW)}{R('Overtime',`${Math.round(c.otMin/6)/10} h`)}{!!line.latePenaltyHalf&&R('Late rule (½-days)',line.latePenaltyHalf)}</div></section>
       <section><h4>Earnings</h4><div className="summary-list">{R('Basic',money(line.basic))}{line.structure==='S'&&<>{R('HRA',money(line.hra))}{R('Washing allowance',money(line.washing))}{R('Special allowance',money(line.special))}</>}{R('Overtime',money(line.ot))}{R('Gross earnings',money(line.gross))}</div>
-        <h4>Deductions</h4><div className="summary-list">{R('Provident Fund (12%)',money(line.pf))}{R('ESIC (0.75%)',money(line.esic))}{R('Professional tax (MH)',money(line.pt))}{R('Advance recovery',money(line.advance))}{R('Total deductions',money(line.deductions))}</div>
+        <h4>Deductions</h4><div className="summary-list">{R(`Provident Fund (${(run.rates?.pfEeBps??1200)/100}%)`,money(line.pf))}{R(`ESIC (${(run.rates?.esicEeBps??75)/100}%)`,money(line.esic))}{R('Professional tax (MH)',money(line.pt))}{R('Advance recovery',money(line.advance))}{R('Total deductions',money(line.deductions))}</div>
         <h4>Employer contributions <em>(not deducted)</em></h4><div className="summary-list">{R('PF employer',money(line.pfEr))}{R('ESIC employer',money(line.esicEr))}</div></section>
     </div>
     <div className="hr-ps-net"><span>Net pay</span><strong className="number">{money(line.net)}</strong></div>

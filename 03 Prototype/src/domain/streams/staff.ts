@@ -311,7 +311,12 @@ export function hrLeaveUsed(s:State,staffId:string,dateOrYear:string,type:HRLeav
 }
 export const hrEntitled=(s:State,type:'CL'|'SL'|'EL')=>hrLeavePolicy(s).ent[type];
 export function hrLeaveBalance(s:State,staffId:string,dateOrYear:string){
-  return HR_TRACKED.map(t=>{const used=hrLeaveUsed(s,staffId,dateOrYear,t),entitled=hrEntitled(s,t);return {type:t,entitled,used,left:entitled-used};});
+  // F-15: `left` never goes below 0; `over` = days already taken or requested beyond a reduced entitlement.
+  return HR_TRACKED.map(t=>{const used=hrLeaveUsed(s,staffId,dateOrYear,t),entitled=hrEntitled(s,t);return {type:t,entitled,used,left:Math.max(0,entitled-used),over:Math.max(0,used-entitled)};});
+}
+/** F-15: staff whose used + pending leave already exceeds a proposed entitlement (shown before the Owner saves a cut). */
+export function hrLeaveOverCount(s:State,ent:{CL:number;SL:number;EL:number},dateOrYear=s.date){
+  return hrSlice(s).staff.filter(st=>st.active&&HR_TRACKED.some(t=>hrLeaveUsed(s,st.id,dateOrYear,t)>ent[t])).length;
 }
 /** Other staff of a department holding a leave slot (pending or approved) on a date — SCC getCapacity, per department. */
 export function hrDeptOff(s:State,dept:string,date:string,exceptStaff=''){
@@ -445,7 +450,8 @@ export function hrVisiblePayslips(s:State,uid:string):{run:HRRun;line:HRLine}[]{
     .sort((a,b)=>b.run.month.localeCompare(a.run.month));
 }
 const rupees=(p:number)=>(Number.isFinite(p)?p/100:0).toFixed(2);
-const csvCell=(v:string|number)=>{const t=String(v);return /[",\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
+/** CSV cell; F-17: text starting with = + - @ (or tab / CR) is prefixed with ' so spreadsheets never run it as a formula (plain numbers stay numbers). */
+const csvCell=(v:string|number)=>{let t=String(v);if(typeof v==='string'&&/^[=+\-@\t\r]/.test(t)&&!/^-?\d+(\.\d+)?$/.test(t))t="'"+t;return /[",\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
 const csv=(rows:(string|number)[][])=>rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n';
 /** Payroll register CSV (rupees with 2 decimals). */
 export function hrRegisterCsv(s:State,run:HRRun):string{
@@ -472,7 +478,7 @@ export function hrStatutoryCsv(s:State,run:HRRun):string{
     ['Provident Fund',rupees(t.pf),rupees(t.pfEr),rupees(t.pf+t.pfEr)],['ESIC',rupees(t.esic),rupees(t.esicEr),rupees(t.esic+t.esicEr)],['Professional Tax (Maharashtra)',rupees(t.pt),'0.00',rupees(t.pt)],[],
     ['Sr','Staff ID','Name','Earned','PF wages','PF EE','PF ER','ESIC wages','ESIC EE','ESIC ER','PT']];
   run.lines.forEach((l,i)=>rows.push([i+1,l.staffId,l.name,...[l.earned,l.pfWages,l.pf,l.pfEr,l.esicWages,l.esic,l.esicEr,l.pt].map(rupees)]));
-  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · rates from ${run.rates?.from??'—'}${run.legacy?' · legacy run (before SCC rules; employer share not recorded)':''} · ${HR_DISCLAIMER}`)+'\n';
+  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status==='Locked'?'Locked run':'DRAFT — NOT FINAL, do not file'} · rates from ${run.rates?.from??'—'}${run.legacy?' · legacy run (before SCC rules; employer share not recorded)':''} · ${HR_DISCLAIMER}`)+'\n';
 }
 /** Pending leave queue a user may decide (excludes own requests and own leave). */
 export function hrDecidable(s:State,uid:string){
