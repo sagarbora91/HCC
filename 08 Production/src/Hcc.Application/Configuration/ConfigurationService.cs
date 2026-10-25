@@ -16,7 +16,8 @@ namespace Hcc.Application.Configuration;
 /// settings with an approver) → history (raw before/after kept for revert) → value applied now or scheduled. Every command runs
 /// through <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox <c>SettingChanged</c>); actor = the session.
 /// </summary>
-public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy policy, SettingsRegistry registry, IConfigurationStore store, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null)
+public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy policy, SettingsRegistry registry, IConfigurationStore store, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
+    GuestIds.GuestIdProtector? secrets = null)
 {
     public const string OpSet = "SetSetting";
     public const string OpDecide = "DecideSettingRequest";
@@ -87,7 +88,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
             if (SettingRules.ValueOn(versions, effectiveFrom, s.Default) != ConfigValue.Parse(r.BeforeJson))
                 throw new HccException(HccErrorCode.STALE_VERSION, "The setting changed after this request. Reject it and request again.");
             var value = ConfigValue.Parse(r.ValueJson);
-            if (SettingRules.Validate(s, value) is { } err) throw HccException.Validation(err);
+            if (!(s.Secret && GuestIds.GuestIdProtector.IsSealedSecret(value.Text)) && SettingRules.Validate(s, value) is { } err) throw HccException.Validation(err);
             var requester = await store.DisplayNameAsync(tx, r.RequestedBy, c).ConfigureAwait(false);
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             var applied = await ApplyAsync(tx, ctx, s, value, effectiveFrom, bd, $"Approved request {r.RequestId} from {requester}", "approval",
@@ -188,8 +189,18 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
     {
         var dec = SettingRules.Decide(s, authority);
         if (dec.Mode == ChangeMode.Deny) throw new HccException(HccErrorCode.FORBIDDEN, dec.Reason);
-        var value = SettingRules.Clean(s, raw);
-        if (SettingRules.Validate(s, value) is { } err) throw HccException.Validation(err);
+        ConfigValue value;
+        if (s.Secret && GuestIds.GuestIdProtector.IsSealedSecret(raw.Text))
+        {
+            value = raw; // a revert back to an earlier sealed value (validated when it was first set)
+        }
+        else
+        {
+            value = SettingRules.Clean(s, raw);
+            if (SettingRules.Validate(s, value) is { } err) throw HccException.Validation(err);
+            value = Seal(s, ctx.PropertyId, value);
+        }
+
         var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
         var (effectiveFrom, dateError) = SettingRules.EffectiveFrom(s, bd, requestedDate);
         if (dateError is not null) throw HccException.Validation(dateError);
@@ -214,6 +225,21 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
 
         return await ApplyAsync(tx, ctx, s, value, effectiveFrom, bd, reason, revertOf is null ? "change" : "revert", ctx.PrincipalId, null, null, revertOf, c).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// A secret setting (e.g. <c>msg.gatewayKey</c>) is never stored as plain text: it is sealed with agent C's protector (AES-256-GCM, the
+    /// DPAPI-wrapped key ring of DEC-068) before it reaches a request, change row or history. Without a configured key ring a secret cannot be set.
+    /// Readers open it with <see cref="GuestIds.GuestIdProtector.OpenSecret"/> (purpose <c>cfg:&lt;key&gt;</c>).
+    /// </summary>
+    private ConfigValue Seal(RegisteredSetting s, int propertyId, ConfigValue value)
+    {
+        if (!s.Secret || !value.IsSet || value.Kind != ConfigValueKind.Text) return value;
+        if (secrets is null)
+            throw new HccException(HccErrorCode.UNAVAILABLE, "Secrets are stored encrypted: configure the server's encryption keys (Hcc:GuestIdKeys) before setting " + s.Label + ".");
+        return ConfigValue.Of(secrets.SealSecret(propertyId, SecretPurpose(s.Key), value.Text!));
+    }
+
+    public static string SecretPurpose(string key) => "cfg:" + key;
 
     /// <summary>Writes one dated value (prototype <c>cfgApply</c>). A new future value for the same key and date replaces the earlier one.</summary>
     private async Task<SetSettingResult> ApplyAsync(ICommandTransaction tx, CommandContext ctx, RegisteredSetting s, ConfigValue value, DateOnly effectiveFrom,

@@ -22,6 +22,7 @@ public static class TaxEndpoints
         services.AddSingleton<GstRateResolver>();
         services.AddSingleton<IGstRateResolver>(sp => sp.GetRequiredService<GstRateResolver>());
         services.AddSingleton<GstMasterService>();
+        services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(GstSettings.Provider); // GST master group in Master configuration (read-only pointers)
         return services;
     }
 

@@ -7,8 +7,9 @@ namespace Hcc.Application.Configuration;
 /// <summary>
 /// The hub's own settings, ported from the prototype's built-in providers and legacy BL-027 keys
 /// (<c>03 Prototype/src/domain/streams/config.ts</c> <c>builtins()</c>, <c>admin.ts</c> <c>ADMIN_SETTINGS</c>). Module-owned settings
-/// (yield guardrails, guest-service SLAs, POS menu, payroll statutory rates, compliance, assistant, GST master) are registered
-/// by those modules through <see cref="ISettingsProvider"/>; until then their groups show a read-only pointer line.
+/// (yield guardrails, guest-service SLAs, POS menu, payroll statutory rates, compliance, assistant) are registered by those modules
+/// through <see cref="ISettingsProvider"/>; until then their groups show a read-only pointer line. Registered at the Wave 2 merge:
+/// the GST master group (Tax: <c>GstSettings.Provider</c>, Money and tax) and Housekeeping's <c>inspection</c> (<c>HousekeepingSettings.Provider</c>).
 /// Defaults are neutral production values (the prototype's fictional property texts are not carried over).
 /// </summary>
 public static partial class BuiltinSettings
@@ -96,11 +97,7 @@ public static partial class BuiltinSettings
         ]),
         new SettingsProvider("hkm", ConfigGroupIds.Housekeeping,
         [
-            new("inspection", "Supervisor inspection after cleaning", SettingType.Boolean)
-            {
-                Unit = "on / off", Default = B(true), Approver = SettingApprover.Manager, Help = "When off, a completed task makes the room Ready directly.",
-                Affects = "Cleaning completed after the change; tasks already awaiting inspection are unaffected.",
-            },
+            // "inspection" is registered by the Housekeeping module (HousekeepingSettings.Provider) and read by its commands.
             new("hk.maxRoomsPerAttendant", "Rooms per attendant (guide)", SettingType.Integer) { Min = 4, Max = 20, Default = N(12), Suffix = "rooms", Unit = "rooms per shift", Help = "Planning guide shown on the housekeeping board.", Affects = "Planning hints only." },
             new("mnt.pmLeadDays", "Preventive maintenance lead time", SettingType.Integer) { Min = 1, Max = 30, Default = N(7), Suffix = "days", Unit = "days", Help = "Preventive work orders are listed this many days ahead.", Affects = "Preventive plans generated after the change." },
         ]),

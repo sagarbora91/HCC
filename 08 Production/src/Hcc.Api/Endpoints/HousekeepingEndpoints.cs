@@ -15,7 +15,8 @@ public static class HousekeepingEndpoints
 {
     public static IServiceCollection AddHccHousekeeping(this IServiceCollection services)
     {
-        services.AddSingleton(new HousekeepingOptions()); // inspection policy → Master configuration (DEC-057) later
+        services.AddSingleton(new HousekeepingOptions()); // fallback only: the inspection policy is read from Master configuration (DEC-057)
+        services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(HousekeepingSettings.Provider); // registers "inspection"
         services.AddSingleton<IHousekeepingStore, SqlHousekeepingStore>();
         services.AddSingleton<IHousekeepingReadStore>(sp => new SqlHousekeepingReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
         // Assigned-scope resolvers for P1's policy (scope kinds "task" and "room").

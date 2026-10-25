@@ -88,9 +88,11 @@ public sealed partial class ConfigDatabase : IAsyncLifetime
         Platform = new SqlPlatform(Options);
         await Platform.Migrations.MigrateAsync();
         Policy = new AccessModule(Platform, new AccessOptions { PasswordIterations = 1000, PinIterations = 1000 }, Clock).Policy;
-        Registry = new SettingsRegistry([]);
+        Registry = new SettingsRegistry([Hcc.Application.Housekeeping.HousekeepingSettings.Provider, Hcc.Application.Tax.GstSettings.Provider]); // module providers as in the composition
         Store = new SqlConfigurationStore(Platform.Connections);
-        Service = new ConfigurationService(Platform.Commands, Policy, Registry, Store, Clock);
+        Secrets = new Hcc.Application.GuestIds.GuestIdProtector(new Hcc.Application.GuestIds.StaticGuestIdKeyRing("cfg-test-1",
+            new Dictionary<string, byte[]> { ["cfg-test-1"] = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32) }));
+        Service = new ConfigurationService(Platform.Commands, Policy, Registry, Store, Clock, null, Secrets);
         Queries = new ConfigurationQueries(Policy, Registry, Store, Service, Clock);
         Reader = new SettingsReader(Registry, Store, Store);
         Gate = new ModuleGate(Reader);
@@ -168,6 +170,8 @@ public sealed partial class ConfigDatabase : IAsyncLifetime
         var version = versions.TryGetValue(key, out var v) ? Convert.ToBase64String(v) : null;
         return (await Service.SetSettingAsync(Ctx(h, who), new SetSettingRequest(key, J(value), effectiveFrom, reason, version))).Value;
     }
+
+    public Hcc.Application.GuestIds.GuestIdProtector Secrets { get; private set; } = null!;
 
     public async Task<ConfigValue> ValueAsync(Hotel h, string key, DateOnly? on = null) => await Reader.GetAsync(h.PropertyId, key, on);
 

@@ -9,7 +9,7 @@ namespace Hcc.Configuration.Tests.Domain;
 /// </summary>
 public class RegistryAndRulesTests
 {
-    private static readonly SettingsRegistry Registry = new([]);
+    private static readonly SettingsRegistry Registry = new([Hcc.Application.Housekeeping.HousekeepingSettings.Provider, Hcc.Application.Tax.GstSettings.Provider]);
     private static readonly DateOnly Day = new(2026, 10, 24);
 
     private static RegisteredSetting S(string key) => Registry.Get(key);
@@ -29,6 +29,19 @@ public class RegistryAndRulesTests
         Assert.All(ConfigCatalog.Groups, g => Assert.Contains(g.Section, ConfigCatalog.Sections));
         Assert.Equal(["pos", "groups", "ota", "website", "messaging", "documents", "assistant", "inventory", "maintenance", "payroll"], ConfigCatalog.Modules.Select(m => m.Id));
         Assert.Equal(6, ConfigCatalog.CoreModules.Count);
+    }
+
+    [Fact]
+    public void Module_providers_register_the_GST_master_group_read_only_and_housekeeping_inspection()
+    {
+        foreach (var d in Hcc.Domain.Tax.GstSeed.Settings)
+        {
+            var s = S(d.Key);
+            Assert.Equal((ConfigGroupIds.Money, SettingType.Fixed, false), (s.Group.Id, s.Type, s.Definition.Editable));
+        }
+
+        Assert.Equal((ConfigGroupIds.Housekeeping, SettingType.Boolean), (S("inspection").Group.Id, S("inspection").Type));
+        Assert.DoesNotContain(BuiltinSettings.Providers().SelectMany(p => p.Definitions), d => d.Key == "inspection"); // owned by Housekeeping now
     }
 
     [Fact]

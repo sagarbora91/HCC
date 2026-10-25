@@ -17,7 +17,8 @@ namespace Hcc.Application.Housekeeping;
 /// the policy is asked with an <see cref="AccessScopes.HkTask"/>/<see cref="AccessScopes.Room"/> scope, and the handler
 /// re-checks the assignee under the row lock when the principal is not property-wide.
 /// </summary>
-public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy policy, IHousekeepingStore store, IHousekeepingReadStore reads, ITaskAssigneeEligibility eligibility, IRoomBlockPort inventoryBlocks, HousekeepingOptions options, TimeProvider clock)
+public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy policy, IHousekeepingStore store, IHousekeepingReadStore reads, ITaskAssigneeEligibility eligibility, IRoomBlockPort inventoryBlocks, HousekeepingOptions options, TimeProvider clock,
+    Configuration.ISettingsReader? settings = null)
 {
     public const string OpTransition = "TransitionHousekeepingTask";
     public const string OpBlockRoom = "BlockRoom";
@@ -62,7 +63,9 @@ public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy po
             if (!wide && task.AssigneeId != ctx.PrincipalId)
                 throw new HccException(HccErrorCode.FORBIDDEN, "Only your assigned tasks are accessible.");
             VersionToken.EnsureMatches(task.Version, expected, "This task");
-            var t = HkTaskMachine.Apply(task.State, action, options.InspectionRequired, req.AssigneeId, req.Index, req.Reason);
+            var inspection = settings is null ? options.InspectionRequired
+                : (await settings.GetAsync(tx, ctx.PropertyId, HousekeepingSettings.InspectionKey, null, c).ConfigureAwait(false)).IsSet; // DEC-057 Master configuration
+            var t = HkTaskMachine.Apply(task.State, action, inspection, req.AssigneeId, req.Index, req.Reason);
             await store.UpdateTaskAsync(tx, task.TaskId, expected, t, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             var room = await store.LockRoomAsync(tx, ctx.PropertyId, task.RoomId, c).ConfigureAwait(false)
                 ?? throw new HccException(HccErrorCode.NOT_FOUND, "Room not found.");

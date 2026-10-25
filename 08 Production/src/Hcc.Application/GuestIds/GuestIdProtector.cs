@@ -80,6 +80,61 @@ public sealed class GuestIdProtector(IGuestIdKeyRing keys)
         }
     }
 
+    /// <summary>Prefix of a sealed configuration secret: <c>enc:v1:&lt;keyId&gt;:&lt;base64 blob&gt;</c>.</summary>
+    public const string SecretPrefix = "enc:v1:";
+
+    public static bool IsSealedSecret(string? text) => text is not null && text.StartsWith(SecretPrefix, StringComparison.Ordinal);
+
+    private static byte[] SecretAad(int propertyId, string purpose, string keyId)
+        => Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"HCC-SECRET-v1|{propertyId}|{purpose}|{keyId}"));
+
+    /// <summary>
+    /// Seals a configuration secret (e.g. the messaging gateway key, Master configuration) with the same key ring and AES-256-GCM; the
+    /// associated data binds it to the property and its purpose (setting key), so it cannot be moved to another setting or property.
+    /// </summary>
+    public string SealSecret(int propertyId, string purpose, string plainText)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(purpose);
+        ArgumentException.ThrowIfNullOrEmpty(plainText);
+        var keyId = keys.CurrentKeyId;
+        var plain = Encoding.UTF8.GetBytes(plainText);
+        var blob = new byte[1 + NonceSize + TagSize + plain.Length];
+        blob[0] = Format;
+        var nonce = blob.AsSpan(1, NonceSize);
+        RandomNumberGenerator.Fill(nonce);
+        using (var aes = new AesGcm(KeyOrThrow(keyId), TagSize))
+            aes.Encrypt(nonce, plain, blob.AsSpan(1 + NonceSize + TagSize), blob.AsSpan(1 + NonceSize, TagSize), SecretAad(propertyId, purpose, keyId));
+        CryptographicOperations.ZeroMemory(plain);
+        return SecretPrefix + keyId + ":" + Convert.ToBase64String(blob);
+    }
+
+    /// <summary>Opens a value written by <see cref="SealSecret"/> (UNAVAILABLE for a wrong key, another purpose or altered data).</summary>
+    public string OpenSecret(int propertyId, string purpose, string sealedText)
+    {
+        if (!IsSealedSecret(sealedText)) throw new HccException(HccErrorCode.UNAVAILABLE, "The stored secret is not in a readable format.");
+        var rest = sealedText[SecretPrefix.Length..];
+        var colon = rest.IndexOf(':', StringComparison.Ordinal);
+        if (colon <= 0) throw new HccException(HccErrorCode.UNAVAILABLE, "The stored secret is not in a readable format.");
+        var keyId = rest[..colon];
+        var blob = Convert.FromBase64String(rest[(colon + 1)..]);
+        if (blob.Length <= 1 + NonceSize + TagSize || blob[0] != Format) throw new HccException(HccErrorCode.UNAVAILABLE, "The stored secret is not in a readable format.");
+        var plain = new byte[blob.Length - 1 - NonceSize - TagSize];
+        try
+        {
+            using var aes = new AesGcm(KeyOrThrow(keyId), TagSize);
+            aes.Decrypt(blob.AsSpan(1, NonceSize), blob.AsSpan(1 + NonceSize + TagSize), blob.AsSpan(1 + NonceSize, TagSize), plain, SecretAad(propertyId, purpose, keyId));
+            return Encoding.UTF8.GetString(plain);
+        }
+        catch (AuthenticationTagMismatchException)
+        {
+            throw new HccException(HccErrorCode.UNAVAILABLE, "The stored secret could not be decrypted with key " + keyId + " (wrong key or altered data).");
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plain);
+        }
+    }
+
     /// <summary>
     /// Keyed fingerprint of a number (HMAC-SHA256 under a subkey derived from the current key) — used instead of the number in the
     /// idempotency payload hash, so <c>plat.idempotency.payload_sha256</c> cannot be brute-forced back to an Aadhaar number.

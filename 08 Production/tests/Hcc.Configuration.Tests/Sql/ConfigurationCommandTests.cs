@@ -311,6 +311,13 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
         Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE detail LIKE N'%sk-demo-123%' OR detail LIKE N'%sk-tad-999%';"));
         Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE payload LIKE N'%sk-demo-123%';"));
         Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM cfg.change_request WHERE summary LIKE N'%sk-tad-999%';"));
+        // Sealed with agent C's protector: no plain text in any stored value, the reader gets ciphertext that opens to the key.
+        Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM cfg.change_request WHERE value_json LIKE N'%sk-tad-999%' OR before_json LIKE N'%sk-tad-999%';"));
+        Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM cfg.setting_change WHERE value_json LIKE N'%sk-demo-123%' OR before_json LIKE N'%sk-demo-123%';"));
+        var stored = (await db.ValueAsync(h, "msg.gatewayKey")).Text!;
+        Assert.StartsWith(Hcc.Application.GuestIds.GuestIdProtector.SecretPrefix, stored, StringComparison.Ordinal);
+        Assert.Equal("sk-demo-123", db.Secrets.OpenSecret(h.PropertyId, Hcc.Application.Configuration.ConfigurationService.SecretPurpose("msg.gatewayKey"), stored));
+        Assert.Equal("UNAVAILABLE", await Expect.Code(() => Task.FromResult(db.Secrets.OpenSecret(h.PropertyId, Hcc.Application.Configuration.ConfigurationService.SecretPurpose("msg.senderName"), stored))));
         foreach (var who in new[] { h.Owner, h.TechAdmin })
         {
             var v = (await db.Queries.GroupAsync(h.PropertyId, who, "messages")).Settings.Single(s => s.Key == "msg.gatewayKey");
