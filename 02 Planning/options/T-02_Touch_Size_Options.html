@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T-02 Touch size options</title>
+<style>
+:root{--p:#7A1F2B;--bg:#FAF6F0;--tx:#2B1D16;--mu:#6B5547;--ln:#E3D8C8}
+*{box-sizing:border-box}body{margin:0;background:#E9E2D6;color:var(--tx);font:14px/1.4 "Segoe UI",Arial,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}.sub{color:var(--mu);margin:0 0 16px}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.opt{width:392px}.opt h2{font-size:15px;margin:0 0 2px;color:var(--p)}.meta{font-size:12px;color:var(--mu);margin:0 0 6px;min-height:64px}
+.view{width:392px;height:620px;overflow:hidden;border:6px solid #2B1D16;border-radius:14px;background:var(--bg)}
+.dev{width:800px;height:1280px;zoom:.47;background:var(--bg);font-size:16px}
+.o-cur{--ctl:32px;--pri:38px;--row:36px}.o-a{--ctl:48px;--pri:48px;--row:48px}.o-b{--ctl:44px;--pri:48px;--row:44px}
+.hdr{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--ln)}
+.hdr .bc{flex:1;font-weight:600}
+.b{height:var(--ctl);min-width:var(--ctl);border:1px solid var(--ln);border-radius:8px;background:#fff;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;color:var(--tx)}
+.b.pri{height:var(--pri);background:var(--p);color:#fff;border-color:var(--p);font-weight:600}
+.pg{padding:16px}.pg h3{margin:0 0 12px;font-size:28px}
+.bar{display:flex;gap:10px;margin-bottom:12px;align-items:center}
+.in{height:var(--ctl);flex:1;border:1px solid var(--ln);border-radius:8px;background:#fff;padding:0 10px;display:flex;align-items:center;color:var(--mu);font-size:14px}
+.tbl{width:100%;border-collapse:collapse;background:#fff;font-size:14px}.tbl td,.tbl th{height:var(--row);padding:0 10px;border-bottom:1px solid var(--ln);text-align:left}
+.tbl .b{height:calc(var(--row) - 8px);min-width:0}
+.legend{margin:12px 0 0;font-size:14px;color:var(--mu)}
+.sw{display:flex;gap:6px;margin-bottom:10px}.sw span{border:1px solid var(--p);border-radius:8px;padding:0 12px;height:var(--ctl);display:inline-flex;align-items:center;font-size:14px}.sw .on{background:var(--p);color:#fff}
+</style></head><body>
+<h1>T-02 Touch-size options (Tab S7 portrait, 800 dp shown at 47 %)</h1>
+<p class="sub">Same Reservations screen on a touch tablet: header, search/filter bar, primary action, dense table with row actions. Today: 32 / 38 / 36 dp rows; guideline 48 dp.</p>
+<div class="row">
+
+<div class="opt"><h2>Current (reference)</h2><p class="meta">Controls 32 dp, primary 38, rows 36. Real taps all landed on the Tab S7, but spacing is tight and below 48 dp.</p>
+<div class="view"><div class="dev o-cur"><div class="hdr"><span class="b">&#9776;</span><span class="bc">Front Desk &rsaquo; Reservations</span><span class="b">Search</span></div><div class="pg"><h3>Reservations</h3><div class="bar"><div class="in">Search guest or booking</div><span class="b">Filter</span><span class="b pri">+ Walk-in</span></div>
+<table class="tbl"><tr><th>Booking</th><th>Guest</th><th>Room</th><th></th></tr><tr><td>HCC-1101</td><td>Meera K.</td><td>101</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1102</td><td>R. Patil</td><td>204</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1103</td><td>A. Shah</td><td>110</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1104</td><td>S. Rao</td><td>305</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1105</td><td>T. Jain</td><td>102</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1106</td><td>V. Nair</td><td>207</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1107</td><td>M. Dey</td><td>118</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1108</td><td>P. Iyer</td><td>221</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1109</td><td>K. Bose</td><td>103</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1110</td><td>L. Das</td><td>112</td><td><span class="b">Open</span></td></tr></table><p class="legend">Rows 36, controls 32.</p></div></div></div></div>
+
+<div class="opt"><h2>A. 48 dp everywhere on coarse pointers</h2><p class="meta">One rule (pointer: coarse, width 600+): every button, field, select, table row and nav item at least 48. Same as phone rule. About 25 % fewer rows per screen.</p>
+<div class="view"><div class="dev o-a"><div class="hdr"><span class="b">&#9776;</span><span class="bc">Front Desk &rsaquo; Reservations</span><span class="b">Search</span></div><div class="pg"><h3>Reservations</h3><div class="bar"><div class="in">Search guest or booking</div><span class="b">Filter</span><span class="b pri">+ Walk-in</span></div>
+<table class="tbl"><tr><th>Booking</th><th>Guest</th><th>Room</th><th></th></tr><tr><td>HCC-1101</td><td>Meera K.</td><td>101</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1102</td><td>R. Patil</td><td>204</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1103</td><td>A. Shah</td><td>110</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1104</td><td>S. Rao</td><td>305</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1105</td><td>T. Jain</td><td>102</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1106</td><td>V. Nair</td><td>207</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1107</td><td>M. Dey</td><td>118</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1108</td><td>P. Iyer</td><td>221</td><td><span class="b">Open</span></td></tr></table><p class="legend">Rows 48, controls 48.</p></div></div></div></div>
+
+<div class="opt"><h2>B. 44 dp dense, 48 dp primary</h2><p class="meta">Table rows, filters and chips 44; primary actions, hamburger, drawer items and dialog buttons 48. Keeps about 9 of 10 rows visible.</p>
+<div class="view"><div class="dev o-b"><div class="hdr"><span class="b" style="height:48px;min-width:48px">&#9776;</span><span class="bc">Front Desk &rsaquo; Reservations</span><span class="b">Search</span></div><div class="pg"><h3>Reservations</h3><div class="bar"><div class="in">Search guest or booking</div><span class="b">Filter</span><span class="b pri">+ Walk-in</span></div>
+<table class="tbl"><tr><th>Booking</th><th>Guest</th><th>Room</th><th></th></tr><tr><td>HCC-1101</td><td>Meera K.</td><td>101</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1102</td><td>R. Patil</td><td>204</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1103</td><td>A. Shah</td><td>110</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1104</td><td>S. Rao</td><td>305</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1105</td><td>T. Jain</td><td>102</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1106</td><td>V. Nair</td><td>207</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1107</td><td>M. Dey</td><td>118</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1108</td><td>P. Iyer</td><td>221</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1109</td><td>K. Bose</td><td>103</td><td><span class="b">Open</span></td></tr></table><p class="legend">Rows 44, primary 48.</p></div></div></div></div>
+
+<div class="opt"><h2>C. Touch-density toggle in Display mode</h2><p class="meta">Display dialog gains Comfortable 48 / Standard 44 / Compact 32. Defaults: Comfortable on coarse pointers, Compact with a mouse. Stored per device; reuses the CSS variables of A and B.</p>
+<div class="view"><div class="dev o-a"><div class="hdr"><span class="b">&#9776;</span><span class="bc">Display mode</span></div><div class="pg"><h3>Display mode</h3><p>Layout</p><div class="sw"><span>Auto</span><span class="on">Desktop</span><span>Mobile</span></div><p>Touch density</p><div class="sw"><span class="on">Comfortable 48</span><span>Standard 44</span><span>Compact 32</span></div>
+<p style="color:var(--mu)">Applies to buttons, fields and table rows. Preview:</p><div class="bar"><div class="in">Search</div><span class="b pri">+ Walk-in</span></div><table class="tbl"><tr><td>HCC-1101</td><td>Meera K.</td><td><span class="b">Open</span></td></tr><tr><td>HCC-1102</td><td>R. Patil</td><td><span class="b">Open</span></td></tr></table></div></div></div></div>
+
+</div></body></html>

@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T-01 Tablet header options</title>
+<style>
+:root{--p:#7A1F2B;--bg:#FAF6F0;--tx:#2B1D16;--mu:#6B5547;--ln:#E3D8C8;--tint:#F3E4E4}
+*{box-sizing:border-box}body{margin:0;background:#E9E2D6;color:var(--tx);font:14px/1.4 "Segoe UI",Arial,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}.sub{color:var(--mu);margin:0 0 16px}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.opt{width:392px}.opt h2{font-size:15px;margin:0 0 2px;color:var(--p)}.meta{font-size:12px;color:var(--mu);margin:0 0 6px;min-height:64px}
+.view{width:392px;height:620px;overflow:hidden;border:6px solid #2B1D16;border-radius:14px;background:var(--bg)}
+.dev{width:800px;height:1280px;zoom:.47;position:relative;display:flex;flex-direction:column;background:var(--bg);font-size:16px}
+.hdr{background:var(--bg);border-bottom:1px solid var(--ln);display:flex;flex-wrap:wrap;align-items:center;padding:8px 16px;gap:4px 12px}
+.ib{min-width:48px;height:48px;border:1px solid var(--ln);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;padding:0 12px;color:var(--tx);font-size:15px}
+.ib.p{border:0;background:none;font-size:26px;padding:0}
+.bc{font-weight:600;flex:1;white-space:nowrap}
+.chip{font-size:13px;color:var(--mu);white-space:nowrap}.chip b{color:#2d6a3e}
+.av{width:32px;height:32px;border-radius:50%;background:var(--p);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;margin-right:8px}
+.pg{padding:16px;flex:1;overflow:hidden}.pg h3{font-size:30px;margin:6px 0 12px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tile{background:#fff;border:1px solid var(--ln);border-radius:16px;height:110px;padding:14px;font-size:18px;font-weight:600}
+.tile i{display:block;font-weight:400;font-size:13px;color:var(--mu);font-style:normal}
+.mark{position:absolute;left:0;right:0;border-top:3px dashed #d33;color:#d33;font-size:20px;font-weight:700;text-align:right;padding-right:8px;z-index:6}
+.menu{position:absolute;right:16px;background:#fff;border:1px solid var(--ln);border-radius:12px;box-shadow:0 8px 24px #0003;width:300px;padding:6px;z-index:5}
+.menu div{height:48px;display:flex;align-items:center;padding:0 12px}
+.fab{position:absolute;top:10px;left:10px;z-index:4;width:56px;height:56px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 14px #0004}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--ln);height:64px}.tabs div{flex:1;text-align:center;font-size:12px;padding-top:10px;color:var(--mu)}.tabs .on{color:var(--p);font-weight:700}
+.tbl{width:100%;border-collapse:collapse;background:#fff;font-size:14px}.tbl td,.tbl th{padding:10px;border-bottom:1px solid var(--ln);text-align:left}
+</style></head><body>
+<h1>T-01 Tablet header options (Tab S7 portrait, 800x1280 dp shown at 47 %)</h1>
+<p class="sub">Maroon &amp; Sand theme, realistic header content. Red dashed line = bottom of chrome. Physical today: 248 of 1006 px (~25 %); local emulation after the compact fix: 85 px (673 px wide).</p>
+<div class="row">
+
+<div class="opt"><h2>A. Keep compact header as is</h2><p class="meta">Two-row coarse-pointer header: hamburger, breadcrumb, Search; business date on row 2. About 85-97 px (7-8 %). No code change; needs a physical re-measure.</p>
+<div class="view"><div class="dev">
+<div class="hdr" style="min-height:96px"><span class="ib p">&#9776;</span><span class="bc">Modules Home</span><span class="ib">&#128269; Search</span><span class="chip" style="flex-basis:100%;text-align:right">Business date 24 Oct 2026 &middot; <b>Open</b></span></div>
+<div class="mark" style="top:97px">~97 px (7.6 %)</div>
+<div class="pg"><h3>Modules</h3><div class="tiles"><div class="tile">Dashboard<i>Today at a glance</i></div><div class="tile">Front Desk<i>Rooms, bookings</i></div><div class="tile">Cash &amp; Billing<i>Folios, cashier</i></div><div class="tile">Housekeeping<i>Cleaning, repairs</i></div><div class="tile">Guests<i>In-house</i></div><div class="tile">Customers<i>Profiles</i></div></div></div>
+</div></div></div>
+
+<div class="opt"><h2>B. Single-row header + overflow menu</h2><p class="meta">One 60 px row: hamburger, breadcrumb, business date, Search icon, and a user menu holding display mode, demo controls and sign out (already duplicated in the drawer).</p>
+<div class="view"><div class="dev">
+<div class="hdr" style="height:60px;flex-wrap:nowrap;padding:4px 12px"><span class="ib p">&#9776;</span><span class="bc">Modules Home</span><span class="chip">24 Oct &middot; <b>Open</b></span><span class="ib">&#128269;</span><span class="ib"><span class="av" style="margin:0">S</span></span></div>
+<div class="menu" style="top:64px"><div><span class="av">S</span>Sagar (Owner)</div><div>Display: Auto</div><div>Demo controls</div><div>Sign out</div></div>
+<div class="mark" style="top:61px">~61 px (4.8 %)</div>
+<div class="pg"><h3 style="margin-top:50px">Modules</h3><div class="tiles"><div class="tile">Dashboard<i>Today</i></div><div class="tile">Front Desk<i>Rooms</i></div><div class="tile">Cash &amp; Billing<i>Folios</i></div><div class="tile">Housekeeping<i>Repairs</i></div></div></div>
+</div></div></div>
+
+<div class="opt"><h2>C. Auto-hide header on scroll</h2><p class="meta">Header slides away when scrolling down and returns on scroll up or at top. At rest it looks like A or B; while reading, chrome is 0 px with a floating menu button.</p>
+<div class="view"><div class="dev">
+<div class="fab">&#9776;</div>
+<div class="pg" style="padding-top:80px"><h3>Reservations</h3><table class="tbl"><tr><th>Booking</th><th>Guest</th><th>Room</th><th>Status</th></tr><tr><td>HCC-1101</td><td>Meera K.</td><td>101</td><td>Confirmed</td></tr><tr><td>HCC-1102</td><td>R. Patil</td><td>204</td><td>In house</td></tr><tr><td>HCC-1103</td><td>A. Shah</td><td>110</td><td>Arriving</td></tr><tr><td>HCC-1104</td><td>S. Rao</td><td>305</td><td>Confirmed</td></tr><tr><td>HCC-1105</td><td>T. Jain</td><td>102</td><td>Arriving</td></tr><tr><td>HCC-1106</td><td>V. Nair</td><td>207</td><td>In house</td></tr><tr><td>HCC-1107</td><td>M. Dey</td><td>118</td><td>Confirmed</td></tr><tr><td>HCC-1108</td><td>P. Iyer</td><td>221</td><td>Arriving</td></tr></table></div>
+<div class="mark" style="top:0;border-color:#2d6a3e;color:#2d6a3e">0 px while scrolling down</div>
+</div></div></div>
+
+<div class="opt"><h2>D. Phone shell on portrait tablets</h2><p class="meta">Portrait width under 820 uses the phone shell: 56 px app bar + 64 px bottom tabs; landscape keeps desktop layout. Contradicts DEC-044 (tablet = desktop layout).</p>
+<div class="view"><div class="dev">
+<div class="hdr" style="height:56px;flex-wrap:nowrap;background:var(--p);color:#fff;border:0"><span style="font-size:24px">&#9776;</span><span class="bc">Home</span><span style="font-size:22px">&#128269;</span></div>
+<div class="pg"><h3 style="font-size:24px">Good morning, Sagar</h3><div class="tile" style="height:90px;margin-bottom:12px">Arrivals today: 6<i>Tap to open</i></div><div class="tile" style="height:90px;margin-bottom:12px">Cash in hand: &#8377;10,750<i>One shared till</i></div><div class="tile" style="height:90px">Approvals: 3<i>Needs you</i></div></div>
+<div class="tabs"><div class="on">Home</div><div>Rooms</div><div>Approvals</div><div>Reports</div><div>Menu</div></div>
+<div class="mark" style="top:57px">56 px top + 64 px bottom</div>
+</div></div></div>
+
+</div></body></html>
