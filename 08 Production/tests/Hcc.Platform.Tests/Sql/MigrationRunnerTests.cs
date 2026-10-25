@@ -40,13 +40,12 @@ public class MigrationRunnerTests
     {
         await using var db = await DisposableDatabase.CreateAsync(migrate: false, Ct);
         var result = await db.Platform().Migrations.MigrateAsync(Ct);
-        // Wave 1 prefix exactly; every later module block (Wave 2: 0700+) only has to be unique and ascending, so new modules
-        // don't edit this test. The applied order (applied_utc, version) must equal the ascending version order.
+        // Every Wave 1 base migration is applied. Later work may add migrations inside an existing block (Wave 3: 0202, 0302+,
+        // 0502+) or new blocks (0700+), so the whole list only has to be unique and ascending and new modules don't edit this test.
+        // The applied order (applied_utc, version) must equal the ascending version order.
         int[] wave1 = [1, 2, 100, 101, 200, 300, 400, 500, 600, 601];
-        Assert.Equal(wave1, result.Applied.Take(wave1.Length));
-        var later = result.Applied.Skip(wave1.Length).ToArray();
-        Assert.All(later, v => Assert.True(v >= 700, $"Migration {v} is after the Wave 1 block but numbered below 0700."));
-        Assert.Equal(later.Order().Distinct(), later);
+        Assert.Equal(wave1, result.Applied.Where(v => wave1.Contains(v)));
+        Assert.Equal(result.Applied.Order().Distinct(), result.Applied);
         Assert.Equal(new EmbeddedMigrationSource().Load().Select(s => s.Version), result.Applied);
         Assert.Equal(string.Join(",", result.Applied), await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct));
 
