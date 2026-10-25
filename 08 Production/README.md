@@ -16,6 +16,8 @@
 | `tests/Hcc.{Access,Inventory,Stays,Billing}.Tests` | Module tests (P1–P4) |
 | `tests/Hcc.Integration.Tests` | End to end over HTTP with the real composition: sign-in (Owner password; Reception/Housekeeper PIN on a registered device) → book → register → check in → room nights → cash receipt on own shift → checkout → housekeeping task → inspect → Ready (room 105: ₹4,400 incl. ₹400 tax); company credit inside checkout with rollback |
 | `tools/golden/export-golden.mjs` | Regenerates `tests/Hcc.Platform.Tests/Golden/base-fixture.golden.json` from the prototype BASE fixture |
+| `src/Hcc.Operations` | (P7) `ScriptBackupGate`: the pre-migration backup runs `Backup-HccDatabase.ps1` |
+| `deployment/windows` | (P7) service install, LAN HTTPS certificate, backup/differential/restore-drill scripts + Task Scheduler, Inno Setup template, `INSTALL.md` (owner), `ANDROID_SERVER_ADDRESS.md`; `tests\Test-HccDeployment.ps1` (dry runs, also run by `Hcc.Operations.Tests`) |
 | `third-party/` | `packages.json` (every NuGet package, version, licence), `source-reuse.json` (H02/H04 provenance) |
 | `ETP_Reuse_Pending.md` | The `ETP-REUSE` stand-ins (P0–P4) to replace/align when `V:\ETP` is available |
 
@@ -28,6 +30,9 @@ dotnet run --project src/Hcc.Api -- migrate        # apply migrations to the Hcc
 dotnet run --project src/Hcc.Api                   # serve http://localhost:5000/api/v1/system/health (dev)
 node tools/golden/export-golden.mjs                # Node 25 (E:\Tools\nodejs); needs 03 Prototype node_modules (esbuild)
 ```
+
+## Production hosting (P7)
+`Hcc.Api` runs as Windows service `HccServer` (`UseWindowsService`); in Production it refuses to start unless `appsettings.Production.json` is valid (integrated auth, no `TrustServerCertificate`, full backup folder, certificate thumbprint). LAN HTTPS on `Hcc:Hosting:HttpsPort` (5443) with a machine-store certificate; plain HTTP only on 127.0.0.1:5080 for the first-Owner bootstrap. `GET /api/v1/system/discovery` (no auth) returns product/serverName/version. Owner steps: `deployment/windows/INSTALL.md`.
 
 ## SQL test harness
 - Each SQL test class creates its own database `HccTest_<UTC yyyyMMddHHmmss>_<8 hex>` on `.\SQLEXPRESS` (override: env `HCC_TEST_SQL_SERVER`), applies the migrations and drops it afterwards (`SINGLE_USER WITH ROLLBACK IMMEDIATE`, only names matching that pattern). No other database (e.g. `EtpReporting`) is touched.
