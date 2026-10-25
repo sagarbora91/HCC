@@ -285,10 +285,11 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
             if (s.Secret) { skipped.Add(new(p.Name, "Secrets are never imported")); continue; }
             if (!s.Editable) { skipped.Add(new(p.Name, "Not configurable")); continue; }
             var v = SettingRules.Clean(s, ConfigValue.FromJson(p.Value));
-            if (SettingRules.Validate(s, v) is { } err) { errors.Add($"{s.Label}: {err}"); continue; }
             var versions = await versionsOf(s.Key, ct).ConfigureAwait(false);
             var check = s.Mode == EffectiveMode.NextDay ? bd.AddDays(1) : bd;
+            // Unchanged first: a never-set required text (empty default) exported from one property is not an error in another.
             if (SettingRules.ValueOn(versions, check, s.Default) == v && SettingRules.Scheduled(versions, bd).Count == 0) { unchanged++; continue; }
+            if (SettingRules.Validate(s, v) is { } err) { errors.Add($"{s.Label}: {err}"); continue; }
             var dec = SettingRules.Decide(s, authority);
             if (dec.Mode == ChangeMode.Deny) { skipped.Add(new(p.Name, dec.Reason)); continue; }
             if (dec.Mode == ChangeMode.Request) { skipped.Add(new(p.Name, "Needs approval — change it on its own")); continue; }
