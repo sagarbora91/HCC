@@ -7,7 +7,7 @@ Start with: "Start Wave 3 from 02 Planning/agents/W3_Briefs.md". Same shared rul
 - W3-a `claude/w3a-config-checks` (Sonnet): POS void limit / Yield proposal lifetime / Maintenance PM lead days into Master configuration; day-close preflight blocks on POS open checks and pending voids.
 - W3-b `claude/w3b-setup-payrev` (Opus, migration 1900): first-time hotel setup (property + first Owner, loopback-only, empty install only); pay-run unlock reverses the accounting voucher.
 
-Session 12: POS DecideVoid bug fixed; W3-1, W3-2, W3-3, W3-5, W3-7, W3-8, W3-9 merged (794 tests); W3-10 proposal on main. Remaining: W3-4 and W3-6 (Opus).
+Session 12: Wave 3 COMPLETE — all W3 agents merged (849 .NET tests); server merged into main (3ba9559). Next: APK v11 → emulator tests → push.
 
 ## Remaining Wave 3 agents
 | # | Work | Model | Migrations |
