@@ -112,6 +112,14 @@ Found by the Wave 0.5 browser check on `integration/w05` (`W05_Browser_Check.md`
 5. **AC-03** (S4): count-sheet formula to include the ₹550 restaurant cash (text only; the ₹11,250 total is correct).
 6. Optional product point: the Reports "Cash into drawer" definition (BL023 note 6) after the shared-till change.
 
+### 7.1a Status of the conditions (25 Oct 2026, evening)
+- (a) **AC-04 — met.** Fixed on `integration/w05` and re-tested on **APK v9** (versionCode 9, SHA-256 `600aba41…2369`, web bundle `85916176…`): no discard dialog after a successful count submit (Cashier, Day closing) or Reports "Apply range"; the unsaved-edit guard still asks. `APK_v9_Emulator_Retest.md`.
+- (b) **T-01, T-02, R-01 — decided** (DEC-059, DEC-060, DEC-061); DEC-060 touch sizes built and measured in the browser re-check (`Fixes_Recheck_2026-10-25.md`).
+- (c) **AC-03 — met:** formula shows the ₹550 restaurant cash and adds up (browser + v9).
+- (d) **Tab S7 re-check — not done.** v9 cannot be installed over v8 (V9-1: the old PC's debug signing key was not migrated), so the tablet needs an uninstall (fictional demo data only) before v9. Owner to accept the tablet items as unverified or run the re-check.
+- (e) **BL-02 — met** (`BL023_Walkthrough_v8.md`).
+- v9 S0 regression on the emulator passes (drawer ₹10,750 → ₹11,250 → ₹12,750 → ₹12,450; Reception discount approved by the Manager per DEC-063; Android Back). Open S4: V9-2 (Cashier count switch 44 px, Reports range labels 14 px on the phone).
+
 ### 7.2 Recommendation
 **Ready for owner acceptance: YES, with conditions.**
 - The 15 S0 steps, API 35 Part 2 (21/21) and Part 3 (17/17) all pass on the final APK v8 with no S1/S2 defect open; the two old-WebView blockers are fixed and verified on WebView 83.
