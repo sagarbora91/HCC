@@ -17,4 +17,10 @@ export function register({test,M,assert}){
     const t=src('src/mobile/frontdesk/Guests.tsx');
     assert.match(t,/\{!v\.masked&&<p className="mf-note">Shown masked \(last 4\)\. "Show ID" is logged/);
   });
+  test('[PB-1] ModalHost handles Escape at document level, skips consumed keys, keeps the dialog handler and closeModal guard',()=>{
+    const t=src('src/app/ModalHost.tsx');
+    assert.match(t,/document\.addEventListener\('keydown',onKey\)/);assert.match(t,/document\.removeEventListener\('keydown',onKey\)/);
+    assert.match(t,/e\.key==='Escape'&&!e\.defaultPrevented/);assert.match(t,/closeRef\.current\(\)/);
+    assert.match(t,/if\(e\.key==='Escape'\)\{e\.preventDefault\(\);closeModal\(\);return;\}/);
+  });
 }
