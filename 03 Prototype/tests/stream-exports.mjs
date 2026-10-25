@@ -2,9 +2,24 @@
 import {build} from 'esbuild';
 import {inflateRawSync} from 'node:zlib';
 import {spawnSync} from 'node:child_process';
+import {writeFile} from 'node:fs/promises';
 await build({entryPoints:['src/app/xlsx.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/xlsx.mjs',logLevel:'error'});
 await build({entryPoints:['src/features/reports/exportXlsx.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/exportXlsx.mjs',logLevel:'error'});
 await build({entryPoints:['src/app/native.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/native-x.mjs',logLevel:'error',external:['react']});
+await build({entryPoints:['src/features/cashbook/exportXlsx.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/cb-xlsx.mjs',logLevel:'error'});
+// Render harness for the cash book page (W05-7 difference line, W05-8 Excel button).
+await writeFile('tests/.generated/cashbook-ui-entry.tsx',`
+import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
+import {HccContext} from '../../src/app/context';
+import {can,cbDay} from '../../src/services/mock';
+import {CashBookView,DayCard} from '../../src/features/cashbook/CashBook';
+const ctx=(s:any,uid:string,mobile:boolean)=>({s,uid,user:s.users.find((u:any)=>u.id===uid),busy:false,run:async()=>true,open(){},closeModal(){},toast(){},go(){},setDirty(){},permission:(p:any)=>can(s,uid,p),display:{isMobile:mobile}} as any);
+const wrap=(s:any,uid:string,mobile:boolean,el:any)=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid,mobile)}>{el}</HccContext.Provider>);
+export const renderRange=(s:any,phone:boolean)=>wrap(s,'owner',phone,<CashBookView phone={phone}/>);
+export const renderDay=(s:any,d:string,phone:boolean)=>wrap(s,'owner',phone,<DayCard d={cbDay(s,d)} phone={phone} onBack={()=>{}}/>);
+`);
+await build({entryPoints:['tests/.generated/cashbook-ui-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/cashbook-ui.mjs',logLevel:'error',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'},banner:{js:"import {createRequire as __cbReq} from 'node:module';const require=__cbReq(import.meta.url);"}});
+const CBX=await import('./.generated/cb-xlsx.mjs'),CBUI=await import('./.generated/cashbook-ui.mjs');
 const X=await import('./.generated/xlsx.mjs'),RX=await import('./.generated/exportXlsx.mjs'),N=await import('./.generated/native-x.mjs');
 const dec=new TextDecoder();
 /** Reads a ZIP through its central directory (what Excel does) and checks every CRC. */
@@ -105,4 +120,16 @@ export function register({test,M,assert}){
     const s1=z['xl/worksheets/sheet1.xml'];assert.ok(!/NaN|Infinity/.test(s1));assert.match(s1,/<v>0.3<\/v>/);assert.ok(!/0\.30000000000000004/.test(s1));
     assert.match(z['xl/workbook.xml'],/<sheet name="Quoted" sheetId="1"/);assert.match(z['xl/workbook.xml'],/<sheet name="History sheet" sheetId="2"/);
     assert.equal(X.sheetName("'a'"),'a');assert.equal(X.sheetName('x'.repeat(30)+"'"),'x'.repeat(30));});
+  test('[XLSX] W05-8: cash book Excel = the cash book figures (money cells, over/short line, carried-forward closing)',()=>{
+    const fy=M.loadScenario('FY26'),r=M.cbRange(fy,'2026-10-22','2026-10-23'),z=unzip(CBX.cbXlsx(fy,'2026-10-22','2026-10-23'));
+    assert.match(z['xl/workbook.xml'],/name="About"/);assert.match(z['xl/workbook.xml'],/name="Days"/);assert.match(z['xl/workbook.xml'],/name="Entries"/);
+    const about=z['xl/worksheets/sheet1.xml'],days=z['xl/worksheets/sheet2.xml'],ent=z['xl/worksheets/sheet3.xml'];
+    assert.ok(about.includes('<v>'+r.closing/100+'</v>'));assert.ok(about.includes('<v>'+r.differences/100+'</v>'));assert.match(about,/Cash over\/short/);
+    const d=r.days[0];assert.equal(d.difference,-3000);assert.ok(days.includes('s="2"><v>'+d.counted/100+'</v>'));assert.ok(days.includes('<v>'+d.difference/100+'</v>'));
+    assert.match(ent,/Cash over\/short \(counted − expected\)/);assert.match(ent,/Carried forward to next day/);assert.ok(!/t="inlineStr"><is><t[^>]*>-?\d+\.\d\d</.test(days));});
+  test('[CB] W05-7/W05-8 render: day view shows the over/short line and the carry; range shows the over/short total and an Excel button (desktop + phone)',()=>{
+    const fy=M.loadScenario('FY26');
+    for(const phone of [false,true]){const h=CBUI.renderDay(fy,'2026-10-22',phone);assert.match(h,/Cash over\/short/);assert.match(h,/Carried to next day<\/span><strong>₹5,000</);}
+    const h=CBUI.renderRange(fy,false);assert.match(h,/Cash over\/short \(counted − expected\)/);assert.match(h,/Excel/);assert.match(h,/Over\/short/);
+    assert.match(CBUI.renderRange(fy,true),/Excel/);});
 }

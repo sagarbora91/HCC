@@ -1,17 +1,19 @@
 // W05-D · Cash book page (desktop table + phone cards, same logic). Range view lists every business day with opening, receipts, payments,
 // closing; day view lists every entry with a running balance. All figures come from domain/streams/cashbook.ts (→ shiftMovements + closing records).
 import React,{useState} from 'react';
-import {Lock,Unlock,Download,ChevronLeft,ArrowRight} from 'lucide-react';
+import {Lock,Unlock,Download,ChevronLeft,ArrowRight,FileSpreadsheet} from 'lucide-react';
 import {money,cbDay,cbRange,cbDates,cbCsv,cbCanLock,cbCanReopen,cbSlice,addDays,CB_DIFF_LABEL} from '../../services/mock';
 import type {CBDay} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
-import {saveCsv} from '../../app/native';
+import {saveCsv,saveBinaryFile,saveAndReport} from '../../app/native';
+import {XLSX_MIME} from '../../app/xlsx';
+import {cbXlsx} from './exportXlsx';
 
 const who=(users:{id:string;name:string}[],id?:string)=>users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
 const tone=(d:CBDay)=>d.locked?'green':d.status==='Closed'?'neutral':'blue';
-function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}){
+export function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}){
   const {s,uid,run,open,busy,go}=useHcc();
   const lock=cbCanLock(s,uid,d.date),canReopen=cbCanReopen(s,uid,d.date);
   const hist=cbSlice(s).history[d.date]??[];
@@ -61,6 +63,13 @@ function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}){
     </section></>;
 }
 
+/** CSV + Excel buttons for a date range (W05-8: Excel through the W05-E xlsx helper; a failed save shows an error, F11). */
+function Exports({from,to}:{from:string;to:string}){
+  const {s,toast}=useHcc();const tag=from===to?from:`${from}_${to}`;
+  return <span className="inline">
+    <button className="btn" onClick={()=>void saveAndReport(saveCsv(`cash-book-${tag}.csv`,cbCsv(s,from,to)),toast,'Cash book CSV saved','the cash book CSV')}><Download size={15}/> CSV</button>
+    <button className="btn" onClick={()=>void saveAndReport(saveBinaryFile(`HCC-Demo-cash-book-${tag}.xlsx`,cbXlsx(s,from,to),XLSX_MIME),toast,'Cash book Excel workbook saved','the cash book Excel workbook')}><FileSpreadsheet size={15}/> Excel</button></span>;
+}
 export function CashBookView({phone=false}:{phone?:boolean}){
   const {s}=useHcc();
   const dates=cbDates(s);
@@ -69,16 +78,15 @@ export function CashBookView({phone=false}:{phone?:boolean}){
   const [day,setDay]=useState<string|null>(null);
   const r=cbRange(s,from,to),list=r.days.slice().reverse();
   const pg=usePaged(list,phone?PHONE_PAGE:DESKTOP_PAGE);
-  const exportCsv=()=>{void saveCsv(`cash-book-${from}_${to}.csv`,cbCsv(s,from,to));};
   const cls='cb-page'+(phone?' mm-page':'');
   if(day&&dates.includes(day))return <div className={cls}>
-    {!phone&&<PageTitle title="Cash book" sub="Daily cash in and out with a running balance" action={<button className="btn" onClick={()=>void saveCsv(`cash-book-${day}.csv`,cbCsv(s,day,day))}><Download size={15}/> CSV</button>}/>}
+    {!phone&&<PageTitle title="Cash book" sub="Daily cash in and out with a running balance" action={<Exports from={day} to={day}/>}/>}
     <DayCard d={cbDay(s,day)} phone={phone} onBack={()=>setDay(null)}/></div>;
   return <div className={cls}>
-    {!phone&&<PageTitle title="Cash book" sub="Opening balance, every cash receipt and payment, closing balance — carried forward day to day" action={<button className="btn" onClick={exportCsv}><Download size={15}/> CSV</button>}/>}
+    {!phone&&<PageTitle title="Cash book" sub="Opening balance, every cash receipt and payment, closing balance — carried forward day to day" action={<Exports from={from} to={to}/>}/>}
     <div className="cb-range"><label>From<input type="date" value={from} min={dates[0]} max={to} onChange={e=>e.target.value&&setFrom(e.target.value)}/></label>
       <label>To<input type="date" value={to} min={from} max={s.date} onChange={e=>e.target.value&&setTo(e.target.value)}/></label>
-      {phone&&<button className="btn" onClick={exportCsv}><Download size={15}/> CSV</button>}</div>
+      {phone&&<Exports from={from} to={to}/>}</div>
     <div className="cb-sums"><div><span>Opening</span><strong>{money(r.opening)}</strong></div><div><span>Received</span><strong>{money(r.receipts)}</strong></div>
       <div><span>Paid out (incl. banking)</span><strong>{money(r.payments)}</strong></div>
       <div><span>Cash over/short (counted − expected)</span><strong>{money(r.differences)}</strong></div>
