@@ -32,9 +32,15 @@ public sealed partial class PermissionSeedCoverageTests
 
     private static string SeedSql() => File.ReadAllText(Path.Combine(ProductionRoot().FullName, "database", "migrations", "0101_access_rbac_seed.sql"));
 
-    /// <summary>0101 plus the Wave 2 module migrations (block 0700+), which seed their own module PERM ids and grants.</summary>
-    private static string AllSeedSql() => SeedSql() + string.Concat(Directory.EnumerateFiles(Path.Combine(ProductionRoot().FullName, "database", "migrations"), "*.sql")
-        .Where(f => string.CompareOrdinal(Path.GetFileName(f), "0700") >= 0).Order(StringComparer.Ordinal).Select(File.ReadAllText));
+    /// <summary>
+    /// 0101 plus every module seed: one rule for Wave 2 — a module's PERM ids and grants live in its own <c>NNNN_&lt;module&gt;_rbac_seed.sql</c>
+    /// migration (block 0700+, e.g. 0901 payroll, 1001 accounting, 1101 compliance).
+    /// </summary>
+    private static string AllSeedSql() => SeedSql() + string.Concat(ModuleSeedFiles().Select(File.ReadAllText));
+
+    private static IEnumerable<string> ModuleSeedFiles() =>
+        Directory.EnumerateFiles(Path.Combine(ProductionRoot().FullName, "database", "migrations"), "*_rbac_seed.sql")
+            .Where(f => string.CompareOrdinal(Path.GetFileName(f), "0700") >= 0).Order(StringComparer.Ordinal);
 
     /// <summary>PERM ids written as string literals anywhere in src (handlers, permission classes, field masks).</summary>
     private static SortedSet<string> UsedInSource()
@@ -75,6 +81,16 @@ public sealed partial class PermissionSeedCoverageTests
         var notGranted = used.Where(p => !granted.Contains(p)).ToList();
         Assert.True(notSeeded.Count == 0, "Not seeded by 0101 or a module migration: " + string.Join(", ", notSeeded));
         Assert.True(notGranted.Count == 0, "Seeded without any role grant: " + string.Join(", ", notGranted));
+    }
+
+    [Fact]
+    public void Permissions_and_grants_are_seeded_only_by_0101_and_module_rbac_seed_migrations()
+    {
+        var offenders = Directory.EnumerateFiles(Path.Combine(ProductionRoot().FullName, "database", "migrations"), "*.sql")
+            .Where(f => !f.EndsWith("_rbac_seed.sql", StringComparison.Ordinal))
+            .Where(f => File.ReadAllText(f) is var t && (t.Contains("INSERT plat.permission", StringComparison.Ordinal) || t.Contains("INSERT plat.role_grant", StringComparison.Ordinal)))
+            .Select(Path.GetFileName).ToList();
+        Assert.True(offenders.Count == 0, "Move PERM rows / grants into the module's NNNN_<module>_rbac_seed.sql: " + string.Join(", ", offenders));
     }
 
     [Fact]

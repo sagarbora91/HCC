@@ -33,6 +33,7 @@ public static class HccComposition
         services.AddHccConfiguration();                  // W2-1 Master configuration (settings registry, reader, module gate)
         services.AddExpensesModule();                   // W2-4 expenses and petty cash
         services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
+        services.AddHccCompliance();                     // W2-5 compliance calendar
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -62,6 +63,7 @@ public static class HccComposition
         api.MapConfigurationEndpoints(); // W2-1
         api.MapExpensesEndpoints();       // W2-4
         api.MapAccountingEndpoints();    // W2-3
+        api.MapComplianceEndpoints();    // W2-5
         return api;
     }
 }
