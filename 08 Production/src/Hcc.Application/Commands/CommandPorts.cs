@@ -42,6 +42,8 @@ public interface ICommandRunner
     /// <summary>
     /// Same key + same canonical payload → the original stored result (handler not run again);
     /// same key + different payload → <see cref="HccErrorCode.IDEMPOTENCY_MISMATCH"/>.
+    /// <typeparamref name="TResult"/> must serialize to a JSON object (a record/class): the stored result is checked by
+    /// <c>CK_idempotency_result</c> (ISJSON), which rejects bare scalars such as a number or a string.
     /// </summary>
     Task<CommandResult<TResult>> RunAsync<TPayload, TResult>(CommandContext context, TPayload payload,
         Func<ICommandTransaction, CancellationToken, Task<TResult>> handler, CancellationToken ct = default);
