@@ -16,4 +16,5 @@ import * as pos from './pos';
 import * as staff from './staff';
 import * as accounting from './accounting';
 import * as assistant from './assistant';
-export const extensions=[reservations,guests,folio,housekeeping,admin,closing,yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant];
+import * as compliance from './compliance';
+export const extensions=[reservations,guests,folio,housekeeping,admin,closing,yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,compliance];

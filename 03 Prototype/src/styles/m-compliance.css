@@ -1,0 +1,47 @@
+/* Wave 0.5 · W05-C Compliance calendar. Classes prefixed cmp-. Maroon & Sand; status = colour + text. */
+.cmp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cmp-head-actions{display:inline-flex;gap:10px;flex-wrap:wrap}
+.pill.cmp-overdue{background:#fbe9e5;color:#9a3b2a;font-weight:600}
+.cmp-stats .cmp-stat-bad{border-color:#e3b9ae;background:#fff7f4}
+.cmp-stats .cmp-stat-bad strong{color:#9a3b2a}
+.cmp-filters{display:inline-flex;gap:12px;align-items:center}
+.cmp-kind{display:inline-flex;align-items:center;gap:8px;font-size:11px;color:#6b5547}
+.cmp-table td small{display:block}
+.cmp-table .cmp-record{white-space:normal;min-width:200px;max-width:320px;font-size:11px}
+.cmp-table tr.cmp-row-overdue td:first-child{box-shadow:inset 3px 0 0 #9a3b2a}
+.cmp-actions{display:inline-flex;gap:8px}
+.cmp-fieldset{border:1px solid #e6d9c8;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:14px;margin:0}
+.cmp-fieldset legend{font-size:11px;color:#6b5547;padding:0 6px}
+.cmp-ob-list{list-style:none;margin:0 0 14px;padding:0;border:1px solid #e6d9c8;border-radius:8px}
+.cmp-ob-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #e6d9c8}
+.cmp-ob-list li:last-child{border-bottom:0}
+.cmp-ob-list li.cmp-off strong{color:#6b5547;text-decoration:line-through}
+.cmp-ob-list small{display:block;margin-top:3px}
+.cmp-ob-btns{display:inline-flex;gap:8px;flex-shrink:0}
+.cmp-pack-lines{list-style:none;margin:0 0 12px;padding:12px 14px;border:1px solid #e6d9c8;border-radius:8px;background:#fffcf8;max-height:300px;overflow:auto;font-size:11px;color:#2b1d16}
+.cmp-pack-lines li{padding:5px 0;border-bottom:1px solid #f1e8da}
+.cmp-pack-lines li:last-child{border-bottom:0}
+/* Dashboard card */
+.cmp-due-card .cmp-due-empty{display:flex;gap:8px;align-items:center;padding:0 23px 22px;font-size:12px}
+.cmp-due-list{list-style:none;margin:0;padding:0 23px 12px}
+.cmp-due-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #e6d9c8}
+.cmp-due-list small{display:block;margin-top:3px}
+.cmp-due-more{font-size:11px;color:#6b5547}
+/* Phone */
+.cmp-m{display:flex;flex-direction:column;gap:12px;padding-bottom:84px}
+.cmp-m-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cmp-m-note{font-size:14px;margin:0}
+.cmp-m-manage{min-height:48px;font-size:16px}
+.cmp-m-card{display:flex;flex-direction:column;gap:6px;padding:14px;margin:0;font-size:16px;color:#2b1d16}
+.cmp-m-card small{font-size:14px}
+.cmp-m-card.cmp-m-overdue{border-left:4px solid #9a3b2a}
+.cmp-m-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.cmp-m-top .pill{font-size:13px;padding:6px 9px}
+.cmp-m-btns{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.cmp-m-btns .btn{min-height:48px;font-size:16px;width:100%}
+.cmp-m-record{color:#2b1d16}
+@media (max-width:600px){
+  .cmp-ob-list li{flex-direction:column;align-items:stretch}
+  .cmp-ob-btns .btn{min-height:48px;font-size:16px;flex:1}
+  .cmp-due-list li{flex-wrap:wrap}
+}

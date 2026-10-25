@@ -21,6 +21,7 @@ import {registration as pos} from '../features/pos/register';
 import {registration as staff} from '../features/staff/register';
 import {registration as accounting} from '../features/accounting/register';
 import {registration as assistant} from '../features/assistant/register';
+import {registration as compliance} from '../features/compliance/register';
 import {registration as m_frontdesk} from '../mobile/frontdesk/register';
 import {registration as m_money} from '../mobile/money/register';
 import {registration as m_ops} from '../mobile/ops/register';
@@ -43,7 +44,7 @@ export type FeatureRegistration={
   mobile?:{pages?:Record<string,React.ComponentType>;modals?:Record<string,React.ComponentType<ModalProps>>};
 };
 export const registrations:FeatureRegistration[]=[reservations,guests,customers,folio,housekeeping,admin,closing,
-  yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,
+  yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,compliance,
   m_frontdesk,m_money,m_ops,m_admin];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;
 export const mobileModals=Object.assign({},...registrations.map(r=>r.mobile?.modals||{})) as Record<string,React.ComponentType<ModalProps>>;

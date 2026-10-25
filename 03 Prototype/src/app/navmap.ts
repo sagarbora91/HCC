@@ -32,7 +32,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   yield:'revenue',groups:'revenue',channels:'revenue','booking-site':'revenue',
   inventory:'stock',
   staff:'people','my-hr':'people',
-  closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',
+  closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -65,7 +65,7 @@ export const PAGE_BLURB:Record<string,string>={
   yield:'Tariff, seasons and rate restrictions',groups:'Group blocks, companies and credit',channels:'OTA channels and commissions','booking-site':'Direct booking website',
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
-  closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',
+  closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
   access:'Users, roles and permissions',settings:'Hotel configuration and policies',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
 };
 
@@ -100,6 +100,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   reports:['report','reports','revenue','occupancy','adr','revpar','csv','export','print','daily'],
   accounting:['accounting','ledger','voucher','trial balance','tally','lock','period','journal'],
   assistant:['assistant','ask','question','ai','management assistant','insight'],
+  compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
   access:['access','users','roles','permissions','rbac','login','disable user'],
   settings:['settings','configuration','config','tax','tariff','hotel','policy','display','device'],
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
