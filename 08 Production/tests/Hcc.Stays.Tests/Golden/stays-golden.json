@@ -1,0 +1,552 @@
+{
+ "generatedBy": "08 Production/tests/Hcc.Stays.Tests/Golden/export-stays-golden.mjs",
+ "source": "03 Prototype BASE fixture (seed()), S2, S3 + worked room 105 checkout/housekeeping journey",
+ "fictionalDataOnly": true,
+ "base": {
+  "businessDate": "2026-10-24",
+  "inspectionRequired": true,
+  "rooms": [
+   {
+    "roomNo": "101",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "102",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "103",
+    "type": "Deluxe",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "104",
+    "type": "Deluxe",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "105",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "106",
+    "type": "Suite",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "107",
+    "type": "Deluxe",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "108",
+    "type": "Classic",
+    "hk": "Dirty",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "201",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "202",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "203",
+    "type": "Deluxe",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "204",
+    "type": "Deluxe",
+    "hk": "Dirty",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "205",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "206",
+    "type": "Suite",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "207",
+    "type": "Deluxe",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "208",
+    "type": "Classic",
+    "hk": "Dirty",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "301",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "302",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "303",
+    "type": "Deluxe",
+    "hk": "Inspection",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "304",
+    "type": "Deluxe",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "305",
+    "type": "Classic",
+    "hk": "Cleaning",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "306",
+    "type": "Suite",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "307",
+    "type": "Deluxe",
+    "hk": "Ready",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": null
+   },
+   {
+    "roomNo": "308",
+    "type": "Classic",
+    "hk": "Ready",
+    "blocked": true,
+    "blockFrom": null,
+    "blockTo": null,
+    "blockReason": "Bathroom leak — plumber booked (fictional)"
+   }
+  ],
+  "bookings": [
+   {
+    "id": "HCC-1041",
+    "room": "101",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Ananya Rao",
+    "registered": true
+   },
+   {
+    "id": "HCC-1042",
+    "room": "102",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Vikram Shah",
+    "registered": true
+   },
+   {
+    "id": "HCC-1043",
+    "room": "104",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Riya Mehta",
+    "registered": true
+   },
+   {
+    "id": "HCC-1044",
+    "room": "201",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Arjun Kapoor",
+    "registered": true
+   },
+   {
+    "id": "HCC-1045",
+    "room": "202",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Nisha Desai",
+    "registered": true
+   },
+   {
+    "id": "HCC-1046",
+    "room": "206",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Kabir Sen",
+    "registered": true
+   },
+   {
+    "id": "HCC-1047",
+    "room": "301",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Tara Iyer",
+    "registered": true
+   },
+   {
+    "id": "HCC-1048",
+    "room": "302",
+    "status": "In house",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "guest": "Dev Malhotra",
+    "registered": true
+   },
+   {
+    "id": "HCC-1049",
+    "room": "103",
+    "status": "Confirmed",
+    "arrival": "2026-10-24",
+    "departure": "2026-10-26",
+    "guest": "Ishaan Bose",
+    "registered": false
+   },
+   {
+    "id": "HCC-1050",
+    "room": "207",
+    "status": "Confirmed",
+    "arrival": "2026-10-24",
+    "departure": "2026-10-26",
+    "guest": "Aditi Nair",
+    "registered": false
+   }
+  ],
+  "tasks": [
+   {
+    "id": "task-0",
+    "room": "108",
+    "booking": null,
+    "assignee": "housekeeper",
+    "status": "To do",
+    "kind": "checkout"
+   },
+   {
+    "id": "task-1",
+    "room": "204",
+    "booking": null,
+    "assignee": "housekeeper2",
+    "status": "To do",
+    "kind": "checkout"
+   },
+   {
+    "id": "task-2",
+    "room": "208",
+    "booking": null,
+    "assignee": "housekeeper",
+    "status": "To do",
+    "kind": "checkout"
+   },
+   {
+    "id": "task-3",
+    "room": "303",
+    "booking": null,
+    "assignee": "housekeeper2",
+    "status": "Inspection",
+    "kind": "checkout"
+   },
+   {
+    "id": "task-4",
+    "room": "305",
+    "booking": null,
+    "assignee": "housekeeper",
+    "status": "In progress",
+    "kind": "checkout"
+   },
+   {
+    "id": "repair-308",
+    "room": "308",
+    "booking": null,
+    "assignee": "maint",
+    "status": "To do",
+    "kind": "repair"
+   }
+  ],
+  "expected": {
+   "roomStatus": {
+    "101": "Occupied",
+    "102": "Occupied",
+    "103": "Ready",
+    "104": "Occupied",
+    "105": "Ready",
+    "106": "Ready",
+    "107": "Ready",
+    "108": "Dirty",
+    "201": "Occupied",
+    "202": "Occupied",
+    "203": "Ready",
+    "204": "Dirty",
+    "205": "Ready",
+    "206": "Occupied",
+    "207": "Ready",
+    "208": "Dirty",
+    "301": "Occupied",
+    "302": "Occupied",
+    "303": "Inspection",
+    "304": "Ready",
+    "305": "Cleaning",
+    "306": "Ready",
+    "307": "Ready",
+    "308": "Blocked"
+   },
+   "occupied": 8,
+   "available": 10,
+   "sellable": 23,
+   "currentGuest101": "Ananya Rao",
+   "arrivals": [
+    "HCC-1049",
+    "HCC-1050"
+   ]
+  }
+ },
+ "journey": {
+  "room": "105",
+  "arrival": "2026-10-24",
+  "departure": "2026-10-26",
+  "taskAssignee": "housekeeper",
+  "folio": {
+   "lines": [
+    {
+     "kind": "room",
+     "date": "2026-10-24",
+     "amountPaise": 200000,
+     "taxBps": 1000
+    },
+    {
+     "kind": "room",
+     "date": "2026-10-25",
+     "amountPaise": 200000,
+     "taxBps": 1000
+    }
+   ],
+   "receipts": [
+    {
+     "kind": "payment",
+     "method": "UPI",
+     "amountPaise": 440000
+    }
+   ],
+   "balanceDuePaise": 440000,
+   "balanceAtCheckoutPaise": 0
+  },
+  "steps": [
+   {
+    "step": "book",
+    "roomHk": "Ready",
+    "roomStatus": "Ready",
+    "bookingStatus": "Confirmed",
+    "taskStatus": null,
+    "tasksForBooking": 0
+   },
+   {
+    "step": "register",
+    "roomHk": "Ready",
+    "roomStatus": "Ready",
+    "bookingStatus": "Confirmed",
+    "taskStatus": null,
+    "tasksForBooking": 0
+   },
+   {
+    "step": "checkin",
+    "roomHk": "Ready",
+    "roomStatus": "Occupied",
+    "bookingStatus": "In house",
+    "taskStatus": null,
+    "tasksForBooking": 0
+   },
+   {
+    "step": "checkout",
+    "roomHk": "Dirty",
+    "roomStatus": "Dirty",
+    "bookingStatus": "Departed",
+    "taskStatus": "To do",
+    "tasksForBooking": 1
+   },
+   {
+    "step": "start",
+    "roomHk": "Cleaning",
+    "roomStatus": "Cleaning",
+    "bookingStatus": "Departed",
+    "taskStatus": "In progress",
+    "tasksForBooking": 1
+   },
+   {
+    "step": "complete",
+    "roomHk": "Inspection",
+    "roomStatus": "Inspection",
+    "bookingStatus": "Departed",
+    "taskStatus": "Inspection",
+    "tasksForBooking": 1
+   },
+   {
+    "step": "reject",
+    "roomHk": "Cleaning",
+    "roomStatus": "Cleaning",
+    "bookingStatus": "Departed",
+    "taskStatus": "In progress",
+    "tasksForBooking": 1
+   },
+   {
+    "step": "complete-again",
+    "roomHk": "Inspection",
+    "roomStatus": "Inspection",
+    "bookingStatus": "Departed",
+    "taskStatus": "Inspection",
+    "tasksForBooking": 1
+   },
+   {
+    "step": "inspect",
+    "roomHk": "Ready",
+    "roomStatus": "Ready",
+    "bookingStatus": "Departed",
+    "taskStatus": "Done",
+    "tasksForBooking": 1
+   }
+  ],
+  "expected": {
+   "unpaidCheckout": "INVALID_TRANSITION",
+   "replaySame": true,
+   "secondCheckoutWithoutKey": "INVALID_TRANSITION",
+   "hkStartOther": "FORBIDDEN",
+   "completeEarly": "INVALID_TRANSITION",
+   "hkInspect": "FORBIDDEN",
+   "rejectNoReason": "VALIDATION"
+  }
+ },
+ "cases": {
+  "dirtyRoomCheckin": {
+   "room": "108",
+   "roomHk": "Dirty",
+   "code": "NOT_AVAILABLE"
+  },
+  "unpaidDeparture": {
+   "booking": "HCC-1042",
+   "balancePaise": 20000,
+   "code": "INVALID_TRANSITION"
+  },
+  "inspectionKeepsBlock": {
+   "room": "303",
+   "hkAfter": "Ready",
+   "blockedAfter": true,
+   "statusAfter": "Blocked",
+   "blockTo": "2026-10-27"
+  },
+  "blockOverlappingInHouse": {
+   "room": "101",
+   "code": "NOT_AVAILABLE"
+  },
+  "blockAfterDeparture": {
+   "room": "101",
+   "code": "NO_ERROR"
+  },
+  "blockInPast": {
+   "code": "VALIDATION"
+  },
+  "housekeeperBlock": {
+   "code": "FORBIDDEN"
+  }
+ }
+}
