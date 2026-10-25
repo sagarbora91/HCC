@@ -12,5 +12,8 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 6 | `src/Hcc.Api/Program.cs` — `migrate` argument | `dotnet run --project src/Hcc.Api -- migrate` | ETP operator entry point (CLI/installer step, logging) |
 | 7 | `src/Hcc.Infrastructure.SqlServer/Access/Pbkdf2SecretHasher.cs` (P1) | PBKDF2-HMAC-SHA256 via `Rfc2898DeriveBytes.Pbkdf2`, 16-byte salt, 32-byte hash, iterations stored per credential (password 600,000, PIN 210,000), constant-time compare | ETP credential hashing / user store, if ETP keeps user passwords (keep the stored-iteration format so hashes can be upgraded) |
 | 8 | `src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs` — `HousekeepingProjectorWorker` (P3) | `BackgroundService` polling the outbox every 2 s for `StayDeparted`, logs and retries on failure | ETP background-job hosting (Windows service worker, retry/back-off, logging) |
+| 9 | `src/Hcc.Application/Billing/BillingQueries.cs` — `GetFolioAsync` (P4) | Folio/invoice as JSON only (no print, no invoice number series yet) | ETP PDF/Excel exporters for the folio, sample invoice and credit note (Hcc.Reporting) |
+| 10 | same file — `GetCollectionsAsync` (P4) | Payments − refunds by tender for a business date | ETP Tally export of receipts / cash book (Wave 2) |
+| 11 | `src/Hcc.Application/Payments/CashierService.cs` — `SubmitShiftCountAsync` (P4) | Count stored as JSON denominations in `pay.shift_count`; no printed count sheet | ETP cash-count / day-pack PDF and e-mail to the owner |
 
 Not yet written (later agents, also ETP reuse): backup/restore/drill scripts and Task Scheduler jobs, Inno Setup installer, Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).

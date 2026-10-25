@@ -28,6 +28,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHccAccess(builder.Configuration, platform);
 builder.Services.AddHccStays();
 builder.Services.AddHccHousekeeping();
+builder.Services.AddBillingModule(); // P4 billing + payments
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
@@ -38,6 +39,8 @@ app.UseMiddleware<HccErrorMiddleware>();
 
 var api = app.MapGroup(ApiConventions.BasePath);
 api.MapAccessEndpoints();
+api.MapBillingEndpoints();
+api.MapPaymentsEndpoints();
 api.MapGet("/system/health", async (SqlConnectionFactory connections, TimeProvider clock, CancellationToken ct) =>
 {
     await using var conn = await connections.OpenAsync(ct);

@@ -7,6 +7,7 @@
     <Project Path="src/Hcc.Api/Hcc.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Hcc.Billing.Tests/Hcc.Billing.Tests.csproj" />
     <Project Path="tests/Hcc.Platform.Tests/Hcc.Platform.Tests.csproj" />
     <Project Path="tests/Hcc.Access.Tests/Hcc.Access.Tests.csproj" />
     <Project Path="tests/Hcc.Stays.Tests/Hcc.Stays.Tests.csproj" />
@@ -17,5 +18,6 @@
     <File Path="database/migrations/access/0100_access_identity.sql" />
     <File Path="database/migrations/access/0101_access_rbac_seed.sql" />
     <File Path="database/modules/0300_stays_housekeeping.sql" />
+    <File Path="database/modules/0400_billing_payments.sql" />
   </Folder>
 </Solution>
