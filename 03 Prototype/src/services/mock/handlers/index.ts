@@ -17,5 +17,6 @@ import {handlers as pos} from './pos';
 import {handlers as staff} from './staff';
 import {handlers as accounting} from './accounting';
 import {handlers as assistant} from './assistant';
+import {handlers as compliance} from './compliance';
 import {handlers as cashbook} from './cashbook';
-export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...cashbook};
+export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook};

@@ -242,6 +242,7 @@ export type State={
   staffX?:import('./streams/staff').HRState;
   accountingX?:import('./streams/accounting').ACCState;
   assistantX?:import('./streams/assistant').AIState;
+  complianceX?:import('./streams/compliance').CMPState;
   cashbookX?:import('./streams/cashbook').CBState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
