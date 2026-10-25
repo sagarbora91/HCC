@@ -60,4 +60,17 @@ export function register({test,M,assert}){
     assert.deepEqual(new Uint8Array(Buffer.from(w.data,'base64')),R.bytes);assert.ok(R.calls.some(c=>c[0]==='Share'));
   });
 
+  test('[TALLY] preview XML: envelope, vouchers from existing accounting vouchers, debit negative / credit positive, balanced, Simulated',()=>{
+    const s=M.seed(),vs=M.accVouchers(s,s.date),p=M.accTallyXml(s,s.date,s.date);
+    assert.equal(p.simulated,true);assert.equal(p.count,vs.length);assert.ok(p.count>0);assert.equal(p.debit,p.credit);
+    assert.match(p.xml,/SIMULATED PREVIEW/);assert.match(p.xml,/<TALLYREQUEST>Import Data<\/TALLYREQUEST>/);assert.match(p.xml,/<REPORTNAME>Vouchers<\/REPORTNAME>/);
+    assert.equal((p.xml.match(/<VOUCHER /g)||[]).length,p.count);assert.ok(p.xml.includes('<VOUCHERNUMBER>'+vs[0].no+'</VOUCHERNUMBER>'));
+    const dr=[...p.xml.matchAll(/<ISDEEMEDPOSITIVE>Yes<\/ISDEEMEDPOSITIVE><AMOUNT>-([\d.]+)</g)].reduce((a,m)=>a+Math.round(parseFloat(m[1])*100),0);
+    const cr=[...p.xml.matchAll(/<ISDEEMEDPOSITIVE>No<\/ISDEEMEDPOSITIVE><AMOUNT>([\d.]+)</g)].reduce((a,m)=>a+Math.round(parseFloat(m[1])*100),0);
+    assert.equal(dr,p.debit);assert.equal(cr,p.credit);assert.match(p.xml,/<DATE>\d{8}<\/DATE>/);
+  });
+  test('[TALLY] XML escapes narration; bad or over-long ranges are refused',()=>{
+    const s=M.seed();assert.ok(M.accTallyXml(s,'2026-10-25','2026-10-24').error);assert.ok(M.accTallyXml(s,'2026-01-01','2026-10-24').error);
+    assert.ok(!M.accTallyXml(s,'2026-10-24','2026-10-24').xml.includes('& '));
+  });
 }

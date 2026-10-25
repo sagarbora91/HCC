@@ -250,3 +250,38 @@ export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;r
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
   return v.source.kind==='line'?{booking,line:booking?.lines.find(l=>l.id===rid)}:{booking,receipt:booking?.receipts.find(r=>r.id===rid)};
 }
+
+// ── Tally-style XML preview (W05-E) ──
+// Rule source (read-only): ETP Tally preparation — building or saving this XML is NOT "imported into Tally"; only Tally's own import confirms that.
+// Here the preview is always SIMULATED: nothing is sent anywhere. Tally convention: debit = ISDEEMEDPOSITIVE Yes with a negative amount, credit = No with a positive amount.
+export const TALLY_MAX_DAYS=31;
+const xmlEsc=(t:string)=>t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const tallyDate=(d:string)=>d.split('-').join('');
+export type TallyPreview={xml:string;count:number;debit:number;credit:number;from:string;to:string;dates:number;simulated:true;error?:string};
+/** Vouchers of every business date from..to (inclusive, ≤ 31 days) as a Tally "Import Data" envelope. */
+export function accTallyXml(s:State,from:string,to:string,company?:string):TallyPreview{
+  const empty={xml:'',count:0,debit:0,credit:0,from,to,dates:0,simulated:true as const};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from>to)return {...empty,error:'Choose a valid range: "from" on or before "to".'};
+  const days=Math.round((Date.parse(to)-Date.parse(from))/86400000)+1;
+  if(days>TALLY_MAX_DAYS)return {...empty,error:`Choose at most ${TALLY_MAX_DAYS} days.`};
+  const dates=accDates(s).filter(d=>d>=from&&d<=to).sort(),vs=dates.flatMap(d=>accVouchers(s,d));
+  const name=xmlEsc(company??s.settings.hotel);
+  const body=vs.map(v=>`   <TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER VCHTYPE="${v.type}" ACTION="Create" OBJVIEW="Accounting Voucher View">
+    <DATE>${tallyDate(v.date)}</DATE><VOUCHERTYPENAME>${v.type}</VOUCHERTYPENAME><VOUCHERNUMBER>${xmlEsc(v.no)}</VOUCHERNUMBER><NARRATION>${xmlEsc(v.narration)}</NARRATION><EFFECTIVEDATE>${tallyDate(v.date)}</EFFECTIVEDATE>
+${v.entries.map(e=>`    <ALLLEDGERENTRIES.LIST><LEDGERNAME>${xmlEsc(accLedgerName(e.account))}</LEDGERNAME><ISDEEMEDPOSITIVE>${e.debit?'Yes':'No'}</ISDEEMEDPOSITIVE><AMOUNT>${e.debit?'-'+rupees(e.debit):rupees(e.credit)}</AMOUNT></ALLLEDGERENTRIES.LIST>`).join('\n')}
+   </VOUCHER></TALLYMESSAGE>`).join('\n');
+  const t=accTotals(vs);
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>
+<!-- SIMULATED PREVIEW · Hotel Control Centre prototype · fictional data · nothing was sent to Tally · saving this file does not mean it was imported -->
+<ENVELOPE>
+ <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>
+ <BODY><IMPORTDATA>
+  <REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME><STATICVARIABLES><SVCURRENTCOMPANY>${name}</SVCURRENTCOMPANY></STATICVARIABLES></REQUESTDESC>
+  <REQUESTDATA>
+${body}
+  </REQUESTDATA>
+ </IMPORTDATA></BODY>
+</ENVELOPE>
+`;
+  return {xml,count:vs.length,debit:t.debit,credit:t.credit,from,to,dates:dates.length,simulated:true};
+}

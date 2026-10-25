@@ -7,6 +7,7 @@ import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {ClosingSummaryView} from './ClosingReport';
 import {Corrections} from './Corrections';
 import {usePaged,ShowMore} from '../../components/ShowMore';
+import {DayPackButton} from '../exports/DayPack';
 
 type StepState='done'|'current'|'blocked'|'waiting';
 function Step({n,title,state,children}:{n:number;title:string;state:StepState;children:React.ReactNode}){
@@ -67,7 +68,7 @@ export function DayClosing(){
       </Step>
       <Step n={5} title="Closing summary" state={rec?'done':'waiting'}>
         {rec?<ClosingSummaryView rec={rec}/>:<><p className="muted">Preview — final when the day is closed.</p><ClosingSummaryView rec={closingSummary(s)}/></>}
-        <div className="card-footer f-actions"><button className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={15}/> {rec?'Print closing report':'Print preview'}</button></div>
+        <div className="card-footer f-actions"><button className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={15}/> {rec?'Print closing report':'Print preview'}</button>{rec&&<DayPackButton date={s.date}/>}</div>
       </Step>
       <Step n={6} title="Open next business day" state={closed?'current':'waiting'}>
         <p>{closed?`Opens ${dateLabel(addDays(s.date,1))} at 08:00 with an opening float of ${money(s.shiftClose?.counted??0)} (counted cash).`:'Available after the day is closed.'}</p>
