@@ -41,6 +41,7 @@ public static class HccComposition
         services.AddHandoverModule();                    // W2-11 shift handover
         services.AddYieldModule();                       // W2-12 yield & tariffs
         services.AddGuestServicesModule();               // W2-9 guest services
+        services.AddPayrollModule();                     // W2-2 payroll and leave
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -78,6 +79,7 @@ public static class HccComposition
         api.MapHandoverEndpoints();      // W2-11
         api.MapYieldEndpoints();         // W2-12
         api.MapGuestServicesEndpoints(); // W2-9
+        api.MapPayrollEndpoints();       // W2-2
         return api;
     }
 }
