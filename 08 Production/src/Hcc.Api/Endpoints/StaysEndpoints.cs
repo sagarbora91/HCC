@@ -19,6 +19,9 @@ public static class StaysEndpoints
         services.AddSingleton<IStayFolioPort, BillingStayFolioPort>(); // P4 folio rules (checkout settlement, company credit)
         services.AddSingleton<IStaysReadStore>(sp => new SqlStaysReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<StaysCommands>();
+        services.AddSingleton<IStayChangeStore, SqlStayChangeStore>();   // W3-7 room move / extend / shorten / early departure
+        services.AddSingleton<IStayNightPricer, InventoryStayNightPricer>();
+        services.AddSingleton<StayChangeCommands>();
         services.AddSingleton<StaysQueries>();
         return services;
     }
@@ -33,6 +36,14 @@ public static class StaysEndpoints
             http.HccReply(await cmds.CheckInAsync(http.HccCommand(StaysCommands.OpCheckIn), body, ct)));
         g.MapPost("/commands/" + StaysCommands.OpCheckoutStay, async (HttpContext http, CheckoutStayRequest body, StaysCommands cmds, CancellationToken ct) =>
             http.HccReply(await cmds.CheckoutStayAsync(http.HccCommand(StaysCommands.OpCheckoutStay), body, ct)));
+        g.MapPost("/commands/" + StayChangeCommands.OpMoveRoom, async (HttpContext http, MoveRoomRequest body, StayChangeCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.MoveRoomAsync(http.HccCommand(StayChangeCommands.OpMoveRoom), body, ct)));
+        g.MapPost("/commands/" + StayChangeCommands.OpExtendStay, async (HttpContext http, ExtendStayRequest body, StayChangeCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.ExtendStayAsync(http.HccCommand(StayChangeCommands.OpExtendStay), body, ct)));
+        g.MapPost("/commands/" + StayChangeCommands.OpShortenStay, async (HttpContext http, ShortenStayRequest body, StayChangeCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.ShortenStayAsync(http.HccCommand(StayChangeCommands.OpShortenStay), body, ct)));
+        g.MapPost("/commands/" + StayChangeCommands.OpEarlyDeparture, async (HttpContext http, EarlyDepartureRequest body, StayChangeCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.EarlyDepartureAsync(http.HccCommand(StayChangeCommands.OpEarlyDeparture), body, ct)));
         g.MapGet("/guests/{guestId:long}", async (HttpContext http, long guestId, StaysQueries q, CancellationToken ct) =>
         {
             var (property, principal) = http.HccActor();
