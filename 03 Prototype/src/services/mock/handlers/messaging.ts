@@ -151,6 +151,8 @@ export const handlers:Record<string,Handler>={
         assert(/^[A-Z0-9]{4}$/.test(last4),'ID last 4 must be exactly 4 letters or digits — never the full number.');
         assert(guestIdTypes.includes(val('idType')),`ID type must be one of: ${guestIdTypes.join(', ')}.`);
         g!.idType=val('idType');g!.idLast4=last4;
+        // A masked document capture only knows the last 4: drop a stored full number that no longer matches it.
+        if(g!.idNumber&&!g!.idNumber.endsWith(last4))delete g!.idNumber;
       }else{
         const e=guestValidate({...g!,company:val('company'),gstin:val('gstin')});
         assert(!e.gstin&&!e.company,e.gstin||e.company||'Check the company details.');

@@ -10,9 +10,78 @@ export type StaySegment=NonNullable<Booking['segments']>[number];
 /** Editable guest fields (what GUEST_SAVE / REGISTER accept). */
 export type GuestDraft=Partial<Omit<Guest,'id'|'verified'|'origin'|'version'>>;
 
-export const guestIdTypes=['Aadhaar (demo)','Passport (demo)','Driving licence (demo)','Voter ID (demo)'];
+export const guestIdTypes=['Aadhaar (demo)','Passport (demo)','Driving licence (demo)','Voter ID (demo)','PAN (demo)','Other (demo)'];
 export const guestAgeBands=['Adult','Child','Infant','Senior'];
-export const guestFieldLabels:Record<string,string>={name:'Name',phone:'Phone',email:'Email',address:'Address',nationality:'Nationality',idType:'ID type',idLast4:'ID last 4',gstin:'GSTIN',party:'Party'};
+export const guestFieldLabels:Record<string,string>={name:'Name',phone:'Phone',email:'Email',address:'Address',nationality:'Nationality',idType:'ID type',idLast4:'ID last 4',idNumber:'ID number',gstin:'GSTIN',party:'Party'};
+
+// ── Full ID number (DEC-068): stored for every ID type, validated per type, shown masked (last 4) everywhere ──
+// LEGAL RISK (DEC-068): UIDAI rules expect hotels to keep only a masked Aadhaar; storing the full number can be an offence under the
+// Aadhaar Act 2016. Stored by owner decision — confirm with the CA/lawyer before production (production encrypts at rest).
+// The full number lives only in Guest.idNumber. It is never written to audit text, logs, exports, messages, assistant answers or print-outs.
+export type GuestIdKind='aadhaar'|'passport'|'dl'|'voter'|'pan'|'other';
+export const guestIdKind=(type:string|undefined):GuestIdKind=>{
+  const t=String(type||'').toLowerCase();
+  return t.startsWith('aadhaar')?'aadhaar':t.startsWith('passport')?'passport':t.startsWith('driving')?'dl':t.startsWith('voter')?'voter':t.startsWith('pan')?'pan':'other';
+};
+/** Upper-case, spaces/hyphens removed. */
+export const guestIdNormalise=(v:unknown)=>String(v??'').replace(/[\s-]/g,'').toUpperCase();
+const VD=[[0,1,2,3,4,5,6,7,8,9],[1,2,3,4,0,6,7,8,9,5],[2,3,4,0,1,7,8,9,5,6],[3,4,0,1,2,8,9,5,6,7],[4,0,1,2,3,9,5,6,7,8],[5,9,8,7,6,0,4,3,2,1],[6,5,9,8,7,1,0,4,3,2],[7,6,5,9,8,2,1,0,4,3],[8,7,6,5,9,3,2,1,0,4],[9,8,7,6,5,4,3,2,1,0]];
+const VP=[[0,1,2,3,4,5,6,7,8,9],[1,5,7,6,2,8,3,0,9,4],[5,8,0,3,7,9,6,1,4,2],[8,9,1,6,0,4,3,5,2,7],[9,4,5,3,1,2,6,8,7,0],[4,2,8,6,5,7,3,9,0,1],[2,7,9,3,8,0,6,4,1,5],[7,0,4,6,9,1,3,2,5,8]];
+const VINV=[0,4,3,2,1,5,6,7,8,9];
+/** Verhoeff check of a digit string (checksum digit last). */
+export function guestVerhoeff(digits:string):boolean{
+  if(!/^\d+$/.test(digits))return false;let c=0;const a=digits.split('').reverse();
+  for(let i=0;i<a.length;i++)c=VD[c][VP[i%8][+a[i]]];
+  return c===0;
+}
+/** Verhoeff check digit for a digit string without its checksum. */
+export function guestVerhoeffDigit(digits:string):number{
+  let c=0;const a=digits.split('').reverse();
+  for(let i=0;i<a.length;i++)c=VD[c][VP[(i+1)%8][+a[i]]];
+  return VINV[c];
+}
+/** Error text for an ID number against its type; '' when valid. Format only — nothing is checked against any registry. */
+export function guestIdNumberError(type:string|undefined,raw:unknown):string{
+  const n=guestIdNormalise(raw);if(!n)return '';
+  switch(guestIdKind(type)){
+    case 'aadhaar':
+      if(!/^\d{12}$/.test(n))return 'Aadhaar must be exactly 12 digits.';
+      return guestVerhoeff(n)?'':'This Aadhaar number fails the checksum — check the digits.';
+    case 'passport':return /^[A-Z]\d{7}$/.test(n)?'':'Passport number is 1 letter followed by 7 digits (e.g. Z1234567).';
+    case 'dl':return /^[A-Z]{2}\d{13}$/.test(n)?'':'Driving licence is 2 letters, then 13 digits (e.g. MH1220110012345).';
+    case 'voter':return /^[A-Z]{3}\d{7}$/.test(n)?'':'Voter ID (EPIC) is 3 letters followed by 7 digits.';
+    case 'pan':return /^[A-Z]{5}\d{4}[A-Z]$/.test(n)?'':'PAN is 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).';
+    default:return /^[A-Z0-9]{4,20}$/.test(n)?'':'ID number is 4 to 20 letters or digits.';
+  }
+}
+export const guestIdLast4=(n:unknown)=>guestIdNormalise(n).slice(-4);
+/** Masked form shown everywhere: XXXX-XXXX-1234 (last 4 only). */
+export const guestIdMask=(last4:string|undefined)=>last4?'XXXX-XXXX-'+String(last4).toUpperCase().slice(-4):'';
+/** Readable grouping of a full number — only for the deliberate "Show ID" reveal. */
+export const guestIdFormat=(type:string|undefined,n:string)=>guestIdKind(type)==='aadhaar'&&/^\d{12}$/.test(n)?n.replace(/(\d{4})(?=\d)/g,'$1 '):n;
+/** FICTIONAL ID numbers for generated data, obviously fake: Aadhaar starts with 1 (real numbers never start with 0 or 1) and keeps a valid
+ *  Verhoeff checksum; passport Z+7 digits (Z is not issued), licence ZZ…, voter ZZZ…, PAN ZZZZZ…Z, other FICT…. `n` varies the number;
+ *  `last4` (optional) is preserved for Aadhaar where possible. Deterministic. */
+export function guestFictionalId(type:string,n:number,last4?:string):string{
+  const k=guestIdKind(type),pad=(v:number,w:number)=>String(Math.abs(v)%10**w).padStart(w,'0');
+  switch(k){
+    case 'aadhaar':{
+      const fixed=last4&&/^\d{4}$/.test(last4)?last4:undefined;
+      for(let i=0;i<1000;i++){
+        const mid=pad(n*7919+i*104729+13,fixed?7:10);
+        const body='1'+(fixed?mid+fixed.slice(0,3):mid);
+        const d=guestVerhoeffDigit(body);
+        if(!fixed||String(d)===fixed[3])return body+d;
+      }
+      return '1'+pad(n,10)+guestVerhoeffDigit('1'+pad(n,10));
+    }
+    case 'passport':return 'Z'+pad(n*104729+7,7);
+    case 'dl':return 'ZZ'+pad(n*31+5,2)+pad(n*7919+11,11);
+    case 'voter':return 'ZZZ'+pad(n*104729+3,7);
+    case 'pan':return 'ZZZZZ'+pad(n*7919+1,4)+'Z';
+    default:return 'FICT'+pad(n*104729+9,8);
+  }
+}
 
 // ── Normalisation and duplicates (REQ-GUEST-004, AC-032) ──
 /** Digits only, last 10 (drops +91 / leading 0). */
@@ -43,14 +112,16 @@ export function guestValidate(d:GuestDraft,registration=false):Record<string,str
   if(t(d.email)&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t(d.email)))e.email='Enter a valid email or leave it blank.';
   if(t(d.gstin)&&!/^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/.test(t(d.gstin).toUpperCase()))e.gstin='GSTIN must be 15 characters in the format 27ABCDE1234F1Z5 (fictional).';
   if(t(d.gstin)&&!t(d.company))e.company='Enter the company name for this GSTIN.';
-  if(t(d.idLast4)&&!/^[A-Za-z0-9]{4}$/.test(t(d.idLast4)))e.idLast4='Enter exactly the last 4 letters or digits of the ID — never the full number.';
-  if(t(d.idLast4)&&!t(d.idType))e.idType='Choose the ID type.';
+  if(t(d.idLast4)&&!/^[A-Za-z0-9]{4}$/.test(t(d.idLast4)))e.idLast4='Enter exactly the last 4 letters or digits of the ID (the full number goes in the ID number field).';
+  if((t(d.idLast4)||t(d.idNumber))&&!t(d.idType))e.idType='Choose the ID type.';
+  if(t(d.idNumber)&&t(d.idType)){const m=guestIdNumberError(d.idType,d.idNumber);if(m)e.idNumber=m;}
   (d.party||[]).forEach((p,i)=>{if(t(p.name).length<2)e.party=`Party member ${i+1}: enter a name.`;else if(!guestAgeBands.includes(p.ageBand))e.party=`Party member ${i+1}: choose an age band.`;});
   if((d.party||[]).length>6)e.party='At most 6 accompanying guests in this demo.';
   if(registration){
     if(!t(d.address))e.address='Enter the address.';
     if(!t(d.idType))e.idType='Choose the ID type.';
-    if(!t(d.idLast4))e.idLast4='Enter the last 4 characters of the ID.';
+    // Profiles saved before DEC-068 hold only the last 4 characters; they stay valid.
+    if(!t(d.idNumber)&&!t(d.idLast4))e.idNumber='Enter the ID number.';
   }
   return e;
 }
@@ -60,7 +131,8 @@ export const guestComplete=(g:GuestDraft|undefined)=>!!g&&!Object.keys(guestVali
 export function guestClean(d:GuestDraft):GuestDraft{
   const t=(v:unknown)=>String(v??'').trim();
   // company/gstin are omitted (not undefined) when blank, so state survives a JSON round-trip unchanged.
-  return {name:t(d.name),phone:t(d.phone),email:t(d.email),address:t(d.address),nationality:t(d.nationality)||'Indian',idType:t(d.idType),idLast4:t(d.idLast4).toUpperCase(),
+  return {name:t(d.name),phone:t(d.phone),email:t(d.email),address:t(d.address),nationality:t(d.nationality)||'Indian',idType:t(d.idType),idLast4:(t(d.idNumber)?guestIdLast4(d.idNumber):t(d.idLast4)).toUpperCase(),
+    ...(t(d.idNumber)?{idNumber:guestIdNormalise(d.idNumber)}:{}),
     ...(t(d.company)?{company:t(d.company)}:{}),...(t(d.gstin)?{gstin:t(d.gstin).toUpperCase()}:{}),preferences:t(d.preferences),notes:t(d.notes),
     party:(d.party||[]).map(p=>({name:t(p.name),ageBand:p.ageBand,relation:t(p.relation)}))};
 }
@@ -71,13 +143,17 @@ export type GuestAccess={idDetails:boolean;contact:boolean;edit:boolean};
 export function guestAccess(s:State,uid:string):GuestAccess{const ok=can(s,uid,'checkin');return {idDetails:ok,contact:ok,edit:ok};}
 export const guestMaskPhone=(p:string)=>{const d=String(p||'').replace(/\D/g,'');return d?'••••••'+d.slice(-4):'—';};
 export const guestMaskEmail=(e:string)=>{if(!e)return '—';const [u,dom]=e.split('@');return (u?.[0]||'')+'•••@'+(dom||'');};
-/** The profile as the given user may see it: ID → "Restricted", phone → masked last 4, email masked. */
-export function guestView(s:State,uid:string,g:Guest):Guest&{masked:boolean}{
-  const a=guestAccess(s,uid);
-  return {...g,masked:!a.idDetails,
+/** The profile as the given user may see it: ID → masked last 4 ("Restricted" without the ID permission), phone → masked last 4, email masked.
+ *  The full ID number is NEVER part of the view; `idOnFile` says whether one is stored. Reveal it only via guestRevealId after GUEST_ID_VIEW (audited). */
+export function guestView(s:State,uid:string,g:Guest):Omit<Guest,'idNumber'>&{masked:boolean;idMasked:string;idOnFile:boolean;canShowId:boolean}{
+  const a=guestAccess(s,uid);const {idNumber,...rest}=g;
+  return {...rest,masked:!a.idDetails,idMasked:a.idDetails?guestIdMask(g.idLast4):'Restricted',idOnFile:!!idNumber,canShowId:a.idDetails&&!!idNumber,
     phone:a.contact?g.phone:guestMaskPhone(g.phone),email:a.contact?g.email:guestMaskEmail(g.email),
     idType:a.idDetails?g.idType:'Restricted',idLast4:a.idDetails?g.idLast4:'Restricted'};
 }
+
+/** The full ID number for the deliberate "Show ID" action — only for roles with the ID-view permission, else undefined. The caller must have run GUEST_ID_VIEW (audit) first. */
+export const guestRevealId=(s:State,uid:string,g:Guest):string|undefined=>guestAccess(s,uid).idDetails?g.idNumber:undefined;
 
 // ── Lookups ──
 export const guestById=(s:State,id?:string)=>id?(s.guests||[]).find(g=>g.id===id):undefined;
