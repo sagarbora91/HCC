@@ -47,6 +47,7 @@ public static class HccComposition
         services.AddCustomersModule();                   // W3-5 customers / CRM (customer 360, merge duplicates)
         services.AddWebBookingModule(configuration);     // W3-2 booking website (public quote/request, staff queue, deposit link)
         services.AddOtaModule();                         // W3-1 OTA channels (simulated channel manager)
+        services.AddGroupsModule();                      // W3-4 groups billing (master folio, routing, pickup billing, attrition)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -90,6 +91,7 @@ public static class HccComposition
         api.MapCustomersEndpoints();     // W3-5
         api.MapWebBookingEndpoints();    // W3-2 booking website
         api.MapOtaEndpoints();           // W3-1 OTA channels
+        api.MapGroupsEndpoints();        // W3-4 groups billing
         return api;
     }
 }
