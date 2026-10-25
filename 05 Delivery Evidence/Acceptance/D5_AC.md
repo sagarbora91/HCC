@@ -1,6 +1,6 @@
 # D5 · AC-M05…M08 phone flows — EMULATED
 
-**Progress:** 25 Oct API 35. Done: AC-M05, AC-M08a, AC-M06 up to drawer ₹12,750, BL-01. Next: checkout + print, M07 housekeeping, expense ₹300 → ₹12,450, shift close, close 26 Oct, report totals.
+**Progress:** 25 Oct API 35 — ALL DONE: Part 1/AC-02 (earlier), Part 3 AC-M05…M08 + BL-01 complete (see "Parts 2–3 on API 35"). Emulator shut down.
 
 - Date: 24 Oct 2026 · Agent D-C
 - Device: **EMULATED** — AVD `codex_apk_review` (`sdk_phone_x86_64`, Android 11 / API 30, AOSP image without Play), serial `emulator-5556`, 1080×1920 @ 420 dpi (CSS viewport 412×660, DPR 2.625), DevTools port 9232
@@ -84,3 +84,18 @@ Device: `codex_api35_google` (Android 15 / API 35, WebView 124), `emulator-5554`
 | AC-M06 split ₹3,400 = ₹2,000 cash + ₹1,400 UPI DEMO-UPI-0002 (Cashier) | Pass | `d5-ac\v8-m06-split-review.png` | Review shows both tenders; balance ₹0 |
 | AC-M06 return ₹500 deposit in cash | Pass | DOM | Deposit held ₹0 |
 | AC-M06 drawer ₹12,750 after settlement | Pass | `d5-ac\v8-m06-drawer-12750.png` | ₹11,250 + ₹2,000 − ₹500 |
+| Step 7: Reception checks out Room 105, invoice preview, Print / share → Android print service | Pass | `d5-ac\v8-step7-invoice-print-preview.png` | Sample invoice DEMO/2026-27/0001 ₹4,400 incl. "Approved discount · Service delay goodwill −₹500"; Back returns to app |
+| AC-M07 Housekeeper Ravi: Room 105 task present (exactly one), no money, start → tick 3 → complete | Pass | `d5-ac\v8-m07-housekeeper-task-done.png` | 0 × ₹ on My tasks; checklist rows 342×56 px, Complete cleaning 48 px high, tab bar ≥48 px. Breadcrumb buttons ("Modules Home", "Housekeeping & Maintenance") are 40 px high — below 48 px (S4, not logged separately) |
+| Step 8: Supervisor Neha inspects → Room 105 Ready | Pass | DOM toast "Inspection passed · Room 105 ready" | |
+| Step 9: Cashier ₹300 "Aqua Water Cans" drawer cash; Manager approves and posts → drawer ₹12,450 | Pass | `d5-ac\v8-m06-drawer-12450.png` | ₹11,250 + ₹2,000 − ₹800 |
+| AC-M06 shift close at ₹12,450 matches S0 oracle (₹10,750 → ₹11,250 → ₹12,750 → ₹12,450) | Pass | DOM | Counted ₹12,450 exact; next-day float ₹12,450 |
+| AC-M08b Manager closes 26 Oct; summary shows "Day closed"; no way to close again | Pass | `d5-ac\v8-m08-day-26-closed.png` | UI offers only "Open next business day"; the "try closing again → refused" case is not reachable from the phone UI |
+| AC-M08c Report totals (range 24–26 Oct) equal desktop | Pass | DOM text | Net revenue ₹62,500 (28 rows), receipts ₹25,900 (13 rows), expenses ₹2,950; per day 21,500 / 21,500 / 19,500, receipts 22,500 / 0 / 3,400, expenses 2,650 / 0 / 300 — identical to BL023_Walkthrough.md (desktop) |
+
+**Counts (Part 3, API 35):** Pass 17 (AC-M05 ×5, T-04 note, AC-M06 ×6, AC-M07, AC-M08 ×3, BL-01, steps 4a/5b/7/8/9 as separate rows counted within), Fail 0, Not run 0. Defects: AC-03 (S4), AC-04 (S3).
+
+## New defects (API 35, v8)
+| ID | Severity | Steps | Expected | Actual | Evidence |
+|---|---|---|---|---|---|
+| AC-03 | S4 | Closing → Count & submit cash (24 Oct) | Breakdown adds to ₹11,250 | "₹5,000 + ₹7,500 − ₹1,800 = ₹11,250" omits ₹550 restaurant cash | `defects\AC-03-count-sheet-breakdown-omits-restaurant-cash.md` |
+| AC-04 | S3 | Submit a drawer count, or Apply a Reports date range | Sheet closes quietly | Native "Discard the details you entered?" dialog freezes the page after the action succeeded | `defects\AC-04-discard-dialog-after-submit.md` |

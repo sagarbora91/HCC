@@ -1,6 +1,6 @@
 # D5 · Roles and device behaviour (v8) — EMULATED
 
-**Progress:** 25 Oct, API 35 run on the work PC. Part 2 DONE (all checks; T-04 verified inside AC-M05). See table below.
+**Progress:** 25 Oct API 35 — ALL DONE (Part 2 complete). Emulator shut down.
 
 ## Earlier attempt (home PC, kept for the record)
 25 Oct (resumed) — `codex_api35_google` cold-booted with `-no-snapshot-load` stayed `offline` for ~15 min (killed). FALLBACK was `codex_apk_review` (emulator-5556, Android 11, WebView 83, phone layout). Results from that attempt were for WebView 83 / Android 11, not API 35. Nothing below depends on it.
@@ -43,3 +43,5 @@
 | Print service preview on **A4**, no empty block (T-03 fix) | Pass | `v8-print-service-preview.png` | "ISO A4", one page, report + watermark, white below, no beige block |
 | Restaurant settle dialog wording mentions the front-desk drawer (D-01 fix) | Pass | `v8-d01-settle-dialog-cash.png` | Table T2 (POS-F03), Settle by Cash: "Cash sales count once in the shared front-desk drawer and appear in the POS day summary…" (no "separate from" text). Also: UPI settle of POS-F03 (₹1,914) and POS-F04 (₹330) worked once a UPI reference was typed; Settle with an empty UPI reference gave no visible message in my check (not investigated, not logged). |
 | Booking list shows "1 night · 1 guest" (T-04 fix) | See D5_AC.md (AC-M05) | — | Phone booking cards show "N nights" only (no guest count); the 1-night case is checked after the 7→8 Nov booking is made |
+
+Updated: T-04 verified — phone booking card "Room 101 · 7 Nov – 8 Nov · 1 night" (`v8-booking-list-1-night.png`); no guest count on phone cards (desktop table only). Counts Part 2: Pass 21, Fail 0, Not run 0 (10 role rows, 5 Back rows, Reset, CSV+share, print A4, D-01, T-04). Defects: R-01 (S4 observation); AC-04 (also hit here when applying a Reports date range) is logged in D5_AC.md.
