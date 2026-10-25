@@ -8,7 +8,7 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrEntitled,hrGenderOf,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
 import {addDays} from '../../../domain/money';
@@ -94,8 +94,12 @@ export const handlers:Record<string,Handler>={
       if(cmd.ifsc)assert(/^[A-Z]{4}0[A-Z0-9]{6}$/.test(String(cmd.ifsc)),'IFSC is 11 characters, e.g. DEMO0000001.');
       if(cmd.accountNo)assert(/^\d{6,18}$/.test(String(cmd.accountNo)),'Account number: 6–18 digits.');
     }
+    // F-11: the PT slab (gender) and the payslip WhatsApp number of an existing record are payroll fields (Owner / Accountant).
+    const phone=cmd.phone===undefined?existing?.phone??'':String(cmd.phone).trim();
+    const genderChanged=!!existing&&cmd.gender!==undefined&&cmd.gender!==hrGenderOf(existing),phoneChanged=!!existing&&phone!==existing.phone;
+    if((genderChanged||phoneChanged)&&!pay)fail('FORBIDDEN',`Only the Owner or Accountant can change the ${genderChanged?'professional-tax slab':'payslip mobile number'} of a staff record.`);
     const base={name:String(cmd.name).trim(),dept:cmd.dept,designation:String(cmd.designation).trim(),...(cmd.userId?{userId:cmd.userId as string}:{}),
-      defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,phone:String(cmd.phone??'').trim(),...(cmd.gender?{gender:cmd.gender as 'M'|'F'}:{})};
+      defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,phone,...(cmd.gender?{gender:cmd.gender as 'M'|'F'}:{})};
     const stat=(st:HRStaff)=>{if(!pay)return;
       if(cmd.structure!==undefined)st.structure=cmd.structure;if(cmd.pfApplicable!==undefined)st.pfApplicable=!!cmd.pfApplicable;if(cmd.esicApplicable!==undefined)st.esicApplicable=!!cmd.esicApplicable;
       for(const f of ['bankName','accountNo','ifsc'] as const)if(cmd[f]!==undefined){const v=String(cmd[f]).trim();if(v)st[f]=v;else delete st[f];}};
@@ -103,6 +107,8 @@ export const handlers:Record<string,Handler>={
       if(!cmd.userId)delete existing.userId;Object.assign(existing,base);if(pay&&salaryGiven){existing.payType=cmd.payType??existing.payType;existing.monthly=cmd.monthly??existing.monthly;existing.daily=cmd.daily??existing.daily;}
       stat(existing);
       if(linkChanged)notes.push(`login ${was.userId??'(none)'} → ${existing.userId??'(none)'}`);
+      if(genderChanged)notes.push(`PT slab ${hrGenderOf(was)==='F'?'women':'men'} → ${hrGenderOf(existing)==='F'?'women':'men'}`);
+      if(phoneChanged)notes.push(`payslip mobile ${was.phone?'••••'+was.phone.replace(/\D/g,'').slice(-4):'(none)'} → ${existing.phone?'••••'+existing.phone.replace(/\D/g,'').slice(-4):'(none)'}`);
       // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock.
       if(bankChanged)notes.push(`bank ${was.bankName??'(none)'} ${hrMaskAccount(was.accountNo)} ${was.ifsc??''} → ${existing.bankName??'(none)'} ${hrMaskAccount(existing.accountNo)} ${existing.ifsc??''} (future runs only; locked runs keep their frozen details)`);
       return `${existing.id} · ${existing.name} updated${notes.length?' · '+notes.join(' · '):''}`;}

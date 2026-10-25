@@ -206,4 +206,19 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.ok(execute(s,'accountant',staffCmd(S(s,'HR-S07'),{payType:'monthly',monthly:S(s,'HR-S07').monthly})));
     assert.doesNotMatch(UI.renderModal(s,'accountant','hr-advance'),/Farhan/);
   });
+
+  test('[PAY-FIX F-11] PT slab (gender) and payslip WhatsApp number changes need payroll permission (Owner / Accountant), audited',()=>{
+    const s=seed();// reviewer's t4: Manager moves Ravi to the women's slab and changes his mobile
+    assert.throws(()=>execute(s,'manager',staffCmd(S(s,'HR-S05'),{gender:'F'})),code('FORBIDDEN'));
+    assert.throws(()=>execute(s,'manager',staffCmd(S(s,'HR-S05'),{phone:'98888 77777'})),code('FORBIDDEN'));
+    assert.throws(()=>execute(s,'supervisor',staffCmd(S(s,'HR-S05'),{phone:'98888 77777'})),code('FORBIDDEN'));
+    // omitting the phone keeps it (it used to blank the payslip number)
+    const k=staffCmd(S(s,'HR-S05'),{designation:'Senior room attendant'});delete k.phone;assert.equal(S(execute(s,'manager',k),'HR-S05').phone,S(s,'HR-S05').phone);
+    const a=execute(s,'accountant',staffCmd(S(s,'HR-S05'),{gender:'F',phone:'98888 77777'}));
+    assert.equal(S(a,'HR-S05').gender,'F');assert.match(a.audit[0].detail,/PT slab men → women/);assert.match(a.audit[0].detail,/payslip mobile ••••0029 → ••••7777/);
+    assert.equal(execute(a,'accountant',{type:'HR_PAYSLIP_SEND',runId:'HR-PAY-1',staffId:'HR-S05'}).staffX.runs[0].sent[0].to,'919888877777');
+    // the send button names the destination; managers see the fields as payroll-only
+    assert.match(UI.renderModal(s,'accountant','hr-payslip','HR-PAY-1|HR-S05'),/Send on WhatsApp to \+919000010029/);
+    assert.match(UI.renderModal(s,'manager','hr-staff','HR-S05'),/payroll only/);
+  });
 }

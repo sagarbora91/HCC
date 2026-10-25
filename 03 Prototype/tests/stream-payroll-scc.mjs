@@ -210,7 +210,7 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.throws(()=>execute(me,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S07'}),code('FORBIDDEN'));
     assert.throws(()=>execute(s,'owner',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'x',kind:'add',amount:-5}]}),code('VALIDATION'));
   });
-  test('[PAY-SCC] staff master: gender for PT by managers; PF / ESIC flags and bank details only by payroll roles',()=>{
+  test('[PAY-SCC] staff master: managers may resave an unchanged PT slab; PF / ESIC flags and bank details only by payroll roles (gender changes: review F-11)',()=>{
     const s=seed(),b={type:'HR_STAFF_SAVE',id:'HR-S09',name:'Suresh Pawar',dept:'KIT',designation:'Cook',defaultShift:'M',weeklyOff:3};
     assert.equal(x(execute(s,'manager',{...b,gender:'M'})).staff.find(t=>t.id==='HR-S09').gender,'M');
     assert.throws(()=>execute(s,'manager',{...b,esicApplicable:false}),code('FORBIDDEN'));

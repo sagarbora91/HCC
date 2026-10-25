@@ -42,8 +42,8 @@ export function HRStaffModal({id}:{id?:string}){
       <div className="form-row"><label>Default shift<select value={f.defaultShift} onChange={set('defaultShift')}>{HR_SHIFTS.filter(h=>h.code!=='OFF').map(h=><option key={h.code} value={h.code}>{h.label} {h.start}–{h.end}</option>)}</select></label>
         <label>Weekly off<select value={f.weeklyOff} onChange={set('weeklyOff')}>{HR_WEEKDAYS.map((d,i)=><option key={d} value={i}>{d}</option>)}</select></label></div>
       <div className="form-row"><label>Demo login{!canLink&&<small> (Owner only)</small>}<select value={f.userId} disabled={!canLink} onChange={set('userId')}><option value="">No login (non-login staff)</option>{s.users.filter(u=>!linked.has(u.id)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
-        <label>Mobile (fictional, for payslips)<input inputMode="tel" maxLength={20} value={f.phone} onChange={set('phone')}/></label></div>
-      <label>Professional-tax slab<select value={f.gender} onChange={set('gender')}><option value="M">Men’s slab</option><option value="F">Women’s slab (exempt up to ₹25,000)</option></select></label>
+        <label>Mobile (fictional, for payslips){st&&!pay&&<small> (payroll only)</small>}<input inputMode="tel" maxLength={20} value={f.phone} disabled={!!st&&!pay} onChange={set('phone')}/></label></div>
+      <label>Professional-tax slab{st&&!pay&&<small> (payroll only)</small>}<select value={f.gender} disabled={!!st&&!pay} onChange={set('gender')}><option value="M">Men’s slab</option><option value="F">Women’s slab (exempt up to ₹25,000)</option></select></label>
       {pay&&st?.userId===uid&&<div className="info-note"><Info size={16}/>This is your own record: salary, PF / ESIC and bank details are changed by the other payroll user (no self-approval).</div>}
       {pay?<fieldset className="hr-fieldset" disabled={st?.userId===uid}><legend>Salary and statutory (payroll roles only)</legend>
         <div className="form-row"><label>Pay type<select value={f.payType} onChange={set('payType')}><option value="monthly">Monthly salary</option><option value="daily">Daily wage</option></select></label>
@@ -277,6 +277,6 @@ export function HRPayslipModal({id}:{id?:string}){
     {pay&&run.status==='Locked'&&<div className="hr-wa no-print"><div><strong><MessageCircle size={15}/> WhatsApp (simulated)</strong><small>{wa?`To +${wa}`:'No usable mobile number'}{sent.length?` · sent ${sent.length}× · last ${sent.at(-1)!.at.slice(11)} ${shortDate(sent.at(-1)!.at.slice(0,10))}`:''}</small></div>
       <pre>{hrPayslipMessage(s,run,line)}</pre></div>}
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button>
-      {pay&&run.status==='Locked'&&<button className="btn" disabled={busy||!wa} onClick={()=>exec({type:'HR_PAYSLIP_SEND',runId:run.id,staffId},'Payslip sent on WhatsApp (simulated — nothing left this device)')}><MessageCircle size={16}/> Send on WhatsApp</button>}
+      {pay&&run.status==='Locked'&&<button className="btn" disabled={busy||!wa} onClick={()=>exec({type:'HR_PAYSLIP_SEND',runId:run.id,staffId},'Payslip sent on WhatsApp (simulated — nothing left this device)')}><MessageCircle size={16}/> Send on WhatsApp{wa?` to +${wa}`:''}</button>}
       <button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Payslip PDF</button></div></>;
 }
