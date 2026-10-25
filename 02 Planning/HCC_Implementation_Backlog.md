@@ -56,6 +56,48 @@ Work starts only after APR-003 (owner approval of this M0 package).
 | BL-036 | Print layouts with demo watermark | REQ-FOLIO-005, REQ-GUEST-005 | BL-014, BL-031 | Print CSS | AC-034 | S |
 | BL-037 | Delivery summary, acceptance matrix update, owner demonstration | Plan §3 | all | M3 package | Owner acceptance gate | S |
 
+## Status — 25 October 2026
+
+- **M1–M3 (BL-001 … BL-036): DONE** in the prototype on `main` (502 tests, APK v8). BL-023 (S0 walkthrough) automated and passing; BL-035 evidence in `05 Delivery Evidence/Acceptance/`. **BL-037 (owner demonstration/acceptance): OPEN** — W0-D acceptance testing is complete (browser 15/15, Tab S7 17 checks, emulator API 35 Part 2 21/21 + Part 3 17/17); awaiting owner acceptance.
+- Wave 0.5 is merged on `integration/w05` (584 tests), not yet on main; Wave 1 P0 started on `claude/wave1-p0` (`08 Production\`).
+
+## Wave 0.5 — added items (APR-007)
+
+| ID | Item | Output | Status |
+|---|---|---|---|
+| W05-A | Master configuration hub (settings provider API, `hrSettingDefs`/`cmpSettingDefs` wired) | Master configuration page | Done on `integration/w05`; review/browser fixes in progress |
+| W05-B | Payroll, leave, payslips from SCC rules (FY26 locked-run net pay recomputed) | Staff pay pages | Done on `integration/w05`; CA items open (overtime 1x vs 2x, employer PF split/rounding, ESIC on OT, PT basis, gratuity not calculated); code review `W05B_Payroll_Code_Review_2026-10-25.md` |
+| W05-C | Compliance calendar | Compliance page, Due-this-week card | Done on `integration/w05`; see W05-1, F2, F3, F5, F12, F14 |
+| W05-D | Cash book | Cash book page, CSV, link from Day closing | Done on `integration/w05`; see F1, F4, F7, F13 |
+| W05-E | Excel exports, day-pack PDF, Tally preview | Reports Excel, Day pack, Tally tab | Done on `integration/w05`; see F6, F8-F11 |
+| W05-G | FY26 customer-profile gap | 1,155/1,155 customers with profiles | Done on `integration/w05` |
+| Merge | Merge to main, SCHEMA 7 -> 8, full tsc/test/build, APK v9 | main + APK v9 | OPEN (lead, after fixes) |
+
+## Open defects and decisions (25 Oct 2026)
+
+| ID | Sev | Defect / decision | Source | Status |
+|---|---|---|---|---|
+| AC-03 | S4 | Day-closing count breakdown omits the 550 restaurant cash | `D5_AC.md` | Fix in progress (`claude/w05-phone-fixes`) |
+| AC-04 | S3 | Native "Discard the details you entered?" dialog after count submit / Apply range | `D5_AC.md` | Fix in progress (`claude/w05-phone-fixes`) |
+| R-01 | S4 | Housekeeping/maintenance see their own pay on "My shifts & pay" | `D5_Roles.md` | OPEN - owner decision |
+| T-01 | S3 | Tablet portrait top bar ~25 % of height; landscape drawer list short | `D6_TabS7.md` | OPEN - owner decision (option mock-ups in `02 Planning\options\`) |
+| T-02 | S3 | Desktop-layout controls 32-38 dp on the tablet (< 48 dp) | `D6_TabS7.md` | OPEN - owner decision (option mock-ups in `02 Planning\options\`) |
+| W05-1 | S3 | Compliance visible in nav to Manager/Cashier (page blocked) | `W05_Browser_Check.md` | Fix in progress |
+| W05-2 | S3 | Phone: no Excel button on Reports | `W05_Browser_Check.md` | Fix in progress (phone fixes) |
+| W05-3 | S3 | Phone: no Tally export tab | `W05_Browser_Check.md` | Fix in progress (phone fixes) |
+| W05-4 | S3 | Phone: no Day pack / cash book link from Day closing | `W05_Browser_Check.md` | Fix in progress (phone fixes) |
+| W05-5 | S3 | Phone: no Due-this-week dashboard card (Manager does not see it) | `W05_Browser_Check.md` | Fix in progress (phone fixes) |
+| W05-6 | S3 | Phone: touch targets / 16 px text | `W05_Browser_Check.md` | Fix in progress (phone fixes) |
+| W05-7 | S4 | Cash book carry-forward partial | `W05_Browser_Check.md` | Fix in progress (`claude/w05-review-fixes`) |
+| W05-8 | S4 | Cash book Excel export absent | `W05_Browser_Check.md` | Fix in progress (`claude/w05-review-fixes`) |
+| F1 | S2 | The person who counted the cash can lock their own day (checker control bypassed) | `W05_DEC_Code_Review_2026-10-25.md` | Fix in progress (`claude/w05-review-fixes`) |
+| F2 | S3 | Compliance intent takes over everyday assistant questions; Manager/Cashier/Reception refused | same | Fix in progress |
+| F3 | S3 | Owner cannot edit the TDS obligation | same | Fix in progress |
+| F4 | S3 | Cash book range totals do not add up when a cash difference occurred | same | Fix in progress |
+| F5 | S3 | Annual rule due Jan-Mar is due before the financial year ends | same | Fix in progress |
+| F6 | S3 | Full-FY26 Excel export may run out of memory on the phone (plausible) | same | Fix in progress |
+| F7-F15 | S4 | Lower-severity findings (lock without closing record, xlsx writer edge cases, text ratios, Tally dates, false "Saved" toasts, menu visibility, lock blocks nothing, reopen erases filing, hygiene) | same | Backlog - fix when convenient |
+
 ## Not in prototype backlog (recorded, phase-tagged)
 
 Areas 13–26 per PRD §3; Excel export; guest merge; day-use rates; foreign-guest reporting; real cross-device sync; production identity; SQL Server; real backup. These return at M4 planning.

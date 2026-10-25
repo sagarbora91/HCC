@@ -194,5 +194,8 @@ D7. Write `04 Android\README.md`: prerequisites, the D0 environment lines, the b
 - [x] Phase B — daily operations, closings, reports, history summary (24 Oct 2026: 420 tests, SCHEMA 6; 206 closing records, cash joins up with BASE, FY report pack ~250 ms, accounting balanced for every day)
 - [x] Phase C — module 13–26 history, performance, full smoke (24 Oct 2026: 435 tests, SCHEMA 7; evidence in 05 Delivery Evidence\History\HCC_History_Smoke_Phase_C.md)
 - [x] Phase D1 — native hooks in the prototype (back button, print/CSV helpers) (24 Oct 2026: 445 tests; src\app\native.ts)
-- [ ] Phase D2–D5 — Capacitor project, debug APK, emulator evidence (MOSTLY DONE 24 Oct: 04 Android created, app-debug.apk built and installed on the emulator; back button, CSV, print, restart persistence, landscape verified — still to run on the emulator: 9-role tab check and AC-M05…M08; see 05 Delivery Evidence\APK\HCC_APK_Emulator_Evidence.md)
-- [ ] Phase D6–D7 — owner's phone install, Android README (D6 STARTED 24 Oct: APK installed on the Galaxy Tab S7 over USB; desktop layout on tablet, back button/exit confirm checked; checklist items still open — see APK evidence file; D7 README written)
+- [x] Phase D2–D5 — Capacitor project, debug APK, emulator evidence (DONE 25 Oct 2026 on APK v8, emulator API 35: Part 2 role/Back/Reset/CSV checks 21/21, Part 3 AC-M05…M08 + BL-01 17/17; evidence `05 Delivery Evidence\Acceptance\D5_Roles.md`, `D5_AC.md`. Open defects: AC-03 (S4), AC-04 (S3), R-01 (S4, owner decision) — fixes in progress)
+- [x] APK versions — v1 24 Oct … v7 … **v8** (25 Oct; web bundle = `03 Prototype\dist\index.html`, SHA-256 starts `76519ceb`; 502 tests). v9 follows the Wave 0.5 merge.
+- [ ] Phase D6 — owner's Samsung Galaxy Tab S7 (PARTLY DONE 25 Oct: 17 checks run on the physical tablet, `05 Delivery Evidence\Acceptance\D6_TabS7.md`; open owner decisions T-01 (portrait top bar ~25 % of height) and T-02 (32–38 dp controls); physical print/touch/long-session Back checks still outstanding)
+- [x] Phase D7 — Android README written
+- [ ] Owner acceptance of W0-D (browser 15/15, Tab S7 17, emulator 21/21 + 17/17 complete; awaiting owner)

@@ -1,5 +1,7 @@
 # HCC multi-agent plan
 
+> **Status note — 25 Oct 2026.** Wave 0 is done (A0–A3; W0-D acceptance testing complete on APK v8, 502 tests on main) and awaits owner acceptance. Wave 0.5 (cash book, exports, compliance calendar, SCC payroll/leave/payslips, Master configuration hub) is merged on branch `integration/w05` (584 tests), review/browser fixes in progress, not yet on main (SCHEMA 7 -> 8 at merge, then APK v9). Wave 1 P0 (production foundation, `08 Production\`, branch `claude/wave1-p0`) started ahead of formal acceptance by owner decision on 25 Oct 2026; not merged to main until the owner says. Up to ~16 parallel agents are welcome on the work PC. The plan below is unchanged.
+
 Version 1.0 · 24 Oct 2026 · Status: **proposed — owner go-ahead needed per wave** · Builds on: A0/A1 result (`05 Delivery Evidence/Assembly/A0_A1_Result.md`), contracts/schema package (`HCC_Production_Contracts_and_Schema_v1.md`), the rules the 16 agents followed in session 3 (`HCC_Parallel_Agent_Brief.md`).
 
 ## 1. Why waves, and how many agents
