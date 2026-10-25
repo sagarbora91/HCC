@@ -38,4 +38,6 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 32 | `src/Hcc.Domain/Payroll/PayrollFiles.cs` (W2-2 payroll) | Payroll register, bank transfer and PF/ESIC/PT statement as CSV text (rupees 2 dp, formula-guarded cells, DRAFT footer); payslip as JSON (`GetPayslip`) with amount in words | ETP CSV/Excel exporters and the PDF payslip (Hcc.Reporting); the bank's real upload layout and ECR/ESIC/PT return formats (CA question P17) |
 | 33 | `src/Hcc.Application/Payroll/PayrollService.Pay.cs` — `SendPayslipAsync` (W2-2) | Simulated WhatsApp send: records the masked number, sends nothing (DEC-056) | ETP messaging/e-mail sender, once Messaging (W2-10) owns delivery |
 
+| 34 | `src/Hcc.Application/Documents/DocumentPorts.cs` — `SimulatedIdOcrEngine` (W3-3) | Deterministic fake OCR behind `IIdOcrEngine` (reads a `HCCFAKEID\|kind\|number\|name\|dob` marker or derives a fictional ID from the image hash); images/OCR text sealed with the guest-ID AES-GCM service and kept in `doc.id_capture_image` | A real OCR / document-capture engine and, if ETP has one, its image store; legal review of storing ID images (DEC-068) |
+
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).
