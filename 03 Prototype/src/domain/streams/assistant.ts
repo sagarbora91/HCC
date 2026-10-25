@@ -79,7 +79,8 @@ export const aiSuggestions=(s:State,uid:string)=>{const a=aiAccess(s,uid);return
 
 // ── Intent matching (keywords; highest score wins, list order breaks ties → specific first) ──
 const rules:[AIIntent,RegExp[]][]=[
-  ['compliance-due',[/\bcomplian/,/\b(gst|gstr|tds|epf|esic|pf)\b/,/\bprofessional tax\b/,/\bfilings?\b/,/\bdue (dates?|this week)\b/,/\bwhat (is|are) due\b/,/\boverdue (returns?|filings?)\b/,/\bfiled\b/]],
+  // Compliance phrasing only (W05 review F2): generic "due" / "filed" / "what is due" questions keep their older intents.
+  ['compliance-due',[/\bcomplian/,/\b(gst|gstr|tds|epf|esic|pf|pt)\b/,/\bprofessional tax\b/,/\bstatutory\b/,/\bfilings?\b/,/\b(tax )?returns? (are |is )?(due|filed|pending|overdue)\b/,/\boverdue (returns?|filings?)\b/]],
   ['balances',[/\btop\b.*\b(balance|due|owe)/,/\b(biggest|largest|highest|most)\b.*\b(balance|due|owe|owing)/,/\bwho\b.*\bowe/,/\bbalances?\s+due\b/,/\bdebtors?\b/]],
   ['revpar',[/\brev\s?-?par\b/,/revenue per available/]],
   ['adr',[/\badr\b/,/average (daily |room )?rate/,/\bavg\.? rate\b/,/average tariff/]],

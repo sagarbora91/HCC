@@ -170,7 +170,7 @@ export function closeHistoryDays(s:State,o:{from:string;to:string}):void{
       shift={date:d,status:'Closed',expected,counted,reason:a.reason,submittedBy:'cashier',approval:a.id,decidedBy:'manager'};
     }
     const banked=Math.max(0,counted-HISTORY_FLOAT);
-    const ws:State={...base0,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected,counted},shift};
+    const ws:State={...base0,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected,counted,countedBy:'cashier'},shift};
     const rec=closingSummary(ws,'manager');
     rec.nightAudit={stays:rec.occupancy.occupied,resumed:false};
     rec.cash.banked=banked;

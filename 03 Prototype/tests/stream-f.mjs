@@ -17,7 +17,7 @@ export function register({test,M,assert}){
   test('[F] Shift: exact SHIFT_SUBMIT by cashier closes the shift; cash receipts then rejected',()=>{
     let s=baseFixture();const exp=drawer(s);
     s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp});
-    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:exp,counted:exp});assert.equal(M.shiftStatus(s),'Closed');
+    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:exp,counted:exp,countedBy:'cashier'});assert.equal(M.shiftStatus(s),'Closed');
     assert.equal(s.approvals.length,0);
     assert.throws(()=>execute(s,'cashier',{type:'PAYMENT',id:'HCC-1041',amount:100,method:'Cash'}),/shift is closed/);
     assert.equal(code(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp})),'INVALID_TRANSITION');
@@ -46,7 +46,7 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'owner',{type:'DAY_CLOSE'}),/pending/);
     s=execute(s,'owner',{type:'SHIFT_DIFFERENCE_DECIDE',id:a.id,approve:true});
     assert.equal(s.approvals.at(-1).status,'Approved');assert.equal(s.shiftOpen,false);
-    assert.deepEqual(s.shiftClose,{expected:exp,counted:exp-30000});
+    assert.deepEqual(s.shiftClose,{expected:exp,counted:exp-30000,countedBy:'manager'});
     assert.equal(code(()=>execute(s,'owner',{type:'SHIFT_DIFFERENCE_DECIDE',id:a.id,approve:true})),'INVALID_TRANSITION');
   });
   test('[F] Shift: manager accepts ≤ ₹200 but not above; cashier submits, manager approves; next opening float = counted',()=>{

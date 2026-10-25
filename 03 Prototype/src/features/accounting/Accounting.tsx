@@ -1,7 +1,7 @@
 // Module 20 · Accounting automation — desktop page (CLOSING & REPORTS › Accounting).
 import React,{useMemo,useState} from 'react';
 import {Info,CheckCircle2,AlertTriangle,Download} from 'lucide-react';
-import {saveTextFile} from '../../app/native';
+import {saveTextFile,saveAndReport} from '../../app/native';
 import {useHcc} from '../../app/context';
 import {money,accDates,accVouchers,accTrialBalance,accVouchersUpTo,accExceptions,accReconcile,accMapRows,accLockOf,accDayStatus,accTotals,accLockBlocker,accLedgerName,accTallyXml,TALLY_MAX_DAYS,addDays,
   ACC_CHART,ACC_SUSPENSE} from '../../services/mock';
@@ -90,7 +90,7 @@ export function TallyExport(){
     <div className="exp-tally-head"><span className="pill orange" role="status">Simulated</span><span className="muted">No file is sent to Tally. Saving this XML does not mean it was imported — only Tally's own import confirms that.</span></div>
     <div className="inline exp-tally-range"><label className="acc-date">From<input type="date" value={from} max={s.date} onChange={e=>setFrom(e.target.value)}/></label>
       <label className="acc-date">To<input type="date" value={to} max={s.date} onChange={e=>setTo(e.target.value)}/></label>
-      <button className="btn" disabled={!p.count} onClick={()=>{void saveTextFile(`HCC-Demo-tally-${from}_${to}.xml`,p.xml,'application/xml');toast('Simulated Tally XML saved · not imported into Tally');}}><Download size={16}/> Download XML</button></div>
+      <button className="btn" disabled={!p.count} onClick={()=>{void saveAndReport(saveTextFile(`HCC-Demo-tally-${from}_${to}.xml`,p.xml,'application/xml'),toast,'Simulated Tally XML saved · not imported into Tally','the Tally XML');}}><Download size={16}/> Download XML</button></div>
     {p.error?<p className="f-why" role="alert">{p.error}</p>:<>
       <p className="muted">{p.count} voucher{p.count===1?'':'s'} over {p.dates} business date{p.dates===1?'':'s'} · debits {money(p.debit)} · credits {money(p.credit)} · {p.debit===p.credit?'balanced':'NOT balanced'} · up to {TALLY_MAX_DAYS} days</p>
       {p.count?<><pre className="exp-xml" aria-label="Tally XML preview">{shown}</pre>{lines.length>60&&<p className="muted">Preview shows the first 60 of {lines.length} lines; the download has everything.</p>}</>

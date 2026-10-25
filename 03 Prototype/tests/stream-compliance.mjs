@@ -54,7 +54,11 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-TDS',period:'2026-09',reason:'x'}),/reason/);
     assert.throws(()=>execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-G1',period:'2026-09',reason:'Not filed yet at all'}),code('INVALID_TRANSITION'));
     s=execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-TDS',period:'2026-09',reason:'Wrong reference'});
-    assert.equal(find(s,'CMPO-TDS','2026-09').status,'Overdue');assert.match(s.audit[0].detail,/reopened/);});
+    assert.equal(find(s,'CMPO-TDS','2026-09').status,'Overdue');assert.match(s.audit[0].detail,/reopened/);
+    // F14: the reopened filing record (reference, who, when) is kept, not only in the audit text
+    const r=cmpSlice(s).reopened[0];assert.equal(r.obligation,'CMPO-TDS');assert.equal(r.period,'2026-09');assert.equal(r.status,'Filed');assert.ok(r.reference&&r.by&&r.at);
+    assert.equal(r.reopenedBy,'owner');assert.ok(r.reopenedAt.startsWith(s.date+'T')&&r.reopenedAt<=s.clock);assert.equal(r.reopenReason,'Wrong reference');
+    assert.equal(cmpSlice(seed()).reopened,undefined);});
   test('[CMP] due this week = overdue + inside the window; badge only for Owner and Accountant',()=>{
     const s=seed();assert.deepEqual(cmpDueThisWeek(s).map(i=>i.key),['CMPO-G1:2026-09','CMPO-PT:2026-09']);
     assert.equal(cmpBadge(s,'owner'),2);assert.equal(cmpBadge(s,'accountant'),2);assert.equal(cmpBadge(s,'manager'),0);assert.equal(cmpBadge(s,'reception'),0);
@@ -89,10 +93,36 @@ export function register({test,M,assert}){
     assert.equal(d.find(x=>x.key==='cmp.rule.CMPO-PT').value,'Last day of the next month');assert.match(d.find(x=>x.key==='cmp.rule.CMPO-TDS').value,/7th of the next month/);});
   test('[CMP] assistant: "what is due" lists compliance for Owner/Accountant, refused for others',()=>{
     const s=seed();assert.equal(aiMatchIntent('What compliance filings are due?'),'compliance-due');assert.equal(aiMatchIntent('is GST filed'),'compliance-due');
-    const a=aiAnswer(s,'accountant','What is due this week?');assert.equal(a.intent,'compliance-due');assert.equal(a.figures[0].value,'1');assert.equal(a.items.length,2);assert.ok(a.links.some(l=>l.page==='compliance'));
+    const a=aiAnswer(s,'accountant','What compliance is due this week?');assert.equal(a.intent,'compliance-due');assert.equal(a.figures[0].value,'1');assert.equal(a.items.length,2);assert.ok(a.links.some(l=>l.page==='compliance'));
     assert.equal(aiAnswer(s,'manager','What compliance filings are due?').restricted,true);
     assert.equal(aiAccess(s,'owner').compliance,true);assert.equal(aiAccess(s,'reception').compliance,false);
     assert.ok(aiSuggestions(s,'owner').some(t=>t.intent==='compliance-due'));assert.ok(!aiSuggestions(s,'manager').some(t=>t.intent==='compliance-due'));});
   test('[CMP] existing assistant intents unchanged by the new keywords',()=>{
     for(const [q,i] of [['Who has the biggest balances due','balances'],['Collections vs outstanding today','collections'],['What approvals are pending?','approvals'],['How is the cash drawer and any variance?','cash']])assert.equal(aiMatchIntent(q),i);});
+  test('[CMP] F2: everyday "due" / "filed" questions keep their previous intents; only compliance phrasing routes to compliance-due',()=>{
+    // Expected = the routing before compliance-due existed (measured on the rules without it).
+    for(const [q,i] of [['Which balances are due this week?','collections'],['What payments are due this week?','collections'],['Are there expenses due this week?','collections'],
+      ['Which expenses were filed today?','expenses-week'],['What is due today?','collections']])assert.equal(aiMatchIntent(q),i,q);
+    for(const q of ['What compliance filings are due?','Is GSTR-3B filed?','When is TDS due?','PF and ESIC due this week','Is professional tax paid?','Which returns are due?','Any filing due this week?','Is PT due?'])
+      assert.equal(aiMatchIntent(q),'compliance-due',q);
+    const s=seed();assert.equal(aiAnswer(s,'manager','What payments are due this week?').restricted,undefined);});
+  test('[CMP] F3: the Owner can edit and rename TDS (special March date 30 Apr); special day validated against the real month length',()=>{
+    let s=seed();const o=cmpSlice(s).obligations.find(o=>o.id==='CMPO-TDS'),rule=o.rules.at(-1).rule;
+    s=execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',kind:'TDS',name:'TDS deposit (renamed)',form:o.form,owner:o.owner,rule,effectiveFrom:s.date});
+    assert.equal(cmpSlice(s).obligations.find(o=>o.id==='CMPO-TDS').name,'TDS deposit (renamed)');
+    s=execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',kind:'TDS',name:'TDS deposit',form:o.form,owner:o.owner,rule:{type:'day',day:7,special:{month:3,day:29}},effectiveFrom:'2026-11-01'});
+    assert.deepEqual(cmpSlice(s).obligations.find(o=>o.id==='CMPO-TDS').rules.at(-1).rule.special,{month:3,day:29});
+    assert.throws(()=>execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',name:'TDS deposit',rule:{type:'day',day:7,special:{month:3,day:31}}}),/Special-month/);   // April has 30 days
+    assert.throws(()=>execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',name:'TDS deposit',rule:{type:'day',day:7,special:{month:1,day:30}}}),/Special-month/);   // February ≤ 29
+    execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',name:'TDS deposit',rule:{type:'day',day:7,special:{month:12,day:31}}});});                                 // January has 31
+  test('[CMP] F5: an annual rule due Jan–Mar falls after the financial year ends (next calendar year); Apr–Dec unchanged',()=>{
+    const ann=(month,day)=>({freq:'Annual',rules:[{from:'2000-01-01',rule:{type:'fixed',month,day}}]});
+    assert.equal(cmpDueDate(ann(12,31),'2025-26'),'2026-12-31');                // GSTR-9
+    assert.equal(cmpDueDate(ann(1,31),'2025-26'),'2027-01-31');
+    assert.equal(cmpDueDate(ann(3,31),'2025-26'),'2027-03-31');
+    assert.equal(cmpDueDate(ann(4,30),'2025-26'),'2026-04-30');
+    assert.equal(cmpDueDate(ann(2,29),'2025-26'),'2027-02-28');assert.equal(cmpDueDate(ann(2,29),'2026-27'),'2028-02-29');
+    for(const [m,d] of [[1,1],[3,31],[4,1],[9,30],[12,31]])for(const p of ['2024-25','2025-26','2026-27'])assert.ok(cmpDueDate(ann(m,d),p)>`${+p.slice(0,4)+1}-03-31`,m+'/'+d+' '+p);
+    let s=seed();s=execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',kind:'GSTR-9',name:'Annual return due January',rule:{type:'fixed',month:1,day:31}});
+    const it=cmpItems(s).find(i=>i.obligation.name==='Annual return due January');assert.equal(it.due,'2027-01-31');assert.notEqual(it.status,'Overdue');});
 }

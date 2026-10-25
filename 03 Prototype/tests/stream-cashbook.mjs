@@ -33,7 +33,7 @@ export function register({test,M,assert}){
     assert.equal(cbDay(fy,fy.date).opening,fy.openingCash);});
   test('[CB] range totals are the sum of the days; empty range is empty',()=>{
     const r=cbRange(fy,'2026-06-01','2026-06-30');assert.equal(r.days.length,30);
-    assert.equal(r.receipts,r.days.reduce((a,d)=>a+d.receipts,0));assert.equal(r.opening,r.days[0].opening);assert.equal(r.closing,r.days.at(-1).closing);
+    assert.equal(r.receipts,r.days.reduce((a,d)=>a+d.receipts,0));assert.equal(r.opening,r.days[0].opening);assert.equal(r.closing,r.days.at(-1).carried);assert.equal(r.bookClosing,r.days.at(-1).closing);
     assert.equal(cbRange(fy,'2030-01-01','2030-01-31').days.length,0);});
   test('[CB] lock: needs a closed day and a checker who did not count',()=>{
     assert.equal(cbCanLock(fy,'owner','2026-06-10').ok,true);
@@ -71,4 +71,54 @@ export function register({test,M,assert}){
     const csv=cbCsv(fy,'2026-06-10','2026-06-11'),d=cbDay(fy,'2026-06-10');
     assert.match(csv,/Cash book/);assert.match(csv,/Opening balance/);assert.match(csv,new RegExp('"'+(d.closing/100).toFixed(2)+'"'));
     assert.ok(csv.split('\r\n').length>10);});
+  // F1 (W05 review): whoever counted the cash (SHIFT_SUBMIT, SHIFT_CLOSE) or accepted the difference must never lock that day — also after NEXT_DAY.
+  const ready=()=>{let s=seed();for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}
+    s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});return execute(s,'owner',{type:'NIGHT_POST'});};
+  const closeDay=s=>execute(tillClear(M,s),'owner',{type:'DAY_CLOSE'});
+  test('[CB] F1-A: the manager who submitted an exact count cannot lock the day, before or after NEXT_DAY',()=>{
+    let s=ready();s=execute(s,'manager',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=closeDay(s);const d=s.date;
+    assert.equal(s.closings[d].cash.countedBy,'manager');assert.equal(cbCanLock(s,'manager',d).ok,false);
+    s=execute(s,'owner',{type:'NEXT_DAY'});
+    assert.equal(cbCanLock(s,'manager',d).ok,false);assert.throws(()=>execute(s,'manager',{type:'CB_LOCK',date:d}),code('FORBIDDEN'));
+    assert.equal(cbCanLock(s,'owner',d).ok,false);                             // owner closed it
+    s=execute(s,'accountant',{type:'CB_LOCK',date:d});assert.equal(cbDay(s,d).locked.lockedBy,'accountant');});
+  test('[CB] F1-B: the manager who closed the shift with SHIFT_CLOSE cannot lock the day',()=>{
+    let s=ready();s=execute(s,'manager',{type:'SHIFT_CLOSE',counted:drawer(s)});assert.equal(s.shiftClose.countedBy,'manager');
+    s=closeDay(s);const d=s.date;assert.equal(cbCanLock(s,'manager',d).ok,false);
+    s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(cbCanLock(s,'manager',d).ok,false);assert.equal(cbCanLock(s,'accountant',d).ok,true);});
+  test('[CB] F1-C: the manager who accepted a cash difference cannot lock the day',()=>{
+    let s=ready();s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)-500,reason:'Short by five rupees'});
+    s=execute(s,'manager',{type:'SHIFT_DIFFERENCE_DECIDE',id:s.shift.approval,approve:true});s=closeDay(s);const d=s.date;
+    assert.equal(s.closings[d].cash.countedBy,'cashier');assert.equal(s.closings[d].cash.approvedBy,'manager');
+    assert.equal(cbCanLock(s,'manager',d).ok,false);
+    s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(cbCanLock(s,'manager',d).ok,false);assert.equal(cbCanLock(s,'accountant',d).ok,true);});
+  test('[CB] F1 legacy: a closing record saved without countedBy can be locked by the Owner only (unless the Owner closed it)',()=>{
+    const s=structuredClone(fy);delete s.closings['2026-06-10'].cash.countedBy;
+    assert.equal(fy.closings['2026-06-10'].cash.countedBy,'cashier');
+    assert.equal(cbCanLock(s,'accountant','2026-06-10').ok,false);assert.match(cbCanLock(s,'accountant','2026-06-10').why,/Owner/);
+    assert.equal(cbCanLock(s,'owner','2026-06-10').ok,true);
+    assert.throws(()=>execute(s,'accountant',{type:'CB_LOCK',date:'2026-06-10'}),code('FORBIDDEN'));});
+  test('[CB] F7: a closed date without a closing record cannot be locked',()=>{
+    const s=seed(),d=s.closedDates.find(d=>!s.closings?.[d]);assert.ok(d);
+    assert.equal(cbCanLock(s,'manager',d).ok,false);assert.throws(()=>execute(s,'manager',{type:'CB_LOCK',date:d}),code('INVALID_TRANSITION'));});
+  // F4 (W05 review) + W05-7: range totals foot when a cash difference occurred; the difference is its own line.
+  const foots=(r,label)=>{assert.equal(r.opening+r.receipts-r.payments+r.differences+r.gaps,r.closing,label);assert.equal(r.gaps,0,label+' gaps');
+    assert.equal(r.differences,r.days.reduce((a,d)=>a+(d.difference??0),0),label+' Σ difference');};
+  test('[CB] F4: BASE live — cashier ₹5 short, NEXT_DAY: range opening + receipts − payments + over/short = closing; CSV shows the line',()=>{
+    let s=ready();s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)-500,reason:'Short by five rupees'});
+    s=execute(s,'manager',{type:'SHIFT_DIFFERENCE_DECIDE',id:s.shift.approval,approve:true});s=closeDay(s);const d0=s.date;s=execute(s,'owner',{type:'NEXT_DAY'});
+    const r=cbRange(s,d0,s.date);assert.equal(r.days.length,2);assert.equal(r.differences,-500);foots(r,'BASE');
+    assert.equal(r.closing,cbDay(s,s.date).closing);assert.equal(cbDay(s,d0).carried,cbDay(s,s.date).opening);
+    const one=cbRange(s,d0,d0);foots(one,'one day');assert.equal(one.closing,one.days[0].carried);
+    const csv=cbCsv(s,d0,s.date);assert.match(csv,/Cash over\/short \(counted − expected\)","-5\.00"/);assert.match(csv,/Carried forward/);});
+  test('[CB] F4: FY26 ranges foot (full year and June) and show the over/short total',()=>{
+    const all=cbRange(fy,cbDates(fy)[0],fy.date);assert.ok(all.days.filter(d=>d.difference).length>=10);assert.notEqual(all.differences,0);foots(all,'FY');
+    assert.equal(all.closing,cbDay(fy,fy.date).closing);const toY=cbRange(fy,cbDates(fy)[0],'2026-10-23');foots(toY,'FY to 23 Oct');assert.equal(toY.closing,fy.openingCash);
+    foots(cbRange(fy,'2026-06-01','2026-06-30'),'June');foots(cbRange(fy,'2026-10-22','2026-10-23'),'22-23 Oct');});
+  test('[CB] F15: CSV cells that Excel would run as a formula are kept as text; negative amounts stay numbers',()=>{
+    let s=seed();s=execute(s,'owner',{type:'BOOK',guest:'=HYPERLINK("http://x.test","y")',room:'105',arrival:s.date,departure:'2026-10-26',people:1});const id=s.bookings[s.bookings.length-1].id;
+    s=execute(s,'cashier',{type:'PAYMENT',id,amount:10000,method:'Cash',kind:'deposit'});
+    const csv=cbCsv(s,s.date,s.date);assert.ok(csv.includes(`"'=HYPERLINK(""http://x.test"",""y"")"`));assert.ok(!/(^|,)"=HYPERLINK/m.test(csv));
+    const neg=cbCsv(fy,'2026-10-22','2026-10-22');assert.ok(neg.includes('"-30.00"'));
+    const acc=M.accCsv(M.accVouchers(s,s.date));assert.ok(!/(^|,)=HYPERLINK/m.test(acc));});
 }

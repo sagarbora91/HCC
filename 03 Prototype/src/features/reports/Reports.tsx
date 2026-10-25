@@ -1,5 +1,5 @@
 // SCR-15 Reports: tabs, business-date range, drill-down from every total to its source rows, CSV per tab, print with watermark.
-import {printDocument,saveCsv,saveBinaryFile} from '../../app/native';
+import {printDocument,saveCsv,saveBinaryFile,saveAndReport} from '../../app/native';
 import {XLSX_MIME} from '../../app/xlsx';
 import {reportXlsx} from './exportXlsx';
 import React,{useMemo,useState} from 'react';
@@ -34,7 +34,9 @@ export function Reports(){
   const m=t?.metrics.find(x=>x.id===drill);
   const setRange=(a:string,b:string)=>{setFrom(a);setTo(b);setDrill(null);};
   function exportTab(){if(!pack)return;downloadCsv(`HCC-Demo-${tab}-${from}_${to}.csv`,reportCsv(s,pack,tab));toast('Demo CSV downloaded · '+(TABS.find(x=>x[0]===tab)?.[1]));}
-  function exportExcel(){if(!pack)return;void saveBinaryFile(`HCC-Demo-reports-${from}_${to}.xlsx`,reportXlsx({hotel:s.settings.hotel,scenario:s.scenario,clock:s.clock},pack),XLSX_MIME);toast('Demo Excel workbook saved · all report tabs');}
+  function exportExcel(){if(!pack)return;
+    let bytes:Uint8Array;try{bytes=reportXlsx({hotel:s.settings.hotel,scenario:s.scenario,clock:s.clock},pack);}catch{toast('Could not build the Excel workbook for this range. Try a shorter range (for example one month).',true);return;}
+    void saveAndReport(saveBinaryFile(`HCC-Demo-reports-${from}_${to}.xlsx`,bytes,XLSX_MIME),toast,'Demo Excel workbook saved · all report tabs','the Excel workbook');}
   return <><PageTitle title="Reports" sub={'Every figure derived from source records · fictional data · '+dateLabel(s.date)} action={<div className="inline">
       <button className="btn" disabled={!pack} onClick={exportTab}><Download size={16}/> Export CSV</button>
       <button className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={16}/> Export Excel</button>

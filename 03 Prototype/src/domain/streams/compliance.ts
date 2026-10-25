@@ -9,7 +9,7 @@ import {nights} from '../money';
 export type CMPKind='TDS'|'GSTR-1'|'GSTR-3B'|'GSTR-9'|'EPF'|'ESIC'|'PT';
 export const CMP_KINDS:CMPKind[]=['TDS','GSTR-1','GSTR-3B','GSTR-9','EPF','ESIC','PT'];
 export type CMPFreq='Monthly'|'Annual';
-/** Due-date rule. 'day': that day of the month after the period (optional special-month override); 'month-end': last day of the month after the period; 'fixed': month/day of the calendar year after the FY starts (annual). */
+/** Due-date rule. 'day': that day of the month after the period (optional special-month override); 'month-end': last day of the month after the period; 'fixed': the first such month/day after the financial year ends (annual). */
 export type CMPRule={type:'day';day:number;special?:{month:number;day:number}}|{type:'month-end'}|{type:'fixed';month:number;day:number};
 export type CMPDatedRule={from:string;rule:CMPRule};
 export type CMPObligation={id:string;kind:CMPKind;name:string;form:string;freq:CMPFreq;rules:CMPDatedRule[];
@@ -19,13 +19,16 @@ export type CMPFiling={obligation:string;period:string;status:'Filed'|'Not appli
 export type CMPPack={id:string;at:string;by:string;to:string;toName:string;counts:{overdue:number;due:number;filed:number;na:number};lines:string[]};
 export type CMPSettings={caName:string;caEmail:string;/** "Due this week" window in days. */dueSoonDays:number};
 /** State slice, stored at s.complianceX (optional; absent in old saves → treated as empty). */
-export type CMPState={obligations:CMPObligation[];filings:CMPFiling[];packs:CMPPack[];settings:CMPSettings};
+/** A filing that the Owner reopened: the original record is kept (W05 review F14), with who reopened it, when and why. */
+export type CMPReopened=CMPFiling&{reopenedBy:string;reopenedAt:string;reopenReason:string};
+export type CMPState={obligations:CMPObligation[];filings:CMPFiling[];packs:CMPPack[];settings:CMPSettings;/** Absent until the first reopen. */reopened?:CMPReopened[]};
+export const CMP_MAX_REOPENED=200;
 export const CMP_DEFAULT_SETTINGS:CMPSettings={caName:'Rao & Associates (fictional)',caEmail:'ca.desk@example.test',dueSoonDays:7};
 export const CMP_MAX_PACKS=20;
 export const CMP_ILLUSTRATIVE='Illustrative due dates — CA to confirm for a hotel.';
 export const cmpEmpty=():CMPState=>({obligations:[],filings:[],packs:[],settings:{...CMP_DEFAULT_SETTINGS}});
 export const cmpSlice=(s:State):CMPState=>{const x=s.complianceX as Partial<CMPState>|undefined;
-  return {obligations:x?.obligations??[],filings:x?.filings??[],packs:x?.packs??[],settings:{...CMP_DEFAULT_SETTINGS,...(x?.settings??{})}};};
+  return {obligations:x?.obligations??[],filings:x?.filings??[],packs:x?.packs??[],settings:{...CMP_DEFAULT_SETTINGS,...(x?.settings??{})},...(x?.reopened?{reopened:x.reopened}:{})};};
 
 // ── Access: Owner and Accountant only (DEC-055). Managing obligations needs 'approve' (Owner). ──
 const roleOf=(s:State,uid:string)=>s.users.find(u=>u.id===uid)?.role;
@@ -58,7 +61,8 @@ export function cmpRuleFor(o:Pick<CMPObligation,'freq'|'rules'>,p:string):CMPRul
   return (ok.length?ok[ok.length-1]:[...o.rules].sort((a,b)=>a.from.localeCompare(b.from))[0]).rule;}
 export function cmpDueDate(o:Pick<CMPObligation,'freq'|'rules'>,p:string):string{
   const r=cmpRuleFor(o,p);
-  if(r.type==='fixed'){const y=cmpFyStartYear(p)+1;return `${y}-${pad(r.month)}-${pad(Math.min(r.day,lastDayOf(y,r.month)))}`;}
+  // F5: 'after the financial year' — Apr–Dec fall in the calendar year the FY ends; Jan–Mar in the year after (never before the FY has ended).
+  if(r.type==='fixed'){const y=cmpFyStartYear(p)+(r.month<=3?2:1);return `${y}-${pad(r.month)}-${pad(Math.min(r.day,lastDayOf(y,r.month)))}`;}
   const nm=cmpMonthAdd(p,1),y=+nm.slice(0,4),m=+nm.slice(5,7);
   if(r.type==='month-end')return `${nm}-${pad(lastDayOf(y,m))}`;
   const day=r.special&&+p.slice(5,7)===r.special.month?r.special.day:r.day;
@@ -122,5 +126,3 @@ export function cmpSettingDefs(s:State):CMPSettingDef[]{
     effective:'From a chosen date; earlier periods keep their rule',help:`${CMP_ILLUSTRATIVE} Edit in Compliance calendar › Manage obligations.`,value:cmpRuleText(cmpRuleFor(o,cmpMonthAdd(s.date.slice(0,7),-1)))+(o.active?'':' · switched off')});
   return defs;}
 
-/** Plain-language list for the assistant: what is due or overdue. */
-export function cmpDueLines(s:State):string[]{return cmpDueThisWeek(s).map(i=>`${i.obligation.name} · ${i.periodLabel} · due ${i.due} · ${cmpStatusText(i)}`);}

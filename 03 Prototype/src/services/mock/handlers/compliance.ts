@@ -2,10 +2,12 @@
 // Access: Owner and Accountant (cmpHasAccess). Managing obligations, reopening and settings need the Owner's 'approve' permission.
 import type {Handler,Kit} from '../commands';
 import {
-  CMPState,CMPObligation,CMPRule,CMPKind,CMPFreq,CMP_KINDS,CMP_MAX_PACKS,
+  CMPState,CMPObligation,CMPRule,CMPKind,CMPFreq,CMP_KINDS,CMP_MAX_PACKS,CMP_MAX_REOPENED,
   cmpSlice,cmpHasAccess,cmpItems,cmpCounts,cmpIsOpen,cmpPackLines,cmpValidDate,cmpMonthAdd,cmpFyLabel,cmpKey,cmpPeriodLabel,
 } from '../../../domain/streams/compliance';
 
+/** Longest length of each calendar month (index 0 = Jan); February 29 so a leap-year date is accepted and clamped where needed. */
+const CMP_MONTH_MAX_DAYS=[31,29,31,30,31,30,31,31,30,31,30,31];
 const slice=(k:Kit):CMPState=>{const x=cmpSlice(k.s);k.s.complianceX=x;return x;};
 const txt=(v:unknown)=>typeof v==='string'?v.trim():'';
 const access=(k:Kit)=>{if(!cmpHasAccess(k.s,k.uid))k.fail('FORBIDDEN','Access denied: the compliance calendar is for the Owner and the Accountant.');};
@@ -21,7 +23,8 @@ function parseRule(k:Kit,freq:CMPFreq,inp:any):CMPRule{
   if(t==='month-end')return {type:'month-end'};
   const day=Number(inp?.day);k.assert(t==='day'&&Number.isInteger(day)&&day>=1&&day<=28,'Choose “day of the next month” 1–28, or “last day of the next month”.');
   if(inp?.special){const sm=Number(inp.special.month),sd=Number(inp.special.day);
-    k.assert(Number.isInteger(sm)&&sm>=1&&sm<=12&&Number.isInteger(sd)&&sd>=1&&sd<=28,'Special-month date is not valid.');return {type:'day',day,special:{month:sm,day:sd}};}
+    // F3: the special date falls in the month after the special month, so it is checked against that month's real length (Feb: 29, clamped in leap-less years by cmpDueDate).
+    k.assert(Number.isInteger(sm)&&sm>=1&&sm<=12&&Number.isInteger(sd)&&sd>=1&&sd<=CMP_MONTH_MAX_DAYS[sm%12],'Special-month date is not valid.');return {type:'day',day,special:{month:sm,day:sd}};}
   return {type:'day',day};}
 
 export const handlers:Record<string,Handler>={
@@ -47,6 +50,7 @@ export const handlers:Record<string,Handler>={
     k.assert(i.filing,'This period is not filed or marked not applicable.','INVALID_TRANSITION');
     const reason=txt(k.cmd.reason);k.assert(reason.length>=5&&reason.length<=120,'Give a reason of 5–120 characters.');
     x.filings=x.filings.filter(f=>cmpKey(f.obligation,f.period)!==i.key);
+    x.reopened=[{...i.filing!,reopenedBy:k.uid,reopenedAt:k.s.clock,reopenReason:reason},...(x.reopened??[])].slice(0,CMP_MAX_REOPENED);
     return `${i.obligation.name} · ${i.periodLabel} reopened (was ${i.filing!.status}${i.filing!.reference?' · ref '+i.filing!.reference:''}) · ${reason}`;},
 
   CMP_OBLIGATION_SAVE:k=>{
