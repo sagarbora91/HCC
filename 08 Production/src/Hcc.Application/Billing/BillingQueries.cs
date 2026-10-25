@@ -1,0 +1,69 @@
+using Hcc.Application.Access;
+using Hcc.Application.Payments;
+using Hcc.Contracts;
+using Hcc.Contracts.Billing;
+using Hcc.Domain.Billing;
+using Hcc.Domain.Errors;
+using Hcc.Domain.Money;
+using Hcc.Domain.Payments;
+
+namespace Hcc.Application.Billing;
+
+/// <summary>GetFolio (PERM-FOL-001), GetShift (PERM-SHF-001, own-shift scope), collections (PERM-RPT-002).</summary>
+public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, TimeProvider clock)
+{
+    // ETP-REUSE: folio / sample invoice / credit note PDF and Excel via ETP exporters (Hcc.Reporting) when V:\ETP is available.
+    public async Task<FolioView> GetFolioAsync(Caller caller, long folioId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FolioView, ct: ct).ConfigureAwait(false);
+        var snap = await store.ReadFolioAsync(folioId, ct).ConfigureAwait(false);
+        if (snap is null || snap.Header.PropertyId != caller.PropertyId) throw new HccException(HccErrorCode.NOT_FOUND, "Folio not found.");
+        var now = clock.GetUtcNow().UtcDateTime;
+        var figures = FolioStatement.Compute(snap.Lines, snap.Receipts);
+        var lines = snap.Lines.Select(l => new FolioLineView(l.ChargeId, BillingCodes.Code(l.Kind), l.ServiceDate, l.Label, l.Amount.Value, l.TaxBps, l.Tax.Value,
+            l.ReversesChargeId, snap.Lines.Any(x => x.ReversesChargeId == l.ChargeId))).ToList();
+        var receipts = snap.Receipts.Select(r =>
+        {
+            var refunded = FolioStatement.RefundedAgainst(snap.Receipts, r.ReceiptId);
+            var outstanding = snap.Approvals.Where(a => a.Action == AdjustmentAction.Refund && a.TargetId == r.ReceiptId && ApprovalRules.IsOutstanding(a.Status, a.Action, a.ExpiresUtc, now))
+                .Aggregate(Paise.Zero, (s, a) => s + a.Amount);
+            var refundable = r.Kind == ReceiptKind.Payment ? RefundRules.Remainder(r.Amount, refunded, outstanding) : Paise.Zero;
+            return new FolioReceiptView(r.ReceiptId, FolioTotals.KindCode(r.Kind), r.Tender, r.Amount.Value, r.BusinessDate, r.Reference, r.RefundOf, refunded.Value, refundable.Value);
+        }).ToList();
+        var approvals = snap.Approvals.Select(a => ToView(a, now)).ToList();
+        var h = snap.Header;
+        return new FolioView(h.FolioId, h.ReservationId, h.ReservationStatus, h.BusinessDate, h.Version, lines, receipts, approvals,
+            new FolioTotalsView(figures.Net.Value, figures.Tax.Value, figures.Total.Value, figures.Paid.Value, figures.Deposit.Value, figures.CompanyCredit.Value, figures.Balance.Value));
+    }
+
+    public async Task<ShiftView> GetShiftAsync(Caller caller, long shiftId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.ShiftCount, new AccessScope(BillingPermissions.ShiftScope, shiftId), ct: ct).ConfigureAwait(false);
+        var read = await store.ReadShiftAsync(shiftId, ct).ConfigureAwait(false);
+        if (read is not { } r || r.Shift.PropertyId != caller.PropertyId) throw new HccException(HccErrorCode.NOT_FOUND, "Shift not found.");
+        var e = CashDrawer.Expected(r.Shift.OpeningFloat, r.Movements.Select(m => new CashMovement(m.Kind, m.Amount)).ToList());
+        return new ShiftView(CashierService.ToResult(r.Shift),
+            new ExpectedCashView(e.Opening.Value, e.Payments.Value, e.Deposits.Value, e.Refunds.Value, e.Returns.Value, e.Expenses.Value, e.Other.Value,
+                e.Restaurant.Value, e.Transfers.Value, e.Expected.Value, e.Consistent),
+            r.Movements.Select(m => new CashMovementView(m.MovementId, CashDrawer.Code(m.Kind), m.SourceType, m.SourceId, m.Amount.Value, m.Label, m.Reference, m.BusinessDate)).ToList());
+    }
+
+    // ETP-REUSE: Tally export of receipts / cash book from ETP when V:\ETP is available.
+    public async Task<CollectionsView> GetCollectionsAsync(Caller caller, DateOnly businessDate, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FinanceReport, ct: ct).ConfigureAwait(false);
+        var receipts = await store.ReceiptsOnAsync(caller.PropertyId, businessDate, ct).ConfigureAwait(false);
+        var byTender = receipts.Where(r => r.Kind is ReceiptKind.Payment or ReceiptKind.Refund)
+            .GroupBy(r => r.Tender, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Aggregate(0L, (s, r) => checked(s + (r.Kind == ReceiptKind.Payment ? r.Amount.Value : -r.Amount.Value))), StringComparer.Ordinal);
+        long Sum(ReceiptKind k) => receipts.Where(r => r.Kind == k).Aggregate(0L, (s, r) => checked(s + r.Amount.Value));
+        return new CollectionsView(businessDate, DailyReceipts.Collections(receipts, businessDate).Value, new SortedDictionary<string, long>(byTender, StringComparer.Ordinal),
+            Sum(ReceiptKind.Deposit), Sum(ReceiptKind.DepositReturn));
+    }
+
+    internal static ApprovalView ToView(ApprovalRow a, DateTime now) => new(a.ApprovalId, BillingCodes.Code(a.Action), a.TargetKind, a.TargetId, a.Amount.Value,
+        ApprovalRules.Effective(a.Status, a.Action, a.ExpiresUtc, now).ToString(), a.Reason, a.RequestedBy, a.DecidedBy, a.ExpiresUtc, a.ResultId, a.Version);
+}

@@ -12,5 +12,7 @@
   <ItemGroup>
     <!-- Migrations are embedded so the runner never depends on the working directory. -->
     <EmbeddedResource Include="..\..\database\migrations\*.sql" LogicalName="Hcc.Migrations.%(Filename)%(Extension)" />
+    <!-- Wave 1 module migrations (block-numbered, e.g. P4 0400-0499), applied by Billing/ModuleMigrationSource until the runner accepts blocks. -->
+    <EmbeddedResource Include="..\..\database\modules\*.sql" LogicalName="Hcc.ModuleMigrations.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

@@ -7,10 +7,12 @@
     <Project Path="src/Hcc.Api/Hcc.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Hcc.Billing.Tests/Hcc.Billing.Tests.csproj" />
     <Project Path="tests/Hcc.Platform.Tests/Hcc.Platform.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
     <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
+    <File Path="database/modules/0400_billing_payments.sql" />
   </Folder>
 </Solution>
