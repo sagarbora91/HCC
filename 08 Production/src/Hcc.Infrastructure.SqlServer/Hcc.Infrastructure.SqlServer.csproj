@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- SQL Server adapter: connection policy, migrations (+ backup gate), command transactions, idempotency, outbox, audit. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Infrastructure.SqlServer</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hcc.Application\Hcc.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Migrations are embedded so the runner never depends on the working directory. -->
+    <EmbeddedResource Include="..\..\database\migrations\*.sql" LogicalName="Hcc.Migrations.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

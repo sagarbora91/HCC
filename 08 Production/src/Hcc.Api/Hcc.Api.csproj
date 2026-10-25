@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- HTTP host bootstrap. Windows-service hosting, TLS certificate and sessions are P7/P1 work. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Api</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
+  </ItemGroup>
+</Project>

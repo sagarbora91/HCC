@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Hcc.Contracts/Hcc.Contracts.csproj" />
+    <Project Path="src/Hcc.Domain/Hcc.Domain.csproj" />
+    <Project Path="src/Hcc.Application/Hcc.Application.csproj" />
+    <Project Path="src/Hcc.Infrastructure.SqlServer/Hcc.Infrastructure.SqlServer.csproj" />
+    <Project Path="src/Hcc.Api/Hcc.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hcc.Platform.Tests/Hcc.Platform.Tests.csproj" />
+  </Folder>
+  <Folder Name="/database/">
+    <File Path="database/migrations/0001_platform.sql" />
+    <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
+  </Folder>
+</Solution>

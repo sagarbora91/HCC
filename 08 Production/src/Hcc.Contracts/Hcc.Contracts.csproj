@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Public wire contracts (DTOs, error codes). No dependencies. Frozen by the lead before P1-P5 start (multi-agent plan §4). -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Contracts</RootNamespace>
+  </PropertyGroup>
+</Project>

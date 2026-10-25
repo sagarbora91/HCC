@@ -1,0 +1,183 @@
+{
+ "generatedBy": "08 Production/tools/golden/export-golden.mjs",
+ "source": "03 Prototype BASE fixture (seed()) + worked Room 105 journey",
+ "fictionalDataOnly": true,
+ "base": {
+  "businessDate": "2026-10-24",
+  "openingCashPaise": 500000,
+  "folioReceipts": [
+   {
+    "bookingId": "HCC-1041",
+    "date": "2026-10-24",
+    "method": "Cash",
+    "kind": "payment",
+    "amountPaise": 200000
+   },
+   {
+    "bookingId": "HCC-1042",
+    "date": "2026-10-24",
+    "method": "UPI",
+    "kind": "payment",
+    "amountPaise": 200000
+   },
+   {
+    "bookingId": "HCC-1043",
+    "date": "2026-10-24",
+    "method": "UPI",
+    "kind": "payment",
+    "amountPaise": 300000
+   },
+   {
+    "bookingId": "HCC-1044",
+    "date": "2026-10-24",
+    "method": "Cash",
+    "kind": "payment",
+    "amountPaise": 200000
+   },
+   {
+    "bookingId": "HCC-1045",
+    "date": "2026-10-24",
+    "method": "UPI",
+    "kind": "payment",
+    "amountPaise": 200000
+   },
+   {
+    "bookingId": "HCC-1046",
+    "date": "2026-10-24",
+    "method": "UPI",
+    "kind": "payment",
+    "amountPaise": 450000
+   },
+   {
+    "bookingId": "HCC-1047",
+    "date": "2026-10-24",
+    "method": "Cash",
+    "kind": "payment",
+    "amountPaise": 200000
+   },
+   {
+    "bookingId": "HCC-1048",
+    "date": "2026-10-24",
+    "method": "UPI",
+    "kind": "payment",
+    "amountPaise": 200000
+   },
+   {
+    "bookingId": "HCC-1049",
+    "date": "2026-10-24",
+    "method": "UPI",
+    "kind": "payment",
+    "amountPaise": 100000
+   },
+   {
+    "bookingId": "HCC-1050",
+    "date": "2026-10-24",
+    "method": "Cash",
+    "kind": "payment",
+    "amountPaise": 100000
+   }
+  ],
+  "outletReceipts": [
+   {
+    "date": "2026-10-24",
+    "method": "Cash",
+    "amountPaise": 55000
+   },
+   {
+    "date": "2026-10-24",
+    "method": "UPI",
+    "amountPaise": 74800
+   }
+  ],
+  "expenses": [
+   {
+    "id": "EXP-101",
+    "date": "2026-10-24",
+    "status": "Posted",
+    "method": "Cash",
+    "amountPaise": 180000
+   },
+   {
+    "id": "EXP-102",
+    "date": "2026-10-24",
+    "status": "Pending",
+    "method": "UPI",
+    "amountPaise": 85000
+   }
+  ],
+  "expected": {
+   "drawerPaise": 1075000,
+   "collectionsPaise": 2150000,
+   "outletCashPaise": 55000,
+   "occupied": 8
+  }
+ },
+ "journey": {
+  "room": "105",
+  "lines": [
+   {
+    "kind": "room",
+    "label": "Room night · 2026-10-24",
+    "date": "2026-10-24",
+    "amountPaise": 200000,
+    "taxBps": 1000
+   },
+   {
+    "kind": "room",
+    "label": "Room night · 2026-10-25",
+    "date": "2026-10-25",
+    "amountPaise": 200000,
+    "taxBps": 1000
+   },
+   {
+    "kind": "service",
+    "label": "Laundry",
+    "date": "2026-10-24",
+    "amountPaise": 50000,
+    "taxBps": 1000
+   },
+   {
+    "kind": "discount",
+    "label": "Approved discount · Service recovery",
+    "date": "2026-10-24",
+    "amountPaise": -50000,
+    "taxBps": 1000
+   }
+  ],
+  "receipts": [
+   {
+    "date": "2026-10-24",
+    "method": "Cash",
+    "kind": "payment",
+    "amountPaise": 100000
+   },
+   {
+    "date": "2026-10-24",
+    "method": "Cash",
+    "kind": "deposit",
+    "amountPaise": 50000
+   },
+   {
+    "date": "2026-10-24",
+    "method": "UPI",
+    "kind": "payment",
+    "amountPaise": 340000
+   },
+   {
+    "date": "2026-10-24",
+    "method": "Cash",
+    "kind": "deposit-return",
+    "amountPaise": 50000
+   }
+  ],
+  "expected": {
+   "balanceBeforeSettlementPaise": 340000,
+   "netPaise": 400000,
+   "taxPaise": 40000,
+   "totalPaise": 440000,
+   "paidPaise": 440000,
+   "depositPaise": 0,
+   "balancePaise": 0
+  }
+ }
+}

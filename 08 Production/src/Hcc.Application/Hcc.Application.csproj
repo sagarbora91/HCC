@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Use cases + authorization; ports (interfaces) implemented by infrastructure adapters. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Application</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hcc.Domain\Hcc.Domain.csproj" />
+  </ItemGroup>
+</Project>
