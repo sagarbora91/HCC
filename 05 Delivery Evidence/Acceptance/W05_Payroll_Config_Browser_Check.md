@@ -16,3 +16,29 @@ Build: integration/w05 `dist/index.html` served on 127.0.0.1:4181, Playwright, F
 | Leave calendar / balances | Pass | | pending outlined chips; balances in modal and My shifts. |
 | My shifts and pay (staff) | Pass | | payslip card, leave balance 10.5/12 after pending half-day, apply, payslip list. |
 | Manager sees no money | Pass | | Manager has no Payroll tab; subtitle "salary figures visible to Owner and Accountant only". |
+| Phone: payroll / statutory rates read-only | n/a | Pass | Phone Payroll tab: month chips + per-staff cards (net, gross, PF, ESIC, PT) and note "Running, locking, unlocking and the bank file are done on the tablet or desktop"; rate versions added on desktop only. Figures match desktop. |
+| Phone: leave (requests, calendar, policy, F&F list, advances) | n/a | Pass | Cards; half-day shown "CL 1/2 0.5d"; calendar shows "Housekeeping 1/2"; Approve/Reject present. |
+| Phone: My shifts and pay (Ravi) | n/a | Pass | Week, month so far, payslip card with deductions, leave balances (CL 7 of 12, used 5), Request leave sheet, payslip viewer. Housekeeper sees only own pay. |
+| Master configuration: 12 groups, search, summaries | Pass | Pass | 12 groups in 3 headings with one-line summaries; search "PF" -> People (4) + Compliance (1); "GSTIN" -> Property (1). |
+| Hub layout | Pass (list beside details) | Pass (list -> details -> "All groups") | App-bar Back goes up to Admin & Setup; "All groups" returns to the list. |
+| Tech admin: money groups read-only with reason | Pass | Pass | Rooms, Money, Restaurant, People, Compliance "Read only"; Change... disabled; reason "Owner changes this - money, tax, payroll, compliance and approval limits are Owner-only (DEC-058)". |
+| Tech admin change needing approval; no self-approval | Pass | Not run | PIN idle 5 -> 10 "Request approval" = APR-1118 pending; dialog says "You cannot approve your own request"; Tech admin has no Approvals page; Owner approved. |
+| Modules on/off: Payroll off then on | Partial (W05P-1) | Partial | Toast "Payroll switched off - data kept"; commands refused; switched back on. Payroll tabs not hidden. Other 9 switches not exercised. |
+| HR statutory + Compliance groups wired; PF rate from hub -> Statutory rates | Pass | n/a | PF employee 12% -> 11% in hub; Statutory rates shows new version 1 Oct 2026 "11% + 13%"; Apr-Sep locked runs keep 12%. "Immediately" label inconsistent (W05P-2). |
+| Export / import JSON preview | Pass | Not run | Export JSON; secret msg.gatewayKey only in an excluded list; import preview "0 will change, 97 unchanged, 0 skipped"; nothing applied. |
+| Console errors | Pass | Pass | 0 errors, 0 warnings. |
+| Sideways scroll at 360 | n/a | Pass | scrollWidth = clientWidth on every screen (345 with scrollbar). Tab strips scroll inside their container. |
+| Touch targets 48 px / 16 px text | n/a | Fail (S4) | W05P-3 (same family as W05-6). |
+
+## Not run / limits
+- Unlock with empty reason (button enabled; submit not tested). October draft impossible (Apr-Sep all locked), so draft-lock was tested by unlocking September and recalculating (state in browser only, FY26 scenario; PF rate left at 11% from 1 Oct 2026 in that browser profile).
+- Phone: WhatsApp send from the manager view, other 9 module switches, Tech admin approval on phone.
+- Real print dialog: print media emulated (payslip only, clean A4-like layout); window.print was called.
+
+## Observations
+- Housekeeping cap error appears only after Send request; the modal gives no pre-warning.
+- A pending half-day immediately reduces displayed balance (CL 10.5/12).
+- The Staff & payroll tab once fell back to "Staff" after a failed-command toast (not reproduced).
+
+## Defects
+W05P-1 S3 payroll tabs still visible when Payroll off; W05P-2 S4 "Immediately" label vs dated effect, repeated long help text; W05P-3 S4 phone touch targets/text size on HR and config screens.
