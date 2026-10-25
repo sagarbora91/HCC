@@ -8,7 +8,7 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrGenderOf,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrEntitled,hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
 import {addDays} from '../../../domain/money';
@@ -119,7 +119,9 @@ export const handlers:Record<string,Handler>={
   HR_STAFF_ACTIVE:k=>{
     manage(k);const st=staffOf(k,k.cmd.id);
     if(k.cmd.active){k.assert(!st.active,'Already active.','INVALID_TRANSITION');
-      k.assert(!(hrEnsure(k.s).fnf??[]).some(f=>f.staffId===st.id),'Full and final settlement is done — add a new staff record instead.','INVALID_TRANSITION');
+      const f=(hrEnsure(k.s).fnf??[]).find(f=>f.staffId===st.id);
+      k.assert(!f||hrFnfSettled(f),'A draft full and final settlement is waiting — discard it before reactivating.','INVALID_TRANSITION');
+      k.assert(!f,'Full and final settlement is done — add a new staff record instead.','INVALID_TRANSITION');
       st.active=true;delete st.exitedOn;return st.name+' · reactivated';}
     k.assert(st.active,'Already inactive.','INVALID_TRANSITION');k.assert(st.userId!==k.uid,'You cannot deactivate your own staff record.','FORBIDDEN');
     st.active=false;st.exitedOn=k.s.date;return `${st.name} · exited ${k.s.date}`;
@@ -307,20 +309,43 @@ export const handlers:Record<string,Handler>={
     run!.sent=[...(run!.sent??[]),{staffId:st.id,to,at:s.clock,by:k.uid}];
     return `Payslip ${hrMonthLabel(run!.month)} · ${st.name} · WhatsApp to +${to} (simulated — no message sent)`;
   },
-  /** Full and final settlement (SCC fnfGenerate) for an exited staff member. */
+  /** Full and final settlement (SCC fnfGenerate) for an exited staff member. F-12: the maker prepares a DRAFT (nothing is written off);
+   *  another payroll user confirms it with HR_FNF_CONFIRM (the Owner when additions exceed ₹1,00,000). Each adjustment ≤ ₹2,00,000. */
   HR_FNF_SETTLE:k=>{
     payroll(k);const {s,cmd,assert,fail}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);
     if(isOwn(k,st))fail('FORBIDDEN','You cannot settle your own account.');
     assert(!st.active&&st.exitedOn,'Record the exit in the staff master first.','INVALID_TRANSITION');
-    assert(!(x.fnf??[]).some(f=>f.staffId===st.id),'Full and final is already done for this staff member.','INVALID_TRANSITION');
+    const prev=(x.fnf??[]).find(f=>f.staffId===st.id);
+    assert(!prev||!hrFnfSettled(prev),'Full and final is already done for this staff member.','INVALID_TRANSITION');
+    assert(!prev,'A draft settlement is already waiting for confirmation — confirm or discard it first.','INVALID_TRANSITION');
     const adj:HRFnfAdj[]=(Array.isArray(cmd.adjustments)?cmd.adjustments:[]).filter((a:HRFnfAdj)=>a&&String(a.label??'').trim()&&a.amount);
     assert(adj.length<=4,'Up to 4 adjustments.');
-    for(const a of adj){assert(a.kind==='add'||a.kind==='ded','Adjustment is an addition or a deduction.');assert(Number.isSafeInteger(a.amount)&&a.amount>0&&a.amount<=100000000,'Enter a valid adjustment amount.');}
+    for(const a of adj){assert(a.kind==='add'||a.kind==='ded','Adjustment is an addition or a deduction.');assert(Number.isSafeInteger(a.amount)&&a.amount>0&&a.amount<=HR_FNF_ADJ_MAX,`Enter a valid adjustment amount (maximum ${money(HR_FNF_ADJ_MAX)} each).`);}
     const clean=adj.map(a=>({label:String(a.label).trim().slice(0,80),kind:a.kind,amount:a.amount}));
-    const c=hrFnfCompute(s,st,clean),id=k.id('HR-FNF');
-    for(const a of x.advances.filter(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0)){const b=hrAdvanceBalance(a);a.recovered+=b;a.recoveries.push({runId:id,amount:b});}
+    const c=hrFnfCompute(s,st,clean),id=k.id('HR-FNF'),adds=clean.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0);
     x.fnf=[...(x.fnf??[]),{id,staffId:st.id,name:st.name,lastDay:c.lastDay,month:c.month,salaryIncluded:c.salaryIncluded,...(c.line?{line:c.line}:{}),rates:{...c.rates},
-      advanceOutstanding:c.advanceOutstanding,adjustments:clean,earnings:c.earnings,recoveries:c.recoveries,net:c.net,by:k.uid,at:s.clock}];
-    return `${id} · ${st.name} · full and final · ${c.net<0?'recoverable from employee '+money(-c.net):'net payable '+money(c.net)} (simulated transfer)`;
+      advanceOutstanding:c.advanceOutstanding,adjustments:clean,earnings:c.earnings,recoveries:c.recoveries,net:c.net,by:k.uid,at:s.clock,status:'Draft'}];
+    return `${id} · ${st.name} · full and final DRAFT · ${c.net<0?'recoverable from employee '+money(-c.net):'net payable '+money(c.net)} · to be confirmed by ${adds>HR_FNF_OWNER_ABOVE?'the Owner (additions above '+money(HR_FNF_OWNER_ABOVE)+')':'the other payroll user'}`;
+  },
+  /** F-12 checker: another payroll user (never the maker, never your own account) confirms; the figures must still match a fresh computation. */
+  HR_FNF_CONFIRM:k=>{
+    payroll(k);const {s,cmd,assert,fail}=k,x=hrEnsure(s),f=(x.fnf??[]).find(f=>f.id===cmd.id);
+    assert(f,'Settlement not found.','NOT_FOUND');assert(f!.status==='Draft','This settlement is already confirmed.','INVALID_TRANSITION');
+    if(f!.by===k.uid)fail('FORBIDDEN','The person who prepared the settlement cannot confirm it. Switch to the other payroll user (Owner / Accountant).');
+    const st=staffOf(k,f!.staffId);if(isOwn(k,st))fail('FORBIDDEN','You cannot confirm your own settlement.');
+    const adds=f!.adjustments.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0);
+    if(adds>HR_FNF_OWNER_ABOVE&&!hrCanRates(s,k.uid))fail('FORBIDDEN',`Additions of ${money(adds)} exceed ${money(HR_FNF_OWNER_ABOVE)}: only the Owner can confirm this settlement.`);
+    const c=hrFnfCompute(s,st,f!.adjustments);
+    assert(c.net===f!.net&&c.earnings===f!.earnings&&c.recoveries===f!.recoveries&&c.advanceOutstanding===f!.advanceOutstanding&&JSON.stringify(c.line)===JSON.stringify(f!.line),
+      'Attendance, advances or rates changed after this draft. Discard it and prepare the settlement again.','STALE_VERSION');
+    for(const a of x.advances.filter(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0)){const b=hrAdvanceBalance(a);a.recovered+=b;a.recoveries.push({runId:f!.id,amount:b});}
+    f!.status='Settled';f!.confirmedBy=k.uid;f!.confirmedAt=s.clock;
+    return `${f!.id} · ${f!.name} · full and final confirmed · ${f!.net<0?'recoverable from employee '+money(-f!.net):'net payable '+money(f!.net)} (simulated transfer)`;
+  },
+  /** F-12: discard a draft settlement (payroll roles). */
+  HR_FNF_DISCARD:k=>{
+    payroll(k);const {cmd,assert}=k,x=hrEnsure(k.s),f=(x.fnf??[]).find(f=>f.id===cmd.id);
+    assert(f,'Settlement not found.','NOT_FOUND');assert(f!.status==='Draft','A confirmed settlement cannot be discarded.','INVALID_TRANSITION');
+    x.fnf=(x.fnf??[]).filter(q=>q.id!==f!.id);return `${f!.id} · ${f!.name} · draft settlement discarded`;
   },
 };

@@ -92,7 +92,12 @@ export type HRFnfAdj={label:string;kind:'add'|'ded';amount:number};
 export type HRFnf={id:string;staffId:string;name:string;lastDay:string;month:string;
   /** False when the exit month was already paid in a locked run. */ salaryIncluded:boolean;line?:HRLine;rates:HRRates;
   advanceOutstanding:number;adjustments:HRFnfAdj[];earnings:number;recoveries:number;
-  /** May be negative: recoverable from the employee. */ net:number;by:string;at:string};
+  /** May be negative: recoverable from the employee. */ net:number;by:string;at:string;
+  /** F-12 maker-checker: Draft until another payroll user confirms (absent = settled before the rule existed). */ status?:'Draft'|'Settled';
+  confirmedBy?:string;confirmedAt?:string};
+/** F-12 limits (illustrative): each adjustment ≤ ₹2,00,000; additions above ₹1,00,000 in total need the Owner as checker. */
+export const HR_FNF_ADJ_MAX=20000000,HR_FNF_OWNER_ABOVE=10000000;
+export const hrFnfSettled=(f:HRFnf)=>f.status!=='Draft';
 /** State slice for this module, stored at s.staffX (optional; absent in old saves → treat as empty). */
 export type HRState={depts:HRDept[];staff:HRStaff[];
   /** Roster overrides keyed "YYYY-MM-DD|staffId". */ roster:Record<string,HRShiftCode>;
@@ -385,7 +390,7 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
     net:gross-deductions,ctc:gross+pfEr+esicEr,...(period?{esicCovered:hrEsicOn(st)&&covered}:{})};
 }
 /** Staff settled full-and-final with the exit month's salary inside the settlement. */
-const settledFor=(x:HRState,staffId:string,ym:string)=>(x.fnf??[]).some(f=>f.staffId===staffId&&f.salaryIncluded&&f.month===ym);
+const settledFor=(x:HRState,staffId:string,ym:string)=>(x.fnf??[]).some(f=>hrFnfSettled(f)&&f.staffId===staffId&&f.salaryIncluded&&f.month===ym);
 /** Computes a month's payroll lines and warnings from current state and the rate version in force. */
 export function hrComputeRun(s:State,ym:string,rates=hrRatesFor(s,ym)):{lines:HRLine[];warnings:string[]}{
   const x=hrSlice(s),warnings:string[]=[];

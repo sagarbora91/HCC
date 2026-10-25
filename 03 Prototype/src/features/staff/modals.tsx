@@ -9,7 +9,7 @@ import {dateLabel,shortDate,Empty} from '../../components/ui';
 import {
   money,hrSlice,hrRateVersions,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,hrRatesFor,
   hrLastLockedMonth,hrNextMonth,hrRatesDefaultFrom,hrRatesPastMonths,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
-  HR_SHIFTS,HR_WEEKDAYS,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,hrKey,
+  HR_SHIFTS,HR_WEEKDAYS,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,hrKey,
   type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,
 } from '../../services/mock';
 
@@ -224,7 +224,7 @@ export function HRFnfModal({id}:{id?:string}){
   const c=hrFnfCompute(s,st,clean),enc=hrElEncashment(s,st);
   const row=(l:string,v:number,sign='')=><div key={l}><span>{l}</span><strong className="number">{sign}{money(v)}</strong></div>;
   return <><div className="modal-heading"><h2>Full and final · {st.name}</h2><p>Last day {dateLabel(c.lastDay)}. {c.salaryIncluded?`Includes ${hrMonthLabel(c.month)} salary to the last day.`:`${hrMonthLabel(c.month)} salary was already paid in the locked run.`} The full outstanding advance is recovered. Simulated bank transfer.</p></div>
-    <form className="form" onSubmit={e=>{e.preventDefault();if(window.confirm('Issue the full and final settlement? This cannot be undone.'))run({type:'HR_FNF_SETTLE',staffId:st.id,adjustments:clean},'Full and final settlement issued',{close:true});}}>
+    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_FNF_SETTLE',staffId:st.id,adjustments:clean},'Draft settlement prepared — the other payroll user confirms',{close:true});}}>
       <div className="summary-list hr-fnf-sum">
         {c.line&&row(`Salary ${hrMonthLabel(c.month)} (${c.line.payableDays} days)`,c.line.earned,'+ ')}{c.line&&!!c.line.ot&&row('Overtime',c.line.ot,'+ ')}
         {clean.filter(a=>a.kind==='add').map(a=>row(a.label,a.amount,'+ '))}
@@ -241,8 +241,9 @@ export function HRFnfModal({id}:{id?:string}){
           <button type="button" className="btn" aria-label="Remove adjustment" onClick={()=>setAdj(adj.filter((_,j)=>j!==i))}><Trash2 size={16}/></button></div>)}
         <div className="inline">{adj.length<4&&<button type="button" className="btn" onClick={()=>setAdj([...adj,{label:'',kind:'add',amount:''}])}><Plus size={16}/> Add adjustment</button>}
           {adj.length<4&&enc>0&&!adj.some(a=>/encashment/i.test(a.label))&&<button type="button" className="btn" onClick={()=>setAdj([...adj,{label:'Earned leave encashment',kind:'add',amount:String(enc/100)}])}><Plus size={16}/> EL encashment {money(enc)}</button>}</div></fieldset>
+      <div className="info-note"><Info size={16}/><span>Maker-checker: this saves a draft. The other payroll user confirms it{clean.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0)>HR_FNF_OWNER_ABOVE?` — additions above ${money(HR_FNF_OWNER_ABOVE)} need the Owner`:''}. Each adjustment is limited to {money(HR_FNF_ADJ_MAX)}.</span></div>
       <p className="footnote">{HR_DISCLAIMER} Gratuity is not calculated in this prototype.</p>
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Issue settlement</button></div>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||clean.some(a=>a.amount>HR_FNF_ADJ_MAX)}>Prepare draft settlement</button></div>
     </form></>;
 }
 

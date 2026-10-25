@@ -14,7 +14,7 @@ import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/compone
 import {
   money,addDays,isDayClosed,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
-  hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
+  hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrFnfSettled,HR_FNF_OWNER_ABOVE,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
   HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
 } from '../../services/mock';
 import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
@@ -264,21 +264,30 @@ function Advances({phone}:{phone:boolean}){
 
 // ── Full and final (SCC fnf) ──
 function Fnf({phone}:{phone:boolean}){
-  const {s,open}=useHcc();const x=hrSlice(s),done=x.fnf??[],exited=x.staff.filter(t=>!t.active&&t.exitedOn);
-  const pending=exited.filter(t=>!done.some(f=>f.staffId===t.id));
+  const {s,uid,open,run,busy}=useHcc();const x=hrSlice(s),all=x.fnf??[],done=all.filter(hrFnfSettled),drafts=all.filter(f=>!hrFnfSettled(f)),exited=x.staff.filter(t=>!t.active&&t.exitedOn);
+  const pending=exited.filter(t=>!all.some(f=>f.staffId===t.id));
   const net=(n:number)=>n<0?`Recover ${money(-n)}`:`Pay ${money(n)}`;
+  // F-12 maker-checker: the other payroll user confirms a draft (the Owner when additions exceed the limit).
+  const adds=(f:typeof all[number])=>f.adjustments.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0);
+  const why=(f:typeof all[number])=>f.by===uid?'Prepared by you — the other payroll user confirms':adds(f)>HR_FNF_OWNER_ABOVE&&!hrCanRates(s,uid)?`Additions above ${money(HR_FNF_OWNER_ABOVE)} — the Owner confirms`:'';
+  const confirm=(f:typeof all[number])=>{if(window.confirm(`Confirm the full and final settlement of ${f.name} (${net(f.net)})? The outstanding advance is written off as recovered. This cannot be undone.`))run({type:'HR_FNF_CONFIRM',id:f.id},'Full and final settlement confirmed');};
+  const actions=(f:typeof all[number])=><>{why(f)?<span className="muted">{why(f)}</span>:<button className="btn small-btn primary" disabled={busy} onClick={()=>confirm(f)}><Check size={14}/> Confirm</button>}
+    <button className="btn small-btn" disabled={busy} onClick={()=>run({type:'HR_FNF_DISCARD',id:f.id},'Draft settlement discarded')}><X size={14}/> Discard</button></>;
   if(phone)return <>
     <h2 className="m-group">TO SETTLE</h2>
     {pending.length?pending.map(t=><ListCard key={t.id} title={t.name} sub={`Exited ${shortDate(t.exitedOn!)} · ${t.designation}`} right={<Pill tone="orange">Not settled</Pill>} onClick={()=>open({type:'hr-fnf',id:t.id})}/>):<p className="hr-m-note">Nobody waiting. Mark an exit in the Staff section first.</p>}
+    {drafts.length>0&&<><h2 className="m-group">AWAITING CONFIRMATION</h2>{drafts.map(f=><div key={f.id} className="hr-m-leave"><ListCard title={f.name} sub={`${net(f.net)} · last day ${shortDate(f.lastDay)}`} meta={`${f.id} · prepared by ${hrUserName(s,f.by)}`} right={<Pill tone="orange">Draft</Pill>}/><div className="hr-m-actions">{actions(f)}</div></div>)}</>}
     <h2 className="m-group">SETTLED</h2>
     {done.map(f=><ListCard key={f.id} title={f.name} sub={`${net(f.net)} · last day ${shortDate(f.lastDay)}`} meta={`${f.id} · by ${hrUserName(s,f.by)}`} right={<Pill tone="green">Settled</Pill>}/>)}
     {!done.length&&<p className="hr-m-note">No settlements yet.</p>}</>;
   return <section className="card"><div className="section-title"><div><h2>Full and final settlement</h2><p>For staff marked as exited: last month’s salary to the exit date, PF / ESIC / PT, the full outstanding advance and up to four adjustments (e.g. earned-leave encashment). Gratuity is not calculated.</p></div></div>
-    {pending.length||done.length?<div className="table-wrap"><table><thead><tr><th>Staff</th><th>Last day</th><th className="number">Earnings</th><th className="number">Recoveries</th><th className="number">Net</th><th>Status</th><th></th></tr></thead><tbody>
+    {pending.length||all.length?<div className="table-wrap"><table><thead><tr><th>Staff</th><th>Last day</th><th className="number">Earnings</th><th className="number">Recoveries</th><th className="number">Net</th><th>Status</th><th></th></tr></thead><tbody>
       {pending.map(t=><tr key={t.id}><td><strong>{t.name}</strong><small>{t.id} · {t.designation}</small></td><td>{dateLabel(t.exitedOn!)}</td><td className="number">—</td><td className="number">—</td><td className="number">—</td><td><Pill tone="orange">Not settled</Pill></td>
         <td><button className="text-btn" onClick={()=>open({type:'hr-fnf',id:t.id})}>Prepare settlement</button></td></tr>)}
+      {drafts.map(f=><tr key={f.id}><td><strong>{f.name}</strong><small>{f.id}</small></td><td>{dateLabel(f.lastDay)}</td><td className="number">{money(f.earnings)}</td><td className="number">{money(f.recoveries)}</td>
+        <td className="number"><strong>{net(f.net)}</strong></td><td><Pill tone="orange">Draft</Pill><small>prepared by {hrUserName(s,f.by)}</small></td><td className="hr-actions">{actions(f)}</td></tr>)}
       {done.map(f=><tr key={f.id}><td><strong>{f.name}</strong><small>{f.id}{f.salaryIncluded?'':` · ${hrMonthLabel(f.month)} paid in payroll`}</small></td><td>{dateLabel(f.lastDay)}</td><td className="number">{money(f.earnings)}</td><td className="number">{money(f.recoveries)}</td>
-        <td className="number"><strong>{net(f.net)}</strong></td><td><Pill tone="green">Settled</Pill></td><td><small>by {hrUserName(s,f.by)} · {f.at.slice(0,10)}</small></td></tr>)}
+        <td className="number"><strong>{net(f.net)}</strong></td><td><Pill tone="green">Settled</Pill></td><td><small>by {hrUserName(s,f.by)} · {f.at.slice(0,10)}{f.confirmedBy?` · confirmed by ${hrUserName(s,f.confirmedBy)}`:''}</small></td></tr>)}
     </tbody></table></div>:<Empty title="Nobody to settle" body="Mark a staff member as exited on the Staff tab first."/>}
     <p className="footnote padded">{HR_DISCLAIMER}</p></section>;
 }

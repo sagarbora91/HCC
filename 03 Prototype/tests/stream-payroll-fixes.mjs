@@ -221,4 +221,30 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.match(UI.renderModal(s,'accountant','hr-payslip','HR-PAY-1|HR-S05'),/Send on WhatsApp to \+919000010029/);
     assert.match(UI.renderModal(s,'manager','hr-staff','HR-S05'),/payroll only/);
   });
+
+  test('[PAY-FIX F-12] full and final is maker-checker (never the maker) with a ₹2,00,000 adjustment cap and Owner approval above ₹1,00,000 additions',()=>{
+    const s=execute(seed(),'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false});
+    // reviewer's t4: 4 × ₹10,00,000 additions by the Accountant alone → now refused by the cap
+    const big=[1,2,3,4].map(i=>({label:'Bonus '+i,kind:'add',amount:100000000}));
+    assert.throws(()=>execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:big}),code('VALIDATION'));
+    const d=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'EL encashment',kind:'add',amount:600000}]});
+    const f=x(d).fnf[0];assert.equal(f.status,'Draft');assert.equal(x(d).advances[0].recovered,100000,'no write-off before confirmation');
+    assert.equal(M.hrComputeRun(d,'2026-10').lines.some(l=>l.staffId==='HR-S05'),true,'a draft does not remove the staff member from payroll');
+    assert.throws(()=>execute(d,'accountant',{type:'HR_FNF_CONFIRM',id:f.id}),code('FORBIDDEN'),'maker cannot confirm');
+    assert.throws(()=>execute(d,'manager',{type:'HR_FNF_CONFIRM',id:f.id}),code('FORBIDDEN'));
+    assert.throws(()=>execute(d,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05'}),code('INVALID_TRANSITION'),'one draft at a time');
+    // stale: an advance recovered elsewhere changes the figures → re-prepare
+    const st=structuredClone(d);st.staffX.advances[0].recovered=300000;
+    assert.throws(()=>execute(st,'owner',{type:'HR_FNF_CONFIRM',id:f.id}),code('STALE_VERSION'));
+    const c=execute(d,'owner',{type:'HR_FNF_CONFIRM',id:f.id});assert.equal(x(c).fnf[0].status,'Settled');assert.equal(x(c).advances[0].recovered,300000);
+    assert.equal(M.hrComputeRun(c,'2026-10').lines.some(l=>l.staffId==='HR-S05'),false);
+    // additions above ₹1,00,000: the Accountant cannot be the checker; the Owner can
+    const o=execute(s,'owner',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'Ex-gratia',kind:'add',amount:15000000}]});
+    assert.throws(()=>execute(o,'accountant',{type:'HR_FNF_CONFIRM',id:x(o).fnf[0].id}),e=>e.code==='FORBIDDEN'&&/only the Owner/.test(e.message));
+    const a=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'Ex-gratia',kind:'add',amount:15000000}]});
+    assert.equal(x(execute(a,'owner',{type:'HR_FNF_CONFIRM',id:x(a).fnf[0].id})).fnf[0].status,'Settled');
+    // discard a draft; the screen shows the draft with the checker's actions
+    assert.equal((x(execute(d,'accountant',{type:'HR_FNF_DISCARD',id:f.id})).fnf??[]).length,0);
+    assert.match(UI.renderSection(d,'owner','Fnf'),/Confirm/);assert.match(UI.renderSection(d,'accountant','Fnf'),/the other payroll user confirms/);
+  });
 }

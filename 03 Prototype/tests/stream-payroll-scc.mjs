@@ -197,8 +197,10 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.equal(M.hrElEncashment(s,st),M.hrMulDiv(1350000,30,1,62));
     assert.throws(()=>execute(s,'manager',{type:'HR_FNF_SETTLE',staffId:'HR-S05'}),code('FORBIDDEN'));
     const adj=[{label:'Leave encashment (EL 15 days)',kind:'add',amount:653226},{label:'Uniform not returned',kind:'ded',amount:50000}];
-    const n=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:adj});
-    const f=x(n).fnf[0];assert.equal(f.month,'2026-10');assert.equal(f.salaryIncluded,true);assert.equal(f.advanceOutstanding,200000);
+    const d=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:adj});
+    assert.equal(x(d).fnf[0].status,'Draft');assert.equal(x(d).advances[0].recovered,100000,'draft writes nothing off (review F-12)');
+    const n=execute(d,'owner',{type:'HR_FNF_CONFIRM',id:x(d).fnf[0].id});
+    const f=x(n).fnf[0];assert.equal(f.status,'Settled');assert.equal(f.confirmedBy,'owner');assert.equal(f.month,'2026-10');assert.equal(f.salaryIncluded,true);assert.equal(f.advanceOutstanding,200000);
     assert.equal(f.line.counts.na,7);// 25–31 Oct after the exit
     assert.equal(f.earnings,f.line.gross+653226);assert.equal(f.recoveries,f.line.pf+f.line.esic+f.line.pt+200000+50000);assert.equal(f.net,f.earnings-f.recoveries);
     assert.equal(x(n).advances[0].recovered,300000);
@@ -206,6 +208,7 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.throws(()=>execute(n,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05'}),code('INVALID_TRANSITION'));
     assert.throws(()=>execute(n,'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:true}),/Full and final/);
     const neg=execute(s,'owner',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'Damage recovery',kind:'ded',amount:5000000}]});assert.ok(x(neg).fnf[0].net<0);
+    assert.equal(x(execute(neg,'accountant',{type:'HR_FNF_CONFIRM',id:x(neg).fnf[0].id})).fnf[0].status,'Settled');
     const me=execute(seed(),'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S07',active:false});
     assert.throws(()=>execute(me,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S07'}),code('FORBIDDEN'));
     assert.throws(()=>execute(s,'owner',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'x',kind:'add',amount:-5}]}),code('VALIDATION'));
