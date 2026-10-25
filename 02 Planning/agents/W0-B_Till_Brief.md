@@ -4,7 +4,7 @@ Wave 0 of `02 Planning/HCC_Multi_Agent_Plan_v1.md`. Owner decision **DEC-052 (AP
 
 ## Setup (once)
 - Your worktree has no `node_modules`. Create junctions, never `npm install`:
-  `cmd /c mklink /J "03 Prototype\node_modules" "V:\Codex\Hotel Control Centre\03 Prototype\node_modules"`
+  `cmd /c mklink /J "03 Prototype\node_modules" "E:\Projects\HCC\Hotel Control Centre\03 Prototype\node_modules"`
 - Read: `CLAUDE.md`, `02 Planning/HCC_A2_Till_Decision_Pack.md`, `02 Planning/HCC_Parallel_Agent_Brief.md` (architecture, phone rules, theme — ignore its Linux paths/Playwright setup), `02 Planning/HCC_Financial_Rulebook.md` §4, Decision Register DEC-035/052.
 
 ## Task

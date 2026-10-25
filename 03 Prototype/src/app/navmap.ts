@@ -25,7 +25,7 @@ export const categoryOf=(id:CategoryId)=>NAV_CATEGORIES.find(c=>c.id===id)!;
 /** Page ID (nav item ID) → category. `overview` is the pinned Dashboard tile and has no category. */
 export const PAGE_CATEGORY:Record<string,CategoryId>={
   rooms:'front',calendar:'front',reservations:'front',arrivals:'front',
-  folios:'cash',cashier:'cash',pos:'cash',expenses:'cash',
+  folios:'cash',cashier:'cash',cashbook:'cash',pos:'cash',expenses:'cash',
   housekeeping:'hkm',maintenance:'hkm',handover:'hkm',
   inhouse:'guestsvc','guest-services':'guestsvc','gsv-my-requests':'guestsvc',messages:'guestsvc',documents:'guestsvc',
   customers:'customers',
@@ -58,7 +58,7 @@ export function crumbsFor(page:string,pageLabel:string):{label:string;page?:stri
 export const PAGE_BLURB:Record<string,string>={
   overview:'Today at a glance: arrivals, occupancy, cash',
   rooms:'Live room board with status and guests',calendar:'Date grid of room availability',reservations:'Search, create and manage bookings',arrivals:'Check guests in; look up a booking ID',
-  folios:'Guest bills, payments and balances',cashier:'Shift cash, drawer and counts',pos:'Restaurant and room-service checks',expenses:'Record and approve petty expenses',
+  folios:'Guest bills, payments and balances',cashier:'Shift cash, drawer and counts',cashbook:'Daily cash in and out with running balance',pos:'Restaurant and room-service checks',expenses:'Record and approve petty expenses',
   housekeeping:'Cleaning tasks and room inspection',maintenance:'Repairs, work orders and preventive upkeep',handover:'Shift checklists and handover notes',
   inhouse:'Guests staying now: extend, move, depart','guest-services':'Guest requests, complaints, lost & found','gsv-my-requests':'Requests assigned to you',messages:'Guest messages and templates',documents:'Scan and file IDs and bills',
   customers:'Search by name or mobile: full history and profile',
@@ -78,6 +78,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   arrivals:['check in','checkin','check-in','arrival','arrivals','walk in','register','registration','booking id','key'],
   folios:['folio','bill','invoice','payment','balance','checkout','check out','deposit','refund','company credit'],
   cashier:['cashier','cash','drawer','shift','count','float','till','difference'],
+  cashbook:['cash book','cashbook','day book','daybook','rokad','ledger','cash in','cash out','running balance','lock day'],
   pos:['restaurant','room service','kot','menu','bill','food','kitchen','pos','table'],
   expenses:['expense','expenses','petty cash','vendor','bill','approve expense','receipt'],
   housekeeping:['housekeeping','cleaning','clean','inspect','inspection','tasks','room attendant','stayover','dirty'],
