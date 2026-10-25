@@ -79,6 +79,7 @@ Version: 1.0 · Updated: 24 October 2026 · Owner: Sagar
 | DEC-059 | Tablet portrait header (T-01) | Keep the **compact header** (≈85–97 px, ≈8 % of portrait height) as built; re-check on the Tab S7 and move to a single-row header with a user menu only if it still feels cramped. Options: `02 Planning/options/T-01_T-02_Decision_Brief.md` | Agreed (O, APR-008, 25 Oct 2026) | O | W0-D T-01 |
 | DEC-060 | Touch size on tablets (T-02) | On touch (coarse-pointer) devices: dense table rows and filters **44 px**, primary actions, hamburger, drawer items and dialog buttons **48 px**, built on CSS variables (a density toggle can be added later). Windows desktop (fine pointer) unchanged | Agreed (O, APR-008, 25 Oct 2026) | O | W0-D T-02, APK v9 |
 | DEC-061 | Own pay for non-money roles (R-01) | Housekeeping and maintenance staff **may see their own pay and payslip** on "My shifts & pay"; they still never see hotel money (rates, folios, cash, revenue, other staff pay) | Agreed (O, APR-008, 25 Oct 2026) | O | RBAC, W05-B |
+| DEC-062 | Production staff sign-in | **PIN + device binding** for staff on shared hotel tablets/phones; **password per user** (PBKDF2-SHA256) for Owner, Accountant and Tech admin, who may not sign in by PIN. Resolves contracts §8 Q4 | Agreed (O, APR-009, 25 Oct 2026) | O | Wave 1 P1 |
 | DEC-043 | Source reuse in prototype | Prototype uses original components only; no third-party code imported, so no Source Reuse Register entries yet. | Proposed | P | Reuse register |
 
 ## 4. Superseded / changed decisions
