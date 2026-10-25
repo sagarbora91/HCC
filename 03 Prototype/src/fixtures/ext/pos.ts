@@ -1,9 +1,10 @@
 // Module 23 · Restaurant POS & room service — fixture extensions (fictional data only).
 // Outlet sales live in s.posX: no money is posted into existing bookings. Cash bills count in the front-desk drawer (shared till, DEC-052):
-// POS-F01 adds ₹550 to the BASE drawer (₹10,200 → ₹10,750); POS-F02 is UPI (non-cash). POS-F03/F04 are open checks that block day close.
+// POS-F01 adds ₹525 to the BASE drawer (₹10,200 → ₹10,725; DEC-069 GST 5 %, was ₹550); POS-F02 is UPI (non-cash). POS-F03/F04 are open checks that block day close.
 import {clone} from '../../domain/clone';
 import type {State} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
+import {gstForFood,gstLineTax} from '../../domain/gst';
 import type {POSMenuItem,POSOrder,POSState} from '../../domain/streams/pos';
 
 const R='restaurant',RS='room-service',BOTH=[R,RS];
@@ -19,17 +20,17 @@ export const POS_FIXTURE_MENU:POSMenuItem[]=[
 const line=(id:string,m:string,qty:number,kot?:string)=>{const x=POS_FIXTURE_MENU.find(i=>i.id===m)!;return {id,item:m,name:x.name,price:x.price,qty,...(kot?{kot}:{})};};
 
 export function extendBase(s:State):void{
-  const d=s.date,t=(hm:string)=>d+'T'+hm,tax=s.settings.taxBps;
+  const d=s.date,t=(hm:string)=>d+'T'+hm,tax=gstForFood(s,d).bps; // DEC-069 GST master: restaurant 5 % (not specified premises)
   const settle=(ls:{price:number;qty:number}[],no:number,method:string,reference:string|undefined,at:string,rid:string)=>{
-    const net=ls.reduce((a,l)=>a+l.price*l.qty,0),x=Math.round(net*tax/10000);return {mode:'outlet' as const,billNo:`POS/${d.slice(2,4)}${d.slice(5,7)}/${String(no).padStart(4,'0')}`,method,...(reference?{reference}:{}),net,taxBps:tax,tax:x,total:net+x,date:d,at,by:'cashier',receiptId:rid};};
+    const net=ls.reduce((a,l)=>a+l.price*l.qty,0),x=gstLineTax(net,tax);return {mode:'outlet' as const,billNo:`POS/${d.slice(2,4)}${d.slice(5,7)}/${String(no).padStart(4,'0')}`,method,...(reference?{reference}:{}),net,taxBps:tax,tax:x,total:net+x,date:d,at,by:'cashier',receiptId:rid};};
   const L1=[line('POSL-F01','m-poha',2,'KOT-F01'),line('POSL-F02','m-tea',2,'KOT-F01'),line('POSL-F03','m-coffee',1,'KOT-F01')];
   const L2=[line('POSL-F04','m-dosa',2,'KOT-F02'),line('POSL-F05','m-idli',1,'KOT-F02'),line('POSL-F06','m-coffee',1,'KOT-F02')];
   const orders:POSOrder[]=[
-    // Breakfast at table T1, paid cash (₹500 + ₹50 tax = ₹550 outlet cash).
+    // Breakfast at table T1, paid cash (₹500 + ₹25 GST = ₹525 outlet cash; was ₹550 with the synthetic 10 %).
     {id:'POS-F01',outlet:R,table:'T1',guest:'Walk-in · Mr. Kulkarni',covers:2,date:d,openedAt:t('07:40'),openedBy:'cashier',status:'Settled',version:4,
       lines:L1,
       kots:[{id:'KOT-F01',no:1,at:t('07:41'),by:'cashier',status:'Served',readyAt:t('07:52'),servedAt:t('07:55')}],settlement:settle(L1,1,'Cash',undefined,t('07:58'),'POSR-F01')},
-    // Breakfast at table T4, paid UPI (₹680 + ₹68 tax = ₹748).
+    // Breakfast at table T4, paid UPI (₹680 + ₹34 GST = ₹714; was ₹748).
     {id:'POS-F02',outlet:R,table:'T4',covers:3,date:d,openedAt:t('07:45'),openedBy:'cashier',status:'Settled',version:4,
       lines:L2,
       kots:[{id:'KOT-F02',no:2,at:t('07:46'),by:'cashier',status:'Served',readyAt:t('07:58'),servedAt:t('08:00')}],settlement:settle(L2,2,'UPI','DEMO-UPI-POS-7731',t('07:59'),'POSR-F02')},

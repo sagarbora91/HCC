@@ -2,7 +2,7 @@
 // document capture, 20 accounting month locks. Runs last: the accounting snapshots are taken from the final folios, receipts and expenses.
 import type {State,Approval} from '../../domain/types';
 import {addDays,nights} from '../../domain/money';
-import {taxRateFor} from '../../domain/selectors';
+import {gstForFood,gstLineTax,gstStayTax} from '../../domain/gst';
 import type {POSOrder,POSReceipt,POSLine} from '../../domain/streams/pos';
 import type {CHNMessage,CHNPush,CHNWebRequest} from '../../domain/streams/channels';
 import {MSG_DEFAULT_TEMPLATES,MSG_DEFAULT_RULES,msgTriggerEvents,msgRender,msgValues,msgRecipient,type MSGMessage,type MSGChannel,type MSGDoc} from '../../domain/streams/messaging';
@@ -42,7 +42,7 @@ function posHistory(s:State,rng:Rng,o:HistoryWindow,ctx:HistoryContext){
       const picks=[...new Set([rng.pick(pool),rng.pick(pool),rng.pick(pool),rng.pick(pool)].slice(0,rng.int(2,4)))];
       const lines:POSLine[]=picks.map((m,i)=>({id:id+'-L'+(i+1),item:m.id,name:m.name,price:m.price,qty:rng.int(1,3),kot:id+'-K1'}));
       if(lines.length>1&&rng.chance(0.012)){const l=lines[lines.length-1];l.voided=true;l.voidReason='Wrong item entered';l.voidBy='cashier';l.voidDate=d;}
-      const active=lines.filter(l=>!l.voided),net=active.reduce((a,l)=>a+l.price*l.qty,0),taxBps=taxRateFor(s,d),tax=Math.round(net*taxBps/10000);
+      const active=lines.filter(l=>!l.voided),net=active.reduce((a,l)=>a+l.price*l.qty,0),taxBps=gstForFood(s,d).bps,tax=gstLineTax(net,taxBps);
       const method=rng.weighted([['Cash',40],['UPI',45],['Card',15]] as const),by=rng.chance(0.6)?'cashier':'reception';
       const rid='POSR-H'+pad(++rc,5);
       const o2:POSOrder={id,outlet:'restaurant',table:'T'+rng.int(1,8),covers:rng.int(1,5),date:d,openedAt:d+'T'+hm(t),openedBy:by,status:'Settled',version:4,lines,
@@ -104,7 +104,7 @@ function channelsHistory(s:State,rng:Rng,o:HistoryWindow){
       }
     }
     if(b.source==='Website'){
-      const net=b.rate*n,tax=Math.round(net*(b.lines[0]?.taxBps??1000)/10000),created=addDays(b.arrival,-rng.int(1,15))<o.from?o.from:addDays(b.arrival,-rng.int(1,15));
+      const net=b.rate*n,tax=gstStayTax(s,b.rate,b.arrival,b.departure),created=addDays(b.arrival,-rng.int(1,15))<o.from?o.from:addDays(b.arrival,-rng.int(1,15));
       web.push({id:'WEB-H'+pad(++wn),booking:b.id,guest:b.guest,phone:b.phone??'',email:b.email,roomType:typeOf(b.room),arrival:b.arrival,departure:b.departure,adults:Math.max(1,b.people-(b.children??0)),children:b.children??0,net,tax,total:net+tax,
         createdAt:created+'T'+pad(rng.int(8,22),2)+':00',status:b.status==='Departed'?'Confirmed':'Declined',decidedBy:'reception',...(b.status==='Departed'?{}:{reason:'Payment not completed within the hold period'}),notes:'Direct website request (simulated)'});
     }

@@ -1,13 +1,14 @@
 // Pure read functions over State. Every figure on screen is derived here (REQ-RPT-003).
 import {Booking,State,Permission,Room} from './types';
 import {addDays} from './money';
-import {adminTariffOn,adminTaxScheduled} from './streams/admin';
+import {adminTariffOn} from './streams/admin';
+import {lineTax} from './gst';
 
 // ── Cross-stream contract functions (stubs in M1; owners noted). Signatures must not change. ──
 /** Nightly tariff for a room on a date. Owner: stream E (effective-dated tariffs). */
 export function rateFor(s:State,room:Room,date:string):number{return adminTariffOn(s,room.type,date)?.rate??room.rate;}
-/** Synthetic tax rate (basis points) effective on a date. Owner: stream E (effective-dated tax). */
-export function taxRateFor(s:State,date:string):number{return adminTaxScheduled(s,date);}
+// DEC-069: the synthetic taxRateFor(s,date) is gone — new postings take their rate from the GST master (domain/gst.ts:
+// gstForRoomNight / gstForFood / gstForService); every stored line keeps its taxBps snapshot.
 /** Whether a room is blocked for any night in [a, d). Owner: stream D (dated blocks).
  *  A block covers nights [blockFrom, blockTo). Missing blockFrom = from now (no lower bound); missing blockTo = open-ended.
  *  `blocked` with no dates (base room 308, M1 toggles) blocks every interval. `blocked:false` never blocks. */
@@ -19,7 +20,7 @@ export function blockedDuring(room:Room,a:string,d:string):boolean{
 
 export function totals(b:Booking){
   const net=b.lines.reduce((s,l)=>s+l.amount,0);
-  const tax=b.lines.reduce((s,l)=>s+Math.round(l.amount*l.taxBps/10000),0);
+  const tax=b.lines.reduce((s,l)=>s+lineTax(l),0);
   const paid=b.receipts.reduce((s,r)=>s+(r.kind==='payment'?r.amount:r.kind==='refund'?-r.amount:0),0);
   const deposit=b.receipts.reduce((s,r)=>s+(r.kind==='deposit'?r.amount:r.kind==='deposit-return'?-r.amount:0),0);
   // Company credit moves the balance to a receivable (Financial Rulebook §2); it is not a cash/net receipt.
@@ -70,7 +71,7 @@ export function metrics(s:State){
     sellable,
     occupancy:sellable?Math.round(active.length/sellable*100):0,
     revenue:lines.reduce((a,l)=>a+l.amount,0),
-    tax:lines.reduce((a,l)=>a+Math.round(l.amount*l.taxBps/10000),0),
+    tax:lines.reduce((a,l)=>a+lineTax(l),0),
     collections:receipts.reduce((a,r)=>a+(r.kind==='payment'?r.amount:r.kind==='refund'?-r.amount:0),0),
     deposits:s.bookings.reduce((a,b)=>a+totals(b).deposit,0),
     outstanding:s.bookings.reduce((a,b)=>a+Math.max(0,totals(b).balance),0),

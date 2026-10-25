@@ -133,13 +133,13 @@ export function register({test,M,assert}){
   });
   test('[HIST-C] POS: bills reconcile with receipts and folio lines; numbering and KOTs are consistent',()=>{
     const p=posSlice(s),hist2=p.orders.filter(o=>o.id.startsWith('POS-H'));assert.ok(hist2.length>800,'orders '+hist2.length);
-    const bills=new Set(),taxOf=net=>Math.round(net*1000/10000);
+    const bills=new Set(),taxOf=net=>Math.round(net*500/10000); // DEC-069 GST: restaurant 5 % (hotel not specified premises; all tariffs ≤ ₹7,500) — was the synthetic 10 % (1000 bps)
     for(const o of hist2){
       const st=o.settlement,net=o.lines.filter(l=>!l.voided||o.status==='Void').reduce((a,l)=>a+l.price*l.qty,0);
       assert.ok(st&&/^POS\/\d{4}\/\d{4}$/.test(st.billNo)&&!bills.has(st.billNo));bills.add(st.billNo);
       if(o.status==='Settled'){assert.equal(st.net,o.lines.filter(l=>!l.voided).reduce((a,l)=>a+l.price*l.qty,0));}
       else assert.equal(st.net,net);
-      assert.equal(st.tax,taxOf(st.net));assert.equal(st.total,st.net+st.tax);
+      assert.equal(st.taxBps,500);assert.equal(st.tax,taxOf(st.net));assert.equal(st.total,st.net+st.tax);
       if(st.mode==='folio'){const b=s.bookings.find(x=>x.id===st.booking),l=b.lines.find(x=>x.id===st.folioLineId);
         assert.ok(l&&l.amount===st.net&&l.taxBps===st.taxBps&&l.kind==='service'&&l.label.includes(st.billNo),o.id);const seg=(b.segments??[{room:b.room,from:b.arrival,to:b.departure}]).find(g=>g.from<=st.date&&st.date<(g.to??b.departure));assert.ok(st.date>=b.arrival&&st.date<b.departure&&seg&&seg.room===o.room,o.id);}
       else assert.ok(p.receipts.some(r=>r.id===st.receiptId&&r.amount===st.total&&r.method===st.method&&r.date===st.date));}
@@ -196,7 +196,7 @@ export function register({test,M,assert}){
     assert.equal(accDayStatus(s,'2026-10-24'),'Open');
   });
   test('[HIST-C] the whole scenario still joins up: today equals BASE, reports and a normal day work, size and speed budgets hold',()=>{
-    assert.deepEqual(metrics(s),metrics(base));assert.equal(drawer(s),1075000);
+    assert.deepEqual(metrics(s),metrics(base));assert.equal(drawer(s),1072500); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
     const sizes={};for(const k of Object.keys(s))sizes[k]=JSON.stringify(s[k]).length;
     const top=Object.entries(sizes).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`${k} ${(v/1e6).toFixed(2)}MB`).join(', ');
     const runs=[];for(let i=0;i<3;i++){const t=performance.now();loadScenario('FY26');runs.push(performance.now()-t);}runs.sort((a,b)=>a-b);

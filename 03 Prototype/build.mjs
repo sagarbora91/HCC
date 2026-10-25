@@ -1,7 +1,9 @@
 import {build} from 'esbuild';
 import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
 import {moHeadTags} from './src/mobile/ops/manifest.mjs'; // MB-10 manifest + icons (inline data URIs)
-const result=await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,define:{'process.env.NODE_ENV':'"production"'}});
+// Scenario worker (audit P-01): bundled on its own and inlined into the app as a string, started from a Blob URL at runtime.
+const worker=await build({entryPoints:['src/app/scenarioWorker.ts'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,define:{'process.env.NODE_ENV':'"production"'}});
+const result=await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,define:{'process.env.NODE_ENV':'"production"',__HCC_SCENARIO_WORKER__:JSON.stringify(worker.outputFiles[0].text)}});
 const extra=(await readdir('src/styles')).filter(f=>f.endsWith('.css')).sort();
 const css=[await readFile('src/styles.css','utf8'),...await Promise.all(extra.map(f=>readFile('src/styles/'+f,'utf8')))].join('\n');
 const js=result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script');

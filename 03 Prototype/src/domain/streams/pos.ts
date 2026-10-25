@@ -1,7 +1,7 @@
 // Module 23 · Restaurant POS & room service — pure helpers, selectors and the state slice type. Exported names MUST start with 'pos' / 'POS' (shared mock namespace).
 // Money = integer paise. Tax = round(net × taxBps / 10000) on the bill net (matches one folio service line). See 02 Planning/modules/HCC_Module_23_POS_Spec.md.
 import type {State} from '../types';
-import {taxRateFor} from '../selectors';
+import {gstForFood,gstLineTax} from '../gst';
 
 export type POSOutletKind='table'|'room';
 export type POSOutlet={id:string;name:string;kind:POSOutletKind;tables?:string[]};
@@ -34,10 +34,10 @@ export const POS_APPROVAL_TTL_MINUTES=24*60;
 export const posLineValue=(l:POSLine)=>l.price*l.qty;
 export const posActiveLines=(o:POSOrder)=>o.lines.filter(l=>!l.voided);
 export const posUnsent=(o:POSOrder)=>o.lines.filter(l=>!l.voided&&!l.kot);
-/** Bill totals. Settled checks use their snapshot; open checks preview with today's synthetic rate. */
+/** Bill totals. Settled checks use their snapshot; open checks preview with today's GST master rate. */
 export function posOrderTotals(s:State,o:POSOrder){
   if(o.settlement){const t=o.settlement;return {net:t.net,taxBps:t.taxBps,tax:t.tax,total:t.total,items:posActiveLines(o).reduce((a,l)=>a+l.qty,0)};}
-  const net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),taxBps=taxRateFor(s,s.date),tax=Math.round(net*taxBps/10000);
+  const net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),taxBps=gstForFood(s,s.date).bps,tax=gstLineTax(net,taxBps);
   return {net,taxBps,tax,total:net+tax,items:posActiveLines(o).reduce((a,l)=>a+l.qty,0)};
 }
 /** Kitchen status of a line (New = not yet sent). */

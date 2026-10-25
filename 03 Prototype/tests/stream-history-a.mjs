@@ -9,16 +9,19 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 
 // ── fake IndexedDB (enough of the API for the adapter) ──
 function fakeIdb({failOpen=false}={}){
+  // Enough of IndexedDB for the adapter: requests complete asynchronously, a transaction completes once after all of its
+  // requests (including ones issued from callbacks). `puts` counts committed readwrite transactions (one per save).
   const data=new Map();let puts=0;
   return {data,get puts(){return puts;},open(){
     const req={};
     queueMicrotask(()=>{
       if(failOpen){req.error=new Error('blocked');req.onerror?.();return;}
-      const db={createObjectStore(){},transaction(){
-        const tx={objectStore:()=>({
-          get:k=>{const r={};queueMicrotask(()=>{r.result=data.get(k);r.onsuccess?.();});return r;},
-          put:(v,k)=>{puts++;data.set(k,v);queueMicrotask(()=>tx.oncomplete?.());},
-        })};return tx;}};
+      const db={createObjectStore(){},transaction(_s,mode='readonly'){
+        let pending=0;const tx={};
+        const done=()=>{if(--pending===0)queueMicrotask(()=>{if(pending===0){if(mode==='readwrite')puts++;tx.oncomplete?.();}});};
+        const rq=fn=>{pending++;const r={};queueMicrotask(()=>{r.result=fn();r.onsuccess?.();done();});return r;};
+        tx.objectStore=()=>({get:k=>rq(()=>data.get(k)),put:(v,k)=>rq(()=>{data.set(k,v);}),delete:k=>rq(()=>{data.delete(k);}),getAllKeys:()=>rq(()=>[...data.keys()])});
+        return tx;}};
       req.result=db;req.onupgradeneeded?.();req.onsuccess?.();
     });
     return req;}};
@@ -39,7 +42,7 @@ async function prepare(M){
   out.roundTrip=(await ST.createStateStorage({idb,ls}).load());
   out.lsLeftover=ls.m.has('hcc-prototype-v2');
   // flush() writes immediately
-  a.save({...fixture,sequence:1200});await a.flush();out.flushSeq=JSON.parse(idb.data.get('current')).sequence;
+  a.save({...fixture,sequence:1200});await a.flush();out.flushSeq=JSON.parse(idb.data.get('manifest')).scalars.sequence;
   // IndexedDB unavailable → localStorage fallback for small states
   const ls2=fakeLs(),b=ST.createStateStorage({idb:fakeIdb({failOpen:true}),ls:ls2,delay:0,setTimer:fn=>{fn();return 1;},clearTimer(){}});
   b.save(fixture);await b.flush();await tick();out.fallbackSaved=ls2.m.has('hcc-prototype-v2');
@@ -79,7 +82,7 @@ export function register({test,M,assert}){
   });
   test('[HIST-A] BASE is untouched: its bookings, rooms and today figures are identical in FY26',()=>{
     for(const b of base.bookings)assert.deepEqual(fy.bookings.find(x=>x.id===b.id),b);
-    assert.deepEqual(fy.rooms,base.rooms);assert.deepEqual(metrics(fy),metrics(base));assert.equal(drawer(fy),drawer(base));assert.equal(drawer(fy),1075000);
+    assert.deepEqual(fy.rooms,base.rooms);assert.deepEqual(metrics(fy),metrics(base));assert.equal(drawer(fy),drawer(base));assert.equal(drawer(fy),1072500); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 ₹550 → ₹525)
     assert.equal(metrics(fy).occupied,8);assert.equal(metrics(fy).collections,2150000);
     assert.equal(fy.rooms.find(r=>r.id==='308').blocked,true);assert.equal(fy.closedDates.includes('2026-10-23'),true);
   });
@@ -105,7 +108,7 @@ export function register({test,M,assert}){
     for(const b of departed){
       const nights=Math.round((Date.parse(b.departure)-Date.parse(b.arrival))/86400000);
       const room=b.lines.filter(l=>l.kind==='room');assert.equal(room.length,nights,b.id);
-      for(let i=0;i<nights;i++){const d=new Date(Date.parse(b.arrival)+i*86400000).toISOString().slice(0,10);assert.ok(room.some(l=>l.date===d&&l.taxBps===1000&&l.amount===b.rate),b.id+' '+d);}
+      for(let i=0;i<nights;i++){const d=new Date(Date.parse(b.arrival)+i*86400000).toISOString().slice(0,10);assert.ok(room.some(l=>l.date===d&&l.taxBps===(b.rate<=750000?500:1800)&&l.amount===b.rate),b.id+' '+d);} // DEC-069 GST: taxBps 1000 → room slab per night (≤ ₹7,500 → 5 %, above → 18 %; FY 2026-27 is after 22 Sep 2025)
       const t=totals(b);assert.equal(t.balance,0,b.id);assert.equal(t.deposit,0,b.id);assert.equal(b.registered,true);
       assert.ok(b.invoiceNo&&!inv.has(b.invoiceNo));inv.add(b.invoiceNo);n++;}
     assert.equal(fy.invoiceSeqC,n);

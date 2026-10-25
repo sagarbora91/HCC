@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React from 'react';
 import {Check,AlertTriangle,ArrowRight,Printer,Building2,Receipt,Hotel,Info} from 'lucide-react';
-import {money,totals,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
+import {money,totals,lineTax,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate} from '../../components/ui';
 import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
@@ -22,7 +22,7 @@ export function MmCheckout({id}:{id?:string}){
         <span className="mm-check-state">{i.ok?'Done':'To do'}</span></div>)}
     </section>
     <div className="mm-card mm-sum">
-      <div className="mm-row"><div className="mm-row-main"><strong>Total incl. test tax</strong></div><div className="mm-row-amt"><strong className="number">{money(t.total)}</strong></div></div>
+      <div className="mm-row"><div className="mm-row-main"><strong>Total incl. GST</strong></div><div className="mm-row-amt"><strong className="number">{money(t.total)}</strong></div></div>
       <div className="mm-row"><div className="mm-row-main"><strong>Net paid</strong></div><div className="mm-row-amt"><strong className="number">{money(t.paid)}</strong></div></div>
       <div className="mm-row"><div className="mm-row-main"><strong>Outstanding</strong></div><div className="mm-row-amt"><strong className="number">{money(t.balance)}</strong></div></div>
       <div className="mm-row"><div className="mm-row-main"><strong>Deposit to return</strong></div><div className="mm-row-amt"><strong className="number">{money(t.deposit)}</strong></div></div>
@@ -59,16 +59,16 @@ export function MmInvoice({id}:{id?:string}){
         <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><strong>{b.invoiceNo??'Not yet issued'}</strong><span>{shortDate(b.arrival)} — {shortDate(b.departure)}</span><span>{b.invoiceNo?'Allocated once at checkout':'Number allocated once at checkout'}</span></div>
       </div>
       <table className="mm-inv-table"><thead><tr><th>Description</th><th>Date</th><th className="number">Net</th><th className="number">Tax</th></tr></thead>
-        <tbody>{b.lines.map(l=><tr key={l.id}><td data-label="Description">{l.label}</td><td data-label="Date">{shortDate(l.date)}</td><td className="number" data-label="Net">{money(l.amount)}</td><td className="number" data-label="Synthetic tax">{money(Math.round(l.amount*l.taxBps/10000))}</td></tr>)}</tbody></table>
+        <tbody>{b.lines.map(l=><tr key={l.id}><td data-label="Description">{l.label}</td><td data-label="Date">{shortDate(l.date)}</td><td className="number" data-label="Net">{money(l.amount)}</td><td className="number" data-label="GST">{money(lineTax(l))}</td></tr>)}</tbody></table>
       <div className="mm-inv-sum">
-        <div><span>Total including test tax</span><strong className="number">{money(t.total)}</strong></div>
+        <div><span>Total including GST</span><strong className="number">{money(t.total)}</strong></div>
         <div><span>Net receipts applied</span><strong className="number">{money(t.paid)}</strong></div>
         {cc>0&&<div><span>On company credit (receivable)</span><strong className="number">{money(cc)}</strong></div>}
         <div className="mm-inv-bal"><span>Balance</span><strong className="number">{money(t.balance)}</strong></div>
         <div><span>Refundable deposit held separately</span><strong className="number">{money(t.deposit)}</strong></div>
       </div>
       {!!b.creditNotes?.length&&<div className="mm-inv-cn"><small>SAMPLE CREDIT NOTES</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
-      <p className="footnote">Synthetic tax rules. No GST compliance claim. All names, transactions and references are fictional. Demonstration — not a tax invoice.</p>
+      <p className="footnote">GST from the dated GST master (CGST + SGST, illustrative — CA to confirm). All names, transactions and references are fictional. Demonstration — not a tax invoice.</p>
     </div>
     <p className="mm-help no-print">Prints on A4 through the phone’s print / share dialog (wireless printer or Save as PDF).</p>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={18}/> Print / share</button></div></>;

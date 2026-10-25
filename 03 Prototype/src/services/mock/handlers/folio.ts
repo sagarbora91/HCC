@@ -4,8 +4,10 @@
 import type {Handler,Kit} from '../commands';
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
-import {totals,taxRateFor} from '../../../domain/selectors';
+import {totals} from '../../../domain/selectors';
+import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
+import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
@@ -42,6 +44,7 @@ const PAYMENT:Handler=k=>{
   for(const t of tenders){positive(t.amount);validMethod(k,t.method,t.reference);}
   const sum=tenders.reduce((a,t)=>a+t.amount,0);
   assert(sum===cmd.amount,`Tender rows total ${money(sum)} but the payment amount is ${money(cmd.amount)}. They must be equal.`);
+  if(kind==='deposit-return'){const ld=x.receipts.find(r=>r.kind==='deposit'&&cbIsLocked(s,r.date));assert(!ld,cbLockedMessage(ld?.date??'','returning a deposit taken on that day'),'DAY_CLOSED');} // DEC-065
   if(kind==='deposit-return')assert(cmd.amount<=totals(x).deposit,'Return cannot exceed the deposit held.');
   const group=tenders.length>1?id('TND'):undefined;
   for(const t of tenders){
@@ -56,7 +59,9 @@ const PAYMENT:Handler=k=>{
 const CHARGE:Handler=({s,cmd,req,b,financial,positive,assert,id})=>{
   // PERM-FOL-002
   req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.label?.trim(),'Describe the service.');
-  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:taxRateFor(s,s.date)});x.version++;
+  // DEC-069: GST by supply — an explicit category (food / laundry / banquet / other) or one read from the description.
+  assert(cmd.gst===undefined||GST_CHARGE_CATEGORIES.some(c=>c.id===cmd.gst),'Choose a GST category: food, laundry, banquet or other.');
+  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:gstForCharge(s,s.date,cmd.gst??gstCategoryOfLabel(cmd.label)).bps});x.version++;
   return x.id+' · '+cmd.label;
 };
 
@@ -73,7 +78,7 @@ const DISCOUNT:Handler=k=>{
     request(k,x,{amount:cmd.amount,reason:cmd.reason,kind:undefined});
     return x.id+' · approval requested';
   }
-  x.lines.push({id:id('discount'),label:'Discount · '+cmd.reason,amount:-cmd.amount,date:s.date,kind:'discount',taxBps:taxRateFor(s,s.date)});x.version++;
+  x.lines.push({id:id('discount'),label:'Discount · '+cmd.reason,amount:-cmd.amount,date:s.date,kind:'discount',taxBps:gstForFolioAdjustment(s,x,s.date).bps});x.version++;
   return x.id+' · discount posted';
 };
 
@@ -85,6 +90,7 @@ const REFUND_REQUEST:Handler=k=>{
   const r=x.receipts.find(r=>r.id===cmd.receiptId);
   assert(r,'Select the original receipt to refund.','NOT_FOUND');
   assert(r!.kind==='payment','Only a payment / advance receipt can be refunded. Deposits are returned with “Return deposit”.','INVALID_TRANSITION');
+  assert(!cbIsLocked(s,r!.date),cbLockedMessage(r!.date,'a refund against receipt '+r!.id),'DAY_CLOSED'); // DEC-065
   const remaining=folioRefundable(s,x,r!.id);
   assert(cmd.amount<=remaining,`Refund cannot exceed the refundable remainder of ${r!.id} (${money(remaining)}).`);
   if(x.status==='Departed')assert(cmd.amount<=Math.max(0,-totals(x).balance)-folioOutstandingRefunds(s,x.id),DEPARTED_REFUND_MSG,'INVALID_TRANSITION');
@@ -104,6 +110,7 @@ const REFUND_EXECUTE:Handler=k=>{
   assert(a!.actor!==uid,'The person who requested a refund cannot also execute it (DEC-031). Switch to another cashier or manager.','FORBIDDEN');
   const x=s.bookings.find(b=>b.id===a!.booking);assert(x,'Booking not found.','NOT_FOUND');
   const r=x!.receipts.find(r=>r.id===a!.target);assert(r,'The original receipt no longer exists.','NOT_FOUND');
+  assert(!cbIsLocked(s,r!.date),cbLockedMessage(r!.date,'executing a refund against receipt '+r!.id),'DAY_CLOSED'); // DEC-065
   assert(a!.amount<=folioRefundable(s,x!,r!.id,a!.id),'Refund cannot exceed the refundable remainder of this receipt.','INVALID_TRANSITION');
   if(x!.status==='Departed')assert(a!.amount<=Math.max(0,-totals(x!).balance)-folioOutstandingRefunds(s,x!.id,a!.id),DEPARTED_REFUND_MSG,'INVALID_TRANSITION');
   const method=cmd.method||r!.method;
@@ -174,7 +181,7 @@ const APPROVAL:Handler=k=>{
     if(kind==='discount'){
       financial(x!);stale();
       assert(totals(x!).net>=a!.amount,'Discount exceeds the current charges.');
-      x!.lines.push({id:id('discount'),label:'Approved discount · '+a!.reason,amount:-a!.amount,date:s.date,kind:'discount',taxBps:taxRateFor(s,s.date)});x!.version++;
+      x!.lines.push({id:id('discount'),label:'Approved discount · '+a!.reason,amount:-a!.amount,date:s.date,kind:'discount',taxBps:gstForFolioAdjustment(s,x!,s.date).bps});x!.version++;
     }else if(kind==='refund'){
       assert(x,'Booking not found.','NOT_FOUND');stale();
       const r=x!.receipts.find(r=>r.id===a!.target);assert(r,'The original receipt no longer exists.','NOT_FOUND');
@@ -197,7 +204,7 @@ const APPROVAL:Handler=k=>{
       assert(a!.amount<=totals(x!).net,'Credit note cannot exceed the net charges on this folio.');
       s.creditNoteSeqC=(s.creditNoteSeqC??0)+1;const no=folioCreditNoteNo(s.creditNoteSeqC);
       const lid=id('credit');
-      x!.lines.push({id:lid,label:`Credit note ${no} · ${a!.reason}`,amount:-a!.amount,date:s.date,kind:'adjustment',taxBps:taxRateFor(s,s.date),approvalId:a!.id});
+      x!.lines.push({id:lid,label:`Credit note ${no} · ${a!.reason}`,amount:-a!.amount,date:s.date,kind:'adjustment',taxBps:gstForFolioAdjustment(s,x!,s.date).bps,approvalId:a!.id});
       (x!.creditNotes??=[]).push({id:id('CN'),no,amount:a!.amount,reason:a!.reason,date:s.date,approvalId:a!.id,lineId:lid});
       x!.version++;a!.status='Executed';a!.meta={...a!.meta,creditNote:no};extra=' · '+no+' issued';
     }

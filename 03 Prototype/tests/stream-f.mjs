@@ -10,9 +10,9 @@ export function register({test,M,assert}){
   // ── BL-028 Cashier shift ──
   test('[F] Shift: expected-cash formula parts equal drawer(); movements listed',()=>{
     const s=baseFixture(),x=M.shiftExpected(s);
-    assert.equal(x.expected,drawer(s));assert.equal(x.expected,1075000);assert.equal(x.consistent,true);
+    assert.equal(x.expected,drawer(s));assert.equal(x.expected,1072500);assert.equal(x.consistent,true); // DEC-069 GST: expected 1075000 → 1072500 (POS-F01 ₹550 → ₹525)
     assert.equal(x.payments,700000);assert.equal(x.expenses,180000);
-    assert.equal(x.restaurant,55000);assert.equal(M.shiftMovements(s).length,6); // + POS-F01 cash breakfast ₹550 (shared till)
+    assert.equal(x.restaurant,52500);assert.equal(M.shiftMovements(s).length,6); // + POS-F01 cash breakfast ₹550 (shared till) // DEC-069 GST: restaurant cash 55000 → 52500
   });
   test('[F] Shift: exact SHIFT_SUBMIT by cashier closes the shift; cash receipts then rejected',()=>{
     let s=baseFixture();const exp=drawer(s);
@@ -28,8 +28,9 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:-1})),'VALIDATION');
     assert.equal(code(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp,denominations:{500:1}})),'VALIDATION');
     assert.throws(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp-10000}),/reason is required/);
-    // A matching denomination grid is accepted: ₹10,750 (₹10,200 + ₹550 restaurant cash) = 21×500 + 1×200 + 1×50
-    const ok=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp,denominations:{500:21,200:1,50:1,coins:0}});
+    // A matching denomination grid is accepted: ₹10,725 (₹10,200 + ₹525 restaurant cash) = 21×500 + 1×200 + 1×20 + ₹5 coins
+    // (DEC-069 GST: was ₹10,750 = 21×500 + 1×200 + 1×50 with the synthetic 10 %).
+    const ok=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:exp,denominations:{500:21,200:1,20:1,coins:5}});
     assert.equal(ok.shift.denominations[500],21);
   });
   test('[F] Shift: difference → approval; receipts blocked; no self-approval; manager limit; owner approves with difference recorded',()=>{
@@ -174,16 +175,18 @@ export function register({test,M,assert}){
   // ── BL-031 Reports ──
   test('[F] Reports: S0 walkthrough — every total equals its drill-down rows; Room 105 figures; CSV header',()=>{
     const w=walkthrough();const s=w.s;
-    assert.deepEqual(w.drawers,[1075000,1125000,1125000,1275000,1245000]);
-    assert.deepEqual(w.folio26,{net:400000,tax:40000,total:440000,paid:440000,deposit:0,balance:0});
+    // DEC-069 GST (old → new): drawers 1075000/1125000/1125000/1275000/1245000 → 1072500/1122500/1122500/1272500/1242500 (POS-F01 ₹550 → ₹525);
+    // Room 105 tax 40000 → 26500 (rooms 5 %, laundry 18 %, discount −5 %), total/paid 440000 → 426500, final UPI 140000 → 126500.
+    assert.deepEqual(w.drawers,[1072500,1122500,1122500,1272500,1242500]);
+    assert.deepEqual(w.folio26,{net:400000,tax:26500,total:426500,paid:426500,deposit:0,balance:0});
     assert.equal(w.rerun,'DAY_CLOSED');
     const p=M.reportPack(s,'2026-10-24','2026-10-26');
     for(const t of p.tabs)assert.equal(new Set(t.metrics.map(m=>m.id)).size,t.metrics.length,'unique metric ids in '+t.id);
     for(const t of p.tabs)for(const m of t.metrics)assert.equal(m.value,m.rows.reduce((a,r)=>a+r.amount,0),`${t.id}/${m.id}`);
     const tab=(id)=>p.tabs.find(t=>t.id===id),val=(t,id)=>tab(t).metrics.find(m=>m.id===id);
     const r105=(t,id)=>val(t,id).rows.filter(r=>r.booking===w.id).reduce((a,r)=>a+r.amount,0);
-    assert.equal(r105('revenue','net'),400000);assert.equal(r105('revenue','tax'),40000);assert.equal(r105('revenue','room'),400000);
-    assert.equal(r105('receipts','deposit-in'),50000);assert.equal(r105('receipts','deposit-out'),-50000);assert.equal(r105('receipts','net'),440000);
+    assert.equal(r105('revenue','net'),400000);assert.equal(r105('revenue','tax'),26500);assert.equal(r105('revenue','room'),400000);
+    assert.equal(r105('receipts','deposit-in'),50000);assert.equal(r105('receipts','deposit-out'),-50000);assert.equal(r105('receipts','net'),426500);
     assert.equal(val('expenses','cash').rows.filter(r=>r.date==='2026-10-26').reduce((a,r)=>a+r.amount,0),30000);
     // closing records exist for each walkthrough date and agree with the report for that date
     for(const d of ['2026-10-24','2026-10-25','2026-10-26']){
@@ -191,7 +194,7 @@ export function register({test,M,assert}){
       assert.equal(one.tabs.find(t=>t.id==='revenue').metrics.find(m=>m.id==='net').value,c.revenue.net,d);
       assert.equal(one.tabs.find(t=>t.id==='receipts').metrics.find(m=>m.id==='net').value,c.receipts.net,d);
     }
-    assert.deepEqual([s.closings['2026-10-24'].cash.counted,s.closings['2026-10-25'].cash.counted,s.closings['2026-10-26'].cash.counted],[1125000,1125000,1245000]);
+    assert.deepEqual([s.closings['2026-10-24'].cash.counted,s.closings['2026-10-25'].cash.counted,s.closings['2026-10-26'].cash.counted],[1122500,1122500,1242500]); // DEC-069 GST: 1125000/1125000/1245000 → 1122500/1122500/1242500
     // per-date table rows sum to the range metric
     const rev=tab('revenue');assert.equal(rev.table.rows.reduce((a,r)=>a+r[5],0),val('revenue','net').value);
     const csv=M.reportCsv(s,p,'revenue');
@@ -227,7 +230,7 @@ export function register({test,M,assert}){
     X('manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});X('manager',{type:'CLOSE_RUN'});
     X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
     X('cashier',{type:'PAYMENT',id,amount:200000,method:'Cash',kind:'payment'});
-    X('cashier',{type:'PAYMENT',id,amount:140000,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'});
+    X('cashier',{type:'PAYMENT',id,amount:126500,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'}); // DEC-069 GST: 140000 → 126500
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit-return'});drawers.push(drawer(s));
     const folio26=totals(s.bookings.find(b=>b.id===id));
     X('reception',{type:'CHECKOUT',id,key:'checkout:'+id});

@@ -2,7 +2,7 @@
 import React,{useState} from 'react';
 import {Lock,LockOpen,Download,AlertTriangle,CheckCircle2,Info,Link2} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,accVouchers,accVoucherTotals,accLedgerName,accSourceOf,accLockBlocker,accLockOf,accDaySummary,accCsv,accMapRows,accMapping,
+import {money,accVouchers,accVoucherTotals,accLedgerName,accSourceOf,accLockBlocker,accLockOf,accDaySummary,accCsv,rbacCanExportVouchers,accMapRows,accMapping,
   ACC_CHART,ACC_SUSPENSE,ACC_LOCK_ROLES,type ACCVoucher,type ACCDayStatus,type ACCException} from '../../services/mock';
 import {Empty,dateLabel,shortDate,clockTime} from '../../components/ui';
 import {downloadCsv} from '../reports/Reports';
@@ -21,7 +21,8 @@ export function useAccPerms(){
   const {s,uid,user,permission}=useHcc();
   return {canLock:permission('reports')&&ACC_LOCK_ROLES.includes(user.role),canUnlock:permission('reports')&&permission('admin'),canMap:permission('admin'),s,uid};
 }
-export function accExport(s:ReturnType<typeof useHcc>['s'],date:string,toast:(t:string)=>void){
+export function accExport(s:ReturnType<typeof useHcc>['s'],date:string,toast:(t:string)=>void,uid:string){
+  if(!rbacCanExportVouchers(s,uid)){toast('Your role cannot export vouchers.');return;} // DEC-063 G13
   const vs=accVouchers(s,date);
   downloadCsv(`HCC-Demo-vouchers-${date}_${date}.csv`,accCsv(vs));
   toast(`Generic voucher CSV downloaded · ${vs.length} voucher${vs.length===1?'':'s'} · Tally/other mapping later`);
@@ -35,8 +36,9 @@ export function AccLockButton({date,primary=true}:{date:string;primary?:boolean}
   return <button className={'btn'+(primary?' primary':'')} disabled={!!why} title={why||undefined} aria-describedby={why?'acc-lock-why':undefined} onClick={()=>open({type:'acc-lock',id:date})}><Lock size={16}/> Lock period</button>;
 }
 export function AccExportButton({date,primary=false}:{date:string;primary?:boolean}){
-  const {s,toast}=useHcc();const n=accVouchers(s,date).length;
-  return <button className={'btn'+(primary?' primary':'')} disabled={!n} onClick={()=>accExport(s,date,toast)}><Download size={16}/> Export CSV</button>;
+  const {s,uid,toast}=useHcc();const n=accVouchers(s,date).length;
+  if(!rbacCanExportVouchers(s,uid))return null;
+  return <button className={'btn'+(primary?' primary':'')} disabled={!n} onClick={()=>accExport(s,date,toast,uid)}><Download size={16}/> Export CSV</button>;
 }
 
 // ── Dialogs ──

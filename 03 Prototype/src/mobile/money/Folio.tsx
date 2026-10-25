@@ -2,7 +2,7 @@
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import React,{useState} from 'react';
 import {Receipt,Plus,MoreHorizontal,RotateCcw,Printer,LogOut,Percent,CalendarRange,XCircle,FileMinus,PencilLine,Building2} from 'lucide-react';
-import {money,totals,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection} from '../../services/mock';
+import {money,totals,lineTax,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ListCard,KpiCard,ChipFilter} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
@@ -39,7 +39,7 @@ export function MmFolios(){
         meta={<><Pill tone={statusTone(b.status)}>{b.status}</Pill> {shortDate(b.arrival)}–{shortDate(b.departure)} · nights {n.posted}/{n.agreed}</>}
         right={<span className="mm-amt"><strong className="number">{money(Math.abs(t.balance))}</strong><small className={t.balance>0?'mm-due':t.balance<0?'mm-credit':'mm-ok'}>{t.balance>0?'Due':t.balance<0?'Credit':'Settled'}</small></span>}/>;})}
       {!list.length&&<Empty title="No folios match" body="Try another filter or search."/>}<ShowMore p={pg}/></>}
-    <p className="footnote">All names and records are fictional. Synthetic demonstration tax.</p>
+    <p className="footnote">All names and records are fictional. GST illustrative — CA to confirm.</p>
   </div>;
 }
 
@@ -69,7 +69,7 @@ export function MmFolioSheet({id}:{id?:string}){
         <button key={k} role="tab" type="button" aria-selected={tab===k} className={tab===k?'on':''} onClick={()=>setTab(k)}>{l}<b>{c}</b></button>)}
     </div>
     <div role="tabpanel" className="mm-tabpanel">
-      {tab==='charges'&&(b.lines.length?b.lines.map(l=>{const reversed=folioLineReversed(b,l.id),tax=Math.round(l.amount*l.taxBps/10000);
+      {tab==='charges'&&(b.lines.length?b.lines.map(l=>{const reversed=folioLineReversed(b,l.id),tax=lineTax(l);
         return <div key={l.id} className={'mm-row'+(reversed||l.reversalOf?' mm-muted':'')}>
           <div className="mm-row-main"><strong>{l.label}</strong><small>{shortDate(l.date)} · {l.kind}{l.reversalOf?' · reversal':''}{reversed?' · reversed':''}{s.closedDates.includes(l.date)?' · closed date':''}</small>
             {active&&rbacCanRequestCorrection(s,uid)&&!reversed&&folioLineCorrectable(s,b,l)&&<button type="button" className="text-btn mm-inline-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}><PencilLine size={14}/> Request correction</button>}</div>

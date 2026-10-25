@@ -5,6 +5,8 @@ import {useHcc} from '../../app/context';
 import {BookingTable} from '../reservations/BookingTable';
 import {CmpDueCard} from '../compliance/DueCard';
 import {BackupStatusCard} from '../housekeeping/BackupStatus';
+/** Room tiles carry a letter as well as a colour (WCAG 1.4.1); the legend spells the letters out. */
+const ROOM_CODE:Record<string,string>={Occupied:'O',Ready:'R',Dirty:'D',Cleaning:'C',Inspection:'I',Blocked:'B'};
 export function Overview(){
   const {s,user,m,act,open,go,tab,setTab,arrivals,departures,pending,roomStatus,permission}=useHcc();
   const stayList=tab==='Arrivals'?arrivals:tab==='Departures'?departures:s.bookings.filter(b=>b.status==='In house');
@@ -37,8 +39,8 @@ export function Overview(){
   <CmpDueCard/>
   <BackupStatusCard/>
   <section className="card"><div className="section-title"><div><h2>A view across your rooms</h2><p>Occupancy and cleaning status, in one place.</p></div>{act('reservations',()=>go('rooms'),'Open room board ↗','text-btn')}</div>
-    <div className="floor-overview">{[1,2,3].map(f=><div className="floor-line" key={f}><span>Floor {f.toString().padStart(2,'0')}</span><div>{s.rooms.filter(r=>r.floor===f).map(r=><button className={'mini-room '+roomStatus(r).toLowerCase()} key={r.id} aria-label={`Room ${r.id}: ${roomStatus(r)}`} onClick={()=>open({type:'room',id:r.id})}>{r.id}</button>)}</div></div>)}</div>
-    <div className="legend">{['Occupied','Ready','Dirty','Cleaning','Inspection','Blocked'].map(v=><span key={v}><i className={'dot '+v.toLowerCase()}/>{v}</span>)}</div>
+    <div className="floor-overview">{[1,2,3].map(f=><div className="floor-line" key={f}><span>Floor {f.toString().padStart(2,'0')}</span><div>{s.rooms.filter(r=>r.floor===f).map(r=><button className={'mini-room '+roomStatus(r).toLowerCase()} key={r.id} aria-label={`Room ${r.id}: ${roomStatus(r)}`} onClick={()=>open({type:'room',id:r.id})}>{r.id}<span className="mr-code" aria-hidden="true">{ROOM_CODE[roomStatus(r)]}</span></button>)}</div></div>)}</div>
+    <div className="legend">{['Occupied','Ready','Dirty','Cleaning','Inspection','Blocked'].map(v=><span key={v}><i className={'dot '+v.toLowerCase()}/>{v} ({ROOM_CODE[v]})</span>)}</div>
   </section>
   </>;
 }

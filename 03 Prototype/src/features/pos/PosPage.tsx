@@ -15,7 +15,7 @@ export function PosPage(){
   const kitchenOpen=posKitchen(s).filter(x=>x.kot.status!=='Served').length;
   if(!p.outlets.length)return <><PageTitle title="Restaurant & room service" sub="Outlet checks, KOTs and room-service charges"/><Empty title="No outlets configured" body="Load a demo scenario to get the fictional restaurant and room-service menu."/></>;
   const tabs:[PosView,string,React.ReactNode,number?][]=[['orders','Orders',<ClipboardList size={15}/>,posOpenOrders(s).length],['kitchen','Kitchen (KOT)',<ChefHat size={15}/>,kitchenOpen],['summary','Day summary',<BarChart3 size={15}/>]];
-  return <><PageTitle title="Restaurant & room service" sub={`Outlet checks, KOTs and room-service charges · ${dateLabel(s.date)} · fictional menu, synthetic 10% tax`}
+  return <><PageTitle title="Restaurant & room service" sub={`Outlet checks, KOTs and room-service charges · ${dateLabel(s.date)} · fictional menu, GST from the master`}
       action={<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span>}/>
     {isDayClosed(s)&&<div className="info-note"><Info size={16}/>The business day is closed — checks are read-only until the next day is opened.</div>}
     <section className="card pos-card"><div className="tabs" role="tablist">{tabs.map(([id,label,icon,n])=><button key={id} role="tab" aria-selected={view===id} className={view===id?'active':''} onClick={()=>setView(id)}>{icon}{label}{n!==undefined&&<span>{n}</span>}</button>)}</div>

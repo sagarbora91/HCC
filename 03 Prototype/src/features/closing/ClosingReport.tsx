@@ -11,7 +11,7 @@ export function ClosingSummaryView({rec}:{rec:ClosingRecord}){
   const L=(label:string,v:React.ReactNode)=><div key={label}><span>{label}</span><strong>{v}</strong></div>;
   const diff=rec.cash.difference;
   return <div className="f-summary">
-    <div><h4>Revenue (excl. tax)</h4><div className="summary-list">{L('Room',money(rec.revenue.room))}{L('Service',money(rec.revenue.service))}{L('Discounts',money(rec.revenue.discounts))}{L('Adjustments',money(rec.revenue.adjustments))}{L('Net revenue',money(rec.revenue.net))}{L('Synthetic tax',money(rec.revenue.tax))}</div></div>
+    <div><h4>Revenue (excl. tax)</h4><div className="summary-list">{L('Room',money(rec.revenue.room))}{L('Service',money(rec.revenue.service))}{L('Discounts',money(rec.revenue.discounts))}{L('Adjustments',money(rec.revenue.adjustments))}{L('Net revenue',money(rec.revenue.net))}{L('GST (CGST + SGST)',money(rec.revenue.tax))}</div></div>
     <div><h4>Receipts by tender</h4><div className="summary-list">{Object.entries(rec.receipts.byTender).map(([t,v])=>L(t,money(v)))}{L('Net receipts',money(rec.receipts.net))}{rec.receipts.companyCredit!==0&&L('Company credit',money(rec.receipts.companyCredit))}</div></div>
     {rec.outlet&&<div><h4>Restaurant & room service</h4><div className="summary-list">{Object.entries(rec.outlet.byMethod).map(([t,v])=>L(t,money(v)))}{L('Outlet receipts (net of voids)',money(rec.outlet.net))}{L('Charged to room folios',money(rec.outlet.roomFolio))}</div>
       <p className="footnote">Cash bills are counted in the front-desk drawer. Room charges are folio service lines, collected at checkout.</p></div>}
@@ -33,6 +33,6 @@ export function ClosingReportModal({id}:{id?:string}){
     {!rec?<Empty title="No closing record" body="This date was closed before closing records were kept in this prototype."/>:<>
       {!s.closings?.[date]&&<p className="f-why">Preview only — this business day is still open.</p>}
       <ClosingSummaryView rec={rec}/></>}
-    <p className="footnote">All figures derived from fictional source records. Synthetic 10% test tax; no GST compliance claim.</p></div>
+    <p className="footnote">All figures derived from fictional source records. GST from the dated GST master (illustrative — CA to confirm).</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" disabled={!rec} onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }

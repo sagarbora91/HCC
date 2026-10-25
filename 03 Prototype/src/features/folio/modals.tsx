@@ -5,6 +5,7 @@ import React,{useState} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
 import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
 import {useHcc} from '../../app/context';
+import {lineTax,gstLineSplit,gstSplitLines,gstPct,gstHalfPct,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../services/mock';
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
 import {bookingActionSlots} from '../../app/registry';
 const useBooking=(id:string)=>{const c=useHcc();return {...c,b:c.s.bookings.find(b=>b.id===id)};};
@@ -63,8 +64,8 @@ export function BookingModal({id}:{id:string}){
     {readOnly&&<div className="info-note"><Info size={16}/>Read-only check (Accountant). You can request a correction or credit note; the Owner approves it.</div>}
     <div className="folio-totals"><div><span>Charges + tax</span><strong>{money(t.total)}</strong></div><div><span>Net paid / advance</span><strong>{money(t.paid)}</strong></div><div><span>Deposit held</span><strong>{money(t.deposit)}</strong></div><div className={t.balance>0?'balance-due':'balance-clear'}><span>{t.balance<0?'Credit balance':'Balance due'}</span><strong>{money(t.balance)}</strong></div></div>
     <div className="section-title compact"><h3>Guest folio</h3><div className="inline">{active&&act('billing',()=>open({type:'charge',id:b.id}),'Add charge','text-btn')}{active&&rbacCanDiscount(s,uid)&&<button className="text-btn" disabled={busy} onClick={()=>open({type:'discount',id:b.id})}>Discount</button>}{!['Held','Expired','Cancelled','No show'].includes(resStatus(s,b))&&act('payments',()=>open({type:'payment',id:b.id}),'Record payment','btn small-btn')}</div></div>
-    <div className="table-wrap folio-table"><table><thead><tr><th>Description</th><th>Service date</th><th>Net amount</th><th>Test tax</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{b.lines.map(l=>{const reversed=folioLineReversed(b,l.id);
-      return <tr key={l.id} className={reversed||l.reversalOf?'folio-line-muted':''}><td><strong>{l.label}</strong><small>{l.kind}{l.reversalOf?' · reverses '+l.reversalOf:''}{reversed?' · reversed':''}{closed(l.date)?' · closed date (read-only)':''}</small></td><td>{shortDate(l.date)}</td><td className="number">{money(l.amount)}</td><td className="number">{money(Math.round(l.amount*l.taxBps/10000))}</td>
+    <div className="table-wrap folio-table"><table><thead><tr><th>Description</th><th>Service date</th><th>Net amount</th><th>GST</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{b.lines.map(l=>{const reversed=folioLineReversed(b,l.id);
+      return <tr key={l.id} className={reversed||l.reversalOf?'folio-line-muted':''}><td><strong>{l.label}</strong><small>{l.kind}{l.reversalOf?' · reverses '+l.reversalOf:''}{reversed?' · reversed':''}{closed(l.date)?' · closed date (read-only)':''}</small></td><td>{shortDate(l.date)}</td><td className="number">{money(l.amount)}</td><td className="number">{money(lineTax(l))}<small>{gstPct(l.taxBps)}</small></td>
         <td>{reversed?<Pill>Reversed</Pill>:l.reversalOf?<Pill tone="blue">Reversal</Pill>:active&&canCorrect&&folioLineCorrectable(s,b,l)?<button className="text-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}>Correct</button>:null}</td></tr>;})}</tbody></table>{!b.lines.length&&<Empty title="No charges yet" body="Room nights are posted by the nightly audit. Add a service charge if needed."/>}</div>
     <div className="section-title compact"><h3>Receipts & deposits</h3><span className="muted">Manual demonstration records</span></div>
     <div className="receipt-list">{b.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0;
@@ -73,7 +74,7 @@ export function BookingModal({id}:{id:string}){
         {refundable>0&&permission('payments')&&<button className="text-btn" disabled={busy} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={13}/> Request refund</button>}</div>;})}
       {!b.receipts.length&&<p className="muted padded">No receipts recorded.</p>}</div>
     {approvals.length>0&&<><div className="section-title compact"><h3>Folio requests</h3><span className="muted">No one approves their own request</span></div><div className="request-list folio-requests">{approvals.map(a=><FolioApprovalRow key={a.id} a={a}/>)}</div></>}
-    <div className="modal-actions"><span className="footnote">Synthetic tax. No real guest documents stored.</span><button className="btn" disabled={busy} onClick={()=>open({type:'invoice',id:b.id})}><Printer size={16}/>{b.invoiceNo?'Sample invoice '+b.invoiceNo:'Folio preview'}</button></div></>;
+    <div className="modal-actions"><span className="footnote">GST per line at its snapshot rate (illustrative — CA to confirm). No real guest documents stored.</span><button className="btn" disabled={busy} onClick={()=>open({type:'invoice',id:b.id})}><Printer size={16}/>{b.invoiceNo?'Sample invoice '+b.invoiceNo:'Folio preview'}</button></div></>;
 }
 type Row={method:string;amount:string;reference:string};
 const paise=(v:string)=>Math.round(Number(v||0)*100);
@@ -135,9 +136,11 @@ export function ChargeModal({id,discount}:{id:string;discount:boolean}){
   if(!b)return <Missing/>;
   const lim=rbacDiscountLimit(s,uid); // DEC-063 G1: limit of the signed-in role (undefined = Owner, no limit)
   return <><div className="modal-heading"><h2>{discount?'Add a discount':'Add a service charge'}</h2><p>{b.guest} · {b.id}</p></div>
-    <form className="form" onSubmit={e=>submit(e,f=>run(discount?{type:'DISCOUNT',id:b.id,amount:amount(f),reason:field(f,'description'),key:modal!.key}:{type:'CHARGE',id:b.id,amount:amount(f),label:field(f,'description'),key:modal!.key},discount?'Discount recorded or submitted for approval':'Service charge posted',{after:()=>booking(b.id)}))}>
+    <form className="form" onSubmit={e=>submit(e,f=>run(discount?{type:'DISCOUNT',id:b.id,amount:amount(f),reason:field(f,'description'),key:modal!.key}:{type:'CHARGE',id:b.id,amount:amount(f),label:field(f,'description'),...(field(f,'gst')?{gst:field(f,'gst')}:{}),key:modal!.key},discount?'Discount recorded or submitted for approval':'Service charge posted',{after:()=>booking(b.id)}))}>
       <label>{discount?'Reason for discount':'Service description'}<input required name="description" maxLength={120} placeholder={discount?'e.g. Service recovery':'e.g. Laundry service'}/></label>
-      <label>Amount before synthetic tax (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
+      <label>Amount before GST (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
+      {!discount&&<label>GST category<select name="gst" defaultValue=""><option value="">Automatic (from the description)</option>{GST_CHARGE_CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
+      {discount&&<p className="footnote">GST on the discount follows the room-night rate ({gstPct(gstForFolioAdjustment(s,b,s.date).bps)}).</p>}
       {discount&&<div className="info-note"><ShieldCheck size={16}/>{lim===undefined?'No discount limit for the Owner — it posts at once.':<>Your limit is {money(lim)}. Above it, another authorized user must approve within 24 simulated hours.</>} Any folio change while it is pending invalidates the request.</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back</button><button className="btn primary" disabled={busy}>{discount?'Submit discount':'Post charge'}</button></div></form></>;
 }
@@ -147,7 +150,7 @@ export function CheckoutModal({id}:{id:string}){
   const t=totals(b),n=folioNights(b),blockers=folioCheckoutBlockers(s,b,t),cc=folioCompanyCreditState(s,b,t.balance);
   const pending=folioApprovalsFor(s,b.id).filter(a=>folioApprovalStatus(s,a)==='Pending');
   return <><div className="modal-heading"><h2>Ready to say goodbye?</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
-    <div className="summary-list"><div><span>Room nights posted / agreed</span><strong>{n.posted} of {n.agreed}</strong></div><div><span>Total charges including test tax</span><strong>{money(t.total)}</strong></div><div><span>Net payments</span><strong>{money(t.paid)}</strong></div><div><span>Outstanding balance</span><strong>{money(t.balance)}</strong></div><div><span>Deposit to return</span><strong>{money(t.deposit)}</strong></div><div><span>Pending approvals</span><strong>{pending.length?pending.map(a=>a.id).join(', '):'None'}</strong></div></div>
+    <div className="summary-list"><div><span>Room nights posted / agreed</span><strong>{n.posted} of {n.agreed}</strong></div><div><span>Total charges including GST</span><strong>{money(t.total)}</strong></div><div><span>Net payments</span><strong>{money(t.paid)}</strong></div><div><span>Outstanding balance</span><strong>{money(t.balance)}</strong></div><div><span>Deposit to return</span><strong>{money(t.deposit)}</strong></div><div><span>Pending approvals</span><strong>{pending.length?pending.map(a=>a.id).join(', '):'None'}</strong></div></div>
     {b.company&&t.balance>0&&<div className="info-note folio-credit"><Building2 size={16}/><div>
       <strong>Company credit · {b.company.name}</strong>
       {cc.state==='none'&&<p>Move the {money(t.balance)} balance to the company’s receivable. Needs approval: a Manager up to {money(FOLIO_MANAGER_CREDIT_LIMIT)}, an Owner above.</p>}
@@ -172,12 +175,12 @@ export function InvoiceModal({id}:{id:string}){
     <div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>
     <div className="invoice-meta"><div><small>GUEST</small><h3>{b.guest}</h3><p>Room {b.room} · {plural(b.people,'guest')}</p>{b.company&&<p>Bill to: {b.company.name}{b.company.gstin?<><br/>GSTIN (placeholder): {b.company.gstin}</>:null}</p>}</div>
       <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><h3>{b.invoiceNo??'Not yet issued'}</h3><p>{b.invoiceNo?'Allocated once at checkout':'A number is allocated once at checkout'}</p><p>{shortDate(b.arrival)} — {shortDate(b.departure)} · {b.id}</p></div></div>
-    <table><thead><tr><th>Description</th><th>Date</th><th>Net</th><th>Synthetic tax</th></tr></thead><tbody>{b.lines.map(l=><tr key={l.id}><td>{l.label}</td><td>{shortDate(l.date)}</td><td>{money(l.amount)}</td><td>{money(Math.round(l.amount*l.taxBps/10000))}</td></tr>)}</tbody></table>
-    <div className="summary-list invoice-summary"><div><span>Total including test tax</span><strong>{money(t.total)}</strong></div><div><span>Net receipts applied</span><strong>{money(t.paid)}</strong></div>
+    <table><thead><tr><th>Description</th><th>Date</th><th>Net</th><th>GST rate</th><th>CGST</th><th>SGST</th></tr></thead><tbody>{b.lines.map(l=>{const g=gstLineSplit(l);return <tr key={l.id}><td>{l.label}</td><td>{shortDate(l.date)}</td><td>{money(l.amount)}</td><td>{gstPct(l.taxBps)}</td><td>{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></td><td>{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></td></tr>;})}</tbody></table>
+    <div className="summary-list invoice-summary"><div><span>Net charges</span><strong>{money(t.net)}</strong></div><div><span>CGST</span><strong>{money(gstSplitLines(b.lines).cgst)}</strong></div><div><span>SGST</span><strong>{money(gstSplitLines(b.lines).sgst)}</strong></div><div><span>Total including GST</span><strong>{money(t.total)}</strong></div><div><span>Net receipts applied</span><strong>{money(t.paid)}</strong></div>
       {b.receipts.some(r=>r.kind==='company-credit')&&<div><span>On company credit (receivable)</span><strong>{money(b.receipts.filter(r=>r.kind==='company-credit').reduce((a,r)=>a+r.amount,0))}</strong></div>}
       <div><span>Balance</span><strong>{money(t.balance)}</strong></div><div><span>Refundable deposit held separately</span><strong>{money(t.deposit)}</strong></div></div>
     {!!b.creditNotes?.length&&<div className="folio-cn-list"><small>SAMPLE CREDIT NOTES</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
-    <p className="footnote">Synthetic tax rules. No GST compliance claim. All names, transactions and references are fictional. Demonstration — not a tax invoice.</p></div>
+    <p className="footnote">GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero — illustrative, CA to confirm. All names, transactions and references are fictional. Demonstration — not a tax invoice.</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 
@@ -224,8 +227,8 @@ export function CreditNoteModal({id}:{id?:string}){
   if(!b)return <Missing/>;
   return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}{b.invoiceNo?' · '+b.invoiceNo:''}</div><h2>Request a sample credit note</h2><p>Net charges {money(totals(b).net)}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run({type:'CREDIT_NOTE',id:b.id,amount:amount(f),reason:field(f,'reason'),key:modal!.key},'Credit note requested — awaiting approval',{after:()=>booking(b.id)}))}>
-      <label>Credit amount before synthetic tax (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
+      <label>Credit amount before GST (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
       <label>Reason<input name="reason" required maxLength={120} placeholder="e.g. Service recovery after departure"/></label>
-      <div className="info-note"><ShieldCheck size={16}/>Needs approval by another user. On approval a sample number from DEMO-CN/2026-27/ is issued with {s.settings.taxBps/100}% synthetic tax; a refund against the resulting credit can then be requested.</div>
+      <div className="info-note"><ShieldCheck size={16}/>Needs approval by another user. On approval a sample number from DEMO-CN/2026-27/ is issued with GST at the stay’s room-night rate ({gstPct(gstForFolioAdjustment(s,b,s.date).bps)}, CGST + SGST); a refund against the resulting credit can then be requested.</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back</button><button className="btn primary" disabled={busy}>Submit credit note request</button></div></form></>;
 }

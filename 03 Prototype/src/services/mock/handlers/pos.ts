@@ -1,9 +1,9 @@
 // Module 23 · Restaurant POS & room service — command handlers. Command types MUST start with 'POS_'. Return value = audit/summary text.
-// Rules: 02 Planning/modules/HCC_Module_23_POS_Spec.md §4. Money = integer paise; synthetic tax via taxRateFor; simulated clock only.
+// Rules: 02 Planning/modules/HCC_Module_23_POS_Spec.md §4. Money = integer paise; GST via the GST master (domain/gst.ts); simulated clock only.
 import type {Handler,Kit} from '../commands';
 import type {Approval} from '../../../domain/types';
 import {money,addMinutes} from '../../../domain/money';
-import {taxRateFor} from '../../../domain/selectors';
+import {gstForFood,gstLineTax} from '../../../domain/gst';
 import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,
   POS_VOID_LIMIT,POS_TENDERS,POS_APPROVAL_TTL_MINUTES} from '../../../domain/streams/pos';
 import type {POSOrder,POSState,POSKotStatus} from '../../../domain/streams/pos';
@@ -86,7 +86,8 @@ const POS_SETTLE:Handler=k=>{
   editable(k,o);open();
   assert(posActiveLines(o).length,'This check has no items to settle.');
   assert(!posUnsent(o).length,'Send the remaining items to the kitchen (KOT) or remove them before settling.','INVALID_TRANSITION');
-  const p=slice(k),taxBps=taxRateFor(s,s.date),net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),tax=Math.round(net*taxBps/10000),total=net+tax;
+  // DEC-069: restaurant / room service GST from the master (5 %, or 18 % when the hotel is specified premises this FY); one bill = one line.
+  const p=slice(k),taxBps=gstForFood(s,s.date).bps,net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),tax=gstLineTax(net,taxBps),total=net+tax;
   assert(net>0,'This check has no value to settle.');
   const billNo=`POS/${s.date.slice(2,4)}${s.date.slice(5,7)}/${String(p.billSeq+1).padStart(4,'0')}`;
   if(cmd.mode==='folio'){
@@ -115,13 +116,15 @@ const POS_SETTLE:Handler=k=>{
   return `${o.id} · bill ${billNo} · ${money(total)} ${cmd.method} at ${outletName(k,o)} (outlet receipt ${rid}${cmd.method==='Cash'?' · counted in the front-desk drawer':''})`;
 };
 
+import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 /** Executes a void (item or bill). Shared by direct voids and approved requests. */
 function applyVoid(k:Kit,o:POSOrder,scope:'item'|'bill',lineId:string|undefined,reason:string,by:string,approval?:string){
   const {s,id,assert}=k;
   const mark=(l:POSOrder['lines'][number])=>{l.voided=true;l.voidReason=reason;l.voidBy=by;l.voidDate=s.date;if(approval)l.voidApproval=approval;};
   if(scope==='item'){const l=o.lines.find(l=>l.id===lineId)!;mark(l);o.version++;return `${o.id} · void ${l.qty}× ${l.name} (${money(posLineValue(l))}) · ${reason}`;}
   if(o.status==='Settled'){
-    const st=o.settlement!;assert(st.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
+    const st=o.settlement!;assert(!cbIsLocked(s,st.date),cbLockedMessage(st.date,'voiding a bill settled that day'),'DAY_CLOSED'); // DEC-065
+    assert(st.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
     if(st.method==='Cash')assert(s.shiftOpen,'The cash shift is closed. A cash bill cannot be reversed now.','INVALID_TRANSITION');
     slice(k).receipts.push({id:id('POSR'),order:o.id,outlet:o.outlet,method:st.method!,amount:-st.total,net:-st.net,tax:-st.tax,taxBps:st.taxBps,reference:'Void of '+st.billNo,date:s.date,actor:by,kind:'void'});
   }
@@ -154,6 +157,7 @@ const POS_VOID_BILL:Handler=k=>{
   assert(!o.pendingVoid,'A void request is pending for this check. Ask a manager to decide it first.','INVALID_TRANSITION');
   if(o.status==='Settled'){
     req('payments');
+    assert(!cbIsLocked(s,o.settlement!.date),cbLockedMessage(o.settlement!.date,'voiding a bill settled that day'),'DAY_CLOSED'); // DEC-065
     assert(o.settlement!.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
     assert(o.settlement!.date===s.date,'Only bills settled on the current business date can be voided.','INVALID_TRANSITION');
     return voidOrRequest(k,o,'bill',o.settlement!.total);

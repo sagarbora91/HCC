@@ -5,7 +5,7 @@ import {clone} from '../../domain/clone';
 import type {State,Booking,Line,Receipt,Approval} from '../../domain/types';
 import type {POSOrder} from '../../domain/streams/pos';
 import {addDays,nights} from '../../domain/money';
-import {taxRateFor} from '../../domain/selectors';
+import {gstForRoomNight,gstForCharge,gstCategoryOfLabel,gstForFood,gstForFolioAdjustment,gstLineTax,lineTax} from '../../domain/gst';
 import {folioInvoiceNo,FOLIO_MANAGER_CREDIT_LIMIT} from '../../domain/streams/folio';
 import {createRng,Rng} from './prng';
 import {occupancyTarget,stayRate,isWeekend,STAY_LENGTH_BUCKETS,LEAD_TIME_BUCKETS} from './calendar';
@@ -27,6 +27,9 @@ const pad=(n:number,w=4)=>String(n).padStart(w,'0');
 const roundTo=(n:number,step:number)=>Math.round(n/step)*step;
 
 type Guest={name:string;phone:string;email:string};
+/** Optional progress listener for the first-run loading screen (app/scenarioWorker.ts). Observes only; never changes output. */
+let progress:((step:string,done:number)=>void)|null=null;
+export function setHistoryProgress(fn:((step:string,done:number)=>void)|null){progress=fn;}
 
 export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
   const o={...HISTORY_DEFAULTS,...opts};
@@ -78,23 +81,23 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
     if(people>2&&rng.chance(0.4))b.children=1;
     return b;
   }
-  const lineTax=(l:Line)=>Math.round(l.amount*l.taxBps/10000);
   const folioTotal=(b:Booking)=>b.lines.reduce((n,l)=>n+l.amount+lineTax(l),0);
 
   /** A completed stay: one room-night line per night, optional service lines, advance / deposit / settlement receipts. */
   function completeStay(b:Booking){
-    for(let d=b.arrival;d<b.departure;d=addDays(d,1))b.lines.push({id:`night:${b.id}:${d}`,label:'Room night · '+d,amount:b.rate,date:d,kind:'room',taxBps:taxRateFor(s,d)});
+    for(let d=b.arrival;d<b.departure;d=addDays(d,1))b.lines.push({id:`night:${b.id}:${d}`,label:'Room night · '+d,amount:b.rate,date:d,kind:'room',taxBps:gstForRoomNight(s,d,b.rate).bps});
     const len=nights(b.arrival,b.departure);
     if(rng.chance(0.15)){
       const n=rng.chance(0.3)?2:1;
-      for(let k=0;k<n;k++){const [label,lo,hi]=rng.pick(STAY_SERVICES);b.lines.push({id:`svc:${b.id}:${k}`,label,amount:roundTo(rng.int(lo,hi),500),date:addDays(b.arrival,rng.int(0,len-1)),kind:'service',taxBps:taxRateFor(s,b.arrival)});}
+      for(let k=0;k<n;k++){const [label,lo,hi]=rng.pick(STAY_SERVICES);const amount=roundTo(rng.int(lo,hi),500),date=addDays(b.arrival,rng.int(0,len-1));
+        b.lines.push({id:`svc:${b.id}:${k}`,label,amount,date,kind:'service',taxBps:gstForCharge(s,date,gstCategoryOfLabel(label)).bps});}
     }
     if(rng.chance(0.12)){ // room service ordered through the POS and posted to the folio (module 23)
       const menu=POS_FIXTURE_MENU.filter(m=>m.outlets.includes('room-service')),oid='POS-H'+pad(ctx.roomOrders.length+1,5);
       const picks=[...new Set([rng.pick(menu),rng.pick(menu),rng.pick(menu)].slice(0,rng.int(1,3)))];
       const date=addDays(b.arrival,rng.int(0,len-1)),hh=rng.pick(['08:10','13:20','20:30','21:40']);
       const lines=picks.map((m,i)=>({id:oid+'-L'+(i+1),item:m.id,name:m.name,price:m.price,qty:rng.int(1,2),kot:oid+'-K1'}));
-      const net=lines.reduce((a,l)=>a+l.price*l.qty,0),taxBps=taxRateFor(s,date),tax=Math.round(net*taxBps/10000);
+      const net=lines.reduce((a,l)=>a+l.price*l.qty,0),taxBps=gstForFood(s,date).bps,tax=gstLineTax(net,taxBps);
       const line:Line={id:'posline:'+oid,label:'Room service',amount:net,date,kind:'service',taxBps};b.lines.push(line);
       const order:POSOrder={id:oid,outlet:'room-service',room:b.room,booking:b.id,guest:b.guest,covers:1,date,openedAt:date+'T'+hh,openedBy:'reception',status:'Settled',version:4,lines,
         kots:[{id:oid+'-K1',no:1,at:date+'T'+hh,by:'reception',status:'Served',readyAt:date+'T'+hh,servedAt:date+'T'+hh}],
@@ -104,7 +107,7 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
     if(rng.chance(0.03)){ // a discount; above the manager limit it carries an approval record
       const net=b.lines.reduce((n,l)=>n+l.amount,0),amt=Math.max(5000,roundTo(net*(0.05+rng.next()*0.1),5000));
       const reason=rng.pick(['Service recovery','Loyalty guest','Late check-in goodwill','Corporate rate match']);
-      const line:Line={id:`disc:${b.id}`,label:'Discount · '+reason,amount:-amt,date:addDays(b.departure,-1),kind:'discount',taxBps:taxRateFor(s,b.arrival)};
+      const line:Line={id:`disc:${b.id}`,label:'Discount · '+reason,amount:-amt,date:addDays(b.departure,-1),kind:'discount',taxBps:gstForFolioAdjustment(s,b,addDays(b.departure,-1)).bps};
       if(amt>s.settings.discountLimit){
         const aid='APR-H'+pad(++apr,3);line.label='Approved discount · '+reason;line.approvalId=aid;
         approvals.push({id:aid,booking:b.id,amount:amt,reason,status:'Approved',actor:'reception',approver:'manager',decidedAt:b.departure+'T09:00',version:b.version});
@@ -150,7 +153,7 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
     if(noShow){
       b.notes='No-show · FY 2026-27 history';
       if(hasAdvance){
-        const l:Line={id:`noshow:${b.id}`,label:'No-show charge · 1 night',amount:b.rate,date:b.arrival,kind:'service',taxBps:taxRateFor(s,b.arrival)};
+        const l:Line={id:`noshow:${b.id}`,label:'No-show charge · 1 night',amount:b.rate,date:b.arrival,kind:'service',taxBps:gstForRoomNight(s,b.arrival,b.rate).bps};
         b.lines.push(l);b.receipts.push(pay(folioTotal(b),rng.weighted([['UPI',60],['Card',25],['Cash',15]] as const),before(b.arrival,rng.int(1,5)),'payment','cashier'));
       }
     }else{
@@ -194,6 +197,7 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
 
   const lastArrival=addDays(o.to,-1);
   for(let d=o.from,i=0;d<=lastArrival;d=addDays(d,1),i++){
+    if(progress&&i%15===0)progress('Generating stays and folios',0.05+0.25*i/days);
     const weekend=isWeekend(d);
     const target=Math.max(0,Math.min(sellable.length,Math.round(sellable.length*(occupancyTarget(d)+(rng.next()-0.5)*0.1))));
     const need=target-occupiedOn(i);
@@ -239,10 +243,14 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
   const departed=bookings.filter(b=>b.status==='Departed').sort((a,b)=>a.departure<b.departure?-1:a.departure>b.departure?1:a.id<b.id?-1:1);
   departed.forEach((b,n)=>{b.invoiceNo=folioInvoiceNo((s.invoiceSeqC??0)+n+1);});
   s.invoiceSeqC=(s.invoiceSeqC??0)+departed.length;
+  progress?.('Building guest profiles',0.3);
   addHistoryGuests(s,bookings,o.seed);
   s.bookings=[...bookings,...s.bookings];
   s.approvals=[...approvals,...s.approvals];
+  progress?.('Closing the business days',0.35);
   addOperations(s,rng,o);
+  progress?.('Adding module history',0.6);
   addModuleHistory(s,rng,o,ctx);
+  progress?.('Finishing',0.9);
   return s;
 }

@@ -7,6 +7,7 @@ import {Download,Printer,Info,X,Hotel,FileSpreadsheet} from 'lucide-react';
 import {money,reportMonthRange,reportPack,reportCsv,reportDrillCsv,reportDictionary,ReportPack,ReportMetric,ReportTab,reportRangeLimit,reportRangePresets,historyMonths,rbacCanExportReports} from '../../services/mock';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {HistorySummary} from './HistorySummary';
+import {reportPackMemo} from '../../domain/memo';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,dateLabel,shortDate} from '../../components/ui';
 
@@ -29,9 +30,11 @@ export function Reports(){
   const span=valid?Math.round((Date.parse(to)-Date.parse(from))/86400000)+1:0;
   const limit=reportRangeLimit(s),tooLong=span>limit;
   const mask=!permission('billing')&&!permission('reservations');
-  const pack=useMemo(()=>valid&&!tooLong?scoped(reportPack(s,from,to),mask):null,[s,from,to,valid,tooLong,mask]);
+  // Keyed on the records the pack reads (not on all of `s`), so unrelated state changes do not recompute a long range.
+  const raw=useMemo(()=>valid&&!tooLong?reportPackMemo(s,from,to):null,[s.bookings,s.expenses,s.rooms,s.posX,s.closings,s.closedDates,s.date,s.openingCash,s.shiftClose,from,to,valid,tooLong]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pack=useMemo(()=>raw?scoped(raw,mask):null,[raw,mask]);
   const t=pack?.tabs.find(x=>x.id===tab);
-  const presets=reportRangePresets(s),months=s.historyX?historyMonths(s).months:[];
+  const presets=useMemo(()=>reportRangePresets(s),[s.date,s.historyX]),months=useMemo(()=>s.historyX?historyMonths(s).months:[],[s.closings,s.bookings,s.historyX]); // eslint-disable-line react-hooks/exhaustive-deps
   const m=t?.metrics.find(x=>x.id===drill);
   const setRange=(a:string,b:string)=>{setFrom(a);setTo(b);setDrill(null);};
   function exportTab(){if(!pack)return;downloadCsv(`HCC-Demo-${tab}-${from}_${to}.csv`,reportCsv(s,pack,tab));toast('Demo CSV downloaded · '+(TABS.find(x=>x[0]===tab)?.[1]));}
@@ -59,7 +62,7 @@ export function Reports(){
         {t.ratios.map(r=><div key={r.id} className="f-metric ratio"><span>{r.label}</span><strong>{r.display}</strong><small>{r.formula}</small></div>)}</div>
       {m&&<Drill key={m.id+pack.from+pack.to} pack={pack} m={m} mask={mask} onClose={()=>setDrill(null)}/>}
       {t.table&&<section className="card"><div className="section-title"><h2>By business date</h2><span className="muted">{shortDate(from)} – {shortDate(to)}</span></div><TableView t={t}/></section>}
-      <div className="info-note"><Info size={17}/>Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. Synthetic 10% test tax.</div>
+      <div className="info-note"><Info size={17}/>Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. GST from the dated GST master (illustrative — CA to confirm).</div>
     </>}</>;
 }
 function Drill({pack,m,mask,onClose}:{pack:ReportPack;m:ReportMetric;mask:boolean;onClose:()=>void}){
@@ -87,7 +90,8 @@ function Dictionary(){
 export function ReportPrintModal({id,room}:{id?:string;room?:string}){
   const {s,closeModal,permission}=useHcc();
   const [from,to]=(room||s.date+'|'+s.date).split('|');
-  const pack=scoped(reportPack(s,from,to),!permission('billing')&&!permission('reservations'));
+  const mask=!permission('billing')&&!permission('reservations');
+  const pack=useMemo(()=>scoped(reportPackMemo(s,from,to),mask),[s.bookings,s.expenses,s.rooms,s.posX,s.closings,s.closedDates,s.date,s.openingCash,s.shiftClose,from,to,mask]); // eslint-disable-line react-hooks/exhaustive-deps
   const t=pack.tabs.find(x=>x.id===id);
   return <><div className="f-print-doc invoice">
     <div className="invoice-top"><Hotel size={30}/><div><h2>{s.settings.hotel}</h2><p>{TABS.find(x=>x[0]===id)?.[1]??'Report'} · {dateLabel(from)} – {dateLabel(to)} · scenario {s.scenario}</p></div></div>
@@ -95,6 +99,6 @@ export function ReportPrintModal({id,room}:{id?:string;room?:string}){
     {!t?<div className="table-wrap"><table><thead><tr><th>Metric</th><th>Definition</th><th>Zero handling</th></tr></thead><tbody>{reportDictionary.map(([a,b,c])=><tr key={a}><td>{a}</td><td>{b}</td><td>{c}</td></tr>)}</tbody></table></div>:<>
       <div className="summary-list">{t.metrics.map(m=><div key={m.id}><span>{m.label}</span><strong>{m.unit==='money'?money(m.value):m.value}</strong></div>)}{t.ratios.map(r=><div key={r.id}><span>{r.label} ({r.formula})</span><strong>{r.display}</strong></div>)}</div>
       {t.table&&<TableView t={t} all/>}</>}
-    <p className="footnote">Generated at simulated clock {s.clock.replace('T',' ')}. Every total is the sum of its source records. Synthetic tax; no GST compliance claim.</p></div>
+    <p className="footnote">Generated at simulated clock {s.clock.replace('T',' ')}. Every total is the sum of its source records. GST illustrative — CA to confirm.</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }

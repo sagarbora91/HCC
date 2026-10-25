@@ -127,7 +127,7 @@ export function GsvComplaintView({id}:ModalProps){
     {c.status!=='Closed'&&c.booking&&permission('billing')&&(rec==='None'||rec==='Rejected')&&<form className="form gsv-recovery" onSubmit={e=>{e.preventDefault();run({type:'GSV_COMPLAINT_RECOVERY',id:c.id,amount:paise,key:k('d')},'Recovery discount recorded or sent for approval',{after:()=>setAmt('')});}}>
       <h3>Service-recovery discount</h3>
       <div className="info-note"><ShieldCheck size={16}/>Uses the normal folio discount on {c.booking}. Above {money(s.settings.discountLimit)} it becomes a discount approval request that another authorised user must approve — you cannot approve your own.</div>
-      <label>Amount before synthetic tax (₹)<input type="number" inputMode="decimal" min="0.01" step="0.01" value={amt} onChange={e=>setAmt(e.target.value)} enterKeyHint="done"/></label>
+      <label>Amount before GST (₹)<input type="number" inputMode="decimal" min="0.01" step="0.01" value={amt} onChange={e=>setAmt(e.target.value)} enterKeyHint="done"/></label>
       <div className="gsv-actions"><button className="btn" disabled={busy||!(paise>0)}>Apply through discount approval</button></div></form>}
     {c.status==='Resolved'&&permission('reservations')&&<form className="form" onSubmit={e=>e.preventDefault()}>
       <h3>Guest follow-up</h3>

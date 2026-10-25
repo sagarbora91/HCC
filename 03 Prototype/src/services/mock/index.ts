@@ -1,6 +1,6 @@
 // Public surface of the mock service — used by the UI and by tests/run.mjs.
 export * from '../../domain/index';
-export {execute} from './commands';
+export {execute,changedSlices} from './commands';
 export * from './faults';
 export * from './persistence';
 export {baseFixture,BUSINESS_DATE} from '../../fixtures/base';
@@ -23,6 +23,7 @@ export * from '../../domain/streams/maintenance';
 export * from '../../domain/streams/inventory';
 export * from '../../domain/streams/handover';
 export * from '../../domain/streams/cashbook';
+export * from '../../domain/memo';
 export * from '../../domain/streams/services';
 export * from '../../domain/streams/messaging';
 export * from '../../domain/streams/pos';
@@ -31,5 +32,6 @@ export * from '../../domain/streams/accounting';
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';
 export * from '../../domain/streams/rbac';
-export {buildHistory,HISTORY_DEFAULTS} from '../../fixtures/history/generate';
+export * from '../../domain/gst';
+export {buildHistory,HISTORY_DEFAULTS,setHistoryProgress} from '../../fixtures/history/generate';
 export * from '../../domain/streams/history';

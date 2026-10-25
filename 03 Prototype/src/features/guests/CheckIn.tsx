@@ -2,7 +2,7 @@
 import React,{useState,useRef,useEffect} from 'react';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,Room,money,nights,addDays,totals,taxRateFor,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural} from '../../services/mock';
+import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural} from '../../services/mock';
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestDetails,statusTone} from './GuestProfile';
@@ -36,7 +36,7 @@ export function ArrivalsPage(){
         <td>{b.registered?<Pill tone="green">✓ Verified</Pill>:<Pill tone="blue">Not yet</Pill>}</td>
         <td><RoomState b={b}/></td>
         <td className="number">{money(totals(b).paid)}</td>
-        <td>{permission('checkin')?<button className="btn small-btn primary" onClick={()=>open({type:'guest-checkin',id:b.id})}>{b.registered?'Continue check-in':'Start check-in'}</button>:<span className="muted">Check-in permission needed</span>}</td></tr>;})}
+        <td>{permission('checkin')?<button className="btn small-btn primary" aria-label={`${b.registered?'Continue check-in':'Start check-in'}, ${b.guest}`} onClick={()=>open({type:'guest-checkin',id:b.id})}>{b.registered?'Continue check-in':'Start check-in'}</button>:<span className="muted">Check-in permission needed</span>}</td></tr>;})}
     </tbody></table>{!list.length&&<Empty title="No arrivals waiting" body="Everyone expected today has checked in. Use Walk-in for guests without a reservation."/>}</div></section>
     {today.length>0&&<section className="card"><div className="section-title"><h2>Checked in today</h2><span className="muted">{today.length}</span></div>
       <ul className="gs-simple-list">{today.map(b=><li key={b.id}><span className="room-number">{b.room}</span><strong>{b.guest}</strong><small>{b.id}</small><button className="text-btn" onClick={()=>open({type:'stay-detail',id:b.id})}>Stay details</button></li>)}</ul></section>}
@@ -91,9 +91,9 @@ export function CheckinModal({id}:{id?:string}){
           :<Empty title={`No eligible ${room?.type||''} rooms`} body="Ask housekeeping to finish and inspect a room, or change the room type from Reservations."/>}
         <p className="footnote">Switching uses the room-move command: availability is rechecked and the agreed tariff ({money(b.rate)}/night) is preserved.</p></>}
       <div className="modal-actions">{prev}{next}</div></>;}
-  else if(b&&step===4){const n=nights(b.arrival,b.departure),bps=taxRateFor(s,b.arrival),net=b.rate*n;
+  else if(b&&step===4){const n=nights(b.arrival,b.departure),bps=gstForRoomNight(s,b.arrival,b.rate).bps,net=b.rate*n;
     body=<><div className="summary-list"><div><span>Agreed nightly tariff</span><strong>{money(b.rate)}</strong></div><div><span>Nights</span><strong>{n} ({shortDate(b.arrival)} — {shortDate(b.departure)})</strong></div>
-      <div><span>Room charges (estimate)</span><strong>{money(net)}</strong></div><div><span>Synthetic tax ({bps/100}%)</span><strong>{money(Math.round(net*bps/10000))}</strong></div><div><span>Source</span><strong>{b.source}</strong></div></div>
+      <div><span>Room charges (estimate)</span><strong>{money(net)}</strong></div><div><span>GST ({gstPct(bps)} · CGST + SGST)</span><strong>{money(gstStayTax(s,b.rate,b.arrival,b.departure))}</strong></div><div><span>Source</span><strong>{b.source}</strong></div></div>
       <label className="gs-check"><input type="checkbox" checked={tariffOk} onChange={e=>setTariffOk(e.target.checked)}/>The guest has confirmed the tariff and stay dates.</label>
       <div className="info-note"><Info size={16}/>Rate overrides need approval and are handled from the reservation. Room nights are posted nightly by the day close.</div>
       <div className="modal-actions">{prev}{next}</div></>;}

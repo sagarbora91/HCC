@@ -1,6 +1,6 @@
 // Stream E tests: fine-grained policy (BL-024), access page rules (BL-025), approvals inbox (BL-026), configuration (BL-027).
 export function register({test,M,assert}){
-  const {execute,loadScenario,baseFixture,authorize,can,rateFor,taxRateFor,totals,adminImpactPreview,adminApprovalInbox,adminDecideBlock,adminEffectiveAccess,adminAuditFilter,adminDefaultPolicy,ADMIN_PERMS,HccError}=M;
+  const {execute,loadScenario,baseFixture,authorize,can,rateFor,gstForRoomNight,cfgDef,cfgImpact,totals,adminImpactPreview,adminApprovalInbox,adminDecideBlock,adminEffectiveAccess,adminAuditFilter,adminDefaultPolicy,ADMIN_PERMS,HccError}=M;
   const code=(fn)=>{try{fn();}catch(e){return e instanceof HccError?e.code:'UNTYPED:'+e.message;}return 'NO_ERROR';};
   const dec=(s,u,p,ctx)=>authorize(s,u,p,ctx).decision;
 
@@ -119,16 +119,19 @@ export function register({test,M,assert}){
     assert.equal(adminAuditFilter(s,{actor:'System'}).length,1);assert.equal(adminAuditFilter(s,{from:'2026-10-25'}).length,0);});
 
   // ── BL-027 configuration ──
-  test('[E] rateFor / taxRateFor follow effective dates; past dates rejected',()=>{let s=baseFixture();const deluxe=s.rooms.find(r=>r.type==='Deluxe');
+  // DEC-069: the synthetic TAX_SCHEDULE / taxRateFor are replaced by the dated GST master (SETTING_SET gst.* with effectiveFrom; gstForRoomNight);
+  // the same effective-date rules are asserted on the GST master (rates 1000/1200 → room slab 500 → 1200).
+  test('[E] rateFor / GST master follow effective dates; past dates rejected',()=>{let s=baseFixture();const deluxe=s.rooms.find(r=>r.type==='Deluxe');
     assert.equal(code(()=>execute(s,'owner',{type:'TARIFF_SCHEDULE',roomType:'Deluxe',rate:350000,effectiveFrom:'2026-10-23'})),'VALIDATION');
     assert.equal(code(()=>execute(s,'techadmin',{type:'TARIFF_SCHEDULE',roomType:'Deluxe',rate:350000,effectiveFrom:'2026-10-26'})),'FORBIDDEN');
     s=execute(s,'owner',{type:'TARIFF_SCHEDULE',roomType:'Deluxe',rate:350000,effectiveFrom:'2026-10-26'});
     s=execute(s,'owner',{type:'TARIFF_SCHEDULE',roomType:'Deluxe',rate:380000,effectiveFrom:'2026-11-01'});
     assert.equal(rateFor(s,deluxe,'2026-10-25'),300000);assert.equal(rateFor(s,deluxe,'2026-10-26'),350000);assert.equal(rateFor(s,deluxe,'2026-11-05'),380000);
     assert.equal(rateFor(s,s.rooms.find(r=>r.type==='Suite'),'2026-11-05'),450000);
-    assert.equal(code(()=>execute(s,'owner',{type:'TAX_SCHEDULE',bps:1200,effectiveFrom:'2026-10-20'})),'VALIDATION');
-    s=execute(s,'owner',{type:'TAX_SCHEDULE',bps:1200,effectiveFrom:'2026-10-25'});
-    assert.equal(taxRateFor(s,'2026-10-24'),1000);assert.equal(taxRateFor(s,'2026-10-25'),1200);assert.equal(s.configHistory.length,3);});
+    assert.equal(code(()=>execute(s,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-20'})),'VALIDATION');
+    assert.equal(code(()=>execute(s,'owner',{type:'TAX_SCHEDULE',bps:1200,effectiveFrom:'2026-10-25'})),'VALIDATION');
+    s=execute(s,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-25'});
+    assert.equal(gstForRoomNight(s,'2026-10-24',300000).bps,500);assert.equal(gstForRoomNight(s,'2026-10-25',300000).bps,1200);assert.equal(s.configHistory.length,3);});
   test('[E] demo 3: BOOK picks the scheduled rate; existing bookings keep theirs',()=>{let s=baseFixture();
     const before=JSON.stringify(s.bookings);
     s=execute(s,'owner',{type:'TARIFF_SCHEDULE',roomType:'Deluxe',rate:350000,effectiveFrom:'2026-10-26'});
@@ -137,13 +140,14 @@ export function register({test,M,assert}){
     assert.equal(s.bookings.at(-1).rate,350000);
     s=execute(s,'reception',{type:'BOOK',guest:'Today Guest',room:'107',arrival:'2026-10-24',departure:'2026-10-25',people:1});
     assert.equal(s.bookings.at(-1).rate,300000);assert.equal(s.bookings.find(b=>b.id==='HCC-1043').rate,300000);});
+  // DEC-069: same demo on the GST master — room slab 5 % → 12 % from 25 Oct; seeded/posted lines keep 500 (was 1000 synthetic), tea is food 5 %.
   test('[E] demo 4: tax effective date — posted lines keep snapshot, later nights use new rate',()=>{let s=baseFixture();
-    s=execute(s,'owner',{type:'TAX_SCHEDULE',bps:1200,effectiveFrom:'2026-10-25'});
-    const b=s.bookings.find(b=>b.id==='HCC-1041');assert.equal(b.lines[0].taxBps,1000);
-    s=execute(s,'owner',{type:'CHARGE',id:'HCC-1041',label:'Tea',amount:10000});assert.equal(s.bookings.find(b=>b.id==='HCC-1041').lines.at(-1).taxBps,1000);
+    s=execute(s,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-25'});
+    const b=s.bookings.find(b=>b.id==='HCC-1041');assert.equal(b.lines[0].taxBps,500);
+    s=execute(s,'owner',{type:'CHARGE',id:'HCC-1041',label:'Tea',amount:10000});assert.equal(s.bookings.find(b=>b.id==='HCC-1041').lines.at(-1).taxBps,500);
     s=execute(s,'owner',{type:'POST_NIGHTS',id:'HCC-1041'});const lines=s.bookings.find(b=>b.id==='HCC-1041').lines;
-    assert.equal(lines.find(l=>l.date==='2026-10-24'&&l.kind==='room').taxBps,1000);assert.equal(lines.find(l=>l.date==='2026-10-25').taxBps,1200);
-    assert.equal(lines.find(l=>l.id==='seed-night-0').taxBps,1000);});
+    assert.equal(lines.find(l=>l.date==='2026-10-24'&&l.kind==='room').taxBps,500);assert.equal(lines.find(l=>l.date==='2026-10-25').taxBps,1200);
+    assert.equal(lines.find(l=>l.id==='seed-night-0').taxBps,500);});
   test('[E] demos 1, 2 and 5: discount threshold, inspection rule, check-in/out warning',()=>{let s=baseFixture();
     s=execute(s,'owner',{type:'SETTING_SET',setting:'discountLimit',value:60000});
     s=execute(s,'reception',{type:'DISCOUNT',id:'HCC-1041',amount:50000,reason:'Goodwill'});assert.equal(s.approvals.length,0);
@@ -159,12 +163,14 @@ export function register({test,M,assert}){
     const t=adminImpactPreview(s,{kind:'tariff',type:'Deluxe',rate:350000,effectiveFrom:'2026-10-25'});
     // Deluxe rooms 103,104,107,203,204,207,303,304,307 → open stays in 103,104,207 (all depart 26th)
     assert.equal(t.openStays,3);assert.equal(t.postedLines,1);assert.match(t.notes[0],/keep their agreed rates/);
-    const x=adminImpactPreview(s,{kind:'tax',bps:1200,effectiveFrom:'2026-10-25'});assert.equal(x.openStays,10);assert.equal(x.postedLines,8);
-    assert.equal(adminImpactPreview(s,{kind:'tax',bps:1200,effectiveFrom:'2026-10-26'}).openStays,0);
+    // DEC-069: the synthetic 'tax' impact preview is replaced by the GST master's hub impact lines (dated, posted records keep their rate).
+    const gx=cfgImpact(s,cfgDef(s,'gst.room.lowBps'),1200,'2026-10-25');assert.ok(gx.some(l=>/Takes effect on 2026-10-25/.test(l)));assert.ok(gx.some(l=>/Posted records keep the value/.test(l)));assert.ok(gx.some(l=>/Posted lines keep their tax snapshot/.test(l)));
     assert.equal(adminImpactPreview(loadScenario('S3'),{kind:'discount',limit:60000}).stays.length,1);
     assert.equal(adminImpactPreview(s,{kind:'inspection',on:false}).stays.length,1);});
+  // DEC-069: SETTINGS no longer carries a tax rate — a taxBps change is refused and the GST master keeps its value.
   test('[E] SETTINGS merges (keeps other fields) and keeps tax schedule consistent',()=>{let s=baseFixture();
-    s=execute(s,'owner',{type:'TAX_SCHEDULE',bps:1200,effectiveFrom:'2026-10-24'});assert.equal(taxRateFor(s,s.date),1200);
-    s=execute(s,'owner',{type:'SETTINGS',...s.settings,taxBps:1500});assert.equal(taxRateFor(s,s.date),1500);assert.equal(s.settings.invoicePrefix,'DEMO-INV');
+    s=execute(s,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-24'});assert.equal(gstForRoomNight(s,s.date,200000).bps,1200);
+    assert.equal(code(()=>execute(s,'owner',{type:'SETTINGS',...s.settings,taxBps:1500})),'VALIDATION');
+    s=execute(s,'owner',{type:'SETTINGS',...s.settings,hotel:'HCC Demo Residency East'});assert.equal(gstForRoomNight(s,s.date,200000).bps,1200);assert.equal(s.settings.invoicePrefix,'DEMO-INV');assert.equal(s.settings.hotel,'HCC Demo Residency East');
     assert.equal(code(()=>execute(s,'techadmin',{type:'SETTINGS',...s.settings})),'FORBIDDEN');});
 }

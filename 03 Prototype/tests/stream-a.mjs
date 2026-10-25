@@ -34,7 +34,7 @@ export function register({test,M,assert}){
     assert.ok(resSearch(s,{arrival:s.date,departure:'2026-10-25',people:1,type:'Suite'}).excluded.concat(resSearch(s,{arrival:s.date,departure:'2026-10-25',people:1,type:'Suite'}).available).every(r=>r.room.type==='Suite'));});
   test('[A] BASE has a running hold on 106; S3 has an expired one; S0 figures unchanged',()=>{const b=loadScenario('BASE'),h=b.bookings.find(x=>x.id==='HCC-1090');assert.equal(resStatus(b,h),'Held');assert.equal(available(b,'106',b.date,'2026-10-25'),false);
     const s3=loadScenario('S3'),e=s3.bookings.find(x=>x.id==='HCC-1091');assert.equal(resStatus(s3,e),'Expired');assert.equal(available(s3,'106',s3.date,'2026-10-25'),true);
-    const s0=loadScenario('S0');assert.equal(s0.bookings.some(x=>x.status==='Held'),false);assert.equal(drawer(s0),1075000);assert.equal(metrics(b).collections,metrics(baseFixture()).collections);});
+    const s0=loadScenario('S0');assert.equal(s0.bookings.some(x=>x.status==='Held'),false);assert.equal(drawer(s0),1072500);assert.equal(metrics(b).collections,metrics(baseFixture()).collections);}); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 ₹550 → ₹525)
 
   // Calendar selector (SCR-03)
   test('[A] Calendar: stay spanning the range start is clipped; cells correct',()=>{const s=loadScenario('BASE'),cal=resCalendar(s,'2026-10-24',14);assert.equal(cal.dates.length,14);assert.equal(cal.end,'2026-11-07');

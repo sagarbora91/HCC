@@ -1,6 +1,6 @@
 // Stream C · "Guests & folios" page (SCR-08 list): balances, posted vs agreed nights, invoices and folio requests.
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
-import React from 'react';
+import React,{useMemo} from 'react';
 import {ArrowUpRight} from 'lucide-react';
 import {money,totals,folioNights,folioApprovalStatus,folioKind,FOLIO_APPROVAL_KINDS} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -10,14 +10,14 @@ const FILTERS=['All','In house','Due out','Balance due','Departed','Confirmed'];
 export function Folios(){
   const {s,act,open,booking,search,setSearch,filter,setFilter}=useHcc();
   const q=search.toLowerCase();
-  const list=s.bookings.filter(b=>{
+  const list=useMemo(()=>s.bookings.filter(b=>{
     const t=totals(b);
     const ok=filter==='All'||(filter==='Due out'?b.status==='In house'&&b.departure<=s.date:filter==='Balance due'?t.balance>0:b.status===filter);
     return ok&&`${b.guest} ${b.id} ${b.room} ${b.company?.name??''} ${b.invoiceNo??''}`.toLowerCase().includes(q);
-  });
+  }),[s.bookings,s.date,filter,q]);
   const pg=usePaged(list,DESKTOP_PAGE);
   const requests=s.approvals.filter(a=>FOLIO_APPROVAL_KINDS.includes(folioKind(a))).filter(a=>{const st=folioApprovalStatus(s,a);return st==='Pending'||(st==='Approved'&&a.kind==='refund')||st==='Expired'&&a.status==='Pending';}).slice().reverse();
-  const outstanding=s.bookings.reduce((a,b)=>a+Math.max(0,totals(b).balance),0);
+  const outstanding=useMemo(()=>s.bookings.reduce((a,b)=>a+Math.max(0,totals(b).balance),0),[s.bookings]);
   return <><PageTitle title="Guests & folios" sub="Charges, receipts and every guest’s balance, connected." action={act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}/>
     <div className="small-stats"><div><span>Outstanding balances</span><strong>{money(outstanding)}</strong></div><div><span>In house</span><strong>{s.bookings.filter(b=>b.status==='In house').length}</strong></div><div><span>Folio requests pending</span><strong>{requests.filter(a=>folioApprovalStatus(s,a)==='Pending').length}</strong></div><div><span>Approved refunds to execute</span><strong>{requests.filter(a=>a.kind==='refund'&&a.status==='Approved').length}</strong></div></div>
     <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room, company or invoice…"/><div className="filters">{FILTERS.map(x=><button key={x} className={filter===x?'active':''} aria-pressed={filter===x} onClick={()=>setFilter(x)}>{x}</button>)}</div></div>
@@ -34,5 +34,5 @@ export function Folios(){
     </tbody></table>{!list.length&&<Empty title="No folios match" body="Try another filter or search."/>}</div><ShowMore p={pg}/></section>
     <section className="card"><div className="section-title"><h2>Folio requests</h2><span className="muted">Refunds, company credit, corrections, credit notes and discounts · no self-approval</span></div>
       {!requests.length?<Empty title="Nothing waiting" body="Requests that need a decision or an approved refund awaiting execution appear here."/>:<div className="request-list">{requests.map(a=><FolioApprovalRow key={a.id} a={a} showGuest/>)}</div>}</section>
-    <p className="footnote">All names and records are fictional. Tax figures use a synthetic demonstration rate. Room nights are posted by the nightly audit.</p></>;
+    <p className="footnote">All names and records are fictional. Tax figures use the dated GST master (illustrative — CA to confirm). Room nights are posted by the nightly audit.</p></>;
 }

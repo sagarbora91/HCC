@@ -1,7 +1,9 @@
 // Stream B · Guests & check-in (owns REGISTER, CHECKIN, MOVE) — fixture extensions.
-// All guest data is fictional: example.test emails, 98xxx 0xxxx-style demo phones, DEMO-style masked ID last-4 only.
+// All guest data is fictional: example.test emails, 98xxx 0xxxx-style demo phones, FICTIONAL full ID numbers (DEC-068): Aadhaar starts with 1
+// (real ones never start with 0/1) + valid Verhoeff, passport Z+7 digits, licence ZZ…, voter ZZZ… — see guestFictionalId.
 import type {State} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
+import {guestFictionalId,guestIdLast4} from '../../domain/streams/guests';
 type G=NonNullable<State['guests']>[number];
 // [booking, name, phone, city, idType, idLast4, preferences, company?, gstin?, party?]
 const seed:[string,string,string,string,string,string,string,string?,string?,G['party']?][]=[
@@ -21,7 +23,8 @@ const seed:[string,string,string,string,string,string,string,string?,string?,G['
 export function extendBase(s:State):void{
   s.guests=seed.map(([bid,name,phone,city,idType,idLast4,preferences,company,gstin,party],i)=>{
     const b=s.bookings.find(b=>b.id===bid)!;
-    return {id:'G-'+String(i+1).padStart(4,'0'),name,phone,email:b.email,address:`${10+i} Demo Street, ${city} (fictional)`,nationality:'Indian',idType,idLast4,
+    const idNumber=guestFictionalId(idType,i+1,idLast4);
+    return {id:'G-'+String(i+1).padStart(4,'0'),name,phone,email:b.email,address:`${10+i} Demo Street, ${city} (fictional)`,nationality:'Indian',idType,idLast4:guestIdLast4(idNumber),idNumber,
       ...(company?{company,gstin}:{}),preferences,notes:'Fictional guest · demonstration profile',party:party||[],verified:b.status==='In house',origin:'seed',version:1};
   });
   s.guests.forEach((g,i)=>{const b=s.bookings.find(b=>b.id===seed[i][0])!;b.guestId=g.id;

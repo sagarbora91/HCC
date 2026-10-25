@@ -2,7 +2,8 @@
 // Company accounts (negotiated rate, credit limit), group blocks (allotment per room type, cut-off, auto-release),
 // rooming-list pickup, pickup report and a read-only master folio. See 02 Planning/modules/HCC_Module_14_Group_Corporate_Spec.md.
 import type {State,Booking} from '../types';
-import {available,availableRaw,registerRoomHold,totals,taxRateFor} from '../selectors';
+import {available,availableRaw,registerRoomHold,totals} from '../selectors';
+import {gstForRoomNight,gstLineTax,gstStayTax} from '../gst';
 import {addDays,nights} from '../money';
 
 export type GRPCompany={id:string;name:string;
@@ -114,11 +115,11 @@ export function grpSweep(s:State):string[]{
   return out;
 }
 
-/** Estimated unpaid value of a stay: posted lines + unposted agreed nights, synthetic tax, less net payments. Company credit stays owed. */
+/** Estimated unpaid value of a stay: posted lines + unposted agreed nights, GST per night, less net payments. Company credit stays owed. */
 export function grpBookingExposure(s:State,b:Booking){
   if(!GRP_ACTIVE.includes(b.status))return 0;
   const t=totals(b);let net=t.net,tax=t.tax;
-  if(b.status!=='Departed')for(let d=b.arrival;d<b.departure;d=addDays(d,1))if(!b.lines.some(l=>l.kind==='room'&&l.date===d)){net+=b.rate;tax+=Math.round(b.rate*taxRateFor(s,d)/10000);}
+  if(b.status!=='Departed')for(let d=b.arrival;d<b.departure;d=addDays(d,1))if(!b.lines.some(l=>l.kind==='room'&&l.date===d)){net+=b.rate;tax+=gstLineTax(b.rate,gstForRoomNight(s,d,b.rate).bps);}
   return Math.max(0,net+tax-t.paid);
 }
 /** Bookings billed to a company: members of its bill-to-company blocks plus bookings carrying its name. */
@@ -133,8 +134,8 @@ export type GRPCreditLevel='ok'|'near'|'over'|'none';
 export function grpCreditLevel(limit:number,exposure:number):GRPCreditLevel{if(limit<=0)return exposure>0?'over':'none';return exposure>limit?'over':exposure>=limit*0.8?'near':'ok';}
 export const GRP_CREDIT_LABEL:Record<GRPCreditLevel,string>={ok:'Within limit',near:'Near limit (≥ 80%)',over:'Over limit',none:'No credit'};
 export function grpCredit(s:State,c:GRPCompany){const exposure=grpExposure(s,c);return {exposure,limit:c.creditLimit,pct:c.creditLimit?Math.round(exposure/c.creditLimit*100):0,level:grpCreditLevel(c.creditLimit,exposure),available:Math.max(0,c.creditLimit-exposure)};}
-/** Estimated value of new stays at a block rate: nights × rate + synthetic tax. */
-export function grpStayValue(s:State,rate:number,a:string,d:string){let v=0;for(let x=a;x<d;x=addDays(x,1))v+=rate+Math.round(rate*taxRateFor(s,x)/10000);return v;}
+/** Estimated value of new stays at a block rate: nights × rate + GST. */
+export function grpStayValue(s:State,rate:number,a:string,d:string){let v=0;for(let x=a;x<d;x=addDays(x,1))v+=rate;return v+gstStayTax(s,rate,a,d);}
 
 /** Read-only master folio: each member stay with its folio totals, and the group sum. */
 export function grpMasterFolio(s:State,blk:GRPBlock){

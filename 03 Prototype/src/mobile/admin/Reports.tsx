@@ -35,7 +35,7 @@ export function MaReports(){
       <div className="ma-kpis">{t.metrics.map(m=><KpiCard key={m.id} label={m.label} value={m.unit==='money'?money(m.value):m.value} sub={`${m.rows.length} source row${m.rows.length===1?'':'s'} · view ›`} onClick={()=>open({type:'ma-drill',id:m.id,room:tab})}/>)}
         {t.ratios.map(r=><KpiCard key={r.id} label={r.label} value={r.display} sub={r.formula}/>)}</div>
       {t.table&&<ByDate t={t}/>}
-      <div className="ma-note"><Info size={18}/><span>Charges follow service date, receipts follow receipt date, expenses follow business date. Synthetic 10% test tax.</span></div>
+      <div className="ma-note"><Info size={18}/><span>Charges follow service date, receipts follow receipt date, expenses follow business date. GST from the dated GST master (illustrative — CA to confirm).</span></div>
     </>}
     <ListCard title={<span className="m-lc-title"><BookOpen size={20}/>Report dictionary</span>} sub="Definitions and zero handling" onClick={()=>open({type:'ma-dictionary'})}/>
     <div className="ma-footer-actions"><button type="button" className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={18}/>Print</button>

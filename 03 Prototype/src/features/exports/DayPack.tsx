@@ -1,7 +1,7 @@
 // Day pack: one A4 printable pack (summary, cash, receipts, expenses) for a business date, printed through printDocument (ETP ReportPackageService.cs idea: one pack per day).
 import React,{useState} from 'react';
 import {Printer,Hotel,X} from 'lucide-react';
-import {money,reportPack,closingSummary,isDayClosed} from '../../services/mock';
+import {money,reportPack,closingSummary,isDayClosed,rbacCanDayPack} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {printDocument} from '../../app/native';
 import {dateLabel,shortDate} from '../../components/ui';
@@ -22,7 +22,7 @@ export function DayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
         <div className="invoice-stamp">DEMONSTRATION — FICTIONAL DATA · NOT A TAX DOCUMENT</div>
         {!s.closings?.[date]&&<p className="f-why">Preview only — this business day is not closed yet.</p>}
         <h3>1 · Summary</h3>
-        {rec?<div className="summary-list">{L('Net revenue (excl. tax)',money(rec.revenue.net))}{L('Synthetic tax',money(rec.revenue.tax))}{L('Net receipts',money(rec.receipts.net))}{L('Expenses posted',money(rec.expenses.total))}{L('Occupancy',rec.occupancy.occupancy)}{L('ADR',rec.occupancy.adr)}{L('RevPAR',rec.occupancy.revpar)}</div>:<p className="muted">No closing record for this date.</p>}
+        {rec?<div className="summary-list">{L('Net revenue (excl. tax)',money(rec.revenue.net))}{L('GST (CGST + SGST)',money(rec.revenue.tax))}{L('Net receipts',money(rec.receipts.net))}{L('Expenses posted',money(rec.expenses.total))}{L('Occupancy',rec.occupancy.occupancy)}{L('ADR',rec.occupancy.adr)}{L('RevPAR',rec.occupancy.revpar)}</div>:<p className="muted">No closing record for this date.</p>}
         <h3>2 · Cash</h3>
         {rec&&<div className="summary-list">{L('Opening float',money(rec.cash.opening))}{L('Expected',money(rec.cash.expected))}{L('Counted',money(rec.cash.counted))}{L('Difference',diff===0?'None':(diff>0?'Over ':'Short ')+money(Math.abs(diff)))}</div>}
         <h3>3 · Receipts ({receipts.length})</h3>
@@ -34,13 +34,14 @@ export function DayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
         <div className="table-wrap"><table><thead><tr><th>Ref</th><th>Detail</th><th>Method</th><th className="number">Amount</th></tr></thead><tbody>
           {expenses.map(r=><tr key={r.ref}><td><small>{r.ref}</small></td><td>{r.detail}</td><td>{r.method??'—'}</td><td className="number">{money(r.amount)}</td></tr>)}
           {!expenses.length&&<tr><td colSpan={4}>No expenses on this date.</td></tr>}</tbody></table></div>
-        <p className="footnote">Generated at simulated clock {s.clock.replace('T',' ')} for {shortDate(date)}. Every figure is derived from source records. Synthetic 10% test tax; no GST compliance claim.</p>
+        <p className="footnote">Generated at simulated clock {s.clock.replace('T',' ')} for {shortDate(date)}. Every figure is derived from source records. GST from the dated GST master (illustrative — CA to confirm).</p>
       </div>
       <div className="modal-actions no-print"><button className="btn" onClick={onClose}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save A4 PDF</button></div>
     </div></div>;
 }
 /** Day closing button: opens the pack for `date`. */
 export function DayPackButton({date,label}:{date:string;label?:string}){
-  const [on,setOn]=useState(false);
+  const [on,setOn]=useState(false);const {s,uid}=useHcc();
+  if(!rbacCanDayPack(s,uid))return null; // DEC-063 G4: Owner, Manager and Accountant (read-only closing view)
   return <><button className="btn" onClick={()=>setOn(true)}><Printer size={15}/> {label??'Day pack (A4 PDF)'}</button>{on&&<DayPackSheet date={date} onClose={()=>setOn(false)}/>}</>;
 }

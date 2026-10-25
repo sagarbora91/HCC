@@ -16,10 +16,11 @@ export function register({test,M,assert}){
   test('[POS] fixture: outlets, menu, checks; core figures unchanged',()=>{
     const s=seed();
     assert.equal(P(s).outlets.length,2);assert.ok(P(s).menu.length>=20);assert.equal(P(s).orders.length,4);
-    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1075000);
+    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1072500); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
     const sum=M.posDaySummary(s);
-    assert.equal(sum.checks,2);assert.equal(sum.net,118000);assert.equal(sum.tax,11800);assert.equal(sum.gross,129800);
-    assert.equal(sum.byMode.Cash,55000);assert.equal(sum.byMode.UPI,74800);assert.equal(sum.outletCash,55000);
+    // DEC-069 GST: restaurant 5 % instead of the synthetic 10 % — tax 11800 → 5900, gross 129800 → 123900, Cash 55000 → 52500, UPI 74800 → 71400.
+    assert.equal(sum.checks,2);assert.equal(sum.net,118000);assert.equal(sum.tax,5900);assert.equal(sum.gross,123900);
+    assert.equal(sum.byMode.Cash,52500);assert.equal(sum.byMode.UPI,71400);assert.equal(sum.outletCash,52500);
     assert.equal(sum.open.count,2);
     // Fixture checks never touch bookings.
     assert.ok(s.bookings.every(b=>b.lines.every(l=>!String(l.id).startsWith('posline:'))));
@@ -57,12 +58,12 @@ export function register({test,M,assert}){
     const closed=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});
     assert.throws(()=>execute(closed,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash'}),/shift is closed/);
     s=execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash',key:'pos-settle-1'});
-    const o=ord(s,id);assert.equal(o.status,'Settled');assert.deepEqual([o.settlement.net,o.settlement.tax,o.settlement.total,o.settlement.taxBps],[36000,3600,39600,1000]);
+    const o=ord(s,id);assert.equal(o.status,'Settled');assert.deepEqual([o.settlement.net,o.settlement.tax,o.settlement.total,o.settlement.taxBps],[36000,1800,37800,500]); // DEC-069 GST: [36000,3600,39600,1000] → [36000,1800,37800,500]
     assert.equal(o.settlement.billNo,'POS/2610/0003');
     assert.deepEqual(execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash',key:'pos-settle-1'}),s);
     assert.equal(code(()=>execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash'})),'INVALID_TRANSITION');
-    assert.equal(drawer(s),before+39600); // shared till (DEC-052): the ₹396 cash bill enters the front-desk drawer once
-    assert.equal(M.posDaySummary(s).outletCash,55000+39600);
+    assert.equal(drawer(s),before+37800); // shared till (DEC-052): the ₹378 cash bill enters the front-desk drawer once (DEC-069 GST: was ₹396)
+    assert.equal(M.posDaySummary(s).outletCash,52500+37800); // DEC-069 GST: 55000+39600 → 52500+37800
     assert.equal(code(()=>execute(s,'cashier',{type:'POS_ITEM_ADD',id,item:'m-tea'})),'INVALID_TRANSITION');
   });
 
@@ -80,16 +81,16 @@ export function register({test,M,assert}){
     s=execute(s,'reception',{type:'POS_SETTLE',id:'POS-F04',mode:'folio',key:'pos-folio-F04'});
     const bk=s.bookings.find(x=>x.id===b.id),l=bk.lines.at(-1);
     assert.deepEqual(Object.keys(l).sort(),['amount','date','id','kind','label','taxBps']);
-    assert.equal(l.kind,'service');assert.equal(l.amount,24000+6000+14000);assert.equal(l.taxBps,1000);assert.equal(l.date,s.date);assert.equal(l.id,'posline:POS-F04');
-    assert.equal(totals(bk).total-t0.total,44000+4400);assert.equal(bk.version,v0+1);
-    assert.equal(ord(s,'POS-F04').settlement.total,48400);
+    assert.equal(l.kind,'service');assert.equal(l.amount,24000+6000+14000);assert.equal(l.taxBps,500); // DEC-069 GST: 1000 → 500 (restaurant / room service 5 %)assert.equal(l.date,s.date);assert.equal(l.id,'posline:POS-F04');
+    assert.equal(totals(bk).total-t0.total,44000+2200);assert.equal(bk.version,v0+1); // DEC-069 GST: tax 4400 → 2200
+    assert.equal(ord(s,'POS-F04').settlement.total,46200); // DEC-069 GST: 48400 → 46200
     assert.deepEqual(execute(s,'reception',{type:'POS_SETTLE',id:'POS-F04',mode:'folio',key:'pos-folio-F04'}),s);
     assert.equal(code(()=>execute(s,'reception',{type:'POS_SETTLE',id:'POS-F04',mode:'folio'})),'INVALID_TRANSITION');
     assert.equal(bk.lines.filter(x=>x.id==='posline:POS-F04').length,1);
-    // Tax snapshot survives a later rate change.
-    const after=execute(s,'owner',{type:'SETTINGS',...s.settings,taxBps:1500});
-    assert.equal(after.bookings.find(x=>x.id===b.id).lines.at(-1).taxBps,1000);
-    assert.equal(M.posDaySummary(s).byMode['Room folio'],48400);
+    // Tax snapshot survives a later rate change (DEC-069: through the dated GST master instead of SETTINGS taxBps).
+    const after=execute(s,'owner',{type:'SETTING_SET',setting:'gst.food.bps',value:1200,effectiveFrom:s.date});
+    assert.equal(after.bookings.find(x=>x.id===b.id).lines.at(-1).taxBps,500);assert.equal(M.posOrderTotals(after,ord(after,'POS-F04')).taxBps,500);
+    assert.equal(M.posDaySummary(s).byMode['Room folio'],46200); // DEC-069 GST: 48400 → 46200
   });
 
   test('[POS] folio post rules: in-house only, day closed, restaurant check charged to a room',()=>{
@@ -154,11 +155,11 @@ export function register({test,M,assert}){
 
   test('[POS] void settled outlet bill reverses outlet receipt; menu 86 toggle',()=>{
     let s=seed();
-    s=execute(s,'cashier',{type:'POS_VOID_BILL',id:'POS-F02',reason:'Charged twice'}); // ₹748 > limit
-    const a=s.approvals.at(-1);assert.equal(a.amount,74800);
+    s=execute(s,'cashier',{type:'POS_VOID_BILL',id:'POS-F02',reason:'Charged twice'}); // ₹714 > limit (DEC-069 GST: was ₹748)
+    const a=s.approvals.at(-1);assert.equal(a.amount,71400); // DEC-069 GST: 74800 → 71400
     s=execute(s,'manager',{type:'POS_VOID_DECIDE',id:a.id,approve:true});
-    const o=ord(s,'POS-F02');assert.equal(o.status,'Void');assert.equal(P(s).receipts.at(-1).amount,-74800);
-    const sum=M.posDaySummary(s);assert.equal(sum.checks,1);assert.equal(sum.byMode.UPI,0);assert.equal(sum.outletCash,55000);
+    const o=ord(s,'POS-F02');assert.equal(o.status,'Void');assert.equal(P(s).receipts.at(-1).amount,-71400); // DEC-069 GST: -74800 → -71400
+    const sum=M.posDaySummary(s);assert.equal(sum.checks,1);assert.equal(sum.byMode.UPI,0);assert.equal(sum.outletCash,52500); // DEC-069 GST: 55000 → 52500
     s=execute(s,'cashier',{type:'POS_MENU_TOGGLE',item:'m-biryani'});assert.equal(P(s).menu.find(m=>m.id==='m-biryani').available,true);
   });
 

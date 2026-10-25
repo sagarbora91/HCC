@@ -19,10 +19,10 @@ export function BookingConfirmation({id}:{id?:string}){
       <div><small>{status==='Held'?'PROVISIONAL HOLD':'CONFIRMATION'}</small><h3>DEMO-{b.id}</h3><p>Status: {status}{b.status==='Held'&&b.holdUntil?` · hold until ${b.holdUntil.slice(11,16)} on ${dateLabel(b.holdUntil.slice(0,10))}`:''}</p></div></div>
     <div className="summary-list"><div><span>Arrival</span><strong>{dateLabel(b.arrival)} · from {s.settings.checkin}</strong></div><div><span>Departure</span><strong>{dateLabel(b.departure)} · by {s.settings.checkout}</strong></div>
       <div><span>Room</span><strong>{b.room}{room?' · '+room.type:''}</strong></div><div><span>Guests</span><strong>{b.people} adult{b.people===1?'':'s'}{b.children?` · ${b.children} child${b.children===1?'':'ren'}`:''}</strong></div>
-      <div><span>Agreed nightly rate</span><strong>{money(b.rate)}</strong></div><div><span>Room charges ({n} night{n===1?'':'s'}, before synthetic tax)</span><strong>{money(b.rate*n)}</strong></div>
+      <div><span>Agreed nightly rate</span><strong>{money(b.rate)}</strong></div><div><span>Room charges ({n} night{n===1?'':'s'}, before GST)</span><strong>{money(b.rate*n)}</strong></div>
       <div><span>Advance received</span><strong>{money(t.paid)}</strong></div><div><span>Booking source</span><strong>{b.source}{b.otaChannel?' · '+b.otaChannel:''}</strong></div></div>
     {b.notes&&<p className="footnote">Notes: {b.notes}</p>}
-    <p className="footnote">Demonstration document. All names, numbers and references are fictional. Synthetic tax applies; no GST compliance claim.</p></div>
+    <p className="footnote">Demonstration document. All names, numbers and references are fictional. GST applies per the dated GST master (illustrative — CA to confirm).</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 

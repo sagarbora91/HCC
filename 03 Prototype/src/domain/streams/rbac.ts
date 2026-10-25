@@ -65,4 +65,8 @@ export const rbacCanSaveAmc=(s:State,uid:string)=>can(s,uid,'inspect')&&can(s,ui
 
 // ── G13 · exports: Tally tab Owner + Accountant; report export (RPT-003) Owner, Manager, Accountant ──
 export const rbacCanTally=(s:State,uid:string)=>can(s,uid,'reports')&&rbacIsRole(s,uid,'Owner','Accountant');
+/** Accounting voucher CSV / Excel export: same RPT-003 rule, Cashier cannot export (DEC-063 G13); Owner, Manager, Accountant can. */
+export const rbacCanExportVouchers=(s:State,uid:string)=>can(s,uid,'reports')&&!rbacIsRole(s,uid,'Cashier');
+// ── G4 · Day pack (printed day summary): follows the read-only Day closing view, deliberately including the Accountant ──
+export const rbacCanDayPack=(s:State,uid:string)=>can(s,uid,'close')||rbacIsAccountant(s,uid);
 export const rbacCanExportReports=(s:State,uid:string)=>can(s,uid,'reports')&&!rbacIsRole(s,uid,'Cashier');

@@ -1,6 +1,6 @@
 // W05-D · Cash book page (desktop table + phone cards, same logic). Range view lists every business day with opening, receipts, payments,
 // closing; day view lists every entry with a running balance. All figures come from domain/streams/cashbook.ts (→ shiftMovements + closing records).
-import React,{useState} from 'react';
+import React,{useMemo,useState} from 'react';
 import {Lock,Unlock,Download,ChevronLeft,ArrowRight,FileSpreadsheet} from 'lucide-react';
 import {money,cbDay,cbRange,cbDates,cbCsv,cbCanLock,cbCanReopen,cbSlice,addDays,CB_DIFF_LABEL} from '../../services/mock';
 import type {CBDay} from '../../services/mock';
@@ -9,7 +9,9 @@ import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
 import {saveCsv,saveBinaryFile,saveAndReport} from '../../app/native';
 import {XLSX_MIME} from '../../app/xlsx';
+import {CashLockNote} from './LockNote';
 import {cbXlsx} from './exportXlsx';
+import {cbRangeMemo} from '../../domain/memo';
 
 const who=(users:{id:string;name:string}[],id?:string)=>users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
 const tone=(d:CBDay)=>d.locked?'green':d.status==='Closed'?'neutral':'blue';
@@ -52,7 +54,8 @@ export function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}
         </tbody></table></div>}
       <ShowMore p={pg}/></section>
     <section className="card"><div className="section-title"><h2>Day lock</h2></div>
-      {d.locked?<p>Locked by <strong>{who(s.users,d.locked.lockedBy)}</strong> at {d.locked.lockedAt.replace('T',' ')}.</p>:<p className="muted">{d.status==='Closed'?'Not locked yet. A different person from the one who counted checks and locks the day.':'The day can be locked after it is closed.'}</p>}
+      {d.locked&&<CashLockNote date={d.date}/>}
+      {d.locked?<p>Locked by <strong>{who(s.users,d.locked.lockedBy)}</strong> at {d.locked.lockedAt.replace('T',' ')}. No cash change dated this day can be posted until the Owner reopens it.</p>:<p className="muted">{d.status==='Closed'?'Not locked yet. A different person from the one who counted checks and locks the day.':'The day can be locked after it is closed.'}</p>}
       <div className="cb-actions">
         {!d.locked&&<button className="btn primary" disabled={busy||!lock.ok} onClick={()=>run({type:'CB_LOCK',date:d.date,key:'cb-lock:'+d.date+':'+hist.length},'Day locked')}><Lock size={15}/> Lock this day</button>}
         {d.locked&&<button className="btn" disabled={busy||!canReopen} onClick={()=>open({type:'cb-reopen',id:d.date})}><Unlock size={15}/> Reopen…</button>}
@@ -76,12 +79,14 @@ export function CashBookView({phone=false}:{phone?:boolean}){
   const [from,setFrom]=useState(()=>{const d=addDays(s.date,-13);return dates.includes(d)?d:dates[Math.max(0,dates.length-14)];});
   const [to,setTo]=useState(s.date);
   const [day,setDay]=useState<string|null>(null);
-  const r=cbRange(s,from,to),list=r.days.slice().reverse();
+  // Range totals and day rows are computed once per range and reused until the underlying records change.
+  const r=cbRangeMemo(s,from,to),list=useMemo(()=>r.days.slice().reverse(),[r]);
+  const dayView=useMemo(()=>day&&dates.includes(day)?cbDay(s,day):null,[day,r,s.cashbookX]); // eslint-disable-line react-hooks/exhaustive-deps
   const pg=usePaged(list,phone?PHONE_PAGE:DESKTOP_PAGE);
   const cls='cb-page'+(phone?' mm-page':'');
-  if(day&&dates.includes(day))return <div className={cls}>
-    {!phone&&<PageTitle title="Cash book" sub="Daily cash in and out with a running balance" action={<Exports from={day} to={day}/>}/>}
-    <DayCard d={cbDay(s,day)} phone={phone} onBack={()=>setDay(null)}/></div>;
+  if(dayView)return <div className={cls}>
+    {!phone&&<PageTitle title="Cash book" sub="Daily cash in and out with a running balance" action={<Exports from={dayView.date} to={dayView.date}/>}/>}
+    <DayCard d={dayView} phone={phone} onBack={()=>setDay(null)}/></div>;
   return <div className={cls}>
     {!phone&&<PageTitle title="Cash book" sub="Opening balance, every cash receipt and payment, closing balance — carried forward day to day" action={<Exports from={from} to={to}/>}/>}
     <div className="cb-range"><label>From<input type="date" value={from} min={dates[0]} max={to} onChange={e=>e.target.value&&setFrom(e.target.value)}/></label>
@@ -101,7 +106,7 @@ export function CashBookView({phone=false}:{phone?:boolean}){
         {pg.shown.map(d=><tr key={d.date}><td><strong>{shortDate(d.date)}</strong><small>{d.date}</small></td>
           <td><Pill tone={tone(d)}>{d.locked?'Locked':d.status==='Closed'?'Closed':'Open'}</Pill></td>
           <td className="number">{money(d.opening)}</td><td className="number">{money(d.receipts)}</td><td className="number">{money(d.payments)}</td><td className="number">{money(d.closing)}</td>
-          <td className="number">{d.counted===undefined?'—':money(d.counted)}</td><td className="number">{d.difference?money(d.difference):'—'}</td><td><button className="btn small-btn" onClick={()=>setDay(d.date)}>Open day</button></td></tr>)}
+          <td className="number">{d.counted===undefined?'—':money(d.counted)}</td><td className="number">{d.difference?money(d.difference):'—'}</td><td><button className="btn small-btn" aria-label={`Open day ${dateLabel(d.date)}`} onClick={()=>setDay(d.date)}>Open day</button></td></tr>)}
       </tbody></table></div>}
       <ShowMore p={pg}/></section></div>;
 }

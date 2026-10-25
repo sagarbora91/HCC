@@ -4,6 +4,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Search,ChevronRight,CornerDownLeft,X,ArrowRight,Zap} from 'lucide-react';
 import {useHcc} from './context';
 import {navItems} from './nav';
+import {trapTab,useReturnFocus} from '../components/ui';
 import {buildSearchEntries,searchEntries,visibleEntries,categoryOf,PAGE_CATEGORY,navFilterModules,type SearchEntry} from './navmap';
 
 const esc=(t:string)=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -16,6 +17,8 @@ export function SearchPalette({onClose}:{onClose:()=>void}){
   const {s,uid,go,open,permission}=useHcc();
   const [q,setQ]=useState(''),[at,setAt]=useState(0);
   const ref=useRef<HTMLInputElement>(null);
+  const box=useRef<HTMLDivElement>(null);
+  useReturnFocus();
   const all=useMemo(()=>buildSearchEntries(navItems),[]);
   const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
   const visible=visibleEntries(all,allowed,p=>permission(p));
@@ -27,13 +30,14 @@ export function SearchPalette({onClose}:{onClose:()=>void}){
   const choose=(e:SearchEntry)=>{onClose();go(e.page);if(e.modal){const m=e.modal;window.setTimeout(()=>open(m),60);}};
   const onKey=(e:React.KeyboardEvent)=>{
     if(e.key==='Escape'){e.preventDefault();onClose();}
+    else if(e.key==='Tab'){if(box.current)trapTab(e,box.current);}
     else if(e.key==='ArrowDown'){e.preventDefault();setAt(i=>Math.min(hits.length-1,i+1));}
     else if(e.key==='ArrowUp'){e.preventDefault();setAt(i=>Math.max(0,i-1));}
     else if(e.key==='Enter'&&hits[at]){e.preventDefault();choose(hits[at]);}
   };
   useEffect(()=>{document.getElementById('search-opt-'+at)?.scrollIntoView({block:'nearest'});},[at]);
   return <div className="search-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <div className="search-box" role="dialog" aria-modal="true" aria-label="Search pages and actions" onKeyDown={onKey}>
+    <div className="search-box" ref={box} role="dialog" aria-modal="true" aria-label="Search pages and actions" onKeyDown={onKey}>
       <div className="search-field"><Search size={20} aria-hidden="true"/>
         <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search a page or action — e.g. check in, expense, rates" autoComplete="off" spellCheck={false}
           role="combobox" aria-expanded="true" aria-controls="search-list" aria-activedescendant={hits[at]?'search-opt-'+at:undefined} aria-label="Search pages and actions"/>

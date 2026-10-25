@@ -1,6 +1,6 @@
 // MB-08 pure helpers for the phone admin / closing / reports screens. They only re-shape the SAME selectors the desktop
 // pages use (closingPreflight, reportPack, adminApprovalInbox, adminDecideBlock…) so every figure is identical on both.
-import {isDayClosed,closingPreflight,closingNightTargets,closingHasNight,shiftStatus,reportPack,adminDecideBlock,adminExpenseBlock,adminOtherActiveOwners,authorize,adminUserActive,can,reportRangeLimit} from '../../services/mock';
+import {isDayClosed,closingPreflight,closingNightTargets,closingHasNight,shiftStatus,reportPackMemo,adminDecideBlock,adminExpenseBlock,adminOtherActiveOwners,authorize,adminUserActive,can,reportRangeLimit} from '../../services/mock';
 import type {State,User,Expense,ReportPack,ReportMetric,AdminInboxRow,AdminAuditFilter} from '../../services/mock';
 
 // ───────────── Reports (M19) ─────────────
@@ -24,7 +24,7 @@ export function maScopedPack(pack:ReportPack,mask:boolean):ReportPack{
 }
 /** The report pack for the phone: reportPack() + masking, or null when the range is invalid. */
 export function maReportPack(s:State,uid:string,from:string,to:string):ReportPack|null{
-  return maRangeCheck(from,to,s.date,reportRangeLimit(s)).ok?maScopedPack(reportPack(s,from,to),maMaskReports(s,uid)):null;
+  return maRangeCheck(from,to,s.date,reportRangeLimit(s)).ok?maScopedPack(reportPackMemo(s,from,to),maMaskReports(s,uid)):null;
 }
 /** Sum of the drill-down rows shown as cards — must equal the KPI figure. */
 export const maDrillTotal=(m:ReportMetric)=>m.rows.reduce((a,r)=>a+r.amount,0);

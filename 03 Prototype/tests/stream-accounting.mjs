@@ -22,11 +22,13 @@ export function register({test,M,assert}){
     // pending expense EXP-102 produces no voucher
     assert.ok(!vs.some(v=>v.source.id==='EXP-102'));
   });
-  test('[ACC] 23 Oct sales vouchers: Dr guest ledger = room revenue + 10% tax; trial balance agrees',()=>{
+  // DEC-069 GST: 10 % synthetic tax on ledger 2100 → 5 % room GST split CGST (2110) + SGST (2120): tax room/10 → room/20, each half room/40.
+  test('[ACC] 23 Oct sales vouchers: Dr guest ledger = room revenue + 5 % GST (CGST + SGST halves); trial balance agrees',()=>{
     const s=M.seed(),vs=M.accVouchers(s,Y);assert.equal(vs.length,8);assert.ok(vs.every(v=>v.type==='Sales'&&v.no.startsWith('SAL/20261023/')));
     const tb=Object.fromEntries(M.accTrialBalance(vs).map(r=>[r.account,r]));
     const room=s.bookings.filter(b=>b.status==='In house').reduce((a,b)=>a+b.rate,0);
-    assert.equal(tb['4000'].credit,room);assert.equal(tb['2100'].credit,room/10);assert.equal(tb['1100'].debit,room+room/10);
+    assert.equal(tb['4000'].credit,room);assert.equal(tb['2100'],undefined);assert.equal(tb['2110'].credit,room/40);assert.equal(tb['2120'].credit,room/40);assert.equal(tb['1100'].debit,room+room/20);
+    for(const v of vs){const e=Object.fromEntries(v.entries.map(x=>[x.account,x]));assert.equal(e['2110'].credit+e['2120'].credit,e['1100'].debit-e['4000'].credit,v.no);}
     assert.equal(M.accTrialBalance(vs).reduce((a,r)=>a+r.balance,0),0);
   });
   test('[ACC] every voucher traces to a stable, unique source ID and existing record',()=>{
@@ -49,7 +51,7 @@ export function register({test,M,assert}){
     const vs=M.accVouchers(s,D);assert.ok(allBalanced(vs));
     const c=checks(s,D);assert.ok(Object.values(c).every(x=>x.ok),JSON.stringify(Object.values(c).filter(x=>!x.ok)));
     assert.equal(c.collections.report,M.metrics(s).collections);assert.equal(c.cash.ledger,M.drawer(s)-s.openingCash);
-    const disc=vs.find(v=>v.source.sub==='discount');assert.deepEqual(disc.entries.map(e=>[e.account,e.debit,e.credit]),[['1100',0,22000],['4900',20000,0],['2100',2000,0]]);
+    const disc=vs.find(v=>v.source.sub==='discount');assert.deepEqual(disc.entries.map(e=>[e.account,e.debit,e.credit]),[['1100',0,21000],['4900',20000,0],['2110',500,0],['2120',500,0]]); // DEC-069 GST: discount ₹200 at the room rate 5 % = −₹10 (was −₹20 on 2100), split CGST/SGST
     const ref=vs.find(v=>v.source.sub==='refund');assert.equal(ref.type,'Payment');assert.deepEqual(ref.entries.map(e=>[e.account,e.debit,e.credit]),[['1100',5000,0],['1000',0,5000]]);
     assert.equal(M.accExceptions(s,D).filter(x=>x.severity==='error').length,0);
   });
@@ -138,5 +140,5 @@ export function register({test,M,assert}){
     assert.equal(Math.round(dr*100),Math.round(cr*100));assert.equal(Math.round(dr*100),M.accTotals(vs).debit);
     assert.ok(rows.slice(1).every(r=>r.startsWith(D+',')));
   });
-  test('[ACC] base fixture figures unchanged by the module',()=>{const s=M.seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1075000);assert.equal(s.accountingX,undefined);});
+  test('[ACC] base fixture figures unchanged by the module',()=>{const s=M.seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);assert.equal(s.accountingX,undefined);}); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
 }
