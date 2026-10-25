@@ -50,7 +50,7 @@ export function ModalHost(){
   // Any typing inside a form marks the sheet as dirty; back/close then asks before discarding (AC-M03).
   const onInput=(e:React.FormEvent<HTMLDivElement>)=>{if((e.target as HTMLElement).closest('form'))setDirty(true);};
   return <div className={'modal-overlay'+(sheet?' m-sheet-overlay'+(display.framed?' framed':''):'')} onMouseDown={e=>{if(!sheet&&e.target===e.currentTarget)closeModal();}}>
-    <div className={'modal '+(wide.includes(modal.type)?'wide':'')+(sheet?' m-sheet':'')} role="dialog" aria-modal="true" aria-label={modal.type==='booking'?s.bookings.find(b=>b.id===modal.id)?.guest:'Hotel Control Centre dialog'} onKeyDown={trap} onInput={onInput} onSubmit={()=>setDirty(false)}>
+    <div className={'modal '+(wide.includes(modal.type)?'wide':'')+(sheet?' m-sheet':'')} role="dialog" aria-modal="true" aria-label={modal.type==='booking'?s.bookings.find(b=>b.id===modal.id)?.guest:'Hotel Control Centre dialog'} onKeyDown={trap} onInput={onInput} onSubmitCapture={()=>setDirty(false)}>
       {sheet?<div className="m-sheet-head"><button autoFocus className="m-icon" aria-label="Close" onClick={closeModal}><X size={22}/></button></div>
       :<button autoFocus className="modal-close icon-btn" aria-label="Close dialog" onClick={closeModal}><X size={21}/></button>}
       {body()}

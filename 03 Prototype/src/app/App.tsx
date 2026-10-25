@@ -73,7 +73,7 @@ function AppShell({initial}:{initial:Restored}){
 
   const user=s.users.find(u=>u.id===uid)??s.users[0];
   const m=metrics(s);
-  const allowedIds=navFilterModules(s,navItems).filter(n=>can(s,uid,n.p)).map(n=>n.id);
+  const allowedIds=navFilterModules(s,navItems,uid).filter(n=>can(s,uid,n.p)).map(n=>n.id);
   const current=page===HOME_PAGE||parseCatPage(page)?page:page==='more'&&display.isMobile?'more':allowedIds.includes(page)?page:HOME_PAGE;
 
   const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotice(null),6500);},[]);
@@ -138,7 +138,7 @@ function AppShell({initial}:{initial:Restored}){
       const {state:next,error:faultError}=executeWithFault(stateRef.current,uid,command,mode);
       if(next!==stateRef.current)persist(next);
       if(faultError)throw faultError;
-      setError('');
+      setError('');dirty.current=false; // AC-04: a completed action never leaves the sheet dirty (no "Discard?" prompt afterwards)
       if(opts.close)setModal(null);
       opts.after?.();
       toast(duplicate?'Already recorded earlier — no duplicate was created.':(msg||'Updated successfully'));
