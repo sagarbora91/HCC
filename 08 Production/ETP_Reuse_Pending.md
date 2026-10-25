@@ -15,5 +15,6 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 9 | `src/Hcc.Application/Billing/BillingQueries.cs` — `GetFolioAsync` (P4) | Folio/invoice as JSON only (no print, no invoice number series yet) | ETP PDF/Excel exporters for the folio, sample invoice and credit note (Hcc.Reporting) |
 | 10 | same file — `GetCollectionsAsync` (P4) | Payments − refunds by tender for a business date | ETP Tally export of receipts / cash book (Wave 2) |
 | 11 | `src/Hcc.Application/Payments/CashierService.cs` — `SubmitShiftCountAsync` (P4) | Count stored as JSON denominations in `pay.shift_count`; no printed count sheet | ETP cash-count / day-pack PDF and e-mail to the owner |
+| 12 | `src/Hcc.Application/Reporting/ReportingQueries.cs` — `GetDailyReportAsync` (P6) | Daily pack (occupancy, revenue by GST category with CGST/SGST, receipts by tender, cash expenses, drawer) as JSON only | ETP Excel/PDF exporters for the owner's day pack and closing record (PERM-RPT-003), owner e-mail |
 
 Not yet written (later agents, also ETP reuse): backup/restore/drill scripts and Task Scheduler jobs, Inno Setup installer, Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).
