@@ -19,13 +19,16 @@ export type CMPFiling={obligation:string;period:string;status:'Filed'|'Not appli
 export type CMPPack={id:string;at:string;by:string;to:string;toName:string;counts:{overdue:number;due:number;filed:number;na:number};lines:string[]};
 export type CMPSettings={caName:string;caEmail:string;/** "Due this week" window in days. */dueSoonDays:number};
 /** State slice, stored at s.complianceX (optional; absent in old saves → treated as empty). */
-export type CMPState={obligations:CMPObligation[];filings:CMPFiling[];packs:CMPPack[];settings:CMPSettings};
+/** A filing that the Owner reopened: the original record is kept (W05 review F14), with who reopened it, when and why. */
+export type CMPReopened=CMPFiling&{reopenedBy:string;reopenedAt:string;reopenReason:string};
+export type CMPState={obligations:CMPObligation[];filings:CMPFiling[];packs:CMPPack[];settings:CMPSettings;/** Absent until the first reopen. */reopened?:CMPReopened[]};
+export const CMP_MAX_REOPENED=200;
 export const CMP_DEFAULT_SETTINGS:CMPSettings={caName:'Rao & Associates (fictional)',caEmail:'ca.desk@example.test',dueSoonDays:7};
 export const CMP_MAX_PACKS=20;
 export const CMP_ILLUSTRATIVE='Illustrative due dates — CA to confirm for a hotel.';
 export const cmpEmpty=():CMPState=>({obligations:[],filings:[],packs:[],settings:{...CMP_DEFAULT_SETTINGS}});
 export const cmpSlice=(s:State):CMPState=>{const x=s.complianceX as Partial<CMPState>|undefined;
-  return {obligations:x?.obligations??[],filings:x?.filings??[],packs:x?.packs??[],settings:{...CMP_DEFAULT_SETTINGS,...(x?.settings??{})}};};
+  return {obligations:x?.obligations??[],filings:x?.filings??[],packs:x?.packs??[],settings:{...CMP_DEFAULT_SETTINGS,...(x?.settings??{})},...(x?.reopened?{reopened:x.reopened}:{})};};
 
 // ── Access: Owner and Accountant only (DEC-055). Managing obligations needs 'approve' (Owner). ──
 const roleOf=(s:State,uid:string)=>s.users.find(u=>u.id===uid)?.role;

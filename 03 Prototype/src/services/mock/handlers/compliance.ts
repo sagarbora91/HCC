@@ -2,7 +2,7 @@
 // Access: Owner and Accountant (cmpHasAccess). Managing obligations, reopening and settings need the Owner's 'approve' permission.
 import type {Handler,Kit} from '../commands';
 import {
-  CMPState,CMPObligation,CMPRule,CMPKind,CMPFreq,CMP_KINDS,CMP_MAX_PACKS,
+  CMPState,CMPObligation,CMPRule,CMPKind,CMPFreq,CMP_KINDS,CMP_MAX_PACKS,CMP_MAX_REOPENED,
   cmpSlice,cmpHasAccess,cmpItems,cmpCounts,cmpIsOpen,cmpPackLines,cmpValidDate,cmpMonthAdd,cmpFyLabel,cmpKey,cmpPeriodLabel,
 } from '../../../domain/streams/compliance';
 
@@ -50,6 +50,7 @@ export const handlers:Record<string,Handler>={
     k.assert(i.filing,'This period is not filed or marked not applicable.','INVALID_TRANSITION');
     const reason=txt(k.cmd.reason);k.assert(reason.length>=5&&reason.length<=120,'Give a reason of 5–120 characters.');
     x.filings=x.filings.filter(f=>cmpKey(f.obligation,f.period)!==i.key);
+    x.reopened=[{...i.filing!,reopenedBy:k.uid,reopenedAt:k.s.clock,reopenReason:reason},...(x.reopened??[])].slice(0,CMP_MAX_REOPENED);
     return `${i.obligation.name} · ${i.periodLabel} reopened (was ${i.filing!.status}${i.filing!.reference?' · ref '+i.filing!.reference:''}) · ${reason}`;},
 
   CMP_OBLIGATION_SAVE:k=>{

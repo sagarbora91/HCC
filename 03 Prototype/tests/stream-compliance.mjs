@@ -54,7 +54,11 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-TDS',period:'2026-09',reason:'x'}),/reason/);
     assert.throws(()=>execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-G1',period:'2026-09',reason:'Not filed yet at all'}),code('INVALID_TRANSITION'));
     s=execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-TDS',period:'2026-09',reason:'Wrong reference'});
-    assert.equal(find(s,'CMPO-TDS','2026-09').status,'Overdue');assert.match(s.audit[0].detail,/reopened/);});
+    assert.equal(find(s,'CMPO-TDS','2026-09').status,'Overdue');assert.match(s.audit[0].detail,/reopened/);
+    // F14: the reopened filing record (reference, who, when) is kept, not only in the audit text
+    const r=cmpSlice(s).reopened[0];assert.equal(r.obligation,'CMPO-TDS');assert.equal(r.period,'2026-09');assert.equal(r.status,'Filed');assert.ok(r.reference&&r.by&&r.at);
+    assert.equal(r.reopenedBy,'owner');assert.ok(r.reopenedAt.startsWith(s.date+'T')&&r.reopenedAt<=s.clock);assert.equal(r.reopenReason,'Wrong reference');
+    assert.equal(cmpSlice(seed()).reopened,undefined);});
   test('[CMP] due this week = overdue + inside the window; badge only for Owner and Accountant',()=>{
     const s=seed();assert.deepEqual(cmpDueThisWeek(s).map(i=>i.key),['CMPO-G1:2026-09','CMPO-PT:2026-09']);
     assert.equal(cmpBadge(s,'owner'),2);assert.equal(cmpBadge(s,'accountant'),2);assert.equal(cmpBadge(s,'manager'),0);assert.equal(cmpBadge(s,'reception'),0);
