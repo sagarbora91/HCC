@@ -175,13 +175,13 @@ const covers=(l:HRLeave,date:string)=>l.from<=date&&l.to>=date;
 export const hrApprovedLeavesOn=(s:State,staffId:string,date:string)=>hrSlice(s).leaves.filter(l=>l.staffId===staffId&&l.status==='Approved'&&covers(l,date));
 /** A full-day approved leave on the date, else the first half-day one. */
 export const hrApprovedLeaveOn=(s:State,staffId:string,date:string)=>{const ls=hrApprovedLeavesOn(s,staffId,date);return ls.find(l=>!l.half)??ls[0];};
-/** Day view for one staff member: explicit attendance → approved leave → rostered off → unmarked. Half-day leave can sit beside attendance. */
+/** Day view for one staff member: explicit attendance → rostered off → approved leave → unmarked. Half-day leave can sit beside attendance. */
 export function hrDayStatus(s:State,st:HRStaff,date:string):{kind:'att'|'leave'|'off'|'unmarked'|'na';att?:HRAtt;leave?:HRLeave}{
   if(date<st.joined||(st.exitedOn&&date>st.exitedOn))return {kind:'na'};
   const att=hrSlice(s).att[hrKey(date,st.id)],leave=hrApprovedLeaveOn(s,st.id,date);
   if(att)return leave?.half?{kind:'att',att,leave}:{kind:'att',att};
+  if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};// F-01: weekly off inside a leave span stays a weekly off
   if(leave)return {kind:'leave',leave};
-  if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};
   return {kind:'unmarked'};
 }
 /** Self check-in status from the simulated clock: Late after shift start + grace. */
@@ -203,9 +203,12 @@ export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
         addLeave(halves[0],0.5);
         if(att.status==='H')c.HL++;else c.A+=0.5;
       }else if(att.status==='OFF')c.OFFW++;else c[att.status]++;
-    }else if(full)addLeave(full,1);
-    else if(halves.length){halves.forEach(l=>addLeave(l,0.5));c.unmarked+=1-0.5*halves.length;}
+    }
+    // F-01: a rostered weekly off inside a leave span is a weekly off, never a leave day (SCC isWeekOffDate; matches the stored `days`).
+    // HCC has no holiday calendar yet; when one is added, holidays belong in this same branch.
     else if(hrShiftFor(s,st,d)==='OFF')c.off++;
+    else if(full)addLeave(full,1);
+    else if(halves.length){halves.forEach(l=>addLeave(l,0.5));c.unmarked+=1-0.5*halves.length;}
     else c.unmarked++;
   }
   return c;
