@@ -1,6 +1,6 @@
 // Public surface of the mock service — used by the UI and by tests/run.mjs.
 export * from '../../domain/index';
-export {execute} from './commands';
+export {execute,changedSlices} from './commands';
 export * from './faults';
 export * from './persistence';
 export {baseFixture,BUSINESS_DATE} from '../../fixtures/base';
