@@ -18,15 +18,17 @@ Prepared 25 Oct 2026 (old PC crashing). The package is `V:\HCC-Migration-2026-10
 Not included on purpose: `node_modules` (reinstalled), build outputs, the Norton trust store `04 Android\.build\hcc-cacerts.jks` (PC-specific; recreate only if the work PC also has Norton SSL scanning), emulator images.
 
 ## 2. Install on the work PC (once)
+**Easiest:** run `setup-work-pc.ps1` from the package in an **Administrator** PowerShell. It checks Git, Node 25, .NET 10, Android Studio/SDK/Java, SQL Server Express and sqlcmd, installs only what is missing, and puts every installation, cache and emulator on **E:\** (`E:\Tools`, `E:\Cache`, `E:\Android`, `E:\SQLServer`). Start with `-CheckOnly` to see the report; add `-Package <package folder>` to restore the project to `E:\Codex\Hotel Control Centre` in the same run; add `-SqlSetupPath <SQL 2025 Express media>` to install SQL Server. Manual alternative:
+
 1. **Git** (any recent), **Node.js 25.x** (old PC: v25.9.0; 22 LTS also works for the prototype, but keep 25 to match).
 2. **Claude desktop app** (Code tab) and, if used, Codex.
 3. For the APK and devices: **Android Studio** (includes JBR Java 21), Android SDK platform 36, platform-tools, emulator. Recreate AVDs: `codex_api35_google` (Android 15, Google APIs, x86_64) and `codex_apk_review` (old WebView 83 test image — or any API 28–30 image with the stock WebView).
 4. For production work later (A3/Wave 1): **SQL Server 2025 Express** (`.\SQLEXPRESS`) and **.NET 10 SDK**. The ETP project has its own migration notes (`V:\ETP\NEW-PC-HANDOFF.md`).
 
 ## 3. Restore (about 10 minutes)
-Pick the folder (keeping the same drive path avoids fixing documents that mention `V:\Codex\Hotel Control Centre`; any path works):
+Recommended folder on the work PC: `E:\Codex\Hotel Control Centre` (documents written on the old PC say `V:\Codex\…`; read that as the new path):
 ```powershell
-powershell -ExecutionPolicy Bypass -File "<package>\restore-on-new-pc.ps1" -Package "<package>" -Target "V:\Codex\Hotel Control Centre"
+powershell -ExecutionPolicy Bypass -File "<package>\restore-on-new-pc.ps1" -Package "<package>" -Target "E:\Codex\Hotel Control Centre"
 ```
 The script: checks the package checksums → clones `HCC.bundle` → recreates every branch locally → sets `core.autocrlf=false` → copies the APK into `05 Delivery Evidence\APK\` → `npm ci` in `03 Prototype` and `04 Android` → `npx tsc --noEmit`, `npm test`, `npm run build` → prints the results. Expected: **tsc clean, 502/502 tests, build ≈ 1,884 KB** on `main`.
 
