@@ -174,7 +174,7 @@ if(-not $SkipDotnet){ SetUserEnv 'NUGET_PACKAGES' $Paths.NugetCache; SetUserEnv 
 if(-not $SkipAndroid){
   Step 'Android (Studio, SDK, emulator)'
   # Reuse an SDK that already exists (with adb); only a missing SDK is created on E:.
-  $existingSdk = @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT, "$env:LOCALAPPDATA\Android\Sdk") | Where-Object { $_ -and (Test-Path (Join-Path $_ 'platform-toolsdb.exe')) } | Select-Object -First 1
+  $existingSdk = @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT, "$env:LOCALAPPDATA\Android\Sdk") | Where-Object { $_ -and (Test-Path (Join-Path $_ 'platform-tools\adb.exe')) } | Select-Object -First 1
   if($existingSdk){ $Paths.Sdk = $existingSdk; Say "  using existing Android SDK: $existingSdk" } else { Say "  new Android SDK location: $($Paths.Sdk)" }
   SetUserEnv 'ANDROID_HOME' $Paths.Sdk; SetUserEnv 'ANDROID_SDK_ROOT' $Paths.Sdk   # both must point to the same SDK (old-PC lesson)
   if($env:ANDROID_AVD_HOME -and (Test-Path $env:ANDROID_AVD_HOME)){ $Paths.Avd = $env:ANDROID_AVD_HOME } else { SetUserEnv 'ANDROID_AVD_HOME' $Paths.Avd }
