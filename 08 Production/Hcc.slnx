@@ -27,6 +27,7 @@
     <Project Path="tests/Hcc.Stock.Tests/Hcc.Stock.Tests.csproj" />
     <Project Path="tests/Hcc.Messaging.Tests/Hcc.Messaging.Tests.csproj" />
     <Project Path="tests/Hcc.Yield.Tests/Hcc.Yield.Tests.csproj" />
+    <Project Path="tests/Hcc.GuestServices.Tests/Hcc.GuestServices.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -52,5 +53,6 @@
     <File Path="database/migrations/1600_messaging.sql" />
     <File Path="database/migrations/1700_handover.sql" />
     <File Path="database/migrations/1800_yield_tariffs.sql" />
+    <File Path="database/migrations/1500_guest_services.sql" />
   </Folder>
 </Solution>

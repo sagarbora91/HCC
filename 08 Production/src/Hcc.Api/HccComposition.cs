@@ -40,6 +40,7 @@ public static class HccComposition
         services.AddHccMessaging();                      // W2-10 messaging (simulated sending)
         services.AddHandoverModule();                    // W2-11 shift handover
         services.AddYieldModule();                       // W2-12 yield & tariffs
+        services.AddGuestServicesModule();               // W2-9 guest services
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -76,6 +77,7 @@ public static class HccComposition
         api.MapMessagingEndpoints();     // W2-10
         api.MapHandoverEndpoints();      // W2-11
         api.MapYieldEndpoints();         // W2-12
+        api.MapGuestServicesEndpoints(); // W2-9
         return api;
     }
 }
