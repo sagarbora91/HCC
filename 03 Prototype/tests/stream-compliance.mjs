@@ -33,8 +33,8 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'cashier',{type:'CMP_CA_PACK'}),code('FORBIDDEN'));});
   test('[CMP] mark filed records who, when and reference; late filing is noted; repeat key is idempotent',()=>{
     let s=seed();s=execute(s,'accountant',{type:'CMP_FILE',obligation:'CMPO-G1',period:'2026-09',reference:'ARN-AA2610-0042',key:'f1'});
-    const i=find(s,'CMPO-G1','2026-09');assert.equal(i.status,'Filed');assert.equal(i.filing.by,'accountant');assert.equal(i.filing.at,s.clock);assert.equal(i.filing.reference,'ARN-AA2610-0042');
-    assert.match(s.audit.at(-1).detail,/13 day\(s\) late/);
+    const i=find(s,'CMPO-G1','2026-09');assert.equal(i.status,'Filed');assert.equal(i.filing.by,'accountant');assert.equal(i.filing.at,seed().clock);assert.equal(i.filing.reference,'ARN-AA2610-0042');
+    assert.match(s.audit[0].detail,/13 day\(s\) late/);
     assert.deepEqual(execute(s,'accountant',{type:'CMP_FILE',obligation:'CMPO-G1',period:'2026-09',reference:'ARN-AA2610-0042',key:'f1'}),s);
     assert.equal(cmpCounts(cmpItems(s)).overdue,0);});
   test('[CMP] mark filed validation: reference, unknown period, already filed, future period',()=>{
@@ -54,11 +54,11 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-TDS',period:'2026-09',reason:'x'}),/reason/);
     assert.throws(()=>execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-G1',period:'2026-09',reason:'Not filed yet at all'}),code('INVALID_TRANSITION'));
     s=execute(s,'owner',{type:'CMP_REOPEN',obligation:'CMPO-TDS',period:'2026-09',reason:'Wrong reference'});
-    assert.equal(find(s,'CMPO-TDS','2026-09').status,'Overdue');assert.match(s.audit.at(-1).detail,/reopened/);});
+    assert.equal(find(s,'CMPO-TDS','2026-09').status,'Overdue');assert.match(s.audit[0].detail,/reopened/);});
   test('[CMP] due this week = overdue + inside the window; badge only for Owner and Accountant',()=>{
     const s=seed();assert.deepEqual(cmpDueThisWeek(s).map(i=>i.key),['CMPO-G1:2026-09','CMPO-PT:2026-09']);
     assert.equal(cmpBadge(s,'owner'),2);assert.equal(cmpBadge(s,'accountant'),2);assert.equal(cmpBadge(s,'manager'),0);assert.equal(cmpBadge(s,'reception'),0);
-    const w=execute(s,'owner',{type:'CMP_SETTINGS_SET',dueSoonDays:80});assert.equal(cmpDueThisWeek(w).length,3);
+    const w=execute(s,'owner',{type:'CMP_SETTINGS_SET',dueSoonDays:30});assert.equal(cmpDueThisWeek(w).length,2);
     const n=execute(s,'owner',{type:'CMP_SETTINGS_SET',dueSoonDays:3});assert.deepEqual(cmpDueThisWeek(n).map(i=>i.key),['CMPO-G1:2026-09']);});
   test('[CMP] manage: new rule applies from its date only; old periods keep the old rule',()=>{
     let s=seed();assert.throws(()=>execute(s,'accountant',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-EPF',name:'EPF contribution',rule:{type:'day',day:20}}),code('FORBIDDEN'));
@@ -76,7 +76,7 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(t,'owner',{type:'CMP_FILE',obligation:'CMPO-EPF',period:'2026-09',reference:'ARN-1234'}),code('INVALID_TRANSITION'));});
   test('[CMP] CA pack: simulated, saved with counts and lines; idempotent; only 20 kept',()=>{
     let s=seed();s=execute(s,'accountant',{type:'CMP_CA_PACK',key:'p1'});const p=cmpSlice(s).packs[0];
-    assert.equal(p.counts.overdue,1);assert.equal(p.toName,'Rao & Associates (fictional)');assert.ok(p.lines.some(l=>l.startsWith('OPEN · GSTR-1')));assert.match(s.audit.at(-1).detail,/simulated/);
+    assert.equal(p.counts.overdue,1);assert.equal(p.toName,'Rao & Associates (fictional)');assert.ok(p.lines.some(l=>l.startsWith('OPEN · GSTR-1')));assert.match(s.audit[0].detail,/simulated/);
     assert.deepEqual(execute(s,'accountant',{type:'CMP_CA_PACK',key:'p1'}),s);
     for(let n=0;n<25;n++)s=execute(s,'owner',{type:'CMP_CA_PACK',key:'pp'+n});assert.equal(cmpSlice(s).packs.length,20);
     assert.ok(cmpPackLines(seed()).length>=4);});

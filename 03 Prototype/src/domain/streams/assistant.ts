@@ -79,7 +79,7 @@ export const aiSuggestions=(s:State,uid:string)=>{const a=aiAccess(s,uid);return
 
 // ── Intent matching (keywords; highest score wins, list order breaks ties → specific first) ──
 const rules:[AIIntent,RegExp[]][]=[
-  ['compliance-due',[/complian/,/(gst|gstr|tds|epf|esic|pf)/,/professional tax/,/filings?/,/due (dates?|this week)/,/what (is|are) due/,/overdue (returns?|filings?)/]],
+  ['compliance-due',[/\bcomplian/,/\b(gst|gstr|tds|epf|esic|pf)\b/,/\bprofessional tax\b/,/\bfilings?\b/,/\bdue (dates?|this week)\b/,/\bwhat (is|are) due\b/,/\boverdue (returns?|filings?)\b/,/\bfiled\b/]],
   ['balances',[/\btop\b.*\b(balance|due|owe)/,/\b(biggest|largest|highest|most)\b.*\b(balance|due|owe|owing)/,/\bwho\b.*\bowe/,/\bbalances?\s+due\b/,/\bdebtors?\b/]],
   ['revpar',[/\brev\s?-?par\b/,/revenue per available/]],
   ['adr',[/\badr\b/,/average (daily |room )?rate/,/\bavg\.? rate\b/,/average tariff/]],

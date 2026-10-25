@@ -61,7 +61,7 @@ export const handlers:Record<string,Handler>={
       const o=x.obligations.find(o=>o.id===k.cmd.id);k.assert(o,'Obligation not found.','NOT_FOUND');
       k.assert(!x.obligations.some(z=>z.id!==o!.id&&z.name.toLowerCase()===name.toLowerCase()),'An obligation with this name already exists.');
       const rule=parseRule(k,o!.freq,k.cmd.rule),cur=JSON.stringify(o!.rules[o!.rules.length-1].rule);
-      Object.assign(o!,{name,form,owner,note:txt(k.cmd.note)||undefined,updatedBy:k.uid,updatedAt:k.s.clock});
+      Object.assign(o!,{name,form,owner,updatedBy:k.uid,updatedAt:k.s.clock});const nt=txt(k.cmd.note);if(nt)o!.note=nt;else delete o!.note;
       if(JSON.stringify(rule)!==cur){
         o!.rules=[...o!.rules.filter(r=>r.from!==effective),{from:effective,rule}].sort((a,b)=>a.from.localeCompare(b.from));
         return `${name} · due rule changed from ${effective} (periods that began earlier keep the old rule)`;}
@@ -73,7 +73,7 @@ export const handlers:Record<string,Handler>={
     // Tracking starts at the latest finished period, so adding an obligation never creates a backlog of "overdue" rows.
     const fyStart=+k.s.date.slice(0,4)-(k.s.date.slice(5,7)<'04'?1:0);
     const from=freq==='Annual'?cmpFyLabel(fyStart-1):cmpMonthAdd(k.s.date.slice(0,7),-1);
-    const o:CMPObligation={id:k.id('CMPO'),kind,name,form,freq,rules:[{from:'2000-01-01',rule}],owner,from,active:true,note:txt(k.cmd.note)||undefined,updatedBy:k.uid,updatedAt:k.s.clock};
+    const o:CMPObligation={id:k.id('CMPO'),kind,name,form,freq,rules:[{from:'2000-01-01',rule}],owner,from,active:true,...(txt(k.cmd.note)?{note:txt(k.cmd.note)}:{}),updatedBy:k.uid,updatedAt:k.s.clock};
     x.obligations.push(o);return `${o.id} · ${name} added (tracked from ${cmpPeriodLabel(o,from)})`;},
 
   CMP_OBLIGATION_TOGGLE:k=>{

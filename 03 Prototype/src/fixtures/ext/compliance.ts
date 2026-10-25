@@ -8,7 +8,7 @@ import {addDays} from '../../domain/money';
 const START='2000-01-01';
 export function cmpFixtureObligations():CMPObligation[]{
   const o=(id:string,kind:CMPObligation['kind'],name:string,form:string,freq:CMPObligation['freq'],rule:CMPObligation['rules'][0]['rule'],owner:string,from:string,note?:string):CMPObligation=>
-    ({id,kind,name,form,freq,rules:[{from:START,rule}],owner,from,active:true,note,updatedBy:'owner',updatedAt:'2026-04-01T09:00'});
+    ({id,kind,name,form,freq,rules:[{from:START,rule}],owner,from,active:true,...(note?{note}:{}),updatedBy:'owner',updatedAt:'2026-04-01T09:00'});
   return [
     o('CMPO-TDS','TDS','TDS deposit','Challan 281 · TIN-NSDL','Monthly',{type:'day',day:7,special:{month:3,day:30}},'Accountant','2026-04','Salary, rent and professional-fee deductions. March deductions have an extended date (SCC).'),
     o('CMPO-G1','GSTR-1','GSTR-1 · outward supplies','GST portal','Monthly',{type:'day',day:11},'Accountant','2026-04','Monthly filer assumed (not QRMP).'),
