@@ -14,6 +14,8 @@ Rules: maximum parallel agents, Sonnet wherever possible (Opus for money/statuto
 
 ## Owner's order (25 Oct 2026): finish ALL items first → then build the APK → then run the tests (emulator/device) → then push to GitHub. Do not push or build the APK before the items are done.
 
+## Item 4 (owner, 25 Oct 2026): the Tab S7 re-check is replaced by emulators — in the test step run APK v11 on `codex_api35_google` (phone) AND a tablet AVD (create `hcc_tablet_api35`: API 35 Google APIs x86_64, Pixel Tablet / 2560×1600 profile, desktop layout) to cover T-01…T-05 (compact header, 44/48 px touch sizes DEC-060, Back incl. long session, rotation). One emulator at a time.
+
 ## Then (lead, sequential)
 1. Merge A + B + C into `claude/wave1-integration` (resolve `Hcc.slnx` / `Program.cs` / `HccComposition` lines), full `dotnet build` (0 warnings) + `dotnet test` on `.\SQLEXPRESS`.
 2. Merge D + E into `main`; tsc/test/build; APK v11 + short emulator check (Sonnet).
