@@ -18,7 +18,7 @@ import {NavDrawer} from './NavDrawer';
 import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,exitApp} from './native';
 import {MobileShell} from './mobile/MobileShell';
 import {announceTab,type MobileTab} from './mobile/tabs';
-import {Empty,dateLabel,clockTime} from '../components/ui';
+import {Empty,ExitAsk,dateLabel,clockTime} from '../components/ui';
 import {Overview} from '../features/overview/Overview';
 import {RoomBoard} from '../features/rooms/RoomBoard';
 import {Reservations} from '../features/reservations/Reservations';
@@ -168,12 +168,13 @@ function AppShell({initial}:{initial:Restored}){
   const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>{cancelBackFallback();setSearchOpen(true);},openMenu:()=>{cancelBackFallback();setMenuOpen(true);},signOut};
   const pages:Record<string,()=>React.ReactNode>={overview:()=><Overview/>,rooms:()=><RoomBoard/>,reservations:()=><Reservations/>,folios:()=><Reservations folio/>,housekeeping:()=><Housekeeping/>,expenses:()=><Expenses/>,closing:()=><DayClosing/>,reports:()=><Reports/>,access:()=><AccessControl/>,settings:()=><HotelSettings/>};
   for(const [id,Page] of Object.entries(extraPages))pages[id]=()=><Page/>;
+  useEffect(()=>{if(!signedIn)return;const l=navItems.find(n=>n.id===current)?.label;document.title=(l?l+' · ':'')+'Hotel Control Centre';},[current,signedIn]);
   const closed=isDayClosed(s);
 
   const MobilePage=display.isMobile?mobilePages[current]:undefined;
   const pageBody=current===HOME_PAGE?<ModulesHome/>:parseCatPage(current)?<CategoryPage page={current}/>:MobilePage?<MobilePage/>:pages[current]?.()??(current==='more'?null:<Empty title="This user has no active access" body="Switch to an enabled user with the demo controls to continue."/>);
   const toastEl=notice&&<div className={'toast '+(notice.error?'error':'')+(display.isMobile?' m-toast':'')} role="status" aria-live="polite">{notice.error?<AlertCircle size={19}/>:<CheckCircle2 size={19}/>}<span>{notice.text}</span><button aria-label="Dismiss message" onClick={()=>setNotice(null)}><X size={16}/></button></div>;
-  const exitEl=exitAsk?<div className="exit-ask" role="alertdialog" aria-modal="true" aria-label="Exit Hotel Control Centre?"><div className="exit-card"><h2>Exit Hotel Control Centre?</h2><p>Your demo data stays saved on this device.</p><div className="exit-actions"><button type="button" className="btn" onClick={()=>setExitAsk(false)}>Stay</button><button type="button" className="btn primary" onClick={exitApp}>Exit</button></div></div></div>:null;
+  const exitEl=exitAsk?<ExitAsk onStay={()=>setExitAsk(false)} onExit={exitApp}/>:null;
   if(!signedIn)return <HccContext.Provider value={ctx}><SignIn onPick={signIn}/></HccContext.Provider>;
   if(display.isMobile)return <HccContext.Provider value={ctx}>
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
@@ -181,7 +182,8 @@ function AppShell({initial}:{initial:Restored}){
   </HccContext.Provider>;
   return <HccContext.Provider value={ctx}>
     <div className="app-shell">
-      <main>
+      <a className="skip-link" href="#main-content" onClick={e=>{e.preventDefault();document.getElementById('main-content')?.focus();}}>Skip to main content</a>
+      <main id="main-content" tabIndex={-1}>
         <header className="topbar">
           <div className="topbar-left"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={()=>{cancelBackFallback();setMenuOpen(true);}}><Menu size={22}/></button><Breadcrumb page={current} label={navItems.find(n=>n.id===current)?.label||'Access unavailable'}/></div>
           <div className="topbar-right">
