@@ -1,7 +1,9 @@
 // SCR-15 Reports: tabs, business-date range, drill-down from every total to its source rows, CSV per tab, print with watermark.
-import {printDocument,saveCsv} from '../../app/native';
+import {printDocument,saveCsv,saveBinaryFile} from '../../app/native';
+import {XLSX_MIME} from '../../app/xlsx';
+import {reportXlsx} from './exportXlsx';
 import React,{useMemo,useState} from 'react';
-import {Download,Printer,Info,X,Hotel} from 'lucide-react';
+import {Download,Printer,Info,X,Hotel,FileSpreadsheet} from 'lucide-react';
 import {money,reportMonthRange,reportPack,reportCsv,reportDrillCsv,reportDictionary,ReportPack,ReportMetric,ReportTab,reportRangeLimit,reportRangePresets,historyMonths} from '../../services/mock';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {HistorySummary} from './HistorySummary';
@@ -32,8 +34,10 @@ export function Reports(){
   const m=t?.metrics.find(x=>x.id===drill);
   const setRange=(a:string,b:string)=>{setFrom(a);setTo(b);setDrill(null);};
   function exportTab(){if(!pack)return;downloadCsv(`HCC-Demo-${tab}-${from}_${to}.csv`,reportCsv(s,pack,tab));toast('Demo CSV downloaded · '+(TABS.find(x=>x[0]===tab)?.[1]));}
+  function exportExcel(){if(!pack)return;void saveBinaryFile(`HCC-Demo-reports-${from}_${to}.xlsx`,reportXlsx({hotel:s.settings.hotel,scenario:s.scenario,clock:s.clock},pack),XLSX_MIME);toast('Demo Excel workbook saved · all report tabs');}
   return <><PageTitle title="Reports" sub={'Every figure derived from source records · fictional data · '+dateLabel(s.date)} action={<div className="inline">
       <button className="btn" disabled={!pack} onClick={exportTab}><Download size={16}/> Export CSV</button>
+      <button className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={16}/> Export Excel</button>
       <button className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={16}/> Print</button></div>}/>
     <HistorySummary/>
     <section className="card f-filters" aria-label="Report filters">
