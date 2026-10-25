@@ -1,6 +1,6 @@
 # D5 · Roles and device behaviour (v8) — EMULATED
 
-**Progress:** 25 Oct, API 35 on the work PC. Done: roles x10, Back checks, Reset, CSV+share, print A4, D-01 wording. Next: T-04 "1 night · 1 guest" (needs 1-night booking, done inside AC-M05 in D5_AC.md).
+**Progress:** 25 Oct, API 35 run on the work PC. Part 2 DONE (all checks; T-04 verified inside AC-M05). See table below.
 
 ## Earlier attempt (home PC, kept for the record)
 25 Oct (resumed) — `codex_api35_google` cold-booted with `-no-snapshot-load` stayed `offline` for ~15 min (killed). FALLBACK was `codex_apk_review` (emulator-5556, Android 11, WebView 83, phone layout). Results from that attempt were for WebView 83 / Android 11, not API 35. Nothing below depends on it.

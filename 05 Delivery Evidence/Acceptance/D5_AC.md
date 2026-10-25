@@ -1,6 +1,6 @@
 # D5 · AC-M05…M08 phone flows — EMULATED
 
-**Progress:** 25 Oct (resumed, APK v8) — Part 1 AC-01 (v7) DONE; AC-02 re-test (v8) DONE, emulator-5556 shut down. Next = Parts 2–3 on codex_api35_google (cold boot, up to 15 min).
+**Progress:** 25 Oct, API 35 (work PC), APK v8. Done: Part 1/AC-02 (earlier), AC-M08 block check, AC-M05 (incl. restricted stay + manager override). Next: deposit + cashier flow (AC-M06), M08 close, M07, BL-01. Results are in the "Parts 2-3 on API 35" section at the end.
 
 - Date: 24 Oct 2026 · Agent D-C
 - Device: **EMULATED** — AVD `codex_apk_review` (`sdk_phone_x86_64`, Android 11 / API 30, AOSP image without Play), serial `emulator-5556`, 1080×1920 @ 420 dpi (CSS viewport 412×660, DPR 2.625), DevTools port 9232
@@ -58,3 +58,18 @@ APK versionCode 8, SHA-256 `2BA3FE68B03E2C535B758D288B3B8862F6CE3F87BB592A39E63A
 | Scenario picker (S0 load) and Record payment sheet visible | **Pass** | `d5-ac\v8-ac02-record-payment-sheet-webview83.png` | Real taps; "Record a payment · HCC-1041 Ananya Rao" sheet on screen (overlay y=0). |
 
 AC-02 is **fixed** in v8. Cold start 3,284 ms.
+
+
+## Parts 2–3 on API 35 (work PC) — 25 Oct 2026 · EMULATED
+
+Device: `codex_api35_google` (Android 15 / API 35, WebView 124), `emulator-5554`, phone layout 412×842 css px; APK v8 SHA-256 `2BA3FE68…8A52C3` (verified). The earlier WebView-83 notes above are kept. Scenario S0 loaded via DEMO → Scenario. Real taps (`adb shell input tap`) for key actions; DevTools only for reading the DOM and typing into fields.
+
+| Check | Result | Evidence | Notes |
+|---|---|---|---|
+| AC-M08a Open restaurant checks block the close (24 Oct) | Pass | `d5-ac\v8-m08-close-blocked-open-checks.png` | Manager Closing: "Table T2 · POS-F03 · ₹1,914 open", "Room 201 · POS-F04 · ₹330 open", EXP-102 unresolved; button "Resolve preflight (3 left)"; close step "4 checks still blocking" |
+| AC-M05 Reception books Room 105, 24→26 Oct, 2 adults, Phone, Rahul Verma (fictional) | Pass | DOM; `v8-m05-checkin-done.png` | 4-step wizard, ₹2,000/night, ₹4,000 + tax; booking HCC-1101 confirmed |
+| AC-M05 ₹1,000 UPI advance DEMO-UPI-0001 | Pass | DOM | Folio credit ₹1,000, balance −₹1,000 |
+| AC-M05 Check in on phone (Arrivals, 6-step wizard) | Pass | `v8-m05-checkin-done.png` | "checked in to room 105"; needed address, ID type, last 4 and the tariff-confirmation tick |
+| AC-M05 Restricted 7→8 Nov stay shows warning (Reception) | Pass | `v8-m05-restricted-warning.png`, `v8-m05-restricted-reception-blocked.png` | "Minimum stay 2 nights … (Diwali weekend). Ask a manager to override…"; Next does not advance |
+| AC-M05 Manager override | Pass | DOM | Meera: "Override restriction" tick + reason; review shows "Overridden: …"; booking HCC-1108 confirmed |
+| T-04 phone booking list "1 night" | Pass* | `d5-roles\v8-booking-list-1-night.png` | Card reads "Room 101 · 7 Nov – 8 Nov · 1 night". *Phone cards show no guest count, so "1 night · 1 guest" exists only in the desktop table; not a defect |
