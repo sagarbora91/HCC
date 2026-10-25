@@ -28,7 +28,7 @@ Write-Host ("git: " + (git --version) + " · node: " + (node -v))
 
 Step "Cloning repository into $Target"
 if(Test-Path (Join-Path $Target '.git')){ throw "$Target already contains a git repository — choose an empty folder." }
-git clone --branch main (Join-Path $Package 'HCC.bundle') $Target
+git -c core.autocrlf=false clone --branch main (Join-Path $Package 'HCC.bundle') $Target   # keep files byte-identical to the old PC
 Set-Location $Target
 git config core.autocrlf false
 git remote remove origin 2>$null
@@ -37,7 +37,6 @@ foreach($ref in (git ls-remote (Join-Path $Package 'HCC.bundle') 'refs/heads/*' 
   if($name -ne 'main'){ git fetch -q (Join-Path $Package 'HCC.bundle') "$($ref):refs/heads/$name" }
 }
 git branch -a
-git checkout -q -- .   # re-checkout with autocrlf=false so files match the old PC byte for byte
 
 Step 'Copying the APK (not stored in git)'
 $apkDir = Join-Path $Target '05 Delivery Evidence\APK'
