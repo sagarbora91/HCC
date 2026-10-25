@@ -14,6 +14,7 @@
     <Project Path="tests/Hcc.Stays.Tests/Hcc.Stays.Tests.csproj" />
     <Project Path="tests/Hcc.Inventory.Tests/Hcc.Inventory.Tests.csproj" />
     <Project Path="tests/Hcc.Integration.Tests/Hcc.Integration.Tests.csproj" />
+    <Project Path="tests/Hcc.Handover.Tests/Hcc.Handover.Tests.csproj" />
     <Project Path="tests/Hcc.Operations.Tests/Hcc.Operations.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
@@ -24,5 +25,6 @@
     <File Path="database/migrations/0200_inventory_reservations.sql" />
     <File Path="database/migrations/0300_stays_housekeeping.sql" />
     <File Path="database/migrations/0400_billing_payments.sql" />
+    <File Path="database/migrations/1700_handover.sql" />
   </Folder>
 </Solution>
