@@ -12,5 +12,7 @@
   <ItemGroup>
     <!-- Migrations are embedded so the runner never depends on the working directory. -->
     <EmbeddedResource Include="..\..\database\migrations\*.sql" LogicalName="Hcc.Migrations.%(Filename)%(Extension)" />
+    <!-- P1 access migrations (block 0100-0199), loaded by Access/AccessMigrationSource until the runner accepts numbered blocks. -->
+    <EmbeddedResource Include="..\..\database\migrations\access\*.sql" LogicalName="Hcc.AccessMigrations.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
