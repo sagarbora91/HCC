@@ -225,3 +225,44 @@ Lock maker-checker catches salary and OT only if the Owner reads every line.
 
 ## Reproduction scripts
 Throwaway scripts in `C:\Users\Sagar\AppData\Local\Temp\claude\E--Projects-HCC\6a150a4d-06c3-4432-94fc-b460e9c5e876\scratchpad\w05b\` (t1.mjs to t6.mjs, run against a bundle of `src/services/mock/index.ts` at 558e915).
+
+## Fixes applied (25 Oct 2026)
+
+Branch `claude/w05b-review-fixes` (worktree `E:\Projects\HCC\worktrees\payfix`, from `integration/w05` 61e1369). Regression tests are in `03 Prototype\tests\stream-payroll-fixes.mjs`, named `[PAY-FIX F-nn]`. Each test was run against the code before its fix and failed, then passed after it. Totals after the fixes: tsc clean, **604/604 tests** (584 + 20), build OK. SCHEMA is unchanged at 7.
+
+| Finding | Commit | Test | What changed |
+|---|---|---|---|
+| F-01 | 0a71663 | `[PAY-FIX F-01]` | `hrCounts` and `hrDayStatus` check the rostered weekly off before approved leave. LOP over a weekly off now gives `lopLeave` = stored `days`. HCC has no holiday calendar yet; the code comment marks where holidays belong. |
+| F-02 | 604091c | `[PAY-FIX F-02]` | Lock copies the bank details into `run.bank`, and the bank CSV reads that copy. Unlock clears it. Later staff-master edits apply only to future runs. The audit shows masked old → new values. You cannot edit your own bank details. Fixture locked runs carry the snapshot too. |
+| F-03 | d749d08 | `[PAY-FIX F-03]` | Linking or unlinking a login is Owner-only (payroll + admin). Nobody can change the link on their own record. Relinking a record that has locked payslips needs `confirmRelink`. The audit shows login old → new. The dialog marks the field "Owner only". |
+| F-04 | 484b8ca | `[PAY-FIX F-04]` | `hrMigrateLegacy` turns old `rates` into `rateVersions`, keeping custom values. Old runs get a full rate snapshot and their missing fields, and are marked `legacy`. `restoreState` now migrates saves with schema 7…SCHEMA (keyed on schema < 8) instead of resetting them. Totals, CSVs and payslips never show NaN or undefined. |
+| F-05 | 78e4e96 | `[PAY-FIX F-05]` | A new version starts from the version in force on its own date, and only the fields in the command change. A changed field carries forward into later versions that had inherited the old value. A later version that set its own value keeps it. The dialog reloads for the chosen month and sends only the fields that changed. |
+| F-06 | 5346e27 | `[PAY-FIX F-06]` | `hrRatesDefaultFrom` = max(current month, month after the last locked run). The hub adapter sends `from` and shows "Effective from 1 <month>". If you choose a completed month that is not locked, the audit and the dialog name that month. |
+| F-07 | 8b38d1d | `[PAY-FIX F-07]` | Dated `esicPeriod` rule (on in the default version; marked illustrative, CA to confirm). Coverage is decided per contribution period: from the earliest locked run in the period, or else from the contractual wage. ₹22,000 with 2 LOP days: ESIC 0. |
+| F-08 | 37eb031 | `[PAY-FIX F-08]` | Header comment, plus an `HR_NOT_PORTED` note on the leave-policy and rates screens. |
+| F-09 | 1b2631c | `[PAY-FIX F-09]` | New `HR_PAYROLL_BANK_FILE` records each bank file; a repeat needs confirmation and is audited as REISSUE. Unlock needs `confirmBankFile` once a file was issued. It moves the sent marks, bank files and locked net figures into `unlocks[i]`. After relock, staff whose net changed are flagged "re-send". The bank file that pays only the differences is **not** built. |
+| F-10 | 1a70bf7 | `[PAY-FIX F-10]` | You cannot change your own salary or PF/ESIC flags, give yourself an advance, or mark or correct your own attendance or overtime. The error is FORBIDDEN "Self-approval is not allowed". |
+| F-11 | 0ce633a | `[PAY-FIX F-11]` | Changing gender (PT slab) or the phone number of an existing record needs Owner or Accountant. Omitting the phone no longer blanks it. The audit shows old → new, with the mobile masked. The send button shows the destination number. |
+| F-12 | 3c34c1f | `[PAY-FIX F-12]` | The settlement is saved as a Draft, then `HR_FNF_CONFIRM` (by the other payroll user, never the maker) re-checks the figures, settles and writes off the advance. `HR_FNF_DISCARD` drops a draft. Each adjustment is capped at ₹2,00,000. Additions above ₹1,00,000 in total need the Owner as checker. Both limits are illustrative. |
+| F-13 | — | (F-03/F-11 tests) | DEC-061 already covers the policy. The enforcement gaps are closed by F-03 and F-11. |
+| F-14…F-17 | aec6a87 | `[PAY-FIX F-14]`…`[F-17]` | F-14: payslip rate labels come from `run.rates`. F-15: `left` is clamped at 0 and shows "over by N"; the policy dialog warns. F-16: daily-wage history leave is LOP, and the random draw is kept so the rest of the history is unchanged. F-17: the statutory CSV footer says Locked or DRAFT, and text cells starting with `= + - @` are neutralised. |
+| W05P-1/2, compat | bb3a3d0 | `[PAY-FIX W05P-1]`, `[W05P-2]`, `[COMPAT]` | When Payroll is switched off, the payroll tabs are hidden. Hub rate rows show the real effective rule (new optional `CfgProviderDef.effectiveText`), and the long help appears once per setting. Staff files no longer use `.at()` or `structuredClone`. |
+| W05P-3 | 9b87552 | `[PAY-FIX W05P-3]` | 48 px targets and 16 px text for HR and config on the phone shell (`m-staff.css`, `m-config.css`). |
+
+**FY26 locked-run figures (old → new).** The "locked runs verified" test [HIST-C] still passes.
+- **F-07:** Neha (₹22,000) is no longer charged ESIC in the months when LOP took her earned pay under ₹21,000.
+  - May net ₹1,93,697.62 → ₹1,93,846.79
+  - June net ₹2,11,184.79 → ₹2,11,331.09
+  - September net ₹2,08,745.31 → ₹2,08,889.00
+  - Employee ESIC falls by ₹149.17, ₹146.30 and ₹143.69, and employer ESIC by ₹646.38, ₹633.97 and ₹622.65 in those three months.
+- **F-01 and F-16:** these change only the paid-leave, LOP and weekly-off counts in Apr, Jun and Jul (5 lines). No money changes.
+- BASE August run: unchanged.
+
+**Not done / needs a decision**
+- F-02: bank-detail changes are not a full maker-checker request. They are audited (masked), frozen at lock, and blocked on your own record.
+- F-09: there is no bank file that pays only the differences. The Owner is warned and must confirm instead.
+- Owner/CA decisions:
+  - F-07 rule and its contractual-wage basis (daily wage × 26)
+  - F-08 extra-days rule
+  - F-12 limits (₹2 lakh per adjustment, ₹1 lakh Owner threshold)
+  - F-04: old staff have no gender recorded, so they default to the men's PT slab; payroll must set gender where it applies.
