@@ -104,7 +104,7 @@ export function CashBookView({phone=false}:{phone?:boolean}){
         {pg.shown.map(d=><tr key={d.date}><td><strong>{shortDate(d.date)}</strong><small>{d.date}</small></td>
           <td><Pill tone={tone(d)}>{d.locked?'Locked':d.status==='Closed'?'Closed':'Open'}</Pill></td>
           <td className="number">{money(d.opening)}</td><td className="number">{money(d.receipts)}</td><td className="number">{money(d.payments)}</td><td className="number">{money(d.closing)}</td>
-          <td className="number">{d.counted===undefined?'—':money(d.counted)}</td><td className="number">{d.difference?money(d.difference):'—'}</td><td><button className="btn small-btn" onClick={()=>setDay(d.date)}>Open day</button></td></tr>)}
+          <td className="number">{d.counted===undefined?'—':money(d.counted)}</td><td className="number">{d.difference?money(d.difference):'—'}</td><td><button className="btn small-btn" aria-label={`Open day ${dateLabel(d.date)}`} onClick={()=>setDay(d.date)}>Open day</button></td></tr>)}
       </tbody></table></div>}
       <ShowMore p={pg}/></section></div>;
 }

@@ -82,7 +82,7 @@ export function TaskCard({t,large}:{t:Task;large?:boolean}){
       ?<button className="btn full" disabled={busy} onClick={()=>run({type:'UNBLOCK',id:t.room,key:'unblock:'+t.room+':'+s.sequence},'Room unblocked and back in inventory')}>Unblock room</button>
       :<small className="hk-reason">Room stays blocked until a supervisor unblocks it.</small>)}
     <div className="hk-links">
-      <button className="text-btn" onClick={()=>open({type:'room',id:t.room})}>Room details</button>
+      <button className="text-btn" aria-label={`Room details, room ${t.room}`} onClick={()=>open({type:'room',id:t.room})}>Room details</button>
       {kind!=='repair'&&t.status!=='Done'&&canReport&&(openRepair?<small className="muted">Repair already reported</small>:<button className="text-btn" onClick={()=>open({type:'room-repair',id:t.room})}><Wrench size={12}/> Report repair</button>)}
     </div>
     {large&&kind==='stayover'&&t.status==='To do'&&<div className="hk-note"><Info size={13}/> Guest is staying — service only; no inspection needed.</div>}

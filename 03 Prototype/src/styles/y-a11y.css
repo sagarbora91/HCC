@@ -1,0 +1,38 @@
+/* Accessibility layer (WCAG 2.1 AA). Loaded after the feature sheets, before z-touch.css / z-tablet.css / zz-print.css. */
+
+/* 1. Focus ring. Plain :focus first (Chrome 83 has no :focus-visible and would drop a combined rule), then take it back for pointer focus. */
+button:focus,a:focus,input:focus,select:focus,textarea:focus,summary:focus,[tabindex]:focus{outline:3px solid #7a1f2b;outline-offset:3px}
+.signin-user:focus,.tile:focus,.drawer-item:focus,.drawer-sub:focus,.yld-cell:focus,button.res-cal-cell.free:focus{outline:3px solid #7a1f2b;outline-offset:2px}
+.signin-user:focus-visible,.tile:focus-visible,.drawer-item:focus-visible,.drawer-sub:focus-visible,.yld-cell:focus-visible,button.res-cal-cell.free:focus-visible{outline:3px solid #7a1f2b;outline-offset:2px}
+.drawer-item:focus,.drawer-sub:focus,.drawer-item:focus-visible,.drawer-sub:focus-visible,.cfg-row:focus,.cfg-row:focus-visible{outline-offset:-3px}
+.m-appbar button:focus,.m-appbar a:focus,.m-tabbar button:focus{outline-color:#fff}
+.m-appbar button:focus-visible,.m-appbar a:focus-visible,.m-tabbar button:focus-visible{outline-color:#fff}
+[role="dialog"]:focus,main:focus,[tabindex="-1"]:focus{outline:none}
+/* search fields hide the native outline on the input, so ring the whole field */
+.search:focus-within,.cfg-search:focus-within,.search-field:focus-within,.ai-input:focus-within{outline:3px solid #7a1f2b;outline-offset:2px}
+.search-field:focus-within{outline-offset:-3px}
+.search input:focus,.cfg-search input:focus,.search-field input:focus{outline:0}
+.search input:focus-visible,.cfg-search input:focus-visible,.search-field input:focus-visible{outline:0}
+/* pointer focus: no ring (only where :focus-visible exists, so Chrome 83 keeps its :focus ring) */
+button:focus:not(:focus-visible),a:focus:not(:focus-visible),summary:focus:not(:focus-visible),.tile:focus:not(:focus-visible),.signin-user:focus:not(:focus-visible),.drawer-item:focus:not(:focus-visible),.drawer-sub:focus:not(:focus-visible){outline:none}
+
+/* 2. Skip link */
+.skip-link{position:absolute;left:8px;top:-60px;z-index:100;background:#7a1f2b;color:#fff;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none}
+.skip-link:focus{top:8px;outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px #7a1f2b}
+
+/* 3. Control boundaries >= 3:1 (#8c7766 is 4.25:1 on white and 3.94:1 on #faf6f0). The :not(#_) trick lifts specificity above class rules. */
+input:not(#_):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),select:not(#_),textarea:not(#_){border-color:#8c7766}
+.search:not(#_),.cfg-search:not(#_),.ai-input input:not(#_){border-color:#8c7766}
+input:not(#_):focus,select:not(#_):focus,textarea:not(#_):focus,.search:focus-within:not(#_),.cfg-search:focus-within:not(#_){border-color:#7a1f2b}
+
+/* 4. Disabled buttons stay legible and say so without colour: solid sand fill, dashed border, no fading (label 6.68:1). */
+.btn:disabled,.btn.primary:disabled,.btn.danger:disabled{opacity:1;background:#efe4d6;color:#5c4a3e;border:1px dashed #6b5547;box-shadow:none}
+.text-btn:disabled{opacity:1;color:#6b5547;text-decoration:line-through}
+button:disabled:not(.btn):not(.text-btn){opacity:.6}
+
+/* 5. Room tiles: letter + colour */
+.mr-code{margin-left:4px;font-weight:700}
+.legend b{font-weight:700}
+
+/* 6. Phone: form text 16 px so fields do not zoom or shrink (A-19) */
+.m-shell input:not([type="checkbox"]):not([type="radio"]),.m-shell select,.m-shell textarea{font-size:16px}

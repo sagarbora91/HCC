@@ -36,7 +36,7 @@ export function ArrivalsPage(){
         <td>{b.registered?<Pill tone="green">✓ Verified</Pill>:<Pill tone="blue">Not yet</Pill>}</td>
         <td><RoomState b={b}/></td>
         <td className="number">{money(totals(b).paid)}</td>
-        <td>{permission('checkin')?<button className="btn small-btn primary" onClick={()=>open({type:'guest-checkin',id:b.id})}>{b.registered?'Continue check-in':'Start check-in'}</button>:<span className="muted">Check-in permission needed</span>}</td></tr>;})}
+        <td>{permission('checkin')?<button className="btn small-btn primary" aria-label={`${b.registered?'Continue check-in':'Start check-in'}, ${b.guest}`} onClick={()=>open({type:'guest-checkin',id:b.id})}>{b.registered?'Continue check-in':'Start check-in'}</button>:<span className="muted">Check-in permission needed</span>}</td></tr>;})}
     </tbody></table>{!list.length&&<Empty title="No arrivals waiting" body="Everyone expected today has checked in. Use Walk-in for guests without a reservation."/>}</div></section>
     {today.length>0&&<section className="card"><div className="section-title"><h2>Checked in today</h2><span className="muted">{today.length}</span></div>
       <ul className="gs-simple-list">{today.map(b=><li key={b.id}><span className="room-number">{b.room}</span><strong>{b.guest}</strong><small>{b.id}</small><button className="text-btn" onClick={()=>open({type:'stay-detail',id:b.id})}>Stay details</button></li>)}</ul></section>}
