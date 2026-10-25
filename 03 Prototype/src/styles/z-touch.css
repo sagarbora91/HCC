@@ -17,5 +17,10 @@
 @media (max-width:767px){
   .f-seg button{min-height:var(--hcc-touch-primary,48px);padding-left:14px;padding-right:14px}
   .form label{font-size:16px}
-  .m-chips button .count,.m-chips button small{font-size:14px}
+  .m-chips button .count,.m-chips button small,.m-chips button b{font-size:14px}
+  /* V9-2: the sheet rule `.modal.m-sheet .form label` (14 px) and `.mm-seg button` (44 px) out-ranked the rules above */
+  .modal.m-sheet .form label,.modal .form label{font-size:16px}
+  .mm-seg button,.modal.m-sheet .f-seg button{min-height:var(--hcc-touch-primary,48px)}
+  .mm-seg b{font-size:14px}
+  .m-demo-pill{font-size:14px}
 }
