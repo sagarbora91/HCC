@@ -110,7 +110,7 @@ export function createStateStorage(deps:StorageDeps):StateStorage{
     return {state,reset:r.reset,...(r.reason?{reason:r.reason}:{})};
   }
   function write(){
-    const s=latest;if(!s)return Promise.resolve();
+    const s=latest;if(!s)return queue;// nothing new: wait for a write already in progress
     latest=null;
     queue=queue.then(async()=>{
       const st=s as unknown as Record<string,unknown>,full=saved===null;
