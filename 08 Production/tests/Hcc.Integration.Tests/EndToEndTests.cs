@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hcc.Contracts;
 using Hcc.Contracts.Access;
 using Hcc.Contracts.Billing;
+using Hcc.Contracts.Closing;
 using Hcc.Contracts.Housekeeping;
 using Hcc.Contracts.Inventory;
 using Hcc.Contracts.Reservations;
@@ -16,7 +17,7 @@ namespace Hcc.Integration.Tests;
 /// Reception and Housekeeper PIN on a registered device, bearer token) → book (P2) → register guest → check in (P3) → post
 /// room nights → cash receipt on Reception's own shift (P4) → checkout → StayDeparted → housekeeping task (projector worker)
 /// → assigned clean → inspect → Ready. Prototype room 105 figures: 2 nights × ₹2,000 + 10 % tax = ₹4,400 incl. ₹400 tax.
-/// Business dates are advanced with SQL (day close is P6).
+/// Business dates are advanced by the P6 day close (RunBusinessDayClose over HTTP: preflight, nights, close + snapshot, next day).
 /// </summary>
 [Trait("Category", "Sql")]
 public sealed class EndToEndTests
@@ -115,6 +116,17 @@ public sealed class EndToEndTests
         return (booking.ReservationId, stay.StayId, stay.FolioId, stay.StayVersion);
     }
 
+    /// <summary>P6 day close over HTTP; returns once the next business date is open.</summary>
+    private static async Task CloseDayAsync(HttpClient owner, DateOnly date)
+    {
+        var run = await Wire.CommandAsync<CloseRunResult>(owner, "RunBusinessDayClose", new RunBusinessDayCloseRequest(date, "e2e-" + date.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)), Ct);
+        Assert.Equal(("Completed", date.AddDays(1)), (run.Status, run.NextBusinessDate));
+        var iso = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var snap = await Wire.GetAsync<ClosingSnapshotView>(owner, "/closing/snapshots/" + iso, Ct);
+        var report = await Wire.GetAsync<Hcc.Contracts.Reporting.DailyReportView>(owner, $"/reports/daily?from={iso}&to={iso}", Ct);
+        Assert.Equal((date, snap.Record.Figures.Revenue.NetPaise, (bool?)true), (snap.Record.BusinessDate, report.Report.Revenue.NetPaise, report.DayStatus.Single().MatchesSnapshot));
+    }
+
     [Fact]
     public async Task Sign_in_book_check_in_post_nights_pay_check_out_clean_and_inspect_room_105()
     {
@@ -133,9 +145,9 @@ public sealed class EndToEndTests
         await Wire.CommandFailsAsync(staff.Reception, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 24)), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
         var n1 = await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 24)), Ct);
         Assert.Equal((200000L, 1000, 20000L), (n1.AmountPaise, n1.TaxBps, n1.TaxPaise));
-        await s.ScalarAsync($"UPDATE inv.property SET business_date = '2026-10-25' WHERE property_id = {s.PropertyId};", Ct);
+        await CloseDayAsync(staff.Owner, new DateOnly(2026, 10, 24));
         await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 25)), Ct);
-        await s.ScalarAsync($"UPDATE inv.property SET business_date = '2026-10-26' WHERE property_id = {s.PropertyId};", Ct);
+        await CloseDayAsync(staff.Owner, new DateOnly(2026, 10, 25));
 
         // Shared front-desk till (DEC-052): Owner creates it, Reception opens its own shift and takes the cash.
         var till = await Wire.CommandAsync<TillResult>(staff.Owner, "CreateTill", new CreateTillRequest("FD-1", "Front desk"), Ct);
@@ -206,7 +218,7 @@ public sealed class EndToEndTests
         var room106 = await s.CountAsync("SELECT room_id FROM inv.room WHERE room_no = '106'", Ct);
         var (_, stayId, folioId, stayVersion) = await BookAndCheckInAsync(staff.Reception, room106, "2026-10-24", "2026-10-25", "Acme Travels guest (fictional)", 220000);
         await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 24)), Ct);
-        await s.ScalarAsync($"UPDATE inv.property SET business_date = '2026-10-25' WHERE property_id = {s.PropertyId};", Ct);
+        await CloseDayAsync(staff.Owner, new DateOnly(2026, 10, 24));
         await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioId, "deposit", "UPI", 50000, "UPI-DEP-106", null), Ct);
 
         async Task<long> ApprovedCreditAsync()

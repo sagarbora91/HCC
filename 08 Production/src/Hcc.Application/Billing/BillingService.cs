@@ -16,7 +16,7 @@ namespace Hcc.Application.Billing;
 /// the folio version, refund remainder under a row lock on the parent receipt (spike C3), cash only into an open shift.
 /// </summary>
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
-    ITaxRateSource taxRates, TimeProvider clock)
+    ITaxRateSource taxRates, TimeProvider clock, Closing.IBusinessDayGuard? days = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -36,6 +36,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             if (f.ReservationStatus != "InHouse") throw Invalid("Check in before posting room nights.");
             if (req.ServiceDate < f.Arrival || req.ServiceDate >= f.Departure) throw Invalid("The service date is outside the stay.");
             if (req.ServiceDate > f.BusinessDate) throw HccException.Validation("A room night cannot be posted ahead of the business date.");
+            if (req.ServiceDate < f.BusinessDate) throw Hcc.Domain.Closing.CloseRules.DayClosed(req.ServiceDate); // P6 late-write barrier: earlier dates are closed (DEC-042)
 
             var existing = await store.FindRoomNightAsync(tx, f.FolioId, req.ServiceDate, ct2).ConfigureAwait(false);
             if (existing is not null)
@@ -218,6 +219,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                     if (!f.IsOpen) throw Invalid("This booking is no longer open.");
                     if (req.TargetId is not { } cid) throw HccException.Validation("Select the posted line to correct.");
                     var line = lines.FirstOrDefault(l => l.ChargeId == cid) ?? throw NotFound("Select the posted line to correct.");
+                    if (days is not null) await days.EnsureCashBookOpenAsync(tx, caller.PropertyId, line.ServiceDate, "a correction", ct2).ConfigureAwait(false); // P6 DEC-065
                     if (line.ReversesChargeId is not null) throw Invalid("A reversal line cannot itself be reversed.");
                     if (lines.Any(l => l.ReversesChargeId == cid) || Pending(AdjustmentAction.Correction, cid))
                         throw Invalid("This line is already reversed or has a correction pending.");
@@ -313,6 +315,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                 {
                     if (!f.IsOpen) throw Invalid("This booking is no longer open.");
                     var line = lines.FirstOrDefault(l => l.ChargeId == a.TargetId) ?? throw NotFound("The original line no longer exists.");
+                    if (days is not null) await days.EnsureCashBookOpenAsync(tx, caller.PropertyId, line.ServiceDate, "posting this correction", ct2).ConfigureAwait(false); // P6 DEC-065
                     if (lines.Any(l => l.ReversesChargeId == line.ChargeId)) throw Invalid("This line is already reversed.");
                     var reversal = new NewCharge(f.FolioId, ChargeKind.Correction, f.BusinessDate, Clip($"Reversal · {line.Label} · {a.Reason}", 200), -line.Amount,
                         line.TaxBps, -line.Tax, line.ChargeId, a.ApprovalId, caller.PrincipalId, now);
