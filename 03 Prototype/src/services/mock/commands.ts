@@ -18,7 +18,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
   if(current!.expiresOn&&input.date>current!.expiresOn)fail('FORBIDDEN',`This demo user’s access expired on ${current!.expiresOn}. Switch to an active user.`);
   // Idempotency: a key already executed returns the earlier result unchanged (AC-005, AC-022).
   if(cmd.key&&input.processed.includes(cmd.key))return input;
-  const s=clone(input),u=s.users.find(x=>x.id===uid);
+  const s=cowDraft(input),u=s.users.find(x=>x.id===uid);
   const user=u!;
   const req=(p:Permission)=>{if(!can(s,uid,p))fail('FORBIDDEN',`Access denied: ${p} permission is required.`);};
   const id=(prefix:string)=>prefix+'-'+(++s.sequence);
@@ -189,7 +189,33 @@ export function execute(input:State,uid:string,cmd:Command):State{
   // Simulated clock: every successful command advances one minute (deterministic, DEC-030).
   if(cmd.type!=='NEXT_DAY')s.clock=addMinutes(s.clock,1);
   s.audit.unshift({id:id('audit'),at:s.clock,actor:user.name,action:cmd.type.split('_').join(' '),detail});
-  return s;
+  return cowFinish(input,s);
+}
+
+// Copy-on-write per top-level slice (audit P-04). The draft starts with every object slice as a lazy getter: the first read or
+// write of `s.<slice>` deep-clones that slice from the input, so handlers still mutate a private copy and a failed command
+// leaves the input untouched. Slices the command never touches keep the input's object identity in the result — that is what
+// lets app/storage.ts write only changed slices. Callers must treat states as immutable (all mutations go through execute()).
+function cowDraft(input:State):State{
+  const d={} as Record<string,unknown>,src=input as unknown as Record<string,unknown>;
+  const fix=(k:string,v:unknown)=>{Object.defineProperty(d,k,{value:v,writable:true,configurable:true,enumerable:true});};
+  for(const k of Object.keys(src)){
+    const v=src[k];
+    if(v===null||typeof v!=='object'){d[k]=v;continue;}
+    Object.defineProperty(d,k,{configurable:true,enumerable:true,get(){const c=clone(v);fix(k,c);return c;},set(x){fix(k,x);}});
+  }
+  return d as unknown as State;
+}
+/** Turns the draft into a plain object: untouched slices are the input's own objects, touched ones the private copies. */
+function cowFinish(input:State,draft:State):State{
+  const out={} as Record<string,unknown>,d=draft as unknown as Record<string,unknown>,src=input as unknown as Record<string,unknown>;
+  for(const k of Object.keys(d)){const p=Object.getOwnPropertyDescriptor(d,k)!;out[k]=p.get?src[k]:p.value;}
+  return out as unknown as State;
+}
+/** Test/diagnostic helper: the top-level slices of `next` that are not shared with `prev`. */
+export function changedSlices(prev:State,next:State):string[]{
+  const a=prev as unknown as Record<string,unknown>,b=next as unknown as Record<string,unknown>;
+  return [...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>a[k]!==b[k]);
 }
 
 /** Toolkit passed to stream handlers. Handlers mutate kit.s (a private clone) and return the audit detail text. */

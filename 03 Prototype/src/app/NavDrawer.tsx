@@ -4,6 +4,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {X,LayoutGrid,Search,ChevronDown,FlaskConical,LogOut,Hotel,Smartphone} from 'lucide-react';
 import {useHcc} from './context';
 import {navItems} from './nav';
+import {trapTab,useReturnFocus} from '../components/ui';
 import {NAV_CATEGORIES,DASHBOARD,HOME_PAGE,PAGE_CATEGORY,catPage,pagesOfCategory,parseCatPage,navFilterModules,type CategoryId} from './navmap';
 
 export function NavDrawer({onClose}:{onClose:()=>void}){
@@ -12,9 +13,10 @@ export function NavDrawer({onClose}:{onClose:()=>void}){
   const here:CategoryId|undefined=parseCatPage(page)??PAGE_CATEGORY[page];
   const [openCat,setOpenCat]=useState<CategoryId|undefined>(here);
   const ref=useRef<HTMLElement>(null);
+  useReturnFocus();
   useEffect(()=>{ref.current?.querySelector<HTMLElement>('button')?.focus();},[]);
   const nav=(p:string)=>{onClose();go(p);};
-  const onKey=(e:React.KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onClose();}};
+  const onKey=(e:React.KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onClose();}else if(ref.current)trapTab(e,ref.current);};
   const cats=NAV_CATEGORIES.map(c=>({c,items:navItems.filter(n=>pagesOfCategory(c.id).includes(n.id)&&allowed.has(n.id))})).filter(x=>x.items.length);
   return <div className="drawer-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
     <aside className="drawer" role="dialog" aria-modal="true" aria-label="Menu" ref={ref} onKeyDown={onKey}>

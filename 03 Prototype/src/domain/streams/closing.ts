@@ -57,16 +57,32 @@ export type CashMovement={id:string;kind:string;label:string;booking?:string;gue
 /** Today's cash movements, signed (+ into the drawer, − out). Sum + opening float = drawer(s).
  *  Shared till (DEC-052): POS cash sales and same-day voids count once here; UPI/card bills and room charges to a folio do not. */
 export function shiftMovements(s:State):CashMovement[]{
-  const rec=s.bookings.flatMap(b=>b.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
-    label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor})));
-  const exp=s.expenses.filter(e=>e.date===s.date&&e.method==='Cash'&&expenseCounts(e)).map(e=>({id:e.id,kind:e.reversalOf?'expense-reversal':'expense',
-    label:e.reversalOf?'Expense reversal · '+e.vendor:'Cash expense · '+e.vendor,reference:e.reversalOf?'Reverses '+e.reversalOf:e.category,amount:-e.amount,actor:e.actor}));
+  const rec=s.bookings.flatMap(b=>b.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>recMovement(b,r)));
+  const exp=s.expenses.filter(e=>e.date===s.date&&e.method==='Cash'&&expenseCounts(e)).map(expMovement);
   const p=posSlice(s);
-  const pos=p.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>{
-    const o=p.orders.find(x=>x.id===r.order),outlet=p.outlets.find(x=>x.id===r.outlet)?.name??r.outlet,bill=o?.settlement?.billNo??r.order;
-    return {id:r.id,kind:r.kind==='void'?'pos-void':'pos-sale',label:`${outlet}${r.kind==='void'?' void':''} · ${bill}`,guest:o?.guest,order:r.order,
-      reference:o?posSpot(o)+' · '+r.reference:r.reference,amount:r.amount,actor:r.actor};});
+  const pos=p.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
   return [...rec,...pos,...exp];
+}
+const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
+  label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor});
+const expMovement=(e:Expense):CashMovement=>({id:e.id,kind:e.reversalOf?'expense-reversal':'expense',
+  label:e.reversalOf?'Expense reversal · '+e.vendor:'Cash expense · '+e.vendor,reference:e.reversalOf?'Reverses '+e.reversalOf:e.category,amount:-e.amount,actor:e.actor});
+const posMovement=(p:ReturnType<typeof posSlice>,r:ReturnType<typeof posSlice>['receipts'][number],o:ReturnType<typeof posSlice>['orders'][number]|undefined):CashMovement=>{
+  const outlet=p.outlets.find(x=>x.id===r.outlet)?.name??r.outlet,bill=o?.settlement?.billNo??r.order;
+  return {id:r.id,kind:r.kind==='void'?'pos-void':'pos-sale',label:`${outlet}${r.kind==='void'?' void':''} · ${bill}`,guest:o?.guest,order:r.order,
+    reference:o?posSpot(o)+' · '+r.reference:r.reference,amount:r.amount,actor:r.actor};};
+/** shiftMovements for many business dates in one pass over receipts / expenses (a range used to rescan every record once per day).
+ *  Returns the movements of any date exactly as shiftMovements({...s,date}) would. Built per call, so it can never go stale. */
+export function shiftMovementsByDate(s:State,from:string,to:string):(d:string)=>CashMovement[]{
+  const rec=new Map<string,CashMovement[]>(),exp=new Map<string,CashMovement[]>(),pos=new Map<string,CashMovement[]>();
+  const add=(m:Map<string,CashMovement[]>,d:string,x:CashMovement)=>{const l=m.get(d);if(l)l.push(x);else m.set(d,[x]);};
+  const inR=(d:string)=>d>=from&&d<=to;
+  for(const b of s.bookings)for(const r of b.receipts)if(r.method==='Cash'&&inR(r.date))add(rec,r.date,recMovement(b,r));
+  for(const e of s.expenses)if(e.method==='Cash'&&inR(e.date)&&expenseCounts(e))add(exp,e.date,expMovement(e));
+  const p=posSlice(s),orders=new Map<string,(typeof p.orders)[number]>();
+  for(const o of p.orders)if(!orders.has(o.id))orders.set(o.id,o);
+  for(const r of p.receipts)if(r.method==='Cash'&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
+  return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[])];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
 /** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
@@ -204,23 +220,39 @@ const receiptRow=(b:Booking,r:Receipt):DrillRow=>({date:r.date,ref:r.id,booking:
   amount:r.kind==='refund'||r.kind==='deposit-return'?-r.amount:r.amount});
 const expenseRow=(e:Expense):DrillRow=>({date:e.date,ref:e.id,detail:`${e.vendor} · ${e.category}${e.reversalOf?' · reverses '+e.reversalOf:''}${e.status==='Reversed'?' · later reversed':''}`,method:e.method,kind:e.reversalOf?'reversal':'expense',amount:e.amount});
 const metric=(id:string,label:string,rows:DrillRow[],unit:'money'|'count'='money',note?:string):ReportMetric=>({id,label,unit,rows,note,value:rows.reduce((a,r)=>a+r.amount,0)});
-const sumBy=(rows:DrillRow[],d:string)=>rows.filter(r=>r.date===d).reduce((a,r)=>a+r.amount,0);
+/** Per-date totals of drill rows in one pass (same figure as filtering the rows by date and adding them up). */
+const sumsByDate=(rows:DrillRow[])=>{const m=new Map<string,number>();for(const r of rows)m.set(r.date,(m.get(r.date)??0)+r.amount);return m;};
+const dayOffset=(from:string,d:string)=>Math.round((Date.parse(d+'T12:00:00Z')-Date.parse(from+'T12:00:00Z'))/86400000);
 
 /** Every report tab for an inclusive business-date range. Each metric's value is exactly the sum of its drill-down rows. */
 export function reportPack(s:State,from:string,to:string):ReportPack{
   const dates=reportDates(from,to);
   const lines=reportLines(s,from,to),rec=reportReceipts(s,from,to),exp=reportExpenses(s,from,to);
-  const L=(k?:Line['kind'])=>lines.filter(x=>!k||x.l.kind===k).map(x=>lineRow(x.b,x.l,x.l.amount));
+  // Rows and per-date sums are built once per selection (the day tables used to rebuild them for every date).
+  const memoRows=<K,V>(f:(k:K)=>V)=>{const c=new Map<K,V>();return (k:K)=>{let v=c.get(k);if(v===undefined){v=f(k);c.set(k,v);}return v;};};
+  const Lk=memoRows((k:string)=>lines.filter(x=>!k||x.l.kind===k).map(x=>lineRow(x.b,x.l,x.l.amount)));
+  const L=(k?:Line['kind'])=>Lk(k??'');
   const taxRows=lines.map(x=>lineRow(x.b,x.l,lineTax(x.l)));
-  const R=(kinds:string[],method?:string)=>rec.filter(x=>kinds.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));
+  const Rk=memoRows((key:string)=>{const [kinds,method]=key.split('|');const ks=kinds.split(',');return rec.filter(x=>ks.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));});
+  const R=(kinds:string[],method?:string)=>Rk(kinds.join(',')+'|'+(method??''));
+  const sumsOf=memoRows((rows:DrillRow[])=>sumsByDate(rows));
+  const sumBy=(rows:DrillRow[],d:string)=>sumsOf(rows).get(d)??0;
   // Shared till: POS receipts are separate source records; folio transfers create no receipt here.
   const posCash:DrillRow[]=posSlice(s).receipts.filter(r=>r.method==='Cash'&&inRange(r.date,from,to)).map(r=>({
     date:r.date,ref:r.id,detail:`POS ${r.kind} · ${r.order} · ${r.reference}`,method:r.method,kind:'pos-'+r.kind,amount:r.amount}));
-  const stayRows=dates.flatMap(d=>reportStaysOn(s,d).map(b=>({date:d,ref:b.id+':'+d,booking:b.id,guest:b.guest,room:b.room,detail:'Occupied room night · '+b.status,amount:1})));
+  // Occupied room-nights: each stay is spread over its dates once (the old scan visited every booking for every date); order = date, then booking order.
+  const stayBy:DrillRow[][]=dates.map(()=>[]);
+  for(const b of s.bookings){
+    if(b.status!=='In house'&&b.status!=='Departed')continue;
+    for(let i=Math.max(0,dayOffset(from,b.arrival));i<dates.length&&i<dayOffset(from,b.departure);i++)
+      stayBy[i].push({date:dates[i],ref:b.id+':'+dates[i],booking:b.id,guest:b.guest,room:b.room,detail:'Occupied room night · '+b.status,amount:1});
+  }
+  const stayRows=stayBy.flat();
   const sellRows=dates.flatMap(d=>reportSellableOn(s,d).map(r=>({date:d,ref:'room:'+r.id+':'+d,room:r.id,detail:`Sellable room ${r.id} · ${r.type}`,amount:1})));
   const arrRows=s.bookings.filter(b=>(b.status==='In house'||b.status==='Departed')&&inRange(b.arrival,from,to)).map(b=>({date:b.arrival,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Arrival · '+b.source,amount:1}));
   const depRows=s.bookings.filter(b=>b.status==='Departed'&&inRange(b.departure,from,to)).map(b=>({date:b.departure,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Departure (checked out)',amount:1}));
   const E=(f:(e:Expense)=>boolean)=>exp.filter(f).map(expenseRow);
+  const cashExp=E(e=>e.method==='Cash');
   const net=metric('net','Net revenue (excl. tax)',L()),pay=metric('net','Net receipts (payments − refunds)',R(['payment','refund']));
   const expTotal=metric('total','Posted expenses (net of reversals)',E(()=>true));
   const occ={sellable:metric('sellable','Sellable room-nights',sellRows,'count'),occupied:metric('occupied','Occupied room-nights',stayRows,'count'),room:metric('room-revenue','Room revenue',L('room'))};
@@ -253,7 +285,7 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
       metric('cash-in','Cash into drawer (payments + deposits + POS sales)',[...R(['payment','deposit'],'Cash'),...posCash.filter(r=>r.kind==='pos-sale')]),
       metric('cash-out','Cash out of drawer (refunds + returns + POS voids)',[...R(['refund','deposit-return'],'Cash'),...posCash.filter(r=>r.kind==='pos-void')])],
       table:{columns:['Business date','Day','Opening float','Expected cash','Counted','Difference','Cash expenses'],units:['text','text','money','money','money','money','money'],
-        rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(E(e=>e.method==='Cash'),d)];})}},
+        rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(cashExp,d)];})}},
     {id:'occupancy',label:'Occupancy',ratios,metrics:[occ.sellable,occ.occupied,occ.room],
       table:{columns:['Business date','Sellable','Occupied','Occupancy %','Room revenue','ADR','RevPAR'],units:['text','count','count','text','money','text','text'],derived:[{col:3,kind:'pct',num:2,den:1},{col:5,kind:'money',num:4,den:2},{col:6,kind:'money',num:4,den:1}],
         rows:dates.map(d=>{const sl=sumBy(sellRows,d),oc=sumBy(stayRows,d),rr=sumBy(occ.room.rows,d);return [d,sl,oc,reportPct(oc,sl),rr,reportRatioMoney(rr,oc),reportRatioMoney(rr,sl)];})}},

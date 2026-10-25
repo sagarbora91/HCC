@@ -205,10 +205,11 @@ export type State={
   // ── State · stream A fields (add below this line) ──
 
   // ── State · stream B fields (add below this line) ──
-  /** Fictional guest profiles (type alias `Guest` in domain/streams/guests.ts). Masked ID metadata only — never images or full ID numbers. */
+  /** Fictional guest profiles (type alias `Guest` in domain/streams/guests.ts). ID number stored in full by owner decision DEC-068 (`idNumber`, optional; older saves keep only `idLast4`) — always displayed masked, never in audit/exports/messages; never images. */
   guests?:{id:string;name:string;phone:string;email:string;address:string;nationality:string;
     /** ID document type, metadata only. */ idType:string;
-    /** Last 4 characters of the ID number only. */ idLast4:string;
+    /** Last 4 characters of the ID number (derived from idNumber when present). */ idLast4:string;
+    /** Full ID number (DEC-068, normalised upper-case, no spaces). Optional: profiles saved earlier have only idLast4. */ idNumber?:string;
     company?:string;gstin?:string;preferences:string;notes:string;
     party:{name:string;ageBand:string;relation:string}[];verified:boolean;
     /** seed = fixture, manual = GUEST_SAVE/REGISTER with details, auto = minimal demo profile from REGISTER {id}. */

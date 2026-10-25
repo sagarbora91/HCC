@@ -6,6 +6,7 @@ import {useHcc} from '../../app/context';
 import {Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
 import {PageTitle,SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
+import {GuestIdValue} from './GuestId';
 
 export const statusTone=(st:string)=>st==='In house'?'green':st==='Confirmed'?'blue':st==='Departed'?'neutral':'orange';
 export function VerifiedPill({g}:{g:Guest}){return g.verified?<Pill tone="green">✓ Verified</Pill>:<Pill tone="orange">Not verified</Pill>;}
@@ -18,7 +19,7 @@ export function GuestDetails({g}:{g:Guest}){
     {v.masked&&<div className="info-note"><Lock size={16}/>ID details are restricted and contact details masked for your role (intended PERM-GST-003 guest.idDetails.view).</div>}
     <div className="summary-list gs-details">
       {row('Phone',v.phone)}{row('Email',v.email)}{row('Address',v.address)}{row('Nationality',v.nationality)}
-      {row('ID',v.masked?'Restricted':`${v.idType} · •••• ${v.idLast4}`)}
+      {row('ID',<GuestIdValue g={g}/>)}
       {row('Company',v.company?`${v.company}${v.gstin?' · GSTIN '+v.gstin:''}`:'')}
       {row('Preferences',v.preferences)}{row('Notes',v.notes)}
     </div>
@@ -71,7 +72,7 @@ export function RegistrationCard({id}:{id?:string}){
     <div className="invoice-meta"><div><small>GUEST</small><h3>{v?.name||b.guest}</h3><p>{v?.address||'—'}</p><p>{v?.phone||'—'} · {v?.email||'—'}</p></div>
       <div><small>REGISTRATION</small><h3>DEMO-REG-{b.id}</h3><p>Room {b.room} · {b.people} guest{b.people>1?'s':''}</p><p>{dateLabel(b.arrival)} — {dateLabel(b.departure)}</p></div></div>
     <div className="summary-list"><div><span>Nationality</span><strong>{v?.nationality||'—'}</strong></div>
-      <div><span>ID document (masked)</span><strong>{!v?'—':v.masked?'Restricted':`${v.idType} · •••• ${v.idLast4}`}</strong></div>
+      <div><span>ID document (masked)</span><strong>{!v?'—':v.masked?'Restricted':`${v.idType} · ${v.idMasked}`}</strong></div>
       <div><span>Company / GSTIN</span><strong>{v?.company?`${v.company}${v.gstin?' · '+v.gstin:''}`:'—'}</strong></div>
       <div><span>Agreed nightly tariff</span><strong>{money(b.rate)} + GST</strong></div>
       <div><span>Room history</span><strong>{staySegmentLabel(b)||b.room}</strong></div>
@@ -79,7 +80,7 @@ export function RegistrationCard({id}:{id?:string}){
     <h3 className="gs-sub">Accompanying guests</h3>
     {g?.party.length?<table><thead><tr><th>Name</th><th>Age band</th><th>Relation</th></tr></thead><tbody>{g.party.map((p,i)=><tr key={i}><td>{p.name}</td><td>{p.ageBand}</td><td>{p.relation||'—'}</td></tr>)}</tbody></table>:<p className="muted">None recorded.</p>}
     <div className="gs-sign"><div><span/>Guest signature</div><div><span/>Front desk</div></div>
-    <p className="footnote">All names, contact details and ID references are fictional. No ID images or full ID numbers are stored. Printed from the HCC interactive prototype.</p></div>
+    <p className="footnote">All names, contact details and ID references are fictional. ID numbers are masked on this card; no ID images are stored. Printed from the HCC interactive prototype.</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 

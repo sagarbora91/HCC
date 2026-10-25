@@ -84,7 +84,7 @@ function surfaces(M,s,uid){
 const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),CANCEL:C('OWN MGR REC','RES-004'),
-  REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
+  REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
   COMPANY_CREDIT_REQUEST:C('OWN MGR REC','PAY-005 + §7 (raised by REC)'),
   CHARGE:C('OWN MGR REC CSH','FOL-002'),POST_NIGHTS:C('OWN MGR REC CSH','FOL-002'),DISCOUNT:C('OWN MGR REC','FOL-003'),
   CORRECTION_REQUEST:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),CREDIT_NOTE:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),
@@ -214,6 +214,11 @@ export function register({test,M,assert}){
   test('[RBAC] G13 · Reports Excel/CSV export (RPT-003): Owner, Manager, Accountant; the Cashier still opens Reports and prints',()=>{
     for(const u of USERS)assert.equal(M.rbacCanExportReports(s,u),['owner','manager','accountant'].includes(u),u);
     assert.ok(surfaces(M,s,'cashier').allowed.has('reports'));});
+  test('[RBAC] G13 · Accounting voucher CSV/Excel export: Owner, Manager, Accountant; the Cashier keeps Accounting without it (hidden and refused)',()=>{
+    for(const u of USERS)assert.equal(M.rbacCanExportVouchers(s,u),['owner','manager','accountant'].includes(u),u);
+    assert.ok(surfaces(M,s,'cashier').allowed.has('accounting'));});
+  test('[RBAC] G4 · Day pack (printed day summary) follows the Day closing view: Owner, Manager, Accountant',()=>{
+    for(const u of USERS)assert.equal(M.rbacCanDayPack(s,u),['owner','manager','accountant'].includes(u),u);});
 
   // ── 2. Command authorization ──
   const ALLCMD=[...new Set([...Object.keys(X.registry),...[...coreSrc.matchAll(/case '([A-Z_]+)'/g)].map(m=>m[1])])].sort();

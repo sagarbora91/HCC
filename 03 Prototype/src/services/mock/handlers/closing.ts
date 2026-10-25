@@ -9,6 +9,7 @@ import {drawer} from '../../../domain/selectors';
 import {gstForFolioAdjustment} from '../../../domain/gst';
 import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
 import {posOpenOrders} from '../../../domain/streams/pos';
+import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
   closingUnlimitedRoles,EXPENSE_METHODS} from '../../../domain/streams/closing';
 import {rbacCanDecideCash,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanRequestClosedCorrection} from '../../../domain/streams/rbac';
@@ -85,6 +86,7 @@ export const handlers:Record<string,Handler>={
     assert(a,'Cash difference request not found.','NOT_FOUND');
     assert(a!.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
     assert(a!.actor!==uid,'You cannot approve your own request. Switch to another authorized demo user.','FORBIDDEN');
+    assert(!cbIsLocked(s,String(a!.target)),cbLockedMessage(String(a!.target),'a cash-difference decision'),'DAY_CLOSED'); // DEC-065
     const sh=s.shift;assert(sh&&sh.approval===a!.id&&sh.date===s.date&&sh.status==='Submitted','This count does not belong to the current shift.','INVALID_TRANSITION');
     const expected=Number(a!.meta!.expected),counted=Number(a!.meta!.counted);
     a!.approver=uid;a!.decidedAt=s.clock;
@@ -122,6 +124,7 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,open,assert,fail,uid,user}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required');open();
     const e=s.expenses.find(e=>e.id===cmd.id);
     assert(e&&e.status==='Pending','Expense is no longer pending.','INVALID_TRANSITION');
+    assert(!cbIsLocked(s,e!.date),cbLockedMessage(e!.date,'deciding this expense'),'DAY_CLOSED'); // DEC-065
     assert(e!.actor!==uid,'You cannot approve your own expense.','FORBIDDEN');
     if(cmd.approve&&limited(user.role)&&e!.amount>EXPENSE_MANAGER_LIMIT)fail('FORBIDDEN',`Expenses above ${money(EXPENSE_MANAGER_LIMIT)} need Owner approval.`);
     if(cmd.approve&&e!.method==='Cash')assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
@@ -134,6 +137,7 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required (not the Cashier, DEC-063)');open();
     const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
     assert(e!.status==='Posted'&&!e!.reversalOf,'Only a posted expense can be reversed.','INVALID_TRANSITION');
+    assert(!cbIsLocked(s,e!.date),cbLockedMessage(e!.date,'reversing this expense'),'DAY_CLOSED'); // DEC-065
     assert(cmd.reason?.trim(),'A reason is required to reverse an expense.');
     if(e!.method==='Cash')assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
     const rid=id('EXP');
@@ -170,6 +174,7 @@ export const handlers:Record<string,Handler>={
     const x=b();
     assert(['In house','Confirmed','Departed'].includes(x.status),'Corrections apply to active or departed stays only.','INVALID_TRANSITION');
     assert(s.closedDates.includes(cmd.date),'Choose a closed business date to correct.');
+    assert(!cbIsLocked(s,cmd.date),cbLockedMessage(cmd.date,'a correction'),'DAY_CLOSED'); // DEC-065
     assert(Number.isSafeInteger(cmd.amount)&&cmd.amount!==0&&Math.abs(cmd.amount)<=100000000,'Enter a non-zero correction amount (maximum ₹10,00,000).');
     assert(cmd.reason?.trim(),'A reason is required.');
     assert(!s.approvals.some(a=>a.kind==='closed-date-correction'&&a.status==='Pending'&&a.booking===x.id),'A correction for this folio is already pending.','INVALID_TRANSITION');
@@ -188,6 +193,7 @@ export const handlers:Record<string,Handler>={
     assert(user.role==='Owner','Closed-date corrections are approved by an Owner.','FORBIDDEN');
     a!.approver=uid;a!.decidedAt=s.clock;
     if(cmd.approve){
+      assert(!cbIsLocked(s,String(a!.meta!.date)),cbLockedMessage(String(a!.meta!.date),'posting this correction'),'DAY_CLOSED'); // DEC-065
       const x=s.bookings.find(b=>b.id===a!.booking);assert(x,'Booking not found.','NOT_FOUND');
       const date=String(a!.meta!.date),amount=Number(a!.meta!.amount);
       x!.lines.push({id:id('adj'),label:`Correction for closed ${date} · ${a!.reason}`,amount,date:s.date,kind:'adjustment',taxBps:gstForFolioAdjustment(s,x!,date).bps,correctionOf:date});

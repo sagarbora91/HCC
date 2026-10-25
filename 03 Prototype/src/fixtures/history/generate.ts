@@ -27,6 +27,9 @@ const pad=(n:number,w=4)=>String(n).padStart(w,'0');
 const roundTo=(n:number,step:number)=>Math.round(n/step)*step;
 
 type Guest={name:string;phone:string;email:string};
+/** Optional progress listener for the first-run loading screen (app/scenarioWorker.ts). Observes only; never changes output. */
+let progress:((step:string,done:number)=>void)|null=null;
+export function setHistoryProgress(fn:((step:string,done:number)=>void)|null){progress=fn;}
 
 export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
   const o={...HISTORY_DEFAULTS,...opts};
@@ -194,6 +197,7 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
 
   const lastArrival=addDays(o.to,-1);
   for(let d=o.from,i=0;d<=lastArrival;d=addDays(d,1),i++){
+    if(progress&&i%15===0)progress('Generating stays and folios',0.05+0.25*i/days);
     const weekend=isWeekend(d);
     const target=Math.max(0,Math.min(sellable.length,Math.round(sellable.length*(occupancyTarget(d)+(rng.next()-0.5)*0.1))));
     const need=target-occupiedOn(i);
@@ -239,10 +243,14 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
   const departed=bookings.filter(b=>b.status==='Departed').sort((a,b)=>a.departure<b.departure?-1:a.departure>b.departure?1:a.id<b.id?-1:1);
   departed.forEach((b,n)=>{b.invoiceNo=folioInvoiceNo((s.invoiceSeqC??0)+n+1);});
   s.invoiceSeqC=(s.invoiceSeqC??0)+departed.length;
+  progress?.('Building guest profiles',0.3);
   addHistoryGuests(s,bookings,o.seed);
   s.bookings=[...bookings,...s.bookings];
   s.approvals=[...approvals,...s.approvals];
+  progress?.('Closing the business days',0.35);
   addOperations(s,rng,o);
+  progress?.('Adding module history',0.6);
   addModuleHistory(s,rng,o,ctx);
+  progress?.('Finishing',0.9);
   return s;
 }

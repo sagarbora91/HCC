@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useMemo,useState} from 'react';
 import {useHcc} from '../../app/context';
 import {resStatus} from '../../services/mock';
 import {PageTitle,SearchBox} from '../../components/ui';
@@ -9,10 +9,11 @@ const STATUSES=['All','Held','Expired','Confirmed','In house','Departed','Cancel
 export function Reservations({folio=false}:{folio?:boolean}){
   const {s,act,open,search,setSearch,filter,setFilter}=useHcc();
   const [source,setSource]=useState('All'),[date,setDate]=useState('');
-  const sources=[...new Set(s.bookings.map(b=>b.source))].sort();
+  const sources=useMemo(()=>[...new Set(s.bookings.map(b=>b.source))].sort(),[s.bookings]);
   const q=search.toLowerCase();
-  const list=s.bookings.filter(b=>(filter==='All'||resStatus(s,b)===filter)&&(source==='All'||b.source===source)&&(!date||b.arrival<=date&&b.departure>date)
-    &&`${b.guest} ${b.id} ${b.room} ${b.phone||''} ${b.company?.name||''}`.toLowerCase().includes(q));
+  // Filtered list only recomputes when the bookings, the clock (hold expiry) or a filter changes; only the visible page is rendered (usePaged).
+  const list=useMemo(()=>s.bookings.filter(b=>(filter==='All'||resStatus(s,b)===filter)&&(source==='All'||b.source===source)&&(!date||b.arrival<=date&&b.departure>date)
+    &&`${b.guest} ${b.id} ${b.room} ${b.phone||''} ${b.company?.name||''}`.toLowerCase().includes(q)),[s.bookings,s.clock,filter,source,date,q]); // eslint-disable-line react-hooks/exhaustive-deps
   const pg=usePaged(list,DESKTOP_PAGE);
   return <><PageTitle title={folio?'Guests & folios':'Reservations'} sub={folio?'Charges, receipts and every guest’s balance, connected.':'From the first enquiry to a warm welcome.'} action={act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}/>
     <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, phone, room or booking…"/><div className="filters">{STATUSES.map(x=><button key={x} className={filter===x?'active':''} aria-pressed={filter===x} onClick={()=>setFilter(x)}>{x}</button>)}</div></div>

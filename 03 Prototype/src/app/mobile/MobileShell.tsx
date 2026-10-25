@@ -21,7 +21,7 @@ export function MobileShell({allowedIds,children,canGoBack,onBack,tabKey,onTab}:
   return <div className={'m-shell'+(display.framed?' framed':'')}>
     <header className="m-appbar">
       {showBack?<button className="m-icon" aria-label="Back" onClick={onBack}><ArrowLeft size={22}/></button>:<span className="m-brand" aria-hidden><Hotel size={20}/></span>}
-      <div className="m-titles"><h1 className="m-title">{title}</h1>
+      <div className="m-titles"><div className="m-title">{title}</div>
         <span className={'m-date '+(closed?'closed':'open')} title="Simulated business date"><CalendarDays size={12}/>Business date {dateLabel(s.date).replace(/ \d{4}$/,'')} · <b>{closed?'Closed':'Open'}</b></span></div>
       <button className="m-search" aria-label="Search pages and actions" onClick={openSearch}><Search size={22}/></button>
       <button className="m-demo-pill" onClick={()=>open({type:'demo'})} aria-label="Open demo controls"><FlaskConical size={14}/>DEMO</button>
