@@ -5,7 +5,7 @@
 // CashBalanceReconciliationService.cs (opening = previous closing, book balance vs counted, difference shown separately).
 import {csvQuoted} from '../csv';
 import type {State} from '../types';
-import {shiftMovements,type CashMovement} from './closing';
+import {shiftMovements,shiftMovementsByDate,type CashMovement} from './closing';
 
 export type CBLogEntry={action:'lock'|'reopen';by:string;at:string;reason?:string};
 export type CBLock={lockedBy:string;lockedAt:string;log:CBLogEntry[]};
@@ -46,9 +46,9 @@ function openingOf(s:State,d:string):number|undefined{
   return undefined;
 }
 /** One business day of the cash book. Entries = the existing cashier-shift movements for that date (never recomputed differently). */
-export function cbDay(s:State,d:string):CBDay{
+export function cbDay(s:State,d:string,movementsOf?:(d:string)=>CashMovement[]):CBDay{
   const rec=s.closings?.[d],known=rec!==undefined||d===s.date;
-  const mv=known?shiftMovements({...s,date:d}):[];
+  const mv=known?(movementsOf?movementsOf(d):shiftMovements({...s,date:d})):[];
   const entries=mv.map(toEntry);
   const banked=rec?.cash.banked??0;
   if(banked>0)entries.push({id:'bank:'+d,kind:'banking',group:'payment',label:'Banked after count',reference:'Cash taken to bank / owner handover',actor:rec!.closedBy,in:0,out:banked});
@@ -75,7 +75,8 @@ export type CBRange={days:CBDay[];opening:number;receipts:number;payments:number
 /** Range view: one row per known business date between from and to (inclusive).
  *  Totals always foot (W05 review F4): opening + receipts − payments + differences + gaps = closing. */
 export function cbRange(s:State,from:string,to:string):CBRange{
-  const days=cbDates(s).filter(d=>d>=from&&d<=to).map(d=>cbDay(s,d));
+  const dates=cbDates(s).filter(d=>d>=from&&d<=to),mv=dates.length?shiftMovementsByDate(s,dates[0],dates[dates.length-1]):undefined;
+  const days=dates.map(d=>cbDay(s,d,mv));
   let gaps=0;for(let i=1;i<days.length;i++)gaps+=days[i].opening-days[i-1].carried;
   const last=days.length?days[days.length-1]:undefined; // plain index access: Array#at is missing on the Chrome 83 WebView (AC-01)
   return {days,opening:days[0]?.opening??0,receipts:days.reduce((a,d)=>a+d.receipts,0),payments:days.reduce((a,d)=>a+d.payments,0),

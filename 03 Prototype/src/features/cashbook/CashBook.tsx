@@ -1,6 +1,6 @@
 // W05-D · Cash book page (desktop table + phone cards, same logic). Range view lists every business day with opening, receipts, payments,
 // closing; day view lists every entry with a running balance. All figures come from domain/streams/cashbook.ts (→ shiftMovements + closing records).
-import React,{useState} from 'react';
+import React,{useMemo,useState} from 'react';
 import {Lock,Unlock,Download,ChevronLeft,ArrowRight,FileSpreadsheet} from 'lucide-react';
 import {money,cbDay,cbRange,cbDates,cbCsv,cbCanLock,cbCanReopen,cbSlice,addDays,CB_DIFF_LABEL} from '../../services/mock';
 import type {CBDay} from '../../services/mock';
@@ -10,6 +10,7 @@ import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMo
 import {saveCsv,saveBinaryFile,saveAndReport} from '../../app/native';
 import {XLSX_MIME} from '../../app/xlsx';
 import {cbXlsx} from './exportXlsx';
+import {cbRangeMemo} from '../../domain/memo';
 
 const who=(users:{id:string;name:string}[],id?:string)=>users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
 const tone=(d:CBDay)=>d.locked?'green':d.status==='Closed'?'neutral':'blue';
@@ -76,12 +77,14 @@ export function CashBookView({phone=false}:{phone?:boolean}){
   const [from,setFrom]=useState(()=>{const d=addDays(s.date,-13);return dates.includes(d)?d:dates[Math.max(0,dates.length-14)];});
   const [to,setTo]=useState(s.date);
   const [day,setDay]=useState<string|null>(null);
-  const r=cbRange(s,from,to),list=r.days.slice().reverse();
+  // Range totals and day rows are computed once per range and reused until the underlying records change.
+  const r=cbRangeMemo(s,from,to),list=useMemo(()=>r.days.slice().reverse(),[r]);
+  const dayView=useMemo(()=>day&&dates.includes(day)?cbDay(s,day):null,[day,r,s.cashbookX]); // eslint-disable-line react-hooks/exhaustive-deps
   const pg=usePaged(list,phone?PHONE_PAGE:DESKTOP_PAGE);
   const cls='cb-page'+(phone?' mm-page':'');
-  if(day&&dates.includes(day))return <div className={cls}>
-    {!phone&&<PageTitle title="Cash book" sub="Daily cash in and out with a running balance" action={<Exports from={day} to={day}/>}/>}
-    <DayCard d={cbDay(s,day)} phone={phone} onBack={()=>setDay(null)}/></div>;
+  if(dayView)return <div className={cls}>
+    {!phone&&<PageTitle title="Cash book" sub="Daily cash in and out with a running balance" action={<Exports from={dayView.date} to={dayView.date}/>}/>}
+    <DayCard d={dayView} phone={phone} onBack={()=>setDay(null)}/></div>;
   return <div className={cls}>
     {!phone&&<PageTitle title="Cash book" sub="Opening balance, every cash receipt and payment, closing balance — carried forward day to day" action={<Exports from={from} to={to}/>}/>}
     <div className="cb-range"><label>From<input type="date" value={from} min={dates[0]} max={to} onChange={e=>e.target.value&&setFrom(e.target.value)}/></label>
