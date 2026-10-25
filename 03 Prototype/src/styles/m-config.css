@@ -61,3 +61,10 @@
 .cfg-m .cfg-box p,.cfg-m .cfg-inv li{font-size:15px}
 .cfg-m .ma-card .btn{min-height:48px}
 @media(max-width:600px){.cfg-affects li,.cfg-hist li,.cfg-eff{font-size:15px}}
+/* W05P-3: phone shell — 48 px targets and 16 px text on Master configuration (search, open-module links, Switch off/on, rows). */
+.m-shell .cfg-search{min-height:48px}
+.m-shell .cfg-search input{font-size:16px;min-height:46px}
+.m-shell .cfg-link,.m-shell .cfg-hublink{min-height:48px;font-size:16px}
+.m-shell .cfg-mod .btn,.m-shell .cfg-mod-act .btn{min-height:48px;font-size:16px}
+.m-shell .cfg-item strong,.m-shell .cfg-row-main strong,.m-shell .cfg-row-val strong{font-size:16px}
+.m-shell .cfg-item small,.m-shell .cfg-row-main small,.m-shell .cfg-row-meta small,.m-shell .cfg-mod small,.m-shell .cfg-head p{font-size:16px}

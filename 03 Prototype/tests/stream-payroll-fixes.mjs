@@ -313,4 +313,11 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     for(const f of ['src/domain/streams/staff.ts','src/services/mock/handlers/staff.ts','src/fixtures/ext/staff.ts','src/fixtures/history/modules-people.ts','src/features/staff/HrDesk.tsx','src/features/staff/MyHr.tsx','src/features/staff/modals.tsx','src/features/staff/register.tsx']){
       const src=readFileSync(f,'utf8');assert.doesNotMatch(src,/\.at\(|\.replaceAll\(|structuredClone\(/,f);}
   });
+  test('[PAY-FIX W05P-3] phone shell: HR chips/tabs/actions and Master configuration search, links and Switch off/on are 48 px with 16 px text',()=>{
+    const staff=readFileSync('src/styles/m-staff.css','utf8'),cfg=readFileSync('src/styles/m-config.css','utf8');
+    const rule=(css,sel)=>{const i=css.lastIndexOf(sel+'{');assert.ok(i>=0,sel);return css.slice(i,css.indexOf('}',i));};
+    for(const sel of ['.m-shell .hr-m .m-chips button','.m-shell .hr-m .btn,.m-shell .hr-m .text-btn,.m-shell .hr-m .small-btn'])assert.match(rule(staff,sel),/min-height:48px;font-size:16px/);
+    assert.match(rule(cfg,'.m-shell .cfg-search'),/min-height:48px/);assert.match(rule(cfg,'.m-shell .cfg-search input'),/font-size:16px/);
+    assert.match(rule(cfg,'.m-shell .cfg-mod .btn,.m-shell .cfg-mod-act .btn'),/min-height:48px;font-size:16px/);assert.match(rule(cfg,'.m-shell .cfg-link,.m-shell .cfg-hublink'),/min-height:48px/);
+  });
 }
