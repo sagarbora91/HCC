@@ -3,7 +3,7 @@
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import React,{useState,useRef} from 'react';
 import {Plus,Paperclip,AlertTriangle,Info} from 'lucide-react';
-import {money,expenseDuplicates,expenseCounts,EXPENSE_MANAGER_LIMIT,EXPENSE_CATEGORIES,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense} from '../../services/mock';
+import {money,expenseDuplicates,expenseCounts,EXPENSE_MANAGER_LIMIT,EXPENSE_CATEGORIES,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,cbIsLocked,cbLockedMessage} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ChipFilter,KpiCard,Fab} from '../../app/mobile/components';
 import {Pill,Empty,shortDate,dateLabel} from '../../components/ui';
@@ -31,8 +31,8 @@ export function MmExpenses(){
         <button className="btn primary" disabled={busy||over||noShift} onClick={()=>run({type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id},'Expense approved and posted')}>Approve & post</button></div>
         {(over||noShift)&&<span className="mm-why">{over?`Above ${money(EXPENSE_MANAGER_LIMIT)} — Owner approves`:'Cash shift not open'}</span>}</>;
     }
-    if(e.status==='Posted'&&!e.reversalOf&&rbacCanDecideExpense(s,uid)){const noShift=e.method==='Cash'&&!s.shiftOpen;
-      return <><button className="btn small-btn" disabled={busy||noShift} onClick={()=>open({type:'expense-reason',id:e.id,room:'reverse'})}>Reverse…</button>{noShift&&<span className="mm-why">Cash shift not open</span>}</>;}
+    if(e.status==='Posted'&&!e.reversalOf&&rbacCanDecideExpense(s,uid)){const noShift=e.method==='Cash'&&!s.shiftOpen,locked=cbIsLocked(s,e.date); // DEC-065
+      return <><button className="btn small-btn" disabled={busy||noShift||locked} title={locked?cbLockedMessage(e.date,'reversing this expense'):undefined} onClick={()=>open({type:'expense-reason',id:e.id,room:'reverse'})}>Reverse…</button>{locked?<span className="mm-why">{cbLockedMessage(e.date,'reversing this expense')}</span>:noShift&&<span className="mm-why">Cash shift not open</span>}</>;}
     return null;
   }
   return <div className="mm-page mm-has-fab">

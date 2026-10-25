@@ -5,7 +5,7 @@ import React,{useState} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
 import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
 import {useHcc} from '../../app/context';
-import {lineTax,gstLineSplit,gstSplitLines,gstPct,gstHalfPct,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../services/mock';
+import {cbIsLocked,cbLockedMessage,lineTax,gstLineSplit,gstSplitLines,gstPct,gstHalfPct,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../services/mock';
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
 import {bookingActionSlots} from '../../app/registry';
 const useBooking=(id:string)=>{const c=useHcc();return {...c,b:c.s.bookings.find(b=>b.id===id)};};
@@ -71,7 +71,7 @@ export function BookingModal({id}:{id:string}){
     <div className="receipt-list">{b.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0;
       return <div key={r.id}><span className="receipt-icon"><Receipt size={16}/></span><div><strong>{folioReceiptLabel[r.kind]??r.kind} · {r.method}</strong><small>{r.id} · {shortDate(r.date)} · {r.reference}{r.refundOf?' · refund of '+r.refundOf:''}{r.tenderGroup?' · mixed tender '+r.tenderGroup:''}{refunded?' · refunded '+money(refunded):''} · by {userName(s,r.actor)}</small></div>
         <strong className="number">{['refund','deposit-return'].includes(r.kind)?'−':''}{money(r.amount)}</strong>
-        {refundable>0&&permission('payments')&&<button className="text-btn" disabled={busy} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={13}/> Request refund</button>}</div>;})}
+        {refundable>0&&permission('payments')&&(()=>{const locked=cbIsLocked(s,r.date),why=cbLockedMessage(r.date,'a refund against receipt '+r.id);return <><button className="text-btn" disabled={busy||locked} title={locked?why:undefined} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={13}/> Request refund</button>{locked&&<small className="f-why">{why}</small>}</>;})()} {/* DEC-065 */}</div>;})}
       {!b.receipts.length&&<p className="muted padded">No receipts recorded.</p>}</div>
     {approvals.length>0&&<><div className="section-title compact"><h3>Folio requests</h3><span className="muted">No one approves their own request</span></div><div className="request-list folio-requests">{approvals.map(a=><FolioApprovalRow key={a.id} a={a}/>)}</div></>}
     <div className="modal-actions"><span className="footnote">GST per line at its snapshot rate (illustrative — CA to confirm). No real guest documents stored.</span><button className="btn" disabled={busy} onClick={()=>open({type:'invoice',id:b.id})}><Printer size={16}/>{b.invoiceNo?'Sample invoice '+b.invoiceNo:'Folio preview'}</button></div></>;
