@@ -55,17 +55,17 @@ export function mntDuration(mins:number){
   if(mins<1440)return `${Math.floor(mins/60)} h ${mins%60?(mins%60)+' min':''}`.trim();
   const d=Math.floor(mins/1440),h=Math.floor((mins%1440)/60);return `${d} d${h?` ${h} h`:''}`;
 }
-export const mntSlaDue=(w:MNTWorkOrder)=>new Date(Date.parse(w.createdAt+':00Z')+MNT_PRIORITY[w.priority].slaMins*60000).toISOString().slice(0,16);
+export const mntSlaDue=(w:MNTWorkOrderView)=>new Date(Date.parse(w.createdAt+':00Z')+MNT_PRIORITY[w.priority].slaMins*60000).toISOString().slice(0,16);
 /** SLA state: met / breached (done late or still open past due) / due soon (≤ 25 % left) / on track. Cancelled = n/a. */
-export function mntSla(w:MNTWorkOrder,clock:string):'Met'|'Breached'|'Due soon'|'On track'|'n/a'{
+export function mntSla(w:MNTWorkOrderView,clock:string):'Met'|'Breached'|'Due soon'|'On track'|'n/a'{
   if(w.status==='Cancelled')return 'n/a';
   const due=mntSlaDue(w);
   if(w.doneAt)return w.doneAt<=due?'Met':'Breached';
   if(clock>due)return 'Breached';
   return mntMinutes(clock,due)<=MNT_PRIORITY[w.priority].slaMins/4?'Due soon':'On track';
 }
-export const mntIsActive=(w:MNTWorkOrder)=>MNT_ACTIVE.includes(w.status);
-export const mntAge=(w:MNTWorkOrder,clock:string)=>mntMinutes(w.createdAt,clock);
+export const mntIsActive=(w:MNTWorkOrderView)=>MNT_ACTIVE.includes(w.status);
+export const mntAge=(w:MNTWorkOrderView,clock:string)=>mntMinutes(w.createdAt,clock);
 
 // ── Access ──
 /** Supervisor-level control (assign, verify, block, registers). */
@@ -74,14 +74,18 @@ export const mntCanManage=(s:State,uid:string)=>can(s,uid,'inspect');
 export const mntCanSeeCost=(s:State,uid:string)=>can(s,uid,'reports')||can(s,uid,'expenses');
 export const mntIsTech=(u:User)=>u.role==='Maintenance';
 export const mntScoped=(u:User)=>assignedScopeRoles.includes(u.role);
+/** A work order as a user may receive it: part unit costs stripped for users without cost access (DEC-063 G12 — hidden on
+ * screen is not enough; the selector / future server API never sends money to housekeeping or maintenance). */
+export type MNTWorkOrderView=Omit<MNTWorkOrder,'parts'>&{parts:{spareId:string;qty:number;unitCost?:number}[]};
 /** Work orders a user may see: managers all; maintenance own; housekeepers open WOs on rooms of their own open tasks. */
-export function mntVisibleOrders(s:State,uid:string):MNTWorkOrder[]{
+export function mntVisibleOrders(s:State,uid:string):MNTWorkOrderView[]{
   const u=s.users.find(x=>x.id===uid);const all=mntSlice(s).orders;
   if(!u)return [];
-  if(mntCanManage(s,uid))return all;
-  if(u.role==='Maintenance')return all.filter(w=>w.assignee===uid);
+  const strip=(list:MNTWorkOrder[]):MNTWorkOrderView[]=>mntCanSeeCost(s,uid)?list:list.map(w=>({...w,parts:w.parts.map(p=>({spareId:p.spareId,qty:p.qty}))}));
+  if(mntCanManage(s,uid))return strip(all);
+  if(u.role==='Maintenance')return strip(all.filter(w=>w.assignee===uid));
   const rooms=new Set(s.tasks.filter(t=>t.assignee===uid&&t.status!=='Done').map(t=>t.room));
-  return all.filter(w=>w.room&&rooms.has(w.room)&&mntIsActive(w));
+  return strip(all.filter(w=>w.room&&rooms.has(w.room)&&mntIsActive(w)));
 }
 export const mntTechnicians=(s:State)=>s.users.filter(u=>u.enabled&&u.role==='Maintenance');
 
@@ -93,12 +97,12 @@ export function mntWhere(s:State,w:{room?:string;area?:string;assetId?:string}){
   const a=mntAsset(s,w.assetId);const room=w.room??a?.room,area=w.area??a?.area;
   return room?`Room ${room}`:area||'—';
 }
-export function mntAssigneeLabel(s:State,w:MNTWorkOrder){
+export function mntAssigneeLabel(s:State,w:MNTWorkOrderView){
   if(w.vendorId)return (mntVendor(s,w.vendorId)?.name??w.vendorId)+' (vendor)';
   if(!w.assignee)return 'Unassigned';
   return s.users.find(u=>u.id===w.assignee)?.name.split(' · ')[0]??w.assignee;
 }
-export const mntPartsCost=(w:MNTWorkOrder)=>w.parts.reduce((t,p)=>t+p.qty*p.unitCost,0);
+export const mntPartsCost=(w:MNTWorkOrderView)=>w.parts.reduce((t,p)=>t+p.qty*(p.unitCost??0),0);
 /** Open stream-D repair tasks that have no work order yet. */
 export function mntPendingRepairs(s:State):Task[]{
   const linked=new Set(mntSlice(s).orders.map(w=>w.repairTaskId).filter(Boolean));
@@ -149,7 +153,7 @@ export function mntPmCompliance(s:State,orders=mntSlice(s).orders){
 }
 export const mntSlaBreaches=(s:State,orders=mntSlice(s).orders)=>orders.filter(w=>mntSla(w,s.clock)==='Breached').length;
 /** End of a WO's downtime: explicit end; else still running while the room is blocked; else when the work finished. */
-export function mntDowntimeEnd(s:State,w:MNTWorkOrder){
+export function mntDowntimeEnd(s:State,w:MNTWorkOrderView){
   if(!w.downtimeFrom)return undefined;if(w.downtimeTo)return w.downtimeTo;
   const r=s.rooms.find(r=>r.id===w.room);if(r?.blocked)return s.clock;
   return w.verifiedAt??w.doneAt??s.clock;
@@ -179,7 +183,7 @@ export function mntSummary(s:State,orders=mntSlice(s).orders){
   return {open:c('Open'),inProgress:c('In progress'),onHold:c('On hold'),done:c('Done'),verified:c('Verified'),breached:mntSlaBreaches(s,orders)};
 }
 /** Sort: active first (P1 first, oldest first), then Done (awaiting verification), then closed (newest first). */
-export function mntSort(orders:MNTWorkOrder[]){
-  const rank=(w:MNTWorkOrder)=>w.status==='In progress'?0:w.status==='Open'?1:w.status==='On hold'?2:w.status==='Done'?3:4;
+export function mntSort<T extends MNTWorkOrderView>(orders:T[]){
+  const rank=(w:MNTWorkOrderView)=>w.status==='In progress'?0:w.status==='Open'?1:w.status==='On hold'?2:w.status==='Done'?3:4;
   return [...orders].sort((a,b)=>rank(a)-rank(b)||(rank(a)<4?a.priority.localeCompare(b.priority)||a.createdAt.localeCompare(b.createdAt):b.createdAt.localeCompare(a.createdAt)));
 }

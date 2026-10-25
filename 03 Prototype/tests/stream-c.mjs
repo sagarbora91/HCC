@@ -126,7 +126,8 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'reception',{type:'CORRECTION_REQUEST',id,lineId:line.id,reason:'again'})),'INVALID_TRANSITION');
     s.grants.Reception=[...s.grants.Reception,'approve'];
     assert.throws(()=>execute(s,'reception',{type:'APPROVAL',id:a.id,approve:true}),/own request/);
-    s=execute(s,'manager',{type:'APPROVAL',id:a.id,approve:true});
+    assert.equal(code(()=>execute(s,'manager',{type:'APPROVAL',id:a.id,approve:true})),'FORBIDDEN');// DEC-063 G3: Owner approves corrections
+    s=execute(s,'owner',{type:'APPROVAL',id:a.id,approve:true});
     const b=bk(s,id),rev=b.lines.at(-1);
     assert.equal(rev.reversalOf,line.id);assert.equal(rev.amount,-50000);assert.equal(rev.taxBps,line.taxBps);assert.equal(rev.date,s.date);
     assert.deepEqual(b.lines.find(l=>l.id===line.id),orig);
@@ -157,7 +158,8 @@ export function register({test,M,assert}){
     s=execute(s,'reception',{type:'CREDIT_NOTE',id,amount:10000,reason:'Noisy room goodwill'});const a=s.approvals.at(-1);
     assert.equal(a.kind,'credit-note');assert.equal(a.target,'DEMO/2026-27/0001');
     assert.equal(totals(bk(s,id)).balance,0);// nothing changes before approval
-    s=execute(s,'manager',{type:'APPROVAL',id:a.id,approve:true});
+    assert.equal(code(()=>execute(s,'manager',{type:'APPROVAL',id:a.id,approve:true})),'FORBIDDEN');// DEC-063 G3: Owner approves credit notes
+    s=execute(s,'owner',{type:'APPROVAL',id:a.id,approve:true});
     const b=bk(s,id);assert.equal(b.creditNotes.length,1);assert.equal(b.creditNotes[0].no,'DEMO-CN/2026-27/0001');
     assert.equal(totals(b).balance,-11000);
     assert.equal(code(()=>execute(s,'cashier',{type:'REFUND_REQUEST',id,receiptId:rid,amount:12000,reason:'Too much'})),'INVALID_TRANSITION');

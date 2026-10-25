@@ -2,7 +2,7 @@
 import React,{useMemo,useState} from 'react';
 import {CheckCircle2,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,accDates,accVouchers,accExceptions,accReconcile,accLockOf,accDayStatus,accTotals,accLockBlocker,accMapRows} from '../../services/mock';
+import {money,accDates,accVouchers,accExceptions,accReconcile,accLockOf,accDayStatus,accTotals,accLockBlocker,accMapRows,rbacCanTally} from '../../services/mock';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {Empty,shortDate,clockTime} from '../../components/ui';
 import {TallyExport} from './Accounting';
@@ -10,7 +10,7 @@ import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useA
 
 type Filter='all'|'Sales'|'Receipt'|'Payment'|'Journal';
 export function AccountingMobile(){
-  const {s,open}=useHcc();const {canLock,canMap}=useAccPerms();
+  const {s,uid,open}=useHcc();const {canLock,canMap}=useAccPerms();
   const dates=useMemo(()=>accDates(s).slice(0,7),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
   const [f,setF]=useState<Filter>('all');const [showAll,setShowAll]=useState(false);
@@ -21,10 +21,11 @@ export function AccountingMobile(){
   const shown=vs.filter(v=>f==='all'||v.type===f),list=showAll?shown:shown.slice(0,20);
   const bad=recon.filter(c=>!c.ok),unmapped=accMapRows(s).filter(r=>!r.mapped&&r.uses>0);
   const lockable=canLock&&!lock&&!why;
+  const tally=rbacCanTally(s,uid); // DEC-063 G13: Owner + Accountant only
   const [view,setView]=useState<'ledger'|'tally'>('ledger'); // W05-3: Tally export (Simulated) reachable on the phone
   const head=<><div className="page-title"><div><h1>Accounting</h1><p>Vouchers derived from folios, receipts, expenses and closing · fictional data</p></div></div>
-    <ChipFilter<'ledger'|'tally'> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Ledger'},{id:'tally',label:'Tally export (Simulated)'}]}/></>;
-  if(view==='tally')return <div className="acc-m">{head}<div className="acc-m-tally"><TallyExport/></div></div>;
+    {tally&&<ChipFilter<'ledger'|'tally'> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Ledger'},{id:'tally',label:'Tally export (Simulated)'}]}/>}</>;
+  if(view==='tally'&&tally)return <div className="acc-m">{head}<div className="acc-m-tally"><TallyExport/></div></div>;
   return <div className="acc-m">
     {head}
     <ChipFilter label="Business date" value={date} onChange={setDate} options={dates.map(d=>({id:d,label:shortDate(d)+(accLockOf(s,d)?' · locked':d===s.date?' · today':'')}))}/>

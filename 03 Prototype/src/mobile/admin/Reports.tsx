@@ -1,7 +1,7 @@
 // M19 phone Reports: tab chips, date-range sheet, KPI cards → drill-down sheet (row total = figure), by-date cards, CSV and print kept.
 import React,{useState} from 'react';
 import {CalendarRange,Download,FileSpreadsheet,Printer,BookOpen,Info} from 'lucide-react';
-import {money,reportCsv,reportRangeLimit} from '../../services/mock';
+import {money,reportCsv,reportRangeLimit,rbacCanExportReports} from '../../services/mock';
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import {HistorySummary} from '../../features/reports/HistorySummary';
 import type {ReportTab} from '../../services/mock';
@@ -39,8 +39,8 @@ export function MaReports(){
     </>}
     <ListCard title={<span className="m-lc-title"><BookOpen size={20}/>Report dictionary</span>} sub="Definitions and zero handling" onClick={()=>open({type:'ma-dictionary'})}/>
     <div className="ma-footer-actions"><button type="button" className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={18}/>Print</button>
-      <button type="button" className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={18}/>Export Excel</button>
-      <button type="button" className="btn primary" disabled={!pack} onClick={exportTab}><Download size={18}/>Export CSV</button></div>
+      {rbacCanExportReports(s,uid)&&<><button type="button" className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={18}/>Export Excel</button>
+      <button type="button" className="btn primary" disabled={!pack} onClick={exportTab}><Download size={18}/>Export CSV</button></>}</div>
   </div>;
 }
 function ByDate({t}:{t:ReportTab}){

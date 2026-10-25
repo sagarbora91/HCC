@@ -4,7 +4,7 @@ import {XLSX_MIME} from '../../app/xlsx';
 import {reportXlsx} from './exportXlsx';
 import React,{useMemo,useState} from 'react';
 import {Download,Printer,Info,X,Hotel,FileSpreadsheet} from 'lucide-react';
-import {money,reportMonthRange,reportPack,reportCsv,reportDrillCsv,reportDictionary,ReportPack,ReportMetric,ReportTab,reportRangeLimit,reportRangePresets,historyMonths} from '../../services/mock';
+import {money,reportMonthRange,reportPack,reportCsv,reportDrillCsv,reportDictionary,ReportPack,ReportMetric,ReportTab,reportRangeLimit,reportRangePresets,historyMonths,rbacCanExportReports} from '../../services/mock';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {HistorySummary} from './HistorySummary';
 import {useHcc} from '../../app/context';
@@ -22,7 +22,8 @@ const fmt=(v:string|number,u:string)=>typeof v==='number'?(u==='money'?money(v):
 const TABS=[['daily','Daily operations'],['revenue','Revenue & tax'],['receipts','Receipts & deposits'],['expenses','Expenses & cash'],['occupancy','Occupancy'],['dictionary','Report dictionary']];
 
 export function Reports(){
-  const {s,permission,toast,open}=useHcc();
+  const {s,uid,permission,toast,open}=useHcc();
+  const canExport=rbacCanExportReports(s,uid); // DEC-063 G13: RPT-003 export = Owner, Manager, Accountant (not the Cashier)
   const [tab,setTab]=useState('daily');const [from,setFrom]=useState(s.date);const [to,setTo]=useState(s.date);const [drill,setDrill]=useState<string|null>(null);
   const valid=/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(to)&&from<=to&&to<=s.date;
   const span=valid?Math.round((Date.parse(to)-Date.parse(from))/86400000)+1:0;
@@ -38,8 +39,8 @@ export function Reports(){
     let bytes:Uint8Array;try{bytes=reportXlsx({hotel:s.settings.hotel,scenario:s.scenario,clock:s.clock},pack);}catch{toast('Could not build the Excel workbook for this range. Try a shorter range (for example one month).',true);return;}
     void saveAndReport(saveBinaryFile(`HCC-Demo-reports-${from}_${to}.xlsx`,bytes,XLSX_MIME),toast,'Demo Excel workbook saved · all report tabs','the Excel workbook');}
   return <><PageTitle title="Reports" sub={'Every figure derived from source records · fictional data · '+dateLabel(s.date)} action={<div className="inline">
-      <button className="btn" disabled={!pack} onClick={exportTab}><Download size={16}/> Export CSV</button>
-      <button className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={16}/> Export Excel</button>
+      {canExport&&<><button className="btn" disabled={!pack} onClick={exportTab}><Download size={16}/> Export CSV</button>
+      <button className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={16}/> Export Excel</button></>}
       <button className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={16}/> Print</button></div>}/>
     <HistorySummary/>
     <section className="card f-filters" aria-label="Report filters">
@@ -62,9 +63,9 @@ export function Reports(){
     </>}</>;
 }
 function Drill({pack,m,mask,onClose}:{pack:ReportPack;m:ReportMetric;mask:boolean;onClose:()=>void}){
-  const {s,booking,toast}=useHcc();const p=usePaged(m.rows,DESKTOP_PAGE);
+  const {s,uid,booking,toast}=useHcc();const p=usePaged(m.rows,DESKTOP_PAGE);
   return <section className="card f-drill" aria-label={'Source rows for '+m.label}><div className="section-title"><h2>{m.label} · source rows</h2>
-    <div className="inline"><button className="btn small-btn" onClick={()=>{downloadCsv(`HCC-Demo-rows-${m.id}-${pack.from}_${pack.to}.csv`,reportDrillCsv(s,pack,m));toast('Source rows downloaded');}}><Download size={14}/> Rows CSV</button>
+    <div className="inline">{rbacCanExportReports(s,uid)&&<button className="btn small-btn" onClick={()=>{downloadCsv(`HCC-Demo-rows-${m.id}-${pack.from}_${pack.to}.csv`,reportDrillCsv(s,pack,m));toast('Source rows downloaded');}}><Download size={14}/> Rows CSV</button>}
       <button className="icon-btn" aria-label="Close source rows" onClick={onClose}><X size={17}/></button></div></div>
     <div className="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Booking / guest</th><th>Detail</th><th>Method</th><th className="number">{m.unit==='money'?'Amount':'Count'}</th></tr></thead><tbody>
       {p.shown.map(r=><tr key={r.ref}><td>{shortDate(r.date)}</td><td><small>{r.ref}</small></td>

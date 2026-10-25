@@ -104,7 +104,7 @@ export function register({test,M,assert}){
   });
   test('[GSV] recovery discount within limit posts a discount line; needs a linked stay; closed day refused',()=>{
     let s=baseFixture();
-    s=execute(s,'cashier',{type:'GSV_COMPLAINT_RECOVERY',id:'CMP-902',amount:10000});
+    s=execute(s,'reception',{type:'GSV_COMPLAINT_RECOVERY',id:'CMP-902',amount:10000});
     const b=s.bookings.find(b=>b.id==='HCC-1044'),line=b.lines.at(-1);
     assert.equal(line.kind,'discount');assert.equal(line.amount,-10000);
     const c=M.gsvSlice(s).complaints.find(c=>c.id==='CMP-902');assert.equal(c.recovery.lineId,line.id);assert.equal(M.gsvRecoveryStatus(s,c),'Posted');

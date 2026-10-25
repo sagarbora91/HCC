@@ -43,17 +43,19 @@ Hotel Control Centre
 
 ### 1.1 Default landing page per role
 
+Revised 25 Oct 2026 — DEC-063 (RBAC rulings G1–G13; details in `HCC_RBAC_Matrix_v1.md` §5a).
+
 | Role | Lands on | Visible sections |
 |---|---|---|
 | Owner | Overview | All |
-| Manager | Overview | All except Access-control editing (view only) |
-| Reception | Room board | Front Desk, Guests & Stays, Folios (operational), Expenses (submit) |
-| Cashier | Cashier shift | Folios, Cashier, Expenses, Reports (cash) |
-| Accountant | Reports | Reports, Folios (read), Expenses, Day closing (read) |
-| Housekeeping supervisor | Housekeeping (board) | Housekeeping, Room board (read, no guest finance) |
+| Manager | Overview | All except Administration (Access control, Master configuration, Backup — a last-backup status card is on the Overview), Compliance calendar and the Accounting › Tally export tab; approves discounts up to ₹1,000 |
+| Reception | Room board | Front Desk, Guests & Stays, Folios (operational; discount ≤ ₹250; executes refunds approved by others from own shift), Cashier shift, Expenses (submit) — no Housekeeping board, Day closing or Reports |
+| Cashier | Cashier shift | Folios (no discount; may request corrections), Cashier, Expenses (submit, no reversal), Reports (cash; print, no Excel/CSV export), Accounting (no Tally tab) |
+| Accountant | Reports | Reports, Folios (read; may request corrections / credit notes), Expenses (own entries; approve / reverse), Day closing (read; closed-date correction requests), cash-difference decisions, Approvals & audit, Accounting (incl. Tally export), Compliance |
+| Housekeeping supervisor | Housekeeping (board) | Housekeeping (incl. room status), Maintenance, Linen & stock; shop bills handed to Reception/Cashier |
 | Housekeeper | Housekeeping (my tasks) | Housekeeping only |
-| Maintenance | Housekeeping (repairs filter) | Room board (blocks), repair tasks |
-| Technical administrator | Access control | Administration only |
+| Maintenance | Housekeeping (repairs filter) | Housekeeping (repairs, blocks), Maintenance (own work orders, no prices); shop bills handed to Reception/Cashier |
+| Technical administrator | Access control | Administration only (no money settings, ledger mapping or company credit limits) |
 
 ## 2. Persistent shell
 

@@ -1,5 +1,7 @@
 # RBAC matrix check — 25 Oct 2026
 
+> **Update 25 Oct 2026 — DEC-063 resolved.** The owner accepted rulings G1–G13 (`02 Planning\RBAC_Mismatch_Rulings_Proposed.md`). Branch `claude/rbac-rulings`: "doc wins" / "new rule" groups fixed in the app (G1–G4, G9–G13, command-level guards), "app wins" groups (G5–G8) and every other group written into `HCC_RBAC_Matrix_v1.md` (revised, §5a) and `HCC_Prototype_Spec_v1.md` §1.1. W05-1 (test now passes `uid` to `navFilterModules`) and F1 (fixed on integration) are hard tests. **The KNOWN table is empty**; the IDs below are kept as history. Each ruling has a focused `[RBAC] G<n>` test.
+
 Branch `claude/rbac-tests` (from integration/w05 @ 61e1369). Test file: `03 Prototype\tests\stream-rbac-matrix.mjs` (71 tests, part of `npm test`: **655/655 pass**, tsc clean). No product code changed.
 
 **Sources used as the truth:** `HCC_RBAC_Matrix_v1.md` (§5 matrix, §6 limits, §7 routes, §8 separation of duty, §9 fields), DEC-040/052/055/057/058, `HCC_Wave05_UI_Placement_v1.md`, `HCC_Prototype_Spec_v1.md` §1.1 (visible sections per role), module specs 13–26 (their coarse-permission tables). Where a module spec and the matrix conflict, the conflict is listed below.

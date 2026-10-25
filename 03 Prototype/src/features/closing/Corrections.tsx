@@ -1,7 +1,7 @@
 // Closed-date corrections (DEC-028, REQ-CLOSE-006): request → Owner approves → adjustment line dated today referencing the closed date.
 import React,{useState} from 'react';
 import {Info} from 'lucide-react';
-import {money} from '../../services/mock';
+import {money,rbacCanRequestClosedCorrection} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,dateLabel} from '../../components/ui';
 
@@ -12,13 +12,13 @@ export function Corrections(){
   const [bid,setBid]=useState('');const [date,setDate]=useState('');const [dir,setDir]=useState('-');const [amt,setAmt]=useState('');const [reason,setReason]=useState('');
   const list=s.approvals.filter(a=>a.kind==='closed-date-correction').slice().reverse();
   const paise=Math.round(Number(amt)*100);
-  const why=!permission('close')?'Requesting a correction needs the close permission (Manager or Owner).':!stays.length?'No stays to correct.':!dates.length?'No closed dates yet.':
+  const why=!rbacCanRequestClosedCorrection(s,uid)?'Requesting a correction needs the close permission or the Accountant role (Manager, Accountant or Owner).':!stays.length?'No stays to correct.':!dates.length?'No closed dates yet.':
     !(bid||stays[0])||!amt||!(paise>0)?'Enter the folio, closed date and amount.':!reason.trim()?'A reason is required.':'';
   function submit(e:React.FormEvent){e.preventDefault();if(why)return;
     run({type:'CORRECTION_ADJUST',id:bid||stays[0].id,date:date||dates[0],amount:dir==='-'?-paise:paise,reason:reason.trim()},'Correction requested — Owner approval required',{after:()=>{setAmt('');setReason('');}});}
   return <section className="card"><div className="section-title"><h2>Closed-date corrections</h2><span className="muted">Closed records never change</span></div>
     <div className="padded">
-      <div className="info-note"><Info size={16}/>A correction for a closed date posts as a dated adjustment in today’s open business day, referencing the closed date. Requested by a manager; approved by an Owner (not the requester).</div>
+      <div className="info-note"><Info size={16}/>A correction for a closed date posts as a dated adjustment in today’s open business day, referencing the closed date. Requested by a manager or the accountant; approved by an Owner (not the requester).</div>
       <form className="form" onSubmit={submit} aria-label="Request a closed-date correction">
         <div className="form-row"><label>Folio<select value={bid||stays[0]?.id||''} onChange={e=>setBid(e.target.value)} disabled={!stays.length}>{stays.map(b=><option key={b.id} value={b.id}>{b.id} · {b.guest} · room {b.room} · {b.status}</option>)}</select></label>
           <label>Closed date corrected<select value={date||dates[0]||''} onChange={e=>setDate(e.target.value)} disabled={!dates.length}>{dates.map(d=><option key={d} value={d}>{dateLabel(d)}</option>)}</select></label></div>

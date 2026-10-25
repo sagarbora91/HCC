@@ -2,7 +2,8 @@
 import React from 'react';
 import {Plus,AlertTriangle,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,totals,cmpHasAccess,cmpDueThisWeek,cmpSlice} from '../../services/mock';
+import {backupStatusText} from '../../features/housekeeping/BackupStatus';
+import {money,totals,cmpHasAccess,cmpDueThisWeek,cmpSlice,rbacSeesBackupStatus} from '../../services/mock';
 import {CmpStatusPill} from '../../features/compliance/shared';
 import {KpiCard,ListCard,ChipFilter,Fab} from '../../app/mobile/components';
 import {shortDate,dateLabel} from '../../components/ui';
@@ -33,6 +34,8 @@ export function MfHome(){
       {(()=>{const due=cmpDueThisWeek(s);return due.length?<>{due.slice(0,5).map(i=><ListCard key={i.key} tone="mf-due" title={i.obligation.name} sub={`${i.periodLabel} · due ${dateLabel(i.due)}`} right={<CmpStatusPill item={i}/>} onClick={goto('compliance')}/>)}
         {due.length>5&&<p className="mf-empty">+ {due.length-5} more in the calendar</p>}</>
         :<p className="mf-empty">Nothing is overdue or due within {cmpSlice(s).settings.dueSoonDays} days.</p>;})()}</>}
+    {rbacSeesBackupStatus(s,uid)&&(()=>{const {b,title,sub}=backupStatusText(s);return <><h2 className="m-group">BACKUP</h2>{/* DEC-063 G9: Owner + Manager */}
+      <ListCard tone={b.warn?'mf-att mf-att-orange':'mf-att'} title={<span className="mf-att-title">{b.warn?<AlertTriangle size={18}/>:<Info size={18}/>}{title}</span>} sub={sub} onClick={permission('admin')?()=>go('backup'):undefined}/></>;})()}
     <h2 className="m-group">FRONT DESK TODAY</h2>
     <ChipFilter label="Front desk list" value={seg} onChange={v=>setTab(v)} options={[{id:'Arrivals',label:'Arrivals',count:arrivals.length},{id:'Departures',label:'Departures',count:departures.length},{id:'In house',label:'In house',count:m.occupied}]}/>
     {list.length?list.slice(0,8).map(b=><ListCard key={b.id} title={<span className="mf-lc-guest"><span className="mf-initials" aria-hidden>{mfInitials(b.guest)}</span>{b.guest}</span>}

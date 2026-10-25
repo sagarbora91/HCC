@@ -72,6 +72,15 @@ export function hkBackupHistory(s:State):HkBackupRow[]{
   return [...manual,...scheduled].sort((a,b)=>b.at.localeCompare(a.at));
 }
 export function hkLastBackup(s:State){return hkBackupHistory(s).find(r=>r.result==='Succeeded');}
+/** DEC-063 G9: "last backup" status for the Overview warning card (Owner and Manager; the Manager has no Backup page).
+ * warn = the latest run failed, or the last good backup is older than 26 simulated hours (a missed nightly run). */
+export function hkBackupStatus(s:State){
+  const rows=hkBackupHistory(s),last=hkLastBackup(s),latest=rows[0];
+  const hoursAgo=last?Math.max(0,Math.floor((Date.parse(s.clock+':00Z')-Date.parse(last.at+':00Z'))/3600000)):undefined;
+  const failed=latest?.result==='Failed',stale=hoursAgo===undefined||hoursAgo>26;
+  const recentFailures=rows.filter(r=>r.result==='Failed').length;
+  return {last,latest,hoursAgo,failed,stale,warn:failed||stale,recentFailures};
+}
 export const HK_RESTORE_STEPS=[
   'Confirm with the Owner that a restore is required and record the reason; stop all front-desk activity.',
   'Close or note the current business day and cash shift so the last known figures are on paper.',

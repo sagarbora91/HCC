@@ -6,6 +6,7 @@ import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
 import {cfgPageOn} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
+import {rbacCanViewClosing,rbacSeesApprovals} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
 export type NavCategory={id:CategoryId;label:string;blurb:string;icon:typeof Store};
@@ -181,5 +182,12 @@ export function visibleEntries(entries:SearchEntry[],allowedPages:Set<string>,ca
 /** W05-A · DEC-057 Modules on/off: the one filter every navigation surface applies (Modules Home and category tiles, hamburger menu,
  * search palette, phone tabs via App's allowed pages). Pages of a switched-off module disappear; core pages always stay. */
 export function navFilterModules<T extends {id:string}>(s:State,items:readonly T[],uid?:string):T[]{return items.filter(i=>cfgPageOn(s,i.id)&&(uid===undefined||navRoleOk(s,uid,i.id)));}
-/** W05-1 · DEC-055: pages that permissions alone cannot express. Compliance calendar = Owner + Accountant only (Manager/Cashier also hold 'reports'). */
-export function navRoleOk(s:State,uid:string,page:string):boolean{return page==='compliance'?cmpHasAccess(s,uid):true;}
+/** Pages that permissions alone cannot express. W05-1 · DEC-055: Compliance calendar = Owner + Accountant only (Manager/Cashier also hold
+ * 'reports'). DEC-063: Day closing = close holders + the Accountant read-only, not the Cashier (G4/G8); Approvals & audit = Owner,
+ * Manager, Accountant, not the Cashier (G10). */
+export function navRoleOk(s:State,uid:string,page:string):boolean{
+  if(page==='compliance')return cmpHasAccess(s,uid);
+  if(page==='closing')return rbacCanViewClosing(s,uid);
+  if(page==='approvals')return rbacSeesApprovals(s,uid);
+  return true;
+}

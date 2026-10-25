@@ -31,7 +31,7 @@ export function DayClosing(){
   return <><PageTitle title="Day closing" sub="Finish the day with confidence: resolve exceptions, post room nights, reconcile cash, then close."
       action={<button className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={15}/> {closed?'Closing report':'Preview report'}</button>}/>
     <div className="closing-banner"><div><div className="eyebrow">CURRENT BUSINESS DATE</div><h2>{dateLabel(s.date)}</h2><p>Asia/Kolkata · simulated clock {s.clock.slice(11)}</p></div><Pill tone={closed?'neutral':'green'}>{closed?'Day closed':'Business day open'}</Pill></div>
-    {!canClose&&<div className="info-note"><AlertTriangle size={16}/>You can review the preflight. Posting nights, closing and opening the next day need the close permission (Manager or Owner).</div>}
+    {!canClose&&<div className="info-note"><AlertTriangle size={16}/>Read-only check. You can review the preflight, the cash shift and the closing summary, and request a closed-date correction. Posting nights, closing and opening the next day need the close permission (Manager or Owner).</div>}
     <div className="f-steps">
       <Step n={1} title="Preflight" state={closed||!generalOpen.length?'done':'blocked'}>
         {closed?<p className="muted">Completed before close.</p>:<ul className="f-checks">{general.map(c=><li key={c.id} className={c.items.length?'bad':'ok'}>

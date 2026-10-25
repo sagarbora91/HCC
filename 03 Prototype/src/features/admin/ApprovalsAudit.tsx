@@ -1,7 +1,7 @@
 // SCR-17 Approvals & audit (BL-026): approvals inbox with derived expiry/invalidation, pending expenses, full audit log.
 import React,{useState} from 'react';
 import {Lock} from 'lucide-react';
-import {money,authorize,adminApprovalInbox,adminDecideBlock,adminAuditFilter,adminAuditDetailVisible,adminUserActive,ADMIN_INBOX_TABS} from '../../services/mock';
+import {money,authorize,adminApprovalInbox,adminDecideBlock,adminAuditFilter,adminAuditDetailVisible,adminUserActive,adminExpenseBlock,ADMIN_INBOX_TABS} from '../../services/mock';
 import type {AdminInboxRow} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate,clockTime} from '../../components/ui';
@@ -45,7 +45,7 @@ function Expenses(){
   const u=s.users.find(x=>x.id===uid);
   return <section className="card"><div className="section-title"><div><h2>Pending expenses</h2><p>Submitters cannot approve their own expense.</p></div><Pill>{list.length} pending</Pill></div>
     {list.length?<div className="table-wrap"><table className="adm-table"><thead><tr><th>Expense</th><th>Category · method</th><th>Amount</th><th>Submitted by</th><th>Decision</th></tr></thead><tbody>
-      {list.map(e=>{const block=!u||!adminUserActive(s,u)?'Your account is not active.':e.actor===uid?'You submitted this expense — another user must decide it.':!permission('approve')?`Role ${u.role} lacks the approve permission.`:undefined;
+      {list.map(e=>{const block=adminExpenseBlock(s,uid,e.actor);
         return <tr key={e.id}><td><strong>{e.vendor}</strong><small>{e.id} · {shortDate(e.date)}</small></td><td>{e.category}<small>{e.method}</small></td><td className="number">{money(e.amount)}</td><td>{firstName(s.users.find(x=>x.id===e.actor)?.name||e.actor)}</td>
           <td className="adm-wrap"><div className="adm-decide"><GuardedButton block={block} busy={busy} onClick={()=>run({type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id},'Expense approved and posted')}>Approve</GuardedButton>{!block&&<button className="text-btn" disabled={busy} onClick={()=>run({type:'EXPENSE_APPROVE',id:e.id,approve:false,key:'expense:'+e.id},'Expense rejected')}>Reject</button>}</div></td></tr>;})}
     </tbody></table></div>:<Empty title="No pending expenses"/>}</section>;
