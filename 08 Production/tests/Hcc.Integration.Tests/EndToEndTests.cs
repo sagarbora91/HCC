@@ -100,6 +100,7 @@ public sealed class EndToEndTests
     {
         var avail = await Wire.GetAsync<AvailabilityResult>(reception, $"/availability?arrival={arrival}&departure={departure}&adults=2", Ct);
         Assert.True(avail.Rooms.Single(r => r.RoomId == roomId).Available);
+        Assert.Equal(200000, avail.Rooms.Single(r => r.RoomId == roomId).NightlyRatePaise); // arrival-night tariff (rack ₹2,000)
         var quote = await Wire.CommandAsync<QuoteResult>(reception, "QuoteStay", new QuoteStayRequest(arrival, departure, 2, 0, roomId), Ct);
         Assert.Equal(expectedTotal, quote.TotalPaise);
         var booking = await Wire.CommandAsync<ReservationResult>(reception, "CreateReservation", new CreateReservationRequest(quote.QuoteId, quote.Version, new GuestInput(guest, "9800000105"), roomId), Ct);

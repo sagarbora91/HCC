@@ -40,12 +40,15 @@ public sealed class InventoryService(IInventoryStore store, ICommandRunner runne
 
         var types = snap.RoomTypes.Where(t => query.RoomTypeId is null || t.RoomTypeId == query.RoomTypeId).OrderBy(t => t.SortOrder).ThenBy(t => t.RoomTypeId).ToList();
         var violations = types.ToDictionary(t => t.RoomTypeId, t => StayRestrictions.Violations(snap.Restrictions, t.RoomTypeId, t.Code, a, d));
+        var rates = new Dictionary<int, long>();
+        foreach (var t in types)
+            rates[t.RoomTypeId] = StayPricing.RateOn(await store.GetTariffsAsync(t.RoomTypeId, null, ct).ConfigureAwait(false), t.RackRatePaise, a);
         var rooms = snap.Rooms.Where(r => violations.ContainsKey(r.RoomTypeId)).OrderBy(r => r, RoomNumberComparer.Instance).Select(r =>
         {
             var reasons = AvailabilityRules.Exclusion(snap, holds, r, a, d, party, 0, query.GroupBlockId).ToList();
             if (violations[r.RoomTypeId].Count > 0) reasons.Add(AvailabilityReasons.Restricted);
             var hold = AvailabilityRules.RoomHold(holds, r.RoomId, a, d, query.GroupBlockId);
-            return new RoomAvailability(r.RoomId, r.RoomNo, r.RoomTypeId, r.RoomType, r.Capacity, reasons.Count == 0, reasons, hold?.BlockCode);
+            return new RoomAvailability(r.RoomId, r.RoomNo, r.RoomTypeId, r.RoomType, r.Capacity, reasons.Count == 0, reasons, hold?.BlockCode, rates[r.RoomTypeId]);
         }).ToList();
         var typeRows = types.Select(t => new RoomTypeAvailability(t.RoomTypeId, t.Code, t.MaxOccupancy,
             rooms.Count(r => r.RoomTypeId == t.RoomTypeId && r.Available), violations[t.RoomTypeId])).ToList();

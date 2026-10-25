@@ -29,44 +29,57 @@ export async function register({test,M,assert}){
   await build({entryPoints:['src/clients/index.ts'],bundle:true,platform:'node',format:'esm',outfile:P+'/clients.mjs',logLevel:'error'});
   const C=await import('../'+P+'/clients.mjs');
 
-  // ── HTTP adapter: shape ──
-  const availBody={arrival:'2026-10-24',departure:'2026-10-26',nights:2,party:2,valid:true,rooms:[{roomId:'105',roomTypeId:'Deluxe',capacity:3,available:true,reasons:[],nightlyRatePaise:200000},
-    {roomId:'308',roomTypeId:'Suite',capacity:4,available:false,reasons:['Blocked'],reasonText:'Blocked · out of service',nightlyRatePaise:450000}]};
-  const quoteBody={quoteId:'Q-1',version:'AAAAAAAAB9E=',roomId:'105',roomTypeId:'Deluxe',arrival:'2026-10-24',departure:'2026-10-26',adults:2,children:0,
-    nights:[{date:'2026-10-24',ratePaise:200000,taxBps:1000,taxPaise:20000},{date:'2026-10-25',ratePaise:200000,taxBps:1000,taxPaise:20000}],netPaise:400000,taxPaise:40000,totalPaise:440000,expiresAt:'2026-10-24T10:00:00Z',violations:[]};
-  const created={reservationId:'7f1c',publicNo:'HCC-2001',version:'AAAAAAAAB9I='};
+  // ── HTTP adapter: shape (server DTOs as the .NET API sends them → client types; Wave 1 integration) ──
+  const rooms=[{roomId:7,roomNo:'105',roomType:'Deluxe'}];
+  const availBody={businessDate:'2026-10-24',arrival:'2026-10-24',departure:'2026-10-26',nights:2,party:2,
+    types:[{roomTypeId:2,code:'Deluxe',maxOccupancy:3,availableRooms:1,violations:[]},{roomTypeId:4,code:'Suite',maxOccupancy:4,availableRooms:0,violations:[]}],
+    rooms:[{roomId:7,roomNo:'105',roomTypeId:2,roomType:'Deluxe',capacity:3,available:true,reasons:[],heldForBlock:null,nightlyRatePaise:200000},
+      {roomId:19,roomNo:'308',roomTypeId:4,roomType:'Suite',capacity:4,available:false,reasons:['Blocked'],heldForBlock:null,nightlyRatePaise:450000}]};
+  const quoteBody={quoteId:41,version:'AAAAAAAAB9E=',roomTypeId:2,roomId:7,arrival:'2026-10-24',departure:'2026-10-26',adults:2,children:0,ratePlanId:'BAR',
+    nights:[{date:'2026-10-24',ratePaise:200000,taxBps:1000,taxPaise:20000},{date:'2026-10-25',ratePaise:200000,taxBps:1000,taxPaise:20000}],netPaise:400000,taxPaise:40000,totalPaise:440000,expiresAt:'2026-10-24T10:00:00.000Z',violations:[]};
+  const created={reservationId:1201,publicNo:'HCC-1201',version:'AAAAAAAAB9I=',status:'Confirmed',holdUntil:null};
   const req={roomId:'105',guest:{name:'Journey Test',phone:'+91 90000 11111'},source:'Direct'};
 
   const a=fakeFetch([ok(availBody)]);
-  const avail=await settle(()=>C.createHttpClients({fetch:a.fetch,baseUrl:'https://hcc.test/'}).reservations.getAvailability({arrival:'2026-10-24',departure:'2026-10-26',adults:2,roomTypeId:'Deluxe'}));
-  test('[P5] HTTP getAvailability: GET /api/v1/availability with query, no Idempotency-Key, body passed through',()=>{
+  const avail=await settle(()=>C.createHttpClients({fetch:a.fetch,baseUrl:'https://hcc.test/'}).reservations.getAvailability({arrival:'2026-10-24',departure:'2026-10-26',adults:2}));
+  const typed=await settle(()=>C.createHttpClients({fetch:fakeFetch([ok(availBody)]).fetch}).reservations.getAvailability({arrival:'2026-10-24',departure:'2026-10-26',adults:2,roomTypeId:'Suite'}));
+  test('[P5] HTTP getAvailability: GET /api/v1/availability with query, no Idempotency-Key; server rooms mapped to room numbers / type codes',()=>{
     assert.ok(avail.ok,avail.error?.message);assert.equal(a.calls.length,1);
-    assert.equal(a.calls[0].url,'https://hcc.test/api/v1/availability?arrival=2026-10-24&departure=2026-10-26&adults=2&children=0&roomTypeId=Deluxe');
+    assert.equal(a.calls[0].url,'https://hcc.test/api/v1/availability?arrival=2026-10-24&departure=2026-10-26&adults=2&children=0');
     assert.equal(a.calls[0].method,'GET');assert.equal(a.calls[0].headers['Idempotency-Key'],undefined);
-    assert.deepEqual(avail.value,availBody);
+    assert.deepEqual(avail.value.rooms.map(r=>[r.roomId,r.roomTypeId,r.available,r.nightlyRatePaise]),[['105','Deluxe',true,200000],['308','Suite',false,450000]]);
     const v=C.availabilityView(avail.value);assert.deepEqual(v.available.map(r=>[r.room.id,r.ratePaise]),[['105',200000]]);
-    assert.deepEqual(v.excluded.map(r=>[r.room.id,r.reason,r.reasons]),[['308','Blocked · out of service',['Blocked']]]);
+    assert.deepEqual(v.excluded.map(r=>[r.room.id,r.reason,r.reasons]),[['308','Blocked',['Blocked']]]);
+    assert.ok(typed.ok);assert.deepEqual(typed.value.rooms.map(r=>r.roomId),['308'],'type codes are filtered on the client');
   });
 
-  const f=fakeFetch([ok(quoteBody),ok(created)]);
+  const f=fakeFetch([ok(availBody),ok(quoteBody),ok(created)]);
   const flow=await settle(()=>C.quoteAndCreate(C.createHttpClients({fetch:f.fetch}).reservations,{arrival:'2026-10-24',departure:'2026-10-26',adults:2,children:0},req,{idempotencyKey:'new:abc'}));
-  test('[P5] HTTP quote → create: POST /commands/QuoteStay then /commands/CreateReservation with quoteId+version and Idempotency-Key',()=>{
+  test('[P5] HTTP quote → create: room resolved to its server id, POST /commands/QuoteStay then /commands/CreateReservation with quoteId+version and Idempotency-Key',()=>{
     assert.ok(flow.ok,flow.error?.message);
-    assert.deepEqual(f.calls.map(c=>[c.method,c.url]),[['POST','/api/v1/commands/QuoteStay'],['POST','/api/v1/commands/CreateReservation']]);
-    assert.equal(f.calls[0].headers['Idempotency-Key'],'new:abc:quote');assert.equal(f.calls[1].headers['Idempotency-Key'],'new:abc');
-    assert.equal(f.calls[1].headers['Content-Type'],'application/json');
-    assert.deepEqual(f.calls[0].body,{arrival:'2026-10-24',departure:'2026-10-26',adults:2,children:0,roomId:'105'});
-    assert.equal(f.calls[1].body.quoteId,'Q-1');assert.equal(f.calls[1].body.quoteVersion,'AAAAAAAAB9E=');assert.deepEqual(f.calls[1].body.guest,req.guest);
-    assert.equal(flow.value.reservationId,'7f1c');assert.equal(flow.value.quote.totalPaise,440000);
+    assert.deepEqual(f.calls.map(c=>[c.method,c.url.split('?')[0]]),[['GET','/api/v1/availability'],['POST','/api/v1/commands/QuoteStay'],['POST','/api/v1/commands/CreateReservation']]);
+    assert.equal(f.calls[1].headers['Idempotency-Key'],'new:abc:quote');assert.equal(f.calls[2].headers['Idempotency-Key'],'new:abc');
+    assert.equal(f.calls[2].headers['Content-Type'],'application/json');
+    assert.deepEqual(f.calls[1].body,{arrival:'2026-10-24',departure:'2026-10-26',adults:2,children:0,roomId:7});
+    assert.equal(f.calls[2].body.quoteId,41);assert.equal(f.calls[2].body.quoteVersion,'AAAAAAAAB9E=');assert.equal(f.calls[2].body.roomId,7);assert.deepEqual(f.calls[2].body.guest,req.guest);
+    assert.equal(flow.value.reservationId,'1201');assert.equal(flow.value.quote.quoteId,'41');assert.equal(flow.value.quote.roomId,'105');assert.equal(flow.value.quote.totalPaise,440000);
+  });
+  const detailsBody={reservationId:1201,publicNo:'HCC-1201',version:'AAAAAAAAB9I=',status:'InHouse',guestName:'Journey Test',phone:'+91 90000 11111',roomId:7,roomNo:'105',
+    roomTypeId:2,roomType:'Deluxe',arrival:'2026-10-24',departure:'2026-10-26',adults:2,children:0,source:'Direct',nightlyRatePaise:200000,holdUntil:null,groupBlockId:null,
+    restrictionOverride:null,cancelReason:null,notes:null,nights:quoteBody.nights,netPaise:400000,taxPaise:40000,totalPaise:440000};
+  const d=fakeFetch([ok(detailsBody)]);const details=await settle(()=>C.createHttpClients({fetch:d.fetch}).reservations.getBooking('1201'));
+  test('[P5] HTTP getBooking: GET /api/v1/reservations/{id}; status spelled as the prototype, guest/room/type mapped',()=>{
+    assert.ok(details.ok,details.error?.message);assert.equal(d.calls[0].url,'/api/v1/reservations/1201');
+    const b=details.value;assert.deepEqual([b.reservationId,b.status,b.guest.name,b.roomId,b.roomTypeId,b.totals.totalPaise],['1201','In house','Journey Test','105','Deluxe',440000]);
   });
 
   // ── Idempotency-Key reuse on retry ──
   const r1=fakeFetch([netDown,ok(created)]);const conn1=C.createConnection();const states=[];conn1.subscribe(()=>states.push(conn1.get().status));
-  const retried=await settle(()=>C.createHttpClients({fetch:r1.fetch,connection:conn1}).reservations.createReservation({...req,quoteId:'Q-1',quoteVersion:'v1'},{idempotencyKey:'new:retry-1'}));
+  const retried=await settle(()=>C.createHttpClients({fetch:r1.fetch,connection:conn1,rooms}).reservations.createReservation({...req,quoteId:'41',quoteVersion:'v1'},{idempotencyKey:'new:retry-1'}));
   const r2=fakeFetch([fail(503,{code:'UNAVAILABLE',message:'Database unavailable'}),ok(created)]);
-  const retried503=await settle(()=>C.createHttpClients({fetch:r2.fetch}).reservations.createReservation({...req,quoteId:'Q-1',quoteVersion:'v1'},{idempotencyKey:'new:retry-2'}));
+  const retried503=await settle(()=>C.createHttpClients({fetch:r2.fetch,rooms}).reservations.createReservation({...req,quoteId:'41',quoteVersion:'v1'},{idempotencyKey:'new:retry-2'}));
   const r3=fakeFetch([netDown]);const conn3=C.createConnection();
-  const lost=await settle(()=>C.createHttpClients({fetch:r3.fetch,connection:conn3,commandRetries:2}).reservations.createReservation({...req,quoteId:'Q-1',quoteVersion:'v1'},{idempotencyKey:'new:retry-3'}));
+  const lost=await settle(()=>C.createHttpClients({fetch:r3.fetch,connection:conn3,commandRetries:2,rooms}).reservations.createReservation({...req,quoteId:'41',quoteVersion:'v1'},{idempotencyKey:'new:retry-3'}));
   test('[P5] Retry after a lost request reuses the same Idempotency-Key and identical body; reachability recovers',()=>{
     assert.ok(retried.ok,retried.error?.message);assert.equal(r1.calls.length,2);
     assert.equal(r1.calls[0].headers['Idempotency-Key'],'new:retry-1');assert.equal(r1.calls[1].headers['Idempotency-Key'],'new:retry-1');
@@ -88,12 +101,12 @@ export async function register({test,M,assert}){
   const mapped=[];
   for(const code of C.WIRE_CODES){
     const x=fakeFetch([fail(C.WIRE_STATUS[code],{code,message:'msg '+code,details:{violations:[{code:'MINLOS'}]}})]);
-    mapped.push([code,await settle(()=>C.createHttpClients({fetch:x.fetch,commandRetries:0}).reservations.createReservation({...req,quoteId:'Q',quoteVersion:'1'},{idempotencyKey:'k-'+code}))]);
+    mapped.push([code,await settle(()=>C.createHttpClients({fetch:x.fetch,commandRetries:0,rooms}).reservations.createReservation({...req,quoteId:'41',quoteVersion:'1'},{idempotencyKey:'k-'+code}))]);
   }
   const expected={VALIDATION:'VALIDATION',FORBIDDEN:'FORBIDDEN',NOT_FOUND:'NOT_FOUND',NOT_AVAILABLE:'NOT_AVAILABLE',RESTRICTED:'RESTRICTED',INVALID_TRANSITION:'INVALID_TRANSITION',
-    STALE_VERSION:'STALE_VERSION',DAY_CLOSED:'DAY_CLOSED',APPROVAL_REQUIRED:'FORBIDDEN',IDEMPOTENCY_MISMATCH:'VALIDATION',UNAVAILABLE:'RESULT_UNKNOWN'};
+    STALE_VERSION:'STALE_VERSION',DAY_CLOSED:'DAY_CLOSED',APPROVAL_REQUIRED:'FORBIDDEN',IDEMPOTENCY_MISMATCH:'VALIDATION',UNAVAILABLE:'RESULT_UNKNOWN',UNAUTHENTICATED:'FORBIDDEN'};
   test('[P5] Every contract error code maps to the prototype HccError code; message, details and HTTP status kept',()=>{
-    assert.equal(mapped.length,11);
+    assert.equal(mapped.length,12);
     for(const [code,r] of mapped){
       assert.equal(r.ok,false,code);assert.ok(r.error instanceof C.HccClientError,code);
       assert.equal(r.error.wireCode,code);assert.equal(r.error.code,expected[code],code);assert.equal(r.error.message,'msg '+code);
@@ -103,7 +116,8 @@ export async function register({test,M,assert}){
     assert.equal(C.errorText(mapped.find(([c])=>c==='STALE_VERSION')[1].error),'Record changed: msg STALE_VERSION');
   });
   test('[P5] Statuses match HccErrorCatalog; unknown / missing codes fall back by HTTP status',()=>{
-    assert.deepEqual(C.WIRE_STATUS,{VALIDATION:422,FORBIDDEN:403,NOT_FOUND:404,NOT_AVAILABLE:409,RESTRICTED:409,INVALID_TRANSITION:409,STALE_VERSION:409,DAY_CLOSED:409,APPROVAL_REQUIRED:403,IDEMPOTENCY_MISMATCH:409,UNAVAILABLE:503});
+    assert.deepEqual(C.WIRE_STATUS,{VALIDATION:422,FORBIDDEN:403,NOT_FOUND:404,NOT_AVAILABLE:409,RESTRICTED:409,INVALID_TRANSITION:409,STALE_VERSION:409,DAY_CLOSED:409,APPROVAL_REQUIRED:403,IDEMPOTENCY_MISMATCH:409,UNAVAILABLE:503,UNAUTHENTICATED:401});
+    assert.equal(C.errorFromResponse(401,undefined).wireCode,'UNAUTHENTICATED');
     assert.equal(C.errorFromResponse(500,{code:'BOOM'}).wireCode,'UNAVAILABLE');
     assert.equal(C.errorFromResponse(404,undefined).wireCode,'NOT_FOUND');
     const e=C.errorFromResponse(409,'not json');assert.equal(e.wireCode,'VALIDATION');assert.equal(e.message,'Check the details');
@@ -114,7 +128,7 @@ export async function register({test,M,assert}){
   const tr=C.createHttpTransport({fetch:v.fetch});
   await settle(()=>tr.command('AmendReservation',{reservationId:'7f1c'},{idempotencyKey:'amend-1',expectedVersion:'AAAAAAAAB9I='}));
   const longKey=await settle(()=>tr.command('X',{},{idempotencyKey:'k'.repeat(81)}));
-  const noKey=await settle(()=>C.createHttpClients({fetch:v.fetch}).reservations.createReservation({...req,quoteId:'Q',quoteVersion:'1'},{}));
+  const noKey=await settle(()=>C.createHttpClients({fetch:v.fetch,rooms}).reservations.createReservation({...req,quoteId:'41',quoteVersion:'1'},{}));
   const spaceKey=await settle(()=>tr.command('X',{},{idempotencyKey:'has space'}));
   test('[P5] expectedVersion travels in the command body; Idempotency-Key must be 1–80 visible ASCII and is mandatory for CreateReservation',()=>{
     assert.deepEqual(v.calls[0].body,{reservationId:'7f1c',expectedVersion:'AAAAAAAAB9I='});assert.equal(v.calls[0].headers['Idempotency-Key'],'amend-1');
@@ -124,10 +138,10 @@ export async function register({test,M,assert}){
   });
 
   // ── Safe-integer and date guards ──
-  const big=fakeFetch([()=>({status:200,raw:'{"reservationId":"1","totals":{"netPaise":9007199254740993,"taxPaise":0}}'})]);
+  const big=fakeFetch([()=>({status:200,raw:'{"reservationId":1,"roomNo":"105","netPaise":9007199254740993,"taxPaise":0}'})]);
   const bigR=await settle(()=>C.createHttpClients({fetch:big.fetch}).reservations.getBooking('1'));
-  const strR=await settle(()=>C.createHttpClients({fetch:fakeFetch([ok({...quoteBody,netPaise:'400000'})]).fetch}).reservations.quoteStay({arrival:'2026-10-24',departure:'2026-10-26',adults:2,roomId:'105'}));
-  const capR=await settle(()=>C.createHttpClients({fetch:fakeFetch([ok({...quoteBody,totalPaise:10_000_000_001})]).fetch}).reservations.quoteStay({arrival:'2026-10-24',departure:'2026-10-26',adults:2,roomId:'105'}));
+  const strR=await settle(()=>C.createHttpClients({fetch:fakeFetch([ok({...quoteBody,netPaise:'400000'})]).fetch,rooms}).reservations.quoteStay({arrival:'2026-10-24',departure:'2026-10-26',adults:2,roomId:'105'}));
+  const capR=await settle(()=>C.createHttpClients({fetch:fakeFetch([ok({...quoteBody,totalPaise:10_000_000_001})]).fetch,rooms}).reservations.quoteStay({arrival:'2026-10-24',departure:'2026-10-26',adults:2,roomId:'105'}));
   const dateR=await settle(()=>C.createHttpClients({fetch:fakeFetch([ok({...availBody,arrival:'2026-02-30'})]).fetch}).reservations.getAvailability({arrival:'2026-10-24',departure:'2026-10-26',adults:1}));
   const out=fakeFetch([ok({})]);const outR=await settle(()=>C.createHttpTransport({fetch:out.fetch}).command('RecordReceipt',{amountPaise:1.5},{idempotencyKey:'r-1'}));
   const badDate=fakeFetch([ok(availBody)]);const badDateR=await settle(()=>C.createHttpClients({fetch:badDate.fetch}).reservations.getAvailability({arrival:'24/10/2026',departure:'2026-10-26',adults:1}));
@@ -141,12 +155,13 @@ export async function register({test,M,assert}){
     assert.equal(badDateR.ok,false);assert.equal(badDate.calls.length,0);
     assert.equal(C.isIsoDate('2028-02-29'),true);assert.equal(C.isIsoDate('2026-02-29'),false);assert.equal(C.isIsoDate('2026-10-24T00:00'),false);
   });
-  const h=fakeFetch([ok({status:'ok',database:'ok',schemaVersion:2,serverTimeUtc:'2026-10-25T04:00:00Z'}),ok({userId:'u1',displayName:'Reception',permissions:['PERM-RES-001']})]);
+  const h=fakeFetch([ok({status:'ok',database:'ok',schemaVersion:2,serverTimeUtc:'2026-10-25T04:00:00Z'}),ok({userId:3,propertyId:1,displayName:'Reception',credentialKind:'PIN',roles:['REC'],permissions:[{permissionId:'PERM-RES-001',mode:'A',scope:'P',limit:null,limitUnit:null}],fieldMasks:{},session:{idleExpiresUtc:'2026-10-25T04:30:00.000Z',absoluteExpiresUtc:'2026-10-25T16:00:00.000Z',idleTimeoutSeconds:1800}})]);
   const hc=C.createHttpClients({fetch:h.fetch});const health=await settle(()=>hc.system.health());const caps=await settle(()=>hc.me.capabilities());
   const notJson=await settle(()=>C.createHttpClients({fetch:fakeFetch([()=>({status:200,raw:'<html>proxy</html>'})]).fetch}).system.health());
   test('[P5] SystemClient.health and MeClient.capabilities: GET /api/v1/system/health and /api/v1/me/capabilities; non-JSON → PROTOCOL',()=>{
     assert.deepEqual(h.calls.map(c=>c.url),['/api/v1/system/health','/api/v1/me/capabilities']);
     assert.equal(health.value.schemaVersion,2);assert.deepEqual(caps.value.permissions,['PERM-RES-001']);
+    assert.deepEqual([caps.value.userId,caps.value.role,caps.value.grants[0].scope],['3','REC','P']);
     assert.equal(notJson.ok,false);assert.equal(notJson.error.wireCode,'PROTOCOL');
   });
 

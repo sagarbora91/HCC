@@ -39,8 +39,11 @@ export type CreateReservationResult={reservationId:string;publicNo:string;versio
 export type BookingStatusDto='Held'|'Expired'|'Confirmed'|'In house'|'Departed'|'Cancelled'|'No show';
 export type BookingDetails={reservationId:string;publicNo:string;version:string;status:BookingStatusDto;
   guest:GuestInput;roomId:string;roomTypeId:string;arrival:string;departure:string;adults:number;children:number;
-  source:string;otaChannel?:string;company?:{name:string;gstin?:string};nightlyRatePaise:number;holdUntil?:string;registered:boolean;
-  totals:{netPaise:number;taxPaise:number;totalPaise:number;paidPaise:number;depositPaise:number;balancePaise:number}};
+  source:string;otaChannel?:string;company?:{name:string;gstin?:string};nightlyRatePaise:number;holdUntil?:string;
+  /** Mock only: the server keeps registration on the stay side (P3 RegisterGuest), not on the reservation read. */
+  registered?:boolean;
+  /** Agreed price. Paid / deposit / balance come from the folio (GET /folios/{id}, billing) — the mock fills them, the server read does not. */
+  totals:{netPaise:number;taxPaise:number;totalPaise:number;paidPaise?:number;depositPaise?:number;balancePaise?:number}};
 
 /** Per command: the key is chosen once per user action and reused on every retry of it. */
 export type CommandOptions={idempotencyKey:string;/** Record version the command was based on (STALE_VERSION on mismatch). */expectedVersion?:string};
@@ -59,7 +62,9 @@ export interface SystemClient{health():Promise<HealthResult>}
 
 export type Capabilities={userId:string;displayName:string;role?:string;
   /** Granted permissions (prototype: coarse permission names; server: PERM ids). */
-  permissions:string[];businessDate?:string};
+  permissions:string[];businessDate?:string;
+  /** Server only: role codes, the grant cells (mode A/L/R/V/M, scope P/S/A/O, limit) and field masks (RBAC §9). */
+  roles?:string[];grants?:{permissionId:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null}[];fieldMasks?:Record<string,string>};
 export interface MeClient{capabilities():Promise<Capabilities>}
 
 export type HccClients={kind:'mock'|'http';reservations:ReservationsClient;system:SystemClient;me:MeClient};

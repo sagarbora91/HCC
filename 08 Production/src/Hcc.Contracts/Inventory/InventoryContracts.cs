@@ -38,8 +38,9 @@ public sealed record StayViolation(string Code, string Restriction, string Messa
 public sealed record AvailabilityQuery(string Arrival, string Departure, int Adults, int Children = 0, int? RoomTypeId = null,
     string? RatePlanId = null, long? GroupBlockId = null);
 
+/// <param name="NightlyRatePaise">Tariff for the arrival night (BAR: dated tariff, else rack rate) — the rate a quote would start from (Wave 1 integration, P5 booking screens).</param>
 public sealed record RoomAvailability(int RoomId, string RoomNo, int RoomTypeId, string RoomType, int Capacity, bool Available,
-    IReadOnlyList<string> Reasons, string? HeldForBlock);
+    IReadOnlyList<string> Reasons, string? HeldForBlock, long NightlyRatePaise);
 
 public sealed record RoomTypeAvailability(int RoomTypeId, string Code, int MaxOccupancy, int AvailableRooms, IReadOnlyList<StayViolation> Violations);
 
