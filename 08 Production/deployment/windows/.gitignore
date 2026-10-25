@@ -1,0 +1,5 @@
+certs/
+*.pfx
+*.p12
+hcc-ops.json
+appsettings.Production.json
