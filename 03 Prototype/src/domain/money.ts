@@ -1,5 +1,8 @@
 // Money is integer paise (DEC-023). Dates are YYYY-MM-DD strings; the clock is local Asia/Kolkata time.
-export const money=(n:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:n%100?2:0,maximumFractionDigits:n%100?2:0}).format(n/100);
+// Formatters are cached: constructing Intl.NumberFormat per call cost ~0.3 s of the FY26 first-run generation (audit P-01).
+const inr=(d:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:d,maximumFractionDigits:d});
+let inr0:Intl.NumberFormat|undefined,inr2:Intl.NumberFormat|undefined;
+export const money=(n:number)=>(n%100?(inr2??=inr(2)):(inr0??=inr(0))).format(n/100);
 /** "1 night" / "2 nights" — count with the right singular or plural word (T-04). */
 export const plural=(n:number,word:string,many=word+'s')=>`${n} ${n===1?word:many}`;
 export function addDays(d:string,n:number){return new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);}

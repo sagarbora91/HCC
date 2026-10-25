@@ -9,16 +9,19 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 
 // ── fake IndexedDB (enough of the API for the adapter) ──
 function fakeIdb({failOpen=false}={}){
+  // Enough of IndexedDB for the adapter: requests complete asynchronously, a transaction completes once after all of its
+  // requests (including ones issued from callbacks). `puts` counts committed readwrite transactions (one per save).
   const data=new Map();let puts=0;
   return {data,get puts(){return puts;},open(){
     const req={};
     queueMicrotask(()=>{
       if(failOpen){req.error=new Error('blocked');req.onerror?.();return;}
-      const db={createObjectStore(){},transaction(){
-        const tx={objectStore:()=>({
-          get:k=>{const r={};queueMicrotask(()=>{r.result=data.get(k);r.onsuccess?.();});return r;},
-          put:(v,k)=>{puts++;data.set(k,v);queueMicrotask(()=>tx.oncomplete?.());},
-        })};return tx;}};
+      const db={createObjectStore(){},transaction(_s,mode='readonly'){
+        let pending=0;const tx={};
+        const done=()=>{if(--pending===0)queueMicrotask(()=>{if(pending===0){if(mode==='readwrite')puts++;tx.oncomplete?.();}});};
+        const rq=fn=>{pending++;const r={};queueMicrotask(()=>{r.result=fn();r.onsuccess?.();done();});return r;};
+        tx.objectStore=()=>({get:k=>rq(()=>data.get(k)),put:(v,k)=>rq(()=>{data.set(k,v);}),delete:k=>rq(()=>{data.delete(k);}),getAllKeys:()=>rq(()=>[...data.keys()])});
+        return tx;}};
       req.result=db;req.onupgradeneeded?.();req.onsuccess?.();
     });
     return req;}};
@@ -39,7 +42,7 @@ async function prepare(M){
   out.roundTrip=(await ST.createStateStorage({idb,ls}).load());
   out.lsLeftover=ls.m.has('hcc-prototype-v2');
   // flush() writes immediately
-  a.save({...fixture,sequence:1200});await a.flush();out.flushSeq=JSON.parse(idb.data.get('current')).sequence;
+  a.save({...fixture,sequence:1200});await a.flush();out.flushSeq=JSON.parse(idb.data.get('manifest')).scalars.sequence;
   // IndexedDB unavailable → localStorage fallback for small states
   const ls2=fakeLs(),b=ST.createStateStorage({idb:fakeIdb({failOpen:true}),ls:ls2,delay:0,setTimer:fn=>{fn();return 1;},clearTimer(){}});
   b.save(fixture);await b.flush();await tick();out.fallbackSaved=ls2.m.has('hcc-prototype-v2');

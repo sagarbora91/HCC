@@ -1,10 +1,11 @@
 // App shell: state, the single run() command path, navigation, header and demo toolbar.
 import React,{useState,useRef,useMemo,useCallback,useEffect} from 'react';
 import {Search,Hotel,Menu,CalendarDays,AlertCircle,CheckCircle2,X,Clock,Wifi,LogOut} from 'lucide-react';
-import {State,Command,Permission,Room,addDays,metrics,can,roomStatus as statusOf,errorTitle,codeOf,assignedScopeRoles,loadScenario as buildScenario,isDayClosed} from '../services/mock';
+import {State,Command,Permission,Room,addDays,metrics,can,roomStatus as statusOf,errorTitle,codeOf,assignedScopeRoles,isDayClosed} from '../services/mock';
 import {executeWithFault,FaultMode,LATENCY_MS} from '../services/mock/faults';
 import {HccContext,Ctx,Modal,RunOptions} from './context';
 import {loadStored,saveStored,onStorageError} from './storage';
+import {generateScenario,type GenProgress} from './scenarioGen';
 import type {Restored} from '../services/mock';
 import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage,navFilterModules} from './navmap';
@@ -38,9 +39,18 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 /** Loads the saved (or default) demo state from IndexedDB first, then shows the app (plan H-05, A3). */
 export function App(){
   const [initial,setInitial]=useState<Restored|null>(null);
-  useEffect(()=>{let live=true;loadStored().then(r=>{if(live)setInitial(r);});return()=>{live=false;};},[]);
-  if(!initial)return <div className="boot-loading" role="status" aria-live="polite"><Hotel size={28} aria-hidden="true"/><strong>Loading demo data…</strong><span>Preparing the fictional hotel records on this device.</span></div>;
+  const [progress,setProgress]=useState<GenProgress|null>(null);
+  useEffect(()=>{let live=true;loadStored(p=>{if(live)setProgress(p);}).then(r=>{if(live)setInitial(r);});return()=>{live=false;};},[]);
+  if(!initial)return <BootLoading progress={progress}/>;
   return <AppShell initial={initial}/>;
+}
+
+/** First-run loading screen: shows generation progress while the FY26 history is built in a worker (audit P-01). */
+function BootLoading({progress}:{progress:GenProgress|null}){
+  const pct=progress?Math.round(progress.done*100):0;
+  return <div className="boot-loading" role="status" aria-live="polite"><Hotel size={28} aria-hidden="true"/><strong>Loading demo data…</strong>
+    <span>{progress?`First start on this device: ${progress.step} (${pct}%)`:'Preparing the fictional hotel records on this device.'}</span>
+    {progress&&<progress max={100} value={pct} aria-label="Demo data generation progress" style={{width:'min(320px,80vw)',accentColor:'#7A1F2B'}}/>}</div>;
 }
 
 function AppShell({initial}:{initial:Restored}){
@@ -154,7 +164,12 @@ function AppShell({initial}:{initial:Restored}){
   }
   function signIn(id:string){setUid(id);setSignedIn(true);writeSession(id);setPage(HOME_PAGE);setModal(null);setError('');setSearch('');setFilter('All');}
   function signOut(){cancelBackFallback();writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
-  function loadScenario(id:string){cancelBackFallback();try{persist(buildScenario(id));setModal(null);setUid('owner');writeSession('owner');setPage(HOME_PAGE);toast(`Scenario ${id} loaded. All fictional records restored from the fixture.`);}catch(e){toast((e as Error).message,true);}}
+  // FY26 is built in the scenario worker so a scenario switch or reset does not freeze the page (audit P-01).
+  async function loadScenario(id:string){cancelBackFallback();if(busyRef.current)return;
+    busyRef.current=true;setBusy(true);
+    try{const next=await generateScenario(id);persist(next);setModal(null);setUid('owner');writeSession('owner');setPage(HOME_PAGE);toast(`Scenario ${id} loaded. All fictional records restored from the fixture.`);}
+    catch(e){toast((e as Error).message,true);}
+    finally{busyRef.current=false;setBusy(false);}}
   const resetScenario=()=>loadScenario(s.scenario);
 
   const permission=(p:Permission|Permission[])=>can(s,uid,p);
