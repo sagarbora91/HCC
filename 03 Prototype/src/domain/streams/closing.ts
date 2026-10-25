@@ -204,23 +204,39 @@ const receiptRow=(b:Booking,r:Receipt):DrillRow=>({date:r.date,ref:r.id,booking:
   amount:r.kind==='refund'||r.kind==='deposit-return'?-r.amount:r.amount});
 const expenseRow=(e:Expense):DrillRow=>({date:e.date,ref:e.id,detail:`${e.vendor} · ${e.category}${e.reversalOf?' · reverses '+e.reversalOf:''}${e.status==='Reversed'?' · later reversed':''}`,method:e.method,kind:e.reversalOf?'reversal':'expense',amount:e.amount});
 const metric=(id:string,label:string,rows:DrillRow[],unit:'money'|'count'='money',note?:string):ReportMetric=>({id,label,unit,rows,note,value:rows.reduce((a,r)=>a+r.amount,0)});
-const sumBy=(rows:DrillRow[],d:string)=>rows.filter(r=>r.date===d).reduce((a,r)=>a+r.amount,0);
+/** Per-date totals of drill rows in one pass (same figure as filtering the rows by date and adding them up). */
+const sumsByDate=(rows:DrillRow[])=>{const m=new Map<string,number>();for(const r of rows)m.set(r.date,(m.get(r.date)??0)+r.amount);return m;};
+const dayOffset=(from:string,d:string)=>Math.round((Date.parse(d+'T12:00:00Z')-Date.parse(from+'T12:00:00Z'))/86400000);
 
 /** Every report tab for an inclusive business-date range. Each metric's value is exactly the sum of its drill-down rows. */
 export function reportPack(s:State,from:string,to:string):ReportPack{
   const dates=reportDates(from,to);
   const lines=reportLines(s,from,to),rec=reportReceipts(s,from,to),exp=reportExpenses(s,from,to);
-  const L=(k?:Line['kind'])=>lines.filter(x=>!k||x.l.kind===k).map(x=>lineRow(x.b,x.l,x.l.amount));
+  // Rows and per-date sums are built once per selection (the day tables used to rebuild them for every date).
+  const memoRows=<K,V>(f:(k:K)=>V)=>{const c=new Map<K,V>();return (k:K)=>{let v=c.get(k);if(v===undefined){v=f(k);c.set(k,v);}return v;};};
+  const Lk=memoRows((k:string)=>lines.filter(x=>!k||x.l.kind===k).map(x=>lineRow(x.b,x.l,x.l.amount)));
+  const L=(k?:Line['kind'])=>Lk(k??'');
   const taxRows=lines.map(x=>lineRow(x.b,x.l,lineTax(x.l)));
-  const R=(kinds:string[],method?:string)=>rec.filter(x=>kinds.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));
+  const Rk=memoRows((key:string)=>{const [kinds,method]=key.split('|');const ks=kinds.split(',');return rec.filter(x=>ks.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));});
+  const R=(kinds:string[],method?:string)=>Rk(kinds.join(',')+'|'+(method??''));
+  const sumsOf=memoRows((rows:DrillRow[])=>sumsByDate(rows));
+  const sumBy=(rows:DrillRow[],d:string)=>sumsOf(rows).get(d)??0;
   // Shared till: POS receipts are separate source records; folio transfers create no receipt here.
   const posCash:DrillRow[]=posSlice(s).receipts.filter(r=>r.method==='Cash'&&inRange(r.date,from,to)).map(r=>({
     date:r.date,ref:r.id,detail:`POS ${r.kind} · ${r.order} · ${r.reference}`,method:r.method,kind:'pos-'+r.kind,amount:r.amount}));
-  const stayRows=dates.flatMap(d=>reportStaysOn(s,d).map(b=>({date:d,ref:b.id+':'+d,booking:b.id,guest:b.guest,room:b.room,detail:'Occupied room night · '+b.status,amount:1})));
+  // Occupied room-nights: each stay is spread over its dates once (the old scan visited every booking for every date); order = date, then booking order.
+  const stayBy:DrillRow[][]=dates.map(()=>[]);
+  for(const b of s.bookings){
+    if(b.status!=='In house'&&b.status!=='Departed')continue;
+    for(let i=Math.max(0,dayOffset(from,b.arrival));i<dates.length&&i<dayOffset(from,b.departure);i++)
+      stayBy[i].push({date:dates[i],ref:b.id+':'+dates[i],booking:b.id,guest:b.guest,room:b.room,detail:'Occupied room night · '+b.status,amount:1});
+  }
+  const stayRows=stayBy.flat();
   const sellRows=dates.flatMap(d=>reportSellableOn(s,d).map(r=>({date:d,ref:'room:'+r.id+':'+d,room:r.id,detail:`Sellable room ${r.id} · ${r.type}`,amount:1})));
   const arrRows=s.bookings.filter(b=>(b.status==='In house'||b.status==='Departed')&&inRange(b.arrival,from,to)).map(b=>({date:b.arrival,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Arrival · '+b.source,amount:1}));
   const depRows=s.bookings.filter(b=>b.status==='Departed'&&inRange(b.departure,from,to)).map(b=>({date:b.departure,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Departure (checked out)',amount:1}));
   const E=(f:(e:Expense)=>boolean)=>exp.filter(f).map(expenseRow);
+  const cashExp=E(e=>e.method==='Cash');
   const net=metric('net','Net revenue (excl. tax)',L()),pay=metric('net','Net receipts (payments − refunds)',R(['payment','refund']));
   const expTotal=metric('total','Posted expenses (net of reversals)',E(()=>true));
   const occ={sellable:metric('sellable','Sellable room-nights',sellRows,'count'),occupied:metric('occupied','Occupied room-nights',stayRows,'count'),room:metric('room-revenue','Room revenue',L('room'))};
@@ -253,7 +269,7 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
       metric('cash-in','Cash into drawer (payments + deposits + POS sales)',[...R(['payment','deposit'],'Cash'),...posCash.filter(r=>r.kind==='pos-sale')]),
       metric('cash-out','Cash out of drawer (refunds + returns + POS voids)',[...R(['refund','deposit-return'],'Cash'),...posCash.filter(r=>r.kind==='pos-void')])],
       table:{columns:['Business date','Day','Opening float','Expected cash','Counted','Difference','Cash expenses'],units:['text','text','money','money','money','money','money'],
-        rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(E(e=>e.method==='Cash'),d)];})}},
+        rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(cashExp,d)];})}},
     {id:'occupancy',label:'Occupancy',ratios,metrics:[occ.sellable,occ.occupied,occ.room],
       table:{columns:['Business date','Sellable','Occupied','Occupancy %','Room revenue','ADR','RevPAR'],units:['text','count','count','text','money','text','text'],derived:[{col:3,kind:'pct',num:2,den:1},{col:5,kind:'money',num:4,den:2},{col:6,kind:'money',num:4,den:1}],
         rows:dates.map(d=>{const sl=sumBy(sellRows,d),oc=sumBy(stayRows,d),rr=sumBy(occ.room.rows,d);return [d,sl,oc,reportPct(oc,sl),rr,reportRatioMoney(rr,oc),reportRatioMoney(rr,sl)];})}},
