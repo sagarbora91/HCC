@@ -57,7 +57,8 @@ export function DayClosing(){
           {s.shiftClose&&<><div><span>Counted</span><strong>{money(s.shiftClose.counted)}</strong></div><div><span>Difference</span><strong>{money(s.shiftClose.counted-s.shiftClose.expected)}</strong></div></>}</div>
         <div className="card-footer f-actions"><button className="btn" onClick={()=>go('cashier')}>Open cashier shift <ArrowRight size={14}/></button>
           {st==='Open'&&!closed&&<button className="btn primary" disabled={!permission('payments')} onClick={()=>open({type:'cash'})}>Count & submit</button>}
-          {st==='Submitted'&&<span className="f-why">Waiting for difference approval on the cashier page.</span>}</div>
+          {st==='Submitted'&&<span className="f-why">Waiting for difference approval on the cashier page.</span>}
+          <button className="btn" onClick={()=>go('cashbook')}>Cash book <ArrowRight size={14}/></button></div>
       </Step>
       <Step n={4} title="Close business date" state={closed?'done':blockers.length?'waiting':'current'}>
         {closed?<><p>{dateLabel(s.date)} is closed. Rerunning close or night posting is refused; totals cannot change.</p>
