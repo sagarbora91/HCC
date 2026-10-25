@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- W3-6 invoices & credit notes tests: pure rules with the prototype figures (no database) and SQL with the REAL composition and access policy on
+       disposable HccTest_* databases. The P6 hotel harness is linked, not copied, so it stays in step with the closing tests. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Invoices.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hcc.Api\Hcc.Api.csproj" />
+    <ProjectReference Include="..\..\src\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Hcc.Closing.Tests\Harness\Hotel.cs" Link="Linked\Hotel.cs" />
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
