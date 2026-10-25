@@ -24,3 +24,9 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 18 | `src/Hcc.Api/Hosting/HccHosting.cs` (P7) | `UseWindowsService`, production config validator (integrated auth only, no TrustServerCertificate, backup folder, thumbprint), Kestrel HTTPS from machine store | ETP service hosting/config validation/TLS binding |
 
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).
+
+## W2-7 Maintenance (module 15)
+| # | Where | Stand-in | ETP should provide |
+|---|---|---|---|
+| 19 | `src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs` (`IsTechnicianAsync`, `FirstTechnicianAsync`) | Technician = enabled user holding role MNT (SQL over `plat.user_role`) | ETP staff/role directory (assignable technician list) |
+| 20 | `src/Hcc.Application/Maintenance/MaintenanceCommands.cs` (`// P6-GUARD:` markers) | No closed-day refusal yet | P6 `IBusinessDayGuard` (DAY_CLOSED) at each marker |
