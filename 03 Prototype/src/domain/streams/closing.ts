@@ -65,6 +65,8 @@ export function shiftMovements(s:State):CashMovement[]{
   return [...rec,...pos,...exp];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
+/** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
+export const shiftCashIn=(x:{payments:number;deposits:number;restaurant:number;other:number})=>x.payments+x.deposits+x.restaurant+x.other;
 /** The expected-cash formula with its parts (Financial Rulebook §4). parts.expected always equals drawer(s). */
 export function shiftExpected(s:State){
   const mv=shiftMovements(s),sum=(k:string[])=>mv.filter(m=>k.includes(m.kind)).reduce((a,m)=>a+m.amount,0);

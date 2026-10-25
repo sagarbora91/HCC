@@ -2,15 +2,16 @@
 import React from 'react';
 import {Plus,AlertTriangle,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,totals} from '../../services/mock';
+import {money,totals,cmpHasAccess,cmpDueThisWeek,cmpSlice} from '../../services/mock';
+import {CmpStatusPill} from '../../features/compliance/shared';
 import {KpiCard,ListCard,ChipFilter,Fab} from '../../app/mobile/components';
-import {shortDate} from '../../components/ui';
+import {shortDate,dateLabel} from '../../components/ui';
 import {mfAttention,mfInitials} from './logic';
 import {MfStatus,useMfPages,useMfTop} from './shared';
 
 export function MfHome(){
   useMfTop();
-  const {s,m,user,go,open,booking,tab,setTab,setFilter,arrivals,departures,permission}=useHcc();
+  const {s,uid,m,user,go,open,booking,tab,setTab,setFilter,arrivals,departures,permission}=useHcc();
   const pages=useMfPages();const money_=permission('billing')||permission('reports');
   const goto=(page:string,filter?:string)=>{if(!pages.includes(page))return undefined;return ()=>{go(page);if(filter)setFilter(filter);};};
   const seg=['Arrivals','Departures','In house'].includes(tab)?tab:'Arrivals';
@@ -28,6 +29,10 @@ export function MfHome(){
     <h2 className="m-group">NEEDS ATTENTION</h2>
     {att.length?att.map(a=><ListCard key={a.id} tone={'mf-att mf-att-'+a.tone} title={<span className="mf-att-title">{a.tone==='orange'?<AlertTriangle size={18}/>:<Info size={18}/>}{a.title}</span>} sub={a.detail} onClick={goto(a.page,a.filter)}/>)
       :<p className="mf-empty">Nothing needs your attention right now.</p>}
+    {cmpHasAccess(s,uid)&&<><h2 className="m-group">DUE THIS WEEK</h2>{/* W05-5: compliance reminders, Owner + Accountant */}
+      {(()=>{const due=cmpDueThisWeek(s);return due.length?<>{due.slice(0,5).map(i=><ListCard key={i.key} tone="mf-due" title={i.obligation.name} sub={`${i.periodLabel} · due ${dateLabel(i.due)}`} right={<CmpStatusPill item={i}/>} onClick={goto('compliance')}/>)}
+        {due.length>5&&<p className="mf-empty">+ {due.length-5} more in the calendar</p>}</>
+        :<p className="mf-empty">Nothing is overdue or due within {cmpSlice(s).settings.dueSoonDays} days.</p>;})()}</>}
     <h2 className="m-group">FRONT DESK TODAY</h2>
     <ChipFilter label="Front desk list" value={seg} onChange={v=>setTab(v)} options={[{id:'Arrivals',label:'Arrivals',count:arrivals.length},{id:'Departures',label:'Departures',count:departures.length},{id:'In house',label:'In house',count:m.occupied}]}/>
     {list.length?list.slice(0,8).map(b=><ListCard key={b.id} title={<span className="mf-lc-guest"><span className="mf-initials" aria-hidden>{mfInitials(b.guest)}</span>{b.guest}</span>}

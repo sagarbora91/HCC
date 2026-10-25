@@ -13,11 +13,11 @@ function Hl({text,terms}:{text:string;terms:string[]}){
   return <>{parts.map((p,i)=>i%2?<mark key={i}>{p}</mark>:<span key={i}>{p}</span>)}</>;
 }
 export function SearchPalette({onClose}:{onClose:()=>void}){
-  const {s,go,open,permission}=useHcc();
+  const {s,uid,go,open,permission}=useHcc();
   const [q,setQ]=useState(''),[at,setAt]=useState(0);
   const ref=useRef<HTMLInputElement>(null);
   const all=useMemo(()=>buildSearchEntries(navItems),[]);
-  const allowed=new Set(navFilterModules(s,navItems).filter(n=>permission(n.p)).map(n=>n.id));
+  const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
   const visible=visibleEntries(all,allowed,p=>permission(p));
   const terms=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const hits:SearchEntry[]=terms.length?searchEntries(visible,q).slice(0,12).map(h=>h.entry)
