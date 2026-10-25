@@ -9,6 +9,9 @@
 //   SCC leave — ...\reference-inputs\SCC-modules\leave\index.html
 //     ENT_DEFAULTS (CL 12 · SL 7 · EL 15 per Indian FY, fyRangeOf) · leaveDaysOf (half-day = 0.5) · isWeekOffDate (weekly offs skipped) ·
 //     getCapacity / MAX_DAY (max staff off per day — per department here; pending + approved hold a slot, rejected frees it) · decideLeave.
+// NOT PORTED FROM SCC (review F-08, Owner decision pending): calcAttendance's "extra days" rule (+4 paid days when total deductions ≤ 5.5,
+//   +2 when < 7, none above — i.e. paid days forfeited when absence is high), its 5.5-day monthly cap on leaves applied, and day-based overtime
+//   (surplus days paid at gross ÷ days). HCC instead pays rostered weekly offs (roster) and overtime per minute; see HR_NOT_PORTED.
 // Statutory values are DATED settings (effective-from) and marked "Illustrative — CA to confirm for a hotel". Fictional staff only.
 import type {State,Role} from '../types';
 import {addDays} from '../money';
@@ -52,7 +55,10 @@ export type HRRates={from:string;
   esicEeBps:number;esicErBps:number;esicCeiling:number;
   ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;
   otBps:number;lateBlock:number;
-  /** paise = SCC (round to 0.01); rupee = PF nearest rupee, ESIC next higher rupee. */ rounding:HRRounding};
+  /** paise = SCC (round to 0.01); rupee = PF nearest rupee, ESIC next higher rupee. */ rounding:HRRounding;
+  /** F-07 ESIC contribution-period rule (Apr–Sep / Oct–Mar): coverage is decided once per period from the contractual wage and then
+   *  continues to the period end even if pay crosses the ceiling. Absent/false = SCC month-by-month test on earned pay. Illustrative — CA to confirm. */
+  esicPeriod?:boolean};
 export type HRLeavePolicy={ent:{CL:number;SL:number;EL:number};
   /** Max staff off per department per day (pending + approved). */ defaultCap:number;deptCap:Record<string,number>};
 export type HRCounts={ym:string;days:number;P:number;L:number;H:number;
@@ -63,17 +69,35 @@ export type HRLine={staffId:string;name:string;dept:string;designation:string;pa
   /** Earned (pro-rated) pay = SCC grossPayable. */ earned:number;basic:number;hra:number;washing:number;special:number;ot:number;
   /** earned + overtime. */ gross:number;
   pfWages:number;pf:number;pfEr:number;esicWages:number;esic:number;esicEr:number;pt:number;advance:number;deductions:number;net:number;
+  /** F-07: ESIC coverage for this month under the contribution-period rule (absent when the month-by-month rule applied). */ esicCovered?:boolean;
   /** Employer cost = gross + PF employer + ESIC employer. */ ctc:number};
 export type HRSend={staffId:string;to:string;at:string;by:string};
+export type HRBankFile={at:string;by:string;net:number};
+export type HRUnlock={at:string;by:string;reason:string;
+  /** Payslips sent before this unlock — superseded. */ sent?:HRSend[];
+  /** Bank files generated before this unlock (already given to the bank). */ bankFiles?:HRBankFile[];
+  /** Net pay per staff ID in the lock that was undone. */ nets?:Record<string,number>};
+/** Bank details as frozen in a locked run (F-02: the bank file pays where the checker approved, not the live staff master). */
+export type HRBank={bankName:string;accountNo:string;ifsc:string};
 export type HRRun={id:string;month:string;status:'Draft'|'Locked';rates:HRRates;lines:HRLine[];warnings:string[];
   preparedBy:string;preparedAt:string;lockedBy?:string;lockedAt?:string;
+  /** Bank details per staff ID, copied at lock (F-02). Absent on runs locked before the snapshot existed. */ bank?:Record<string,HRBank>;
   /** Simulated WhatsApp payslip sends. */ sent?:HRSend[];
-  /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. */ unlocks?:{at:string;by:string;reason:string}[]};
+  /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. F-09: the payslip sends, bank files and net figures of the
+   *  lock that was undone are kept here (superseded), so a relock shows who must get a new payslip and that a bank file was already issued. */
+  unlocks?:HRUnlock[];
+  /** F-09: bank transfer files generated for the current lock (simulated). */ bankFiles?:HRBankFile[];
+  /** F-04: run saved before W05-B (illustrative rules), migrated on restore; employer contributions and the pay split were not recorded. */ legacy?:boolean};
 export type HRFnfAdj={label:string;kind:'add'|'ded';amount:number};
 export type HRFnf={id:string;staffId:string;name:string;lastDay:string;month:string;
   /** False when the exit month was already paid in a locked run. */ salaryIncluded:boolean;line?:HRLine;rates:HRRates;
   advanceOutstanding:number;adjustments:HRFnfAdj[];earnings:number;recoveries:number;
-  /** May be negative: recoverable from the employee. */ net:number;by:string;at:string};
+  /** May be negative: recoverable from the employee. */ net:number;by:string;at:string;
+  /** F-12 maker-checker: Draft until another payroll user confirms (absent = settled before the rule existed). */ status?:'Draft'|'Settled';
+  confirmedBy?:string;confirmedAt?:string};
+/** F-12 limits (illustrative): each adjustment ≤ ₹2,00,000; additions above ₹1,00,000 in total need the Owner as checker. */
+export const HR_FNF_ADJ_MAX=20000000,HR_FNF_OWNER_ABOVE=10000000;
+export const hrFnfSettled=(f:HRFnf)=>f.status!=='Draft';
 /** State slice for this module, stored at s.staffX (optional; absent in old saves → treat as empty). */
 export type HRState={depts:HRDept[];staff:HRStaff[];
   /** Roster overrides keyed "YYYY-MM-DD|staffId". */ roster:Record<string,HRShiftCode>;
@@ -82,15 +106,62 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
   /** Dated statutory rate versions, sorted by `from`. */ rateVersions:HRRates[];
   leavePolicy?:HRLeavePolicy;runs:HRRun[];fnf?:HRFnf[]};
 
+/** F-08: shown on the leave-policy and statutory-rates screens. */
+export const HR_NOT_PORTED='Not ported from SCC: the extra-days rule (4 or 2 paid days added by total deductions, none above 7; 5.5-day monthly leave cap) and day-based overtime. HCC pays rostered weekly offs from the roster and overtime per minute. Owner decision pending (CA item 9).';
 export const HR_DISCLAIMER='Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff.';
 export const hrDefaultRates=():HRRates=>({from:'2025-04-01',basicBps:5000,hraBps:8000,washBps:1000,pfEeBps:1200,pfErBps:1300,pfWageCap:1500000,
   esicEeBps:75,esicErBps:325,esicCeiling:2100000,ptMaleExempt:750000,ptMaleMid:1000000,ptMaleMidAmt:17500,ptStd:20000,ptFeb:30000,ptFemaleExempt:2500000,
-  otBps:10000,lateBlock:3,rounding:'paise'});
+  otBps:10000,lateBlock:3,rounding:'paise',esicPeriod:true});
 export const hrDefaultLeavePolicy=():HRLeavePolicy=>({ent:{CL:12,SL:7,EL:15},defaultCap:2,deptCap:{}});
 export const hrEmpty=():HRState=>({depts:[],staff:[],roster:{},att:{},leaves:[],advances:[],rateVersions:[hrDefaultRates()],runs:[]});
 export const hrSlice=(s:State):HRState=>s.staffX??hrEmpty();
 /** For handlers: returns the slice, creating it on the (cloned) state if absent. */
 export function hrEnsure(s:State):HRState{if(!s.staffX)s.staffX=hrEmpty();if(!s.staffX.rateVersions?.length)s.staffX.rateVersions=[hrDefaultRates()];return s.staffX;}
+
+// ── F-04: saves made before W05-B (schema ≤ 7: `rates` instead of `rateVersions`, shorter run lines) ──
+/** Pre-W05-B rate shape and its defaults (only values that differ from these are carried over as the owner's custom rates). */
+type HRLegacyRates={basicBps:number;pfBps:number;pfCap:number;esicBps:number;esicCeiling:number;pt:number;ptThreshold:number;otBps:number;lateBlock:number};
+const HR_LEGACY_DEFAULTS:HRLegacyRates={basicBps:5000,pfBps:1200,pfCap:1500000,esicBps:75,esicCeiling:2100000,pt:20000,ptThreshold:1000000,otBps:15000,lateBlock:3};
+const okInt=(v:unknown):v is number=>Number.isSafeInteger(v)&&(v as number)>=0;
+/** Old `rates` → one dated version from the first default date: SCC defaults, overlaid with every old value the owner had customised. */
+export function hrRatesFromLegacy(old:Partial<HRLegacyRates>,from=hrDefaultRates().from):HRRates{
+  const r={...hrDefaultRates(),from},custom=(k:keyof HRLegacyRates)=>okInt(old[k])&&old[k]!==HR_LEGACY_DEFAULTS[k]?old[k] as number:undefined;
+  const set=<K extends keyof HRRates>(k:K,v:HRRates[K]|undefined)=>{if(v!==undefined)r[k]=v;};
+  set('basicBps',custom('basicBps'));set('pfEeBps',custom('pfBps'));set('pfWageCap',custom('pfCap'));set('esicEeBps',custom('esicBps'));set('esicCeiling',custom('esicCeiling'));
+  set('ptStd',custom('pt'));const th=custom('ptThreshold');if(th!==undefined&&th>0){r.ptMaleMid=th-1;r.ptMaleExempt=Math.min(r.ptMaleExempt,r.ptMaleMid-1);}
+  set('otBps',custom('otBps'));const lb=old.lateBlock;if(okInt(lb)&&lb<=10&&lb!==HR_LEGACY_DEFAULTS.lateBlock)r.lateBlock=lb;
+  return r;
+}
+/** Fills the fields a pre-W05-B run line lacks from what it did record (old `basic` = earned pay; no employer share or pay split). */
+function hrLegacyLine(l:Partial<HRLine>&Record<string,unknown>,ym:string,st:HRStaff|undefined,r:HRRates):HRLine{
+  const n=(v:unknown)=>Number.isFinite(v)?v as number:0;
+  const gross=n(l.gross),ot=n(l.ot),earned=Number.isFinite(l.earned)?l.earned as number:Math.max(0,gross-ot),pf=n(l.pf),esic=n(l.esic);
+  const c=(l.counts??{}) as Partial<HRCounts>;
+  return {...l,staffId:String(l.staffId??''),name:String(l.name??''),dept:String(l.dept??''),designation:String(l.designation??''),payType:l.payType==='daily'?'daily':'monthly',
+    structure:l.structure??'B',gender:l.gender??(st?hrGenderOf(st):'M'),base:n(l.base),
+    counts:{ym,days:n(c.days)||hrDaysInMonth(ym),P:n(c.P),L:n(c.L),H:n(c.H),HL:n(c.HL),A:n(c.A),OFFW:n(c.OFFW),off:n(c.off),paidLeave:n(c.paidLeave),lopLeave:n(c.lopLeave),unmarked:n(c.unmarked),na:n(c.na),otMin:n(c.otMin)},
+    latePenaltyHalf:n(l.latePenaltyHalf),payableDays:n(l.payableDays),earned,basic:Number.isFinite(l.basic)?l.basic as number:earned,hra:n(l.hra),washing:n(l.washing),special:n(l.special),ot,gross,
+    pfWages:Number.isFinite(l.pfWages)?l.pfWages as number:pf?Math.min(hrMulDiv(earned,r.basicBps,1,10000),r.pfWageCap):0,pf,pfEr:n(l.pfEr),
+    esicWages:Number.isFinite(l.esicWages)?l.esicWages as number:esic?gross:0,esic,esicEr:n(l.esicEr),pt:n(l.pt),advance:n(l.advance),deductions:n(l.deductions),net:n(l.net),
+    ctc:Number.isFinite(l.ctc)?l.ctc as number:gross+n(l.pfEr)+n(l.esicEr)};
+}
+/** One-time migration for state saved before W05-B (run from restoreState for schema ≤ 7; a no-op on current-shape state, so it is idempotent).
+ *  Old `rates` → `rateVersions` (custom values kept); old runs keep their figures, get a full rate snapshot and the missing line fields, marked legacy. */
+export function hrMigrateLegacy(s:State):boolean{
+  const x=s.staffX as (HRState&{rates?:Partial<HRLegacyRates>})|undefined;if(!x)return false;
+  let changed=false;
+  if(!x.rateVersions?.length){x.rateVersions=[x.rates?hrRatesFromLegacy(x.rates):hrDefaultRates()];changed=true;}
+  if(x.rates){delete x.rates;changed=true;}
+  for(const run of x.runs??[]){
+    const rr=run.rates as Partial<HRRates>&Partial<HRLegacyRates>;
+    const old=!rr||typeof rr.from!=='string'||run.lines.some(l=>!Number.isFinite((l as Partial<HRLine>).earned)||!Number.isFinite((l as Partial<HRLine>).pfEr)||typeof (l.counts as Partial<HRCounts>)?.ym!=='string');
+    if(!old)continue;
+    if(!rr||typeof rr.from!=='string')run.rates=hrRatesFromLegacy(rr??{});
+    run.lines=run.lines.map(l=>hrLegacyLine(l as HRLine&Record<string,unknown>,run.month,x.staff.find(t=>t.id===l.staffId),run.rates));
+    run.legacy=true;changed=true;
+  }
+  return changed;
+}
 
 export const HR_SHIFTS:{code:HRShiftCode;label:string;start:string;end:string}[]=[
   {code:'M',label:'Morning',start:'07:00',end:'15:00'},{code:'E',label:'Evening',start:'15:00',end:'23:00'},
@@ -148,6 +219,10 @@ export function hrCanPay(s:State,uid:string){const u=s.users.find(x=>x.id===uid)
 export const hrCanRates=(s:State,uid:string)=>hrCanPay(s,uid)&&can(s,uid,'admin');
 export const hrStaffOfUser=(s:State,uid:string)=>hrSlice(s).staff.find(x=>x.userId===uid);
 export const hrStaffById=(s:State,id:string)=>hrSlice(s).staff.find(x=>x.id===id);
+/** F-03: linking a staff record to a demo login decides whose payslips "My shifts & pay" shows — Owner only (payroll + admin), never on your own record. */
+export const hrCanLink=(s:State,uid:string)=>hrCanRates(s,uid);
+/** Locked runs that hold a payslip for this staff member (relinking such a record needs the Owner's explicit confirmation). */
+export const hrLockedPayslipCount=(s:State,staffId:string)=>hrSlice(s).runs.filter(r=>r.status==='Locked'&&r.lines.some(l=>l.staffId===staffId)).length;
 export const hrDeptName=(s:State,id:string)=>hrSlice(s).depts.find(d=>d.id===id)?.name??id;
 export const hrStructureOf=(st:HRStaff):HRStructure=>st.structure??(st.payType==='daily'?'B':'S');
 export const hrPfOn=(st:HRStaff)=>st.pfApplicable??hrStructureOf(st)==='S';
@@ -160,10 +235,19 @@ export const hrRateVersions=(s:State):HRRates[]=>{const v=hrSlice(s).rateVersion
 export function hrRatesFor(s:State,ym:string):HRRates{
   const v=hrRateVersions(s),d=ym+'-01';let r=v[0];for(const x of v)if(x.from<=d)r=x;return r;
 }
+/** F-06: default effective date for a new rate version: the month after the last COMPLETED pay period (the current month),
+ *  and never before the month after the last locked run. A completed-but-unlocked month changes only when chosen explicitly. */
+export function hrRatesDefaultFrom(s:State):string{
+  const cur=s.date.slice(0,7),last=hrLastLockedMonth(s),next=last?hrNextMonth(last):cur;return (next>cur?next:cur)+'-01';
+}
+/** Completed months without a locked run that a version from `from` would change (their payroll must be recalculated). */
+export function hrRatesPastMonths(s:State,from:string):string[]{
+  const out:string[]=[];for(let m=from.slice(0,7);hrMonthComplete(s,m);m=hrNextMonth(m))if(hrSlice(s).runs.find(r=>r.month===m)?.status!=='Locked')out.push(m);return out;
+}
 export const hrLeavePolicy=(s:State):HRLeavePolicy=>hrSlice(s).leavePolicy??hrDefaultLeavePolicy();
 export const hrDeptCap=(s:State,dept:string)=>{const p=hrLeavePolicy(s);return p.deptCap[dept]??p.defaultCap;};
 /** Latest locked pay-run month (rates on or before it can no longer change). */
-export const hrLastLockedMonth=(s:State)=>hrSlice(s).runs.filter(r=>r.status==='Locked').map(r=>r.month).sort().at(-1);
+export const hrLastLockedMonth=(s:State)=>hrSlice(s).runs.filter(r=>r.status==='Locked').map(r=>r.month).sort().pop();
 
 // ── Roster / attendance ──
 export const hrKey=(date:string,staffId:string)=>date+'|'+staffId;
@@ -175,13 +259,13 @@ const covers=(l:HRLeave,date:string)=>l.from<=date&&l.to>=date;
 export const hrApprovedLeavesOn=(s:State,staffId:string,date:string)=>hrSlice(s).leaves.filter(l=>l.staffId===staffId&&l.status==='Approved'&&covers(l,date));
 /** A full-day approved leave on the date, else the first half-day one. */
 export const hrApprovedLeaveOn=(s:State,staffId:string,date:string)=>{const ls=hrApprovedLeavesOn(s,staffId,date);return ls.find(l=>!l.half)??ls[0];};
-/** Day view for one staff member: explicit attendance → approved leave → rostered off → unmarked. Half-day leave can sit beside attendance. */
+/** Day view for one staff member: explicit attendance → rostered off → approved leave → unmarked. Half-day leave can sit beside attendance. */
 export function hrDayStatus(s:State,st:HRStaff,date:string):{kind:'att'|'leave'|'off'|'unmarked'|'na';att?:HRAtt;leave?:HRLeave}{
   if(date<st.joined||(st.exitedOn&&date>st.exitedOn))return {kind:'na'};
   const att=hrSlice(s).att[hrKey(date,st.id)],leave=hrApprovedLeaveOn(s,st.id,date);
   if(att)return leave?.half?{kind:'att',att,leave}:{kind:'att',att};
+  if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};// F-01: weekly off inside a leave span stays a weekly off
   if(leave)return {kind:'leave',leave};
-  if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};
   return {kind:'unmarked'};
 }
 /** Self check-in status from the simulated clock: Late after shift start + grace. */
@@ -203,9 +287,12 @@ export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
         addLeave(halves[0],0.5);
         if(att.status==='H')c.HL++;else c.A+=0.5;
       }else if(att.status==='OFF')c.OFFW++;else c[att.status]++;
-    }else if(full)addLeave(full,1);
-    else if(halves.length){halves.forEach(l=>addLeave(l,0.5));c.unmarked+=1-0.5*halves.length;}
+    }
+    // F-01: a rostered weekly off inside a leave span is a weekly off, never a leave day (SCC isWeekOffDate; matches the stored `days`).
+    // HCC has no holiday calendar yet; when one is added, holidays belong in this same branch.
     else if(hrShiftFor(s,st,d)==='OFF')c.off++;
+    else if(full)addLeave(full,1);
+    else if(halves.length){halves.forEach(l=>addLeave(l,0.5));c.unmarked+=1-0.5*halves.length;}
     else c.unmarked++;
   }
   return c;
@@ -224,7 +311,12 @@ export function hrLeaveUsed(s:State,staffId:string,dateOrYear:string,type:HRLeav
 }
 export const hrEntitled=(s:State,type:'CL'|'SL'|'EL')=>hrLeavePolicy(s).ent[type];
 export function hrLeaveBalance(s:State,staffId:string,dateOrYear:string){
-  return HR_TRACKED.map(t=>{const used=hrLeaveUsed(s,staffId,dateOrYear,t),entitled=hrEntitled(s,t);return {type:t,entitled,used,left:entitled-used};});
+  // F-15: `left` never goes below 0; `over` = days already taken or requested beyond a reduced entitlement.
+  return HR_TRACKED.map(t=>{const used=hrLeaveUsed(s,staffId,dateOrYear,t),entitled=hrEntitled(s,t);return {type:t,entitled,used,left:Math.max(0,entitled-used),over:Math.max(0,used-entitled)};});
+}
+/** F-15: staff whose used + pending leave already exceeds a proposed entitlement (shown before the Owner saves a cut). */
+export function hrLeaveOverCount(s:State,ent:{CL:number;SL:number;EL:number},dateOrYear=s.date){
+  return hrSlice(s).staff.filter(st=>st.active&&HR_TRACKED.some(t=>hrLeaveUsed(s,st.id,dateOrYear,t)>ent[t])).length;
 }
 /** Other staff of a department holding a leave slot (pending or approved) on a date — SCC getCapacity, per department. */
 export function hrDeptOff(s:State,dept:string,date:string,exceptStaff=''){
@@ -259,8 +351,23 @@ export function hrPt(base:number,gender:HRGender,ym:string,r:HRRates):number{
   if(base<=r.ptMaleMid)return r.ptMaleMidAmt;
   return top;
 }
-/** One payroll line. Pure: staff + counts + rate version + advance → figures (rounded to paise, half-up, in this order). */
-export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:number;balance:number}):HRLine{
+// ── F-07: ESIC contribution periods (Apr–Sep, Oct–Mar) ──
+/** First month (YYYY-MM) of the ESIC contribution period containing a month. */
+export function hrEsicPeriodStart(ym:string){const y=+ym.slice(0,4),m=+ym.slice(5,7);return m>=10?`${y}-10`:m>=4?`${y}-04`:`${y-1}-10`;}
+/** Contractual monthly wage for the coverage test: monthly salary, or daily wage × 26 (illustrative — CA to confirm). */
+export const hrEsicContractWage=(st:HRStaff)=>st.payType==='monthly'?st.monthly:st.daily*26;
+/** Coverage under the contribution-period rule: the earliest LOCKED run of the same period decides; with none yet, the contractual wage
+ *  at this month (≤ ceiling = covered). Undefined when the rate version uses the month-by-month rule. */
+export function hrEsicCovered(s:State,st:HRStaff,ym:string,r:HRRates):boolean|undefined{
+  if(!r.esicPeriod)return undefined;
+  const ps=hrEsicPeriodStart(ym);
+  const prior=hrSlice(s).runs.filter(x=>x.status==='Locked'&&x.month>=ps&&x.month<ym).sort((a,b)=>a.month<b.month?-1:1)
+    .map(x=>x.lines.find(l=>l.staffId===st.id)).find(l=>typeof l?.esicCovered==='boolean');
+  return prior?prior.esicCovered:hrEsicContractWage(st)<=r.esicCeiling;
+}
+/** One payroll line. Pure: staff + counts + rate version + advance → figures (rounded to paise, half-up, in this order).
+ *  `esicCovered` = contribution-period coverage from hrEsicCovered (defaults to the contractual-wage test). */
+export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:number;balance:number},esicCovered?:boolean):HRLine{
   const D=c.days,late=r.lateBlock>0?Math.floor(c.L/r.lateBlock):0,structure=hrStructureOf(st),gender=hrGenderOf(st);
   let payHalf:number,earned:number,ot:number;
   if(st.payType==='monthly'){
@@ -276,7 +383,8 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
   const special=earned-basic-hra-washing,gross=earned+ot;
   const pfWages=hrPfOn(st)?Math.min(basic,r.pfWageCap):0;
   const pf=pfWages?hrPct(pfWages,r.pfEeBps,r.rounding):0,pfEr=pfWages?hrPct(pfWages,r.pfErBps,r.rounding):0;
-  const esicWages=hrEsicOn(st)&&earned>0&&earned<=r.esicCeiling?earned-washing:0;
+  const period=!!r.esicPeriod,covered=period?(esicCovered??hrEsicContractWage(st)<=r.esicCeiling):earned<=r.esicCeiling;
+  const esicWages=hrEsicOn(st)&&earned>0&&covered?earned-washing:0;
   const esic=esicWages?hrPct(esicWages,r.esicEeBps,r.rounding,'esic'):0,esicEr=esicWages?hrPct(esicWages,r.esicErBps,r.rounding,'esic'):0;
   const pt=earned>0?hrPt(earned,gender,c.ym,r):0;
   const due=adv?(adv.installment>0?Math.min(adv.installment,adv.balance):adv.balance):0;
@@ -284,10 +392,10 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
   const deductions=pf+esic+pt+advance;
   return {staffId:st.id,name:st.name,dept:st.dept,designation:st.designation,payType:st.payType,structure,gender,base:st.payType==='monthly'?st.monthly:st.daily,
     counts:c,latePenaltyHalf:late,payableDays:payHalf/2,earned,basic,hra,washing,special,ot,gross,pfWages,pf,pfEr,esicWages,esic,esicEr,pt,advance,deductions,
-    net:gross-deductions,ctc:gross+pfEr+esicEr};
+    net:gross-deductions,ctc:gross+pfEr+esicEr,...(period?{esicCovered:hrEsicOn(st)&&covered}:{})};
 }
 /** Staff settled full-and-final with the exit month's salary inside the settlement. */
-const settledFor=(x:HRState,staffId:string,ym:string)=>(x.fnf??[]).some(f=>f.staffId===staffId&&f.salaryIncluded&&f.month===ym);
+const settledFor=(x:HRState,staffId:string,ym:string)=>(x.fnf??[]).some(f=>hrFnfSettled(f)&&f.staffId===staffId&&f.salaryIncluded&&f.month===ym);
 /** Computes a month's payroll lines and warnings from current state and the rate version in force. */
 export function hrComputeRun(s:State,ym:string,rates=hrRatesFor(s,ym)):{lines:HRLine[];warnings:string[]}{
   const x=hrSlice(s),warnings:string[]=[];
@@ -296,7 +404,7 @@ export function hrComputeRun(s:State,ym:string,rates=hrRatesFor(s,ym)):{lines:HR
     if(c.unmarked)warnings.push(`${st.name}: ${c.unmarked} unmarked day${c.unmarked===1?'':'s'} counted as absent.`);
     if((st.payType==='monthly'?st.monthly:st.daily)<=0)warnings.push(`${st.name}: salary not set — pays ₹0.`);
     const a=hrAdvanceFor(x,st.id,ym);
-    return hrComputeLine(st,c,rates,a?{installment:a.installment,balance:hrAdvanceBalance(a)}:undefined);
+    return hrComputeLine(st,c,rates,a?{installment:a.installment,balance:hrAdvanceBalance(a)}:undefined,hrEsicCovered(s,st,ym,rates));
   });
   return {lines,warnings};
 }
@@ -305,9 +413,16 @@ export const hrRunErrors=(run:{lines:HRLine[]})=>run.lines.filter(l=>l.base<=0).
 export const hrRunFor=(s:State,ym:string)=>hrSlice(s).runs.find(r=>r.month===ym);
 export function hrRunTotals(run:{lines:HRLine[]}){
   const t={staff:run.lines.length,earned:0,basic:0,ot:0,gross:0,pf:0,pfEr:0,esic:0,esicEr:0,pt:0,advance:0,deductions:0,net:0,ctc:0};
-  for(const l of run.lines){t.earned+=l.earned;t.basic+=l.basic;t.ot+=l.ot;t.gross+=l.gross;t.pf+=l.pf;t.pfEr+=l.pfEr;t.esic+=l.esic;t.esicEr+=l.esicEr;t.pt+=l.pt;t.advance+=l.advance;t.deductions+=l.deductions;t.net+=l.net;t.ctc+=l.ctc;}
+  // F-04: a missing field (old save) counts as 0, never NaN.
+  for(const l of run.lines)for(const k of ['earned','basic','ot','gross','pf','pfEr','esic','esicEr','pt','advance','deductions','net','ctc'] as const){const v=l[k];if(Number.isFinite(v))t[k]+=v;}
   return t;
 }
+/** F-02: copy each line's bank details from the staff master into the run (called at lock). */
+export function hrBankSnapshot(x:HRState,run:HRRun){
+  run.bank=Object.fromEntries(run.lines.map(l=>{const st=x.staff.find(t=>t.id===l.staffId);return [l.staffId,{bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''}];}));
+}
+/** Masked account number for audit text: last 4 digits only. */
+export const hrMaskAccount=(a?:string)=>a?'••••'+a.slice(-4):'(none)';
 /** Applies a run's advance recoveries to the advances (used when locking). */
 export function hrApplyRecoveries(x:HRState,run:HRRun){
   for(const l of run.lines){if(!l.advance)continue;const a=hrAdvanceFor(x,l.staffId,run.month);
@@ -318,14 +433,25 @@ export function hrReverseRecoveries(x:HRState,runId:string){
   for(const a of x.advances){const mine=a.recoveries.filter(r=>r.runId===runId);if(!mine.length)continue;
     a.recovered-=mine.reduce((n,r)=>n+r.amount,0);a.recoveries=a.recoveries.filter(r=>r.runId!==runId);}
 }
+/** F-09: bank files issued for this month so far (current lock and any lock undone since). */
+export const hrBankFilesIssued=(run:HRRun)=>[...(run.unlocks??[]).flatMap(u=>u.bankFiles??[]),...(run.bankFiles??[])];
+/** F-09: payslip state per staff member after an unlock: 'sent' (this lock), 'resend' (sent before an unlock and the net changed or
+ *  not yet re-sent — the staff member holds superseded figures), else ''. */
+export function hrPayslipMark(run:HRRun,staffId:string):'sent'|'resend'|'superseded'|''{
+  if((run.sent??[]).some(x=>x.staffId===staffId))return 'sent';
+  const u=[...(run.unlocks??[])].reverse().find(q=>(q.sent??[]).some(x=>x.staffId===staffId));if(!u)return '';
+  const now=run.lines.find(l=>l.staffId===staffId)?.net;
+  return now!==undefined&&u.nets?.[staffId]!==undefined&&u.nets[staffId]!==now?'resend':'superseded';
+}
 /** Payslips visible to a user: payroll roles see all; others only their own, from locked runs. */
 export function hrVisiblePayslips(s:State,uid:string):{run:HRRun;line:HRLine}[]{
   const pay=hrCanPay(s,uid),me=hrStaffOfUser(s,uid);
   return hrSlice(s).runs.filter(r=>r.status==='Locked').flatMap(run=>run.lines.filter(l=>pay||l.staffId===me?.id).map(line=>({run,line})))
     .sort((a,b)=>b.run.month.localeCompare(a.run.month));
 }
-const rupees=(p:number)=>(p/100).toFixed(2);
-const csvCell=(v:string|number)=>{const t=String(v);return /[",\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
+const rupees=(p:number)=>(Number.isFinite(p)?p/100:0).toFixed(2);
+/** CSV cell; F-17: text starting with = + - @ (or tab / CR) is prefixed with ' so spreadsheets never run it as a formula (plain numbers stay numbers). */
+const csvCell=(v:string|number)=>{let t=String(v);if(typeof v==='string'&&/^[=+\-@\t\r]/.test(t)&&!/^-?\d+(\.\d+)?$/.test(t))t="'"+t;return /[",\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
 const csv=(rows:(string|number)[][])=>rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n';
 /** Payroll register CSV (rupees with 2 decimals). */
 export function hrRegisterCsv(s:State,run:HRRun):string{
@@ -335,12 +461,15 @@ export function hrRegisterCsv(s:State,run:HRRun):string{
   const total=[run.month,'','TOTAL','','','','',...[t.earned,t.basic,hra,wash,spec,t.ot,t.gross,pfw,t.pf,t.esic,t.pt,t.advance,t.deductions,t.pfEr,t.esicEr,t.net].map(rupees)];
   return csv([head,...run.lines.map(row),total])+csvCell(`${run.status} run · fictional data · ${HR_DISCLAIMER}`)+'\n';
 }
-/** Bank transfer file (SCC reportBankCsv): one row per staff member with net pay; account numbers keep a leading apostrophe for Excel. */
+/** Bank transfer file (SCC reportBankCsv): one row per staff member with net pay; account numbers keep a leading apostrophe for Excel.
+ *  F-02: a locked run pays to the bank details frozen at lock; later staff-master edits apply to future runs only. */
 export function hrBankCsv(s:State,run:HRRun):string{
   const rows:(string|number)[][]=[['Sr','Employee Name','Employee ID','Bank Name','Account No','IFSC','Net Amount']];
-  run.lines.forEach((l,i)=>{const st=hrStaffById(s,l.staffId);rows.push([i+1,l.name,l.staffId,st?.bankName??'',"'"+(st?.accountNo??''),st?.ifsc??'',rupees(l.net)]);});
+  run.lines.forEach((l,i)=>{const st=hrStaffById(s,l.staffId),b=run.bank?.[l.staffId]??{bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''};
+    rows.push([i+1,l.name,l.staffId,b.bankName,"'"+b.accountNo,b.ifsc,rupees(l.net)]);});
   rows.push(['','TOTAL','','','','',rupees(hrRunTotals(run).net)]);
-  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status} · fictional bank details · simulated transfer — no money moves`)+'\n';
+  const src=run.bank?'bank details as locked':'bank details from the staff master (run locked before bank snapshots)';
+  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status} · ${src} · fictional bank details · simulated transfer — no money moves`)+'\n';
 }
 /** Statutory summary + member-wise register (SCC reportStatutoryCsv + statutoryMemberRows). */
 export function hrStatutoryCsv(s:State,run:HRRun):string{
@@ -349,7 +478,7 @@ export function hrStatutoryCsv(s:State,run:HRRun):string{
     ['Provident Fund',rupees(t.pf),rupees(t.pfEr),rupees(t.pf+t.pfEr)],['ESIC',rupees(t.esic),rupees(t.esicEr),rupees(t.esic+t.esicEr)],['Professional Tax (Maharashtra)',rupees(t.pt),'0.00',rupees(t.pt)],[],
     ['Sr','Staff ID','Name','Earned','PF wages','PF EE','PF ER','ESIC wages','ESIC EE','ESIC ER','PT']];
   run.lines.forEach((l,i)=>rows.push([i+1,l.staffId,l.name,...[l.earned,l.pfWages,l.pf,l.pfEr,l.esicWages,l.esic,l.esicEr,l.pt].map(rupees)]));
-  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · rates from ${run.rates.from} · ${HR_DISCLAIMER}`)+'\n';
+  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status==='Locked'?'Locked run':'DRAFT — NOT FINAL, do not file'} · rates from ${run.rates?.from??'—'}${run.legacy?' · legacy run (before SCC rules; employer share not recorded)':''} · ${HR_DISCLAIMER}`)+'\n';
 }
 /** Pending leave queue a user may decide (excludes own requests and own leave). */
 export function hrDecidable(s:State,uid:string){
@@ -382,7 +511,7 @@ export function hrAmountWords(paise:number){
 export function hrFnfCompute(s:State,st:HRStaff,adjustments:HRFnfAdj[]){
   const x=hrSlice(s),lastDay=st.exitedOn??s.date,month=lastDay.slice(0,7),rates=hrRatesFor(s,month);
   const paid=x.runs.some(r=>r.month===month&&r.status==='Locked'&&r.lines.some(l=>l.staffId===st.id));
-  const line=paid?undefined:hrComputeLine(st,hrCounts(s,st,month),rates);
+  const line=paid?undefined:hrComputeLine(st,hrCounts(s,st,month),rates,undefined,hrEsicCovered(s,st,month,rates));
   const advanceOutstanding=x.advances.filter(a=>a.staffId===st.id).reduce((n,a)=>n+hrAdvanceBalance(a),0);
   const add=adjustments.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0),ded=adjustments.filter(a=>a.kind==='ded').reduce((n,a)=>n+a.amount,0);
   const earnings=(line?line.gross:0)+add,recoveries=(line?line.pf+line.esic+line.pt:0)+advanceOutstanding+ded;
@@ -411,7 +540,7 @@ export function hrSettingDefs():HRSettingDef[]{
   return [
     rate('hr.structure','Salary structure (structured pay)','percent','% basic of earned · HRA and washing % of basic',['basicBps','hraBps','washBps'],'SCC: basic 50%, HRA 80% of basic, washing 10% of basic, special = rest.'),
     rate('hr.pf','Provident Fund','percent','% of PF wages · wage cap ₹',['pfEeBps','pfErBps','pfWageCap'],'Employee 12%, employer 13% on basic capped at ₹15,000 (SCC).'),
-    rate('hr.esic','ESIC','percent','% of earned − washing · ceiling ₹',['esicEeBps','esicErBps','esicCeiling'],'Employee 0.75%, employer 3.25% while earned pay ≤ ₹21,000 (SCC).'),
+    rate('hr.esic','ESIC','percent','% of earned − washing · ceiling ₹',['esicEeBps','esicErBps','esicCeiling','esicPeriod'],'Employee 0.75%, employer 3.25% on earned − washing. Coverage: contribution-period rule (decided at the start of Apr–Sep / Oct–Mar from the contractual wage ≤ ₹21,000, kept to the period end); off = SCC month-by-month test on earned pay.'),
     rate('hr.pt','Professional tax (Maharashtra)','money','₹ per month by slab',['ptMaleExempt','ptMaleMid','ptMaleMidAmt','ptStd','ptFeb','ptFemaleExempt'],'Men nil ≤ ₹7,500, ₹175 to ₹10,000, then ₹200 (₹300 in February); women nil ≤ ₹25,000 (SCC ptFor).'),
     rate('hr.ot','Overtime rate','percent','× ordinary hourly rate',['otBps'],'SCC pays overtime at the ordinary daily rate (1×).'),
     rate('hr.late','Late marks rule','integer','late marks per ½-day loss of pay',['lateBlock'],'SCC: 3 late marks = ½ day.'),
@@ -430,7 +559,7 @@ export function hrSettingValue(s:State,key:string,ym=s.date.slice(0,7)):string{
   switch(key){
     case 'hr.structure':return `Basic ${pctOf(r.basicBps)} · HRA ${pctOf(r.hraBps)} · washing ${pctOf(r.washBps)} (from ${r.from})`;
     case 'hr.pf':return `${pctOf(r.pfEeBps)} + ${pctOf(r.pfErBps)} on wages up to ${rs(r.pfWageCap)}`;
-    case 'hr.esic':return `${pctOf(r.esicEeBps)} + ${pctOf(r.esicErBps)} while earned ≤ ${rs(r.esicCeiling)}`;
+    case 'hr.esic':return `${pctOf(r.esicEeBps)} + ${pctOf(r.esicErBps)} · ${r.esicPeriod?`covered for the contribution period when the contractual wage ≤ ${rs(r.esicCeiling)}`:`while earned ≤ ${rs(r.esicCeiling)} (month by month)`}`;
     case 'hr.pt':return `Men ${rs(r.ptMaleMidAmt)} / ${rs(r.ptStd)} (Feb ${rs(r.ptFeb)}) · women exempt ≤ ${rs(r.ptFemaleExempt)}`;
     case 'hr.ot':return `${r.otBps/10000}× ordinary rate`;
     case 'hr.late':return r.lateBlock?`${r.lateBlock} late = ½ day`:'Off';

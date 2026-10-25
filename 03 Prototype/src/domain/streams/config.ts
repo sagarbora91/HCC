@@ -28,7 +28,7 @@ import {yldSlice,yldPct,YLD_ROUND_OPTIONS} from './yield';
 import {aiDirtyHours} from './assistant';
 import {gsvSettings,GSV_REQUEST_TYPES} from './services';
 import {posSlice} from './pos';
-import {hrRatesFor,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
+import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
@@ -122,6 +122,7 @@ export type CfgProviderDef={key:string;label:string;type?:CfgType|AdminSettingDe
   min?:number;max?:number;maxLength?:number;allowEmpty?:boolean;options?:readonly(string|number)[];pattern?:RegExp;patternMsg?:string;suffix?:string;
   effective?:CfgEffective|string;effectiveMode?:CfgEffective;dated?:boolean;approver?:CfgApprover;money?:boolean;secret?:boolean;visibility?:'all'|'owner';
   affects?:string;illustrative?:boolean;editable?:boolean;fixedReason?:string;
+  /** Effective rule shown instead of the generic mode text (e.g. a module command that dates its own versions — W05P-2). */ effectiveText?:string;
   read?:(s:State)=>unknown;command?:(s:State,v:unknown)=>Command;validate?:(v:unknown,s:State)=>string|undefined;show?:(v:unknown)=>string;
   impact?:(s:State,v:unknown)=>string[];panel?:'tariffs'|'tax';store?:CfgStore};
 export type CfgProvider={id:string;group:CfgGroupId;defs:readonly CfgProviderDef[]|((s:State)=>readonly CfgProviderDef[]);summary?:(s:State)=>string};
@@ -138,7 +139,7 @@ function normalize(p:CfgProvider,d:CfgProviderDef):CfgSettingDef{
   const type:CfgType=fixed?'fixed':(d.type&&d.type!=='fixed'?d.type:'text') as CfgType;
   return {key:d.key,label:d.label,category:g.label,group:p.group,source:p.id,type,unit:d.unit??'',help:d.help??'',editable:!fixed,
     approval:fixed?(d.fixedReason??'Not configurable here'):(money?'Owner only (DEC-058)':'Owner or Tech admin (DEC-058)')+(approver==='none'?'':` · Tech admin changes need ${approver==='Owner'?'Owner':'Manager or Owner'} approval`),
-    effective:fixed?'—':EFFECTIVE_TEXT[mode],effectiveMode:mode,approver,money,visibility:d.secret?'owner':(d.visibility??'all'),secret:!!d.secret,dated:d.dated??mode==='date',
+    effective:fixed?'—':d.effectiveText??EFFECTIVE_TEXT[mode],effectiveMode:mode,approver,money,visibility:d.secret?'owner':(d.visibility??'all'),secret:!!d.secret,dated:d.dated??mode==='date',
     affects:d.affects??'Shown on the related screens; existing records are not changed.',store:fixed&&store.kind!=='fixed'?{kind:'fixed',read:d.read?(s:State)=>String(d.read!(s)):()=>'—'}:store,
     default:d.default,min:d.min,max:d.max,maxLength:d.maxLength,allowEmpty:d.allowEmpty,options:d.options,pattern:d.pattern,patternMsg:d.patternMsg,suffix:d.suffix,
     illustrative:d.illustrative,validate:d.validate,show:d.show,impact:d.impact,panel:d.panel};
@@ -514,19 +515,24 @@ const HR_FIELDS:Record<string,HRField>={
   ptStd:{label:'standard amount',type:'money',min:0,max:100000000},ptFeb:{label:'February amount',type:'money',min:0,max:100000000},ptFemaleExempt:{label:'women nil slab up to',type:'money',min:0,max:100000000},
   otBps:{label:'multiplier (% of ordinary rate)',type:'percent',min:10000,max:30000,show:v=>(Number(v)/10000)+'×'},lateBlock:{label:'late marks per ½ day (0 = off)',type:'integer',min:0,max:10},
   rounding:{label:'rounding',type:'choice',options:['paise','rupee'],show:v=>v==='paise'?'To paise (SCC)':'PF nearest ₹ · ESIC next ₹'},
+  esicPeriod:{label:'contribution-period rule',type:'boolean',show:v=>v?'Apr–Sep / Oct–Mar (coverage kept to period end)':'Month by month on earned pay (SCC)'},
 };
 const curYm=(s:State)=>s.date.slice(0,7);
-/** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET (the payroll module dates them from the 1st of a
- *  month after the last locked pay-run); leave entitlements and the per-department cap wrap HR_LEAVE_POLICY_SET; the rest is shown read-only. */
+/** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET with an explicit `from` (W05-B review F-06:
+ *  the month after the last completed pay period, never a completed month; shown before saving); leave entitlements and the per-department cap
+ *  wrap HR_LEAVE_POLICY_SET; the rest is shown read-only. */
 export function hrStatutoryDefs():CfgProviderDef[]{
   const out:CfgProviderDef[]=[];
   for(const d of hrSettingDefs() as HRSettingDef[]){
     const base={unit:d.unit,help:d.help,illustrative:d.category==='Statutory rates',approver:d.approver,affects:d.affects};
     if(d.command==='HR_STAT_RATES_SET'&&d.fields?.length){
-      for(const f of d.fields as (keyof HRRates)[]){const m=HR_FIELDS[f as string];if(!m)continue;
+      // W05P-2: the long SCC paragraph is shown once per setting (its first field); the other fields get a short line.
+      (d.fields as (keyof HRRates)[]).filter(f=>HR_FIELDS[f as string]).forEach((f,i)=>{const m=HR_FIELDS[f as string];
         out.push({...base,key:`${d.key}.${String(f)}`,label:`${d.label} · ${m.label}`,type:m.type,min:m.min,max:m.max,options:m.options,show:m.show,
-          help:d.help+' Saved as a new dated rate version (from the 1st of the month).',
-          read:s=>hrRatesFor(s,curYm(s))[f],command:(_s,v)=>({type:'HR_STAT_RATES_SET',[f]:v})});}
+          effectiveText:'From the 1st of the month after the last completed pay period (new dated rate version); locked runs keep theirs',
+          help:i===0?d.help:'Part of the same dated rate version. Illustrative — CA to confirm for a hotel.',
+          read:s=>hrRatesFor(s,hrRatesDefaultFrom(s).slice(0,7))[f],command:(s,v)=>({type:'HR_STAT_RATES_SET',from:hrRatesDefaultFrom(s),[f]:v}),
+          impact:s=>[`Effective from 1 ${hrMonthLabel(hrRatesDefaultFrom(s).slice(0,7))} (new rate version); earlier months and locked pay-runs keep their rates.`]});});
     }else if(d.key==='hr.leave.ent'){
       for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:60,unit:'days per financial year',
         read:s=>hrLeavePolicy(s).ent[lt],command:(s,v)=>({type:'HR_LEAVE_POLICY_SET',ent:{...hrLeavePolicy(s).ent,[lt]:v}})});

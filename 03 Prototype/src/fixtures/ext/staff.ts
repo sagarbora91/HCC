@@ -4,7 +4,7 @@
 // W05-B: gender (Maharashtra PT slab), fictional bank details, SCC statutory rate version (from 1 Apr 2025) and SCC leave policy.
 import type {State} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
-import {hrEmpty,hrDefaultLeavePolicy,hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrLeaveDays,type HRStaff,type HRState} from '../../domain/streams/staff';
+import {hrEmpty,hrDefaultLeavePolicy,hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrBankSnapshot,hrLeaveDays,type HRStaff,type HRState} from '../../domain/streams/staff';
 
 type Row=[string,string,string,string|undefined,'monthly'|'daily',number,HRStaff['defaultShift'],number,string,'M'|'F'];
 // id, name, dept, userId, payType, rupees (monthly or daily), shift, weeklyOff, designation, gender (PT slab)
@@ -50,7 +50,7 @@ export function extendBase(s:State):void{
   const a=hrComputeRun(s,'2026-08');
   const run={id:'HR-PAY-1',month:'2026-08',status:'Locked' as const,rates:{...hrRatesFor(s,'2026-08')},lines:a.lines,warnings:a.warnings,
     preparedBy:'accountant',preparedAt:'2026-09-02T11:10',lockedBy:'owner',lockedAt:'2026-09-02T17:40'};
-  x.runs.push(run);hrApplyRecoveries(x,run);
+  x.runs.push(run);hrApplyRecoveries(x,run);hrBankSnapshot(x,run);
   for(const k of Object.keys(x.att))if(k.startsWith('2026-08'))delete x.att[k];
   // Leave: past approved (September), upcoming approved, two pending (one raised by the manager → owner must decide).
   const leave=(id:string,st:HRStaff,type:'CL'|'SL'|'EL'|'LOP',from:string,to:string,reason:string,status:'Pending'|'Approved',requestedBy:string,decidedBy?:string,half?:'AM'|'PM')=>

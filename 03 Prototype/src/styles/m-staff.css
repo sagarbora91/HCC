@@ -113,3 +113,10 @@ button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
   .hr-m .m-kpi-value{overflow-wrap:anywhere}
 }
 @media print{.hr-wa{display:none}}
+/* W05P-3: phone shell — 48 px touch targets and 16 px text on the HR screens (tabs, department / month chips, week navigation, actions). */
+.m-shell .hr-m .m-chips button{min-height:48px;font-size:16px}
+.m-shell .hr-m .hr-weeknav .btn{min-height:48px;min-width:48px}
+.m-shell .hr-m .hr-weeknav strong{font-size:16px}
+.m-shell .hr-m .btn,.m-shell .hr-m .text-btn,.m-shell .hr-m .small-btn{min-height:48px;font-size:16px}
+.m-shell .hr-m .hr-m-note,.m-shell .hr-m .info-note,.m-shell .hr-m .summary-list span,.m-shell .hr-m .summary-list strong{font-size:16px}
+.m-shell .hr-m .m-group{font-size:14px}

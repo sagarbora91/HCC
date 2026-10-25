@@ -57,7 +57,7 @@ export function MyHr({phone=false}:{phone?:boolean}){
     <div className="hr-kpis"><KpiCard label="Present" value={c.P+c.L} sub={`${c.L} late`}/><KpiCard label="Half / absent" value={`${c.H} / ${c.A}`}/><KpiCard label="Leave" value={c.paidLeave+c.lopLeave}/><KpiCard label="Overtime" value={`${Math.round(c.otMin/6)/10} h`}/></div>
     {latest&&<><h2 className="m-group">LATEST PAYSLIP</h2><PayslipCard phone run={latest.run} line={latest.line} onOpen={()=>open({type:'hr-payslip',id:latest.run.id+'|'+me.id})}/></>}
     <h2 className="m-group">MY LEAVE · {fy}</h2>
-    {me.payType==='monthly'?<div className="hr-kpis">{bal.map(b=><KpiCard key={b.type} label={HR_LEAVE_LABEL[b.type]} value={`${b.left} left`} sub={`of ${b.entitled} · used ${b.used}`}/>)}</div>:<p className="hr-m-note">Daily-wage staff: leave without pay only.</p>}
+    {me.payType==='monthly'?<div className="hr-kpis">{bal.map(b=><KpiCard key={b.type} label={HR_LEAVE_LABEL[b.type]} value={`${b.left} left`} sub={`of ${b.entitled} · used ${b.used}${b.over?` · over by ${b.over}`:''}`}/>)}</div>:<p className="hr-m-note">Daily-wage staff: leave without pay only.</p>}
     {myLeaves.length?myLeaves.map(l=><ListCard key={l.id} title={`${kind(l)} · ${l.days} day${l.days===1?'':'s'}`} sub={`${shortDate(l.from)}${l.to!==l.from?' – '+shortDate(l.to):''} · ${l.reason}`}
       right={<Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill>} onClick={l.status==='Pending'?()=>{if(window.confirm('Cancel this leave request?'))run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave request cancelled');}:undefined}/>)
       :<p className="hr-m-note">No leave requests yet.</p>}
@@ -80,7 +80,7 @@ export function MyHr({phone=false}:{phone?:boolean}){
     </div>
     {latest&&<PayslipCard phone={false} run={latest.run} line={latest.line} onOpen={()=>open({type:'hr-payslip',id:latest.run.id+'|'+me.id})}/>}
     <div className="two-col">
-      <section className="card"><div className="section-title"><div><h2>My leave · {fy}</h2>{me.payType==='monthly'?<p>Balance: {bal.map(b=>`${b.type} ${b.left} of ${b.entitled}`).join(' · ')} (SCC entitlements, April–March)</p>:<p>Daily-wage staff: leave without pay only.</p>}</div></div>
+      <section className="card"><div className="section-title"><div><h2>My leave · {fy}</h2>{me.payType==='monthly'?<p>Balance: {bal.map(b=>`${b.type} ${b.left} of ${b.entitled}${b.over?` (over by ${b.over})`:''}`).join(' · ')} (SCC entitlements, April–March)</p>:<p>Daily-wage staff: leave without pay only.</p>}</div></div>
         {myLeaves.length?<div className="table-wrap"><table><thead><tr><th>Dates</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>{myLeaves.map(l=><tr key={l.id}>
           <td><strong>{shortDate(l.from)}{l.to!==l.from?' – '+shortDate(l.to):''}</strong><small>{l.days} day{l.days===1?'':'s'} · {l.reason}</small></td><td>{l.type}{l.half?' ½':''}</td><td><Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill></td>
           <td>{l.status==='Pending'&&<button className="text-btn" disabled={busy} onClick={()=>run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave request cancelled')}>Cancel</button>}</td></tr>)}</tbody></table></div>
