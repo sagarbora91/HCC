@@ -84,6 +84,24 @@ export async function saveTextFile(name:string,text:string,mime:string,bom=false
   }catch{return 'failed';}
 }
 export const saveCsv=(name:string,csv:string)=>saveTextFile(name,csv,'text/csv',true);
+const bytesToBase64=(bytes:Uint8Array)=>{let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(bin);};
+/** Binary twin of saveTextFile (e.g. .xlsx): Documents/HCC/<name> + share sheet (native), or a download (browser). */
+export async function saveBinaryFile(name:string,bytes:Uint8Array,mime:string):Promise<SaveResult>{
+  const fs=nativePlugin('Filesystem'),share=nativePlugin('Share');
+  if(fs&&share){
+    try{
+      const path='HCC/'+name;
+      await fs.writeFile({path,data:bytesToBase64(bytes),directory:'DOCUMENTS',recursive:true});
+      const {uri}=await fs.getUri({path,directory:'DOCUMENTS'});
+      await share.share({title:name,text:name,url:uri,dialogTitle:'Save or share '+name});
+      return 'shared';
+    }catch{return 'failed';}
+  }
+  try{
+    const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:mime}));
+    const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);return 'downloaded';
+  }catch{return 'failed';}
+}
 
 /** Standalone printable page from a fragment of the screen. */
 export function printablePage(title:string,bodyHtml:string,css:string):string{
