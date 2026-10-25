@@ -43,7 +43,7 @@ export function MfRoomSheet({id}:{id?:string}){
   const canReport=permission('housekeeping')||permission('reservations')||permission('inspect');
   return <><div className="modal-heading"><div className="eyebrow">FLOOR {r.floor} · {r.type.toUpperCase()}</div><h2>Room {r.id}</h2>
       <div className="mf-inline"><Pill tone={st==='Ready'?'green':st==='Occupied'?'blue':'orange'}>{st}</Pill>{r.blocked&&<Pill tone="orange"><Lock size={11}/> Out of service</Pill>}{holdTonight(s,r)&&<Pill tone="orange"><Lock size={11}/> {holdTonight(s,r)!.label}</Pill>}</div>
-      {finance&&<p>{money(r.rate)} per night · synthetic tax additional</p>}</div>
+      {finance&&<p>{money(r.rate)} per night · GST additional</p>}</div>
     <MfRows rows={[['Housekeeping',r.hk],['Current guest',b?`${b.guest} · to ${shortDate(b.departure)}`:g.current?g.current.guest:'None'],
       ['Next arrival',next?`${next.guest} · ${shortDate(next.arrival)}${next.status==='Held'?' · held, '+resHoldLeftLabel(s,next):''}`:'None scheduled'],
       ...(r.blocked?[['Block reason',r.blockReason||'Not recorded']] as [string,string][]:[])]}/>

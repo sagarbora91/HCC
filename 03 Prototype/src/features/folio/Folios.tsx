@@ -34,5 +34,5 @@ export function Folios(){
     </tbody></table>{!list.length&&<Empty title="No folios match" body="Try another filter or search."/>}</div><ShowMore p={pg}/></section>
     <section className="card"><div className="section-title"><h2>Folio requests</h2><span className="muted">Refunds, company credit, corrections, credit notes and discounts · no self-approval</span></div>
       {!requests.length?<Empty title="Nothing waiting" body="Requests that need a decision or an approved refund awaiting execution appear here."/>:<div className="request-list">{requests.map(a=><FolioApprovalRow key={a.id} a={a} showGuest/>)}</div>}</section>
-    <p className="footnote">All names and records are fictional. Tax figures use a synthetic demonstration rate. Room nights are posted by the nightly audit.</p></>;
+    <p className="footnote">All names and records are fictional. Tax figures use the dated GST master (illustrative — CA to confirm). Room nights are posted by the nightly audit.</p></>;
 }

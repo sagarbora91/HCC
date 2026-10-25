@@ -23,7 +23,7 @@ export function Corrections(){
         <div className="form-row"><label>Folio<select value={bid||stays[0]?.id||''} onChange={e=>setBid(e.target.value)} disabled={!stays.length}>{stays.map(b=><option key={b.id} value={b.id}>{b.id} · {b.guest} · room {b.room} · {b.status}</option>)}</select></label>
           <label>Closed date corrected<select value={date||dates[0]||''} onChange={e=>setDate(e.target.value)} disabled={!dates.length}>{dates.map(d=><option key={d} value={d}>{dateLabel(d)}</option>)}</select></label></div>
         <div className="form-row"><label>Direction<select value={dir} onChange={e=>setDir(e.target.value)}><option value="-">Reduce charges (credit)</option><option value="+">Add a missed charge</option></select></label>
-          <label>Amount before synthetic tax (₹)<input type="number" min="0.01" step="0.01" value={amt} onChange={e=>setAmt(e.target.value)}/></label></div>
+          <label>Amount before GST (₹)<input type="number" min="0.01" step="0.01" value={amt} onChange={e=>setAmt(e.target.value)}/></label></div>
         <label>Reason<input maxLength={120} value={reason} onChange={e=>setReason(e.target.value)} placeholder="e.g. Room rate keyed wrongly on 23 Oct"/></label>
         {why&&<p className="f-why">{why}</p>}
         <div className="modal-actions"><button className="btn primary" disabled={busy||!!why}>Request correction</button></div>

@@ -112,7 +112,7 @@ export function MasterFolio({blk,print}:{blk:GRPBlock;print?:boolean}){
       <tbody>{f.rows.map(r=><tr key={r.id}><td>{print?r.id:<button className="text-btn" onClick={()=>booking(r.id)}>{r.id}</button>}</td><td>{r.guest}</td><td>{r.room} · {r.type}</td><td>{r.status}</td>
         <td className="number">{money(r.rate)}</td><td className="number">{money(r.net)}</td><td className="number">{money(r.tax)}</td><td className="number">{money(r.paid)}</td><td className="number">{money(r.balance)}</td><td className="number">{money(r.estimate)}</td></tr>)}</tbody>
       <tfoot><tr><td colSpan={5}><strong>Group total (active members)</strong></td><td className="number"><strong>{money(f.totals.net)}</strong></td><td className="number"><strong>{money(f.totals.tax)}</strong></td><td className="number"><strong>{money(f.totals.paid)}</strong></td><td className="number"><strong>{money(f.totals.balance)}</strong></td><td className="number"><strong>{money(f.totals.estimate)}</strong></td></tr></tfoot></table></div>}
-    <p className="footnote">Est. unpaid stay = posted charges + agreed nights not yet posted + synthetic 10% tax − payments. Synthetic tax, not a GST claim.</p>
+    <p className="footnote">Est. unpaid stay = posted charges + agreed nights not yet posted + GST per night − payments. GST illustrative — CA to confirm.</p>
   </div>;
 }
 

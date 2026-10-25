@@ -30,6 +30,7 @@ import {gsvSettings,GSV_REQUEST_TYPES} from './services';
 import {posSlice} from './pos';
 import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
+import {GST_SEED,gstSeedOn,gstSpecifiedPremises,gstPct,GST_ILLUSTRATIVE,type GstKey} from '../gst';
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
 export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'data';
@@ -40,7 +41,7 @@ export const CFG_GROUPS:CfgGroup[]=[
   {id:'property',label:'Property and branding',section:'Business setup',money:false,blurb:'Name, address, GSTIN, invoice header and footer, print format, language'},
   {id:'rooms',label:'Rooms and rate plans',section:'Business setup',money:true,blurb:'Room types, dated tariffs, rate guardrails and restrictions',link:{page:'yield',label:'Open Tariff & yield'}},
   {id:'frontdesk',label:'Front-desk policies',section:'Business setup',money:false,blurb:'Check-in and checkout times, hold expiry, deposit, ID rules, no-show, guest-service SLAs'},
-  {id:'money',label:'Money and tax',section:'Business setup',money:true,blurb:'Dated synthetic tax, discount and approval limits, payment methods, document numbering, till model'},
+  {id:'money',label:'Money and tax',section:'Business setup',money:true,blurb:'Dated GST master (rooms, restaurant, services), discount and approval limits, payment methods, document numbering, till model'},
   {id:'pos',label:'Restaurant and POS',section:'Business setup',money:true,blurb:'Outlets, menu availability and KOT',link:{page:'pos',label:'Open Restaurant & POS'}},
   {id:'hkm',label:'Housekeeping and maintenance',section:'Operations and people',money:false,blurb:'Inspection, dirty-room alert, attendant load, preventive maintenance'},
   {id:'people',label:'People, payroll and leave',section:'Operations and people',money:true,blurb:'Departments, dated PF / ESIC / PT rates, leave policy, weekly offs',link:{page:'staff',label:'Open Staff & payroll'}},
@@ -342,7 +343,7 @@ export function cfgGroupSummary(s:State,g:CfgGroupId):string{
   const editable=defs.filter(d=>d.editable).length;
   const parts=[`${editable} setting${editable===1?'':'s'}`];
   if(g==='rooms')parts.push(`${new Set(s.rooms.map(r=>r.type)).size} room types`);
-  if(g==='money'){const fut=(s.taxSchedule||[]).filter(t=>t.effectiveFrom>s.date).length+(s.tariffs||[]).filter(t=>t.effectiveFrom>s.date).length;if(fut)parts.push(`${fut} dated rate${fut===1?'':'s'} ahead`);}
+  if(g==='money'){const fut=(s.configX?.scheduled??[]).filter(x=>x.key.startsWith('gst.')).length+(s.tariffs||[]).filter(t=>t.effectiveFrom>s.date).length;if(fut)parts.push(`${fut} dated rate${fut===1?'':'s'} ahead`);}
   if(pend)parts.push(`${pend} change${pend===1?'':'s'} pending`);
   return parts.join(' · ');
 }
@@ -410,10 +411,9 @@ export function cfgImportPlan(s:State,uid:string,data:unknown):CfgImportPlan{
 }
 
 // ───────────────────────────── Built-in providers ─────────────────────────────
-const GROUP_OF_LEGACY:Record<string,CfgGroupId>={hotel:'property',rooms:'rooms',checkin:'frontdesk',checkout:'frontdesk',taxBps:'money',currency:'money',
+const GROUP_OF_LEGACY:Record<string,CfgGroupId>={hotel:'property',rooms:'rooms',checkin:'frontdesk',checkout:'frontdesk',currency:'money',
   discountLimit:'money',approvalExpiryHours:'money',managerLimits:'money',inspection:'hkm',openingCash:'money',shiftModel:'money',invoicePrefix:'money',watermark:'property'};
 const LEGACY_EXTRA:Record<string,Partial<CfgProviderDef>>={
-  taxBps:{fixedReason:'Dated value — use Schedule… in the synthetic tax schedule (Owner only)'},
   rooms:{fixedReason:'Rooms come from the fixture; tariffs are scheduled below (Owner only)'},
   hotel:{maxLength:60,affects:'Header, sidebar, documents and the export file name.',validate:v=>String(v).trim().length?undefined:'Property name is required (up to 60 characters).'},
   checkin:{affects:'Arrivals expected today and printed confirmations. Booking dates and charges never change.'},
@@ -425,10 +425,10 @@ const LEGACY_EXTRA:Record<string,Partial<CfgProviderDef>>={
 };
 function legacyDefs():CfgProviderDef[]{
   return ADMIN_SETTINGS.filter(d=>GROUP_OF_LEGACY[d.key]).map(d=>{
-    const fixed=!d.editable||d.key==='taxBps';
+    const fixed=!d.editable;
     const base:CfgProviderDef={key:d.key,label:d.label,unit:d.unit,help:d.help,type:fixed?'fixed':d.type==='time'?'time':d.type,
       store:fixed?{kind:'fixed',read:(s:State)=>adminSettingValue(s,d.key)}:{kind:'settings'},editable:!fixed,fixedReason:d.approval,
-      panel:d.key==='taxBps'?'tax':d.key==='rooms'?'tariffs':undefined};
+      panel:d.key==='rooms'?'tariffs':undefined};
     return {...base,...LEGACY_EXTRA[d.key]};
   });
 }
@@ -480,6 +480,8 @@ function builtins(){
   ]});
   // W05-B statutory rates and leave policy (dated rate versions; hrSettingDefs) and W05-C compliance settings (cmpSettingDefs).
   registerSettingsGroup({id:'hr-statutory',group:'people',defs:hrStatutoryDefs});
+  // DEC-069 GST master (domain/gst.ts): dated, Owner-only (money group), illustrative.
+  registerSettingsGroup({id:'gst',group:'money',defs:gstDefs});
   registerSettingsGroup({id:'compliance',group:'compliance',defs:cmpDefs});
   registerSettingsGroup({id:'modules',group:'modules',defs:CFG_MODULES.map(m=>({key:'module.'+m.id,label:m.label,type:'boolean' as const,unit:'on / off',help:m.note,store:{kind:'switch' as const,module:m.id},
     affects:'Menus, tiles, search, reminders and phone tabs; commands are refused while off. Data is kept.',
@@ -555,4 +557,15 @@ export function cmpDefs(s:State):CfgProviderDef[]{
       affects:f==='dueSoonDays'?'Dashboard “Due this week” card and the Accounts tile badge.':'The simulated CA pack.',
       read:(x:State)=>valueOf(x,d.key),command:(_x:State,v:unknown)=>({type:'CMP_SETTINGS_SET',[f]:v})};
   });
+}
+/** DEC-069 GST master → hub settings. Values are dated (effective-from), Owner-only (DEC-058), stored by the hub; domain/gst.ts reads them
+ *  (gstValueOn) for every new posting. The default shown is the seed version in force on the business date. */
+export function gstDefs(s:State):CfgProviderDef[]{
+  const out:CfgProviderDef[]=GST_SEED.map(d=>({key:d.key,label:d.label,type:d.type,unit:d.unit,help:`${d.help} ${GST_ILLUSTRATIVE}.`,money:true,dated:true,effectiveMode:'date' as const,illustrative:true,
+    default:gstSeedOn(d.key as GstKey,s.date),...(d.type==='percent'?{min:0,max:2800,show:(v:unknown)=>gstPct(Number(v))}:d.type==='money'?{min:100,max:10000000}:{show:(v:unknown)=>d.key==='gst.food.optIn'?(v?'Declared (opt-in)':'Not declared'):(v?'Available':'Not available')}),
+    affects:'New room nights, charges and restaurant bills dated on or after the effective date. Posted lines keep their tax snapshot.',
+    impact:(x:State)=>d.key==='gst.food.optIn'?[`Specified premises today: ${gstSpecifiedPremises(x,x.date).specified?'yes':'no'} (${gstSpecifiedPremises(x,x.date).reason}).`]:[]}));
+  out.push({key:'gst.specified.status',label:'GST · specified premises this financial year',type:'fixed',fixedReason:'Derived from last financial year’s tariffs, or the opt-in above',
+    help:'Decides the restaurant / room-service rate. '+GST_ILLUSTRATIVE+'.',read:x=>{const sp=gstSpecifiedPremises(x,x.date);return `FY ${sp.fy}: ${sp.specified?'specified premises':'not specified premises'} — ${sp.reason}`;}});
+  return out;
 }

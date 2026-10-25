@@ -1,10 +1,10 @@
 // W05-A · Master configuration (page id `settings`; renamed from "Hotel configuration", DEC-057). Desktop and tablet: the 12 groups
 // with search and live summaries on the left, the selected group's settings beside it. Everyone who opens the page sees every group;
-// groups they cannot change are read-only with the reason (never hidden or redirected — ETP lesson). Tariff and synthetic-tax
-// schedules (SCR-18, BL-027) live in Rooms and rate plans / Money and tax. Registry: domain/streams/config.ts.
+// groups they cannot change are read-only with the reason (never hidden or redirected — ETP lesson). Tariff schedules (SCR-18,
+// BL-027) live in Rooms and rate plans; the dated GST master (DEC-069) in Money and tax. Registry: domain/streams/config.ts.
 import React,{useState} from 'react';
 import {Lock,CalendarClock,Search,ChevronRight} from 'lucide-react';
-import {money,rateFor,adminRoomTypes,adminBaseRate,adminTaxScheduled,authorize,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
+import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRATIVE,authorize,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
   type CfgGroupId,type CfgSettingDef} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
@@ -23,7 +23,7 @@ export function HotelSettings(){
   const [sel,setSel]=useState<CfgGroupId>(()=>{const g=cfgNav.group;cfgNav.group=undefined;return g??'property';});
   const rows=cfgListRows(s,uid,q);
   const current=rows.some(r=>r.id===sel)?sel:rows[0]?.id;
-  return <><PageTitle title="Master configuration" sub="Every setting in one place — 12 groups, dated values, approvals, history and modules on/off." action={<Pill tone="orange">Fictional property · synthetic tax</Pill>}/>
+  return <><PageTitle title="Master configuration" sub="Every setting in one place — 12 groups, dated values, approvals, history and modules on/off." action={<Pill tone="orange">Fictional property · GST illustrative</Pill>}/>
     <div className="cfg-hub">
       <aside className="card cfg-list" aria-label="Configuration groups">
         <label className="cfg-search"><Search size={17}/><input type="search" aria-label="Search settings" placeholder="Search settings (e.g. GSTIN, deposit, PF)" value={q} onChange={e=>setQ(e.target.value)}/></label>
@@ -46,7 +46,7 @@ export function CfgGroupDetail({g,q}:{g:CfgGroupId;q:string}){
     <div className="cfg-head"><div><h2>{grp.label}</h2><p>{grp.blurb}</p></div><CfgGroupLink g={g}/></div>
     {row.readOnly&&<div className="info-note adm-banner cfg-readonly"><Lock size={16}/><span>Read only — {row.reason}</span></div>}
     {g==='rooms'&&!q&&<Tariffs block={block}/>}
-    {g==='money'&&!q&&<TaxPanel block={block}/>}
+    {g==='money'&&!q&&<GstPanel/>}
     {g==='modules'&&<CfgModulesPanel/>}
     {g!=='modules'&&(defs.length?<ul className="cfg-rows">{defs.map(d=><CfgRow key={d.key} def={d}/>)}</ul>:!['rooms','money','data'].includes(g)||q?<Empty title="No matching settings in this group"/>:null)}
     {g==='people'&&<p className="muted padded">Dated statutory rates, leave policy and weekly offs from the payroll module join this group through the settings provider API.</p>}
@@ -79,15 +79,12 @@ function Tariffs({block}:{block?:string}){
           <td><GuardedButton className="text-btn" block={block} busy={busy} onClick={()=>open({type:'admin-tariff',room:t})}>Schedule…</GuardedButton></td></tr>;})}
     </tbody></table></div></div>;
 }
-function TaxPanel({block}:{block?:string}){
-  const {s,run,open,busy}=useHcc();
-  const list=[...(s.taxSchedule||[])].sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1);
+/** DEC-069 GST master — the rules in force today. Each rate is a dated row below (Change… = effective date, history, revert). */
+function GstPanel(){
+  const {s}=useHcc();
   return <div className="padded">
-    <div className="adm-row-head"><p className="muted">Synthetic demonstration tax for this prototype — not a GST rate and never presented as compliant. In effect today: <strong>{adminTaxScheduled(s,s.date)/100}%</strong>{list.length?'':` (base setting)`}.</p>
-      <GuardedButton className="btn primary" block={block} busy={busy} onClick={()=>open({type:'admin-tax'})}><CalendarClock size={16}/> Schedule tax</GuardedButton></div>
-    {list.length>0?<div className="table-wrap"><table className="adm-table"><thead><tr><th>Rate</th><th>Effective from</th><th>Status</th><th></th></tr></thead><tbody>
-      {list.map(x=><tr key={x.effectiveFrom}><td><strong>{x.bps/100}%</strong></td><td>{shortDate(x.effectiveFrom)}</td><td>{x.effectiveFrom<=s.date?<Pill tone="green">In effect / past</Pill>:<Pill tone="blue">Future</Pill>}</td>
-        <td>{x.effectiveFrom>s.date&&<GuardedButton className="text-btn" block={block} busy={busy} onClick={()=>run({type:'TAX_SCHEDULE',effectiveFrom:x.effectiveFrom,remove:true,key:`tax-rm:${x.effectiveFrom}:${s.sequence}`},'Future tax rate withdrawn')}>Withdraw</GuardedButton>}</td></tr>)}
-    </tbody></table></div>:<p className="muted">No scheduled tax changes.</p>}
-  </div>;
+    <div className="adm-row-head"><p className="muted">GST master in force on {shortDate(s.date)} — intra-state, shown as CGST + SGST halves. Each rate below is a dated value: changes apply from their effective date; posted lines keep their tax snapshot. <Pill tone="orange">{GST_ILLUSTRATIVE}</Pill></p></div>
+    <div className="table-wrap"><table className="adm-table"><thead><tr><th>Supply</th><th>GST</th><th>Notes</th></tr></thead><tbody>
+      {gstMasterSummary(s,s.date).map(([a,b,c])=><tr key={a}><td><strong>{a}</strong></td><td><strong>{b}</strong></td><td className="adm-wrap">{c}</td></tr>)}
+    </tbody></table></div></div>;
 }

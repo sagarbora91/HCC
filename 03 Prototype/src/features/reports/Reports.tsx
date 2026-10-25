@@ -59,7 +59,7 @@ export function Reports(){
         {t.ratios.map(r=><div key={r.id} className="f-metric ratio"><span>{r.label}</span><strong>{r.display}</strong><small>{r.formula}</small></div>)}</div>
       {m&&<Drill key={m.id+pack.from+pack.to} pack={pack} m={m} mask={mask} onClose={()=>setDrill(null)}/>}
       {t.table&&<section className="card"><div className="section-title"><h2>By business date</h2><span className="muted">{shortDate(from)} – {shortDate(to)}</span></div><TableView t={t}/></section>}
-      <div className="info-note"><Info size={17}/>Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. Synthetic 10% test tax.</div>
+      <div className="info-note"><Info size={17}/>Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. GST from the dated GST master (illustrative — CA to confirm).</div>
     </>}</>;
 }
 function Drill({pack,m,mask,onClose}:{pack:ReportPack;m:ReportMetric;mask:boolean;onClose:()=>void}){
@@ -95,6 +95,6 @@ export function ReportPrintModal({id,room}:{id?:string;room?:string}){
     {!t?<div className="table-wrap"><table><thead><tr><th>Metric</th><th>Definition</th><th>Zero handling</th></tr></thead><tbody>{reportDictionary.map(([a,b,c])=><tr key={a}><td>{a}</td><td>{b}</td><td>{c}</td></tr>)}</tbody></table></div>:<>
       <div className="summary-list">{t.metrics.map(m=><div key={m.id}><span>{m.label}</span><strong>{m.unit==='money'?money(m.value):m.value}</strong></div>)}{t.ratios.map(r=><div key={r.id}><span>{r.label} ({r.formula})</span><strong>{r.display}</strong></div>)}</div>
       {t.table&&<TableView t={t} all/>}</>}
-    <p className="footnote">Generated at simulated clock {s.clock.replace('T',' ')}. Every total is the sum of its source records. Synthetic tax; no GST compliance claim.</p></div>
+    <p className="footnote">Generated at simulated clock {s.clock.replace('T',' ')}. Every total is the sum of its source records. GST illustrative — CA to confirm.</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }

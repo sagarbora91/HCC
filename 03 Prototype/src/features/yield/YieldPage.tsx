@@ -90,7 +90,7 @@ function QuoteTool(){
       <label>Arrival<input type="date" min={s.date} value={arr} onChange={e=>setArr(e.target.value)}/></label>
       {!q.plan.dayUse&&<label>Nights<input type="number" inputMode="numeric" min="1" max="30" value={n} onChange={e=>setN(e.target.value)}/></label>}</div></div>
     <div className="summary-list">{q.rows.map(r=><div key={r.date}><span>{yldDayLabel(r.date)}{q.plan.dayUse?` · day-use ${q.plan.dayUse.from}–${q.plan.dayUse.to}`:''}<small>BAR {money(r.bar)}</small></span><strong>{money(r.rate)}</strong></div>)}
-      <div className="yld-total"><span>Total before synthetic tax</span><strong>{money(q.total)}</strong></div></div>
+      <div className="yld-total"><span>Total before GST</span><strong>{money(q.total)}</strong></div></div>
     {q.issues.length?<ul className="yld-issues" role="alert">{q.issues.map(i=><li key={i}>{i}</li>)}</ul>:<p className="yld-ok">No restriction applies — this stay can be sold.</p>}</div>;
 }
 

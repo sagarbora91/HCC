@@ -56,6 +56,6 @@ export function GuideModal(){
       <span>{x.n}</span><div><h3>{x.title} <small>· {x.date} · {who(x.actor)}</small></h3><p>{x.actions}</p><p className="f-expected"><strong>Expect:</strong> {x.expected}</p></div>
       <button className="btn small-btn" onClick={()=>goThere(x)}>Go there <ArrowRight size={14}/></button></li>)}</ol>}
     {s.scenario!=='S0'&&<p className="f-why">The expected figures assume the S0 fixture — load S0 first.</p>}
-    <div className="info-note"><Info size={17}/>The 10% tax is synthetic test data. Deposits never become revenue. Room nights come from the night audit on Day closing, one per night. Try a fault in the demo {display.isMobile?'sheet (DEMO pill)':'toolbar'} (e.g. Lost response) before recording a payment, then retry — no duplicate receipt is created.</div>
+    <div className="info-note"><Info size={17}/>GST comes from the dated GST master (rooms ≤ ₹7,500 5 %, restaurant 5 %, other services 18 %) — illustrative, CA to confirm. Deposits never become revenue. Room nights come from the night audit on Day closing, one per night. Try a fault in the demo {display.isMobile?'sheet (DEMO pill)':'toolbar'} (e.g. Lost response) before recording a payment, then retry — no duplicate receipt is created.</div>
     <div className="modal-actions"><button className="btn primary" onClick={()=>loadScenario('S0')}><RotateCcw size={15}/> {s.scenario==='S0'?'Restart S0 from step 1':'Load S0 and start'}</button></div></>;
 }

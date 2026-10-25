@@ -2,6 +2,7 @@
 // All names, emails and references are fictional. Keys (room IDs, HCC-1041…1050, user IDs, EXP-101/102) are stable.
 import {State,Room,User,Booking,Task,permissions,SCHEMA} from '../domain/types';
 import {extensions} from './ext';
+import {gstForRoomNight} from '../domain/gst';
 export const BUSINESS_DATE='2026-10-24';
 export function baseFixture():State{
   const roomTypes=['Classic','Classic','Deluxe','Deluxe','Classic','Suite','Deluxe','Classic'];
@@ -26,7 +27,7 @@ export function baseFixture():State{
     return {id:`HCC-${1041+i}`,guest,email:`guest${i+1}@example.test`,people:i%2+1,room,
       arrival:status==='In house'?'2026-10-23':BUSINESS_DATE,departure:'2026-10-26',rate,
       source:['Direct','Phone','OTA · manual','Corporate'][i%4],status:status as Booking['status'],registered:status==='In house',
-      lines:status==='In house'?[{id:`seed-night-${i}`,label:'Room night · 23 Oct',amount:rate,date:'2026-10-23',kind:'room',taxBps:1000}]:[],
+      lines:status==='In house'?[{id:`seed-night-${i}`,label:'Room night · 23 Oct',amount:rate,date:'2026-10-23',kind:'room',taxBps:0}]:[],
       receipts:[{id:`seed-pay-${i}`,amount:status==='In house'?rate:100000,method:i%3===0?'Cash':'UPI',date:BUSINESS_DATE,kind:'payment',reference:'DEMO-'+(100+i),actor:'cashier'}],
       version:1,notes:'Fictional guest · demonstration record'};});
   const tasks:Task[]=rooms.filter(r=>r.hk!=='Ready').map((r,i)=>({id:'task-'+i,room:r.id,assignee:i%2?'housekeeper2':'housekeeper',
@@ -42,8 +43,10 @@ export function baseFixture():State{
       Cashier:['billing','payments','expenses','reports'],Supervisor:['housekeeping','inspect'],Housekeeper:['housekeeping'],
       // M1 approximations on the coarse model; replaced by the resource.action matrix in M3 (BL-024).
       Accountant:['reports'],Maintenance:['housekeeping'],'Tech admin':['admin']},
-    settings:{hotel:'HCC Demo Residency',taxBps:1000,discountLimit:25000,inspection:true,checkin:'14:00',checkout:'11:00'},
+    settings:{hotel:'HCC Demo Residency',discountLimit:25000,inspection:true,checkin:'14:00',checkout:'11:00'},
     openingCash:500000,shiftOpen:true,closedDates:['2026-10-23'],processed:[],sequence:1100};
+  // DEC-069: seeded room nights take the GST master rate for their night (₹2,000–₹4,500 ≤ ₹7,500 → 5 %).
+  for(const b of s.bookings)for(const l of b.lines)l.taxBps=gstForRoomNight(s,l.date,l.amount).bps;
   extensions.forEach(x=>x.extendBase(s));
   return s;
 }

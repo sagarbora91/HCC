@@ -16,7 +16,7 @@ export function HistorySummary({compact=false}:{compact?:boolean}){
     ['Occupancy',total.occupancy,`${total.occupied.toLocaleString('en-IN')} of ${total.sellable.toLocaleString('en-IN')} room-nights`],
     ['ADR',total.adr,'Room revenue ÷ occupied nights'],
     ['RevPAR',total.revpar,'Room revenue ÷ sellable nights'],
-    ['Room revenue',money(total.roomRevenue),'Excl. synthetic tax'],
+    ['Room revenue',money(total.roomRevenue),'Excl. GST'],
     ['Stays',total.stays.toLocaleString('en-IN'),'Checked out'],
     ['Cancellations',String(total.cancellations),`${total.noShows} no-shows`],
   ];

@@ -5,7 +5,7 @@ import {useStepBack} from '../../app/native';
 import React,{useState,useRef} from 'react';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,Printer,UserPlus,Info,Loader2,X,RotateCcw} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,money,nights,addDays,totals,taxRateFor,guestForBooking,stayArrivals,stayCheckinAlternatives,stayFreeRooms,staySegments} from '../../services/mock';
+import {Booking,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,stayArrivals,stayCheckinAlternatives,stayFreeRooms,staySegments} from '../../services/mock';
 import {Fab,ListCard,Stepper,NumberStepper} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from '../../features/guests/GuestForm';
@@ -94,8 +94,8 @@ export function MfCheckin({id}:{id?:string}){
           :<Empty title={`No eligible ${room?.type||''} rooms`} body="Ask housekeeping to finish and inspect a room."/>}
         <p className="mf-note">Switching re-checks availability; the agreed tariff ({money(b.rate)}/night) is kept.</p></>}
       <div className="modal-actions">{prevBtn}{nextBtn}</div></>;}
-  else if(b&&step===4){const n=nights(b.arrival,b.departure),bps=taxRateFor(s,b.arrival),net=b.rate*n;
-    body=<><MfRows rows={[['Agreed tariff',money(b.rate)+' / night'],['Nights',`${n} (${shortDate(b.arrival)} – ${shortDate(b.departure)})`],['Room charges (estimate)',money(net)],[`Synthetic tax (${bps/100}%)`,money(Math.round(net*bps/10000))],['Source',b.source]]}/>
+  else if(b&&step===4){const n=nights(b.arrival,b.departure),bps=gstForRoomNight(s,b.arrival,b.rate).bps,net=b.rate*n;
+    body=<><MfRows rows={[['Agreed tariff',money(b.rate)+' / night'],['Nights',`${n} (${shortDate(b.arrival)} – ${shortDate(b.departure)})`],['Room charges (estimate)',money(net)],[`GST (${gstPct(bps)} · CGST + SGST)`,money(gstStayTax(s,b.rate,b.arrival,b.departure))],['Source',b.source]]}/>
       <label className="mf-check"><input type="checkbox" checked={tariffOk} onChange={e=>setTariffOk(e.target.checked)}/><span>The guest has confirmed the tariff and stay dates.</span></label>
       <div className="modal-actions">{prevBtn}{nextBtn}</div></>;}
   else if(b&&step===5){const t=totals(b);

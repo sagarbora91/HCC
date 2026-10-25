@@ -37,7 +37,7 @@ export function PosSettleModal({id}:ModalProps){
     if(mode==='folio')run({type:'POS_SETTLE',id:o.id,mode:'folio',booking,key:'pos-settle:'+o.id},`Bill ${money(t.total)} posted to folio ${booking}`,{close:true});
     else run({type:'POS_SETTLE',id:o.id,mode:'outlet',method:mode,reference:ref.trim()||undefined,key:'pos-settle:'+o.id},`Bill settled · ${money(t.total)} ${mode}`,{close:true});};
   return <><div className="modal-heading"><div className="eyebrow">{posOutlet(s,o.outlet)?.name.toUpperCase()} · {o.id}</div><h2>Settle {posSpot(o)}</h2>
-    <p>Net {money(t.net)} + synthetic tax {t.taxBps/100}% {money(t.tax)} = <strong>{money(t.total)}</strong>. Tax is snapshotted at settlement.</p></div>
+    <p>Net {money(t.net)} + GST {t.taxBps/100}% {money(t.tax)} = <strong>{money(t.total)}</strong>. Tax is snapshotted at settlement.</p></div>
     <form className="form pos-form" onSubmit={submit}>
       <fieldset className="pos-modes"><legend>Settle by</legend>
         {POS_TENDERS.map(m=><label key={m} className={mode===m?'on':''}><input type="radio" name="mode" value={m} checked={mode===m} disabled={!canOutlet} onChange={()=>setMode(m)}/>{m}</label>)}
@@ -89,9 +89,9 @@ export function PosPrintModal({id,room}:ModalProps){
     <div className="pos-doc-meta"><span>{posSpot(o)}</span>{o.guest&&<span>{o.guest}</span>}<span>Check {o.id}</span><span>{dateLabel(st?.date||s.date)} {clockTime(st?.at||s.clock)}</span><span>Covers {o.covers}</span></div>
     <table><thead><tr><th>Item</th><th className="number">Qty</th><th className="number">Rate</th><th className="number">Amount</th></tr></thead>
       <tbody>{posActiveLines(o).map(l=><tr key={l.id}><td>{l.name}</td><td className="number">{l.qty}</td><td className="number">{money(l.price)}</td><td className="number">{money(posLineValue(l))}</td></tr>)}</tbody></table>
-    <div className="pos-totals pos-doc-totals"><div><span>Net</span><strong>{money(t.net)}</strong></div><div><span>Synthetic tax {t.taxBps/100}%</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Total</span><strong>{money(t.total)}</strong></div></div>
+    <div className="pos-totals pos-doc-totals"><div><span>Net</span><strong>{money(t.net)}</strong></div><div><span>GST {t.taxBps/100}%</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Total</span><strong>{money(t.total)}</strong></div></div>
     {st&&<p className="pos-doc-sub">{st.mode==='folio'?`Charged to room folio ${st.booking} — payable at checkout.`:`Paid by ${st.method}${st.reference?' · '+st.reference:''}.`}</p>}
-    <p className="footnote">Demonstration document · fictional data · synthetic tax, not a GST invoice.</p></div>{actions}</>;
+    <p className="footnote">Demonstration document · fictional data · GST illustrative — not a tax invoice.</p></div>{actions}</>;
 }
 
 export function PosReportModal(){
@@ -99,7 +99,7 @@ export function PosReportModal(){
   return <><div className="pos-doc invoice"><h2>Outlet day summary</h2><p className="pos-doc-sub">{s.settings.hotel} · business date {dateLabel(d.date)} · printed {clockTime(s.clock)}</p>
     <PosSummaryTables d={d}/>
     {open.length>0&&<><h3>Open checks</h3><table><tbody>{open.map(o=><tr key={o.id}><td>{posSpot(o)} · {o.id}</td><td className="number">{money(posOrderTotals(s,o).total)}</td></tr>)}</tbody></table></>}
-    <p className="footnote">Outlet cash is counted in the front-desk cashier drawer (one shared till). Synthetic tax; fictional data.</p></div>
+    <p className="footnote">Outlet cash is counted in the front-desk cashier drawer (one shared till). GST illustrative; fictional data.</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / share</button></div></>;
 }
 export function PosSummaryTables({d}:{d:ReturnType<typeof posDaySummary>}){

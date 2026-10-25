@@ -73,7 +73,7 @@ export function RegistrationCard({id}:{id?:string}){
     <div className="summary-list"><div><span>Nationality</span><strong>{v?.nationality||'—'}</strong></div>
       <div><span>ID document (masked)</span><strong>{!v?'—':v.masked?'Restricted':`${v.idType} · •••• ${v.idLast4}`}</strong></div>
       <div><span>Company / GSTIN</span><strong>{v?.company?`${v.company}${v.gstin?' · '+v.gstin:''}`:'—'}</strong></div>
-      <div><span>Agreed nightly tariff</span><strong>{money(b.rate)} + synthetic tax</strong></div>
+      <div><span>Agreed nightly tariff</span><strong>{money(b.rate)} + GST</strong></div>
       <div><span>Room history</span><strong>{staySegmentLabel(b)||b.room}</strong></div>
       <div><span>Booking source</span><strong>{b.source}</strong></div></div>
     <h3 className="gs-sub">Accompanying guests</h3>

@@ -1,9 +1,9 @@
 // Module 23 · Restaurant POS & room service — command handlers. Command types MUST start with 'POS_'. Return value = audit/summary text.
-// Rules: 02 Planning/modules/HCC_Module_23_POS_Spec.md §4. Money = integer paise; synthetic tax via taxRateFor; simulated clock only.
+// Rules: 02 Planning/modules/HCC_Module_23_POS_Spec.md §4. Money = integer paise; GST via the GST master (domain/gst.ts); simulated clock only.
 import type {Handler,Kit} from '../commands';
 import type {Approval} from '../../../domain/types';
 import {money,addMinutes} from '../../../domain/money';
-import {taxRateFor} from '../../../domain/selectors';
+import {gstForFood,gstLineTax} from '../../../domain/gst';
 import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,
   POS_VOID_LIMIT,POS_TENDERS,POS_APPROVAL_TTL_MINUTES} from '../../../domain/streams/pos';
 import type {POSOrder,POSState,POSKotStatus} from '../../../domain/streams/pos';
@@ -86,7 +86,8 @@ const POS_SETTLE:Handler=k=>{
   editable(k,o);open();
   assert(posActiveLines(o).length,'This check has no items to settle.');
   assert(!posUnsent(o).length,'Send the remaining items to the kitchen (KOT) or remove them before settling.','INVALID_TRANSITION');
-  const p=slice(k),taxBps=taxRateFor(s,s.date),net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),tax=Math.round(net*taxBps/10000),total=net+tax;
+  // DEC-069: restaurant / room service GST from the master (5 %, or 18 % when the hotel is specified premises this FY); one bill = one line.
+  const p=slice(k),taxBps=gstForFood(s,s.date).bps,net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),tax=gstLineTax(net,taxBps),total=net+tax;
   assert(net>0,'This check has no value to settle.');
   const billNo=`POS/${s.date.slice(2,4)}${s.date.slice(5,7)}/${String(p.billSeq+1).padStart(4,'0')}`;
   if(cmd.mode==='folio'){

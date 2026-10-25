@@ -7,7 +7,7 @@ const ratioCell=(r:ReportRatioValue|undefined,display:string):XCell=>!r||!r.den?
 const val=(unit:string,v:number):XCell=>unit==='money'?{paise:v}:{int:v};
 export function reportSheets(meta:{hotel:string;scenario:string;clock:string},pack:ReportPack):XSheet[]{
   const sheets:XSheet[]=[{name:'About',widths:[30,60],rows:[['Item','Value'],['Report','Hotel Control Centre — DEMONSTRATION · fictional data · not a tax document'],['Property',meta.hotel],['Scenario',meta.scenario],
-    ['From (business date)',{date:pack.from}],['To (business date)',{date:pack.to}],['Generated (simulated clock)',meta.clock],['Note','Synthetic 10% test tax; no GST compliance claim. Every total is the sum of its source rows.']]}];
+    ['From (business date)',{date:pack.from}],['To (business date)',{date:pack.to}],['Generated (simulated clock)',meta.clock],['Note','GST from the dated GST master (illustrative — CA to confirm). Every total is the sum of its source rows.']]}];
   const drill:XCell[][]=[['Tab','Metric','Date','Reference','Booking','Guest','Room','Detail','Method','Amount / count']];
   for(const t of pack.tabs){
     sheets.push({name:t.label,widths:[34,18,12,40],rows:[['Metric','Value','Source rows','Note'],...t.metrics.map(m=>[m.label,val(m.unit,m.value),{int:m.rows.length},m.note??'']),

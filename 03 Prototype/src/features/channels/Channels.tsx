@@ -129,7 +129,7 @@ export function CommissionTables(){
         <td>{chnChannelName(s,x.channel)}</td><td>{stay(x.booking.arrival,x.booking.departure)}</td><td><ChnPill status={x.booking.status==='Confirmed'?'Accepted':'Info'}>{x.booking.status}</ChnPill></td>
         <td className="number">{x.nights} × {money(x.booking.rate)}</td><td className="number">{money(x.commission)}</td></tr>)}
     </tbody></table>{!r.rows.length&&<Empty title="No OTA bookings yet" body="Accept a reservation from the inbox to see commission here."/>}</div>
-    <p className="footnote chn-foot">Base = agreed nightly rate × nights (room revenue, excluding synthetic tax). Cancelled, held and expired bookings are excluded. Bookings entered manually with source “OTA · manual” have no named channel and are not included. Simulated figures.</p>
+    <p className="footnote chn-foot">Base = agreed nightly rate × nights (room revenue, excluding GST). Cancelled, held and expired bookings are excluded. Bookings entered manually with source “OTA · manual” have no named channel and are not included. Simulated figures.</p>
   </>;
 }
 function CommissionTab(){

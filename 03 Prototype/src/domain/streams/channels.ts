@@ -1,7 +1,8 @@
 // Module 21–22 · OTA channels & direct booking — pure helpers, selectors and the state slice type. Exported names MUST start with 'chn' / 'CHN' (shared mock namespace).
 // Everything here is SIMULATED: fictional channels, no network. Inventory rules come from the shared selectors (available, rateFor, taxRateFor).
 import type {State,Booking,Room} from '../types';
-import {available,rateFor,taxRateFor} from '../selectors';
+import {available,rateFor} from '../selectors';
+import {gstForRoomNight,gstStayTax} from '../gst';
 import {addDays,nights} from '../money';
 import {resCapacity,resHoldActive} from './reservations';
 
@@ -151,7 +152,7 @@ export function chnWebSearchError(s:State,arrival:string,departure:string,adults
 export function chnWebQuote(s:State,type:string,arrival:string,departure:string,adults=1,children=0):CHNQuote{
   const room=s.rooms.find(r=>r.type===type);const n=Math.max(0,nights(arrival,departure));
   const capacity=room?resCapacity(room):0,party=adults+children;
-  const rate=room?rateFor(s,room,arrival):0,net=rate*n,taxBps=taxRateFor(s,arrival),tax=Math.round(net*taxBps/10000);
+  const rate=room?rateFor(s,room,arrival):0,net=rate*n,taxBps=gstForRoomNight(s,arrival,rate).bps,tax=gstStayTax(s,rate,arrival,departure);
   const left=room&&n>0?chnFreeRooms(s,type,arrival,departure,1).length:0;
   const reason=!room?'Not offered':party>capacity?`Sleeps up to ${capacity}`:left===0?'Sold out for these dates':'';
   return {type,nights:n,rate,net,taxBps,tax,total:net+tax,left,capacity,ok:!reason,reason};

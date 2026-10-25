@@ -5,7 +5,8 @@ import {State,Command,Permission,Receipt,Role,Booking,User,roles,permissions,ass
 import {registry} from './handlers';
 import {HccError,ErrorCode} from '../../domain/errors';
 import {money,addDays,nights,addMinutes,OPENING_TIME} from '../../domain/money';
-import {can,available,occupant,totals,drawer,rateFor,taxRateFor} from '../../domain/selectors';
+import {can,available,occupant,totals,drawer,rateFor} from '../../domain/selectors';
+import {gstForRoomNight,gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment} from '../../domain/gst';
 import {cfgBeforeCommand} from '../../domain/streams/config';
 
 export function execute(input:State,uid:string,cmd:Command):State{
@@ -26,7 +27,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
   const open=()=>assert(!s.closedDates.includes(s.date),'This business day is closed. Open the next business day first.','DAY_CLOSED');
   const mutable=(x:Booking)=>assert(x.status==='In house'||x.status==='Confirmed','This booking is no longer open.','INVALID_TRANSITION');
   const financial=(x:Booking)=>{mutable(x);open();};
-  const addNight=(x:Booking,date:string)=>{const lid=`night:${x.id}:${date}`;if(!x.lines.some(l=>l.id===lid||l.kind==='room'&&l.date===date))x.lines.push({id:lid,label:'Room night · '+date,amount:x.rate,date,kind:'room',taxBps:taxRateFor(s,date)});};
+  const addNight=(x:Booking,date:string)=>{const lid=`night:${x.id}:${date}`;if(!x.lines.some(l=>l.id===lid||l.kind==='room'&&l.date===date))x.lines.push({id:lid,label:'Room night · '+date,amount:x.rate,date,kind:'room',taxBps:gstForRoomNight(s,date,x.rate).bps});};
   // W05-A Master configuration: apply due dated values; refuse commands of a switched-off module (DEC-057).
   {const off=cfgBeforeCommand(s,cmd);if(off)fail('FORBIDDEN',off);}
   let detail='';
@@ -77,14 +78,14 @@ export function execute(input:State,uid:string,cmd:Command):State{
     req('billing');const x=b();financial(x);assert(x.status==='In house','Check in before posting room nights.','INVALID_TRANSITION');
     for(let d=x.arrival;d<x.departure;d=addDays(d,1)){assert(!s.closedDates.includes(d)||x.lines.some(l=>l.kind==='room'&&l.date===d),'A missing charge belongs to a closed business date.','DAY_CLOSED');addNight(x,d);}
     x.version++;detail=x.id+' · full stay charges (including future nights)';break;}
-  case 'CHARGE':{req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.label?.trim(),'Describe the service.');x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:taxRateFor(s,s.date)});x.version++;detail=x.id+' · '+cmd.label;break;}
+  case 'CHARGE':{req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.label?.trim(),'Describe the service.');x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:gstForCharge(s,s.date,cmd.gst??gstCategoryOfLabel(cmd.label)).bps});x.version++;detail=x.id+' · '+cmd.label;break;}
   case 'DISCOUNT':{
     req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.reason?.trim(),'A reason is required.');
     assert(cmd.amount<=totals(x).net,'Discount cannot exceed existing net charges.');
     if(cmd.amount>s.settings.discountLimit){
       assert(!s.approvals.some(a=>a.booking===x.id&&a.status==='Pending'),'A discount request is already pending.','INVALID_TRANSITION');
       s.approvals.push({id:id('APR'),booking:x.id,amount:cmd.amount,reason:cmd.reason,actor:uid,version:x.version,status:'Pending'});detail=x.id+' · approval requested';
-    }else{x.lines.push({id:id('discount'),label:'Discount · '+cmd.reason,amount:-cmd.amount,date:s.date,kind:'discount',taxBps:taxRateFor(s,s.date)});x.version++;detail=x.id+' · discount posted';}
+    }else{x.lines.push({id:id('discount'),label:'Discount · '+cmd.reason,amount:-cmd.amount,date:s.date,kind:'discount',taxBps:gstForFolioAdjustment(s,x,s.date).bps});x.version++;detail=x.id+' · discount posted';}
     break;}
   case 'APPROVAL':{
     req('approve');open();const a=s.approvals.find(a=>a.id===cmd.id);
@@ -94,7 +95,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
     if(cmd.approve){
       financial(x);assert(x.version===a!.version,'The folio changed after this request. Reject it and request again.','STALE_VERSION');
       assert(totals(x).net>=a!.amount,'Discount exceeds the current charges.');
-      x.lines.push({id:id('discount'),label:'Approved discount · '+a!.reason,amount:-a!.amount,date:s.date,kind:'discount',taxBps:taxRateFor(s,s.date)});x.version++;
+      x.lines.push({id:id('discount'),label:'Approved discount · '+a!.reason,amount:-a!.amount,date:s.date,kind:'discount',taxBps:gstForFolioAdjustment(s,x,s.date).bps});x.version++;
     }
     a!.status=cmd.approve?'Approved':'Rejected';detail=a!.id+' · '+a!.status;break;}
   case 'PAYMENT':{
@@ -179,9 +180,8 @@ export function execute(input:State,uid:string,cmd:Command):State{
     detail=`${cmd.role} · ${cmd.permission} ${arr.includes(cmd.permission)?'removed':'granted'}`;break;}
   case 'SETTINGS':{
     req('admin');assert(cmd.hotel?.trim(),'Property name is required.');
-    assert(Number.isInteger(cmd.taxBps)&&cmd.taxBps>=0&&cmd.taxBps<=3000,'Use a synthetic tax between 0% and 30%.');
     assert(Number.isSafeInteger(cmd.discountLimit)&&cmd.discountLimit>=0,'Invalid discount threshold.');
-    s.settings={hotel:cmd.hotel.trim(),taxBps:cmd.taxBps,discountLimit:cmd.discountLimit,inspection:!!cmd.inspection,checkin:cmd.checkin,checkout:cmd.checkout};
+    s.settings={hotel:cmd.hotel.trim(),discountLimit:cmd.discountLimit,inspection:!!cmd.inspection,checkin:cmd.checkin,checkout:cmd.checkout};
     detail='Demo policy updated · existing posted line tax snapshots preserved';break;}
   default:fail('VALIDATION','Unknown action.');
   }

@@ -265,7 +265,7 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
   case 'departures':{const x=aiDepartures(s);
     return ans('Departures today',x.due.length?`${plural(x.due.length,'departure')} due to check out; ${x.done.length} already departed.`:`No departures due; ${x.done.length} departed today.`,
       [{label:'Due',value:String(x.due.length)},{label:'Departed',value:String(x.done.length)}],
-      `In-house stays with departure on or before the business date are due${a.money?'; the balance is the folio total (incl. synthetic tax) minus net payments':''}.`,[link('folios','Guests & folios')],
+      `In-house stays with departure on or before the business date are due${a.money?'; the balance is the folio total (incl. GST) minus net payments':''}.`,[link('folios','Guests & folios')],
       x.due.map(b=>`${b.guest} · room ${b.room}${b.departure<s.date?' · overdue since '+b.departure:''}${a.money?' · balance '+money(totals(b).balance):''}`));}
   case 'adr':case 'revpar':{const r=aiRoomRevenueTonight(s);const isAdr=intent==='adr';
     return ans(isAdr?'ADR tonight':'RevPAR tonight',isAdr?`ADR is ${r.occupied?money(r.adr):'—'} — ${money(r.revenue)} room revenue over ${plural(r.occupied,'occupied room')}.`:`RevPAR is ${money(r.revpar)} — ${money(r.revenue)} room revenue over ${r.sellable} sellable rooms.`,
@@ -274,7 +274,7 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
   case 'collections':
     return ans('Collections vs outstanding',`Collected ${money(m.collections)} today; ${money(m.outstanding)} is still outstanding on folios. Refundable deposits held: ${money(m.deposits)}.`,
       [{label:'Collected today',value:money(m.collections)},{label:'Outstanding',value:money(m.outstanding)},{label:'Deposits held',value:money(m.deposits)}],
-      'Collected = payments − refunds with today’s receipt date. Outstanding = sum of positive folio balances (charges + synthetic tax − payments − company credit). Deposits are not revenue and are shown separately.',[link('reports','Reports'),link('folios','Guests & folios')]);
+      'Collected = payments − refunds with today’s receipt date. Outstanding = sum of positive folio balances (charges + GST − payments − company credit). Deposits are not revenue and are shown separately.',[link('reports','Reports'),link('folios','Guests & folios')]);
   case 'cash':{const x=shiftExpected(s),st=shiftStatus(s);const sh=s.shift?.date===s.date?s.shift:undefined;const diff=sh?sh.counted-sh.expected:0;
     return ans('Cash drawer',`Expected drawer ${money(x.expected)}; the shift is ${st.toLowerCase()}.${sh?` Counted ${money(sh.counted)} — ${diff===0?'no difference':`${diff<0?'short':'over'} by ${money(Math.abs(diff))}`}.`:' No count submitted yet.'}`,
       [{label:'Opening float',value:money(x.opening)},{label:'Cash payments',value:money(x.payments)},{label:'Cash deposits',value:money(x.deposits)},{label:'Cash out (refunds, returns, expenses)',value:money(x.refunds+x.returns+x.expenses)},{label:'Expected',value:money(x.expected)},...(sh?[{label:'Difference',value:money(diff)}]:[])],
@@ -299,7 +299,7 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
   case 'balances':{const t=aiTopBalances(s);
     return ans('Top balances due',t.length?`The largest balance is ${money(t[0].balance)} (${t[0].b.guest}). ${plural(t.length,'folio')} listed; total outstanding ${money(m.outstanding)}.`:'No folio has a balance due.',
       [{label:'Total outstanding',value:money(m.outstanding)},{label:'Listed',value:String(t.length)}],
-      'Balance = charges + synthetic tax − payments (net of refunds) − company credit, for confirmed, in-house and departed stays. Top five shown.',[link('folios','Guests & folios')],
+      'Balance = charges + GST − payments (net of refunds) − company credit, for confirmed, in-house and departed stays. Top five shown.',[link('folios','Guests & folios')],
       t.map(x=>`${x.b.guest} · room ${x.b.room} · ${x.b.status} · ${money(x.balance)}`));}
   case 'hk-backlog':{const x=aiBacklog(s);
     return ans('Housekeeping backlog',x.open.length?`${plural(x.open.length,'open task')}. Oldest: room ${x.oldest!.t.room}, ${hrs(x.oldest!.minutes)}${x.oldest!.estimated?' (estimated)':''}.`:'No open housekeeping tasks.',

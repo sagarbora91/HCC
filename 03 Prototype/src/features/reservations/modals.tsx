@@ -85,7 +85,7 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
         <label>Notes<textarea name="notes" rows={2} placeholder="Preferences or arrival notes…" maxLength={300}/></label>
       </fieldset>
       <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={chosen?`room ${chosen.id} (${chosen.type})`:undefined}/>
-      {chosen&&<div className="summary-list res-summary"><div><span>Room {chosen.id} · {chosen.type}{pick?'':' (auto-assigned)'}</span><strong>{money(rateFor(s,chosen,arrival))} / night</strong></div><div><span>{n} night{n===1?'':'s'} · {shortDate(arrival)} — {shortDate(departure)}</span><strong>{money(rateFor(s,chosen,arrival)*n)} + synthetic tax</strong></div></div>}
+      {chosen&&<div className="summary-list res-summary"><div><span>Room {chosen.id} · {chosen.type}{pick?'':' (auto-assigned)'}</span><strong>{money(rateFor(s,chosen,arrival))} / night</strong></div><div><span>{n} night{n===1?'':'s'} · {shortDate(arrival)} — {shortDate(departure)}</span><strong>{money(rateFor(s,chosen,arrival)*n)} + GST</strong></div></div>}
       <div className="info-note"><Hourglass size={16}/>A hold reserves the room for 2 hours of simulated time, then releases it automatically. Availability is rechecked for the full date range when you save. No external booking or message is sent.</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button>
         <button type="button" className="btn" disabled={busy||!rst.canSubmit} onClick={e=>save(e.currentTarget.form!,true)}><Hourglass size={15}/> Hold 2 hours</button>

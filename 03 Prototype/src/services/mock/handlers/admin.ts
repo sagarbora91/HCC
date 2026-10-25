@@ -9,7 +9,7 @@ import {money,addMinutes} from '../../../domain/money';
 import {registry} from './index';
 import {cfgDef,cfgCanChange,cfgValidate,cfgClean,cfgEffectiveFrom,cfgValueOn,cfgSame,cfgShow,cfgEnsure,cfgWriteDirect,cfgPendingRequests,cfgDecideBlock,
   cfgRevertBlock,cfgChange,cfgImportPlan,type CfgSettingDef} from '../../../domain/streams/config';
-import {authorize,adminPolicy,adminPerm,adminOtherActiveOwners,adminDescribeCell,adminDefaultPolicy,adminTaxScheduled,adminRoomTypes,ADMIN_FINANCIAL_MODULES,
+import {authorize,adminPolicy,adminPerm,adminOtherActiveOwners,adminDescribeCell,adminDefaultPolicy,adminRoomTypes,ADMIN_FINANCIAL_MODULES,
   type PolicyCell,type PolicyEffect,type PolicyScope,type HccPolicy} from '../../../domain/streams/admin';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
@@ -200,24 +200,17 @@ const cfgGate=(k:Kit)=>{k.req('admin');const d=authorize(k.s,k.uid,'PERM-ADM-003
 function history(k:Kit,key:string,before:string,after:string,effectiveFrom:string,reason=''){
   (k.s.configHistory||(k.s.configHistory=[])).unshift({id:k.id('CFG'),key,before,after,at:addMinutes(k.s.clock,1),actor:k.user.name,effectiveFrom,reason});
 }
-const show=(key:string,v:unknown)=>key==='discountLimit'?money(Number(v)):key==='taxBps'?Number(v)/100+'%':key==='inspection'?(v?'On':'Off'):key==='approvalExpiryHours'?v+' h':String(v??'—');
-function setTaxToday(k:Kit,bps:number){
-  const {s}=k;
-  if(s.taxSchedule?.length){s.taxSchedule=s.taxSchedule.filter(t=>t.effectiveFrom!==s.date);s.taxSchedule.push({bps,effectiveFrom:s.date});}
-  s.settings.taxBps=bps;
-}
+const show=(key:string,v:unknown)=>key==='discountLimit'?money(Number(v)):key==='inspection'?(v?'On':'Off'):key==='approvalExpiryHours'?v+' h':String(v??'—');
+/** DEC-069: GST replaced the synthetic tax. GST rates are dated values in Master configuration (SETTING_SET on a gst.* key). */
+const GST_MOVED='The synthetic tax is replaced by the dated GST master (DEC-069): change GST rates in Master configuration › Money and tax.';
 const SETTINGS:Handler=k=>{
-  const {s,cmd,assert}=k;cfgGate(k);assert(cmd.hotel?.trim(),'Property name is required.');
-  assert(Number.isInteger(cmd.taxBps)&&cmd.taxBps>=0&&cmd.taxBps<=3000,'Use a synthetic tax between 0% and 30%.');
+  const {s,cmd,assert,fail}=k;cfgGate(k);assert(cmd.hotel?.trim(),'Property name is required.');
+  if(cmd.taxBps!==undefined&&cmd.taxBps!==s.settings.taxBps)fail('VALIDATION',GST_MOVED);
   assert(Number.isSafeInteger(cmd.discountLimit)&&cmd.discountLimit>=0,'Invalid discount threshold.');
-  const next={hotel:cmd.hotel.trim(),taxBps:cmd.taxBps,discountLimit:cmd.discountLimit,inspection:!!cmd.inspection,checkin:cmd.checkin,checkout:cmd.checkout};
-  const curTax=adminTaxScheduled(s,s.date);
-  for(const key of Object.keys(next) as (keyof typeof next)[]){
-    const before=key==='taxBps'?curTax:s.settings[key];
-    if(before!==next[key])history(k,key,show(key,before),show(key,next[key]),s.date);
-  }
-  // Merge (other streams' settings fields are preserved). Tax goes through the schedule so it stays consistent.
-  const {taxBps,...rest}=next;s.settings={...s.settings,...rest};if(taxBps!==curTax)setTaxToday(k,taxBps);
+  const next={hotel:cmd.hotel.trim(),discountLimit:cmd.discountLimit,inspection:!!cmd.inspection,checkin:cmd.checkin,checkout:cmd.checkout};
+  for(const key of Object.keys(next) as (keyof typeof next)[])if(s.settings[key]!==next[key])history(k,key,show(key,s.settings[key]),show(key,next[key]),s.date);
+  // Merge (other streams' settings fields are preserved).
+  s.settings={...s.settings,...next};
   return 'Demo policy updated · existing posted line tax snapshots preserved';
 };
 // ─────────────── W05-A Master configuration (registry-driven; domain/streams/config.ts) ───────────────
@@ -270,7 +263,7 @@ function cfgChangeCommand(k:Kit,def:CfgSettingDef,raw:unknown,requested:string|u
 }
 const SETTING_SET:Handler=k=>{
   const {s,cmd,fail}=k;k.req('admin');
-  if(cmd.setting==='taxBps')return fail('VALIDATION','Synthetic tax is effective-dated: use the tax schedule.');
+  if(cmd.setting==='taxBps')return fail('VALIDATION',GST_MOVED);
   const def=cfgDef(s,String(cmd.setting));
   if(!def||!def.editable)return fail('VALIDATION','This setting is not configurable.');
   return cfgChangeCommand(k,def,cmd.value,cmd.effectiveFrom||undefined,String(cmd.reason||'').trim().slice(0,120));
@@ -343,24 +336,8 @@ const TARIFF_SCHEDULE:Handler=k=>{
   history(k,'tariff:'+cmd.roomType,money(prev),money(cmd.rate),cmd.effectiveFrom,cmd.reason||'');
   return `Tariff ${cmd.roomType} · ${money(prev)} → ${money(cmd.rate)} from ${cmd.effectiveFrom} · existing bookings keep agreed rates`;
 };
-const TAX_SCHEDULE:Handler=k=>{
-  const {s,cmd,assert}=k;cfgGate(k);
-  assert(typeof cmd.effectiveFrom==='string'&&DATE.test(cmd.effectiveFrom),'Choose an effective date.');
-  const list=s.taxSchedule||(s.taxSchedule=[]);
-  if(cmd.remove){
-    assert(cmd.effectiveFrom>s.date,'Only future-dated tax rates can be withdrawn.');
-    const at=list.findIndex(t=>t.effectiveFrom===cmd.effectiveFrom);assert(at>=0,'Scheduled tax rate not found.','NOT_FOUND');
-    const [old]=list.splice(at,1);history(k,'taxBps',old.bps/100+'% from '+old.effectiveFrom,'withdrawn',old.effectiveFrom,cmd.reason||'');
-    return `Synthetic tax from ${cmd.effectiveFrom} withdrawn`;
-  }
-  assert(cmd.effectiveFrom>=s.date,'Effective date cannot be before the current business date.');
-  assert(Number.isInteger(cmd.bps)&&cmd.bps>=0&&cmd.bps<=3000,'Use a synthetic tax between 0% and 30%.');
-  const prev=adminTaxScheduled(s,cmd.effectiveFrom);
-  s.taxSchedule=list.filter(t=>t.effectiveFrom!==cmd.effectiveFrom);s.taxSchedule.push({bps:cmd.bps,effectiveFrom:cmd.effectiveFrom});
-  if(cmd.effectiveFrom===s.date)s.settings.taxBps=cmd.bps;
-  history(k,'taxBps',prev/100+'%',cmd.bps/100+'%',cmd.effectiveFrom,cmd.reason||'');
-  return `Synthetic tax ${prev/100}% → ${cmd.bps/100}% from ${cmd.effectiveFrom} · posted lines keep their snapshot`;
-};
+// Kept so old clients get a clear refusal (DEC-069): the dated GST master replaced the synthetic tax schedule.
+const TAX_SCHEDULE:Handler=k=>{cfgGate(k);return k.fail('VALIDATION',GST_MOVED);};
 
 export const handlers:Record<string,Handler>={
   USER,USER_CREATE,USER_UPDATE,

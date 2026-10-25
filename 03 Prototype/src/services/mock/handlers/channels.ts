@@ -139,7 +139,7 @@ export const handlers:Record<string,Handler>={
     const bk=s.bookings.slice(-1)[0]!,wid=id('WEB');
     slice(s).webRequests.push({id:wid,booking:bk.id,guest,phone,email,roomType:cmd.roomType,arrival:cmd.arrival,departure:cmd.departure,adults,children,
       net:q.net,tax:q.tax,total:q.total,createdAt:s.clock,status:'Pending',notes:notes||undefined});
-    return `${wid} · ${guest} · ${cmd.roomType} · ${cmd.arrival} → ${cmd.departure} · ${money(q.total)} incl. synthetic tax · held as ${bk.id}`;
+    return `${wid} · ${guest} · ${cmd.roomType} · ${cmd.arrival} → ${cmd.departure} · ${money(q.total)} incl. GST · held as ${bk.id}`;
   },
   CHN_WEB_CONFIRM:k=>{
     const {s,cmd,req,assert,uid}=k;req('reservations');

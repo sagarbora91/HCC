@@ -6,6 +6,7 @@ import type {State,Booking,Line,Receipt,Expense} from '../types';
 import {drawer} from '../selectors';
 import {reportPack,expenseCounts,closingOutlet} from './closing';
 import {posSlice,type POSReceipt} from './pos';
+import {lineTax,gstSplit} from '../gst';
 
 // ── Chart of accounts (synthetic) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
@@ -19,7 +20,9 @@ export const ACC_CHART:ACCAccount[]=[
   {code:'1100',name:'Guest ledger',group:'Asset',note:'Open folio balances'},
   {code:'1110',name:'Company receivables (city ledger)',group:'Asset',note:'Authorised company credit'},
   {code:'2000',name:'Advance deposits',group:'Liability',note:'Refundable deposits held'},
-  {code:'2100',name:'Synthetic tax payable',group:'Liability',note:'10% test rate — not GST'},
+  {code:'2100',name:'Synthetic tax payable (legacy)',group:'Liability',note:'Before DEC-069 only — kept for locked snapshots'},
+  {code:'2110',name:'Output CGST',group:'Liability',note:'GST master, intra-state half (illustrative — CA to confirm)'},
+  {code:'2120',name:'Output SGST',group:'Liability',note:'GST master, intra-state half (illustrative — CA to confirm)'},
   {code:'2200',name:'Vendor payables',group:'Liability',note:'Vendor-credit expenses'},
   {code:'4000',name:'Room revenue',group:'Income'},
   {code:'4100',name:'Other revenue',group:'Income',note:'Services and extras'},
@@ -39,14 +42,14 @@ export const accLedgerName=(code:string)=>accAccount(code)?.name??code;
 
 // ── Mapping (source classification → ledger) ──
 export const ACC_DEFAULT_MAP:Record<string,string>={
-  'line:room':'4000','line:service':'4100','line:discount':'4900','line:adjustment':'4910','folio:guest':'1100','folio:tax':'2100',
+  'line:room':'4000','line:service':'4100','line:discount':'4900','line:adjustment':'4910','folio:guest':'1100','folio:cgst':'2110','folio:sgst':'2120',
   'method:Cash':'1000','method:UPI':'1010','method:Card':'1020','method:Bank transfer':'1030',
   'receipt:payment':'1100','receipt:refund':'1100','receipt:deposit':'2000','receipt:deposit-return':'2000','receipt:company-credit':'1110',
   'expense:Supplies':'5000','expense:Laundry':'5010','expense:Maintenance':'5020','expense:Utilities':'5030','expense:Petty cash':'5040',
   'funding:Cash':'1000','funding:UPI':'1010','funding:Card':'1020','funding:Bank transfer':'1030','funding:Vendor credit':'2200',
   'closing:cash-difference':'5900',
   // Restaurant / room-service bills settled at the outlet (shared till, DEC-052). Bills charged to a folio stay in the folio flow.
-  'pos:sales':'4100','pos:tax':'2100',
+  'pos:sales':'4100','pos:cgst':'2110','pos:sgst':'2120',
 };
 const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
@@ -73,7 +76,6 @@ export const accLockOf=(s:State,date:string)=>accSlice(s).locks?.[date];
 export const ACC_LOCK_ROLES=['Owner','Manager','Accountant'];
 
 // ── Voucher derivation ──
-const lineTax=(l:Line)=>Math.round(l.amount*l.taxBps/10000);
 /** Signed credit amount → entry (positive = credit, negative = debit). */
 const cr=(account:string,amount:number):ACCEntry=>amount>=0?{account,debit:0,credit:amount}:{account,debit:-amount,credit:0};
 const dr=(account:string,amount:number):ACCEntry=>cr(account,-amount);
@@ -89,9 +91,9 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
     const e=entries.filter(x=>x.debit||x.credit);if(e.length)out.push({...v,entries:e,unmapped:[...new Set(miss)]});};
   for(const b of s.bookings){
     for(const l of b.lines.filter(l=>l.date===date&&l.amount!==0)){
-      const miss:string[]=[],t=lineTax(l);
+      const miss:string[]=[],t=lineTax(l),g=gstSplit(t);
       push({date,type:'Sales',narration:`${l.label} · ${b.guest} · room ${b.room}`,source:{kind:'line',id:`${b.id}/${l.id}`,sub:l.kind,booking:b.id}},miss,
-        [dr(map('folio:guest',miss),l.amount+t),cr(map('line:'+l.kind,miss),l.amount),cr(map('folio:tax',miss),t)]);
+        [dr(map('folio:guest',miss),l.amount+t),cr(map('line:'+l.kind,miss),l.amount),cr(map('folio:cgst',miss),g.cgst),cr(map('folio:sgst',miss),g.sgst)]);
     }
   }
   for(const b of s.bookings){
@@ -105,11 +107,11 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
         inflow?[dr(tender,r.amount),cr(counter,r.amount)]:[dr(counter,r.amount),cr(tender,r.amount)]);
     }
   }
-  // One Sales voucher per outlet receipt: Dr tender, Cr outlet revenue + tax. A void receipt (negative) reverses its sale.
+  // One Sales voucher per outlet receipt: Dr tender, Cr outlet revenue + CGST + SGST. A void receipt (negative) reverses its sale.
   for(const r of posSlice(s).receipts.filter(r=>r.date===date&&r.amount!==0)){
-    const miss:string[]=[];
+    const miss:string[]=[],g=gstSplit(r.tax);
     push({date,type:'Sales',narration:`${r.kind==='void'?'Outlet bill void':'Outlet bill'} · ${r.outlet} · ${r.method} · ${r.reference} · ${r.order}`,source:{kind:'pos',id:r.id,sub:r.kind}},miss,
-      [dr(map('method:'+r.method,miss),r.amount),cr(map('pos:sales',miss),r.net),cr(map('pos:tax',miss),r.tax)]);
+      [dr(map('method:'+r.method,miss),r.amount),cr(map('pos:sales',miss),r.net),cr(map('pos:cgst',miss),g.cgst),cr(map('pos:sgst',miss),g.sgst)]);
   }
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0)){
     const miss:string[]=[],head=map('expense:'+e.category,miss),fund=map('funding:'+e.method,miss);
@@ -200,7 +202,7 @@ export function accReconcile(s:State,date:string):ACCCheck[]{
     c('service','Other revenue',v('revenue','service'),net(map['line:service'],lines('service')),'Reports › Revenue · service lines'),
     c('discount','Discounts (negative)',v('revenue','discount'),net(map['line:discount'],lines('discount')),'Reports › Revenue · discount lines'),
     c('adjustment','Adjustments & credit notes',v('revenue','adjustment'),net(map['line:adjustment'],lines('adjustment')),'Reports › Revenue · adjustment lines'),
-    c('tax','Synthetic tax',v('revenue','tax'),net(map['folio:tax'],x=>x.source.kind==='line'),'Reports › Revenue · tax'),
+    c('tax','GST (CGST + SGST)',v('revenue','tax'),[...new Set([map['folio:cgst'],map['folio:sgst']])].reduce((a,code)=>a+net(code,x=>x.source.kind==='line'),0),'Reports › Revenue · tax'),
     c('collections','Net receipts (payments − refunds)',v('receipts','net'),tenderMove(['payment','refund']),'Overview “collections” · Reports › Receipts'),
     c('deposits','Deposits net (in − out)',v('receipts','deposit-in')+v('receipts','deposit-out'),tenderMove(['deposit','deposit-return']),'Reports › Receipts · deposits'),
     c('expenses','Posted expenses',v('expenses','total'),expenseMove,'Reports › Expenses · total'),
@@ -218,9 +220,9 @@ export type ACCMapRow={key:string;group:string;value:string;account:string;defau
 export function accMapRows(s:State):ACCMapRow[]{
   const map=accMapping(s),uses:Record<string,number>={};
   const add=(k:string)=>{uses[k]=(uses[k]??0)+1;};
-  s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l))add('folio:tax');});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
+  s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
   s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);});
-  posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax)add('pos:tax');add('method:'+r.method);});
+  posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax){add('pos:cgst');add('pos:sgst');}add('method:'+r.method);});
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
   return keys.sort((a,b)=>order.indexOf(a.split(':')[0])-order.indexOf(b.split(':')[0])).map(key=>{const account=map[key]??'';
