@@ -236,6 +236,7 @@ export const handlers:Record<string,Handler>={
     assert(run,'Payroll run not found.','NOT_FOUND');assert(run!.status==='Locked','This payroll is not locked.','INVALID_TRANSITION');
     assert(String(cmd.reason??'').trim().length>=5,'Give the reason for unlocking (at least 5 characters).');
     assert(!x.runs.some(r=>r.status==='Locked'&&r.month>run!.month),'A later month is locked. Unlock the latest month first.','INVALID_TRANSITION');
+    assert(Object.keys(x.att).some(key=>key.startsWith(run!.month)),'Attendance for this month is archived — the run cannot be unlocked.','INVALID_TRANSITION');
     assert(!(x.fnf??[]).some(f=>f.month>=run!.month),'A full and final settlement was made after this run. It cannot be unlocked.','INVALID_TRANSITION');
     hrReverseRecoveries(x,run!.id);
     run!.unlocks=[...(run!.unlocks??[]),{at:s.clock,by:k.uid,reason:String(cmd.reason).trim()}];
