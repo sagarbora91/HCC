@@ -245,7 +245,7 @@ export async function register({test,M,assert}){
     return (await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,logLevel:'error',
       define:{...define,__HCC_SCENARIO_WORKER__:JSON.stringify(w)}})).outputFiles[0].text;};
   const [proto,prod]=await Promise.all([bundle('prototype'),bundle('production')]);
-  const demo=['DEMO CONTROLS','Choose a fixture scenario','Choose a scenario','Reset your demo?','Simulated hotel clock','Open demo controls','Demo controls','Local mock service','hcc-mock-adapter'];
+  const demo=['DEMO CONTROLS','Choose a fixture scenario','Choose a scenario','Reset your demo?','Simulated hotel clock','Open demo controls','Demo controls','Local mock service','hcc-mock-adapter','Reset demo data'];
   test('[P5] Production bundle: no demo toolbar, scenario switcher, simulated clock chip, Reset or mock adapter; HTTP adapter present',()=>{
     for(const m of demo)assert.ok(!prod.includes(m),'production bundle contains '+m);
     assert.ok(prod.includes('hcc-http-adapter'));assert.ok(prod.includes('/commands/'));assert.ok(prod.includes('read-only-banner'));

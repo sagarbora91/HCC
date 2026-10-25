@@ -39,9 +39,9 @@ export function CfgDataPanel(){
     <DisplaySection display={display}/>
     <section className="cfg-box"><h3><ShieldCheck size={17}/> Not configurable (safety invariants)</h3>
       <ul className="cfg-inv">{CFG_INVARIANTS.map(([k,v])=><li key={k}><span><strong>{k}</strong> — {v}</span><Pill tone="green">Always on</Pill></li>)}</ul></section>
-    <section className="cfg-box"><h3>Prototype boundaries</h3>
+    {process.env.HCC_BUILD==='production'?null:<section className="cfg-box"><h3>Prototype boundaries</h3>
       <p className="muted">Local and fictional. Data is stored in this browser; another device has its own data. No SQL Server, bank gateway, real authentication or live GST validation. Browser storage is not backup.</p>
-      <button type="button" className="btn danger" onClick={()=>open({type:'reset'})}><RotateCcw size={16}/> Reset demo data ({s.scenario})</button></section>
+      <button type="button" className="btn danger" onClick={()=>open({type:'reset'})}><RotateCcw size={16}/> Reset demo data ({s.scenario})</button></section>}{/* demo-only (Reset): compiled out of the production build */}
   </div>;
 }
 
