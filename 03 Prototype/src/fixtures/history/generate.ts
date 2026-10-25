@@ -10,6 +10,7 @@ import {folioInvoiceNo,FOLIO_MANAGER_CREDIT_LIMIT} from '../../domain/streams/fo
 import {createRng,Rng} from './prng';
 import {occupancyTarget,stayRate,isWeekend,STAY_LENGTH_BUCKETS,LEAD_TIME_BUCKETS} from './calendar';
 import {addOperations} from './operations';
+import {addHistoryGuests} from './guests';
 import {addModuleHistory,GROUP_PLANS,DOWNTIME_REASONS} from './modules';
 import type {HistoryContext} from './util';
 import {POS_FIXTURE_MENU} from '../ext/pos';
@@ -238,6 +239,7 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
   const departed=bookings.filter(b=>b.status==='Departed').sort((a,b)=>a.departure<b.departure?-1:a.departure>b.departure?1:a.id<b.id?-1:1);
   departed.forEach((b,n)=>{b.invoiceNo=folioInvoiceNo((s.invoiceSeqC??0)+n+1);});
   s.invoiceSeqC=(s.invoiceSeqC??0)+departed.length;
+  addHistoryGuests(s,bookings,o.seed);
   s.bookings=[...bookings,...s.bookings];
   s.approvals=[...approvals,...s.approvals];
   addOperations(s,rng,o);
