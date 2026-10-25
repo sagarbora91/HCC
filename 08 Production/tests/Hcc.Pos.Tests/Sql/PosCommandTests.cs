@@ -214,6 +214,19 @@ public class PosCommandTests(PosDb db) : IClassFixture<PosDb>
     }
 
     [Fact]
+    public async Task A_manager_can_reject_a_void_above_their_own_limit_but_not_approve_it_and_a_cashier_cannot_decide_either_way()
+    {
+        var id = await db.SentTableAsync("T39", ("THALI", 4));                                // Rs 1,680: above the Manager's Rs 1,000 limit
+        var line = (await db.Queries.GetCheckAsync(db.As(Who.Owner), id)).Lines[0].LineId;
+        var req = (await db.Pos.VoidItemAsync(db.As(Who.Reception), PosDb.Key(), new VoidCheckItemRequest(id, line, "Kitchen error", null))).Value;
+        var voidId = req.VoidRequestId!.Value;
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Pos.DecideVoidAsync(db.As(Who.Cashier), PosDb.Key(), new DecideVoidRequest(voidId, false, null)));
+        await Fails(HccErrorCode.APPROVAL_REQUIRED, () => db.Pos.DecideVoidAsync(db.As(Who.Manager), PosDb.Key(), new DecideVoidRequest(voidId, true, null)));
+        var rej = (await db.Pos.DecideVoidAsync(db.As(Who.Manager), PosDb.Key(), new DecideVoidRequest(voidId, false, "No"))).Value;
+        Assert.Equal("Rejected", rej.Status);
+    }
+
+    [Fact]
     public async Task Rejected_and_expired_void_requests()
     {
         var id = await db.SentTableAsync("T20", ("THALI", 2));                                // Rs 840: above Rs 500, Manager may decide
