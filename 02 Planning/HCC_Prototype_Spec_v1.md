@@ -260,3 +260,13 @@ Current build: **Missing**.
 - Demo controls, role switching and storage live in removable modules (`app/demo/*`).
 
 **Current build note:** the domain exists as one file (`src/domain.ts`, 22 KB) and the UI as one file (`src/main.tsx`, 52 KB). Proposed M1 refactor into the plan's folder structure (`app/`, `features/`, `domain/`, `services/mock/`, `fixtures/`) before adding screens, so features stop sharing one component.
+
+## GST (DEC-069, 25 Oct 2026)
+
+The synthetic 10 % test tax is replaced by a dated **GST master** (`src/domain/gst.ts`), held in Master configuration › Money and tax (Owner-only; Tech admin read-only, DEC-058; effective-from dates, history, withdraw and revert). Seeded from public sources and marked "Illustrative — CA to confirm":
+
+- Room accommodation, tested per room per night on the actual price charged that night: ≤ ₹7,500 → 5 % without ITC from 22 Sep 2025 (12 % with ITC before); > ₹7,500 → 18 % with ITC.
+- Restaurant / room service: 5 % without ITC, or 18 % with ITC when the hotel is "specified premises" for the financial year (derived from last FY's tariffs — any unit above ₹7,500 — or the Owner's dated opt-in).
+- Laundry, banquet / hall, other services: one dated rate each (seed 18 %). Discounts, credit notes and closed-date corrections follow the folio's room-night rate.
+- Tax is computed per line in paise, rounded half away from zero, and split into CGST + SGST halves (CGST takes the odd paisa) on folios, invoices, vouchers (Output CGST 2110 / Output SGST 2120) and the Tally XML. Intra-state only (no IGST).
+- Posted lines keep their stored rate (`taxBps` snapshot); only new postings consult the master. Demo figures were recomputed (e.g. Room 105 ₹4,400 → ₹4,265; BASE drawer ₹10,750 → ₹10,725).
