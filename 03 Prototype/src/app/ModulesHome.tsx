@@ -3,8 +3,9 @@ import React from 'react';
 import {ChevronRight,Hotel,LogIn,ShieldCheck} from 'lucide-react';
 import {useHcc} from './context';
 import {navItems} from './nav';
-import {NAV_CATEGORIES,DASHBOARD,PAGE_BLURB,catPage,crumbsFor,pagesOfCategory,parseCatPage,type CategoryId} from './navmap';
+import {NAV_CATEGORIES,DASHBOARD,PAGE_BLURB,catPage,crumbsFor,pagesOfCategory,parseCatPage,navFilterModules,type CategoryId} from './navmap';
 import {Empty} from '../components/ui';
+import {cmpBadge} from '../services/mock';
 
 /** Home › Category › Page, each earlier part clickable. */
 export function Breadcrumb({page,label}:{page:string;label:string}){
@@ -25,13 +26,13 @@ function Tile({icon:Icon,label,blurb,badge,onClick}:{icon:React.ComponentType<{s
 }
 
 export function ModulesHome(){
-  const {s,go,user,permission,arrivals,taskList}=useHcc();
-  const allowed=new Set(navItems.filter(n=>permission(n.p)).map(n=>n.id));
+  const {s,uid,go,user,permission,arrivals,taskList}=useHcc();
+  const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
   const inHouse=s.bookings.filter(b=>b.status==='In house').length;
   const openTasks=taskList.filter(t=>t.status!=='Done').length;
   const pendingApprovals=s.approvals.filter(a=>a.status==='Pending').length;
   const pendingExpenses=s.expenses.filter(e=>e.status==='Pending').length;
-  const badge:Partial<Record<CategoryId,number>>={front:arrivals.length,hkm:openTasks,guestsvc:inHouse,cash:pendingExpenses,admin:pendingApprovals};
+  const badge:Partial<Record<CategoryId,number>>={front:arrivals.length,hkm:openTasks,guestsvc:inHouse,cash:pendingExpenses,admin:pendingApprovals,accounts:cmpBadge(s,uid)};
   const cats=NAV_CATEGORIES.map(c=>({c,pages:pagesOfCategory(c.id).filter(p=>allowed.has(p))})).filter(x=>x.pages.length);
   const first=user.name.split(' · ')[0];
   return <div className="home">
@@ -45,10 +46,10 @@ export function ModulesHome(){
 }
 
 export function CategoryPage({page}:{page:string}){
-  const {go,permission}=useHcc();
+  const {s,uid,go,permission}=useHcc();
   const id=parseCatPage(page);const cat=NAV_CATEGORIES.find(c=>c.id===id);
   if(!cat)return <Empty title="Module not found" body="Go back to Modules Home."/>;
-  const items=navItems.filter(n=>pagesOfCategory(cat.id).includes(n.id)&&permission(n.p));
+  const items=navFilterModules(s,navItems,uid).filter(n=>pagesOfCategory(cat.id).includes(n.id)&&permission(n.p));
   return <div className="home">
     <div className="home-head"><h1>{cat.label}</h1><p>{cat.blurb}</p></div>
     {!items.length&&<Empty title="Nothing here for this user" body="Your role has no pages in this module."/>}

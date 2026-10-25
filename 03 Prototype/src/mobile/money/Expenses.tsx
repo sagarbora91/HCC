@@ -3,7 +3,7 @@
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import React,{useState,useRef} from 'react';
 import {Plus,Paperclip,AlertTriangle,Info} from 'lucide-react';
-import {money,expenseDuplicates,expenseCounts,EXPENSE_MANAGER_LIMIT,EXPENSE_CATEGORIES,closingUnlimitedRoles,Expense} from '../../services/mock';
+import {money,expenseDuplicates,expenseCounts,EXPENSE_MANAGER_LIMIT,EXPENSE_CATEGORIES,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ChipFilter,KpiCard,Fab} from '../../app/mobile/components';
 import {Pill,Empty,shortDate,dateLabel} from '../../components/ui';
@@ -22,16 +22,16 @@ export function MmExpenses(){
   const today=s.expenses.filter(e=>expenseCounts(e)&&e.date===s.date);
   const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
   function actions(e:Expense){
-    if(e.status==='Draft')return e.actor===uid&&permission('expenses')?<button className="btn small-btn" disabled={busy} onClick={()=>run({type:'EXPENSE_SUBMIT',id:e.id,key:'expsubmit:'+e.id},'Draft submitted for approval')}>Submit for approval</button>:<span className="mm-why">Draft · {name(e.actor)}</span>;
+    if(e.status==='Draft')return e.actor===uid&&rbacCanSubmitExpense(s,uid)?<button className="btn small-btn" disabled={busy} onClick={()=>run({type:'EXPENSE_SUBMIT',id:e.id,key:'expsubmit:'+e.id},'Draft submitted for approval')}>Submit for approval</button>:<span className="mm-why">Draft · {name(e.actor)}</span>;
     if(e.status==='Pending'){
-      if(!permission('approve'))return <span className="mm-why">Awaiting approval by a manager or owner</span>;
+      if(!rbacCanDecideExpense(s,uid))return <span className="mm-why">Awaiting approval by a manager, accountant or owner</span>;
       if(e.actor===uid)return <span className="mm-why">Your request — another approver needed</span>;
       const over=!closingUnlimitedRoles.includes(user.role)&&e.amount>EXPENSE_MANAGER_LIMIT,noShift=e.method==='Cash'&&!s.shiftOpen;
       return <><div className="mm-two"><button className="btn" disabled={busy} onClick={()=>open({type:'expense-reason',id:e.id,room:'reject'})}>Reject…</button>
         <button className="btn primary" disabled={busy||over||noShift} onClick={()=>run({type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id},'Expense approved and posted')}>Approve & post</button></div>
         {(over||noShift)&&<span className="mm-why">{over?`Above ${money(EXPENSE_MANAGER_LIMIT)} — Owner approves`:'Cash shift not open'}</span>}</>;
     }
-    if(e.status==='Posted'&&!e.reversalOf&&permission('approve')){const noShift=e.method==='Cash'&&!s.shiftOpen;
+    if(e.status==='Posted'&&!e.reversalOf&&rbacCanDecideExpense(s,uid)){const noShift=e.method==='Cash'&&!s.shiftOpen;
       return <><button className="btn small-btn" disabled={busy||noShift} onClick={()=>open({type:'expense-reason',id:e.id,room:'reverse'})}>Reverse…</button>{noShift&&<span className="mm-why">Cash shift not open</span>}</>;}
     return null;
   }
@@ -48,7 +48,7 @@ export function MmExpenses(){
       </article>;})}
     <ShowMore p={pg}/>
     {!list.length&&<Empty title={tab==='All'?'No expenses recorded':`No ${tab.toLowerCase()} expenses`} body="Submitted expenses appear here for approval."/>}
-    {permission('expenses')&&<Fab label="Add expense" icon={Plus} onClick={()=>open({type:'expense'})}/>}
+    {rbacCanSubmitExpense(s,uid)&&<Fab label="Add expense" icon={Plus} onClick={()=>open({type:'expense'})}/>}
   </div>;
 }
 

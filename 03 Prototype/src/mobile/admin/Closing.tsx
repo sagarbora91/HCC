@@ -2,12 +2,13 @@
 // that goes to where it is fixed. Same commands (CLOSE_RUN, DAY_CLOSE, NEXT_DAY) and selectors as desktop SCR-14. Print kept (DEC-047).
 import {usePaged,ShowMore} from '../../components/ShowMore';
 import React,{useState,useEffect} from 'react';
-import {Check,Printer,ArrowRight,AlertTriangle,Zap,RotateCcw,ChevronDown} from 'lucide-react';
+import {BookOpen,Check,Printer,ArrowRight,AlertTriangle,Zap,RotateCcw,ChevronDown} from 'lucide-react';
 import {money,addDays,closingSummary,shiftExpected} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {navItems} from '../../app/nav';
 import {ListCard,StickyFooter} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate} from '../../components/ui';
+import {DayPackButton} from '../../features/exports/DayPack';
 import {ClosingSummaryView} from '../../features/closing/ClosingReport';
 import {maClosingModel,MaStep,MaStepId,MaBlocker} from './logic';
 import {MaTag,MaRows} from './parts';
@@ -55,7 +56,9 @@ export function MaClosing(){
           {canClose&&<button type="button" className="btn ma-subtle" disabled={busy} onClick={()=>run({type:'DAY_CLOSE',key:'dayclose-rerun:'+s.date+':'+s.sequence})}><RotateCcw size={16}/>Try closing again (refused)</button>}</>
         :st.blockers.length?<Blockers list={st.blockers} onTap={drill}/>:<p>All checks clear. Closing stores one immutable closing record for {shortDate(s.date)}.</p>;
       case 'summary':return <><div className="ma-summary">{md.record?<ClosingSummaryView rec={md.record}/>:<><p className="ma-intro">Preview — final when the day is closed.</p><ClosingSummaryView rec={closingSummary(s)}/></>}</div>
-        <button type="button" className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={18}/>{md.record?'Print closing report':'Print preview'}</button></>;
+        <button type="button" className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={18}/>{md.record?'Print closing report':'Print preview'}</button>
+        {md.record&&<DayPackButton date={s.date}/>}
+        {(permission('reports')||permission('payments'))&&<button type="button" className="btn" onClick={()=>go('cashbook')}><BookOpen size={18}/>Cash book</button>}</>;
       case 'next':return <p>{md.closed?`Opens ${dateLabel(addDays(s.date,1))} at 08:00 with an opening float of ${money(s.shiftClose?.counted??0)} (counted cash).`:'Available after the day is closed.'}</p>;
     }
   };

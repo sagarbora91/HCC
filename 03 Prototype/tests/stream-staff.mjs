@@ -19,20 +19,25 @@ export function register({test,M,assert}){
     assert.deepEqual(['owner','manager','accountant','supervisor'].map(u=>M.hrCanManage(s,u)),[true,true,false,false]);
     assert.equal(M.hrCanRates(s,'owner'),true);assert.equal(M.hrCanRates(s,'accountant'),false);
   });
-  test('[HR] payroll line formula (monthly): LOP, late rule, OT, illustrative PF/ESIC/PT, advance capped by balance',()=>{
+  // W05-B (SCC rules): old → new — OT is now 1× the ordinary rate (37,500 → 25,000 paise); PF 12% of basic = 50% of earned (unchanged 168,000);
+  // structured pay splits basic / HRA / washing / special; net 2,599,500 → 2,587,000 paise.
+  test('[HR] payroll line formula (monthly): LOP, late rule, OT 1×, SCC PF / ESIC / PT, advance capped by balance',()=>{
     const r=M.hrDefaultRates();
     const staff={id:'T',name:'Test',dept:'FO',designation:'x',payType:'monthly',monthly:3000000,daily:0};
-    const c={days:30,P:22,L:3,H:1,A:1,OFFW:0,off:3,paidLeave:0,lopLeave:0,unmarked:0,na:0,otMin:120};
+    const c={ym:'2026-09',days:30,P:22,L:3,H:1,HL:0,A:1,OFFW:0,off:3,paidLeave:0,lopLeave:0,unmarked:0,na:0,otMin:120};
     const l=M.hrComputeLine(staff,c,r,{installment:100000,balance:50000});
-    assert.equal(l.latePenaltyHalf,1);assert.equal(l.payableDays,28);assert.equal(l.basic,2800000);assert.equal(l.ot,37500);
-    assert.equal(l.gross,2837500);assert.equal(l.pf,168000);assert.equal(l.esic,0);assert.equal(l.pt,20000);assert.equal(l.advance,50000);assert.equal(l.net,2599500);
+    assert.equal(l.latePenaltyHalf,1);assert.equal(l.payableDays,28);assert.equal(l.earned,2800000);assert.equal(l.ot,25000);
+    assert.deepEqual([l.basic,l.hra,l.washing,l.special],[1400000,1120000,140000,140000]);
+    assert.equal(l.gross,2825000);assert.equal(l.pf,168000);assert.equal(l.pfEr,182000);assert.equal(l.esic,0);assert.equal(l.pt,20000);assert.equal(l.advance,50000);assert.equal(l.net,2587000);
+    assert.equal(l.ctc,2825000+182000);
   });
-  test('[HR] payroll line formula (daily wage) and ESIC under ceiling; advance never makes net negative',()=>{
+  test('[HR] payroll line formula (daily wage, basic-only, no PF) and ESIC under ceiling; advance never makes net negative',()=>{
     const r=M.hrDefaultRates();
-    const d=M.hrComputeLine({id:'D',name:'D',dept:'KIT',designation:'x',payType:'daily',monthly:0,daily:60000},{days:30,P:20,L:2,H:2,A:0,OFFW:1,off:4,paidLeave:0,lopLeave:1,unmarked:0,na:0,otMin:0},r);
-    assert.equal(d.payableDays,24);assert.equal(d.basic,1440000);assert.equal(d.esic,Math.round(1440000*75/10000));assert.equal(d.pt,20000);
-    const tiny=M.hrComputeLine({id:'Y',name:'Y',dept:'KIT',designation:'x',payType:'daily',monthly:0,daily:60000},{days:30,P:1,L:0,H:0,A:0,OFFW:0,off:0,paidLeave:0,lopLeave:0,unmarked:29,na:0,otMin:0},r,{installment:100000,balance:300000});
-    assert.equal(tiny.net,0);assert.ok(tiny.advance<100000);
+    const d=M.hrComputeLine({id:'D',name:'D',dept:'KIT',designation:'x',payType:'daily',monthly:0,daily:60000},{ym:'2026-09',days:30,P:20,L:2,H:2,HL:0,A:0,OFFW:1,off:4,paidLeave:0,lopLeave:1,unmarked:0,na:0,otMin:0},r);
+    assert.equal(d.payableDays,24);assert.equal(d.earned,1440000);assert.equal(d.structure,'B');assert.equal(d.pf,0);
+    assert.equal(d.esic,Math.round(1440000*75/10000));assert.equal(d.esicEr,46800);assert.equal(d.pt,20000);
+    const tiny=M.hrComputeLine({id:'Y',name:'Y',dept:'KIT',designation:'x',payType:'daily',monthly:0,daily:60000},{ym:'2026-09',days:30,P:1,L:0,H:0,HL:0,A:0,OFFW:0,off:0,paidLeave:0,lopLeave:0,unmarked:29,na:0,otMin:0},r,{installment:100000,balance:300000});
+    assert.equal(tiny.net,0);assert.ok(tiny.advance<100000);assert.equal(tiny.pt,0);
   });
   test('[HR] payroll permissions and completed-month rule',()=>{
     const s=seed();
@@ -54,13 +59,14 @@ export function register({test,M,assert}){
     assert.equal(M.hrVisiblePayslips(s,'housekeeper').length,2);assert.ok(M.hrVisiblePayslips(s,'housekeeper').every(p=>p.line.staffId==='HR-S05'));
     assert.equal(M.hrVisiblePayslips(s,'accountant').length,24);assert.equal(M.hrVisiblePayslips(s,'techadmin').length,0);
   });
-  test('[HR] stale draft cannot be locked after rates change; recalculation fixes it; locked runs keep their rate snapshot',()=>{
+  test('[HR] stale draft cannot be locked after a dated rates change; recalculation fixes it; locked runs keep their rate snapshot',()=>{
     let s=execute(seed(),'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});const id=M.hrRunFor(s,'2026-09').id;
-    const rates={...x(s).rates,ptThreshold:1500000};
-    assert.throws(()=>execute(s,'accountant',{type:'HR_RATES_SET',...rates}),code('FORBIDDEN'));
-    assert.throws(()=>execute(s,'owner',{type:'HR_RATES_SET',...rates,otBps:5000}),code('VALIDATION'));
-    s=execute(s,'owner',{type:'HR_RATES_SET',...rates});
-    assert.equal(M.hrRunFor(s,'2026-08').rates.ptThreshold,1000000);
+    const rates={from:'2026-09-01',ptMaleExempt:1500000,ptMaleMid:1600000};
+    assert.throws(()=>execute(s,'accountant',{type:'HR_STAT_RATES_SET',...rates}),code('FORBIDDEN'));
+    assert.throws(()=>execute(s,'owner',{type:'HR_STAT_RATES_SET',...rates,otBps:5000}),code('VALIDATION'));
+    assert.throws(()=>execute(s,'owner',{type:'HR_STAT_RATES_SET',...rates,from:'2026-08-01'}),code('INVALID_TRANSITION'));
+    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',...rates});
+    assert.equal(M.hrRunFor(s,'2026-08').rates.ptMaleExempt,750000);assert.equal(M.hrRatesFor(s,'2026-08').ptMaleExempt,750000);assert.equal(M.hrRatesFor(s,'2026-10').ptMaleExempt,1500000);
     assert.throws(()=>execute(s,'owner',{type:'HR_PAYROLL_LOCK',id}),code('STALE_VERSION'));
     s=execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});
     assert.ok(M.hrRunFor(s,'2026-09').lines.find(l=>l.staffId==='HR-S05').pt===0);
@@ -93,10 +99,11 @@ export function register({test,M,assert}){
     assert.equal(M.hrShiftFor(s,st(s,'HR-S05'),'2026-10-30'),'OFF');// Friday weekly off
     s=execute(s,'manager',{type:'HR_ROSTER_COPY',from:'2026-10-26'});assert.equal(M.hrShiftFor(s,st(s,'HR-S05'),'2026-11-02'),'N');
   });
-  test('[HR] leave: balance, overlap, daily-wage LOP only, no backdating, weekly offs excluded',()=>{
+  // W05-B: SCC entitlement per Indian FY (CL 8 → 12 per year): Ravi's CL left 6 → 10; the over-balance request is now 11 working days.
+  test('[HR] leave: balance per FY, overlap, daily-wage LOP only, no backdating, weekly offs excluded',()=>{
     const s=seed();
-    assert.equal(M.hrLeaveBalance(s,'HR-S05','2026').find(b=>b.type==='CL').left,6);
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-09',reason:'Long trip'}),/balance/);
+    assert.equal(M.hrLeaveBalance(s,'HR-S05','2026').find(b=>b.type==='CL').left,10);assert.equal(M.hrLeaveBalance(s,'HR-S05','2026-10-24').find(b=>b.type==='CL').left,10);
+    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-14',reason:'Long trip'}),/balance/);
     assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S10',leaveType:'CL',from:'2026-11-02',to:'2026-11-02',reason:'Trip'}),/without pay/);
     assert.throws(()=>execute(s,'housekeeper2',{type:'HR_LEAVE_REQUEST',staffId:'HR-S06',leaveType:'SL',from:'2026-10-29',to:'2026-10-30',reason:'Unwell'}),code('NOT_AVAILABLE'));
     assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-10-20',to:'2026-10-20',reason:'Late'}),code('VALIDATION'));

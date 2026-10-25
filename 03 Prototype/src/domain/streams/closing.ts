@@ -1,6 +1,7 @@
 // Stream F · Cashier, closing & reports — pure domain helpers and selectors (re-exported by services/mock/index.ts for UI and tests).
 // Every figure is derived from source records (REQ-RPT-003): lines by service date, receipts by receipt date,
 // expenses by business date, occupancy from stay intervals. Money is integer paise.
+import {csvQuoted} from '../csv';
 import type {State,Booking,Expense,Receipt,Line} from '../types';
 import {money,addDays} from '../money';
 import {drawer,blockedDuring,totals} from '../selectors';
@@ -32,6 +33,8 @@ export type ClosingRecord={
   expenses:{cash:number;nonCash:number;vendorCredit:number;total:number};
   occupancy:{sellable:number;occupied:number;occupancy:string;roomRevenue:number;adr:string;revpar:string};
   cash:{opening:number;expected:number;counted:number;difference:number;reason?:string;approvedBy?:string;
+    /** Who counted the drawer (shift submitter / SHIFT_CLOSE user). Absent in saves made before the W05 review fix (F1): such days are Owner-lock only. */
+    countedBy?:string;
     /** Cash taken out of the drawer after the count (bank drop / owner handover) so the next opening float is restored. FY26 history only. */
     banked?:number;
     /** Restaurant / room-service cash (net of same-day voids) inside expected cash (shared till, DEC-052). */
@@ -65,6 +68,8 @@ export function shiftMovements(s:State):CashMovement[]{
   return [...rec,...pos,...exp];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
+/** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
+export const shiftCashIn=(x:{payments:number;deposits:number;restaurant:number;other:number})=>x.payments+x.deposits+x.restaurant+x.other;
 /** The expected-cash formula with its parts (Financial Rulebook §4). parts.expected always equals drawer(s). */
 export function shiftExpected(s:State){
   const mv=shiftMovements(s),sum=(k:string[])=>mv.filter(m=>k.includes(m.kind)).reduce((a,m)=>a+m.amount,0);
@@ -127,7 +132,7 @@ export function closingSummary(s:State,closedBy=''):ClosingRecord{
   const byTender:Record<string,number>={};for(const t of reportTenders(s,d,d))byTender[t]=v('receipts','tender:'+t);
   const occ=reportOccupancyRange(s,d,d),ex=shiftExpected(s);
   const counted=s.shiftClose?.counted??ex.expected,expected=s.shiftClose?.expected??ex.expected;
-  const sh=s.shift?.date===d?s.shift:undefined;
+  const sh=s.shift?.date===d?s.shift:undefined,countedBy=sh?.submittedBy??s.shiftClose?.countedBy;
   const exceptions:string[]=[];
   if(counted!==expected)exceptions.push(`Cash difference ${money(counted-expected)} accepted${sh?.decidedBy?' by '+userName(s,sh.decidedBy):''}${sh?.reason?' · '+sh.reason:''}`);
   if(s.closeProgress?.date===d&&s.closeProgress.runs>1)exceptions.push(`Night audit resumed after an interruption (${s.closeProgress.runs} runs; no night posted twice)`);
@@ -141,7 +146,7 @@ export function closingSummary(s:State,closedBy=''):ClosingRecord{
     deposits:{received:v('receipts','deposit-in'),returned:0-v('receipts','deposit-out')||0,heldAtClose:s.bookings.reduce((a,b)=>a+totals(b).deposit,0)},
     expenses:{cash:v('expenses','cash'),nonCash:v('expenses','noncash'),vendorCredit:v('expenses','vendor'),total:v('expenses','total')},
     occupancy:{sellable:occ.sellable,occupied:occ.occupied,occupancy:reportPct(occ.occupied,occ.sellable),roomRevenue:occ.roomRevenue,adr:reportRatioMoney(occ.roomRevenue,occ.occupied),revpar:reportRatioMoney(occ.roomRevenue,occ.sellable)},
-    cash:{opening:s.openingCash,expected,counted,difference:counted-expected,reason:counted!==expected?sh?.reason:undefined,approvedBy:counted!==expected?sh?.decidedBy:undefined,restaurant:ex.restaurant},
+    cash:{opening:s.openingCash,expected,counted,difference:counted-expected,reason:counted!==expected?sh?.reason:undefined,approvedBy:counted!==expected?sh?.decidedBy:undefined,...(countedBy?{countedBy}:{}),restaurant:ex.restaurant},
     outlet:closingOutlet(s,d),
     nightAudit:{stays:closingNightTargets(s).length,resumed:!!(s.closeProgress?.date===d&&s.closeProgress.runs>1)},
     exceptions};
@@ -159,8 +164,12 @@ export function closingOutlet(s:State,d:string){
 // ── Reports (SCR-15, REQ-RPT-002..006) ──
 export type DrillRow={date:string;ref:string;booking?:string;guest?:string;room?:string;detail:string;method?:string;kind?:string;amount:number};
 export type ReportMetric={id:string;label:string;unit:'money'|'count';value:number;rows:DrillRow[];note?:string};
-export type ReportRatio={id:string;label:string;display:string;formula:string};
-export type ReportTable={columns:string[];units:('text'|'money'|'count')[];rows:(string|number)[][]};
+export type ReportRatio={id:string;label:string;display:string;formula:string;value?:ReportRatioValue};
+/** A ratio as numerator ÷ denominator so exports can write a number (percent fraction or paise), not the display text (W05 review F9). */
+export type ReportRatioValue={kind:'pct'|'money';num:number;den:number};
+export type ReportTable={columns:string[];units:('text'|'money'|'count')[];rows:(string|number)[][];
+  /** Text columns that are ratios of two numeric columns of the same row (e.g. Occupancy % = Occupied ÷ Sellable). */
+  derived?:{col:number;kind:'pct'|'money';num:number;den:number}[]};
 export type ReportTab={id:string;label:string;metrics:ReportMetric[];ratios:ReportRatio[];table?:ReportTable};
 export type ReportPack={from:string;to:string;dates:string[];tabs:ReportTab[]};
 export function reportDates(from:string,to:string){const out:string[]=[];for(let d=from;d<=to&&out.length<366;d=addDays(d,1))out.push(d);return out;}
@@ -216,9 +225,9 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   const expTotal=metric('total','Posted expenses (net of reversals)',E(()=>true));
   const occ={sellable:metric('sellable','Sellable room-nights',sellRows,'count'),occupied:metric('occupied','Occupied room-nights',stayRows,'count'),room:metric('room-revenue','Room revenue',L('room'))};
   const ratios:ReportRatio[]=[
-    {id:'occupancy',label:'Occupancy %',display:reportPct(occ.occupied.value,occ.sellable.value),formula:`${occ.occupied.value} occupied ÷ ${occ.sellable.value} sellable × 100, 1 dp`},
-    {id:'adr',label:'ADR',display:reportRatioMoney(occ.room.value,occ.occupied.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.occupied.value} occupied room-nights`},
-    {id:'revpar',label:'RevPAR',display:reportRatioMoney(occ.room.value,occ.sellable.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.sellable.value} sellable room-nights`}];
+    {id:'occupancy',label:'Occupancy %',display:reportPct(occ.occupied.value,occ.sellable.value),formula:`${occ.occupied.value} occupied ÷ ${occ.sellable.value} sellable × 100, 1 dp`,value:{kind:'pct',num:occ.occupied.value,den:occ.sellable.value}},
+    {id:'adr',label:'ADR',display:reportRatioMoney(occ.room.value,occ.occupied.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.occupied.value} occupied room-nights`,value:{kind:'money',num:occ.room.value,den:occ.occupied.value}},
+    {id:'revpar',label:'RevPAR',display:reportRatioMoney(occ.room.value,occ.sellable.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.sellable.value} sellable room-nights`,value:{kind:'money',num:occ.room.value,den:occ.sellable.value}}];
   const closingCash=(d:string)=>{const c=s.closings?.[d];if(c)return [c.cash.opening,c.cash.expected,c.cash.counted,c.cash.difference,'Closed'];
     if(d===s.date){const x=shiftExpected(s);return [s.openingCash,x.expected,s.shiftClose?.counted??'',s.shiftClose?s.shiftClose.counted-s.shiftClose.expected:'',s.closedDates.includes(d)?'Closed':'Open'];}
     return ['','','','',s.closedDates.includes(d)?'Closed (no record)':'—'];};
@@ -246,7 +255,7 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
       table:{columns:['Business date','Day','Opening float','Expected cash','Counted','Difference','Cash expenses'],units:['text','text','money','money','money','money','money'],
         rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(E(e=>e.method==='Cash'),d)];})}},
     {id:'occupancy',label:'Occupancy',ratios,metrics:[occ.sellable,occ.occupied,occ.room],
-      table:{columns:['Business date','Sellable','Occupied','Occupancy %','Room revenue','ADR','RevPAR'],units:['text','count','count','text','money','text','text'],
+      table:{columns:['Business date','Sellable','Occupied','Occupancy %','Room revenue','ADR','RevPAR'],units:['text','count','count','text','money','text','text'],derived:[{col:3,kind:'pct',num:2,den:1},{col:5,kind:'money',num:4,den:2},{col:6,kind:'money',num:4,den:1}],
         rows:dates.map(d=>{const sl=sumBy(sellRows,d),oc=sumBy(stayRows,d),rr=sumBy(occ.room.rows,d);return [d,sl,oc,reportPct(oc,sl),rr,reportRatioMoney(rr,oc),reportRatioMoney(rr,sl)];})}},
   ]};
 }
@@ -265,7 +274,7 @@ export const reportDictionary:[string,string,string][]=[
   ['Drawer cash flows','Cash in = guest payments + deposits + POS cash sales; cash out = negative refunds + deposit returns + POS cash voids. Filtered by receipt date; cash expenses are separate.','Opening float + cash in + signed cash out − net cash expenses = expected cash for that day, before banking'],
   ['Synthetic tax','Per-line tax rounded half-up to the paisa at the line’s snapshot rate; test data, not GST','—'],
 ];
-const csvCell=(v:string|number)=>'"'+String(v).split('"').join('""')+'"';
+const csvCell=csvQuoted;
 const rupees=(p:number)=>(p/100).toFixed(2);
 /** CSV for one report tab with a scenario/date header. Money in rupees with 2 decimals. */
 export function reportCsv(s:State,pack:ReportPack,tabId:string){

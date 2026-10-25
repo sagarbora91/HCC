@@ -20,12 +20,12 @@ export type AdminPerm={id:string;action:string;group:string;financial:boolean;mo
 const ROLE_ORDER:Role[]=['Owner','Manager','Reception','Cashier','Accountant','Supervisor','Housekeeper','Maintenance','Tech admin'];
 // Columns: OWN MGR REC CSH ACC SUP HKP MNT TAD (RBAC matrix §5, verbatim).
 const MATRIX:[string,string,string,boolean,Permission|undefined,string][]=[
-  ['PERM-RES-001','reservation.view','Reservations',false,'reservations','A A A V V M — — —'],
+  ['PERM-RES-001','reservation.view','Reservations',false,'reservations','A A A — — — — — —'],
   ['PERM-RES-002','reservation.create / hold / confirm','Reservations',false,'reservations','A A A — — — — — —'],
   ['PERM-RES-003','reservation.edit / change dates / move','Reservations',false,'reservations','A A A — — — — — —'],
   ['PERM-RES-004','reservation.cancel / no-show','Reservations',false,'reservations','A A A — — — — — —'],
   ['PERM-RATE-001','rate.override (vs tariff)','Reservations',true,'reservations','A L R — — — — — —'],
-  ['PERM-GST-001','guest.view','Guests & stays',false,'checkin','A A A M M — — — —'],
+  ['PERM-GST-001','guest.view','Guests & stays',false,'checkin','A A A M — — — — —'],
   ['PERM-GST-002','guest.edit / register','Guests & stays',false,'checkin','A A A — — — — — —'],
   ['PERM-GST-003','guest.idDetails.view (field)','Guests & stays',false,'checkin','A A A — — — — — —'],
   ['PERM-STY-001','stay.checkIn','Guests & stays',false,'checkin','A A A — — — — — —'],
@@ -35,36 +35,36 @@ const MATRIX:[string,string,string,boolean,Permission|undefined,string][]=[
   ['PERM-FOL-002','folio.charge.post (service)','Folio',true,'billing','A A A A — — — — —'],
   ['PERM-FOL-003','folio.discount','Folio',true,'billing','A L L — — — — — —'],
   ['PERM-FOL-004','folio.invoice.issue / print','Folio',true,'billing','A A A A V — — — —'],
-  ['PERM-FOL-005','folio.correction / credit note','Folio',true,'billing','A R R — R — — — —'],
+  ['PERM-FOL-005','folio.correction / credit note','Folio',true,'billing','A R R R R — — — —'],
   ['PERM-PAY-001','payment.record (own shift)','Payments',true,'payments','A A A·S A·S — — — — —'],
   ['PERM-PAY-002','deposit.record / return','Payments',true,'payments','A A A·S A·S — — — — —'],
   ['PERM-PAY-003','refund.request','Payments',true,'payments','A A R R — — — — —'],
-  ['PERM-PAY-004','refund.execute (approved only)','Payments',true,'payments','A A — A·S — — — — —'],
+  ['PERM-PAY-004','refund.execute (approved only)','Payments',true,'payments','A A A·S A·S — — — — —'],
   ['PERM-PAY-005','companyCredit.authorise','Payments',true,'checkout','A L — — — — — — —'],
   ['PERM-SHF-001','shift.open / count / submit','Cash shift',true,'close','A A A·S A·S — — — — —'],
   ['PERM-SHF-002','shift.difference.approve','Cash shift',true,'approve','A L — — A — — — —'],
-  ['PERM-HK-001','hk.view board','Housekeeping',false,'housekeeping','A A V — — A A·A A·A —'],
+  ['PERM-HK-001','hk.view board','Housekeeping',false,'housekeeping','A A — — — A A·A A·A —'],
   ['PERM-HK-002','hk.assign','Housekeeping',false,'inspect','A A — — — A — — —'],
   ['PERM-HK-003','hk.task.work (start/check/complete)','Housekeeping',false,'housekeeping','A A — — — A A·A — —'],
   ['PERM-HK-004','hk.inspect (pass/reject)','Housekeeping',false,'inspect','A A — — — A — — —'],
   ['PERM-ROOM-001','room.block.request','Housekeeping',false,'housekeeping','A A A — — A A·A A·A —'],
   ['PERM-ROOM-002','room.block.apply / unblock','Housekeeping',false,'inspect','A A — — — A — — —'],
-  ['PERM-EXP-001','expense.submit','Expenses',true,'expenses','A A A·O A·O A·O A·O — A·O —'],
+  ['PERM-EXP-001','expense.submit','Expenses',true,'expenses','A A A·O A·O A·O — — — —'],
   ['PERM-EXP-002','expense.approve / reject','Expenses',true,'approve','A L — — A — — — —'],
-  ['PERM-EXP-003','expense.post / reverse','Expenses',true,'expenses','A A — A·S A — — — —'],
-  ['PERM-CLS-001','close.preflight.view','Closing',true,'close','A A V V V — — — —'],
+  ['PERM-EXP-003','expense.post / reverse','Expenses',true,'expenses','A A — — A — — — —'],
+  ['PERM-CLS-001','close.preflight.view','Closing',true,'close','A A — — V — — — —'],
   ['PERM-CLS-002','close.nightPost / closeDay / openNextDay','Closing',true,'close','A A — — — — — — —'],
   ['PERM-CLS-003','close.correction.request','Closing',true,'close','A A — — A — — — —'],
   ['PERM-CLS-004','close.correction.approve','Closing',true,'close','A — — — — — — — —'],
   ['PERM-APR-001','approval.decide (discount, rate, refund, credit)','Approvals',true,'approve','A L — — — — — — —'],
-  ['PERM-RPT-001','report.operations','Reports',false,'reports','A A V — A V — — —'],
+  ['PERM-RPT-001','report.operations','Reports',false,'reports','A A — — A — — — —'],
   ['PERM-RPT-002','report.finance','Reports',true,'reports','A A — V·S A — — — —'],
   ['PERM-RPT-003','report.export','Reports',true,'reports','A A — — A — — — —'],
   ['PERM-ADM-001','admin.users (create/enable/disable/assign)','Administration',false,'admin','A — — — — — — — A'],
   ['PERM-ADM-002','admin.roles (edit templates)','Administration',false,'admin','A — — — — — — — R'],
-  ['PERM-ADM-003','admin.configuration','Administration',false,'admin','A R — — — — — — V'],
-  ['PERM-ADM-004','audit.view','Administration',false,undefined,'A A — — A — — — V'],
-  ['PERM-ADM-005','backup.view / run (simulated)','Administration',false,'admin','A V — — — — — — A'],
+  ['PERM-ADM-003','admin.configuration','Administration',false,'admin','A — — — — — — — V'],
+  ['PERM-ADM-004','audit.view','Administration',false,undefined,'A A — — A — — — —'],
+  ['PERM-ADM-005','backup.view / run (simulated)','Administration',false,'admin','A — — — — — — — A'],
 ];
 const LIMIT_META:Record<string,{unit:'paise'|'percent';label:string}>={
   'PERM-FOL-003':{unit:'paise',label:'Discount without approval (per request)'},
@@ -216,7 +216,23 @@ export function adminDecideBlock(s:State,uid:string,row:AdminInboxRow):string|un
   if(!u||!adminUserActive(s,u))return 'Your account is not active.';
   if(row.a.actor===uid)return 'You raised this request — another authorised user must decide it (PERM-SOD-001).';
   if(row.kind==='policy'){const d=authorize(s,uid,'PERM-ADM-002');if(d.decision!=='allow')return 'Only a user allowed to edit role templates (Owner) can decide policy requests. '+d.reason;}
+  // W05-A Master configuration requests (CFG_DECIDE): decided by the setting's approver role or the Owner (DEC-058).
+  else if(row.kind==='config'){const ap=String(row.a.meta?.approver||'Owner');if(u.role!=='Owner'&&!(ap==='Manager'&&u.role==='Manager'))return ap==='Manager'?'Only a Manager or the Owner can decide this configuration request.':'Only the Owner can decide this configuration request.';}
+  // DEC-063 G4: the Accountant decides cash differences (no 'approve' grant needed). G3: corrections / credit notes and closed-date
+  // corrections are approved by an Owner. G1: a Manager approves discounts only up to the Manager limit (APR-001 = L).
+  else if(row.kind==='cash-difference'&&u.role==='Accountant')return undefined;
   else if(!(s.grants[u.role]||[]).includes('approve'))return `Role ${u.role} lacks the approve permission.`;
+  else if(['correction','credit-note','closed-date-correction'].includes(row.kind)&&u.role!=='Owner')return 'Only an Owner can approve this request.';
+  else if(row.kind==='discount'&&adminPolicy(s).templates[u.role]?.['PERM-APR-001']?.effect==='limit'){
+    const lim=adminLimitFor(s,u.role,'PERM-APR-001')??0;if(row.a.amount>lim)return `Above the ${u.role} approval limit of ${money(lim)} — an Owner approves.`;}
+  return undefined;
+}
+/** Why the current user may not decide a pending expense (undefined = may decide). DEC-063 G4: approve holders and the Accountant. */
+export function adminExpenseBlock(s:State,uid:string,actor:string):string|undefined{
+  const u=s.users.find(x=>x.id===uid);
+  if(!u||!adminUserActive(s,u))return 'Your account is not active.';
+  if(actor===uid)return 'You submitted this expense — another user must decide it.';
+  if(u.role!=='Accountant'&&!(s.grants[u.role]||[]).includes('approve'))return `Role ${u.role} lacks the approve permission.`;
   return undefined;
 }
 
@@ -231,7 +247,7 @@ export function adminAuditFilter(s:State,f:AdminAuditFilter):Audit[]{
 export type AdminSettingKey='hotel'|'invoicePrefix'|'checkin'|'checkout'|'discountLimit'|'approvalExpiryHours'|'inspection';
 export type AdminSettingDef={key:string;category:string;label:string;type:'text'|'time'|'money'|'boolean'|'integer'|'percent'|'fixed';unit:string;editable:boolean;approval:string;effective:string;help:string};
 export const ADMIN_CONFIG_CATEGORIES=['Property','Rooms & tariffs','Stay timings','Finance & synthetic tax','Approvals/limits','Housekeeping','Shifts','Documents'] as const;
-const OWNER='Owner (admin.configuration, PERM-ADM-003); Manager may request';
+const OWNER='Owner (admin.configuration, PERM-ADM-003); Manager tells the Owner (DEC-058, DEC-063)';
 export const ADMIN_SETTINGS:AdminSettingDef[]=[
   {key:'hotel',category:'Property',label:'Property display name',type:'text',unit:'text, ≤ 60 chars',editable:true,approval:OWNER,effective:'Immediately',help:'Shown in the header, sidebar and documents.'},
   {key:'rooms',category:'Property',label:'Rooms in inventory',type:'fixed',unit:'rooms',editable:false,approval:'Fixture (rooms are managed by housekeeping & rooms)',effective:'—',help:'Room count and types come from the demo fixture.'},

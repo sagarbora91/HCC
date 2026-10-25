@@ -3,6 +3,10 @@
 // so a page cannot be missing from one of them. A new page must be added to PAGE_CATEGORY (a test enforces it).
 import {Store,Receipt,Wrench,HeartHandshake,Users,TrendingUp,Package,IdCard,ChartNoAxesCombined,ShieldCheck,LayoutDashboard} from 'lucide-react';
 import type {Permission} from '../services/mock';
+import type {State} from '../domain/types';
+import {cfgPageOn} from '../domain/streams/config';
+import {cmpHasAccess} from '../domain/streams/compliance';
+import {rbacCanViewClosing,rbacSeesApprovals} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
 export type NavCategory={id:CategoryId;label:string;blurb:string;icon:typeof Store};
@@ -25,14 +29,14 @@ export const categoryOf=(id:CategoryId)=>NAV_CATEGORIES.find(c=>c.id===id)!;
 /** Page ID (nav item ID) → category. `overview` is the pinned Dashboard tile and has no category. */
 export const PAGE_CATEGORY:Record<string,CategoryId>={
   rooms:'front',calendar:'front',reservations:'front',arrivals:'front',
-  folios:'cash',cashier:'cash',pos:'cash',expenses:'cash',
+  folios:'cash',cashier:'cash',cashbook:'cash',pos:'cash',expenses:'cash',
   housekeeping:'hkm',maintenance:'hkm',handover:'hkm',
   inhouse:'guestsvc','guest-services':'guestsvc','gsv-my-requests':'guestsvc',messages:'guestsvc',documents:'guestsvc',
   customers:'customers',
   yield:'revenue',groups:'revenue',channels:'revenue','booking-site':'revenue',
   inventory:'stock',
   staff:'people','my-hr':'people',
-  closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',
+  closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -58,15 +62,15 @@ export function crumbsFor(page:string,pageLabel:string):{label:string;page?:stri
 export const PAGE_BLURB:Record<string,string>={
   overview:'Today at a glance: arrivals, occupancy, cash',
   rooms:'Live room board with status and guests',calendar:'Date grid of room availability',reservations:'Search, create and manage bookings',arrivals:'Check guests in; look up a booking ID',
-  folios:'Guest bills, payments and balances',cashier:'Shift cash, drawer and counts',pos:'Restaurant and room-service checks',expenses:'Record and approve petty expenses',
+  folios:'Guest bills, payments and balances',cashier:'Shift cash, drawer and counts',cashbook:'Daily cash in and out with running balance',pos:'Restaurant and room-service checks',expenses:'Record and approve petty expenses',
   housekeeping:'Cleaning tasks and room inspection',maintenance:'Repairs, work orders and preventive upkeep',handover:'Shift checklists and handover notes',
   inhouse:'Guests staying now: extend, move, depart','guest-services':'Guest requests, complaints, lost & found','gsv-my-requests':'Requests assigned to you',messages:'Guest messages and templates',documents:'Scan and file IDs and bills',
   customers:'Search by name or mobile: full history and profile',
   yield:'Tariff, seasons and rate restrictions',groups:'Group blocks, companies and credit',channels:'OTA channels and commissions','booking-site':'Direct booking website',
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
-  closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',
-  access:'Users, roles and permissions',settings:'Hotel configuration and policies',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
+  closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
+  access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -78,6 +82,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   arrivals:['check in','checkin','check-in','arrival','arrivals','walk in','register','registration','booking id','key'],
   folios:['folio','bill','invoice','payment','balance','checkout','check out','deposit','refund','company credit'],
   cashier:['cashier','cash','drawer','shift','count','float','till','difference'],
+  cashbook:['cash book','cashbook','day book','daybook','rokad','ledger','cash in','cash out','running balance','lock day'],
   pos:['restaurant','room service','kot','menu','bill','food','kitchen','pos','table'],
   expenses:['expense','expenses','petty cash','vendor','bill','approve expense','receipt'],
   housekeeping:['housekeeping','cleaning','clean','inspect','inspection','tasks','room attendant','stayover','dirty'],
@@ -100,8 +105,9 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   reports:['report','reports','revenue','occupancy','adr','revpar','csv','export','print','daily'],
   accounting:['accounting','ledger','voucher','trial balance','tally','lock','period','journal'],
   assistant:['assistant','ask','question','ai','management assistant','insight'],
+  compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
   access:['access','users','roles','permissions','rbac','login','disable user'],
-  settings:['settings','configuration','config','tax','tariff','hotel','policy','display','device'],
+  settings:['settings','configuration','config','master configuration','masters','admin','setup','hotel configuration','tax','tariff','hotel','policy','display','device','modules on off','branding'],
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],
   roadmap:['roadmap','future','planned','modules','phases'],
@@ -171,4 +177,17 @@ export function searchEntries(entries:SearchEntry[],query:string):SearchHit[]{
 /** Entries a user may open: the page must be allowed, and an action also needs its own permission. */
 export function visibleEntries(entries:SearchEntry[],allowedPages:Set<string>,can:(p:Permission)=>boolean):SearchEntry[]{
   return entries.filter(e=>allowedPages.has(e.page)&&(!e.needs||can(e.needs)));
+}
+
+/** W05-A · DEC-057 Modules on/off: the one filter every navigation surface applies (Modules Home and category tiles, hamburger menu,
+ * search palette, phone tabs via App's allowed pages). Pages of a switched-off module disappear; core pages always stay. */
+export function navFilterModules<T extends {id:string}>(s:State,items:readonly T[],uid?:string):T[]{return items.filter(i=>cfgPageOn(s,i.id)&&(uid===undefined||navRoleOk(s,uid,i.id)));}
+/** Pages that permissions alone cannot express. W05-1 · DEC-055: Compliance calendar = Owner + Accountant only (Manager/Cashier also hold
+ * 'reports'). DEC-063: Day closing = close holders + the Accountant read-only, not the Cashier (G4/G8); Approvals & audit = Owner,
+ * Manager, Accountant, not the Cashier (G10). */
+export function navRoleOk(s:State,uid:string,page:string):boolean{
+  if(page==='compliance')return cmpHasAccess(s,uid);
+  if(page==='closing')return rbacCanViewClosing(s,uid);
+  if(page==='approvals')return rbacSeesApprovals(s,uid);
+  return true;
 }

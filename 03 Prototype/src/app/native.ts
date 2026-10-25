@@ -84,6 +84,38 @@ export async function saveTextFile(name:string,text:string,mime:string,bom=false
   }catch{return 'failed';}
 }
 export const saveCsv=(name:string,csv:string)=>saveTextFile(name,csv,'text/csv',true);
+const bytesToBase64=(bytes:Uint8Array)=>{let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(bin);};
+/** Bytes per native write (a multiple of 3, so each base64 piece is whole). */
+export const NATIVE_CHUNK=3*1024*1024;
+/** Binary twin of saveTextFile (e.g. .xlsx): Documents/HCC/<name> + share sheet (native), or a download (browser). */
+export async function saveBinaryFile(name:string,bytes:Uint8Array,mime:string):Promise<SaveResult>{
+  const fs=nativePlugin('Filesystem'),share=nativePlugin('Share');
+  if(fs&&share){
+    try{
+      const path='HCC/'+name;
+      // W05 review F6: written in base64 chunks (writeFile + appendFile) so a large workbook never becomes one huge string on the bridge.
+      for(let i=0;i<Math.max(1,bytes.length);i+=NATIVE_CHUNK){const data=bytesToBase64(bytes.subarray(i,i+NATIVE_CHUNK));
+        if(i===0)await fs.writeFile({path,data,directory:'DOCUMENTS',recursive:true});else await fs.appendFile({path,data,directory:'DOCUMENTS'});}
+      const {uri}=await fs.getUri({path,directory:'DOCUMENTS'});
+      await share.share({title:name,text:name,url:uri,dialogTitle:'Save or share '+name});
+      return 'shared';
+    }catch{return 'failed';}
+  }
+  try{
+    const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:mime}));
+    const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);return 'downloaded';
+  }catch{return 'failed';}
+}
+
+/** Toast text for a save result (W05 review F11): a failed save is reported as failed, never as saved. */
+export function saveMessage(r:SaveResult,okText:string,what:string):{text:string;error:boolean}{
+  return r==='failed'?{text:`Could not save ${what}. Nothing was written — try again, or choose a shorter date range.`,error:true}:{text:okText,error:false};
+}
+/** Awaits a save and shows the right toast. Returns the result. */
+export async function saveAndReport(save:Promise<SaveResult>,toast:(text:string,error?:boolean)=>void,okText:string,what:string):Promise<SaveResult>{
+  let r:SaveResult;try{r=await save;}catch{r='failed';}
+  const m=saveMessage(r,okText,what);toast(m.text,m.error);return r;
+}
 
 /** Standalone printable page from a fragment of the screen. */
 export function printablePage(title:string,bodyHtml:string,css:string):string{

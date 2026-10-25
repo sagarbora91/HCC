@@ -1,7 +1,7 @@
-// FY history Phase C (part 2): module 17 staff & payroll, 18 guest services, 19 checklists & handover.
+// FY history Phase C (part 2): module 17 staff & payroll (W05-B: runs recomputed with the SCC rules, half-day leave), 18 guest services, 19 checklists & handover.
 import type {State} from '../../domain/types';
 import {addDays,nights} from '../../domain/money';
-import {hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrApplyRecoveries,hrLeaveDays,hrMonthEnd,type HRStaff,type HRRun,type HRLeave} from '../../domain/streams/staff';
+import {hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrBankSnapshot,hrLeaveDays,hrMonthEnd,type HRStaff,type HRRun,type HRLeave} from '../../domain/streams/staff';
 import {gsvSlaMinutes,gsvDefaultDept,gsvAssignable,GSV_REQUEST_TYPES,type GSVRequest,type GSVComplaint,type GSVItem,type GSVComplaintCategory,type GSVSeverity} from '../../domain/streams/services';
 import {hovNewRun,hovAt,type HOVNote,type HOVRun,type HOVTemplate} from '../../domain/streams/handover';
 import type {Rng} from './prng';
@@ -25,8 +25,10 @@ function staffHistory(s:State,rng:Rng,o:HistoryWindow){
     const st=rng.pick(people.filter(p=>p.joined<=ym+'-01'));
     const from=ym+'-'+pad(rng.int(3,24),2),len=rng.int(1,2),to=addDays(from,len-1);
     if(leaves.some(l=>l.staffId===st.id&&l.from<=to&&l.to>=from))continue;
-    const type=rng.weighted([['CL',50],['SL',35],['EL',15]] as const);
-    leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:st.id,type,from,to,days:hrLeaveDays(s,st,from,to),reason:type==='SL'?'Unwell (fictional)':type==='CL'?'Personal work (fictional)':'Family visit (fictional)',
+    const drawn=rng.weighted([['CL',50],['SL',35],['EL',15]] as const);
+    // Review F-16: daily-wage staff take leave without pay only (live rule); the draw is still made so the seeded history is unchanged otherwise.
+    const type:HRLeave['type']=st.payType==='daily'?'LOP':drawn;
+    leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:st.id,type,from,to,days:hrLeaveDays(s,st,from,to),reason:drawn==='SL'?'Unwell (fictional)':drawn==='CL'?'Personal work (fictional)':'Family visit (fictional)',
       status:'Approved',requestedBy:st.userId??'manager',requestedAt:addDays(from,-3)+'T10:00',decidedBy:'manager',decidedAt:addDays(from,-2)+'T12:00'});
   }
   x.leaves=[...leaves.filter(l=>l.days>0),...x.leaves];
@@ -42,11 +44,19 @@ function staffHistory(s:State,rng:Rng,o:HistoryWindow){
     x.att[hrKey(d,st.id)]={status,at:d+'T'+(status==='L'?START[st.defaultShift].replace(':00',':25'):START[st.defaultShift]),otMin:ot,by:'manager'};
   }));
   const runs:HRRun[]=[];let rn=0;
+  // W05-B: SCC half-day leave — the first two half-days worked by monthly staff in Apr–Jul become approved half-day casual leave (AM).
+  // Derived from the generated marks (no extra random draws, so the rest of the seeded history is unchanged).
+  const halfLeaves=(ym:string)=>{let n=0;
+    for(const k of Object.keys(x.att).filter(k=>k.startsWith(ym)).sort()){
+      const [d,sid]=k.split('|'),st=people.find(p=>p.id===sid);if(n>=2||!st||st.payType!=='monthly'||x.att[k].status!=='H')continue;
+      x.leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:sid,type:'CL',from:d,to:d,days:0.5,half:'AM',reason:'Half day — personal work (fictional)',status:'Approved',
+        requestedBy:st.userId??'manager',requestedAt:addDays(d,-2)+'T10:00',decidedBy:'manager',decidedAt:addDays(d,-1)+'T12:00'});n++;}
+  };
   for(const ym of ['2026-04','2026-05','2026-06','2026-07','2026-09']){
-    if(ym!=='2026-09')genAtt(hrMonthDates(ym));
+    if(ym!=='2026-09'){genAtt(hrMonthDates(ym));halfLeaves(ym);}
     const c=hrComputeRun(s,ym),next=addDays(hrMonthEnd(ym),1);
-    const run:HRRun={id:'HR-PAY-H'+(++rn),month:ym,status:'Locked',rates:{...x.rates},lines:c.lines,warnings:c.warnings,preparedBy:'accountant',preparedAt:addDays(next,1)+'T11:10',lockedBy:'owner',lockedAt:addDays(next,1)+'T17:40'};
-    runs.push(run);hrApplyRecoveries(x,run);x.runs=[...x.runs,run].sort((a,b)=>a.month<b.month?-1:1);
+    const run:HRRun={id:'HR-PAY-H'+(++rn),month:ym,status:'Locked',rates:{...hrRatesFor(s,ym)},lines:c.lines,warnings:c.warnings,preparedBy:'accountant',preparedAt:addDays(next,1)+'T11:10',lockedBy:'owner',lockedAt:addDays(next,1)+'T17:40'};
+    runs.push(run);hrApplyRecoveries(x,run);hrBankSnapshot(x,run);x.runs=[...x.runs,run].sort((a,b)=>a.month<b.month?-1:1);
     if(ym!=='2026-09')for(const k of Object.keys(x.att))if(k.startsWith(ym))delete x.att[k]; // raw marks dropped once locked (as for August)
   }
 }

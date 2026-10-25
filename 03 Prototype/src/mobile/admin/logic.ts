@@ -1,6 +1,6 @@
 // MB-08 pure helpers for the phone admin / closing / reports screens. They only re-shape the SAME selectors the desktop
 // pages use (closingPreflight, reportPack, adminApprovalInbox, adminDecideBlock…) so every figure is identical on both.
-import {isDayClosed,closingPreflight,closingNightTargets,closingHasNight,shiftStatus,reportPack,adminDecideBlock,adminOtherActiveOwners,authorize,adminUserActive,can,reportRangeLimit} from '../../services/mock';
+import {isDayClosed,closingPreflight,closingNightTargets,closingHasNight,shiftStatus,reportPack,adminDecideBlock,adminExpenseBlock,adminOtherActiveOwners,authorize,adminUserActive,can,reportRangeLimit} from '../../services/mock';
 import type {State,User,Expense,ReportPack,ReportMetric,AdminInboxRow,AdminAuditFilter} from '../../services/mock';
 
 // ───────────── Reports (M19) ─────────────
@@ -78,8 +78,7 @@ export function maApprovalActions(s:State,uid:string,r:AdminInboxRow){
   return {live,own:r.a.actor===uid,approveBlock:live?approve:'Already decided',rejectBlock:live?block:'Already decided'};
 }
 export function maExpenseBlock(s:State,uid:string,e:Expense):string|undefined{
-  const u=s.users.find(x=>x.id===uid);
-  return !u||!adminUserActive(s,u)?'Your account is not active.':e.actor===uid?'You submitted this expense — another user must decide it.':!can(s,uid,'approve')?`Role ${u.role} lacks the approve permission.`:undefined;
+  return adminExpenseBlock(s,uid,e.actor);
 }
 export const maAuditFilterCount=(f:AdminAuditFilter)=>(['actor','action','text','from','to'] as const).filter(k=>!!(f[k]||'').trim()).length;
 export function maAuditOptions(s:State){return {actors:[...new Set(s.audit.map(a=>a.actor))].sort(),actions:[...new Set(s.audit.map(a=>a.action))].sort()};}

@@ -2,6 +2,7 @@
 // Builds on stream D: repair tasks (REPAIR_REQUEST) convert into work orders; room blocks use the same rules as BLOCK.
 import type {Handler,Kit} from '../commands';
 import {can} from '../../../domain/selectors';
+import {rbacCanSaveAmc} from '../../../domain/streams/rbac';
 import {addDays} from '../../../domain/money';
 import {hkAllocationsOverlapping} from '../../../domain/streams/housekeeping';
 import {mntSlice,mntPmDue,MNT_PRIORITIES,MNT_ASSET_KINDS,mntIsActive,type MNTState,type MNTWorkOrder,type MNTPriority} from '../../../domain/streams/maintenance';
@@ -221,7 +222,8 @@ export const handlers:Record<string,Handler>={
   },
 
   MNT_AMC_SAVE:k=>{
-    const {cmd,assert,req,id,positive}=k;req('expenses');const x=slice(k);
+    // DEC-063 G12: AMC contracts carry money — maintenance managers with money (inspect + expenses: Owner, Manager).
+    const {cmd,assert,id,positive,s,uid,fail}=k;if(!rbacCanSaveAmc(s,uid))fail('FORBIDDEN','Access denied: AMC contracts are saved by a Manager or the Owner (DEC-063).');const x=slice(k);
     assert(x.vendors.some(v=>v.id===cmd.vendorId),'Choose a vendor.');
     const scope=text(cmd.scope);assert(scope.length>=3,'Describe what the AMC covers.');
     assert(ISO.test(cmd.from)&&ISO.test(cmd.to)&&cmd.to>cmd.from,'The AMC must end after it starts.');

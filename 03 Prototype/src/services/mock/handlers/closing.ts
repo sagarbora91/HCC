@@ -1,6 +1,7 @@
 // Stream F · Cashier, closing & reports (owns NIGHT_POST, POST_NIGHTS, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, EXPENSE, EXPENSE_APPROVE).
 // Register new or replacement command handlers here. A handler with the same name as a built-in command replaces it.
-// Kept built-in: POST_NIGHTS (M1 compatibility, no UI button) and SHIFT_CLOSE (exact-count close by close-permission users).
+// Kept built-in: POST_NIGHTS (M1 compatibility, no UI button). SHIFT_CLOSE (exact-count close by close-permission users) is re-registered here
+// with the same rules so the counter is recorded (W05 review F1: the person who counted may not lock the cash book day).
 import type {Handler,Kit} from '../commands';
 import type {Expense} from '../../../domain/types';
 import {money,addDays,OPENING_TIME} from '../../../domain/money';
@@ -9,6 +10,7 @@ import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
 import {posOpenOrders} from '../../../domain/streams/pos';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
   closingUnlimitedRoles,EXPENSE_METHODS} from '../../../domain/streams/closing';
+import {rbacCanDecideCash,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanRequestClosedCorrection} from '../../../domain/streams/rbac';
 
 /** Resumable room-night posting for the business date (WF-DAY-001, REQ-CLOSE-003/005). Returns [newly posted, done, total, interrupted]. */
 function postNights(k:Kit,interruptAfter?:number){
@@ -26,7 +28,9 @@ function postNights(k:Kit,interruptAfter?:number){
   return {added,done:targets.filter(t=>p.posted.includes(t.id)).length,total:targets.length,interrupted:p.interrupted};
 }
 const limited=(role:string)=>!closingUnlimitedRoles.includes(role);
-const closeShift=(k:Kit,expected:number,counted:number)=>{k.s.shiftClose={expected,counted};k.s.shiftOpen=false;};
+/** DEC-063 G4: role-aware guard (the Accountant decides cash/expense items without the broad 'approve' grant). */
+const need=(k:Kit,ok:(s:Kit['s'],uid:string)=>boolean,what:string)=>{if(!ok(k.s,k.uid))k.fail('FORBIDDEN',`Access denied: ${what}.`);};
+const closeShift=(k:Kit,expected:number,counted:number,countedBy:string)=>{k.s.shiftClose={expected,counted,countedBy};k.s.shiftOpen=false;};
 
 export const handlers:Record<string,Handler>={
   // PERM-CLS-002 close.nightPost
@@ -38,6 +42,13 @@ export const handlers:Record<string,Handler>={
     assert(n===undefined||Number.isInteger(n)&&n>=0,'Interruption point must be a whole number of stays.');
     const r=postNights(k,n);
     return r.interrupted?`Night audit ${s.date} interrupted (simulated) · ${r.done} of ${r.total} stays posted`:`Night audit ${s.date} · ${r.added} new night(s) posted · ${r.done} of ${r.total} stays complete`;
+  },
+  // PERM-CLS-002 exact-count close (same rules as the built-in command) · records who counted
+  SHIFT_CLOSE:k=>{
+    const {s,cmd,req,open,assert,uid}=k;req('close');open();assert(s.shiftOpen,'Shift already closed.','INVALID_TRANSITION');
+    assert(Number.isSafeInteger(cmd.counted)&&cmd.counted>=0,'Enter a valid physical cash count.');
+    const expected=drawer(s);assert(cmd.counted===expected,'Resolve the cash difference before closing this demo shift.');
+    closeShift(k,expected,cmd.counted,uid);return 'Cash reconciled · '+money(expected);
   },
   // PERM-SHF-001 shift.count / submit (cashier or reception: coarse 'payments')
   SHIFT_SUBMIT:k=>{
@@ -54,7 +65,7 @@ export const handlers:Record<string,Handler>={
     }
     const expected=drawer(s),diff=cmd.counted-expected;
     if(diff===0){
-      closeShift(k,expected,cmd.counted);
+      closeShift(k,expected,cmd.counted,uid);
       s.shift={date:s.date,status:'Closed',expected,counted:cmd.counted,submittedBy:uid,denominations};
       return 'Cash counted and reconciled exactly · '+money(expected);
     }
@@ -68,7 +79,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-SHF-002 shift.difference.approve · PERM-SOD-001/004 (approver ≠ submitter)
   SHIFT_DIFFERENCE_DECIDE:k=>{
-    const {s,cmd,req,open,assert,fail,uid,user}=k;req('approve');open();
+    const {s,cmd,open,assert,fail,uid,user}=k;need(k,rbacCanDecideCash,'approve permission or the Accountant role is required');open();
     const a=s.approvals.find(a=>a.id===cmd.id&&a.kind==='cash-difference');
     assert(a,'Cash difference request not found.','NOT_FOUND');
     assert(a!.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
@@ -79,7 +90,7 @@ export const handlers:Record<string,Handler>={
     if(cmd.approve){
       if(limited(user.role)&&Math.abs(counted-expected)>SHIFT_MANAGER_DIFF_LIMIT)fail('FORBIDDEN',`Differences above ${money(SHIFT_MANAGER_DIFF_LIMIT)} need Owner approval.`);
       assert(drawer(s)===expected,'Cash movements changed after this count. Reject it and recount.','STALE_VERSION');
-      a!.status='Approved';closeShift(k,expected,counted);sh!.status='Closed';sh!.decidedBy=uid;
+      a!.status='Approved';closeShift(k,expected,counted,sh!.submittedBy);sh!.status='Closed';sh!.decidedBy=uid;
       return `${a!.id} · difference ${money(counted-expected)} accepted · shift closed`;
     }
     a!.status='Rejected';if(cmd.reason?.trim())a!.meta={...a!.meta,rejectReason:cmd.reason.trim()};
@@ -88,7 +99,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-EXP-001 expense.submit. draft:true saves a Draft (own); otherwise submits for approval.
   EXPENSE:k=>{
-    const {s,cmd,req,open,assert,positive,id,uid}=k;req('expenses');open();positive(cmd.amount);
+    const {s,cmd,open,assert,positive,id,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();positive(cmd.amount);
     assert(cmd.vendor?.trim(),'Enter a vendor.');
     assert(cmd.category?.trim(),'Choose a category.');
     assert(EXPENSE_METHODS.includes(cmd.method),'Choose a funding source.');
@@ -99,7 +110,7 @@ export const handlers:Record<string,Handler>={
     return (cmd.draft?'Expense draft saved · ':'Expense submitted · ')+e.vendor;
   },
   EXPENSE_SUBMIT:k=>{
-    const {s,cmd,req,open,assert,uid}=k;req('expenses');open();
+    const {s,cmd,open,assert,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();
     const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
     assert(e!.status==='Draft','Only a draft can be submitted.','INVALID_TRANSITION');
     assert(e!.actor===uid,'You can submit only your own drafts.','FORBIDDEN');
@@ -107,7 +118,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-EXP-002 expense.approve / reject (manager ≤ ₹5,000) + PERM-EXP-003 post
   EXPENSE_APPROVE:k=>{
-    const {s,cmd,req,open,assert,fail,uid,user}=k;req('approve');open();
+    const {s,cmd,open,assert,fail,uid,user}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required');open();
     const e=s.expenses.find(e=>e.id===cmd.id);
     assert(e&&e.status==='Pending','Expense is no longer pending.','INVALID_TRANSITION');
     assert(e!.actor!==uid,'You cannot approve your own expense.','FORBIDDEN');
@@ -119,7 +130,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-EXP-003 expense.reverse: Posted → Reversed + negative Posted record on today's business date
   EXPENSE_REVERSE:k=>{
-    const {s,cmd,req,open,assert,id,uid}=k;req('approve');open();
+    const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required (not the Cashier, DEC-063)');open();
     const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
     assert(e!.status==='Posted'&&!e!.reversalOf,'Only a posted expense can be reversed.','INVALID_TRANSITION');
     assert(cmd.reason?.trim(),'A reason is required to reverse an expense.');
@@ -154,7 +165,7 @@ export const handlers:Record<string,Handler>={
   },
   // PERM-CLS-003 close.correction.request (DEC-028: adjustment in the open day, referencing the closed date)
   CORRECTION_ADJUST:k=>{
-    const {s,cmd,req,open,assert,b,id,uid}=k;req('close');open();
+    const {s,cmd,open,assert,b,id,uid}=k;need(k,rbacCanRequestClosedCorrection,'close permission or the Accountant role is required');open();
     const x=b();
     assert(['In house','Confirmed','Departed'].includes(x.status),'Corrections apply to active or departed stays only.','INVALID_TRANSITION');
     assert(s.closedDates.includes(cmd.date),'Choose a closed business date to correct.');

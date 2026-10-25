@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Check,Plus,Trash2,AlertTriangle,Info,Printer} from 'lucide-react';
-import {money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,GRP_CREDIT_LABEL} from '../../services/mock';
+import {money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
@@ -15,7 +15,7 @@ import {rstState} from '../reservations/restriction';
 const Head=({eyebrow,title,sub}:{eyebrow:string;title:string;sub:string})=><div className="modal-heading"><div className="eyebrow">{eyebrow}</div><h2>{title}</h2><p>{sub}</p></div>;
 
 export function CompanyModal({id}:{id?:string}){
-  const {s,run,modal,closeModal,busy,permission}=useHcc();const c=grpCompany(s,id);
+  const {s,uid,run,modal,closeModal,busy}=useHcc();const c=grpCompany(s,id);
   if(id&&!c)return <Empty title="This company is unavailable"/>;
   const types=grpRoomTypes(s);
   return <><Head eyebrow={c?c.id:'NEW COMPANY ACCOUNT'} title={c?'Edit '+c.name:'New company account'} sub="Fictional companies only. The negotiated rate becomes the default block rate for this company."/>
@@ -31,7 +31,7 @@ export function CompanyModal({id}:{id?:string}){
         <label>Phone<input name="phone" type="tel" inputMode="tel" maxLength={20} defaultValue={c?.phone} placeholder="+91 90000 00000"/></label></div>
       <label>E-mail<input name="email" type="email" inputMode="email" maxLength={80} defaultValue={c?.email} placeholder="travel@company.example.test"/></label>
       <fieldset className="grp-fieldset"><legend>Negotiated nightly rate (₹, blank = rack rate)</legend><div className="form-row">{types.map(t=><label key={t}>{t}<input name={'rate-'+t} inputMode="decimal" defaultValue={grpRupees(c?.rates[t]||0)} placeholder={String(s.rooms.find(r=>r.type===t)!.rate/100)}/></label>)}</div></fieldset>
-      {!c&&<label>Opening credit limit (₹, optional)<input name="limit" inputMode="decimal" placeholder="0"/><small>{permission('admin')?'You can set this directly.':'Without administrator access this is sent as a request for approval.'}</small></label>}
+      {!c&&<label>Opening credit limit (₹, optional)<input name="limit" inputMode="decimal" placeholder="0"/><small>{rbacMoneyAdmin(s,uid)?'You can set this directly.':'Without the Owner’s access this is sent as a request for approval.'}</small></label>}
       {c&&<div className="info-note"><Info size={16}/>Change the credit limit with “Credit limit” (administrator, or a request that an approver decides).</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>{c?'Save changes':'Create account'} <Check size={16}/></button></div>
     </form></>;
@@ -40,8 +40,8 @@ export function CompanyModal({id}:{id?:string}){
 export function LimitModal({id}:{id?:string}){
   const {s,uid,run,modal,closeModal,busy,permission}=useHcc();const c=grpCompany(s,id);
   if(!c)return <Empty title="This company is unavailable"/>;
-  const k=grpCredit(s,c),admin=permission('admin'),pending=grpSlice(s).requests.find(r=>r.company===c.id&&r.status==='Pending');
-  return <><Head eyebrow={'CREDIT · '+c.id} title={c.name} sub={admin?'As administrator you set the limit directly; the change is audited.':'Your change is sent as a request; an Owner or Manager (not you) decides it.'}/>
+  const k=grpCredit(s,c),admin=rbacMoneyAdmin(s,uid),pending=grpSlice(s).requests.find(r=>r.company===c.id&&r.status==='Pending');
+  return <><Head eyebrow={'CREDIT · '+c.id} title={c.name} sub={admin?'As Owner you set the limit directly; the change is audited.':'Your change is sent as a request; an Owner or Manager (not you) decides it.'}/>
     <div className="summary-list grp-summary"><div><span>Current limit</span><strong>{money(c.creditLimit)}</strong></div><div><span>Exposure (estimate)</span><strong>{money(k.exposure)}</strong></div>
       <div><span>Opening outstanding (simulated AR)</span><strong>{money(c.openingOutstanding)}</strong></div><div><span>Status</span><strong><GrpCreditPill level={k.level}/> {k.limit?k.pct+'% used':''}</strong></div></div>
     {pending&&<div className="info-note"><Info size={16}/>{pending.id} pending: {money(pending.from)} → {money(pending.to)} by {grpUserName(s,pending.actor)}{pending.actor===uid?' (yours)':''}.</div>}

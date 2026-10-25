@@ -78,3 +78,45 @@ button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
 @media(max-width:760px){.hr-ps-grid{grid-template-columns:1fr;gap:6px}.hr-shift-pick .btn{min-height:56px;font-size:15px}.form .hr-status-pick label{min-height:48px;font-size:15px}}
 @media print{.hr-payslip{font-family:Arial,sans-serif;color:#2b1d16}.hr-ps-net{background:#fff;border:2px solid #2b1d16}.hr-ps-net span,.hr-ps-net strong{color:#2b1d16}.hr-ps-grid{grid-template-columns:1fr 1fr}.hr-ps-grid section{break-inside:avoid}}
 @media print and (max-width:500px){.hr-ps-grid{grid-template-columns:1fr}}
+/* W05-B · leave calendar, payroll files, payslip delivery, full and final */
+.hr-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 23px 20px}
+.hr-cal-head{font-size:11px;font-weight:700;color:#6b5547;text-align:center;padding:6px 0}
+.hr-cal-cell{min-height:82px;border:1px solid #e6d9c8;border-radius:6px;background:#fff;padding:4px 5px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.hr-cal-cell.blank{background:transparent;border-color:transparent}
+.hr-cal-cell.today{border-color:#7a1f2b;background:#fffaf2}
+.hr-cal-cell.full{background:#fdf6e7;border-color:#ecd9a8}
+.hr-cal-date{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#2b1d16}
+.hr-cal-date .pill{font-size:9px;padding:1px 5px}
+.hr-cal-chip{display:block;font-size:10px;line-height:1.3;background:#f5e4e6;color:#5e1620;border-radius:4px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hr-cal-chip.pending{background:#fff;border:1px dashed #9e4a55}
+.hr-pay-files{flex-wrap:wrap;gap:8px;padding-top:0}
+.hr-pay-actions{flex-wrap:wrap}
+.hr-sub{font-size:14px;margin:10px 0 4px}
+.hr-ps-words{font-size:12px;font-style:italic;color:#2b1d16;margin:4px 0 10px}
+.hr-wa{border:1px solid #e6d9c8;border-radius:8px;background:#fffcf8;padding:10px 12px;margin:12px 0 0}
+.hr-wa>div{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.hr-wa strong{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:#2b1d16}
+.hr-wa small{font-size:12px;color:#6b5547}
+.hr-wa pre{white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:12px;color:#2b1d16;margin:8px 0 0;background:#fff;border-radius:6px;padding:8px}
+.hr-cap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.hr-adj-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;margin-bottom:8px;align-items:center}
+.hr-fnf-sum>div{padding:7px 0}
+.hr-slip-card .summary-list>div{padding:7px 0}
+.hr-slip-net{border-top:2px solid #cdb9a3;font-size:15px}
+.hr-slip-net strong{font-size:18px;color:#5e1620}
+@media(max-width:760px){
+  .hr-adj-row{grid-template-columns:1fr 1fr}
+  .hr-adj-row input:first-child{grid-column:1/-1}
+  .hr-adj-row .btn,.hr-adj-row select,.hr-adj-row input{min-height:48px;font-size:16px}
+  .hr-m .hr-slip-btn,.m-sheet .hr-wa+.modal-actions .btn{min-height:48px;font-size:15px;width:100%;justify-content:center}
+  .hr-wa pre,.hr-wa small{font-size:14px}
+  .hr-m .m-kpi-value{overflow-wrap:anywhere}
+}
+@media print{.hr-wa{display:none}}
+/* W05P-3: phone shell — 48 px touch targets and 16 px text on the HR screens (tabs, department / month chips, week navigation, actions). */
+.m-shell .hr-m .m-chips button{min-height:48px;font-size:16px}
+.m-shell .hr-m .hr-weeknav .btn{min-height:48px;min-width:48px}
+.m-shell .hr-m .hr-weeknav strong{font-size:16px}
+.m-shell .hr-m .btn,.m-shell .hr-m .text-btn,.m-shell .hr-m .small-btn{min-height:48px;font-size:16px}
+.m-shell .hr-m .hr-m-note,.m-shell .hr-m .info-note,.m-shell .hr-m .summary-list span,.m-shell .hr-m .summary-list strong{font-size:16px}
+.m-shell .hr-m .m-group{font-size:14px}

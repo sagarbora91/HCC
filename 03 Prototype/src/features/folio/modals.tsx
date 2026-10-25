@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
-import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
+import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
 import {bookingActionSlots} from '../../app/registry';
@@ -17,14 +17,17 @@ export function FolioApprovalRow({a,showGuest=false}:{a:Approval;showGuest?:bool
   const {s,uid,user,permission,run,busy,open}=useHcc();
   const kind=folioKind(a),status=folioApprovalStatus(s,a),b=s.bookings.find(x=>x.id===a.booking);
   const own=a.actor===uid,canDecide=status==='Pending'&&permission('approve');
-  const overLimit=kind==='company-credit'&&a.amount>FOLIO_MANAGER_CREDIT_LIMIT&&user.role!=='Owner';
+  // DEC-063: corrections / credit notes → Owner only (G3); a Manager approves discounts up to the Manager limit (G1).
+  const aprLimit=kind==='discount'?rbacApprovalLimit(s,uid):undefined;
+  const ownerOnly=RBAC_OWNER_DECIDES.includes(kind)&&user.role!=='Owner';
+  const overLimit=kind==='company-credit'&&a.amount>FOLIO_MANAGER_CREDIT_LIMIT&&user.role!=='Owner'||aprLimit!==undefined&&a.amount>aprLimit||ownerOnly;
   const target=kind==='refund'?` · receipt ${a.target}`:kind==='correction'?` · line ${b?.lines.find(l=>l.id===a.target)?.label??a.target}`:kind==='credit-note'&&a.target?` · invoice ${a.target}`:'';
   const okMsg:Record<string,string>={discount:'Discount approved and posted',refund:'Refund approved — a cashier can now execute it','company-credit':'Company credit approved — it is applied at checkout',correction:'Correction approved — reversal line posted','credit-note':'Credit note approved and issued'};
   return <div className="request folio-request">
     <div><strong>{folioKindLabel[kind]??kind} · {money(a.amount)}{showGuest&&b?` · ${b.guest}`:''}</strong>
       <p>{a.id}{showGuest&&b?` · ${b.id}`:''}{target} · {a.reason} · requested by {userName(s,a.actor)}{a.approver?` · decided by ${userName(s,a.approver)}`:''}{a.expiresAt&&status==='Pending'?` · expires ${shortDate(a.expiresAt.slice(0,10))} ${a.expiresAt.slice(11)}`:''}</p>
       {status==='Pending'&&own&&<p className="muted">Your own request — another authorised user must decide it.</p>}
-      {canDecide&&!own&&overLimit&&<p className="muted">Above {money(FOLIO_MANAGER_CREDIT_LIMIT)} — only an Owner can approve this company credit.</p>}
+      {canDecide&&!own&&overLimit&&<p className="muted">{ownerOnly?'Corrections and credit notes are approved by an Owner.':aprLimit!==undefined?`Above ${money(aprLimit)} — only an Owner can approve this discount.`:`Above ${money(FOLIO_MANAGER_CREDIT_LIMIT)} — only an Owner can approve this company credit.`}</p>}
     </div>
     <Pill tone={statusTone(status)}>{status}</Pill>
     {canDecide&&!own&&<div className="inline">
@@ -38,9 +41,11 @@ export function FolioApprovalRow({a,showGuest=false}:{a:Approval;showGuest?:bool
 }
 
 export function BookingModal({id}:{id:string}){
-  const {b,s,permission,act,open,run,busy}=useBooking(id);
+  const {b,s,uid,permission,act,open,run,busy}=useBooking(id);
   if(!b)return <Missing/>;
-  if(!permission('billing')&&!permission('reservations'))return <Empty title="Access denied" body="Your role cannot open guest folios."/>;
+  if(!rbacCanViewFolios(s,uid))return <Empty title="Access denied" body="Your role cannot open guest folios."/>;
+  const readOnly=!permission(['billing','reservations']); // DEC-063 G4: the Accountant checks folios read-only
+  const canCorrect=rbacCanRequestCorrection(s,uid);
   const t=totals(b),active=['Confirmed','In house'].includes(b.status),n=folioNights(b);
   const approvals=folioApprovalsFor(s,b.id);
   const closed=(d:string)=>s.closedDates.includes(d);
@@ -52,14 +57,15 @@ export function BookingModal({id}:{id:string}){
       {b.status==='Confirmed'&&act('reservations',()=>open({type:'cancel',id:b.id}),'Cancel / no-show','btn subtle')}
       {b.status==='In house'&&act('checkout',()=>open({type:'checkout',id:b.id}),'Checkout','btn primary')}
       {active&&act('reservations',()=>open({type:b.status==='In house'?'stay-move':'move',id:b.id}),b.status==='In house'?'Move / extend stay':'Change dates / room','btn subtle')}
-      {b.status==='Departed'&&act('billing',()=>open({type:'credit-note',id:b.id}),'Request credit note','btn subtle')}
+      {b.status==='Departed'&&canCorrect&&<button className="btn subtle" disabled={busy} onClick={()=>open({type:'credit-note',id:b.id})}>Request credit note</button>}
       {bookingActionSlots.map((Slot,i)=><Slot key={i} b={b}/>)}
     </div>
+    {readOnly&&<div className="info-note"><Info size={16}/>Read-only check (Accountant). You can request a correction or credit note; the Owner approves it.</div>}
     <div className="folio-totals"><div><span>Charges + tax</span><strong>{money(t.total)}</strong></div><div><span>Net paid / advance</span><strong>{money(t.paid)}</strong></div><div><span>Deposit held</span><strong>{money(t.deposit)}</strong></div><div className={t.balance>0?'balance-due':'balance-clear'}><span>{t.balance<0?'Credit balance':'Balance due'}</span><strong>{money(t.balance)}</strong></div></div>
-    <div className="section-title compact"><h3>Guest folio</h3><div className="inline">{active&&act('billing',()=>open({type:'charge',id:b.id}),'Add charge','text-btn')}{active&&act('billing',()=>open({type:'discount',id:b.id}),'Discount','text-btn')}{!['Held','Expired','Cancelled','No show'].includes(resStatus(s,b))&&act('payments',()=>open({type:'payment',id:b.id}),'Record payment','btn small-btn')}</div></div>
+    <div className="section-title compact"><h3>Guest folio</h3><div className="inline">{active&&act('billing',()=>open({type:'charge',id:b.id}),'Add charge','text-btn')}{active&&rbacCanDiscount(s,uid)&&<button className="text-btn" disabled={busy} onClick={()=>open({type:'discount',id:b.id})}>Discount</button>}{!['Held','Expired','Cancelled','No show'].includes(resStatus(s,b))&&act('payments',()=>open({type:'payment',id:b.id}),'Record payment','btn small-btn')}</div></div>
     <div className="table-wrap folio-table"><table><thead><tr><th>Description</th><th>Service date</th><th>Net amount</th><th>Test tax</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{b.lines.map(l=>{const reversed=folioLineReversed(b,l.id);
       return <tr key={l.id} className={reversed||l.reversalOf?'folio-line-muted':''}><td><strong>{l.label}</strong><small>{l.kind}{l.reversalOf?' · reverses '+l.reversalOf:''}{reversed?' · reversed':''}{closed(l.date)?' · closed date (read-only)':''}</small></td><td>{shortDate(l.date)}</td><td className="number">{money(l.amount)}</td><td className="number">{money(Math.round(l.amount*l.taxBps/10000))}</td>
-        <td>{reversed?<Pill>Reversed</Pill>:l.reversalOf?<Pill tone="blue">Reversal</Pill>:active&&permission('billing')&&folioLineCorrectable(s,b,l)?<button className="text-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}>Correct</button>:null}</td></tr>;})}</tbody></table>{!b.lines.length&&<Empty title="No charges yet" body="Room nights are posted by the nightly audit. Add a service charge if needed."/>}</div>
+        <td>{reversed?<Pill>Reversed</Pill>:l.reversalOf?<Pill tone="blue">Reversal</Pill>:active&&canCorrect&&folioLineCorrectable(s,b,l)?<button className="text-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}>Correct</button>:null}</td></tr>;})}</tbody></table>{!b.lines.length&&<Empty title="No charges yet" body="Room nights are posted by the nightly audit. Add a service charge if needed."/>}</div>
     <div className="section-title compact"><h3>Receipts & deposits</h3><span className="muted">Manual demonstration records</span></div>
     <div className="receipt-list">{b.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0;
       return <div key={r.id}><span className="receipt-icon"><Receipt size={16}/></span><div><strong>{folioReceiptLabel[r.kind]??r.kind} · {r.method}</strong><small>{r.id} · {shortDate(r.date)} · {r.reference}{r.refundOf?' · refund of '+r.refundOf:''}{r.tenderGroup?' · mixed tender '+r.tenderGroup:''}{refunded?' · refunded '+money(refunded):''} · by {userName(s,r.actor)}</small></div>
@@ -125,13 +131,14 @@ export function PaymentModal({id}:{id:string}){
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" disabled={busy}>Review <ArrowRight size={16}/></button></div></form></>;
 }
 export function ChargeModal({id,discount}:{id:string;discount:boolean}){
-  const {b,s,run,booking,modal,busy}=useBooking(id);
+  const {b,s,uid,run,booking,modal,busy}=useBooking(id);
   if(!b)return <Missing/>;
+  const lim=rbacDiscountLimit(s,uid); // DEC-063 G1: limit of the signed-in role (undefined = Owner, no limit)
   return <><div className="modal-heading"><h2>{discount?'Add a discount':'Add a service charge'}</h2><p>{b.guest} · {b.id}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run(discount?{type:'DISCOUNT',id:b.id,amount:amount(f),reason:field(f,'description'),key:modal!.key}:{type:'CHARGE',id:b.id,amount:amount(f),label:field(f,'description'),key:modal!.key},discount?'Discount recorded or submitted for approval':'Service charge posted',{after:()=>booking(b.id)}))}>
       <label>{discount?'Reason for discount':'Service description'}<input required name="description" maxLength={120} placeholder={discount?'e.g. Service recovery':'e.g. Laundry service'}/></label>
       <label>Amount before synthetic tax (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
-      {discount&&<div className="info-note"><ShieldCheck size={16}/>Above {money(s.settings.discountLimit)}, another authorized user must approve within 24 simulated hours. Any folio change while it is pending invalidates the request.</div>}
+      {discount&&<div className="info-note"><ShieldCheck size={16}/>{lim===undefined?'No discount limit for the Owner — it posts at once.':<>Your limit is {money(lim)}. Above it, another authorized user must approve within 24 simulated hours.</>} Any folio change while it is pending invalidates the request.</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back</button><button className="btn primary" disabled={busy}>{discount?'Submit discount':'Post charge'}</button></div></form></>;
 }
 export function CheckoutModal({id}:{id:string}){

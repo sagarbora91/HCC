@@ -4,6 +4,7 @@ import type {State,Booking,Permission} from '../types';
 import {assignedScopeRoles} from '../types';
 import {money,addDays} from '../money';
 import {can,totals,drawer,metrics,blockedDuring,blockedTonight,occupant,roomStatus} from '../selectors';
+import {cmpHasAccess,cmpDueThisWeek,cmpCounts,cmpItems,cmpStatusText} from './compliance';
 import {closingPreflight,shiftStatus,shiftExpected,approvalKindLabel,expenseCounts,SHIFT_MANAGER_DIFF_LIMIT} from './closing';
 
 export const AI_LABEL='Simulated assistant · rule-based · answers computed from this demo’s data';
@@ -11,7 +12,7 @@ export const AI_HISTORY_MAX=50;
 export const AI_QUESTION_MAX=300;
 export const AI_DEFAULT_DIRTY_HOURS=4;
 
-export type AIIntent='occupancy-today'|'occupancy-tomorrow'|'occupancy-7d'|'arrivals'|'departures'|'adr'|'revpar'|'collections'|'cash'|'approvals'|'rooms'|'expenses-week'|'balances'|'hk-backlog'|'day-close'|'briefing'|'anomalies'|'unknown';
+export type AIIntent='occupancy-today'|'occupancy-tomorrow'|'occupancy-7d'|'arrivals'|'departures'|'adr'|'revpar'|'collections'|'cash'|'approvals'|'rooms'|'expenses-week'|'balances'|'hk-backlog'|'day-close'|'briefing'|'anomalies'|'compliance-due'|'unknown';
 export type AIFigure={label:string;value:string};
 export type AILink={page:string;label:string};
 export type AIAnswer={intent:AIIntent;title:string;text:string;figures:AIFigure[];items:string[];how:string;links:AILink[];restricted?:boolean};
@@ -33,7 +34,7 @@ export const aiHistory=(s:State,uid:string):AIMessage[]=>aiSlice(s).history?.[ui
 export const aiDirtyHours=(s:State)=>aiSlice(s).settings?.dirtyHours??AI_DEFAULT_DIRTY_HOURS;
 
 // ── Access (coarse permissions only; Housekeeper/Maintenance never see money) ──
-export type AIAccess={money:boolean;frontdesk:boolean;rooms:boolean;approvals:boolean;close:boolean;cash:boolean;expenses:boolean};
+export type AIAccess={money:boolean;frontdesk:boolean;rooms:boolean;approvals:boolean;close:boolean;cash:boolean;expenses:boolean;compliance:boolean};
 export function aiAccess(s:State,uid:string):AIAccess{
   const u=s.users.find(x=>x.id===uid);
   const any=(...p:Permission[])=>p.some(x=>can(s,uid,x));
@@ -44,11 +45,12 @@ export function aiAccess(s:State,uid:string):AIAccess{
     approvals:any('approve','reports'),
     close:any('close','reports'),
     cash:money&&any('payments','close','reports'),
-    expenses:money&&any('expenses','approve','reports')};
+    expenses:money&&any('expenses','approve','reports'),
+    compliance:cmpHasAccess(s,uid)};
 }
 /** Which access flag each intent needs ('' = always). */
 const need:Record<AIIntent,keyof AIAccess|''>={'occupancy-today':'frontdesk','occupancy-tomorrow':'frontdesk','occupancy-7d':'frontdesk',arrivals:'frontdesk',departures:'frontdesk',
-  adr:'money',revpar:'money',collections:'money',cash:'cash',approvals:'approvals',rooms:'rooms','expenses-week':'expenses',balances:'money','hk-backlog':'rooms','day-close':'close',briefing:'',anomalies:'',unknown:''};
+  adr:'money',revpar:'money',collections:'money',cash:'cash',approvals:'approvals',rooms:'rooms','expenses-week':'expenses',balances:'money','hk-backlog':'rooms','day-close':'close',briefing:'',anomalies:'','compliance-due':'compliance',unknown:''};
 export const aiIntentAllowed=(a:AIAccess,i:AIIntent)=>!need[i]||a[need[i] as keyof AIAccess];
 
 // ── Suggested questions and topic names ──
@@ -69,6 +71,7 @@ export const aiTopics:{intent:AIIntent;label:string;question:string}[]=[
   {intent:'balances',label:'Top balances due',question:'Who has the biggest balances due?'},
   {intent:'hk-backlog',label:'Housekeeping backlog',question:'What is the housekeeping backlog?'},
   {intent:'day-close',label:'Day-close readiness',question:'Are we ready to close the day?'},
+  {intent:'compliance-due',label:'Compliance due',question:'What compliance filings are due?'},
   {intent:'anomalies',label:'Anomaly flags',question:'Any anomalies or problems?'},
 ];
 /** Suggestion chips this user may use. */
@@ -76,6 +79,8 @@ export const aiSuggestions=(s:State,uid:string)=>{const a=aiAccess(s,uid);return
 
 // ── Intent matching (keywords; highest score wins, list order breaks ties → specific first) ──
 const rules:[AIIntent,RegExp[]][]=[
+  // Compliance phrasing only (W05 review F2): generic "due" / "filed" / "what is due" questions keep their older intents.
+  ['compliance-due',[/\bcomplian/,/\b(gst|gstr|tds|epf|esic|pf|pt)\b/,/\bprofessional tax\b/,/\bstatutory\b/,/\bfilings?\b/,/\b(tax )?returns? (are |is )?(due|filed|pending|overdue)\b/,/\boverdue (returns?|filings?)\b/]],
   ['balances',[/\btop\b.*\b(balance|due|owe)/,/\b(biggest|largest|highest|most)\b.*\b(balance|due|owe|owing)/,/\bwho\b.*\bowe/,/\bbalances?\s+due\b/,/\bdebtors?\b/]],
   ['revpar',[/\brev\s?-?par\b/,/revenue per available/]],
   ['adr',[/\badr\b/,/average (daily |room )?rate/,/\bavg\.? rate\b/,/average tariff/]],
@@ -306,6 +311,11 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
       [{label:'Checks clear',value:`${pf.length-blocking.length} of ${pf.length}`},{label:'Blocking items',value:String(blocking.reduce((n,p)=>n+p.items.length,0))}],
       'The same preflight the Day closing screen runs: arrivals, overdue departures, expired holds, room-night charges, approvals, expenses and the cash shift.',[link('closing','Day closing')],
       closed?[]:blocking.map(p=>`${p.title}: ${plural(p.items.length,'item')} — ${p.hint}`));}
+  case 'compliance-due':{const due=cmpDueThisWeek(s),c=cmpCounts(cmpItems(s));
+    return ans('Compliance due',due.length?`${plural(due.length,'filing')} overdue or due this week: ${c.overdue} overdue, ${due.length-c.overdue} due soon.`:`Nothing overdue or due this week. ${c.upcoming} later filing${c.upcoming===1?'':'s'} on the calendar.`,
+      [{label:'Overdue',value:String(c.overdue)},{label:'Due this week',value:String(due.length-c.overdue)},{label:'Filed',value:String(c.filed)}],
+      'Calendar of TDS, GST returns, EPF, ESIC and Professional Tax with due-date rules marked illustrative (CA to confirm). “This week” uses the window set in Compliance calendar.',[link('compliance','Compliance calendar')],
+      due.map(i=>`${i.obligation.name} · ${i.periodLabel} · due ${i.due} · ${cmpStatusText(i)}`));}
   case 'briefing':{const b=aiBriefing(s,uid);
     return ans('Daily briefing',b.headline,b.lines.map(l=>({label:l.label,value:l.value})),'Each line is computed live from the demo data with the same rules as the matching question. Lines you cannot see are left out.',[link('overview','Overview')],
       b.lines.map(l=>`${l.label}: ${l.value}${l.note?' — '+l.note:''}`));}

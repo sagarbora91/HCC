@@ -193,7 +193,7 @@ export type State={
   clock:string;
   rooms:Room[];bookings:Booking[];users:User[];tasks:Task[];expenses:Expense[];approvals:Approval[];audit:Audit[];
   grants:Record<Role,Permission[]>;settings:Settings;
-  openingCash:number;shiftOpen:boolean;shiftClose?:{expected:number;counted:number};
+  openingCash:number;shiftOpen:boolean;shiftClose?:{expected:number;counted:number;/** Who counted the drawer (W05 review F1; absent in old saves). */countedBy?:string};
   closedDates:string[];
   /** Idempotency keys already executed. A repeated key returns the earlier result (no new effect). */
   processed:string[];
@@ -242,6 +242,10 @@ export type State={
   staffX?:import('./streams/staff').HRState;
   accountingX?:import('./streams/accounting').ACCState;
   assistantX?:import('./streams/assistant').AIState;
+  complianceX?:import('./streams/compliance').CMPState;
+  cashbookX?:import('./streams/cashbook').CBState;
+  /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
+  configX?:import('./streams/config').CFGState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;
@@ -255,4 +259,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=7;
+export const SCHEMA=8;

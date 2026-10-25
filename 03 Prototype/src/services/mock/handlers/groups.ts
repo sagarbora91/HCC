@@ -17,6 +17,7 @@ import {grpPickupRooms,grpEnsure,grpSweep,grpRoomTypes,grpFreeRooms,grpHeldElsew
   GRP_GSTIN,GRP_MAX_LIMIT} from '../../../domain/streams/groups';
 import type {GRPBlock,GRPCompany} from '../../../domain/streams/groups';
 import {RES_PHONE} from '../../../domain/streams/reservations';
+import {rbacMoneyAdmin} from '../../../domain/streams/rbac';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const str=(v:unknown,max=120)=>String(v??'').trim().slice(0,max);
@@ -56,7 +57,7 @@ export const handlers:Record<string,Handler>={
     x.companies.push(c);
     const limit=cmd.creditLimit===undefined||cmd.creditLimit===''?0:validLimit(k,cmd.creditLimit);
     if(limit>0){
-      if(can(s,uid,'admin')){c.creditLimit=limit;c.limitHistory!.push({from:0,to:limit,at:s.clock,actor:uid,reason:'Opening limit'});return `${c.id} · ${c.name} created · credit limit ${money(limit)}`;}
+      if(rbacMoneyAdmin(s,uid)){c.creditLimit=limit;c.limitHistory!.push({from:0,to:limit,at:s.clock,actor:uid,reason:'Opening limit'});return `${c.id} · ${c.name} created · credit limit ${money(limit)}`;}
       x.requests.push({id:id('GLR'),company:c.id,from:0,to:limit,reason:'Opening limit for new account',actor:uid,at:s.clock,status:'Pending'});
       return `${c.id} · ${c.name} created · credit limit ${money(limit)} requested`;
     }
@@ -66,7 +67,8 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,uid,req,open,assert,id}=k;open();const x=begin(k);
     const c=companyOf(k,cmd.company),limit=validLimit(k,cmd.limit),reason=str(cmd.reason,200);
     assert(limit!==c.creditLimit,'The new limit is the same as the current limit.');
-    if(can(s,uid,'admin')){c.limitHistory=[...(c.limitHistory||[]),{from:c.creditLimit,to:limit,at:s.clock,actor:uid,reason:reason||'Set by administrator'}];
+    // DEC-063 G11: a direct limit change is Owner-only (admin + reports); the Tech admin holds no money power.
+    if(rbacMoneyAdmin(s,uid)){c.limitHistory=[...(c.limitHistory||[]),{from:c.creditLimit,to:limit,at:s.clock,actor:uid,reason:reason||'Set by the Owner'}];
       const from=c.creditLimit;c.creditLimit=limit;
       x.requests.filter(r=>r.company===c.id&&r.status==='Pending').forEach(r=>{r.status='Rejected';r.approver=uid;r.decidedAt=s.clock;r.note='Superseded by administrator change';});
       return `${c.name} · credit limit ${money(from)} → ${money(limit)}`;}

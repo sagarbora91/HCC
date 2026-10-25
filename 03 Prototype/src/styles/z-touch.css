@@ -1,0 +1,21 @@
+/* W05-6 · phone shell touch targets and text: every control 48 px, labels 16 px (rule: mobile plan). Loaded after the page styles. */
+.m-shell .m-chips button,.m-shell .acc-m .m-chips button{min-height:var(--hcc-touch-primary,48px);font-size:16px}
+.m-shell .m-crumbs .crumbs button{min-height:var(--hcc-touch-primary,48px);padding:12px 4px}
+.m-shell .crumbs ol{font-size:16px}
+.m-shell input[type=date],.m-shell .cb-range input,.m-shell .acc-date input,.m-shell .exp-tally-range input{min-height:var(--hcc-touch-primary,48px);font-size:16px;min-width:0}
+.m-shell .cb-range label,.m-shell .acc-date,.m-shell .cb-sums span,.m-shell .m-kpi-label,.m-shell .m-kpi small,
+.m-shell .cmp-m-kpis .m-kpi-label,.m-shell .cmp-m-card small,.m-shell .cmp-m-top .pill,.m-shell .cb-hist,.m-shell .cb-recon{font-size:16px}
+.m-shell .cmp-m-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+.m-shell .cb-card small{font-size:16px}
+/* W05-3 / W05-4: reused desktop pieces on the phone */
+.m-shell .acc-m-tally{padding:0}.m-shell .acc-m-tally .padded{padding:0}
+.m-shell .exp-tally-range{flex-direction:column;align-items:stretch}.m-shell .exp-tally-range .btn{min-height:48px;width:100%}
+.m-shell .exp-xml{max-height:320px;font-size:12px}
+.m-shell .exp-pack .table-wrap{overflow-x:auto;max-width:100%}
+.m-shell .mf-due{border-left:4px solid #7a1f2b}
+/* RC-1 · phone-width sheets (rendered outside .m-shell): count-method switch 48 px, form labels 16 px, small badges readable */
+@media (max-width:767px){
+  .f-seg button{min-height:var(--hcc-touch-primary,48px);padding-left:14px;padding-right:14px}
+  .form label{font-size:16px}
+  .m-chips button .count,.m-chips button small{font-size:14px}
+}

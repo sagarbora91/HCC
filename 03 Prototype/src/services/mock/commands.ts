@@ -6,6 +6,7 @@ import {registry} from './handlers';
 import {HccError,ErrorCode} from '../../domain/errors';
 import {money,addDays,nights,addMinutes,OPENING_TIME} from '../../domain/money';
 import {can,available,occupant,totals,drawer,rateFor,taxRateFor} from '../../domain/selectors';
+import {cfgBeforeCommand} from '../../domain/streams/config';
 
 export function execute(input:State,uid:string,cmd:Command):State{
   const fail=(code:ErrorCode,msg:string):never=>{throw new HccError(code,msg);};
@@ -26,6 +27,8 @@ export function execute(input:State,uid:string,cmd:Command):State{
   const mutable=(x:Booking)=>assert(x.status==='In house'||x.status==='Confirmed','This booking is no longer open.','INVALID_TRANSITION');
   const financial=(x:Booking)=>{mutable(x);open();};
   const addNight=(x:Booking,date:string)=>{const lid=`night:${x.id}:${date}`;if(!x.lines.some(l=>l.id===lid||l.kind==='room'&&l.date===date))x.lines.push({id:lid,label:'Room night · '+date,amount:x.rate,date,kind:'room',taxBps:taxRateFor(s,date)});};
+  // W05-A Master configuration: apply due dated values; refuse commands of a switched-off module (DEC-057).
+  {const off=cfgBeforeCommand(s,cmd);if(off)fail('FORBIDDEN',off);}
   let detail='';
   // Stream handlers (services/mock/handlers/*) take precedence: they add new commands or replace an owned one.
   const handler=registry[cmd.type];

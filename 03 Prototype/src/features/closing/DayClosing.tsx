@@ -7,6 +7,7 @@ import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {ClosingSummaryView} from './ClosingReport';
 import {Corrections} from './Corrections';
 import {usePaged,ShowMore} from '../../components/ShowMore';
+import {DayPackButton} from '../exports/DayPack';
 
 type StepState='done'|'current'|'blocked'|'waiting';
 function Step({n,title,state,children}:{n:number;title:string;state:StepState;children:React.ReactNode}){
@@ -30,7 +31,7 @@ export function DayClosing(){
   return <><PageTitle title="Day closing" sub="Finish the day with confidence: resolve exceptions, post room nights, reconcile cash, then close."
       action={<button className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={15}/> {closed?'Closing report':'Preview report'}</button>}/>
     <div className="closing-banner"><div><div className="eyebrow">CURRENT BUSINESS DATE</div><h2>{dateLabel(s.date)}</h2><p>Asia/Kolkata · simulated clock {s.clock.slice(11)}</p></div><Pill tone={closed?'neutral':'green'}>{closed?'Day closed':'Business day open'}</Pill></div>
-    {!canClose&&<div className="info-note"><AlertTriangle size={16}/>You can review the preflight. Posting nights, closing and opening the next day need the close permission (Manager or Owner).</div>}
+    {!canClose&&<div className="info-note"><AlertTriangle size={16}/>Read-only check. You can review the preflight, the cash shift and the closing summary, and request a closed-date correction. Posting nights, closing and opening the next day need the close permission (Manager or Owner).</div>}
     <div className="f-steps">
       <Step n={1} title="Preflight" state={closed||!generalOpen.length?'done':'blocked'}>
         {closed?<p className="muted">Completed before close.</p>:<ul className="f-checks">{general.map(c=><li key={c.id} className={c.items.length?'bad':'ok'}>
@@ -57,7 +58,8 @@ export function DayClosing(){
           {s.shiftClose&&<><div><span>Counted</span><strong>{money(s.shiftClose.counted)}</strong></div><div><span>Difference</span><strong>{money(s.shiftClose.counted-s.shiftClose.expected)}</strong></div></>}</div>
         <div className="card-footer f-actions"><button className="btn" onClick={()=>go('cashier')}>Open cashier shift <ArrowRight size={14}/></button>
           {st==='Open'&&!closed&&<button className="btn primary" disabled={!permission('payments')} onClick={()=>open({type:'cash'})}>Count & submit</button>}
-          {st==='Submitted'&&<span className="f-why">Waiting for difference approval on the cashier page.</span>}</div>
+          {st==='Submitted'&&<span className="f-why">Waiting for difference approval on the cashier page.</span>}
+          <button className="btn" onClick={()=>go('cashbook')}>Cash book <ArrowRight size={14}/></button></div>
       </Step>
       <Step n={4} title="Close business date" state={closed?'done':blockers.length?'waiting':'current'}>
         {closed?<><p>{dateLabel(s.date)} is closed. Rerunning close or night posting is refused; totals cannot change.</p>
@@ -67,7 +69,7 @@ export function DayClosing(){
       </Step>
       <Step n={5} title="Closing summary" state={rec?'done':'waiting'}>
         {rec?<ClosingSummaryView rec={rec}/>:<><p className="muted">Preview — final when the day is closed.</p><ClosingSummaryView rec={closingSummary(s)}/></>}
-        <div className="card-footer f-actions"><button className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={15}/> {rec?'Print closing report':'Print preview'}</button></div>
+        <div className="card-footer f-actions"><button className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={15}/> {rec?'Print closing report':'Print preview'}</button>{rec&&<DayPackButton date={s.date}/>}</div>
       </Step>
       <Step n={6} title="Open next business day" state={closed?'current':'waiting'}>
         <p>{closed?`Opens ${dateLabel(addDays(s.date,1))} at 08:00 with an opening float of ${money(s.shiftClose?.counted??0)} (counted cash).`:'Available after the day is closed.'}</p>
