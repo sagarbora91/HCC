@@ -89,10 +89,17 @@ export function register({test,M,assert}){
     assert.equal(d.find(x=>x.key==='cmp.rule.CMPO-PT').value,'Last day of the next month');assert.match(d.find(x=>x.key==='cmp.rule.CMPO-TDS').value,/7th of the next month/);});
   test('[CMP] assistant: "what is due" lists compliance for Owner/Accountant, refused for others',()=>{
     const s=seed();assert.equal(aiMatchIntent('What compliance filings are due?'),'compliance-due');assert.equal(aiMatchIntent('is GST filed'),'compliance-due');
-    const a=aiAnswer(s,'accountant','What is due this week?');assert.equal(a.intent,'compliance-due');assert.equal(a.figures[0].value,'1');assert.equal(a.items.length,2);assert.ok(a.links.some(l=>l.page==='compliance'));
+    const a=aiAnswer(s,'accountant','What compliance is due this week?');assert.equal(a.intent,'compliance-due');assert.equal(a.figures[0].value,'1');assert.equal(a.items.length,2);assert.ok(a.links.some(l=>l.page==='compliance'));
     assert.equal(aiAnswer(s,'manager','What compliance filings are due?').restricted,true);
     assert.equal(aiAccess(s,'owner').compliance,true);assert.equal(aiAccess(s,'reception').compliance,false);
     assert.ok(aiSuggestions(s,'owner').some(t=>t.intent==='compliance-due'));assert.ok(!aiSuggestions(s,'manager').some(t=>t.intent==='compliance-due'));});
   test('[CMP] existing assistant intents unchanged by the new keywords',()=>{
     for(const [q,i] of [['Who has the biggest balances due','balances'],['Collections vs outstanding today','collections'],['What approvals are pending?','approvals'],['How is the cash drawer and any variance?','cash']])assert.equal(aiMatchIntent(q),i);});
+  test('[CMP] F2: everyday "due" / "filed" questions keep their previous intents; only compliance phrasing routes to compliance-due',()=>{
+    // Expected = the routing before compliance-due existed (measured on the rules without it).
+    for(const [q,i] of [['Which balances are due this week?','collections'],['What payments are due this week?','collections'],['Are there expenses due this week?','collections'],
+      ['Which expenses were filed today?','expenses-week'],['What is due today?','collections']])assert.equal(aiMatchIntent(q),i,q);
+    for(const q of ['What compliance filings are due?','Is GSTR-3B filed?','When is TDS due?','PF and ESIC due this week','Is professional tax paid?','Which returns are due?','Any filing due this week?','Is PT due?'])
+      assert.equal(aiMatchIntent(q),'compliance-due',q);
+    const s=seed();assert.equal(aiAnswer(s,'manager','What payments are due this week?').restricted,undefined);});
 }
