@@ -1,6 +1,7 @@
 // Module 20 · Accounting automation — pure helpers, selectors and the state slice type. Exported names MUST start with 'acc' / 'ACC' (shared mock namespace).
 // Vouchers are DERIVED from source records (folio lines, receipts, expenses, closing records); nothing is keyed by hand.
 // Spec: 02 Planning/modules/HCC_Module_20_Accounting_Spec.md. Money = integer paise.
+import {csvMinimal} from '../csv';
 import type {State,Booking,Line,Receipt,Expense} from '../types';
 import {drawer} from '../selectors';
 import {reportPack,expenseCounts,closingOutlet} from './closing';
@@ -227,7 +228,7 @@ export function accMapRows(s:State):ACCMapRow[]{
 }
 
 // ── Export (generic voucher import format) ──
-const csvCell=(v:string|number)=>{const t=String(v);return /[",\r\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
+const csvCell=csvMinimal;
 const rupees=(p:number)=>(p/100).toFixed(2);
 export const ACC_CSV_HEADER=['Date','Voucher No','Voucher Type','Ledger','Debit','Credit','Narration','Source ID'];
 /** One row per voucher entry. Generic import format (not Tally-specific); amounts in rupees, 2 decimals; CRLF. */
@@ -261,7 +262,9 @@ export type TallyPreview={xml:string;count:number;debit:number;credit:number;fro
 /** Vouchers of every business date from..to (inclusive, ≤ 31 days) as a Tally "Import Data" envelope. */
 export function accTallyXml(s:State,from:string,to:string,company?:string):TallyPreview{
   const empty={xml:'',count:0,debit:0,credit:0,from,to,dates:0,simulated:true as const};
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from>to)return {...empty,error:'Choose a valid range: "from" on or before "to".'};
+  // F10 (W05 review): a real calendar date, not only the yyyy-mm-dd shape (2026-02-30 used to pass).
+  const real=(d:string)=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
+  if(!real(from)||!real(to)||from>to)return {...empty,error:'Choose a valid range: "from" on or before "to".'};
   const days=Math.round((Date.parse(to)-Date.parse(from))/86400000)+1;
   if(days>TALLY_MAX_DAYS)return {...empty,error:`Choose at most ${TALLY_MAX_DAYS} days.`};
   const dates=accDates(s).filter(d=>d>=from&&d<=to).sort(),vs=dates.flatMap(d=>accVouchers(s,d));

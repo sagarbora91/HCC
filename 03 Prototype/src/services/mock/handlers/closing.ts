@@ -1,6 +1,7 @@
 // Stream F · Cashier, closing & reports (owns NIGHT_POST, POST_NIGHTS, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, EXPENSE, EXPENSE_APPROVE).
 // Register new or replacement command handlers here. A handler with the same name as a built-in command replaces it.
-// Kept built-in: POST_NIGHTS (M1 compatibility, no UI button) and SHIFT_CLOSE (exact-count close by close-permission users).
+// Kept built-in: POST_NIGHTS (M1 compatibility, no UI button). SHIFT_CLOSE (exact-count close by close-permission users) is re-registered here
+// with the same rules so the counter is recorded (W05 review F1: the person who counted may not lock the cash book day).
 import type {Handler,Kit} from '../commands';
 import type {Expense} from '../../../domain/types';
 import {money,addDays,OPENING_TIME} from '../../../domain/money';
@@ -29,7 +30,7 @@ function postNights(k:Kit,interruptAfter?:number){
 const limited=(role:string)=>!closingUnlimitedRoles.includes(role);
 /** DEC-063 G4: role-aware guard (the Accountant decides cash/expense items without the broad 'approve' grant). */
 const need=(k:Kit,ok:(s:Kit['s'],uid:string)=>boolean,what:string)=>{if(!ok(k.s,k.uid))k.fail('FORBIDDEN',`Access denied: ${what}.`);};
-const closeShift=(k:Kit,expected:number,counted:number)=>{k.s.shiftClose={expected,counted};k.s.shiftOpen=false;};
+const closeShift=(k:Kit,expected:number,counted:number,countedBy:string)=>{k.s.shiftClose={expected,counted,countedBy};k.s.shiftOpen=false;};
 
 export const handlers:Record<string,Handler>={
   // PERM-CLS-002 close.nightPost
@@ -41,6 +42,13 @@ export const handlers:Record<string,Handler>={
     assert(n===undefined||Number.isInteger(n)&&n>=0,'Interruption point must be a whole number of stays.');
     const r=postNights(k,n);
     return r.interrupted?`Night audit ${s.date} interrupted (simulated) · ${r.done} of ${r.total} stays posted`:`Night audit ${s.date} · ${r.added} new night(s) posted · ${r.done} of ${r.total} stays complete`;
+  },
+  // PERM-CLS-002 exact-count close (same rules as the built-in command) · records who counted
+  SHIFT_CLOSE:k=>{
+    const {s,cmd,req,open,assert,uid}=k;req('close');open();assert(s.shiftOpen,'Shift already closed.','INVALID_TRANSITION');
+    assert(Number.isSafeInteger(cmd.counted)&&cmd.counted>=0,'Enter a valid physical cash count.');
+    const expected=drawer(s);assert(cmd.counted===expected,'Resolve the cash difference before closing this demo shift.');
+    closeShift(k,expected,cmd.counted,uid);return 'Cash reconciled · '+money(expected);
   },
   // PERM-SHF-001 shift.count / submit (cashier or reception: coarse 'payments')
   SHIFT_SUBMIT:k=>{
@@ -57,7 +65,7 @@ export const handlers:Record<string,Handler>={
     }
     const expected=drawer(s),diff=cmd.counted-expected;
     if(diff===0){
-      closeShift(k,expected,cmd.counted);
+      closeShift(k,expected,cmd.counted,uid);
       s.shift={date:s.date,status:'Closed',expected,counted:cmd.counted,submittedBy:uid,denominations};
       return 'Cash counted and reconciled exactly · '+money(expected);
     }
@@ -82,7 +90,7 @@ export const handlers:Record<string,Handler>={
     if(cmd.approve){
       if(limited(user.role)&&Math.abs(counted-expected)>SHIFT_MANAGER_DIFF_LIMIT)fail('FORBIDDEN',`Differences above ${money(SHIFT_MANAGER_DIFF_LIMIT)} need Owner approval.`);
       assert(drawer(s)===expected,'Cash movements changed after this count. Reject it and recount.','STALE_VERSION');
-      a!.status='Approved';closeShift(k,expected,counted);sh!.status='Closed';sh!.decidedBy=uid;
+      a!.status='Approved';closeShift(k,expected,counted,sh!.submittedBy);sh!.status='Closed';sh!.decidedBy=uid;
       return `${a!.id} · difference ${money(counted-expected)} accepted · shift closed`;
     }
     a!.status='Rejected';if(cmd.reason?.trim())a!.meta={...a!.meta,rejectReason:cmd.reason.trim()};

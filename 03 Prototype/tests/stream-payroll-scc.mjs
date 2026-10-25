@@ -47,8 +47,9 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.deepEqual([at.basic,at.washing,at.esicWages],[1050000,105000,1995000]);assert.equal(at.esic,14963);assert.equal(at.esicEr,64838);// 14,962.5 → 14,963 · 64,837.5 → 64,838
     const above=M.hrComputeLine(mon(2100001),full(),R);assert.equal(above.esic,0);assert.equal(above.esicEr,0);assert.equal(above.esicWages,0);
     const off=M.hrComputeLine(mon(1500000,{esicApplicable:false}),full(),R);assert.equal(off.esic,0);
-    // earned (not contractual) pay decides: ₹25,000 salary with 6 days LOP earns ₹20,000 → covered
-    const lop=M.hrComputeLine(mon(2500000),full('2026-09',30,{P:24,A:6}),R);assert.equal(lop.earned,2000000);assert.ok(lop.esic>0);
+    // SCC month-by-month rule (esicPeriod off): earned (not contractual) pay decides — ₹25,000 salary with 6 days LOP earns ₹20,000 → covered.
+    // The default version uses the contribution-period rule instead (review F-07, tests/stream-payroll-fixes.mjs).
+    const lop=M.hrComputeLine(mon(2500000),full('2026-09',30,{P:24,A:6}),{...R,esicPeriod:false});assert.equal(lop.earned,2000000);assert.ok(lop.esic>0);
   });
   test('[PAY-SCC] rupee rounding option: PF to the nearest rupee, ESIC up to the next rupee',()=>{
     const rr={...R,rounding:'rupee'};
@@ -153,11 +154,12 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const d=execute(z,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});
     assert.throws(()=>execute(d,'owner',{type:'HR_PAYROLL_LOCK',id:M.hrRunFor(d,'2026-09').id}),/salary not set/);
   });
-  test('[PAY-SCC] dated rates: version in force per month, legacy HR_RATES_SET defaults to the month after the last locked run',()=>{
+  test('[PAY-SCC] dated rates: version in force per month, legacy HR_RATES_SET defaults to the current month (review F-06), explicit from may be earlier',()=>{
     let s=execute(seed(),'owner',{type:'HR_RATES_SET',esicCeiling:2500000});
-    assert.deepEqual(M.hrRateVersions(s).map(v=>v.from),['2025-04-01','2026-09-01']);
-    assert.equal(M.hrRatesFor(s,'2026-08').esicCeiling,2100000);assert.equal(M.hrRatesFor(s,'2026-09').esicCeiling,2500000);
-    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-09-01',esicCeiling:2400000});assert.equal(M.hrRateVersions(s).length,2);assert.equal(M.hrRatesFor(s,'2026-12').esicCeiling,2400000);
+    assert.deepEqual(M.hrRateVersions(s).map(v=>v.from),['2025-04-01','2026-10-01']);
+    assert.equal(M.hrRatesFor(s,'2026-09').esicCeiling,2100000);assert.equal(M.hrRatesFor(s,'2026-10').esicCeiling,2500000);
+    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-10-01',esicCeiling:2400000});assert.equal(M.hrRateVersions(s).length,2);assert.equal(M.hrRatesFor(s,'2026-12').esicCeiling,2400000);
+    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-09-01',esicCeiling:2400000});assert.equal(M.hrRateVersions(s).length,3);
     assert.throws(()=>execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-10-15'}),code('VALIDATION'));
     assert.throws(()=>execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-11-01',basicBps:9000,hraBps:8000}),/cannot exceed/);
     s=execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});assert.equal(M.hrRunFor(s,'2026-09').rates.esicCeiling,2400000);
@@ -195,8 +197,10 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.equal(M.hrElEncashment(s,st),M.hrMulDiv(1350000,30,1,62));
     assert.throws(()=>execute(s,'manager',{type:'HR_FNF_SETTLE',staffId:'HR-S05'}),code('FORBIDDEN'));
     const adj=[{label:'Leave encashment (EL 15 days)',kind:'add',amount:653226},{label:'Uniform not returned',kind:'ded',amount:50000}];
-    const n=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:adj});
-    const f=x(n).fnf[0];assert.equal(f.month,'2026-10');assert.equal(f.salaryIncluded,true);assert.equal(f.advanceOutstanding,200000);
+    const d=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:adj});
+    assert.equal(x(d).fnf[0].status,'Draft');assert.equal(x(d).advances[0].recovered,100000,'draft writes nothing off (review F-12)');
+    const n=execute(d,'owner',{type:'HR_FNF_CONFIRM',id:x(d).fnf[0].id});
+    const f=x(n).fnf[0];assert.equal(f.status,'Settled');assert.equal(f.confirmedBy,'owner');assert.equal(f.month,'2026-10');assert.equal(f.salaryIncluded,true);assert.equal(f.advanceOutstanding,200000);
     assert.equal(f.line.counts.na,7);// 25–31 Oct after the exit
     assert.equal(f.earnings,f.line.gross+653226);assert.equal(f.recoveries,f.line.pf+f.line.esic+f.line.pt+200000+50000);assert.equal(f.net,f.earnings-f.recoveries);
     assert.equal(x(n).advances[0].recovered,300000);
@@ -204,11 +208,12 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.throws(()=>execute(n,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05'}),code('INVALID_TRANSITION'));
     assert.throws(()=>execute(n,'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:true}),/Full and final/);
     const neg=execute(s,'owner',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'Damage recovery',kind:'ded',amount:5000000}]});assert.ok(x(neg).fnf[0].net<0);
+    assert.equal(x(execute(neg,'accountant',{type:'HR_FNF_CONFIRM',id:x(neg).fnf[0].id})).fnf[0].status,'Settled');
     const me=execute(seed(),'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S07',active:false});
     assert.throws(()=>execute(me,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S07'}),code('FORBIDDEN'));
     assert.throws(()=>execute(s,'owner',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:[{label:'x',kind:'add',amount:-5}]}),code('VALIDATION'));
   });
-  test('[PAY-SCC] staff master: gender for PT by managers; PF / ESIC flags and bank details only by payroll roles',()=>{
+  test('[PAY-SCC] staff master: managers may resave an unchanged PT slab; PF / ESIC flags and bank details only by payroll roles (gender changes: review F-11)',()=>{
     const s=seed(),b={type:'HR_STAFF_SAVE',id:'HR-S09',name:'Suresh Pawar',dept:'KIT',designation:'Cook',defaultShift:'M',weeklyOff:3};
     assert.equal(x(execute(s,'manager',{...b,gender:'M'})).staff.find(t=>t.id==='HR-S09').gender,'M');
     assert.throws(()=>execute(s,'manager',{...b,esicApplicable:false}),code('FORBIDDEN'));

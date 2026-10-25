@@ -13,3 +13,9 @@
 .m-shell .exp-xml{max-height:320px;font-size:12px}
 .m-shell .exp-pack .table-wrap{overflow-x:auto;max-width:100%}
 .m-shell .mf-due{border-left:4px solid #7a1f2b}
+/* RC-1 · phone-width sheets (rendered outside .m-shell): count-method switch 48 px, form labels 16 px, small badges readable */
+@media (max-width:767px){
+  .f-seg button{min-height:var(--hcc-touch-primary,48px);padding-left:14px;padding-right:14px}
+  .form label{font-size:16px}
+  .m-chips button .count,.m-chips button small{font-size:14px}
+}

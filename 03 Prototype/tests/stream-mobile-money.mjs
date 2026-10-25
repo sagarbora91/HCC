@@ -63,7 +63,7 @@ export async function register({test,M,assert}){
     // M15: denomination count 24×₹500 + 2×₹200 + 1×₹50 = ₹12,450 → exact → shift closes on the phone
     const den=L.mmDenominations({500:24,200:2,50:1},'');assert.equal(L.mmCountTotal(den),1245000);
     X('cashier',L.mmShiftSubmitCommand(L.mmCountTotal(den),'',den,'mm-count:1'));
-    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:1245000,counted:1245000});assert.equal(M.shiftStatus(s),'Closed');
+    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:1245000,counted:1245000,countedBy:'cashier'});assert.equal(M.shiftStatus(s),'Closed');
     X('manager',{type:'CLOSE_RUN'});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});assert.ok(s.closedDates.includes('2026-10-26'));
   });
 

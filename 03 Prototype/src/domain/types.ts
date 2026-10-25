@@ -193,7 +193,7 @@ export type State={
   clock:string;
   rooms:Room[];bookings:Booking[];users:User[];tasks:Task[];expenses:Expense[];approvals:Approval[];audit:Audit[];
   grants:Record<Role,Permission[]>;settings:Settings;
-  openingCash:number;shiftOpen:boolean;shiftClose?:{expected:number;counted:number};
+  openingCash:number;shiftOpen:boolean;shiftClose?:{expected:number;counted:number;/** Who counted the drawer (W05 review F1; absent in old saves). */countedBy?:string};
   closedDates:string[];
   /** Idempotency keys already executed. A repeated key returns the earlier result (no new effect). */
   processed:string[];

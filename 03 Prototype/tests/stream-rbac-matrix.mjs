@@ -106,7 +106,7 @@ const CMDS={
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),
   CMP_FILE:C('OWN ACC','DEC-055'),CMP_NA:C('OWN ACC','DEC-055'),CMP_CA_PACK:C('OWN ACC','DEC-055'),
   CMP_REOPEN:C('OWN','DEC-055 manage + DEC-058'),CMP_OBLIGATION_SAVE:C('OWN','DEC-055 manage + DEC-058'),CMP_OBLIGATION_TOGGLE:C('OWN','DEC-055 manage + DEC-058'),CMP_SETTINGS_SET:C('OWN','DEC-058 compliance Owner-only'),
-  HR_PAYROLL_RUN:C('OWN ACC','Placement: hrCanPay'),HR_PAYROLL_LOCK:C('OWN ACC','Placement: hrCanPay (maker-checker)'),HR_PAYSLIP_SEND:C('OWN ACC','DEC-056'),HR_ADVANCE_ADD:C('OWN ACC','Module 17'),HR_FNF_SETTLE:C('OWN ACC','Placement'),
+  HR_PAYROLL_RUN:C('OWN ACC','Placement: hrCanPay'),HR_PAYROLL_LOCK:C('OWN ACC','Placement: hrCanPay (maker-checker)'),HR_PAYSLIP_SEND:C('OWN ACC','DEC-056'),HR_ADVANCE_ADD:C('OWN ACC','Module 17'),HR_FNF_SETTLE:C('OWN ACC','Placement'),HR_FNF_CONFIRM:C('OWN ACC','F&F maker-checker: the other payroll user (Owner / Accountant)'),HR_FNF_DISCARD:C('OWN ACC','F&F draft discard (payroll users)'),HR_PAYROLL_BANK_FILE:C('OWN ACC','Payroll bank file (payroll users, DEC-058 money)'),
   HR_PAYROLL_UNLOCK:C('OWN','DEC-058 payroll Owner-only'),HR_RATES_SET:C('OWN','DEC-058'),HR_STAT_RATES_SET:C('OWN','DEC-058'),HR_LEAVE_POLICY_SET:C('OWN','DEC-058'),
   HR_LEAVE_DECIDE:C('OWN MGR','Placement: managers approve'),HR_STAFF_ACTIVE:C('OWN MGR','Module 17'),HR_ROSTER_SET:C('OWN MGR','Module 17'),HR_ROSTER_COPY:C('OWN MGR','Module 17'),HR_STAFF_SAVE:C('OWN MGR ACC','Module 17 §3'),
   HR_ATT_MARK:C(ALL,'Module 17 self check-in'),HR_LEAVE_REQUEST:C(ALL,'Placement: every staff member applies'),HR_LEAVE_CANCEL:C(ALL,'Module 17 own request'),
@@ -138,8 +138,9 @@ const K=k=>'cmd:'+k;
  * or the check depends on the record). roles = who passes the guard for this record per the documents. */
 const OTHER=u=>u==='owner'?'manager':'owner';
 const PAYLOADS={
-  CB_LOCK:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'CB_LOCK',date:'2026-10-23'})},
-  CB_REOPEN:{roles:'OWN',run:(M,u)=>M.execute(M.execute(M.seed(),'accountant',{type:'CB_LOCK',date:'2026-10-23'}),u,{type:'CB_REOPEN',date:'2026-10-23',reason:'Banking slip on the wrong day'})},
+  // A closed day counted by the Cashier and closed by someone other than the user under test (counter/closer never lock).
+  CB_LOCK:{roles:'OWN MGR ACC',run:(M,u)=>{const x=closeDayBy(M,'cashier',u==='owner'?'manager':'owner');return M.execute(x,u,{type:'CB_LOCK',date:x.date});}},
+  CB_REOPEN:{roles:'OWN',run:(M,u)=>{let x=closeDayBy(M,'cashier','owner');x=M.execute(x,'accountant',{type:'CB_LOCK',date:x.date});return M.execute(x,u,{type:'CB_REOPEN',date:x.date,reason:'Banking slip on the wrong day'});}},
   CFG_DECIDE:{roles:'OWN MGR',run:(M,u)=>{let s=M.seed();const raiser=u==='techadmin'?addTad(M,s):['techadmin',s];s=M.execute(raiser[1],raiser[0],{type:'SETTING_SET',setting:'inspection',value:false,reason:'trial'});return M.execute(s,u,{type:'CFG_DECIDE',id:s.approvals.at(-1).id,approve:true});}},
   CORRECTION_ADJUST_DECIDE:{roles:'OWN',run:(M,u)=>{let s=M.execute(M.seed(),OTHER(u),{type:'CORRECTION_ADJUST',id:'HCC-1041',date:'2026-10-23',amount:-10000,reason:'Wrong laundry charge'});return M.execute(s,u,{type:'CORRECTION_ADJUST_DECIDE',id:s.approvals.at(-1).id,approve:true});}},
   APPROVAL:{roles:'OWN MGR',run:(M,u)=>{let s=M.execute(M.seed(),'reception',{type:'DISCOUNT',id:'HCC-1041',amount:50000,reason:'Service recovery'});return M.execute(s,u,{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});}},
@@ -165,6 +166,10 @@ const PAYLOADS={
   ACC_MAP_SET:{roles:'OWN',run:(M,u)=>M.execute(M.seed(),u,{type:'ACC_MAP_SET',source:'line:service',account:'4000'})},
   CORRECTION_REQUEST:{roles:'OWN MGR REC CSH ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'CORRECTION_REQUEST',id:'HCC-1041',lineId:'seed-night-0',reason:'Wrong rate'})},
 };
+/** Seed day closed: every arrival checked in, EXP-102 approved, nights posted, drawer counted by `counter`, closed by `closer`. */
+function closeDayBy(M,counter,closer){let x=M.seed();for(const b of x.bookings.filter(b=>b.status==='Confirmed')){x=M.execute(x,'owner',{type:'REGISTER',id:b.id});x=M.execute(x,'owner',{type:'CHECKIN',id:b.id});}
+  x=M.execute(x,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});x=M.execute(x,'owner',{type:'NIGHT_POST'});
+  x=M.execute(x,counter,{type:'SHIFT_SUBMIT',counted:M.drawer(x)});x=tillClear(M,x);return M.execute(x,closer,{type:'DAY_CLOSE'});}
 /** A second Tech admin, so one can decide what the other raised. */
 function addTad(M,s){const n=M.execute(s,'owner',{type:'USER_CREATE',name:'Second Tadmin',role:'Tech admin'});return [n.users.at(-1).id,n];}
 const outcome=fn=>{try{fn();return 'ok';}catch(e){return e?.code||('crash:'+e?.message);}};
@@ -383,14 +388,12 @@ export function register({test,M,assert}){
     let r=M.execute(s,'owner',{type:'CORRECTION_ADJUST',id:'HCC-1041',date:'2026-10-23',amount:-10000,reason:'Wrong laundry charge'});
     refusedSelf(()=>M.execute(r,'owner',{type:'CORRECTION_ADJUST_DECIDE',id:r.approvals.at(-1).id,approve:true}),'correction');
     r=M.execute(s,'manager',{type:'YLD_PROPOSE',from:'2026-10-25',to:'2026-10-27',types:M.yldRoomTypes(s)});refusedSelf(()=>M.execute(r,'manager',{type:'YLD_DECIDE',id:r.approvals.at(-1).id,approve:true}),'yield');});
-  const closeDay=counter=>{let x=M.seed();for(const b of x.bookings.filter(b=>b.status==='Confirmed')){x=M.execute(x,'owner',{type:'REGISTER',id:b.id});x=M.execute(x,'owner',{type:'CHECKIN',id:b.id});}
-    x=M.execute(x,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});x=M.execute(x,'owner',{type:'NIGHT_POST'});
-    x=M.execute(x,counter,{type:'SHIFT_SUBMIT',counted:M.drawer(x)});x=tillClear(M,x);return M.execute(x,'owner',{type:'DAY_CLOSE'});};
+  const closeDay=counter=>closeDayBy(M,counter,'owner');
   test('[RBAC] self-approval · cash book: the person who counted or closed the day cannot lock it (same business date)',()=>{
     const r=closeDay('manager');refusedSelf(()=>M.execute(r,'manager',{type:'CB_LOCK',date:r.date}),'counter');refusedSelf(()=>M.execute(r,'owner',{type:'CB_LOCK',date:r.date}),'closer');
     assert.equal(outcome(()=>M.execute(r,'accountant',{type:'CB_LOCK',date:r.date})),'ok');});
-  knownTest(known('F1','Cash book: after the next day is opened, the person who counted the closed day can lock it (the counter is not kept in the closing record)'),()=>{
-    let r=closeDay('manager');const d=r.date;r=M.execute(r,'owner',{type:'NEXT_DAY'});assert.throws(()=>M.execute(r,'manager',{type:'CB_LOCK',date:d}),forbidden());});
+  test('[RBAC] self-approval · cash book: after the next day is opened, the person who counted the closed day still cannot lock it (F1)',()=>{
+    let r=closeDay('manager');const d=r.date;r=M.execute(r,'owner',{type:'NEXT_DAY'});refusedSelf(()=>M.execute(r,'manager',{type:'CB_LOCK',date:d}),'counter');});
 
   test('[RBAC] known-mismatch register is unique',()=>{const ids=KNOWN.map(k=>k.id);assert.equal(new Set(ids).size,ids.length);
     console.log('RBAC known mismatches ('+ids.length+'): '+ids.join(', '));});
