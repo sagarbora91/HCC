@@ -102,4 +102,23 @@ export function register({test,M,assert}){
     for(const q of ['What compliance filings are due?','Is GSTR-3B filed?','When is TDS due?','PF and ESIC due this week','Is professional tax paid?','Which returns are due?','Any filing due this week?','Is PT due?'])
       assert.equal(aiMatchIntent(q),'compliance-due',q);
     const s=seed();assert.equal(aiAnswer(s,'manager','What payments are due this week?').restricted,undefined);});
+  test('[CMP] F3: the Owner can edit and rename TDS (special March date 30 Apr); special day validated against the real month length',()=>{
+    let s=seed();const o=cmpSlice(s).obligations.find(o=>o.id==='CMPO-TDS'),rule=o.rules.at(-1).rule;
+    s=execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',kind:'TDS',name:'TDS deposit (renamed)',form:o.form,owner:o.owner,rule,effectiveFrom:s.date});
+    assert.equal(cmpSlice(s).obligations.find(o=>o.id==='CMPO-TDS').name,'TDS deposit (renamed)');
+    s=execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',kind:'TDS',name:'TDS deposit',form:o.form,owner:o.owner,rule:{type:'day',day:7,special:{month:3,day:29}},effectiveFrom:'2026-11-01'});
+    assert.deepEqual(cmpSlice(s).obligations.find(o=>o.id==='CMPO-TDS').rules.at(-1).rule.special,{month:3,day:29});
+    assert.throws(()=>execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',name:'TDS deposit',rule:{type:'day',day:7,special:{month:3,day:31}}}),/Special-month/);   // April has 30 days
+    assert.throws(()=>execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',name:'TDS deposit',rule:{type:'day',day:7,special:{month:1,day:30}}}),/Special-month/);   // February ≤ 29
+    execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',name:'TDS deposit',rule:{type:'day',day:7,special:{month:12,day:31}}});});                                 // January has 31
+  test('[CMP] F5: an annual rule due Jan–Mar falls after the financial year ends (next calendar year); Apr–Dec unchanged',()=>{
+    const ann=(month,day)=>({freq:'Annual',rules:[{from:'2000-01-01',rule:{type:'fixed',month,day}}]});
+    assert.equal(cmpDueDate(ann(12,31),'2025-26'),'2026-12-31');                // GSTR-9
+    assert.equal(cmpDueDate(ann(1,31),'2025-26'),'2027-01-31');
+    assert.equal(cmpDueDate(ann(3,31),'2025-26'),'2027-03-31');
+    assert.equal(cmpDueDate(ann(4,30),'2025-26'),'2026-04-30');
+    assert.equal(cmpDueDate(ann(2,29),'2025-26'),'2027-02-28');assert.equal(cmpDueDate(ann(2,29),'2026-27'),'2028-02-29');
+    for(const [m,d] of [[1,1],[3,31],[4,1],[9,30],[12,31]])for(const p of ['2024-25','2025-26','2026-27'])assert.ok(cmpDueDate(ann(m,d),p)>`${+p.slice(0,4)+1}-03-31`,m+'/'+d+' '+p);
+    let s=seed();s=execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',kind:'GSTR-9',name:'Annual return due January',rule:{type:'fixed',month:1,day:31}});
+    const it=cmpItems(s).find(i=>i.obligation.name==='Annual return due January');assert.equal(it.due,'2027-01-31');assert.notEqual(it.status,'Overdue');});
 }

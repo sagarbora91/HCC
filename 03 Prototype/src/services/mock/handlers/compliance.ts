@@ -6,6 +6,8 @@ import {
   cmpSlice,cmpHasAccess,cmpItems,cmpCounts,cmpIsOpen,cmpPackLines,cmpValidDate,cmpMonthAdd,cmpFyLabel,cmpKey,cmpPeriodLabel,
 } from '../../../domain/streams/compliance';
 
+/** Longest length of each calendar month (index 0 = Jan); February 29 so a leap-year date is accepted and clamped where needed. */
+const CMP_MONTH_MAX_DAYS=[31,29,31,30,31,30,31,31,30,31,30,31];
 const slice=(k:Kit):CMPState=>{const x=cmpSlice(k.s);k.s.complianceX=x;return x;};
 const txt=(v:unknown)=>typeof v==='string'?v.trim():'';
 const access=(k:Kit)=>{if(!cmpHasAccess(k.s,k.uid))k.fail('FORBIDDEN','Access denied: the compliance calendar is for the Owner and the Accountant.');};
@@ -21,7 +23,8 @@ function parseRule(k:Kit,freq:CMPFreq,inp:any):CMPRule{
   if(t==='month-end')return {type:'month-end'};
   const day=Number(inp?.day);k.assert(t==='day'&&Number.isInteger(day)&&day>=1&&day<=28,'Choose “day of the next month” 1–28, or “last day of the next month”.');
   if(inp?.special){const sm=Number(inp.special.month),sd=Number(inp.special.day);
-    k.assert(Number.isInteger(sm)&&sm>=1&&sm<=12&&Number.isInteger(sd)&&sd>=1&&sd<=28,'Special-month date is not valid.');return {type:'day',day,special:{month:sm,day:sd}};}
+    // F3: the special date falls in the month after the special month, so it is checked against that month's real length (Feb: 29, clamped in leap-less years by cmpDueDate).
+    k.assert(Number.isInteger(sm)&&sm>=1&&sm<=12&&Number.isInteger(sd)&&sd>=1&&sd<=CMP_MONTH_MAX_DAYS[sm%12],'Special-month date is not valid.');return {type:'day',day,special:{month:sm,day:sd}};}
   return {type:'day',day};}
 
 export const handlers:Record<string,Handler>={

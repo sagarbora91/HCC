@@ -9,7 +9,7 @@ import {nights} from '../money';
 export type CMPKind='TDS'|'GSTR-1'|'GSTR-3B'|'GSTR-9'|'EPF'|'ESIC'|'PT';
 export const CMP_KINDS:CMPKind[]=['TDS','GSTR-1','GSTR-3B','GSTR-9','EPF','ESIC','PT'];
 export type CMPFreq='Monthly'|'Annual';
-/** Due-date rule. 'day': that day of the month after the period (optional special-month override); 'month-end': last day of the month after the period; 'fixed': month/day of the calendar year after the FY starts (annual). */
+/** Due-date rule. 'day': that day of the month after the period (optional special-month override); 'month-end': last day of the month after the period; 'fixed': the first such month/day after the financial year ends (annual). */
 export type CMPRule={type:'day';day:number;special?:{month:number;day:number}}|{type:'month-end'}|{type:'fixed';month:number;day:number};
 export type CMPDatedRule={from:string;rule:CMPRule};
 export type CMPObligation={id:string;kind:CMPKind;name:string;form:string;freq:CMPFreq;rules:CMPDatedRule[];
@@ -58,7 +58,8 @@ export function cmpRuleFor(o:Pick<CMPObligation,'freq'|'rules'>,p:string):CMPRul
   return (ok.length?ok[ok.length-1]:[...o.rules].sort((a,b)=>a.from.localeCompare(b.from))[0]).rule;}
 export function cmpDueDate(o:Pick<CMPObligation,'freq'|'rules'>,p:string):string{
   const r=cmpRuleFor(o,p);
-  if(r.type==='fixed'){const y=cmpFyStartYear(p)+1;return `${y}-${pad(r.month)}-${pad(Math.min(r.day,lastDayOf(y,r.month)))}`;}
+  // F5: 'after the financial year' — Apr–Dec fall in the calendar year the FY ends; Jan–Mar in the year after (never before the FY has ended).
+  if(r.type==='fixed'){const y=cmpFyStartYear(p)+(r.month<=3?2:1);return `${y}-${pad(r.month)}-${pad(Math.min(r.day,lastDayOf(y,r.month)))}`;}
   const nm=cmpMonthAdd(p,1),y=+nm.slice(0,4),m=+nm.slice(5,7);
   if(r.type==='month-end')return `${nm}-${pad(lastDayOf(y,m))}`;
   const day=r.special&&+p.slice(5,7)===r.special.month?r.special.day:r.day;
