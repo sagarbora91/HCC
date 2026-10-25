@@ -14,4 +14,7 @@ export function register({test,M,assert}){
     assert.ok(/onSubmitCapture=\{\(\)=>setDirty\(false\)\}/.test(src));assert.ok(!/ onSubmit=\{\(\)=>setDirty/.test(src));
     const app=await readFile('src/app/App.tsx','utf8');
     assert.ok(/setError\(''\);dirty\.current=false;/.test(app),'run() success clears dirty');});
+  test('[PF] AC-03 count-sheet formula: opening + cash in - cash out = expected, restaurant cash included',()=>{
+    for(const sc of ['S0','S1']){const s=M.loadScenario(sc);const ex=M.shiftExpected(s);
+      assert.equal(ex.opening+M.shiftCashIn(ex)-(ex.refunds+ex.returns+ex.expenses),ex.expected);}});
 }
