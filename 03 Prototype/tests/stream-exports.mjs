@@ -104,6 +104,9 @@ export function register({test,M,assert}){
     const s=M.seed();assert.ok(M.accTallyXml(s,'2026-10-25','2026-10-24').error);assert.ok(M.accTallyXml(s,'2026-01-01','2026-10-24').error);
     assert.ok(!M.accTallyXml(s,'2026-10-24','2026-10-24').xml.includes('& '));
   });
+  test('[TALLY] F10: impossible calendar dates are refused (30 Feb, month 13, day 00)',()=>{
+    const s=M.seed();for(const [a,b] of [['2026-02-30','2026-03-01'],['2026-10-01','2026-13-01'],['2026-10-00','2026-10-05'],['2026-09-31','2026-10-01']])assert.match(M.accTallyXml(s,a,b).error??'',/valid/,a+'..'+b);
+    assert.equal(M.accTallyXml(s,'2026-10-20','2026-10-24').error,undefined);});
   test('[XLSX] F6: large native save is chunked (writeFile then appendFile) and reassembles byte-for-byte',()=>{
     const w=R.bigCalls.filter(c=>c[0]==='Filesystem'&&(c[1]==='writeFile'||c[1]==='appendFile'));assert.equal(R.bigR,'shared');
     assert.deepEqual(w.map(c=>c[1]),['writeFile','appendFile','appendFile']);assert.ok(w.every(c=>c[2].path==='HCC/HCC-big.xlsx'&&c[2].directory==='DOCUMENTS'));
