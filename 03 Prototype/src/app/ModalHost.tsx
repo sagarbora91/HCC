@@ -29,6 +29,12 @@ export function ModalHost(){
       ||d.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]),select:not([disabled]),textarea:not([disabled])');
     (display.isMobile?d:(t||d)).focus(); // phone sheets: no on-screen keyboard pops up on open
   },[key]);
+  // PB-1: Escape closes the top dialog from anywhere (focus may be on BODY after the search palette closed over it). Handlers that already
+  // consumed the key (the dialog itself, palette, drawer, nested confirms) call preventDefault, so this only catches the stray case.
+  const closeRef=React.useRef(closeModal);closeRef.current=closeModal;
+  React.useEffect(()=>{if(!isOpen)return;
+    const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!e.defaultPrevented){e.preventDefault();closeRef.current();}}; // closeModal keeps the unsaved-changes guard
+    document.addEventListener('keydown',onKey);return()=>document.removeEventListener('keydown',onKey);},[isOpen]);
   if(!modal)return null;
   const needsBooking=['booking','payment','charge','discount','checkout','move','cancel','invoice'].includes(modal.type);
   const found=!needsBooking||s.bookings.some(b=>b.id===modal.id);

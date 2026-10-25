@@ -2,7 +2,7 @@
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import React,{useState} from 'react';
 import {Receipt,Plus,MoreHorizontal,RotateCcw,Printer,LogOut,Percent,CalendarRange,XCircle,FileMinus,PencilLine,Building2} from 'lucide-react';
-import {money,totals,lineTax,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection} from '../../services/mock';
+import {cbIsLocked,cbLockedMessage,money,totals,lineTax,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ListCard,KpiCard,ChipFilter} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
@@ -78,7 +78,7 @@ export function MmFolioSheet({id}:{id?:string}){
       {tab==='receipts'&&(b.receipts.length?b.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0,out=['refund','deposit-return'].includes(r.kind);
         return <div key={r.id} className="mm-row">
           <div className="mm-row-main"><strong>{folioReceiptLabel[r.kind]??r.kind} · {r.method}</strong><small>{shortDate(r.date)} · {r.reference}{r.tenderGroup?' · split '+r.tenderGroup:''}{refunded?' · refunded '+money(refunded):''} · {userName(r.actor)}</small><small>{r.id} · not verified</small>
-            {refundable>0&&permission('payments')&&<button type="button" className="text-btn mm-inline-btn" disabled={busy} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={14}/> Request refund</button>}</div>
+            {refundable>0&&permission('payments')&&(()=>{const locked=cbIsLocked(s,r.date),why=cbLockedMessage(r.date,'a refund against receipt '+r.id);return <><button type="button" className="text-btn mm-inline-btn" disabled={busy||locked} title={locked?why:undefined} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={14}/> Request refund</button>{locked&&<small className="mm-why">{why}</small>}</>;})()} {/* DEC-065 */}</div>
           <div className="mm-row-amt"><strong className={'number'+(out?' mm-out':'')}>{out?'−':''}{money(r.amount)}</strong></div></div>;})
         :<Empty title="No receipts recorded" body="Payments, deposits and returns appear here."/>)}
       {tab==='requests'&&(approvals.length?<div className="mm-requests">{approvals.map(a=><FolioApprovalRow key={a.id} a={a}/>)}</div>
@@ -103,7 +103,7 @@ export function MmFolioMore({id}:{id?:string}){
   return <><div className="modal-heading"><div className="eyebrow">{b.id} · ROOM {b.room}</div><h2>More actions</h2><p>{b.guest} · balance {money(totals(b).balance)}</p></div>
     <div className="mm-more-list">
       {item(active&&rbacCanDiscount(s,uid),<Percent size={20}/>,'Discount','Above the limit, another user approves',()=>open({type:'discount',id:b.id}))}
-      {item(!!firstRefundable&&permission('payments'),<RotateCcw size={20}/>,'Request refund',`Against ${firstRefundable?.id} (pick another on the Receipts tab)`,()=>open({type:'refund',id:b.id,room:firstRefundable!.id}))}
+      {item(!!firstRefundable&&permission('payments'),<RotateCcw size={20}/>,'Request refund',firstRefundable&&cbIsLocked(s,firstRefundable.date)?cbLockedMessage(firstRefundable.date,'a refund against receipt '+firstRefundable.id):`Against ${firstRefundable?.id} (pick another on the Receipts tab)`,()=>{if(!firstRefundable||cbIsLocked(s,firstRefundable.date))return;open({type:'refund',id:b.id,room:firstRefundable.id});})} {/* DEC-065: locked day = no-op, reason shown */}
       {item(active&&!!firstCorrectable&&rbacCanRequestCorrection(s,uid),<PencilLine size={20}/>,'Request correction',`Reverse “${firstCorrectable?.label}” (pick another on the Charges tab)`,()=>open({type:'correction',id:b.id,room:firstCorrectable!.id}))}
       {item(b.status==='In house'&&permission('checkout'),<LogOut size={20}/>,'Checkout','Checklist, then confirm',()=>open({type:'checkout',id:b.id}))}
       {item(active&&permission('reservations'),<CalendarRange size={20}/>,b.status==='In house'?'Move / extend stay':'Change dates / room','Shows conflicts before saving',()=>open({type:b.status==='In house'?'stay-move':'move',id:b.id}))}

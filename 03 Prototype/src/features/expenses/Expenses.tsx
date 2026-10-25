@@ -1,7 +1,7 @@
 // SCR-13 Expenses: status tabs, draft/submit/approve/reject/reverse, duplicate warning; plus the approval requests list.
 import React,{useState} from 'react';
 import {Paperclip} from 'lucide-react';
-import {money,expenseDuplicates,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanDecideCash} from '../../services/mock';
+import {money,expenseDuplicates,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanDecideCash,cbIsLocked,cbLockedMessage} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
@@ -26,8 +26,8 @@ export function Expenses(){
         <button className="text-btn" disabled={busy} onClick={()=>open({type:'expense-reason',id:e.id,room:'reject'})}>Reject…</button>
         {(over||noShift)&&<small className="f-why">{over?`Above ${money(EXPENSE_MANAGER_LIMIT)} — Owner approves`:'Cash shift not open'}</small>}</div>;
     }
-    if(e.status==='Posted'&&!e.reversalOf&&canDecide){const noShift=e.method==='Cash'&&!s.shiftOpen;
-      return <div className="inline"><button className="text-btn" disabled={busy||noShift} onClick={()=>open({type:'expense-reason',id:e.id,room:'reverse'})}>Reverse…</button>{noShift&&<small className="f-why">Cash shift not open</small>}</div>;}
+    if(e.status==='Posted'&&!e.reversalOf&&canDecide){const noShift=e.method==='Cash'&&!s.shiftOpen,locked=cbIsLocked(s,e.date); // DEC-065
+      return <div className="inline"><button className="text-btn" disabled={busy||noShift||locked} title={locked?cbLockedMessage(e.date,'reversing this expense'):undefined} onClick={()=>open({type:'expense-reason',id:e.id,room:'reverse'})}>Reverse…</button>{locked?<small className="f-why">{cbLockedMessage(e.date,'reversing this expense')}</small>:noShift&&<small className="f-why">Cash shift not open</small>}</div>;}
     return <span className="muted">—</span>;
   }
   const approvals=s.approvals.slice().reverse();

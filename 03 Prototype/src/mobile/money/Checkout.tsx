@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React from 'react';
 import {Check,AlertTriangle,ArrowRight,Printer,Building2,Receipt,Hotel,Info} from 'lucide-react';
-import {money,totals,lineTax,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
+import {money,totals,gstLineSplit,gstSplitLines,gstHalfPct,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate} from '../../components/ui';
 import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
@@ -58,9 +58,12 @@ export function MmInvoice({id}:{id?:string}){
         <div><small>GUEST</small><strong>{b.guest}</strong><span>Room {b.room} · {plural(b.people,'guest')} · {b.id}</span>{b.company&&<span>Bill to: {b.company.name}{b.company.gstin?` · GSTIN (placeholder) ${b.company.gstin}`:''}</span>}</div>
         <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><strong>{b.invoiceNo??'Not yet issued'}</strong><span>{shortDate(b.arrival)} — {shortDate(b.departure)}</span><span>{b.invoiceNo?'Allocated once at checkout':'Number allocated once at checkout'}</span></div>
       </div>
-      <table className="mm-inv-table"><thead><tr><th>Description</th><th>Date</th><th className="number">Net</th><th className="number">Tax</th></tr></thead>
-        <tbody>{b.lines.map(l=><tr key={l.id}><td data-label="Description">{l.label}</td><td data-label="Date">{shortDate(l.date)}</td><td className="number" data-label="Net">{money(l.amount)}</td><td className="number" data-label="GST">{money(lineTax(l))}</td></tr>)}</tbody></table>
+      <table className="mm-inv-table"><thead><tr><th>Description</th><th>Date</th><th className="number">Net</th><th className="number">CGST</th><th className="number">SGST</th></tr></thead>
+        <tbody>{b.lines.map(l=><tr key={l.id}><td data-label="Description">{l.label}</td><td data-label="Date">{shortDate(l.date)}</td><td className="number" data-label="Net">{money(l.amount)}</td>{(()=>{const g=gstLineSplit(l);return <><td className="number" data-label="CGST">{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></td><td className="number" data-label="SGST">{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></td></>;})()}</tr>)}</tbody></table>
       <div className="mm-inv-sum">
+        <div><span>Net charges</span><strong className="number">{money(t.net)}</strong></div>
+        <div><span>CGST</span><strong className="number">{money(gstSplitLines(b.lines).cgst)}</strong></div>
+        <div><span>SGST</span><strong className="number">{money(gstSplitLines(b.lines).sgst)}</strong></div>
         <div><span>Total including GST</span><strong className="number">{money(t.total)}</strong></div>
         <div><span>Net receipts applied</span><strong className="number">{money(t.paid)}</strong></div>
         {cc>0&&<div><span>On company credit (receivable)</span><strong className="number">{money(cc)}</strong></div>}
