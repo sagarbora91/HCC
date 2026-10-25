@@ -161,4 +161,9 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.throws(()=>execute(seed(),'accountant',{type:'HR_STAT_RATES_SET',from:'2026-11-01',esicPeriod:false}),code('FORBIDDEN'));
     assert.match(M.hrSettingValue(seed(),'hr.esic'),/contribution period/);assert.ok(M.cfgDef(seed(),'hr.esic.esicPeriod').illustrative);
   });
+
+  test('[PAY-FIX F-08] the SCC extra-days rule and day-based overtime are visibly marked "Not ported from SCC" (policy + rates screens)',()=>{
+    const s=seed();assert.match(M.HR_NOT_PORTED,/extra-days rule/);assert.match(M.HR_NOT_PORTED,/day-based overtime/);
+    for(const phone of [false,true]){assert.match(UI.renderSection(s,'manager','LeavePolicy',phone),/Not ported from SCC/);assert.match(UI.renderSection(s,'owner','Rates',phone),/Not ported from SCC/);}
+  });
 }

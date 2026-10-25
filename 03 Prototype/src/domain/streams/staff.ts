@@ -9,6 +9,9 @@
 //   SCC leave — ...\reference-inputs\SCC-modules\leave\index.html
 //     ENT_DEFAULTS (CL 12 · SL 7 · EL 15 per Indian FY, fyRangeOf) · leaveDaysOf (half-day = 0.5) · isWeekOffDate (weekly offs skipped) ·
 //     getCapacity / MAX_DAY (max staff off per day — per department here; pending + approved hold a slot, rejected frees it) · decideLeave.
+// NOT PORTED FROM SCC (review F-08, Owner decision pending): calcAttendance's "extra days" rule (+4 paid days when total deductions ≤ 5.5,
+//   +2 when < 7, none above — i.e. paid days forfeited when absence is high), its 5.5-day monthly cap on leaves applied, and day-based overtime
+//   (surplus days paid at gross ÷ days). HCC instead pays rostered weekly offs (roster) and overtime per minute; see HR_NOT_PORTED.
 // Statutory values are DATED settings (effective-from) and marked "Illustrative — CA to confirm for a hotel". Fictional staff only.
 import type {State,Role} from '../types';
 import {addDays} from '../money';
@@ -90,6 +93,8 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
   /** Dated statutory rate versions, sorted by `from`. */ rateVersions:HRRates[];
   leavePolicy?:HRLeavePolicy;runs:HRRun[];fnf?:HRFnf[]};
 
+/** F-08: shown on the leave-policy and statutory-rates screens. */
+export const HR_NOT_PORTED='Not ported from SCC: the extra-days rule (4 or 2 paid days added by total deductions, none above 7; 5.5-day monthly leave cap) and day-based overtime. HCC pays rostered weekly offs from the roster and overtime per minute. Owner decision pending (CA item 9).';
 export const HR_DISCLAIMER='Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff.';
 export const hrDefaultRates=():HRRates=>({from:'2025-04-01',basicBps:5000,hraBps:8000,washBps:1000,pfEeBps:1200,pfErBps:1300,pfWageCap:1500000,
   esicEeBps:75,esicErBps:325,esicCeiling:2100000,ptMaleExempt:750000,ptMaleMid:1000000,ptMaleMidAmt:17500,ptStd:20000,ptFeb:30000,ptFemaleExempt:2500000,

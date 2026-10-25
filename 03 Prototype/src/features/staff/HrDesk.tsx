@@ -15,7 +15,7 @@ import {
   money,addDays,isDayClosed,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
   hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrLastLockedMonth,hrSettingDefs,hrSettingValue,hrWeekday,
-  HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,type HRStaff,type HRRun,type HRLeave,
+  HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
 } from '../../services/mock';
 import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
 import {hrUserName} from './modals';
@@ -180,6 +180,7 @@ function LeavePolicy({phone}:{phone:boolean}){
   const btn=edit?<button className="btn primary" onClick={()=>open({type:'hr-leave-policy'})}><Settings2 size={16}/> Edit leave policy</button>:null;
   return <section className={phone?'':'card'}><div className={phone?'':'section-title'}><div><h2>Leave policy</h2><p>From SCC: entitlements per April–March year, half-days, weekly offs and a daily limit on staff off (per department here).</p></div>{!phone&&btn}</div>
     <div className={'summary-list'+(phone?' hr-m-rates':' padded')}>{rows.map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
+    <div className="info-note hr-warn"><AlertTriangle size={16}/><span>{HR_NOT_PORTED}</span></div>
     {!edit&&<p className="footnote padded">Only the Owner changes the leave policy.</p>}{phone&&btn&&<StickyFooter>{btn}</StickyFooter>}</section>;
 }
 
@@ -288,6 +289,7 @@ function Rates({phone}:{phone:boolean}){
       <div className="table-wrap"><table><thead><tr><th>Effective from</th><th>PF</th><th>ESIC</th><th>PT (men / women)</th><th>Overtime</th><th>Rounding</th><th>Locked runs</th></tr></thead><tbody>
         {versions.map(v=><tr key={v.from}><td><strong>{dateLabel(v.from)}</strong>{v.from===now.from&&<small>In force now</small>}</td><td>{v.pfEeBps/100}% + {v.pfErBps/100}% · cap {money(v.pfWageCap)}</td><td>{v.esicEeBps/100}% + {v.esicErBps/100}% · ≤ {money(v.esicCeiling)}{v.esicPeriod?' · per contribution period':' · month by month'}</td>
           <td>{money(v.ptStd)} (Feb {money(v.ptFeb)}) · women exempt ≤ {money(v.ptFemaleExempt)}</td><td>{v.otBps/10000}×</td><td>{v.rounding==='paise'?'Paise':'Rupee'}</td><td>{usedBy(v.from)||'—'}</td></tr>)}</tbody></table></div></>}
+    <p className="footnote padded">{HR_NOT_PORTED}</p>
     {!edit&&<p className="footnote padded">Only the Owner adds a rate version (DEC-058). Locked pay-runs keep the rates they were calculated with.</p>}</section>;
 }
 export const HrDeskMobile=()=><HrDesk phone/>;
