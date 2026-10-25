@@ -1,6 +1,6 @@
 # D5 · Roles and device behaviour (v8) — EMULATED
 
-**Progress:** 25 Oct, API 35 run on the work PC. Done: roles x10, Android Back (sheet/page/exit, after print/share and Display switch), Reset, CSV + share sheet, print preview A4. Next: D-01 settle wording (S0), T-04 booking list, then Part 3 in D5_AC.md.
+**Progress:** 25 Oct, API 35 on the work PC. Done: roles x10, Back checks, Reset, CSV+share, print A4, D-01 wording. Next: T-04 "1 night · 1 guest" (needs 1-night booking, done inside AC-M05 in D5_AC.md).
 
 ## Earlier attempt (home PC, kept for the record)
 25 Oct (resumed) — `codex_api35_google` cold-booted with `-no-snapshot-load` stayed `offline` for ~15 min (killed). FALLBACK was `codex_apk_review` (emulator-5556, Android 11, WebView 83, phone layout). Results from that attempt were for WebView 83 / Android 11, not API 35. Nothing below depends on it.
@@ -41,3 +41,5 @@
 | Back after Reset | Pass | `v8-reset-confirm.png` | Reset demo → toast "Scenario FY26 loaded…"; Back → exit prompt |
 | CSV export: file in `Documents/HCC` + share sheet | Pass | `v8-csv-share-sheet.png`; `/sdcard/Documents/HCC/HCC-Demo-daily-2026-10-24_2026-10-24.csv` (818 bytes) | Chooser "Sharing 1 file" (Quick Share, Drive, Gmail) |
 | Print service preview on **A4**, no empty block (T-03 fix) | Pass | `v8-print-service-preview.png` | "ISO A4", one page, report + watermark, white below, no beige block |
+| Restaurant settle dialog wording mentions the front-desk drawer (D-01 fix) | Pass | `v8-d01-settle-dialog-cash.png` | Table T2 (POS-F03), Settle by Cash: "Cash sales count once in the shared front-desk drawer and appear in the POS day summary…" (no "separate from" text). Also: UPI settle of POS-F03 (₹1,914) and POS-F04 (₹330) worked once a UPI reference was typed; Settle with an empty UPI reference gave no visible message in my check (not investigated, not logged). |
+| Booking list shows "1 night · 1 guest" (T-04 fix) | See D5_AC.md (AC-M05) | — | Phone booking cards show "N nights" only (no guest count); the 1-night case is checked after the 7→8 Nov booking is made |
