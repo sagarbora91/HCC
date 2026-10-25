@@ -171,7 +171,7 @@ public sealed partial class BillingDb : IAsyncLifetime
         OtherPropertyId = Convert.ToInt32(await ScalarAsync("INSERT inv.property(code, name, time_zone, business_date) OUTPUT INSERTED.property_id VALUES ('OTHER', N'Other Demo', 'Asia/Kolkata', '2026-10-24');"), CultureInfo.InvariantCulture);
         Runner = new SqlPlatform(options).Commands;
         var store = new SqlBillingStore(connections);
-        Billing = new BillingService(Runner, store, Policy, Stays, new Hcc.Application.Tax.FixedGstRateResolver(), Clock); // pinned DEC-039 10 % (GST figures: Hcc.Tax.Tests)
+        Billing = new BillingService(Runner, store, Policy, Stays, new Hcc.Application.Tax.FixedGstRateResolver(), Clock); // pinned DEC-039 10 % (GST figures: Hcc.GstIds.Tests)
         Cashier = new CashierService(Runner, store, Policy, Clock);
         Queries = new BillingQueries(store, Policy, Clock);
     }
