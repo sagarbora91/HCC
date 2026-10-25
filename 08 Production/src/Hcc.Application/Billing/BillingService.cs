@@ -165,7 +165,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             AdjustmentAction.Credit => BillingPermissions.Checkout,
             _ => BillingPermissions.Correction,
         };
-        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, basePermission, ct: ct).ConfigureAwait(false);
+        await RequireRequesterAsync(caller, basePermission, ct).ConfigureAwait(false);
 
         return await runner.RunAsync(Ctx(caller, "RequestAdjustment", idempotencyKey), req, async (tx, ct2) =>
         {
@@ -466,6 +466,24 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
 
     private async Task<FolioFigures> FiguresAsync(ICommandTransaction tx, long folioId, CancellationToken ct)
         => FolioStatement.Compute(await store.LinesAsync(tx, folioId, ct).ConfigureAwait(false), await store.ReceiptsAsync(tx, folioId, ct).ConfigureAwait(false));
+
+    /// <summary>
+    /// The requester must HOLD the permission; holding it with an amount limit ("L") or request-only ("R" cell, DEC-063) is exactly
+    /// the case a request exists for, so APPROVAL_REQUIRED from the policy is accepted here and the command creates the approval
+    /// request (a within-limit discount still posts directly, see <see cref="WithinLimitAsync"/>). FORBIDDEN (no grant, out of
+    /// scope, explicit deny) still refuses.
+    /// </summary>
+    private async Task RequireRequesterAsync(Caller caller, string permission, CancellationToken ct)
+    {
+        try
+        {
+            await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, ct: ct).ConfigureAwait(false);
+        }
+        catch (HccException ex) when (ex.Code == HccErrorCode.APPROVAL_REQUIRED)
+        {
+            // Limited or request-only holder: continue to the approval workflow.
+        }
+    }
 
     private async Task<bool> WithinLimitAsync(Caller caller, string permission, Paise amount, CancellationToken ct)
     {

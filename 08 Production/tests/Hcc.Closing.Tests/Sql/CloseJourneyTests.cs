@@ -76,10 +76,11 @@ public sealed class CloseJourneyTests
         drawers.Add(await h.ExpectedAsync(shift2.ShiftId, ct));
         await h.Billing.PostChargeAsync(h.As(h.Reception), Hotel.Key(), new PostChargeRequest(folio, "Laundry service", 50000), ct);
         var v = (await h.BillingQueries.GetFolioAsync(h.As(h.Owner), folio, ct)).Version;
-        // Prototype: Reception requests, Manager approves. With the real P1 policy P4's base check refuses every limited/request-only
-        // requester (APPROVAL_REQUIRED "Amount needed for a limited permission") — reported to the lead; the Owner posts it here.
-        var req = (await h.Billing.RequestAdjustmentAsync(h.As(h.Owner), Hotel.Key(), new RequestAdjustmentRequest("discount", folio, null, 50000, "Service delay goodwill", v), ct)).Value;
-        Assert.Equal("Posted", req.Outcome);
+        // Prototype: Reception requests (above its ₹250 limit → approval request), the Manager approves (≤ ₹1,000, DEC-063 G1).
+        var req = (await h.Billing.RequestAdjustmentAsync(h.As(h.Reception), Hotel.Key(), new RequestAdjustmentRequest("discount", folio, null, 50000, "Service delay goodwill", v), ct)).Value;
+        Assert.Equal("PendingApproval", req.Outcome);
+        var approved = (await h.Billing.DecideApprovalAsync(h.As(h.Manager), Hotel.Key(), new DecideApprovalRequest(req.ApprovalId!.Value, true, "Service delay", req.ApprovalVersion!), ct)).Value;
+        Assert.Equal("Executed", approved.Status);
         await h.CountExactAsync(shift2.ShiftId, ct);
         Assert.Equal("Completed", (await h.CloseAsync(date: D25, ct: ct)).Value.Status);
 
