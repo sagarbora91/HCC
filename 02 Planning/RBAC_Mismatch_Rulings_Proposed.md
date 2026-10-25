@@ -1,6 +1,6 @@
 # RBAC mismatch rulings: proposed for owner decision
 
-25 Oct 2026 · Status: **Proposed** (needs the owner's answer) · Source: `05 Delivery Evidence\Assembly\RBAC_Matrix_Check_2026-10-25.md` (integration worktree), test `03 Prototype\tests\stream-rbac-matrix.mjs` (KNOWN table)
+25 Oct 2026 · Status: **Accepted in full by the owner, 25 Oct 2026 (DEC-063, APR-010)** · Source: `05 Delivery Evidence\Assembly\RBAC_Matrix_Check_2026-10-25.md` (integration worktree), test `03 Prototype\tests\stream-rbac-matrix.mjs` (KNOWN table)
 Evidence: `HCC_RBAC_Matrix_v1.md` (M0, "Proposed"), `HCC_Prototype_Spec_v1.md` §1.1, `HCC_Business_Workflow_Spec_v1.md`, Decision Register (DEC-027, 031, 055, 058, 061).
 
 **How to answer:** reply "accept all", or "accept all except G2, G6…" and give your choice for those groups.
