@@ -239,3 +239,8 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - Browser harness incomplete: timed out clicking .modal-close after Demo controls (check-overlay-compat.mjs:32). Fix selector and rerun; no browser-pass claim.
 - Detailed resume instructions: 05 Delivery Evidence/Acceptance/AC02_Source_Verification_2026-10-25.md.
 - AC-02 acceptance remains OPEN pending local browser completion and real WebView83 check. No APK rebuild (user restriction), install, commit or push.
+
+## Wave 0.5 — IN PROGRESS (started 25 Oct 2026, APR-007)
+- Five agents in their own worktrees/branches (briefs `02 Planning\agents\W05_Briefs.md`): **W05-A** Master configuration (Opus, `local_20534bad…`), **W05-B** payroll/leave/payslips from SCC (Opus, `local_d165f268…`), **W05-C** compliance calendar (Sonnet, `local_20b4906e…`), **W05-D** cash book (Sonnet, `local_5a4c6b0c…`), **W05-E** Excel/day-pack PDF/Tally preview (Sonnet, `local_698f0f51…`). In parallel: W0-D final emulator checks on APK v8 in the main checkout (`local_3dd816e5…`).
+- Agents commit WIP to their own branches (`git branch -a` shows `claude/w05*`). Lead merges after all report: resolve the small shared-file line conflicts (registry.ts, navmap.ts, types.ts, mock/handler index files, DayClosing.tsx), bump SCHEMA 7 → 8 once, wire B/C/D `*SettingDefs()` into the hub's provider API, full tsc/test/build, APK v9.
+- After a crash: restart `bash tools/checkpoint.sh`, then message each agent to continue from its last commit.
