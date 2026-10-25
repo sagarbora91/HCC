@@ -107,6 +107,12 @@ export function cbCanLock(s:State,uid:string,d:string):{ok:boolean;why?:string}{
 }
 export const cbCanReopen=(s:State,uid:string,d:string)=>{const u=s.users.find(x=>x.id===uid);return !!u&&CB_REOPEN_ROLES.includes(u.role)&&!!cbSlice(s).locks[d];};
 
+/** DEC-065: while a cash-book day is locked, nothing may add, change or reverse a cash movement dated on it until the Owner reopens it. */
+export const cbIsLocked=(s:State,date?:string):boolean=>!!date&&!!cbSlice(s).locks[date];
+/** Locked dates, oldest first (UI notes). */
+export const cbLockedDates=(s:State):string[]=>Object.keys(cbSlice(s).locks).sort();
+/** Text of the typed DAY_CLOSED error (and of the disabled-button reason): names the date and who can unlock it. */
+export const cbLockedMessage=(date:string,what:string)=>`Cash book ${date} is locked, so ${what} is blocked. The Owner must reopen ${date} (with a reason) first.`;
 export const CB_DIFF_LABEL='Cash over/short (counted − expected)';
 const csvCell=csvQuoted;
 const rupees=(p:number)=>(p/100).toFixed(2);
