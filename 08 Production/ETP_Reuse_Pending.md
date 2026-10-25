@@ -29,5 +29,6 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 23 | `src/Hcc.Api/Endpoints/AccountingEndpoints.cs` `AccountingProjectorWorker` (W2-3) | 2 s outbox poll, log and retry | ETP background-job hosting (retry/back-off, logging) — same as the housekeeping worker |
 | 24 | `src/Hcc.Application/Compliance/ComplianceCommands.cs` `GenerateCaPackAsync` (W2-5) | CA pack is simulated: the position lines are stored in `cmp.ca_pack`, nothing is e-mailed or rendered as PDF/Excel | ETP e-mail sender and PDF/Excel pack exporters (attach the pack lines, send to the CA e-mail in `cmp.setting`) |
 | 25 | `src/Hcc.Application/Pos` (W2-6) — `// ETP-REUSE:` KOT / bill printing | Not built; the prototype prints via the browser | Thermal/A4 KOT and bill templates, day summary Excel/PDF through the ETP exporters |
+| 26 | `src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs` (`IsTechnicianAsync`, `FirstTechnicianAsync`) | Technician = enabled user holding role MNT (SQL over `plat.user_role`) | ETP staff/role directory (assignable technician list) |
 
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).

@@ -35,6 +35,7 @@ public static class HccComposition
         services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
         services.AddHccCompliance();                     // W2-5 compliance calendar
         services.AddPosModule();                         // W2-6 restaurant POS
+        services.AddHccMaintenance();                    // W2-7
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -66,6 +67,7 @@ public static class HccComposition
         api.MapAccountingEndpoints();    // W2-3
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6
+        api.MapMaintenanceEndpoints();   // W2-7
         return api;
     }
 }
