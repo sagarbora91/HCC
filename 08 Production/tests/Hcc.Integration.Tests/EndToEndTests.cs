@@ -16,7 +16,7 @@ namespace Hcc.Integration.Tests;
 /// Wave 1 end to end over HTTP with the real composition (no fakes): DEC-062 sign-in (Owner password in a cookie session;
 /// Reception and Housekeeper PIN on a registered device, bearer token) → book (P2) → register guest → check in (P3) → post
 /// room nights → cash receipt on Reception's own shift (P4) → checkout → StayDeparted → housekeeping task (projector worker)
-/// → assigned clean → inspect → Ready. Prototype room 105 figures: 2 nights × ₹2,000 + 10 % tax = ₹4,400 incl. ₹400 tax.
+/// → assigned clean → inspect → Ready. Prototype room 105 figures: 2 nights × ₹2,000 + 5 % GST (DEC-069 master: room night ≤ ₹7,500 from 22 Sep 2025) = ₹4,200 incl. ₹200 GST.
 /// Business dates are advanced by the P6 day close (RunBusinessDayClose over HTTP: preflight, nights, close + snapshot, next day).
 /// </summary>
 [Trait("Category", "Sql")]
@@ -139,12 +139,12 @@ public sealed class EndToEndTests
         Assert.Equal(["REC"], caps.Roles);
         Assert.Equal("S", caps.Permissions.Single(p => p.PermissionId == "PERM-PAY-001").Scope);
 
-        var (reservationId, stayId, folioId, stayVersion) = await BookAndCheckInAsync(staff.Reception, room105, "2026-10-24", "2026-10-26", "Meera Iyer (fictional)", 440000);
+        var (reservationId, stayId, folioId, stayVersion) = await BookAndCheckInAsync(staff.Reception, room105, "2026-10-24", "2026-10-26", "Meera Iyer (fictional)", 420000);
 
         // Night audit posting is Owner/Manager only (PERM-CLS-002).
         await Wire.CommandFailsAsync(staff.Reception, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 24)), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
         var n1 = await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 24)), Ct);
-        Assert.Equal((200000L, 1000, 20000L), (n1.AmountPaise, n1.TaxBps, n1.TaxPaise));
+        Assert.Equal((200000L, 500, 10000L), (n1.AmountPaise, n1.TaxBps, n1.TaxPaise));
         await CloseDayAsync(staff.Owner, new DateOnly(2026, 10, 24));
         await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 25)), Ct);
         await CloseDayAsync(staff.Owner, new DateOnly(2026, 10, 25));
@@ -152,11 +152,11 @@ public sealed class EndToEndTests
         // Shared front-desk till (DEC-052): Owner creates it, Reception opens its own shift and takes the cash.
         var till = await Wire.CommandAsync<TillResult>(staff.Owner, "CreateTill", new CreateTillRequest("FD-1", "Front desk"), Ct);
         var shift = await Wire.CommandAsync<ShiftResult>(staff.Reception, "OpenShift", new OpenShiftRequest(till.TillId, 500000), Ct);
-        var receipt = await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioId, "payment", "Cash", 440000, null, till.TillId), Ct);
+        var receipt = await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioId, "payment", "Cash", 420000, null, till.TillId), Ct);
         Assert.Equal(shift.ShiftId, receipt.ShiftId);
 
         var folio = await Wire.GetAsync<FolioView>(staff.Reception, $"/folios/{folioId}", Ct);
-        Assert.Equal(new FolioTotalsView(400000, 40000, 440000, 440000, 0, 0, 0), folio.Totals);
+        Assert.Equal(new FolioTotalsView(400000, 20000, 420000, 420000, 0, 0, 0), folio.Totals);
         Assert.Equal(["Room night · 2026-10-24", "Room night · 2026-10-25"], folio.Lines.Select(l => l.Label));
 
         var checkout = await Wire.CommandAsync<CheckoutStayResult>(staff.Reception, "CheckoutStay", new CheckoutStayRequest(stayId, stayVersion), Ct);
@@ -199,7 +199,7 @@ public sealed class EndToEndTests
         // The actor of every write is the session principal (never the body), and the cash landed once in the drawer.
         Assert.Equal(1, await s.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CHECKOUT' AND principal_id = {staff.ReceptionId}", Ct));
         Assert.Equal(2, await s.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'ROOM_NIGHT_POSTED' AND principal_id = {staff.OwnerId}", Ct));
-        Assert.Equal(1, await s.CountAsync($"SELECT COUNT(*) FROM pay.cash_movement WHERE shift_id = {shift.ShiftId} AND amount_paise = 440000", Ct));
+        Assert.Equal(1, await s.CountAsync($"SELECT COUNT(*) FROM pay.cash_movement WHERE shift_id = {shift.ShiftId} AND amount_paise = 420000", Ct));
         Assert.Equal(1, await s.CountAsync($"SELECT COUNT(*) FROM ops.hk_task WHERE stay_id = {stayId}", Ct));
 
         // Sign-out ends the session: the next request is 401 UNAUTHENTICATED.
@@ -216,7 +216,7 @@ public sealed class EndToEndTests
         await using var s = await HccServer.StartAsync(Seed, Ct);
         using var staff = await SignInStaffAsync(s);
         var room106 = await s.CountAsync("SELECT room_id FROM inv.room WHERE room_no = '106'", Ct);
-        var (_, stayId, folioId, stayVersion) = await BookAndCheckInAsync(staff.Reception, room106, "2026-10-24", "2026-10-25", "Acme Travels guest (fictional)", 220000);
+        var (_, stayId, folioId, stayVersion) = await BookAndCheckInAsync(staff.Reception, room106, "2026-10-24", "2026-10-25", "Acme Travels guest (fictional)", 210000);
         await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 24)), Ct);
         await CloseDayAsync(staff.Owner, new DateOnly(2026, 10, 24));
         await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioId, "deposit", "UPI", 50000, "UPI-DEP-106", null), Ct);
@@ -224,7 +224,7 @@ public sealed class EndToEndTests
         async Task<long> ApprovedCreditAsync()
         {
             var f = await Wire.GetAsync<FolioView>(staff.Reception, $"/folios/{folioId}", Ct);
-            var req = await Wire.CommandAsync<AdjustmentResult>(staff.Reception, "RequestAdjustment", new RequestAdjustmentRequest("credit", folioId, null, 220000, "Bill to Acme Travels (fictional)", f.Version), Ct);
+            var req = await Wire.CommandAsync<AdjustmentResult>(staff.Reception, "RequestAdjustment", new RequestAdjustmentRequest("credit", folioId, null, 210000, "Bill to Acme Travels (fictional)", f.Version), Ct);
             Assert.Equal("PendingApproval", req.Outcome);
             var decided = await Wire.CommandAsync<ApprovalResult>(staff.Owner, "DecideApproval", new DecideApprovalRequest(req.ApprovalId!.Value, true, "Corporate account", req.ApprovalVersion!), Ct);
             Assert.Equal("Approved", decided.Status);
@@ -246,7 +246,7 @@ public sealed class EndToEndTests
         var checkout = await Wire.CommandAsync<CheckoutStayResult>(staff.Reception, "CheckoutStay", new CheckoutStayRequest(stayId, stayVersion, second), Ct);
         Assert.Equal("Dirty", checkout.RoomHk);
         var folio = await Wire.GetAsync<FolioView>(staff.Owner, $"/folios/{folioId}", Ct);
-        Assert.Equal(("Departed", 220000L, 0L, 0L), (folio.ReservationStatus, folio.Totals.CompanyCreditPaise, folio.Totals.BalancePaise, folio.Totals.DepositPaise));
+        Assert.Equal(("Departed", 210000L, 0L, 0L), (folio.ReservationStatus, folio.Totals.CompanyCreditPaise, folio.Totals.BalancePaise, folio.Totals.DepositPaise));
         Assert.Equal("Executed", (string?)await s.ScalarAsync($"SELECT status FROM bill.approval WHERE approval_id = {second}", Ct));
         Assert.Equal(staff.ReceptionId, await s.CountAsync($"SELECT executed_by FROM bill.approval WHERE approval_id = {second}", Ct));
     }

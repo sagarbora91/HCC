@@ -145,15 +145,20 @@ public sealed class CloseJourneyTests
 
     /// <summary>
     /// GST-dependent golden (prototype DEC-069): Room 105 = ₹4,265 incl. ₹265 GST (rooms 5 %, laundry 18 %, discount at the room rate), final
-    /// UPI ₹1,265. The server still taxes at the synthetic 10 % (FixedTaxRateSource, ₹4,400) until agent C's GST master lands server-side.
+    /// UPI ₹1,265, taxed at posting by agent C's GST master (IGstRateResolver) and reported from the per-charge GST records.
     /// </summary>
-    [Fact(Skip = "Pending agent C (GST master server-side): switch on after C merges.")]
+    [Fact]
     public async Task Room_105_invoice_is_4265_with_the_GST_master()
     {
         await using var h = await Hotel.CreateAsync(Ct);
         var w = await RunAsync(h, Ct);
         Assert.Equal(new FolioTotalsView(400000, 26500, 426500, 426500, 0, 0, 0), w.Folio105);
         Assert.Equal(126500, w.FinalUpiPaise);
+        var pack = (await h.Reports.GetDailyReportAsync(h.As(h.Owner), D24, D26, Ct)).Report;
+        var folioGst = await h.LongAsync($"SELECT COUNT(*) FROM tax.charge_gst g JOIN bill.charge c ON c.charge_id = g.charge_id WHERE c.folio_id = {w.FolioId}", Ct);
+        Assert.Equal(4, folioGst); // 2 room nights, laundry, discount: each with its stored GST record
+        Assert.Contains(pack.Gst, g => (g.Category, g.TaxBps, g.TaxPaise, g.CgstPaise, g.SgstPaise) == ("laundry", 1800, 9000L, 4500L, 4500L));
+        Assert.Equal(pack.Revenue.TaxPaise, pack.Gst.Sum(g => g.CgstPaise + g.SgstPaise));
     }
 
     [Fact]

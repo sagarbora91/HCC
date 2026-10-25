@@ -108,7 +108,7 @@ public sealed class P3World : IAsyncDisposable
         HkReads = new SqlHousekeepingReadStore(conns);
         var billingStore = new SqlBillingStore(conns);
         Billing = new BillingService(db.Platform.Commands, billingStore, Policy,
-            new StayNightSource(billingStore, new SqlAgreedNightRateSource(conns), new FixedTaxRateSource()), new FixedTaxRateSource(), Clock);
+            new StayNightSource(billingStore, new SqlAgreedNightRateSource(conns)), new Hcc.Application.Tax.FixedGstRateResolver(), Clock);
         Stays = new StaysCommands(db.Platform.Commands, Policy, new SqlStaysStore(), new BillingStayFolioPort(billingStore, Billing), Clock);
         StayQueries = new StaysQueries(Policy, new SqlStaysReadStore(conns));
         Housekeeping = new HousekeepingCommands(db.Platform.Commands, Policy, new SqlHousekeepingStore(), HkReads, new PolicyTaskAssigneeEligibility(Policy), new SqlRoomBlockPort(conns), Options, Clock);

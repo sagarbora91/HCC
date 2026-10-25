@@ -1,11 +1,13 @@
 using Hcc.Application.Access;
 using Hcc.Application.Commands;
 using Hcc.Application.Payments;
+using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Contracts.Billing;
 using Hcc.Domain.Billing;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Money;
+using Hcc.Domain.Tax;
 
 namespace Hcc.Application.Billing;
 
@@ -14,9 +16,13 @@ namespace Hcc.Application.Billing;
 /// Rules are ported from the prototype stream C handlers (<c>03 Prototype/src/services/mock/handlers/folio.ts</c>) with the
 /// production changes the contracts require: DEC-031 refund execution by someone other than the requester, DEC-041 binding to
 /// the folio version, refund remainder under a row lock on the parent receipt (spike C3), cash only into an open shift.
+/// GST (DEC-069): every new line takes its rate from <see cref="IGstRateResolver"/> (room nights per unit per night on the charged
+/// price; services by category; discounts follow the folio's room-night rate; reversals copy the original line). The rate is
+/// stored on the charge (tax_bps / tax_paise snapshot) and, when <paramref name="gstSnapshots"/> is wired, the category, ITC flag
+/// and CGST / SGST split go to <c>tax.charge_gst</c> in the same transaction.
 /// </summary>
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
-    ITaxRateSource taxRates, TimeProvider clock, Closing.IBusinessDayGuard? days = null)
+    IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -47,9 +53,11 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
 
             var rate = night.Rate.EnsureFieldRange();
             if (rate < Paise.Zero) throw HccException.Validation("The nightly rate cannot be negative.");
-            var line = new NewCharge(f.FolioId, ChargeKind.Room, req.ServiceDate, FolioStatement.RoomNightLabel(req.ServiceDate), rate, night.TaxBps,
-                MoneyMath.TaxOf(rate, night.TaxBps), null, null, caller.PrincipalId, Now);
+            var g = await gst.RoomNightAsync(tx, caller.PropertyId, req.ServiceDate, rate, ct2).ConfigureAwait(false); // per unit per night, actual price
+            var line = new NewCharge(f.FolioId, ChargeKind.Room, req.ServiceDate, FolioStatement.RoomNightLabel(req.ServiceDate), rate, g.Bps,
+                GstMath.LineTax(rate, g.Bps), null, null, caller.PrincipalId, Now);
             var id = await store.InsertChargeAsync(tx, line, ct2).ConfigureAwait(false);
+            await RecordGstAsync(tx, id, g, line.Tax, ct2).ConfigureAwait(false);
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
             await tx.AuditAsync("ROOM_NIGHT_POSTED", Target("folio", f.FolioId), $"{line.Label} · {rate} + tax {line.Tax}", ct2).ConfigureAwait(false);
             await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "room", serviceDate = req.ServiceDate, amountPaise = rate.Value, taxPaise = line.Tax.Value }, ct2).ConfigureAwait(false);
@@ -66,13 +74,16 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.ChargePost, ct: ct).ConfigureAwait(false);
         var label = BillingText.Required(req.Label, 200, "Describe the service.");
         var amount = Paise.FromWire(req.AmountPaise).EnsureReceiptAmount();
+        var category = GstCategories.ForCharge(req.GstCategory, label);
         return await runner.RunAsync(Ctx(caller, "PostCharge", idempotencyKey), req, async (tx, ct2) =>
         {
             var f = await RequireFolioAsync(tx, caller, req.FolioId, ct2).ConfigureAwait(false);
             if (!f.IsOpen) throw Invalid("This folio is no longer open.");
-            var bps = taxRates.TaxBpsOn(caller.PropertyId, f.BusinessDate);
-            var line = new NewCharge(f.FolioId, ChargeKind.Service, f.BusinessDate, label, amount, bps, MoneyMath.TaxOf(amount, bps), null, null, caller.PrincipalId, Now);
+            var g = await gst.ChargeAsync(tx, caller.PropertyId, f.BusinessDate, category, ct2).ConfigureAwait(false);
+            var bps = g.Bps;
+            var line = new NewCharge(f.FolioId, ChargeKind.Service, f.BusinessDate, label, amount, bps, GstMath.LineTax(amount, bps), null, null, caller.PrincipalId, Now);
             var id = await store.InsertChargeAsync(tx, line, ct2).ConfigureAwait(false);
+            await RecordGstAsync(tx, id, g, line.Tax, ct2).ConfigureAwait(false);
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
             await tx.AuditAsync("CHARGE_POSTED", Target("folio", f.FolioId), $"{label} · {amount} + tax {line.Tax}", ct2).ConfigureAwait(false);
             await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "service", serviceDate = f.BusinessDate, amountPaise = amount.Value, taxPaise = line.Tax.Value }, ct2).ConfigureAwait(false);
@@ -320,6 +331,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                     var reversal = new NewCharge(f.FolioId, ChargeKind.Correction, f.BusinessDate, Clip($"Reversal · {line.Label} · {a.Reason}", 200), -line.Amount,
                         line.TaxBps, -line.Tax, line.ChargeId, a.ApprovalId, caller.PrincipalId, now);
                     var chargeId = await store.InsertChargeAsync(tx, reversal, ct2).ConfigureAwait(false);
+                    await RecordReversalGstAsync(tx, line, chargeId, reversal.Tax, ct2).ConfigureAwait(false);
                     folioVersion = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
                     change = new ApprovalChange(ApprovalStatus.Executed, caller.PrincipalId, now, decisionReason, caller.PrincipalId, now, chargeId);
                     break;
@@ -471,13 +483,50 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     private async Task<(long ChargeId, string Version)> PostDiscountAsync(ICommandTransaction tx, Caller caller, FolioHeader f, Paise amount, string label,
         long? approvalId, CancellationToken ct)
     {
-        // DEC-039: a discount is a negative line at the day's tax rate (negative tax), posted before tax.
-        var bps = taxRates.TaxBpsOn(caller.PropertyId, f.BusinessDate);
-        var line = new NewCharge(f.FolioId, ChargeKind.Discount, f.BusinessDate, Clip(label, 200), -amount, bps, MoneyMath.TaxOf(-amount, bps), null, approvalId, caller.PrincipalId, Now);
+        // A discount is a negative line posted before tax (DEC-039) that reduces the room supply: it takes the GST rate of that date's
+        // room-night line, else the latest earlier one, else the folio's latest, else the room rule at the booked rate (prototype
+        // gstForFolioAdjustment; apportionment across mixed-rate folios: CA to confirm).
+        var g = await AdjustmentRateAsync(tx, caller, f, ct).ConfigureAwait(false);
+        var bps = g.Bps;
+        var line = new NewCharge(f.FolioId, ChargeKind.Discount, f.BusinessDate, Clip(label, 200), -amount, bps, GstMath.LineTax(-amount, bps), null, approvalId, caller.PrincipalId, Now);
         var id = await store.InsertChargeAsync(tx, line, ct).ConfigureAwait(false);
+        await RecordGstAsync(tx, id, g, line.Tax, ct).ConfigureAwait(false);
         var version = await store.TouchFolioAsync(tx, f.FolioId, ct).ConfigureAwait(false);
         await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "discount", serviceDate = f.BusinessDate, amountPaise = line.Amount.Value, taxPaise = line.Tax.Value }, ct).ConfigureAwait(false);
         return (id, version);
+    }
+
+    private async Task<GstRate> AdjustmentRateAsync(ICommandTransaction tx, Caller caller, FolioHeader f, CancellationToken ct)
+    {
+        var lines = await store.LinesAsync(tx, f.FolioId, ct).ConfigureAwait(false);
+        var rooms = lines.Where(l => l.Kind == ChargeKind.Room && l.ReversesChargeId is null && !lines.Any(r => r.ReversesChargeId == l.ChargeId))
+            .OrderBy(l => l.ServiceDate).ToList();
+        var source = rooms.FirstOrDefault(l => l.ServiceDate == f.BusinessDate) ?? rooms.LastOrDefault(l => l.ServiceDate <= f.BusinessDate) ?? rooms.LastOrDefault();
+        if (source is not null)
+        {
+            var snap = gstSnapshots is null ? null : await gstSnapshots.FindAsync(tx, source.ChargeId, ct).ConfigureAwait(false);
+            return new GstRate(source.TaxBps, snap?.Itc ?? false, GstCategory.Room, "Follows the room-night rate");
+        }
+
+        var booked = await store.ReservationNightlyRateAsync(tx, f.ReservationId, ct).ConfigureAwait(false) ?? Paise.Zero;
+        return await gst.RoomNightAsync(tx, caller.PropertyId, f.BusinessDate, booked, ct).ConfigureAwait(false);
+    }
+
+    private Task RecordGstAsync(ICommandTransaction tx, long chargeId, GstRate rate, Paise tax, CancellationToken ct)
+    {
+        if (gstSnapshots is null) return Task.CompletedTask;
+        var split = GstMath.Split(tax);
+        return gstSnapshots.RecordAsync(tx, new GstChargeSnapshot(chargeId, rate.Category, rate.Bps, rate.Itc, tax, split.Cgst, split.Sgst, rate.Rule), ct);
+    }
+
+    /// <summary>A reversal copies the original line's category / ITC and posts the negated tax (split per line).</summary>
+    private async Task RecordReversalGstAsync(ICommandTransaction tx, PostedLine original, long reversalId, Paise tax, CancellationToken ct)
+    {
+        if (gstSnapshots is null) return;
+        var o = await gstSnapshots.FindAsync(tx, original.ChargeId, ct).ConfigureAwait(false);
+        var category = o?.Category ?? (original.Kind is ChargeKind.Room or ChargeKind.Discount ? GstCategory.Room : GstCategory.Other);
+        var rule = "Reversal of charge " + original.ChargeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        await RecordGstAsync(tx, reversalId, new GstRate(original.TaxBps, o?.Itc ?? false, category, rule), tax, ct).ConfigureAwait(false);
     }
 
     private async Task<Paise> RefundRemainderAsync(ICommandTransaction tx, PostedReceipt parent, IReadOnlyList<ApprovalRow> approvals, long? exceptApprovalId,

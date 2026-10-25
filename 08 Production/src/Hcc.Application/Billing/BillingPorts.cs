@@ -32,8 +32,11 @@ public static class BillingPermissions
 /// <summary>The signed-in caller (from the server session, never the request body).</summary>
 public sealed record Caller(int PropertyId, int PrincipalId);
 
-/// <summary>The night to charge for a stay: its folio and the agreed nightly rate with its tax snapshot.</summary>
-public sealed record StayNight(long FolioId, Paise Rate, int TaxBps);
+/// <summary>
+/// The night to charge for a stay: its folio and the agreed nightly price (per unit). The GST rate is resolved at posting from the
+/// dated master on that price (DEC-069; <see cref="Hcc.Application.Tax.IGstRateResolver"/>), never from a booking-time estimate.
+/// </summary>
+public sealed record StayNight(long FolioId, Paise Rate);
 
 /// <summary>
 /// Integration port to stays (P3) and the agreed nightly rate (P2 reservation nights). Implemented by <see cref="StayNightSource"/>
@@ -45,17 +48,7 @@ public interface IStayNightSource
     Task<StayNight> ResolveAsync(ICommandTransaction tx, int propertyId, long stayId, DateOnly serviceDate, CancellationToken ct);
 }
 
-/// <summary>Synthetic tax rate effective on a date (prototype <c>taxRateFor</c>; dated rates come from master configuration, DEC-057).</summary>
-public interface ITaxRateSource
-{
-    int TaxBpsOn(int propertyId, DateOnly date);
-}
-
-/// <summary>DEC-039 synthetic 10 % (prototype BASE <c>settings.taxBps = 1000</c>) until dated tax settings exist. Not a GST statement.</summary>
-public sealed class FixedTaxRateSource(int taxBps = 1000) : ITaxRateSource
-{
-    public int TaxBpsOn(int propertyId, DateOnly date) => taxBps;
-}
+// DEC-069: the synthetic ITaxRateSource / FixedTaxRateSource (DEC-039 10 %) were replaced by Hcc.Application.Tax.IGstRateResolver.
 
 /// <summary>
 /// Shared-till port (DEC-052) for other modules that move drawer cash: POS cash sales/voids, drawer-funded expenses, transfers.

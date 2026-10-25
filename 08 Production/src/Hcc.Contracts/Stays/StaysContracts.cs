@@ -5,7 +5,11 @@ namespace Hcc.Contracts.Stays;
 
 public sealed record GuestPartyDto(string Name, string AgeBand, string? Relation);
 
-/// <summary>Registration fields a receptionist may enter. <c>IdLast4</c> = last 4 characters of the ID only — never the full number.</summary>
+/// <summary>
+/// Registration fields a receptionist may enter. <c>IdNumber</c> = the full ID number (DEC-068; write-only: validated per type,
+/// encrypted at rest, never returned except by the audited RevealGuestId command). <c>IdLast4</c> is accepted alone only for
+/// profiles from before DEC-068; with a number it is derived from it. Blank number on an update keeps the stored one.
+/// </summary>
 public sealed record GuestDraftDto(
     string? Name,
     string? Phone,
@@ -18,7 +22,8 @@ public sealed record GuestDraftDto(
     string? Gstin = null,
     string? Preferences = null,
     string? Notes = null,
-    IReadOnlyList<GuestPartyDto>? Party = null);
+    IReadOnlyList<GuestPartyDto>? Party = null,
+    string? IdNumber = null);
 
 /// <summary>
 /// RegisterGuest K V. <c>ExpectedVersion</c> = the reservation's version. With <c>Guest</c> the profile is created (or the
@@ -39,7 +44,11 @@ public sealed record CheckoutStayRequest(long StayId, string ExpectedVersion, lo
 
 public sealed record CheckoutStayResult(long StayId, long ReservationId, int RoomId, string RoomNo, string RoomHk, string BusinessDate, long OutboxId, string StayVersion);
 
-/// <summary>Guest profile as the reader may see it (field masks applied server-side; <c>Masked</c> = ID restricted).</summary>
+/// <summary>
+/// Guest profile as the reader may see it (field masks applied server-side; <c>Masked</c> = ID restricted). Never carries the full ID
+/// number: <c>IdMasked</c> = XXXX-XXXX-1234 for holders of the ID-view permission ("Restricted" otherwise), <c>IdOnFile</c> = a full
+/// number is stored, <c>CanRevealId</c> = the reader may call RevealGuestId (audited).
+/// </summary>
 public sealed record GuestView(
     long GuestId,
     string Name,
@@ -54,7 +63,10 @@ public sealed record GuestView(
     IReadOnlyList<GuestPartyDto> Party,
     bool Verified,
     bool Masked,
-    string Version);
+    string Version,
+    string IdMasked = "",
+    bool IdOnFile = false,
+    bool CanRevealId = false);
 
 /// <summary>Outbox payload of <c>StayDeparted</c> (consumed by housekeeping: exactly one checkout clean per stay).</summary>
 public sealed record StayDepartedEvent(long StayId, long ReservationId, int PropertyId, int RoomId, string BusinessDate);

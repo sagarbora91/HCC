@@ -43,7 +43,8 @@ public sealed record ReservationRecord(
     int? RoomId,
     bool AllocationIntact);
 
-public sealed record GuestRecord(long GuestId, int PropertyId, GuestDraft Draft, bool Verified, string Origin, byte[] Version);
+/// <summary>A stored profile. <see cref="Draft"/> never carries the full ID number; <see cref="IdOnFile"/> says whether one is stored (DEC-068).</summary>
+public sealed record GuestRecord(long GuestId, int PropertyId, GuestDraft Draft, bool Verified, string Origin, byte[] Version, bool IdOnFile = false);
 
 public sealed record RoomRecord(int RoomId, int PropertyId, string RoomNo, string Hk, long? OccupyingStayId, byte[] Version);
 

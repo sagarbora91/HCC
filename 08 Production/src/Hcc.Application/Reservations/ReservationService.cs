@@ -61,7 +61,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             var nights = quote.Nights;
             var blockRate = block?.Types.FirstOrDefault(t => t.RoomTypeId == room.RoomTypeId)?.RatePaise;
             if (blockRate is { } br)
-                nights = quote.Nights.Select(n => new PricedNight(n.Date, br, n.TaxBps, Domain.Money.MoneyMath.TaxOf(new Domain.Money.Paise(br), n.TaxBps).Value)).ToList();
+                nights = await inventoryService.PriceAsync(context.PropertyId, quote.Arrival, quote.Departure, br, c).ConfigureAwait(false); // GST slab on the block price
 
             DateTime? holdUntil = request.Hold ? now + StayRules.HoldLength : null;
             var status = request.Hold ? ReservationStatuses.Held : ReservationStatuses.Confirmed;

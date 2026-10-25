@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Hcc.Contracts.Reporting;
 using Hcc.Domain.Billing;
 using Hcc.Domain.Money;
@@ -9,9 +8,19 @@ namespace Hcc.Domain.Reporting;
 
 // ── Source records (read from the same tables the commands write; no second source of truth, REQ-RPT-003) ──
 
-/// <summary>A posted folio line with its stored tax snapshot; for a correction, the kind/label of the line it reverses.</summary>
+/// <summary>
+/// A posted folio line with its stored tax snapshot; for a correction, the kind/label of the line it reverses. <see cref="GstCategory"/>,
+/// <see cref="CgstPaise"/> and <see cref="SgstPaise"/> come from the DEC-069 per-charge GST record (<c>tax.charge_gst</c>) when the line has one.
+/// </summary>
 public sealed record ReportLine(long ChargeId, long FolioId, ChargeKind Kind, DateOnly ServiceDate, string Label, Paise Amount, int TaxBps, Paise Tax,
-    long? ReversesChargeId, ChargeKind? ReversedKind, string? ReversedLabel);
+    long? ReversesChargeId, ChargeKind? ReversedKind, string? ReversedLabel, string? GstCategory = null, long? CgstPaise = null, long? SgstPaise = null)
+{
+    /// <summary>The stored category (C's GST master), else the prototype rule on kind / label.</summary>
+    public string Category => GstCategory ?? GstCategories.Of(Kind, Label, ReversedKind, ReversedLabel);
+
+    /// <summary>The stored CGST / SGST split, else the per-line split of the stored tax.</summary>
+    public (long Cgst, long Sgst) Split => CgstPaise is { } c && SgstPaise is { } s ? (c, s) : GstCategories.Split(Tax.Value);
+}
 
 public sealed record ReportReceipt(long ReceiptId, long FolioId, ReceiptKind Kind, string Tender, Paise Amount, DateOnly BusinessDate);
 
@@ -40,7 +49,7 @@ public sealed record ReportData(DateOnly From, DateOnly To, IReadOnlyList<int> R
 /// Discounts and corrections reduce the supply they belong to: a discount follows the room (prototype <c>gstForFolioAdjustment</c>),
 /// a correction the line it reverses. Illustrative — CA to confirm.
 /// </summary>
-public static partial class GstCategories
+public static class GstCategories
 {
     public const string Room = "room";
     public const string Food = "food";
@@ -48,25 +57,15 @@ public static partial class GstCategories
     public const string Banquet = "banquet";
     public const string Other = "other";
 
-    [GeneratedRegex(@"laund|dry.?clean|ironing|press(ing)?\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex LaundryWords();
-
-    [GeneratedRegex(@"banquet|\bhall\b|conference|meeting room", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex BanquetWords();
-
-    [GeneratedRegex(@"food|restaurant|room service|breakfast|lunch|dinner|meal|snack|minibar|mini-bar|\btea\b|coffee|chai|beverage|juice|water bottle",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex FoodWords();
-
-    /// <summary>Category of a free-text service charge (prototype <c>gstCategoryOfLabel</c>).</summary>
-    // GST-C: switch to the category stored on the charge once agent C's GST master lands server-side (bill.charge category).
+    /// <summary>
+    /// Category of a free-text service charge (prototype <c>gstCategoryOfLabel</c>) — only for lines without a stored GST record
+    /// (posted before DEC-069 or seeded by tests); the daily pack uses the category C's GST master stored on the charge
+    /// (<see cref="ReportLine.Category"/>). Same rule as <see cref="Tax.GstCategories.OfLabel"/>.
+    /// </summary>
     public static string OfLabel(string label)
     {
         ArgumentNullException.ThrowIfNull(label);
-        if (LaundryWords().IsMatch(label)) return Laundry;
-        if (BanquetWords().IsMatch(label)) return Banquet;
-        if (FoodWords().IsMatch(label)) return Food;
-        return Other;
+        return Tax.GstCategories.Code(Tax.GstCategories.OfLabel(label));
     }
 
     public static string Of(ChargeKind kind, string label, ChargeKind? reversedKind = null, string? reversedLabel = null) => kind switch
@@ -132,10 +131,10 @@ public static class DailyPackCalculator
         var corrections = Sum(lines.Where(l => l.Kind == ChargeKind.Correction));
         var net = room + service + discounts + corrections;
         var gst = lines
-            .GroupBy(l => (Category: GstCategories.Of(l.Kind, l.Label, l.ReversedKind, l.ReversedLabel), l.TaxBps))
+            .GroupBy(l => (l.Category, l.TaxBps)) // DEC-069: the per-charge GST record's category and CGST/SGST split
             .Select(g =>
             {
-                var split = g.Select(l => GstCategories.Split(l.Tax.Value)).ToList();
+                var split = g.Select(l => l.Split).ToList();
                 return new GstCategoryRow(g.Key.Category, g.Key.TaxBps, g.Count(), Sum(g), split.Sum(x => x.Cgst), split.Sum(x => x.Sgst), g.Sum(l => l.Tax.Value));
             })
             .OrderBy(r => CategoryOrder(r.Category)).ThenBy(r => r.TaxBps)

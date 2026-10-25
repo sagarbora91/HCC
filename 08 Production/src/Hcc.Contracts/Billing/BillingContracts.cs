@@ -5,8 +5,11 @@ namespace Hcc.Contracts.Billing;
 /// <summary>POST /api/v1/commands/PostRoomNight (K). One canonical room charge per folio and service date; a repeat returns it.</summary>
 public sealed record PostRoomNightRequest(long StayId, DateOnly ServiceDate);
 
-/// <summary>POST /api/v1/commands/PostCharge (K). Service charge on today's business date at today's tax rate.</summary>
-public sealed record PostChargeRequest(long FolioId, string Label, long AmountPaise);
+/// <summary>
+/// POST /api/v1/commands/PostCharge (K). Service charge on today's business date at the GST master rate in force (DEC-069).
+/// <c>GstCategory</c> = food | laundry | banquet | other; when omitted it is guessed from the label (prototype gstCategoryOfLabel).
+/// </summary>
+public sealed record PostChargeRequest(long FolioId, string Label, long AmountPaise, string? GstCategory = null);
 
 public sealed record ChargeResult(long ChargeId, long FolioId, string Kind, DateOnly ServiceDate, string Label, long AmountPaise, int TaxBps,
     long TaxPaise, bool Created, string FolioVersion);

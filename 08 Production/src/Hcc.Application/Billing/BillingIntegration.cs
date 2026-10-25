@@ -33,20 +33,21 @@ public sealed class BillingStayFolioPort(IBillingStore store, BillingService bil
 
 /// <summary>
 /// Wave 1 integration: P4's <see cref="IStayNightSource"/>. Stay → reservation + folio from P3's <c>gst.stay</c>; the agreed
-/// nightly rate and tax snapshot from P2's <see cref="IAgreedNightRateSource"/> (<c>inv.reservation_night</c>, taken at booking
-/// or amend). A reservation without night snapshots (loaded before P2) falls back to its booked nightly rate at the dated tax rate.
+/// nightly rate from P2's <see cref="IAgreedNightRateSource"/> (<c>inv.reservation_night</c>, taken at booking or amend). A
+/// reservation without night snapshots (loaded before P2) falls back to its booked nightly rate. The GST rate is not taken from
+/// the booking-time estimate: billing resolves it at posting from the dated master on this price (DEC-069).
 /// </summary>
-public sealed class StayNightSource(IBillingStore store, IAgreedNightRateSource agreed, ITaxRateSource taxRates) : IStayNightSource
+public sealed class StayNightSource(IBillingStore store, IAgreedNightRateSource agreed) : IStayNightSource
 {
     public async Task<StayNight> ResolveAsync(ICommandTransaction tx, int propertyId, long stayId, DateOnly serviceDate, CancellationToken ct)
     {
         var stay = await store.StayFolioAsync(tx, propertyId, stayId, ct).ConfigureAwait(false)
             ?? throw new HccException(HccErrorCode.NOT_FOUND, "Stay not found.");
         var night = await agreed.GetAsync(tx, propertyId, stay.ReservationId, serviceDate, ct).ConfigureAwait(false);
-        if (night is not null) return new StayNight(stay.FolioId, new Paise(night.RatePaise), night.TaxBps);
+        if (night is not null) return new StayNight(stay.FolioId, new Paise(night.RatePaise));
         var rate = await store.ReservationNightlyRateAsync(tx, stay.ReservationId, ct).ConfigureAwait(false)
             ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "This stay has no agreed rate for that night. Amend the reservation to price it.");
-        return new StayNight(stay.FolioId, rate, taxRates.TaxBpsOn(propertyId, serviceDate));
+        return new StayNight(stay.FolioId, rate);
     }
 }
 

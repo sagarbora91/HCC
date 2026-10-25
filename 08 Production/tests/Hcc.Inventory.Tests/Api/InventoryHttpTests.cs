@@ -78,7 +78,7 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         var quoteRes = await http.SendAsync(Post("QuoteStay", new QuoteStayRequest("2026-11-25", "2026-11-27", 2, 0, f.RoomIds["105"])), Ct);
         Assert.Equal(HttpStatusCode.OK, quoteRes.StatusCode);
         var quote = (await quoteRes.Content.ReadFromJsonAsync<QuoteResult>(opts, Ct))!;
-        Assert.Equal(440000, quote.TotalPaise);
+        Assert.Equal((20000L, 420000L), (quote.TaxPaise, quote.TotalPaise)); // DEC-069 GST master: 2 × ₹2,000 at 5 % (real resolver via AddBillingModule)
 
         var body = new CreateReservationRequest(quote.QuoteId, quote.Version, new GuestInput("Http Guest"), f.RoomIds["105"]);
         var noKey = await http.SendAsync(Post("CreateReservation", body), Ct);
@@ -90,7 +90,7 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         Assert.Equal("true", replay.Headers.GetValues("Idempotent-Replayed").Single());
 
         var details = await http.GetFromJsonAsync<ReservationDetails>($"{ApiConventions.BasePath}/reservations/{res.ReservationId}", opts, Ct);
-        Assert.Equal(("105", 2, 440000L), (details!.RoomNo, details.Nights.Count, details.TotalPaise));
+        Assert.Equal(("105", 2, 420000L), (details!.RoomNo, details.Nights.Count, details.TotalPaise));
         var missing = await http.GetAsync($"{ApiConventions.BasePath}/reservations/99999999", Ct);
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }

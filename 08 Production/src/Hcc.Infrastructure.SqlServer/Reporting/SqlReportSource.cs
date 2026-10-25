@@ -29,9 +29,10 @@ public sealed class SqlReportSource(SqlConnectionFactory connections) : IReportS
           FROM gst.stay WHERE property_id = @p
            AND ((arrival <= @to AND departure > @from) OR arrival BETWEEN @from AND @to OR checked_out_date BETWEEN @from AND @to)
          ORDER BY stay_id;
-        SELECT c.charge_id, c.folio_id, c.kind, c.service_date, c.label, c.amount_paise, c.tax_bps, c.tax_paise, c.reverses_charge_id, o.kind, o.label
+        SELECT c.charge_id, c.folio_id, c.kind, c.service_date, c.label, c.amount_paise, c.tax_bps, c.tax_paise, c.reverses_charge_id, o.kind, o.label, g.category, g.cgst_paise, g.sgst_paise
           FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
           LEFT JOIN bill.charge o ON o.charge_id = c.reverses_charge_id
+          LEFT JOIN tax.charge_gst g ON g.charge_id = c.charge_id
          WHERE r.property_id = @p AND c.service_date BETWEEN @from AND @to ORDER BY c.charge_id;
         SELECT x.receipt_id, x.folio_id, x.kind, x.method, x.amount_paise, x.business_date
           FROM pay.receipt x JOIN bill.folio f ON f.folio_id = x.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
@@ -65,7 +66,8 @@ public sealed class SqlReportSource(SqlConnectionFactory connections) : IReportS
             while (await rd.ReadAsync(ct).ConfigureAwait(false))
                 lines.Add(new ReportLine(rd.GetInt64(0), rd.GetInt64(1), BillingCodes.ParseChargeKind(rd.GetString(2)), ClosingSql.Date(rd, 3), rd.GetString(4),
                     new Paise(rd.GetInt64(5)), rd.GetInt32(6), new Paise(rd.GetInt64(7)), rd.IsDBNull(8) ? null : rd.GetInt64(8),
-                    rd.IsDBNull(9) ? null : BillingCodes.ParseChargeKind(rd.GetString(9)), ClosingSql.Str(rd, 10)));
+                    rd.IsDBNull(9) ? null : BillingCodes.ParseChargeKind(rd.GetString(9)), ClosingSql.Str(rd, 10),
+                    ClosingSql.Str(rd, 11), rd.IsDBNull(12) ? null : rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt64(13))); // DEC-069 per-charge GST record
             var receipts = new List<ReportReceipt>();
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             while (await rd.ReadAsync(ct).ConfigureAwait(false))
