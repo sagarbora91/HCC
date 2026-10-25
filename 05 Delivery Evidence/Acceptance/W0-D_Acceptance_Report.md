@@ -1,5 +1,7 @@
 # W0-D Prototype Acceptance Report
 
+> **ACCEPTED by the owner, 25 Oct 2026 (APR-011)** on APK v9 (SHA-256 `600aba4172c711ce6d6d454df6f0185168c50333d94eb206800c448849642369`), with the Tab S7 items (T-01…T-05 on v9, long-session Back) accepted as **unverified**. Conditions status: §7.1a.
+
 Prepared 25 Oct 2026 (Session 11) from the evidence files listed in section 8. Every figure below is quoted from those files; nothing was re-run for this report. Scope: browser walkthrough, emulator and physical-tablet acceptance of the Hotel Control Centre prototype (Wave 0, step W0-D, brief `02 Planning/agents/W0-D_Acceptance_Brief.md`). Fictional data only. Wave 0.5 work (cash book, payroll, compliance, exports, master configuration) is **not** part of this acceptance.
 
 ## 1. Verdict in one paragraph

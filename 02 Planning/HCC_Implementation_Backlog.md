@@ -58,6 +58,7 @@ Work starts only after APR-003 (owner approval of this M0 package).
 
 ## Status — 25 October 2026
 
+- **BL-037 DONE — prototype accepted by the owner 25 Oct 2026 (APR-011, APK v9; Tab S7 items accepted unverified). Wave 0.5 merged into `main` (694 tests, SCHEMA 8).**
 - **M1–M3 (BL-001 … BL-036): DONE** in the prototype on `main` (502 tests, APK v8). BL-023 (S0 walkthrough) automated and passing; BL-035 evidence in `05 Delivery Evidence/Acceptance/`. **BL-037 (owner demonstration/acceptance): OPEN** — W0-D acceptance testing is complete (browser 15/15, Tab S7 17 checks, emulator API 35 Part 2 21/21 + Part 3 17/17); awaiting owner acceptance.
 - Wave 0.5 is merged on `integration/w05` (584 tests), not yet on main; Wave 1 P0 started on `claude/wave1-p0` (`08 Production\`).
 
