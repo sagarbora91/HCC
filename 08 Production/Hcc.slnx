@@ -12,6 +12,7 @@
     <Project Path="tests/Hcc.Access.Tests/Hcc.Access.Tests.csproj" />
     <Project Path="tests/Hcc.Stays.Tests/Hcc.Stays.Tests.csproj" />
     <Project Path="tests/Hcc.Inventory.Tests/Hcc.Inventory.Tests.csproj" />
+    <Project Path="tests/Hcc.Integration.Tests/Hcc.Integration.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
