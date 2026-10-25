@@ -249,3 +249,7 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - All work saved on branches before packaging: W05-D and W05-E done; W05-C and W05-A saved as **WIP snapshot** commits (untested); W05-B not started. W0-D Part 2–3 not run.
 - Package: `V:\HCC-Migration-2026-10-25\` (git bundle of all branches, APK v8, built HTML, Claude memory, SCC module rule sources, donor inventory, optional donor bundles, checksums). Guide: `MIGRATION.md` (repo root); restore script `tools\restore-on-new-pc.ps1`.
 - On the work PC: restore → expect tsc clean, 502/502, build ≈ 1,884 KB on main → tell Claude "resume after migration" → finish W0-D emulator Parts 2–3, then Wave 0.5 (C, A, B), merge, APK v9.
+
+## Session 11 (25 Oct 2026) — resumed on the work PC
+- Folder now `E:\Projects\HCC\Hotel Control Centre` (old docs say `V:\Codex\…`). Briefs updated to the new path; W05 briefs point to the SCC sources in `E:\Projects\HCC\Migration data on 25 oct\HCC-Migration-2026-10-25\reference-inputs\SCC-modules`.
+- Verified on main with Node v25.9.0 (`E:\Tools\nodejs` — note `E:\Program Files\nodejs` v24.13.1 is first on PATH): tsc clean, **502/502**, build 1,884 KB, dist SHA-256 `76519ceb…2aa4d` = the APK v8 web bundle. `core.autocrlf=false`. Checkpoint job (`bash tools/checkpoint.sh`) restarted.

@@ -3,7 +3,7 @@
 Wave 0 of `02 Planning/HCC_Multi_Agent_Plan_v1.md`. Owner decision **DEC-053 (APR-005):** min-stay / closed-to-arrival restrictions are enforced for every booking source; users with the **approve** permission (Owner, Manager) may override **with a reason**, recorded on the booking and in the audit log. The command side is already done (Session 9, A2.1): `yldStayViolations(s,type,arrival,departure)` in `src/domain/streams/yield.ts` (exported via `services/mock`), error code `RESTRICTED`, and `restrictionOverride` (reason string) accepted by `BOOK`, `CHANGE_DATES` and `GRP_ROOMING`. Tests: `tests/stream-a2.mjs`. Your job is the UI. You run in your own git worktree/branch; W0-A (navigation, main checkout) and W0-B (till) run in parallel. File ownership is strict.
 
 ## Setup (once)
-- Create the junction, never `npm install`: `cmd /c mklink /J "03 Prototype\node_modules" "V:\Codex\Hotel Control Centre\03 Prototype\node_modules"`
+- Create the junction, never `npm install`: `cmd /c mklink /J "03 Prototype\node_modules" "E:\Projects\HCC\Hotel Control Centre\03 Prototype\node_modules"`
 - Read: `CLAUDE.md`, `02 Planning/HCC_Parallel_Agent_Brief.md` (architecture, phone rules, theme; ignore its Linux paths), `02 Planning/modules/HCC_Module_13_Tariff_Yield_Spec.md`, `src/services/mock/handlers/reservations.ts` (the `restrictions()` helper).
 
 ## Task

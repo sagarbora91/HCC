@@ -1,6 +1,6 @@
 # W0-D · Prototype acceptance (browser walkthrough, emulator, Galaxy Tab S7) — agent brief
 
-Wave 0 of `02 Planning/HCC_Multi_Agent_Plan_v1.md`, last step (APR-005). You work **in the main checkout** `V:\Codex\Hotel Control Centre` (the Android build environment, trust store and Gradle caches live only there). No other agent is writing code now. Owner order: **emulator first**; the owner connects the Samsung Galaxy Tab S7 (SM-T875, Android 13, serial R52N807PTTE) by USB for the device part.
+Wave 0 of `02 Planning/HCC_Multi_Agent_Plan_v1.md`, last step (APR-005). You work **in the main checkout** `E:\Projects\HCC\Hotel Control Centre` (the Android build environment, trust store and Gradle caches live only there). No other agent is writing code now. Owner order: **emulator first**; the owner connects the Samsung Galaxy Tab S7 (SM-T875, Android 13, serial R52N807PTTE) by USB for the device part.
 
 ## Read first
 `CLAUDE.md`, `HANDOFF.md` (Sessions 7, 7b, 8, 9b), `04 Android/README.md` (build env: `JAVA_HOME` = Android Studio jbr, `ANDROID_SDK_ROOT` = `ANDROID_HOME`, private trust store `04 Android\.build\hcc-cacerts.jks` via `JAVA_TOOL_OPTIONS` for the session only, `--offline` works), `05 Delivery Evidence/APK/HCC_APK_Emulator_Evidence.md`, `02 Planning/HCC_Acceptance_Matrix.md`, `02 Planning/HCC_Mobile_Version_Plan_v1.md` §AC-M05…M08, the S0 demo guide in `03 Prototype/src/app/demo/DemoModals.tsx` (drawer path ₹10,750 → ₹11,250 → ₹12,750 → ₹12,450 after DEC-052).
