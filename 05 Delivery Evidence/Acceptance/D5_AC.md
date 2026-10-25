@@ -1,6 +1,6 @@
 # D5 · AC-M05…M08 phone flows — EMULATED
 
-**Progress:** 25 Oct — Part 1 (AC-01 re-test v7 on WebView 83) DONE, emulator-5556 shut down. Next = AC-M05…M08 on emulator-5554 (after D5_Roles checks).
+**Progress:** 25 Oct (resumed, APK v8) — Part 1 AC-01 (v7) DONE; AC-02 re-test (v8) DONE, emulator-5556 shut down. Next = Parts 2–3 on codex_api35_google (cold boot, up to 15 min).
 
 - Date: 24 Oct 2026 · Agent D-C
 - Device: **EMULATED** — AVD `codex_apk_review` (`sdk_phone_x86_64`, Android 11 / API 30, AOSP image without Play), serial `emulator-5556`, 1080×1920 @ 420 dpi (CSS viewport 412×660, DPR 2.625), DevTools port 9232
@@ -46,3 +46,15 @@
 | Post one payment | Pass* | `d5-ac\v7-ac01-payment-posted-webview83.png` | Folio HCC-1041 ₹200 cash: Review → Confirm → toast "Receipt recorded once", outstanding ₹1,950 → ₹1,750, folio Settled. *Done with the AC-02 shim. |
 
 **AC-02 (new, S2 on WebView < 87):** every modal / bottom sheet / search / exit prompt is rendered **below the viewport** (invisible) because `.modal-overlay{position:fixed;inset:0}` (`styles.css`, also `search.css`, `native.css`, `home.css`, `mobile-ops.css`, `reservations.css`) — the `inset` shorthand needs Chrome 87+. On WebView 83 tapping DEMO, Record payment, Count drawer etc. opens a sheet at top=1449 px (page height) that the user cannot see; the app seems unresponsive. **Test-only workaround used for this re-test (CDP-injected style, nothing changed in repo/APK):** `.modal-overlay,.search-overlay,.exit-ask,.sidebar-overlay{top:0;right:0;bottom:0;left:0}` — with it all flows work. Fix for lead: replace `inset:0` by `top:0;right:0;bottom:0;left:0` (and `inset:6px` in `mobile.css:21`). Minor on WebView 83: `:has()` rules (toast offset when a sheet is open, `mm-invoice` sheet) are ignored. Evidence: `defects\AC-02-webview83-sheets-offscreen-no-inset.png` (tap on DEMO — nothing visible).
+
+
+## AC-02 re-test (v8) — 25 Oct 2026 · EMULATED, WebView 83
+
+APK versionCode 8, SHA-256 `2BA3FE68B03E2C535B758D288B3B8862F6CE3F87BB592A39E63A32C00F8A52C3`, `codex_apk_review`, fresh data, **no shim injected**.
+
+| Check | Result | Evidence | Notes |
+|---|---|---|---|
+| DEMO sheet visible | **Pass** | `d5-ac\v8-ac02-demo-sheet-webview83.png` | overlay y=0, height = viewport (660 css px); previously y=1449. |
+| Scenario picker (S0 load) and Record payment sheet visible | **Pass** | `d5-ac\v8-ac02-record-payment-sheet-webview83.png` | Real taps; "Record a payment · HCC-1041 Ananya Rao" sheet on screen (overlay y=0). |
+
+AC-02 is **fixed** in v8. Cold start 3,284 ms.
