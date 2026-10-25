@@ -11,6 +11,7 @@ import {Empty,dateLabel,shortDate} from '../../components/ui';
 import {DayPackButton} from '../../features/exports/DayPack';
 import {ClosingSummaryView} from '../../features/closing/ClosingReport';
 import {maClosingModel,MaStep,MaStepId,MaBlocker} from './logic';
+import {CashLockNote} from '../../features/cashbook/LockNote';
 import {MaTag,MaRows} from './parts';
 
 const STATE_TEXT={done:'Complete',current:'To do',blocked:'Blocked',waiting:'Waiting'} as const;
@@ -76,6 +77,7 @@ export function MaClosing(){
         {isOpen&&<div className="ma-vstep-body">{body(st)}</div>}
       </li>;})}
     </ol>
+    <CashLockNote/>
     <h2 className="ma-h2">Earlier closing records</h2>
     {pastClosings.length?pgClose.shown.map(d=>{const c=s.closings![d];return <ListCard key={d} title={dateLabel(d)} sub={`Net revenue ${money(c.revenue.net)} · receipts ${money(c.receipts.net)}`} meta={`Counted cash ${money(c.cash.counted)}${c.cash.difference?' · difference '+money(c.cash.difference):''} · tap to view / print`} onClick={()=>open({type:'closing-report',id:d})}/>;})
       :<Empty title="No earlier closing records" body="Close a business day to create its record."/>}

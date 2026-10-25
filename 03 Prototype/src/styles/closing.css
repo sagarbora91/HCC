@@ -66,3 +66,5 @@ button.f-metric:hover,button.f-metric.on{border-color:#9e4a55;box-shadow:0 0 0 2
 .f-print-doc .summary-list{margin:10px 0}
 @media(max-width:760px){.f-diff{grid-template-columns:1fr}.f-step-head,.f-step-body{padding-left:14px;padding-right:14px}.f-filters{padding:12px 14px}.f-print-doc:after{font-size:40px}}
 @media print{.f-print-doc:after{opacity:.1;color:#2b1d16}.f-print-doc table{width:100%}.f-print-doc .table-wrap{overflow:visible}.f-summary{grid-template-columns:1fr 1fr}}
+.cb-lock-note{display:flex;gap:8px;align-items:flex-start}.cb-lock-note svg{flex:none;margin-top:2px}
+.cb-lock-note{display:flex;gap:8px;align-items:flex-start}.cb-lock-note svg{flex:none;margin-top:2px}
