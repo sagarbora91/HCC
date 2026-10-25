@@ -56,16 +56,32 @@ export type CashMovement={id:string;kind:string;label:string;booking?:string;gue
 /** Today's cash movements, signed (+ into the drawer, − out). Sum + opening float = drawer(s).
  *  Shared till (DEC-052): POS cash sales and same-day voids count once here; UPI/card bills and room charges to a folio do not. */
 export function shiftMovements(s:State):CashMovement[]{
-  const rec=s.bookings.flatMap(b=>b.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
-    label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor})));
-  const exp=s.expenses.filter(e=>e.date===s.date&&e.method==='Cash'&&expenseCounts(e)).map(e=>({id:e.id,kind:e.reversalOf?'expense-reversal':'expense',
-    label:e.reversalOf?'Expense reversal · '+e.vendor:'Cash expense · '+e.vendor,reference:e.reversalOf?'Reverses '+e.reversalOf:e.category,amount:-e.amount,actor:e.actor}));
+  const rec=s.bookings.flatMap(b=>b.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>recMovement(b,r)));
+  const exp=s.expenses.filter(e=>e.date===s.date&&e.method==='Cash'&&expenseCounts(e)).map(expMovement);
   const p=posSlice(s);
-  const pos=p.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>{
-    const o=p.orders.find(x=>x.id===r.order),outlet=p.outlets.find(x=>x.id===r.outlet)?.name??r.outlet,bill=o?.settlement?.billNo??r.order;
-    return {id:r.id,kind:r.kind==='void'?'pos-void':'pos-sale',label:`${outlet}${r.kind==='void'?' void':''} · ${bill}`,guest:o?.guest,order:r.order,
-      reference:o?posSpot(o)+' · '+r.reference:r.reference,amount:r.amount,actor:r.actor};});
+  const pos=p.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
   return [...rec,...pos,...exp];
+}
+const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
+  label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor});
+const expMovement=(e:Expense):CashMovement=>({id:e.id,kind:e.reversalOf?'expense-reversal':'expense',
+  label:e.reversalOf?'Expense reversal · '+e.vendor:'Cash expense · '+e.vendor,reference:e.reversalOf?'Reverses '+e.reversalOf:e.category,amount:-e.amount,actor:e.actor});
+const posMovement=(p:ReturnType<typeof posSlice>,r:ReturnType<typeof posSlice>['receipts'][number],o:ReturnType<typeof posSlice>['orders'][number]|undefined):CashMovement=>{
+  const outlet=p.outlets.find(x=>x.id===r.outlet)?.name??r.outlet,bill=o?.settlement?.billNo??r.order;
+  return {id:r.id,kind:r.kind==='void'?'pos-void':'pos-sale',label:`${outlet}${r.kind==='void'?' void':''} · ${bill}`,guest:o?.guest,order:r.order,
+    reference:o?posSpot(o)+' · '+r.reference:r.reference,amount:r.amount,actor:r.actor};};
+/** shiftMovements for many business dates in one pass over receipts / expenses (a range used to rescan every record once per day).
+ *  Returns the movements of any date exactly as shiftMovements({...s,date}) would. Built per call, so it can never go stale. */
+export function shiftMovementsByDate(s:State,from:string,to:string):(d:string)=>CashMovement[]{
+  const rec=new Map<string,CashMovement[]>(),exp=new Map<string,CashMovement[]>(),pos=new Map<string,CashMovement[]>();
+  const add=(m:Map<string,CashMovement[]>,d:string,x:CashMovement)=>{const l=m.get(d);if(l)l.push(x);else m.set(d,[x]);};
+  const inR=(d:string)=>d>=from&&d<=to;
+  for(const b of s.bookings)for(const r of b.receipts)if(r.method==='Cash'&&inR(r.date))add(rec,r.date,recMovement(b,r));
+  for(const e of s.expenses)if(e.method==='Cash'&&inR(e.date)&&expenseCounts(e))add(exp,e.date,expMovement(e));
+  const p=posSlice(s),orders=new Map<string,(typeof p.orders)[number]>();
+  for(const o of p.orders)if(!orders.has(o.id))orders.set(o.id,o);
+  for(const r of p.receipts)if(r.method==='Cash'&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
+  return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[])];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
 /** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
