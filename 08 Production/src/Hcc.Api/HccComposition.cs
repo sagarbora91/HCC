@@ -27,6 +27,7 @@ public static class HccComposition
         services.AddHccStays();                          // P3
         services.AddHccHousekeeping();                   // P3
         services.AddBillingModule();                     // P4 billing + payments
+        services.AddYieldModule();                       // W2-12 yield & tariffs
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -50,6 +51,7 @@ public static class HccComposition
         api.MapHousekeepingEndpoints();  // P3
         api.MapBillingEndpoints();       // P4
         api.MapPaymentsEndpoints();      // P4
+        api.MapYieldEndpoints();         // W2-12
         return api;
     }
 }
