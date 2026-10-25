@@ -2,7 +2,7 @@
 import React,{useMemo,useState} from 'react';
 import {CheckCircle2,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,accDates,accVouchers,accExceptions,accReconcile,accLockOf,accDayStatus,accTotals,accLockBlocker,accMapRows,rbacCanTally} from '../../services/mock';
+import {money,accDates,accVouchers,accExceptions,accReconcile,accLockOf,accDayStatus,accTotals,accLockBlocker,accMapRows,rbacCanTally,rbacCanExportVouchers} from '../../services/mock';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {Empty,shortDate,clockTime} from '../../components/ui';
 import {TallyExport} from './Accounting';
@@ -53,6 +53,6 @@ export function AccountingMobile(){
       onClick={()=>open({type:'acc-voucher',id:date+'|'+v.no})}/>):<Empty title="No vouchers" body="Nothing was posted, received or spent on this date."/>}
     {shown.length>list.length&&<button className="btn full" onClick={()=>setShowAll(true)}>Show all {shown.length} vouchers</button>}
     <p className="footnote">Export: generic import format (date, voucher no, ledger, debit, credit, narration, source ID) · Tally/other mapping later.</p>
-    <StickyFooter>{lockable?<><AccExportButton date={date}/><AccLockButton date={date}/></>:<><AccExportButton date={date} primary/>{lock&&<AccLockButton date={date} primary={false}/>}</>}</StickyFooter>
+    {(lockable||lock||rbacCanExportVouchers(s,uid))&&<StickyFooter>{lockable?<><AccExportButton date={date}/><AccLockButton date={date}/></>:<><AccExportButton date={date} primary/>{lock&&<AccLockButton date={date} primary={false}/>}</>}</StickyFooter>}
   </div>;
 }
