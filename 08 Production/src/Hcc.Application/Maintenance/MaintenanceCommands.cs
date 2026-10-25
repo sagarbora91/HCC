@@ -19,7 +19,7 @@ namespace Hcc.Application.Maintenance;
 /// existing room-block port: the Housekeeping block record (<see cref="IHousekeepingStore"/>) plus inventory (<see cref="IRoomBlockPort"/>),
 /// both inside the command transaction. Money (part prices, AMC values) never reaches Maintenance (DEC-063 G12).
 /// </summary>
-public sealed partial class MaintenanceCommands(ICommandRunner runner, IAccessPolicy policy, IMaintenanceStore store, IHousekeepingStore housekeeping, IRoomBlockPort roomBlocks, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null)
+public sealed partial class MaintenanceCommands(ICommandRunner runner, IAccessPolicy policy, IMaintenanceStore store, IHousekeepingStore housekeeping, IRoomBlockPort roomBlocks, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null, Hcc.Application.Configuration.ISettingsReader? settings = null)
 {
     public const string OpCreate = "CreateWorkOrder";
     public const string OpConvertRepair = "ConvertRepairToWorkOrder";
@@ -407,11 +407,13 @@ public sealed partial class MaintenanceCommands(ICommandRunner runner, IAccessPo
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var plans = await store.LockActivePlansAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var lead = settings is null ? MntRules.PmHorizonDays
+                : (await settings.GetAsync(tx, ctx.PropertyId, MaintenanceSettings.PmLeadDaysKey, null, c).ConfigureAwait(false)) is { Kind: Hcc.Domain.Configuration.ConfigValueKind.Number } v ? (int)v.Number : MntRules.PmHorizonDays; // DEC-057 Master configuration
             var exists = new HashSet<(int, DateOnly)>();
             foreach (var p in plans)
-                for (var (d, n) = (p.NextDue, 0); d <= bd.AddDays(MntRules.PmHorizonDays) && n < 12; (d, n) = (d.AddDays(p.EveryDays), n + 1))
+                for (var (d, n) = (p.NextDue, 0); d <= bd.AddDays(lead) && n < 12; (d, n) = (d.AddDays(p.EveryDays), n + 1))
                     if (await store.OccurrenceExistsAsync(tx, p.Id, d, c).ConfigureAwait(false)) exists.Add((p.Id, d));
-            var due = MntRules.PmDue(plans, (plan, date) => exists.Contains((plan, date)), bd);
+            var due = MntRules.PmDue(plans, (plan, date) => exists.Contains((plan, date)), bd, lead);
             var tech = await store.FirstTechnicianAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var ids = new List<long>();
             foreach (var (plan, date) in due.Select(d => (d.Plan, d.Due)))
@@ -427,11 +429,11 @@ public sealed partial class MaintenanceCommands(ICommandRunner runner, IAccessPo
 
             foreach (var p in plans)
             {
-                var next = MntRules.AdvanceNextDue(p, bd);
+                var next = MntRules.AdvanceNextDue(p, bd, lead);
                 if (next != p.NextDue) await store.UpdatePlanAsync(tx, p with { NextDue = next }, p.Version, c).ConfigureAwait(false);
             }
 
-            var horizon = StayDates.ToWire(bd.AddDays(MntRules.PmHorizonDays));
+            var horizon = StayDates.ToWire(bd.AddDays(lead));
             await tx.AuditAsync("MNT_PM_GENERATE", Target("property", ctx.PropertyId), $"{ids.Count.ToString(CultureInfo.InvariantCulture)} preventive work order(s) generated up to {horizon}", c).ConfigureAwait(false);
             return new GeneratePmResult(ids.Count, ids, horizon);
         }, ct).ConfigureAwait(false);

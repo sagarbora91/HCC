@@ -64,7 +64,15 @@ public interface IPosFolioPort
 public interface IPosCloseGate
 {
     Task<PosCloseBlockers> BlockersAsync(int propertyId, CancellationToken ct = default);
+
+    /// <summary>The blocker list for closing <paramref name="date"/>: every check still open (opened on or before that date) with its table or room, number, guest and bill total, and every pending void request.</summary>
+    Task<PosCloseList> ListAsync(int propertyId, DateOnly date, CancellationToken ct = default);
 }
+
+/// <summary>One thing POS holds open: a label for people ("Table T2 · POS-0003 · ₹1,680.00 open") and a reference for the page.</summary>
+public sealed record PosCloseItem(string Label, string Ref);
+
+public sealed record PosCloseList(IReadOnlyList<PosCloseItem> OpenChecks, IReadOnlyList<PosCloseItem> PendingVoids);
 
 // ── Store rows ──
 

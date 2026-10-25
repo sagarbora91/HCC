@@ -328,3 +328,29 @@ public class MaintenanceSqlTests : IAsyncLifetime
         Assert.Equal(1, await _w.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'MaintenanceWorkOrderCreated';", Ct));
     }
 }
+
+[Trait("Category", "Sql")]
+public class PmLeadDaysSettingTests : IAsyncLifetime
+{
+    private MntWorld _w = null!;
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    public async ValueTask InitializeAsync() => _w = await MntWorld.CreateAsync(Ct);
+
+    public async ValueTask DisposeAsync() => await _w.DisposeAsync();
+
+    [Fact]
+    public async Task Generation_horizon_follows_mnt_pmLeadDays_from_its_effective_date()
+    {
+        // Business date 2026-10-24: the default 3 days reaches 2026-10-27 (see the prototype test above). Set 10 days from today.
+        await _w.ExecAsync("INSERT cfg.setting(property_id, setting_key, created_utc, changed_utc) VALUES (" + _w.PropertyId + ", 'mnt.pmLeadDays', '2026-01-01', '2026-01-01'); " +
+            "INSERT cfg.setting_change(property_id, setting_key, effective_from, value_json, before_json, before_text, after_text, source, changed_by, changed_utc) " +
+            "VALUES (" + _w.PropertyId + ", 'mnt.pmLeadDays', '2026-10-25', '10', '3', 'b', 'a', 'change', " + _w.Users["owner"] + ", '2026-01-01');", Ct);
+        var today = (await _w.Commands.GeneratePmAsync(_w.Ctx("supervisor", "l1"), new GeneratePmWorkOrdersRequest(), Ct)).Value;
+        Assert.Equal("2026-10-27", today.HorizonDate);                                         // not effective yet
+        await _w.ExecAsync("UPDATE inv.property SET business_date = '2026-10-25' WHERE property_id = " + _w.PropertyId + ";", Ct);
+        var later = (await _w.Commands.GeneratePmAsync(_w.Ctx("supervisor", "l2"), new GeneratePmWorkOrdersRequest(), Ct)).Value;
+        Assert.Equal("2026-11-04", later.HorizonDate);                                         // 25 Oct + 10 days
+    }
+}

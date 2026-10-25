@@ -23,7 +23,7 @@ namespace Hcc.Application.Closing;
 /// </summary>
 /// <param name="runner">The platform runner (not the business-day guarded one: the close writes on the day it closes).</param>
 public sealed class ClosingService(ICommandRunner runner, IClosingStore store, IReportSource reports, IAccessPolicy policy, BillingService billing,
-    ICloseStepObserver observer, TimeProvider clock)
+    ICloseStepObserver observer, TimeProvider clock, Hcc.Application.Pos.IPosCloseGate? pos = null)
 {
     public const string OpRun = "RunBusinessDayClose";
     public const string OpLockCashBook = "LockCashBookDay";
@@ -110,6 +110,19 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         return r.Value;
     }
 
+    /// <summary>Preflight data from the closing store plus what POS holds open (<see cref="Hcc.Application.Pos.IPosCloseGate"/>; absent POS adds nothing).</summary>
+    private async Task<PreflightData> PreflightAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct)
+    {
+        var data = await store.PreflightDataAsync(tx, propertyId, date, Now, ct).ConfigureAwait(false);
+        if (pos is null) return data;
+        var list = await pos.ListAsync(propertyId, date, ct).ConfigureAwait(false);
+        return data with
+        {
+            PosChecks = list.OpenChecks.Select(i => new PreflightItem(i.Label, i.Ref)).ToList(),
+            PosVoids = list.PendingVoids.Select(i => new PreflightItem(i.Label, i.Ref)).ToList(),
+        };
+    }
+
     private string StepKey(AttemptResult a, CloseStep step) => $"cls:{a.RunId}:{CloseSteps.Code(step)}:{a.Attempt}";
 
     private async Task<StepResult> CheckStepAsync(Caller caller, DateOnly date, AttemptResult a, CloseStep step, IReadOnlySet<string> blocking, CloseStep next,
@@ -118,7 +131,7 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         var r = await runner.RunAsync(Ctx(caller, "Close" + char.ToUpperInvariant(CloseSteps.Code(step)[0]) + CloseSteps.Code(step)[1..], StepKey(a, step)),
             new { a.RunId, a.Attempt, step = CloseSteps.Code(step) }, async (tx, ct2) =>
         {
-            var checks = CloseRules.Evaluate(await store.PreflightDataAsync(tx, caller.PropertyId, date, Now, ct2).ConfigureAwait(false));
+            var checks = CloseRules.Evaluate(await PreflightAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false));
             var blockers = CloseRules.Blockers(checks, blocking);
             var detail = CanonicalJson.Serialize(new
             {
@@ -190,7 +203,7 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
                 await store.InsertClosedDayAsync(tx, caller.PropertyId, date, a.RunId, caller.PrincipalId, now, ct2).ConfigureAwait(false);
                 await observer.OnStepAsync(caller.PropertyId, date, "barrier", null, ct2).ConfigureAwait(false);
 
-                var pre = await store.PreflightDataAsync(tx, caller.PropertyId, date, now, ct2).ConfigureAwait(false);
+                var pre = await PreflightAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false);
                 var blockers = CloseRules.Blockers(CloseRules.Evaluate(pre));
                 if (blockers.Count > 0) throw CloseRules.Blocked(date, blockers);
 
@@ -265,7 +278,7 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         ArgumentNullException.ThrowIfNull(caller);
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.PreflightView, ct: ct).ConfigureAwait(false);
         var d = date ?? await store.BusinessDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
-        var data = await store.PreflightDataAsync(null, caller.PropertyId, d, Now, ct).ConfigureAwait(false);
+        var data = await PreflightAsync(null, caller.PropertyId, d, ct).ConfigureAwait(false);
         return new PreflightResult(d, await store.IsClosedAsync(null, caller.PropertyId, d, ct).ConfigureAwait(false), CloseRules.Evaluate(data));
     }
 

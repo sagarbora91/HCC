@@ -166,7 +166,8 @@ public sealed partial class PosDb : IAsyncLifetime
         FolioQueries = new BillingQueries(billingStore, Policy, Clock);
         var posStore = new SqlPosStore(connections);
         Pos = new PosService(platform.Commands, posStore, billingStore, Policy, tax, Cashier, new BillingPosFolioPort(billingStore, gstStore), Clock,
-            new Hcc.Infrastructure.SqlServer.Closing.SqlBusinessDayGuard());
+            new Hcc.Infrastructure.SqlServer.Closing.SqlBusinessDayGuard(), new Hcc.Application.Configuration.SettingsReader(new Hcc.Application.Configuration.SettingsRegistry([Hcc.Application.Pos.PosSettings.Provider]),
+                new Hcc.Infrastructure.SqlServer.Configuration.SqlConfigurationStore(connections), new Hcc.Infrastructure.SqlServer.Configuration.SqlConfigurationStore(connections)));
         Queries = new PosQueries(posStore, Policy, tax);
 
         Restaurant = (await Pos.CreateOutletAsync(As(Who.Owner), Key(), new CreateOutletRequest("REST", "Restaurant", "table", Enumerable.Range(1, 40).Select(n => "T" + n.ToString(CultureInfo.InvariantCulture)).ToList()))).Value.OutletId;
@@ -211,6 +212,11 @@ public sealed partial class PosDb : IAsyncLifetime
 
     public async Task<int> CountAsync(string sql, params (string Name, SqlDbType Type, object Value)[] ps)
         => Convert.ToInt32(await ScalarAsync(sql, ps), CultureInfo.InvariantCulture);
+
+    /// <summary>Records a dated Master-configuration change (what the Owner's SetSetting stores) for the Owner user.</summary>
+    public Task SetSettingAsync(string key, string valueJson, string effectiveFrom)
+        => ScalarAsync($"DECLARE @u INT = (SELECT TOP 1 user_id FROM plat.app_user WHERE property_id = @p); IF @u IS NULL BEGIN INSERT plat.app_user(property_id, login_name, display_name, created_utc) VALUES (@p, 'cfgowner', N'Owner', '2026-01-01'); SET @u = SCOPE_IDENTITY(); END; IF NOT EXISTS (SELECT 1 FROM cfg.setting WHERE property_id = @p AND setting_key = @k) INSERT cfg.setting(property_id, setting_key, created_utc, changed_utc) VALUES (@p, @k, '2026-01-01', '2026-01-01'); INSERT cfg.setting_change(property_id, setting_key, effective_from, value_json, before_json, before_text, after_text, source, changed_by, changed_utc) VALUES (@p, @k, @e, @v, 'null', 'before', 'after', 'change', @u, '2026-01-01');",
+            ("@p", SqlDbType.Int, PropertyId), ("@k", SqlDbType.VarChar, key), ("@e", SqlDbType.Date, DateOnly.Parse(effectiveFrom, CultureInfo.InvariantCulture)), ("@v", SqlDbType.NVarChar, valueJson));
 
     public Task SetBusinessDateAsync(DateOnly date)
         => ScalarAsync("UPDATE inv.property SET business_date = @d WHERE property_id = @p;", ("@d", SqlDbType.Date, date), ("@p", SqlDbType.Int, PropertyId));

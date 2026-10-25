@@ -15,7 +15,7 @@ namespace Hcc.Application.Maintenance;
 /// prices, parts cost, AMC values) is filled only for readers with finance rights (DEC-063 G12): the selector never sends it to
 /// Maintenance or Housekeeping, so hiding it on screen is not the only safeguard.
 /// </summary>
-public sealed class MaintenanceQueries(IAccessPolicy policy, IMaintenanceReadStore reads, TimeProvider clock)
+public sealed class MaintenanceQueries(IAccessPolicy policy, IMaintenanceReadStore reads, TimeProvider clock, Hcc.Application.Configuration.ISettingsReader? settings = null)
 {
     private static string Iso(DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToString("O", CultureInfo.InvariantCulture);
 
@@ -100,9 +100,11 @@ public sealed class MaintenanceQueries(IAccessPolicy policy, IMaintenanceReadSto
         var assets = snap.Assets.Select(a => new AssetView(a.Id, a.Name, a.Kind, a.RoomId, a.RoomNo, a.Area, a.Make, a.Model, a.InstalledOn is { } d ? StayDates.ToWire(d) : null, a.VendorId, a.Status, VersionToken.ToWire(a.Version))).ToList();
         var vendors = manager ? snap.Vendors.Select(v => new VendorView(v.Id, v.Name, v.Trade, v.Phone, VersionToken.ToWire(v.Version))).ToList() : [];
         var spares = snap.Spares.Select(s => new SpareView(s.Id, s.Name, s.Unit, s.Stock, s.ReorderAt, s.IsLow, money ? s.CostPaise : null, VersionToken.ToWire(s.Version))).ToList();
+        var lead = settings is null ? MntRules.PmHorizonDays
+            : (await settings.GetAsync(propertyId, MaintenanceSettings.PmLeadDaysKey, null, ct).ConfigureAwait(false)) is { Kind: Hcc.Domain.Configuration.ConfigValueKind.Number } v ? (int)v.Number : MntRules.PmHorizonDays;
         var plans = manager
             ? snap.Plans.Select(p => new PlanView(p.Id, p.AssetId, p.Title, p.EveryDays, StayDates.ToWire(p.NextDue), p.Active, p.LastDone is { } l ? StayDates.ToWire(l) : null,
-                MntRules.PlanState(p, snap.Orders, snap.BusinessDate), VersionToken.ToWire(p.Version))).ToList()
+                MntRules.PlanState(p, snap.Orders, snap.BusinessDate, lead), VersionToken.ToWire(p.Version))).ToList()
             : [];
         return new RegistersView(assets, vendors, spares, plans, !money);
     }

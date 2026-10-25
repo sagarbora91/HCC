@@ -23,11 +23,19 @@ namespace Hcc.Application.Pos;
 /// room-posted bill's folio line gets its per-charge GST record. P6: commands refuse a closed business day (DAY_CLOSED) and cash a locked cash book.
 /// </summary>
 public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingStore billing, IAccessPolicy policy, IPosTaxRates taxRates,
-    ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null)
+    ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null, Configuration.ISettingsReader? settings = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     private static CommandContext Ctx(PosCaller c, string operation, string key) => new(c.PropertyId, c.PrincipalId, operation, key);
+
+    /// <summary>The void limit in force on the current business date (Master configuration <see cref="PosSettings.VoidLimitKey"/>; the fixed default without configuration).</summary>
+    private async Task<long> VoidLimitAsync(ICommandTransaction tx, int propertyId, CancellationToken ct)
+    {
+        if (settings is null) return PosRules.VoidLimitPaise;
+        var v = await settings.GetAsync(tx, propertyId, PosSettings.VoidLimitKey, null, ct).ConfigureAwait(false);
+        return v.Kind == Hcc.Domain.Configuration.ConfigValueKind.Number ? v.Number : PosRules.VoidLimitPaise;
+    }
 
     private static HccException NotAvailable(string message) => new(HccErrorCode.NOT_AVAILABLE, message);
 
@@ -346,9 +354,10 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             if (line.Voided) throw Invalid("This item is already void.");
             if (line.KotId is null) throw Invalid("This item has not been sent to the kitchen — just remove it.");
             var value = new PosLineAmount(line.Price, line.Qty).Value;
-            if (!PosRules.NeedsApproval(value.Value))
+            var limit = await VoidLimitAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
+            if (!PosRules.NeedsApproval(value.Value, limit))
                 return await ApplyVoidAsync(tx, caller, o, "item", line.LineId, reason, caller.PrincipalId, null, ct2).ConfigureAwait(false);
-            return await RequestVoidAsync(tx, caller, o, "item", line.LineId, value, reason, ct2).ConfigureAwait(false);
+            return await RequestVoidAsync(tx, caller, o, "item", line.LineId, value, limit, reason, ct2).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 
@@ -380,9 +389,10 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
                 value = lines.Aggregate(Paise.Zero, (a, l) => a + new PosLineAmount(l.Price, l.Qty).Value);
             }
 
-            if (!PosRules.NeedsApproval(value.Value) || value <= Paise.Zero)
+            var limit = await VoidLimitAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
+            if (!PosRules.NeedsApproval(value.Value, limit) || value <= Paise.Zero)
                 return await ApplyVoidAsync(tx, caller, o, "bill", null, reason, caller.PrincipalId, null, ct2).ConfigureAwait(false);
-            return await RequestVoidAsync(tx, caller, o, "bill", null, value, reason, ct2).ConfigureAwait(false);
+            return await RequestVoidAsync(tx, caller, o, "bill", null, value, limit, reason, ct2).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 
@@ -423,7 +433,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         }, ct).ConfigureAwait(false);
     }
 
-    private async Task<VoidResult> RequestVoidAsync(ICommandTransaction tx, PosCaller caller, OrderRow o, string scope, long? lineId, Paise value, string reason, CancellationToken ct)
+    private async Task<VoidResult> RequestVoidAsync(ICommandTransaction tx, PosCaller caller, OrderRow o, string scope, long? lineId, Paise value, long limitPaise, string reason, CancellationToken ct)
     {
         var now = Now;
         // The request binds to the revision the check will have once it is locked.
@@ -432,7 +442,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         await store.SetPendingVoidAsync(tx, o.OrderId, voidId, ct).ConfigureAwait(false);
         var version = await store.TouchOrderAsync(tx, o.OrderId, ct).ConfigureAwait(false);
         await tx.AuditAsync("POS_VOID_REQUESTED", Target("check", o.OrderId),
-            $"void {scope} {value} above {new Paise(PosRules.VoidLimitPaise)} → request {voidId} · {reason}", ct).ConfigureAwait(false);
+            $"void {scope} {value} above {new Paise(limitPaise)} → request {voidId} · {reason}", ct).ConfigureAwait(false);
         return new VoidResult(o.OrderId, "PendingApproval", voidId, version);
     }
 

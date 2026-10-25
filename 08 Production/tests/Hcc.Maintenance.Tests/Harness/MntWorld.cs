@@ -54,11 +54,14 @@ public sealed partial class MntWorld : IAsyncDisposable
         Name = name;
         Platform = new SqlPlatform(new SqlOptions { ConnectionString = SqlConnectionFactory.LocalDevConnectionString(server, name), BackupDirectory = "NUL" });
         var conns = Platform.Connections;
+        Settings = new Hcc.Application.Configuration.SettingsReader(new Hcc.Application.Configuration.SettingsRegistry([]), new Hcc.Infrastructure.SqlServer.Configuration.SqlConfigurationStore(conns), new Hcc.Infrastructure.SqlServer.Configuration.SqlConfigurationStore(conns));
         Clock = new TestClock(new DateTimeOffset(2026, 10, 24, 8, 0, 0, TimeSpan.Zero));
         Policy = new SqlAccessPolicy(conns, Clock, [.. SqlHousekeepingScopeResolver.All(conns), new SqlMaintenanceScopeResolver(conns)]);
-        Commands = new MaintenanceCommands(Platform.Commands, Policy, new SqlMaintenanceStore(), new SqlHousekeepingStore(), new SqlRoomBlockPort(conns), Clock);
-        Queries = new MaintenanceQueries(Policy, new SqlMaintenanceReadStore(conns), Clock);
+        Commands = new MaintenanceCommands(Platform.Commands, Policy, new SqlMaintenanceStore(), new SqlHousekeepingStore(), new SqlRoomBlockPort(conns), Clock, null, Settings);
+        Queries = new MaintenanceQueries(Policy, new SqlMaintenanceReadStore(conns), Clock, Settings);
     }
+
+    public Hcc.Application.Configuration.ISettingsReader Settings { get; }
 
     public string Server { get; }
 

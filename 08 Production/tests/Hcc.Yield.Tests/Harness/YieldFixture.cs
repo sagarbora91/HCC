@@ -50,7 +50,8 @@ public sealed class YieldFixture : IAsyncLifetime
         var conns = _db.Platform.Connections;
         Policy = new SqlAccessPolicy(conns, Clock, []);
         Store = new SqlYieldStore(conns);
-        Service = new YieldService(Store, new SqlRatePublicationPort(conns), _db.Platform.Commands, Policy, Clock);
+        Service = new YieldService(Store, new SqlRatePublicationPort(conns), _db.Platform.Commands, Policy, Clock, null, new Hcc.Application.Configuration.SettingsReader(new Hcc.Application.Configuration.SettingsRegistry([Hcc.Application.Yield.YieldSettings.Provider]),
+            new Hcc.Infrastructure.SqlServer.Configuration.SqlConfigurationStore(conns), new Hcc.Infrastructure.SqlServer.Configuration.SqlConfigurationStore(conns)));
         Queries = new YieldQueries(Store, Policy, Clock);
 
         Owner = await SeedUserAsync("owner", "OWN");

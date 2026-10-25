@@ -82,7 +82,7 @@ public sealed record MntSummary(int Open, int InProgress, int OnHold, int Done, 
 
 public static class MntRules
 {
-    /// <summary>Plan occurrences are generated up to the business date plus this many days (prototype MNT_PM_HORIZON_DAYS).</summary>
+    /// <summary>Plan occurrences are generated up to the business date plus this many days (prototype MNT_PM_HORIZON_DAYS); default of the Master-configuration setting <c>mnt.pmLeadDays</c>.</summary>
     public const int PmHorizonDays = 3;
 
     public static string OrderNo(long id) => "WO-" + id.ToString("D4", CultureInfo.InvariantCulture);
@@ -126,16 +126,16 @@ public static class MntRules
 
     // ── Preventive maintenance ──
     /// <summary>Plan occurrences due on or before date + horizon that have no work order yet (what GeneratePmWorkOrders creates).</summary>
-    public static IReadOnlyList<MntPmOccurrence> PmDue(IEnumerable<MntPlan> plans, IEnumerable<MntOrder> orders, DateOnly businessDate)
+    public static IReadOnlyList<MntPmOccurrence> PmDue(IEnumerable<MntPlan> plans, IEnumerable<MntOrder> orders, DateOnly businessDate, int leadDays = PmHorizonDays)
     {
         var list = orders.Where(o => o.PlanId is not null).ToList();
-        return PmDue(plans, (plan, due) => list.Any(o => o.PlanId == plan && o.DueDate == due), businessDate);
+        return PmDue(plans, (plan, due) => list.Any(o => o.PlanId == plan && o.DueDate == due), businessDate, leadDays);
     }
 
-    public static IReadOnlyList<MntPmOccurrence> PmDue(IEnumerable<MntPlan> plans, Func<int, DateOnly, bool> occurrenceExists, DateOnly businessDate)
+    public static IReadOnlyList<MntPmOccurrence> PmDue(IEnumerable<MntPlan> plans, Func<int, DateOnly, bool> occurrenceExists, DateOnly businessDate, int leadDays = PmHorizonDays)
     {
         ArgumentNullException.ThrowIfNull(occurrenceExists);
-        var horizon = businessDate.AddDays(PmHorizonDays);
+        var horizon = businessDate.AddDays(leadDays);
         var result = new List<MntPmOccurrence>();
         foreach (var p in plans.Where(p => p.Active))
         {
@@ -151,22 +151,22 @@ public static class MntRules
     }
 
     /// <summary>Where a plan's next-due lands after generation (advanced past the horizon, at most 12 steps).</summary>
-    public static DateOnly AdvanceNextDue(MntPlan p, DateOnly businessDate)
+    public static DateOnly AdvanceNextDue(MntPlan p, DateOnly businessDate, int leadDays = PmHorizonDays)
     {
         ArgumentNullException.ThrowIfNull(p);
-        var horizon = businessDate.AddDays(PmHorizonDays);
+        var horizon = businessDate.AddDays(leadDays);
         var d = p.NextDue;
         for (var n = 0; d <= horizon && n < 12; n++) d = d.AddDays(p.EveryDays);
         return d;
     }
 
-    public static string PlanState(MntPlan p, IEnumerable<MntOrder> orders, DateOnly businessDate)
+    public static string PlanState(MntPlan p, IEnumerable<MntOrder> orders, DateOnly businessDate, int leadDays = PmHorizonDays)
     {
         ArgumentNullException.ThrowIfNull(p);
         if (!p.Active) return "Paused";
         var open = orders.Where(o => o.PlanId == p.Id && o.IsActive).ToList();
         if (open.Any(o => o.DueDate < businessDate) || p.NextDue < businessDate) return "Overdue";
-        if (open.Count > 0 || p.NextDue <= businessDate.AddDays(PmHorizonDays)) return "Due";
+        if (open.Count > 0 || p.NextDue <= businessDate.AddDays(leadDays)) return "Due";
         return "Scheduled";
     }
 

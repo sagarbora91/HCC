@@ -99,7 +99,7 @@ public static partial class BuiltinSettings
         [
             // "inspection" is registered by the Housekeeping module (HousekeepingSettings.Provider) and read by its commands.
             new("hk.maxRoomsPerAttendant", "Rooms per attendant (guide)", SettingType.Integer) { Min = 4, Max = 20, Default = N(12), Suffix = "rooms", Unit = "rooms per shift", Help = "Planning guide shown on the housekeeping board.", Affects = "Planning hints only." },
-            new("mnt.pmLeadDays", "Preventive maintenance lead time", SettingType.Integer) { Min = 1, Max = 30, Default = N(7), Suffix = "days", Unit = "days", Help = "Preventive work orders are listed this many days ahead.", Affects = "Preventive plans generated after the change." },
+            new("mnt.pmLeadDays", "Preventive maintenance lead time", SettingType.Integer) { Min = 1, Max = 30, Default = N(3), Suffix = "days", Unit = "days", Effective = EffectiveMode.Date, Dated = true, Help = "Preventive work orders are listed this many days ahead.", Affects = "Preventive plans generated after the change." },
         ]),
         new SettingsProvider("people", ConfigGroupIds.People,
         [

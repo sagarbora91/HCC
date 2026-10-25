@@ -32,7 +32,8 @@ public static class ClosingEndpoints
         services.TryAddSingleton<ICloseStepObserver, NoCloseStepObserver>();
         services.AddSingleton(sp => new ClosingService(sp.GetRequiredService<SqlPlatform>().Commands, sp.GetRequiredService<IClosingStore>(),
             sp.GetRequiredService<IReportSource>(), sp.GetRequiredService<IAccessPolicy>(), sp.GetRequiredService<BillingService>(),
-            sp.GetRequiredService<ICloseStepObserver>(), sp.GetRequiredService<TimeProvider>()));
+            sp.GetRequiredService<ICloseStepObserver>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetService<Hcc.Application.Pos.IPosCloseGate>())); // POS open checks / pending voids block the close
         services.AddSingleton<ReportingQueries>();
         return services;
     }
