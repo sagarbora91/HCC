@@ -36,6 +36,7 @@ public static class HccComposition
         services.AddHccCompliance();                     // W2-5 compliance calendar
         services.AddPosModule();                         // W2-6 restaurant POS
         services.AddHccMaintenance();                    // W2-7
+        services.AddHccStock();                          // W2-8 linen & stock
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -68,6 +69,7 @@ public static class HccComposition
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6
         api.MapMaintenanceEndpoints();   // W2-7
+        api.MapStockEndpoints();         // W2-8
         return api;
     }
 }

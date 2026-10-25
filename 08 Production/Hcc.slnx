@@ -23,6 +23,7 @@
     <Project Path="tests/Hcc.Compliance.Tests/Hcc.Compliance.Tests.csproj" />
     <Project Path="tests/Hcc.Pos.Tests/Hcc.Pos.Tests.csproj" />
     <Project Path="tests/Hcc.Maintenance.Tests/Hcc.Maintenance.Tests.csproj" />
+    <Project Path="tests/Hcc.Stock.Tests/Hcc.Stock.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -44,5 +45,6 @@
     <File Path="database/migrations/1200_pos.sql" />
     <File Path="database/migrations/1201_pos_gst_split.sql" />
     <File Path="database/migrations/1300_maintenance.sql" />
+    <File Path="database/migrations/1400_stock.sql" />
   </Folder>
 </Solution>
