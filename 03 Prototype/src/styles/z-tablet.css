@@ -1,3 +1,5 @@
+/* Touch density tokens (DEC-060). Change here (or per user later) to switch density. */
+:root { --hcc-touch-dense: 44px; --hcc-touch-primary: 48px; }
 /* Drawer navigation gets the available height; less-used tools expand on demand. */
 .drawer-head,.drawer-search,.drawer-foot { flex-shrink: 0; }
 .drawer-nav { min-height: 0; }
@@ -18,13 +20,20 @@
   .app-shell .topbar-right .today { font-size: 12px !important; }
   .app-shell .search-btn kbd { display: none; }
   .app-shell .content { padding: 16px; }
+  /* DEC-060 (T-02): dense rows and filter controls 44 px; primary actions, hamburger, drawer items, breadcrumb chips and dialog buttons 48 px. */
   .app-shell button, .modal button, .drawer button, .exit-card button,
   .app-shell input:not([type=checkbox]):not([type=radio]), .app-shell select,
   .modal input:not([type=checkbox]):not([type=radio]), .modal select {
-    min-height: 48px !important; font-size: 16px;
+    min-height: var(--hcc-touch-dense) !important; font-size: 16px;
   }
-  .app-shell .icon-btn, .modal .icon-btn { min-width: 48px; }
+  .app-shell .btn.primary, .app-shell .page-title .btn, .app-shell .card-footer .btn, .app-shell .f-actions .btn,
+  .app-shell .mobile-menu, .app-shell .topbar button, .app-shell .crumbs button,
+  .drawer button, .drawer a, .drawer summary, .exit-card button,
+  .modal button, .modal input:not([type=checkbox]):not([type=radio]), .modal select, .modal-actions .btn {
+    min-height: var(--hcc-touch-primary) !important;
+  }
+  .app-shell .icon-btn, .modal .icon-btn { min-width: var(--hcc-touch-primary); }
   .app-shell .text-btn, .app-shell .crumbs button { display: inline-flex; align-items: center; padding: 8px; }
-  .app-shell label.permission { min-height: 48px; }
+  .app-shell label.permission { min-height: var(--hcc-touch-dense); }
   .drawer-sub { font-size: 16px; }
 }
