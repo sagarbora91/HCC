@@ -16,6 +16,7 @@ Version: 1.0 · Updated: 24 October 2026 · Owner: Sagar
 | APR-004 | 24 Oct 2026 | Owner (chat) | Execution approach | M2 and M3 may be built in parallel by up to 6 agents after M1 completes |
 | APR-005 | 24 Oct 2026 | Owner (chat) | `HCC_Multi_Agent_Plan_v1.md`, A2 till decision pack | `git init` of the workspace and launch of Wave 0 (W0-A navigation, W0-B till, W0-C booking restriction UX; W0-D acceptance after merge). Does **not** authorize production construction (A4) |
 | APR-006 | 24 Oct 2026 | Owner (chat) | `HCC_Wave05_UI_Placement_v1.md`, `HCC_Master_Configuration_Design_v1.md` | Both designs approved as proposed (DEC-055…DEC-058). Wave 0.5 prototype build after W0-D closes. Does **not** authorize production construction |
+| APR-007 | 25 Oct 2026 | Owner (chat) | `02 Planning/agents/W05_Briefs.md` | Start Wave 0.5 now, in parallel with the last W0-D emulator checks, with the maximum practical number of agents and a mix of Opus and Sonnet (overrides the 'after W0-D' order in APR-006). Production construction still not authorized |
 
 ## 2. Original decisions from the conversation (preserved IDs)
 
