@@ -43,7 +43,6 @@ public sealed class AccessModule
         Sessions = new SqlSessionService(platform.Connections, Hasher, options, clock);
         Users = new SqlUserAdministration(platform.Connections, platform.Commands, Policy, Hasher, options, clock);
         Capabilities = new SqlCapabilitiesQuery(platform.Connections, options, clock);
-        Migrations = AccessMigrationSource.Runner(platform);
     }
 
     public AccessOptions Options { get; }
@@ -57,7 +56,4 @@ public sealed class AccessModule
     public IUserAdministration Users { get; }
 
     public ICapabilitiesQuery Capabilities { get; }
-
-    /// <summary>Platform + access migrations (use instead of <c>SqlPlatform.Migrations</c> until the runner accepts migration blocks).</summary>
-    public Migrations.MigrationRunner Migrations { get; }
 }

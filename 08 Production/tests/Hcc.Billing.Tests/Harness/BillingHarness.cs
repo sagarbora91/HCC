@@ -163,7 +163,7 @@ public sealed partial class BillingDb : IAsyncLifetime
 
         var options = Options;
         var connections = new SqlConnectionFactory(options);
-        await new MigrationRunner(connections, new ModuleMigrationSource(), new SqlBackupGate(options)).MigrateAsync();
+        await new SqlPlatform(options).Migrations.MigrateAsync();
         PropertyId = Convert.ToInt32(await ScalarAsync("""
             INSERT inv.property(code, name, time_zone, business_date) OUTPUT INSERTED.property_id VALUES ('DEMO', N'HCC Demo Residency', 'Asia/Kolkata', '2026-10-24');
             INSERT inv.room_type(property_id, code, max_occupancy) VALUES (SCOPE_IDENTITY(), 'Classic', 2);

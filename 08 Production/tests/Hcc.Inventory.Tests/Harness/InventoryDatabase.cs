@@ -16,25 +16,7 @@ using Microsoft.Data.SqlClient;
 namespace Hcc.Inventory.Tests.Harness;
 
 /// <summary>
-/// Embedded platform migrations (0001–0002) plus the P2 block (database/modules/02xx_*.sql, copied next to the tests).
-/// Bypasses EmbeddedMigrationSource.Validate's contiguity rule, which the lead is asked to relax for the per-agent blocks.
-/// </summary>
-public sealed class P2MigrationSource : IMigrationSource
-{
-    public IReadOnlyList<MigrationScript> Load()
-    {
-        var dir = Path.Combine(AppContext.BaseDirectory, "Migrations");
-        var p2 = Directory.GetFiles(dir, "0*.sql").Select(f =>
-        {
-            var name = Path.GetFileNameWithoutExtension(f);
-            return new MigrationScript(int.Parse(name[..4], CultureInfo.InvariantCulture), name[5..], File.ReadAllText(f));
-        });
-        return new EmbeddedMigrationSource().Load().Concat(p2).OrderBy(s => s.Version).ToList();
-    }
-}
-
-/// <summary>
-/// A uniquely named <c>HccTest_*</c> database on <c>.\SQLEXPRESS</c> (env <c>HCC_TEST_SQL_SERVER</c>) with the P2 migrations
+/// A uniquely named <c>HccTest_*</c> database on <c>.\SQLEXPRESS</c> (env <c>HCC_TEST_SQL_SERVER</c>) with all migrations
 /// applied; dropped afterwards. Only names matching the pattern are dropped (never EtpReporting / EtpScratch_*).
 /// </summary>
 public sealed partial class InventoryDatabase : IAsyncDisposable
@@ -72,7 +54,7 @@ public sealed partial class InventoryDatabase : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
-        await new MigrationRunner(db.Platform.Connections, new P2MigrationSource(), db.Platform.BackupGate).MigrateAsync(ct);
+        await db.Platform.Migrations.MigrateAsync(ct);
         return db;
     }
 

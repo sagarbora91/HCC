@@ -14,45 +14,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Hcc.Stays.Tests.Harness;
 
-/// <summary>
-/// Platform migrations (0001–0002, embedded in the infrastructure assembly) + the P3 block (0300…, embedded in this test
-/// assembly from database/modules). Module blocks are not contiguous, so this source orders and de-duplicates but does not
-/// call the frozen contiguity check (see "Requested changes" in the P3 report).
-/// </summary>
-public sealed partial class P3MigrationSource : IMigrationSource
-{
-    private const string Prefix = "Hcc.P3Migrations.";
-
-    [GeneratedRegex(@"^(\d{4})_([a-z0-9_]+)\.sql$")]
-    private static partial Regex FileName();
-
-    public static IReadOnlyList<MigrationScript> Module()
-    {
-        var asm = Assembly.GetExecutingAssembly();
-        var list = new List<MigrationScript>();
-        foreach (var res in asm.GetManifestResourceNames().Where(n => n.StartsWith(Prefix, StringComparison.Ordinal)))
-        {
-            var m = FileName().Match(res[Prefix.Length..]);
-            if (!m.Success) throw new InvalidOperationException($"Bad module migration name {res}.");
-            using var stream = asm.GetManifestResourceStream(res)!;
-            using var reader = new StreamReader(stream, Encoding.UTF8);
-            var version = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
-            if (version is < 300 or > 399) throw new InvalidOperationException("P3 migrations must stay in block 0300–0399.");
-            list.Add(new MigrationScript(version, m.Groups[2].Value, reader.ReadToEnd()));
-        }
-
-        return list;
-    }
-
-    public IReadOnlyList<MigrationScript> Load()
-    {
-        var all = new EmbeddedMigrationSource().Load().Concat(Module()).OrderBy(s => s.Version).ToList();
-        if (all.Select(s => s.Version).Distinct().Count() != all.Count) throw new InvalidOperationException("Duplicate migration version.");
-        return all;
-    }
-}
-
-/// <summary>A disposable <c>HccTest_*</c> database migrated to 0002 + P3 0300 (same naming/drop rules as the platform harness).</summary>
+/// <summary>A disposable <c>HccTest_*</c> database migrated to the latest version (all blocks) (same naming/drop rules as the platform harness).</summary>
 public sealed partial class P3Database : IAsyncDisposable
 {
     [GeneratedRegex(@"^HccTest_\d{14}_[0-9a-f]{8}$")]
@@ -88,7 +50,7 @@ public sealed partial class P3Database : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
-        await new MigrationRunner(db.Platform.Connections, new P3MigrationSource(), db.Platform.BackupGate).MigrateAsync(ct);
+        await db.Platform.Migrations.MigrateAsync(ct);
         return db;
     }
 

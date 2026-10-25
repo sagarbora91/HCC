@@ -81,12 +81,3 @@ public static class P3Session
         return Results.Ok(result.Value);
     }
 }
-
-/// <summary>Fail-closed placeholder: registered only when no real <see cref="IAccessPolicy"/> exists (P1 provides it).</summary>
-public sealed class DenyAllAccessPolicy : IAccessPolicy
-{
-    public Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default)
-        => throw new HccException(HccErrorCode.FORBIDDEN, "Access is not configured on this server.");
-
-    public Task<bool> HasAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, CancellationToken ct = default) => Task.FromResult(false);
-}

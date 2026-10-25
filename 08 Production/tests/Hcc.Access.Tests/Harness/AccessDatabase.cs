@@ -58,7 +58,7 @@ public sealed partial class AccessDatabase : IAsyncLifetime
         }
 
         ConnectionString = SqlConnectionFactory.LocalDevConnectionString(_server, _name);
-        await AccessMigrationSource.Runner(Platform).MigrateAsync();
+        await Platform.Migrations.MigrateAsync();
         PropertyId = Convert.ToInt32(await ScalarAsync(
             "INSERT inv.property(code, name, time_zone, business_date) OUTPUT INSERTED.property_id VALUES ('TEST', N'Test Hotel', 'Asia/Kolkata', '2026-10-25');"), CultureInfo.InvariantCulture);
     }

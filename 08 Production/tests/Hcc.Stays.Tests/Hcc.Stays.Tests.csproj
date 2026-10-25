@@ -16,8 +16,6 @@
     <ProjectReference Include="..\..\src\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <!-- P3 module migrations (database/modules/03xx) until the frozen runner accepts module blocks in database/migrations. -->
-    <EmbeddedResource Include="..\..\database\modules\03*.sql" LogicalName="Hcc.P3Migrations.%(Filename)%(Extension)" />
     <None Include="Golden\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />

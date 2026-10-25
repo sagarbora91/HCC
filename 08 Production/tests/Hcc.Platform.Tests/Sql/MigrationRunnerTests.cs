@@ -36,6 +36,35 @@ public class MigrationRunnerTests
     }
 
     [Fact]
+    public async Task Fresh_database_applies_every_module_block_in_order_and_cross_module_foreign_keys_resolve()
+    {
+        await using var db = await DisposableDatabase.CreateAsync(migrate: false, Ct);
+        var result = await db.Platform().Migrations.MigrateAsync(Ct);
+        Assert.Equal([1, 2, 100, 101, 200, 300, 400], result.Applied);
+        Assert.Equal("1,2,100,101,200,300,400", await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct));
+
+        // Module tables exist (P1 access, P2 inventory, P3 stays/housekeeping, P4 billing/cashier).
+        foreach (var t in new[] { "plat.app_user", "plat.session", "plat.role_grant", "inv.type_night_count", "inv.room_block", "inv.reservation_night", "bill.quote",
+                     "gst.guest", "gst.stay", "ops.hk_task", "ops.room_block", "pay.till", "pay.shift", "pay.cash_movement", "bill.approval" })
+            Assert.Equal(1, await db.CountAsync($"SELECT CASE WHEN OBJECT_ID('{t}') IS NULL THEN 0 ELSE 1 END", Ct));
+
+        // Every foreign key is enabled and trusted, and the cross-module references point where the modules expect.
+        Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM sys.foreign_keys WHERE is_disabled = 1 OR is_not_trusted = 1", Ct));
+        (string Fk, string Parent, string Referenced)[] crossModule =
+        [
+            ("FK_stay_reservation", "gst.stay", "inv.reservation"), ("FK_stay_folio", "gst.stay", "bill.folio"),
+            ("FK_registration_reservation", "gst.registration", "inv.reservation"), ("FK_stay_segment_room", "gst.stay_segment", "inv.room"),
+            ("FK_hk_task_property", "ops.hk_task", "inv.property"), ("FK_reservation_quote", "inv.reservation", "bill.quote"),
+            ("FK_reservation_night_res", "inv.reservation_night", "inv.reservation"), ("FK_approval_folio", "bill.approval", "bill.folio"),
+            ("FK_receipt_shift", "pay.receipt", "pay.shift"), ("FK_receipt_approval", "pay.receipt", "bill.approval"),
+            ("FK_charge_approval", "bill.charge", "bill.approval"), ("FK_till_property", "pay.till", "inv.property"),
+        ];
+        foreach (var (fk, parent, referenced) in crossModule)
+            Assert.Equal(1, await db.CountAsync(
+                $"SELECT COUNT(*) FROM sys.foreign_keys WHERE name = '{fk}' AND parent_object_id = OBJECT_ID('{parent}') AND referenced_object_id = OBJECT_ID('{referenced}')", Ct));
+    }
+
+    [Fact]
     public async Task Changed_applied_script_and_newer_database_are_refused()
     {
         await using var db = await DisposableDatabase.CreateAsync(migrate: true, Ct);
