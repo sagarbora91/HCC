@@ -1,5 +1,6 @@
 // MB-06 money (phone): command builders used by the phone screens (src/mobile/money/logic.ts), replayed through M.execute.
-// AC-M06: cashier settles ₹3,400 split (₹2,000 cash + ₹1,400 UPI), returns the deposit and closes the shift — S0 oracle figures.
+// DEC-069 GST (old → new): Room 105 due ₹3,400 → ₹3,265 (UPI part ₹1,400 → ₹1,265); every drawer figure −₹25 (POS-F01 ₹550 → ₹525).
+// AC-M06: cashier settles ₹3,265 split (₹2,000 cash + ₹1,265 UPI), returns the deposit and closes the shift — S0 oracle figures.
 import {tillClear} from './_till.mjs';
 import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
@@ -10,7 +11,7 @@ export async function register({test,M,assert}){
   const {loadScenario,execute,drawer,totals}=M;
   const code=fn=>{try{fn();return 'OK';}catch(e){return e.code||e.message;}};
   const one=[{method:'Cash',amount:'',reference:''}];
-  const split=[{method:'Cash',amount:'2,000',reference:''},{method:'UPI',amount:'1400',reference:'DEMO-UPI-0002'}];
+  const split=[{method:'Cash',amount:'2,000',reference:''},{method:'UPI',amount:'1265',reference:'DEMO-UPI-0002'}]; // DEC-069 GST: 1400 → 1265
 
   /** S0 days 24–25 (same steps as the stream F oracle), leaving business date 26 Oct with Room 105 at ₹3,400 due, ₹500 deposit. */
   function s0To26(){
@@ -29,41 +30,41 @@ export async function register({test,M,assert}){
     return {s,id};
   }
 
-  test('[MM] AC-M06: phone split ₹2,000 cash + ₹1,400 UPI, deposit return, checkout, expense, shift close — S0 figures',()=>{
+  test('[MM] AC-M06: phone split ₹2,000 cash + ₹1,265 UPI, deposit return, checkout, expense, shift close — S0 figures',()=>{
     let {s,id}=s0To26();const X=(u,c)=>{s=execute(s,u,c);};const bk=()=>s.bookings.find(b=>b.id===id);
-    assert.equal(s.date,'2026-10-26');assert.equal(drawer(s),1125000);
-    assert.equal(totals(bk()).balance,340000);assert.equal(totals(bk()).deposit,50000);
+    assert.equal(s.date,'2026-10-26');assert.equal(drawer(s),1122500); // DEC-069 GST: 1125000 → 1122500
+    assert.equal(totals(bk()).balance,326500); // DEC-069 GST: 340000 → 326500assert.equal(totals(bk()).deposit,50000);
     assert.equal(L.mmBalanceHero(bk()).state,'due');
     assert.equal(L.mmCheckoutChecklist(s,bk()).clear,false);
     // M10: amount prefilled from the balance (₹3,400), "+ Split" → Cash ₹2,000 + UPI ₹1,400
-    const total=L.mmRupeeText(totals(bk()).balance);assert.equal(total,'3400');
+    const total=L.mmRupeeText(totals(bk()).balance);assert.equal(total,'3265'); // DEC-069 GST: '3400' → '3265'
     assert.equal(L.mmPaymentProblem('payment',total,split,totals(bk()).deposit),'');
     const pay=L.mmPaymentCommand(id,'payment',total,split,'payment:mm-1');
-    assert.deepEqual(pay,{type:'PAYMENT',id,amount:340000,kind:'payment',tenders:[{method:'Cash',amount:200000,reference:''},{method:'UPI',amount:140000,reference:'DEMO-UPI-0002'}],key:'payment:mm-1'});
+    assert.deepEqual(pay,{type:'PAYMENT',id,amount:326500,kind:'payment',tenders:[{method:'Cash',amount:200000,reference:''},{method:'UPI',amount:126500,reference:'DEMO-UPI-0002'}],key:'payment:mm-1'}); // DEC-069 GST: 340000/140000 → 326500/126500
     X('cashier',pay);
     const again=execute(s,'cashier',pay);assert.deepEqual(again,s,'retrying the same request never duplicates');
     const rs=bk().receipts.filter(r=>r.date==='2026-10-26');
     assert.equal(rs.length,2);assert.equal(rs[0].tenderGroup,rs[1].tenderGroup);
-    assert.equal(totals(bk()).balance,0);assert.equal(drawer(s),1325000);
+    assert.equal(totals(bk()).balance,0);assert.equal(drawer(s),1322500); // DEC-069 GST: 1325000 → 1322500
     // Return the deposit (single tender, prefilled with the deposit held)
     assert.notEqual(L.mmPaymentProblem('deposit-return','500',split,50000),'');
     X('cashier',L.mmPaymentCommand(id,'deposit-return',L.mmRupeeText(totals(bk()).deposit),one,'payment:mm-2'));
-    assert.deepEqual(totals(bk()),{net:400000,tax:40000,total:440000,paid:440000,deposit:0,balance:0});
-    assert.equal(drawer(s),1275000);
+    assert.deepEqual(totals(bk()),{net:400000,tax:26500,total:426500,paid:426500,deposit:0,balance:0}); // DEC-069 GST: tax 40000 → 26500, total 440000 → 426500
+    assert.equal(drawer(s),1272500); // DEC-069 GST: 1275000 → 1272500
     assert.equal(L.mmBalanceHero(bk()).state,'settled');
     // M11: checklist all ticked → reception confirms checkout (cashier lacks checkout)
     const c=L.mmCheckoutChecklist(s,bk());assert.equal(c.clear,true);assert.ok(c.items.every(i=>i.ok));
     assert.equal(code(()=>execute(s,'cashier',L.mmCheckoutCommand(id))),'FORBIDDEN');
     X('reception',L.mmCheckoutCommand(id));assert.equal(bk().status,'Departed');assert.ok(bk().invoiceNo);
     assert.deepEqual(execute(s,'reception',L.mmCheckoutCommand(id)),s);
-    // M16: Aqua Water Cans ₹300 cash; manager approves → drawer ₹12,450 (₹11,900 + ₹550 restaurant cash carried in the float)
+    // M16: Aqua Water Cans ₹300 cash; manager approves → drawer ₹12,425 (₹11,900 + ₹525 restaurant cash carried in the float; DEC-069: was ₹12,450)
     X('cashier',L.mmExpenseCommand({vendor:'Aqua Water Cans',category:'Supplies',method:'Cash',amount:'300',receipt:'aqua-water-0026.jpg',notes:''},false,'expense:mm'));
     const e=s.expenses.at(-1);assert.equal(e.status,'Pending');assert.equal(e.amount,30000);assert.equal(e.receipt,'aqua-water-0026.jpg');
-    X('manager',{type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id});assert.equal(drawer(s),1245000);
-    // M15: denomination count 24×₹500 + 2×₹200 + 1×₹50 = ₹12,450 → exact → shift closes on the phone
-    const den=L.mmDenominations({500:24,200:2,50:1},'');assert.equal(L.mmCountTotal(den),1245000);
+    X('manager',{type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id});assert.equal(drawer(s),1242500); // DEC-069 GST: 1245000 → 1242500
+    // M15: denomination count 24×₹500 + 2×₹200 + 1×₹20 + ₹5 coins = ₹12,425 → exact → shift closes on the phone (DEC-069: was 24×500 + 2×200 + 1×50 = ₹12,450)
+    const den=L.mmDenominations({500:24,200:2,20:1},'5');assert.equal(L.mmCountTotal(den),1242500);
     X('cashier',L.mmShiftSubmitCommand(L.mmCountTotal(den),'',den,'mm-count:1'));
-    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:1245000,counted:1245000,countedBy:'cashier'});assert.equal(M.shiftStatus(s),'Closed');
+    assert.equal(s.shiftOpen,false);assert.deepEqual(s.shiftClose,{expected:1242500,counted:1242500,countedBy:'cashier'}); // DEC-069 GST: 1245000 → 1242500assert.equal(M.shiftStatus(s),'Closed');
     X('manager',{type:'CLOSE_RUN'});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});assert.ok(s.closedDates.includes('2026-10-26'));
   });
 
@@ -86,7 +87,7 @@ export async function register({test,M,assert}){
   });
 
   test('[MM] Lost response: payment saved once; retry with the same sheet key reports it, never duplicates',()=>{
-    const {s,id}=s0To26();const cmd=L.mmPaymentCommand(id,'payment','3400',split,'payment:lost');
+    const {s,id}=s0To26();const cmd=L.mmPaymentCommand(id,'payment','3265',split,'payment:lost'); // DEC-069 GST: '3400' → '3265'
     const r=M.executeWithFault(s,'cashier',cmd,'lost');assert.equal(r.error.code,'RESULT_UNKNOWN');
     assert.ok(r.state.processed.includes('payment:lost'),'the phone checks processed keys to show "Saved"');
     const retry=execute(r.state,'cashier',cmd);assert.deepEqual(retry,r.state);
@@ -95,7 +96,9 @@ export async function register({test,M,assert}){
 
   test('[MM] Count difference → reason → approval request; no self-approval; manager accepts within limit',()=>{
     let {s}=s0To26();const exp=drawer(s);
-    const den=L.mmDenominations({500:22},'100'); // ₹11,250 expected − ₹150 = ₹11,100assert.equal(L.mmCountTotal(den),exp-15000);
+    // DEC-069 GST: expected ₹11,250 → ₹11,225, so the ₹150-short count is 22×₹500 + ₹75 coins (was + ₹100).
+    const den=L.mmDenominations({500:22},'75'); // ₹11,225 expected − ₹150 = ₹11,075
+    assert.equal(L.mmCountTotal(den),exp-15000);
     assert.equal(L.mmDiffKind(L.mmCountTotal(den)-exp),'short');
     assert.equal(code(()=>execute(s,'cashier',L.mmShiftSubmitCommand(L.mmCountTotal(den),'',den))),'VALIDATION');
     s=execute(s,'cashier',L.mmShiftSubmitCommand(L.mmCountTotal(den),'₹100 note given as change twice',den,'mm-count:2'));

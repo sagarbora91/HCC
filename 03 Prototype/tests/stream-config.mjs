@@ -36,11 +36,14 @@ export function register({test,M,assert}){
     const s=seed(),defs=cfgDefs(s),keys=defs.map(d=>d.key);
     assert.equal(new Set(keys).size,keys.length);
     for(const g of CFG_GROUPS)assert.ok(defs.some(d=>d.group===g.id),g.id);
-    for(const k of ['hotel','checkin','checkout','discountLimit','approvalExpiryHours','inspection','invoicePrefix','taxBps'])assert.ok(keys.includes(k),k);
+    // DEC-069: the synthetic 'taxBps' key left the registry; the dated GST master keys replace it (Owner-only, dated, illustrative).
+    for(const k of ['hotel','checkin','checkout','discountLimit','approvalExpiryHours','inspection','invoicePrefix'])assert.ok(keys.includes(k),k);
+    assert.ok(!keys.includes('taxBps'));
     for(const d of defs){assert.ok(['immediate','date','nextDay'].includes(d.effectiveMode),d.key);assert.ok(d.affects,d.key);assert.ok(d.category===CFG_GROUPS.find(g=>g.id===d.group).label,d.key);
       if(d.store.kind==='module')assert.equal(d.effectiveMode,'immediate',d.key);
       if(d.illustrative)assert.match(d.help,/Illustrative — CA to confirm for a hotel/,d.key);}
-    assert.equal(cfgDef(s,'taxBps').editable,false);assert.equal(cfgDef(s,'taxBps').panel,'tax');
+    for(const k of M.GST_KEYS){const d=cfgDef(s,k);assert.ok(d,k);assert.equal(d.group,'money',k);assert.equal(d.money,true,k);assert.equal(d.dated,true,k);assert.equal(d.effectiveMode,'date',k);assert.equal(d.illustrative,true,k);assert.equal(d.editable,true,k);}
+    assert.equal(cfgDef(s,'gst.specified.status').editable,false);
     assert.ok(keys.includes('pos.menu.'+posSlice(s).menu[0].id));});
 
   // ── Permissions (DEC-058) ──
@@ -148,7 +151,9 @@ export function register({test,M,assert}){
     s=execute(s,'owner',{type:'CFG_REVERT',id:hd.id});assert.equal(s.settings.discountLimit,seed().settings.discountLimit);
     assert.notEqual(orig,'Name Two');});
   test('[CFG] revert blocks: legacy entries without raw values, scheduled changes, values changed elsewhere',()=>{
-    let s=execute(seed(),'owner',{type:'TAX_SCHEDULE',bps:1200,effectiveFrom:'2026-10-26'});
+    // DEC-069: TAX_SCHEDULE is refused now; a legacy-style history entry (no raw values) comes from TARIFF_SCHEDULE instead.
+    assert.equal(code(()=>execute(seed(),'owner',{type:'TAX_SCHEDULE',bps:1200,effectiveFrom:'2026-10-26'})),'VALIDATION');
+    let s=execute(seed(),'owner',{type:'TARIFF_SCHEDULE',roomType:'Classic',rate:210000,effectiveFrom:'2026-10-26'});
     assert.match(cfgRevertBlock(s,s.configHistory[0].id),/before the configuration hub kept values/);
     s=set(s,'owner','fd.deposit',120000);assert.match(cfgRevertBlock(s,s.configHistory[0].id),/withdraw it instead/);
     s=set(s,'owner','yld.ceilBps',3000);const hid=s.configHistory[0].id;

@@ -29,10 +29,10 @@ export function register({test,M,assert}){
   // BL-007 scenarios + persistence (AC-024)
   test('Scenarios: every available scenario loads with its own ID and schema',()=>{for(const x of scenarios.filter(x=>x.available)){const s=loadScenario(x.id);assert.equal(s.scenario,x.id);assert.equal(s.schema,SCHEMA);assert.equal(s.rooms.length,24);}});
   test('Scenarios: unbuilt scenarios refuse to load',()=>{for(const x of scenarios.filter(x=>!x.available))assert.throws(()=>loadScenario(x.id),/not available/);});
-  test('Scenario S0: catalogue figures (drawer ₹10,750 = ₹10,200 + ₹550 restaurant cash, no arrivals today)',()=>{const s=loadScenario('S0'),m=metrics(s);assert.equal(drawer(s),1075000);assert.equal(m.occupied,8);assert.equal(s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).length,0);});
+  test('Scenario S0: catalogue figures (drawer ₹10,725 = ₹10,200 + ₹525 restaurant cash, no arrivals today)',()=>{const s=loadScenario('S0'),m=metrics(s);assert.equal(drawer(s),1072500);assert.equal(m.occupied,8);assert.equal(s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).length,0);}); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹550 → ₹525)
   test('Scenario S1: empty hotel, all rooms sellable and ready',()=>{const s=loadScenario('S1'),m=metrics(s);assert.equal(m.occupied,0);assert.equal(m.available,24);assert.equal(drawer(s),500000);assert.equal(s.tasks.length,0);});
   test('Scenario S2: 105 blocked; arrival in dirty 108 cannot check in',()=>{let s=loadScenario('S2');assert.equal(code(()=>execute(s,'reception',{type:'BOOK',guest:'Test Guest',room:'105',arrival:s.date,departure:'2026-10-25',people:1})),'NOT_AVAILABLE');s=execute(s,'reception',{type:'REGISTER',id:'HCC-1051'});assert.equal(code(()=>execute(s,'reception',{type:'CHECKIN',id:'HCC-1051'})),'NOT_AVAILABLE');});
-  test('Scenario S3: overdue unpaid departure blocks checkout; stale approval rejected',()=>{const s=loadScenario('S3');assert.equal(totals(s.bookings.find(b=>b.id==='HCC-1042')).balance,20000);assert.equal(code(()=>execute(s,'reception',{type:'CHECKOUT',id:'HCC-1042'})),'INVALID_TRANSITION');assert.equal(code(()=>execute(s,'manager',{type:'APPROVAL',id:'APR-1001',approve:true})),'STALE_VERSION');});
+  test('Scenario S3: overdue unpaid departure blocks checkout; stale approval rejected',()=>{const s=loadScenario('S3');assert.equal(totals(s.bookings.find(b=>b.id==='HCC-1042')).balance,10000);assert.equal(code(()=>execute(s,'reception',{type:'CHECKOUT',id:'HCC-1042'})),'INVALID_TRANSITION');assert.equal(code(()=>execute(s,'manager',{type:'APPROVAL',id:'APR-1001',approve:true})),'STALE_VERSION');}); // DEC-069 GST: balance 20000 → 10000 (₹2,000 night at 5 % instead of 10 %)
   test('Scenario S6: disabled second owner and housekeeper are denied',()=>{const s=loadScenario('S6');assert.equal(code(()=>execute(s,'owner2',{type:'NIGHT_POST'})),'FORBIDDEN');assert.equal(code(()=>execute(s,'housekeeper2',{type:'TASK',id:'task-1',action:'start'})),'FORBIDDEN');assert.equal(s.grants.Cashier.includes('reports'),false);});
   test('Persistence: empty storage → base scenario, no reset notice',()=>{const r=restoreState(null);assert.equal(r.state.scenario,'BASE');assert.equal(r.reset,false);});
   test('Persistence: valid stored state round-trips',()=>{const s=execute(baseFixture(),'owner',{type:'NIGHT_POST'});const r=restoreState(JSON.stringify(s));assert.deepEqual(r.state,s);assert.equal(r.reset,false);});
@@ -44,10 +44,13 @@ export function register({test,M,assert}){
   test('Fixture: demo property renamed; 10 demo users; 23 Oct recorded as closed',()=>{const s=baseFixture();assert.equal(s.settings.hotel,'HCC Demo Residency');assert.equal(s.users.length,10);assert.deepEqual(s.closedDates,['2026-10-23']);});
 
   // S0 walkthrough oracle (Fixture Catalogue §4, AC-001/AC-006)
-  test('S0 walkthrough: Room 105 ₹4,400, drawer figures, room ready, rerun safe, disabled user denied',()=>{
+  // DEC-069 GST (old → new): Room 105 = 2 nights × ₹2,000 at 5 % (₹200) + laundry ₹500 at 18 % (₹90) − discount ₹500 at the room rate 5 % (−₹25):
+  // tax ₹400 → ₹265, total ₹4,400 → ₹4,265, balance on 25 Oct ₹3,400 → ₹3,265 (the final UPI payment ₹1,400 → ₹1,265);
+  // drawers each −₹25 (POS-F01 breakfast cash ₹550 → ₹525): 1075000/1125000/1125000/1275000/1245000 → 1072500/1122500/1122500/1272500/1242500.
+  test('S0 walkthrough: Room 105 ₹4,265 (GST), drawer figures, room ready, rerun safe, disabled user denied',()=>{
     const w=walkthrough();
-    assert.deepEqual(w.folio26,{net:400000,tax:40000,total:440000,paid:440000,deposit:0,balance:0});
-    assert.equal(w.balance25,340000);assert.deepEqual(w.drawers,[1075000,1125000,1125000,1275000,1245000]);
+    assert.deepEqual(w.folio26,{net:400000,tax:26500,total:426500,paid:426500,deposit:0,balance:0});
+    assert.equal(w.balance25,326500);assert.deepEqual(w.drawers,[1072500,1122500,1122500,1272500,1242500]);
     assert.equal(w.s.rooms.find(r=>r.id==='105').hk,'Ready');
     assert.equal(w.s.tasks.filter(t=>t.booking===w.id).length,1);
     assert.equal(w.rerun,'DAY_CLOSED');assert.equal(w.disabled,'FORBIDDEN');assert.equal(w.selfApprove,'FORBIDDEN');
@@ -69,7 +72,7 @@ export function register({test,M,assert}){
     const balance25=totals(s.bookings.find(b=>b.id===id)).balance;
     X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
     X('cashier',{type:'PAYMENT',id,amount:200000,method:'Cash',kind:'payment'});
-    X('cashier',{type:'PAYMENT',id,amount:140000,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'});
+    X('cashier',{type:'PAYMENT',id,amount:126500,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'}); // DEC-069 GST: 140000 → 126500
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit-return'});drawers.push(drawer(s));
     const folio26=totals(s.bookings.find(b=>b.id===id));
     X('reception',{type:'CHECKOUT',id,key:'checkout:'+id});

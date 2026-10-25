@@ -49,7 +49,7 @@ export function register({test,assert,M}){
     assert.ok(result.historyBookings>1000);
     assert.equal(result.unchanged,true);assert.equal(result.separate,true);
     assert.equal(result.replayed,true);assert.equal(result.audited,true);
-    assert.equal(result.drawer,1075000);
+    assert.equal(result.drawer,1072500); // DEC-069 GST: drawer 1075000 → 1072500
   });
   test('[COMPAT] legacy currency options handle whole rupees, paise and negative amounts',()=>{
     const output=vm.runInContext(`[HCC.money(1075000),HCC.money(12345),HCC.money(-12345),HCC.money(0)]`,context);

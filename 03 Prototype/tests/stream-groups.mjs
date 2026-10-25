@@ -18,13 +18,13 @@ export function register({test,M,assert}){
     const s=seed(),x=M.grpSlice(s);
     assert.equal(x.companies.length,3);assert.equal(x.blocks.length,4);
     for(const c of x.companies){assert.match(c.name,/fictional/);assert.match(c.gstin,/^\d{2}ZZFIC\d{4}F/);assert.ok(M.GRP_GSTIN.test(c.gstin));}
-    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1075000);
+    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
   });
   test('[GRP] pickup lines and company exposure figures',()=>{
     const s=seed(),g1=M.grpBlockTotals(s,blk(s,'GB-1'));
     assert.deepEqual([g1.allot,g1.picked,g1.released,g1.remaining],[4,2,2,0]);
-    assert.equal(M.grpBookingExposure(s,s.bookings.find(b=>b.id==='HCC-1044')),460000);
-    assert.equal(M.grpCredit(s,co(s,'CO-1')).exposure,7120000);
+    assert.equal(M.grpBookingExposure(s,s.bookings.find(b=>b.id==='HCC-1044')),430000); // DEC-069 GST: 3 nights × ₹2,000 at 5 % = ₹6,300 − ₹2,000 paid: 460000 → 430000
+    assert.equal(M.grpCredit(s,co(s,'CO-1')).exposure,7060000); // DEC-069 GST: 7120000 → 7060000 (two ₹2,000 stays, 3 nights each, 5 % instead of 10 %)
     const c2=M.grpCredit(s,co(s,'CO-2'));assert.equal(c2.exposure,8800000);assert.equal(c2.level,'near');
     const g2=M.grpBlockTotals(s,blk(s,'GB-2'));assert.deepEqual([g2.allot,g2.picked,g2.remaining],[9,0,9]);
   });
@@ -129,7 +129,7 @@ export function register({test,M,assert}){
     const id=s.bookings.at(-1).id;s=execute(s,'owner',{type:'CANCEL',id,reason:'Dealer not travelling'});
     assert.equal(M.grpBlockTotals(s,blk(s,'GB-2')).picked,1);
     const f=M.grpMasterFolio(seed(),blk(seed(),'GB-1'));
-    assert.equal(f.rows.length,2);assert.equal(f.totals.paid,400000);assert.equal(f.totals.estimate,920000);
+    assert.equal(f.rows.length,2);assert.equal(f.totals.paid,400000);assert.equal(f.totals.estimate,860000); // DEC-069 GST: estimate 920000 → 860000
     assert.equal(f.totals.total,f.rows.reduce((a,r)=>a+r.total,0));
   });
   test('[GRP] day-closed rule blocks group writes',()=>{

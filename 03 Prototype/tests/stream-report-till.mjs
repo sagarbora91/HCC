@@ -5,12 +5,12 @@ export function register({test,M,assert}){
     for(const m of t.metrics)assert.equal(m.value,m.rows.reduce((a,r)=>a+r.amount,0));return t;};
   test('[REPORT-TILL] BASE shared cash report includes POS once, matching drawer and drill-down',()=>{
     const s=M.seed(),t=reconcile(s),rows=t.metrics.find(m=>m.id==='cash-in').rows;
-    assert.equal(value(t,'cash-in'),755000);
+    assert.equal(value(t,'cash-in'),752500); // DEC-069 GST: 755000 → 752500 (POS-F01 ₹550 → ₹525)
     assert.equal(rows.filter(r=>r.ref==='POSR-F01').length,1);
     assert.equal(rows.some(r=>r.ref==='POSR-F02'),false);
-    assert.equal(M.drawer(s),1075000);
+    assert.equal(M.drawer(s),1072500); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
     const pack=M.reportPack(s,s.date,s.date),metric=t.metrics.find(m=>m.id==='cash-in');
-    assert.match(M.reportCsv(s,pack,'expenses'),/"Cash into drawer \(payments \+ deposits \+ POS sales\)","7550.00"/);
+    assert.match(M.reportCsv(s,pack,'expenses'),/"Cash into drawer \(payments \+ deposits \+ POS sales\)","7525.00"/); // DEC-069 GST: "7550.00" → "7525.00"
     assert.match(M.reportDrillCsv(s,pack,metric),/POSR-F01/);
   });
   test('[REPORT-TILL] cash void is signed outflow; room-folio settlement and UPI do not add cash',()=>{
@@ -18,11 +18,11 @@ export function register({test,M,assert}){
     s=M.execute(s,'cashier',{type:'POS_VOID_BILL',id:'POS-F01',reason:'Report regression'});
     assert.equal(value(reconcile(s),'cash-out'),0);
     s=M.execute(s,'manager',{type:'POS_VOID_DECIDE',id:s.approvals.at(-1).id,approve:true});
-    let t=reconcile(s);assert.equal(value(t,'cash-out'),-55000);assert.equal(value(t,'cash-in'),755000);
+    let t=reconcile(s);assert.equal(value(t,'cash-out'),-52500);assert.equal(value(t,'cash-in'),752500); // DEC-069 GST: -55000/755000 → -52500/752500
     s=M.execute(s,'cashier',{type:'POS_SETTLE',id:'POS-F04',mode:'folio'});
     s=M.execute(s,'cashier',{type:'POS_KOT_SEND',id:'POS-F03'});
     s=M.execute(s,'cashier',{type:'POS_SETTLE',id:'POS-F03',mode:'outlet',method:'UPI',reference:'TEST-UPI'});
-    t=reconcile(s);assert.equal(value(t,'cash-in'),755000);assert.equal(value(t,'cash-out'),-55000);
+    t=reconcile(s);assert.equal(value(t,'cash-in'),752500);assert.equal(value(t,'cash-out'),-52500); // DEC-069 GST: 755000/-55000 → 752500/-52500
   });
   test('[REPORT-TILL] inclusive range filters POS by receipt date; historical daily flows match closing cash',()=>{
     const s=M.loadScenario('FY26');

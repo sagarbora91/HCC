@@ -4,7 +4,7 @@ export function register({test,M,assert}){
   const {execute,seed,loadScenario,drawer,totals,HccError}=M;
   const code=fn=>{try{fn();}catch(e){return e instanceof HccError?e.code:'UNTYPED:'+e.message;}return 'NO_ERROR';};
   const P=s=>M.posSlice(s);
-  /** A table check (dal + 2 roti = ₹360 + ₹36 tax = ₹396) sent to the kitchen. */
+  /** A table check (dal + 2 roti = ₹360 + ₹18 GST 5 % = ₹378; DEC-069: was ₹360 + ₹36 = ₹396 with the synthetic 10 %) sent to the kitchen. */
   const table=(s=seed(),tbl='T3')=>{
     s=execute(s,'cashier',{type:'POS_ORDER_OPEN',outlet:'restaurant',table:tbl,covers:2});const id=P(s).orders.at(-1).id;
     s=execute(s,'cashier',{type:'POS_ITEM_ADD',id,item:'m-dal',qty:1});s=execute(s,'cashier',{type:'POS_ITEM_ADD',id,item:'m-roti',qty:2});
@@ -13,17 +13,17 @@ export function register({test,M,assert}){
   const sameFormula=s=>{const x=M.shiftExpected(s);assert.equal(x.expected,drawer(s));assert.equal(x.consistent,true);
     assert.equal(x.expected,s.openingCash+M.shiftMovements(s).reduce((a,m)=>a+m.amount,0));return x;};
 
-  test('[TILL] BASE: drawer ₹10,750 = ₹10,200 folio/expense cash + ₹550 restaurant cash (POS-F01); UPI POS-F02 excluded',()=>{
+  test('[TILL] BASE: drawer ₹10,725 = ₹10,200 folio/expense cash + ₹525 restaurant cash (POS-F01); UPI POS-F02 excluded',()=>{
     const s=seed(),x=sameFormula(s);
-    assert.equal(drawer(s),1075000);assert.equal(x.restaurant,55000);
+    assert.equal(drawer(s),1072500);assert.equal(x.restaurant,52500); // DEC-069 GST: drawer 1075000 → 1072500, restaurant 55000 → 52500 (₹500 + 5 % instead of 10 %)
     const pos=M.shiftMovements(s).filter(m=>m.order);
-    assert.deepEqual(pos.map(m=>[m.id,m.kind,m.label,m.amount]),[['POSR-F01','pos-sale','Restaurant · POS/2610/0001',55000]]);
+    assert.deepEqual(pos.map(m=>[m.id,m.kind,m.label,m.amount]),[['POSR-F01','pos-sale','Restaurant · POS/2610/0001',52500]]); // DEC-069 GST: 55000 → 52500
   });
   test('[TILL] cash POS sale enters the drawer once',()=>{
     let [s,id]=table();const before=drawer(s);
     s=execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash'});
-    assert.equal(drawer(s),before+39600);
-    const mv=M.shiftMovements(s).filter(m=>m.order===id);assert.equal(mv.length,1);assert.equal(mv[0].amount,39600);assert.match(mv[0].label,/^Restaurant · POS\/2610\/0003$/);
+    assert.equal(drawer(s),before+37800); // DEC-069 GST: 39600 → 37800 (₹360 + 5 %)
+    const mv=M.shiftMovements(s).filter(m=>m.order===id);assert.equal(mv.length,1);assert.equal(mv[0].amount,37800);assert.match(mv[0].label,/^Restaurant · POS\/2610\/0003$/); // DEC-069 GST: 39600 → 37800
     sameFormula(s);
   });
   test('[TILL] UPI / card POS sale is non-cash: drawer unchanged, shown in outlet receipts by method',()=>{
@@ -31,16 +31,16 @@ export function register({test,M,assert}){
     s=execute(s,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'UPI',reference:'DEMO-UPI-T1'});
     let [t,id2]=table(s,'T5');t=execute(t,'cashier',{type:'POS_SETTLE',id:id2,mode:'outlet',method:'Card',reference:'DEMO-CARD-T1'});
     assert.equal(drawer(t),before);assert.equal(M.shiftMovements(t).filter(m=>m.order).length,1);
-    const o=M.closingOutlet(t,t.date);assert.deepEqual(o.byMethod,{Cash:55000,UPI:74800+39600,Card:39600});assert.equal(o.net,55000+74800+39600*2);
+    const o=M.closingOutlet(t,t.date);assert.deepEqual(o.byMethod,{Cash:52500,UPI:71400+37800,Card:37800});assert.equal(o.net,52500+71400+37800*2); // DEC-069 GST: Cash 55000 → 52500, POS-F02 74800 → 71400, table 39600 → 37800
   });
   test('[TILL] room service charged to a folio adds a folio charge and no cash',()=>{
     let s=seed();const before=drawer(s),o=P(s).orders.find(x=>x.id==='POS-F04'),b0=totals(s.bookings.find(b=>b.id===o.booking));
     s=execute(s,'cashier',{type:'POS_SETTLE',id:'POS-F04',mode:'folio'});
     const b1=totals(s.bookings.find(b=>b.id===o.booking));
-    assert.equal(b1.net-b0.net,30000);assert.equal(b1.tax-b0.tax,3000); // paratha ₹240 + chai ₹60, synthetic 10%
+    assert.equal(b1.net-b0.net,30000);assert.equal(b1.tax-b0.tax,1500); // paratha ₹240 + chai ₹60 · DEC-069 GST: restaurant 5 % → 1500 (was 3000 at the synthetic 10 %)
     assert.equal(drawer(s),before);assert.equal(P(s).receipts.filter(r=>r.order==='POS-F04').length,0);
     assert.equal(M.shiftMovements(s).some(m=>m.order==='POS-F04'),false);
-    assert.equal(M.closingOutlet(s,s.date).roomFolio,33000);
+    assert.equal(M.closingOutlet(s,s.date).roomFolio,31500); // DEC-069 GST: 33000 → 31500
     assert.equal(M.accLiveVouchers(s,s.date).some(v=>v.source.kind==='pos'&&v.narration.includes('POS-F04')),false);
   });
   test('[TILL] same-day void of a cash bill nets to zero in the drawer',()=>{
@@ -49,7 +49,7 @@ export function register({test,M,assert}){
     s=execute(s,'cashier',{type:'POS_VOID_BILL',id,reason:'Wrong table billed'});
     assert.equal(drawer(s),before);
     const mv=M.shiftMovements(s).filter(m=>m.order===id);
-    assert.deepEqual(mv.map(m=>[m.kind,m.amount]),[['pos-sale',39600],['pos-void',-39600]]);assert.match(mv[1].label,/^Restaurant void · /);
+    assert.deepEqual(mv.map(m=>[m.kind,m.amount]),[['pos-sale',37800],['pos-void',-37800]]);assert.match(mv[1].label,/^Restaurant void · /); // DEC-069 GST: 39600 → 37800
     sameFormula(s);
     const acc=M.accLiveVouchers(s,s.date).filter(v=>v.source.kind==='pos'&&v.narration.includes(id));
     assert.equal(acc.length,2);assert.ok(acc.every(M.accBalanced));
@@ -80,7 +80,7 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'owner',{type:'DAY_CLOSE'}),e=>e.code==='INVALID_TRANSITION'&&/POS-F03, POS-F04/.test(e.message));
     s=tillClear(M,s);s=execute(s,'owner',{type:'DAY_CLOSE'});
     const rec=s.closings[s.date];
-    assert.equal(rec.cash.restaurant,55000);assert.equal(rec.cash.expected,1075000);assert.deepEqual(rec.outlet.byMethod,{Cash:55000,UPI:74800+191400+33000,Card:0});
+    assert.equal(rec.cash.restaurant,52500);assert.equal(rec.cash.expected,1072500);assert.deepEqual(rec.outlet.byMethod,{Cash:52500,UPI:71400+182700+31500,Card:0}); // DEC-069 GST 5 %: restaurant 55000 → 52500, expected 1075000 → 1072500, UPI F02 74800 → 71400, F03 191400 → 182700, F04 33000 → 31500
     for(const c of M.accReconcile(s,s.date))assert.ok(c.ok,`${c.id} report ${c.report} ledger ${c.ledger}`);
   });
   // FY26: built once for the history checks below.
@@ -92,7 +92,7 @@ export function register({test,M,assert}){
       shift:a?{date:d,status:'Closed',expected:a.meta.expected,counted:a.meta.counted,reason:a.reason,submittedBy:'cashier',approval:a.id,decidedBy:'manager'}:undefined};
   };
   test('[TILL] drawer === shiftExpected().expected on BASE and on FY26 23 Oct (restaurant cash included)',()=>{
-    sameFormula(seed());sameFormula(fy);assert.equal(drawer(fy),1075000);
+    sameFormula(seed());sameFormula(fy);assert.equal(drawer(fy),1072500); // DEC-069 GST: drawer 1075000 → 1072500
     const d='2026-10-23',rec=fy.closings[d],s=dayState(d,rec),x=sameFormula(s);
     const cash=P(fy).receipts.filter(r=>r.date===d&&r.method==='Cash').reduce((a,r)=>a+r.amount,0);
     assert.ok(cash>0);assert.equal(x.restaurant,cash);assert.equal(rec.cash.restaurant,cash);assert.equal(x.expected,rec.cash.expected);

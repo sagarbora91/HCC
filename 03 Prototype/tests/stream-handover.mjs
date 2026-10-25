@@ -13,7 +13,7 @@ export function register({test,M,assert}){
 
   test('[HOV] fixture: 6 templates, 8 runs, 3 notes; core figures unchanged',()=>{
     const s=seed(),x=hovSlice(s);assert.equal(x.templates.length,6);assert.equal(x.runs.length,8);assert.equal(x.notes.length,3);
-    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1075000);});
+    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);}); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
   test('[HOV] absent slice reads as empty (old saves)',()=>{const s=seed();delete s.handoverX;assert.deepEqual(hovSlice(s),{templates:[],runs:[],notes:[]});});
   test('[HOV] shift windows and night roll-over',()=>{
     assert.equal(hovShiftAt('2026-10-24T08:00'),'Morning');assert.equal(hovShiftAt('2026-10-24T15:00'),'Evening');assert.equal(hovShiftAt('2026-10-24T23:10'),'Night');assert.equal(hovShiftAt('2026-10-25T02:00'),'Night');

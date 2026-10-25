@@ -8,7 +8,7 @@ export function register({test,M,assert}){
   test('[CHN] fixture: 4 channels, 6 pending messages, core figures untouched',()=>{
     const s=seed(),st=M.chnSlice(s);
     assert.equal(st.channels.length,4);assert.equal(M.chnPending(s).length,6);assert.equal(st.outbox.length,3);
-    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1075000);
+    assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1072500); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
     assert.deepEqual(M.chnSlice({...s,channelsX:undefined}).channels,[]);
   });
   test('[CHN] accept New → Confirmed OTA booking via BOOK (hotel tariff, channel name, first free room)',()=>{
@@ -112,10 +112,10 @@ export function register({test,M,assert}){
     s=execute(s,'reception',{type:'CANCEL',id:msg(s,'CHM-F2').booking,reason:'Test'});
     r=M.chnCommissionReport(s);assert.equal(r.total.commission,108000);
   });
-  test('[CHN] web quote: synthetic tax, rooms left, capacity, search errors',()=>{
+  test('[CHN] web quote: GST per night, rooms left, capacity, search errors',()=>{
     const s=seed();
     const q=M.chnWebQuote(s,'Deluxe','2026-10-25','2026-10-27',2,0);
-    assert.deepEqual([q.nights,q.rate,q.net,q.tax,q.total,q.ok],[2,300000,600000,60000,660000,true]);
+    assert.deepEqual([q.nights,q.rate,q.net,q.tax,q.total,q.ok],[2,300000,600000,30000,630000,true]); // DEC-069 GST: room GST 5 % per night: tax 60000 → 30000, total 660000 → 630000
     assert.equal(M.chnWebQuote(s,'Classic','2026-10-25','2026-10-26',3,0).ok,false);
     assert.match(M.chnWebSearchError(s,'2026-10-20','2026-10-21',1,0),/past/);
     assert.match(M.chnWebSearchError(s,'2026-10-25','2026-10-25',1,0),/after check-in/);
@@ -129,7 +129,7 @@ export function register({test,M,assert}){
     s=execute(s,'reception',base);
     const w=M.chnSlice(s).webRequests[0],b=bk(s,w.booking);
     assert.equal(s.bookings.length,n+1);assert.equal(b.status,'Held');assert.equal(b.source,'Website');assert.equal(b.room,'106');
-    assert.deepEqual([w.net,w.tax,w.total],[900000,90000,990000]);assert.equal(M.chnWebStatus(s,w),'Pending');
+    assert.deepEqual([w.net,w.tax,w.total],[900000,45000,945000]);assert.equal(M.chnWebStatus(s,w),'Pending'); // DEC-069 GST: tax 90000 → 45000, total 990000 → 945000
     assert.equal(available(s,'106','2026-10-25','2026-10-26'),false);
     s=execute(s,'manager',{type:'CHN_WEB_CONFIRM',id:w.id});
     assert.equal(bk(s,w.booking).status,'Confirmed');assert.equal(M.chnSlice(s).webRequests[0].status,'Confirmed');
