@@ -276,7 +276,8 @@ const SETTING_SET:Handler=k=>{
   return cfgChangeCommand(k,def,cmd.value,cmd.effectiveFrom||undefined,String(cmd.reason||'').trim().slice(0,120));
 };
 const CFG_DECIDE:Handler=k=>{
-  const {s,uid,cmd,assert,fail}=k;k.req('admin');
+  // No 'admin' gate: a Manager decides requests whose approver is Manager (from Approvals & audit). cfgDecideBlock is the gate.
+  const {s,uid,cmd,assert,fail}=k;
   const a=s.approvals.find(a=>a.id===cmd.id&&a.kind==='config');
   assert(a&&a.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
   const block=cfgDecideBlock(s,uid,a!.id);if(block)fail('FORBIDDEN',block);
@@ -289,8 +290,8 @@ const CFG_DECIDE:Handler=k=>{
   if(effectiveFrom<s.date){const e=cfgEffectiveFrom(s,def!);effectiveFrom='date' in e?e.date:s.date;}
   assert(cfgSame(cfgValueOn(s,def!.key,effectiveFrom),m.beforeRaw),'The setting changed after this request. Reject it and request again.','STALE_VERSION');
   const err=cfgValidate(s,def!,m.value);if(err)fail('VALIDATION',err);
-  // Executes as the approver: they must also be allowed to change the setting directly (separation of duty, DEC-041/058).
-  const dec=cfgCanChange(s,uid,def!);if(dec.mode!=='allow')fail('FORBIDDEN',dec.reason);
+  // An Owner approver is re-checked like a direct change (e.g. a user exception denying PERM-ADM-003); DEC-041/058.
+  if(k.user.role==='Owner'){const dec=cfgCanChange(s,uid,def!);if(dec.mode!=='allow')fail('FORBIDDEN',dec.reason);}
   a!.approver=uid;a!.decidedAt=addMinutes(s.clock,1);
   const requester=first(s.users.find(u=>u.id===a!.actor));
   const r=cfgApply(k,def!,m.value,effectiveFrom,`Approved request ${a!.id} from ${requester}`,uid,m.revertOf as string|undefined);

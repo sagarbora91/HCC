@@ -356,8 +356,9 @@ export function cfgSearch(s:State,q:string):CfgSearchHit[]{
   for(const group of CFG_GROUPS){
     const gt=norm(group.label+' '+group.blurb+' '+group.section);
     const groupMatch=terms.every(t=>gt.includes(t));
-    const defs=all.filter(d=>d.group===group.id&&terms.every(t=>gt.includes(t)||norm(`${d.label} ${d.key} ${d.help} ${d.unit} ${d.affects}`).includes(t)));
-    if(groupMatch||defs.length)hits.push({group,defs:groupMatch&&defs.length===all.filter(d=>d.group===group.id).length?[]:defs,groupMatch});
+    const defs=all.filter(d=>{if(d.group!==group.id)return false;const dt=norm(`${d.label} ${d.key} ${d.help} ${d.unit}`);
+      return terms.some(t=>dt.includes(t))&&terms.every(t=>dt.includes(t)||gt.includes(t));});
+    if(groupMatch||defs.length)hits.push({group,defs,groupMatch});
   }
   return hits;
 }

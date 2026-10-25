@@ -3,7 +3,7 @@ import React from 'react';
 import {ChevronRight,Hotel,LogIn,ShieldCheck} from 'lucide-react';
 import {useHcc} from './context';
 import {navItems} from './nav';
-import {NAV_CATEGORIES,DASHBOARD,PAGE_BLURB,catPage,crumbsFor,pagesOfCategory,parseCatPage,type CategoryId} from './navmap';
+import {NAV_CATEGORIES,DASHBOARD,PAGE_BLURB,catPage,crumbsFor,pagesOfCategory,parseCatPage,navFilterModules,type CategoryId} from './navmap';
 import {Empty} from '../components/ui';
 
 /** Home › Category › Page, each earlier part clickable. */
@@ -26,7 +26,7 @@ function Tile({icon:Icon,label,blurb,badge,onClick}:{icon:React.ComponentType<{s
 
 export function ModulesHome(){
   const {s,go,user,permission,arrivals,taskList}=useHcc();
-  const allowed=new Set(navItems.filter(n=>permission(n.p)).map(n=>n.id));
+  const allowed=new Set(navFilterModules(s,navItems).filter(n=>permission(n.p)).map(n=>n.id));
   const inHouse=s.bookings.filter(b=>b.status==='In house').length;
   const openTasks=taskList.filter(t=>t.status!=='Done').length;
   const pendingApprovals=s.approvals.filter(a=>a.status==='Pending').length;
@@ -45,10 +45,10 @@ export function ModulesHome(){
 }
 
 export function CategoryPage({page}:{page:string}){
-  const {go,permission}=useHcc();
+  const {s,go,permission}=useHcc();
   const id=parseCatPage(page);const cat=NAV_CATEGORIES.find(c=>c.id===id);
   if(!cat)return <Empty title="Module not found" body="Go back to Modules Home."/>;
-  const items=navItems.filter(n=>pagesOfCategory(cat.id).includes(n.id)&&permission(n.p));
+  const items=navFilterModules(s,navItems).filter(n=>pagesOfCategory(cat.id).includes(n.id)&&permission(n.p));
   return <div className="home">
     <div className="home-head"><h1>{cat.label}</h1><p>{cat.blurb}</p></div>
     {!items.length&&<Empty title="Nothing here for this user" body="Your role has no pages in this module."/>}

@@ -7,7 +7,7 @@ import {HccContext,Ctx,Modal,RunOptions} from './context';
 import {loadStored,saveStored,onStorageError} from './storage';
 import type {Restored} from '../services/mock';
 import {navItems} from './nav';
-import {HOME_PAGE,parseCatPage} from './navmap';
+import {HOME_PAGE,parseCatPage,navFilterModules} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoToolbar} from './demo/DemoToolbar';
 import {extraPages,mobilePages} from './registry';
@@ -73,7 +73,7 @@ function AppShell({initial}:{initial:Restored}){
 
   const user=s.users.find(u=>u.id===uid)??s.users[0];
   const m=metrics(s);
-  const allowedIds=navItems.filter(n=>can(s,uid,n.p)).map(n=>n.id);
+  const allowedIds=navFilterModules(s,navItems).filter(n=>can(s,uid,n.p)).map(n=>n.id);
   const current=page===HOME_PAGE||parseCatPage(page)?page:page==='more'&&display.isMobile?'more':allowedIds.includes(page)?page:HOME_PAGE;
 
   const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotice(null),6500);},[]);
