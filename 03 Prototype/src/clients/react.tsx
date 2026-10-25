@@ -47,23 +47,26 @@ export function useReservations(){
   const [pending,setPending]=useState(false);
   const readOnly=conn.status==='unavailable';
   const client=useClients().reservations;
-  async function commitHttp<R>(flow:(c:ReservationsClient)=>Promise<R>,msg:string,after?:(r:R)=>void):Promise<R|undefined>{
-    if(pending)return undefined;
-    setPending(true);
-    try{
-      const c=httpClients();
-      if(c.connection.readOnly)await c.system.health(); // reconnect check first; throws UNAVAILABLE while still offline
-      const r=await flow(c.reservations);after?.(r);ctx.toast(msg||'Updated successfully');return r;
-    }catch(e){ctx.toast(errorText(e),true);return undefined;}
-    finally{setPending(false);}
-  }
-  // Prototype: the command goes through the app's run() (fault simulation, duplicate-key notice, toast) via the mock adapter.
-  async function commitMock<R>(flow:(c:ReservationsClient)=>Promise<R>,msg:string,after?:(r:R)=>void):Promise<R|undefined>{
-    try{const r=await flow(mockClients(ctx,msg).reservations);after?.(r);return r;}
-    catch(e){if(e!==REPORTED)ctx.toast(errorText(e),true);return undefined;}
-  }
-  const commit=process.env.HCC_BUILD==='production'?commitHttp:commitMock;
+  const commit=<R,>(flow:Flow<R>,msg:string,after?:(r:R)=>void)=>process.env.HCC_BUILD==='production'?commitHttp(ctx,pending,setPending,flow,msg,after):commitMock(ctx,flow,msg,after);
   return {client,commit,readOnly,busy:ctx.busy||pending};
+}
+
+// Top-level (not nested in the hook) so esbuild drops the unused one from each build flavour.
+type Flow<R>=(c:ReservationsClient)=>Promise<R>;
+async function commitHttp<R>(ctx:Ctx,pending:boolean,setPending:(v:boolean)=>void,flow:Flow<R>,msg:string,after?:(r:R)=>void):Promise<R|undefined>{
+  if(pending)return undefined;
+  setPending(true);
+  try{
+    const c=httpClients();
+    if(c.connection.readOnly)await c.system.health(); // reconnect check first; throws UNAVAILABLE while still offline
+    const r=await flow(c.reservations);after?.(r);ctx.toast(msg||'Updated successfully');return r;
+  }catch(e){ctx.toast(errorText(e),true);return undefined;}
+  finally{setPending(false);}
+}
+/** Prototype: the command goes through the app's run() (fault simulation, duplicate-key notice, toast) via the mock adapter. */
+async function commitMock<R>(ctx:Ctx,flow:Flow<R>,msg:string,after?:(r:R)=>void):Promise<R|undefined>{
+  try{const r=await flow(mockClients(ctx,msg).reservations);after?.(r);return r;}
+  catch(e){if(e!==REPORTED)ctx.toast(errorText(e),true);return undefined;}
 }
 
 const stayOk=(q:AvailabilityQuery)=>isIsoDate(q.arrival)&&isIsoDate(q.departure)&&q.departure>q.arrival;

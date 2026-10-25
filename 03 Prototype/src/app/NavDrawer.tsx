@@ -36,7 +36,7 @@ export function NavDrawer({onClose}:{onClose:()=>void}){
       <div className="drawer-foot">
         <details className="drawer-tools"><summary>Demo &amp; display</summary>
         <div className="drawer-person"><span className="avatar" aria-hidden="true">{user.name[0]}</span><div><strong>{user.name.split(' · ')[0]}</strong><small>{user.role}</small></div></div>
-        <button type="button" className="drawer-item" onClick={()=>{onClose();open({type:'demo'});}}><FlaskConical size={18}/>Demo controls</button>
+        {process.env.HCC_BUILD==='production'?null:<button type="button" className="drawer-item" onClick={()=>{onClose();open({type:'demo'});}}><FlaskConical size={18}/>Demo controls</button>}
         <button type="button" className="drawer-item" onClick={()=>{onClose();open({type:'user-menu'});}}><Smartphone size={18}/>Display mode</button>
         </details>
         <button type="button" className="drawer-item" onClick={()=>{onClose();signOut();}}><LogOut size={18}/>Sign out</button>

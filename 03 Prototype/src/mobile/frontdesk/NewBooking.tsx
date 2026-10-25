@@ -4,7 +4,9 @@ import {useStepBack} from '../../app/native';
 import React,{useState} from 'react';
 import {ArrowRight,ArrowLeft,Hourglass,Check,TriangleAlert,DoorOpen,Printer,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,rateFor,nights,addDays,occupant,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS} from '../../services/mock';
+import {money,nights,addDays,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS} from '../../services/mock';
+import {useReservations,useAvailability,useBooking} from '../../clients/react';
+import {quoteAndCreate,createRequestFromBook} from '../../clients/view';
 import {Stepper,NumberStepper,ChipFilter} from '../../app/mobile/components';
 import {shortDate,dateLabel,Empty} from '../../components/ui';
 import {mfDraft,mfPick,mfWizardErrors,mfWizardSteps,mfBookCommand,mfRestriction,MfBookingDraft} from './logic';
@@ -15,34 +17,38 @@ const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const Err=({m}:{m?:string})=>m?<small className="mf-err" role="alert">{m}</small>:null;
 
 export function MfNewBooking({room,id}:{room?:string;id?:string}){
-  const {s,uid,run,modal,busy,closeModal,booking,open,permission,setDirty}=useHcc();
+  const {s,uid,modal,closeModal,booking,open,permission,setDirty}=useHcc();
+  const {commit,busy:cbusy,readOnly}=useReservations();const busy=cbusy||readOnly;
   const [d,setD]=useState<MfBookingDraft>(()=>mfDraft(s,room,id));
   const [step,setStep]=useState(0);const [tried,setTried]=useState(-1);const [done,setDone]=useState('');
   useStepBack(step>0&&!done,()=>{setTried(-1);setStep(x=>Math.max(0,x-1));});
   const set=<K extends keyof MfBookingDraft>(k:K,v:MfBookingDraft[K])=>setD(x=>({...x,[k]:v}));
-  const errors=mfWizardErrors(s,step,d,uid);const shown=tried===step?errors:{};
-  const rst=mfRestriction(s,d,uid);
-  const p=mfPick(s,d);const n=p.valid?nights(d.arrival,d.departure):0;
+  const {view:av}=useAvailability({arrival:d.arrival,departure:d.departure,adults:d.people,children:d.children,roomTypeId:d.type==='All'?undefined:d.type});
+  const {booking:saved}=useBooking(done);
+  const errors=mfWizardErrors(s,step,d,uid,av);const shown=tried===step?errors:{};
+  const rst=mfRestriction(s,d,uid,av);
+  const p=mfPick(s,d,av);const n=p.valid?nights(d.arrival,d.departure):0;
   if(!permission('reservations'))return <Empty title="Not permitted" body="New bookings need the reservations permission."/>;
   const next=()=>{setTried(step);if(Object.keys(errors).length)return;setTried(-1);setDirty(true);setStep(step+1);document.querySelector('.m-sheet')?.scrollTo?.({top:0});};
   const back=()=>{setTried(-1);setStep(step-1);};
-  const save=(hold:boolean)=>{setTried(3);if(Object.keys(mfWizardErrors(s,3,d,uid)).length)return;
-    const predicted='HCC-'+(s.sequence+1);
-    run(mfBookCommand(s,d,hold,modal!.key),hold?'Room held for 2 hours of simulated time. Confirm it before the hold expires.':'Reservation confirmed.',{after:()=>{setDirty(false);setDone(predicted);}});};
+  const save=(hold:boolean)=>{setTried(3);if(Object.keys(mfWizardErrors(s,3,d,uid,av)).length)return;
+    const cmd=mfBookCommand(s,d,hold,modal!.key,av);
+    commit(c=>quoteAndCreate(c,{arrival:cmd.arrival,departure:cmd.departure,adults:cmd.people,children:cmd.children},createRequestFromBook(cmd),{idempotencyKey:modal!.key}),
+      hold?'Room held for 2 hours of simulated time. Confirm it before the hold expires.':'Reservation confirmed.',r=>{setDirty(false);setDone(r.reservationId);});};
 
-  if(done){const b=s.bookings.find(x=>x.id===done);
+  if(done){const b=saved;
     if(!b)return <Empty title="Saved" body="The reservation was recorded. Find it in Reservations."/>;
     const canCheckin=b.status==='Confirmed'&&b.arrival<=s.date&&permission('checkin');
-    return <><div className="modal-heading"><div className="eyebrow">NEW BOOKING · {b.id}</div><h2>{b.status==='Held'?'Room held':'Reservation confirmed'}</h2><p>{b.guest} · Room {b.room} · {shortDate(b.arrival)} – {shortDate(b.departure)}</p></div>
+    return <><div className="modal-heading"><div className="eyebrow">NEW BOOKING · {b.publicNo}</div><h2>{b.status==='Held'?'Room held':'Reservation confirmed'}</h2><p>{b.guest.name} · Room {b.roomId} · {shortDate(b.arrival)} – {shortDate(b.departure)}</p></div>
       <div className="mf-success"><Check size={30}/><p>{b.status==='Held'?'The hold reserves the room for 2 hours of simulated time. Confirm it from the booking before it expires.':canCheckin?'Arriving today — continue straight to check-in.':'The guest can be checked in from Arrivals on the arrival date.'}</p></div>
-      <div className="mf-body-actions"><button className="btn mf-wide" onClick={()=>open({type:'confirmation',id:b.id})}><Printer size={16}/>Print confirmation</button>
-        {canCheckin&&<button className="btn mf-wide" onClick={()=>booking(b.id)}>Open booking</button>}</div>
+      <div className="mf-body-actions"><button className="btn mf-wide" onClick={()=>open({type:'confirmation',id:b.reservationId})}><Printer size={16}/>Print confirmation</button>
+        {canCheckin&&<button className="btn mf-wide" onClick={()=>booking(b.reservationId)}>Open booking</button>}</div>
       <div className="modal-actions">
-        {canCheckin?<button className="btn primary" onClick={()=>open({type:'guest-checkin',id:b.id})}><DoorOpen size={16}/>Check in now</button>
-          :<button className="btn primary" onClick={()=>booking(b.id)}>Open booking</button>}
+        {canCheckin?<button className="btn primary" onClick={()=>open({type:'guest-checkin',id:b.reservationId})}><DoorOpen size={16}/>Check in now</button>
+          :<button className="btn primary" onClick={()=>booking(b.reservationId)}>Open booking</button>}
       </div></>;}
 
-  const chosenRate=p.chosen?rateFor(s,p.chosen,d.arrival):0;
+  const chosenRate=p.chosen?p.available.find(r=>r.room.id===p.chosen!.id)?.ratePaise??0:0;
   const actions=<div className="modal-actions">
     {step===0?<button type="button" className="btn" onClick={closeModal}>Cancel</button>:<button type="button" className="btn" onClick={back}><ArrowLeft size={16}/>Back</button>}
     {step<3?<button type="button" className="btn primary" onClick={next}>Next <ArrowRight size={16}/></button>
@@ -67,8 +73,8 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
         <p className="mf-count"><strong>{p.available.length} available</strong> · {n} night{n===1?'':'s'} · party of {p.party}</p>
         {p.available.length?<div className="mf-options" role="radiogroup" aria-label="Available rooms">
           <label className={'mf-option'+(!d.room?' on':'')}><input type="radio" name="mf-room" checked={!d.room} onChange={()=>set('room','')}/><span><strong>Auto-assign</strong><small>First available{p.available[0]?' · room '+p.available[0].room.id:''}</small></span></label>
-          {p.available.map(({room:r,capacity})=><label key={r.id} className={'mf-option'+(d.room===r.id?' on':'')}><input type="radio" name="mf-room" checked={d.room===r.id} onChange={()=>set('room',r.id)}/>
-            <span><strong>{r.id} · {r.type}</strong><small>Sleeps {capacity} · {money(rateFor(s,r,d.arrival))}/night{occupant(s,r.id)?' · occupied now, free on your dates':''}</small></span></label>)}
+          {p.available.map(({room:r,capacity,ratePaise,occupiedNow})=><label key={r.id} className={'mf-option'+(d.room===r.id?' on':'')}><input type="radio" name="mf-room" checked={d.room===r.id} onChange={()=>set('room',r.id)}/>
+            <span><strong>{r.id} · {r.type}</strong><small>Sleeps {capacity} · {money(ratePaise)}/night{occupiedNow?' · occupied now, free on your dates':''}</small></span></label>)}
         </div>:<Empty title="No availability" body="No room fits these dates and party size. Go back and change dates, guests or type."/>}
         {p.pickedExcluded&&<div className="info-note"><TriangleAlert size={16}/>Room {p.pickedExcluded.room.id} is not available: {p.pickedExcluded.reason}. Choose another room.</div>}
         <Err m={shown.room}/>

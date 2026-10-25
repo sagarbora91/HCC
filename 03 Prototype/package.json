@@ -1,6 +1,6 @@
 {
   "name": "hcc-interactive-prototype", "version": "1.0.0", "private": true,
-  "scripts": {"build":"node build.mjs", "test":"node tests/run.mjs", "typecheck":"tsc --noEmit", "start":"node serve.mjs"},
+  "scripts": {"build":"node build.mjs", "build:production":"node build.mjs --production", "test":"node tests/run.mjs", "typecheck":"tsc --noEmit", "start":"node serve.mjs"},
   "dependencies": {"react":"^19.0.0","react-dom":"^19.0.0","lucide-react":"^0.468.0"},
   "devDependencies": {"esbuild":"^0.25.0","typescript":"^5.7.0","@types/react":"^19.0.0","@types/react-dom":"^19.0.0","@types/node":"^22.0.0"}
 }

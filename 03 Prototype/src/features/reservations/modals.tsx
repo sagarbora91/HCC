@@ -1,11 +1,13 @@
 // Stream A · reservation dialogs: new booking (availability search + hold), cancel, move / change dates.
 import React,{useState} from 'react';
 import {ArrowRight,Info,Hourglass,TriangleAlert} from 'lucide-react';
-import {money,occupant,addDays,nights,rateFor,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE} from '../../services/mock';
+import {money,addDays,nights,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {field,submit,shortDate,Empty} from '../../components/ui';
 import {RestrictionNotice} from './RestrictionNotice';
 import {rstState} from './restriction';
+import {useReservations,useAvailability} from '../../clients/react';
+import {quoteAndCreate} from '../../clients/view';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const err=(m?:string)=>m?<small className="res-field-error" role="alert">{m}</small>:null;
@@ -15,16 +17,17 @@ const err=(m?:string)=>m?<small className="res-field-error" role="alert">{m}</sm
  * used by the calendar's empty cells. Saves as Confirmed, or as Held for 2 h of simulated time.
  */
 export function NewReservation({room,id}:{room?:string;id?:string}){
-  const {s,uid,run,modal,closeModal,busy,booking}=useHcc();
+  const {s,uid,modal,closeModal,booking}=useHcc();
+  const {commit,busy:cbusy,readOnly}=useReservations();const busy=cbusy||readOnly;
   const pre=s.rooms.find(r=>r.id===room);
   const start=id&&DATE.test(id)&&id>=s.date?id:s.date;
   const [arrival,setArrival]=useState(start),[departure,setDeparture]=useState(addDays(start,id?1:2));
   const [people,setPeople]=useState(1),[children,setChildren]=useState(0),[type,setType]=useState(pre?.type||'All');
   const [pick,setPick]=useState(room||''),[source,setSource]=useState('Direct');
   const [errors,setErrors]=useState<Record<string,string>>({});
-  const q=resSearch(s,{arrival,departure,people,children,type});
+  const {view:q}=useAvailability({arrival,departure,adults:people,children,roomTypeId:type==='All'?undefined:type});
   // Room is optional: with none selected, the first available room of the search is auto-assigned (SCR-04).
-  const chosen=pick?q.available.find(r=>r.room.id===pick)?.room:q.available[0]?.room;
+  const chosenRow=pick?q.available.find(r=>r.room.id===pick):q.available[0],chosen=chosenRow?.room,chosenRate=chosenRow?.ratePaise??0;
   const pickedExcluded=pick&&!chosen?q.excluded.find(r=>r.room.id===pick):undefined;
   const dateError=!DATE.test(arrival)||!DATE.test(departure)?'Choose both dates.':arrival<s.date?'Arrival cannot be before the current business date.':nights(arrival,departure)<=0?'Departure must follow arrival.':nights(arrival,departure)>30?'Maximum 30 nights in this demo.':'';
   const n=dateError?0:nights(arrival,departure);
@@ -43,11 +46,10 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
     if(!rst.canSubmit)e.restriction='Resolve the stay restriction first.';
     if(!chosen)e.room=q.available.length?'Select one of the available rooms, or Auto-assign.':'No room is available for this search. Change dates, party size or type.';
     setErrors(e);if(Object.keys(e).length)return;
-    const predicted='HCC-'+(s.sequence+1);
-    run({type:'BOOK',guest,phone,email:field(f,'email'),people,children,room:chosen!.id,arrival,departure,source,otaChannel:source==='OTA'?ota:undefined,
-      company:company?{name:company,gstin:gstin||undefined}:undefined,notes:field(f,'notes'),hold,restrictionOverride:rst.restrictionOverride,key:modal!.key},
+    commit(c=>quoteAndCreate(c,{arrival,departure,adults:people,children},{roomId:chosen!.id,guest:{name:guest,phone,email:field(f,'email')},source,otaChannel:source==='OTA'?ota:undefined,
+      company:company?{name:company,gstin:gstin||undefined}:undefined,notes:field(f,'notes'),hold,restrictionOverride:rst.restrictionOverride},{idempotencyKey:modal!.key}),
       hold?'Room held for 2 hours of simulated time. Confirm it before the hold expires.':'Reservation confirmed. Open it to register the guest and check in.',
-      {after:()=>booking(predicted)});
+      r=>booking(r.reservationId));
   };
   return <><div className="modal-heading"><div className="eyebrow">FRONT DESK</div><h2>New reservation</h2><p>Search availability, then hold or confirm a room.</p></div>
     <form className="form" noValidate onSubmit={e=>{e.preventDefault();save(e.currentTarget,false);}}>
@@ -64,9 +66,9 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
           <div className="res-results-head"><strong>{q.available.length} available</strong><span className="muted">{n} night{n===1?'':'s'} · party of {q.party}</span></div>
           {q.available.length?<div className="res-room-options" role="radiogroup" aria-label="Available rooms">
             <label className={'res-room-option '+(!pick?'selected':'')}><input type="radio" name="room" value="" checked={!pick} onChange={()=>setPick('')}/><span><strong>Auto-assign</strong><small>First available{q.available[0]?' · '+q.available[0].room.id:''}</small></span></label>
-            {q.available.map(({room:r,capacity})=>
+            {q.available.map(({room:r,capacity,ratePaise,occupiedNow})=>
             <label key={r.id} className={'res-room-option '+(pick===r.id?'selected':'')}><input type="radio" name="room" value={r.id} checked={pick===r.id} onChange={()=>setPick(r.id)}/>
-              <span><strong>{r.id} · {r.type}</strong><small>Sleeps {capacity} · {money(rateFor(s,r,arrival))}/night{occupant(s,r.id)?' · occupied now, free on your dates':''}</small></span></label>)}</div>
+              <span><strong>{r.id} · {r.type}</strong><small>Sleeps {capacity} · {money(ratePaise)}/night{occupiedNow?' · occupied now, free on your dates':''}</small></span></label>)}</div>
             :<Empty title="No availability" body="No room of this type fits these dates and party size. Try other dates, fewer guests or another type."/>}
           {pickedExcluded&&<div className="info-note"><TriangleAlert size={16}/>Room {pickedExcluded.room.id} is not available: {pickedExcluded.reason}. Choose another room.</div>}
           {q.excluded.length>0&&<details className="res-excluded"><summary>{q.excluded.length} room{q.excluded.length===1?'':'s'} excluded — see why</summary>
@@ -85,7 +87,7 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
         <label>Notes<textarea name="notes" rows={2} placeholder="Preferences or arrival notes…" maxLength={300}/></label>
       </fieldset>
       <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={chosen?`room ${chosen.id} (${chosen.type})`:undefined}/>
-      {chosen&&<div className="summary-list res-summary"><div><span>Room {chosen.id} · {chosen.type}{pick?'':' (auto-assigned)'}</span><strong>{money(rateFor(s,chosen,arrival))} / night</strong></div><div><span>{n} night{n===1?'':'s'} · {shortDate(arrival)} — {shortDate(departure)}</span><strong>{money(rateFor(s,chosen,arrival)*n)} + synthetic tax</strong></div></div>}
+      {chosen&&<div className="summary-list res-summary"><div><span>Room {chosen.id} · {chosen.type}{pick?'':' (auto-assigned)'}</span><strong>{money(chosenRate)} / night</strong></div><div><span>{n} night{n===1?'':'s'} · {shortDate(arrival)} — {shortDate(departure)}</span><strong>{money(chosenRate*n)} + synthetic tax</strong></div></div>}
       <div className="info-note"><Hourglass size={16}/>A hold reserves the room for 2 hours of simulated time, then releases it automatically. Availability is rechecked for the full date range when you save. No external booking or message is sent.</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button>
         <button type="button" className="btn" disabled={busy||!rst.canSubmit} onClick={e=>save(e.currentTarget.form!,true)}><Hourglass size={15}/> Hold 2 hours</button>
