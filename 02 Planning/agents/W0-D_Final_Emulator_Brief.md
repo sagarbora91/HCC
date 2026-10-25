@@ -6,7 +6,9 @@
 
 APK under test (**updated 25 Oct 07:45**): `05 Delivery Evidence\APK\HCC-0.1.0-proto-debug.apk`, **versionCode 8**, SHA-256 `2BA3FE68B03E2C535B758D288B3B8862F6CE3F87BB592A39E63A32C00F8A52C3` (adds the AC-02 `inset` fix and tablet touch CSS). Earlier: v7 `E87C692B…73EF`.
 
-**Boot problem (25 Oct night):** `codex_api35_google` stayed `offline` > 10 min. Start it cold: `emulator -avd codex_api35_google -port 5554 -no-snapshot-load -no-boot-anim -no-audio -gpu swiftshader_indirect -memory 2048` and allow 15 min (`adb -s emulator-5554 wait-for-device` then poll `getprop sys.boot_completed`). If it is still not booted, kill it and run Parts 2–3 on `codex_apk_review` (emulator-5556, WebView 83) instead — record that choice; it also re-tests AC-02 (sheets must now be visible). Its web bundle equals `03 Prototype\dist\index.html` (SHA-256 `631f4589…5012`). It contains fixes for AC-01, BL-01, BL-02, D-01, T-03, T-04, T-05.
+**Boot problem (25 Oct night):** `codex_api35_google` stayed `offline` > 10 min. Start it cold: `emulator -avd codex_api35_google -port 5554 -no-snapshot-load -no-boot-anim -no-audio -gpu swiftshader_indirect -memory 2048` and allow 15 min (`adb -s emulator-5554 wait-for-device` then poll `getprop sys.boot_completed`). If it is still not booted, kill it and run Parts 2–3 on `codex_apk_review` (emulator-5556, WebView 83) instead — record that choice; it also re-tests AC-02 (sheets must now be visible). 
+
+The v8 web bundle equals `03 Prototype\dist\index.html` (SHA-256 starts `76519ceba8a14ef9`). It contains fixes for AC-01, AC-02, BL-01, BL-02, D-01, T-01/T-02 (tablet CSS), T-03, T-04, T-05. Where the parts below say "v7", use v8 and name screenshots `v8-*`.
 
 ## Part 1 — AC-01 re-test on the old WebView (≈10 min)
 AVD `codex_apk_review` (WebView 83), port 5556 → `emulator-5556`, DevTools port 9232. Install v7; does the app get past "Loading demo data…" to the sign-in screen? Sign in as Owner, open Cashier shift (₹10,750 shown with ₹ symbol and correct digits), post one payment. Record in `05 Delivery Evidence\Acceptance\D5_AC.md` under a new section "AC-01 re-test (v7)". Shut this emulator down.
