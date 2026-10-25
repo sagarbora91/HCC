@@ -32,6 +32,7 @@ public static class HccComposition
         services.AddClosingModule();                     // P6 closing + reports; installs the late-write barrier runner for P2-P4
         services.AddHccConfiguration();                  // W2-1 Master configuration (settings registry, reader, module gate)
         services.AddExpensesModule();                   // W2-4 expenses and petty cash
+        services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -60,6 +61,7 @@ public static class HccComposition
         api.MapClosingEndpoints();       // P6
         api.MapConfigurationEndpoints(); // W2-1
         api.MapExpensesEndpoints();       // W2-4
+        api.MapAccountingEndpoints();    // W2-3
         return api;
     }
 }

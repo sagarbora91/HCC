@@ -24,5 +24,8 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 18 | `src/Hcc.Api/Hosting/HccHosting.cs` (P7) | `UseWindowsService`, production config validator (integrated auth only, no TrustServerCertificate, backup folder, thumbprint), Kestrel HTTPS from machine store | ETP service hosting/config validation/TLS binding |
 | 19 | `src/Hcc.Application/Reporting/ReportingQueries.cs` — `GetDailyReportAsync` (P6) | Daily pack (occupancy, revenue by GST category with CGST/SGST, receipts by tender, cash expenses, drawer) as JSON only | ETP Excel/PDF exporters for the owner's day pack and closing record (PERM-RPT-003), owner e-mail |
 | 20 | `src/Hcc.Application/Expenses/ExpenseCommands.cs` (W2-4) | Receipt is a file-name text only (REQ-EXP-004); no upload, no expense register export | ETP document storage / Excel exporter for receipts and the expense register |
+| 21 | `src/Hcc.Domain/Accounting/VoucherExport.cs` `TallyXml`, `AccountingQueries.TallyAsync` (W2-3) | Simulated Tally "Import Data" XML (ISDEEMEDPOSITIVE convention, ≤ 31 days, ledger names from the fixed synthetic chart); nothing is sent | ETP Tally preparation: ledger + voucher-type masters, company name/GUID, import response parsing ("imported" only after Tally confirms) |
+| 22 | `AccountingQueries.CsvAsync` (W2-3) | Generic voucher CSV (formula-guarded cells) | ETP Excel (.xlsx) exporter for the voucher register and trial balance |
+| 23 | `src/Hcc.Api/Endpoints/AccountingEndpoints.cs` `AccountingProjectorWorker` (W2-3) | 2 s outbox poll, log and retry | ETP background-job hosting (retry/back-off, logging) — same as the housekeeping worker |
 
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).

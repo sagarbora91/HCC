@@ -32,6 +32,10 @@ public sealed partial class PermissionSeedCoverageTests
 
     private static string SeedSql() => File.ReadAllText(Path.Combine(ProductionRoot().FullName, "database", "migrations", "0101_access_rbac_seed.sql"));
 
+    /// <summary>0101 plus the Wave 2 module migrations (block 0700+), which seed their own module PERM ids and grants.</summary>
+    private static string AllSeedSql() => SeedSql() + string.Concat(Directory.EnumerateFiles(Path.Combine(ProductionRoot().FullName, "database", "migrations"), "*.sql")
+        .Where(f => string.CompareOrdinal(Path.GetFileName(f), "0700") >= 0).Order(StringComparer.Ordinal).Select(File.ReadAllText));
+
     /// <summary>PERM ids written as string literals anywhere in src (handlers, permission classes, field masks).</summary>
     private static SortedSet<string> UsedInSource()
     {
@@ -59,17 +63,17 @@ public sealed partial class PermissionSeedCoverageTests
     [Fact]
     public void Every_permission_used_in_code_is_seeded_with_at_least_one_role_grant()
     {
-        var sql = SeedSql();
+        Assert.Equal(45, SeededPermission().Matches(SeedSql()).Count); // RBAC matrix v1 §5 (DEC-063)
+        var sql = AllSeedSql();
         var seeded = SeededPermission().Matches(sql).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
         var granted = SeededGrant().Matches(sql).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
-        Assert.Equal(45, seeded.Count); // RBAC matrix v1 §5 (DEC-063)
 
         var used = UsedInSource();
         used.UnionWith(DeclaredByModules());
         Assert.True(used.Count >= 30, $"Expected the module PERM ids in source, found {used.Count}.");
         var notSeeded = used.Where(p => !seeded.Contains(p)).ToList();
         var notGranted = used.Where(p => !granted.Contains(p)).ToList();
-        Assert.True(notSeeded.Count == 0, "Not seeded by 0101: " + string.Join(", ", notSeeded));
+        Assert.True(notSeeded.Count == 0, "Not seeded by 0101 or a module migration: " + string.Join(", ", notSeeded));
         Assert.True(notGranted.Count == 0, "Seeded without any role grant: " + string.Join(", ", notGranted));
     }
 
