@@ -42,8 +42,8 @@ public sealed class SqlInventoryStore(SqlConnectionFactory connections) : IInven
             SELECT room_type_id, code, max_occupancy, rack_rate_paise, sort_order FROM inv.room_type WHERE property_id = @p;
             SELECT r.room_id, r.room_no, r.room_type_id, t.code, t.max_occupancy FROM inv.room r JOIN inv.room_type t ON t.room_type_id = r.room_type_id
               WHERE r.property_id = @p;
-            SELECT b.room_id, b.from_night, b.to_night, b.reason FROM inv.room_block b JOIN inv.room r ON r.room_id = b.room_id
-              WHERE r.property_id = @p AND b.active = 1 AND (b.to_night IS NULL OR @wf < b.to_night) AND (b.from_night IS NULL OR @wt > b.from_night);
+            SELECT b.room_id, b.from_night, b.to_night, b.reason FROM inv.v_room_block_effective b JOIN inv.room r ON r.room_id = b.room_id
+              WHERE r.property_id = @p AND (b.to_night IS NULL OR @wf < b.to_night) AND (b.from_night IS NULL OR @wt > b.from_night);
             SELECT reservation_id, room_id, arrival, departure, status, hold_until_utc, guest_name, group_block_id FROM inv.reservation
               WHERE property_id = @p AND room_id IS NOT NULL AND status IN ('Held','Confirmed','InHouse') AND arrival < @wt AND departure > @wf;
             SELECT group_block_id, code, name, arrival, departure, cutoff, status, row_ver FROM inv.group_block

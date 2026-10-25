@@ -34,9 +34,9 @@ public static class AvailabilityReasons
 /// <summary>A broken house stay restriction (A2.1): <c>MIN_STAY</c> or <c>CTA</c>, the restriction code and the user message.</summary>
 public sealed record StayViolation(string Code, string Restriction, string Message);
 
-/// <summary>GET /api/v1/availability query.</summary>
+/// <summary>GET /api/v1/availability query. <c>AsOf</c> (past business date, optional): out-of-service blocks as they stood on that date (room-block history).</summary>
 public sealed record AvailabilityQuery(string Arrival, string Departure, int Adults, int Children = 0, int? RoomTypeId = null,
-    string? RatePlanId = null, long? GroupBlockId = null);
+    string? RatePlanId = null, long? GroupBlockId = null, string? AsOf = null);
 
 /// <param name="NightlyRatePaise">Tariff for the arrival night (BAR: dated tariff, else rack rate) — the rate a quote would start from (Wave 1 integration, P5 booking screens).</param>
 public sealed record RoomAvailability(int RoomId, string RoomNo, int RoomTypeId, string RoomType, int Capacity, bool Available,

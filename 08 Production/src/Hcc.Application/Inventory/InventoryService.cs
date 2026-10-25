@@ -15,7 +15,8 @@ namespace Hcc.Application.Inventory;
 /// GetAvailability, QuoteStay and group blocks (contracts §3). Authorization first (<see cref="IAccessPolicy"/>), every command
 /// through <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox in one transaction). Times from the injected clock.
 /// </summary>
-public sealed class InventoryService(IInventoryStore store, ICommandRunner runner, IAccessPolicy access, IGstRateResolver gst, TimeProvider clock)
+public sealed class InventoryService(IInventoryStore store, ICommandRunner runner, IAccessPolicy access, IGstRateResolver gst, TimeProvider clock,
+    IRoomBlockHistoryReader? blockHistory = null)
 {
     /// <summary>Quote lifetime. Wave 1 default; a configuration setting later (owner decision listed in the P2 report).</summary>
     public static readonly TimeSpan QuoteLifetime = TimeSpan.FromMinutes(30);
@@ -36,6 +37,19 @@ public sealed class InventoryService(IInventoryStore store, ICommandRunner runne
         var now = clock.GetUtcNow().UtcDateTime;
         var property = await store.GetPropertyAsync(propertyId, null, ct).ConfigureAwait(false);
         var snap = await store.LoadSnapshotAsync(propertyId, a, d, now, null, ct).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(query.AsOf))
+        {
+            // As-of availability (W3-8): out-of-service blocks as they stood on that past business date (room-block history).
+            var asOf = StayDates.Parse(query.AsOf, "asOf");
+            if (asOf > property.BusinessDate) throw HccException.Validation("asOf cannot be after the current business date.");
+            if (asOf < property.BusinessDate)
+            {
+                var reader = blockHistory ?? throw HccException.Validation("Room-block history is not available.");
+                var from = a < asOf ? a : asOf;
+                snap = snap with { RoomBlocks = await reader.WindowsAsOfAsync(propertyId, asOf, from, DateOnly.MaxValue, ct).ConfigureAwait(false) };
+            }
+        }
+
         if (query.GroupBlockId is { } bid && snap.GroupBlocks.All(b => b.GroupBlockId != bid)) throw InventoryErrors.NotFound("Group block");
         var holds = AvailabilityRules.GroupHolds(snap);
 
