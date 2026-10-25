@@ -96,7 +96,7 @@ function Attendance({phone}:{phone:boolean}){
   const staff=hrSlice(s).staff.filter(t=>t.active),ym=s.date.slice(0,7);
   const row=(st:HRStaff)=>{const x=hrDayStatus(s,st,s.date),sh=hrShiftInfo(hrShiftFor(s,st,s.date));
     const status=x.kind==='att'?<Pill tone={hrAttTone(x.att!.status)}>{HR_ATT_LABEL[x.att!.status]}</Pill>:x.kind==='leave'?<Pill tone="blue">On leave · {x.leave!.type}</Pill>:x.kind==='off'?<Pill>Weekly off</Pill>:<Pill tone="orange">Not marked</Pill>;
-    const can=mgr&&!closed&&x.kind!=='leave';return {x,sh,status,can};};
+    const can=mgr&&!closed&&x.kind!=='leave'&&st.userId!==uid;return {x,sh,status,can};};// F-10: own attendance via self check-in only
   const toggle=<ChipFilter label="Attendance view" value={view} onChange={setView} options={[{id:'today',label:`Today · ${shortDate(s.date)}`},{id:'month',label:`${hrMonthLabel(ym)} to date`}]}/>;
   if(view==='month'){
     const rows=staff.map(st=>({st,c:hrCounts(s,st,ym,addDays(s.date,-1))}));

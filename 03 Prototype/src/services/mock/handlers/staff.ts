@@ -20,6 +20,8 @@ function manage(k:Kit){if(!hrCanManage(k.s,k.uid))k.fail('FORBIDDEN','Access den
 function payroll(k:Kit){if(!hrCanPay(k.s,k.uid))k.fail('FORBIDDEN','Access denied: payroll is limited to the Owner and Accountant roles.');}
 function owner(k:Kit,what:string){if(!hrCanRates(k.s,k.uid))k.fail('FORBIDDEN',`Access denied: only the Owner can ${what}.`);}
 const isOwn=(k:Kit,st:HRStaff)=>!!st.userId&&st.userId===k.uid;
+/** F-10: no self-approval of money — salary, PF / ESIC flags, advances and attendance/overtime on your own record go to another person. */
+const notSelf=(k:Kit,st:HRStaff|undefined,what:string)=>{if(st&&isOwn(k,st))k.fail('FORBIDDEN',`Self-approval is not allowed: you cannot ${what} on your own staff record. Ask another authorised user (the other payroll user or the Owner).`);};
 const rupee=(n:unknown)=>Number.isSafeInteger(n)&&(n as number)>=0&&(n as number)<=100000000;
 const dm=(d:string)=>new Date(d+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'UTC'});
 
@@ -74,6 +76,7 @@ export const handlers:Record<string,Handler>={
     if(salaryGiven){
       const changed=!existing||existing.payType!==(cmd.payType??existing.payType)||existing.monthly!==(cmd.monthly??existing.monthly)||existing.daily!==(cmd.daily??existing.daily);
       if(changed&&!pay)fail('FORBIDDEN','Only the Owner or Accountant can set salary details.');
+      if(changed)notSelf(k,existing,'change the salary');
       if(cmd.payType!==undefined)assert(['monthly','daily'].includes(cmd.payType),'Choose a pay type.');
       if(cmd.monthly!==undefined)assert(rupee(cmd.monthly),'Enter a valid monthly salary.');
       if(cmd.daily!==undefined)assert(rupee(cmd.daily),'Enter a valid daily wage.');
@@ -85,6 +88,7 @@ export const handlers:Record<string,Handler>={
     if(statGiven){
       const changed=!existing||statKeys.some(f=>cmd[f]!==undefined&&cmd[f]!==existing[f]);
       if(changed&&!pay)fail('FORBIDDEN','Only the Owner or Accountant can set PF / ESIC and bank details.');
+      if(existing&&(['structure','pfApplicable','esicApplicable'] as const).some(f=>cmd[f]!==undefined&&cmd[f]!==existing[f]))notSelf(k,existing,'change the salary structure or PF / ESIC');
       if(bankChanged&&isOwn(k,existing!))fail('FORBIDDEN','You cannot change the bank details on your own staff record (no self-approval). Ask the other payroll user.');
       if(cmd.structure!==undefined)assert(cmd.structure==='S'||cmd.structure==='B','Choose a salary structure.');
       if(cmd.ifsc)assert(/^[A-Z]{4}0[A-Z0-9]{6}$/.test(String(cmd.ifsc)),'IFSC is 11 characters, e.g. DEMO0000001.');
@@ -147,6 +151,7 @@ export const handlers:Record<string,Handler>={
       return `${st.name} · checked in ${s.clock.slice(11)} · ${HR_ATT_LABEL[status]}`;
     }
     if(!mgr)fail('FORBIDDEN','Access denied: approve permission is required to record attendance for staff.');
+    notSelf(k,st,'record or correct attendance or overtime (use self check-in)');
     assert(['P','L','H','A','OFF'].includes(cmd.status),'Choose an attendance status.');
     const ot=cmd.otMin??0;assert(Number.isInteger(ot)&&ot>=0&&ot<=480,'Overtime must be 0–480 minutes.');
     assert(!(cmd.status==='A'&&ot>0),'An absent day cannot carry overtime.');
@@ -211,7 +216,7 @@ export const handlers:Record<string,Handler>={
     x.leavePolicy=p;return `Leave policy updated · CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL} · max ${p.defaultCap}/department/day · new requests only`;
   },
   HR_ADVANCE_ADD:k=>{
-    payroll(k);const {s,cmd,assert}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);
+    payroll(k);const {s,cmd,assert}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);notSelf(k,st,'give a salary advance');
     assert(st.active,'This staff member is inactive.','INVALID_TRANSITION');k.positive(cmd.amount);
     assert(Number.isSafeInteger(cmd.installment)&&cmd.installment>=0&&cmd.installment<=cmd.amount,'Monthly recovery must be between ₹0 (full recovery next payroll) and the advance amount.');
     assert(!x.advances.some(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0),'This staff member already has an open advance.','INVALID_TRANSITION');

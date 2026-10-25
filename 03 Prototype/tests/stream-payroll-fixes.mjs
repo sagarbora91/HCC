@@ -190,4 +190,20 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const again=execute(u,'accountant',{type:'HR_PAYROLL_BANK_FILE',id,confirmReissue:true});assert.match(again.audit[0].detail,/REISSUE/);
     assert.match(UI.renderModal(s,'owner','hr-unlock',id),/already generated/);
   });
+
+  test('[PAY-FIX F-10] no self-approval of money: own salary, own advance and own attendance/overtime are refused (FORBIDDEN)',()=>{
+    const s=seed(),self=e=>e.code==='FORBIDDEN'&&/Self-approval/.test(e.message);
+    // reviewer's t4: Accountant sets own salary to ₹90,000 and gives self a ₹50,000 advance; Manager records own attendance with 480 OT minutes
+    assert.throws(()=>execute(s,'accountant',staffCmd(S(s,'HR-S07'),{payType:'monthly',monthly:9000000})),self);
+    assert.throws(()=>execute(s,'accountant',staffCmd(S(s,'HR-S07'),{esicApplicable:false})),self);
+    assert.throws(()=>execute(s,'accountant',{type:'HR_ADVANCE_ADD',staffId:'HR-S07',amount:5000000,installment:0,reason:'Self'}),self);
+    assert.throws(()=>execute(s,'manager',{type:'HR_ATT_MARK',staffId:'HR-S01',status:'P',otMin:480}),self);
+    // the other person can: Owner changes the Accountant's salary and gives the advance; Supervisor-free path: another manager-level user (Owner) records the Manager's attendance
+    assert.equal(S(execute(s,'owner',staffCmd(S(s,'HR-S07'),{payType:'monthly',monthly:2900000})),'HR-S07').monthly,2900000);
+    assert.ok(execute(s,'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S07',amount:500000,installment:100000,reason:'Medical (fictional)'}));
+    assert.equal(x(execute(s,'owner',{type:'HR_ATT_MARK',staffId:'HR-S01',status:'P',otMin:60})).att[s.date+'|HR-S01'].otMin,60);
+    // unchanged salary on your own record (editing your phone etc.) is not a salary change
+    assert.ok(execute(s,'accountant',staffCmd(S(s,'HR-S07'),{payType:'monthly',monthly:S(s,'HR-S07').monthly})));
+    assert.doesNotMatch(UI.renderModal(s,'accountant','hr-advance'),/Farhan/);
+  });
 }

@@ -44,7 +44,8 @@ export function HRStaffModal({id}:{id?:string}){
       <div className="form-row"><label>Demo login{!canLink&&<small> (Owner only)</small>}<select value={f.userId} disabled={!canLink} onChange={set('userId')}><option value="">No login (non-login staff)</option>{s.users.filter(u=>!linked.has(u.id)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
         <label>Mobile (fictional, for payslips)<input inputMode="tel" maxLength={20} value={f.phone} onChange={set('phone')}/></label></div>
       <label>Professional-tax slab<select value={f.gender} onChange={set('gender')}><option value="M">Men’s slab</option><option value="F">Women’s slab (exempt up to ₹25,000)</option></select></label>
-      {pay?<fieldset className="hr-fieldset"><legend>Salary and statutory (payroll roles only)</legend>
+      {pay&&st?.userId===uid&&<div className="info-note"><Info size={16}/>This is your own record: salary, PF / ESIC and bank details are changed by the other payroll user (no self-approval).</div>}
+      {pay?<fieldset className="hr-fieldset" disabled={st?.userId===uid}><legend>Salary and statutory (payroll roles only)</legend>
         <div className="form-row"><label>Pay type<select value={f.payType} onChange={set('payType')}><option value="monthly">Monthly salary</option><option value="daily">Daily wage</option></select></label>
           {f.payType==='monthly'?<label>Monthly salary (₹)<input required type="number" inputMode="decimal" min="0" max="1000000" step="0.01" value={f.monthly} onChange={set('monthly')}/></label>
             :<label>Daily wage (₹)<input required type="number" inputMode="decimal" min="0" max="100000" step="0.01" value={f.daily} onChange={set('daily')}/></label>}</div>
@@ -128,13 +129,14 @@ export function HRLeaveDecideModal({id,room}:{id?:string;room?:string}){
 
 /** 'hr-advance': salary advance with monthly recovery (0 = full balance next payroll, SCC). */
 export function HRAdvanceModal(){
-  const {s,run,closeModal,busy}=useHcc();const x=hrSlice(s);
-  const [f,setF]=useState({staffId:x.staff.find(t=>t.active)?.id??'',amount:'',installment:'',fromMonth:s.date.slice(0,7),reason:''});
+  const {s,uid,run,closeModal,busy}=useHcc();const x=hrSlice(s);
+  const eligible=x.staff.filter(t=>t.active&&t.userId!==uid);// F-10: never your own advance
+  const [f,setF]=useState({staffId:eligible[0]?.id??'',amount:'',installment:'',fromMonth:s.date.slice(0,7),reason:''});
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   const months=[s.date.slice(0,7),hrNextMonth(s.date.slice(0,7)),hrNextMonth(hrNextMonth(s.date.slice(0,7)))];
   return <><div className="modal-heading"><h2>Salary advance</h2><p>Recovered from net pay when payroll is locked (never more than net pay). Paid by simulated bank transfer — no effect on the cash drawer.</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_ADVANCE_ADD',staffId:f.staffId,amount:rs(f.amount),installment:rs(f.installment||'0'),fromMonth:f.fromMonth,reason:f.reason},'Advance recorded',{close:true});}}>
-      <label>Staff member<select value={f.staffId} onChange={set('staffId')}>{x.staff.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+      <label>Staff member<select value={f.staffId} onChange={set('staffId')}>{eligible.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
       <div className="form-row"><label>Amount (₹)<input required type="number" inputMode="decimal" min="1" max="1000000" step="0.01" value={f.amount} onChange={set('amount')}/></label>
         <label>Monthly recovery (₹, blank = all at once)<input type="number" inputMode="decimal" min="0" step="0.01" value={f.installment} onChange={set('installment')}/></label></div>
       <label>Recover from<select value={f.fromMonth} onChange={set('fromMonth')}>{months.map(m=><option key={m} value={m}>{hrMonthLabel(m)} payroll</option>)}</select></label>
