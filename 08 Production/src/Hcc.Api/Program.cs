@@ -26,6 +26,8 @@ builder.Services.AddSingleton(platform.Connections);
 builder.Services.AddSingleton<ICommandRunner>(platform.Commands);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHccAccess(builder.Configuration, platform);
+builder.Services.AddInventoryModule();
+builder.Services.AddReservationsModule();
 builder.Services.AddHccStays();
 builder.Services.AddHccHousekeeping();
 builder.Services.AddBillingModule(); // P4 billing + payments
@@ -39,6 +41,8 @@ app.UseMiddleware<HccErrorMiddleware>();
 
 var api = app.MapGroup(ApiConventions.BasePath);
 api.MapAccessEndpoints();
+api.MapInventoryEndpoints();
+api.MapReservationsEndpoints();
 api.MapBillingEndpoints();
 api.MapPaymentsEndpoints();
 api.MapGet("/system/health", async (SqlConnectionFactory connections, TimeProvider clock, CancellationToken ct) =>
