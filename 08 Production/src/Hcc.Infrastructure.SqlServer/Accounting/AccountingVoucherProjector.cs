@@ -153,6 +153,9 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.PayrollPaid:
                 source = AccountingEventMapper.PayRunPaid(Parse<PayrollPaidEvent>(evt));
                 break;
+            case AccountingEvents.PayRunUnlocked:
+                source = await PayRunReversalAsync(connection, transaction, propertyId, Parse<PayRunUnlockedEvent>(evt), ct).ConfigureAwait(false);
+                break;
         }
 
         if (source is not null && !source.IsZero)
@@ -173,6 +176,49 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
 
         var (cgst, sgst) = await gst.ReadAsync(c, t, chargeId, tax, ct).ConfigureAwait(false);
         return AccountingEventMapper.Charge(folioId, chargeId, "correction", date, amount, cgst, sgst);
+    }
+
+    /// <summary>
+    /// W3-b: the reversal of the pay-run voucher booked for that lock (read back from <c>acc.source</c>, so it is the exact negative of what was
+    /// booked, whatever the figures). Nothing was booked for the lock (zero run) → no reversal. Dated the unlock's business date.
+    /// </summary>
+    private static async Task<AccountingSource?> PayRunReversalAsync(SqlConnection c, SqlTransaction t, int propertyId, PayRunUnlockedEvent e, CancellationToken ct)
+    {
+        var key = AccountingEventMapper.PayRunKey(e.RunId, e.LockSeq);
+        var entries = new List<SourceEntry>();
+        await using (var cmd = new SqlCommand("""
+            SELECT se.map_key, se.debit_paise, se.credit_paise FROM acc.source s JOIN acc.source_entry se ON se.source_id = s.source_id
+            WHERE s.property_id = @p AND s.source_key = @k ORDER BY se.line_no;
+            """, c, t))
+        {
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@k", SqlDbType.VarChar, key, 80);
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) entries.Add(new SourceEntry(rd.GetString(0), rd.GetInt64(1), rd.GetInt64(2)));
+        }
+
+        if (entries.Count == 0) return null;
+        bool paid;
+        await using (var cmd = new SqlCommand("SELECT COUNT(*) FROM acc.source WHERE property_id = @p AND source_key = @k;", c, t))
+        {
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@k", SqlDbType.VarChar, AccountingEventMapper.PayRunPaidKey(e.RunId, e.LockSeq), 80);
+            paid = (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0;
+        }
+
+        DateOnly date;
+        if (e.BusinessDate is { } d)
+        {
+            date = d;
+        }
+        else
+        {
+            await using var cmd = new SqlCommand("SELECT business_date FROM inv.property WHERE property_id = @p;", c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            date = DateOnly.FromDateTime((DateTime)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!);
+        }
+
+        return AccountingEventMapper.PayRunReversal(e, date, key, entries, paid);
     }
 
     private static async Task<int> TillOfAsync(SqlConnection c, SqlTransaction t, long shiftId, CancellationToken ct)

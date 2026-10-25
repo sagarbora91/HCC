@@ -70,19 +70,44 @@ public static class AccountingEventMapper
             $"{(reversal ? $"Reversal of {N(e.ReversalOf!.Value)} · " : "")}{e.Vendor} · {e.Category} · {e.Funding}");
     }
 
+    /// <summary>Pay-run voucher of one lock: lock 1 keeps the Wave 2 key <c>payroll:{run}</c>; a re-lock is <c>payroll:{run}/lock{n}</c>.</summary>
+    public static string PayRunKey(long runId, int lockSeq) => "payroll:" + N(runId) + LockSuffix(lockSeq);
+
+    public static string PayRunPaidKey(long runId, int lockSeq) => "payroll-paid:" + N(runId) + LockSuffix(lockSeq);
+
+    /// <summary>The reversal booked when that lock is unlocked (unique per lock → consumed exactly once).</summary>
+    public static string PayRunReversalKey(long runId, int lockSeq) => $"payroll-unlock:{N(runId)}/lock{lockSeq.ToString(CultureInfo.InvariantCulture)}";
+
+    private static string LockSuffix(int lockSeq) => lockSeq <= 1 ? "" : "/lock" + lockSeq.ToString(CultureInfo.InvariantCulture);
+
     public static AccountingSource PayRun(PayrollPostedEvent e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        return SourceRules.PayRun("payroll:" + N(e.PayRunId), e.BusinessDate,
+        return SourceRules.PayRun(PayRunKey(e.PayRunId, e.LockSeq), e.BusinessDate,
             new PayRunFigures(e.GrossPaise, e.EmployerPfPaise, e.EmployerEsicPaise, e.EmployeePfPaise, e.EmployeeEsicPaise, e.ProfessionalTaxPaise,
                 e.AdvanceRecoveryPaise, e.OtherDeductionsPaise, e.NetPayablePaise),
-            $"Pay run {e.Period} · run {N(e.PayRunId)}");
+            $"Pay run {e.Period} · run {N(e.PayRunId)}{(e.LockSeq > 1 ? $" · lock {e.LockSeq.ToString(CultureInfo.InvariantCulture)}" : "")}");
     }
 
     public static AccountingSource PayRunPaid(PayrollPaidEvent e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        return SourceRules.PayRunPaid("payroll-paid:" + N(e.PayRunId), e.Funding, e.BusinessDate, e.AmountPaise,
+        return SourceRules.PayRunPaid(PayRunPaidKey(e.PayRunId, e.LockSeq), e.Funding, e.BusinessDate, e.AmountPaise,
             $"Net pay paid · {e.Funding} · {e.Reference} · run {N(e.PayRunId)}");
+    }
+
+    /// <summary>
+    /// Unlock of a pay-run lock: the exact negative of that lock's posted voucher (<paramref name="original"/> entries), dated the unlock's
+    /// business date. When a bank file was issued its payment voucher is kept, and the narration flags it.
+    /// </summary>
+    public static AccountingSource PayRunReversal(PayRunUnlockedEvent e, DateOnly date, string originalVoucherKey, IReadOnlyList<SourceEntry> original, bool paymentBooked)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var lockText = e.LockSeq.ToString(CultureInfo.InvariantCulture);
+        var flag = e.BankFilesIssued > 0 || paymentBooked
+            ? " · BANK FILE ALREADY ISSUED: net-pay payment voucher kept (not reversed); do not pay twice on re-lock"
+            : "";
+        return SourceRules.PayRunReversal(PayRunReversalKey(e.RunId, e.LockSeq), date, original,
+            $"Reversal of pay run {e.Month} · run {N(e.RunId)} · lock {lockText} unlocked · reverses {originalVoucherKey}{flag}");
     }
 }

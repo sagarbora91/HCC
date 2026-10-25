@@ -133,6 +133,17 @@ public static class SourceRules
         => new(sourceKey, SourceKinds.Payroll, "payment", date, VoucherType.Payment, narration,
             [Dr("payroll:net-payable", amountPaise), Cr("funding:" + funding, amountPaise)]);
 
+    /// <summary>
+    /// Pay-run unlock (W3-b): Journal, the exact negative of the original pay-run voucher's entries (each debit becomes the same credit
+    /// and vice versa, same keys, same order), so the two net to zero in every ledger.
+    /// </summary>
+    public static AccountingSource PayRunReversal(string sourceKey, DateOnly date, IReadOnlyList<SourceEntry> original, string narration)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        return new(sourceKey, SourceKinds.Payroll, "payrun-reversal", date, VoucherType.Journal, narration,
+            original.Select(e => new SourceEntry(e.MapKey, e.CreditPaise, e.DebitPaise)).ToList());
+    }
+
     public static string Rupees(long paise)
     {
         var sign = paise < 0 ? "-" : "";
