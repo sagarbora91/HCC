@@ -1,0 +1,30 @@
+/* Drawer navigation gets the available height; less-used tools expand on demand. */
+.drawer-head,.drawer-search,.drawer-foot { flex-shrink: 0; }
+.drawer-nav { min-height: 0; }
+.drawer-foot { max-height: 45%; overflow-y: auto; }
+.drawer-tools summary { min-height: 48px; padding: 14px 12px; cursor: pointer; font-size: 16px; }
+.drawer-sub { min-height: 48px; }
+/* Preserve mouse/desktop density; increase controls only on touch tablets. */
+@media screen and (pointer: coarse) and (min-width: 600px) {
+  .app-shell .topbar { padding: 8px 16px; gap: 4px 12px; min-height: 64px; align-items: center; }
+  .app-shell .topbar-left { flex: 1 1 55%; min-width: 0; gap: 8px; }
+  .app-shell .topbar-right { flex: 1 1 40%; gap: 4px 10px; }
+  .app-shell .topbar-right .conn-chip,
+  .app-shell .topbar-right .current-user,
+  .app-shell .topbar-right .display-toggle,
+  .app-shell .topbar-right .topbar-signout,
+  .app-shell .topbar-right .demo-badge,
+  .app-shell .demo-toolbar { display: none !important; }
+  .app-shell .topbar-right .today { font-size: 12px !important; }
+  .app-shell .search-btn kbd { display: none; }
+  .app-shell .content { padding: 16px; }
+  .app-shell button, .modal button, .drawer button, .exit-card button,
+  .app-shell input:not([type=checkbox]):not([type=radio]), .app-shell select,
+  .modal input:not([type=checkbox]):not([type=radio]), .modal select {
+    min-height: 48px !important; font-size: 16px;
+  }
+  .app-shell .icon-btn, .modal .icon-btn { min-width: 48px; }
+  .app-shell .text-btn, .app-shell .crumbs button { display: inline-flex; align-items: center; padding: 8px; }
+  .app-shell label.permission { min-height: 48px; }
+  .drawer-sub { font-size: 16px; }
+}

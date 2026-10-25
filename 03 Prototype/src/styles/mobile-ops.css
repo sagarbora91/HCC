@@ -22,7 +22,7 @@
 .mo-checklist{display:flex;flex-direction:column;gap:8px}
 .mo-checklist label{position:relative;display:flex;align-items:center;gap:14px;min-height:56px;padding:8px 14px;border:1.5px solid #cdb9a3;border-radius:12px;font-size:17px;color:#2b1d16;background:#fff;cursor:pointer}
 .mo-checklist label.on{background:#eaf4e4;border-color:#2e6b34;color:#1f4d24}
-.mo-checklist input{position:absolute;opacity:0;width:100%;height:100%;inset:0;margin:0;cursor:pointer}
+.mo-checklist input{position:absolute;opacity:0;width:100%;height:100%;top:0;right:0;bottom:0;left:0;margin:0;cursor:pointer}
 .mo-checklist input:focus-visible+.mo-box{outline:3px solid #7a1f2b;outline-offset:2px}
 .mo-box{width:30px;height:30px;flex-shrink:0;border:2px solid #7a1f2b;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fff;color:#fff}
 .mo-checklist label.on .mo-box{background:#2e6b34;border-color:#2e6b34}

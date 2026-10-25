@@ -1,0 +1,467 @@
+{
+  "date": "2026-10-25",
+  "scope": "Read-only first-party source mapping. No code copied, scripts executed or databases opened. Local hashes are authoritative for this snapshot; SCC has unrelated working changes.",
+  "repositories": [
+    {
+      "name": "ETP",
+      "root": "V:/ETP/Code/Worktrees/main",
+      "head": "92a14da1ca0b21c4cdb34bedf5a9fc7da9f95708",
+      "working_tree_changes": []
+    },
+    {
+      "name": "SCC",
+      "root": "V:/Co work/Projects/Retail/saagar-control-centre-phase1-clone",
+      "head": "b4734766d49c43d834ac2f5ef81fc88a00123580",
+      "working_tree_changes": [
+        " M verification/audit/PHASE-5-CURRENT-REMAINING-INVENTORY-2026-08-23.md",
+        " M verification/audit/PHASE-5-STAFF-UAT-2026-08-23.md",
+        "?? .tmp-etp-synthetic-fixtures-device/",
+        "?? graphify-out/",
+        "?? verification/audit/PHASE-5-FIREBASE-API23-PHYSICAL-CATALOG-EXCEPTION-2026-08-24.md"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "group": "E01",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/DatabaseBootstrapper.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\DatabaseBootstrapper.cs",
+      "sha256": "caff5f8f51a6460fc2c0907022a3319886a93fa9887c93f4b72a7fd46c106606",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E01",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/Migrations.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\Migrations.cs",
+      "sha256": "3c0177a85f03fd5b69d487c2ff4d4724c6aca89cf9c09299b5e0b78f755b8535",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E01-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.SqlServer.Tests/MigrationTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.SqlServer.Tests\\MigrationTests.cs",
+      "sha256": "8c3e2eedd3728761416720acbb12f80ebc2c99b5931bb8275465d7b2a625257f",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E01-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.SqlServer.IntegrationTests/CrossPhaseMigrationTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.SqlServer.IntegrationTests\\CrossPhaseMigrationTests.cs",
+      "sha256": "d2289e5509710bd7a52245d2adddc41af86d50201dbb6af2c5030cfc4ffc04e3",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E02",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/LocalSqlConnectionPolicy.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\LocalSqlConnectionPolicy.cs",
+      "sha256": "ad720b9a85b4e232bc269c34e0baee127e07770bd8d55345dbc4c6a933a1922f",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E02-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.SqlServer.Tests/AdapterIntegratedSecurityRegressionTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.SqlServer.Tests\\AdapterIntegratedSecurityRegressionTests.cs",
+      "sha256": "b8480461705832a7245c2fef854b5dabcfd4c60e427c13e14be64890f5ccaee2",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E03",
+      "repository": "ETP",
+      "relative_path": "scripts/backup-etp-database.ps1",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\scripts\\backup-etp-database.ps1",
+      "sha256": "757030f1d4dbba9c3c0619c14b52bfb966d49856a03e809d7d87d372fe63a610",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E03",
+      "repository": "ETP",
+      "relative_path": "scripts/restore-etp-database.ps1",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\scripts\\restore-etp-database.ps1",
+      "sha256": "47ba767ffb8698104a9cfcb5d2ac22aa7288e6b971666ef4d37a4ea542f85031",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E03",
+      "repository": "ETP",
+      "relative_path": "scripts/invoke-etp-recovery-drill.ps1",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\scripts\\invoke-etp-recovery-drill.ps1",
+      "sha256": "46164effe743bc0c3f00c922ca4c8dfe18225b6b93ec9fcc699213318e6d2845",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E03",
+      "repository": "ETP",
+      "relative_path": "scripts/install-daily-backup-task.ps1",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\scripts\\install-daily-backup-task.ps1",
+      "sha256": "ac74de33899856b434d4be06778bac316b122b24f9008384f2efb61ad17f999e",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E03",
+      "repository": "ETP",
+      "relative_path": "scripts/install-monthly-recovery-drill-task.ps1",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\scripts\\install-monthly-recovery-drill-task.ps1",
+      "sha256": "139782da44e37581c71f0a32f3bdebaa098caad0d9c77e6b395230e93fe05e9f",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E03-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.Desktop.Tests/RestoreDatabaseScriptTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.Desktop.Tests\\RestoreDatabaseScriptTests.cs",
+      "sha256": "3c5dd0c7c0c1de588f0b4ec4d83d75bc8eef5381cc3e06cd073d7e4035127b3c",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E03-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.SqlServer.IntegrationTests/DatabaseRecoveryHealthTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.SqlServer.IntegrationTests\\DatabaseRecoveryHealthTests.cs",
+      "sha256": "cd91f103d86bd145ebf102b949a2ff0ca9af42b503c0fbc4c1c2a0dd01400c29",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E04",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/BackupCertificateService.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\BackupCertificateService.cs",
+      "sha256": "f313bab2dbecee8072d260e2bf30d583108af78d3b1b7372639c3f277ada1e8d",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E04-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.SqlServer.Tests/BackupCertificateServiceTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.SqlServer.Tests\\BackupCertificateServiceTests.cs",
+      "sha256": "f6dfd4c17c09a4435c39038d9c5c5c8090a223af830768595711f13edb57b2d1",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E05",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/OpenXmlReportExporter.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\OpenXmlReportExporter.cs",
+      "sha256": "8934f06287d3a9c1e640734cf2d89f83bc7dfbc5ad80c6b6e0e4f24e6933c40b",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E05",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/ReportPackExporters.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\ReportPackExporters.cs",
+      "sha256": "9d71507a745ab72347e4ffbd4c6f062e8f4ec51d1727a1bb4d389d4d58b2ca07",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E05-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.Reporting.Tests/OpenXmlReportExporterTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.Reporting.Tests\\OpenXmlReportExporterTests.cs",
+      "sha256": "49101ecd27eb3b8c6d341e89314dd4cdd47ca8f2359a5ee14a509ac82f537905",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E05-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.Reporting.Tests/ReportPackExporterTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.Reporting.Tests\\ReportPackExporterTests.cs",
+      "sha256": "4cfa0f0ea941f9a2fa422f7a5b19bd08fe9f95bc73eed3ad81ce6789b2f78e30",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E06",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/SimplePdfReportExporter.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\SimplePdfReportExporter.cs",
+      "sha256": "7730c32be42a709911e1e596de6b7e1b0ed973e5a9f8f3468a093e978ab1b03d",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E06",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/VisualReportPdfDocument.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\VisualReportPdfDocument.cs",
+      "sha256": "bf5cbd10612bbf48c23f53f590a396fb6506782fbbccb9b8d6132c06a95b331d",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E06",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/VisualReporting.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\VisualReporting.cs",
+      "sha256": "8378d44f70ea7c357d270d74f28b1294b273e94461a1fba9b0e6cdb0a8bacf24",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E06-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.Reporting.Tests/VisualPdfExportRegressionTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.Reporting.Tests\\VisualPdfExportRegressionTests.cs",
+      "sha256": "467efa1f275ea6523ecd68860c1c60e4e3573524c59252bdaff32a9e99ca15f6",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E06-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.Reporting.Tests/SimplePdfReportExporterTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.Reporting.Tests\\SimplePdfReportExporterTests.cs",
+      "sha256": "f9f542768bffc8e068775f47eff1093c8c8bc5b3f7cfd83fc663e180b7bf836d",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E07",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/CashBalanceReconciliationService.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\CashBalanceReconciliationService.cs",
+      "sha256": "f6d1d35e5e37a1782c9b549e2fbaa1a9d70e0c4d014ade7188d89e93f715278a",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E07",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/CashBookDocument.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\CashBookDocument.cs",
+      "sha256": "12b3f7f9e6a16d69f78f7782618e1966949ddbac92106b5059c7e38ec812670c",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E07",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/CashBookRepository.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\CashBookRepository.cs",
+      "sha256": "0de5b1f97da6374a5a345fd849d4e110462466ba79e4e7a594efa62dabe43505",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E07-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.Reporting.Tests/CashBalanceReconciliationServiceTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.Reporting.Tests\\CashBalanceReconciliationServiceTests.cs",
+      "sha256": "935331c70443a26dd878fd65e269a4196d9f4e83510269d61931d67ffd3a012d",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E08",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/SqlServerReportEmailService.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\SqlServerReportEmailService.cs",
+      "sha256": "d025ed09d3b0c75dd987d0dd03de076542e7cb6a560c58e0881c4c6b9f330212",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E08",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/ReportEmailTransport.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\ReportEmailTransport.cs",
+      "sha256": "b9de8e3a7dcb1255eaa1d76efa84bed7e23c96c0cd610f96ebbe4bdbc5aabae9",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E08-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.SqlServer.Tests/ReportEmailServiceTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.SqlServer.Tests\\ReportEmailServiceTests.cs",
+      "sha256": "b13f7321582ec9cf56eb0c00a77d4c91cdf485821c45ef2bdddfc186746f550d",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E08-test",
+      "repository": "ETP",
+      "relative_path": "tests-dotnet/Etp.Reporting.SqlServer.Tests/MailKitReportEmailTransportTests.cs",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\tests-dotnet\\Etp.Reporting.SqlServer.Tests\\MailKitReportEmailTransportTests.cs",
+      "sha256": "17b6e5a49446aafb8d4b8d6c8c50fd3805b136d2bb98d6c3f4167173a9d29501",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S01",
+      "repository": "SCC",
+      "relative_path": "www/modules/payroll/index.html",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\modules\\payroll\\index.html",
+      "sha256": "be31e33114e11d611d9e3ab60ef80ca7717f35a857611f357aba9384ea49e1e4",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S02",
+      "repository": "SCC",
+      "relative_path": "www/modules/leave/index.html",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\modules\\leave\\index.html",
+      "sha256": "f4fb54c9e300878f75186db74925d63f2adf31078c4b8385a0808ccded39a744",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S03",
+      "repository": "SCC",
+      "relative_path": "www/modules/tax/index.html",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\modules\\tax\\index.html",
+      "sha256": "faf4b01df0b460791d349093a294e173e5f1007c5739c092f9f5eef87bb9fbcd",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S04",
+      "repository": "SCC",
+      "relative_path": "www/modules/expense/index.html",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\modules\\expense\\index.html",
+      "sha256": "c55bbcafc7b38b935145cdaf6e618e8991c96f578352644789693c8edf7fc334",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S-tests",
+      "repository": "SCC",
+      "relative_path": "tests/financial-golden.test.mjs",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\tests\\financial-golden.test.mjs",
+      "sha256": "6001d7a6d6f7ee670474500357c9d93faa3d549b6556fb64c0452fafeaa9f620",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S-tests",
+      "repository": "SCC",
+      "relative_path": "tests/lib/module-bundle.mjs",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\tests\\lib\\module-bundle.mjs",
+      "sha256": "b92cbff3b102382b190b7d23afc94fc14198f6aea37fd61d7ac550aa0e0d601f",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S01-test",
+      "repository": "SCC",
+      "relative_path": "tests/phase6b-payroll-control-identities.test.mjs",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\tests\\phase6b-payroll-control-identities.test.mjs",
+      "sha256": "2ece50ab7eead94e3d870fc9fcc9370129f2e821eb5c6688acec94ff029f9eb2",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S02-test",
+      "repository": "SCC",
+      "relative_path": "tests/phase6b-leave-control-identities.test.mjs",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\tests\\phase6b-leave-control-identities.test.mjs",
+      "sha256": "1b64970f257495ffcfa57439ab12dd7414badd943f1b470b704135bd3a058547",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S03-test",
+      "repository": "SCC",
+      "relative_path": "tests/phase6b-tax-dsr-qms-generated-control-identities.test.mjs",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\tests\\phase6b-tax-dsr-qms-generated-control-identities.test.mjs",
+      "sha256": "ceeeedaa67835440e1c3906e9ec396b87c97ab897688acd31569d7f4c92a11a2",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S04-test",
+      "repository": "SCC",
+      "relative_path": "tests/phase6b-expense-control-identities.test.mjs",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\tests\\phase6b-expense-control-identities.test.mjs",
+      "sha256": "e648ae633b20ff2bd4004278a69c013b94e978693a44df1583c3bc3e35407c17",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S-dep",
+      "repository": "SCC",
+      "relative_path": "www/shared/module-bridge.js",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\shared\\module-bridge.js",
+      "sha256": "768a25b0ea4bdd76c826b72a9ea99d78a16bf08aa0d47ec170d827d3b9114c43",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S-dep",
+      "repository": "SCC",
+      "relative_path": "www/shared/module-runtime.js",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\shared\\module-runtime.js",
+      "sha256": "e4c907a922ff7e944da250905b8c022132609fa871683b0816bf8aeb4f6dba47",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S-dep",
+      "repository": "SCC",
+      "relative_path": "www/shared/mah4-runtime.js",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\shared\\mah4-runtime.js",
+      "sha256": "458410440a3748c4b8a59726e25f8eb59d61588f79fdc1f0ae3fc235aa2d48e5",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S-dep",
+      "repository": "SCC",
+      "relative_path": "www/c1-operations-policy.js",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\c1-operations-policy.js",
+      "sha256": "88197fad0e10726d9d9d321f6b76d7266e2551bce7e5914fd49876ec8b88defb",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "S-dep",
+      "repository": "SCC",
+      "relative_path": "www/app-i18n.js",
+      "absolute_path": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\app-i18n.js",
+      "sha256": "6f43e69dc8206422686f345e8224818d438ec9a50fc1a3800ca6e4502d459f8a",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E-dep",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Infrastructure.SqlServer/Etp.Reporting.Infrastructure.SqlServer.csproj",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Infrastructure.SqlServer\\Etp.Reporting.Infrastructure.SqlServer.csproj",
+      "sha256": "45076daf9b7328823a6635c71224d7872098f40a9d87d01d7d0b08dadbbb7e9f",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    },
+    {
+      "group": "E-dep",
+      "repository": "ETP",
+      "relative_path": "src/Etp.Reporting.Reporting/Etp.Reporting.Reporting.csproj",
+      "absolute_path": "V:\\ETP\\Code\\Worktrees\\main\\src\\Etp.Reporting.Reporting\\Etp.Reporting.Reporting.csproj",
+      "sha256": "a29ac35ad7adda4394931026dbfc3387d820098b578dff0fe8fb380bd8ecf72c",
+      "inspection": "targeted source excerpts or dependency/test path verification; not full audit",
+      "tests_run": false
+    }
+  ]
+}

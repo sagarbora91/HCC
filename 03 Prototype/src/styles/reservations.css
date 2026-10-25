@@ -70,7 +70,7 @@ button.res-cal-cell.free:hover,button.res-cal-cell.free:focus-visible{background
 .res-swatch{border:1px solid}
 /* Booking confirmation watermark */
 .res-confirmation{position:relative}
-.res-confirmation::after{content:attr(data-watermark);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:700;letter-spacing:4px;color:#2b1d16;transform:rotate(-24deg);pointer-events:none;text-align:center}
+.res-confirmation::after{content:attr(data-watermark);position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:700;letter-spacing:4px;color:#2b1d16;transform:rotate(-24deg);pointer-events:none;text-align:center}
 @media(max-width:760px){
   .res-search-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .res-search-row label:last-child{grid-column:1 / -1}

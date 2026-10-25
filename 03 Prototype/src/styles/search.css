@@ -1,5 +1,5 @@
 /* Global search palette + top-bar trigger. Maroon & Sand, 48 px rows, 16 px text on phones. */
-.search-overlay{position:fixed;inset:0;z-index:3000;background:rgba(43,29,22,.45);display:flex;justify-content:center;align-items:flex-start;padding:10vh 16px 16px}
+.search-overlay{position:fixed;top:0;right:0;bottom:0;left:0;z-index:3000;background:rgba(43,29,22,.45);display:flex;justify-content:center;align-items:flex-start;padding:10vh 16px 16px}
 .search-box{width:100%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;background:#FAF6F0;border:1px solid #E6D9C8;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.3);color:#2B1D16;overflow:hidden}
 .search-field{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #E6D9C8;background:#fff}
 .search-field svg{color:#7A1F2B;flex:none}

@@ -63,6 +63,9 @@ function AppShell({initial}:{initial:Restored}){
   // T-05: the depth lives in each history entry (idx), so it can never drift from the real stack.
   const histIdx=()=>{try{const st=history.state as {idx?:number}|null;return typeof st?.idx==='number'?st.idx:0;}catch{return 0;}};
   const popSeen=useRef(false);
+  const backTimer=useRef<number|undefined>(undefined);
+  const cancelBackFallback=()=>{window.clearTimeout(backTimer.current);backTimer.current=undefined;};
+  useEffect(()=>()=>window.clearTimeout(backTimer.current),[]);
   const modalRef=useRef<Modal>(null);modalRef.current=modal;
   const modalPushed=useRef(false),dirty=useRef(false),skipPop=useRef(false);
   const setDirty=useCallback((v:boolean)=>{dirty.current=v;},[]);
@@ -75,12 +78,13 @@ function AppShell({initial}:{initial:Restored}){
 
   const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotice(null),6500);},[]);
   function persist(next:State){setS(next);stateRef.current=next;if(!saveStored(next))setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true});}
-  const open=(x:{type:string;id?:string;room?:string})=>{setError('');dirty.current=false;
+  const open=(x:{type:string;id?:string;room?:string})=>{cancelBackFallback();setError('');dirty.current=false;
     if(!modalPushed.current){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');modalPushed.current=true;}catch{/* history unavailable */}}
     setModal({...x,key:newKey(x.type)});};
   const closeModal=()=>{if(dirty.current&&!window.confirm('Discard the details you entered?'))return;dirty.current=false;setModal(null);setError('');};
   const booking=(id:string)=>open({type:'booking',id});
   function go(p:string,opts:{tab?:string;replace?:boolean}={}){
+    cancelBackFallback();
     if(p!==page&&!opts.replace){try{const idx=histIdx()+1;history.pushState({hcc:'page',page:p,idx},'');setDepth(idx);}catch{/* history unavailable */}}
     else if(p!==page){try{history.replaceState({hcc:'page',page:p,idx:histIdx()},'');}catch{/* ignore */}}
     if(display.isMobile&&p!==page)window.setTimeout(()=>window.scrollTo(0,0),0);
@@ -89,7 +93,7 @@ function AppShell({initial}:{initial:Restored}){
   useEffect(()=>{try{history.replaceState({hcc:'page',page,idx:0},'');}catch{/* ignore */}},[]);// eslint-disable-line
   useEffect(()=>{if(!modal&&modalPushed.current){modalPushed.current=false;skipPop.current=true;try{history.back();}catch{/* ignore */}}},[modal]);
   useEffect(()=>{const onPop=(e:PopStateEvent)=>{
-      popSeen.current=true;
+      popSeen.current=true;cancelBackFallback();
       if(skipPop.current){skipPop.current=false;return;}
       if(modalRef.current){
         if(dirty.current&&!window.confirm('Discard the details you entered?')){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');}catch{/* ignore */}return;}
@@ -104,6 +108,7 @@ function AppShell({initial}:{initial:Restored}){
   useEffect(()=>{const on=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearchOpen(v=>!v);}};window.addEventListener('keydown',on);return ()=>window.removeEventListener('keydown',on);},[]);
   const nativeBack=useRef<()=>void>(()=>{});
   nativeBack.current=()=>{
+    cancelBackFallback();
     if(exitAsk){setExitAsk(false);return;}
     if(searchOpen){setSearchOpen(false);return;}
     if(menuOpen){setMenuOpen(false);return;}
@@ -113,7 +118,7 @@ function AppShell({initial}:{initial:Restored}){
     else if(act==='history-back'){
       // Fallback (T-05): if history has nowhere to go, no popstate arrives — treat it as the landing page instead of doing nothing.
       popSeen.current=false;try{history.back();}catch{/* ignore */}
-      window.setTimeout(()=>{if(!popSeen.current){setDepth(0);if(page===HOME_PAGE)setExitAsk(true);else go(HOME_PAGE,{replace:true});}},400);}
+      backTimer.current=window.setTimeout(()=>{if(!popSeen.current){setDepth(0);try{history.replaceState({hcc:'page',page:HOME_PAGE,idx:0},'');}catch{/* history unavailable */}if(page===HOME_PAGE)setExitAsk(true);else go(HOME_PAGE,{replace:true});}},400);}
     else if(act==='go-landing')go(HOME_PAGE,{replace:true});
     else setExitAsk(true);
   };
@@ -148,8 +153,8 @@ function AppShell({initial}:{initial:Restored}){
     if(u){writeSession(id);go(HOME_PAGE,{replace:true});}
   }
   function signIn(id:string){setUid(id);setSignedIn(true);writeSession(id);setPage(HOME_PAGE);setModal(null);setError('');setSearch('');setFilter('All');}
-  function signOut(){writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
-  function loadScenario(id:string){try{persist(buildScenario(id));setModal(null);setUid('owner');writeSession('owner');setPage(HOME_PAGE);toast(`Scenario ${id} loaded. All fictional records restored from the fixture.`);}catch(e){toast((e as Error).message,true);}}
+  function signOut(){cancelBackFallback();writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
+  function loadScenario(id:string){cancelBackFallback();try{persist(buildScenario(id));setModal(null);setUid('owner');writeSession('owner');setPage(HOME_PAGE);toast(`Scenario ${id} loaded. All fictional records restored from the fixture.`);}catch(e){toast((e as Error).message,true);}}
   const resetScenario=()=>loadScenario(s.scenario);
 
   const permission=(p:Permission|Permission[])=>can(s,uid,p);
@@ -160,7 +165,7 @@ function AppShell({initial}:{initial:Restored}){
   const taskList=s.tasks.filter(t=>(!assignedScopeRoles.includes(user.role)||t.assignee===uid)&&!(t.status==='Done'&&t.date&&t.date<addDays(s.date,-2)));
   const roomStatus=(r:Room)=>statusOf(s,r);
 
-  const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>setSearchOpen(true),openMenu:()=>setMenuOpen(true),signOut};
+  const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>{cancelBackFallback();setSearchOpen(true);},openMenu:()=>{cancelBackFallback();setMenuOpen(true);},signOut};
   const pages:Record<string,()=>React.ReactNode>={overview:()=><Overview/>,rooms:()=><RoomBoard/>,reservations:()=><Reservations/>,folios:()=><Reservations folio/>,housekeeping:()=><Housekeeping/>,expenses:()=><Expenses/>,closing:()=><DayClosing/>,reports:()=><Reports/>,access:()=><AccessControl/>,settings:()=><HotelSettings/>};
   for(const [id,Page] of Object.entries(extraPages))pages[id]=()=><Page/>;
   const closed=isDayClosed(s);
@@ -178,15 +183,15 @@ function AppShell({initial}:{initial:Restored}){
     <div className="app-shell">
       <main>
         <header className="topbar">
-          <div className="topbar-left"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><Breadcrumb page={current} label={navItems.find(n=>n.id===current)?.label||'Access unavailable'}/></div>
+          <div className="topbar-left"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={()=>{cancelBackFallback();setMenuOpen(true);}}><Menu size={22}/></button><Breadcrumb page={current} label={navItems.find(n=>n.id===current)?.label||'Access unavailable'}/></div>
           <div className="topbar-right">
-            <button type="button" className="search-btn" onClick={()=>setSearchOpen(true)} aria-label="Search pages and actions (Control+K)"><Search size={16}/>Search<kbd>Ctrl K</kbd></button>
+            <button type="button" className="search-btn" onClick={()=>{cancelBackFallback();setSearchOpen(true);}} aria-label="Search pages and actions (Control+K)"><Search size={16}/>Search<kbd>Ctrl K</kbd></button>
             <span className="today" title="Simulated business date"><CalendarDays size={15}/>Business date {dateLabel(s.date)} · <b className={closed?'day-closed':'day-open'}>{closed?'Closed':'Open'}</b></span>
             <span className="today" title="Simulated hotel clock (Asia/Kolkata)"><Clock size={15}/>{clockTime(s.clock)} IST</span>
             <span className="conn-chip" title="All data comes from the in-browser mock service"><Wifi size={13}/>Local mock service</span>
             <span className="demo-badge">DEMO — FICTIONAL DATA</span>
             <span className="current-user">{user.name.split(' · ')[0]} · {user.role}</span>
-            <button type="button" className="search-btn" onClick={signOut}><LogOut size={16}/>Sign out</button>
+            <button type="button" className="search-btn topbar-signout" onClick={signOut}><LogOut size={16}/>Sign out</button>
             <DisplayToggle display={display} compact/>
           </div>
         </header>

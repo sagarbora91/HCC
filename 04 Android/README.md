@@ -36,4 +36,11 @@ Icons/splash: `node scripts\make-icons.mjs` then `npx capacitor-assets generate 
 Android back button (sheet → wizard step → previous page → landing → "Exit?"), maroon status bar, CSV export (saved to `Documents/HCC/…` + share sheet), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
 
 ## Known limits
-Debug build only · demo data lives per device (no sync) · no backend · Auto display = phone layout inside the app (Display toggle can force Desktop).
+Debug build only · demo data lives per device (no sync) · no backend · Auto display = desktop on tablet-sized native screens and phone layout on phones; Display toggle allows an explicit choice.
+
+## HCC HTML printing adaptation (25 October 2026)
+`npm install` runs `scripts/patch-printer.mjs`; `scripts/copy-web.mjs` also verifies/applies it before copying a fresh web build. Printer 8.1.8 HTML/WebView jobs request ISO A4 in both callback paths; PDF/file print jobs are unchanged and the Android print dialog can still let the user choose another size. Unknown plugin versions/source layouts stop with a review error instead of silently losing the change. Re-run `node scripts/patch-printer.test.mjs` after dependency changes.
+
+The installed printer package's LICENSE is MPL-2.0. Preserve its notices and include the adapted source/patch with applicable source-availability material when distributing the modified plugin; this note is a provenance record, not blanket dependency clearance. The reproducible patch is tracked in HCC; do not rely on an unrecorded node_modules edit. Printable HTML uses an explicit white root canvas and A4 CSS, with visible table overflow and repeating headings.
+
+Local verification: `05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verification_2026-10-25.md`. Native paper-selection behavior still requires the rebuilt APK/device check. No APK was rebuilt by this print/tablet task. Tablet/phone Auto behavior is retained.
