@@ -26,7 +26,7 @@ public sealed class HandoverQueries(IAccessPolicy policy, IHandoverReadStore rea
 
     private async Task<(IReadOnlyList<string> Roles, bool Manager, bool SeesCash)> ManagerAsync(int propertyId, int principalId, CancellationToken ct)
     {
-        await policy.RequireAsync(propertyId, principalId, HandoverPermissions.Approve, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
         return await CallerAsync(propertyId, principalId, ct).ConfigureAwait(false);
     }
 

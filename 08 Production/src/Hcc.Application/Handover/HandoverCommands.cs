@@ -50,7 +50,7 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
         var clean = HandoverRules.ValidateTemplate(req.Name, req.Desk, req.Shift, req.Roles,
             req.Items?.Select(i => ((string?)i?.Text, i?.Mandatory ?? false, i?.Due, i?.Photo ?? false, i?.Link)).ToList());
         byte[]? expected = req.TemplateId is null ? null : VersionToken.Parse(req.ExpectedVersion);
@@ -82,7 +82,7 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
         var expected = VersionToken.Parse(req.ExpectedVersion);
         return await runner.RunAsync(ctx with { Operation = OpToggleTemplate }, req, async (tx, c) =>
         {
@@ -169,7 +169,7 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
         var reason = (req.Reason ?? string.Empty).Trim();
         if (reason.Length < 3) throw HccException.Validation("A reason is required to reopen a checklist.");
         if (reason.Length > 200) throw HccException.Validation("Reason: maximum 200 characters.");
