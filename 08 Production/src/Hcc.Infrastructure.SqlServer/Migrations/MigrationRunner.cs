@@ -151,16 +151,9 @@ public sealed class MigrationRunner(SqlConnectionFactory connections, IMigration
         ArgumentNullException.ThrowIfNull(connections);
         var scripts = source.Load();
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await ExecAsync(conn, null, """
-            IF OBJECT_ID('dbo.schema_migration') IS NULL
-              CREATE TABLE dbo.schema_migration(
-                version INT NOT NULL CONSTRAINT PK_schema_migration PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                checksum_sha256 CHAR(64) NOT NULL,
-                applied_utc DATETIME2(3) NOT NULL CONSTRAINT DF_schema_migration_applied DEFAULT SYSUTCDATETIME(),
-                applied_by NVARCHAR(128) NOT NULL CONSTRAINT DF_schema_migration_by DEFAULT SUSER_SNAME());
-            """, ct).ConfigureAwait(false);
 
+        // Take the application lock before touching the journal: two runners starting together on a fresh
+        // database would otherwise both pass the OBJECT_ID check and race on CREATE TABLE.
         await using (var lockCmd = new SqlCommand("DECLARE @r int; EXEC @r = sp_getapplock @Resource = @res, @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = 60000; SELECT @r;", conn))
         {
             lockCmd.Parameters.AddWithValue("@res", LockName);
@@ -170,6 +163,16 @@ public sealed class MigrationRunner(SqlConnectionFactory connections, IMigration
 
         try
         {
+            await ExecAsync(conn, null, """
+                IF OBJECT_ID('dbo.schema_migration') IS NULL
+                  CREATE TABLE dbo.schema_migration(
+                    version INT NOT NULL CONSTRAINT PK_schema_migration PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    checksum_sha256 CHAR(64) NOT NULL,
+                    applied_utc DATETIME2(3) NOT NULL CONSTRAINT DF_schema_migration_applied DEFAULT SYSUTCDATETIME(),
+                    applied_by NVARCHAR(128) NOT NULL CONSTRAINT DF_schema_migration_by DEFAULT SUSER_SNAME());
+                """, ct).ConfigureAwait(false);
+
             var applied = new Dictionary<int, string>();
             await using (var q = new SqlCommand("SELECT version, checksum_sha256 FROM dbo.schema_migration ORDER BY version;", conn))
             await using (var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false))
