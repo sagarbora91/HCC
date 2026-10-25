@@ -12,6 +12,8 @@ Rules: maximum parallel agents, Sonnet wherever possible (Opus for money/statuto
 | D | Merge Wave 1 prototype changes with main | Opus | new branch from `main` | Bring P5 web clients (`03 Prototype/src/clients/*`, `build:production`) from `claude/wave1-integration` onto today's `main` (Wave 0.5 + polish + GST); all prototype tests + both builds green. Prototype files only. |
 | E | Prototype fixes for APK v11 | Sonnet | `main` | V10-1 (S3) phone invoice + A4 print: CGST/SGST split like desktop; V10-2 Show-ID footnote only for ID-view roles; PB-1 Escape after search palette; PB-2 disable Reverse/Request refund on locked days; PB-3 phone button text 16 px. Defect files in `05 Delivery Evidence\Acceptance\defects\`. |
 
+## Owner's order (25 Oct 2026): finish ALL items first → then build the APK → then run the tests (emulator/device) → then push to GitHub. Do not push or build the APK before the items are done.
+
 ## Then (lead, sequential)
 1. Merge A + B + C into `claude/wave1-integration` (resolve `Hcc.slnx` / `Program.cs` / `HccComposition` lines), full `dotnet build` (0 warnings) + `dotnet test` on `.\SQLEXPRESS`.
 2. Merge D + E into `main`; tsc/test/build; APK v11 + short emulator check (Sonnet).
