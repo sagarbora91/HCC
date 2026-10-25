@@ -1,0 +1,7 @@
+# BL-v8-1 · S3 · "Discard the details you entered?" confirm fires after a successful cash-count sheet submit (desktop browser, v8 bundle) — same as AC-04
+- **Bundle:** `03 Prototype\dist\index.html` SHA-256 `76519ceba8a14ef9…` (APK v8 web bundle), served on http://127.0.0.1:4184, 1366 px, BROWSER.
+- **Steps:** Manager → Accounts & Reports → Day closing → "Count & submit" (opens the "Count the cash drawer" sheet) → enter counted amount equal to expected → "Submit count & close shift". Reproduced 3 of 3 (25 Oct ₹11,250 count twice incl. the discarded first pass, 26 Oct ₹12,450 count).
+- **Expected:** the sheet closes silently once the shift is closed.
+- **Actual:** the shift closes ("Cash matches exactly — shift closed") but `window.confirm('Discard the details you entered?')` is called as the sheet closes (captured by a confirm logger; in a real browser/WebView this is a native OK/Cancel box). Source: `03 Prototype/src/app/App.tsx` `closeModal` (line ~84) and the popstate handler (line ~99) call `window.confirm` while the `dirty` ref is still true after a successful submit.
+- **Not affected on desktop:** inline count on Cash & Billing → Cashier shift page (no sheet, 0 confirms); payment / deposit / charge / discount / settle sheets; Reports date range (desktop has direct From/To date inputs and no "Apply range" button, 0 confirms).
+- **Evidence:** confirm log recorded in `BL023_Walkthrough_v8.md` (AC-04 row). No screenshot: the logger suppressed the native dialog.

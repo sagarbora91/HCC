@@ -95,8 +95,8 @@ Found by the Wave 0.5 browser check on `integration/w05` (`W05_Browser_Check.md`
 - **Tab S7 was not re-tested on v8** (or v7). The T-01, T-02, T-03, T-04 and T-05 fixes are verified only on the API 35 emulator or in local browser emulation, not on the physical tablet. Physical finger comfort, rotation and a long-session Back sequence (share, print, Reset, Display switch, rotation) are unconfirmed.
 - Tab S7 portrait Arrivals sideways scroll and the Reception-blocked variant on the physical device: Not run.
 - **WebView 83 Parts 2-3 not run on v8**: only sign-in/Cashier/payment (v7) and the AC-02 sheets (v8) are evidenced there. WebView versions between 83 and 124 were not tested.
-- BL-02 (limit editor) has no browser or device confirmation; fix evidence is automated only (497/497).
-- The browser walkthrough ran on the v6-equivalent bundle (`4e33f7d6…`), not the v8 bundle (`76519ceb…`); the emulator Part 3 on v8 covers the same flows on the phone layout, but the **desktop layout on the final bundle was not re-walked**.
+- ~~BL-02 has no browser confirmation~~ — **closed 25 Oct:** confirmed in the UI on the v8 bundle (`BL023_Walkthrough_v8.md`).
+- ~~Desktop not re-walked on v8~~ — **closed 25 Oct:** BL-023 re-run on the v8 bundle (`76519ceb…`), **15/15 Pass**, all figures match; D-01, BL-01, T-04 confirmed. AC-04 also reproduces on desktop after the Day closing count sheet (BL-v8-1, same defect).
 - The emulator runs used DevTools to read the DOM, switch "Preview as" and type into fields, with real taps for key actions (D5_Roles.md, D5_AC.md). The browser walkthrough used some DOM scripting for reads, list-row clicks and the Reports date change (BL023_Walkthrough.md).
 - Print and share were exercised up to the Android print/share sheets; nothing was printed or shared (D6_TabS7 #11, #12).
 - Not tested at all: production concerns (DB, server, outbox, backup/restore), keyboard-only walkthrough at five sizes, S1/S2/S5 scenarios, refund/credit-note flow (matrix "Not built").
@@ -115,7 +115,7 @@ Found by the Wave 0.5 browser check on `integration/w05` (`W05_Browser_Check.md`
 ### 7.2 Recommendation
 **Ready for owner acceptance: YES, with conditions.**
 - The 15 S0 steps, API 35 Part 2 (21/21) and Part 3 (17/17) all pass on the final APK v8 with no S1/S2 defect open; the two old-WebView blockers are fixed and verified on WebView 83.
-- Conditions: (a) AC-04 fixed and re-verified on APK v9 (it fires after every count submit and range Apply); (b) owner rulings on T-01, T-02 and R-01; (c) AC-03 text corrected or accepted as a known S4; (d) a short Tab S7 re-check on v9 of T-01..T-05 including one long-session Back sequence, or the owner explicitly accepts the tablet items as unverified; (e) BL-02 confirmed once in the UI.
+- Conditions: (a) AC-04 fixed and re-verified on APK v9 (it fires after every count submit and range Apply); (b) owner rulings on T-01, T-02 and R-01; (c) AC-03 text corrected or accepted as a known S4; (d) a short Tab S7 re-check on v9 of T-01..T-05 including one long-session Back sequence, or the owner explicitly accepts the tablet items as unverified; ~~(e) BL-02 confirmed once in the UI~~ (done 25 Oct, `BL023_Walkthrough_v8.md`).
 - Not a gate for this acceptance: the W05-* defects (section 5).
 
 ## 8. Source files
