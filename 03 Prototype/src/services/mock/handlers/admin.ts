@@ -1,10 +1,14 @@
 // Stream E · Access & configuration (owns USER, GRANT, SETTINGS).
 // Register new or replacement command handlers here. A handler with the same name as a built-in command replaces it.
 // New: USER_CREATE, USER_UPDATE, POLICY_SET, USER_EXCEPTION, POLICY_DECIDE, SETTING_SET, TARIFF_SCHEDULE, TAX_SCHEDULE.
+// W05-A Master configuration: SETTING_SET (registry-driven, every group), CFG_DECIDE, CFG_WITHDRAW, CFG_REVERT, CFG_IMPORT.
 import type {Handler,Kit} from '../commands';
 import type {Role,Permission,State,User,Command} from '../../../domain/types';
 import {roles,permissions} from '../../../domain/types';
 import {money,addMinutes} from '../../../domain/money';
+import {registry} from './index';
+import {cfgDef,cfgCanChange,cfgValidate,cfgClean,cfgEffectiveFrom,cfgValueOn,cfgSame,cfgShow,cfgEnsure,cfgWriteDirect,cfgPendingRequests,cfgDecideBlock,
+  cfgRevertBlock,cfgChange,cfgImportPlan,type CfgSettingDef} from '../../../domain/streams/config';
 import {authorize,adminPolicy,adminPerm,adminOtherActiveOwners,adminDescribeCell,adminDefaultPolicy,adminTaxScheduled,adminRoomTypes,ADMIN_FINANCIAL_MODULES,
   type PolicyCell,type PolicyEffect,type PolicyScope,type HccPolicy} from '../../../domain/streams/admin';
 
@@ -216,25 +220,109 @@ const SETTINGS:Handler=k=>{
   const {taxBps,...rest}=next;s.settings={...s.settings,...rest};if(taxBps!==curTax)setTaxToday(k,taxBps);
   return 'Demo policy updated · existing posted line tax snapshots preserved';
 };
-const SETTING_SET:Handler=k=>{
-  const {s,cmd,assert,fail}=k;cfgGate(k);
-  const key=cmd.setting;const v=cmd.value;let next:unknown;
-  switch(key){
-    case 'hotel':assert(typeof v==='string'&&v.trim().length>=1&&v.trim().length<=60,'Property name is required (up to 60 characters).');next=v.trim();break;
-    case 'checkin':case 'checkout':assert(typeof v==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v),'Enter a time as HH:mm.');next=v;break;
-    case 'discountLimit':assert(Number.isSafeInteger(v)&&v>=0&&v<=10000000,'Invalid discount threshold.');next=v;break;
-    case 'approvalExpiryHours':assert(Number.isInteger(v)&&v>=1&&v<=168,'Use between 1 and 168 simulated hours.');next=v;break;
-    case 'inspection':assert(typeof v==='boolean','Choose on or off.');next=v;break;
-    case 'invoicePrefix':assert(typeof v==='string'&&/^[A-Z0-9-]{2,8}$/.test(v),'Use 2–8 capital letters, digits or hyphens.');next=v;break;
-    case 'taxBps':return fail('VALIDATION','Synthetic tax is effective-dated: use the tax schedule.');
-    default:return fail('VALIDATION','This setting is not configurable.');
+// ─────────────── W05-A Master configuration (registry-driven; domain/streams/config.ts) ───────────────
+// SETTING_SET {setting,value,effectiveFrom?,reason?} saves any registry setting: DEC-058 permission → validation → effective date →
+// approval (Tech admin on settings with an approver) → history (configHistory + raw change for revert) → apply now or schedule.
+// Module wrappers run the module's own command (its validation; the hub's permission check replaces the module's `req`).
+const showOf=(def:CfgSettingDef,v:unknown)=>cfgShow(def,v);
+function cfgApply(k:Kit,def:CfgSettingDef,value:unknown,effectiveFrom:string,reason:string,approvedBy?:string,revertOf?:string){
+  const {s,assert}=k;const x=cfgEnsure(s);
+  const before=cfgValueOn(s,def.key,effectiveFrom);
+  assert(!cfgSame(before,value),'No change: the setting already has this value.');
+  const hid=k.id('CFG'),at=addMinutes(s.clock,1);
+  (s.configHistory||(s.configHistory=[])).unshift({id:hid,key:def.key,before:showOf(def,before),after:showOf(def,value),at,actor:k.user.name,effectiveFrom,reason});
+  const now=effectiveFrom<=s.date;
+  x.changes.unshift({id:hid,key:def.key,before,after:value,effectiveFrom,at,by:k.uid,...(approvedBy?{approvedBy}:{}),status:now?'applied':'scheduled',...(revertOf?{revertOf}:{})});
+  if(now){
+    if(def.store.kind==='module'){
+      const mc=def.store.command(s,value);const h=registry[mc.type];
+      if(!h)k.fail('VALIDATION',`${def.label} cannot be saved: ${mc.type} is not available.`);
+      h({...k,cmd:{...mc,reason},req:()=>{}});
+    }else cfgWriteDirect(s,def,value);
+  }else{
+    // One scheduled value per key and date: a new one for the same date replaces it.
+    for(const e of x.scheduled.filter(e=>e.key===def.key&&e.effectiveFrom===effectiveFrom)){const c=x.changes.find(c=>c.id===e.id);if(c)c.status='withdrawn';}
+    x.scheduled=x.scheduled.filter(e=>!(e.key===def.key&&e.effectiveFrom===effectiveFrom));
+    x.scheduled.push({id:hid,key:def.key,value,effectiveFrom,by:k.uid,...(approvedBy?{approvedBy}:{}),at});
   }
-  const cur=(s.settings as Record<string,unknown>)[key]??(key==='approvalExpiryHours'?24:key==='invoicePrefix'?'DEMO-INV':undefined);
-  assert(cur!==next,'No change: the setting already has this value.');
-  history(k,key,show(key,cur),show(key,next),s.date,cmd.reason||'');
-  (s.settings as Record<string,unknown>)[key]=next;
-  return `Setting ${key} · ${show(key,cur)} → ${show(key,next)} · effective ${s.date}`;
+  return {hid,before,now};
+}
+/** Validate and route one change for the current user. Returns the audit text. */
+function cfgChangeCommand(k:Kit,def:CfgSettingDef,raw:unknown,requested:string|undefined,reason:string,revertOf?:string):string{
+  const {s,uid,fail}=k;
+  const dec=cfgCanChange(s,uid,def);
+  if(dec.mode==='deny')fail('FORBIDDEN',dec.reason);
+  const value=cfgClean(def,raw);
+  const err=cfgValidate(s,def,value);if(err)fail('VALIDATION',err);
+  const eff=cfgEffectiveFrom(s,def,requested);if('error' in eff)return fail('VALIDATION',eff.error);
+  const effectiveFrom=eff.date;
+  if(dec.mode==='request'){
+    k.assert(!cfgPendingRequests(s,def.key).length,'A change to this setting is already waiting for approval.','INVALID_TRANSITION');
+    const before=cfgValueOn(s,def.key,effectiveFrom);k.assert(!cfgSame(before,value),'No change: the setting already has this value.');
+    const aid=k.id('APR');const hours=s.settings.approvalExpiryHours??24;
+    const summary=`Master configuration · ${def.label} · ${showOf(def,before)} → ${showOf(def,value)}`;
+    s.approvals.push({id:aid,booking:'',amount:0,reason:reason?`${summary} — ${reason}`:summary,status:'Pending',actor:uid,version:0,kind:'config',target:def.key,
+      expiresAt:addMinutes(s.clock,hours*60),meta:{command:'CFG_DECIDE',key:def.key,value,effectiveFrom,beforeRaw:before,approver:dec.approver,summary,before:showOf(def,before),after:showOf(def,value),...(revertOf?{revertOf}:{})} as any});
+    return `${aid} · configuration change requested (${dec.approver} approval): ${def.key} · ${showOf(def,before)} → ${showOf(def,value)}`;
+  }
+  const r=cfgApply(k,def,value,effectiveFrom,reason,undefined,revertOf);
+  return `Setting ${def.key} · ${showOf(def,r.before)} → ${showOf(def,value)} · ${r.now?'effective':'scheduled from'} ${effectiveFrom}${revertOf?' · reverts '+revertOf:''}`;
+}
+const SETTING_SET:Handler=k=>{
+  const {s,cmd,fail}=k;k.req('admin');
+  if(cmd.setting==='taxBps')return fail('VALIDATION','Synthetic tax is effective-dated: use the tax schedule.');
+  const def=cfgDef(s,String(cmd.setting));
+  if(!def||!def.editable)return fail('VALIDATION','This setting is not configurable.');
+  return cfgChangeCommand(k,def,cmd.value,cmd.effectiveFrom||undefined,String(cmd.reason||'').trim().slice(0,120));
 };
+const CFG_DECIDE:Handler=k=>{
+  const {s,uid,cmd,assert,fail}=k;k.req('admin');
+  const a=s.approvals.find(a=>a.id===cmd.id&&a.kind==='config');
+  assert(a&&a.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
+  const block=cfgDecideBlock(s,uid,a!.id);if(block)fail('FORBIDDEN',block);
+  const m=a!.meta as Record<string,unknown>;
+  if(!cmd.approve){a!.approver=uid;a!.decidedAt=addMinutes(s.clock,1);a!.status='Rejected';
+    if(String(cmd.reason??'').trim())a!.meta={...a!.meta,rejectReason:String(cmd.reason).trim().slice(0,200)} as any;return `${a!.id} · Rejected · ${String(m.summary??'')}`;}
+  assert(!(a!.expiresAt&&s.clock>a!.expiresAt),'This request has expired. Reject it and ask for a new one.','INVALID_TRANSITION');
+  const def=cfgDef(s,String(m.key));assert(def,'This setting is no longer in the registry.','NOT_FOUND');
+  let effectiveFrom=String(m.effectiveFrom);
+  if(effectiveFrom<s.date){const e=cfgEffectiveFrom(s,def!);effectiveFrom='date' in e?e.date:s.date;}
+  assert(cfgSame(cfgValueOn(s,def!.key,effectiveFrom),m.beforeRaw),'The setting changed after this request. Reject it and request again.','STALE_VERSION');
+  const err=cfgValidate(s,def!,m.value);if(err)fail('VALIDATION',err);
+  // Executes as the approver: they must also be allowed to change the setting directly (separation of duty, DEC-041/058).
+  const dec=cfgCanChange(s,uid,def!);if(dec.mode!=='allow')fail('FORBIDDEN',dec.reason);
+  a!.approver=uid;a!.decidedAt=addMinutes(s.clock,1);
+  const requester=first(s.users.find(u=>u.id===a!.actor));
+  const r=cfgApply(k,def!,m.value,effectiveFrom,`Approved request ${a!.id} from ${requester}`,uid,m.revertOf as string|undefined);
+  a!.status='Executed';
+  return `${a!.id} · approved and applied · ${def!.key} · ${showOf(def!,r.before)} → ${showOf(def!,m.value)} · ${r.now?'effective':'scheduled from'} ${effectiveFrom}`;
+};
+const CFG_WITHDRAW:Handler=k=>{
+  const {s,uid,cmd,assert,fail}=k;k.req('admin');const x=cfgEnsure(s);
+  const e=x.scheduled.find(e=>e.id===cmd.id);assert(e,'Scheduled change not found (it may already be in effect).','NOT_FOUND');
+  assert(e!.effectiveFrom>s.date,'Only future-dated changes can be withdrawn.','INVALID_TRANSITION');
+  const def=cfgDef(s,e!.key);assert(def,'This setting is no longer in the registry.','NOT_FOUND');
+  const dec=cfgCanChange(s,uid,def!);if(dec.mode!=='allow')fail('FORBIDDEN',dec.mode==='request'?'Ask the approver to withdraw this scheduled change.':dec.reason);
+  x.scheduled=x.scheduled.filter(z=>z.id!==e!.id);const c=x.changes.find(c=>c.id===e!.id);if(c)c.status='withdrawn';
+  (s.configHistory||(s.configHistory=[])).unshift({id:k.id('CFG'),key:def!.key,before:showOf(def!,e!.value)+' from '+e!.effectiveFrom,after:'withdrawn',at:addMinutes(s.clock,1),actor:k.user.name,effectiveFrom:e!.effectiveFrom,reason:String(cmd.reason||'').trim()});
+  return `Scheduled change withdrawn · ${def!.key} · ${showOf(def!,e!.value)} from ${e!.effectiveFrom}`;
+};
+const CFG_REVERT:Handler=k=>{
+  const {s,cmd,fail}=k;k.req('admin');
+  const block=cfgRevertBlock(s,String(cmd.id));if(block)fail('INVALID_TRANSITION',block);
+  const c=cfgChange(s,String(cmd.id))!;const def=cfgDef(s,c.key)!;
+  // A revert is a normal change back to the previous value: same permission, approval and effective-date rules.
+  return cfgChangeCommand(k,def,c.before,cmd.effectiveFrom||undefined,String(cmd.reason||'Revert to previous value').trim(),c.id);
+};
+const CFG_IMPORT:Handler=k=>{
+  const {s,uid,cmd,fail}=k;k.req('admin');
+  const plan=cfgImportPlan(s,uid,cmd.config);
+  if(plan.errors.length)fail('VALIDATION',plan.errors.slice(0,3).join(' · ')+(plan.errors.length>3?` (+${plan.errors.length-3} more)`:''));
+  if(!plan.apply.length)fail('VALIDATION',`Nothing to import: ${plan.unchanged} unchanged, ${plan.skipped.length} skipped.`);
+  for(const p of plan.apply)cfgApply(k,p.def,p.value,p.effectiveFrom,'Imported configuration');
+  return `Configuration imported · ${plan.apply.length} changed · ${plan.unchanged} unchanged · ${plan.skipped.length} skipped`;
+};
+
 const TARIFF_SCHEDULE:Handler=k=>{
   const {s,cmd,assert}=k;cfgGate(k);
   assert(adminRoomTypes(s).includes(cmd.roomType),'Choose a room type.');
@@ -277,4 +365,5 @@ export const handlers:Record<string,Handler>={
   USER,USER_CREATE,USER_UPDATE,
   GRANT:policyCommand,POLICY_SET:policyCommand,USER_EXCEPTION:policyCommand,POLICY_DECIDE,
   SETTINGS,SETTING_SET,TARIFF_SCHEDULE,TAX_SCHEDULE,
+  CFG_DECIDE,CFG_WITHDRAW,CFG_REVERT,CFG_IMPORT,
 };

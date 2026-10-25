@@ -1,14 +1,7 @@
 // Stream E · Access & configuration (owns USER, GRANT, SETTINGS) — pure domain helpers and selectors (re-exported by services/mock/index.ts for UI and tests).
 // Fine-grained policy layer (BL-024, RBAC matrix v1, DEC-040), approvals inbox (BL-026) and configuration selectors (BL-027).
-import type {State,Role,User,Booking,Approval,Audit,Permission,Command} from '../types';
-import {SCHEMA} from '../types';
-import {money,addDays} from '../money';
-// W05-A Master configuration: thin wrappers read module state through each module's own selectors.
-import {yldSlice,yldPct,YLD_ROUND_OPTIONS} from './yield';
-import {aiDirtyHours} from './assistant';
-import {gsvSettings,GSV_REQUEST_TYPES} from './services';
-import {posSlice} from './pos';
-import {hrDefaultRates} from './staff';
+import type {State,Role,User,Booking,Approval,Audit,Permission} from '../types';
+import {money} from '../money';
 
 // ───────────────────────────── Policy model ─────────────────────────────
 export type PolicyEffect='allow'|'deny'|'limit'|'request';
@@ -223,6 +216,8 @@ export function adminDecideBlock(s:State,uid:string,row:AdminInboxRow):string|un
   if(!u||!adminUserActive(s,u))return 'Your account is not active.';
   if(row.a.actor===uid)return 'You raised this request — another authorised user must decide it (PERM-SOD-001).';
   if(row.kind==='policy'){const d=authorize(s,uid,'PERM-ADM-002');if(d.decision!=='allow')return 'Only a user allowed to edit role templates (Owner) can decide policy requests. '+d.reason;}
+  // W05-A Master configuration requests (CFG_DECIDE): decided by the setting's approver role or the Owner (DEC-058).
+  else if(row.kind==='config'){const ap=String(row.a.meta?.approver||'Owner');if(u.role!=='Owner'&&!(ap==='Manager'&&u.role==='Manager'))return ap==='Manager'?'Only a Manager or the Owner can decide this configuration request.':'Only the Owner can decide this configuration request.';}
   else if(!(s.grants[u.role]||[]).includes('approve'))return `Role ${u.role} lacks the approve permission.`;
   return undefined;
 }

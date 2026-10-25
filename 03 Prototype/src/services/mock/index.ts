@@ -14,6 +14,7 @@ export * from '../../domain/streams/guests';
 export * from '../../domain/streams/folio';
 export * from '../../domain/streams/housekeeping';
 export * from '../../domain/streams/admin';
+export * from '../../domain/streams/config';
 export * from '../../domain/streams/closing';
 export * from '../../domain/streams/yield';
 export * from '../../domain/streams/groups';
