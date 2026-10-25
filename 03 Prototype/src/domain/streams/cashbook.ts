@@ -77,8 +77,9 @@ export type CBRange={days:CBDay[];opening:number;receipts:number;payments:number
 export function cbRange(s:State,from:string,to:string):CBRange{
   const days=cbDates(s).filter(d=>d>=from&&d<=to).map(d=>cbDay(s,d));
   let gaps=0;for(let i=1;i<days.length;i++)gaps+=days[i].opening-days[i-1].carried;
+  const last=days.length?days[days.length-1]:undefined; // plain index access: Array#at is missing on the Chrome 83 WebView (AC-01)
   return {days,opening:days[0]?.opening??0,receipts:days.reduce((a,d)=>a+d.receipts,0),payments:days.reduce((a,d)=>a+d.payments,0),
-    differences:days.reduce((a,d)=>a+(d.carried-d.closing),0),gaps,closing:days.at(-1)?.carried??0,bookClosing:days.at(-1)?.closing??0};
+    differences:days.reduce((a,d)=>a+(d.carried-d.closing),0),gaps,closing:last?.carried??0,bookClosing:last?.closing??0};
 }
 /** Who counted a date (segregation of duties, W05 review F1): the closer, the counter and the approver of a cash difference — all read from the
  *  closing record so they survive NEXT_DAY — plus, for the current business date, the cashier shift's submitter / approver / SHIFT_CLOSE user. */
