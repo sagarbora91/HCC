@@ -31,6 +31,7 @@ public static class HccComposition
         services.AddGuestIdModule(configuration);        // Wave 1 C: encrypted full guest ID numbers (DEC-068)
         services.AddClosingModule();                     // P6 closing + reports; installs the late-write barrier runner for P2-P4
         services.AddHccConfiguration();                  // W2-1 Master configuration (settings registry, reader, module gate)
+        services.AddExpensesModule();                   // W2-4 expenses and petty cash
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -58,6 +59,7 @@ public static class HccComposition
         api.MapGuestIdEndpoints();       // Wave 1 C (guest ID reveal / rekey)
         api.MapClosingEndpoints();       // P6
         api.MapConfigurationEndpoints(); // W2-1
+        api.MapExpensesEndpoints();       // W2-4
         return api;
     }
 }

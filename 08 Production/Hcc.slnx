@@ -18,6 +18,7 @@
     <Project Path="tests/Hcc.Closing.Tests/Hcc.Closing.Tests.csproj" />
     <Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
     <Project Path="tests/Hcc.Configuration.Tests/Hcc.Configuration.Tests.csproj" />
+    <Project Path="tests/Hcc.Expenses.Tests/Hcc.Expenses.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -31,5 +32,6 @@
     <File Path="database/migrations/0600_tax_gst_master.sql" />
     <File Path="database/migrations/0601_guest_id_documents.sql" />
     <File Path="database/migrations/0700_configuration.sql" />
+    <File Path="database/migrations/0800_expenses.sql" />
   </Folder>
 </Solution>
