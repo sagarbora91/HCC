@@ -1,7 +1,9 @@
 // W05-B code-review fixes (05 Delivery Evidence\Assembly\W05B_Payroll_Code_Review_2026-10-25.md). One regression test per finding, names [PAY-FIX F-nn].
 // Money = integer paise; simulated clock only; fictional staff.
-import {build} from 'esbuild';
+import {build,buildSync} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 export async function register({test,M,assert}){
   const {seed,execute}=M;
   // Render harness (payslip dialog, HR sections) — same pattern as stream-payroll-scc.mjs, own bundle.
@@ -9,12 +11,13 @@ export async function register({test,M,assert}){
 import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
 import {HccContext} from '../../src/app/context';
 import {can} from '../../src/services/mock';
-import {HR_SECTIONS} from '../../src/features/staff/HrDesk';
+import {HR_SECTIONS,HrDesk} from '../../src/features/staff/HrDesk';
 import {registration} from '../../src/features/staff/register';
 function ctx(s:any,uid:string){const user=s.users.find((u:any)=>u.id===uid);
   return {s,uid,user,busy:false,run:async()=>true,open(){},closeModal(){},toast(){},setDirty(){},permission:(p:any)=>can(s,uid,p),display:{isMobile:false}} as any;}
 const wrap=(s:any,uid:string,el:any)=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid)}>{el}</HccContext.Provider>);
 export function renderSection(s:any,uid:string,name:string,phone=false){const C=(HR_SECTIONS as any)[name];return wrap(s,uid,<C phone={phone}/>);}
+export function renderDesk(s:any,uid:string,phone=false){return wrap(s,uid,<HrDesk phone={phone}/>);}
 export function renderModal(s:any,uid:string,type:string,id?:string){const C=(registration.modals as any)[type];return wrap(s,uid,<C id={id}/>);}
 `);
   await build({entryPoints:['tests/.generated/payfix-ui-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/payfix-ui.mjs',logLevel:'error',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'},banner:{js:"import {createRequire as __pfReq} from 'node:module';const require=__pfReq(import.meta.url);"}});
@@ -274,5 +277,40 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const csv=M.hrRegisterCsv(t,t.staffX.runs[0]);assert.ok(csv.includes(`"'=HYPERLINK(""x"")"`));assert.ok(csv.includes(",'@SUM(A1),"));assert.ok(csv.includes(",'-cmd,"));
     assert.doesNotMatch(M.hrBankCsv(t,t.staffX.runs[0]),/,=|,@/);
     assert.match(M.hrStatutoryCsv(seed(),M.hrRunFor(seed(),'2026-08')),/^Component,Employee,Employer,Total\nProvident Fund,\d+\.\d\d,/,'numbers are untouched');
+  });
+
+  // ── Lead requests after the browser check (W05P-1/2, AC-01 compatibility class) ──
+  test('[PAY-FIX W05P-1] Payroll switched off hides the Payroll / Advances / Full and final / Statutory rates tabs (desktop and phone); attendance and leave stay',()=>{
+    const off=execute(seed(),'owner',{type:'SETTING_SET',setting:'module.payroll',value:false});assert.equal(M.cfgModuleOn(off,'payroll'),false);
+    for(const phone of [false,true]){const on=UI.renderDesk(seed(),'owner',phone),h=UI.renderDesk(off,'owner',phone);
+      for(const t of ['Payroll','Advances','Full and final','Statutory rates'])assert.ok(on.includes('>'+t+'<'),t),assert.ok(!h.includes('>'+t+'<'),'hidden: '+t);
+      for(const t of ['Staff','Roster','Attendance','Leave'])assert.ok(h.includes('>'+t+'<'),t);}
+    assert.match(UI.renderDesk(off,'owner',false),/Payroll is switched off in Master configuration/);
+  });
+  test('[PAY-FIX W05P-2] hub rate rows show the real effective rule (not "Immediately") and the long SCC help only once per setting',()=>{
+    const s=seed(),rows=M.cfgDefs(s).filter(d=>d.key.startsWith('hr.')&&d.editable&&d.store.kind==='module'&&/^hr\.(structure|pf|esic|pt|ot|late|rounding)\./.test(d.key));
+    assert.ok(rows.length>=18);
+    for(const d of rows){assert.doesNotMatch(d.effective,/Immediately/,d.key);assert.match(d.effective,/1st of the month after the last completed pay period/);}
+    const short='Part of the same dated rate version. Illustrative — CA to confirm for a hotel.',others=rows.filter(d=>d.help!==short).map(d=>d.help);
+    assert.equal(new Set(others).size,others.length,'each long SCC paragraph appears once');assert.equal(others.length,new Set(rows.map(d=>d.key.split('.').slice(0,2).join('.'))).size);
+  });
+  test('[PAY-FIX COMPAT] staff/payroll code runs without Array.at / replaceAll / structuredClone (Chrome 83 WebView) and the sources do not use them',()=>{
+    const bundle=buildSync({entryPoints:['src/services/mock/index.ts'],bundle:true,write:false,platform:'browser',format:'iife',globalName:'HCC',target:'chrome83',logLevel:'error'});
+    const ctx=vm.createContext({console});
+    vm.runInContext('globalThis.structuredClone=undefined;Array.prototype.at=undefined;String.prototype.replaceAll=undefined;',ctx);
+    vm.runInContext(bundle.outputFiles[0].text,ctx);
+    const out=vm.runInContext(`(()=>{let s=HCC.seed();
+      s=HCC.execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-11-01',pfEeBps:1100});
+      s=HCC.execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',ent:{CL:11,SL:7,EL:15}});
+      s=HCC.execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});const id=HCC.hrRunFor(s,'2026-09').id;
+      s=HCC.execute(s,'owner',{type:'HR_PAYROLL_LOCK',id});s=HCC.execute(s,'accountant',{type:'HR_PAYSLIP_SEND',runId:id,staffId:'HR-S05'});
+      s=HCC.execute(s,'accountant',{type:'HR_PAYROLL_BANK_FILE',id});s=HCC.execute(s,'owner',{type:'HR_PAYROLL_UNLOCK',id,reason:'Correction',confirmBankFile:true});
+      s=HCC.execute(s,'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S09',active:false});s=HCC.execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S09'});
+      s=HCC.execute(s,'owner',{type:'HR_FNF_CONFIRM',id:HCC.hrSlice(s).fnf[0].id});
+      const fy=HCC.loadScenario('FY26');
+      return {last:HCC.hrLastLockedMonth(s),cl:HCC.hrLeavePolicy(s).ent.CL,fnf:HCC.hrSlice(s).fnf[0].status,fyLast:HCC.hrLastLockedMonth(fy),csv:HCC.hrBankCsv(fy,HCC.hrRunFor(fy,'2026-09')).length>100};})()`,ctx);
+    assert.deepEqual({...out},{last:'2026-08',cl:11,fnf:'Settled',fyLast:'2026-09',csv:true});
+    for(const f of ['src/domain/streams/staff.ts','src/services/mock/handlers/staff.ts','src/fixtures/ext/staff.ts','src/fixtures/history/modules-people.ts','src/features/staff/HrDesk.tsx','src/features/staff/MyHr.tsx','src/features/staff/modals.tsx','src/features/staff/register.tsx']){
+      const src=readFileSync(f,'utf8');assert.doesNotMatch(src,/\.at\(|\.replaceAll\(|structuredClone\(/,f);}
   });
 }

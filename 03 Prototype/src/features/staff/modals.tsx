@@ -277,7 +277,7 @@ export function HRPayslipModal({id}:{id?:string}){
   if(!run||!line||!allowed)return <Empty title="Payslip unavailable" body="Payslips are released when payroll is locked. You can see only your own."/>;
   const st=hrStaffById(s,staffId),wa=st?hrWaNumber(st.phone):'',sent=(run.sent??[]).filter(x=>x.staffId===staffId);
   return <><HRPayslipDoc run={run} line={line}/>
-    {pay&&run.status==='Locked'&&<div className="hr-wa no-print"><div><strong><MessageCircle size={15}/> WhatsApp (simulated)</strong><small>{wa?`To +${wa}`:'No usable mobile number'}{sent.length?` · sent ${sent.length}× · last ${sent.at(-1)!.at.slice(11)} ${shortDate(sent.at(-1)!.at.slice(0,10))}`:''}</small></div>
+    {pay&&run.status==='Locked'&&<div className="hr-wa no-print"><div><strong><MessageCircle size={15}/> WhatsApp (simulated)</strong><small>{wa?`To +${wa}`:'No usable mobile number'}{sent.length?` · sent ${sent.length}× · last ${sent[sent.length-1].at.slice(11)} ${shortDate(sent[sent.length-1].at.slice(0,10))}`:''}</small></div>
       <pre>{hrPayslipMessage(s,run,line)}</pre></div>}
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button>
       {pay&&run.status==='Locked'&&<button className="btn" disabled={busy||!wa} onClick={()=>exec({type:'HR_PAYSLIP_SEND',runId:run.id,staffId},'Payslip sent on WhatsApp (simulated — nothing left this device)')}><MessageCircle size={16}/> Send on WhatsApp{wa?` to +${wa}`:''}</button>}

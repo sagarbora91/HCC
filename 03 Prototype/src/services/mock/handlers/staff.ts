@@ -12,6 +12,7 @@ import {
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
 import {addDays} from '../../../domain/money';
+import {clone} from '../../../domain/clone';
 
 const SHIFTS:HRShiftCode[]=['M','E','N','G','OFF'];
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
@@ -215,7 +216,7 @@ export const handlers:Record<string,Handler>={
   },
   /** Leave policy (SCC entitlements + daily capacity, per department). Owner. */
   HR_LEAVE_POLICY_SET:k=>{
-    owner(k,'change the leave policy');const {s,cmd,assert}=k,x=hrEnsure(s),p=structuredClone(hrLeavePolicy(s));
+    owner(k,'change the leave policy');const {s,cmd,assert}=k,x=hrEnsure(s),p=clone(hrLeavePolicy(s));
     if(cmd.ent!==undefined)for(const t of HR_TRACKED){const v=cmd.ent?.[t];assert(Number.isInteger(v)&&v>=0&&v<=60,`Entitlement for ${t}: 0–60 days.`);p.ent[t]=v;}
     if(cmd.defaultCap!==undefined){assert(Number.isInteger(cmd.defaultCap)&&cmd.defaultCap>=1&&cmd.defaultCap<=20,'Maximum staff off per day: 1–20.');p.defaultCap=cmd.defaultCap;}
     if(cmd.deptCap!==undefined){assert(cmd.deptCap&&typeof cmd.deptCap==='object','Department limits are missing.');p.deptCap={};

@@ -12,7 +12,7 @@ import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {
-  money,addDays,isDayClosed,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
+  money,addDays,isDayClosed,cfgModuleOn,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
   hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrFnfSettled,HR_FNF_OWNER_ABOVE,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
   HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
@@ -27,14 +27,15 @@ const day=(d:string)=>HR_WEEKDAYS[new Date(d+'T12:00:00Z').getUTCDay()];
 export const hrLeaveKind=(l:HRLeave)=>HR_LEAVE_LABEL[l.type]+(l.half?` · ½ day (${l.half==='AM'?'first':'second'} half)`:'');
 
 export function HrDesk({phone=false}:{phone?:boolean}){
-  const {s,uid}=useHcc();const mgr=hrCanManage(s,uid),pay=hrCanPay(s,uid);
-  const tabs:Tab[]=[...(mgr||pay?['people','roster','attendance','leave'] as Tab[]:[]),...(pay?['payroll','advances','fnf','settings'] as Tab[]:[])];
-  const [tab,setTab]=useState<Tab>(tabs[0]??'people');
+  const {s,uid}=useHcc();const mgr=hrCanManage(s,uid),pay=hrCanPay(s,uid),payOn=cfgModuleOn(s,'payroll');
+  // W05P-1: Payroll switched off in Master configuration hides the payroll tabs (its commands are refused anyway); attendance and leave stay.
+  const tabs:Tab[]=[...(mgr||pay?['people','roster','attendance','leave'] as Tab[]:[]),...(pay&&payOn?['payroll','advances','fnf','settings'] as Tab[]:[])];
+  const [pick,setTab]=useState<Tab>(tabs[0]??'people');const tab=tabs.includes(pick)?pick:tabs[0]??'people';
   if(!tabs.length)return phone?<MyHr phone/>:<MyHr/>;
   const pending=hrDecidable(s,uid).length;
   const body={people:<People phone={phone}/>,roster:<Roster phone={phone}/>,attendance:<Attendance phone={phone}/>,leave:<Leave phone={phone}/>,payroll:<Payroll phone={phone}/>,advances:<Advances phone={phone}/>,fnf:<Fnf phone={phone}/>,settings:<Rates phone={phone}/>}[tab];
   if(phone)return <div className="hr-m"><ChipFilter label="HR section" value={tab} onChange={setTab} options={tabs.map(t=>({id:t,label:TAB_LABEL[t],count:t==='leave'&&pending?pending:undefined}))}/>{body}</div>;
-  return <><PageTitle title="Staff & payroll" sub={`Fictional staff · business date ${dateLabel(s.date)} · ${pay?'PF / ESIC / PT from SCC — illustrative, CA to confirm for a hotel':'salary figures are visible to the Owner and Accountant only'}`}/>
+  return <><PageTitle title="Staff & payroll" sub={`Fictional staff · business date ${dateLabel(s.date)} · ${pay&&!payOn?'Payroll is switched off in Master configuration (attendance and leave stay on)':pay?'PF / ESIC / PT from SCC — illustrative, CA to confirm for a hotel':'salary figures are visible to the Owner and Accountant only'}`}/>
     <div className="card hr-tabs-card"><div className="tabs" role="tablist">{tabs.map(t=><button key={t} role="tab" aria-selected={tab===t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{TAB_LABEL[t]}{t==='leave'&&pending>0&&<span>{pending}</span>}</button>)}</div></div>
     {body}</>;
 }
@@ -213,7 +214,7 @@ function Payroll({phone}:{phone:boolean}){
   const runBtn=<button className={'btn'+(r?'':' primary')} disabled={busy||r?.status==='Locked'} onClick={()=>run({type:'HR_PAYROLL_RUN',month:ym},r?'Payroll recalculated':'Payroll draft prepared')}><Calculator size={16}/> {r?'Recalculate':'Run payroll'}</button>;
   const lockBtn=r?.status==='Draft'&&<button className="btn primary" disabled={busy||own||errors.length>0} title={own?'Prepared by you — the other payroll user locks':undefined} onClick={()=>{if(window.confirm(`Lock ${hrMonthLabel(ym)} payroll? Figures freeze, advance recoveries are posted and payslips are released.`))run({type:'HR_PAYROLL_LOCK',id:r.id},'Payroll locked · payslips released');}}><Lock size={16}/> Lock pay-run</button>;
   const status=r?<Pill tone={r.status==='Locked'?'green':'orange'}>{r.status}</Pill>:<Pill>Not run</Pill>;
-  const meta=r?`Prepared by ${hrUserName(s,r.preparedBy)} ${r.preparedAt.slice(0,10)} ${r.preparedAt.slice(11)}${r.lockedBy?` · locked by ${hrUserName(s,r.lockedBy)}`:''} · rates from ${r.rates?.from??'—'}${r.legacy?' · legacy run':''}${r.unlocks?.length?` · unlocked ${r.unlocks.length}× (${r.unlocks.at(-1)!.reason})`:''}`:'';
+  const meta=r?`Prepared by ${hrUserName(s,r.preparedBy)} ${r.preparedAt.slice(0,10)} ${r.preparedAt.slice(11)}${r.lockedBy?` · locked by ${hrUserName(s,r.lockedBy)}`:''} · rates from ${r.rates?.from??'—'}${r.legacy?' · legacy run':''}${r.unlocks?.length?` · unlocked ${r.unlocks.length}× (${r.unlocks[r.unlocks.length-1].reason})`:''}`:'';
   const notes=<>{r&&!!r.warnings.length&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/><div>{r.warnings.map(w=><div key={w}>{w}</div>)}</div></div>}
     {!!errors.length&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>Fix before locking: {errors.join('; ')}.</div>}
     {stale&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>Attendance, leave, advances or rates changed after this draft — recalculate before locking.</div>}

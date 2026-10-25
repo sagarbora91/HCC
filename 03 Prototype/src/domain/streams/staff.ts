@@ -247,7 +247,7 @@ export function hrRatesPastMonths(s:State,from:string):string[]{
 export const hrLeavePolicy=(s:State):HRLeavePolicy=>hrSlice(s).leavePolicy??hrDefaultLeavePolicy();
 export const hrDeptCap=(s:State,dept:string)=>{const p=hrLeavePolicy(s);return p.deptCap[dept]??p.defaultCap;};
 /** Latest locked pay-run month (rates on or before it can no longer change). */
-export const hrLastLockedMonth=(s:State)=>hrSlice(s).runs.filter(r=>r.status==='Locked').map(r=>r.month).sort().at(-1);
+export const hrLastLockedMonth=(s:State)=>hrSlice(s).runs.filter(r=>r.status==='Locked').map(r=>r.month).sort().pop();
 
 // ── Roster / attendance ──
 export const hrKey=(date:string,staffId:string)=>date+'|'+staffId;
