@@ -24,3 +24,9 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 18 | `src/Hcc.Api/Hosting/HccHosting.cs` (P7) | `UseWindowsService`, production config validator (integrated auth only, no TrustServerCertificate, backup folder, thumbprint), Kestrel HTTPS from machine store | ETP service hosting/config validation/TLS binding |
 
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).
+
+## W2-6 Restaurant POS (`Pos`)
+| Marker | Where | What ETP should provide |
+|---|---|---|
+| `// ETP-REUSE:` KOT / bill printing | `Hcc.Application/Pos` (not built; prototype prints via browser) | Thermal/A4 KOT and bill templates, day summary Excel/PDF through the ETP exporters |
+| GST-FOOD | `IPosTaxRates` (`TaxRateSourcePosTaxRates`) | Wire to the GST master (`IGstRateResolver`, food 5 % / 18 % specified premises, CGST/SGST split) at merge |
