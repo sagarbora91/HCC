@@ -1,13 +1,14 @@
 // Module 20 · Accounting automation — desktop page (CLOSING & REPORTS › Accounting).
 import React,{useMemo,useState} from 'react';
-import {Info,CheckCircle2,AlertTriangle} from 'lucide-react';
+import {Info,CheckCircle2,AlertTriangle,Download} from 'lucide-react';
+import {saveTextFile} from '../../app/native';
 import {useHcc} from '../../app/context';
-import {money,accDates,accVouchers,accTrialBalance,accVouchersUpTo,accExceptions,accReconcile,accMapRows,accLockOf,accDayStatus,accTotals,accLockBlocker,accLedgerName,
+import {money,accDates,accVouchers,accTrialBalance,accVouchersUpTo,accExceptions,accReconcile,accMapRows,accLockOf,accDayStatus,accTotals,accLockBlocker,accLedgerName,accTallyXml,TALLY_MAX_DAYS,addDays,
   ACC_CHART,ACC_SUSPENSE} from '../../services/mock';
 import {PageTitle,Empty,Stat,shortDate,clockTime} from '../../components/ui';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accMoney,accUserName,useAccPerms,accVoucherDebit} from './parts';
 
-type Tab='vouchers'|'tb'|'exceptions'|'recon'|'mapping'|'chart';
+type Tab='vouchers'|'tb'|'exceptions'|'recon'|'mapping'|'chart'|'tally';
 export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:string)=>void;dates:string[]}){
   return <label className="acc-date">Business date<select value={date} onChange={e=>setDate(e.target.value)}>
     {dates.map(d=><option key={d} value={d}>{shortDate(d)} {d.slice(0,4)}</option>)}</select></label>;
@@ -23,7 +24,7 @@ export function AccountingPage(){
   const tb=useMemo(()=>accTrialBalance(cum?accVouchersUpTo(s,date):vs),[s,date,vs,cum]);
   const t=accTotals(vs),status=accDayStatus(s,date),lock=accLockOf(s,date),why=accLockBlocker(s,date);
   const errors=ex.filter(x=>x.severity==='error').length,reconOk=recon.every(c=>c.ok);
-  const tabs:[Tab,string,number?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],['chart','Chart of accounts']];
+  const tabs:[Tab,string,number?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],['chart','Chart of accounts'],['tally','Tally export']];
   const tbT=tb.reduce((a,r)=>({debit:a.debit+r.debit,credit:a.credit+r.credit}),{debit:0,credit:0});
   return <div className="acc-page">
     <PageTitle title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · synthetic 10% tax"
@@ -60,6 +61,7 @@ export function AccountingPage(){
         <tbody>{recon.map(c=><tr key={c.id}><td><strong>{c.label}</strong></td><td className="acc-num number">{money(c.report)}</td><td className="acc-num number">{money(c.ledger)}</td>
           <td>{c.ok?<span className="pill green"><CheckCircle2 size={12}/>Agrees</span>:<span className="pill acc-sev-error"><AlertTriangle size={12}/>Differs {money(c.ledger-c.report)}</span>}</td><td><small>{c.note}</small></td></tr>)}</tbody></table></div>}
       {tab==='mapping'&&<MappingTable/>}
+      {tab==='tally'&&<TallyExport/>}
       {tab==='chart'&&<div className="table-wrap"><table className="acc-table"><thead><tr><th>Code</th><th>Ledger</th><th>Group</th><th>Note</th></tr></thead>
         <tbody>{ACC_CHART.map(a=><tr key={a.code}><td className="number">{a.code}</td><td><strong>{a.name}</strong></td><td>{a.group}</td><td><small>{a.note??''}</small></td></tr>)}</tbody></table></div>}
     </section>
@@ -76,4 +78,22 @@ function MappingTable(){
         <td>{canMap&&<button className="btn small-btn" onClick={()=>open({type:'acc-map',id:r.key})}>Change</button>}</td></tr>)}</tbody></table></div>
     {hist.length>0&&<div className="padded"><h3 className="acc-h3">Recent mapping changes</h3><ul className="acc-hist">{hist.map(h=><li key={h.id}><strong>{h.key}</strong>: {h.before||'none'} → {h.after||'none'} · {accUserName(s,h.actor)} · {clockTime(h.at)}</li>)}</ul></div>}
   </>;
+}
+
+/** Accounting › Tally export: Tally-style XML preview from the existing vouchers. Always Simulated — saving the XML is not an import into Tally. */
+export function TallyExport(){
+  const {s,toast}=useHcc();
+  const [to,setTo]=useState(s.date);const [from,setFrom]=useState(addDays(s.date,-6));
+  const p=useMemo(()=>accTallyXml(s,from,to),[s,from,to]);
+  const lines=p.xml.split(String.fromCharCode(10)),shown=lines.slice(0,60).join(String.fromCharCode(10));
+  return <div className="padded exp-tally">
+    <div className="exp-tally-head"><span className="pill orange" role="status">Simulated</span><span className="muted">No file is sent to Tally. Saving this XML does not mean it was imported — only Tally's own import confirms that.</span></div>
+    <div className="inline exp-tally-range"><label className="acc-date">From<input type="date" value={from} max={s.date} onChange={e=>setFrom(e.target.value)}/></label>
+      <label className="acc-date">To<input type="date" value={to} max={s.date} onChange={e=>setTo(e.target.value)}/></label>
+      <button className="btn" disabled={!p.count} onClick={()=>{void saveTextFile(`HCC-Demo-tally-${from}_${to}.xml`,p.xml,'application/xml');toast('Simulated Tally XML saved · not imported into Tally');}}><Download size={16}/> Download XML</button></div>
+    {p.error?<p className="f-why" role="alert">{p.error}</p>:<>
+      <p className="muted">{p.count} voucher{p.count===1?'':'s'} over {p.dates} business date{p.dates===1?'':'s'} · debits {money(p.debit)} · credits {money(p.credit)} · {p.debit===p.credit?'balanced':'NOT balanced'} · up to {TALLY_MAX_DAYS} days</p>
+      {p.count?<><pre className="exp-xml" aria-label="Tally XML preview">{shown}</pre>{lines.length>60&&<p className="muted">Preview shows the first 60 of {lines.length} lines; the download has everything.</p>}</>
+        :<Empty title="No vouchers in this range" body="Nothing was posted, received or spent on these business dates."/>}</>}
+  </div>;
 }

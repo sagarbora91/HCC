@@ -1,0 +1,8 @@
+/* W05-E exports: Tally preview, day pack. Classes prefixed exp- . Maroon & Sand. */
+.exp-tally-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.exp-tally-range{margin-bottom:12px;align-items:flex-end}
+.exp-tally-range input{border:1px solid #cdb9a3;border-radius:7px;background:#fff;color:#2b1d16;min-height:38px;padding:6px 10px;font-size:12px}
+.exp-xml{background:#fff;border:1px solid #cdb9a3;border-radius:8px;padding:12px;margin:8px 0;max-height:420px;overflow:auto;font:12px/1.45 Consolas,monospace;color:#2b1d16;white-space:pre}
+.exp-pack h3{margin:14px 0 6px;font-size:14px;color:#7a1f2b}
+.exp-pack table{width:100%;font-size:12px}
+@media (max-width:600px){.exp-tally-range{flex-direction:column;align-items:stretch}.exp-tally-range .btn{min-height:48px}}

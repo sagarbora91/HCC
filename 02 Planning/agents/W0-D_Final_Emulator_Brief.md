@@ -1,6 +1,6 @@
 # W0-D final · Emulator checks on APK versionCode 7 — agent brief
 
-25 Oct 2026. Finishes W0-D. Read `W0-D_Parallel_Acceptance_Brief.md` (fixed facts, DevTools driving tip, report format) and `W0-D_Acceptance_Brief.md` (scope/rules) first. Work in the main checkout `V:\Codex\Hotel Control Centre`; **do not commit, do not create branches, never push, do not change product code** (record defects). The lead commits evidence; a background job commits `05 Delivery Evidence` every 7 minutes.
+25 Oct 2026. Finishes W0-D. Read `W0-D_Parallel_Acceptance_Brief.md` (fixed facts, DevTools driving tip, report format) and `W0-D_Acceptance_Brief.md` (scope/rules) first. Work in the main checkout `E:\Projects\HCC\Hotel Control Centre`; **do not commit, do not create branches, never push, do not change product code** (record defects). The lead commits evidence; a background job commits `05 Delivery Evidence` every 7 minutes.
 
 **Laptop overheats — rules:** only ONE emulator running at any time; start it with `-no-boot-anim -no-audio -gpu swiftshader_indirect -memory 2048`; few screenshots; shut it down (`adb -s <serial> emu kill`) when its part is done. **Write your report file after EVERY check**, with a `**Progress:**` line at the top (last done / next).
 

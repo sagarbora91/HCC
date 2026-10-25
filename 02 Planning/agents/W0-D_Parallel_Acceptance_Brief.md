@@ -1,6 +1,6 @@
 # W0-D (parallel) · Acceptance split into four agents — shared brief
 
-Owner instruction (24 Oct 2026): finish W0-D with maximum agents. Replaces the single-agent run in `W0-D_Acceptance_Brief.md` (read that first for scope and rules). Everyone works **in the main checkout** `V:\Codex\Hotel Control Centre` on `main` — **do not commit, do not create branches/worktrees, never push**; the lead commits all evidence. Do **not** change product code: record defects.
+Owner instruction (24 Oct 2026): finish W0-D with maximum agents. Replaces the single-agent run in `W0-D_Acceptance_Brief.md` (read that first for scope and rules). Everyone works **in the main checkout** `E:\Projects\HCC\Hotel Control Centre` on `main` — **do not commit, do not create branches/worktrees, never push**; the lead commits all evidence. Do **not** change product code: record defects.
 
 ## Fixed facts
 - APK under test: `05 Delivery Evidence\APK\HCC-0.1.0-proto-debug.apk` — versionCode **6**, SHA-256 `49c184d32d5e7eb099e474b185b9b9926e8bb38f8eb1ff940ccf86eddf75946b`; its web bundle is byte-identical to `03 Prototype\dist\index.html` (SHA-256 `4e33f7d6…c1dd`). Do not rebuild it.

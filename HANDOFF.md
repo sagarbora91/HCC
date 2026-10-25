@@ -239,3 +239,17 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - Browser harness incomplete: timed out clicking .modal-close after Demo controls (check-overlay-compat.mjs:32). Fix selector and rerun; no browser-pass claim.
 - Detailed resume instructions: 05 Delivery Evidence/Acceptance/AC02_Source_Verification_2026-10-25.md.
 - AC-02 acceptance remains OPEN pending local browser completion and real WebView83 check. No APK rebuild (user restriction), install, commit or push.
+
+## Wave 0.5 — IN PROGRESS (started 25 Oct 2026, APR-007)
+- Five agents in their own worktrees/branches (briefs `02 Planning\agents\W05_Briefs.md`): **W05-A** Master configuration (Opus, `local_20534bad…`), **W05-B** payroll/leave/payslips from SCC (Opus, `local_d165f268…`), **W05-C** compliance calendar (Sonnet, `local_20b4906e…`), **W05-D** cash book (Sonnet, `local_5a4c6b0c…`), **W05-E** Excel/day-pack PDF/Tally preview (Sonnet, `local_698f0f51…`). In parallel: W0-D final emulator checks on APK v8 in the main checkout (`local_3dd816e5…`).
+- Agents commit WIP to their own branches (`git branch -a` shows `claude/w05*`). Lead merges after all report: resolve the small shared-file line conflicts (registry.ts, navmap.ts, types.ts, mock/handler index files, DayClosing.tsx), bump SCHEMA 7 → 8 once, wire B/C/D `*SettingDefs()` into the hub's provider API, full tsc/test/build, APK v9.
+- After a crash: restart `bash tools/checkpoint.sh`, then message each agent to continue from its last commit.
+
+## MIGRATION to the work PC — 25 Oct 2026 13:15 (old PC crashing repeatedly)
+- All work saved on branches before packaging: W05-D and W05-E done; W05-C and W05-A saved as **WIP snapshot** commits (untested); W05-B not started. W0-D Part 2–3 not run.
+- Package: `V:\HCC-Migration-2026-10-25\` (git bundle of all branches, APK v8, built HTML, Claude memory, SCC module rule sources, donor inventory, optional donor bundles, checksums). Guide: `MIGRATION.md` (repo root); restore script `tools\restore-on-new-pc.ps1`.
+- On the work PC: restore → expect tsc clean, 502/502, build ≈ 1,884 KB on main → tell Claude "resume after migration" → finish W0-D emulator Parts 2–3, then Wave 0.5 (C, A, B), merge, APK v9.
+
+## Session 11 (25 Oct 2026) — resumed on the work PC
+- Folder now `E:\Projects\HCC\Hotel Control Centre` (old docs say `V:\Codex\…`). Briefs updated to the new path; W05 briefs point to the SCC sources in `E:\Projects\HCC\Migration data on 25 oct\HCC-Migration-2026-10-25\reference-inputs\SCC-modules`.
+- Verified on main with Node v25.9.0 (`E:\Tools\nodejs` — note `E:\Program Files\nodejs` v24.13.1 is first on PATH): tsc clean, **502/502**, build 1,884 KB, dist SHA-256 `76519ceb…2aa4d` = the APK v8 web bundle. `core.autocrlf=false`. Checkpoint job (`bash tools/checkpoint.sh`) restarted.
