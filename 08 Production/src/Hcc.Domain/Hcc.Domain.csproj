@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Business rules only: no I/O, no ASP.NET Core, no database libraries (instructions §5). -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Domain</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hcc.Contracts\Hcc.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ThirdParty\LICENSE-HAIP-Apache-2.0.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

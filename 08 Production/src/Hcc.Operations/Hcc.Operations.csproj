@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Operations: backup gate that runs the deployment backup script (P7). Scripts live in deployment/windows. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Operations</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,3926 @@
+{
+ "generatedBy": "08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs",
+ "source": "03 Prototype BASE fixture + stream-accounting scenarios",
+ "fictionalDataOnly": true,
+ "defaultMapping": {
+  "line:room": "4000",
+  "line:service": "4100",
+  "line:discount": "4900",
+  "line:adjustment": "4910",
+  "folio:guest": "1100",
+  "folio:cgst": "2110",
+  "folio:sgst": "2120",
+  "method:Cash": "1000",
+  "method:UPI": "1010",
+  "method:Card": "1020",
+  "method:Bank transfer": "1030",
+  "receipt:payment": "1100",
+  "receipt:refund": "1100",
+  "receipt:deposit": "2000",
+  "receipt:deposit-return": "2000",
+  "receipt:company-credit": "1110",
+  "expense:Supplies": "5000",
+  "expense:Laundry": "5010",
+  "expense:Maintenance": "5020",
+  "expense:Utilities": "5030",
+  "expense:Petty cash": "5040",
+  "funding:Cash": "1000",
+  "funding:UPI": "1010",
+  "funding:Card": "1020",
+  "funding:Bank transfer": "1030",
+  "funding:Vendor credit": "2200",
+  "closing:cash-difference": "5900",
+  "pos:sales": "4100",
+  "pos:cgst": "2110",
+  "pos:sgst": "2120"
+ },
+ "days": [
+  {
+   "name": "base-23oct",
+   "date": "2026-10-23",
+   "company": "HCC Demo Residency",
+   "mappingOverrides": {},
+   "sources": [
+    {
+     "kind": "line",
+     "id": "HCC-1041/seed-night-0",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 23 Oct · Ananya Rao · room 101"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1042/seed-night-1",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 23 Oct · Vikram Shah · room 102"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1043/seed-night-2",
+     "sub": "room",
+     "amountPaise": 300000,
+     "taxPaise": 15000,
+     "narration": "Room night · 23 Oct · Riya Mehta · room 104"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1044/seed-night-3",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 23 Oct · Arjun Kapoor · room 201"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1045/seed-night-4",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 23 Oct · Nisha Desai · room 202"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1046/seed-night-5",
+     "sub": "room",
+     "amountPaise": 450000,
+     "taxPaise": 22500,
+     "narration": "Room night · 23 Oct · Kabir Sen · room 206"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1047/seed-night-6",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 23 Oct · Tara Iyer · room 301"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1048/seed-night-7",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 23 Oct · Dev Malhotra · room 302"
+    }
+   ],
+   "vouchers": [
+    {
+     "no": "SAL/20261023/001",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Ananya Rao · room 101",
+     "sourceKind": "line",
+     "sourceId": "HCC-1041/seed-night-0",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261023/002",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Vikram Shah · room 102",
+     "sourceKind": "line",
+     "sourceId": "HCC-1042/seed-night-1",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261023/003",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Riya Mehta · room 104",
+     "sourceKind": "line",
+     "sourceId": "HCC-1043/seed-night-2",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 315000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 7500
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 7500
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261023/004",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Arjun Kapoor · room 201",
+     "sourceKind": "line",
+     "sourceId": "HCC-1044/seed-night-3",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261023/005",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Nisha Desai · room 202",
+     "sourceKind": "line",
+     "sourceId": "HCC-1045/seed-night-4",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261023/006",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Kabir Sen · room 206",
+     "sourceKind": "line",
+     "sourceId": "HCC-1046/seed-night-5",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 472500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 11250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 11250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261023/007",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Tara Iyer · room 301",
+     "sourceKind": "line",
+     "sourceId": "HCC-1047/seed-night-6",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261023/008",
+     "date": "2026-10-23",
+     "type": "Sales",
+     "narration": "Room night · 23 Oct · Dev Malhotra · room 302",
+     "sourceKind": "line",
+     "sourceId": "HCC-1048/seed-night-7",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    }
+   ],
+   "trialBalance": [
+    {
+     "account": "1100",
+     "debitPaise": 2047500,
+     "creditPaise": 0,
+     "balancePaise": 2047500
+    },
+    {
+     "account": "2110",
+     "debitPaise": 0,
+     "creditPaise": 48750,
+     "balancePaise": -48750
+    },
+    {
+     "account": "2120",
+     "debitPaise": 0,
+     "creditPaise": 48750,
+     "balancePaise": -48750
+    },
+    {
+     "account": "4000",
+     "debitPaise": 0,
+     "creditPaise": 1950000,
+     "balancePaise": -1950000
+    }
+   ],
+   "csv": "Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID\r\n2026-10-23,SAL/20261023/001,Sales,Guest ledger,2100.00,,Room night · 23 Oct · Ananya Rao · room 101,HCC-1041/seed-night-0\r\n2026-10-23,SAL/20261023/001,Sales,Room revenue,,2000.00,Room night · 23 Oct · Ananya Rao · room 101,HCC-1041/seed-night-0\r\n2026-10-23,SAL/20261023/001,Sales,Output CGST,,50.00,Room night · 23 Oct · Ananya Rao · room 101,HCC-1041/seed-night-0\r\n2026-10-23,SAL/20261023/001,Sales,Output SGST,,50.00,Room night · 23 Oct · Ananya Rao · room 101,HCC-1041/seed-night-0\r\n2026-10-23,SAL/20261023/002,Sales,Guest ledger,2100.00,,Room night · 23 Oct · Vikram Shah · room 102,HCC-1042/seed-night-1\r\n2026-10-23,SAL/20261023/002,Sales,Room revenue,,2000.00,Room night · 23 Oct · Vikram Shah · room 102,HCC-1042/seed-night-1\r\n2026-10-23,SAL/20261023/002,Sales,Output CGST,,50.00,Room night · 23 Oct · Vikram Shah · room 102,HCC-1042/seed-night-1\r\n2026-10-23,SAL/20261023/002,Sales,Output SGST,,50.00,Room night · 23 Oct · Vikram Shah · room 102,HCC-1042/seed-night-1\r\n2026-10-23,SAL/20261023/003,Sales,Guest ledger,3150.00,,Room night · 23 Oct · Riya Mehta · room 104,HCC-1043/seed-night-2\r\n2026-10-23,SAL/20261023/003,Sales,Room revenue,,3000.00,Room night · 23 Oct · Riya Mehta · room 104,HCC-1043/seed-night-2\r\n2026-10-23,SAL/20261023/003,Sales,Output CGST,,75.00,Room night · 23 Oct · Riya Mehta · room 104,HCC-1043/seed-night-2\r\n2026-10-23,SAL/20261023/003,Sales,Output SGST,,75.00,Room night · 23 Oct · Riya Mehta · room 104,HCC-1043/seed-night-2\r\n2026-10-23,SAL/20261023/004,Sales,Guest ledger,2100.00,,Room night · 23 Oct · Arjun Kapoor · room 201,HCC-1044/seed-night-3\r\n2026-10-23,SAL/20261023/004,Sales,Room revenue,,2000.00,Room night · 23 Oct · Arjun Kapoor · room 201,HCC-1044/seed-night-3\r\n2026-10-23,SAL/20261023/004,Sales,Output CGST,,50.00,Room night · 23 Oct · Arjun Kapoor · room 201,HCC-1044/seed-night-3\r\n2026-10-23,SAL/20261023/004,Sales,Output SGST,,50.00,Room night · 23 Oct · Arjun Kapoor · room 201,HCC-1044/seed-night-3\r\n2026-10-23,SAL/20261023/005,Sales,Guest ledger,2100.00,,Room night · 23 Oct · Nisha Desai · room 202,HCC-1045/seed-night-4\r\n2026-10-23,SAL/20261023/005,Sales,Room revenue,,2000.00,Room night · 23 Oct · Nisha Desai · room 202,HCC-1045/seed-night-4\r\n2026-10-23,SAL/20261023/005,Sales,Output CGST,,50.00,Room night · 23 Oct · Nisha Desai · room 202,HCC-1045/seed-night-4\r\n2026-10-23,SAL/20261023/005,Sales,Output SGST,,50.00,Room night · 23 Oct · Nisha Desai · room 202,HCC-1045/seed-night-4\r\n2026-10-23,SAL/20261023/006,Sales,Guest ledger,4725.00,,Room night · 23 Oct · Kabir Sen · room 206,HCC-1046/seed-night-5\r\n2026-10-23,SAL/20261023/006,Sales,Room revenue,,4500.00,Room night · 23 Oct · Kabir Sen · room 206,HCC-1046/seed-night-5\r\n2026-10-23,SAL/20261023/006,Sales,Output CGST,,112.50,Room night · 23 Oct · Kabir Sen · room 206,HCC-1046/seed-night-5\r\n2026-10-23,SAL/20261023/006,Sales,Output SGST,,112.50,Room night · 23 Oct · Kabir Sen · room 206,HCC-1046/seed-night-5\r\n2026-10-23,SAL/20261023/007,Sales,Guest ledger,2100.00,,Room night · 23 Oct · Tara Iyer · room 301,HCC-1047/seed-night-6\r\n2026-10-23,SAL/20261023/007,Sales,Room revenue,,2000.00,Room night · 23 Oct · Tara Iyer · room 301,HCC-1047/seed-night-6\r\n2026-10-23,SAL/20261023/007,Sales,Output CGST,,50.00,Room night · 23 Oct · Tara Iyer · room 301,HCC-1047/seed-night-6\r\n2026-10-23,SAL/20261023/007,Sales,Output SGST,,50.00,Room night · 23 Oct · Tara Iyer · room 301,HCC-1047/seed-night-6\r\n2026-10-23,SAL/20261023/008,Sales,Guest ledger,2100.00,,Room night · 23 Oct · Dev Malhotra · room 302,HCC-1048/seed-night-7\r\n2026-10-23,SAL/20261023/008,Sales,Room revenue,,2000.00,Room night · 23 Oct · Dev Malhotra · room 302,HCC-1048/seed-night-7\r\n2026-10-23,SAL/20261023/008,Sales,Output CGST,,50.00,Room night · 23 Oct · Dev Malhotra · room 302,HCC-1048/seed-night-7\r\n2026-10-23,SAL/20261023/008,Sales,Output SGST,,50.00,Room night · 23 Oct · Dev Malhotra · room 302,HCC-1048/seed-night-7",
+   "exceptions": []
+  },
+  {
+   "name": "base-24oct",
+   "date": "2026-10-24",
+   "company": "HCC Demo Residency",
+   "mappingOverrides": {},
+   "sources": [
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 300000,
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 450000,
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 100000,
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 100000,
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F01",
+     "sub": "sale",
+     "tender": "Cash",
+     "amountPaise": 52500,
+     "netPaise": 50000,
+     "taxPaise": 2500,
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F02",
+     "sub": "sale",
+     "tender": "UPI",
+     "amountPaise": 71400,
+     "netPaise": 68000,
+     "taxPaise": 3400,
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-101",
+     "sub": "expense",
+     "category": "Laundry",
+     "funding": "Cash",
+     "amountPaise": 180000,
+     "narration": "Fresh Linen Services · Laundry · Cash"
+    }
+   ],
+   "vouchers": [
+    {
+     "no": "SAL/20261024/001",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F01",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 52500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 50000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/002",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F02",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 71400,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 68000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/003",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 300000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/004",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/005",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/006",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 450000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/007",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/008",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/009",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/010",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Fresh Linen Services · Laundry · Cash",
+     "sourceKind": "expense",
+     "sourceId": "EXP-101",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "5010",
+       "debitPaise": 180000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 180000
+      }
+     ],
+     "unmapped": []
+    }
+   ],
+   "trialBalance": [
+    {
+     "account": "1000",
+     "debitPaise": 752500,
+     "creditPaise": 180000,
+     "balancePaise": 572500
+    },
+    {
+     "account": "1010",
+     "debitPaise": 1521400,
+     "creditPaise": 0,
+     "balancePaise": 1521400
+    },
+    {
+     "account": "1100",
+     "debitPaise": 0,
+     "creditPaise": 2150000,
+     "balancePaise": -2150000
+    },
+    {
+     "account": "2110",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "2120",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "4100",
+     "debitPaise": 0,
+     "creditPaise": 118000,
+     "balancePaise": -118000
+    },
+    {
+     "account": "5010",
+     "debitPaise": 180000,
+     "creditPaise": 0,
+     "balancePaise": 180000
+    }
+   ],
+   "csv": "Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID\r\n2026-10-24,SAL/20261024/001,Sales,Cash in hand,525.00,,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Other revenue,,500.00,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output CGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output SGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/002,Sales,UPI clearing,714.00,,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Other revenue,,680.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output CGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output SGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,RCT/20261024/001,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/001,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/002,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/002,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/003,Receipt,UPI clearing,3000.00,,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/003,Receipt,Guest ledger,,3000.00,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/004,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/004,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/005,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/005,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/006,Receipt,UPI clearing,4500.00,,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/006,Receipt,Guest ledger,,4500.00,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/007,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/007,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/008,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/008,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/009,Receipt,UPI clearing,1000.00,,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/009,Receipt,Guest ledger,,1000.00,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/010,Receipt,Cash in hand,1000.00,,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,RCT/20261024/010,Receipt,Guest ledger,,1000.00,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,PMT/20261024/001,Payment,Laundry,1800.00,,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/001,Payment,Cash in hand,,1800.00,Fresh Linen Services · Laundry · Cash,EXP-101",
+   "exceptions": []
+  },
+  {
+   "name": "full-day-flow",
+   "date": "2026-10-24",
+   "company": "HCC Demo Residency",
+   "mappingOverrides": {},
+   "sources": [
+    {
+     "kind": "line",
+     "id": "HCC-1041/night:HCC-1041:2026-10-24",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 2026-10-24 · Ananya Rao · room 101"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1041/line-1102",
+     "sub": "service",
+     "amountPaise": 50000,
+     "taxPaise": 9000,
+     "narration": "Laundry · Ananya Rao · room 101"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1041/discount-1104",
+     "sub": "discount",
+     "amountPaise": -20000,
+     "taxPaise": -1000,
+     "narration": "Discount · Goodwill · Ananya Rao · room 101"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1042/night:HCC-1042:2026-10-24",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 2026-10-24 · Vikram Shah · room 102"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1043/night:HCC-1043:2026-10-24",
+     "sub": "room",
+     "amountPaise": 300000,
+     "taxPaise": 15000,
+     "narration": "Room night · 2026-10-24 · Riya Mehta · room 104"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1044/night:HCC-1044:2026-10-24",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 2026-10-24 · Arjun Kapoor · room 201"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1045/night:HCC-1045:2026-10-24",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 2026-10-24 · Nisha Desai · room 202"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1046/night:HCC-1046:2026-10-24",
+     "sub": "room",
+     "amountPaise": 450000,
+     "taxPaise": 22500,
+     "narration": "Room night · 2026-10-24 · Kabir Sen · room 206"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1047/night:HCC-1047:2026-10-24",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 2026-10-24 · Tara Iyer · room 301"
+    },
+    {
+     "kind": "line",
+     "id": "HCC-1048/night:HCC-1048:2026-10-24",
+     "sub": "room",
+     "amountPaise": 200000,
+     "taxPaise": 10000,
+     "narration": "Room night · 2026-10-24 · Dev Malhotra · room 302"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/RCPT-1106",
+     "sub": "deposit",
+     "tender": "Cash",
+     "amountPaise": 300000,
+     "narration": "Deposit received · Cash · Demo cash · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/RCPT-1108",
+     "sub": "deposit-return",
+     "tender": "Cash",
+     "amountPaise": 100000,
+     "narration": "Deposit returned · Cash · Demo cash · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/RCPT-1110",
+     "sub": "payment",
+     "tender": "Card",
+     "amountPaise": 55000,
+     "narration": "Payment received · Card · DEMO-CARD · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/RCPT-1115",
+     "sub": "refund",
+     "tender": "Cash",
+     "amountPaise": 5000,
+     "narration": "Payment refunded · Cash · Refund of seed-pay-0 · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 300000,
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 450000,
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 100000,
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 100000,
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F01",
+     "sub": "sale",
+     "tender": "Cash",
+     "amountPaise": 52500,
+     "netPaise": 50000,
+     "taxPaise": 2500,
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F02",
+     "sub": "sale",
+     "tender": "UPI",
+     "amountPaise": 71400,
+     "netPaise": 68000,
+     "taxPaise": 3400,
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-101",
+     "sub": "expense",
+     "category": "Laundry",
+     "funding": "Cash",
+     "amountPaise": 180000,
+     "narration": "Fresh Linen Services · Laundry · Cash"
+    }
+   ],
+   "vouchers": [
+    {
+     "no": "SAL/20261024/001",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Ananya Rao · room 101",
+     "sourceKind": "line",
+     "sourceId": "HCC-1041/night:HCC-1041:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/002",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Laundry · Ananya Rao · room 101",
+     "sourceKind": "line",
+     "sourceId": "HCC-1041/line-1102",
+     "sub": "service",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 59000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 50000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 4500
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 4500
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/003",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Discount · Goodwill · Ananya Rao · room 101",
+     "sourceKind": "line",
+     "sourceId": "HCC-1041/discount-1104",
+     "sub": "discount",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 21000
+      },
+      {
+       "account": "4900",
+       "debitPaise": 20000,
+       "creditPaise": 0
+      },
+      {
+       "account": "2110",
+       "debitPaise": 500,
+       "creditPaise": 0
+      },
+      {
+       "account": "2120",
+       "debitPaise": 500,
+       "creditPaise": 0
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/004",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Vikram Shah · room 102",
+     "sourceKind": "line",
+     "sourceId": "HCC-1042/night:HCC-1042:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/005",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Riya Mehta · room 104",
+     "sourceKind": "line",
+     "sourceId": "HCC-1043/night:HCC-1043:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 315000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 7500
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 7500
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/006",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Arjun Kapoor · room 201",
+     "sourceKind": "line",
+     "sourceId": "HCC-1044/night:HCC-1044:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/007",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Nisha Desai · room 202",
+     "sourceKind": "line",
+     "sourceId": "HCC-1045/night:HCC-1045:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/008",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Kabir Sen · room 206",
+     "sourceKind": "line",
+     "sourceId": "HCC-1046/night:HCC-1046:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 472500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 11250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 11250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/009",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Tara Iyer · room 301",
+     "sourceKind": "line",
+     "sourceId": "HCC-1047/night:HCC-1047:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/010",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Room night · 2026-10-24 · Dev Malhotra · room 302",
+     "sourceKind": "line",
+     "sourceId": "HCC-1048/night:HCC-1048:2026-10-24",
+     "sub": "room",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 210000,
+       "creditPaise": 0
+      },
+      {
+       "account": "4000",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/011",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F01",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 52500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 50000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/012",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F02",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 71400,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 68000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Deposit received · Cash · Demo cash · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/RCPT-1106",
+     "sub": "deposit",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 300000,
+       "creditPaise": 0
+      },
+      {
+       "account": "2000",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/003",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Card · DEMO-CARD · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/RCPT-1110",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1020",
+       "debitPaise": 55000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 55000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/004",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/005",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 300000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/006",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/007",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/008",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 450000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/009",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/010",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/011",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/012",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Deposit returned · Cash · Demo cash · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/RCPT-1108",
+     "sub": "deposit-return",
+     "entries": [
+      {
+       "account": "2000",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Payment refunded · Cash · Refund of seed-pay-0 · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/RCPT-1115",
+     "sub": "refund",
+     "entries": [
+      {
+       "account": "1100",
+       "debitPaise": 5000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/003",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Fresh Linen Services · Laundry · Cash",
+     "sourceKind": "expense",
+     "sourceId": "EXP-101",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "5010",
+       "debitPaise": 180000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 180000
+      }
+     ],
+     "unmapped": []
+    }
+   ],
+   "trialBalance": [
+    {
+     "account": "1000",
+     "debitPaise": 1052500,
+     "creditPaise": 285000,
+     "balancePaise": 767500
+    },
+    {
+     "account": "1010",
+     "debitPaise": 1521400,
+     "creditPaise": 0,
+     "balancePaise": 1521400
+    },
+    {
+     "account": "1020",
+     "debitPaise": 55000,
+     "creditPaise": 0,
+     "balancePaise": 55000
+    },
+    {
+     "account": "1100",
+     "debitPaise": 2111500,
+     "creditPaise": 2226000,
+     "balancePaise": -114500
+    },
+    {
+     "account": "2000",
+     "debitPaise": 100000,
+     "creditPaise": 300000,
+     "balancePaise": -200000
+    },
+    {
+     "account": "2110",
+     "debitPaise": 500,
+     "creditPaise": 56200,
+     "balancePaise": -55700
+    },
+    {
+     "account": "2120",
+     "debitPaise": 500,
+     "creditPaise": 56200,
+     "balancePaise": -55700
+    },
+    {
+     "account": "4000",
+     "debitPaise": 0,
+     "creditPaise": 1950000,
+     "balancePaise": -1950000
+    },
+    {
+     "account": "4100",
+     "debitPaise": 0,
+     "creditPaise": 168000,
+     "balancePaise": -168000
+    },
+    {
+     "account": "4900",
+     "debitPaise": 20000,
+     "creditPaise": 0,
+     "balancePaise": 20000
+    },
+    {
+     "account": "5010",
+     "debitPaise": 180000,
+     "creditPaise": 0,
+     "balancePaise": 180000
+    }
+   ],
+   "csv": "Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID\r\n2026-10-24,SAL/20261024/001,Sales,Guest ledger,2100.00,,Room night · 2026-10-24 · Ananya Rao · room 101,HCC-1041/night:HCC-1041:2026-10-24\r\n2026-10-24,SAL/20261024/001,Sales,Room revenue,,2000.00,Room night · 2026-10-24 · Ananya Rao · room 101,HCC-1041/night:HCC-1041:2026-10-24\r\n2026-10-24,SAL/20261024/001,Sales,Output CGST,,50.00,Room night · 2026-10-24 · Ananya Rao · room 101,HCC-1041/night:HCC-1041:2026-10-24\r\n2026-10-24,SAL/20261024/001,Sales,Output SGST,,50.00,Room night · 2026-10-24 · Ananya Rao · room 101,HCC-1041/night:HCC-1041:2026-10-24\r\n2026-10-24,SAL/20261024/002,Sales,Guest ledger,590.00,,Laundry · Ananya Rao · room 101,HCC-1041/line-1102\r\n2026-10-24,SAL/20261024/002,Sales,Other revenue,,500.00,Laundry · Ananya Rao · room 101,HCC-1041/line-1102\r\n2026-10-24,SAL/20261024/002,Sales,Output CGST,,45.00,Laundry · Ananya Rao · room 101,HCC-1041/line-1102\r\n2026-10-24,SAL/20261024/002,Sales,Output SGST,,45.00,Laundry · Ananya Rao · room 101,HCC-1041/line-1102\r\n2026-10-24,SAL/20261024/003,Sales,Guest ledger,,210.00,Discount · Goodwill · Ananya Rao · room 101,HCC-1041/discount-1104\r\n2026-10-24,SAL/20261024/003,Sales,Discounts allowed,200.00,,Discount · Goodwill · Ananya Rao · room 101,HCC-1041/discount-1104\r\n2026-10-24,SAL/20261024/003,Sales,Output CGST,5.00,,Discount · Goodwill · Ananya Rao · room 101,HCC-1041/discount-1104\r\n2026-10-24,SAL/20261024/003,Sales,Output SGST,5.00,,Discount · Goodwill · Ananya Rao · room 101,HCC-1041/discount-1104\r\n2026-10-24,SAL/20261024/004,Sales,Guest ledger,2100.00,,Room night · 2026-10-24 · Vikram Shah · room 102,HCC-1042/night:HCC-1042:2026-10-24\r\n2026-10-24,SAL/20261024/004,Sales,Room revenue,,2000.00,Room night · 2026-10-24 · Vikram Shah · room 102,HCC-1042/night:HCC-1042:2026-10-24\r\n2026-10-24,SAL/20261024/004,Sales,Output CGST,,50.00,Room night · 2026-10-24 · Vikram Shah · room 102,HCC-1042/night:HCC-1042:2026-10-24\r\n2026-10-24,SAL/20261024/004,Sales,Output SGST,,50.00,Room night · 2026-10-24 · Vikram Shah · room 102,HCC-1042/night:HCC-1042:2026-10-24\r\n2026-10-24,SAL/20261024/005,Sales,Guest ledger,3150.00,,Room night · 2026-10-24 · Riya Mehta · room 104,HCC-1043/night:HCC-1043:2026-10-24\r\n2026-10-24,SAL/20261024/005,Sales,Room revenue,,3000.00,Room night · 2026-10-24 · Riya Mehta · room 104,HCC-1043/night:HCC-1043:2026-10-24\r\n2026-10-24,SAL/20261024/005,Sales,Output CGST,,75.00,Room night · 2026-10-24 · Riya Mehta · room 104,HCC-1043/night:HCC-1043:2026-10-24\r\n2026-10-24,SAL/20261024/005,Sales,Output SGST,,75.00,Room night · 2026-10-24 · Riya Mehta · room 104,HCC-1043/night:HCC-1043:2026-10-24\r\n2026-10-24,SAL/20261024/006,Sales,Guest ledger,2100.00,,Room night · 2026-10-24 · Arjun Kapoor · room 201,HCC-1044/night:HCC-1044:2026-10-24\r\n2026-10-24,SAL/20261024/006,Sales,Room revenue,,2000.00,Room night · 2026-10-24 · Arjun Kapoor · room 201,HCC-1044/night:HCC-1044:2026-10-24\r\n2026-10-24,SAL/20261024/006,Sales,Output CGST,,50.00,Room night · 2026-10-24 · Arjun Kapoor · room 201,HCC-1044/night:HCC-1044:2026-10-24\r\n2026-10-24,SAL/20261024/006,Sales,Output SGST,,50.00,Room night · 2026-10-24 · Arjun Kapoor · room 201,HCC-1044/night:HCC-1044:2026-10-24\r\n2026-10-24,SAL/20261024/007,Sales,Guest ledger,2100.00,,Room night · 2026-10-24 · Nisha Desai · room 202,HCC-1045/night:HCC-1045:2026-10-24\r\n2026-10-24,SAL/20261024/007,Sales,Room revenue,,2000.00,Room night · 2026-10-24 · Nisha Desai · room 202,HCC-1045/night:HCC-1045:2026-10-24\r\n2026-10-24,SAL/20261024/007,Sales,Output CGST,,50.00,Room night · 2026-10-24 · Nisha Desai · room 202,HCC-1045/night:HCC-1045:2026-10-24\r\n2026-10-24,SAL/20261024/007,Sales,Output SGST,,50.00,Room night · 2026-10-24 · Nisha Desai · room 202,HCC-1045/night:HCC-1045:2026-10-24\r\n2026-10-24,SAL/20261024/008,Sales,Guest ledger,4725.00,,Room night · 2026-10-24 · Kabir Sen · room 206,HCC-1046/night:HCC-1046:2026-10-24\r\n2026-10-24,SAL/20261024/008,Sales,Room revenue,,4500.00,Room night · 2026-10-24 · Kabir Sen · room 206,HCC-1046/night:HCC-1046:2026-10-24\r\n2026-10-24,SAL/20261024/008,Sales,Output CGST,,112.50,Room night · 2026-10-24 · Kabir Sen · room 206,HCC-1046/night:HCC-1046:2026-10-24\r\n2026-10-24,SAL/20261024/008,Sales,Output SGST,,112.50,Room night · 2026-10-24 · Kabir Sen · room 206,HCC-1046/night:HCC-1046:2026-10-24\r\n2026-10-24,SAL/20261024/009,Sales,Guest ledger,2100.00,,Room night · 2026-10-24 · Tara Iyer · room 301,HCC-1047/night:HCC-1047:2026-10-24\r\n2026-10-24,SAL/20261024/009,Sales,Room revenue,,2000.00,Room night · 2026-10-24 · Tara Iyer · room 301,HCC-1047/night:HCC-1047:2026-10-24\r\n2026-10-24,SAL/20261024/009,Sales,Output CGST,,50.00,Room night · 2026-10-24 · Tara Iyer · room 301,HCC-1047/night:HCC-1047:2026-10-24\r\n2026-10-24,SAL/20261024/009,Sales,Output SGST,,50.00,Room night · 2026-10-24 · Tara Iyer · room 301,HCC-1047/night:HCC-1047:2026-10-24\r\n2026-10-24,SAL/20261024/010,Sales,Guest ledger,2100.00,,Room night · 2026-10-24 · Dev Malhotra · room 302,HCC-1048/night:HCC-1048:2026-10-24\r\n2026-10-24,SAL/20261024/010,Sales,Room revenue,,2000.00,Room night · 2026-10-24 · Dev Malhotra · room 302,HCC-1048/night:HCC-1048:2026-10-24\r\n2026-10-24,SAL/20261024/010,Sales,Output CGST,,50.00,Room night · 2026-10-24 · Dev Malhotra · room 302,HCC-1048/night:HCC-1048:2026-10-24\r\n2026-10-24,SAL/20261024/010,Sales,Output SGST,,50.00,Room night · 2026-10-24 · Dev Malhotra · room 302,HCC-1048/night:HCC-1048:2026-10-24\r\n2026-10-24,SAL/20261024/011,Sales,Cash in hand,525.00,,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/011,Sales,Other revenue,,500.00,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/011,Sales,Output CGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/011,Sales,Output SGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/012,Sales,UPI clearing,714.00,,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/012,Sales,Other revenue,,680.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/012,Sales,Output CGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/012,Sales,Output SGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,RCT/20261024/001,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/001,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/002,Receipt,Cash in hand,3000.00,,Deposit received · Cash · Demo cash · Ananya Rao,HCC-1041/RCPT-1106\r\n2026-10-24,RCT/20261024/002,Receipt,Advance deposits,,3000.00,Deposit received · Cash · Demo cash · Ananya Rao,HCC-1041/RCPT-1106\r\n2026-10-24,RCT/20261024/003,Receipt,Card clearing,550.00,,Payment received · Card · DEMO-CARD · Ananya Rao,HCC-1041/RCPT-1110\r\n2026-10-24,RCT/20261024/003,Receipt,Guest ledger,,550.00,Payment received · Card · DEMO-CARD · Ananya Rao,HCC-1041/RCPT-1110\r\n2026-10-24,RCT/20261024/004,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/004,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/005,Receipt,UPI clearing,3000.00,,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/005,Receipt,Guest ledger,,3000.00,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/006,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/006,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/007,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/007,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/008,Receipt,UPI clearing,4500.00,,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/008,Receipt,Guest ledger,,4500.00,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/009,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/009,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/010,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/010,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/011,Receipt,UPI clearing,1000.00,,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/011,Receipt,Guest ledger,,1000.00,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/012,Receipt,Cash in hand,1000.00,,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,RCT/20261024/012,Receipt,Guest ledger,,1000.00,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,PMT/20261024/001,Payment,Advance deposits,1000.00,,Deposit returned · Cash · Demo cash · Ananya Rao,HCC-1041/RCPT-1108\r\n2026-10-24,PMT/20261024/001,Payment,Cash in hand,,1000.00,Deposit returned · Cash · Demo cash · Ananya Rao,HCC-1041/RCPT-1108\r\n2026-10-24,PMT/20261024/002,Payment,Guest ledger,50.00,,Payment refunded · Cash · Refund of seed-pay-0 · Ananya Rao,HCC-1041/RCPT-1115\r\n2026-10-24,PMT/20261024/002,Payment,Cash in hand,,50.00,Payment refunded · Cash · Refund of seed-pay-0 · Ananya Rao,HCC-1041/RCPT-1115\r\n2026-10-24,PMT/20261024/003,Payment,Laundry,1800.00,,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/003,Payment,Cash in hand,,1800.00,Fresh Linen Services · Laundry · Cash,EXP-101",
+   "exceptions": []
+  },
+  {
+   "name": "cash-short",
+   "date": "2026-10-24",
+   "company": "HCC Demo Residency",
+   "mappingOverrides": {},
+   "sources": [
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 300000,
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 450000,
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 100000,
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 100000,
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F01",
+     "sub": "sale",
+     "tender": "Cash",
+     "amountPaise": 52500,
+     "netPaise": 50000,
+     "taxPaise": 2500,
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F02",
+     "sub": "sale",
+     "tender": "UPI",
+     "amountPaise": 71400,
+     "netPaise": 68000,
+     "taxPaise": 3400,
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-101",
+     "sub": "expense",
+     "category": "Laundry",
+     "funding": "Cash",
+     "amountPaise": 180000,
+     "narration": "Fresh Linen Services · Laundry · Cash"
+    },
+    {
+     "kind": "closing",
+     "id": "CLOSE/2026-10-24/cash-difference",
+     "sub": "cash-difference",
+     "amountPaise": -5000,
+     "narration": "Cash short accepted at shift close · 2026-10-24"
+    }
+   ],
+   "vouchers": [
+    {
+     "no": "SAL/20261024/001",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F01",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 52500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 50000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/002",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F02",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 71400,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 68000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/003",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 300000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/004",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/005",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/006",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 450000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/007",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/008",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/009",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/010",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Fresh Linen Services · Laundry · Cash",
+     "sourceKind": "expense",
+     "sourceId": "EXP-101",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "5010",
+       "debitPaise": 180000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 180000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "JRN/20261024/001",
+     "date": "2026-10-24",
+     "type": "Journal",
+     "narration": "Cash short accepted at shift close · 2026-10-24",
+     "sourceKind": "closing",
+     "sourceId": "CLOSE/2026-10-24/cash-difference",
+     "sub": "cash-difference",
+     "entries": [
+      {
+       "account": "5900",
+       "debitPaise": 5000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 5000
+      }
+     ],
+     "unmapped": []
+    }
+   ],
+   "trialBalance": [
+    {
+     "account": "1000",
+     "debitPaise": 752500,
+     "creditPaise": 185000,
+     "balancePaise": 567500
+    },
+    {
+     "account": "1010",
+     "debitPaise": 1521400,
+     "creditPaise": 0,
+     "balancePaise": 1521400
+    },
+    {
+     "account": "1100",
+     "debitPaise": 0,
+     "creditPaise": 2150000,
+     "balancePaise": -2150000
+    },
+    {
+     "account": "2110",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "2120",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "4100",
+     "debitPaise": 0,
+     "creditPaise": 118000,
+     "balancePaise": -118000
+    },
+    {
+     "account": "5010",
+     "debitPaise": 180000,
+     "creditPaise": 0,
+     "balancePaise": 180000
+    },
+    {
+     "account": "5900",
+     "debitPaise": 5000,
+     "creditPaise": 0,
+     "balancePaise": 5000
+    }
+   ],
+   "csv": "Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID\r\n2026-10-24,SAL/20261024/001,Sales,Cash in hand,525.00,,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Other revenue,,500.00,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output CGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output SGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/002,Sales,UPI clearing,714.00,,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Other revenue,,680.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output CGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output SGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,RCT/20261024/001,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/001,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/002,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/002,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/003,Receipt,UPI clearing,3000.00,,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/003,Receipt,Guest ledger,,3000.00,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/004,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/004,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/005,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/005,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/006,Receipt,UPI clearing,4500.00,,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/006,Receipt,Guest ledger,,4500.00,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/007,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/007,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/008,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/008,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/009,Receipt,UPI clearing,1000.00,,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/009,Receipt,Guest ledger,,1000.00,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/010,Receipt,Cash in hand,1000.00,,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,RCT/20261024/010,Receipt,Guest ledger,,1000.00,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,PMT/20261024/001,Payment,Laundry,1800.00,,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/001,Payment,Cash in hand,,1800.00,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,JRN/20261024/001,Journal,Cash over / short,50.00,,Cash short accepted at shift close · 2026-10-24,CLOSE/2026-10-24/cash-difference\r\n2026-10-24,JRN/20261024/001,Journal,Cash in hand,,50.00,Cash short accepted at shift close · 2026-10-24,CLOSE/2026-10-24/cash-difference",
+   "exceptions": []
+  },
+  {
+   "name": "expense-reversal",
+   "date": "2026-10-24",
+   "company": "HCC Demo Residency",
+   "mappingOverrides": {},
+   "sources": [
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 300000,
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 450000,
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 100000,
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 100000,
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F01",
+     "sub": "sale",
+     "tender": "Cash",
+     "amountPaise": 52500,
+     "netPaise": 50000,
+     "taxPaise": 2500,
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F02",
+     "sub": "sale",
+     "tender": "UPI",
+     "amountPaise": 71400,
+     "netPaise": 68000,
+     "taxPaise": 3400,
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-101",
+     "sub": "expense",
+     "category": "Laundry",
+     "funding": "Cash",
+     "amountPaise": 180000,
+     "narration": "Fresh Linen Services · Laundry · Cash"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-1101",
+     "sub": "reversal",
+     "category": "Laundry",
+     "funding": "Cash",
+     "amountPaise": -180000,
+     "narration": "Reversal of EXP-101 · Fresh Linen Services · Laundry · Cash"
+    }
+   ],
+   "vouchers": [
+    {
+     "no": "SAL/20261024/001",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F01",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 52500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 50000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/002",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F02",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 71400,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 68000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/003",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 300000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/004",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/005",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/006",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 450000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/007",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/008",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/009",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/010",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Fresh Linen Services · Laundry · Cash",
+     "sourceKind": "expense",
+     "sourceId": "EXP-101",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "5010",
+       "debitPaise": 180000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 180000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Reversal of EXP-101 · Fresh Linen Services · Laundry · Cash",
+     "sourceKind": "expense",
+     "sourceId": "EXP-1101",
+     "sub": "reversal",
+     "entries": [
+      {
+       "account": "5010",
+       "debitPaise": 0,
+       "creditPaise": 180000
+      },
+      {
+       "account": "1000",
+       "debitPaise": 180000,
+       "creditPaise": 0
+      }
+     ],
+     "unmapped": []
+    }
+   ],
+   "trialBalance": [
+    {
+     "account": "1000",
+     "debitPaise": 932500,
+     "creditPaise": 180000,
+     "balancePaise": 752500
+    },
+    {
+     "account": "1010",
+     "debitPaise": 1521400,
+     "creditPaise": 0,
+     "balancePaise": 1521400
+    },
+    {
+     "account": "1100",
+     "debitPaise": 0,
+     "creditPaise": 2150000,
+     "balancePaise": -2150000
+    },
+    {
+     "account": "2110",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "2120",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "4100",
+     "debitPaise": 0,
+     "creditPaise": 118000,
+     "balancePaise": -118000
+    },
+    {
+     "account": "5010",
+     "debitPaise": 180000,
+     "creditPaise": 180000,
+     "balancePaise": 0
+    }
+   ],
+   "csv": "Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID\r\n2026-10-24,SAL/20261024/001,Sales,Cash in hand,525.00,,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Other revenue,,500.00,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output CGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output SGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/002,Sales,UPI clearing,714.00,,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Other revenue,,680.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output CGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output SGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,RCT/20261024/001,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/001,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/002,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/002,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/003,Receipt,UPI clearing,3000.00,,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/003,Receipt,Guest ledger,,3000.00,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/004,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/004,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/005,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/005,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/006,Receipt,UPI clearing,4500.00,,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/006,Receipt,Guest ledger,,4500.00,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/007,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/007,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/008,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/008,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/009,Receipt,UPI clearing,1000.00,,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/009,Receipt,Guest ledger,,1000.00,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/010,Receipt,Cash in hand,1000.00,,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,RCT/20261024/010,Receipt,Guest ledger,,1000.00,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,PMT/20261024/001,Payment,Laundry,1800.00,,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/001,Payment,Cash in hand,,1800.00,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/002,Payment,Laundry,,1800.00,Reversal of EXP-101 · Fresh Linen Services · Laundry · Cash,EXP-1101\r\n2026-10-24,PMT/20261024/002,Payment,Cash in hand,1800.00,,Reversal of EXP-101 · Fresh Linen Services · Laundry · Cash,EXP-1101",
+   "exceptions": []
+  },
+  {
+   "name": "acc-unmapped",
+   "date": "2026-10-24",
+   "company": "HCC Demo Residency",
+   "mappingOverrides": {},
+   "sources": [
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 300000,
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 450000,
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 100000,
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 100000,
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F01",
+     "sub": "sale",
+     "tender": "Cash",
+     "amountPaise": 52500,
+     "netPaise": 50000,
+     "taxPaise": 2500,
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F02",
+     "sub": "sale",
+     "tender": "UPI",
+     "amountPaise": 71400,
+     "netPaise": 68000,
+     "taxPaise": 3400,
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-101",
+     "sub": "expense",
+     "category": "Laundry",
+     "funding": "Cash",
+     "amountPaise": 180000,
+     "narration": "Fresh Linen Services · Laundry · Cash"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-ACC-1",
+     "sub": "expense",
+     "category": "Kitchen gas",
+     "funding": "UPI",
+     "amountPaise": 120000,
+     "narration": "Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI"
+    }
+   ],
+   "vouchers": [
+    {
+     "no": "SAL/20261024/001",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F01",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 52500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 50000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/002",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F02",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 71400,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 68000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/003",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 300000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/004",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/005",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/006",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 450000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/007",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/008",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/009",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/010",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Fresh Linen Services · Laundry · Cash",
+     "sourceKind": "expense",
+     "sourceId": "EXP-101",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "5010",
+       "debitPaise": 180000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 180000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI",
+     "sourceKind": "expense",
+     "sourceId": "EXP-ACC-1",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "9999",
+       "debitPaise": 120000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1010",
+       "debitPaise": 0,
+       "creditPaise": 120000
+      }
+     ],
+     "unmapped": [
+      "expense:Kitchen gas"
+     ]
+    }
+   ],
+   "trialBalance": [
+    {
+     "account": "1000",
+     "debitPaise": 752500,
+     "creditPaise": 180000,
+     "balancePaise": 572500
+    },
+    {
+     "account": "1010",
+     "debitPaise": 1521400,
+     "creditPaise": 120000,
+     "balancePaise": 1401400
+    },
+    {
+     "account": "1100",
+     "debitPaise": 0,
+     "creditPaise": 2150000,
+     "balancePaise": -2150000
+    },
+    {
+     "account": "2110",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "2120",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "4100",
+     "debitPaise": 0,
+     "creditPaise": 118000,
+     "balancePaise": -118000
+    },
+    {
+     "account": "5010",
+     "debitPaise": 180000,
+     "creditPaise": 0,
+     "balancePaise": 180000
+    },
+    {
+     "account": "9999",
+     "debitPaise": 120000,
+     "creditPaise": 0,
+     "balancePaise": 120000
+    }
+   ],
+   "csv": "Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID\r\n2026-10-24,SAL/20261024/001,Sales,Cash in hand,525.00,,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Other revenue,,500.00,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output CGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output SGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/002,Sales,UPI clearing,714.00,,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Other revenue,,680.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output CGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output SGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,RCT/20261024/001,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/001,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/002,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/002,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/003,Receipt,UPI clearing,3000.00,,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/003,Receipt,Guest ledger,,3000.00,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/004,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/004,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/005,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/005,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/006,Receipt,UPI clearing,4500.00,,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/006,Receipt,Guest ledger,,4500.00,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/007,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/007,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/008,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/008,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/009,Receipt,UPI clearing,1000.00,,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/009,Receipt,Guest ledger,,1000.00,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/010,Receipt,Cash in hand,1000.00,,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,RCT/20261024/010,Receipt,Guest ledger,,1000.00,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,PMT/20261024/001,Payment,Laundry,1800.00,,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/001,Payment,Cash in hand,,1800.00,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/002,Payment,Suspense (unmapped),1200.00,,Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI,EXP-ACC-1\r\n2026-10-24,PMT/20261024/002,Payment,UPI clearing,,1200.00,Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI,EXP-ACC-1",
+   "exceptions": [
+    {
+     "kind": "unmapped",
+     "severity": "error",
+     "key": "expense:Kitchen gas"
+    }
+   ]
+  },
+  {
+   "name": "acc-mapped",
+   "date": "2026-10-24",
+   "company": "HCC Demo Residency",
+   "mappingOverrides": {
+    "expense:Kitchen gas": "5050"
+   },
+   "sources": [
+    {
+     "kind": "receipt",
+     "id": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 300000,
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 450000,
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 200000,
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 200000,
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "tender": "UPI",
+     "amountPaise": 100000,
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
+    },
+    {
+     "kind": "receipt",
+     "id": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "tender": "Cash",
+     "amountPaise": 100000,
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F01",
+     "sub": "sale",
+     "tender": "Cash",
+     "amountPaise": 52500,
+     "netPaise": 50000,
+     "taxPaise": 2500,
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
+    },
+    {
+     "kind": "pos",
+     "id": "POSR-F02",
+     "sub": "sale",
+     "tender": "UPI",
+     "amountPaise": 71400,
+     "netPaise": 68000,
+     "taxPaise": 3400,
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-101",
+     "sub": "expense",
+     "category": "Laundry",
+     "funding": "Cash",
+     "amountPaise": 180000,
+     "narration": "Fresh Linen Services · Laundry · Cash"
+    },
+    {
+     "kind": "expense",
+     "id": "EXP-ACC-1",
+     "sub": "expense",
+     "category": "Kitchen gas",
+     "funding": "UPI",
+     "amountPaise": 120000,
+     "narration": "Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI"
+    }
+   ],
+   "vouchers": [
+    {
+     "no": "SAL/20261024/001",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F01",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 52500,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 50000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1250
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "SAL/20261024/002",
+     "date": "2026-10-24",
+     "type": "Sales",
+     "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02",
+     "sourceKind": "pos",
+     "sourceId": "POSR-F02",
+     "sub": "sale",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 71400,
+       "creditPaise": 0
+      },
+      {
+       "account": "4100",
+       "debitPaise": 0,
+       "creditPaise": 68000
+      },
+      {
+       "account": "2110",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      },
+      {
+       "account": "2120",
+       "debitPaise": 0,
+       "creditPaise": 1700
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-100 · Ananya Rao",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1041/seed-pay-0",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-101 · Vikram Shah",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1042/seed-pay-1",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/003",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-102 · Riya Mehta",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1043/seed-pay-2",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 300000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 300000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/004",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1044/seed-pay-3",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/005",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-104 · Nisha Desai",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1045/seed-pay-4",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/006",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-105 · Kabir Sen",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1046/seed-pay-5",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 450000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 450000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/007",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-106 · Tara Iyer",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1047/seed-pay-6",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/008",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1048/seed-pay-7",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 200000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 200000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/009",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1049/seed-pay-8",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1010",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "RCT/20261024/010",
+     "date": "2026-10-24",
+     "type": "Receipt",
+     "narration": "Payment received · Cash · DEMO-109 · Aditi Nair",
+     "sourceKind": "receipt",
+     "sourceId": "HCC-1050/seed-pay-9",
+     "sub": "payment",
+     "entries": [
+      {
+       "account": "1000",
+       "debitPaise": 100000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1100",
+       "debitPaise": 0,
+       "creditPaise": 100000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/001",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Fresh Linen Services · Laundry · Cash",
+     "sourceKind": "expense",
+     "sourceId": "EXP-101",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "5010",
+       "debitPaise": 180000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1000",
+       "debitPaise": 0,
+       "creditPaise": 180000
+      }
+     ],
+     "unmapped": []
+    },
+    {
+     "no": "PMT/20261024/002",
+     "date": "2026-10-24",
+     "type": "Payment",
+     "narration": "Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI",
+     "sourceKind": "expense",
+     "sourceId": "EXP-ACC-1",
+     "sub": "expense",
+     "entries": [
+      {
+       "account": "5050",
+       "debitPaise": 120000,
+       "creditPaise": 0
+      },
+      {
+       "account": "1010",
+       "debitPaise": 0,
+       "creditPaise": 120000
+      }
+     ],
+     "unmapped": []
+    }
+   ],
+   "trialBalance": [
+    {
+     "account": "1000",
+     "debitPaise": 752500,
+     "creditPaise": 180000,
+     "balancePaise": 572500
+    },
+    {
+     "account": "1010",
+     "debitPaise": 1521400,
+     "creditPaise": 120000,
+     "balancePaise": 1401400
+    },
+    {
+     "account": "1100",
+     "debitPaise": 0,
+     "creditPaise": 2150000,
+     "balancePaise": -2150000
+    },
+    {
+     "account": "2110",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "2120",
+     "debitPaise": 0,
+     "creditPaise": 2950,
+     "balancePaise": -2950
+    },
+    {
+     "account": "4100",
+     "debitPaise": 0,
+     "creditPaise": 118000,
+     "balancePaise": -118000
+    },
+    {
+     "account": "5010",
+     "debitPaise": 180000,
+     "creditPaise": 0,
+     "balancePaise": 180000
+    },
+    {
+     "account": "5050",
+     "debitPaise": 120000,
+     "creditPaise": 0,
+     "balancePaise": 120000
+    }
+   ],
+   "csv": "Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID\r\n2026-10-24,SAL/20261024/001,Sales,Cash in hand,525.00,,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Other revenue,,500.00,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output CGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/001,Sales,Output SGST,,12.50,Outlet bill · restaurant · Cash · Outlet cash · POS-F01,POSR-F01\r\n2026-10-24,SAL/20261024/002,Sales,UPI clearing,714.00,,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Other revenue,,680.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output CGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,SAL/20261024/002,Sales,Output SGST,,17.00,Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02,POSR-F02\r\n2026-10-24,RCT/20261024/001,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/001,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-100 · Ananya Rao,HCC-1041/seed-pay-0\r\n2026-10-24,RCT/20261024/002,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/002,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-101 · Vikram Shah,HCC-1042/seed-pay-1\r\n2026-10-24,RCT/20261024/003,Receipt,UPI clearing,3000.00,,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/003,Receipt,Guest ledger,,3000.00,Payment received · UPI · DEMO-102 · Riya Mehta,HCC-1043/seed-pay-2\r\n2026-10-24,RCT/20261024/004,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/004,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-103 · Arjun Kapoor,HCC-1044/seed-pay-3\r\n2026-10-24,RCT/20261024/005,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/005,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-104 · Nisha Desai,HCC-1045/seed-pay-4\r\n2026-10-24,RCT/20261024/006,Receipt,UPI clearing,4500.00,,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/006,Receipt,Guest ledger,,4500.00,Payment received · UPI · DEMO-105 · Kabir Sen,HCC-1046/seed-pay-5\r\n2026-10-24,RCT/20261024/007,Receipt,Cash in hand,2000.00,,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/007,Receipt,Guest ledger,,2000.00,Payment received · Cash · DEMO-106 · Tara Iyer,HCC-1047/seed-pay-6\r\n2026-10-24,RCT/20261024/008,Receipt,UPI clearing,2000.00,,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/008,Receipt,Guest ledger,,2000.00,Payment received · UPI · DEMO-107 · Dev Malhotra,HCC-1048/seed-pay-7\r\n2026-10-24,RCT/20261024/009,Receipt,UPI clearing,1000.00,,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/009,Receipt,Guest ledger,,1000.00,Payment received · UPI · DEMO-108 · Ishaan Bose,HCC-1049/seed-pay-8\r\n2026-10-24,RCT/20261024/010,Receipt,Cash in hand,1000.00,,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,RCT/20261024/010,Receipt,Guest ledger,,1000.00,Payment received · Cash · DEMO-109 · Aditi Nair,HCC-1050/seed-pay-9\r\n2026-10-24,PMT/20261024/001,Payment,Laundry,1800.00,,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/001,Payment,Cash in hand,,1800.00,Fresh Linen Services · Laundry · Cash,EXP-101\r\n2026-10-24,PMT/20261024/002,Payment,General expenses,1200.00,,Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI,EXP-ACC-1\r\n2026-10-24,PMT/20261024/002,Payment,UPI clearing,,1200.00,Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI,EXP-ACC-1",
+   "exceptions": []
+  }
+ ],
+ "tally": {
+  "from": "2026-10-23",
+  "to": "2026-10-24",
+  "company": "HCC Demo Residency",
+  "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!-- SIMULATED PREVIEW · Hotel Control Centre prototype · fictional data · nothing was sent to Tally · saving this file does not mean it was imported -->\n<ENVELOPE>\n <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>\n <BODY><IMPORTDATA>\n  <REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME><STATICVARIABLES><SVCURRENTCOMPANY>HCC Demo Residency</SVCURRENTCOMPANY></STATICVARIABLES></REQUESTDESC>\n  <REQUESTDATA>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/001</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Ananya Rao · room 101</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2100.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/002</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Vikram Shah · room 102</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2100.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/003</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Riya Mehta · room 104</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-3150.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>3000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>75.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>75.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/004</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Arjun Kapoor · room 201</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2100.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/005</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Nisha Desai · room 202</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2100.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/006</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Kabir Sen · room 206</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-4725.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>4500.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>112.50</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>112.50</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/007</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Tara Iyer · room 301</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2100.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261023</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261023/008</VOUCHERNUMBER><NARRATION>Room night · 23 Oct · Dev Malhotra · room 302</NARRATION><EFFECTIVEDATE>20261023</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2100.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Room revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>50.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261024/001</VOUCHERNUMBER><NARRATION>Outlet bill · restaurant · Cash · Outlet cash · POS-F01</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Cash in hand</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-525.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Other revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>500.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>12.50</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>12.50</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SAL/20261024/002</VOUCHERNUMBER><NARRATION>Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>UPI clearing</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-714.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Other revenue</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>680.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output CGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>17.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Output SGST</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>17.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/001</VOUCHERNUMBER><NARRATION>Payment received · Cash · DEMO-100 · Ananya Rao</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Cash in hand</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/002</VOUCHERNUMBER><NARRATION>Payment received · UPI · DEMO-101 · Vikram Shah</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>UPI clearing</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/003</VOUCHERNUMBER><NARRATION>Payment received · UPI · DEMO-102 · Riya Mehta</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>UPI clearing</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-3000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>3000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/004</VOUCHERNUMBER><NARRATION>Payment received · Cash · DEMO-103 · Arjun Kapoor</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Cash in hand</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/005</VOUCHERNUMBER><NARRATION>Payment received · UPI · DEMO-104 · Nisha Desai</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>UPI clearing</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/006</VOUCHERNUMBER><NARRATION>Payment received · UPI · DEMO-105 · Kabir Sen</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>UPI clearing</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-4500.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>4500.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/007</VOUCHERNUMBER><NARRATION>Payment received · Cash · DEMO-106 · Tara Iyer</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Cash in hand</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/008</VOUCHERNUMBER><NARRATION>Payment received · UPI · DEMO-107 · Dev Malhotra</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>UPI clearing</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/009</VOUCHERNUMBER><NARRATION>Payment received · UPI · DEMO-108 · Ishaan Bose</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>UPI clearing</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-1000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>1000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>RCT/20261024/010</VOUCHERNUMBER><NARRATION>Payment received · Cash · DEMO-109 · Aditi Nair</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Cash in hand</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-1000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Guest ledger</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>1000.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER VCHTYPE=\"Payment\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n    <DATE>20261024</DATE><VOUCHERTYPENAME>Payment</VOUCHERTYPENAME><VOUCHERNUMBER>PMT/20261024/001</VOUCHERNUMBER><NARRATION>Fresh Linen Services · Laundry · Cash</NARRATION><EFFECTIVEDATE>20261024</EFFECTIVEDATE>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Laundry</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-1800.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n    <ALLLEDGERENTRIES.LIST><LEDGERNAME>Cash in hand</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>1800.00</AMOUNT></ALLLEDGERENTRIES.LIST>\n   </VOUCHER></TALLYMESSAGE>\n  </REQUESTDATA>\n </IMPORTDATA></BODY>\n</ENVELOPE>\n",
+  "count": 21,
+  "debitPaise": 4501400,
+  "creditPaise": 4501400
+ }
+}

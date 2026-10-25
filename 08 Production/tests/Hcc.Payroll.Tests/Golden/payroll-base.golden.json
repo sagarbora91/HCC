@@ -1,0 +1,5099 @@
+{
+ "source": "03 Prototype BASE fixture (src/fixtures/ext/staff.ts) + src/domain/streams/staff.ts after the W05-B review fixes; fictional data",
+ "businessDate": "2026-10-24",
+ "rates": {
+  "from": "2025-04-01",
+  "basicBps": 5000,
+  "hraBps": 8000,
+  "washBps": 1000,
+  "pfEeBps": 1200,
+  "pfErBps": 1300,
+  "pfWageCap": 1500000,
+  "esicEeBps": 75,
+  "esicErBps": 325,
+  "esicCeiling": 2100000,
+  "ptMaleExempt": 750000,
+  "ptMaleMid": 1000000,
+  "ptMaleMidAmt": 17500,
+  "ptStd": 20000,
+  "ptFeb": 30000,
+  "ptFemaleExempt": 2500000,
+  "otBps": 10000,
+  "lateBlock": 3,
+  "rounding": "paise",
+  "esicPeriod": true
+ },
+ "leavePolicy": {
+  "ent": {
+   "CL": 12,
+   "SL": 7,
+   "EL": 15
+  },
+  "defaultCap": 2,
+  "deptCap": {}
+ },
+ "depts": [
+  {
+   "id": "MGT",
+   "name": "Management"
+  },
+  {
+   "id": "FO",
+   "name": "Front office"
+  },
+  {
+   "id": "HK",
+   "name": "Housekeeping"
+  },
+  {
+   "id": "MNT",
+   "name": "Maintenance"
+  },
+  {
+   "id": "KIT",
+   "name": "Kitchen"
+  },
+  {
+   "id": "SEC",
+   "name": "Security"
+  },
+  {
+   "id": "ACC",
+   "name": "Accounts"
+  }
+ ],
+ "staff": [
+  {
+   "id": "HR-S01",
+   "name": "Meera Kulkarni",
+   "dept": "MGT",
+   "designation": "Hotel manager",
+   "userId": "manager",
+   "payType": "monthly",
+   "monthly": 4500000,
+   "daily": 0,
+   "defaultShift": "G",
+   "weeklyOff": 0,
+   "joined": "2025-04-01",
+   "phone": "90000 10001",
+   "gender": "F",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340001",
+   "ifsc": "DEMO0000101"
+  },
+  {
+   "id": "HR-S02",
+   "name": "Aarav Joshi",
+   "dept": "FO",
+   "designation": "Front office associate",
+   "userId": "reception",
+   "payType": "monthly",
+   "monthly": 1800000,
+   "daily": 0,
+   "defaultShift": "M",
+   "weeklyOff": 2,
+   "joined": "2025-04-01",
+   "phone": "90000 10008",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340014",
+   "ifsc": "DEMO0000102"
+  },
+  {
+   "id": "HR-S03",
+   "name": "Priya Nair",
+   "dept": "FO",
+   "designation": "Front office cashier",
+   "userId": "cashier",
+   "payType": "monthly",
+   "monthly": 1700000,
+   "daily": 0,
+   "defaultShift": "E",
+   "weeklyOff": 3,
+   "joined": "2025-04-01",
+   "phone": "90000 10015",
+   "gender": "F",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340027",
+   "ifsc": "DEMO0000103"
+  },
+  {
+   "id": "HR-S04",
+   "name": "Neha Gaikwad",
+   "dept": "HK",
+   "designation": "Housekeeping supervisor",
+   "userId": "supervisor",
+   "payType": "monthly",
+   "monthly": 2200000,
+   "daily": 0,
+   "defaultShift": "M",
+   "weeklyOff": 4,
+   "joined": "2025-04-01",
+   "phone": "90000 10022",
+   "gender": "F",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340040",
+   "ifsc": "DEMO0000101"
+  },
+  {
+   "id": "HR-S05",
+   "name": "Ravi Shinde",
+   "dept": "HK",
+   "designation": "Room attendant",
+   "userId": "housekeeper",
+   "payType": "monthly",
+   "monthly": 1350000,
+   "daily": 0,
+   "defaultShift": "M",
+   "weeklyOff": 5,
+   "joined": "2025-04-01",
+   "phone": "90000 10029",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340053",
+   "ifsc": "DEMO0000102"
+  },
+  {
+   "id": "HR-S06",
+   "name": "Kavya Patil",
+   "dept": "HK",
+   "designation": "Room attendant",
+   "userId": "housekeeper2",
+   "payType": "monthly",
+   "monthly": 1350000,
+   "daily": 0,
+   "defaultShift": "E",
+   "weeklyOff": 1,
+   "joined": "2025-04-01",
+   "phone": "90000 10036",
+   "gender": "F",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340066",
+   "ifsc": "DEMO0000103"
+  },
+  {
+   "id": "HR-S07",
+   "name": "Farhan Qureshi",
+   "dept": "ACC",
+   "designation": "Accountant",
+   "userId": "accountant",
+   "payType": "monthly",
+   "monthly": 2800000,
+   "daily": 0,
+   "defaultShift": "G",
+   "weeklyOff": 0,
+   "joined": "2025-04-01",
+   "phone": "90000 10043",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340079",
+   "ifsc": "DEMO0000101"
+  },
+  {
+   "id": "HR-S08",
+   "name": "Joseph D’Souza",
+   "dept": "MNT",
+   "designation": "Maintenance technician",
+   "userId": "maint",
+   "payType": "monthly",
+   "monthly": 1900000,
+   "daily": 0,
+   "defaultShift": "G",
+   "weeklyOff": 6,
+   "joined": "2025-04-01",
+   "phone": "90000 10050",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340092",
+   "ifsc": "DEMO0000102"
+  },
+  {
+   "id": "HR-S09",
+   "name": "Suresh Pawar",
+   "dept": "KIT",
+   "designation": "Cook",
+   "userId": null,
+   "payType": "monthly",
+   "monthly": 1600000,
+   "daily": 0,
+   "defaultShift": "M",
+   "weeklyOff": 3,
+   "joined": "2025-04-01",
+   "phone": "90000 10057",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340105",
+   "ifsc": "DEMO0000103"
+  },
+  {
+   "id": "HR-S10",
+   "name": "Imran Shaikh",
+   "dept": "KIT",
+   "designation": "Kitchen helper (daily wage)",
+   "userId": null,
+   "payType": "daily",
+   "monthly": 0,
+   "daily": 60000,
+   "defaultShift": "M",
+   "weeklyOff": 2,
+   "joined": "2026-06-01",
+   "phone": "90000 10064",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340118",
+   "ifsc": "DEMO0000101"
+  },
+  {
+   "id": "HR-S11",
+   "name": "Balu Jadhav",
+   "dept": "SEC",
+   "designation": "Security guard (day)",
+   "userId": null,
+   "payType": "monthly",
+   "monthly": 1200000,
+   "daily": 0,
+   "defaultShift": "G",
+   "weeklyOff": 4,
+   "joined": "2025-04-01",
+   "phone": "90000 10071",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340131",
+   "ifsc": "DEMO0000102"
+  },
+  {
+   "id": "HR-S12",
+   "name": "Ganesh More",
+   "dept": "SEC",
+   "designation": "Security guard (night)",
+   "userId": null,
+   "payType": "monthly",
+   "monthly": 1250000,
+   "daily": 0,
+   "defaultShift": "N",
+   "weeklyOff": 1,
+   "joined": "2025-04-01",
+   "phone": "90000 10078",
+   "gender": "M",
+   "bankName": "Demo Co-operative Bank (fictional)",
+   "accountNo": "000012340144",
+   "ifsc": "DEMO0000103"
+  }
+ ],
+ "leaves": [
+  {
+   "id": "HR-LV-1",
+   "staffId": "HR-S05",
+   "type": "CL",
+   "from": "2026-09-14",
+   "to": "2026-09-15",
+   "half": null,
+   "days": 2,
+   "status": "Approved"
+  },
+  {
+   "id": "HR-LV-2",
+   "staffId": "HR-S02",
+   "type": "EL",
+   "from": "2026-11-02",
+   "to": "2026-11-03",
+   "half": null,
+   "days": 1,
+   "status": "Approved"
+  },
+  {
+   "id": "HR-LV-3",
+   "staffId": "HR-S06",
+   "type": "CL",
+   "from": "2026-10-28",
+   "to": "2026-10-29",
+   "half": null,
+   "days": 2,
+   "status": "Pending"
+  },
+  {
+   "id": "HR-LV-4",
+   "staffId": "HR-S10",
+   "type": "LOP",
+   "from": "2026-10-27",
+   "to": "2026-10-27",
+   "half": null,
+   "days": 0,
+   "status": "Pending"
+  },
+  {
+   "id": "HR-LV-5",
+   "staffId": "HR-S04",
+   "type": "CL",
+   "from": "2026-11-06",
+   "to": "2026-11-06",
+   "half": "PM",
+   "days": 0.5,
+   "status": "Pending"
+  }
+ ],
+ "advances": [
+  {
+   "id": "HR-ADV-1",
+   "staffId": "HR-S05",
+   "amount": 300000,
+   "installment": 100000,
+   "date": "2026-08-10",
+   "fromMonth": null
+  }
+ ],
+ "attendance": [
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S02",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S10",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-01",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S04",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-02",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S09",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-03",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S11",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-04",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S05",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-05",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S07",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-06",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S01",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S09",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-07",
+   "staffId": "HR-S12",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S03",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-08",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S08",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-09",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S10",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-10",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S04",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-11",
+   "staffId": "HR-S12",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S06",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-12",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S08",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-13",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S02",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-14",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S07",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-15",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S09",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-16",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S03",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-17",
+   "staffId": "HR-S11",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S05",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-18",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S07",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S10",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-19",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S01",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-20",
+   "staffId": "HR-S12",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S06",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-21",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-22",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S02",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S10",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-23",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S04",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-24",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S06",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S09",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-25",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S11",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-26",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S05",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-27",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S07",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-28",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S01",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S09",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-29",
+   "staffId": "HR-S12",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S03",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-30",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S05",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S08",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-08-31",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-01",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S04",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-02",
+   "staffId": "HR-S12",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S06",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-03",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S08",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S11",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-04",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S02",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-05",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S04",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-06",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S09",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-07",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S03",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S11",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-08",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S05",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-09",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S07",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S10",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-10",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S01",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-11",
+   "staffId": "HR-S12",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S03",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S06",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-12",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S08",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-13",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S02",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S10",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-14",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S04",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-15",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S06",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-16",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-17",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S02",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-18",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S07",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-19",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S09",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-20",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S03",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-21",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S05",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S08",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-22",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S10",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-23",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S01",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-24",
+   "staffId": "HR-S12",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S06",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-25",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-26",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S02",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-27",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 120
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S04",
+   "status": "A",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S07",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S09",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-28",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S03",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S09",
+   "status": "L",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S11",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-29",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 60
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S01",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S02",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S04",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S05",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S06",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S07",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S08",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S10",
+   "status": "P",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S11",
+   "status": "H",
+   "otMin": 0
+  },
+  {
+   "date": "2026-09-30",
+   "staffId": "HR-S12",
+   "status": "P",
+   "otMin": 0
+  }
+ ],
+ "august": {
+  "lines": [
+   {
+    "staffId": "HR-S01",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 23,
+     "L": 2,
+     "H": 1,
+     "HL": 0,
+     "A": 0,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 360
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 30.5,
+    "earned": 4427419,
+    "basic": 2213710,
+    "hra": 1770968,
+    "washing": 221371,
+    "special": 221370,
+    "ot": 108871,
+    "gross": 4536290,
+    "pfWages": 1500000,
+    "pf": 180000,
+    "pfEr": 195000,
+    "esicWages": 0,
+    "esic": 0,
+    "esicEr": 0,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 200000,
+    "net": 4336290,
+    "ctc": 4731290,
+    "esicCovered": false
+   },
+   {
+    "staffId": "HR-S02",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 24,
+     "L": 2,
+     "H": 1,
+     "HL": 0,
+     "A": 0,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 360
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 30.5,
+    "earned": 1770968,
+    "basic": 885484,
+    "hra": 708387,
+    "washing": 88548,
+    "special": 88549,
+    "ot": 43548,
+    "gross": 1814516,
+    "pfWages": 885484,
+    "pf": 106258,
+    "pfEr": 115113,
+    "esicWages": 1682420,
+    "esic": 12618,
+    "esicEr": 54679,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 138876,
+    "net": 1675640,
+    "ctc": 1984308,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S03",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 24,
+     "L": 1,
+     "H": 2,
+     "HL": 0,
+     "A": 0,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 360
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 30,
+    "earned": 1645161,
+    "basic": 822581,
+    "hra": 658065,
+    "washing": 82258,
+    "special": 82257,
+    "ot": 41129,
+    "gross": 1686290,
+    "pfWages": 822581,
+    "pf": 98710,
+    "pfEr": 106936,
+    "esicWages": 1562903,
+    "esic": 11722,
+    "esicEr": 50794,
+    "pt": 0,
+    "advance": 0,
+    "deductions": 110432,
+    "net": 1575858,
+    "ctc": 1844020,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S04",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 24,
+     "L": 1,
+     "H": 2,
+     "HL": 0,
+     "A": 0,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 360
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 30,
+    "earned": 2129032,
+    "basic": 1064516,
+    "hra": 851613,
+    "washing": 106452,
+    "special": 106451,
+    "ot": 53226,
+    "gross": 2182258,
+    "pfWages": 1064516,
+    "pf": 127742,
+    "pfEr": 138387,
+    "esicWages": 0,
+    "esic": 0,
+    "esicEr": 0,
+    "pt": 0,
+    "advance": 0,
+    "deductions": 127742,
+    "net": 2054516,
+    "ctc": 2320645,
+    "esicCovered": false
+   },
+   {
+    "staffId": "HR-S05",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 23,
+     "L": 2,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 360
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 29.5,
+    "earned": 1284677,
+    "basic": 642339,
+    "hra": 513871,
+    "washing": 64234,
+    "special": 64233,
+    "ot": 32661,
+    "gross": 1317338,
+    "pfWages": 642339,
+    "pf": 77081,
+    "pfEr": 83504,
+    "esicWages": 1220443,
+    "esic": 9153,
+    "esicEr": 39664,
+    "pt": 20000,
+    "advance": 100000,
+    "deductions": 206234,
+    "net": 1111104,
+    "ctc": 1440506,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S06",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 23,
+     "L": 1,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 300
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 29.5,
+    "earned": 1284677,
+    "basic": 642339,
+    "hra": 513871,
+    "washing": 64234,
+    "special": 64233,
+    "ot": 27218,
+    "gross": 1311895,
+    "pfWages": 642339,
+    "pf": 77081,
+    "pfEr": 83504,
+    "esicWages": 1220443,
+    "esic": 9153,
+    "esicEr": 39664,
+    "pt": 0,
+    "advance": 0,
+    "deductions": 86234,
+    "net": 1225661,
+    "ctc": 1435063,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S07",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 22,
+     "L": 1,
+     "H": 2,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 240
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 29,
+    "earned": 2619355,
+    "basic": 1309678,
+    "hra": 1047742,
+    "washing": 130968,
+    "special": 130967,
+    "ot": 45161,
+    "gross": 2664516,
+    "pfWages": 1309678,
+    "pf": 157161,
+    "pfEr": 170258,
+    "esicWages": 0,
+    "esic": 0,
+    "esicEr": 0,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 177161,
+    "net": 2487355,
+    "ctc": 2834774,
+    "esicCovered": false
+   },
+   {
+    "staffId": "HR-S08",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 23,
+     "L": 2,
+     "H": 0,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 180
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 30,
+    "earned": 1838710,
+    "basic": 919355,
+    "hra": 735484,
+    "washing": 91936,
+    "special": 91935,
+    "ot": 22984,
+    "gross": 1861694,
+    "pfWages": 919355,
+    "pf": 110323,
+    "pfEr": 119516,
+    "esicWages": 1746774,
+    "esic": 13101,
+    "esicEr": 56770,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 143424,
+    "net": 1718270,
+    "ctc": 2037980,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S09",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 22,
+     "L": 2,
+     "H": 1,
+     "HL": 0,
+     "A": 2,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 300
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28.5,
+    "earned": 1470968,
+    "basic": 735484,
+    "hra": 588387,
+    "washing": 73548,
+    "special": 73549,
+    "ot": 32258,
+    "gross": 1503226,
+    "pfWages": 735484,
+    "pf": 88258,
+    "pfEr": 95613,
+    "esicWages": 1397420,
+    "esic": 10481,
+    "esicEr": 45416,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 118739,
+    "net": 1384487,
+    "ctc": 1644255,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S10",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 23,
+     "L": 1,
+     "H": 1,
+     "HL": 0,
+     "A": 2,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 180
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 24.5,
+    "earned": 1470000,
+    "basic": 1470000,
+    "hra": 0,
+    "washing": 0,
+    "special": 0,
+    "ot": 22500,
+    "gross": 1492500,
+    "pfWages": 0,
+    "pf": 0,
+    "pfEr": 0,
+    "esicWages": 1470000,
+    "esic": 11025,
+    "esicEr": 47775,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 31025,
+    "net": 1461475,
+    "ctc": 1540275,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S11",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 24,
+     "L": 1,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 240
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 29.5,
+    "earned": 1141935,
+    "basic": 570968,
+    "hra": 456774,
+    "washing": 57097,
+    "special": 57096,
+    "ot": 19355,
+    "gross": 1161290,
+    "pfWages": 570968,
+    "pf": 68516,
+    "pfEr": 74226,
+    "esicWages": 1084838,
+    "esic": 8136,
+    "esicEr": 35257,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 96652,
+    "net": 1064638,
+    "ctc": 1270773,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S12",
+    "counts": {
+     "ym": "2026-08",
+     "days": 31,
+     "P": 22,
+     "L": 3,
+     "H": 0,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 300
+    },
+    "latePenaltyHalf": 1,
+    "payableDays": 29.5,
+    "earned": 1189516,
+    "basic": 594758,
+    "hra": 475806,
+    "washing": 59476,
+    "special": 59476,
+    "ot": 25202,
+    "gross": 1214718,
+    "pfWages": 594758,
+    "pf": 71371,
+    "pfEr": 77319,
+    "esicWages": 1130040,
+    "esic": 8475,
+    "esicEr": 36726,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 99846,
+    "net": 1114872,
+    "ctc": 1328763,
+    "esicCovered": true
+   }
+  ],
+  "totals": {
+   "staff": 12,
+   "earned": 22272418,
+   "basic": 11871212,
+   "ot": 474113,
+   "gross": 22746531,
+   "pf": 1162501,
+   "pfEr": 1259376,
+   "esic": 93864,
+   "esicEr": 406745,
+   "pt": 180000,
+   "advance": 100000,
+   "deductions": 1536365,
+   "net": 21210166,
+   "ctc": 24412652
+  },
+  "warnings": []
+ },
+ "september": {
+  "lines": [
+   {
+    "staffId": "HR-S01",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 24,
+     "L": 0,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 300
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28.5,
+    "earned": 4275000,
+    "basic": 2137500,
+    "hra": 1710000,
+    "washing": 213750,
+    "special": 213750,
+    "ot": 93750,
+    "gross": 4368750,
+    "pfWages": 1500000,
+    "pf": 180000,
+    "pfEr": 195000,
+    "esicWages": 0,
+    "esic": 0,
+    "esicEr": 0,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 200000,
+    "net": 4168750,
+    "ctc": 4563750,
+    "esicCovered": false
+   },
+   {
+    "staffId": "HR-S02",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 21,
+     "L": 1,
+     "H": 2,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 120
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28,
+    "earned": 1680000,
+    "basic": 840000,
+    "hra": 672000,
+    "washing": 84000,
+    "special": 84000,
+    "ot": 15000,
+    "gross": 1695000,
+    "pfWages": 840000,
+    "pf": 100800,
+    "pfEr": 109200,
+    "esicWages": 1596000,
+    "esic": 11970,
+    "esicEr": 51870,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 132770,
+    "net": 1562230,
+    "ctc": 1856070,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S03",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 22,
+     "L": 1,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 240
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28.5,
+    "earned": 1615000,
+    "basic": 807500,
+    "hra": 646000,
+    "washing": 80750,
+    "special": 80750,
+    "ot": 28333,
+    "gross": 1643333,
+    "pfWages": 807500,
+    "pf": 96900,
+    "pfEr": 104975,
+    "esicWages": 1534250,
+    "esic": 11507,
+    "esicEr": 49863,
+    "pt": 0,
+    "advance": 0,
+    "deductions": 108407,
+    "net": 1534926,
+    "ctc": 1798171,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S04",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 22,
+     "L": 1,
+     "H": 1,
+     "HL": 0,
+     "A": 2,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 240
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 27.5,
+    "earned": 2016667,
+    "basic": 1008334,
+    "hra": 806667,
+    "washing": 100833,
+    "special": 100833,
+    "ot": 36667,
+    "gross": 2053334,
+    "pfWages": 1008334,
+    "pf": 121000,
+    "pfEr": 131083,
+    "esicWages": 0,
+    "esic": 0,
+    "esicEr": 0,
+    "pt": 0,
+    "advance": 0,
+    "deductions": 121000,
+    "net": 1932334,
+    "ctc": 2184417,
+    "esicCovered": false
+   },
+   {
+    "staffId": "HR-S05",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 22,
+     "L": 0,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 2,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 120
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28.5,
+    "earned": 1282500,
+    "basic": 641250,
+    "hra": 513000,
+    "washing": 64125,
+    "special": 64125,
+    "ot": 11250,
+    "gross": 1293750,
+    "pfWages": 641250,
+    "pf": 76950,
+    "pfEr": 83363,
+    "esicWages": 1218375,
+    "esic": 9138,
+    "esicEr": 39597,
+    "pt": 20000,
+    "advance": 100000,
+    "deductions": 206088,
+    "net": 1087662,
+    "ctc": 1416710,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S06",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 22,
+     "L": 2,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 300
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28.5,
+    "earned": 1282500,
+    "basic": 641250,
+    "hra": 513000,
+    "washing": 64125,
+    "special": 64125,
+    "ot": 28125,
+    "gross": 1310625,
+    "pfWages": 641250,
+    "pf": 76950,
+    "pfEr": 83363,
+    "esicWages": 1218375,
+    "esic": 9138,
+    "esicEr": 39597,
+    "pt": 0,
+    "advance": 0,
+    "deductions": 86088,
+    "net": 1224537,
+    "ctc": 1433585,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S07",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 23,
+     "L": 2,
+     "H": 0,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 300
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 29,
+    "earned": 2706667,
+    "basic": 1353334,
+    "hra": 1082667,
+    "washing": 135333,
+    "special": 135333,
+    "ot": 58333,
+    "gross": 2765000,
+    "pfWages": 1353334,
+    "pf": 162400,
+    "pfEr": 175933,
+    "esicWages": 0,
+    "esic": 0,
+    "esicEr": 0,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 182400,
+    "net": 2582600,
+    "ctc": 2940933,
+    "esicCovered": false
+   },
+   {
+    "staffId": "HR-S08",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 23,
+     "L": 2,
+     "H": 0,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 180
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 29,
+    "earned": 1836667,
+    "basic": 918334,
+    "hra": 734667,
+    "washing": 91833,
+    "special": 91833,
+    "ot": 23750,
+    "gross": 1860417,
+    "pfWages": 918334,
+    "pf": 110200,
+    "pfEr": 119383,
+    "esicWages": 1744834,
+    "esic": 13086,
+    "esicEr": 56707,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 143286,
+    "net": 1717131,
+    "ctc": 2036507,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S09",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 22,
+     "L": 2,
+     "H": 0,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 240
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 29,
+    "earned": 1546667,
+    "basic": 773334,
+    "hra": 618667,
+    "washing": 77333,
+    "special": 77333,
+    "ot": 26667,
+    "gross": 1573334,
+    "pfWages": 773334,
+    "pf": 92800,
+    "pfEr": 100533,
+    "esicWages": 1469334,
+    "esic": 11020,
+    "esicEr": 47753,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 123820,
+    "net": 1449514,
+    "ctc": 1721620,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S10",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 22,
+     "L": 2,
+     "H": 0,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 5,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 300
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 24,
+    "earned": 1440000,
+    "basic": 1440000,
+    "hra": 0,
+    "washing": 0,
+    "special": 0,
+    "ot": 37500,
+    "gross": 1477500,
+    "pfWages": 0,
+    "pf": 0,
+    "pfEr": 0,
+    "esicWages": 1440000,
+    "esic": 10800,
+    "esicEr": 46800,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 30800,
+    "net": 1446700,
+    "ctc": 1524300,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S11",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 23,
+     "L": 1,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 240
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28.5,
+    "earned": 1140000,
+    "basic": 570000,
+    "hra": 456000,
+    "washing": 57000,
+    "special": 57000,
+    "ot": 20000,
+    "gross": 1160000,
+    "pfWages": 570000,
+    "pf": 68400,
+    "pfEr": 74100,
+    "esicWages": 1083000,
+    "esic": 8123,
+    "esicEr": 35198,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 96523,
+    "net": 1063477,
+    "ctc": 1269298,
+    "esicCovered": true
+   },
+   {
+    "staffId": "HR-S12",
+    "counts": {
+     "ym": "2026-09",
+     "days": 30,
+     "P": 23,
+     "L": 1,
+     "H": 1,
+     "HL": 0,
+     "A": 1,
+     "OFFW": 0,
+     "off": 4,
+     "paidLeave": 0,
+     "lopLeave": 0,
+     "unmarked": 0,
+     "na": 0,
+     "otMin": 360
+    },
+    "latePenaltyHalf": 0,
+    "payableDays": 28.5,
+    "earned": 1187500,
+    "basic": 593750,
+    "hra": 475000,
+    "washing": 59375,
+    "special": 59375,
+    "ot": 31250,
+    "gross": 1218750,
+    "pfWages": 593750,
+    "pf": 71250,
+    "pfEr": 77188,
+    "esicWages": 1128125,
+    "esic": 8461,
+    "esicEr": 36664,
+    "pt": 20000,
+    "advance": 0,
+    "deductions": 99711,
+    "net": 1119039,
+    "ctc": 1332602,
+    "esicCovered": true
+   }
+  ],
+  "totals": {
+   "staff": 12,
+   "earned": 22009168,
+   "basic": 11724586,
+   "ot": 410625,
+   "gross": 22419793,
+   "pf": 1157650,
+   "pfEr": 1254121,
+   "esic": 93243,
+   "esicEr": 404049,
+   "pt": 180000,
+   "advance": 100000,
+   "deductions": 1530893,
+   "net": 20888900,
+   "ctc": 24077963
+  },
+  "warnings": []
+ }
+}

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- P4 billing & cashier tests: domain rules, golden BASE figures, SQL behaviour and concurrency (disposable HccTest_* databases). -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Billing.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hcc.Api\Hcc.Api.csproj" />
+    <ProjectReference Include="..\..\src\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The P0 golden export (prototype BASE fixture + Room 105 journey); single source, linked not copied. -->
+    <None Include="..\Hcc.Platform.Tests\Golden\base-fixture.golden.json" Link="Golden\base-fixture.golden.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
