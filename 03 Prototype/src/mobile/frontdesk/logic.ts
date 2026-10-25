@@ -52,9 +52,12 @@ export function mfDateError(s:State,d:Pick<MfBookingDraft,'arrival'|'departure'>
   return !DATE.test(d.arrival)||!DATE.test(d.departure)?'Choose both dates.':d.arrival<s.date?'Arrival cannot be before the current business date.'
     :nights(d.arrival,d.departure)<=0?'Departure must follow arrival.':nights(d.arrival,d.departure)>30?'Maximum 30 nights in this demo.':'';
 }
-/** Availability for the draft; `chosen` = picked room if available, otherwise the first available (auto-assign). */
-export function mfPick(s:State,d:MfBookingDraft){
-  const q=resSearch(s,{arrival:d.arrival,departure:d.departure,people:d.people,children:d.children,type:d.type});
+/** Availability rows the wizard needs: resSearch's result, or the ReservationsClient view (clients/view.ts) with the same shape. */
+export type MfSearch={valid:boolean;party:number;available:{room:{id:string;type:string}}[];excluded:{room:{id:string;type:string};reason:string;reasons:string[]}[]};
+/** Availability for the draft; `chosen` = picked room if available, otherwise the first available (auto-assign).
+ *  `search` = availability from the ReservationsClient; omitted → resSearch on the state. */
+export function mfPick<Q extends MfSearch=ReturnType<typeof resSearch>>(s:State,d:MfBookingDraft,search?:Q){
+  const q=search??resSearch(s,{arrival:d.arrival,departure:d.departure,people:d.people,children:d.children,type:d.type}) as unknown as Q;
   const chosen=d.room?q.available.find(r=>r.room.id===d.room)?.room:q.available[0]?.room;
   const pickedExcluded=d.room&&!chosen?q.excluded.find(r=>r.room.id===d.room):undefined;
   return {...q,chosen,pickedExcluded,auto:!d.room};
@@ -70,27 +73,27 @@ export function mfGuestErrors(d:MfBookingDraft){
   return e;
 }
 /** Stay restrictions for the room the wizard would book (picked or auto-assigned). `uid` decides who may override. */
-export function mfRestriction(s:State,d:MfBookingDraft,uid?:string){
-  const room=mfDateError(s,d)?undefined:mfPick(s,d).chosen;
+export function mfRestriction(s:State,d:MfBookingDraft,uid?:string,search?:MfSearch){
+  const room=mfDateError(s,d)?undefined:mfPick(s,d,search).chosen;
   return rstState(s,uid,room?.type||'',d.arrival,d.departure,d.rstOverride?d.rstReason||'':null);
 }
 const RST_ERROR='This stay breaks a stay restriction. Choose other dates, or ask a manager to override with a reason.';
 /** Errors that stop the wizard from leaving `step` (0-based). Pass `uid` so an approver's override can clear the restriction. */
-export function mfWizardErrors(s:State,step:number,d:MfBookingDraft,uid?:string):Record<string,string>{
+export function mfWizardErrors(s:State,step:number,d:MfBookingDraft,uid?:string,search?:MfSearch):Record<string,string>{
   if(step===0){const de=mfDateError(s,d);if(de)return {dates:de};
     if(d.people<1)return {party:'At least one adult.'};
     if(d.type!=='All'&&d.people+d.children>(RES_CAPACITY[d.type]??4))return {party:`A ${d.type} room sleeps ${RES_CAPACITY[d.type]??4}. Choose another type or fewer guests.`};
     return {};}
-  if(step===1){const p=mfPick(s,d);if(p.chosen)return mfRestriction(s,d,uid).canSubmit?{}:{restriction:RST_ERROR};
+  if(step===1){const p=mfPick(s,d,search);if(p.chosen)return mfRestriction(s,d,uid,search).canSubmit?{}:{restriction:RST_ERROR};
     return {room:p.pickedExcluded?`Room ${p.pickedExcluded.room.id} is not available: ${p.pickedExcluded.reason}.`:p.available.length?'Select one of the available rooms, or Auto-assign.':'No room is available for this search. Change dates, party size or type.'};}
   if(step===2)return mfGuestErrors(d);
   // Review: everything must still hold (availability may have changed meanwhile).
-  return {...mfWizardErrors(s,0,d),...mfWizardErrors(s,1,d,uid),...mfGuestErrors(d)};
+  return {...mfWizardErrors(s,0,d),...mfWizardErrors(s,1,d,uid,search),...mfGuestErrors(d)};
 }
 /** The BOOK command the wizard sends — identical fields to the desktop dialog. restrictionOverride only when the override is
  *  ticked with a reason and the stay is restricted (the server checks the approve permission). */
-export function mfBookCommand(s:State,d:MfBookingDraft,hold:boolean,key?:string){
-  const room=mfPick(s,d).chosen;const reason=String(d.rstReason||'').trim();
+export function mfBookCommand(s:State,d:MfBookingDraft,hold:boolean,key?:string,search?:MfSearch){
+  const room=mfPick(s,d,search).chosen;const reason=String(d.rstReason||'').trim();
   const restricted=!!room&&!mfDateError(s,d)&&rstState(s,undefined,room.type,d.arrival,d.departure).violations.length>0;const t=(v:string)=>String(v||'').trim();const company=t(d.company),gstin=t(d.gstin).toUpperCase();
   return {type:'BOOK' as const,guest:t(d.guest),phone:t(d.phone),email:t(d.email),people:d.people,children:d.children,room:room?.id||'',arrival:d.arrival,departure:d.departure,
     source:d.source,otaChannel:d.source==='OTA'?t(d.otaChannel):undefined,company:company?{name:company,gstin:gstin||undefined}:undefined,notes:t(d.notes),hold,restrictionOverride:restricted&&d.rstOverride&&reason?reason:undefined,key};

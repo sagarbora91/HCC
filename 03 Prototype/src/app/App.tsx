@@ -10,6 +10,7 @@ import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoToolbar} from './demo/DemoToolbar';
+import {ReadOnlyBanner} from '../clients/react'; // production build only (compile-time HCC_BUILD)
 import {extraPages,mobilePages} from './registry';
 import {ModalHost} from './ModalHost';
 import {useDisplayMode,DisplayToggle} from './display';
@@ -177,7 +178,7 @@ function AppShell({initial}:{initial:Restored}){
   if(!signedIn)return <HccContext.Provider value={ctx}><SignIn onPick={signIn}/></HccContext.Provider>;
   if(display.isMobile)return <HccContext.Provider value={ctx}>
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
-    {toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
+    {process.env.HCC_BUILD==='production'&&<ReadOnlyBanner/>}{toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
   </HccContext.Provider>;
   return <HccContext.Provider value={ctx}>
     <div className="app-shell">
@@ -187,15 +188,15 @@ function AppShell({initial}:{initial:Restored}){
           <div className="topbar-right">
             <button type="button" className="search-btn" onClick={()=>{cancelBackFallback();setSearchOpen(true);}} aria-label="Search pages and actions (Control+K)"><Search size={16}/>Search<kbd>Ctrl K</kbd></button>
             <span className="today" title="Simulated business date"><CalendarDays size={15}/>Business date {dateLabel(s.date)} · <b className={closed?'day-closed':'day-open'}>{closed?'Closed':'Open'}</b></span>
-            <span className="today" title="Simulated hotel clock (Asia/Kolkata)"><Clock size={15}/>{clockTime(s.clock)} IST</span>
+            {process.env.HCC_BUILD==='production'?null:<><span className="today" title="Simulated hotel clock (Asia/Kolkata)"><Clock size={15}/>{clockTime(s.clock)} IST</span>
             <span className="conn-chip" title="All data comes from the in-browser mock service"><Wifi size={13}/>Local mock service</span>
-            <span className="demo-badge">DEMO — FICTIONAL DATA</span>
+            <span className="demo-badge">DEMO — FICTIONAL DATA</span></>}
             <span className="current-user">{user.name.split(' · ')[0]} · {user.role}</span>
             <button type="button" className="search-btn topbar-signout" onClick={signOut}><LogOut size={16}/>Sign out</button>
             <DisplayToggle display={display} compact/>
           </div>
         </header>
-        <DemoToolbar/>
+        {process.env.HCC_BUILD==='production'?<ReadOnlyBanner/>:<DemoToolbar/>}
         <div className="content">
           {pageBody}
           <footer className="page-footer"><span>Hotel Control Centre <i/> Prototype M1</span><span>Local prototype · Fictional records only · Scenario {s.scenario}</span></footer>

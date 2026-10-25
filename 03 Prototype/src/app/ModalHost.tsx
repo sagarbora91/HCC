@@ -33,10 +33,10 @@ export function ModalHost(){
       case 'invoice':return <InvoiceModal id={modal.id!}/>;
       case 'expense':return <ExpenseModal/>;
       case 'cash':return <CashModal/>;
-      case 'scenario':return <ScenarioModal/>;
-      case 'reset':return <ResetModal/>;
-      case 'guide':return <GuideModal/>;
-      case 'demo':return <DemoSheet/>;
+      case 'scenario':return process.env.HCC_BUILD==='production'?null:<ScenarioModal/>; // demo-only: compiled out of the production build
+      case 'reset':return process.env.HCC_BUILD==='production'?null:<ResetModal/>; // demo-only: compiled out of the production build
+      case 'guide':return process.env.HCC_BUILD==='production'?null:<GuideModal/>; // demo-only: compiled out of the production build
+      case 'demo':return process.env.HCC_BUILD==='production'?null:<DemoSheet/>; // demo-only: compiled out of the production build
       case 'user-menu':return <UserMenuSheet/>;
       default:return <Empty title="This record is unavailable"/>;
     }

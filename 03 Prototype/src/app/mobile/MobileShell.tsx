@@ -24,7 +24,7 @@ export function MobileShell({allowedIds,children,canGoBack,onBack,tabKey,onTab}:
       <div className="m-titles"><h1 className="m-title">{title}</h1>
         <span className={'m-date '+(closed?'closed':'open')} title="Simulated business date"><CalendarDays size={12}/>Business date {dateLabel(s.date).replace(/ \d{4}$/,'')} · <b>{closed?'Closed':'Open'}</b></span></div>
       <button className="m-search" aria-label="Search pages and actions" onClick={openSearch}><Search size={22}/></button>
-      <button className="m-demo-pill" onClick={()=>open({type:'demo'})} aria-label="Open demo controls"><FlaskConical size={14}/>DEMO</button>
+      {process.env.HCC_BUILD==='production'?null:<button className="m-demo-pill" onClick={()=>open({type:'demo'})} aria-label="Open demo controls"><FlaskConical size={14}/>DEMO</button>}
       <button className="m-avatar" aria-label={`User menu: ${user.name}`} onClick={()=>open({type:'user-menu'})}>{user.name[0]}</button>
     </header>
     <main className="m-content" id="m-content">{page!==HOME_PAGE&&<div className="m-crumbs"><Breadcrumb page={page} label={navItems.find(n=>n.id===page)?.label||''}/></div>}{children}</main>
