@@ -1,4 +1,4 @@
-# W05-B payroll/leave + W05-A Master configuration — browser check (in progress)
+# W05-B payroll/leave + W05-A Master configuration — browser check
 
 Build: integration/w05 `dist/index.html` served on 127.0.0.1:4181, Playwright, FY26 scenario, 25 Oct 2026. Screenshots: `w05-browser2\`.
 
@@ -42,3 +42,29 @@ Build: integration/w05 `dist/index.html` served on 127.0.0.1:4181, Playwright, F
 
 ## Defects
 W05P-1 S3 payroll tabs still visible when Payroll off; W05P-2 S4 "Immediately" label vs dated effect, repeated long help text; W05P-3 S4 phone touch targets/text size on HR and config screens.
+| Phone: payroll / statutory rates read-only | n/a | Pass | Phone Payroll tab shows month chips + per-staff cards (net, gross, PF, ESIC, PT) and "Running, locking, unlocking and the bank file are done on tablet or desktop"; rates versions added on desktop only. Register CSV button available. Figures match desktop. No page-level sideways scroll. |
+| Phone: leave (requests, calendar, policy, F&F list, advances) | n/a | Pass | Cards, half-day shown as CL 1/2 0.5d; calendar shows "Housekeeping 1/2" capacity; Approve/Reject buttons present. |
+| Phone: My shifts and pay (Ravi) | n/a | Pass | Week, month so far, latest payslip card with deductions, leave balances (CL 7 of 12 used 5), Request leave sheet, payslip viewer. Housekeeper sees only own pay. |
+| Master configuration: 12 groups, search, summaries | Pass | Pass | 12 groups under 3 headings with live one-line summaries; search "PF" -> People (4) + Compliance (1); "GSTIN" -> Property (1). |
+| Hub layout | Pass (list beside details) | Pass (list -> details -> "All groups"/Back) | App-bar Back on phone goes up to Admin & Setup, "All groups" returns to the list. |
+| Tech admin: money groups read-only with reason | Pass | Pass | Rooms, Money, Restaurant, People, Compliance marked Read only; Change... disabled; reason "Owner changes this - money, tax, payroll, compliance and approval limits are Owner-only (DEC-058)". |
+| Tech admin change needing approval; no self-approval | Pass | not run | PIN idle minutes 5 -> 10 "Request approval" -> APR-1118 pending; dialog states "You cannot approve your own request"; Tech admin has no Approvals page; Owner approved. |
+| Modules on/off: Payroll off then on | Partial (W05P-1) | Partial | Toast "Payroll switched off - data kept"; commands refused; switched back on OK. Payroll tabs not hidden. Other 9 switches not exercised. |
+| HR statutory + Compliance groups wired; PF rate from hub -> Statutory rates | Pass | n/a | PF employee 12% -> 11% in hub; Statutory rates shows new version 1 Oct 2026 "11% + 13%"; locked runs unchanged (Apr-Sep keep 12%). "Immediately" label inconsistent (W05P-2). |
+| Export / import JSON preview | Pass | not run | Export JSON (97 values; secret msg.gatewayKey listed only as excluded); import preview "0 will change, 97 unchanged, 0 skipped"; nothing applied. |
+| Console errors | Pass | Pass | 0 errors, 0 warnings across the session. |
+| Sideways scroll at 360 | n/a | Pass | scrollWidth = clientWidth on every screen checked (345 with scrollbar). Tab strips scroll inside their own container. |
+| Touch targets >= 48 px / 16 px text | n/a | Fail (S4) | See W05P-3 (same family as W05-6). |
+
+## Not run / limits
+- Unlock with an empty reason (button was enabled; submit not tested). Oct 2026 draft: no completed month left to run (Apr-Sep all locked), so the draft-lock was done by unlocking September and recalculating.
+- Phone: payslip send on WhatsApp from phone manager view, phone pay-run actions (read-only by design), other 9 module switches, Tech admin approval from phone.
+- Real PDF/print dialog: print media emulated (payslip only, A4-like layout OK); `window.print` was called.
+
+## Observations (not defects)
+- A failed command ("Not available: Housekeeping already has 2 staff off") is shown only after pressing Send request; the modal gives no pre-warning of the cap.
+- Pending half-day immediately reduces the displayed balance (CL 10.5/12).
+- Staff tab selection once fell back to "Staff" after a failed command toast during testing (not reproduced on retest).
+
+## Defects
+W05P-1 S3 payroll tabs still visible when Payroll is off; W05P-2 S4 "Immediately" label vs dated effect and long repeated help text; W05P-3 S4 phone touch targets/text size on HR and config screens.

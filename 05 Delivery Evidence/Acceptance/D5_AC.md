@@ -99,3 +99,18 @@ Device: `codex_api35_google` (Android 15 / API 35, WebView 124), `emulator-5554`
 |---|---|---|---|---|---|
 | AC-03 | S4 | Closing → Count & submit cash (24 Oct) | Breakdown adds to ₹11,250 | "₹5,000 + ₹7,500 − ₹1,800 = ₹11,250" omits ₹550 restaurant cash | `defects\AC-03-count-sheet-breakdown-omits-restaurant-cash.md` |
 | AC-04 | S3 | Submit a drawer count, or Apply a Reports date range | Sheet closes quietly | Native "Discard the details you entered?" dialog freezes the page after the action succeeded | `defects\AC-04-discard-dialog-after-submit.md` |
+
+
+## Parts 2–3 on API 35 (work PC) — 25 Oct 2026 · EMULATED
+
+Device: `codex_api35_google` (Android 15 / API 35, WebView 124), `emulator-5554`, phone layout 412×842 css px; APK v8 SHA-256 `2BA3FE68…8A52C3` (verified). The earlier WebView-83 notes above are kept. Scenario S0 loaded via DEMO → Scenario. Real taps (`adb shell input tap`) for key actions; DevTools only for reading the DOM and typing into fields.
+
+| Check | Result | Evidence | Notes |
+|---|---|---|---|
+| AC-M08a Open restaurant checks block the close (24 Oct) | Pass | `d5-ac\v8-m08-close-blocked-open-checks.png` | Manager Closing: "Table T2 · POS-F03 · ₹1,914 open", "Room 201 · POS-F04 · ₹330 open", EXP-102 unresolved; button "Resolve preflight (3 left)"; close step "4 checks still blocking" |
+| AC-M05 Reception books Room 105, 24→26 Oct, 2 adults, Phone, Rahul Verma (fictional) | Pass | DOM; `v8-m05-checkin-done.png` | 4-step wizard, review ₹2,000/night, ₹4,000 + tax; booking HCC-1101 confirmed |
+| AC-M05 ₹1,000 UPI advance DEMO-UPI-0001 | Pass | DOM | Folio shows credit ₹1,000, balance −₹1,000 |
+| AC-M05 Check in on phone (Arrivals → 6-step wizard) | Pass | `v8-m05-checkin-done.png` | "checked in to room 105"; needed address, ID type, last 4 and the tariff-confirmation tick |
+| AC-M05 Restricted 7→8 Nov stay shows warning (Reception) | Pass | `v8-m05-restricted-warning.png`, `v8-m05-restricted-reception-blocked.png` | "Minimum stay 2 nights … (Diwali weekend). Ask a manager to override…", Next does not advance |
+| AC-M05 Manager override | Pass | DOM | Meera: "Override restriction" tick + reason → review shows "Overridden: …" → booking HCC-1108 confirmed |
+| T-04 phone booking list "1 night" | Pass* | `d5-roles\v8-booking-list-1-night.png` | Card reads "Room 101 · 7 Nov – 8 Nov · 1 night". *Phone cards do not show a guest count at all, so "1 night · 1 guest" is only on the desktop table; not a defect |
