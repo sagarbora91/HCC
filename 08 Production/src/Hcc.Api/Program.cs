@@ -1,4 +1,5 @@
 using Hcc.Api;
+using Hcc.Api.Endpoints;
 using Hcc.Application.Commands;
 using Hcc.Contracts;
 using Hcc.Infrastructure.SqlServer;
@@ -25,6 +26,8 @@ builder.Services.AddSingleton(platform.Connections);
 builder.Services.AddSingleton<ICommandRunner>(platform.Commands);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHccAccess(builder.Configuration, platform);
+builder.Services.AddHccStays();
+builder.Services.AddHccHousekeeping();
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
@@ -41,5 +44,7 @@ api.MapGet("/system/health", async (SqlConnectionFactory connections, TimeProvid
     var version = await MigrationRunner.CurrentVersionAsync(conn, ct);
     return Results.Ok(new HealthResult("ok", conn.Database, version, clock.GetUtcNow().ToString("O", System.Globalization.CultureInfo.InvariantCulture)));
 });
+api.MapStaysEndpoints();
+api.MapHousekeepingEndpoints();
 
 await app.RunAsync();

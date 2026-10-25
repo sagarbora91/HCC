@@ -9,11 +9,13 @@
   <Folder Name="/tests/">
     <Project Path="tests/Hcc.Platform.Tests/Hcc.Platform.Tests.csproj" />
     <Project Path="tests/Hcc.Access.Tests/Hcc.Access.Tests.csproj" />
+    <Project Path="tests/Hcc.Stays.Tests/Hcc.Stays.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
     <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
     <File Path="database/migrations/access/0100_access_identity.sql" />
     <File Path="database/migrations/access/0101_access_rbac_seed.sql" />
+    <File Path="database/modules/0300_stays_housekeeping.sql" />
   </Folder>
 </Solution>
