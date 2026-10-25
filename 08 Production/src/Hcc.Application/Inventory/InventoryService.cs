@@ -2,6 +2,7 @@ using System.Globalization;
 using Hcc.Application.Access;
 using Hcc.Application.Billing;
 using Hcc.Application.Commands;
+using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Contracts.Inventory;
 using Hcc.Domain.Dates;
@@ -14,7 +15,7 @@ namespace Hcc.Application.Inventory;
 /// GetAvailability, QuoteStay and group blocks (contracts §3). Authorization first (<see cref="IAccessPolicy"/>), every command
 /// through <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox in one transaction). Times from the injected clock.
 /// </summary>
-public sealed class InventoryService(IInventoryStore store, ICommandRunner runner, IAccessPolicy access, ITaxRateSource taxes, TimeProvider clock)
+public sealed class InventoryService(IInventoryStore store, ICommandRunner runner, IAccessPolicy access, IGstRateResolver gst, TimeProvider clock)
 {
     /// <summary>Quote lifetime. Wave 1 default; a configuration setting later (owner decision listed in the P2 report).</summary>
     public static readonly TimeSpan QuoteLifetime = TimeSpan.FromMinutes(30);
@@ -144,11 +145,11 @@ public sealed class InventoryService(IInventoryStore store, ICommandRunner runne
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>Nightly snapshot at a fixed agreed rate with each night's tax rate.</summary>
+    /// <summary>Nightly snapshot at a fixed agreed rate with each night's GST rate (DEC-069: per unit per night on that price, dated master).</summary>
     public async Task<IReadOnlyList<PricedNight>> PriceAsync(int propertyId, DateOnly a, DateOnly d, long ratePaise, CancellationToken ct)
     {
         var bps = new Dictionary<DateOnly, int>();
-        foreach (var n in StayDates.EachNight(a, d)) bps[n] = taxes.TaxBpsOn(propertyId, n);
+        foreach (var (n, rate) in await gst.RoomNightsAsync(null, propertyId, a, d, new Domain.Money.Paise(ratePaise), ct).ConfigureAwait(false)) bps[n] = rate.Bps;
         return StayPricing.Nights(a, d, ratePaise, n => bps[n]);
     }
 

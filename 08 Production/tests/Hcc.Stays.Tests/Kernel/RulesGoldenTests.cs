@@ -114,7 +114,7 @@ public class RulesGoldenTests
         Assert.Contains("GSTIN", GuestRules.Summary(GuestRules.Validate(full with { Gstin = "BAD", Company = "X" }, false)), StringComparison.Ordinal);
         Assert.Contains("last 4", GuestRules.Summary(GuestRules.Validate(full with { IdLast4 = "123456789012" }, false)), StringComparison.Ordinal);
         Assert.Contains("address", GuestRules.Summary(GuestRules.Validate(full with { Address = "" }, true)), StringComparison.Ordinal);
-        Assert.Equal("Enter the last 4 characters of the ID.", GuestRules.Validate(full with { IdLast4 = "" }, true)["idLast4"]);
+        Assert.Equal("Enter the ID number.", GuestRules.Validate(full with { IdLast4 = "" }, true)["idNumber"]); // DEC-068: number or (older profiles) last 4
         Assert.Equal("Enter the guest’s name (at least 2 characters). (1 more: Phone)", GuestRules.Summary(GuestRules.Validate(full with { Name = "X", Phone = "" }, false)));
         Assert.Equal("••••••1041", GuestRules.MaskPhone("+91 98200 01041"));
         Assert.Equal("g•••@example.test", GuestRules.MaskEmail("guest1@example.test"));

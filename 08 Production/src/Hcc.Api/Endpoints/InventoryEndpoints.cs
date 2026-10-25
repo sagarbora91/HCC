@@ -6,7 +6,7 @@ namespace Hcc.Api;
 
 /// <summary>
 /// Inventory endpoints (P2): GET /availability, POST /commands/QuoteStay, CreateGroupBlock, ReleaseGroupBlock. Every route
-/// requires a session (P1); the actor comes from the session. Tax rates come from billing's <c>ITaxRateSource</c>.
+/// requires a session (P1); the actor comes from the session. GST rates come from the tax module's <c>IGstRateResolver</c> (DEC-069).
 /// </summary>
 public static class InventoryEndpoints
 {

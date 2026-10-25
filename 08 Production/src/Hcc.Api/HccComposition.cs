@@ -26,6 +26,8 @@ public static class HccComposition
         services.AddHccStays();                          // P3
         services.AddHccHousekeeping();                   // P3
         services.AddBillingModule();                     // P4 billing + payments
+        services.AddTaxModule();                         // Wave 1 C: GST master (DEC-069), THE IGstRateResolver
+        services.AddGuestIdModule(configuration);        // Wave 1 C: encrypted full guest ID numbers (DEC-068)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -48,6 +50,8 @@ public static class HccComposition
         api.MapHousekeepingEndpoints();  // P3
         api.MapBillingEndpoints();       // P4
         api.MapPaymentsEndpoints();      // P4
+        api.MapTaxEndpoints();           // Wave 1 C (GST master)
+        api.MapGuestIdEndpoints();       // Wave 1 C (guest ID reveal / rekey)
         return api;
     }
 }

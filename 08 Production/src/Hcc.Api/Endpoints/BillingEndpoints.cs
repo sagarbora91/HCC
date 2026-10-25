@@ -15,7 +15,7 @@ public static class BillingEndpoints
     /// <summary>DI for billing + payments (one line in Program.cs).</summary>
     public static IServiceCollection AddBillingModule(this IServiceCollection services)
     {
-        services.AddSingleton<ITaxRateSource>(new FixedTaxRateSource()); // dated tax settings: master configuration (DEC-057) later
+        services.AddTaxModule(); // DEC-069 GST master: THE IGstRateResolver (+ per-charge snapshots); replaced the fixed 10 % ITaxRateSource
         services.AddSingleton<IBillingStore>(sp => new SqlBillingStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IStayNightSource, StayNightSource>();      // P3 stay -> folio + P2 agreed nightly rate
         services.AddSingleton<IAccessScopeResolver>(sp => new SqlShiftScopeResolver(sp.GetRequiredService<SqlPlatform>().Connections)); // "shift" (S)

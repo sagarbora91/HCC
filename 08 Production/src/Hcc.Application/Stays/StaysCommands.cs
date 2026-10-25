@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hcc.Application.Access;
 using Hcc.Application.Commands;
+using Hcc.Application.GuestIds;
 using Hcc.Contracts;
 using Hcc.Contracts.Stays;
 using Hcc.Domain.Dates;
@@ -14,9 +15,12 @@ namespace Hcc.Application.Stays;
 /// Stays use cases: RegisterGuest, CheckIn, CheckoutStay (contracts §3; WF-STAY-001, WF-CHECKOUT-001). Each command checks
 /// its PERM id through <see cref="IAccessPolicy"/> before the transaction (so a replayed key is re-authorized, as in the
 /// prototype), then runs in one <see cref="ICommandRunner"/> transaction with audit (+ outbox for checkout).
-/// Guest ID details are never written to audit details or logs.
+/// Guest ID details are never written to audit details or logs. DEC-068: a full ID number in the draft is sealed by
+/// <paramref name="guestIds"/> (AES-GCM) in the same transaction and replaced by a keyed fingerprint in the idempotency hash;
+/// without the service a number is refused (never stored in clear).
 /// </summary>
-public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, IStaysStore store, IStayFolioPort folios, TimeProvider clock)
+public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, IStaysStore store, IStayFolioPort folios, TimeProvider clock,
+    GuestIdService? guestIds = null)
 {
     public const string OpRegisterGuest = "RegisterGuest";
     public const string OpCheckIn = "CheckIn";
@@ -34,8 +38,11 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
         var expected = VersionToken.Parse(req.ExpectedVersion);
         var guestExpected = req.GuestExpectedVersion is null ? null : VersionToken.Parse(req.GuestExpectedVersion, "guestExpectedVersion");
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.GuestRegister, null, null, ct).ConfigureAwait(false);
+        if (guestIds is null && GuestIdService.HasNumber(req.Guest))
+            throw new HccException(HccErrorCode.UNAVAILABLE, "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
+        var hashed = guestIds?.HashablePayload(req) ?? req;
 
-        return await runner.RunAsync(ctx with { Operation = OpRegisterGuest }, req, async (tx, c) =>
+        return await runner.RunAsync(ctx with { Operation = OpRegisterGuest }, hashed, async (tx, c) =>
         {
             var res = await store.LockReservationAsync(tx, ctx.PropertyId, req.ReservationId, c).ConfigureAwait(false)
                 ?? throw new HccException(HccErrorCode.NOT_FOUND, "Reservation not found.");
@@ -57,12 +64,14 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                         ?? throw new HccException(HccErrorCode.NOT_FOUND, "Guest profile not found.");
                     if (guestExpected is null) throw HccException.Validation("guestExpectedVersion is required to change an existing guest profile.");
                     VersionToken.EnsureMatches(g.Version, guestExpected, "This guest profile");
+                    if (guestIds is not null) clean = await guestIds.ApplyAsync(tx, ctx.PropertyId, g.GuestId, clean, g.Draft, c).ConfigureAwait(false);
                     await store.UpdateGuestAsync(tx, g.GuestId, guestExpected, clean, verified: true, c).ConfigureAwait(false);
                     guestId = g.GuestId;
                 }
                 else
                 {
                     guestId = await store.InsertGuestAsync(tx, ctx.PropertyId, clean, verified: true, "manual", UtcNow, c).ConfigureAwait(false);
+                    if (guestIds is not null) await guestIds.ApplyAsync(tx, ctx.PropertyId, guestId, clean, null, c).ConfigureAwait(false);
                 }
             }
             else
@@ -154,7 +163,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
     }
 
     internal static GuestDraft ToDraft(GuestDraftDto d) => new(d.Name, d.Phone, d.Email, d.Address, d.Nationality, d.IdType, d.IdLast4,
-        d.Company, d.Gstin, d.Preferences, d.Notes, d.Party?.Select(p => new GuestPartyMember(p.Name, p.AgeBand, p.Relation)).ToList());
+        d.Company, d.Gstin, d.Preferences, d.Notes, d.Party?.Select(p => new GuestPartyMember(p.Name, p.AgeBand, p.Relation)).ToList(), d.IdNumber);
 
     private static string Target(string kind, long id) => kind + "-" + id.ToString(CultureInfo.InvariantCulture);
 }
@@ -173,6 +182,8 @@ public sealed class StaysQueries(IAccessPolicy policy, IStaysReadStore reads)
         return Mask(g, idDetails, contact);
     }
 
+    // DEC-068: the view never carries the full number. ID-view holders see XXXX-XXXX-1234 and may call RevealGuestId (audited).
+
     public static GuestView Mask(GuestRecord g, bool idDetails, bool contact)
     {
         ArgumentNullException.ThrowIfNull(g);
@@ -186,6 +197,8 @@ public sealed class StaysQueries(IAccessPolicy policy, IStaysReadStore reads)
             idDetails ? d.IdLast4 : GuestRules.Restricted,
             d.Company, d.Gstin,
             (d.Party ?? []).Select(p => new GuestPartyDto(p.Name, p.AgeBand, p.Relation)).ToList(),
-            g.Verified, !idDetails, VersionToken.ToWire(g.Version));
+            g.Verified, !idDetails, VersionToken.ToWire(g.Version),
+            idDetails ? Domain.GuestIds.GuestIdRules.Mask(d.IdLast4) : GuestRules.Restricted,
+            g.IdOnFile, idDetails && g.IdOnFile);
     }
 }

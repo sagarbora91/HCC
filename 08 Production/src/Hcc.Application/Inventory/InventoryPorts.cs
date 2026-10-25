@@ -46,7 +46,7 @@ public interface IRoomBlockPort
     Task RemoveBySourceAsync(ICommandTransaction tx, int propertyId, string source, long sourceRef, CancellationToken ct = default);
 }
 
-// Tax rate per service date: Hcc.Application.Billing.ITaxRateSource (billing owns the tax schedule; one port since the Wave 1 integration).
+// GST rate per night on the agreed price: Hcc.Application.Tax.IGstRateResolver (DEC-069 dated master; replaced ITaxRateSource).
 
 public sealed record QuoteDraft(int PropertyId, int PrincipalId, int RoomTypeId, int? RoomId, DateOnly Arrival, DateOnly Departure,
     int Adults, int Children, string RatePlan, IReadOnlyList<PricedNight> Nights, DateTime CreatedUtc, DateTime ExpiresUtc);

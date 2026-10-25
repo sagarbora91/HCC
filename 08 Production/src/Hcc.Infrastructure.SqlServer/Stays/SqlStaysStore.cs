@@ -284,7 +284,8 @@ public sealed class SqlStaysStore : IStaysStore
 public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStaysReadStore
 {
     internal static string GuestSql(string hint) => $"""
-        SELECT guest_id, property_id, full_name, phone, email, address, nationality, id_type, id_last4, company, gstin, preferences, notes, verified, origin, row_ver
+        SELECT guest_id, property_id, full_name, phone, email, address, nationality, id_type, id_last4, company, gstin, preferences, notes, verified, origin, row_ver,
+               CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = gst.guest.guest_id) THEN 1 ELSE 0 END -- DEC-068: on file? (never the number)
         FROM gst.guest {hint} WHERE guest_id = @g AND property_id = @p;
         SELECT name, age_band, relation FROM gst.guest_party WHERE guest_id = @g ORDER BY seq;
         """;
@@ -318,9 +319,10 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
         var verified = rd.GetBoolean(13);
         var origin = rd.GetString(14);
         var ver = (byte[])rd[15];
+        var idOnFile = rd.GetInt32(16) == 1;
         var party = new List<GuestPartyMember>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false)) party.Add(new GuestPartyMember(rd.GetString(0), rd.GetString(1), P3Sql.StrOrNull(rd, 2)));
-        return new GuestRecord(id, prop, new GuestDraft(name, phone, email, address, nat, idt, id4, company, gstin, pref, notes, party), verified, origin, ver);
+        return new GuestRecord(id, prop, new GuestDraft(name, phone, email, address, nat, idt, id4, company, gstin, pref, notes, party), verified, origin, ver, idOnFile);
     }
 }

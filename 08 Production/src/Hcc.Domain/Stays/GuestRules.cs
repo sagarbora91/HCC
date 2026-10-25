@@ -8,8 +8,10 @@ namespace Hcc.Domain.Stays;
 public sealed record GuestPartyMember(string Name, string AgeBand, string? Relation);
 
 /// <summary>
-/// Editable guest fields (prototype <c>GuestDraft</c>, <c>03 Prototype/src/domain/streams/guests.ts</c>). The ID document is
-/// stored as type + last 4 characters only — never the full number (prototype rule; see decision note in the P3 report).
+/// Editable guest fields (prototype <c>GuestDraft</c>, <c>03 Prototype/src/domain/streams/guests.ts</c>). DEC-068: the full ID
+/// number (<see cref="IdNumber"/>, write-only) is validated per type, encrypted at rest by the GuestIds module and never read back
+/// into a draft; <see cref="IdLast4"/> is the display value (derived from the number when one is given). Profiles saved before
+/// DEC-068 hold only the last 4 and stay valid.
 /// </summary>
 public sealed record GuestDraft(
     string? Name,
@@ -23,7 +25,8 @@ public sealed record GuestDraft(
     string? Gstin = null,
     string? Preferences = null,
     string? Notes = null,
-    IReadOnlyList<GuestPartyMember>? Party = null);
+    IReadOnlyList<GuestPartyMember>? Party = null,
+    string? IdNumber = null);
 
 /// <summary>Validation, normalisation and field masks ported from the prototype's guest stream (REQ-GUEST-004/006).</summary>
 public static partial class GuestRules
@@ -36,7 +39,7 @@ public static partial class GuestRules
     public static readonly IReadOnlyDictionary<string, string> FieldLabels = new Dictionary<string, string>
     {
         ["name"] = "Name", ["phone"] = "Phone", ["email"] = "Email", ["address"] = "Address", ["nationality"] = "Nationality",
-        ["idType"] = "ID type", ["idLast4"] = "ID last 4", ["gstin"] = "GSTIN", ["company"] = "Company", ["party"] = "Party",
+        ["idType"] = "ID type", ["idLast4"] = "ID last 4", ["idNumber"] = "ID number", ["gstin"] = "GSTIN", ["company"] = "Company", ["party"] = "Party",
     };
 
     [GeneratedRegex(@"^[+\d\s()-]+$")]
@@ -74,8 +77,9 @@ public static partial class GuestRules
         if (T(d.Email).Length > 0 && !Email().IsMatch(T(d.Email))) e["email"] = "Enter a valid email or leave it blank.";
         if (T(d.Gstin).Length > 0 && !Gstin().IsMatch(T(d.Gstin).ToUpperInvariant())) e["gstin"] = "GSTIN must be 15 characters in the format 27ABCDE1234F1Z5 (fictional).";
         if (T(d.Gstin).Length > 0 && T(d.Company).Length == 0) e["company"] = "Enter the company name for this GSTIN.";
-        if (T(d.IdLast4).Length > 0 && !Last4().IsMatch(T(d.IdLast4))) e["idLast4"] = "Enter exactly the last 4 letters or digits of the ID — never the full number.";
-        if (T(d.IdLast4).Length > 0 && T(d.IdType).Length == 0) e["idType"] = "Choose the ID type.";
+        if (T(d.IdLast4).Length > 0 && !Last4().IsMatch(T(d.IdLast4))) e["idLast4"] = "Enter exactly the last 4 letters or digits of the ID (the full number goes in the ID number field).";
+        if ((T(d.IdLast4).Length > 0 || T(d.IdNumber).Length > 0) && T(d.IdType).Length == 0) e["idType"] = "Choose the ID type.";
+        if (T(d.IdNumber).Length > 0 && T(d.IdType).Length > 0 && GuestIds.GuestIdRules.Error(d.IdType, d.IdNumber) is { Length: > 0 } idError) e["idNumber"] = idError;
         var party = d.Party ?? [];
         for (var i = 0; i < party.Count; i++)
         {
@@ -88,7 +92,8 @@ public static partial class GuestRules
         {
             if (T(d.Address).Length == 0) e["address"] = "Enter the address.";
             if (T(d.IdType).Length == 0) e["idType"] = "Choose the ID type.";
-            if (T(d.IdLast4).Length == 0) e["idLast4"] = "Enter the last 4 characters of the ID.";
+            // Profiles saved before DEC-068 hold only the last 4 characters; they stay valid.
+            if (T(d.IdNumber).Length == 0 && T(d.IdLast4).Length == 0) e["idNumber"] = "Enter the ID number.";
         }
 
         // Production length limits (SQL columns); the prototype has none.
@@ -109,14 +114,15 @@ public static partial class GuestRules
         return string.Create(CultureInfo.InvariantCulture, $"{errors[keys[0]]} ({keys.Count - 1} more: {rest})");
     }
 
-    /// <summary>Trimmed copy (upper-case ID last 4 / GSTIN; nationality defaults to Indian; blanks become null).</summary>
+    /// <summary>Trimmed copy (upper-case ID last 4 / GSTIN; nationality defaults to Indian; blanks become null; ID number normalised, last 4 derived from it).</summary>
     public static GuestDraft Clean(GuestDraft d)
     {
         ArgumentNullException.ThrowIfNull(d);
         static string? N(string? v) => T(v).Length == 0 ? null : T(v);
+        var number = N(d.IdNumber) is null ? null : GuestIds.GuestIdRules.Normalise(d.IdNumber);
         return new GuestDraft(T(d.Name), T(d.Phone), N(d.Email), N(d.Address), N(d.Nationality) ?? "Indian", N(d.IdType),
-            N(d.IdLast4)?.ToUpperInvariant(), N(d.Company), N(d.Gstin)?.ToUpperInvariant(), N(d.Preferences), N(d.Notes),
-            (d.Party ?? []).Select(p => new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation))).ToList());
+            number is not null ? GuestIds.GuestIdRules.Last4(number) : N(d.IdLast4)?.ToUpperInvariant(), N(d.Company), N(d.Gstin)?.ToUpperInvariant(), N(d.Preferences), N(d.Notes),
+            (d.Party ?? []).Select(p => new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation))).ToList(), number);
     }
 
     /// <summary>"••••••1041" (last 4 digits) or "—".</summary>

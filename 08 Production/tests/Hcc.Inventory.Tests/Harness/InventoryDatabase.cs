@@ -142,7 +142,7 @@ public sealed class P2Services
         Reservations = new SqlReservationStore(db.Platform.Connections);
         Allocator = new SqlInventoryAllocator(db.Platform.Connections);
         RoomBlocks = new SqlRoomBlockPort(db.Platform.Connections);
-        Inventory = new InventoryService(Store, db.Platform.Commands, Access, new Hcc.Application.Billing.FixedTaxRateSource(taxBps), clock);
+        Inventory = new InventoryService(Store, db.Platform.Commands, Access, new Hcc.Application.Tax.FixedGstRateResolver(taxBps), clock);
         Booking = new ReservationService(Reservations, Store, Inventory, db.Platform.Commands, Access,
             new Hcc.Application.Billing.BillingReservationMoney(new Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore(db.Platform.Connections)), clock);
     }
