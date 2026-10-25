@@ -1,0 +1,1685 @@
+{
+ "generatedBy": "08 Production/tests/Hcc.Inventory.Tests/Golden/export-inventory-golden.mjs",
+ "source": "03 Prototype loadScenario('BASE')",
+ "fictionalDataOnly": true,
+ "raw": {
+  "businessDate": "2026-10-24",
+  "clock": "2026-10-24T08:00",
+  "taxBps": 1000,
+  "holdMinutes": 120,
+  "roomTypes": [
+   {
+    "code": "Classic",
+    "maxOccupancy": 2,
+    "rackRatePaise": 200000
+   },
+   {
+    "code": "Deluxe",
+    "maxOccupancy": 3,
+    "rackRatePaise": 300000
+   },
+   {
+    "code": "Suite",
+    "maxOccupancy": 4,
+    "rackRatePaise": 450000
+   }
+  ],
+  "rooms": [
+   {
+    "roomNo": "101",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "102",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "103",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "104",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "105",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "106",
+    "type": "Suite",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "107",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "108",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "201",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "202",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "203",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "204",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "205",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "206",
+    "type": "Suite",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "207",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "208",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "301",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "302",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "303",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "304",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "305",
+    "type": "Classic",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "306",
+    "type": "Suite",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "307",
+    "type": "Deluxe",
+    "blocked": false,
+    "blockFrom": null,
+    "blockTo": null
+   },
+   {
+    "roomNo": "308",
+    "type": "Classic",
+    "blocked": true,
+    "blockFrom": null,
+    "blockTo": null
+   }
+  ],
+  "bookings": [
+   {
+    "id": "HCC-1041",
+    "room": "101",
+    "guest": "Ananya Rao",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 1,
+    "children": 0
+   },
+   {
+    "id": "HCC-1042",
+    "room": "102",
+    "guest": "Vikram Shah",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 2,
+    "children": 0
+   },
+   {
+    "id": "HCC-1043",
+    "room": "104",
+    "guest": "Riya Mehta",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 1,
+    "children": 0
+   },
+   {
+    "id": "HCC-1044",
+    "room": "201",
+    "guest": "Arjun Kapoor",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 2,
+    "children": 0
+   },
+   {
+    "id": "HCC-1045",
+    "room": "202",
+    "guest": "Nisha Desai",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 1,
+    "children": 0
+   },
+   {
+    "id": "HCC-1046",
+    "room": "206",
+    "guest": "Kabir Sen",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 2,
+    "children": 0
+   },
+   {
+    "id": "HCC-1047",
+    "room": "301",
+    "guest": "Tara Iyer",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 1,
+    "children": 0
+   },
+   {
+    "id": "HCC-1048",
+    "room": "302",
+    "guest": "Dev Malhotra",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "status": "In house",
+    "holdUntil": null,
+    "people": 2,
+    "children": 0
+   },
+   {
+    "id": "HCC-1049",
+    "room": "103",
+    "guest": "Ishaan Bose",
+    "arrival": "2026-10-24",
+    "departure": "2026-10-26",
+    "status": "Confirmed",
+    "holdUntil": null,
+    "people": 1,
+    "children": 0
+   },
+   {
+    "id": "HCC-1050",
+    "room": "207",
+    "guest": "Aditi Nair",
+    "arrival": "2026-10-24",
+    "departure": "2026-10-26",
+    "status": "Confirmed",
+    "holdUntil": null,
+    "people": 2,
+    "children": 0
+   },
+   {
+    "id": "HCC-1090",
+    "room": "106",
+    "guest": "Sana Kulkarni (fictional)",
+    "arrival": "2026-10-24",
+    "departure": "2026-10-25",
+    "status": "Held",
+    "holdUntil": "2026-10-24T09:30",
+    "people": 2,
+    "children": 0
+   }
+  ],
+  "blocks": [
+   {
+    "id": "GB-1",
+    "name": "Deccan Pharma regional review",
+    "arrival": "2026-10-23",
+    "departure": "2026-10-26",
+    "cutoff": "2026-10-21",
+    "status": "Released",
+    "allot": {
+     "Classic": 2
+    },
+    "picked": {
+     "Classic": 2
+    }
+   },
+   {
+    "id": "GB-2",
+    "name": "Godavari Agro dealers meet",
+    "arrival": "2026-10-30",
+    "departure": "2026-11-01",
+    "cutoff": "2026-10-27",
+    "status": "Open",
+    "allot": {
+     "Classic": 6,
+     "Deluxe": 3
+    },
+    "picked": {
+     "Classic": 0,
+     "Deluxe": 0
+    }
+   },
+   {
+    "id": "GB-3",
+    "name": "Kulkarni–Joshi wedding party",
+    "arrival": "2026-11-06",
+    "departure": "2026-11-08",
+    "cutoff": "2026-10-24",
+    "status": "Open",
+    "allot": {
+     "Classic": 5,
+     "Suite": 1
+    },
+    "picked": {
+     "Classic": 0,
+     "Suite": 0
+    }
+   },
+   {
+    "id": "GB-4",
+    "name": "Sahyadri Infra site team",
+    "arrival": "2026-10-25",
+    "departure": "2026-10-28",
+    "cutoff": "2026-10-25",
+    "status": "Open",
+    "allot": {
+     "Deluxe": 3
+    },
+    "picked": {
+     "Deluxe": 0
+    }
+   }
+  ],
+  "restrictions": [
+   {
+    "id": "YLDR-1",
+    "type": "*",
+    "from": "2026-11-07",
+    "to": "2026-11-09",
+    "minStay": 2,
+    "cta": false,
+    "note": "Diwali weekend"
+   },
+   {
+    "id": "YLDR-2",
+    "type": "Suite",
+    "from": "2026-11-08",
+    "to": "2026-11-08",
+    "minStay": 1,
+    "cta": true,
+    "note": "Lakshmi Puja day — suites sold only as part of longer stays"
+   }
+  ]
+ },
+ "expected": {
+  "searches": [
+   {
+    "query": {
+     "arrival": "2026-10-24",
+     "departure": "2026-10-25",
+     "adults": 2,
+     "children": 0,
+     "type": null
+    },
+    "rooms": [
+     {
+      "roomNo": "101",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "102",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "103",
+      "available": false,
+      "reasons": [
+       "Booked"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "104",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "105",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "106",
+      "available": false,
+      "reasons": [
+       "Held"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "107",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "108",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "201",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "202",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "203",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "204",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "205",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "206",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "207",
+      "available": false,
+      "reasons": [
+       "Booked"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "208",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "301",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "302",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "303",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "304",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "305",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "306",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "307",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "308",
+      "available": false,
+      "reasons": [
+       "Blocked"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     }
+    ]
+   },
+   {
+    "query": {
+     "arrival": "2026-10-24",
+     "departure": "2026-10-25",
+     "adults": 3,
+     "children": 0,
+     "type": "Classic"
+    },
+    "rooms": [
+     {
+      "roomNo": "101",
+      "available": false,
+      "reasons": [
+       "Over capacity",
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "102",
+      "available": false,
+      "reasons": [
+       "Over capacity",
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "105",
+      "available": false,
+      "reasons": [
+       "Over capacity"
+      ],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "108",
+      "available": false,
+      "reasons": [
+       "Over capacity"
+      ],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "201",
+      "available": false,
+      "reasons": [
+       "Over capacity",
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "202",
+      "available": false,
+      "reasons": [
+       "Over capacity",
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "205",
+      "available": false,
+      "reasons": [
+       "Over capacity"
+      ],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "208",
+      "available": false,
+      "reasons": [
+       "Over capacity"
+      ],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "301",
+      "available": false,
+      "reasons": [
+       "Over capacity",
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "302",
+      "available": false,
+      "reasons": [
+       "Over capacity",
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "305",
+      "available": false,
+      "reasons": [
+       "Over capacity"
+      ],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "308",
+      "available": false,
+      "reasons": [
+       "Blocked",
+       "Over capacity"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     }
+    ]
+   },
+   {
+    "query": {
+     "arrival": "2026-10-25",
+     "departure": "2026-10-28",
+     "adults": 1,
+     "children": 0,
+     "type": "Deluxe"
+    },
+    "rooms": [
+     {
+      "roomNo": "103",
+      "available": false,
+      "reasons": [
+       "Booked"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "104",
+      "available": false,
+      "reasons": [
+       "Occupied"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "107",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "203",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "204",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "207",
+      "available": false,
+      "reasons": [
+       "Booked"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     },
+     {
+      "roomNo": "303",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "304",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "307",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     }
+    ]
+   },
+   {
+    "query": {
+     "arrival": "2026-10-26",
+     "departure": "2026-10-28",
+     "adults": 2,
+     "children": 0,
+     "type": null
+    },
+    "rooms": [
+     {
+      "roomNo": "101",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "102",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "103",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "104",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "105",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "106",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "107",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "108",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "201",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "202",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "203",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "204",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "205",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "206",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "207",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "208",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "301",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "302",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "303",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "304",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "305",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "306",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "307",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "308",
+      "available": false,
+      "reasons": [
+       "Blocked"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     }
+    ]
+   },
+   {
+    "query": {
+     "arrival": "2026-10-30",
+     "departure": "2026-11-01",
+     "adults": 1,
+     "children": 0,
+     "type": "Classic"
+    },
+    "rooms": [
+     {
+      "roomNo": "101",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "102",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "105",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "108",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "201",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "202",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "205",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "208",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "301",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "302",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "305",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     },
+     {
+      "roomNo": "308",
+      "available": false,
+      "reasons": [
+       "Blocked"
+      ],
+      "availableRaw": false,
+      "bookable": false
+     }
+    ]
+   },
+   {
+    "query": {
+     "arrival": "2026-11-06",
+     "departure": "2026-11-08",
+     "adults": 4,
+     "children": 0,
+     "type": "Suite"
+    },
+    "rooms": [
+     {
+      "roomNo": "106",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "206",
+      "available": true,
+      "reasons": [],
+      "availableRaw": true,
+      "bookable": true
+     },
+     {
+      "roomNo": "306",
+      "available": false,
+      "reasons": [
+       "GroupHold"
+      ],
+      "availableRaw": true,
+      "bookable": false
+     }
+    ]
+   }
+  ],
+  "holds": [
+   {
+    "roomNo": "307",
+    "block": "GB-4",
+    "type": "Deluxe",
+    "from": "2026-10-25",
+    "to": "2026-10-28"
+   },
+   {
+    "roomNo": "304",
+    "block": "GB-4",
+    "type": "Deluxe",
+    "from": "2026-10-25",
+    "to": "2026-10-28"
+   },
+   {
+    "roomNo": "303",
+    "block": "GB-4",
+    "type": "Deluxe",
+    "from": "2026-10-25",
+    "to": "2026-10-28"
+   },
+   {
+    "roomNo": "305",
+    "block": "GB-2",
+    "type": "Classic",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "302",
+    "block": "GB-2",
+    "type": "Classic",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "301",
+    "block": "GB-2",
+    "type": "Classic",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "208",
+    "block": "GB-2",
+    "type": "Classic",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "205",
+    "block": "GB-2",
+    "type": "Classic",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "202",
+    "block": "GB-2",
+    "type": "Classic",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "307",
+    "block": "GB-2",
+    "type": "Deluxe",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "304",
+    "block": "GB-2",
+    "type": "Deluxe",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "303",
+    "block": "GB-2",
+    "type": "Deluxe",
+    "from": "2026-10-30",
+    "to": "2026-11-01"
+   },
+   {
+    "roomNo": "305",
+    "block": "GB-3",
+    "type": "Classic",
+    "from": "2026-11-06",
+    "to": "2026-11-08"
+   },
+   {
+    "roomNo": "302",
+    "block": "GB-3",
+    "type": "Classic",
+    "from": "2026-11-06",
+    "to": "2026-11-08"
+   },
+   {
+    "roomNo": "301",
+    "block": "GB-3",
+    "type": "Classic",
+    "from": "2026-11-06",
+    "to": "2026-11-08"
+   },
+   {
+    "roomNo": "208",
+    "block": "GB-3",
+    "type": "Classic",
+    "from": "2026-11-06",
+    "to": "2026-11-08"
+   },
+   {
+    "roomNo": "205",
+    "block": "GB-3",
+    "type": "Classic",
+    "from": "2026-11-06",
+    "to": "2026-11-08"
+   },
+   {
+    "roomNo": "306",
+    "block": "GB-3",
+    "type": "Suite",
+    "from": "2026-11-06",
+    "to": "2026-11-08"
+   }
+  ],
+  "violationCases": [
+   {
+    "type": "Classic",
+    "arrival": "2026-11-07",
+    "departure": "2026-11-08",
+    "violations": [
+     {
+      "code": "MIN_STAY",
+      "restriction": "YLDR-1",
+      "message": "Minimum stay 2 nights for arrivals 2026-11-07 to 2026-11-09 (Diwali weekend)."
+     }
+    ]
+   },
+   {
+    "type": "Suite",
+    "arrival": "2026-11-08",
+    "departure": "2026-11-10",
+    "violations": [
+     {
+      "code": "CTA",
+      "restriction": "YLDR-2",
+      "message": "Suite is closed to arrival on 2026-11-08 (Lakshmi Puja day — suites sold only as part of longer stays)."
+     }
+    ]
+   },
+   {
+    "type": "Classic",
+    "arrival": "2026-11-07",
+    "departure": "2026-11-09",
+    "violations": []
+   },
+   {
+    "type": "Classic",
+    "arrival": "2026-11-10",
+    "departure": "2026-11-11",
+    "violations": []
+   },
+   {
+    "type": "Suite",
+    "arrival": "2026-11-08",
+    "departure": "2026-11-09",
+    "violations": [
+     {
+      "code": "MIN_STAY",
+      "restriction": "YLDR-1",
+      "message": "Minimum stay 2 nights for arrivals 2026-11-07 to 2026-11-09 (Diwali weekend)."
+     },
+     {
+      "code": "CTA",
+      "restriction": "YLDR-2",
+      "message": "Suite is closed to arrival on 2026-11-08 (Lakshmi Puja day — suites sold only as part of longer stays)."
+     }
+    ]
+   },
+   {
+    "type": "Deluxe",
+    "arrival": "2026-11-09",
+    "departure": "2026-11-10",
+    "violations": [
+     {
+      "code": "MIN_STAY",
+      "restriction": "YLDR-1",
+      "message": "Minimum stay 2 nights for arrivals 2026-11-07 to 2026-11-09 (Diwali weekend)."
+     }
+    ]
+   }
+  ],
+  "quoteCases": [
+   {
+    "roomNo": "105",
+    "type": "Classic",
+    "arrival": "2026-10-24",
+    "departure": "2026-10-26",
+    "nights": [
+     {
+      "date": "2026-10-24",
+      "ratePaise": 200000,
+      "taxBps": 1000,
+      "taxPaise": 20000
+     },
+     {
+      "date": "2026-10-25",
+      "ratePaise": 200000,
+      "taxBps": 1000,
+      "taxPaise": 20000
+     }
+    ],
+    "netPaise": 400000,
+    "taxPaise": 40000,
+    "totalPaise": 440000,
+    "violations": []
+   },
+   {
+    "roomNo": "203",
+    "type": "Deluxe",
+    "arrival": "2026-10-25",
+    "departure": "2026-10-28",
+    "nights": [
+     {
+      "date": "2026-10-25",
+      "ratePaise": 300000,
+      "taxBps": 1000,
+      "taxPaise": 30000
+     },
+     {
+      "date": "2026-10-26",
+      "ratePaise": 300000,
+      "taxBps": 1000,
+      "taxPaise": 30000
+     },
+     {
+      "date": "2026-10-27",
+      "ratePaise": 300000,
+      "taxBps": 1000,
+      "taxPaise": 30000
+     }
+    ],
+    "netPaise": 900000,
+    "taxPaise": 90000,
+    "totalPaise": 990000,
+    "violations": []
+   },
+   {
+    "roomNo": "106",
+    "type": "Suite",
+    "arrival": "2026-10-26",
+    "departure": "2026-10-27",
+    "nights": [
+     {
+      "date": "2026-10-26",
+      "ratePaise": 450000,
+      "taxBps": 1000,
+      "taxPaise": 45000
+     }
+    ],
+    "netPaise": 450000,
+    "taxPaise": 45000,
+    "totalPaise": 495000,
+    "violations": []
+   },
+   {
+    "roomNo": "107",
+    "type": "Deluxe",
+    "arrival": "2026-11-07",
+    "departure": "2026-11-09",
+    "nights": [
+     {
+      "date": "2026-11-07",
+      "ratePaise": 300000,
+      "taxBps": 1000,
+      "taxPaise": 30000
+     },
+     {
+      "date": "2026-11-08",
+      "ratePaise": 300000,
+      "taxBps": 1000,
+      "taxPaise": 30000
+     }
+    ],
+    "netPaise": 600000,
+    "taxPaise": 60000,
+    "totalPaise": 660000,
+    "violations": []
+   }
+  ],
+  "bookCases": [
+   {
+    "name": "free room",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-10-24",
+     "departure": "2026-10-26",
+     "people": 2
+    },
+    "result": {
+     "code": "OK",
+     "status": "Confirmed",
+     "holdUntil": null
+    }
+   },
+   {
+    "name": "hold",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-10-24",
+     "departure": "2026-10-26",
+     "people": 2,
+     "hold": true
+    },
+    "result": {
+     "code": "OK",
+     "status": "Held",
+     "holdUntil": "2026-10-24T10:00"
+    }
+   },
+   {
+    "name": "blocked room 308",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "308",
+     "arrival": "2026-10-24",
+     "departure": "2026-10-25",
+     "people": 1
+    },
+    "result": {
+     "code": "NOT_AVAILABLE"
+    }
+   },
+   {
+    "name": "running hold on 106",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "106",
+     "arrival": "2026-10-24",
+     "departure": "2026-10-25",
+     "people": 1
+    },
+    "result": {
+     "code": "NOT_AVAILABLE"
+    }
+   },
+   {
+    "name": "adjacent to 106 hold",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "106",
+     "arrival": "2026-10-25",
+     "departure": "2026-10-26",
+     "people": 1
+    },
+    "result": {
+     "code": "OK",
+     "status": "Confirmed",
+     "holdUntil": null
+    }
+   },
+   {
+    "name": "in-house 101 overlap",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "101",
+     "arrival": "2026-10-25",
+     "departure": "2026-10-27",
+     "people": 1
+    },
+    "result": {
+     "code": "NOT_AVAILABLE"
+    }
+   },
+   {
+    "name": "101 after departure",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "101",
+     "arrival": "2026-10-26",
+     "departure": "2026-10-27",
+     "people": 1
+    },
+    "result": {
+     "code": "OK",
+     "status": "Confirmed",
+     "holdUntil": null
+    }
+   },
+   {
+    "name": "over capacity Classic",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-10-24",
+     "departure": "2026-10-25",
+     "people": 3
+    },
+    "result": {
+     "code": "VALIDATION"
+    }
+   },
+   {
+    "name": "group-held room (GB-4)",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "307",
+     "arrival": "2026-10-25",
+     "departure": "2026-10-26",
+     "people": 1
+    },
+    "result": {
+     "code": "NOT_AVAILABLE"
+    }
+   },
+   {
+    "name": "min stay",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-11-07",
+     "departure": "2026-11-08",
+     "people": 1
+    },
+    "result": {
+     "code": "RESTRICTED"
+    }
+   },
+   {
+    "name": "CTA suite",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "106",
+     "arrival": "2026-11-08",
+     "departure": "2026-11-10",
+     "people": 1
+    },
+    "result": {
+     "code": "RESTRICTED"
+    }
+   },
+   {
+    "name": "override by reception",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-11-07",
+     "departure": "2026-11-08",
+     "people": 1,
+     "restrictionOverride": "Regular guest"
+    },
+    "result": {
+     "code": "FORBIDDEN"
+    }
+   },
+   {
+    "name": "override short reason",
+    "uid": "manager",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-11-07",
+     "departure": "2026-11-08",
+     "people": 1,
+     "restrictionOverride": "x"
+    },
+    "result": {
+     "code": "VALIDATION"
+    }
+   },
+   {
+    "name": "override by manager",
+    "uid": "manager",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-11-07",
+     "departure": "2026-11-08",
+     "people": 1,
+     "restrictionOverride": "Regular corporate guest"
+    },
+    "result": {
+     "code": "OK",
+     "status": "Confirmed",
+     "holdUntil": null
+    }
+   },
+   {
+    "name": "arrival before business date",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-10-23",
+     "departure": "2026-10-25",
+     "people": 1
+    },
+    "result": {
+     "code": "VALIDATION"
+    }
+   },
+   {
+    "name": "31 nights",
+    "uid": "reception",
+    "cmd": {
+     "guest": "Golden Guest",
+     "room": "105",
+     "arrival": "2026-11-12",
+     "departure": "2026-12-13",
+     "people": 1
+    },
+    "result": {
+     "code": "VALIDATION"
+    }
+   }
+  ]
+ }
+}

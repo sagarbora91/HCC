@@ -24,6 +24,8 @@ builder.Services.AddSingleton(platform);
 builder.Services.AddSingleton(platform.Connections);
 builder.Services.AddSingleton<ICommandRunner>(platform.Commands);
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddInventoryModule();
+builder.Services.AddReservationsModule();
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
@@ -33,6 +35,8 @@ var app = builder.Build();
 app.UseMiddleware<HccErrorMiddleware>();
 
 var api = app.MapGroup(ApiConventions.BasePath);
+api.MapInventoryEndpoints();
+api.MapReservationsEndpoints();
 api.MapGet("/system/health", async (SqlConnectionFactory connections, TimeProvider clock, CancellationToken ct) =>
 {
     await using var conn = await connections.OpenAsync(ct);

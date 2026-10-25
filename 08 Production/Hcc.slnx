@@ -8,9 +8,11 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Hcc.Platform.Tests/Hcc.Platform.Tests.csproj" />
+    <Project Path="tests/Hcc.Inventory.Tests/Hcc.Inventory.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
     <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
+    <File Path="database/migrations-wave1/0200_inventory_reservations.sql" />
   </Folder>
 </Solution>
