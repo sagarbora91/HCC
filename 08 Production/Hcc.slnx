@@ -32,6 +32,7 @@
     <Project Path="tests/Hcc.Payroll.Tests/Hcc.Payroll.Tests.csproj" />
     <Project Path="tests/Hcc.Documents.Tests/Hcc.Documents.Tests.csproj" />
     <Project Path="tests/Hcc.WebBooking.Tests/Hcc.WebBooking.Tests.csproj" />
+    <Project Path="tests/Hcc.Ota.Tests/Hcc.Ota.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -69,5 +70,7 @@
     <File Path="database/migrations/0901_payroll_rbac_seed.sql" />
     <File Path="database/migrations/2100_documents.sql" />
     <File Path="database/migrations/2101_documents_rbac_seed.sql" />
+    <File Path="database/migrations/2500_ota_channels.sql" />
+    <File Path="database/migrations/2501_ota_rbac_seed.sql" />
   </Folder>
 </Solution>

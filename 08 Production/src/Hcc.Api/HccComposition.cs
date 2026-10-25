@@ -46,6 +46,7 @@ public static class HccComposition
         services.AddDocumentsModule();                   // W3-3 ID document capture / OCR (needs the guest ID key)
         services.AddCustomersModule();                   // W3-5 customers / CRM (customer 360, merge duplicates)
         services.AddWebBookingModule(configuration);     // W3-2 booking website (public quote/request, staff queue, deposit link)
+        services.AddOtaModule();                         // W3-1 OTA channels (simulated channel manager)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -88,6 +89,7 @@ public static class HccComposition
         api.MapDocumentsEndpoints();     // W3-3 ID document capture
         api.MapCustomersEndpoints();     // W3-5
         api.MapWebBookingEndpoints();    // W3-2 booking website
+        api.MapOtaEndpoints();           // W3-1 OTA channels
         return api;
     }
 }
