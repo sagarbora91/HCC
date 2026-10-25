@@ -1,5 +1,6 @@
 // Stream F · Cashier, closing & reports (owns NIGHT_POST, POST_NIGHTS, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, EXPENSE, EXPENSE_APPROVE) — fixture extensions.
 import type {State} from '../../domain/types';
+import {gstForRoomNight} from '../../domain/gst';
 import type {ScenarioInfo} from '../scenarios';
 /** Called on every new base fixture (all scenarios start from it). Add this stream's seed data here. */
 export function extendBase(_s:State):void{}
@@ -7,7 +8,7 @@ export function extendBase(_s:State):void{}
 function s5(s:State){
   const posted=['HCC-1041','HCC-1042','HCC-1043'];
   for(const id of posted){const b=s.bookings.find(b=>b.id===id)!;
-    b.lines.push({id:`night:${id}:${s.date}`,label:'Room night · '+s.date,amount:b.rate,date:s.date,kind:'room',taxBps:s.settings.taxBps});b.version++;}
+    b.lines.push({id:`night:${id}:${s.date}`,label:'Room night · '+s.date,amount:b.rate,date:s.date,kind:'room',taxBps:gstForRoomNight(s,s.date,b.rate).bps});b.version++;}
   s.closeProgress={date:s.date,posted,total:s.bookings.filter(b=>b.status==='In house').length,interrupted:true,runs:1};
 }
 /** Extra per-scenario changes, applied after the scenario's own builder. */

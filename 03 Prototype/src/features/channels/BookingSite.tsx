@@ -29,14 +29,14 @@ export function GuestPreview(){
     {done?<div className="chn-site-body chn-site-done">
       <CheckCircle2 size={44} aria-hidden/><h3>Request received</h3>
       <p>Reference <strong>{done.id}</strong> · {done.roomType} · {stay(done.arrival,done.departure)}</p>
-      <p>Total {money(done.total)} incl. synthetic tax. The hotel will confirm shortly; your room is held for 2 hours (simulated). No payment taken.</p>
+      <p>Total {money(done.total)} incl. GST. The hotel will confirm shortly; your room is held for 2 hours (simulated). No payment taken.</p>
       <button className="btn primary chn-big" onClick={reset}>Make another request</button></div>
     :pick&&live?<form className="chn-site-body form" onSubmit={e=>{e.preventDefault();const before=reqs.length;
         run({type:'CHN_WEB_REQUEST',roomType:pick.type,arrival,departure,adults,children,guest:guest.trim(),phone:phone.trim(),email:email.trim(),notes:notes.trim()},'Web booking request received — held for staff confirmation').then(ok=>{if(ok)setDoneAt(before);});}}>
       <button type="button" className="chn-back" onClick={()=>setPick(null)}><ArrowLeft size={18}/> Change room</button>
       <div className="chn-site-sum"><strong>{pick.type} room</strong><span>{stay(arrival,departure)} · {party(adults,children)}</span>
         <div><span>{live.nights} night{live.nights===1?'':'s'} × {money(live.rate)}</span><b>{money(live.net)}</b></div>
-        <div><span>Synthetic tax ({pct(live.taxBps)})</span><b>{money(live.tax)}</b></div>
+        <div><span>GST ({pct(live.taxBps)} · CGST + SGST)</span><b>{money(live.tax)}</b></div>
         <div className="chn-site-total"><span>Total</span><b>{money(live.total)}</b></div>
         {!live.ok&&<p className="chn-err-text" role="alert">{live.reason} — choose another room.</p>}</div>
       <h3>Your details</h3>
@@ -54,7 +54,7 @@ export function GuestPreview(){
         <NumberStepper label="Adults" value={adults} min={1} max={4} onChange={setAdults}/>
         <NumberStepper label="Children" value={children} min={0} max={3} onChange={setChildren}/>
       </div>
-      {err?<p className="chn-err-text" role="alert">{err}</p>:<p className="chn-site-count" aria-live="polite">{nights(arrival,departure)} night{nights(arrival,departure)===1?'':'s'} · {party(adults,children)} · prices include synthetic {pct(quotes[0]?.taxBps??0)} tax in the total</p>}
+      {err?<p className="chn-err-text" role="alert">{err}</p>:<p className="chn-site-count" aria-live="polite">{nights(arrival,departure)} night{nights(arrival,departure)===1?'':'s'} · {party(adults,children)} · prices include {pct(quotes[0]?.taxBps??0)} GST in the total</p>}
       {quotes.map(q=>{const copy=CHN_TYPE_COPY[q.type];return <article key={q.type} className={'chn-room'+(q.ok?'':' off')}>
         <div className={'chn-room-img t-'+q.type.toLowerCase()} aria-hidden><BedDouble size={34}/></div>
         <div className="chn-room-body"><div className="chn-room-head"><h3>{q.type}</h3><span><Users size={14} aria-hidden/> Sleeps {q.capacity}</span></div>
@@ -78,7 +78,7 @@ export function WebRequests({compact=false}:{compact?:boolean}){
       <p>{w.roomType}{b?` · room ${b.room}`:''} · {stay(w.arrival,w.departure)} · {party(w.adults,w.children)}</p>
       <p>{w.phone}{w.email?' · '+w.email:''}</p>
       {w.notes&&<p className="chn-muted">“{w.notes}”</p>}
-      <div className="chn-req-foot"><b>{money(w.total)}</b><small>incl. synthetic tax {money(w.tax)} · received {clockTime(w.createdAt)}</small></div>
+      <div className="chn-req-foot"><b>{money(w.total)}</b><small>incl. GST {money(w.tax)} · received {clockTime(w.createdAt)}</small></div>
       {st==='Pending'&&b&&<small className="chn-warn-text">Hold: {resHoldLeftLabel(s,b)}</small>}
       {w.reason&&<small className="chn-muted">Reason: {w.reason}</small>}
       {w.decidedBy&&<small className="chn-muted">By {firstName(s.users.find(u=>u.id===w.decidedBy)?.name)}</small>}

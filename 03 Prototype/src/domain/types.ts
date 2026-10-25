@@ -165,7 +165,10 @@ export type Approval={id:string;booking:string;amount:number;reason:string;statu
   // ── Approval · stream F fields (add below this line) ──
 };
 export type Audit={id:string;at:string;actor:string;action:string;detail:string};
-export type Settings={hotel:string;taxBps:number;discountLimit:number;inspection:boolean;checkin:string;checkout:string;
+export type Settings={hotel:string;
+  /** Legacy synthetic tax (before DEC-069); ignored — GST comes from the dated GST master (domain/gst.ts). Old saves may still carry it. */
+  taxBps?:number;
+  discountLimit:number;inspection:boolean;checkin:string;checkout:string;
   // ── Settings · stream A fields (add below this line) ──
 
   // ── Settings · stream B fields (add below this line) ──
@@ -225,7 +228,7 @@ export type State={
   policy?:import('./streams/admin').HccPolicy;
   /** Effective-dated tariffs per room type. rateFor() uses the latest with effectiveFrom ≤ date, else room.rate. */
   tariffs?:{type:string;rate:number;effectiveFrom:string}[];
-  /** Effective-dated synthetic tax. taxRateFor() uses the latest with effectiveFrom ≤ date, else settings.taxBps. */
+  /** Legacy synthetic tax schedule (before DEC-069); no longer read — GST rates are dated values in the GST master. */
   taxSchedule?:{bps:number;effectiveFrom:string}[];
   /** Configuration change history (SCR-18): one entry per changed key. */
   configHistory?:{id:string;key:string;before:string;after:string;at:string;actor:string;effectiveFrom:string;reason:string}[];

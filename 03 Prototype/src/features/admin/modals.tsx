@@ -1,8 +1,8 @@
 // Stream E dialogs. Types: 'admin-user' (id = user ID, omitted = new user), 'admin-setting' (id = setting key),
-// 'admin-tariff' (room = room type), 'admin-tax' (no args).
+// 'admin-tariff' (room = room type). The synthetic 'admin-tax' dialog was removed by DEC-069 (GST master rows use 'cfg-setting').
 import React,{useState} from 'react';
 import {Check,AlertTriangle,Info} from 'lucide-react';
-import {roles,authorize,adminImpactPreview,adminSettingHistory,adminSettingValue,adminTariffOn,adminTaxScheduled,adminBaseRate,adminRoomTypes,ADMIN_SETTINGS} from '../../services/mock';
+import {roles,authorize,adminImpactPreview,adminSettingHistory,adminSettingValue,adminTariffOn,adminBaseRate,adminRoomTypes,ADMIN_SETTINGS} from '../../services/mock';
 import type {AdminImpact,Role} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,clockTime} from '../../components/ui';
@@ -90,20 +90,4 @@ export function TariffModal({room}:{room?:string}){
     </form></>;
 }
 
-export function TaxModal(){
-  const {s,uid,run,modal,closeModal,busy}=useHcc();
-  const [pct,setPct]=useState(String(adminTaxScheduled(s,s.date)/100));const [from,setFrom]=useState(s.date);
-  const block=cfgBlock(s,uid);const bps=Math.round(Number(pct)*100);
-  const p=adminImpactPreview(s,{kind:'tax',bps,effectiveFrom:from});
-  return <><div className="modal-heading"><div className="eyebrow">FINANCE & SYNTHETIC TAX</div><h2>Schedule a synthetic tax change</h2><p>Test data, not a validated GST rate. Lines already posted keep their tax snapshot; new room nights and charges dated on or after the effective date use the new rate.</p></div>
-    <form className="form" onSubmit={e=>submit(e,f=>run({type:'TAX_SCHEDULE',bps,effectiveFrom:from,reason:field(f,'reason'),key:modal!.key},'Synthetic tax scheduled',{close:true}))}>
-      <div className="form-row"><label>Synthetic tax (%)<input type="number" min="0" max="30" step="0.01" required value={pct} onChange={e=>setPct(e.target.value)}/></label>
-        <label>Effective from (business date)<input type="date" min={s.date} required value={from} onChange={e=>setFrom(e.target.value)}/></label></div>
-      <label>Reason (optional)<input name="reason" maxLength={120}/></label>
-      <Impact p={p}/>
-      <HistoryList k="taxBps"/>
-      {block&&<p className="adm-lock" role="note">{block}</p>}
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!!block}>Schedule tax <Check size={16}/></button></div>
-    </form></>;
-}
 

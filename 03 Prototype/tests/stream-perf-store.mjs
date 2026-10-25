@@ -12,7 +12,9 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 /** sha256 of JSON.stringify(loadScenario('FY26')) on main b04f596, before this change. A deliberate fixture change must update it. */
 // Updated at the integration merge (lead): DEC-068 guest profiles now carry fictional full ID numbers, so FY26 changed on purpose.
 // old 2aadeee5…2c84a63 → new 26889bd0…1f7f2e7c; worker, main-thread and direct generation must still all match it.
-const FY26_SHA_BEFORE='26889bd06e73f13b8ad2ac01cfe75998fe923d6834dea1cf2551b6ef1f7f2e7c';
+// DEC-069 GST (merge of claude/dec-gst): FY26 history is regenerated with real GST (room 5 %, restaurant 5 %, laundry 18 %, payments follow the
+// new folio totals), so FY26 changed on purpose again: old 26889bd0…1f7f2e7c → new 3521729b…ec6e46b4; worker, main and direct must still match.
+const FY26_SHA_BEFORE='3521729b95e695493f6a41052a1bb6efe970d410d97d232c0464025aec6e46b4';
 
 // ── fake IndexedDB with real transaction semantics: writes are staged and applied only on commit; `failPut` aborts the
 // transaction when a put for that key is issued (nothing of that transaction is applied) ──

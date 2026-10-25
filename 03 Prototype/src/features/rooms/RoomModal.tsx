@@ -11,7 +11,7 @@ export function RoomModal({id}:{id:string}){
   const canReport=permission('housekeeping')||permission('reservations')||permission('inspect');
   const openRepair=s.tasks.find(t=>t.room===r.id&&t.kind==='repair'&&t.status!=='Done');
   const range=r.blockFrom||r.blockTo?`${r.blockFrom?shortDate(r.blockFrom):'Now'} → ${r.blockTo?shortDate(r.blockTo)+' (available from this date)':'open-ended'}`:'Until unblocked';
-  return <><div className="modal-heading"><div className="eyebrow">FLOOR {r.floor} · {r.type.toUpperCase()}</div><h2>Room {r.id}</h2>{finance&&<p>{money(r.rate)} per night · synthetic tax additional</p>}</div>
+  return <><div className="modal-heading"><div className="eyebrow">FLOOR {r.floor} · {r.type.toUpperCase()}</div><h2>Room {r.id}</h2>{finance&&<p>{money(r.rate)} per night · GST additional</p>}</div>
     <div className="room-details"><div><span>Occupancy</span><Pill tone={b?'blue':'green'}>{b?'Occupied':'Vacant'}</Pill></div><div><span>Housekeeping</span><Pill>{r.hk}</Pill></div><div><span>Inventory block</span><Pill tone={r.blocked?'orange':'green'}>{r.blocked?<><Lock size={11}/> Out of service</>:'None'}</Pill></div></div>
     {r.blocked&&<div className="summary-list hk-block-info" aria-label="Block details"><div><span>Block reason</span><strong>{r.blockReason||'Not recorded (legacy block)'}</strong></div><div><span>Dates</span><strong>{range}</strong></div></div>}
     {holdTonight(s,r)&&<div className="info-note"><Lock size={16}/>{holdTonight(s,r)!.label} — held for the group's rooming list; not bookable from the room board.</div>}

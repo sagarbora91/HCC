@@ -21,5 +21,5 @@ export function Reservations({folio=false}:{folio?:boolean}){
       <label>Staying on<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>{date&&<button className="text-btn" onClick={()=>setDate('')}>Clear date</button>}
       <span className="muted">{list.length} of {s.bookings.length} bookings</span></div>
     <section className="card"><BookingTable list={pg.shown}/><ShowMore p={pg}/></section>
-    <p className="footnote">All names and records are fictional. Tax figures use a synthetic demonstration rate.</p></>;
+    <p className="footnote">All names and records are fictional. Tax figures use the dated GST master (illustrative — CA to confirm).</p></>;
 }

@@ -4,7 +4,8 @@
 import type {Handler,Kit} from '../commands';
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
-import {totals,taxRateFor} from '../../../domain/selectors';
+import {totals} from '../../../domain/selectors';
+import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
@@ -58,7 +59,9 @@ const PAYMENT:Handler=k=>{
 const CHARGE:Handler=({s,cmd,req,b,financial,positive,assert,id})=>{
   // PERM-FOL-002
   req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.label?.trim(),'Describe the service.');
-  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:taxRateFor(s,s.date)});x.version++;
+  // DEC-069: GST by supply — an explicit category (food / laundry / banquet / other) or one read from the description.
+  assert(cmd.gst===undefined||GST_CHARGE_CATEGORIES.some(c=>c.id===cmd.gst),'Choose a GST category: food, laundry, banquet or other.');
+  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:gstForCharge(s,s.date,cmd.gst??gstCategoryOfLabel(cmd.label)).bps});x.version++;
   return x.id+' · '+cmd.label;
 };
 
@@ -75,7 +78,7 @@ const DISCOUNT:Handler=k=>{
     request(k,x,{amount:cmd.amount,reason:cmd.reason,kind:undefined});
     return x.id+' · approval requested';
   }
-  x.lines.push({id:id('discount'),label:'Discount · '+cmd.reason,amount:-cmd.amount,date:s.date,kind:'discount',taxBps:taxRateFor(s,s.date)});x.version++;
+  x.lines.push({id:id('discount'),label:'Discount · '+cmd.reason,amount:-cmd.amount,date:s.date,kind:'discount',taxBps:gstForFolioAdjustment(s,x,s.date).bps});x.version++;
   return x.id+' · discount posted';
 };
 
@@ -178,7 +181,7 @@ const APPROVAL:Handler=k=>{
     if(kind==='discount'){
       financial(x!);stale();
       assert(totals(x!).net>=a!.amount,'Discount exceeds the current charges.');
-      x!.lines.push({id:id('discount'),label:'Approved discount · '+a!.reason,amount:-a!.amount,date:s.date,kind:'discount',taxBps:taxRateFor(s,s.date)});x!.version++;
+      x!.lines.push({id:id('discount'),label:'Approved discount · '+a!.reason,amount:-a!.amount,date:s.date,kind:'discount',taxBps:gstForFolioAdjustment(s,x!,s.date).bps});x!.version++;
     }else if(kind==='refund'){
       assert(x,'Booking not found.','NOT_FOUND');stale();
       const r=x!.receipts.find(r=>r.id===a!.target);assert(r,'The original receipt no longer exists.','NOT_FOUND');
@@ -201,7 +204,7 @@ const APPROVAL:Handler=k=>{
       assert(a!.amount<=totals(x!).net,'Credit note cannot exceed the net charges on this folio.');
       s.creditNoteSeqC=(s.creditNoteSeqC??0)+1;const no=folioCreditNoteNo(s.creditNoteSeqC);
       const lid=id('credit');
-      x!.lines.push({id:lid,label:`Credit note ${no} · ${a!.reason}`,amount:-a!.amount,date:s.date,kind:'adjustment',taxBps:taxRateFor(s,s.date),approvalId:a!.id});
+      x!.lines.push({id:lid,label:`Credit note ${no} · ${a!.reason}`,amount:-a!.amount,date:s.date,kind:'adjustment',taxBps:gstForFolioAdjustment(s,x!,s.date).bps,approvalId:a!.id});
       (x!.creditNotes??=[]).push({id:id('CN'),no,amount:a!.amount,reason:a!.reason,date:s.date,approvalId:a!.id,lineId:lid});
       x!.version++;a!.status='Executed';a!.meta={...a!.meta,creditNote:no};extra=' · '+no+' issued';
     }

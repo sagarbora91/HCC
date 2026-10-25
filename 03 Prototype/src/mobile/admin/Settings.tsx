@@ -1,9 +1,9 @@
 // W05-A · M21 phone Master configuration: grouped list with search and live summaries → group details → Back (button and Android Back,
 // via useStepBack). Setting cards open the 'cfg-setting' sheet (value, effective date, what it affects, history + revert). Read-only
-// groups show the reason. Tariff and synthetic-tax schedules stay editable for the Owner; modules on/off and data panels are shared.
+// groups show the reason. Tariff schedules and the dated GST master rows (DEC-069) stay editable for the Owner; modules on/off and data panels are shared.
 import React,{useState} from 'react';
 import {Lock,ArrowLeft,CalendarClock,Search} from 'lucide-react';
-import {money,rateFor,adminRoomTypes,adminBaseRate,adminTaxScheduled,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,CFG_SECTIONS,
+import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,CFG_SECTIONS,
   type CfgGroupId} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {useStepBack} from '../../app/native';
@@ -22,7 +22,7 @@ export function MaSettings(){
   if(sel)return <MaGroup g={sel} q={q} onBack={()=>setSel('')}/>;
   const rows=cfgListRows(s,uid,q);
   return <div className="ma-page cfg-m">
-    <div className="ma-badges"><MaTag tone="warn">Fictional property · synthetic tax</MaTag></div>
+    <div className="ma-badges"><MaTag tone="warn">Fictional property · GST illustrative</MaTag></div>
     <label className="cfg-search cfg-m-search"><Search size={18}/><input type="search" aria-label="Search settings" placeholder="Search settings" value={q} onChange={e=>setQ(e.target.value)} enterKeyHint="search"/></label>
     {!rows.length&&<Empty title="No setting matches" body="Try another word."/>}
     {CFG_SECTIONS.map(sec=>{const list=rows.filter(r=>r.section===sec);if(!list.length)return null;
@@ -67,13 +67,10 @@ function Tariffs({block}:{block?:string}){
       </article>;})}
   </>;
 }
-function Tax({block}:{block?:string}){
-  const {s,run,open,busy}=useHcc();
-  const list=[...(s.taxSchedule||[])].sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1);
+function Tax(_p:{block?:string}){
+  const {s}=useHcc();
   return <>
-    <MaIntro>Synthetic demonstration tax — not a GST rate. In effect today: <strong>{adminTaxScheduled(s,s.date)/100}%</strong>.</MaIntro>
-    {list.map(x=><div className="ma-sched ma-card" key={x.effectiveFrom}><span><strong>{x.bps/100}%</strong> from {shortDate(x.effectiveFrom)}</span>{x.effectiveFrom<=s.date?<MaTag tone="ok">In effect / past</MaTag>:<><MaTag tone="info">Future</MaTag>
-      <MaGuard className="btn" block={block} busy={busy} onClick={()=>run({type:'TAX_SCHEDULE',effectiveFrom:x.effectiveFrom,remove:true,key:`tax-rm:${x.effectiveFrom}:${s.sequence}`},'Future tax rate withdrawn')}>Withdraw</MaGuard></>}</div>)}
-    <MaGuard block={block} busy={busy} onClick={()=>open({type:'admin-tax'})}><CalendarClock size={18}/>Schedule tax…</MaGuard>
+    <MaIntro>GST master in force today (CGST + SGST halves). Change each rate below with an effective date. Illustrative — CA to confirm.</MaIntro>
+    {gstMasterSummary(s,s.date).map(([a,b,c])=><div className="ma-sched ma-card" key={a}><span><strong>{b}</strong> {a}</span><MaTag tone="info">{c.split(' · ')[0]}</MaTag></div>)}
   </>;
 }

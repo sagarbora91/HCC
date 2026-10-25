@@ -6,6 +6,7 @@ import type {State,Booking,Expense,Receipt,Line} from '../types';
 import {money,addDays} from '../money';
 import {drawer,blockedDuring,totals} from '../selectors';
 import {posSlice,posOpenOrders,posOrderTotals,posSpot} from './pos';
+import {lineTax} from '../gst';
 
 // ── Limits (RBAC Matrix §6, demonstration defaults) ──
 /** Manager may accept a cash difference up to ₹200; above → Owner (PERM-SHF-002). */
@@ -190,7 +191,6 @@ export type ReportTab={id:string;label:string;metrics:ReportMetric[];ratios:Repo
 export type ReportPack={from:string;to:string;dates:string[];tabs:ReportTab[]};
 export function reportDates(from:string,to:string){const out:string[]=[];for(let d=from;d<=to&&out.length<366;d=addDays(d,1))out.push(d);return out;}
 const inRange=(d:string,from:string,to:string)=>d>=from&&d<=to;
-const lineTax=(l:Line)=>Math.round(l.amount*l.taxBps/10000);
 export function reportLines(s:State,from:string,to:string){
   return s.bookings.flatMap(b=>b.lines.filter(l=>inRange(l.date,from,to)).map(l=>({b,l})));
 }
@@ -270,7 +270,7 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
       table:{columns:['Business date','Day status','Arrivals','Departures','Occupied','Net revenue','Net receipts','Expenses'],units:['text','text','count','count','count','money','money','money'],
         rows:dates.map(d=>[d,s.closedDates.includes(d)?'Closed':d===s.date?'Open':d>s.date?'Future':'—',sumBy(arrRows,d),sumBy(depRows,d),sumBy(stayRows,d),sumBy(net.rows,d),sumBy(pay.rows,d),sumBy(expTotal.rows,d)])}},
     {id:'revenue',label:'Revenue & tax',ratios:[],metrics:[metric('room','Room revenue',L('room')),metric('service','Service revenue',L('service')),metric('discount','Discounts',L('discount')),
-      metric('adjustment','Adjustments & corrections',L('adjustment')),net,metric('tax','Synthetic tax (10% test rate)',taxRows,'money','Tax is a liability, not revenue'),
+      metric('adjustment','Adjustments & corrections',L('adjustment')),net,metric('tax','GST (CGST + SGST)',taxRows,'money','Tax is a liability, not revenue · GST master, illustrative — CA to confirm'),
       metric('gross','Charges incl. tax',[...L(),...taxRows.map(r=>({...r,ref:r.ref+':tax',detail:'Tax · '+r.detail}))])],
       table:{columns:['Business date','Room','Service','Discounts','Adjustments','Net revenue','Tax'],units:['text','money','money','money','money','money','money'],
         rows:dates.map(d=>[d,sumBy(L('room'),d),sumBy(L('service'),d),sumBy(L('discount'),d),sumBy(L('adjustment'),d),sumBy(net.rows,d),sumBy(taxRows,d)])}},
@@ -304,7 +304,7 @@ export const reportDictionary:[string,string,string][]=[
   ['Outstanding','Σ positive folio balances of open stays','—'],
   ['Expenses','Σ posted expenses by business date, split by funding source; a reversal is a negative record on its own date','—'],
   ['Drawer cash flows','Cash in = guest payments + deposits + POS cash sales; cash out = negative refunds + deposit returns + POS cash voids. Filtered by receipt date; cash expenses are separate.','Opening float + cash in + signed cash out − net cash expenses = expected cash for that day, before banking'],
-  ['Synthetic tax','Per-line tax rounded half-up to the paisa at the line’s snapshot rate; test data, not GST','—'],
+  ['GST (CGST + SGST)','Per-line GST at the line’s snapshot rate from the dated GST master, rounded half away from zero to the paisa; CGST + SGST halves split per line (illustrative — CA to confirm)','—'],
 ];
 const csvCell=csvQuoted;
 const rupees=(p:number)=>(p/100).toFixed(2);

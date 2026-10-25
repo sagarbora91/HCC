@@ -7,7 +7,7 @@ export function register({test,M,assert}){
 
   test('[CMP] fixture: 7 obligations, 37 rows (6 months x 6 + GSTR-9); core figures unchanged',()=>{
     const s=seed(),x=cmpSlice(s);assert.equal(x.obligations.length,7);assert.equal(cmpItems(s).length,37);
-    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1075000);});
+    assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);}); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
   test('[CMP] counters on 24 Oct 2026: 1 overdue, 1 due soon, 1 upcoming, 32 filed, 2 not applicable',()=>{
     const c=cmpCounts(cmpItems(seed()));assert.deepEqual(c,{overdue:1,due:1,upcoming:1,filed:32,na:2,open:3});});
   test('[CMP] absent slice reads as empty (old saves)',()=>{const s=seed();delete s.complianceX;assert.equal(cmpItems(s).length,0);assert.equal(cmpSlice(s).settings.dueSoonDays,7);});

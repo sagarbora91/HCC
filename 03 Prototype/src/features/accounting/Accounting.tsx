@@ -28,7 +28,7 @@ export function AccountingPage(){
   const tabs:[Tab,string,number?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],['chart','Chart of accounts'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
   const tbT=tb.reduce((a,r)=>({debit:a.debit+r.debit,credit:a.credit+r.credit}),{debit:0,credit:0});
   return <div className="acc-page">
-    <PageTitle title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · synthetic 10% tax"
+    <PageTitle title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · GST (CGST + SGST)"
       action={<div className="inline"><AccDatePicker date={date} setDate={setDate} dates={dates}/><AccExportButton date={date}/><AccLockButton date={date}/></div>}/>
     <div className="acc-statusbar"><AccStatusPill status={status}/>
       {lock?<span className="muted">Locked by {accUserName(s,lock.lockedBy)} · {shortDate(lock.lockedAt.slice(0,10))} {clockTime(lock.lockedAt)} (simulated) · {lock.count} vouchers frozen</span>
@@ -66,7 +66,7 @@ export function AccountingPage(){
       {tab==='chart'&&<div className="table-wrap"><table className="acc-table"><thead><tr><th>Code</th><th>Ledger</th><th>Group</th><th>Note</th></tr></thead>
         <tbody>{ACC_CHART.map(a=><tr key={a.code}><td className="number">{a.code}</td><td><strong>{a.name}</strong></td><td>{a.group}</td><td><small>{a.note??''}</small></td></tr>)}</tbody></table></div>}
     </section>
-    <p className="footnote">Vouchers are re-derived from source records until a closed day is locked; voucher numbers are provisional until then. Synthetic chart of accounts and 10% test tax — not GST, not a statutory book of account.</p>
+    <p className="footnote">Vouchers are re-derived from source records until a closed day is locked; voucher numbers are provisional until then. Synthetic chart of accounts; GST split CGST + SGST from the GST master (illustrative — CA to confirm) — not a statutory book of account.</p>
   </div>;
 }
 function MappingTable(){

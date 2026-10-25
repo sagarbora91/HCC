@@ -2,6 +2,7 @@
 // Fine-grained policy layer (BL-024, RBAC matrix v1, DEC-040), approvals inbox (BL-026) and configuration selectors (BL-027).
 import type {State,Role,User,Booking,Approval,Audit,Permission} from '../types';
 import {money} from '../money';
+import {gstForRoomNight,gstForFood,gstPct} from '../gst';
 
 // ───────────────────────────── Policy model ─────────────────────────────
 export type PolicyEffect='allow'|'deny'|'limit'|'request';
@@ -246,15 +247,15 @@ export function adminAuditFilter(s:State,f:AdminAuditFilter):Audit[]{
 // ───────────────────────────── Configuration (BL-027) ─────────────────────────────
 export type AdminSettingKey='hotel'|'invoicePrefix'|'checkin'|'checkout'|'discountLimit'|'approvalExpiryHours'|'inspection';
 export type AdminSettingDef={key:string;category:string;label:string;type:'text'|'time'|'money'|'boolean'|'integer'|'percent'|'fixed';unit:string;editable:boolean;approval:string;effective:string;help:string};
-export const ADMIN_CONFIG_CATEGORIES=['Property','Rooms & tariffs','Stay timings','Finance & synthetic tax','Approvals/limits','Housekeeping','Shifts','Documents'] as const;
+export const ADMIN_CONFIG_CATEGORIES=['Property','Rooms & tariffs','Stay timings','Finance & tax','Approvals/limits','Housekeeping','Shifts','Documents'] as const;
 const OWNER='Owner (admin.configuration, PERM-ADM-003); Manager tells the Owner (DEC-058, DEC-063)';
 export const ADMIN_SETTINGS:AdminSettingDef[]=[
   {key:'hotel',category:'Property',label:'Property display name',type:'text',unit:'text, ≤ 60 chars',editable:true,approval:OWNER,effective:'Immediately',help:'Shown in the header, sidebar and documents.'},
   {key:'rooms',category:'Property',label:'Rooms in inventory',type:'fixed',unit:'rooms',editable:false,approval:'Fixture (rooms are managed by housekeeping & rooms)',effective:'—',help:'Room count and types come from the demo fixture.'},
   {key:'checkin',category:'Stay timings',label:'Standard check-in time',type:'time',unit:'HH:mm (IST)',editable:true,approval:OWNER,effective:'Immediately; existing bookings keep their dates',help:'Affects arrivals expected today.'},
   {key:'checkout',category:'Stay timings',label:'Standard checkout time',type:'time',unit:'HH:mm (IST)',editable:true,approval:OWNER,effective:'Immediately; existing bookings keep their dates',help:'Affects in-house stays departing today.'},
-  {key:'taxBps',category:'Finance & synthetic tax',label:'Synthetic demonstration tax',type:'percent',unit:'% (basis points stored)',editable:true,approval:OWNER,effective:'Effective-dated (tax schedule)',help:'Test data, not a validated GST rate. Posted lines keep their tax snapshot.'},
-  {key:'currency',category:'Finance & synthetic tax',label:'Currency and money unit',type:'fixed',unit:'INR, integer paise',editable:false,approval:'Not configurable',effective:'—',help:'All money is stored as integer paise.'},
+  {key:'gst',category:'Finance & tax',label:'GST master (rooms, restaurant, services)',type:'fixed',unit:'% by supply, dated',editable:false,approval:'Owner only · Master configuration › Money and tax (DEC-058, DEC-069)',effective:'Effective-dated (GST master)',help:'Illustrative — CA to confirm. Posted lines keep their tax snapshot.'},
+  {key:'currency',category:'Finance & tax',label:'Currency and money unit',type:'fixed',unit:'INR, integer paise',editable:false,approval:'Not configurable',effective:'—',help:'All money is stored as integer paise.'},
   {key:'discountLimit',category:'Approvals/limits',label:'Discount threshold without approval (Reception)',type:'money',unit:'₹ per request',editable:true,approval:OWNER,effective:'Immediately; pending requests are not re-evaluated',help:'Above this, another authorised user must approve (PERM-FOL-003).'},
   {key:'approvalExpiryHours',category:'Approvals/limits',label:'Approval request expiry',type:'integer',unit:'simulated hours',editable:true,approval:OWNER,effective:'New requests only',help:'Requests raised on this screen expire after this long (RBAC §7 default 24 h).'},
   {key:'managerLimits',category:'Approvals/limits',label:'Manager limits (discount, rate override, cash difference, credit, expenses)',type:'fixed',unit:'₹ / %',editable:false,approval:'Edited in Access control → Role templates (PERM-ADM-002)',effective:'Next command',help:'Role limits are part of the access policy, not hotel configuration.'},
@@ -268,7 +269,7 @@ export function adminSettingValue(s:State,key:string):string{
   const st=s.settings;
   switch(key){
     case 'hotel':return st.hotel;case 'checkin':return st.checkin;case 'checkout':return st.checkout;
-    case 'taxBps':return (adminTaxScheduled(s,s.date)/100)+'%';case 'currency':return 'INR · paise';
+    case 'gst':{const r=gstForRoomNight(s,s.date,0).bps,f=gstForFood(s,s.date).bps;return `Room ≤ threshold ${gstPct(r)} · restaurant ${gstPct(f)}`;}case 'currency':return 'INR · paise';
     case 'discountLimit':return money(st.discountLimit);case 'approvalExpiryHours':return String(st.approvalExpiryHours??24)+' h';
     case 'managerLimits':{const l=adminPolicy(s).limits.Manager||{};return `Discount ${money(l['PERM-FOL-003']??0)} · rate ${l['PERM-RATE-001']??0}% · cash diff ${money(l['PERM-SHF-002']??0)} · credit ${money(l['PERM-PAY-005']??0)} · expense ${money(l['PERM-EXP-002']??0)}`;}
     case 'inspection':return st.inspection?'On':'Off';case 'openingCash':return money(s.openingCash);case 'shiftModel':return 'Single shift / day';
@@ -282,10 +283,6 @@ export const adminSettingHistory=(s:State,key:string)=>(s.configHistory||[]).fil
 export function adminTariffOn(s:State,type:string,date:string){
   return (s.tariffs||[]).filter(t=>t.type===type&&t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0];
 }
-export function adminTaxScheduled(s:State,date:string){
-  const e=(s.taxSchedule||[]).filter(t=>t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0];
-  return e?e.bps:s.settings.taxBps;
-}
 export const adminRoomTypes=(s:State)=>[...new Set(s.rooms.map(r=>r.type))];
 /** Base (fixture) tariff for a room type: the room rate of the first room of that type. */
 export const adminBaseRate=(s:State,type:string)=>s.rooms.find(r=>r.type===type)?.rate??0;
@@ -294,7 +291,7 @@ export type AdminImpact={openStays:number;postedLines:number;stays:{id:string;gu
 const isOpen=(b:Booking)=>b.status==='In house'||b.status==='Confirmed';
 /** Impact preview shown before a configuration save (SCR-18). Pure; never changes state. */
 export function adminImpactPreview(s:State,change:
-  {kind:'tariff';type:string;rate:number;effectiveFrom:string}|{kind:'tax';bps:number;effectiveFrom:string}|
+  {kind:'tariff';type:string;rate:number;effectiveFrom:string}|
   {kind:'times';checkin:string;checkout:string}|{kind:'discount';limit:number}|{kind:'inspection';on:boolean}):AdminImpact{
   if(change.kind==='tariff'){
     const rooms=new Set(s.rooms.filter(r=>r.type===change.type).map(r=>r.id));
@@ -302,12 +299,6 @@ export function adminImpactPreview(s:State,change:
     const posted=list.reduce((n,b)=>n+b.lines.filter(l=>l.kind==='room').length,0);
     return {openStays:list.length,postedLines:posted,stays:list.map(b=>({id:b.id,guest:b.guest,room:b.room,note:`keeps agreed ${money(b.rate)}/night`})),
       notes:[`${list.length} open stay${list.length===1?'':'s'} in ${change.type} rooms overlap ${change.effectiveFrom} — existing bookings keep their agreed rates`,`${posted} posted room line${posted===1?'':'s'} unchanged`,`New ${change.type} bookings arriving on or after ${change.effectiveFrom} are priced at ${money(change.rate)}/night`]};
-  }
-  if(change.kind==='tax'){
-    const list=s.bookings.filter(b=>isOpen(b)&&b.departure>change.effectiveFrom);
-    const posted=s.bookings.reduce((n,b)=>n+b.lines.length,0);
-    return {openStays:list.length,postedLines:posted,stays:list.map(b=>({id:b.id,guest:b.guest,room:b.room,note:'nights and charges dated on/after the effective date use the new rate'})),
-      notes:[`${list.length} open stay${list.length===1?'':'s'} will have new lines at ${change.bps/100}% from ${change.effectiveFrom}`,`${posted} posted line${posted===1?'':'s'} keep their tax snapshot (unchanged)`,'Synthetic demonstration tax — not a GST rate']};
   }
   if(change.kind==='times'){
     const out=change.checkout!==s.settings.checkout,inn=change.checkin!==s.settings.checkin;

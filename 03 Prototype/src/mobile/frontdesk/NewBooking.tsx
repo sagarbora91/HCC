@@ -91,7 +91,7 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
         <MfRows rows={[['Guest',d.guest],['Phone',d.phone],['Stay',`${shortDate(d.arrival)} – ${shortDate(d.departure)} · ${n} night${n===1?'':'s'}`],
           ['Party',`${d.people} adult${d.people===1?'':'s'}${d.children?` · ${d.children} child${d.children===1?'':'ren'}`:''}`],
           ['Room',p.chosen?`${p.chosen.id} · ${p.chosen.type}${d.room?'':' (auto-assigned)'}`:'—'],
-          ['Tariff',p.chosen?`${money(chosenRate)} / night`:'—'],['Room charges',p.chosen?`${money(chosenRate*n)} + synthetic tax`:'—'],
+          ['Tariff',p.chosen?`${money(chosenRate)} / night`:'—'],['Room charges',p.chosen?`${money(chosenRate*n)} + GST`:'—'],
           ['Source',d.source+(d.source==='OTA'&&d.otaChannel?' · '+d.otaChannel:'')],...(d.company?[['Company',d.company+(d.gstin?' · '+d.gstin:'')]] as [string,string][]:[]),
           ...(rst.overridden?[['Restriction',`Overridden: ${rst.restrictionOverride}`]] as [string,string][]:[])]}/>
         {Object.values(shown).map(m=><Err key={m} m={m}/>)}

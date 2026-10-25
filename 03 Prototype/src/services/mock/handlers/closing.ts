@@ -5,7 +5,8 @@
 import type {Handler,Kit} from '../commands';
 import type {Expense} from '../../../domain/types';
 import {money,addDays,OPENING_TIME} from '../../../domain/money';
-import {drawer,taxRateFor} from '../../../domain/selectors';
+import {drawer} from '../../../domain/selectors';
+import {gstForFolioAdjustment} from '../../../domain/gst';
 import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
 import {posOpenOrders} from '../../../domain/streams/pos';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
@@ -195,7 +196,7 @@ export const handlers:Record<string,Handler>={
       assert(!cbIsLocked(s,String(a!.meta!.date)),cbLockedMessage(String(a!.meta!.date),'posting this correction'),'DAY_CLOSED'); // DEC-065
       const x=s.bookings.find(b=>b.id===a!.booking);assert(x,'Booking not found.','NOT_FOUND');
       const date=String(a!.meta!.date),amount=Number(a!.meta!.amount);
-      x!.lines.push({id:id('adj'),label:`Correction for closed ${date} · ${a!.reason}`,amount,date:s.date,kind:'adjustment',taxBps:taxRateFor(s,date),correctionOf:date});
+      x!.lines.push({id:id('adj'),label:`Correction for closed ${date} · ${a!.reason}`,amount,date:s.date,kind:'adjustment',taxBps:gstForFolioAdjustment(s,x!,date).bps,correctionOf:date});
       x!.version++;a!.status='Approved';
       return `${a!.id} · correction ${money(amount)} posted on ${s.date} for ${date}`;
     }

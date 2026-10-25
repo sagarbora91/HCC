@@ -72,7 +72,7 @@ export function PosCheck({o,compact}:{o:POSOrder;compact?:boolean}){
       {!o.lines.length&&<li className="pos-empty-line">No items yet — tap dishes on the menu.</li>}
     </ul>
     <div className="pos-totals"><div><span>Items</span><strong>{t.items}</strong></div><div><span>Net</span><strong>{money(t.net)}</strong></div>
-      <div><span>Synthetic tax {t.taxBps/100}%{o.settlement?' (snapshot)':''}</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Bill total</span><strong>{money(t.total)}</strong></div></div>
+      <div><span>GST {t.taxBps/100}%{o.settlement?' (snapshot)':''}</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Bill total</span><strong>{money(t.total)}</strong></div></div>
     {o.settlement&&<p className="pos-settled">Bill {o.settlement.billNo} · {o.settlement.mode==='folio'?`posted to room folio ${o.settlement.booking}`:`${o.settlement.method}${o.settlement.reference?' · '+o.settlement.reference:''} at outlet`} · {clockTime(o.settlement.at)} by {posUserName(s,o.settlement.by)}</p>}
     {o.status==='Void'&&<p className="pos-settled">Voided · {o.voidReason} · {o.voidedAt&&clockTime(o.voidedAt)}</p>}
     <div className="pos-actions">
