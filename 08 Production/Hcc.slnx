@@ -14,6 +14,7 @@
     <Project Path="tests/Hcc.Stays.Tests/Hcc.Stays.Tests.csproj" />
     <Project Path="tests/Hcc.Inventory.Tests/Hcc.Inventory.Tests.csproj" />
     <Project Path="tests/Hcc.Integration.Tests/Hcc.Integration.Tests.csproj" />
+    <Project Path="tests/Hcc.Handover.Tests/Hcc.Handover.Tests.csproj" />
     <Project Path="tests/Hcc.Operations.Tests/Hcc.Operations.Tests.csproj" />
     <Project Path="tests/Hcc.Closing.Tests/Hcc.Closing.Tests.csproj" />
     <Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
@@ -48,5 +49,6 @@
     <File Path="database/migrations/1300_maintenance.sql" />
     <File Path="database/migrations/1400_stock.sql" />
     <File Path="database/migrations/1600_messaging.sql" />
+    <File Path="database/migrations/1700_handover.sql" />
   </Folder>
 </Solution>
