@@ -40,8 +40,8 @@ public class MigrationRunnerTests
     {
         await using var db = await DisposableDatabase.CreateAsync(migrate: false, Ct);
         var result = await db.Platform().Migrations.MigrateAsync(Ct);
-        Assert.Equal([1, 2, 100, 101, 200, 300, 400], result.Applied);
-        Assert.Equal("1,2,100,101,200,300,400", await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct));
+        Assert.Equal([1, 2, 100, 101, 200, 300, 400, 1500], result.Applied);
+        Assert.Equal("1,2,100,101,200,300,400,1500", await db.ScalarAsync("SELECT STRING_AGG(CAST(version AS varchar(10)), ',') WITHIN GROUP (ORDER BY applied_utc, version) FROM dbo.schema_migration", Ct));
 
         // Module tables exist (P1 access, P2 inventory, P3 stays/housekeeping, P4 billing/cashier).
         foreach (var t in new[] { "plat.app_user", "plat.session", "plat.role_grant", "inv.type_night_count", "inv.room_block", "inv.reservation_night", "bill.quote",
