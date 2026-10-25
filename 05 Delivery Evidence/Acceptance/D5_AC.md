@@ -1,6 +1,6 @@
 # D5 · AC-M05…M08 phone flows — EMULATED
 
-**Progress:** 25 Oct, API 35 (work PC), APK v8. Done: Part 1/AC-02 (earlier), AC-M08 block check, AC-M05 (incl. restricted stay + manager override). Next: deposit + cashier flow (AC-M06), M08 close, M07, BL-01. Results are in the "Parts 2-3 on API 35" section at the end.
+**Progress:** 25 Oct API 35. Done: AC-M05, AC-M08a, AC-M06 up to drawer ₹12,750, BL-01. Next: checkout + print, M07 housekeeping, expense ₹300 → ₹12,450, shift close, close 26 Oct, report totals.
 
 - Date: 24 Oct 2026 · Agent D-C
 - Device: **EMULATED** — AVD `codex_apk_review` (`sdk_phone_x86_64`, Android 11 / API 30, AOSP image without Play), serial `emulator-5556`, 1080×1920 @ 420 dpi (CSS viewport 412×660, DPR 2.625), DevTools port 9232
@@ -73,3 +73,14 @@ Device: `codex_api35_google` (Android 15 / API 35, WebView 124), `emulator-5554`
 | AC-M05 Restricted 7→8 Nov stay shows warning (Reception) | Pass | `v8-m05-restricted-warning.png`, `v8-m05-restricted-reception-blocked.png` | "Minimum stay 2 nights … (Diwali weekend). Ask a manager to override…"; Next does not advance |
 | AC-M05 Manager override | Pass | DOM | Meera: "Override restriction" tick + reason; review shows "Overridden: …"; booking HCC-1108 confirmed |
 | T-04 phone booking list "1 night" | Pass* | `d5-roles\v8-booking-list-1-night.png` | Card reads "Room 101 · 7 Nov – 8 Nov · 1 night". *Phone cards show no guest count, so "1 night · 1 guest" exists only in the desktop table; not a defect |
+| AC-M06 drawer ₹10,750 on S0 (24 Oct) incl. restaurant ₹550 line; ₹1,000 UPI advance leaves it unchanged | Pass | `d5-ac\v8-m06-drawer-10750.png` | ₹5,000 + ₹7,550 − ₹1,800 |
+| AC-M06 ₹500 cash deposit on Room 105 (Cashier, Folios) | Pass | DOM | Deposit held ₹500, balance still −₹1,000, drawer ₹11,250 (₹5,000 + ₹8,050 − ₹1,800) |
+| Step 4a: settle POS-F03 (T2, ₹1,914) and POS-F04 (room 201, ₹330) by UPI as Manager; approve EXP-102 | Pass | DOM | Preflight turned "All checks clear" (after the block shown in AC-M08a). UPI settle needs a reference typed (empty reference: nothing happens, no message seen) |
+| Step 4a: post room nights (9), count ₹11,250, close 24 Oct | Pass | DOM | "Opens 25 Oct at 08:00 with opening float ₹11,250 (counted cash)" |
+| Step 4b: Reception adds Laundry ₹500 and requests ₹500 discount "Service delay goodwill" | Pass | DOM | Discount pending, balance ₹1,750 |
+| Step 5: Role gating — Reception/Housekeeper cannot approve / record payment | Pass* | tab/search sets | *Not attempted as an action: Reception has no Approvals tab or page and Housekeeper has no folio pages (see D5_Roles.md) |
+| Step 5 / BL-01: Manager approves discount; status shows Approved (not Expired) | Pass | `d5-ac\v8-bl01-discount-approved.png` | Approvals → Approved filter: "Status Approved · Decided 25 Oct 08:02 · Meera" |
+| Step 5b: close 25 Oct (post nights, count ₹11,250, close, open 26 Oct) | Pass | DOM | Room 105 balance ₹3,400, charges + tax ₹4,400 (net ₹4,000 + tax ₹400) |
+| AC-M06 split ₹3,400 = ₹2,000 cash + ₹1,400 UPI DEMO-UPI-0002 (Cashier) | Pass | `d5-ac\v8-m06-split-review.png` | Review shows both tenders; balance ₹0 |
+| AC-M06 return ₹500 deposit in cash | Pass | DOM | Deposit held ₹0 |
+| AC-M06 drawer ₹12,750 after settlement | Pass | `d5-ac\v8-m06-drawer-12750.png` | ₹11,250 + ₹2,000 − ₹500 |
