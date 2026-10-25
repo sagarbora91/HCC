@@ -153,11 +153,12 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const d=execute(z,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});
     assert.throws(()=>execute(d,'owner',{type:'HR_PAYROLL_LOCK',id:M.hrRunFor(d,'2026-09').id}),/salary not set/);
   });
-  test('[PAY-SCC] dated rates: version in force per month, legacy HR_RATES_SET defaults to the month after the last locked run',()=>{
+  test('[PAY-SCC] dated rates: version in force per month, legacy HR_RATES_SET defaults to the current month (review F-06), explicit from may be earlier',()=>{
     let s=execute(seed(),'owner',{type:'HR_RATES_SET',esicCeiling:2500000});
-    assert.deepEqual(M.hrRateVersions(s).map(v=>v.from),['2025-04-01','2026-09-01']);
-    assert.equal(M.hrRatesFor(s,'2026-08').esicCeiling,2100000);assert.equal(M.hrRatesFor(s,'2026-09').esicCeiling,2500000);
-    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-09-01',esicCeiling:2400000});assert.equal(M.hrRateVersions(s).length,2);assert.equal(M.hrRatesFor(s,'2026-12').esicCeiling,2400000);
+    assert.deepEqual(M.hrRateVersions(s).map(v=>v.from),['2025-04-01','2026-10-01']);
+    assert.equal(M.hrRatesFor(s,'2026-09').esicCeiling,2100000);assert.equal(M.hrRatesFor(s,'2026-10').esicCeiling,2500000);
+    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-10-01',esicCeiling:2400000});assert.equal(M.hrRateVersions(s).length,2);assert.equal(M.hrRatesFor(s,'2026-12').esicCeiling,2400000);
+    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-09-01',esicCeiling:2400000});assert.equal(M.hrRateVersions(s).length,3);
     assert.throws(()=>execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-10-15'}),code('VALIDATION'));
     assert.throws(()=>execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-11-01',basicBps:9000,hraBps:8000}),/cannot exceed/);
     s=execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});assert.equal(M.hrRunFor(s,'2026-09').rates.esicCeiling,2400000);

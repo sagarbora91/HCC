@@ -213,6 +213,15 @@ export const hrRateVersions=(s:State):HRRates[]=>{const v=hrSlice(s).rateVersion
 export function hrRatesFor(s:State,ym:string):HRRates{
   const v=hrRateVersions(s),d=ym+'-01';let r=v[0];for(const x of v)if(x.from<=d)r=x;return r;
 }
+/** F-06: default effective date for a new rate version: the month after the last COMPLETED pay period (the current month),
+ *  and never before the month after the last locked run. A completed-but-unlocked month changes only when chosen explicitly. */
+export function hrRatesDefaultFrom(s:State):string{
+  const cur=s.date.slice(0,7),last=hrLastLockedMonth(s),next=last?hrNextMonth(last):cur;return (next>cur?next:cur)+'-01';
+}
+/** Completed months without a locked run that a version from `from` would change (their payroll must be recalculated). */
+export function hrRatesPastMonths(s:State,from:string):string[]{
+  const out:string[]=[];for(let m=from.slice(0,7);hrMonthComplete(s,m);m=hrNextMonth(m))if(hrSlice(s).runs.find(r=>r.month===m)?.status!=='Locked')out.push(m);return out;
+}
 export const hrLeavePolicy=(s:State):HRLeavePolicy=>hrSlice(s).leavePolicy??hrDefaultLeavePolicy();
 export const hrDeptCap=(s:State,dept:string)=>{const p=hrLeavePolicy(s);return p.deptCap[dept]??p.defaultCap;};
 /** Latest locked pay-run month (rates on or before it can no longer change). */

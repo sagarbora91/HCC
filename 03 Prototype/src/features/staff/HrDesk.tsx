@@ -14,7 +14,7 @@ import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/compone
 import {
   money,addDays,isDayClosed,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
-  hrRateVersions,hrRatesFor,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrLastLockedMonth,hrSettingDefs,hrSettingValue,hrWeekday,
+  hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrLastLockedMonth,hrSettingDefs,hrSettingValue,hrWeekday,
   HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,type HRStaff,type HRRun,type HRLeave,
 } from '../../services/mock';
 import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
@@ -281,7 +281,7 @@ function Rates({phone}:{phone:boolean}){
   const defs=hrSettingDefs().filter(d=>d.category==='Statutory rates');
   const usedBy=(from:string)=>hrSlice(s).runs.filter(r=>r.status==='Locked'&&r.rates.from===from).map(r=>hrMonthLabel(r.month).split(' ')[0].slice(0,3)).join(', ');
   const btn=edit&&!phone?<button className="btn primary" onClick={()=>open({type:'hr-rates'})}><Settings2 size={16}/> New rate version</button>:null;
-  return <section className={phone?'':'card'}><div className={phone?'':'section-title'}><div><h2>Statutory rates</h2><p className="hr-disclaimer"><AlertTriangle size={14}/> Illustrative — CA to confirm for a hotel. Ported from SCC; in force for {hrMonthLabel(ym)}: version from {now.from}.</p></div>{btn}</div>
+  return <section className={phone?'':'card'}><div className={phone?'':'section-title'}><div><h2>Statutory rates</h2><p className="hr-disclaimer"><AlertTriangle size={14}/> Illustrative — CA to confirm for a hotel. Ported from SCC; in force for {hrMonthLabel(ym)}: version from {now.from}. A new version (here or in Master configuration) applies from 1 {hrMonthLabel(hrRatesDefaultFrom(s).slice(0,7))} unless you choose another month.</p></div>{btn}</div>
     <div className={'summary-list'+(phone?' hr-m-rates':' padded')}>{defs.map(d=><div key={d.key}><span>{d.label}</span><strong>{hrSettingValue(s,d.key)}</strong></div>)}</div>
     {phone?<div className="info-note"><Info size={16}/>Rate versions are added on the tablet or desktop (Owner).</div>:<>
       <h3 className="padded hr-sub">Versions</h3>

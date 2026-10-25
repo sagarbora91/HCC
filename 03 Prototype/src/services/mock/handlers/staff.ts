@@ -8,7 +8,7 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrEntitled,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
 import {addDays} from '../../../domain/money';
@@ -23,12 +23,11 @@ const isOwn=(k:Kit,st:HRStaff)=>!!st.userId&&st.userId===k.uid;
 const rupee=(n:unknown)=>Number.isSafeInteger(n)&&(n as number)>=0&&(n as number)<=100000000;
 const dm=(d:string)=>new Date(d+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'UTC'});
 
-/** Statutory rate version from a command (old HR_RATES_SET callers may omit `from`: next month after the last locked run).
+/** Statutory rate version from a command (callers may omit `from`: F-06 default = the current month, never before the month after the last locked run).
  *  F-05: the new version starts from the version IN FORCE ON ITS OWN DATE (not the current month); only the fields in the command change. */
 function ratesFrom(k:Kit):{r:HRRates;base:HRRates}{
   const {cmd,assert,s}=k;
-  const last=hrLastLockedMonth(s),fallback=(last?addDays(last+'-28',7).slice(0,7):s.date.slice(0,7))+'-01';
-  const from=String(cmd.from??fallback);
+  const last=hrLastLockedMonth(s),from=String(cmd.from??hrRatesDefaultFrom(s));
   assert(/^\d{4}-\d{2}-01$/.test(from),'Rates take effect from the 1st of a month.');
   assert(!last||from.slice(0,7)>last,`Rates for ${hrMonthLabel(last??'')} and earlier are frozen in locked pay-runs. Choose a later month.`,'INVALID_TRANSITION');
   const base=hrRatesFor(s,from.slice(0,7)),r={...hrDefaultRates(),...base,from} as HRRates;
@@ -233,7 +232,8 @@ export const handlers:Record<string,Handler>={
       rateRules(k,v,` (version from ${v.from})`);}
     x.rateVersions=[...x.rateVersions.filter(v=>v.from<r.from),r,...later].sort((a,b)=>a.from<b.from?-1:1);
     const note=later.length?` · later version${later.length===1?'':'s'} from ${later.map(v=>v.from).join(', ')}: ${carried.length?'change carried forward ('+carried.join(', ')+')':'no change carried'}${kept.length?'; '+kept.join('; '):''}`:'';
-    return `Statutory rates from ${r.from} saved (${changed.length?changed.join(', '):'no field changed'}; illustrative — CA to confirm) · locked runs keep their snapshot${note}`;
+    const past=hrRatesPastMonths(k.s,r.from);// F-06: say so when a completed (unlocked) month changes
+    return `Statutory rates from ${r.from} saved (${changed.length?changed.join(', '):'no field changed'}; illustrative — CA to confirm) · locked runs keep their snapshot${note}${past.length?` · changes completed month${past.length===1?'':'s'} not yet locked: ${past.map(hrMonthLabel).join(', ')} — recalculate ${past.length===1?'its':'their'} payroll`:''}`;
   },
   /** Legacy name (Master configuration wrappers): same as HR_STAT_RATES_SET. */
   HR_RATES_SET:k=>handlers.HR_STAT_RATES_SET(k),

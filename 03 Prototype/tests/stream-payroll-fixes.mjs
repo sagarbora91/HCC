@@ -122,4 +122,20 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     // the dialog sends only changed fields: it renders from the version in force on its first month
     assert.match(UI.renderModal(s,'owner','hr-rates'),/only the fields you change are saved/);
   });
+
+  test('[PAY-FIX F-06] hub and default rate edits date from the month after the last completed pay period; a completed unlocked month changes only when chosen, and says so',()=>{
+    const s=seed();// business date 24 Oct 2026, last locked August, September complete but not locked
+    assert.equal(M.hrRatesDefaultFrom(s),'2026-10-01');
+    const b=execute(s,'owner',{type:'HR_STAT_RATES_SET',pfEeBps:1100});// reviewer's t3 (hub-style edit, no from)
+    assert.equal(M.hrRatesFor(b,'2026-09').pfEeBps,1200,'completed September unchanged');assert.equal(M.hrRatesFor(b,'2026-10').pfEeBps,1100);
+    // the hub wrapper sends the date explicitly and shows it before saving
+    const def=M.cfgDef(s,'hr.pf.pfEeBps');assert.equal(def.store.command(s,1100).from,'2026-10-01');
+    assert.ok(def.impact(s,1100).some(l=>/Effective from 1 October 2026/.test(l)));
+    const h=execute(s,'owner',{type:'SETTING_SET',setting:'hr.pf.pfEeBps',value:1100});assert.equal(M.hrRatesFor(h,'2026-09').pfEeBps,1200);assert.equal(M.hrRatesFor(h,'2026-10').pfEeBps,1100);
+    // explicitly choosing September is allowed but the audit says the completed month changes
+    const sep=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2026-09-01',pfEeBps:1100});assert.match(sep.audit[0].detail,/completed month not yet locked: September 2026/);
+    assert.match(UI.renderSection(s,'owner','Rates'),/applies from 1 October 2026/);
+    // FY26 (September locked): the default is October as before
+    assert.equal(M.hrRatesDefaultFrom(M.loadScenario('FY26')),'2026-10-01');
+  });
 }

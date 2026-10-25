@@ -8,7 +8,7 @@ import {useHcc} from '../../app/context';
 import {dateLabel,shortDate,Empty} from '../../components/ui';
 import {
   money,hrSlice,hrRateVersions,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,hrRatesFor,
-  hrLastLockedMonth,hrNextMonth,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
+  hrLastLockedMonth,hrNextMonth,hrRatesDefaultFrom,hrRatesPastMonths,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
   HR_SHIFTS,HR_WEEKDAYS,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,hrKey,
   type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,
 } from '../../services/mock';
@@ -152,7 +152,8 @@ export function HRRatesModal(){
   // F-05: the form starts from the version in force on the chosen month and sends only the fields that differ from it.
   const formFor=(m:string)=>{const r=hrRatesFor(s,m);return {from:m,basic:pc(r.basicBps),hra:pc(r.hraBps),wash:pc(r.washBps),pfEe:pc(r.pfEeBps),pfEr:pc(r.pfErBps),pfCap:toRs(r.pfWageCap),esicEe:pc(r.esicEeBps),esicEr:pc(r.esicErBps),esicCeiling:toRs(r.esicCeiling),
     ptMaleExempt:toRs(r.ptMaleExempt),ptMaleMid:toRs(r.ptMaleMid),ptMaleMidAmt:toRs(r.ptMaleMidAmt),ptStd:toRs(r.ptStd),ptFeb:toRs(r.ptFeb),ptFemaleExempt:toRs(r.ptFemaleExempt),ot:String(r.otBps/10000),late:String(r.lateBlock),rounding:r.rounding as string};};
-  const [f,setF]=useState(()=>formFor(first));
+  const [f,setF]=useState(()=>formFor(hrRatesDefaultFrom(s).slice(0,7)));
+  const past=hrRatesPastMonths(s,f.from+'-01');
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF(k==='from'?formFor(e.target.value):{...f,[k]:e.target.value});
   const bps=(v:string)=>Math.round(Number(v)*100);
   const laterVersions=hrRateVersions(s).filter(v=>v.from>f.from+'-01').map(v=>v.from);
@@ -165,7 +166,7 @@ export function HRRatesModal(){
   return <><div className="modal-heading"><h2>Statutory rates — new version</h2><p>Illustrative — CA to confirm for a hotel. A version takes effect from the 1st of a month after the last locked pay-run ({last?hrMonthLabel(last):'none yet'}); locked runs keep the rates they were calculated with.</p></div>
     <form className="form" onSubmit={save}>
       <label>Effective from<select value={f.from} onChange={set('from')}>{months.map(m=><option key={m} value={m}>1 {hrMonthLabel(m)}</option>)}</select></label>
-      <div className="info-note"><Info size={16}/><span>Values below are the version in force for {hrMonthLabel(f.from)}; only the fields you change are saved.{laterVersions.length?` A later version exists (from ${laterVersions.join(', ')}): your change is carried into it unless it set its own value for that field.`:''}</span></div>
+      <div className="info-note"><Info size={16}/><span>Values below are the version in force for {hrMonthLabel(f.from)}; only the fields you change are saved.{past.length?` Warning: ${past.map(hrMonthLabel).join(', ')} ${past.length===1?'is':'are'} complete but not locked — ${past.length===1?'its':'their'} payroll changes and must be recalculated.`:''}{laterVersions.length?` A later version exists (from ${laterVersions.join(', ')}): your change is carried into it unless it set its own value for that field.`:''}</span></div>
       <fieldset className="hr-fieldset"><legend>Salary structure</legend><div className="form-row">{num('basic','Basic (% of earned)')}{num('hra','HRA (% of basic)')}</div>{num('wash','Washing allowance (% of basic)')}</fieldset>
       <fieldset className="hr-fieldset"><legend>Provident Fund</legend><div className="form-row">{num('pfEe','Employee (%)')}{num('pfEr','Employer (%)')}</div>{num('pfCap','PF wage cap (₹)')}</fieldset>
       <fieldset className="hr-fieldset"><legend>ESIC</legend><div className="form-row">{num('esicEe','Employee (%)')}{num('esicEr','Employer (%)')}</div>{num('esicCeiling','Applies while earned pay ≤ (₹)')}</fieldset>

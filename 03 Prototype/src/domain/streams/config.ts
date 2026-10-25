@@ -28,7 +28,7 @@ import {yldSlice,yldPct,YLD_ROUND_OPTIONS} from './yield';
 import {aiDirtyHours} from './assistant';
 import {gsvSettings,GSV_REQUEST_TYPES} from './services';
 import {posSlice} from './pos';
-import {hrRatesFor,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
+import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
@@ -516,8 +516,9 @@ const HR_FIELDS:Record<string,HRField>={
   rounding:{label:'rounding',type:'choice',options:['paise','rupee'],show:v=>v==='paise'?'To paise (SCC)':'PF nearest ₹ · ESIC next ₹'},
 };
 const curYm=(s:State)=>s.date.slice(0,7);
-/** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET (the payroll module dates them from the 1st of a
- *  month after the last locked pay-run); leave entitlements and the per-department cap wrap HR_LEAVE_POLICY_SET; the rest is shown read-only. */
+/** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET with an explicit `from` (W05-B review F-06:
+ *  the month after the last completed pay period, never a completed month; shown before saving); leave entitlements and the per-department cap
+ *  wrap HR_LEAVE_POLICY_SET; the rest is shown read-only. */
 export function hrStatutoryDefs():CfgProviderDef[]{
   const out:CfgProviderDef[]=[];
   for(const d of hrSettingDefs() as HRSettingDef[]){
@@ -525,8 +526,9 @@ export function hrStatutoryDefs():CfgProviderDef[]{
     if(d.command==='HR_STAT_RATES_SET'&&d.fields?.length){
       for(const f of d.fields as (keyof HRRates)[]){const m=HR_FIELDS[f as string];if(!m)continue;
         out.push({...base,key:`${d.key}.${String(f)}`,label:`${d.label} · ${m.label}`,type:m.type,min:m.min,max:m.max,options:m.options,show:m.show,
-          help:d.help+' Saved as a new dated rate version (from the 1st of the month).',
-          read:s=>hrRatesFor(s,curYm(s))[f],command:(_s,v)=>({type:'HR_STAT_RATES_SET',[f]:v})});}
+          help:d.help+' Saved as a new dated rate version from the 1st of the month after the last completed pay period; completed months are not changed.',
+          read:s=>hrRatesFor(s,hrRatesDefaultFrom(s).slice(0,7))[f],command:(s,v)=>({type:'HR_STAT_RATES_SET',from:hrRatesDefaultFrom(s),[f]:v}),
+          impact:s=>[`Effective from 1 ${hrMonthLabel(hrRatesDefaultFrom(s).slice(0,7))} (new rate version); earlier months and locked pay-runs keep their rates.`]});}
     }else if(d.key==='hr.leave.ent'){
       for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:60,unit:'days per financial year',
         read:s=>hrLeavePolicy(s).ent[lt],command:(s,v)=>({type:'HR_LEAVE_POLICY_SET',ent:{...hrLeavePolicy(s).ent,[lt]:v}})});
