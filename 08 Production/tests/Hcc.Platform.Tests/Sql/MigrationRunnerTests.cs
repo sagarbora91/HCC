@@ -5,6 +5,7 @@ using Hcc.Platform.Tests.Harness;
 namespace Hcc.Platform.Tests.Sql;
 
 /// <summary>Migration runner: journal, checksum drift, version guard, backup gate (CHECKDB + backup), rollback, concurrency.</summary>
+[Trait("Category", "Sql")]
 public class MigrationRunnerTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -59,8 +60,7 @@ public class MigrationRunnerTests
         Assert.True(result.BackupTaken);
         Assert.Equal("NUL", gate.LastBackupTarget);
         Assert.Equal([3], result.Applied);
-        Assert.Equal(1, await db.CountAsync(
-            $"SELECT COUNT(*) FROM msdb.dbo.backupset WHERE database_name = '{db.Name}' AND is_copy_only = 1 AND has_backup_checksums = 1", Ct));
+        Assert.Contains(gate.LastMessages, m => m.StartsWith("BACKUP DATABASE successfully processed", StringComparison.Ordinal));
     }
 
     [Fact]

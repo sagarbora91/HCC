@@ -47,7 +47,17 @@ public sealed partial class DisposableDatabase : IAsyncDisposable
         {
             await conn.OpenAsync(ct);
             await using var cmd = new SqlCommand($"CREATE DATABASE [{name}];", conn) { CommandTimeout = 120 };
-            await cmd.ExecuteNonQueryAsync(ct);
+            try
+            {
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+            catch (SqlException ex) when (ex.Number == 262)
+            {
+                throw new InvalidOperationException(
+                    $"The test login cannot create databases on {db.Server}. One-time setup (owner, elevated prompt): " +
+                    $"sqlcmd -S {db.Server} -E -C -Q \"ALTER SERVER ROLE dbcreator ADD MEMBER [{Environment.UserDomainName}\\{Environment.UserName}];\" " +
+                    "— or run dotnet test from an elevated prompt. See 08 Production/README.md.", ex);
+            }
         }
 
         if (migrate) await db.Platform().Migrations.MigrateAsync(ct);

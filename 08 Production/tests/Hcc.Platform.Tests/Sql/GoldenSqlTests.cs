@@ -13,6 +13,7 @@ namespace Hcc.Platform.Tests.Sql;
 /// The BASE fixture's folio receipts persisted in the production schema (0002) through SqlClient; collections and the
 /// expected drawer are then derived from the persisted rows and must equal the prototype's ₹21,500 / ₹10,750.
 /// </summary>
+[Trait("Category", "Sql")]
 public class GoldenSqlTests(MigratedDatabaseFixture f) : IClassFixture<MigratedDatabaseFixture>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

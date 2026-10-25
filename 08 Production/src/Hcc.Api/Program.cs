@@ -8,6 +8,7 @@ using Hcc.Infrastructure.SqlServer.Migrations;
 // HCC API host bootstrap (P0). Usage:
 //   dotnet run --project src/Hcc.Api                -> serve /api/v1 (Kestrel; LAN TLS + Windows service hosting are P7)
 //   dotnet run --project src/Hcc.Api -- migrate     -> apply pending migrations (backup gate first on a non-empty database) and exit
+// ETP-REUSE: replace/align with ETP migration CLI / operator entry point (and its logging) when V:\ETP is available.
 var builder = WebApplication.CreateBuilder(args);
 var sqlOptions = builder.Configuration.GetSection("Hcc:Sql").Get<SqlOptions>() ?? new SqlOptions();
 var platform = new SqlPlatform(sqlOptions);

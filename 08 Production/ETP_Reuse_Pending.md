@@ -1,0 +1,14 @@
+# ETP reuse pending (DEC-054)
+
+DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:\ETP`) is **not on this PC** (25 Oct 2026), so P0 wrote small, original HCC implementations behind narrow interfaces. Each spot is marked `ETP-REUSE:` in the code. When ETP is available: compare, then either replace the HCC code with the ETP file (record provenance in `third-party/source-reuse.json`) or align the HCC code with ETP's behaviour. Keep the HCC tests; they define the behaviour that must survive.
+
+| # | Spot (file) | HCC stand-in | What to align with ETP |
+|---|---|---|---|
+| 1 | `Directory.Build.props` | net10.0, nullable, warnings as errors, `Deterministic`, `ContinuousIntegrationBuild` when `CI`/`HCC_RELEASE`=true, `PathMap`, central packages + lock files | ETP deterministic build settings (version stamping, signing, SourceLink, analyzer set) |
+| 2 | `src/Hcc.Infrastructure.SqlServer/Connection/SqlConnectionFactory.cs` | Connection policy: asserts `QUOTED_IDENTIFIER`/`ANSI_NULLS` ON, sets `XACT_ABORT ON`, maps connect failures to `UNAVAILABLE`; local-dev builder with `Encrypt=Mandatory` + `TrustServerCertificate=True` | ETP connection string builder, retry policy, TLS/certificate settings, service-account login |
+| 3 | `src/Hcc.Infrastructure.SqlServer/Migrations/MigrationRunner.cs` — `IBackupGate` | Interface called before pending migrations on a database that already has migrations | ETP backup-gate contract (when it runs, what it records, operator override) |
+| 4 | same file — `SqlBackupGate` | `DBCC CHECKDB … WITH NO_INFOMSGS, ALL_ERRORMSGS` then `BACKUP DATABASE … COPY_ONLY, CHECKSUM` + `RESTORE VERIFYONLY`; file name `<db>_premigrate_<from>_to_<to>_<UTC>.bak` in the instance default backup folder | ETP backup naming, folder, retention, Task Scheduler backups and restore drill (P7) |
+| 5 | same file — `MigrationRunner` | Embedded `NNNN_name.sql` scripts, `GO` batches, one transaction per migration, journal `dbo.schema_migration` (version, name, SHA-256 of LF-normalized text, applied_utc, applied_by), drift and newer-database refusal, `sp_getapplock` against concurrent runners | ETP migration runner (journal table shape, CLI, logging, pre/post scripts) — if ETP's journal differs, add a one-time journal conversion migration |
+| 6 | `src/Hcc.Api/Program.cs` — `migrate` argument | `dotnet run --project src/Hcc.Api -- migrate` | ETP operator entry point (CLI/installer step, logging) |
+
+Not yet written (later agents, also ETP reuse): backup/restore/drill scripts and Task Scheduler jobs, Inno Setup installer, Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).

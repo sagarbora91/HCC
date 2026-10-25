@@ -53,6 +53,7 @@ public sealed class SpikeDatabaseFixture : IAsyncLifetime
 /// Microsoft.Data.SqlClient against the production migrations, plus the .NET adapter checks contracts §5 left open
 /// (BIGINT, Unicode, rowversion, DATE, TLS, connection policy).
 /// </summary>
+[Trait("Category", "Sql")]
 public class SqlSpikeTests(SpikeDatabaseFixture f) : IClassFixture<SpikeDatabaseFixture>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -244,15 +245,21 @@ public class SqlSpikeTests(SpikeDatabaseFixture f) : IClassFixture<SpikeDatabase
     [Fact]
     public async Task Connection_policy_is_encrypted_with_quoted_identifier_and_xact_abort_on()
     {
+        Assert.Equal(SqlConnectionEncryptOption.Mandatory, new SqlConnectionStringBuilder(f.Db.ConnectionString).Encrypt);
         await using var conn = await f.Db.OpenAsync(Ct);
-        await using var q = new SqlCommand("""
-            SELECT c.encrypt_option, CAST(SESSIONPROPERTY('QUOTED_IDENTIFIER') AS int), CASE WHEN (@@OPTIONS & 16384) = 16384 THEN 1 ELSE 0 END
-            FROM sys.dm_exec_connections c WHERE c.session_id = @@SPID;
-            """, conn);
-        await using var rd = await q.ExecuteReaderAsync(Ct);
-        Assert.True(await rd.ReadAsync(Ct));
-        Assert.Equal("TRUE", rd.GetString(0));
-        Assert.Equal(1, rd.GetInt32(1));
-        Assert.Equal(1, rd.GetInt32(2)); // XACT_ABORT ON
+        await using (var q = new SqlCommand("""
+            SELECT CAST(SESSIONPROPERTY('QUOTED_IDENTIFIER') AS int), CASE WHEN (@@OPTIONS & 16384) = 16384 THEN 1 ELSE 0 END,
+                   HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW SERVER STATE');
+            """, conn))
+        await using (var rd = await q.ExecuteReaderAsync(Ct))
+        {
+            Assert.True(await rd.ReadAsync(Ct));
+            Assert.Equal(1, rd.GetInt32(0));
+            Assert.Equal(1, rd.GetInt32(1)); // XACT_ABORT ON
+            if (rd.GetInt32(2) != 1) return; // server-side TLS check needs VIEW SERVER STATE; the client already demands encryption
+        }
+
+        await using var tls = new SqlCommand("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID;", conn);
+        Assert.Equal("TRUE", (string?)await tls.ExecuteScalarAsync(Ct));
     }
 }

@@ -75,46 +75,60 @@ public sealed class SqlBackupGate(SqlOptions options) : IBackupGate
 {
     public string? LastBackupTarget { get; private set; }
 
+    /// <summary>Server messages from the last gate run (CHECKDB, BACKUP, VERIFYONLY), for the operations log.</summary>
+    public IReadOnlyList<string> LastMessages { get; private set; } = [];
+
     public async Task BeforeMigrateAsync(SqlConnection connection, string database, int fromVersion, int toVersion, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(options);
         var quoted = QuoteName(database);
-        await using (var check = new SqlCommand($"DBCC CHECKDB ({quoted}) WITH NO_INFOMSGS, ALL_ERRORMSGS;", connection) { CommandTimeout = 0 })
-            await check.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        var messages = new List<string>();
+        void OnInfo(object? sender, SqlInfoMessageEventArgs e) => messages.AddRange(e.Errors.Cast<SqlError>().Select(x => x.Message));
+        connection.InfoMessage += OnInfo;
+        try
+        {
+            await using (var check = new SqlCommand($"DBCC CHECKDB ({quoted}) WITH NO_INFOMSGS, ALL_ERRORMSGS;", connection) { CommandTimeout = 0 })
+                await check.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
 
-        string target;
-        if (string.Equals(options.BackupDirectory, "NUL", StringComparison.OrdinalIgnoreCase))
-        {
-            target = "NUL";
-        }
-        else
-        {
-            var dir = options.BackupDirectory;
-            if (string.IsNullOrWhiteSpace(dir))
+            string target;
+            if (string.Equals(options.BackupDirectory, "NUL", StringComparison.OrdinalIgnoreCase))
             {
-                await using var q = new SqlCommand("SELECT CAST(SERVERPROPERTY('InstanceDefaultBackupPath') AS nvarchar(400));", connection);
-                dir = (string?)await q.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? throw new InvalidOperationException("No backup directory configured.");
+                target = "NUL";
+            }
+            else
+            {
+                var dir = options.BackupDirectory;
+                if (string.IsNullOrWhiteSpace(dir))
+                {
+                    await using var q = new SqlCommand("SELECT CAST(SERVERPROPERTY('InstanceDefaultBackupPath') AS nvarchar(400));", connection);
+                    dir = (string?)await q.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? throw new InvalidOperationException("No backup directory configured.");
+                }
+
+                var stamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
+                target = Path.Combine(dir, $"{database}_premigrate_{fromVersion:0000}_to_{toVersion:0000}_{stamp}.bak");
             }
 
-            var stamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
-            target = Path.Combine(dir, $"{database}_premigrate_{fromVersion:0000}_to_{toVersion:0000}_{stamp}.bak");
-        }
+            await using (var backup = new SqlCommand($"BACKUP DATABASE {quoted} TO DISK = @target WITH COPY_ONLY, CHECKSUM, INIT;", connection) { CommandTimeout = 0 })
+            {
+                backup.Parameters.AddWithValue("@target", target);
+                await backup.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
 
-        await using (var backup = new SqlCommand($"BACKUP DATABASE {quoted} TO DISK = @target WITH COPY_ONLY, CHECKSUM, INIT;", connection) { CommandTimeout = 0 })
+            if (target != "NUL")
+            {
+                await using var verify = new SqlCommand("RESTORE VERIFYONLY FROM DISK = @target WITH CHECKSUM;", connection) { CommandTimeout = 0 };
+                verify.Parameters.AddWithValue("@target", target);
+                await verify.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+
+            LastBackupTarget = target;
+        }
+        finally
         {
-            backup.Parameters.AddWithValue("@target", target);
-            await backup.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            connection.InfoMessage -= OnInfo;
+            LastMessages = messages;
         }
-
-        if (target != "NUL")
-        {
-            await using var verify = new SqlCommand("RESTORE VERIFYONLY FROM DISK = @target WITH CHECKSUM;", connection) { CommandTimeout = 0 };
-            verify.Parameters.AddWithValue("@target", target);
-            await verify.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        }
-
-        LastBackupTarget = target;
     }
 
     internal static string QuoteName(string name) => "[" + name.Replace("]", "]]", StringComparison.Ordinal) + "]";

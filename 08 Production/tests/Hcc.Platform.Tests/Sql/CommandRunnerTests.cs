@@ -14,6 +14,7 @@ public sealed record TestPayload(long AmountPaise, string Note);
 public sealed record TestResult(long EffectId, string Note);
 
 /// <summary>Idempotency + audit + outbox committed atomically by <see cref="SqlCommandRunner"/> (contracts §2, §4 rule 6; spike T08/T09).</summary>
+[Trait("Category", "Sql")]
 public class CommandRunnerTests : IClassFixture<MigratedDatabaseFixture>, IAsyncLifetime
 {
     private readonly DisposableDatabase _db;

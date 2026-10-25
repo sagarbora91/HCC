@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "recorded": "2026-10-25",
+  "scope": "08 Production (branch claude/wave1-p0). Donor-derived source files active in the production solution. Continues 07 Integration Lab/evidence/source-reuse.json (A1 register: H02, H04 = ADAPT).",
+  "entries": [
+    {
+      "candidate_id": "H02",
+      "source_repository": "https://github.com/TelivityAI/haip.git",
+      "pinned_commit": "3a2f1c89139e8d7d915528abac706a512af16970",
+      "source_paths": ["apps/api/src/modules/rate-plan/rate-pricing.util.ts"],
+      "source_hashes": {"apps/api/src/modules/rate-plan/rate-pricing.util.ts": "3dcac4f4d29e800654c8f6f84fb6ac0d78670e15c13fcda7534dbcd18fac7c57"},
+      "intermediate": {"path": "07 Integration Lab/qualifications/H02-los-tier-pricing/src/rate-adjustments.ts", "sha256": "de6ac47b73330119e3099501f7a115fa6eda81a9727dd643aee17d95f4bded53"},
+      "license_and_notices": "Apache-2.0. HAIP root LICENSE copied unchanged to src/Hcc.Domain/ThirdParty/LICENSE-HAIP-Apache-2.0.txt (sha256 8688f03a7e252cf6166e18ae4827d3f14e1cd700edf70685555c409bc6d3253b, identical to the HAIP root LICENSE recorded in the lab register) and copied to the build output. No NOTICE file in HAIP. Change notice in the file header (Apache-2.0 §4(b)).",
+      "destination_paths": ["08 Production/src/Hcc.Domain/Pricing/RateAdjustments.cs", "08 Production/src/Hcc.Domain/ThirdParty/LICENSE-HAIP-Apache-2.0.txt"],
+      "destination_hashes": {"08 Production/src/Hcc.Domain/Pricing/RateAdjustments.cs": "a350754ac87ff29e5dc4e607ed85960766ee3994c149e8b2a78c51a25bcd10fb (at commit time; recompute after edits)"},
+      "derivation": "ported (TypeScript lab adaptation → C#)",
+      "modifications_and_rationale": "Lab changes kept (integer paise + bps, validated tiers, half-open bands, single rounding half away from zero, NEGATIVE_RATE error). Port: long paise with checked arithmetic replaces the JS safe-integer check; fractional-input cases are impossible by type (int/long); rounding delegated to Hcc.Domain.Money.MoneyMath.DivideRoundHalfAwayFromZero.",
+      "imported_dependencies": [],
+      "HCC_tests_run": "tests/Hcc.Platform.Tests/Kernel/MoneyAndPricingTests.cs: H02_* (5 tests) = the lab hcc.test.ts cases re-run in C#, all passed 25 Oct 2026.",
+      "unrun_tests": "Fractional-number cases from the lab tests (not representable in C# int/long). Accepted-quote stability (not activated).",
+      "accepted_use": "Length-of-stay tier and occupancy-band pricing inside the HCC pricing domain once the owner approves LOS discounts (A8 / module 13). Not yet called by any use case.",
+      "excluded_uses": "Donor rate-plan service, donor schema, float arithmetic.",
+      "rollback_method": "Delete RateAdjustments.cs and its tests; nothing else references it."
+    },
+    {
+      "candidate_id": "H04",
+      "source_repository": "https://github.com/TelivityAI/haip.git",
+      "pinned_commit": "3a2f1c89139e8d7d915528abac706a512af16970",
+      "source_paths": ["apps/api/src/common/date/property-business-date.ts"],
+      "source_hashes": {"apps/api/src/common/date/property-business-date.ts": "e8b250e22136e584340bedf5a12b4223a3174595e60280ef0ba0d1f82a8499b7"},
+      "intermediate": {"path": "07 Integration Lab/qualifications/H04-property-calendar-date/src/calendar-date.ts", "sha256": "0dc643195b71d6565cca95f4f8dbb98e71e2089133b22d37e7ba062d149a7f21"},
+      "license_and_notices": "Apache-2.0 (same HAIP root LICENSE copy as H02). Change notice in the file header.",
+      "destination_paths": ["08 Production/src/Hcc.Domain/Dates/CalendarDate.cs"],
+      "destination_hashes": {"08 Production/src/Hcc.Domain/Dates/CalendarDate.cs": "3b136f8cf4a3e03bc47e2f89c29b87b8165011fcebde65fbddb964f2bbea69e0 (at commit time; recompute after edits)"},
+      "derivation": "ported (TypeScript lab adaptation → C#)",
+      "modifications_and_rationale": "Lab changes kept (invalid zone = configuration error, invalid instant rejected, assertTimeZone, calendar date only — never the business date, DEC-042). Port: TimeZoneInfo with IANA ids (ICU on Windows) instead of Intl.DateTimeFormat; Windows zone ids (e.g. 'India Standard Time') are rejected so the stored value stays portable IANA; returns DateOnly.",
+      "imported_dependencies": [".NET TimeZoneInfo + ICU (Windows 10 1903+ ships ICU)"],
+      "HCC_tests_run": "tests/Hcc.Platform.Tests/Kernel/DatesAndErrorsTests.cs: H04_* (2 tests) + Calendar_date_is_not_the_business_date_DEC042, all passed on this Windows 11 PC 25 Oct 2026 (closes the lab's 'Windows server ICU parity' gap for this host).",
+      "unrun_tests": "Donor side-by-side parity (needs the donor source, not on this PC). Android WebView parity is a client concern.",
+      "accepted_use": "Converting UTC event timestamps to the property's calendar date for display/validation; validating the property timezone on configuration save.",
+      "excluded_uses": "Deciding or advancing the business date; night audit; fiscal-period assignment.",
+      "rollback_method": "Delete CalendarDate.cs and its tests."
+    },
+    {
+      "candidate_id": "ETP",
+      "derivation": "pending (not available on this PC)",
+      "imported": false,
+      "note": "DEC-054 reuse of ETP platform code (migration runner, backup gate, connection policy, deterministic build) is pending: V:\\ETP is not on this PC. Minimal original HCC implementations stand in, each marked ETP-REUSE in code and listed in 08 Production/ETP_Reuse_Pending.md. Provenance entries are added here when ETP files are actually copied."
+    }
+  ]
+}
