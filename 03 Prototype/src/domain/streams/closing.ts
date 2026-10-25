@@ -1,6 +1,7 @@
 // Stream F · Cashier, closing & reports — pure domain helpers and selectors (re-exported by services/mock/index.ts for UI and tests).
 // Every figure is derived from source records (REQ-RPT-003): lines by service date, receipts by receipt date,
 // expenses by business date, occupancy from stay intervals. Money is integer paise.
+import {csvQuoted} from '../csv';
 import type {State,Booking,Expense,Receipt,Line} from '../types';
 import {money,addDays} from '../money';
 import {drawer,blockedDuring,totals} from '../selectors';
@@ -271,7 +272,7 @@ export const reportDictionary:[string,string,string][]=[
   ['Drawer cash flows','Cash in = guest payments + deposits + POS cash sales; cash out = negative refunds + deposit returns + POS cash voids. Filtered by receipt date; cash expenses are separate.','Opening float + cash in + signed cash out − net cash expenses = expected cash for that day, before banking'],
   ['Synthetic tax','Per-line tax rounded half-up to the paisa at the line’s snapshot rate; test data, not GST','—'],
 ];
-const csvCell=(v:string|number)=>'"'+String(v).split('"').join('""')+'"';
+const csvCell=csvQuoted;
 const rupees=(p:number)=>(p/100).toFixed(2);
 /** CSV for one report tab with a scenario/date header. Money in rupees with 2 decimals. */
 export function reportCsv(s:State,pack:ReportPack,tabId:string){

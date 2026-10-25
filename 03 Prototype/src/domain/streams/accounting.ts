@@ -1,6 +1,7 @@
 // Module 20 · Accounting automation — pure helpers, selectors and the state slice type. Exported names MUST start with 'acc' / 'ACC' (shared mock namespace).
 // Vouchers are DERIVED from source records (folio lines, receipts, expenses, closing records); nothing is keyed by hand.
 // Spec: 02 Planning/modules/HCC_Module_20_Accounting_Spec.md. Money = integer paise.
+import {csvMinimal} from '../csv';
 import type {State,Booking,Line,Receipt,Expense} from '../types';
 import {drawer} from '../selectors';
 import {reportPack,expenseCounts,closingOutlet} from './closing';
@@ -227,7 +228,7 @@ export function accMapRows(s:State):ACCMapRow[]{
 }
 
 // ── Export (generic voucher import format) ──
-const csvCell=(v:string|number)=>{const t=String(v);return /[",\r\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
+const csvCell=csvMinimal;
 const rupees=(p:number)=>(p/100).toFixed(2);
 export const ACC_CSV_HEADER=['Date','Voucher No','Voucher Type','Ledger','Debit','Credit','Narration','Source ID'];
 /** One row per voucher entry. Generic import format (not Tally-specific); amounts in rupees, 2 decimals; CRLF. */

@@ -115,4 +115,10 @@ export function register({test,M,assert}){
     const all=cbRange(fy,cbDates(fy)[0],fy.date);assert.ok(all.days.filter(d=>d.difference).length>=10);assert.notEqual(all.differences,0);foots(all,'FY');
     assert.equal(all.closing,cbDay(fy,fy.date).closing);const toY=cbRange(fy,cbDates(fy)[0],'2026-10-23');foots(toY,'FY to 23 Oct');assert.equal(toY.closing,fy.openingCash);
     foots(cbRange(fy,'2026-06-01','2026-06-30'),'June');foots(cbRange(fy,'2026-10-22','2026-10-23'),'22-23 Oct');});
+  test('[CB] F15: CSV cells that Excel would run as a formula are kept as text; negative amounts stay numbers',()=>{
+    let s=seed();s=execute(s,'owner',{type:'BOOK',guest:'=HYPERLINK("http://x.test","y")',room:'105',arrival:s.date,departure:'2026-10-26',people:1});const id=s.bookings[s.bookings.length-1].id;
+    s=execute(s,'cashier',{type:'PAYMENT',id,amount:10000,method:'Cash',kind:'deposit'});
+    const csv=cbCsv(s,s.date,s.date);assert.ok(csv.includes(`"'=HYPERLINK(""http://x.test"",""y"")"`));assert.ok(!/(^|,)"=HYPERLINK/m.test(csv));
+    const neg=cbCsv(fy,'2026-10-22','2026-10-22');assert.ok(neg.includes('"-30.00"'));
+    const acc=M.accCsv(M.accVouchers(s,s.date));assert.ok(!/(^|,)=HYPERLINK/m.test(acc));});
 }

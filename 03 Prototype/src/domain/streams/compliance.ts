@@ -123,5 +123,3 @@ export function cmpSettingDefs(s:State):CMPSettingDef[]{
     effective:'From a chosen date; earlier periods keep their rule',help:`${CMP_ILLUSTRATIVE} Edit in Compliance calendar › Manage obligations.`,value:cmpRuleText(cmpRuleFor(o,cmpMonthAdd(s.date.slice(0,7),-1)))+(o.active?'':' · switched off')});
   return defs;}
 
-/** Plain-language list for the assistant: what is due or overdue. */
-export function cmpDueLines(s:State):string[]{return cmpDueThisWeek(s).map(i=>`${i.obligation.name} · ${i.periodLabel} · due ${i.due} · ${cmpStatusText(i)}`);}

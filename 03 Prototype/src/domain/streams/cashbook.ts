@@ -3,9 +3,9 @@
 // the closing record (opening, expected, counted, banked) and the cashier shift. Only the day LOCK is stored here (s.cashbookX).
 // Rules referenced read-only from: SCC `expense` ledger (running balance, locked days) and ETP CashBookRepository.cs /
 // CashBalanceReconciliationService.cs (opening = previous closing, book balance vs counted, difference shown separately).
+import {csvQuoted} from '../csv';
 import type {State} from '../types';
 import {shiftMovements,type CashMovement} from './closing';
-import {addDays} from '../money';
 
 export type CBLogEntry={action:'lock'|'reopen';by:string;at:string;reason?:string};
 export type CBLock={lockedBy:string;lockedAt:string;log:CBLogEntry[]};
@@ -108,7 +108,7 @@ export function cbCanLock(s:State,uid:string,d:string):{ok:boolean;why?:string}{
 export const cbCanReopen=(s:State,uid:string,d:string)=>{const u=s.users.find(x=>x.id===uid);return !!u&&CB_REOPEN_ROLES.includes(u.role)&&!!cbSlice(s).locks[d];};
 
 export const CB_DIFF_LABEL='Cash over/short (counted − expected)';
-const csvCell=(v:string|number)=>'"'+String(v).split('"').join('""')+'"';
+const csvCell=csvQuoted;
 const rupees=(p:number)=>(p/100).toFixed(2);
 /** CSV for a range: a day-by-day summary, then every entry line with the running balance. Money in rupees, 2 decimals. */
 export function cbCsv(s:State,from:string,to:string){
@@ -128,4 +128,3 @@ export function cbCsv(s:State,from:string,to:string){
   }
   return rows.map(x=>x.map(csvCell).join(',')).join('\r\n');
 }
-export const cbPrev=(d:string)=>addDays(d,-1);
