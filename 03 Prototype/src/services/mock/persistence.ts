@@ -2,11 +2,15 @@
 import {State,SCHEMA} from '../../domain/types';
 import {loadScenario} from '../../fixtures/scenarios';
 import {hrMigrateLegacy} from '../../domain/streams/staff';
+import {extendBase as cmpSeed} from '../../fixtures/ext/compliance';
 /** Oldest saved schema that is migrated instead of reset (W05-B review F-04). */
 export const MIGRATE_FROM_SCHEMA=7;
 /** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. */
 function migrate(s:State&{schema:number}){
-  if(s.schema<8)hrMigrateLegacy(s);// W05-B payroll: `rates` → `rateVersions`, old run lines filled (lead bumps SCHEMA 7 → 8 at the integration merge)
+  if(s.schema<8){
+    hrMigrateLegacy(s);// W05-B payroll: `rates` → `rateVersions`, old run lines filled
+    if(!s.complianceX)cmpSeed(s);// W05-C review F14: saves from before the Compliance calendar get the fictional obligations
+  }
   s.schema=SCHEMA;
 }
 export const STORAGE_KEY='hcc-prototype-v2';

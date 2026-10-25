@@ -69,7 +69,7 @@ export function register({test,M,assert}){
 
   test('[HIST-A] FY26 is the first scenario, the startup default, and loads with the current schema',()=>{
     assert.equal(DEFAULT_SCENARIO,'FY26');assert.equal(scenarios[0].id,'FY26');assert.match(scenarios[0].name,/FY 2026-27 history/);
-    assert.equal(fy.scenario,'FY26');assert.equal(fy.schema,SCHEMA);assert.equal(SCHEMA,7);assert.equal(fy.rooms.length,24);assert.equal(fy.date,'2026-10-24');
+    assert.equal(fy.scenario,'FY26');assert.equal(fy.schema,SCHEMA);assert.equal(SCHEMA,8);assert.equal(fy.rooms.length,24);assert.equal(fy.date,'2026-10-24');
   });
   test('[HIST-A] generator is deterministic (same seed → identical hash; other seed differs)',()=>{
     const h1=sha(buildHistory(baseFixture())),h2=sha(buildHistory(baseFixture()));
