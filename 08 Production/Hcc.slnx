@@ -20,6 +20,7 @@
     <Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
     <Project Path="tests/Hcc.Configuration.Tests/Hcc.Configuration.Tests.csproj" />
     <Project Path="tests/Hcc.Customers.Tests/Hcc.Customers.Tests.csproj" />
+    <Project Path="tests/Hcc.Groups.Tests/Hcc.Groups.Tests.csproj" />
     <Project Path="tests/Hcc.Expenses.Tests/Hcc.Expenses.Tests.csproj" />
     <Project Path="tests/Hcc.Accounting.Tests/Hcc.Accounting.Tests.csproj" />
     <Project Path="tests/Hcc.Compliance.Tests/Hcc.Compliance.Tests.csproj" />
@@ -72,5 +73,7 @@
     <File Path="database/migrations/2101_documents_rbac_seed.sql" />
     <File Path="database/migrations/2500_ota_channels.sql" />
     <File Path="database/migrations/2501_ota_rbac_seed.sql" />
+    <File Path="database/migrations/2200_groups_billing.sql" />
+    <File Path="database/migrations/2201_groups_rbac_seed.sql" />
   </Folder>
 </Solution>
