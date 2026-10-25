@@ -149,3 +149,42 @@ No command reads `cashbookX.locks`. Today past cash movements cannot change, so 
 - Dead code: `cbPrev` and `CBRangeRow` (cashbook.ts), `cmpDueLines` (compliance.ts), and the `closingSummary` preview branch in `DayPack.tsx:11` (the button is only shown once a record exists).
 - The cash book lock and reopen keys are deterministic (`cb-lock:<date>:<history length>`). They work because the history only grows, but other commands use random UI keys. Prefer the app's `newKey` pattern.
 - Missing tests: F1 A/B/C, F2 phrasings, F3 TDS edit, F4 range footing, F5 annual January rule, xlsx with `NaN` and apostrophe sheet names, Tally invalid dates.
+
+---
+
+## Fixes applied (25 Oct 2026, branch `claude/w05-review-fixes`, worktree `E:\Projects\HCC\worktrees\fixes`)
+
+Based on `integration/w05` at `0f2dcd9` (561 tests). After the fixes: tsc clean, **582/582** tests, `npm run build` OK. Not pushed or merged. No SCHEMA bump (left to the lead at merge).
+
+| Finding | Commit | Regression test(s) |
+|---|---|---|
+| F1 (S2) lock segregation | `e6dad7d` | `[CB] F1-A`, `F1-B`, `F1-C`, `F1 legacy` |
+| F7 (S4) lock without a closing record | `e6dad7d` | `[CB] F7` |
+| F2 (S3) compliance intent too greedy | `c442b60` | `[CMP] F2: everyday "due" / "filed" questions…` |
+| F3 (S3) TDS cannot be edited | `1ce98ed` | `[CMP] F3` |
+| F5 (S3) annual Jan–Mar due before FY end | `1ce98ed` | `[CMP] F5` |
+| F4 (S3) range totals do not foot + browser W05-7 | `d20981e` | `[CB] F4: BASE live…`, `[CB] F4: FY26 ranges foot…`, render `[CB] W05-7/W05-8 render` |
+| F6 (S3) full-FY Excel memory | `67e2fd9` | `[XLSX] F6: … within a 160 MB heap`, `[XLSX] F6: large native save is chunked` |
+| F8 (S4) NaN / sheet names / floats | `67e2fd9` | `[XLSX] F8` |
+| F11 (S4) "saved" toast on failure | `67e2fd9` | `[XLSX] F11` |
+| Browser W05-8 cash book Excel | `548367b` | `[XLSX] W05-8`, `[CB] W05-7/W05-8 render` |
+| Chrome 83 `.at()` in cash book (lead request) | `32c91e3` | `[COMPAT] W05 cash book…` (legacy realm), `[COMPAT] W05 source scan` |
+| F10 (S4) Tally impossible dates | `ff4f208` | `[TALLY] F10` |
+| F9 (S4) ratios as text in Excel | `6d2be08` | `[XLSX] F9` |
+| F15 (S4) CSV formula injection, dead code | `0982d47` | `[CB] F15` |
+| F14 (S4, part) reopen erases filing | `52a0d6c` | `[CMP] reopen is Owner-only…` (extended) |
+
+Notes:
+- **F1 rule:** `ClosingRecord.cash.countedBy` and `shiftClose.countedBy` (optional) record who counted; the closer, the counter and the difference approver (`cash.approvedBy`) may not lock. `SHIFT_CLOSE` is re-registered in `handlers/closing.ts` (same rules as the built-in) so `commands.ts` is untouched. **Legacy days** (record without `countedBy`): Owner-only lock, and not by the Owner who closed it. FY26 history sets `countedBy:'cashier'`.
+- **F2:** the review's table of "old intents" was checked against the rules without `compliance-due`: balances/payments/expenses "due this week" and "What is due today?" were **collections**, "expenses were filed" **expenses-week**; the test asserts those. The existing test phrase "What is due this week?" became "What compliance is due this week?".
+- **F4 figure change:** range `closing` is now the cash **carried forward** of the last day (was its book balance); new `differences`, `gaps` and `bookClosing`. FY26 1 Apr–23 Oct: opening + receipts − payments = ₹4,560, over/short +₹440, closing ₹5,000. FY26 1 Apr–24 Oct: ₹10,310 + ₹440 = ₹10,750. Day figures unchanged.
+- **F6 choice:** no range cap. Sheets are encoded in 2,000-row chunks into one preallocated ZIP buffer; the native save writes 3 MiB base64 pieces (`writeFile` + `appendFile`). Full FY26 Reports workbook (30 MB): from ~450 MB heap / ~2 s to < 160 MB heap / ~0.7 s.
+- **F9:** percent cells use a new `0.0%` style; ADR / RevPAR are ₹ cells; same rounding as the screen; `—` stays text when the denominator is 0.
+- Timing budgets `[HIST-A/B/C]` failed once or twice under machine load (1.5 s / 1 s limits) and passed on re-run; not caused by these changes.
+
+Not done (need an owner/lead decision or are outside the allowed files):
+- **F12** Compliance menu entry visible to Cashier/Manager: needs a role-aware nav predicate in `navmap.ts` (Master configuration file, not touched).
+- **F13** cash book lock blocks nothing: product decision (sign-off marker vs blocking `CORRECTION_ADJUST` / accounting lock).
+- **F14 (rest)** seeding obligations for saves without `complianceX`: depends on the SCHEMA bump at merge.
+- **F15 (rest)** `staff.ts` still has its own `csvCell` and `.at(` / `structuredClone` uses in staff files (payroll files, not touched). Deterministic cash-book lock keys left as they are (they work; changing them is cosmetic). `DayPack.tsx` preview branch left (harmless).
+- Merge note: `SHIFT_CLOSE` now has a handler in `handlers/closing.ts`; if W05-A changed the built-in `SHIFT_CLOSE` in `commands.ts`, port that change into the handler at merge.
