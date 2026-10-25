@@ -69,20 +69,28 @@ export function cbRange(s:State,from:string,to:string):{days:CBDay[];opening:num
   const days=cbDates(s).filter(d=>d>=from&&d<=to).map(d=>cbDay(s,d));
   return {days,opening:days[0]?.opening??0,receipts:days.reduce((a,d)=>a+d.receipts,0),payments:days.reduce((a,d)=>a+d.payments,0),closing:days.at(-1)?.closing??0};
 }
-/** Who counted a date: the closer on the record, the shift submitter and approver of the current shift. */
+/** Who counted a date (segregation of duties, W05 review F1): the closer, the counter and the approver of a cash difference — all read from the
+ *  closing record so they survive NEXT_DAY — plus, for the current business date, the cashier shift's submitter / approver / SHIFT_CLOSE user. */
 export function cbCounters(s:State,d:string):string[]{
   const out=new Set<string>();const rec=s.closings?.[d];
   if(rec?.closedBy)out.add(rec.closedBy);
-  if(s.shift?.date===d){out.add(s.shift.submittedBy);}
-  return [...out];
+  if(rec?.cash.countedBy)out.add(rec.cash.countedBy);
+  if(rec?.cash.approvedBy)out.add(rec.cash.approvedBy);
+  if(s.shift?.date===d){out.add(s.shift.submittedBy);if(s.shift.decidedBy)out.add(s.shift.decidedBy);}
+  if(d===s.date&&s.shiftClose?.countedBy)out.add(s.shiftClose.countedBy);
+  return [...out].filter(Boolean);
 }
+/** Legacy rule (F1): a closing record saved before `countedBy` existed does not say who counted, so only an Owner (who did not close it) may lock it. */
+export const cbCounterUnknown=(s:State,d:string)=>{const rec=s.closings?.[d];return !!rec&&!rec.cash.countedBy;};
 /** Whether `uid` could lock `d` now, with the reason when not. */
 export function cbCanLock(s:State,uid:string,d:string):{ok:boolean;why?:string}{
   const u=s.users.find(x=>x.id===uid);
   if(!u||!CB_CHECKER_ROLES.includes(u.role))return {ok:false,why:'Locking needs a Manager, Accountant or Owner.'};
-  if(!s.closings?.[d]&&!s.closedDates.includes(d))return {ok:false,why:'Close the business day first.'};
+  // F7: a lock needs the closing record (a closed date without one is not shown in the cash book, so nobody would see the lock).
+  if(!s.closings?.[d])return {ok:false,why:'Close the business day first.'};
   if(cbSlice(s).locks[d])return {ok:false,why:'Already locked.'};
   if(cbCounters(s,d).includes(uid))return {ok:false,why:'A different person from the one who counted must lock the day.'};
+  if(cbCounterUnknown(s,d)&&u.role!=='Owner')return {ok:false,why:'This day was saved without the name of who counted: only the Owner (a different person from the one who closed it) may lock it.'};
   return {ok:true};
 }
 export const cbCanReopen=(s:State,uid:string,d:string)=>{const u=s.users.find(x=>x.id===uid);return !!u&&CB_REOPEN_ROLES.includes(u.role)&&!!cbSlice(s).locks[d];};

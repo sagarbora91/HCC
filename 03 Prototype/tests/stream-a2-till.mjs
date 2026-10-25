@@ -102,7 +102,7 @@ export function register({test,M,assert}){
     const sample=days.filter((d,i)=>i%15===0||i===days.length-1);
     for(const d of sample){
       const rec=fy.closings[d],s=dayState(d,rec),ex=drawer(s);
-      const re=M.closingSummary({...s,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected:ex,counted:s.shift?.counted??ex}},'manager');
+      const re=M.closingSummary({...s,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected:ex,counted:s.shift?.counted??ex,countedBy:'cashier'}},'manager');
       re.nightAudit={stays:re.occupancy.occupied,resumed:false};re.cash.banked=rec.cash.banked;
       assert.deepEqual(re,rec,d);
     }

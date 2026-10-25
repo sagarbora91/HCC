@@ -22,7 +22,7 @@ export function register({test,M,assert}){
       const ws0={...s,date:d,clock:d+'T20:00',openingCash:c.cash.opening,shiftOpen:true,shiftClose:undefined,shift:undefined,closeProgress:undefined,closings:undefined,bookings,expenses:s.expenses.filter(e=>e.date===d)};
       const expected=drawer(ws0);assert.equal(expected,c.cash.expected,d);
       const shift=ap?{date:d,status:'Closed',expected,counted:c.cash.counted,reason:ap.reason,submittedBy:'cashier',approval:ap.id,decidedBy:'manager'}:undefined;
-      const re=closingSummary({...ws0,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected,counted:c.cash.counted},shift},'manager');
+      const re=closingSummary({...ws0,clock:d+'T23:30',shiftOpen:false,shiftClose:{expected,counted:c.cash.counted,countedBy:'cashier'},shift},'manager');
       re.nightAudit={stays:re.occupancy.occupied,resumed:false};re.cash.banked=c.cash.banked;
       assert.deepEqual(re,c,'closing record '+d);
     }

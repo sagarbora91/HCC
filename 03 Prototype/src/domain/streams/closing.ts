@@ -32,6 +32,8 @@ export type ClosingRecord={
   expenses:{cash:number;nonCash:number;vendorCredit:number;total:number};
   occupancy:{sellable:number;occupied:number;occupancy:string;roomRevenue:number;adr:string;revpar:string};
   cash:{opening:number;expected:number;counted:number;difference:number;reason?:string;approvedBy?:string;
+    /** Who counted the drawer (shift submitter / SHIFT_CLOSE user). Absent in saves made before the W05 review fix (F1): such days are Owner-lock only. */
+    countedBy?:string;
     /** Cash taken out of the drawer after the count (bank drop / owner handover) so the next opening float is restored. FY26 history only. */
     banked?:number;
     /** Restaurant / room-service cash (net of same-day voids) inside expected cash (shared till, DEC-052). */
@@ -127,7 +129,7 @@ export function closingSummary(s:State,closedBy=''):ClosingRecord{
   const byTender:Record<string,number>={};for(const t of reportTenders(s,d,d))byTender[t]=v('receipts','tender:'+t);
   const occ=reportOccupancyRange(s,d,d),ex=shiftExpected(s);
   const counted=s.shiftClose?.counted??ex.expected,expected=s.shiftClose?.expected??ex.expected;
-  const sh=s.shift?.date===d?s.shift:undefined;
+  const sh=s.shift?.date===d?s.shift:undefined,countedBy=sh?.submittedBy??s.shiftClose?.countedBy;
   const exceptions:string[]=[];
   if(counted!==expected)exceptions.push(`Cash difference ${money(counted-expected)} accepted${sh?.decidedBy?' by '+userName(s,sh.decidedBy):''}${sh?.reason?' · '+sh.reason:''}`);
   if(s.closeProgress?.date===d&&s.closeProgress.runs>1)exceptions.push(`Night audit resumed after an interruption (${s.closeProgress.runs} runs; no night posted twice)`);
@@ -141,7 +143,7 @@ export function closingSummary(s:State,closedBy=''):ClosingRecord{
     deposits:{received:v('receipts','deposit-in'),returned:0-v('receipts','deposit-out')||0,heldAtClose:s.bookings.reduce((a,b)=>a+totals(b).deposit,0)},
     expenses:{cash:v('expenses','cash'),nonCash:v('expenses','noncash'),vendorCredit:v('expenses','vendor'),total:v('expenses','total')},
     occupancy:{sellable:occ.sellable,occupied:occ.occupied,occupancy:reportPct(occ.occupied,occ.sellable),roomRevenue:occ.roomRevenue,adr:reportRatioMoney(occ.roomRevenue,occ.occupied),revpar:reportRatioMoney(occ.roomRevenue,occ.sellable)},
-    cash:{opening:s.openingCash,expected,counted,difference:counted-expected,reason:counted!==expected?sh?.reason:undefined,approvedBy:counted!==expected?sh?.decidedBy:undefined,restaurant:ex.restaurant},
+    cash:{opening:s.openingCash,expected,counted,difference:counted-expected,reason:counted!==expected?sh?.reason:undefined,approvedBy:counted!==expected?sh?.decidedBy:undefined,...(countedBy?{countedBy}:{}),restaurant:ex.restaurant},
     outlet:closingOutlet(s,d),
     nightAudit:{stays:closingNightTargets(s).length,resumed:!!(s.closeProgress?.date===d&&s.closeProgress.runs>1)},
     exceptions};

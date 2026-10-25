@@ -7,7 +7,7 @@ export const handlers:Record<string,Handler>={
   // Checker locks a closed day: must be a different person from whoever counted / closed it.
   CB_LOCK:k=>{
     const {s,uid,req,fail}=k;req('reports');const d=date(k);
-    const c=cbCanLock(s,uid,d);if(!c.ok)fail(/different person|Manager/.test(c.why!)?'FORBIDDEN':'INVALID_TRANSITION',c.why!);
+    const c=cbCanLock(s,uid,d);if(!c.ok)fail(/different person|Manager|only the Owner/.test(c.why!)?'FORBIDDEN':'INVALID_TRANSITION',c.why!);
     const x=cbSlice(s),entry={action:'lock' as const,by:uid,at:s.clock};
     s.cashbookX={locks:{...x.locks,[d]:{lockedBy:uid,lockedAt:s.clock,log:[entry]}},history:{...x.history,[d]:[...(x.history[d]??[]),entry]}};
     return `Cash book ${d} locked`;},

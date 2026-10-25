@@ -71,4 +71,34 @@ export function register({test,M,assert}){
     const csv=cbCsv(fy,'2026-06-10','2026-06-11'),d=cbDay(fy,'2026-06-10');
     assert.match(csv,/Cash book/);assert.match(csv,/Opening balance/);assert.match(csv,new RegExp('"'+(d.closing/100).toFixed(2)+'"'));
     assert.ok(csv.split('\r\n').length>10);});
+  // F1 (W05 review): whoever counted the cash (SHIFT_SUBMIT, SHIFT_CLOSE) or accepted the difference must never lock that day — also after NEXT_DAY.
+  const ready=()=>{let s=seed();for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}
+    s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});return execute(s,'owner',{type:'NIGHT_POST'});};
+  const closeDay=s=>execute(tillClear(M,s),'owner',{type:'DAY_CLOSE'});
+  test('[CB] F1-A: the manager who submitted an exact count cannot lock the day, before or after NEXT_DAY',()=>{
+    let s=ready();s=execute(s,'manager',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=closeDay(s);const d=s.date;
+    assert.equal(s.closings[d].cash.countedBy,'manager');assert.equal(cbCanLock(s,'manager',d).ok,false);
+    s=execute(s,'owner',{type:'NEXT_DAY'});
+    assert.equal(cbCanLock(s,'manager',d).ok,false);assert.throws(()=>execute(s,'manager',{type:'CB_LOCK',date:d}),code('FORBIDDEN'));
+    assert.equal(cbCanLock(s,'owner',d).ok,false);                             // owner closed it
+    s=execute(s,'accountant',{type:'CB_LOCK',date:d});assert.equal(cbDay(s,d).locked.lockedBy,'accountant');});
+  test('[CB] F1-B: the manager who closed the shift with SHIFT_CLOSE cannot lock the day',()=>{
+    let s=ready();s=execute(s,'manager',{type:'SHIFT_CLOSE',counted:drawer(s)});assert.equal(s.shiftClose.countedBy,'manager');
+    s=closeDay(s);const d=s.date;assert.equal(cbCanLock(s,'manager',d).ok,false);
+    s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(cbCanLock(s,'manager',d).ok,false);assert.equal(cbCanLock(s,'accountant',d).ok,true);});
+  test('[CB] F1-C: the manager who accepted a cash difference cannot lock the day',()=>{
+    let s=ready();s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)-500,reason:'Short by five rupees'});
+    s=execute(s,'manager',{type:'SHIFT_DIFFERENCE_DECIDE',id:s.shift.approval,approve:true});s=closeDay(s);const d=s.date;
+    assert.equal(s.closings[d].cash.countedBy,'cashier');assert.equal(s.closings[d].cash.approvedBy,'manager');
+    assert.equal(cbCanLock(s,'manager',d).ok,false);
+    s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(cbCanLock(s,'manager',d).ok,false);assert.equal(cbCanLock(s,'accountant',d).ok,true);});
+  test('[CB] F1 legacy: a closing record saved without countedBy can be locked by the Owner only (unless the Owner closed it)',()=>{
+    const s=structuredClone(fy);delete s.closings['2026-06-10'].cash.countedBy;
+    assert.equal(fy.closings['2026-06-10'].cash.countedBy,'cashier');
+    assert.equal(cbCanLock(s,'accountant','2026-06-10').ok,false);assert.match(cbCanLock(s,'accountant','2026-06-10').why,/Owner/);
+    assert.equal(cbCanLock(s,'owner','2026-06-10').ok,true);
+    assert.throws(()=>execute(s,'accountant',{type:'CB_LOCK',date:'2026-06-10'}),code('FORBIDDEN'));});
+  test('[CB] F7: a closed date without a closing record cannot be locked',()=>{
+    const s=seed(),d=s.closedDates.find(d=>!s.closings?.[d]);assert.ok(d);
+    assert.equal(cbCanLock(s,'manager',d).ok,false);assert.throws(()=>execute(s,'manager',{type:'CB_LOCK',date:d}),code('INVALID_TRANSITION'));});
 }
