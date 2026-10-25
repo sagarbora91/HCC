@@ -20,7 +20,9 @@ param(
   [string]$Package = '',
   [string]$ProjectDir = 'E:\Codex\Hotel Control Centre'
 )
-$ErrorActionPreference = 'Stop'
+# Continue (not Stop): in Windows PowerShell 5.1, Stop turns any stderr line of winget/npm/sdkmanager into a fatal error.
+# Native commands are checked via exit codes; downloads/unzips/moves below use -ErrorAction Stop.
+$ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # ---------- locations (everything on E:) ----------
@@ -92,8 +94,8 @@ function OnE($dir){ $dir -and ($dir.ToUpper().StartsWith($Root.ToUpper().TrimEnd
 function Download($url,$file){
   if(Test-Path $file){ Say "  using cached $file"; return }
   Say "  downloading $url"
-  Invoke-WebRequest -Uri $url -OutFile "$file.part" -UseBasicParsing
-  Move-Item "$file.part" $file -Force
+  Invoke-WebRequest -Uri $url -OutFile "$file.part" -UseBasicParsing -ErrorAction Stop
+  Move-Item "$file.part" $file -Force -ErrorAction Stop
 }
 function HasWinget(){ [bool](Cmd 'winget') }
 function WingetInstall($id,$location){
@@ -162,16 +164,16 @@ $needNode = -not (Cmd 'node') -or ([int]((node -v).TrimStart('v').Split('.')[0])
 if($needNode){
   Step "Installing Node.js $NodeMajor.x (portable, $($Paths.Node))"
   $base = "https://nodejs.org/dist/latest-v$NodeMajor.x"
-  $sums = (Invoke-WebRequest "$base/SHASUMS256.txt" -UseBasicParsing).Content
+  $sums = (Invoke-WebRequest "$base/SHASUMS256.txt" -UseBasicParsing -ErrorAction Stop).Content
   $line = ($sums -split "`n") | Where-Object { $_ -match 'node-v[\d.]+-win-x64\.zip$' } | Select-Object -First 1
   $hash,$zipName = $line.Trim() -split '\s+'
   $zip = Join-Path $Downloads $zipName
   Download "$base/$zipName" $zip
   if((Get-FileHash $zip -Algorithm SHA256).Hash -ne $hash.ToUpper()){ Remove-Item $zip; throw 'Node.js download checksum mismatch - run again.' }
   $tmp = Join-Path $Downloads 'node-extract'; if(Test-Path $tmp){ Remove-Item $tmp -Recurse -Force }
-  Expand-Archive $zip $tmp
+  Expand-Archive $zip $tmp -ErrorAction Stop
   if(Test-Path $Paths.Node){ Remove-Item $Paths.Node -Recurse -Force }
-  Move-Item (Get-ChildItem $tmp -Directory | Select-Object -First 1).FullName $Paths.Node
+  Move-Item (Get-ChildItem $tmp -Directory | Select-Object -First 1).FullName $Paths.Node -ErrorAction Stop
   AddUserPath $Paths.Node
   # Windows puts the machine PATH before the user PATH: an older system-wide Node would still win in new windows.
   $winner = (Get-Command node -All | Where-Object { [Environment]::GetEnvironmentVariable('Path','Machine') -split ';' -contains (Split-Path $_.Source) } | Select-Object -First 1)
@@ -191,7 +193,7 @@ if(-not $SkipDotnet -and -not ((Cmd 'dotnet') -and ((dotnet --list-sdks 2>$null)
   Step ".NET $DotnetChannel SDK ($($Paths.Dotnet))"
   $ps1 = Join-Path $Downloads 'dotnet-install.ps1'
   Download 'https://dot.net/v1/dotnet-install.ps1' $ps1
-  & $ps1 -Channel $DotnetChannel -InstallDir $Paths.Dotnet -NoPath
+  & $ps1 -Channel $DotnetChannel -InstallDir $Paths.Dotnet -NoPath -ErrorAction Stop
   SetUserEnv 'DOTNET_ROOT' $Paths.Dotnet
   AddUserPath $Paths.Dotnet
 }
@@ -234,9 +236,9 @@ if(-not $SkipAndroid){
     $zip = Join-Path $Downloads 'commandlinetools-win.zip'
     Download 'https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip' $zip
     $tmp = Join-Path $Downloads 'clt'; if(Test-Path $tmp){ Remove-Item $tmp -Recurse -Force }
-    Expand-Archive $zip $tmp
+    Expand-Archive $zip $tmp -ErrorAction Stop
     New-Item -ItemType Directory -Force (Join-Path $Paths.Sdk 'cmdline-tools') | Out-Null
-    Move-Item (Join-Path $tmp 'cmdline-tools') (Join-Path $Paths.Sdk 'cmdline-tools\latest')
+    Move-Item (Join-Path $tmp 'cmdline-tools') (Join-Path $Paths.Sdk 'cmdline-tools\latest') -ErrorAction Stop
   }
   $have = (& $sdkm --sdk_root=$($Paths.Sdk) --list_installed 2>$null) -join "`n"
   $missing = $AndroidPackages | Where-Object { $have -notmatch [regex]::Escape($_) }
