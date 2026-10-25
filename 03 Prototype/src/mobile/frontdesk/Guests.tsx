@@ -59,7 +59,7 @@ function MfGuestView({g,back,onEdit}:{g:Guest;back:React.ReactNode;onEdit?:()=>v
     <MfSection title="Contact" open><MfRows rows={[['Phone',v.phone],['Email',v.email],['Address',v.address],['Nationality',v.nationality]]}/></MfSection>
     <MfSection title="ID (masked)" meta={v.masked?'Restricted':undefined}>
       {v.masked?<p className="mf-note"><Lock size={13}/> ID details are restricted for your role.</p>:<MfRows rows={[['ID type',v.idType],['ID',<GuestIdValue g={g}/>]]}/>}
-      <p className="mf-note">Shown masked (last 4). "Show ID" is logged in the audit trail (DEC-068).</p></MfSection>
+      {!v.masked&&<p className="mf-note">Shown masked (last 4). "Show ID" is logged in the audit trail (DEC-068).</p>}</MfSection>
     <MfSection title="Company" meta={v.company?undefined:'None'}><MfRows rows={[['Company',v.company||''],['GSTIN',v.gstin||''],['Preferences',v.preferences],['Notes',v.notes]]}/></MfSection>
     <MfSection title="Party" meta={`${g.party.length}`}>{g.party.length?<ul className="mf-party">{g.party.map((p,i)=><li key={i}><strong>{p.name}</strong><span>{p.ageBand}{p.relation?' · '+p.relation:''}</span></li>)}</ul>:<p className="mf-note">No accompanying guests recorded.</p>}</MfSection>
     <MfSection title="History" meta={`${stays.length} stay${stays.length===1?'':'s'}`} open={stays.length>0}>
