@@ -135,4 +135,14 @@ export function register({test,M,assert}){
     for(const phone of [false,true]){const h=CBUI.renderDay(fy,'2026-10-22',phone);assert.match(h,/Cash over\/short/);assert.match(h,/Carried to next day<\/span><strong>₹5,000</);}
     const h=CBUI.renderRange(fy,false);assert.match(h,/Cash over\/short \(counted − expected\)/);assert.match(h,/Excel/);assert.match(h,/Over\/short/);
     assert.match(CBUI.renderRange(fy,true),/Excel/);});
+  test('[XLSX] F9: Occupancy %, ADR and RevPAR are numbers (0.0% / ₹ formats) with the screen rounding, in the ratio rows and the daily table',()=>{
+    const s=M.loadScenario('FY26'),pack=M.reportPack(s,'2026-06-01','2026-06-30'),z=unzip(RX.reportXlsx({hotel:'x',scenario:'FY26',clock:s.clock},pack));
+    const sheets=RX.reportSheets({hotel:'x',scenario:'FY26',clock:s.clock},pack),ix=sheets.findIndex(x=>x.name==='Occupancy by date')+1,occIx=sheets.findIndex(x=>x.name==='Occupancy')+1;
+    const tbl=z['xl/worksheets/sheet'+ix+'.xml'],tab=z['xl/worksheets/sheet'+occIx+'.xml'];
+    assert.equal((tbl.match(/<c r="D\d+" s="5"><v>/g)||[]).length,30);assert.equal((tbl.match(/<c r="F\d+" s="2"><v>/g)||[]).length,30);assert.equal((tbl.match(/<c r="G\d+" s="2"><v>/g)||[]).length,30);
+    assert.ok(!/<c r="D\d+" s="0" t="inlineStr"><is><t[^>]*>[\d.]+%/.test(tbl));
+    const o=pack.tabs.find(t=>t.id==='occupancy'),r=o.ratios[0],pct=parseFloat(r.display)/100;
+    assert.ok(tab.includes('s="5"><v>'+(+pct.toPrecision(15))+'</v>'),'occupancy % '+r.display);
+    const adr=o.ratios[1];assert.ok(tab.includes('s="2"><v>'+Math.round(adr.value.num/adr.value.den)/100+'</v>'),'ADR '+adr.display);
+    assert.match(z['xl/styles.xml'],/formatCode="0\.0%"/);});
 }

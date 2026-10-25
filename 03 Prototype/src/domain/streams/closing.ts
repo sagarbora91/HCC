@@ -161,8 +161,12 @@ export function closingOutlet(s:State,d:string){
 // ── Reports (SCR-15, REQ-RPT-002..006) ──
 export type DrillRow={date:string;ref:string;booking?:string;guest?:string;room?:string;detail:string;method?:string;kind?:string;amount:number};
 export type ReportMetric={id:string;label:string;unit:'money'|'count';value:number;rows:DrillRow[];note?:string};
-export type ReportRatio={id:string;label:string;display:string;formula:string};
-export type ReportTable={columns:string[];units:('text'|'money'|'count')[];rows:(string|number)[][]};
+export type ReportRatio={id:string;label:string;display:string;formula:string;value?:ReportRatioValue};
+/** A ratio as numerator ÷ denominator so exports can write a number (percent fraction or paise), not the display text (W05 review F9). */
+export type ReportRatioValue={kind:'pct'|'money';num:number;den:number};
+export type ReportTable={columns:string[];units:('text'|'money'|'count')[];rows:(string|number)[][];
+  /** Text columns that are ratios of two numeric columns of the same row (e.g. Occupancy % = Occupied ÷ Sellable). */
+  derived?:{col:number;kind:'pct'|'money';num:number;den:number}[]};
 export type ReportTab={id:string;label:string;metrics:ReportMetric[];ratios:ReportRatio[];table?:ReportTable};
 export type ReportPack={from:string;to:string;dates:string[];tabs:ReportTab[]};
 export function reportDates(from:string,to:string){const out:string[]=[];for(let d=from;d<=to&&out.length<366;d=addDays(d,1))out.push(d);return out;}
@@ -218,9 +222,9 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   const expTotal=metric('total','Posted expenses (net of reversals)',E(()=>true));
   const occ={sellable:metric('sellable','Sellable room-nights',sellRows,'count'),occupied:metric('occupied','Occupied room-nights',stayRows,'count'),room:metric('room-revenue','Room revenue',L('room'))};
   const ratios:ReportRatio[]=[
-    {id:'occupancy',label:'Occupancy %',display:reportPct(occ.occupied.value,occ.sellable.value),formula:`${occ.occupied.value} occupied ÷ ${occ.sellable.value} sellable × 100, 1 dp`},
-    {id:'adr',label:'ADR',display:reportRatioMoney(occ.room.value,occ.occupied.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.occupied.value} occupied room-nights`},
-    {id:'revpar',label:'RevPAR',display:reportRatioMoney(occ.room.value,occ.sellable.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.sellable.value} sellable room-nights`}];
+    {id:'occupancy',label:'Occupancy %',display:reportPct(occ.occupied.value,occ.sellable.value),formula:`${occ.occupied.value} occupied ÷ ${occ.sellable.value} sellable × 100, 1 dp`,value:{kind:'pct',num:occ.occupied.value,den:occ.sellable.value}},
+    {id:'adr',label:'ADR',display:reportRatioMoney(occ.room.value,occ.occupied.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.occupied.value} occupied room-nights`,value:{kind:'money',num:occ.room.value,den:occ.occupied.value}},
+    {id:'revpar',label:'RevPAR',display:reportRatioMoney(occ.room.value,occ.sellable.value),formula:`${money(occ.room.value)} room revenue ÷ ${occ.sellable.value} sellable room-nights`,value:{kind:'money',num:occ.room.value,den:occ.sellable.value}}];
   const closingCash=(d:string)=>{const c=s.closings?.[d];if(c)return [c.cash.opening,c.cash.expected,c.cash.counted,c.cash.difference,'Closed'];
     if(d===s.date){const x=shiftExpected(s);return [s.openingCash,x.expected,s.shiftClose?.counted??'',s.shiftClose?s.shiftClose.counted-s.shiftClose.expected:'',s.closedDates.includes(d)?'Closed':'Open'];}
     return ['','','','',s.closedDates.includes(d)?'Closed (no record)':'—'];};
@@ -248,7 +252,7 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
       table:{columns:['Business date','Day','Opening float','Expected cash','Counted','Difference','Cash expenses'],units:['text','text','money','money','money','money','money'],
         rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(E(e=>e.method==='Cash'),d)];})}},
     {id:'occupancy',label:'Occupancy',ratios,metrics:[occ.sellable,occ.occupied,occ.room],
-      table:{columns:['Business date','Sellable','Occupied','Occupancy %','Room revenue','ADR','RevPAR'],units:['text','count','count','text','money','text','text'],
+      table:{columns:['Business date','Sellable','Occupied','Occupancy %','Room revenue','ADR','RevPAR'],units:['text','count','count','text','money','text','text'],derived:[{col:3,kind:'pct',num:2,den:1},{col:5,kind:'money',num:4,den:2},{col:6,kind:'money',num:4,den:1}],
         rows:dates.map(d=>{const sl=sumBy(sellRows,d),oc=sumBy(stayRows,d),rr=sumBy(occ.room.rows,d);return [d,sl,oc,reportPct(oc,sl),rr,reportRatioMoney(rr,oc),reportRatioMoney(rr,sl)];})}},
   ]};
 }
