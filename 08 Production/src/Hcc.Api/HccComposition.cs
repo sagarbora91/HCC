@@ -37,6 +37,7 @@ public static class HccComposition
         services.AddPosModule();                         // W2-6 restaurant POS
         services.AddHccMaintenance();                    // W2-7
         services.AddHccStock();                          // W2-8 linen & stock
+        services.AddHccMessaging();                      // W2-10 messaging (simulated sending)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -70,6 +71,7 @@ public static class HccComposition
         api.MapPosEndpoints();           // W2-6
         api.MapMaintenanceEndpoints();   // W2-7
         api.MapStockEndpoints();         // W2-8
+        api.MapMessagingEndpoints();     // W2-10
         return api;
     }
 }
