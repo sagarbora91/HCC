@@ -9,10 +9,10 @@ export function register({test,M,assert}){
     assert.equal(dec(s,'reception','PERM-FOL-003',{amount:25000}),'allow');
     const over=authorize(s,'reception','PERM-FOL-003',{amount:50000});assert.equal(over.decision,'approval');assert.match(over.reason,/above the Reception limit of ₹250/);
     assert.equal(dec(s,'manager','PERM-FOL-003',{amount:50000}),'allow');assert.equal(dec(s,'manager','PERM-FOL-003',{amount:150000}),'approval');assert.equal(dec(s,'owner','PERM-FOL-003',{amount:99999999}),'allow');});
-  test('[E] authorize: cashier executes refunds on own shift only; reception cannot execute',()=>{const s=baseFixture();
+  test('[E] authorize: cashier and reception execute refunds on own shift only (DEC-063 G2)',()=>{const s=baseFixture();
     assert.equal(dec(s,'cashier','PERM-PAY-004'),'allow');assert.equal(dec(s,'cashier','PERM-PAY-004',{shiftUser:'cashier'}),'allow');
     const other=authorize(s,'cashier','PERM-PAY-004',{shiftUser:'reception'});assert.equal(other.decision,'deny');assert.match(other.reason,/own cash shift/);assert.match(other.rule,/Scope S/);
-    assert.equal(dec(s,'reception','PERM-PAY-004'),'deny');assert.equal(dec(s,'reception','PERM-PAY-003'),'approval');});
+    assert.equal(dec(s,'reception','PERM-PAY-004',{shiftUser:'reception'}),'allow');assert.equal(dec(s,'reception','PERM-PAY-004',{shiftUser:'cashier'}),'deny');assert.equal(dec(s,'reception','PERM-PAY-003'),'approval');});
   test('[E] authorize: housekeeper denied finance; assigned-scope work outside assignment denied',()=>{const s=baseFixture();
     for(const p of ['PERM-PAY-001','PERM-FOL-001','PERM-FOL-002','PERM-RPT-002','PERM-EXP-001']){const d=authorize(s,'housekeeper',p);assert.equal(d.decision,'deny',p);assert.match(d.reason,/role Housekeeper has no grant/);}
     assert.equal(dec(s,'housekeeper','PERM-HK-003',{assignee:'housekeeper'}),'allow');
@@ -86,7 +86,7 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'manager',{type:'POLICY_DECIDE',id:a.id,approve:true})),'FORBIDDEN');
     const ok=execute(s,'owner',{type:'POLICY_DECIDE',id:a.id,approve:true,key:'approval:'+a.id});assert.equal(ok.approvals.at(-1).status,'Executed');assert.equal(ok.policy.version,2);
     assert.equal(execute(ok,'owner',{type:'POLICY_DECIDE',id:a.id,approve:true,key:'approval:'+a.id}),ok);
-    const moved=execute(s,'owner',{type:'POLICY_SET',role:'Cashier',perm:'PERM-RES-001',effect:'none'});
+    const moved=execute(s,'owner',{type:'POLICY_SET',role:'Cashier',perm:'PERM-GST-001',effect:'none'});
     assert.equal(adminApprovalInbox(moved).find(r=>r.a.id===a.id).status,'Invalidated');
     assert.equal(code(()=>execute(moved,'owner',{type:'POLICY_DECIDE',id:a.id,approve:true})),'STALE_VERSION');
     assert.equal(execute(moved,'owner',{type:'POLICY_DECIDE',id:a.id,approve:false}).approvals.at(-1).status,'Rejected');});
