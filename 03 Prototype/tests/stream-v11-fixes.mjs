@@ -23,4 +23,26 @@ export function register({test,M,assert}){
     assert.match(t,/e\.key==='Escape'&&!e\.defaultPrevented/);assert.match(t,/closeRef\.current\(\)/);
     assert.match(t,/if\(e\.key==='Escape'\)\{e\.preventDefault\(\);closeModal\(\);return;\}/);
   });
+  test('[PB-2] locked cash-book day: cbIsLocked/cbLockedMessage drive the reason text',()=>{
+    const s={...M.seed(),cashbookX:{locks:{'2026-10-23':{}},history:{}}};
+    assert.equal(M.cbIsLocked(s,'2026-10-23'),true);assert.equal(M.cbIsLocked(s,'2026-10-22'),false);
+    assert.match(M.cbLockedMessage('2026-10-23','reversing this expense'),/locked.*Owner must reopen 2026-10-23/);
+  });
+  test('[PB-2] Reverse… and Request refund are disabled on a locked day, desktop and phone, with the reason shown',()=>{
+    for(const [p,btn] of [['src/features/expenses/Expenses.tsx','Reverse…'],['src/mobile/money/Expenses.tsx','Reverse…'],['src/features/folio/modals.tsx','Request refund'],['src/mobile/money/Folio.tsx','Request refund']]){
+      const t=src(p);assert.match(t,/cbIsLocked,cbLockedMessage/,p);
+      assert.match(t,new RegExp('disabled=\{busy\|\|(noShift\|\|)?locked\}[^\n]*?'+btn),p);
+      assert.match(t,/\{locked(\?|&&)/,p);
+    }
+    assert.match(src('src/mobile/money/Folio.tsx'),/cbIsLocked\(s,firstRefundable\.date\)\)return;/);
+  });
+  test('[PB-3] z-touch.css forces 16 px on phone buttons (btn, text-btn, segment, chip) in the shell and in sheets',()=>{
+    const css=src('src/styles/z-touch.css'),i=css.indexOf('PB-3'),blk=css.slice(i);
+    assert.ok(i>0);
+    for(const sel of ['.m-shell .btn','.modal.m-sheet .btn','.modal.m-sheet .f-seg button','.m-shell .text-btn'])assert.ok(blk.includes(sel),sel);
+    assert.match(blk,/\{font-size:16px!important\}/);
+  });
+  test('[PB-3] build.mjs loads z-touch.css after every other style (so the override wins)',()=>{
+    const b=src('build.mjs');assert.match(b,/z-touch|sort|readdir/);
+  });
 }

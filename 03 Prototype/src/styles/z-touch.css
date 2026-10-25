@@ -24,3 +24,8 @@
   .mm-seg b{font-size:14px}
   .m-demo-pill{font-size:14px}
 }
+/* PB-3: phone button text is 16 px. Many per-screen rules (m-*.css, mobile-*.css) set 15 px on .btn / segment / chip buttons inside .m-shell and
+   .modal.m-sheet; this file loads last, and !important keeps those from winning on specificity. Child badges keep their own sizes (V9-2). */
+.m-shell .btn,.m-shell .small-btn,.m-shell .text-btn,.m-shell .f-seg button,.m-shell .mm-seg button,.m-shell .m-chips button,.m-shell .cust-tabs button,
+.modal.m-sheet .btn,.modal.m-sheet .small-btn,.modal.m-sheet .text-btn,.modal.m-sheet .f-seg button,.modal.m-sheet .mm-seg button,.modal.m-sheet button.btn,
+.m-sheet .btn,.m-sheet .text-btn{font-size:16px!important}
