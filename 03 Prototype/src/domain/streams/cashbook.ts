@@ -63,11 +63,22 @@ export function cbDay(s:State,d:string):CBDay{
   const reconciles=expected===undefined?true:expected===opening+receipts-(payments-banked);
   return {date:d,known,status:rec||s.closedDates.includes(d)?'Closed':'Open',locked:cbSlice(s).locks[d],opening,entries,receipts,payments,banked,closing,expected,counted,difference,carried,reconciles};
 }
-export type CBRangeRow=CBDay;
-/** Range view: one row per known business date between from and to (inclusive). */
-export function cbRange(s:State,from:string,to:string):{days:CBDay[];opening:number;receipts:number;payments:number;closing:number}{
+export type CBRange={days:CBDay[];opening:number;receipts:number;payments:number;
+  /** Σ cash over/short at the counts (counted − expected) — the gap between a day's book closing and the cash carried forward. */
+  differences:number;
+  /** Σ differences between a day's carry and the next listed day's opening (0 when the days join up; shown only if not). */
+  gaps:number;
+  /** Cash carried forward after the last day (counted − banked; the book balance for an uncounted open day). */
+  closing:number;
+  /** Book balance of the last day before its count difference. */
+  bookClosing:number};
+/** Range view: one row per known business date between from and to (inclusive).
+ *  Totals always foot (W05 review F4): opening + receipts − payments + differences + gaps = closing. */
+export function cbRange(s:State,from:string,to:string):CBRange{
   const days=cbDates(s).filter(d=>d>=from&&d<=to).map(d=>cbDay(s,d));
-  return {days,opening:days[0]?.opening??0,receipts:days.reduce((a,d)=>a+d.receipts,0),payments:days.reduce((a,d)=>a+d.payments,0),closing:days.at(-1)?.closing??0};
+  let gaps=0;for(let i=1;i<days.length;i++)gaps+=days[i].opening-days[i-1].carried;
+  return {days,opening:days[0]?.opening??0,receipts:days.reduce((a,d)=>a+d.receipts,0),payments:days.reduce((a,d)=>a+d.payments,0),
+    differences:days.reduce((a,d)=>a+(d.carried-d.closing),0),gaps,closing:days.at(-1)?.carried??0,bookClosing:days.at(-1)?.closing??0};
 }
 /** Who counted a date (segregation of duties, W05 review F1): the closer, the counter and the approver of a cash difference — all read from the
  *  closing record so they survive NEXT_DAY — plus, for the current business date, the cashier shift's submitter / approver / SHIFT_CLOSE user. */
@@ -95,6 +106,7 @@ export function cbCanLock(s:State,uid:string,d:string):{ok:boolean;why?:string}{
 }
 export const cbCanReopen=(s:State,uid:string,d:string)=>{const u=s.users.find(x=>x.id===uid);return !!u&&CB_REOPEN_ROLES.includes(u.role)&&!!cbSlice(s).locks[d];};
 
+export const CB_DIFF_LABEL='Cash over/short (counted − expected)';
 const csvCell=(v:string|number)=>'"'+String(v).split('"').join('""')+'"';
 const rupees=(p:number)=>(p/100).toFixed(2);
 /** CSV for a range: a day-by-day summary, then every entry line with the running balance. Money in rupees, 2 decimals. */
@@ -102,12 +114,16 @@ export function cbCsv(s:State,from:string,to:string){
   const r=cbRange(s,from,to);
   const rows:(string|number)[][]=[['Hotel Control Centre — DEMONSTRATION · fictional data · Cash book'],['Property',s.settings.hotel],['Business dates',from,to],['Generated (simulated clock)',s.clock],[],
     ['Date','Status','Opening','Receipts','Payments (incl. banking)','Closing (book)','Expected','Counted','Difference','Locked by'],
-    ...r.days.map(d=>[d.date,d.status+(d.locked?' · locked':''),rupees(d.opening),rupees(d.receipts),rupees(d.payments),rupees(d.closing),d.expected===undefined?'':rupees(d.expected),d.counted===undefined?'':rupees(d.counted),d.difference===undefined?'':rupees(d.difference),d.locked?.lockedBy??''])];
+    ...r.days.map(d=>[d.date,d.status+(d.locked?' · locked':''),rupees(d.opening),rupees(d.receipts),rupees(d.payments),rupees(d.closing),d.expected===undefined?'':rupees(d.expected),d.counted===undefined?'':rupees(d.counted),d.difference===undefined?'':rupees(d.difference),d.locked?.lockedBy??'']),
+    [],['Range totals'],['Opening',rupees(r.opening)],['Receipts',rupees(r.receipts)],['Payments (incl. banking)',rupees(r.payments)],[CB_DIFF_LABEL,rupees(r.differences)],
+    ...(r.gaps?[['Opening differs from previous carry',rupees(r.gaps)]]:[]),['Closing (carried forward)',rupees(r.closing)]];
   rows.push([],['Date','Reference','Entry','Detail','Booking','Guest','Receipt','Payment','Balance','By']);
   for(const d of r.days){
     let bal=d.opening;rows.push([d.date,'','Opening balance','','','','','',rupees(bal),'']);
     for(const e of d.entries){bal+=e.in-e.out;rows.push([d.date,e.id,e.label,e.reference,e.booking??'',e.guest??'',e.in?rupees(e.in):'',e.out?rupees(e.out):'',rupees(bal),e.actor]);}
     rows.push([d.date,'','Closing balance','','','',rupees(d.receipts),rupees(d.payments),rupees(d.closing),'']);
+    if(d.carried!==d.closing){const x=d.carried-d.closing;rows.push([d.date,'',CB_DIFF_LABEL,'Cashier count','','',x>0?rupees(x):'',x<0?rupees(-x):'',rupees(d.carried),'']);}
+    if(d.counted!==undefined)rows.push([d.date,'','Carried forward to next day','','','','','',rupees(d.carried),'']);
   }
   return rows.map(x=>x.map(csvCell).join(',')).join('\r\n');
 }

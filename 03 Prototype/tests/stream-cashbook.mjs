@@ -33,7 +33,7 @@ export function register({test,M,assert}){
     assert.equal(cbDay(fy,fy.date).opening,fy.openingCash);});
   test('[CB] range totals are the sum of the days; empty range is empty',()=>{
     const r=cbRange(fy,'2026-06-01','2026-06-30');assert.equal(r.days.length,30);
-    assert.equal(r.receipts,r.days.reduce((a,d)=>a+d.receipts,0));assert.equal(r.opening,r.days[0].opening);assert.equal(r.closing,r.days.at(-1).closing);
+    assert.equal(r.receipts,r.days.reduce((a,d)=>a+d.receipts,0));assert.equal(r.opening,r.days[0].opening);assert.equal(r.closing,r.days.at(-1).carried);assert.equal(r.bookClosing,r.days.at(-1).closing);
     assert.equal(cbRange(fy,'2030-01-01','2030-01-31').days.length,0);});
   test('[CB] lock: needs a closed day and a checker who did not count',()=>{
     assert.equal(cbCanLock(fy,'owner','2026-06-10').ok,true);
@@ -101,4 +101,18 @@ export function register({test,M,assert}){
   test('[CB] F7: a closed date without a closing record cannot be locked',()=>{
     const s=seed(),d=s.closedDates.find(d=>!s.closings?.[d]);assert.ok(d);
     assert.equal(cbCanLock(s,'manager',d).ok,false);assert.throws(()=>execute(s,'manager',{type:'CB_LOCK',date:d}),code('INVALID_TRANSITION'));});
+  // F4 (W05 review) + W05-7: range totals foot when a cash difference occurred; the difference is its own line.
+  const foots=(r,label)=>{assert.equal(r.opening+r.receipts-r.payments+r.differences+r.gaps,r.closing,label);assert.equal(r.gaps,0,label+' gaps');
+    assert.equal(r.differences,r.days.reduce((a,d)=>a+(d.difference??0),0),label+' Σ difference');};
+  test('[CB] F4: BASE live — cashier ₹5 short, NEXT_DAY: range opening + receipts − payments + over/short = closing; CSV shows the line',()=>{
+    let s=ready();s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)-500,reason:'Short by five rupees'});
+    s=execute(s,'manager',{type:'SHIFT_DIFFERENCE_DECIDE',id:s.shift.approval,approve:true});s=closeDay(s);const d0=s.date;s=execute(s,'owner',{type:'NEXT_DAY'});
+    const r=cbRange(s,d0,s.date);assert.equal(r.days.length,2);assert.equal(r.differences,-500);foots(r,'BASE');
+    assert.equal(r.closing,cbDay(s,s.date).closing);assert.equal(cbDay(s,d0).carried,cbDay(s,s.date).opening);
+    const one=cbRange(s,d0,d0);foots(one,'one day');assert.equal(one.closing,one.days[0].carried);
+    const csv=cbCsv(s,d0,s.date);assert.match(csv,/Cash over\/short \(counted − expected\)","-5\.00"/);assert.match(csv,/Carried forward/);});
+  test('[CB] F4: FY26 ranges foot (full year and June) and show the over/short total',()=>{
+    const all=cbRange(fy,cbDates(fy)[0],fy.date);assert.ok(all.days.filter(d=>d.difference).length>=10);assert.notEqual(all.differences,0);foots(all,'FY');
+    assert.equal(all.closing,cbDay(fy,fy.date).closing);const toY=cbRange(fy,cbDates(fy)[0],'2026-10-23');foots(toY,'FY to 23 Oct');assert.equal(toY.closing,fy.openingCash);
+    foots(cbRange(fy,'2026-06-01','2026-06-30'),'June');foots(cbRange(fy,'2026-10-22','2026-10-23'),'22-23 Oct');});
 }
