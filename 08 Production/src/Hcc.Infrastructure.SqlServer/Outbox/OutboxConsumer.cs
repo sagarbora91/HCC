@@ -21,6 +21,31 @@ public sealed class OutboxConsumer(SqlConnectionFactory connections)
         ArgumentNullException.ThrowIfNull(eventTypes);
         ArgumentNullException.ThrowIfNull(effect);
         if (consumer.Length > 40) throw new ArgumentException("Consumer name is at most 40 characters.", nameof(consumer));
+        return await RetryOnDeadlockAsync(() => ConsumeOnceAsync(consumer, eventTypes, effect, batchSize, ct), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Parallel consumers (several projector workers, redelivery) can deadlock on <c>plat.consumer_dedup</c> / <c>plat.outbox</c> (the
+    /// pending read's NOT EXISTS against a delivery's key lock + outbox update). SQL Server rolls the victim back completely (error 1205),
+    /// so a retry is safe: the dedup row decides exactly-once on the next attempt.
+    /// </summary>
+    private static async Task<T> RetryOnDeadlockAsync<T>(Func<Task<T>> run, CancellationToken ct)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await run().ConfigureAwait(false);
+            }
+            catch (SqlException ex) when (ex.Number == 1205 && attempt < 5)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(20 * attempt), ct).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task<int> ConsumeOnceAsync(string consumer, IReadOnlyCollection<string> eventTypes, EffectHandler effect, int batchSize, CancellationToken ct)
+    {
 
         var pending = new List<OutboxEvent>();
         await using (var conn = await connections.OpenAsync(ct).ConfigureAwait(false))
@@ -49,11 +74,16 @@ public sealed class OutboxConsumer(SqlConnectionFactory connections)
         return applied;
     }
 
-    /// <summary>Delivers one event to one consumer; false when it was already processed.</summary>
-    public async Task<bool> DeliverAsync(string consumer, OutboxEvent evt, EffectHandler effect, CancellationToken ct = default)
+    /// <summary>Delivers one event to one consumer; false when it was already processed. A deadlock victim is retried (see <see cref="RetryOnDeadlockAsync"/>).</summary>
+    public Task<bool> DeliverAsync(string consumer, OutboxEvent evt, EffectHandler effect, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(evt);
         ArgumentNullException.ThrowIfNull(effect);
+        return RetryOnDeadlockAsync(() => DeliverOnceAsync(consumer, evt, effect, ct), ct);
+    }
+
+    private async Task<bool> DeliverOnceAsync(string consumer, OutboxEvent evt, EffectHandler effect, CancellationToken ct)
+    {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var tx = (SqlTransaction)await conn.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct).ConfigureAwait(false);
         try
