@@ -23,23 +23,28 @@ const isOwn=(k:Kit,st:HRStaff)=>!!st.userId&&st.userId===k.uid;
 const rupee=(n:unknown)=>Number.isSafeInteger(n)&&(n as number)>=0&&(n as number)<=100000000;
 const dm=(d:string)=>new Date(d+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'UTC'});
 
-/** Statutory rate version from a command (old HR_RATES_SET callers may omit `from`: next month after the last locked run). */
-function ratesFrom(k:Kit):HRRates{
-  const {cmd,assert,s}=k,base=hrRatesFor(s,s.date.slice(0,7)),r={...hrDefaultRates(),...base} as HRRates;
+/** Statutory rate version from a command (old HR_RATES_SET callers may omit `from`: next month after the last locked run).
+ *  F-05: the new version starts from the version IN FORCE ON ITS OWN DATE (not the current month); only the fields in the command change. */
+function ratesFrom(k:Kit):{r:HRRates;base:HRRates}{
+  const {cmd,assert,s}=k;
   const last=hrLastLockedMonth(s),fallback=(last?addDays(last+'-28',7).slice(0,7):s.date.slice(0,7))+'-01';
-  r.from=cmd.from??fallback;
-  assert(/^\d{4}-\d{2}-01$/.test(r.from),'Rates take effect from the 1st of a month.');
-  assert(!last||r.from.slice(0,7)>last,`Rates for ${hrMonthLabel(last??'')} and earlier are frozen in locked pay-runs. Choose a later month.`,'INVALID_TRANSITION');
+  const from=String(cmd.from??fallback);
+  assert(/^\d{4}-\d{2}-01$/.test(from),'Rates take effect from the 1st of a month.');
+  assert(!last||from.slice(0,7)>last,`Rates for ${hrMonthLabel(last??'')} and earlier are frozen in locked pay-runs. Choose a later month.`,'INVALID_TRANSITION');
+  const base=hrRatesFor(s,from.slice(0,7)),r={...hrDefaultRates(),...base,from} as HRRates;
   const int=(f:keyof HRRates,min:number,max:number,label:string)=>{if(cmd[f]===undefined)return;assert(Number.isInteger(cmd[f])&&cmd[f]>=min&&cmd[f]<=max,`Invalid value for ${label}.`);(r as Record<string,unknown>)[f]=cmd[f];};
   int('basicBps',1000,10000,'basic share');int('hraBps',0,10000,'HRA');int('washBps',0,10000,'washing allowance');
   int('pfEeBps',0,2500,'PF employee rate');int('pfErBps',0,2500,'PF employer rate');int('esicEeBps',0,1000,'ESIC employee rate');int('esicErBps',0,1000,'ESIC employer rate');
   int('otBps',0,30000,'overtime multiplier');int('lateBlock',0,10,'late rule');
   for(const f of ['pfWageCap','esicCeiling','ptMaleExempt','ptMaleMid','ptMaleMidAmt','ptStd','ptFeb','ptFemaleExempt'] as const)if(cmd[f]!==undefined){assert(rupee(cmd[f]),`Invalid amount for ${f}.`);r[f]=cmd[f];}
   if(cmd.rounding!==undefined){assert(cmd.rounding==='paise'||cmd.rounding==='rupee','Rounding is paise or rupee.');r.rounding=cmd.rounding;}
-  assert(r.otBps>=10000,'Overtime multiplier must be at least 1×.');
-  assert(r.basicBps*(10000+r.hraBps+r.washBps)<=10000*10000,'Basic + HRA + washing cannot exceed the earned pay.');
-  assert(r.ptMaleExempt<r.ptMaleMid,'The PT nil slab must end below the middle slab.');
-  return r;
+  rateRules(k,r);
+  return {r,base};
+}
+function rateRules(k:Kit,r:HRRates,where=''){
+  k.assert(r.otBps>=10000,'Overtime multiplier must be at least 1×.'+where);
+  k.assert(r.basicBps*(10000+r.hraBps+r.washBps)<=10000*10000,'Basic + HRA + washing cannot exceed the earned pay.'+where);
+  k.assert(r.ptMaleExempt<r.ptMaleMid,'The PT nil slab must end below the middle slab.'+where);
 }
 
 export const handlers:Record<string,Handler>={
@@ -218,9 +223,17 @@ export const handlers:Record<string,Handler>={
   },
   /** New dated statutory rate version (effective from the 1st of a month after the last locked run). Owner. */
   HR_STAT_RATES_SET:k=>{
-    owner(k,'change statutory rates');const x=hrEnsure(k.s),r=ratesFrom(k);
-    x.rateVersions=[...x.rateVersions.filter(v=>v.from!==r.from),r].sort((a,b)=>a.from<b.from?-1:1);
-    return `Statutory rates from ${r.from} saved (illustrative — CA to confirm) · locked runs keep their snapshot`;
+    owner(k,'change statutory rates');const x=hrEnsure(k.s),{r,base}=ratesFrom(k);
+    // F-05: a field changed here is carried into LATER versions that had inherited the old value, so a later version
+    // never silently reverts it; a later version that set its own value for that field keeps it (and stops the carry).
+    const changed=(Object.keys(r) as (keyof HRRates)[]).filter(f=>f!=='from'&&r[f]!==base[f]);
+    const later=x.rateVersions.filter(v=>v.from>r.from).sort((a,b)=>a.from<b.from?-1:1).map(v=>({...v}));
+    const carried:string[]=[],kept:string[]=[],live=new Set(changed);
+    for(const v of later){for(const f of [...live]){if(v[f]===base[f]){(v as Record<string,unknown>)[f]=r[f];carried.push(`${String(f)} → ${v.from}`);}else{live.delete(f);kept.push(`${v.from} keeps its own ${String(f)}`);}}
+      rateRules(k,v,` (version from ${v.from})`);}
+    x.rateVersions=[...x.rateVersions.filter(v=>v.from<r.from),r,...later].sort((a,b)=>a.from<b.from?-1:1);
+    const note=later.length?` · later version${later.length===1?'':'s'} from ${later.map(v=>v.from).join(', ')}: ${carried.length?'change carried forward ('+carried.join(', ')+')':'no change carried'}${kept.length?'; '+kept.join('; '):''}`:'';
+    return `Statutory rates from ${r.from} saved (${changed.length?changed.join(', '):'no field changed'}; illustrative — CA to confirm) · locked runs keep their snapshot${note}`;
   },
   /** Legacy name (Master configuration wrappers): same as HR_STAT_RATES_SET. */
   HR_RATES_SET:k=>handlers.HR_STAT_RATES_SET(k),

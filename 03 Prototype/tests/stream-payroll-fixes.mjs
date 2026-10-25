@@ -102,4 +102,24 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const cur=seed();assert.deepEqual(M.restoreState(JSON.stringify(cur)).state,cur);
     assert.equal(M.restoreState(JSON.stringify({...v7,schema:6})).reset,true);
   });
+
+  test('[PAY-FIX F-05] a dated rate version starts from the version in force on its date; later versions never silently revert a change',()=>{
+    // reviewer's t3: Jan PF 10%, then Apr changes only ESIC → April keeps PF 10%
+    let s=execute(seed(),'owner',{type:'HR_STAT_RATES_SET',from:'2027-01-01',pfEeBps:1000});
+    s=execute(s,'owner',{type:'HR_STAT_RATES_SET',from:'2027-04-01',esicEeBps:100});
+    assert.equal(M.hrRatesFor(s,'2027-04').pfEeBps,1000);assert.equal(M.hrRatesFor(s,'2027-04').esicEeBps,100);
+    assert.equal(M.hrRatesFor(s,'2026-12').pfEeBps,1200);
+    // reverse order: a later version already exists; an earlier change is carried into it (it had inherited the old value)
+    let r=execute(seed(),'owner',{type:'HR_STAT_RATES_SET',from:'2027-04-01',esicEeBps:100});
+    r=execute(r,'owner',{type:'HR_STAT_RATES_SET',from:'2027-01-01',pfEeBps:1000});
+    assert.equal(M.hrRatesFor(r,'2027-04').pfEeBps,1000,'PF change does not stop after March');assert.equal(M.hrRatesFor(r,'2027-04').esicEeBps,100);
+    assert.equal(M.hrRatesFor(r,'2027-01').esicEeBps,75,'the earlier version does not pick up the later ESIC change');
+    assert.match(r.audit[0].detail,/carried forward \(pfEeBps → 2027-04-01\)/);
+    // a later version that set its own value keeps it
+    let k=execute(seed(),'owner',{type:'HR_STAT_RATES_SET',from:'2027-04-01',pfEeBps:1100});
+    k=execute(k,'owner',{type:'HR_STAT_RATES_SET',from:'2027-01-01',pfEeBps:1000});
+    assert.equal(M.hrRatesFor(k,'2027-04').pfEeBps,1100);assert.equal(M.hrRatesFor(k,'2027-02').pfEeBps,1000);assert.match(k.audit[0].detail,/2027-04-01 keeps its own pfEeBps/);
+    // the dialog sends only changed fields: it renders from the version in force on its first month
+    assert.match(UI.renderModal(s,'owner','hr-rates'),/only the fields you change are saved/);
+  });
 }
