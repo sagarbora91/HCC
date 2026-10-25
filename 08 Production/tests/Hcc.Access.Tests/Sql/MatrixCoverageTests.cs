@@ -82,9 +82,13 @@ public partial class MatrixCoverageTests(AccessDatabase db) : IClassFixture<Acce
         return cells;
     }
 
+    private static HashSet<string> MatrixPermissions() => ExpectedCells().Keys.Select(k => k.Perm).ToHashSet(StringComparer.Ordinal);
+
     private async Task<Dictionary<(string Perm, string Role), (string Cell, long? Limit, string? Unit)>> SeededAsync()
     {
-        var rows = await db.RowsAsync("SELECT permission_id, role_code, mode, scope, limit_value, limit_unit FROM plat.role_grant;");
+        // Wave 2: module migrations (block 0700+) seed their own PERM ids outside the matrix v1; those are checked by the module's tests.
+        var matrix = MatrixPermissions();
+        var rows = (await db.RowsAsync("SELECT permission_id, role_code, mode, scope, limit_value, limit_unit FROM plat.role_grant;")).Where(r => matrix.Contains((string)r[0]));
         return rows.ToDictionary(r => ((string)r[0], (string)r[1]), r =>
         {
             var scope = (string)r[3];
@@ -109,7 +113,8 @@ public partial class MatrixCoverageTests(AccessDatabase db) : IClassFixture<Acce
 
         Assert.DoesNotContain(seeded.Keys, k => !expected.ContainsKey(k));
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
-        Assert.Equal(45, await db.CountAsync("SELECT COUNT(*) FROM plat.permission;"));
+        var matrix = MatrixPermissions();
+        Assert.Equal(45, (await db.RowsAsync("SELECT permission_id FROM plat.permission;")).Count(r => matrix.Contains((string)r[0])));
     }
 
     [Fact]

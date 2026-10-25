@@ -22,5 +22,8 @@ DEC-054 says HCC reuses the owner's ETP Reporting Engine platform code. ETP (`V:
 | 16 | `deployment/windows/installer/Hcc.iss`, `Build-Installer.ps1` (P7) | Inno Setup 6 outline (files, keep settings on upgrade, stop/start service); not compiled on this PC | ETP Inno Setup template (branding, prerequisite checks, upgrade rules) |
 | 17 | `src/Hcc.Operations/ScriptBackupGate.cs` (P7) | `IBackupGate` that runs CHECKDB then `Backup-HccDatabase.ps1 -CopyOnly -Tag premigrate_X_to_Y`; chosen by `Hcc:Operations:BackupScript` in the `migrate` command | ETP backup-gate contract once #3/#4 are aligned |
 | 18 | `src/Hcc.Api/Hosting/HccHosting.cs` (P7) | `UseWindowsService`, production config validator (integrated auth only, no TrustServerCertificate, backup folder, thumbprint), Kestrel HTTPS from machine store | ETP service hosting/config validation/TLS binding |
+| 19 | `src/Hcc.Domain/Accounting/VoucherExport.cs` `TallyXml`, `AccountingQueries.TallyAsync` (W2-3) | Simulated Tally "Import Data" XML (ISDEEMEDPOSITIVE convention, ≤ 31 days, ledger names from the fixed synthetic chart); nothing is sent | ETP Tally preparation: ledger + voucher-type masters, company name/GUID, import response parsing ("imported" only after Tally confirms) |
+| 20 | `AccountingQueries.CsvAsync` (W2-3) | Generic voucher CSV (formula-guarded cells) | ETP Excel (.xlsx) exporter for the voucher register and trial balance |
+| 21 | `src/Hcc.Api/Endpoints/AccountingEndpoints.cs` `AccountingProjectorWorker` (W2-3) | 2 s outbox poll, log and retry | ETP background-job hosting (retry/back-off, logging) — same as the housekeeping worker |
 
 Not yet written (later agents, also ETP reuse): Excel/PDF exporters, e-mail, Tally export (P7 / Wave 2).

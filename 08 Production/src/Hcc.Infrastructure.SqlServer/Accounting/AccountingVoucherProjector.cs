@@ -67,7 +67,7 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
                   AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = o.outbox_id))
              + (SELECT COUNT(*) FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id JOIN bill.approval a ON a.approval_id = s.approval_id
                 WHERE t.property_id = @p AND
-        """ + SweepWhere + ");";
+        """ + " " + SweepWhere + ");";
 
     private static readonly JsonSerializerOptions Json = CanonicalJson.SerializerOptions;
 
