@@ -20,8 +20,8 @@ public sealed class SqlReportSource(SqlConnectionFactory connections) : IReportS
 {
     private const string Sql = """
         SELECT room_id FROM inv.room WHERE property_id = @p ORDER BY room_id;
-        SELECT b.room_id, b.from_night, b.to_night FROM inv.room_block b JOIN inv.room r ON r.room_id = b.room_id
-         WHERE r.property_id = @p AND b.active = 1 AND (b.from_night IS NULL OR b.from_night <= @to) AND (b.to_night IS NULL OR b.to_night > @from)
+        SELECT b.room_id, b.from_night, b.to_night FROM inv.v_room_block_effective b JOIN inv.room r ON r.room_id = b.room_id
+         WHERE r.property_id = @p AND (b.from_night IS NULL OR b.from_night <= @to) AND (b.to_night IS NULL OR b.to_night > @from)
         UNION ALL
         SELECT room_id, from_date, to_date FROM ops.room_block
          WHERE property_id = @p AND released_utc IS NULL AND (from_date IS NULL OR from_date <= @to) AND (to_date IS NULL OR to_date > @from);

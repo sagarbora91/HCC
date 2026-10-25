@@ -168,7 +168,7 @@ public sealed class SqlYieldStore(SqlConnectionFactory connections) : IYieldStor
                 ;WITH n AS (SELECT @start AS night, 1 AS i UNION ALL SELECT DATEADD(DAY, 1, night), i + 1 FROM n WHERE i < @n)
                 SELECT n.night,
                   (SELECT COUNT(*) FROM inv.room r WHERE r.property_id = @p AND NOT EXISTS (
-                      SELECT 1 FROM inv.room_block b WHERE b.room_id = r.room_id AND b.active = 1
+                      SELECT 1 FROM inv.v_room_block_effective b WHERE b.room_id = r.room_id
                         AND (b.from_night IS NULL OR b.from_night < DATEADD(DAY, 1, n.night)) AND (b.to_night IS NULL OR b.to_night > n.night))),
                   (SELECT COUNT(*) FROM inv.reservation x WHERE x.property_id = @p AND x.arrival <= n.night AND x.departure > n.night
                       AND (x.status IN ('Confirmed', 'InHouse') OR (x.status = 'Held' AND (x.hold_until_utc IS NULL OR @now < x.hold_until_utc)))),
