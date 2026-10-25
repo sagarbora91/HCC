@@ -25,6 +25,9 @@ public static class HousekeepingEndpoints
         services.AddSingleton(sp => new HousekeepingTaskProjector(sp.GetRequiredService<SqlPlatform>().Outbox));
         services.AddSingleton<ITaskAssigneeEligibility, PolicyTaskAssigneeEligibility>(); // grants-based: HK-003 for cleans, ROOM-001 without HK-003 for repairs
         services.AddSingleton<HousekeepingCommands>();
+        services.AddSingleton<IStayoverStore, SqlStayoverStore>();       // W3-7 stay-over cleaning tasks
+        services.AddSingleton(sp => new StayoverTaskProjector(sp.GetRequiredService<SqlPlatform>().Outbox));
+        services.AddSingleton<StayoverCommands>();
         services.AddSingleton<HousekeepingQueries>();
         services.AddHostedService<HousekeepingProjectorWorker>();
         return services;
@@ -42,6 +45,8 @@ public static class HousekeepingEndpoints
             http.HccReply(await cmds.UnblockRoomAsync(http.HccCommand(HousekeepingCommands.OpUnblockRoom), body, ct)));
         g.MapPost("/commands/" + HousekeepingCommands.OpRequestRepair, async (HttpContext http, RequestRepairRequest body, HousekeepingCommands cmds, CancellationToken ct) =>
             http.HccReply(await cmds.RequestRepairAsync(http.HccCommand(HousekeepingCommands.OpRequestRepair), body, ct)));
+        g.MapPost("/commands/" + StayoverCommands.OpGenerate, async (HttpContext http, GenerateStayoverTasksRequest body, StayoverCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.GenerateAsync(http.HccCommand(StayoverCommands.OpGenerate), body, ct)));
         g.MapGet("/rooms/board", async (HttpContext http, HousekeepingQueries q, CancellationToken ct, int page = 1, int pageSize = 50) =>
         {
             var (property, principal) = http.HccActor();
@@ -58,7 +63,7 @@ public static class HousekeepingEndpoints
 
 /// <summary>Polls the outbox for <c>StayDeparted</c> every 2 s (at-least-once delivery, exactly-once effect per consumer).</summary>
 // ETP-REUSE: align with ETP background-job hosting (Windows service worker, retry/back-off, logging) when ETP (V: drive) is available.
-public sealed partial class HousekeepingProjectorWorker(HousekeepingTaskProjector projector, ILogger<HousekeepingProjectorWorker> logger) : BackgroundService
+public sealed partial class HousekeepingProjectorWorker(HousekeepingTaskProjector projector, StayoverTaskProjector stayover, ILogger<HousekeepingProjectorWorker> logger) : BackgroundService
 {
     public static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
 
@@ -69,6 +74,7 @@ public sealed partial class HousekeepingProjectorWorker(HousekeepingTaskProjecto
             try
             {
                 await projector.RunOnceAsync(ct: stoppingToken).ConfigureAwait(false);
+                await stayover.RunOnceAsync(ct: stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
