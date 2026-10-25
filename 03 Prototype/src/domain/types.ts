@@ -244,6 +244,8 @@ export type State={
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
   cashbookX?:import('./streams/cashbook').CBState;
+  /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
+  configX?:import('./streams/config').CFGState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;

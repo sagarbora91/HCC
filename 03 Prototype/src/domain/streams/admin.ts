@@ -216,6 +216,8 @@ export function adminDecideBlock(s:State,uid:string,row:AdminInboxRow):string|un
   if(!u||!adminUserActive(s,u))return 'Your account is not active.';
   if(row.a.actor===uid)return 'You raised this request — another authorised user must decide it (PERM-SOD-001).';
   if(row.kind==='policy'){const d=authorize(s,uid,'PERM-ADM-002');if(d.decision!=='allow')return 'Only a user allowed to edit role templates (Owner) can decide policy requests. '+d.reason;}
+  // W05-A Master configuration requests (CFG_DECIDE): decided by the setting's approver role or the Owner (DEC-058).
+  else if(row.kind==='config'){const ap=String(row.a.meta?.approver||'Owner');if(u.role!=='Owner'&&!(ap==='Manager'&&u.role==='Manager'))return ap==='Manager'?'Only a Manager or the Owner can decide this configuration request.':'Only the Owner can decide this configuration request.';}
   else if(!(s.grants[u.role]||[]).includes('approve'))return `Role ${u.role} lacks the approve permission.`;
   return undefined;
 }

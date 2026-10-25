@@ -1,0 +1,63 @@
+/* W05-A · Master configuration hub. Classes prefixed cfg- . List beside details on desktop/tablet; stacked below 760 px; phone shell = cards. */
+.cfg-hub{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:16px;align-items:start}
+.cfg-list{padding:12px 0;position:sticky;top:12px;max-height:calc(100vh - 140px);overflow:auto}
+.cfg-search{display:flex;align-items:center;gap:8px;margin:0 12px 8px;padding:0 12px;min-height:44px;border:1px solid #cdb9a3;border-radius:10px;background:#fff;color:#6b5547}
+.cfg-search input{border:0;outline:0;background:transparent;flex:1;min-width:0;font-size:15px;color:#2b1d16;min-height:42px}
+.cfg-search:focus-within{border-color:#7a1f2b;box-shadow:0 0 0 3px #f5e4e6}
+.cfg-sec h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#6b5547;margin:14px 16px 6px}
+.cfg-sec ul{list-style:none;margin:0;padding:0}
+.cfg-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent;padding:10px 14px 10px 16px;min-height:52px;color:#2b1d16;border-left:3px solid transparent;cursor:pointer}
+.cfg-item>span:first-child{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cfg-item strong{font-size:14px;font-weight:600}
+.cfg-item small{font-size:12.5px;color:#6b5547;line-height:1.35}
+.cfg-item:hover{background:#f6efe6}
+.cfg-item.on{background:#f5e4e6;border-left-color:#7a1f2b}
+.cfg-item.on strong{color:#5e1620}
+.cfg-item:focus-visible{outline:2px solid #7a1f2b;outline-offset:-2px}
+.cfg-ro{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:#6b5547;background:#efe4d6;border-radius:6px;padding:2px 6px;white-space:nowrap}
+.cfg-detail{min-width:0;padding-bottom:8px}
+.cfg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;padding:18px 20px 10px}
+.cfg-head h2{margin:0;font-size:20px;color:#2b1d16}
+.cfg-head p{margin:4px 0 0;color:#6b5547;font-size:14px}
+.cfg-readonly{margin:0 20px 12px}
+.cfg-link,.cfg-hublink{display:inline-flex;align-items:center;gap:5px;min-height:36px}
+.cfg-rows{list-style:none;margin:0;padding:0 20px}
+.cfg-row{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,1.6fr) auto;gap:14px;align-items:start;padding:14px 0;border-top:1px solid #e6d9c8}
+.cfg-row-main,.cfg-row-val,.cfg-row-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cfg-row-main strong{font-size:14.5px}
+.cfg-row-main small,.cfg-row-meta small{color:#6b5547;font-size:12.5px;line-height:1.4}
+.cfg-row-val strong{font-size:14.5px;color:#2b1d16;overflow-wrap:anywhere}
+.cfg-row-val small{display:inline-flex;align-items:center;gap:4px;color:#2c5282;font-size:12.5px}
+.cfg-row-act{justify-self:end}
+.cfg-panel{padding:4px 20px 16px;display:flex;flex-direction:column;gap:14px}
+.cfg-mods{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.cfg-mod{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;align-items:center;padding:12px 14px;border:1px solid #e6d9c8;border-radius:10px;background:#fff}
+.cfg-mod>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cfg-mod small{color:#6b5547;font-size:12.5px}
+.cfg-mod.on{border-color:#cfe2cc}
+.cfg-mod-act{grid-column:1/-1;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.cfg-core{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#f6efe6;color:#2b1d16;font-size:13.5px}
+.cfg-box{border:1px solid #e6d9c8;border-radius:10px;background:#fff;padding:14px 16px}
+.cfg-box h3{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:6px}
+.cfg-box>.card{border:0;box-shadow:none;margin:0}
+.cfg-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.cfg-inv{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cfg-inv li{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45}
+.cfg-illus{display:flex;align-items:center;gap:5px;margin-top:6px;color:#8a4b00;font-size:13px}
+.cfg-eff{display:flex;align-items:center;gap:6px;color:#2c5282;font-size:14px;margin:0}
+.cfg-affects h3{margin-top:0}
+.cfg-hist .cfg-sched{margin-bottom:8px}
+.cfg-hist li{line-height:1.5}
+.cfg-revert{display:inline-flex;align-items:center;gap:4px;margin-left:8px}
+@media(max-width:1100px){.cfg-row{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto}.cfg-row-meta{grid-column:1/3;grid-row:2}.cfg-row-act{grid-row:1/3;grid-column:3}}
+@media(max-width:760px){.cfg-hub{grid-template-columns:1fr}.cfg-list{position:static;max-height:none}.cfg-row{grid-template-columns:1fr}.cfg-row-meta,.cfg-row-act{grid-column:auto;grid-row:auto;justify-self:start}}
+/* Phone shell */
+.cfg-m .cfg-m-search{margin:0 0 12px;min-height:48px}
+.cfg-m .cfg-m-search input{font-size:16px;min-height:46px}
+.cfg-m .cfg-panel{padding:0}
+.cfg-m .cfg-mods{grid-template-columns:1fr}
+.cfg-m .cfg-mod .btn,.cfg-m .cfg-actions .btn{min-height:48px;font-size:16px}
+.cfg-m .cfg-link{min-height:48px;font-size:15px;margin-bottom:8px}
+.cfg-m .cfg-box p,.cfg-m .cfg-inv li{font-size:15px}
+.cfg-m .ma-card .btn{min-height:48px}
+@media(max-width:600px){.cfg-affects li,.cfg-hist li,.cfg-eff{font-size:15px}}

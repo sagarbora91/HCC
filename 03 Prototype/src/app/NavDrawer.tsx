@@ -4,11 +4,11 @@ import React,{useEffect,useRef,useState} from 'react';
 import {X,LayoutGrid,Search,ChevronDown,FlaskConical,LogOut,Hotel,Smartphone} from 'lucide-react';
 import {useHcc} from './context';
 import {navItems} from './nav';
-import {NAV_CATEGORIES,DASHBOARD,HOME_PAGE,PAGE_CATEGORY,catPage,pagesOfCategory,parseCatPage,type CategoryId} from './navmap';
+import {NAV_CATEGORIES,DASHBOARD,HOME_PAGE,PAGE_CATEGORY,catPage,pagesOfCategory,parseCatPage,navFilterModules,type CategoryId} from './navmap';
 
 export function NavDrawer({onClose}:{onClose:()=>void}){
   const {s,user,page,go,permission,open,openSearch,signOut,taskList}=useHcc();
-  const allowed=new Set(navItems.filter(n=>permission(n.p)).map(n=>n.id));
+  const allowed=new Set(navFilterModules(s,navItems).filter(n=>permission(n.p)).map(n=>n.id));
   const here:CategoryId|undefined=parseCatPage(page)??PAGE_CATEGORY[page];
   const [openCat,setOpenCat]=useState<CategoryId|undefined>(here);
   const ref=useRef<HTMLElement>(null);

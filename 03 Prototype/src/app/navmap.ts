@@ -3,6 +3,8 @@
 // so a page cannot be missing from one of them. A new page must be added to PAGE_CATEGORY (a test enforces it).
 import {Store,Receipt,Wrench,HeartHandshake,Users,TrendingUp,Package,IdCard,ChartNoAxesCombined,ShieldCheck,LayoutDashboard} from 'lucide-react';
 import type {Permission} from '../services/mock';
+import type {State} from '../domain/types';
+import {cfgPageOn} from '../domain/streams/config';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
 export type NavCategory={id:CategoryId;label:string;blurb:string;icon:typeof Store};
@@ -66,7 +68,7 @@ export const PAGE_BLURB:Record<string,string>={
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
   closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
-  access:'Users, roles and permissions',settings:'Hotel configuration and policies',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
+  access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -103,7 +105,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   assistant:['assistant','ask','question','ai','management assistant','insight'],
   compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
   access:['access','users','roles','permissions','rbac','login','disable user'],
-  settings:['settings','configuration','config','tax','tariff','hotel','policy','display','device'],
+  settings:['settings','configuration','config','master configuration','masters','admin','setup','hotel configuration','tax','tariff','hotel','policy','display','device','modules on off','branding'],
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],
   roadmap:['roadmap','future','planned','modules','phases'],
@@ -174,3 +176,7 @@ export function searchEntries(entries:SearchEntry[],query:string):SearchHit[]{
 export function visibleEntries(entries:SearchEntry[],allowedPages:Set<string>,can:(p:Permission)=>boolean):SearchEntry[]{
   return entries.filter(e=>allowedPages.has(e.page)&&(!e.needs||can(e.needs)));
 }
+
+/** W05-A · DEC-057 Modules on/off: the one filter every navigation surface applies (Modules Home and category tiles, hamburger menu,
+ * search palette, phone tabs via App's allowed pages). Pages of a switched-off module disappear; core pages always stay. */
+export function navFilterModules<T extends {id:string}>(s:State,items:readonly T[]):T[]{return items.filter(i=>cfgPageOn(s,i.id));}
