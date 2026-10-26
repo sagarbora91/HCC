@@ -13,6 +13,7 @@ export async function register({test,M,assert}){
   const routes={'GET /masters/floors':()=>page(floors),'GET /masters/floors/history':()=>page(hist)};
   // MA-1 (old → new): the masters loader also reads the room-types / amenities / occupancy-charges lists — empty here (tests/sync-roommasters.mjs covers them).
   for(const x of ['room-types','amenities','occupancy-charges'])for(const h of ['','/history'])routes[`GET /masters/${x}${h}`]=()=>page([]);
+  routes['GET /pos/menu-categories']=()=>page([]); // MA-4: the masters loader also reads the POS menu categories (sync/pos-masters.ts)
   for(const n of names)routes['POST /commands/'+n]=()=>(n==='SaveFloor'?floor(4,'F4','Annexe',40,{roomCount:0}):n==='ReorderFloors'?page(floors):{});
   const srv=fakeServer(routes);
   const rt=await startRuntime(S,srv,mine);

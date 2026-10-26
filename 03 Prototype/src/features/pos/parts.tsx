@@ -2,7 +2,7 @@
 import React,{useState} from 'react';
 import {Send,Minus,Plus,Ban,Printer,Wallet,ShieldCheck,Check,X,Leaf,Drumstick} from 'lucide-react';
 import {money,posOrderTotals,posLineStatus,posLineValue,posUnsent,posActiveLines,posSpot,posMenuFor,posCategories,posOpenOrderAt,posOutlet,posInHouse,
-  posPendingVoid,posSlice,POS_VOID_LIMIT} from '../../services/mock';
+  posPendingVoid,posSlice,posTablesOf,posItemPrice,posSoldOut,posItemCategoryName,posCheckClass,posKotStation,posOutletHours,POS_GST_CLASSES,POS_VOID_LIMIT} from '../../services/mock';
 import type {POSOrder,POSKotStatus} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,clockTime} from '../../components/ui';
@@ -14,13 +14,15 @@ export function PosStatus({st}:{st:string}){return <span className={'pos-status 
 /** Table / room tiles for one outlet. */
 export function PosSpots({outlet,selected,onSelect}:{outlet:string;selected?:string;onSelect:(spot:string)=>void}){
   const {s}=useHcc();const out=posOutlet(s,outlet);if(!out)return null;
-  const spots=out.kind==='table'?(out.tables||[]).map(t=>({id:t,label:'Table '+t,sub:''})):posInHouse(s).map(b=>({id:b.room,label:'Room '+b.room,sub:b.guest}));
-  if(!spots.length)return <p className="muted pos-pad">No in-house rooms right now.</p>;
+  // MA-4: active tables and counters of the outlet from the tables master (seats / section shown under a free table).
+  const spots=out.kind==='table'?posTablesOf(s,outlet).map(t=>({id:t.tableNo,label:(t.counter?'Counter ':'Table ')+t.tableNo,sub:'',info:[t.seats?`${t.seats} seats`:'',t.section??''].filter(Boolean).join(' · ')}))
+    :posInHouse(s).map(b=>({id:b.room,label:'Room '+b.room,sub:b.guest,info:''}));
+  if(!spots.length)return <p className="muted pos-pad">{out.kind==='table'?'No active tables — add them in Master configuration › Restaurant and POS › Tables and counters.':'No in-house rooms right now.'}</p>;
   return <div className="pos-spots" role="list">{spots.map(x=>{const o=posOpenOrderAt(s,outlet,x.id),t=o&&posOrderTotals(s,o);
     const live=o?o.kots.filter(k=>o.lines.some(l=>l.kot===k.id&&!l.voided)):[];
     const kitchen=live.some(k=>k.status==='Ready')?'Ready':live.some(k=>k.status==='Preparing')?'Preparing':undefined;
     return <button type="button" role="listitem" key={x.id} className={'pos-spot'+(o?' busy':'')+(selected===x.id?' on':'')} aria-pressed={selected===x.id} onClick={()=>onSelect(x.id)}>
-      <strong>{x.label}</strong><span>{x.sub||(o?.guest??(o?`${o.covers} cover${o.covers===1?'':'s'}`:'Free'))}</span>
+      <strong>{x.label}</strong><span>{x.sub||(o?.guest??(o?`${o.covers} cover${o.covers===1?'':'s'}`:x.info?`Free · ${x.info}`:'Free'))}</span>
       <small>{o?<>{money(t!.total)} · {t!.items} item{t!.items===1?'':'s'}</>:'Tap to open a check'}</small>
       {kitchen&&<PosStatus st={kitchen}/>}{o?.pendingVoid&&<span className="pos-status pos-st-void">Void pending</span>}
     </button>;})}</div>;
@@ -29,18 +31,20 @@ export function PosSpots({outlet,selected,onSelect}:{outlet:string;selected?:str
 /** Menu grid with category filter. Tapping an item adds 1 to the check. */
 export function PosMenu({outlet,order}:{outlet:string;order?:POSOrder}){
   const {s,run,busy,permission}=useHcc();const cats=posCategories(s,outlet);const [cat,setCat]=useState('All');
-  const items=posMenuFor(s,outlet).filter(m=>cat==='All'||m.category===cat);
+  const items=posMenuFor(s,outlet).filter(m=>cat==='All'||posItemCategoryName(s,m)===cat);
   const locked=!order||order.status!=='Open'||!!order.pendingVoid;
+  const out=posOutlet(s,outlet),hours=out?posOutletHours(out):'';
   return <div className="pos-menu">
     <div className="pos-cats" role="group" aria-label="Menu category">{['All',...cats].map(c=><button type="button" key={c} aria-pressed={cat===c} className={cat===c?'on':''} onClick={()=>setCat(c)}>{c}</button>)}</div>
-    {!order&&<p className="pos-hint">Choose a table or room first, then tap dishes to add them.</p>}
-    <div className="pos-items">{items.map(m=><button type="button" key={m.id} className={'pos-item'+(m.available?'':' off')} disabled={busy||locked||!m.available||!permission('billing')}
-      aria-label={`Add ${m.name}, ${money(m.price)}${m.available?'':', unavailable'}`}
+    {!order&&<p className="pos-hint">Choose a table or room first, then tap dishes to add them.{hours?` ${out!.name} hours: ${hours}.`:''}</p>}
+    <div className="pos-items">{items.map(m=>{const price=posItemPrice(s,m),sold=posSoldOut(s,m),off=sold||price===undefined;
+      return <button type="button" key={m.id} className={'pos-item'+(off?' off':'')} disabled={busy||locked||off||!permission('billing')}
+      aria-label={`Add ${m.name}, ${price===undefined?'no price yet':money(price)}${sold?', sold out today':''}`}
       onClick={()=>order&&run({type:'POS_ITEM_ADD',id:order.id,item:m.id},`${m.name} added`)}>
       <span className={'pos-veg '+(m.veg?'veg':'nonveg')} aria-label={m.veg?'Vegetarian':'Non-vegetarian'}>{m.veg?<Leaf size={12}/>:<Drumstick size={12}/>}</span>
-      <strong>{m.name}</strong><span className="pos-price">{money(m.price)}</span>{!m.available&&<small>Unavailable (86)</small>}
+      <strong>{m.name}</strong><span className="pos-price">{price===undefined?'—':money(price)}</span>{sold?<small>Sold out today (86)</small>:price===undefined?<small>No price yet</small>:m.shortCode?<small>{m.shortCode}</small>:null}
       {order&&<b className="pos-inc">{order.lines.filter(l=>l.item===m.id&&!l.voided).reduce((a,l)=>a+l.qty,0)||''}</b>}
-    </button>)}</div>
+    </button>;})}</div>
   </div>;
 }
 
@@ -72,7 +76,7 @@ export function PosCheck({o,compact}:{o:POSOrder;compact?:boolean}){
       {!o.lines.length&&<li className="pos-empty-line">No items yet — tap dishes on the menu.</li>}
     </ul>
     <div className="pos-totals"><div><span>Items</span><strong>{t.items}</strong></div><div><span>Net</span><strong>{money(t.net)}</strong></div>
-      <div><span>GST {t.taxBps/100}%{o.settlement?' (snapshot)':''}</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Bill total</span><strong>{money(t.total)}</strong></div></div>
+      <div><span>GST {t.taxBps/100}%{posCheckClass(o)!=='food'?` · ${POS_GST_CLASSES.find(c=>c.value===posCheckClass(o))?.label}`:''}{o.settlement?' (snapshot)':''}</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Bill total</span><strong>{money(t.total)}</strong></div></div>
     {o.settlement&&<p className="pos-settled">Bill {o.settlement.billNo} · {o.settlement.mode==='folio'?`posted to room folio ${o.settlement.booking}`:`${o.settlement.method}${o.settlement.reference?' · '+o.settlement.reference:''} at outlet`} · {clockTime(o.settlement.at)} by {posUserName(s,o.settlement.by)}</p>}
     {o.status==='Void'&&<p className="pos-settled">Voided · {o.voidReason} · {o.voidedAt&&clockTime(o.voidedAt)}</p>}
     <div className="pos-actions">
@@ -93,7 +97,7 @@ export function PosKotCard({o,kotId}:{o:POSOrder;kotId:string}){
   const next:Record<POSKotStatus,POSKotStatus|undefined>={Preparing:'Ready',Ready:'Served',Served:undefined};const n=next[k.status];
   const out=posOutlet(s,o.outlet);
   return <article className={'pos-kot '+tone[k.status]}>
-    <header><strong>KOT {k.no} · {posSpot(o)}</strong><PosStatus st={k.status}/></header>
+    <header><strong>KOT {k.no} · {posSpot(o)}{k.station?` · ${posKotStation(k)}`:''}</strong><PosStatus st={k.status}/></header>
     <small>{out?.name} · sent {clockTime(k.at)} by {posUserName(s,k.by)}{k.readyAt?` · ready ${clockTime(k.readyAt)}`:''}{k.servedAt?` · served ${clockTime(k.servedAt)}`:''}</small>
     <ul>{lines.map(l=><li key={l.id} className={l.voided?'void':''}><b>{l.qty}×</b> {l.name}{l.voided&&<em> — void</em>}</li>)}</ul>
     <div className="pos-row-actions">{n&&permission('billing')&&<button className="btn primary" disabled={busy} onClick={()=>run({type:'POS_KOT_STATUS',id:o.id,kot:k.id,status:n},`KOT ${k.no} → ${n}`)}>Mark {n.toLowerCase()}</button>}

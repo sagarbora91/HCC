@@ -91,6 +91,7 @@
     <File Path="database/migrations/2810_masters_rooms.sql" />
     <File Path="database/migrations/2830_money_masters.sql" />
     <File Path="database/migrations/2820_catalogue.sql" />
+    <File Path="database/migrations/2840_pos_masters.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
   </Folder>
 </Solution>

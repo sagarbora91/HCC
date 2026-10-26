@@ -105,7 +105,7 @@ async function loadMoneyMasters(c:LoaderCtx):Promise<MSTState>{
     for(const f of rows)c.ids.setVersion(r.kind,protoId(Number(f[r.idField])),String(f.version));
     // An empty money list (never seeded) keeps the prototype seed for methods / accounts / categories so pick lists never go empty.
     if(rows.length||master===MNY_EV)out.rows[master]=rows.map(FROM[master]);
-    if(c.mayRead(r.history))out.history.push(...(await pages<SrvHistory>(c,r.historyPath)).map(h=>historyOf(master,h)));
+    if(r.history&&r.historyPath&&c.mayRead(r.history))out.history.push(...(await pages<SrvHistory>(c,r.historyPath)).map(h=>historyOf(master,h)));
   }
   out.history.sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:Number(b.id)-Number(a.id));
   return out;

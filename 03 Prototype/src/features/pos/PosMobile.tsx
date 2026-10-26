@@ -1,38 +1,40 @@
 // Module 23 · Restaurant POS & room service — phone page: spot list → menu grid with big tap targets → cart sheet.
 import React,{useState} from 'react';
 import {ArrowLeft,ShoppingCart,Printer} from 'lucide-react';
-import {money,posSlice,posOpenOrderAt,posOrderTotals,posDaySummary,posKitchen,posOpenOrders,posUnsent} from '../../services/mock';
+import {money,posSlice,posOpenOrderAt,posOrderTotals,posDaySummary,posKitchen,posKitchenAt,posStations,posOpenOrders,posUnsent,posOutletList} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ChipFilter,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {Empty} from '../../components/ui';
 import {PosSpots,PosMenu,PosKotCard,PosStatus} from './parts';
 import {PosSummaryTables} from './modals';
-import {PosAvailability} from './PosPage';
+import {PosAvailability,PosMasterLinks} from './PosPage';
 
 type View='orders'|'kitchen'|'summary';
 export function PosMobile(){
   const {s}=useHcc();const p=posSlice(s);
   const [view,setView]=useState<View>('orders');
-  if(!p.outlets.length)return <Empty title="No outlets configured" body="Load a demo scenario to get the fictional menu."/>;
+  if(!posOutletList(s).length)return <><Empty title="No outlets configured" body={p.outlets.length?'Every outlet is retired — reactivate one in Master configuration.':'Load a demo scenario to get the fictional menu.'}/><PosMasterLinks/></>;
   const kitchenOpen=posKitchen(s).filter(x=>x.kot.status!=='Served').length;
   return <div className="pos-m">
     <ChipFilter<View> label="POS view" value={view} onChange={setView} options={[{id:'orders',label:'Orders',count:posOpenOrders(s).length},{id:'kitchen',label:'Kitchen',count:kitchenOpen},{id:'summary',label:'Summary'}]}/>
     {view==='orders'&&<MobileOrders/>}{view==='kitchen'&&<MobileKitchen/>}{view==='summary'&&<MobileSummary/>}
+    {view!=='summary'&&<PosMasterLinks/>}
   </div>;
 }
 
 function MobileOrders(){
-  const {s,open}=useHcc();const p=posSlice(s);
-  const [outlet,setOutlet]=useState(p.outlets[0].id);const [spot,setSpot]=useState<string>();
+  const {s,open}=useHcc();const outlets=posOutletList(s);
+  const [pick,setOutlet]=useState(outlets[0].id);const [spot,setSpot]=useState<string>();
+  const outlet=outlets.some(o=>o.id===pick)?pick:outlets[0].id,kind=outlets.find(o=>o.id===outlet)?.kind;
   const order=spot?posOpenOrderAt(s,outlet,spot):undefined;
   if(!spot)return <>
-    <ChipFilter label="Outlet" value={outlet} onChange={v=>setOutlet(v)} options={p.outlets.map(o=>({id:o.id,label:o.name,count:posOpenOrders(s).filter(x=>x.outlet===o.id).length}))}/>
+    <ChipFilter label="Outlet" value={outlet} onChange={v=>setOutlet(v)} options={outlets.map(o=>({id:o.id,label:o.name,count:posOpenOrders(s).filter(x=>x.outlet===o.id).length}))}/>
     <PosSpots outlet={outlet} onSelect={x=>{setSpot(x);if(!posOpenOrderAt(s,outlet,x))open({type:'pos-open',id:outlet,room:x});}}/>
   </>;
   const t=order&&posOrderTotals(s,order),unsent=order?posUnsent(order).reduce((a,l)=>a+l.qty,0):0;
   return <>
-    <div className="pos-m-head"><button type="button" className="btn" onClick={()=>setSpot(undefined)}><ArrowLeft size={18}/> All {p.outlets.find(o=>o.id===outlet)?.kind==='room'?'rooms':'tables'}</button>
-      <div><strong>{p.outlets.find(o=>o.id===outlet)?.kind==='room'?'Room':'Table'} {spot}</strong>{order?<PosStatus st={order.status}/>:<span className="muted">No open check</span>}</div></div>
+    <div className="pos-m-head"><button type="button" className="btn" onClick={()=>setSpot(undefined)}><ArrowLeft size={18}/> All {kind==='room'?'rooms':'tables'}</button>
+      <div><strong>{kind==='room'?'Room':'Table'} {spot}</strong>{order?<PosStatus st={order.status}/>:<span className="muted">No open check</span>}</div></div>
     {!order&&<div className="pos-row-actions"><button className="btn primary full" onClick={()=>open({type:'pos-open',id:outlet,room:spot})}>Open check</button></div>}
     <PosMenu outlet={outlet} order={order}/>
     {order&&<StickyFooter><button type="button" className="btn primary full pos-cart-btn" onClick={()=>open({type:'pos-cart',id:order.id})}>
@@ -41,9 +43,10 @@ function MobileOrders(){
 }
 
 function MobileKitchen(){
-  const {s}=useHcc();const all=posKitchen(s);const [st,setSt]=useState<'Preparing'|'Ready'|'Served'|'all'>('Preparing');
+  const {s}=useHcc();const stations=posStations(s);const [station,setStation]=useState('');const all=posKitchenAt(s,station);const [st,setSt]=useState<'Preparing'|'Ready'|'Served'|'all'>('Preparing');
   const xs=all.filter(x=>st==='all'||x.kot.status===st);
   return <>
+    {stations.length>0&&<ChipFilter label="Kitchen station" value={station} onChange={setStation} options={['',...stations].map(x=>({id:x||'all',label:x||'All stations',count:posKitchenAt(s,x).filter(k=>k.kot.status!=='Served').length})).map(o=>({...o,id:o.id==='all'?'':o.id}))}/>}
     <ChipFilter label="Kitchen status" value={st} onChange={setSt} options={(['Preparing','Ready','Served'] as const).map(c=>({id:c,label:c,count:all.filter(x=>x.kot.status===c).length}))}/>
     {xs.map(x=><PosKotCard key={x.kot.id} o={x.order} kotId={x.kot.id}/>)}
     {!xs.length&&<Empty title={`No ${st.toLowerCase()} KOTs`}/>}

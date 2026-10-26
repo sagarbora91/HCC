@@ -1,15 +1,27 @@
 // Module 23 · Restaurant POS & room service — pure helpers, selectors and the state slice type. Exported names MUST start with 'pos' / 'POS' (shared mock namespace).
 // Money = integer paise. Tax = round(net × taxBps / 10000) on the bill net (matches one folio service line). See 02 Planning/modules/HCC_Module_23_POS_Spec.md.
 import type {State} from '../types';
-import {gstForFood,gstLineTax} from '../gst';
+import {gstLineTax} from '../gst';
 import {mnyNames,mnyIsDrawer} from './money-master';
+import {posCheckRate,posItemActive,posItemCategoryName,posItemCategoryCode,posCategoryRows,posKotStation} from './pos-master';
 
 export type POSOutletKind='table'|'room';
-export type POSOutlet={id:string;name:string;kind:POSOutletKind;tables?:string[]};
-export type POSMenuItem={id:string;name:string;category:string;price:number;veg:boolean;outlets:string[];available:boolean};
+/** MA-4 master fields are optional (fixture rows and old saves have none; see pos-master.ts for the defaults). */
+export type POSOutlet={id:string;name:string;kind:POSOutletKind;
+  /** Active table numbers in order (kept in step with tableRows by the tables master). */ tables?:string[];
+  code?:string;sortOrder?:number;active?:boolean;retiredOn?:string;type?:import('./pos-master').POSOutletType;opens?:string;closes?:string;
+  gstProfile?:import('./pos-master').POSGstProfile;kotStation?:string;
+  /** Tables and counters master rows (MA-4); absent = derived from `tables`. */ tableRows?:POSTable[]};
+export type POSTable={id:string;code:string;name:string;tableNo:string;seats?:number;section?:string;counter?:boolean;sortOrder:number;active:boolean;retiredOn?:string};
+export type POSMenuItem={id:string;name:string;category:string;
+  /** Price in force when last saved (legacy readers); the dated list `prices` wins when present (posItemPrice). */ price:number;veg:boolean;outlets:string[];
+  /** false = sold out ("86"); with soldOutOn it lapses at the next business date (posSoldOut). */ available:boolean;
+  code?:string;sortOrder?:number;active?:boolean;retiredOn?:string;shortCode?:string;categoryCode?:string;prices?:{amount:number;effectiveFrom:string}[];
+  gstClass?:import('./pos-master').POSGstClass;station?:string;soldOutOn?:string};
 export type POSKotStatus='Preparing'|'Ready'|'Served';
-export type POSKot={id:string;no:number;at:string;by:string;status:POSKotStatus;readyAt?:string;servedAt?:string};
+export type POSKot={id:string;no:number;at:string;by:string;status:POSKotStatus;readyAt?:string;servedAt?:string;/** Kitchen station (MA-4; absent = Kitchen). */ station?:string};
 export type POSLine={id:string;item:string;name:string;price:number;qty:number;
+  /** GST class snapshot (MA-4; absent = food). */ gst?:string;
   /** KOT ID once sent to the kitchen; unsent lines have none. */ kot?:string;
   voided?:boolean;voidReason?:string;voidBy?:string;voidApproval?:string;/** Business date of the void. */ voidDate?:string};
 export type POSSettlement={mode:'outlet'|'folio';billNo:string;method?:string;reference?:string;net:number;taxBps:number;tax:number;total:number;
@@ -39,7 +51,7 @@ export const posUnsent=(o:POSOrder)=>o.lines.filter(l=>!l.voided&&!l.kot);
 /** Bill totals. Settled checks use their snapshot; open checks preview with today's GST master rate. */
 export function posOrderTotals(s:State,o:POSOrder){
   if(o.settlement){const t=o.settlement;return {net:t.net,taxBps:t.taxBps,tax:t.tax,total:t.total,items:posActiveLines(o).reduce((a,l)=>a+l.qty,0)};}
-  const net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),taxBps=gstForFood(s,s.date).bps,tax=gstLineTax(net,taxBps);
+  const net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),taxBps=posCheckRate(s,o,s.date).bps,tax=gstLineTax(net,taxBps);
   return {net,taxBps,tax,total:net+tax,items:posActiveLines(o).reduce((a,l)=>a+l.qty,0)};
 }
 /** Kitchen status of a line (New = not yet sent). */
@@ -57,14 +69,22 @@ export const posOpenOrders=(s:State)=>posSlice(s).orders.filter(o=>o.status==='O
 export const posSpot=(o:POSOrder)=>o.table?'Table '+o.table:'Room '+o.room;
 /** Rooms with an in-house occupant (room-service targets). */
 export function posInHouse(s:State){return s.bookings.filter(b=>b.status==='In house').sort((a,b)=>a.room.localeCompare(b.room));}
-export function posMenuFor(s:State,outlet:string){return posSlice(s).menu.filter(m=>m.outlets.includes(outlet));}
-export function posCategories(s:State,outlet:string){return [...new Set(posMenuFor(s,outlet).map(m=>m.category))];}
+/** Menu of an outlet: active items (sold-out ones included, shown as such), ordered by category then item sort order (MA-4 masters). */
+export function posMenuFor(s:State,outlet:string){
+  const menu=posSlice(s).menu,cats=posCategoryRows(s),cRank=new Map(cats.map((c,i)=>[c.code,i])),iRank=new Map(menu.map((m,i)=>[m.id,m.sortOrder??(i+1)*10]));
+  const rank=(m:POSMenuItem)=>cRank.get(posItemCategoryCode(s,m))??cats.length;
+  return menu.filter(m=>posItemActive(m)&&m.outlets.includes(outlet)).sort((a,b)=>rank(a)-rank(b)||iRank.get(a.id)!-iRank.get(b.id)!);
+}
+/** Category names of an outlet's menu in category master order. */
+export function posCategories(s:State,outlet:string){return [...new Set(posMenuFor(s,outlet).map(m=>posItemCategoryName(s,m)))];}
 /** KOTs of all checks, newest first, with their check and active lines. */
 export function posKitchen(s:State){
   return posSlice(s).orders.filter(o=>o.status!=='Void'||o.kots.length).flatMap(o=>o.kots.map(k=>({order:o,kot:k,lines:o.lines.filter(l=>l.kot===k.id)})))
     .filter(x=>x.lines.some(l=>!l.voided)&&x.order.status!=='Void').sort((a,b)=>b.kot.at.localeCompare(a.kot.at)||b.kot.no-a.kot.no);
 }
-export const posKotLabel=(s:State,o:POSOrder,k:POSKot)=>`${(posOutlet(s,o.outlet)?.name??o.outlet).toUpperCase().slice(0,2)}-KOT ${k.no}`;
+export const posKotLabel=(s:State,o:POSOrder,k:POSKot)=>`${(posOutlet(s,o.outlet)?.name??o.outlet).toUpperCase().slice(0,2)}-KOT ${k.no}${k.station?' · '+k.station:''}`;
+/** Kitchen board filtered by station ('' = all); only stations that exist are offered (posStations). */
+export const posKitchenAt=(s:State,station='')=>posKitchen(s).filter(x=>!station||posKotStation(x.kot)===station);
 export const posNextKotStatus=(st:POSKotStatus):POSKotStatus|undefined=>POS_KOT_FLOW[POS_KOT_FLOW.indexOf(st)+1];
 /** Pending void request for a check. */
 export function posPendingVoid(s:State,o:POSOrder){return o.pendingVoid?s.approvals.find(a=>a.id===o.pendingVoid&&a.status==='Pending'):undefined;}

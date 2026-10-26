@@ -63,38 +63,11 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         }, ct).ConfigureAwait(false);
     }
 
-    public async Task<CommandResult<MenuItemResult>> SaveMenuItemAsync(PosCaller caller, string key, SaveMenuItemRequest req, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(caller);
-        ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Setup, ct: ct).ConfigureAwait(false);
-        var code = BillingText.Required(req.Code, 20, "Enter an item code.").ToUpperInvariant();
-        var name = BillingText.Required(req.Name, 100, "Enter the item name.");
-        var category = BillingText.Required(req.Category, 60, "Enter a category.");
-        var price = Paise.FromWire(req.PricePaise).EnsureFieldRange();
-        if (price < Paise.Zero) throw HccException.Validation("The price cannot be negative.");
-        var outlets = (req.OutletIds ?? []).Distinct().ToList();
-        if (outlets.Count == 0) throw HccException.Validation("Choose at least one outlet for this item.");
-        byte[]? expected = req.ItemId is null ? null : Hcc.Application.Stays.VersionToken.Parse(req.ExpectedVersion);
-        return await runner.RunAsync(Ctx(caller, "SaveMenuItem", key), req, async (tx, ct2) =>
-        {
-            if (await store.CountOutletsAsync(tx, caller.PropertyId, outlets, ct2).ConfigureAwait(false) != outlets.Count) throw NotFound("Outlet not found.");
-            if (await store.MenuCodeExistsAsync(tx, caller.PropertyId, code, req.ItemId, ct2).ConfigureAwait(false)) throw HccException.Validation($"An item with code {code} already exists.");
-            MenuItemRow item;
-            if (req.ItemId is { } id)
-            {
-                _ = await store.MenuItemAsync(tx, caller.PropertyId, id, lockRow: true, ct2).ConfigureAwait(false) ?? throw NotFound("Menu item not found.");
-                item = await store.UpdateMenuItemAsync(tx, id, expected!, code, name, category, price, req.Veg, outlets, ct2).ConfigureAwait(false);
-            }
-            else
-            {
-                item = await store.InsertMenuItemAsync(tx, caller.PropertyId, code, name, category, price, req.Veg, outlets, ct2).ConfigureAwait(false);
-            }
-
-            await tx.AuditAsync("POS_MENU_SAVED", Target("menu", item.ItemId), $"{code} · {name} · {price}", ct2).ConfigureAwait(false);
-            return new MenuItemResult(item.ItemId, item.Available, item.Version);
-        }, ct).ConfigureAwait(false);
-    }
+    /// <summary>MA-4: SaveMenuItem is the menu master's command (<see cref="PosMastersService.SaveMenuItemAsync"/>: PERM-MST-001, prices and GST
+    /// class PERM-MST-002, dated prices, categories, history); the W2-6 body keeps working through it.</summary>
+    public Task<CommandResult<MenuItemResult>> SaveMenuItemAsync(PosCaller caller, string key, SaveMenuItemRequest req, CancellationToken ct = default)
+        => new PosMastersService(runner, policy, store as IPosMastersStore ?? throw new InvalidOperationException("The POS store has no masters support."), store, clock)
+            .SaveMenuItemAsync(caller, key, req, ct);
 
     public async Task<CommandResult<MenuItemResult>> SetMenuItemAvailabilityAsync(PosCaller caller, string key, SetMenuItemAvailabilityRequest req, CancellationToken ct = default)
     {
@@ -125,6 +98,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
             var date = await store.BusinessDateAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
             var outlet = await store.OutletAsync(tx, caller.PropertyId, req.OutletId, ct2).ConfigureAwait(false) ?? throw NotFound("Choose an outlet.");
+            if (!outlet.Active) throw Invalid($"{outlet.Name} is retired — choose an active outlet."); // MA-4 outlets master
             string? table = null;
             int? roomId = null;
             long? stayId = null;
@@ -160,10 +134,16 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         {
             var o = await EditableAsync(tx, caller, req.OrderId, req.ExpectedVersion, ct2).ConfigureAwait(false);
             var item = await store.MenuItemAsync(tx, caller.PropertyId, req.ItemId, lockRow: false, ct2).ConfigureAwait(false) ?? throw NotFound("Menu item not found.");
+            if (!item.Active) throw Invalid($"{item.Name} is retired from the menu.");
             if (!item.OutletIds.Contains(o.OutletId)) throw HccException.Validation("This item is not on this outlet's menu.");
-            if (!item.Available) throw NotAvailable($"{item.Name} is unavailable (86) right now.");
+            if (item.SoldOut) throw NotAvailable($"{item.Name} is sold out today (86).");
+            if (!item.Priced) throw Invalid($"{item.Name} has no price yet — the Owner sets it in Master configuration.");
             var lines = await store.LinesAsync(tx, o.OrderId, ct2).ConfigureAwait(false);
-            var same = lines.FirstOrDefault(l => l.ItemId == item.ItemId && l.KotId is null && !l.Voided);
+            // MA-4: one GST class per check (a banquet-hall or other-service item goes on its own check).
+            var checkClass = lines.FirstOrDefault(l => !l.Voided)?.GstClass ?? (lines.Any(l => !l.Voided) ? "food" : null);
+            if (checkClass is not null && checkClass != item.GstClass)
+                throw Invalid($"This check is billed as {checkClass}; {item.Name} is {item.GstClass} — open a separate check for it.");
+            var same = lines.FirstOrDefault(l => l.ItemId == item.ItemId && l.KotId is null && !l.Voided && l.Price == item.Price);
             if (same is not null)
             {
                 if (same.Qty + qty > 50) throw HccException.Validation("Quantity must be 1–50.");
@@ -210,11 +190,22 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             var unsent = (await store.LinesAsync(tx, o.OrderId, ct2).ConfigureAwait(false)).Where(l => !l.Voided && l.KotId is null).ToList();
             if (unsent.Count == 0) throw HccException.Validation("Add items before sending a KOT.");
             var date = await store.BusinessDateAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
-            var (kotId, kotNo) = await store.InsertKotAsync(tx, o, date, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
-            await store.AssignKotAsync(tx, kotId, unsent.Select(l => l.LineId).ToList(), ct2).ConfigureAwait(false);
+            // MA-4: one KOT per kitchen station (item station → outlet KOT station → Kitchen); without stations one KOT as before.
+            var outlet = await store.OutletAsync(tx, caller.PropertyId, o.OutletId, ct2).ConfigureAwait(false);
+            var stations = await store.LineStationsAsync(tx, o.OrderId, ct2).ConfigureAwait(false);
+            var groups = PosMasterRules.KotGroups(unsent.Select(l => (l.LineId, stations.TryGetValue(l.LineId, out var st) ? st : null)), outlet?.KotStation);
+            var kots = new List<KotRef>();
+            foreach (var (station, ids) in groups)
+            {
+                var (kotId, kotNo) = await store.InsertKotAsync(tx, o, date, caller.PrincipalId, Now, station, ct2).ConfigureAwait(false);
+                await store.AssignKotAsync(tx, kotId, ids, ct2).ConfigureAwait(false);
+                kots.Add(new KotRef(kotId, kotNo, station));
+            }
+
             var version = await store.TouchOrderAsync(tx, o.OrderId, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("POS_KOT_SENT", Target("check", o.OrderId), $"KOT {kotNo} · {unsent.Sum(l => l.Qty)} item(s) to kitchen · {SpotOf(o)}", ct2).ConfigureAwait(false);
-            return new KotResult(o.OrderId, kotId, kotNo, PosRules.Preparing, version);
+            var sent = string.Join(", ", kots.Select(k => $"KOT {k.KotNo}" + (k.Station is null ? string.Empty : $" ({k.Station})")));
+            await tx.AuditAsync("POS_KOT_SENT", Target("check", o.OrderId), $"{sent} · {unsent.Sum(l => l.Qty)} item(s) to kitchen · {SpotOf(o)}", ct2).ConfigureAwait(false);
+            return new KotResult(o.OrderId, kots[0].KotId, kots[0].KotNo, PosRules.Preparing, version, kots);
         }, ct).ConfigureAwait(false);
     }
 
@@ -278,7 +269,9 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             var lines = (await store.LinesAsync(tx, o.OrderId, ct2).ConfigureAwait(false)).Where(l => !l.Voided).ToList();
             if (lines.Count == 0) throw HccException.Validation("This check has no items to settle.");
             if (lines.Any(l => l.KotId is null)) throw Invalid("Send the remaining items to the kitchen (KOT) or remove them before settling.");
-            var gst = await taxRates.FoodAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false); // DEC-069 GST master, food
+            var outletRow = await store.OutletAsync(tx, caller.PropertyId, o.OutletId, ct2).ConfigureAwait(false);
+            // DEC-069 GST master: food at the outlet's GST profile, or the check's GST class (MA-4; one class per check).
+            var gst = await taxRates.ForCheckAsync(tx, caller.PropertyId, date, outletRow?.GstProfile ?? "hotel", lines[0].GstClass ?? "food", ct2).ConfigureAwait(false);
             var bps = gst.Bps;
             var totals = PosRules.Totals(lines.Select(l => new PosLineAmount(l.Price, l.Qty)), bps);
             var split = GstMath.Split(totals.Tax); // intra-state CGST / SGST of the bill's tax line
@@ -546,7 +539,8 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         else
         {
             var lines = (await store.LinesAsync(tx, orderId, ct).ConfigureAwait(false)).Where(l => !l.Voided).ToList();
-            var rate = await taxRates.FoodAsync(tx, caller.PropertyId, o.BusinessDate, ct).ConfigureAwait(false);
+            var outlet = await store.OutletAsync(tx, caller.PropertyId, o.OutletId, ct).ConfigureAwait(false);
+            var rate = await taxRates.ForCheckAsync(tx, caller.PropertyId, o.BusinessDate, outlet?.GstProfile ?? "hotel", lines.FirstOrDefault()?.GstClass ?? "food", ct).ConfigureAwait(false);
             t = PosRules.Totals(lines.Select(l => new PosLineAmount(l.Price, l.Qty)), rate.Bps);
         }
 

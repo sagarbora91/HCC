@@ -30,6 +30,7 @@ const BOARD=one(anyScope('PERM-HK-001',true));
 const FINANCE=one(wide('PERM-RPT-002',true));
 const STOCK=one(wide('PERM-RPT-002',true),anyScope('PERM-HK-003'));
 const POS=one(wide('PERM-FOL-002'));
+const POS_LISTS=one(wide('PERM-FOL-002'),wide('PERM-MST-001')); // MA-4: outlets / menu / categories also for masters.manage (Tech admin)
 const GSV=one(wide('PERM-GST-002'));
 const ACCOUNTING=one(wide('PERM-ACC-001',true));
 const COMPLIANCE=one(wide('PERM-CMP-001'));
@@ -82,8 +83,9 @@ export const READS={
   'GET /compliance/obligations':COMPLIANCE,
   'GET /compliance/calendar':COMPLIANCE,
   'GET /compliance/ca-packs':COMPLIANCE,
-  'GET /pos/outlets':POS,
-  'GET /pos/menu':POS,
+  'GET /pos/outlets':POS_LISTS,
+  'GET /pos/menu':POS_LISTS,
+  'GET /pos/menu-categories':POS_LISTS,
   'GET /pos/checks':POS,
   'GET /pos/checks/closed':POS,
   'GET /pos/checks/:id':POS,

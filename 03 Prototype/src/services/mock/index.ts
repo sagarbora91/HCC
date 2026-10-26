@@ -39,3 +39,4 @@ export * from '../../domain/streams/masters';
 export * from '../../domain/streams/roommasters';
 export * from '../../domain/streams/money-master'; export * from '../../domain/streams/money-master-specs'; // MA-3 money masters
 export * from '../../domain/streams/catalogue'; // MA-2 meal plans, extras, discount reasons
+export * from '../../domain/streams/pos-master';

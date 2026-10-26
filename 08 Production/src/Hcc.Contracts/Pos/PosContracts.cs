@@ -6,8 +6,11 @@ namespace Hcc.Contracts.Pos;
 public sealed record CreateOutletRequest(string Code, string Name, string Kind, IReadOnlyList<string>? Tables);
 
 /// <summary>POST /api/v1/commands/SaveMenuItem (K). <c>ItemId</c> null creates; otherwise updates (then <c>ExpectedVersion</c> is required).</summary>
+/// <remarks>MA-4 master fields (optional; a W2-6 client sends none): <c>CategoryId</c> (else the category is found / created by name),
+/// <c>Prices</c> (dated; else <c>PricePaise</c> applies from the business date), <c>GstClass</c> and prices need PERM-MST-002 to change.</remarks>
 public sealed record SaveMenuItemRequest(int? ItemId, string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds,
-    string? ExpectedVersion);
+    string? ExpectedVersion, int? CategoryId = null, string? ShortCode = null, string? GstClass = null, string? Station = null, int? SortOrder = null,
+    IReadOnlyList<MenuPriceView>? Prices = null, bool? SoldOutToday = null);
 
 /// <summary>POST /api/v1/commands/SetMenuItemAvailability (K). false = "86" (unavailable).</summary>
 public sealed record SetMenuItemAvailabilityRequest(int ItemId, bool Available);
@@ -48,7 +51,10 @@ public sealed record DecideVoidRequest(long VoidRequestId, bool Approve, string?
 
 public sealed record CheckResult(long OrderId, string Status, string Version, long NetPaise, int TaxBps, long TaxPaise, long TotalPaise, int Items);
 
-public sealed record KotResult(long OrderId, long KotId, int KotNo, string Status, string Version);
+/// <summary>The first KOT of the send; <c>Kots</c> = every KOT of the send (MA-4: one per kitchen station).</summary>
+public sealed record KotResult(long OrderId, long KotId, int KotNo, string Status, string Version, IReadOnlyList<KotRef>? Kots = null);
+
+public sealed record KotRef(long KotId, int KotNo, string? Station);
 
 public sealed record SettleResult(long OrderId, long BillId, string BillNo, string Mode, long NetPaise, int TaxBps, long TaxPaise, long TotalPaise,
     long? ReceiptId, long? ChargeId, long? CashMovementId, string Version);
@@ -61,9 +67,10 @@ public sealed record DecideVoidResult(long VoidRequestId, string Status, long Or
 // ── Queries ──
 
 public sealed record LineView(long LineId, int ItemId, string Name, long PricePaise, int Qty, long ValuePaise, long? KotId, string Status,
-    bool Voided, string? VoidReason);
+    bool Voided, string? VoidReason, string? GstClass = null);
 
-public sealed record KotView(long KotId, int KotNo, string Label, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc, int? CreatedBy = null);
+public sealed record KotView(long KotId, int KotNo, string Label, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc, int? CreatedBy = null,
+    string? Station = null);
 
 public sealed record BillView(long BillId, string BillNo, string Mode, string? Tender, string? Reference, long NetPaise, int TaxBps, long TaxPaise,
     long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null, long? ReservationId = null);
@@ -76,13 +83,19 @@ public sealed record CheckView(long OrderId, int OutletId, string Outlet, string
 public sealed record OpenCheckSummary(long OrderId, string Outlet, string Spot, string? Guest, DateOnly BusinessDate, int Items, long NetPaise,
     bool KotPending, long? PendingVoidId);
 
+/// <summary>A menu item. <c>PricePaise</c> = price in force on the business date (0 = no price yet), <c>Available</c> = not sold out today;
+/// MA-4 master fields follow (dated <c>Prices</c>, category, GST class, station, sort order, active / retired, sold-out date).</summary>
 public sealed record MenuItemView(int ItemId, string Code, string Name, string Category, long PricePaise, bool Veg, bool Available,
-    IReadOnlyList<int> OutletIds, string Version);
+    IReadOnlyList<int> OutletIds, string Version, int? CategoryId = null, string? CategoryCode = null, string? ShortCode = null, string GstClass = "food",
+    string? Station = null, int SortOrder = 0, bool Active = true, string? RetiredOn = null, string? SoldOutOn = null, IReadOnlyList<MenuPriceView>? Prices = null);
 
-public sealed record OutletView(int OutletId, string Code, string Name, string Kind, IReadOnlyList<string> Tables);
+/// <summary>An outlet. <c>Tables</c> = active table numbers (W2-6); MA-4 master fields follow, with every table / counter in <c>TableRows</c>.</summary>
+public sealed record OutletView(int OutletId, string Code, string Name, string Kind, IReadOnlyList<string> Tables, string Type = "restaurant", string? Opens = null,
+    string? Closes = null, string GstProfile = "hotel", string? KotStation = null, int SortOrder = 0, bool Active = true, string? RetiredOn = null, string? Version = null,
+    IReadOnlyList<OutletTableView>? TableRows = null);
 
 public sealed record KitchenItem(long OrderId, long KotId, int KotNo, string Label, string Spot, string Status, DateTime CreatedUtc,
-    IReadOnlyList<LineView> Lines);
+    IReadOnlyList<LineView> Lines, string? Station = null);
 
 public sealed record DayOutletSummary(int OutletId, string Name, int Checks, long NetPaise, long TaxPaise, long GrossPaise, int OpenChecks);
 
