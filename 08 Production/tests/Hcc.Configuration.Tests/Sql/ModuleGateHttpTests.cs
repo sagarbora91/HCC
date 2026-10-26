@@ -84,7 +84,9 @@ public sealed class ModuleGateHttpTests(ConfigDatabase db) : IClassFixture<Confi
 
     public async ValueTask InitializeAsync()
     {
-        var builder = WebApplication.CreateBuilder();
+        // "Testing", not the default Production: Production registers the not-configured OCR / messaging adapters (A09-08, Wave C8), which
+        // would refuse before the module gate this test is about.
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {

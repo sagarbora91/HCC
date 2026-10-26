@@ -135,6 +135,7 @@ public class MessagingNotConfiguredHttpTests : IAsyncLifetime
         builder.Services.AddSingleton<ICommandRunner>(_w.Platform.Commands);
         builder.Services.AddSingleton<TimeProvider>(_w.Clock);
         builder.Services.AddHccMessaging();
+        builder.Services.AddHccConfiguration(); // DEC-057 / A11-01 (Wave C6): the module gate on the command routes fails closed without it
         builder.Services.AddSingleton<IAccessPolicy>(_w.Policy);
         builder.Services.AddSingleton<ISessionService>(new TestSessions(_w.PropertyId));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
