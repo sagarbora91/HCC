@@ -60,11 +60,17 @@ export function exitApp(){try{void nativePlugin('App')?.exitApp?.();}catch{/* ig
 export const STATUS_BAR_COLOURS:Readonly<Record<'light'|'dark'|'hc',string>>=Object.freeze({light:'#7a1f2b',dark:'#ae4155',hc:'#5e1620'});
 /** The theme <html data-theme> shows now (light when unknown). */
 const currentTheme=():'light'|'dark'|'hc'=>{try{const t=(globalThis as {document?:{documentElement?:{getAttribute:(k:string)=>string|null}}}).document?.documentElement?.getAttribute('data-theme');return t==='dark'||t==='hc'?t:'light';}catch{return 'light';}};
-/** Status bar in the theme's app-bar colour with light icons (native only; no-op in a browser). Without an argument: the theme on screen. */
+/** The page surface colour of the theme on screen (the bottom tab bar), as #rrggbb, or undefined when it cannot be read. */
+const surfaceColour=():string|undefined=>{try{const d=(globalThis as {document?:{documentElement?:unknown}}).document?.documentElement as Element|undefined;if(!d)return undefined;const v=(globalThis as unknown as {getComputedStyle:(e:Element)=>CSSStyleDeclaration}).getComputedStyle(d).getPropertyValue('--surface').trim();return /^#[0-9a-f]{6}$/i.test(v)?v:undefined;}catch{return undefined;}};
+/** Status bar in the theme's app-bar colour with light icons (native only; no-op in a browser). Without an argument: the theme on screen.
+ *  V14-2: on Android 15+ (edge-to-edge) StatusBar.setBackgroundColor is ignored, so the APK's own StatusBarColor plugin
+ *  (04 Android … StatusBarColorPlugin.java) also paints the status-bar band (top) and the strip behind the gesture bar (bottom = theme surface).
+ *  It does nothing below Android 15, where the StatusBar plugin still works; an older APK without it just skips that call. */
 export function styleStatusBar(theme:'light'|'dark'|'hc'=currentTheme()){
   const sb=nativePlugin('StatusBar');if(!sb)return;
   const color=STATUS_BAR_COLOURS[theme]??STATUS_BAR_COLOURS.light;
   try{void sb.setOverlaysWebView?.({overlay:false});void sb.setBackgroundColor?.({color});void sb.setStyle?.({style:'DARK'});}catch{/* ignore */}
+  try{if(nativePluginAvailable('StatusBarColor')){const bottom=surfaceColour();void Promise.resolve(nativePlugin('StatusBarColor')?.setColors?.(bottom?{top:color,bottom}:{top:color})).catch(()=>{});}}catch{/* ignore */}
 }
 
 // ── Files: CSV export and printing ──
