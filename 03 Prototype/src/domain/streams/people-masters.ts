@@ -35,7 +35,7 @@ export const HR_WEEKLY_OFF_RULES:{value:HRWeeklyOffRule;label:string}[]=[
 /** Shift times of the prototype since module 17 (07–15, 15–23, 23–07, 09–18); break 30 minutes; fixed weekly off. */
 export const HR_SHIFT_SEED=SEED_SHIFTS;
 export const HR_LEAVE_SEED=SEED_LEAVES;
-/** DEMO calendar (8 rows) — the rows are seeded only while MASTERS_SEED_OPTIONS.demoHolidays is on (fixtures/ext/masters-seed.ts). */
+/** DEMO calendar (8 rows) — the rows are seeded only while the demo switch MASTERS_SEED_OPTIONS is on (fixtures/ext/masters-seed.ts). */
 export const HR_HOLIDAY_SEED:{code:string;name:string;kind:HRHolidayKind}[]=SEED_DEMO_HOLIDAYS;
 
 const NO:object=Object.freeze({});

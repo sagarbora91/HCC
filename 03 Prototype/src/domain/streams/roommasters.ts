@@ -20,7 +20,7 @@ import {
   registerMaster,mstRows,mstByCode,mstFloorCode,mstFloorNumber,mstMoneyOn,mstFail,MST_FLOORS,
   type MasterRow,type MasterSpec,type MstDatedAmount,type MSTState,
 } from './masters';
-import {seedRoomTypes,seedAmenities,seedOccupancy} from '../../fixtures/ext/masters-seed';
+import {seedRoomTypes,mastersSeed} from '../../fixtures/ext/masters-seed';
 import {rmsRetiredDuring,rmsOooDuring,rmsListed} from './roomoffline';
 export {rmsOffline,rmsListed,rmsRetiredDuring,rmsOooDuring} from './roomoffline';
 
@@ -262,7 +262,7 @@ export const AMENITY_SPEC:MasterSpec={
   inUse:(s,row)=>{const types=(mstRows(s,MST_ROOM_TYPES) as RmsTypeRow[]).filter(t=>(t.amenities??[]).includes(row.code)),rooms=s.rooms.filter(r=>(r.features??[]).includes(row.code));
     const where:string[]=[];if(types.length)where.push(`Room types ${types.map(t=>t.name).join(', ')}`);if(rooms.length)where.push(`Rooms ${rooms.map(r=>r.id).join(', ')}`);
     return {count:types.length+rooms.length,where};},
-  seed:()=>seedAmenities(),
+  seed:s=>mastersSeed(MST_AMENITIES,s) as MasterRow[],
 };
 
 // ───────────────────────────── Occupancy and extra charges (M5) ─────────────────────────────
@@ -290,7 +290,7 @@ export const OCC_CHARGE_SPEC:MasterSpec<RmsOccRow>={
     const t=mstByCode(s,MST_ROOM_TYPES,String(row.roomType)) as RmsTypeRow|undefined;
     if(t&&!t.extraBedAllowed&&(row.extraBed??[]).length)return `${t.name} does not allow an extra bed (room types master).`;
     return undefined;},
-  seed:s=>seedOccupancy(s.rooms),
+  seed:s=>mastersSeed(MST_OCC_CHARGES,s) as RmsOccRow[],
 };
 /** Active occupancy-charge row of a room type key. */
 export function rmsOccFor(s:State,key:string):RmsOccRow|undefined{
