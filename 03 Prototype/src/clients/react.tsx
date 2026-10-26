@@ -103,6 +103,10 @@ export function useBooking(id:string):{booking?:BookingDetails;loading:boolean;e
   return res.id===id?{booking:res.booking,loading:false,error:res.error}:{loading:true};
 }
 
+/** Hint on buttons that start a command while the server is unreachable (APK12-5). */
+export const READ_ONLY_HINT='Server unavailable — read-only. Bookings and payments are disabled until the hotel server is back.';
+/** True while the production build cannot reach the server (always false in the prototype build). */
+export const useReadOnly=()=>useConnection().status==='unavailable';
 /** Production only: shown while the server is unreachable — the app is read-only and nothing is saved on the device. */
 export function ReadOnlyBanner(){
   const conn=useConnection();const [checking,setChecking]=useState(false);

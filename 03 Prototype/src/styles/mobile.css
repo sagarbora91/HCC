@@ -107,6 +107,7 @@ button.m-list-card:active{background:#f6efe6}
 .m-steps li.done span{background:#7a1f2b;border-color:#7a1f2b;color:#fff}
 .m-steps em{font-style:normal;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .m-fab{position:fixed;z-index:35;right:max(16px,env(safe-area-inset-right));bottom:calc(var(--tabbar,64px) + env(safe-area-inset-bottom) + 16px);min-height:56px;padding:0 20px;border:0;border-radius:28px;background:#7a1f2b;color:#fff;font-size:16px;font-weight:600;display:inline-flex;align-items:center;gap:8px;box-shadow:0 6px 18px #2b1d1640}
+.m-fab:disabled{opacity:.5;box-shadow:none}
 .m-shell.framed .m-fab{right:calc(50% - 190px)}
 @media print{.m-appbar,.m-tabbar,.m-fab,.m-toast,.m-sheet-head{display:none!important}.m-shell{display:none!important}.modal.m-sheet{height:auto;max-height:none;overflow:visible}.modal.m-sheet .modal-actions{display:none}}
 

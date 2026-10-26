@@ -171,8 +171,8 @@ export async function register({test,assert,M}){
   const shown1=[P.renderPages(s1.state,'1',false),P.renderPages(s1.state,'1',true)];
   test('[S3 money] REFUND_EXECUTE: a cash refund (the receipt’s own tender when the dialog gives none) needs the till’s shift open today; non-cash does not',()=>{
     const pre=S.AREAS.find(a=>a.id==='money').commands.find(c=>c.type==='REFUND_EXECUTE').precheck;
-    const st=(open,method)=>({shiftOpen:open,approvals:[{id:'9',kind:'refund',booking:'B1',target:'R1'}],bookings:[{id:'B1',receipts:[{id:'R1',method}]}]});
-    const closed='The cash shift is closed. Open the next business day first.';
+    const st=(open,method)=>({shiftOpen:open,date:'2026-10-24',closedDates:[],approvals:[{id:'9',kind:'refund',booking:'B1',target:'R1'}],bookings:[{id:'B1',receipts:[{id:'R1',method}]}]});
+    const closed='The cash shift is closed. Open a cashier shift first.'; // v12 APK12-1: the day is open here
     assert.equal(pre({approvalId:'9'},st(false,'Cash')),closed,'tender from the original cash receipt');
     assert.equal(pre({approvalId:'9',method:'Cash'},st(false,'UPI')),closed);
     assert.equal(pre({approvalId:'9'},st(true,'Cash')),undefined,'shift open today');

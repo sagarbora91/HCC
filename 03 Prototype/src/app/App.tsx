@@ -12,6 +12,7 @@ import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage,navFilterModules,pagesOfCategory} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoToolbar} from './demo/DemoToolbar';
+import {useReadOnly,READ_ONLY_HINT} from '../clients/react';
 import {ProductionApp,SyncStatus,type ServerBinding} from '../clients/sync/react'; // production build only (W4-0 server sync layer)
 import {extraPages,mobilePages} from './registry';
 import {ModalHost} from './ModalHost';
@@ -76,6 +77,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const [mobile,setMobile]=useState(false);
   const [fault,setFault]=useState<FaultMode>('none');
   const [busy,setBusy]=useState(false);const busyRef=useRef(false);
+  const offline=useReadOnly(); // APK12-5: production only (the prototype build is never read-only)
   const toastTimer=useRef<number|undefined>(undefined);
   const display=useDisplayMode();
   const [tabKey,setTabKey]=useState('');
@@ -101,7 +103,9 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
 
   const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotice(null),6500);},[]);
   function persist(next:State){setS(next);stateRef.current=next;if(!saveStored(next))setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true});}
-  const open=(x:{type:string;id?:string;room?:string})=>{cancelBackFallback();setError('');dirty.current=false;
+  const open=(x:{type:string;id?:string;room?:string})=>{
+    if(offline&&x.type==='new'){toast(READ_ONLY_HINT,true);return;} // APK12-5: no new booking while the server is unreachable
+    cancelBackFallback();setError('');dirty.current=false;
     if(!modalPushed.current){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');modalPushed.current=true;}catch{/* history unavailable */}}
     setModal({...x,key:newKey(x.type)});};
   const closeModal=()=>{if(dirty.current&&!window.confirm('Discard the details you entered?'))return;dirty.current=false;setModal(null);setError('');};
@@ -198,7 +202,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const resetScenario=()=>loadScenario(s.scenario);
 
   const permission=(p:Permission|Permission[])=>can(s,uid,p);
-  const act=(p:Permission,fn:()=>void,label:string,style='btn')=>permission(p)?<button className={style} disabled={busy} onClick={fn}>{label}</button>:null;
+  const act=(p:Permission,fn:()=>void,label:string,style='btn')=>permission(p)?<button className={style} disabled={busy||offline} title={offline?READ_ONLY_HINT:undefined} onClick={fn}>{label}</button>:null;
   const pending=s.approvals.filter(a=>a.status==='Pending').length+s.expenses.filter(e=>e.status==='Pending').length;
   const arrivals=s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date),departures=s.bookings.filter(b=>b.status==='In house'&&b.departure<=s.date);
   // Completed tasks older than two days are summarised (historyX) rather than listed on the boards.

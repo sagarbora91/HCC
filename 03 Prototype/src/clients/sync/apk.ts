@@ -30,7 +30,7 @@ const put=(k:string,v:string,s=ls())=>{try{s?.setItem(k,v);}catch{/* storage una
 const del=(k:string,s=ls())=>{try{s?.removeItem(k);}catch{/* ignore */}};
 
 // ── Native HTTP (CapacitorHttp) ──
-export type CapacitorHttpLike={request(o:{url:string;method:string;headers:Record<string,string>;data?:string;responseType?:string;connectTimeout?:number;readTimeout?:number}):Promise<{status:number;data:unknown}>};
+export type CapacitorHttpLike={request(o:{url:string;method:string;headers:Record<string,string>;data?:string;responseType?:string;connectTimeout?:number;readTimeout?:number}):Promise<{status:number;data:unknown;headers?:Record<string,string>}>};
 /** FetchLike over CapacitorHttp.request. JSON bodies go as the raw string; JSON answers (parsed by the plugin) are re-serialised. */
 export function capacitorFetch(http:CapacitorHttpLike,timeoutMs=15000):FetchLike{
   return async(url,init={})=>{
@@ -38,7 +38,10 @@ export function capacitorFetch(http:CapacitorHttpLike,timeoutMs=15000):FetchLike
     const signal=init.signal;
     const r=await (signal?Promise.race([call,new Promise<never>((_,rej)=>{if(signal.aborted)rej(new Error('aborted'));signal.addEventListener?.('abort',()=>rej(new Error('aborted')));})]):call);
     const text=r.data==null?'':typeof r.data==='string'?r.data:JSON.stringify(r.data);
-    return {status:r.status,ok:r.status>=200&&r.status<300,text:async()=>text};
+    // Response headers (Retry-After, Content-Disposition) are looked up case-insensitively; the plugin returns a plain object.
+    const hs=r.headers&&typeof r.headers==='object'?r.headers:{};
+    const headers={get:(n:string)=>{const k=Object.keys(hs).find(x=>x.toLowerCase()===n.toLowerCase());return k?String(hs[k]):null;}};
+    return {status:r.status,ok:r.status>=200&&r.status<300,text:async()=>text,headers};
   };
 }
 

@@ -3,6 +3,12 @@ import React from 'react';
 import {Wallet} from 'lucide-react';
 import {money} from '../../services/mock';
 import {useHcc} from '../../app/context';
+import {useSync} from './react';
+import {cashBlockedReason} from './money';
+
+/** APK12-3 (production only): why this user cannot take a CASH tender now (hint text), or undefined. The prototype build never blocks cash. */
+function useCashBlockProd():string|undefined{const {s}=useHcc();const snap=useSync();return cashBlockedReason(snap.me,s.shiftOpen);}
+export const useCashBlock:()=>string|undefined=process.env.HCC_BUILD==='production'?useCashBlockProd:()=>undefined;
 
 /** Shown while no shift is open on an open business day: the cashier starts the shift; the opening float is the last counted cash. */
 export function OpenShiftPanel({compact}:{compact?:boolean}){

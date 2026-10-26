@@ -34,11 +34,18 @@ export class HccClientError extends HccError{
 /** Shown when the server answers that guest-ID encryption has no key yet (install guide, "Guest ID key"). */
 export const GUEST_ID_NOT_SET_UP='ID storage is not set up on the server. Ask the owner to complete the guest ID key step of the install guide (New-HccGuestIdKey.ps1), then try again.';
 /** Maps a non-2xx response. Unknown or missing codes fall back to the HTTP status (5xx → UNAVAILABLE, else VALIDATION). */
-export function errorFromResponse(status:number,body:unknown):HccClientError{
+export function errorFromResponse(status:number,body:unknown,retryAfter?:string|number|null):HccClientError{
   const b=(body&&typeof body==='object'?body:{}) as {code?:unknown;message?:unknown;details?:unknown};
   let code:ClientWireCode=isWireCode(b.code)?b.code:status>=500||status===0?'UNAVAILABLE':status===404?'NOT_FOUND':status===401?'UNAUTHENTICATED':status===403?'FORBIDDEN':'VALIDATION';
   let message=typeof b.message==='string'&&b.message?b.message:WIRE_TITLE[code];
-  const details=b.details&&typeof b.details==='object'?b.details as Record<string,unknown>:undefined;
+  let details=b.details&&typeof b.details==='object'?b.details as Record<string,unknown>:undefined;
+  // APK12-2: the sign-in throttle answers 429 + Retry-After (seconds) with details.reason TOO_MANY_ATTEMPTS: say how long to wait.
+  const wait=Number(retryAfter);
+  if(status===429||details?.reason==='TOO_MANY_ATTEMPTS'){
+    if(Number.isFinite(wait)&&wait>0){details={...details,retryAfterSeconds:wait};const m=Math.max(1,Math.ceil(wait/60));
+      message=details.reason==='TOO_MANY_ATTEMPTS'?`Too many sign-in attempts from this device. Wait ${m} minute${m===1?'':'s'}, then try again.`:`${message} Try again in ${m} minute${m===1?'':'s'}.`;}
+    else if(details?.reason==='TOO_MANY_ATTEMPTS'&&!/wait/i.test(message))message='Too many sign-in attempts from this device. Wait a few minutes, then try again.';
+  }
   // A 503 that the server itself answered with details.reason NOT_CONFIGURED (a setup step is missing, e.g. the guest-ID key) is not a
   // lost connection: the server is reachable, so it must not switch the app to read-only nor be retried. Surfaced as NOT_AVAILABLE.
   if(code==='UNAVAILABLE'&&details?.reason==='NOT_CONFIGURED'){
@@ -49,8 +56,12 @@ export function errorFromResponse(status:number,body:unknown):HccClientError{
 }
 
 /** "Title: message" — same shape as the prototype's run() toast. */
+/** The title is not repeated when the message already starts with it (APK12-3: "Not permitted: Not permitted: �"). */
+const titled=(title:string,message:string)=>message.toLowerCase().startsWith(title.toLowerCase()+':')?message:`${title}: ${message}`;
 export function errorText(e:unknown){
-  if(e instanceof HccClientError)return `${WIRE_TITLE[e.wireCode]}: ${e.message}`;
-  if(e instanceof HccError)return `${errorTitle[e.code]}: ${e.message}`;
-  return `${WIRE_TITLE.VALIDATION}: ${(e as Error)?.message??String(e)}`;
+  if(e instanceof HccClientError)return e.details?.reason==='TOO_MANY_ATTEMPTS'?e.message:titled(WIRE_TITLE[e.wireCode],e.message);
+  if(e instanceof HccError)return titled(errorTitle[e.code],e.message);
+  return titled(WIRE_TITLE.VALIDATION,(e as Error)?.message??String(e));
 }
+/** Sign-in screen text: the server's own sentence (wrong PIN, throttle with wait time), without a title prefix. */
+export const signInText=(e:unknown)=>e instanceof HccClientError&&e.wireCode!=='UNAVAILABLE'?e.message:errorText(e);

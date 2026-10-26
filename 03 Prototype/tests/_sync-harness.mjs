@@ -29,7 +29,7 @@ export function loadSync(){
 export const settle=async f=>{try{return {ok:true,value:await f()};}catch(error){return {ok:false,error};}};
 const REPLY=Symbol('reply');
 /** A handler result with an explicit status: reply(409,{code:'STALE_VERSION',message:'…'}). */
-export const reply=(status,body)=>({[REPLY]:true,status,body});
+export const reply=(status,body,headers)=>({[REPLY]:true,status,body,headers});
 /** A handler result that simulates a lost request / server down (fetch rejects). */
 export const netDown=()=>new TypeError('Failed to fetch');
 
@@ -86,7 +86,8 @@ export function fakeServer(routes={}){
       if(res instanceof Error)throw res;
       const status=res&&res[REPLY]?res.status:res===undefined?204:200;const payload=res&&res[REPLY]?res.body:res;
       const text=payload===undefined?'':typeof payload==='string'?payload:JSON.stringify(payload);
-      return {status,ok:status<300,text:async()=>text};
+      const rh=res&&res[REPLY]?res.headers??{}:{};
+      return {status,ok:status<300,text:async()=>text,headers:{get:n=>{const k=Object.keys(rh).find(x=>x.toLowerCase()===n.toLowerCase());return k?String(rh[k]):null;}}};
     },
   };
   return srv;
@@ -96,9 +97,9 @@ export function fakeServer(routes={}){
 const keyStores=new WeakMap();
 export const keyStoreFor=(S,cache)=>{let k=keyStores.get(cache);if(!k){k=S.memoryTokenStore();keyStores.set(cache,k);}return k;};
 /** Creates the runtime on the fake server (registry AREAS unless `areas` is given), boots it and waits for the loads. */
-export async function startRuntime(S,srv,{areas,cache,now,focusRefreshMs,boot=true,keyStore,auth}={}){
+export async function startRuntime(S,srv,{areas,cache,now,focusRefreshMs,recoveryMs,boot=true,keyStore,auth}={}){
   const c=cache??S.createMemoryCache();
-  const rt=S.createSyncRuntime({areas:areas??S.AREAS,fetch:srv.fetch,cache:c,keyStore:keyStore??keyStoreFor(S,c),cacheIterations:1000,auth,now,focusRefreshMs,commandRetries:0});
+  const rt=S.createSyncRuntime({areas:areas??S.AREAS,fetch:srv.fetch,cache:c,keyStore:keyStore??keyStoreFor(S,c),cacheIterations:1000,auth,now,focusRefreshMs,recoveryMs,commandRetries:0});
   if(boot)await rt.boot();
   return rt;
 }

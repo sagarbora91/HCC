@@ -22,7 +22,7 @@ import {totals,addDays} from '../../services/mock';
 import type {GRPState} from '../../domain/streams/groups';
 import {HccClientError} from '../errors';
 import type {SrvAvailability} from '../server';
-import type {SyncArea,LoaderCtx,CommandCtx,SliceKey} from './types';
+import type {SyncArea,LoaderCtx,CommandCtx,SliceKey,SyncMe} from './types';
 import {serverId,protoId} from './map';
 import {BOOKING_STATUS} from './frontdesk/shared';
 import {folioIntoBooking,approvalFromServer,creditNoteRequestFromServer,cashDifferenceApproval,CNR_PREFIX,deskTill,deskShiftOpen,deskOpeningCash,
@@ -36,6 +36,20 @@ const CASH_READERS=['payments','approve','reports','close'] as const;
 /** Days of cash-book lock state loaded back from the business date (server maximum range 93). */
 export const CASHBOOK_DAYS=93;
 
+/** APK12-1: "next business day" only when the day is closed; with the day open the missing piece is a cashier shift. */
+export const shiftClosedText=(s:State)=>s.closedDates?.includes(s.date)?'The cash shift is closed. Open the next business day first.':'The cash shift is closed. Open a cashier shift first.';
+/** APK12-3: PERM-PAY-001 is own-shift scoped (S) for Reception / Cashier: the server takes cash only on a shift the user opened. */
+const PAY_PERM='PERM-PAY-001',SHIFT_PERM='PERM-SHF-001';
+export const CASH_NEEDS_OWN_SHIFT='Cash needs your own open cashier shift — use UPI/card or ask the cashier.';
+/** Why this user cannot take a CASH tender (undefined = allowed as far as the client can tell). The owner of an open shift is not
+ *  on the wire, so a user with only own-shift (S) payment scope needs an open shift AND the cashier permission to open one; the
+ *  server remains the judge (and its refusal reads the same way). Users with property scope (Owner, Manager) are not limited. */
+export function cashBlockedReason(me:SyncMe|null|undefined,shiftOpen:boolean):string|undefined{
+  if(!me)return undefined;
+  const g=me.grants.filter(x=>x.permissionId===PAY_PERM);
+  if(!g.length||g.some(x=>x.scope!=='S'))return undefined;
+  return shiftOpen&&me.permIds.includes(SHIFT_PERM)?undefined:CASH_NEEDS_OWN_SHIFT;
+}
 const wire=(e:unknown)=>e instanceof HccClientError?e.wireCode:undefined;
 /** Reads that a role may not hold (403) or that have nothing yet (404) leave that part empty instead of failing the slice. */
 async function optional<T>(p:Promise<T>):Promise<T|null>{
@@ -160,7 +174,7 @@ function approvalVersion(c:CommandCtx,id:string){
 /** The shared till for cash (DEC-052); null for other tenders. */
 function tillFor(c:CommandCtx,method:unknown){
   if(method!=='Cash')return null;
-  const t=c.ids.server('till','desk');if(t===undefined)throw invalid('The cash shift is closed. Open the next business day first.');return t;
+  const t=c.ids.server('till','desk');if(t===undefined)throw invalid(shiftClosedText(c.state));return t;
 }
 /** The tender of the receipt an approved refund request refunds (the server's default tender for ExecuteAdjustment). */
 function refundReceiptMethod(s:State,approvalId:unknown):string|undefined{
@@ -172,7 +186,7 @@ const text=(v:unknown)=>String(v??'').trim();
 const FOLIO:SliceKey[]=['bookings','approvals'];
 const CASH:SliceKey[]=['shiftOpen','openingCash','shift','shiftClose','approvals'];
 
-function paymentPrecheck(cmd:Command,s:State){
+function paymentPrecheck(cmd:Command,s:State,me?:SyncMe){
   const kind=cmd.kind||'payment';
   if(kind==='refund')return 'Refunds are no longer posted directly. Use “Request refund” on the original receipt; after approval, execute the refund.';
   if(!['payment','deposit','deposit-return'].includes(kind))return 'Invalid receipt type.';
@@ -184,7 +198,7 @@ function paymentPrecheck(cmd:Command,s:State){
     if(!positive(t.amount))return 'Enter an amount greater than zero.';
     if(!['Cash','UPI','Card','Bank transfer'].includes(t.method))return 'Select a payment method.';
     if(t.method!=='Cash'&&!t.reference)return 'Enter the transaction reference.';
-    if(t.method==='Cash'&&!s.shiftOpen)return 'The cash shift is closed. Open the next business day first.';
+    if(t.method==='Cash'){const b=cashBlockedReason(me,s.shiftOpen);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
   }
   if(tenders.reduce((a,t)=>a+t.amount,0)!==cmd.amount)return 'Tender rows must add up to the payment amount.';
   return undefined;
@@ -294,7 +308,7 @@ export const money:SyncArea={
       // S3 / N10 (prototype validMethod, DEC-052): a CASH refund leaves the shared drawer, so it needs the till's shift open today. The
       // tender defaults to the original receipt's (as on the server), so a dialog without a method is checked too. Non-cash: no shift.
       precheck:(cmd,s)=>{const method=cmd.method||refundReceiptMethod(s,cmd.approvalId);
-        return method==='Cash'&&!s.shiftOpen?'The cash shift is closed. Open the next business day first.':cmd.method&&cmd.method!=='Cash'&&!text(cmd.reference)?'Enter the transaction reference.':undefined;},
+        return method==='Cash'&&!s.shiftOpen?shiftClosedText(s):cmd.method&&cmd.method!=='Cash'&&!text(cmd.reference)?'Enter the transaction reference.':undefined;},
       async send(c){const id=String(c.cmd.approvalId??'');const a=c.state.approvals.find(x=>x.id===id&&x.kind==='refund');
         if(!a)throw new HccClientError('NOT_FOUND','Refund request not found.');
         const b=c.state.bookings.find(x=>x.id===a.booking),r=b?.receipts.find(x=>x.id===a.target);

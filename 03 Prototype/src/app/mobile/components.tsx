@@ -1,6 +1,7 @@
 // MB-04 Shared mobile components. Touch targets ≥ 48 px; text ≥ 14 px; styles in styles/mobile.css (m- prefix).
 import React from 'react';
 import {ChevronRight,Minus,Plus,Check} from 'lucide-react';
+import {useReadOnly,READ_ONLY_HINT} from '../../clients/react';
 export function ListCard({title,sub,meta,right,onClick,tone}:{title:React.ReactNode;sub?:React.ReactNode;meta?:React.ReactNode;right?:React.ReactNode;onClick?:()=>void;tone?:string}){
   const body=<><div className="m-lc-main"><strong>{title}</strong>{sub&&<span>{sub}</span>}{meta&&<small>{meta}</small>}</div>{right&&<div className="m-lc-right">{right}</div>}{onClick&&<ChevronRight size={18} aria-hidden/>}</>;
   return onClick?<button type="button" className={'m-list-card '+(tone||'')} onClick={onClick}>{body}</button>:<div className={'m-list-card '+(tone||'')}>{body}</div>;
@@ -23,4 +24,4 @@ export function NumberStepper({label,value,onChange,min=0,max=9999,step=1}:{labe
 export function Stepper({steps,current}:{steps:string[];current:number}){
   return <ol className="m-steps" aria-label={`Step ${current+1} of ${steps.length}`}>{steps.map((s,i)=><li key={s} className={i<current?'done':i===current?'current':''} aria-current={i===current?'step':undefined}><span>{i<current?<Check size={14}/>:i+1}</span><em>{s}</em></li>)}</ol>;
 }
-export function Fab({label,icon:Icon,onClick}:{label:string;icon:React.ComponentType<{size?:number}>;onClick:()=>void}){return <button type="button" className="m-fab" onClick={onClick}><Icon size={20}/><span>{label}</span></button>;}
+export function Fab({label,icon:Icon,onClick}:{label:string;icon:React.ComponentType<{size?:number}>;onClick:()=>void}){const offline=useReadOnly();return <button type="button" className="m-fab" disabled={offline} title={offline?READ_ONLY_HINT:undefined} onClick={onClick}><Icon size={20}/><span>{label}</span></button>;}

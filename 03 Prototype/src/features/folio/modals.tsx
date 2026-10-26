@@ -8,6 +8,7 @@ import {useHcc} from '../../app/context';
 import {cbIsLocked,cbLockedMessage,lineTax,gstLineSplit,gstSplitLines,gstPct,gstHalfPct,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../services/mock';
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
 import {bookingActionSlots} from '../../app/registry';
+import {useCashBlock} from '../../clients/sync/cashier-ui';
 const useBooking=(id:string)=>{const c=useHcc();return {...c,b:c.s.bookings.find(b=>b.id===id)};};
 /** Production only (W4 D1): issue the tax invoice for a departed stay that has none — the step after checkout was refused (e.g. no hotel
  *  GSTIN yet) or the checkout user could not issue invoices. Maps to IssueInvoice (sync/money.ts INVOICE_ISSUE) with a stable key. */
@@ -92,7 +93,8 @@ export function PaymentModal({id}:{id:string}){
   const t=b?totals(b):undefined;
   const [kind,setKind]=useState('payment');
   const [total,setTotal]=useState(t&&t.balance>0?String(t.balance/100):'');
-  const [rows,setRows]=useState<Row[]>([{method:'Cash',amount:'',reference:''}]);
+  const cashBlock=useCashBlock(); // APK12-3: production, no own cashier shift → cash tender disabled with a hint
+  const [rows,setRows]=useState<Row[]>([{method:cashBlock?'UPI':'Cash',amount:'',reference:''}]);
   const [step,setStep]=useState<'form'|'confirm'>('form');
   const [problem,setProblem]=useState('');
   if(!b||!t)return <Missing/>;
@@ -127,7 +129,7 @@ export function PaymentModal({id}:{id:string}){
       <label>Amount (₹)<input type="number" name="amount" min="0.01" step="0.01" value={total} onChange={e=>setTotal(e.target.value)} required/></label>
       <fieldset className="folio-tenders"><legend>Tender{single?'':'s'}</legend>
         {rows.map((r,i)=><div className="form-row folio-tender" key={i}>
-          <label>Method<select value={r.method} onChange={e=>setRow(i,{method:e.target.value})}>{FOLIO_TENDERS.map(x=><option key={x}>{x}</option>)}</select></label>
+          <label>Method<select value={r.method} onChange={e=>setRow(i,{method:e.target.value})}>{FOLIO_TENDERS.map(x=><option key={x} disabled={x==='Cash'&&!!cashBlock}>{x}</option>)}</select></label>
           {!single&&<label>Amount (₹)<input type="number" min="0.01" step="0.01" value={r.amount} onChange={e=>setRow(i,{amount:e.target.value})} aria-label={`Tender ${i+1} amount`}/></label>}
           <label>Reference{r.method==='Cash'?' (optional)':''}<input value={r.reference} maxLength={100} placeholder={r.method==='Cash'?'Demo cash':'Demo transaction reference'} onChange={e=>setRow(i,{reference:e.target.value})}/></label>
           {!single&&<button type="button" className="icon-btn" aria-label={`Remove tender ${i+1}`} onClick={()=>setRows(rows.filter((_,j)=>j!==i))}><Trash2 size={16}/></button>}
@@ -135,6 +137,7 @@ export function PaymentModal({id}:{id:string}){
         <div className="inline">{kind!=='deposit-return'&&rows.length<4&&<button type="button" className="text-btn" onClick={()=>setRows(single?[{...rows[0],amount:total},{method:'UPI',amount:'',reference:''}]:[...rows,{method:'UPI',amount:'',reference:''}])}><Plus size={14}/> Split across another tender</button>}
           {!single&&<span className={'muted '+(sum!==target?'folio-mismatch':'')}>Allocated {money(sum)} of {money(target||0)}{sum!==target?` · ${money(target-sum)} left`:' ✓'}</span>}</div>
       </fieldset>
+      {cashBlock&&<div className="info-note" role="status"><Info size={16}/>{cashBlock}</div>}
       {problem&&<p className="field-error" role="alert">{problem}</p>}
       <div className="info-note"><Info size={16}/>Refunds are requested from the original receipt on the folio and need approval before a cashier executes them.</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" disabled={busy}>Review <ArrowRight size={16}/></button></div></form></>;

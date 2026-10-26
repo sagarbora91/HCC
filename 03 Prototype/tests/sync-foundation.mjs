@@ -171,7 +171,7 @@ export async function register({test,assert,M}){
   const detach=frt.attachWindow(win);const attached=Object.keys(listeners).sort();detach();
   test('[W4-0] Scheduling: focus/visibility refresh at most every 30 s; manual refresh always; window listeners attach and detach',()=>{
     assert.deepEqual([n0,n1,n2,n3],[1,1,2,3]);
-    assert.deepEqual(attached,['doc:visibilitychange','focus']);assert.deepEqual(Object.keys(listeners),[]);
+    assert.deepEqual(attached,['doc:visibilitychange','focus','online']);assert.deepEqual(Object.keys(listeners),[]);
     assert.equal(fs2.gets('/me/capabilities').length,3,'every full load re-checks the session and role');
   });
 
@@ -223,7 +223,7 @@ export async function register({test,assert,M}){
   await art.signOut();const out2=art.get();const cacheAfterOut=acache.dump();
   test('[W4-0] Sign-in: no session → sign-in screen; POST /auth/sign-in (cookie session, no Idempotency-Key, credentials never cached); errors shown',()=>{
     assert.equal(out0.status,'signed-out');assert.equal(out0.me,null);
-    assert.equal(bad.ok,false);assert.equal(badMsg,'Sign in again: Wrong login name or password.');
+    assert.equal(bad.ok,false);assert.equal(badMsg,'Wrong login name or password.');
     assert.equal(noSecret.ok,false);assert.match(noSecret.text,/password or your PIN/);
     assert.ok(good.ok);assert.equal(in1.status,'ready');assert.deepEqual(in1.state.tasks.map(x=>x.id),['u1']);
     assert.deepEqual(signInCall.body,{loginName:'owner',password:'right',returnToken:false});assert.equal(signInCall.key,undefined);

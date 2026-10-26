@@ -10,7 +10,7 @@ import type {State,Command,Permission} from '../../services/mock';
 import {can} from '../../services/mock';
 import {HTTP_ADAPTER_ID,createHttpTransport,createHttpReservationsClient,createHttpSystemClient,createHttpMeClient,type FetchLike,type HttpTransport} from '../http';
 import {createConnection,type Connection} from '../connection';
-import {HccClientError,errorText} from '../errors';
+import {HccClientError,errorText,signInText} from '../errors';
 import {IDEMPOTENCY_KEY_MAX} from '../wire';
 import type {HccClients} from '../types';
 import type {SrvCapabilities} from '../server';
@@ -28,6 +28,7 @@ export const NOT_ON_SERVER='Not available on the server yet';
 export const READ_ONLY_REFUSAL='Server unavailable — read-only. Nothing was sent and nothing is saved on this device';
 /** Focus / visibility refreshes at most this often. */
 export const FOCUS_REFRESH_MS=30_000;
+export const RECOVERY_MS=20_000;
 
 /** 'locked' = server unreachable and an encrypted read cache exists, but no valid local session: re-authenticate (unlock). */
 export type SyncStatus='booting'|'signed-out'|'loading'|'ready'|'locked';
@@ -59,7 +60,7 @@ export type SyncRuntimeOptions={
   keyStore?:TokenStore;
   /** PBKDF2 iterations for the offline unlock key (tests use a small number). */
   cacheIterations?:number;
-  now?:()=>Date;timeoutMs?:number;commandRetries?:number;focusRefreshMs?:number;
+  now?:()=>Date;timeoutMs?:number;commandRetries?:number;focusRefreshMs?:number;recoveryMs?:number;
   /** Override the skeleton (tests). */
   skeleton?:()=>State;
 };
@@ -116,7 +117,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
   const owned=new Set(loaders.filter(x=>(x.l.kind??'own')==='own').map(x=>x.l.slice));
 
   let values:Partial<Record<SliceKey,unknown>>={},asOf:Partial<Record<SliceKey,string>>={},errors:SyncSnapshot['errors']={};
-  let me:SyncMe|null=null,ids:IdDirectory=createIdDirectory(),status:SyncStatus='booting',fromCache=false,loading=0,signInMessage:string|undefined;
+  let recovering=false;let me:SyncMe|null=null,ids:IdDirectory=createIdDirectory(),status:SyncStatus='booting',fromCache=false,loading=0,signInMessage:string|undefined;
   let nonce=newNonce(),generation=0,lastFull=0,chain:Promise<void>=Promise.resolve();
   /** Read-cache data key (memory only) and the lock record it belongs to; the server's last session times (capabilities). */
   let cacheKey:CryptoKey|null=null,lock:CacheLock|null=null,srvSession:SessionTimes|undefined;
@@ -380,7 +381,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     async signIn(input:SignInInput):Promise<{ok:boolean;text?:string}>{
       let res;
       try{res=await auth.signIn(transport,input);}
-      catch(e){signInMessage=errorText(e);emit();return {ok:false,text:signInMessage};}
+      catch(e){signInMessage=signInText(e);emit();return {ok:false,text:signInMessage};}
       // A sign-in always starts a new offline copy, keyed by this sign-in's secret (the secret itself is not kept).
       forget();me=null;await wipeCache();
       nonce=newNonce();generation=0;status='loading';emit();
@@ -396,8 +397,16 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     },
     /** Window focus / page visible: refresh unless one ran in the last FOCUS_REFRESH_MS. */
     focusRefresh(){
-      if(status!=='ready'||now().getTime()-lastFull<(o.focusRefreshMs??FOCUS_REFRESH_MS))return Promise.resolve();
+      if(status!=='ready')return Promise.resolve();
+      // APK12-6: while the server is unreachable the focus / online signal always re-checks it (the throttle is for healthy refreshes).
+      if(!connection.readOnly&&now().getTime()-lastFull<(o.focusRefreshMs??FOCUS_REFRESH_MS))return Promise.resolve();
       return this.refresh();
+    },
+    /** Read-only mode: one background health check; the banner clears and the slices reload when the server answers. Never overlaps itself. */
+    recover(){
+      if(status!=='ready'||!connection.readOnly||recovering)return Promise.resolve();
+      recovering=true;
+      return this.refresh().catch(()=>undefined).finally(()=>{recovering=false;});
     },
     reload,run,
     /** Typed-client flow finished (see CommandMapper.track): remember ids, then reload that command's slices. */
@@ -409,9 +418,12 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     /** Browser wiring: focus + visibilitychange → focusRefresh. Returns the detach function. */
     attachWindow(w:Pick<Window,'addEventListener'|'removeEventListener'>&{document?:Pick<Document,'addEventListener'|'removeEventListener'|'visibilityState'>}){
       const onFocus=()=>{void this.focusRefresh();};
+      const onOnline=()=>{void this.recover();};
+      // APK12-6: while unavailable, try again on a timer (default 20 s) so the read-only banner clears without pressing Retry.
+      const timer=setInterval(()=>{void this.recover();},o.recoveryMs??RECOVERY_MS);
       const onVis=()=>{if(w.document?.visibilityState==='visible')void this.focusRefresh();};
-      w.addEventListener('focus',onFocus);w.document?.addEventListener('visibilitychange',onVis);
-      return ()=>{w.removeEventListener('focus',onFocus);w.document?.removeEventListener('visibilitychange',onVis);};
+      w.addEventListener('focus',onFocus);w.addEventListener('online',onOnline);w.document?.addEventListener('visibilitychange',onVis);
+      return ()=>{clearInterval(timer);w.removeEventListener('focus',onFocus);w.removeEventListener('online',onOnline);w.document?.removeEventListener('visibilitychange',onVis);};
     },
   };
 }

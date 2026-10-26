@@ -5,11 +5,12 @@ import {Plus,Trash2,ArrowRight,Check,AlertTriangle,RefreshCw,Info} from 'lucide-
 import {money,totals} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty} from '../../components/ui';
+import {useCashBlock} from '../../clients/sync/cashier-ui';
 import {MM_TENDERS,MM_PAY_KINDS,MmTenderRow,mmPaise,mmRupeeText,mmEffectiveRows,mmPaymentProblem,mmPaymentCommand} from './logic';
 
-function TenderChips({value,onChange,label,only}:{value:string;onChange:(v:string)=>void;label:string;only?:string[]}){
+function TenderChips({value,onChange,label,only,noCash}:{value:string;onChange:(v:string)=>void;label:string;only?:string[];noCash?:boolean}){
   return <div className="mm-chips" role="radiogroup" aria-label={label}>{MM_TENDERS.filter(t=>!only||only.includes(t.id)).map(t=>
-    <button key={t.id} type="button" role="radio" aria-checked={value===t.id} className={value===t.id?'on':''} onClick={()=>onChange(t.id)}>{t.label}</button>)}</div>;
+    <button key={t.id} type="button" role="radio" aria-checked={value===t.id} className={value===t.id?'on':''} disabled={noCash&&t.id==='Cash'} onClick={()=>onChange(t.id)}>{t.label}</button>)}</div>;
 }
 
 export function MmPayment({id}:{id?:string}){
@@ -18,7 +19,8 @@ export function MmPayment({id}:{id?:string}){
   const t=b?totals(b):undefined;
   const [kind,setKind]=useState<string>('payment');
   const [total,setTotal]=useState(t&&t.balance>0?mmRupeeText(t.balance):'');
-  const [rows,setRows]=useState<MmTenderRow[]>([{method:'Cash',amount:'',reference:''}]);
+  const cashBlock=useCashBlock(); // APK12-3: production, no own cashier shift → cash tender disabled with a hint
+  const [rows,setRows]=useState<MmTenderRow[]>([{method:cashBlock?'UPI':'Cash',amount:'',reference:''}]);
   const [step,setStep]=useState<'form'|'confirm'>('form');
   const [problem,setProblem]=useState('');
   const [failed,setFailed]=useState(false);
@@ -57,7 +59,7 @@ export function MmPayment({id}:{id?:string}){
       <fieldset className="mm-tenders"><legend>{single?'Tender':'Split tenders'}</legend>
         {rows.map((r,i)=><div className="mm-tender" key={i}>
           {!single&&<div className="mm-tender-head"><strong>Tender {i+1}</strong><button type="button" className="m-icon mm-del" aria-label={`Remove tender ${i+1}`} onClick={()=>setRows(rows.filter((_,j)=>j!==i))}><Trash2 size={18}/></button></div>}
-          <TenderChips label={`Tender ${i+1} method`} value={r.method} onChange={m=>setRow(i,{method:m})}/>
+          <TenderChips label={`Tender ${i+1} method`} value={r.method} noCash={!!cashBlock} onChange={m=>setRow(i,{method:m})}/>
           {!single&&<label>Amount (₹)<input inputMode="decimal" enterKeyHint="next" value={r.amount} onChange={e=>setRow(i,{amount:e.target.value})} aria-label={`Tender ${i+1} amount`}/></label>}
           {r.method!=='Cash'?<label>Reference<input enterKeyHint="next" maxLength={100} value={r.reference} placeholder="Demo transaction reference, e.g. DEMO-UPI-0002" onChange={e=>setRow(i,{reference:e.target.value})} aria-label={`Tender ${i+1} reference`}/></label>
             :<small className="mm-help">Cash goes into the drawer. Reference optional.</small>}
@@ -65,6 +67,7 @@ export function MmPayment({id}:{id?:string}){
         {kind!=='deposit-return'&&rows.length<4&&<button type="button" className="btn mm-split" onClick={addSplit}><Plus size={18}/> Split</button>}
         {!single&&<p className={'mm-alloc '+(left!==0?'bad':'ok')} role="status">Allocated {money(sum)} of {money(target||0)}{left!==0?` · ${money(Math.abs(left))} ${left>0?'left':'too much'}`:' · matches'}</p>}
       </fieldset>
+      {cashBlock&&<div className="info-note" role="status"><Info size={16}/>{cashBlock}</div>}
       {problem&&<p className="field-error" role="alert">{problem}</p>}
       <div className="info-note"><Info size={16}/>Refunds are requested from the original receipt (Receipts tab) and need approval first.</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" disabled={busy}>Review <ArrowRight size={16}/></button></div>

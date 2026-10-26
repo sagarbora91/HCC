@@ -64,7 +64,7 @@ export function createHttpTransport(o:HttpOptions={}){
   function fail(res:Res,text:string):never{
     let json:unknown=undefined;
     if(text){try{json=JSON.parse(text);}catch{/* not JSON: generic error for the status */}}
-    const err=errorFromResponse(res.status,json);
+    const err=errorFromResponse(res.status,json,res.headers?.get?.('retry-after'));
     if(err.wireCode==='UNAVAILABLE')connection.markUnavailable(err.message);else connection.markOnline();
     throw err;
   }
