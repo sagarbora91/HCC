@@ -241,7 +241,8 @@ export const admin:SyncArea={
           limit:null,limitUnit:null,reason:String(cmd.reason).trim(),validUntilUtc:untilUtcOf(cmd.expires),expectedVersion:userVersion(c,String(cmd.user))});}},
     // No screen yet (DEC-062): credentials and shared-device registration. The PIN / password goes only to the server.
     {type:'USER_CREDENTIAL',reload:['users'],
-      precheck:(cmd,s,me)=>noSelf(cmd,me)??(!userOf(s,cmd.id)?'User not found.':!cmd.pin===!cmd.password?'Give either a PIN or a password.':undefined),
+      // A caller-chosen key is required: the runtime's fallback key is a digest of the command, which would include the PIN.
+      precheck:(cmd,s,me)=>noSelf(cmd,me)??(!cmd.key?'Open the credential dialog to set a PIN or password.':!userOf(s,cmd.id)?'User not found.':!cmd.pin===!cmd.password?'Give either a PIN or a password.':undefined),
       async send(c){const u=userOf(c.state,c.cmd.id)!;
         await c.api.command('SetCredential',{userId:serverId(u.id,'User'),password:c.cmd.password?String(c.cmd.password):null,pin:c.cmd.pin?String(c.cmd.pin):null,expectedVersion:userVersion(c,u.id)});}},
     {type:'DEVICE_REGISTER',reload:[],precheck:cmd=>String(cmd.label??'').trim()?undefined:'Name the device (e.g. Front desk tablet).',
