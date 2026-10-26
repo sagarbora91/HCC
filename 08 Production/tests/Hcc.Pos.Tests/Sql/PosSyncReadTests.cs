@@ -4,10 +4,11 @@ using Hcc.Pos.Tests.Harness;
 namespace Hcc.Pos.Tests.Sql;
 
 /// <summary>Reads the web client's POS screens need (W4-8): the shared till, pending void requests, closed checks and the check timing fields.</summary>
-public class PosSyncReadTests(PosDb db) : IClassFixture<PosDb>
+/// <summary>The till read on a database of its own: "no till yet" only holds before any other test opens one (xUnit runs a class's tests in any order).</summary>
+public class PosTillReadTests(PosDb db) : IClassFixture<PosDb>
 {
     [Fact]
-    public async Task Till_read_reports_no_till_then_a_closed_then_an_open_shift()
+    public async Task Till_read_reports_no_till_then_an_open_shift()
     {
         var none = await db.Queries.TillAsync(db.As(Who.Cashier));
         Assert.Null(none.TillId);
@@ -18,7 +19,10 @@ public class PosSyncReadTests(PosDb db) : IClassFixture<PosDb>
         Assert.Equal(shift.ShiftId, open.ShiftId);
         Assert.True(open.ShiftOpen);
     }
+}
 
+public class PosSyncReadTests(PosDb db) : IClassFixture<PosDb>
+{
     [Fact]
     public async Task Pending_void_requests_carry_amount_reason_spot_and_requester_until_decided()
     {
