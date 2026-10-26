@@ -1,0 +1,5 @@
+﻿Month,Staff ID,Name,Department,Designation,Pay type,Payable days,Earned,Basic,HRA,Washing,Special,Overtime,Gross,PF wages,PF (employee),ESIC (employee),PT,Advance recovery,Total deductions,PF (employer),ESIC (employer),Net pay
+2026-09,1,Kavita Pawar,Front office,Front desk executive,monthly,4,2400.00,1200.00,960.00,120.00,120.00,0.00,2400.00,1200.00,144.00,17.10,0.00,0.00,161.10,156.00,74.10,2238.90
+2026-09,2,Dinesh More,Front office,Housekeeping attendant,monthly,4,1600.00,800.00,640.00,80.00,80.00,0.00,1600.00,800.00,96.00,11.40,0.00,0.00,107.40,104.00,49.40,1492.60
+2026-09,,TOTAL,,,,,4000.00,2000.00,1600.00,200.00,200.00,0.00,4000.00,2000.00,240.00,28.50,0.00,0.00,268.50,260.00,123.50,3731.50
+"Locked run · fictional data · Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff."
