@@ -20,6 +20,7 @@ import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx,SyncMe} from './types';
 import {serverId,protoId,utcToClock,clockToUtc,utcToDate} from './map';
 import {ROLE_MAP,permissionsFromGrants} from './capabilities';
+import {gstinProblem} from '../../domain/gstin';
 
 // ───────────── Server DTOs (Hcc.Contracts.Access / Configuration) ─────────────
 export type SrvGrant={permissionId:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null};
@@ -31,7 +32,8 @@ export type SrvRoles={roles:SrvRole[];permissions:{permissionId:string;resourceA
 export type SrvException={exceptionId:number;userId:number;permissionId:string;effect:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null;
   reason:string;validUntilUtc:string;grantedBy:number;grantedUtc:string;revokedUtc?:string|null};
 export type SrvAudit={auditId:number;atUtc:string;principalId:number;actor:string;action:string;target:string;detail:string;operation?:string|null};
-export type SrvValues={businessDate:string;values:Record<string,unknown>;scheduled:{key:string;value:unknown;effectiveFrom:string}[]};
+export type SrvValues={businessDate:string;values:Record<string,unknown>;scheduled:{key:string;value:unknown;effectiveFrom:string}[];
+  /** Setting row version per key saved at least once (SetSetting expectedVersion; absent = never saved). */versions?:Record<string,string>|null};
 export type SrvHistoryEntry={changeId:number;key:string;label:string;before:string;after:string;effectiveFrom:string;status:string;changedBy:string;approvedBy?:string|null;
   reason?:string|null;source:string;revertOf?:number|null;at:string;canRevert:boolean;revertBlock?:string|null};
 export type SrvRequest={requestId:number;key:string;label:string;summary:string;reason?:string|null;approver:string;requestedBy:string;requestedAt:string;expiresAt:string;
@@ -173,6 +175,8 @@ async function loadHistory(c:LoaderCtx):Promise<SrvHistoryEntry[]>{
 }
 async function loadConfig(c:LoaderCtx):Promise<CFGState>{
   const v=await c.api.get<SrvValues>('/configuration/values');
+  // W4 D2: SetSetting needs the row version once a setting has been saved (else STALE_VERSION on every second edit).
+  for(const [key,ver] of Object.entries(v.versions??{}))c.ids.setVersion('setting',key,ver);
   return configFromServer(v,await loadHistory(c));
 }
 
@@ -251,9 +255,12 @@ export const admin:SyncArea={
     {type:'DEVICE_REVOKE',reload:[],async send(c){await c.api.command('RevokeDevice',{deviceId:serverId(c.cmd.id,'Device')});}},
     // Master configuration.
     {type:'SETTING_SET',reload:[...configReload],
-      precheck:cmd=>cmd.setting==='taxBps'?'The synthetic tax is replaced by the dated GST master (DEC-069): change GST rates in Master configuration › Money and tax.':cmd.setting?undefined:'Choose a setting.',
-      async send(c){const cmd=c.cmd;const reason=String(cmd.reason??'').trim();
-        await c.api.command('SetSetting',{key:String(cmd.setting),value:cmd.value??null,...(cmd.effectiveFrom?{effectiveFrom:cmd.effectiveFrom}:{}),...(reason?{reason}:{})});}},
+      precheck:cmd=>cmd.setting==='taxBps'?'The synthetic tax is replaced by the dated GST master (DEC-069): change GST rates in Master configuration › Money and tax.'
+        :!cmd.setting?'Choose a setting.':cmd.setting==='brand.gstin'&&String(cmd.value??'').trim()?gstinProblem(cmd.value):undefined,
+      async send(c){const cmd=c.cmd,key=String(cmd.setting);const reason=String(cmd.reason??'').trim();
+        // expectedVersion = the setting's row version from the last load (null before its first save); the reload refreshes it.
+        await c.api.command('SetSetting',{key,value:cmd.value??null,...(cmd.effectiveFrom?{effectiveFrom:cmd.effectiveFrom}:{}),...(reason?{reason}:{}),
+          expectedVersion:c.ids.version('setting',key)??null});}},
     {type:'CFG_DECIDE',reload:[...configReload],
       async send(c){const cmd=c.cmd;const id=String(cmd.id);const requestId=c.ids.server('cfgRequest',id)??serverId(id.replace(/^CFG-REQ-/,''),'Request');
         const reason=String(cmd.reason??'').trim();

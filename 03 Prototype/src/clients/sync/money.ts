@@ -12,7 +12,8 @@
 //   commands PAYMENT → RecordReceipt (one per tender; before check-in by reservationId: the server opens the folio)  · CHARGE → PostCharge · DISCOUNT / REFUND_REQUEST / COMPANY_CREDIT_REQUEST /
 //            CORRECTION_REQUEST → RequestAdjustment (expectedVersion = the folio version loaded) · REFUND_EXECUTE → ExecuteAdjustment ·
 //            APPROVAL → DecideApproval | DecideCreditNote · CHECKOUT is W4-1's (CheckoutStay): it calls companyCreditApprovalId() and,
-//            after CheckoutStay, issueInvoiceAfterCheckout() from here ·
+//            after CheckoutStay, issueInvoiceAfterCheckout() from here (a refusal does not fail the checkout: invoiceStepWarning) ·
+//            INVOICE_ISSUE → IssueInvoice (departed stay without an invoice; production "Issue invoice" action) ·
 //            CREDIT_NOTE → RequestCreditNote · SHIFT_SUBMIT → SubmitShiftCount · SHIFT_DIFFERENCE_DECIDE → DecideApproval ·
 //            CB_LOCK / CB_REOPEN → LockCashBookDay / ReopenCashBookDay · GRP_BLOCK_CREATE → CreateGroupBlock → CreateGroup.
 // The server re-checks everything (limits, self-approval, DEC-041 version binding, DEC-065 locks); prechecks only repeat cheap prototype refusals.
@@ -180,12 +181,26 @@ export function companyCreditApprovalId(state:State,bookingId:string):number|nul
   const a=state.approvals.find(x=>x.booking===b.id&&x.kind==='company-credit'&&x.status==='Approved'&&x.amount===bal);
   return a?serverId(a.id,'Approval'):null;
 }
-/** The money step after CheckoutStay (W4-1 maps CHECKOUT): issue the tax invoice for the settled folio (W3-6), B2B when the booking has a
- *  company GSTIN. Key `<action>:invoice`; a retry returns the same invoice. Skipped (undefined) without PERM-INV-002. */
-export async function issueInvoiceAfterCheckout(c:CommandCtx,bookingId:string):Promise<unknown>{
-  if(!c.me.permIds.includes('PERM-INV-002'))return undefined;
+/** IssueInvoice for a booking's folio (W3-6), B2B when the booking has a company GSTIN. The server returns the existing invoice for a
+ *  folio that already has one, so any key is safe to repeat. */
+function issueInvoice(c:CommandCtx,bookingId:string,step?:string):Promise<unknown>{
   const b=bookingOf(c,bookingId),f=folioOf(c,b.id),gstin=b.company?.gstin?.trim();
-  return c.api.command('IssueInvoice',gstin?{sourceKind:'folio',sourceId:f.folioId,supplyType:'B2B',buyerName:b.company!.name,buyerGstin:gstin}:{sourceKind:'folio',sourceId:f.folioId},{step:'invoice'});
+  return c.api.command('IssueInvoice',gstin?{sourceKind:'folio',sourceId:f.folioId,supplyType:'B2B',buyerName:b.company!.name,buyerGstin:gstin}:{sourceKind:'folio',sourceId:f.folioId},
+    step?{step}:{});
+}
+export const INVOICE_PERMISSION='PERM-INV-002';
+/** The money step after CheckoutStay (W4-1 maps CHECKOUT): issue the tax invoice for the settled folio. Key `<action>:invoice`; a retry
+ *  returns the same invoice. Skipped (undefined) without PERM-INV-002. It never undoes the checkout: the CHECKOUT mapper catches a refusal
+ *  (invoiceStepWarning) and the stay offers "Issue invoice" (INVOICE_ISSUE) later. */
+export async function issueInvoiceAfterCheckout(c:CommandCtx,bookingId:string):Promise<unknown>{
+  if(!c.me.permIds.includes(INVOICE_PERMISSION))return undefined;
+  return issueInvoice(c,bookingId,'invoice');
+}
+/** W4 D1: what the screen says when the stay checked out but the invoice step was refused (e.g. no hotel GSTIN yet). */
+export function invoiceStepWarning(e:unknown):string{
+  const why=e instanceof Error&&e.message?e.message:'the server did not answer';
+  return `Checkout completed — the guest is checked out and the room is released. The tax invoice was not issued: ${why.replace(/\.?$/,'.')} `
+    +'Once that is fixed, open the departed stay and choose “Issue invoice”.';
 }
 /** Slices another area reloads after it moves cash (POS settle/void, expenses): the cash desk and the cash book. Folio changes: FOLIO_SLICES. */
 export const CASH_SLICES:SliceKey[]=['shiftOpen','openingCash','shift','shiftClose','cashbookX'];
@@ -254,6 +269,14 @@ export const money:SyncArea={
         if(id.startsWith(CNR_PREFIX))return {result:await c.api.command('DecideCreditNote',{requestId:serverId(id.slice(CNR_PREFIX.length),'Credit-note request'),approve:!!c.cmd.approve,reason},
           {expectedVersion:approvalVersion(c,id)})};
         return {result:await c.api.command('DecideApproval',{approvalId:serverId(id,'Approval'),approve:!!c.cmd.approve,reason},{expectedVersion:approvalVersion(c,id)})};}},
+    // W4 D1: a departed stay without an invoice (the invoice step after checkout was refused, or the checkout user lacked PERM-INV-002).
+    // Stable key from the screen ('invoice:<booking>'); the server returns the same invoice if one exists.
+    {type:'INVOICE_ISSUE',reload:FOLIO,
+      precheck:(cmd,s,me)=>{if(!me.permIds.includes(INVOICE_PERMISSION))return 'Your role cannot issue tax invoices.';
+        const b=s.bookings.find(x=>x.id===String(cmd.id??''));if(!b)return undefined;
+        if(b.status!=='Departed')return 'A tax invoice is issued after checkout.';
+        return b.invoiceNo?`Invoice ${b.invoiceNo} has already been issued for this stay.`:undefined;},
+      async send(c){return {result:await issueInvoice(c,String(c.cmd.id))};}},
     {type:'CREDIT_NOTE',reload:FOLIO,
       precheck:(cmd,s)=>{if(!positive(cmd.amount))return 'Enter an amount greater than zero.';if(!text(cmd.reason))return 'A reason is required.';
         const b=s.bookings.find(x=>x.id===cmd.id);return b&&b.status!=='Departed'?'A credit note applies only to a departed (invoiced) stay. Use a correction while the guest is in house.':undefined;},

@@ -53,8 +53,10 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
             }
 
             var supplier = await SupplierAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(supplier.Gstin))
-                throw new HccException(HccErrorCode.INVALID_TRANSITION, "Record the hotel's GSTIN (property setup or Master configuration brand.gstin) before issuing tax invoices.");
+            // Decision (W4 D1): every document here is a GST tax invoice / bill of supply, B2C included, so the hotel must be GST-registered
+            // with a valid GSTIN before the first one. Nothing is numbered without it; the checkout itself is not undone.
+            if (string.IsNullOrWhiteSpace(supplier.Gstin)) throw new HccException(HccErrorCode.INVALID_TRANSITION, MissingGstinMessage);
+            if (Gstin.Problem(supplier.Gstin, "hotel") is { } gstinProblem) throw HccException.Validation($"{gstinProblem} {GstinSettingHint}");
             var supplierGstin = Gstin.Validate(supplier.Gstin, "hotel");
             var supplierState = Gstin.StateCode(supplierGstin);
             var gross = InvoiceRules.Totals(InvoiceRules.BuildLines(doc.Lines, interState: false)).Total;
@@ -84,12 +86,20 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>The property row (as registered at setup); GSTIN and address fall back to the Master configuration copies (brand.gstin / brand.address).</summary>
+    /// <summary>Where the hotel GSTIN is recorded (named in IssueInvoice refusals).</summary>
+    public const string GstinSettingHint = "An Owner records it in Master configuration › Property and branding › GSTIN on documents (brand.gstin); then issue the invoice from the departed stay's folio.";
+
+    public const string MissingGstinMessage = "No tax invoice can be issued: the hotel's GSTIN is not recorded. " + GstinSettingHint;
+
+    /// <summary>The property row (as registered at setup). The GSTIN on documents is the Master configuration value (brand.gstin, seeded
+    /// from setup and corrected there later); the property row's GSTIN is the fallback while that setting is empty. The address falls back
+    /// to brand.address.</summary>
     private async Task<SupplierInfo> SupplierAsync(ICommandTransaction tx, int propertyId, CancellationToken ct)
     {
         var s = await store.SupplierAsync(tx, propertyId, ct).ConfigureAwait(false);
         if (settings is null) return s;
-        if (string.IsNullOrWhiteSpace(s.Gstin)) s = s with { Gstin = (await settings.GetAsync(tx, propertyId, "brand.gstin", null, ct).ConfigureAwait(false)).Text };
+        var configured = (await settings.GetAsync(tx, propertyId, "brand.gstin", null, ct).ConfigureAwait(false)).Text;
+        if (!string.IsNullOrWhiteSpace(configured)) s = s with { Gstin = configured.Trim() };
         if (string.IsNullOrWhiteSpace(s.Address)) s = s with { Address = (await settings.GetAsync(tx, propertyId, "brand.address", null, ct).ConfigureAwait(false)).Text };
         return s with { Gstin = string.IsNullOrWhiteSpace(s.Gstin) ? null : s.Gstin, Address = string.IsNullOrWhiteSpace(s.Address) ? null : s.Address };
     }

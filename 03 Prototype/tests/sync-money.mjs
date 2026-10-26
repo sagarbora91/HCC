@@ -234,4 +234,44 @@ export async function register({test,assert,M}){
     assert.ok(csOut.ok,csOut.text);assert.deepEqual(cs.calls.filter(c=>c.method==='POST').map(c=>c.path),['/commands/CheckoutStay']);
     assert.equal(cs.commands('CheckoutStay')[0].body.companyCreditApprovalId,303);
   });
+
+  // W4 D1: CheckoutStay succeeds, then IssueInvoice is refused (no hotel GSTIN yet). The checkout must count as done: the slices reload
+  // (stay Departed, no invoice), the screen gets a warning naming the problem, and INVOICE_ISSUE ("Issue invoice") retries with a stable key.
+  const d1={res:details(1201),folio:{...folio,approvals:[]},invoice:null,gstin:false};
+  const gstinMsg="No tax invoice can be issued: the hotel's GSTIN is not recorded. An Owner records it in Master configuration › Property and branding › GSTIN on documents (brand.gstin); then issue the invoice from the departed stay's folio.";
+  const inv={invoiceId:802,invoiceNo:'INV/2627/0000002',docType:'INV',invoiceDate:'2026-10-24',sourceKind:'folio',sourceId:5001,totalPaise:426500,creditNotes:[]};
+  const ds=fakeServer({
+    'GET /me/capabilities':()=>owner,'GET /reservations':()=>resList([listItem(d1.res)]),'GET /pos/void-requests':()=>[],
+    'GET /reservations/:id':()=>d1.res,'GET /folios/by-reservation/:id':()=>({reservationId:1201,stayId:501,stayVersion:'STYv1',folio:d1.folio}),
+    'GET /invoices/by-source/folio/:id':()=>d1.invoice??reply(404,{code:'NOT_FOUND',message:'No invoice for this folio.'}),
+    'GET /credit-note-requests':()=>[],'GET /cashier/desk':()=>st.desk,'GET /cashbook':()=>st.cashbook,'GET /groups':()=>[],
+    'POST /commands/CheckoutStay':()=>{d1.res=details(1201,{status:'Departed'});d1.folio={...d1.folio,reservationStatus:'Departed',version:'FOLv9'};return {stayId:501,status:'CheckedOut'};},
+    'POST /commands/IssueInvoice':()=>{if(!d1.gstin)return reply(409,{code:'INVALID_TRANSITION',message:gstinMsg});d1.invoice=inv;
+      return {invoiceId:802,invoiceNo:inv.invoiceNo,docType:'INV',invoiceDate:'2026-10-24',totalPaise:426500,created:true};},
+  });
+  const dRt=await startRuntime(S,ds,noYield);ds.reset();
+  const dOut=await dRt.run({type:'CHECKOUT',id:'1201',key:'checkout:1201'});const dCalls=ds.calls.map(c=>`${c.method} ${c.path}`);
+  const dState=dRt.get().state.bookings.find(b=>b.id==='1201');
+  const notYet=await dRt.run({type:'INVOICE_ISSUE',id:'1201',key:'invoice:1201'});
+  d1.gstin=true;ds.reset();
+  const issued=await dRt.run({type:'INVOICE_ISSUE',id:'1201',key:'invoice:1201'});const issuedCalls=ds.calls.map(c=>`${c.method} ${c.path}`);
+  const after=dRt.get().state.bookings.find(b=>b.id==='1201');
+  const again=await dRt.run({type:'INVOICE_ISSUE',id:'1201',key:'invoice:1201:b'});
+  const csNo=await csRt.run({type:'INVOICE_ISSUE',id:'1201',key:'invoice:1201'});
+  test('[W4 D1] CHECKOUT: an IssueInvoice refusal after CheckoutStay is a warning, not a failure — the stay reloads as Departed without an invoice',()=>{
+    assert.ok(dOut.ok,dOut.text);
+    assert.match(dOut.warning,/^Checkout completed/);assert.match(dOut.warning,/brand\.gstin/);assert.match(dOut.warning,/Issue invoice/);
+    assert.deepEqual(dCalls.filter(c=>c.startsWith('POST')),['POST /commands/CheckoutStay','POST /commands/IssueInvoice']);
+    assert.ok(dCalls.indexOf('GET /folios/by-reservation/1201')>dCalls.indexOf('POST /commands/IssueInvoice'),'folio reloaded after the refusal');
+    assert.deepEqual([dState.status,dState.invoiceNo],['Departed',undefined]);
+  });
+  test('[W4 D1] INVOICE_ISSUE → IssueInvoice with the screen key; refused with the server message until the GSTIN is set, then the invoice number shows',()=>{
+    assert.deepEqual([notYet.ok,notYet.reason],[false,'server']);assert.match(notYet.text,/GSTIN on documents \(brand\.gstin\)/);
+    assert.ok(issued.ok,issued.text);const c=ds.commands('IssueInvoice').at(-1);
+    assert.deepEqual([c.key,c.body],['invoice:1201',{sourceKind:'folio',sourceId:5001}]);
+    assert.ok(issuedCalls.indexOf('GET /invoices/by-source/folio/5001')>issuedCalls.indexOf('POST /commands/IssueInvoice'));
+    assert.equal(after.invoiceNo,'INV/2627/0000002');
+    assert.deepEqual([again.ok,again.reason],[false,'precheck']);assert.match(again.text,/already been issued/);
+    assert.deepEqual([csNo.ok,csNo.reason],[false,'precheck']);assert.match(csNo.text,/cannot issue tax invoices/);
+  });
 }

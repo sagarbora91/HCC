@@ -158,7 +158,10 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       try{
         const r=await server.run(cmd);
         if(!r.ok){setError(r.text);toast(r.text,true);return false;}
-        setError('');dirty.current=false;if(opts.close)setModal(null);opts.after?.();toast(msg||'Updated successfully');return true;
+        setError('');dirty.current=false;if(opts.close)setModal(null);opts.after?.();
+        // Partial success (e.g. checkout done, tax invoice refused): the follow-up problem stays visible on the screen the action led to.
+        if(r.warning){setError(r.warning);toast(r.warning,true);}else toast(msg||'Updated successfully');
+        return true;
       }finally{busyRef.current=false;setBusy(false);}
     }
     const base=stateRef.current;
@@ -237,7 +240,8 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
         {process.env.HCC_BUILD==='production'?<SyncStatus/>:<DemoToolbar/>}
         <div className="content">
           {pageBody}
-          <footer className="page-footer"><span>Hotel Control Centre <i/> Prototype M1</span><span>Local prototype · Fictional records only · Scenario {s.scenario}</span></footer>
+          {process.env.HCC_BUILD==='production'?<footer className="page-footer"><span>Hotel Control Centre</span><span>{s.settings.hotel||'Hotel server'}</span></footer>
+            :<footer className="page-footer"><span>Hotel Control Centre <i/> Prototype M1</span><span>Local prototype · Fictional records only · Scenario {s.scenario}</span></footer>}
         </div>
       </main>
     </div>

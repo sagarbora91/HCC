@@ -68,6 +68,31 @@ public class InvoiceSqlTests
 
     private const string InvoiceRulesTestsGstin = Domain.InvoiceRulesTests.HotelGstin;
 
+    /// <summary>W4 D1: a GSTIN with a wrong check character is refused naming the setting; the Master configuration GSTIN (brand.gstin) wins
+    /// over the setup copy on the property row, so correcting it there unblocks invoicing for a stay that already checked out.</summary>
+    [Fact]
+    public async Task A_bad_hotel_GSTIN_names_the_setting_and_the_corrected_Master_configuration_GSTIN_is_used()
+    {
+        await using var w = await InvoiceWorld.CreateAsync(withGstin: false, ct: Ct);
+        var h = w.H;
+        await h.ScalarAsync($"UPDATE inv.property SET gstin = '27AAAAA0000A1Z5' WHERE property_id = {h.PropertyId};", Ct); // wrong check character
+        var departed = await w.DepartedStayAsync("102", ac006: false, ct: Ct);
+        var e = await Expect.Fails(HccErrorCode.VALIDATION, () => w.IssueAsync(departed.FolioId, ct: Ct));
+        Assert.Contains("check character is wrong", e.Message, StringComparison.Ordinal);
+        Assert.Contains("(brand.gstin)", e.Message, StringComparison.Ordinal);
+        Assert.Equal(0, await h.LongAsync("SELECT COUNT(*) FROM ivc.series", Ct));
+
+        var cfg = h.Get<Hcc.Application.Configuration.ConfigurationService>();
+        var bad = await Expect.Fails(HccErrorCode.VALIDATION, () => cfg.SetSettingAsync(h.Ctx(h.Owner, "SetSetting"),
+            new Hcc.Contracts.Configuration.SetSettingRequest("brand.gstin", System.Text.Json.JsonSerializer.SerializeToElement("27AAAAA0000A1Z5"))));
+        Assert.Contains("check character is wrong", bad.Message, StringComparison.Ordinal);
+        await cfg.SetSettingAsync(h.Ctx(h.Owner, "SetSetting"), new Hcc.Contracts.Configuration.SetSettingRequest("brand.gstin", System.Text.Json.JsonSerializer.SerializeToElement(InvoiceRulesTestsGstin)), Ct);
+
+        var issued = await w.IssueAsync(departed.FolioId, ct: Ct);
+        Assert.Equal("INV/2627/0000001", issued.InvoiceNo);
+        Assert.Equal(InvoiceRulesTestsGstin, (await w.Queries.GetInvoiceAsync(h.PropertyId, h.Owner, issued.InvoiceId, Ct)).Supplier.Gstin);
+    }
+
     [Fact]
     public async Task Issue_refuses_open_or_unsettled_folios_missing_GSTIN_and_bad_B2B_and_numbers_the_next_folio()
     {
@@ -78,6 +103,7 @@ public class InvoiceSqlTests
         var departed = await w.DepartedStayAsync("102", ac006: false, ct: Ct);
         var e = await Expect.Fails(HccErrorCode.INVALID_TRANSITION, () => w.IssueAsync(departed.FolioId, ct: Ct));
         Assert.Contains("GSTIN", e.Message, StringComparison.Ordinal);
+        Assert.Contains("Master configuration › Property and branding › GSTIN on documents (brand.gstin)", e.Message, StringComparison.Ordinal); // W4 D1: names the setting
         Assert.Equal(0, await h.LongAsync("SELECT COUNT(*) FROM ivc.series", Ct));
 
         await h.ScalarAsync($"UPDATE inv.property SET gstin = '{InvoiceRulesTestsGstin}' WHERE property_id = {h.PropertyId};", Ct);

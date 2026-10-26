@@ -49,8 +49,11 @@ public static partial class BuiltinSettings
             new("brand.gstin", "GSTIN on documents", SettingType.Text)
             {
                 MaxLength = 15, AllowEmpty = true, Default = T(string.Empty), Pattern = Gstin(),
-                PatternMessage = "A GSTIN has 15 capital letters and digits.", Unit = "15 characters, optional",
-                Help = "Printed on invoices; the GST portal is not checked.", Affects = "Document headers generated after the change.",
+                PatternMessage = "A GSTIN has 15 capital letters and digits.", Unit = "15 characters, required for tax invoices",
+                // Format, state code and check character (the same rule as IssueInvoice), so a typing error is refused here, not at checkout.
+                Validate = v => v.Kind == ConfigValueKind.Text && v.Text!.Trim().Length > 0 ? Hcc.Domain.Invoices.Gstin.Problem(v.Text, "hotel") : null,
+                Help = "Printed on invoices and required before the first tax invoice. Format and check character are verified; the GST portal is not queried.",
+                Affects = "Tax invoices and document headers generated after the change.",
             },
             new("brand.invoiceHeader", "Invoice header line", SettingType.Text) { MaxLength = 80, AllowEmpty = true, Default = T(string.Empty), Unit = "text, ≤ 80 chars", Help = "Second line of the invoice header." },
             new("brand.invoiceFooter", "Invoice footer", SettingType.Text) { MaxLength = 120, Default = T("Thank you for staying with us."), Unit = "text, ≤ 120 chars", Help = "Last line of invoices and receipts." },

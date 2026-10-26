@@ -180,13 +180,46 @@ export async function register({test,assert,M}){
     assert.deepEqual(c2('GrantException').body,{userId:2,permissionId:'PERM-RPT-003',effect:'DENY',mode:'A',scope:'P',limit:null,limitUnit:null,reason:'Exports restricted',
       validUntilUtc:'2026-11-30T18:30:00.000Z',expectedVersion:'VU2'});
     assert.deepEqual(c2('RevokeException').body,{userId:2,exceptionId:7,expectedVersion:'VU2'});
-    assert.deepEqual([c2('SetSetting').body,c2('SetSetting').key],[{key:'discountLimit',value:70000,effectiveFrom:'2026-11-01'},'cfg:2']);
+    assert.deepEqual([c2('SetSetting').body,c2('SetSetting').key],[{key:'discountLimit',value:70000,effectiveFrom:'2026-11-01',expectedVersion:null},'cfg:2']);
     assert.deepEqual(c2('DecideSettingRequest').body,{requestId:5,approve:false,reason:'Not now',expectedVersion:'RQ5'});
     assert.deepEqual(c2('WithdrawScheduledSetting').body,{changeId:12});
     assert.deepEqual(c2('RevertSetting').body,{changeId:11});
     assert.deepEqual(c2('SetCredential').body,{userId:2,password:null,pin:'482913',expectedVersion:'VU2'});
     const after=srv2.calls.map(c=>`${c.method} ${c.path}`);const i=after.indexOf('POST /commands/SetSetting');
     assert.deepEqual(after.slice(i+1,i+4).sort(),['GET /configuration/history','GET /configuration/requests','GET /configuration/values'].sort(),'configuration reload after SetSetting');
+  });
+
+  // W4 D2: the server refuses SetSetting without the row version once a setting has been saved (ConfigurationService.SetSettingAsync).
+  // A stateful fake: /configuration/values returns `versions`, SetSetting checks expectedVersion and bumps it. Editing the same setting
+  // twice (and once more after a full reload) must succeed; a bad GSTIN check character is refused on the client with the server wording.
+  const rowVer={checkin:'AAAAAAAAB9E='};let bump=0;const live={...values.values};
+  const verSrv=fakeServer({
+    'GET /admin/users':()=>({items:users,page:1,pageSize:100,total:users.length}),'GET /admin/roles':()=>roles,'GET /admin/exceptions':()=>exceptions,'GET /admin/audit':()=>audit,
+    'GET /configuration/values':()=>({...values,values:{...live},versions:{...rowVer}}),'GET /configuration/history':()=>history,'GET /configuration/requests':()=>requests,
+    'POST /commands/SetSetting':({body})=>{
+      if((body.expectedVersion??null)!==(rowVer[body.key]??null))return reply(409,{code:'STALE_VERSION',message:'Record changed by someone else. Reload and try again.'});
+      rowVer[body.key]='V'+(++bump);live[body.key]=body.value;
+      return {status:'applied',key:body.key,changeId:20+bump,requestId:null,effectiveFrom:'2026-10-24',before:'',after:String(body.value),version:rowVer[body.key],message:'ok'};},
+  });
+  const vrt=await startRuntime(S,verSrv,mine);
+  const e1=await vrt.run({type:'SETTING_SET',setting:'hotel',value:'Sand Residency II',key:'cfg-hotel:1'});
+  const e2=await vrt.run({type:'SETTING_SET',setting:'hotel',value:'Sand Residency III',key:'cfg-hotel:2'});
+  const e3=await vrt.run({type:'SETTING_SET',setting:'checkin',value:'12:00',key:'cfg-checkin:1'});
+  await vrt.refresh();
+  const e4=await vrt.run({type:'SETTING_SET',setting:'hotel',value:'Sand Residency IV',key:'cfg-hotel:3'});
+  const badGstin=await vrt.run({type:'SETTING_SET',setting:'brand.gstin',value:'27AAAAA0000A1Z5',key:'cfg-gstin:1'});
+  const shortGstin=await vrt.run({type:'SETTING_SET',setting:'brand.gstin',value:'27ABC',key:'cfg-gstin:2'});
+  const goodGstin=await vrt.run({type:'SETTING_SET',setting:'brand.gstin',value:'27AAAAA0000A1Z2',key:'cfg-gstin:3'});
+  const clearGstin=await vrt.run({type:'SETTING_SET',setting:'brand.gstin',value:'',key:'cfg-gstin:4'});
+  test('[W4 D2] SETTING_SET sends the row version from /configuration/values: the same setting edits twice (and after a reload) without STALE_VERSION',()=>{
+    for(const [n,r] of Object.entries({e1,e2,e3,e4,goodGstin,clearGstin}))assert.ok(r.ok,n+': '+r.text);
+    const sent=verSrv.commands('SetSetting').map(c=>[c.body.key,c.body.expectedVersion]);
+    assert.deepEqual(sent,[['hotel',null],['hotel','V1'],['checkin','AAAAAAAAB9E='],['hotel','V2'],['brand.gstin',null],['brand.gstin','V5']]);
+    assert.equal(vrt.get().state.settings.hotel,'Sand Residency IV');
+  });
+  test('[W4 D2] brand.gstin: format and check character checked on the client (server wording); nothing is sent for a bad value',()=>{
+    assert.deepEqual([badGstin.ok,badGstin.reason],[false,'precheck']);assert.match(badGstin.text,/check character is wrong/);
+    assert.deepEqual([shortGstin.ok,shortGstin.reason],[false,'precheck']);assert.match(shortGstin.text,/15 characters/);
   });
 
   // A receptionist: no admin reads; policy = own capabilities; settings still from /configuration/values.

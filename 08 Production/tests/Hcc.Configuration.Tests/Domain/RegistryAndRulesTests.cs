@@ -128,6 +128,8 @@ public class RegistryAndRulesTests
         Assert.Equal("Enter an amount from ₹0 to ₹1,00,000.", SettingRules.Validate(S("discountLimit"), N(-1)));
         Assert.Equal("A GSTIN has 15 capital letters and digits.", SettingRules.Validate(S("brand.gstin"), T("12345")));
         Assert.Null(SettingRules.Validate(S("brand.gstin"), T("")));
+        Assert.Equal("The hotel GSTIN check character is wrong; check the number for a typing error.", SettingRules.Validate(S("brand.gstin"), T("27AAAAA0000A1Z5")));
+        Assert.Null(SettingRules.Validate(S("brand.gstin"), T("27AAAAA0000A1Z2")));
         Assert.Equal("Choose one of the listed options.", SettingRules.Validate(S("brand.printFormat"), T("Letter")));
         Assert.Equal("Choose on or off.", SettingRules.Validate(S("inspection"), N(1)));
         Assert.Equal("Enter text.", SettingRules.Validate(S("hotel"), N(1)));

@@ -42,7 +42,7 @@ export type SyncSnapshot={
   /** Shown on the sign-in screen (wrong PIN, session ended, server unreachable). */
   signInMessage?:string;
 };
-export type RunResult={ok:true;result?:unknown}|{ok:false;text:string;error?:unknown;
+export type RunResult={ok:true;result?:unknown;/** Partial success: show this instead of the success message (CommandOutcome.warning). */warning?:string}|{ok:false;text:string;error?:unknown;
   /** 'unmapped' = no area maps this command; 'read-only' = server unreachable; 'precheck' = refused on the client; 'server' = sent and refused / failed. */
   reason:'unmapped'|'read-only'|'precheck'|'server'|'signed-out'};
 
@@ -234,7 +234,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     }
     generation++;
     await reload([...m.reload,...(out?.reload??[])]);
-    return {ok:true,result:out?.result};
+    return {ok:true,result:out?.result,...(out?.warning?{warning:out.warning}:{})};
   }
 
   return {

@@ -151,7 +151,11 @@ public sealed class ConfigurationQueries(IAccessPolicy policy, SettingsRegistry 
             scheduled.AddRange(SettingRules.Scheduled(snap.Of(s.Key), snap.BusinessDate).Select(x => new ExportScheduled(s.Key, x.Value.ToElement(), SettingRules.Wire(x.EffectiveFrom))));
         }
 
-        return new ConfigurationValuesResult(SettingRules.Wire(snap.BusinessDate), values, scheduled.OrderBy(x => x.EffectiveFrom, StringComparer.Ordinal).ToList());
+        // Row versions for SetSetting's expectedVersion (W4 D2: without them every second edit of a setting was refused as STALE_VERSION).
+        var rowVersions = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var s in registry.All)
+            if (s.Editable && snap.RowVersions.TryGetValue(s.Key, out var rv)) rowVersions[s.Key] = VersionToken.ToWire(rv);
+        return new ConfigurationValuesResult(SettingRules.Wire(snap.BusinessDate), values, scheduled.OrderBy(x => x.EffectiveFrom, StringComparer.Ordinal).ToList(), rowVersions);
     }
 
     /// <summary>Configuration export for backup / a second property (prototype <c>cfgExport</c>): editable values, no secrets, nothing personal.</summary>

@@ -93,7 +93,7 @@ export function MmFolioSheet({id}:{id?:string}){
 
 /** 'mm-folio-more': discount, refund, correction, checkout, invoice, stay actions (+ other streams' booking actions). */
 export function MmFolioMore({id}:{id?:string}){
-  const {s,uid,permission,open,booking}=useHcc();
+  const {s,uid,permission,open,booking,run}=useHcc();
   const b=s.bookings.find(x=>x.id===id);
   if(!b)return <Empty title="This record is unavailable"/>;
   const active=['Confirmed','In house'].includes(b.status);
@@ -109,7 +109,8 @@ export function MmFolioMore({id}:{id?:string}){
       {item(active&&permission('reservations'),<CalendarRange size={20}/>,b.status==='In house'?'Move / extend stay':'Change dates / room','Shows conflicts before saving',()=>open({type:b.status==='In house'?'stay-move':'move',id:b.id}))}
       {item(b.status==='Confirmed'&&permission('reservations'),<XCircle size={20}/>,'Cancel / no-show','Refund advances first',()=>open({type:'cancel',id:b.id}))}
       {item(b.status==='Departed'&&rbacCanRequestCorrection(s,uid),<FileMinus size={20}/>,'Request credit note','Departed stays only',()=>open({type:'credit-note',id:b.id}))}
-      {item(true,<Printer size={20}/>,b.invoiceNo?'Sample invoice '+b.invoiceNo:'Folio preview','View and print (wireless printer)',()=>open({type:'invoice',id:b.id}))}
+      {item(process.env.HCC_BUILD==='production'&&b.status==='Departed'&&!b.invoiceNo&&permission('checkout'),<Receipt size={20}/>,'Issue invoice','Tax invoice for this departed stay',()=>{void run({type:'INVOICE_ISSUE',id:b.id,key:'invoice:'+b.id},'Tax invoice issued');})}
+      {item(true,<Printer size={20}/>,b.invoiceNo?(process.env.HCC_BUILD==='production'?'Invoice ':'Sample invoice ')+b.invoiceNo:'Folio preview','View and print (wireless printer)',()=>open({type:'invoice',id:b.id}))}
     </div>
     {bookingActionSlots.length>0&&<div className="mm-slot-actions">{bookingActionSlots.map((Slot,i)=><Slot key={i} b={b}/>)}</div>}
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button></div></>;

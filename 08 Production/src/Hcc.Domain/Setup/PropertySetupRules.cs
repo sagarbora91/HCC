@@ -12,7 +12,8 @@ public sealed record PropertySetupPlan(string Code, string Name, string Address,
 /// <summary>
 /// First-time hotel setup rules (W3-b SetupProperty): defaults (code MAIN, Maharashtra, Asia/Kolkata, 14:00 / 11:00, business date =
 /// today in the hotel's time zone), lengths matching the Master configuration settings they seed, IANA time zone only, and a GSTIN
-/// whose first two digits are the GST state code of the chosen state (intra-state CGST/SGST depends on it).
+/// whose first two digits are the GST state code of the chosen state (intra-state CGST/SGST depends on it) and whose check character
+/// is right. The GSTIN stays optional at setup, but no tax invoice is issued until a valid one is recorded (IssueInvoice names the setting).
 /// </summary>
 public static partial class PropertySetupRules
 {
@@ -59,6 +60,8 @@ public static partial class PropertySetupRules
             if (!GstinPattern().IsMatch(g)) throw HccException.Validation("A GSTIN has 15 capital letters and digits.");
             if (!g.StartsWith(stateCode, StringComparison.Ordinal))
                 throw HccException.Validation($"This GSTIN is not registered in {stateName}: it must start with {stateCode}.");
+            // Same rule as invoicing and Master configuration (brand.gstin): a GSTIN with a wrong check character would block every invoice.
+            if (Hcc.Domain.Invoices.Gstin.Problem(g, "hotel") is { } problem) throw HccException.Validation(problem);
         }
 
         var tzId = string.IsNullOrWhiteSpace(timeZone) ? DefaultTimeZone : timeZone.Trim();

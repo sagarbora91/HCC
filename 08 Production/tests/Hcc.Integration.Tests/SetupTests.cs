@@ -29,7 +29,9 @@ public sealed class SetupRulesTests
     [Fact]
     public void Gstin_must_match_the_state_code_and_time_zone_must_be_iana()
     {
-        Assert.Equal("27AAAAA0000A1Z5", PropertySetupRules.Plan("H", "A", null, "27aaaaa0000a1z5", "maharashtra", null, null, null, null, Now).Gstin);
+        Assert.Equal("27AAAAA0000A1Z2", PropertySetupRules.Plan("H", "A", null, "27aaaaa0000a1z2", "maharashtra", null, null, null, null, Now).Gstin);
+        // W4 D1/D2: the check character is verified at setup too (the invoicing rule) — a typing error would block every tax invoice.
+        Assert.Contains("check character is wrong", Assert.Throws<HccException>(() => PropertySetupRules.Plan("H", "A", null, "27AAAAA0000A1Z5", null, null, null, null, null, Now)).Message, StringComparison.Ordinal);
         Assert.Throws<HccException>(() => PropertySetupRules.Plan("H", "A", null, "29AAAAA0000A1Z5", null, null, null, null, null, Now));
         Assert.Throws<HccException>(() => PropertySetupRules.Plan("H", "A", null, "27AAAA", null, null, null, null, null, Now));
         Assert.Throws<HccException>(() => PropertySetupRules.Plan("H", "A", null, null, "Atlantis", null, null, null, null, Now));
@@ -59,7 +61,7 @@ public sealed class SetupPropertyTests
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static SetupPropertyRequest Request(string name = "Hotel Sagar Residency") =>
-        new(name, "Station Road, Latur 413512", "owner.sagar", "Sagar (Owner)", Password, Gstin: "27AAAAA0000A1Z5", BusinessDate: new DateOnly(2026, 10, 26), CheckInTime: "13:00", CheckOutTime: "10:00");
+        new(name, "Station Road, Latur 413512", "owner.sagar", "Sagar (Owner)", Password, Gstin: "27AAAAA0000A1Z2", BusinessDate: new DateOnly(2026, 10, 26), CheckInTime: "13:00", CheckOutTime: "10:00");
 
     /// <summary>Empty installation (no property row); a request carrying <see cref="LanHeader"/> arrives as if from a LAN tablet.</summary>
     private static Task<HccServer> EmptyServerAsync() => HccServer.StartAsync("SELECT 0;", Ct, app => app.Use(async (http, next) =>
@@ -81,7 +83,7 @@ public sealed class SetupPropertyTests
         using var r = await SetupAsync(c, Request(), "setup-1");
         var res = await Wire.OkAsync<SetupPropertyResult>(r, "SetupProperty", Ct);
         Assert.Equal(("MAIN", "Maharashtra", "Asia/Kolkata", "owner.sagar", 5), (res.Code, res.State, res.TimeZone, res.OwnerLoginName, res.SettingsSeeded));
-        Assert.Equal(1, await s.CountAsync("SELECT COUNT(*) FROM inv.property WHERE name = N'Hotel Sagar Residency' AND state_name = N'Maharashtra' AND gstin = '27AAAAA0000A1Z5' AND business_date = '2026-10-26' AND time_zone = 'Asia/Kolkata'", Ct));
+        Assert.Equal(1, await s.CountAsync("SELECT COUNT(*) FROM inv.property WHERE name = N'Hotel Sagar Residency' AND state_name = N'Maharashtra' AND gstin = '27AAAAA0000A1Z2' AND business_date = '2026-10-26' AND time_zone = 'Asia/Kolkata'", Ct));
         Assert.Equal(1, await s.CountAsync($"SELECT COUNT(*) FROM plat.user_role WHERE user_id = {res.OwnerUserId} AND role_code = 'OWN'", Ct));
         Assert.Equal(1, await s.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'PROPERTY_SETUP' AND operation = 'SetupProperty'", Ct));
         Assert.Equal(1, await s.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'OWNER_BOOTSTRAP'", Ct));
