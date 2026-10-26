@@ -1,0 +1,6 @@
+1CA1616A03A2E05C  HCC-0.1.0-proto-debug-v10.apk
+D5D2F9DD697E9E47  HCC-0.1.0-proto-debug-v11.apk
+2BA3FE68B03E2C53  HCC-0.1.0-proto-debug-v8.apk
+600ABA4172C711CE  HCC-0.1.0-proto-debug-v9.apk
+39C6C9F7846C94A1  HCC-0.1.0-proto-debug.apk
+3635D571F794861E  HCC-0.1.0-server-debug-TESTCA.apk

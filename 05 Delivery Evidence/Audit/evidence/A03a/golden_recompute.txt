@@ -1,0 +1,57 @@
+node v25.9.0
+BASE: 10 bookings, opening ₹5,000.00, cash payments ₹7,000.00, POS-F01 net ₹500.00 + GST 500bps = ₹525.00, posted cash expense ₹1,800.00; max FY25-26 tariff ₹4,500.00 → specified=false
+MATCH    BASE collections: mine=2150000 (₹21,500.00) · golden JSON expected.collectionsPaise=2150000
+MATCH    BASE collections: mine=2150000 (₹21,500.00) · server GoldenFigureTests.cs:13 CollectionsPaise=2150000
+MISMATCH BASE drawer: mine=1072500 (₹10,725.00) · golden JSON expected.drawerPaise=1075000 · golden JSON is pre-DEC-069 (restaurant 10 %)
+MATCH    BASE drawer: mine=1072500 (₹10,725.00) · server GstSqlTests.cs:254=1072500
+MISMATCH BASE drawer: mine=1072500 (₹10,725.00) · server GoldenBillingTests.cs:47 / GoldenFigureTests.cs:12=1075000 · stale 10 % figure
+MISMATCH BASE outlet cash (POS-F01): mine=52500 (₹525.00) · golden JSON expected.outletCashPaise=55000 · golden JSON is pre-DEC-069
+MATCH    POS-F02 UPI bill: mine=71400 (₹714.00) · prototype stream-a2-till.mjs:83=71400
+golden JSON folio receipts equal the fixture's: true
+Room 105 lines: room ₹2,000.00@500 tax 10000 (C 5000 / S 5000) · room ₹2,000.00@500 tax 10000 (C 5000 / S 5000) · service ₹500.00@1800 tax 9000 (C 4500 / S 4500) · discount -₹500.00@500 tax -2500 (C -1250 / S -1250)
+MATCH    Room 105 net: mine=400000 (₹4,000.00) · server GstRulesGoldenTests.cs:187=400000
+MATCH    Room 105 GST: mine=26500 (₹265.00) · server GstRulesGoldenTests.cs:187 / GstSqlTests.cs:49=26500
+MATCH    Room 105 total: mine=426500 (₹4,265.00) · server InvoiceSqlTests.cs:27 (INV/2627/0000001)=426500
+MATCH    Room 105 CGST: mine=13250 (₹132.50) · server InvoiceSqlTests.cs:37=13250
+MATCH    Room 105 SGST: mine=13250 (₹132.50) · server InvoiceSqlTests.cs:37=13250
+MISMATCH Room 105 total: mine=426500 (₹4,265.00) · golden JSON journey.expected.totalPaise=440000 · golden JSON lines carry taxBps 1000
+MISMATCH Room 105 total: mine=426500 (₹4,265.00) · server GoldenBillingTests.cs:156 / GoldenFigureTests.cs:14=440000 · stale 10 % figure (FixedGstRateResolver(1000))
+MATCH    Room 105 balance after ₹1,000 advance (deposit separate): mine=326500 (₹3,265.00) · prototype run.mjs:24 / m1.mjs:53=326500
+GB-1: allot {"Classic":2} released {"Classic":2} members HCC-1044,HCC-1048 → contracted 4, picked 2
+MATCH    GB-1 allotted (incl. released): mine=4 (₹0.04) · server GroupRulesGoldenTests.cs:34=4
+MATCH    GB-1 picked %: mine=50 (₹0.50) · server GroupRulesGoldenTests.cs:35=50
+MATCH    HCC-1044 exposure: mine=430000 (₹4,300.00) · server GroupRulesGoldenTests.cs:66=430000
+MATCH    GB-1 master estimate: mine=860000 (₹8,600.00) · server GroupRulesGoldenTests.cs:79=860000
+MATCH    GB-1 members paid: mine=400000 (₹4,000.00) · server GroupRulesGoldenTests.cs:78=400000
+MATCH    CO-1 exposure (opening + GB-1 stays): mine=7060000 (₹70,600.00) · server GroupRulesGoldenTests.cs:80 (6200000 constant + estimates)=7060000
+MATCH    GB-2 Classic stay value: mine=378000 (₹3,780.00) · server GroupRulesGoldenTests.cs:88=378000
+MATCH    GB-2 Deluxe stay value: mine=567000 (₹5,670.00) · server GroupRulesGoldenTests.cs:88=567000
+MATCH    CO-2 exposure (opening + 1 Classic + 1 Deluxe): mine=9745000 (₹97,450.00) · server GroupRulesGoldenTests.cs:89=9745000
+CO-2 limit ₹1,00,000.00 vs exposure ₹97,450.00 → within limit
+MATCH    GB-1 attrition net (server rule, 50 %): mine=525000 (₹5,250.00) · server GroupRulesGoldenTests.cs:166=525000
+MATCH    GB-1 attrition GST (slab on ₹875): mine=26250 (₹262.50) · server GroupRulesGoldenTests.cs:184 (26250)=26250
+  note: had the slab been tested on the contracted ₹1750 night the rate would still be 5 % here; for a ₹9,000 block rate the code would tax a 50 % retention (₹4,500) at 5 % instead of 18 % (G7).
+  mixed: Room night 2026-10-24 (₹7,500.00, at threshold) @500bps → tax 37500 = CGST 18750 + SGST 18750
+  mixed: Room night 2026-10-25 (₹7,500.01, above) @1800bps → tax 135000 = CGST 67500 + SGST 67500
+  mixed: Restaurant dinner ₹1,234.50 @500bps → tax 6173 = CGST 3087 + SGST 3086
+  mixed: Room service tea ₹10.10 @500bps → tax 51 = CGST 26 + SGST 25
+  mixed: Laundry ₹333.33 @1800bps → tax 6000 = CGST 3000 + SGST 3000
+  mixed: Discount ₹123.45 on 25 Oct (follows 25 Oct room-night rate) @1800bps → tax -2222 = CGST -1111 + SGST -1111
+Mixed folio: net 1645449 tax 182502 (CGST 91252 / SGST 91250) total 1827951
+MATCH    Room-only invoice (2 nights): mine=420000 (₹4,200.00) · server CreditNoteSqlTests.cs:21=420000
+MATCH    Credit note ₹100 + GST: mine=10500 (₹105.00) · server CreditNoteSqlTests.cs:34=10500
+MATCH    Folio balance after the credit note: mine=-10500 (-₹105.00) · server CreditNoteSqlTests.cs:44=-10500
+MATCH    Folio balance after refund of the credit: mine=0 (₹0.00) · server CreditNoteSqlTests.cs:57=0
+Amount-mode spread: 4445 / 4444 / 1111
+MATCH    Amount-mode credit note ₹100 on AC006: mine=10644 (₹106.44) · server InvoiceRulesTests.cs:124 / CreditNoteSqlTests.cs:85=10644
+MATCH    Full credit note after it: mine=415856 (₹4,158.56) · server CreditNoteSqlTests.cs:92=415856
+Full-after-partial: line ₹2,000 @5 % tax 10000; partial ₹100.10 → tax 501; remaining 189990 → tax 9500; cumulative 10001 > 10000 → CreditNoteRules.Plan refuses (CreditNoteRules.cs:78-80)
+numbers: INV/2627/0000001 (16) · CN/2627/00000001 · FY 2027-03-31 → 2627 · 2027-04-01 → 2728
+GSTIN 27AAPFU0939F1ZV (test valid): check char expected V → valid
+GSTIN 29AAGCB7383J1Z4 (test valid): check char expected 4 → valid
+GSTIN 27AAAAA0000A1Z2 (test hotel (valid)): check char expected 2 → valid
+GSTIN 27AAAAA0000A1Z5 (prototype hotel placeholder): check char expected 2 → INVALID
+GSTIN 27ZZFIC0001F1Z5 (fixture company CO-1): check char expected Z → INVALID
+GSTIN 27ZZFIC0002F1Z4 (fixture company CO-2): check char expected Y → INVALID
+GSTIN 27ZZFIC0003F1Z3 (fixture company CO-3): check char expected X → INVALID
+GSTIN 27ZZFIC0009F1Z5 (GroupText.Gstin example message): check char expected R → INVALID

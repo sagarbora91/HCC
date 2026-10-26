@@ -1,0 +1,165 @@
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Access.Tests\bin\Debug\net10.0\Hcc.Access.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    83, Skipped:     0, Total:    83, Duration: 10 s - Hcc.Access.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Accounting.Tests\bin\Debug\net10.0\Hcc.Accounting.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    36, Skipped:     0, Total:    36, Duration: 8 s - Hcc.Accounting.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Billing.Tests\bin\Debug\net10.0\Hcc.Billing.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    36, Skipped:     0, Total:    36, Duration: 11 s - Hcc.Billing.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Closing.Tests\bin\Debug\net10.0\Hcc.Closing.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    42, Skipped:     0, Total:    42, Duration: 1 m 4 s - Hcc.Closing.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Compliance.Tests\bin\Debug\net10.0\Hcc.Compliance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    22, Skipped:     0, Total:    22, Duration: 33 s - Hcc.Compliance.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Configuration.Tests\bin\Debug\net10.0\Hcc.Configuration.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    30, Skipped:     0, Total:    30, Duration: 9 s - Hcc.Configuration.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Customers.Tests\bin\Debug\net10.0\Hcc.Customers.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    27, Skipped:     0, Total:    27, Duration: 26 s - Hcc.Customers.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Documents.Tests\bin\Debug\net10.0\Hcc.Documents.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    22, Skipped:     0, Total:    22, Duration: 30 s - Hcc.Documents.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Expenses.Tests\bin\Debug\net10.0\Hcc.Expenses.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    18, Skipped:     0, Total:    18, Duration: 8 s - Hcc.Expenses.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Groups.Tests\bin\Debug\net10.0\Hcc.Groups.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 34 s - Hcc.Groups.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.GstIds.Tests\bin\Debug\net10.0\Hcc.GstIds.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    38, Skipped:     0, Total:    38, Duration: 7 s - Hcc.GstIds.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.GuestServices.Tests\bin\Debug\net10.0\Hcc.GuestServices.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    39, Skipped:     0, Total:    39, Duration: 34 s - Hcc.GuestServices.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Handover.Tests\bin\Debug\net10.0\Hcc.Handover.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    28, Skipped:     0, Total:    28, Duration: 51 s - Hcc.Handover.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Import.Tests\bin\Debug\net10.0\Hcc.Import.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    38, Skipped:     0, Total:    38, Duration: 27 s - Hcc.Import.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Integration.Tests\bin\Debug\net10.0\Hcc.Integration.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    14, Skipped:     0, Total:    14, Duration: 52 s - Hcc.Integration.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Inventory.Tests\bin\Debug\net10.0\Hcc.Inventory.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    38, Skipped:     0, Total:    38, Duration: 18 s - Hcc.Inventory.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Invoices.Tests\bin\Debug\net10.0\Hcc.Invoices.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    29, Skipped:     0, Total:    29, Duration: 20 s - Hcc.Invoices.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Maintenance.Tests\bin\Debug\net10.0\Hcc.Maintenance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    18, Skipped:     0, Total:    18, Duration: 22 s - Hcc.Maintenance.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Messaging.Tests\bin\Debug\net10.0\Hcc.Messaging.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 22 s - Hcc.Messaging.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Operations.Tests\bin\Debug\net10.0\Hcc.Operations.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:19.48]     Hcc.Operations.Tests.DeploymentScriptTests.Deployment_scripts_pass_their_dry_run_tests [FAIL]
+  Failed Hcc.Operations.Tests.DeploymentScriptTests.Deployment_scripts_pass_their_dry_run_tests [18 s]
+  Error Message:
+   PASS database guard accepts Hcc and HccTest_ names
+PASS database guard refuses ETP and system databases
+PASS scratch guard only HccDrill_/HccTest_
+PASS sql literal and name quoting
+PASS backup names
+PASS name parsing
+PASS retention deletes old fulls but keeps the newest three
+PASS retention never deletes below the minimum even when all are old
+PASS retention drops differentials older than the oldest kept full
+PASS pre-migration backups expire after 90 days
+PASS restore chain = newest full + newest later differential; pre-migration backups are not part of it
+PASS restore chain ignores a differential older than the newest full; none when no full
+PASS row counts: equal ok; missing table or empty restore fails; differences only reported
+PASS certificate plan: names lower-cased, localhost and 127.0.0.1 added, IPs validated
+PASS name constraints: CIDR to address+mask bytes, invalid input refused
+PASS name constraints: critical extension permits only the hotel names and addresses, excludes all IPv6
+PASS encrypted backup names parse and form the restore chain
+PASS backup encryption: round trip (multi-block and odd sizes), tamper and wrong key refused without output
+FAIL backup key: DPAPI key file round trip, never overwritten : The 'Get-Acl' command was found in the module 'Microsoft.PowerShell.Security', but the module could not be loaded. For more information, run 'Import-Module Microsoft.PowerShell.Security'.
+PASS protected folder: icacls arguments remove inheritance and grant only SYSTEM, Administrators and the named accounts
+FAIL protected folder: a new temp folder is reported, the protected one passes, an extra account is reported : The 'Get-Acl' command was found in the module 'Microsoft.PowerShell.Security', but the module could not be loaded. For more information, run 'Import-Module Microsoft.PowerShell.Security'.
+FAIL admin-only script folder: a user temp folder is refused, the Windows PowerShell folder passes : The 'Get-Acl' command was found in the module 'Microsoft.PowerShell.Security', but the module could not be loaded. For more information, run 'Import-Module Microsoft.PowerShell.Security'.
+PASS runtime SQL grants: read, write, execute; never db_owner
+PASS Backup-HccDatabase -WhatIf full: exit 0, prints plan, creates nothing
+PASS Backup-HccDatabase -WhatIf differential + copy-only tag
+PASS Backup-HccDatabase refuses an ETP database and a relative folder
+PASS Restore-HccDrill -WhatIf: exit 0, plan mentions scratch DB, CHECKDB, row counts
+PASS Restore-HccDrill refuses a non-scratch name or the live name
+PASS Register-HccBackupTasks -WhatIf lists three tasks from the Program Files folder
+FAIL Register-HccBackupTasks refuses a script folder that normal users can change
+PASS Register-HccBackupTasks -InstallScripts -WhatIf plans the copy to an admin-only folder
+PASS New-HccCertificate -WhatIf prints names and files, creates nothing
+PASS New-HccCertificate -RenewServer -WhatIf: non-exportable CA import, removed again; needs -CaPfx
+PASS Initialize-HccDatabase -WhatIf prints SQL only
+PASS Initialize-HccDatabase -RuntimeDbOwner keeps the legacy grant; a dedicated backup account gets folder rights
+PASS Initialize-HccDatabase refuses a non-HCC database
+PASS Initialize-HccProperty -WhatIf prints the setup request, password hidden, sends nothing
+PASS Initialize-HccProperty refuses a server address that is not this PC
+PASS New-HccGuestIdKey -WhatIf prints the plan and writes nothing
+PASS New-HccGuestIdKey installs a DPAPI machine key, writes the offline copy, refuses a second run, rotates with -Rotate
+PASS Install-HccService -WhatIf prints plan; -Uninstall -WhatIf changes nothing
+PASS New-HccBackupKey: -WhatIf writes nothing; creates key + offline copy; refuses a second key; imports on another PC
+PASS Build-Installer without Inno Setup: skips with exit 0
+
+Passed: 39  Failed: 4
+
+  Stack Trace:
+     at Hcc.Operations.Tests.DeploymentScriptTests.Deployment_scripts_pass_their_dry_run_tests() in /hcc/tests/Hcc.Operations.Tests/DeploymentScriptTests.cs:line 36
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     1, Passed:    38, Skipped:     0, Total:    39, Duration: 19 s - Hcc.Operations.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Ota.Tests\bin\Debug\net10.0\Hcc.Ota.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    39, Skipped:     0, Total:    39, Duration: 59 s - Hcc.Ota.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Payroll.Tests\bin\Debug\net10.0\Hcc.Payroll.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 15 s - Hcc.Payroll.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Platform.Tests\bin\Debug\net10.0\Hcc.Platform.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    56, Skipped:     0, Total:    56, Duration: 25 s - Hcc.Platform.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Pos.Tests\bin\Debug\net10.0\Hcc.Pos.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    38, Skipped:     0, Total:    38, Duration: 14 s - Hcc.Pos.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Stays.Tests\bin\Debug\net10.0\Hcc.Stays.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    57, Skipped:     0, Total:    57, Duration: 1 m 5 s - Hcc.Stays.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Stock.Tests\bin\Debug\net10.0\Hcc.Stock.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    33, Skipped:     0, Total:    33, Duration: 42 s - Hcc.Stock.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.WebBooking.Tests\bin\Debug\net10.0\Hcc.WebBooking.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 23 s - Hcc.WebBooking.Tests.dll (net10.0)
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Yield.Tests\bin\Debug\net10.0\Hcc.Yield.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    36, Skipped:     0, Total:    36, Duration: 54 s - Hcc.Yield.Tests.dll (net10.0)
+elapsed 00:15:09.2289606

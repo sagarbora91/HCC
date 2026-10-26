@@ -1,0 +1,1345 @@
+{
+ "total": 168,
+ "missingTargets": [],
+ "mappersWithNoServerCommand": [],
+ "mapperTargets": [
+  {
+   "proto": "BOOK",
+   "area": "reservations",
+   "file": "03 Prototype/src/clients/sync/reservations.ts",
+   "target": "QuoteStay",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs:49"
+  },
+  {
+   "proto": "BOOK",
+   "area": "reservations",
+   "file": "03 Prototype/src/clients/sync/reservations.ts",
+   "target": "CreateReservation",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:28"
+  },
+  {
+   "proto": "CHANGE_DATES",
+   "area": "reservations",
+   "file": "03 Prototype/src/clients/sync/reservations.ts",
+   "target": "AmendReservation",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:30"
+  },
+  {
+   "proto": "CANCEL",
+   "area": "reservations",
+   "file": "03 Prototype/src/clients/sync/reservations.ts",
+   "target": "MarkNoShow",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:34"
+  },
+  {
+   "proto": "CANCEL",
+   "area": "reservations",
+   "file": "03 Prototype/src/clients/sync/reservations.ts",
+   "target": "CancelReservation",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:32"
+  },
+  {
+   "proto": "CONFIRM",
+   "area": "reservations",
+   "file": "03 Prototype/src/clients/sync/reservations.ts",
+   "target": "ConfirmHold",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:36"
+  },
+  {
+   "proto": "REGISTER",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "RegisterGuest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:33"
+  },
+  {
+   "proto": "CHECKIN",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "CheckIn",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:35"
+  },
+  {
+   "proto": "CHECKOUT",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "CheckoutStay",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:37"
+  },
+  {
+   "proto": "CHECKOUT",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "IssueInvoice",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs:29"
+  },
+  {
+   "proto": "MOVE",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "AmendReservation",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:30"
+  },
+  {
+   "proto": "MOVE",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "MoveRoom",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:39"
+  },
+  {
+   "proto": "MOVE",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "ExtendStay",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:41"
+  },
+  {
+   "proto": "MOVE",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "ShortenStay",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:43"
+  },
+  {
+   "proto": "GUEST_SAVE",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "RegisterGuest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:33"
+  },
+  {
+   "proto": "GUEST_SAVE",
+   "area": "frontdesk",
+   "file": "03 Prototype/src/clients/sync/frontdesk.ts",
+   "target": "SaveGuestProfile",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:47"
+  },
+  {
+   "proto": "TASK",
+   "area": "rooms",
+   "file": "03 Prototype/src/clients/sync/rooms.ts",
+   "target": "TransitionHousekeepingTask",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:40"
+  },
+  {
+   "proto": "BLOCK",
+   "area": "rooms",
+   "file": "03 Prototype/src/clients/sync/rooms.ts",
+   "target": "UnblockRoom",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:44"
+  },
+  {
+   "proto": "BLOCK",
+   "area": "rooms",
+   "file": "03 Prototype/src/clients/sync/rooms.ts",
+   "target": "BlockRoom",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:42"
+  },
+  {
+   "proto": "UNBLOCK",
+   "area": "rooms",
+   "file": "03 Prototype/src/clients/sync/rooms.ts",
+   "target": "UnblockRoom",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:44"
+  },
+  {
+   "proto": "REPAIR_REQUEST",
+   "area": "rooms",
+   "file": "03 Prototype/src/clients/sync/rooms.ts",
+   "target": "RequestRepair",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:46"
+  },
+  {
+   "proto": "STAYOVER_GENERATE",
+   "area": "rooms",
+   "file": "03 Prototype/src/clients/sync/rooms.ts",
+   "target": "GenerateStayoverTasks",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:48"
+  },
+  {
+   "proto": "PAYMENT",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "RecordReceipt",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:35"
+  },
+  {
+   "proto": "CHARGE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "PostCharge",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:34"
+  },
+  {
+   "proto": "DISCOUNT",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "RequestAdjustment",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:36"
+  },
+  {
+   "proto": "REFUND_REQUEST",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "RequestAdjustment",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:36"
+  },
+  {
+   "proto": "COMPANY_CREDIT_REQUEST",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "RequestAdjustment",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:36"
+  },
+  {
+   "proto": "CORRECTION_REQUEST",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "RequestAdjustment",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:36"
+  },
+  {
+   "proto": "REFUND_EXECUTE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "ExecuteAdjustment",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:38"
+  },
+  {
+   "proto": "APPROVAL",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "DecideCreditNote",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs:33"
+  },
+  {
+   "proto": "APPROVAL",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "DecideApproval",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:37"
+  },
+  {
+   "proto": "INVOICE_ISSUE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "IssueInvoice",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs:29"
+  },
+  {
+   "proto": "CREDIT_NOTE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "RequestCreditNote",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs:31"
+  },
+  {
+   "proto": "SHIFT_SUBMIT",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "SubmitShiftCount",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs:16"
+  },
+  {
+   "proto": "SHIFT_DIFFERENCE_DECIDE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "DecideApproval",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:37"
+  },
+  {
+   "proto": "CB_LOCK",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "LockCashBookDay",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:49"
+  },
+  {
+   "proto": "CB_REOPEN",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "ReopenCashBookDay",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:50"
+  },
+  {
+   "proto": "GRP_BLOCK_CREATE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "CreateGroupBlock",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs:51"
+  },
+  {
+   "proto": "GRP_BLOCK_CREATE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "CreateGroup",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:33"
+  },
+  {
+   "proto": "GRP_COMPANY_SAVE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "SaveCompany",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:57"
+  },
+  {
+   "proto": "GRP_LIMIT_SET",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "SetCompanyLimit",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:59"
+  },
+  {
+   "proto": "GRP_LIMIT_DECIDE",
+   "area": "money",
+   "file": "03 Prototype/src/clients/sync/money.ts",
+   "target": "DecideCompanyLimit",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:61"
+  },
+  {
+   "proto": "CLOSE_RUN",
+   "area": "closing",
+   "target": "PostRoomNights",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:48"
+  },
+  {
+   "proto": "NIGHT_POST",
+   "area": "closing",
+   "target": "PostRoomNights",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:48"
+  },
+  {
+   "proto": "DAY_CLOSE",
+   "area": "closing",
+   "target": "RunBusinessDayClose",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:47"
+  },
+  {
+   "proto": "DAY_CLOSE",
+   "area": "closing",
+   "target": "OpenShift",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs:15"
+  },
+  {
+   "proto": "NEXT_DAY",
+   "area": "closing",
+   "target": "RunBusinessDayClose",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:47"
+  },
+  {
+   "proto": "NEXT_DAY",
+   "area": "closing",
+   "target": "OpenShift",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs:15"
+  },
+  {
+   "proto": "USER",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "SetUserEnabled",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:192"
+  },
+  {
+   "proto": "USER_CREATE",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "CreateUser",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:191"
+  },
+  {
+   "proto": "USER_UPDATE",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "AssignRole",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:193"
+  },
+  {
+   "proto": "USER_UPDATE",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "RevokeRole",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:194"
+  },
+  {
+   "proto": "USER_UPDATE",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "SetUserEnabled",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:192"
+  },
+  {
+   "proto": "USER_EXCEPTION",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "RevokeException",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:198"
+  },
+  {
+   "proto": "USER_EXCEPTION",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "GrantException",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:197"
+  },
+  {
+   "proto": "USER_CREDENTIAL",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "SetCredential",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:195"
+  },
+  {
+   "proto": "DEVICE_REGISTER",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "RegisterDevice",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:199"
+  },
+  {
+   "proto": "DEVICE_REVOKE",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "RevokeDevice",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:200"
+  },
+  {
+   "proto": "SETTING_SET",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "SetSetting",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:48"
+  },
+  {
+   "proto": "CFG_DECIDE",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "DecideSettingRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:50"
+  },
+  {
+   "proto": "CFG_WITHDRAW",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "WithdrawScheduledSetting",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:52"
+  },
+  {
+   "proto": "CFG_REVERT",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "RevertSetting",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:54"
+  },
+  {
+   "proto": "CFG_IMPORT",
+   "area": "admin",
+   "file": "03 Prototype/src/clients/sync/admin.ts",
+   "target": "ImportConfiguration",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:56"
+  },
+  {
+   "proto": "HR_STAFF_SAVE",
+   "area": "staff",
+   "file": "03 Prototype/src/clients/sync/staff.ts",
+   "target": "SaveStaff",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:35"
+  },
+  {
+   "proto": "HR_LEAVE_POLICY_SET",
+   "area": "staff",
+   "file": "03 Prototype/src/clients/sync/staff.ts",
+   "target": "SetLeavePolicy",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:43"
+  },
+  {
+   "proto": "HR_LEAVE_POLICY_SET",
+   "area": "staff",
+   "file": "03 Prototype/src/clients/sync/staff.ts",
+   "target": "SaveDepartment",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:34"
+  },
+  {
+   "proto": "ACC_LOCK",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "LockAccountingPeriod",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:32"
+  },
+  {
+   "proto": "ACC_UNLOCK",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "UnlockAccountingPeriod",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:33"
+  },
+  {
+   "proto": "ACC_MAP_SET",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "SetLedgerMapping",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:34"
+  },
+  {
+   "proto": "ACC_MAP_RESET",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "ResetLedgerMapping",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:35"
+  },
+  {
+   "proto": "EXPENSE",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "SubmitExpense",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:28"
+  },
+  {
+   "proto": "EXPENSE_SUBMIT",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "SubmitExpenseDraft",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:30"
+  },
+  {
+   "proto": "EXPENSE_APPROVE",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "DecideExpense",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:32"
+  },
+  {
+   "proto": "EXPENSE_REVERSE",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "ReverseExpense",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:34"
+  },
+  {
+   "proto": "CMP_FILE",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "MarkComplianceFiled",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:29"
+  },
+  {
+   "proto": "CMP_NA",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "MarkComplianceNotApplicable",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:31"
+  },
+  {
+   "proto": "CMP_REOPEN",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "ReopenComplianceFiling",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:33"
+  },
+  {
+   "proto": "CMP_OBLIGATION_SAVE",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "SaveComplianceObligation",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:35"
+  },
+  {
+   "proto": "CMP_OBLIGATION_TOGGLE",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "ToggleComplianceObligation",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:37"
+  },
+  {
+   "proto": "CMP_SETTINGS_SET",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "SaveComplianceSettings",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:39"
+  },
+  {
+   "proto": "CMP_CA_PACK",
+   "area": "accounting",
+   "file": "03 Prototype/src/clients/sync/accounting.ts",
+   "target": "GenerateCaPack",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:41"
+  },
+  {
+   "proto": "POS_ORDER_OPEN",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "OpenCheck",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:37"
+  },
+  {
+   "proto": "POS_ITEM_ADD",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "AddCheckItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:38"
+  },
+  {
+   "proto": "POS_ITEM_QTY",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "SetCheckItemQty",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:39"
+  },
+  {
+   "proto": "POS_KOT_SEND",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "SendKot",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:40"
+  },
+  {
+   "proto": "POS_KOT_STATUS",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "AdvanceKot",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:41"
+  },
+  {
+   "proto": "POS_SETTLE",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "SettleCheck",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:42"
+  },
+  {
+   "proto": "POS_VOID_ITEM",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "VoidCheckItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:43"
+  },
+  {
+   "proto": "POS_VOID_BILL",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "VoidBill",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:44"
+  },
+  {
+   "proto": "POS_VOID_DECIDE",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "DecideVoid",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:45"
+  },
+  {
+   "proto": "POS_MENU_TOGGLE",
+   "area": "pos",
+   "file": "03 Prototype/src/clients/sync/pos.ts",
+   "target": "SetMenuItemAvailability",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:36"
+  },
+  {
+   "proto": "MNT_WO_CREATE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "CreateWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:32"
+  },
+  {
+   "proto": "MNT_WO_FROM_REPAIR",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "ConvertRepairToWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:34"
+  },
+  {
+   "proto": "MNT_WO_ASSIGN",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "AssignWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:36"
+  },
+  {
+   "proto": "MNT_WO_START",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StartWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:38"
+  },
+  {
+   "proto": "MNT_WO_HOLD",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "HoldWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:40"
+  },
+  {
+   "proto": "MNT_WO_PART",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "AddWorkOrderPart",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:42"
+  },
+  {
+   "proto": "MNT_WO_COMPLETE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "CompleteWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:44"
+  },
+  {
+   "proto": "MNT_WO_VERIFY",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "VerifyWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:46"
+  },
+  {
+   "proto": "MNT_WO_CANCEL",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "CancelWorkOrder",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:48"
+  },
+  {
+   "proto": "MNT_WO_BLOCK",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "BlockWorkOrderRoom",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:50"
+  },
+  {
+   "proto": "MNT_PM_GENERATE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "GeneratePmWorkOrders",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:52"
+  },
+  {
+   "proto": "MNT_PLAN_SAVE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "SavePmPlan",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:54"
+  },
+  {
+   "proto": "MNT_ASSET_SAVE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "SaveMaintenanceAsset",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:56"
+  },
+  {
+   "proto": "MNT_VENDOR_SAVE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "SaveMaintenanceVendor",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:58"
+  },
+  {
+   "proto": "MNT_AMC_SAVE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "SaveAmc",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:60"
+  },
+  {
+   "proto": "MNT_SPARE_RECEIVE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "ReceiveSpare",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:62"
+  },
+  {
+   "proto": "INV_GRN",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockReceiveGrn",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:28"
+  },
+  {
+   "proto": "INV_ISSUE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockIssue",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:30"
+  },
+  {
+   "proto": "INV_USE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockUse",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:32"
+  },
+  {
+   "proto": "INV_ROOM_CHANGE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockRoomChange",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:34"
+  },
+  {
+   "proto": "INV_LAUNDRY_SEND",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockLaundrySend",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:36"
+  },
+  {
+   "proto": "INV_LAUNDRY_RECEIVE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockLaundryReceive",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:38"
+  },
+  {
+   "proto": "INV_LOSS",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockRecordLoss",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:40"
+  },
+  {
+   "proto": "INV_COUNT_SUBMIT",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockCountSubmit",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:42"
+  },
+  {
+   "proto": "INV_COUNT_POST",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockCountDecide",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:44"
+  },
+  {
+   "proto": "INV_ITEM_CREATE",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockItemCreate",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:46"
+  },
+  {
+   "proto": "INV_ITEM_SET",
+   "area": "maintenance",
+   "file": "03 Prototype/src/clients/sync/maintenance.ts",
+   "target": "StockItemSet",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:48"
+  },
+  {
+   "proto": "GSV_REQUEST_CREATE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "LogServiceRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:35"
+  },
+  {
+   "proto": "GSV_REQUEST_ASSIGN",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "AssignServiceRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:36"
+  },
+  {
+   "proto": "GSV_REQUEST_START",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "StartServiceRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:37"
+  },
+  {
+   "proto": "GSV_REQUEST_COMPLETE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "CompleteServiceRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:38"
+  },
+  {
+   "proto": "GSV_REQUEST_CANCEL",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "CancelServiceRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:39"
+  },
+  {
+   "proto": "GSV_COMPLAINT_LOG",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "LogComplaint",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:40"
+  },
+  {
+   "proto": "GSV_COMPLAINT_UPDATE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "UpdateComplaint",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:41"
+  },
+  {
+   "proto": "GSV_COMPLAINT_RESOLVE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "ResolveComplaint",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:42"
+  },
+  {
+   "proto": "GSV_COMPLAINT_RECOVERY",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "OfferRecoveryDiscount",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:44"
+  },
+  {
+   "proto": "GSV_COMPLAINT_FOLLOWUP",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "RecordComplaintFollowUp",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:43"
+  },
+  {
+   "proto": "GSV_LF_LOG",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "LogLostItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:45"
+  },
+  {
+   "proto": "GSV_LF_CLAIM",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "ClaimLostItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:46"
+  },
+  {
+   "proto": "GSV_LF_HANDOVER",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "HandOverLostItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:47"
+  },
+  {
+   "proto": "GSV_LF_DISPOSE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "DisposeLostItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:48"
+  },
+  {
+   "proto": "GSV_SETTINGS",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/guest.ts",
+   "target": "SaveGuestServiceSettings",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:49"
+  },
+  {
+   "proto": "MSG_SEND",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/messaging.ts",
+   "target": "SendMessage",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:33"
+  },
+  {
+   "proto": "MSG_RUN_RULES",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/messaging.ts",
+   "target": "RunMessagingTriggers",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:35"
+  },
+  {
+   "proto": "MSG_SIMULATE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/messaging.ts",
+   "target": "SimulateMessageDelivery",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:37"
+  },
+  {
+   "proto": "MSG_RETRY",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/messaging.ts",
+   "target": "RetryMessage",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:39"
+  },
+  {
+   "proto": "MSG_CONSENT",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/messaging.ts",
+   "target": "SetMessagingConsent",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:41"
+  },
+  {
+   "proto": "MSG_TEMPLATE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/messaging.ts",
+   "target": "UpdateMessageTemplate",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:43"
+  },
+  {
+   "proto": "MSG_RULE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/messaging.ts",
+   "target": "UpdateMessageRule",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:45"
+  },
+  {
+   "proto": "HOV_TEMPLATE_SAVE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "SaveHandoverTemplate",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:28"
+  },
+  {
+   "proto": "HOV_TEMPLATE_TOGGLE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "ToggleHandoverTemplate",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:30"
+  },
+  {
+   "proto": "HOV_ITEM",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "TickChecklistItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:32"
+  },
+  {
+   "proto": "HOV_RUN_SUBMIT",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "SubmitChecklistRun",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:34"
+  },
+  {
+   "proto": "HOV_RUN_REOPEN",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "ReopenChecklistRun",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:36"
+  },
+  {
+   "proto": "HOV_NOTE_SUBMIT",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "SubmitHandoverNote",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:38"
+  },
+  {
+   "proto": "HOV_NOTE_ACK",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "AcknowledgeHandoverNote",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:40"
+  },
+  {
+   "proto": "HOV_CARRY_DONE",
+   "area": "services",
+   "file": "03 Prototype/src/clients/sync/services/handover.ts",
+   "target": "CompleteCarryItem",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:42"
+  },
+  {
+   "proto": "YLD_PLAN_SAVE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "SaveYieldPlan",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:31"
+  },
+  {
+   "proto": "YLD_SEASON_SAVE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "SaveYieldSeason",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:32"
+  },
+  {
+   "proto": "YLD_DOW_SET",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "SetYieldDayOfWeek",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:33"
+  },
+  {
+   "proto": "YLD_OCC_SAVE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "SaveYieldOccupancyRule",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:34"
+  },
+  {
+   "proto": "YLD_GUARD_SET",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "SetYieldGuardrails",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:35"
+  },
+  {
+   "proto": "YLD_RESTRICTION_SAVE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "SaveYieldRestriction",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:36"
+  },
+  {
+   "proto": "YLD_OVERRIDE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "SetYieldOverride",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:37"
+  },
+  {
+   "proto": "YLD_PUBLISH",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "PublishYieldTariffs",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:39"
+  },
+  {
+   "proto": "YLD_PROPOSE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "ProposeYieldPublish",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:40"
+  },
+  {
+   "proto": "YLD_DECIDE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/yield.ts",
+   "target": "DecideYieldProposal",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:41"
+  },
+  {
+   "proto": "CHN_CHANNEL_STATUS",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "SetChannelStatus",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:33"
+  },
+  {
+   "proto": "CHN_CHANNEL_SAVE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "SaveChannel",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:32"
+  },
+  {
+   "proto": "CHN_STOP_SELL",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "SetChannelStopSell",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:34"
+  },
+  {
+   "proto": "CHN_PUSH",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "PushChannelRates",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:35"
+  },
+  {
+   "proto": "CHN_PULL",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "PullChannelMessages",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:38"
+  },
+  {
+   "proto": "CHN_ACCEPT",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "AcceptChannelMessage",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:39"
+  },
+  {
+   "proto": "CHN_REJECT",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "RejectChannelMessage",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:40"
+  },
+  {
+   "proto": "CHN_WEB_CONFIRM",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "ConfirmWebRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs:55"
+  },
+  {
+   "proto": "CHN_WEB_DECLINE",
+   "area": "channels",
+   "file": "03 Prototype/src/clients/sync/channels/ota.ts",
+   "target": "DeclineWebRequest",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs:57"
+  },
+  {
+   "proto": "SHIFT_OPEN",
+   "area": "cashier",
+   "file": "03 Prototype/src/clients/sync/cashier.ts",
+   "target": "OpenShift",
+   "exists": true,
+   "route": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs:15"
+  }
+ ]
+}

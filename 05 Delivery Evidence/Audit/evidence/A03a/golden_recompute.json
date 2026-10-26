@@ -1,0 +1,336 @@
+{
+ "node": "v25.9.0",
+ "results": [
+  {
+   "figure": "BASE collections",
+   "mine": 2150000,
+   "hccLabel": "golden JSON expected.collectionsPaise",
+   "hcc": 2150000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "BASE collections",
+   "mine": 2150000,
+   "hccLabel": "server GoldenFigureTests.cs:13 CollectionsPaise",
+   "hcc": 2150000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "BASE drawer",
+   "mine": 1072500,
+   "hccLabel": "golden JSON expected.drawerPaise",
+   "hcc": 1075000,
+   "verdict": "Mismatch",
+   "note": "golden JSON is pre-DEC-069 (restaurant 10 %)"
+  },
+  {
+   "figure": "BASE drawer",
+   "mine": 1072500,
+   "hccLabel": "server GstSqlTests.cs:254",
+   "hcc": 1072500,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "BASE drawer",
+   "mine": 1072500,
+   "hccLabel": "server GoldenBillingTests.cs:47 / GoldenFigureTests.cs:12",
+   "hcc": 1075000,
+   "verdict": "Mismatch",
+   "note": "stale 10 % figure"
+  },
+  {
+   "figure": "BASE outlet cash (POS-F01)",
+   "mine": 52500,
+   "hccLabel": "golden JSON expected.outletCashPaise",
+   "hcc": 55000,
+   "verdict": "Mismatch",
+   "note": "golden JSON is pre-DEC-069"
+  },
+  {
+   "figure": "POS-F02 UPI bill",
+   "mine": 71400,
+   "hccLabel": "prototype stream-a2-till.mjs:83",
+   "hcc": 71400,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Room 105 net",
+   "mine": 400000,
+   "hccLabel": "server GstRulesGoldenTests.cs:187",
+   "hcc": 400000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Room 105 GST",
+   "mine": 26500,
+   "hccLabel": "server GstRulesGoldenTests.cs:187 / GstSqlTests.cs:49",
+   "hcc": 26500,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Room 105 total",
+   "mine": 426500,
+   "hccLabel": "server InvoiceSqlTests.cs:27 (INV/2627/0000001)",
+   "hcc": 426500,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Room 105 CGST",
+   "mine": 13250,
+   "hccLabel": "server InvoiceSqlTests.cs:37",
+   "hcc": 13250,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Room 105 SGST",
+   "mine": 13250,
+   "hccLabel": "server InvoiceSqlTests.cs:37",
+   "hcc": 13250,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Room 105 total",
+   "mine": 426500,
+   "hccLabel": "golden JSON journey.expected.totalPaise",
+   "hcc": 440000,
+   "verdict": "Mismatch",
+   "note": "golden JSON lines carry taxBps 1000"
+  },
+  {
+   "figure": "Room 105 total",
+   "mine": 426500,
+   "hccLabel": "server GoldenBillingTests.cs:156 / GoldenFigureTests.cs:14",
+   "hcc": 440000,
+   "verdict": "Mismatch",
+   "note": "stale 10 % figure (FixedGstRateResolver(1000))"
+  },
+  {
+   "figure": "Room 105 balance after ₹1,000 advance (deposit separate)",
+   "mine": 326500,
+   "hccLabel": "prototype run.mjs:24 / m1.mjs:53",
+   "hcc": 326500,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-1 allotted (incl. released)",
+   "mine": 4,
+   "hccLabel": "server GroupRulesGoldenTests.cs:34",
+   "hcc": 4,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-1 picked %",
+   "mine": 50,
+   "hccLabel": "server GroupRulesGoldenTests.cs:35",
+   "hcc": 50,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "HCC-1044 exposure",
+   "mine": 430000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:66",
+   "hcc": 430000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-1 master estimate",
+   "mine": 860000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:79",
+   "hcc": 860000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-1 members paid",
+   "mine": 400000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:78",
+   "hcc": 400000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "CO-1 exposure (opening + GB-1 stays)",
+   "mine": 7060000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:80 (6200000 constant + estimates)",
+   "hcc": 7060000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-2 Classic stay value",
+   "mine": 378000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:88",
+   "hcc": 378000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-2 Deluxe stay value",
+   "mine": 567000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:88",
+   "hcc": 567000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "CO-2 exposure (opening + 1 Classic + 1 Deluxe)",
+   "mine": 9745000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:89",
+   "hcc": 9745000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-1 attrition net (server rule, 50 %)",
+   "mine": 525000,
+   "hccLabel": "server GroupRulesGoldenTests.cs:166",
+   "hcc": 525000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "GB-1 attrition GST (slab on ₹875)",
+   "mine": 26250,
+   "hccLabel": "server GroupRulesGoldenTests.cs:184 (26250)",
+   "hcc": 26250,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Room-only invoice (2 nights)",
+   "mine": 420000,
+   "hccLabel": "server CreditNoteSqlTests.cs:21",
+   "hcc": 420000,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Credit note ₹100 + GST",
+   "mine": 10500,
+   "hccLabel": "server CreditNoteSqlTests.cs:34",
+   "hcc": 10500,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Folio balance after the credit note",
+   "mine": -10500,
+   "hccLabel": "server CreditNoteSqlTests.cs:44",
+   "hcc": -10500,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Folio balance after refund of the credit",
+   "mine": 0,
+   "hccLabel": "server CreditNoteSqlTests.cs:57",
+   "hcc": 0,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Amount-mode credit note ₹100 on AC006",
+   "mine": 10644,
+   "hccLabel": "server InvoiceRulesTests.cs:124 / CreditNoteSqlTests.cs:85",
+   "hcc": 10644,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Full credit note after it",
+   "mine": 415856,
+   "hccLabel": "server CreditNoteSqlTests.cs:92",
+   "hcc": 415856,
+   "verdict": "Match",
+   "note": ""
+  },
+  {
+   "figure": "Invoice no. format",
+   "mine": "INV/2627/0000001",
+   "hccLabel": "InvoiceSqlTests.cs:27",
+   "hcc": "INV/2627/0000001",
+   "verdict": "Match"
+  },
+  {
+   "figure": "Credit note no. format",
+   "mine": "CN/2627/00000001",
+   "hccLabel": "CreditNoteSqlTests.cs:34",
+   "hcc": "CN/2627/00000001",
+   "verdict": "Match"
+  }
+ ],
+ "mixed": {
+  "lines": [
+   {
+    "a": 750000,
+    "bps": 500,
+    "tax": 37500,
+    "cgst": 18750,
+    "sgst": 18750
+   },
+   {
+    "a": 750001,
+    "bps": 1800,
+    "tax": 135000,
+    "cgst": 67500,
+    "sgst": 67500
+   },
+   {
+    "a": 123450,
+    "bps": 500,
+    "tax": 6173,
+    "cgst": 3087,
+    "sgst": 3086
+   },
+   {
+    "a": 1010,
+    "bps": 500,
+    "tax": 51,
+    "cgst": 26,
+    "sgst": 25
+   },
+   {
+    "a": 33333,
+    "bps": 1800,
+    "tax": 6000,
+    "cgst": 3000,
+    "sgst": 3000
+   },
+   {
+    "a": -12345,
+    "bps": 1800,
+    "tax": -2222,
+    "cgst": -1111,
+    "sgst": -1111
+   }
+  ],
+  "net": 1645449,
+  "tax": 182502,
+  "cgst": 91252,
+  "sgst": 91250,
+  "total": 1827951
+ },
+ "gstin": {
+  "27AAPFU0939F1ZV": true,
+  "29AAGCB7383J1Z4": true,
+  "27AAAAA0000A1Z2": true,
+  "27AAAAA0000A1Z5": false,
+  "27ZZFIC0001F1Z5": false,
+  "27ZZFIC0002F1Z4": false,
+  "27ZZFIC0003F1Z3": false,
+  "27ZZFIC0009F1Z5": false
+ }
+}

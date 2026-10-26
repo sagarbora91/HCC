@@ -1,0 +1,2696 @@
+{
+ "GET /accounting/chart": {
+  "returnTypes": [
+   "AccountView"
+  ],
+  "pii": []
+ },
+ "GET /accounting/days": {
+  "returnTypes": [
+   "AccountingDayView"
+  ],
+  "pii": []
+ },
+ "GET /accounting/days/{date}": {
+  "returnTypes": [
+   "AccountingDayView"
+  ],
+  "pii": []
+ },
+ "GET /accounting/export/csv": {
+  "returnTypes": [],
+  "pii": []
+ },
+ "GET /accounting/export/tally": {
+  "returnTypes": [
+   "TallyExportView"
+  ],
+  "pii": []
+ },
+ "GET /accounting/locks/history": {
+  "returnTypes": [
+   "LockEventView"
+  ],
+  "pii": []
+ },
+ "GET /accounting/mapping": {
+  "returnTypes": [
+   "MappingRowView"
+  ],
+  "pii": []
+ },
+ "GET /accounting/mapping/history": {
+  "returnTypes": [
+   "MappingChangeView"
+  ],
+  "pii": []
+ },
+ "GET /accounting/trial-balance": {
+  "returnTypes": [
+   "TrialBalanceView"
+  ],
+  "pii": []
+ },
+ "GET /admin/audit": {
+  "returnTypes": [
+   "AuditPage"
+  ],
+  "pii": []
+ },
+ "GET /admin/devices": {
+  "returnTypes": [
+   "DeviceSummary"
+  ],
+  "pii": []
+ },
+ "GET /admin/exceptions": {
+  "returnTypes": [
+   "ExceptionsResult"
+  ],
+  "pii": []
+ },
+ "GET /admin/roles": {
+  "returnTypes": [
+   "RolesResult"
+  ],
+  "pii": []
+ },
+ "GET /admin/users": {
+  "returnTypes": [
+   "UserSummary"
+  ],
+  "pii": []
+ },
+ "POST /auth/bootstrap-owner": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "pii": []
+ },
+ "POST /auth/sign-in": {
+  "returnTypes": [
+   "string",
+   "byte[]",
+   "SignInGate",
+   "void",
+   "SessionInfo"
+  ],
+  "pii": []
+ },
+ "POST /auth/sign-out": {
+  "returnTypes": [
+   "Task"
+  ],
+  "pii": []
+ },
+ "GET /availability": {
+  "returnTypes": [
+   "AvailabilityResult"
+  ],
+  "pii": []
+ },
+ "GET /cashbook": {
+  "returnTypes": [
+   "CashBookRangeView"
+  ],
+  "pii": []
+ },
+ "GET /cashbook/{date}": {
+  "returnTypes": [
+   "CashBookDayResult"
+  ],
+  "pii": []
+ },
+ "GET /cashbook/{date}/book": {
+  "returnTypes": [
+   "CashBookDayView"
+  ],
+  "pii": []
+ },
+ "GET /cashier/collections": {
+  "returnTypes": [
+   "CollectionsView"
+  ],
+  "pii": []
+ },
+ "GET /cashier/desk": {
+  "returnTypes": [
+   "CashDeskView"
+  ],
+  "pii": []
+ },
+ "GET /cashier/folios": {
+  "returnTypes": [
+   "DeskFolioListView"
+  ],
+  "pii": [
+   {
+    "path": "DeskFolioListView.Items.CompanyGstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "DeskFolioItem"
+   }
+  ]
+ },
+ "GET /closing/business-date": {
+  "returnTypes": [
+   "BusinessDateView"
+  ],
+  "pii": []
+ },
+ "GET /closing/preflight": {
+  "returnTypes": [
+   "PreflightResult"
+  ],
+  "pii": []
+ },
+ "GET /closing/records": {
+  "returnTypes": [
+   "ClosingRecordsView"
+  ],
+  "pii": []
+ },
+ "GET /closing/runs/{date}": {
+  "returnTypes": [
+   "CloseRunResult"
+  ],
+  "pii": []
+ },
+ "GET /closing/snapshots/{date}": {
+  "returnTypes": [
+   "ClosingSnapshotView"
+  ],
+  "pii": []
+ },
+ "POST /commands/AcceptChannelMessage": {
+  "returnTypes": [
+   "AcceptResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AcknowledgeHandoverNote": {
+  "returnTypes": [
+   "HandoverNoteView"
+  ],
+  "pii": []
+ },
+ "POST /commands/AddCheckItem": {
+  "returnTypes": [
+   "CheckResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AddCustomerNote": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AddCustomerTag": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AddWorkOrderPart": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AdvanceKot": {
+  "returnTypes": [
+   "KotResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AmendReservation": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ApplyGroupRouting": {
+  "returnTypes": [
+   "GroupRoutingResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AssignRole": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AssignServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AssignWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/AttachGroupMember": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/BlockRoom": {
+  "returnTypes": [
+   "BlockRoomResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/BlockWorkOrderRoom": {
+  "returnTypes": [
+   "BlockWorkOrderRoomResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CancelLeave": {
+  "returnTypes": [
+   "LeaveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CancelReservation": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CancelServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CancelWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CaptureIdDocument": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "pii": [
+   {
+    "path": "IdCaptureView.IdType",
+    "type": "string",
+    "nullable": false,
+    "declared": "IdCaptureView"
+   }
+  ]
+ },
+ "POST /commands/ChangeOwnCredential": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CheckIn": {
+  "returnTypes": [
+   "CheckInResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CheckoutStay": {
+  "returnTypes": [
+   "CheckoutStayResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ClaimLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CommitImportBatch": {
+  "returnTypes": [
+   "ImportCommitResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CompleteCarryItem": {
+  "returnTypes": [
+   "HandoverNoteView"
+  ],
+  "pii": []
+ },
+ "POST /commands/CompleteServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CompleteWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ConfirmFnf": {
+  "returnTypes": [
+   "FnfResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ConfirmHold": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ConfirmIdCapture": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "pii": [
+   {
+    "path": "IdCaptureView.IdType",
+    "type": "string",
+    "nullable": false,
+    "declared": "IdCaptureView"
+   }
+  ]
+ },
+ "POST /commands/ConfirmWebRequest": {
+  "returnTypes": [
+   "ConfirmWebRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ConvertRepairToWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CopyRosterWeek": {
+  "returnTypes": [
+   "RosterResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateGroup": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateGroupBlock": {
+  "returnTypes": [
+   "GroupBlockResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateOutlet": {
+  "returnTypes": [
+   "OutletResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateReservation": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateTill": {
+  "returnTypes": [
+   "TillResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateUser": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateWebDepositLink": {
+  "returnTypes": [
+   "WebDepositLinkResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/CreateWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideApproval": {
+  "returnTypes": [
+   "ApprovalResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideCompanyLimit": {
+  "returnTypes": [
+   "CompanyResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideCreditNote": {
+  "returnTypes": [
+   "CreditNoteRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideCustomerMerge": {
+  "returnTypes": [
+   "MergeView"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideExpense": {
+  "returnTypes": [
+   "ExpenseResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideGroupAttrition": {
+  "returnTypes": [
+   "GroupAttritionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideLeave": {
+  "returnTypes": [
+   "LeaveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideSettingRequest": {
+  "returnTypes": [
+   "DecideSettingRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideVoid": {
+  "returnTypes": [
+   "DecideVoidResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DecideYieldProposal": {
+  "returnTypes": [
+   "YieldDecisionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DeclineWebRequest": {
+  "returnTypes": [
+   "WebRequestDecision"
+  ],
+  "pii": []
+ },
+ "POST /commands/DetachGroupMember": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DiscardFnf": {
+  "returnTypes": [
+   "FnfResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/DisposeLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/EarlyDeparture": {
+  "returnTypes": [
+   "ChangeStayDatesResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ExecuteAdjustment": {
+  "returnTypes": [
+   "ApprovalResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ExtendStay": {
+  "returnTypes": [
+   "ChangeStayDatesResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/GenerateCaPack": {
+  "returnTypes": [
+   "CaPackResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/GeneratePmWorkOrders": {
+  "returnTypes": [
+   "GeneratePmResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/GenerateStayoverTasks": {
+  "returnTypes": [
+   "GenerateStayoverTasksResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/GiveAdvance": {
+  "returnTypes": [
+   "AdvanceResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/GrantException": {
+  "returnTypes": [
+   "ExceptionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/HandOverLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/HoldWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ImportChannelMessage": {
+  "returnTypes": [
+   "ChannelMessageResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ImportConfiguration": {
+  "returnTypes": [
+   "ImportConfigurationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/IssueBankFile": {
+  "returnTypes": [
+   "BankFileResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/IssueInvoice": {
+  "returnTypes": [
+   "IssueInvoiceResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/LockAccountingPeriod": {
+  "returnTypes": [
+   "PeriodLockResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/LockCashBookDay": {
+  "returnTypes": [
+   "CashBookDayResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/LockPayRun": {
+  "returnTypes": [
+   "PayRunResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/LogComplaint": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/LogLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/LogServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/MarkAttendance": {
+  "returnTypes": [
+   "AttendanceResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/MarkComplianceFiled": {
+  "returnTypes": [
+   "FilingResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/MarkComplianceNotApplicable": {
+  "returnTypes": [
+   "FilingResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/MarkNoShow": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/MarkWebDepositPaid": {
+  "returnTypes": [
+   "WebDepositPaid"
+  ],
+  "pii": []
+ },
+ "POST /commands/MoveRoom": {
+  "returnTypes": [
+   "MoveRoomResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/OfferRecoveryDiscount": {
+  "returnTypes": [
+   "RecoveryResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/OpenCheck": {
+  "returnTypes": [
+   "CheckResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/OpenShift": {
+  "returnTypes": [
+   "ShiftResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PostCharge": {
+  "returnTypes": [
+   "ChargeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PostRoomNight": {
+  "returnTypes": [
+   "ChargeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PostRoomNights": {
+  "returnTypes": [
+   "PostRoomNightsResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PrepareFnf": {
+  "returnTypes": [
+   "FnfResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PreparePayRun": {
+  "returnTypes": [
+   "PayRunResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ProposeCustomerMerge": {
+  "returnTypes": [
+   "MergeView"
+  ],
+  "pii": []
+ },
+ "POST /commands/ProposeYieldPublish": {
+  "returnTypes": [
+   "YieldProposalResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PublishYieldTariffs": {
+  "returnTypes": [
+   "YieldPublishResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PullChannelMessages": {
+  "returnTypes": [
+   "PullResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PurgeIdCaptures": {
+  "returnTypes": [
+   "PurgeIdCapturesResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/PushChannelRates": {
+  "returnTypes": [
+   "PushResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/QueueSimulatedMessage": {
+  "returnTypes": [
+   "ChannelMessageResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/QuoteStay": {
+  "returnTypes": [
+   "QuoteResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ReceiveSpare": {
+  "returnTypes": [
+   "ReceiveSpareResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RecordComplaintFollowUp": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RecordGroupReceipt": {
+  "returnTypes": [
+   "GroupReceiptResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RecordReceipt": {
+  "returnTypes": [
+   "ReceiptResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RegisterDevice": {
+  "returnTypes": [
+   "RegisterDeviceResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RegisterGuest": {
+  "returnTypes": [
+   "RegisterGuestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RejectChannelMessage": {
+  "returnTypes": [
+   "ChannelMessageResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RejectIdCapture": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "pii": [
+   {
+    "path": "IdCaptureView.IdType",
+    "type": "string",
+    "nullable": false,
+    "declared": "IdCaptureView"
+   }
+  ]
+ },
+ "POST /commands/RekeyGuestIds": {
+  "returnTypes": [
+   "RekeyGuestIdsResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ReleaseGroupBlock": {
+  "returnTypes": [
+   "GroupBlockResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RemoveCustomerTag": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ReopenCashBookDay": {
+  "returnTypes": [
+   "CashBookDayResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ReopenChecklistRun": {
+  "returnTypes": [
+   "ChecklistRunView"
+  ],
+  "pii": []
+ },
+ "POST /commands/ReopenComplianceFiling": {
+  "returnTypes": [
+   "ReopenResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RequestAdjustment": {
+  "returnTypes": [
+   "AdjustmentResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RequestCreditNote": {
+  "returnTypes": [
+   "CreditNoteRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RequestGroupAttrition": {
+  "returnTypes": [
+   "GroupAttritionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RequestLeave": {
+  "returnTypes": [
+   "LeaveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RequestRepair": {
+  "returnTypes": [
+   "RequestRepairResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RerouteGroupCharge": {
+  "returnTypes": [
+   "GroupRerouteResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ResetLedgerMapping": {
+  "returnTypes": [
+   "LedgerMappingResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ResolveComplaint": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RetryMessage": {
+  "returnTypes": [
+   "RetryMessageResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RevealGuestId": {
+  "returnTypes": [
+   "RevealGuestIdResult"
+  ],
+  "pii": [
+   {
+    "path": "RevealGuestIdResult.IdType",
+    "type": "string",
+    "nullable": false,
+    "declared": "RevealGuestIdResult"
+   },
+   {
+    "path": "RevealGuestIdResult.IdNumber",
+    "type": "string",
+    "nullable": false,
+    "declared": "RevealGuestIdResult"
+   }
+  ]
+ },
+ "POST /commands/RevealIdCaptureNumber": {
+  "returnTypes": [
+   "RevealIdCaptureResult"
+  ],
+  "pii": [
+   {
+    "path": "RevealIdCaptureResult.IdNumber",
+    "type": "string",
+    "nullable": false,
+    "declared": "RevealIdCaptureResult"
+   }
+  ]
+ },
+ "POST /commands/ReverseExpense": {
+  "returnTypes": [
+   "ExpenseReversalResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RevertSetting": {
+  "returnTypes": [
+   "SetSettingResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RevokeDevice": {
+  "returnTypes": [
+   "DeviceRevokedResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RevokeException": {
+  "returnTypes": [
+   "ExceptionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RevokeRole": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RunBusinessDayClose": {
+  "returnTypes": [
+   "CloseRunResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/RunMessagingTriggers": {
+  "returnTypes": [
+   "RunMessagingTriggersResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveAmc": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveChannel": {
+  "returnTypes": [
+   "ChannelResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveCompany": {
+  "returnTypes": [
+   "CompanyResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveComplianceObligation": {
+  "returnTypes": [
+   "SaveObligationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveComplianceSettings": {
+  "returnTypes": [
+   "SettingsDto"
+  ],
+  "pii": [
+   {
+    "path": "SettingsDto.CaEmail",
+    "type": "string",
+    "nullable": false,
+    "declared": "SettingsDto"
+   }
+  ]
+ },
+ "POST /commands/SaveDepartment": {
+  "returnTypes": [
+   "DepartmentResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveGuestProfile": {
+  "returnTypes": [
+   "SaveGuestProfileResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveGuestServiceSettings": {
+  "returnTypes": [
+   "GuestServiceSettingsView"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveHandoverTemplate": {
+  "returnTypes": [
+   "HandoverTemplateView"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveMaintenanceAsset": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveMaintenanceVendor": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveMenuItem": {
+  "returnTypes": [
+   "MenuItemResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SavePmPlan": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveStaff": {
+  "returnTypes": [
+   "StaffResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveYieldOccupancyRule": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveYieldPlan": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveYieldRestriction": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SaveYieldSeason": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SeedComplianceDefaults": {
+  "returnTypes": [
+   "SeedDefaultsResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SendKot": {
+  "returnTypes": [
+   "KotResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SendMessage": {
+  "returnTypes": [
+   "SendMessageResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SendPayslip": {
+  "returnTypes": [
+   "PayslipSendResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetChannelStatus": {
+  "returnTypes": [
+   "ChannelResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetChannelStopSell": {
+  "returnTypes": [
+   "ChannelResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetCheckItemQty": {
+  "returnTypes": [
+   "CheckResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetCompanyLimit": {
+  "returnTypes": [
+   "CompanyResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetCredential": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetCustomerConsent": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetCustomerPreferences": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetGroupRouting": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetGstSetting": {
+  "returnTypes": [
+   "GstSettingChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetLeavePolicy": {
+  "returnTypes": [
+   "LeavePolicyResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetLedgerMapping": {
+  "returnTypes": [
+   "LedgerMappingResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetMenuItemAvailability": {
+  "returnTypes": [
+   "MenuItemResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetMessagingConsent": {
+  "returnTypes": [
+   "SetMessagingConsentResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetRoster": {
+  "returnTypes": [
+   "RosterResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetSetting": {
+  "returnTypes": [
+   "SetSettingResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetStaffActive": {
+  "returnTypes": [
+   "StaffResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetStatutoryRates": {
+  "returnTypes": [
+   "RatesResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SettleCheck": {
+  "returnTypes": [
+   "SettleResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SettleGroup": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetUserEnabled": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetYieldDayOfWeek": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetYieldForecast": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetYieldGuardrails": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SetYieldOverride": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ShortenStay": {
+  "returnTypes": [
+   "ChangeStayDatesResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SimulateMessageDelivery": {
+  "returnTypes": [
+   "SimulateMessageDeliveryResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StartServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StartWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockCountDecide": {
+  "returnTypes": [
+   "DecideCountResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockCountSubmit": {
+  "returnTypes": [
+   "SubmitCountResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockIssue": {
+  "returnTypes": [
+   "StockMoveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockItemCreate": {
+  "returnTypes": [
+   "StockItemWriteResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockItemSet": {
+  "returnTypes": [
+   "StockItemWriteResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockLaundryReceive": {
+  "returnTypes": [
+   "ReceiveLaundryResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockLaundrySend": {
+  "returnTypes": [
+   "SendLaundryResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockReceiveGrn": {
+  "returnTypes": [
+   "ReceiveGrnResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockRecordLoss": {
+  "returnTypes": [
+   "RecordLossResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockRoomChange": {
+  "returnTypes": [
+   "StockMoveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockSettingsSet": {
+  "returnTypes": [
+   "StockSettingsResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/StockUse": {
+  "returnTypes": [
+   "StockMoveResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SubmitChecklistRun": {
+  "returnTypes": [
+   "ChecklistRunView"
+  ],
+  "pii": []
+ },
+ "POST /commands/SubmitExpense": {
+  "returnTypes": [
+   "ExpenseResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SubmitExpenseDraft": {
+  "returnTypes": [
+   "ExpenseResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/SubmitHandoverNote": {
+  "returnTypes": [
+   "HandoverNoteView"
+  ],
+  "pii": []
+ },
+ "POST /commands/SubmitShiftCount": {
+  "returnTypes": [
+   "ShiftResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/TickChecklistItem": {
+  "returnTypes": [
+   "ChecklistRunView"
+  ],
+  "pii": []
+ },
+ "POST /commands/ToggleComplianceObligation": {
+  "returnTypes": [
+   "ToggleObligationResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ToggleHandoverTemplate": {
+  "returnTypes": [
+   "HandoverTemplateView"
+  ],
+  "pii": []
+ },
+ "POST /commands/TransferGroupMember": {
+  "returnTypes": [
+   "GroupTransferResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/TransitionHousekeepingTask": {
+  "returnTypes": [
+   "TransitionHousekeepingTaskResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UnblockRoom": {
+  "returnTypes": [
+   "UnblockRoomResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UnlockAccountingPeriod": {
+  "returnTypes": [
+   "PeriodLockResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UnlockPayRun": {
+  "returnTypes": [
+   "PayRunResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UpdateComplaint": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UpdateGroup": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UpdateMessageRule": {
+  "returnTypes": [
+   "UpdateMessageRuleResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UpdateMessageTemplate": {
+  "returnTypes": [
+   "UpdateMessageTemplateResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/UploadImportBatch": {
+  "returnTypes": [
+   "ImportBatchReport"
+  ],
+  "pii": []
+ },
+ "POST /commands/VerifyWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/ViewIdCaptureImage": {
+  "returnTypes": [
+   "ViewIdCaptureImageResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/VoidBill": {
+  "returnTypes": [
+   "VoidResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/VoidCheckItem": {
+  "returnTypes": [
+   "VoidResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/WithdrawGstSetting": {
+  "returnTypes": [
+   "GstSettingChangeResult"
+  ],
+  "pii": []
+ },
+ "POST /commands/WithdrawScheduledSetting": {
+  "returnTypes": [
+   "WithdrawScheduledSettingResult"
+  ],
+  "pii": []
+ },
+ "GET /compliance/badge": {
+  "returnTypes": [
+   "BadgeResult"
+  ],
+  "pii": []
+ },
+ "GET /compliance/ca-packs": {
+  "returnTypes": [
+   "CaPackDto"
+  ],
+  "pii": []
+ },
+ "GET /compliance/calendar": {
+  "returnTypes": [
+   "CalendarView"
+  ],
+  "pii": [
+   {
+    "path": "CalendarView.Settings.CaEmail",
+    "type": "string",
+    "nullable": false,
+    "declared": "SettingsDto"
+   }
+  ]
+ },
+ "GET /compliance/due-this-week": {
+  "returnTypes": [
+   "CalendarItemDto"
+  ],
+  "pii": []
+ },
+ "GET /compliance/obligations": {
+  "returnTypes": [
+   "ObligationDto"
+  ],
+  "pii": []
+ },
+ "GET /configuration/export": {
+  "returnTypes": [
+   "ConfigurationExport"
+  ],
+  "pii": []
+ },
+ "GET /configuration/groups": {
+  "returnTypes": [
+   "ConfigGroupsResult"
+  ],
+  "pii": []
+ },
+ "GET /configuration/groups/{groupId}": {
+  "returnTypes": [
+   "ConfigGroupDetail"
+  ],
+  "pii": []
+ },
+ "GET /configuration/history": {
+  "returnTypes": [
+   "SettingHistoryPage"
+  ],
+  "pii": []
+ },
+ "POST /configuration/import-plan": {
+  "returnTypes": [
+   "ImportPlanView"
+  ],
+  "pii": []
+ },
+ "GET /configuration/modules": {
+  "returnTypes": [
+   "ModulesResult"
+  ],
+  "pii": []
+ },
+ "GET /configuration/requests": {
+  "returnTypes": [
+   "SettingRequestsResult"
+  ],
+  "pii": []
+ },
+ "GET /configuration/search": {
+  "returnTypes": [
+   "ConfigSearchResult"
+  ],
+  "pii": []
+ },
+ "GET /configuration/values": {
+  "returnTypes": [
+   "ConfigurationValuesResult"
+  ],
+  "pii": []
+ },
+ "GET /credit-note-requests": {
+  "returnTypes": [
+   "CreditNoteRequestView"
+  ],
+  "pii": []
+ },
+ "GET /credit-notes/{creditNoteId:long}": {
+  "returnTypes": [
+   "CreditNoteView"
+  ],
+  "pii": [
+   {
+    "path": "CreditNoteView.Supplier.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "CreditNoteView.Supplier.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "CreditNoteView.Recipient.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "CreditNoteView.Recipient.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   }
+  ]
+ },
+ "GET /credit-notes/{creditNoteId:long}/document": {
+  "returnTypes": [
+   "RenderedDocumentView"
+  ],
+  "pii": []
+ },
+ "GET /customers": {
+  "returnTypes": [
+   "CustomerList"
+  ],
+  "pii": [
+   {
+    "path": "CustomerList.Customers.Phone",
+    "type": "string",
+    "nullable": false,
+    "declared": "CustomerSummary"
+   },
+   {
+    "path": "CustomerList.Customers.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CustomerSummary"
+   }
+  ]
+ },
+ "GET /customers/duplicates": {
+  "returnTypes": [
+   "DuplicateList"
+  ],
+  "pii": [
+   {
+    "path": "DuplicateList.Groups.Customers.Phone",
+    "type": "string",
+    "nullable": false,
+    "declared": "CustomerSummary"
+   },
+   {
+    "path": "DuplicateList.Groups.Customers.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CustomerSummary"
+   }
+  ]
+ },
+ "GET /customers/merges": {
+  "returnTypes": [
+   "MergeList"
+  ],
+  "pii": []
+ },
+ "GET /customers/profile": {
+  "returnTypes": [
+   "CustomerProfile"
+  ],
+  "pii": [
+   {
+    "path": "CustomerProfile.Phone",
+    "type": "string",
+    "nullable": false,
+    "declared": "CustomerProfile"
+   },
+   {
+    "path": "CustomerProfile.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CustomerProfile"
+   }
+  ]
+ },
+ "GET /documents/id-captures": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "pii": [
+   {
+    "path": "IdCaptureView.IdType",
+    "type": "string",
+    "nullable": false,
+    "declared": "IdCaptureView"
+   }
+  ]
+ },
+ "GET /documents/id-captures/{id:long}": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "pii": [
+   {
+    "path": "IdCaptureView.IdType",
+    "type": "string",
+    "nullable": false,
+    "declared": "IdCaptureView"
+   }
+  ]
+ },
+ "GET /expenses": {
+  "returnTypes": [
+   "ExpensePage"
+  ],
+  "pii": []
+ },
+ "GET /expenses/{expenseId:long}": {
+  "returnTypes": [
+   "ExpenseView"
+  ],
+  "pii": []
+ },
+ "GET /expenses/options": {
+  "returnTypes": [
+   "ExpenseOptionsView"
+  ],
+  "pii": []
+ },
+ "GET /expenses/summary": {
+  "returnTypes": [
+   "ExpenseSummaryView"
+  ],
+  "pii": []
+ },
+ "GET /folios/{folioId:long}": {
+  "returnTypes": [
+   "FolioView"
+  ],
+  "pii": []
+ },
+ "GET /folios/by-reservation/{reservationId:long}": {
+  "returnTypes": [
+   "ReservationFolioView"
+  ],
+  "pii": []
+ },
+ "GET /groups": {
+  "returnTypes": [
+   "GroupSummaryView"
+  ],
+  "pii": []
+ },
+ "GET /groups/{groupId:long}/statement": {
+  "returnTypes": [
+   "GroupStatementView"
+  ],
+  "pii": [
+   {
+    "path": "GroupStatementView.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GroupStatementView"
+   }
+  ]
+ },
+ "GET /groups/companies": {
+  "returnTypes": [
+   "CompanyBookView"
+  ],
+  "pii": [
+   {
+    "path": "CompanyBookView.Companies.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CompanyView"
+   },
+   {
+    "path": "CompanyBookView.Companies.Phone",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CompanyView"
+   },
+   {
+    "path": "CompanyBookView.Companies.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CompanyView"
+   }
+  ]
+ },
+ "GET /guest-services/complaints": {
+  "returnTypes": [
+   "GuestServicePage<ComplaintView>"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/complaints/{id:long}": {
+  "returnTypes": [
+   "ComplaintView"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/histories/{kind}": {
+  "returnTypes": [
+   "RecordHistory"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/history/{kind}/{id:long}": {
+  "returnTypes": [
+   "HistoryEntry"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/lost-items": {
+  "returnTypes": [
+   "GuestServicePage<LostItemView>"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/reports/complaints": {
+  "returnTypes": [
+   "ComplaintCategoryRow"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/reports/lost-found": {
+  "returnTypes": [
+   "LostFoundSummary"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/reports/response": {
+  "returnTypes": [
+   "ResponseReport"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/requests": {
+  "returnTypes": [
+   "GuestServicePage<ServiceRequestView>"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/requests/{id:long}": {
+  "returnTypes": [
+   "ServiceRequestView"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/settings": {
+  "returnTypes": [
+   "GuestServiceSettingsView"
+  ],
+  "pii": []
+ },
+ "GET /guest-services/stays": {
+  "returnTypes": [
+   "StayLookupList"
+  ],
+  "pii": []
+ },
+ "GET /guests": {
+  "returnTypes": [
+   "GuestListPage"
+  ],
+  "pii": [
+   {
+    "path": "GuestListPage.Items.Phone",
+    "type": "string",
+    "nullable": false,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestListPage.Items.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestListPage.Items.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestListPage.Items.Nationality",
+    "type": "string",
+    "nullable": false,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestListPage.Items.IdType",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestListPage.Items.IdLast4",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestListPage.Items.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   }
+  ]
+ },
+ "GET /guests/{guestId:long}": {
+  "returnTypes": [
+   "GuestView"
+  ],
+  "pii": [
+   {
+    "path": "GuestView.Phone",
+    "type": "string",
+    "nullable": false,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestView.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestView.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestView.Nationality",
+    "type": "string",
+    "nullable": false,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestView.IdType",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestView.IdLast4",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   },
+   {
+    "path": "GuestView.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "GuestView"
+   }
+  ]
+ },
+ "GET /handover/carry": {
+  "returnTypes": [
+   "OpenCarryList"
+  ],
+  "pii": []
+ },
+ "GET /handover/checklists": {
+  "returnTypes": [
+   "ChecklistList"
+  ],
+  "pii": []
+ },
+ "GET /handover/dashboard": {
+  "returnTypes": [
+   "HandoverDashboardView"
+  ],
+  "pii": []
+ },
+ "GET /handover/notes": {
+  "returnTypes": [
+   "HandoverNoteList"
+  ],
+  "pii": []
+ },
+ "GET /handover/templates": {
+  "returnTypes": [
+   "HandoverTemplateList"
+  ],
+  "pii": []
+ },
+ "GET /housekeeping/tasks": {
+  "returnTypes": [
+   "HousekeepingTaskPage"
+  ],
+  "pii": []
+ },
+ "GET /import/batches": {
+  "returnTypes": [
+   "ImportBatchList"
+  ],
+  "pii": []
+ },
+ "GET /import/batches/{batchId:long}": {
+  "returnTypes": [
+   "ImportBatchReport"
+  ],
+  "pii": []
+ },
+ "GET /import/ledgers": {
+  "returnTypes": [
+   "ImportLedgersView"
+  ],
+  "pii": []
+ },
+ "GET /import/masters": {
+  "returnTypes": [
+   "ImportMastersView"
+  ],
+  "pii": []
+ },
+ "GET /import/opening-balances": {
+  "returnTypes": [
+   "OpeningBalancesView"
+  ],
+  "pii": []
+ },
+ "GET /invoices": {
+  "returnTypes": [
+   "InvoiceRegisterView"
+  ],
+  "pii": [
+   {
+    "path": "InvoiceRegisterView.Rows.RecipientGstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "RegisterRowView"
+   }
+  ]
+ },
+ "GET /invoices/{invoiceId:long}": {
+  "returnTypes": [
+   "InvoiceView"
+  ],
+  "pii": [
+   {
+    "path": "InvoiceView.Supplier.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "InvoiceView.Supplier.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "InvoiceView.Recipient.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "InvoiceView.Recipient.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   }
+  ]
+ },
+ "GET /invoices/{invoiceId:long}/document": {
+  "returnTypes": [
+   "RenderedDocumentView"
+  ],
+  "pii": []
+ },
+ "GET /invoices/by-source/{sourceKind}/{sourceId:long}": {
+  "returnTypes": [
+   "InvoiceView"
+  ],
+  "pii": [
+   {
+    "path": "InvoiceView.Supplier.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "InvoiceView.Supplier.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "InvoiceView.Recipient.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   },
+   {
+    "path": "InvoiceView.Recipient.Address",
+    "type": "string?",
+    "nullable": true,
+    "declared": "PartyView"
+   }
+  ]
+ },
+ "GET /invoices/gstr1": {
+  "returnTypes": [
+   "Gstr1View"
+  ],
+  "pii": []
+ },
+ "GET /maintenance/amcs": {
+  "returnTypes": [
+   "AmcPage"
+  ],
+  "pii": []
+ },
+ "GET /maintenance/registers": {
+  "returnTypes": [
+   "RegistersView"
+  ],
+  "pii": [
+   {
+    "path": "RegistersView.Vendors.Phone",
+    "type": "string",
+    "nullable": false,
+    "declared": "VendorView"
+   }
+  ]
+ },
+ "GET /maintenance/report": {
+  "returnTypes": [
+   "MaintenanceReport"
+  ],
+  "pii": []
+ },
+ "GET /maintenance/work-orders": {
+  "returnTypes": [
+   "WorkOrderPage"
+  ],
+  "pii": []
+ },
+ "GET /maintenance/work-orders/{id:long}": {
+  "returnTypes": [
+   "WorkOrderDetail"
+  ],
+  "pii": []
+ },
+ "GET /me/capabilities": {
+  "returnTypes": [
+   "CapabilitiesResult"
+  ],
+  "pii": []
+ },
+ "GET /me/directory": {
+  "returnTypes": [
+   "StaffDirectoryResult"
+  ],
+  "pii": []
+ },
+ "GET /messaging/consent/{guestId:long}": {
+  "returnTypes": [
+   "ConsentView"
+  ],
+  "pii": []
+ },
+ "GET /messaging/consents": {
+  "returnTypes": [
+   "ConsentRoster"
+  ],
+  "pii": []
+ },
+ "GET /messaging/messages": {
+  "returnTypes": [
+   "MessageListResult"
+  ],
+  "pii": []
+ },
+ "GET /messaging/messages/{id:long}": {
+  "returnTypes": [
+   "MessageView"
+  ],
+  "pii": []
+ },
+ "GET /messaging/rules": {
+  "returnTypes": [
+   "RuleView"
+  ],
+  "pii": []
+ },
+ "GET /messaging/summary": {
+  "returnTypes": [
+   "MessagingSummary"
+  ],
+  "pii": []
+ },
+ "GET /messaging/templates": {
+  "returnTypes": [
+   "TemplatesResult"
+  ],
+  "pii": []
+ },
+ "GET /ota/channels": {
+  "returnTypes": [
+   "ChannelView"
+  ],
+  "pii": []
+ },
+ "GET /ota/channels/{id:int}/push-preview": {
+  "returnTypes": [
+   "PushPreviewView"
+  ],
+  "pii": []
+ },
+ "GET /ota/commission": {
+  "returnTypes": [
+   "CommissionReportView"
+  ],
+  "pii": []
+ },
+ "GET /ota/messages": {
+  "returnTypes": [
+   "ChannelMessageView"
+  ],
+  "pii": [
+   {
+    "path": "ChannelMessageView.Phone",
+    "type": "string?",
+    "nullable": true,
+    "declared": "ChannelMessageView"
+   },
+   {
+    "path": "ChannelMessageView.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "ChannelMessageView"
+   }
+  ]
+ },
+ "GET /ota/messages/{id:long}/check": {
+  "returnTypes": [
+   "MessageCheckView"
+  ],
+  "pii": []
+ },
+ "GET /ota/pushes": {
+  "returnTypes": [
+   "PushLogView"
+  ],
+  "pii": []
+ },
+ "GET /ota/reconciliation": {
+  "returnTypes": [
+   "ReconciliationView"
+  ],
+  "pii": []
+ },
+ "GET /payroll/board": {
+  "returnTypes": [
+   "PayrollBoardView"
+  ],
+  "pii": []
+ },
+ "GET /payroll/my/payslips": {
+  "returnTypes": [
+   "PayslipView"
+  ],
+  "pii": []
+ },
+ "GET /payroll/payslips/{runId:long}/{staffId:long}": {
+  "returnTypes": [
+   "PayslipView"
+  ],
+  "pii": []
+ },
+ "GET /payroll/rates/{month}": {
+  "returnTypes": [
+   "string",
+   "PayrollRates",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "pii": []
+ },
+ "GET /payroll/run/{runId:long}/bank-files/{issueNo:int}": {
+  "returnTypes": [
+   "CsvFile"
+  ],
+  "pii": []
+ },
+ "GET /payroll/run/{runId:long}/bank-files/latest": {
+  "returnTypes": [
+   "CsvFile"
+  ],
+  "pii": []
+ },
+ "GET /payroll/runs/{month}": {
+  "returnTypes": [
+   "PayRunView",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "pii": []
+ },
+ "GET /payroll/runs/{month}/register.csv": {
+  "returnTypes": [
+   "CsvFile",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "pii": []
+ },
+ "GET /payroll/runs/{month}/statutory.csv": {
+  "returnTypes": [
+   "CsvFile",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "pii": []
+ },
+ "GET /payroll/staff": {
+  "returnTypes": [
+   "StaffView"
+  ],
+  "pii": [
+   {
+    "path": "StaffView.PhoneMasked",
+    "type": "string",
+    "nullable": false,
+    "declared": "StaffView"
+   }
+  ]
+ },
+ "GET /payroll/staff/{staffId:long}/leave-balance": {
+  "returnTypes": [
+   "LeaveBalanceView"
+  ],
+  "pii": []
+ },
+ "GET /pos/checks": {
+  "returnTypes": [
+   "OpenCheckSummary"
+  ],
+  "pii": []
+ },
+ "GET /pos/checks/{orderId:long}": {
+  "returnTypes": [
+   "CheckView"
+  ],
+  "pii": []
+ },
+ "GET /pos/checks/closed": {
+  "returnTypes": [
+   "CheckView"
+  ],
+  "pii": []
+ },
+ "GET /pos/close-blockers": {
+  "returnTypes": [
+   "PosCloseBlockers"
+  ],
+  "pii": []
+ },
+ "GET /pos/day-summary": {
+  "returnTypes": [
+   "DaySummaryView"
+  ],
+  "pii": []
+ },
+ "GET /pos/in-house": {
+  "returnTypes": [
+   "PosStayView"
+  ],
+  "pii": []
+ },
+ "GET /pos/kitchen": {
+  "returnTypes": [
+   "KitchenItem"
+  ],
+  "pii": []
+ },
+ "GET /pos/menu": {
+  "returnTypes": [
+   "MenuItemView"
+  ],
+  "pii": []
+ },
+ "GET /pos/outlets": {
+  "returnTypes": [
+   "OutletView"
+  ],
+  "pii": []
+ },
+ "GET /pos/till": {
+  "returnTypes": [
+   "PosTillView"
+  ],
+  "pii": []
+ },
+ "GET /pos/void-requests": {
+  "returnTypes": [
+   "VoidRequestView"
+  ],
+  "pii": []
+ },
+ "GET /public/booking/deposit/{token}": {
+  "returnTypes": [
+   "PublicDepositView"
+  ],
+  "pii": []
+ },
+ "GET /public/booking/quote": {
+  "returnTypes": [
+   "PublicQuoteResult"
+  ],
+  "pii": []
+ },
+ "POST /public/booking/requests": {
+  "returnTypes": [
+   "WebRequestReceipt"
+  ],
+  "pii": []
+ },
+ "GET /reports/daily": {
+  "returnTypes": [
+   "DailyReportView"
+  ],
+  "pii": []
+ },
+ "GET /reservations": {
+  "returnTypes": [
+   "ReservationList"
+  ],
+  "pii": [
+   {
+    "path": "ReservationList.Items.Phone",
+    "type": "string?",
+    "nullable": true,
+    "declared": "ReservationListItem"
+   }
+  ]
+ },
+ "GET /reservations/{id:long}": {
+  "returnTypes": [
+   "ReservationDetails"
+  ],
+  "pii": [
+   {
+    "path": "ReservationDetails.Phone",
+    "type": "string?",
+    "nullable": true,
+    "declared": "ReservationDetails"
+   }
+  ]
+ },
+ "GET /room-blocks/history": {
+  "returnTypes": [
+   "RoomBlockHistoryItem"
+  ],
+  "pii": []
+ },
+ "GET /rooms/board": {
+  "returnTypes": [
+   "RoomBoardPage"
+  ],
+  "pii": []
+ },
+ "GET /rooms/status": {
+  "returnTypes": [
+   "RoomStatusResult"
+  ],
+  "pii": []
+ },
+ "POST /setup/SetupProperty": {
+  "returnTypes": [
+   "SetupPropertyResult"
+  ],
+  "pii": [
+   {
+    "path": "SetupPropertyResult.Gstin",
+    "type": "string?",
+    "nullable": true,
+    "declared": "SetupPropertyResult"
+   }
+  ]
+ },
+ "GET /setup/status": {
+  "returnTypes": [
+   "SetupStatusResult"
+  ],
+  "pii": []
+ },
+ "GET /shifts/{shiftId:long}": {
+  "returnTypes": [
+   "ShiftView"
+  ],
+  "pii": []
+ },
+ "GET /stock/alerts": {
+  "returnTypes": [
+   "StockAlertView"
+  ],
+  "pii": []
+ },
+ "GET /stock/consumption": {
+  "returnTypes": [
+   "ConsumptionReport"
+  ],
+  "pii": []
+ },
+ "GET /stock/counts": {
+  "returnTypes": [
+   "CountsPage"
+  ],
+  "pii": []
+ },
+ "GET /stock/items": {
+  "returnTypes": [
+   "StockItemsPage"
+  ],
+  "pii": []
+ },
+ "GET /stock/laundry": {
+  "returnTypes": [
+   "LaundryBatchesPage"
+  ],
+  "pii": []
+ },
+ "GET /stock/losses": {
+  "returnTypes": [
+   "LossesPage"
+  ],
+  "pii": []
+ },
+ "GET /stock/moves": {
+  "returnTypes": [
+   "MovesPage"
+  ],
+  "pii": []
+ },
+ "GET /stock/settings": {
+  "returnTypes": [
+   "StockSettingsResult"
+  ],
+  "pii": []
+ },
+ "GET /system/discovery": {
+  "returnTypes": [],
+  "pii": []
+ },
+ "GET /system/health": {
+  "returnTypes": [
+   "SqlConnection",
+   "int"
+  ],
+  "pii": []
+ },
+ "GET /tax/gst": {
+  "returnTypes": [
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory",
+   "GstMasterView"
+  ],
+  "pii": []
+ },
+ "GET /web-booking/requests": {
+  "returnTypes": [
+   "WebRequestList"
+  ],
+  "pii": [
+   {
+    "path": "WebRequestList.Requests.PhoneMasked",
+    "type": "string",
+    "nullable": false,
+    "declared": "WebRequestSummary"
+   }
+  ]
+ },
+ "GET /web-booking/requests/{id:long}": {
+  "returnTypes": [
+   "WebRequestDetail"
+  ],
+  "pii": [
+   {
+    "path": "WebRequestDetail.Phone",
+    "type": "string",
+    "nullable": false,
+    "declared": "WebRequestDetail"
+   },
+   {
+    "path": "WebRequestDetail.Email",
+    "type": "string?",
+    "nullable": true,
+    "declared": "WebRequestDetail"
+   }
+  ]
+ },
+ "GET /yield/calendar": {
+  "returnTypes": [
+   "YieldCalendarResult"
+  ],
+  "pii": []
+ },
+ "GET /yield/config": {
+  "returnTypes": [
+   "YieldConfigResult"
+  ],
+  "pii": []
+ },
+ "GET /yield/proposals": {
+  "returnTypes": [
+   "YieldProposalView"
+  ],
+  "pii": []
+ },
+ "GET /yield/publishes": {
+  "returnTypes": [
+   "YieldPublishView"
+  ],
+  "pii": []
+ },
+ "GET /yield/quote": {
+  "returnTypes": [
+   "YieldQuoteResult"
+  ],
+  "pii": []
+ }
+}

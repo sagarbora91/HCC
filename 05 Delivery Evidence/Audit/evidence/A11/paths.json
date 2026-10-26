@@ -1,0 +1,3212 @@
+{
+ "total": 458,
+ "unresolved": 53,
+ "rows": [
+  {
+   "doc": "HANDOFF.md",
+   "line": 4,
+   "token": "02 Planning/",
+   "status": "ok",
+   "where": "02 Planning"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 5,
+   "token": "05 Delivery Evidence/M1/M1_Delivery_Summary.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/M1/M1_Delivery_Summary.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 8,
+   "token": "src/styles.css",
+   "status": "ok",
+   "where": "03 Prototype/src/styles.css"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 8,
+   "token": "zz-contrast.css",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 9,
+   "token": "src/app/display.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/display.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 9,
+   "token": "src/app/mobile/",
+   "status": "ok",
+   "where": "03 Prototype/src/app/mobile"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 9,
+   "token": "components.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/mobile/components.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 9,
+   "token": "src/styles/mobile.css",
+   "status": "ok",
+   "where": "03 Prototype/src/styles/mobile.css"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 10,
+   "token": "tests/stream-mobile.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-mobile.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 16,
+   "token": "02 Planning/HCC_Mobile_Version_Plan_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Mobile_Version_Plan_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 30,
+   "token": "src/mobile/frontdesk",
+   "status": "ok",
+   "where": "03 Prototype/src/mobile/frontdesk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 30,
+   "token": "src/mobile/money",
+   "status": "ok",
+   "where": "03 Prototype/src/mobile/money"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 30,
+   "token": "src/mobile/ops",
+   "status": "ok",
+   "where": "03 Prototype/src/mobile/ops"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 30,
+   "token": "build.mjs",
+   "status": "ok",
+   "where": "03 Prototype/build.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 30,
+   "token": "src/mobile/admin",
+   "status": "ok",
+   "where": "03 Prototype/src/mobile/admin"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 33,
+   "token": "03 Prototype/dist/hcc-src.tgz",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 33,
+   "token": "03 Prototype/dist/hcc-merge.tgz",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 36,
+   "token": "domain/selectors.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/selectors.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 39,
+   "token": "02 Planning/HCC_Plan_FY_History_and_APK_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Plan_FY_History_and_APK_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 41,
+   "token": "CLAUDE_CODE_PROMPT.md",
+   "status": "ok",
+   "where": "CLAUDE_CODE_PROMPT.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 41,
+   "token": "02 Planning/HCC_Parallel_Agent_Brief.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Parallel_Agent_Brief.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 41,
+   "token": "05 Delivery Evidence/Session3/hcc-session3-history.bundle",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Session3/hcc-session3-history.bundle"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 41,
+   "token": "03 Prototype/dist/",
+   "status": "ok",
+   "where": "03 Prototype/dist"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 41,
+   "token": "hcc-src.tgz",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 41,
+   "token": "hcc-merge.tgz",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 41,
+   "token": "hcc-fix2.tgz",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 58,
+   "token": "src/app/mobile/components.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/mobile/components.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 58,
+   "token": "registry.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/registry.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 63,
+   "token": "HCC_Plan_FY_History_and_APK_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Plan_FY_History_and_APK_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 65,
+   "token": "src/app/storage.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/storage.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 65,
+   "token": "App.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/App.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 67,
+   "token": "tests/stream-history-a.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-history-a.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 70,
+   "token": "tests/.generated/",
+   "status": "ok",
+   "where": "03 Prototype/tests/.generated"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 70,
+   "token": "evidence/",
+   "status": "ok",
+   "where": "03 Prototype/evidence"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 73,
+   "token": "03 Prototype/src/fixtures/history/operations.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/fixtures/history/operations.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 73,
+   "token": "generate.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/fixtures/history/generate.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 75,
+   "token": "src/components/ShowMore.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/components/ShowMore.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 76,
+   "token": "features/reports/HistorySummary.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/features/reports/HistorySummary.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 76,
+   "token": "domain/streams/history.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/streams/history.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 78,
+   "token": "tests/stream-history-b.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-history-b.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 84,
+   "token": "03 Prototype/src/fixtures/history/modules.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/fixtures/history/modules.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 84,
+   "token": "modules-people.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/fixtures/history/modules-people.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 84,
+   "token": "modules-sales.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/fixtures/history/modules-sales.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 84,
+   "token": "util.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/fixtures/history/util.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 87,
+   "token": "tests/stream-history-c.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-history-c.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 87,
+   "token": "05 Delivery Evidence\\History\\HCC_History_Smoke_Phase_C.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/History/HCC_History_Smoke_Phase_C.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 89,
+   "token": "04 Android\\README.md",
+   "status": "ok",
+   "where": "04 Android/README.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 92,
+   "token": "src/app/native.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/native.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 92,
+   "token": "App.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/App.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 92,
+   "token": "styles/native.css",
+   "status": "ok",
+   "where": "03 Prototype/src/styles/native.css"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 92,
+   "token": "tests/stream-native.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-native.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 93,
+   "token": "capacitor.config.json",
+   "status": "ok",
+   "where": "04 Android/capacitor.config.json"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 93,
+   "token": "scripts/copy-web.mjs",
+   "status": "ok",
+   "where": "04 Android/scripts/copy-web.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 93,
+   "token": "scripts/make-icons.mjs",
+   "status": "ok",
+   "where": "04 Android/scripts/make-icons.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 93,
+   "token": "README.md",
+   "status": "ok",
+   "where": "03 Prototype/README.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 93,
+   "token": "04 Android\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+   "status": "ok",
+   "where": "04 Android/android/app/build/outputs/apk/debug/app-debug.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 93,
+   "token": "05 Delivery Evidence\\APK\\HCC-0.1.0-proto-debug.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 94,
+   "token": "04 Android\\README.md",
+   "status": "ok",
+   "where": "04 Android/README.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 94,
+   "token": "04 Android\\.build\\hcc-cacerts.jks",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 94,
+   "token": "styles.xml",
+   "status": "ok-suffix",
+   "where": "suffix:04 Android/android/app/src/main/res/values/styles.xml"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 95,
+   "token": "05 Delivery Evidence\\APK\\HCC_APK_Emulator_Evidence.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC_APK_Emulator_Evidence.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 96,
+   "token": "display.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/display.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 101,
+   "token": "06 Reference Repositories/",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 102,
+   "token": "06 Reference Repositories/repository_inventory.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 102,
+   "token": "README.md",
+   "status": "ok",
+   "where": "03 Prototype/README.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 104,
+   "token": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 107,
+   "token": "display.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/display.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 107,
+   "token": "native.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/native.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 107,
+   "token": "tests/stream-native.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-native.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 107,
+   "token": "05 Delivery Evidence\\APK\\HCC-0.1.0-proto-debug.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 108,
+   "token": "05 Delivery Evidence\\APK\\Tab-S7\\",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/Tab-S7"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 113,
+   "token": "02 Planning/HCC_Component_Selection_and_Assembly_Plan_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Component_Selection_and_Assembly_Plan_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 114,
+   "token": "02 Planning/HCC_Claude_Coding_and_Assembly_Instructions_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Claude_Coding_and_Assembly_Instructions_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 115,
+   "token": "02 Planning/HCC_Claude_Assembly_Starter_Prompt.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Claude_Assembly_Starter_Prompt.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 116,
+   "token": "02 Planning/HCC_Component_Source_Evidence_v1.json",
+   "status": "ok",
+   "where": "02 Planning/HCC_Component_Source_Evidence_v1.json"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 124,
+   "token": "src/app/navmap.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/navmap.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 124,
+   "token": "src/app/SearchPalette.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/SearchPalette.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 124,
+   "token": "src/styles/search.css",
+   "status": "ok",
+   "where": "03 Prototype/src/styles/search.css"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 124,
+   "token": "tests/stream-navmap.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-navmap.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 128,
+   "token": "App.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/App.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 128,
+   "token": "MobileShell.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/mobile/MobileShell.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 129,
+   "token": "App.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/App.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 129,
+   "token": "navmap.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/navmap.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 130,
+   "token": "src/app/mobile/sheets.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/mobile/sheets.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 135,
+   "token": "05 Delivery Evidence\\Assembly\\A0_A1_Result.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/A0_A1_Result.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 135,
+   "token": "02 Planning\\HCC_Component_Qualification_Register.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Component_Qualification_Register.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 137,
+   "token": "07 Integration Lab\\",
+   "status": "ok",
+   "where": "07 Integration Lab"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 137,
+   "token": "07 Integration Lab\\evidence\\source-reuse.json",
+   "status": "ok",
+   "where": "07 Integration Lab/evidence/source-reuse.json"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 138,
+   "token": "domain/streams/yield.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/streams/yield.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 138,
+   "token": "domain/errors.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/errors.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 138,
+   "token": "handlers/reservations.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/handlers/reservations.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 138,
+   "token": "tests/stream-a2.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-a2.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 139,
+   "token": "commands.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/commands.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 139,
+   "token": "07 Integration Lab\\evidence\\permission-coverage.md",
+   "status": "ok",
+   "where": "07 Integration Lab/evidence/permission-coverage.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 140,
+   "token": "02 Planning\\HCC_A2_Till_Decision_Pack.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_A2_Till_Decision_Pack.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 141,
+   "token": "02 Planning\\HCC_Production_Contracts_and_Schema_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Production_Contracts_and_Schema_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 143,
+   "token": "02 Planning\\HCC_Multi_Agent_Plan_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Multi_Agent_Plan_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 147,
+   "token": "03 Prototype\\src\\app\\ModulesHome.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/ModulesHome.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 147,
+   "token": "src\\styles\\home.css",
+   "status": "ok",
+   "where": "03 Prototype/src/styles/home.css"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 148,
+   "token": "navmap.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/navmap.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 153,
+   "token": "03 Prototype\\src\\app\\NavDrawer.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/NavDrawer.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 154,
+   "token": "App.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/App.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 154,
+   "token": "styles\\home.css",
+   "status": "ok",
+   "where": "03 Prototype/src/styles/home.css"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 158,
+   "token": "03 Prototype\\src\\domain\\streams\\customers.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/streams/customers.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 159,
+   "token": "app\\registry.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/registry.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 159,
+   "token": "styles\\home.css",
+   "status": "ok",
+   "where": "03 Prototype/src/styles/home.css"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 161,
+   "token": "features\\guests\\CheckIn.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/features/guests/CheckIn.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 161,
+   "token": "mobile\\frontdesk\\Arrivals.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/mobile/frontdesk/Arrivals.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 162,
+   "token": "tests\\stream-customers.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-customers.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 166,
+   "token": "05 Delivery Evidence\\APK\\HCC-0.1.0-proto-debug.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 166,
+   "token": "05 Delivery Evidence\\APK\\Tab-S7\\nav1-signin.png",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/Tab-S7/nav1-signin.png"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 166,
+   "token": "nav9-customers.png",
+   "status": "ok-suffix",
+   "where": "suffix:05 Delivery Evidence/APK/Tab-S7/nav9-customers.png"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 173,
+   "token": "tests/_till.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/_till.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 174,
+   "token": "src/app/demo/DemoModals.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/demo/DemoModals.tsx"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 174,
+   "token": ".claude/launch.json",
+   "status": "ok",
+   "where": ".claude/launch.json"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 181,
+   "token": "02 Planning\\agents\\W0-D_Parallel_Acceptance_Brief.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W0-D_Parallel_Acceptance_Brief.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 181,
+   "token": "05 Delivery Evidence\\Acceptance\\BL023_Walkthrough.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/BL023_Walkthrough.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 181,
+   "token": "D5_Roles.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_Roles.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 181,
+   "token": "D5_AC.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_AC.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 181,
+   "token": "D6_TabS7.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D6_TabS7.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 183,
+   "token": "02 Planning\\HCC_Acceptance_Matrix.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Acceptance_Matrix.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 183,
+   "token": "05 Delivery Evidence\\Acceptance\\W0-D_Acceptance_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W0-D_Acceptance_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 184,
+   "token": "D5_AC.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_AC.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 185,
+   "token": "02 Planning\\HCC_FirstParty_Reuse_ETP_SCC_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_FirstParty_Reuse_ETP_SCC_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 186,
+   "token": "05 Delivery Evidence\\Acceptance\\BL023_Walkthrough.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/BL023_Walkthrough.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 187,
+   "token": "02 Planning\\HCC_Wave05_UI_Placement_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Wave05_UI_Placement_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 187,
+   "token": "02 Planning\\HCC_Master_Configuration_Design_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Master_Configuration_Design_v1.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 191,
+   "token": "05 Delivery Evidence/Assembly/2026-10-25_Development_Review.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/2026-10-25_Development_Review.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 197,
+   "token": "05 Delivery Evidence/Acceptance/AC01_Source_Verification_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/AC01_Source_Verification_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 204,
+   "token": "05 Delivery Evidence/Acceptance/BL01_BL02_Fixes_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/BL01_BL02_Fixes_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 209,
+   "token": "05 Delivery Evidence/Acceptance/Shared_Till_Reports_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/Shared_Till_Reports_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 213,
+   "token": "domain/clone.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/clone.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 213,
+   "token": "tests/stream-compat.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-compat.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 213,
+   "token": "tests/stream-report-till.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-report-till.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 213,
+   "token": "04 Android/scripts/patch-printer.mjs",
+   "status": "ok",
+   "where": "04 Android/scripts/patch-printer.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 213,
+   "token": "tests/check-print-layout.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/check-print-layout.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 214,
+   "token": "tests/stream-t04.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-t04.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 216,
+   "token": "05 Delivery Evidence\\APK\\HCC-0.1.0-proto-debug.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 217,
+   "token": "02 Planning\\agents\\W0-D_Final_Emulator_Brief.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W0-D_Final_Emulator_Brief.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 221,
+   "token": "05 Delivery Evidence\\Acceptance\\D5_Roles.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_Roles.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 221,
+   "token": "D5_AC.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_AC.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 224,
+   "token": "02 Planning\\HCC_Acceptance_Matrix.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Acceptance_Matrix.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 224,
+   "token": "05 Delivery Evidence\\Acceptance\\W0-D_Acceptance_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W0-D_Acceptance_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 229,
+   "token": "05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verification_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verification_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 230,
+   "token": "05 Delivery Evidence/Acceptance/tablet-local/",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/tablet-local"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 233,
+   "token": "02 Planning/HCC_FirstParty_Implementation_Map_2026-10-25.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_FirstParty_Implementation_Map_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 244,
+   "token": "02 Planning\\agents\\W05_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W05_Briefs.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 250,
+   "token": "V:\\HCC-Migration-2026-10-25\\",
+   "status": "old-pc-V",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 250,
+   "token": "MIGRATION.md",
+   "status": "ok",
+   "where": "MIGRATION.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 250,
+   "token": "tools\\restore-on-new-pc.ps1",
+   "status": "ok",
+   "where": "tools/restore-on-new-pc.ps1"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 256,
+   "token": "D5_Roles.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_Roles.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 256,
+   "token": "D5_AC.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_AC.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 260,
+   "token": "02 Planning\\agents\\W05_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W05_Briefs.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 261,
+   "token": "HCC_Acceptance_Matrix.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Acceptance_Matrix.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 263,
+   "token": "05 Delivery Evidence\\Acceptance\\W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 263,
+   "token": "05 Delivery Evidence\\Assembly\\W05_DEC_Code_Review_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/W05_DEC_Code_Review_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 263,
+   "token": "08 Production\\",
+   "status": "ok",
+   "where": "08 Production"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 263,
+   "token": "08 Production\\ETP_Reuse_Pending.md",
+   "status": "ok",
+   "where": "08 Production/ETP_Reuse_Pending.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 265,
+   "token": "D5_Roles.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_Roles.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 265,
+   "token": "D5_AC.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_AC.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 266,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 267,
+   "token": "05 Delivery Evidence\\Assembly\\W05B_Payroll_Code_Review_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/W05B_Payroll_Code_Review_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 267,
+   "token": "02 Planning\\options\\",
+   "status": "ok",
+   "where": "02 Planning/options"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 268,
+   "token": "05 Delivery Evidence\\Acceptance\\W0-D_Acceptance_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W0-D_Acceptance_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 268,
+   "token": "BL023_Walkthrough_v8.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/BL023_Walkthrough_v8.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 269,
+   "token": "05 Delivery Evidence\\Assembly\\W05B_Payroll_Code_Review_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/W05B_Payroll_Code_Review_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 270,
+   "token": "08 Production\\",
+   "status": "ok",
+   "where": "08 Production"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 272,
+   "token": "05 Delivery Evidence\\Acceptance\\A11y_Performance_Audit_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/A11y_Performance_Audit_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 273,
+   "token": "08 Production\\WAVE1_PARALLEL_RULES.md",
+   "status": "ok",
+   "where": "08 Production/WAVE1_PARALLEL_RULES.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 274,
+   "token": "Fixes_Recheck_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/Fixes_Recheck_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 274,
+   "token": "02 Planning\\RBAC_Mismatch_Rulings_Proposed.md",
+   "status": "ok",
+   "where": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 275,
+   "token": "02 Planning\\RBAC_Mismatch_Rulings_Proposed.md",
+   "status": "ok",
+   "where": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 280,
+   "token": "tests/stream-schema8.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-schema8.mjs"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 280,
+   "token": "05 Delivery Evidence\\Acceptance\\APK_v9_Emulator_Retest.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/APK_v9_Emulator_Retest.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 280,
+   "token": "05 Delivery Evidence\\APK\\HCC-0.1.0-proto-debug-v9.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug-v9.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 281,
+   "token": "database/migrations/",
+   "status": "ok",
+   "where": "08 Production/database/migrations"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 285,
+   "token": "05 Delivery Evidence\\APK\\HCC-0.1.0-proto-debug.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 285,
+   "token": "-v8.apk",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 285,
+   "token": "-v9.apk",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 285,
+   "token": "04 Android\\README.md",
+   "status": "ok",
+   "where": "04 Android/README.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 289,
+   "token": "E:\\Projects\\HCC\\worktrees\\",
+   "status": "ok-abs",
+   "where": "E:\\Projects\\HCC\\worktrees\\"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 291,
+   "token": "appsettings.json",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Api/appsettings.json"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 292,
+   "token": "graphify-out\\GRAPH_REPORT.md",
+   "status": "ok",
+   "where": "graphify-out/GRAPH_REPORT.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 292,
+   "token": "graphify-out\\graph.html",
+   "status": "ok",
+   "where": "graphify-out/graph.html"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 296,
+   "token": "E:\\Projects\\HCC\\worktrees\\",
+   "status": "ok-abs",
+   "where": "E:\\Projects\\HCC\\worktrees\\"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 298,
+   "token": "Polish_Browser_Verification_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/Polish_Browser_Verification_2026-10-25.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 298,
+   "token": "APK_v10_Emulator_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/APK_v10_Emulator_Check.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 307,
+   "token": "INSTALL.md",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/INSTALL.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 308,
+   "token": "02 Planning\\agents\\W2_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W2_Briefs.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 317,
+   "token": "02 Planning\\agents\\W3_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W3_Briefs.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 318,
+   "token": "deployment\\windows\\Initialize-HccProperty.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Initialize-HccProperty.ps1"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 324,
+   "token": "02 Planning\\HCC_RBAC_Matrix_v2_Proposal.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_RBAC_Matrix_v2_Proposal.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 331,
+   "token": "05 Delivery Evidence\\Acceptance\\APK_v11_Emulator_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/APK_v11_Emulator_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 335,
+   "token": "02 Planning\\agents\\W4_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W4_Briefs.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 335,
+   "token": "03 Prototype\\src\\clients\\sync\\",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 335,
+   "token": "sync/reads.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/clients/sync/reads.ts"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 335,
+   "token": "tests/_role-reads.json",
+   "status": "ok",
+   "where": "03 Prototype/tests/_role-reads.json"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 335,
+   "token": "src/clients/sync/README.md",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/README.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 336,
+   "token": "08 Production\\deployment\\import-templates\\",
+   "status": "ok",
+   "where": "08 Production/deployment/import-templates"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 336,
+   "token": "05 Delivery Evidence\\Security\\Security_Review_2026-10-26.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Security/Security_Review_2026-10-26.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 337,
+   "token": "W4_E2E_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W4_E2E_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 337,
+   "token": "W4_E2E2_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W4_E2E2_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 340,
+   "token": "05 Delivery Evidence\\Acceptance\\APK_v12_Emulator_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/APK_v12_Emulator_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 343,
+   "token": "05 Delivery Evidence\\Acceptance\\APK_v12_Emulator_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/APK_v12_Emulator_Report.md"
+  },
+  {
+   "doc": "HANDOFF.md",
+   "line": 344,
+   "token": "02 Planning\\agents\\Audit_Prompt_Fable.md",
+   "status": "ok",
+   "where": "02 Planning/agents/Audit_Prompt_Fable.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 5,
+   "token": "03 Prototype/src/clients/sync/",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 5,
+   "token": "HANDOFF.md",
+   "status": "ok",
+   "where": "HANDOFF.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 5,
+   "token": "02 Planning/HCC_Implementation_Backlog.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Implementation_Backlog.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 5,
+   "token": "02 Planning/HCC_RBAC_Matrix_v2_Proposal.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_RBAC_Matrix_v2_Proposal.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 10,
+   "token": "HANDOFF.md",
+   "status": "ok",
+   "where": "HANDOFF.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 11,
+   "token": "02 Planning/HCC_Plan_FY_History_and_APK_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Plan_FY_History_and_APK_v1.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 12,
+   "token": "02 Planning/HCC_Mobile_Version_Plan_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Mobile_Version_Plan_v1.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 12,
+   "token": "02 Planning/modules/",
+   "status": "ok",
+   "where": "02 Planning/modules"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 13,
+   "token": "02 Planning/HCC_Decision_Register.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Decision_Register.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 13,
+   "token": "HCC_Prototype_Spec_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Prototype_Spec_v1.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 13,
+   "token": "HCC_RBAC_Matrix_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_RBAC_Matrix_v1.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 13,
+   "token": "HCC_Business_Workflow_Spec_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Business_Workflow_Spec_v1.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 13,
+   "token": "HCC_Fixture_and_Scenario_Catalog.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Fixture_and_Scenario_Catalog.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 13,
+   "token": "HCC_Acceptance_Matrix.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Acceptance_Matrix.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 13,
+   "token": "HCC_Implementation_Backlog.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Implementation_Backlog.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 14,
+   "token": "03 Prototype/README.md",
+   "status": "ok",
+   "where": "03 Prototype/README.md"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 17,
+   "token": "01 Research Stage/",
+   "status": "ok",
+   "where": "01 Research Stage"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 17,
+   "token": "02 Planning/",
+   "status": "ok",
+   "where": "02 Planning"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 17,
+   "token": "modules/",
+   "status": "ok",
+   "where": "02 Planning/modules"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 17,
+   "token": "03 Prototype/",
+   "status": "ok",
+   "where": "03 Prototype"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 17,
+   "token": "04 Android/",
+   "status": "ok",
+   "where": "04 Android"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 17,
+   "token": "05 Delivery Evidence/",
+   "status": "ok",
+   "where": "05 Delivery Evidence"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 20,
+   "token": "dist/index.html",
+   "status": "ok",
+   "where": "03 Prototype/dist/index.html"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 23,
+   "token": "src/services/mock/commands.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/services/mock/commands.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 24,
+   "token": "src/domain/",
+   "status": "ok",
+   "where": "03 Prototype/src/domain"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 24,
+   "token": "src/fixtures/",
+   "status": "ok",
+   "where": "03 Prototype/src/fixtures"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 24,
+   "token": "ext/",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/fixtures/ext/"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 24,
+   "token": "register.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/features/accounting/register.tsx | 03 Prototype/src/features/admin/register.tsx | 03 Prototype/src/features/assistant/register.tsx (+22)"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 24,
+   "token": "src/app/registry.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/registry.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 25,
+   "token": "src/domain/gst.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/gst.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 26,
+   "token": "src/domain/types.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/types.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 27,
+   "token": "src/fixtures/history/",
+   "status": "ok",
+   "where": "03 Prototype/src/fixtures/history"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 27,
+   "token": "generate.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/fixtures/history/generate.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 27,
+   "token": "operations.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/fixtures/history/operations.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 27,
+   "token": "src/app/storage.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/storage.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 28,
+   "token": "src/app/navmap.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/navmap.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 28,
+   "token": "SearchPalette.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/SearchPalette.tsx"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 29,
+   "token": "src/app/native.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/native.ts"
+  },
+  {
+   "doc": "CLAUDE.md",
+   "line": 31,
+   "token": "src/app/mobile/components.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/app/mobile/components.tsx"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 3,
+   "token": "V:\\HCC-Migration-2026-10-25\\",
+   "status": "old-pc-V",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 8,
+   "token": "HCC.bundle",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 9,
+   "token": "HCC-0.1.0-proto-debug-v8.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug-v8.apk"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 11,
+   "token": "claude-memory\\",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 12,
+   "token": "reference-inputs\\SCC-modules\\",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 13,
+   "token": "reference-inputs\\06-inventory\\",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 15,
+   "token": "restore-on-new-pc.ps1",
+   "status": "ok-suffix",
+   "where": "suffix:tools/restore-on-new-pc.ps1"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 15,
+   "token": "tools\\",
+   "status": "ok",
+   "where": "tools"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 16,
+   "token": "SHA256SUMS.txt",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 18,
+   "token": "04 Android\\.build\\hcc-cacerts.jks",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 21,
+   "token": "setup-work-pc.ps1",
+   "status": "ok-suffix",
+   "where": "suffix:tools/setup-work-pc.ps1"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 26,
+   "token": "V:\\ETP\\NEW-PC-HANDOFF.md",
+   "status": "old-pc-V",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 33,
+   "token": "HCC.bundle",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 33,
+   "token": "05 Delivery Evidence\\APK\\",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 36,
+   "token": "\\",
+   "status": "MISSING",
+   "where": ""
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 37,
+   "token": "02 Planning\\agents\\W05_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W05_Briefs.md"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 37,
+   "token": "V:\\Co work\\Projects\\Retail\\saagar-control-centre-phase1-clone\\www\\modules\\",
+   "status": "old-pc-V",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 38,
+   "token": "06 Reference Repositories\\",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 42,
+   "token": "HANDOFF.md",
+   "status": "ok",
+   "where": "HANDOFF.md"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 43,
+   "token": "02 Planning\\agents\\W0-D_Final_Emulator_Brief.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W0-D_Final_Emulator_Brief.md"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 44,
+   "token": "02 Planning\\agents\\W05_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W05_Briefs.md"
+  },
+  {
+   "doc": "MIGRATION.md",
+   "line": 44,
+   "token": "03 Prototype/src/features/closing/DayClosing.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/features/closing/DayClosing.tsx"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 3,
+   "token": "02 Planning/HCC_Production_Contracts_and_Schema_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Production_Contracts_and_Schema_v1.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 3,
+   "token": "HCC_Multi_Agent_Plan_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Multi_Agent_Plan_v1.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 8,
+   "token": "Hcc.slnx",
+   "status": "ok",
+   "where": "08 Production/Hcc.slnx"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 8,
+   "token": "Directory.Build.props",
+   "status": "ok",
+   "where": "08 Production/Directory.Build.props"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 8,
+   "token": "Directory.Packages.props",
+   "status": "ok",
+   "where": "08 Production/Directory.Packages.props"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 9,
+   "token": "src/Hcc.Contracts",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Contracts"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 10,
+   "token": "src/Hcc.Domain",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Domain"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 11,
+   "token": "src/Hcc.Application",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Application"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 12,
+   "token": "src/Hcc.Infrastructure.SqlServer",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Infrastructure.SqlServer"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 13,
+   "token": "src/Hcc.Api",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Api"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 14,
+   "token": "database/migrations",
+   "status": "ok",
+   "where": "08 Production/database/migrations"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 18,
+   "token": "src/Hcc.Application/Tax/README.md",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Application/Tax/README.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 18,
+   "token": "src/Hcc.Application/GuestIds/README.md",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Application/GuestIds/README.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 20,
+   "token": "tools/golden/export-golden.mjs",
+   "status": "ok",
+   "where": "08 Production/tools/golden/export-golden.mjs"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 20,
+   "token": "tests/Hcc.Platform.Tests/Golden/base-fixture.golden.json",
+   "status": "ok",
+   "where": "08 Production/tests/Hcc.Platform.Tests/Golden/base-fixture.golden.json"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 21,
+   "token": "src/Hcc.Operations",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Operations"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 21,
+   "token": "Backup-HccDatabase.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Backup-HccDatabase.ps1"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 22,
+   "token": "deployment/windows",
+   "status": "ok",
+   "where": "08 Production/deployment/windows"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 22,
+   "token": "INSTALL.md",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/INSTALL.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 22,
+   "token": "ANDROID_SERVER_ADDRESS.md",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/ANDROID_SERVER_ADDRESS.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 22,
+   "token": "tests\\Test-HccDeployment.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/tests/Test-HccDeployment.ps1"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 23,
+   "token": "third-party/",
+   "status": "ok",
+   "where": "08 Production/third-party"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 23,
+   "token": "packages.json",
+   "status": "ok-suffix",
+   "where": "suffix:08 Production/third-party/packages.json"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 23,
+   "token": "source-reuse.json",
+   "status": "ok-suffix",
+   "where": "suffix:07 Integration Lab/evidence/source-reuse.json | 08 Production/third-party/source-reuse.json"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 24,
+   "token": "ETP_Reuse_Pending.md",
+   "status": "ok",
+   "where": "08 Production/ETP_Reuse_Pending.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "appsettings.Production.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "deployment/windows/Initialize-HccProperty.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Initialize-HccProperty.ps1"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "03 Prototype/dist/production/index.html",
+   "status": "ok",
+   "where": "03 Prototype/dist/production/index.html"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "/index.html",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "Hosting/WebAppHosting.cs",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Api/Hosting/WebAppHosting.cs"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "deployment/windows/New-HccGuestIdKey.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/New-HccGuestIdKey.ps1"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "deployment/windows/INSTALL.md",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/INSTALL.md"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "Hosting/HccListeners.cs",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Api/Hosting/HccListeners.cs"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "Initialize-HccProperty.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Initialize-HccProperty.ps1"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "Hosting/GuestIdKeyFileCheck.cs",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Api/Hosting/GuestIdKeyFileCheck.cs"
+  },
+  {
+   "doc": "08 Production/README.md",
+   "line": 37,
+   "token": "New-HccBackupKey.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/New-HccBackupKey.ps1"
+  },
+  {
+   "doc": "03 Prototype/README.md",
+   "line": 5,
+   "token": "..\\02 Planning\\",
+   "status": "ok",
+   "where": "03 Prototype/../02 Planning"
+  },
+  {
+   "doc": "03 Prototype/README.md",
+   "line": 5,
+   "token": "..\\05 Delivery Evidence\\",
+   "status": "ok",
+   "where": "03 Prototype/../05 Delivery Evidence"
+  },
+  {
+   "doc": "03 Prototype/README.md",
+   "line": 20,
+   "token": "evidence/domain-tests.json",
+   "status": "ok",
+   "where": "03 Prototype/evidence/domain-tests.json"
+  },
+  {
+   "doc": "03 Prototype/README.md",
+   "line": 21,
+   "token": "dist/index.html",
+   "status": "ok",
+   "where": "03 Prototype/dist/index.html"
+  },
+  {
+   "doc": "03 Prototype/README.md",
+   "line": 80,
+   "token": "services/mock/commands.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/services/mock/commands.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 3,
+   "token": "02 Planning/agents/W4_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W4_Briefs.md"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 6,
+   "token": "empty.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/empty.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 14,
+   "token": "package.json",
+   "status": "ok",
+   "where": "03 Prototype/package.json"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 14,
+   "token": "tests/stream-clients.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-clients.mjs"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 20,
+   "token": "types.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/types.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 21,
+   "token": "registry.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/registry.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 22,
+   "token": "map.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/map.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 23,
+   "token": "runtime.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/runtime.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 24,
+   "token": "capabilities.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/capabilities.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 25,
+   "token": "auth.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/auth.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 26,
+   "token": "apk.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/apk.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 27,
+   "token": "cache.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/cache.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 28,
+   "token": "seal.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/seal.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 29,
+   "token": "empty.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/empty.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 30,
+   "token": "core.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/core.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 31,
+   "token": "payfiles.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/payfiles.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 31,
+   "token": "HrDesk.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/features/staff/HrDesk.tsx"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 32,
+   "token": "reservations.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/reservations.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 33,
+   "token": "instance.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/instance.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 33,
+   "token": "react.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/react.tsx"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 34,
+   "token": "../../../tests/_sync-harness.mjs",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/../../../tests/_sync-harness.mjs"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 51,
+   "token": "registry.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/registry.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 52,
+   "token": "tests/sync-reservations.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/sync-reservations.mjs"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 52,
+   "token": "_sync-harness.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/_sync-harness.mjs"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 64,
+   "token": "sync/reads.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/clients/sync/reads.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 64,
+   "token": "tests/_role-reads.json",
+   "status": "ok",
+   "where": "03 Prototype/tests/_role-reads.json"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 64,
+   "token": "tests/sync-roles.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/sync-roles.mjs"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 74,
+   "token": "runtime.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/runtime.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 74,
+   "token": "types.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/types.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 74,
+   "token": "map.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/map.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 74,
+   "token": "capabilities.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/capabilities.ts"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 74,
+   "token": "App.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/app/App.tsx"
+  },
+  {
+   "doc": "03 Prototype/src/clients/sync/README.md",
+   "line": 89,
+   "token": "capabilities.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/capabilities.ts"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 14,
+   "token": "04 Android\\.build\\hcc-cacerts.jks",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 19,
+   "token": "%USERPROFILE%\\.gradle",
+   "status": "n/a-installed-path",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 28,
+   "token": "04 Android\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+   "status": "ok",
+   "where": "04 Android/android/app/build/outputs/apk/debug/app-debug.apk"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 28,
+   "token": "05 Delivery Evidence\\APK\\HCC-0.1.0-proto-debug.apk",
+   "status": "ok",
+   "where": "05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 28,
+   "token": "android\\app\\build.gradle",
+   "status": "ok",
+   "where": "04 Android/android/app/build.gradle"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 32,
+   "token": "03 Prototype\\dist\\production\\index.html",
+   "status": "ok",
+   "where": "03 Prototype/dist/production/index.html"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 32,
+   "token": "build.gradle",
+   "status": "ok",
+   "where": "04 Android/android/app/build.gradle"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 39,
+   "token": "04 Android\\android\\app\\build\\outputs\\apk\\productionDebug\\app-productionDebug.apk",
+   "status": "ok",
+   "where": "04 Android/android/app/build/outputs/apk/productionDebug/app-productionDebug.apk"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 39,
+   "token": "..\\08 Production\\deployment\\windows\\certs\\HCC-Hotel-CA.cer",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 40,
+   "token": "android\\app\\src\\productionDebug\\res\\xml\\network_security_config.xml",
+   "status": "ok",
+   "where": "04 Android/android/app/src/productionDebug/res/xml/network_security_config.xml"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 40,
+   "token": "res\\raw\\hcc_hotel_ca.pem",
+   "status": "ok-suffix",
+   "where": "suffix:04 Android/android/app/src/productionDebug/res/raw/hcc_hotel_ca.pem | 05 Delivery Evidence/Audit/evidence/A10/unzip-server/res/raw/hcc_hotel_ca.pem"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 40,
+   "token": ".cer",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 40,
+   "token": ".pfx",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 41,
+   "token": "03 Prototype\\src\\clients\\sync\\auth.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/auth.ts"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 41,
+   "token": "apk.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/clients/sync/apk.ts"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 48,
+   "token": "src/productionDebug/res",
+   "status": "ok",
+   "where": "04 Android/android/app/src/productionDebug/res"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 50,
+   "token": "hcc_data_extraction_rules.xml",
+   "status": "ok-suffix",
+   "where": "suffix:04 Android/android/app/src/productionRelease/res/xml/hcc_data_extraction_rules.xml"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 50,
+   "token": "hcc_full_backup_rules.xml",
+   "status": "ok-suffix",
+   "where": "suffix:04 Android/android/app/src/productionRelease/res/xml/hcc_full_backup_rules.xml"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 50,
+   "token": "src/productionRelease/",
+   "status": "ok",
+   "where": "04 Android/android/app/src/productionRelease"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 51,
+   "token": "04 Android\\android\\keystore.properties",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 58,
+   "token": "hcc-release.jks",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 65,
+   "token": "storeFile=D:/HCC-Keys/hcc-release.jks",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 65,
+   "token": "android\\keystore.properties",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 65,
+   "token": "04 Android\\android\\app\\build\\outputs\\apk\\productionRelease\\app-productionRelease.apk",
+   "status": "ok",
+   "where": "04 Android/android/app/build/outputs/apk/productionRelease/app-productionRelease.apk"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 67,
+   "token": "deployment\\windows\\New-HccCertificate.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/New-HccCertificate.ps1"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 67,
+   "token": "deployment\\windows\\certs\\HCC-Hotel-CA.cer",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 67,
+   "token": ".pfx",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 67,
+   "token": ".pfx",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 67,
+   "token": "HCC-Hotel-CA.cer",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 75,
+   "token": "03 Prototype\\src\\app\\native.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/native.ts"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 76,
+   "token": "Documents/HCC/",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 82,
+   "token": "scripts/patch-printer.mjs",
+   "status": "ok",
+   "where": "04 Android/scripts/patch-printer.mjs"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 82,
+   "token": "scripts/copy-web.mjs",
+   "status": "ok",
+   "where": "04 Android/scripts/copy-web.mjs"
+  },
+  {
+   "doc": "04 Android/README.md",
+   "line": 86,
+   "token": "05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verification_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verification_2026-10-25.md"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 32,
+   "token": "appsettings.Production.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 33,
+   "token": "C:\\Program Files\\HCC\\Server\\appsettings.Production.json",
+   "status": "missing-abs",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 38,
+   "token": "appsettings.Production.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 47,
+   "token": "E:\\HCC-Hotel-CA.pfx",
+   "status": "missing-abs",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 50,
+   "token": "certs\\HCC-Hotel-CA.cer",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 85,
+   "token": "appsettings.Production.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 95,
+   "token": "appsettings.Production.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 95,
+   "token": "src\\Hcc.Application\\GuestIds\\README.md",
+   "status": "ok",
+   "where": "08 Production/src/Hcc.Application/GuestIds/README.md"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 102,
+   "token": "index.html",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/dist/index.html | 03 Prototype/dist/production/index.html | 04 Android/android/app/src/main/assets/public/index.html (+6)"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 102,
+   "token": "03 Prototype\\dist\\production\\index.html",
+   "status": "ok",
+   "where": "03 Prototype/dist/production/index.html"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 103,
+   "token": "C:\\Program Files\\HCC\\Server\\web\\index.html",
+   "status": "missing-abs",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 103,
+   "token": "appsettings.Production.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 118,
+   "token": "New-HccBackupKey.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/New-HccBackupKey.ps1"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 118,
+   "token": "Register-HccBackupTasks.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Register-HccBackupTasks.ps1"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 118,
+   "token": "hcc-ops.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 119,
+   "token": "Register-HccBackupTasks.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Register-HccBackupTasks.ps1"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 122,
+   "token": ".\\Restore-HccDrill.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Restore-HccDrill.ps1"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 127,
+   "token": "ANDROID_SERVER_ADDRESS.md",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/ANDROID_SERVER_ADDRESS.md"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 127,
+   "token": "HCC-Hotel-CA.cer",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 135,
+   "token": ".pfx",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 140,
+   "token": "appsettings.Production.json",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 146,
+   "token": "Initialize-HccDatabase.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Initialize-HccDatabase.ps1"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 146,
+   "token": "New-HccBackupKey.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/New-HccBackupKey.ps1"
+  },
+  {
+   "doc": "08 Production/deployment/windows/INSTALL.md",
+   "line": 146,
+   "token": "Register-HccBackupTasks.ps1",
+   "status": "ok",
+   "where": "08 Production/deployment/windows/Register-HccBackupTasks.ps1"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 17,
+   "token": "HCC_Multi_Agent_Plan_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Multi_Agent_Plan_v1.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 18,
+   "token": "HCC_Wave05_UI_Placement_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Wave05_UI_Placement_v1.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 18,
+   "token": "HCC_Master_Configuration_Design_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Master_Configuration_Design_v1.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 19,
+   "token": "02 Planning/agents/W05_Briefs.md",
+   "status": "ok",
+   "where": "02 Planning/agents/W05_Briefs.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 20,
+   "token": "02 Planning/options/T-01_T-02_Decision_Brief.md",
+   "status": "ok",
+   "where": "02 Planning/options/T-01_T-02_Decision_Brief.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 22,
+   "token": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "status": "ok",
+   "where": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 23,
+   "token": "05 Delivery Evidence/Acceptance/W0-D_Acceptance_Report.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W0-D_Acceptance_Report.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 39,
+   "token": "HCC_RBAC_Matrix_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_RBAC_Matrix_v1.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 77,
+   "token": "HCC_A2_Till_Decision_Pack.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_A2_Till_Decision_Pack.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 79,
+   "token": "HCC_FirstParty_Reuse_ETP_SCC_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_FirstParty_Reuse_ETP_SCC_v1.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 80,
+   "token": "HCC_Wave05_UI_Placement_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Wave05_UI_Placement_v1.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 82,
+   "token": "HCC_Master_Configuration_Design_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Master_Configuration_Design_v1.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 84,
+   "token": "02 Planning/options/T-01_T-02_Decision_Brief.md",
+   "status": "ok",
+   "where": "02 Planning/options/T-01_T-02_Decision_Brief.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Decision_Register.md",
+   "line": 88,
+   "token": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "status": "ok",
+   "where": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 12,
+   "token": "main.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/main.tsx"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 12,
+   "token": "domain.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain.ts"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 55,
+   "token": "05 Delivery Evidence/M3/",
+   "status": "MISSING",
+   "where": null
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 62,
+   "token": "05 Delivery Evidence/Acceptance/",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 63,
+   "token": "08 Production\\",
+   "status": "ok",
+   "where": "08 Production"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 70,
+   "token": "W05B_Payroll_Code_Review_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/W05B_Payroll_Code_Review_2026-10-25.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 81,
+   "token": "D5_AC.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_AC.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 82,
+   "token": "D5_AC.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_AC.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 83,
+   "token": "D5_Roles.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D5_Roles.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 84,
+   "token": "D6_TabS7.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D6_TabS7.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 84,
+   "token": "02 Planning\\options\\",
+   "status": "ok",
+   "where": "02 Planning/options"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 85,
+   "token": "D6_TabS7.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/D6_TabS7.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 85,
+   "token": "02 Planning\\options\\",
+   "status": "ok",
+   "where": "02 Planning/options"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 86,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 87,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 88,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 89,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 90,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 91,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 92,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 93,
+   "token": "W05_Browser_Check.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Acceptance/W05_Browser_Check.md"
+  },
+  {
+   "doc": "02 Planning/HCC_Implementation_Backlog.md",
+   "line": 94,
+   "token": "W05_DEC_Code_Review_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/W05_DEC_Code_Review_2026-10-25.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 3,
+   "token": "05 Delivery Evidence\\Assembly\\RBAC_Matrix_Check_2026-10-25.md",
+   "status": "ok",
+   "where": "05 Delivery Evidence/Assembly/RBAC_Matrix_Check_2026-10-25.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 3,
+   "token": "03 Prototype\\tests\\stream-rbac-matrix.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-rbac-matrix.mjs"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 4,
+   "token": "HCC_RBAC_Matrix_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_RBAC_Matrix_v1.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 4,
+   "token": "HCC_Prototype_Spec_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Prototype_Spec_v1.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 4,
+   "token": "HCC_Business_Workflow_Spec_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Business_Workflow_Spec_v1.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 41,
+   "token": "02 Planning\\HCC_RBAC_Matrix_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_RBAC_Matrix_v1.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 41,
+   "token": "02 Planning\\HCC_Prototype_Spec_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Prototype_Spec_v1.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 41,
+   "token": "fixtures\\base.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/fixtures/base.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 48,
+   "token": "services\\mock\\handlers\\folio.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/services/mock/handlers/folio.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 62,
+   "token": "handlers\\folio.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/handlers/folio.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 69,
+   "token": "handlers\\closing.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/handlers/closing.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 69,
+   "token": "commands.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/commands.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 108,
+   "token": "features\\admin\\register.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/features/admin/register.tsx"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 108,
+   "token": "app\\navmap.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/app/navmap.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 115,
+   "token": "handlers\\accounting.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/handlers/accounting.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 115,
+   "token": "handlers\\groups.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/handlers/groups.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 122,
+   "token": "handlers\\maintenance.ts",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/services/mock/handlers/maintenance.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 122,
+   "token": "domain\\streams\\maintenance.ts",
+   "status": "ok",
+   "where": "03 Prototype/src/domain/streams/maintenance.ts"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 129,
+   "token": "features\\accounting\\Accounting.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/features/accounting/Accounting.tsx"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 129,
+   "token": "Mobile.tsx",
+   "status": "ok-suffix",
+   "where": "suffix:03 Prototype/src/features/accounting/Mobile.tsx | 03 Prototype/src/features/groups/Mobile.tsx | 03 Prototype/src/features/services/Mobile.tsx"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 129,
+   "token": "features\\reports\\Reports.tsx",
+   "status": "ok",
+   "where": "03 Prototype/src/features/reports/Reports.tsx"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 134,
+   "token": "tests\\stream-rbac-matrix.mjs",
+   "status": "ok",
+   "where": "03 Prototype/tests/stream-rbac-matrix.mjs"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 135,
+   "token": "HCC_RBAC_Matrix_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_RBAC_Matrix_v1.md"
+  },
+  {
+   "doc": "02 Planning/RBAC_Mismatch_Rulings_Proposed.md",
+   "line": 135,
+   "token": "HCC_Prototype_Spec_v1.md",
+   "status": "ok",
+   "where": "02 Planning/HCC_Prototype_Spec_v1.md"
+  }
+ ]
+}

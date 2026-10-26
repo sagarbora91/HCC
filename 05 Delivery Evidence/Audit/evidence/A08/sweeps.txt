@@ -1,0 +1,994 @@
+A08 sweeps 2026-10-26T09:33:33.721Z node v25.9.0
+
+== Project references ==
+Hcc.Contracts -> [] packages [] frameworks []
+Hcc.Domain -> [Hcc.Contracts] packages [] frameworks []
+Hcc.Application -> [Hcc.Domain] packages [] frameworks []
+Hcc.Infrastructure.SqlServer -> [Hcc.Application] packages [Microsoft.Data.SqlClient] frameworks []
+Hcc.Operations -> [Hcc.Infrastructure.SqlServer] packages [] frameworks []
+Hcc.Api -> [Hcc.Infrastructure.SqlServer, Hcc.Operations, Hcc.Operations] packages [Microsoft.Extensions.Hosting.WindowsServices] frameworks []
+
+== Layering (using / qualified) hits ==
+
+== Write table (file -> table -> owner) ==
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlRetentionPurge.cs	[Access]	alias:top	[(dynamic)]	n=2	lines=23,25	tx=unknown
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs	[Access]	plat.audit_event	[Platform/P0]	n=1	lines=30	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs	[Access]	plat.credential	[Access]	n=2	lines=186,198	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs	[Access]	plat.session	[Access]	n=4	lines=209,273,274,290	tx=unknown|own connection, autocommit|own transaction
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs	[Access]	plat.device	[Access]	n=1	lines=211	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.app_user	[Access]	n=5	lines=78,112,229,486,684	tx=unknown|own transaction|runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.user_role	[Access]	n=4	lines=175,488,659,661	tx=unknown|own transaction|runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.session	[Access]	n=2	lines=230,376	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.user_exception	[Access]	n=2	lines=269,314	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.device	[Access]	n=2	lines=345,374	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.credential	[Access]	n=5	lines=489,676,729,732,778	tx=own transaction|runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.audit_event	[Platform/P0]	n=1	lines=490	tx=own transaction
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs	[Access]	plat.pin_history	[Access]	n=1	lines=734	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/AccountingVoucherProjector.cs	[Accounting]	acc.source	[Accounting]	n=1	lines=274	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/AccountingVoucherProjector.cs	[Accounting]	acc.source_entry	[Accounting]	n=1	lines=294	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/SqlAccountingStore.cs	[Accounting]	acc.mapping	[Accounting]	n=3	lines=127,129,131	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/SqlAccountingStore.cs	[Accounting]	acc.mapping_change	[Accounting]	n=1	lines=132	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/SqlAccountingStore.cs	[Accounting]	acc.period_lock	[Accounting]	n=2	lines=222,282	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/SqlAccountingStore.cs	[Accounting]	acc.locked_voucher	[Accounting]	n=1	lines=243	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/SqlAccountingStore.cs	[Accounting]	acc.locked_entry	[Accounting]	n=1	lines=260	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	bill.folio	[Billing+Payments]	n=2	lines=51,98	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	bill.charge	[Billing+Payments]	n=1	lines=140	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	pay.receipt	[Billing+Payments]	n=1	lines=161	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	bill.approval	[Billing+Payments]	n=2	lines=199,238	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	pay.till	[Billing+Payments]	n=1	lines=278	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	pay.shift	[Billing+Payments]	n=2	lines=328,348	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	pay.cash_movement	[Billing+Payments]	n=1	lines=375	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs	[Billing+Payments]	pay.shift_count	[Billing+Payments]	n=1	lines=405	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs	[Closing+Reporting]	cls.close_run	[Closing+Reporting]	n=2	lines=84,95	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs	[Closing+Reporting]	cls.close_step	[Closing+Reporting]	n=2	lines=106,108	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs	[Closing+Reporting]	cls.business_day	[Closing+Reporting]	n=1	lines=188	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs	[Closing+Reporting]	cls.closing_snapshot	[Closing+Reporting]	n=1	lines=196	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs	[Closing+Reporting]	inv.property	[Inventory+Reservations]	n=1	lines=224	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs	[Closing+Reporting]	cls.cashbook_day	[Closing+Reporting]	n=2	lines=262,265	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs	[Closing+Reporting]	cls.cashbook_event	[Closing+Reporting]	n=1	lines=267	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Commands/SqlCommandRunner.cs	[Platform/P0]	plat.audit_event	[Platform/P0]	n=1	lines=39	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Commands/SqlCommandRunner.cs	[Platform/P0]	plat.outbox	[Platform/P0]	n=1	lines=56	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Commands/SqlCommandRunner.cs	[Platform/P0]	plat.idempotency	[Platform/P0]	n=1	lines=122	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs	[Compliance]	cmp.filing	[Compliance]	n=2	lines=177,190	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs	[Compliance]	cmp.filing_reopened	[Compliance]	n=2	lines=200,202	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs	[Compliance]	cmp.obligation	[Compliance]	n=3	lines=244,269,304	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs	[Compliance]	cmp.obligation_rule	[Compliance]	n=2	lines=288,289	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs	[Compliance]	cmp.setting	[Compliance]	n=2	lines=325,341	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs	[Compliance]	cmp.ca_pack	[Compliance]	n=2	lines=360,362	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Configuration/SqlConfigurationStore.cs	[Configuration]	cfg.setting	[Configuration]	n=2	lines=92,94	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Configuration/SqlConfigurationStore.cs	[Configuration]	cfg.setting_change	[Configuration]	n=2	lines=128,154	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Configuration/SqlConfigurationStore.cs	[Configuration]	cfg.change_request	[Configuration]	n=2	lines=189,212	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs	[Customers]	crm.customer_merge	[Customers]	n=3	lines=179,204,252	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs	[Customers]	crm.customer_alias	[Customers]	n=2	lines=244,245	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs	[Customers]	crm.customer_tag	[Customers]	n=4	lines=246,249,273,285	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs	[Customers]	crm.customer_note	[Customers]	n=2	lines=250,302	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs	[Customers]	crm.customer_pref	[Customers]	n=4	lines=251,323,325,326	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Documents/SqlDocumentStore.cs	[Documents]	doc.id_capture	[Documents]	n=3	lines=88,135,163	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Documents/SqlDocumentStore.cs	[Documents]	gst.guest	[Stays+Housekeeping]	n=1	lines=150	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Documents/SqlDocumentStore.cs	[Documents]	doc.id_capture_image	[Documents]	n=2	lines=171,205	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Expenses/SqlExpenseStore.cs	[Expenses]	ops.expense	[Expenses]	n=2	lines=52,90	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlCompanyStore.cs	[Groups]	grp.company_account	[Groups]	n=3	lines=83,98,109	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlCompanyStore.cs	[Groups]	grp.company_limit_request	[Groups]	n=3	lines=118,130,164	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs	[Groups]	grp.group_account	[Groups]	n=4	lines=87,125,137,145	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs	[Groups]	grp.routing_rule	[Groups]	n=3	lines=190,192,195	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs	[Groups]	grp.member	[Groups]	n=2	lines=222,232	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs	[Groups]	grp.line_route	[Groups]	n=1	lines=242	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs	[Groups]	grp.master_entry	[Groups]	n=1	lines=262	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs	[Groups]	grp.attrition_request	[Groups]	n=2	lines=296,333	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/GuestIds/SqlGuestIdStore.cs	[Tax+GuestIds]	gst.guest_id_secret	[Tax+GuestIds]	n=2	lines=29,31	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs	[GuestServices]	ops.guest_service_setting	[GuestServices]	n=2	lines=97,111	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs	[GuestServices]	ops.guest_request	[GuestServices]	n=2	lines=181,215	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs	[GuestServices]	ops.guest_complaint	[GuestServices]	n=2	lines=290,320	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs	[GuestServices]	ops.lost_item	[GuestServices]	n=2	lines=393,424	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs	[GuestServices]	ops.guest_service_log	[GuestServices]	n=1	lines=467	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_template	[Handover]	n=3	lines=147,165,215	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_template_role	[Handover]	n=2	lines=178,191	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_template_item	[Handover]	n=2	lines=178,200	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_run	[Handover]	n=3	lines=232,290,300	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_run_role	[Handover]	n=1	lines=250	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_run_item	[Handover]	n=2	lines=259,277	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_note	[Handover]	n=3	lines=335,352,395	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs	[Handover]	ops.hov_carry	[Handover]	n=3	lines=353,385,405	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Housekeeping/SqlHousekeepingStore.cs	[Stays+Housekeeping]	ops.hk_task	[Stays+Housekeeping]	n=2	lines=64,134	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Housekeeping/SqlHousekeepingStore.cs	[Stays+Housekeeping]	inv.room	[Inventory+Reservations]	n=1	lines=106	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Housekeeping/SqlHousekeepingStore.cs	[Stays+Housekeeping]	ops.room_block	[Stays+Housekeeping]	n=2	lines=179,197	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Housekeeping/SqlStayoverStore.cs	[Stays+Housekeeping]	ops.hk_task	[Stays+Housekeeping]	n=1	lines=35	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	imp.batch	[Import]	n=2	lines=169,216	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	imp.ledger	[Import]	n=2	lines=228,230	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	imp.opening_balance	[Import]	n=2	lines=249,267	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	imp.opening_set	[Import]	n=2	lines=250,252	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	inv.room_type	[Inventory+Reservations]	n=2	lines=294,303	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	inv.room	[Inventory+Reservations]	n=1	lines=325	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	inv.type_night_count	[Inventory+Reservations]	n=1	lines=326	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	plat.app_user	[Access]	n=1	lines=350	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs	[Import]	plat.user_role	[Access]	n=1	lines=364	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryAllocator.cs	[Inventory+Reservations]	inv.room_night	[Inventory+Reservations]	n=2	lines=75,88	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryAllocator.cs	[Inventory+Reservations]	inv.group_block_type	[Inventory+Reservations]	n=2	lines=103,112	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs	[Inventory+Reservations]	bill.quote	[Inventory+Reservations]	n=2	lines=121,162	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs	[Inventory+Reservations]	bill.quote_night	[Inventory+Reservations]	n=1	lines=145	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs	[Inventory+Reservations]	inv.reservation	[Inventory+Reservations]	n=1	lines=225	tx=own connection, autocommit
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs	[Inventory+Reservations]	inv.group_block	[Inventory+Reservations]	n=2	lines=263,350	tx=runner tx (param)|unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs	[Inventory+Reservations]	inv.group_block_type	[Inventory+Reservations]	n=2	lines=293,349	tx=runner tx (param)|unknown
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs	[Inventory+Reservations]	plat.audit_event	[Platform/P0]	n=1	lines=394	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlRoomBlockPort.cs	[Inventory+Reservations]	inv.room_block	[Inventory+Reservations]	n=3	lines=74,139,159	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlRoomBlockPort.cs	[Inventory+Reservations]	inv.room_block_history	[Inventory+Reservations]	n=1	lines=173	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Invoices/SqlInvoiceStore.cs	[Invoices]	ivc.series	[Invoices]	n=2	lines=113,118	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Invoices/SqlInvoiceStore.cs	[Invoices]	ivc.invoice	[Invoices]	n=1	lines=138	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Invoices/SqlInvoiceStore.cs	[Invoices]	ivc.invoice_line	[Invoices]	n=1	lines=180	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Invoices/SqlInvoiceStore.cs	[Invoices]	ivc.credit_note_request	[Invoices]	n=2	lines=305,341	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Invoices/SqlInvoiceStore.cs	[Invoices]	ivc.credit_note	[Invoices]	n=1	lines=376	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Invoices/SqlInvoiceStore.cs	[Invoices]	ivc.credit_note_line	[Invoices]	n=1	lines=407	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.work_order	[Maintenance]	n=2	lines=99,156	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.work_order_part	[Maintenance]	n=2	lines=134,142	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.work_order_history	[Maintenance]	n=1	lines=193	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.spare	[Maintenance]	n=1	lines=237	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.asset	[Maintenance]	n=3	lines=257,284,295	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.vendor	[Maintenance]	n=2	lines=322,335	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.amc	[Maintenance]	n=2	lines=359,383	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	mnt.pm_plan	[Maintenance]	n=3	lines=416,439,450	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs	[Maintenance]	ops.hk_task	[Stays+Housekeeping]	n=3	lines=473,481,489	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs	[Messaging]	msg.template	[Messaging]	n=2	lines=32,187	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs	[Messaging]	msg.trigger_rule	[Messaging]	n=2	lines=36,201	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs	[Messaging]	msg.message	[Messaging]	n=4	lines=230,318,326,334	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs	[Messaging]	msg.consent	[Messaging]	n=2	lines=389,391	tx=unknown
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Migrations/MigrationRunner.cs	[Platform/P0]	dbo.schema_migration	[(unknown)]	n=1	lines=214	tx=own transaction
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/OtaChannelManagerProjector.cs	[Ota]	ota.push	[Ota]	n=1	lines=34	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/OtaChannelManagerProjector.cs	[Ota]	ota.channel	[Ota]	n=2	lines=35,36	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs	[Ota]	ota.channel	[Ota]	n=5	lines=87,134,167,183,199	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs	[Ota]	ota.channel_room_map	[Ota]	n=3	lines=113,154,180	tx=unknown|runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs	[Ota]	ota.message	[Ota]	n=4	lines=233,310,321,337	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs	[Ota]	ota.commission_entry	[Ota]	n=1	lines=354	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs	[Ota]	ota.push	[Ota]	n=1	lines=388	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs	[Ota]	ota.push_row	[Ota]	n=1	lines=404	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Outbox/OutboxConsumer.cs	[Platform/P0]	plat.consumer_dedup	[Platform/P0]	n=1	lines=105	tx=own transaction
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Outbox/OutboxConsumer.cs	[Platform/P0]	plat.outbox	[Platform/P0]	n=1	lines=106	tx=own transaction
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.payroll_anchor	[Payroll]	n=1	lines=102	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.department	[Payroll]	n=2	lines=128,129	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.staff	[Payroll]	n=2	lines=208,224	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.roster	[Payroll]	n=2	lines=292,293	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.attendance	[Payroll]	n=2	lines=310,313	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.leave_request	[Payroll]	n=2	lines=340,369	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.leave_policy	[Payroll]	n=2	lines=420,421	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.rate_version	[Payroll]	n=2	lines=459,460	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.rate_change	[Payroll]	n=1	lines=472	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.advance	[Payroll]	n=3	lines=500,518,532	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.advance_recovery	[Payroll]	n=2	lines=519,535	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.pay_run_line	[Payroll]	n=2	lines=588,641	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.pay_run	[Payroll]	n=4	lines=614,633,651,677	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.pay_run_bank	[Payroll]	n=1	lines=663	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.pay_run_unlock	[Payroll]	n=1	lines=684	tx=unknown
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	plat.audit_event	[Platform/P0]	n=1	lines=715	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.bank_file	[Payroll]	n=1	lines=726	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.payslip_send	[Payroll]	n=1	lines=753	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs	[Payroll]	hr.fnf	[Payroll]	n=2	lines=793,819	tx=unknown
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.outlet	[Pos]	n=1	lines=88	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.outlet_table	[Pos]	n=1	lines=102	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.menu_item_outlet	[Pos]	n=2	lines=165,173	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.menu_item	[Pos]	n=3	lines=185,209,232	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.check_order	[Pos]	n=4	lines=272,321,329,342	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.order_line	[Pos]	n=5	lines=358,369,377,386,419	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.kot	[Pos]	n=2	lines=402,437	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.counter	[Pos]	n=2	lines=453,454	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.bill	[Pos]	n=2	lines=464,506	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.receipt	[Pos]	n=1	lines=518	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs	[Pos]	pos.void_request	[Pos]	n=2	lines=548,585	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Reservations/SqlReservationStore.cs	[Inventory+Reservations]	inv.reservation	[Inventory+Reservations]	n=3	lines=45,102,148	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Reservations/SqlReservationStore.cs	[Inventory+Reservations]	inv.reservation_night	[Inventory+Reservations]	n=2	lines=123,302	tx=runner tx (param)|unknown
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs	[Setup]	inv.property	[Inventory+Reservations]	n=1	lines=81	tx=own transaction
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs	[Setup]	plat.app_user	[Access]	n=1	lines=85	tx=own transaction
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs	[Setup]	plat.user_role	[Access]	n=1	lines=87	tx=own transaction
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs	[Setup]	plat.credential	[Access]	n=1	lines=88	tx=own transaction
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs	[Setup]	plat.idempotency	[Platform/P0]	n=1	lines=137	tx=own transaction
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs	[Stays+Housekeeping]	inv.reservation_night	[Inventory+Reservations]	n=3	lines=96,108,109	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs	[Stays+Housekeeping]	gst.stay_segment	[Stays+Housekeeping]	n=2	lines=125,126	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs	[Stays+Housekeeping]	inv.reservation	[Inventory+Reservations]	n=2	lines=127,144	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs	[Stays+Housekeeping]	gst.stay	[Stays+Housekeeping]	n=2	lines=128,145	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs	[Stays+Housekeeping]	inv.room	[Inventory+Reservations]	n=1	lines=156	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs	[Stays+Housekeeping]	gst.stay_change	[Stays+Housekeeping]	n=1	lines=176	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs	[Stays+Housekeeping]	gst.guest	[Stays+Housekeeping]	n=2	lines=95,113	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs	[Stays+Housekeeping]	gst.guest_party	[Stays+Housekeeping]	n=2	lines=122,272	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs	[Stays+Housekeeping]	gst.registration	[Stays+Housekeeping]	n=2	lines=143,145	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs	[Stays+Housekeeping]	inv.reservation	[Inventory+Reservations]	n=1	lines=176	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs	[Stays+Housekeeping]	gst.stay	[Stays+Housekeeping]	n=2	lines=188,228	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs	[Stays+Housekeeping]	gst.stay_segment	[Stays+Housekeeping]	n=2	lines=191,231	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs	[Stays+Housekeeping]	inv.room	[Inventory+Reservations]	n=1	lines=246	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.stock	[Stock]	n=2	lines=99,436	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.item	[Stock]	n=3	lines=108,414,451	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.move	[Stock]	n=1	lines=118	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.grn	[Stock]	n=2	lines=139,141	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.grn_line	[Stock]	n=1	lines=157	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.loss	[Stock]	n=1	lines=169	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.setting	[Stock]	n=2	lines=198,199	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.laundry_batch	[Stock]	n=2	lines=211,279	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.laundry_line	[Stock]	n=2	lines=227,268	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.count	[Stock]	n=2	lines=320,382	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.count_line	[Stock]	n=1	lines=338	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs	[Stock]	stk.item_par	[Stock]	n=2	lines=465,473	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Tax/SqlGstMasterStore.cs	[Tax+GuestIds]	tax.gst_setting_version	[Tax+GuestIds]	n=2	lines=120,144	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Tax/SqlGstMasterStore.cs	[Tax+GuestIds]	tax.charge_gst	[Tax+GuestIds]	n=1	lines=160	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/WebBooking/SqlWebBookingStore.cs	[WebBooking]	web.request	[WebBooking]	n=2	lines=74,107	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/WebBooking/SqlWebBookingStore.cs	[WebBooking]	web.deposit_link	[WebBooking]	n=2	lines=151,187	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlRatePublicationPort.cs	[Yield]	inv.room_type_tariff	[Inventory+Reservations]	n=2	lines=28,29	tx=runner tx (param)
+CROSS	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlRatePublicationPort.cs	[Yield]	inv.stay_restriction	[Inventory+Reservations]	n=3	lines=51,53,70	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.settings	[Yield]	n=3	lines=21,336,349	tx=unknown|runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.rate_plan	[Yield]	n=2	lines=22,238	tx=unknown|runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.season	[Yield]	n=3	lines=264,275,317	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.season_type	[Yield]	n=3	lines=287,294,317	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.occ_rule	[Yield]	n=3	lines=365,376,393	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.restriction	[Yield]	n=3	lines=409,431,467	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.rate_override	[Yield]	n=3	lines=478,479,480	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.forecast	[Yield]	n=2	lines=499,500	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.history	[Yield]	n=1	lines=512	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.owned_tariff	[Yield]	n=2	lines=532,533	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.publish	[Yield]	n=1	lines=547	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.publish_row	[Yield]	n=1	lines=561	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.proposal	[Yield]	n=2	lines=579,672	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.proposal_type	[Yield]	n=1	lines=597	tx=runner tx (param)
+own  	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs	[Yield]	yld.proposal_rate	[Yield]	n=1	lines=605	tx=runner tx (param)
+
+== Writes outside a runner transaction ==
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlRetentionPurge.cs:23	RunOnceAsync	DELETE alias:top
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlRetentionPurge.cs:25	RunOnceAsync	DELETE alias:top
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:30	WriteAsync	INSERT plat.audit_event
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:186	TrySignInAsync	UPDATE plat.credential
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:198	TrySignInAsync	UPDATE plat.credential
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:209	TrySignInAsync	INSERT plat.session
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:211	TrySignInAsync	UPDATE plat.device
+own connection, autocommit	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:273	ValidateAsync	UPDATE plat.session
+own connection, autocommit	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:274	ValidateAsync	UPDATE plat.session
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlSessionService.cs:290	SignOutAsync	UPDATE plat.session
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:78	CreateUserAsync	INSERT plat.app_user
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:112	SetUserEnabledAsync	UPDATE plat.app_user
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:175	RevokeRoleAsync	DELETE plat.user_role
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:229	ChangeOwnCredentialAsync	UPDATE plat.app_user
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:230	ChangeOwnCredentialAsync	UPDATE plat.session
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:269	GrantExceptionAsync	INSERT plat.user_exception
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:314	RevokeExceptionAsync	UPDATE plat.user_exception
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:345	RegisterDeviceAsync	INSERT plat.device
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:374	RevokeDeviceAsync	UPDATE plat.device
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:376	RevokeDeviceAsync	UPDATE plat.session
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:486	BootstrapOwnerAsync	INSERT plat.app_user
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:488	BootstrapOwnerAsync	INSERT plat.user_role
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:489	BootstrapOwnerAsync	INSERT plat.credential
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:490	BootstrapOwnerAsync	INSERT plat.audit_event
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:778	VerifyCurrentSecretAsync	UPDATE plat.credential
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/AccountingVoucherProjector.cs:274	InsertSourceAsync	INSERT acc.source
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/AccountingVoucherProjector.cs:294	InsertSourceAsync	INSERT acc.source_entry
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Commands/SqlCommandRunner.cs:39	AuditAsync	INSERT plat.audit_event
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Commands/SqlCommandRunner.cs:56	PublishAsync	INSERT plat.outbox
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryAllocator.cs:75	ChangeAsync	DELETE inv.room_night
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryAllocator.cs:88	ChangeAsync	INSERT inv.room_night
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryAllocator.cs:103	ChangeAsync	UPDATE inv.group_block_type
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryAllocator.cs:112	ChangeAsync	UPDATE inv.group_block_type
+own connection, autocommit	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs:225	SweepAsync	UPDATE inv.reservation
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs:349	ReleaseAsync	UPDATE inv.group_block_type
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs:350	ReleaseAsync	UPDATE inv.group_block
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs:394	AuditAsync	INSERT plat.audit_event
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:32	EnsureDefaultsAsync	INSERT msg.template
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:36	EnsureDefaultsAsync	INSERT msg.trigger_rule
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:187	UpdateTemplateAsync	UPDATE msg.template
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:201	UpdateRuleAsync	UPDATE msg.trigger_rule
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:230	InsertMessageAsync	INSERT msg.message
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:318	AddBoostAsync	UPDATE msg.message
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:326	BlockMessageAsync	UPDATE msg.message
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:334	SetRetriedByAsync	UPDATE msg.message
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:389	UpsertConsentAsync	UPDATE msg.consent
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:391	UpsertConsentAsync	INSERT msg.consent
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Migrations/MigrationRunner.cs:214	MigrateAsync	INSERT dbo.schema_migration
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/OtaChannelManagerProjector.cs:34	ApplyAsync	UPDATE ota.push
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/OtaChannelManagerProjector.cs:35	ApplyAsync	UPDATE ota.channel
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/OtaChannelManagerProjector.cs:36	ApplyAsync	UPDATE ota.channel
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:113	WriteMapAsync	INSERT ota.channel_room_map
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Outbox/OutboxConsumer.cs:105	DeliverOnceAsync	INSERT plat.consumer_dedup
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Outbox/OutboxConsumer.cs:106	DeliverOnceAsync	UPDATE plat.outbox
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:102	LockAnchorAsync	INSERT hr.payroll_anchor
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:128	UpsertDepartmentAsync	UPDATE hr.department
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:129	UpsertDepartmentAsync	INSERT hr.department
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:208	InsertStaffAsync	INSERT hr.staff
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:224	UpdateStaffAsync	UPDATE hr.staff
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:292	SetRosterAsync	UPDATE hr.roster
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:293	SetRosterAsync	INSERT hr.roster
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:310	UpsertAttendanceAsync	UPDATE hr.attendance
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:313	UpsertAttendanceAsync	INSERT hr.attendance
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:340	InsertLeaveAsync	INSERT hr.leave_request
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:369	UpdateLeaveStatusAsync	UPDATE hr.leave_request
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:420	SetLeavePolicyAsync	UPDATE hr.leave_policy
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:421	SetLeavePolicyAsync	INSERT hr.leave_policy
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:459	ReplaceRateVersionsAsync	UPDATE hr.rate_version
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:460	ReplaceRateVersionsAsync	INSERT hr.rate_version
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:472	ReplaceRateVersionsAsync	INSERT hr.rate_change
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:500	InsertAdvanceAsync	INSERT hr.advance
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:518	RecordRecoveryAsync	UPDATE hr.advance
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:519	RecordRecoveryAsync	INSERT hr.advance_recovery
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:532	ReverseRunRecoveriesAsync	UPDATE hr.advance
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:535	ReverseRunRecoveriesAsync	UPDATE hr.advance_recovery
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:588	InsertLinesAsync	INSERT hr.pay_run_line
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:614	InsertRunAsync	INSERT hr.pay_run
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:633	ReplaceDraftAsync	UPDATE hr.pay_run
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:641	ReplaceDraftAsync	DELETE hr.pay_run_line
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:651	LockRunAsync	UPDATE hr.pay_run
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:663	LockRunAsync	INSERT hr.pay_run_bank
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:677	UnlockRunAsync	UPDATE hr.pay_run
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:684	UnlockRunAsync	INSERT hr.pay_run_unlock
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:715	AuditDownloadAsync	INSERT plat.audit_event
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:726	InsertBankFileAsync	INSERT hr.bank_file
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:753	InsertPayslipSendAsync	INSERT hr.payslip_send
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:793	InsertFnfAsync	INSERT hr.fnf
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:819	DecideFnfAsync	UPDATE hr.fnf
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Reservations/SqlReservationStore.cs:302	WriteNightsAsync	INSERT inv.reservation_night
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs:81	SetupAsync	INSERT inv.property
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs:85	SetupAsync	INSERT plat.app_user
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs:87	SetupAsync	INSERT plat.user_role
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs:88	SetupAsync	INSERT plat.credential
+own transaction	08 Production/src/Hcc.Infrastructure.SqlServer/Setup/SqlPropertySetup.cs:137	SetupAsync	INSERT plat.idempotency
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:21	?	INSERT yld.settings
+unknown	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:22	?	INSERT yld.rate_plan
+
+== Cross-module DDL in migrations ==
+1900_property_setup.sql:6	[Setup]	ADD	inv.property	(owned by Inventory+Reservations, created in 0002_core_inventory_billing_payments.sql)
+
+== Cross-module DML in migrations ==
+0901_payroll_rbac_seed.sql	[Payroll]	INSERT	plat.permission	(owned by Access)
+0901_payroll_rbac_seed.sql	[Payroll]	INSERT	plat.role_grant	(owned by Access)
+1001_accounting_rbac_seed.sql	[Accounting]	INSERT	plat.permission	(owned by Access)
+1001_accounting_rbac_seed.sql	[Accounting]	INSERT	plat.role_grant	(owned by Access)
+1101_compliance_rbac_seed.sql	[Compliance]	INSERT	plat.permission	(owned by Access)
+1101_compliance_rbac_seed.sql	[Compliance]	INSERT	plat.role_grant	(owned by Access)
+2001_web_booking_rbac_seed.sql	[WebBooking]	INSERT	plat.permission	(owned by Access)
+2001_web_booking_rbac_seed.sql	[WebBooking]	INSERT	plat.role_grant	(owned by Access)
+2101_documents_rbac_seed.sql	[Documents]	INSERT	plat.permission	(owned by Access)
+2101_documents_rbac_seed.sql	[Documents]	INSERT	plat.role_grant	(owned by Access)
+2201_groups_rbac_seed.sql	[Groups]	INSERT	plat.permission	(owned by Access)
+2201_groups_rbac_seed.sql	[Groups]	INSERT	plat.role_grant	(owned by Access)
+2301_customers_rbac_seed.sql	[Customers]	INSERT	plat.permission	(owned by Access)
+2301_customers_rbac_seed.sql	[Customers]	INSERT	plat.role_grant	(owned by Access)
+2401_invoices_rbac_seed.sql	[Invoices]	INSERT	plat.permission	(owned by Access)
+2401_invoices_rbac_seed.sql	[Invoices]	INSERT	plat.role_grant	(owned by Access)
+2501_ota_rbac_seed.sql	[Ota]	INSERT	plat.permission	(owned by Access)
+2501_ota_rbac_seed.sql	[Ota]	INSERT	plat.role_grant	(owned by Access)
+2701_import_rbac_seed.sql	[Import]	INSERT	plat.permission	(owned by Access)
+2701_import_rbac_seed.sql	[Import]	INSERT	plat.role_grant	(owned by Access)
+
+== Cross-module FKs ==
+0002_core_inventory_billing_payments.sql	bill.folio [Billing+Payments] -> inv.reservation [Inventory+Reservations]	later->earlier
+0100_access_identity.sql	plat.app_user [Access] -> inv.property [Inventory+Reservations]	later->earlier
+0100_access_identity.sql	plat.device [Access] -> inv.property [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	gst.guest [Stays+Housekeeping] -> inv.property [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	gst.registration [Stays+Housekeeping] -> inv.reservation [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	gst.stay [Stays+Housekeeping] -> inv.property [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	gst.stay [Stays+Housekeeping] -> inv.reservation [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	gst.stay [Stays+Housekeeping] -> bill.folio [Billing+Payments]	later->earlier
+0300_stays_housekeeping.sql	gst.stay_segment [Stays+Housekeeping] -> inv.room [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	ops.hk_task [Stays+Housekeeping] -> inv.property [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	ops.hk_task [Stays+Housekeeping] -> inv.room [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	ops.room_block [Stays+Housekeeping] -> inv.property [Inventory+Reservations]	later->earlier
+0300_stays_housekeeping.sql	ops.room_block [Stays+Housekeeping] -> inv.room [Inventory+Reservations]	later->earlier
+0301_stays_changes.sql	gst.stay_change [Stays+Housekeeping] -> inv.property [Inventory+Reservations]	later->earlier
+0301_stays_changes.sql	gst.stay_change [Stays+Housekeeping] -> inv.room [Inventory+Reservations]	later->earlier
+0301_stays_changes.sql	gst.stay_change [Stays+Housekeeping] -> inv.room [Inventory+Reservations]	later->earlier
+0400_billing_payments.sql	pay.till [Billing+Payments] -> inv.property [Inventory+Reservations]	later->earlier
+0400_billing_payments.sql	bill.approval [Billing+Payments] -> inv.property [Inventory+Reservations]	later->earlier
+0500_closing_reporting.sql	cls.close_run [Closing+Reporting] -> inv.property [Inventory+Reservations]	later->earlier
+0500_closing_reporting.sql	cls.business_day [Closing+Reporting] -> inv.property [Inventory+Reservations]	later->earlier
+0600_tax_gst_master.sql	tax.gst_setting_version [Tax+GuestIds] -> inv.property [Inventory+Reservations]	later->earlier
+0600_tax_gst_master.sql	tax.charge_gst [Tax+GuestIds] -> bill.charge [Billing+Payments]	later->earlier
+0601_guest_id_documents.sql	gst.guest_id_secret [Tax+GuestIds] -> gst.guest [Stays+Housekeeping]	later->earlier
+0700_configuration.sql	cfg.setting [Configuration] -> inv.property [Inventory+Reservations]	later->earlier
+0700_configuration.sql	cfg.setting_change [Configuration] -> plat.app_user [Access]	later->earlier
+0700_configuration.sql	cfg.setting_change [Configuration] -> plat.app_user [Access]	later->earlier
+0700_configuration.sql	cfg.setting_change [Configuration] -> plat.app_user [Access]	later->earlier
+0700_configuration.sql	cfg.change_request [Configuration] -> inv.property [Inventory+Reservations]	later->earlier
+0700_configuration.sql	cfg.change_request [Configuration] -> plat.app_user [Access]	later->earlier
+0700_configuration.sql	cfg.change_request [Configuration] -> plat.app_user [Access]	later->earlier
+0800_expenses.sql	ops.expense [Expenses] -> inv.property [Inventory+Reservations]	later->earlier
+0800_expenses.sql	ops.expense [Expenses] -> pay.till [Billing+Payments]	later->earlier
+0900_payroll.sql	hr.payroll_anchor [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.department [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.staff [Payroll] -> plat.app_user [Access]	later->earlier
+0900_payroll.sql	hr.leave_request [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.leave_policy [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.rate_version [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.rate_change [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.advance [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.pay_run [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+0900_payroll.sql	hr.fnf [Payroll] -> inv.property [Inventory+Reservations]	later->earlier
+1000_accounting.sql	acc.source [Accounting] -> inv.property [Inventory+Reservations]	later->earlier
+1000_accounting.sql	acc.source [Accounting] -> plat.outbox [Platform/P0]	later->earlier
+1000_accounting.sql	acc.mapping [Accounting] -> inv.property [Inventory+Reservations]	later->earlier
+1000_accounting.sql	acc.mapping_change [Accounting] -> inv.property [Inventory+Reservations]	later->earlier
+1000_accounting.sql	acc.period_lock [Accounting] -> inv.property [Inventory+Reservations]	later->earlier
+1100_compliance.sql	cmp.obligation [Compliance] -> inv.property [Inventory+Reservations]	later->earlier
+1100_compliance.sql	cmp.filing_reopened [Compliance] -> inv.property [Inventory+Reservations]	later->earlier
+1100_compliance.sql	cmp.setting [Compliance] -> inv.property [Inventory+Reservations]	later->earlier
+1100_compliance.sql	cmp.ca_pack [Compliance] -> inv.property [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.outlet [Pos] -> inv.property [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.menu_item [Pos] -> inv.property [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.counter [Pos] -> inv.property [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.check_order [Pos] -> inv.property [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.check_order [Pos] -> inv.room [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.check_order [Pos] -> gst.stay [Stays+Housekeeping]	later->earlier
+1200_pos.sql	pos.void_request [Pos] -> inv.property [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.bill [Pos] -> inv.property [Inventory+Reservations]	later->earlier
+1200_pos.sql	pos.bill [Pos] -> pay.till [Billing+Payments]	later->earlier
+1200_pos.sql	pos.bill [Pos] -> pay.shift [Billing+Payments]	later->earlier
+1200_pos.sql	pos.bill [Pos] -> pay.cash_movement [Billing+Payments]	later->earlier
+1200_pos.sql	pos.bill [Pos] -> gst.stay [Stays+Housekeeping]	later->earlier
+1200_pos.sql	pos.bill [Pos] -> bill.folio [Billing+Payments]	later->earlier
+1200_pos.sql	pos.bill [Pos] -> bill.charge [Billing+Payments]	later->earlier
+1300_maintenance.sql	mnt.vendor [Maintenance] -> inv.property [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.asset [Maintenance] -> inv.property [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.asset [Maintenance] -> inv.room [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.amc [Maintenance] -> inv.property [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.spare [Maintenance] -> inv.property [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.pm_plan [Maintenance] -> inv.property [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.work_order [Maintenance] -> inv.property [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.work_order [Maintenance] -> inv.room [Inventory+Reservations]	later->earlier
+1300_maintenance.sql	mnt.work_order [Maintenance] -> ops.hk_task [Stays+Housekeeping]	later->earlier
+1300_maintenance.sql	mnt.work_order [Maintenance] -> ops.room_block [Stays+Housekeeping]	later->earlier
+1400_stock.sql	stk.item [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.item_par [Stock] -> inv.room_type [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.setting [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.occupancy_history [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.grn [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.move [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.laundry_batch [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.loss [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1400_stock.sql	stk.count [Stock] -> inv.property [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.guest_service_setting [GuestServices] -> inv.property [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.guest_request [GuestServices] -> inv.property [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.guest_request [GuestServices] -> gst.stay [Stays+Housekeeping]	later->earlier
+1500_guest_services.sql	ops.guest_request [GuestServices] -> inv.room [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.guest_complaint [GuestServices] -> inv.property [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.guest_complaint [GuestServices] -> gst.stay [Stays+Housekeeping]	later->earlier
+1500_guest_services.sql	ops.guest_complaint [GuestServices] -> inv.room [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.guest_complaint [GuestServices] -> bill.folio [Billing+Payments]	later->earlier
+1500_guest_services.sql	ops.guest_complaint [GuestServices] -> bill.approval [Billing+Payments]	later->earlier
+1500_guest_services.sql	ops.guest_complaint [GuestServices] -> bill.charge [Billing+Payments]	later->earlier
+1500_guest_services.sql	ops.lost_item [GuestServices] -> inv.property [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.lost_item [GuestServices] -> inv.room [Inventory+Reservations]	later->earlier
+1500_guest_services.sql	ops.lost_item [GuestServices] -> gst.stay [Stays+Housekeeping]	later->earlier
+1600_messaging.sql	msg.template [Messaging] -> inv.property [Inventory+Reservations]	later->earlier
+1600_messaging.sql	msg.trigger_rule [Messaging] -> inv.property [Inventory+Reservations]	later->earlier
+1600_messaging.sql	msg.consent [Messaging] -> inv.property [Inventory+Reservations]	later->earlier
+1600_messaging.sql	msg.consent [Messaging] -> gst.guest [Stays+Housekeeping]	later->earlier
+1600_messaging.sql	msg.message [Messaging] -> inv.property [Inventory+Reservations]	later->earlier
+1600_messaging.sql	msg.message [Messaging] -> inv.reservation [Inventory+Reservations]	later->earlier
+1600_messaging.sql	msg.message [Messaging] -> gst.guest [Stays+Housekeeping]	later->earlier
+1700_handover.sql	ops.hov_template [Handover] -> inv.property [Inventory+Reservations]	later->earlier
+1700_handover.sql	ops.hov_run [Handover] -> inv.property [Inventory+Reservations]	later->earlier
+1700_handover.sql	ops.hov_note [Handover] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.settings [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.rate_plan [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.season [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.season_type [Yield] -> inv.room_type [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.occ_rule [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.restriction [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.restriction [Yield] -> inv.room_type [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.rate_override [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.rate_override [Yield] -> inv.room_type [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.forecast [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.owned_tariff [Yield] -> inv.room_type [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.proposal [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.proposal_type [Yield] -> inv.room_type [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.proposal_rate [Yield] -> inv.room_type [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.publish [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.publish_row [Yield] -> inv.room_type [Inventory+Reservations]	later->earlier
+1800_yield_tariffs.sql	yld.history [Yield] -> inv.property [Inventory+Reservations]	later->earlier
+2000_web_booking.sql	web.request [WebBooking] -> inv.property [Inventory+Reservations]	later->earlier
+2000_web_booking.sql	web.request [WebBooking] -> inv.room_type [Inventory+Reservations]	later->earlier
+2000_web_booking.sql	web.request [WebBooking] -> inv.reservation [Inventory+Reservations]	later->earlier
+2100_documents.sql	doc.id_capture [Documents] -> inv.property [Inventory+Reservations]	later->earlier
+2100_documents.sql	doc.id_capture [Documents] -> gst.guest [Stays+Housekeeping]	later->earlier
+2100_documents.sql	doc.id_capture [Documents] -> gst.stay [Stays+Housekeeping]	later->earlier
+2200_groups_billing.sql	grp.group_account [Groups] -> inv.property [Inventory+Reservations]	later->earlier
+2200_groups_billing.sql	grp.group_account [Groups] -> inv.group_block [Inventory+Reservations]	later->earlier
+2200_groups_billing.sql	grp.routing_rule [Groups] -> inv.reservation [Inventory+Reservations]	later->earlier
+2200_groups_billing.sql	grp.member [Groups] -> inv.reservation [Inventory+Reservations]	later->earlier
+2200_groups_billing.sql	grp.line_route [Groups] -> bill.charge [Billing+Payments]	later->earlier
+2200_groups_billing.sql	grp.line_route [Groups] -> inv.reservation [Inventory+Reservations]	later->earlier
+2200_groups_billing.sql	grp.master_entry [Groups] -> inv.reservation [Inventory+Reservations]	later->earlier
+2200_groups_billing.sql	grp.master_entry [Groups] -> bill.folio [Billing+Payments]	later->earlier
+2200_groups_billing.sql	grp.master_entry [Groups] -> pay.receipt [Billing+Payments]	later->earlier
+2202_groups_company.sql	grp.company_account [Groups] -> inv.property [Inventory+Reservations]	later->earlier
+2300_customers.sql	crm.customer_merge [Customers] -> inv.property [Inventory+Reservations]	later->earlier
+2300_customers.sql	crm.customer_alias [Customers] -> inv.property [Inventory+Reservations]	later->earlier
+2300_customers.sql	crm.customer_tag [Customers] -> inv.property [Inventory+Reservations]	later->earlier
+2300_customers.sql	crm.customer_note [Customers] -> inv.property [Inventory+Reservations]	later->earlier
+2300_customers.sql	crm.customer_pref [Customers] -> inv.property [Inventory+Reservations]	later->earlier
+2400_invoices.sql	ivc.series [Invoices] -> inv.property [Inventory+Reservations]	later->earlier
+2400_invoices.sql	ivc.invoice [Invoices] -> inv.property [Inventory+Reservations]	later->earlier
+2400_invoices.sql	ivc.credit_note_request [Invoices] -> inv.property [Inventory+Reservations]	later->earlier
+2400_invoices.sql	ivc.credit_note [Invoices] -> inv.property [Inventory+Reservations]	later->earlier
+2400_invoices.sql	ivc.credit_note_line [Invoices] -> bill.charge [Billing+Payments]	later->earlier
+2500_ota_channels.sql	ota.channel [Ota] -> inv.property [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.channel_room_map [Ota] -> inv.room_type [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.message [Ota] -> inv.property [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.message [Ota] -> inv.reservation [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.message [Ota] -> inv.room [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.message [Ota] -> plat.app_user [Access]	later->earlier
+2500_ota_channels.sql	ota.commission_entry [Ota] -> inv.property [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.commission_entry [Ota] -> inv.reservation [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.commission_entry [Ota] -> plat.app_user [Access]	later->earlier
+2500_ota_channels.sql	ota.push [Ota] -> inv.property [Inventory+Reservations]	later->earlier
+2500_ota_channels.sql	ota.push [Ota] -> plat.app_user [Access]	later->earlier
+2500_ota_channels.sql	ota.push_row [Ota] -> inv.room_type [Inventory+Reservations]	later->earlier
+2700_import.sql	imp.batch [Import] -> inv.property [Inventory+Reservations]	later->earlier
+2700_import.sql	imp.ledger [Import] -> inv.property [Inventory+Reservations]	later->earlier
+2700_import.sql	imp.opening_set [Import] -> inv.property [Inventory+Reservations]	later->earlier
+
+(all FK references found: 341)
+
+== Migration GO / transaction notes ==
+0001_platform.sql	[Platform/P0]	GO=8	explicitTx=false	proc/trig/fn/view=1	nonTransactional=-	CRLF=true
+0002_core_inventory_billing_payments.sql	[Platform/P0]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=true
+0100_access_identity.sql	[Access]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=true
+0101_access_rbac_seed.sql	[Access]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=true
+0200_inventory_reservations.sql	[Inventory+Reservations]	GO=7	explicitTx=true	proc/trig/fn/view=3	nonTransactional=-	CRLF=true
+0202_inventory_block_history.sql	[Inventory+Reservations]	GO=8	explicitTx=true	proc/trig/fn/view=1	nonTransactional=-	CRLF=true
+0203_reservation_company.sql	[Inventory+Reservations]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=true
+0300_stays_housekeeping.sql	[Stays+Housekeeping]	GO=1	explicitTx=false	proc/trig/fn/view=1	nonTransactional=-	CRLF=false
+0301_stays_changes.sql	[Stays+Housekeeping]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+0400_billing_payments.sql	[Billing+Payments]	GO=7	explicitTx=false	proc/trig/fn/view=3	nonTransactional=-	CRLF=true
+0500_closing_reporting.sql	[Closing+Reporting]	GO=3	explicitTx=false	proc/trig/fn/view=3	nonTransactional=-	CRLF=false
+0600_tax_gst_master.sql	[Tax+GuestIds]	GO=4	explicitTx=false	proc/trig/fn/view=1	nonTransactional=-	CRLF=false
+0601_guest_id_documents.sql	[Tax+GuestIds]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+0700_configuration.sql	[Configuration]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+0800_expenses.sql	[Expenses]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+0900_payroll.sql	[Payroll]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+0901_payroll_rbac_seed.sql	[Payroll]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1000_accounting.sql	[Accounting]	GO=5	explicitTx=false	proc/trig/fn/view=4	nonTransactional=-	CRLF=false
+1001_accounting_rbac_seed.sql	[Accounting]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1100_compliance.sql	[Compliance]	GO=2	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1101_compliance_rbac_seed.sql	[Compliance]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1200_pos.sql	[Pos]	GO=5	explicitTx=false	proc/trig/fn/view=1	nonTransactional=-	CRLF=true
+1201_pos_gst_split.sql	[Pos]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=true
+1300_maintenance.sql	[Maintenance]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1400_stock.sql	[Stock]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=true
+1500_guest_services.sql	[GuestServices]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1600_messaging.sql	[Messaging]	GO=2	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1700_handover.sql	[Handover]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1800_yield_tariffs.sql	[Yield]	GO=2	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+1900_property_setup.sql	[Setup]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2000_web_booking.sql	[WebBooking]	GO=4	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2001_web_booking_rbac_seed.sql	[WebBooking]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2100_documents.sql	[Documents]	GO=3	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2101_documents_rbac_seed.sql	[Documents]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2200_groups_billing.sql	[Groups]	GO=4	explicitTx=false	proc/trig/fn/view=2	nonTransactional=-	CRLF=false
+2201_groups_rbac_seed.sql	[Groups]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2202_groups_company.sql	[Groups]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2300_customers.sql	[Customers]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2301_customers_rbac_seed.sql	[Customers]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2400_invoices.sql	[Invoices]	GO=12	explicitTx=false	proc/trig/fn/view=6	nonTransactional=-	CRLF=false
+2401_invoices_rbac_seed.sql	[Invoices]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2500_ota_channels.sql	[Ota]	GO=4	explicitTx=false	proc/trig/fn/view=1	nonTransactional=-	CRLF=false
+2501_ota_rbac_seed.sql	[Ota]	GO=0	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2700_import.sql	[Import]	GO=1	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2701_import_rbac_seed.sql	[Import]	GO=0	explicitTx=true	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+2702_import_pos.sql	[Import]	GO=2	explicitTx=false	proc/trig/fn/view=0	nonTransactional=-	CRLF=false
+
+== Command-like records in Contracts: ExpectedVersion? ==
+NONE	SignInRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:15
+NONE	CreateUserRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:44
+has 	SetUserEnabledRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:48
+has 	AssignRoleRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:50
+has 	RevokeRoleRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:52
+has 	SetCredentialRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:55
+NONE	ChangeOwnCredentialRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:58
+has 	GrantExceptionRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:61
+has 	RevokeExceptionRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:63
+NONE	RegisterDeviceRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:67
+NONE	RevokeDeviceRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:72
+NONE	BootstrapOwnerRequest	08 Production/src/Hcc.Contracts/Access/AccessContracts.cs:85
+NONE	LockPeriodRequest	08 Production/src/Hcc.Contracts/Accounting/AccountingContracts.cs:70
+has 	UnlockPeriodRequest	08 Production/src/Hcc.Contracts/Accounting/AccountingContracts.cs:72
+NONE	SetLedgerMappingRequest	08 Production/src/Hcc.Contracts/Accounting/AccountingContracts.cs:74
+NONE	ResetLedgerMappingRequest	08 Production/src/Hcc.Contracts/Accounting/AccountingContracts.cs:76
+NONE	PostRoomNightRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:6
+NONE	PostChargeRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:12
+NONE	RecordReceiptRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:23
+has 	RequestAdjustmentRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:32
+has 	DecideApprovalRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:38
+has 	ExecuteAdjustmentRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:41
+NONE	CreateTillRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:47
+NONE	OpenShiftRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:52
+has 	SubmitShiftCountRequest	08 Production/src/Hcc.Contracts/Billing/BillingContracts.cs:55
+NONE	RunBusinessDayCloseRequest	08 Production/src/Hcc.Contracts/Closing/ClosingContracts.cs:13
+NONE	LockCashBookDayRequest	08 Production/src/Hcc.Contracts/Closing/ClosingContracts.cs:45
+NONE	ReopenCashBookDayRequest	08 Production/src/Hcc.Contracts/Closing/ClosingContracts.cs:48
+NONE	PostRoomNightsRequest	08 Production/src/Hcc.Contracts/Closing/ClosingContracts.cs:57
+NONE	MarkFiledRequest	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:8
+NONE	MarkNotApplicableRequest	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:10
+NONE	ReopenFilingRequest	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:12
+has 	SaveObligationRequest	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:15
+has 	ToggleObligationRequest	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:17
+has 	SaveSettingsRequest	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:19
+NONE	SeedDefaultsRequest	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:24
+NONE	SettingsDto	08 Production/src/Hcc.Contracts/Compliance/ComplianceContracts.cs:34
+has 	SetSettingRequest	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:9
+has 	DecideSettingRequestRequest	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:15
+NONE	WithdrawScheduledSettingRequest	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:20
+NONE	RevertSettingRequest	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:25
+NONE	ImportConfigurationRequest	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:28
+NONE	ImportSkip	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:30
+NONE	ImportPlanItem	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:37
+NONE	SettingHistoryEntry	08 Production/src/Hcc.Contracts/Configuration/ConfigurationContracts.cs:65
+NONE	MergeList	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:28
+NONE	ProposeCustomerMergeRequest	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:31
+has 	DecideCustomerMergeRequest	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:34
+NONE	AddCustomerTagRequest	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:36
+NONE	RemoveCustomerTagRequest	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:38
+NONE	AddCustomerNoteRequest	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:40
+has 	SetCustomerPreferencesRequest	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:43
+NONE	SetCustomerConsentRequest	08 Production/src/Hcc.Contracts/Customers/CustomerContracts.cs:46
+NONE	CaptureIdDocumentRequest	08 Production/src/Hcc.Contracts/Documents/DocumentContracts.cs:8
+has 	ConfirmIdCaptureRequest	08 Production/src/Hcc.Contracts/Documents/DocumentContracts.cs:17
+has 	RejectIdCaptureRequest	08 Production/src/Hcc.Contracts/Documents/DocumentContracts.cs:20
+NONE	ViewIdCaptureImageRequest	08 Production/src/Hcc.Contracts/Documents/DocumentContracts.cs:23
+NONE	RevealIdCaptureRequest	08 Production/src/Hcc.Contracts/Documents/DocumentContracts.cs:28
+NONE	PurgeIdCapturesRequest	08 Production/src/Hcc.Contracts/Documents/DocumentContracts.cs:33
+NONE	SubmitExpenseRequest	08 Production/src/Hcc.Contracts/Expenses/ExpensesContracts.cs:12
+has 	SubmitExpenseDraftRequest	08 Production/src/Hcc.Contracts/Expenses/ExpensesContracts.cs:15
+has 	DecideExpenseRequest	08 Production/src/Hcc.Contracts/Expenses/ExpensesContracts.cs:22
+has 	ReverseExpenseRequest	08 Production/src/Hcc.Contracts/Expenses/ExpensesContracts.cs:25
+has 	SaveCompanyRequest	08 Production/src/Hcc.Contracts/Groups/CompanyContracts.cs:10
+NONE	SetCompanyLimitRequest	08 Production/src/Hcc.Contracts/Groups/CompanyContracts.cs:14
+NONE	DecideCompanyLimitRequest	08 Production/src/Hcc.Contracts/Groups/CompanyContracts.cs:17
+NONE	CreateGroupRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:10
+has 	UpdateGroupRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:15
+has 	SetGroupRoutingRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:20
+has 	GroupMemberRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:23
+NONE	ApplyGroupRoutingRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:26
+has 	RerouteGroupChargeRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:29
+NONE	TransferGroupMemberRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:32
+NONE	RecordGroupReceiptRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:35
+has 	RequestGroupAttritionRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:38
+NONE	DecideGroupAttritionRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:41
+has 	SettleGroupRequest	08 Production/src/Hcc.Contracts/Groups/GroupContracts.cs:44
+NONE	RevealGuestIdRequest	08 Production/src/Hcc.Contracts/GuestIds/GuestIdContracts.cs:7
+NONE	RekeyGuestIdsRequest	08 Production/src/Hcc.Contracts/GuestIds/GuestIdContracts.cs:13
+NONE	LogServiceRequestRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:10
+has 	AssignServiceRequestRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:12
+has 	StartServiceRequestRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:14
+has 	CompleteServiceRequestRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:17
+has 	CancelServiceRequestRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:19
+NONE	LogComplaintRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:31
+has 	UpdateComplaintRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:33
+has 	ResolveComplaintRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:35
+has 	RecordComplaintFollowUpRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:38
+has 	OfferRecoveryDiscountRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:44
+NONE	LogLostItemRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:62
+has 	ClaimLostItemRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:64
+has 	HandOverLostItemRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:66
+has 	DisposeLostItemRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:68
+has 	SaveGuestServiceSettingsRequest	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:80
+NONE	RecordHistory	08 Production/src/Hcc.Contracts/GuestServices/GuestServicesContracts.cs:105
+has 	SaveHandoverTemplateRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:23
+has 	ToggleHandoverTemplateRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:30
+NONE	TickChecklistItemRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:33
+NONE	SubmitChecklistRunRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:35
+NONE	ReopenChecklistRunRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:38
+NONE	SubmitHandoverNoteRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:51
+NONE	AcknowledgeHandoverNoteRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:54
+NONE	CompleteCarryItemRequest	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:56
+NONE	ChecklistList	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:75
+NONE	OpenCarryList	08 Production/src/Hcc.Contracts/Handover/HandoverContracts.cs:79
+has 	TransitionHousekeepingTaskRequest	08 Production/src/Hcc.Contracts/Housekeeping/HousekeepingContracts.cs:7
+NONE	BlockRoomRequest	08 Production/src/Hcc.Contracts/Housekeeping/HousekeepingContracts.cs:27
+has 	UnblockRoomRequest	08 Production/src/Hcc.Contracts/Housekeeping/HousekeepingContracts.cs:32
+NONE	RequestRepairRequest	08 Production/src/Hcc.Contracts/Housekeeping/HousekeepingContracts.cs:37
+NONE	UploadImportBatchRequest	08 Production/src/Hcc.Contracts/Import/ImportContracts.cs:11
+NONE	CommitImportBatchRequest	08 Production/src/Hcc.Contracts/Import/ImportContracts.cs:14
+NONE	ImportRowError	08 Production/src/Hcc.Contracts/Import/ImportContracts.cs:16
+NONE	ImportCounts	08 Production/src/Hcc.Contracts/Import/ImportContracts.cs:21
+NONE	ImportBatchList	08 Production/src/Hcc.Contracts/Import/ImportContracts.cs:48
+NONE	ImportCreatedUser	08 Production/src/Hcc.Contracts/Import/ImportContracts.cs:51
+NONE	QuoteStayRequest	08 Production/src/Hcc.Contracts/Inventory/InventoryContracts.cs:51
+NONE	CreateGroupBlockRequest	08 Production/src/Hcc.Contracts/Inventory/InventoryContracts.cs:63
+has 	ReleaseGroupBlockRequest	08 Production/src/Hcc.Contracts/Inventory/InventoryContracts.cs:67
+NONE	IssueInvoiceRequest	08 Production/src/Hcc.Contracts/Invoices/InvoiceContracts.cs:10
+NONE	CreditLineRequest	08 Production/src/Hcc.Contracts/Invoices/InvoiceContracts.cs:15
+NONE	RequestCreditNoteRequest	08 Production/src/Hcc.Contracts/Invoices/InvoiceContracts.cs:21
+has 	DecideCreditNoteRequest	08 Production/src/Hcc.Contracts/Invoices/InvoiceContracts.cs:27
+NONE	CreateWorkOrderRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:9
+NONE	ConvertRepairRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:12
+has 	AssignWorkOrderRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:14
+has 	StartWorkOrderRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:16
+has 	HoldWorkOrderRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:18
+has 	AddWorkOrderPartRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:20
+has 	CompleteWorkOrderRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:22
+has 	VerifyWorkOrderRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:25
+has 	CancelWorkOrderRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:27
+has 	BlockWorkOrderRoomRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:30
+NONE	GeneratePmWorkOrdersRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:32
+has 	SavePmPlanRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:34
+has 	SaveAssetRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:36
+has 	SaveVendorRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:38
+has 	SaveAmcRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:41
+has 	ReceiveSpareRequest	08 Production/src/Hcc.Contracts/Maintenance/MaintenanceContracts.cs:43
+NONE	SendMessageRequest	08 Production/src/Hcc.Contracts/Messaging/MessagingContracts.cs:5
+NONE	RunMessagingTriggersRequest	08 Production/src/Hcc.Contracts/Messaging/MessagingContracts.cs:7
+NONE	SimulateMessageDeliveryRequest	08 Production/src/Hcc.Contracts/Messaging/MessagingContracts.cs:10
+NONE	RetryMessageRequest	08 Production/src/Hcc.Contracts/Messaging/MessagingContracts.cs:12
+NONE	SetMessagingConsentRequest	08 Production/src/Hcc.Contracts/Messaging/MessagingContracts.cs:14
+has 	UpdateMessageTemplateRequest	08 Production/src/Hcc.Contracts/Messaging/MessagingContracts.cs:16
+has 	UpdateMessageRuleRequest	08 Production/src/Hcc.Contracts/Messaging/MessagingContracts.cs:18
+has 	SaveChannelRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:65
+has 	SetChannelStatusRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:68
+NONE	SetChannelStopSellRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:71
+NONE	PushChannelRatesRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:73
+NONE	ImportChannelMessageRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:80
+NONE	QueueSimulatedMessageRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:83
+NONE	PullChannelMessagesRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:86
+has 	AcceptChannelMessageRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:89
+has 	RejectChannelMessageRequest	08 Production/src/Hcc.Contracts/Ota/OtaContracts.cs:91
+NONE	SaveDepartmentRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:8
+has 	SaveStaffRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:17
+has 	SetStaffActiveRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:25
+NONE	SetRosterRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:27
+NONE	CopyRosterWeekRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:32
+NONE	MarkAttendanceRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:35
+NONE	RequestLeaveRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:39
+has 	DecideLeaveRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:43
+has 	CancelLeaveRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:45
+NONE	SetLeavePolicyRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:47
+NONE	GiveAdvanceRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:51
+NONE	SetStatutoryRatesRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:56
+NONE	PreparePayRunRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:64
+has 	LockPayRunRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:68
+has 	UnlockPayRunRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:71
+NONE	IssueBankFileRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:74
+NONE	SendPayslipRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:79
+NONE	PrepareFnfRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:85
+has 	DecideFnfRequest	08 Production/src/Hcc.Contracts/Payroll/PayrollContracts.cs:90
+NONE	CreateOutletRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:6
+has 	SaveMenuItemRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:9
+NONE	SetMenuItemAvailabilityRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:13
+NONE	OpenCheckRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:20
+has 	AddCheckItemRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:23
+has 	SetCheckItemQtyRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:26
+has 	SendKotRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:29
+NONE	AdvanceKotRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:32
+has 	SettleCheckRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:38
+has 	VoidCheckItemRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:41
+has 	VoidBillRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:44
+NONE	DecideVoidRequest	08 Production/src/Hcc.Contracts/Pos/PosContracts.cs:47
+NONE	CreateReservationRequest	08 Production/src/Hcc.Contracts/Reservations/ReservationContracts.cs:30
+has 	AmendReservationRequest	08 Production/src/Hcc.Contracts/Reservations/ReservationContracts.cs:43
+has 	CancelReservationRequest	08 Production/src/Hcc.Contracts/Reservations/ReservationContracts.cs:48
+has 	ConfirmHoldRequest	08 Production/src/Hcc.Contracts/Reservations/ReservationContracts.cs:51
+NONE	SetupPropertyRequest	08 Production/src/Hcc.Contracts/Setup/SetupContracts.cs:11
+has 	MoveRoomRequest	08 Production/src/Hcc.Contracts/Stays/StayChangeContracts.cs:18
+has 	ExtendStayRequest	08 Production/src/Hcc.Contracts/Stays/StayChangeContracts.cs:24
+has 	ShortenStayRequest	08 Production/src/Hcc.Contracts/Stays/StayChangeContracts.cs:27
+has 	EarlyDepartureRequest	08 Production/src/Hcc.Contracts/Stays/StayChangeContracts.cs:30
+has 	RegisterGuestRequest	08 Production/src/Hcc.Contracts/Stays/StaysContracts.cs:33
+has 	CheckInRequest	08 Production/src/Hcc.Contracts/Stays/StaysContracts.cs:38
+has 	CheckoutStayRequest	08 Production/src/Hcc.Contracts/Stays/StaysContracts.cs:43
+has 	SaveGuestProfileRequest	08 Production/src/Hcc.Contracts/Stays/StaysContracts.cs:78
+NONE	ReceiveGrnRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:18
+NONE	GrnLineRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:20
+NONE	IssueStockRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:25
+NONE	UseStockRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:28
+NONE	RoomChangeRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:31
+NONE	LaundryLineRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:35
+NONE	SendLaundryRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:37
+has 	ReceiveLaundryRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:44
+NONE	RecordLossRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:49
+NONE	SubmitCountRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:54
+has 	DecideCountRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:59
+NONE	CreateStockItemRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:64
+has 	SetStockItemRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:70
+NONE	SetStockSettingsRequest	08 Production/src/Hcc.Contracts/Stock/StockContracts.cs:73
+NONE	SetGstSettingRequest	08 Production/src/Hcc.Contracts/Tax/TaxContracts.cs:7
+NONE	WithdrawGstSettingRequest	08 Production/src/Hcc.Contracts/Tax/TaxContracts.cs:10
+NONE	SubmitWebRequest	08 Production/src/Hcc.Contracts/WebBooking/WebBookingContracts.cs:41
+NONE	ConfirmWebRequestRequest	08 Production/src/Hcc.Contracts/WebBooking/WebBookingContracts.cs:69
+NONE	DeclineWebRequestRequest	08 Production/src/Hcc.Contracts/WebBooking/WebBookingContracts.cs:76
+NONE	CreateWebDepositLinkRequest	08 Production/src/Hcc.Contracts/WebBooking/WebBookingContracts.cs:81
+NONE	MarkWebDepositPaidRequest	08 Production/src/Hcc.Contracts/WebBooking/WebBookingContracts.cs:88
+has 	SaveYieldPlanRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:25
+has 	SaveYieldSeasonRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:27
+has 	SetYieldDayOfWeekRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:30
+has 	SaveYieldOccupancyRuleRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:32
+has 	SetYieldGuardrailsRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:34
+has 	SaveYieldRestrictionRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:36
+NONE	SetYieldOverrideRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:40
+NONE	SetYieldForecastRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:44
+NONE	PublishYieldRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:46
+NONE	ProposeYieldPublishRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:48
+has 	DecideYieldProposalRequest	08 Production/src/Hcc.Contracts/Yield/YieldContracts.cs:50
+
+== Tables with ROWVERSION ==
+inv.property (0002_core_inventory_billing_payments.sql)
+inv.room (0002_core_inventory_billing_payments.sql)
+inv.reservation (0002_core_inventory_billing_payments.sql)
+bill.folio (0002_core_inventory_billing_payments.sql)
+pay.receipt (0002_core_inventory_billing_payments.sql)
+plat.app_user (0100_access_identity.sql)
+inv.group_block (0200_inventory_reservations.sql)
+bill.quote (0200_inventory_reservations.sql)
+gst.guest (0300_stays_housekeeping.sql)
+gst.registration (0300_stays_housekeeping.sql)
+gst.stay (0300_stays_housekeeping.sql)
+ops.hk_task (0300_stays_housekeeping.sql)
+ops.room_block (0300_stays_housekeeping.sql)
+pay.till (0400_billing_payments.sql)
+pay.shift (0400_billing_payments.sql)
+bill.approval (0400_billing_payments.sql)
+cls.close_run (0500_closing_reporting.sql)
+cls.cashbook_day (0500_closing_reporting.sql)
+cfg.setting (0700_configuration.sql)
+cfg.change_request (0700_configuration.sql)
+ops.expense (0800_expenses.sql)
+hr.payroll_anchor (0900_payroll.sql)
+hr.department (0900_payroll.sql)
+hr.staff (0900_payroll.sql)
+hr.leave_request (0900_payroll.sql)
+hr.advance (0900_payroll.sql)
+hr.pay_run (0900_payroll.sql)
+hr.fnf (0900_payroll.sql)
+acc.mapping (1000_accounting.sql)
+acc.period_lock (1000_accounting.sql)
+cmp.obligation (1100_compliance.sql)
+cmp.setting (1100_compliance.sql)
+pos.outlet (1200_pos.sql)
+pos.menu_item (1200_pos.sql)
+pos.check_order (1200_pos.sql)
+pos.void_request (1200_pos.sql)
+mnt.vendor (1300_maintenance.sql)
+mnt.asset (1300_maintenance.sql)
+mnt.amc (1300_maintenance.sql)
+mnt.spare (1300_maintenance.sql)
+mnt.pm_plan (1300_maintenance.sql)
+mnt.work_order (1300_maintenance.sql)
+stk.item (1400_stock.sql)
+stk.setting (1400_stock.sql)
+stk.laundry_batch (1400_stock.sql)
+stk.count (1400_stock.sql)
+ops.guest_service_setting (1500_guest_services.sql)
+ops.guest_request (1500_guest_services.sql)
+ops.guest_complaint (1500_guest_services.sql)
+ops.lost_item (1500_guest_services.sql)
+msg.template (1600_messaging.sql)
+msg.trigger_rule (1600_messaging.sql)
+msg.consent (1600_messaging.sql)
+msg.message (1600_messaging.sql)
+ops.hov_template (1700_handover.sql)
+ops.hov_run (1700_handover.sql)
+ops.hov_note (1700_handover.sql)
+yld.settings (1800_yield_tariffs.sql)
+yld.rate_plan (1800_yield_tariffs.sql)
+yld.season (1800_yield_tariffs.sql)
+yld.occ_rule (1800_yield_tariffs.sql)
+yld.restriction (1800_yield_tariffs.sql)
+yld.proposal (1800_yield_tariffs.sql)
+web.request (2000_web_booking.sql)
+web.deposit_link (2000_web_booking.sql)
+doc.id_capture (2100_documents.sql)
+grp.group_account (2200_groups_billing.sql)
+grp.attrition_request (2200_groups_billing.sql)
+grp.company_account (2202_groups_company.sql)
+crm.customer_merge (2300_customers.sql)
+crm.customer_pref (2300_customers.sql)
+ivc.credit_note_request (2400_invoices.sql)
+ota.channel (2500_ota_channels.sql)
+ota.message (2500_ota_channels.sql)
+imp.batch (2700_import.sql)
+
+== UPDATEs on rowversion tables: row_ver compared in the statement? ==
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:112	SetUserEnabledAsync	plat.app_user	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:229	ChangeOwnCredentialAsync	plat.app_user	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Access/SqlUserAdministration.cs:684	BumpAsync	plat.app_user	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/SqlAccountingStore.cs:129	WriteMappingAsync	acc.mapping	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Accounting/SqlAccountingStore.cs:282	UnlockAsync	acc.period_lock	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs:98	TouchFolioAsync	bill.folio	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs:238	UpdateApprovalAsync	bill.approval	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Billing/SqlBillingStore.cs:348	UpdateShiftAsync	pay.shift	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs:95	UpdateRunAsync	cls.close_run	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs:224	AdvanceBusinessDateAsync	inv.property	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Closing/SqlClosingStore.cs:262	SetCashBookLockAsync	cls.cashbook_day	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs:269	UpdateObligationAsync	cmp.obligation	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs:304	SetActiveAsync	cmp.obligation	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Compliance/SqlComplianceStore.cs:341	UpdateSettingsAsync	cmp.setting	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Configuration/SqlConfigurationStore.cs:92	TouchSettingAsync	cfg.setting	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Configuration/SqlConfigurationStore.cs:212	DecideRequestAsync	cfg.change_request	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs:204	RejectMergeAsync	crm.customer_merge	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs:252	ApproveMergeAsync	crm.customer_merge	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Customers/SqlCustomerStore.cs:325	SetPrefAsync	crm.customer_pref	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Documents/SqlDocumentStore.cs:135	SetStatusAsync	doc.id_capture	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Documents/SqlDocumentStore.cs:150	SetGuestIdProfileAsync	gst.guest	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Documents/SqlDocumentStore.cs:163	MarkPurgedAsync	doc.id_capture	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Expenses/SqlExpenseStore.cs:90	UpdateAsync	ops.expense	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlCompanyStore.cs:98	UpdateAsync	grp.company_account	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlCompanyStore.cs:109	SetLimitAsync	grp.company_account	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs:125	UpdateGroupAsync	grp.group_account	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs:137	TouchGroupAsync	grp.group_account	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs:145	SettleGroupAsync	grp.group_account	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlGroupStore.cs:333	DecideAttritionAsync	grp.attrition_request	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs:111	SaveSettingsAsync	ops.guest_service_setting	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs:215	UpdateRequestAsync	ops.guest_request	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs:320	UpdateComplaintAsync	ops.guest_complaint	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/GuestServices/SqlGuestServicesStore.cs:424	UpdateItemAsync	ops.lost_item	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs:165	UpdateTemplateAsync	ops.hov_template	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs:215	SetTemplateActiveAsync	ops.hov_template	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs:290	SubmitRunAsync	ops.hov_run	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs:300	ReopenRunAsync	ops.hov_run	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs:352	ReplaceNoteAsync	ops.hov_note	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Handover/SqlHandoverStore.cs:395	AcknowledgeNoteAsync	ops.hov_note	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Housekeeping/SqlHousekeepingStore.cs:64	UpdateTaskAsync	ops.hk_task	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Housekeeping/SqlHousekeepingStore.cs:106	SetRoomHkAsync	inv.room	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Housekeeping/SqlHousekeepingStore.cs:197	ReleaseBlockAsync	ops.room_block	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Import/SqlImportStore.cs:216	MarkCommittedAsync	imp.batch	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs:162	MarkQuoteUsedAsync	bill.quote	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs:225	SweepAsync	inv.reservation	own connection, autocommit
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Inventory/SqlInventoryStore.cs:350	ReleaseAsync	inv.group_block	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Invoices/SqlInvoiceStore.cs:341	UpdateRequestAsync	ivc.credit_note_request	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:156	UpdateOrderAsync	mnt.work_order	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:237	SetSpareStockAsync	mnt.spare	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:284	UpdateAssetAsync	mnt.asset	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:295	SetAssetStatusAsync	mnt.asset	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:335	UpdateVendorAsync	mnt.vendor	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:383	UpdateAmcAsync	mnt.amc	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:439	UpdatePlanAsync	mnt.pm_plan	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:450	SetPlanLastDoneAsync	mnt.pm_plan	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:473	SetRepairAssigneeAsync	ops.hk_task	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:481	SetRepairStartedAsync	ops.hk_task	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Maintenance/SqlMaintenanceStore.cs:489	SetRepairDoneAsync	ops.hk_task	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:187	UpdateTemplateAsync	msg.template	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:201	UpdateRuleAsync	msg.trigger_rule	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:318	AddBoostAsync	msg.message	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:326	BlockMessageAsync	msg.message	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:334	SetRetriedByAsync	msg.message	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Messaging/SqlMessagingData.cs:389	UpsertConsentAsync	msg.consent	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/OtaChannelManagerProjector.cs:35	ApplyAsync	ota.channel	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/OtaChannelManagerProjector.cs:36	ApplyAsync	ota.channel	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:134	UpdateChannelAsync	ota.channel	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:167	SetStatusAsync	ota.channel	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:183	SetStopSellAsync	ota.channel	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:199	MarkPushedAsync	ota.channel	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:310	ActivateAsync	ota.message	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:321	SetMessageStateAsync	ota.message	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Ota/SqlOtaStore.cs:337	UpdateStayAsync	ota.message	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:128	UpsertDepartmentAsync	hr.department	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:224	UpdateStaffAsync	hr.staff	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:369	UpdateLeaveStatusAsync	hr.leave_request	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:518	RecordRecoveryAsync	hr.advance	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:532	ReverseRunRecoveriesAsync	hr.advance	unknown
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:633	ReplaceDraftAsync	hr.pay_run	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:651	LockRunAsync	hr.pay_run	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:677	UnlockRunAsync	hr.pay_run	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Payroll/SqlPayrollStore.cs:819	DecideFnfAsync	hr.fnf	unknown
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs:209	UpdateMenuItemAsync	pos.menu_item	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs:232	SetAvailabilityAsync	pos.menu_item	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs:321	TouchOrderAsync	pos.check_order	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs:329	SetOrderStatusAsync	pos.check_order	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs:342	SetPendingVoidAsync	pos.check_order	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Pos/SqlPosStore.cs:585	DecideVoidRequestAsync	pos.void_request	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Reservations/SqlReservationStore.cs:102	ChangeAsync	inv.reservation	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Reservations/SqlReservationStore.cs:148	SetStatusAsync	inv.reservation	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs:127	ApplyMoveAsync	inv.reservation	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs:128	ApplyMoveAsync	gst.stay	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs:144	ApplyDeparturesAsync	inv.reservation	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs:145	ApplyDeparturesAsync	gst.stay	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStayChangeStore.cs:156	SetRoomHkAsync	inv.room	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs:113	UpdateGuestAsync	gst.guest	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs:143	UpsertRegistrationAsync	gst.registration	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs:176	SetReservationStatusAsync	inv.reservation	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs:228	CheckOutStayAsync	gst.stay	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stays/SqlStaysStore.cs:246	SetRoomHkAsync	inv.room	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs:108	SetCostAsync	stk.item	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs:198	UpsertSettingsAsync	stk.setting	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs:279	CompleteBatchAsync	stk.laundry_batch	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs:382	DecideCountAsync	stk.count	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Stock/SqlStockStore.cs:451	UpdateItemAsync	stk.item	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/WebBooking/SqlWebBookingStore.cs:107	SetStateAsync	web.request	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/WebBooking/SqlWebBookingStore.cs:187	SetLinkStateAsync	web.deposit_link	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:238	UpdatePlanAsync	yld.rate_plan	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:275	SaveSeasonAsync	yld.season	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:336	SetDowAsync	yld.settings	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:349	SetGuardAsync	yld.settings	runner tx (param)
+checked 	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:376	SaveOccRuleAsync	yld.occ_rule	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:431	SaveRestrictionAsync	yld.restriction	runner tx (param)
+NO-CHECK	08 Production/src/Hcc.Infrastructure.SqlServer/Yield/SqlYieldStore.cs:672	CompleteProposalAsync	yld.proposal	runner tx (param)
+
+Routes: 291 total, 133 POST, 126 contain 'commands'

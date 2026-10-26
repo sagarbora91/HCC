@@ -1,0 +1,1748 @@
+[
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 114,
+  "verb": "POST",
+  "route": "/auth/sign-in"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 154,
+  "verb": "POST",
+  "route": "/auth/sign-out"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 162,
+  "verb": "POST",
+  "route": "/auth/bootstrap-owner"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 170,
+  "verb": "GET",
+  "route": "/capabilities"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 174,
+  "verb": "GET",
+  "route": "/directory"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 178,
+  "verb": "GET",
+  "route": "/users"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 180,
+  "verb": "GET",
+  "route": "/devices"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 183,
+  "verb": "GET",
+  "route": "/roles"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 185,
+  "verb": "GET",
+  "route": "/exceptions"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 187,
+  "verb": "GET",
+  "route": "/audit"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs",
+  "line": 206,
+  "verb": "POST",
+  "route": "/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 36,
+  "verb": "GET",
+  "route": "/accounting/days/{date}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 38,
+  "verb": "GET",
+  "route": "/accounting/days"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 40,
+  "verb": "GET",
+  "route": "/accounting/trial-balance"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 42,
+  "verb": "GET",
+  "route": "/accounting/mapping"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 44,
+  "verb": "GET",
+  "route": "/accounting/mapping/history"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 46,
+  "verb": "GET",
+  "route": "/accounting/chart"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 48,
+  "verb": "GET",
+  "route": "/accounting/locks/history"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 50,
+  "verb": "GET",
+  "route": "/accounting/export/csv"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs",
+  "line": 55,
+  "verb": "GET",
+  "route": "/accounting/export/tally"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs",
+  "line": 39,
+  "verb": "GET",
+  "route": "/folios/{folioId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs",
+  "line": 41,
+  "verb": "GET",
+  "route": "/folios/by-reservation/{reservationId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs",
+  "line": 57,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 51,
+  "verb": "GET",
+  "route": "/closing/preflight"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 53,
+  "verb": "GET",
+  "route": "/closing/business-date"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 55,
+  "verb": "GET",
+  "route": "/closing/records"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 57,
+  "verb": "GET",
+  "route": "/closing/runs/{date}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 59,
+  "verb": "GET",
+  "route": "/closing/snapshots/{date}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 61,
+  "verb": "GET",
+  "route": "/cashbook/{date}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 63,
+  "verb": "GET",
+  "route": "/cashbook"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 65,
+  "verb": "GET",
+  "route": "/cashbook/{date}/book"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs",
+  "line": 67,
+  "verb": "GET",
+  "route": "/reports/daily"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 29,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 31,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 33,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 37,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 39,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 41,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 43,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 46,
+  "verb": "GET",
+  "route": "/compliance/calendar"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 51,
+  "verb": "GET",
+  "route": "/compliance/due-this-week"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 56,
+  "verb": "GET",
+  "route": "/compliance/badge"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 61,
+  "verb": "GET",
+  "route": "/compliance/obligations"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs",
+  "line": 66,
+  "verb": "GET",
+  "route": "/compliance/ca-packs"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 48,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 50,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 52,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 54,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 56,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 59,
+  "verb": "GET",
+  "route": "/configuration/groups"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 64,
+  "verb": "GET",
+  "route": "/configuration/groups/{groupId}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 69,
+  "verb": "GET",
+  "route": "/configuration/search"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 74,
+  "verb": "GET",
+  "route": "/configuration/history"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 79,
+  "verb": "GET",
+  "route": "/configuration/requests"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 84,
+  "verb": "GET",
+  "route": "/configuration/modules"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 89,
+  "verb": "GET",
+  "route": "/configuration/values"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 94,
+  "verb": "GET",
+  "route": "/configuration/export"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs",
+  "line": 99,
+  "verb": "POST",
+  "route": "/configuration/import-plan"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 27,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 29,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 31,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 33,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 37,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 39,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 42,
+  "verb": "GET",
+  "route": "/customers"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 47,
+  "verb": "GET",
+  "route": "/customers/profile"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 52,
+  "verb": "GET",
+  "route": "/customers/duplicates"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs",
+  "line": 57,
+  "verb": "GET",
+  "route": "/customers/merges"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 37,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 39,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 41,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 46,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 51,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 53,
+  "verb": "GET",
+  "route": "/documents/id-captures"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs",
+  "line": 58,
+  "verb": "GET",
+  "route": "/documents/id-captures/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 28,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 30,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 32,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 34,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 36,
+  "verb": "GET",
+  "route": "/expenses"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 41,
+  "verb": "GET",
+  "route": "/expenses/summary"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 46,
+  "verb": "GET",
+  "route": "/expenses/options"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs",
+  "line": 51,
+  "verb": "GET",
+  "route": "/expenses/{expenseId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 33,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 37,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 39,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 41,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 43,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 45,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 47,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 49,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 51,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 53,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 55,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 57,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 59,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 61,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 63,
+  "verb": "GET",
+  "route": "/groups/companies"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 68,
+  "verb": "GET",
+  "route": "/groups"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs",
+  "line": 73,
+  "verb": "GET",
+  "route": "/groups/{groupId:long}/statement"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestIdEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestIdEndpoints.cs",
+  "line": 40,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 28,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 52,
+  "verb": "GET",
+  "route": "/requests"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 57,
+  "verb": "GET",
+  "route": "/requests/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 62,
+  "verb": "GET",
+  "route": "/complaints"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 67,
+  "verb": "GET",
+  "route": "/complaints/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 72,
+  "verb": "GET",
+  "route": "/lost-items"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 77,
+  "verb": "GET",
+  "route": "/settings"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 82,
+  "verb": "GET",
+  "route": "/history/{kind}/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 87,
+  "verb": "GET",
+  "route": "/histories/{kind}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 92,
+  "verb": "GET",
+  "route": "/stays"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 97,
+  "verb": "GET",
+  "route": "/reports/response"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 102,
+  "verb": "GET",
+  "route": "/reports/complaints"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs",
+  "line": 107,
+  "verb": "GET",
+  "route": "/reports/lost-found"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 28,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 30,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 32,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 34,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 36,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 38,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 40,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 42,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 45,
+  "verb": "GET",
+  "route": "/handover/checklists"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 50,
+  "verb": "GET",
+  "route": "/handover/notes"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 55,
+  "verb": "GET",
+  "route": "/handover/carry"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 60,
+  "verb": "GET",
+  "route": "/handover/templates"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs",
+  "line": 65,
+  "verb": "GET",
+  "route": "/handover/dashboard"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs",
+  "line": 40,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs",
+  "line": 42,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs",
+  "line": 44,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs",
+  "line": 46,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs",
+  "line": 48,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs",
+  "line": 50,
+  "verb": "GET",
+  "route": "/rooms/board"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs",
+  "line": 55,
+  "verb": "GET",
+  "route": "/housekeeping/tasks"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs",
+  "line": 29,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs",
+  "line": 31,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs",
+  "line": 33,
+  "verb": "GET",
+  "route": "/import/masters"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs",
+  "line": 38,
+  "verb": "GET",
+  "route": "/import/batches"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs",
+  "line": 43,
+  "verb": "GET",
+  "route": "/import/batches/{batchId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs",
+  "line": 48,
+  "verb": "GET",
+  "route": "/import/opening-balances"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs",
+  "line": 53,
+  "verb": "GET",
+  "route": "/import/ledgers"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs",
+  "line": 30,
+  "verb": "GET",
+  "route": "/availability"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs",
+  "line": 38,
+  "verb": "GET",
+  "route": "/room-blocks/history"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs",
+  "line": 43,
+  "verb": "GET",
+  "route": "/rooms/status"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs",
+  "line": 49,
+  "verb": "POST",
+  "route": "/commands/QuoteStay"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs",
+  "line": 51,
+  "verb": "POST",
+  "route": "/commands/CreateGroupBlock"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs",
+  "line": 53,
+  "verb": "POST",
+  "route": "/commands/ReleaseGroupBlock"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 29,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 31,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 33,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 36,
+  "verb": "GET",
+  "route": "/invoices"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 41,
+  "verb": "GET",
+  "route": "/invoices/gstr1"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 46,
+  "verb": "GET",
+  "route": "/invoices/by-source/{sourceKind}/{sourceId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 51,
+  "verb": "GET",
+  "route": "/invoices/{invoiceId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 56,
+  "verb": "GET",
+  "route": "/invoices/{invoiceId:long}/document"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 62,
+  "verb": "GET",
+  "route": "/credit-notes/{creditNoteId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 67,
+  "verb": "GET",
+  "route": "/credit-notes/{creditNoteId:long}/document"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs",
+  "line": 73,
+  "verb": "GET",
+  "route": "/credit-note-requests"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 32,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 34,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 36,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 38,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 40,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 42,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 44,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 46,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 48,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 50,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 52,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 54,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 56,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 58,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 60,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 62,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 65,
+  "verb": "GET",
+  "route": "/maintenance/work-orders"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 70,
+  "verb": "GET",
+  "route": "/maintenance/work-orders/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 75,
+  "verb": "GET",
+  "route": "/maintenance/registers"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 80,
+  "verb": "GET",
+  "route": "/maintenance/amcs"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs",
+  "line": 85,
+  "verb": "GET",
+  "route": "/maintenance/report"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 33,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 37,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 39,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 41,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 43,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 45,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 48,
+  "verb": "GET",
+  "route": "/messaging/messages"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 53,
+  "verb": "GET",
+  "route": "/messaging/messages/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 58,
+  "verb": "GET",
+  "route": "/messaging/summary"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 63,
+  "verb": "GET",
+  "route": "/messaging/templates"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 68,
+  "verb": "GET",
+  "route": "/messaging/rules"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 73,
+  "verb": "GET",
+  "route": "/messaging/consents"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs",
+  "line": 78,
+  "verb": "GET",
+  "route": "/messaging/consent/{guestId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs",
+  "line": 42,
+  "verb": "GET",
+  "route": "/ota/channels"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs",
+  "line": 47,
+  "verb": "GET",
+  "route": "/ota/messages"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs",
+  "line": 52,
+  "verb": "GET",
+  "route": "/ota/messages/{id:long}/check"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs",
+  "line": 57,
+  "verb": "GET",
+  "route": "/ota/channels/{id:int}/push-preview"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs",
+  "line": 62,
+  "verb": "GET",
+  "route": "/ota/pushes"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs",
+  "line": 67,
+  "verb": "GET",
+  "route": "/ota/commission"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs",
+  "line": 72,
+  "verb": "GET",
+  "route": "/ota/reconciliation"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs",
+  "line": 17,
+  "verb": "GET",
+  "route": "/shifts/{shiftId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs",
+  "line": 19,
+  "verb": "GET",
+  "route": "/cashier/collections"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs",
+  "line": 21,
+  "verb": "GET",
+  "route": "/cashier/desk"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs",
+  "line": 23,
+  "verb": "GET",
+  "route": "/cashier/folios"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 25,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 55,
+  "verb": "GET",
+  "route": "/payroll/staff"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 60,
+  "verb": "GET",
+  "route": "/payroll/staff/{staffId:long}/leave-balance"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 65,
+  "verb": "GET",
+  "route": "/payroll/rates/{month}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 70,
+  "verb": "GET",
+  "route": "/payroll/runs/{month}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 75,
+  "verb": "GET",
+  "route": "/payroll/runs/{month}/register.csv"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 80,
+  "verb": "GET",
+  "route": "/payroll/runs/{month}/statutory.csv"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 85,
+  "verb": "GET",
+  "route": "/payroll/run/{runId:long}/bank-files/{issueNo:int}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 90,
+  "verb": "GET",
+  "route": "/payroll/run/{runId:long}/bank-files/latest"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 95,
+  "verb": "GET",
+  "route": "/payroll/payslips/{runId:long}/{staffId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 100,
+  "verb": "GET",
+  "route": "/payroll/board"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs",
+  "line": 105,
+  "verb": "GET",
+  "route": "/payroll/my/payslips"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 46,
+  "verb": "GET",
+  "route": "/pos/checks/{orderId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 48,
+  "verb": "GET",
+  "route": "/pos/checks"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 50,
+  "verb": "GET",
+  "route": "/pos/outlets"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 52,
+  "verb": "GET",
+  "route": "/pos/menu"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 54,
+  "verb": "GET",
+  "route": "/pos/kitchen"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 56,
+  "verb": "GET",
+  "route": "/pos/day-summary"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 58,
+  "verb": "GET",
+  "route": "/pos/checks/closed"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 60,
+  "verb": "GET",
+  "route": "/pos/void-requests"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 62,
+  "verb": "GET",
+  "route": "/pos/in-house"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 64,
+  "verb": "GET",
+  "route": "/pos/till"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 66,
+  "verb": "GET",
+  "route": "/pos/close-blockers"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs",
+  "line": 80,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs",
+  "line": 28,
+  "verb": "POST",
+  "route": "/commands/CreateReservation"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs",
+  "line": 30,
+  "verb": "POST",
+  "route": "/commands/AmendReservation"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs",
+  "line": 32,
+  "verb": "POST",
+  "route": "/commands/CancelReservation"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs",
+  "line": 34,
+  "verb": "POST",
+  "route": "/commands/MarkNoShow"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs",
+  "line": 36,
+  "verb": "POST",
+  "route": "/commands/ConfirmHold"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs",
+  "line": 38,
+  "verb": "GET",
+  "route": "/reservations"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs",
+  "line": 44,
+  "verb": "GET",
+  "route": "/reservations/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/SetupEndpoints.cs",
+  "line": 47,
+  "verb": "GET",
+  "route": "/status"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/SetupEndpoints.cs",
+  "line": 52,
+  "verb": "POST",
+  "route": "/SetupProperty"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 33,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 37,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 39,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 41,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 43,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 45,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 47,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 49,
+  "verb": "GET",
+  "route": "/guests"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs",
+  "line": 54,
+  "verb": "GET",
+  "route": "/guests/{guestId:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 28,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 30,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 32,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 34,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 36,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 38,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 40,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 42,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 44,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 46,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 48,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 50,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 53,
+  "verb": "GET",
+  "route": "/stock/items"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 58,
+  "verb": "GET",
+  "route": "/stock/settings"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 63,
+  "verb": "GET",
+  "route": "/stock/alerts"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 68,
+  "verb": "GET",
+  "route": "/stock/laundry"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 73,
+  "verb": "GET",
+  "route": "/stock/counts"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 78,
+  "verb": "GET",
+  "route": "/stock/losses"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 83,
+  "verb": "GET",
+  "route": "/stock/moves"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs",
+  "line": 88,
+  "verb": "GET",
+  "route": "/stock/consumption"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/TaxEndpoints.cs",
+  "line": 33,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/TaxEndpoints.cs",
+  "line": 35,
+  "verb": "POST",
+  "route": "/commands/"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/TaxEndpoints.cs",
+  "line": 37,
+  "verb": "GET",
+  "route": "/tax/gst"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 41,
+  "verb": "GET",
+  "route": "/quote"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 45,
+  "verb": "POST",
+  "route": "/requests"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 51,
+  "verb": "GET",
+  "route": "/deposit/{token}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 55,
+  "verb": "POST",
+  "route": "/commands/ConfirmWebRequest"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 57,
+  "verb": "POST",
+  "route": "/commands/DeclineWebRequest"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 59,
+  "verb": "POST",
+  "route": "/commands/CreateWebDepositLink"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 61,
+  "verb": "POST",
+  "route": "/commands/MarkWebDepositPaid"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 63,
+  "verb": "GET",
+  "route": "/web-booking/requests"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs",
+  "line": 68,
+  "verb": "GET",
+  "route": "/web-booking/requests/{id:long}"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs",
+  "line": 43,
+  "verb": "GET",
+  "route": "/yield/calendar"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs",
+  "line": 48,
+  "verb": "GET",
+  "route": "/yield/config"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs",
+  "line": 53,
+  "verb": "GET",
+  "route": "/yield/quote"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs",
+  "line": 58,
+  "verb": "GET",
+  "route": "/yield/proposals"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs",
+  "line": 63,
+  "verb": "GET",
+  "route": "/yield/publishes"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/HccComposition.cs",
+  "line": 88,
+  "verb": "GET",
+  "route": "/system/health"
+ },
+ {
+  "file": "08 Production/src/Hcc.Api/Hosting/HccHosting.cs",
+  "line": 234,
+  "verb": "GET",
+  "route": "/system/discovery"
+ }
+]

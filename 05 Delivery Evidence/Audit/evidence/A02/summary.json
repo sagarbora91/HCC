@@ -1,0 +1,10 @@
+{
+ "nodeVersion": "v25.9.0",
+ "universe": 189,
+ "counts": {
+  "MAPPED": 164,
+  "UNMAPPED": 20,
+  "ABSENT": 5
+ },
+ "servercommands": 216
+}

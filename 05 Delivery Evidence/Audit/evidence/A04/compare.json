@@ -1,0 +1,201 @@
+{
+ "mismatches": 0,
+ "rows": [
+  {
+   "label": "HR-S05 2026-08",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1111104,
+    "kernel": 1111104
+   }
+  },
+  {
+   "label": "HR-S10 2026-08",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1461475,
+    "kernel": 1461475
+   }
+  },
+  {
+   "label": "HR-S05 2026-09",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1087662,
+    "kernel": 1087662
+   }
+  },
+  {
+   "label": "HR-S10 2026-09",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1446700,
+    "kernel": 1446700
+   }
+  },
+  {
+   "label": "F&F final-month line",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 936154,
+    "kernel": 936154
+   }
+  },
+  {
+   "label": "F&F advanceOutstanding",
+   "match": true,
+   "diffs": []
+  },
+  {
+   "label": "F&F elEncashment",
+   "match": true,
+   "diffs": []
+  },
+  {
+   "label": "F&F earnings",
+   "match": true,
+   "diffs": []
+  },
+  {
+   "label": "F&F recoveries",
+   "match": true,
+   "diffs": []
+  },
+  {
+   "label": "F&F net",
+   "match": true,
+   "diffs": []
+  },
+  {
+   "label": "E1 Feb PT top slab, man ₹18,000",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1649175,
+    "kernel": 1649175
+   }
+  },
+  {
+   "label": "E2 Feb PT middle slab, man ₹9,000 (no Feb bump)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 822087,
+    "kernel": 822087
+   }
+  },
+  {
+   "label": "E3 PT woman ₹25,000 (nil)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 2350000,
+    "kernel": 2350000
+   }
+  },
+  {
+   "label": "E4 PT woman ₹25,000.01 (₹200)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 2330001,
+    "kernel": 2330001
+   }
+  },
+  {
+   "label": "E5 ESIC ceiling ₹21,000 exactly (covered)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1939037,
+    "kernel": 1939037
+   }
+  },
+  {
+   "label": "E6 ESIC ₹22,000 with 2 LOP days (period rule: contract wage > ceiling → not covered)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1910133,
+    "kernel": 1910133
+   }
+  },
+  {
+   "label": "E7 ESIC raised to ₹23,000 in Dec after October locked covered (covered to March)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 2125612,
+    "kernel": 2125612
+   }
+  },
+  {
+   "label": "E8 Overtime 600 min on ₹12,000, 30-day month",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1149450,
+    "kernel": 1149450
+   }
+  },
+  {
+   "label": "E9 Three late marks = ½ day",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 2753000,
+    "kernel": 2753000
+   }
+  },
+  {
+   "label": "E10 Advance instalment ₹5,000 larger than net (₹10,000, 25 days absent)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 0,
+    "kernel": 0
+   }
+  },
+  {
+   "label": "E11 Advance instalment 0 = full balance ₹4,000",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 979312,
+    "kernel": 979312
+   }
+  },
+  {
+   "label": "E12 Daily ₹850 (×26 = ₹22,100 > ceiling → not covered although month earns ₹17,000)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 1680000,
+    "kernel": 1680000
+   }
+  },
+  {
+   "label": "E13 PF cap: basic ₹20,000 (₹40,000 pay) → PF on ₹15,000",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 3800000,
+    "kernel": 3800000
+   }
+  },
+  {
+   "label": "E14 Part-month joiner from 21 Sep, man ₹9,000 (earned ₹3,000 → PT nil)",
+   "match": true,
+   "diffs": [],
+   "net": {
+    "mine": 279862,
+    "kernel": 279862
+   }
+  }
+ ]
+}

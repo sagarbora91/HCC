@@ -1,0 +1,52 @@
+=== 0100_access_identity
+92a6c6d 2026-10-25 18:55:46 +0530 Wave 1 integration: all module migrations (0100, 0101, 0200, 0300, 0400) in database/migrations; one embedded source, per-module sources removed; fresh-DB order + cross-module FK test
+ 08 Production/database/migrations/{access => }/0100_access_identity.sql | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ef95763 2026-10-25 18:37:24 +0530 P1 access: users, roles, grants, sessions, real IAccessPolicy (DEC-040), DEC-062 sign-in, DEC-063 seed
+ .../migrations/access/0100_access_identity.sql     | 122 +++++++++++++++++++++
+ 1 file changed, 122 insertions(+)
+=== 0101_access_rbac_seed
+92a6c6d 2026-10-25 18:55:46 +0530 Wave 1 integration: all module migrations (0100, 0101, 0200, 0300, 0400) in database/migrations; one embedded source, per-module sources removed; fresh-DB order + cross-module FK test
+ 08 Production/database/migrations/{access => }/0101_access_rbac_seed.sql | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ef95763 2026-10-25 18:37:24 +0530 P1 access: users, roles, grants, sessions, real IAccessPolicy (DEC-040), DEC-062 sign-in, DEC-063 seed
+ .../migrations/access/0101_access_rbac_seed.sql    | 210 +++++++++++++++++++++
+ 1 file changed, 210 insertions(+)
+=== 0200_inventory_reservations
+92a6c6d 2026-10-25 18:55:46 +0530 Wave 1 integration: all module migrations (0100, 0101, 0200, 0300, 0400) in database/migrations; one embedded source, per-module sources removed; fresh-DB order + cross-module FK test
+ .../database/{modules => migrations}/0200_inventory_reservations.sql      | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+bbc8aee 2026-10-25 18:48:37 +0530 P2: concurrency tests (12-way one winner, overlapping ranges, type capacity last unit, mixed create/amend/cancel without deadlock, counts exact), HTTP smoke tests, pure rule tests; migration moved to database/modules/ per lead; IAgreedNightRateSource for billing (29/29 P2, 54/54 P0)
+ .../{migrations-wave1 => modules}/0200_inventory_reservations.sql     | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+0255d49 2026-10-25 18:35:08 +0530 P2: inventory & reservations core — migration 0200 (type-night counts, holds, group blocks, quotes, restrictions), domain rules ported from the prototype, SQL stores, /api/v1 endpoints, golden BASE tests (5/5)
+ .../0200_inventory_reservations.sql                | 241 +++++++++++++++++++++
+ 1 file changed, 241 insertions(+)
+=== 0300_stays_housekeeping
+92a6c6d 2026-10-25 18:55:46 +0530 Wave 1 integration: all module migrations (0100, 0101, 0200, 0300, 0400) in database/migrations; one embedded source, per-module sources removed; fresh-DB order + cross-module FK test
+ .../database/{modules => migrations}/0300_stays_housekeeping.sql          | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+e97b2d5 2026-10-25 18:24:41 +0530 P3: stays + housekeeping domain, application use cases, SQL adapters, endpoints; migration 0300 (parked in database/modules); golden exporter
+ .../database/modules/0300_stays_housekeeping.sql   | 124 +++++++++++++++++++++
+ 1 file changed, 124 insertions(+)
+=== 0400_billing_payments
+92a6c6d 2026-10-25 18:55:46 +0530 Wave 1 integration: all module migrations (0100, 0101, 0200, 0300, 0400) in database/migrations; one embedded source, per-module sources removed; fresh-DB order + cross-module FK test
+ 08 Production/database/{modules => migrations}/0400_billing_payments.sql | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+bc76d66 2026-10-25 18:39:20 +0530 P4 billing & cashier: migration 0400, folio/receipt/adjustment/shift commands, golden + SQL concurrency tests
+ .../database/modules/0400_billing_payments.sql     | 145 +++++++++++++++++++++
+ 1 file changed, 145 insertions(+)
+=== 0900_payroll
+6015493 2026-10-26 00:11:55 +0530 W2-2 payroll: tests (golden BASE Aug/Sep, review fixes, real P1 policy), slnx, ETP rows
+ 08 Production/database/migrations/0900_payroll.sql | 484 ++++++++++-----------
+ 1 file changed, 242 insertions(+), 242 deletions(-)
+fb1b92b 2026-10-25 23:57:40 +0530 W2-2 payroll: domain rules, migrations 0900/0901, service, queries, SQL store, endpoints
+ 08 Production/database/migrations/0900_payroll.sql | 242 +++++++++++++++++++++
+ 1 file changed, 242 insertions(+)
+=== 2400_invoices
+02ecf87 2026-10-26 04:39:40 +0530 W3-6 invoices: tests (golden AC-006 / credit note 105, numbering concurrency, immutability, permissions, day closed), app-lock numbering, ETP-REUSE row 37
+ .../database/migrations/2400_invoices.sql          | 28 +++++++++++++---------
+ 1 file changed, 17 insertions(+), 11 deletions(-)
+3f842ab 2026-10-26 04:29:06 +0530 W3-6 invoices: ivc schema (FY series, immutable invoices/credit notes), domain rules, folio source, commands, queries, renderer
+ .../database/migrations/2400_invoices.sql          | 188 +++++++++++++++++++++
+ 1 file changed, 188 insertions(+)

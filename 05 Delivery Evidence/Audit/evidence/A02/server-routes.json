@@ -1,0 +1,1761 @@
+{
+ "commandCount": 216,
+ "mapPostCalls": 133,
+ "commands": {
+  "CreateUser": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:191",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetUserEnabled": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:192",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "AssignRole": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:193",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RevokeRole": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:194",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetCredential": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:195",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "ChangeOwnCredential": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:196",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "GrantException": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:197",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RevokeException": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:198",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RegisterDevice": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:199",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RevokeDevice": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:200",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "LockAccountingPeriod": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:32",
+     "how": "helper AccountingService.OpLock"
+    }
+   ]
+  },
+  "UnlockAccountingPeriod": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:33",
+     "how": "helper AccountingService.OpUnlock"
+    }
+   ]
+  },
+  "SetLedgerMapping": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:34",
+     "how": "helper AccountingService.OpMapSet"
+    }
+   ]
+  },
+  "ResetLedgerMapping": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/AccountingEndpoints.cs:35",
+     "how": "helper AccountingService.OpMapReset"
+    }
+   ]
+  },
+  "PostRoomNight": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:33",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "PostCharge": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:34",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RecordReceipt": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:35",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RequestAdjustment": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:36",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "DecideApproval": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:37",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "ExecuteAdjustment": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/BillingEndpoints.cs:38",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RunBusinessDayClose": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:47",
+     "how": "helper ClosingService.OpRun"
+    }
+   ]
+  },
+  "PostRoomNights": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:48",
+     "how": "helper ClosingService.OpPostNights"
+    }
+   ]
+  },
+  "LockCashBookDay": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:49",
+     "how": "helper ClosingService.OpLockCashBook"
+    }
+   ]
+  },
+  "ReopenCashBookDay": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ClosingEndpoints.cs:50",
+     "how": "helper ClosingService.OpReopenCashBook"
+    }
+   ]
+  },
+  "MarkComplianceFiled": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:29",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpMarkFiled"
+    }
+   ]
+  },
+  "MarkComplianceNotApplicable": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:31",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpMarkNotApplicable"
+    }
+   ]
+  },
+  "ReopenComplianceFiling": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:33",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpReopen"
+    }
+   ]
+  },
+  "SaveComplianceObligation": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpSaveObligation"
+    }
+   ]
+  },
+  "ToggleComplianceObligation": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:37",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpToggleObligation"
+    }
+   ]
+  },
+  "SaveComplianceSettings": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:39",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpSaveSettings"
+    }
+   ]
+  },
+  "GenerateCaPack": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:41",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpGenerateCaPack"
+    }
+   ]
+  },
+  "SeedComplianceDefaults": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ComplianceEndpoints.cs:43",
+     "how": "MapPost \"/commands/\" + ComplianceCommands.OpSeedDefaults"
+    }
+   ]
+  },
+  "SetSetting": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:48",
+     "how": "MapPost \"/commands/\" + ConfigurationService.OpSet"
+    }
+   ]
+  },
+  "DecideSettingRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:50",
+     "how": "MapPost \"/commands/\" + ConfigurationService.OpDecide"
+    }
+   ]
+  },
+  "WithdrawScheduledSetting": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:52",
+     "how": "MapPost \"/commands/\" + ConfigurationService.OpWithdraw"
+    }
+   ]
+  },
+  "RevertSetting": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:54",
+     "how": "MapPost \"/commands/\" + ConfigurationService.OpRevert"
+    }
+   ]
+  },
+  "ImportConfiguration": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:56",
+     "how": "MapPost \"/commands/\" + ConfigurationService.OpImport"
+    }
+   ]
+  },
+  "ProposeCustomerMerge": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs:27",
+     "how": "MapPost \"/commands/\" + CustomerCommands.OpPropose"
+    }
+   ]
+  },
+  "DecideCustomerMerge": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs:29",
+     "how": "MapPost \"/commands/\" + CustomerCommands.OpDecide"
+    }
+   ]
+  },
+  "AddCustomerTag": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs:31",
+     "how": "MapPost \"/commands/\" + CustomerCommands.OpAddTag"
+    }
+   ]
+  },
+  "RemoveCustomerTag": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs:33",
+     "how": "MapPost \"/commands/\" + CustomerCommands.OpRemoveTag"
+    }
+   ]
+  },
+  "AddCustomerNote": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + CustomerCommands.OpAddNote"
+    }
+   ]
+  },
+  "SetCustomerPreferences": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs:37",
+     "how": "MapPost \"/commands/\" + CustomerCommands.OpPreferences"
+    }
+   ]
+  },
+  "SetCustomerConsent": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/CustomersEndpoints.cs:39",
+     "how": "MapPost \"/commands/\" + CustomerCommands.OpConsent"
+    }
+   ]
+  },
+  "CaptureIdDocument": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + DocumentService.OpCapture"
+    }
+   ]
+  },
+  "ConfirmIdCapture": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs:37",
+     "how": "MapPost \"/commands/\" + DocumentService.OpConfirm"
+    }
+   ]
+  },
+  "RejectIdCapture": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs:39",
+     "how": "MapPost \"/commands/\" + DocumentService.OpReject"
+    }
+   ]
+  },
+  "ViewIdCaptureImage": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs:41",
+     "how": "MapPost \"/commands/\" + DocumentService.OpViewImage"
+    }
+   ]
+  },
+  "RevealIdCaptureNumber": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs:46",
+     "how": "MapPost \"/commands/\" + DocumentService.OpReveal"
+    }
+   ]
+  },
+  "PurgeIdCaptures": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/DocumentsEndpoints.cs:51",
+     "how": "MapPost \"/commands/\" + DocumentService.OpPurge"
+    }
+   ]
+  },
+  "SubmitExpense": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:28",
+     "how": "MapPost \"/commands/\" + ExpenseCommands.OpSubmit"
+    }
+   ]
+  },
+  "SubmitExpenseDraft": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:30",
+     "how": "MapPost \"/commands/\" + ExpenseCommands.OpSubmitDraft"
+    }
+   ]
+  },
+  "DecideExpense": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:32",
+     "how": "MapPost \"/commands/\" + ExpenseCommands.OpDecide"
+    }
+   ]
+  },
+  "ReverseExpense": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ExpensesEndpoints.cs:34",
+     "how": "MapPost \"/commands/\" + ExpenseCommands.OpReverse"
+    }
+   ]
+  },
+  "CreateGroup": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:33",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpCreate"
+    }
+   ]
+  },
+  "UpdateGroup": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpUpdate"
+    }
+   ]
+  },
+  "SetGroupRouting": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:37",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpRouting"
+    }
+   ]
+  },
+  "AttachGroupMember": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:39",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpAttach"
+    }
+   ]
+  },
+  "DetachGroupMember": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:41",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpDetach"
+    }
+   ]
+  },
+  "ApplyGroupRouting": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:43",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpApply"
+    }
+   ]
+  },
+  "RerouteGroupCharge": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:45",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpReroute"
+    }
+   ]
+  },
+  "TransferGroupMember": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:47",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpTransfer"
+    }
+   ]
+  },
+  "RecordGroupReceipt": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:49",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpReceipt"
+    }
+   ]
+  },
+  "RequestGroupAttrition": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:51",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpAttrition"
+    }
+   ]
+  },
+  "DecideGroupAttrition": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:53",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpDecide"
+    }
+   ]
+  },
+  "SettleGroup": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:55",
+     "how": "MapPost \"/commands/\" + GroupCommands.OpSettle"
+    }
+   ]
+  },
+  "SaveCompany": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:57",
+     "how": "MapPost \"/commands/\" + CompanyCommands.OpSave"
+    }
+   ]
+  },
+  "SetCompanyLimit": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:59",
+     "how": "MapPost \"/commands/\" + CompanyCommands.OpLimit"
+    }
+   ]
+  },
+  "DecideCompanyLimit": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GroupsEndpoints.cs:61",
+     "how": "MapPost \"/commands/\" + CompanyCommands.OpDecide"
+    }
+   ]
+  },
+  "RevealGuestId": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestIdEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + GuestIdService.OpReveal"
+    }
+   ]
+  },
+  "RekeyGuestIds": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestIdEndpoints.cs:40",
+     "how": "MapPost \"/commands/\" + GuestIdService.OpRekey"
+    }
+   ]
+  },
+  "LogServiceRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:35",
+     "how": "helper GuestServicesCommands.OpLogRequest"
+    }
+   ]
+  },
+  "AssignServiceRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:36",
+     "how": "helper GuestServicesCommands.OpAssignRequest"
+    }
+   ]
+  },
+  "StartServiceRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:37",
+     "how": "helper GuestServicesCommands.OpStartRequest"
+    }
+   ]
+  },
+  "CompleteServiceRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:38",
+     "how": "helper GuestServicesCommands.OpCompleteRequest"
+    }
+   ]
+  },
+  "CancelServiceRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:39",
+     "how": "helper GuestServicesCommands.OpCancelRequest"
+    }
+   ]
+  },
+  "LogComplaint": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:40",
+     "how": "helper GuestServicesCommands.OpLogComplaint"
+    }
+   ]
+  },
+  "UpdateComplaint": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:41",
+     "how": "helper GuestServicesCommands.OpUpdateComplaint"
+    }
+   ]
+  },
+  "ResolveComplaint": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:42",
+     "how": "helper GuestServicesCommands.OpResolveComplaint"
+    }
+   ]
+  },
+  "RecordComplaintFollowUp": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:43",
+     "how": "helper GuestServicesCommands.OpFollowUp"
+    }
+   ]
+  },
+  "OfferRecoveryDiscount": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:44",
+     "how": "helper GuestServicesCommands.OpOfferRecovery"
+    }
+   ]
+  },
+  "LogLostItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:45",
+     "how": "helper GuestServicesCommands.OpLogItem"
+    }
+   ]
+  },
+  "ClaimLostItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:46",
+     "how": "helper GuestServicesCommands.OpClaimItem"
+    }
+   ]
+  },
+  "HandOverLostItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:47",
+     "how": "helper GuestServicesCommands.OpHandOverItem"
+    }
+   ]
+  },
+  "DisposeLostItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:48",
+     "how": "helper GuestServicesCommands.OpDisposeItem"
+    }
+   ]
+  },
+  "SaveGuestServiceSettings": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/GuestServicesEndpoints.cs:49",
+     "how": "helper GuestServicesCommands.OpSaveSettings"
+    }
+   ]
+  },
+  "SaveHandoverTemplate": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:28",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpSaveTemplate"
+    }
+   ]
+  },
+  "ToggleHandoverTemplate": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:30",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpToggleTemplate"
+    }
+   ]
+  },
+  "TickChecklistItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:32",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpTick"
+    }
+   ]
+  },
+  "SubmitChecklistRun": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:34",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpSubmitRun"
+    }
+   ]
+  },
+  "ReopenChecklistRun": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:36",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpReopenRun"
+    }
+   ]
+  },
+  "SubmitHandoverNote": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:38",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpSubmitNote"
+    }
+   ]
+  },
+  "AcknowledgeHandoverNote": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:40",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpAckNote"
+    }
+   ]
+  },
+  "CompleteCarryItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HandoverEndpoints.cs:42",
+     "how": "MapPost \"/commands/\" + HandoverCommands.OpCarryDone"
+    }
+   ]
+  },
+  "TransitionHousekeepingTask": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:40",
+     "how": "MapPost \"/commands/\" + HousekeepingCommands.OpTransition"
+    }
+   ]
+  },
+  "BlockRoom": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:42",
+     "how": "MapPost \"/commands/\" + HousekeepingCommands.OpBlockRoom"
+    }
+   ]
+  },
+  "UnblockRoom": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:44",
+     "how": "MapPost \"/commands/\" + HousekeepingCommands.OpUnblockRoom"
+    }
+   ]
+  },
+  "RequestRepair": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:46",
+     "how": "MapPost \"/commands/\" + HousekeepingCommands.OpRequestRepair"
+    }
+   ]
+  },
+  "GenerateStayoverTasks": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/HousekeepingEndpoints.cs:48",
+     "how": "MapPost \"/commands/\" + StayoverCommands.OpGenerate"
+    }
+   ]
+  },
+  "UploadImportBatch": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs:29",
+     "how": "MapPost \"/commands/\" + ImportService.OpUpload"
+    }
+   ]
+  },
+  "CommitImportBatch": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ImportEndpoints.cs:31",
+     "how": "MapPost \"/commands/\" + ImportService.OpCommit"
+    }
+   ]
+  },
+  "QuoteStay": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs:49",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "CreateGroupBlock": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs:51",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "ReleaseGroupBlock": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/InventoryEndpoints.cs:53",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "IssueInvoice": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs:29",
+     "how": "MapPost \"/commands/\" + InvoiceService.OpIssue"
+    }
+   ]
+  },
+  "RequestCreditNote": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs:31",
+     "how": "MapPost \"/commands/\" + InvoiceService.OpRequestCreditNote"
+    }
+   ]
+  },
+  "DecideCreditNote": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/InvoicesEndpoints.cs:33",
+     "how": "MapPost \"/commands/\" + InvoiceService.OpDecideCreditNote"
+    }
+   ]
+  },
+  "CreateWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:32",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpCreate"
+    }
+   ]
+  },
+  "ConvertRepairToWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:34",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpConvertRepair"
+    }
+   ]
+  },
+  "AssignWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:36",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpAssign"
+    }
+   ]
+  },
+  "StartWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:38",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpStart"
+    }
+   ]
+  },
+  "HoldWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:40",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpHold"
+    }
+   ]
+  },
+  "AddWorkOrderPart": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:42",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpPart"
+    }
+   ]
+  },
+  "CompleteWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:44",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpComplete"
+    }
+   ]
+  },
+  "VerifyWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:46",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpVerify"
+    }
+   ]
+  },
+  "CancelWorkOrder": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:48",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpCancel"
+    }
+   ]
+  },
+  "BlockWorkOrderRoom": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:50",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpBlockRoom"
+    }
+   ]
+  },
+  "GeneratePmWorkOrders": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:52",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpGeneratePm"
+    }
+   ]
+  },
+  "SavePmPlan": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:54",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpSavePlan"
+    }
+   ]
+  },
+  "SaveMaintenanceAsset": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:56",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpSaveAsset"
+    }
+   ]
+  },
+  "SaveMaintenanceVendor": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:58",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpSaveVendor"
+    }
+   ]
+  },
+  "SaveAmc": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:60",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpSaveAmc"
+    }
+   ]
+  },
+  "ReceiveSpare": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MaintenanceEndpoints.cs:62",
+     "how": "MapPost \"/commands/\" + MaintenanceCommands.OpReceiveSpare"
+    }
+   ]
+  },
+  "SendMessage": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:33",
+     "how": "MapPost \"/commands/\" + MessagingCommands.OpSend"
+    }
+   ]
+  },
+  "RunMessagingTriggers": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + MessagingCommands.OpRunTriggers"
+    }
+   ]
+  },
+  "SimulateMessageDelivery": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:37",
+     "how": "MapPost \"/commands/\" + MessagingCommands.OpSimulate"
+    }
+   ]
+  },
+  "RetryMessage": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:39",
+     "how": "MapPost \"/commands/\" + MessagingCommands.OpRetry"
+    }
+   ]
+  },
+  "SetMessagingConsent": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:41",
+     "how": "MapPost \"/commands/\" + MessagingCommands.OpConsent"
+    }
+   ]
+  },
+  "UpdateMessageTemplate": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:43",
+     "how": "MapPost \"/commands/\" + MessagingCommands.OpTemplate"
+    }
+   ]
+  },
+  "UpdateMessageRule": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs:45",
+     "how": "MapPost \"/commands/\" + MessagingCommands.OpRule"
+    }
+   ]
+  },
+  "SaveChannel": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:32",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetChannelStatus": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:33",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetChannelStopSell": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:34",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "PushChannelRates": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:35",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "ImportChannelMessage": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:36",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "QueueSimulatedMessage": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:37",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "PullChannelMessages": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:38",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "AcceptChannelMessage": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:39",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "RejectChannelMessage": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/OtaEndpoints.cs:40",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "CreateTill": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs:14",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "OpenShift": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs:15",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SubmitShiftCount": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PaymentsEndpoints.cs:16",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SaveDepartment": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:34",
+     "how": "helper PayrollService.OpSaveDepartment"
+    }
+   ]
+  },
+  "SaveStaff": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:35",
+     "how": "helper PayrollService.OpSaveStaff"
+    }
+   ]
+  },
+  "SetStaffActive": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:36",
+     "how": "helper PayrollService.OpSetStaffActive"
+    }
+   ]
+  },
+  "SetRoster": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:37",
+     "how": "helper PayrollService.OpSetRoster"
+    }
+   ]
+  },
+  "CopyRosterWeek": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:38",
+     "how": "helper PayrollService.OpCopyRosterWeek"
+    }
+   ]
+  },
+  "MarkAttendance": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:39",
+     "how": "helper PayrollService.OpMarkAttendance"
+    }
+   ]
+  },
+  "RequestLeave": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:40",
+     "how": "helper PayrollService.OpRequestLeave"
+    }
+   ]
+  },
+  "DecideLeave": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:41",
+     "how": "helper PayrollService.OpDecideLeave"
+    }
+   ]
+  },
+  "CancelLeave": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:42",
+     "how": "helper PayrollService.OpCancelLeave"
+    }
+   ]
+  },
+  "SetLeavePolicy": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:43",
+     "how": "helper PayrollService.OpSetLeavePolicy"
+    }
+   ]
+  },
+  "GiveAdvance": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:44",
+     "how": "helper PayrollService.OpGiveAdvance"
+    }
+   ]
+  },
+  "SetStatutoryRates": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:45",
+     "how": "helper PayrollService.OpSetStatutoryRates"
+    }
+   ]
+  },
+  "PreparePayRun": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:46",
+     "how": "helper PayrollService.OpPreparePayRun"
+    }
+   ]
+  },
+  "LockPayRun": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:47",
+     "how": "helper PayrollService.OpLockPayRun"
+    }
+   ]
+  },
+  "UnlockPayRun": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:48",
+     "how": "helper PayrollService.OpUnlockPayRun"
+    }
+   ]
+  },
+  "IssueBankFile": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:49",
+     "how": "helper PayrollService.OpIssueBankFile"
+    }
+   ]
+  },
+  "SendPayslip": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:50",
+     "how": "helper PayrollService.OpSendPayslip"
+    }
+   ]
+  },
+  "PrepareFnf": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:51",
+     "how": "helper PayrollService.OpPrepareFnf"
+    }
+   ]
+  },
+  "ConfirmFnf": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:52",
+     "how": "helper PayrollService.OpConfirmFnf"
+    }
+   ]
+  },
+  "DiscardFnf": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs:53",
+     "how": "helper PayrollService.OpDiscardFnf"
+    }
+   ]
+  },
+  "CreateOutlet": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:34",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SaveMenuItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:35",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetMenuItemAvailability": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:36",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "OpenCheck": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:37",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "AddCheckItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:38",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetCheckItemQty": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:39",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SendKot": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:40",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "AdvanceKot": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:41",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SettleCheck": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:42",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "VoidCheckItem": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:43",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "VoidBill": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:44",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "DecideVoid": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/PosEndpoints.cs:45",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "CreateReservation": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:28",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "AmendReservation": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:30",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "CancelReservation": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:32",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "MarkNoShow": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:34",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "ConfirmHold": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/ReservationsEndpoints.cs:36",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "RegisterGuest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:33",
+     "how": "MapPost \"/commands/\" + StaysCommands.OpRegisterGuest"
+    }
+   ]
+  },
+  "CheckIn": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + StaysCommands.OpCheckIn"
+    }
+   ]
+  },
+  "CheckoutStay": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:37",
+     "how": "MapPost \"/commands/\" + StaysCommands.OpCheckoutStay"
+    }
+   ]
+  },
+  "MoveRoom": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:39",
+     "how": "MapPost \"/commands/\" + StayChangeCommands.OpMoveRoom"
+    }
+   ]
+  },
+  "ExtendStay": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:41",
+     "how": "MapPost \"/commands/\" + StayChangeCommands.OpExtendStay"
+    }
+   ]
+  },
+  "ShortenStay": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:43",
+     "how": "MapPost \"/commands/\" + StayChangeCommands.OpShortenStay"
+    }
+   ]
+  },
+  "EarlyDeparture": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:45",
+     "how": "MapPost \"/commands/\" + StayChangeCommands.OpEarlyDeparture"
+    }
+   ]
+  },
+  "SaveGuestProfile": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StaysEndpoints.cs:47",
+     "how": "MapPost \"/commands/\" + StaysCommands.OpSaveGuestProfile"
+    }
+   ]
+  },
+  "StockReceiveGrn": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:28",
+     "how": "MapPost \"/commands/\" + StockCommands.OpReceiveGrn"
+    }
+   ]
+  },
+  "StockIssue": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:30",
+     "how": "MapPost \"/commands/\" + StockCommands.OpIssue"
+    }
+   ]
+  },
+  "StockUse": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:32",
+     "how": "MapPost \"/commands/\" + StockCommands.OpUse"
+    }
+   ]
+  },
+  "StockRoomChange": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:34",
+     "how": "MapPost \"/commands/\" + StockCommands.OpRoomChange"
+    }
+   ]
+  },
+  "StockLaundrySend": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:36",
+     "how": "MapPost \"/commands/\" + StockCommands.OpLaundrySend"
+    }
+   ]
+  },
+  "StockLaundryReceive": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:38",
+     "how": "MapPost \"/commands/\" + StockCommands.OpLaundryReceive"
+    }
+   ]
+  },
+  "StockRecordLoss": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:40",
+     "how": "MapPost \"/commands/\" + StockCommands.OpRecordLoss"
+    }
+   ]
+  },
+  "StockCountSubmit": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:42",
+     "how": "MapPost \"/commands/\" + StockCommands.OpCountSubmit"
+    }
+   ]
+  },
+  "StockCountDecide": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:44",
+     "how": "MapPost \"/commands/\" + StockCommands.OpCountDecide"
+    }
+   ]
+  },
+  "StockItemCreate": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:46",
+     "how": "MapPost \"/commands/\" + StockCommands.OpItemCreate"
+    }
+   ]
+  },
+  "StockItemSet": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:48",
+     "how": "MapPost \"/commands/\" + StockCommands.OpItemSet"
+    }
+   ]
+  },
+  "StockSettingsSet": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/StockEndpoints.cs:50",
+     "how": "MapPost \"/commands/\" + StockCommands.OpSettingsSet"
+    }
+   ]
+  },
+  "SetGstSetting": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/TaxEndpoints.cs:33",
+     "how": "MapPost \"/commands/\" + GstMasterService.OpSet"
+    }
+   ]
+  },
+  "WithdrawGstSetting": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/TaxEndpoints.cs:35",
+     "how": "MapPost \"/commands/\" + GstMasterService.OpWithdraw"
+    }
+   ]
+  },
+  "ConfirmWebRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs:55",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "DeclineWebRequest": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs:57",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "CreateWebDepositLink": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs:59",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "MarkWebDepositPaid": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs:61",
+     "how": "MapPost literal"
+    }
+   ]
+  },
+  "SaveYieldPlan": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:31",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SaveYieldSeason": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:32",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetYieldDayOfWeek": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:33",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SaveYieldOccupancyRule": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:34",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetYieldGuardrails": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:35",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SaveYieldRestriction": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:36",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetYieldOverride": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:37",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "SetYieldForecast": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:38",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "PublishYieldTariffs": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:39",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "ProposeYieldPublish": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:40",
+     "how": "helper literal"
+    }
+   ]
+  },
+  "DecideYieldProposal": {
+   "routes": [
+    {
+     "at": "08 Production/src/Hcc.Api/Endpoints/YieldEndpoints.cs:41",
+     "how": "helper literal"
+    }
+   ]
+  }
+ },
+ "otherPosts": [
+  {
+   "route": "/auth/sign-in",
+   "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:114"
+  },
+  {
+   "route": "/auth/sign-out",
+   "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:154"
+  },
+  {
+   "route": "/auth/bootstrap-owner",
+   "at": "08 Production/src/Hcc.Api/Endpoints/AccessEndpoints.cs:162"
+  },
+  {
+   "route": "/configuration/import-plan",
+   "at": "08 Production/src/Hcc.Api/Endpoints/ConfigurationEndpoints.cs:99"
+  },
+  {
+   "route": "/SetupProperty",
+   "at": "08 Production/src/Hcc.Api/Endpoints/SetupEndpoints.cs:52"
+  },
+  {
+   "route": "/requests",
+   "at": "08 Production/src/Hcc.Api/Endpoints/WebBookingEndpoints.cs:45"
+  }
+ ],
+ "unresolved": []
+}

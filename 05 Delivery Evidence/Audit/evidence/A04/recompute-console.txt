@@ -1,0 +1,19 @@
+HR-S05 2026-08     earned 12846.77 gross 13173.38 PF 770.81 ESIC 91.53 PT 200.00 adv 1000.00 net 11111.04 = golden
+HR-S10 2026-08     earned 14700.00 gross 14925.00 PF 0.00 ESIC 110.25 PT 200.00 adv 0.00 net 14614.75 = golden
+HR-S05 2026-09     earned 12825.00 gross 12937.50 PF 769.50 ESIC 91.38 PT 200.00 adv 1000.00 net 10876.62 = golden
+HR-S10 2026-09     earned 14400.00 gross 14775.00 PF 0.00 ESIC 108.00 PT 200.00 adv 0.00 net 14467.00 = golden
+HR-S05 F&F exit 2026-10-24 earnings 16766.13 recoveries 3372.33 net 13393.80
+E1 Feb PT top slab, man ₹18,000                              earned 18000.00 PF 1080.00 ESIC 128.25 PT 300.00 adv 0.00 net 16491.75 cov true
+E2 Feb PT middle slab, man ₹9,000 (no Feb bump)              earned 9000.00 PF 540.00 ESIC 64.13 PT 175.00 adv 0.00 net 8220.87 cov true
+E3 PT woman ₹25,000 (nil)                                    earned 25000.00 PF 1500.00 ESIC 0.00 PT 0.00 adv 0.00 net 23500.00 cov false
+E4 PT woman ₹25,000.01 (₹200)                                earned 25000.01 PF 1500.00 ESIC 0.00 PT 200.00 adv 0.00 net 23300.01 cov false
+E5 ESIC ceiling ₹21,000 exactly (covered)                    earned 21000.00 PF 1260.00 ESIC 149.63 PT 200.00 adv 0.00 net 19390.37 cov true
+E6 ESIC ₹22,000 with 2 LOP days (period rule: contract wage  earned 20533.33 PF 1232.00 ESIC 0.00 PT 200.00 adv 0.00 net 19101.33 cov false
+E7 ESIC raised to ₹23,000 in Dec after October locked covere earned 23000.00 PF 1380.00 ESIC 163.88 PT 200.00 adv 0.00 net 21256.12 cov true
+E8 Overtime 600 min on ₹12,000, 30-day month                 earned 12000.00 PF 720.00 ESIC 85.50 PT 200.00 adv 0.00 net 11494.50 cov true
+E9 Three late marks = ½ day                                  earned 29500.00 PF 1770.00 ESIC 0.00 PT 200.00 adv 0.00 net 27530.00 cov false
+E10 Advance instalment ₹5,000 larger than net (₹10,000, 25 d earned 1666.67 PF 100.00 ESIC 11.88 PT 0.00 adv 1554.79 net 0.00 cov true
+E11 Advance instalment 0 = full balance ₹4,000               earned 15000.00 PF 900.00 ESIC 106.88 PT 200.00 adv 4000.00 net 9793.12 cov true
+E12 Daily ₹850 (×26 = ₹22,100 > ceiling → not covered althou earned 17000.00 PF 0.00 ESIC 0.00 PT 200.00 adv 0.00 net 16800.00 cov false
+E13 PF cap: basic ₹20,000 (₹40,000 pay) → PF on ₹15,000      earned 40000.00 PF 1800.00 ESIC 0.00 PT 200.00 adv 0.00 net 38000.00 cov false
+E14 Part-month joiner from 21 Sep, man ₹9,000 (earned ₹3,000 earned 3000.00 PF 180.00 ESIC 21.38 PT 0.00 adv 0.00 net 2798.62 cov true

@@ -1,0 +1,16 @@
+--- without -C:
+Sqlcmd: Error: Microsoft ODBC Driver 18 for SQL Server : SSL Provider: The certificate chain was issued by an authority that is not trusted.
+.
+Sqlcmd: Error: Microsoft ODBC Driver 18 for SQL Server : Client unable to establish connection. For solutions related to encryption errors, see https://go.microsoft.com/fwlink/?linkid=2226722.
+exit=1
+--- with -C:
+Microsoft SQL Server 2025 (RTM-CU9) (KB5122048) - 17.0.5005.3 (X64) 
+	Aug 27 2026 09:30:16 
+	Copyright (C) 2025 Microsoft Corporation
+	Express Edition (64-bit) on Windows 10 Pro 10.0 <X64> (Build 26200: ) (Hypervisor)
+                                                                                  
+          0
+Msg 371, Level 14, State 3, Server Workpc\SQLEXPRESS, Line 1
+The user does not have the external policy action 'Microsoft.Sql/Sqlservers/SystemViewsAndFunctions/ServerPerformanceState/Rows/Select' or permission 'VIEW SERVER PERFORMANCE STATE' to perform this action.
+exit=1
+E:\Program Files\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn\SQLCMD.EXE

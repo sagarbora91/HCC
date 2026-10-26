@@ -1,0 +1,10 @@
+build-production: release APK check failed for E:\Projects\HCC\Hotel Control Centre\05 Delivery Evidence\APK\HCC-0.1.0-server-debug-TESTCA.apk:
+  - application id is in.hcc.prototype.server, expected in.hcc.server
+  - APK is debuggable
+  - manifest sets android:debuggable=true
+  - manifest does not set android:allowBackup=false
+build-production: release APK check failed for E:\Projects\HCC\Hotel Control Centre\05 Delivery Evidence\APK\HCC-0.1.0-proto-debug.apk:
+  - application id is in.hcc.prototype, expected in.hcc.server
+  - APK is debuggable
+  - manifest sets android:debuggable=true
+  - manifest does not set android:allowBackup=false

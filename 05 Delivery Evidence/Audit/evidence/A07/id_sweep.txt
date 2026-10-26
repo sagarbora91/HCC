@@ -1,0 +1,110 @@
+A07 ID-shaped value sweep — 2026-10-26T09:32:04.980Z — node v25.9.0
+Files scanned: 1780; skipped (binary/lock/too large/excluded): 1202
+
+== aadhaar12 | REAL-LOOKING (starts 2-9, valid checksum): 10 match(es) in 3 file(s)
+       5  08 Production/tests/Hcc.Payroll.Tests/Sql/PayrollSqlTests.cs
+       4  03 Prototype/tests/stream-payroll-fixes.mjs
+       1  05 Delivery Evidence/Assembly/W05B_Payroll_Code_Review_2026-10-25.md
+   samples (masked to last 4):
+      ********9999  ← 03 Prototype/tests/stream-payroll-fixes.mjs
+
+== aadhaar12 | fictional-pattern (starts 0/1, valid checksum): 8 match(es) in 4 file(s)
+       3  08 Production/tests/Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs
+       2  03 Prototype/tests/sync-guestid.mjs
+       2  08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json
+       1  08 Production/tests/Hcc.Payroll.Tests/Harness/PayrollDb.cs
+   samples (masked to last 4):
+      ********1234  ← 03 Prototype/tests/sync-guestid.mjs
+      ********0001  ← 08 Production/tests/Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs
+      ********0040  ← 08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json
+
+== aadhaar12 | not-aadhaar (checksum fails: phone/timestamp/other): 40 match(es) in 20 file(s)
+      10  08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json
+       3  03 Prototype/tests/stream-payroll-scc.mjs
+       3  08 Production/tests/Hcc.GuestServices.Tests/Kernel/RulesGoldenTests.cs
+       2  03 Prototype/tests/stream-payroll-fixes.mjs
+       2  03 Prototype/tests/sync-credentials.mjs
+       2  03 Prototype/tests/sync-payfiles.mjs
+       2  08 Production/database/migrations/2202_groups_company.sql
+       2  08 Production/tests/Hcc.GuestServices.Tests/Sql/LostFoundSqlTests.cs
+       2  08 Production/tests/Hcc.Messaging.Tests/Kernel/MessagingRulesGoldenTests.cs
+       2  08 Production/tests/Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs
+       1  03 Prototype/tests/stream-b.mjs
+       1  03 Prototype/tests/stream-messaging.mjs
+       1  03 Prototype/tests/stream-services.mjs
+       1  07 Integration Lab/evidence/sql-spike-results.json
+       1  08 Production/tests/Hcc.Documents.Tests/Sql/DocumentsSqlTests.cs
+   samples (masked to last 4):
+      ********9012  ← 03 Prototype/tests/stream-b.mjs
+      ********4219  ← 03 Prototype/tests/stream-messaging.mjs
+      ********7777  ← 03 Prototype/tests/stream-payroll-fixes.mjs
+      ********0029  ← 03 Prototype/tests/stream-payroll-fixes.mjs
+      ********8000  ← 03 Prototype/tests/sync-credentials.mjs
+      ********0000  ← 03 Prototype/tests/sync-credentials.mjs
+      ********1533  ← 07 Integration Lab/evidence/sql-spike-results.json
+      ********0111  ← 08 Production/tests/Hcc.GuestServices.Tests/Kernel/RulesGoldenTests.cs
+      ********0014  ← 08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json
+      ********0027  ← 08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json
+      ********0053  ← 08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json
+      ********0066  ← 08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json
+
+== licence | REAL-LOOKING (state code + 13 digits): 5 match(es) in 5 file(s)
+       1  03 Prototype/src/domain/streams/guests.ts
+       1  08 Production/src/Hcc.Domain/GuestIds/GuestIdRules.cs
+       1  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html
+   samples (masked to last 4):
+      ***********2345  ← 03 Prototype/src/domain/streams/guests.ts
+
+== licence | fictional-pattern (ZZ…): 9 match(es) in 6 file(s)
+       4  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs
+       1  03 Prototype/src/features/guests/GuestForm.tsx
+       1  03 Prototype/tests/stream-guestid-full.mjs
+       1  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html
+   samples (masked to last 4):
+      ***********2345  ← 03 Prototype/src/features/guests/GuestForm.tsx
+
+== pan | fictional-pattern (ZZZZZ…): 9 match(es) in 6 file(s)
+       3  03 Prototype/tests/stream-guestid-full.mjs
+       2  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs
+       1  03 Prototype/src/features/guests/GuestForm.tsx
+       1  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html
+   samples (masked to last 4):
+      ******234Z  ← 03 Prototype/src/features/guests/GuestForm.tsx
+
+== pan | pattern-only (4th letter not a PAN holder type): 7 match(es) in 7 file(s)
+       1  03 Prototype/src/domain/streams/guests.ts
+       1  03 Prototype/tests/stream-guestid-full.mjs
+       1  08 Production/src/Hcc.Domain/GuestIds/GuestIdRules.cs
+       1  08 Production/tests/Hcc.Access.Tests/Unit/CredentialRuleTests.cs
+       1  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html
+       1  05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html
+   samples (masked to last 4):
+      ******234F  ← 03 Prototype/src/domain/streams/guests.ts
+
+== passport | fictional-pattern (Z…): 16 match(es) in 9 file(s)
+       4  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs
+       2  03 Prototype/tests/stream-guestid-full.mjs
+       2  08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs
+       2  05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html
+       2  05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html
+       1  03 Prototype/src/domain/streams/guests.ts
+       1  03 Prototype/src/features/guests/GuestForm.tsx
+       1  08 Production/src/Hcc.Domain/GuestIds/GuestIdRules.cs
+       1  08 Production/tests/Hcc.Documents.Tests/Sql/DocumentsSqlTests.cs
+   samples (masked to last 4):
+      ****4567  ← 03 Prototype/src/domain/streams/guests.ts
+      ****4321  ← 03 Prototype/tests/stream-guestid-full.mjs
+      ****4322  ← 08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs
+
+== passport | pattern-only (1 letter + 7 digits: also matches many codes): 2 match(es) in 1 file(s)
+       2  03 Prototype/tests/sync-frontdesk.mjs
+   samples (masked to last 4):
+      ****4777  ← 03 Prototype/tests/sync-frontdesk.mjs
+

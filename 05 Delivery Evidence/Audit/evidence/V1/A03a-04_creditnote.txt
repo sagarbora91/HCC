@@ -1,0 +1,5 @@
+partial credit #1 (amount mode share ending in 10 paise): taxable 33330 tax 1667 -> cumulative 1667 vs charged 5000: OK
+full mode on the rest (what the refusal text suggests): taxable 66670 tax 3334 -> cumulative 5001 vs charged 5000: REFUSED
+whole-rupee amount (other suggestion): taxable 66600 tax 3330 -> cumulative 4997 vs charged 5000: OK
+then the remaining 70 paise: taxable 70 tax 4 -> cumulative 5001 vs charged 5000: REFUSED
+fraction of paise amounts whose 5 % tax is exactly x.5 paise: 0.05

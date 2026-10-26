@@ -1,0 +1,1 @@
+Release APK verified (in.hcc.server): not debuggable, allowBackup=false, no cleartext.

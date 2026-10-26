@@ -1,0 +1,502 @@
+{
+ "protoPermissions": [
+  "reservations",
+  "checkin",
+  "billing",
+  "payments",
+  "checkout",
+  "housekeeping",
+  "inspect",
+  "expenses",
+  "approve",
+  "close",
+  "reports",
+  "admin"
+ ],
+ "protoRoles": [
+  "Owner",
+  "Manager",
+  "Reception",
+  "Cashier",
+  "Supervisor",
+  "Housekeeper",
+  "Accountant",
+  "Maintenance",
+  "Tech admin"
+ ],
+ "roleMap": {
+  "OWN": "Owner",
+  "MGR": "Manager",
+  "REC": "Reception",
+  "CSH": "Cashier",
+  "SUP": "Supervisor",
+  "HKP": "Housekeeper",
+  "ACC": "Accountant",
+  "MNT": "Maintenance",
+  "TAD": "Tech admin"
+ },
+ "permissionMap": {
+  "reservations": {
+   "any": [
+    "PERM-RES-001",
+    "PERM-RES-002"
+   ],
+   "modes": "ALR"
+  },
+  "checkin": {
+   "any": [
+    "PERM-STY-001",
+    "PERM-GST-002"
+   ],
+   "modes": "AL"
+  },
+  "billing": {
+   "any": [
+    "PERM-FOL-002"
+   ],
+   "modes": "ALR"
+  },
+  "payments": {
+   "any": [
+    "PERM-PAY-001"
+   ],
+   "modes": "AL"
+  },
+  "checkout": {
+   "any": [
+    "PERM-STY-003"
+   ],
+   "modes": "AL"
+  },
+  "housekeeping": {
+   "any": [
+    "PERM-HK-001"
+   ],
+   "modes": "ALV"
+  },
+  "inspect": {
+   "any": [
+    "PERM-HK-004"
+   ],
+   "modes": "AL"
+  },
+  "expenses": {
+   "any": [
+    "PERM-EXP-001"
+   ],
+   "modes": "AL"
+  },
+  "approve": {
+   "any": [
+    "PERM-APR-001"
+   ],
+   "modes": "AL"
+  },
+  "close": {
+   "any": [
+    "PERM-CLS-002"
+   ],
+   "modes": "AL"
+  },
+  "reports": {
+   "any": [
+    "PERM-RPT-001",
+    "PERM-RPT-002"
+   ],
+   "modes": "ALV"
+  },
+  "admin": {
+   "any": [
+    "PERM-ADM-001",
+    "PERM-ADM-002",
+    "PERM-ADM-003"
+   ],
+   "modes": "ALR"
+  }
+ },
+ "serverPermissionsSeeded": 82,
+ "mappedServerIds": [
+  "PERM-ADM-001",
+  "PERM-ADM-002",
+  "PERM-ADM-003",
+  "PERM-APR-001",
+  "PERM-CLS-002",
+  "PERM-EXP-001",
+  "PERM-FOL-002",
+  "PERM-GST-002",
+  "PERM-HK-001",
+  "PERM-HK-004",
+  "PERM-PAY-001",
+  "PERM-RES-001",
+  "PERM-RES-002",
+  "PERM-RPT-001",
+  "PERM-RPT-002",
+  "PERM-STY-001",
+  "PERM-STY-003"
+ ],
+ "unmappedServerIds": [
+  "PERM-ACC-001",
+  "PERM-ACC-002",
+  "PERM-ACC-003",
+  "PERM-ACC-004",
+  "PERM-ACC-005",
+  "PERM-ACC-006",
+  "PERM-ADM-004",
+  "PERM-ADM-005",
+  "PERM-CLS-001",
+  "PERM-CLS-003",
+  "PERM-CLS-004",
+  "PERM-CMP-001",
+  "PERM-CMP-002",
+  "PERM-CRM-001",
+  "PERM-CRM-002",
+  "PERM-DOC-001",
+  "PERM-DOC-002",
+  "PERM-EXP-002",
+  "PERM-EXP-003",
+  "PERM-FOL-001",
+  "PERM-FOL-003",
+  "PERM-FOL-004",
+  "PERM-FOL-005",
+  "PERM-GRP-001",
+  "PERM-GRP-002",
+  "PERM-GRP-003",
+  "PERM-GRP-004",
+  "PERM-GRP-005",
+  "PERM-GST-001",
+  "PERM-GST-003",
+  "PERM-HK-002",
+  "PERM-HK-003",
+  "PERM-HR-001",
+  "PERM-HR-002",
+  "PERM-HR-003",
+  "PERM-HR-004",
+  "PERM-HR-005",
+  "PERM-HR-006",
+  "PERM-HR-007",
+  "PERM-HR-008",
+  "PERM-HR-009",
+  "PERM-IMP-001",
+  "PERM-IMP-002",
+  "PERM-IMP-003",
+  "PERM-INV-001",
+  "PERM-INV-002",
+  "PERM-INV-003",
+  "PERM-INV-005",
+  "PERM-OTA-001",
+  "PERM-OTA-002",
+  "PERM-OTA-003",
+  "PERM-PAY-002",
+  "PERM-PAY-003",
+  "PERM-PAY-004",
+  "PERM-PAY-005",
+  "PERM-RATE-001",
+  "PERM-RES-003",
+  "PERM-RES-004",
+  "PERM-ROOM-001",
+  "PERM-ROOM-002",
+  "PERM-RPT-003",
+  "PERM-SHF-001",
+  "PERM-SHF-002",
+  "PERM-STY-002",
+  "PERM-WEB-001"
+ ],
+ "unmappedByModule": {
+  "ACC": [
+   "PERM-ACC-001",
+   "PERM-ACC-002",
+   "PERM-ACC-003",
+   "PERM-ACC-004",
+   "PERM-ACC-005",
+   "PERM-ACC-006"
+  ],
+  "ADM": [
+   "PERM-ADM-004",
+   "PERM-ADM-005"
+  ],
+  "CLS": [
+   "PERM-CLS-001",
+   "PERM-CLS-003",
+   "PERM-CLS-004"
+  ],
+  "CMP": [
+   "PERM-CMP-001",
+   "PERM-CMP-002"
+  ],
+  "CRM": [
+   "PERM-CRM-001",
+   "PERM-CRM-002"
+  ],
+  "DOC": [
+   "PERM-DOC-001",
+   "PERM-DOC-002"
+  ],
+  "EXP": [
+   "PERM-EXP-002",
+   "PERM-EXP-003"
+  ],
+  "FOL": [
+   "PERM-FOL-001",
+   "PERM-FOL-003",
+   "PERM-FOL-004",
+   "PERM-FOL-005"
+  ],
+  "GRP": [
+   "PERM-GRP-001",
+   "PERM-GRP-002",
+   "PERM-GRP-003",
+   "PERM-GRP-004",
+   "PERM-GRP-005"
+  ],
+  "GST": [
+   "PERM-GST-001",
+   "PERM-GST-003"
+  ],
+  "HK": [
+   "PERM-HK-002",
+   "PERM-HK-003"
+  ],
+  "HR": [
+   "PERM-HR-001",
+   "PERM-HR-002",
+   "PERM-HR-003",
+   "PERM-HR-004",
+   "PERM-HR-005",
+   "PERM-HR-006",
+   "PERM-HR-007",
+   "PERM-HR-008",
+   "PERM-HR-009"
+  ],
+  "IMP": [
+   "PERM-IMP-001",
+   "PERM-IMP-002",
+   "PERM-IMP-003"
+  ],
+  "INV": [
+   "PERM-INV-001",
+   "PERM-INV-002",
+   "PERM-INV-003",
+   "PERM-INV-005"
+  ],
+  "OTA": [
+   "PERM-OTA-001",
+   "PERM-OTA-002",
+   "PERM-OTA-003"
+  ],
+  "PAY": [
+   "PERM-PAY-002",
+   "PERM-PAY-003",
+   "PERM-PAY-004",
+   "PERM-PAY-005"
+  ],
+  "RATE": [
+   "PERM-RATE-001"
+  ],
+  "RES": [
+   "PERM-RES-003",
+   "PERM-RES-004"
+  ],
+  "ROOM": [
+   "PERM-ROOM-001",
+   "PERM-ROOM-002"
+  ],
+  "RPT": [
+   "PERM-RPT-003"
+  ],
+  "SHF": [
+   "PERM-SHF-001",
+   "PERM-SHF-002"
+  ],
+  "STY": [
+   "PERM-STY-002"
+  ],
+  "WEB": [
+   "PERM-WEB-001"
+  ]
+ },
+ "mapIdsNotOnServer": [],
+ "protoPermissionsWithoutRule": [],
+ "rolesOnServerNotInRoleMap": [],
+ "protoRolesNotOnServer": [],
+ "coarseFromSeed": {
+  "OWN": [
+   "reservations",
+   "checkin",
+   "billing",
+   "payments",
+   "checkout",
+   "housekeeping",
+   "inspect",
+   "expenses",
+   "approve",
+   "close",
+   "reports",
+   "admin"
+  ],
+  "MGR": [
+   "reservations",
+   "checkin",
+   "billing",
+   "payments",
+   "checkout",
+   "housekeeping",
+   "inspect",
+   "expenses",
+   "approve",
+   "close",
+   "reports"
+  ],
+  "REC": [
+   "reservations",
+   "checkin",
+   "billing",
+   "payments",
+   "checkout",
+   "expenses"
+  ],
+  "CSH": [
+   "billing",
+   "payments",
+   "expenses",
+   "reports"
+  ],
+  "ACC": [
+   "expenses",
+   "reports"
+  ],
+  "SUP": [
+   "housekeeping",
+   "inspect"
+  ],
+  "HKP": [
+   "housekeeping"
+  ],
+  "MNT": [
+   "housekeeping"
+  ],
+  "TAD": [
+   "admin"
+  ]
+ },
+ "protoCoarse": {
+  "OWN": [
+   "reservations",
+   "checkin",
+   "billing",
+   "payments",
+   "checkout",
+   "housekeeping",
+   "inspect",
+   "expenses",
+   "approve",
+   "close",
+   "reports",
+   "admin"
+  ],
+  "MGR": [
+   "reservations",
+   "checkin",
+   "billing",
+   "payments",
+   "checkout",
+   "housekeeping",
+   "inspect",
+   "expenses",
+   "approve",
+   "close",
+   "reports"
+  ],
+  "REC": [
+   "reservations",
+   "checkin",
+   "checkout",
+   "billing",
+   "payments",
+   "expenses"
+  ],
+  "CSH": [
+   "billing",
+   "payments",
+   "expenses",
+   "reports"
+  ],
+  "SUP": [
+   "housekeeping",
+   "inspect"
+  ],
+  "HKP": [
+   "housekeeping"
+  ],
+  "ACC": [
+   "reports"
+  ],
+  "MNT": [
+   "housekeeping"
+  ],
+  "TAD": [
+   "admin"
+  ]
+ },
+ "fixtureLiteralStillMatches": true,
+ "coarseDiff": [
+  {
+   "role": "ACC",
+   "serverSeedGives": [
+    "expenses",
+    "reports"
+   ],
+   "prototypeFixtureGives": [
+    "reports"
+   ],
+   "serverOnly": [
+    "expenses"
+   ],
+   "prototypeOnly": []
+  }
+ ],
+ "protoMatrixRows": 45,
+ "matrixCellsCompared": 405,
+ "matrixDiff": [
+  {
+   "perm": "PERM-ADM-005",
+   "role": "MGR",
+   "prototype": "-",
+   "seed": "V"
+  }
+ ],
+ "seedCoreIdsMissingInPrototypeMatrix": [],
+ "gapsDeclared": [
+  "Accountant gets \"expenses\" (server PERM-EXP-001:A); the prototype Accountant has reports only.",
+  "Cashier gets \"reports\" through PERM-RPT-002:V (finance view) — same as the prototype; Accountant/Manager/Owner through PERM-RPT-001.",
+  "\"approve\" follows PERM-APR-001 only (Owner A, Manager L). Expense approval (PERM-EXP-002) and shift-difference approval (PERM-SHF-002) are re-checked by the server per command; Accountant does not get the prototype \"approve\" gate.",
+  "Request-only grants (mode R, e.g. Reception PERM-FOL-005 credit note, PERM-PAY-003 refund) show the button; the server answers APPROVAL_REQUIRED when an approval is needed.",
+  "Limits (mode L: Manager discount/rate BPS, approval amounts) are enforced by the server; the client shows the action and maps the refusal.",
+  "Module PERM ids without a coarse prototype permission (PERM-ACC/CMP/CRM/DOC/GRP/HR/INV/OTA/SOD/WEB, PERM-HOV-*, PERM-MNT-*, PERM-POS*) do not change can(); module screens keep their existing gates. The fine-grained s.policy (HccPolicy) is not derived from the server yet (W4-5)."
+ ],
+ "gapChecks": [
+  {
+   "n": 1,
+   "text": "Accountant gets \"expenses\" (server PERM-EXP-001:A); the prototype Accountant has reports only.",
+   "check": true,
+   "note": "seed ACC EXP-001 A·O; PERMISSION_MAP expenses accepts modes AL"
+  },
+  {
+   "n": 2,
+   "text": "Cashier gets \"reports\" through PERM-RPT-002:V; Accountant/Manager/Owner through PERM-RPT-001.",
+   "check": true,
+   "note": "true; RPT-002 is also held A by OWN, MGR, ACC"
+  },
+  {
+   "n": 3,
+   "text": "\"approve\" follows PERM-APR-001 only (Owner A, Manager L).",
+   "check": true,
+   "note": ""
+  },
+  {
+   "n": 6,
+   "text": "Module PERM ids without a coarse prototype permission (PERM-ACC/CMP/CRM/DOC/GRP/HR/INV/OTA/SOD/WEB, PERM-HOV-*, PERM-MNT-*, PERM-POS*) do not change can().",
+   "check": null,
+   "note": "PERM-HOV-*, PERM-MNT-*, PERM-POS-* and PERM-SOD-* (as grants) do not exist on the server; module routes borrow core ids (v2 §1.2). PERM-IMP-* (W4-13) and PERM-RATE are not named."
+  }
+ ]
+}

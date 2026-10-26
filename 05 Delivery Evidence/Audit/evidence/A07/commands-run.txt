@@ -1,0 +1,25 @@
+A07 — commands run (26 Oct 2026, work PC, Node v25.9.0 with E:\Tools\nodejs first on PATH; see node-version.txt)
+
+1. ID-shaped value sweep
+   node "05 Delivery Evidence/Audit/probes/A07_id_sweep.mjs"      (from the repo root)
+   -> id_sweep.txt / id_sweep.json in this folder. 1780 text files scanned (git-tracked files + the whole
+      05 Delivery Evidence folder incl. untracked), 1202 skipped (binary, lock files, bin/obj/node_modules).
+   Every sample is masked to its last 4; no full ID-shaped value is written anywhere.
+
+2. Prototype guest-ID tests
+   node tests/sync-guestid.mjs ; node tests/stream-guestid-full.mjs   (in 03 Prototype)
+   -> both exit 0 but print nothing: the files export register(); they only run through tests/run.mjs.
+   node tests/run.mjs sync-guestid stream-guestid-full
+   -> tests/run.mjs ignores arguments and ran the FULL prototype suite once: "1008/1008 tests passed"
+      (unintended; the plan reserves the full suite for A1 — noted in the agent file under "Questions for the lead").
+      The two files' tests are named in A07_data_protection.md section (a) (G4 / GID groups); all passed in that run.
+
+3. dotnet test
+   NOT run by A07: locks\dotnet-test.lock was held by A1 (A1 2026-10-26T14:56:50) for the whole of this agent's work.
+   The server no-leak tests are cited from A1's run instead: evidence\A01\dotnet-test.txt lines 29-32 (Hcc.Documents.Tests
+   22/22 passed) and 41-44 (Hcc.GstIds.Tests 38/38 passed).
+
+4. sqlcmd: not used (no database was touched by A07).
+
+5. Screenshots read (viewed, not copied): 05 Delivery Evidence\Acceptance\apk-v10\v10-showid-shown-reception.png and
+   05 Delivery Evidence\Acceptance\v12\s-33-showid-dialog.png (untracked folder).
