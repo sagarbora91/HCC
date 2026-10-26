@@ -239,6 +239,8 @@ export type State={
   taxSchedule?:{bps:number;effectiveFrom:string}[];
   /** Configuration change history (SCR-18): one entry per changed key. */
   configHistory?:{id:string;key:string;before:string;after:string;at:string;actor:string;effectiveFrom:string;reason:string}[];
+  /** A02b-05 demo: users who changed their starting PIN / password (digest only, never the secret; absent = demoPin() / demoPassword()). */
+  credentialsX?:import('./credentials').DemoCredentials;
 
   // ── Modules 13–26 (one optional slice each; types live in domain/streams/<module>.ts) ──
   yieldX?:import('./streams/yield').YLDState;

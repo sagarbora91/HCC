@@ -96,6 +96,7 @@
     <File Path="database/migrations/3601_accounting_tally_export_log.sql" />
     <File Path="database/migrations/3700_access_v2_rbac_seed.sql" />
     <File Path="database/migrations/3701_pos_menu_change_requests.sql" />
+    <File Path="database/migrations/3910_access_credential_must_change.sql" />
     <File Path="database/migrations/3930_room_board_indexes.sql" />
   </Folder>
 </Solution>

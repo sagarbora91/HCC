@@ -20,6 +20,9 @@ public sealed class RoleReadMatrixTests
 {
     private const string OwnerLogin = "owner.matrix";
     private const string Password = "Maroon&Sand#Ledger26";
+    /// <summary>A06-01: the Owner's first password / PIN, replaced by each user's own (Password / the role's PIN) at the first sign-in.</summary>
+    private const string FirstPassword = "First#Owner-Set-2026";
+    private const string FirstPin = "816305";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -78,19 +81,22 @@ public sealed class RoleReadMatrixTests
                 {
                     var login = "matrix." + role.ToLowerInvariant();
                     var u = await Wire.CommandAsync<UserVersionResult>(owner, "CreateUser", new CreateUserRequest(login, "Matrix " + role, [new RoleAssignmentInput(role)]), Ct);
-                    await Wire.CommandAsync<UserVersionResult>(owner, "SetCredential", new SetCredentialRequest(u.UserId, pin is null ? Password : null, pin, u.Version), Ct);
+                    await Wire.CommandAsync<UserVersionResult>(owner, "SetCredential", new SetCredentialRequest(u.UserId, pin is null ? FirstPassword : null, pin is null ? null : FirstPin, u.Version), Ct);
                     if (pin is null)
                     {
                         client = s.CookieClient();
-                        using var r = await Wire.PostAsync(client, "/auth/sign-in", new SignInRequest(login, Password: Password), null, Ct);
+                        using var r = await Wire.PostAsync(client, "/auth/sign-in", new SignInRequest(login, Password: FirstPassword), null, Ct);
                         await Wire.OkAsync<SignInResult>(r, login + " sign-in", Ct);
                     }
                     else
                     {
                         client = s.DeviceClient(device.DeviceToken!);
-                        using var r = await Wire.PostAsync(client, "/auth/sign-in", new SignInRequest(login, Pin: pin, ReturnToken: true), null, Ct);
+                        using var r = await Wire.PostAsync(client, "/auth/sign-in", new SignInRequest(login, Pin: FirstPin, ReturnToken: true), null, Ct);
                         HccServer.UseBearer(client, (await Wire.OkAsync<SignInResult>(r, login + " sign-in", Ct)).SessionToken!);
                     }
+
+                    // A06-01: the matrix reads what each role sees after replacing the Owner's first secret (before that, only 403).
+                    await Wire.CommandAsync<UserVersionResult>(client, "ChangeOwnCredential", new ChangeOwnCredentialRequest(pin is null ? FirstPassword : FirstPin, pin is null ? Password : null, pin), Ct);
 
                     clients.Add(client);
                 }

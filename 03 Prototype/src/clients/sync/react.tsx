@@ -5,14 +5,17 @@
 // Security review F-H01: server unreachable + encrypted offline copy without a valid local session → OfflineUnlock (PIN /
 // password of the user it belongs to); the copy is wiped on sign-out and on idle / absolute expiry (checkExpiry).
 import React,{useEffect,useState,useSyncExternalStore} from 'react';
-import {Hotel,LogIn,RefreshCw,ShieldCheck,Server,Tablet,UserRound,KeyRound,Lock} from 'lucide-react';
+import {Hotel,LogIn,LogOut,RefreshCw,ShieldCheck,Server,Tablet,UserRound,KeyRound,Lock} from 'lucide-react';
 import type {State,Command} from '../../services/mock';
 import {ReadOnlyBanner} from '../react';
 import {getSyncRuntime,getAuth,tokenMode,authReady,needsServerSetup,serverBaseUrl,probeFetch} from './instance';
-import type {RunResult,SyncSnapshot} from './runtime';
+import {appScreen,type RunResult,type SyncSnapshot} from './runtime';
 import {utcToClock} from './map';
 import {isNative} from '../../app/native';
 import {probeServer,saveServerUrl,deviceRegistered,deviceLabel,deviceStaff,rememberStaff,resolveStaffLogin,registerThisDevice,refreshDeviceStaff,forgetDevice,type ProbeResult} from './apk';
+import type {SyncMe} from './types';
+import {OwnCredentialForm,wordOf,type OwnCredentialOutcome} from '../../app/OwnCredential';
+import {mustChangeText} from '../../domain/credentials';
 
 /** What the app shell needs from the server side (App.tsx AppShell `server` prop). */
 export type ServerBinding={state:State;uid:string;run:(cmd:Command)=>Promise<RunResult>;signOut:()=>void};
@@ -47,12 +50,30 @@ function ConnectedApp({render}:{render:(b:ServerBinding)=>React.ReactNode}){
     const id=setInterval(()=>{if(rt.checkExpiry())return;
       if(tokenMode(a)&&rt.get().status==='ready'&&a.expired()){setNote('You were signed out after a period without activity. Sign in again.');void rt.signOut();}},IDLE_CHECK_MS);
     return ()=>clearInterval(id);},[rt]);
-  if(snap.status==='booting')return <div className="boot-loading" role="status" aria-live="polite"><Hotel size={28} aria-hidden="true"/><strong>Connecting to the hotel server…</strong></div>;
-  if(snap.status==='locked'&&snap.locked)return <OfflineUnlock who={snap.locked.displayName} kind={snap.locked.credentialKind}/>;
-  if(snap.status==='signed-out'||!snap.me)return <ServerSignIn message={snap.signInMessage??note}/>;
-  if(isNative()&&!skipOffer&&!deviceRegistered()&&snap.me.permIds.includes(ADMIN_PERM))
+  const screen=appScreen(snap,isNative()&&!skipOffer&&!deviceRegistered()&&!!snap.me?.permIds.includes(ADMIN_PERM));
+  if(screen==='booting')return <div className="boot-loading" role="status" aria-live="polite"><Hotel size={28} aria-hidden="true"/><strong>Connecting to the hotel server…</strong></div>;
+  if(screen==='locked'&&snap.locked)return <OfflineUnlock who={snap.locked.displayName} kind={snap.locked.credentialKind}/>;
+  if(screen==='sign-in'||!snap.me)return <ServerSignIn message={snap.signInMessage??note}/>;
+  // A06-01: right after a sign-in with a password / PIN an administrator set, only this screen — no app shell, menu or navigation.
+  if(screen==='must-change')return <ForcedCredentialChange me={snap.me}/>;
+  if(screen==='device-setup')
     return <DeviceSetup onDone={()=>{try{sessionStorage.setItem(OFFER_SKIPPED,'1');}catch{/* ignore */}setSkipOffer(true);}}/>;
   return <>{render({state:snap.state,uid:snap.me.uid,run:cmd=>rt.run(cmd),signOut:()=>{setNote(undefined);void rt.signOut();}})}</>;
+}
+
+/** A06-01: the password / PIN was set by an administrator. The user chooses their own (ChangeOwnCredential) or signs out; the server
+ *  refuses everything else meanwhile. On success the runtime re-reads capabilities and loads the app (runtime.ts credentialChanged). */
+export function ForcedCredentialChange({me}:{me:SyncMe}){
+  const rt=getSyncRuntime();const kind=me.credentialKind??'PASSWORD';const word=wordOf(kind);
+  const send=async(cmd:Command):Promise<OwnCredentialOutcome>=>{const r=await rt.run(cmd);
+    return r.ok?{ok:true}:{ok:false,text:r.text,definitive:r.reason!=='server'||(r.error as {wireCode?:string}|undefined)?.wireCode!=='UNAVAILABLE'};};
+  return <main className="signin"><div className="signin-card" role="region" aria-label={`Choose your own ${word}`}>
+    <Brand sub={me.displayName?`Signed in as ${me.displayName}`:'Signed in'}/>
+    <h1>Choose your own {word}</h1>
+    <p className="signin-help"><KeyRound size={16} aria-hidden="true"/>{mustChangeText(kind)} Nothing else opens until you do; afterwards only you know it.</p>
+    <OwnCredentialForm kind={kind} uid={me.uid} send={send} forced/>
+    <button type="button" className="btn" onClick={()=>{void rt.signOut();}}><LogOut size={16}/>Sign out</button>
+  </div></main>;
 }
 
 /** Server unreachable, encrypted offline copy, no valid local session: re-authenticate to read it (read-only). */

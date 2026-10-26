@@ -51,7 +51,7 @@ export function CredentialsView(p:CredentialsViewProps){
   if(!p.admin)return <section className="padded cred-panel" aria-label="Sign-in and devices"><p className="adm-lock" role="note"><ShieldCheck size={15}/> Only the Owner or Tech admin sets passwords and PINs and manages hotel devices (PERM-ADM-001).</p></section>;
   const after=async(r:ActionOutcome)=>{setMsg({text:r.text,error:!r.ok});if(r.ok)await p.onReload();};
   return <section className="padded cred-panel" aria-label="Sign-in and devices">
-    <p className="muted">DEC-062: Owner, Accountant and Tech admin sign in with a password; all other staff with a {PIN_LENGTH}-digit PIN on a registered hotel device. A new password or PIN is shown to nobody — not even here — after it is saved: tell the person in private.</p>
+    <p className="muted">DEC-062: Owner, Accountant and Tech admin sign in with a password; all other staff with a {PIN_LENGTH}-digit PIN on a registered hotel device. A new password or PIN is shown to nobody — not even here — after it is saved: tell the person in private. At their next sign-in they must replace it with their own before they can do anything else.</p>
     {p.readOnly&&<p className="form-error" role="alert">The server cannot be reached: passwords, PINs and devices cannot be changed now.</p>}
     {p.loadError&&<p className="form-error" role="alert">Could not read users and devices from the server: {p.loadError}</p>}
     {msg&&<p className={msg.error?'form-error':'server-ok'} role={msg.error?'alert':'status'}>{msg.text}</p>}

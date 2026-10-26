@@ -17,10 +17,11 @@ import {protoId,utcToClock} from './map';
 import {adoptDeviceRegistration,deviceId,deviceServerLabel,forgetDevice,refreshDeviceStaff} from './apk';
 import type {HttpTransport} from '../http';
 
-export type CredKind='PASSWORD'|'PIN';
-/** Server roles that sign in with a password (RoleCodes.PasswordRoles). */
-export const PASSWORD_ROLES=['OWN','ACC','TAD'] as const;
-export const PIN_LENGTH=6,PASSWORD_MIN=12,PASSWORD_MAX=128;
+// The rules live in src/domain/credentials.ts (shared with the demo mock and the self-service change sheet, A02b-05).
+import {requiredKind,credentialProblem,type CredKind} from '../../domain/credentials';
+export {PASSWORD_ROLES,PIN_LENGTH,PASSWORD_MIN,PASSWORD_MAX,requiredKind,pinIsTrivial,credentialProblem,credentialRules,ownCredentialProblem,ownCredentialCommand,ownCredentialKey,
+  mustChangeText,OWN_CREDENTIAL_CHANGE,MUST_CHANGE_REASON} from '../../domain/credentials';
+export type {CredKind} from '../../domain/credentials';
 
 // ── Server DTOs (Hcc.Contracts.Access) ──
 type SrvUserRole={roleCode:string;validFromUtc:string;validUntilUtc?:string|null};
@@ -33,42 +34,6 @@ export type CredentialUser={id:string;loginName:string;displayName:string;enable
   /** What DEC-062 requires for this user's roles; null = no role (cannot sign in at all). */ needs:CredKind|null};
 export type DeviceRow={id:string;label:string;registeredAt:string;lastSeenAt:string;revokedAt:string;active:boolean;thisDevice:boolean};
 export type CredentialDirectory={users:CredentialUser[];devices:DeviceRow[]};
-
-/** DEC-062: any password role (active, future or expired assignment alike) → password; other roles → PIN; no role → null. */
-export function requiredKind(roleCodes:readonly string[]):CredKind|null{
-  if(!roleCodes.length)return null;
-  return roleCodes.some(r=>(PASSWORD_ROLES as readonly string[]).includes(r))?'PASSWORD':'PIN';
-}
-
-const COMMON_PINS=new Set(['112233','102030','111222','121314','123321','147258','147852','159753','159357','258369','258456',
-  '369258','741852','789456','456789','963852','852456','696969','100200','998877','778899','010203']);
-/** Same rule as PinRules.IsTrivial on the server. */
-export function pinIsTrivial(pin:string):boolean{
-  if(COMMON_PINS.has(pin))return true;
-  const d=[...pin].map(c=>c.charCodeAt(0)-48);let asc=true,desc=true;
-  for(let i=1;i<d.length;i++){asc&&=d[i]===d[i-1]+1;desc&&=d[i]===d[i-1]-1;}
-  if(asc||desc)return true;
-  for(const period of [1,2,3]){if(pin.length%period)continue;if(pin.slice(0,period).repeat(pin.length/period)===pin)return true;}
-  return pin===[...pin].reverse().join('')||new Set(pin).size<=2;
-}
-/** Client-side check before sending (the server repeats it and also refuses a recently used PIN). */
-export function credentialProblem(kind:CredKind,secret:string,confirm:string,loginName:string):string|undefined{
-  if(!secret)return kind==='PIN'?'Type the new PIN.':'Type the new password.';
-  if(kind==='PIN'){
-    if(secret.length!==PIN_LENGTH||!/^\d+$/.test(secret))return `The PIN must be exactly ${PIN_LENGTH} digits.`;
-    if(pinIsTrivial(secret))return 'This PIN is too easy to guess. Choose one without runs or repeats.';
-  }else{
-    if(secret.length<PASSWORD_MIN||secret.length>PASSWORD_MAX)return `The password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters.`;
-    if(loginName&&secret.toLowerCase().includes(loginName.toLowerCase()))return 'The password must not contain the sign-in name.';
-    if(new Set(secret).size<4)return 'The password is too simple.';
-  }
-  if(secret!==confirm)return kind==='PIN'?'The two PINs do not match.':'The two passwords do not match.';
-  return undefined;
-}
-/** The rules as shown next to the form. */
-export const credentialRules=(kind:CredKind)=>kind==='PIN'
-  ?`${PIN_LENGTH} digits, no runs or repeats (not 123456, 111111, 121212 …), not one of the last PINs this person used.`
-  :`${PASSWORD_MIN}–${PASSWORD_MAX} characters, at least 4 different characters, not containing the sign-in name.`;
 
 type Getter=<T>(path:string,query?:Record<string,string|number|boolean|undefined>)=>Promise<T>;
 const PAGE=100;
@@ -106,7 +71,7 @@ export async function setCredential(run:Run,user:CredentialUser,kind:CredKind,se
   const cmd:Command=kind==='PIN'?{type:'USER_CREDENTIAL',id:user.id,pin:secret,key}:{type:'USER_CREDENTIAL',id:user.id,password:secret,key};
   const r=await run(cmd);
   if(!r.ok)return {ok:false,text:r.text,definitive:definitiveOf(r)};
-  return {ok:true,text:`${kind==='PIN'?'PIN':'Password'} set for ${user.displayName}. It is not shown again — tell them in person.${user.lockedOut?' Their lockout is cleared.':''}${kind==='PIN'?' They sign in with it on a registered hotel device.':''}`};
+  return {ok:true,text:`${kind==='PIN'?'PIN':'Password'} set for ${user.displayName}. It is not shown again — tell them in person.${user.lockedOut?' Their lockout is cleared.':''}${kind==='PIN'?' They sign in with it on a registered hotel device':' They sign in with it'} and must choose their own ${kind==='PIN'?'PIN':'password'} straight away (A06-01).`};
 }
 /** DEVICE_REGISTER → RegisterDevice for THIS device: the one-time device token is kept only in this device's storage. */
 export async function registerDeviceHere(run:Run,transport:HttpTransport|undefined,name:string,nonce:string):Promise<ActionOutcome>{

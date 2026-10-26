@@ -10,6 +10,7 @@ import {CashModal} from '../features/closing/CashModal';
 import {ScenarioModal,ResetModal,GuideModal} from './demo/DemoModals';
 import {extraModals,extraWide,mobileModals} from './registry';
 import {DemoSheet,UserMenuSheet} from './mobile/sheets';
+import {OwnCredentialSheet} from './OwnCredential';
 const wide=['booking','invoice','guide','scenario',...extraWide];
 export function ModalHost(){
   const {s,modal,closeModal,error,display,setDirty}=useHcc();
@@ -60,6 +61,7 @@ export function ModalHost(){
       case 'guide':return process.env.HCC_BUILD==='production'?null:<GuideModal/>; // demo-only: compiled out of the production build
       case 'demo':return process.env.HCC_BUILD==='production'?null:<DemoSheet/>; // demo-only: compiled out of the production build
       case 'user-menu':return <UserMenuSheet/>;
+      case 'own-credential':return <OwnCredentialSheet/>; // A02b-05: every signed-in user, both builds
       default:return <Empty title="This record is unavailable"/>;
     }
   };

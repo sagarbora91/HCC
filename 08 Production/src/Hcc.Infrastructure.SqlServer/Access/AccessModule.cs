@@ -27,7 +27,8 @@ public sealed class SqlCapabilitiesQuery(SqlConnectionFactory connections, Acces
         }
 
         return new CapabilitiesResult(session.UserId, session.PropertyId, session.DisplayName, CredentialPolicy.ToWire(session.Kind),
-            RoleCodes.All.Where(roles.Contains).ToList(), grants, FieldMasks.For(roles), session.ToWire((int)options.IdleTimeout.TotalSeconds));
+            RoleCodes.All.Where(roles.Contains).ToList(), grants, FieldMasks.For(roles), session.ToWire((int)options.IdleTimeout.TotalSeconds),
+            session.MustChangeCredential);
     }
 }
 

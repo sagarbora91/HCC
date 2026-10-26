@@ -16,7 +16,9 @@ public sealed record SignInRequest(string LoginName, string? Password = null, st
 
 public sealed record SessionInfo(string IdleExpiresUtc, string AbsoluteExpiresUtc, int IdleTimeoutSeconds);
 
-public sealed record SignInResult(int UserId, string DisplayName, string CredentialKind, SessionInfo Session, string? SessionToken);
+/// <summary><see cref="MustChangeCredential"/> (A06-01): the password / PIN was set by an administrator; the app opens "Change my password / PIN"
+/// at once, and the server refuses everything but GET /me/capabilities, ChangeOwnCredential and sign-out until it is changed.</summary>
+public sealed record SignInResult(int UserId, string DisplayName, string CredentialKind, SessionInfo Session, string? SessionToken, bool MustChangeCredential = false);
 
 /// <summary>One permission the principal holds (menus): mode A/L/R/V/M, scope P/S/A/O, limit in <see cref="LimitUnit"/> (PAISE or BPS).</summary>
 public sealed record CapabilityGrant(string PermissionId, string Mode, string Scope, long? Limit, string? LimitUnit);
@@ -36,7 +38,8 @@ public sealed record CapabilitiesResult(
     IReadOnlyList<string> Roles,
     IReadOnlyList<CapabilityGrant> Permissions,
     IReadOnlyDictionary<string, string> FieldMasks,
-    SessionInfo Session);
+    SessionInfo Session,
+    bool MustChangeCredential = false);
 
 /// <summary>Role assignment with validity (UTC instants; null from = now, null until = open-ended).</summary>
 public sealed record RoleAssignmentInput(string RoleCode, DateTime? ValidFromUtc = null, DateTime? ValidUntilUtc = null);
@@ -54,7 +57,11 @@ public sealed record RevokeRoleRequest(int UserId, string RoleCode, string Expec
 /// <summary>Admin sets/resets a user's credential: <see cref="Password"/> for password roles, <see cref="Pin"/> for PIN roles (DEC-062).</summary>
 public sealed record SetCredentialRequest(int UserId, string? Password, string? Pin, string ExpectedVersion);
 
-/// <summary>A user changes their own credential; <see cref="Current"/> is the current password or PIN.</summary>
+/// <summary>
+/// A user changes their own credential; <see cref="Current"/> is the current password or PIN. Exactly one of <see cref="NewPassword"/> /
+/// <see cref="NewPin"/>, of the kind the account uses (DEC-062), different from the current one; PIN / password rules as for SetCredential.
+/// Ends the user's other sessions (this one continues) and clears the A06-01 must-change flag.
+/// </summary>
 public sealed record ChangeOwnCredentialRequest(string Current, string? NewPassword, string? NewPin);
 
 /// <summary>User-level exception (RBAC §1): Effect ALLOW or DENY, with a reason and an expiry.</summary>
