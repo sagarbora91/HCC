@@ -11,7 +11,7 @@ const flavour={'process.env.NODE_ENV':'"production"','process.env.HCC_BUILD':pro
 // Scenario worker (audit P-01): bundled on its own and inlined into the app as a string, started from a Blob URL at runtime.
 const worker=await build({entryPoints:['src/app/scenarioWorker.ts'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,define:flavour});
 const result=await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,plugins:production?[prodTextPlugin(resolve('src'))]:[],define:{...flavour,__HCC_SCENARIO_WORKER__:JSON.stringify(worker.outputFiles[0].text)}});
-const css=await buildBundleCss('.'); // src/styles.css + src/styles/*.css concatenated, then text-size transform (tools/cssTextScale.mjs)
+const css=await buildBundleCss('.'); // src/styles.css + every src/styles/*.css (readdir, sorted: z-touch.css and zz-print.css load last) concatenated, then the text-size transform (tools/cssTextScale.mjs)
 const js=result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script');
 const html=`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,interactive-widget=resizes-content"><meta name="theme-color" content="#7a1f2b">${moHeadTags()}<title>${production?'Hotel Control Centre':'Hotel Control Centre · Interactive Prototype'}</title><style>${css}</style></head><body><div id="root"></div><script>${js}</script></body></html>`;
 if(production){await mkdir('dist/production',{recursive:true});await writeFile('dist/production/index.html',html);console.log(`Built dist/production/index.html (${Math.round(html.length/1024)} KB) — production flavour (HTTP adapter, no demo controls).`);process.exit(0);}
