@@ -2,7 +2,7 @@
 
 Internal hotel-operations app for the owner's hotel business in India (owner: Sagar). Local-network first. Windows desktop + Android phone.
 **Current stage:** interactive prototype (React 19 + TypeScript, single self-contained HTML, fictional data, in-browser mock service) **accepted 25 Oct 2026 (APR-011)**, plus the production server `08 Production` (.NET 10 ASP.NET Core + SQL Server Express, reusing ETP platform code, DEC-054) — **merged into `main` 26 Oct 2026** (Wave 1 P0–P7, Wave 2 twelve modules, Wave 3: OTA, booking website, ID capture, groups billing, CRM, invoices & credit notes, stays gaps, room-block history, cash book, first-time setup).
-**Status (26 Oct 2026, 05:00):** `main` = prototype (**800 tests**, SCHEMA 8, `npm run build` + `npm run build:production`) + server (**849 .NET tests, 27 projects**, run serially on `.\SQLEXPRESS`: `dotnet test Hcc.slnx -maxcpucount:1`; 0 warnings). APK v10 is the latest built; next: **APK v11** (versionCode 11) → phone AVD `codex_api35_google` + tablet AVD `hcc_tablet_api35` (one at a time) → push (main far ahead of GitHub; secret scan first). Owner/CA items: role matrix v2 decisions D1–D7 (`02 Planning/HCC_RBAC_Matrix_v2_Proposal.md`), CA pack, Wave 3 decisions in HANDOFF Session 12. Open items: `02 Planning/HCC_Implementation_Backlog.md`. Details: `HANDOFF.md` (Sessions 10–12), `MIGRATION.md`.
+**Status (26 Oct 2026, 13:30):** `main` = prototype + server **Waves 1–4** (Wave 4: the production web build and the server APK run on the server through `03 Prototype/src/clients/sync/` — area modules, read-only encrypted cache, per-role read gating; masters import; APK HTTPS + PIN/device sign-in; security review fixes). Tests: prototype **1008**, server **962** (28 projects, serial `dotnet test Hcc.slnx -maxcpucount:1` on `.\SQLEXPRESS`), both web builds, 0 warnings. APK v12 (versionCode 12) = next build/test. Push only when the owner says (secret scan first). Owner/CA items and next steps: `HANDOFF.md` Session 12b; open items `02 Planning/HCC_Implementation_Backlog.md`; role matrix v2 `02 Planning/HCC_RBAC_Matrix_v2_Proposal.md`.
 
 **Location (work PC since 25 Oct 2026):** `E:\Projects\HCC\Hotel Control Centre`. Older documents say `V:\Codex\Hotel Control Centre` (old PC) — read that as this folder. Use Node 25 (`E:\Tools\nodejs`; the `E:\Program Files\nodejs` v24 comes first on PATH). SCC rule sources: `E:\Projects\HCC\Migration data on 25 oct\HCC-Migration-2026-10-25\reference-inputs\SCC-modules`. ETP (`V:\ETP`) was not moved.
 
@@ -17,7 +17,7 @@ Internal hotel-operations app for the owner's hotel business in India (owner: Sa
 - `01 Research Stage/` original conversation + execution plan · `02 Planning/` specs (+ `modules/`) · `03 Prototype/` app · `04 Android/` Capacitor wrapper (README there: build env incl. Norton trust-store workaround) · `05 Delivery Evidence/` summaries/tests/evidence
 
 ## Commands (run in `03 Prototype`)
-`npm install` · `npx tsc --noEmit` · `npm test` (800 tests must pass on main) · `npm run build` (→ `dist/index.html` + `Hotel Control Centre.html`) · `npm start` (http://127.0.0.1:4173; `-- --lan` for phones)
+`npm install` · `npx tsc --noEmit` · `npm test` (1008 tests must pass on main) · `npm run build` (→ `dist/index.html` + `Hotel Control Centre.html`) · `npm start` (http://127.0.0.1:4173; `-- --lan` for phones)
 
 ## Architecture rules
 - All mutations via `execute(state, uid, cmd)` (`src/services/mock/commands.ts`) + stream handlers in `src/services/mock/handlers/*.ts`; typed `HccError` codes; idempotency keys.
