@@ -1,5 +1,5 @@
 {
- "startedAt": "2026-10-26T17:11:28.531Z",
+ "startedAt": "2026-10-26T18:21:44.658Z",
  "masters": [
   {
    "vp": "360",
@@ -106,10 +106,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "360-s1-roomTypes-form.jpg",
@@ -188,12 +186,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)",
-     "Add amount (144×41)",
-     "Add amount (144×41)"
-    ],
-    "smallCount": 3,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "360-s1-occupancyCharges-form.jpg",
@@ -232,10 +226,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "360-s1-mealPlans-form.jpg",
@@ -274,10 +266,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "360-s1-extras-form.jpg",
@@ -636,10 +626,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "360-s1-menuItems-form.jpg",
@@ -1262,16 +1250,11 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 24 (x 288–382)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
-    "wide": [
-     "button. right 382",
-     "b. right 367"
-    ],
+    "wide": [],
     "smallFonts": 0,
     "shot": "360-s1.3-rooms-list.jpg",
     "rows": 24
@@ -1347,9 +1330,7 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 4 (x 277–361)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
@@ -1589,16 +1570,11 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 16 (x 285–380)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
-    "wide": [
-     "button. right 380",
-     "b. right 365"
-    ],
+    "wide": [],
     "smallFonts": 0,
     "shot": "360-s1.3-expenseVendors-list.jpg",
     "rows": 16
@@ -1754,16 +1730,11 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 21 (x 285–380)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
-    "wide": [
-     "button. right 380",
-     "b. right 365"
-    ],
+    "wide": [],
     "smallFonts": 0,
     "shot": "360-s1.3-menuItems-list.jpg",
     "rows": 21
@@ -1799,16 +1770,11 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 15 (x 285–380)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
-    "wide": [
-     "button. right 380",
-     "b. right 365"
-    ],
+    "wide": [],
     "smallFonts": 0,
     "shot": "360-s1.3-bookingSources-list.jpg",
     "rows": 15
@@ -2044,16 +2010,11 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 11 (x 283–378)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
-    "wide": [
-     "button. right 378",
-     "b. right 363"
-    ],
+    "wide": [],
     "smallFonts": 0,
     "shot": "360-s1.3-designations-list.jpg",
     "rows": 11
@@ -2089,9 +2050,7 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 4 (x 277–361)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
@@ -2211,9 +2170,7 @@
     "vw": 360,
     "doc": 0,
     "body": 0,
-    "outside": [
-     "All 4 (x 277–361)"
-    ],
+    "outside": [],
     "clipped": [],
     "small": [],
     "smallCount": 0,
@@ -2389,10 +2346,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "390-s1-roomTypes-form.jpg",
@@ -2471,12 +2426,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)",
-     "Add amount (144×41)",
-     "Add amount (144×41)"
-    ],
-    "smallCount": 3,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "390-s1-occupancyCharges-form.jpg",
@@ -2515,10 +2466,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "390-s1-mealPlans-form.jpg",
@@ -2557,10 +2506,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "390-s1-extras-form.jpg",
@@ -2919,10 +2866,8 @@
     "body": 0,
     "outside": [],
     "clipped": [],
-    "small": [
-     "Add amount (144×41)"
-    ],
-    "smallCount": 1,
+    "small": [],
+    "smallCount": 0,
     "wide": [],
     "smallFonts": 0,
     "shot": "390-s1-menuItems-form.jpg",
@@ -4568,7 +4513,7 @@
     "shot": "1366-s1-floors-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 3,
      "money": 0
@@ -4608,7 +4553,7 @@
     "shot": "1366-s1-amenities-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 5,
      "money": 0
@@ -4728,7 +4673,7 @@
     "shot": "1366-s1-occupancyCharges-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 12,
      "money": 3
@@ -4768,7 +4713,7 @@
     "shot": "1366-s1-mealPlans-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 12,
      "money": 1
@@ -4808,7 +4753,7 @@
     "shot": "1366-s1-extras-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 9,
      "money": 1
@@ -4968,7 +4913,7 @@
     "shot": "1366-s1-expenseCategories-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 6,
      "money": 1
@@ -5128,7 +5073,7 @@
     "shot": "1366-s1-menuCategories-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 3,
      "money": 0
@@ -5168,7 +5113,7 @@
     "shot": "1366-s1-menuItems-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 13,
      "money": 1
@@ -5248,7 +5193,7 @@
     "shot": "1366-s1-idTypes-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 6,
      "money": 0
@@ -5368,7 +5313,7 @@
     "shot": "1366-s1-complaintCategories-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 5,
      "money": 0
@@ -5408,7 +5353,7 @@
     "shot": "1366-s1-lostFoundCategories-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 6,
      "money": 0
@@ -5568,7 +5513,7 @@
     "shot": "1366-s1-holidays-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 4,
      "money": 0
@@ -5688,7 +5633,7 @@
     "shot": "1366-s1.3-floors-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 3,
      "money": 0
@@ -5728,7 +5673,7 @@
     "shot": "1366-s1.3-amenities-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 5,
      "money": 0
@@ -5848,7 +5793,7 @@
     "shot": "1366-s1.3-occupancyCharges-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 12,
      "money": 3
@@ -5888,7 +5833,7 @@
     "shot": "1366-s1.3-mealPlans-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 12,
      "money": 1
@@ -5928,7 +5873,7 @@
     "shot": "1366-s1.3-extras-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 9,
      "money": 1
@@ -6248,7 +6193,7 @@
     "shot": "1366-s1.3-menuCategories-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 3,
      "money": 0
@@ -6288,7 +6233,7 @@
     "shot": "1366-s1.3-menuItems-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 13,
      "money": 1
@@ -6688,7 +6633,7 @@
     "shot": "1366-s1.3-holidays-form.jpg",
     "actions": {
      "found": true,
-     "saveVisible": false,
+     "saveVisible": true,
      "hasSave": true,
      "fields": 4,
      "money": 0
@@ -7751,7 +7696,30 @@
      }
     }
    },
-   "shot": "roles-supervisor-1366-granted-hub.jpg"
+   "shot": "roles-supervisor-1366-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
   },
   {
    "role": "Housekeeper",
@@ -7829,7 +7797,30 @@
      }
     }
    },
-   "shot": "roles-housekeeper-1366-granted-hub.jpg"
+   "shot": "roles-housekeeper-1366-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
   },
   {
    "role": "Accountant",
@@ -7995,7 +7986,30 @@
      }
     }
    },
-   "shot": "roles-maint-1366-granted-hub.jpg"
+   "shot": "roles-maint-1366-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
   },
   {
    "role": "Tech admin",
@@ -8493,7 +8507,30 @@
      }
     }
    },
-   "shot": "roles-supervisor-390-granted-hub.jpg"
+   "shot": "roles-supervisor-390-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
   },
   {
    "role": "Housekeeper",
@@ -8571,7 +8608,30 @@
      }
     }
    },
-   "shot": "roles-housekeeper-390-granted-hub.jpg"
+   "shot": "roles-housekeeper-390-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
   },
   {
    "role": "Accountant",
@@ -8737,7 +8797,30 @@
      }
     }
    },
-   "shot": "roles-maint-390-granted-hub.jpg"
+   "shot": "roles-maint-390-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
   },
   {
    "role": "Tech admin",
