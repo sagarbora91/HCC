@@ -24,6 +24,7 @@ import {chnSlice} from './channels';
 import {grpSlice} from './groups';
 import {guestIdKind} from './guests';
 import {HccError} from '../errors';
+import {mastersSeed,seedSlug,SEED_BOOKING_SOURCES,SEED_ID_TYPES,SEED_NUMBER_SERIES,SEED_POLICIES} from '../../fixtures/ext/masters-seed';
 
 export const FDM_SOURCES='bookingSources',FDM_ID_TYPES='idTypes',FDM_SERIES='numberSeries',FDM_POLICIES='policies';
 
@@ -36,7 +37,7 @@ export type FDMState={counters:Record<string,FDMCounter>};
 const fdmSlice=(s:State):FDMState=>{const x=s.frontdeskMasterX??(s.frontdeskMasterX={counters:{}});x.counters??={};return x;};
 
 const ISO=/^\d{4}-\d{2}-\d{2}$/;
-const slug=(t:string)=>t.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,20).replace(/-+$/,'')||'X';
+const slug=(t:string)=>seedSlug(t)||'X';
 const lc=(t:unknown)=>String(t??'').trim().toLowerCase();
 
 // ═════════════════════════════ M9 · Booking sources and market segments ═════════════════════════════
@@ -45,16 +46,7 @@ export const FDM_SEGMENTS=[{value:'DIRECT',label:'Direct'},{value:'OTA',label:'O
 export const fdmSegmentLabel=(v:unknown)=>FDM_SEGMENTS.find(x=>x.value===v)?.label??String(v??'—');
 export type FDMSourceRow=MasterRow&{segment:string;channel?:string;commissionBps?:number;auto?:boolean};
 /** Fixture values: the sources the booking forms offered (RES_SOURCES), the website, the generic OTA and agent rows. */
-export const FDM_SOURCE_SEED:FDMSourceRow[]=[
-  {id:'bsrc-walkin',code:'WALKIN',name:'Walk-in',segment:'DIRECT',sortOrder:10,active:true},
-  {id:'bsrc-phone',code:'PHONE',name:'Phone',segment:'DIRECT',sortOrder:20,active:true},
-  {id:'bsrc-whatsapp',code:'WHATSAPP',name:'WhatsApp',segment:'DIRECT',sortOrder:30,active:true},
-  {id:'bsrc-direct',code:'DIRECT',name:'Direct',segment:'DIRECT',sortOrder:40,active:true},
-  {id:'bsrc-website',code:'WEBSITE',name:'Website',segment:'DIRECT',sortOrder:50,active:true},
-  {id:'bsrc-ota',code:'OTA',name:'OTA',segment:'OTA',sortOrder:60,active:true},
-  {id:'bsrc-agent',code:'AGENT',name:'Agent',segment:'AGENT',commissionBps:0,sortOrder:70,active:true},
-  {id:'bsrc-corporate',code:'CORPORATE',name:'Corporate',segment:'CORPORATE',sortOrder:80,active:true},
-];
+export const FDM_SOURCE_SEED:FDMSourceRow[]=SEED_BOOKING_SOURCES; // fixtures/ext/masters-seed.ts
 /** Old source texts that mean a master row (the fixture's "OTA · manual" is the generic OTA row). */
 const SOURCE_ALIASES:Record<string,string>={'ota · manual':'OTA','ota - manual':'OTA'};
 const autoId=(code:string)=>'bsrc-auto-'+code.toLowerCase();
@@ -134,7 +126,7 @@ const sourceUsage=(s:State,row:FDMSourceRow):MasterUsage=>{
 /** Rows stored in s.mastersX.rows.bookingSources (after the first change) or the seed, plus the auto rows. */
 function sourceRead(s:State):FDMSourceRow[]{
   const stored=s.mastersX?.rows?.[FDM_SOURCES] as FDMSourceRow[]|undefined;
-  const base=Array.isArray(stored)?stored:FDM_SOURCE_SEED.map(r=>({...r}));
+  const base=Array.isArray(stored)?stored:mastersSeed(FDM_SOURCES,s) as FDMSourceRow[];
   return [...base,...fdmAutoSources(s,base)];
 }
 function sourceWrite(s:State,rows:FDMSourceRow[]){
@@ -167,12 +159,7 @@ export const FDM_SOURCE_SPEC:MasterSpec<FDMSourceRow>={
 
 // ═════════════════════════════ M11 · Guest ID types ═════════════════════════════
 export type FDMIdTypeRow=MasterRow&{accepted:boolean;needsPhoto:boolean;foreignerOnly:boolean};
-const ID_NAMES=['Aadhaar (demo)','Passport (demo)','Driving licence (demo)','Voter ID (demo)','PAN (demo)','Other (demo)'];
-/** Fixture values (guests.ts guestIdTypes) + the foreigner-only passport-and-visa type (plan M11). */
-export const FDM_ID_SEED:FDMIdTypeRow[]=[
-  ...['AADHAAR','PASSPORT','DL','VOTER','PAN','OTHER'].map((code,i)=>({id:'idt-'+code.toLowerCase(),code,name:ID_NAMES[i],accepted:true,needsPhoto:false,foreignerOnly:false,sortOrder:(i+1)*10,active:true})),
-  {id:'idt-visa',code:'VISA',name:'Passport + visa (demo, foreign national)',accepted:true,needsPhoto:true,foreignerOnly:true,sortOrder:70,active:true},
-];
+export const FDM_ID_SEED:FDMIdTypeRow[]=SEED_ID_TYPES;
 /** The number check of a type (guests.ts guestIdNumberError, chosen by the first word of the name). */
 export const FDM_ID_CHECK:Record<string,string>={aadhaar:'Aadhaar: 12 digits with checksum',passport:'Passport: 1 letter + 7 digits',dl:'Driving licence: 2 letters + 13 digits',
   voter:'Voter ID: 3 letters + 7 digits',pan:'PAN: 5 letters, 4 digits, 1 letter',other:'4–20 letters or digits'};
@@ -206,7 +193,7 @@ export const FDM_ID_SPEC:MasterSpec<FDMIdTypeRow>={
     {key:'active',label:'Active',type:'toggle'},
   ],
   inUse:(s,row)=>{const n=(s.guests??[]).filter(g=>lc(g.idType)===lc(row.name)).length;return {count:n,where:n?[`Guest profiles ${n} · check: ${fdmIdCheck(row.name)}`]:[]};},
-  seed:()=>FDM_ID_SEED.map(r=>({...r})),
+  seed:s=>mastersSeed(FDM_ID_TYPES,s) as FDMIdTypeRow[],
 };
 
 // ═════════════════════════════ M12 · Document numbering series ═════════════════════════════
@@ -224,14 +211,7 @@ export type FDMSeriesRow=MasterRow&{document:FDMDoc;prefix:string;start:number;p
 export const FDM_LEGACY_FY='2026-27';
 const LEGACY:Record<string,'invoiceSeqC'|'creditNoteSeqC'>={'nsr-inv':'invoiceSeqC','nsr-crn':'creditNoteSeqC'};
 /** Seeds: the numbers the prototype already prints (DEMO/2026-27/0001, DEMO-CN/2026-27/0001) + one row per other document. */
-export const FDM_SERIES_SEED:FDMSeriesRow[]=[
-  {id:'nsr-inv',code:'INV',name:'Tax invoice',document:'INV',prefix:'DEMO',start:1,padding:4,reset:'FY',activeFrom:'2025-04-01',sortOrder:10,active:true},
-  {id:'nsr-bos',code:'BOS',name:'Bill of supply',document:'BOS',prefix:'BOS',start:1,padding:4,reset:'FY',activeFrom:'2025-04-01',sortOrder:20,active:true},
-  {id:'nsr-crn',code:'CRN',name:'Credit note',document:'CRN',prefix:'DEMO-CN',start:1,padding:4,reset:'FY',activeFrom:'2025-04-01',sortOrder:30,active:true},
-  {id:'nsr-rcp',code:'RCP',name:'Receipt',document:'RCP',prefix:'RCP',start:1,padding:5,reset:'NEVER',activeFrom:'2025-04-01',sortOrder:40,active:true},
-  {id:'nsr-kot',code:'KOT',name:'Kitchen order ticket',document:'KOT',prefix:'KOT',start:1,padding:4,reset:'NEVER',activeFrom:'2025-04-01',sortOrder:50,active:true},
-  {id:'nsr-reg',code:'REG',name:'Registration card',document:'REG',prefix:'REG',start:1,padding:5,reset:'NEVER',activeFrom:'2025-04-01',sortOrder:60,active:true},
-];
+export const FDM_SERIES_SEED:FDMSeriesRow[]=SEED_NUMBER_SERIES;
 /** "2026-27" for any date from 1 April 2026 to 31 March 2027. */
 export function fdmFyLabel(date:string):string{
   const y=Number(date.slice(0,4)),m=Number(date.slice(5,7)),from=m>=4?y:y-1;
@@ -343,14 +323,14 @@ export const FDM_SERIES_SPEC:MasterSpec<FDMSeriesRow>={
   inUse:seriesUsage,
   validate:(s,row,rows)=>seriesProblem(s,row,rows),
   canRetire:(s,row)=>fdmSeriesFor(s,row.document)?.id===row.id?`${row.code} is the ${fdmDocLabel(row.document).toLowerCase()} series in force today — add the next series (from a date with no documents) before retiring it.`:undefined,
-  seed:()=>FDM_SERIES_SEED.map(r=>({...r})),
+  seed:s=>mastersSeed(FDM_SERIES,s) as FDMSeriesRow[],
 };
 
 // ═════════════════════════════ M14 · Cancellation / no-show / deposit policies ═════════════════════════════
 export type FDMPolicyRow=MasterRow&{freeCancelHours:number;cancelChargeBps:number;noShowChargeBps:number;depositBps:number;sources:string[]};
 /** "Default" = today's global behaviour: free cancellation up to arrival, no cancellation or no-show charge, no advance required
  *  (the refundable check-in deposit and the no-show cut-off stay in Front-desk policies settings). Applies to every source. */
-export const FDM_POLICY_SEED:FDMPolicyRow[]=[{id:'pol-default',code:'DEFAULT',name:'Default',freeCancelHours:0,cancelChargeBps:0,noShowChargeBps:0,depositBps:0,sources:[],sortOrder:10,active:true}];
+export const FDM_POLICY_SEED:FDMPolicyRow[]=SEED_POLICIES;
 /** Policy of a booking: the active policy naming its source row, else the active policy that names no source (Default). */
 export function fdmPolicyFor(s:State,b:Pick<Booking,'source'|'otaChannel'|'company'>):FDMPolicyRow|undefined{
   const pols=mstRows(s,FDM_POLICIES,{active:true}) as FDMPolicyRow[];const code=fdmSourceOf(s,b)?.code;
@@ -401,7 +381,7 @@ export const FDM_POLICY_SPEC:MasterSpec<FDMPolicyRow>={
     return undefined;
   },
   canRetire:(_s,row)=>!(row.sources??[]).length?`${row.name} is the default policy — bookings from unnamed sources need it.`:undefined,
-  seed:()=>FDM_POLICY_SEED.map(r=>({...r,sources:[]})),
+  seed:s=>mastersSeed(FDM_POLICIES,s) as FDMPolicyRow[],
 };
 
 // ───────────────────────────── Registration (Master configuration › Front-desk policies › Lists) ─────────────────────────────

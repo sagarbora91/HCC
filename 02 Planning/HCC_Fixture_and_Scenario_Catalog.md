@@ -138,3 +138,65 @@ Findings from that run, fed into the backlog:
 ### 4.1 Alternative single-day version (DEC-029 option A)
 
 Steps run on 24 Oct with a "post full stay" action. Not recommended: it posts future nights and then checks the guest out two days early, which does not show night-audit behaviour.
+
+## 5. Masters in the fixtures (MA-9, 27 Oct 2026)
+
+Every master of the masters wave (`src/domain/streams/masters.ts` framework; plan `HCC_Customisation_Features_Plan_v1.md` Part 2) starts from the **one seed module `03 Prototype/src/fixtures/ext/masters-seed.ts`**. A master's rows live in `s.mastersX.rows[<id>]` only after its first saved change; before that (BASE, every scenario, FY26, old saves) the rows are the seed, read by the master's `seed` hook (`s=>mastersSeed('<id>',s)`). The seed reproduces what the prototype hard-coded or derived before the wave, so **no figure moves**: BASE is never edited (it carries no `mastersX`), FY26 = BASE + history, and the FY26 determinism hashes do not read the seed. Seed rows are always active, have unique codes and ascending unique sort orders; a retired row is never seeded.
+
+### 5.1 Seed rows per master (BASE and every scenario unless §5.2 says otherwise)
+
+| Master (id) | Rows | Seed values (code → name) | Derived from |
+|---|---:|---|---|
+| Floors (`floors`) | 3 | F1 Floor 1 · F2 Floor 2 · F3 Floor 3 | the rooms' `floor` numbers |
+| Room types (`roomTypes`) | 3 | CLASSIC · DELUXE · SUITE (bed, size, sleeps, amenities) | the rooms' `type` keys (Classic, Deluxe, Suite first) |
+| Rooms (`rooms`) | 24 | the fixture rooms themselves (no seed) | `s.rooms` |
+| Amenities (`amenities`) | 9 | WIFI TEA AC TV DESK VIEW LIVING BATH BFAST | constants |
+| Occupancy charges (`occupancyCharges`) | 3 | X-CLASSIC X-DELUXE X-SUITE: extra adult ₹800, child ₹400, bed ₹1,000 (not Classic), child age 6–12, from 2025-04-01 | one per room type; illustrative |
+| Meal plans (`mealPlans`) | 4 | EP ₹0 · CP ₹300 (bundled) · MAP ₹750 · AP ₹1,200 | constants |
+| Extras (`extras`) | 8 | LAUNDRY ₹500 · DRYCLEAN · XBED · PICKUP · DROP · MINIBAR · LATECO · HALL | constants (LAUNDRY ₹500 = the worked ₹4,265 journey) |
+| Discount reasons (`discountReasons`) | 5 | SERVICE CORP REPEAT LONGSTAY MGMT | constants |
+| Payment methods (`paymentMethods`) | 6 | CASH → TILL · UPI · CARD · BANK → BANK-1 · VCREDIT · COMPANY | the old front-desk, POS and expense tender lists + Company credit |
+| Bank accounts (`bankAccounts`) | 2 | TILL (Front-desk cash drawer) · BANK-1 (Demo Bank, fictional) | constants |
+| Expense categories (`expenseCategories`) | 5 | SUPPLIES LAUNDRY MAINT UTIL PETTY | the old `EXPENSE_CATEGORIES` |
+| Expense vendors (`expenseVendors`) | 2 / 0 / 3 / 16 | `V-<WORDS>` per distinct free-text vendor on `s.expenses` | BASE 2, S1 0, ACC 3, FY26 16 |
+| Menu categories (`menuCategories`) | 6 | BEVERAGES BREAKFAST STARTERS MAINS BREADS-RICE DESSERTS | the menu items' category text, first appearance |
+| Outlets, tables, menu items (`outlets`, `posTables`, `menuItems`) | — | the fixture's own POS data (no seed) | `s.posX` |
+| Booking sources (`bookingSources`) | 8 + auto | WALKIN PHONE WHATSAPP DIRECT WEBSITE OTA AGENT CORPORATE; OTA channels and company accounts add their own rows (BASE and FY26 15 rows in all, S4 16) | the forms' source list + channels + companies |
+| ID types (`idTypes`) | 7 | AADHAAR PASSPORT DL VOTER PAN OTHER VISA | the guest ID list + foreigner-only passport and visa |
+| Number series (`numberSeries`) | 6 | INV (DEMO) · BOS · CRN (DEMO-CN) · RCP · KOT · REG | the numbers the prototype prints; INV / CRN continue `invoiceSeqC` / `creditNoteSeqC` in FY 2026-27 |
+| Policies (`policies`) | 1 | DEFAULT (free cancellation up to arrival, no charges, no advance) | today's global behaviour |
+| Designations (`designations`) | 11 | one per distinct designation of the staff master (HOTEL-MANAGER … SECURITY-GUARD-NIGHT) | `s.staffX.staff` |
+| Shift patterns (`shiftPatterns`) | 4 | M 07–15 · E 15–23 · N 23–07 · G 09–18 | the staff roster constants |
+| Leave types (`leaveTypes`) | 6 | CL 12 · SL 7 · EL 15 · CO · ML · LOP | the staff leave policy |
+| Holiday calendar (`holidays`) | 8 | **demo data**, see §5.3 | constants |
+| Housekeeping task types (`hkTaskTypes`) | 4 | DEP 40 min inspected · STAY 20 · DEEP 90 · INSP 10 | today's housekeeping behaviour |
+| Housekeeping zones (`hkZones`) | 3 | Z1 Z2 Z3, one per floor, round-robin attendant | the rooms' floors + enabled housekeepers |
+| Complaint categories (`complaintCategories`) | 8 | CLEAN MAINT NOISE STAFF FNB BILLING AMEN OTHER | constants (SLA hours illustrative) |
+| Lost-and-found categories (`lostFoundCategories`) | 7 | JEWEL ELEC CASH DOCS CLOTH CARE OTHER | constants |
+
+### 5.2 Per scenario
+
+All scenarios share the seed above; only the rows **derived from records** change. BASE, S0, S2, S3, S5, S6 and AI1 are as §5.1 (2 expense vendors). S1 (empty hotel): 0 expense vendors (no expenses). S4 (company credit): one more auto booking source for the company account (16 rows). ACC (accounting): 3 expense vendors. FY26 (BASE + one year of history, the app's default): 16 expense vendors; every other list as §5.1. No scenario stores a `mastersX` slice and none carries a retired master row.
+
+### 5.3 Demo data and the switch
+
+The prototype seeds an **example holiday calendar** (8 rows, 6 paid in FY 2026-27, each row marked `demo:true`) so payroll and compliance screens show holidays. DEC-083 and the server seed none. It sits behind **one switch**: `MASTERS_SEED_OPTIONS.demoHolidays` in `masters-seed.ts` (`setMastersSeedOptions({demoHolidays:false})` before the first read starts the calendar empty). No other master seeds demo rows.
+
+### 5.4 Checks (`tests/stream-masters-fixture.mjs`, test names `[MFX]`)
+
+Old constants gone or marked LEGACY (`EXPENSE_CATEGORIES`, the three payment arrays, `adminRoomTypes`); every spec seed hook reads the seed module and no seed row literal lives elsewhere; every historical record of BASE and FY26 (receipts, POS receipts and orders, expenses, booking sources, rooms' floors and types, guests' ID types, staff designations and shifts, leave types, tasks' types, complaint and found-item categories, menu categories) resolves to a master row; each master's seed rows have unique codes and sort orders and none is retired; the golden figures (occupancy 8, collections ₹21,500 = 2,150,000 paise, drawer ₹10,725 = 1,072,500) and the BASE, FY26-history, FY26-bookings and FY26-whole-state hashes are unchanged; the demo switch works.
+
+### 5.5 Seed values that differ between the prototype and the server seed (for MA-11)
+
+| Master | Prototype seed | Server seed |
+|---|---|---|
+| Expense vendors | `V-<WORDS>` capped at 20 characters (`V-FRESH-LINEN-SERVIC`), name order; type rule also matches "electricity board" and "gas agency" | `V-0001`, `V-0002` … in name order (migration 2830); type rule without those two phrases |
+| Bank account BANK-1 | "Demo Bank (fictional)", last four 4321, IFSC `DEMO0001234` | "Bank (to be set by the Owner)", no last four or IFSC |
+| Menu categories | name-derived codes (`BEVERAGES`, `BREADS-RICE`), first-appearance order | `CAT-01`, `CAT-02` … in name order, sort 10, 20 … (migration 2840) |
+| ID types | names carry "(demo)" (`Aadhaar (demo)`, `Passport + visa (demo, foreign national)`) because guest profiles store that text | `Aadhaar`, `Passport + visa (foreign national)` |
+| Number series | INV prefix `DEMO`, padding 4, from 2025-04-01; BOS padding 4; CRN prefix `DEMO-CN`, padding 4 | INV prefix = the invoice-prefix setting or `INV`, padding = 16 − 6 − prefix length; BOS padding 7; CRN prefix `CN`, padding 8; from 2000-04-01 |
+| Holiday calendar | 8 demo rows (§5.3) | none (DEC-083) |
+| Room types, amenities, occupancy charges | seeded with illustrative beds, sizes, amenities and extras (₹800 / ₹400 / ₹1,000) | no amenity or occupancy-charge rows; room types exist only as the import wrote them |
+| Housekeeping zones | one zone per floor with a round-robin default attendant | none |
+
+Identical in both: payment methods, expense categories, meal plans, extras, discount reasons, booking sources, policies, shift patterns, leave types, task types, complaint and lost-and-found categories, floors.

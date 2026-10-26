@@ -46,3 +46,4 @@ export * from '../../domain/streams/frontdesk-master';
 export * from '../../domain/streams/people-masters'; // MA-6
 export * from '../../domain/streams/hkmasters';
 export * from '../../domain/streams/gsvmasters';
+export * from '../../fixtures/ext/masters-seed'; // MA-9 one masters seed
