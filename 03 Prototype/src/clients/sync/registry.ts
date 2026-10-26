@@ -10,7 +10,7 @@ import {reservations} from './reservations';
 // import {frontdesk} from './frontdesk';
 
 // W4-2 rooms, housekeeping, room blocks:
-// import {rooms} from './rooms';
+import {rooms} from './rooms';
 
 // W4-3 money (folio, cashier, cash book, invoices, groups billing):
 // import {money} from './money';
@@ -45,7 +45,7 @@ export const AREAS:SyncArea[]=[
 
   // frontdesk, // W4-1
 
-  // rooms, // W4-2
+  rooms, // W4-2
 
   // money, // W4-3
 
