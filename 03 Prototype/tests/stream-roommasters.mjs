@@ -161,6 +161,41 @@ export async function register({test,M,assert}){
     assert.throws(()=>execute(seed(),'owner',{type:'MST_MASTER_DELETE',master:'rooms',id:'101'}),reason('MASTER_IN_USE'));
     let s=add(seed(),'owner','109','F1','CLASSIC');s=execute(s,'owner',{type:'MST_MASTER_DELETE',master:'rooms',id:'109'});assert.equal(room(s,'109'),undefined);});
 
+  // ── V14-5: rooms added today are bookable; retired / out-of-order rooms are excluded with their own reason (BASE and FY26) ──
+  let fy26;const FY=()=>fy26??=M.buildHistory(M.baseFixture());
+  const withNew=s=>add(F4(s),'owner','401-403','F4','DELUXE');
+  const search=(s,a,d)=>M.resSearch(s,{arrival:a,departure:d,people:2});
+  const excl=(r,id)=>r.excluded.find(x=>x.room.id===id);
+  for(const [name,mk] of [['BASE',()=>seed()],['FY26',FY]]){
+    test(`[RMS] V14-5 ${name}: rooms 401–403 added today are bookable from the business date; the open group block keeps holding original rooms, shown as "Group hold"`,()=>{
+      const s=withNew(mk()),a=s.date,d=M.addDays(s.date,2);
+      assert.equal(a,'2026-10-24');assert.deepEqual(['401','402','403'].map(id=>room(s,id).addedOn),['2026-10-24','2026-10-24','2026-10-24']);
+      for(const id of ['401','402','403']){assert.equal(available(s,id,a,d),true,id);assert.equal(M.roomHold(s,id,a,d),undefined,id);}
+      const r=search(s,a,d);assert.deepEqual(['401','402','403'].map(id=>r.available.some(x=>x.room.id===id)),[true,true,true]);
+      const held=M.grpHolds(s).filter(h=>h.block==='GB-4');assert.equal(held.length,3,'GB-4 still holds its 3 Deluxe rooms');
+      assert.deepEqual(held.map(h=>h.room).sort(),M.grpHolds(mk()).filter(h=>h.block==='GB-4').map(h=>h.room).sort(),'the same rooms as before the add');
+      for(const h of held){const x=excl(r,h.room);assert.deepEqual([x.reasons,x.reason],[['Group hold'],'Group hold · GB-4 Sahyadri Infra site team'],h.room);}
+      assert.ok(!r.excluded.some(x=>/another reservation/.test(x.reason)),'no unexplained "Booked · another reservation"');
+      const t=execute(s,'reception',{type:'BOOK',guest:'Test Guest',phone:'+91 90000 00000',people:2,children:0,room:'401',arrival:a,departure:d,source:'Walk-in',key:'v145-'+name});
+      assert.equal(t.bookings.find(b=>b.room==='401'&&b.arrival===a).status,'Confirmed');});
+    test(`[RMS] V14-5 ${name}: a retired room is never bookable and is excluded with the reason "Retired"; a group block never holds it`,()=>{
+      let s=withNew(mk());s=execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'rooms',id:'403'});
+      for(const [a,d] of [[s.date,M.addDays(s.date,2)],['2026-12-01','2026-12-03']]){
+        assert.equal(available(s,'403',a,d),false,a);const x=excl(search(s,a,d),'403');assert.deepEqual([x.reasons[0],x.reason],['Retired','Retired'],a);}
+      assert.ok(!M.grpHolds(s).some(h=>h.room==='403'));
+      const gb=M.grpHolds(s).filter(h=>h.block==='GB-4').map(h=>h.room),victim=gb[0];
+      const t=execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'rooms',id:victim});
+      const after=M.grpHolds(t).filter(h=>h.block==='GB-4').map(h=>h.room);
+      assert.equal(after.length,3,'the hold moves to another free Deluxe room');assert.ok(!after.includes(victim));
+      assert.equal(excl(search(t,t.date,M.addDays(t.date,2)),victim).reason,'Retired');});
+    test(`[RMS] V14-5 ${name}: an out-of-order room is excluded with "Out of order until <date>" (open-ended: "until further notice") and bookable after the window`,()=>{
+      const s=withNew(mk()),a=s.date,d=M.addDays(s.date,2);
+      let t=oooNights(s,'401',a,'2026-10-28');
+      let x=excl(search(t,a,d),'401');assert.deepEqual([x.reasons,x.reason],[['Out of order'],'Out of order until 28 Oct 2026']);
+      assert.equal(available(t,'401','2026-12-01','2026-12-03'),true);assert.ok(!M.grpHolds(t).some(h=>h.room==='401'));
+      t=oooNights(s,'402',a);x=excl(search(t,'2026-12-01','2026-12-03'),'402');assert.equal(x.reason,'Out of order until further notice');});
+  }
+
   // ── Amenities, booking site, extra charges ──
   test('[RMS] amenities: add one, used by a type → cannot delete; the booking-site copy shows bed + website amenities from the master',()=>{
     let s=save(seed(),'techadmin','amenities',{code:'POOL',name:'Pool access',icon:'waves',showOnWebsite:true});
@@ -187,7 +222,7 @@ export async function register({test,M,assert}){
       assert.doesNotMatch(src(f),/floor \{r\.floor\}|Floor \{r\.floor\}/,f);
     const s=save(seed(),'owner','floors',{id:'flr-1',code:'F1',name:'Ground'});assert.equal(M.rmsRoomLine(s,room(s,'101')),'Classic · Ground');});
   test('[RMS] registration: Rooms tools (Add hidden, no reorder), modal rms-extra desktop + phone, booking-dialog slot; no new page; sync mapping',()=>{
-    const reg=src('src/features/roommasters/register.tsx');assert.match(reg,/registerMasterTools\('rooms',\{Tools:RoomTools,hideAdd:true,noReorder:true\}\)/);
+    const reg=src('src/features/roommasters/register.tsx');assert.match(reg,/registerMasterTools\('rooms',\{Tools:RoomTools,hideAdd:true,noReorder:true,noReorderNote:'Rooms are listed by floor and room number[^']*'\}\)/); /* V14-7 old → new: noReorderNote added (visible reason) */
     assert.match(reg,/modals:\{'rms-extra':ExtraModal\}/);assert.match(reg,/mobile:\{modals:\{'rms-extra':ExtraModal\}\}/);assert.match(reg,/bookingActions:RmsBookingActions/);
     assert.match(src('src/app/registry.ts'),/m_admin,(\w+,)*roommasters[,\]]/);assert.doesNotMatch(src('src/app/navmap.ts'),/roommasters|rms-/);
     assert.match(src('src/features/masters/MasterList.tsx'),/ext\?\.Tools&&<ext\.Tools/);assert.match(src('src/mobile/masters/MasterListPhone.tsx'),/ext\?\.Tools&&<ext\.Tools specId=\{specId\} phone\/>/);});

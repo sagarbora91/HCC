@@ -52,7 +52,7 @@ export function register({test,assert}){
     // AC-04: submit still clears the dirty flag so no "Discard" prompt follows a successful submit
     assert.match(m,/onSubmitCapture=\{\(\)=>setDirty\(false\)\}/);
     const app=read('src/app/App.tsx');
-    assert.match(app,/AC-04/);assert.match(app,/closeModal=\(\)=>\{if\(dirty\.current&&!window\.confirm/);
+    assert.match(app,/AC-04/);assert.match(app,/closeModal=\(\)=>\{if\(dirty\.current\)\{setDiscardAsk\(true\)/);assert.doesNotMatch(app,/window\.confirm/); // V14-1: the app's own DiscardAsk dialog
   });
   test('[A11Y-02] drawer, search palette and exit dialog trap Tab and give focus back',()=>{
     for(const f of ['src/app/NavDrawer.tsx','src/app/SearchPalette.tsx']){const t=read(f);assert.match(t,/useReturnFocus\(\)/,f);assert.match(t,/trapTab\(/,f);}

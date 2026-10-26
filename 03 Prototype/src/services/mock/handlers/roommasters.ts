@@ -40,7 +40,7 @@ const RMS_ROOMS_ADD:Handler=k=>{
   const key=rmsTypeKey(type!),rate=rmsRackOn(s,key,s.date);
   if(!rate)mstFail('MASTER_INVALID',`Set the rack rate of ${type!.name} before adding rooms of that type.`,'type');
   for(const no of p.numbers){const why=rmsNumberTaken(s,no);if(why)mstFail('MASTER_CODE_TAKEN',why,'rooms');}
-  s.rooms=[...s.rooms,...p.numbers.map(id=>({id,floor:n!,type:key,rate:rate!,hk:'Ready' as const,blocked:false}))];
+  s.rooms=[...s.rooms,...p.numbers.map(id=>({id,floor:n!,type:key,rate:rate!,hk:'Ready' as const,blocked:false,addedOn:s.date}))];
   for(const no of p.numbers)hist(k,no,'added','—',`${floor!.name} · ${type!.name}`);
   return `Master Rooms: added ${rmsRangeLabel(p.numbers)} on ${floor!.name} · ${type!.name}`;
 };

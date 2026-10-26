@@ -1,0 +1,13 @@
+/* z-tablet-masters.css: tablet layout of the masters pages. Separate file because m-masters.css and z-tablet.css are pinned line by line by the [CT-A]/[CT-C] colour-token tests. */
+/* V14-3 · Tablet portrait: masters lists and forms (rules live here because m-masters.css and z-tablet.css are pinned by the colour-token tests).
+   In the Master configuration hub the Lists block sits in the hub's detail column (viewport - content padding 2x16..36 - 16 gap - 320 settings-group list),
+   and the list-beside-form grid (.mst-split) needs about 220 + 14 + 340 px inside the block (block = detail column - 2x20 margin - 2x14 padding - border).
+   Below 1040 px of viewport the detail column is under ~640 px, so the rows list and the form stack (form below the list, full width); landscape tablets
+   (1280) keep them side by side. Inputs never shrink below 240 px (or the pane, if narrower). Phone shell (.mst-sheet / .mst-m-*) is not affected. */
+@media (max-width: 1040px) {
+  .mst-split { grid-template-columns: minmax(0, 1fr); }
+  .mst-detail { width: 100%; }
+  .mst-list .rms-grid { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+}
+.mst-detail input:not([type=checkbox]):not([type=radio]), .mst-detail select, .mst-detail textarea { min-width: min(240px, 100%); }
+.mst-detail .mst-dated-add label { min-width: min(240px, 100%); }
