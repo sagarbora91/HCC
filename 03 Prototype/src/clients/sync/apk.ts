@@ -61,9 +61,9 @@ export async function probeServer(raw:string,fetch:FetchLike,timeoutMs=8000):Pro
   try{
     const d=await t.get<{product?:string;serverName?:string;version?:string}>('/system/discovery');
     if(d?.product!==HCC_PRODUCT)return {ok:false,text:`${n.url} answers, but it is not a Hotel Control Centre server.`};
-    const h=await t.get<{status?:string;database?:string}>('/system/health');
+    const h=await t.get<{status?:string;database?:string|null}>('/system/health');
     if(h?.status!=='ok')return {ok:false,text:`The server at ${n.url} answers, but it is not ready (status: ${h?.status??'unknown'}).`};
-    return {ok:true,url:n.url,serverName:d.serverName??'',version:d.version??'',database:h.database};
+    return {ok:true,url:n.url,serverName:d.serverName??'',version:d.version??'',database:h.database??undefined};
   }catch(e){
     if(e instanceof HccClientError&&e.wireCode==='UNAVAILABLE'){
       const cause=String((e.details as {cause?:string}|undefined)?.cause??'');

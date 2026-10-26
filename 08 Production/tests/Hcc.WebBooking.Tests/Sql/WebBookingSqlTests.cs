@@ -21,7 +21,7 @@ public sealed class WebBookingSqlTests
         Assert.Equal("HCC Demo Residency", q.Hotel);
         var suite = q.RoomTypes.Single(t => t.RoomType == "Suite");
         Assert.True(suite.Bookable);
-        Assert.Equal(2, suite.RoomsLeft);
+        Assert.Equal("FewLeft", suite.Availability);   // F-L05: a band (0 / 1–2 / 3+), never the exact count
         Assert.Equal(450_000, suite.NightlyRatePaise);
         Assert.Equal((900_000L, 45_000L, 945_000L), (suite.NetPaise, suite.TaxPaise, suite.TotalPaise));
         Assert.All(suite.NightRates, n => Assert.Equal((450_000L, 500, 22_500L), (n.RatePaise, n.TaxBps, n.TaxPaise)));
@@ -109,7 +109,7 @@ public sealed class WebBookingSqlTests
         Assert.Equal("NOT_AVAILABLE", await Expect.CodeAsync(() => w.SubmitAsync(WebWorld.Request(arrival: "2026-11-01", departure: "2026-11-02", phone: "9822233344"))));
         var q = (await w.Web.QuoteAsync("2026-11-01", "2026-11-02", 2, 0, "Suite", Ct)).RoomTypes.Single();
         Assert.False(q.Bookable);
-        Assert.Equal(0, q.RoomsLeft);
+        Assert.Equal("SoldOut", q.Availability);
         Assert.Equal("Sold out for these dates", q.Reason);
     }
 
@@ -182,6 +182,10 @@ public sealed class WebBookingSqlTests
         Assert.EndsWith("2345", list.Requests[0].PhoneMasked);
         var detail = await w.Web.GetAsync(w.PropertyId, Who.Reception, id, Ct);
         Assert.Equal("+91 98000 12345", detail.Phone);
+        // F-L06: a user who holds the queue (or reservation view) by an exception but not guest registration sees the contact masked.
+        var masked = await w.Web.GetAsync(w.PropertyId, Who.AccountantWithException, id, Ct);
+        Assert.Equal("••••••2345", masked.Phone);
+        Assert.True(masked.Email is null || masked.Email.Contains('•', StringComparison.Ordinal));
         Assert.Equal(2, detail.QuotedNights.Count);
 
         var d = (await w.Web.DeclineAsync(w.Ctx(Who.Reception, "d1"), new(id, "Suite reserved for maintenance"), Ct)).Value;
@@ -192,6 +196,16 @@ public sealed class WebBookingSqlTests
     }
 
     [Fact]
+    public async Task Open_requests_are_capped_globally_whatever_the_phone_F_L05()
+    {
+        await using var w = await WebWorld.CreateAsync(new WebBookingOptions { Enabled = true, MaxPendingRequests = 2 }, Ct);
+        await w.SubmitAsync(WebWorld.Request(phone: "9822200001"));
+        await w.SubmitAsync(WebWorld.Request(phone: "9822200002"));
+        Assert.Equal("NOT_AVAILABLE", await Expect.CodeAsync(() => w.SubmitAsync(WebWorld.Request(phone: "9822200003"))));
+        Assert.Equal(2, await w.Db.CountAsync("SELECT COUNT(*) FROM web.request;"));
+    }
+
+    [Fact]
     public async Task Deposit_link_flow_posts_a_deposit_receipt_on_the_folio()
     {
         await using var w = await WebWorld.CreateAsync(ct: Ct);
@@ -199,33 +213,41 @@ public sealed class WebBookingSqlTests
 
         Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l0"), new(id), Ct)));   // not confirmed yet
         var confirmed = (await w.Web.ConfirmAsync(w.Ctx(Who.Reception, "c1"), new(id), Ct)).Value;
+        // F-L06: the reservation read masks the guest phone for a reader without guest registration.
+        Assert.Equal("+91 98000 12345", (await w.Reservations.GetAsync(w.PropertyId, Who.Reception, confirmed.ReservationId, Ct)).Phone);
+        Assert.Equal("••••••2345", (await w.Reservations.GetAsync(w.PropertyId, Who.AccountantWithException, confirmed.ReservationId, Ct)).Phone);
 
         Assert.Equal("VALIDATION", await Expect.CodeAsync(() => w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l1"), new(id, 945_001), Ct)));
         var link = (await w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l2"), new(id), Ct)).Value;
         Assert.Equal(283_500, link.AmountPaise);   // 30 % of 945000
         Assert.Equal("/pay/" + link.Token, link.Url);
+        // F-L03: the plaintext token is never stored, not even in the idempotency record; a replay does not get it again.
+        Assert.Equal(0, await w.Db.CountAsync($"SELECT COUNT(*) FROM plat.idempotency WHERE result_json LIKE '%{link.Token}%';"));
+        var replayed = await w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l2"), new(id), Ct);
+        Assert.True(replayed.Replayed);
+        Assert.Equal((link.LinkId, (string?)null, (string?)null), (replayed.Value.LinkId, replayed.Value.Token, replayed.Value.Url));
         Assert.Equal(32, await w.Db.CountAsync("SELECT DATALENGTH(token_hash) FROM web.deposit_link;"));
         Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l3"), new(id), Ct)));   // one open link
 
-        var view = await w.Web.DepositViewAsync(link.Token, Ct);
+        var view = await w.Web.DepositViewAsync(link.Token!, Ct);
         Assert.Equal(("Open", 283_500L, "WEB-0001"), (view.Status, view.AmountPaise, view.RequestNo));
         Assert.Equal("NOT_FOUND", await Expect.CodeAsync(() => w.Web.DepositViewAsync(WebBookingTokens.Other, Ct)));
 
         // Reception cannot record the deposit; Manager (PERM-PAY-002) can.
-        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Reception, "p0"), new(link.Token, "GW-100200"), Ct)));
-        Assert.Equal("VALIDATION", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p1"), new(link.Token, "x"), Ct)));
-        var paid = (await w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p2"), new(link.Token, "GW-100200"), Ct)).Value;
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Reception, "p0"), new(link.Token!, "GW-100200"), Ct)));
+        Assert.Equal("VALIDATION", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p1"), new(link.Token!, "x"), Ct)));
+        var paid = (await w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p2"), new(link.Token!, "GW-100200"), Ct)).Value;
         Assert.Equal(283_500, paid.AmountPaise);
         Assert.Equal(("deposit", "UPI", 283_500L), (
             await w.Db.StringAsync($"SELECT kind FROM pay.receipt WHERE receipt_id = {paid.ReceiptId};"),
             await w.Db.StringAsync($"SELECT method FROM pay.receipt WHERE receipt_id = {paid.ReceiptId};"),
             await w.Db.LongAsync($"SELECT amount_paise FROM pay.receipt WHERE receipt_id = {paid.ReceiptId};")));
         Assert.Equal(confirmed.ReservationId, await w.Db.LongAsync($"SELECT reservation_id FROM bill.folio WHERE folio_id = {paid.FolioId};"));
-        Assert.Equal("Paid", (await w.Web.DepositViewAsync(link.Token, Ct)).Status);
+        Assert.Equal("Paid", (await w.Web.DepositViewAsync(link.Token!, Ct)).Status);
         Assert.Equal(1, await w.Db.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ReceiptRecorded';"));
 
-        Assert.True((await w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p2"), new(link.Token, "GW-100200"), Ct)).Replayed);     // same key: replay, no second receipt
-        Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p3"), new(link.Token, "GW-100201"), Ct)));
+        Assert.True((await w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p2"), new(link.Token!, "GW-100200"), Ct)).Replayed);     // same key: replay, no second receipt
+        Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p3"), new(link.Token!, "GW-100201"), Ct)));
         Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l4"), new(id), Ct)));   // already paid
         Assert.Equal(1, await w.Db.CountAsync("SELECT COUNT(*) FROM pay.receipt;"));
     }
@@ -238,14 +260,14 @@ public sealed class WebBookingSqlTests
         await w.Web.ConfirmAsync(w.Ctx(Who.Reception, "c1"), new(id), Ct);
         var link = (await w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l1"), new(id), Ct)).Value;
         w.Clock.Now = w.Clock.Now.AddHours(25);
-        Assert.Equal("Expired", (await w.Web.DepositViewAsync(link.Token, Ct)).Status);
-        Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p1"), new(link.Token, "GW-100200"), Ct)));
+        Assert.Equal("Expired", (await w.Web.DepositViewAsync(link.Token!, Ct)).Status);
+        Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => w.Web.MarkDepositPaidAsync(w.Ctx(Who.Manager, "p1"), new(link.Token!, "GW-100200"), Ct)));
         Assert.Equal(0, await w.Db.CountAsync("SELECT COUNT(*) FROM pay.receipt;"));
         var second = (await w.Web.CreateDepositLinkAsync(w.Ctx(Who.Reception, "l2"), new(id, 200_000), Ct)).Value;
         Assert.NotEqual(link.Token, second.Token);
         Assert.Equal(200_000, second.AmountPaise);
         Assert.Equal("Cancelled", await w.Db.StringAsync($"SELECT status FROM web.deposit_link WHERE link_id = {link.LinkId};"));
-        var paid = (await w.Web.MarkDepositPaidAsync(w.Ctx(Who.Owner, "p2"), new(second.Token, "GW-100300"), Ct)).Value;
+        var paid = (await w.Web.MarkDepositPaidAsync(w.Ctx(Who.Owner, "p2"), new(second.Token!, "GW-100300"), Ct)).Value;
         Assert.Equal(200_000, paid.AmountPaise);
     }
 

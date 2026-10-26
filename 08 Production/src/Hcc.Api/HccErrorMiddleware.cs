@@ -16,8 +16,19 @@ public sealed partial class HccErrorMiddleware(RequestDelegate next, ILogger<Hcc
         catch (Exception ex) when (!context.Response.HasStarted)
         {
             var (status, body) = Map(ex);
-            if (status >= 500) LogUnhandled(logger, ex);
             context.Response.Clear();
+            if (status >= 500)
+            {
+                // F-L07: no exception message in the log (SQL Server duplicate-key messages carry the key value, e.g. a phone or a
+                // login) and none on the wire. The correlation id links the client's error to the server log line.
+                var correlationId = context.TraceIdentifier;
+                var sql = SqlErrorNumber(ex);
+                LogUnhandled(logger, correlationId, ex.GetType().FullName ?? ex.GetType().Name, ex.GetBaseException().GetType().Name, sql?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-",
+                    context.Request.Method, context.Request.Path.Value ?? string.Empty, ex.StackTrace ?? string.Empty);
+                context.Response.Headers["X-Correlation-Id"] = correlationId;
+                body = body with { Details = WithCorrelation(body.Details, correlationId) };
+            }
+
             context.Response.StatusCode = status;
             await context.Response.WriteAsJsonAsync(body).ConfigureAwait(false);
         }
@@ -31,6 +42,20 @@ public sealed partial class HccErrorMiddleware(RequestDelegate next, ILogger<Hcc
         _ => (500, new ErrorResponse("INTERNAL", "Something went wrong on the server. The error has been logged.")),
     };
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled server error")]
-    private static partial void LogUnhandled(ILogger logger, Exception ex);
+    private static int? SqlErrorNumber(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+            if (e is Microsoft.Data.SqlClient.SqlException s) return s.Number;
+        return null;
+    }
+
+    private static Dictionary<string, System.Text.Json.JsonElement> WithCorrelation(IReadOnlyDictionary<string, System.Text.Json.JsonElement>? details, string correlationId)
+    {
+        var d = details is null ? new Dictionary<string, System.Text.Json.JsonElement>(StringComparer.Ordinal) : new Dictionary<string, System.Text.Json.JsonElement>(details, StringComparer.Ordinal);
+        d["correlationId"] = System.Text.Json.JsonSerializer.SerializeToElement(correlationId);
+        return d;
+    }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Server error {CorrelationId}: {ExceptionType} (root {RootType}, SQL error {SqlNumber}) on {Method} {Path} | {StackTrace}")]
+    private static partial void LogUnhandled(ILogger logger, string correlationId, string exceptionType, string rootType, string sqlNumber, string method, string path, string stackTrace);
 }

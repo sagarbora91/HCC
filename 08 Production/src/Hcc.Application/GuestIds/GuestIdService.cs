@@ -117,10 +117,17 @@ public sealed class GuestIdService(ICommandRunner runner, IAccessPolicy policy, 
 
         if (sealedId is null)
         {
-            // Replay of an earlier reveal under the same Idempotency-Key: that request's audit row covers it (same caller, same guest).
-            var row = await store.ReadAsync(null, ctx.PropertyId, req.GuestId, ct).ConfigureAwait(false);
-            if (row?.Sealed is null) throw new HccException(HccErrorCode.NOT_FOUND, "No full ID number is on file for this guest (only the last 4).");
-            (idType, last4, sealedId) = row.Value;
+            // F-L04: a replay of an earlier reveal (same Idempotency-Key) shows the number again, so it is audited again, as its own
+            // command under a fresh server key (the idempotency record only ever holds the audit marker, never the number).
+            await runner.RunAsync(ctx with { Operation = OpReveal + "Replay", IdempotencyKey = "replay-" + Guid.NewGuid().ToString("N") }, req, async (tx, c) =>
+            {
+                var row = await store.ReadAsync(tx, ctx.PropertyId, req.GuestId, c).ConfigureAwait(false);
+                if (row?.Sealed is null) throw new HccException(HccErrorCode.NOT_FOUND, "No full ID number is on file for this guest (only the last 4).");
+                (idType, last4, sealedId) = row.Value;
+                await tx.AuditAsync("GUEST_ID_VIEW", "guest-" + req.GuestId.ToString(CultureInfo.InvariantCulture),
+                    $"guest {req.GuestId} · full ID number shown again (replayed request) ({GuestIdRules.KindOf(row.Value.IdType)})", c).ConfigureAwait(false);
+                return new GuestIdRevealAudit(req.GuestId, true);
+            }, ct).ConfigureAwait(false);
         }
 
         var number = protector.Open(ctx.PropertyId, req.GuestId, sealedId!);

@@ -104,7 +104,8 @@ public sealed class FakeAccessPolicy : IAccessPolicy
 {
     public const int Owner = 1, Manager = 2, Reception = 3, Housekeeper = 4;
 
-    private static readonly string[] Res = ["PERM-RES-001", "PERM-RES-002", "PERM-RES-003", "PERM-RES-004"];
+    // PERM-GST-002 (guest registration) goes with reservations for OWN/MGR/REC in the seed; it unmasks guest contacts (F-L06).
+    private static readonly string[] Res = ["PERM-RES-001", "PERM-RES-002", "PERM-RES-003", "PERM-RES-004", "PERM-GST-002"];
 
     private readonly Dictionary<int, HashSet<string>> _grants = new()
     {

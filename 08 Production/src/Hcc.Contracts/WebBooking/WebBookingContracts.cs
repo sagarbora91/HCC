@@ -30,7 +30,7 @@ public static class DepositLinkStatuses
 public sealed record PublicQuoteNight(string Date, long RatePaise, int TaxBps, long TaxPaise);
 
 /// <param name="Bookable">False when sold out, over capacity or a house restriction applies; <c>Reason</c> says why (never which room or guest).</param>
-public sealed record PublicRoomTypeQuote(int RoomTypeId, string RoomType, int MaxOccupancy, int RoomsLeft, bool Bookable, string? Reason,
+public sealed record PublicRoomTypeQuote(int RoomTypeId, string RoomType, int MaxOccupancy, string Availability, bool Bookable, string? Reason,
     long NightlyRatePaise, int Nights, long NetPaise, long TaxPaise, long TotalPaise, IReadOnlyList<PublicQuoteNight> NightRates);
 
 /// <summary>GET /api/v1/public/booking/quote?arrival&amp;departure&amp;adults&amp;children[&amp;roomType].</summary>
@@ -81,7 +81,8 @@ public sealed record WebRequestDecision(long RequestId, string RequestNo, string
 public sealed record CreateWebDepositLinkRequest(long RequestId, long? AmountPaise = null);
 
 /// <summary>The token is returned ONCE here; only its hash is stored. <c>Url</c> is the simulated payment page path.</summary>
-public sealed record WebDepositLinkResult(long LinkId, long RequestId, string Token, string Url, long AmountPaise, string ExpiresAt, string Status);
+/// <remarks><c>Token</c>/<c>Url</c> are returned once, to the request that made the link; a replay of that request gets null (only the token's hash is stored, F-L03).</remarks>
+public sealed record WebDepositLinkResult(long LinkId, long RequestId, string? Token, string? Url, long AmountPaise, string ExpiresAt, string Status);
 
 /// <summary>POST /api/v1/commands/MarkWebDepositPaid (Idempotency-Key) — the simulated gateway callback, entered by staff.</summary>
 public sealed record MarkWebDepositPaidRequest(string Token, string GatewayRef);

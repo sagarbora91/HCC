@@ -78,6 +78,13 @@ public static partial class WebBookingRules
         return s.Length > max ? s[..max] : s;
     }
 
+    public const string Available = "Available";
+    public const string FewLeft = "FewLeft";
+    public const string SoldOut = "SoldOut";
+
+    /// <summary>What the public quote shows instead of an exact count of rooms left (F-L05: no occupancy intelligence): 0, 1–2, 3+.</summary>
+    public static string AvailabilityBand(int roomsLeft) => roomsLeft <= 0 ? SoldOut : roomsLeft <= 2 ? FewLeft : Available;
+
     public static string PublicNo(long sequence) => "WEB-" + sequence.ToString("D4", CultureInfo.InvariantCulture);
 
     /// <summary>Last four digits visible, the rest masked, for queue lists.</summary>

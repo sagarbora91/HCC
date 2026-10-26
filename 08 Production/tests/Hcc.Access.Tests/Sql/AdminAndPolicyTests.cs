@@ -144,6 +144,34 @@ public class AdminAndPolicyTests(AccessDatabase db) : IClassFixture<AccessDataba
     }
 
     [Fact]
+    public async Task Tech_admin_cannot_reset_credentials_or_disable_money_role_accounts_F_M03()
+    {
+        var (m, owner, _) = await OwnerAsync("fm03.owner");
+        await db.SeedUserAsync("fm03.tad", ["TAD"], password: Pw);
+        var tad = await AccessDatabase.SignInPasswordAsync(m, "fm03.tad", Pw);
+        var acc = await db.SeedUserAsync("fm03.acc", ["ACC"], password: Pw);
+        var mgr = await db.SeedUserAsync("fm03.mgr", ["MGR"], pin: "482913");
+        var mixed = await db.SeedUserAsync("fm03.mixed", ["HKP", "CSH"], pin: "482913");
+        var tad2 = await db.SeedUserAsync("fm03.tad2", ["TAD"], password: Pw);
+        var hkp = await db.SeedUserAsync("fm03.hkp", ["HKP"], pin: "482913");
+
+        foreach (var (target, password, pin) in new[] { (acc, "New-long-password-1", (string?)null), (mgr, null, "305718"), (mixed, null, "305718"), (tad2, "New-long-password-1", null) })
+        {
+            var reset = await Assert.ThrowsAsync<HccException>(async () => await m.Users.SetCredentialAsync(tad, "fm03-c" + target, new SetCredentialRequest(target, password, pin, await db.VersionOfAsync(target))));
+            Assert.Equal(HccErrorCode.FORBIDDEN, reset.Code);
+            var disable = await Assert.ThrowsAsync<HccException>(async () => await m.Users.SetUserEnabledAsync(tad, "fm03-d" + target, new SetUserEnabledRequest(target, false, await db.VersionOfAsync(target))));
+            Assert.Equal(HccErrorCode.FORBIDDEN, disable.Code);
+        }
+
+        Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CREDENTIAL_SET' AND principal_id = @u;", ("@u", tad.UserId)));
+        // The Tech admin still manages the non-money staff accounts; the Owner resets money-role accounts.
+        await m.Users.SetCredentialAsync(tad, "fm03-ok1", new SetCredentialRequest(hkp, null, "305718", await db.VersionOfAsync(hkp)));
+        await m.Users.SetUserEnabledAsync(tad, "fm03-ok2", new SetUserEnabledRequest(hkp, false, await db.VersionOfAsync(hkp)));
+        await m.Users.SetCredentialAsync(owner, "fm03-ok3", new SetCredentialRequest(acc, "New-long-password-1", null, await db.VersionOfAsync(acc)));
+        await m.Users.SetCredentialAsync(owner, "fm03-ok4", new SetCredentialRequest(mgr, null, "305718", await db.VersionOfAsync(mgr)));
+    }
+
+    [Fact]
     public async Task Last_active_owner_survives_two_owners_disabling_each_other_at_once_SOD003()
     {
         var (m, ownerA, idA) = await OwnerAsync("last.ownera");
@@ -203,7 +231,7 @@ public class AdminAndPolicyTests(AccessDatabase db) : IClassFixture<AccessDataba
         await m.Users.AssignRoleAsync(owner, "c-7", new AssignRoleRequest(staff, "ACC", null, null, await db.VersionOfAsync(staff)));
         Assert.Equal(0, await db.CountAsync("SELECT COUNT(*) FROM plat.credential WHERE user_id = @u AND kind = 'PIN';", ("@u", staff)));
         var refused = await Assert.ThrowsAsync<HccException>(() => m.Sessions.SignInAsync(new SignInRequest("cred.staff", Pin: "920461"), device));
-        Assert.Equal("WRONG_CREDENTIAL_KIND", refused.Details!["reason"].GetString());
+        Assert.Equal("BAD_CREDENTIALS", refused.Details!["reason"].GetString());
     }
 
     [Fact]

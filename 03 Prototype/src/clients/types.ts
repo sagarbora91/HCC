@@ -57,7 +57,8 @@ export interface ReservationsClient{
   readonly now?:{getAvailability(q:AvailabilityQuery):AvailabilityResult;getBooking(reservationId:string):BookingDetails|undefined};
 }
 
-export type HealthResult={status:string;database:string;schemaVersion:number;serverTimeUtc:string};
+/** database / schemaVersion are null for anonymous LAN callers (server F-L01); only the server PC and signed-in admins get them. */
+export type HealthResult={status:string;database?:string|null;schemaVersion?:number|null;serverTimeUtc:string};
 export interface SystemClient{health():Promise<HealthResult>}
 
 export type Capabilities={userId:string;displayName:string;role?:string;

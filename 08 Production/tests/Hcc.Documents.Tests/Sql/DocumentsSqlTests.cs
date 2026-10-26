@@ -257,13 +257,16 @@ public class DocumentsSqlTests : IAsyncLifetime
         Assert.Equal("image/png", img.ContentType);
         Assert.Equal(2, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action IN ('ID_CAPTURE_REVEAL','ID_CAPTURE_IMAGE_VIEW');"));
         Assert.Equal(_w.Users["MGR"], await _w.LongAsync("SELECT principal_id FROM plat.audit_event WHERE action = 'ID_CAPTURE_REVEAL';"));
-        // The stored command results hold no number, name or image; a replay returns the number again without a new audit row.
+        // The stored command results hold no number, name or image; a replay shows the number again and is audited again (F-L04).
         var stored = await _w.DumpAsync("SELECT result_json FROM plat.idempotency;", "SELECT detail, target FROM plat.audit_event;");
         foreach (var secret in new[] { Number, "Test Guest", "1990-01-31", "iVBOR" }) Assert.DoesNotContain(secret, stored, StringComparison.Ordinal);
         var again = await _w.Svc.RevealAsync(_w.Ctx("MGR", key), new RevealIdCaptureRequest(v.CaptureId), Ct);
         Assert.True(again.Replayed);
         Assert.Equal(Number, again.Value.IdNumber);
-        Assert.Equal(2, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action IN ('ID_CAPTURE_REVEAL','ID_CAPTURE_IMAGE_VIEW');"));
+        Assert.Equal(3, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action IN ('ID_CAPTURE_REVEAL','ID_CAPTURE_IMAGE_VIEW');"));
+        Assert.Equal(2, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'ID_CAPTURE_REVEAL' AND principal_id = " + _w.Users["MGR"] + ";"));
+        var stillClean = await _w.DumpAsync("SELECT result_json FROM plat.idempotency;", "SELECT detail, target FROM plat.audit_event;");
+        foreach (var secret in new[] { Number, "Test Guest", "1990-01-31", "iVBOR" }) Assert.DoesNotContain(secret, stillClean, StringComparison.Ordinal);
     }
 
     [Fact]
