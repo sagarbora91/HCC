@@ -56,10 +56,15 @@ export function listenBackButton(onBack:()=>void):()=>void{
   return ()=>{dead=true;handle?.remove?.();};
 }
 export function exitApp(){try{void nativePlugin('App')?.exitApp?.();}catch{/* ignore */}}
-/** Maroon status bar with light icons (native only). */
-export function styleStatusBar(){
+/** CP-5: status bar colour per theme = the phone app-bar fill (--primary-fill in src/styles/themes.css); light icons in every theme. */
+export const STATUS_BAR_COLOURS:Readonly<Record<'light'|'dark'|'hc',string>>=Object.freeze({light:'#7a1f2b',dark:'#ae4155',hc:'#5e1620'});
+/** The theme <html data-theme> shows now (light when unknown). */
+const currentTheme=():'light'|'dark'|'hc'=>{try{const t=(globalThis as {document?:{documentElement?:{getAttribute:(k:string)=>string|null}}}).document?.documentElement?.getAttribute('data-theme');return t==='dark'||t==='hc'?t:'light';}catch{return 'light';}};
+/** Status bar in the theme's app-bar colour with light icons (native only; no-op in a browser). Without an argument: the theme on screen. */
+export function styleStatusBar(theme:'light'|'dark'|'hc'=currentTheme()){
   const sb=nativePlugin('StatusBar');if(!sb)return;
-  try{void sb.setOverlaysWebView?.({overlay:false});void sb.setBackgroundColor?.({color:'#7a1f2b'});void sb.setStyle?.({style:'DARK'});}catch{/* ignore */}
+  const color=STATUS_BAR_COLOURS[theme]??STATUS_BAR_COLOURS.light;
+  try{void sb.setOverlaysWebView?.({overlay:false});void sb.setBackgroundColor?.({color});void sb.setStyle?.({style:'DARK'});}catch{/* ignore */}
 }
 
 // ── Files: CSV export and printing ──

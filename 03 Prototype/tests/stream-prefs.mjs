@@ -49,7 +49,7 @@ const stored=p=>JSON.stringify({v:X.PREFS_VERSION,p});
 export function register({test,M,assert}){
   const D=X.PREFS_DEFAULTS;
   test('[PREFS] defaults: Default text, honour system font, follow device motion, comfortable, Modules Home, 100 rows, 6.5 s messages',()=>{
-    assert.deepEqual({...D},{textScale:1,honourSystemFont:true,reduceMotion:'system',density:'comfortable',startPage:'',listPageSize:100,toastSeconds:6.5});
+    assert.deepEqual({...D},{textScale:1,honourSystemFont:true,reduceMotion:'system',density:'comfortable',startPage:'',listPageSize:100,toastSeconds:6.5,theme:'light'}); // CP-5 adds theme
     assert.ok(Object.isFrozen(D));assert.equal(X.PREFS_KEY,'hcc-prefs-1');
     withStorage(()=>assert.deepEqual(X.readPrefs(),{...D}));});
   test('[PREFS] round trip: savePrefs merges a change, stores it under hcc-prefs-1 only, readPrefs returns it',()=>withStorage(({data,writes})=>{
@@ -61,11 +61,12 @@ export function register({test,M,assert}){
   test('[PREFS] invalid values are ignored field by field (each falls back to its default)',()=>{
     const p=X.sanitizePrefs({textScale:2,honourSystemFont:'yes',reduceMotion:'sometimes',density:'tiny',startPage:'<script>',listPageSize:75,toastSeconds:-1});
     assert.deepEqual(p,{...D});
-    const ok=X.sanitizePrefs({textScale:0.9,honourSystemFont:false,reduceMotion:'on',density:'compact',startPage:'cat:front',listPageSize:25,toastSeconds:0});
-    assert.deepEqual(ok,{textScale:0.9,honourSystemFont:false,reduceMotion:'on',density:'compact',startPage:'cat:front',listPageSize:25,toastSeconds:0});
+    const ok=X.sanitizePrefs({textScale:0.9,honourSystemFont:false,reduceMotion:'on',density:'compact',startPage:'cat:front',listPageSize:25,toastSeconds:0,theme:'hc'});
+    assert.deepEqual(ok,{textScale:0.9,honourSystemFont:false,reduceMotion:'on',density:'compact',startPage:'cat:front',listPageSize:25,toastSeconds:0,theme:'hc'});
     assert.equal(X.sanitizePrefs({startPage:'x'.repeat(80)}).startPage,'');assert.equal(X.sanitizePrefs({textScale:'1.15'}).textScale,1,'strings are not numbers');});
   test('[PREFS] unknown fields are dropped; null / arrays / garbage give the defaults',()=>{
-    assert.ok(!('theme' in X.sanitizePrefs({theme:'dark',textScale:1.15})));
+    assert.ok(!('accent' in X.sanitizePrefs({accent:'blue',textScale:1.15}))); // 'theme' became a real field in CP-5
+    assert.equal(X.sanitizePrefs({theme:'neon'}).theme,'light');
     for(const raw of [null,undefined,42,'x',[1,2]])assert.deepEqual(X.sanitizePrefs(raw),{...D});
     assert.deepEqual(X.parsePrefs('{not json'),{...D});assert.deepEqual(X.parsePrefs(''),{...D});assert.deepEqual(X.parsePrefs(null),{...D});});
   test('[PREFS] version bump resets: a stored record of another version is ignored',()=>{
@@ -131,7 +132,7 @@ export function register({test,M,assert}){
   test('[PREFS] applyPrefsToDocument sets --hcc-text, data-density and data-motion on <html>; no document = no-op',()=>{
     const props={},attrs={};const doc={documentElement:{style:{setProperty:(k,v)=>{props[k]=v;}},setAttribute:(k,v)=>{attrs[k]=v;}}};
     X.applyPrefsToDocument({...D,textScale:1.15,density:'compact',reduceMotion:'on'},doc);
-    assert.deepEqual(props,{'--hcc-text':'1.15'});assert.deepEqual(attrs,{'data-density':'compact','data-motion':'off'});
+    assert.deepEqual(props,{'--hcc-text':'1.15'});assert.deepEqual(attrs,{'data-density':'compact','data-motion':'off','data-theme':'light'}); // CP-5 adds data-theme
     X.applyPrefsToDocument({...D},doc);assert.equal(props['--hcc-text'],'1');assert.equal(attrs['data-motion'],'system');
     assert.doesNotThrow(()=>X.applyPrefsToDocument({...D},undefined));});
   test('[PREFS] printing ignores personal text size: the bundle ends with the print reset that pins --hcc-text to 1 with !important (appended by CP-2, tools/cssTextScale.mjs)',()=>{
@@ -151,7 +152,7 @@ export function register({test,M,assert}){
     const s=M.seed();const html=X.renderPrefs(s,'owner',false);
     const order=['Text size','Appearance','Device &amp; display (this device only)','Start &amp; navigation','Alerts','Reset'].map(t=>html.indexOf('>'+t+'<'));
     for(let i=0;i<order.length;i++){assert.ok(order[i]>=0,'card '+i);if(i)assert.ok(order[i]>order[i-1],'order '+i);}
-    assert.ok((html.match(/This device only/g)||[]).length>=5);assert.match(html,/Light · dark theme coming/);
+    assert.ok((html.match(/This device only/g)||[]).length>=5);assert.match(html,/role="radiogroup" aria-label="Theme"/);assert.match(html,/Follow device/); // CP-5: the Theme row is a real choice
     assert.doesNotMatch(html,/Honour the phone/,'APK-only toggle hidden in the browser');
     assert.match(html,/<option value="reports">/);
     const hk=X.renderPrefs(s,'housekeeper',false);assert.doesNotMatch(hk,/value="reports"|value="folios"|value="cashbook"/);assert.match(hk,/value="housekeeping"/);});

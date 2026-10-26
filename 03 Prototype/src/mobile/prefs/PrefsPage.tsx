@@ -4,8 +4,8 @@ import {RotateCcw,Smartphone} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {DisplayToggle,displayModes} from '../../app/display';
 import {isNative} from '../../app/native';
-import {usePrefs,PAGE_SIZES,TOAST_SECONDS,toastLabel,textScaleLabel,resolvePageSize} from '../../app/prefs';
-import {Seg,StartPageSelect,textScaleOptions,DEVICE_ONLY} from '../../features/prefs/parts';
+import {usePrefs,useResolvedTheme,PAGE_SIZES,TOAST_SECONDS,toastLabel,textScaleLabel,resolvePageSize} from '../../app/prefs';
+import {Seg,StartPageSelect,textScaleOptions,DEVICE_ONLY,ThemeSeg,ThemePreview,themeHelp} from '../../features/prefs/parts';
 import {MOTION_OPTIONS,DENSITY_OPTIONS,SAMPLE_LINE} from '../../features/prefs/PrefsPage';
 import {applyHonourSystemFont} from '../../features/prefs/prefsNative';
 
@@ -19,7 +19,7 @@ function Field({label,help,children}:{label:string;help?:string;children:React.R
 export function MPrefsPage(){
   const {display,toast}=useHcc();
   const {prefs,save,reset}=usePrefs();
-  const native=isNative();
+  const native=isNative();const shown=useResolvedTheme();
   const cur=displayModes.find(d=>d.id===display.mode);
   const honour=(v:boolean)=>{save({honourSystemFont:v});void applyHonourSystemFont(v);};
   return <div className="pf-m-page">
@@ -30,9 +30,10 @@ export function MPrefsPage(){
         <span><strong>Honour the phone's system font size</strong><small>On: the Android font size still applies and the size above adds to it.</small></span></label>}
     </MCard>
     <MCard title="Appearance">
+      <Field label="Theme" help={themeHelp(prefs.theme,shown)+'. Printed documents always stay light.'}><ThemeSeg/></Field>
+      <ThemePreview/>
       <Field label="Reduce motion" help={MOTION_OPTIONS.find(o=>o.id===prefs.reduceMotion)?.help}><Seg label="Reduce motion" value={prefs.reduceMotion} options={MOTION_OPTIONS} onChange={v=>save({reduceMotion:v})}/></Field>
       <Field label="Density" help="Affects the desktop and tablet layout; phone buttons always stay 48 px."><Seg label="Density" value={prefs.density} options={DENSITY_OPTIONS} onChange={v=>save({density:v})}/></Field>
-      <Field label="Theme"><span className="pf-static">Light · dark theme coming</span></Field>
     </MCard>
     <MCard title="Display mode">
       <Field label="Layout" help={cur?`${cur.label}: ${cur.help}.`:undefined}><DisplayToggle display={display}/></Field>

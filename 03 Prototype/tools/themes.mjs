@@ -224,6 +224,8 @@ const EXTRA_RULES=`/* named colours in the stylesheets that a dark surface must 
 [data-theme="hc"] :is(input,select,textarea,.btn,.pf-seg,.pf-quick,.m-chips button,.mo-seg button,.display-toggle button){border-width:2px}
 [data-theme="hc"] :is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:4px solid var(--focus-ring)!important;outline-offset:2px!important;box-shadow:0 0 0 6px #ffffff!important}
 [data-theme="hc"] .card,[data-theme="hc"] .m-card,[data-theme="hc"] .pf-m-card{border-color:var(--line-strong)}`;
+/** Appearance & display: the theme preview strip (each card carries its own data-theme and uses that theme's roles). */
+const PREVIEW_RULES="/* CP-5 · Theme choice and live preview strip. Each preview card carries its own data-theme, so it uses the role variables of that\n   theme (themes.css) whatever the page shows; status chips keep their text labels. */\n.pf-seg-theme button svg{flex-shrink:0}\n.pf-theme-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}\n.pf-theme-card{display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;min-width:0;padding:10px 12px;border-radius:10px;cursor:pointer;\n  background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);font:inherit}\n.pf-theme-card.on{outline:3px solid var(--primary);outline-offset:2px}\n.pf-theme-card:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}\n.pf-tp-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}\n.pf-tp-head b{font-size:14px;color:var(--ink)}\n.pf-tp-head small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}\n.pf-tp-muted{font-size:12px;color:var(--muted)}\n.pf-tp-chips{display:flex;flex-wrap:wrap;gap:4px}\n.pf-tp-chips i{font-style:normal;font-size:11px;font-weight:600;border-radius:999px;padding:2px 7px;border:1px solid}\n.pf-tp-ready{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}\n.pf-tp-dirty{background:var(--st-dirty-bg);color:var(--st-dirty-text);border-color:var(--st-dirty-border)}\n.pf-tp-occ{background:var(--st-occupied-bg);color:var(--st-occupied-text);border-color:var(--st-occupied-border)}\n.pf-tp-btn{align-self:flex-start;font-size:12px;font-weight:600;border-radius:7px;padding:4px 10px;background:var(--primary-fill);color:var(--on-primary)}\n.pf-m-page .pf-theme-strip{gap:8px}\n.pf-m-page .pf-theme-card{padding:8px;min-height:48px}\n.pf-m-page .pf-tp-head{flex-direction:column;gap:2px}\n.pf-m-page .pf-tp-head b{font-size:14px}\n.pf-m-page .pf-tp-muted{display:none}\n.pf-m-page .pf-seg-theme button{flex:1 1 45%}";
 export function themesCss(tokens,usage){
   const {dark,hc}=generatedValues(tokens,usage);
   const roleDecls=t=>[...ROLES.map(([n])=>`${n}:${roleValue(n,t)}`),...ROLE_REFS.map(([n,r])=>`${n}:var(${r})`)];
@@ -243,6 +245,7 @@ export function themesCss(tokens,usage){
     EXTRA_RULES,
     '}',
     '@media print{:root{color-scheme:light}}',
+    PREVIEW_RULES,
     '',
   ].join('\n');
 }

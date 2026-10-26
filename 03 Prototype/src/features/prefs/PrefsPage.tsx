@@ -6,8 +6,8 @@ import {useHcc} from '../../app/context';
 import {DisplaySection} from '../../app/display';
 import {isNative} from '../../app/native';
 import {PageTitle} from '../../components/ui';
-import {usePrefs,PAGE_SIZES,TOAST_SECONDS,toastLabel,textScaleLabel,resolvePageSize,type ReduceMotion,type Density} from '../../app/prefs';
-import {Seg,StartPageSelect,textScaleOptions,DEVICE_ONLY} from './parts';
+import {usePrefs,useResolvedTheme,PAGE_SIZES,TOAST_SECONDS,toastLabel,textScaleLabel,resolvePageSize,type ReduceMotion,type Density} from '../../app/prefs';
+import {Seg,StartPageSelect,textScaleOptions,DEVICE_ONLY,ThemeSeg,ThemePreview,themeHelp} from './parts';
 import {applyHonourSystemFont} from './prefsNative';
 
 export const MOTION_OPTIONS:{id:ReduceMotion;label:string;help:string}[]=[
@@ -31,7 +31,7 @@ function Row({label,help,children,htmlFor}:{label:string;help?:string;children:R
 export function PrefsPage(){
   const {display,toast}=useHcc();
   const {prefs,save,reset}=usePrefs();
-  const native=isNative();
+  const native=isNative();const shown=useResolvedTheme();
   const honour=(v:boolean)=>{save({honourSystemFont:v});void applyHonourSystemFont(v);};
   return <div className="pf-page">
     <PageTitle title="Appearance & display" sub="How the app looks and behaves on this device. Changes apply at once. Printed documents are never affected."/>
@@ -44,9 +44,10 @@ export function PrefsPage(){
         <input id="pf-honour" type="checkbox" className="pf-check" checked={prefs.honourSystemFont} onChange={e=>honour(e.target.checked)}/></Row>}
     </Card>
     <Card title="Appearance" id="pf-look">
+      <Row label="Theme" help={themeHelp(prefs.theme,shown)+'. Printed documents always stay light.'}><ThemeSeg/></Row>
+      <ThemePreview/>
       <Row label="Reduce motion" help={MOTION_OPTIONS.find(o=>o.id===prefs.reduceMotion)?.help}><Seg label="Reduce motion" value={prefs.reduceMotion} options={MOTION_OPTIONS} onChange={v=>save({reduceMotion:v})}/></Row>
       <Row label="Density" help={DENSITY_OPTIONS.find(o=>o.id===prefs.density)?.help}><Seg label="Density" value={prefs.density} options={DENSITY_OPTIONS} onChange={v=>save({density:v})}/></Row>
-      <Row label="Theme" help="A dark theme is planned for a later release."><span className="pf-static">Light · dark theme coming</span></Row>
     </Card>
     <DisplaySection display={display}/>
     <Card title="Start & navigation" id="pf-nav">
