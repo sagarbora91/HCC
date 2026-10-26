@@ -104,7 +104,8 @@ async function loadProposals(c:LoaderCtx):Promise<Approval[]>{
 
 export const yieldLoaders:SliceLoader[]=[
   {slice:'yieldX',requires:'reports',load:loadYield},
-  {slice:'approvals',requires:'reports',load:loadProposals},
+  // approvals is owned by the admin area (W4-5); yield proposals are patched in (kind 'yield'), other kinds kept.
+  {slice:'approvals',kind:'patch',requires:'reports',async load(c){const mine=await loadProposals(c);return [...((c.current('approvals') as Approval[]|undefined)??[]).filter(a=>a.kind!=='yield'),...mine];}},
 ];
 
 const reason=(cmd:Command)=>(cmd.reason===undefined||cmd.reason===null)?undefined:String(cmd.reason).trim()||undefined;
