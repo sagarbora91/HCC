@@ -1,7 +1,7 @@
 /* Module 17 · HR & payroll. Classes prefixed hr- . */
 .hr-tabs-card{padding-top:16px}
 .hr-tabs-card .tabs{border-bottom:0}
-.pill.hr-red{color:#9a3b2a;background:#fbe9e4}
+.pill.hr-red{color:var(--c-9a3b2a);background:var(--c-fbe9e4)}
 .hr-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .hr-weeknav{gap:8px}
 .hr-weeknav .btn{min-height:34px;padding:6px 9px}
@@ -10,44 +10,44 @@
 /* roster grid */
 .hr-roster td,.hr-roster th{padding:8px 6px;text-align:center}
 .hr-roster td:first-child,.hr-roster th:first-child{text-align:left;padding-left:23px}
-.hr-th-today{background:#f5e4e6!important;color:#5e1620!important;font-weight:700!important}
-.hr-cell{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:74px;min-height:42px;border:1px solid #e6d9c8;border-radius:6px;background:#fff;padding:4px 6px;font-size:10px;color:#2b1d16;line-height:1.3}
-.hr-cell b{font-weight:600;font-size:11px}.hr-cell small{font-size:9px;color:#6b5547;margin:0}
-button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
-.hr-s-M{background:#eaf4e4;border-color:#bfd9b0}.hr-s-E{background:#eef4f7;border-color:#cfdde6}.hr-s-N{background:#efe9f5;border-color:#d8cce6}.hr-s-G{background:#f6efe6}
-.hr-s-OFF{background:repeating-linear-gradient(135deg,#fff,#fff 4px,#f6efe6 4px,#f6efe6 6px);color:#6b5547}
-.hr-over{outline:2px solid #7a1f2b;outline-offset:-2px}
-.hr-row-today td{background:#fffaf2}
+.hr-th-today{background:var(--primary-tint)!important;color:var(--primary-dark)!important;font-weight:700!important}
+.hr-cell{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:74px;min-height:42px;border:1px solid var(--line);border-radius:6px;background:var(--c-ffffff);padding:4px 6px;font-size:10px;color:var(--ink);line-height:1.3}
+.hr-cell b{font-weight:600;font-size:11px}.hr-cell small{font-size:9px;color:var(--muted);margin:0}
+button.hr-cell:hover{border-color:var(--c-9e4a55);background:var(--primary-tint)}
+.hr-s-M{background:var(--c-eaf4e4);border-color:var(--c-bfd9b0)}.hr-s-E{background:var(--c-eef4f7);border-color:var(--c-cfdde6)}.hr-s-N{background:var(--c-efe9f5);border-color:var(--c-d8cce6)}.hr-s-G{background:var(--sand-2)}
+.hr-s-OFF{background:repeating-linear-gradient(135deg,var(--c-ffffff),var(--c-ffffff) 4px,var(--sand-2) 4px,var(--sand-2) 6px);color:var(--muted)}
+.hr-over{outline:2px solid var(--primary);outline-offset:-2px}
+.hr-row-today td{background:var(--c-fffaf2)}
 /* modals */
-.hr-fieldset{border:1px solid #e6d9c8;border-radius:8px;padding:12px 14px 14px;margin:0}
-.hr-fieldset legend{font-size:11px;color:#6b5547;padding:0 6px}
+.hr-fieldset{border:1px solid var(--line);border-radius:8px;padding:12px 14px 14px;margin:0}
+.hr-fieldset legend{font-size:11px;color:var(--muted);padding:0 6px}
 .hr-shift-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .hr-shift-pick .btn{flex-direction:column;align-items:flex-start;min-height:60px;font-size:12px}
 .hr-shift-pick .btn span{font-size:11px;font-weight:400}
 .hr-status-pick{display:flex;flex-wrap:wrap;gap:8px}
-.form .hr-status-pick label{flex-direction:row;align-items:center;gap:6px;border:1px solid #cdb9a3;border-radius:20px;padding:8px 14px;min-height:40px;color:#2b1d16;cursor:pointer}
-.form .hr-status-pick label.on{background:#7a1f2b;border-color:#7a1f2b;color:#fff}
-.form .hr-status-pick input{width:auto;accent-color:#fff;margin:0}
-.hr-who{font-size:12px;color:#2b1d16}
-.hr-warn{background:#fdf6e7;border-color:#ecd9a8;color:#5e4a1c}
-.hr-warn svg{color:#84673b}
+.form .hr-status-pick label{flex-direction:row;align-items:center;gap:6px;border:1px solid var(--c-cdb9a3);border-radius:20px;padding:8px 14px;min-height:40px;color:var(--ink);cursor:pointer}
+.form .hr-status-pick label.on{background:var(--primary);border-color:var(--primary);color:var(--c-ffffff)}
+.form .hr-status-pick input{width:auto;accent-color:var(--c-ffffff);margin:0}
+.hr-who{font-size:12px;color:var(--ink)}
+.hr-warn{background:var(--c-fdf6e7);border-color:var(--c-ecd9a8);color:var(--c-5e4a1c)}
+.hr-warn svg{color:var(--c-84673b)}
 .hr-notes:empty{display:none}
 .hr-notes{padding-top:0;padding-bottom:0}
 .hr-register td,.hr-register th{padding-left:10px;padding-right:10px}
-.hr-total td{background:#fffcf8;border-top:2px solid #cdb9a3}
-.hr-disclaimer{display:flex;align-items:center;gap:6px;color:#84542a!important;font-size:11px!important}
+.hr-total td{background:var(--c-fffcf8);border-top:2px solid var(--c-cdb9a3)}
+.hr-disclaimer{display:flex;align-items:center;gap:6px;color:var(--c-84542a)!important;font-size:11px!important}
 /* payslip */
 .hr-ps-head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
 .hr-ps-head small{font-size:9px;letter-spacing:1px}
-.hr-ps-head h3{margin:6px 0 4px;font-size:15px;color:#2b1d16}
+.hr-ps-head h3{margin:6px 0 4px;font-size:15px;color:var(--ink)}
 .hr-ps-head p{font-size:11px}
 .hr-ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-.hr-ps-grid h4{font-size:12px;margin:8px 0 2px;color:#2b1d16}
-.hr-ps-grid h4 em{font-weight:400;color:#6b5547}
+.hr-ps-grid h4{font-size:12px;margin:8px 0 2px;color:var(--ink)}
+.hr-ps-grid h4 em{font-weight:400;color:var(--muted)}
 .hr-ps-grid .summary-list>div{padding:8px 0}
-.hr-ps-net{display:flex;justify-content:space-between;align-items:center;background:#f5e4e6;border:1px solid #e6c9cd;border-radius:8px;padding:14px 16px;margin:18px 0 6px}
-.hr-ps-net span{font-size:13px;color:#5e1620;font-weight:600}
-.hr-ps-net strong{font-size:24px;color:#5e1620}
+.hr-ps-net{display:flex;justify-content:space-between;align-items:center;background:var(--primary-tint);border:1px solid var(--c-e6c9cd);border-radius:8px;padding:14px 16px;margin:18px 0 6px}
+.hr-ps-net span{font-size:13px;color:var(--primary-dark);font-weight:600}
+.hr-ps-net strong{font-size:24px;color:var(--primary-dark)}
 /* phone */
 .hr-m{padding-bottom:8px}
 .hr-m .info-note{font-size:14px}
@@ -56,9 +56,9 @@ button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
 .hr-m-today .eyebrow{font-size:12px;margin:0}
 .hr-m-today .muted{font-size:14px}
 .hr-m .pill{font-size:13px;padding:6px 9px}
-.m-list-card.hr-today{border-color:#7a1f2b;background:#fffaf2}
+.m-list-card.hr-today{border-color:var(--primary);background:var(--c-fffaf2)}
 .hr-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 12px}
-.hr-m-note{font-size:14px;color:#5c4636;margin:4px 4px 12px}
+.hr-m-note{font-size:14px;color:var(--c-5c4636);margin:4px 4px 12px}
 .hr-m-leave{margin-bottom:10px}
 .hr-m-leave .m-list-card{margin-bottom:6px}
 .hr-m-actions{display:flex;gap:10px}
@@ -76,34 +76,34 @@ button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
 .hr-m .footnote{font-size:13px}
 .m-sheet .hr-ps-head p,.m-sheet .hr-ps-grid .summary-list>div{font-size:14px}
 @media(max-width:760px){.hr-ps-grid{grid-template-columns:1fr;gap:6px}.hr-shift-pick .btn{min-height:56px;font-size:15px}.form .hr-status-pick label{min-height:48px;font-size:15px}}
-@media print{.hr-payslip{font-family:Arial,sans-serif;color:#2b1d16}.hr-ps-net{background:#fff;border:2px solid #2b1d16}.hr-ps-net span,.hr-ps-net strong{color:#2b1d16}.hr-ps-grid{grid-template-columns:1fr 1fr}.hr-ps-grid section{break-inside:avoid}}
+@media print{.hr-payslip{font-family:Arial,sans-serif;color:var(--ink)}.hr-ps-net{background:var(--c-ffffff);border:2px solid var(--ink)}.hr-ps-net span,.hr-ps-net strong{color:var(--ink)}.hr-ps-grid{grid-template-columns:1fr 1fr}.hr-ps-grid section{break-inside:avoid}}
 @media print and (max-width:500px){.hr-ps-grid{grid-template-columns:1fr}}
 /* W05-B · leave calendar, payroll files, payslip delivery, full and final */
 .hr-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 23px 20px}
-.hr-cal-head{font-size:11px;font-weight:700;color:#6b5547;text-align:center;padding:6px 0}
-.hr-cal-cell{min-height:82px;border:1px solid #e6d9c8;border-radius:6px;background:#fff;padding:4px 5px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.hr-cal-head{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
+.hr-cal-cell{min-height:82px;border:1px solid var(--line);border-radius:6px;background:var(--c-ffffff);padding:4px 5px;display:flex;flex-direction:column;gap:3px;min-width:0}
 .hr-cal-cell.blank{background:transparent;border-color:transparent}
-.hr-cal-cell.today{border-color:#7a1f2b;background:#fffaf2}
-.hr-cal-cell.full{background:#fdf6e7;border-color:#ecd9a8}
-.hr-cal-date{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#2b1d16}
+.hr-cal-cell.today{border-color:var(--primary);background:var(--c-fffaf2)}
+.hr-cal-cell.full{background:var(--c-fdf6e7);border-color:var(--c-ecd9a8)}
+.hr-cal-date{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink)}
 .hr-cal-date .pill{font-size:9px;padding:1px 5px}
-.hr-cal-chip{display:block;font-size:10px;line-height:1.3;background:#f5e4e6;color:#5e1620;border-radius:4px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hr-cal-chip.pending{background:#fff;border:1px dashed #9e4a55}
+.hr-cal-chip{display:block;font-size:10px;line-height:1.3;background:var(--primary-tint);color:var(--primary-dark);border-radius:4px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hr-cal-chip.pending{background:var(--c-ffffff);border:1px dashed var(--c-9e4a55)}
 .hr-pay-files{flex-wrap:wrap;gap:8px;padding-top:0}
 .hr-pay-actions{flex-wrap:wrap}
 .hr-sub{font-size:14px;margin:10px 0 4px}
-.hr-ps-words{font-size:12px;font-style:italic;color:#2b1d16;margin:4px 0 10px}
-.hr-wa{border:1px solid #e6d9c8;border-radius:8px;background:#fffcf8;padding:10px 12px;margin:12px 0 0}
+.hr-ps-words{font-size:12px;font-style:italic;color:var(--ink);margin:4px 0 10px}
+.hr-wa{border:1px solid var(--line);border-radius:8px;background:var(--c-fffcf8);padding:10px 12px;margin:12px 0 0}
 .hr-wa>div{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
-.hr-wa strong{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:#2b1d16}
-.hr-wa small{font-size:12px;color:#6b5547}
-.hr-wa pre{white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:12px;color:#2b1d16;margin:8px 0 0;background:#fff;border-radius:6px;padding:8px}
+.hr-wa strong{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--ink)}
+.hr-wa small{font-size:12px;color:var(--muted)}
+.hr-wa pre{white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:12px;color:var(--ink);margin:8px 0 0;background:var(--c-ffffff);border-radius:6px;padding:8px}
 .hr-cap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .hr-adj-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;margin-bottom:8px;align-items:center}
 .hr-fnf-sum>div{padding:7px 0}
 .hr-slip-card .summary-list>div{padding:7px 0}
-.hr-slip-net{border-top:2px solid #cdb9a3;font-size:15px}
-.hr-slip-net strong{font-size:18px;color:#5e1620}
+.hr-slip-net{border-top:2px solid var(--c-cdb9a3);font-size:15px}
+.hr-slip-net strong{font-size:18px;color:var(--primary-dark)}
 @media(max-width:760px){
   .hr-adj-row{grid-template-columns:1fr 1fr}
   .hr-adj-row input:first-child{grid-column:1/-1}
@@ -120,11 +120,11 @@ button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
 .m-shell .hr-m .btn,.m-shell .hr-m .text-btn,.m-shell .hr-m .small-btn{min-height:48px;font-size:16px}
 .m-shell .hr-m .hr-m-note,.m-shell .hr-m .info-note,.m-shell .hr-m .summary-list span,.m-shell .hr-m .summary-list strong{font-size:16px}
 .m-shell .hr-m .m-group{font-size:14px}
-.hr-dept-list{list-style:none;margin:0 0 14px;padding:0;border:1px solid #e6d9c8;border-radius:8px}.hr-dept-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;min-height:48px;border-top:1px solid #e6d9c8}.hr-dept-list li:first-child{border-top:0}
+.hr-dept-list{list-style:none;margin:0 0 14px;padding:0;border:1px solid var(--line);border-radius:8px}.hr-dept-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;min-height:48px;border-top:1px solid var(--line)}.hr-dept-list li:first-child{border-top:0}
 /* Wave B item B4: DEC-075 past days, DEC-083 holidays, DEC-084 requests */
-.hr-cal-chip.hr-cal-hol{background:#e3ecf5;color:#1d3d5c;font-weight:600}
-.hr-past-date{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#6b5547}
-.hr-past-date input{min-height:38px;font-size:14px;color:#2b1d16}
+.hr-cal-chip.hr-cal-hol{background:var(--c-e3ecf5);color:var(--c-1d3d5c);font-weight:600}
+.hr-past-date{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.hr-past-date input{min-height:38px;font-size:14px;color:var(--ink)}
 .hr-m .hr-past-date{font-size:15px;margin:4px 0 12px}
 .hr-m .hr-past-date input{min-height:48px;font-size:16px;width:100%}
 .hr-fix .text-btn{margin-right:14px}
