@@ -158,6 +158,11 @@ function tillFor(c:CommandCtx,method:unknown){
   if(method!=='Cash')return null;
   const t=c.ids.server('till','desk');if(t===undefined)throw invalid('The cash shift is closed. Open the next business day first.');return t;
 }
+/** The tender of the receipt an approved refund request refunds (the server's default tender for ExecuteAdjustment). */
+function refundReceiptMethod(s:State,approvalId:unknown):string|undefined{
+  const a=s.approvals.find(x=>x.id===String(approvalId??'')&&x.kind==='refund');
+  return a?s.bookings.find(x=>x.id===a.booking)?.receipts.find(x=>x.id===a.target)?.method:undefined;
+}
 const positive=(v:unknown)=>Number.isSafeInteger(v)&&(v as number)>0;
 const text=(v:unknown)=>String(v??'').trim();
 const FOLIO:SliceKey[]=['bookings','approvals'];
@@ -282,7 +287,10 @@ export const money:SyncArea={
         if(!l)throw new HccClientError('NOT_FOUND','Select the posted line to correct.');
         return {result:await requestAdjustment(c,'correction',b,Math.abs(l.amount),text(c.cmd.reason),serverId(l.id,'Folio line'))};}},
     {type:'REFUND_EXECUTE',reload:[...FOLIO,'shiftOpen','openingCash','shift','shiftClose'],
-      precheck:(cmd,s)=>cmd.method==='Cash'&&!s.shiftOpen?'The cash shift is closed. Open the next business day first.':cmd.method&&cmd.method!=='Cash'&&!text(cmd.reference)?'Enter the transaction reference.':undefined,
+      // S3 / N10 (prototype validMethod, DEC-052): a CASH refund leaves the shared drawer, so it needs the till's shift open today. The
+      // tender defaults to the original receipt's (as on the server), so a dialog without a method is checked too. Non-cash: no shift.
+      precheck:(cmd,s)=>{const method=cmd.method||refundReceiptMethod(s,cmd.approvalId);
+        return method==='Cash'&&!s.shiftOpen?'The cash shift is closed. Open the next business day first.':cmd.method&&cmd.method!=='Cash'&&!text(cmd.reference)?'Enter the transaction reference.':undefined;},
       async send(c){const id=String(c.cmd.approvalId??'');const a=c.state.approvals.find(x=>x.id===id&&x.kind==='refund');
         if(!a)throw new HccClientError('NOT_FOUND','Refund request not found.');
         const b=c.state.bookings.find(x=>x.id===a.booking),r=b?.receipts.find(x=>x.id===a.target);

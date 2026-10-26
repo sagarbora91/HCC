@@ -310,6 +310,63 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         Assert.Equal(60_000, drawer.Expected.RefundsPaise);
     }
 
+    /// <summary>
+    /// N10 / S3 (prototype validMethod, DEC-052 shared drawer): a CASH refund is paid out of the till, so it needs that till's shift open on
+    /// the current business date — no open shift, or a shift left open from an earlier date, is refused (INVALID_TRANSITION) and the
+    /// drawer is untouched. A non-cash refund of the same receipt needs no shift.
+    /// </summary>
+    [Fact]
+    public async Task Cash_refund_needs_the_tills_shift_open_today_non_cash_refund_does_not()
+    {
+        var (till, shift) = await db.OpenTillAsync(50_000);
+        var (_, folio) = await StayAsync();
+        var cash = await db.PayAsync(folio, 100_000, "Cash", till: till);
+        async Task<ApprovalResult> ApprovedAsync(long receiptId, long amount)
+        {
+            var req = await db.Billing.RequestAdjustmentAsync(db.As(Who.Cashier), BillingDb.Key(),
+                new RequestAdjustmentRequest("refund", folio, receiptId, amount, "Early departure", await db.FolioVersionAsync(folio)), Ct);
+            return (await db.Billing.DecideApprovalAsync(db.As(Who.Manager), BillingDb.Key(), new DecideApprovalRequest(req.Value.ApprovalId!.Value, true, null, req.Value.ApprovalVersion!), Ct)).Value;
+        }
+
+        var refund = await ApprovedAsync(cash.Value.ReceiptId, 5_000);
+        var view = await db.Queries.GetShiftAsync(db.As(Who.Owner), shift.ShiftId, Ct);
+        var closed = await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), BillingDb.Key(),
+            new SubmitShiftCountRequest(shift.ShiftId, view.Expected.ExpectedPaise, null, null, null, view.Shift.Version), Ct);
+        Assert.Equal("Closed", closed.Value.Status);
+
+        // no open shift on the till
+        var ex = await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(),
+            new ExecuteAdjustmentRequest(refund.ApprovalId, refund.Version, null, null, till), Ct));
+        Assert.Contains("No cash shift is open", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM pay.receipt WHERE folio_id = @f AND kind = 'refund'", ("@f", SqlDbType.BigInt, folio)));
+
+        // a shift left open from an earlier business date
+        var stale = (await db.Cashier.OpenShiftAsync(db.As(Who.Cashier), BillingDb.Key(), new OpenShiftRequest(till, null), Ct)).Value;
+        await db.SetBusinessDateAsync(BillingDb.Day.AddDays(1));
+        try
+        {
+            ex = await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(),
+                new ExecuteAdjustmentRequest(refund.ApprovalId, refund.Version, "Cash", null, till), Ct));
+            Assert.Contains("earlier business date", ex.Message, StringComparison.Ordinal);
+            Assert.Equal(0, (await db.Queries.GetShiftAsync(db.As(Who.Owner), stale.ShiftId, Ct)).Expected.RefundsPaise);
+        }
+        finally
+        {
+            await db.SetBusinessDateAsync(BillingDb.Day);
+        }
+
+        // non-cash: the same approved refund paid by UPI needs no till or shift (the shift is closed again first)
+        var sv = await db.Queries.GetShiftAsync(db.As(Who.Owner), stale.ShiftId, Ct);
+        await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), BillingDb.Key(), new SubmitShiftCountRequest(stale.ShiftId, sv.Expected.ExpectedPaise, null, null, null, sv.Shift.Version), Ct);
+        var upi = await db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(),
+            new ExecuteAdjustmentRequest(refund.ApprovalId, refund.Version, "UPI", "DEMO-UPI-REFUND", null), Ct);
+        Assert.Equal("Executed", upi.Value.Status);
+        var f = await db.Queries.GetFolioAsync(db.As(Who.Owner), folio, Ct);
+        var paid = f.Receipts.Single(r => r.Kind == "refund");
+        Assert.Equal(("UPI", 5_000L), (paid.Tender, paid.AmountPaise));
+        Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM pay.cash_movement WHERE source_type = 'receipt' AND source_id = @r", ("@r", SqlDbType.BigInt, upi.Value.ResultId!.Value)));
+    }
+
     [Fact]
     public async Task Parallel_refund_requests_never_exceed_the_remainder()
     {

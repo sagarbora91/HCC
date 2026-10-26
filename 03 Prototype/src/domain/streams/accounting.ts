@@ -76,9 +76,11 @@ export type ACCLockEvent={id:string;at:string;actor:string;date:string;action:'l
 /** State slice for this module, stored at s.accountingX (optional; absent in old saves → treat as empty). */
 /** Production build only (W4-7, clients/sync/accounting.ts): the server's own evaluation of each business date in a window
  *  (GET /accounting/days). When present, the selectors below read it instead of deriving vouchers on the device — the server is
- *  the truth. `opening` = balances before `from` (cumulative trial balance). Never set in the prototype. */
+ *  the truth. `opening` = balances before `from` (cumulative trial balance) and, dated on its own "as of" date, the imported opening
+ *  trial balance when that date falls inside the window (N5). `accounts` = name and group of ledger codes outside ACC_CHART (imported
+ *  ledgers without an HCC account, e.g. Owner's capital · Equity). Never set in the prototype. */
 export type ACCServerDay={status:ACCDayStatus;vouchers:ACCVoucher[];exceptions:ACCException[];checks:ACCCheck[]};
-export type ACCServer={from:string;to:string;days:Record<string,ACCServerDay>;opening:ACCVoucher[];mapRows:ACCMapRow[]};
+export type ACCServer={from:string;to:string;days:Record<string,ACCServerDay>;opening:ACCVoucher[];mapRows:ACCMapRow[];accounts?:Record<string,{name:string;group:ACCTBGroup}>};
 export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer};
 export const accEmpty=():ACCState=>({});
 export const accSlice=(s:State):ACCState=>s.accountingX??accEmpty();
@@ -152,13 +154,16 @@ export const accBalanced=(v:ACCVoucher)=>{const t=accVoucherTotals(v);return t.d
 export function accTotals(vs:ACCVoucher[]){return vs.reduce((a,v)=>{const t=accVoucherTotals(v);return {debit:a.debit+t.debit,credit:a.credit+t.credit};},{debit:0,credit:0});}
 
 // ── Trial balance ──
-export type ACCTBRow={account:string;name:string;group:ACCGroup;debit:number;credit:number;balance:number};
-/** Trial balance over a set of vouchers. balance = debit − credit (positive = debit balance). Chart order. */
-export function accTrialBalance(vs:ACCVoucher[]):ACCTBRow[]{
+/** Trial-balance group: the chart's groups, plus Equity for imported ledgers (production only). */
+export type ACCTBGroup=ACCGroup|'Equity';
+export type ACCTBRow={account:string;name:string;group:ACCTBGroup;debit:number;credit:number;balance:number};
+/** Trial balance over a set of vouchers. balance = debit − credit (positive = debit balance). Chart order. `accounts` names codes
+ *  outside the chart (production: imported ledgers, ACCServer.accounts). */
+export function accTrialBalance(vs:ACCVoucher[],accounts?:ACCServer['accounts']):ACCTBRow[]{
   const m=new Map<string,{debit:number;credit:number}>();
   for(const v of vs)for(const e of v.entries){const x=m.get(e.account)??{debit:0,credit:0};x.debit+=e.debit;x.credit+=e.credit;m.set(e.account,x);}
   const order=(c:string)=>{const i=ACC_CHART.findIndex(a=>a.code===c);return i<0?999:i;};
-  return [...m.entries()].sort((a,b)=>order(a[0])-order(b[0])||(a[0]<b[0]?-1:1)).map(([account,x])=>({account,name:accLedgerName(account),group:accAccount(account)?.group??'Suspense',debit:x.debit,credit:x.credit,balance:x.debit-x.credit}));
+  return [...m.entries()].sort((a,b)=>order(a[0])-order(b[0])||(a[0]<b[0]?-1:1)).map(([account,x])=>({account,name:accAccount(account)?.name??accounts?.[account]?.name??account,group:accAccount(account)?.group??accounts?.[account]?.group??'Suspense',debit:x.debit,credit:x.credit,balance:x.debit-x.credit}));
 }
 /** Dates with any accounting activity, closed dates, locks and the business date — newest first. */
 export function accDates(s:State):string[]{
@@ -170,7 +175,7 @@ export function accDates(s:State):string[]{
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
-export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;return [...(sv&&date>=sv.from?sv.opening:[]),...accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d))];}
+export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;return [...(sv?sv.opening.filter(v=>v.date<date||(v.source.sub==='opening-import'&&v.date<=date)):[]),...accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d))];}
 
 // ── Status & exceptions ──
 export type ACCDayStatus='Open'|'Closed'|'Locked';

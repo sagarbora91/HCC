@@ -19,16 +19,18 @@ export const hrUserName=(s:ReturnType<typeof useHcc>['s'],id?:string)=>s.users.f
 
 /** 'hr-staff': id = staff ID (edit) or undefined (new). Salary, PF / ESIC and bank fields only for payroll roles. */
 export function HRStaffModal({id}:{id?:string}){
-  const {s,uid,run,closeModal,busy}=useHcc();const x=hrSlice(s),st=id?hrStaffById(s,id):undefined,pay=hrCanPay(s,uid);
+  const {s,uid,run,closeModal,busy,open}=useHcc();const x=hrSlice(s),st=id?hrStaffById(s,id):undefined,pay=hrCanPay(s,uid);
   const [f,setF]=useState({name:st?.name??'',dept:st?.dept??x.depts[0]?.id??'',designation:st?.designation??'',userId:st?.userId??'',
     defaultShift:st?.defaultShift??'G',weeklyOff:String(st?.weeklyOff??0),phone:st?.phone??'',gender:st?.gender??'M',payType:st?.payType??'monthly',monthly:toRs(st?.monthly??0),daily:toRs(st?.daily??0),
-    structure:st?.structure??'',pf:st?.pfApplicable===undefined?'':st.pfApplicable?'yes':'no',esic:st?.esicApplicable===false?'no':'yes',bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''});
+    joined:s.date,structure:st?.structure??'',pf:st?.pfApplicable===undefined?'':st.pfApplicable?'yes':'no',esic:st?.esicApplicable===false?'no':'yes',bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''});
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   const linked=new Set(x.staff.filter(o=>o.id!==id&&o.userId).map(o=>o.userId));
   // F-03: only the Owner links logins, and never on their own record.
   const canLink=hrCanLink(s,uid)&&st?.userId!==uid;
   function save(e:React.FormEvent){e.preventDefault();
     const cmd:Record<string,unknown>={type:'HR_STAFF_SAVE',id,name:f.name,dept:f.dept,designation:f.designation,userId:f.userId||undefined,defaultShift:f.defaultShift,weeklyOff:Number(f.weeklyOff),phone:f.phone,gender:f.gender};
+    // N3 (production): a new staff member's joining date (server SaveStaff `joined`, not after the business date) — back-dated staff join that month's pay run.
+    if(process.env.HCC_BUILD==='production'&&!st&&f.joined)cmd.joined=f.joined;
     const slips=st?hrLockedPayslipCount(s,st.id):0;
     if(st&&f.userId&&f.userId!==(st.userId??'')&&slips){if(!window.confirm(`${st.name} has payslips in ${slips} locked pay-run${slips===1?'':'s'}. The newly linked login will see them. Relink?`))return;cmd.confirmRelink=true;}
     if(pay)Object.assign(cmd,{payType:f.payType,monthly:f.payType==='monthly'?rs(f.monthly):0,daily:f.payType==='daily'?rs(f.daily):0,
@@ -37,8 +39,11 @@ export function HRStaffModal({id}:{id?:string}){
   return <><div className="modal-heading"><h2>{st?'Edit staff record':'Add staff member'}</h2><p>Fictional staff only. A staff record may link to a demo login; cooks, security and helpers usually have none.</p></div>
     <form className="form" onSubmit={save}>
       <label>Full name<input required minLength={2} maxLength={60} value={f.name} onChange={set('name')} enterKeyHint="next"/></label>
-      <div className="form-row"><label>Department<select value={f.dept} onChange={set('dept')}>{x.depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+      {process.env.HCC_BUILD==='production'&&!x.depts.length&&<div className="info-note hr-warn" role="alert"><Info size={16}/><span>No departments yet. Add one first, then add staff.{' '}
+        <button type="button" className="text-btn" onClick={()=>open({type:'hr-dept'})}>Add a department</button></span></div>}
+      <div className="form-row"><label>Department<select required={process.env.HCC_BUILD==='production'} value={f.dept} onChange={set('dept')}>{x.depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
         <label>Designation<input required maxLength={60} value={f.designation} onChange={set('designation')}/></label></div>
+      {process.env.HCC_BUILD==='production'&&!st&&<label>Joining date<input type="date" required max={s.date} value={f.joined} onChange={set('joined')}/><small>On or before the business date. Pay counts from this date.</small></label>}
       <div className="form-row"><label>Default shift<select value={f.defaultShift} onChange={set('defaultShift')}>{HR_SHIFTS.filter(h=>h.code!=='OFF').map(h=><option key={h.code} value={h.code}>{h.label} {h.start}–{h.end}</option>)}</select></label>
         <label>Weekly off<select value={f.weeklyOff} onChange={set('weeklyOff')}>{HR_WEEKDAYS.map((d,i)=><option key={d} value={i}>{d}</option>)}</select></label></div>
       <div className="form-row"><label>Demo login{!canLink&&<small> (Owner only)</small>}<select value={f.userId} disabled={!canLink} onChange={set('userId')}><option value="">No login (non-login staff)</option>{s.users.filter(u=>!linked.has(u.id)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
@@ -57,6 +62,25 @@ export function HRStaffModal({id}:{id?:string}){
         <label>IFSC<input maxLength={11} value={f.ifsc} onChange={set('ifsc')} placeholder="DEMO0000101"/></label></fieldset>
         :<div className="info-note"><Info size={16}/>Salary, PF / ESIC and bank details are set by the Owner or Accountant.</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>{st?'Save changes':'Add staff member'}</button></div>
+    </form></>;
+}
+
+/** 'hr-dept' (production build only, N3): add or rename departments (server SaveDepartment). The leave limit is kept as it is — it is
+ *  part of the leave policy (Owner). Never opened in the prototype, which ships its departments as fixtures. */
+export function HRDeptModal({id}:{id?:string}){
+  const {s,run,closeModal,busy}=useHcc();const depts=hrSlice(s).depts;
+  const [edit,setEdit]=useState<string|undefined>(id);const cur=depts.find(d=>d.id===edit);
+  const [f,setF]=useState({code:cur?.id??'',name:cur?.name??''});
+  const pick=(code?:string)=>{const d=depts.find(x=>x.id===code);setEdit(code);setF({code:d?.id??'',name:d?.name??''});};
+  function save(e:React.FormEvent){e.preventDefault();
+    run({type:'HR_DEPT_SAVE',code:f.code.trim().toUpperCase(),name:f.name.trim(),...(cur?{id:cur.id}:{})},cur?'Department renamed':'Department added',{after:()=>pick(undefined)});}
+  return <><div className="modal-heading"><h2>Departments</h2><p>Every staff member belongs to one department. The code cannot change once staff use it; rename freely.</p></div>
+    {depts.length?<ul className="hr-dept-list">{depts.map(d=><li key={d.id}><span><strong>{d.name}</strong> <small>{d.id}</small></span><button type="button" className="text-btn" onClick={()=>pick(d.id)}>Rename</button></li>)}</ul>
+      :<Empty title="No departments yet" body="Add the first department below (for example FO · Front office)."/>}
+    <form className="form" onSubmit={save}>
+      <div className="form-row"><label>Code<input required minLength={2} maxLength={10} pattern="[A-Za-z0-9]{2,10}" disabled={!!cur} value={f.code} onChange={e=>setF({...f,code:e.target.value.toUpperCase()})} placeholder="FO"/><small>2–10 letters or digits</small></label>
+        <label>Name<input required minLength={2} maxLength={60} value={f.name} onChange={e=>setF({...f,name:e.target.value})} placeholder="Front office"/></label></div>
+      <div className="modal-actions"><button type="button" className="btn" onClick={cur?()=>pick(undefined):closeModal}>{cur?'Cancel rename':'Close'}</button><button className="btn primary" disabled={busy}>{cur?'Save name':'Add department'}</button></div>
     </form></>;
 }
 

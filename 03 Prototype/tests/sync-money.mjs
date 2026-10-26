@@ -166,6 +166,16 @@ export async function register({test,assert,M}){
     assert.equal(M.shiftStatus(s1.state),'Submitted');
   });
   const shown1=[P.renderPages(s1.state,'1',false),P.renderPages(s1.state,'1',true)];
+  test('[S3 money] REFUND_EXECUTE: a cash refund (the receipt’s own tender when the dialog gives none) needs the till’s shift open today; non-cash does not',()=>{
+    const pre=S.AREAS.find(a=>a.id==='money').commands.find(c=>c.type==='REFUND_EXECUTE').precheck;
+    const st=(open,method)=>({shiftOpen:open,approvals:[{id:'9',kind:'refund',booking:'B1',target:'R1'}],bookings:[{id:'B1',receipts:[{id:'R1',method}]}]});
+    const closed='The cash shift is closed. Open the next business day first.';
+    assert.equal(pre({approvalId:'9'},st(false,'Cash')),closed,'tender from the original cash receipt');
+    assert.equal(pre({approvalId:'9',method:'Cash'},st(false,'UPI')),closed);
+    assert.equal(pre({approvalId:'9'},st(true,'Cash')),undefined,'shift open today');
+    assert.equal(pre({approvalId:'9'},st(false,'UPI')),undefined,'non-cash receipt: no shift needed');
+    assert.equal(pre({approvalId:'9',method:'UPI',reference:'UPI-R9'},st(false,'Cash')),undefined,'paid back by UPI: no shift needed');
+  });
   test('[W4-3 money] Pages render with an invoiced stay, a credit-note request and a pending cash difference',()=>{assert.deepEqual(shown1.map(x=>x.errors),[{},{}]);});
   const cn=await run({type:'CREDIT_NOTE',id:'1201',amount:15000,reason:'Noise complaint',key:'cn:1'});const cnCmd=srv.commands('RequestCreditNote')[0];
   const cnd=await run({type:'APPROVAL',id:'cnr-55',approve:true,key:'approval:cnr-55'});const cndCmd=srv.commands('DecideCreditNote')[0];

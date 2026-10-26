@@ -7,7 +7,7 @@ import {IdCard,CalendarClock} from 'lucide-react';
 import type {FeatureRegistration} from '../../app/registry';
 import {HrDesk,HrDeskMobile} from './HrDesk';
 import {MyHr,MyHrMobile} from './MyHr';
-import {HRStaffModal,HRRosterModal,HRAttModal,HRLeaveModal,HRLeaveDecideModal,HRAdvanceModal,HRRatesModal,HRPayslipModal,HRLeavePolicyModal,HRUnlockModal,HRFnfModal} from './modals';
+import {HRStaffModal,HRRosterModal,HRAttModal,HRLeaveModal,HRLeaveDecideModal,HRAdvanceModal,HRRatesModal,HRPayslipModal,HRLeavePolicyModal,HRUnlockModal,HRFnfModal,HRDeptModal} from './modals';
 export const registration:FeatureRegistration={
   pages:{'staff':HrDesk,'my-hr':()=><MyHr/>},
   nav:[
@@ -15,7 +15,8 @@ export const registration:FeatureRegistration={
     {group:'OPERATIONS',item:{id:'my-hr',label:'My shifts & pay',icon:CalendarClock,p:['housekeeping','reservations','payments','reports','admin']}},
   ],
   modals:{'hr-staff':HRStaffModal,'hr-roster':HRRosterModal,'hr-att':HRAttModal,'hr-leave':HRLeaveModal,'hr-leave-decide':HRLeaveDecideModal,
-    'hr-advance':HRAdvanceModal,'hr-rates':HRRatesModal,'hr-payslip':HRPayslipModal,'hr-leave-policy':HRLeavePolicyModal,'hr-unlock':HRUnlockModal,'hr-fnf':HRFnfModal},
+    'hr-advance':HRAdvanceModal,'hr-rates':HRRatesModal,'hr-payslip':HRPayslipModal,'hr-leave-policy':HRLeavePolicyModal,'hr-unlock':HRUnlockModal,'hr-fnf':HRFnfModal,
+    ...(process.env.HCC_BUILD==='production'?{'hr-dept':HRDeptModal}:{})},   // N3: department editor (server build only)
   wideModals:['hr-payslip','hr-rates','hr-fnf'],
   mobile:{pages:{'staff':HrDeskMobile,'my-hr':MyHrMobile},modals:{}},
 };
