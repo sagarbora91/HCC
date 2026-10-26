@@ -83,6 +83,8 @@ public sealed record ModulesResult(IReadOnlyList<ModuleStateView> Modules, IRead
 /// Owner-only-visible values are left out for viewers without full configuration authority; fixed pointer lines are never included.
 /// <c>Versions</c> = the setting row version of every key that has been saved at least once (the <c>expectedVersion</c> SetSetting needs;
 /// a key without a row is absent and is saved with no expectedVersion). A version carries no value, so secrets are listed too.
+/// <c>GroupBlocksEnabled</c> (DEC-080, Wave D5) = the server option <c>Hcc:GroupBlocks:Enabled</c> (appsettings, not a setting): the web app
+/// sends CreateGroupBlock only while it is true, so the one server switch turns group blocks on for the app as well.
 /// </summary>
 public sealed record ConfigurationValuesResult(string BusinessDate, IReadOnlyDictionary<string, JsonElement> Values, IReadOnlyList<ExportScheduled> Scheduled,
-    IReadOnlyDictionary<string, string>? Versions = null);
+    IReadOnlyDictionary<string, string>? Versions = null, bool GroupBlocksEnabled = false);

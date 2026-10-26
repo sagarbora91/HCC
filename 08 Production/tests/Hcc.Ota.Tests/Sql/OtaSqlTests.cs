@@ -363,7 +363,7 @@ public sealed class OtaChannelSqlTests : OtaSqlTest
         Assert.Equal("VALIDATION", await CodeAsync(() => F.Service.SaveChannelAsync(F.Ctx(F.Manager, "SaveChannel"), Save(1500, 0, ("Classic", "bad code!")), Ct)));
         var ok = await F.Service.SaveChannelAsync(F.Ctx(F.Manager, "SaveChannel"), Save(1250, 0, ("Classic", "rr-std"), ("Deluxe", "")), Ct);
         var saved = await ChannelAsync("ROOMRAAHI");
-        Assert.Equal((1250, 0, ok.Value.Version), (saved.CommissionBps, saved.MarkupBps, saved.Version));
+        Assert.Equal(((int?)1250, 0, ok.Value.Version), (saved.CommissionBps, saved.MarkupBps, saved.Version));
         var map = Assert.Single(saved.Mapping);
         Assert.Equal(("Classic", "RR-STD"), (map.RoomType, map.ChannelCode));
         Assert.Equal("STALE_VERSION", await CodeAsync(() => F.Service.SaveChannelAsync(F.Ctx(F.Manager, "SaveChannel"), Save(1000, 0), Ct)));
@@ -394,6 +394,28 @@ public sealed class OtaChannelSqlTests : OtaSqlTest
 [Trait("Category", "Sql")]
 public sealed class OtaCommissionSqlTests : OtaSqlTest
 {
+    [Fact]
+    public async Task Channel_list_shows_the_commission_rate_only_to_the_commission_readers()
+    {
+        // DEC-079 D7 (Wave D5): Reception and the Tech admin see the channels (PERM-OTA-001) but not the commission rate, which is money
+        // (PERM-OTA-004: Owner, Manager and Accountant, who also read the commission report). Everything else on the card is the same.
+        async Task<Dictionary<string, ChannelView>> AsAsync(int user) => (await F.Queries.ListChannelsAsync(1, user, Ct)).ToDictionary(c => c.Name);
+        static string Card(ChannelView c) => $"{c.ChannelId} {c.Code} {c.Name} {c.Status} {c.Version} {c.MarkupBps} {c.LastSync} {c.StatusNote} {c.PushDue} {c.PendingMessages} "
+            + string.Join(",", c.Mapping.Select(m => m.ToString()));
+        var owner = await AsAsync(F.Owner);
+        Assert.Equal([1800, 1000, 1500, 1200], owner.Values.OrderBy(c => c.Name, StringComparer.Ordinal).Select(c => c.CommissionBps!.Value));
+        foreach (var user in new[] { F.Manager, F.Accountant })
+            Assert.Equal(owner.Values.Select(c => c.CommissionBps), (await AsAsync(user)).Values.Select(c => c.CommissionBps));
+        foreach (var user in new[] { F.Reception, F.TechAdmin })
+        {
+            var seen = await AsAsync(user);
+            Assert.All(seen.Values, c => Assert.Null(c.CommissionBps));
+            Assert.Equal(owner.Values.Select(Card), seen.Values.Select(Card));
+        }
+
+        Assert.Equal("FORBIDDEN", await CodeAsync(() => F.Queries.ListChannelsAsync(1, F.Cashier, Ct)));
+    }
+
     [Fact]
     public async Task Commission_report_reproduces_the_prototype_figures_and_drops_cancelled_bookings()
     {

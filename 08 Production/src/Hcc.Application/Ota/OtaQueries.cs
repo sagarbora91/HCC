@@ -31,10 +31,14 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
         await access.RequireAsync(propertyId, principalId, OtaPermissions.View, ct: ct).ConfigureAwait(false);
         var channels = await store.ListChannelsAsync(propertyId, null, ct).ConfigureAwait(false);
         var pending = (await store.ListMessagesAsync(propertyId, MessageStatuses.Pending, 1000, ct).ConfigureAwait(false)).GroupBy(m => m.ChannelId).ToDictionary(g => g.Key, g => g.Count());
-        return channels.Select(c => ToView(c, pending.TryGetValue(c.ChannelId, out var n) ? n : 0)).ToList();
+        // DEC-079 D7 (Wave D5): the commission rate is money — only for the commission readers (PERM-OTA-004: Owner, Manager, Accountant).
+        var money = await access.HasAsync(propertyId, principalId, OtaPermissions.ViewMoney, ct: ct).ConfigureAwait(false);
+        return channels.Select(c => ToView(c, pending.TryGetValue(c.ChannelId, out var n) ? n : 0, money)).ToList();
     }
 
-    public static ChannelView ToView(ChannelRecord c, int pending) => new(c.ChannelId, c.Code, c.Name, c.Status, InventoryErrors.VersionToWire(c.RowVersion), c.CommissionBps,
+    /// <summary>The channel as the list shows it; <paramref name="money"/> false leaves the commission rate out (null).</summary>
+    public static ChannelView ToView(ChannelRecord c, int pending, bool money) => new(c.ChannelId, c.Code, c.Name, c.Status, InventoryErrors.VersionToWire(c.RowVersion),
+        money ? c.CommissionBps : null,
         c.MarkupBps, c.LastSyncUtc is { } l ? Iso(l) : null, c.StatusNote, c.AriDirtyUtc is not null && c.Status == ChannelStatuses.Connected, pending,
         c.Map.Select(m => new ChannelMappingView(m.RoomTypeId, m.RoomType, m.ChannelCode, m.StopSell)).ToList());
 

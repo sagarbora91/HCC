@@ -52,6 +52,7 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         var api = app.MapGroup(ApiConventions.BasePath);
         api.MapInventoryEndpoints();
         api.MapReservationsEndpoints();
+        api.MapConfigurationEndpoints(); // DEC-080 (Wave D5): the values read tells the web app whether group blocks are on
         await app.StartAsync(Ct);
         var http = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
         http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", TestSessions.Token(3));
@@ -138,6 +139,8 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
             Assert.Equal("Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.", doc.RootElement.GetProperty("message").GetString());
             Assert.Equal("GROUP_BLOCKS_OFF", doc.RootElement.GetProperty("details").GetProperty("reason").GetString());
             Assert.Equal(0, await f.Db.CountAsync("SELECT COUNT(*) FROM inv.group_block WHERE code = 'GB-HTTP';", Ct));
+            // Wave D5: the same option reaches the web app through the configuration values every user loads (sync/admin.ts loadConfig).
+            Assert.False(await GroupBlocksEnabledAsync(http));
         }
 
         // The option is read from configuration (what appsettings.Production.json feeds in).
@@ -148,6 +151,14 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
             var made = await http2.SendAsync(Post("CreateGroupBlock", request, "http-block-on"), Ct);
             Assert.Equal(HttpStatusCode.OK, made.StatusCode);
             Assert.Equal(1, await f.Db.CountAsync("SELECT COUNT(*) FROM inv.group_block WHERE code = 'GB-HTTP';", Ct));
+            Assert.True(await GroupBlocksEnabledAsync(http2));
         }
+    }
+
+    private static async Task<bool> GroupBlocksEnabledAsync(HttpClient http)
+    {
+        using var values = JsonDocument.Parse(await http.GetStringAsync($"{ApiConventions.BasePath}/configuration/values", Ct));
+        Assert.True(values.RootElement.GetProperty("values").EnumerateObject().Any(), "the values read answers as usual");
+        return values.RootElement.GetProperty("groupBlocksEnabled").GetBoolean();
     }
 }

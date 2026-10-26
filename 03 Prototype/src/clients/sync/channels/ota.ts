@@ -2,6 +2,8 @@
 // POST /commands/{SetChannelStatus,SaveChannel,SetChannelStopSell,PushChannelRates,PullChannelMessages,AcceptChannelMessage,RejectChannelMessage,
 // ConfirmWebRequest,DeclineWebRequest}. All channel traffic is simulated server-side.
 //   slice  channelsX ← channels (+mapping/stop-sell), inbox messages (Queued ones = the simulated outbox), push log, web requests.
+//   mask   commissionBps is null for a reader without PERM-OTA-004 (DEC-079 D7, Wave D5: Reception, Tech admin) → commissionHidden, rate 0;
+//          the screens then hide the rate, "Commission due" and the commission report.
 //   ids    channel id = String(channelId); message id = String(messageId) (kind 'channelMessage' version); web request id = String(requestId)
 //          (kind 'webRequest'); rooms by room number (kind 'room', learned by the rooms area); room types by code (kind 'roomType').
 //   Not on any prototype screen, so not loaded: GET /ota/commission (the screen computes it from bookings), /ota/reconciliation,
@@ -13,7 +15,7 @@ import type {CommandMapper,LoaderCtx,SliceLoader} from '../types';
 import {serverId,utcToClock,paise} from '../map';
 
 type SrvMap={roomTypeId:number;roomType:string;channelCode:string;stopSell:boolean};
-type SrvChannel={channelId:number;code:string;name:string;status:string;version:string;commissionBps:number;markupBps:number;lastSync?:string|null;statusNote:string;mapping:SrvMap[]};
+type SrvChannel={channelId:number;code:string;name:string;status:string;version:string;commissionBps:number|null;markupBps:number;lastSync?:string|null;statusNote:string;mapping:SrvMap[]};
 type SrvMessage={messageId:number;version:string;channelId:number;kind:string;channelRef:string;guest:string;phone?:string|null;email?:string|null;roomType?:string|null;
   channelRoomCode:string;arrival:string;departure:string;adults:number;children:number;amountPaise:number;receivedAt?:string|null;status:string;reservationId?:number|null;
   room?:string|null;reason?:string|null};
@@ -30,8 +32,9 @@ async function optional<T>(p:Promise<T>,empty:T):Promise<T>{
 export function channelFromServer(c:SrvChannel):CHNChannel&{code:string}{
   const mapping:Record<string,string>={},stopSell:string[]=[];
   for(const m of c.mapping){if(m.channelCode)mapping[m.roomType]=m.channelCode;if(m.stopSell)stopSell.push(m.roomType);}
-  return {id:String(c.channelId),code:c.code,name:c.name,status:c.status as CHNChannel['status'],commissionBps:c.commissionBps,markupBps:c.markupBps,mapping,stopSell,
-    ...(c.lastSync?{lastSync:utcToClock(c.lastSync)}:{}),...(c.statusNote?{statusNote:c.statusNote}:{})};
+  const hidden=typeof c.commissionBps!=='number';
+  return {id:String(c.channelId),code:c.code,name:c.name,status:c.status as CHNChannel['status'],commissionBps:hidden?0:c.commissionBps as number,markupBps:c.markupBps,mapping,stopSell,
+    ...(c.lastSync?{lastSync:utcToClock(c.lastSync)}:{}),...(c.statusNote?{statusNote:c.statusNote}:{}),...(hidden?{commissionHidden:true}:{})};
 }
 export function messageFromServer(m:SrvMessage):CHNMessage{
   return {id:String(m.messageId),channel:String(m.channelId),kind:m.kind as CHNMessage['kind'],ref:m.channelRef,guest:m.guest,
@@ -86,7 +89,8 @@ export const otaCommands:CommandMapper[]=[
     await c.api.command('SetChannelStatus',{channelId:serverId(m.channel,'Channel'),action:m.action},{expectedVersion:version(c,'channel',String(m.channel))});}},
   {type:'CHN_CHANNEL_SAVE',reload:['channelsX'],
     // New channel (production "Add channel"): no channel id → SaveChannel with channelId null; the server starts it Disconnected.
-    precheck:cmd=>cmd.channel?undefined:String(cmd.name??'').trim().length<2?'Enter the channel name.':!/^[A-Z0-9-]{2,20}$/.test(String(cmd.code??'').trim().toUpperCase())?'Channel code: 2–20 letters, digits or dashes.':undefined,
+    precheck:(cmd,s)=>cmd.channel?((s.channelsX?.channels??[]).find(x=>x.id===String(cmd.channel))?.commissionHidden?'Channel terms are changed by a Manager or the Owner.':undefined)
+      :String(cmd.name??'').trim().length<2?'Enter the channel name.':!/^[A-Z0-9-]{2,20}$/.test(String(cmd.code??'').trim().toUpperCase())?'Channel code: 2–20 letters, digits or dashes.':undefined,
     async send(c){const m=c.cmd;
     if(!m.channel){
       const mapping=Object.entries((m.mapping??{}) as Record<string,string>).filter(([,code])=>String(code??'').trim())

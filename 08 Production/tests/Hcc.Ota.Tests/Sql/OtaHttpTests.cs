@@ -74,6 +74,11 @@ public sealed class OtaHttpTests : OtaSqlTest
         var channels = await reception.GetFromJsonAsync<List<ChannelView>>($"{b}/ota/channels", Web, Ct);
         Assert.Equal(4, channels!.Count);
         Assert.Equal(3, channels.Single(c => c.Code == "BOOKNEST").PendingMessages); // F1, F3, F5 (F0 was rejected)
+        // DEC-079 D7 (Wave D5): the commission rate is money — null on the wire for Reception, the rate for the Manager.
+        Assert.All(channels, c => Assert.Null(c.CommissionBps));
+        using (var raw = JsonDocument.Parse(await reception.GetStringAsync($"{b}/ota/channels", Ct)))
+            Assert.Equal(JsonValueKind.Null, raw.RootElement[0].GetProperty("commissionBps").ValueKind);
+        Assert.Equal(1800, (await manager.GetFromJsonAsync<List<ChannelView>>($"{b}/ota/channels", Web, Ct))!.Single(c => c.Code == "BOOKNEST").CommissionBps);
         var inbox = await reception.GetFromJsonAsync<List<ChannelMessageView>>($"{b}/ota/messages?status=Pending", Web, Ct);
         var f1 = inbox!.Single(m => m.ChannelRef == "BN-88231");
         var check = await reception.GetFromJsonAsync<MessageCheckView>($"{b}/ota/messages/{f1.MessageId}/check", Web, Ct);

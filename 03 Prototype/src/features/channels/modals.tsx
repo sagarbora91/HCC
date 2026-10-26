@@ -2,7 +2,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Check,X,Printer} from 'lucide-react';
-import {money,chnSlice,chnAcceptCheck,chnChannelName,chnFreeRooms,chnRoomTypes,chnPct,chnOriginal,chnWebStatus,CHN_MAX_COMMISSION_BPS,CHN_MAX_MARKUP_BPS,rmsRoomLine,rmsTypeName} from '../../services/mock';
+import {money,chnSlice,chnAcceptCheck,chnChannelName,chnFreeRooms,chnRoomTypes,chnPct,chnOriginal,chnWebStatus,CHN_MAX_COMMISSION_BPS,CHN_MAX_MARKUP_BPS,CHN_COMMISSION_HIDDEN,rmsRoomLine,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import type {ModalProps} from '../../app/registry';
 import {clockTime,shortDate,dateLabel} from '../../components/ui';
@@ -53,7 +53,7 @@ export function RejectModal({id}:ModalProps){
 export function ChannelModal({id}:ModalProps){
   const {s,run,busy,closeModal,permission}=useHcc();const isNew=id==='new';const c=isNew?undefined:chnSlice(s).channels.find(c=>c.id===id);const types=chnRoomTypes(s);const ro=!permission('approve');
   const [nm,setNm]=useState(''),[cd,setCd]=useState('');
-  const [com,setCom]=useState(c?String(c.commissionBps/100):'');const [mk,setMk]=useState(c?String(c.markupBps/100):'');
+  const [com,setCom]=useState(c&&!c.commissionHidden?String(c.commissionBps/100):'');const [mk,setMk]=useState(c?String(c.markupBps/100):'');
   const [map,setMap]=useState<Record<string,string>>(c?{...c.mapping}:{});
   if(!c&&!isNew)return <div className="modal-heading"><h2>Channel not found</h2></div>;
   const bps=(v:string)=>Math.round(Number(v)*100);
@@ -65,7 +65,8 @@ export function ChannelModal({id}:ModalProps){
     {!c?null:ro?<div className="info-note chn-note">View only — a Manager or Owner changes connection, commission and mapping.</div>:<div className="chn-conn"><ConnectionButtons c={c}/></div>}
     <fieldset className="chn-fieldset chn-plain" disabled={ro}>
     <div className="form-row">
-      <label>Commission %<input inputMode="decimal" enterKeyHint="next" value={com} onChange={e=>setCom(e.target.value)} aria-describedby="chn-com-help"/><small id="chn-com-help">0–{chnPct(CHN_MAX_COMMISSION_BPS)} of room revenue</small></label>
+      <label>Commission %<input inputMode="decimal" enterKeyHint="next" value={com} onChange={e=>setCom(e.target.value)} aria-describedby="chn-com-help"
+        {...(c?.commissionHidden?{placeholder:CHN_COMMISSION_HIDDEN,disabled:true}:{})}/><small id="chn-com-help">0–{chnPct(CHN_MAX_COMMISSION_BPS)} of room revenue</small></label>
       <label>Rate markup %<input inputMode="decimal" enterKeyHint="next" value={mk} onChange={e=>setMk(e.target.value)}/><small>0–{chnPct(CHN_MAX_MARKUP_BPS)} added to the hotel tariff when pushed</small></label>
     </div>
     <fieldset className="chn-fieldset"><legend>Room type → channel room code</legend>

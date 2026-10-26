@@ -2,21 +2,21 @@
 import React from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {RefreshCw,Send,Printer} from 'lucide-react';
-import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,CHN_PUSH_DAYS,rmsTypeName} from '../../services/mock';
+import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate,clockTime} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {ChnPill,ChnSimulated,stay,party} from './shared';
-import {chnTabOf,usePushChannel,StopSellToggle,type ChnTab} from './Channels';
+import {chnTabFor,usePushChannel,StopSellToggle,type ChnTab} from './Channels';
 
 const pl=(n:number,w:string)=>`${n} ${w}${n===1?'':'s'}`;
 export function ChannelsMobile(){
-  const {s,tab,setTab,run,busy,open,permission}=useHcc();const t=chnTabOf(tab);
+  const {s,tab,setTab,run,busy,open,permission}=useHcc();const hidden=chnCommissionHidden(s);const t=chnTabFor(tab,hidden);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   const [ch,setCh]=usePushChannel();const pc=st.channels.find(c=>c.id===ch);
   return <div className="chn-m">
     <ChnSimulated text="Simulated channel manager — fictional OTAs, nothing is sent."/>
-    <ChipFilter<ChnTab> label="Channels view" value={t} onChange={v=>setTab(v)} options={[{id:'inbox',label:'Inbox',count:pend.length},{id:'channels',label:'Channels'},{id:'push',label:'Push'},{id:'commission',label:'Commission'}]}/>
+    <ChipFilter<ChnTab> label="Channels view" value={t} onChange={v=>setTab(v)} options={[{id:'inbox',label:'Inbox',count:pend.length},{id:'channels',label:'Channels'},{id:'push',label:'Push'},...(hidden?[]:[{id:'commission' as const,label:'Commission'}])]}/>
     {t==='inbox'&&<>
       {pend.map(m=>{const c=chnAcceptCheck(s,m);return <ListCard key={m.id} onClick={()=>open({type:'chn-message',id:m.id})}
         title={<>{m.guest} <ChnPill status={m.kind}/></>} sub={`${chnChannelName(s,m.channel)} · ${m.ref} · ${m.roomType}`}
@@ -25,7 +25,7 @@ export function ChannelsMobile(){
       <StickyFooter><button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={18}/> Check for new messages</button></StickyFooter></>}
     {t==='channels'&&process.env.HCC_BUILD==='production'&&(permission('approve')?<button className="btn" onClick={()=>open({type:'chn-channel',id:'new'})}>Add channel</button>:!st.channels.length&&<p className="chn-muted">No channels yet. A Manager or Owner adds the first one.</p>)}
     {t==='channels'&&st.channels.map(c=><section key={c.id} className="chn-mcard">
-      <ListCard title={c.name} sub={c.statusNote} meta={`Commission ${chnPct(c.commissionBps)} · markup ${chnPct(c.markupBps)} · last sync ${c.lastSync?clockTime(c.lastSync):'never'}`} right={<ChnPill status={c.status}/>} onClick={()=>open({type:'chn-channel',id:c.id})}/>
+      <ListCard title={c.name} sub={c.statusNote} meta={`Commission ${chnRate(c)} · markup ${chnPct(c.markupBps)} · last sync ${c.lastSync?clockTime(c.lastSync):'never'}`} right={<ChnPill status={c.status}/>} onClick={()=>open({type:'chn-channel',id:c.id})}/>
       <div className="chn-mstop">{chnRoomTypes(s).map(type=><div key={type}><span>{rmsTypeName(s,type)}<small>{c.mapping[type]||'Not mapped'}</small></span>{c.mapping[type]?<StopSellToggle c={c} type={type}/>:<span className="chn-muted">—</span>}</div>)}</div>
     </section>)}
     {t==='push'&&<>

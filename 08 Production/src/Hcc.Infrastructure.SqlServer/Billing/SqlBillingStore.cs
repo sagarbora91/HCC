@@ -510,27 +510,39 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
             rd.IsDBNull(3) ? null : SqlValues.RowVersionToWire((byte[])rd[3]));
     }
 
+    /// <summary>
+    /// The cashier's folio list (D5): in-house stays, today's confirmed arrivals and today's departures. Wave D5 (leftover of
+    /// A09-18): it used to be one <c>OR</c> over the whole of <c>inv.reservation</c> joined to the whole of <c>gst.stay</c> (two full
+    /// scans that grow with every booking the hotel ever had). Each of the three groups is now found by its own index — the in-house
+    /// filtered index <c>IX_reservation_inhouse</c>, the Confirmed filtered index <c>IX_reservation_confirmed</c> (3930) and
+    /// <c>IX_stay_checked_out</c> (4030) — and the groups are disjoint by status, so <c>UNION ALL</c> keeps every row once. Same
+    /// rows, same order (<c>DeskListQuerySqlTests</c>). Public for those tests, like <c>SqlHousekeepingReadStore.BoardSql</c>.
+    /// </summary>
+    public const string DeskFoliosSql = """
+        DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p);
+        SELECT @bd;
+        SELECT r.reservation_id, r.public_no, r.status, r.guest_name, COALESCE(cur.room_id, r.room_id), COALESCE(cur.room_no, rm.room_no), t.code,
+               r.arrival, r.departure, r.adults, r.children, r.source, r.nightly_rate_paise, s.stay_id, f.folio_id, r.company_name, r.company_gstin
+        FROM (SELECT x.reservation_id FROM inv.reservation x WHERE x.property_id = @p AND x.status = 'InHouse'
+              UNION ALL
+              SELECT x.reservation_id FROM inv.reservation x WHERE x.property_id = @p AND x.status = 'Confirmed' AND x.arrival <= @bd AND x.departure > @bd
+              UNION ALL
+              SELECT x.reservation_id FROM gst.stay d JOIN inv.reservation x ON x.reservation_id = d.reservation_id
+              WHERE d.checked_out_date = @bd AND x.property_id = @p AND x.status = 'Departed') k
+          JOIN inv.reservation r ON r.reservation_id = k.reservation_id
+          LEFT JOIN inv.room rm ON rm.room_id = r.room_id
+          LEFT JOIN inv.room_type t ON t.room_type_id = r.room_type_id
+          LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
+          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+          OUTER APPLY (SELECT TOP (1) sg.room_id, sr.room_no FROM gst.stay_segment sg JOIN inv.room sr ON sr.room_id = sg.room_id
+                       WHERE sg.stay_id = s.stay_id AND sg.to_date IS NULL) cur
+        ORDER BY COALESCE(cur.room_no, rm.room_no), r.reservation_id;
+        """;
+
     public async Task<(DateOnly? BusinessDate, IReadOnlyList<DeskFolioRow> Rows)> ListDeskFoliosAsync(int propertyId, CancellationToken ct)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command("""
-            DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p);
-            SELECT @bd;
-            SELECT r.reservation_id, r.public_no, r.status, r.guest_name, COALESCE(cur.room_id, r.room_id), COALESCE(cur.room_no, rm.room_no), t.code,
-                   r.arrival, r.departure, r.adults, r.children, r.source, r.nightly_rate_paise, s.stay_id, f.folio_id, r.company_name, r.company_gstin
-            FROM inv.reservation r
-              LEFT JOIN inv.room rm ON rm.room_id = r.room_id
-              LEFT JOIN inv.room_type t ON t.room_type_id = r.room_type_id
-              LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
-              LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
-              OUTER APPLY (SELECT TOP (1) sg.room_id, sr.room_no FROM gst.stay_segment sg JOIN inv.room sr ON sr.room_id = sg.room_id
-                           WHERE sg.stay_id = s.stay_id AND sg.to_date IS NULL) cur
-            WHERE r.property_id = @p
-              AND (r.status = 'InHouse'
-                   OR (r.status = 'Confirmed' AND r.arrival <= @bd AND r.departure > @bd)
-                   OR (r.status = 'Departed' AND s.checked_out_date = @bd))
-            ORDER BY COALESCE(cur.room_no, rm.room_no), r.reservation_id;
-            """, conn);
+        await using var cmd = connections.Command(DeskFoliosSql, conn);
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         DateOnly? date = null;

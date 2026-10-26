@@ -13,7 +13,9 @@ export type CHNChannel={id:string;name:string;status:CHNChannelStatus;
   /** Rate parity uplift pushed to this channel, basis points. */ markupBps:number;
   /** Hotel room type → channel room code. Missing/blank = not sold on this channel. */ mapping:Record<string,string>;
   /** Room types stop-sold on this channel. */ stopSell:string[];
-  lastSync?:string;statusNote?:string};
+  lastSync?:string;statusNote?:string;
+  /** Production only (DEC-079 D7, Wave D5): the server withheld the commission rate — the reader lacks PERM-OTA-004 (Owner, Manager and
+   *  Accountant hold it). commissionBps is then 0 and is not the channel's rate. */ commissionHidden?:boolean};
 export type CHNMessageKind='New'|'Modify'|'Cancel';
 export type CHNMessageStatus='Pending'|'Accepted'|'Applied'|'Rejected';
 export type CHNMessage={id:string;channel:string;kind:CHNMessageKind;ref:string;guest:string;phone?:string;email?:string;roomType:string;
@@ -38,6 +40,13 @@ export const CHN_CODE=/^[A-Z0-9-]{2,20}$/;
 export const CHN_WEB_SOURCE='Website';
 
 export const chnPct=(bps:number)=>(bps/100).toLocaleString('en-IN',{maximumFractionDigits:2})+'%';
+/** Shown instead of a commission rate the server withheld (DEC-079 D7). */
+export const CHN_COMMISSION_HIDDEN='Not shown to your role';
+/** True when the commission rates are withheld from this reader (production, no PERM-OTA-004): the commission figures, report and
+ *  "Commission due" are hidden too, since they would be computed from no rate. Never in the demo build. */
+export const chnCommissionHidden=(s:State)=>chnSlice(s).channels.some(c=>c.commissionHidden);
+/** A channel's commission rate as text, or CHN_COMMISSION_HIDDEN. */
+export const chnRate=(c:CHNChannel)=>c.commissionHidden?CHN_COMMISSION_HIDDEN:chnPct(c.commissionBps);
 /** Hotel room types in display order (derived from rooms). */
 export function chnRoomTypes(s:State):string[]{
   const order=['Classic','Deluxe','Suite'];

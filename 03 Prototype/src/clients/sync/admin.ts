@@ -11,7 +11,8 @@
 //   slices   users ← /admin/users · policy ← /admin/roles + /admin/exceptions (admins) or the signed-in user's own capabilities
 //            (everyone else: their role's template = what /me/capabilities says they hold, so authorize() follows the server) ·
 //            grants ← the loaded role templates through PERMISSION_MAP · approvals ← configuration requests (kind 'config') ·
-//            audit ← /admin/audit (PERM-ADM-004) · configX (+ history/changes) ← /configuration/values + /configuration/history ·
+//            audit ← /admin/audit (PERM-ADM-004) · configX (+ history/changes) ← /configuration/values + /configuration/history (its
+//            groupBlocksEnabled = the server option Hcc:GroupBlocks:Enabled sets grpSetBlocksOnServer, DEC-080) ·
 //            configHistory ← /configuration/history · settings ← the legacy keys of configX.values ·
 //            GST master ← /tax/gst (date = business date) into configX.values (in force today), .scheduled (Owner versions ahead),
 //            .changes (every version incl. the seed: gstValueOn reads the server's dated master) and configHistory (Owner versions).
@@ -19,7 +20,8 @@
 //            mixes kinds from several server tables); GST versions "GST-V<versionId>" (configX.changes / scheduled, configHistory).
 //            Versions: 'user' (rowversion, sent as expectedVersion — the server requires it for user changes), 'cfgRequest'.
 import type {State,Command,Role,Approval,Audit,User,Permission} from '../../services/mock';
-import {ADMIN_ROLE_ORDER,addDays,isGstKey,gstReasonProblem,gstSeedDef,gstShow,cfgRevertBlock} from '../../services/mock';
+import {ADMIN_ROLE_ORDER,adminTemplateRoles,addDays,isGstKey,gstReasonProblem,gstSeedDef,gstShow,cfgRevertBlock} from '../../services/mock';
+import {grpSetBlocksOnServer} from '../../domain/streams/groups';
 import type {HccPolicy,PolicyCell,PolicyException,CFGState,CFGChange,CFGScheduled} from '../../services/mock';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx,SyncMe} from './types';
@@ -39,7 +41,8 @@ export type SrvException={exceptionId:number;userId:number;permissionId:string;e
   reason:string;validUntilUtc:string;grantedBy:number;grantedUtc:string;revokedUtc?:string|null};
 export type SrvAudit={auditId:number;atUtc:string;principalId:number;actor:string;action:string;target:string;detail:string;operation?:string|null};
 export type SrvValues={businessDate:string;values:Record<string,unknown>;scheduled:{key:string;value:unknown;effectiveFrom:string}[];
-  /** Setting row version per key saved at least once (SetSetting expectedVersion; absent = never saved). */versions?:Record<string,string>|null};
+  /** Setting row version per key saved at least once (SetSetting expectedVersion; absent = never saved). */versions?:Record<string,string>|null;
+  /** DEC-080: the server option Hcc:GroupBlocks:Enabled (absent from an older server = off). */groupBlocksEnabled?:boolean};
 export type SrvHistoryEntry={changeId:number;key:string;label:string;before:string;after:string;effectiveFrom:string;status:string;changedBy:string;approvedBy?:string|null;
   reason?:string|null;source:string;revertOf?:number|null;at:string;canRevert:boolean;revertBlock?:string|null};
 /** GET /tax/gst (Hcc.Contracts.Tax GstMasterView): values in bps / paise / 0-1, dates YYYY-MM-DD. */
@@ -106,9 +109,10 @@ export function policyFromServer(roles:SrvRoles|null,exceptions:SrvException[],m
     effect:String(e.effect).toUpperCase()==='DENY'?'deny':'allow',reason:e.reason,expires:expiresOnOf(e.validUntilUtc)??'',by:protoId(e.grantedBy),at:utcToClock(e.grantedUtc)}));
   return {version:1,templates,limits,exceptions:exc,history:[]};
 }
-/** Coarse module gate per role, from the policy cells through PERMISSION_MAP (same rule as can() for the signed-in user). */
+/** Coarse module gate per role, from the policy cells through PERMISSION_MAP (same rule as can() for the signed-in user); the
+ *  Restaurant role too when the server returned its template (Access control › Module access shows it, Wave D5). */
 export function grantsFromPolicy(p:HccPolicy):Record<Role,Permission[]>{
-  return Object.fromEntries(ADMIN_ROLE_ORDER.map(r=>[r,permissionsFromGrants(Object.entries(p.templates[r]??{}).filter(([,c])=>c.effect!=='deny')
+  return Object.fromEntries(adminTemplateRoles(p).map(r=>[r,permissionsFromGrants(Object.entries(p.templates[r]??{}).filter(([,c])=>c.effect!=='deny')
     .map(([permissionId,c])=>({permissionId,mode:modeOf(c)})))])) as unknown as Record<Role,Permission[]>;
 }
 export const cfgRequestId=(requestId:number)=>'CFG-REQ-'+requestId;
@@ -230,6 +234,8 @@ async function loadGst(c:LoaderCtx,date:string):Promise<SrvGstMaster|null>{
 }
 async function loadConfig(c:LoaderCtx):Promise<CFGState>{
   const v=await c.api.get<SrvValues>('/configuration/values');
+  // DEC-080 (Wave D5): the production client sends GRP_BLOCK_CREATE only while the server option is on — one switch, on the server.
+  if(typeof v.groupBlocksEnabled==='boolean')grpSetBlocksOnServer(v.groupBlocksEnabled);
   // W4 D2: SetSetting needs the row version once a setting has been saved (else STALE_VERSION on every second edit).
   for(const [key,ver] of Object.entries(v.versions??{}))c.ids.setVersion('setting',key,ver);
   return configFromServer(v,await loadHistory(c),await loadGst(c,v.businessDate));

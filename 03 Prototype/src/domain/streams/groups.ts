@@ -53,7 +53,9 @@ export const grpSlice=(s:State):GRPState=>{const x=s.groupsX as Partial<GRPState
 /** Shown by the production client (and by the server, GroupBlockOptions.RefusalMessage, option Hcc:GroupBlocks:Enabled, default off). The demo build is unchanged. */
 export const GRP_BLOCKS_REFUSAL='Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.';
 let blocksOnServer=false;
-/** Whether the production client sends GRP_BLOCK_CREATE. Off until the server option is switched on: then change the default here (or call grpSetBlocksOnServer). */
+/** Whether the production client sends GRP_BLOCK_CREATE. Follows the server option Hcc:GroupBlocks:Enabled (Wave D5): GET /configuration/values
+ *  carries it as groupBlocksEnabled and the admin area's configX loader (sync/admin.ts loadConfig) calls grpSetBlocksOnServer with it, so the
+ *  server switch alone turns group blocks on. Off until that read says otherwise (also with an older server that does not send it). */
 export const grpBlocksOnServer=()=>blocksOnServer;
 export function grpSetBlocksOnServer(on:boolean){blocksOnServer=on;}
 /** Ensure the slice exists on a (cloned) state and return it for mutation. */

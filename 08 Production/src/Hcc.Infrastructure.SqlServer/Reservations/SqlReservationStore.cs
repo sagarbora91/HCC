@@ -216,7 +216,14 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
     /// <summary>Effective status as users see it: a lapsed hold reads Expired (same rule as <c>ReservationStatusMap.Effective</c>).</summary>
     private const string EffectiveStatus = "CASE WHEN r.status = 'Held' AND r.hold_until_utc IS NOT NULL AND r.hold_until_utc <= @now THEN 'Expired' ELSE r.status END";
 
-    public async Task<ReservationList> ListAsync(int propertyId, ReservationListQuery query, DateTime nowUtc, CancellationToken ct = default)
+    /// <summary>
+    /// The list statement of <see cref="ListAsync"/> (public for the list-speed tests, like <c>SqlHousekeepingReadStore.BoardSql</c>).
+    /// Wave D5 (leftover of A09-18): the bookings list the client loads (<c>view=range</c>, departure after the business date − 180
+    /// days) seeks <c>IX_reservation_departure</c> (migration 4030) for the count and the page instead of scanning every booking the
+    /// hotel ever had, and the page ids go into a heap (<c>SELECT … INTO</c>, numbered by <c>ROW_NUMBER</c>) instead of an
+    /// identity-keyed table that cost two page reads per row. Same rows, same order (<c>DeskListQuerySqlTests</c>).
+    /// </summary>
+    public static string ListSql(ReservationListQuery query)
     {
         ArgumentNullException.ThrowIfNull(query);
         var where = new List<string> { "r.property_id = @p" };
@@ -239,15 +246,14 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
         if (query.To is not null) where.Add("r.arrival < @to");
         if (query.Statuses.Count > 0)
             where.Add($"{EffectiveStatus} IN ({string.Join(", ", query.Statuses.Select((_, i) => "@s" + i))})");
-        var text = string.IsNullOrWhiteSpace(query.Text) ? null : query.Text.Trim();
-        if (text is not null)
+        if (ListText(query) is not null)
             where.Add("(r.guest_name LIKE @t ESCAPE '!' OR r.public_no LIKE @t ESCAPE '!' OR r.phone LIKE @t ESCAPE '!' OR rm.room_no = @tx)");
         var from = $"FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.room_id JOIN inv.room_type t ON t.room_type_id = r.room_type_id WHERE {string.Join(" AND ", where)}";
-        var sql = $"""
+        return $"""
             DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p);
             SELECT @bd, COUNT(*) {from};
-            CREATE TABLE #pg(ord INT IDENTITY PRIMARY KEY, reservation_id BIGINT NOT NULL);
-            INSERT #pg(reservation_id) SELECT r.reservation_id {from} ORDER BY r.arrival DESC, r.reservation_id DESC OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;
+            SELECT ROW_NUMBER() OVER (ORDER BY r.arrival DESC, r.reservation_id DESC) AS ord, r.reservation_id INTO #pg
+              {from} ORDER BY r.arrival DESC, r.reservation_id DESC OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;
             SELECT r.reservation_id, r.public_no, r.row_ver, r.status, r.guest_name, r.phone, r.room_id, rm.room_no, r.room_type_id, t.code,
               r.arrival, r.departure, r.adults, r.children, r.source, r.nightly_rate_paise, r.hold_until_utc, r.group_block_id,
               r.restriction_override, r.cancel_reason, r.notes,
@@ -264,21 +270,36 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
             ORDER BY s.reservation_id, sg.seq;
             DROP TABLE #pg;
             """;
-        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var q = connections.Command(sql, conn);
-        q.Parameters.Int("@p", propertyId);
-        q.Parameters.Utc("@now", nowUtc);
-        q.Parameters.Int("@skip", (query.Page - 1) * query.PageSize);
-        q.Parameters.Int("@take", query.PageSize);
-        if (query.From is { } f) q.Parameters.Date("@from", f);
-        if (query.To is { } to) q.Parameters.Date("@to", to);
-        for (var i = 0; i < query.Statuses.Count; i++) q.Parameters.Text("@s" + i, query.Statuses[i], 20);
-        if (text is not null)
+    }
+
+    private static string? ListText(ReservationListQuery query) => string.IsNullOrWhiteSpace(query.Text) ? null : query.Text.Trim();
+
+    /// <summary>The parameters of <see cref="ListSql"/>.</summary>
+    public static void BindList(SqlParameterCollection parameters, int propertyId, ReservationListQuery query, DateTime nowUtc)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        ArgumentNullException.ThrowIfNull(query);
+        parameters.Int("@p", propertyId);
+        parameters.Utc("@now", nowUtc);
+        parameters.Int("@skip", (query.Page - 1) * query.PageSize);
+        parameters.Int("@take", query.PageSize);
+        if (query.From is { } f) parameters.Date("@from", f);
+        if (query.To is { } to) parameters.Date("@to", to);
+        for (var i = 0; i < query.Statuses.Count; i++) parameters.Text("@s" + i, query.Statuses[i], 20);
+        if (ListText(query) is { } text)
         {
             var like = text.Replace("!", "!!", StringComparison.Ordinal).Replace("%", "!%", StringComparison.Ordinal).Replace("_", "!_", StringComparison.Ordinal).Replace("[", "![", StringComparison.Ordinal);
-            q.Parameters.Text("@t", "%" + like + "%", 220);
-            q.Parameters.Text("@tx", text, 10);
+            parameters.Text("@t", "%" + like + "%", 220);
+            parameters.Text("@tx", text, 10);
         }
+    }
+
+    public async Task<ReservationList> ListAsync(int propertyId, ReservationListQuery query, DateTime nowUtc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var q = connections.Command(ListSql(query), conn);
+        BindList(q.Parameters, propertyId, query, nowUtc);
         await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await rd.ReadAsync(ct).ConfigureAwait(false);
         var businessDate = Domain.Dates.StayDates.ToWire(rd.GetDate(0));
