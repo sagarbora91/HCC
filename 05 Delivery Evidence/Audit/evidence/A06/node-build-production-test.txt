@@ -1,0 +1,19 @@
+PASS missing file is refused with the export hint
+PASS a .pfx is refused
+PASS a PEM with a private key is refused
+PASS garbage is refused
+SKIP valid-certificate case (openssl not available)
+PASS release configuration as shipped: not debuggable, hccRelease signing from env / keystore.properties, no backup, narrow FileProvider, WebView debugging off
+PASS release configuration checks catch: debuggable, allowBackup true, a backup include, the whole external storage shared, a password in build.gradle, WebView debugging left on
+PASS APK dump check: release (in.hcc.server, allowBackup 0, not debuggable) passes; a debug / backup-enabled / prototype APK fails
+7 build-production checks passed
+✔ scripts\build-production.test.mjs (826.1108ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 842.9802
+exit=0

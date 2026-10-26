@@ -1,0 +1,6 @@
+
+> hcc-interactive-prototype@1.0.0 build:production
+> node build.mjs --production
+
+Built dist/production/index.html (2500 KB) — production flavour (HTTP adapter, no demo controls).
+exit=0 elapsed=00:00:02.2033004

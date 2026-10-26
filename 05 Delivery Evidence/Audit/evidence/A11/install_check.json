@@ -1,0 +1,473 @@
+{
+ "scripts": [
+  {
+   "line": 23,
+   "script": "Initialize-HccDatabase.ps1",
+   "exists": true
+  },
+  {
+   "line": 36,
+   "script": "Install-HccService.ps1",
+   "exists": true
+  },
+  {
+   "line": 43,
+   "script": "New-HccCertificate.ps1",
+   "exists": true
+  },
+  {
+   "line": 55,
+   "script": "New-HccCertificate.ps1",
+   "exists": true
+  },
+  {
+   "line": 76,
+   "script": "Initialize-HccProperty.ps1",
+   "exists": true
+  },
+  {
+   "line": 92,
+   "script": "New-HccGuestIdKey.ps1",
+   "exists": true
+  },
+  {
+   "line": 112,
+   "script": "New-HccBackupKey.ps1",
+   "exists": true
+  },
+  {
+   "line": 114,
+   "script": "Backup-HccDatabase.ps1",
+   "exists": true
+  },
+  {
+   "line": 115,
+   "script": "Register-HccBackupTasks.ps1",
+   "exists": true
+  },
+  {
+   "line": 124,
+   "script": "New-HccBackupKey.ps1",
+   "exists": true
+  },
+  {
+   "line": 146,
+   "script": "Install-HccService.ps1",
+   "exists": true
+  },
+  {
+   "line": 0,
+   "script": "New-HccBackupKey.ps1",
+   "exists": true,
+   "prose": true
+  },
+  {
+   "line": 0,
+   "script": "Register-HccBackupTasks.ps1",
+   "exists": true,
+   "prose": true
+  },
+  {
+   "line": 0,
+   "script": "Register-HccBackupTasks.ps1",
+   "exists": true,
+   "prose": true
+  },
+  {
+   "line": 0,
+   "script": "Initialize-HccDatabase.ps1",
+   "exists": true,
+   "prose": true
+  },
+  {
+   "line": 0,
+   "script": "New-HccBackupKey.ps1",
+   "exists": true,
+   "prose": true
+  },
+  {
+   "line": 0,
+   "script": "Register-HccBackupTasks.ps1",
+   "exists": true,
+   "prose": true
+  }
+ ],
+ "flags": [
+  {
+   "line": 23,
+   "script": "Initialize-HccDatabase.ps1",
+   "flag": "ServiceAccount",
+   "declared": true
+  },
+  {
+   "line": 23,
+   "script": "Initialize-HccDatabase.ps1",
+   "flag": "BackupDirectory",
+   "declared": true
+  },
+  {
+   "line": 23,
+   "script": "Initialize-HccDatabase.ps1",
+   "flag": "GrantDrillRights",
+   "declared": true
+  },
+  {
+   "line": 36,
+   "script": "Install-HccService.ps1",
+   "flag": "WhatIf",
+   "declared": true,
+   "note": "common parameter (CmdletBinding/ShouldProcess)"
+  },
+  {
+   "line": 36,
+   "script": "Install-HccService.ps1",
+   "flag": "ServiceAccount",
+   "declared": true
+  },
+  {
+   "line": 43,
+   "script": "New-HccCertificate.ps1",
+   "flag": "ServerName",
+   "declared": true
+  },
+  {
+   "line": 43,
+   "script": "New-HccCertificate.ps1",
+   "flag": "DnsName",
+   "declared": true
+  },
+  {
+   "line": 43,
+   "script": "New-HccCertificate.ps1",
+   "flag": "IpAddress",
+   "declared": true
+  },
+  {
+   "line": 43,
+   "script": "New-HccCertificate.ps1",
+   "flag": "CaPfxPath",
+   "declared": true
+  },
+  {
+   "line": 43,
+   "script": "New-HccCertificate.ps1",
+   "flag": "UpdateConfig",
+   "declared": true
+  },
+  {
+   "line": 55,
+   "script": "New-HccCertificate.ps1",
+   "flag": "RenewServer",
+   "declared": true
+  },
+  {
+   "line": 55,
+   "script": "New-HccCertificate.ps1",
+   "flag": "CaPfx",
+   "declared": true
+  },
+  {
+   "line": 55,
+   "script": "New-HccCertificate.ps1",
+   "flag": "ServerName",
+   "declared": true
+  },
+  {
+   "line": 55,
+   "script": "New-HccCertificate.ps1",
+   "flag": "DnsName",
+   "declared": true
+  },
+  {
+   "line": 55,
+   "script": "New-HccCertificate.ps1",
+   "flag": "IpAddress",
+   "declared": true
+  },
+  {
+   "line": 55,
+   "script": "New-HccCertificate.ps1",
+   "flag": "UpdateConfig",
+   "declared": true
+  },
+  {
+   "line": 76,
+   "script": "Initialize-HccProperty.ps1",
+   "flag": "HotelName",
+   "declared": true
+  },
+  {
+   "line": 76,
+   "script": "Initialize-HccProperty.ps1",
+   "flag": "Address",
+   "declared": true
+  },
+  {
+   "line": 76,
+   "script": "Initialize-HccProperty.ps1",
+   "flag": "Gstin",
+   "declared": true
+  },
+  {
+   "line": 76,
+   "script": "Initialize-HccProperty.ps1",
+   "flag": "OwnerLogin",
+   "declared": true
+  },
+  {
+   "line": 76,
+   "script": "Initialize-HccProperty.ps1",
+   "flag": "OwnerDisplayName",
+   "declared": true
+  },
+  {
+   "line": 92,
+   "script": "New-HccGuestIdKey.ps1",
+   "flag": "OfflineCopyPath",
+   "declared": true
+  },
+  {
+   "line": 92,
+   "script": "New-HccGuestIdKey.ps1",
+   "flag": "WhatIf",
+   "declared": true,
+   "note": "common parameter (CmdletBinding/ShouldProcess)"
+  },
+  {
+   "line": 112,
+   "script": "New-HccBackupKey.ps1",
+   "flag": "OfflineCopyPath",
+   "declared": true
+  },
+  {
+   "line": 114,
+   "script": "Backup-HccDatabase.ps1",
+   "flag": "Type",
+   "declared": true
+  },
+  {
+   "line": 124,
+   "script": "New-HccBackupKey.ps1",
+   "flag": "ImportOfflineCopy",
+   "declared": true
+  },
+  {
+   "line": 146,
+   "script": "Install-HccService.ps1",
+   "flag": "Uninstall",
+   "declared": true
+  }
+ ],
+ "configKeys": [
+  {
+   "key": "WebRoot",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "Enabled",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "PublicPort",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "PublicBindAddress",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "KnownProxies",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "KnownNetworks",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "AllowedHosts",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "LoopbackHttpPort",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "HttpsPort",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "CertificateThumbprint",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "BackupDirectory",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "ServerName",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "GuestIdKeys",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "AllowMachineScope",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "AllowPlainKeys",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "Required",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "IdempotencyRetention",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "SessionRetention",
+   "inCs": true,
+   "inSample": false
+  },
+  {
+   "key": "SignInFailuresPerAddress",
+   "inCs": false,
+   "inSample": false
+  },
+  {
+   "key": "WebBooking",
+   "inCs": true,
+   "inSample": true
+  },
+  {
+   "key": "documents.retentionDays",
+   "inCs": true,
+   "inSample": false
+  }
+ ],
+ "routes": [
+  {
+   "route": "/system/health",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/system/discovery",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/setup/SetupProperty",
+   "foundInApiOrContracts": false
+  },
+  {
+   "route": "/setup/status",
+   "foundInApiOrContracts": false
+  },
+  {
+   "route": "/auth/bootstrap-owner",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/public/booking",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/me/capabilities",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/rooms/board",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/rooms/status",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/cashier/folios",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/admin/users",
+   "foundInApiOrContracts": false
+  },
+  {
+   "route": "/cashbook",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/commands/RevealGuestId",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/commands/RegisterDevice",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/commands/QuoteStay",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/commands/CreateReservation",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/commands/SetGstSetting",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/compliance/",
+   "foundInApiOrContracts": true
+  },
+  {
+   "route": "/commands/ApplyRoomBlock",
+   "foundInApiOrContracts": false
+  }
+ ],
+ "other": [
+  {
+   "what": "function ConvertTo-HccWrappedGuestIdKey",
+   "foundIn": [
+    "New-HccGuestIdKey.ps1"
+   ]
+  },
+  {
+   "what": "installer",
+   "Hcc_iss": true,
+   "Build_Installer": true,
+   "builtExeInRepo": false
+  },
+  {
+   "what": "sample config keys",
+   "value": [
+    "Logging",
+    "AllowedHosts",
+    "Hcc",
+    "_notes"
+   ]
+  },
+  {
+   "what": "Program.cs handles \"migrate\"",
+   "value": true
+  }
+ ]
+}

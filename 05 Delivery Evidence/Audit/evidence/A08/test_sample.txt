@@ -1,0 +1,798 @@
+
+##### 1. Hcc.Billing.Tests/Domain/BillingDomainTests.cs:13
+    public void Expected_cash_parts_follow_the_prototype_shiftExpected_formula()
+    {
+        // Till decision pack worked example, option A (DEC-052): 5,000 + 3,000 − 500 + 1,200 restaurant = 8,700; UPI and room charges never enter.
+        var mv = new List<CashMovement>
+        {
+            CashDrawer.ForReceipt(ReceiptKind.Payment, Paise.FromRupees(3000)),
+            CashDrawer.ForReceipt(ReceiptKind.Refund, Paise.FromRupees(500)),
+            new(CashMovementKind.PosSale, Paise.FromRupees(1200)),
+        };
+        var e = CashDrawer.Expected(Paise.FromRupees(5000), mv);
+        Assert.Equal(Paise.FromRupees(8700), e.Expected);
+        Assert.Equal(Paise.FromRupees(500), e.Refunds);
+        Assert.Equal(Paise.FromRupees(1200), e.Restaurant);
+        Assert.True(e.Consistent);
+    }
+
+
+##### 2. Hcc.Billing.Tests/Domain/BillingDomainTests.cs:120
+    public void Tenders_require_a_reference_except_cash()
+    {
+        Assert.Equal("Cash", Tenders.Validate("Cash", null));
+        Assert.Equal("UPI", Tenders.Validate("UPI", "DEMO-UPI-1"));
+        Assert.Throws<HccException>(() => Tenders.Validate("UPI", " "));
+        Assert.Throws<HccException>(() => Tenders.Validate("Cheque", "x"));
+        Assert.Throws<HccException>(() => Tenders.Validate("Company credit", "x"));
+    }
+}
+
+
+##### 3. Hcc.Billing.Tests/Sql/BillingCommandTests.cs:26
+    public async Task Room_night_posts_once_with_tax_snapshot_and_repeats_return_the_existing_charge()
+    {
+        var (rid, folio) = await StayAsync();
+        var key = BillingDb.Key();
+        var first = await db.Billing.PostRoomNightAsync(db.As(Who.Manager), key, new PostRoomNightRequest(rid, BillingDb.Day), Ct);
+        Assert.True(first.Value.Created);
+        Assert.Equal((200_000L, 1000, 20_000L), (first.Value.AmountPaise, first.Value.TaxBps, first.Value.TaxPaise));
+
+        var replay = await db.Billing.PostRoomNightAsync(db.As(Who.Manager), key, new PostRoomNightRequest(rid, BillingDb.Day), Ct);
+        Assert.True(replay.Replayed);
+        Assert.Equal(first.Value, replay.Value);
+
+        var otherKey = await db.Billing.PostRoomNightAsync(db.As(Who.Owner), BillingDb.Key(), new PostRoomNightRequest(rid, BillingDb.Day), Ct);
+        Assert.False(otherKey.Replayed);
+        Assert.False(otherKey.Value.Created);
+        Assert.Equal(first.Value.ChargeId, otherKey.Value.ChargeId);
+        Assert.Equal(1, await db.LongAsync("SELECT COUNT(*) FROM bill.charge WHERE folio_id = @f AND kind = 'room'", ("@f", SqlDbType.BigInt, folio)));
+
+        await Fails(HccErrorCode.IDEMPOTENCY_MISMATCH, () => db.Billing.PostRoomNightAsync(db.As(Who.Manager), key, new PostRoomNightRequest(rid, BillingDb.Day.AddDays(1)), Ct));
+        await Fails(HccErrorCode.VALIDATION, () => db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid, BillingDb.Day.AddDays(1)), Ct));
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Billing.PostRoomNightAsync(db.As(Who.Reception), BillingDb.Key(), new PostRoomNightRequest(rid, BillingDb.Day), Ct));
+    }
+
+
+##### 4. Hcc.Billing.Tests/Sql/BillingCommandTests.cs:277
+    public async Task Refund_is_requested_approved_and_executed_by_different_people_within_the_remainder()
+    {
+        var (openTill, shift) = await db.OpenTillAsync(100_000);
+        var (_, folio) = await StayAsync();
+        var payment = await db.PayAsync(folio, 100_000, "Cash", till: openTill);
+        var version = await db.FolioVersionAsync(folio);
+        await Fails(HccErrorCode.VALIDATION, () => db.Billing.RequestAdjustmentAsync(db.As(Who.Cashier), BillingDb.Key(), new RequestAdjustmentRequest("refund", folio, payment.Value.ReceiptId, 100_001, "Overcharged", version), Ct));
+        var deposit = await db.PayAsync(folio, 5_000, "UPI", "deposit");
+        await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.RequestAdjustmentAsync(db.As(Who.Cashier), BillingDb.Key(), new RequestAdjustmentRequest("refund", folio, deposit.Value.ReceiptId, 100, "Deposit", deposit.Value.FolioVersion), Ct));
+        version = deposit.Value.FolioVersion;
+
+        var req = await db.Billing.RequestAdjustmentAsync(db.As(Who.Cashier), BillingDb.Key(), new RequestAdjustmentRequest("refund", folio, payment.Value.ReceiptId, 60_000, "Early departure", version), Ct);
+        await Fails(HccErrorCode.VALIDATION, () => db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(), new RequestAdjustmentRequest("refund", folio, payment.Value.ReceiptId, 40_001, "Outstanding counts", version), Ct));
+        var id = req.Value.ApprovalId!.Value;
+        await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(), new ExecuteAdjustmentRequest(id, req.Value.ApprovalVersion!, null, null, openTill), Ct));
+        var approved = await db.Billing.DecideApprovalAsync(db.As(Who.Manager), BillingDb.Key(), new DecideApprovalRequest(id, true, null, req.Value.ApprovalVersion!), Ct);
+        Assert.Equal("Approved", approved.Value.Status);
+        Assert.Null(approved.Value.ResultId);
+
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier), BillingDb.Key(), new ExecuteAdjustmentRequest(id, approved.Value.Version, null, null, openTill), Ct));
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(), new ExecuteAdjustmentRequest(id, approved.Value.Version, null, null, openTill), Ct));
+        var done = await db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(), new ExecuteAdjustmentRequest(id, approved.Value.Version, null, null, openTill), Ct);
+        Assert.Equal("Executed", done.Value.Status);
+        await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(), new ExecuteAdjustmentRequest(id, done.Value.Version, null, null, openTill), Ct));
+
+        var f = await db.Queries.GetFolioAsync(db.As(Who.Owner), folio, Ct);
+        var parent = f.Receipts.Single(r => r.ReceiptId == payment.Value.ReceiptId);
+        Assert.Equal((60_000L, 40_000L), (parent.RefundedPaise, parent.RefundablePaise));
+        var child = f.Receipts.Single(r => r.Kind == "refund");
+        Assert.Equal((payment.Value.ReceiptId, "Cash", 60_000L), (child.RefundOf!.Value, child.Tender, child.AmountPaise));
+        Assert.Equal(40_000, f.Totals.PaidPaise);
+        var drawer = await db.Queries.GetShiftAsync(db.As(Who.Owner), shift.ShiftId, Ct);
+        Assert.Equal(100_000 + 100_000 - 60_000, drawer.Expected.ExpectedPaise);
+        Assert.Equal(60_000, drawer.Expected.RefundsPaise);
+    }
+
+    /// <summary>
+    /// N10 / S3 (prototype validMethod, DEC-052 shared drawer): a CASH refund is paid out of the till, so it needs that till's shift open on
+    /// the current business date — no open shift, or a shift left open from an earlier date, is refused (INVALID_TRANSITION) and the
+    /// drawer is untouched. A non-cash refund of the same receipt needs no shift.
+    /// </summary>
+
+##### 5. Hcc.Invoices.Tests/Domain/InvoiceRulesTests.cs:29
+    public void Golden_AC006_invoice_totals_split_and_words()
+    {
+        var lines = InvoiceRules.BuildLines(Ac006(), interState: false);
+        var t = InvoiceRules.Totals(lines);
+        Assert.Equal((400000L, 13250L, 13250L, 0L, 426500L), (t.Taxable.Value, t.Cgst.Value, t.Sgst.Value, t.Igst.Value, t.Total.Value));
+        Assert.Equal("Rupees Four Thousand Two Hundred Sixty Five Only", InvoiceRules.Words(t.Total));
+        Assert.Equal(["996311", "996311", "999712", "996311"], lines.Select(l => l.Sac));
+        Assert.Equal(InvoiceDocType.TaxInvoice, InvoiceRules.DocTypeFor(lines));
+        Assert.Equal((-1250L, -1250L), (lines[3].Cgst.Value, lines[3].Sgst.Value));
+    }
+
+
+##### 6. Hcc.Invoices.Tests/Domain/InvoiceRulesTests.cs:73
+    public void Numbering_is_16_characters_per_financial_year()
+    {
+        Assert.Equal("2627", InvoiceNumbering.FyCode(new DateOnly(2026, 10, 24)));
+        Assert.Equal("2526", InvoiceNumbering.FyCode(new DateOnly(2026, 3, 31)));
+        Assert.Equal("2627", InvoiceNumbering.FyCode(new DateOnly(2026, 4, 1)));
+        Assert.Equal("INV/2627/0000001", InvoiceNumbering.Format("INV", "2627", 1));
+        Assert.Equal("CN/2627/00000012", InvoiceNumbering.Format("CN", "2627", 12));
+        Assert.Equal("HOTEL1/2627/0042", InvoiceNumbering.Format("HOTEL1", "2627", 42));
+        Assert.All(new[] { InvoiceNumbering.Format("INV", "2627", 9_999_999), InvoiceNumbering.Format("CN", "2627", 1) }, n => Assert.Equal(16, n.Length));
+        Assert.Throws<HccException>(() => InvoiceNumbering.Format("INV", "2627", 10_000_000));
+        Assert.Throws<HccException>(() => InvoiceNumbering.ValidatePrefix("DEMO-INV")); // 8 chars: allowed by Master configuration, too long for 16
+        Assert.Equal("DEMO", InvoiceNumbering.ValidatePrefix("demo"));
+    }
+
+
+##### 7. Hcc.Invoices.Tests/Domain/InvoiceRulesTests.cs:161
+    public void Rounding_never_credits_more_tax_than_was_charged()
+    {
+        // ₹0.10 at 5 % = 0.5 → 1 paisa; crediting 5 + 5 paise would credit 1 + 1 = 2 paise of tax: the second credit is refused.
+        var inv = InvoiceRules.BuildLines([Line(1, "service", GstCategory.Food, 10, 500)], false);
+        var first = CreditNoteRules.Plan(Fresh(inv), CreditMode.Lines, null, [new RequestedCreditLine(1, P(5))], false);
+        Assert.Equal(0L, first[0].Tax.Value); // 0.25 → 0
+        var after = new[] { new CreditableLine(inv[0], P(5), first[0].Tax) };
+        var second = CreditNoteRules.Plan(after, CreditMode.Full, null, null, false);
+        Assert.Equal(0L, second[0].Tax.Value);
+        var inv2 = InvoiceRules.BuildLines([Line(1, "service", GstCategory.Food, 30, 500)], false); // tax 1.5 → 2
+        var part = new[] { new CreditableLine(inv2[0], P(10), P(1)) };                              // 0.5 → 1
+        var ok = CreditNoteRules.Plan(part, CreditMode.Lines, null, [new RequestedCreditLine(1, P(10))], false); // 0.5 → 1, total 2
+        Assert.Equal(1L, ok[0].Tax.Value);
+        var over = new[] { new CreditableLine(inv2[0], P(20), P(2)) };
+        Assert.Throws<HccException>(() => CreditNoteRules.Plan(over, CreditMode.Full, null, null, false)); // 10 more paise → 1 more paisa > 2 charged
+    }
+
+
+##### 8. Hcc.Invoices.Tests/Sql/InvoiceSqlTests.cs:160
+    public async Task Issued_documents_and_series_are_immutable_in_the_database()
+    {
+        await using var w = await InvoiceWorld.CreateAsync(ct: Ct);
+        var h = w.H;
+        var stay = await w.DepartedStayAsync("105", ac006: true, ct: Ct);
+        var inv = await w.IssueAsync(stay.FolioId, ct: Ct);
+        await w.RequestCreditAsync(h.Owner, inv.InvoiceId, "amount", 10000, ct: Ct);
+        async Task Refused(string sql, int number)
+        {
+            var ex = await Assert.ThrowsAsync<SqlException>(() => h.ScalarAsync(sql, Ct));
+            Assert.Equal(number, ex.Number);
+        }
+
+        await Refused($"UPDATE ivc.invoice SET total_paise = total_paise WHERE invoice_id = {inv.InvoiceId}", 52400);
+        await Refused($"DELETE ivc.invoice WHERE invoice_id = {inv.InvoiceId}", 52400);
+        await Refused($"UPDATE ivc.invoice_line SET description = N'edited' WHERE invoice_id = {inv.InvoiceId}", 52401);
+        await Refused("UPDATE ivc.credit_note SET reason = N'edited'", 52402);
+        await Refused("DELETE ivc.credit_note_line", 52403);
+        await Refused("UPDATE ivc.series SET last_seq = last_seq + 2 WHERE doc_type = 'INV'", 52405);
+        await Refused("DELETE ivc.series", 52404);
+        Assert.Equal(426500, await h.LongAsync($"SELECT total_paise FROM ivc.invoice WHERE invoice_id = {inv.InvoiceId}", Ct));
+    }
+
+
+##### 9. Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs:59
+    public void F07_contribution_period_keeps_22000_with_2_LOP_days_uncovered_and_a_covered_staff_covered_to_period_end()
+    {
+        var lop = PayrollRules.ComputeLine(Mon(2_200_000), Full(p: 28, a: 2), R);
+        Assert.Equal((2_053_333L, 0L, 0L, (bool?)false), (lop.Earned, lop.Esic, lop.EsicEr, lop.EsicCovered));
+        var scc = PayrollRules.ComputeLine(Mon(2_200_000), Full(p: 28, a: 2), R with { EsicPeriod = false });
+        Assert.Equal((14_630L, 63_397L), (scc.Esic, scc.EsicEr));
+        // Covered at the start of Oct–Mar (October locked as covered), raised to ₹23,000 in December: covered to March, not from April.
+        var raised = Mon(2_300_000);
+        var prior = new[] { (new PayMonth(2026, 10), (bool?)true) };
+        Assert.True(PayrollRules.EsicCovered(raised, new PayMonth(2026, 12), R, prior));
+        Assert.True(PayrollRules.EsicCovered(raised, new PayMonth(2027, 3), R, prior));
+        Assert.False(PayrollRules.EsicCovered(raised, new PayMonth(2027, 4), R, prior));
+        Assert.True(PayrollRules.ComputeLine(raised, Full("2026-12", 31), R, null, true).Esic > 0);
+        Assert.Null(PayrollRules.EsicCovered(raised, new PayMonth(2026, 12), R with { EsicPeriod = false }, prior));
+        Assert.Equal(["2026-04", "2026-04", "2026-10", "2026-10"],
+            new[] { new PayMonth(2026, 4), new PayMonth(2026, 9), new PayMonth(2026, 10), new PayMonth(2027, 3) }.Select(m => m.EsicPeriodStart.ToString()));
+        // Daily wage contract test: daily × 26.
+        var daily = new StaffProfile(2, "D", "KIT", "x", PayType.Daily, 0, 80_000, ShiftCode.M, 2, new DateOnly(2025, 4, 1), null, true);
+        Assert.Equal(2_080_000, daily.EsicContractWage);
+    }
+
+
+##### 10. Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs:109
+    public void Overtime_at_the_ordinary_rate_is_outside_the_statutory_base()
+    {
+        var l = PayrollRules.ComputeLine(Mon(1_000_000), Full(ot: 600), R);
+        Assert.Equal(41_667, l.Ot);   // 1,000,000 × 600 / (30 × 8 × 60) = 41,666.67
+        Assert.Equal((17_500L, 60_000L, 950_000L, 7_125L, 30_875L), (l.Pt, l.Pf, l.EsicWages, l.Esic, l.EsicEr));
+        Assert.Equal((1_041_667L, 84_625L, 957_042L), (l.Gross, l.Deductions, l.Net));
+        Assert.Equal(83_333, PayrollRules.ComputeLine(Mon(1_000_000), Full(ot: 600), R with { OtBps = 20_000 }).Ot);
+        var big = PayMath.MulDiv(100_000_000, 14_880, 30_000, 8L * 60 * 10000 * 31);
+        Assert.Equal((long)(((System.Numerics.BigInteger)100_000_000 * 14_880 * 30_000 * 2 + 8L * 60 * 10000 * 31) / (2 * (System.Numerics.BigInteger)(8L * 60 * 10000 * 31))), big);
+    }
+
+
+##### 11. Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs:204
+    public void F06_default_effective_date_is_never_before_the_month_after_the_last_locked_run()
+    {
+        Assert.Equal(new DateOnly(2026, 10, 1), RateVersions.DefaultFrom(new DateOnly(2026, 10, 24), new PayMonth(2026, 8)));
+        Assert.Equal(new DateOnly(2026, 10, 1), RateVersions.DefaultFrom(new DateOnly(2026, 10, 24), null));
+        Assert.Equal(new DateOnly(2026, 11, 1), RateVersions.DefaultFrom(new DateOnly(2026, 10, 24), new PayMonth(2026, 10)));
+    }
+
+
+##### 12. Hcc.Payroll.Tests/Sql/PayrollSqlTests.cs:91
+    public async Task F02_bank_file_uses_the_details_frozen_at_lock_and_F09_unlock_supersedes_files_and_payslips()
+    {
+        var h = await db.NewHotelAsync();
+        await h.SeedGoldenAsync();
+        var aug = await LockAsync(h, await PrepareAsync(h, "2026-08"));
+        var ravi = h.S("HR-S05");
+        var old = (string)(await db.ScalarAsync("SELECT account_no FROM hr.staff WHERE staff_id = @s;", ("@s", ravi)))!;
+        // Accountant edits Ravi's bank account after the lock.
+        var save = await h.Payroll.SaveStaffAsync(h.As("accountant", PayrollService.OpSaveStaff), new SaveStaffRequest(ravi, await h.StaffVersionAsync(ravi), "Ravi Shinde", "HK",
+            "Room attendant", "M", 5, LinkUserId: h.U("housekeeper"), AccountNo: "999999999999", Ifsc: "EVIL0000001"), Ct);
+        Assert.Contains("••••9999", save.Value.Notes, StringComparison.Ordinal);
+        Assert.DoesNotContain("999999999999", save.Value.Notes, StringComparison.Ordinal);
+        Assert.DoesNotContain("999999999999", (string)(await db.ScalarAsync("SELECT STRING_AGG(detail, '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
+
+        var file = await h.Payroll.IssueBankFileAsync(h.As("accountant", PayrollService.OpIssueBankFile), new IssueBankFileRequest(aug.RunId), Ct);
+        Assert.Equal((1, aug.NetPaise), (file.Value.IssueNo, file.Value.NetPaise));
+        var csv = (await h.Queries.BankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, 1, Ct)).Content;
+        Assert.Contains("'" + old, csv, StringComparison.Ordinal);
+        Assert.DoesNotContain("999999999999", csv, StringComparison.Ordinal);
+        await Hotel.FailsAsync(() => h.Payroll.IssueBankFileAsync(h.As("accountant", PayrollService.OpIssueBankFile), new IssueBankFileRequest(aug.RunId), Ct), HccErrorCode.INVALID_TRANSITION);
+        // W4 G2: "latest" = the file just issued (real account numbers frozen at lock); every download is audited without the number.
+        var latest = await h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, Ct);
+        Assert.Equal(($"bank-transfer-{new PayMonth(2026, 8)}-1.csv", csv), (latest.FileName, latest.Content));
+        await Hotel.FailsAsync(() => h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("manager"), aug.RunId, Ct), HccErrorCode.FORBIDDEN);
+        Assert.Equal(2, await db.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'HR_BANK_FILE_DOWNLOADED' AND operation = 'Download' AND principal_id = @u;", ("@u", h.U("accountant"))));
+        Assert.DoesNotContain(old, (string)(await db.ScalarAsync("SELECT STRING_AGG(detail, '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
+        Assert.True((await h.Payroll.IssueBankFileAsync(h.As("accountant", PayrollService.OpIssueBankFile), new IssueBankFileRequest(aug.RunId, ConfirmReissue: true), Ct)).Value.Reissue);
+        Assert.EndsWith("-2.csv", (await h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, Ct)).FileName, StringComparison.Ordinal);
+        // Accounting's contract: the first bank file of a lock is the one PayrollPaid (net pay); a re-issue is not a second payment.
+        Assert.Equal(1, await db.LongAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'PayrollPaid' AND aggregate_id = @r;", ("@r", aug.RunId)));
+
+        var sent = await h.Payroll.SendPayslipAsync(h.As("accountant", PayrollService.OpSendPayslip), new SendPayslipRequest(aug.RunId, ravi), Ct);
+        Assert.Contains("simulated", sent.Value.Notes, StringComparison.Ordinal);
+        await Hotel.FailsAsync(() => h.Payroll.SendPayslipAsync(h.As("housekeeper", PayrollService.OpSendPayslip), new SendPayslipRequest(aug.RunId, ravi), Ct), HccErrorCode.FORBIDDEN);
+        Assert.Equal("sent", (await h.Queries.GetPayRunAsync(h.PropertyId, h.U("owner"), new PayMonth(2026, 8), Ct)).Lines.Single(l => l.StaffId == ravi).PayslipMark);
+
+        // Unlock: Owner only, a reason, and confirmation because a bank file was issued.
+        var version = aug.Version;
+        await Hotel.FailsAsync(() => h.Payroll.UnlockPayRunAsync(h.As("accountant", PayrollService.OpUnlockPayRun), new UnlockPayRunRequest(aug.RunId, version, "Correction"), Ct), HccErrorCode.FORBIDDEN);
+        await Hotel.FailsAsync(() => h.Payroll.UnlockPayRunAsync(h.As("owner", PayrollService.OpUnlockPayRun), new UnlockPayRunRequest(aug.RunId, version, "Correction"), Ct), HccErrorCode.INVALID_TRANSITION);
+        var unlocked = await h.Payroll.UnlockPayRunAsync(h.As("owner", PayrollService.OpUnlockPayRun), new UnlockPayRunRequest(aug.RunId, version, "Correction", ConfirmBankFile: true), Ct);
+        Assert.Equal("Draft", unlocked.Value.Status);
+        Assert.Equal(0, await db.LongAsync("SELECT recovered_paise FROM hr.advance WHERE staff_id = @s;", ("@s", ravi)));   // recoveries reversed
+        Assert.Equal("superseded", (await h.Queries.GetPayRunAsync(h.PropertyId, h.U("owner"), new PayMonth(2026, 8), Ct)).Lines.Single(l => l.StaffId == ravi).PayslipMark);
+        await Hotel.FailsAsync(() => h.Queries.BankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, 1, Ct), HccErrorCode.INVALID_TRANSITION);
+        await Hotel.FailsAsync(() => h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, Ct), HccErrorCode.INVALID_TRANSITION);
+        // Relock (lock 2) freezes the NEW bank details; the old file stays superseded.
+        var relocked = await h.Payroll.LockPayRunAsync(h.As("owner", PayrollService.OpLockPayRun), new LockPayRunRequest(aug.RunId, unlocked.Value.Version), Ct);
+        Assert.Equal("Locked", relocked.Value.Status);
+        Assert.Equal("999999999999", (string)(await db.ScalarAsync("SELECT account_no FROM hr.pay_run_bank WHERE run_id = @r AND lock_seq = 2 AND staff_id = @s;", ("@r", aug.RunId), ("@s", ravi)))!);
+        Assert.Equal("superseded", (await h.Queries.GetPayRunAsync(h.PropertyId, h.U("owner"), new PayMonth(2026, 8), Ct)).Lines.Single(l => l.StaffId == ravi).PayslipMark);
+    }
+
+
+##### 13. Hcc.Closing.Tests/Sql/CloseJourneyTests.cs:166
+    public async Task Close_and_report_arithmetic_on_stored_GST_snapshots_gives_4265_for_room_105()
+    {
+        // Tax-source agnostic: the P4 lines are loaded with the DEC-069 snapshots (as P3's seed does), the close reads only the stored snapshots.
+        await using var h = await Hotel.CreateAsync(Ct);
+        var (_, stay, folio) = await h.SeedInHouseAsync("105", "2026-10-24", "2026-10-26", ct: Ct);
+        await h.ScalarAsync($"""
+            INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES
+              ({folio}, 'room', '2026-10-24', N'Room night · 2026-10-24', 200000, 500, 10000),
+              ({folio}, 'service', '2026-10-24', N'Laundry service', 50000, 1800, 9000),
+              ({folio}, 'discount', '2026-10-24', N'Approved discount · Service delay goodwill', -50000, 500, -2500);
+            """, Ct);
+        await h.ScalarAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({folio}, 'room', '2026-10-25', N'Room night · 2026-10-25', 200000, 500, 10000);", Ct);
+        await h.CloseAsync(ct: Ct);
+        var day1 = (await h.Closing.GetSnapshotAsync(h.As(h.Owner), D24, Ct)).Record.Figures.Revenue;
+        Assert.Equal((200000L, 16500L, 216500L), (day1.NetPaise, day1.TaxPaise, day1.GrossPaise));
+        await h.CloseAsync(date: D25, ct: Ct); // posts nothing new: the 25th night is already there
+        var both = (await h.Reports.GetDailyReportAsync(h.As(h.Owner), D24, D25, Ct)).Report;
+        Assert.Equal((400000L, 26500L, 426500L), (both.Revenue.NetPaise, both.Revenue.TaxPaise, both.Revenue.GrossPaise));
+        Assert.Equal((13250L, 13250L), (both.Revenue.CgstPaise, both.Revenue.SgstPaise));
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM bill.charge WHERE folio_id = {folio} AND kind = 'room' AND service_date = '2026-10-25'", Ct));
+        Assert.True(stay > 0);
+    }
+}
+
+
+##### 14. Hcc.Closing.Tests/Sql/ConcurrencySnapshotCashBookTests.cs:81
+    public async Task Snapshot_is_immutable_and_later_activity_leaves_it_and_the_closed_report_unchanged()
+    {
+        var (h, stays) = await HotelAsync();
+        await using var __ = h;
+        await h.PayAsync(stays[0].FolioId, 120000, "UPI", ct: Ct);
+        await h.CloseAsync(ct: Ct);
+        var before = await h.Closing.GetSnapshotAsync(h.As(h.Owner), D24, Ct);
+        var json = (string)(await h.ScalarAsync("SELECT record_json FROM cls.closing_snapshot", Ct))!;
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json))), before.Sha256);
+
+        async Task<int> SqlError(string sql)
+        {
+            var e = await Assert.ThrowsAsync<SqlException>(() => h.ScalarAsync(sql, Ct));
+            return e.Number;
+        }
+
+        Assert.Equal(51501, await SqlError("UPDATE cls.closing_snapshot SET net_revenue_paise = 0;"));
+        Assert.Equal(51501, await SqlError("DELETE cls.closing_snapshot;"));
+        Assert.Equal(51500, await SqlError("UPDATE cls.business_day SET closed_by = 0;"));
+
+        // Next day: charges, receipts, a room night — none changes the closed date's record or its recomputed report.
+        await h.Billing.PostChargeAsync(h.As(h.Reception), Hotel.Key(), new PostChargeRequest(stays[1].FolioId, "Laundry service", 50000), Ct);
+        await h.PayAsync(stays[1].FolioId, 70000, "Card", ct: Ct);
+        await h.CloseAsync(date: D25, ct: Ct);
+        var after = await h.Closing.GetSnapshotAsync(h.As(h.Owner), D24, Ct);
+        Assert.Equal(before.Sha256, after.Sha256);
+        Assert.Equal(before.Record.Figures.Receipts.NetPaise, after.Record.Figures.Receipts.NetPaise);
+        var report = await h.Reports.GetDailyReportAsync(h.As(h.Owner), D24, D25, Ct);
+        Assert.All(report.DayStatus.Where(d => d.Status == "Closed"), d => Assert.True(d.MatchesSnapshot));
+        Assert.Equal((120000L, 70000L), (report.Report.Days[0].NetReceiptsPaise, report.Report.Days[1].NetReceiptsPaise));
+
+        // The integrity alarm: a back-door edit of a closed date's records shows as a mismatch.
+        await h.ScalarAsync($"INSERT pay.receipt(folio_id, kind, method, amount_paise, business_date) VALUES ({stays[2].FolioId}, 'payment', 'UPI', 100, '2026-10-24');", Ct);
+        var tampered = await h.Reports.GetDailyReportAsync(h.As(h.Owner), D24, D24, Ct);
+        Assert.False(tampered.DayStatus.Single().MatchesSnapshot);
+    }
+
+
+##### 15. Hcc.Closing.Tests/Sql/ResumeAndBarrierTests.cs:114
+    public async Task A_write_in_flight_when_the_close_starts_is_waited_for_and_lands_in_the_snapshot()
+    {
+        var (h, stays) = await HotelAsync();
+        await using var _ = h;
+        var store = h.Get<IBillingStore>();
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inside = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var writer = h.Get<ICommandRunner>().RunAsync(h.Ctx(h.Reception, "SlowPosting"), new { folio = stays[0].FolioId }, async (tx, c) =>
+        {
+            await store.InsertChargeAsync(tx, new NewCharge(stays[0].FolioId, ChargeKind.Service, D24, "Laundry (slow terminal)", new Paise(50000), 1000,
+                new Paise(5000), null, null, h.Reception, DateTime.UtcNow), c);
+            await store.TouchFolioAsync(tx, stays[0].FolioId, c);
+            await tx.AuditAsync("TEST_SLOW_POSTING", "folio:" + stays[0].FolioId, "in flight", c);
+            inside.SetResult();
+            await gate.Task.WaitAsync(c);
+            return new Hotel.DrawerResult(0);
+        }, Ct);
+        await inside.Task.WaitAsync(Ct);
+
+        var close = h.CloseAsync(ct: Ct);
+        await Task.Delay(1500, Ct);
+        Assert.False(close.IsCompleted, "The close must wait for the in-flight writer before it raises the barrier.");
+        gate.SetResult();
+        await writer;
+        var done = (await close).Value;
+        Assert.Equal("Completed", done.Status);
+        var figures = (await h.Closing.GetSnapshotAsync(h.As(h.Owner), D24, Ct)).Record.Figures;
+        Assert.Equal(3 * 200000 + 50000, figures.Revenue.NetPaise);
+    }
+
+
+##### 16. Hcc.Closing.Tests/Sql/CashBookViewTests.cs:64
+    public async Task Cash_book_is_for_finance_roles_only()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var q = h.Get<CashBookQueries>();
+        await Expect.Fails(HccErrorCode.FORBIDDEN, () => q.GetRangeAsync(h.As(h.Reception), D24, D24, Ct));
+        Assert.Single((await q.GetRangeAsync(h.As(h.Manager), D24, D24, Ct)).Days);
+    }
+}
+
+
+##### 17. Hcc.Accounting.Tests/Domain/AccountingRulesTests.cs:73
+    public void Zero_sources_yield_no_voucher_and_zero_tax_entries_are_dropped()
+    {
+        var vs = VoucherBuilder.Build(D, [SourceRules.FolioLine("a", "service", D, 0, 0, 0, "zero"), SourceRules.FolioLine("b", "service", D, 50_000, 0, 0, "untaxed")], Map);
+        var v = Assert.Single(vs);
+        Assert.Equal(2, v.Entries.Count);
+        Assert.Equal("SAL/20261024/001", v.Number);
+    }
+
+
+##### 18. Hcc.Accounting.Tests/Domain/AccountingRulesTests.cs:105
+    public void Reconciliation_compares_ledger_movements_with_operational_figures()
+    {
+        var vs = VoucherBuilder.Build(D,
+        [
+            SourceRules.FolioLine("c1", "room", D, 200_000, 5_000, 5_000, "n"),
+            SourceRules.FolioLine("c2", "correction", D, -10_000, -250, -250, "n"),
+            SourceRules.FolioReceipt("r1", "payment", "UPI", D, 100_000, "n"),
+            SourceRules.FolioReceipt("r2", "refund", "UPI", D, 5_000, "n"),
+            SourceRules.FolioReceipt("r3", "deposit", "Cash", D, 50_000, "n"),
+        ], Map);
+        var ok = Reconciliation.Check(vs, Map, new OperationalFigures(200_000, 0, 0, -10_000, 9_500, 95_000, 50_000, 0));
+        Assert.All(ok, c => Assert.True(c.Ok, c.Id));
+        var bad = Reconciliation.Check(vs, Map, new OperationalFigures(200_000, 0, 0, -10_000, 9_500, 96_000, 50_000, 0));
+        Assert.False(bad.Single(c => c.Id == "collections").Ok);
+    }
+}
+
+
+##### 19. Hcc.Accounting.Tests/Golden/GoldenAccountingTests.cs:135
+    public void Full_day_flow_discount_refund_cash_short_and_reversal_entries()
+    {
+        var flow = Build(Day("full-day-flow"));
+        Assert.Equal([("1100", 0L, 21000L), ("4900", 20000L, 0L), ("2110", 500L, 0L), ("2120", 500L, 0L)],
+            flow.Single(v => v.Sub == "discount").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        var refund = flow.Single(v => v.Sub == "refund");
+        Assert.Equal(VoucherType.Payment, refund.Type);
+        Assert.Equal([("1100", 5000L, 0L), ("1000", 0L, 5000L)], refund.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("5900", 5000L, 0L), ("1000", 0L, 5000L)],
+            Build(Day("cash-short")).Single(v => v.SourceKind == "closing").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("5010", 0L, 180000L), ("1000", 180000L, 0L)],
+            Build(Day("expense-reversal")).Single(v => v.Sub == "reversal").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        var gas = Build(Day("acc-unmapped")).Single(v => v.SourceKey == "EXP-ACC-1");
+        Assert.Equal("9999", gas.Entries[0].Account);
+        Assert.True(gas.Balanced);
+    }
+
+
+##### 20. Hcc.Accounting.Tests/Sql/AccountingFlowTests.cs:27
+    public async Task Folio_day_becomes_balanced_vouchers_that_reconcile_then_lock_drift_and_unlock()
+    {
+        // ── a day of folio activity (P4 commands, real grants) ──
+        var f = await db.NewFolioAsync(ratePaise: 200_000, taxBps: 1000);
+        // P6 late-write barrier: a night posts only on its own business date, so yesterday's is posted before the date moves to D.
+        await db.ScalarAsync("UPDATE inv.property SET business_date = @d WHERE property_id = @p;", ("@d", SqlDbType.Date, Y.ToDateTime(TimeOnly.MinValue)), ("@p", SqlDbType.Int, db.PropertyId));
+        await db.Billing.PostRoomNightAsync(db.As("OWN"), Key(), new PostRoomNightRequest(f, Y), Ct);
+        await db.ScalarAsync("UPDATE inv.property SET business_date = @d WHERE property_id = @p;", ("@d", SqlDbType.Date, D.ToDateTime(TimeOnly.MinValue)), ("@p", SqlDbType.Int, db.PropertyId));
+        await db.Billing.PostRoomNightAsync(db.As("OWN"), Key(), new PostRoomNightRequest(f, D), Ct);
+        var laundry = (await db.Billing.PostChargeAsync(db.As("OWN"), Key(), new PostChargeRequest(f, "Laundry", 50_000), Ct)).Value;
+        await db.Billing.RequestAdjustmentAsync(db.As("OWN"), Key(), new RequestAdjustmentRequest("discount", f, null, 20_000, "Goodwill", await db.FolioVersionAsync(f)), Ct);
+        var upi = (await db.Billing.RecordReceiptAsync(db.As("OWN"), Key(), new RecordReceiptRequest(f, "payment", "UPI", 300_000, "DEMO-UPI", null), Ct)).Value;
+        var corr = (await db.Billing.RequestAdjustmentAsync(db.As("OWN"), Key(), new RequestAdjustmentRequest("correction", f, laundry.ChargeId, 50_000, "Posted twice", await db.FolioVersionAsync(f)), Ct)).Value;
+        await db.Billing.DecideApprovalAsync(db.As("MGR"), Key(), new DecideApprovalRequest(corr.ApprovalId!.Value, true, null, corr.ApprovalVersion!), Ct);
+        var refund = (await db.Billing.RequestAdjustmentAsync(db.As("MGR"), Key(), new RequestAdjustmentRequest("refund", f, upi.ReceiptId, 5_000, "Overcharge", await db.FolioVersionAsync(f)), Ct)).Value;
+        var decided = (await db.Billing.DecideApprovalAsync(db.As("OWN"), Key(), new DecideApprovalRequest(refund.ApprovalId!.Value, true, null, refund.ApprovalVersion!), Ct)).Value;
+        await db.Billing.ExecuteAdjustmentAsync(db.As("OWN"), Key(), new ExecuteAdjustmentRequest(refund.ApprovalId.Value, decided.Version, null, "DEMO-REFUND", null), Ct);
+
+        // ── cash: shift, cash payment, count ₹50 short, accepted by the Owner (no P4 event → swept from pay.shift) ──
+        var till = (await db.Cashier.CreateTillAsync(db.As("OWN"), Key(), new CreateTillRequest("FD1", "Front desk"), Ct)).Value;
+        var shift = (await db.Cashier.OpenShiftAsync(db.As("CSH"), Key(), new OpenShiftRequest(till.TillId, 500_000), Ct)).Value;
+        await db.Billing.RecordReceiptAsync(db.As("CSH"), Key(), new RecordReceiptRequest(f, "payment", "Cash", 100_000, null, till.TillId), Ct);
+        var counted = (await db.Cashier.SubmitShiftCountAsync(db.As("CSH"), Key(), new SubmitShiftCountRequest(shift.ShiftId, 595_000, null, null, "Short by Rs 50", shift.Version), Ct)).Value;
+        var apr = await db.LongAsync("SELECT approval_id FROM pay.shift WHERE shift_id = @s;", ("@s", SqlDbType.BigInt, shift.ShiftId));
+        var aprVersion = Convert.ToBase64String((byte[])(await db.ScalarAsync("SELECT row_ver FROM bill.approval WHERE approval_id = @a;", ("@a", SqlDbType.BigInt, apr)))!);
+        Assert.Equal("Submitted", counted.Status);
+        await db.Billing.DecideApprovalAsync(db.As("OWN"), Key(), new DecideApprovalRequest(apr, true, null, aprVersion), Ct);
+
+        // Before the consumer runs, the day reports pending events (blocks locking).
+        var before = await db.Queries.DayAsync(db.As("ACC"), D, Ct);
+        Assert.Contains(before.Exceptions, x => x.Kind == "pending");
+
+        Assert.True(await db.ProjectAsync() >= 10);
+        // Vouchers took CGST/SGST from agent C's per-charge GST records (room nights, laundry, discount, reversal), not a recomputation.
+        Assert.Equal(5, await db.LongAsync("SELECT COUNT(*) FROM tax.charge_gst g JOIN bill.charge c ON c.charge_id = g.charge_id WHERE c.folio_id = @f;", ("@f", SqlDbType.BigInt, f)));
+        Assert.Equal(0, await db.ProjectAsync()); // exactly once per event
+
+        var day = await db.Queries.DayAsync(db.As("ACC"), D, Ct);
+        Assert.Equal("Open", day.Status);
+        Assert.True(day.Provisional);
+        Assert.True(day.Balanced);
+        Assert.All(day.Vouchers, v => Assert.True(v.Balanced, v.Number));
+        Assert.Equal(0, day.Errors);
+        Assert.All(day.Reconciliation, c => Assert.True(c.Ok, $"{c.Id}: report {c.ReportPaise} ledger {c.LedgerPaise}"));
+        Assert.Equal(8, day.VoucherCount); // night, laundry, discount, correction, UPI, cash, refund, cash short
+        Assert.Equal(["SAL/20261024/001", "SAL/20261024/002", "SAL/20261024/003", "SAL/20261024/004", "RCT/20261024/001", "RCT/20261024/002", "PMT/20261024/001", "JRN/20261024/001"],
+            day.Vouchers.Select(v => v.Number));
+
+        // Stored tax split into CGST / SGST (10 % fixed source today: ₹500 laundry → ₹50 tax → ₹25 + ₹25).
+        var service = day.Vouchers.Single(v => v.Sub == "service");
+        Assert.Equal([("1100", 55_000L, 0L), ("4100", 0L, 50_000L), ("2110", 0L, 2_500L), ("2120", 0L, 2_500L)], service.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        var reversal = day.Vouchers.Single(v => v.Sub == "correction");
+        Assert.Equal([("1100", 0L, 55_000L), ("4910", 50_000L, 0L), ("2110", 2_500L, 0L), ("2120", 2_500L, 0L)], reversal.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("1100", 5_000L, 0L), ("1010", 0L, 5_000L)], day.Vouchers.Single(v => v.Sub == "refund").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("5900", 5_000L, 0L), ("1000", 0L, 5_000L)], day.Vouchers.Single(v => v.SourceKind == "closing").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal(1, (await db.Queries.DayAsync(db.As("ACC"), Y, Ct)).VoucherCount);
+
+        // Trial balance agrees (day and cumulative).
+        var tb = await db.Queries.TrialBalanceAsync(db.As("MGR"), D, cumulative: true, Ct);
+        Assert.True(tb.Balanced);
+        Assert.Equal(0, tb.Rows.Sum(r => r.BalancePaise));
+
+##### 21. Hcc.Groups.Tests/Kernel/GroupRulesGoldenTests.cs:63
+    public void Exposure_HCC1044_is_430000()
+    {
+        // 3 nights × Rs 2,000 at 5 % = Rs 6,300 − Rs 2,000 paid (one night posted, two agreed nights unposted).
+        Assert.Equal(new Paise(430000), GroupEstimate.Exposure("InHouse", [Night23], Nights(D(10, 23), D(10, 26), 200000), new Paise(200000)));
+    }
+
+
+##### 22. Hcc.Groups.Tests/Kernel/GroupRulesGoldenTests.cs:122
+    public void Member_override_beats_group_default_beats_built_in_default()
+    {
+        IReadOnlyList<RoutingRule> rules =
+        [
+            new(null, RouteCategory.Extras, RouteTarget.Master),
+            new(null, RouteCategory.Tax, RouteTarget.Guest),
+            new(9, RouteCategory.Room, RouteTarget.Guest),
+            new(9, RouteCategory.Tax, RouteTarget.Follow),
+        ];
+        Assert.Equal(new LineRoute(RouteTarget.Master, RouteTarget.Guest), GroupRouting.ForLine(rules, 7, ChargeKind.Room)); // room: built-in master; tax: group guest
+        Assert.Equal(new LineRoute(RouteTarget.Master, RouteTarget.Guest), GroupRouting.ForLine(rules, 7, ChargeKind.Service));
+        Assert.Equal(new LineRoute(RouteTarget.Guest, RouteTarget.Guest), GroupRouting.ForLine(rules, 9, ChargeKind.Room)); // override + tax follows
+        Assert.Equal(new LineRoute(RouteTarget.Master, RouteTarget.Master), GroupRouting.ForLine(rules, 9, ChargeKind.Service));
+        Assert.Throws<HccException>(() => GroupRouting.Validate(new RoutingRule(null, RouteCategory.Room, RouteTarget.Follow)));
+    }
+
+
+##### 23. Hcc.Groups.Tests/Kernel/GroupRulesGoldenTests.cs:160
+    public void Attrition_GB1_two_unpicked_classic_rooms_at_50_percent_for_three_nights()
+    {
+        // Contracted 4 (2 allotted after release + 2 released), 2 picked, no free allowance, 50 % of Rs 1,750 = Rs 875 per room-night.
+        var lines = GroupAttrition.Lines([new AttritionInput("Classic", 4, 2, new Paise(175000))], D(10, 23), D(10, 26), 0, 5000);
+        Assert.Equal(3, lines.Count);
+        Assert.All(lines, l => Assert.Equal((2, 87500L, 175000L), (l.Rooms, l.PerRoomNight.Value, l.Amount.Value)));
+        Assert.Equal(525000, lines.Sum(l => l.Amount.Value));
+    }
+
+
+##### 24. Hcc.Groups.Tests/Sql/GroupsSqlTests.cs:55
+    public async Task Pickup_billing_routes_posted_lines_by_the_rules_and_is_idempotent()
+    {
+        var g = await _w.CreateGb1Async();
+        await PostLaundryAsync("HCC-1044");
+        var r1 = (await _w.Commands.ApplyRoutingAsync(_w.Ctx("reception"), new ApplyGroupRoutingRequest(g.GroupId))).Value;
+        Assert.Equal((3, 0), (r1.Routed, r1.AlreadyRouted));
+        var r2 = (await _w.Commands.ApplyRoutingAsync(_w.Ctx("reception"), new ApplyGroupRoutingRequest(g.GroupId))).Value;
+        Assert.Equal((0, 3), (r2.Routed, r2.AlreadyRouted));
+
+        var s = await _w.StatementAsync(g.GroupId);
+        var arjun = s.Members.Single(m => m.PublicNo == "HCC-1044");
+        Assert.Equal((210000L, 59000L), (arjun.MasterSharePaise, arjun.GuestSharePaise)); // laundry Rs 500 + 18 % stays with the guest
+        Assert.Equal(0, s.Totals.UnroutedLines);
+        Assert.Equal(420000, s.Totals.MasterChargesPaise);
+
+        // A rule change applies to lines not yet routed only: extras → master for HCC-1048; a routed room night keeps its route.
+        await _w.Commands.SetRoutingAsync(_w.Ctx("reception"), new SetGroupRoutingRequest(g.GroupId, await _w.VersionAsync(g.GroupId), _w.Res["HCC-1048"], "extras", "master"));
+        await _w.Commands.SetRoutingAsync(_w.Ctx("reception"), new SetGroupRoutingRequest(g.GroupId, await _w.VersionAsync(g.GroupId), null, "room", "guest"));
+        var laundry = await PostLaundryAsync("HCC-1048", 200);
+        s = await _w.StatementAsync(g.GroupId);
+        var dev = s.Members.Single(m => m.PublicNo == "HCC-1048");
+        var line = dev.Nights.SelectMany(n => n.Lines).Single(l => l.ChargeId == laundry);
+        Assert.Equal(("master", "master", false), (line.NetTarget, line.TaxTarget, line.Routed));
+        Assert.Equal("master", dev.Nights.SelectMany(n => n.Lines).Single(l => l.ChargeId == _w.Night23["HCC-1048"]).NetTarget);
+        Assert.Equal(1, s.Totals.UnroutedLines);
+        Assert.Equal(1, (await _w.Commands.ApplyRoutingAsync(_w.Ctx("manager"), new ApplyGroupRoutingRequest(g.GroupId))).Value.Routed);
+        Assert.Equal(210000 + 23600, (await _w.StatementAsync(g.GroupId)).Members.Single(m => m.PublicNo == "HCC-1048").MasterSharePaise);
+    }
+
+
+##### 25. Hcc.GstIds.Tests/Gst/GstRulesGoldenTests.cs:20
+    public void Slab_boundary_7500_00_is_5_percent_without_ITC_and_7500_01_is_18_percent_with_ITC()
+    {
+        Assert.Equal((500, false), (Seed.RoomNight(Today, new Paise(750_000)).Bps, Seed.RoomNight(Today, new Paise(750_000)).Itc));
+        Assert.Equal((1800, true), (Seed.RoomNight(Today, new Paise(750_001)).Bps, Seed.RoomNight(Today, new Paise(750_001)).Itc));
+        Assert.Equal(500, Seed.RoomNight(Today, new Paise(1)).Bps);
+        Assert.Equal(1800, Seed.RoomNight(Today, new Paise(10_000_000)).Bps);
+        Assert.Equal(37_500, GstMath.LineTax(new Paise(750_000), 500).Value);
+        Assert.Equal(135_000, GstMath.LineTax(new Paise(750_001), 1800).Value); // 1,35,000.18 paise → 1,35,000
+        Assert.Equal(GstCategory.Room, Seed.RoomNight(Today, new Paise(1)).Category);
+    }
+
+
+##### 26. Hcc.GstIds.Tests/Gst/GstRulesGoldenTests.cs:120
+    public void Per_line_rounding_half_away_from_zero_and_CGST_takes_the_odd_paisa()
+    {
+        Assert.Equal(1, GstMath.LineTax(new Paise(10), 500).Value);
+        Assert.Equal(-1, GstMath.LineTax(new Paise(-10), 500).Value);
+        Assert.Equal(0, GstMath.LineTax(new Paise(9), 500).Value);
+        Assert.Equal(0, GstMath.LineTax(new Paise(-9), 500).Value);
+        Assert.Equal(2, GstMath.LineTax(new Paise(30), 500).Value);
+        Assert.Equal(-2, GstMath.LineTax(new Paise(-30), 500).Value);
+        Assert.Equal(2222, GstMath.LineTax(new Paise(12345), 1800).Value);
+        Assert.Equal(-2222, GstMath.LineTax(new Paise(-12345), 1800).Value);
+        Assert.Equal((1112L, 1111L), (GstMath.Split(new Paise(2223)).Cgst.Value, GstMath.Split(new Paise(2223)).Sgst.Value));
+        Assert.Equal((1L, 0L), (GstMath.Split(new Paise(1)).Cgst.Value, GstMath.Split(new Paise(1)).Sgst.Value));
+        Assert.Equal((-1L, 0L), (GstMath.Split(new Paise(-1)).Cgst.Value, GstMath.Split(new Paise(-1)).Sgst.Value));
+        Assert.Equal((-1112L, -1111L), (GstMath.Split(new Paise(-2223)).Cgst.Value, GstMath.Split(new Paise(-2223)).Sgst.Value));
+        Assert.Equal((0L, 0L), (GstMath.Split(Paise.Zero).Cgst.Value, GstMath.Split(Paise.Zero).Sgst.Value));
+        foreach (var bps in new[] { 0, 500, 1200, 1800, 2800 })
+            for (var amount = -2003L; amount <= 2003; amount += 7)
+            {
+                var x = GstMath.SplitLine(new Paise(amount), bps);
+                Assert.Equal(x.Tax, x.Cgst + x.Sgst);
+                Assert.True(Math.Abs(x.Cgst.Value - x.Sgst.Value) <= 1);
+                Assert.True(Math.Abs(x.Tax.Value * 10_000 - amount * bps) <= 5_000, $"{amount}@{bps}");
+            }
+
+        var lines = new[] { (new Paise(12345), 1800), (new Paise(174000), 500), (new Paise(-50000), 500) };
+        var sum = GstMath.SplitLines(lines);
+        Assert.Equal(sum.Tax, sum.Cgst + sum.Sgst);
+        Assert.Equal(lines.Sum(l => GstMath.LineTax(l.Item1, l.Item2).Value), sum.Tax.Value);
+    }
+
+
+##### 27. Hcc.GstIds.Tests/Gst/GstRulesGoldenTests.cs:181
+    public void Room_105_journey_is_4265_incl_265_GST_on_the_seed()
+    {
+        // 2 nights × ₹2,000 at 5 %, laundry ₹500 at 18 %, goodwill discount −₹500 at the room-night rate (5 %).
+        var lines = new[] { (new Paise(200_000), Seed.RoomNight(Today, new Paise(200_000)).Bps), (new Paise(200_000), Seed.RoomNight(Today.AddDays(1), new Paise(200_000)).Bps),
+            (new Paise(50_000), Seed.Service(Today, GstCategory.Laundry).Bps), (new Paise(-50_000), Seed.RoomNight(Today, new Paise(200_000)).Bps) };
+        var t = FolioTotals.Compute(lines.Select(l => new FolioLine(l.Item1, l.Item2)), []);
+        Assert.Equal((400_000L, 26_500L, 426_500L), (t.Net.Value, t.Tax.Value, t.Total.Value));
+        Assert.Equal("₹4,265", t.Total.ToString());
+    }
+}
+
+
+##### 28. Hcc.GstIds.Tests/Gst/GstSqlTests.cs:159
+    public async Task Posted_lines_keep_their_snapshot_after_master_changes_new_postings_use_the_master()
+    {
+        var (stay, folio) = await db.InHouseAsync(200_000, Day, Day.AddDays(2));
+        await db.NightAsync(stay, Day);
+        await db.ChargeAsync(folio, "Laundry press", 50_000);
+        var before = await db.Queries.GetFolioAsync(db.As("OWN"), folio, Ct);
+        await db.SetGstAsync(GstKeys.LaundryBps, 1200);
+        await db.SetGstAsync(GstKeys.RoomThreshold, 100_000);
+        try
+        {
+            var after = await db.Queries.GetFolioAsync(db.As("OWN"), folio, Ct);
+            Assert.Equal(before.Lines.Select(l => (l.ChargeId, l.TaxBps, l.TaxPaise)), after.Lines.Select(l => (l.ChargeId, l.TaxBps, l.TaxPaise)));
+            Assert.Equal(before.Totals, after.Totals);
+            Assert.Equal(1200, (await db.ChargeAsync(folio, "Laundry", 50_000)).TaxBps);
+            Assert.Equal(1800, (await db.Gst.RoomNightAsync(null, db.PropertyId, Day, new Paise(200_000), Ct)).Bps); // threshold now ₹1,000
+        }
+        finally
+        {
+            await db.SetGstAsync(GstKeys.LaundryBps, 1800);
+            await db.SetGstAsync(GstKeys.RoomThreshold, 750_000);
+        }
+    }
+
+
+##### 29. Hcc.Pos.Tests/Domain/PosDomainTests.cs:12
+    public void Fixture_check_F01_is_500_plus_25_equals_525()
+    {
+        var t = PosRules.Totals([L(150, 2), L(60, 2), L(80, 1)], 500);
+        Assert.Equal((50_000, 2_500, 52_500, 5), (t.Net.Value, t.Tax.Value, t.Total.Value, t.Items));
+    }
+
+
+##### 30. Hcc.Pos.Tests/Domain/PosDomainTests.cs:62
+    public void Bill_numbers_follow_year_month_and_property_sequence()
+    {
+        Assert.Equal("POS/2610/0003", PosRules.BillNo(new DateOnly(2026, 10, 24), 3));
+        Assert.Equal("POS/2701/0120", PosRules.BillNo(new DateOnly(2027, 1, 2), 120));
+    }
+
+
+##### 31. Hcc.Pos.Tests/Sql/PosCommandTests.cs:95
+    public async Task Stale_check_version_is_refused()
+    {
+        var id = await db.SentTableAsync("T16");
+        var old = await db.VersionAsync(id);
+        await db.AddAsync(id, "TEA");
+        await Fails(HccErrorCode.STALE_VERSION, () => db.Pos.SettleCheckAsync(db.As(Who.Cashier), PosDb.Key(), new SettleCheckRequest(id, "outlet", "UPI", "R1", null, null, old)));
+    }
+
+
+##### 32. Hcc.Pos.Tests/Sql/PosCommandTests.cs:217
+    public async Task A_manager_can_reject_a_void_above_their_own_limit_but_not_approve_it_and_a_cashier_cannot_decide_either_way()
+    {
+        var id = await db.SentTableAsync("T39", ("THALI", 4));                                // Rs 1,680: above the Manager's Rs 1,000 limit
+        var line = (await db.Queries.GetCheckAsync(db.As(Who.Owner), id)).Lines[0].LineId;
+        var req = (await db.Pos.VoidItemAsync(db.As(Who.Reception), PosDb.Key(), new VoidCheckItemRequest(id, line, "Kitchen error", null))).Value;
+        var voidId = req.VoidRequestId!.Value;
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Pos.DecideVoidAsync(db.As(Who.Cashier), PosDb.Key(), new DecideVoidRequest(voidId, false, null)));
+        await Fails(HccErrorCode.APPROVAL_REQUIRED, () => db.Pos.DecideVoidAsync(db.As(Who.Manager), PosDb.Key(), new DecideVoidRequest(voidId, true, null)));
+        var rej = (await db.Pos.DecideVoidAsync(db.As(Who.Manager), PosDb.Key(), new DecideVoidRequest(voidId, false, "No"))).Value;
+        Assert.Equal("Rejected", rej.Status);
+    }
+
+
+##### 33. Hcc.Yield.Tests/Domain/YieldRulesGoldenTests.cs:52
+    public void Saturday_classic_explains_base_weekday_and_occupancy()
+    {
+        var n = Engine().Night(Classic, new(2026, 10, 24));
+        Assert.Equal(200000, n.Base);
+        Assert.Equal(61, n.Occ.Pct);
+        Assert.Equal(23, n.Occ.Sellable);
+        Assert.Equal(10, n.Occ.OnBooks);
+        Assert.Equal(14, n.Occ.Forecast);
+        Assert.True(n.Occ.Simulated);
+        Assert.Equal([1000], n.Steps.Select(s => s.Bps));
+        Assert.Equal(220000, n.Suggested);
+        Assert.Contains("Sat +10%", n.Explain, StringComparison.Ordinal);
+    }
+
+
+##### 34. Hcc.Yield.Tests/Domain/YieldRulesGoldenTests.cs:88
+    public void Floor_clamp_with_tighter_guardrail()
+    {
+        var cfg = Rules() with { Guard = new YieldGuard(-500, 4000, 5000) };
+        var n = Engine(cfg).Night(Classic, new(2026, 11, 2));
+        Assert.Equal("floor", n.Clamped);
+        Assert.Equal(190000, n.Suggested);
+    }
+
+
+##### 35. Hcc.Yield.Tests/Domain/YieldRulesGoldenTests.cs:183
+    public void Formatting_matches_the_prototype_wording()
+    {
+        Assert.Equal("+10%", YieldFormat.Pct(1000));
+        Assert.Equal("−12%", YieldFormat.Pct(-1200));
+        Assert.Equal("±0%", YieldFormat.Pct(0));
+        Assert.Equal("₹2,00,000", YieldFormat.Money(20000000));
+        Assert.Equal("₹2,000", YieldFormat.Money(200000));
+    }
+}
+
+
+##### 36. Hcc.Yield.Tests/Sql/YieldSqlTests.cs:105
+    public async Task Owner_publish_writes_dated_tariffs_that_P2_quotes_use_and_existing_bookings_keep_agreed_rates()
+    {
+        var existing = Convert.ToInt64(await ScalarAsync("SELECT nightly_rate_paise FROM inv.reservation WHERE public_no = 'HCC-1041';"), System.Globalization.CultureInfo.InvariantCulture);
+        var before = await P2QuoteAsync("Classic", "2026-10-31", "2026-11-01");
+        Assert.Equal(200000, before.Nights[0].RatePaise);
+
+        var res = await PublishAsync(F.Owner, "2026-10-24", "2026-11-06", AllTypes);
+        Assert.True(res.Value.ChangedNights > 0);
+        var quote = await P2QuoteAsync("Classic", "2026-10-31", "2026-11-01");
+        Assert.Equal(240000, quote.Nights[0].RatePaise);
+        Assert.Equal(180000, (await P2QuoteAsync("Classic", "2026-11-02", "2026-11-03")).Nights[0].RatePaise);
+        Assert.Equal(630000, (await P2QuoteAsync("Suite", "2026-11-06", "2026-11-07")).Nights[0].RatePaise);
+        Assert.Equal(450000, (await P2QuoteAsync("Suite", "2026-11-07", "2026-11-08")).Nights[0].RatePaise); // closing row: unchanged after the window
+        Assert.Equal(existing, Convert.ToInt64(await ScalarAsync("SELECT nightly_rate_paise FROM inv.reservation WHERE public_no = 'HCC-1041';"), System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(0, (await CalendarAsync(14)).Summary.PendingNights);
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM yld.publish;"));
+        Assert.Equal(await CountAsync("SELECT COUNT(*) FROM yld.publish_row;"), await CountAsync("SELECT COUNT(*) FROM yld.owned_tariff;"));
+        Assert.True(await CountAsync("SELECT COUNT(*) FROM yld.history WHERE area LIKE 'Publish%';") >= 1);
+    }
+
+
+##### 37. Hcc.Stock.Tests/Kernel/StockRulesTests.cs:16
+    public void Bath_towel_alert_suggests_65_like_the_prototype()
+    {
+        var bt = Stock(30, 5, 4, 6, 54, 14, 30);
+        Assert.Equal(45, StockRules.Clean(bt));
+        Assert.Equal(143, StockRules.Total(bt));
+        Assert.True(StockRules.BelowMinimum(45, 55));
+        Assert.Equal(65, StockRules.SuggestedReorder(45, 55, 60)); // max(60, 2×55−45)
+        Assert.Equal(60, StockRules.SuggestedReorder(54, 55, 60));
+        Assert.False(StockRules.BelowMinimum(55, 55));
+    }
+
+
+##### 38. Hcc.Stock.Tests/Kernel/StockRulesTests.cs:89
+    public void Validation_helpers()
+    {
+        StockRules.RequireQty(1);
+        StockRules.RequireQty(StockRules.MaxQty);
+        Assert.Throws<HccException>(() => StockRules.RequireQty(0));
+        Assert.Throws<HccException>(() => StockRules.RequireQty(StockRules.MaxQty + 1));
+        Assert.Equal("floor1", StockRules.RequireLocation("floor1", StockRules.Countable));
+        Assert.Throws<HccException>(() => StockRules.RequireLocation("rooms", StockRules.Countable));
+        Assert.Throws<HccException>(() => StockRules.RequireLocation("laundry", StockRules.LossLocations));
+    }
+
+
+##### 39. Hcc.Stock.Tests/Sql/StockSqlTests.cs:73
+    public async Task Same_idempotency_key_replays_without_a_second_movement()
+    {
+        var first = await Issue(Users.Housekeeper, "same", "AMN-SP", 5, "store", "floor1");
+        var second = await Issue(Users.Housekeeper, "same", "AMN-SP", 5, "store", "floor1");
+        Assert.False(first.Replayed);
+        Assert.True(second.Replayed);
+        Assert.Equal(first.Value.MoveId, second.Value.MoveId);
+        Assert.Equal(255, await _w.StockAsync("AMN-SP", "store"));
+        await Expect.ErrorAsync(HccErrorCode.IDEMPOTENCY_MISMATCH, () => Issue(Users.Housekeeper, "same", "AMN-SP", 6, "store", "floor1"));
+    }
+
+
+##### 40. Hcc.Stock.Tests/Sql/StockSqlTests.cs:185
+    public async Task Loss_needs_a_reason_other_needs_a_note_cannot_exceed_stock_and_records_value()
+    {
+        Task<CommandResult<RecordLossResult>> Loss(string key, string loc, int qty, string reason, string? note = null) =>
+            _w.Commands.RecordLossAsync(_w.Ctx(Users.Housekeeper, key), new RecordLossRequest("LIN-BR", qty, loc, reason, note), Ct);
+        Assert.Contains("reason", (await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => Loss("x1", "store", 1, "Because"))).Message, StringComparison.Ordinal);
+        Assert.Contains("Describe", (await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => Loss("x2", "store", 1, "Other", ""))).Message, StringComparison.Ordinal);
+        Assert.Contains("Only 6", (await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => Loss("x3", "store", 7, "Missing"))).Message, StringComparison.Ordinal);
+        Assert.Contains("valid location", (await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => Loss("x4", "laundry", 1, "Missing"))).Message, StringComparison.Ordinal);
+        await Loss("x5", "rooms", 1, "Taken by guest", "Room 106");
+        Assert.Equal(160000, await Count("SELECT value_paise FROM stk.loss WHERE loc = 'rooms'"));
+        Assert.Equal(5, await _w.StockAsync("LIN-BR", "rooms"));
+        var losses = await _w.Queries.LossesAsync(_w.PropertyId, Users.Manager, ct: Ct);
+        Assert.Equal((1, 160000L), (losses.Total, losses.TotalValuePaise));
+        Assert.Null((await _w.Queries.LossesAsync(_w.PropertyId, Users.Supervisor, ct: Ct)).Rows[0].ValuePaise);
+    }
+

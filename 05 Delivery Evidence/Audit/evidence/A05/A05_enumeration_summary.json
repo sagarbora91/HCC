@@ -1,0 +1,32 @@
+{
+ "node": "v25.9.0",
+ "routes": 380,
+ "duplicates": [],
+ "sessionRoutes": 370,
+ "anonymous": [
+  "POST /api/v1/auth/bootstrap-owner",
+  "POST /api/v1/auth/sign-in",
+  "POST /api/v1/auth/sign-out",
+  "GET /api/v1/public/booking/deposit/{token}",
+  "GET /api/v1/public/booking/quote",
+  "POST /api/v1/public/booking/requests",
+  "POST /api/v1/setup/SetupProperty",
+  "GET /api/v1/setup/status",
+  "GET /api/v1/system/discovery",
+  "GET /api/v1/system/health"
+ ],
+ "withPerm": 364,
+ "noPerm": [
+  "GET /api/v1/closing/business-date [ClosingService.GetBusinessDateAsync] policy=false",
+  "POST /api/v1/commands/ChangeOwnCredential [SqlUserAdministration.ChangeOwnCredentialAsync] policy=false",
+  "GET /api/v1/configuration/modules [ConfigurationQueries.ModulesAsync] policy=false",
+  "GET /api/v1/configuration/values [ConfigurationQueries.ValuesAsync] policy=false",
+  "GET /api/v1/me/capabilities [SqlCapabilitiesQuery.GetAsync] policy=false",
+  "GET /api/v1/me/directory [SqlAccessAdminQueries.DirectoryAsync] policy=false"
+ ],
+ "mapCallsTotal": 291,
+ "helperDefsSkipped": 5,
+ "unresolvedTargets": [
+  "GET /api/v1/system/discovery"
+ ]
+}

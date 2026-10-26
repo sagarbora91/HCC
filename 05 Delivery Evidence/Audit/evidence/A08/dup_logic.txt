@@ -1,0 +1,10 @@
+A08 duplicated-logic probe 2026-10-26T09:42:54.959Z node v25.9.0
+prototype gst.ts imported directly (Node type stripping)
+
+1. GST line tax: 2000005 (amount, bps) pairs, 0 differences []
+   CGST/SGST split over tax -5000..5000: 0 differences (server split ported from Tax/GstMaster.cs:233-237)
+
+2. Yield forecast occupancy %: 8 (sold, sellable≤200) pairs differ; first: 23/40: prototype 57% server 58%; 46/80: prototype 57% server 58%; 69/120: prototype 57% server 58%; 92/160: prototype 57% server 58%; 29/200: prototype 14% server 15%; 57/200: prototype 28% server 29%; 113/200: prototype 56% server 57%; 115/200: prototype 57% server 58%
+   with sellable ≤ 40 rooms: 1 → 23/40: prototype 57% server 58%
+
+3. Yield round-to-unit: differences []; rate × (1 + bps) (yield plans, OTA markup): differences []

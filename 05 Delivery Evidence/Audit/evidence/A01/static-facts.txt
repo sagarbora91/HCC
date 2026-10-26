@@ -1,0 +1,69 @@
+== c0c477d parent/author
+c0c477d69eedd5a018c00f4f2e99247c0171ce54 parent=f0a5a2996f439c4dbf650496245e38aba5eaa574 author=sagarbora91 sagarbora91@users.noreply.github.com Mon Oct 26 14:53:04 2026 +0530
+== origin/main
+b04f596 Sun Oct 25 20:42:41 2026 +0530 HANDOFF: knowledge graph + Obsidian vault
+a5decb3 Sun Oct 25 19:24:30 2026 +0530 Wave 1 integration: README (module blocks, composition, session/scope conventions, JSON-object command results) and ICommandRunner note
+== merge-base main origin/main
+b04f596 Sun Oct 25 20:42:41 2026 +0530 HANDOFF: knowledge graph + Obsidian vault
+== versionCode
+30: versionCode 12
+31: versionName "0.1.0-proto"
+61: versionNameSuffix "-server"
+73: versionNameSuffix "-server"
+== versionCode history
+b629b5e Android: versionCode 12 (APK v12)
+4b70254 S1 security fixes (client + APK): encrypted read cache behind auth, release APK, sealed tokens, opaque roster, narrow FileProvider
+1cbdfc1 W4-12: production (server) APK build type with hotel CA trust
+bbee681 APK v11 (versionCode 11) built from main (D5D2F9DD)
+26f1abf Android: versionCode 9 -> 10 for APK v10
+652adce Android: versionCode 9 for APK v9 (SCHEMA 8, Wave 0.5)
+4a93bc7 APK versionCode 8 (AC-02 + tablet fixes), SHA-256 2BA3FE68...52C3
+28a7475 APK versionCode 7 with all W0-D fixes (SHA-256 e87c692b...73ef)
+== migrations count
+count=46
+0001_platform.sql 0002_core_inventory_billing_payments.sql 0100_access_identity.sql 0101_access_rbac_seed.sql 0200_inventory_reservations.sql 0202_inventory_block_history.sql 0203_reservation_company.sql 0300_stays_housekeeping.sql 0301_stays_changes.sql 0400_billing_payments.sql 0500_closing_reporting.sql 0600_tax_gst_master.sql 0601_guest_id_documents.sql 0700_configuration.sql 0800_expenses.sql 0900_payroll.sql 0901_payroll_rbac_seed.sql 1000_accounting.sql 1001_accounting_rbac_seed.sql 1100_compliance.sql 1101_compliance_rbac_seed.sql 1200_pos.sql 1201_pos_gst_split.sql 1300_maintenance.sql 1400_stock.sql 1500_guest_services.sql 1600_messaging.sql 1700_handover.sql 1800_yield_tariffs.sql 1900_property_setup.sql 2000_web_booking.sql 2001_web_booking_rbac_seed.sql 2100_documents.sql 2101_documents_rbac_seed.sql 2200_groups_billing.sql 2201_groups_rbac_seed.sql 2202_groups_company.sql 2300_customers.sql 2301_customers_rbac_seed.sql 2400_invoices.sql 2401_invoices_rbac_seed.sql 2500_ota_channels.sql 2501_ota_rbac_seed.sql 2700_import.sql 2701_import_rbac_seed.sql 2702_import_pos.sql
+== test csproj
+test projects=28
+Hcc.Access.Tests Hcc.Accounting.Tests Hcc.Billing.Tests Hcc.Closing.Tests Hcc.Compliance.Tests Hcc.Configuration.Tests Hcc.Customers.Tests Hcc.Documents.Tests Hcc.Expenses.Tests Hcc.Groups.Tests Hcc.GstIds.Tests Hcc.GuestServices.Tests Hcc.Handover.Tests Hcc.Import.Tests Hcc.Integration.Tests Hcc.Inventory.Tests Hcc.Invoices.Tests Hcc.Maintenance.Tests Hcc.Messaging.Tests Hcc.Operations.Tests Hcc.Ota.Tests Hcc.Payroll.Tests Hcc.Platform.Tests Hcc.Pos.Tests Hcc.Stays.Tests Hcc.Stock.Tests Hcc.WebBooking.Tests Hcc.Yield.Tests
+== src csproj
+src projects=6
+Hcc.Api Hcc.Application Hcc.Contracts Hcc.Domain Hcc.Infrastructure.SqlServer Hcc.Operations
+== slnx
+<Project Path="src/Hcc.Contracts/Hcc.Contracts.csproj" />
+<Project Path="src/Hcc.Domain/Hcc.Domain.csproj" />
+<Project Path="src/Hcc.Application/Hcc.Application.csproj" />
+<Project Path="src/Hcc.Infrastructure.SqlServer/Hcc.Infrastructure.SqlServer.csproj" />
+<Project Path="src/Hcc.Operations/Hcc.Operations.csproj" />
+<Project Path="src/Hcc.Api/Hcc.Api.csproj" />
+<Project Path="tests/Hcc.Billing.Tests/Hcc.Billing.Tests.csproj" />
+<Project Path="tests/Hcc.Platform.Tests/Hcc.Platform.Tests.csproj" />
+<Project Path="tests/Hcc.Access.Tests/Hcc.Access.Tests.csproj" />
+<Project Path="tests/Hcc.Stays.Tests/Hcc.Stays.Tests.csproj" />
+<Project Path="tests/Hcc.Inventory.Tests/Hcc.Inventory.Tests.csproj" />
+<Project Path="tests/Hcc.Integration.Tests/Hcc.Integration.Tests.csproj" />
+<Project Path="tests/Hcc.Handover.Tests/Hcc.Handover.Tests.csproj" />
+<Project Path="tests/Hcc.Operations.Tests/Hcc.Operations.Tests.csproj" />
+<Project Path="tests/Hcc.Closing.Tests/Hcc.Closing.Tests.csproj" />
+<Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
+<Project Path="tests/Hcc.Configuration.Tests/Hcc.Configuration.Tests.csproj" />
+<Project Path="tests/Hcc.Customers.Tests/Hcc.Customers.Tests.csproj" />
+<Project Path="tests/Hcc.Groups.Tests/Hcc.Groups.Tests.csproj" />
+<Project Path="tests/Hcc.Expenses.Tests/Hcc.Expenses.Tests.csproj" />
+<Project Path="tests/Hcc.Accounting.Tests/Hcc.Accounting.Tests.csproj" />
+<Project Path="tests/Hcc.Compliance.Tests/Hcc.Compliance.Tests.csproj" />
+<Project Path="tests/Hcc.Pos.Tests/Hcc.Pos.Tests.csproj" />
+<Project Path="tests/Hcc.Maintenance.Tests/Hcc.Maintenance.Tests.csproj" />
+<Project Path="tests/Hcc.Stock.Tests/Hcc.Stock.Tests.csproj" />
+<Project Path="tests/Hcc.Messaging.Tests/Hcc.Messaging.Tests.csproj" />
+<Project Path="tests/Hcc.Yield.Tests/Hcc.Yield.Tests.csproj" />
+<Project Path="tests/Hcc.GuestServices.Tests/Hcc.GuestServices.Tests.csproj" />
+<Project Path="tests/Hcc.Payroll.Tests/Hcc.Payroll.Tests.csproj" />
+<Project Path="tests/Hcc.Documents.Tests/Hcc.Documents.Tests.csproj" />
+<Project Path="tests/Hcc.WebBooking.Tests/Hcc.WebBooking.Tests.csproj" />
+<Project Path="tests/Hcc.Ota.Tests/Hcc.Ota.Tests.csproj" />
+<Project Path="tests/Hcc.Invoices.Tests/Hcc.Invoices.Tests.csproj" />
+<Project Path="tests/Hcc.Import.Tests/Hcc.Import.Tests.csproj" />
+== SCHEMA
+189: /** Persisted-state schema version. Bump when the shape changes; older stored data is reset. */
+190: schema:number;
+266: export const SCHEMA=8;

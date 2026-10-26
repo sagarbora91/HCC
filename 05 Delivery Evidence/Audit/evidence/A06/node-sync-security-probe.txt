@@ -1,0 +1,29 @@
+node v25.9.0
+--- sync-cache-security.mjs
+(node:22996) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS [SEC F-H01] Cache at rest: every slice and the meta record sealed (AES-GCM); no plaintext, no data key, no secret in the cache database
+PASS [SEC F-H01] No cached data before authentication: a 401 at start shows the sign-in screen, nothing decrypted, cache and resume key deleted
+PASS [SEC F-H01] Offline restart within the session (resume key present): cached slices shown read-only with their "as of"
+PASS [SEC F-H01] Offline restart without a local session: status "locked", NOTHING shown; wrong secret refused; the right password opens it read-only
+PASS [SEC F-H01] Five wrong offline attempts delete the offline copy and show the sign-in screen
+PASS [SEC F-H01] A PIN user re-authenticates offline with the PIN (the PIN itself is never stored)
+PASS [SEC F-H01] Idle (30 min without a server answer) and absolute (12 h) expiry: signed out, cache and resume key deleted — no data visible offline
+PASS [SEC F-H01] Sign-out deletes cache + resume key; a format-1 (unencrypted) cache is deleted unread; tampered or swapped records are not shown
+PASS [SEC F-H01] Another user signing in on the device: the previous copy is deleted and a new one keyed for the new user
+PASS [SEC F-H01] Session confirmed by the server without a sign-in here: cached only under the session resume key; without it nothing is shown
+PASS [SEC F-M07] Sealed token store: Preferences / Web Storage hold only sealed text; an old plain value is re-sealed; a foreign key opens nothing
+PASS [SEC F-M07] Device token: moved from plain localStorage into the sealed store; X-HCC-Device on every request (sign-in and session); forget drops it
+--- sync-apk.mjs
+PASS [W4-12] Token sign-in: returnToken:true, token kept in the TokenStore, Authorization: Bearer on every later request (no cookie needed)
+PASS [W4-12] 401 on a request with the token: token dropped from memory and storage, sign-in screen with "session has ended"
+PASS [W4-12] Sign-out: POST /auth/sign-out with the Bearer token (server revokes it), then token gone and no Authorization header
+PASS [W4-12] Stored session survives a restart; idle timeout counts from this device's last answered request; absolute lifetime ends it
+PASS [W4-12] Token stores: Capacitor Preferences through the bridge (kept across restarts), sessionStorage fallback (until the app closes)
+PASS [W4-12] Register this device (admin session): RegisterDevice{label: name · device id}, device token stored once, PIN staff list read from /admin/users
+PASS [W4-12] PIN sign-in on the registered device: X-HCC-Device + pin + returnToken; without the device token the server refuses it
+PASS [W4-12] Server address: https origin only, tested with /system/discovery ("Hotel Control Centre") + /system/health before it is saved as hcc-server-url
+PASS [W4-12] CapacitorHttp adapter: method/headers/raw JSON body/timeouts passed; parsed JSON re-serialised; status kept; abort rejects
+PASS [W4-12] Screens: unregistered device = password sign-in + register hint; registered = staff names + PIN, password for Owner/Accountant/Tech admin; setup; Settings panel
+22/22 tests passed (sync-cache-security + sync-apk)
+exit=0

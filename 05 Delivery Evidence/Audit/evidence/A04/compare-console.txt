@@ -1,0 +1,25 @@
+MATCH    HR-S05 2026-08 
+MATCH    HR-S10 2026-08 
+MATCH    HR-S05 2026-09 
+MATCH    HR-S10 2026-09 
+MATCH    F&F final-month line 
+MATCH    F&F advanceOutstanding 
+MATCH    F&F elEncashment 
+MATCH    F&F earnings 
+MATCH    F&F recoveries 
+MATCH    F&F net 
+MATCH    E1 Feb PT top slab, man ₹18,000 
+MATCH    E2 Feb PT middle slab, man ₹9,000 (no Feb bump) 
+MATCH    E3 PT woman ₹25,000 (nil) 
+MATCH    E4 PT woman ₹25,000.01 (₹200) 
+MATCH    E5 ESIC ceiling ₹21,000 exactly (covered) 
+MATCH    E6 ESIC ₹22,000 with 2 LOP days (period rule: contract wage > ceiling → not covered) 
+MATCH    E7 ESIC raised to ₹23,000 in Dec after October locked covered (covered to March) 
+MATCH    E8 Overtime 600 min on ₹12,000, 30-day month 
+MATCH    E9 Three late marks = ½ day 
+MATCH    E10 Advance instalment ₹5,000 larger than net (₹10,000, 25 days absent) 
+MATCH    E11 Advance instalment 0 = full balance ₹4,000 
+MATCH    E12 Daily ₹850 (×26 = ₹22,100 > ceiling → not covered although month earns ₹17,000) 
+MATCH    E13 PF cap: basic ₹20,000 (₹40,000 pay) → PF on ₹15,000 
+MATCH    E14 Part-month joiner from 21 Sep, man ₹9,000 (earned ₹3,000 → PT nil) 
+all figures match

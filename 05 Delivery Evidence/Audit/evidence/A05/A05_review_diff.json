@@ -1,0 +1,155 @@
+{
+ "reviewRows": 373,
+ "reviewDupKeys": [],
+ "a05Rows": 380,
+ "onlyInA05": [
+  "GET /api/v1/cashier/folios  (PaymentsEndpoints.cs:23)",
+  "POST /api/v1/commands/DecideCompanyLimit  (GroupsEndpoints.cs:61)",
+  "POST /api/v1/commands/SaveCompany  (GroupsEndpoints.cs:57)",
+  "POST /api/v1/commands/SetCompanyLimit  (GroupsEndpoints.cs:59)",
+  "GET /api/v1/groups/companies  (GroupsEndpoints.cs:63)",
+  "GET /api/v1/me/directory  (AccessEndpoints.cs:174)",
+  "GET /api/v1/payroll/run/{runId:long}/bank-files/latest  (PayrollEndpoints.cs:90)"
+ ],
+ "onlyInReview": [],
+ "permDiffCount": 9,
+ "permDiff": [
+  {
+   "n": 39,
+   "route": "POST /api/v1/commands/DecideApproval",
+   "review": "PERM-APR-001, PERM-PAY-005",
+   "reviewOnly": [],
+   "a05Only": [
+    "PERM-SHF-002"
+   ],
+   "a05Direct": [
+    "PERM-APR-001",
+    "PERM-PAY-005"
+   ],
+   "a05Via": [
+    "PERM-SHF-002"
+   ]
+  },
+  {
+   "n": 166,
+   "route": "POST /api/v1/commands/TransitionHousekeepingTask",
+   "review": "task work / repair work, PERM-HK-001, PERM-HK-002, PERM-HK-004",
+   "reviewOnly": [],
+   "a05Only": [
+    "PERM-HK-003"
+   ],
+   "a05Direct": [
+    "PERM-HK-001",
+    "PERM-HK-002",
+    "PERM-HK-004"
+   ],
+   "a05Via": [
+    "PERM-HK-003"
+   ]
+  },
+  {
+   "n": 174,
+   "route": "POST /api/v1/commands/CommitImportBatch",
+   "review": "commit permission per master (Owner-only masters), PERM-IMP-001",
+   "reviewOnly": [],
+   "a05Only": [
+    "PERM-IMP-002",
+    "PERM-IMP-003"
+   ],
+   "a05Direct": [
+    "PERM-IMP-001"
+   ],
+   "a05Via": [
+    "PERM-IMP-002",
+    "PERM-IMP-003"
+   ]
+  },
+  {
+   "n": 242,
+   "route": "GET /api/v1/ota/messages",
+   "review": "PERM-OTA-001",
+   "reviewOnly": [],
+   "a05Only": [
+    "PERM-GST-002"
+   ],
+   "a05Direct": [
+    "PERM-OTA-001"
+   ],
+   "a05Via": [
+    "PERM-GST-002"
+   ]
+  },
+  {
+   "n": 312,
+   "route": "GET /api/v1/reservations",
+   "review": "PERM-RES-001",
+   "reviewOnly": [],
+   "a05Only": [
+    "PERM-GST-002"
+   ],
+   "a05Direct": [
+    "PERM-RES-001"
+   ],
+   "a05Via": [
+    "PERM-GST-002"
+   ]
+  },
+  {
+   "n": 313,
+   "route": "GET /api/v1/reservations/{id:long}",
+   "review": "PERM-RES-001",
+   "reviewOnly": [],
+   "a05Only": [
+    "PERM-GST-002"
+   ],
+   "a05Direct": [
+    "PERM-RES-001"
+   ],
+   "a05Via": [
+    "PERM-GST-002"
+   ]
+  },
+  {
+   "n": 357,
+   "route": "GET /api/v1/web-booking/requests/{id:long}",
+   "review": "PERM-WEB-001",
+   "reviewOnly": [],
+   "a05Only": [
+    "PERM-GST-002"
+   ],
+   "a05Direct": [
+    "PERM-WEB-001"
+   ],
+   "a05Via": [
+    "PERM-GST-002"
+   ]
+  },
+  {
+   "n": 367,
+   "route": "POST /api/v1/commands/ProposeYieldPublish",
+   "review": "PERM-ADM-003, PERM-APR-001, PERM-RPT-001",
+   "reviewOnly": [
+    "PERM-ADM-003"
+   ],
+   "a05Only": [],
+   "a05Direct": [
+    "PERM-APR-001",
+    "PERM-RPT-001"
+   ],
+   "a05Via": []
+  },
+  {
+   "n": 368,
+   "route": "POST /api/v1/commands/DecideYieldProposal",
+   "review": "PERM-ADM-003, PERM-RPT-001",
+   "reviewOnly": [
+    "PERM-RPT-001"
+   ],
+   "a05Only": [],
+   "a05Direct": [
+    "PERM-ADM-003"
+   ],
+   "a05Via": []
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+A02b evidence, 2026-10-26
+node -v: v25.9.0
+
+## grep: client senders of GST master / early departure / import / group pickup (03 Prototype/src)
+SetGstSetting: 0 files
+WithdrawGstSetting: 0 files
+tax/gst: 0 files
+EarlyDeparture: 0 files
+UploadImportBatch: 0 files
+CommitImportBatch: 0 files
+ReleaseGroupBlock: 1 files
+SeedComplianceDefaults: 0 files
+ChangeOwnCredential: 0 files
+SaveMenuItem: 0 files
+CreateOutlet: 0 files
+groupBlockId senders:
+03 Prototype/src/clients/sync/frontdesk/shared.ts:16:  groupBlockId:number|null;restrictionOverride:string|null;cancelReason:string|null;notes:string|null;company?:{name:string;gstin?:string|null}|nul
+03 Prototype/src/clients/sync/money/wire.ts:42:export type SrvGroupSummary={groupId:number;code:string;name:string;status:string;groupBlockId:number|null;blockCode:string|null;arrival:string|null;depa
+03 Prototype/src/clients/sync/money/wire.ts:44:  groupBlockId:number|null;blockCode:string|null;blockStatus:string|null;cutoff:string|null;businessDate:string;
+03 Prototype/src/clients/sync/money.ts:128:  const groups=(await c.api.get<SrvGroupSummary[]>('/groups')).filter(g=>g.groupBlockId!=null);
+03 Prototype/src/clients/sync/money.ts:133:    if(g.groupBlockId!=null)c.ids.learn('groupBlock',protoId(g.groupId),g.groupBlockId);
+03 Prototype/src/clients/sync/money.ts:346:        const block=await c.api.command<{groupBlockId:number}>('CreateGroupBlock',{code:blockCode(cmd.name,cmd.arrival),name:text(cmd.name),arrival:cmd.arriv
+03 Prototype/src/clients/sync/money.ts:351:        const group=await c.api.command('CreateGroup',{name:text(cmd.name),groupBlockId:block.groupBlockId,organiser:contact,billingName:co?.name??text(cmd.n
+
+## SHIFT_CLOSE references in UI source (features/mobile/app)
+0

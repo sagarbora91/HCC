@@ -1,0 +1,20 @@
+HCC-0.1.0-proto-debug.apk 39C6C9F7846C94A136B4B9FFB92E3D03C04364BC75532A6CA648F4DD6C0A2983
+HCC-0.1.0-server-debug-TESTCA.apk 3635D571F794861EB152A45BA84EBA0BB1868616FEC6CA6FC1B59A62FE363B7E
+HCC-0.1.0-proto-debug-v11.apk D5D2F9DD697E9E4758E3A48AF4DC654C27D7EB45DD38389F34348C2665157A30
+HCC-0.1.0-proto-debug-v10.apk 1CA1616A03A2E05C84A8260E5ECE30F5201A9069CD8ED9DCC621C7922C762846
+HCC-0.1.0-proto-debug-v9.apk 600ABA4172C711CE6D6D454DF6F0185168C50333D94EB206800C448849642369
+HCC-0.1.0-proto-debug-v8.apk 2BA3FE68B03E2C535B758D288B3B8862F6CE3F87BB592A39E63A32C00F8A52C3
+== v12 screenshots by prefix
+a: 33
+s: 51
+t: 23
+== ignored?
+.gitignore:21:*.apk	05 Delivery Evidence/APK/HCC-0.1.0-proto-debug.apk
+.gitignore:21:*.apk	05 Delivery Evidence/APK/HCC-0.1.0-server-debug-TESTCA.apk
+== tracked apks/keys by extension
+== tracked files with suspicious names
+03 Prototype/src/clients/sync/CredentialsPanel.tsx
+03 Prototype/src/clients/sync/credentials.ts
+03 Prototype/tests/sync-credentials.mjs
+== aapt available?
+

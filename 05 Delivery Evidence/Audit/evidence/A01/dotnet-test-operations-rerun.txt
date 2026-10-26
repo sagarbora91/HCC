@@ -1,0 +1,5 @@
+PSModulePath reset to Machine value for this rerun
+Test run for E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Operations.Tests\bin\Debug\net10.0\Hcc.Operations.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    39, Skipped:     0, Total:    39, Duration: 21 s - Hcc.Operations.Tests.dll (net10.0)

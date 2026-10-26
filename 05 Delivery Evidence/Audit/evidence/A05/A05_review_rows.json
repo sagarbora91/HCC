@@ -1,0 +1,4621 @@
+[
+ {
+  "n": 1,
+  "module": "Platform",
+  "method": "GET",
+  "route": "/api/v1/system/health",
+  "access": "Anonymous",
+  "perm": "none (deliberate)",
+  "note": "Opens a SQL connection; returns DB name + schema version (F-L01)",
+  "perms": []
+ },
+ {
+  "n": 2,
+  "module": "Platform",
+  "method": "GET",
+  "route": "/api/v1/system/discovery",
+  "access": "Anonymous",
+  "perm": "none (deliberate)",
+  "note": "Product, server name, version; no secrets",
+  "perms": []
+ },
+ {
+  "n": 3,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/auth/sign-in",
+  "access": "Anonymous",
+  "perm": "none (deliberate)",
+  "note": "Lockout per credential; no per-client throttle (F-M02)",
+  "perms": []
+ },
+ {
+  "n": 4,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/auth/sign-out",
+  "access": "Anonymous",
+  "perm": "none (deliberate)",
+  "note": "Revokes the presented token only",
+  "perms": []
+ },
+ {
+  "n": 5,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/auth/bootstrap-owner",
+  "access": "Loopback only",
+  "perm": "none; refused once any user exists",
+  "note": "IPAddress.IsLoopback(remote)",
+  "perms": []
+ },
+ {
+  "n": 6,
+  "module": "Access",
+  "method": "GET",
+  "route": "/api/v1/me/capabilities",
+  "access": "Session",
+  "perm": "session only (deliberate: own grants and masks)",
+  "note": "",
+  "perms": []
+ },
+ {
+  "n": 7,
+  "module": "Access",
+  "method": "GET",
+  "route": "/api/v1/admin/users",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 8,
+  "module": "Access",
+  "method": "GET",
+  "route": "/api/v1/admin/devices",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 9,
+  "module": "Access",
+  "method": "GET",
+  "route": "/api/v1/admin/roles",
+  "access": "Session",
+  "perm": "any mode of PERM-ADM-001 / 002 / 003",
+  "note": "RequireAnyAsync",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 10,
+  "module": "Access",
+  "method": "GET",
+  "route": "/api/v1/admin/exceptions",
+  "access": "Session",
+  "perm": "any mode of PERM-ADM-001 / 002",
+  "note": "RequireAnyAsync",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 11,
+  "module": "Access",
+  "method": "GET",
+  "route": "/api/v1/admin/audit",
+  "access": "Session",
+  "perm": "PERM-ADM-004",
+  "note": "",
+  "perms": [
+   "PERM-ADM-004"
+  ]
+ },
+ {
+  "n": 12,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateUser",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 13,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/SetUserEnabled",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 14,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/AssignRole",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 15,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/RevokeRole",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 16,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/SetCredential",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 17,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/ChangeOwnCredential",
+  "access": "Session",
+  "perm": "session + current password/PIN (counts toward lockout)",
+  "note": "Own account only",
+  "perms": []
+ },
+ {
+  "n": 18,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/GrantException",
+  "access": "Session",
+  "perm": "PERM-ADM-002",
+  "note": "",
+  "perms": [
+   "PERM-ADM-002"
+  ]
+ },
+ {
+  "n": 19,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/RevokeException",
+  "access": "Session",
+  "perm": "PERM-ADM-002",
+  "note": "",
+  "perms": [
+   "PERM-ADM-002"
+  ]
+ },
+ {
+  "n": 20,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/RegisterDevice",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 21,
+  "module": "Access",
+  "method": "POST",
+  "route": "/api/v1/commands/RevokeDevice",
+  "access": "Session",
+  "perm": "PERM-ADM-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-001"
+  ]
+ },
+ {
+  "n": 22,
+  "module": "Accounting",
+  "method": "POST",
+  "route": "/api/v1/commands/LockAccountingPeriod",
+  "access": "Session",
+  "perm": "PERM-ACC-002",
+  "note": "",
+  "perms": [
+   "PERM-ACC-002"
+  ]
+ },
+ {
+  "n": 23,
+  "module": "Accounting",
+  "method": "POST",
+  "route": "/api/v1/commands/UnlockAccountingPeriod",
+  "access": "Session",
+  "perm": "PERM-ACC-003",
+  "note": "",
+  "perms": [
+   "PERM-ACC-003"
+  ]
+ },
+ {
+  "n": 24,
+  "module": "Accounting",
+  "method": "POST",
+  "route": "/api/v1/commands/SetLedgerMapping",
+  "access": "Session",
+  "perm": "PERM-ACC-004",
+  "note": "",
+  "perms": [
+   "PERM-ACC-004"
+  ]
+ },
+ {
+  "n": 25,
+  "module": "Accounting",
+  "method": "POST",
+  "route": "/api/v1/commands/ResetLedgerMapping",
+  "access": "Session",
+  "perm": "PERM-ACC-004",
+  "note": "",
+  "perms": [
+   "PERM-ACC-004"
+  ]
+ },
+ {
+  "n": 26,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/days/{date}",
+  "access": "Session",
+  "perm": "PERM-ACC-001",
+  "note": "",
+  "perms": [
+   "PERM-ACC-001"
+  ]
+ },
+ {
+  "n": 27,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/days",
+  "access": "Session",
+  "perm": "PERM-ACC-001",
+  "note": "",
+  "perms": [
+   "PERM-ACC-001"
+  ]
+ },
+ {
+  "n": 28,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/trial-balance",
+  "access": "Session",
+  "perm": "PERM-ACC-001",
+  "note": "",
+  "perms": [
+   "PERM-ACC-001"
+  ]
+ },
+ {
+  "n": 29,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/mapping",
+  "access": "Session",
+  "perm": "PERM-ACC-001",
+  "note": "",
+  "perms": [
+   "PERM-ACC-001"
+  ]
+ },
+ {
+  "n": 30,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/mapping/history",
+  "access": "Session",
+  "perm": "PERM-ACC-001",
+  "note": "",
+  "perms": [
+   "PERM-ACC-001"
+  ]
+ },
+ {
+  "n": 31,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/chart",
+  "access": "Session",
+  "perm": "PERM-ACC-001",
+  "note": "",
+  "perms": [
+   "PERM-ACC-001"
+  ]
+ },
+ {
+  "n": 32,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/locks/history",
+  "access": "Session",
+  "perm": "PERM-ACC-001",
+  "note": "",
+  "perms": [
+   "PERM-ACC-001"
+  ]
+ },
+ {
+  "n": 33,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/export/csv",
+  "access": "Session",
+  "perm": "PERM-ACC-005",
+  "note": "",
+  "perms": [
+   "PERM-ACC-005"
+  ]
+ },
+ {
+  "n": 34,
+  "module": "Accounting",
+  "method": "GET",
+  "route": "/api/v1/accounting/export/tally",
+  "access": "Session",
+  "perm": "PERM-ACC-006",
+  "note": "",
+  "perms": [
+   "PERM-ACC-006"
+  ]
+ },
+ {
+  "n": 35,
+  "module": "Billing",
+  "method": "POST",
+  "route": "/api/v1/commands/PostRoomNight",
+  "access": "Session",
+  "perm": "PERM-CLS-002",
+  "note": "",
+  "perms": [
+   "PERM-CLS-002"
+  ]
+ },
+ {
+  "n": 36,
+  "module": "Billing",
+  "method": "POST",
+  "route": "/api/v1/commands/PostCharge",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 37,
+  "module": "Billing",
+  "method": "POST",
+  "route": "/api/v1/commands/RecordReceipt",
+  "access": "Session",
+  "perm": "own-shift scope, PERM-PAY-001, PERM-PAY-002",
+  "note": "",
+  "perms": [
+   "PERM-PAY-001",
+   "PERM-PAY-002"
+  ]
+ },
+ {
+  "n": 38,
+  "module": "Billing",
+  "method": "POST",
+  "route": "/api/v1/commands/RequestAdjustment",
+  "access": "Session",
+  "perm": "PERM-FOL-003, PERM-FOL-005, PERM-PAY-003, PERM-STY-003",
+  "note": "",
+  "perms": [
+   "PERM-FOL-003",
+   "PERM-FOL-005",
+   "PERM-PAY-003",
+   "PERM-STY-003"
+  ]
+ },
+ {
+  "n": 39,
+  "module": "Billing",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideApproval",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-PAY-005",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-PAY-005"
+  ]
+ },
+ {
+  "n": 40,
+  "module": "Billing",
+  "method": "POST",
+  "route": "/api/v1/commands/ExecuteAdjustment",
+  "access": "Session",
+  "perm": "own-shift scope, PERM-PAY-004, PERM-STY-003",
+  "note": "",
+  "perms": [
+   "PERM-PAY-004",
+   "PERM-STY-003"
+  ]
+ },
+ {
+  "n": 41,
+  "module": "Billing",
+  "method": "GET",
+  "route": "/api/v1/folios/{folioId:long}",
+  "access": "Session",
+  "perm": "PERM-FOL-001",
+  "note": "",
+  "perms": [
+   "PERM-FOL-001"
+  ]
+ },
+ {
+  "n": 42,
+  "module": "Billing",
+  "method": "GET",
+  "route": "/api/v1/folios/by-reservation/{reservationId:long}",
+  "access": "Session",
+  "perm": "PERM-FOL-001",
+  "note": "",
+  "perms": [
+   "PERM-FOL-001"
+  ]
+ },
+ {
+  "n": 43,
+  "module": "Closing",
+  "method": "POST",
+  "route": "/api/v1/commands/RunBusinessDayClose",
+  "access": "Session",
+  "perm": "PERM-CLS-002",
+  "note": "",
+  "perms": [
+   "PERM-CLS-002"
+  ]
+ },
+ {
+  "n": 44,
+  "module": "Closing",
+  "method": "POST",
+  "route": "/api/v1/commands/PostRoomNights",
+  "access": "Session",
+  "perm": "PERM-CLS-002",
+  "note": "",
+  "perms": [
+   "PERM-CLS-002"
+  ]
+ },
+ {
+  "n": 45,
+  "module": "Closing",
+  "method": "POST",
+  "route": "/api/v1/commands/LockCashBookDay",
+  "access": "Session",
+  "perm": "PERM-CLS-003",
+  "note": "",
+  "perms": [
+   "PERM-CLS-003"
+  ]
+ },
+ {
+  "n": 46,
+  "module": "Closing",
+  "method": "POST",
+  "route": "/api/v1/commands/ReopenCashBookDay",
+  "access": "Session",
+  "perm": "PERM-CLS-004",
+  "note": "",
+  "perms": [
+   "PERM-CLS-004"
+  ]
+ },
+ {
+  "n": 47,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/closing/preflight",
+  "access": "Session",
+  "perm": "PERM-CLS-001",
+  "note": "",
+  "perms": [
+   "PERM-CLS-001"
+  ]
+ },
+ {
+  "n": 48,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/closing/business-date",
+  "access": "Session",
+  "perm": "session only (deliberate)",
+  "note": "Business date + closed flag",
+  "perms": []
+ },
+ {
+  "n": 49,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/closing/records",
+  "access": "Session",
+  "perm": "PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 50,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/closing/runs/{date}",
+  "access": "Session",
+  "perm": "PERM-CLS-001",
+  "note": "",
+  "perms": [
+   "PERM-CLS-001"
+  ]
+ },
+ {
+  "n": 51,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/closing/snapshots/{date}",
+  "access": "Session",
+  "perm": "PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 52,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/cashbook/{date}",
+  "access": "Session",
+  "perm": "PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 53,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/cashbook",
+  "access": "Session",
+  "perm": "PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 54,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/cashbook/{date}/book",
+  "access": "Session",
+  "perm": "PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 55,
+  "module": "Closing",
+  "method": "GET",
+  "route": "/api/v1/reports/daily",
+  "access": "Session",
+  "perm": "PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 56,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/MarkComplianceFiled",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 57,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/MarkComplianceNotApplicable",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 58,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/ReopenComplianceFiling",
+  "access": "Session",
+  "perm": "PERM-CMP-002",
+  "note": "",
+  "perms": [
+   "PERM-CMP-002"
+  ]
+ },
+ {
+  "n": 59,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveComplianceObligation",
+  "access": "Session",
+  "perm": "PERM-CMP-002",
+  "note": "",
+  "perms": [
+   "PERM-CMP-002"
+  ]
+ },
+ {
+  "n": 60,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/ToggleComplianceObligation",
+  "access": "Session",
+  "perm": "PERM-CMP-002",
+  "note": "",
+  "perms": [
+   "PERM-CMP-002"
+  ]
+ },
+ {
+  "n": 61,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveComplianceSettings",
+  "access": "Session",
+  "perm": "PERM-CMP-002",
+  "note": "",
+  "perms": [
+   "PERM-CMP-002"
+  ]
+ },
+ {
+  "n": 62,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/GenerateCaPack",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 63,
+  "module": "Compliance",
+  "method": "POST",
+  "route": "/api/v1/commands/SeedComplianceDefaults",
+  "access": "Session",
+  "perm": "PERM-CMP-002",
+  "note": "",
+  "perms": [
+   "PERM-CMP-002"
+  ]
+ },
+ {
+  "n": 64,
+  "module": "Compliance",
+  "method": "GET",
+  "route": "/api/v1/compliance/calendar",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 65,
+  "module": "Compliance",
+  "method": "GET",
+  "route": "/api/v1/compliance/due-this-week",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 66,
+  "module": "Compliance",
+  "method": "GET",
+  "route": "/api/v1/compliance/badge",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 67,
+  "module": "Compliance",
+  "method": "GET",
+  "route": "/api/v1/compliance/obligations",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 68,
+  "module": "Compliance",
+  "method": "GET",
+  "route": "/api/v1/compliance/ca-packs",
+  "access": "Session",
+  "perm": "PERM-CMP-001",
+  "note": "",
+  "perms": [
+   "PERM-CMP-001"
+  ]
+ },
+ {
+  "n": 69,
+  "module": "Configuration",
+  "method": "POST",
+  "route": "/api/v1/commands/SetSetting",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 70,
+  "module": "Configuration",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideSettingRequest",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 71,
+  "module": "Configuration",
+  "method": "POST",
+  "route": "/api/v1/commands/WithdrawScheduledSetting",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 72,
+  "module": "Configuration",
+  "method": "POST",
+  "route": "/api/v1/commands/RevertSetting",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 73,
+  "module": "Configuration",
+  "method": "POST",
+  "route": "/api/v1/commands/ImportConfiguration",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 74,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/groups",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 75,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/groups/{groupId}",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 76,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/search",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 77,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/history",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 78,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/requests",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 79,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/modules",
+  "access": "Session",
+  "perm": "session only (deliberate)",
+  "note": "Module on/off switches",
+  "perms": []
+ },
+ {
+  "n": 80,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/values",
+  "access": "Session",
+  "perm": "session only (deliberate)",
+  "note": "Secrets, fixed and Owner-only values excluded",
+  "perms": []
+ },
+ {
+  "n": 81,
+  "module": "Configuration",
+  "method": "GET",
+  "route": "/api/v1/configuration/export",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 82,
+  "module": "Configuration",
+  "method": "POST",
+  "route": "/api/v1/configuration/import-plan",
+  "access": "Session",
+  "perm": "PERM-ADM-003 (A = full, V = non-money groups; resolved by ConfigAuthorityResolver)",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 83,
+  "module": "Customers",
+  "method": "POST",
+  "route": "/api/v1/commands/ProposeCustomerMerge",
+  "access": "Session",
+  "perm": "PERM-CRM-001",
+  "note": "",
+  "perms": [
+   "PERM-CRM-001"
+  ]
+ },
+ {
+  "n": 84,
+  "module": "Customers",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideCustomerMerge",
+  "access": "Session",
+  "perm": "PERM-CRM-002",
+  "note": "",
+  "perms": [
+   "PERM-CRM-002"
+  ]
+ },
+ {
+  "n": 85,
+  "module": "Customers",
+  "method": "POST",
+  "route": "/api/v1/commands/AddCustomerTag",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 86,
+  "module": "Customers",
+  "method": "POST",
+  "route": "/api/v1/commands/RemoveCustomerTag",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 87,
+  "module": "Customers",
+  "method": "POST",
+  "route": "/api/v1/commands/AddCustomerNote",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 88,
+  "module": "Customers",
+  "method": "POST",
+  "route": "/api/v1/commands/SetCustomerPreferences",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 89,
+  "module": "Customers",
+  "method": "POST",
+  "route": "/api/v1/commands/SetCustomerConsent",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 90,
+  "module": "Customers",
+  "method": "GET",
+  "route": "/api/v1/customers",
+  "access": "Session",
+  "perm": "PERM-FOL-001, PERM-GST-001, PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-001",
+   "PERM-GST-001",
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 91,
+  "module": "Customers",
+  "method": "GET",
+  "route": "/api/v1/customers/profile",
+  "access": "Session",
+  "perm": "PERM-FOL-001, PERM-GST-001, PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-001",
+   "PERM-GST-001",
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 92,
+  "module": "Customers",
+  "method": "GET",
+  "route": "/api/v1/customers/duplicates",
+  "access": "Session",
+  "perm": "PERM-CRM-001, PERM-CRM-002, PERM-FOL-001, PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-CRM-001",
+   "PERM-CRM-002",
+   "PERM-FOL-001",
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 93,
+  "module": "Customers",
+  "method": "GET",
+  "route": "/api/v1/customers/merges",
+  "access": "Session",
+  "perm": "PERM-CRM-001, PERM-CRM-002",
+  "note": "",
+  "perms": [
+   "PERM-CRM-001",
+   "PERM-CRM-002"
+  ]
+ },
+ {
+  "n": 94,
+  "module": "Documents",
+  "method": "POST",
+  "route": "/api/v1/commands/CaptureIdDocument",
+  "access": "Session",
+  "perm": "PERM-DOC-001",
+  "note": "",
+  "perms": [
+   "PERM-DOC-001"
+  ]
+ },
+ {
+  "n": 95,
+  "module": "Documents",
+  "method": "POST",
+  "route": "/api/v1/commands/ConfirmIdCapture",
+  "access": "Session",
+  "perm": "PERM-DOC-001, PERM-GST-003",
+  "note": "",
+  "perms": [
+   "PERM-DOC-001",
+   "PERM-GST-003"
+  ]
+ },
+ {
+  "n": 96,
+  "module": "Documents",
+  "method": "POST",
+  "route": "/api/v1/commands/RejectIdCapture",
+  "access": "Session",
+  "perm": "PERM-DOC-001",
+  "note": "",
+  "perms": [
+   "PERM-DOC-001"
+  ]
+ },
+ {
+  "n": 97,
+  "module": "Documents",
+  "method": "POST",
+  "route": "/api/v1/commands/ViewIdCaptureImage",
+  "access": "Session",
+  "perm": "PERM-GST-003",
+  "note": "",
+  "perms": [
+   "PERM-GST-003"
+  ]
+ },
+ {
+  "n": 98,
+  "module": "Documents",
+  "method": "POST",
+  "route": "/api/v1/commands/RevealIdCaptureNumber",
+  "access": "Session",
+  "perm": "PERM-GST-003",
+  "note": "",
+  "perms": [
+   "PERM-GST-003"
+  ]
+ },
+ {
+  "n": 99,
+  "module": "Documents",
+  "method": "POST",
+  "route": "/api/v1/commands/PurgeIdCaptures",
+  "access": "Session",
+  "perm": "PERM-DOC-002",
+  "note": "",
+  "perms": [
+   "PERM-DOC-002"
+  ]
+ },
+ {
+  "n": 100,
+  "module": "Documents",
+  "method": "GET",
+  "route": "/api/v1/documents/id-captures",
+  "access": "Session",
+  "perm": "PERM-DOC-001",
+  "note": "",
+  "perms": [
+   "PERM-DOC-001"
+  ]
+ },
+ {
+  "n": 101,
+  "module": "Documents",
+  "method": "GET",
+  "route": "/api/v1/documents/id-captures/{id:long}",
+  "access": "Session",
+  "perm": "PERM-DOC-001",
+  "note": "",
+  "perms": [
+   "PERM-DOC-001"
+  ]
+ },
+ {
+  "n": 102,
+  "module": "Expenses",
+  "method": "POST",
+  "route": "/api/v1/commands/SubmitExpense",
+  "access": "Session",
+  "perm": "PERM-EXP-001",
+  "note": "",
+  "perms": [
+   "PERM-EXP-001"
+  ]
+ },
+ {
+  "n": 103,
+  "module": "Expenses",
+  "method": "POST",
+  "route": "/api/v1/commands/SubmitExpenseDraft",
+  "access": "Session",
+  "perm": "PERM-EXP-001",
+  "note": "",
+  "perms": [
+   "PERM-EXP-001"
+  ]
+ },
+ {
+  "n": 104,
+  "module": "Expenses",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideExpense",
+  "access": "Session",
+  "perm": "PERM-EXP-002, PERM-EXP-003",
+  "note": "",
+  "perms": [
+   "PERM-EXP-002",
+   "PERM-EXP-003"
+  ]
+ },
+ {
+  "n": 105,
+  "module": "Expenses",
+  "method": "POST",
+  "route": "/api/v1/commands/ReverseExpense",
+  "access": "Session",
+  "perm": "PERM-EXP-003",
+  "note": "",
+  "perms": [
+   "PERM-EXP-003"
+  ]
+ },
+ {
+  "n": 106,
+  "module": "Expenses",
+  "method": "GET",
+  "route": "/api/v1/expenses",
+  "access": "Session",
+  "perm": "PERM-EXP-001, PERM-EXP-002, PERM-EXP-003",
+  "note": "",
+  "perms": [
+   "PERM-EXP-001",
+   "PERM-EXP-002",
+   "PERM-EXP-003"
+  ]
+ },
+ {
+  "n": 107,
+  "module": "Expenses",
+  "method": "GET",
+  "route": "/api/v1/expenses/summary",
+  "access": "Session",
+  "perm": "PERM-EXP-002",
+  "note": "",
+  "perms": [
+   "PERM-EXP-002"
+  ]
+ },
+ {
+  "n": 108,
+  "module": "Expenses",
+  "method": "GET",
+  "route": "/api/v1/expenses/options",
+  "access": "Session",
+  "perm": "PERM-EXP-001, PERM-EXP-002, PERM-EXP-003",
+  "note": "",
+  "perms": [
+   "PERM-EXP-001",
+   "PERM-EXP-002",
+   "PERM-EXP-003"
+  ]
+ },
+ {
+  "n": 109,
+  "module": "Expenses",
+  "method": "GET",
+  "route": "/api/v1/expenses/{expenseId:long}",
+  "access": "Session",
+  "perm": "PERM-EXP-001, PERM-EXP-002, PERM-EXP-003",
+  "note": "",
+  "perms": [
+   "PERM-EXP-001",
+   "PERM-EXP-002",
+   "PERM-EXP-003"
+  ]
+ },
+ {
+  "n": 110,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateGroup",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 111,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/UpdateGroup",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 112,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/SetGroupRouting",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 113,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/AttachGroupMember",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 114,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/DetachGroupMember",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 115,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/ApplyGroupRouting",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 116,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/RerouteGroupCharge",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 117,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/TransferGroupMember",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 118,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/RecordGroupReceipt",
+  "access": "Session",
+  "perm": "PERM-GRP-003, PERM-GRP-005",
+  "note": "",
+  "perms": [
+   "PERM-GRP-003",
+   "PERM-GRP-005"
+  ]
+ },
+ {
+  "n": 119,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/RequestGroupAttrition",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 120,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideGroupAttrition",
+  "access": "Session",
+  "perm": "PERM-GRP-003",
+  "note": "",
+  "perms": [
+   "PERM-GRP-003"
+  ]
+ },
+ {
+  "n": 121,
+  "module": "Groups",
+  "method": "POST",
+  "route": "/api/v1/commands/SettleGroup",
+  "access": "Session",
+  "perm": "PERM-GRP-002",
+  "note": "",
+  "perms": [
+   "PERM-GRP-002"
+  ]
+ },
+ {
+  "n": 122,
+  "module": "Groups",
+  "method": "GET",
+  "route": "/api/v1/groups",
+  "access": "Session",
+  "perm": "PERM-GRP-001",
+  "note": "",
+  "perms": [
+   "PERM-GRP-001"
+  ]
+ },
+ {
+  "n": 123,
+  "module": "Groups",
+  "method": "GET",
+  "route": "/api/v1/groups/{groupId:long}/statement",
+  "access": "Session",
+  "perm": "PERM-GRP-004",
+  "note": "",
+  "perms": [
+   "PERM-GRP-004"
+  ]
+ },
+ {
+  "n": 124,
+  "module": "GuestId",
+  "method": "POST",
+  "route": "/api/v1/commands/RevealGuestId",
+  "access": "Session",
+  "perm": "PERM-GST-003",
+  "note": "",
+  "perms": [
+   "PERM-GST-003"
+  ]
+ },
+ {
+  "n": 125,
+  "module": "GuestId",
+  "method": "POST",
+  "route": "/api/v1/commands/RekeyGuestIds",
+  "access": "Session",
+  "perm": "PERM-ADM-003",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 126,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/LogServiceRequest",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-003, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-003",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 127,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/AssignServiceRequest",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-002, PERM-HK-003, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-002",
+   "PERM-HK-003",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 128,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/StartServiceRequest",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-003, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-003",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 129,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/CompleteServiceRequest",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-003, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-003",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 130,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/CancelServiceRequest",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-002"
+  ]
+ },
+ {
+  "n": 131,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/LogComplaint",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 132,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/UpdateComplaint",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 133,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/ResolveComplaint",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 134,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/RecordComplaintFollowUp",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 135,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/OfferRecoveryDiscount",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 136,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/LogLostItem",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-003, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-003",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 137,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/ClaimLostItem",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 138,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/HandOverLostItem",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 139,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/DisposeLostItem",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 140,
+  "module": "GuestServices",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveGuestServiceSettings",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 141,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/requests",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-002, PERM-HK-003, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-002",
+   "PERM-HK-003",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 142,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/requests/{id:long}",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-002"
+  ]
+ },
+ {
+  "n": 143,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/complaints",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 144,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/complaints/{id:long}",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 145,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/lost-items",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-HK-003, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-HK-003",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 146,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/settings",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 147,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/history/{kind}/{id:long}",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 148,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/histories/{kind}",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 149,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/stays",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 150,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/reports/response",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 151,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/reports/complaints",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 152,
+  "module": "GuestServices",
+  "method": "GET",
+  "route": "/api/v1/guest-services/reports/lost-found",
+  "access": "Session",
+  "perm": "PERM-GST-002, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-GST-002",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 153,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveHandoverTemplate",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 154,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/ToggleHandoverTemplate",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 155,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/TickChecklistItem",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 156,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/SubmitChecklistRun",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 157,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/ReopenChecklistRun",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 158,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/SubmitHandoverNote",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 159,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/AcknowledgeHandoverNote",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 160,
+  "module": "Handover",
+  "method": "POST",
+  "route": "/api/v1/commands/CompleteCarryItem",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 161,
+  "module": "Handover",
+  "method": "GET",
+  "route": "/api/v1/handover/checklists",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 162,
+  "module": "Handover",
+  "method": "GET",
+  "route": "/api/v1/handover/notes",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 163,
+  "module": "Handover",
+  "method": "GET",
+  "route": "/api/v1/handover/carry",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 164,
+  "module": "Handover",
+  "method": "GET",
+  "route": "/api/v1/handover/templates",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 165,
+  "module": "Handover",
+  "method": "GET",
+  "route": "/api/v1/handover/dashboard",
+  "access": "Session",
+  "perm": "any of PERM-HK-001 / PERM-PAY-001 / PERM-APR-001, PERM-APR-001, PERM-PAY-001, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-PAY-001",
+   "PERM-APR-001",
+   "PERM-APR-001",
+   "PERM-PAY-001",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 166,
+  "module": "Housekeeping",
+  "method": "POST",
+  "route": "/api/v1/commands/TransitionHousekeepingTask",
+  "access": "Session",
+  "perm": "task work / repair work, PERM-HK-001, PERM-HK-002, PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-002",
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 167,
+  "module": "Housekeeping",
+  "method": "POST",
+  "route": "/api/v1/commands/BlockRoom",
+  "access": "Session",
+  "perm": "PERM-ROOM-002",
+  "note": "",
+  "perms": [
+   "PERM-ROOM-002"
+  ]
+ },
+ {
+  "n": 168,
+  "module": "Housekeeping",
+  "method": "POST",
+  "route": "/api/v1/commands/UnblockRoom",
+  "access": "Session",
+  "perm": "PERM-ROOM-002",
+  "note": "",
+  "perms": [
+   "PERM-ROOM-002"
+  ]
+ },
+ {
+  "n": 169,
+  "module": "Housekeeping",
+  "method": "POST",
+  "route": "/api/v1/commands/RequestRepair",
+  "access": "Session",
+  "perm": "PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 170,
+  "module": "Housekeeping",
+  "method": "POST",
+  "route": "/api/v1/commands/GenerateStayoverTasks",
+  "access": "Session",
+  "perm": "PERM-HK-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-002"
+  ]
+ },
+ {
+  "n": 171,
+  "module": "Housekeeping",
+  "method": "GET",
+  "route": "/api/v1/rooms/board",
+  "access": "Session",
+  "perm": "PERM-HK-001",
+  "note": "",
+  "perms": [
+   "PERM-HK-001"
+  ]
+ },
+ {
+  "n": 172,
+  "module": "Housekeeping",
+  "method": "GET",
+  "route": "/api/v1/housekeeping/tasks",
+  "access": "Session",
+  "perm": "PERM-HK-001",
+  "note": "",
+  "perms": [
+   "PERM-HK-001"
+  ]
+ },
+ {
+  "n": 173,
+  "module": "Import",
+  "method": "POST",
+  "route": "/api/v1/commands/UploadImportBatch",
+  "access": "Session",
+  "perm": "PERM-IMP-001",
+  "note": "",
+  "perms": [
+   "PERM-IMP-001"
+  ]
+ },
+ {
+  "n": 174,
+  "module": "Import",
+  "method": "POST",
+  "route": "/api/v1/commands/CommitImportBatch",
+  "access": "Session",
+  "perm": "commit permission per master (Owner-only masters), PERM-IMP-001",
+  "note": "",
+  "perms": [
+   "PERM-IMP-001"
+  ]
+ },
+ {
+  "n": 175,
+  "module": "Import",
+  "method": "GET",
+  "route": "/api/v1/import/masters",
+  "access": "Session",
+  "perm": "PERM-IMP-001",
+  "note": "",
+  "perms": [
+   "PERM-IMP-001"
+  ]
+ },
+ {
+  "n": 176,
+  "module": "Import",
+  "method": "GET",
+  "route": "/api/v1/import/batches",
+  "access": "Session",
+  "perm": "PERM-IMP-001",
+  "note": "",
+  "perms": [
+   "PERM-IMP-001"
+  ]
+ },
+ {
+  "n": 177,
+  "module": "Import",
+  "method": "GET",
+  "route": "/api/v1/import/batches/{batchId:long}",
+  "access": "Session",
+  "perm": "PERM-IMP-001",
+  "note": "",
+  "perms": [
+   "PERM-IMP-001"
+  ]
+ },
+ {
+  "n": 178,
+  "module": "Import",
+  "method": "GET",
+  "route": "/api/v1/import/opening-balances",
+  "access": "Session",
+  "perm": "PERM-IMP-001",
+  "note": "",
+  "perms": [
+   "PERM-IMP-001"
+  ]
+ },
+ {
+  "n": 179,
+  "module": "Import",
+  "method": "GET",
+  "route": "/api/v1/import/ledgers",
+  "access": "Session",
+  "perm": "PERM-IMP-001",
+  "note": "",
+  "perms": [
+   "PERM-IMP-001"
+  ]
+ },
+ {
+  "n": 180,
+  "module": "Inventory",
+  "method": "GET",
+  "route": "/api/v1/availability",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 181,
+  "module": "Inventory",
+  "method": "GET",
+  "route": "/api/v1/room-blocks/history",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 182,
+  "module": "Inventory",
+  "method": "GET",
+  "route": "/api/v1/rooms/status",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 183,
+  "module": "Inventory",
+  "method": "POST",
+  "route": "/api/v1/commands/QuoteStay",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 184,
+  "module": "Inventory",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateGroupBlock",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 185,
+  "module": "Inventory",
+  "method": "POST",
+  "route": "/api/v1/commands/ReleaseGroupBlock",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 186,
+  "module": "Invoices",
+  "method": "POST",
+  "route": "/api/v1/commands/IssueInvoice",
+  "access": "Session",
+  "perm": "PERM-INV-002",
+  "note": "",
+  "perms": [
+   "PERM-INV-002"
+  ]
+ },
+ {
+  "n": 187,
+  "module": "Invoices",
+  "method": "POST",
+  "route": "/api/v1/commands/RequestCreditNote",
+  "access": "Session",
+  "perm": "PERM-INV-003, PERM-INV-005",
+  "note": "",
+  "perms": [
+   "PERM-INV-003",
+   "PERM-INV-005"
+  ]
+ },
+ {
+  "n": 188,
+  "module": "Invoices",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideCreditNote",
+  "access": "Session",
+  "perm": "PERM-INV-003",
+  "note": "",
+  "perms": [
+   "PERM-INV-003"
+  ]
+ },
+ {
+  "n": 189,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/invoices",
+  "access": "Session",
+  "perm": "PERM-INV-001",
+  "note": "",
+  "perms": [
+   "PERM-INV-001"
+  ]
+ },
+ {
+  "n": 190,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/invoices/gstr1",
+  "access": "Session",
+  "perm": "PERM-INV-001",
+  "note": "",
+  "perms": [
+   "PERM-INV-001"
+  ]
+ },
+ {
+  "n": 191,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/invoices/by-source/{sourceKind}/{sourceId:long}",
+  "access": "Session",
+  "perm": "PERM-INV-001",
+  "note": "",
+  "perms": [
+   "PERM-INV-001"
+  ]
+ },
+ {
+  "n": 192,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/invoices/{invoiceId:long}",
+  "access": "Session",
+  "perm": "PERM-INV-001",
+  "note": "",
+  "perms": [
+   "PERM-INV-001"
+  ]
+ },
+ {
+  "n": 193,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/invoices/{invoiceId:long}/document",
+  "access": "Session",
+  "perm": "PERM-INV-002",
+  "note": "",
+  "perms": [
+   "PERM-INV-002"
+  ]
+ },
+ {
+  "n": 194,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/credit-notes/{creditNoteId:long}",
+  "access": "Session",
+  "perm": "PERM-INV-001",
+  "note": "",
+  "perms": [
+   "PERM-INV-001"
+  ]
+ },
+ {
+  "n": 195,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/credit-notes/{creditNoteId:long}/document",
+  "access": "Session",
+  "perm": "PERM-INV-002",
+  "note": "",
+  "perms": [
+   "PERM-INV-002"
+  ]
+ },
+ {
+  "n": 196,
+  "module": "Invoices",
+  "method": "GET",
+  "route": "/api/v1/credit-note-requests",
+  "access": "Session",
+  "perm": "PERM-INV-001",
+  "note": "",
+  "perms": [
+   "PERM-INV-001"
+  ]
+ },
+ {
+  "n": 197,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-003, PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-003",
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 198,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/ConvertRepairToWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-004, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-004",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 199,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/AssignWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-002"
+  ]
+ },
+ {
+  "n": 200,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/StartWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-004, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-004",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 201,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/HoldWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-004, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-004",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 202,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/AddWorkOrderPart",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-004, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-004",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 203,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/CompleteWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-004, PERM-ROOM-001",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-004",
+   "PERM-ROOM-001"
+  ]
+ },
+ {
+  "n": 204,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/VerifyWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-004, PERM-ROOM-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-004",
+   "PERM-ROOM-002"
+  ]
+ },
+ {
+  "n": 205,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/CancelWorkOrder",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 206,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/BlockWorkOrderRoom",
+  "access": "Session",
+  "perm": "PERM-HK-004, PERM-ROOM-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-004",
+   "PERM-ROOM-002"
+  ]
+ },
+ {
+  "n": 207,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/GeneratePmWorkOrders",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 208,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/SavePmPlan",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 209,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveMaintenanceAsset",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 210,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveMaintenanceVendor",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 211,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveAmc",
+  "access": "Session",
+  "perm": "PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 212,
+  "module": "Maintenance",
+  "method": "POST",
+  "route": "/api/v1/commands/ReceiveSpare",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 213,
+  "module": "Maintenance",
+  "method": "GET",
+  "route": "/api/v1/maintenance/work-orders",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-003, PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-003",
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 214,
+  "module": "Maintenance",
+  "method": "GET",
+  "route": "/api/v1/maintenance/work-orders/{id:long}",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-003, PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-003",
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 215,
+  "module": "Maintenance",
+  "method": "GET",
+  "route": "/api/v1/maintenance/registers",
+  "access": "Session",
+  "perm": "PERM-HK-001, PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-001",
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 216,
+  "module": "Maintenance",
+  "method": "GET",
+  "route": "/api/v1/maintenance/amcs",
+  "access": "Session",
+  "perm": "PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 217,
+  "module": "Maintenance",
+  "method": "GET",
+  "route": "/api/v1/maintenance/report",
+  "access": "Session",
+  "perm": "PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 218,
+  "module": "Messaging",
+  "method": "POST",
+  "route": "/api/v1/commands/SendMessage",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 219,
+  "module": "Messaging",
+  "method": "POST",
+  "route": "/api/v1/commands/RunMessagingTriggers",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 220,
+  "module": "Messaging",
+  "method": "POST",
+  "route": "/api/v1/commands/SimulateMessageDelivery",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 221,
+  "module": "Messaging",
+  "method": "POST",
+  "route": "/api/v1/commands/RetryMessage",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 222,
+  "module": "Messaging",
+  "method": "POST",
+  "route": "/api/v1/commands/SetMessagingConsent",
+  "access": "Session",
+  "perm": "PERM-RES-002, PERM-STY-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-002",
+   "PERM-STY-001"
+  ]
+ },
+ {
+  "n": 223,
+  "module": "Messaging",
+  "method": "POST",
+  "route": "/api/v1/commands/UpdateMessageTemplate",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 224,
+  "module": "Messaging",
+  "method": "POST",
+  "route": "/api/v1/commands/UpdateMessageRule",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 225,
+  "module": "Messaging",
+  "method": "GET",
+  "route": "/api/v1/messaging/messages",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 226,
+  "module": "Messaging",
+  "method": "GET",
+  "route": "/api/v1/messaging/messages/{id:long}",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 227,
+  "module": "Messaging",
+  "method": "GET",
+  "route": "/api/v1/messaging/summary",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 228,
+  "module": "Messaging",
+  "method": "GET",
+  "route": "/api/v1/messaging/templates",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 229,
+  "module": "Messaging",
+  "method": "GET",
+  "route": "/api/v1/messaging/rules",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 230,
+  "module": "Messaging",
+  "method": "GET",
+  "route": "/api/v1/messaging/consents",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 231,
+  "module": "Messaging",
+  "method": "GET",
+  "route": "/api/v1/messaging/consent/{guestId:long}",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 232,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveChannel",
+  "access": "Session",
+  "perm": "PERM-OTA-002",
+  "note": "",
+  "perms": [
+   "PERM-OTA-002"
+  ]
+ },
+ {
+  "n": 233,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/SetChannelStatus",
+  "access": "Session",
+  "perm": "PERM-OTA-002",
+  "note": "",
+  "perms": [
+   "PERM-OTA-002"
+  ]
+ },
+ {
+  "n": 234,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/SetChannelStopSell",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 235,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/PushChannelRates",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 236,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/ImportChannelMessage",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 237,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/QueueSimulatedMessage",
+  "access": "Session",
+  "perm": "PERM-OTA-002",
+  "note": "",
+  "perms": [
+   "PERM-OTA-002"
+  ]
+ },
+ {
+  "n": 238,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/PullChannelMessages",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 239,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/AcceptChannelMessage",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 240,
+  "module": "Ota",
+  "method": "POST",
+  "route": "/api/v1/commands/RejectChannelMessage",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 241,
+  "module": "Ota",
+  "method": "GET",
+  "route": "/api/v1/ota/channels",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 242,
+  "module": "Ota",
+  "method": "GET",
+  "route": "/api/v1/ota/messages",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 243,
+  "module": "Ota",
+  "method": "GET",
+  "route": "/api/v1/ota/messages/{id:long}/check",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 244,
+  "module": "Ota",
+  "method": "GET",
+  "route": "/api/v1/ota/channels/{id:int}/push-preview",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 245,
+  "module": "Ota",
+  "method": "GET",
+  "route": "/api/v1/ota/pushes",
+  "access": "Session",
+  "perm": "PERM-OTA-001",
+  "note": "",
+  "perms": [
+   "PERM-OTA-001"
+  ]
+ },
+ {
+  "n": 246,
+  "module": "Ota",
+  "method": "GET",
+  "route": "/api/v1/ota/commission",
+  "access": "Session",
+  "perm": "PERM-OTA-003",
+  "note": "",
+  "perms": [
+   "PERM-OTA-003"
+  ]
+ },
+ {
+  "n": 247,
+  "module": "Ota",
+  "method": "GET",
+  "route": "/api/v1/ota/reconciliation",
+  "access": "Session",
+  "perm": "PERM-OTA-003",
+  "note": "",
+  "perms": [
+   "PERM-OTA-003"
+  ]
+ },
+ {
+  "n": 248,
+  "module": "Payments",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateTill",
+  "access": "Session",
+  "perm": "PERM-ADM-003",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 249,
+  "module": "Payments",
+  "method": "POST",
+  "route": "/api/v1/commands/OpenShift",
+  "access": "Session",
+  "perm": "PERM-SHF-001",
+  "note": "",
+  "perms": [
+   "PERM-SHF-001"
+  ]
+ },
+ {
+  "n": 250,
+  "module": "Payments",
+  "method": "POST",
+  "route": "/api/v1/commands/SubmitShiftCount",
+  "access": "Session",
+  "perm": "own-shift scope, PERM-SHF-001",
+  "note": "",
+  "perms": [
+   "PERM-SHF-001"
+  ]
+ },
+ {
+  "n": 251,
+  "module": "Payments",
+  "method": "GET",
+  "route": "/api/v1/shifts/{shiftId:long}",
+  "access": "Session",
+  "perm": "own-shift scope, PERM-SHF-001",
+  "note": "",
+  "perms": [
+   "PERM-SHF-001"
+  ]
+ },
+ {
+  "n": 252,
+  "module": "Payments",
+  "method": "GET",
+  "route": "/api/v1/cashier/collections",
+  "access": "Session",
+  "perm": "PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 253,
+  "module": "Payments",
+  "method": "GET",
+  "route": "/api/v1/cashier/desk",
+  "access": "Session",
+  "perm": "PERM-SHF-001",
+  "note": "",
+  "perms": [
+   "PERM-SHF-001"
+  ]
+ },
+ {
+  "n": 254,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveDepartment",
+  "access": "Session",
+  "perm": "PERM-HR-002, PERM-HR-009",
+  "note": "",
+  "perms": [
+   "PERM-HR-002",
+   "PERM-HR-009"
+  ]
+ },
+ {
+  "n": 255,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveStaff",
+  "access": "Session",
+  "perm": "PERM-HR-002, PERM-HR-005, PERM-HR-009",
+  "note": "",
+  "perms": [
+   "PERM-HR-002",
+   "PERM-HR-005",
+   "PERM-HR-009"
+  ]
+ },
+ {
+  "n": 256,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/SetStaffActive",
+  "access": "Session",
+  "perm": "PERM-HR-002",
+  "note": "",
+  "perms": [
+   "PERM-HR-002"
+  ]
+ },
+ {
+  "n": 257,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/SetRoster",
+  "access": "Session",
+  "perm": "PERM-HR-002",
+  "note": "",
+  "perms": [
+   "PERM-HR-002"
+  ]
+ },
+ {
+  "n": 258,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/CopyRosterWeek",
+  "access": "Session",
+  "perm": "PERM-HR-002",
+  "note": "",
+  "perms": [
+   "PERM-HR-002"
+  ]
+ },
+ {
+  "n": 259,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/MarkAttendance",
+  "access": "Session",
+  "perm": "PERM-HR-002, PERM-HR-004",
+  "note": "",
+  "perms": [
+   "PERM-HR-002",
+   "PERM-HR-004"
+  ]
+ },
+ {
+  "n": 260,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/RequestLeave",
+  "access": "Session",
+  "perm": "PERM-HR-002, PERM-HR-004",
+  "note": "",
+  "perms": [
+   "PERM-HR-002",
+   "PERM-HR-004"
+  ]
+ },
+ {
+  "n": 261,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideLeave",
+  "access": "Session",
+  "perm": "PERM-HR-003",
+  "note": "",
+  "perms": [
+   "PERM-HR-003"
+  ]
+ },
+ {
+  "n": 262,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/CancelLeave",
+  "access": "Session",
+  "perm": "PERM-HR-002, PERM-HR-004",
+  "note": "",
+  "perms": [
+   "PERM-HR-002",
+   "PERM-HR-004"
+  ]
+ },
+ {
+  "n": 263,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/SetLeavePolicy",
+  "access": "Session",
+  "perm": "PERM-HR-009",
+  "note": "",
+  "perms": [
+   "PERM-HR-009"
+  ]
+ },
+ {
+  "n": 264,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/GiveAdvance",
+  "access": "Session",
+  "perm": "PERM-HR-007",
+  "note": "",
+  "perms": [
+   "PERM-HR-007"
+  ]
+ },
+ {
+  "n": 265,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/SetStatutoryRates",
+  "access": "Session",
+  "perm": "PERM-HR-009",
+  "note": "",
+  "perms": [
+   "PERM-HR-009"
+  ]
+ },
+ {
+  "n": 266,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/PreparePayRun",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 267,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/LockPayRun",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 268,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/UnlockPayRun",
+  "access": "Session",
+  "perm": "PERM-HR-009",
+  "note": "",
+  "perms": [
+   "PERM-HR-009"
+  ]
+ },
+ {
+  "n": 269,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/IssueBankFile",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 270,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/SendPayslip",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 271,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/PrepareFnf",
+  "access": "Session",
+  "perm": "PERM-HR-008",
+  "note": "",
+  "perms": [
+   "PERM-HR-008"
+  ]
+ },
+ {
+  "n": 272,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/ConfirmFnf",
+  "access": "Session",
+  "perm": "PERM-HR-008",
+  "note": "",
+  "perms": [
+   "PERM-HR-008"
+  ]
+ },
+ {
+  "n": 273,
+  "module": "Payroll",
+  "method": "POST",
+  "route": "/api/v1/commands/DiscardFnf",
+  "access": "Session",
+  "perm": "PERM-HR-008",
+  "note": "",
+  "perms": [
+   "PERM-HR-008"
+  ]
+ },
+ {
+  "n": 274,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/staff",
+  "access": "Session",
+  "perm": "PERM-HR-001, PERM-HR-004, PERM-HR-005",
+  "note": "",
+  "perms": [
+   "PERM-HR-001",
+   "PERM-HR-004",
+   "PERM-HR-005"
+  ]
+ },
+ {
+  "n": 275,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/staff/{staffId:long}/leave-balance",
+  "access": "Session",
+  "perm": "PERM-HR-001",
+  "note": "",
+  "perms": [
+   "PERM-HR-001"
+  ]
+ },
+ {
+  "n": 276,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/rates/{month}",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 277,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/runs/{month}",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 278,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/runs/{month}/register.csv",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 279,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/runs/{month}/statutory.csv",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 280,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/run/{runId:long}/bank-files/{issueNo:int}",
+  "access": "Session",
+  "perm": "PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 281,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/payslips/{runId:long}/{staffId:long}",
+  "access": "Session",
+  "perm": "PERM-HR-004, PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-004",
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 282,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/board",
+  "access": "Session",
+  "perm": "PERM-HR-001, PERM-HR-004, PERM-HR-006",
+  "note": "",
+  "perms": [
+   "PERM-HR-001",
+   "PERM-HR-004",
+   "PERM-HR-006"
+  ]
+ },
+ {
+  "n": 283,
+  "module": "Payroll",
+  "method": "GET",
+  "route": "/api/v1/payroll/my/payslips",
+  "access": "Session",
+  "perm": "PERM-HR-004",
+  "note": "",
+  "perms": [
+   "PERM-HR-004"
+  ]
+ },
+ {
+  "n": 284,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateOutlet",
+  "access": "Session",
+  "perm": "PERM-ADM-003",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 285,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveMenuItem",
+  "access": "Session",
+  "perm": "PERM-ADM-003",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 286,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/SetMenuItemAvailability",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 287,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/OpenCheck",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 288,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/AddCheckItem",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 289,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/SetCheckItemQty",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 290,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/SendKot",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 291,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/AdvanceKot",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 292,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/SettleCheck",
+  "access": "Session",
+  "perm": "PERM-FOL-002, PERM-PAY-001, own-shift scope",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002",
+   "PERM-PAY-001"
+  ]
+ },
+ {
+  "n": 293,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/VoidCheckItem",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 294,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/VoidBill",
+  "access": "Session",
+  "perm": "PERM-FOL-002, PERM-PAY-001",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002",
+   "PERM-PAY-001"
+  ]
+ },
+ {
+  "n": 295,
+  "module": "Pos",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideVoid",
+  "access": "Session",
+  "perm": "PERM-APR-001",
+  "note": "",
+  "perms": [
+   "PERM-APR-001"
+  ]
+ },
+ {
+  "n": 296,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/checks/{orderId:long}",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 297,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/checks",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 298,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/outlets",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 299,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/menu",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 300,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/kitchen",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 301,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/day-summary",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 302,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/checks/closed",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 303,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/void-requests",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 304,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/in-house",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 305,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/till",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 306,
+  "module": "Pos",
+  "method": "GET",
+  "route": "/api/v1/pos/close-blockers",
+  "access": "Session",
+  "perm": "PERM-FOL-002",
+  "note": "",
+  "perms": [
+   "PERM-FOL-002"
+  ]
+ },
+ {
+  "n": 307,
+  "module": "Reservations",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateReservation",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 308,
+  "module": "Reservations",
+  "method": "POST",
+  "route": "/api/v1/commands/AmendReservation",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-RES-003",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-RES-003"
+  ]
+ },
+ {
+  "n": 309,
+  "module": "Reservations",
+  "method": "POST",
+  "route": "/api/v1/commands/CancelReservation",
+  "access": "Session",
+  "perm": "PERM-RES-004",
+  "note": "",
+  "perms": [
+   "PERM-RES-004"
+  ]
+ },
+ {
+  "n": 310,
+  "module": "Reservations",
+  "method": "POST",
+  "route": "/api/v1/commands/MarkNoShow",
+  "access": "Session",
+  "perm": "PERM-RES-004",
+  "note": "",
+  "perms": [
+   "PERM-RES-004"
+  ]
+ },
+ {
+  "n": 311,
+  "module": "Reservations",
+  "method": "POST",
+  "route": "/api/v1/commands/ConfirmHold",
+  "access": "Session",
+  "perm": "PERM-RES-002",
+  "note": "",
+  "perms": [
+   "PERM-RES-002"
+  ]
+ },
+ {
+  "n": 312,
+  "module": "Reservations",
+  "method": "GET",
+  "route": "/api/v1/reservations",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 313,
+  "module": "Reservations",
+  "method": "GET",
+  "route": "/api/v1/reservations/{id:long}",
+  "access": "Session",
+  "perm": "PERM-RES-001",
+  "note": "",
+  "perms": [
+   "PERM-RES-001"
+  ]
+ },
+ {
+  "n": 314,
+  "module": "Setup",
+  "method": "GET",
+  "route": "/api/v1/setup/status",
+  "access": "Loopback only",
+  "perm": "none",
+  "note": "SetupEndpoints.IsServerPc",
+  "perms": []
+ },
+ {
+  "n": 315,
+  "module": "Setup",
+  "method": "POST",
+  "route": "/api/v1/setup/SetupProperty",
+  "access": "Loopback only",
+  "perm": "none; refused once a property exists",
+  "note": "SetupEndpoints.IsServerPc",
+  "perms": []
+ },
+ {
+  "n": 316,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/RegisterGuest",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 317,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/CheckIn",
+  "access": "Session",
+  "perm": "PERM-STY-001",
+  "note": "",
+  "perms": [
+   "PERM-STY-001"
+  ]
+ },
+ {
+  "n": 318,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/CheckoutStay",
+  "access": "Session",
+  "perm": "PERM-STY-003",
+  "note": "",
+  "perms": [
+   "PERM-STY-003"
+  ]
+ },
+ {
+  "n": 319,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/MoveRoom",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-STY-002",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-STY-002"
+  ]
+ },
+ {
+  "n": 320,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/ExtendStay",
+  "access": "Session",
+  "perm": "PERM-APR-001, PERM-STY-002",
+  "note": "",
+  "perms": [
+   "PERM-APR-001",
+   "PERM-STY-002"
+  ]
+ },
+ {
+  "n": 321,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/ShortenStay",
+  "access": "Session",
+  "perm": "PERM-STY-002",
+  "note": "",
+  "perms": [
+   "PERM-STY-002"
+  ]
+ },
+ {
+  "n": 322,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/EarlyDeparture",
+  "access": "Session",
+  "perm": "PERM-STY-002",
+  "note": "",
+  "perms": [
+   "PERM-STY-002"
+  ]
+ },
+ {
+  "n": 323,
+  "module": "Stays",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveGuestProfile",
+  "access": "Session",
+  "perm": "PERM-GST-002",
+  "note": "",
+  "perms": [
+   "PERM-GST-002"
+  ]
+ },
+ {
+  "n": 324,
+  "module": "Stays",
+  "method": "GET",
+  "route": "/api/v1/guests",
+  "access": "Session",
+  "perm": "PERM-GST-001, PERM-GST-002, PERM-GST-003",
+  "note": "",
+  "perms": [
+   "PERM-GST-001",
+   "PERM-GST-002",
+   "PERM-GST-003"
+  ]
+ },
+ {
+  "n": 325,
+  "module": "Stays",
+  "method": "GET",
+  "route": "/api/v1/guests/{guestId:long}",
+  "access": "Session",
+  "perm": "PERM-GST-001, PERM-GST-002, PERM-GST-003",
+  "note": "",
+  "perms": [
+   "PERM-GST-001",
+   "PERM-GST-002",
+   "PERM-GST-003"
+  ]
+ },
+ {
+  "n": 326,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockReceiveGrn",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 327,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockIssue",
+  "access": "Session",
+  "perm": "PERM-HK-003",
+  "note": "",
+  "perms": [
+   "PERM-HK-003"
+  ]
+ },
+ {
+  "n": 328,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockUse",
+  "access": "Session",
+  "perm": "PERM-HK-003",
+  "note": "",
+  "perms": [
+   "PERM-HK-003"
+  ]
+ },
+ {
+  "n": 329,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockRoomChange",
+  "access": "Session",
+  "perm": "PERM-HK-003",
+  "note": "",
+  "perms": [
+   "PERM-HK-003"
+  ]
+ },
+ {
+  "n": 330,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockLaundrySend",
+  "access": "Session",
+  "perm": "PERM-HK-003",
+  "note": "",
+  "perms": [
+   "PERM-HK-003"
+  ]
+ },
+ {
+  "n": 331,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockLaundryReceive",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 332,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockRecordLoss",
+  "access": "Session",
+  "perm": "PERM-HK-003",
+  "note": "",
+  "perms": [
+   "PERM-HK-003"
+  ]
+ },
+ {
+  "n": 333,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockCountSubmit",
+  "access": "Session",
+  "perm": "PERM-HK-003",
+  "note": "",
+  "perms": [
+   "PERM-HK-003"
+  ]
+ },
+ {
+  "n": 334,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockCountDecide",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 335,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockItemCreate",
+  "access": "Session",
+  "perm": "PERM-HK-004, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-004",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 336,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockItemSet",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 337,
+  "module": "Stock",
+  "method": "POST",
+  "route": "/api/v1/commands/StockSettingsSet",
+  "access": "Session",
+  "perm": "PERM-HK-004",
+  "note": "",
+  "perms": [
+   "PERM-HK-004"
+  ]
+ },
+ {
+  "n": 338,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/items",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 339,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/settings",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 340,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/alerts",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 341,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/laundry",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 342,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/counts",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 343,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/losses",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 344,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/moves",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 345,
+  "module": "Stock",
+  "method": "GET",
+  "route": "/api/v1/stock/consumption",
+  "access": "Session",
+  "perm": "PERM-HK-003, PERM-RPT-002",
+  "note": "",
+  "perms": [
+   "PERM-HK-003",
+   "PERM-RPT-002"
+  ]
+ },
+ {
+  "n": 346,
+  "module": "Tax",
+  "method": "POST",
+  "route": "/api/v1/commands/SetGstSetting",
+  "access": "Session",
+  "perm": "PERM-ADM-003",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 347,
+  "module": "Tax",
+  "method": "POST",
+  "route": "/api/v1/commands/WithdrawGstSetting",
+  "access": "Session",
+  "perm": "PERM-ADM-003",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 348,
+  "module": "Tax",
+  "method": "GET",
+  "route": "/api/v1/tax/gst",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-ADM-003:VIEW",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-ADM-003"
+  ]
+ },
+ {
+  "n": 349,
+  "module": "WebBooking",
+  "method": "GET",
+  "route": "/api/v1/public/booking/quote",
+  "access": "Anonymous",
+  "perm": "none (public)",
+  "note": "Off unless Hcc:WebBooking:Enabled; per-IP limit; no-store",
+  "perms": []
+ },
+ {
+  "n": 350,
+  "module": "WebBooking",
+  "method": "POST",
+  "route": "/api/v1/public/booking/requests",
+  "access": "Anonymous",
+  "perm": "none (public)",
+  "note": "Enabled flag, per-IP limit, honeypot, Idempotency-Key, 3 open per phone",
+  "perms": []
+ },
+ {
+  "n": 351,
+  "module": "WebBooking",
+  "method": "GET",
+  "route": "/api/v1/public/booking/deposit/{token}",
+  "access": "Anonymous",
+  "perm": "none (256-bit link token)",
+  "note": "Enabled flag, per-IP limit",
+  "perms": []
+ },
+ {
+  "n": 352,
+  "module": "WebBooking",
+  "method": "POST",
+  "route": "/api/v1/commands/ConfirmWebRequest",
+  "access": "Session",
+  "perm": "PERM-WEB-001",
+  "note": "",
+  "perms": [
+   "PERM-WEB-001"
+  ]
+ },
+ {
+  "n": 353,
+  "module": "WebBooking",
+  "method": "POST",
+  "route": "/api/v1/commands/DeclineWebRequest",
+  "access": "Session",
+  "perm": "PERM-WEB-001",
+  "note": "",
+  "perms": [
+   "PERM-WEB-001"
+  ]
+ },
+ {
+  "n": 354,
+  "module": "WebBooking",
+  "method": "POST",
+  "route": "/api/v1/commands/CreateWebDepositLink",
+  "access": "Session",
+  "perm": "PERM-WEB-001",
+  "note": "",
+  "perms": [
+   "PERM-WEB-001"
+  ]
+ },
+ {
+  "n": 355,
+  "module": "WebBooking",
+  "method": "POST",
+  "route": "/api/v1/commands/MarkWebDepositPaid",
+  "access": "Session",
+  "perm": "PERM-PAY-002, PERM-WEB-001",
+  "note": "",
+  "perms": [
+   "PERM-PAY-002",
+   "PERM-WEB-001"
+  ]
+ },
+ {
+  "n": 356,
+  "module": "WebBooking",
+  "method": "GET",
+  "route": "/api/v1/web-booking/requests",
+  "access": "Session",
+  "perm": "PERM-WEB-001",
+  "note": "",
+  "perms": [
+   "PERM-WEB-001"
+  ]
+ },
+ {
+  "n": 357,
+  "module": "WebBooking",
+  "method": "GET",
+  "route": "/api/v1/web-booking/requests/{id:long}",
+  "access": "Session",
+  "perm": "PERM-WEB-001",
+  "note": "",
+  "perms": [
+   "PERM-WEB-001"
+  ]
+ },
+ {
+  "n": 358,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveYieldPlan",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 359,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveYieldSeason",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 360,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SetYieldDayOfWeek",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 361,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveYieldOccupancyRule",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 362,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SetYieldGuardrails",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 363,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SaveYieldRestriction",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 364,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SetYieldOverride",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 365,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/SetYieldForecast",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 366,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/PublishYieldTariffs",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 367,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/ProposeYieldPublish",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-APR-001, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-APR-001",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 368,
+  "module": "Yield",
+  "method": "POST",
+  "route": "/api/v1/commands/DecideYieldProposal",
+  "access": "Session",
+  "perm": "PERM-ADM-003, PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-ADM-003",
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 369,
+  "module": "Yield",
+  "method": "GET",
+  "route": "/api/v1/yield/calendar",
+  "access": "Session",
+  "perm": "PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 370,
+  "module": "Yield",
+  "method": "GET",
+  "route": "/api/v1/yield/config",
+  "access": "Session",
+  "perm": "PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 371,
+  "module": "Yield",
+  "method": "GET",
+  "route": "/api/v1/yield/quote",
+  "access": "Session",
+  "perm": "PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 372,
+  "module": "Yield",
+  "method": "GET",
+  "route": "/api/v1/yield/proposals",
+  "access": "Session",
+  "perm": "PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-RPT-001"
+  ]
+ },
+ {
+  "n": 373,
+  "module": "Yield",
+  "method": "GET",
+  "route": "/api/v1/yield/publishes",
+  "access": "Session",
+  "perm": "PERM-RPT-001",
+  "note": "",
+  "perms": [
+   "PERM-RPT-001"
+  ]
+ }
+]

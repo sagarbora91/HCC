@@ -1,0 +1,12 @@
+pwsh: 7.6.6
+PSModulePath(inherited): E:\Users\Sagar\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;e:\tools\powershell\7\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules;E:\Program Files\Microsoft SQL Server\170\Tools\PowerShell\Modules\
+=== run 1: powershell.exe started from pwsh 7 (inherits PSModulePath, as dotnet test from pwsh does)
+PASS row counts: equal ok; missing table or empty restore fails; differences only reported
+Passed: 43  Failed: 0
+
+exit=0
+=== run 2: PSModulePath cleared (as from Windows PowerShell / cmd)
+PASS row counts: equal ok; missing table or empty restore fails; differences only reported
+Passed: 43  Failed: 0
+
+exit=0

@@ -1,0 +1,33 @@
+rounding sweep: 4600044 pairs, tax mismatches 0, split mismatches 0
+bps > 10000 refused by MoneyMath.PercentOf (VALIDATION)
+  mixed line 1 Room night 24 Oct ₹7,500.00: 750000@500 tax 37500 CGST 18750 SGST 18750 SAC 996311
+  mixed line 2 Room night 25 Oct ₹7,500.01: 750001@1800 tax 135000 CGST 67500 SGST 67500 SAC 996311
+  mixed line 3 Restaurant dinner: 123450@500 tax 6173 CGST 3087 SGST 3086 SAC 996331
+  mixed line 4 Room service tea: 1010@500 tax 51 CGST 26 SGST 25 SAC 996331
+  mixed line 5 Laundry: 33333@1800 tax 6000 CGST 3000 SGST 3000 SAC 999712
+  mixed line 6 Discount: -12345@1800 tax -2222 CGST -1111 SGST -1111 SAC 996311
+mixed folio (HCC): net 1645449 tax 182502 CGST 91252 SGST 91250 total 1827951 · FolioTotals net 1645449 tax 182502 total 1827951 · specified=False
+same folio inter-state (IGST path): IGST 182502 CGST 0 SGST 0; place of supply for accommodation is the hotel (IGST Act s.12(3)) — see A03a-04
+Recipient(B2B, GSTIN 29…, placeOfSupply 29, hotel 27) → InterState=True (whole invoice incl. room nights becomes IGST)
+partial credit ₹100.10 on line 1: tax 501 (500.5 → 501)
+full credit after it: REFUSED VALIDATION: Line 1: rounding would credit more tax than was charged. Credit the line's remaining ₹1,899.90 in one note, or a whole-rupee amount.
+lines-mode remainder of line 1 (189990): REFUSED VALIDATION
+workaround 189980 accepted (tax 9499); the last 10 paise of line 1: REFUSED VALIDATION — line can never be fully credited
+category of 'Express breakfast': Laundry
+category of 'Espresso': Other
+category of 'Press conference hall': Laundry
+category of 'Breakfast': Food
+category of 'Minibar': Food
+category of 'No-show charge': Other
+category of 'Extra bed': Other
+numbers: INV/2627/0000001 · CN/2627/00000001 · FY of 2027-04-01 2728
+INV series full after 9,999,999 (7 digits) — refused, not wrapped
+GSTIN 27AAPFU0939F1ZV: invoices Gstin.IsValid=True · groups GroupText.Gstin accepted
+GSTIN 29AAGCB7383J1Z4: invoices Gstin.IsValid=True · groups GroupText.Gstin accepted
+GSTIN 27AAAAA0000A1Z2: invoices Gstin.IsValid=True · groups GroupText.Gstin accepted
+GSTIN 27AAAAA0000A1Z5: invoices Gstin.IsValid=False · groups GroupText.Gstin accepted
+GSTIN 27ZZFIC0001F1Z5: invoices Gstin.IsValid=False · groups GroupText.Gstin accepted
+GSTIN 27ZZFIC0002F1Z4: invoices Gstin.IsValid=False · groups GroupText.Gstin accepted
+GSTIN 27ZZFIC0003F1Z3: invoices Gstin.IsValid=False · groups GroupText.Gstin accepted
+slab: 750000 → 500 bps · 750001 → 1800 bps · 21 Sep 2025 ₹2,000 → 1200 bps
+attrition slab basis: ₹9,000 block rate × 50 % = ₹4,500 retention → 500 bps (GroupCommands.cs:455 tests the retention price); the underlying ₹9,000 night → 1800 bps

@@ -1,0 +1,8 @@
+f25b519 HANDOFF: APK v12 defect fixes merged
+d851fe4 Merge v12 fix B (booking refs HCC-xxxx, Show ID layout, production wording, Android npm ci check)
+1c179ce APK v12 fixes (job B): production booking reference = server public number, Show ID dialog layout, no 'Preview as' demo text, npm ci before every Android build + preferences-plugin check
+e2cd057 APK v12 fixes A: sign-in throttle message, own-shift cash tender, shift-closed wording, auto-recover from read-only, no new booking offline
+c0c477d HANDOFF: APK v12 emulator results, next-session audit prompt
+f0a5a29 APK v12 emulator report and screenshots (demo APK, server APK phone and tablet against the real server)
+c0c477d IS ancestor of main
+f25b519 2026-10-26 15:32:25 +0530

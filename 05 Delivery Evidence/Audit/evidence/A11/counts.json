@@ -1,0 +1,645 @@
+{
+ "prototype": {
+  "filesLoadedByRunMjs": 83,
+  "literalTestCalls": 963,
+  "nonLiteralCallsNeedHumanLook": [
+   "run.mjs:1",
+   "stream-clients.mjs:1"
+  ],
+  "perFile": {
+   "run.mjs": {
+    "literal": 28,
+    "nonLiteralArg": 1
+   },
+   "m1.mjs": {
+    "literal": 28,
+    "nonLiteralArg": 0
+   },
+   "stream-a.mjs": {
+    "literal": 19,
+    "nonLiteralArg": 0
+   },
+   "stream-a11y.mjs": {
+    "literal": 10,
+    "nonLiteralArg": 0
+   },
+   "stream-a2-till.mjs": {
+    "literal": 10,
+    "nonLiteralArg": 0
+   },
+   "stream-a2-ui.mjs": {
+    "literal": 5,
+    "nonLiteralArg": 0
+   },
+   "stream-a2.mjs": {
+    "literal": 7,
+    "nonLiteralArg": 0
+   },
+   "stream-acceptance-fixes.mjs": {
+    "literal": 4,
+    "nonLiteralArg": 0
+   },
+   "stream-accounting.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-assistant.mjs": {
+    "literal": 16,
+    "nonLiteralArg": 0
+   },
+   "stream-b.mjs": {
+    "literal": 12,
+    "nonLiteralArg": 0
+   },
+   "stream-c.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-cashbook.mjs": {
+    "literal": 18,
+    "nonLiteralArg": 0
+   },
+   "stream-cashlock.mjs": {
+    "literal": 9,
+    "nonLiteralArg": 0
+   },
+   "stream-channels.mjs": {
+    "literal": 14,
+    "nonLiteralArg": 0
+   },
+   "stream-clients.mjs": {
+    "literal": 20,
+    "nonLiteralArg": 1
+   },
+   "stream-compat.mjs": {
+    "literal": 5,
+    "nonLiteralArg": 0
+   },
+   "stream-compliance.mjs": {
+    "literal": 22,
+    "nonLiteralArg": 0
+   },
+   "stream-config.mjs": {
+    "literal": 23,
+    "nonLiteralArg": 0
+   },
+   "stream-customers.mjs": {
+    "literal": 9,
+    "nonLiteralArg": 0
+   },
+   "stream-d.mjs": {
+    "literal": 13,
+    "nonLiteralArg": 0
+   },
+   "stream-e.mjs": {
+    "literal": 25,
+    "nonLiteralArg": 0
+   },
+   "stream-exports.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-f.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-groups-holds.mjs": {
+    "literal": 4,
+    "nonLiteralArg": 0
+   },
+   "stream-groups.mjs": {
+    "literal": 14,
+    "nonLiteralArg": 0
+   },
+   "stream-gst.mjs": {
+    "literal": 16,
+    "nonLiteralArg": 0
+   },
+   "stream-guestid-full.mjs": {
+    "literal": 11,
+    "nonLiteralArg": 0
+   },
+   "stream-handover.mjs": {
+    "literal": 21,
+    "nonLiteralArg": 0
+   },
+   "stream-history-a.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-history-b.mjs": {
+    "literal": 17,
+    "nonLiteralArg": 0
+   },
+   "stream-history-c.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-history-guests.mjs": {
+    "literal": 4,
+    "nonLiteralArg": 0
+   },
+   "stream-inset-compat.mjs": {
+    "literal": 1,
+    "nonLiteralArg": 0
+   },
+   "stream-inventory.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-maintenance.mjs": {
+    "literal": 10,
+    "nonLiteralArg": 0
+   },
+   "stream-messaging.mjs": {
+    "literal": 13,
+    "nonLiteralArg": 0
+   },
+   "stream-mobile-admin.mjs": {
+    "literal": 11,
+    "nonLiteralArg": 0
+   },
+   "stream-mobile-frontdesk.mjs": {
+    "literal": 11,
+    "nonLiteralArg": 0
+   },
+   "stream-mobile-money.mjs": {
+    "literal": 7,
+    "nonLiteralArg": 0
+   },
+   "stream-mobile-ops.mjs": {
+    "literal": 11,
+    "nonLiteralArg": 0
+   },
+   "stream-mobile.mjs": {
+    "literal": 3,
+    "nonLiteralArg": 0
+   },
+   "stream-n3-polish.mjs": {
+    "literal": 5,
+    "nonLiteralArg": 0
+   },
+   "stream-native.mjs": {
+    "literal": 11,
+    "nonLiteralArg": 0
+   },
+   "stream-nav-anyof.mjs": {
+    "literal": 2,
+    "nonLiteralArg": 0
+   },
+   "stream-navmap.mjs": {
+    "literal": 13,
+    "nonLiteralArg": 0
+   },
+   "stream-payroll-fixes.mjs": {
+    "literal": 20,
+    "nonLiteralArg": 0
+   },
+   "stream-payroll-scc.mjs": {
+    "literal": 19,
+    "nonLiteralArg": 0
+   },
+   "stream-perf-reports.mjs": {
+    "literal": 7,
+    "nonLiteralArg": 0
+   },
+   "stream-perf-store.mjs": {
+    "literal": 9,
+    "nonLiteralArg": 0
+   },
+   "stream-phonefix.mjs": {
+    "literal": 7,
+    "nonLiteralArg": 0
+   },
+   "stream-polish-fixes.mjs": {
+    "literal": 3,
+    "nonLiteralArg": 0
+   },
+   "stream-pos.mjs": {
+    "literal": 12,
+    "nonLiteralArg": 0
+   },
+   "stream-rbac-matrix.mjs": {
+    "literal": 44,
+    "nonLiteralArg": 0
+   },
+   "stream-report-till.mjs": {
+    "literal": 3,
+    "nonLiteralArg": 0
+   },
+   "stream-schema8.mjs": {
+    "literal": 4,
+    "nonLiteralArg": 0
+   },
+   "stream-services.mjs": {
+    "literal": 15,
+    "nonLiteralArg": 0
+   },
+   "stream-staff.mjs": {
+    "literal": 17,
+    "nonLiteralArg": 0
+   },
+   "stream-t04.mjs": {
+    "literal": 1,
+    "nonLiteralArg": 0
+   },
+   "stream-v11-fixes.mjs": {
+    "literal": 8,
+    "nonLiteralArg": 0
+   },
+   "stream-yield.mjs": {
+    "literal": 22,
+    "nonLiteralArg": 0
+   },
+   "sync-accounting.mjs": {
+    "literal": 8,
+    "nonLiteralArg": 0
+   },
+   "sync-admin.mjs": {
+    "literal": 10,
+    "nonLiteralArg": 0
+   },
+   "sync-apk.mjs": {
+    "literal": 10,
+    "nonLiteralArg": 0
+   },
+   "sync-cache-security.mjs": {
+    "literal": 12,
+    "nonLiteralArg": 0
+   },
+   "sync-channels.mjs": {
+    "literal": 8,
+    "nonLiteralArg": 0
+   },
+   "sync-closing.mjs": {
+    "literal": 9,
+    "nonLiteralArg": 0
+   },
+   "sync-company-advance.mjs": {
+    "literal": 8,
+    "nonLiteralArg": 0
+   },
+   "sync-credentials.mjs": {
+    "literal": 7,
+    "nonLiteralArg": 0
+   },
+   "sync-foundation.mjs": {
+    "literal": 16,
+    "nonLiteralArg": 0
+   },
+   "sync-frontdesk.mjs": {
+    "literal": 9,
+    "nonLiteralArg": 0
+   },
+   "sync-guestid.mjs": {
+    "literal": 5,
+    "nonLiteralArg": 0
+   },
+   "sync-install.mjs": {
+    "literal": 4,
+    "nonLiteralArg": 0
+   },
+   "sync-maintenance.mjs": {
+    "literal": 10,
+    "nonLiteralArg": 0
+   },
+   "sync-money.mjs": {
+    "literal": 18,
+    "nonLiteralArg": 0
+   },
+   "sync-payfiles.mjs": {
+    "literal": 4,
+    "nonLiteralArg": 0
+   },
+   "sync-pos.mjs": {
+    "literal": 13,
+    "nonLiteralArg": 0
+   },
+   "sync-reports.mjs": {
+    "literal": 6,
+    "nonLiteralArg": 0
+   },
+   "sync-reservations.mjs": {
+    "literal": 4,
+    "nonLiteralArg": 0
+   },
+   "sync-roles.mjs": {
+    "literal": 7,
+    "nonLiteralArg": 0
+   },
+   "sync-rooms.mjs": {
+    "literal": 5,
+    "nonLiteralArg": 0
+   },
+   "sync-services.mjs": {
+    "literal": 7,
+    "nonLiteralArg": 0
+   },
+   "sync-staff.mjs": {
+    "literal": 5,
+    "nonLiteralArg": 0
+   }
+  },
+  "lastRecordedRun": {
+   "runAt": "2026-10-25T23:23:36.783Z",
+   "passed": 800,
+   "total": 800
+  },
+  "nonLoadedTestFiles": [
+   "check-overlay-compat.mjs",
+   "check-print-layout.mjs",
+   "check-tablet-back.mjs",
+   "print-fixture.tsx",
+   "stream-example.mjs.txt",
+   "_sync-harness.mjs",
+   "_till.mjs"
+  ]
+ },
+ "server": {
+  "projects": 28,
+  "facts": 798,
+  "theories": 30,
+  "inlineDataRows": 140,
+  "memberOrClassDataAttrs": 3,
+  "skipAttrs": 0,
+  "otherFactLikeAttrs": {},
+  "upperBoundIfEachInlineRowIsOneCase": 938,
+  "note": "Theories w/ MemberData expand at runtime -> exact figure comes from A1 dotnet test.",
+  "perProject": {
+   "Hcc.Access.Tests": {
+    "fact": 53,
+    "theory": 5,
+    "inlineData": 30,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Accounting.Tests": {
+    "fact": 17,
+    "theory": 3,
+    "inlineData": 5,
+    "memberData": 2,
+    "skip": 0
+   },
+   "Hcc.Billing.Tests": {
+    "fact": 32,
+    "theory": 1,
+    "inlineData": 4,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Closing.Tests": {
+    "fact": 36,
+    "theory": 1,
+    "inlineData": 6,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Compliance.Tests": {
+    "fact": 22,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Configuration.Tests": {
+    "fact": 30,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Customers.Tests": {
+    "fact": 18,
+    "theory": 2,
+    "inlineData": 9,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Documents.Tests": {
+    "fact": 16,
+    "theory": 1,
+    "inlineData": 6,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Expenses.Tests": {
+    "fact": 15,
+    "theory": 1,
+    "inlineData": 3,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Groups.Tests": {
+    "fact": 32,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.GstIds.Tests": {
+    "fact": 38,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.GuestServices.Tests": {
+    "fact": 28,
+    "theory": 2,
+    "inlineData": 11,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Handover.Tests": {
+    "fact": 25,
+    "theory": 1,
+    "inlineData": 3,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Import.Tests": {
+    "fact": 23,
+    "theory": 2,
+    "inlineData": 15,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Integration.Tests": {
+    "fact": 14,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Inventory.Tests": {
+    "fact": 38,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Invoices.Tests": {
+    "fact": 22,
+    "theory": 1,
+    "inlineData": 7,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Maintenance.Tests": {
+    "fact": 18,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Messaging.Tests": {
+    "fact": 21,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Operations.Tests": {
+    "fact": 26,
+    "theory": 4,
+    "inlineData": 13,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Ota.Tests": {
+    "fact": 24,
+    "theory": 2,
+    "inlineData": 15,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Payroll.Tests": {
+    "fact": 32,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Platform.Tests": {
+    "fact": 46,
+    "theory": 1,
+    "inlineData": 0,
+    "memberData": 1,
+    "skip": 0
+   },
+   "Hcc.Pos.Tests": {
+    "fact": 35,
+    "theory": 1,
+    "inlineData": 3,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Stays.Tests": {
+    "fact": 52,
+    "theory": 1,
+    "inlineData": 5,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Stock.Tests": {
+    "fact": 28,
+    "theory": 1,
+    "inlineData": 5,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.WebBooking.Tests": {
+    "fact": 21,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   },
+   "Hcc.Yield.Tests": {
+    "fact": 36,
+    "theory": 0,
+    "inlineData": 0,
+    "memberData": 0,
+    "skip": 0
+   }
+  }
+ },
+ "migrations": {
+  "count": 46,
+  "files": [
+   "0001_platform.sql",
+   "0002_core_inventory_billing_payments.sql",
+   "0100_access_identity.sql",
+   "0101_access_rbac_seed.sql",
+   "0200_inventory_reservations.sql",
+   "0202_inventory_block_history.sql",
+   "0203_reservation_company.sql",
+   "0300_stays_housekeeping.sql",
+   "0301_stays_changes.sql",
+   "0400_billing_payments.sql",
+   "0500_closing_reporting.sql",
+   "0600_tax_gst_master.sql",
+   "0601_guest_id_documents.sql",
+   "0700_configuration.sql",
+   "0800_expenses.sql",
+   "0900_payroll.sql",
+   "0901_payroll_rbac_seed.sql",
+   "1000_accounting.sql",
+   "1001_accounting_rbac_seed.sql",
+   "1100_compliance.sql",
+   "1101_compliance_rbac_seed.sql",
+   "1200_pos.sql",
+   "1201_pos_gst_split.sql",
+   "1300_maintenance.sql",
+   "1400_stock.sql",
+   "1500_guest_services.sql",
+   "1600_messaging.sql",
+   "1700_handover.sql",
+   "1800_yield_tariffs.sql",
+   "1900_property_setup.sql",
+   "2000_web_booking.sql",
+   "2001_web_booking_rbac_seed.sql",
+   "2100_documents.sql",
+   "2101_documents_rbac_seed.sql",
+   "2200_groups_billing.sql",
+   "2201_groups_rbac_seed.sql",
+   "2202_groups_company.sql",
+   "2300_customers.sql",
+   "2301_customers_rbac_seed.sql",
+   "2400_invoices.sql",
+   "2401_invoices_rbac_seed.sql",
+   "2500_ota_channels.sql",
+   "2501_ota_rbac_seed.sql",
+   "2700_import.sql",
+   "2701_import_rbac_seed.sql",
+   "2702_import_pos.sql"
+  ]
+ },
+ "solution": {
+  "projectEntries": 34,
+  "testProjectsInSln": 28,
+  "testDirs": 28
+ },
+ "endpoints": {
+  "files": 31,
+  "MapGet": 156,
+  "MapPost": 133,
+  "MapPutDeletePatch": 0,
+  "total": 289
+ },
+ "perms": {
+  "inSeedSql": 85,
+  "inSrcCs": 86,
+  "inSrcNotInSeed": [
+   "PERM-CLS-005",
+   "PERM-SOD-003",
+   "PERM-SOD-004"
+  ],
+  "inSeedNotInSrc": [
+   "PERM-INV-006",
+   "PERM-RATE-001"
+  ]
+ },
+ "schema": "SCHEMA=8",
+ "syncFiles": 37
+}

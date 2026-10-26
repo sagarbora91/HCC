@@ -1,0 +1,980 @@
+[
+ {
+  "route": "GET /closing/business-date",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Closing",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/AcknowledgeHandoverNote",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Cash.AmountPaise?"
+  ]
+ },
+ {
+  "route": "POST /commands/AddWorkOrderPart",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/AssignServiceRequest",
+  "who": [
+   "SUP"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/AssignWorkOrder",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/BlockRoom",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Housekeeping",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/BlockWorkOrderRoom",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/CancelLeave",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Payroll",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/CancelServiceRequest",
+  "who": [
+   "SUP"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/CancelWorkOrder",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/CompleteCarryItem",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Cash.AmountPaise?"
+  ]
+ },
+ {
+  "route": "POST /commands/CompleteServiceRequest",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/CompleteWorkOrder",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/ConvertRepairToWorkOrder",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/CreateWorkOrder",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/GeneratePmWorkOrders",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/GenerateStayoverTasks",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Housekeeping",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/HoldWorkOrder",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/LogLostItem",
+  "who": [
+   "SUP"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/LogServiceRequest",
+  "who": [
+   "SUP"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/MarkAttendance",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Payroll",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/ReceiveSpare",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/RequestLeave",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Payroll",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/RequestRepair",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Housekeeping",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/SaveMaintenanceAsset",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/SaveMaintenanceVendor",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/SavePmPlan",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StartServiceRequest",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StartWorkOrder",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockCountDecide",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockCountSubmit",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockIssue",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockItemCreate",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockItemSet",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockLaundryReceive",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "ReceiveLaundryResult.ChargePaise?"
+  ]
+ },
+ {
+  "route": "POST /commands/StockLaundrySend",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockReceiveGrn",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockRecordLoss",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockRoomChange",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockSettingsSet",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/StockUse",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/SubmitChecklistRun",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/SubmitHandoverNote",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Cash.AmountPaise?"
+  ]
+ },
+ {
+  "route": "POST /commands/TickChecklistItem",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/TransitionHousekeepingTask",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Housekeeping",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/UnblockRoom",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Housekeeping",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "POST /commands/VerifyWorkOrder",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /configuration/values",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Configuration",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /guest-services/lost-items",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /guest-services/requests",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /guest-services/requests/{id:long}",
+  "who": [
+   "SUP"
+  ],
+  "mod": "GuestServices",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /handover/carry",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /handover/checklists",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /handover/dashboard",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /handover/notes",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Handover",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Cash.AmountPaise?"
+  ]
+ },
+ {
+  "route": "GET /housekeeping/tasks",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Housekeeping",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /maintenance/amcs",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Amcs.ValuePaise?"
+  ]
+ },
+ {
+  "route": "GET /maintenance/registers",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Spares.CostPaise?"
+  ]
+ },
+ {
+  "route": "GET /maintenance/report",
+  "who": [
+   "SUP"
+  ],
+  "mod": "Maintenance",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "MaintenanceReport.MonthPartsCostPaise?"
+  ]
+ },
+ {
+  "route": "GET /maintenance/work-orders",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 2,
+  "nonNull": 0,
+  "fields": [
+   "Parts.UnitCostPaise?",
+   "Rows.PartsCostPaise?"
+  ]
+ },
+ {
+  "route": "GET /maintenance/work-orders/{id:long}",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Maintenance",
+  "nf": 2,
+  "nonNull": 0,
+  "fields": [
+   "Parts.UnitCostPaise?",
+   "Order.PartsCostPaise?"
+  ]
+ },
+ {
+  "route": "GET /me/capabilities",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Access",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /me/directory",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Access",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /payroll/board",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Payroll",
+  "nf": 53,
+  "nonNull": 53,
+  "fields": [
+   "RateVersions.PfWageCap!",
+   "Rates.PfWageCap!",
+   "Lines.PayType!",
+   "Lines.BasePaise!",
+   "Lines.EarnedPaise!",
+   "Lines.BasicPaise!",
+   "Lines.HraPaise!",
+   "Lines.WashingPaise!",
+   "Lines.SpecialPaise!",
+   "Lines.OtPaise!",
+   "Lines.GrossPaise!",
+   "Lines.PfWagesPaise!",
+   "Lines.PfPaise!",
+   "Lines.PfErPaise!",
+   "Lines.EsicWagesPaise!",
+   "Lines.EsicPaise!",
+   "Lines.EsicErPaise!",
+   "Lines.PtPaise!",
+   "Lines.AdvancePaise!",
+   "Lines.DeductionsPaise!",
+   "Lines.NetPaise!",
+   "Lines.CtcPaise!",
+   "BankFiles.NetPaise!",
+   "Advances.AmountPaise!",
+   "Advances.InstallmentPaise!",
+   "Advances.RecoveredPaise!",
+   "Recoveries.AmountPaise!",
+   "Line.PayType!",
+   "Line.BasePaise!",
+   "Line.EarnedPaise!",
+   "Line.BasicPaise!",
+   "Line.HraPaise!",
+   "Line.WashingPaise!",
+   "Line.SpecialPaise!",
+   "Line.OtPaise!",
+   "Line.GrossPaise!",
+   "Line.PfWagesPaise!",
+   "Line.PfPaise!",
+   "Line.PfErPaise!",
+   "Line.EsicWagesPaise!",
+   "Line.EsicPaise!",
+   "Line.EsicErPaise!",
+   "Line.PtPaise!",
+   "Line.AdvancePaise!",
+   "Line.DeductionsPaise!",
+   "Line.NetPaise!",
+   "Line.CtcPaise!",
+   "Rates.PfWageCap!",
+   "Fnf.AdvanceOutstandingPaise!",
+   "Adjustments.AmountPaise!",
+   "Fnf.EarningsPaise!",
+   "Fnf.RecoveriesPaise!",
+   "Fnf.NetPaise!"
+  ]
+ },
+ {
+  "route": "GET /payroll/my/payslips",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Payroll",
+  "nf": 19,
+  "nonNull": 19,
+  "fields": [
+   "Line.PayType!",
+   "Line.EarnedPaise!",
+   "Line.BasicPaise!",
+   "Line.HraPaise!",
+   "Line.WashingPaise!",
+   "Line.SpecialPaise!",
+   "Line.OtPaise!",
+   "Line.GrossPaise!",
+   "Line.PfWagesPaise!",
+   "Line.PfPaise!",
+   "Line.PfErPaise!",
+   "Line.EsicWagesPaise!",
+   "Line.EsicPaise!",
+   "Line.EsicErPaise!",
+   "Line.PtPaise!",
+   "Line.AdvancePaise!",
+   "Line.DeductionsPaise!",
+   "Line.NetPaise!",
+   "Line.CtcPaise!"
+  ]
+ },
+ {
+  "route": "GET /payroll/payslips/{runId:long}/{staffId:long}",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Payroll",
+  "nf": 19,
+  "nonNull": 19,
+  "fields": [
+   "Line.PayType!",
+   "Line.EarnedPaise!",
+   "Line.BasicPaise!",
+   "Line.HraPaise!",
+   "Line.WashingPaise!",
+   "Line.SpecialPaise!",
+   "Line.OtPaise!",
+   "Line.GrossPaise!",
+   "Line.PfWagesPaise!",
+   "Line.PfPaise!",
+   "Line.PfErPaise!",
+   "Line.EsicWagesPaise!",
+   "Line.EsicPaise!",
+   "Line.EsicErPaise!",
+   "Line.PtPaise!",
+   "Line.AdvancePaise!",
+   "Line.DeductionsPaise!",
+   "Line.NetPaise!",
+   "Line.CtcPaise!"
+  ]
+ },
+ {
+  "route": "GET /payroll/staff",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Payroll",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /rooms/board",
+  "who": [
+   "SUP",
+   "HKP",
+   "MNT"
+  ],
+  "mod": "Housekeeping",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /stock/alerts",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /stock/consumption",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /stock/counts",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Rows.VarianceValuePaise?"
+  ]
+ },
+ {
+  "route": "GET /stock/items",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 4,
+  "nonNull": 0,
+  "fields": [
+   "Rows.UnitCostPaise?",
+   "Rows.ValuePaise?",
+   "Rows.LaundryRatePaise?",
+   "StockItemsPage.TotalValuePaise?"
+  ]
+ },
+ {
+  "route": "GET /stock/laundry",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 1,
+  "nonNull": 0,
+  "fields": [
+   "Rows.ChargePaise?"
+  ]
+ },
+ {
+  "route": "GET /stock/losses",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 2,
+  "nonNull": 0,
+  "fields": [
+   "Rows.ValuePaise?",
+   "LossesPage.TotalValuePaise?"
+  ]
+ },
+ {
+  "route": "GET /stock/moves",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ },
+ {
+  "route": "GET /stock/settings",
+  "who": [
+   "SUP",
+   "HKP"
+  ],
+  "mod": "Stock",
+  "nf": 0,
+  "nonNull": 0,
+  "fields": []
+ }
+]

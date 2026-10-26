@@ -1,0 +1,34 @@
+tests=828 zeroAssert=1
+
+== per project (tests, zero-assert, in a Category=Sql file) ==
+Hcc.Access.Tests	58	1	34
+Hcc.Accounting.Tests	20	0	6
+Hcc.Billing.Tests	33	0	25
+Hcc.Closing.Tests	37	0	24
+Hcc.Compliance.Tests	22	0	15
+Hcc.Configuration.Tests	30	0	18
+Hcc.Customers.Tests	20	0	10
+Hcc.Documents.Tests	17	0	10
+Hcc.Expenses.Tests	16	0	9
+Hcc.Groups.Tests	32	0	17
+Hcc.GstIds.Tests	38	0	17
+Hcc.GuestServices.Tests	30	0	21
+Hcc.Handover.Tests	26	0	19
+Hcc.Import.Tests	25	0	13
+Hcc.Integration.Tests	14	0	14
+Hcc.Inventory.Tests	38	0	33
+Hcc.Invoices.Tests	23	0	11
+Hcc.Maintenance.Tests	18	0	12
+Hcc.Messaging.Tests	21	0	13
+Hcc.Operations.Tests	30	0	0
+Hcc.Ota.Tests	26	0	21
+Hcc.Payroll.Tests	32	0	15
+Hcc.Platform.Tests	47	0	27
+Hcc.Pos.Tests	36	0	0
+Hcc.Stays.Tests	53	0	39
+Hcc.Stock.Tests	29	0	20
+Hcc.WebBooking.Tests	21	0	15
+Hcc.Yield.Tests	36	0	23
+
+== zero-assert tests (may assert via helpers not matched) ==
+Hcc.Access.Tests/Unit/CredentialRuleTests.cs:30	Valid_pins

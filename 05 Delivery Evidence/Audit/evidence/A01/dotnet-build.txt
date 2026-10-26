@@ -1,0 +1,44 @@
+  Determining projects to restore...
+  Restored E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Import.Tests\Hcc.Import.Tests.csproj (in 2.24 sec).
+  33 of 34 projects are up-to-date for restore.
+  Hcc.Contracts -> E:\Projects\HCC\Hotel Control Centre\08 Production\src\Hcc.Contracts\bin\Debug\net10.0\Hcc.Contracts.dll
+  Hcc.Domain -> E:\Projects\HCC\Hotel Control Centre\08 Production\src\Hcc.Domain\bin\Debug\net10.0\Hcc.Domain.dll
+  Hcc.Application -> E:\Projects\HCC\Hotel Control Centre\08 Production\src\Hcc.Application\bin\Debug\net10.0\Hcc.Application.dll
+  Hcc.Infrastructure.SqlServer -> E:\Projects\HCC\Hotel Control Centre\08 Production\src\Hcc.Infrastructure.SqlServer\bin\Debug\net10.0\Hcc.Infrastructure.SqlServer.dll
+  Hcc.Operations -> E:\Projects\HCC\Hotel Control Centre\08 Production\src\Hcc.Operations\bin\Debug\net10.0\Hcc.Operations.dll
+  Hcc.Api -> E:\Projects\HCC\Hotel Control Centre\08 Production\src\Hcc.Api\bin\Debug\net10.0\Hcc.Api.dll
+  Hcc.Pos.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Pos.Tests\bin\Debug\net10.0\Hcc.Pos.Tests.dll
+  Hcc.Handover.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Handover.Tests\bin\Debug\net10.0\Hcc.Handover.Tests.dll
+  Hcc.Documents.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Documents.Tests\bin\Debug\net10.0\Hcc.Documents.Tests.dll
+  Hcc.Invoices.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Invoices.Tests\bin\Debug\net10.0\Hcc.Invoices.Tests.dll
+  Hcc.Compliance.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Compliance.Tests\bin\Debug\net10.0\Hcc.Compliance.Tests.dll
+  Hcc.Configuration.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Configuration.Tests\bin\Debug\net10.0\Hcc.Configuration.Tests.dll
+  Hcc.Yield.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Yield.Tests\bin\Debug\net10.0\Hcc.Yield.Tests.dll
+  Hcc.Accounting.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Accounting.Tests\bin\Debug\net10.0\Hcc.Accounting.Tests.dll
+  Hcc.Customers.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Customers.Tests\bin\Debug\net10.0\Hcc.Customers.Tests.dll
+  Hcc.Expenses.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Expenses.Tests\bin\Debug\net10.0\Hcc.Expenses.Tests.dll
+  Hcc.GstIds.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.GstIds.Tests\bin\Debug\net10.0\Hcc.GstIds.Tests.dll
+  Hcc.Operations.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Operations.Tests\bin\Debug\net10.0\Hcc.Operations.Tests.dll
+  Hcc.Platform.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Platform.Tests\bin\Debug\net10.0\Hcc.Platform.Tests.dll
+  Hcc.Groups.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Groups.Tests\bin\Debug\net10.0\Hcc.Groups.Tests.dll
+  Hcc.Maintenance.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Maintenance.Tests\bin\Debug\net10.0\Hcc.Maintenance.Tests.dll
+  Hcc.Ota.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Ota.Tests\bin\Debug\net10.0\Hcc.Ota.Tests.dll
+  Hcc.Payroll.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Payroll.Tests\bin\Debug\net10.0\Hcc.Payroll.Tests.dll
+  Hcc.Stays.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Stays.Tests\bin\Debug\net10.0\Hcc.Stays.Tests.dll
+  Hcc.Messaging.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Messaging.Tests\bin\Debug\net10.0\Hcc.Messaging.Tests.dll
+  Hcc.Inventory.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Inventory.Tests\bin\Debug\net10.0\Hcc.Inventory.Tests.dll
+  Hcc.Integration.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Integration.Tests\bin\Debug\net10.0\Hcc.Integration.Tests.dll
+  Hcc.Import.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Import.Tests\bin\Debug\net10.0\Hcc.Import.Tests.dll
+  Hcc.GuestServices.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.GuestServices.Tests\bin\Debug\net10.0\Hcc.GuestServices.Tests.dll
+  Hcc.Stock.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Stock.Tests\bin\Debug\net10.0\Hcc.Stock.Tests.dll
+  Hcc.Closing.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Closing.Tests\bin\Debug\net10.0\Hcc.Closing.Tests.dll
+  Hcc.Access.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Access.Tests\bin\Debug\net10.0\Hcc.Access.Tests.dll
+  Hcc.Billing.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.Billing.Tests\bin\Debug\net10.0\Hcc.Billing.Tests.dll
+  Hcc.WebBooking.Tests -> E:\Projects\HCC\Hotel Control Centre\08 Production\tests\Hcc.WebBooking.Tests\bin\Debug\net10.0\Hcc.WebBooking.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:01:00.63
+elapsed 00:01:01.0807735

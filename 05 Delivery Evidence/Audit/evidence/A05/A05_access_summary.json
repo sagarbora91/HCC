@@ -1,0 +1,160 @@
+{
+ "seedFiles": [
+  "0101_access_rbac_seed.sql",
+  "0901_payroll_rbac_seed.sql",
+  "1001_accounting_rbac_seed.sql",
+  "1101_compliance_rbac_seed.sql",
+  "2001_web_booking_rbac_seed.sql",
+  "2101_documents_rbac_seed.sql",
+  "2201_groups_rbac_seed.sql",
+  "2301_customers_rbac_seed.sql",
+  "2401_invoices_rbac_seed.sql",
+  "2501_ota_rbac_seed.sql",
+  "2701_import_rbac_seed.sql"
+ ],
+ "permissionsSeeded": 82,
+ "grantsSeeded": 250,
+ "rolesSeeded": [
+  {
+   "role": "OWN",
+   "name": "Owner",
+   "cred": "PASSWORD",
+   "ownerOnlyAssign": 1
+  },
+  {
+   "role": "MGR",
+   "name": "Manager",
+   "cred": "PIN",
+   "ownerOnlyAssign": 1
+  },
+  {
+   "role": "REC",
+   "name": "Reception",
+   "cred": "PIN",
+   "ownerOnlyAssign": 1
+  },
+  {
+   "role": "CSH",
+   "name": "Cashier",
+   "cred": "PIN",
+   "ownerOnlyAssign": 1
+  },
+  {
+   "role": "ACC",
+   "name": "Accountant",
+   "cred": "PASSWORD",
+   "ownerOnlyAssign": 1
+  },
+  {
+   "role": "SUP",
+   "name": "Housekeeping supervisor",
+   "cred": "PIN",
+   "ownerOnlyAssign": 0
+  },
+  {
+   "role": "HKP",
+   "name": "Housekeeper",
+   "cred": "PIN",
+   "ownerOnlyAssign": 0
+  },
+  {
+   "role": "MNT",
+   "name": "Maintenance",
+   "cred": "PIN",
+   "ownerOnlyAssign": 0
+  },
+  {
+   "role": "TAD",
+   "name": "Technical administrator",
+   "cred": "PASSWORD",
+   "ownerOnlyAssign": 1
+  }
+ ],
+ "v1Rows": 45,
+ "v1CellsCompared": 405,
+ "v1CellDiffs": [
+  {
+   "perm": "PERM-ADM-005",
+   "role": "MGR",
+   "seed": "V",
+   "v1": "-",
+   "note": "status card (dashboard only, no page)"
+  }
+ ],
+ "v1PermsMissingFromSeed": [],
+ "seededCoreIdsNotInV1": [],
+ "v2Rows": 64,
+ "v2Ids": [
+  "PERM-POS-001",
+  "PERM-POS-002",
+  "PERM-POS-003",
+  "PERM-POS-004",
+  "PERM-POS-005",
+  "PERM-POS-006",
+  "PERM-STK-001",
+  "PERM-STK-002",
+  "PERM-STK-003",
+  "PERM-STK-004",
+  "PERM-STK-005",
+  "PERM-MNT-001",
+  "PERM-MNT-002",
+  "PERM-MNT-003",
+  "PERM-MNT-004",
+  "PERM-MNT-005",
+  "PERM-GSV-001",
+  "PERM-GSV-002",
+  "PERM-GSV-003",
+  "PERM-GSV-004",
+  "PERM-GSV-005",
+  "PERM-MSG-001",
+  "PERM-MSG-002",
+  "PERM-MSG-003",
+  "PERM-MSG-005",
+  "PERM-HND-001",
+  "PERM-HND-002",
+  "PERM-HND-003",
+  "PERM-HND-004",
+  "PERM-YLD-001",
+  "PERM-YLD-002",
+  "PERM-YLD-003",
+  "PERM-CFG-001",
+  "PERM-CFG-002",
+  "PERM-CFG-003",
+  "PERM-OTA-001",
+  "PERM-OTA-002",
+  "PERM-OTA-003",
+  "PERM-OTA-004",
+  "PERM-OTA-005",
+  "PERM-WEB-001",
+  "PERM-WEB-002",
+  "PERM-WEB-003",
+  "PERM-WEB-004",
+  "PERM-WEB-005",
+  "PERM-DOC-001",
+  "PERM-DOC-002",
+  "PERM-DOC-003",
+  "PERM-DOC-004",
+  "PERM-DOC-005",
+  "PERM-GRP-001",
+  "PERM-GRP-002",
+  "PERM-GRP-003",
+  "PERM-GRP-004",
+  "PERM-GRP-005",
+  "PERM-CRM-001",
+  "PERM-CRM-002",
+  "PERM-CRM-003",
+  "PERM-CRM-004",
+  "PERM-INV-001",
+  "PERM-INV-002",
+  "PERM-INV-003",
+  "PERM-INV-005",
+  "PERM-INV-006"
+ ],
+ "codePermsNotSeeded": [],
+ "seededPermsNeverChecked": [
+  "PERM-ADM-005",
+  "PERM-FOL-004",
+  "PERM-RATE-001",
+  "PERM-RPT-003"
+ ]
+}

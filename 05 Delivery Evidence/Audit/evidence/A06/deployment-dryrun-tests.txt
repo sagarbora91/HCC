@@ -1,0 +1,47 @@
+== pwsh 7.6.6 (current execution policy: Bypass) ==
+PASS database guard accepts Hcc and HccTest_ names
+PASS database guard refuses ETP and system databases
+PASS scratch guard only HccDrill_/HccTest_
+PASS sql literal and name quoting
+PASS backup names
+PASS name parsing
+PASS retention deletes old fulls but keeps the newest three
+PASS retention never deletes below the minimum even when all are old
+PASS retention drops differentials older than the oldest kept full
+PASS pre-migration backups expire after 90 days
+PASS restore chain = newest full + newest later differential; pre-migration backups are not part of it
+PASS restore chain ignores a differential older than the newest full; none when no full
+PASS row counts: equal ok; missing table or empty restore fails; differences only reported
+PASS certificate plan: names lower-cased, localhost and 127.0.0.1 added, IPs validated
+PASS name constraints: CIDR to address+mask bytes, invalid input refused
+PASS name constraints: critical extension permits only the hotel names and addresses, excludes all IPv6
+PASS encrypted backup names parse and form the restore chain
+PASS backup encryption: round trip (multi-block and odd sizes), tamper and wrong key refused without output
+PASS backup key: DPAPI key file round trip, never overwritten
+PASS protected folder: icacls arguments remove inheritance and grant only SYSTEM, Administrators and the named accounts
+PASS protected folder: a new temp folder is reported, the protected one passes, an extra account is reported
+PASS admin-only script folder: a user temp folder is refused, the Windows PowerShell folder passes
+PASS runtime SQL grants: read, write, execute; never db_owner
+PASS Backup-HccDatabase -WhatIf full: exit 0, prints plan, creates nothing
+PASS Backup-HccDatabase -WhatIf differential + copy-only tag
+PASS Backup-HccDatabase refuses an ETP database and a relative folder
+PASS Restore-HccDrill -WhatIf: exit 0, plan mentions scratch DB, CHECKDB, row counts
+PASS Restore-HccDrill refuses a non-scratch name or the live name
+PASS Register-HccBackupTasks -WhatIf lists three tasks from the Program Files folder
+PASS Register-HccBackupTasks refuses a script folder that normal users can change
+PASS Register-HccBackupTasks -InstallScripts -WhatIf plans the copy to an admin-only folder
+PASS New-HccCertificate -WhatIf prints names and files, creates nothing
+PASS New-HccCertificate -RenewServer -WhatIf: non-exportable CA import, removed again; needs -CaPfx
+PASS Initialize-HccDatabase -WhatIf prints SQL only
+PASS Initialize-HccDatabase -RuntimeDbOwner keeps the legacy grant; a dedicated backup account gets folder rights
+PASS Initialize-HccDatabase refuses a non-HCC database
+PASS Initialize-HccProperty -WhatIf prints the setup request, password hidden, sends nothing
+PASS Initialize-HccProperty refuses a server address that is not this PC
+PASS New-HccGuestIdKey -WhatIf prints the plan and writes nothing
+PASS New-HccGuestIdKey installs a DPAPI machine key, writes the offline copy, refuses a second run, rotates with -Rotate
+PASS Install-HccService -WhatIf prints plan; -Uninstall -WhatIf changes nothing
+PASS New-HccBackupKey: -WhatIf writes nothing; creates key + offline copy; refuses a second key; imports on another PC
+PASS Build-Installer without Inno Setup: skips with exit 0
+
+Passed: 43  Failed: 0
+exit=0
