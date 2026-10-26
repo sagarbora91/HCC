@@ -130,10 +130,11 @@ export function createHttpReservationsClient(t:HttpTransport,known:HttpOptions['
       need(opts&&opts.idempotencyKey,'An Idempotency-Key is required for CreateReservation.');
       need(r.quoteId&&r.quoteVersion,'A current quote is required.');need(String(r.guest?.name??'').trim().length>=2,'Enter the guest’s name.');
       const roomId=rooms.id(r.roomId);need(roomId!==undefined,'Quote the room before booking it.');
-      // Not on the server contract yet (Wave 2 guest/company profiles): guest e-mail, OTA channel, company — kept in notes.
-      const extra=[r.guest.email&&`E-mail: ${r.guest.email}`,r.otaChannel&&`OTA: ${r.otaChannel}`,r.company&&`Company: ${r.company.name}${r.company.gstin?' · GSTIN '+r.company.gstin:''}`].filter(Boolean).join(' · ');
+      // The company is a real server field (W4 G5). Guest e-mail and OTA channel are not on the server contract yet — kept in notes.
+      const extra=[r.guest.email&&`E-mail: ${r.guest.email}`,r.otaChannel&&`OTA: ${r.otaChannel}`].filter(Boolean).join(' · ');
+      const company=r.company&&r.company.name.trim()?{name:r.company.name.trim(),...(r.company.gstin?.trim()?{gstin:r.company.gstin.trim()}:{})}:undefined;
       const body:SrvCreateReservation={quoteId:num(r.quoteId,'Quote'),quoteVersion:r.quoteVersion,guest:{name:r.guest.name,phone:r.guest.phone},roomId:roomId!,
-        hold:r.hold,restrictionOverride:r.restrictionOverride,source:r.source,notes:[r.notes,extra].filter(Boolean).join(' · ')||undefined};
+        hold:r.hold,restrictionOverride:r.restrictionOverride,source:r.source,notes:[r.notes,extra].filter(Boolean).join(' · ')||undefined,company};
       const res=shape(await t.command<SrvReservationResult>('CreateReservation',body as unknown as Record<string,unknown>,opts),
         x=>typeof x.reservationId==='number'&&typeof x.version==='string','the reservation');
       return {reservationId:String(res.reservationId),publicNo:res.publicNo,version:res.version} satisfies CreateReservationResult;
@@ -145,6 +146,7 @@ export function createHttpReservationsClient(t:HttpTransport,known:HttpOptions['
       return {reservationId:String(b.reservationId),publicNo:b.publicNo,version:b.version,status:(SERVER_STATUS[b.status]??b.status) as BookingStatusDto,
         guest:{name:b.guestName,phone:b.phone??undefined},roomId:b.roomNo,roomTypeId:b.roomType,arrival:b.arrival,departure:b.departure,adults:b.adults,children:b.children,
         source:b.source,nightlyRatePaise:b.nightlyRatePaise??b.nights[0]?.ratePaise??0,holdUntil:b.holdUntil??undefined,
+        ...(b.company?.name?{company:{name:b.company.name,...(b.company.gstin?{gstin:b.company.gstin}:{})}}:{}),
         totals:{netPaise:b.netPaise,taxPaise:b.taxPaise,totalPaise:b.totalPaise}} satisfies BookingDetails;
     },
   };

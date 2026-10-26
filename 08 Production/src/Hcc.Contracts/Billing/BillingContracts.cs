@@ -14,8 +14,13 @@ public sealed record PostChargeRequest(long FolioId, string Label, long AmountPa
 public sealed record ChargeResult(long ChargeId, long FolioId, string Kind, DateOnly ServiceDate, string Label, long AmountPaise, int TaxBps,
     long TaxPaise, bool Created, string FolioVersion);
 
-/// <summary>POST /api/v1/commands/RecordReceipt (K). Kind payment | deposit | deposit-return; cash needs an open shift on <c>TillId</c>.</summary>
-public sealed record RecordReceiptRequest(long FolioId, string Kind, string Tender, long AmountPaise, string? Reference, int? TillId);
+/// <summary>
+/// POST /api/v1/commands/RecordReceipt (K). Kind payment | deposit | deposit-return; cash needs an open shift on <c>TillId</c>.
+/// Advance before check-in: a Confirmed booking has no folio until check-in, so send <c>FolioId</c> 0 (or omit it) with
+/// <c>ReservationId</c>; the reservation's folio is opened in the same transaction (it is the one check-in then finds) and the
+/// receipt is recorded on it. With a <c>FolioId</c> the reservation id is ignored.
+/// </summary>
+public sealed record RecordReceiptRequest(long FolioId, string Kind, string Tender, long AmountPaise, string? Reference, int? TillId, long? ReservationId = null);
 
 public sealed record ReceiptResult(long ReceiptId, long FolioId, string Kind, string Tender, long AmountPaise, DateOnly BusinessDate, long? ShiftId,
     long? RefundOf, string FolioVersion);

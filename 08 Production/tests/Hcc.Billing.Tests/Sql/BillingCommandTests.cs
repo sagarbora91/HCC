@@ -68,6 +68,60 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         await Fails(HccErrorCode.NOT_FOUND, () => db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(999_999, BillingDb.Day), Ct));
     }
 
+    // ── Advance before check-in (W4 gap G5) ──
+
+    [Fact]
+    public async Task Advance_deposit_on_a_confirmed_booking_opens_its_folio_and_check_in_finds_the_same_one()
+    {
+        var (rid, folio) = await db.NewFolioAsync("Confirmed");
+        await db.ScalarAsync("DELETE bill.folio WHERE folio_id = @f;", ("@f", SqlDbType.BigInt, folio));
+        Assert.Null(await db.ScalarAsync("SELECT folio_id FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)));
+
+        // Without a folio and without a reservation the request is refused as before.
+        await Fails(HccErrorCode.VALIDATION, () => db.PayAsync(0, 50_000, kind: "deposit"));
+
+        var key = BillingDb.Key();
+        var req = new RecordReceiptRequest(0, "deposit", "UPI", 50_000, "ADV-1", null, rid);
+        var r = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), key, req, Ct);
+        Assert.Equal(("deposit", 50_000L), (r.Value.Kind, r.Value.AmountPaise));
+        var opened = Convert.ToInt64(await db.ScalarAsync("SELECT folio_id FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)), System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(opened, r.Value.FolioId);
+
+        // Replay with the same key returns the same receipt (one folio, one receipt).
+        var replay = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), key, req, Ct);
+        Assert.True(replay.Replayed);
+        Assert.Equal(1, Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)), System.Globalization.CultureInfo.InvariantCulture));
+
+        // A second advance by reservation uses the same folio and the folio read shows the deposit.
+        var second = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "payment", "UPI", 20_000, "ADV-2", null, rid), Ct);
+        Assert.Equal(opened, second.Value.FolioId);
+        var view = await db.Queries.GetFolioAsync(db.As(Who.Owner), opened, Ct);
+        Assert.Equal((50_000L, 20_000L), (view.Totals.DepositPaise, view.Totals.PaidPaise));
+        Assert.Equal(2, view.Receipts.Count);
+
+        // A deposit can be returned with the folio id; a given folio id wins over the reservation id.
+        var ret = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(opened, "deposit-return", "UPI", 10_000, "RET", null, 999_999), Ct);
+        Assert.Equal(opened, ret.Value.FolioId);
+    }
+
+    [Fact]
+    public async Task Advance_by_reservation_refuses_unknown_foreign_and_closed_bookings_without_leaving_a_folio()
+    {
+        await Fails(HccErrorCode.NOT_FOUND, () => db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "deposit", "UPI", 1000, "X", null, 999_999), Ct));
+
+        var (foreignRid, foreignFolio) = await db.NewFolioAsync("Confirmed", property: db.OtherPropertyId);
+        await db.ScalarAsync("DELETE bill.folio WHERE folio_id = @f;", ("@f", SqlDbType.BigInt, foreignFolio));
+        await Fails(HccErrorCode.NOT_FOUND, () => db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "deposit", "UPI", 1000, "X", null, foreignRid), Ct));
+
+        foreach (var status in new[] { "Cancelled", "Held" })
+        {
+            var (rid, folio) = await db.NewFolioAsync(status);
+            await db.ScalarAsync("DELETE bill.folio WHERE folio_id = @f;", ("@f", SqlDbType.BigInt, folio));
+            await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "deposit", "UPI", 1000, "X", null, rid), Ct));
+            Assert.Null(await db.ScalarAsync("SELECT folio_id FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)));
+        }
+    }
+
     // ── RecordReceipt ──
 
     [Fact]

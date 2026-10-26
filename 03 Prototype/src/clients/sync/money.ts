@@ -9,7 +9,7 @@
 //            cashbookX          ← GET /cashbook?from&to (locks and lock/reopen history; the figures stay derived on the client: cbDay).
 //            groupsX            ← GET /groups + /groups/{id}/statement (blocks of groups that have one; member room types from the
 //                                reservation reads). Company accounts / credit limits / overrides do not exist on the server (empty).
-//   commands PAYMENT → RecordReceipt (one per tender) · CHARGE → PostCharge · DISCOUNT / REFUND_REQUEST / COMPANY_CREDIT_REQUEST /
+//   commands PAYMENT → RecordReceipt (one per tender; before check-in by reservationId: the server opens the folio)  · CHARGE → PostCharge · DISCOUNT / REFUND_REQUEST / COMPANY_CREDIT_REQUEST /
 //            CORRECTION_REQUEST → RequestAdjustment (expectedVersion = the folio version loaded) · REFUND_EXECUTE → ExecuteAdjustment ·
 //            APPROVAL → DecideApproval | DecideCreditNote · CHECKOUT is W4-1's (CheckoutStay): it calls companyCreditApprovalId() and,
 //            after CheckoutStay, issueInvoiceAfterCheckout() from here ·
@@ -206,10 +206,15 @@ export const money:SyncArea={
   commands:[
     {type:'PAYMENT',reload:FOLIO,precheck:paymentPrecheck,
       async send(c){
-        const b=bookingOf(c,c.cmd.id),f=folioOf(c,b.id),tenders=tendersOf(c.cmd),kind=c.cmd.kind||'payment';
+        const b=bookingOf(c,c.cmd.id),tenders=tendersOf(c.cmd),kind=c.cmd.kind||'payment';
+        // Advance before arrival: a Confirmed booking has no folio until check-in. The server opens it with the first receipt
+        // (RecordReceipt by reservationId, folioId 0), the same folio check-in then finds. Once a folio exists, its id is used.
+        const known=c.ids.server('folio',b.id);
+        const preArrival=known===undefined&&b.status==='Confirmed'&&kind!=='deposit-return';
+        const target=preArrival?{folioId:0,reservationId:serverId(b.id,'Booking')}:{folioId:folioOf(c,b.id).folioId};
         const results=[];
         for(const [i,t] of tenders.entries())
-          results.push(await c.api.command('RecordReceipt',{folioId:f.folioId,kind,tender:t.method,amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method)},
+          results.push(await c.api.command('RecordReceipt',{...target,kind,tender:t.method,amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method)},
             tenders.length>1?{step:'t'+(i+1)}:{}));
         return {result:results};
       }},
