@@ -5,6 +5,7 @@ using System.Text.Json;
 using Hcc.Application.Access;
 using Hcc.Application.Billing;
 using Hcc.Application.Commands;
+using Hcc.Application.Pos;
 using Hcc.Application.Stays;
 using Hcc.Application.Yield;
 using Hcc.Contracts;
@@ -21,7 +22,7 @@ namespace Hcc.Application.Import;
 /// = the whole commit rolled back). Writes go through the owning modules' ports: <see cref="IImportInventoryWriter"/> (room types, rooms),
 /// Yield's <see cref="IRatePublicationPort"/> (BAR tariffs) and <see cref="IYieldStore"/> (seasons + yield history), <see cref="IImportAccessWriter"/>
 /// (users, no credential), <see cref="IBillingStore"/> (tills; opening cash = a counted, closed opening shift so the first OpenShift carries it,
-/// DEC-035), <see cref="IStaysStore"/> (guest profiles, never an ID number) and the module's own ledgers / opening trial balance.
+/// DEC-035), <see cref="IPosStore"/> (POS outlets and menu: the POS module's own insert/update ports), <see cref="IStaysStore"/> (guest profiles, never an ID number) and the module's own ledgers / opening trial balance.
 /// </summary>
 public sealed class ImportService(
     ICommandRunner runner,
@@ -33,6 +34,7 @@ public sealed class ImportService(
     IYieldStore yield,
     IBillingStore billing,
     IStaysStore stays,
+    IPosStore pos,
     TimeProvider clock) : IOpeningBalanceSource
 {
     public const string OpUpload = "UploadImportBatch";
@@ -301,6 +303,37 @@ public sealed class ImportService(
                     var d = (GuestData)i.Data!;
                     var id = await stays.InsertGuestAsync(tx, p, d.Draft, false, "manual", now, ct).ConfigureAwait(false);
                     await AuditRow("IMPORT_GUEST", $"guest:{id.ToString(CultureInfo.InvariantCulture)}", i).ConfigureAwait(false);
+                }
+
+                break;
+            case ImportMaster.PosOutlets:
+                foreach (var i in plan.Changes)
+                {
+                    var d = (OutletData)i.Data!;
+                    var o = await pos.InsertOutletAsync(tx, p, d.Code, d.Name, d.Kind, d.Tables, now, ct).ConfigureAwait(false);
+                    await tx.AuditAsync("POS_OUTLET_CREATED", $"outlet:{o.OutletId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {d.Kind} · by import ({tag})", ct).ConfigureAwait(false);
+                    await AuditRow("IMPORT_POS_OUTLET", "outlet:" + d.Code, i).ConfigureAwait(false);
+                }
+
+                break;
+            case ImportMaster.PosMenu:
+                foreach (var i in plan.Changes)
+                {
+                    var d = (MenuItemData)i.Data!;
+                    var price = new Paise(d.PricePaise);
+                    Hcc.Application.Pos.MenuItemRow item;
+                    if (d.ExistingId is { } id)
+                    {
+                        var current = await pos.MenuItemAsync(tx, p, id, true, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Menu item not found.");
+                        item = await pos.UpdateMenuItemAsync(tx, id, Hcc.Application.Stays.VersionToken.Parse(current.Version), d.Code, d.Name, d.Category, price, d.Veg, d.OutletIds, ct).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        item = await pos.InsertMenuItemAsync(tx, p, d.Code, d.Name, d.Category, price, d.Veg, d.OutletIds, ct).ConfigureAwait(false);
+                    }
+
+                    await tx.AuditAsync("POS_MENU_SAVED", $"menu:{item.ItemId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {price} · by import ({tag})", ct).ConfigureAwait(false);
+                    await AuditRow("IMPORT_POS_MENU", "menu:" + d.Code, i).ConfigureAwait(false);
                 }
 
                 break;

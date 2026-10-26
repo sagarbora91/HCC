@@ -1,0 +1,6 @@
+itemCode,itemName,category,price,veg,outlets
+DAL,Dal Tadka,Main course,180.00,yes,REST;RS
+PNR,Paneer Butter Masala,Main course,260.00,yes,REST;RS
+CHK,Chicken Curry,Main course,320.00,no,REST;RS
+NAN,Butter Naan,Breads,45.00,yes,
+TEA,Masala Tea,Beverages,40.00,yes,REST;RS

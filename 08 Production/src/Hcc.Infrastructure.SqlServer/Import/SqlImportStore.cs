@@ -78,6 +78,10 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
                        AND NOT EXISTS (SELECT 1 FROM pay.cash_movement m WHERE m.shift_id = s.shift_id))
               FROM pay.till t WHERE t.property_id = @p;
             SELECT full_name, phone FROM gst.guest WHERE property_id = @p;
+            SELECT outlet_id, code, name, kind FROM pos.outlet WHERE property_id = @p ORDER BY code;
+            SELECT t.outlet_id, t.table_no FROM pos.outlet_table t JOIN pos.outlet o ON o.outlet_id = t.outlet_id WHERE o.property_id = @p;
+            SELECT item_id, code, name, category, price_paise, veg FROM pos.menu_item WHERE property_id = @p ORDER BY code;
+            SELECT mo.item_id, mo.outlet_id FROM pos.menu_item_outlet mo JOIN pos.menu_item m ON m.item_id = mo.item_id WHERE m.property_id = @p;
             """;
         return WithCommandAsync(tx, sql, async cmd =>
         {
@@ -135,12 +139,26 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             var guests = new HashSet<string>(StringComparer.Ordinal);
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) guests.Add(ImportPlanner.GuestKey(rd.GetString(1), rd.GetString(0)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var outletRows = new List<(int Id, string Code, string Name, string Kind)>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) outletRows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var tableRows = new List<(int Outlet, string Table)>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) tableRows.Add((rd.GetInt32(0), rd.GetString(1)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var itemRows = new List<(int Id, string Code, string Name, string Category, long Price, bool Veg)>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) itemRows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt64(4), rd.GetBoolean(5)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var itemOutlets = new List<(int Item, int Outlet)>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) itemOutlets.Add((rd.GetInt32(0), rd.GetInt32(1)));
 
             return new ImportSnapshot(businessDate, closed, types, rooms, tariffs,
                 seasons.Select(s => new SnapSeason(s.Id, s.Name, s.From, s.To, s.Adj, seasonTypes.Where(x => x.Season == s.Id).Select(x => x.Type).Order().ToList(), s.Prio)).ToList(),
                 roles,
                 users.Select(u => new SnapUser(u.Login, u.Name, userRoles.Where(r => r.User == u.Id).Select(r => r.Role).ToList())).ToList(),
-                ledgers, asOf, opening, tills, guests);
+                ledgers, asOf, opening, tills, guests,
+                outletRows.Select(o => new SnapOutlet(o.Id, o.Code, o.Name, o.Kind, tableRows.Where(t => t.Outlet == o.Id).Select(t => t.Table).ToList())).ToList(),
+                itemRows.Select(m => new SnapMenuItem(m.Id, m.Code, m.Name, m.Category, m.Price, m.Veg, itemOutlets.Where(x => x.Item == m.Id).Select(x => x.Outlet).Order().ToList())).ToList());
         }, ct);
     }
 

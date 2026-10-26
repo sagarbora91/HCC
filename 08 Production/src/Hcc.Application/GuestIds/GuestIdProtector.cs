@@ -37,7 +37,7 @@ public sealed class GuestIdProtector(IGuestIdKeyRing keys)
 
     private byte[] KeyOrThrow(string keyId) => keys.Key(keyId) is { Length: 32 } k
         ? k
-        : throw new HccException(HccErrorCode.UNAVAILABLE, "Guest ID numbers cannot be opened: the encryption key " + keyId + " is not configured on this server.");
+        : throw HccException.NotConfigured("guest-id", "Guest ID numbers cannot be opened: the encryption key " + keyId + " is not configured on this server.");
 
     private static byte[] Aad(int propertyId, long guestId, string keyId)
         => Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"HCC-GUESTID-v1|{propertyId}|{guestId}|{keyId}"));

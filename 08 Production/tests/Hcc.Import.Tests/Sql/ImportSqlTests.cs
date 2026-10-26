@@ -72,6 +72,42 @@ public class ImportSqlTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Pos_outlets_and_menu_import_through_the_pos_store_update_prices_and_reimport_unchanged()
+    {
+        // the menu needs the outlets first
+        var early = await _w.UploadAsync("owner", "pos-menu", Templates.Sample("pos-menu"));
+        Assert.False(early.CommitAllowed);
+        Assert.Contains(early.Errors, e => e.Column == "outlets");
+
+        var outlets = await _w.ImportSampleAsync("pos-outlets");
+        Assert.Equal(new ImportCounts(2, 0, 0, 0), outlets.Counts);
+        var menu = await _w.ImportSampleAsync("pos-menu");
+        Assert.Equal(new ImportCounts(5, 0, 0, 0), menu.Counts);
+        Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM pos.outlet"));
+        Assert.Equal(6, await _w.CountAsync("SELECT COUNT(*) FROM pos.outlet_table"));
+        Assert.Equal("room", (string?)await _w.ScalarAsync("SELECT kind FROM pos.outlet WHERE code = 'RS'"));
+        Assert.Equal(5, await _w.CountAsync("SELECT COUNT(*) FROM pos.menu_item"));
+        Assert.Equal(10, await _w.CountAsync("SELECT COUNT(*) FROM pos.menu_item_outlet"));
+        Assert.Equal(26000, await _w.CountAsync("SELECT price_paise FROM pos.menu_item WHERE code = 'PNR'"));
+        Assert.Equal(0, await _w.CountAsync("SELECT CAST(veg AS int) FROM pos.menu_item WHERE code = 'CHK'"));
+        Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'POS_OUTLET_CREATED'"));
+        Assert.Equal(5, await _w.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'POS_MENU_SAVED'"));
+
+        // same files again: nothing to change; a new price is an update, not a duplicate
+        var again = await _w.UploadAsync("owner", "pos-menu", Templates.Sample("pos-menu"));
+        Assert.Equal(new ImportCounts(0, 0, 5, 0), again.Counts);
+        var repriced = await _w.UploadAsync("owner", "pos-menu", Templates.Sample("pos-menu").Replace("260.00", "275.00", StringComparison.Ordinal));
+        Assert.Equal(new ImportCounts(0, 1, 4, 0), repriced.Counts);
+        await _w.CommitAsync("owner", repriced.BatchId);
+        Assert.Equal(27500, await _w.CountAsync("SELECT price_paise FROM pos.menu_item WHERE code = 'PNR'"));
+        Assert.Equal(5, await _w.CountAsync("SELECT COUNT(*) FROM pos.menu_item"));
+
+        // outlets are not money (Setup commit), menu prices are Owner-only: the Tech admin may only prepare
+        var tad = await _w.UploadAsync("techadmin", "pos-menu", Templates.Sample("pos-menu"));
+        await Assert.ThrowsAsync<HccException>(() => _w.CommitAsync("techadmin", tad.BatchId));
+    }
+
+    [Fact]
     public async Task Re_commit_is_idempotent_and_reimporting_the_same_files_changes_nothing()
     {
         var up = await _w.UploadAsync("owner", "room-types", Templates.Sample("room-types"));

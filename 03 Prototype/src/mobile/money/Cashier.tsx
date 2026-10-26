@@ -6,6 +6,7 @@ import {money,shiftExpected,shiftMovements,shiftStatus,isDayClosed,SHIFT_DENOMIN
 import {useHcc} from '../../app/context';
 import {ListCard,NumberStepper,StickyFooter,Stepper} from '../../app/mobile/components';
 import {Pill,Empty,dateLabel} from '../../components/ui';
+import {OpenShiftPanel} from '../../clients/sync/cashier-ui';
 import {mmDenominations,mmCountTotal,mmShiftSubmitCommand,mmPaise,mmDiffKind} from './logic';
 
 const diffText=(d:number)=>mmDiffKind(d)==='exact'?'None · exact':(d>0?'Over ':'Short ')+money(Math.abs(d));
@@ -47,6 +48,7 @@ export function MmCashier(){
         <div className="mm-row"><div className="mm-row-main"><strong>Difference</strong></div><div className="mm-row-amt"><strong className="number">{diffText(s.shiftClose.counted-s.shiftClose.expected)}</strong></div></div>
         <div className="mm-row"><div className="mm-row-main"><strong>Next opening float</strong></div><div className="mm-row-amt"><strong className="number">{money(s.shiftClose.counted)}</strong></div></div></>
         :<p className="mm-meta">{closed?'Business day closed.':'No count recorded for this date.'}</p>}
+      {process.env.HCC_BUILD==='production'&&!closed?<OpenShiftPanel compact/>:null}
       {permission('close')&&<button className="btn full" onClick={()=>go('closing')}>Day closing <ArrowRight size={16}/></button>}
     </section>}
 

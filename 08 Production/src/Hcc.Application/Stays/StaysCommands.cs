@@ -40,7 +40,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
         var guestExpected = req.GuestExpectedVersion is null ? null : VersionToken.Parse(req.GuestExpectedVersion, "guestExpectedVersion");
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.GuestRegister, null, null, ct).ConfigureAwait(false);
         if (guestIds is null && GuestIdService.HasNumber(req.Guest))
-            throw new HccException(HccErrorCode.UNAVAILABLE, "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
+            throw HccException.NotConfigured("guest-id", "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
         var hashed = guestIds?.HashablePayload(req) ?? req;
 
         return await runner.RunAsync(ctx with { Operation = OpRegisterGuest }, hashed, async (tx, c) =>
@@ -109,7 +109,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
         if (req.GuestId is not null && guestExpected is null) throw HccException.Validation("guestExpectedVersion is required to change an existing guest profile.");
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.GuestRegister, null, null, ct).ConfigureAwait(false);
         if (guestIds is null && GuestIdService.HasNumber(req.Guest))
-            throw new HccException(HccErrorCode.UNAVAILABLE, "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
+            throw HccException.NotConfigured("guest-id", "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
         var hashed = guestIds?.HashablePayload(req) ?? req;
 
         return await runner.RunAsync(ctx with { Operation = OpSaveGuestProfile }, hashed, async (tx, c) =>

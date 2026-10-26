@@ -39,6 +39,9 @@ import {services} from './services';
 // W4-11 yield, OTA channels, booking website, ID capture:
 import {channels} from './channels';
 
+// W4 fix F3 cashier (SHIFT_OPEN: the first-day open-shift control):
+import {cashier} from './cashier';
+
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -64,4 +67,6 @@ export const AREAS:SyncArea[]=[
   services, // W4-10
 
   channels, // W4-11
+
+  cashier, // W4 fix F3
 ];

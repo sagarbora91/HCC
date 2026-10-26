@@ -137,6 +137,57 @@ public class ImportKernelTests
         Assert.Contains(p.Errors, e => e is { Row: 6, Column: "hccAccount" });
     }
 
+    private static ImportSnapshot WithPos(IReadOnlyList<SnapOutlet>? outlets = null, IReadOnlyList<SnapMenuItem>? menu = null)
+        => Empty() with { PosOutlets = outlets ?? [], PosMenu = menu ?? [] };
+
+    [Fact]
+    public void Pos_outlets_validate_kind_and_tables_and_plan_create_unchanged_or_refuse_a_difference()
+    {
+        var p = ImportPlanner.Plan(ImportMaster.PosOutlets, Csv("outletCode,outletName,kind,tables\nrest,Restaurant,table,T1;T2\nRS,Room service,room,\nBAR,Bar,table,\nX1,Room,room,T1\nY1,Y,lounge,\nREST,Dup,table,T1\nZ,Tables,table,T1;t1\n"), WithPos());
+        Assert.Equal(2, p.Items.Count(i => i.Action == ImportAction.Create));
+        Assert.Equal("REST", ((OutletData)p.Items[0].Data!).Code);
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "tables" });
+        Assert.Contains(p.Errors, e => e is { Row: 5, Column: "tables" });
+        Assert.Contains(p.Errors, e => e is { Row: 6, Column: "kind" });
+        Assert.Contains(p.Errors, e => e is { Row: 7, Column: "outletCode" } && e.Message == "Duplicate of row 2.");
+        Assert.Contains(p.Errors, e => e is { Row: 8, Column: "tables" });
+
+        var have = WithPos([new SnapOutlet(7, "REST", "Restaurant", "table", ["T2", "T1"])]);
+        var same = ImportPlanner.Plan(ImportMaster.PosOutlets, Csv("outletCode,outletName,kind,tables\nREST,Restaurant,table,T1;T2\n"), have);
+        Assert.Equal(ImportAction.Unchanged, Assert.Single(same.Items).Action);
+        var diff = ImportPlanner.Plan(ImportMaster.PosOutlets, Csv("outletCode,outletName,kind,tables\nREST,Restaurant,table,T1;T2;T3\n"), have);
+        Assert.Contains(diff.Errors, e => e is { Row: 2, Column: "outletCode" });
+    }
+
+    [Fact]
+    public void Pos_menu_needs_known_outlets_valid_price_and_veg_and_plans_updates()
+    {
+        var outlets = new[] { new SnapOutlet(1, "REST", "Restaurant", "table", ["T1"]), new SnapOutlet(2, "RS", "Room service", "room", []) };
+        var none = ImportPlanner.Plan(ImportMaster.PosMenu, Csv("itemCode,itemName,category,price,veg,outlets\nDAL,Dal,Main,180,yes,\n"), WithPos());
+        Assert.Contains(none.Errors, e => e is { Row: 2, Column: "outlets" });
+
+        var p = ImportPlanner.Plan(ImportMaster.PosMenu, Csv("itemCode,itemName,category,price,veg,outlets\ndal,Dal Tadka,Main course,180.00,yes,\nTEA,Tea,Beverages,0,no,rs\nBAD,Bad,Main,abc,maybe,NOPE\nneg,Neg,Main,-5,yes,REST\n"), WithPos(outlets));
+        var dal = (MenuItemData)p.Items[0].Data!;
+        Assert.Equal("DAL", dal.Code);
+        Assert.Equal(18000, dal.PricePaise);
+        Assert.Equal([1, 2], dal.OutletIds);   // blank = every outlet
+        Assert.Equal([2], ((MenuItemData)p.Items[1].Data!).OutletIds);
+        Assert.False(((MenuItemData)p.Items[1].Data!).Veg);
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "price" });
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "veg" });
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "outlets" });
+        Assert.Contains(p.Errors, e => e is { Row: 5, Column: "price" });
+
+        var have = WithPos(outlets, [new SnapMenuItem(9, "DAL", "Dal Tadka", "Main course", 18000, true, [1, 2])]);
+        var same = ImportPlanner.Plan(ImportMaster.PosMenu, Csv("itemCode,itemName,category,price,veg,outlets\nDAL,Dal Tadka,Main course,180,yes,REST;RS\n"), have);
+        Assert.Equal(ImportAction.Unchanged, Assert.Single(same.Items).Action);
+        var changed = ImportPlanner.Plan(ImportMaster.PosMenu, Csv("itemCode,itemName,category,price,veg,outlets\nDAL,Dal Tadka,Main course,200,yes,REST;RS\n"), have);
+        var item = Assert.Single(changed.Items);
+        Assert.Equal(ImportAction.Update, item.Action);
+        Assert.Equal(9, ((MenuItemData)item.Data!).ExistingId);
+        Assert.Contains("price ₹180 → ₹200", item.Detail, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Shipped_templates_match_the_column_specs_and_every_sample_parses()
     {

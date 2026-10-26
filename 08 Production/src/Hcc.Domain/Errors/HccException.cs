@@ -28,5 +28,17 @@ public class HccException : Exception
 
     public static HccException Validation(string message) => new(HccErrorCode.VALIDATION, message);
 
+    /// <summary>
+    /// A server-side setup step is missing (for example the guest-ID encryption key). Still UNAVAILABLE / HTTP 503 on the wire, but with
+    /// <c>details.reason = "NOT_CONFIGURED"</c> and <c>details.feature</c>, so clients can tell it from a lost database or network
+    /// connection and do not switch the whole app to read-only.
+    /// </summary>
+    public static HccException NotConfigured(string feature, string message) => new(HccErrorCode.UNAVAILABLE, message,
+        new Dictionary<string, JsonElement>
+        {
+            ["reason"] = JsonSerializer.SerializeToElement("NOT_CONFIGURED"),
+            ["feature"] = JsonSerializer.SerializeToElement(feature),
+        });
+
     public ErrorResponse ToResponse() => new(Code.ToString(), Message, Details);
 }

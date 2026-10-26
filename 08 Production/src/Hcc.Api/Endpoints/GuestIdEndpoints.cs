@@ -43,5 +43,5 @@ public static class GuestIdEndpoints
     }
 
     private static GuestIdService Service(IServiceProvider sp) => sp.GetService<GuestIdService>()
-        ?? throw new Hcc.Domain.Errors.HccException(Hcc.Contracts.HccErrorCode.UNAVAILABLE, "Guest ID encryption is not configured on this server.");
+        ?? throw Hcc.Domain.Errors.HccException.NotConfigured("guest-id", "Guest ID encryption is not configured on this server.");
 }
