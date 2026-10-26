@@ -5,7 +5,7 @@ import React,{useState} from 'react';
 import {Printer,Wallet,Ban,ShieldCheck,BedDouble} from 'lucide-react';
 import type {ModalProps} from '../../app/registry';
 import {money,posOrder,posOrderTotals,posOutlet,posInHouse,posSpot,posActiveLines,posLineValue,posKotLabel,posDaySummary,posOpenOrders,
-  POS_VOID_LIMIT,POS_TENDERS} from '../../services/mock';
+  posBuyerOf,posBillSplit,posFyCode,gstHalfPct,POS_VOID_LIMIT,POS_TENDERS,POS_RST_SAC,POS_B2C_NAME_ADDRESS_LIMIT} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,dateLabel,clockTime} from '../../components/ui';
 import {PosCheck,posUserName} from './parts';
@@ -31,12 +31,17 @@ export function PosSettleModal({id}:ModalProps){
   const inHouse=posInHouse(s);
   const [mode,setMode]=useState<string>(o?.booking&&canFolio?'folio':canOutlet?'Cash':'folio');
   const [ref,setRef]=useState('');const [tendered,setTendered]=useState('');const [booking,setBooking]=useState(o?.booking||inHouse[0]?.id||'');
+  const [gstin,setGstin]=useState('');const [buyerName,setBuyerName]=useState('');const [buyerAddress,setBuyerAddress]=useState('');
   if(!o)return <Empty title="This record is unavailable"/>;
   const t=posOrderTotals(s,o),paid=Math.round(Number(tendered||0)*100),change=paid-t.total;
   const target=s.bookings.find(b=>b.id===booking);
+  // DEC-072: an outlet bill is issued as a GST tax invoice (RST series) — B2C to the guest, or B2B with a checked buyer GSTIN.
+  const buyer=posBuyerOf({buyerGstin:gstin,buyerName,buyerAddress},t.total),buyerError='error' in buyer?buyer.error:undefined;
+  const large=t.total>=POS_B2C_NAME_ADDRESS_LIMIT;
+  const buyerCmd={...(gstin.trim()?{buyerGstin:gstin.trim()}:{}),...(buyerName.trim()?{buyerName:buyerName.trim()}:{}),...(buyerAddress.trim()?{buyerAddress:buyerAddress.trim()}:{})};
   const submit=(e:React.FormEvent)=>{e.preventDefault();
     if(mode==='folio')run({type:'POS_SETTLE',id:o.id,mode:'folio',booking,key:'pos-settle:'+o.id},`Bill ${money(t.total)} posted to folio ${booking}`,{close:true});
-    else run({type:'POS_SETTLE',id:o.id,mode:'outlet',method:mode,reference:ref.trim()||undefined,key:'pos-settle:'+o.id},`Bill settled · ${money(t.total)} ${mode}`,{close:true});};
+    else run({type:'POS_SETTLE',id:o.id,mode:'outlet',method:mode,reference:ref.trim()||undefined,...buyerCmd,key:'pos-settle:'+o.id},`Bill settled · ${money(t.total)} ${mode}`,{close:true});};
   return <><div className="modal-heading"><div className="eyebrow">{posOutlet(s,o.outlet)?.name.toUpperCase()} · {o.id}</div><h2>Settle {posSpot(o)}</h2>
     <p>Net {money(t.net)} + GST {t.taxBps/100}% {money(t.tax)} = <strong>{money(t.total)}</strong>. Tax is snapshotted at settlement.</p></div>
     <form className="form pos-form" onSubmit={submit}>
@@ -50,9 +55,17 @@ export function PosSettleModal({id}:ModalProps){
         <div className="info-note"><Wallet size={16}/>Cash sales count once in the shared front-desk drawer and appear in the POS day summary. UPI/card payments and charges to a room folio do not add drawer cash.</div></>}
       {(mode==='UPI'||mode==='Card')&&<label>Demonstration transaction reference<input enterKeyHint="done" required maxLength={40} value={ref} onChange={e=>setRef(e.target.value)} placeholder={mode==='UPI'?'e.g. DEMO-UPI-1234':'e.g. DEMO-CARD-5678'}/><small>Simulated — no terminal or bank is contacted.</small></label>}
       {mode==='folio'&&<label>Charge to in-house guest<select value={booking} onChange={e=>setBooking(e.target.value)}>{inHouse.map(b=><option key={b.id} value={b.id}>Room {b.room} · {b.guest} · {b.id}</option>)}</select>
-        <small>One service line “{posOutlet(s,o.outlet)?.name} · bill …” of {money(t.net)} with tax snapshot {t.taxBps/100}% is added to {target?`${target.guest}’s folio`:'the folio'}.</small></label>}
+        <small>One service line “{posOutlet(s,o.outlet)?.name} · bill …” of {money(t.net)} with tax snapshot {t.taxBps/100}% is added to {target?`${target.guest}’s folio`:'the folio'}. It is on the room’s tax invoice after checkout (no restaurant invoice).</small></label>}
+      {mode!=='folio'&&<fieldset className="pos-buyer"><legend>Tax invoice · {large?'₹50,000 or more: buyer name and address needed':'buyer details (optional)'}</legend>
+        <label>Buyer GSTIN for a B2B invoice<input value={gstin} maxLength={15} autoCapitalize="characters" spellCheck={false} enterKeyHint="next" placeholder="Leave empty for a walk-in (B2C)"
+          onChange={e=>setGstin(e.target.value.toUpperCase().replace(/[^0-9A-Z]/g,'').slice(0,15))}/></label>
+        <label>{gstin?'Buyer legal name (required)':'Buyer name'}<input value={buyerName} maxLength={120} enterKeyHint="next" placeholder={o.guest||'e.g. Demo Industries Pvt Ltd (fictional)'} onChange={e=>setBuyerName(e.target.value)}/></label>
+        <label>Buyer address{large&&!gstin?' (required)':''}<input value={buyerAddress} maxLength={200} enterKeyHint="done" onChange={e=>setBuyerAddress(e.target.value)}/></label>
+        {buyerError&&(gstin||large)&&<p className="pos-change short" role="alert">{buyerError}</p>}
+        <small>Settling issues a GST tax invoice in the restaurant series RST/{posFyCode(s.date)}/… — SAC {POS_RST_SAC}, CGST + SGST at {gstHalfPct(t.taxBps)} each. B2C to the guest, or B2B when a GSTIN is given.</small>
+      </fieldset>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button>
-        <button className="btn primary" disabled={busy||(mode==='Cash'&&!!tendered&&change<0)||(mode==='folio'&&!booking)}>{mode==='folio'?'Post to room folio':`Settle ${money(t.total)}`}</button></div>
+        <button className="btn primary" disabled={busy||(mode==='Cash'&&!!tendered&&change<0)||(mode==='folio'&&!booking)||(mode!=='folio'&&!!buyerError)}>{mode==='folio'?'Post to room folio':`Settle ${money(t.total)}`}</button></div>
     </form></>;
 }
 
@@ -76,7 +89,7 @@ export function PosVoidModal({id,room}:ModalProps){
 
 /** KOT (room = KOT id) or bill (room = 'bill') print document. */
 export function PosPrintModal({id,room}:ModalProps){
-  const {s,closeModal}=useHcc();const o=posOrder(s,id);
+  const {s,closeModal,run,busy,permission}=useHcc();const o=posOrder(s,id);
   if(!o)return <Empty title="This record is unavailable"/>;
   const out=posOutlet(s,o.outlet),k=o.kots.find(k=>k.id===room);
   const actions=<div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / share</button></div>;
@@ -85,14 +98,33 @@ export function PosPrintModal({id,room}:ModalProps){
       <div className="pos-doc-meta"><span>{out?.name}</span><span>{posSpot(o)}</span><span>{dateLabel(s.date)} {clockTime(k.at)}</span><span>By {posUserName(s,k.by)}</span><span>Covers {o.covers}</span></div>
       <table><thead><tr><th>Qty</th><th>Item</th></tr></thead><tbody>{lines.map(l=><tr key={l.id}><td className="pos-doc-qty">{l.qty}</td><td>{l.name}{l.voided?' — VOID':''}</td></tr>)}</tbody></table>
       <p className="footnote">Simulated KOT printer — printed through the browser. Status: {k.status}.</p></div>{actions}</>;}
-  const t=posOrderTotals(s,o),st=o.settlement;
-  return <><div className="pos-doc invoice"><h2>{s.settings.hotel}</h2><p className="pos-doc-sub">{out?.name} · {st?'Bill '+st.billNo:'Pro-forma (not a bill)'}{o.status==='Void'?' · VOID':''}</p>
+  const t=posOrderTotals(s,o),st=o.settlement,prod=process.env.HCC_BUILD==='production';
+  // DEC-072: an outlet bill prints as its GST tax invoice (RST number, hotel GSTIN, SAC, CGST / SGST) — the folio invoice's particulars.
+  const inv=st?.invoiceNo,split=st?posBillSplit(st):undefined,state=st?.hotelGstin?.slice(0,2);
+  const canIssue=!!st&&st.mode==='outlet'&&o.status==='Settled'&&!inv&&permission('payments');
+  // The items lines are line values (price × qty); the bill is taxed once on its net, so the tax lines below carry the bill's own GST.
+  return <><div className="pos-doc invoice"><h2>{s.settings.hotel}</h2>
+    {inv&&<p className="pos-doc-sub pos-doc-title"><strong>{st!.supply==='B2B'?'TAX INVOICE · B2B':'TAX INVOICE'}</strong> No. <strong>{inv}</strong></p>}
+    <p className="pos-doc-sub">{out?.name} · {st?'Bill '+st.billNo:'Pro-forma (not a bill)'}{o.status==='Void'?' · VOID':''}</p>
     <div className="pos-doc-meta"><span>{posSpot(o)}</span>{o.guest&&<span>{o.guest}</span>}<span>Check {o.id}</span><span>{dateLabel(st?.date||s.date)} {clockTime(st?.at||s.clock)}</span><span>Covers {o.covers}</span></div>
+    {inv&&<div className="pos-doc-meta pos-doc-gst">
+      <span>Hotel GSTIN {st!.hotelGstin??(prod?'—':'not set (demonstration)')}</span>
+      <span>Place of supply {state&&state!=='27'?'state '+state:'Maharashtra (27)'} · intra-state</span>
+      <span>SAC {st!.sac??POS_RST_SAC} · restaurant service</span>
+      {st!.buyer?.name&&<span>Buyer {st!.buyer.name}</span>}{st!.buyer?.gstin&&<span>Buyer GSTIN {st!.buyer.gstin}</span>}{st!.buyer?.address&&<span>{st!.buyer.address}</span>}</div>}
     <table><thead><tr><th>Item</th><th className="number">Qty</th><th className="number">Rate</th><th className="number">Amount</th></tr></thead>
       <tbody>{posActiveLines(o).map(l=><tr key={l.id}><td>{l.name}</td><td className="number">{l.qty}</td><td className="number">{money(l.price)}</td><td className="number">{money(posLineValue(l))}</td></tr>)}</tbody></table>
-    <div className="pos-totals pos-doc-totals"><div><span>Net</span><strong>{money(t.net)}</strong></div><div><span>GST {t.taxBps/100}%</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Total</span><strong>{money(t.total)}</strong></div></div>
-    {st&&<p className="pos-doc-sub">{st.mode==='folio'?`Charged to room folio ${st.booking} — payable at checkout.`:`Paid by ${st.method}${st.reference?' · '+st.reference:''}.`}</p>}
-    <p className="footnote">Demonstration document · fictional data · GST illustrative — not a tax invoice.</p></div>{actions}</>;
+    <div className="pos-totals pos-doc-totals"><div><span>{inv?'Taxable value':'Net'}</span><strong>{money(t.net)}</strong></div>
+      {inv&&split?<><div><span>CGST @{gstHalfPct(t.taxBps)}</span><strong>{money(split.cgst)}</strong></div><div><span>SGST @{gstHalfPct(t.taxBps)}</span><strong>{money(split.sgst)}</strong></div></>
+        :<div><span>GST {t.taxBps/100}%</span><strong>{money(t.tax)}</strong></div>}
+      <div className="pos-grand"><span>Total</span><strong>{money(t.total)}</strong></div></div>
+    {st&&<p className="pos-doc-sub">{st.mode==='folio'?`Charged to room folio ${st.booking} — payable at checkout; on the room’s tax invoice.`:`Paid by ${st.method}${st.reference?' · '+st.reference:''}.`}</p>}
+    {st?.creditNoteNo&&<p className="pos-doc-sub pos-doc-cn"><strong>Cancelled:</strong> reversed in full by credit note {st.creditNoteNo}{st.creditNoteDate?' of '+dateLabel(st.creditNoteDate):''}.</p>}
+    {canIssue&&<div className="pos-doc-issue no-print"><p className="pos-doc-sub">No tax invoice number on this bill yet{prod?' — the hotel server issues it once the hotel GSTIN is recorded (Master configuration › Property and branding).':' (settled before the restaurant series).'}</p>
+      <button className="btn small-btn" disabled={busy} onClick={()=>run({type:'POS_INVOICE_ISSUE',id:o.id,key:'pos-invoice:'+o.id},'Tax invoice issued')}>Issue tax invoice</button></div>}
+    <p className="footnote">{inv?(prod?'Tax invoice issued and kept by the hotel server. GST from the dated GST master, intra-state (CGST + SGST) — CA to confirm.'
+      :'Demonstration — sample tax invoice of fictional records. GST from the dated GST master, intra-state (CGST + SGST), half away from zero — illustrative, CA to confirm.')
+      :prod?'Not a tax invoice.':'Demonstration document · fictional data · GST illustrative — not a tax invoice.'}</p></div>{actions}</>;
 }
 
 export function PosReportModal(){

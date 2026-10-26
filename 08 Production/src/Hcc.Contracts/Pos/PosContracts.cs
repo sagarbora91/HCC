@@ -34,8 +34,12 @@ public sealed record AdvanceKotRequest(long OrderId, long KotId, string Status);
 /// <summary>
 /// POST /api/v1/commands/SettleCheck (K V). Mode <c>outlet</c> (Tender Cash/UPI/Card; UPI/Card need a reference; Cash needs <c>TillId</c> with an
 /// open shift, DEC-052) or <c>folio</c> (one service line on the in-house guest's folio; <c>StayId</c> defaults to the check's stay).
+/// DEC-072: an outlet bill is issued as a GST tax invoice (RST series) in the same command. <c>BuyerGstin</c> (+ <c>BuyerName</c>, the legal
+/// name) makes it B2B; otherwise B2C to the check's guest, with <c>BuyerName</c> + <c>BuyerAddress</c> required for a bill of ₹50,000 or more.
+/// Buyer fields are refused for a folio bill (the room invoice takes the GSTIN at checkout).
 /// </summary>
-public sealed record SettleCheckRequest(long OrderId, string Mode, string? Tender, string? Reference, int? TillId, long? StayId, string ExpectedVersion);
+public sealed record SettleCheckRequest(long OrderId, string Mode, string? Tender, string? Reference, int? TillId, long? StayId, string ExpectedVersion,
+    string? BuyerGstin = null, string? BuyerName = null, string? BuyerAddress = null);
 
 /// <summary>POST /api/v1/commands/VoidCheckItem (K). Only items already sent to the kitchen. Above the limit this raises a request.</summary>
 public sealed record VoidCheckItemRequest(long OrderId, long LineId, string Reason, string? ExpectedVersion);
@@ -50,11 +54,14 @@ public sealed record CheckResult(long OrderId, string Status, string Version, lo
 
 public sealed record KotResult(long OrderId, long KotId, int KotNo, string Status, string Version);
 
+/// <summary>DEC-072: <c>InvoiceNo</c> = the outlet bill's RST tax invoice; null for a folio bill, or with <c>InvoiceNote</c> saying why none was
+/// issued (the hotel GSTIN is not recorded — IssueInvoice {sourceKind: pos, sourceId: BillId} issues it later).</summary>
 public sealed record SettleResult(long OrderId, long BillId, string BillNo, string Mode, long NetPaise, int TaxBps, long TaxPaise, long TotalPaise,
-    long? ReceiptId, long? ChargeId, long? CashMovementId, string Version);
+    long? ReceiptId, long? ChargeId, long? CashMovementId, string Version, long? InvoiceId = null, string? InvoiceNo = null, string? InvoiceNote = null);
 
-/// <summary>Outcome <c>Voided</c> or <c>PendingApproval</c> (then <c>VoidRequestId</c> is set and the check is locked).</summary>
-public sealed record VoidResult(long OrderId, string Outcome, long? VoidRequestId, string Version);
+/// <summary>Outcome <c>Voided</c> or <c>PendingApproval</c> (then <c>VoidRequestId</c> is set and the check is locked). <c>CreditNoteNo</c>: the credit
+/// note that reversed the voided bill's RST tax invoice (DEC-072).</summary>
+public sealed record VoidResult(long OrderId, string Outcome, long? VoidRequestId, string Version, string? CreditNoteNo = null);
 
 public sealed record DecideVoidResult(long VoidRequestId, string Status, long OrderId, string OrderVersion);
 
@@ -66,7 +73,15 @@ public sealed record LineView(long LineId, int ItemId, string Name, long PricePa
 public sealed record KotView(long KotId, int KotNo, string Label, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc, int? CreatedBy = null);
 
 public sealed record BillView(long BillId, string BillNo, string Mode, string? Tender, string? Reference, long NetPaise, int TaxBps, long TaxPaise,
-    long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null, long? ReservationId = null);
+    long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null, long? ReservationId = null,
+    PosBillInvoiceView? Invoice = null);
+
+/// <summary>
+/// DEC-072: the GST tax invoice of an outlet bill as the bill print shows it — number (RST series, or BOS for a nil-rated bill), B2C / B2B,
+/// buyer, the hotel GSTIN and SAC on the invoice, the CGST / SGST split, and the credit note that reversed it when the bill was voided.
+/// </summary>
+public sealed record PosBillInvoiceView(long InvoiceId, string InvoiceNo, string DocType, DateOnly InvoiceDate, string SupplyType, string? BuyerName,
+    string? BuyerGstin, string SupplierGstin, string Sac, long CgstPaise, long SgstPaise, string? CreditNoteNo);
 
 public sealed record CheckView(long OrderId, int OutletId, string Outlet, string Spot, string? Guest, int Covers, DateOnly BusinessDate, string Status,
     string Version, long? PendingVoidId, IReadOnlyList<LineView> Lines, IReadOnlyList<KotView> Kots, long NetPaise, int TaxBps, long TaxPaise,

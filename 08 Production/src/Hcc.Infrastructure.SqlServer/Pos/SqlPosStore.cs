@@ -29,7 +29,8 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
         """;
 
     private const string BillColumns = """
-        bill_id, order_id, bill_no, mode, tender, reference, net_paise, tax_bps, tax_paise, total_paise, business_date, till_id, shift_id, folio_id, charge_id, status
+        bill_id, order_id, bill_no, mode, tender, reference, net_paise, tax_bps, tax_paise, total_paise, business_date, till_id, shift_id, folio_id, charge_id, status,
+        cgst_paise, sgst_paise
         """;
 
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
@@ -492,12 +493,21 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
     private static BillRow ReadBill(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt64(1), rd.GetString(2), rd.GetString(3), Str(rd, 4), Str(rd, 5), SqlValues.ReadPaise(rd, 6),
         rd.GetInt32(7), SqlValues.ReadPaise(rd, 8), SqlValues.ReadPaise(rd, 9), rd.GetFieldValue<DateOnly>(10), rd.IsDBNull(11) ? null : rd.GetInt32(11),
-        rd.IsDBNull(12) ? null : rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt64(13), rd.IsDBNull(14) ? null : rd.GetInt64(14), rd.GetString(15));
+        rd.IsDBNull(12) ? null : rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt64(13), rd.IsDBNull(14) ? null : rd.GetInt64(14), rd.GetString(15),
+        rd.IsDBNull(16) ? null : SqlValues.ReadPaise(rd, 16), rd.IsDBNull(17) ? null : SqlValues.ReadPaise(rd, 17));
 
     public async Task<BillRow?> BillForOrderAsync(ICommandTransaction tx, long orderId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, $"SELECT {BillColumns} FROM pos.bill WHERE order_id = @o;");
         P(cmd, "@o", SqlDbType.BigInt, orderId);
+        return (await ReadAsync(cmd, ReadBill, ct).ConfigureAwait(false)).SingleOrDefault();
+    }
+
+    public async Task<BillRow?> BillByIdAsync(ICommandTransaction tx, int propertyId, long billId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, $"SELECT {BillColumns} FROM pos.bill WHERE bill_id = @b AND property_id = @p;");
+        P(cmd, "@b", SqlDbType.BigInt, billId);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
         return (await ReadAsync(cmd, ReadBill, ct).ConfigureAwait(false)).SingleOrDefault();
     }
 
@@ -664,6 +674,23 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
             head = (await ReadAsync(c, rd => (Dt(rd, 0), rd.GetInt32(1), Str(rd, 2), Dt(rd, 3), rd.IsDBNull(4) ? (long?)null : rd.GetInt64(4)), ct).ConfigureAwait(false)).Single();
         }
 
+        // DEC-072: the outlet bill's GST tax invoice (source kind pos = this bill) and the credit note that reversed it after a void.
+        PosBillInvoiceView? invoice = null;
+        if (bill is not null)
+        {
+            await using var c = connections.Command("""
+                SELECT i.invoice_id, i.invoice_no, i.doc_type, i.invoice_date, i.supply_type, i.buyer_name, i.buyer_gstin, i.supplier_gstin, l.sac, i.cgst_paise, i.sgst_paise,
+                       (SELECT TOP 1 n.credit_note_no FROM ivc.credit_note n WHERE n.invoice_id = i.invoice_id ORDER BY n.credit_note_id)
+                FROM ivc.invoice i LEFT JOIN ivc.invoice_line l ON l.invoice_id = i.invoice_id AND l.line_no = 1
+                WHERE i.property_id = @p AND i.source_kind = 'pos' AND i.source_id = @b;
+                """, conn, tx);
+            P(c, "@p", SqlDbType.Int, propertyId);
+            P(c, "@b", SqlDbType.BigInt, bill.BillId);
+            invoice = (await ReadAsync(c, rd => new PosBillInvoiceView(rd.GetInt64(0), rd.GetString(1), rd.GetString(2).Trim(), rd.GetFieldValue<DateOnly>(3), rd.GetString(4),
+                Str(rd, 5), Str(rd, 6)?.Trim(), rd.GetString(7).Trim(), Str(rd, 8)?.Trim() ?? string.Empty, rd.GetInt64(9), rd.GetInt64(10), Str(rd, 11)), ct).ConfigureAwait(false))
+                .SingleOrDefault();
+        }
+
         await tx.CommitAsync(ct).ConfigureAwait(false);
         var kotStatus = kots.ToDictionary(k => k.KotId, k => k.Status);
         var views = lines.Select(l => new LineView(l.LineId, l.ItemId, l.Name, l.Price.Value, l.Qty, new PosLineAmount(l.Price, l.Qty).Value.Value, l.KotId,
@@ -675,7 +702,7 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
             : PosRules.Totals(active.Select(l => new PosLineAmount(l.Price, l.Qty)), taxBps);
         var spot = o.TableNo is not null ? "Table " + o.TableNo : "Room " + o.RoomNo;
         var billView = bill is null ? null : new BillView(bill.BillId, bill.BillNo, bill.Mode, bill.Tender, bill.Reference, bill.Net.Value, bill.TaxBps, bill.Tax.Value,
-            bill.Total.Value, bill.BusinessDate, bill.Status, settledUtc, settledBy, billReservation);
+            bill.Total.Value, bill.BusinessDate, bill.Status, settledUtc, settledBy, billReservation, invoice);
         return new CheckView(o.OrderId, o.OutletId, o.OutletName, spot, o.Guest, o.Covers, o.BusinessDate, o.Status, o.Version, o.PendingVoidId, views, kots,
             t.Net.Value, t.TaxBps, t.Tax.Value, t.Total.Value, items, billView, head.OpenedUtc, head.OpenedBy, head.Reason, head.VoidedUtc, head.Res);
     }

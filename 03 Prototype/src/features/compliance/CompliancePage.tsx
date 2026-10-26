@@ -1,6 +1,6 @@
 // Wave 0.5 · W05-C Compliance calendar — desktop page and phone page (same data, cards on the phone).
 import React,{useState} from 'react';
-import {CheckCircle2,Ban,RotateCcw,Send,Settings2,ShieldAlert} from 'lucide-react';
+import {CheckCircle2,Ban,RotateCcw,Send,Settings2,ShieldAlert,FileSpreadsheet} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {cmpHasAccess,cmpCanManage,cmpItems,cmpCounts,CMP_KINDS,CMP_ILLUSTRATIVE} from '../../services/mock';
 import type {CMPItem} from '../../services/mock';
@@ -29,6 +29,7 @@ export function CompliancePage(){
   return <div className="cmp-page">
     <PageTitle title="Compliance calendar" sub="TDS, GST returns, EPF, ESIC and Professional Tax: due dates, who filed and when."
       action={<span className="cmp-head-actions">
+        <button className="btn" onClick={()=>open({type:'cmp-gstr1'})}><FileSpreadsheet size={15}/>GSTR-1 working summary</button>
         {c.manage&&<button className="btn" onClick={()=>open({type:'cmp-manage'})}><Settings2 size={15}/>Manage obligations</button>}
         <button className="btn primary" onClick={()=>open({type:'cmp-pack'})}><Send size={15}/>Send CA pack</button></span>}/>
     <div className="small-stats cmp-stats" aria-label="Compliance counters">
@@ -60,6 +61,7 @@ export function ComplianceMobile(){
     <div className="cmp-m-kpis"><KpiCard label="Overdue" value={c.counts.overdue}/><KpiCard label="Due this week" value={c.counts.due}/><KpiCard label="Filed" value={c.counts.filed}/></div>
     <p className="cmp-m-note">{CMP_ILLUSTRATIVE}</p>
     <ChipFilter label="Filter filings" options={CMP_FILTERS.map(f=>({id:f.id,label:f.label==='Filed / not applicable'?'Filed':f.label,count:cmpApplyFilter(c.items,f.id,'all').length}))} value={c.filter} onChange={c.setFilter}/>
+    <button className="btn full cmp-m-manage" onClick={()=>open({type:'cmp-gstr1'})}><FileSpreadsheet size={18}/>GSTR-1 working summary</button>
     {c.manage&&<button className="btn full cmp-m-manage" onClick={()=>open({type:'cmp-manage'})}><Settings2 size={18}/>Manage obligations</button>}
     {!pg.total&&<Empty title="Nothing here" body="No filings match this filter."/>}
     {pg.shown.map(i=><div key={i.key} className={'card cmp-m-card'+(i.status==='Overdue'?' cmp-m-overdue':'')}>

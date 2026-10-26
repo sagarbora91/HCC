@@ -130,6 +130,7 @@ const CMDS={
   ...Object.fromEntries(['MSG_CONSENT','MSG_DOC_CONFIRM','MSG_DOC_DISCARD','MSG_DOC_EXTRACT','MSG_RETRY','MSG_RUN_RULES','MSG_SEND','MSG_SIMULATE'].map(c=>[c,C('OWN MGR REC','Module 24/25 §5')])),
   MSG_RULE:C('OWN MGR','Module 24 §7 (approve)'),MSG_TEMPLATE:C('OWN MGR','Module 24 §7 (approve)'),
   ...Object.fromEntries(['POS_ITEM_ADD','POS_ITEM_QTY','POS_KOT_SEND','POS_KOT_STATUS','POS_MENU_TOGGLE','POS_ORDER_OPEN','POS_SETTLE','POS_VOID_BILL','POS_VOID_ITEM'].map(c=>[c,C('OWN MGR REC CSH','Module 23 §2')])),
+  POS_INVOICE_ISSUE:C('OWN MGR REC CSH','DEC-072: tax invoice of a settled outlet bill = the settle permission (payments)'),
   POS_VOID_DECIDE:C('OWN MGR','Module 23 §2 (approve)'),
 };
 const K=k=>'cmd:'+k;

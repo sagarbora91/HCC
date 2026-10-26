@@ -18,6 +18,9 @@ namespace Hcc.Application.Invoices;
 /// number is allocated in the same transaction as the document (gap-free); issued documents are immutable.
 /// Prototype rules (handlers/folio.ts): number once per stay, after checkout; credit note only for an invoiced (departed) stay, with a
 /// reason, never above what is still on the invoice, one pending request at a time, approved by an Owner and never by the requester.
+/// DEC-072: a walk-in / paid-at-outlet POS bill is issued in the RST series inside the settling command (<see cref="IssueInTransactionAsync"/>
+/// through <see cref="PosInvoicePort"/>) and credited in full, in the CN series, inside the command that voids the bill
+/// (<see cref="CreditOnSourceReversalAsync"/>); a POS invoice is never credited through RequestCreditNote.
 /// </summary>
 public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, IInvoiceStore store, IEnumerable<IInvoiceSource> sources, TimeProvider clock,
     ISettingsReader? settings = null)
@@ -30,7 +33,7 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
 
     private IInvoiceSource Source(string? kind) =>
         sources.FirstOrDefault(s => string.Equals(s.Kind, kind?.Trim(), StringComparison.OrdinalIgnoreCase))
-        ?? throw HccException.Validation("Source kind must be folio (group invoices are not available yet).");
+        ?? throw HccException.Validation("Source kind must be folio or pos (group invoices are not available yet).");
 
     private static string N(long v) => v.ToString(CultureInfo.InvariantCulture);
 
@@ -42,48 +45,72 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, InvoicePermissions.Issue, ct: ct).ConfigureAwait(false);
         var source = Source(req.SourceKind);
-        return await runner.RunAsync(ctx with { Operation = OpIssue }, req, async (tx, c) =>
-        {
-            var doc = await source.LoadForIssueAsync(tx, ctx.PropertyId, req.SourceId, c).ConfigureAwait(false);
-            if (await store.InvoiceIdForSourceAsync(tx, ctx.PropertyId, source.Kind, doc.SourceId, c).ConfigureAwait(false) is { } existingId)
-            {
-                var existing = (await store.ReadInvoiceAsync(tx, ctx.PropertyId, existingId, c).ConfigureAwait(false))!;
-                await tx.AuditAsync("INVOICE_ALREADY_ISSUED", "invoice:" + N(existingId), $"{existing.InvoiceNo} returned for {source.Kind} {N(doc.SourceId)}", c).ConfigureAwait(false);
-                return new IssueInvoiceResult(existingId, existing.InvoiceNo, InvoiceNumbering.Code(existing.DocType), existing.InvoiceDate, existing.Figures.Total.Value, false);
-            }
+        return await runner.RunAsync(ctx with { Operation = OpIssue }, req, (tx, c) => IssueCoreAsync(tx, source, req, c), ct).ConfigureAwait(false);
+    }
 
-            var supplier = await SupplierAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
-            // Decision (W4 D1): every document here is a GST tax invoice / bill of supply, B2C included, so the hotel must be GST-registered
-            // with a valid GSTIN before the first one. Nothing is numbered without it; the checkout itself is not undone.
-            if (string.IsNullOrWhiteSpace(supplier.Gstin)) throw new HccException(HccErrorCode.INVALID_TRANSITION, MissingGstinMessage);
-            if (Gstin.Problem(supplier.Gstin, "hotel") is { } gstinProblem) throw HccException.Validation($"{gstinProblem} {GstinSettingHint}");
-            var supplierGstin = Gstin.Validate(supplier.Gstin, "hotel");
-            var supplierState = Gstin.StateCode(supplierGstin);
-            var gross = InvoiceRules.Totals(InvoiceRules.BuildLines(doc.Lines, interState: false)).Total;
-            var recipient = InvoiceRules.Recipient(req.SupplyType, req.BuyerName ?? (req.SupplyType is null or "" or "B2C" or "b2c" ? doc.DefaultRecipientName : null),
-                req.BuyerGstin, req.BuyerAddress, req.PlaceOfSupply, supplierState, gross);
-            var lines = InvoiceRules.BuildLines(doc.Lines, recipient.InterState);
-            var figures = InvoiceRules.Totals(lines);
-            if (figures.Total < Paise.Zero) throw new HccException(HccErrorCode.INVALID_TRANSITION, "The folio total is negative; there is nothing to invoice.");
-            var type = InvoiceRules.DocTypeFor(lines);
-            var date = supplier.BusinessDate;
-            var fy = InvoiceNumbering.FyCode(date);
-            var prefix = type == InvoiceDocType.TaxInvoice ? await PrefixAsync(tx, ctx.PropertyId, c).ConfigureAwait(false) : InvoiceNumbering.DefaultPrefix(type);
-            var (seriesPrefix, seq) = await store.NextNumberAsync(tx, ctx.PropertyId, fy, type, prefix, Now, c).ConfigureAwait(false);
-            var number = InvoiceNumbering.Format(seriesPrefix, fy, seq);
-            var record = new InvoiceRecord(0, ctx.PropertyId, type, number, fy, seq, date, source.Kind, doc.SourceId, doc.Reference, doc.PeriodFrom, doc.PeriodTo,
-                recipient, supplier.Name, supplierGstin, supplierState, supplier.Address, lines, figures, InvoiceRules.Words(figures.Total), ctx.PrincipalId, Now);
-            var id = await store.InsertInvoiceAsync(tx, record, c).ConfigureAwait(false);
-            await tx.AuditAsync("INVOICE_ISSUED", "invoice:" + N(id),
-                $"{InvoiceNumbering.Label(type)} {number} · {source.Kind} {N(doc.SourceId)} · {recipient.Type} · taxable {figures.Taxable} + tax {figures.Tax} = {figures.Total}", c).ConfigureAwait(false);
-            await tx.PublishAsync("InvoiceIssued", id, new
-            {
-                invoiceId = id, invoiceNo = number, docType = InvoiceNumbering.Code(type), invoiceDate = date, sourceKind = source.Kind, sourceId = doc.SourceId,
-                supplyType = recipient.Type.ToString(), interState = recipient.InterState, taxablePaise = figures.Taxable.Value, cgstPaise = figures.Cgst.Value,
-                sgstPaise = figures.Sgst.Value, igstPaise = figures.Igst.Value, totalPaise = figures.Total.Value,
-            }, c).ConfigureAwait(false);
-            return new IssueInvoiceResult(id, number, InvoiceNumbering.Code(type), date, figures.Total.Value, true);
-        }, ct).ConfigureAwait(false);
+    /// <summary>
+    /// DEC-072: issues (or returns) the invoice of <paramref name="req"/>'s source inside the caller's command transaction — the POS settle
+    /// numbers its RST invoice in the same transaction as the bill, with the same audit (INVOICE_ISSUED) and outbox event (InvoiceIssued) as
+    /// IssueInvoice. The caller has already authorised its own command; the actor is the transaction's principal.
+    /// </summary>
+    internal Task<IssueInvoiceResult> IssueInTransactionAsync(ICommandTransaction tx, IssueInvoiceRequest req, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(req);
+        return IssueCoreAsync(tx, Source(req.SourceKind), req, ct);
+    }
+
+    /// <summary>The plain reason no tax invoice can be numbered (hotel GSTIN missing or invalid), or null when the hotel can issue one.</summary>
+    internal async Task<string?> SupplierProblemAsync(ICommandTransaction tx, int propertyId, CancellationToken ct)
+    {
+        var supplier = await SupplierAsync(tx, propertyId, ct).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(supplier.Gstin)) return MissingGstinMessage;
+        return Gstin.Problem(supplier.Gstin, "hotel") is { } problem ? $"{problem} {GstinSettingHint}" : null;
+    }
+
+    private async Task<IssueInvoiceResult> IssueCoreAsync(ICommandTransaction tx, IInvoiceSource source, IssueInvoiceRequest req, CancellationToken c)
+    {
+        var ctx = tx.Context;
+        var doc = await source.LoadForIssueAsync(tx, ctx.PropertyId, req.SourceId, c).ConfigureAwait(false);
+        if (await store.InvoiceIdForSourceAsync(tx, ctx.PropertyId, source.Kind, doc.SourceId, c).ConfigureAwait(false) is { } existingId)
+        {
+            var existing = (await store.ReadInvoiceAsync(tx, ctx.PropertyId, existingId, c).ConfigureAwait(false))!;
+            await tx.AuditAsync("INVOICE_ALREADY_ISSUED", "invoice:" + N(existingId), $"{existing.InvoiceNo} returned for {source.Kind} {N(doc.SourceId)}", c).ConfigureAwait(false);
+            return new IssueInvoiceResult(existingId, existing.InvoiceNo, InvoiceNumbering.Code(existing.DocType), existing.InvoiceDate, existing.Figures.Total.Value, false);
+        }
+
+        var supplier = await SupplierAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+        // Decision (W4 D1): every document here is a GST tax invoice / bill of supply, B2C included, so the hotel must be GST-registered
+        // with a valid GSTIN before the first one. Nothing is numbered without it; the checkout itself is not undone.
+        if (string.IsNullOrWhiteSpace(supplier.Gstin)) throw new HccException(HccErrorCode.INVALID_TRANSITION, MissingGstinMessage);
+        if (Gstin.Problem(supplier.Gstin, "hotel") is { } gstinProblem) throw HccException.Validation($"{gstinProblem} {GstinSettingHint}");
+        var supplierGstin = Gstin.Validate(supplier.Gstin, "hotel");
+        var supplierState = Gstin.StateCode(supplierGstin);
+        var gross = InvoiceRules.Totals(InvoiceRules.BuildLines(doc.Lines, interState: false)).Total;
+        var recipient = InvoiceRules.Recipient(req.SupplyType, req.BuyerName ?? (req.SupplyType is null or "" or "B2C" or "b2c" ? doc.DefaultRecipientName : null),
+            req.BuyerGstin, req.BuyerAddress, req.PlaceOfSupply, supplierState, gross);
+        var lines = InvoiceRules.BuildLines(doc.Lines, recipient.InterState);
+        var figures = InvoiceRules.Totals(lines);
+        if (figures.Total < Paise.Zero) throw new HccException(HccErrorCode.INVALID_TRANSITION, "The folio total is negative; there is nothing to invoice.");
+        // A nil-rated document is a bill of supply (BOS) from any source; otherwise the source's tax-invoice series (INV, or RST for a POS bill).
+        var type = InvoiceRules.DocTypeFor(lines) == InvoiceDocType.BillOfSupply ? InvoiceDocType.BillOfSupply : doc.Series;
+        var date = supplier.BusinessDate;
+        var fy = InvoiceNumbering.FyCode(date);
+        var prefix = type == InvoiceDocType.TaxInvoice ? await PrefixAsync(tx, ctx.PropertyId, c).ConfigureAwait(false) : InvoiceNumbering.DefaultPrefix(type);
+        var (seriesPrefix, seq) = await store.NextNumberAsync(tx, ctx.PropertyId, fy, type, prefix, Now, c).ConfigureAwait(false);
+        var number = InvoiceNumbering.Format(seriesPrefix, fy, seq);
+        var record = new InvoiceRecord(0, ctx.PropertyId, type, number, fy, seq, date, source.Kind, doc.SourceId, doc.Reference, doc.PeriodFrom, doc.PeriodTo,
+            recipient, supplier.Name, supplierGstin, supplierState, supplier.Address, lines, figures, InvoiceRules.Words(figures.Total), ctx.PrincipalId, Now);
+        var id = await store.InsertInvoiceAsync(tx, record, c).ConfigureAwait(false);
+        await tx.AuditAsync("INVOICE_ISSUED", "invoice:" + N(id),
+            $"{InvoiceNumbering.Label(type)} {number} · {source.Kind} {N(doc.SourceId)} · {recipient.Type} · taxable {figures.Taxable} + tax {figures.Tax} = {figures.Total}", c).ConfigureAwait(false);
+        await tx.PublishAsync("InvoiceIssued", id, new
+        {
+            invoiceId = id, invoiceNo = number, docType = InvoiceNumbering.Code(type), invoiceDate = date, sourceKind = source.Kind, sourceId = doc.SourceId,
+            supplyType = recipient.Type.ToString(), interState = recipient.InterState, taxablePaise = figures.Taxable.Value, cgstPaise = figures.Cgst.Value,
+            sgstPaise = figures.Sgst.Value, igstPaise = figures.Igst.Value, totalPaise = figures.Total.Value,
+        }, c).ConfigureAwait(false);
+        return new IssueInvoiceResult(id, number, InvoiceNumbering.Code(type), date, figures.Total.Value, true);
     }
 
     /// <summary>Where the hotel GSTIN is recorded (named in IssueInvoice refusals).</summary>
@@ -139,7 +166,9 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         return await runner.RunAsync(ctx with { Operation = OpRequestCreditNote }, req, async (tx, c) =>
         {
             var inv = await store.ReadInvoiceAsync(tx, ctx.PropertyId, req.InvoiceId, c).ConfigureAwait(false) ?? throw NotFound("Invoice not found.");
-            await Source(inv.SourceKind).LockAsync(tx, ctx.PropertyId, inv.SourceId, c).ConfigureAwait(false);
+            var source = Source(inv.SourceKind);
+            if (!source.CreditNoteRequests) throw Invalid(source.CreditNoteRefusal); // DEC-072: a POS invoice is credited by voiding its bill
+            await source.LockAsync(tx, ctx.PropertyId, inv.SourceId, c).ConfigureAwait(false);
             var now = Now;
             if (await store.PendingRequestAsync(tx, inv.InvoiceId, c).ConfigureAwait(false) is { } pending)
             {
@@ -209,9 +238,33 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         return inv.Lines.Select(l => credited.TryGetValue(l.LineNo, out var x) ? new CreditableLine(l, x.Taxable, x.Tax, x.Cgst, x.Sgst) : new CreditableLine(l, Paise.Zero, Paise.Zero, Paise.Zero, Paise.Zero)).ToList();
     }
 
+    /// <summary>
+    /// DEC-072: the source reversed its invoiced document in the caller's command (a settled outlet POS bill voided the same business day):
+    /// a full credit note in the CN series against the source's invoice, in the same transaction (audit CREDIT_NOTE_ISSUED, outbox
+    /// CreditNoteIssued). Recorded as a direct request by <paramref name="requestedBy"/> (who asked for the reversal) decided by the
+    /// transaction's principal — the reversal's own approval rule (the POS void limit and its second approver) stands in for the Owner's
+    /// credit-note approval (CA / owner to confirm). Null when no invoice was issued for the source (nothing to credit).
+    /// </summary>
+    internal async Task<CreditNoteRecord?> CreditOnSourceReversalAsync(ICommandTransaction tx, string sourceKind, long sourceId, int requestedBy, string reason,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(reason);
+        var propertyId = tx.Context.PropertyId;
+        var source = Source(sourceKind);
+        if (await store.InvoiceIdForSourceAsync(tx, propertyId, source.Kind, sourceId, ct).ConfigureAwait(false) is not { } invoiceId) return null;
+        var inv = (await store.ReadInvoiceAsync(tx, propertyId, invoiceId, ct).ConfigureAwait(false))!;
+        var why = BillingText.Required(reason.Length > 200 ? reason[..200] : reason, 200, "A reason is required.");
+        var now = Now;
+        var row = await store.InsertRequestAsync(tx, new NewCreditNoteRequest(propertyId, inv.InvoiceId, CreditMode.Full, null, [], why, true, requestedBy, now,
+            now + ApprovalRules.TimeToLive), ct).ConfigureAwait(false);
+        var (note, _) = await IssueCoreAsync(tx, inv, row, tx.Context.PrincipalId, ct, origin: $" · reversal of {source.Kind} {N(sourceId)}").ConfigureAwait(false);
+        return note;
+    }
+
     /// <summary>Plans against the current credits, numbers the note (CRN series of the business date's FY), posts it to the source, stores it.</summary>
     private async Task<(CreditNoteRecord Note, string RequestVersion)> IssueCoreAsync(ICommandTransaction tx, InvoiceRecord inv, CreditNoteRequestRow r, int approvedBy,
-        CancellationToken ct, string? decisionReason = null)
+        CancellationToken ct, string? decisionReason = null, string? origin = null)
     {
         var lines = CreditNoteRules.Plan(await CreditableAsync(tx, inv, ct).ConfigureAwait(false), r.Mode, r.Amount, r.Lines, inv.Recipient.InterState);
         var figures = CreditNoteRules.Totals(lines);
@@ -230,7 +283,7 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         note = note with { CreditNoteId = id };
         var version = await store.UpdateRequestAsync(tx, r.RequestId, r.Version, "Issued", approvedBy, now, decisionReason, id, ct).ConfigureAwait(false);
         await tx.AuditAsync("CREDIT_NOTE_ISSUED", "invoice:" + N(inv.InvoiceId),
-            $"{number} against {inv.InvoiceNo} · {CreditNoteRules.Code(r.Mode)} · taxable {figures.Taxable} + tax {figures.Tax} = {figures.Total} · {r.Reason}{(r.Direct ? " · issued by the Owner" : $" · approved, request {N(r.RequestId)}")}", ct).ConfigureAwait(false);
+            $"{number} against {inv.InvoiceNo} · {CreditNoteRules.Code(r.Mode)} · taxable {figures.Taxable} + tax {figures.Tax} = {figures.Total} · {r.Reason}{(r.Direct ? origin ?? " · issued by the Owner" : $" · approved, request {N(r.RequestId)}")}", ct).ConfigureAwait(false);
         await tx.PublishAsync("CreditNoteIssued", id, new
         {
             creditNoteId = id, creditNoteNo = number, noteDate = date, invoiceId = inv.InvoiceId, invoiceNo = inv.InvoiceNo, sourceKind = inv.SourceKind, sourceId = inv.SourceId,

@@ -140,3 +140,14 @@
 .pos-m .pos-sum-grid th,.pos-m .pos-sum-grid td{font-size:14px}
 .m-sheet .pos-form .info-note,.m-sheet .pos-note,.pos-m .info-note{font-size:14px}.m-sheet .pos-form small{font-size:14px}.m-sheet .pos-check .eyebrow{font-size:13px}
 .m-sheet .pos-doc td,.m-sheet .pos-doc th,.pos-m .pos-sum-grid td,.pos-m .pos-sum-grid th{font-size:14px}.m-sheet .pos-doc .footnote{font-size:13px}
+/* DEC-072 · restaurant tax invoice (RST): buyer details at settlement, invoice particulars on the bill print */
+.pos-buyer{border:1px solid #e6d9c8;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;margin:0;min-width:0}
+.pos-buyer legend{font-size:12px;color:#6b5547;padding:0 6px}
+.pos-buyer small{color:#6b5547}
+.pos-doc-title{font-size:13px;color:#2b1d16;letter-spacing:.02em;margin-bottom:2px}
+.pos-doc-gst{border-top:0;padding-top:0}
+.pos-doc-cn{color:#9a3b2a}
+.pos-doc-issue{text-align:center;margin:8px 0}
+.m-sheet .pos-buyer legend{font-size:14px}.m-sheet .pos-buyer input{font-size:16px;min-height:48px}
+.m-sheet .pos-doc-issue .btn{min-height:48px;font-size:16px;width:100%}
+.m-sheet .pos-doc-gst span{font-size:14px}

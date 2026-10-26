@@ -33,5 +33,6 @@ export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';
 export * from '../../domain/streams/rbac';
 export * from '../../domain/gst';
+export * from '../../domain/gstr1';
 export {buildHistory,HISTORY_DEFAULTS,setHistoryProgress} from '../../fixtures/history/generate';
 export * from '../../domain/streams/history';

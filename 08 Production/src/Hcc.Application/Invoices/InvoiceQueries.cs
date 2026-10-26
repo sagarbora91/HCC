@@ -110,8 +110,12 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
         foreach (var n in notes)
             if (!originals.ContainsKey(n.InvoiceId))
                 originals[n.InvoiceId] = (await store.ReadInvoiceAsync(null, propertyId, n.InvoiceId, ct).ConfigureAwait(false))!;
+        // DEC-072: a restaurant invoice whose POS bill was voided is reversed in full by its credit note on the same business day (a bill can
+        // only be voided on the day it was settled, so both fall in the same period): it counts as cancelled in table 13. CA to confirm.
+        var credited = notes.GroupBy(n => n.InvoiceId).ToDictionary(g => g.Key, g => g.Aggregate(Paise.Zero, (a, n) => a + n.Figures.Total));
+        bool Cancelled(InvoiceRecord i) => i.SourceKind == PosInvoiceSource.PosKind && credited.TryGetValue(i.InvoiceId, out var c) && c == i.Figures.Total;
         var result = Gstr1Summary.Build(
-            invoices.Select(i => new Gstr1Invoice(i.InvoiceNo, i.DocType, i.Recipient.Type, i.Recipient.InterState, i.Figures.Total, i.Lines)).ToList(),
+            invoices.Select(i => new Gstr1Invoice(i.InvoiceNo, i.DocType, i.Recipient.Type, i.Recipient.InterState, i.Figures.Total, i.Lines, Cancelled(i))).ToList(),
             notes.Select(n =>
             {
                 var i = originals[n.InvoiceId];
@@ -120,7 +124,7 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
         return new Gstr1View(from, to,
             result.Rates.Select(r => new Gstr1RateView(r.Section, r.Bps, r.Taxable.Value, r.Cgst.Value, r.Sgst.Value, r.Igst.Value, r.Documents)).ToList(),
             result.Sac.Select(r => new Gstr1SacView(r.Sac, r.Bps, r.Taxable.Value, r.Cgst.Value, r.Sgst.Value, r.Igst.Value)).ToList(),
-            result.Documents.Select(d => new Gstr1DocView(d.DocType, d.First, d.Last, d.Count)).ToList(),
+            result.Documents.Select(d => new Gstr1DocView(d.DocType, d.First, d.Last, d.Count, d.Cancelled)).ToList(),
             "Working summary from issued documents — illustrative, CA to confirm before filing (thresholds, SAC codes, sections).");
     }
 

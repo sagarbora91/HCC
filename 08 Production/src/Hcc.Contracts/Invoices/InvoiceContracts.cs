@@ -4,7 +4,8 @@ namespace Hcc.Contracts.Invoices;
 
 /// <summary>
 /// POST /api/v1/commands/IssueInvoice (K, PERM-INV-002). <c>SourceKind</c> = folio (a settled, checked-out folio; group master folios
-/// plug in later through the same port). <c>SupplyType</c> = B2C (default) | B2B (needs <c>BuyerGstin</c> + <c>BuyerName</c>).
+/// plug in later through the same port) or pos (<c>SourceId</c> = a settled outlet POS bill, RST series, DEC-072: normally issued by the
+/// settle itself; this issues it later, e.g. after the hotel GSTIN was recorded). <c>SupplyType</c> = B2C (default) | B2B (needs <c>BuyerGstin</c> + <c>BuyerName</c>).
 /// <c>PlaceOfSupply</c> = 2-digit state code, default the hotel's state. A repeat for the same folio returns the issued invoice.
 /// </summary>
 public sealed record IssueInvoiceRequest(string SourceKind, long SourceId, string? SupplyType = null, string? BuyerName = null, string? BuyerGstin = null,
@@ -64,7 +65,9 @@ public sealed record Gstr1RateView(string Section, int TaxBps, long TaxablePaise
 
 public sealed record Gstr1SacView(string Sac, int TaxBps, long TaxablePaise, long CgstPaise, long SgstPaise, long IgstPaise);
 
-public sealed record Gstr1DocView(string DocType, string First, string Last, int Count);
+/// <summary>Table 13 (documents issued): one row per series — INV (stay / room invoices), RST (restaurant invoices, DEC-072), BOS, CRN — with the
+/// first and last number in the period, the count and how many of them were cancelled (an RST invoice of a voided POS bill).</summary>
+public sealed record Gstr1DocView(string DocType, string First, string Last, int Count, int Cancelled = 0);
 
 /// <summary>GET /api/v1/invoices/gstr1?from=&amp;to= (PERM-INV-001): a working summary for the CA (illustrative — CA to confirm), not a return file.</summary>
 public sealed record Gstr1View(DateOnly From, DateOnly To, IReadOnlyList<Gstr1RateView> Rates, IReadOnlyList<Gstr1SacView> Sac, IReadOnlyList<Gstr1DocView> Documents, string Note);

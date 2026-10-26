@@ -21,9 +21,12 @@ namespace Hcc.Application.Pos;
 /// <c>03 Prototype/src/services/mock/handlers/pos.ts</c>. Every command runs through <see cref="ICommandRunner"/> (idempotency, audit, outbox).
 /// Tax comes only from <see cref="IPosTaxRates"/> (C's GST master, food) on the business date; every bill stores its CGST / SGST split and a
 /// room-posted bill's folio line gets its per-charge GST record. P6: commands refuse a closed business day (DAY_CLOSED) and cash a locked cash book.
+/// DEC-072: every settled OUTLET bill is issued as a GST tax invoice in the RST series inside the settle (<see cref="IPosInvoicePort"/>; B2B with
+/// a buyer GSTIN), and voiding such a bill issues its full credit note in the CN series inside the void. Room-posted bills get no RST invoice.
 /// </summary>
 public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingStore billing, IAccessPolicy policy, IPosTaxRates taxRates,
-    ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null, Configuration.ISettingsReader? settings = null)
+    ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null, Configuration.ISettingsReader? settings = null,
+    IPosInvoicePort? invoices = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -259,6 +262,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             if (tender != PosRules.Cash && reference.Length == 0) throw HccException.Validation("Enter the transaction reference for a non-cash payment.");
         }
 
+        var buyer = BuyerOf(req, folioMode);
         if (folioMode) await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Operate, ct: ct).ConfigureAwait(false);
         else await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Settle, AccessScopes.Any, ct: ct).ConfigureAwait(false);
 
@@ -334,8 +338,11 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
                 folioId = folioIdOut,
                 chargeId = folioMode ? chargeId : (long?)null, cashMovementId = movementId == 0 ? (long?)null : movementId,
             }, ct2).ConfigureAwait(false);
+            // DEC-072: the outlet bill's GST tax invoice (RST series) in this transaction; a room-posted bill is on the guest's room invoice instead.
+            var invoice = folioMode || invoices is null ? null : await invoices.IssueAsync(tx, billId, buyer, ct2).ConfigureAwait(false);
             return new SettleResult(o.OrderId, billId, billNo, req.Mode, totals.Net.Value, bps, totals.Tax.Value, totals.Total.Value,
-                receiptId == 0 ? null : receiptId, chargeId == 0 ? null : chargeId, movementId == 0 ? null : movementId, version);
+                receiptId == 0 ? null : receiptId, chargeId == 0 ? null : chargeId, movementId == 0 ? null : movementId, version,
+                invoice?.InvoiceId, invoice?.InvoiceNo, invoice?.NotIssuedReason);
         }, ct).ConfigureAwait(false);
     }
 
@@ -462,6 +469,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             return new VoidResult(o.OrderId, "Voided", voidRequestId, v);
         }
 
+        string? creditNoteNo = null;
         if (o.Status == "Settled")
         {
             var bill = await store.BillForOrderAsync(tx, o.OrderId, ct).ConfigureAwait(false) ?? throw NotFound("Bill not found.");
@@ -492,17 +500,48 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
                 cgstPaise = voidSplit.Cgst.Value, sgstPaise = voidSplit.Sgst.Value, totalPaise = bill.Total.Value, reference = "Void of " + bill.BillNo,
                 reason, cashMovementId = movement,
             }, ct).ConfigureAwait(false);
+            // DEC-072: the bill's RST invoice (when issued) is reversed in full by a credit note (CN series) dated today, in this transaction.
+            // Requested by whoever asked for the void; issued by the principal executing it (the approver for a void above the limit).
+            if (invoices is not null)
+                creditNoteNo = await invoices.CreditVoidAsync(tx, bill.BillId, by, $"Void of {bill.BillNo} · {reason}", ct).ConfigureAwait(false);
         }
 
         var active = (await store.LinesAsync(tx, o.OrderId, ct).ConfigureAwait(false)).Where(l => !l.Voided).Select(l => l.LineId).ToList();
         if (active.Count > 0) await store.VoidLinesAsync(tx, active, reason, by, date, voidRequestId, ct).ConfigureAwait(false);
         await store.SetOrderStatusAsync(tx, o.OrderId, "Void", reason, by, now, null, ct).ConfigureAwait(false);
         var version = await store.TouchOrderAsync(tx, o.OrderId, ct).ConfigureAwait(false);
-        await tx.AuditAsync("POS_BILL_VOIDED", Target("check", o.OrderId), $"{(o.Status == "Settled" ? "settled bill" : "open check")} void · {reason}", ct).ConfigureAwait(false);
-        return new VoidResult(o.OrderId, "Voided", voidRequestId, version);
+        await tx.AuditAsync("POS_BILL_VOIDED", Target("check", o.OrderId),
+            $"{(o.Status == "Settled" ? "settled bill" : "open check")} void · {reason}{(creditNoteNo is null ? "" : " · credit note " + creditNoteNo)}", ct).ConfigureAwait(false);
+        return new VoidResult(o.OrderId, "Voided", voidRequestId, version, creditNoteNo);
     }
 
     // ── helpers ──
+
+    /// <summary>
+    /// DEC-072 buyer of an outlet bill's tax invoice: a GSTIN (checked with the GSTN check character) makes it B2B and needs the legal name;
+    /// a name / address alone stays B2C (needed for a bill of ₹50,000 or more, r.46(e) as read). A room-folio bill takes no buyer: the guest's
+    /// room invoice is issued (B2B with the company GSTIN if given) after checkout.
+    /// </summary>
+    private static PosBuyer BuyerOf(SettleCheckRequest req, bool folioMode)
+    {
+        var gstin = req.BuyerGstin?.Trim() ?? string.Empty;
+        var name = BillingText.Optional(req.BuyerName, 120);
+        var address = BillingText.Optional(req.BuyerAddress, 200);
+        if (folioMode)
+        {
+            if (gstin.Length + name.Length + address.Length > 0)
+                throw HccException.Validation("A bill charged to a room folio is invoiced to the guest after checkout; give the business GSTIN on the room invoice.");
+            return PosBuyer.None;
+        }
+
+        if (gstin.Length > 0)
+        {
+            gstin = Hcc.Domain.Invoices.Gstin.Validate(gstin, "buyer");
+            if (name.Length == 0) throw HccException.Validation("Enter the buyer's legal name for a B2B tax invoice.");
+        }
+
+        return new PosBuyer(gstin.Length == 0 ? null : gstin, name.Length == 0 ? null : name, address.Length == 0 ? null : address);
+    }
 
     private static string ReasonOf(string? reason)
     {
