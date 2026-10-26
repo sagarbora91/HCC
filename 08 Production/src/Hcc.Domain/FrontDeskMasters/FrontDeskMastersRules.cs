@@ -20,8 +20,13 @@ public static partial class FrontDeskMastersRules
 {
     public static readonly IReadOnlyList<string> Segments = ["DIRECT", "OTA", "CORPORATE", "AGENT", "GROUP", "OTHER"];
     public static readonly IReadOnlyList<string> ChannelSegments = ["OTA", "CORPORATE", "AGENT"];
-    public static readonly IReadOnlyList<string> Documents = ["INV", "BOS", "CRN", "RCP", "KOT", "REG"];
-    public static readonly IReadOnlyList<string> GstDocuments = ["INV", "BOS", "CRN"];
+    public static readonly IReadOnlyList<string> Documents = ["INV", "BOS", "CRN", "RCP", "KOT", "REG", "RST"];
+    /// <summary>GST documents (yearly reset, PREFIX/FY/digits within 16 characters). MA-11: RST = Wave B's restaurant tax invoices (DEC-072),
+    /// read by the invoices module through <c>INumberSeriesSource</c> exactly like the tax-invoice series.</summary>
+    public static readonly IReadOnlyList<string> GstDocuments = ["INV", "BOS", "CRN", "RST"];
+    /// <summary>MA-11: series defined but RESERVED — no command numbers these documents yet (receipts print the receipt id, KOTs a per-outlet
+    /// counter, registration cards the booking). Kept so the Owner can set them up before they are switched on.</summary>
+    public static readonly IReadOnlyList<string> ReservedDocuments = ["RCP", "KOT", "REG"];
     public const int MaxCommissionBps = 5000;
     public const int MaxHours = 720;
     public const string CaNote = "GST documents: one consecutive series, unique per financial year, no gaps, at most 16 characters (CGST Rules r.46(b)) — illustrative, CA to confirm.";
@@ -57,6 +62,7 @@ public static partial class FrontDeskMastersRules
         "RCP" => "receipt",
         "KOT" => "KOT",
         "REG" => "registration card",
+        "RST" => "restaurant tax invoice",
         _ => doc,
     };
 
@@ -197,7 +203,28 @@ public static partial class FrontDeskMastersRules
             S("RCP", "Receipt", "RCP", "RCP", 5, "NEVER"),
             S("KOT", "Kitchen order ticket", "KOT", "KOT", 4, "NEVER"),
             S("REG", "Registration card", "REG", "REG", 5, "NEVER"),
+            S("RST", "Restaurant tax invoice", "RST", "RST", InvoiceNumbering.MaxLength - 6 - 3, "FY"), // MA-11: RST/2627/0000001, as before
         ];
+    }
+
+    /// <summary>
+    /// MA-11: the row a booking's source text belongs to (prototype fdmSourceOf without the company match): "OTA · &lt;channel&gt;" → that OTA
+    /// channel row; "OTA · manual" → the generic OTA row; else the row named like the source (ignoring case) or with that code. Retired rows
+    /// resolve (the caller refuses them for new bookings); null = not in the list.
+    /// </summary>
+    public static BookingSourceRow? SourceRowOf(IReadOnlyList<BookingSourceRow> rows, string? source)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        var src = (source ?? string.Empty).Trim();
+        if (src.Length == 0) return null;
+        var lower = src.ToLowerInvariant();
+        foreach (var sep in new[] { "ota · ", "ota - " })
+            if (lower.StartsWith(sep, StringComparison.Ordinal) && lower[sep.Length..] is { Length: > 0 } ch && ch != "manual"
+                && rows.FirstOrDefault(r => r.Segment == "OTA" && string.Equals(r.Channel, src[sep.Length..], StringComparison.OrdinalIgnoreCase)) is { } byChannel)
+                return byChannel;
+        if (lower is "ota · manual" or "ota - manual") return rows.FirstOrDefault(r => r.Code == "OTA");
+        return rows.FirstOrDefault(r => string.Equals(r.Name, src, StringComparison.OrdinalIgnoreCase))
+            ?? rows.FirstOrDefault(r => string.Equals(r.Code, src.ToUpperInvariant(), StringComparison.Ordinal));
     }
 
     private static FrontDeskDefault Src(string code, string name, string segment) => new(code, name, BookingSource(segment, null, 0));

@@ -211,11 +211,18 @@ export const FDM_ID_SPEC:MasterSpec<FDMIdTypeRow>={
 
 // ═════════════════════════════ M12 · Document numbering series ═════════════════════════════
 export const FDM_DOCS=[{value:'INV',label:'Tax invoice',gst:true},{value:'BOS',label:'Bill of supply',gst:true},{value:'CRN',label:'Credit note',gst:true},
-  {value:'RCP',label:'Receipt',gst:false},{value:'KOT',label:'Kitchen order ticket (KOT)',gst:false},{value:'REG',label:'Registration card',gst:false}] as const;
+  {value:'RCP',label:'Receipt',gst:false},{value:'KOT',label:'Kitchen order ticket (KOT)',gst:false},{value:'REG',label:'Registration card',gst:false},
+  {value:'RST',label:'Restaurant tax invoice',gst:true}] as const;
+/** MA-11: documents whose series are defined but RESERVED — no command numbers them yet (receipts print the receipt id, KOTs their own
+ *  per-outlet counter, registration cards the booking id). Kept so the Owner can set them up before they are switched on. */
+export const FDM_RESERVED_DOCS:readonly string[]=['RCP','KOT','REG'];
+export const fdmDocReserved=(d:unknown)=>FDM_RESERVED_DOCS.includes(String(d));
 export type FDMDoc=typeof FDM_DOCS[number]['value'];
 export const fdmDocLabel=(d:unknown)=>FDM_DOCS.find(x=>x.value===d)?.label??String(d??'—');
 export const fdmDocIsGst=(d:unknown)=>!!FDM_DOCS.find(x=>x.value===d)?.gst;
 export const FDM_RESETS=[{value:'FY',label:'Every financial year (1 April)'},{value:'NEVER',label:'Never'}];
+/** Reserved-documents note shown with the list (MA-11). */
+export const FDM_RESERVED_NOTE='Receipt, KOT and registration-card series are reserved: nothing is numbered from them yet.';
 /** GST note shown with the list (illustrative). */
 export const FDM_GST_NOTE='GST invoices, bills of supply and credit notes: one consecutive series, unique per financial year, no gaps, at most 16 characters (CGST Rules r.46(b)) — illustrative, CA to confirm.';
 export const FDM_NUMBER_MAX=16;
@@ -231,7 +238,15 @@ export const FDM_SERIES_SEED:FDMSeriesRow[]=[
   {id:'nsr-rcp',code:'RCP',name:'Receipt',document:'RCP',prefix:'RCP',start:1,padding:5,reset:'NEVER',activeFrom:'2025-04-01',sortOrder:40,active:true},
   {id:'nsr-kot',code:'KOT',name:'Kitchen order ticket',document:'KOT',prefix:'KOT',start:1,padding:4,reset:'NEVER',activeFrom:'2025-04-01',sortOrder:50,active:true},
   {id:'nsr-reg',code:'REG',name:'Registration card',document:'REG',prefix:'REG',start:1,padding:5,reset:'NEVER',activeFrom:'2025-04-01',sortOrder:60,active:true},
+  // MA-11: Wave B's restaurant tax invoices (DEC-072) are a row of this master; the seeded row continues POS's own per-FY counter (posX.rstSeq),
+  // so the numbers stay RST/2627/0000001… (16 characters).
+  {id:'nsr-rst',code:'RST',name:'Restaurant tax invoice',document:'RST',prefix:'RST',start:1,padding:7,reset:'FY',activeFrom:'2025-04-01',sortOrder:70,active:true},
 ];
+/** MA-11: the seeded restaurant series keeps counting in posX.rstSeq (key = FY code "2627"), as Wave B's issueRst did. */
+const RST_ROW='nsr-rst';
+const fyCodeOfLabel=(label:string)=>label.slice(2,4)+label.slice(5,7);
+const fyLabelOfCode=(code:string)=>`20${code.slice(0,2)}-${code.slice(2,4)}`;
+const rstLast=(s:State,year:string)=>Number(s.posX?.rstSeq?.[fyCodeOfLabel(year)]??0);
 /** "2026-27" for any date from 1 April 2026 to 31 March 2027. */
 export function fdmFyLabel(date:string):string{
   const y=Number(date.slice(0,4)),m=Number(date.slice(5,7)),from=m>=4?y:y-1;
@@ -252,6 +267,7 @@ const isLegacy=(row:Pick<FDMSeriesRow,'id'>,year:string)=>!!LEGACY[row.id]&&year
 export function fdmLast(s:State,row:Pick<FDMSeriesRow,'id'|'reset'>,year:string):number{
   const legacy=LEGACY[row.id];
   if(legacy&&year===FDM_LEGACY_FY)return Number(s[legacy]??0);
+  if(row.id===RST_ROW&&year!=='*')return rstLast(s,year);
   return s.frontdeskMasterX?.counters?.[row.id+'|'+year]?.last??0;
 }
 /** Documents issued by a series, all years (legacy counters included). */
@@ -259,6 +275,7 @@ export function fdmIssued(s:State,row:Pick<FDMSeriesRow,'id'|'reset'>&{issued?:u
   if(typeof row.issued==='number')return {count:row.issued,years:[]}; // production: the server counts the issued documents
   let count=0;const years=new Set<string>();let lastDate:string|undefined;
   const legacy=LEGACY[row.id];if(legacy&&Number(s[legacy]??0)>0){count+=Number(s[legacy]);years.add(FDM_LEGACY_FY);}
+  if(row.id===RST_ROW)for(const [fy,n] of Object.entries(s.posX?.rstSeq??{}))if(Number(n)>0){count+=Number(n);years.add(fyLabelOfCode(fy));}
   for(const [k,v] of Object.entries(s.frontdeskMasterX?.counters??{})){
     const [id,year]=k.split('|');if(id!==row.id||!v.last)continue;
     if(!(legacy&&year===FDM_LEGACY_FY))count+=v.count??v.last;years.add(year);if(!lastDate||v.lastDate>lastDate)lastDate=v.lastDate;
@@ -282,6 +299,7 @@ export function fdmAllocate(s:State,doc:FDMDoc,date=s.date):string{
   if(!r)throw new HccError('INVALID_TRANSITION',`No numbering series is in force for ${fdmDocLabel(doc)} on ${date}. The Owner adds one in Master configuration › Front-desk policies › Numbering series.`);
   const year=yearKey(r,date),seq=Math.max(fdmLast(s,r,year),r.start-1)+1,legacy=LEGACY[r.id];
   if(legacy&&year===FDM_LEGACY_FY)s[legacy]=seq;
+  else if(r.id===RST_ROW&&year!=='*'&&s.posX)(s.posX.rstSeq??={})[fyCodeOfLabel(year)]=seq; // the POS handler created posX first
   else{const c=fdmSlice(s).counters,k=r.id+'|'+year;c[k]={last:seq,lastDate:date,count:(c[k]?.count??0)+1};}
   return fdmFormat(r,seq,date,isLegacy(r,year));
 }
@@ -327,7 +345,7 @@ function seriesProblem(s:State,row:FDMSeriesRow,rows:FDMSeriesRow[]):string|unde
 }
 export const FDM_SERIES_SPEC:MasterSpec<FDMSeriesRow>={
   id:FDM_SERIES,label:'Numbering series',singular:'numbering series',group:'frontdesk',prefix:'NSR',money:true,permission:'settings',
-  help:'One series per document (one tax-invoice series for the hotel, DEC-MA-5). '+FDM_GST_NOTE+' A series that has issued numbers cannot change; add a new one from a date with no documents.',
+  help:'One series per document (one tax-invoice series for the hotel, DEC-MA-5; restaurant bills have their own RST series, DEC-072). '+FDM_GST_NOTE+' '+FDM_RESERVED_NOTE+' A series that has issued numbers cannot change; add a new one from a date with no documents.',
   fields:[
     {key:'code',label:'Code',type:'text',required:true,maxLength:20,placeholder:'INV-2027'},
     {key:'name',label:'Name',type:'text',required:true,maxLength:60,placeholder:'Tax invoice'},

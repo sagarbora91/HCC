@@ -101,6 +101,7 @@
     <File Path="database/migrations/2870_ops_masters.sql" />
     <File Path="database/migrations/2871_ops_masters_seed.sql" />
     <File Path="database/migrations/2890_payment_method_records.sql" />
+    <File Path="database/migrations/2891_number_series_rst.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
     <File Path="database/migrations/3100_cash_leaving_drawer.sql" />
     <File Path="database/migrations/3101_cash_leaving_drawer_rbac_seed.sql" />
