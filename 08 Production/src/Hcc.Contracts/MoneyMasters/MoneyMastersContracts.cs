@@ -43,7 +43,7 @@ public static class MoneyMasterValues
 /// <summary>One payment method. <c>SettlesTo</c> = code of a bank account / till (null for credit). <c>UsageCount</c> = folio receipts, outlet
 /// bills and expenses that store this method (by name, code or an earlier name).</summary>
 public sealed record PaymentMethodView(int PaymentMethodId, string Code, string Name, int SortOrder, bool Active, string? RetiredOn, string Kind, string? SettlesTo,
-    bool NeedsReference, IReadOnlyList<string> UsableAt, int SurchargeBps, string? Ledger, int UsageCount, string UpdatedUtc, string Version);
+    bool NeedsReference, IReadOnlyList<string> UsableAt, int? SurchargeBps, string? Ledger, int UsageCount, string UpdatedUtc, string Version); // MA-11: SurchargeBps null without money visibility
 
 public sealed record PaymentMethodList(int Page, int PageSize, int Total, IReadOnlyList<PaymentMethodView> Items);
 

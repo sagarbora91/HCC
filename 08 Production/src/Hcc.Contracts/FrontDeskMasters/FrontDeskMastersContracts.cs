@@ -38,7 +38,8 @@ public sealed record NumberSeriesView(int RowId, string Code, string Name, strin
     int SortOrder, bool Active, string? RetiredOn, int Issued, string? NextNumber, int Usage, string UpdatedUtc, string Version);
 
 /// <summary>M14 booking policy. Percentages in basis points; Sources = booking-source codes ([] = the default policy).</summary>
-public sealed record BookingPolicyView(int RowId, string Code, string Name, int FreeCancelHours, int CancelChargeBps, int NoShowChargeBps, int DepositBps,
+/// <remarks>MA-11: the three percentages are null for a reader without money visibility (DEC-061).</remarks>
+public sealed record BookingPolicyView(int RowId, string Code, string Name, int FreeCancelHours, int? CancelChargeBps, int? NoShowChargeBps, int? DepositBps,
     IReadOnlyList<string> Sources, int SortOrder, bool Active, string? RetiredOn, int Usage, string UpdatedUtc, string Version);
 
 /// <summary>SaveBookingSource K [V]: RowId null = create. A commission change needs PERM-MST-002 (Owner).</summary>

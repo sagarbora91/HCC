@@ -144,8 +144,8 @@ export const DISCOUNT_REASON_SPEC:MasterSpec<CatDiscountReason>={
   fields:[
     {key:'code',label:'Code',type:'text',required:true,maxLength:20,placeholder:'SERVICE'},
     {key:'name',label:'Name',type:'text',required:true,maxLength:60,placeholder:'Service recovery'},
-    {key:'maxPct',label:'Maximum discount (% of the folio charges)',type:'percent',required:true,min:1,max:10000},
-    {key:'approvalAbovePct',label:'Needs approval above (% of the charges)',type:'percent',min:0,max:10000,help:'Optional. Above it, another user approves even within the role limit (the Owner decides directly).'},
+    {key:'maxPct',label:'Maximum discount (% of the folio charges)',type:'percent',money:true,required:true,min:1,max:10000},
+    {key:'approvalAbovePct',label:'Needs approval above (% of the charges)',type:'percent',money:true,min:0,max:10000,help:'Optional. Above it, another user approves even within the role limit (the Owner decides directly).'},
     {key:'roles',label:'Shown to roles',type:'multiselect',options:opt(CAT_DISCOUNT_ROLES),help:'None ticked = every role that may give discounts (Owner, Manager, Reception).'},
     {key:'sortOrder',label:'Sort order',type:'number',min:0,max:1_000_000},
     {key:'active',label:'Active',type:'toggle'},

@@ -81,7 +81,7 @@ public class MoneyMastersHttpTests : IAsyncLifetime
     {
         using (var anon = await _http.SendAsync(Req(HttpMethod.Get, "/masters/payment-methods", null), Ct)) Assert.Equal(HttpStatusCode.Unauthorized, anon.StatusCode);
         var pm = await GetAsync("/masters/payment-methods?page=1&pageSize=200", "housekeeper");
-        foreach (var f in new[] { "\"paymentMethodId\":", "\"settlesTo\":\"TILL\"", "\"usableAt\":[\"frontdesk\",\"pos\",\"expenses\"]", "\"surchargeBps\":0", "\"needsReference\":", "\"version\":", "\"usageCount\":2" })
+        foreach (var f in new[] { "\"paymentMethodId\":", "\"settlesTo\":\"TILL\"", "\"usableAt\":[\"frontdesk\",\"pos\",\"expenses\"]", "\"surchargeBps\":null" /* MA-11 old → new: 0 → null (money, DEC-061) */, "\"needsReference\":", "\"version\":", "\"usageCount\":2" })
             Assert.Contains(f, pm, StringComparison.Ordinal);
         Assert.Equal(6, JsonSerializer.Deserialize<PaymentMethodList>(pm, Web)!.Total);
         var ba = await GetAsync("/masters/bank-accounts?page=1&pageSize=200", "cashier");
