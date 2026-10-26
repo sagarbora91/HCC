@@ -156,6 +156,11 @@ function routes(role){
     'GET /hr/shift-patterns':({query})=>page([],query,'items'),'GET /hr/shift-patterns/history':({query})=>page([],query,'items'),
     'GET /hr/leave-types':({query})=>page([],query,'items'),'GET /hr/leave-types/history':({query})=>page([],query,'items'),
     'GET /hr/holidays':({query})=>page([],query,'items'),'GET /hr/holidays/history':({query})=>page([],query,'items'),
+    // MA-7 operations masters
+    'GET /housekeeping/task-types':({query})=>page([],query,'items'),'GET /housekeeping/task-types/history':({query})=>page([],query,'items'),
+    'GET /housekeeping/zones':({query})=>page([],query,'items'),'GET /housekeeping/zones/history':({query})=>page([],query,'items'),
+    'GET /guest-services/complaint-categories':({query})=>page([],query,'items'),'GET /guest-services/complaint-categories/history':({query})=>page([],query,'items'),
+    'GET /guest-services/lost-found-categories':({query})=>page([],query,'items'),'GET /guest-services/lost-found-categories/history':({query})=>page([],query,'items'),
   };
 }
 

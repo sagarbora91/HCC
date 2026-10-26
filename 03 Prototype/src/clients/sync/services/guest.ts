@@ -22,10 +22,10 @@ type SrvRequest={requestId:number;stayId:number;roomNo:string;guestName:string;r
 type SrvRecovery={amountPaise:number;reason:string;approvalId:number|null;chargeId:number|null;atUtc:string;by:number};
 type SrvComplaint={complaintId:number;stayId:number|null;roomNo:string|null;guestName:string;category:string;severity:string;description:string;ownerId:number;status:string;
   rootCause:string|null;recoveryAction:string|null;followUpOn:string|null;followUpDue:boolean;followUp:{outcome:string;satisfied:boolean;atUtc:string;by:number}|null;
-  createdUtc:string;resolvedUtc:string|null;closedUtc:string|null;recovery:SrvRecovery|null;recoveryStatus:string;version:string};
+  createdUtc:string;resolvedUtc:string|null;closedUtc:string|null;recovery:SrvRecovery|null;recoveryStatus:string;version:string;categoryCode?:string|null};
 type SrvClaim={name:string;phone:string;idType:string;idNote:string;matchNote:string;atUtc:string;by:number};
 type SrvItem={itemId:number;description:string;category:string;valuable:boolean;foundWhere:string;roomNo:string|null;stayId:number|null;foundUtc:string;foundDate:string;
-  foundBy:number;storage:string;status:string;disposeOn:string;disposable:boolean;claim:SrvClaim|null;handedOverTo:string|null;disposalMethod:string|null;version:string};
+  foundBy:number;storage:string;status:string;disposeOn:string;disposable:boolean;claim:SrvClaim|null;handedOverTo:string|null;disposalMethod:string|null;version:string;categoryCode?:string|null};
 type SrvSettings={slaMinutes:Record<string,number>;retentionDays:number;valuableRetentionDays:number;version:string|null};
 type SrvStay={stayId:number;reservationId:number;guestId:number|null;roomNo:string;guestName:string;status:string};
 type SrvHistory={recordId:number;entries:{atUtc:string;by:number;what:string}[]};
@@ -56,7 +56,7 @@ export function requestFromServer(r:SrvRequest,booking:string|undefined,log:GSVL
 export function complaintFromServer(c:SrvComplaint,booking:string|undefined,log:GSVLog[]):GSVComplaint{
   const recovery:GSVRecovery|undefined=c.recovery?clean({amount:c.recovery.amountPaise,reason:c.recovery.reason,approvalId:c.recovery.approvalId==null?undefined:String(c.recovery.approvalId),
     lineId:c.recovery.chargeId==null?undefined:String(c.recovery.chargeId),at:utcToClock(c.recovery.atUtc),by:uid(c.recovery.by)}):undefined;
-  return clean({id:String(c.complaintId),booking,room:c.roomNo??undefined,guest:c.guestName,category:c.category as GSVComplaint['category'],severity:c.severity as GSVComplaint['severity'],
+  return clean({id:String(c.complaintId),booking,room:c.roomNo??undefined,guest:c.guestName,category:c.category,categoryCode:c.categoryCode??undefined,severity:c.severity as GSVComplaint['severity'],
     description:c.description,owner:uid(c.ownerId),status:c.status as GSVComplaint['status'],rootCause:c.rootCause??undefined,recoveryAction:c.recoveryAction??undefined,recovery,
     followUpOn:c.followUpOn??undefined,followUp:c.followUp?{outcome:c.followUp.outcome,satisfied:c.followUp.satisfied,at:utcToClock(c.followUp.atUtc),by:uid(c.followUp.by)}:undefined,
     createdAt:utcToClock(c.createdUtc),resolvedAt:c.resolvedUtc?utcToClock(c.resolvedUtc):undefined,closedAt:c.closedUtc?utcToClock(c.closedUtc):undefined,by:log[0]?.by??'',log} as GSVComplaint);
@@ -65,7 +65,7 @@ export function itemFromServer(i:SrvItem,booking:string|undefined,log:GSVLog[]):
   const last=(prefix:string)=>[...log].reverse().find(l=>l.what.startsWith(prefix));
   const hand=i.handedOverTo!=null?{at:last('Handed over')?.at??'',by:last('Handed over')?.by??'',to:i.handedOverTo,note:''}:undefined;
   const disp=i.disposalMethod!=null?{at:last('Disposed')?.at??'',by:last('Disposed')?.by??'',method:i.disposalMethod,note:''}:undefined;
-  return clean({id:String(i.itemId),description:i.description,category:i.category as GSVItem['category'],valuable:i.valuable,foundWhere:i.foundWhere,room:i.roomNo??undefined,
+  return clean({id:String(i.itemId),description:i.description,category:i.category,categoryCode:i.categoryCode??undefined,valuable:i.valuable,foundWhere:i.foundWhere,room:i.roomNo??undefined,
     foundAt:utcToClock(i.foundUtc),foundBy:uid(i.foundBy),storage:i.storage,booking,status:i.status as GSVItem['status'],
     claim:i.claim?{name:i.claim.name,phone:i.claim.phone,idType:i.claim.idType,idNote:i.claim.idNote,matchNote:i.claim.matchNote,at:utcToClock(i.claim.atUtc),by:uid(i.claim.by)}:undefined,
     handover:hand,disposal:disp,log} as GSVItem);

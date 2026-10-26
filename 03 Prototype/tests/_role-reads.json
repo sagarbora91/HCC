@@ -120,7 +120,15 @@
     "GET /hr/leave-types": "/hr/leave-types?page=1&pageSize=200",
     "GET /hr/leave-types/history": "/hr/leave-types/history?page=1&pageSize=200",
     "GET /hr/holidays": "/hr/holidays?page=1&pageSize=200",
-    "GET /hr/holidays/history": "/hr/holidays/history?page=1&pageSize=200"
+    "GET /hr/holidays/history": "/hr/holidays/history?page=1&pageSize=200",
+    "GET /housekeeping/task-types": "/housekeeping/task-types?page=1&pageSize=200",
+    "GET /housekeeping/task-types/history": "/housekeeping/task-types/history?page=1&pageSize=200",
+    "GET /housekeeping/zones": "/housekeeping/zones?page=1&pageSize=200",
+    "GET /housekeeping/zones/history": "/housekeeping/zones/history?page=1&pageSize=200",
+    "GET /guest-services/complaint-categories": "/guest-services/complaint-categories?page=1&pageSize=200",
+    "GET /guest-services/complaint-categories/history": "/guest-services/complaint-categories/history?page=1&pageSize=200",
+    "GET /guest-services/lost-found-categories": "/guest-services/lost-found-categories?page=1&pageSize=200",
+    "GET /guest-services/lost-found-categories/history": "/guest-services/lost-found-categories/history?page=1&pageSize=200"
   },
   "roles": {
     "OWN": {
@@ -672,7 +680,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "200",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "200"
+        "GET /hr/holidays/history": "200",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "200",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "200",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "200",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "200"
       }
     },
     "MGR": {
@@ -1124,7 +1140,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "403",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "403"
+        "GET /hr/holidays/history": "403",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "403",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "403",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "403",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "403"
       }
     },
     "REC": {
@@ -1436,7 +1460,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "403",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "403"
+        "GET /hr/holidays/history": "403",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "403",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "403",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "403",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "403"
       }
     },
     "CSH": {
@@ -1673,7 +1705,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "403",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "403"
+        "GET /hr/holidays/history": "403",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "403",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "403",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "403",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "403"
       }
     },
     "ACC": {
@@ -1950,7 +1990,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "403",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "403"
+        "GET /hr/holidays/history": "403",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "403",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "403",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "403",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "403"
       }
     },
     "SUP": {
@@ -2122,7 +2170,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "403",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "403"
+        "GET /hr/holidays/history": "403",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "403",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "403",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "403",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "403"
       }
     },
     "HKP": {
@@ -2279,7 +2335,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "403",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "403"
+        "GET /hr/holidays/history": "403",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "403",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "403",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "403",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "403"
       }
     },
     "MNT": {
@@ -2431,7 +2495,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "403",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "403"
+        "GET /hr/holidays/history": "403",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "403",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "403",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "403",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "403"
       }
     },
     "TAD": {
@@ -2603,7 +2675,15 @@
         "GET /hr/leave-types": "200",
         "GET /hr/leave-types/history": "200",
         "GET /hr/holidays": "200",
-        "GET /hr/holidays/history": "200"
+        "GET /hr/holidays/history": "200",
+        "GET /housekeeping/task-types": "200",
+        "GET /housekeeping/task-types/history": "200",
+        "GET /housekeeping/zones": "200",
+        "GET /housekeeping/zones/history": "200",
+        "GET /guest-services/complaint-categories": "200",
+        "GET /guest-services/complaint-categories/history": "200",
+        "GET /guest-services/lost-found-categories": "200",
+        "GET /guest-services/lost-found-categories/history": "200"
       }
     }
   }

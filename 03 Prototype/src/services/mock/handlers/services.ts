@@ -7,7 +7,7 @@ import {can} from '../../../domain/selectors';
 import {
   GSV_REQUEST_TYPES,GSV_DEPTS,GSV_COMPLAINT_CATEGORIES,GSV_SEVERITIES,GSV_ITEM_CATEGORIES,GSV_STORAGE,GSV_SAFE,GSV_ID_TYPES,GSV_DISPOSAL,
   gsvEnsure,gsvSettings,gsvDefaultDept,gsvDeptRoles,gsvSlaMinutes,gsvAddMinutes,gsvCanWork,gsvIsOpen,gsvRecoveryStatus,gsvIsValuable,
-  gsvDisposable,gsvDisposeOn,gsvIdNoteOk,
+  gsvDisposable,gsvDisposeOn,gsvIdNoteOk,gcatResolve,lfcResolve,gsvItemValuable,
   type GSVRequest,type GSVComplaint,type GSVItem,type GSVRequestType,type GSVDept,type GSVLog,
 } from '../../../domain/streams/services';
 
@@ -90,11 +90,11 @@ const GSV_COMPLAINT_LOG:Handler=k=>{
   let booking:string|undefined,room:string|undefined,guest=txt(cmd.guest);
   if(cmd.booking){const x=s.bookings.find(b=>b.id===cmd.booking);assert(x,'Booking not found.','NOT_FOUND');booking=x!.id;room=x!.room;guest=guest||x!.guest;}
   assert(guest.length>=2,'Enter the guest’s name.');
-  assert(GSV_COMPLAINT_CATEGORIES.includes(cmd.category),'Choose a category.');
+  const cat=gcatResolve(s,cmd.category);assert(cat,'Choose a category.'); // MA-7: an active row of the complaint-category master (code or name)
   assert(GSV_SEVERITIES.includes(cmd.severity),'Choose the severity.');
   const description=txt(cmd.description);assert(description.length>=5,'Describe the complaint.');assert(description.length<=400,'Keep the description under 400 characters.');
   const owner=cmd.owner||k.uid;assert(s.users.some(u=>u.id===owner&&u.enabled)&&can(s,owner,'reservations'),'The owner must be an enabled front-office user.');
-  const c:GSVComplaint=clean({id:id('CMP'),booking,room,guest,category:cmd.category,severity:cmd.severity,description,owner,status:'Open',createdAt:s.clock,by:k.uid,log:[log(k,'Logged · owner '+name(s,owner))]} as GSVComplaint);
+  const c:GSVComplaint=clean({id:id('CMP'),booking,room,guest,category:cat!.name,categoryCode:cat!.code,severity:cmd.severity,description,owner,status:'Open',createdAt:s.clock,by:k.uid,log:[log(k,'Logged · owner '+name(s,owner))]} as GSVComplaint);
   gsvEnsure(s).complaints.push(c);
   return `${c.id} · ${c.category} · ${c.severity} · ${guest}`;
 };
@@ -160,17 +160,17 @@ const GSV_LF_LOG:Handler=k=>{
   const {s,cmd,assert,id,open}=k;
   if(!can(s,k.uid,'reservations'))k.req('housekeeping');open();
   const description=txt(cmd.description);assert(description.length>=3,'Describe the item.');assert(description.length<=160,'Keep the description under 160 characters.');
-  assert(GSV_ITEM_CATEGORIES.includes(cmd.category),'Choose a category.');
+  const icat=lfcResolve(s,cmd.category);assert(icat,'Choose a category.'); // MA-7: an active row of the lost-and-found category master
   const foundWhere=txt(cmd.foundWhere);assert(foundWhere.length>=2,'Enter where the item was found.');
   const storage=txt(cmd.storage);assert((GSV_STORAGE as readonly string[]).includes(storage),'Choose the storage location.');
-  const valuable=gsvIsValuable(cmd.category);
-  assert(!valuable||storage===GSV_SAFE,`Valuables (${cmd.category}) must be stored in the ${GSV_SAFE}.`);
+  const valuable=!!icat!.valuable;
+  assert(!valuable||storage===GSV_SAFE,`Valuables (${icat!.name}) must be stored in the ${GSV_SAFE}.`);
   let room:string|undefined=txt(cmd.room)||undefined;if(room)assert(s.rooms.some(r=>r.id===room),'Room not found.','NOT_FOUND');
   // Link to the last stay in that room (in house or departed today) — for front-office follow-up only.
   const stay=room?s.bookings.filter(b=>b.room===room&&(b.status==='In house'||b.status==='Departed')&&b.arrival<=s.date).sort((a,b)=>a.departure<b.departure?1:-1)[0]:undefined;
   const foundBy=cmd.foundBy&&can(s,k.uid,'reservations')?cmd.foundBy:k.uid;
   assert(s.users.some(u=>u.id===foundBy),'Choose who found the item.');
-  const i:GSVItem=clean({id:id('LF'),description,category:cmd.category,valuable,foundWhere,room,foundAt:s.clock,foundBy,storage,booking:stay?.id,status:'Stored',log:[log(k,'Logged · stored in '+storage)]} as GSVItem);
+  const i:GSVItem=clean({id:id('LF'),description,category:icat!.name,categoryCode:icat!.code,valuable,foundWhere,room,foundAt:s.clock,foundBy,storage,booking:stay?.id,status:'Stored',log:[log(k,'Logged · stored in '+storage)]} as GSVItem);
   gsvEnsure(s).items.push(i);
   return `${i.id} · ${description} · ${storage}`;
 };

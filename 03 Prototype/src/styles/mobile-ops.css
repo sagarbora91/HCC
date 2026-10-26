@@ -74,3 +74,10 @@
 .mo-step p{font-size:15px;line-height:1.5;color:#4a372c}
 .mo-step-expect{background:#eaf4e4;color:#1f4d24!important;border-radius:8px;padding:8px 10px}
 @media(max-width:360px){.mo-room{font-size:21px}.mo-seg button{font-size:13px}}
+/* MA-7 · phone: attendant load card, zone headings, timing */
+.mo-load{padding:12px 14px}
+.mo-load h3{margin:0 0 6px;font-size:16px}
+.mo-load ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mo-load li{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:16px}
+.mo-load li span{color:#6b5547}
+.mo-zone-head{margin:12px 0 4px;font-size:16px;color:#7a1f2b}

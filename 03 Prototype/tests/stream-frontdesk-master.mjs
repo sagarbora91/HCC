@@ -28,7 +28,8 @@ export function register({test,M,assert}){
     const specs=fdmSpecs();assert.deepEqual(specs.map(x=>x.id),['bookingSources','idTypes','numberSeries','policies']);
     assert.ok(specs.every(x=>x.group==='frontdesk'));
     assert.deepEqual(specs.map(x=>[x.permission,x.money]),[['masters',false],['masters',false],['settings',true],['settings',true]]);
-    assert.deepEqual(mstSpecsOfGroup('frontdesk').map(x=>x.id),['bookingSources','idTypes','numberSeries','policies']);
+    // Masters integration: MA-7's complaint / lost-and-found categories share the group, after these four (old: exactly these four).
+    assert.deepEqual(mstSpecsOfGroup('frontdesk').map(x=>x.id).slice(0,4),['bookingSources','idTypes','numberSeries','policies']);
     assert.ok(mstSpec('bookingSources').fields.find(f=>f.key==='commissionBps').money);
     assert.match(mstSpec('numberSeries').help,/CA to confirm/);assert.match(FDM_GST_NOTE,/no gaps/);});
   test('[FDM] Seeds come from the fixture values; BASE stores nothing new',()=>{

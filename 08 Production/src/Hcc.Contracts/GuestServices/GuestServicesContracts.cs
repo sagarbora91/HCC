@@ -55,7 +55,7 @@ public sealed record ComplaintFollowUpView(string Outcome, bool Satisfied, strin
 /// <summary>RecoveryStatus: None | Requesting | Posted | Pending approval | Approved | Rejected.</summary>
 public sealed record ComplaintView(long ComplaintId, long? StayId, string? RoomNo, string GuestName, string Category, string Severity, string Description,
     int OwnerId, string Status, string? RootCause, string? RecoveryAction, DateOnly? FollowUpOn, bool FollowUpDue, ComplaintFollowUpView? FollowUp,
-    string CreatedUtc, string? ResolvedUtc, string? ClosedUtc, RecoveryView? Recovery, string RecoveryStatus, string Version);
+    string CreatedUtc, string? ResolvedUtc, string? ClosedUtc, RecoveryView? Recovery, string RecoveryStatus, string Version, string? CategoryCode = null);
 
 // ── Lost & found ──
 
@@ -73,7 +73,7 @@ public sealed record LostItemClaimView(string Name, string Phone, string IdType,
 
 public sealed record LostItemView(long ItemId, string Description, string Category, bool Valuable, string FoundWhere, string? RoomNo, long? StayId,
     string FoundUtc, DateOnly FoundDate, int FoundBy, string Storage, string Status, DateOnly DisposeOn, bool Disposable, LostItemClaimView? Claim,
-    string? HandedOverTo, string? DisposalMethod, string Version);
+    string? HandedOverTo, string? DisposalMethod, string Version, string? CategoryCode = null);
 
 // ── Settings ──
 

@@ -89,6 +89,9 @@ public sealed class SetupPropertyTests
         Assert.Equal(1, await s.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'OWNER_BOOTSTRAP'", Ct));
         Assert.Equal(5, await s.CountAsync($"SELECT COUNT(*) FROM cfg.setting_change WHERE property_id = {res.PropertyId} AND changed_by = {res.OwnerUserId} AND effective_from = '2026-10-26' AND setting_key IN ('hotel','brand.address','brand.gstin','checkin','checkout')", Ct));
         Assert.Equal("\"Hotel Sagar Residency\"", (string)(await s.ScalarAsync("SELECT value_json FROM cfg.setting_change WHERE setting_key = 'hotel'", Ct))!);
+        // MA-7: a new hotel starts with the housekeeping task types and the complaint / found-item categories of migration 2871.
+        Assert.Equal((4, 8, 7), (await s.CountAsync($"SELECT COUNT(*) FROM ops.hk_task_type WHERE property_id = {res.PropertyId}", Ct), await s.CountAsync($"SELECT COUNT(*) FROM gsv.complaint_category WHERE property_id = {res.PropertyId}", Ct),
+            await s.CountAsync($"SELECT COUNT(*) FROM gsv.lostfound_category WHERE property_id = {res.PropertyId}", Ct)));
         Assert.False((await Wire.GetAsync<SetupStatusResult>(c, "/setup/status", Ct)).SetupRequired);
 
         // Same key + same request (+ same password) → the stored result, nothing written twice.

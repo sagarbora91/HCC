@@ -42,6 +42,7 @@
     <Project Path="tests/Hcc.Catalogue.Tests/Hcc.Catalogue.Tests.csproj" />
     <Project Path="tests/Hcc.FrontDeskMasters.Tests/Hcc.FrontDeskMasters.Tests.csproj" />
     <Project Path="tests/Hcc.PeopleLists.Tests/Hcc.PeopleLists.Tests.csproj" />
+    <Project Path="tests/Hcc.OpsMasters.Tests/Hcc.OpsMasters.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -96,6 +97,8 @@
     <File Path="database/migrations/2840_pos_masters.sql" />
     <File Path="database/migrations/2850_frontdesk_masters.sql" />
     <File Path="database/migrations/2860_people_lists.sql" />
+    <File Path="database/migrations/2870_ops_masters.sql" />
+    <File Path="database/migrations/2871_ops_masters_seed.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
   </Folder>
 </Solution>

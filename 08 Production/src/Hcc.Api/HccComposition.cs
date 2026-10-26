@@ -59,6 +59,7 @@ public static class HccComposition
         services.AddCatalogueModule();                   // MA-2 meal plans, extras catalogue, discount reasons
         services.AddFrontDeskMastersModule();            // MA-5 booking sources, ID types, numbering series, policies
         services.AddPeopleListsModule();                 // MA-6 designations, shift patterns, leave types, holidays
+        services.AddOpsMastersModule();                  // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -142,6 +143,7 @@ public static class HccComposition
         api.MapCatalogueEndpoints();     // MA-2 meal plans, extras catalogue, discount reasons
         api.MapFrontDeskMastersEndpoints(); // MA-5 front-desk lists
         api.MapPeopleListsEndpoints();   // MA-6 people lists
+        api.MapOpsMastersEndpoints();    // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

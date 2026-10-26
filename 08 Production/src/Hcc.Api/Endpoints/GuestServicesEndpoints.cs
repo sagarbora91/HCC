@@ -19,8 +19,10 @@ public static class GuestServicesEndpoints
         services.AddSingleton<IGuestServicesStore>(sp => sp.GetRequiredService<SqlGuestServicesStore>());
         services.AddSingleton<IGuestServicesReadStore>(sp => sp.GetRequiredService<SqlGuestServicesStore>());
         services.AddSingleton<GuestServicesCommands>(sp => new GuestServicesCommands(sp.GetRequiredService<ICommandRunner>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(),
-            sp.GetRequiredService<IGuestServicesStore>(), sp.GetRequiredService<BillingService>(), sp.GetRequiredService<IBillingStore>(), sp.GetRequiredService<TimeProvider>()));
-        services.AddSingleton<GuestServicesQueries>();
+            sp.GetRequiredService<IGuestServicesStore>(), sp.GetRequiredService<BillingService>(), sp.GetRequiredService<IBillingStore>(), sp.GetRequiredService<TimeProvider>(), days: null,
+            categories: sp.GetService<Hcc.Application.OpsMasters.IGsCategorySource>())); // MA-7: complaint / found-item categories from the masters
+        services.AddSingleton<GuestServicesQueries>(sp => new GuestServicesQueries(sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<IGuestServicesReadStore>(),
+            sp.GetRequiredService<TimeProvider>(), sp.GetService<Hcc.Application.OpsMasters.IGsCategorySource>()));
         return services;
     }
 

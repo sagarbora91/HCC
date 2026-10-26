@@ -167,6 +167,15 @@ export const READS={
   'GET /hr/leave-types/history':one(wide('PERM-MST-001')),
   'GET /hr/holidays':always,
   'GET /hr/holidays/history':one(wide('PERM-MST-001')),
+  // MA-7 operations masters: lists readable by any signed-in user (housekeepers need the checklist, reception the categories; no money); histories need masters.manage.
+  'GET /housekeeping/task-types':always,
+  'GET /housekeeping/task-types/history':one(wide('PERM-MST-001')),
+  'GET /housekeeping/zones':always,
+  'GET /housekeeping/zones/history':one(wide('PERM-MST-001')),
+  'GET /guest-services/complaint-categories':always,
+  'GET /guest-services/complaint-categories/history':one(wide('PERM-MST-001')),
+  'GET /guest-services/lost-found-categories':always,
+  'GET /guest-services/lost-found-categories/history':one(wide('PERM-MST-001')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

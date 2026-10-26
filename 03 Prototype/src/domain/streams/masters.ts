@@ -34,6 +34,8 @@ export type MstFieldType='text'|'number'|'money'|'percent'|'select'|'toggle'|'da
 export type FieldSpec={key:string;label:string;type:MstFieldType;required?:boolean;maxLength?:number;min?:number;max?:number;
   /** Fixed choices for select / multiselect. */options?:{value:string;label:string}[];
   /** Choices from another master (its codes; active rows offered, a retired value already on the row stays valid). */master?:string;
+  /** MA-7: choices computed from the state (e.g. enabled housekeepers, rooms); a value already on the row stays valid when it drops out. */optionsFrom?:(s:State)=>{value:string;label:string}[];
+  /** MA-7: text field edited in a text area (one item per line). */multiline?:boolean;
   /** Money field: Owner-only change (DEC-058), hidden from roles without money visibility (DEC-061). money/datedMoney imply it. */money?:boolean;
   help?:string;placeholder?:string};
 export type MasterUsage={count:number;where:string[]};
@@ -173,6 +175,7 @@ export function mstProblems(spec:MasterSpec,row:MasterRow,rows:MasterRow[],s?:St
         const oldVals=new Set((Array.isArray(old?.[f.key])?old![f.key] as string[]:old?.[f.key]!==undefined?[String(old[f.key])]:[]).map(String));
         for(const x of vals){
           if(f.options){if(!f.options.some(o=>o.value===x))add('MASTER_INVALID',f.key,`${f.label}: choose from the list.`);}
+          else if(f.optionsFrom&&s){if(!f.optionsFrom(s).some(o=>o.value===x)&&!oldVals.has(x))add('MASTER_INVALID',f.key,`${f.label}: choose from the list.`);}
           else if(f.master&&s){const ref=mstByCode(s,f.master,x);
             if(!ref)add('MASTER_INVALID',f.key,`${f.label}: ${x} is not in ${mstSpec(f.master)?.label??f.master}.`);
             else if(!ref.active&&!oldVals.has(x))add('MASTER_RETIRED',f.key,`${f.label}: ${ref.name} is retired — choose an active one.`);}
@@ -230,8 +233,8 @@ export function mstShow(f:FieldSpec,v:unknown,s?:State):string{
     case 'money':return rs(Number(v));
     case 'percent':return (Number(v)/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' %';
     case 'datedMoney':{const l=v as MstDatedAmount[];if(!l.length)return '—';const now=s?mstMoneyOn(l,s.date):undefined;return now!==undefined?rs(now)+(l.some(x=>s&&x.effectiveFrom>s.date)?' (dated change ahead)':''):`${rs(l[0].amount)} from ${l[0].effectiveFrom}`;}
-    case 'select':return f.master&&s?mstLabel(s,f.master,String(v)):f.options?.find(o=>o.value===v)?.label??String(v);
-    case 'multiselect':return (v as string[]).map(x=>f.master&&s?mstLabel(s,f.master,x):f.options?.find(o=>o.value===x)?.label??x).join(', ');
+    case 'select':return f.master&&s?mstLabel(s,f.master,String(v)):(f.options??(s&&f.optionsFrom?f.optionsFrom(s):undefined))?.find(o=>o.value===v)?.label??String(v);
+    case 'multiselect':return (v as string[]).map(x=>f.master&&s?mstLabel(s,f.master,x):(f.options??(s&&f.optionsFrom?f.optionsFrom(s):undefined))?.find(o=>o.value===x)?.label??x).join(', ');
     default:return String(v);
   }
 }

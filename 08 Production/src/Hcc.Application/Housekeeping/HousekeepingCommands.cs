@@ -18,7 +18,7 @@ namespace Hcc.Application.Housekeeping;
 /// re-checks the assignee under the row lock when the principal is not property-wide.
 /// </summary>
 public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy policy, IHousekeepingStore store, IHousekeepingReadStore reads, ITaskAssigneeEligibility eligibility, IRoomBlockPort inventoryBlocks, HousekeepingOptions options, TimeProvider clock,
-    Configuration.ISettingsReader? settings = null)
+    Configuration.ISettingsReader? settings = null, OpsMasters.IHkTaskTypeSource? types = null)
 {
     public const string OpTransition = "TransitionHousekeepingTask";
     public const string OpBlockRoom = "BlockRoom";
@@ -65,7 +65,9 @@ public sealed class HousekeepingCommands(ICommandRunner runner, IAccessPolicy po
             VersionToken.EnsureMatches(task.Version, expected, "This task");
             var inspection = settings is null ? options.InspectionRequired
                 : (await settings.GetAsync(tx, ctx.PropertyId, HousekeepingSettings.InspectionKey, null, c).ConfigureAwait(false)).IsSet; // DEC-057 Master configuration
-            var t = HkTaskMachine.Apply(task.State, action, inspection, req.AssigneeId, req.Index, req.Reason);
+            // MA-7: checklist length and "needs inspection" come from the task type of the task's kind (built-in values without one).
+            var rule = types is null || task.Kind == HkTaskKind.Repair ? null : await types.ForKindAsync(tx, ctx.PropertyId, task.Kind, c).ConfigureAwait(false);
+            var t = HkTaskMachine.Apply(task.State, action, inspection && (rule?.NeedsInspection ?? true), req.AssigneeId, req.Index, req.Reason, rule?.ChecklistItems ?? HkTaskMachine.ChecklistItems);
             await store.UpdateTaskAsync(tx, task.TaskId, expected, t, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             var room = await store.LockRoomAsync(tx, ctx.PropertyId, task.RoomId, c).ConfigureAwait(false)
                 ?? throw new HccException(HccErrorCode.NOT_FOUND, "Room not found.");

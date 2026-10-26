@@ -2,6 +2,7 @@
 import type {State,Role,User} from '../types';
 import {addMinutes,addDays,nights} from '../money';
 import {can} from '../selectors';
+import {mstRows,mstByCode,type MasterRow} from './masters';
 
 export type GSVLog={at:string;by:string;what:string};
 export const GSV_REQUEST_TYPES=['Extra towels','Drinking water','Iron & board','Wake-up call','Taxi','Toiletries & amenities','Minor repair','Other'] as const;
@@ -20,7 +21,8 @@ export const GSV_SEVERITIES=['Low','Medium','High','Critical'] as const;
 export type GSVSeverity=typeof GSV_SEVERITIES[number];
 export type GSVComplaintStatus='Open'|'Investigating'|'Resolved'|'Closed';
 export type GSVRecovery={amount:number;reason:string;approvalId?:string;lineId?:string;at:string;by:string};
-export type GSVComplaint={id:string;booking?:string;room?:string;guest:string;category:GSVComplaintCategory;severity:GSVSeverity;description:string;
+/** MA-7: category = the category name when logged (kept as shown then); categoryCode = the master row's code (complaintCategories), absent on older records. */
+export type GSVComplaint={id:string;booking?:string;room?:string;guest:string;category:string;categoryCode?:string;severity:GSVSeverity;description:string;
   owner:string;status:GSVComplaintStatus;rootCause?:string;recoveryAction?:string;recovery?:GSVRecovery;followUpOn?:string;
   followUp?:{outcome:string;satisfied:boolean;at:string;by:string};createdAt:string;resolvedAt?:string;closedAt?:string;by:string;log:GSVLog[]};
 
@@ -32,7 +34,7 @@ export const GSV_SAFE='Front office safe';
 export const GSV_ID_TYPES=['Aadhaar (fictional)','Passport (fictional)','Driving licence (fictional)','Voter ID (fictional)'] as const;
 export const GSV_DISPOSAL=['Donated','Destroyed','Handed to police'] as const;
 export type GSVItemStatus='Stored'|'Claimed'|'Handed over'|'Disposed';
-export type GSVItem={id:string;description:string;category:GSVItemCategory;valuable:boolean;foundWhere:string;room?:string;foundAt:string;foundBy:string;
+export type GSVItem={id:string;description:string;category:string;categoryCode?:string;valuable:boolean;foundWhere:string;room?:string;foundAt:string;foundBy:string;
   storage:string;booking?:string;status:GSVItemStatus;
   claim?:{name:string;phone:string;idType:string;idNote:string;matchNote:string;at:string;by:string};
   handover?:{at:string;by:string;to:string;note:string};
@@ -118,13 +120,74 @@ export function gsvResponseTotals(s:State){const rows=gsvResponseReport(s,'dept'
   const all=gsvSlice(s).requests.filter(r=>r.status==='Done');const mins=all.map(r=>gsvMinutesBetween(r.createdAt,r.doneAt!));
   return {done,within,pct:done?Math.round(within*100/done):0,avg:mins.length?Math.round(mins.reduce((a,b)=>a+b,0)/mins.length):0,
     open:rows.reduce((a,r)=>a+r.open,0),overdue:rows.reduce((a,r)=>a+r.overdue,0)};}
-export type GSVCategoryRow={category:string;total:number;open:number;bySeverity:Record<GSVSeverity,number>;recovery:number};
+export type GSVCategoryRow={category:string;code:string;dept?:string;slaHours?:number;total:number;open:number;bySeverity:Record<GSVSeverity,number>;recovery:number;overSla:number};
+/** Complaints by category (MA-7: the complaintCategories master, retired rows included; records of an unknown category are listed under their own name). */
 export function gsvComplaintReport(s:State):GSVCategoryRow[]{
   const cs=gsvSlice(s).complaints;
-  return GSV_COMPLAINT_CATEGORIES.map(cat=>{const xs=cs.filter(c=>c.category===cat);
+  const rows:{key:string;label:string;dept?:string;hours?:number}[]=gcatRows(s).map(r=>({key:r.code,label:r.name,dept:r.department,hours:r.slaHours}));
+  for(const c of cs){const k=gcatKeyOf(s,c);if(!rows.some(r=>r.key===k))rows.push({key:k,label:c.category});}
+  return rows.map(r=>{const xs=cs.filter(c=>gcatKeyOf(s,c)===r.key);
     const bySeverity=Object.fromEntries(GSV_SEVERITIES.map(v=>[v,xs.filter(c=>c.severity===v).length])) as Record<GSVSeverity,number>;
-    return {category:cat,total:xs.length,open:xs.filter(gsvComplaintOpen).length,bySeverity,recovery:xs.filter(c=>c.recovery).length};}).filter(r=>r.total>0);
+    return {category:r.label,code:r.key,...(r.dept?{dept:r.dept}:{}),...(r.hours?{slaHours:r.hours}:{}),total:xs.length,open:xs.filter(gsvComplaintOpen).length,bySeverity,recovery:xs.filter(c=>c.recovery).length,overSla:xs.filter(c=>gcatOverSla(s,c)).length};}).filter(r=>r.total>0);
 }
 export function gsvLostFoundSummary(s:State){const xs=gsvSlice(s).items;
   return {stored:xs.filter(i=>i.status==='Stored').length,claimed:xs.filter(i=>i.status==='Claimed').length,handed:xs.filter(i=>i.status==='Handed over').length,
     disposed:xs.filter(i=>i.status==='Disposed').length,dueDisposal:xs.filter(i=>gsvDisposable(s,i)).length,valuables:xs.filter(i=>i.valuable&&(i.status==='Stored'||i.status==='Claimed')).length};}
+
+// ── MA-7 · Complaint and lost-and-found categories (masters complaintCategories / lostFoundCategories; specs in gsvmasters.ts) ──
+export const GCC='complaintCategories',LFC='lostFoundCategories';
+export type GcatRow=MasterRow&{department:string;slaHours:number};
+export type LfcRow=GcatRow&{valuable:boolean};
+/** Fixture seed: today's eight complaint categories (code, name, department, SLA hours — illustrative targets). */
+export const GCC_SEED:[string,string,GSVDept,number][]=[['CLEAN','Room cleanliness','Housekeeping',4],['MAINT','Maintenance','Maintenance',8],['NOISE','Noise','Front desk',2],
+  ['STAFF','Staff behaviour','Front desk',24],['FNB','Food & beverage','Front desk',8],['BILLING','Billing','Front desk',24],['AMEN','Amenities','Housekeeping',8],['OTHER','Other','Front desk',24]];
+/** Fixture seed: today's seven found-item categories (valuables are held in the safe; SLA = hours to trace and inform the owner). */
+export const LFC_SEED:[string,string,GSVDept,number,boolean][]=[['JEWEL','Jewellery','Front desk',4,true],['ELEC','Electronics','Front desk',4,true],['CASH','Cash / wallet','Front desk',4,true],
+  ['DOCS','Documents','Front desk',4,true],['CLOTH','Clothing','Housekeeping',24,false],['CARE','Personal care','Housekeeping',24,false],['OTHER','Other','Housekeeping',48,false]];
+export const gcatRows=(s:State,active?:boolean)=>mstRows(s,GCC,active===undefined?{}:{active}) as GcatRow[];
+export const lfcRows=(s:State,active?:boolean)=>mstRows(s,LFC,active===undefined?{}:{active}) as LfcRow[];
+const norm=(x:unknown)=>String(x??'').trim().toLowerCase();
+function resolve<T extends MasterRow>(rows:T[],input:unknown,activeOnly:boolean){
+  const k=norm(input);if(!k)return undefined;const ok=(r:T)=>!activeOnly||r.active;
+  return rows.find(r=>ok(r)&&norm(r.code)===k)??rows.find(r=>ok(r)&&norm(r.name)===k);
+}
+/** Category row of a command value: a code, or (older callers) a name. activeOnly = for new records. */
+export const gcatResolve=(s:State,input:unknown,activeOnly=true)=>resolve(gcatRows(s),input,activeOnly);
+export const lfcResolve=(s:State,input:unknown,activeOnly=true)=>resolve(lfcRows(s),input,activeOnly);
+/** Code of a record's category: its stored code, else the seed code of its name, else the name itself. */
+export const gcatKeyOf=(_s:State,c:Pick<GSVComplaint,'category'|'categoryCode'>)=>c.categoryCode??GCC_SEED.find(x=>x[1]===c.category)?.[0]??c.category;
+export const lfcKeyOf=(i:Pick<GSVItem,'category'|'categoryCode'>)=>i.categoryCode??LFC_SEED.find(x=>x[1]===i.category)?.[0]??i.category;
+/** Category as it reads today (a renamed or retired row still resolves; unknown → the name stored on the record). */
+export const gcatLabel=(s:State,c:Pick<GSVComplaint,'category'|'categoryCode'>)=>mstByCode(s,GCC,gcatKeyOf(s,c))?.name??c.category;
+export const lfcLabel=(s:State,i:Pick<GSVItem,'category'|'categoryCode'>)=>mstByCode(s,LFC,lfcKeyOf(i))?.name??i.category;
+export const gcatRowOf=(s:State,c:Pick<GSVComplaint,'category'|'categoryCode'>)=>mstByCode(s,GCC,gcatKeyOf(s,c)) as GcatRow|undefined;
+export const lfcRowOf=(s:State,i:Pick<GSVItem,'category'|'categoryCode'>)=>mstByCode(s,LFC,lfcKeyOf(i)) as LfcRow|undefined;
+/** Is a found-item category a valuable one (safe storage)? Name or code; unknown → falls back to the built-in valuable list. */
+export function gsvItemValuable(s:State,category:string):boolean{
+  const r=lfcResolve(s,category,false);return r?!!r.valuable:gsvIsValuable(category as GSVItemCategory);
+}
+/** Complaint answer-by time (created + the category's SLA hours); undefined when the category has none. */
+export function gcatSlaDue(s:State,c:GSVComplaint):string|undefined{
+  const h=gcatRowOf(s,c)?.slaHours;return h?addMinutes(c.createdAt,h*60):undefined;
+}
+/** Over SLA: still open past the due time, or resolved after it. */
+export function gcatOverSla(s:State,c:GSVComplaint):boolean{
+  const due=gcatSlaDue(s,c);if(!due)return false;
+  if(c.status==='Open'||c.status==='Investigating')return s.clock>due;
+  return !!c.resolvedAt&&c.resolvedAt>due;
+}
+export function gcatSlaLabel(s:State,c:GSVComplaint):GSVSla|undefined{
+  const due=gcatSlaDue(s,c);if(!due)return undefined;
+  if(c.status==='Open'||c.status==='Investigating'){const left=gsvMinutesBetween(s.clock,due);
+    return left<0?{tone:'red',label:`Over SLA · ${-left>=120?Math.round(-left/60)+' h':-left+' min'}`}:{tone:left<=60?'orange':'blue',label:`SLA due ${due.slice(11,16)}${due.slice(0,10)===s.date?'':' '+due.slice(5,10)}`};}
+  return gcatOverSla(s,c)?{tone:'orange',label:'Resolved after SLA'}:{tone:'green',label:'Within SLA'};
+}
+/** Found-item contact target (found + the category's SLA hours). */
+export function lfcContactBy(s:State,i:GSVItem):string|undefined{const h=lfcRowOf(s,i)?.slaHours;return h?addMinutes(i.foundAt,h*60):undefined;}
+export type GSVItemCategoryRow={category:string;code:string;dept?:string;slaHours?:number;valuable:boolean;held:number;total:number};
+/** Found items by category (held = Stored or Claimed). */
+export function gsvItemReport(s:State):GSVItemCategoryRow[]{
+  const xs=gsvSlice(s).items;const rows:{key:string;label:string;dept?:string;hours?:number;valuable:boolean}[]=lfcRows(s).map(r=>({key:r.code,label:r.name,dept:r.department,hours:r.slaHours,valuable:!!r.valuable}));
+  for(const i of xs){const k=lfcKeyOf(i);if(!rows.some(r=>r.key===k))rows.push({key:k,label:i.category,valuable:i.valuable});}
+  return rows.map(r=>{const m=xs.filter(i=>lfcKeyOf(i)===r.key);return {category:r.label,code:r.key,...(r.dept?{dept:r.dept}:{}),...(r.hours?{slaHours:r.hours}:{}),valuable:r.valuable,held:m.filter(i=>i.status==='Stored'||i.status==='Claimed').length,total:m.length};}).filter(r=>r.total>0);
+}
