@@ -188,6 +188,119 @@ public class ImportKernelTests
         Assert.Contains("price ₹180 → ₹200", item.Detail, StringComparison.Ordinal);
     }
 
+    // ── A09-09: departments, companies, suppliers, stock items ──
+
+    [Fact]
+    public void Departments_validate_code_name_and_leave_limit_and_plan_create_update_or_unchanged()
+    {
+        var p = ImportPlanner.Plan(ImportMaster.Departments, Csv("code,name,leaveCap\nfo,Front office,2\nHK,Housekeeping,\nX,Bad code,\nF&B,Food,\nMN,M,30\nFO,Duplicate,\n"), Empty());
+        var fo = (DepartmentData)p.Items[0].Data!;
+        Assert.Equal(("FO", 2), (fo.Code, fo.LeaveCap));
+        Assert.Null(((DepartmentData)p.Items[1].Data!).LeaveCap);
+        Assert.Equal(2, p.Items.Count(i => i.Action == ImportAction.Create));
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "code" });
+        Assert.Contains(p.Errors, e => e is { Row: 5, Column: "code" });
+        Assert.Contains(p.Errors, e => e is { Row: 6, Column: "name" });
+        Assert.Contains(p.Errors, e => e is { Row: 6, Column: "leaveCap" });
+        Assert.Contains(p.Errors, e => e is { Row: 7, Column: "code" } && e.Message == "Duplicate of row 2.");
+
+        var have = Empty() with { Departments = [new SnapDepartment("FO", "Front office", 2)] };
+        Assert.Equal(ImportAction.Unchanged, Assert.Single(ImportPlanner.Plan(ImportMaster.Departments, Csv("code,name,leaveCap\nFO,Front office,2\n"), have).Items).Action);
+        var changed = Assert.Single(ImportPlanner.Plan(ImportMaster.Departments, Csv("code,name,leaveCap\nFO,Front office,\n"), have).Items);
+        Assert.Equal(ImportAction.Update, changed.Action);
+        Assert.Equal("leave limit 2 → default", changed.Detail);
+        Assert.True(((DepartmentData)changed.Data!).Exists);
+    }
+
+    [Fact]
+    public void Companies_check_gstin_phone_email_limit_and_rates_and_plan_a_limit_change()
+    {
+        const string head = "name,gstin,contact,phone,email,city,creditLimit,negotiatedRates\n";
+        var p = ImportPlanner.Plan(ImportMaster.Companies, Csv(head
+            + "Mehta Traders,27abcde1234f1z5,Arjun,9890011223,a@example.com,Mumbai,\"50,000\",dlx=3800.50\n"
+            + "Plain Co,,,,,,,\n"
+            + "Bad Co,27XX,,12,not-mail,,-5,STE=100;DLX=abc;DLX=0\n"
+            + ",,No name,,,,,\n"
+            + "MEHTA TRADERS,,,,,,,\n"), Empty());
+        var m = (CompanyData)p.Items[0].Data!;
+        Assert.Equal("27ABCDE1234F1Z5", m.Gstin);
+        Assert.Equal(5000000, m.CreditLimitPaise);
+        Assert.True(m.LimitChanged);
+        Assert.Equal(380050, m.Rates["DLX"]);
+        var plain = (CompanyData)p.Items[1].Data!;
+        Assert.Equal((0L, false, 0), (plain.CreditLimitPaise, plain.LimitChanged, plain.Rates.Count));
+        foreach (var col in new[] { "gstin", "phone", "email", "creditLimit", "negotiatedRates" }) Assert.Contains(p.Errors, e => e.Row == 4 && e.Column == col);
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "negotiatedRates" } && e.Message.Contains("STE is not in HCC yet", StringComparison.Ordinal));
+        Assert.Contains(p.Errors, e => e is { Row: 5, Column: "name" });
+        Assert.Contains(p.Errors, e => e is { Row: 6, Column: "name" } && e.Message == "Duplicate of row 2.");
+
+        var have = Empty() with
+        {
+            Companies = [new SnapCompany(5, "Mehta Traders", "27ABCDE1234F1Z5", "Arjun", "9890011223", "a@example.com", "Mumbai", new Dictionary<string, long> { ["DLX"] = 380050 }, 5000000)],
+        };
+        var same = ImportPlanner.Plan(ImportMaster.Companies, Csv(head + "mehta traders,27ABCDE1234F1Z5,Arjun,9890011223,a@example.com,Mumbai,50000,DLX=3800.50\n"), have);
+        Assert.Equal(ImportAction.Update, Assert.Single(same.Items).Action);   // the name's capitals differ
+        var unchanged = ImportPlanner.Plan(ImportMaster.Companies, Csv(head + "Mehta Traders,27ABCDE1234F1Z5,Arjun,9890011223,a@example.com,Mumbai,50000,DLX=3800.50\n"), have);
+        Assert.Equal(ImportAction.Unchanged, Assert.Single(unchanged.Items).Action);
+        var raised = Assert.Single(ImportPlanner.Plan(ImportMaster.Companies, Csv(head + "Mehta Traders,27ABCDE1234F1Z5,Arjun,9890011223,a@example.com,Mumbai,75000,\n"), have).Items);
+        Assert.Equal(ImportAction.Update, raised.Action);
+        Assert.Contains("credit limit ₹50,000 → ₹75,000", raised.Detail, StringComparison.Ordinal);
+        Assert.Contains("rates DLX ₹3,800.50 → no negotiated rates", raised.Detail, StringComparison.Ordinal);
+        var data = (CompanyData)raised.Data!;
+        Assert.Equal((5L, true, 7500000L), (data.ExistingId!.Value, data.LimitChanged, data.CreditLimitPaise));
+    }
+
+    [Fact]
+    public void Suppliers_need_a_name_and_phone_and_refuse_an_ambiguous_existing_name()
+    {
+        var p = ImportPlanner.Plan(ImportMaster.Suppliers, Csv("name,phone,trade\nShree Laundry,98221 00200,Laundry\nOm Electricals,+919850012345,\nAB,abc,\nNo Phone,,\nshree laundry,9822100200,\n"), Empty());
+        Assert.Equal(2, p.Items.Count(i => i.Action == ImportAction.Create));
+        Assert.Equal("General", ((SupplierData)p.Items[1].Data!).Trade);
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "name" });
+        Assert.Contains(p.Errors, e => e is { Row: 4, Column: "phone" });
+        Assert.Contains(p.Errors, e => e is { Row: 5, Column: "phone" });
+        Assert.Contains(p.Errors, e => e is { Row: 6, Column: "name" } && e.Message == "Duplicate of row 2.");
+
+        var have = Empty() with { Suppliers = [new SnapSupplier(3, "Shree Laundry", "Laundry", "98221 00200"), new SnapSupplier(4, "Twin", "General", "9800000000"), new SnapSupplier(5, "twin", "General", "9800000001")] };
+        var r = ImportPlanner.Plan(ImportMaster.Suppliers, Csv("name,phone,trade\nShree Laundry,98221 00200,Laundry\nTwin,9800000000,\n"), have);
+        Assert.Equal(ImportAction.Unchanged, Assert.Single(r.Items).Action);
+        Assert.Contains(r.Errors, e => e is { Row: 3, Column: "name" } && e.Message.Contains("2 suppliers named Twin", StringComparison.Ordinal));
+        var phone = Assert.Single(ImportPlanner.Plan(ImportMaster.Suppliers, Csv("name,phone,trade\nShree Laundry,9822100299,Laundry\n"), have).Items);
+        Assert.Equal((ImportAction.Update, 3), (phone.Action, ((SupplierData)phone.Data!).ExistingId!.Value));
+    }
+
+    [Fact]
+    public void Stock_items_validate_code_kind_money_and_levels_and_only_levels_change_on_reimport()
+    {
+        const string head = "code,name,kind,unit,unitCost,minQty,reorderQty,usePerRoomNight,laundryRate,supplier\n";
+        var p = ImportPlanner.Plan(ImportMaster.StockItems, Csv(head
+            + "lin-bs,Bed sheet,Linen,pcs,450,40,60,1.5,12,Linen House\n"
+            + "AMN-SP,Soap,amenity,pcs,,,,,,\n"
+            + "BAD,X,food,,abc,-1,20000,1.555,5,\n"
+            + "CLN-FL,Floor cleaner,cleaning,can,200000,1,1,,3,\n"
+            + "LIN-BS,Again,linen,pcs,,,,,,\n"), Empty());
+        var bs = (StockItemData)p.Items[0].Data!;
+        Assert.Equal(("LIN-BS", "linen", 45000L, 150, 1200L), (bs.Code, bs.Kind, bs.CostPaise, bs.StdX100!.Value, bs.LaundryPaise!.Value));
+        var soap = (StockItemData)p.Items[1].Data!;
+        Assert.Equal((0L, 0, 0, (int?)null, (long?)null), (soap.CostPaise, soap.MinQty, soap.ReorderQty, soap.StdX100, soap.LaundryPaise));
+        foreach (var col in new[] { "code", "name", "kind", "unit", "unitCost", "minQty", "reorderQty", "usePerRoomNight", "laundryRate" })
+            Assert.Contains(p.Errors, e => e.Row == 4 && e.Column == col);
+        Assert.Contains(p.Errors, e => e is { Row: 5, Column: "unitCost" });
+        Assert.Contains(p.Errors, e => e is { Row: 5, Column: "laundryRate" } && e.Message.Contains("linen only", StringComparison.Ordinal));
+        Assert.Contains(p.Errors, e => e is { Row: 6, Column: "code" } && e.Message == "Duplicate of row 2.");
+
+        var have = Empty() with { StockItems = [new SnapStockItem(3, "LIN-BS", "Bed sheet", "linen", "pcs", 47000, 40, 60, 150, 1200, "Linen House")] };
+        var same = ImportPlanner.Plan(ImportMaster.StockItems, Csv(head + "LIN-BS,Bed sheet,linen,pcs,450,40,60,1.5,12,Linen House\n"), have);
+        Assert.Equal(ImportAction.Unchanged, Assert.Single(same.Items).Action);
+        Assert.Contains(same.Warnings, w => w.Column == "unitCost" && w.Message.Contains("keeps its unit cost ₹470", StringComparison.Ordinal));
+        var levels = Assert.Single(ImportPlanner.Plan(ImportMaster.StockItems, Csv(head + "LIN-BS,Bed sheet,linen,pcs,,50,60,2,,\n"), have).Items);
+        Assert.Equal(ImportAction.Update, levels.Action);
+        Assert.Equal("minimum 40 → 50 · use per room-night 1.5 → 2", levels.Detail);
+        Assert.Equal(3, ((StockItemData)levels.Data!).ExistingId);
+        var renamed = ImportPlanner.Plan(ImportMaster.StockItems, Csv(head + "LIN-BS,Bed sheet king,linen,pcs,,40,60,1.5,,\n"), have);
+        Assert.Contains(renamed.Errors, e => e is { Row: 2, Column: "code" } && e.Message.Contains("Stock screen", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Shipped_templates_match_the_column_specs_and_every_sample_parses()
     {

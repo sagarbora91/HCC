@@ -4,7 +4,7 @@
 import React,{useMemo,useState} from 'react';
 import {Check,Info,RotateCcw,CalendarClock,Upload,AlertTriangle} from 'lucide-react';
 import {cfgDef,cfgGroup,cfgCanChange,cfgValueOn,cfgShow,cfgDisplay,cfgImpact,cfgEffectiveFrom,cfgValidate,cfgClean,cfgHistory,cfgRevertBlock,cfgScheduled,
-  cfgPendingRequests,cfgImportPlan,adminImpactPreview,addDays,type CfgSettingDef} from '../../../services/mock';
+  cfgPendingRequests,cfgImportPlan,adminImpactPreview,addDays,isGstKey,gstReasonProblem,type CfgSettingDef} from '../../../services/mock';
 import {useHcc} from '../../../app/context';
 import {Empty,Pill,shortDate,clockTime} from '../../../components/ui';
 import {Impact} from '../modals';
@@ -35,6 +35,8 @@ export function CfgSettingSheet({id}:{id?:string}){
   const eff=cfgEffectiveFrom(s,def,def.effectiveMode==='date'?from:undefined);
   const effDate='date' in eff?eff.date:s.date;
   const err=def.editable?cfgValidate(s,def,raw):undefined;
+  // GST master (DEC-069): a change needs a reason (server SetGstSetting / WithdrawGstSetting; the mock refuses it the same way).
+  const gst=isGstKey(def.key),reasonErr=gst?gstReasonProblem(reason):undefined;
   const legacy=effDate>s.date?undefined:def.key==='checkin'||def.key==='checkout'?adminImpactPreview(s,{kind:'times',checkin:def.key==='checkin'?String(raw):s.settings.checkin,checkout:def.key==='checkout'?String(raw):s.settings.checkout})
     :def.key==='discountLimit'?adminImpactPreview(s,{kind:'discount',limit:Number(raw)||0}):def.key==='inspection'?adminImpactPreview(s,{kind:'inspection',on:raw===true}):undefined;
   const sched=cfgScheduled(s,def.key);const pend=cfgPendingRequests(s,def.key);
@@ -43,7 +45,7 @@ export function CfgSettingSheet({id}:{id?:string}){
     dec.mode==='request'?'Change sent for approval':effDate>s.date?'Change scheduled · history recorded':'Setting saved · history recorded',{close:true});
   return <><div className="modal-heading"><div className="eyebrow">{g.label.toUpperCase()} · {def.key}</div><h2>{def.label}</h2><p>{def.help}</p>
       {def.illustrative&&<p className="cfg-illus"><Info size={14}/> Illustrative — CA to confirm for a hotel.</p>}</div>
-    <form className="form" onSubmit={e=>{e.preventDefault();if(!err&&!block&&'date' in eff)save();}}>
+    <form className="form" onSubmit={e=>{e.preventDefault();if(!err&&!reasonErr&&!block&&'date' in eff)save();}}>
       <div className="summary-list">
         <div><span>Current value</span><strong>{cfgDisplay(s,uid,def)}</strong></div>
         {sched.map(x=><div key={x.id}><span>From {shortDate(x.effectiveFrom)}</span><strong>{cfgShow(def,x.value)}</strong></div>)}
@@ -55,7 +57,8 @@ export function CfgSettingSheet({id}:{id?:string}){
         <Editor def={def} v={v} setV={setV}/>
         {def.effectiveMode==='date'&&<label>Effective from (business date)<input type="date" min={s.date} max={addDays(s.date,366)} required value={from} onChange={e=>setFrom(e.target.value)}/></label>}
         {def.effectiveMode==='nextDay'&&<p className="cfg-eff"><CalendarClock size={15}/> Takes effect from the next business day ({shortDate(nd)}).</p>}
-        <label>Reason (optional, kept in history)<input value={reason} onChange={e=>setReason(e.target.value)} maxLength={120} enterKeyHint="done"/></label>
+        <label>{gst?'Reason (required, kept in history)':'Reason (optional, kept in history)'}<input value={reason} onChange={e=>setReason(e.target.value)} maxLength={120} enterKeyHint="done" required={gst} minLength={gst?3:undefined}/></label>
+        {gst&&reason.trim()!==''&&reasonErr&&<p className="adm-err" role="alert">{reasonErr}</p>}
         {err&&v!==''&&<p className="adm-err" role="alert">{err}</p>}
         {'error' in eff&&<p className="adm-err" role="alert">{eff.error}</p>}
         <div className="adm-impact cfg-affects" aria-live="polite"><h3>What it affects</h3><ul>{cfgImpact(s,def,raw,effDate).map((x,i)=><li key={i}>{x}</li>)}</ul></div>
@@ -63,21 +66,23 @@ export function CfgSettingSheet({id}:{id?:string}){
         {dec.mode==='request'&&<p className="info-note"><Info size={16}/>{dec.reason} You cannot approve your own request.</p>}
       </>}
       {block&&<p className="adm-lock" role="note">{block}</p>}
-      <CfgHistory def={def}/>
+      <CfgHistory def={def} reason={reason}/>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Close</button>
-        {def.editable&&dec.mode!=='deny'&&<button className="btn primary" disabled={busy||!!err||!!block||'error' in eff}>{dec.mode==='request'?'Request approval':effDate>s.date?'Schedule change':'Save setting'} <Check size={16}/></button>}</div>
+        {def.editable&&dec.mode!=='deny'&&<button className="btn primary" disabled={busy||!!err||!!reasonErr||!!block||'error' in eff}>{dec.mode==='request'?'Request approval':effDate>s.date?'Schedule change':'Save setting'} <Check size={16}/></button>}</div>
     </form></>;
 }
-/** History with "revert to previous value" and scheduled changes with "withdraw". */
-export function CfgHistory({def}:{def:CfgSettingDef}){
+/** History with "revert to previous value" and scheduled changes with "withdraw". A GST withdrawal takes the sheet's reason (required). */
+export function CfgHistory({def,reason=''}:{def:CfgSettingDef;reason?:string}){
   const {s,uid,run,busy}=useHcc();
   const hist=cfgHistory(s,def.key);const sched=cfgScheduled(s,def.key);
   const canAct=cfgCanChange(s,uid,def).mode!=='deny';
+  const r=reason.trim(),gstNoReason=isGstKey(def.key)&&!!gstReasonProblem(r);
   return <div className="adm-hist cfg-hist"><h3>History</h3>
     {sched.length>0&&<ul className="cfg-sched">{sched.map(x=><li key={x.id}><Pill tone="blue">Scheduled</Pill> <strong>{cfgShow(def,x.value)}</strong> from {shortDate(x.effectiveFrom)}
-      {canAct&&cfgCanChange(s,uid,def).mode==='allow'&&<button type="button" className="text-btn" disabled={busy} onClick={()=>run({type:'CFG_WITHDRAW',id:x.id,key:`cfg-wd:${x.id}`},'Scheduled change withdrawn')}>Withdraw</button>}</li>)}</ul>}
+      {canAct&&cfgCanChange(s,uid,def).mode==='allow'&&<button type="button" className="text-btn" disabled={busy||gstNoReason} title={gstNoReason?'Enter a reason above to withdraw':undefined}
+        onClick={()=>run({type:'CFG_WITHDRAW',id:x.id,...(r?{reason:r}:{}),key:`cfg-wd:${x.id}`},'Scheduled change withdrawn')}>Withdraw</button>}</li>)}</ul>}
     {hist.length?<ul>{hist.map((h,i)=>{const rb=cfgRevertBlock(s,h.id);return <li key={h.id}><strong>{h.before} → {h.after}</strong> · effective {shortDate(h.effectiveFrom)} · {first(h.actor)} at {shortDate(h.at.slice(0,10))} {clockTime(h.at)}{h.reason?' · '+h.reason:''}
-      {i===0&&canAct&&!rb&&<button type="button" className="text-btn cfg-revert" disabled={busy} onClick={()=>run({type:'CFG_REVERT',id:h.id,key:`cfg-rv:${h.id}`},'Reverted to the previous value')}><RotateCcw size={13}/> Revert to previous value</button>}</li>;})}</ul>
+      {i===0&&canAct&&!rb&&<button type="button" className="text-btn cfg-revert" disabled={busy} onClick={()=>run({type:'CFG_REVERT',id:h.id,...(r?{reason:r}:{}),key:`cfg-rv:${h.id}`},'Reverted to the previous value')}><RotateCcw size={13}/> Revert to previous value</button>}</li>;})}</ul>
       :<p className="muted">No changes since the scenario was loaded.</p>}
   </div>;
 }

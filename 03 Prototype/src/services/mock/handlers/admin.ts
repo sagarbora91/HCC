@@ -11,6 +11,7 @@ import {cfgDef,cfgCanChange,cfgValidate,cfgClean,cfgEffectiveFrom,cfgValueOn,cfg
   cfgRevertBlock,cfgChange,cfgImportPlan,type CfgSettingDef} from '../../../domain/streams/config';
 import {authorize,adminPolicy,adminPerm,adminOtherActiveOwners,adminDescribeCell,adminDefaultPolicy,adminRoomTypes,ADMIN_FINANCIAL_MODULES,
   type PolicyCell,type PolicyEffect,type PolicyScope,type HccPolicy} from '../../../domain/streams/admin';
+import {isGstKey,gstReasonProblem} from '../../../domain/gst';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const first=(u:User|undefined)=>u?u.name.split(' · ')[0]:'unknown';
@@ -245,6 +246,8 @@ function cfgChangeCommand(k:Kit,def:CfgSettingDef,raw:unknown,requested:string|u
   const {s,uid,fail}=k;
   const dec=cfgCanChange(s,uid,def);
   if(dec.mode==='deny')fail('FORBIDDEN',dec.reason);
+  // GST master (DEC-069): every change needs a reason, as on the server (SetGstSetting).
+  if(isGstKey(def.key)){const p=gstReasonProblem(reason);if(p)fail('VALIDATION',p);}
   const value=cfgClean(def,raw);
   const err=cfgValidate(s,def,value);if(err)fail('VALIDATION',err);
   const eff=cfgEffectiveFrom(s,def,requested);if('error' in eff)return fail('VALIDATION',eff.error);
@@ -297,6 +300,7 @@ const CFG_WITHDRAW:Handler=k=>{
   assert(e!.effectiveFrom>s.date,'Only future-dated changes can be withdrawn.','INVALID_TRANSITION');
   const def=cfgDef(s,e!.key);assert(def,'This setting is no longer in the registry.','NOT_FOUND');
   const dec=cfgCanChange(s,uid,def!);if(dec.mode!=='allow')fail('FORBIDDEN',dec.mode==='request'?'Ask the approver to withdraw this scheduled change.':dec.reason);
+  if(isGstKey(def!.key)){const p=gstReasonProblem(cmd.reason);if(p)fail('VALIDATION',p);} // as WithdrawGstSetting
   x.scheduled=x.scheduled.filter(z=>z.id!==e!.id);const c=x.changes.find(c=>c.id===e!.id);if(c)c.status='withdrawn';
   (s.configHistory||(s.configHistory=[])).unshift({id:k.id('CFG'),key:def!.key,before:showOf(def!,e!.value)+' from '+e!.effectiveFrom,after:'withdrawn',at:addMinutes(s.clock,1),actor:k.user.name,effectiveFrom:e!.effectiveFrom,reason:String(cmd.reason||'').trim()});
   return `Scheduled change withdrawn · ${def!.key} · ${showOf(def!,e!.value)} from ${e!.effectiveFrom}`;

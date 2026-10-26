@@ -56,11 +56,20 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
                           AND x.source_key = CONCAT('shift:', CAST(s.shift_id AS varchar(20)), '/cash-difference'))
         """;
 
-    /// <summary>Unprocessed consumed events + unswept accepted cash differences for a property (blocks locking).</summary>
+    /// <summary>
+    /// Unprocessed consumed events + unswept accepted cash differences for a property (blocks locking). A08-01: events above the
+    /// consumer's watermark are counted with one IX_outbox_type seek per type (types as a typed row source, not OPENJSON inside the
+    /// scan); at or below the watermark only parked events can still be unprocessed (A08-02: parked = not booked, still blocks).
+    /// </summary>
     public const string PendingSql = """
-        SELECT (SELECT COUNT(*) FROM plat.outbox o
-                WHERE o.property_id = @p AND o.event_type IN (SELECT value FROM OPENJSON(@types))
-                  AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = o.outbox_id))
+        DECLARE @low BIGINT = ISNULL((SELECT low_outbox_id FROM plat.outbox_consumer WHERE consumer = @c), 0);
+        SELECT (SELECT COUNT(*) FROM OPENJSON(@types) WITH (event_type VARCHAR(60) '$') t
+                CROSS APPLY (SELECT o.outbox_id FROM plat.outbox o WITH (INDEX(IX_outbox_type))
+                             WHERE o.event_type = t.event_type AND o.outbox_id > @low AND o.property_id = @p
+                               AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = o.outbox_id)) x)
+             + (SELECT COUNT(*) FROM plat.consumer_failure f JOIN plat.outbox o ON o.outbox_id = f.outbox_id
+                WHERE f.consumer = @c AND f.parked_utc IS NOT NULL AND f.outbox_id <= @low AND o.property_id = @p
+                  AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = f.outbox_id))
              + (SELECT COUNT(*) FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id JOIN bill.approval a ON a.approval_id = s.approval_id
                 WHERE t.property_id = @p AND
         """ + " " + SweepWhere + ");";

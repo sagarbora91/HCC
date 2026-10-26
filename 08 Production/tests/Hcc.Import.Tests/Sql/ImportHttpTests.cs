@@ -43,6 +43,10 @@ public class ImportHttpTests : IAsyncLifetime
         builder.Services.AddSingleton<IBillingStore>(_w.Billing);
         builder.Services.AddSingleton<IStaysStore, SqlStaysStore>();
         builder.Services.AddSingleton<Hcc.Application.Pos.IPosStore>(new Hcc.Infrastructure.SqlServer.Pos.SqlPosStore(_w.Platform.Connections));
+        builder.Services.AddSingleton<Hcc.Application.Payroll.IPayrollStore>(new Hcc.Infrastructure.SqlServer.Payroll.SqlPayrollStore(_w.Platform.Connections));
+        builder.Services.AddSingleton<Hcc.Application.Groups.ICompanyStore>(new Hcc.Infrastructure.SqlServer.Groups.SqlCompanyStore(_w.Platform.Connections));
+        builder.Services.AddSingleton<Hcc.Application.Maintenance.IMaintenanceStore>(new Hcc.Infrastructure.SqlServer.Maintenance.SqlMaintenanceStore());
+        builder.Services.AddSingleton<Hcc.Application.Stock.IStockStore>(new Hcc.Infrastructure.SqlServer.Stock.SqlStockStore());
         builder.Services.AddImportModule();
         builder.Services.AddSingleton<IAccessPolicy>(_w.Policy);
         builder.Services.AddSingleton<ISessionService>(new TestSessions(_w.PropertyId));
@@ -79,7 +83,7 @@ public class ImportHttpTests : IAsyncLifetime
         using (var masters = JsonDocument.Parse(await (await _http.SendAsync(Req(HttpMethod.Get, "/import/masters", "techadmin"), Ct)).Content.ReadAsStringAsync(Ct)))
         {
             Assert.True(masters.RootElement.GetProperty("setupState").GetBoolean());
-            Assert.Equal(11, masters.RootElement.GetProperty("masters").GetArrayLength());
+            Assert.Equal(15, masters.RootElement.GetProperty("masters").GetArrayLength());
         }
 
         var body = new { master = "room-types", fileName = "room-types.csv", csvText = Templates.Sample("room-types") };

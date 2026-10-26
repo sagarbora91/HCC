@@ -14,7 +14,7 @@ import {useServerReport,ServerReportStrip,ServerDetailNote,ServerHistorySummary,
 import {asOfText,NO_FETCH} from './asOf';
 import {REPORT_MAX_DAYS} from '../../clients/sync/reports';
 
-/** CSV export: a download in the browser, Documents/HCC + share sheet in the Android app. */
+/** CSV export: a download in the browser, app-cache exports/ + share sheet in the Android app. */
 export function downloadCsv(name:string,csv:string){void saveCsv(name,csv);}
 const maskName=(n?:string)=>n?n.split(' ').map(w=>w[0]+'•••').join(' '):n;
 /** Restricted scope (no folio access): guest names masked on screen, print and export alike. */

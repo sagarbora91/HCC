@@ -20,7 +20,7 @@ public sealed class TestClock(DateTimeOffset start) : TimeProvider
 
 /// <summary>
 /// Disposable HccTest_* database with the prototype BASE shape: one property (business date 24 Oct 2026), the ten demo users with their
-/// roles, 24 rooms 101–108 / 201–208 / 301–308, and the floors created by the seed statement of migration 2800 (run again after the
+/// roles, 24 rooms 101–108 / 201–208 / 301–308, and the floors created by the seed statement of migration 2801 (run again after the
 /// rooms exist, exactly as an upgrade of an install with rooms would). Real access policy, real command runner.
 /// </summary>
 public sealed partial class MastersWorld : IAsyncDisposable
@@ -99,13 +99,13 @@ public sealed partial class MastersWorld : IAsyncDisposable
 
     public Task ExecAsync(string sql, CancellationToken ct = default) => ScalarAsync(sql, ct);
 
-    /// <summary>The seed statement of migration 2800 (the batch after its last GO).</summary>
+    /// <summary>The seed statement of migration 2801 (the batch after its last GO).</summary>
     public static string MigrationSeedSql()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "database", "migrations", "2800_masters_floors.sql"))) dir = dir.Parent;
-        if (dir is null) throw new FileNotFoundException("database/migrations/2800_masters_floors.sql not found above " + AppContext.BaseDirectory);
-        var text = File.ReadAllText(Path.Combine(dir.FullName, "database", "migrations", "2800_masters_floors.sql"));
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "database", "migrations", "2801_masters_floors.sql"))) dir = dir.Parent;
+        if (dir is null) throw new FileNotFoundException("database/migrations/2801_masters_floors.sql not found above " + AppContext.BaseDirectory);
+        var text = File.ReadAllText(Path.Combine(dir.FullName, "database", "migrations", "2801_masters_floors.sql"));
         return text[(text.LastIndexOf("\nGO", StringComparison.Ordinal) + 3)..];
     }
 

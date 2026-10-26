@@ -1,5 +1,5 @@
 // W4-1 front desk (sync/reservations.ts + sync/frontdesk.ts): the bookings list and guests loaders, and every mapped command
-// (CONFIRM, CANCEL, no-show, CHANGE_DATES, MOVE, REGISTER, CHECKIN, CHECKOUT, GUEST_SAVE) against a fake server shaped like the .NET DTOs.
+// (CONFIRM, CANCEL, no-show, CHANGE_DATES, MOVE, STAY_EARLY_DEPARTURE, REGISTER, CHECKIN, CHECKOUT, GUEST_SAVE) against a fake server shaped like the .NET DTOs.
 import {loadSync,loadPages,fakeServer,startRuntime,reply,capabilities} from './_sync-harness.mjs';
 
 const item=(id,over={})=>({reservationId:id,publicNo:'HCC-'+id,version:'V'+id+'a',status:'Confirmed',guestName:'Guest '+id,phone:'+91 90000 '+id,roomId:7,roomNo:'105',
@@ -40,6 +40,7 @@ export async function register({test,assert,M}){
       store.set(1303,{...x,roomId:body.toRoomId,roomNo:to,version:'V1303b',stayVersion:'S55b'});return {stayId:body.stayId,reservationId:1303,fromRoomNo:'204',toRoomNo:to,stayVersion:'S55b'};},
     'POST /commands/ExtendStay':({body})=>{const x=store.get(1303);store.set(1303,{...x,departure:body.newDeparture,version:'V1303c',stayVersion:'S55c'});return {stayId:body.stayId,stayVersion:'S55c'};},
     'POST /commands/ShortenStay':({body})=>{const x=store.get(1303);store.set(1303,{...x,departure:body.newDeparture,version:'V1303d',stayVersion:'S55d'});return {stayId:body.stayId,stayVersion:'S55d'};},
+    'POST /commands/EarlyDeparture':({body})=>{const x=store.get(1303);store.set(1303,{...x,departure:'2026-10-24',version:'V1303f',stayVersion:'S55f'});return {stayId:body.stayId,stayVersion:'S55f'};},
     'POST /commands/CheckoutStay':({body})=>{const x=store.get(1303);store.set(1303,{...x,status:'Departed',stayStatus:'CheckedOut',version:'V1303e'});return {stayId:body.stayId,stayVersion:'S55e'};},
     'POST /commands/SaveGuestProfile':({body})=>{const created=!body.guestId,gid=body.guestId??(guests.size+20);
       guests.set(gid,guest(gid,{name:body.guest.name,phone:body.guest.phone,verified:!!body.verified,version:'GV'+gid+'s'}));return {guestId:gid,guestVersion:'GV'+gid+'s',verified:!!body.verified,created};},
@@ -141,10 +142,21 @@ export async function register({test,assert,M}){
     const b=rt.get().state.bookings.find(x=>x.id==='1303');assert.deepEqual([b.room,b.departure],['105','2026-10-26']);
   });
 
+  // A02b-02: "Leaves today" → EarlyDeparture {stayId, reason} with the stay version from the load; no reason is refused before any call.
+  srv.reset();
+  const edNoReason=await rt.run({type:'STAY_EARLY_DEPARTURE',id:'1303',reason:'  ',key:'ed:none'});const edNoCalls=srv.commands('EarlyDeparture').length;
+  const edNotHouse=await rt.run({type:'STAY_EARLY_DEPARTURE',id:'1301',reason:'Guest called away',key:'ed:conf'});
+  const edOk=await rt.run({type:'STAY_EARLY_DEPARTURE',id:'1303',reason:' Guest called away ',key:'ed:1303'});const edCall=srv.commands('EarlyDeparture')[0];
+  test('[A02b-02] STAY_EARLY_DEPARTURE → EarlyDeparture {stayId, reason, expectedVersion}: reason required (precheck), in-house only, bookings reload with the new departure',()=>{
+    assert.deepEqual([edNoReason.ok,edNoReason.reason],[false,'precheck']);assert.match(edNoReason.text,/reason/i);assert.equal(edNoCalls,0);
+    assert.deepEqual([edNotHouse.ok,edNotHouse.reason],[false,'precheck']);assert.match(edNotHouse.text,/in-house/i);
+    assert.ok(edOk.ok,edOk.text);assert.deepEqual(edCall.body,{stayId:55,reason:'Guest called away',expectedVersion:'S55d'});assert.equal(edCall.key,'ed:1303');
+    assert.equal(rt.get().state.bookings.find(b=>b.id==='1303').departure,'2026-10-24');
+  });
   srv.reset();
   const out=await rt.run({type:'CHECKOUT',id:'1303',key:'checkout:1303'});const outCall=srv.commands('CheckoutStay')[0];
   test('[W4-1 commands] CHECKOUT → CheckoutStay (stay id + stay version from the load)',()=>{
-    assert.ok(out.ok,out.text);assert.deepEqual(outCall.body,{stayId:55,expectedVersion:'S55d'});assert.equal(outCall.key,'checkout:1303');
+    assert.ok(out.ok,out.text);assert.deepEqual(outCall.body,{stayId:55,expectedVersion:'S55f'});assert.equal(outCall.key,'checkout:1303');
     assert.equal(rt.get().state.bookings.find(b=>b.id==='1303').status,'Departed');
   });
 
@@ -174,7 +186,7 @@ export async function register({test,assert,M}){
     assert.deepEqual([idView.ok,idView.reason],[false,'unmapped']);assert.match(idView.text,/Not available on the server yet/);
     assert.deepEqual([unknown.ok,unknown.reason],[false,'server']);assert.match(unknown.text,/not loaded/i);
     assert.deepEqual(shown.map(x=>x.errors),[{},{}]);
-    const mapped=['BOOK','CHANGE_DATES','CANCEL','CONFIRM','REGISTER','CHECKIN','CHECKOUT','MOVE','GUEST_SAVE'];
+    const mapped=['BOOK','CHANGE_DATES','CANCEL','CONFIRM','REGISTER','CHECKIN','CHECKOUT','MOVE','STAY_EARLY_DEPARTURE','GUEST_SAVE'];
     const types=new Set(S.AREAS.flatMap(a=>a.commands.map(c=>c.type)));
     assert.ok(mapped.every(t=>types.has(t)));
     assert.deepEqual(Object.keys(S.AREAS.find(a=>a.id==='frontdesk').unmapped),['GUEST_ID_VIEW']);

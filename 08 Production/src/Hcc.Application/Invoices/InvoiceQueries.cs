@@ -35,7 +35,7 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
         var i = await store.ReadInvoiceAsync(null, propertyId, invoiceId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Invoice not found.");
         var credited = await store.CreditedAsync(null, invoiceId, ct).ConfigureAwait(false);
         var notes = await store.CreditNotesForInvoiceAsync(invoiceId, ct).ConfigureAwait(false);
-        var creditable = i.Lines.Select(l => credited.TryGetValue(l.LineNo, out var x) ? new CreditableLine(l, x.Taxable, x.Tax) : new CreditableLine(l, Paise.Zero, Paise.Zero)).ToList();
+        var creditable = i.Lines.Select(l => credited.TryGetValue(l.LineNo, out var x) ? new CreditableLine(l, x.Taxable, x.Tax, x.Cgst, x.Sgst) : new CreditableLine(l, Paise.Zero, Paise.Zero, Paise.Zero, Paise.Zero)).ToList();
         var lines = creditable.Select(c => new InvoiceLineView(c.Line.LineNo, c.Line.SourceLineId, c.Line.Kind, c.Line.ServiceDate, c.Line.Description,
             GstCategories.Code(c.Line.Category), c.Line.Sac, c.Line.Taxable.Value, c.Line.Bps, c.Line.Tax.Value, c.Line.Cgst.Value, c.Line.Sgst.Value, c.Line.Igst.Value,
             c.CreditedTaxable.Value, c.CreditedTax.Value)).ToList();

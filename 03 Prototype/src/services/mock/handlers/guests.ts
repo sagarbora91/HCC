@@ -1,4 +1,4 @@
-// Stream B · Guests & check-in (owns REGISTER, CHECKIN, MOVE; adds GUEST_SAVE).
+// Stream B · Guests & check-in (owns REGISTER, CHECKIN, MOVE; adds GUEST_SAVE, STAY_EARLY_DEPARTURE).
 // Register new or replacement command handlers here. A handler with the same name as a built-in command replaces it.
 import type {Handler,Kit} from '../commands';
 import type {Booking} from '../../../domain/types';
@@ -101,5 +101,19 @@ export const handlers:Record<string,Handler>={
     }else if(inHouse&&!x.segments?.length)x.segments=staySegments(x).map(g=>({...g}));
     const detail=`${x.id} · room ${x.room} → ${cmd.room}; departure ${cmd.departure}; agreed tariff preserved`;
     x.room=cmd.room;x.departure=cmd.departure;x.version++;return detail;
+  },
+  /** Early departure (A02b-02, server EarlyDeparture): the in-house guest leaves today; nights [business date, departure) are released so checkout can follow.
+   *  Same rules as the server: a reason, at least one night already stayed, nothing posted on or after today. Intended PERM-STY-002. {id, reason}. */
+  STAY_EARLY_DEPARTURE:k=>{
+    const {s,cmd}=k;k.req('reservations');k.open();const x=k.b();
+    k.assert(x.status==='In house','This stay is not in house.','INVALID_TRANSITION');
+    const reason=String(cmd.reason??'').trim();
+    k.assert(reason.length>=3,'Enter the reason for the change.');k.assert(reason.length<=200,'The reason is too long (maximum 200 characters).');
+    k.assert(x.departure>s.date,'There are no remaining nights to release. Check the guest out.','INVALID_TRANSITION');
+    k.assert(x.arrival<s.date,'The guest arrived today and a stay has at least one night: shorten to tomorrow, or check the guest out after the night is charged.');
+    k.assert(!x.lines.some(l=>l.kind==='room'&&l.date>=s.date),'Room nights are already posted on or after the new departure date. Reverse them before shortening.','INVALID_TRANSITION');
+    const was=x.departure;if(!x.segments?.length)x.segments=staySegments(x).map(g=>({...g}));
+    x.departure=s.date;x.version++;
+    return `${x.id} · early departure ${was} → ${s.date} (${nights(s.date,was)} night(s) released) · ${reason}`;
   },
 };

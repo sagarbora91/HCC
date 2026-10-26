@@ -73,7 +73,7 @@ node scripts\build-production.mjs --release --ca "<path>\HCC-Hotel-CA.cer" --ass
 - Galaxy Tab S7 (SM-T875, Android 13): Settings → About tablet → tap Build number 7× → Developer options → USB debugging, then `adb install -r …apk`; or copy the APK to the tablet and allow "Install unknown apps" for the file manager.
 
 ## What the app adds over the browser build (`03 Prototype\src\app\native.ts`)
-Android back button (sheet → wizard step → previous page → landing → "Exit?"), maroon status bar, CSV export (saved to `Documents/HCC/…` + share sheet; the FileProvider shares only `Documents/HCC/` and the app cache, F-L10), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
+Android back button (sheet → wizard step → previous page → landing → "Exit?"), maroon status bar, CSV / Excel export (written to the app's private cache `exports/…` + share sheet, never to public storage; the FileProvider shares only that folder, F-L10 / A10-01; every sign-out, session expiry and offline-copy wipe deletes the folder; files an older build wrote to `Documents/HCC/` are not touched and must be deleted by hand), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
 
 ## Known limits
 Debug build only · demo data lives per device (no sync) · no backend · Auto display = desktop on tablet-sized native screens and phone layout on phones; Display toggle allows an explicit choice.

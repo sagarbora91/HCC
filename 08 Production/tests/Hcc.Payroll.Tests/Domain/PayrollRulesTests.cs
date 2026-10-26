@@ -262,6 +262,30 @@ public sealed class PayrollRulesTests
     }
 
     [Fact]
+    public void A04_01_statutory_statement_adds_full_and_final_rows_to_members_and_totals_and_is_unchanged_without_them()
+    {
+        var sep = new PayMonth(2026, 9);
+        var stay = PayrollRules.ComputeLine(Mon(2_000_000), Full(), R);
+        // Leaver ₹13,500/month, exit 24 Oct 2026: 24 of 31 days payable (7 days after the exit) → earned 13,500 × 48/62 = 10,451.61;
+        // basic 50 % 5,225.81 → PF 12 % 627.10, employer 13 % 679.36; washing 10 % of basic 522.58 → ESIC wages 9,929.03 → 0.75 % 74.47,
+        // 3.25 % 322.69; PT man, earned above ₹10,000, not February → ₹200.
+        var leaver = Mon(1_350_000) with { StaffId = 7, Name = "Leaver Person", Active = false, ExitedOn = new DateOnly(2026, 10, 24) };
+        var fnfLine = PayrollRules.ComputeLine(leaver, Full("2026-10", 31, p: 24) with { Na = 7 }, R);
+        Assert.Equal((1_045_161L, 522_581L, 62_710L, 67_936L, 992_903L, 7_447L, 32_269L, 20_000L),
+            (fnfLine.Earned, fnfLine.PfWages, fnfLine.Pf, fnfLine.PfEr, fnfLine.EsicWages, fnfLine.Esic, fnfLine.EsicEr, fnfLine.Pt));
+
+        var plain = PayrollFiles.Statutory(sep, true, R.From, [stay]);
+        Assert.Equal(plain, PayrollFiles.Statutory(sep, true, R.From, [stay], []));   // no leaver: byte-identical
+        Assert.DoesNotContain("F&F", plain, StringComparison.Ordinal);
+        var rows = PayrollFiles.Statutory(sep, true, R.From, [stay], [new FnfStatutoryLine(fnfLine, leaver.ExitedOn!.Value)]).Split('\n');
+        Assert.Equal($"Provident Fund,{PayrollFiles.Rupees(stay.Pf + 62_710)},{PayrollFiles.Rupees(stay.PfEr + 67_936)},{PayrollFiles.Rupees(stay.Pf + stay.PfEr + 62_710 + 67_936)}", rows[1]);
+        Assert.Equal($"Professional Tax (Maharashtra),{PayrollFiles.Rupees(stay.Pt + 20_000)},0.00,{PayrollFiles.Rupees(stay.Pt + 20_000)}", rows[3]);
+        Assert.Equal("2,7,Leaver Person,10451.61,5225.81,627.10,679.36,9929.03,74.47,322.69,200.00", rows[7]);
+        Assert.Equal("F&F — exit month's salary settled in full and final (not in the pay run): Sr 2 Leaver Person (last day 2026-10-24)", rows[8]);
+        Assert.Equal("Not calculated: gratuity, notice pay, bonus, TDS on salary.", PayrollRates.NotCalculated);   // A04-11
+    }
+
+    [Fact]
     public void Golden_BASE_august_and_september_payroll_match_the_prototype()
     {
         var g = PayrollGolden.Data;

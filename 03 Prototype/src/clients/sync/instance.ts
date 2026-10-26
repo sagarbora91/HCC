@@ -11,7 +11,7 @@ import {cookieAuth,tokenAuth,preferencesTokenStore,sessionTokenStore,sealedToken
 import {localWrapKey} from './seal';
 import {SERVER_URL_KEY,capacitorFetch,type CapacitorHttpLike} from './apk';
 import type {FetchLike} from '../http';
-import {isNative,nativePlugin,nativePluginAvailable} from '../../app/native';
+import {isNative,nativePlugin,nativePluginAvailable,clearExports} from '../../app/native';
 
 /** Server origin: '' = same origin (the API host serves the web app). The APK sets `hcc-server-url` (W4-12 setup screen). */
 export {SERVER_URL_KEY};
@@ -54,7 +54,7 @@ export function getSyncRuntime():SyncRuntime{
   if(rt)return rt;
   const a=getAuth();
   const base:FetchLike|undefined=tokenMode(a)?(nativeFetch()??((u,i)=>(globalThis as unknown as {fetch:FetchLike}).fetch(u,i))):undefined;
-  return rt=createSyncRuntime({areas:AREAS,baseUrl:serverBaseUrl(),cache:defaultCache(),keyStore:cacheKeyStore(),auth:a,fetch:base&&tokenMode(a)?a.observe(base):undefined});
+  return rt=createSyncRuntime({areas:AREAS,baseUrl:serverBaseUrl(),cache:defaultCache(),keyStore:cacheKeyStore(),onWipe:clearExports,auth:a,fetch:base&&tokenMode(a)?a.observe(base):undefined});
 }
 /** For the server-address screen (before the runtime exists): native HTTP in the APK, else fetch. */
 export const probeFetch=():FetchLike=>nativeFetch()??((u,i)=>(globalThis as unknown as {fetch:FetchLike}).fetch(u,i));

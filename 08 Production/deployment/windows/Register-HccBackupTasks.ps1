@@ -3,8 +3,10 @@
   Creates the Task Scheduler jobs for HCC backups (SQL Server Express has no SQL Agent): nightly FULL, DIFFERENTIAL every
   few hours, weekly restore drill. Run once from an elevated PowerShell. -WhatIf lists the tasks and changes nothing.
 .DESCRIPTION
-  Tasks (folder \HCC): "HCC Backup Full" 02:30 daily, "HCC Backup Differential" every 4 hours from 06:30, "HCC Restore Drill"
-  Sunday 04:30. They run as -RunAsUser (default SYSTEM, which Initialize-HccDatabase.ps1 gives db_backupoperator, db_datareader and,
+  Tasks (folder \HCC): "HCC Backup Full" 02:30 daily, "HCC Backup Differential" every 4 hours from 04:30 (04:30, 08:30, 12:30,
+  16:30, 20:30, 00:30), "HCC Restore Drill" Sunday 03:30. A09-02: no differential may start at the same minute as the full or the
+  drill (the old 06:30 start put one at 02:30, with the full); registration is refused when the chosen times collide.
+  They run as -RunAsUser (default SYSTEM, which Initialize-HccDatabase.ps1 gives db_backupoperator, db_datareader and,
   with -GrantDrillRights, dbcreator; or a dedicated Windows account given to Initialize-HccDatabase.ps1 -BackupAccount).
   F-M06: a task that runs as SYSTEM must never run a script that a normal user can change. So the scripts are run ONLY from
   -ScriptDirectory (default C:\Program Files\HCC\Operations, where the installer puts them), and registration is REFUSED when that
@@ -20,8 +22,8 @@ param(
     [switch]$InstallScripts,
     [string]$RunAsUser = 'SYSTEM',
     [securestring]$RunAsPassword,
-    [string]$FullTime = '02:30', [int]$DifferentialEveryHours = 4, [string]$DifferentialStart = '06:30',
-    [string]$DrillDay = 'Sunday', [string]$DrillTime = '04:30',
+    [string]$FullTime = '02:30', [int]$DifferentialEveryHours = 4, [string]$DifferentialStart = '04:30',
+    [string]$DrillDay = 'Sunday', [string]$DrillTime = '03:30',
     [switch]$Unregister
 )
 $ErrorActionPreference = 'Stop'
@@ -35,6 +37,12 @@ $defs = @(
     @{ Name = 'HCC Backup Differential'; Script = 'Backup-HccDatabase.ps1'; Args = '-Type Differential'; Trigger = { New-ScheduledTaskTrigger -Once -At $DifferentialStart -RepetitionInterval (New-TimeSpan -Hours $DifferentialEveryHours) } },
     @{ Name = 'HCC Restore Drill'; Script = 'Restore-HccDrill.ps1'; Args = ''; Trigger = { New-ScheduledTaskTrigger -Weekly -DaysOfWeek $DrillDay -At $DrillTime } }
 )
+
+if (-not $Unregister) {
+    $scheduleProblems = (Test-HccBackupSchedule -FullTime $FullTime -DifferentialStart $DifferentialStart -DifferentialEveryHours $DifferentialEveryHours -DrillTime $DrillTime)
+    if ($scheduleProblems.Count -gt 0) { throw ('Refusing the backup schedule: ' + ($scheduleProblems -join '; ') + '. Choose other -FullTime / -DifferentialStart / -DrillTime.') }
+    if ($WhatIfPreference) { Write-Host ("DRY RUN: schedule: full $FullTime daily; differentials at " + ((Get-HccRepetitionTimes -Start $DifferentialStart -EveryHours $DifferentialEveryHours) -join ', ') + "; restore drill $DrillDay $DrillTime") }
+}
 
 if ($Unregister) {
     foreach ($d in $defs) { if ($PSCmdlet.ShouldProcess("$folder$($d.Name)", 'Unregister scheduled task')) { Unregister-ScheduledTask -TaskName $d.Name -TaskPath $folder -Confirm:$false -ErrorAction SilentlyContinue } }

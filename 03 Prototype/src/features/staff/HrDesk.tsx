@@ -18,7 +18,7 @@ import {
   money,addDays,isDayClosed,cfgModuleOn,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
   hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrFnfSettled,HR_FNF_OWNER_ABOVE,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
-  HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
+  HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_CALCULATED,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
 } from '../../services/mock';
 import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
 import {hrUserName} from './modals';
@@ -297,7 +297,7 @@ function Fnf({phone}:{phone:boolean}){
     <h2 className="m-group">SETTLED</h2>
     {done.map(f=><ListCard key={f.id} title={f.name} sub={`${net(f.net)} · last day ${shortDate(f.lastDay)}`} meta={`${f.id} · by ${hrUserName(s,f.by)}`} right={<Pill tone="green">Settled</Pill>}/>)}
     {!done.length&&<p className="hr-m-note">No settlements yet.</p>}</>;
-  return <section className="card"><div className="section-title"><div><h2>Full and final settlement</h2><p>For staff marked as exited: last month’s salary to the exit date, PF / ESIC / PT, the full outstanding advance and up to four adjustments (e.g. earned-leave encashment). Gratuity is not calculated.</p></div></div>
+  return <section className="card"><div className="section-title"><div><h2>Full and final settlement</h2><p>For staff marked as exited: last month’s salary to the exit date, PF / ESIC / PT, the full outstanding advance and up to four adjustments (e.g. earned-leave encashment).</p></div></div>
     {pending.length||all.length?<div className="table-wrap"><table><thead><tr><th>Staff</th><th>Last day</th><th className="number">Earnings</th><th className="number">Recoveries</th><th className="number">Net</th><th>Status</th><th></th></tr></thead><tbody>
       {pending.map(t=><tr key={t.id}><td><strong>{t.name}</strong><small>{t.id} · {t.designation}</small></td><td>{dateLabel(t.exitedOn!)}</td><td className="number">—</td><td className="number">—</td><td className="number">—</td><td><Pill tone="orange">Not settled</Pill></td>
         <td><button className="text-btn" onClick={()=>open({type:'hr-fnf',id:t.id})}>Prepare settlement</button></td></tr>)}
@@ -306,7 +306,7 @@ function Fnf({phone}:{phone:boolean}){
       {done.map(f=><tr key={f.id}><td><strong>{f.name}</strong><small>{f.id}{f.salaryIncluded?'':` · ${hrMonthLabel(f.month)} paid in payroll`}</small></td><td>{dateLabel(f.lastDay)}</td><td className="number">{money(f.earnings)}</td><td className="number">{money(f.recoveries)}</td>
         <td className="number"><strong>{net(f.net)}</strong></td><td><Pill tone="green">Settled</Pill></td><td><small>by {hrUserName(s,f.by)} · {f.at.slice(0,10)}{f.confirmedBy?` · confirmed by ${hrUserName(s,f.confirmedBy)}`:''}</small></td></tr>)}
     </tbody></table></div>:<Empty title="Nobody to settle" body="Mark a staff member as exited on the Staff tab first."/>}
-    <p className="footnote padded">{HR_DISCLAIMER}</p></section>;
+    <p className="footnote padded">{HR_DISCLAIMER} {HR_NOT_CALCULATED}</p></section>;
 }
 
 // ── Statutory rates (dated, from SCC) ──

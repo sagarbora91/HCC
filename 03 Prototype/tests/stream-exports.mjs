@@ -86,8 +86,8 @@ export function register({test,M,assert}){
     const idx=pack.tabs.findIndex(t=>t.id==='revenue')+2; // About is sheet 1
     assert.ok(z['xl/worksheets/sheet'+idx+'.xml'].includes('<v>'+net/100+'</v>'));
   });
-  test('[XLSX] saveBinaryFile: native path writes base64 to Documents/HCC then shares',()=>{
-    const w=R.calls.find(c=>c[1]==='writeFile')[2];assert.equal(R.r,'shared');assert.equal(w.path,'HCC/HCC-x.xlsx');assert.equal(w.directory,'DOCUMENTS');
+  test('[XLSX] saveBinaryFile: native path writes base64 to the app cache exports/ then shares (A10-01)',()=>{
+    const w=R.calls.find(c=>c[1]==='writeFile')[2];assert.equal(R.r,'shared');assert.equal(w.path,'exports/HCC-x.xlsx');assert.equal(w.directory,'CACHE');
     assert.deepEqual(new Uint8Array(Buffer.from(w.data,'base64')),R.bytes);assert.ok(R.calls.some(c=>c[0]==='Share'));
   });
 
@@ -109,7 +109,7 @@ export function register({test,M,assert}){
     assert.equal(M.accTallyXml(s,'2026-10-20','2026-10-24').error,undefined);});
   test('[XLSX] F6: large native save is chunked (writeFile then appendFile) and reassembles byte-for-byte',()=>{
     const w=R.bigCalls.filter(c=>c[0]==='Filesystem'&&(c[1]==='writeFile'||c[1]==='appendFile'));assert.equal(R.bigR,'shared');
-    assert.deepEqual(w.map(c=>c[1]),['writeFile','appendFile','appendFile']);assert.ok(w.every(c=>c[2].path==='HCC/HCC-big.xlsx'&&c[2].directory==='DOCUMENTS'));
+    assert.deepEqual(w.map(c=>c[1]),['writeFile','appendFile','appendFile']);assert.ok(w.every(c=>c[2].path==='exports/HCC-big.xlsx'&&c[2].directory==='CACHE'));
     assert.deepEqual(new Uint8Array(Buffer.concat(w.map(c=>Buffer.from(c[2].data,'base64')))),R.big);});
   test('[XLSX] F11: a failing save is reported as failed (error toast, never "saved"); success keeps the saved text',()=>{
     assert.equal(R.failR,'failed');assert.equal(R.failText,'failed');assert.equal(R.okR,'downloaded');

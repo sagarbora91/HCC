@@ -4,7 +4,7 @@ export function register({test,M,assert}){
   const {seed,execute,totals,loadScenario,gstForRoomNight,gstForFood,gstForService,gstSpecifiedPremises,gstLineTax,gstSplit,gstLineSplit,gstStayTax,
     gstValueOn,gstCategoryOfLabel,gstFy,cfgDef,cfgCanChange,cfgGroupAccess,HccError}=M;
   const code=fn=>{try{fn();return 'OK';}catch(e){return e instanceof HccError?e.code:'UNTYPED:'+e.message;}};
-  const set=(s,uid,setting,value,effectiveFrom)=>execute(s,uid,{type:'SETTING_SET',setting,value,...(effectiveFrom?{effectiveFrom}:{})});
+  const set=(s,uid,setting,value,effectiveFrom)=>execute(s,uid,{type:'SETTING_SET',setting,value,...(effectiveFrom?{effectiveFrom}:{}),reason:'CA advice'});
   const bk=(s,id)=>s.bookings.find(b=>b.id===id);
   const inhouse=(s,room,dep='2026-10-27')=>{s=execute(s,'reception',{type:'BOOK',guest:'GST Test (fictional)',room,arrival:s.date,departure:dep,people:1});const id=s.bookings.at(-1).id;
     s=execute(s,'reception',{type:'REGISTER',id});s=execute(s,'reception',{type:'CHECKIN',id});return [s,id];};
@@ -53,6 +53,17 @@ export function register({test,M,assert}){
     assert.deepEqual([sp.fy,sp.prevFy,sp.specified,sp.derived,sp.optIn,sp.maxPrevTariff],['2026-27','2025-26',false,false,false,450000]);
     assert.deepEqual([gstForFood(s,s.date).bps,gstForFood(s,s.date).itc],[500,false]);
     assert.deepEqual(gstFy('2026-03-31'),{label:'2025-26',from:'2025-04-01',to:'2026-03-31'});assert.equal(gstFy('2026-04-01').label,'2026-27');
+  });
+  test('[GST] A03a-02: a night above ₹7,500 posted by mistake and reversed never makes next FY specified premises',()=>{
+    // The prototype derives the status from tariffs only (G5; the server also counts nights actually charged, minus reversed ones).
+    let [s,id]=inhouse(seed(),'106');bk(s,id).rate=900000;s=execute(s,'owner',{type:'POST_NIGHTS',id});
+    const night=bk(s,id).lines.find(l=>l.kind==='room');assert.deepEqual([night.amount,night.taxBps],[900000,1800]);
+    s=execute(s,'reception',{type:'CORRECTION_REQUEST',id,lineId:night.id,reason:'Posted at the wrong rate'});
+    s=execute(s,'owner',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
+    assert.ok(bk(s,id).lines.some(l=>l.reversalOf===night.id));
+    const sp=gstSpecifiedPremises(s,'2027-04-01');
+    assert.deepEqual([sp.prevFy,sp.specified,sp.derived,sp.maxPrevTariff],['2026-27',false,false,450000]);
+    assert.equal(gstForFood(s,'2027-04-01').bps,500);
   });
   test('[GST] specified premises derived from last FY: a unit above ₹7,500 in FY 2025-26 → 18 % with ITC in FY 2026-27',()=>{
     const s=seed();s.tariffs=[{type:'Suite',rate:800000,effectiveFrom:'2025-06-01'},{type:'Suite',rate:450000,effectiveFrom:'2025-07-01'}];
@@ -159,12 +170,26 @@ export function register({test,M,assert}){
     assert.equal(s.configHistory[0].key,'gst.room.lowBps');assert.equal(s.configHistory[0].effectiveFrom,'2026-10-25');
     // Withdraw before it takes effect → master back to the seed for that date.
     const sched=s.configX.scheduled.find(x=>x.key==='gst.room.lowBps');
-    let w=execute(s,'owner',{type:'CFG_WITHDRAW',id:sched.id});assert.equal(gstValueOn(w,'gst.room.lowBps','2026-10-25'),500);
+    let w=execute(s,'owner',{type:'CFG_WITHDRAW',id:sched.id,reason:'CA withdrew the advice'});assert.equal(gstValueOn(w,'gst.room.lowBps','2026-10-25'),500);
     // Past dates keep the statutory seed (history), whatever is scheduled later.
     assert.equal(gstValueOn(s,'gst.room.lowBps','2025-09-21'),1200);assert.equal(gstValueOn(s,'gst.room.lowBps','2026-04-01'),500);
     // A same-day change applies at once and can be reverted (history/revert).
     let r=set(seed(),'owner','gst.svc.otherBps',1200);const hid=r.configHistory[0].id;
     r=execute(r,'owner',{type:'CFG_REVERT',id:hid});assert.equal(gstForService(r,r.date,'other').bps,1800);
+  });
+  test('[GST] A02-02: a GST change and a GST withdrawal need a reason (≥ 3 characters, as the server\'s SetGstSetting / WithdrawGstSetting); other settings do not',()=>{
+    const s=seed();const msg=fn=>{try{fn();return 'OK';}catch(e){return `${e.code}: ${e.message}`;}};
+    const refused='VALIDATION: Give a reason for the GST change (at least 3 characters).';
+    for(const reason of [undefined,'','  ','ab'])
+      assert.equal(msg(()=>execute(s,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-25',...(reason===undefined?{}:{reason})})),refused,String(reason));
+    assert.equal(code(()=>execute(s,'techadmin',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200})),'FORBIDDEN','permission first: Owner only');
+    const t=set(s,'owner','gst.room.lowBps',1200,'2026-10-25');const id=t.configX.scheduled.find(x=>x.key==='gst.room.lowBps').id;
+    assert.equal(t.configHistory[0].reason,'CA advice');
+    assert.equal(msg(()=>execute(t,'owner',{type:'CFG_WITHDRAW',id})),refused);
+    assert.equal(execute(t,'owner',{type:'CFG_WITHDRAW',id,reason:'CA withdrew it'}).configX.scheduled.length,0);
+    // A revert carries its own reason ("Revert to previous value") unless the sheet gives one.
+    const r=set(s,'owner','gst.svc.otherBps',1200);assert.equal(execute(r,'owner',{type:'CFG_REVERT',id:r.configHistory[0].id}).configHistory[0].reason,'Revert to previous value');
+    assert.equal(code(()=>execute(s,'owner',{type:'SETTING_SET',setting:'checkin',value:'13:00'})),'OK','non-GST settings keep the optional reason');
   });
 
   // ── Demo figures and FY26 history ──

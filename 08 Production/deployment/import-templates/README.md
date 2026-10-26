@@ -1,7 +1,9 @@
 # Importing your hotel's masters and opening balances
 
-This folder holds the files you fill in once, when HCC starts, so you do not have to type your rooms, rates, staff and
-accounts by hand.
+This folder holds the files you fill in once, when HCC starts, so you do not have to type your rooms, rates, staff,
+accounts, departments, company clients, suppliers and stock items by hand. You load them with the script
+`Import-HccMasters.ps1` (in the scripts folder, `C:\Program Files\HCC\Operations`; step 6d of `deployment\windows\INSTALL.md`).
+The installer also copies this folder to `C:\Program Files\HCC\ImportTemplates`.
 
 - `templates\` – empty files with the right column headings. Copy one, fill it in, save it.
 - `samples\` – the same files filled with **made-up** data for a fictional hotel. Open them to see what a filled file looks like.
@@ -36,19 +38,46 @@ that has such a column. Staff get their first password or PIN from you in Access
 | 9 | guests (optional) | – | Owner |
 | 10 | pos-outlets (restaurant, room service) | – | Owner |
 | 11 | pos-menu | pos-outlets | Owner |
+| 12 | departments (staff and payroll) | – | Owner |
+| 13 | companies (corporate clients) | room types (for negotiated rates) | Owner |
+| 14 | suppliers (and service vendors) | – | Owner |
+| 15 | stock-items (linen, amenities, cleaning) | – | Owner |
 
-## Upload → check → commit
+The script imports the files it finds in this order. You do not need every file: leave out the ones you do not use.
 
-1. **Upload** a file (command `UploadImportBatch`, choosing which master it is). HCC keeps the file and checks every row at once.
-2. **Check the report.** Each problem shows the spreadsheet row, the column and what to fix (for example "Row 7 · rate · '42OO' is
-   not an amount in rupees"). The preview lists what will be **created**, **updated** or left **unchanged**. Nothing is saved yet.
-   Fix the file in Excel and upload it again until there are no errors.
-3. **Dry run** (optional): runs the whole import and then undoes it, to prove it will go through. Nothing is kept.
-4. **Commit**: everything in the file is saved in one go – either all rows or none. It is recorded in the audit trail with your name.
-   Committing the same batch twice is refused; importing the same file again changes nothing (every row shows "unchanged").
+## Upload → check → commit (the script)
+
+Put your filled files in one folder (for example `D:\HccMasters`), named exactly like the templates (`rooms.csv`, `staff.csv`, ...).
+Then, in PowerShell on the server PC, in the scripts folder (`C:\Program Files\HCC\Operations`):
+
+```
+.\Import-HccMasters.ps1 -Folder "D:\HccMasters" -DryRun                                  # check only: nothing is kept
+.\Import-HccMasters.ps1 -Folder "D:\HccMasters" -OpeningBalancesDate 2026-10-31          # import for real
+```
+
+1. **Sign-in.** The script asks for the Owner's sign-in name and password (the password is not shown, not saved and not written
+   to any file or log). It talks to the server over HTTPS (`https://localhost:5443`, or `ServerUrl` in `hcc-ops.json`, or
+   `-ServerUrl`), with the hotel certificate installed in step 8 of INSTALL.md; it never sends a password over plain HTTP to another PC.
+2. **Upload.** Each file is sent to the server (command `UploadImportBatch`, with the master it is). HCC checks every row at once.
+3. **Report.** For each file the script prints the rows that are **rejected**, with the spreadsheet row, the column and what to fix
+   (for example "Row 7 · rate · '42OO' is not an amount in rupees"), the warnings, and what will be **created**, **updated** or
+   left **unchanged**. Nothing is saved yet.
+4. **Commit** (only without `-DryRun`): everything in the file is saved in one go – either all rows or none (command
+   `CommitImportBatch`). It is recorded in the audit trail with your name. The script then goes on with the next file, so the rooms
+   file sees the room types that were just committed.
+   - If a file has a rejected row, the script **stops** there and commits nothing more. Fix the file in Excel and run it again: files
+     already committed show every row as "unchanged" and are skipped. `-ContinueOnErrors` skips only the rejected file and goes on.
+   - Importing the same file again changes nothing (every row shows "unchanged"); committing the same upload twice is refused.
+5. **Dry run** (`-DryRun`): the server runs each file's whole import and then undoes it, to prove it will go through. Nothing is kept.
+   On a new hotel a later file can show "... is not in HCC yet" for something an earlier file of the same run creates (rooms need
+   room types); the script marks those rows "expected in a dry run" and does not count them as rejected.
+6. `-WhatIf` only lists the files it found, in the order it would import them, and sends nothing.
+7. **Check** afterwards (INSTALL.md step 6d, "Verify"): the rooms and users show on their screens, and the import list
+   (`GET /api/v1/import/batches`) shows every upload and commit.
 
 The Technical administrator may upload, check and dry-run every file, but only the Owner can commit (money, rates, roles and
-accounts are Owner-only, DEC-058).
+accounts are Owner-only, DEC-058). Behind the script are the server commands `UploadImportBatch` and `CommitImportBatch`
+(`/api/v1/commands/...`); there is no import screen in the app yet.
 
 ## Columns of each file
 
@@ -204,6 +233,59 @@ on the POS setup screen). Nothing here posts any money.
 
 An item already in HCC (same code) is **updated** when its name, category, price, veg flag or outlets differ, and "unchanged"
 otherwise. Items sold out ("86") keep their availability; it is changed on the POS screen.
+
+### departments.csv (staff and payroll)
+| Column | Required | Meaning |
+|---|---|---|
+| code | yes | Department code, 2 to 10 capital letters or digits (e.g. `FO`). Staff are put in a department by this code. |
+| name | yes | Department name, 2 to 60 characters. |
+| leaveCap | optional | Most staff of this department on leave on one day, 1 to 20. Blank = the leave policy default. |
+
+A department already in HCC with the same code is **updated** (name, leave limit).
+
+### companies.csv (company accounts, corporate clients)
+| Column | Required | Meaning |
+|---|---|---|
+| name | yes | Company name, up to 200 characters. A re-import finds the account by this name (capitals do not matter). |
+| gstin | optional | Company GSTIN, 15 characters, for B2B invoices. |
+| contact | optional | Contact person. |
+| phone | optional | Phone, 7 to 16 digits (`+91` and spaces allowed). |
+| email | optional | E-mail address for invoices. |
+| city | optional | City. |
+| creditLimit | optional | Credit limit in rupees, up to ₹10 crore. Blank or `0` = no credit. HCC **stores** this value (the Groups screen shows it); it is not yet checked when a stay is charged to the company. |
+| negotiatedRates | optional | Negotiated nightly rates before GST, as `room type=rupees` separated by `;`, e.g. `DLX=3800;STD=2600`. Import the room types first. |
+
+An account already in HCC with the same name is **updated** with the file's values, including the credit limit (a pending limit
+request for it is closed). Changing a limit later in the app keeps the usual approval rule.
+
+### suppliers.csv (suppliers and service vendors)
+| Column | Required | Meaning |
+|---|---|---|
+| name | yes | Supplier or vendor name, 3 to 120 characters. A re-import finds it by this name. |
+| phone | yes | Phone number (digits, spaces, `-`; a leading `+` is allowed). |
+| trade | optional | What they supply or repair (e.g. `Laundry`, `Electrical`), up to 60 characters. Blank = `General`. |
+
+Suppliers go into the vendor list (Maintenance › Vendors & AMC), where work orders and AMC contracts pick them. Expenses and goods
+receipts still take the supplier's name as typed text.
+
+### stock-items.csv (linen, amenities, cleaning)
+| Column | Required | Meaning |
+|---|---|---|
+| code | yes | Item code like `LIN-BS`: 2 to 6 letters/digits, a dash, 1 to 10 letters/digits (stored in capitals). |
+| name | yes | Item name, 2 to 120 characters. |
+| kind | yes | `linen`, `amenity` or `cleaning`. |
+| unit | yes | Unit of counting, e.g. `pcs`, `can`. |
+| unitCost | optional | Cost per unit in rupees, at most ₹1,00,000. Blank = not costed yet. |
+| minQty | optional | Minimum stock before a reorder is suggested, 0 to 10,000 (blank = 0). |
+| reorderQty | optional | How many to reorder, 0 to 10,000 (blank = 0). |
+| usePerRoomNight | optional | Standard use per occupied room-night, e.g. `1.5` (0 to 100, up to 2 decimals). |
+| laundryRate | optional | Laundry charge per piece in rupees, **linen only**. |
+| supplier | optional | Usual supplier's name. |
+
+New items start with **no stock**: after the import, count each store and floor in Stock › Count so HCC knows what is there.
+An item already in HCC (same code) keeps its name, kind and unit (a different value is refused: change it on the Stock screen);
+only the minimum, reorder and use-per-room-night levels are **updated**. Its unit cost (kept as an average by goods receipts),
+laundry rate and supplier are not changed by a re-import (a warning says so).
 
 ## Limits
 

@@ -97,9 +97,9 @@ export function fakeServer(routes={}){
 const keyStores=new WeakMap();
 export const keyStoreFor=(S,cache)=>{let k=keyStores.get(cache);if(!k){k=S.memoryTokenStore();keyStores.set(cache,k);}return k;};
 /** Creates the runtime on the fake server (registry AREAS unless `areas` is given), boots it and waits for the loads. */
-export async function startRuntime(S,srv,{areas,cache,now,focusRefreshMs,recoveryMs,boot=true,keyStore,auth}={}){
+export async function startRuntime(S,srv,{areas,cache,now,focusRefreshMs,recoveryMs,boot=true,keyStore,auth,onWipe}={}){
   const c=cache??S.createMemoryCache();
-  const rt=S.createSyncRuntime({areas:areas??S.AREAS,fetch:srv.fetch,cache:c,keyStore:keyStore??keyStoreFor(S,c),cacheIterations:1000,auth,now,focusRefreshMs,recoveryMs,commandRetries:0});
+  const rt=S.createSyncRuntime({areas:areas??S.AREAS,fetch:srv.fetch,cache:c,keyStore:keyStore??keyStoreFor(S,c),cacheIterations:1000,auth,onWipe,now,focusRefreshMs,recoveryMs,commandRetries:0});
   if(boot)await rt.boot();
   return rt;
 }

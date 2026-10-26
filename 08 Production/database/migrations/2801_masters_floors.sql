@@ -1,4 +1,4 @@
--- HCC migration 2800 · MA-0 masters framework + Floors (block 2800–2809). Plan: 02 Planning/HCC_Customisation_Features_Plan_v1.md
+-- HCC migration 2801 · MA-0 masters framework + Floors (block 2800–2809). Plan: 02 Planning/HCC_Customisation_Features_Plan_v1.md
 -- Part 2 §9 (common framework) and §8 M1 (floors). Prototype rules: 03 Prototype/src/domain/streams/masters.ts (+ handlers/masters.ts).
 -- Row rules: code unique per property (also for retired rows), ^[A-Z0-9-]{1,20}$ checked by the application, immutable once used;
 -- name 1–60; retire (active = 0, retired_on) instead of deleting a floor that rooms use; delete only when unused.

@@ -1,0 +1,5 @@
+code,name,kind,unit,unitCost,minQty,reorderQty,usePerRoomNight,laundryRate,supplier
+LIN-BS,Bed sheet (double),linen,pcs,450.00,40,60,1,12.00,Latur Linen House (fictional)
+LIN-TW,Bath towel,linen,pcs,220,60,80,2,8,Latur Linen House (fictional)
+AMN-SP,Soap bar 25 g,amenity,pcs,6.50,200,500,1,,
+CLN-FL,Floor cleaner 5 L,cleaning,can,,4,6,,,

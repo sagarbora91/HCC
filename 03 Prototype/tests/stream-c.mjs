@@ -167,6 +167,21 @@ export function register({test,M,assert}){
     s=execute(s,'manager',{type:'APPROVAL',id:rr.id,approve:true});s=execute(s,'cashier',{type:'REFUND_EXECUTE',approvalId:rr.id});
     assert.equal(totals(bk(s,id)).balance,0);assert.equal(bk(s,id).receipts.at(-1).refundOf,rid);
   });
+  test('[C] A03a-04: crediting the rest after a half-paisa credit note credits exactly the GST left (never a paisa more)',()=>{
+    // Probe V1_creditnote_halfpaisa.mjs figure ₹333.30 (1666.5 → 1667) and the audit paper's ₹100.10 (500.5 → 501) on the ₹4,200 stay.
+    for(const [first,firstTax,pieces] of [[33330,1667,[-366669,-1]],[10010,501,[-389989,-1]]]){
+      let [s,id]=stay();s=execute(s,'cashier',{type:'PAYMENT',id,amount:420000,method:'UPI',reference:'DEMO-U'});s=execute(s,'reception',{type:'CHECKOUT',id});
+      s=execute(s,'reception',{type:'CREDIT_NOTE',id,amount:first,reason:'Noisy room goodwill'});s=execute(s,'owner',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
+      assert.equal(totals(bk(s,id)).tax,20000-firstTax);
+      const rest=totals(bk(s,id)).net;
+      s=execute(s,'reception',{type:'CREDIT_NOTE',id,amount:rest,reason:'Full refund'});s=execute(s,'owner',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
+      const b=bk(s,id),cn=b.lines.filter(l=>l.approvalId===s.approvals.at(-1).id);
+      // Before the fix the rest alone carried a paisa too much (−18333.5 → −18334, −19499.5 → −19500): folio tax −1, total −₹0.01.
+      assert.deepEqual(cn.map(l=>l.amount),pieces);assert.equal(cn.reduce((a,l)=>a+l.amount,0),-rest);
+      assert.deepEqual([totals(b).net,totals(b).tax,totals(b).total,totals(b).balance],[0,0,0,-420000]);
+      assert.equal(b.creditNotes.length,2);assert.equal(b.creditNotes[1].amount,rest);
+    }
+  });
 
   // APPROVAL rules
   test('[C] New approvals expire after 24 simulated hours; expired approve fails, dismiss marks Expired',()=>{

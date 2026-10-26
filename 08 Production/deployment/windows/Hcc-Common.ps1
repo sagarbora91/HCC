@@ -27,7 +27,7 @@ function ConvertTo-HccSqlName { param([string]$Value) return '[' + $Value.Replac
 function Get-HccOpsConfig {
     param([string]$Path)
     if (-not $Path) { $Path = Join-Path $PSScriptRoot 'hcc-ops.json' }
-    $cfg = [ordered]@{ SqlInstance = '.\SQLEXPRESS'; Database = 'Hcc'; BackupDirectory = ''; LogDirectory = ''; RetentionDays = 30; KeepMinFulls = 3; PreMigrateRetentionDays = 90; ScratchDirectory = ''; TrustServerCertificate = $false
+    $cfg = [ordered]@{ SqlInstance = '.\SQLEXPRESS'; Database = 'Hcc'; BackupDirectory = ''; LogDirectory = ''; RetentionDays = 30; KeepMinFulls = 3; PreMigrateRetentionDays = 90; ScratchDirectory = ''; TrustServerCertificate = $null
         EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = '' }
     if (Test-Path -LiteralPath $Path) {
         $json = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
@@ -48,14 +48,41 @@ function Write-HccLog {
 }
 
 # --- SQL via sqlcmd (Windows login of whoever runs the script; -b makes SQL errors a non-zero exit) -------------------------
-function Invoke-HccSql {
+# A09-01: sqlcmd 18 (ODBC Driver 18) encrypts by default and SQL Server Express ships a self-signed certificate, so without -C
+# (trust the server certificate) every script fails to connect. The certificate is trusted by default only for an instance on THIS
+# PC (nothing crosses the network), like the API's "Encrypt=Optional only for a local instance" rule. Order: an explicit
+# -TrustServerCertificate[:$false] wins, then TrustServerCertificate true/false in hcc-ops.json, then local = trust, remote = not.
+function Test-HccLocalSqlInstance {
+    param([string]$Instance)
+    if (-not $Instance -or -not $Instance.Trim()) { return $false }
+    $h = $Instance.Trim()
+    if ($h -match '^(tcp|np|lpc):') { $h = $h.Substring($h.IndexOf(':') + 1) }
+    $h = (($h -split '\\')[0] -split ',')[0].Trim()   # host part: .\SQLEXPRESS, HOTELPC\SQLEXPRESS, localhost,1433
+    return (@('.', '(local)', 'localhost', '127.0.0.1', '::1') -contains $h) -or ($env:COMPUTERNAME -and $h -eq $env:COMPUTERNAME)
+}
+
+function Resolve-HccTrustServerCertificate {
+    param([string]$Instance, [object]$Explicit, [object]$Configured)
+    if ($null -ne $Explicit) { return [bool]$Explicit }
+    if ($Configured -is [bool]) { return $Configured }
+    if ($Configured -is [string] -and $Configured.Trim()) { return $Configured.Trim() -match '^(true|yes|1)$' }
+    return (Test-HccLocalSqlInstance -Instance $Instance)
+}
+
+function Get-HccSqlcmdArgs {
     param([Parameter(Mandatory)][string]$Instance, [Parameter(Mandatory)][string]$Query, [switch]$TrustServerCertificate, [switch]$Scalar, [switch]$Table)
-    $sqlcmd = (Get-Command sqlcmd.exe -ErrorAction SilentlyContinue)
-    if (-not $sqlcmd) { throw 'sqlcmd.exe was not found. Install "Microsoft Command Line Utilities for SQL Server" (see INSTALL.md).' }
     $a = @('-S', $Instance, '-E', '-b', '-l', '30', '-Q', $Query)
     if ($TrustServerCertificate) { $a += '-C' }
     if ($Scalar -or $Table) { $a += @('-h', '-1', '-W') }
     if ($Table) { $a += @('-s', '|') }
+    return ,$a
+}
+
+function Invoke-HccSql {
+    param([Parameter(Mandatory)][string]$Instance, [Parameter(Mandatory)][string]$Query, [switch]$TrustServerCertificate, [switch]$Scalar, [switch]$Table)
+    $sqlcmd = (Get-Command sqlcmd.exe -ErrorAction SilentlyContinue)
+    if (-not $sqlcmd) { throw 'sqlcmd.exe was not found. Install "Microsoft Command Line Utilities for SQL Server" (see INSTALL.md).' }
+    $a = Get-HccSqlcmdArgs -Instance $Instance -Query $Query -TrustServerCertificate:$TrustServerCertificate -Scalar:$Scalar -Table:$Table
     $out = & $sqlcmd.Source @a 2>&1
     if ($LASTEXITCODE -ne 0) { throw ("sqlcmd failed (exit $LASTEXITCODE): " + (($out | Out-String).Trim())) }
     $text = ($out | Out-String).Trim()
@@ -126,6 +153,37 @@ function Compare-HccRowCounts {
     $diff = @($Live.Keys | Where-Object { $Restored.ContainsKey($_) -and [long]$Restored[$_] -ne [long]$Live[$_] } | Sort-Object)
     $ok = ($missing.Count -eq 0) -and -not ($rs -eq 0 -and $ls -gt 0)
     return [pscustomobject]@{ Ok = $ok; MissingTables = $missing; DifferingTables = $diff; RestoredRows = $rs; LiveRows = $ls; Tables = $Restored.Count }
+}
+
+# --- backup schedule (A09-02; pure, unit-tested) ----------------------------------------------------------------------------------
+function ConvertTo-HccTimeOfDay {
+    param([Parameter(Mandatory)][string]$Time)
+    if ($Time.Trim() -notmatch '^(\d{1,2}):(\d{2})$' -or [int]$Matches[1] -gt 23 -or [int]$Matches[2] -gt 59) { throw "Time '$Time' must look like 02:30 (24-hour clock)." }
+    return '{0:00}:{1:00}' -f [int]$Matches[1], [int]$Matches[2]
+}
+
+# Every time of day a "-Once -At <Start> -RepetitionInterval <EveryHours>h" trigger fires, over enough days to repeat itself
+# (an interval that does not divide 24 h moves to other times on later days).
+function Get-HccRepetitionTimes {
+    param([Parameter(Mandatory)][string]$Start, [Parameter(Mandatory)][int]$EveryHours)
+    if ($EveryHours -lt 1 -or $EveryHours -gt 23) { throw 'The differential interval must be 1 to 23 hours.' }
+    $t = ConvertTo-HccTimeOfDay $Start
+    $m0 = [int]$t.Substring(0, 2) * 60 + [int]$t.Substring(3, 2)
+    $times = for ($k = 0; $k -lt 24; $k++) { $m = ($m0 + 60 * $EveryHours * $k) % 1440; '{0:00}:{1:00}' -f [math]::Floor($m / 60), ($m % 60) }
+    return ,@($times | Sort-Object -Unique)
+}
+
+# Problems with the task times: a differential that starts at the same minute as the daily full or the weekly restore drill
+# (they would compete for the database and the backup folder; the drill could pick a half-written differential), or full = drill.
+function Test-HccBackupSchedule {
+    param([Parameter(Mandatory)][string]$FullTime, [Parameter(Mandatory)][string]$DifferentialStart, [Parameter(Mandatory)][int]$DifferentialEveryHours, [Parameter(Mandatory)][string]$DrillTime)
+    $full = ConvertTo-HccTimeOfDay $FullTime; $drill = ConvertTo-HccTimeOfDay $DrillTime
+    $diffs = Get-HccRepetitionTimes -Start $DifferentialStart -EveryHours $DifferentialEveryHours
+    $problems = @()
+    if ($diffs -contains $full) { $problems += "a differential backup starts at $full, the same minute as the daily full backup" }
+    if ($diffs -contains $drill) { $problems += "a differential backup starts at $drill, the same minute as the weekly restore drill" }
+    if ($full -eq $drill) { $problems += "the restore drill starts at $drill, the same minute as the daily full backup" }
+    return ,@($problems)
 }
 
 # --- folder protection (F-H03, F-M06) ------------------------------------------------------------------------------------------
@@ -389,4 +447,213 @@ function Read-HccBackupKey {
 function Get-HccRuntimeGrantSql {
     param([Parameter(Mandatory)][string]$User)
     return "ALTER ROLE db_datareader ADD MEMBER $User; ALTER ROLE db_datawriter ADD MEMBER $User; GRANT EXECUTE TO $User;"
+}
+
+# --- .NET runtime prerequisite (A09-03) --------------------------------------------------------------------------------------------
+# The server is published framework-dependent for win-x64 (installer\Build-Installer.ps1: --self-contained false), so the PC needs
+# the ASP.NET Core Runtime 10 (x64), which needs the .NET Runtime 10 (x64): the "ASP.NET Core Runtime 10.0 Hosting Bundle" installs
+# both. $Lines = the output of "dotnet --list-runtimes". Returns the missing frameworks (empty = ready).
+function Test-HccDotnetRuntime {
+    param([string[]]$Lines, [int]$Major = 10)
+    $missing = @()
+    foreach ($fx in @('Microsoft.NETCore.App', 'Microsoft.AspNetCore.App')) {
+        $pattern = '^\s*' + [regex]::Escape($fx) + ' ' + $Major + '\.\d+\.\d+'
+        if (-not @($Lines | Where-Object { $_ -match $pattern }).Count) { $missing += "$fx $Major.x" }
+    }
+    return ,@($missing)
+}
+
+# "dotnet --list-runtimes" of the machine-wide x64 install the service uses (C:\Program Files\dotnet); empty when there is none.
+function Get-HccDotnetRuntimeLines {
+    $dotnet = Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
+    if (-not (Test-Path -LiteralPath $dotnet)) { return ,@() }
+    return ,@(& $dotnet --list-runtimes 2>$null)
+}
+
+# --- masters import (A02b-01, Import-HccMasters.ps1) ----------------------------------------------------------------------------
+# Pure helpers (unit-tested without a server): which CSV files to send and in which order, the request bodies, and the report text.
+# The order is the server's dependency order (deployment\import-templates\README.md "The order to import"): a file may only refer
+# to masters imported before it (rooms need room types, opening balances need ledgers, the menu needs outlets).
+$script:HccImportOrder = @('room-types', 'rooms', 'tariffs', 'seasons', 'staff', 'ledgers', 'opening-balances', 'till-cash', 'guests', 'pos-outlets', 'pos-menu',
+    'departments', 'companies', 'suppliers', 'stock-items')
+$script:HccImportNeeds = @{ 'rooms' = 'room-types'; 'tariffs' = 'room-types'; 'seasons' = 'room-types'; 'companies' = 'room-types'; 'opening-balances' = 'ledgers'; 'pos-menu' = 'pos-outlets' }
+
+function Get-HccImportOrder { return , @($script:HccImportOrder) }
+
+# The server address: -ServerUrl, else "ServerUrl" in hcc-ops.json, else https://localhost:5443 (the server PC itself after setup).
+function Get-HccImportServerUrl {
+    param([string]$ServerUrl, [string]$ConfigPath)
+    if ($ServerUrl) { return $ServerUrl }
+    if (-not $ConfigPath) { $ConfigPath = Join-Path $PSScriptRoot 'hcc-ops.json' }
+    if (Test-Path -LiteralPath $ConfigPath) {
+        $json = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+        if ($json.PSObject.Properties['ServerUrl'] -and $json.ServerUrl) { return [string]$json.ServerUrl }
+    }
+    return 'https://localhost:5443'
+}
+
+# https://<server>:5443 -> https://<server>:5443/api/v1. A password is never sent over plain HTTP to another PC: http:// is accepted
+# only for this PC itself (127.0.0.1 / localhost, used by the tests).
+function Get-HccImportApiBase {
+    param([Parameter(Mandatory)][string]$ServerUrl)
+    $u = $null
+    if (-not [Uri]::TryCreate($ServerUrl.Trim(), [UriKind]::Absolute, [ref]$u) -or ($u.Scheme -ne 'https' -and $u.Scheme -ne 'http')) {
+        throw "'$ServerUrl' is not a server address. Use https://localhost:5443 on the server PC, or https://<server name>:5443."
+    }
+    if ($u.Scheme -eq 'http' -and -not $u.IsLoopback) { throw "Refusing plain http://$($u.Authority): the sign-in password is sent only over HTTPS. Use https://$($u.Host):5443." }
+    return $u.GetLeftPart([UriPartial]::Authority) + '/api/v1'
+}
+
+# The import files found among $FileNames (paths), in import order; -Only limits the masters. Unknown = .csv files that are not
+# named like a template (warned about and skipped). Returns { Files = @({Master, Path, FileName}); Unknown = @(names) }.
+function Select-HccImportFiles {
+    param([string[]]$FileNames = @(), [string[]]$Only = @())
+    $only = @($Only | Where-Object { $_ } | ForEach-Object { $_.Trim().ToLowerInvariant() })
+    foreach ($o in $only) { if ($script:HccImportOrder -notcontains $o) { throw "-Only '$o' is not an import file. Use: $($script:HccImportOrder -join ', ')." } }
+    $byName = @{}
+    foreach ($f in @($FileNames | Where-Object { $_ })) { $byName[[IO.Path]::GetFileName($f).ToLowerInvariant()] = $f }
+    $files = @()
+    foreach ($m in $script:HccImportOrder) {
+        $key = "$m.csv"
+        if ($byName.ContainsKey($key) -and ($only.Count -eq 0 -or $only -contains $m)) {
+            $files += [pscustomobject]@{ Master = $m; Path = $byName[$key]; FileName = [IO.Path]::GetFileName($byName[$key]) }
+        }
+    }
+    $known = @($script:HccImportOrder | ForEach-Object { "$_.csv" })
+    $unknown = @($byName.Keys | Where-Object { $_.EndsWith('.csv') -and $known -notcontains $_ } | Sort-Object | ForEach-Object { [IO.Path]::GetFileName($byName[$_]) })
+    return [pscustomobject]@{ Files = $files; Unknown = $unknown }
+}
+
+# Reads a CSV as Excel saves it: "CSV UTF-8" (with or without BOM) or plain "CSV (Comma delimited)" (Windows code page 1252).
+function Read-HccImportCsv {
+    param([Parameter(Mandatory)][string]$Path)
+    $bytes = [IO.File]::ReadAllBytes($Path)
+    try { $text = (New-Object Text.UTF8Encoding($false, $true)).GetString($bytes) }
+    catch {
+        $ansi = try { [Text.Encoding]::GetEncoding(1252) } catch { [Text.Encoding]::GetEncoding(28591) }
+        $text = $ansi.GetString($bytes)
+    }
+    if ($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF) { $text = $text.Substring(1) }
+    return $text
+}
+
+function New-HccIdempotencyKey { param([string]$Prefix = 'import') return $Prefix + '-' + [guid]::NewGuid().ToString('N') }
+
+# Body of POST /commands/UploadImportBatch (contract UploadImportBatchRequest); asOfDate only for the opening balances.
+function New-HccImportUploadBody {
+    param([Parameter(Mandatory)][string]$Master, [Parameter(Mandatory)][string]$FileName, [Parameter(Mandatory)][AllowEmptyString()][string]$CsvText, [string]$AsOfDate)
+    $b = [ordered]@{ master = $Master; fileName = $FileName; csvText = $CsvText }
+    if ($Master -eq 'opening-balances' -and $AsOfDate) { $b.asOfDate = $AsOfDate }
+    return $b
+}
+
+# Body of POST /commands/CommitImportBatch (contract CommitImportBatchRequest); dryRun = run everything and roll it back.
+function New-HccImportCommitBody {
+    param([Parameter(Mandatory)][long]$BatchId, [switch]$DryRun)
+    return [ordered]@{ batchId = $BatchId; dryRun = [bool]$DryRun }
+}
+
+# Splits a report's rejected rows. In a dry run, a row that only says "... is not in HCC yet" / "Import the ... file first" for a
+# master that an EARLIER file of the same run creates is expected (that file is not committed in a dry run), not a real rejection.
+function Split-HccImportErrors {
+    param([Parameter(Mandatory)][string]$Master, [object[]]$Errors = @(), [switch]$DryRun, [string[]]$EarlierInRun = @())
+    $blocking = @(); $expected = @()
+    $needs = $script:HccImportNeeds[$Master]
+    foreach ($e in @($Errors | Where-Object { $null -ne $_ })) {
+        if ($DryRun -and $needs -and $EarlierInRun -contains $needs -and [string]$e.message -match 'is not in HCC yet|Import the .+ file first') { $expected += $e }
+        else { $blocking += $e }
+    }
+    return [pscustomobject]@{ Blocking = $blocking; Expected = $expected; Needs = $needs }
+}
+
+# Paise -> "Rs 1,25,000.50" (Indian grouping; whole rupees without decimals). ASCII only: the hotel PC console may lack the rupee sign.
+function Format-HccRupees {
+    param([long]$Paise)
+    $neg = $Paise -lt 0
+    $p = [Math]::Abs($Paise)
+    $whole = [string][Math]::Floor($p / 100)
+    $frac = $p % 100
+    if ($whole.Length -gt 3) {
+        $head = $whole.Substring(0, $whole.Length - 3); $tail = $whole.Substring($whole.Length - 3)
+        $groups = @(); while ($head.Length -gt 2) { $groups = @($head.Substring($head.Length - 2)) + $groups; $head = $head.Substring(0, $head.Length - 2) }
+        $whole = (@($head) + $groups + @($tail)) -join ','
+    }
+    $text = 'Rs ' + $whole + $(if ($frac -ne 0) { '.' + $frac.ToString('00', [Globalization.CultureInfo]::InvariantCulture) } else { '' })
+    if ($neg) { return '-' + $text }
+    return $text
+}
+
+# A property of a JSON reply, or $null when the reply has no such property (the scripts run with Set-StrictMode).
+function Get-HccField {
+    param($Object, [string]$Name)
+    if ($null -eq $Object -or -not $Object.PSObject.Properties[$Name]) { return $null }
+    return $Object.$Name
+}
+
+function Format-HccImportRow {
+    param($Row)
+    if ([int](Get-HccField $Row 'row') -eq 0) { $where = 'file' } else { $where = 'row ' + (Get-HccField $Row 'row') }
+    if (Get-HccField $Row 'column') { $where += ' / ' + $Row.column }
+    return $where + ': ' + (Get-HccField $Row 'message')
+}
+
+# The text printed for one uploaded file (contract ImportBatchReport): summary, rejected rows (with row, column and what to fix),
+# rows expected in a dry run, warnings, then the planned changes (at most -MaxChanges lines; "unchanged" rows are only counted).
+function Format-HccImportReport {
+    param([Parameter(Mandatory)]$Report, [object[]]$Blocking, [object[]]$Expected = @(), [int]$MaxChanges = 50)
+    if ($null -eq $Blocking) { $Blocking = @(Get-HccField $Report 'errors') }
+    $c = $Report.counts
+    $lines = @()
+    $summary = '{0} ({1}): {2} row(s) - {3} new, {4} changed, {5} unchanged' -f $Report.fileName, $Report.master, $Report.rows, $c.create, $c.update, $c.unchanged
+    if ([int]$c.remove -gt 0) { $summary += ", $($c.remove) removed" }
+    $summary += ' - ' + @($Blocking).Count + ' rejected'
+    $lines += $summary
+    if ($null -ne (Get-HccField $Report 'debitPaise')) { $lines += '  Total debits {0} = total credits {1}' -f (Format-HccRupees $Report.debitPaise), (Format-HccRupees $Report.creditPaise) }
+    foreach ($e in @($Blocking)) { $lines += '  REJECTED ' + (Format-HccImportRow $e) }
+    foreach ($e in @($Expected)) { $lines += '  expected in a dry run (an earlier file is not committed yet): ' + (Format-HccImportRow $e) }
+    foreach ($w in @(Get-HccField $Report 'warnings')) { if ($null -ne $w) { $lines += '  warning  ' + (Format-HccImportRow $w) } }
+    $changes = @(@(Get-HccField $Report 'plan') | Where-Object { $null -ne $_ -and $_.action -ne 'Unchanged' })
+    $label = @{ Create = 'new'; Update = 'change'; Remove = 'remove' }
+    foreach ($p in ($changes | Select-Object -First $MaxChanges)) {
+        $a = if ($label.ContainsKey([string]$p.action)) { $label[[string]$p.action] } else { [string]$p.action }
+        $lines += '  {0,-7}{1}: {2}' -f $a, $p.key, $p.detail
+    }
+    if ($changes.Count -gt $MaxChanges) { $lines += '  ... and {0} more change(s)' -f ($changes.Count - $MaxChanges) }
+    return , $lines
+}
+
+# One line after CommitImportBatch (contract ImportCommitResult), plus the users who still need a first password or PIN.
+function Format-HccImportCommit {
+    param([Parameter(Mandatory)]$Result)
+    $c = $Result.counts
+    if (Get-HccField $Result 'dryRun') { $lines = @('  -> dry run passed: {0} new, {1} changed, {2} removed would be saved; nothing was kept' -f $c.create, $c.update, $c.remove) }
+    else { $lines = @('  -> committed: {0} new, {1} changed, {2} removed, {3} unchanged' -f $c.create, $c.update, $c.remove, $c.unchanged) }
+    foreach ($u in @(@(Get-HccField $Result 'usersNeedingCredential') | Where-Object { $null -ne $_ })) {
+        $kind = if ($u.credentialKind -eq 'PASSWORD') { 'password' } else { 'PIN' }
+        $lines += "     $($u.loginName) ($($u.displayName)) cannot sign in yet: set the first $kind in Access control > Set credential."
+    }
+    return , $lines
+}
+
+# Text of a refused API call: the server's {code, message, details.errors} JSON when there is one, else the transport message with a
+# hint for certificate problems (the hotel CA must be trusted on this PC, INSTALL.md section 8).
+function ConvertFrom-HccApiError {
+    param([string]$Body, [string]$Fallback)
+    if ($Body) {
+        try {
+            $j = $Body | ConvertFrom-Json
+            if ($j.PSObject.Properties['message']) {
+                $text = "$($j.code): $($j.message)"
+                if ($j.PSObject.Properties['details'] -and $j.details -and $j.details.PSObject.Properties['errors']) {
+                    foreach ($e in @($j.details.errors)) { $text += [Environment]::NewLine + '  REJECTED ' + (Format-HccImportRow $e) }
+                }
+                return $text
+            }
+        }
+        catch { }
+    }
+    if ($Fallback -match 'SSL|TLS|trust relationship|certificate') {
+        return "$Fallback (HTTPS certificate problem: install HCC-Hotel-CA.cer into Local Machine > Trusted Root Certification Authorities on this PC, INSTALL.md section 8, and use a name that is in the certificate, for example https://localhost:5443.)"
+    }
+    return $Fallback
 }

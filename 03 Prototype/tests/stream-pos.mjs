@@ -88,7 +88,7 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'reception',{type:'POS_SETTLE',id:'POS-F04',mode:'folio'})),'INVALID_TRANSITION');
     assert.equal(bk.lines.filter(x=>x.id==='posline:POS-F04').length,1);
     // Tax snapshot survives a later rate change (DEC-069: through the dated GST master instead of SETTINGS taxBps).
-    const after=execute(s,'owner',{type:'SETTING_SET',setting:'gst.food.bps',value:1200,effectiveFrom:s.date});
+    const after=execute(s,'owner',{type:'SETTING_SET',setting:'gst.food.bps',value:1200,effectiveFrom:s.date,reason:'CA advice'});
     assert.equal(after.bookings.find(x=>x.id===b.id).lines.at(-1).taxBps,500);assert.equal(M.posOrderTotals(after,ord(after,'POS-F04')).taxBps,500);
     assert.equal(M.posDaySummary(s).byMode['Room folio'],46200); // DEC-069 GST: 48400 → 46200
   });

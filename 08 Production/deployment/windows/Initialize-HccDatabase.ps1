@@ -37,6 +37,8 @@ Assert-HccDatabaseName $Database | Out-Null
 foreach ($acct in @($ServiceAccount, $BackupAccount)) { if ($acct -notmatch '^[^\[\]'';]+$') { throw "Account '$acct' contains characters that are not allowed." } }
 if (-not [IO.Path]::IsPathRooted($BackupDirectory)) { throw 'BackupDirectory must be a full path.' }
 $sqlService = Get-HccSqlServiceAccount -Instance $SqlInstance
+$explicitTrust = if ($PSBoundParameters.ContainsKey('TrustServerCertificate')) { [bool]$TrustServerCertificate } else { $null }
+$trust = Resolve-HccTrustServerCertificate -Instance $SqlInstance -Explicit $explicitTrust   # A09-01: local instance = trusted unless -TrustServerCertificate:$false
 $db = ConvertTo-HccSqlName $Database
 $login = ConvertTo-HccSqlName $ServiceAccount
 $backupLogin = ConvertTo-HccSqlName $BackupAccount
@@ -56,12 +58,13 @@ $icacls = Get-HccProtectedDirectoryArgs -Path $BackupDirectory -ModifyAccounts $
 
 if (-not $PSCmdlet.ShouldProcess("$SqlInstance database [$Database]", 'Create database, logins, permissions, private backup folder')) {
     foreach ($s in $steps) { Write-Host "DRY RUN SQL: $s" }
+    Write-Host "DRY RUN: sqlcmd trusts the server certificate (-C): $(if ($trust) { 'yes' } else { 'no' })"
     Write-Host "DRY RUN: runtime login $ServiceAccount = $(if ($RuntimeDbOwner) { 'db_owner (legacy, -RuntimeDbOwner)' } else { 'db_datareader + db_datawriter + EXECUTE (no db_owner, no schema changes)' }); migrations run as the administrator who runs Hcc.Api.exe migrate"
     Write-Host "DRY RUN: create/protect folder $BackupDirectory with: icacls $($icacls -join ' ')"
     Write-Host 'DRY RUN: next steps: Hcc.Api.exe migrate, Start-Service HccServer, Initialize-HccProperty.ps1 (first-time setup)'
     return
 }
-foreach ($s in $steps) { Invoke-HccSql -Instance $SqlInstance -Query $s -TrustServerCertificate:$TrustServerCertificate | Out-Null }
+foreach ($s in $steps) { Invoke-HccSql -Instance $SqlInstance -Query $s -TrustServerCertificate:$trust | Out-Null }
 Set-HccProtectedDirectory -Path $BackupDirectory -ModifyAccounts $folderWriters
 $problems = @(Test-HccProtectedDirectory -Path $BackupDirectory -AllowedAccounts $folderWriters)
 if ($problems.Count -gt 0) { throw ("The backup folder is still not private: " + ($problems -join '; ')) }

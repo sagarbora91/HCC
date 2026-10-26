@@ -35,7 +35,8 @@ if ($RetentionDays -lt 0) { $RetentionDays = [int]$cfg.RetentionDays }
 if ($KeepMinFulls -lt 0) { $KeepMinFulls = [int]$cfg.KeepMinFulls }
 if (-not $BackupKeyFile) { $BackupKeyFile = if ($cfg.BackupKeyFile) { $cfg.BackupKeyFile } else { Get-HccDefaultBackupKeyFile } }
 $encrypt = [bool]$cfg.EncryptBackups -and -not $NoEncryption
-$trust = $TrustServerCertificate -or [bool]$cfg.TrustServerCertificate
+$explicitTrust = if ($PSBoundParameters.ContainsKey('TrustServerCertificate')) { [bool]$TrustServerCertificate } else { $null }
+$trust = Resolve-HccTrustServerCertificate -Instance $SqlInstance -Explicit $explicitTrust -Configured $cfg.TrustServerCertificate   # A09-01
 Assert-HccDatabaseName $Database | Out-Null
 if (-not $BackupDirectory) { throw 'No backup folder: set BackupDirectory in hcc-ops.json or pass -BackupDirectory.' }
 if (-not [IO.Path]::IsPathRooted($BackupDirectory)) { throw 'BackupDirectory must be a full path.' }
@@ -56,6 +57,7 @@ $verifySql = 'RESTORE VERIFYONLY FROM DISK = {0} WITH CHECKSUM;' -f (ConvertTo-H
 
 if (-not $PSCmdlet.ShouldProcess($target, "$Type backup of [$Database] on $SqlInstance")) {
     Write-HccLog "DRY RUN: would run on ${SqlInstance}: $backupSql" -LogFile $null
+    Write-HccLog "DRY RUN: sqlcmd trusts the server certificate (-C): $(if ($trust) { 'yes' } else { 'no' })" -LogFile $null
     Write-HccLog "DRY RUN: would run: $verifySql" -LogFile $null
     if ($encrypt) { Write-HccLog "DRY RUN: would encrypt it to $target$script:HccEncryptedSuffix (AES-256 + HMAC-SHA256, key $BackupKeyFile) and delete the plain .bak" -LogFile $null }
     else { Write-HccLog 'DRY RUN: encryption is OFF (EncryptBackups=false): the .bak stays readable to anyone who can open the folder' -LogFile $null }

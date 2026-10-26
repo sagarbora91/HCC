@@ -11,11 +11,12 @@ Nothing here is sent outside the hotel. Do the steps in order; each one says how
 - A second drive or folder for backups, ideally **not** the same disk as the data (for example `D:\HccBackups`, or a USB/NAS disk). Turn on **BitLocker** for that drive (Settings > Privacy & security > Device encryption / BitLocker; Windows Pro) so a stolen disk cannot be read.
 - Two USB sticks for the safe: one for the **keys** (CA backup, guest ID key, backup key) and, separately, the weekly **backup copy** disk. Never keep the keys on the backup disk.
 - You are a Windows administrator on the PC.
+- **.NET 10 runtime (x64)**: the HCC server is published "framework-dependent", so the PC needs Microsoft's .NET 10 runtime for web servers. Download the **"ASP.NET Core Runtime 10.0.x - Windows Hosting Bundle"** from https://dotnet.microsoft.com/download/dotnet/10.0 and install it (it contains both the .NET Runtime and the ASP.NET Core Runtime; the IIS part it also installs is not used and does no harm). Alternatively install both the ".NET Runtime 10.0.x (x64)" and the "ASP.NET Core Runtime 10.0.x (x64)" installers. **Check:** PowerShell: `dotnet --list-runtimes` lists `Microsoft.NETCore.App 10.0.x` **and** `Microsoft.AspNetCore.App 10.0.x`. Without it the service cannot start (step 5); `Install-HccService.ps1` (step 3) refuses to install the service and says what is missing. Windows Update keeps 10.0.x patched if "Receive updates for other Microsoft products" is on.
 
 ## 1. Install SQL Server Express (the database)
 1. Install **SQL Server 2025 Express** (free) with default settings, instance name `SQLEXPRESS`, Windows authentication. If ETP is already on this PC, the instance is already there: reuse it, HCC uses its own database called `Hcc` and never touches ETP's.
 2. Install **SQL Server command-line utilities** (`sqlcmd`) if it is not there (the scripts use it).
-3. Check: PowerShell: `sqlcmd -S .\SQLEXPRESS -E -C -Q "SELECT @@VERSION"` prints the version.
+3. Check: PowerShell: `sqlcmd -S .\SQLEXPRESS -E -C -Q "SELECT @@VERSION"` prints the version. (`-C` = trust the server's certificate: the current `sqlcmd` encrypts every connection and SQL Server Express only has a self-made certificate. The HCC scripts add `-C` by themselves when SQL Server is on this same PC - `.\SQLEXPRESS`, `localhost`, `127.0.0.1` or this PC's name - and never for SQL Server on another computer; see `TrustServerCertificate` in section 7.)
 
 ## 2. Windows account for HCC and the database
 Simplest: let the service run as its built-in "virtual account" `NT SERVICE\HccServer` (no password to manage). Then, in PowerShell (Admin), in the scripts folder:
@@ -30,7 +31,7 @@ Add `-WhatIf` first to see what it will do. It creates the empty `Hcc` database 
 
 ## 3. Install the server files and the service
 1. Run the installer `HCC-Server-Setup-<version>.exe` (or copy the published server files to `C:\Program Files\HCC\Server`). It creates `appsettings.Production.json` there from a sample and never overwrites it on upgrade.
-2. Open `C:\Program Files\HCC\Server\appsettings.Production.json` in Notepad and check: `BackupDirectory` is your backup folder; `ServerName` is how you want the server to be called (for example `Hotel PC`). Leave the connection string as it is. `LoopbackHttpPort` is `5080` for now (needed for step 6 only; it is switched off automatically afterwards). **There are no passwords in this file, and there must never be.** (`TrustServerCertificate=True` is only for a developer's laptop; the server refuses to start in production if it is present.)
+2. Open `C:\Program Files\HCC\Server\appsettings.Production.json` in Notepad and check: `BackupDirectory` is your backup folder; `ServerName` is how you want the server to be called (for example `Hotel PC`). Leave the connection string as it is. `LoopbackHttpPort` is `5080` for now (needed for step 6 only; it is switched off automatically afterwards). **There are no passwords in this file, and there must never be.** (`TrustServerCertificate=True` is only for a developer's laptop; the server refuses to start in production if it is present. The sample's `Encrypt=Optional` is what lets the service connect to SQL Server Express on this same PC without trusting its self-made certificate; it is accepted only for a local instance.)
 3. PowerShell (Admin), scripts folder:
 ```
 .\Install-HccService.ps1            # add -WhatIf first to preview; add -ServiceAccount HOTELPC\svc-hcc for a dedicated user
@@ -66,6 +67,7 @@ $env:ASPNETCORE_ENVIRONMENT="Production"
 Start-Service HccServer
 ```
 `migrate` builds the tables (on an upgrade it first takes a safety backup through the backup script and refuses to continue if that fails).
+The server checks this itself: while the database is behind the installed version (`migrate` not run yet), every API address answers "503 unavailable" and the health page says "Database schema is behind this build: run `Hcc.Api migrate` (applied N of M)". Run `migrate`; within 10 seconds the server serves again (no restart needed).
 **Check:** open a browser on the server PC: `http://127.0.0.1:5080/api/v1/system/health` should show `"status":"ok"`, the database name `Hcc` and a schema version (this plain address only works until step 6 is done). From another device on the Wi-Fi: `https://192.168.1.20:5443/api/v1/system/health` (works without a warning only after the CA certificate is installed, see below).
 If it does not start: Event Viewer > Windows Logs > Application, source "HccServer" / ".NET Runtime": the message lists exactly which setting is wrong.
 
@@ -81,7 +83,7 @@ PowerShell (Admin), scripts folder (replace the values in quotes with yours):
 - Add `-WhatIf` first to see what it will send (the password is shown as `********`, nothing is sent).
 - When it succeeds it **switches off the plain-HTTP setup address** (`LoopbackHttpPort` = 0 in the settings file) and restarts the service. From then on the server PC uses `https://localhost:5443/` like everyone else. (The setup address never accepted sign-ins; it served only setup, health and discovery.)
 
-It answers "Hotel '...' is set up. Sign in as 'owner' ...". Now sign in from the app as `owner` with that password, then add staff in Admin > Users. The hotel name, address, GSTIN and check-in/checkout times are also in Master configuration, where the Owner can change them later. Rooms, rates and other master data are loaded by the later setup steps of HCC (not part of this installer).
+It answers "Hotel '...' is set up. Sign in as 'owner' ...". Now sign in from the app as `owner` with that password, then add staff in Admin > Users. The hotel name, address, GSTIN and check-in/checkout times are also in Master configuration, where the Owner can change them later. Rooms, rates, staff, opening balances and the other master data are loaded in step 6d.
 **Check:** `https://localhost:5443/api/v1/system/health` in a browser on the server PC shows ok, and `appsettings.Production.json` shows `"LoopbackHttpPort": 0`.
 (No SQL commands are needed any more. On an older installation where the hotel row was already typed in by hand but no Owner exists, the earlier `auth/bootstrap-owner` call still works from the server PC itself; it is refused through any proxy.)
 
@@ -105,6 +107,23 @@ The server also serves the HCC web app itself, on the same address as the API, s
 3. **Check:** `https://<server>:5443/` shows the HCC sign-in screen. If it says "The HCC web app is not installed on this server", the file is not in the `web` folder.
 The page is sent with a strict content security policy (only its own script, only this server as a data source, no framing); every answer over HTTPS also tells the browser to use HTTPS only (HSTS), and API answers are never cached. The phones' APK has the web app built in and only needs the server address.
 
+## 6d. Load your masters (rooms, rates, staff, opening balances, ...)
+Before the first guest, HCC needs your rooms, room types and rates, the till float and your opening balances; staff, ledgers, guests, restaurant menu, departments, company clients, suppliers and stock items are loaded the same way. You fill CSV files once and one script loads them. Full column lists and rules: [`import-templates\README.md`](../import-templates/README.md) (installed in `C:\Program Files\HCC\ImportTemplates`).
+1. **Fill the templates.** Copy the files you need from `C:\Program Files\HCC\ImportTemplates\templates` (source tree: `08 Production\deployment\import-templates\templates`) to a folder of your own, for example `D:\HccMasters`, keep the file names, and fill them in Excel (one item per row, first row unchanged; save as "CSV UTF-8"). The `samples` folder next to it shows filled-in fictional examples; never import the samples. No passwords, PINs or ID numbers in any file.
+2. **Dry run.** PowerShell, scripts folder:
+```
+.\Import-HccMasters.ps1 -Folder "D:\HccMasters" -OpeningBalancesDate 2026-10-31 -DryRun
+```
+   It asks for the Owner sign-in name and password (not shown, not saved), uploads every file in the right order (room types before rooms, ledgers before opening balances, ...) and lets the server check every row; nothing is kept. `-OpeningBalancesDate` is the last day before HCC starts (the date of your trial balance); leave it out if you have no `opening-balances.csv`.
+3. **Read the report.** For each file it prints the rows that are **REJECTED** with the row number, the column and what to fix, the warnings, and what will be created or changed. Fix the files in Excel and repeat step 2 until no row is rejected. On a new hotel a row marked "expected in a dry run" only waits for an earlier file of the same run (rooms wait for the room types) and goes through in step 4.
+4. **Commit.** The same command without `-DryRun`:
+```
+.\Import-HccMasters.ps1 -Folder "D:\HccMasters" -OpeningBalancesDate 2026-10-31
+```
+   Each file is saved completely or not at all, in order; the script stops at the first file with a rejected row (fix it and run the script again: files already loaded show "unchanged" and are skipped). Opening balances and till cash are accepted only before the first business day is closed. Staff it creates cannot sign in yet: the script lists them, and you set each person's first password or PIN in Access control > Set credential.
+5. **Verify.** The script ends with "Finished: ... committed, 0 file(s) with rejected rows". Sign in to the web app as the Owner on the server PC: the room grid shows every room (Ready) and Admin > Users lists the new users. In the same browser, `https://localhost:5443/api/v1/import/batches` lists every file as `Committed`, and `https://localhost:5443/api/v1/import/opening-balances` shows `"balanced":true` with your totals in paise. The first cashier shift on each till opens with the imported float. Stock items start at zero: count the store and floors in Stock > Count.
+(`-WhatIf` lists the files and sends nothing. The script talks to `https://localhost:5443` on the server PC; from another PC use `-ServerUrl https://<server>:5443` (that PC needs the hotel CA, section 8). The Technical administrator may run the dry run; only the Owner can commit.)
+
 ## 7. Backups (do not skip)
 Backups are **encrypted**: SQL Server Express cannot do that itself, so the backup script encrypts every checked backup with the hotel's backup key (AES-256, built into Windows, no extra software) and deletes the unencrypted file. A copied backup is useless without the key.
 PowerShell (Admin), scripts folder, keys USB stick plugged in:
@@ -112,11 +131,13 @@ PowerShell (Admin), scripts folder, keys USB stick plugged in:
 .\New-HccBackupKey.ps1 -OfflineCopyPath "E:\HCC-backup-key.txt"      # once: makes the backup key; the USB file is its offline copy (safe!)
 Copy-Item hcc-ops.sample.json hcc-ops.json      # then open hcc-ops.json and check the folder names
 .\Backup-HccDatabase.ps1 -Type Full              # first full backup, now
-.\Register-HccBackupTasks.ps1                    # schedules: full 02:30 daily, changes every 4 h, restore test every Sunday 04:30
+.\Register-HccBackupTasks.ps1                    # schedules: full 02:30 daily, changes every 4 h from 04:30, restore test every Sunday 03:30
 ```
 (`-WhatIf` on any of them shows the plan without doing it.)
 - The backup key lives in `C:\ProgramData\HCC\Keys` (only SYSTEM and Administrators can read it). With a dedicated backup user (section 2), add `-ReaderAccount HOTELPC\svc-backup` to `New-HccBackupKey.ps1` and `-RunAsUser HOTELPC\svc-backup` to `Register-HccBackupTasks.ps1`, and put `"BackupAccount": "HOTELPC\\svc-backup"` in `hcc-ops.json`.
 - The scheduled tasks run the scripts **only** from `C:\Program Files\HCC\Operations`, and `Register-HccBackupTasks.ps1` refuses to register them if anyone other than administrators can change the scripts there (a task running as SYSTEM must never run a file a normal user could edit). If you ran the installer, the scripts are already there; otherwise add `-InstallScripts` (it copies them there and sets the permissions).
+- `hcc-ops.json` has `"TrustServerCertificate": true`: the scripts' `sqlcmd` then trusts SQL Server's self-made certificate (needed for SQL Server Express on this PC; without it every backup fails with "The certificate chain was issued by an authority that is not trusted"). Leave it `true` while `SqlInstance` is on this PC. If you ever move the database to another computer, give that SQL Server a proper certificate and set it to `false` (if the setting is missing, the scripts trust only an instance on this PC).
+- The differential ("changes") backups run at 04:30, 08:30, 12:30, 16:30, 20:30 and 00:30, so none starts together with the 02:30 full backup or the Sunday 03:30 restore test. `Register-HccBackupTasks.ps1` refuses times that collide (`-FullTime`, `-DifferentialStart`, `-DifferentialEveryHours`, `-DrillTime`).
 - Backups are kept 30 days (never fewer than the 3 newest full ones). **Check:** `.bak.hccenc` files appear in the backup folder (no plain `.bak` files stay there); Task Scheduler > HCC folder lists three tasks.
 
 **Run a restore drill now:** `.\Restore-HccDrill.ps1`. It checks and decrypts the newest backup into a throw-away copy, checks it for damage, compares record counts and deletes the copy (and the decrypted file), then says `DRILL PASSED` (log in the backup folder under `Logs`). A backup that was never restored is not a backup: the Sunday task repeats this every week; look at `Logs\drill-history.jsonl` or the latest `restore-drill_*.log` once a month.
@@ -134,6 +155,7 @@ See `ANDROID_SERVER_ADDRESS.md` (installing the certificate on Android and typin
 - The backup folder holds `.bak.hccenc` files and the restore drill passed; `icacls D:\HccBackups` lists only SYSTEM, Administrators, `NT SERVICE\MSSQL$SQLEXPRESS` (and your backup user).
 - The keys stick (CA `.pfx`, guest ID key, backup key) is in the safe; `certlm.msc` shows no "HCC Hotel CA" with a private key; a calendar reminder for 4b exists.
 - Restart the PC: the service comes back by itself (give it two minutes).
+- Masters loaded (section 6d): rooms, room types, rates, till float and opening balances committed with `Import-HccMasters.ps1`, no file with rejected rows.
 
 ## 10. Booking website on the internet (optional; only when the owner decides)
 The booking routes (`/api/v1/public/booking/...`) are off until `Hcc:WebBooking:Enabled` is `true`. Even then, **never port-forward 5443** (that would put staff sign-in and the whole staff API on the internet). The safe recipe:
@@ -143,4 +165,4 @@ The booking routes (`/api/v1/public/booking/...`) are off until `Hcc:WebBooking:
 4. The server refuses to start if `PublicPort` is set on loopback without `KnownProxies`. A proxy on another machine: set `PublicBindAddress` to the PC's address (the listener then uses HTTPS with the server certificate) and list the proxy's address.
 
 ## Upgrading, uninstalling
-Run the new installer: it stops the service, replaces the programs, keeps your settings, starts the service again. Start `Hcc.Api.exe migrate` once first when told (new tables; as the administrator, see step 5); the safety backup is automatic. After upgrading from a version before 26 Oct 2026, run `Initialize-HccDatabase.ps1` again (same options as step 2: it removes the old database-owner right of the service and protects the backup folder), then `New-HccBackupKey.ps1` and `Register-HccBackupTasks.ps1` (section 7), and set `AllowedHosts` (`New-HccCertificate.ps1 -RenewServer ... -UpdateConfig`). Uninstalling never deletes the database or the backups. To remove the service itself: `.\Install-HccService.ps1 -Uninstall`.
+Run the new installer: it stops the service, replaces the programs, keeps your settings, starts the service again. Then run `Hcc.Api.exe migrate` (new tables; as the administrator, see step 5); the safety backup is automatic. Until `migrate` has run, the server refuses to work and its health page says `Database schema is behind this build` (nothing is changed in the database meanwhile); it serves again by itself within 10 seconds after `migrate`. If `Hcc.Api.exe` says that .NET must be installed or updated, install the runtime as in section 0. After upgrading from a version before 26 Oct 2026, run `Initialize-HccDatabase.ps1` again (same options as step 2: it removes the old database-owner right of the service and protects the backup folder), then `New-HccBackupKey.ps1` and `Register-HccBackupTasks.ps1` (section 7), and set `AllowedHosts` (`New-HccCertificate.ps1 -RenewServer ... -UpdateConfig`). Uninstalling never deletes the database or the backups. To remove the service itself: `.\Install-HccService.ps1 -Uninstall`.

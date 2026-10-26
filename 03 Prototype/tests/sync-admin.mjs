@@ -236,12 +236,96 @@ export async function register({test,assert,M}){
     assert.equal(M.authorize(rs,'2','PERM-FOL-003',{amount:1}).decision,'allow','L without a role limit → the hotel discount threshold (₹250)');
     assert.equal(M.authorize(rs,'2','PERM-FOL-003',{amount:30000}).decision,'approval');
     assert.deepEqual([rs.settings.hotel,M.cfgModuleOn(rs,'pos'),rs.approvals.length,rs.audit.length],['Sand Residency',false,0,0]);
+    assert.equal(rec.gets('/tax/gst').length,0,'no GST master read without PERM-ADM-003 / ADM-001');
+  });
+
+  // ── A02-02 / A02b-03 GST master (DEC-069): the server refuses SetSetting on gst.* (GstSettings, Editable = false). A stateful fake of
+  // GET /tax/gst (Hcc.Contracts.Tax GstMasterView) + SetGstSetting / WithdrawGstSetting, seeded with the same statutory versions as
+  // migration 0600 (GST_SEED) plus three Owner versions: otherBps 12 % in force today, lowBps 12 % from 1 Nov (scheduled), optIn withdrawn.
+  const BD='2026-10-24';
+  let gstRows=M.GST_SEED.flatMap(d=>d.versions.map(v=>({key:d.key,effectiveFrom:v.from,value:typeof v.value==='boolean'?(v.value?1:0):v.value,source:'seed',status:'active',
+    reason:null,changedBy:null,changedUtc:'2026-10-01T00:00:00.000Z'}))).map((r,i)=>({versionId:i+1,...r}));
+  const owner=(versionId,key,effectiveFrom,value,reason,status='active')=>({versionId,key,effectiveFrom,value,source:'owner',status,reason,changedBy:1,changedUtc:`2026-10-24T04:${versionId}:00.000Z`});
+  gstRows.push(owner(19,'gst.food.optIn','2026-10-30',1,'Declared for the FY','withdrawn'),owner(20,'gst.svc.otherBps',BD,1200,'CA advice'),owner(21,'gst.room.lowBps','2026-11-01',1200,'Notification 9/2026'));
+  let gstNext=30;
+  const gstValueAt=(key,date)=>{const list=gstRows.filter(r=>r.key===key&&r.status==='active').sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:a.effectiveFrom>b.effectiveFrom?1:a.versionId-b.versionId);
+    let v=list[0].value;for(const r of list){if(r.effectiveFrom>date)break;v=r.value;}return v;};
+  const gsrv=fakeServer({
+    'GET /admin/users':()=>({items:users,page:1,pageSize:100,total:users.length}),'GET /admin/roles':()=>roles,'GET /admin/exceptions':()=>exceptions,'GET /admin/audit':()=>audit,
+    'GET /configuration/values':()=>values,'GET /configuration/history':()=>history,'GET /configuration/requests':()=>requests,
+    'GET /tax/gst':({query})=>({date:query.date,note:'Illustrative — CA to confirm',canChange:true,financialYear:'2026-27',specifiedPremises:false,specifiedReason:'no opt-in',
+      settings:M.GST_SEED.map(d=>({key:d.key,label:d.label,kind:d.type,unit:d.unit,help:d.help,value:gstValueAt(d.key,query.date),effectiveFrom:'2017-07-01'})),summary:[],
+      history:[...gstRows].sort((a,b)=>b.versionId-a.versionId)}),
+    'POST /commands/SetSetting':()=>reply(400,{code:'VALIDATION',message:'This setting is not configurable.'}),
+    'POST /commands/SetGstSetting':({body})=>{const r=owner(++gstNext,body.key,body.effectiveFrom??BD,body.value,body.reason);gstRows.push(r);
+      return {versionId:r.versionId,key:r.key,effectiveFrom:r.effectiveFrom,before:0,after:r.value,status:r.effectiveFrom>BD?'Scheduled':'InForce'};},
+    'POST /commands/WithdrawGstSetting':({body})=>{const r=gstRows.find(x=>x.versionId===body.versionId);r.status='withdrawn';
+      return {versionId:r.versionId,key:r.key,effectiveFrom:r.effectiveFrom,before:r.value,after:0,status:'Withdrawn'};},
+  });
+  const grt=await startRuntime(S,gsrv,mine);const g0=grt.get().state;const gBootErrors=grt.get().errors;const gstQuery=gsrv.gets('/tax/gst').map(c=>c.query);
+  const gDef=k=>M.cfgDef(g0,k);
+  test('[A02-02] GET /tax/gst (date = business date) maps into the GST master state: values in force, scheduled Owner versions, dated history, revert state',()=>{
+    assert.deepEqual(gBootErrors,{});
+    assert.ok(gstQuery.length>=1&&gstQuery.every(q=>q.date===BD),'GET /tax/gst?date=<business date>');
+    // Shown on Master configuration › Money and tax: the server's 12 %, not the client seed 18 %.
+    assert.equal(M.cfgValueOn(g0,'gst.svc.otherBps'),1200);assert.equal(M.cfgDisplay(g0,'1',gDef('gst.svc.otherBps')),M.gstPct(1200));
+    assert.equal(M.gstValueOn(g0,'gst.svc.otherBps',BD),1200);assert.equal(M.gstForService(g0,BD,'other').bps,1200);
+    // Dated: lowBps 5 % today, 12 % from the scheduled 1 Nov version; the statutory seed history comes from the server rows too.
+    assert.deepEqual(['2025-09-21','2026-10-31','2026-11-01'].map(d=>M.gstValueOn(g0,'gst.room.lowBps',d)),[1200,500,1200]);
+    assert.deepEqual(M.cfgScheduled(g0,'gst.room.lowBps').map(x=>[x.id,x.value,x.effectiveFrom]),[['GST-V21',1200,'2026-11-01']]);
+    assert.equal(M.cfgValueOn(g0,'gst.room.lowBps','2026-11-01'),1200);
+    // Booleans 0/1 → false/true; a withdrawn version is not in force and not scheduled.
+    assert.equal(M.cfgValueOn(g0,'gst.room.lowItc'),false);assert.equal(M.gstValueOn(g0,'gst.room.lowItc','2025-09-21'),true);
+    assert.deepEqual([M.cfgScheduled(g0,'gst.food.optIn').length,M.gstValueOn(g0,'gst.food.optIn','2026-10-31')],[0,false]);
+    // History lists the Owner versions only (seed rows are statutory history), with the value before each and the reason.
+    assert.deepEqual(M.cfgHistory(g0,'gst.svc.otherBps').map(h=>[h.id,h.before,h.after,h.actor,h.effectiveFrom,h.reason]),
+      [['GST-V20',M.gstPct(1800),M.gstPct(1200),'Test Owner',BD,'CA advice']]);
+    assert.deepEqual(M.cfgHistory(g0,'gst.food.optIn').map(h=>[h.id,h.after]),[['GST-V19','Declared (opt-in) (withdrawn)']]);
+    assert.equal(M.cfgRevertBlock(g0,'GST-V20'),undefined,'latest in-force Owner version can be reverted');
+    assert.match(M.cfgRevertBlock(g0,'GST-V21'),/withdraw it instead/);
+    assert.equal(M.cfgCanChange(g0,'1',gDef('gst.room.lowBps')).mode,'allow');assert.equal(M.cfgCanChange(g0,'3',gDef('gst.room.lowBps')).mode,'deny','Owner only (Tech admin views)');
+  });
+
+  const gr={};const gcalls={};
+  const ggo=async(name,cmd)=>{const n=gsrv.calls.length;gr[name]=await grt.run(cmd);gcalls[name]=gsrv.calls.slice(n).map(c=>`${c.method} ${c.path}`);};
+  await ggo('noReason',{type:'SETTING_SET',setting:'gst.room.highBps',value:1200,effectiveFrom:'2026-11-15',reason:'',key:'cfg-gst:0'});
+  await ggo('shortReason',{type:'SETTING_SET',setting:'gst.room.highBps',value:1200,effectiveFrom:'2026-11-15',reason:' ab ',key:'cfg-gst:0b'});
+  await ggo('dated',{type:'SETTING_SET',setting:'gst.room.highBps',value:1200,effectiveFrom:'2026-11-15',reason:' CA advice 26 Oct ',key:'cfg-gst:1'});
+  await ggo('optIn',{type:'SETTING_SET',setting:'gst.food.optIn',value:true,reason:'Declared for FY 2026-27',key:'cfg-gst:2'});
+  await ggo('wdNoReason',{type:'CFG_WITHDRAW',id:'GST-V21',key:'cfg-wd:GST-V21'});
+  await ggo('withdraw',{type:'CFG_WITHDRAW',id:'GST-V21',reason:'CA withdrew the advice',key:'cfg-wd:GST-V21:r'});
+  await ggo('revert',{type:'CFG_REVERT',id:'GST-V20',key:'cfg-rv:GST-V20'});
+  await ggo('fixed',{type:'SETTING_SET',setting:'gst.specified.status',value:'x',reason:'Not editable',key:'cfg-gst:3'});
+  const g1=grt.get().state;const gb=(name,i=0)=>gsrv.commands(name)[i];
+  test('[A02-02] gst.* saves send SetGstSetting (exact body incl. reason, boolean as 0/1, no date = business date), never SetSetting; /tax/gst is re-read',()=>{
+    for(const k of ['dated','optIn','withdraw','revert'])assert.ok(gr[k].ok,k+': '+gr[k].text);
+    assert.equal(gsrv.commands('SetSetting').length,0,'SetSetting is never sent for a gst.* key (the server refuses it)');
+    assert.deepEqual([gb('SetGstSetting').body,gb('SetGstSetting').key],[{key:'gst.room.highBps',value:1200,effectiveFrom:'2026-11-15',reason:'CA advice 26 Oct'},'cfg-gst:1']);
+    assert.deepEqual(gb('SetGstSetting',1).body,{key:'gst.food.optIn',value:1,effectiveFrom:null,reason:'Declared for FY 2026-27'});
+    for(const k of ['dated','optIn','withdraw','revert'])assert.ok(gcalls[k].indexOf('GET /tax/gst')>0,k+': GST master re-read after the command');
+    assert.deepEqual(M.cfgScheduled(g1,'gst.room.highBps').map(x=>[x.value,x.effectiveFrom]),[[1200,'2026-11-15']]);
+    assert.equal(M.cfgValueOn(g1,'gst.food.optIn'),true);
+  });
+  test('[A02-02] GST withdraw → WithdrawGstSetting {versionId, reason}; revert → SetGstSetting with the value before the version',()=>{
+    assert.deepEqual([gb('WithdrawGstSetting').body,gb('WithdrawGstSetting').key],[{versionId:21,reason:'CA withdrew the advice'},'cfg-wd:GST-V21:r']);
+    assert.equal(gsrv.commands('WithdrawScheduledSetting').length+gsrv.commands('RevertSetting').length,0);
+    assert.deepEqual(gb('SetGstSetting',2).body,{key:'gst.svc.otherBps',value:1800,effectiveFrom:null,reason:'Revert to previous value'});
+    assert.deepEqual([M.cfgScheduled(g1,'gst.room.lowBps').length,M.gstValueOn(g1,'gst.room.lowBps','2026-11-01')],[0,500]);
+    assert.equal(M.cfgValueOn(g1,'gst.svc.otherBps'),1800);
+    assert.deepEqual(M.cfgHistory(g1,'gst.svc.otherBps').map(h=>[h.before,h.after,h.reason]),[[M.gstPct(1200),M.gstPct(1800),'Revert to previous value'],[M.gstPct(1800),M.gstPct(1200),'CA advice']]);
+  });
+  test('[A02-02] An empty or too-short reason is refused on the client (server wording) and nothing is sent; a derived GST line is not configurable',()=>{
+    for(const k of ['noReason','shortReason','wdNoReason']){assert.deepEqual([gr[k].ok,gr[k].reason],[false,'precheck'],k);
+      assert.match(gr[k].text,/Give a reason for the GST change \(at least 3 characters\)/,k);assert.equal(gcalls[k].filter(c=>c.startsWith('POST')).length,0,k);}
+    assert.deepEqual([gr.fixed.ok,gr.fixed.reason],[false,'precheck']);assert.match(gr.fixed.text,/not configurable/);
+    assert.equal(gsrv.commands('SetGstSetting').length,3);
   });
 
   const P=await loadPages();
-  const shown=[P.renderPages(st,'1',false),P.renderPages(st,'1',true),P.renderPages(rt2.get().state,'1',false),P.renderPages(rs,'2',false),P.renderPages(rs,'2',true)];
+  const shown=[P.renderPages(st,'1',false),P.renderPages(st,'1',true),P.renderPages(rt2.get().state,'1',false),P.renderPages(rs,'2',false),P.renderPages(rs,'2',true),
+    P.renderPages(g1,'1',false),P.renderPages(g1,'1',true)];
   test('[W4-5 admin] Every desktop and phone page renders on the admin server data (Owner and Reception)',()=>{
-    assert.deepEqual(shown.map(x=>x.errors),[{},{},{},{},{}]);
+    assert.deepEqual(shown.map(x=>x.errors),[{},{},{},{},{},{},{}]);
   });
   test('[W4-5 admin] Unmapped admin commands are listed with a reason',()=>{
     const a=S.AREAS.find(x=>x.id==='admin');

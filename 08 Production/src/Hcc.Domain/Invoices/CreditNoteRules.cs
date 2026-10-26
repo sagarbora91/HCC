@@ -14,11 +14,15 @@ public enum CreditMode
 }
 
 /// <summary>An invoice line with what earlier credit notes already credited against it (positive = reduces the line).</summary>
-public sealed record CreditableLine(InvoiceLine Line, Paise CreditedTaxable, Paise CreditedTax)
+public sealed record CreditableLine(InvoiceLine Line, Paise CreditedTaxable, Paise CreditedTax, Paise CreditedCgst, Paise CreditedSgst)
 {
     public Paise RemainingTaxable => Line.Taxable - CreditedTaxable;
 
     public Paise RemainingTax => Line.Tax - CreditedTax;
+
+    public Paise RemainingCgst => Line.Cgst - CreditedCgst;
+
+    public Paise RemainingSgst => Line.Sgst - CreditedSgst;
 }
 
 /// <summary>One credit-note line: positive amounts credited against an invoice line.</summary>
@@ -32,7 +36,9 @@ public sealed record RequestedCreditLine(int InvoiceLineNo, Paise Taxable);
 /// the credit note reverses tax line by line at each line's own stored rate — the full mode credits every remaining line exactly; the
 /// amount mode spreads a taxable amount over the lines in proportion to what remains on each (largest remainder, to the paisa); the
 /// lines mode names the lines. Each credit line's tax = its taxable × the line's rate, half away from zero (G9 per-line rule), and the
-/// cumulative tax credited on a line never exceeds the tax charged on it (refused, never silently adjusted). The prototype's "follow
+/// cumulative tax credited on a line never exceeds the tax charged on it (refused, never silently adjusted). Crediting a line's whole
+/// remaining taxable value (any mode) credits exactly the tax, CGST and SGST still on it (A03a-04), so a line credited in full ends at
+/// exactly its invoiced figures even after a partial credit whose tax was exactly half a paisa. The prototype's "follow
 /// the room-night rate" rule for a mixed bill (G10/G12) is reproduced by naming the room lines; open CA questions G10/G12.
 /// </summary>
 public static class CreditNoteRules
@@ -75,11 +81,31 @@ public static class CreditNoteRules
         {
             if (taxable == Paise.Zero) continue;
             var l = line.Line;
-            var tax = MoneyMath.TaxOf(taxable, l.Bps);
-            if (Math.Abs((line.CreditedTax + tax).Value) > Math.Abs(l.Tax.Value))
-                throw HccException.Validation($"Line {l.LineNo}: rounding would credit more tax than was charged. Credit the line's remaining {line.RemainingTaxable} in one note, or a whole-rupee amount.");
-            var split = interState ? new GstSplit(tax, Paise.Zero, Paise.Zero) : GstMath.Split(tax);
-            result.Add(new CreditLine(++no, l.LineNo, l.Category, l.Sac, taxable, l.Bps, tax, split.Cgst, split.Sgst, interState ? tax : Paise.Zero));
+            IReadOnlyList<Paise> pieces;
+            if (taxable == line.RemainingTaxable)
+            {
+                pieces = Pieces(taxable, l.Bps, line.RemainingTax)
+                    ?? throw HccException.Validation($"Line {l.LineNo}: the remaining {taxable} cannot carry the remaining tax {line.RemainingTax} at this rate.");
+            }
+            else
+            {
+                var partTax = MoneyMath.TaxOf(taxable, l.Bps);
+                if (Math.Abs((line.CreditedTax + partTax).Value) > Math.Abs(l.Tax.Value))
+                    throw HccException.Validation($"Line {l.LineNo}: rounding would credit more tax than was charged. Credit the line's remaining {line.RemainingTaxable} in one note.");
+                if (Pieces(line.RemainingTaxable - taxable, l.Bps, line.RemainingTax - partTax) is null)
+                    throw HccException.Validation($"Line {l.LineNo}: this credit would leave a remainder that can no longer be credited exactly. Credit a different amount, or the line's remaining {line.RemainingTaxable} in one note.");
+                pieces = [taxable];
+            }
+
+            var (cgstLeft, sgstLeft) = (line.RemainingCgst, line.RemainingSgst);
+            foreach (var piece in pieces)
+            {
+                var tax = MoneyMath.TaxOf(piece, l.Bps);
+                var split = interState ? new GstSplit(tax, Paise.Zero, Paise.Zero) : SplitWithin(tax, cgstLeft, sgstLeft);
+                cgstLeft -= split.Cgst;
+                sgstLeft -= split.Sgst;
+                result.Add(new CreditLine(++no, l.LineNo, l.Category, l.Sac, piece, l.Bps, tax, split.Cgst, split.Sgst, interState ? tax : Paise.Zero));
+            }
         }
 
         if (result.Count == 0) throw Invalid("Nothing is left to credit on this invoice.");
@@ -123,6 +149,44 @@ public static class CreditNoteRules
         var extra = new long[shares.Count];
         for (var k = 0; k < left; k++) extra[order[k]]++;
         return shares.Select((s, i) => (s.Line, new Paise(s.Floor + extra[i]))).ToList();
+    }
+
+    /// <summary>
+    /// A line's whole remainder as credit pieces that each follow the per-line rule (taxable × rate, half away from zero) and together carry
+    /// exactly the tax still on the line. Usually one piece. After a partial credit whose tax was exactly half a paisa (₹333.30 at 5 % =
+    /// 1666.5 → 1667 on a ₹1,000 line taxed ₹50), the remainder's own tax rounds a paisa above what is left (666.70 → 3333.5 → 3334 against
+    /// 3333): the remainder is then credited as the remainder less <c>m</c> small pieces of <c>a</c> paise (here 666.69 at 3333 + 0.01 at 0).
+    /// Null when no such split of at most five pieces exists (a partial credit that would leave such a remainder is refused).
+    /// </summary>
+    private static IReadOnlyList<Paise>? Pieces(Paise taxable, int bps, Paise tax)
+    {
+        if (MoneyMath.TaxOf(taxable, bps) == tax) return [taxable];
+        var sign = taxable.Value < 0 ? -1L : 1L;
+        for (var m = 1; m <= 4; m++)
+        {
+            for (var k = 1L; k <= 2 * MoneyMath.BpsScale; k++)
+            {
+                var a = new Paise(sign * (k <= MoneyMath.BpsScale ? k : MoneyMath.BpsScale - k)); // same sign first, then the opposite sign
+                var rest = new Paise(checked(taxable.Value - (m * a.Value)));
+                if (rest == Paise.Zero) continue;
+                if (MoneyMath.TaxOf(rest, bps).Value + (m * MoneyMath.TaxOf(a, bps).Value) == tax.Value) return [rest, .. Enumerable.Repeat(a, m)];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// CGST / SGST of one credit line: the odd paisa goes to the head with more left on the invoice line (CGST on a tie, as
+    /// <see cref="GstMath.Split"/>), so a line's remaining CGST and SGST stay within a paisa of each other and its last credit takes exactly
+    /// what is left of each (never more CGST or SGST credited than was charged).
+    /// </summary>
+    private static GstSplit SplitWithin(Paise tax, Paise cgstLeft, Paise sgstLeft)
+    {
+        var s = GstMath.Split(tax);
+        var swapped = new GstSplit(tax, s.Sgst, s.Cgst);
+        static long Gap(GstSplit x, Paise c, Paise g) => Math.Abs((c - x.Cgst - (g - x.Sgst)).Value);
+        return Gap(swapped, cgstLeft, sgstLeft) < Gap(s, cgstLeft, sgstLeft) ? swapped : s;
     }
 
     private static List<(CreditableLine, Paise)> Named(IReadOnlyList<CreditableLine> lines, IReadOnlyList<RequestedCreditLine> requested, Paise remaining)

@@ -273,3 +273,35 @@ public class GstSpecifiedFromChargedNightsTests(GstIdsDb db) : IClassFixture<Gst
         Assert.Equal(500, (await db.Gst.ChargeAsync(null, db.PropertyId, new DateOnly(2026, 3, 31), GstCategory.Food, ct)).Bps);
     }
 }
+
+/// <summary>A03a-02: a night above ₹7,500 posted by mistake and reversed was never supplied at that price (own database: bill.charge is append-only).</summary>
+[Trait("Category", "Sql")]
+public class GstSpecifiedIgnoresReversedNightsTests(GstIdsDb db) : IClassFixture<GstIdsDb>
+{
+    [Fact]
+    public async Task A_reversed_night_above_7500_in_the_previous_FY_does_not_derive_specified_premises_a_standing_one_does()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (stay, folio) = await db.InHouseAsync(900_000, new DateOnly(2025, 12, 1), new DateOnly(2025, 12, 2));
+        var night = await db.NightAsync(stay, new DateOnly(2025, 12, 1));
+        Assert.Equal((1800, 162_000L), (night.TaxBps, night.TaxPaise));
+        var req = await db.Billing.RequestAdjustmentAsync(db.As("REC"), GstIdsDb.Key(),
+            new RequestAdjustmentRequest("correction", folio, night.ChargeId, 900_000, "Posted at the wrong rate (fictional)", night.FolioVersion), ct);
+        var ok = await db.Billing.DecideApprovalAsync(db.As("OWN"), GstIdsDb.Key(), new DecideApprovalRequest(req.Value.ApprovalId!.Value, true, null, req.Value.ApprovalVersion!), ct);
+        Assert.Equal("Executed", ok.Value.Status);
+        Assert.Equal(1L, await db.LongAsync("SELECT COUNT(*) FROM bill.charge WHERE reverses_charge_id = @c;", ("@c", SqlDbType.BigInt, night.ChargeId)));
+
+        // The reversed ₹9,000 night (and its −₹9,000 reversal) does not count: FY 2025-26's highest is the Suite rack rate ₹4,500.
+        var food = await db.Gst.ChargeAsync(null, db.PropertyId, GstIdsDb.Day, GstCategory.Food, ct);
+        Assert.Equal((500, false), (food.Bps, food.Itc));
+        var view = await db.GstMaster.GetAsync(db.PropertyId, db.User["OWN"], GstIdsDb.Day, ct);
+        Assert.False(view.SpecifiedPremises);
+        Assert.Contains("highest ₹4,500", view.SpecifiedReason, StringComparison.Ordinal);
+
+        // A ₹9,000 night that stands still derives it.
+        var (stay2, _) = await db.InHouseAsync(900_000, new DateOnly(2025, 12, 2), new DateOnly(2025, 12, 3));
+        await db.NightAsync(stay2, new DateOnly(2025, 12, 2));
+        var standing = await db.Gst.ChargeAsync(null, db.PropertyId, GstIdsDb.Day, GstCategory.Food, ct);
+        Assert.Equal((1800, true), (standing.Bps, standing.Itc));
+    }
+}

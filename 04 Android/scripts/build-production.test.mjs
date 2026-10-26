@@ -39,7 +39,8 @@ try{
     assert.match(mutated('app/build.gradle','debuggable false','debuggable true').join(),/debuggable false/);
     assert.match(mutated('app/src/productionRelease/AndroidManifest.xml','android:allowBackup="false"','android:allowBackup="true"').join(),/allowBackup/);
     assert.match(mutated('app/src/productionRelease/res/xml/hcc_data_extraction_rules.xml','<exclude domain="sharedpref" path="." />','<include domain="sharedpref" path="." />').join(),/sharedpref|include/);
-    assert.match(mutated('app/src/main/res/xml/file_paths.xml','path="Documents/HCC/"','path="."').join(),/whole external storage/);
+    assert.match(mutated('app/src/main/res/xml/file_paths.xml','<cache-path name="hcc_exports" path="exports/" />','<external-path name="hcc_exports" path="Documents/HCC/" />').join(),/external or public storage/);
+    assert.match(mutated('app/src/main/res/xml/file_paths.xml','path="exports/"','path="."').join(),/whole app cache/);
     assert.match(mutated('app/build.gradle','storePassword hccStorePassword',"storePassword 'secret'").join(),/password is written/);
     assert.match(mutated('app/src/main/java/in/hcc/prototype/MainActivity.java','setWebContentsDebuggingEnabled(false)','toString()').join(),/WebView debugging/);
   });

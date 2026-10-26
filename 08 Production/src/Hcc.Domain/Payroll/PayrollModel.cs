@@ -164,6 +164,9 @@ public sealed record PayrollRates(DateOnly From,
 
     public const string Disclaimer = "Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff.";
 
+    /// <summary>A04-11: what payslips and full-and-final documents do not include (shown on both, next to <see cref="Disclaimer"/>).</summary>
+    public const string NotCalculated = "Not calculated: gratuity, notice pay, bonus, TDS on salary.";
+
     /// <summary>Range and consistency checks (prototype ratesFrom + rateRules).</summary>
     public void Validate(string where = "")
     {

@@ -184,7 +184,7 @@ export async function register({test,M,assert}){
   const quote=await mc.reservations.quoteStay({arrival:s0.date,departure:'2026-10-26',adults:2,roomId:'105'});
   // GST master (DEC-069) instead of the old synthetic taxRateFor: a dated slab change after arrival must reach the second night only,
   // and a tariff above the ₹7,500 threshold must take the higher slab.
-  const sGst=M.execute(s0,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-25'});
+  const sGst=M.execute(s0,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-25',reason:'CA advice'});
   const quoteDated=await C.createMockClients(C.createLocalHost(sGst,'reception',M.execute)).reservations.quoteStay({arrival:s0.date,departure:'2026-10-26',adults:2,roomId:'105'});
   let sFolio=M.execute(s0,'owner',{type:'BOOK',guest:'Quote Parity',room:'105',arrival:s0.date,departure:'2026-10-26',people:2});const qid=sFolio.bookings.at(-1).id;
   sFolio=M.execute(sFolio,'owner',{type:'REGISTER',id:qid});sFolio=M.execute(sFolio,'owner',{type:'CHECKIN',id:qid});sFolio=M.execute(sFolio,'owner',{type:'POST_NIGHTS',id:qid});

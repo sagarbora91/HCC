@@ -66,7 +66,8 @@ public sealed class SqlGstMasterStore(SqlConnectionFactory connections) : IGstMa
     public Task<long> MaxUnitTariffAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct = default)
         => WithCommandAsync(tx, """
             -- Per room type that has at least one unit: the tariff in force on the first day (latest dated tariff on or before it, else
-            -- the rack rate), any dated tariff that starts inside the year, and any room night actually charged in the year.
+            -- the rack rate), any dated tariff that starts inside the year, and any room night actually charged in the year. A night that
+            -- was reversed (posted by mistake and corrected) was not supplied at that price: neither it nor its reversal counts (A03a-02).
             SELECT MAX(v) FROM (
               SELECT COALESCE((SELECT TOP (1) t.rate_paise FROM inv.room_type_tariff t
                                WHERE t.room_type_id = rt.room_type_id AND t.effective_from <= @from ORDER BY t.effective_from DESC), rt.rack_rate_paise) AS v
@@ -78,6 +79,7 @@ public sealed class SqlGstMasterStore(SqlConnectionFactory connections) : IGstMa
               UNION ALL
               SELECT c.amount_paise FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation res ON res.reservation_id = f.reservation_id
               WHERE res.property_id = @p AND c.kind = 'room' AND c.reverses_charge_id IS NULL AND c.service_date BETWEEN @from AND @to
+                AND NOT EXISTS (SELECT 1 FROM bill.charge r WHERE r.reverses_charge_id = c.charge_id)
             ) x;
             """, async c =>
         {

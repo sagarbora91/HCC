@@ -263,7 +263,7 @@ public class ImportSqlTests : IAsyncLifetime
         Assert.Contains(guests.Errors, e => e is { Row: 4, Column: "phone" } && e.Message == "Duplicate of row 3.");
         var broken = await _w.UploadAsync("owner", "rooms", "roomNo,roomType\n\"101,STD\n");
         Assert.Contains("never closed", Assert.Single(broken.Errors).Message, StringComparison.Ordinal);
-        Assert.Equal(HccErrorCode.VALIDATION, (await Assert.ThrowsAsync<HccException>(() => _w.UploadAsync("owner", "suppliers", "a\n1\n"))).Code);
+        Assert.Equal(HccErrorCode.VALIDATION, (await Assert.ThrowsAsync<HccException>(() => _w.UploadAsync("owner", "assets", "a\n1\n"))).Code);
     }
 
     [Fact]

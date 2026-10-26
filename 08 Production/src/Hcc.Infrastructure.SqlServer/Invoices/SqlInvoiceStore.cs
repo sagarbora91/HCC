@@ -256,14 +256,17 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
             return await ReadInvoicesAsync(cmd, ct).ConfigureAwait(false);
         }, ct);
 
-    public Task<IReadOnlyDictionary<int, (Paise Taxable, Paise Tax)>> CreditedAsync(ICommandTransaction? tx, long invoiceId, CancellationToken ct) =>
-        WithAsync<IReadOnlyDictionary<int, (Paise Taxable, Paise Tax)>>(tx,
-            "SELECT invoice_line_no, SUM(taxable_paise), SUM(tax_paise) FROM ivc.credit_note_line WHERE invoice_id = @i GROUP BY invoice_line_no;", async cmd =>
+    public Task<IReadOnlyDictionary<int, (Paise Taxable, Paise Tax, Paise Cgst, Paise Sgst)>> CreditedAsync(ICommandTransaction? tx, long invoiceId, CancellationToken ct) =>
+        WithAsync<IReadOnlyDictionary<int, (Paise Taxable, Paise Tax, Paise Cgst, Paise Sgst)>>(tx, """
+            SELECT invoice_line_no, SUM(taxable_paise), SUM(tax_paise), SUM(cgst_paise), SUM(sgst_paise)
+            FROM ivc.credit_note_line WHERE invoice_id = @i GROUP BY invoice_line_no;
+            """, async cmd =>
         {
             P(cmd, "@i", SqlDbType.BigInt, invoiceId);
-            var d = new Dictionary<int, (Paise, Paise)>();
+            var d = new Dictionary<int, (Paise, Paise, Paise, Paise)>();
             await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) d[rd.GetInt32(0)] = (new Paise(rd.GetInt64(1)), new Paise(rd.GetInt64(2)));
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                d[rd.GetInt32(0)] = (new Paise(rd.GetInt64(1)), new Paise(rd.GetInt64(2)), new Paise(rd.GetInt64(3)), new Paise(rd.GetInt64(4)));
             return d;
         }, ct);
 
