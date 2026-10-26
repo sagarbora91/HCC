@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
-/// Closing + reporting (P6): POST /commands/{RunBusinessDayClose|LockCashBookDay|ReopenCashBookDay}; GET /closing/preflight?date=,
+/// Closing + reporting (P6): POST /commands/{RunBusinessDayClose|PostRoomNights|LockCashBookDay|ReopenCashBookDay}; GET /closing/business-date (any session), /closing/records?from=&amp;to=, /closing/preflight?date=,
 /// /closing/runs/{date}, /closing/snapshots/{date}, /cashbook/{date}, /cashbook?from=&amp;to= (range), /cashbook/{date}/book (day with entries), /reports/daily?from=&amp;to=. All require a session.
 /// </summary>
 public static class ClosingEndpoints
@@ -45,10 +45,15 @@ public static class ClosingEndpoints
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
         BillingEndpoints.Command<RunBusinessDayCloseRequest, CloseRunResult>(g, ClosingService.OpRun, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().RunBusinessDayCloseAsync(c, k, r, ct));
+        BillingEndpoints.Command<PostRoomNightsRequest, PostRoomNightsResult>(g, ClosingService.OpPostNights, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().PostRoomNightsAsync(c, k, r, ct));
         BillingEndpoints.Command<LockCashBookDayRequest, CashBookDayResult>(g, ClosingService.OpLockCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().LockCashBookDayAsync(c, k, r, ct));
         BillingEndpoints.Command<ReopenCashBookDayRequest, CashBookDayResult>(g, ClosingService.OpReopenCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().ReopenCashBookDayAsync(c, k, r, ct));
         g.MapGet("/closing/preflight", async (HttpContext http, ClosingService s, DateOnly? date, CancellationToken ct) =>
             Results.Ok(await s.GetPreflightAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
+        g.MapGet("/closing/business-date", async (HttpContext http, ClosingService s, CancellationToken ct) =>
+            Results.Ok(await s.GetBusinessDateAsync(http.HccCaller(), ct).ConfigureAwait(false)));
+        g.MapGet("/closing/records", async (HttpContext http, ClosingService s, DateOnly from, DateOnly? to, CancellationToken ct) =>
+            Results.Ok(await s.GetRecordsAsync(http.HccCaller(), from, to ?? from, ct).ConfigureAwait(false)));
         g.MapGet("/closing/runs/{date}", async (HttpContext http, ClosingService s, DateOnly date, CancellationToken ct) =>
             Results.Ok(await s.GetRunAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
         g.MapGet("/closing/snapshots/{date}", async (HttpContext http, ClosingService s, DateOnly date, CancellationToken ct) =>
