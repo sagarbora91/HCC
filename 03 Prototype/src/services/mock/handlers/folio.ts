@@ -8,6 +8,7 @@ import {totals} from '../../../domain/selectors';
 import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
+import {closingReopened} from '../../../domain/streams/closing';
 import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
@@ -61,8 +62,18 @@ const CHARGE:Handler=({s,cmd,req,b,financial,positive,assert,id})=>{
   req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.label?.trim(),'Describe the service.');
   // DEC-069: GST by supply — an explicit category (food / laundry / banquet / other) or one read from the description.
   assert(cmd.gst===undefined||GST_CHARGE_CATEGORIES.some(c=>c.id===cmd.gst),'Choose a GST category: food, laundry, banquet or other.');
-  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:gstForCharge(s,s.date,cmd.gst??gstCategoryOfLabel(cmd.label)).bps});x.version++;
-  return x.id+' · '+cmd.label;
+  // DEC-077: `date` may name the business day the Owner reopened (a missed charge posts on it at that day's GST rate); any other earlier
+  // date stays closed (adjustment-only), its cash-book lock (DEC-065) still applies, and the date must fall within the stay.
+  let date=s.date;
+  if(cmd.date!==undefined&&cmd.date!==null&&cmd.date!==s.date){
+    date=String(cmd.date);assert(/^\d{4}-\d{2}-\d{2}$/.test(date),'Choose a valid service date.');
+    assert(date<s.date,'A charge cannot be posted ahead of the business date.');
+    assert(closingReopened(s)?.date===date,`Business day ${date} is closed. Corrections post in the open day.`,'DAY_CLOSED');
+    assert(!cbIsLocked(s,date),cbLockedMessage(date,'a charge on that day'),'DAY_CLOSED');
+    assert(x.arrival<=date&&date<=x.departure,'The service date is outside the stay.','INVALID_TRANSITION');
+  }
+  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date,kind:'service',taxBps:gstForCharge(s,date,cmd.gst??gstCategoryOfLabel(cmd.label)).bps});x.version++;
+  return x.id+' · '+cmd.label+(date!==s.date?` · on reopened day ${date}`:'');
 };
 
 const DISCOUNT:Handler=k=>{
@@ -197,8 +208,10 @@ const APPROVAL:Handler=k=>{
       const l=x!.lines.find(l=>l.id===a!.target);assert(l,'The original line no longer exists.','NOT_FOUND');
       assert(!x!.lines.some(r=>r.reversalOf===l!.id),'This line is already reversed.','INVALID_TRANSITION');
       const lid=id('reversal');
-      x!.lines.push({id:lid,label:'Reversal · '+l!.label+' · '+a!.reason,amount:-l!.amount,date:s.date,kind:'adjustment',taxBps:l!.taxBps,reversalOf:l!.id,approvalId:a!.id});
-      x!.version++;a!.status='Executed';extra=' · reversal '+lid+' posted';
+      // DEC-077: the reversal posts on the original line's date while that day is reopened by the Owner, else on the business date.
+      const on=l!.date<s.date&&closingReopened(s)?.date===l!.date?l!.date:s.date;
+      x!.lines.push({id:lid,label:'Reversal · '+l!.label+' · '+a!.reason,amount:-l!.amount,date:on,kind:'adjustment',taxBps:l!.taxBps,reversalOf:l!.id,approvalId:a!.id});
+      x!.version++;a!.status='Executed';extra=' · reversal '+lid+' posted'+(on!==s.date?' on reopened day '+on:'');
     }else if(kind==='credit-note'){
       assert(x&&x.status==='Departed','A credit note applies only to a departed stay.','INVALID_TRANSITION');stale();
       assert(a!.amount<=totals(x!).net,'Credit note cannot exceed the net charges on this folio.');

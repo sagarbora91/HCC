@@ -10,6 +10,7 @@
 //             complianceX ← GET /compliance/obligations, /compliance/calendar?includeInactive=true (filings + settings),
 //                           /compliance/ca-packs. Periods and due dates are computed by the same rules on both sides.
 //   commands  ACC_LOCK/ACC_UNLOCK/ACC_MAP_SET/ACC_MAP_RESET → Lock/UnlockAccountingPeriod, Set/ResetLedgerMapping;
+//             ACC_TALLY_EXPORT → GET /accounting/export/tally (recorded on the server, DEC-077) and the server's XML is saved;
 //             EXPENSE/EXPENSE_SUBMIT/EXPENSE_APPROVE/EXPENSE_REVERSE → SubmitExpense, SubmitExpenseDraft, DecideExpense, ReverseExpense;
 //             CMP_* → MarkComplianceFiled, MarkComplianceNotApplicable, ReopenComplianceFiling, SaveComplianceObligation,
 //             ToggleComplianceObligation, SaveComplianceSettings, GenerateCaPack.
@@ -27,6 +28,11 @@ import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {serverId,protoUserId,utcToClock,paise,isoDate} from './map';
 import {CASH_SLICES} from './money';
+import {saveTextFile} from '../../app/native';
+
+/** GET /accounting/export/tally (TallyExportView; DEC-077 re-export / provisional dates and the export log id). */
+type SrvTallyExport={from:string;to:string;dates:number;voucherCount:number;debitPaise:number;creditPaise:number;simulated:boolean;fileName:string;xml:string;
+  reexportDates?:string[]|null;provisionalDates?:string[]|null;exportId?:number|null};
 
 // ── Server DTOs (Hcc.Contracts.Accounting / Expenses / Compliance, camelCase) ──
 type SrvEntry={account:string;ledger:string;debitPaise:number;creditPaise:number};
@@ -214,6 +220,15 @@ export const accounting:SyncArea={
       async send(c){await c.api.command('SetLedgerMapping',{mapKey:String(c.cmd.source),accountCode:String(c.cmd.account)});}},
     {type:'ACC_MAP_RESET',reload:['accountingX'],
       async send(c){await c.api.command('ResetLedgerMapping',{mapKey:String(c.cmd.source)});}},
+    // DEC-077: the Tally download comes from the server, which records the export (so a later reopen of an exported day flags it for
+    // re-export), carries flagged days again with a RE-EXPORT note and checks PERM-ACC-006 (A03b-13). The server's XML is the file saved.
+    {type:'ACC_TALLY_EXPORT',reload:[],
+      precheck:(cmd,_s,me)=>!me.permIds.includes('PERM-ACC-006')?'The Tally export is for the Owner and the Accountant.'
+        :!(DATE.test(String(cmd.from??''))&&DATE.test(String(cmd.to??''))&&String(cmd.from)<=String(cmd.to))?'Choose a valid range: "from" on or before "to".':undefined,
+      async send(c){const r=await c.api.get<SrvTallyExport>('/accounting/export/tally',{from:String(c.cmd.from),to:String(c.cmd.to)});
+        const saved=await saveTextFile(/^[\w.-]+\.xml$/.test(r.fileName)?r.fileName:`HCC-tally-SIMULATED-${c.cmd.from}_${c.cmd.to}.xml`,r.xml,'application/xml');
+        return {result:{count:r.voucherCount,dates:r.dates,reexport:r.reexportDates??[],provisional:r.provisionalDates??[],saved},
+          ...(saved==='failed'?{warning:'The server recorded the Tally export, but this device could not save the XML. Try the download again.'}:{})};}},
     // ── Expenses & petty cash (Petty cash is a category; limits per role are the server's PERM-EXP-002 limits) ──
     {type:'EXPENSE',reload:['expenses'],precheck:expensePrecheck,
       async send(c){const m=c.cmd;

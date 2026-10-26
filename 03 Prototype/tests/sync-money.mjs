@@ -120,6 +120,7 @@ export async function register({test,assert,M}){
   });
   srv.reset();await rt.run({type:'PAYMENT',id:'1201',amount:100000,kind:'deposit',method:'Cash',key:'pay:3'});const cashBody=srv.commands('RecordReceipt')[0];
   const charge=await run({type:'CHARGE',id:'1201',amount:30000,label:'Dinner',gst:'food',key:'chg:1'});const chargeCmd=srv.commands('PostCharge')[0];
+  const chargeOn=await run({type:'CHARGE',id:'1201',amount:30000,label:'Missed laundry',gst:'laundry',date:'2026-10-23',key:'chg:2'});const chargeOnCmd=srv.commands('PostCharge')[0];
   const disc=await run({type:'DISCOUNT',id:'1201',amount:20000,reason:'Goodwill',key:'disc:1'});const discCmd=srv.commands('RequestAdjustment')[0];
   const rr=await run({type:'REFUND_REQUEST',id:'1201',receiptId:'7001',amount:10000,reason:'Overpaid',key:'rr:1'});const rrCmd=srv.commands('RequestAdjustment')[0];
   const cc=await run({type:'COMPANY_CREDIT_REQUEST',id:'1201',key:'cc:1201:1'});const ccCmd=srv.commands('RequestAdjustment')[0];
@@ -128,6 +129,9 @@ export async function register({test,assert,M}){
     assert.deepEqual(cashBody.body,{folioId:5001,kind:'deposit',tender:'Cash',amountPaise:100000,reference:null,tillId:3});
     for(const x of [charge,disc,rr,cc,cor])assert.ok(x.r.ok,x.r.text);
     assert.deepEqual([chargeCmd.key,chargeCmd.body],['chg:1',{folioId:5001,label:'Dinner',amountPaise:30000,gstCategory:'food'}]);
+    // DEC-077: a missed charge on the reopened day names it as the service date (the server decides whether that day is reopened).
+    assert.ok(chargeOn.r.ok,chargeOn.r.text);
+    assert.deepEqual(chargeOnCmd.body,{folioId:5001,label:'Missed laundry',amountPaise:30000,gstCategory:'laundry',serviceDate:'2026-10-23'});
     assert.deepEqual(discCmd.body,{action:'discount',folioId:5001,targetId:null,amountPaise:20000,reason:'Goodwill',expectedVersion:'FOLv1'});
     assert.deepEqual(rrCmd.body,{action:'refund',folioId:5001,targetId:7001,amountPaise:10000,reason:'Overpaid',expectedVersion:'FOLv1'});
     assert.deepEqual(ccCmd.body,{action:'credit',folioId:5001,targetId:null,amountPaise:326500,reason:'Company credit · Fictional Travels',expectedVersion:'FOLv1'},'credit = the server balance');

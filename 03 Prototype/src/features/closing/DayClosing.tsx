@@ -1,11 +1,12 @@
 // SCR-14 Day closing as a step list: Preflight → Post room nights → Cash shift → Close → Closing summary → Open next day.
 import React from 'react';
 import {Check,ArrowUpRight,ArrowRight,Printer,Zap,AlertTriangle} from 'lucide-react';
-import {money,addDays,isDayClosed,closingPreflight,closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftExpected} from '../../services/mock';
+import {money,addDays,isDayClosed,closingPreflight,closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftExpected,closingReopened} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {ClosingSummaryView} from './ClosingReport';
 import {Corrections} from './Corrections';
+import {ReopenDay} from './ReopenDay';
 import {usePaged,ShowMore} from '../../components/ShowMore';
 import {DayPackButton} from '../exports/DayPack';
 
@@ -31,6 +32,7 @@ export function DayClosing(){
   return <><PageTitle title="Day closing" sub="Finish the day with confidence: resolve exceptions, post room nights, reconcile cash, then close."
       action={<button className="btn" onClick={()=>open({type:'closing-report',id:s.date})}><Printer size={15}/> {closed?'Closing report':'Preview report'}</button>}/>
     <div className="closing-banner"><div><div className="eyebrow">CURRENT BUSINESS DATE</div><h2>{dateLabel(s.date)}</h2><p>Asia/Kolkata · simulated clock {s.clock.slice(11)}</p></div><Pill tone={closed?'neutral':'green'}>{closed?'Day closed':'Business day open'}</Pill></div>
+    {closingReopened(s)&&<ReopenDay/>}
     {!canClose&&<div className="info-note"><AlertTriangle size={16}/>Read-only check. You can review the preflight, the cash shift and the closing summary, and request a closed-date correction. Posting nights, closing and opening the next day need the close permission (Manager or Owner).</div>}
     <div className="f-steps">
       <Step n={1} title="Preflight" state={closed||!generalOpen.length?'done':'blocked'}>
@@ -76,9 +78,10 @@ export function DayClosing(){
         <div className="card-footer f-actions"><button className="btn primary" disabled={busy||!closed||!canClose} onClick={()=>run({type:'NEXT_DAY',key:'nextday:'+s.date},'Next business day opened')}>Open next business day <ArrowRight size={16}/></button>{!closed&&<span className="f-why">Close today first.</span>}</div>
       </Step>
     </div>
+    {!closingReopened(s)&&<ReopenDay/>}
     <Corrections/>
     <section className="card"><div className="section-title"><h2>Earlier closing records</h2><span className="muted">Immutable · one per date</span></div>
-      {pastClosings.length?<><div className="request-list">{pgClose.shown.map(d=>{const c=s.closings![d];return <div className="request" key={d}><div><strong>{dateLabel(d)}</strong><p>Net revenue {money(c.revenue.net)} · receipts {money(c.receipts.net)} · counted cash {money(c.cash.counted)}{c.cash.difference?` · difference ${money(c.cash.difference)}`:''}</p></div><Pill tone="neutral">Closed</Pill><button className="btn small-btn" onClick={()=>open({type:'closing-report',id:d})}>View / print</button></div>;})}</div><ShowMore p={pgClose}/></>
+      {pastClosings.length?<><div className="request-list">{pgClose.shown.map(d=>{const c=s.closings![d];return <div className="request" key={d}><div><strong>{dateLabel(d)}</strong><p>Net revenue {money(c.revenue.net)} · receipts {money(c.receipts.net)} · counted cash {money(c.cash.counted)}{c.cash.difference?` · difference ${money(c.cash.difference)}`:''}{c.replaced?.length?` · closed again (${c.replaced.length} earlier record${c.replaced.length===1?'':'s'} kept)`:''}</p></div><Pill tone={c.reopens?.some(r=>!r.reclosedAt)?'orange':'neutral'}>{c.reopens?.some(r=>!r.reclosedAt)?'Reopened':c.replaced?.length?'Closed again':'Closed'}</Pill><button className="btn small-btn" onClick={()=>open({type:'closing-report',id:d})}>View / print</button></div>;})}</div><ShowMore p={pgClose}/></>
         :<Empty title="No earlier closing records" body={s.closedDates.filter(d=>d!==s.date).length?'Dates closed before this prototype kept records (e.g. 23 Oct) have no stored summary.':'Close a business day to create its record.'}/>}
     </section></>;
 }

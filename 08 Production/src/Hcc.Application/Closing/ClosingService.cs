@@ -19,17 +19,20 @@ namespace Hcc.Application.Closing;
 /// business date. Ports the prototype stream F close (<c>CLOSE_RUN</c>, <c>DAY_CLOSE</c>, <c>NEXT_DAY</c> in
 /// <c>03 Prototype/src/services/mock/handlers/closing.ts</c>) to multi-transaction production steps. One close per property runs
 /// at a time (session lease, released if the process dies); a rerun after a crash continues where the last attempt stopped.
-/// Also the DEC-065 cash-book day lock / Owner reopen and the closing read models.
+/// Also the DEC-065 cash-book day lock / Owner reopen, the DEC-077 Owner reopen of a closed business day and its re-close
+/// (<see cref="ReopenRules"/>), and the closing read models.
 /// </summary>
 /// <param name="runner">The platform runner (not the business-day guarded one: the close writes on the day it closes).</param>
+/// <param name="accounting">DEC-077 hooks into Accounting (period lock check, Tally re-export flag); null when Accounting is not composed.</param>
 public sealed class ClosingService(ICommandRunner runner, IClosingStore store, IReportSource reports, IAccessPolicy policy, BillingService billing,
-    ICloseStepObserver observer, TimeProvider clock, Hcc.Application.Pos.IPosCloseGate? pos = null)
+    ICloseStepObserver observer, TimeProvider clock, Hcc.Application.Pos.IPosCloseGate? pos = null, Hcc.Application.Accounting.IAccountingDayHooks? accounting = null)
 {
     public const string OpRun = "RunBusinessDayClose";
     public const string OpPostNights = "PostRoomNights";
     public const int MaxRecordDays = 100;
     public const string OpLockCashBook = "LockCashBookDay";
     public const string OpReopenCashBook = "ReopenCashBookDay";
+    public const string OpReopenDay = "ReopenBusinessDay";
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -47,6 +50,8 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
 
     private sealed record NextDayResult(DateOnly BusinessDate, bool Advanced);
 
+    private sealed record RecloseResult(long ReopenId, long SnapshotId, long PriorSnapshotId);
+
     // ── RunBusinessDayClose ──
 
     public async Task<CommandResult<CloseRunResult>> RunBusinessDayCloseAsync(Caller caller, string idempotencyKey, RunBusinessDayCloseRequest req, CancellationToken ct = default)
@@ -57,6 +62,10 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         var runRef = CloseRules.ValidateRunRef(req.RunId);
         var date = req.BusinessDate;
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.Close, ct: ct).ConfigureAwait(false);
+
+        // DEC-077: the day the Owner reopened is closed again by the same command.
+        if ((await store.OpenReopenAsync(null, caller.PropertyId, ct).ConfigureAwait(false))?.BusinessDate == date)
+            return await RecloseAsync(caller, idempotencyKey, req, ct).ConfigureAwait(false);
 
         var existing = await store.FindRunAsync(null, caller.PropertyId, date, ct).ConfigureAwait(false);
         if (existing?.Status == CloseRunStatus.Completed) return new(await ResultAsync(existing, ct).ConfigureAwait(false), true);
@@ -111,15 +120,17 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         return new(new PostRoomNightsResult(date, targets.Count, posted, targets.Count - posted), false);
     }
 
-    /// <summary>The current business date for any signed-in user (screens need it before anything else); no permission beyond the session.</summary>
+    /// <summary>The current business date for any signed-in user (screens need it before anything else); no permission beyond the session.
+    /// DEC-077: also the date of a reopened earlier day (no reason or money: those are on the closing records).</summary>
     public async Task<BusinessDateView> GetBusinessDateAsync(Caller caller, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(caller);
         var d = await store.BusinessDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
-        return new BusinessDateView(d, await store.IsClosedAsync(null, caller.PropertyId, d, ct).ConfigureAwait(false));
+        return new BusinessDateView(d, await store.IsClosedAsync(null, caller.PropertyId, d, ct).ConfigureAwait(false),
+            (await store.OpenReopenAsync(null, caller.PropertyId, ct).ConfigureAwait(false))?.BusinessDate);
     }
 
-    /// <summary>The stored closing records of a date range in one read (the closing history screens).</summary>
+    /// <summary>The stored closing records of a date range in one read (the closing history screens), with DEC-077 replaced records and reopens.</summary>
     public async Task<ClosingRecordsView> GetRecordsAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(caller);
@@ -127,8 +138,15 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         if (to < from) throw HccException.Validation("'to' must be on or after 'from'.");
         if (to.DayNumber - from.DayNumber + 1 > MaxRecordDays) throw HccException.Validation($"Choose at most {MaxRecordDays} business dates.");
         var rows = await store.ReadSnapshotsAsync(caller.PropertyId, from, to, ct).ConfigureAwait(false);
-        return new ClosingRecordsView(from, to, rows.Select(s => new ClosingSnapshotView(s.SnapshotId, Convert.ToHexString(s.Sha256), ParseRecord(s.Json))).ToList());
+        var replaced = await store.ReadReplacedSnapshotsAsync(caller.PropertyId, from, to, ct).ConfigureAwait(false);
+        var reopens = await store.ReopensAsync(null, caller.PropertyId, from, to, ct).ConfigureAwait(false);
+        return new ClosingRecordsView(from, to, rows.Select(SnapshotView).ToList(), replaced.Select(SnapshotView).ToList(), reopens.Select(ReopenView).ToList());
     }
+
+    private static ClosingSnapshotView SnapshotView(SnapshotRow s) => new(s.SnapshotId, Convert.ToHexString(s.Sha256), ParseRecord(s.Json), s.ReopenId, s.SupersededUtc);
+
+    private static DayReopenView ReopenView(DayReopenRow r) => new(r.ReopenId, r.BusinessDate, r.ReclosedUtc is null ? ReopenRules.StatusReopened : ReopenRules.StatusClosed,
+        r.ReopenedBy, r.ReopenedUtc, r.Reason, r.PriorSnapshotId, r.CashBookLocked, r.TallyReexport, r.ReclosedBy, r.ReclosedUtc, r.SnapshotId);
 
     private async Task<AttemptResult> StartAttemptAsync(Caller caller, DateOnly date, string runRef, string idempotencyKey, CancellationToken ct)
     {
@@ -346,11 +364,98 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         ArgumentNullException.ThrowIfNull(caller);
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.ReportFinance, ct: ct).ConfigureAwait(false);
         var s = await store.ReadSnapshotAsync(null, caller.PropertyId, date, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "No closing record for that date.");
-        return new ClosingSnapshotView(s.SnapshotId, Convert.ToHexString(s.Sha256), ParseRecord(s.Json));
+        return SnapshotView(s);
     }
 
     public static ClosingRecord ParseRecord(string json)
         => System.Text.Json.JsonSerializer.Deserialize<ClosingRecord>(json, CanonicalJson.SerializerOptions) ?? throw new InvalidOperationException("Empty closing record.");
+
+    // ── Reopen a closed business day (DEC-077) ──
+
+    /// <summary>
+    /// ReopenBusinessDay: the Owner (PERM-CLS-004) reopens a closed business day with a reason (audited). See <see cref="ReopenRules"/> for
+    /// the rules. Records the closing record in force and the day's cash-book lock (unchanged), flags the day for Tally re-export when it
+    /// was exported, and publishes BusinessDayReopened.
+    /// </summary>
+    public async Task<CommandResult<ReopenBusinessDayResult>> ReopenBusinessDayAsync(Caller caller, string idempotencyKey, ReopenBusinessDayRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(req);
+        var reason = ReopenRules.EnsureReason(req.Reason);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.DayReopen, ct: ct).ConfigureAwait(false);
+        var date = req.BusinessDate;
+        return await runner.RunAsync(Ctx(caller, OpReopenDay, idempotencyKey), req, async (tx, ct2) =>
+        {
+            var bd = await store.BusinessDateAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+            var open = await store.OpenReopenAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
+            var closed = await store.IsClosedAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false);
+            var locked = closed && date < bd && accounting is not null && await accounting.IsLockedAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false);
+            ReopenRules.EnsureCanReopen(date, bd, closed, open?.BusinessDate, locked);
+            var prior = await store.ReadSnapshotAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("A closed business day has no closing record.");
+            var cashBookLocked = (await store.LockCashBookDayRowAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false))?.Locked == true;
+            var now = Now;
+            var row = new NewDayReopen(caller.PropertyId, date, caller.PrincipalId, now, reason, prior.SnapshotId, cashBookLocked);
+            var tally = accounting is not null && await accounting.WasExportedToTallyAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false);
+            var id = await store.InsertReopenAsync(tx, row, tally, ct2).ConfigureAwait(false);
+            if (tally) await accounting!.MarkChangedForTallyAsync(tx, caller.PropertyId, date, id, reason, now, ct2).ConfigureAwait(false);
+            await tx.AuditAsync("BUSINESS_DAY_REOPENED", Target(date), BillingService.Clip($"reopen {id} · {reason} · closing record {prior.SnapshotId} kept"
+                + (cashBookLocked ? " · cash book stays locked (DEC-065)" : "") + (tally ? " · Tally re-export flagged" : ""), 1000), ct2).ConfigureAwait(false);
+            await tx.PublishAsync("BusinessDayReopened", id, new { propertyId = caller.PropertyId, businessDate = date, reopenId = id, priorSnapshotId = prior.SnapshotId, reason }, ct2).ConfigureAwait(false);
+            var view = new DayReopenView(id, date, ReopenRules.StatusReopened, caller.PrincipalId, now, reason, prior.SnapshotId, cashBookLocked, tally, null, null, null);
+            return new ReopenBusinessDayResult(view, ReopenRules.Message(date, cashBookLocked, tally));
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// RunBusinessDayClose for the reopened day: one transaction that first takes the day's exclusive lock (in-flight corrections finish,
+    /// later ones see the day closed), re-runs the checks of that day, computes the closing record again from the same source tables and
+    /// replaces the current record (the old one is stamped superseded and kept). Does not move the business date.
+    /// </summary>
+    private async Task<CommandResult<CloseRunResult>> RecloseAsync(Caller caller, string idempotencyKey, RunBusinessDayCloseRequest req, CancellationToken ct)
+    {
+        var date = req.BusinessDate;
+        await using var lease = await store.TryAcquireRunLeaseAsync(caller.PropertyId, ct).ConfigureAwait(false)
+            ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "A day close is already running for this property. Wait for it to finish, then reload.");
+        var r = await runner.RunAsync(Ctx(caller, OpRun, idempotencyKey), req, async (tx, ct2) =>
+        {
+            var reopen = await store.LockReopenForCloseAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false)
+                ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, $"Business day {Iso(date)} is not reopened.");
+            var now = Now;
+            var blockers = CloseRules.Blockers(ReopenRules.RecloseChecks(date, await store.PendingCorrectionsAsync(tx, caller.PropertyId, date, now, ct2).ConfigureAwait(false)));
+            if (blockers.Count > 0) throw CloseRules.Blocked(date, blockers);
+
+            var prior = await store.ReadSnapshotAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("A reopened business day has no current closing record.");
+            var before = ParseRecord(prior.Json);
+            var data = await reports.LoadAsync(tx, caller.PropertyId, date, date, ct2).ConfigureAwait(false);
+            var figures = DailyPackCalculator.Compute(data, date, date);
+            var exceptions = new List<string>();
+            foreach (var t in figures.Drawer.Tills.Where(t => t.DifferencePaise != 0))
+                exceptions.Add($"Cash difference {new Paise(t.DifferencePaise)} on till {t.TillCode} accepted" + (t.ApprovedBy is { } by ? $" by user {by}" : "") + (t.Reason is { } why ? " · " + why : ""));
+            if (before.Attempts > 1) exceptions.Add($"Day close resumed after an interruption or a blocker ({before.Attempts} attempts; no night posted twice)");
+            foreach (var l in data.Lines.Where(l => l.Kind == ChargeKind.Correction && l.ServiceDate == date))
+                exceptions.Add($"Correction {l.Amount} on folio {l.FolioId}" + (l.ReversesChargeId is { } rc ? $" reverses charge {rc}" : ""));
+            foreach (var x in await store.ReopensAsync(tx, caller.PropertyId, date, date, ct2).ConfigureAwait(false))
+                exceptions.Add(x.ReopenId == reopen.ReopenId
+                    ? ReopenRules.ExceptionNote(x.ReopenedUtc, x.ReopenedBy, x.Reason, now, caller.PrincipalId)
+                    : ReopenRules.ExceptionNote(x.ReopenedUtc, x.ReopenedBy, x.Reason, x.ReclosedUtc, x.ReclosedBy));
+
+            // Point-in-time values of the first close stay (deposits held, night audit); every figure is derived again from the day's records.
+            var record = new ClosingRecord(date, caller.PrincipalId, now, before.RunId, before.Attempts, before.NightAuditResumed, before.NightAuditStays,
+                before.DepositsHeldAtClosePaise, exceptions, figures);
+            var json = CanonicalJson.Serialize(record);
+            var sha = CanonicalJson.Sha256(record);
+            await store.SupersedeSnapshotAsync(tx, prior.SnapshotId, reopen.ReopenId, now, ct2).ConfigureAwait(false);
+            var snapshotId = await store.InsertSnapshotAsync(tx, new NewSnapshot(caller.PropertyId, date, before.RunId, caller.PrincipalId, now, record, json, sha, reopen.ReopenId), ct2).ConfigureAwait(false);
+            await store.MarkReclosedAsync(tx, reopen.ReopenId, caller.PrincipalId, now, snapshotId, ct2).ConfigureAwait(false);
+            await tx.AuditAsync("DAY_RECLOSED", Target(date), $"reopen {reopen.ReopenId} · closing record {prior.SnapshotId} replaced by {snapshotId} (kept as history) · net revenue {new Paise(before.Figures.Revenue.NetPaise)} → {new Paise(figures.Revenue.NetPaise)} · net receipts {new Paise(figures.Receipts.NetPaise)}", ct2).ConfigureAwait(false);
+            await tx.PublishAsync("BusinessDayReclosed", reopen.ReopenId, new { propertyId = caller.PropertyId, businessDate = date, reopenId = reopen.ReopenId, snapshotId, priorSnapshotId = prior.SnapshotId, sha256 = Convert.ToHexString(sha) }, ct2).ConfigureAwait(false);
+            return new RecloseResult(reopen.ReopenId, snapshotId, prior.SnapshotId);
+        }, ct).ConfigureAwait(false);
+        var run = await store.FindRunAsync(null, caller.PropertyId, date, ct).ConfigureAwait(false) ?? throw new InvalidOperationException("A closed day has no close run.");
+        return new(await ResultAsync(run, ct).ConfigureAwait(false), r.Replayed);
+    }
 
     // ── Cash-book day lock (DEC-065) ──
 

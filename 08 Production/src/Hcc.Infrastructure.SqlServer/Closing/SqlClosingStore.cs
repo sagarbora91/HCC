@@ -142,6 +142,7 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
                    + COALESCE((SELECT SUM(m.amount_paise) FROM pay.cash_movement m WHERE m.shift_id = s.shift_id), 0)
               FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id
              WHERE t.property_id = @p AND s.status IN ('Open', 'Submitted') ORDER BY s.shift_id;
+            SELECT business_date FROM cls.day_reopen WHERE property_id = @p AND reclosed_utc IS NULL;
             """, async c =>
         {
             await using var rd = await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -168,7 +169,10 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             while (await rd.ReadAsync(ct).ConfigureAwait(false))
                 shifts.Add(new ActiveShift(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), ClosingSql.Date(rd, 3), new Paise(rd.GetInt64(4))));
-            return new PreflightData(date, arrivals, departures, holds, nights, approvals, shifts);
+            var reopened = new List<DateOnly>();
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) reopened.Add(ClosingSql.Date(rd, 0));
+            return new PreflightData(date, arrivals, departures, holds, nights, approvals, shifts, Reopened: reopened);
         }, ct, P(propertyId), D(date), ("@now", SqlDbType.DateTime2, nowUtc));
 
     public Task<bool> IsClosedAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct) =>
@@ -194,29 +198,45 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
         var f = s.Record.Figures;
         return ClosingSql.RunAsync(connections, tx, """
             INSERT cls.closing_snapshot(property_id, business_date, run_id, closed_by, closed_utc, net_revenue_paise, tax_paise, net_receipts_paise,
-                   cash_expected_paise, cash_counted_paise, occupied_room_nights, sellable_room_nights, record_json, record_sha256)
+                   cash_expected_paise, cash_counted_paise, occupied_room_nights, sellable_room_nights, record_json, record_sha256, reopen_id)
             OUTPUT INSERTED.snapshot_id
-            VALUES (@p, @d, @r, @u, @now, @net, @tax, @rec, @exp, @cnt, @occ, @sell, @j, @h);
+            VALUES (@p, @d, @r, @u, @now, @net, @tax, @rec, @exp, @cnt, @occ, @sell, @j, @h, @reopen);
             """, async c => (long)(await c.ExecuteScalarAsync(ct).ConfigureAwait(false))!, ct,
             P(s.PropertyId), D(s.BusinessDate), ("@r", SqlDbType.BigInt, s.RunId), ("@u", SqlDbType.Int, s.ClosedBy), ("@now", SqlDbType.DateTime2, s.ClosedUtc),
             ("@net", SqlDbType.BigInt, f.Revenue.NetPaise), ("@tax", SqlDbType.BigInt, f.Revenue.TaxPaise), ("@rec", SqlDbType.BigInt, f.Receipts.NetPaise),
             ("@exp", SqlDbType.BigInt, f.Drawer.ExpectedPaise), ("@cnt", SqlDbType.BigInt, f.Drawer.CountedPaise), ("@occ", SqlDbType.Int, f.Occupancy.OccupiedRoomNights),
-            ("@sell", SqlDbType.Int, f.Occupancy.SellableRoomNights), ("@j", SqlDbType.NVarChar, s.Json), ("@h", SqlDbType.Binary, s.Sha256));
+            ("@sell", SqlDbType.Int, f.Occupancy.SellableRoomNights), ("@j", SqlDbType.NVarChar, s.Json), ("@h", SqlDbType.Binary, s.Sha256),
+            ("@reopen", SqlDbType.BigInt, s.ReopenId));
     }
 
     public Task<SnapshotRow?> ReadSnapshotAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct) =>
-        ClosingSql.RunAsync(connections, tx, "SELECT snapshot_id, business_date, record_json, record_sha256 FROM cls.closing_snapshot WHERE property_id = @p AND business_date = @d;", async c =>
+        ClosingSql.RunAsync(connections, tx, $"SELECT {SnapshotColumns} FROM cls.closing_snapshot WHERE property_id = @p AND business_date = @d AND superseded_utc IS NULL;", async c =>
         {
             await using var rd = await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            return await rd.ReadAsync(ct).ConfigureAwait(false) ? new SnapshotRow(rd.GetInt64(0), ClosingSql.Date(rd, 1), rd.GetString(2), (byte[])rd[3]) : null;
+            return await rd.ReadAsync(ct).ConfigureAwait(false) ? ReadSnapshot(rd) : null;
         }, ct, P(propertyId), D(date));
 
+    /// <summary>DEC-077: a closed date has one current record (superseded_utc IS NULL); replaced ones are history.</summary>
+    private const string SnapshotColumns = "snapshot_id, business_date, record_json, record_sha256, reopen_id, superseded_utc";
+
+    private static SnapshotRow ReadSnapshot(SqlDataReader rd) => new(rd.GetInt64(0), ClosingSql.Date(rd, 1), rd.GetString(2), (byte[])rd[3],
+        rd.IsDBNull(4) ? null : rd.GetInt64(4), rd.IsDBNull(5) ? null : rd.GetDateTime(5));
+
     public Task<IReadOnlyList<SnapshotRow>> ReadSnapshotsAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct) =>
-        ClosingSql.RunAsync<IReadOnlyList<SnapshotRow>>(connections, null, "SELECT snapshot_id, business_date, record_json, record_sha256 FROM cls.closing_snapshot WHERE property_id = @p AND business_date BETWEEN @from AND @to ORDER BY business_date;", async c =>
+        SnapshotsAsync(propertyId, from, to, current: true, ct);
+
+    public Task<IReadOnlyList<SnapshotRow>> ReadReplacedSnapshotsAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        SnapshotsAsync(propertyId, from, to, current: false, ct);
+
+    private Task<IReadOnlyList<SnapshotRow>> SnapshotsAsync(int propertyId, DateOnly from, DateOnly to, bool current, CancellationToken ct) =>
+        ClosingSql.RunAsync<IReadOnlyList<SnapshotRow>>(connections, null, $"""
+            SELECT {SnapshotColumns} FROM cls.closing_snapshot
+             WHERE property_id = @p AND business_date BETWEEN @from AND @to AND superseded_utc IS {(current ? "" : "NOT ")}NULL ORDER BY business_date, snapshot_id;
+            """, async c =>
         {
             var list = new List<SnapshotRow>();
             await using var rd = await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(new SnapshotRow(rd.GetInt64(0), ClosingSql.Date(rd, 1), rd.GetString(2), (byte[])rd[3]));
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(ReadSnapshot(rd));
             return list;
         }, ct, P(propertyId), D(from, "@from"), D(to, "@to"));
 
@@ -282,6 +302,97 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) events.Add(new CashBookEventView(rd.GetString(0), rd.GetInt32(1), rd.GetDateTime(2), ClosingSql.Str(rd, 3)));
             return (day, events);
         }, ct, P(propertyId), D(date));
+
+    // ── DEC-077 reopen of a closed business day (migration 3600) ──
+
+    private const string ReopenColumns = """
+        reopen_id, property_id, business_date, reopened_by, reopened_utc, reason, prior_snapshot_id, cash_book_locked, tally_reexport,
+        reclosed_by, reclosed_utc, snapshot_id
+        """;
+
+    private static DayReopenRow ReadReopen(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), ClosingSql.Date(rd, 2), rd.GetInt32(3), rd.GetDateTime(4),
+        rd.GetString(5), rd.GetInt64(6), rd.GetBoolean(7), rd.GetBoolean(8), rd.IsDBNull(9) ? null : rd.GetInt32(9), rd.IsDBNull(10) ? null : rd.GetDateTime(10),
+        rd.IsDBNull(11) ? null : rd.GetInt64(11));
+
+    private static async Task<List<DayReopenRow>> ReopenListAsync(SqlCommand c, CancellationToken ct)
+    {
+        var list = new List<DayReopenRow>();
+        await using var rd = await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(ReadReopen(rd));
+        return list;
+    }
+
+    public Task<DayReopenRow?> OpenReopenAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        ClosingSql.RunAsync(connections, tx, $"""
+            SELECT {ReopenColumns} FROM cls.day_reopen {(tx is null ? "" : "WITH (UPDLOCK, HOLDLOCK)")} WHERE property_id = @p AND reclosed_utc IS NULL;
+            """, async c => (await ReopenListAsync(c, ct).ConfigureAwait(false)).FirstOrDefault(), ct, P(propertyId));
+
+    public Task<long> InsertReopenAsync(ICommandTransaction tx, NewDayReopen reopen, bool tallyReexport, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(reopen);
+        return ClosingSql.RunAsync(connections, tx, """
+            INSERT cls.day_reopen(property_id, business_date, reopened_by, reopened_utc, reason, prior_snapshot_id, cash_book_locked, tally_reexport)
+            OUTPUT INSERTED.reopen_id VALUES (@p, @d, @u, @now, @why, @prior, @cb, @tally);
+            """, async c => (long)(await c.ExecuteScalarAsync(ct).ConfigureAwait(false))!, ct,
+            P(reopen.PropertyId), D(reopen.BusinessDate), ("@u", SqlDbType.Int, reopen.ReopenedBy), ("@now", SqlDbType.DateTime2, reopen.ReopenedUtc),
+            ("@why", SqlDbType.NVarChar, reopen.Reason), ("@prior", SqlDbType.BigInt, reopen.PriorSnapshotId), ("@cb", SqlDbType.Bit, reopen.CashBookLocked),
+            ("@tally", SqlDbType.Bit, tallyReexport));
+    }
+
+    /// <summary>The application lock (transaction-owned) that orders writers on a reopened day (shared) against its re-close (exclusive).</summary>
+    internal static string DayResource(int propertyId, DateOnly date) =>
+        "hcc:reopen:" + propertyId.ToString(CultureInfo.InvariantCulture) + ":" + date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+
+    internal static async Task DayLockAsync(SqlCommandTransaction tx, int propertyId, DateOnly date, string mode, CancellationToken ct)
+    {
+        await using var cmd = tx.Command("DECLARE @r int; EXEC @r = sp_getapplock @Resource = @res, @LockMode = @mode, @LockOwner = 'Transaction', @LockTimeout = 30000; SELECT @r;");
+        cmd.Parameters.Add("@res", SqlDbType.NVarChar, 255).Value = DayResource(propertyId, date);
+        cmd.Parameters.Add("@mode", SqlDbType.VarChar, 20).Value = mode;
+        if (Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture) < 0)
+            throw new HccException(HccErrorCode.UNAVAILABLE, "The reopened day is being closed again or corrected. Try again.");
+    }
+
+    public async Task<DayReopenRow?> LockReopenForCloseAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct)
+    {
+        var sql = tx as SqlCommandTransaction ?? throw new InvalidOperationException("Closing needs a SQL command transaction.");
+        await DayLockAsync(sql, propertyId, date, "Exclusive", ct).ConfigureAwait(false);
+        return await ClosingSql.RunAsync(connections, tx, $"""
+            SELECT {ReopenColumns} FROM cls.day_reopen WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND business_date = @d AND reclosed_utc IS NULL;
+            """, async c => (await ReopenListAsync(c, ct).ConfigureAwait(false)).FirstOrDefault(), ct, P(propertyId), D(date)).ConfigureAwait(false);
+    }
+
+    public async Task MarkReclosedAsync(ICommandTransaction tx, long reopenId, int principalId, DateTime nowUtc, long snapshotId, CancellationToken ct)
+    {
+        var n = await ClosingSql.ExecAsync(tx, "UPDATE cls.day_reopen SET reclosed_by = @u, reclosed_utc = @now, snapshot_id = @s WHERE reopen_id = @r AND reclosed_utc IS NULL;", ct,
+            ("@u", SqlDbType.Int, principalId), ("@now", SqlDbType.DateTime2, nowUtc), ("@s", SqlDbType.BigInt, snapshotId), ("@r", SqlDbType.BigInt, reopenId)).ConfigureAwait(false);
+        if (n != 1) throw new InvalidOperationException("The reopen is not open.");
+    }
+
+    public async Task SupersedeSnapshotAsync(ICommandTransaction tx, long snapshotId, long reopenId, DateTime nowUtc, CancellationToken ct)
+    {
+        var n = await ClosingSql.ExecAsync(tx, "UPDATE cls.closing_snapshot SET superseded_utc = @now, superseded_reopen_id = @r WHERE snapshot_id = @s AND superseded_utc IS NULL;", ct,
+            ("@now", SqlDbType.DateTime2, nowUtc), ("@r", SqlDbType.BigInt, reopenId), ("@s", SqlDbType.BigInt, snapshotId)).ConfigureAwait(false);
+        if (n != 1) throw new InvalidOperationException("The closing record is not current.");
+    }
+
+    public Task<IReadOnlyList<DayReopenRow>> ReopensAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        ClosingSql.RunAsync<IReadOnlyList<DayReopenRow>>(connections, tx, $"""
+            SELECT {ReopenColumns} FROM cls.day_reopen
+             WHERE property_id = @p AND (business_date BETWEEN @from AND @to OR reclosed_utc IS NULL) ORDER BY business_date, reopen_id;
+            """, async c => await ReopenListAsync(c, ct).ConfigureAwait(false), ct, P(propertyId), D(from, "@from"), D(to, "@to"));
+
+    public Task<IReadOnlyList<PendingApproval>> PendingCorrectionsAsync(ICommandTransaction tx, int propertyId, DateOnly date, DateTime nowUtc, CancellationToken ct) =>
+        ClosingSql.RunAsync<IReadOnlyList<PendingApproval>>(connections, tx, """
+            SELECT a.approval_id, a.action, a.amount_paise, a.reason FROM bill.approval a JOIN bill.charge c ON c.charge_id = a.target_id
+             WHERE a.property_id = @p AND a.action = 'correction' AND a.target_kind = 'charge' AND a.status = 'Pending' AND a.expires_utc >= @now
+               AND c.service_date = @d ORDER BY a.approval_id;
+            """, async c =>
+        {
+            var list = new List<PendingApproval>();
+            await using var rd = await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(new PendingApproval(rd.GetInt64(0), rd.GetString(1), new Paise(rd.GetInt64(2)), rd.GetString(3)));
+            return list;
+        }, ct, P(propertyId), D(date), ("@now", SqlDbType.DateTime2, nowUtc));
 
     public async Task<IAsyncDisposable?> TryAcquireRunLeaseAsync(int propertyId, CancellationToken ct)
     {
@@ -360,6 +471,16 @@ public sealed class SqlBusinessDayGuard : IBusinessDayGuard
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
         cmd.Parameters.Add("@d", SqlDbType.Date).Value = date.ToDateTime(TimeOnly.MinValue);
         if (Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture) == 1) throw CloseRules.DayClosed(date);
+    }
+
+    public async Task<bool> IsReopenedAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct = default)
+    {
+        var s = Sql(tx);
+        await SqlClosingStore.DayLockAsync(s, propertyId, date, "Shared", ct).ConfigureAwait(false);
+        await using var cmd = s.Command("SELECT COUNT(*) FROM cls.day_reopen WHERE property_id = @p AND business_date = @d AND reclosed_utc IS NULL;");
+        cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+        cmd.Parameters.Add("@d", SqlDbType.Date).Value = date.ToDateTime(TimeOnly.MinValue);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture) > 0;
     }
 
     public async Task EnsureCashBookOpenAsync(ICommandTransaction tx, int propertyId, DateOnly date, string what, CancellationToken ct = default)

@@ -20,6 +20,8 @@ namespace Hcc.Application.Billing;
 /// price; services by category; discounts follow the folio's room-night rate; reversals copy the original line). The rate is
 /// stored on the charge (tax_bps / tax_paise snapshot) and, when <paramref name="gstSnapshots"/> is wired, the category, ITC flag
 /// and CGST / SGST split go to <c>tax.charge_gst</c> in the same transaction.
+/// DEC-077: while the Owner has reopened an earlier business day, a correction of a line dated that day posts on it, and PostCharge may
+/// name it as the service date (<see cref="PostingDateAsync"/>); every other line still posts on the business date (adjustment-only).
 /// </summary>
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null)
@@ -79,15 +81,16 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         {
             var f = await RequireFolioAsync(tx, caller, req.FolioId, ct2).ConfigureAwait(false);
             if (!f.IsOpen) throw Invalid("This folio is no longer open.");
-            var g = await gst.ChargeAsync(tx, caller.PropertyId, f.BusinessDate, category, ct2).ConfigureAwait(false);
+            var date = await PostingDateAsync(tx, caller, f, req.ServiceDate, "a charge on that day", ct2).ConfigureAwait(false);
+            var g = await gst.ChargeAsync(tx, caller.PropertyId, date, category, ct2).ConfigureAwait(false);
             var bps = g.Bps;
-            var line = new NewCharge(f.FolioId, ChargeKind.Service, f.BusinessDate, label, amount, bps, GstMath.LineTax(amount, bps), null, null, caller.PrincipalId, Now);
+            var line = new NewCharge(f.FolioId, ChargeKind.Service, date, label, amount, bps, GstMath.LineTax(amount, bps), null, null, caller.PrincipalId, Now);
             var id = await store.InsertChargeAsync(tx, line, ct2).ConfigureAwait(false);
             await RecordGstAsync(tx, id, g, line.Tax, ct2).ConfigureAwait(false);
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("CHARGE_POSTED", Target("folio", f.FolioId), $"{label} · {amount} + tax {line.Tax}", ct2).ConfigureAwait(false);
-            await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "service", serviceDate = f.BusinessDate, amountPaise = amount.Value, taxPaise = line.Tax.Value }, ct2).ConfigureAwait(false);
-            return new ChargeResult(id, f.FolioId, "service", f.BusinessDate, label, amount.Value, bps, line.Tax.Value, true, version);
+            await tx.AuditAsync("CHARGE_POSTED", Target("folio", f.FolioId), $"{label} · {amount} + tax {line.Tax}" + (date != f.BusinessDate ? $" · on reopened day {date:yyyy-MM-dd} (DEC-077)" : ""), ct2).ConfigureAwait(false);
+            await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "service", serviceDate = date, amountPaise = amount.Value, taxPaise = line.Tax.Value }, ct2).ConfigureAwait(false);
+            return new ChargeResult(id, f.FolioId, "service", date, label, amount.Value, bps, line.Tax.Value, true, version);
         }, ct).ConfigureAwait(false);
     }
 
@@ -337,7 +340,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                     var line = lines.FirstOrDefault(l => l.ChargeId == a.TargetId) ?? throw NotFound("The original line no longer exists.");
                     if (days is not null) await days.EnsureCashBookOpenAsync(tx, caller.PropertyId, line.ServiceDate, "posting this correction", ct2).ConfigureAwait(false); // P6 DEC-065
                     if (lines.Any(l => l.ReversesChargeId == line.ChargeId)) throw Invalid("This line is already reversed.");
-                    var reversal = new NewCharge(f.FolioId, ChargeKind.Correction, f.BusinessDate, Clip($"Reversal · {line.Label} · {a.Reason}", 200), -line.Amount,
+                    var on = await ReversalDateAsync(tx, caller, f, line, ct2).ConfigureAwait(false); // DEC-077: the reopened day, else the business date
+                    var reversal = new NewCharge(f.FolioId, ChargeKind.Correction, on, Clip($"Reversal · {line.Label} · {a.Reason}", 200), -line.Amount,
                         line.TaxBps, -line.Tax, line.ChargeId, a.ApprovalId, caller.PrincipalId, now);
                     var chargeId = await store.InsertChargeAsync(tx, reversal, ct2).ConfigureAwait(false);
                     await RecordReversalGstAsync(tx, line, chargeId, reversal.Tax, ct2).ConfigureAwait(false);
@@ -472,6 +476,26 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         if (f is null || f.PropertyId != caller.PropertyId) throw NotFound("Folio not found.");
         return f;
     }
+
+    /// <summary>
+    /// DEC-077: the date a new line posts on. Without <paramref name="requested"/> (or when it is the business date) the business date.
+    /// An earlier date must be the property's reopened business day — anything else is DAY_CLOSED (corrections post in the open day) —
+    /// its cash book must not be locked (DEC-065, unchanged by the reopen) and the date must fall within the stay. A later date is refused.
+    /// </summary>
+    private async Task<DateOnly> PostingDateAsync(ICommandTransaction tx, Caller caller, FolioHeader f, DateOnly? requested, string what, CancellationToken ct)
+    {
+        if (requested is not { } d || d == f.BusinessDate) return f.BusinessDate;
+        if (d > f.BusinessDate) throw HccException.Validation("A charge cannot be posted ahead of the business date.");
+        if (days is null || !await days.IsReopenedAsync(tx, caller.PropertyId, d, ct).ConfigureAwait(false)) throw Hcc.Domain.Closing.CloseRules.DayClosed(d);
+        await days.EnsureCashBookOpenAsync(tx, caller.PropertyId, d, what, ct).ConfigureAwait(false);
+        if (d < f.Arrival || d > f.Departure) throw Invalid("The service date is outside the stay.");
+        return d;
+    }
+
+    /// <summary>DEC-077: a reversal posts on the original line's date when that date is the reopened business day, else on the business date (adjustment-only, as before).</summary>
+    private async Task<DateOnly> ReversalDateAsync(ICommandTransaction tx, Caller caller, FolioHeader f, PostedLine line, CancellationToken ct)
+        => line.ServiceDate < f.BusinessDate && days is not null && await days.IsReopenedAsync(tx, caller.PropertyId, line.ServiceDate, ct).ConfigureAwait(false)
+            ? line.ServiceDate : f.BusinessDate;
 
     private async Task<FolioFigures> FiguresAsync(ICommandTransaction tx, long folioId, CancellationToken ct)
         => FolioStatement.Compute(await store.LinesAsync(tx, folioId, ct).ConfigureAwait(false), await store.ReceiptsAsync(tx, folioId, ct).ConfigureAwait(false));

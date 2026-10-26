@@ -4,7 +4,7 @@
 import {csvMinimal} from '../csv';
 import type {State,Booking,Line,Receipt,Expense} from '../types';
 import {drawer} from '../selectors';
-import {reportPack,expenseCounts,closingOutlet} from './closing';
+import {reportPack,expenseCounts,closingOutlet,closingReopened} from './closing';
 import {posSlice,type POSReceipt} from './pos';
 import {lineTax,gstSplit} from '../gst';
 
@@ -81,7 +81,12 @@ export type ACCLockEvent={id:string;at:string;actor:string;date:string;action:'l
  *  ledgers without an HCC account, e.g. Owner's capital · Equity). Never set in the prototype. */
 export type ACCServerDay={status:ACCDayStatus;vouchers:ACCVoucher[];exceptions:ACCException[];checks:ACCCheck[]};
 export type ACCServer={from:string;to:string;days:Record<string,ACCServerDay>;opening:ACCVoucher[];mapRows:ACCMapRow[];accounts?:Record<string,{name:string;group:ACCTBGroup}>};
-export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer};
+/** DEC-077: one recorded Tally export (the Download XML button): the dates it carried, which were re-exports and which provisional. */
+export type ACCTallyExport={id:string;at:string;by:string;from:string;to:string;dates:string[];reexport:string[];provisional:string[];count:number};
+/** DEC-077: a date whose vouchers changed after they were exported (its day was reopened); the next export carries it again. */
+export type ACCReexport={at:string;reason:string;reopen?:string};
+export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer;
+  tallyExports?:ACCTallyExport[];reexport?:Record<string,ACCReexport>};
 export const accEmpty=():ACCState=>({});
 export const accSlice=(s:State):ACCState=>s.accountingX??accEmpty();
 /** Effective mapping = defaults overlaid with the slice's overrides. */
@@ -180,7 +185,8 @@ export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSl
 // ── Status & exceptions ──
 export type ACCDayStatus='Open'|'Closed'|'Locked';
 export function accDayStatus(s:State,date:string):ACCDayStatus{const sv=accSlice(s).server;if(sv)return sv.days[date]?.status??(date<s.date?'Closed':'Open');
-  return accLockOf(s,date)?'Locked':s.closedDates.includes(date)?'Closed':'Open';}
+  // DEC-077: the day the Owner reopened counts as Open (live vouchers, not lockable) until it is closed again.
+  return accLockOf(s,date)?'Locked':closingReopened(s)?.date===date?'Open':s.closedDates.includes(date)?'Closed':'Open';}
 export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'open-day';title:string;detail:string;voucher?:string;source?:string;key?:string};
 const fingerprint=(vs:ACCVoucher[])=>vs.map(v=>v.source.id+'='+accVoucherTotals(v).debit).sort().join('|');
 export function accExceptions(s:State,date:string):ACCException[]{
@@ -200,7 +206,7 @@ export const accBlocking=(xs:ACCException[])=>xs.filter(x=>x.severity==='error')
 /** Why a date cannot be locked now ('' = it can). Permission is checked separately. */
 export function accLockBlocker(s:State,date:string):string{
   if(accLockOf(s,date))return 'This date is already locked.';
-  if(accSlice(s).server?accDayStatus(s,date)==='Open':!s.closedDates.includes(date))return 'Close the business day before locking it.';
+  if(accDayStatus(s,date)==='Open')return 'Close the business day before locking it.';
   const e=accBlocking(accExceptions(s,date));
   if(e.length)return `Resolve ${e.length} exception${e.length===1?'':'s'} first (${e[0].title}).`;
   return '';
@@ -284,16 +290,27 @@ export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;r
 export const TALLY_MAX_DAYS=31;
 const xmlEsc=(t:string)=>t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const tallyDate=(d:string)=>d.split('-').join('');
-export type TallyPreview={xml:string;count:number;debit:number;credit:number;from:string;to:string;dates:number;simulated:true;error?:string};
-/** Vouchers of every business date from..to (inclusive, ≤ 31 days) as a Tally "Import Data" envelope. */
+export type TallyPreview={xml:string;count:number;debit:number;credit:number;from:string;to:string;dates:number;simulated:true;error?:string;
+  /** The business dates carried (incl. DEC-077 re-exports outside the range). */dateList:string[];
+  /** DEC-077: dates carried again because they changed after an earlier export; provisional = the day is still reopened. */reexport:string[];provisional:string[]};
+/** DEC-077: the XML note naming a re-exported / provisional day (escaped; "--" cannot end the comment early). */
+export const accTallyNote=(text:string)=>`<!-- ${xmlEsc(text).split('--').join('- -')} -->`;
+/**
+ * Vouchers of every business date from..to (inclusive, ≤ 31 days) as a Tally "Import Data" envelope. DEC-077: dates flagged changed after
+ * an earlier export (accountingX.reexport) are carried again even outside the range, each with a RE-EXPORT note; the reopened day is PROVISIONAL.
+ */
 export function accTallyXml(s:State,from:string,to:string,company?:string):TallyPreview{
-  const empty={xml:'',count:0,debit:0,credit:0,from,to,dates:0,simulated:true as const};
+  const empty={xml:'',count:0,debit:0,credit:0,from,to,dates:0,simulated:true as const,dateList:[],reexport:[],provisional:[]};
   // F10 (W05 review): a real calendar date, not only the yyyy-mm-dd shape (2026-02-30 used to pass).
   const real=(d:string)=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
   if(!real(from)||!real(to)||from>to)return {...empty,error:'Choose a valid range: "from" on or before "to".'};
   const days=Math.round((Date.parse(to)-Date.parse(from))/86400000)+1;
   if(days>TALLY_MAX_DAYS)return {...empty,error:`Choose at most ${TALLY_MAX_DAYS} days.`};
-  const dates=accDates(s).filter(d=>d>=from&&d<=to).sort(),vs=dates.flatMap(d=>accVouchers(s,d));
+  const flags=accSlice(s).reexport??{},open=closingReopened(s)?.date;
+  const dates=[...new Set([...accDates(s).filter(d=>d>=from&&d<=to),...Object.keys(flags).filter(d=>accVouchers(s,d).length)])].sort(),vs=dates.flatMap(d=>accVouchers(s,d));
+  const reexport=dates.filter(d=>flags[d]),provisional=dates.filter(d=>d===open);
+  const notes=[...reexport.map(d=>accTallyNote(`RE-EXPORT · ${d} changed after it was exported (day reopened: ${flags[d].reason}). Delete that day's HCC vouchers in Tally before importing this file, or Tally will hold them twice.`)),
+    ...provisional.map(d=>accTallyNote(`PROVISIONAL · ${d} is reopened and may still change; it is carried again by the first export after it is closed again.`))];
   const name=xmlEsc(company??s.settings.hotel);
   const body=vs.map(v=>`   <TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER VCHTYPE="${v.type}" ACTION="Create" OBJVIEW="Accounting Voucher View">
     <DATE>${tallyDate(v.date)}</DATE><VOUCHERTYPENAME>${v.type}</VOUCHERTYPENAME><VOUCHERNUMBER>${xmlEsc(v.no)}</VOUCHERNUMBER><NARRATION>${xmlEsc(v.narration)}</NARRATION><EFFECTIVEDATE>${tallyDate(v.date)}</EFFECTIVEDATE>
@@ -302,7 +319,7 @@ ${v.entries.map(e=>`    <ALLLEDGERENTRIES.LIST><LEDGERNAME>${xmlEsc(accLedgerNam
   const t=accTotals(vs);
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
 <!-- SIMULATED PREVIEW · Hotel Control Centre prototype · fictional data · nothing was sent to Tally · saving this file does not mean it was imported -->
-<ENVELOPE>
+${notes.map(n=>n+'\n').join('')}<ENVELOPE>
  <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>
  <BODY><IMPORTDATA>
   <REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME><STATICVARIABLES><SVCURRENTCOMPANY>${name}</SVCURRENTCOMPANY></STATICVARIABLES></REQUESTDESC>
@@ -312,5 +329,5 @@ ${body}
  </IMPORTDATA></BODY>
 </ENVELOPE>
 `;
-  return {xml,count:vs.length,debit:t.debit,credit:t.credit,from,to,dates:dates.length,simulated:true};
+  return {xml,count:vs.length,debit:t.debit,credit:t.credit,from,to,dates:dates.length,simulated:true,dateList:dates,reexport,provisional};
 }

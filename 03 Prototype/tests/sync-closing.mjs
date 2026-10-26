@@ -17,7 +17,7 @@ const figures=(d)=>({from:d,to:d,
 const snap=(d,id)=>({snapshotId:id,sha256:'AB'+id,record:{businessDate:d,closedBy:1,closedUtc:d+'T17:30:00.000Z',runId:id,attempts:2,nightAuditResumed:true,nightAuditStays:8,
   depositsHeldAtClosePaise:50000,exceptions:['Cash difference −₹5 on till FD-1 accepted'],figures:figures(d)}});
 
-export async function register({test,assert}){
+export async function register({test,assert,M}){
   const S=await loadSync();
   await build({entryPoints:['src/clients/sync/closing/figures.ts'],bundle:true,platform:'node',format:'esm',outfile:FIG,logLevel:'error'});
   const F=await import(new URL('../'+FIG,import.meta.url).href);
@@ -136,6 +136,41 @@ export async function register({test,assert}){
   test('[W4-4 closing] The area declares what stays unmapped (corrections, POST_NIGHTS) with reasons',()=>{
     const u=S.AREAS.find(a=>a.id==='closing').unmapped;
     assert.deepEqual(Object.keys(u).sort(),['CORRECTION_ADJUST','CORRECTION_ADJUST_DECIDE','POST_NIGHTS']);
-    assert.deepEqual(S.AREAS.find(a=>a.id==='closing').commands.map(c=>c.type).sort(),['CLOSE_RUN','DAY_CLOSE','NEXT_DAY','NIGHT_POST']);
+    assert.deepEqual(S.AREAS.find(a=>a.id==='closing').commands.map(c=>c.type).sort(),['CLOSE_RUN','DAY_CLOSE','DAY_RECLOSE','DAY_REOPEN','NEXT_DAY','NIGHT_POST']);
+  });
+
+  // DEC-077: reopens and replaced records ride on the records view (attached to their date); the open reopen of a day outside the
+  // 62-day window is read on its own; DAY_REOPEN → ReopenBusinessDay, DAY_RECLOSE → RunBusinessDayClose for the reopened date.
+  const OLD='2026-08-01';let openOld=false;
+  const reopenOf=(id,date,open)=>({reopenId:id,businessDate:date,status:open?'Reopened':'Closed',reopenedBy:1,reopenedUtc:'2026-10-25T04:00:00Z',reason:'Wrong folio',priorSnapshotId:3,
+    cashBookLocked:true,tallyReexport:!open,reclosedBy:open?null:2,reclosedUtc:open?null:'2026-10-25T05:00:00Z',snapshotId:open?null:4});
+  const rsrv=fakeServer({
+    'GET /closing/business-date':()=>({businessDate:'2026-10-25',closed:false,reopenedDate:openOld?OLD:null}),
+    'GET /closing/records':({query})=>query.from===OLD?{from:OLD,to:OLD,items:[snap(OLD,9)],replaced:[],reopens:[reopenOf(5,OLD,true)]}
+      :{from:query.from,to:query.to,items:[snap('2026-10-23',2),{...snap('2026-10-24',4),reopenId:1}],replaced:[{...snap('2026-10-24',3),supersededUtc:'2026-10-25T05:00:00Z'}],
+        reopens:[reopenOf(1,'2026-10-24',false),...(openOld?[reopenOf(5,OLD,true)]:[])]},
+    'POST /commands/ReopenBusinessDay':({body})=>{openOld=true;return {reopen:reopenOf(5,body.businessDate,true),message:`Business day ${body.businessDate} reopened.`};},
+    'POST /commands/RunBusinessDayClose':({body})=>{openOld=false;return {runId:1,runRef:body.runId,businessDate:body.businessDate,status:'Completed',currentStep:'done',attempts:1,nextBusinessDate:null,snapshotId:10,steps:[]};},
+  });
+  const rrt=await startRuntime(S,rsrv);const r0=rrt.get().state;
+  rsrv.reset();const badReopen=await rrt.run({type:'DAY_REOPEN',date:OLD,reason:'  '});const badCalls=rsrv.calls.length;
+  const re=await rrt.run({type:'DAY_REOPEN',date:OLD,reason:' Wrong folio ',key:'reopen:1'});const reCmd=rsrv.commands('ReopenBusinessDay')[0];const r1=rrt.get().state;
+  const oldReads=rsrv.gets('/closing/records').map(g=>g.query.from);
+  const shownReopened=[P.renderPages(r1,'1',false),P.renderPages(r1,'1',true)];
+  rsrv.reset();const rcl=await rrt.run({type:'DAY_RECLOSE',date:OLD,key:'reclose:1'});const rcCmd=rsrv.commands('RunBusinessDayClose')[0];const r2=rrt.get().state;
+  test('[DEC-077 closing] Records carry reopens (who, when, cash-book lock, Tally) and replaced records on their date; a re-closed day shows no open reopen',()=>{
+    const c=r0.closings['2026-10-24'];
+    assert.equal(c.replaced.length,1);assert.equal(c.replaced[0].date,'2026-10-24');
+    assert.deepEqual(c.reopens,[{id:'1',date:'2026-10-24',by:'1',at:'2026-10-25T09:30',reason:'Wrong folio',cashBookLocked:true,tallyReexport:true,reclosedBy:'2',reclosedAt:'2026-10-25T10:30'}]);
+    assert.equal(M.closingReopened(r0),undefined);assert.equal(r0.closings['2026-10-23'].reopens,undefined);
+  });
+  test('[DEC-077 closing] DAY_REOPEN → ReopenBusinessDay {businessDate, reason} (reason precheck); the open reopen outside the window is read on its own; DAY_RECLOSE → RunBusinessDayClose for that date',()=>{
+    assert.deepEqual([badReopen.ok,badReopen.reason,badCalls],[false,'precheck',0]);
+    assert.ok(re.ok,re.text);assert.deepEqual([reCmd.key,reCmd.body],['reopen:1',{businessDate:OLD,reason:'Wrong folio'}]);
+    assert.ok(oldReads.includes(OLD),'the old reopened day was read on its own: '+oldReads.join(','));
+    assert.equal(M.closingReopened(r1)?.date,OLD);assert.equal(M.closingPreflight(r1).find(x=>x.id==='reopened').items.length,1);
+    assert.deepEqual(shownReopened.map(x=>x.errors),[{},{}],'every desktop and phone page renders with a reopened day');
+    assert.ok(rcl.ok,rcl.text);assert.deepEqual([rcCmd.key,rcCmd.body],['reclose:1',{businessDate:OLD,runId:'reclose-'+OLD}]);
+    assert.equal(M.closingReopened(r2),undefined);
   });
 }
