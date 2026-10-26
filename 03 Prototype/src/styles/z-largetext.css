@@ -1,0 +1,14 @@
+/* V14-4 · phone bars at Extra large text. APK v14 showed "Room boa…", "Appro…" and "Dates & pa…" at text size 130 %.
+   Loads after mobile.css (same specificity, later wins), so the CP-3a snapshot of mobile.css stays untouched.
+   Text sizes are scaled by --hcc-text (CP-2) while the bars used fixed px heights, so the bars now grow with --hcc-text (calc in lengths,
+   unchanged at 100 % and below); the two-line title and short tab labels switch on with the class m-large (text size 115 % and up,
+   set by MobileShell). No colours here. */
+:root{--tabbar:max(64px,calc(64px + (var(--hcc-text,1) - 1) * 60px))} /* toasts and docks sit outside .m-shell */
+.m-shell{--tabbar:max(64px,calc(64px + (var(--hcc-text,1) - 1) * 60px));--appbar:max(56px,calc(56px + (var(--hcc-text,1) - 1) * 60px))}
+/* app bar: title may use two lines, the business-date line is dropped (the home page still shows it) */
+.m-shell.m-large .m-title{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;line-height:1.2}
+.m-shell.m-large .m-date{display:none}
+/* bottom tabs: labels wrap (at most two lines) instead of "Appro…"; their own growth is capped at 110 % so a 5-column bar at 360 px still fits */
+.m-tabbar button>span:last-child{white-space:normal;overflow-wrap:anywhere;text-align:center;text-overflow:clip;font-size:calc(16px * min(var(--hcc-text,1), 1.1));line-height:1.1;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+/* wizard steps: names wrap instead of "Dates & pa…" */
+.m-steps em{white-space:normal;text-overflow:clip;overflow-wrap:anywhere;line-height:1.2}

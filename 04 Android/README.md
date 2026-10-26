@@ -4,13 +4,14 @@ Packages the prototype in `..\03 Prototype` (single self-contained HTML) as a **
 Debug build only: demo data stays on the device (IndexedDB), nothing is sent anywhere, no backend. Not a Play Store release.
 
 ## Prerequisites (this PC)
-- Node 25, Android SDK `C:\Users\Sagar\AppData\Local\Android\Sdk` (platform 36), Android Studio (its JBR is Java 21).
-- Java on PATH is 1.8 — too old. Set these in **every** PowerShell session:
+- Node 25, Android SDK **`E:\Android\Sdk`** on the work PC (platform 36; older note: the old PC used `C:\Users\Sagar\AppData\Local\Android\Sdk`), and a **JDK 21** (below).
+- Java on PATH is 1.8 — too old, and Android Studio's bundled JBR is Java 25 on this PC, which this Gradle setup rejects. Use **JDK 21**: `C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot`. Set these in **every** PowerShell session:
 ```powershell
-$env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"; $env:Path="$env:JAVA_HOME\bin;$env:Path"
-$env:ANDROID_HOME="C:\Users\Sagar\AppData\Local\Android\Sdk"; $env:Path="$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\emulator;$env:Path"
+$env:JAVA_HOME="C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot"; $env:Path="$env:JAVA_HOME\bin;$env:Path"
+$env:ANDROID_HOME="E:\Android\Sdk"; $env:Path="$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\emulator;$env:Path"
 java -version   # must show 21
 ```
+(Older note, old PC: `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`, which was Java 21 then, and `ANDROID_HOME=C:\Users\Sagar\AppData\Local\Android\Sdk`.)
 - **Norton SSL scanning**: this PC's Norton Antivirus re-signs HTTPS traffic with its own root, which Java does not trust, so Gradle cannot download Gradle/AndroidX/Maven files ("PKIX path building failed"). Workaround used here (no system setting changed): a private copy of Java's trust store that also contains Norton's root, in `04 Android\.build\hcc-cacerts.jks`, selected only for the build session:
 ```powershell
 $ts=(Resolve-Path ".build\hcc-cacerts.jks").Path.Replace('\','/')
@@ -73,7 +74,7 @@ node scripts\build-production.mjs --release --ca "<path>\HCC-Hotel-CA.cer" --ass
 - Galaxy Tab S7 (SM-T875, Android 13): Settings → About tablet → tap Build number 7× → Developer options → USB debugging, then `adb install -r …apk`; or copy the APK to the tablet and allow "Install unknown apps" for the file manager.
 
 ## What the app adds over the browser build (`03 Prototype\src\app\native.ts`)
-Android back button (sheet → wizard step → previous page → landing → "Exit?"), maroon status bar, CSV / Excel export (written to the app's private cache `exports/…` + share sheet, never to public storage; the FileProvider shares only that folder, F-L10 / A10-01; every sign-out, session expiry and offline-copy wipe deletes the folder; files an older build wrote to `Documents/HCC/` are not touched and must be deleted by hand), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
+Android back button (sheet → wizard step → previous page → landing → "Exit?"), status bar and gesture-bar strip in the theme colour (StatusBarColor plugin, below), CSV / Excel export (written to the app's private cache `exports/…` + share sheet, never to public storage; the FileProvider shares only that folder, F-L10 / A10-01; every sign-out, session expiry and offline-copy wipe deletes the folder; files an older build wrote to `Documents/HCC/` are not touched and must be deleted by hand), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
 
 ## Known limits
 Debug build only · demo data lives per device (no sync) · no backend · Auto display = desktop on tablet-sized native screens and phone layout on phones; Display toggle allows an explicit choice.
@@ -92,3 +93,12 @@ Local verification: `05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verificat
 - The prototype reaches it only through `03 Prototype\src\app\native.ts` (`textZoomPlugin()`, `setHonourSystemFont(flag)`, `readSystemFontScale()`; no-ops in a browser or in an older APK). Test: `03 Prototype\tests\stream-native-textzoom.mjs` (wrappers with a fake Capacitor + checks on the Java source; there is no Android unit-test setup that runs on this PC).
 - **How to test on a device / emulator:** Settings → Display → Font size and display size → Font size → drag to the largest step ("Largest", fontScale ≈ 1.3; on Android 14+ also "Display size" can be left alone), reopen the app: text is larger and nothing may clip. In the app open Appearance & display → switch "Honour the phone's system font size" off: the text drops to the in-app size (zoom 100 %) at once and stays so after a restart; switch it on again to follow Android. `adb shell settings put system font_scale 1.3` sets the scale from the PC (`1.0` resets).
 - Compile check: `cd android; .\gradlew.bat compileDebugJavaWithJavac --offline` (needs `npm ci`, `node scripts\copy-web.mjs` and `npx cap sync android` first). Gradle wants a **Java 21** JDK: Android Studio's JBR is now Java 25 on this PC, so set `JAVA_HOME` to `C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot`. Verified compiling on 26 Oct 2026.
+
+## Status bar colour follows the theme — StatusBarColor plugin (V14-2)
+`android\app\src\main\java\in\hcc\prototype\StatusBarColorPlugin.java` (JS name `StatusBarColor`, registered in `MainActivity` before `super.onCreate`; in-app, no npm package). The prototype reaches it only through `styleStatusBar(theme)` in `03 Prototype\src\app\native.ts` (the single entry point; `prefs.ts` calls it on every theme change, `App.tsx` at start).
+- **Why:** the app targets SDK 36. From Android 15 (API 35) such an app is drawn edge-to-edge and the system ignores `Window.setStatusBarColor`, so `StatusBar.setBackgroundColor` did nothing and the bar stayed maroon `#7A1F2B` in Dark and High contrast (APK v14 defect V14-2). Capacitor 8's `SystemBars` keeps the web view clear of the bars by padding the window's decor view with the bar insets; the bars are transparent and show the **window background** behind that padding.
+- **What it does (API 35+ only):** `setColors({top, bottom?})` replaces the window background with a drawable that paints the decor view's top padding (the status-bar band) in `top` = the theme's app-bar fill (`#7a1f2b` light, `#ae4155` dark, `#5e1620` high contrast: `STATUS_BAR_COLOURS` in `native.ts`, the same as `--primary-fill` in `themes.css`) and everything else, including the strip behind the gesture bar, in `bottom` = the theme's `--surface` (the tab-bar colour). Icon colours follow each colour's luminance (light icons on the three maroon fills). The web view does not move, so the app-bar layout is unchanged.
+- **Below Android 15 (the Galaxy Tab S7 on Android 13, Android 14):** the plugin does nothing (`{applied:false}`); the ordinary `StatusBar` calls (`setBackgroundColor`, `setStyle`) still work there, so those devices behave exactly as before.
+- **Rejected:** `windowOptOutEdgeToEdgeEnforcement` in `styles.xml`. It only works on Android 15 for apps that target 35; it is ignored when the app targets SDK 36 and on Android 16 devices, and it would also change the layout (the system, not Capacitor, would inset the web view).
+- A browser, or an older APK without the plugin, skips the call. Test: `03 Prototype\tests\stream-native-statusbar.mjs` (fake Capacitor + Java source checks; there is no Android unit-test setup on this PC). **Needs a device check in the next APK:** Dark / High contrast / Follow device on an API 35 emulator; the status bar and the bottom strip must change colour live.
+- Compile check as for TextZoom: `cd android; .\gradlew.bat compileDebugJavaWithJavac --offline` (JDK 21; compiled cleanly 27 Oct 2026).
