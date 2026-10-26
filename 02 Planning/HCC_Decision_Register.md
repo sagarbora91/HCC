@@ -119,6 +119,8 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-MA-5 | Invoice numbering | **One tax-invoice series** for the hotel; the numbering-series master exists so outlets/documents can get separate series later if the CA advises. | Agreed (O, 26 Oct 2026) | O | MA-5, Invoices |
 | DEC-MA-6 | Vendors | **Keep maintenance vendors and expense vendors separate**; expenses get their own vendor master; `mnt.vendor` untouched. | Agreed (O, 26 Oct 2026) | O | MA-3, Expenses |
 | DEC-MA-7 | Masters batch order | After MA-0, **MA-1…MA-7 all run in parallel**, then MA-8…MA-11. | Agreed (O, 26 Oct 2026) | O | Masters wave |
+| DEC-MA-2a | Meal plan rules used by MA-2 | Add-on charged **per guest (adults + children) per night**, posted as its own folio line with each room night (EP / ₹0 posts nothing); a plan chosen after a night was posted applies from the next night. **Bundled** plan: the plan line and that night's new room line take the room slab on room + plan (one composite supply); **separate**: restaurant rate. Plans list room types allowed (empty = all); OTA meal codes RO/BB/HB/FB/AI → EP/CP/MAP/AP. | Assumption (MA-2, 26 Oct 2026) — Illustrative, CA to confirm | O / CA | MA-2, Billing, OTA |
+| DEC-MA-2b | Extras and discount reasons used by MA-2 | Extras: price × quantity, name and GST class prefilled and editable, line keeps `extraId`; free text stays CHARGE (DEC-MA-4). Discount reasons: maximum and approval threshold are **% of the folio's net charges**; above the reason's approval % a request is raised even within the role limit (the Owner decides directly); role limits (DEC-063) still apply. All three lists are money masters: Owner-only (DEC-058). | Assumption (MA-2, 26 Oct 2026) | O | MA-2, Folio |
 
 ## 4. Superseded / changed decisions
 
