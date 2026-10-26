@@ -32,7 +32,7 @@ import {gsvSettings,GSV_REQUEST_TYPES} from './services';
 import {posSlice} from './pos';
 import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
-import {GST_SEED,gstSeedOn,gstSpecifiedPremises,gstPct,GST_ILLUSTRATIVE,type GstKey} from '../gst';
+import {GST_SEED,gstSeedDef,gstSeedOn,gstSpecifiedPremises,gstPct,GST_ILLUSTRATIVE,type GstKey} from '../gst';
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
 export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'data';
@@ -566,9 +566,14 @@ export function cmpDefs(s:State):CfgProviderDef[]{
 }
 /** DEC-069 GST master → hub settings. Values are dated (effective-from), Owner-only (DEC-058), stored by the hub; domain/gst.ts reads them
  *  (gstValueOn) for every new posting. The default shown is the seed version in force on the business date. */
+/** Display text of a GST master value (hub screens and history; the production sync layer formats the server's versions with it). */
+export function gstShow(key:string,v:unknown):string{
+  const d=gstSeedDef(key);if(!d)return String(v??'—');
+  return d.type==='percent'?gstPct(Number(v)):d.type==='money'?money(Number(v)):key==='gst.food.optIn'?(v?'Declared (opt-in)':'Not declared'):(v?'Available':'Not available');
+}
 export function gstDefs(s:State):CfgProviderDef[]{
   const out:CfgProviderDef[]=GST_SEED.map(d=>({key:d.key,label:d.label,type:d.type,unit:d.unit,help:`${d.help} ${GST_ILLUSTRATIVE} for a hotel.`,money:true,dated:true,effectiveMode:'date' as const,illustrative:true,
-    default:gstSeedOn(d.key as GstKey,s.date),...(d.type==='percent'?{min:0,max:2800,show:(v:unknown)=>gstPct(Number(v))}:d.type==='money'?{min:100,max:10000000}:{show:(v:unknown)=>d.key==='gst.food.optIn'?(v?'Declared (opt-in)':'Not declared'):(v?'Available':'Not available')}),
+    default:gstSeedOn(d.key as GstKey,s.date),...(d.type==='percent'?{min:0,max:2800}:d.type==='money'?{min:100,max:10000000}:{}),show:(v:unknown)=>gstShow(d.key,v),
     affects:'New room nights, charges and restaurant bills dated on or after the effective date. Posted lines keep their tax snapshot.',
     impact:(x:State)=>d.key==='gst.food.optIn'?[`Specified premises today: ${gstSpecifiedPremises(x,x.date).specified?'yes':'no'} (${gstSpecifiedPremises(x,x.date).reason}).`]:[]}));
   out.push({key:'gst.specified.status',label:'GST · specified premises this financial year',type:'fixed',fixedReason:'Derived from last financial year’s tariffs, or the opt-in above',

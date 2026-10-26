@@ -69,6 +69,8 @@ export const READS={
   'GET /configuration/requests':one(wide('PERM-ADM-003',true),wide('PERM-ADM-001'),wide('PERM-APR-001')),
   'GET /configuration/history':one(wide('PERM-ADM-003',true),wide('PERM-ADM-001')),
   'GET /configuration/values':always,
+  // GST master (DEC-069): TaxPermissions.ConfigurationView = PERM-ADM-003:VIEW, the same check as /configuration/history.
+  'GET /tax/gst':one(wide('PERM-ADM-003',true),wide('PERM-ADM-001')),
   'GET /payroll/staff':always,
   'GET /payroll/board':always,
   'GET /accounting/days':ACCOUNTING,

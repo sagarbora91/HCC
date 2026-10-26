@@ -4,7 +4,7 @@ export function register({test,M,assert}){
   const {seed,execute,totals,loadScenario,gstForRoomNight,gstForFood,gstForService,gstSpecifiedPremises,gstLineTax,gstSplit,gstLineSplit,gstStayTax,
     gstValueOn,gstCategoryOfLabel,gstFy,cfgDef,cfgCanChange,cfgGroupAccess,HccError}=M;
   const code=fn=>{try{fn();return 'OK';}catch(e){return e instanceof HccError?e.code:'UNTYPED:'+e.message;}};
-  const set=(s,uid,setting,value,effectiveFrom)=>execute(s,uid,{type:'SETTING_SET',setting,value,...(effectiveFrom?{effectiveFrom}:{})});
+  const set=(s,uid,setting,value,effectiveFrom)=>execute(s,uid,{type:'SETTING_SET',setting,value,...(effectiveFrom?{effectiveFrom}:{}),reason:'CA advice'});
   const bk=(s,id)=>s.bookings.find(b=>b.id===id);
   const inhouse=(s,room,dep='2026-10-27')=>{s=execute(s,'reception',{type:'BOOK',guest:'GST Test (fictional)',room,arrival:s.date,departure:dep,people:1});const id=s.bookings.at(-1).id;
     s=execute(s,'reception',{type:'REGISTER',id});s=execute(s,'reception',{type:'CHECKIN',id});return [s,id];};
@@ -159,12 +159,26 @@ export function register({test,M,assert}){
     assert.equal(s.configHistory[0].key,'gst.room.lowBps');assert.equal(s.configHistory[0].effectiveFrom,'2026-10-25');
     // Withdraw before it takes effect → master back to the seed for that date.
     const sched=s.configX.scheduled.find(x=>x.key==='gst.room.lowBps');
-    let w=execute(s,'owner',{type:'CFG_WITHDRAW',id:sched.id});assert.equal(gstValueOn(w,'gst.room.lowBps','2026-10-25'),500);
+    let w=execute(s,'owner',{type:'CFG_WITHDRAW',id:sched.id,reason:'CA withdrew the advice'});assert.equal(gstValueOn(w,'gst.room.lowBps','2026-10-25'),500);
     // Past dates keep the statutory seed (history), whatever is scheduled later.
     assert.equal(gstValueOn(s,'gst.room.lowBps','2025-09-21'),1200);assert.equal(gstValueOn(s,'gst.room.lowBps','2026-04-01'),500);
     // A same-day change applies at once and can be reverted (history/revert).
     let r=set(seed(),'owner','gst.svc.otherBps',1200);const hid=r.configHistory[0].id;
     r=execute(r,'owner',{type:'CFG_REVERT',id:hid});assert.equal(gstForService(r,r.date,'other').bps,1800);
+  });
+  test('[GST] A02-02: a GST change and a GST withdrawal need a reason (≥ 3 characters, as the server\'s SetGstSetting / WithdrawGstSetting); other settings do not',()=>{
+    const s=seed();const msg=fn=>{try{fn();return 'OK';}catch(e){return `${e.code}: ${e.message}`;}};
+    const refused='VALIDATION: Give a reason for the GST change (at least 3 characters).';
+    for(const reason of [undefined,'','  ','ab'])
+      assert.equal(msg(()=>execute(s,'owner',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200,effectiveFrom:'2026-10-25',...(reason===undefined?{}:{reason})})),refused,String(reason));
+    assert.equal(code(()=>execute(s,'techadmin',{type:'SETTING_SET',setting:'gst.room.lowBps',value:1200})),'FORBIDDEN','permission first: Owner only');
+    const t=set(s,'owner','gst.room.lowBps',1200,'2026-10-25');const id=t.configX.scheduled.find(x=>x.key==='gst.room.lowBps').id;
+    assert.equal(t.configHistory[0].reason,'CA advice');
+    assert.equal(msg(()=>execute(t,'owner',{type:'CFG_WITHDRAW',id})),refused);
+    assert.equal(execute(t,'owner',{type:'CFG_WITHDRAW',id,reason:'CA withdrew it'}).configX.scheduled.length,0);
+    // A revert carries its own reason ("Revert to previous value") unless the sheet gives one.
+    const r=set(s,'owner','gst.svc.otherBps',1200);assert.equal(execute(r,'owner',{type:'CFG_REVERT',id:r.configHistory[0].id}).configHistory[0].reason,'Revert to previous value');
+    assert.equal(code(()=>execute(s,'owner',{type:'SETTING_SET',setting:'checkin',value:'13:00'})),'OK','non-GST settings keep the optional reason');
   });
 
   // ── Demo figures and FY26 history ──
