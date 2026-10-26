@@ -16,7 +16,7 @@ import {reservations} from './reservations';
 // import {money} from './money';
 
 // W4-4 closing, reports, exports, overview:
-// import {closing} from './closing';
+import {closing} from './closing';
 
 // W4-5 admin (users, roles, devices, configuration, setup):
 // import {admin} from './admin';
@@ -49,7 +49,7 @@ export const AREAS:SyncArea[]=[
 
   // money, // W4-3
 
-  // closing, // W4-4
+  closing, // W4-4
 
   // admin, // W4-5
 
