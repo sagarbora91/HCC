@@ -1,0 +1,90 @@
+Changed database context to 'HccTest_PERF_20261026163525'.
+720 48.35 1343.57 15383 119282 (@p int,@from date,@to date)SELECT MAX(v) FROM (    SELECT COALESCE((SELECT TOP (1) t.rate_paise FROM inv.room_type_tariff t                     WHERE t.room_ty
+22 14.04 19.86 12243 12243 (@p int)SELECT f.reservation_id, c.kind, c.amount_paise, c.tax_bps,        CASE WHEN c.kind = 'room' AND c.reverses_charge_id IS NULL AND NOT EXISTS (SELECT 1 F
+22 21.27 32.01 12054 12054 (@p int)SELECT r.reservation_id, r.public_no, reg.guest_id, r.guest_name, r.arrival, r.departure, r.status, COALESCE(a.room_no, b.room_no)   FROM inv.reservatio
+489 82.60 974.27 9727 72289 (@p int)SELECT r.room_id, r.room_no, t.code, r.hk_status, r.row_ver,        b.block_id, b.room_id, b.from_date, b.to_date, b.reason, b.source, b.row_ver,       
+22 2.14 4.01 2428 2444 SELECT r.reservation_id, r.public_no, r.row_ver, r.status, r.guest_name, r.phone, r.room_id, rm.room_no, r.room_type_id, t.code,   r.arrival, r.departure, r.adu
+22 1.30 1.93 806 806 SELECT s.reservation_id, rm.room_no, sg.from_date, sg.to_date FROM #pg pg JOIN gst.stay s ON s.reservation_id = pg.reservation_id   JOIN gst.stay_segment sg ON 
+1 3.80 3.80 624 624 (@cut datetime2(7),@n int)DELETE TOP (@n) FROM plat.idempotency WHERE created_utc < @cut
+11 2.26 2.87 454 454 (@p int,@take int,@skip int)INSERT #pg(reservation_id) SELECT r.reservation_id FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.room_id JOIN inv.room_t
+11 2.23 2.76 454 454 (@p int,@from date,@to date,@take int,@skip int)INSERT #pg(reservation_id) SELECT r.reservation_id FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.roo
+240 2.04 46.38 436 2008 (@p int)SELECT COALESCE(SUM(CASE x.kind WHEN 'deposit' THEN x.amount_paise WHEN 'deposit-return' THEN -x.amount_paise ELSE 0 END), 0)   FROM pay.receipt x JOIN 
+239 .58 3.46 223 1203 (@p int,@bd date,@utc datetime2(7))INSERT ops.hk_task(property_id, room_id, kind, status, stay_id, causal_key, business_date, created_utc)  SELECT @p, r.room_id
+1 1.73 1.73 194 194 (@b bigint,@u int,@now datetime2(7),@j nvarchar(max))UPDATE imp.batch SET status = 'Committed', committed_by = @u, committed_utc = @now, result_json = @j WHERE 
+456 1.27 42.75 192 817 (@t0 varchar(60),@t1 varchar(60),@t2 varchar(60),@t3 varchar(60),@t4 varchar(60),@t5 varchar(60),@t6 varchar(60),@t7 varchar(60),@t8 varchar(60),@t9 varchar(60)
+11 36.29 42.43 188 188 (@p int,@f date,@t date)SELECT s.source_id, s.source_key, s.source_kind, s.sub, s.voucher_type, s.business_date, s.narration, e.map_key, e.debit_paise, e.credit
+960 .49 3.20 128 226 (@p int,@d date)SELECT s.stay_id, s.folio_id, r.public_no, r.guest_name, rm.room_no,        CASE WHEN EXISTS (SELECT 1 FROM bill.charge c WHERE c.folio_id = s.f
+251 .27 5.86 124 237 (@p int,@d date)SELECT snapshot_id, business_date, record_json, record_sha256, reopen_id, superseded_utc FROM cls.closing_snapshot WHERE property_id = @p AND bu
+251 1.35 26.45 120 327 (@p int,@from date,@to date)SELECT c.charge_id, c.folio_id, c.kind, c.service_date, c.label, c.amount_paise, c.tax_bps, c.tax_paise, c.reverses_charge_id, o.kin
+1 3.21 3.21 119 119 (@t0 varchar(60),@t1 varchar(60),@t2 varchar(60),@t3 varchar(60),@t4 varchar(60),@t5 varchar(60),@t6 varchar(60),@t7 varchar(60),@t8 varchar(60),@t9 varchar(60)
+3580 .85 9.11 117 999 (@r bigint)SELECT c.amount_paise, c.tax_bps FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id WHERE f.reservation_id = @r
+12 4.52 5.24 116 116 (@p int,@bd date)SELECT r.reservation_id, r.public_no, r.status, r.guest_name, COALESCE(cur.room_id, r.room_id), COALESCE(cur.room_no, rm.room_no), t.code,     
+1 .76 .76 109 109 (@p int,@m varchar(20),@f nvarchar(200),@h binary(32),@t nvarchar(max),@d date,@r int,@e int,@u int,@now datetime2(7))INSERT imp.batch(property_id, master, file
+1 1.74 1.74 108 108 (@cut datetime2(7),@n int)INSERT @ids(outbox_id)  SELECT TOP (@n) o.outbox_id FROM plat.outbox o   WHERE o.created_utc < @cut AND o.published_utc IS NOT NULL   
+454 .92 27.29 99 675 (@t0 varchar(60),@t1 varchar(60),@t2 varchar(60),@t3 varchar(60),@low bigint,@c varchar(40),@n int)INSERT @p(outbox_id)  SELECT TOP (@n) x.outbox_id  FROM (VALU
+1 .57 .57 84 84 (@p int,@c varchar(20),@n nvarchar(100),@u int,@t datetime2(3))INSERT pay.till(property_id, code, name, created_by, created_utc)  OUTPUT INSERTED.till_id, INSER
+489 5.93 160.18 74 604 (@p int,@a int)SELECT t.task_id, t.room_id, r.room_no, t.kind, t.status, t.assignee_id, t.checklist_mask, t.note, t.reject_reason, t.business_date, t.started_ut
+22 4.64 8.81 70 74 (@p int,@f date,@t date)SELECT l.invoice_id, l.line_no, l.source_line_id, l.kind, l.service_date, l.description, l.category, l.sac, l.taxable_paise, l.tax_bps, 
+1 .56 .56 68 68 (@h binary(32),@u int,@p int,@k varchar(8),@d int,@s int,@now datetime2(7),@abs datetime2(7))INSERT plat.session(token_sha256, user_id, property_id, credential_
+22 3.84 8.06 68 68 (@p int,@f date,@t date)SELECT invoice_id, property_id, doc_type, invoice_no, fy_code, seq, invoice_date, source_kind, source_id, source_ref, period_from, perio
+1 .53 .53 61 61 (@p int,@l varchar(40),@n nvarchar(100),@now datetime2(7))INSERT plat.app_user(property_id, login_name, display_name, created_utc) OUTPUT INSERTED.user_id INTO 
+1 .69 .69 60 60 (@rules nvarchar(586),@p int)INSERT msg.trigger_rule(property_id, rule_id, event, template_code, channel, enabled)   SELECT @p, JSON_VALUE(j.value, '$.id'), JSO
+plat.audit_event 22828
+plat.idempotency 21631
+acc.source_entry 14408
+plat.consumer_dedup 10407
+plat.outbox 8496
+acc.source 4197
+msg.message 3580
+bill.quote_night 3018
+inv.reservation_night 3018
+inv.room_night 3018
+bill.charge 3007
+tax.charge_gst 3007
+ops.hk_task 2996
+ivc.invoice_line 2912
+gst.guest 2355
+cls.close_step 1440
+bill.folio 1200
+gst.registration 1200
+inv.reservation 1200
+bill.quote 1200
+gst.stay 1200
+gst.stay_segment 1200
+pay.receipt 1190
+ivc.invoice 1179
+inv.type_night_count 719
+plat.role_grant 436
+pay.shift 241
+pay.shift_count 241
+cls.closing_snapshot 240
+cls.close_run 240
+cls.business_day 240
+pay.cash_movement 230
+plat.permission 137
+dbo.schema_migration 60
+plat.outbox_subscription 32
+inv.room 24
+tax.gst_setting_version 12
+tax.gst_setting 10
+plat.role 10
+imp.batch 7
+imp.opening_balance 7
+msg.template 6
+msg.trigger_rule 6
+plat.outbox_consumer 5
+imp.ledger 4
+cfg.setting 3
+cfg.setting_change 3
+inv.room_type 3
+inv.room_type_tariff 3
+ivc.series 2
+plat.session 1
+pay.till 1
+plat.user_role 1
+imp.opening_set 1
+inv.property 1
+plat.credential 1
+plat.app_user 1
+208.0
+2026-05-29

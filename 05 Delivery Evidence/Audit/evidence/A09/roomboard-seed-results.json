@@ -1,0 +1,313 @@
+{
+ "start": "2025-10-01",
+ "info": {
+  "bookings": 1200,
+  "closed": 240,
+  "lastDate": "2026-05-28",
+  "longFolio": 1170
+ },
+ "reads": [
+  {
+   "name": "Room board",
+   "path": "/rooms/board?pageSize=50",
+   "status": 200,
+   "coldMs": 30.6,
+   "minMs": 31.3,
+   "medianMs": 32.4,
+   "maxMs": 37.7,
+   "responseBytes": 453509
+  },
+  {
+   "name": "Bookings list (default view)",
+   "path": "/reservations",
+   "status": 200,
+   "coldMs": 63.9,
+   "minMs": 12,
+   "medianMs": 14.4,
+   "maxMs": 15.3,
+   "responseBytes": 133051
+  },
+  {
+   "name": "Bookings list (full year range)",
+   "path": "/reservations?from=2025-10-01&to=2026-05-28",
+   "status": 200,
+   "coldMs": 40.7,
+   "minMs": 12,
+   "medianMs": 12.4,
+   "maxMs": 13.5,
+   "responseBytes": 133095
+  },
+  {
+   "name": "Folio (in-house)",
+   "path": "/folios/1170",
+   "status": 200,
+   "coldMs": 5,
+   "minMs": 3.5,
+   "medianMs": 4.4,
+   "maxMs": 4.9,
+   "responseBytes": 1615
+  },
+  {
+   "name": "Cash book range (year)",
+   "path": "/cashbook?from=2025-10-01&to=2026-05-28",
+   "status": 422,
+   "coldMs": 5.7,
+   "minMs": 1.4,
+   "medianMs": 1.6,
+   "maxMs": 2.5,
+   "responseBytes": 82
+  },
+  {
+   "name": "Trial balance (cumulative, last day)",
+   "path": "/accounting/trial-balance?date=2026-05-28&cumulative=true",
+   "status": 200,
+   "coldMs": 192,
+   "minMs": 56,
+   "medianMs": 62.4,
+   "maxMs": 66.8,
+   "responseBytes": 2720
+  },
+  {
+   "name": "GSTR-1 view (one month)",
+   "path": "/invoices/gstr1?from=2026-05-01&to=2026-05-28",
+   "status": 200,
+   "coldMs": 71,
+   "minMs": 5.8,
+   "medianMs": 6,
+   "maxMs": 7.6,
+   "responseBytes": 765
+  },
+  {
+   "name": "GSTR-1 view (whole year)",
+   "path": "/invoices/gstr1?from=2025-10-01&to=2026-05-28",
+   "status": 200,
+   "coldMs": 20.1,
+   "minMs": 18.6,
+   "medianMs": 20.9,
+   "maxMs": 30.8,
+   "responseBytes": 777
+  },
+  {
+   "name": "Customers search",
+   "path": "/customers?q=Patil&page=1&pageSize=50",
+   "status": 200,
+   "coldMs": 122.6,
+   "minMs": 44.1,
+   "medianMs": 45.7,
+   "maxMs": 65.9,
+   "responseBytes": 7244
+  },
+  {
+   "name": "Customers list (no filter)",
+   "path": "/customers?page=1&pageSize=50",
+   "status": 200,
+   "coldMs": 45.4,
+   "minMs": 42.5,
+   "medianMs": 46.3,
+   "maxMs": 53.5,
+   "responseBytes": 10357
+  },
+  {
+   "name": "Reports day pack (one day)",
+   "path": "/reports/daily?from=2026-05-28&to=2026-05-28",
+   "status": 200,
+   "coldMs": 31.8,
+   "minMs": 6.4,
+   "medianMs": 7,
+   "maxMs": 7.9,
+   "responseBytes": 2106
+  },
+  {
+   "name": "Reports day pack (year range)",
+   "path": "/reports/daily?from=2025-10-01&to=2026-05-28",
+   "status": 422,
+   "coldMs": 2.3,
+   "minMs": 1.7,
+   "medianMs": 2.2,
+   "maxMs": 2.7,
+   "responseBytes": 82
+  },
+  {
+   "name": "Cashier folios",
+   "path": "/cashier/folios",
+   "status": 200,
+   "coldMs": 29.9,
+   "minMs": 25.9,
+   "medianMs": 29.1,
+   "maxMs": 36.1,
+   "responseBytes": 3882
+  }
+ ],
+ "cashierFolios": 200,
+ "callStats": {
+  "POST /setup/SetupProperty": {
+   "n": 1,
+   "medianMs": 528.2,
+   "p95Ms": 528.2,
+   "maxMs": 528.2
+  },
+  "POST /auth/sign-in": {
+   "n": 1,
+   "medianMs": 351.1,
+   "p95Ms": 351.1,
+   "maxMs": 351.1
+  },
+  "POST /commands/UploadImportBatch": {
+   "n": 7,
+   "medianMs": 23.1,
+   "p95Ms": 220.5,
+   "maxMs": 220.5
+  },
+  "POST /commands/CommitImportBatch": {
+   "n": 7,
+   "medianMs": 70.9,
+   "p95Ms": 880,
+   "maxMs": 880
+  },
+  "GET /cashier/desk": {
+   "n": 1,
+   "medianMs": 58,
+   "p95Ms": 58,
+   "maxMs": 58
+  },
+  "GET /rooms/board": {
+   "n": 489,
+   "medianMs": 24.3,
+   "p95Ms": 663.5,
+   "maxMs": 1006.6
+  },
+  "POST /commands/OpenShift": {
+   "n": 240,
+   "medianMs": 6.3,
+   "p95Ms": 32.7,
+   "maxMs": 331.8
+  },
+  "POST /commands/QuoteStay": {
+   "n": 1200,
+   "medianMs": 7.9,
+   "p95Ms": 17,
+   "maxMs": 123
+  },
+  "POST /commands/CreateReservation": {
+   "n": 1200,
+   "medianMs": 10.8,
+   "p95Ms": 22.4,
+   "maxMs": 228.9
+  },
+  "GET /reservations/{id}": {
+   "n": 2400,
+   "medianMs": 4.3,
+   "p95Ms": 8.5,
+   "maxMs": 75.6
+  },
+  "POST /commands/RegisterGuest": {
+   "n": 1200,
+   "medianMs": 6.1,
+   "p95Ms": 12.5,
+   "maxMs": 85.7
+  },
+  "POST /commands/CheckIn": {
+   "n": 1200,
+   "medianMs": 8.9,
+   "p95Ms": 18.5,
+   "maxMs": 166.7
+  },
+  "GET /shifts/{id}": {
+   "n": 240,
+   "medianMs": 4.6,
+   "p95Ms": 12.9,
+   "maxMs": 292.4
+  },
+  "POST /commands/SubmitShiftCount": {
+   "n": 240,
+   "medianMs": 7.7,
+   "p95Ms": 20.5,
+   "maxMs": 667.9
+  },
+  "POST /commands/RunBusinessDayClose": {
+   "n": 240,
+   "medianMs": 121.1,
+   "p95Ms": 1161.7,
+   "maxMs": 2839.1
+  },
+  "GET /folios/{id}": {
+   "n": 1201,
+   "medianMs": 5,
+   "p95Ms": 11.7,
+   "maxMs": 153
+  },
+  "POST /commands/RecordReceipt": {
+   "n": 1190,
+   "medianMs": 6.4,
+   "p95Ms": 17.6,
+   "maxMs": 418.7
+  },
+  "POST /commands/CheckoutStay": {
+   "n": 1190,
+   "medianMs": 10.3,
+   "p95Ms": 23,
+   "maxMs": 298.4
+  },
+  "POST /commands/IssueInvoice": {
+   "n": 1190,
+   "medianMs": 9.6,
+   "p95Ms": 25.1,
+   "maxMs": 205.5
+  },
+  "GET /me/capabilities": {
+   "n": 1,
+   "medianMs": 16,
+   "p95Ms": 16,
+   "maxMs": 16
+  },
+  "POST /commands/TransitionHousekeepingTask": {
+   "n": 8330,
+   "medianMs": 9,
+   "p95Ms": 21.9,
+   "maxMs": 429.7
+  },
+  "GET /cashier/folios": {
+   "n": 12,
+   "medianMs": 29.8,
+   "p95Ms": 55.7,
+   "maxMs": 55.7
+  },
+  "GET /reservations": {
+   "n": 22,
+   "medianMs": 13.8,
+   "p95Ms": 40.7,
+   "maxMs": 63.9
+  },
+  "GET /cashbook": {
+   "n": 11,
+   "medianMs": 1.6,
+   "p95Ms": 5.7,
+   "maxMs": 5.7
+  },
+  "GET /accounting/trial-balance": {
+   "n": 11,
+   "medianMs": 62.5,
+   "p95Ms": 192,
+   "maxMs": 192
+  },
+  "GET /invoices/gstr1": {
+   "n": 22,
+   "medianMs": 19.6,
+   "p95Ms": 30.8,
+   "maxMs": 71
+  },
+  "GET /customers": {
+   "n": 22,
+   "medianMs": 45.8,
+   "p95Ms": 65.9,
+   "maxMs": 122.6
+  },
+  "GET /reports/daily": {
+   "n": 22,
+   "medianMs": 6.4,
+   "p95Ms": 7.9,
+   "maxMs": 31.8
+  }
+ },
+ "wallSeconds": 934.144
+}

@@ -1,0 +1,62 @@
+[0.5s] SetupProperty 200 {"propertyId":1,"code":"MAIN","name":"Perf Probe Residency (fictional)","state":"Maharashtra","gstin":"27AAAAA0000A1Z2","businessDate":"2025-10-01","timeZone":"Asia/Kolkata","checkInTime":"14:00","che
+[0.9s] sign-in 200
+[1.2s] room-types upload 200 commit 200 
+[1.3s] rooms upload 200 commit 200 
+[1.4s] tariffs upload 200 commit 200 
+[1.4s] ledgers upload 200 commit 200 
+[1.4s] opening-balances upload 200 commit 200 
+[1.5s] till-cash upload 200 commit 200 
+[2.5s] guests upload 200 commit 200 
+[2.5s] cashier/desk 200 {"businessDate":"2025-10-01","tills":[{"till":{"tillId":1,"code":"FD-1","name":"Front desk drawer","version":"AAAAAAAACGg="},"active":null,"expected":null,"lastClosed":{"shift":{"shiftId":1,"tillId":1,"businessDate":"2025-10-01","status":"Closed","openingFloatPaise":2500000,"expectedPaise":2500000,"
+[2.6s] rooms 24
+[2.7s] board row {"roomId":1,"roomNo":"101","roomType":"STD","hk":"Ready","status":"Ready","block":null,"current":null,"next":null,"openTasks":[],"roomVersion":"AAAAAAAACDY="}
+[5.1s] day 2025-10-01 bookings 4 inHouse 4 closeMs 627 dayMs 2527
+[39.1s] day 2025-10-11 bookings 56 inHouse 15 closeMs 133 dayMs 3200
+[75.5s] day 2025-10-21 bookings 117 inHouse 17 closeMs 148 dayMs 3684
+[118.5s] day 2025-10-31 bookings 175 inHouse 14 closeMs 160 dayMs 4126
+[135.8s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[155.0s] day 2025-11-10 bookings 225 inHouse 13 closeMs 102 dayMs 4062
+[181.8s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[202.2s] day 2025-11-20 bookings 264 inHouse 10 closeMs 99 dayMs 4650
+[245.8s] day 2025-11-30 bookings 305 inHouse 9 closeMs 78 dayMs 4829
+[297.6s] day 2025-12-10 bookings 355 inHouse 15 closeMs 108 dayMs 5499
+[341.5s] day 2025-12-20 bookings 410 inHouse 12 closeMs 125 dayMs 3833
+[378.5s] day 2025-12-30 bookings 463 inHouse 10 closeMs 129 dayMs 3703
+[415.9s] day 2026-01-09 bookings 511 inHouse 11 closeMs 147 dayMs 3357
+[452.0s] day 2026-01-19 bookings 556 inHouse 13 closeMs 179 dayMs 3363
+[486.6s] day 2026-01-29 bookings 608 inHouse 15 closeMs 113 dayMs 3084
+[490.3s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[509.9s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[520.4s] day 2026-02-08 bookings 656 inHouse 13 closeMs 111 dayMs 3184
+[554.7s] day 2026-02-18 bookings 708 inHouse 16 closeMs 111 dayMs 3455
+[565.5s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[585.7s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[589.0s] day 2026-02-28 bookings 756 inHouse 13 closeMs 102 dayMs 3337
+[622.7s] day 2026-03-10 bookings 807 inHouse 18 closeMs 110 dayMs 3696
+[656.4s] day 2026-03-20 bookings 857 inHouse 9 closeMs 69 dayMs 3014
+[669.7s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[690.1s] day 2026-03-30 bookings 913 inHouse 15 closeMs 123 dayMs 3173
+[690.2s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[707.4s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[734.9s] day 2026-04-09 bookings 964 inHouse 15 closeMs 984 dayMs 3955
+[751.8s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[778.3s] day 2026-04-19 bookings 1013 inHouse 11 closeMs 1413 dayMs 5320
+[829.4s] invoice IssueInvoice 422 {"code":"VALIDATION","message":"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address.","details":null}
+[833.6s] day 2026-04-29 bookings 1060 inHouse 13 closeMs 1115 dayMs 4132
+[867.2s] day 2026-05-09 bookings 1110 inHouse 16 closeMs 190 dayMs 3287
+[900.5s] day 2026-05-19 bookings 1159 inHouse 17 closeMs 255 dayMs 3988
+[930.5s] seed done {"bookings":1200,"closed":240,"lastDate":"2026-05-28","longFolio":1170}
+[930.9s] read Room board 200 median 32.4 ms 453509 bytes
+[931.1s] read Bookings list (default view) 200 median 14.4 ms 133051 bytes
+[931.3s] read Bookings list (full year range) 200 median 12.4 ms 133095 bytes
+[931.4s] read Folio (in-house) 200 median 4.4 ms 1615 bytes
+[931.4s] read Cash book range (year) 422 median 1.6 ms 82 bytes
+[932.2s] read Trial balance (cumulative, last day) 200 median 62.4 ms 2720 bytes
+[932.3s] read GSTR-1 view (one month) 200 median 6.0 ms 765 bytes
+[932.6s] read GSTR-1 view (whole year) 200 median 20.9 ms 777 bytes
+[933.2s] read Customers search 200 median 45.7 ms 7244 bytes
+[933.7s] read Customers list (no filter) 200 median 46.3 ms 10357 bytes
+[933.8s] read Reports day pack (one day) 200 median 7.0 ms 2106 bytes
+[933.8s] read Reports day pack (year range) 422 median 2.2 ms 82 bytes
+[934.1s] read Cashier folios 200 median 29.1 ms 3882 bytes
+[934.1s] done

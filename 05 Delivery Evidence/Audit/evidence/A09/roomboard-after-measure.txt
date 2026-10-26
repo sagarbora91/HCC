@@ -1,0 +1,449 @@
+A09-18 room board probe · after · database HccTest_PERF_20261026163525 · property 1 · business date 2026-05-29 · 2026-10-26T22:23:56.2367299+05:30
+rows: reservations|confirmed|room_nights|stays|hk_tasks|open_hk_tasks|rooms = 1243|34|3112|1200|2996|1806|24
+indexes on inv.reservation + ops.hk_task: IX_hk_task_assignee, IX_hk_task_kind_date, IX_hk_task_room, IX_reservation_block, IX_reservation_company, IX_reservation_confirmed, IX_reservation_held, IX_reservation_room, PK_hk_task, PK_reservation, UQ_res_no, UX_hk_task_causal, UX_hk_task_open_repair
+
+| statement | logical reads (median of 5) | CPU ms (median) | elapsed ms (median) | elapsed ms (max) |
+|---|---|---|---|---|
+| board-old | 1498 | 0 | 2 | 3 |
+| board-new | 423 | 0 | 1 | 1 |
+| board-open-tasks | 52 | 16 | 12 | 12 |
+| bookings-range-180 | 1174 | 0 | 12 | 13 |
+| arrivals | 74 | 0 | 0 | 0 |
+| in-house | 359 | 0 | 0 | 1 |
+| cashier-folio-list | 120 | 0 | 3 | 4 |
+
+=== board-old ===
+runs: reads=[1498, 1498, 1498, 1498, 1498] cpu_ms=[0, 16, 0, 0, 0] elapsed_ms=[3, 2, 2, 2, 2]
+STATISTICS IO/TIME of the first measured run:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Worktable'. Scan count 96, logical reads 384, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_night'. Scan count 353, logical reads 710, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 69, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay_segment'. Scan count 1, logical reads 168, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_block'. Scan count 1, logical reads 49, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 0, logical reads 48, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 50, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 3 ms.
+actual plan (operator, object, actual rows, executions, logical reads):
+  statement: SELECT r.room_id, r.room_no, t.code, r.hk_status, r.row_ver, b.block_id, b.room_id, b.from_date, b.to_date, b.
+  Nested Loops (Left Outer Join) rows=24 execs=1
+    Nested Loops (Left Outer Join) rows=24 execs=1
+      Nested Loops (Left Outer Join) rows=24 execs=1
+        Nested Loops (Inner Join) rows=24 execs=1
+          Nested Loops (Inner Join) rows=24 execs=1
+            Index Seek (Index Seek) inv.room.UQ_room rows=24 execs=1 reads=2
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=24 execs=24 reads=48
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=24 execs=24 reads=48
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block rows=48 execs=24 reads=49
+      Index Spool (Lazy Spool) rows=10 execs=24 reads=189
+        Top (Top) rows=10 execs=24
+          Compute Scalar (Compute Scalar) rows=0 execs=0
+            Nested Loops (Inner Join) rows=10 execs=24
+              Compute Scalar (Compute Scalar) rows=0 execs=0
+                Nested Loops (Inner Join) rows=10 execs=24
+                  Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment rows=10 execs=24 reads=168
+                  Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay rows=10 execs=10 reads=20
+              Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation rows=10 execs=10 reads=20
+    Index Spool (Lazy Spool) rows=22 execs=24 reads=189
+      Top (Top) rows=22 execs=24
+        Nested Loops (Left Semi Join) rows=22 execs=24
+          Compute Scalar (Compute Scalar) rows=0 execs=0
+            Index Scan (Index Scan) inv.reservation.IX_reservation_confirmed rows=353 execs=24 reads=49
+          Index Seek (Index Seek) inv.room_night.IX_room_night_res rows=22 execs=353 reads=710
+
+=== board-new ===
+runs: reads=[423, 423, 423, 423, 423] cpu_ms=[0, 0, 0, 0, 0] elapsed_ms=[1, 1, 1, 1, 1]
+STATISTICS IO/TIME of the first measured run:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Worktable'. Scan count 2, logical reads 156, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_night'. Scan count 34, logical reads 71, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 22, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay_segment'. Scan count 1, logical reads 7, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_block'. Scan count 1, logical reads 49, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 0, logical reads 48, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 50, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 1 ms.
+actual plan (operator, object, actual rows, executions, logical reads):
+  statement: SELECT r.room_id, r.room_no, t.code, r.hk_status, r.row_ver, b.block_id, b.room_id, b.from_date, b.to_date, b.
+  Nested Loops (Left Outer Join) rows=24 execs=1
+    Nested Loops (Left Outer Join) rows=24 execs=1
+      Nested Loops (Left Outer Join) rows=24 execs=1
+        Nested Loops (Inner Join) rows=24 execs=1
+          Nested Loops (Inner Join) rows=24 execs=1
+            Index Seek (Index Seek) inv.room.UQ_room rows=24 execs=1 reads=2
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=24 execs=24 reads=48
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=24 execs=24 reads=48
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block rows=48 execs=24 reads=49
+      Table Spool (Lazy Spool) rows=240 execs=24 reads=67
+        Compute Scalar (Compute Scalar) rows=0 execs=0
+          Nested Loops (Inner Join) rows=10 execs=1
+            Compute Scalar (Compute Scalar) rows=0 execs=0
+              Nested Loops (Inner Join) rows=10 execs=1
+                Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment rows=10 execs=1 reads=7
+                Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay rows=10 execs=10 reads=20
+            Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation rows=10 execs=10 reads=20
+    Table Spool (Lazy Spool) rows=528 execs=24 reads=91
+      Filter (Filter) rows=22 execs=1
+        Compute Scalar (Compute Scalar) rows=0 execs=0
+          Sequence Project (Compute Scalar) rows=34 execs=1
+            Segment (Segment) rows=34 execs=1
+              Sort (Distinct Sort) rows=34 execs=1
+                Nested Loops (Inner Join) rows=84 execs=1
+                  Index Scan (Index Scan) inv.reservation.IX_reservation_confirmed rows=34 execs=1 reads=2
+                  Index Seek (Index Seek) inv.room_night.IX_room_night_res rows=84 execs=34 reads=71
+
+=== board-open-tasks ===
+runs: reads=[52, 52, 52, 52, 52] cpu_ms=[16, 15, 16, 15, 16] elapsed_ms=[12, 12, 12, 11, 12]
+STATISTICS IO/TIME of the first measured run:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Workfile'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'hk_task'. Scan count 1, logical reads 50, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 16 ms, elapsed time = 12 ms.
+actual plan (operator, object, actual rows, executions, logical reads):
+  statement: SELECT t.task_id, t.room_id, r.room_no, t.kind, t.status, t.assignee_id, t.checklist_mask, t.note, t.reject_re
+  Sort (Sort) rows=1806 execs=1
+    Hash Match (Inner Join) rows=1806 execs=1
+      Index Scan (Index Scan) inv.room.UQ_room rows=24 execs=1 reads=2
+      Compute Scalar (Compute Scalar) rows=0 execs=0
+        Clustered Index Scan (Clustered Index Scan) ops.hk_task.PK_hk_task rows=1806 execs=1 reads=50
+
+=== bookings-range-180 ===
+runs: reads=[1174, 1174, 1174, 1174, 1174] cpu_ms=[15, 16, 0, 0, 0] elapsed_ms=[12, 13, 12, 13, 12]
+STATISTICS IO/TIME of the first measured run:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'property'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Workfile'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 1 ms.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table '#pg_________________________________________________________________________________________________________________00000000045F'. Scan count 0, logical reads 1005, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Workfile'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 2 ms.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Workfile'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table '#pg_________________________________________________________________________________________________________________00000000045F'. Scan count 1, logical reads 4, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'registration'. Scan count 1, logical reads 6, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay'. Scan count 1, logical reads 18, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 7 ms.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Workfile'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay_segment'. Scan count 1, logical reads 7, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay'. Scan count 1, logical reads 6, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table '#pg_________________________________________________________________________________________________________________00000000045F'. Scan count 1, logical reads 4, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 15 ms, elapsed time = 2 ms.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+actual plan (operator, object, actual rows, executions, logical reads):
+  statement: DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p)
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Nested Loops (Left Outer Join) rows=1 execs=1
+      Constant Scan (Constant Scan) rows=1 execs=1
+      Clustered Index Seek (Clustered Index Seek) inv.property.PK_property rows=1 execs=1 reads=2
+  statement: SELECT @bd, COUNT(*) FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.room_id JOIN inv.room_type t ON
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Stream Aggregate (Aggregate) rows=1 execs=1
+      Hash Match (Inner Join) rows=947 execs=1
+        Index Scan (Index Scan) inv.room.UQ_room rows=24 execs=1 reads=2
+        Hash Match (Inner Join) rows=947 execs=1
+          Index Scan (Index Scan) inv.room_type.UQ_room_type rows=3 execs=1 reads=2
+          Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=947 execs=1 reads=36
+  statement: INSERT #pg(reservation_id) SELECT r.reservation_id FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.r
+  Clustered Index Insert (Insert) dbo.#pg.PK__#pg_______C2FF9038B3B884EC rows=500 execs=1 reads=1005
+    Compute Scalar (Compute Scalar) rows=500 execs=1
+      Top (Top) rows=500 execs=1
+        Sort (Sort) rows=500 execs=1
+          Hash Match (Inner Join) rows=947 execs=1
+            Index Scan (Index Scan) inv.room.UQ_room rows=24 execs=1 reads=2
+            Hash Match (Inner Join) rows=947 execs=1
+              Index Scan (Index Scan) inv.room_type.UQ_room_type rows=3 execs=1 reads=2
+              Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=947 execs=1 reads=36
+  statement: SELECT r.reservation_id, r.public_no, r.row_ver, r.status, r.guest_name, r.phone, r.room_id, rm.room_no, r.roo
+  Sort (Sort) rows=500 execs=1
+    Compute Scalar (Compute Scalar) rows=0 execs=0
+      Hash Match (Right Outer Join) rows=500 execs=1
+        Clustered Index Scan (Clustered Index Scan) gst.stay.PK_stay rows=1200 execs=1 reads=18
+        Compute Scalar (Compute Scalar) rows=0 execs=0
+          Hash Match (Right Outer Join) rows=500 execs=1
+            Index Scan (Index Scan) gst.registration.IX_registration_guest rows=1200 execs=1 reads=6
+            Hash Match (Inner Join) rows=500 execs=1
+              Index Scan (Index Scan) inv.room_type.UQ_room_type rows=3 execs=1 reads=2
+              Hash Match (Inner Join) rows=500 execs=1
+                Index Scan (Index Scan) inv.room.UQ_room rows=24 execs=1 reads=2
+                Hash Match (Inner Join) rows=500 execs=1
+                  Clustered Index Scan (Clustered Index Scan) dbo.#pg.PK__#pg_______C2FF9038B3B884EC rows=500 execs=1 reads=4
+                  Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=1243 execs=1 reads=36
+  statement: SELECT s.reservation_id, rm.room_no, sg.from_date, sg.to_date FROM #pg pg JOIN gst.stay s ON s.reservation_id 
+  Sort (Sort) rows=457 execs=1
+    Hash Match (Inner Join) rows=457 execs=1
+      Index Scan (Index Scan) inv.room.UQ_room rows=24 execs=1 reads=2
+      Hash Match (Inner Join) rows=457 execs=1
+        Hash Match (Inner Join) rows=457 execs=1
+          Clustered Index Scan (Clustered Index Scan) dbo.#pg.PK__#pg_______C2FF9038B3B884EC rows=500 execs=1 reads=4
+          Index Scan (Index Scan) gst.stay.UQ_stay_reservation rows=1200 execs=1 reads=6
+        Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment rows=1200 execs=1 reads=7
+
+=== arrivals ===
+runs: reads=[74, 74, 74, 74, 74] cpu_ms=[0, 0, 0, 0, 0] elapsed_ms=[0, 0, 0, 0, 0]
+STATISTICS IO/TIME of the first measured run:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'property'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table '#pg_________________________________________________________________________________________________________________000000000466'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table '#pg_________________________________________________________________________________________________________________000000000466'. Scan count 1, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table '#pg_________________________________________________________________________________________________________________000000000466'. Scan count 1, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+actual plan (operator, object, actual rows, executions, logical reads):
+  statement: DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p)
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Nested Loops (Left Outer Join) rows=1 execs=1
+      Constant Scan (Constant Scan) rows=1 execs=1
+      Clustered Index Seek (Clustered Index Seek) inv.property.PK_property rows=1 execs=1 reads=2
+  statement: SELECT @bd, COUNT(*) FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.room_id JOIN inv.room_type t ON
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Stream Aggregate (Aggregate) rows=1 execs=1
+      Nested Loops (Inner Join) rows=0 execs=1
+        Nested Loops (Inner Join) rows=0 execs=1
+          Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=0 execs=1 reads=36
+          Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=0 execs=0
+        Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=0 execs=0
+  statement: INSERT #pg(reservation_id) SELECT r.reservation_id FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.r
+  Clustered Index Insert (Insert) dbo.#pg.PK__#pg_______C2FF9038BD8DA647 rows=0 execs=1
+    Compute Scalar (Compute Scalar) rows=0 execs=1
+      Top (Top) rows=0 execs=1
+        Sort (Sort) rows=0 execs=1
+          Nested Loops (Inner Join) rows=0 execs=1
+            Nested Loops (Inner Join) rows=0 execs=1
+              Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=0 execs=1 reads=36
+              Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=0 execs=0
+            Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=0 execs=0
+  statement: SELECT r.reservation_id, r.public_no, r.row_ver, r.status, r.guest_name, r.phone, r.room_id, rm.room_no, r.roo
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Nested Loops (Inner Join) rows=0 execs=1
+      Nested Loops (Left Outer Join) rows=0 execs=1
+        Compute Scalar (Compute Scalar) rows=0 execs=0
+          Nested Loops (Left Outer Join) rows=0 execs=1
+            Nested Loops (Inner Join) rows=0 execs=1
+              Nested Loops (Inner Join) rows=0 execs=1
+                Nested Loops (Inner Join) rows=0 execs=1
+                  Clustered Index Scan (Clustered Index Scan) dbo.#pg.PK__#pg_______C2FF9038BD8DA647 rows=0 execs=1
+                  Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation rows=0 execs=0
+                Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=0 execs=0
+              Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=0 execs=0
+            Clustered Index Seek (Clustered Index Seek) gst.registration.PK_registration rows=0 execs=0
+        Index Seek (Index Seek) gst.stay.UQ_stay_reservation rows=0 execs=0
+      Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay rows=0 execs=0
+  statement: SELECT s.reservation_id, rm.room_no, sg.from_date, sg.to_date FROM #pg pg JOIN gst.stay s ON s.reservation_id 
+  Nested Loops (Inner Join) rows=0 execs=1
+    Sort (Sort) rows=0 execs=1
+      Nested Loops (Inner Join) rows=0 execs=1
+        Nested Loops (Inner Join) rows=0 execs=1
+          Clustered Index Scan (Clustered Index Scan) dbo.#pg.PK__#pg_______C2FF9038BD8DA647 rows=0 execs=1
+          Index Seek (Index Seek) gst.stay.UQ_stay_reservation rows=0 execs=0
+        Clustered Index Seek (Clustered Index Seek) gst.stay_segment.PK_stay_segment rows=0 execs=0
+    Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=0 execs=0
+
+=== in-house ===
+runs: reads=[359, 359, 359, 359, 359] cpu_ms=[0, 16, 0, 0, 0] elapsed_ms=[0, 0, 1, 0, 0]
+STATISTICS IO/TIME of the first measured run:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'property'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'room_type'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table '#pg_________________________________________________________________________________________________________________00000000046D'. Scan count 0, logical reads 21, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'stay'. Scan count 0, logical reads 40, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'registration'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table '#pg_________________________________________________________________________________________________________________00000000046D'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'room'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay_segment'. Scan count 10, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table '#pg_________________________________________________________________________________________________________________00000000046D'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+actual plan (operator, object, actual rows, executions, logical reads):
+  statement: DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p)
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Nested Loops (Left Outer Join) rows=1 execs=1
+      Constant Scan (Constant Scan) rows=1 execs=1
+      Clustered Index Seek (Clustered Index Seek) inv.property.PK_property rows=1 execs=1 reads=2
+  statement: SELECT @bd, COUNT(*) FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.room_id JOIN inv.room_type t ON
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Stream Aggregate (Aggregate) rows=1 execs=1
+      Nested Loops (Inner Join) rows=10 execs=1
+        Nested Loops (Inner Join) rows=10 execs=1
+          Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=10 execs=1 reads=36
+          Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=10 execs=10 reads=20
+        Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=10 execs=10 reads=20
+  statement: INSERT #pg(reservation_id) SELECT r.reservation_id FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.r
+  Clustered Index Insert (Insert) dbo.#pg.PK__#pg_______C2FF90388D3136F8 rows=10 execs=1 reads=21
+    Compute Scalar (Compute Scalar) rows=10 execs=1
+      Top (Top) rows=10 execs=1
+        Sort (Sort) rows=10 execs=1
+          Nested Loops (Inner Join) rows=10 execs=1
+            Nested Loops (Inner Join) rows=10 execs=1
+              Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=10 execs=1 reads=36
+              Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=10 execs=10 reads=20
+            Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=10 execs=10 reads=20
+  statement: SELECT r.reservation_id, r.public_no, r.row_ver, r.status, r.guest_name, r.phone, r.room_id, rm.room_no, r.roo
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Nested Loops (Inner Join) rows=10 execs=1
+      Nested Loops (Left Outer Join) rows=10 execs=1
+        Compute Scalar (Compute Scalar) rows=0 execs=0
+          Nested Loops (Left Outer Join) rows=10 execs=1
+            Nested Loops (Inner Join) rows=10 execs=1
+              Nested Loops (Inner Join) rows=10 execs=1
+                Nested Loops (Inner Join) rows=10 execs=1
+                  Clustered Index Scan (Clustered Index Scan) dbo.#pg.PK__#pg_______C2FF90388D3136F8 rows=10 execs=1 reads=2
+                  Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation rows=10 execs=10 reads=20
+                Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=10 execs=10 reads=20
+              Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type rows=10 execs=10 reads=20
+            Clustered Index Seek (Clustered Index Seek) gst.registration.PK_registration rows=10 execs=10 reads=20
+        Index Seek (Index Seek) gst.stay.UQ_stay_reservation rows=10 execs=10 reads=20
+      Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay rows=10 execs=10 reads=20
+  statement: SELECT s.reservation_id, rm.room_no, sg.from_date, sg.to_date FROM #pg pg JOIN gst.stay s ON s.reservation_id 
+  Nested Loops (Inner Join) rows=10 execs=1
+    Sort (Sort) rows=10 execs=1
+      Nested Loops (Inner Join) rows=10 execs=1
+        Nested Loops (Inner Join) rows=10 execs=1
+          Clustered Index Scan (Clustered Index Scan) dbo.#pg.PK__#pg_______C2FF90388D3136F8 rows=10 execs=1 reads=2
+          Index Seek (Index Seek) gst.stay.UQ_stay_reservation rows=10 execs=10 reads=20
+        Clustered Index Seek (Clustered Index Seek) gst.stay_segment.PK_stay_segment rows=10 execs=10 reads=20
+    Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=10 execs=10 reads=20
+
+=== cashier-folio-list ===
+runs: reads=[120, 120, 120, 120, 120] cpu_ms=[0, 0, 0, 0, 0] elapsed_ms=[3, 3, 3, 3, 4]
+STATISTICS IO/TIME of the first measured run:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'property'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room'. Scan count 1, logical reads 22, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay_segment'. Scan count 10, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'folio'. Scan count 0, logical reads 20, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'Workfile'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'reservation'. Scan count 1, logical reads 36, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'room_type'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  Table 'stay'. Scan count 1, logical reads 18, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 3 ms.
+actual plan (operator, object, actual rows, executions, logical reads):
+  statement: DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p)
+  Compute Scalar (Compute Scalar) rows=0 execs=0
+    Nested Loops (Left Outer Join) rows=1 execs=1
+      Constant Scan (Constant Scan) rows=1 execs=1
+      Clustered Index Seek (Clustered Index Seek) inv.property.PK_property rows=1 execs=1 reads=2
+  statement: SELECT r.reservation_id, r.public_no, r.status, r.guest_name, COALESCE(cur.room_id, r.room_id), COALESCE(cur.r
+  Sort (Sort) rows=10 execs=1
+    Compute Scalar (Compute Scalar) rows=0 execs=0
+      Nested Loops (Left Outer Join) rows=10 execs=1
+        Nested Loops (Left Outer Join) rows=10 execs=1
+          Filter (Filter) rows=10 execs=1
+            Hash Match (Right Outer Join) rows=1200 execs=1
+              Clustered Index Scan (Clustered Index Scan) gst.stay.PK_stay rows=1200 execs=1 reads=18
+              Hash Match (Right Outer Join) rows=1200 execs=1
+                Index Scan (Index Scan) inv.room_type.UQ_room_type rows=3 execs=1 reads=2
+                Hash Match (Right Outer Join) rows=1200 execs=1
+                  Index Scan (Index Scan) inv.room.UQ_room rows=24 execs=1 reads=2
+                  Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation rows=1200 execs=1 reads=36
+          Index Seek (Index Seek) bill.folio.UQ_folio_reservation rows=10 execs=10 reads=20
+        Top (Top) rows=10 execs=10
+          Compute Scalar (Compute Scalar) rows=0 execs=0
+            Nested Loops (Inner Join) rows=10 execs=10
+              Compute Scalar (Compute Scalar) rows=0 execs=0
+                Clustered Index Seek (Clustered Index Seek) gst.stay_segment.PK_stay_segment rows=10 execs=10 reads=20
+              Clustered Index Seek (Clustered Index Seek) inv.room.PK_room rows=10 execs=10 reads=20
+
+=== equivalence (board-old vs board-new) ===
+rows old=24 new=24 differing rows=0 · rooms with a current guest=10, with a next arrival=22, with an active block=2
+old rows:
+  1|101|STD|Ready|AAAAAAAApnU=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A0 (fictional)|2026-06-08|2026-06-10
+  2|102|STD|Ready|AAAAAAAApdI=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A1 (fictional)|2026-06-09|2026-06-11
+  3|103|STD|Ready|AAAAAAAAp6M=|NULL|NULL|NULL|NULL|NULL|NULL||Ananya Deshmukh (fictional)|2026-05-28|2026-05-29|Advance guest A2 (fictional)|2026-06-10|2026-06-12
+  4|104|STD|Ready|AAAAAAAAoZ4=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest B3 (fictional)|2026-06-26|2026-06-29
+  5|105|STD|Ready|AAAAAAAApwg=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A4 (fictional)|2026-06-12|2026-06-14
+  6|106|STD|Ready|AAAAAAAAp60=|2|6|2026-07-18|2026-07-20|Repaint (fictional)|manual|AAAAAAAAw4Q=|NULL|NULL|NULL|Advance guest A5 (fictional)|2026-06-13|2026-06-15
+  7|107|STD|Ready|AAAAAAAApxI=|NULL|NULL|NULL|NULL|NULL|NULL||Sai Deshmukh (fictional)|2026-05-27|2026-05-30|Advance guest A6 (fictional)|2026-06-14|2026-06-16
+  8|108|STD|Ready|AAAAAAAAo8s=|NULL|NULL|NULL|NULL|NULL|NULL||Rohan Deshmukh (fictional)|2026-05-27|2026-05-31|Advance guest B7 (fictional)|2026-06-30|2026-07-03
+  9|109|STD|Ready|AAAAAAAApxw=|NULL|NULL|NULL|NULL|NULL|NULL||Reyansh Deshmukh (fictional)|2026-05-27|2026-06-01|Advance guest A8 (fictional)|2026-06-09|2026-06-11
+  10|110|STD|Ready|AAAAAAAAo9U=|NULL|NULL|NULL|NULL|NULL|NULL||Amit Patil (fictional)|2026-05-23|2026-05-29|Advance guest A9 (fictional)|2026-06-10|2026-06-12
+  11|111|STD|Ready|AAAAAAAApyY=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A10 (fictional)|2026-06-11|2026-06-13
+  12|112|STD|Ready|AAAAAAAApzA=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|NULL|NULL|NULL
+  13|201|DLX|Ready|AAAAAAAApfA=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A12 (fictional)|2026-06-13|2026-06-15
+  14|202|DLX|Ready|AAAAAAAApok=|NULL|NULL|NULL|NULL|NULL|NULL||Arjun Deshmukh (fictional)|2026-05-27|2026-05-29|Advance guest A13 (fictional)|2026-06-14|2026-06-16
+  15|203|DLX|Ready|AAAAAAAApJY=|NULL|NULL|NULL|NULL|NULL|NULL||Saanvi Deshmukh (fictional)|2026-05-28|2026-05-30|Advance guest A14 (fictional)|2026-06-08|2026-06-10
+  16|204|DLX|Ready|AAAAAAAAoog=|NULL|NULL|NULL|NULL|NULL|NULL||Ishaan Deshmukh (fictional)|2026-05-27|2026-05-30|Advance guest B15 (fictional)|2026-06-29|2026-07-02
+  17|205|DLX|Ready|AAAAAAAApzo=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A16 (fictional)|2026-06-10|2026-06-12
+  18|206|DLX|Ready|AAAAAAAAppM=|5|18|2026-07-18|2026-07-20|Repaint (fictional)|manual|AAAAAAAAw4c=|NULL|NULL|NULL|Advance guest A17 (fictional)|2026-06-11|2026-06-13
+  19|207|DLX|Ready|AAAAAAAAopw=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A18 (fictional)|2026-06-12|2026-06-14
+  20|208|DLX|Ready|AAAAAAAApp0=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest B19 (fictional)|2026-06-24|2026-06-27
+  21|301|STE|Ready|AAAAAAAApR8=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|Advance guest A20 (fictional)|2026-06-14|2026-06-16
+  22|302|STE|Ready|AAAAAAAAobw=|NULL|NULL|NULL|NULL|NULL|NULL||Kavya Patil (fictional)|2026-05-22|2026-05-29|Advance guest A21 (fictional)|2026-06-08|2026-06-10
+  23|303|STE|Ready|AAAAAAAApgU=|NULL|NULL|NULL|NULL|NULL|NULL||Diya Deshmukh (fictional)|2026-05-28|2026-06-01|Advance guest A22 (fictional)|2026-06-09|2026-06-11
+  24|304|STE|Ready|AAAAAAAApSk=|NULL|NULL|NULL|NULL|NULL|NULL||NULL|NULL|NULL|NULL|NULL|NULL
+
