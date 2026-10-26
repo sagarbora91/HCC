@@ -355,6 +355,32 @@ public sealed class SqlMessagingData(SqlConnection connection, SqlTransaction tr
             ? new StoredConsent(new MsgConsent(rd.GetBoolean(0), rd.GetBoolean(1), rd.GetBoolean(2), rd.GetBoolean(3)), Utc(rd, 4), (byte[])rd[5]) : null;
     }
 
+    public async Task<IReadOnlyList<(long GuestId, StoredConsent Consent)>> ConsentsAsync(int propertyId, CancellationToken ct = default)
+    {
+        await using var cmd = Cmd("SELECT guest_id, whatsapp, sms, email, opt_out, updated_utc, row_ver FROM msg.consent WHERE property_id = @p ORDER BY guest_id;");
+        cmd.Add("@p", SqlDbType.Int, propertyId);
+        var list = new List<(long, StoredConsent)>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            list.Add((rd.GetInt64(0), new StoredConsent(new MsgConsent(rd.GetBoolean(1), rd.GetBoolean(2), rd.GetBoolean(3), rd.GetBoolean(4)), Utc(rd, 5), (byte[])rd[6])));
+        return list;
+    }
+
+    public async Task<IReadOnlyList<(long ReservationId, long GuestId)>> ActiveGuestsAsync(int propertyId, CancellationToken ct = default)
+    {
+        await using var cmd = Cmd("""
+            SELECT r.reservation_id, reg.guest_id FROM inv.reservation r
+            JOIN gst.registration reg ON reg.reservation_id = r.reservation_id
+            WHERE r.property_id = @p AND (r.status = 'Confirmed' OR EXISTS (SELECT 1 FROM gst.stay s WHERE s.reservation_id = r.reservation_id AND s.status = 'InHouse'))
+            ORDER BY r.reservation_id;
+            """);
+        cmd.Add("@p", SqlDbType.Int, propertyId);
+        var list = new List<(long, long)>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add((rd.GetInt64(0), rd.GetInt64(1)));
+        return list;
+    }
+
     public async Task UpsertConsentAsync(int propertyId, long guestId, MsgConsent consent, int principalId, DateTime utc, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(consent);

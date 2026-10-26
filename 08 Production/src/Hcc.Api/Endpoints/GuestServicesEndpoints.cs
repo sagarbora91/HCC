@@ -84,6 +84,16 @@ public static class GuestServicesEndpoints
             var (p, u) = http.HccActor();
             return Results.Ok(await qs.HistoryAsync(p, u, kind, id, ct).ConfigureAwait(false));
         });
+        q.MapGet("/histories/{kind}", async (string kind, HttpContext http, GuestServicesQueries qs, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await qs.HistoriesAsync(p, u, kind, ct).ConfigureAwait(false));
+        });
+        q.MapGet("/stays", async (HttpContext http, GuestServicesQueries qs, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await qs.StaysAsync(p, u, ct).ConfigureAwait(false));
+        });
         q.MapGet("/reports/response", async (HttpContext http, GuestServicesQueries qs, CancellationToken ct, string by = "type") =>
         {
             var (p, u) = http.HccActor();
