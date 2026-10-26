@@ -59,19 +59,19 @@ public sealed partial class MsgWorld : IAsyncDisposable
     private readonly string _server;
     private int _res = 3000;
 
-    private MsgWorld(string server, string name)
+    private MsgWorld(string server, string name, IMessageGateway gateway)
     {
         _server = server;
         Name = name;
         Platform = new SqlPlatform(new SqlOptions { ConnectionString = SqlConnectionFactory.LocalDevConnectionString(server, name), BackupDirectory = "NUL" });
         Clock = new TestClock(new DateTimeOffset(2026, 10, 24, 8, 0, 0, TimeSpan.Zero));
         Policy = new FakeAccessPolicy();
-        Gateway = new FakeMessageGateway();
+        Gateway = gateway;
         var data = new SqlMessagingDataFactory(Platform.Connections);
         Options = new MessagingOptions();
         Engine = new TriggerEngine(Gateway, Options);
         Commands = new MessagingCommands(Platform.Commands, Policy, data, Engine, Gateway, Options, Clock);
-        Queries = new MessagingQueries(Policy, data, Clock);
+        Queries = new MessagingQueries(Policy, data, Clock, Gateway);
         Projector = new MessagingTriggerProjector(Platform.Outbox, Platform.Connections, Engine, Clock);
     }
 
@@ -99,11 +99,12 @@ public sealed partial class MsgWorld : IAsyncDisposable
 
     public static string TestServer => Environment.GetEnvironmentVariable("HCC_TEST_SQL_SERVER") is { Length: > 0 } s ? s : @".\SQLEXPRESS";
 
-    public static async Task<MsgWorld> CreateAsync(CancellationToken ct = default)
+    /// <param name="gateway">The messaging gateway under test: the simulated one by default; <see cref="NotConfiguredMessageGateway"/> for the Production behaviour (A09-08).</param>
+    public static async Task<MsgWorld> CreateAsync(CancellationToken ct = default, IMessageGateway? gateway = null)
     {
         var name = "HccTest_" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "_" + Guid.NewGuid().ToString("N")[..8];
         if (!NamePattern().IsMatch(name)) throw new InvalidOperationException("Unexpected test database name.");
-        var w = new MsgWorld(TestServer, name);
+        var w = new MsgWorld(TestServer, name, gateway ?? new FakeMessageGateway());
         await using (var conn = new SqlConnection(SqlConnectionFactory.LocalDevConnectionString(w._server, "master")))
         {
             await conn.OpenAsync(ct);

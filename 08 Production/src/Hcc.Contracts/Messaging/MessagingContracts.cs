@@ -1,6 +1,6 @@
 namespace Hcc.Contracts.Messaging;
 
-// W2-10 messaging wire contracts. ALL SENDING IS SIMULATED. Recipients are always masked; no ID number appears anywhere (DEC-068).
+// W2-10 messaging wire contracts. Sending is simulated in Development and refused in Production without a provider (A09-08). Recipients are always masked; no ID number appears anywhere (DEC-068).
 
 public sealed record SendMessageRequest(long ReservationId, string Channel, string Body, string? TemplateCode = null, string? Subject = null);
 
@@ -23,9 +23,10 @@ public sealed record MessageView(long MessageId, string Id, long ReservationId, 
     string To, string? Subject, string Body, string Status, string? BlockedReason, string QueuedUtc, IReadOnlyList<MessageTimelineStep> Timeline,
     string? RuleId, long? RetryOf, long? RetriedBy, int? SmsSegments, bool Simulated, string? Outcome = null, int BoostMinutes = 0, long? GuestId = null);
 
-public sealed record MessageListResult(IReadOnlyList<MessageView> Items, int Total, int Page, int PageSize);
+/// <param name="NotConfigured">The server's sentence when messaging is not configured on it (Production without a provider), else null: the screens show it as a notice.</param>
+public sealed record MessageListResult(IReadOnlyList<MessageView> Items, int Total, int Page, int PageSize, string? NotConfigured = null);
 
-public sealed record MessagingSummary(int Queued, int Sent, int Delivered, int Read, int Failed, int NotSent, int PendingTriggers, bool Simulated);
+public sealed record MessagingSummary(int Queued, int Sent, int Delivered, int Read, int Failed, int NotSent, int PendingTriggers, bool Simulated, bool Configured = true);
 
 public sealed record SendMessageResult(long MessageId, string Id, string Status, string To, string Summary);
 

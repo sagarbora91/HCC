@@ -1,4 +1,5 @@
 using Hcc.Application.Commands;
+using Hcc.Domain.Errors;
 using Hcc.Domain.Messaging;
 
 namespace Hcc.Application.Messaging;
@@ -29,23 +30,61 @@ public sealed class MessagingOptions
 public sealed record OutboundMessage(long MessageId, string Channel, bool ValidRecipient);
 
 /// <summary>
-/// Gateway port. ALL SENDING IS SIMULATED: <see cref="FakeMessageGateway"/> returns the predetermined outcome of the prototype;
-/// a real WhatsApp/SMS/e-mail gateway would submit after commit and report statuses by callback onto the same columns.
+/// Gateway port. <see cref="FakeMessageGateway"/> (Development and the tests) SIMULATES sending and returns the predetermined outcome of the
+/// prototype; <see cref="NotConfiguredMessageGateway"/> (Production, A09-08) refuses, because no real WhatsApp/SMS/e-mail gateway exists yet.
+/// A real gateway would submit after commit and report statuses by callback onto the same columns.
 /// </summary>
 public interface IMessageGateway
 {
+    /// <summary>False when nothing can be sent on this server (Production without a provider): sends are refused with <see cref="MessagingNotConfigured.Message"/>.</summary>
+    bool IsConfigured { get; }
+
+    /// <summary>True when the gateway only pretends to send (nothing leaves the server).</summary>
+    bool IsSimulated { get; }
+
     /// <summary>The (simulated) final disposition the provider will report for this message: Read, Delivered or Failed.</summary>
     string Submit(OutboundMessage message);
+}
+
+/// <summary>The words and the stable feature id of the "messaging is not set up" refusal (error UNAVAILABLE, details.reason NOT_CONFIGURED, details.feature "messaging").</summary>
+public static class MessagingNotConfigured
+{
+    public const string Feature = "messaging";
+
+    /// <summary>What a refused send says to the user.</summary>
+    public const string Message = "Messaging is not configured on this server: no message was sent.";
+
+    /// <summary>Why an event-driven message is recorded as Not sent (shown on the message; the status is "Not sent").</summary>
+    public const string BlockedReason = "Messaging not configured";
+
+    public static HccException Refusal() => HccException.NotConfigured(Feature, Message);
 }
 
 /// <summary>Deterministic simulation (prototype <c>msgOutcome</c>): nothing leaves the server.</summary>
 public sealed class FakeMessageGateway : IMessageGateway
 {
+    public bool IsConfigured => true;
+
+    public bool IsSimulated => true;
+
     public string Submit(OutboundMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
         return MessagingRules.Outcome(MessagingRules.WireId(message.MessageId), message.Channel, message.ValidRecipient);
     }
+}
+
+/// <summary>
+/// The Production gateway until a real provider is wired (A09-08): it never pretends. A manual send is refused with a clear message;
+/// event-driven messages are still recorded, as "Not sent: Messaging not configured" (see <see cref="TriggerEngine"/>), so nothing is lost.
+/// </summary>
+public sealed class NotConfiguredMessageGateway : IMessageGateway
+{
+    public bool IsConfigured => false;
+
+    public bool IsSimulated => false;
+
+    public string Submit(OutboundMessage message) => throw MessagingNotConfigured.Refusal();
 }
 
 public sealed record MsgBooking(long ReservationId, string PublicNo, string Status, long? GuestId, string GuestName, MsgContact Contact,

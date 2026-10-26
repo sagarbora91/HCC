@@ -4,16 +4,26 @@ import {Check,CheckCheck,Clock,AlertCircle,Ban,MessageCircle,Smartphone,Mail,Inf
 import {useHcc} from '../../app/context';
 import {Pill,clockTime,shortDate} from '../../components/ui';
 import {money,MSGMessage,MSGStatus,MSGChannel,MSGDoc,MSGDocKind,MSG_STATUS_TONE,MSG_LOW_CONFIDENCE,MSG_DOC_KIND_LABEL,msgStatus,msgLowFields,msgParseRupees,
-  msgLooksLikeFullId,guestIdTypes,guestNormaliseName,EXPENSE_METHODS,EXPENSE_CATEGORIES} from '../../services/mock';
+  msgLooksLikeFullId,guestIdTypes,guestNormaliseName,EXPENSE_METHODS,EXPENSE_CATEGORIES,msgSlice} from '../../services/mock';
 import {msgSampleDocs} from '../../fixtures/ext/messaging';
 
 export const msgChannelIcon=(c:MSGChannel,size=16)=>c==='WhatsApp'?<MessageCircle size={size} aria-hidden/>:c==='SMS'?<Smartphone size={size} aria-hidden/>:<Mail size={size} aria-hidden/>;
 const statusIcon:Record<MSGStatus,React.ReactNode>={Queued:<Clock size={14} aria-hidden/>,Sent:<Check size={14} aria-hidden/>,Delivered:<CheckCheck size={14} aria-hidden/>,
   Read:<CheckCheck size={14} aria-hidden className="msg-read"/>,Failed:<AlertCircle size={14} aria-hidden/>,'Not sent':<Ban size={14} aria-hidden/>};
 export function MsgStatusPill({st}:{st:MSGStatus}){return <Pill tone={MSG_STATUS_TONE[st]}><span className="msg-status">{statusIcon[st]}{st}</span></Pill>;}
-export function MsgSimulated({children}:{children?:React.ReactNode}){
+/** Demo build only: the "Simulated" banner (compiled out of the production build, N3-2). */
+function MsgSimulatedBanner({children}:{children?:React.ReactNode}){
   if(process.env.HCC_BUILD==='production')return null;
   return <div className="info-note msg-sim" role="note"><Info size={16}/><span><b>Simulated.</b> {children||'Nothing is sent — no WhatsApp, SMS or email leaves this prototype, and there is no network access.'}</span></div>;
+}
+/** Production build only (A09-08): a server without a messaging provider says so in its own words (GET /messaging/messages `notConfigured`). */
+function MsgNotConfigured(){
+  const {s}=useHcc();
+  const why=process.env.HCC_BUILD==='production'?msgSlice(s).notConfigured:undefined;
+  return why?<div className="info-note msg-warn" role="note"><AlertTriangle size={16}/><span><b>Messaging is off.</b> {why}</span></div>:null;
+}
+export function MsgSimulated({children}:{children?:React.ReactNode}){
+  return <><MsgNotConfigured/><MsgSimulatedBanner>{children}</MsgSimulatedBanner></>;
 }
 export const msgTemplateName=(s:ReturnType<typeof useHcc>['s'],id:string)=>id==='manual'?'Manual message':(s.messagingX?.templates||[]).find(t=>t.id===id)?.name||id;
 /** Chat-style preview bubble with status ticks + text label. */

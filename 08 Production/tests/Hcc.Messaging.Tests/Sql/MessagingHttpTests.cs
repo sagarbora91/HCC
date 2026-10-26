@@ -29,7 +29,7 @@ public class MessagingHttpTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _w = await MsgWorld.CreateAsync(Ct);
-        var builder = WebApplication.CreateBuilder();
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });   // A09-08: the simulated gateway is for Development and the tests, never Production
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddSingleton(_w.Platform);
         builder.Services.AddSingleton(_w.Platform.Connections);

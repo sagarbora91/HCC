@@ -59,6 +59,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.IdView, ct: ct).ConfigureAwait(false);
+        if (!ocr.IsConfigured) throw OcrNotConfigured.Refusal();   // A09-08: refuse before reading the image; nothing is stored
         if (req.GuestId <= 0) throw HccException.Validation("Select a guest.");
         var kind = DocumentRules.Kind(req.DocKind);
         var type = (req.ContentType ?? string.Empty).Trim().ToLowerInvariant();

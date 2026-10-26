@@ -13,7 +13,7 @@ import type {State,Command,Permission} from '../../services/mock';
 import {can} from '../../services/mock';
 import {HTTP_ADAPTER_ID,createHttpTransport,createHttpReservationsClient,createHttpSystemClient,createHttpMeClient,type FetchLike,type HttpTransport} from '../http';
 import {createConnection,type Connection} from '../connection';
-import {HccClientError,errorText,signInText,MODULE_OFF_REASON} from '../errors';
+import {HccClientError,errorText,signInText,MODULE_OFF_REASON,OCR_NOT_CONFIGURED} from '../errors';
 import {IDEMPOTENCY_KEY_MAX} from '../wire';
 import type {HccClients} from '../types';
 import type {SrvCapabilities} from '../server';
@@ -29,6 +29,10 @@ import {OWN_CREDENTIAL_CHANGE,MUST_CHANGE_REASON,mustChangeText} from '../../dom
 
 export const SYNC_MARKER='hcc-sync-layer';
 export const NOT_ON_SERVER='Not available on the server yet';
+/** Commands no area maps whose refusal says more than NOT_ON_SERVER. MSG_DOC_EXTRACT (A09-08): the production app has no capture screen for
+ *  CaptureIdDocument yet, and a Production server has no OCR engine, so a scan request gets the server's own sentence (errors.ts) instead of a
+ *  developer-style "not on the server yet". Once a capture screen sends the real command, the server's refusal reaches the user unchanged. */
+export const UNMAPPED_TEXT:Record<string,string>={MSG_DOC_EXTRACT:OCR_NOT_CONFIGURED};
 export const READ_ONLY_REFUSAL='Server unavailable — read-only. Nothing was sent and nothing is saved on this device';
 /** Focus / visibility refreshes at most this often. */
 export const FOCUS_REFRESH_MS=30_000;
@@ -339,7 +343,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     if(!me)return {ok:false,reason:'signed-out',text:'Sign in again: your session has ended.'};
     if(me.mustChange&&cmd.type!==OWN_CREDENTIAL_CHANGE)return {ok:false,reason:'must-change',text:mustChangeText(me.credentialKind??'PASSWORD')};
     const m=mappers.get(cmd.type);
-    if(!m)return {ok:false,reason:'unmapped',text:`${NOT_ON_SERVER}: ${cmd.type}`};
+    if(!m)return {ok:false,reason:'unmapped',text:UNMAPPED_TEXT[cmd.type]??`${NOT_ON_SERVER}: ${cmd.type}`};
     if(connection.readOnly){await clients.system.health().catch(()=>undefined);
       if(connection.readOnly)return {ok:false,reason:'read-only',text:`${READ_ONLY_REFUSAL} (${cmd.type}).`};}
     const state=snap.state;
