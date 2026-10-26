@@ -19,11 +19,17 @@ export const ACC_CHART:ACCAccount[]=[
   {code:'1030',name:'Bank account',group:'Asset',note:'Bank transfers'},
   {code:'1100',name:'Guest ledger',group:'Asset',note:'Open folio balances'},
   {code:'1110',name:'Company receivables (city ledger)',group:'Asset',note:'Authorised company credit'},
+  {code:'1200',name:'Staff advances',group:'Asset',note:'Salary advances recovered through payroll'},
   {code:'2000',name:'Advance deposits',group:'Liability',note:'Refundable deposits held'},
   {code:'2100',name:'Synthetic tax payable (legacy)',group:'Liability',note:'Before DEC-069 only — kept for locked snapshots'},
   {code:'2110',name:'Output CGST',group:'Liability',note:'GST master, intra-state half (illustrative — CA to confirm)'},
   {code:'2120',name:'Output SGST',group:'Liability',note:'GST master, intra-state half (illustrative — CA to confirm)'},
   {code:'2200',name:'Vendor payables',group:'Liability',note:'Vendor-credit expenses'},
+  {code:'2300',name:'Salaries payable',group:'Liability',note:'Net pay due to staff'},
+  {code:'2310',name:'PF payable',group:'Liability',note:'Employee + employer PF (illustrative — CA to confirm)'},
+  {code:'2320',name:'ESIC payable',group:'Liability',note:'Employee + employer ESIC (illustrative — CA to confirm)'},
+  {code:'2330',name:'Professional tax payable',group:'Liability'},
+  {code:'2340',name:'Other payroll deductions',group:'Liability'},
   {code:'4000',name:'Room revenue',group:'Income'},
   {code:'4100',name:'Other revenue',group:'Income',note:'Services and extras'},
   {code:'4900',name:'Discounts allowed',group:'Income',note:'Contra revenue'},
@@ -34,6 +40,8 @@ export const ACC_CHART:ACCAccount[]=[
   {code:'5030',name:'Utilities',group:'Expense'},
   {code:'5040',name:'Petty cash & sundry',group:'Expense'},
   {code:'5050',name:'General expenses',group:'Expense'},
+  {code:'5100',name:'Salaries & wages',group:'Expense'},
+  {code:'5110',name:'Employer PF & ESIC',group:'Expense'},
   {code:'5900',name:'Cash over / short',group:'Expense',note:'Accepted drawer differences'},
   {code:ACC_SUSPENSE,name:'Suspense (unmapped)',group:'Suspense',note:'Never a mapping target'},
 ];
@@ -66,7 +74,12 @@ export type ACCLock={date:string;lockedAt:string;lockedBy:string;vouchers:ACCVou
 export type ACCMapChange={id:string;at:string;actor:string;key:string;before:string;after:string};
 export type ACCLockEvent={id:string;at:string;actor:string;date:string;action:'lock'|'unlock';reason?:string};
 /** State slice for this module, stored at s.accountingX (optional; absent in old saves → treat as empty). */
-export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[]};
+/** Production build only (W4-7, clients/sync/accounting.ts): the server's own evaluation of each business date in a window
+ *  (GET /accounting/days). When present, the selectors below read it instead of deriving vouchers on the device — the server is
+ *  the truth. `opening` = balances before `from` (cumulative trial balance). Never set in the prototype. */
+export type ACCServerDay={status:ACCDayStatus;vouchers:ACCVoucher[];exceptions:ACCException[];checks:ACCCheck[]};
+export type ACCServer={from:string;to:string;days:Record<string,ACCServerDay>;opening:ACCVoucher[];mapRows:ACCMapRow[]};
+export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer};
 export const accEmpty=():ACCState=>({});
 export const accSlice=(s:State):ACCState=>s.accountingX??accEmpty();
 /** Effective mapping = defaults overlaid with the slice's overrides. */
@@ -133,7 +146,7 @@ export function accCashDifference(s:State,date:string):number{
   return 0;
 }
 /** Vouchers shown for a date: the locked snapshot when locked, else the live derivation. */
-export function accVouchers(s:State,date:string):ACCVoucher[]{return accLockOf(s,date)?.vouchers??accLiveVouchers(s,date);}
+export function accVouchers(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;if(sv)return sv.days[date]?.vouchers??[];return accLockOf(s,date)?.vouchers??accLiveVouchers(s,date);}
 export const accVoucherTotals=(v:ACCVoucher)=>({debit:v.entries.reduce((a,e)=>a+e.debit,0),credit:v.entries.reduce((a,e)=>a+e.credit,0)});
 export const accBalanced=(v:ACCVoucher)=>{const t=accVoucherTotals(v);return t.debit===t.credit;};
 export function accTotals(vs:ACCVoucher[]){return vs.reduce((a,v)=>{const t=accVoucherTotals(v);return {debit:a.debit+t.debit,credit:a.credit+t.credit};},{debit:0,credit:0});}
@@ -149,6 +162,7 @@ export function accTrialBalance(vs:ACCVoucher[]):ACCTBRow[]{
 }
 /** Dates with any accounting activity, closed dates, locks and the business date — newest first. */
 export function accDates(s:State):string[]{
+  const sv=accSlice(s).server;if(sv)return [...new Set([s.date,...Object.keys(sv.days)])].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
   const d=new Set<string>([s.date,...s.closedDates,...Object.keys(accSlice(s).locks??{}),...Object.keys(s.closings??{})]);
   s.bookings.forEach(b=>{b.lines.forEach(l=>d.add(l.date));b.receipts.forEach(r=>d.add(r.date));});
   posSlice(s).receipts.forEach(r=>d.add(r.date));
@@ -156,14 +170,16 @@ export function accDates(s:State):string[]{
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
-export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{return accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d));}
+export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;return [...(sv&&date>=sv.from?sv.opening:[]),...accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d))];}
 
 // ── Status & exceptions ──
 export type ACCDayStatus='Open'|'Closed'|'Locked';
-export function accDayStatus(s:State,date:string):ACCDayStatus{return accLockOf(s,date)?'Locked':s.closedDates.includes(date)?'Closed':'Open';}
+export function accDayStatus(s:State,date:string):ACCDayStatus{const sv=accSlice(s).server;if(sv)return sv.days[date]?.status??(date<s.date?'Closed':'Open');
+  return accLockOf(s,date)?'Locked':s.closedDates.includes(date)?'Closed':'Open';}
 export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'open-day';title:string;detail:string;voucher?:string;source?:string;key?:string};
 const fingerprint=(vs:ACCVoucher[])=>vs.map(v=>v.source.id+'='+accVoucherTotals(v).debit).sort().join('|');
 export function accExceptions(s:State,date:string):ACCException[]{
+  const sv=accSlice(s).server;if(sv)return sv.days[date]?.exceptions??[];
   const vs=accVouchers(s,date),out:ACCException[]=[];
   for(const v of vs){const t=accVoucherTotals(v);
     if(t.debit!==t.credit)out.push({id:'unbal:'+v.no,severity:'error',kind:'unbalanced',title:`Voucher ${v.no} is unbalanced`,detail:`Debits ₹${(t.debit/100).toFixed(2)} ≠ credits ₹${(t.credit/100).toFixed(2)}`,voucher:v.no,source:v.source.id});
@@ -179,7 +195,7 @@ export const accBlocking=(xs:ACCException[])=>xs.filter(x=>x.severity==='error')
 /** Why a date cannot be locked now ('' = it can). Permission is checked separately. */
 export function accLockBlocker(s:State,date:string):string{
   if(accLockOf(s,date))return 'This date is already locked.';
-  if(!s.closedDates.includes(date))return 'Close the business day before locking it.';
+  if(accSlice(s).server?accDayStatus(s,date)==='Open':!s.closedDates.includes(date))return 'Close the business day before locking it.';
   const e=accBlocking(accExceptions(s,date));
   if(e.length)return `Resolve ${e.length} exception${e.length===1?'':'s'} first (${e[0].title}).`;
   return '';
@@ -189,6 +205,7 @@ export function accLockBlocker(s:State,date:string):string{
 export type ACCCheck={id:string;label:string;report:number;ledger:number;ok:boolean;note:string};
 const isTender=(a:string,mapping:Record<string,string>)=>Object.entries(mapping).some(([k,v])=>k.startsWith('method:')&&v===a);
 export function accReconcile(s:State,date:string):ACCCheck[]{
+  const sv=accSlice(s).server;if(sv)return sv.days[date]?.checks??[];
   const vs=accVouchers(s,date),map=accMapping(s),p=reportPack(s,date,date);
   const v=(tab:string,id:string)=>p.tabs.find(t=>t.id===tab)!.metrics.find(m=>m.id===id)?.value??0;
   const net=(code:string,f:(x:ACCVoucher)=>boolean=()=>true)=>vs.filter(f).reduce((a,x)=>a+x.entries.filter(e=>e.account===code).reduce((b,e)=>b+e.credit-e.debit,0),0);
@@ -218,6 +235,7 @@ export function accReconcile(s:State,date:string):ACCCheck[]{
 // ── Mapping table rows (defaults + classifications discovered in data) ──
 export type ACCMapRow={key:string;group:string;value:string;account:string;defaultAccount?:string;changed:boolean;uses:number;mapped:boolean};
 export function accMapRows(s:State):ACCMapRow[]{
+  const sv=accSlice(s).server;if(sv)return sv.mapRows;
   const map=accMapping(s),uses:Record<string,number>={};
   const add=(k:string)=>{uses[k]=(uses[k]??0)+1;};
   s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
@@ -247,7 +265,8 @@ export function accDaySummary(s:State,date:string){
 }
 /** Source record lookup for a voucher (dialog "trace to source"). */
 export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;receipt?:Receipt;expense?:Expense;posReceipt?:POSReceipt}{
-  if(v.source.kind==='expense')return {expense:s.expenses.find(e=>e.id===v.source.id)};
+  if(v.source.kind==='expense')return {expense:s.expenses.find(e=>e.id===v.source.id||'expense:'+e.id===v.source.id)};
+  if(accSlice(s).server)return {}; // server source keys (charge:…, receipt:…, pos:…) are not prototype record ids
   if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
   if(v.source.kind==='closing')return {};
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
