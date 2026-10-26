@@ -14,6 +14,10 @@ public enum ImportMaster
     Guests,
     PosOutlets,
     PosMenu,
+    Departments,
+    Companies,
+    Suppliers,
+    StockItems,
 }
 
 /// <summary>A template column: canonical name (the template header), required flag, plain-English meaning and an example.</summary>
@@ -24,9 +28,9 @@ public sealed record ImportMasterSpec(ImportMaster Master, string Wire, string T
 
 /// <summary>
 /// Column specifications of every master (the CSV templates under deployment/import-templates use exactly these headers; a test
-/// keeps them in step). Owner-only commit = money, tax, rates, roles and accounts (DEC-058); rooms and guest profiles are the
-/// non-money masters. Opening balances and till opening cash are accepted only while the property is in setup (no business day
-/// closed yet).
+/// keeps them in step). Owner-only commit = money, tax, rates, roles and accounts (DEC-058), plus department leave limits (leave
+/// policy), company credit limits and stock unit costs; rooms, guest profiles, POS outlets and suppliers are the non-money masters.
+/// Opening balances and till opening cash are accepted only while the property is in setup (no business day closed yet).
 /// </summary>
 public static class ImportMasters
 {
@@ -111,6 +115,42 @@ public static class ImportMasters
             new("price", true, "Selling price in rupees before GST (0 allowed). Up to 2 decimals.", "180.00"),
             new("veg", true, "yes for vegetarian, no for non-vegetarian.", "yes"),
             new("outlets", false, "Outlet codes that sell the item, separated by ; (blank = every outlet already in HCC).", "REST;RS"),
+        ]),
+        new(ImportMaster.Departments, "departments", "Departments (staff and payroll)", true, false, "—",
+        [
+            new("code", true, "Department code, 2 to 10 capital letters or digits (stored in capitals).", "FO"),
+            new("name", true, "Department name, 2 to 60 characters.", "Front office"),
+            new("leaveCap", false, "Most staff of this department on leave on one day, 1 to 20 (blank = the leave policy default).", "2"),
+        ]),
+        new(ImportMaster.Companies, "companies", "Company accounts (corporate clients)", true, false, "room-types",
+        [
+            new("name", true, "Company name, up to 200 characters. Used to find the account again on a re-import.", "Mehta Traders (fictional)"),
+            new("gstin", false, "Company GSTIN, 15 characters.", "27ABCDE1234F1Z5"),
+            new("contact", false, "Contact person, up to 120 characters.", "Arjun Mehta"),
+            new("phone", false, "Phone number, 7 to 16 digits (+91 and spaces allowed).", "9890011223"),
+            new("email", false, "E-mail address.", "accounts@example.com"),
+            new("city", false, "City, up to 80 characters.", "Mumbai"),
+            new("creditLimit", false, "Credit limit in rupees (blank or 0 = no credit). Stored only; it is not checked at checkout yet.", "50000"),
+            new("negotiatedRates", false, "Negotiated nightly rates before GST: room type code=rupees, separated by ; (blank = none).", "DLX=3800;STD=2600"),
+        ]),
+        new(ImportMaster.Suppliers, "suppliers", "Suppliers and service vendors", false, false, "—",
+        [
+            new("name", true, "Supplier or vendor name, 3 to 120 characters. Used to find it again on a re-import.", "Shree Laundry Services (fictional)"),
+            new("phone", true, "Phone number (digits, spaces, dash; + allowed).", "9822100200"),
+            new("trade", false, "What they supply or repair, up to 60 characters (blank = General).", "Laundry"),
+        ]),
+        new(ImportMaster.StockItems, "stock-items", "Stock items (linen, amenities, cleaning)", true, false, "—",
+        [
+            new("code", true, "Item code like LIN-BS: 2 to 6 letters/digits, a dash, 1 to 10 letters/digits (stored in capitals).", "LIN-BS"),
+            new("name", true, "Item name, 2 to 120 characters.", "Bed sheet (double)"),
+            new("kind", true, "linen, amenity or cleaning.", "linen"),
+            new("unit", true, "Unit of counting, up to 20 characters.", "pcs"),
+            new("unitCost", false, "Cost per unit in rupees (blank = not costed yet). Up to 2 decimals, at most ₹1,00,000.", "450.00"),
+            new("minQty", false, "Minimum stock before a reorder is suggested, 0 to 10,000 (blank = 0).", "40"),
+            new("reorderQty", false, "Quantity to reorder, 0 to 10,000 (blank = 0).", "60"),
+            new("usePerRoomNight", false, "Standard use per occupied room-night, 0 to 100, up to 2 decimals (blank = none).", "1.5"),
+            new("laundryRate", false, "Laundry charge per piece in rupees (linen only; blank = none).", "12.00"),
+            new("supplier", false, "Usual supplier, up to 120 characters.", "Shree Linen House (fictional)"),
         ]),
     ];
 

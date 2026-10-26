@@ -5,13 +5,18 @@ using System.Text.Json;
 using Hcc.Application.Access;
 using Hcc.Application.Billing;
 using Hcc.Application.Commands;
+using Hcc.Application.Groups;
+using Hcc.Application.Maintenance;
+using Hcc.Application.Payroll;
 using Hcc.Application.Pos;
 using Hcc.Application.Stays;
+using Hcc.Application.Stock;
 using Hcc.Application.Yield;
 using Hcc.Contracts;
 using Hcc.Contracts.Import;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Import;
+using Hcc.Domain.Maintenance;
 using Hcc.Domain.Money;
 
 namespace Hcc.Application.Import;
@@ -22,7 +27,10 @@ namespace Hcc.Application.Import;
 /// = the whole commit rolled back). Writes go through the owning modules' ports: <see cref="IImportInventoryWriter"/> (room types, rooms),
 /// Yield's <see cref="IRatePublicationPort"/> (BAR tariffs) and <see cref="IYieldStore"/> (seasons + yield history), <see cref="IImportAccessWriter"/>
 /// (users, no credential), <see cref="IBillingStore"/> (tills; opening cash = a counted, closed opening shift so the first OpenShift carries it,
-/// DEC-035), <see cref="IPosStore"/> (POS outlets and menu: the POS module's own insert/update ports), <see cref="IStaysStore"/> (guest profiles, never an ID number) and the module's own ledgers / opening trial balance.
+/// DEC-035), <see cref="IPosStore"/> (POS outlets and menu: the POS module's own insert/update ports), <see cref="IStaysStore"/> (guest profiles, never an ID number),
+/// <see cref="IPayrollStore"/> (departments), <see cref="ICompanyStore"/> (company accounts; the credit limit is stored only, A09-09),
+/// <see cref="IMaintenanceStore"/> (suppliers = the vendor register), <see cref="IStockStore"/> (stock items, zero stock) and the module's own ledgers /
+/// opening trial balance.
 /// </summary>
 public sealed class ImportService(
     ICommandRunner runner,
@@ -35,6 +43,10 @@ public sealed class ImportService(
     IBillingStore billing,
     IStaysStore stays,
     IPosStore pos,
+    IPayrollStore payroll,
+    ICompanyStore companies,
+    IMaintenanceStore maintenance,
+    IStockStore stock,
     TimeProvider clock) : IOpeningBalanceSource
 {
     public const string OpUpload = "UploadImportBatch";
@@ -334,6 +346,103 @@ public sealed class ImportService(
 
                     await tx.AuditAsync("POS_MENU_SAVED", $"menu:{item.ItemId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {price} · by import ({tag})", ct).ConfigureAwait(false);
                     await AuditRow("IMPORT_POS_MENU", "menu:" + d.Code, i).ConfigureAwait(false);
+                }
+
+                break;
+            case ImportMaster.Departments:
+            {
+                var db = payroll.In(tx);
+                foreach (var i in plan.Changes)
+                {
+                    var d = (DepartmentData)i.Data!;
+                    await db.LockDepartmentAsync(p, d.Code, ct).ConfigureAwait(false);
+                    await db.UpsertDepartmentAsync(p, new DepartmentRow(d.Code, d.Name, d.LeaveCap), ct).ConfigureAwait(false);
+                    await tx.AuditAsync("HR_DEPT_SAVED", "hr.dept:" + d.Code, $"{d.Code} · {d.Name} {(d.Exists ? "updated" : "added")}{(d.LeaveCap is { } x ? $" · max {x} off per day" : "")} · by import ({tag})", ct)
+                        .ConfigureAwait(false);
+                    await AuditRow("IMPORT_DEPARTMENT", "dept:" + d.Code, i).ConfigureAwait(false);
+                }
+
+                break;
+            }
+
+            case ImportMaster.Companies:
+                foreach (var i in plan.Changes)
+                {
+                    var d = (CompanyData)i.Data!;
+                    var details = new CompanyDetails(d.Name, d.Gstin, d.Contact, d.Phone, d.Email, d.City, d.Rates);
+                    if (await companies.NameTakenAsync(tx, p, d.Name, d.ExistingId, ct).ConfigureAwait(false))
+                        throw new HccException(HccErrorCode.INVALID_TRANSITION, $"A company account named {d.Name} was added meanwhile; upload the file again.");
+                    long id;
+                    if (d.ExistingId is { } existing)
+                    {
+                        var row = await companies.LockAsync(tx, p, existing, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Company account not found.");
+                        await companies.UpdateAsync(tx, existing, row.Version, details, ct).ConfigureAwait(false);
+                        await tx.AuditAsync("COMPANY_UPDATED", $"company:{existing.ToString(CultureInfo.InvariantCulture)}", $"{d.Name} · by import ({tag})", ct).ConfigureAwait(false);
+                        id = existing;
+                        if (d.LimitChanged)
+                        {
+                            // Stored value only (A09-09): the Owner commits the file, as the Owner sets a limit directly in the app; no enforcement is added here.
+                            await companies.SupersedePendingAsync(tx, id, actor, now, ct).ConfigureAwait(false);
+                            await companies.SetLimitAsync(tx, id, d.CreditLimitPaise, ct).ConfigureAwait(false);
+                            await tx.AuditAsync("COMPANY_LIMIT_SET", $"company:{id.ToString(CultureInfo.InvariantCulture)}",
+                                $"{d.Name} · credit limit {new Paise(row.CreditLimitPaise)} → {new Paise(d.CreditLimitPaise)} · by import ({tag})", ct).ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        var row = await companies.InsertAsync(tx, p, details, actor, now, ct).ConfigureAwait(false);
+                        id = row.CompanyId;
+                        if (d.CreditLimitPaise > 0) await companies.SetLimitAsync(tx, id, d.CreditLimitPaise, ct).ConfigureAwait(false);
+                        await tx.AuditAsync("COMPANY_CREATED", $"company:{id.ToString(CultureInfo.InvariantCulture)}",
+                            $"{d.Name}{(d.Gstin is null ? "" : " · GSTIN " + d.Gstin)}{(d.CreditLimitPaise > 0 ? $" · credit limit {new Paise(d.CreditLimitPaise)} set" : "")} · by import ({tag})", ct)
+                            .ConfigureAwait(false);
+                        await tx.PublishAsync("CompanyCreated", id, new { companyId = id, name = d.Name }, ct).ConfigureAwait(false);
+                    }
+
+                    await AuditRow("IMPORT_COMPANY", $"company:{id.ToString(CultureInfo.InvariantCulture)}", i).ConfigureAwait(false);
+                }
+
+                break;
+            case ImportMaster.Suppliers:
+                foreach (var i in plan.Changes)
+                {
+                    var d = (SupplierData)i.Data!;
+                    int id;
+                    if (d.ExistingId is { } existing)
+                    {
+                        var v = await maintenance.LockVendorAsync(tx, p, existing, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Vendor not found.");
+                        await maintenance.UpdateVendorAsync(tx, new MntVendor(existing, d.Name, d.Trade, d.Phone, []), v.Version, ct).ConfigureAwait(false);
+                        id = existing;
+                    }
+                    else
+                    {
+                        (id, _) = await maintenance.InsertVendorAsync(tx, p, new MntVendor(0, d.Name, d.Trade, d.Phone, []), ct).ConfigureAwait(false);
+                    }
+
+                    await tx.AuditAsync("MNT_VENDOR", $"vendor-{id.ToString(CultureInfo.InvariantCulture)}", $"{d.Name} {(d.ExistingId is null ? "added" : "updated")} by import ({tag})", ct).ConfigureAwait(false);
+                    await AuditRow("IMPORT_SUPPLIER", $"vendor:{id.ToString(CultureInfo.InvariantCulture)}", i).ConfigureAwait(false);
+                }
+
+                break;
+            case ImportMaster.StockItems:
+                foreach (var i in plan.Changes)
+                {
+                    var d = (StockItemData)i.Data!;
+                    if (d.ExistingId is null)
+                    {
+                        var (created, _, _) = await stock.InsertItemAsync(tx, p, d.Code, d.Name, d.Kind, d.Unit, d.CostPaise, d.MinQty, d.ReorderQty, d.StdX100, d.LaundryPaise,
+                            d.Supplier, now, ct).ConfigureAwait(false);
+                        if (!created) throw new HccException(HccErrorCode.INVALID_TRANSITION, $"Stock item {d.Code} was added meanwhile; upload the file again.");
+                        await tx.AuditAsync("STOCK_ITEM_CREATE", "stock-item-" + d.Code, $"{d.Code} · {d.Name} added ({d.Kind}, {d.Unit}) by import ({tag})", ct).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        var it = await stock.LockItemAsync(tx, p, d.Code, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Stock item not found.");
+                        await stock.UpdateItemAsync(tx, it.ItemId, it.Version, d.MinQty, d.ReorderQty, d.StdX100, null, ct).ConfigureAwait(false);
+                        await tx.AuditAsync("STOCK_ITEM_SET", "stock-item-" + d.Code, Clip($"{d.Code} · {i.Detail} · by import ({tag})", 1000), ct).ConfigureAwait(false);
+                    }
+
+                    await AuditRow("IMPORT_STOCK_ITEM", "stock-item:" + d.Code, i).ConfigureAwait(false);
                 }
 
                 break;

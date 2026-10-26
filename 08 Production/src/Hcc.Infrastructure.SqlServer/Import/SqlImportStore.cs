@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using Hcc.Application.Commands;
 using Hcc.Application.Import;
 using Hcc.Contracts;
@@ -25,11 +26,14 @@ internal static class ImportSql
     public static DateTime Utc(SqlDataReader rd, int i) => DateTime.SpecifyKind(rd.GetDateTime(i), DateTimeKind.Utc);
 
     public static DateOnly Date(SqlDataReader rd, int i) => DateOnly.FromDateTime(rd.GetDateTime(i));
+
+    public static string? Text(SqlDataReader rd, int i) => rd.IsDBNull(i) ? null : rd.GetString(i);
 }
 
 /// <summary>
 /// imp.* persistence plus the read-only snapshot of the owning modules' masters (inv.room_type/room/room_type_tariff, yld.season,
-/// plat.role/app_user/user_role, pay.till/shift/cash_movement, gst.guest names + phones only — never an ID column, DEC-068, cls.business_day).
+/// plat.role/app_user/user_role, pay.till/shift/cash_movement, gst.guest names + phones only — never an ID column, DEC-068, cls.business_day,
+/// pos.outlet/menu_item, hr.department, grp.company_account, mnt.vendor, stk.item).
 /// </summary>
 public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportStore
 {
@@ -82,6 +86,10 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
             SELECT t.outlet_id, t.table_no FROM pos.outlet_table t JOIN pos.outlet o ON o.outlet_id = t.outlet_id WHERE o.property_id = @p;
             SELECT item_id, code, name, category, price_paise, veg FROM pos.menu_item WHERE property_id = @p ORDER BY code;
             SELECT mo.item_id, mo.outlet_id FROM pos.menu_item_outlet mo JOIN pos.menu_item m ON m.item_id = mo.item_id WHERE m.property_id = @p;
+            SELECT dept_code, name, leave_cap FROM hr.department WHERE property_id = @p ORDER BY dept_code;
+            SELECT company_id, name, gstin, contact, phone, email, city, rates_json, credit_limit_paise FROM grp.company_account WHERE property_id = @p ORDER BY name;
+            SELECT vendor_id, name, trade, phone FROM mnt.vendor WHERE property_id = @p ORDER BY vendor_id;
+            SELECT item_id, code, name, kind, unit, cost_paise, min_qty, reorder_qty, std_x100, laundry_rate_paise, supplier FROM stk.item WHERE property_id = @p ORDER BY code;
             """;
         return WithCommandAsync(tx, sql, async cmd =>
         {
@@ -151,6 +159,22 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             var itemOutlets = new List<(int Item, int Outlet)>();
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) itemOutlets.Add((rd.GetInt32(0), rd.GetInt32(1)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var departments = new List<SnapDepartment>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) departments.Add(new SnapDepartment(rd.GetString(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetByte(2)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var companies = new List<SnapCompany>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                companies.Add(new SnapCompany(rd.GetInt64(0), rd.GetString(1), ImportSql.Text(rd, 2), ImportSql.Text(rd, 3), ImportSql.Text(rd, 4), ImportSql.Text(rd, 5), ImportSql.Text(rd, 6),
+                    JsonSerializer.Deserialize<Dictionary<string, long>>(rd.GetString(7)) ?? [], rd.GetInt64(8)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var suppliers = new List<SnapSupplier>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) suppliers.Add(new SnapSupplier(rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            var stock = new List<SnapStockItem>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                stock.Add(new SnapStockItem(rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), rd.GetInt64(5), rd.GetInt32(6), rd.GetInt32(7),
+                    rd.IsDBNull(8) ? null : rd.GetInt32(8), rd.IsDBNull(9) ? null : rd.GetInt64(9), ImportSql.Text(rd, 10)));
 
             return new ImportSnapshot(businessDate, closed, types, rooms, tariffs,
                 seasons.Select(s => new SnapSeason(s.Id, s.Name, s.From, s.To, s.Adj, seasonTypes.Where(x => x.Season == s.Id).Select(x => x.Type).Order().ToList(), s.Prio)).ToList(),
@@ -158,7 +182,8 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
                 users.Select(u => new SnapUser(u.Login, u.Name, userRoles.Where(r => r.User == u.Id).Select(r => r.Role).ToList())).ToList(),
                 ledgers, asOf, opening, tills, guests,
                 outletRows.Select(o => new SnapOutlet(o.Id, o.Code, o.Name, o.Kind, tableRows.Where(t => t.Outlet == o.Id).Select(t => t.Table).ToList())).ToList(),
-                itemRows.Select(m => new SnapMenuItem(m.Id, m.Code, m.Name, m.Category, m.Price, m.Veg, itemOutlets.Where(x => x.Item == m.Id).Select(x => x.Outlet).Order().ToList())).ToList());
+                itemRows.Select(m => new SnapMenuItem(m.Id, m.Code, m.Name, m.Category, m.Price, m.Veg, itemOutlets.Where(x => x.Item == m.Id).Select(x => x.Outlet).Order().ToList())).ToList(),
+                departments, companies, suppliers, stock);
         }, ct);
     }
 

@@ -2,8 +2,11 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Hcc.Contracts.Import;
 using Hcc.Domain.Accounting;
+using Hcc.Domain.Errors;
+using Hcc.Domain.Groups;
 using Hcc.Domain.Money;
 using Hcc.Domain.Stays;
+using Hcc.Domain.Stock;
 
 namespace Hcc.Domain.Import;
 
@@ -31,6 +34,16 @@ public sealed record SnapOutlet(int Id, string Code, string Name, string Kind, I
 
 public sealed record SnapMenuItem(int Id, string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds);
 
+public sealed record SnapDepartment(string Code, string Name, int? LeaveCap);
+
+public sealed record SnapCompany(long Id, string Name, string? Gstin, string? Contact, string? Phone, string? Email, string? City, IReadOnlyDictionary<string, long> Rates,
+    long CreditLimitPaise);
+
+public sealed record SnapSupplier(int Id, string Name, string Trade, string Phone);
+
+public sealed record SnapStockItem(int Id, string Code, string Name, string Kind, string Unit, long CostPaise, int MinQty, int ReorderQty, int? StdX100, long? LaundryPaise,
+    string? Supplier);
+
 /// <summary>What the property holds today, read from the owning modules (planning input; loaded again inside the commit transaction).</summary>
 public sealed record ImportSnapshot(
     DateOnly BusinessDate,
@@ -47,7 +60,11 @@ public sealed record ImportSnapshot(
     IReadOnlyList<SnapTill> Tills,
     IReadOnlySet<string> GuestKeys,
     IReadOnlyList<SnapOutlet>? PosOutlets = null,
-    IReadOnlyList<SnapMenuItem>? PosMenu = null);
+    IReadOnlyList<SnapMenuItem>? PosMenu = null,
+    IReadOnlyList<SnapDepartment>? Departments = null,
+    IReadOnlyList<SnapCompany>? Companies = null,
+    IReadOnlyList<SnapSupplier>? Suppliers = null,
+    IReadOnlyList<SnapStockItem>? StockItems = null);
 
 public enum ImportAction
 {
@@ -81,6 +98,18 @@ public sealed record GuestData(GuestDraft Draft, string Key) : ImportData;
 public sealed record OutletData(string Code, string Name, string Kind, IReadOnlyList<string> Tables) : ImportData;
 
 public sealed record MenuItemData(string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds, int? ExistingId) : ImportData;
+
+public sealed record DepartmentData(string Code, string Name, int? LeaveCap, bool Exists) : ImportData;
+
+/// <summary>A company account; <see cref="Rates"/> = room type code → nightly paise (sorted); <see cref="LimitChanged"/> = the stored credit limit changes.</summary>
+public sealed record CompanyData(string Name, string? Gstin, string? Contact, string? Phone, string? Email, string? City, IReadOnlyDictionary<string, long> Rates,
+    long CreditLimitPaise, long? ExistingId, bool LimitChanged) : ImportData;
+
+public sealed record SupplierData(string Name, string Trade, string Phone, int? ExistingId) : ImportData;
+
+/// <summary>A stock item; an existing item (<see cref="ExistingId"/>) only has its levels (minimum, reorder, use per room-night) updated.</summary>
+public sealed record StockItemData(string Code, string Name, string Kind, string Unit, long CostPaise, int MinQty, int ReorderQty, int? StdX100, long? LaundryPaise,
+    string? Supplier, int? ExistingId) : ImportData;
 
 public sealed record ImportPlanItem(int Row, ImportAction Action, string Key, string Detail, ImportData? Data);
 
@@ -269,6 +298,10 @@ public static partial class ImportPlanner
             case ImportMaster.Guests: Guests(sheet, snap); break;
             case ImportMaster.PosOutlets: PosOutlets(sheet, snap); break;
             case ImportMaster.PosMenu: PosMenu(sheet, snap); break;
+            case ImportMaster.Departments: Departments(sheet, snap); break;
+            case ImportMaster.Companies: Companies(sheet, snap); break;
+            case ImportMaster.Suppliers: Suppliers(sheet, snap); break;
+            case ImportMaster.StockItems: StockItems(sheet, snap); break;
             default: throw new ArgumentOutOfRangeException(nameof(master));
         }
 
@@ -673,6 +706,273 @@ public static partial class ImportPlanner
                 if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, existing.Code, "Already in HCC: " + show, data);
                 else s.Item(r, ImportAction.Update, existing.Code, string.Join(" · ", changes), data);
             }
+        }
+    }
+
+    // ── departments, companies, suppliers, stock items (A09-09) ──
+
+    [GeneratedRegex(@"^[A-Z0-9]{2,10}$")]
+    private static partial Regex DeptCodePattern();
+
+    [GeneratedRegex(@"^[+\d][\d\s-]{6,}$")]
+    private static partial Regex VendorPhonePattern();
+
+    [GeneratedRegex(@"^[A-Z0-9]{2,6}-[A-Z0-9]{1,10}$")]
+    private static partial Regex StockCodePattern();
+
+    /// <summary>A blank optional cell is null; longer than <paramref name="max"/> is a row error.</summary>
+    private static string? Optional(Sheet s, CsvRow r, string column, int max, string what)
+    {
+        var v = s.Cell(r, column);
+        if (v.Length == 0) return null;
+        if (v.Length <= max) return v;
+        s.Error(r, column, $"The {what} is at most {I(max)} characters.");
+        return null;
+    }
+
+    /// <summary>Runs a module's own field rule (which throws a validation error) and turns its message into a row error.</summary>
+    private static string? Rule(Sheet s, CsvRow r, string column, Func<string?, string?> rule)
+    {
+        try
+        {
+            return rule(s.Cell(r, column));
+        }
+        catch (HccException e)
+        {
+            s.Error(r, column, e.Message);
+            return null;
+        }
+    }
+
+    private static int Quantity(Sheet s, CsvRow r, string column, string what)
+    {
+        var v = s.Cell(r, column);
+        if (v.Length == 0) return 0;
+        if (ImportValues.TryInt(v, out var q) && q is >= 0 and <= StockRules.MaxQty) return q;
+        s.Error(r, column, $"The {what} is a whole number from 0 to {StockRules.MaxQty.ToString("N0", CultureInfo.InvariantCulture)}.");
+        return 0;
+    }
+
+    private static void Departments(Sheet s, ImportSnapshot snap)
+    {
+        var existing = snap.Departments ?? [];
+        var seen = new Dictionary<string, int>(Ci);
+        foreach (var r in s.Table.Rows)
+        {
+            var errs = s.Errors.Count;
+            var code = s.Required(r, "code", 10, "department code")?.ToUpperInvariant();
+            if (code is not null && !DeptCodePattern().IsMatch(code)) s.Error(r, "code", "A department code is 2 to 10 capital letters or digits, for example FO.");
+            var name = s.Required(r, "name", 60, "department name");
+            if (name is { Length: < 2 }) s.Error(r, "name", "The department name needs at least 2 characters.");
+            int? cap = null;
+            var capText = s.Cell(r, "leaveCap");
+            if (capText.Length > 0)
+            {
+                if (ImportValues.TryInt(capText, out var c) && c is >= 1 and <= 20) cap = c;
+                else s.Error(r, "leaveCap", "The leave limit is a whole number from 1 to 20 (leave it blank for the leave policy default).");
+            }
+
+            if (code is null || Duplicate(s, seen, r, code, "code") || s.Errors.Count > errs) continue;
+            var have = existing.FirstOrDefault(d => Ci.Equals(d.Code, code));
+            var data = new DepartmentData(code, name!, cap, have is not null);
+            var show = name + (cap is { } x ? $" · at most {I(x)} on leave per day" : " · leave policy default");
+            if (have is null)
+            {
+                s.Item(r, ImportAction.Create, code, "New department " + show, data);
+                continue;
+            }
+
+            var changes = new List<string>();
+            if (!string.Equals(have.Name, name, StringComparison.Ordinal)) changes.Add($"name {have.Name} → {name}");
+            if (have.LeaveCap != cap) changes.Add($"leave limit {(have.LeaveCap is { } a ? I(a) : "default")} → {(cap is { } b ? I(b) : "default")}");
+            if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, have.Code, "Already in HCC: " + show, data);
+            else s.Item(r, ImportAction.Update, have.Code, string.Join(" · ", changes), data);
+        }
+    }
+
+    /// <summary>"DLX=3800;STD=2600" → room type code (capitals) → nightly paise, sorted; every code must be a room type in HCC.</summary>
+    private static SortedDictionary<string, long> Rates(Sheet s, CsvRow r, ImportSnapshot snap)
+    {
+        var rates = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var part in ImportValues.List(s.Cell(r, "negotiatedRates")))
+        {
+            var bits = part.Split(['=', ':'], 2, StringSplitOptions.TrimEntries);
+            if (bits.Length != 2 || bits[0].Length == 0)
+            {
+                s.Error(r, "negotiatedRates", $"'{part}' is not a rate. Write room type=rupees, for example DLX=3800, separated by ;.");
+                continue;
+            }
+
+            var type = Type(snap, bits[0]);
+            if (type is null)
+            {
+                s.Error(r, "negotiatedRates", $"Room type {bits[0]} is not in HCC yet. Import the room types file first.");
+                continue;
+            }
+
+            var code = type.Code.ToUpperInvariant();
+            if (!ImportValues.TryRupees(bits[1], out var paise, out var rounded, out var err)) s.Error(r, "negotiatedRates", $"{code}: {err}");
+            else if (paise is <= 0 or > 10_000_000) s.Error(r, "negotiatedRates", $"{code}: a negotiated nightly rate is more than ₹0 and at most ₹1,00,000.");
+            else if (!rates.TryAdd(code, paise)) s.Error(r, "negotiatedRates", $"Room type {code} is listed twice.");
+            else if (rounded) s.Warn(r, "negotiatedRates", $"{code}: '{bits[1]}' has more than 2 decimals; rounded to {Rs(paise)}.");
+        }
+
+        return rates;
+    }
+
+    private static string RatesText(IReadOnlyDictionary<string, long> rates) =>
+        rates.Count == 0 ? "no negotiated rates" : string.Join(", ", rates.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => $"{x.Key} {Rs(x.Value)}"));
+
+    private static void Companies(Sheet s, ImportSnapshot snap)
+    {
+        var existing = snap.Companies ?? [];
+        var seen = new Dictionary<string, int>(Ci);
+        foreach (var r in s.Table.Rows)
+        {
+            var errs = s.Errors.Count;
+            var name = s.Required(r, "name", 200, "company name");
+            var gstin = Rule(s, r, "gstin", GroupText.Gstin);
+            var contact = Optional(s, r, "contact", 120, "contact name");
+            var phone = Rule(s, r, "phone", GroupText.Phone);
+            var email = Rule(s, r, "email", GroupText.Email);
+            var city = Optional(s, r, "city", 80, "city");
+            var limit = s.Money(r, "creditLimit", false, false);
+            var rates = Rates(s, r, snap);
+            if (name is null || Duplicate(s, seen, r, name, "name") || s.Errors.Count > errs) continue;
+            var have = existing.FirstOrDefault(c => Ci.Equals(c.Name, name));
+            var show = $"{name}{(gstin is null ? "" : " · GSTIN " + gstin)}{(city is null ? "" : " · " + city)} · credit limit {Rs(limit!.Value)} · {RatesText(rates)}";
+            var data = new CompanyData(name, gstin, contact, phone, email, city, rates, limit.Value, have?.Id, have is null ? limit.Value > 0 : have.CreditLimitPaise != limit.Value);
+            if (have is null)
+            {
+                s.Item(r, ImportAction.Create, name, "New company account " + show, data);
+                continue;
+            }
+
+            var changes = new List<string>();
+            void Diff(string what, string? from, string? to)
+            {
+                if (!string.Equals(from, to, StringComparison.Ordinal)) changes.Add($"{what} {from ?? "—"} → {to ?? "—"}");
+            }
+
+            Diff("name", have.Name, name);
+            Diff("GSTIN", have.Gstin, gstin);
+            Diff("contact", have.Contact, contact);
+            Diff("phone", have.Phone, phone);
+            Diff("e-mail", have.Email, email);
+            Diff("city", have.City, city);
+            if (have.CreditLimitPaise != limit.Value) changes.Add($"credit limit {Rs(have.CreditLimitPaise)} → {Rs(limit.Value)}");
+            var haveRates = new SortedDictionary<string, long>(have.Rates.ToDictionary(x => x.Key.ToUpperInvariant(), x => x.Value), StringComparer.Ordinal);
+            if (!haveRates.SequenceEqual(rates)) changes.Add($"rates {RatesText(haveRates)} → {RatesText(rates)}");
+            if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, have.Name, "Already in HCC: " + show, data);
+            else s.Item(r, ImportAction.Update, have.Name, string.Join(" · ", changes), data);
+        }
+    }
+
+    private static void Suppliers(Sheet s, ImportSnapshot snap)
+    {
+        var existing = snap.Suppliers ?? [];
+        var seen = new Dictionary<string, int>(Ci);
+        foreach (var r in s.Table.Rows)
+        {
+            var errs = s.Errors.Count;
+            var name = s.Required(r, "name", 120, "supplier name");
+            if (name is { Length: < 3 }) s.Error(r, "name", "The supplier name needs at least 3 characters.");
+            var phone = s.Required(r, "phone", 30, "phone number");
+            if (phone is not null && !VendorPhonePattern().IsMatch(phone)) s.Error(r, "phone", "Enter a phone number: digits, spaces or '-', at least 7 (a leading + is allowed).");
+            var trade = Optional(s, r, "trade", 60, "trade") ?? "General";
+            if (name is null || Duplicate(s, seen, r, name, "name") || s.Errors.Count > errs) continue;
+            var same = existing.Where(v => Ci.Equals(v.Name, name)).ToList();
+            if (same.Count > 1)
+            {
+                s.Error(r, "name", $"HCC already has {I(same.Count)} suppliers named {name}. Change them on the Maintenance › Vendors & AMC screen, not by import.");
+                continue;
+            }
+
+            var have = same.FirstOrDefault();
+            var data = new SupplierData(name, trade, phone!, have?.Id);
+            var show = $"{name} · {trade} · {phone}";
+            if (have is null)
+            {
+                s.Item(r, ImportAction.Create, name, "New supplier " + show, data);
+                continue;
+            }
+
+            var changes = new List<string>();
+            if (!string.Equals(have.Name, name, StringComparison.Ordinal)) changes.Add($"name {have.Name} → {name}");
+            if (!string.Equals(have.Trade, trade, StringComparison.Ordinal)) changes.Add($"trade {have.Trade} → {trade}");
+            if (!string.Equals(have.Phone, phone, StringComparison.Ordinal)) changes.Add($"phone {have.Phone} → {phone}");
+            if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, have.Name, "Already in HCC: " + show, data);
+            else s.Item(r, ImportAction.Update, have.Name, string.Join(" · ", changes), data);
+        }
+    }
+
+    private static string Std(int? x100) => x100 is { } v ? (v / 100m).ToString("0.##", CultureInfo.InvariantCulture) : "none";
+
+    private static void StockItems(Sheet s, ImportSnapshot snap)
+    {
+        var existing = snap.StockItems ?? [];
+        var seen = new Dictionary<string, int>(Ci);
+        foreach (var r in s.Table.Rows)
+        {
+            var errs = s.Errors.Count;
+            var code = s.Required(r, "code", 20, "item code")?.ToUpperInvariant();
+            if (code is not null && !StockCodePattern().IsMatch(code)) s.Error(r, "code", "An item code looks like LIN-BS: 2 to 6 letters or digits, a dash, then 1 to 10 letters or digits.");
+            var name = s.Required(r, "name", 120, "item name");
+            if (name is { Length: < 2 }) s.Error(r, "name", "The item name needs at least 2 characters.");
+            var kind = s.Cell(r, "kind").ToLowerInvariant();
+            if (!StockRules.Kinds.Contains(kind)) s.Error(r, "kind", "The kind is linen, amenity or cleaning.");
+            var unit = s.Required(r, "unit", 20, "unit");
+            var costGiven = s.Cell(r, "unitCost").Length > 0;
+            var cost = s.Money(r, "unitCost", false, false);
+            if (cost > StockRules.MaxUnitCostPaise) s.Error(r, "unitCost", "The unit cost is at most ₹1,00,000.");
+            var min = Quantity(s, r, "minQty", "minimum quantity");
+            var reorder = Quantity(s, r, "reorderQty", "reorder quantity");
+            int? std = null;
+            var stdText = s.Cell(r, "usePerRoomNight");
+            if (stdText.Length > 0)
+            {
+                if (decimal.TryParse(stdText, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var u) && u is >= 0 and <= 100 && decimal.Round(u * 100m) == u * 100m)
+                    std = (int)(u * 100m);
+                else s.Error(r, "usePerRoomNight", "The use per occupied room-night is a number from 0 to 100 with up to 2 decimals, for example 1.5.");
+            }
+
+            long? laundry = null;
+            if (s.Cell(r, "laundryRate").Length > 0)
+            {
+                laundry = s.Money(r, "laundryRate", false, false);
+                if (laundry > StockRules.MaxUnitCostPaise) s.Error(r, "laundryRate", "The laundry rate is at most ₹1,00,000.");
+                else if (kind != "linen") s.Error(r, "laundryRate", "A laundry rate applies to linen only; leave it blank for amenities and cleaning items.");
+            }
+
+            var supplier = Optional(s, r, "supplier", 120, "supplier name");
+            if (code is null || Duplicate(s, seen, r, code, "code") || s.Errors.Count > errs) continue;
+            var have = existing.FirstOrDefault(i => Ci.Equals(i.Code, code));
+            var data = new StockItemData(code, name!, kind, unit!, cost!.Value, min, reorder, std, laundry, supplier, have?.Id);
+            var levels = $"minimum {I(min)}, reorder {I(reorder)}, use per room-night {Std(std)}";
+            if (have is null)
+            {
+                s.Item(r, ImportAction.Create, code, $"New item {name} · {kind} · {unit}{(cost.Value > 0 ? $" · {Rs(cost.Value)} per {unit}" : "")} · {levels}", data);
+                continue;
+            }
+
+            if (!string.Equals(have.Name, name, StringComparison.Ordinal) || have.Kind != kind || !string.Equals(have.Unit, unit, StringComparison.Ordinal))
+            {
+                s.Error(r, "code", $"Item {have.Code} is already in HCC as {have.Name} ({have.Kind}, {have.Unit}). Change it on the Stock screen, or use another code.");
+                continue;
+            }
+
+            if (costGiven && have.CostPaise != cost.Value)
+                s.Warn(r, "unitCost", $"Item {have.Code} keeps its unit cost {Rs(have.CostPaise)} (goods receipts keep the average cost); {Rs(cost.Value)} from the file is not used.");
+            if (laundry is not null && have.LaundryPaise != laundry)
+                s.Warn(r, "laundryRate", $"Item {have.Code} keeps its laundry rate {(have.LaundryPaise is { } lp ? Rs(lp) : "none")}; change it on the Stock screen.");
+            if (supplier is not null && !string.Equals(have.Supplier, supplier, StringComparison.Ordinal))
+                s.Warn(r, "supplier", $"Item {have.Code} keeps its supplier {have.Supplier ?? "—"}; change it on the Stock screen.");
+            var changes = new List<string>();
+            if (have.MinQty != min) changes.Add($"minimum {I(have.MinQty)} → {I(min)}");
+            if (have.ReorderQty != reorder) changes.Add($"reorder {I(have.ReorderQty)} → {I(reorder)}");
+            if (have.StdX100 != std) changes.Add($"use per room-night {Std(have.StdX100)} → {Std(std)}");
+            if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, have.Code, "Already in HCC: " + levels, data);
+            else s.Item(r, ImportAction.Update, have.Code, string.Join(" · ", changes), data);
         }
     }
 
