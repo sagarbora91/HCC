@@ -1,7 +1,7 @@
 /* MA-3 · money masters on module screens: "By account · settles to" (cash book / bank view). Cards, wrap on phones (no sideways scroll). */
 .mny-settle{margin-top:16px}
 .mny-settle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
-.mny-settle-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff;min-width:0}
+.mny-settle-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--c-ffffff);min-width:0}
 .mny-settle-card h3{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:15px;margin-bottom:8px;overflow-wrap:anywhere}
 .mny-settle-card h3 small{font-weight:400}
 .mny-settle-card dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 8px}

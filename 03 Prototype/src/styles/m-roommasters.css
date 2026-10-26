@@ -1,8 +1,8 @@
 /* MA-1 · Rooms master tools (features/roommasters): range add, renumber, out of order above the Rooms list. Classes rms- .
    Desktop: three compact cards in a wrapping grid; phone (.rms-phone or < 760 px): stacked, 48 px targets, 16 px text, no sideways scroll. */
 .rms-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;min-width:0}
-.rms-tool{border:1px solid #e6d9c8;border-radius:10px;background:#faf6f0;padding:10px 12px;min-width:0}
-.rms-tool h4{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:14px;color:#2b1d16}
+.rms-tool{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;min-width:0}
+.rms-tool h4{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:14px;color:var(--ink)}
 .rms-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;align-items:end}
 .rms-grid label{min-width:0}
 .rms-grid input,.rms-grid select{width:100%;min-width:0;box-sizing:border-box}

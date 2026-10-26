@@ -14,12 +14,12 @@
 [data-density="compact"] .app-shell .content{padding-top:16px}
 
 /* Segmented control (≤ 4 options) */
-.pf-seg{display:inline-flex;flex-wrap:wrap;border:1px solid #cdb9a3;border-radius:8px;overflow:hidden;background:#fff;max-width:100%}
-.pf-seg button{border:0;background:#fff;color:#4a372c;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;min-height:38px;font-size:13px;font-weight:500;cursor:pointer}
-.pf-seg button+button{border-left:1px solid #e6d9c8}
-.pf-seg button.on{background:#7a1f2b;color:#fff;font-weight:600}
-.pf-seg button:focus-visible{outline:3px solid #7a1f2b;outline-offset:-3px}
-.pf-seg button.on:focus-visible{outline-color:#2b1d16}
+.pf-seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--c-cdb9a3);border-radius:8px;overflow:hidden;background:var(--c-ffffff);max-width:100%}
+.pf-seg button{border:0;background:var(--c-ffffff);color:var(--c-4a372c);display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;min-height:38px;font-size:13px;font-weight:500;cursor:pointer}
+.pf-seg button+button{border-left:1px solid var(--line)}
+.pf-seg button.on{background:var(--primary);color:var(--c-ffffff);font-weight:600}
+.pf-seg button:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
+.pf-seg button.on:focus-visible{outline-color:var(--ink)}
 .pf-a{display:inline-flex;flex-direction:column;align-items:center;line-height:1.1;min-width:64px}
 .pf-a b{font-weight:700}
 .pf-a small{font-size:11px;margin-top:2px}
@@ -31,36 +31,36 @@
 .pf-body{display:flex;flex-direction:column;gap:18px}
 .pf-row{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap}
 .pf-row-label{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1 1 240px}
-.pf-row-label label,.pf-row-label span{font-size:14px;font-weight:600;color:#2b1d16}
-.pf-row-label small{font-size:12px;color:#6b5547;max-width:52ch}
+.pf-row-label label,.pf-row-label span{font-size:14px;font-weight:600;color:var(--ink)}
+.pf-row-label small{font-size:12px;color:var(--muted);max-width:52ch}
 .pf-row-control{flex:0 1 auto;max-width:100%}
-.pf-row-control select{min-height:38px;font-size:13px;padding:6px 10px;border:1px solid #cdb9a3;border-radius:7px;background:#fff;color:#2b1d16;max-width:100%}
-.pf-sample{font-size:calc(16px * var(--hcc-text,1));color:#2b1d16;background:#faf6f0;border:1px dashed #cdb9a3;border-radius:8px;padding:12px 14px;margin:0;overflow-wrap:anywhere}
-.pf-static{font-size:13px;color:#6b5547}
-.pf-note{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#4a372c;margin:0}
-.pf-check{width:22px;height:22px;accent-color:#7a1f2b}
+.pf-row-control select{min-height:38px;font-size:13px;padding:6px 10px;border:1px solid var(--c-cdb9a3);border-radius:7px;background:var(--c-ffffff);color:var(--ink);max-width:100%}
+.pf-sample{font-size:calc(16px * var(--hcc-text,1));color:var(--ink);background:var(--bg);border:1px dashed var(--c-cdb9a3);border-radius:8px;padding:12px 14px;margin:0;overflow-wrap:anywhere}
+.pf-static{font-size:13px;color:var(--muted)}
+.pf-note{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--c-4a372c);margin:0}
+.pf-check{width:22px;height:22px;accent-color:var(--primary)}
 
 /* Top-bar quick control: A− A+ and the page link */
-.pf-quick{display:inline-flex;border:1px solid #cdb9a3;border-radius:8px;overflow:hidden;background:#fff;flex-shrink:0}
-.pf-quick button{border:0;background:#fff;color:#4a372c;display:inline-flex;align-items:center;justify-content:center;min-height:32px;min-width:32px;padding:4px 7px;cursor:pointer}
-.pf-quick button+button{border-left:1px solid #e6d9c8}
-.pf-quick button:disabled{color:#a8968a;cursor:default}
-.pf-quick button:focus-visible{outline:3px solid #7a1f2b;outline-offset:-3px}
+.pf-quick{display:inline-flex;border:1px solid var(--c-cdb9a3);border-radius:8px;overflow:hidden;background:var(--c-ffffff);flex-shrink:0}
+.pf-quick button{border:0;background:var(--c-ffffff);color:var(--c-4a372c);display:inline-flex;align-items:center;justify-content:center;min-height:32px;min-width:32px;padding:4px 7px;cursor:pointer}
+.pf-quick button+button{border-left:1px solid var(--line)}
+.pf-quick button:disabled{color:var(--c-a8968a);cursor:default}
+.pf-quick button:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
 @media screen and (pointer:coarse) and (min-width:600px){.app-shell .topbar-right .pf-quick{display:none!important}}
 
 /* Phone page and user-menu sheet: 48 px targets, 16 px text, cards, no sideways scroll at 360 px */
 .pf-m-page{display:flex;flex-direction:column;gap:14px;padding:4px 0 24px;min-width:0}
-.pf-m-card{background:#fff;border:1px solid #e6d9c8;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
-.pf-m-card h2{font-size:18px;margin:0;color:#2b1d16}
-.pf-m-scope{font-size:14px;color:#6b5547;margin:-8px 0 0}
+.pf-m-card{background:var(--c-ffffff);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.pf-m-card h2{font-size:18px;margin:0;color:var(--ink)}
+.pf-m-scope{font-size:14px;color:var(--muted);margin:-8px 0 0}
 .pf-m-field{display:flex;flex-direction:column;gap:8px;min-width:0}
-.pf-m-label{font-size:16px;font-weight:600;color:#2b1d16}
-.pf-m-field small,.pf-m-toggle small{font-size:14px;color:#6b5547}
-.pf-m-field select{min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cdb9a3;border-radius:8px;background:#fff;color:#2b1d16;width:100%;max-width:100%}
+.pf-m-label{font-size:16px;font-weight:600;color:var(--ink)}
+.pf-m-field small,.pf-m-toggle small{font-size:14px;color:var(--muted)}
+.pf-m-field select{min-height:48px;font-size:16px;padding:10px 12px;border:1px solid var(--c-cdb9a3);border-radius:8px;background:var(--c-ffffff);color:var(--ink);width:100%;max-width:100%}
 .pf-m-toggle{display:flex;gap:12px;align-items:flex-start;min-height:48px}
 .pf-m-toggle span{display:flex;flex-direction:column;gap:4px;font-size:16px}
 .pf-m-toggle .pf-check{margin-top:2px;flex-shrink:0}
-.pf-m-note{display:flex;gap:8px;align-items:flex-start;font-size:16px;color:#4a372c;margin:0}
+.pf-m-note{display:flex;gap:8px;align-items:flex-start;font-size:16px;color:var(--c-4a372c);margin:0}
 .pf-m-page .pf-static{font-size:16px}
 .pf-m-page .pf-seg,.m-sheet-form .pf-seg{display:flex;width:100%}
 .pf-m-page .pf-seg button,.m-sheet-form .pf-seg button{flex:1 1 0;min-width:0;min-height:48px;font-size:16px;padding:8px 6px;text-align:center;white-space:normal}
