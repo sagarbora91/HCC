@@ -1,0 +1,7 @@
+node v25.9.0
+server /commands names: 216 | MapPost calls: 133 | other POST routes: 6 | unresolved: 0
+prototype command types: 189 (switch 22 + handlers 188 , overridden 21 )
+areas 15 | mapped types 171 | unmapped keys 22 | mapped-but-not-in-prototype 7 | unmapped-not-in-prototype 1 | both 1
+mapper->server targets: 168 | missing on server: 0 | mappers with no detected server command: 0
+screens: desktop 38 phone 36 | commands on no screen: 7 | unknown literal types in UI: 1
+status counts { MAPPED: 164, UNMAPPED: 20, ABSENT: 5 }

@@ -1,0 +1,12 @@
+== HCC-0.1.0-proto-debug.apk
+package: name='in.hcc.prototype' versionCode='12' versionName='0.1.0-proto' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+application-debuggable
+      A: android:debuggable(0x0101000f)=(type 0x12)0xffffffff
+      A: android:allowBackup(0x01010280)=(type 0x12)0xffffffff
+== HCC-0.1.0-server-debug-TESTCA.apk
+package: name='in.hcc.prototype.server' versionCode='12' versionName='0.1.0-proto-server' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+application-debuggable
+      A: android:debuggable(0x0101000f)=(type 0x12)0xffffffff
+      A: android:allowBackup(0x01010280)=(type 0x12)0xffffffff
+      A: android:usesCleartextTraffic(0x010104ec)=(type 0x12)0x0
+      A: android:networkSecurityConfig(0x01010527)=@0x7f110002

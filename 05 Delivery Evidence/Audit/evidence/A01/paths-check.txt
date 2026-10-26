@@ -1,0 +1,219 @@
+checked=218 exists=154 missing=14 other=50
+HANDOFF.md | 213 | domain/clone.ts | EXISTS (as 03 Prototype/src/domain/clone.ts)
+HANDOFF.md | 213 | tests/stream-compat.mjs | EXISTS (as 03 Prototype/tests/stream-compat.mjs)
+HANDOFF.md | 213 | tests/stream-report-till.mjs | EXISTS (as 03 Prototype/tests/stream-report-till.mjs)
+HANDOFF.md | 213 | @capgo/capacitor-printer | MISSING
+HANDOFF.md | 213 | 04 Android/scripts/patch-printer.mjs | EXISTS 
+HANDOFF.md | 213 | tests/check-print-layout.mjs | EXISTS (as 03 Prototype/tests/check-print-layout.mjs)
+HANDOFF.md | 214 | tests/stream-t04.mjs | EXISTS (as 03 Prototype/tests/stream-t04.mjs)
+HANDOFF.md | 216 | 05 Delivery Evidence\APK\HCC-0.1.0-proto-debug.apk | EXISTS 
+HANDOFF.md | 217 | 02 Planning\agents\W0-D_Final_Emulator_Brief.md | EXISTS 
+HANDOFF.md | 217 | Acceptance\d5-ac\v7-ac01-* | PATTERN (not checked)
+HANDOFF.md | 221 | 05 Delivery Evidence\Acceptance\D5_Roles.md | EXISTS 
+HANDOFF.md | 221 | D5_AC.md | EXISTS (as 05 Delivery Evidence/Acceptance/D5_AC.md)
+HANDOFF.md | 224 | 02 Planning\HCC_Acceptance_Matrix.md | EXISTS 
+HANDOFF.md | 224 | 05 Delivery Evidence\Acceptance\W0-D_Acceptance_Report.md | EXISTS 
+HANDOFF.md | 226 | 03 Prototype/src/styles* | PATTERN (not checked)
+HANDOFF.md | 226 | 05 Delivery Evidence\Acceptance\defects\AC-02-* | PATTERN (not checked)
+HANDOFF.md | 229 | 05 Delivery Evidence/Acceptance/Print_Tablet_Back_Verification_2026-10-25.md | EXISTS 
+HANDOFF.md | 230 | 05 Delivery Evidence/Acceptance/tablet-local/ | EXISTS 
+HANDOFF.md | 233 | 02 Planning/HCC_FirstParty_Implementation_Map_2026-10-25.md | EXISTS 
+HANDOFF.md | 244 | 02 Planning\agents\W05_Briefs.md | EXISTS 
+HANDOFF.md | 245 | claude/w05* | PATTERN (not checked)
+HANDOFF.md | 250 | V:\HCC-Migration-2026-10-25\ | EXTERNAL (not checked)
+HANDOFF.md | 250 | MIGRATION.md | EXISTS 
+HANDOFF.md | 250 | tools\restore-on-new-pc.ps1 | EXISTS 
+HANDOFF.md | 254 | E:\Projects\HCC\Hotel Control Centre | MISSING
+HANDOFF.md | 254 | V:\Codex\… | EXTERNAL (not checked)
+HANDOFF.md | 254 | E:\Projects\HCC\Migration data on 25 oct\HCC-Migration-2026-10-25\reference-inputs\SCC-modules | EXTERNAL (not checked)
+HANDOFF.md | 255 | E:\Tools\nodejs | EXTERNAL (not checked)
+HANDOFF.md | 255 | E:\Program Files\nodejs | EXTERNAL (not checked)
+HANDOFF.md | 256 | D5_Roles.md | EXISTS (as 05 Delivery Evidence/Acceptance/D5_Roles.md)
+HANDOFF.md | 256 | D5_AC.md | EXISTS (as 05 Delivery Evidence/Acceptance/D5_AC.md)
+HANDOFF.md | 257 | E:\Projects\HCC\worktrees\integration | EXTERNAL (not checked)
+HANDOFF.md | 257 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 257 | ...\w05a | PATTERN (not checked)
+HANDOFF.md | 257 | ...\w05b | PATTERN (not checked)
+HANDOFF.md | 257 | ...\w05c | PATTERN (not checked)
+HANDOFF.md | 257 | claude/w05* | PATTERN (not checked)
+HANDOFF.md | 257 | 03 Prototype\node_modules | EXISTS 
+HANDOFF.md | 258 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 259 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 260 | 02 Planning\agents\W05_Briefs.md | EXISTS 
+HANDOFF.md | 261 | HCC_Acceptance_Matrix.md | EXISTS (as 02 Planning/HCC_Acceptance_Matrix.md)
+HANDOFF.md | 261 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 263 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 263 | 05 Delivery Evidence\Acceptance\W05_Browser_Check.md | EXISTS 
+HANDOFF.md | 263 | 05 Delivery Evidence\Assembly\W05_DEC_Code_Review_2026-10-25.md | EXISTS 
+HANDOFF.md | 263 | claude/fy26-guestid | EXISTS (git branch)
+HANDOFF.md | 263 | E:\Projects\HCC\worktrees\guestid | EXTERNAL (not checked)
+HANDOFF.md | 263 | claude/wave1-p0 | EXISTS (git branch)
+HANDOFF.md | 263 | E:\Projects\HCC\worktrees\wave1 | EXTERNAL (not checked)
+HANDOFF.md | 263 | 08 Production\ | EXISTS 
+HANDOFF.md | 263 | 08 Production\ETP_Reuse_Pending.md | EXISTS 
+HANDOFF.md | 264 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 265 | D5_Roles.md | EXISTS (as 05 Delivery Evidence/Acceptance/D5_Roles.md)
+HANDOFF.md | 265 | D5_AC.md | EXISTS (as 05 Delivery Evidence/Acceptance/D5_AC.md)
+HANDOFF.md | 266 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 266 | W05_Browser_Check.md | EXISTS (as 05 Delivery Evidence/Acceptance/W05_Browser_Check.md)
+HANDOFF.md | 267 | claude/w05-review-fixes | EXISTS (git branch)
+HANDOFF.md | 267 | claude/w05-phone-fixes | EXISTS (git branch)
+HANDOFF.md | 267 | 05 Delivery Evidence\Assembly\W05B_Payroll_Code_Review_2026-10-25.md | EXISTS 
+HANDOFF.md | 267 | claude/rbac-tests | EXISTS (git branch)
+HANDOFF.md | 267 | 02 Planning\options\ | EXISTS 
+HANDOFF.md | 268 | 05 Delivery Evidence\Acceptance\W0-D_Acceptance_Report.md | EXISTS 
+HANDOFF.md | 268 | BL023_Walkthrough_v8.md | EXISTS (as 05 Delivery Evidence/Acceptance/BL023_Walkthrough_v8.md)
+HANDOFF.md | 269 | 05 Delivery Evidence\Assembly\W05B_Payroll_Code_Review_2026-10-25.md | EXISTS 
+HANDOFF.md | 269 | claude/w05b-review-fixes | EXISTS (git branch)
+HANDOFF.md | 269 | E:\Projects\HCC\worktrees\payfix | EXTERNAL (not checked)
+HANDOFF.md | 270 | claude/wave1-p0 | EXISTS (git branch)
+HANDOFF.md | 270 | 08 Production\ | EXISTS 
+HANDOFF.md | 270 | Workpc\Sagar | MISSING
+HANDOFF.md | 270 | .\SQLEXPRESS | MISSING
+HANDOFF.md | 272 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 272 | 05 Delivery Evidence\Acceptance\A11y_Performance_Audit_2026-10-25.md | EXISTS 
+HANDOFF.md | 273 | claude/wave1-p0 | EXISTS (git branch)
+HANDOFF.md | 273 | 08 Production\WAVE1_PARALLEL_RULES.md | EXISTS 
+HANDOFF.md | 273 | claude/wave1-p1-access | EXISTS (git branch)
+HANDOFF.md | 273 | E:\Projects\HCC\worktrees\w1-* | EXTERNAL (not checked)
+HANDOFF.md | 274 | Fixes_Recheck_2026-10-25.md | EXISTS (as 05 Delivery Evidence/Acceptance/Fixes_Recheck_2026-10-25.md)
+HANDOFF.md | 274 | 02 Planning\RBAC_Mismatch_Rulings_Proposed.md | EXISTS 
+HANDOFF.md | 275 | 02 Planning\RBAC_Mismatch_Rulings_Proposed.md | EXISTS 
+HANDOFF.md | 275 | claude/rbac-rulings | EXISTS (git branch)
+HANDOFF.md | 275 | E:\Projects\HCC\worktrees\rbacfix | EXTERNAL (not checked)
+HANDOFF.md | 276 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 276 | claude/rbac-rulings | EXISTS (git branch)
+HANDOFF.md | 277 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 277 | E:\Projects\HCC\worktrees\w1-integration | EXTERNAL (not checked)
+HANDOFF.md | 280 | tests/stream-schema8.mjs | EXISTS (as 03 Prototype/tests/stream-schema8.mjs)
+HANDOFF.md | 280 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 280 | 05 Delivery Evidence\Acceptance\APK_v9_Emulator_Retest.md | EXISTS 
+HANDOFF.md | 280 | 05 Delivery Evidence\APK\HCC-0.1.0-proto-debug-v9.apk | EXISTS 
+HANDOFF.md | 281 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 281 | E:\Projects\HCC\worktrees\w1-integration | EXTERNAL (not checked)
+HANDOFF.md | 281 | database/migrations/ | EXISTS (as 08 Production/database/migrations/)
+HANDOFF.md | 281 | .\SQLEXPRESS | MISSING
+HANDOFF.md | 284 | C:\Users\Sagar\.android\debug.keystore | EXTERNAL (not checked)
+HANDOFF.md | 285 | 05 Delivery Evidence\APK\HCC-0.1.0-proto-debug.apk | EXISTS 
+HANDOFF.md | 285 | C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot | EXTERNAL (not checked)
+HANDOFF.md | 285 | 04 Android\README.md | EXISTS 
+HANDOFF.md | 288 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 288 | V:\ETP | EXTERNAL (not checked)
+HANDOFF.md | 289 | E:\Projects\HCC\worktrees\ | EXTERNAL (not checked)
+HANDOFF.md | 290 | claude/* | PATTERN (not checked)
+HANDOFF.md | 290 | integration/w05 | EXISTS (git branch)
+HANDOFF.md | 291 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 291 | appsettings.json | MISSING
+HANDOFF.md | 292 | graphify-out\GRAPH_REPORT.md | EXISTS 
+HANDOFF.md | 292 | graphify-out\graph.html | EXISTS 
+HANDOFF.md | 292 | E:\Tools\Obsidian | EXTERNAL (not checked)
+HANDOFF.md | 292 | E:\Projects\HCC\HCC Knowledge Vault | EXTERNAL (not checked)
+HANDOFF.md | 296 | E:\Projects\HCC\worktrees\ | EXTERNAL (not checked)
+HANDOFF.md | 297 | E:\Projects\HCC\worktrees\int-polish | EXTERNAL (not checked)
+HANDOFF.md | 298 | Polish_Browser_Verification_2026-10-25.md | EXISTS (as 05 Delivery Evidence/Acceptance/Polish_Browser_Verification_2026-10-25.md)
+HANDOFF.md | 298 | APK_v10_Emulator_Check.md | EXISTS (as 05 Delivery Evidence/Acceptance/APK_v10_Emulator_Check.md)
+HANDOFF.md | 301 | claude/v11-fixes | EXISTS (git branch)
+HANDOFF.md | 301 | E:\Projects\HCC\worktrees\v11-fixes | EXTERNAL (not checked)
+HANDOFF.md | 304 | claude/wave1-p6-closing | EXISTS (git branch)
+HANDOFF.md | 304 | claude/wave1-p7-deploy | EXISTS (git branch)
+HANDOFF.md | 304 | claude/wave1-gst-ids | EXISTS (git branch)
+HANDOFF.md | 304 | claude/merge-w1-clients | EXISTS (git branch)
+HANDOFF.md | 304 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 307 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 307 | INSTALL.md | EXISTS (as 08 Production/deployment/windows/INSTALL.md)
+HANDOFF.md | 308 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 308 | 02 Planning\agents\W2_Briefs.md | EXISTS 
+HANDOFF.md | 308 | claude/w2-* | PATTERN (not checked)
+HANDOFF.md | 308 | E:\Projects\HCC\worktrees\w2-* | EXTERNAL (not checked)
+HANDOFF.md | 309 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 310 | claude/wave1-gst-ids | EXISTS (git branch)
+HANDOFF.md | 311 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 312 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 313 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 314 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 314 | NNNN_<module>_rbac_seed.sql | PATTERN (not checked)
+HANDOFF.md | 315 | claude/w3a-config-checks | EXISTS (git branch)
+HANDOFF.md | 315 | claude/w3b-setup-payrev | EXISTS (git branch)
+HANDOFF.md | 316 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 317 | E:\Projects\HCC\worktrees\w3b | EXTERNAL (not checked)
+HANDOFF.md | 317 | 02 Planning\agents\W3_Briefs.md | EXISTS 
+HANDOFF.md | 318 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 318 | POST /api/v1/setup/SetupProperty | MISSING
+HANDOFF.md | 318 | deployment\windows\Initialize-HccProperty.ps1 | EXISTS (as 08 Production/deployment/windows/Initialize-HccProperty.ps1)
+HANDOFF.md | 318 | /graphify --update | MISSING
+HANDOFF.md | 321 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 321 | E:\Projects\HCC\worktrees\w1-integration | EXTERNAL (not checked)
+HANDOFF.md | 324 | 02 Planning\HCC_RBAC_Matrix_v2_Proposal.md | EXISTS 
+HANDOFF.md | 327 | INV/2627/0000001 | MISSING
+HANDOFF.md | 328 | claude/wave1-integration | EXISTS (git branch)
+HANDOFF.md | 331 | 05 Delivery Evidence\Acceptance\APK_v11_Emulator_Report.md | EXISTS 
+HANDOFF.md | 335 | 02 Planning\agents\W4_Briefs.md | EXISTS 
+HANDOFF.md | 335 | 03 Prototype\src\clients\sync\ | EXISTS 
+HANDOFF.md | 335 | sync/reads.ts | EXISTS (as 03 Prototype/src/clients/sync/reads.ts)
+HANDOFF.md | 335 | tests/_role-reads.json | EXISTS (as 03 Prototype/tests/_role-reads.json)
+HANDOFF.md | 335 | src/clients/sync/README.md | EXISTS (as 03 Prototype/src/clients/sync/README.md)
+HANDOFF.md | 336 | 08 Production\deployment\import-templates\ | EXISTS 
+HANDOFF.md | 336 | 05 Delivery Evidence\Security\Security_Review_2026-10-26.md | EXISTS 
+HANDOFF.md | 337 | W4_E2E_Report.md | EXISTS (as 05 Delivery Evidence/Acceptance/W4_E2E_Report.md)
+HANDOFF.md | 337 | W4_E2E2_Report.md | EXISTS (as 05 Delivery Evidence/Acceptance/W4_E2E2_Report.md)
+HANDOFF.md | 339 | scratchpad\art | MISSING
+HANDOFF.md | 340 | 05 Delivery Evidence\Acceptance\APK_v12_Emulator_Report.md | EXISTS 
+HANDOFF.md | 343 | 05 Delivery Evidence\Acceptance\APK_v12_Emulator_Report.md | EXISTS 
+HANDOFF.md | 344 | 02 Planning\agents\Audit_Prompt_Fable.md | EXISTS 
+CLAUDE.md | 5 | 03 Prototype/src/clients/sync/ | EXISTS 
+CLAUDE.md | 5 | .\SQLEXPRESS | MISSING
+CLAUDE.md | 5 | HANDOFF.md | EXISTS 
+CLAUDE.md | 5 | 02 Planning/HCC_Implementation_Backlog.md | EXISTS 
+CLAUDE.md | 5 | 02 Planning/HCC_RBAC_Matrix_v2_Proposal.md | EXISTS 
+CLAUDE.md | 7 | E:\Projects\HCC\Hotel Control Centre | MISSING
+CLAUDE.md | 7 | V:\Codex\Hotel Control Centre | EXTERNAL (not checked)
+CLAUDE.md | 7 | E:\Tools\nodejs | EXTERNAL (not checked)
+CLAUDE.md | 7 | E:\Program Files\nodejs | EXTERNAL (not checked)
+CLAUDE.md | 7 | E:\Projects\HCC\Migration data on 25 oct\HCC-Migration-2026-10-25\reference-inputs\SCC-modules | EXTERNAL (not checked)
+CLAUDE.md | 7 | V:\ETP | EXTERNAL (not checked)
+CLAUDE.md | 10 | HANDOFF.md | EXISTS 
+CLAUDE.md | 11 | 02 Planning/HCC_Plan_FY_History_and_APK_v1.md | EXISTS 
+CLAUDE.md | 12 | 02 Planning/HCC_Mobile_Version_Plan_v1.md | EXISTS 
+CLAUDE.md | 12 | 02 Planning/modules/ | EXISTS 
+CLAUDE.md | 13 | 02 Planning/HCC_Decision_Register.md | EXISTS 
+CLAUDE.md | 13 | HCC_Prototype_Spec_v1.md | EXISTS (as 02 Planning/HCC_Prototype_Spec_v1.md)
+CLAUDE.md | 13 | HCC_RBAC_Matrix_v1.md | EXISTS (as 02 Planning/HCC_RBAC_Matrix_v1.md)
+CLAUDE.md | 13 | HCC_Business_Workflow_Spec_v1.md | EXISTS (as 02 Planning/HCC_Business_Workflow_Spec_v1.md)
+CLAUDE.md | 13 | HCC_Fixture_and_Scenario_Catalog.md | EXISTS (as 02 Planning/HCC_Fixture_and_Scenario_Catalog.md)
+CLAUDE.md | 13 | HCC_Acceptance_Matrix.md | EXISTS (as 02 Planning/HCC_Acceptance_Matrix.md)
+CLAUDE.md | 13 | HCC_Implementation_Backlog.md | EXISTS (as 02 Planning/HCC_Implementation_Backlog.md)
+CLAUDE.md | 14 | 03 Prototype/README.md | EXISTS 
+CLAUDE.md | 17 | 01 Research Stage/ | EXISTS 
+CLAUDE.md | 17 | 02 Planning/ | EXISTS 
+CLAUDE.md | 17 | modules/ | EXISTS (as 02 Planning/modules/)
+CLAUDE.md | 17 | 03 Prototype/ | EXISTS 
+CLAUDE.md | 17 | 04 Android/ | EXISTS 
+CLAUDE.md | 17 | 05 Delivery Evidence/ | EXISTS 
+CLAUDE.md | 20 | dist/index.html | EXISTS (as 03 Prototype/dist/index.html)
+CLAUDE.md | 20 | Hotel Control Centre.html | EXISTS (as 03 Prototype/Hotel Control Centre.html)
+CLAUDE.md | 23 | src/services/mock/commands.ts | EXISTS (as 03 Prototype/src/services/mock/commands.ts)
+CLAUDE.md | 23 | src/services/mock/handlers/*.ts | PATTERN (not checked)
+CLAUDE.md | 24 | src/domain/ | EXISTS (as 03 Prototype/src/domain/)
+CLAUDE.md | 24 | src/domain/streams/*.ts | PATTERN (not checked)
+CLAUDE.md | 24 | src/fixtures/ | EXISTS (as 03 Prototype/src/fixtures/)
+CLAUDE.md | 24 | ext/ | MISSING
+CLAUDE.md | 24 | src/features/* | PATTERN (not checked)
+CLAUDE.md | 24 | register.tsx | MISSING
+CLAUDE.md | 24 | src/app/registry.ts | EXISTS (as 03 Prototype/src/app/registry.ts)
+CLAUDE.md | 25 | src/domain/gst.ts | EXISTS (as 03 Prototype/src/domain/gst.ts)
+CLAUDE.md | 26 | src/domain/types.ts | EXISTS (as 03 Prototype/src/domain/types.ts)
+CLAUDE.md | 27 | src/fixtures/history/ | EXISTS (as 03 Prototype/src/fixtures/history/)
+CLAUDE.md | 27 | generate.ts | EXISTS (as 03 Prototype/src/fixtures/history/generate.ts)
+CLAUDE.md | 27 | operations.ts | EXISTS (as 03 Prototype/src/fixtures/history/operations.ts)
+CLAUDE.md | 27 | modules*.ts | PATTERN (not checked)
+CLAUDE.md | 27 | src/app/storage.ts | EXISTS (as 03 Prototype/src/app/storage.ts)
+CLAUDE.md | 28 | src/app/navmap.ts | EXISTS (as 03 Prototype/src/app/navmap.ts)
+CLAUDE.md | 28 | SearchPalette.tsx | EXISTS (as 03 Prototype/src/app/SearchPalette.tsx)
+CLAUDE.md | 28 | features/customers | EXISTS (as 03 Prototype/src/features/customers)
+CLAUDE.md | 29 | src/app/native.ts | EXISTS (as 03 Prototype/src/app/native.ts)
+CLAUDE.md | 31 | src/app/mobile/components.tsx | EXISTS (as 03 Prototype/src/app/mobile/components.tsx)
+CLAUDE.md | 32 | src/features/<m> | PATTERN (not checked)
+CLAUDE.md | 32 | src/domain/streams/<m>.ts | PATTERN (not checked)
+CLAUDE.md | 32 | src/services/mock/handlers/<m>.ts | PATTERN (not checked)
+CLAUDE.md | 32 | src/fixtures/ext/<m>.ts | PATTERN (not checked)
+CLAUDE.md | 32 | tests/stream-<m>.mjs | PATTERN (not checked)

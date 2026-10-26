@@ -1,0 +1,125 @@
+== branches/remotes
+* claude/audit-fable-2026-10-26
+  claude/dec-cashlock
+  claude/dec-gst
+  claude/dec-guestid2
++ claude/fy26-guestid
+  claude/merge-w1-clients
+  claude/polish-a11y
+  claude/polish-fixes2
+  claude/polish-perf
+  claude/polish-reports
+  claude/rbac-rulings
+  claude/rbac-tests
+  claude/v11-fixes
+  claude/w05-phone-fixes
+  claude/w05-review-fixes
+  claude/w05a-config-75c322
+  claude/w05b-payroll-c92985
+  claude/w05b-review-fixes
+  claude/w05c-compliance-258931
+  claude/w05d-cashbook-99d1d6
+  claude/w05e-exports-3573bc
+  claude/w0b-till-cacd7c
+  claude/w0c-restrictions-b3c6e2
+  claude/w2-accounting
+  claude/w2-compliance
+  claude/w2-config
+  claude/w2-expenses
+  claude/w2-guestsvc
+  claude/w2-handover
+  claude/w2-maintenance
+  claude/w2-messaging
+  claude/w2-payroll
+  claude/w2-pos
+  claude/w2-stock
+  claude/w2-yield
+  claude/w3-block-history
+  claude/w3-booking-web
+  claude/w3-cashbook
+  claude/w3-crm
+  claude/w3-doc-capture
+  claude/w3-groups-billing
+  claude/w3-invoices
+  claude/w3-ota
+  claude/w3-posfix
+  claude/w3-rbac-v2
+  claude/w3-stays-gaps
+  claude/w3a-config-checks
+  claude/w3b-setup-payrev
+  claude/w4-accounting
+  claude/w4-admin
+  claude/w4-apk
+  claude/w4-closing
+  claude/w4-e2e
+  claude/w4-e2e2
+  claude/w4-foundation
+  claude/w4-frontdesk
+  claude/w4-guestsvc
+  claude/w4-maint
+  claude/w4-masters-import
+  claude/w4-money
+  claude/w4-pos
+  claude/w4-rooms
+  claude/w4-staff
+  claude/w4-yield
+  claude/w4f1-checkout
+  claude/w4f2-roles
+  claude/w4f3-install
+  claude/w4g1-credentials
+  claude/w4g2-payfiles
+  claude/w4g3-reports
+  claude/w4g4-showid
+  claude/w4g5-company
+  claude/w4g6-apkstore
+  claude/w4g7-s4fixes
+  claude/w4g8-secreview
++ claude/w4n1-masters
++ claude/w4n2-money
++ claude/w4n3-polish
++ claude/w4s1-client
++ claude/w4s2-auth
+== remote -v
+origin	https://github.com/sagarbora91/HCC.git (fetch)
+origin	https://github.com/sagarbora91/HCC.git (push)
+== ahead of origin/main
+270
+== main head
+f0a5a2996f439c4dbf650496245e38aba5eaa574
+== commits named in HANDOFF
+7ac3e2f : commit : 7ac3e2f 26-Oct 12:26 Merge Wave 4 into main: production web/APK on the server (sync layer, 12 areas), masters import, APK HTTPS + PIN/device sign-in, security fixes, E2E fixes
+3ba9559 : commit : 3ba9559 26-Oct 04:50 Merge the production server (08 Production: Wave 1, Wave 2, Wave 3; 849 .NET tests) into main
+bbee681 : commit : bbee681 26-Oct 04:59 APK v11 (versionCode 11) built from main (D5D2F9DD)
+0803e14 : commit : 0803e14 26-Oct 05:23 APK v11 emulator report (phone + tablet AVD) and screenshots
+f0a5a29 : commit : f0a5a29 26-Oct 14:52 APK v12 emulator report and screenshots (demo APK, server APK phone and tablet against the real server)
+b629b5e : commit : b629b5e 26-Oct 12:27 Android: versionCode 12 (APK v12)
+26f1abf : commit : 26f1abf 25-Oct 21:38 Android: versionCode 9 -> 10 for APK v10
+779c79d : commit : 779c79d 26-Oct 12:11 S2: server auth and API security fixes (F-M01/02/03/07, F-L01/03/04/05/06/07)
+4b70254 : commit : 4b70254 26-Oct 11:55 S1 security fixes (client + APK): encrypted read cache behind auth, release APK, sealed tokens, opaque roster, narrow FileProvider
+08fd127 : commit : 08fd127 26-Oct 12:12 Merge S2 security: uniform sign-in failures, per-client throttling, Owner-only credential resets for money roles, PIN sessions bound to X-HCC-Device, minimal health, generic 5xx
+621cb6a : commit : 621cb6a 26-Oct 11:58 Merge S1 security: encrypted offline cache behind sign-in, release APK, encrypted tokens, X-HCC-Device, roster and FileProvider narrowed
+0a91418 : commit : 0a91418 26-Oct 14:37 Next-session prompt: independent audit by Fable
+c0c477d : commit : c0c477d 26-Oct 14:53 HANDOFF: APK v12 emulator results, next-session audit prompt
+a5decb3 : commit : a5decb3 25-Oct 19:24 Wave 1 integration: README (module blocks, composition, session/scope conventions, JSON-object command results) and ICommandRunner note
+6b3e040 : commit : 6b3e040 25-Oct 20:15 Merge Wave 0.5 into main (owner acceptance APR-011): cash book, Excel/day pack/Tally exports, compliance calendar, SCC payroll/leave/payslips, Master configuration hub, FY26 guest profiles, review + browser fixes, RBAC rulings DEC-063, SCHEMA 8, APK v9 versionCode
+bf86f07 : commit : bf86f07 25-Oct 21:36 Merge prototype polish batch into main: speed (per-slice saves, copy-on-write execute, FY26 in a worker, faster reports), accessibility, small fixes, DEC-065 cash-book lock, DEC-068 full guest IDs, DEC-069 real GST master
+83d7d9e : commit : 83d7d9e 26-Oct 02:43 Merge W3-10 RBAC matrix v2 proposal
+b04f596 : commit : b04f596 25-Oct 20:42 HANDOFF: knowledge graph + Obsidian vault
+5f1de52 : commit : 5f1de52 25-Oct 01:55 Acceptance fixes by Codex (25 Oct, reviewed by lead): AC-01 old-WebView compatibility, BL-01, BL-02, D-01 + shared-till cash report, A4 print layout and printer patch
+4f46af8 : commit : 4f46af8 25-Oct 02:00 Fix T-04 (1 night / 1 guest wording) and T-05 (Android Back stuck on Modules Home)
+28a7475 : commit : 28a7475 25-Oct 02:01 APK versionCode 7 with all W0-D fixes (SHA-256 e87c692b...73ef)
+619e0f8 : commit : 619e0f8 25-Oct 18:01 P0: take the migration app lock before creating the journal (two runners on a fresh DB raced on CREATE TABLE schema_migration); 54/54 SQL-backed tests pass 6/6 runs
+e0bcfa7 : commit : e0bcfa7 26-Oct 04:40 Merge W3-6 invoices & credit notes (FY numbering, GST invoices, credit notes, GSTR-1 view)
+865e76a : commit : 865e76a 26-Oct 02:59 Migration-order test: allow Wave 3 migrations inside existing blocks (0202, 0302+, 0502+)
+1212aab : commit : 1212aab 26-Oct 01:55 Merge W3-b (first-time property setup, pay-run unlock reverses the accounting voucher)
+6346a79 : commit : 6346a79 26-Oct 03:03 Merge W3-1 OTA channels (simulated channel manager, booking import, commission ledger)
+549235e : commit : 549235e 26-Oct 00:59 Outbox consumer: retry a deadlock victim (error 1205)
+4bfe0d2 : commit : 4bfe0d2 26-Oct 00:05 Billing: RequestAdjustment creates the approval request for limited / request-only requesters
+b64b360 : commit : b64b360 25-Oct 23:53 Merge Wave 1 C GST master (DEC-069) and encrypted guest IDs (DEC-068) into wave1-integration
+efafbd7 : commit : efafbd7 25-Oct 18:58 SCHEMA 7 -> 8 (Wave 0.5): v7 saves migrate (payroll rates, compliance obligations seeded per F14), tests [S8]
+fa90145 : commit : fa90145 25-Oct 18:56 Merge RBAC rulings G1-G13 (DEC-063): app guards + matrix/spec docs, RBAC suite green
+ee46ee6 : commit : ee46ee6 25-Oct 18:02 Merge RBAC matrix tests (71, known mismatches listed) into integration/w05
+61e1369 : commit : 61e1369 25-Oct 17:27 Merge W05-A Master configuration hub (+ HR/compliance settings wired) into integration/w05
+b12c6eb : commit : b12c6eb 25-Oct 20:53 Decision register: APR-012, DEC-065..069 (cash-book lock blocks changes, F&F limits, HK tasks unassigned, full guest IDs incl. Aadhaar with legal-risk note, GST rates master)
+b12c6eb : commit : b12c6eb 25-Oct 20:53 Decision register: APR-012, DEC-065..069 (cash-book lock blocks changes, F&F limits, HK tasks unassigned, full guest IDs incl. Aadhaar with legal-risk note, GST rates master)
+8b84b83 : commit : 8b84b83 26-Oct 12:27 CLAUDE.md: status after Wave 4 merge

@@ -1,0 +1,55 @@
+A11 path probe: 458 path-like tokens, 53 unresolved
+
+HANDOFF.md:8	MISSING	zz-contrast.css
+HANDOFF.md:33	MISSING	03 Prototype/dist/hcc-src.tgz
+HANDOFF.md:33	MISSING	03 Prototype/dist/hcc-merge.tgz
+HANDOFF.md:41	MISSING	hcc-src.tgz
+HANDOFF.md:41	MISSING	hcc-merge.tgz
+HANDOFF.md:41	MISSING	hcc-fix2.tgz
+HANDOFF.md:94	MISSING	04 Android\.build\hcc-cacerts.jks
+HANDOFF.md:101	MISSING	06 Reference Repositories/
+HANDOFF.md:102	MISSING	06 Reference Repositories/repository_inventory.json
+HANDOFF.md:250	old-pc-V	V:\HCC-Migration-2026-10-25\
+HANDOFF.md:285	MISSING	-v8.apk
+HANDOFF.md:285	MISSING	-v9.apk
+MIGRATION.md:3	old-pc-V	V:\HCC-Migration-2026-10-25\
+MIGRATION.md:8	MISSING	HCC.bundle
+MIGRATION.md:11	MISSING	claude-memory\
+MIGRATION.md:12	MISSING	reference-inputs\SCC-modules\
+MIGRATION.md:13	MISSING	reference-inputs\06-inventory\
+MIGRATION.md:16	MISSING	SHA256SUMS.txt
+MIGRATION.md:18	MISSING	04 Android\.build\hcc-cacerts.jks
+MIGRATION.md:26	old-pc-V	V:\ETP\NEW-PC-HANDOFF.md
+MIGRATION.md:33	MISSING	HCC.bundle
+MIGRATION.md:36	MISSING	\
+MIGRATION.md:37	old-pc-V	V:\Co work\Projects\Retail\saagar-control-centre-phase1-clone\www\modules\
+MIGRATION.md:38	MISSING	06 Reference Repositories\
+08 Production/README.md:37	MISSING	appsettings.Production.json
+08 Production/README.md:37	MISSING	/index.html
+04 Android/README.md:14	MISSING	04 Android\.build\hcc-cacerts.jks
+04 Android/README.md:39	MISSING	..\08 Production\deployment\windows\certs\HCC-Hotel-CA.cer
+04 Android/README.md:40	MISSING	.cer
+04 Android/README.md:40	MISSING	.pfx
+04 Android/README.md:51	MISSING	04 Android\android\keystore.properties
+04 Android/README.md:58	MISSING	hcc-release.jks
+04 Android/README.md:65	MISSING	storeFile=D:/HCC-Keys/hcc-release.jks
+04 Android/README.md:65	MISSING	android\keystore.properties
+04 Android/README.md:67	MISSING	deployment\windows\certs\HCC-Hotel-CA.cer
+04 Android/README.md:67	MISSING	.pfx
+04 Android/README.md:67	MISSING	.pfx
+04 Android/README.md:67	MISSING	HCC-Hotel-CA.cer
+04 Android/README.md:76	MISSING	Documents/HCC/
+08 Production/deployment/windows/INSTALL.md:32	MISSING	appsettings.Production.json
+08 Production/deployment/windows/INSTALL.md:33	missing-abs	C:\Program Files\HCC\Server\appsettings.Production.json
+08 Production/deployment/windows/INSTALL.md:38	MISSING	appsettings.Production.json
+08 Production/deployment/windows/INSTALL.md:47	missing-abs	E:\HCC-Hotel-CA.pfx
+08 Production/deployment/windows/INSTALL.md:50	MISSING	certs\HCC-Hotel-CA.cer
+08 Production/deployment/windows/INSTALL.md:85	MISSING	appsettings.Production.json
+08 Production/deployment/windows/INSTALL.md:95	MISSING	appsettings.Production.json
+08 Production/deployment/windows/INSTALL.md:103	missing-abs	C:\Program Files\HCC\Server\web\index.html
+08 Production/deployment/windows/INSTALL.md:103	MISSING	appsettings.Production.json
+08 Production/deployment/windows/INSTALL.md:118	MISSING	hcc-ops.json
+08 Production/deployment/windows/INSTALL.md:127	MISSING	HCC-Hotel-CA.cer
+08 Production/deployment/windows/INSTALL.md:135	MISSING	.pfx
+08 Production/deployment/windows/INSTALL.md:140	MISSING	appsettings.Production.json
+02 Planning/HCC_Implementation_Backlog.md:55	MISSING	05 Delivery Evidence/M3/

@@ -1,0 +1,784 @@
+[
+ {
+  "id": "APR-001",
+  "totalCites": 69,
+  "byTag": {
+   "proto-src": 21,
+   "proto-tests": 11,
+   "srv-src": 14,
+   "srv-db": 8,
+   "srv-tests": 15
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/capabilities.ts:20",
+   "03 Prototype/src/clients/sync/capabilities.ts:29",
+   "03 Prototype/src/clients/sync/README.md:89",
+   "03 Prototype/src/clients/sync/reads.ts:27"
+  ]
+ },
+ {
+  "id": "APR-002",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-003",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-004",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-005",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-006",
+  "totalCites": 1,
+  "byTag": {
+   "proto-src": 1
+  },
+  "sample": [
+   "03 Prototype/src/domain/streams/config.ts:1"
+  ]
+ },
+ {
+  "id": "APR-007",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-008",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-009",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-010",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-011",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "APR-012",
+  "totalCites": 1,
+  "byTag": {
+   "srv-src": 1
+  },
+  "sample": [
+   "08 Production/src/Hcc.Application/GuestIds/README.md:4"
+  ]
+ },
+ {
+  "id": "DEC-01",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-02",
+  "totalCites": 2,
+  "byTag": {
+   "proto-src": 2
+  },
+  "sample": [
+   "03 Prototype/src/features/housekeeping/Roadmap.tsx:8",
+   "03 Prototype/src/mobile/admin/Backup.tsx:26"
+  ]
+ },
+ {
+  "id": "DEC-021",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-022",
+  "totalCites": 2,
+  "byTag": {
+   "proto-src": 2
+  },
+  "sample": [
+   "03 Prototype/src/app/storage.ts:1",
+   "03 Prototype/src/services/mock/persistence.ts:1"
+  ]
+ },
+ {
+  "id": "DEC-023",
+  "totalCites": 3,
+  "byTag": {
+   "proto-src": 1,
+   "srv-src": 2
+  },
+  "sample": [
+   "03 Prototype/src/domain/money.ts:1",
+   "08 Production/src/Hcc.Domain/Money/Paise.cs:8",
+   "08 Production/src/Hcc.Domain/Pricing/RateAdjustments.cs:11"
+  ]
+ },
+ {
+  "id": "DEC-024",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-025",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-026",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-027",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-028",
+  "totalCites": 3,
+  "byTag": {
+   "proto-src": 3
+  },
+  "sample": [
+   "03 Prototype/src/domain/types.ts:48",
+   "03 Prototype/src/features/closing/Corrections.tsx:1",
+   "03 Prototype/src/services/mock/handlers/closing.ts:171"
+  ]
+ },
+ {
+  "id": "DEC-029",
+  "totalCites": 1,
+  "byTag": {
+   "proto-src": 1
+  },
+  "sample": [
+   "03 Prototype/src/services/mock/commands.ts:77"
+  ]
+ },
+ {
+  "id": "DEC-03",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-030",
+  "totalCites": 3,
+  "byTag": {
+   "proto-src": 2,
+   "proto-tests": 1
+  },
+  "sample": [
+   "03 Prototype/src/domain/types.ts:195",
+   "03 Prototype/src/services/mock/commands.ts:189"
+  ]
+ },
+ {
+  "id": "DEC-031",
+  "totalCites": 12,
+  "byTag": {
+   "proto-src": 2,
+   "proto-tests": 3,
+   "srv-src": 3,
+   "srv-db": 2,
+   "srv-tests": 2
+  },
+  "sample": [
+   "03 Prototype/src/domain/types.ts:57",
+   "03 Prototype/src/services/mock/handlers/folio.ts:110",
+   "08 Production/src/Hcc.Application/Billing/BillingService.cs:17",
+   "08 Production/src/Hcc.Application/Billing/BillingService.cs:423"
+  ]
+ },
+ {
+  "id": "DEC-032",
+  "totalCites": 1,
+  "byTag": {
+   "srv-src": 1
+  },
+  "sample": [
+   "08 Production/src/Hcc.Domain/Access/AccessModel.cs:3"
+  ]
+ },
+ {
+  "id": "DEC-033",
+  "totalCites": 12,
+  "byTag": {
+   "proto-src": 6,
+   "proto-tests": 3,
+   "srv-src": 3
+  },
+  "sample": [
+   "03 Prototype/src/features/admin/AccessControl.tsx:36",
+   "03 Prototype/src/features/admin/modals.tsx:30",
+   "03 Prototype/src/mobile/admin/logic.ts:95",
+   "03 Prototype/src/services/mock/handlers/admin.ts:114"
+  ]
+ },
+ {
+  "id": "DEC-034",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-035",
+  "totalCites": 17,
+  "byTag": {
+   "proto-src": 3,
+   "proto-tests": 1,
+   "srv-src": 6,
+   "srv-db": 2,
+   "srv-tests": 5
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/cashier.ts:2",
+   "03 Prototype/src/clients/sync/closing.ts:34",
+   "03 Prototype/src/services/mock/handlers/closing.ts:164",
+   "08 Production/src/Hcc.Application/Closing/ClosingService.cs:297"
+  ]
+ },
+ {
+  "id": "DEC-036",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-037",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-038",
+  "totalCites": 3,
+  "byTag": {
+   "proto-src": 2,
+   "srv-src": 1
+  },
+  "sample": [
+   "03 Prototype/src/domain/streams/reservations.ts:10",
+   "03 Prototype/src/domain/types.ts:73",
+   "08 Production/src/Hcc.Domain/Inventory/StayRules.cs:55"
+  ]
+ },
+ {
+  "id": "DEC-039",
+  "totalCites": 11,
+  "byTag": {
+   "srv-src": 6,
+   "srv-db": 1,
+   "srv-tests": 4
+  },
+  "sample": [
+   "08 Production/src/Hcc.Application/Billing/BillingPorts.cs:51",
+   "08 Production/src/Hcc.Application/Billing/BillingService.cs:513",
+   "08 Production/src/Hcc.Application/Tax/README.md:3",
+   "08 Production/src/Hcc.Application/Tax/TaxPorts.cs:17"
+  ]
+ },
+ {
+  "id": "DEC-04",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-040",
+  "totalCites": 16,
+  "byTag": {
+   "proto-src": 5,
+   "proto-tests": 3,
+   "srv-src": 4,
+   "srv-db": 2,
+   "srv-tests": 2
+  },
+  "sample": [
+   "03 Prototype/src/domain/streams/admin.ts:2",
+   "03 Prototype/src/domain/streams/admin.ts:114",
+   "03 Prototype/src/domain/types.ts:18",
+   "03 Prototype/src/features/admin/AccessControl.tsx:111"
+  ]
+ },
+ {
+  "id": "DEC-041",
+  "totalCites": 25,
+  "byTag": {
+   "proto-src": 6,
+   "srv-src": 10,
+   "srv-db": 5,
+   "srv-tests": 4
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/frontdesk.ts:108",
+   "03 Prototype/src/clients/sync/money.ts:19",
+   "03 Prototype/src/clients/sync/money.ts:151",
+   "03 Prototype/src/clients/sync/money.ts:212"
+  ]
+ },
+ {
+  "id": "DEC-042",
+  "totalCites": 13,
+  "byTag": {
+   "proto-src": 3,
+   "srv-src": 7,
+   "srv-db": 3
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/closing.ts:5",
+   "03 Prototype/src/clients/sync/core.ts:3",
+   "03 Prototype/src/domain/types.ts:193",
+   "08 Production/src/Hcc.Application/Accounting/AccountingService.cs:38"
+  ]
+ },
+ {
+  "id": "DEC-043",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-044",
+  "totalCites": 1,
+  "byTag": {
+   "proto-src": 1
+  },
+  "sample": [
+   "03 Prototype/src/app/display.tsx:1"
+  ]
+ },
+ {
+  "id": "DEC-045",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-046",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-047",
+  "totalCites": 4,
+  "byTag": {
+   "proto-src": 4
+  },
+  "sample": [
+   "03 Prototype/src/mobile/admin/Closing.tsx:2",
+   "03 Prototype/src/mobile/frontdesk/Guests.tsx:2",
+   "03 Prototype/src/mobile/money/Checkout.tsx:2",
+   "03 Prototype/src/mobile/money/register.tsx:18"
+  ]
+ },
+ {
+  "id": "DEC-048",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-049",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-05",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-050",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-051",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-052",
+  "totalCites": 53,
+  "byTag": {
+   "proto-src": 14,
+   "proto-tests": 5,
+   "srv-src": 20,
+   "srv-db": 6,
+   "srv-tests": 8
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/accounting.ts:18",
+   "03 Prototype/src/clients/sync/accounting.ts:180",
+   "03 Prototype/src/clients/sync/money/wire.ts:110",
+   "03 Prototype/src/clients/sync/money.ts:8"
+  ]
+ },
+ {
+  "id": "DEC-053",
+  "totalCites": 12,
+  "byTag": {
+   "proto-src": 5,
+   "proto-tests": 1,
+   "srv-src": 4,
+   "srv-db": 1,
+   "srv-tests": 1
+  },
+  "sample": [
+   "03 Prototype/src/features/groups/modals.tsx:136",
+   "03 Prototype/src/features/reservations/modals.tsx:34",
+   "03 Prototype/src/features/reservations/restriction.ts:1",
+   "03 Prototype/src/features/reservations/RestrictionNotice.tsx:1"
+  ]
+ },
+ {
+  "id": "DEC-054",
+  "totalCites": 1,
+  "byTag": {
+   "srv-src": 1
+  },
+  "sample": [
+   "08 Production/src/Hcc.Infrastructure.SqlServer/Migrations/MigrationRunner.cs:65"
+  ]
+ },
+ {
+  "id": "DEC-055",
+  "totalCites": 21,
+  "byTag": {
+   "proto-src": 4,
+   "proto-tests": 11,
+   "srv-src": 2,
+   "srv-db": 3,
+   "srv-tests": 1
+  },
+  "sample": [
+   "03 Prototype/src/app/navmap.ts:185",
+   "03 Prototype/src/clients/sync/accounting.ts:235",
+   "03 Prototype/src/domain/streams/compliance.ts:33",
+   "03 Prototype/src/features/compliance/register.tsx:6"
+  ]
+ },
+ {
+  "id": "DEC-056",
+  "totalCites": 7,
+  "byTag": {
+   "proto-src": 3,
+   "proto-tests": 1,
+   "srv-src": 2,
+   "srv-db": 1
+  },
+  "sample": [
+   "03 Prototype/src/domain/streams/staff.ts:492",
+   "03 Prototype/src/features/staff/modals.tsx:2",
+   "03 Prototype/src/services/mock/handlers/staff.ts:304",
+   "08 Production/src/Hcc.Application/Payroll/PayrollService.Pay.cs:244"
+  ]
+ },
+ {
+  "id": "DEC-057",
+  "totalCites": 28,
+  "byTag": {
+   "proto-src": 6,
+   "proto-tests": 3,
+   "srv-src": 17,
+   "srv-db": 2
+  },
+  "sample": [
+   "03 Prototype/src/app/navmap.ts:182",
+   "03 Prototype/src/domain/streams/config.ts:1",
+   "03 Prototype/src/domain/streams/config.ts:58",
+   "03 Prototype/src/domain/streams/config.ts:274"
+  ]
+ },
+ {
+  "id": "DEC-058",
+  "totalCites": 90,
+  "byTag": {
+   "proto-src": 21,
+   "proto-tests": 26,
+   "srv-src": 27,
+   "srv-db": 7,
+   "srv-tests": 8,
+   "srv-deploy": 1
+  },
+  "sample": [
+   "03 Prototype/src/domain/gst.ts:12",
+   "03 Prototype/src/domain/streams/admin.ts:221",
+   "03 Prototype/src/domain/streams/admin.ts:252",
+   "03 Prototype/src/domain/streams/admin.ts:258"
+  ]
+ },
+ {
+  "id": "DEC-059",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-06",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-060",
+  "totalCites": 4,
+  "byTag": {
+   "proto-src": 2,
+   "proto-tests": 2
+  },
+  "sample": [
+   "03 Prototype/src/styles/z-tablet.css:1",
+   "03 Prototype/src/styles/z-tablet.css:23"
+  ]
+ },
+ {
+  "id": "DEC-061",
+  "totalCites": 25,
+  "byTag": {
+   "proto-src": 1,
+   "proto-tests": 2,
+   "srv-src": 15,
+   "srv-db": 1,
+   "srv-tests": 6
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/staff.ts:4",
+   "08 Production/src/Hcc.Application/Payroll/PayrollPorts.cs:19",
+   "08 Production/src/Hcc.Application/Payroll/PayrollQueries.cs:12",
+   "08 Production/src/Hcc.Application/Payroll/PayrollQueries.cs:35"
+  ]
+ },
+ {
+  "id": "DEC-062",
+  "totalCites": 53,
+  "byTag": {
+   "proto-src": 14,
+   "proto-tests": 4,
+   "srv-src": 19,
+   "srv-db": 5,
+   "srv-tests": 10,
+   "android-readme": 1
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/admin.ts:246",
+   "03 Prototype/src/clients/sync/apk.ts:1",
+   "03 Prototype/src/clients/sync/auth.ts:10",
+   "03 Prototype/src/clients/sync/credentials.ts:1"
+  ]
+ },
+ {
+  "id": "DEC-063",
+  "totalCites": 139,
+  "byTag": {
+   "proto-src": 39,
+   "proto-tests": 32,
+   "srv-src": 25,
+   "srv-db": 16,
+   "srv-tests": 27
+  },
+  "sample": [
+   "03 Prototype/src/app/nav.ts:1",
+   "03 Prototype/src/app/navmap.ts:186",
+   "03 Prototype/src/clients/sync/maintenance.ts:11",
+   "03 Prototype/src/clients/sync/money.ts:73"
+  ]
+ },
+ {
+  "id": "DEC-064",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-065",
+  "totalCites": 42,
+  "byTag": {
+   "proto-src": 18,
+   "proto-tests": 1,
+   "srv-src": 18,
+   "srv-db": 2,
+   "srv-tests": 3
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/money.ts:19",
+   "03 Prototype/src/domain/streams/cashbook.ts:111",
+   "03 Prototype/src/features/cashbook/LockNote.tsx:1",
+   "03 Prototype/src/features/expenses/Expenses.tsx:29"
+  ]
+ },
+ {
+  "id": "DEC-066",
+  "totalCites": 11,
+  "byTag": {
+   "srv-src": 7,
+   "srv-db": 3,
+   "srv-tests": 1
+  },
+  "sample": [
+   "08 Production/src/Hcc.Application/Payroll/PayrollPorts.cs:30",
+   "08 Production/src/Hcc.Application/Payroll/PayrollService.cs:17",
+   "08 Production/src/Hcc.Application/Payroll/PayrollService.Pay.cs:267",
+   "08 Production/src/Hcc.Application/Payroll/PayrollService.Pay.cs:333"
+  ]
+ },
+ {
+  "id": "DEC-067",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-068",
+  "totalCites": 73,
+  "byTag": {
+   "proto-src": 14,
+   "proto-tests": 5,
+   "srv-src": 42,
+   "srv-db": 6,
+   "srv-tests": 5,
+   "srv-deploy": 1
+  },
+  "sample": [
+   "03 Prototype/src/clients/sync/guestid.ts:1",
+   "03 Prototype/src/domain/streams/guests.ts:17",
+   "03 Prototype/src/domain/streams/guests.ts:18",
+   "03 Prototype/src/domain/streams/guests.ts:123"
+  ]
+ },
+ {
+  "id": "DEC-069",
+  "totalCites": 178,
+  "byTag": {
+   "proto-src": 23,
+   "proto-tests": 105,
+   "srv-src": 29,
+   "srv-db": 3,
+   "srv-tests": 18
+  },
+  "sample": [
+   "03 Prototype/src/clients/mock.ts:42",
+   "03 Prototype/src/clients/sync/admin.ts:258",
+   "03 Prototype/src/clients/sync/admin.ts:281",
+   "03 Prototype/src/domain/gst.ts:1"
+  ]
+ },
+ {
+  "id": "DEC-07",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-08",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-09",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-10",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-11",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-12",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-13",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-14",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-15",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-16",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-17",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-18",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-19",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ },
+ {
+  "id": "DEC-20",
+  "totalCites": 0,
+  "byTag": {},
+  "sample": []
+ }
+]

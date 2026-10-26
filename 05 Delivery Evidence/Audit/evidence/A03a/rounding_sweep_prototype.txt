@@ -1,0 +1,6 @@
+node v25.9.0
+checked 4600066 (amount, bps) pairs; line-tax mismatches: 0; split mismatches: 0
+prototype exact-integer bound at 28 %: |amount| ≤ 3216856876693 paise (₹32,16,85,68,766.93) — above the ₹10 crore field cap, so safe
+gstCategoryOfLabel: {"Express breakfast":"laundry","Express laundry":"laundry","Espresso":"other","Press conference hall":"laundry","Airport express transfer":"laundry","Breakfast":"food","Hall rent":"banquet","Minibar water bottle":"food","Extra bed":"other","No-show charge":"other","Cancellation fee":"other"}
+
+

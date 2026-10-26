@@ -1,0 +1,9 @@
+dropped HccTest_perf_20261026095553
+remaining databases:
+EtpReporting
+EtpScratch_20261020
+master
+model
+msdb
+tempdb
+lock released 2026-10-26T15:44:17.2603690+05:30

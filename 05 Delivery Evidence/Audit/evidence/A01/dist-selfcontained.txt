@@ -1,0 +1,53 @@
+== dist/index.html  length=2367274
+  <script src=...>               : 0
+  <link ...href=...>             : 3 [
+  '<link rel="manifest" href="data:application/manifest+json,%7B%22name%2',
+  '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%',
+  '<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base'
+]
+  <img|iframe|source|video src=http(s): 0
+  src|href attribute = http(s)://: 0
+  css url(http(s)://...)         : 0
+  @import                        : 1
+  font/CDN hosts                 : 0
+  distinct http(s):// literals   : 11
+      http://schemas.openxmlformats.org/officeDocument/2006/relationships
+      http://schemas.openxmlformats.org/package/2006/content-types
+      http://schemas.openxmlformats.org/package/2006/relationships
+      http://schemas.openxmlformats.org/spreadsheetml/2006/main
+      http://www.w3.org/1998/Math/MathML
+      http://www.w3.org/1999/xlink
+      http://www.w3.org/2000/svg
+      http://www.w3.org/XML/1998/namespace
+      https://demo.invalid/fb/$
+      https://demo.invalid/inv/$
+      https://react.dev/errors/
+  contains "Demo controls"       : true | "Preview as" : true | "scenarioSwitch"-like "Scenario" word count: 18
+== dist/production/index.html  length=2559688
+  <script src=...>               : 0
+  <link ...href=...>             : 3 [
+  '<link rel="manifest" href="data:application/manifest+json,%7B%22name%2',
+  '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%',
+  '<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base'
+]
+  <img|iframe|source|video src=http(s): 0
+  src|href attribute = http(s)://: 0
+  css url(http(s)://...)         : 0
+  @import                        : 1
+  font/CDN hosts                 : 0
+  distinct http(s):// literals   : 14
+      http://schemas.openxmlformats.org/officeDocument/2006/relationships
+      http://schemas.openxmlformats.org/package/2006/content-types
+      http://schemas.openxmlformats.org/package/2006/relationships
+      http://schemas.openxmlformats.org/spreadsheetml/2006/main
+      http://www.w3.org/1998/Math/MathML
+      http://www.w3.org/1999/xlink
+      http://www.w3.org/2000/svg
+      http://www.w3.org/XML/1998/namespace
+      https://192.168.1.20:5443
+      https://demo.invalid/fb/$
+      https://demo.invalid/inv/$
+      https://hcc-server.local:8443
+      https://hcc-server.local:8443.
+      https://react.dev/errors/
+  contains "Demo controls"       : false | "Preview as" : true | "scenarioSwitch"-like "Scenario" word count: 11

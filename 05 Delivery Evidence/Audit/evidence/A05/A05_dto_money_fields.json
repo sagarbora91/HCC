@@ -1,0 +1,7386 @@
+{
+ "GET /accounting/chart": {
+  "returnTypes": [
+   "AccountView"
+  ],
+  "money": []
+ },
+ "GET /accounting/days": {
+  "returnTypes": [
+   "AccountingDayView"
+  ],
+  "money": [
+   {
+    "path": "AccountingDayView.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "AccountingDayView"
+   },
+   {
+    "path": "AccountingDayView.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "AccountingDayView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.Entries.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherEntryView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.Entries.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherEntryView"
+   },
+   {
+    "path": "AccountingDayView.Reconciliation.ReportPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReconciliationView"
+   },
+   {
+    "path": "AccountingDayView.Reconciliation.LedgerPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReconciliationView"
+   }
+  ]
+ },
+ "GET /accounting/days/{date}": {
+  "returnTypes": [
+   "AccountingDayView"
+  ],
+  "money": [
+   {
+    "path": "AccountingDayView.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "AccountingDayView"
+   },
+   {
+    "path": "AccountingDayView.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "AccountingDayView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.Entries.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherEntryView"
+   },
+   {
+    "path": "AccountingDayView.Vouchers.Entries.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoucherEntryView"
+   },
+   {
+    "path": "AccountingDayView.Reconciliation.ReportPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReconciliationView"
+   },
+   {
+    "path": "AccountingDayView.Reconciliation.LedgerPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReconciliationView"
+   }
+  ]
+ },
+ "GET /accounting/export/csv": {
+  "returnTypes": [],
+  "money": []
+ },
+ "GET /accounting/export/tally": {
+  "returnTypes": [
+   "TallyExportView"
+  ],
+  "money": [
+   {
+    "path": "TallyExportView.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TallyExportView"
+   },
+   {
+    "path": "TallyExportView.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TallyExportView"
+   }
+  ]
+ },
+ "GET /accounting/locks/history": {
+  "returnTypes": [
+   "LockEventView"
+  ],
+  "money": []
+ },
+ "GET /accounting/mapping": {
+  "returnTypes": [
+   "MappingRowView"
+  ],
+  "money": [
+   {
+    "path": "MappingRowView.Value",
+    "type": "string",
+    "nullable": false,
+    "declared": "MappingRowView"
+   }
+  ]
+ },
+ "GET /accounting/mapping/history": {
+  "returnTypes": [
+   "MappingChangeView"
+  ],
+  "money": []
+ },
+ "GET /accounting/trial-balance": {
+  "returnTypes": [
+   "TrialBalanceView"
+  ],
+  "money": [
+   {
+    "path": "TrialBalanceView.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TrialBalanceView"
+   },
+   {
+    "path": "TrialBalanceView.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TrialBalanceView"
+   },
+   {
+    "path": "TrialBalanceView.Rows.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TrialBalanceRowView"
+   },
+   {
+    "path": "TrialBalanceView.Rows.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TrialBalanceRowView"
+   },
+   {
+    "path": "TrialBalanceView.Rows.BalancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TrialBalanceRowView"
+   }
+  ]
+ },
+ "GET /admin/audit": {
+  "returnTypes": [
+   "AuditPage"
+  ],
+  "money": [
+   {
+    "path": "AuditPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "AuditPage"
+   }
+  ]
+ },
+ "GET /admin/devices": {
+  "returnTypes": [
+   "DeviceSummary"
+  ],
+  "money": []
+ },
+ "GET /admin/exceptions": {
+  "returnTypes": [
+   "ExceptionsResult"
+  ],
+  "money": []
+ },
+ "GET /admin/roles": {
+  "returnTypes": [
+   "RolesResult"
+  ],
+  "money": []
+ },
+ "GET /admin/users": {
+  "returnTypes": [
+   "UserSummary"
+  ],
+  "money": []
+ },
+ "POST /auth/bootstrap-owner": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "money": []
+ },
+ "POST /auth/sign-in": {
+  "returnTypes": [
+   "string",
+   "byte[]",
+   "SignInGate",
+   "void",
+   "SessionInfo"
+  ],
+  "money": []
+ },
+ "POST /auth/sign-out": {
+  "returnTypes": [
+   "Task"
+  ],
+  "money": []
+ },
+ "GET /availability": {
+  "returnTypes": [
+   "AvailabilityResult"
+  ],
+  "money": [
+   {
+    "path": "AvailabilityResult.Rooms.NightlyRatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RoomAvailability"
+   }
+  ]
+ },
+ "GET /cashbook": {
+  "returnTypes": [
+   "CashBookRangeView"
+  ],
+  "money": [
+   {
+    "path": "CashBookRangeView.Days.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.Entries.InPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookEntry"
+   },
+   {
+    "path": "CashBookRangeView.Days.Entries.OutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookEntry"
+   },
+   {
+    "path": "CashBookRangeView.Days.ReceiptsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.BankedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.ClosingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.ExpectedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.DifferencePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.DifferenceReason",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.Days.CarriedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookRangeView.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookRangeView"
+   },
+   {
+    "path": "CashBookRangeView.ReceiptsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookRangeView"
+   },
+   {
+    "path": "CashBookRangeView.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookRangeView"
+   },
+   {
+    "path": "CashBookRangeView.DifferencesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookRangeView"
+   },
+   {
+    "path": "CashBookRangeView.GapsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookRangeView"
+   },
+   {
+    "path": "CashBookRangeView.ClosingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookRangeView"
+   },
+   {
+    "path": "CashBookRangeView.BookClosingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookRangeView"
+   }
+  ]
+ },
+ "GET /cashbook/{date}": {
+  "returnTypes": [
+   "CashBookDayResult"
+  ],
+  "money": [
+   {
+    "path": "CashBookDayResult.Drawer.Tills.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   }
+  ]
+ },
+ "GET /cashbook/{date}/book": {
+  "returnTypes": [
+   "CashBookDayView"
+  ],
+  "money": [
+   {
+    "path": "CashBookDayView.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.Entries.InPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookEntry"
+   },
+   {
+    "path": "CashBookDayView.Entries.OutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookEntry"
+   },
+   {
+    "path": "CashBookDayView.ReceiptsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.BankedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.ClosingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.ExpectedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.DifferencePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.DifferenceReason",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "CashBookDayView"
+   },
+   {
+    "path": "CashBookDayView.CarriedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashBookDayView"
+   }
+  ]
+ },
+ "GET /cashier/collections": {
+  "returnTypes": [
+   "CollectionsView"
+  ],
+  "money": [
+   {
+    "path": "CollectionsView.CollectionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CollectionsView"
+   },
+   {
+    "path": "CollectionsView.ByTenderPaise",
+    "type": "long>",
+    "nullable": false,
+    "declared": "CollectionsView"
+   },
+   {
+    "path": "CollectionsView.DepositsReceivedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CollectionsView"
+   },
+   {
+    "path": "CollectionsView.DepositsReturnedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CollectionsView"
+   }
+  ]
+ },
+ "GET /cashier/desk": {
+  "returnTypes": [
+   "CashDeskView"
+  ],
+  "money": [
+   {
+    "path": "CashDeskView.Tills.Active.Shift.OpeningFloatPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "CashDeskView.Tills.Active.Shift.ExpectedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "CashDeskView.Tills.Active.Shift.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "CashDeskView.Tills.Active.DifferenceReason",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CashDeskShiftView"
+   },
+   {
+    "path": "CashDeskView.Tills.Active.Approval.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ApprovalView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.DepositsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.RefundsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.ReturnsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.OtherPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.TransfersPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.Expected.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "CashDeskView.Tills.LastClosed.Shift.OpeningFloatPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "CashDeskView.Tills.LastClosed.Shift.ExpectedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "CashDeskView.Tills.LastClosed.Shift.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "CashDeskView.Tills.LastClosed.DifferenceReason",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CashDeskShiftView"
+   },
+   {
+    "path": "CashDeskView.Tills.LastClosed.Approval.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ApprovalView"
+   }
+  ]
+ },
+ "GET /cashier/folios": {
+  "returnTypes": [
+   "DeskFolioListView"
+  ],
+  "money": [
+   {
+    "path": "DeskFolioListView.Items.NightlyRatePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DeskFolioItem"
+   },
+   {
+    "path": "DeskFolioListView.Items.BalancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DeskFolioItem"
+   }
+  ]
+ },
+ "GET /closing/business-date": {
+  "returnTypes": [
+   "BusinessDateView"
+  ],
+  "money": []
+ },
+ "GET /closing/preflight": {
+  "returnTypes": [
+   "PreflightResult"
+  ],
+  "money": []
+ },
+ "GET /closing/records": {
+  "returnTypes": [
+   "ClosingRecordsView"
+  ],
+  "money": [
+   {
+    "path": "ClosingRecordsView.Items.Record.DepositsHeldAtClosePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ClosingRecord"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Occupancy.RoomRevenuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Occupancy.AdrPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Occupancy.RevParPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.RoomPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.ServicePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.DiscountsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.CorrectionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Revenue.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Gst.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Gst.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Gst.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Gst.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Gst.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Receipts.ByTender.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Receipts.ByTender.RefundsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Receipts.ByTender.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Receipts.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Receipts.DepositsInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Receipts.DepositsOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Receipts.CompanyCreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Expenses.CashPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Expenses.ReversalsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Expenses.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.Tills.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Drawer.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Days.NetRevenuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Days.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Days.NetReceiptsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "ClosingRecordsView.Items.Record.Figures.Days.CashExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   }
+  ]
+ },
+ "GET /closing/runs/{date}": {
+  "returnTypes": [
+   "CloseRunResult"
+  ],
+  "money": []
+ },
+ "GET /closing/snapshots/{date}": {
+  "returnTypes": [
+   "ClosingSnapshotView"
+  ],
+  "money": [
+   {
+    "path": "ClosingSnapshotView.Record.DepositsHeldAtClosePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ClosingRecord"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Occupancy.RoomRevenuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Occupancy.AdrPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Occupancy.RevParPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.RoomPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.ServicePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.DiscountsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.CorrectionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Revenue.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Gst.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Gst.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Gst.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Gst.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Gst.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Receipts.ByTender.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Receipts.ByTender.RefundsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Receipts.ByTender.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Receipts.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Receipts.DepositsInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Receipts.DepositsOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Receipts.CompanyCreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Expenses.CashPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Expenses.ReversalsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Expenses.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.Tills.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Drawer.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Days.NetRevenuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Days.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Days.NetReceiptsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "ClosingSnapshotView.Record.Figures.Days.CashExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   }
+  ]
+ },
+ "POST /commands/AcceptChannelMessage": {
+  "returnTypes": [
+   "AcceptResult"
+  ],
+  "money": [
+   {
+    "path": "AcceptResult.CommissionPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "AcceptResult"
+   }
+  ]
+ },
+ "POST /commands/AcknowledgeHandoverNote": {
+  "returnTypes": [
+   "HandoverNoteView"
+  ],
+  "money": [
+   {
+    "path": "HandoverNoteView.Cash.AmountPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "HandoverCashView"
+   }
+  ]
+ },
+ "POST /commands/AddCheckItem": {
+  "returnTypes": [
+   "CheckResult"
+  ],
+  "money": [
+   {
+    "path": "CheckResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   }
+  ]
+ },
+ "POST /commands/AddCustomerNote": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AddCustomerTag": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AddWorkOrderPart": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AdvanceKot": {
+  "returnTypes": [
+   "KotResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AmendReservation": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ApplyGroupRouting": {
+  "returnTypes": [
+   "GroupRoutingResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AssignRole": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AssignServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AssignWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/AttachGroupMember": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "money": []
+ },
+ "POST /commands/BlockRoom": {
+  "returnTypes": [
+   "BlockRoomResult"
+  ],
+  "money": []
+ },
+ "POST /commands/BlockWorkOrderRoom": {
+  "returnTypes": [
+   "BlockWorkOrderRoomResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CancelLeave": {
+  "returnTypes": [
+   "LeaveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CancelReservation": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CancelServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CancelWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CaptureIdDocument": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "money": []
+ },
+ "POST /commands/ChangeOwnCredential": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CheckIn": {
+  "returnTypes": [
+   "CheckInResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CheckoutStay": {
+  "returnTypes": [
+   "CheckoutStayResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ClaimLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CommitImportBatch": {
+  "returnTypes": [
+   "ImportCommitResult"
+  ],
+  "money": [
+   {
+    "path": "ImportCommitResult.DebitPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ImportCommitResult"
+   },
+   {
+    "path": "ImportCommitResult.CreditPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ImportCommitResult"
+   }
+  ]
+ },
+ "POST /commands/CompleteCarryItem": {
+  "returnTypes": [
+   "HandoverNoteView"
+  ],
+  "money": [
+   {
+    "path": "HandoverNoteView.Cash.AmountPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "HandoverCashView"
+   }
+  ]
+ },
+ "POST /commands/CompleteServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CompleteWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ConfirmFnf": {
+  "returnTypes": [
+   "FnfResult"
+  ],
+  "money": [
+   {
+    "path": "FnfResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   },
+   {
+    "path": "FnfResult.EarningsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   },
+   {
+    "path": "FnfResult.RecoveriesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   }
+  ]
+ },
+ "POST /commands/ConfirmHold": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ConfirmIdCapture": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "money": []
+ },
+ "POST /commands/ConfirmWebRequest": {
+  "returnTypes": [
+   "ConfirmWebRequestResult"
+  ],
+  "money": [
+   {
+    "path": "ConfirmWebRequestResult.QuotedTotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ConfirmWebRequestResult"
+   },
+   {
+    "path": "ConfirmWebRequestResult.BookedTotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ConfirmWebRequestResult"
+   }
+  ]
+ },
+ "POST /commands/ConvertRepairToWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CopyRosterWeek": {
+  "returnTypes": [
+   "RosterResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CreateGroup": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CreateGroupBlock": {
+  "returnTypes": [
+   "GroupBlockResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CreateOutlet": {
+  "returnTypes": [
+   "OutletResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CreateReservation": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CreateTill": {
+  "returnTypes": [
+   "TillResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CreateUser": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/CreateWebDepositLink": {
+  "returnTypes": [
+   "WebDepositLinkResult"
+  ],
+  "money": [
+   {
+    "path": "WebDepositLinkResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebDepositLinkResult"
+   }
+  ]
+ },
+ "POST /commands/CreateWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/DecideApproval": {
+  "returnTypes": [
+   "ApprovalResult"
+  ],
+  "money": [
+   {
+    "path": "ApprovalResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ApprovalResult"
+   }
+  ]
+ },
+ "POST /commands/DecideCompanyLimit": {
+  "returnTypes": [
+   "CompanyResult"
+  ],
+  "money": []
+ },
+ "POST /commands/DecideCreditNote": {
+  "returnTypes": [
+   "CreditNoteRequestResult"
+  ],
+  "money": [
+   {
+    "path": "CreditNoteRequestResult.CreditNoteId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CreditNoteRequestResult"
+   },
+   {
+    "path": "CreditNoteRequestResult.CreditNoteNo",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CreditNoteRequestResult"
+   },
+   {
+    "path": "CreditNoteRequestResult.TotalPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CreditNoteRequestResult"
+   }
+  ]
+ },
+ "POST /commands/DecideCustomerMerge": {
+  "returnTypes": [
+   "MergeView"
+  ],
+  "money": []
+ },
+ "POST /commands/DecideExpense": {
+  "returnTypes": [
+   "ExpenseResult"
+  ],
+  "money": [
+   {
+    "path": "ExpenseResult.Expense.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseView"
+   }
+  ]
+ },
+ "POST /commands/DecideGroupAttrition": {
+  "returnTypes": [
+   "GroupAttritionResult"
+  ],
+  "money": [
+   {
+    "path": "GroupAttritionResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupAttritionResult"
+   },
+   {
+    "path": "GroupAttritionResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupAttritionResult"
+   }
+  ]
+ },
+ "POST /commands/DecideLeave": {
+  "returnTypes": [
+   "LeaveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/DecideSettingRequest": {
+  "returnTypes": [
+   "DecideSettingRequestResult"
+  ],
+  "money": []
+ },
+ "POST /commands/DecideVoid": {
+  "returnTypes": [
+   "DecideVoidResult"
+  ],
+  "money": []
+ },
+ "POST /commands/DecideYieldProposal": {
+  "returnTypes": [
+   "YieldDecisionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/DeclineWebRequest": {
+  "returnTypes": [
+   "WebRequestDecision"
+  ],
+  "money": []
+ },
+ "POST /commands/DetachGroupMember": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "money": []
+ },
+ "POST /commands/DiscardFnf": {
+  "returnTypes": [
+   "FnfResult"
+  ],
+  "money": [
+   {
+    "path": "FnfResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   },
+   {
+    "path": "FnfResult.EarningsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   },
+   {
+    "path": "FnfResult.RecoveriesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   }
+  ]
+ },
+ "POST /commands/DisposeLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "money": []
+ },
+ "POST /commands/EarlyDeparture": {
+  "returnTypes": [
+   "ChangeStayDatesResult"
+  ],
+  "money": [
+   {
+    "path": "ChangeStayDatesResult.NightlyRatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChangeStayDatesResult"
+   },
+   {
+    "path": "ChangeStayDatesResult.RateLossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChangeStayDatesResult"
+   }
+  ]
+ },
+ "POST /commands/ExecuteAdjustment": {
+  "returnTypes": [
+   "ApprovalResult"
+  ],
+  "money": [
+   {
+    "path": "ApprovalResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ApprovalResult"
+   }
+  ]
+ },
+ "POST /commands/ExtendStay": {
+  "returnTypes": [
+   "ChangeStayDatesResult"
+  ],
+  "money": [
+   {
+    "path": "ChangeStayDatesResult.NightlyRatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChangeStayDatesResult"
+   },
+   {
+    "path": "ChangeStayDatesResult.RateLossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChangeStayDatesResult"
+   }
+  ]
+ },
+ "POST /commands/GenerateCaPack": {
+  "returnTypes": [
+   "CaPackResult"
+  ],
+  "money": []
+ },
+ "POST /commands/GeneratePmWorkOrders": {
+  "returnTypes": [
+   "GeneratePmResult"
+  ],
+  "money": []
+ },
+ "POST /commands/GenerateStayoverTasks": {
+  "returnTypes": [
+   "GenerateStayoverTasksResult"
+  ],
+  "money": []
+ },
+ "POST /commands/GiveAdvance": {
+  "returnTypes": [
+   "AdvanceResult"
+  ],
+  "money": [
+   {
+    "path": "AdvanceResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "AdvanceResult"
+   },
+   {
+    "path": "AdvanceResult.InstallmentPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "AdvanceResult"
+   }
+  ]
+ },
+ "POST /commands/GrantException": {
+  "returnTypes": [
+   "ExceptionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/HandOverLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "money": []
+ },
+ "POST /commands/HoldWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ImportChannelMessage": {
+  "returnTypes": [
+   "ChannelMessageResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ImportConfiguration": {
+  "returnTypes": [
+   "ImportConfigurationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/IssueBankFile": {
+  "returnTypes": [
+   "BankFileResult"
+  ],
+  "money": [
+   {
+    "path": "BankFileResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BankFileResult"
+   }
+  ]
+ },
+ "POST /commands/IssueInvoice": {
+  "returnTypes": [
+   "IssueInvoiceResult"
+  ],
+  "money": [
+   {
+    "path": "IssueInvoiceResult.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "IssueInvoiceResult"
+   }
+  ]
+ },
+ "POST /commands/LockAccountingPeriod": {
+  "returnTypes": [
+   "PeriodLockResult"
+  ],
+  "money": [
+   {
+    "path": "PeriodLockResult.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PeriodLockResult"
+   },
+   {
+    "path": "PeriodLockResult.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PeriodLockResult"
+   }
+  ]
+ },
+ "POST /commands/LockCashBookDay": {
+  "returnTypes": [
+   "CashBookDayResult"
+  ],
+  "money": [
+   {
+    "path": "CashBookDayResult.Drawer.Tills.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   }
+  ]
+ },
+ "POST /commands/LockPayRun": {
+  "returnTypes": [
+   "PayRunResult"
+  ],
+  "money": [
+   {
+    "path": "PayRunResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayRunResult"
+   }
+  ]
+ },
+ "POST /commands/LogComplaint": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "money": []
+ },
+ "POST /commands/LogLostItem": {
+  "returnTypes": [
+   "LostItemResult"
+  ],
+  "money": []
+ },
+ "POST /commands/LogServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "money": []
+ },
+ "POST /commands/MarkAttendance": {
+  "returnTypes": [
+   "AttendanceResult"
+  ],
+  "money": []
+ },
+ "POST /commands/MarkComplianceFiled": {
+  "returnTypes": [
+   "FilingResult"
+  ],
+  "money": []
+ },
+ "POST /commands/MarkComplianceNotApplicable": {
+  "returnTypes": [
+   "FilingResult"
+  ],
+  "money": []
+ },
+ "POST /commands/MarkNoShow": {
+  "returnTypes": [
+   "ReservationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/MarkWebDepositPaid": {
+  "returnTypes": [
+   "WebDepositPaid"
+  ],
+  "money": [
+   {
+    "path": "WebDepositPaid.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebDepositPaid"
+   }
+  ]
+ },
+ "POST /commands/MoveRoom": {
+  "returnTypes": [
+   "MoveRoomResult"
+  ],
+  "money": [
+   {
+    "path": "MoveRoomResult.NightlyRatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "MoveRoomResult"
+   },
+   {
+    "path": "MoveRoomResult.RateLossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "MoveRoomResult"
+   }
+  ]
+ },
+ "POST /commands/OfferRecoveryDiscount": {
+  "returnTypes": [
+   "RecoveryResult"
+  ],
+  "money": [
+   {
+    "path": "RecoveryResult.ChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "RecoveryResult"
+   },
+   {
+    "path": "RecoveryResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RecoveryResult"
+   }
+  ]
+ },
+ "POST /commands/OpenCheck": {
+  "returnTypes": [
+   "CheckResult"
+  ],
+  "money": [
+   {
+    "path": "CheckResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   }
+  ]
+ },
+ "POST /commands/OpenShift": {
+  "returnTypes": [
+   "ShiftResult"
+  ],
+  "money": [
+   {
+    "path": "ShiftResult.OpeningFloatPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "ShiftResult.ExpectedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "ShiftResult.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   }
+  ]
+ },
+ "POST /commands/PostCharge": {
+  "returnTypes": [
+   "ChargeResult"
+  ],
+  "money": [
+   {
+    "path": "ChargeResult.ChargeId",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChargeResult"
+   },
+   {
+    "path": "ChargeResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChargeResult"
+   },
+   {
+    "path": "ChargeResult.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "ChargeResult"
+   },
+   {
+    "path": "ChargeResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChargeResult"
+   }
+  ]
+ },
+ "POST /commands/PostRoomNight": {
+  "returnTypes": [
+   "ChargeResult"
+  ],
+  "money": [
+   {
+    "path": "ChargeResult.ChargeId",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChargeResult"
+   },
+   {
+    "path": "ChargeResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChargeResult"
+   },
+   {
+    "path": "ChargeResult.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "ChargeResult"
+   },
+   {
+    "path": "ChargeResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChargeResult"
+   }
+  ]
+ },
+ "POST /commands/PostRoomNights": {
+  "returnTypes": [
+   "PostRoomNightsResult"
+  ],
+  "money": []
+ },
+ "POST /commands/PrepareFnf": {
+  "returnTypes": [
+   "FnfResult"
+  ],
+  "money": [
+   {
+    "path": "FnfResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   },
+   {
+    "path": "FnfResult.EarningsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   },
+   {
+    "path": "FnfResult.RecoveriesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfResult"
+   }
+  ]
+ },
+ "POST /commands/PreparePayRun": {
+  "returnTypes": [
+   "PayRunResult"
+  ],
+  "money": [
+   {
+    "path": "PayRunResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayRunResult"
+   }
+  ]
+ },
+ "POST /commands/ProposeCustomerMerge": {
+  "returnTypes": [
+   "MergeView"
+  ],
+  "money": []
+ },
+ "POST /commands/ProposeYieldPublish": {
+  "returnTypes": [
+   "YieldProposalResult"
+  ],
+  "money": [
+   {
+    "path": "YieldProposalResult.ExpectedVersion",
+    "type": "string",
+    "nullable": false,
+    "declared": "YieldProposalResult"
+   }
+  ]
+ },
+ "POST /commands/PublishYieldTariffs": {
+  "returnTypes": [
+   "YieldPublishResult"
+  ],
+  "money": []
+ },
+ "POST /commands/PullChannelMessages": {
+  "returnTypes": [
+   "PullResult"
+  ],
+  "money": []
+ },
+ "POST /commands/PurgeIdCaptures": {
+  "returnTypes": [
+   "PurgeIdCapturesResult"
+  ],
+  "money": []
+ },
+ "POST /commands/PushChannelRates": {
+  "returnTypes": [
+   "PushResult"
+  ],
+  "money": []
+ },
+ "POST /commands/QueueSimulatedMessage": {
+  "returnTypes": [
+   "ChannelMessageResult"
+  ],
+  "money": []
+ },
+ "POST /commands/QuoteStay": {
+  "returnTypes": [
+   "QuoteResult"
+  ],
+  "money": [
+   {
+    "path": "QuoteResult.Nights.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "QuoteNight"
+   },
+   {
+    "path": "QuoteResult.Nights.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "QuoteNight"
+   },
+   {
+    "path": "QuoteResult.Nights.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "QuoteNight"
+   },
+   {
+    "path": "QuoteResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "QuoteResult"
+   },
+   {
+    "path": "QuoteResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "QuoteResult"
+   },
+   {
+    "path": "QuoteResult.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "QuoteResult"
+   }
+  ]
+ },
+ "POST /commands/ReceiveSpare": {
+  "returnTypes": [
+   "ReceiveSpareResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RecordComplaintFollowUp": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RecordGroupReceipt": {
+  "returnTypes": [
+   "GroupReceiptResult"
+  ],
+  "money": [
+   {
+    "path": "GroupReceiptResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupReceiptResult"
+   }
+  ]
+ },
+ "POST /commands/RecordReceipt": {
+  "returnTypes": [
+   "ReceiptResult"
+  ],
+  "money": [
+   {
+    "path": "ReceiptResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptResult"
+   },
+   {
+    "path": "ReceiptResult.RefundOf",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ReceiptResult"
+   }
+  ]
+ },
+ "POST /commands/RegisterDevice": {
+  "returnTypes": [
+   "RegisterDeviceResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RegisterGuest": {
+  "returnTypes": [
+   "RegisterGuestResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RejectChannelMessage": {
+  "returnTypes": [
+   "ChannelMessageResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RejectIdCapture": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "money": []
+ },
+ "POST /commands/RekeyGuestIds": {
+  "returnTypes": [
+   "RekeyGuestIdsResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ReleaseGroupBlock": {
+  "returnTypes": [
+   "GroupBlockResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RemoveCustomerTag": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ReopenCashBookDay": {
+  "returnTypes": [
+   "CashBookDayResult"
+  ],
+  "money": [
+   {
+    "path": "CashBookDayResult.Drawer.Tills.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.Tills.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "CashBookDayResult.Drawer.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   }
+  ]
+ },
+ "POST /commands/ReopenChecklistRun": {
+  "returnTypes": [
+   "ChecklistRunView"
+  ],
+  "money": [
+   {
+    "path": "ChecklistRunView.Progress.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "ChecklistProgressView"
+   }
+  ]
+ },
+ "POST /commands/ReopenComplianceFiling": {
+  "returnTypes": [
+   "ReopenResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RequestAdjustment": {
+  "returnTypes": [
+   "AdjustmentResult"
+  ],
+  "money": [
+   {
+    "path": "AdjustmentResult.ChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "AdjustmentResult"
+   }
+  ]
+ },
+ "POST /commands/RequestCreditNote": {
+  "returnTypes": [
+   "CreditNoteRequestResult"
+  ],
+  "money": [
+   {
+    "path": "CreditNoteRequestResult.CreditNoteId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CreditNoteRequestResult"
+   },
+   {
+    "path": "CreditNoteRequestResult.CreditNoteNo",
+    "type": "string?",
+    "nullable": true,
+    "declared": "CreditNoteRequestResult"
+   },
+   {
+    "path": "CreditNoteRequestResult.TotalPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CreditNoteRequestResult"
+   }
+  ]
+ },
+ "POST /commands/RequestGroupAttrition": {
+  "returnTypes": [
+   "GroupAttritionResult"
+  ],
+  "money": [
+   {
+    "path": "GroupAttritionResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupAttritionResult"
+   },
+   {
+    "path": "GroupAttritionResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupAttritionResult"
+   }
+  ]
+ },
+ "POST /commands/RequestLeave": {
+  "returnTypes": [
+   "LeaveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RequestRepair": {
+  "returnTypes": [
+   "RequestRepairResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RerouteGroupCharge": {
+  "returnTypes": [
+   "GroupRerouteResult"
+  ],
+  "money": [
+   {
+    "path": "GroupRerouteResult.ChargeId",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupRerouteResult"
+   },
+   {
+    "path": "GroupRerouteResult.TaxTarget",
+    "type": "string",
+    "nullable": false,
+    "declared": "GroupRerouteResult"
+   }
+  ]
+ },
+ "POST /commands/ResetLedgerMapping": {
+  "returnTypes": [
+   "LedgerMappingResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ResolveComplaint": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RetryMessage": {
+  "returnTypes": [
+   "RetryMessageResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RevealGuestId": {
+  "returnTypes": [
+   "RevealGuestIdResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RevealIdCaptureNumber": {
+  "returnTypes": [
+   "RevealIdCaptureResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ReverseExpense": {
+  "returnTypes": [
+   "ExpenseReversalResult"
+  ],
+  "money": [
+   {
+    "path": "ExpenseReversalResult.Original.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseView"
+   },
+   {
+    "path": "ExpenseReversalResult.Reversal.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseView"
+   }
+  ]
+ },
+ "POST /commands/RevertSetting": {
+  "returnTypes": [
+   "SetSettingResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RevokeDevice": {
+  "returnTypes": [
+   "DeviceRevokedResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RevokeException": {
+  "returnTypes": [
+   "ExceptionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RevokeRole": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RunBusinessDayClose": {
+  "returnTypes": [
+   "CloseRunResult"
+  ],
+  "money": []
+ },
+ "POST /commands/RunMessagingTriggers": {
+  "returnTypes": [
+   "RunMessagingTriggersResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveAmc": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveChannel": {
+  "returnTypes": [
+   "ChannelResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveCompany": {
+  "returnTypes": [
+   "CompanyResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveComplianceObligation": {
+  "returnTypes": [
+   "SaveObligationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveComplianceSettings": {
+  "returnTypes": [
+   "SettingsDto"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveDepartment": {
+  "returnTypes": [
+   "DepartmentResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveGuestProfile": {
+  "returnTypes": [
+   "SaveGuestProfileResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveGuestServiceSettings": {
+  "returnTypes": [
+   "GuestServiceSettingsView"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveHandoverTemplate": {
+  "returnTypes": [
+   "HandoverTemplateView"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveMaintenanceAsset": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveMaintenanceVendor": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveMenuItem": {
+  "returnTypes": [
+   "MenuItemResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SavePmPlan": {
+  "returnTypes": [
+   "RegisterSaveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveStaff": {
+  "returnTypes": [
+   "StaffResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveYieldOccupancyRule": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveYieldPlan": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveYieldRestriction": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SaveYieldSeason": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SeedComplianceDefaults": {
+  "returnTypes": [
+   "SeedDefaultsResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SendKot": {
+  "returnTypes": [
+   "KotResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SendMessage": {
+  "returnTypes": [
+   "SendMessageResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SendPayslip": {
+  "returnTypes": [
+   "PayslipSendResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetChannelStatus": {
+  "returnTypes": [
+   "ChannelResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetChannelStopSell": {
+  "returnTypes": [
+   "ChannelResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetCheckItemQty": {
+  "returnTypes": [
+   "CheckResult"
+  ],
+  "money": [
+   {
+    "path": "CheckResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   },
+   {
+    "path": "CheckResult.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckResult"
+   }
+  ]
+ },
+ "POST /commands/SetCompanyLimit": {
+  "returnTypes": [
+   "CompanyResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetCredential": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetCustomerConsent": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetCustomerPreferences": {
+  "returnTypes": [
+   "CustomerChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetGroupRouting": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetGstSetting": {
+  "returnTypes": [
+   "GstSettingChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetLeavePolicy": {
+  "returnTypes": [
+   "LeavePolicyResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetLedgerMapping": {
+  "returnTypes": [
+   "LedgerMappingResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetMenuItemAvailability": {
+  "returnTypes": [
+   "MenuItemResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetMessagingConsent": {
+  "returnTypes": [
+   "SetMessagingConsentResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetRoster": {
+  "returnTypes": [
+   "RosterResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetSetting": {
+  "returnTypes": [
+   "SetSettingResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetStaffActive": {
+  "returnTypes": [
+   "StaffResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetStatutoryRates": {
+  "returnTypes": [
+   "RatesResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SettleCheck": {
+  "returnTypes": [
+   "SettleResult"
+  ],
+  "money": [
+   {
+    "path": "SettleResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "SettleResult"
+   },
+   {
+    "path": "SettleResult.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "SettleResult"
+   },
+   {
+    "path": "SettleResult.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "SettleResult"
+   },
+   {
+    "path": "SettleResult.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "SettleResult"
+   },
+   {
+    "path": "SettleResult.ChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "SettleResult"
+   }
+  ]
+ },
+ "POST /commands/SettleGroup": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetUserEnabled": {
+  "returnTypes": [
+   "UserVersionResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetYieldDayOfWeek": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetYieldForecast": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetYieldGuardrails": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SetYieldOverride": {
+  "returnTypes": [
+   "YieldChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ShortenStay": {
+  "returnTypes": [
+   "ChangeStayDatesResult"
+  ],
+  "money": [
+   {
+    "path": "ChangeStayDatesResult.NightlyRatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChangeStayDatesResult"
+   },
+   {
+    "path": "ChangeStayDatesResult.RateLossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChangeStayDatesResult"
+   }
+  ]
+ },
+ "POST /commands/SimulateMessageDelivery": {
+  "returnTypes": [
+   "SimulateMessageDeliveryResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StartServiceRequest": {
+  "returnTypes": [
+   "ServiceRequestResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StartWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockCountDecide": {
+  "returnTypes": [
+   "DecideCountResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockCountSubmit": {
+  "returnTypes": [
+   "SubmitCountResult"
+  ],
+  "money": [
+   {
+    "path": "SubmitCountResult.ExpectedVersion",
+    "type": "string",
+    "nullable": false,
+    "declared": "SubmitCountResult"
+   }
+  ]
+ },
+ "POST /commands/StockIssue": {
+  "returnTypes": [
+   "StockMoveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockItemCreate": {
+  "returnTypes": [
+   "StockItemWriteResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockItemSet": {
+  "returnTypes": [
+   "StockItemWriteResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockLaundryReceive": {
+  "returnTypes": [
+   "ReceiveLaundryResult"
+  ],
+  "money": [
+   {
+    "path": "ReceiveLaundryResult.ChargePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ReceiveLaundryResult"
+   }
+  ]
+ },
+ "POST /commands/StockLaundrySend": {
+  "returnTypes": [
+   "SendLaundryResult"
+  ],
+  "money": [
+   {
+    "path": "SendLaundryResult.ExpectedVersion",
+    "type": "string",
+    "nullable": false,
+    "declared": "SendLaundryResult"
+   }
+  ]
+ },
+ "POST /commands/StockReceiveGrn": {
+  "returnTypes": [
+   "ReceiveGrnResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockRecordLoss": {
+  "returnTypes": [
+   "RecordLossResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockRoomChange": {
+  "returnTypes": [
+   "StockMoveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockSettingsSet": {
+  "returnTypes": [
+   "StockSettingsResult"
+  ],
+  "money": []
+ },
+ "POST /commands/StockUse": {
+  "returnTypes": [
+   "StockMoveResult"
+  ],
+  "money": []
+ },
+ "POST /commands/SubmitChecklistRun": {
+  "returnTypes": [
+   "ChecklistRunView"
+  ],
+  "money": [
+   {
+    "path": "ChecklistRunView.Progress.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "ChecklistProgressView"
+   }
+  ]
+ },
+ "POST /commands/SubmitExpense": {
+  "returnTypes": [
+   "ExpenseResult"
+  ],
+  "money": [
+   {
+    "path": "ExpenseResult.Expense.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseView"
+   }
+  ]
+ },
+ "POST /commands/SubmitExpenseDraft": {
+  "returnTypes": [
+   "ExpenseResult"
+  ],
+  "money": [
+   {
+    "path": "ExpenseResult.Expense.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseView"
+   }
+  ]
+ },
+ "POST /commands/SubmitHandoverNote": {
+  "returnTypes": [
+   "HandoverNoteView"
+  ],
+  "money": [
+   {
+    "path": "HandoverNoteView.Cash.AmountPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "HandoverCashView"
+   }
+  ]
+ },
+ "POST /commands/SubmitShiftCount": {
+  "returnTypes": [
+   "ShiftResult"
+  ],
+  "money": [
+   {
+    "path": "ShiftResult.OpeningFloatPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "ShiftResult.ExpectedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "ShiftResult.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   }
+  ]
+ },
+ "POST /commands/TickChecklistItem": {
+  "returnTypes": [
+   "ChecklistRunView"
+  ],
+  "money": [
+   {
+    "path": "ChecklistRunView.Progress.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "ChecklistProgressView"
+   }
+  ]
+ },
+ "POST /commands/ToggleComplianceObligation": {
+  "returnTypes": [
+   "ToggleObligationResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ToggleHandoverTemplate": {
+  "returnTypes": [
+   "HandoverTemplateView"
+  ],
+  "money": []
+ },
+ "POST /commands/TransferGroupMember": {
+  "returnTypes": [
+   "GroupTransferResult"
+  ],
+  "money": [
+   {
+    "path": "GroupTransferResult.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTransferResult"
+   }
+  ]
+ },
+ "POST /commands/TransitionHousekeepingTask": {
+  "returnTypes": [
+   "TransitionHousekeepingTaskResult"
+  ],
+  "money": []
+ },
+ "POST /commands/UnblockRoom": {
+  "returnTypes": [
+   "UnblockRoomResult"
+  ],
+  "money": []
+ },
+ "POST /commands/UnlockAccountingPeriod": {
+  "returnTypes": [
+   "PeriodLockResult"
+  ],
+  "money": [
+   {
+    "path": "PeriodLockResult.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PeriodLockResult"
+   },
+   {
+    "path": "PeriodLockResult.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PeriodLockResult"
+   }
+  ]
+ },
+ "POST /commands/UnlockPayRun": {
+  "returnTypes": [
+   "PayRunResult"
+  ],
+  "money": [
+   {
+    "path": "PayRunResult.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayRunResult"
+   }
+  ]
+ },
+ "POST /commands/UpdateComplaint": {
+  "returnTypes": [
+   "ComplaintResult"
+  ],
+  "money": []
+ },
+ "POST /commands/UpdateGroup": {
+  "returnTypes": [
+   "GroupResult"
+  ],
+  "money": []
+ },
+ "POST /commands/UpdateMessageRule": {
+  "returnTypes": [
+   "UpdateMessageRuleResult"
+  ],
+  "money": []
+ },
+ "POST /commands/UpdateMessageTemplate": {
+  "returnTypes": [
+   "UpdateMessageTemplateResult"
+  ],
+  "money": []
+ },
+ "POST /commands/UploadImportBatch": {
+  "returnTypes": [
+   "ImportBatchReport"
+  ],
+  "money": [
+   {
+    "path": "ImportBatchReport.DebitPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ImportBatchReport"
+   },
+   {
+    "path": "ImportBatchReport.CreditPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ImportBatchReport"
+   }
+  ]
+ },
+ "POST /commands/VerifyWorkOrder": {
+  "returnTypes": [
+   "WorkOrderResult"
+  ],
+  "money": []
+ },
+ "POST /commands/ViewIdCaptureImage": {
+  "returnTypes": [
+   "ViewIdCaptureImageResult"
+  ],
+  "money": []
+ },
+ "POST /commands/VoidBill": {
+  "returnTypes": [
+   "VoidResult"
+  ],
+  "money": []
+ },
+ "POST /commands/VoidCheckItem": {
+  "returnTypes": [
+   "VoidResult"
+  ],
+  "money": []
+ },
+ "POST /commands/WithdrawGstSetting": {
+  "returnTypes": [
+   "GstSettingChangeResult"
+  ],
+  "money": []
+ },
+ "POST /commands/WithdrawScheduledSetting": {
+  "returnTypes": [
+   "WithdrawScheduledSettingResult"
+  ],
+  "money": []
+ },
+ "GET /compliance/badge": {
+  "returnTypes": [
+   "BadgeResult"
+  ],
+  "money": []
+ },
+ "GET /compliance/ca-packs": {
+  "returnTypes": [
+   "CaPackDto"
+  ],
+  "money": []
+ },
+ "GET /compliance/calendar": {
+  "returnTypes": [
+   "CalendarView"
+  ],
+  "money": []
+ },
+ "GET /compliance/due-this-week": {
+  "returnTypes": [
+   "CalendarItemDto"
+  ],
+  "money": []
+ },
+ "GET /compliance/obligations": {
+  "returnTypes": [
+   "ObligationDto"
+  ],
+  "money": []
+ },
+ "GET /configuration/export": {
+  "returnTypes": [
+   "ConfigurationExport"
+  ],
+  "money": []
+ },
+ "GET /configuration/groups": {
+  "returnTypes": [
+   "ConfigGroupsResult"
+  ],
+  "money": []
+ },
+ "GET /configuration/groups/{groupId}": {
+  "returnTypes": [
+   "ConfigGroupDetail"
+  ],
+  "money": []
+ },
+ "GET /configuration/history": {
+  "returnTypes": [
+   "SettingHistoryPage"
+  ],
+  "money": [
+   {
+    "path": "SettingHistoryPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "SettingHistoryPage"
+   }
+  ]
+ },
+ "POST /configuration/import-plan": {
+  "returnTypes": [
+   "ImportPlanView"
+  ],
+  "money": []
+ },
+ "GET /configuration/modules": {
+  "returnTypes": [
+   "ModulesResult"
+  ],
+  "money": []
+ },
+ "GET /configuration/requests": {
+  "returnTypes": [
+   "SettingRequestsResult"
+  ],
+  "money": []
+ },
+ "GET /configuration/search": {
+  "returnTypes": [
+   "ConfigSearchResult"
+  ],
+  "money": []
+ },
+ "GET /configuration/values": {
+  "returnTypes": [
+   "ConfigurationValuesResult"
+  ],
+  "money": []
+ },
+ "GET /credit-note-requests": {
+  "returnTypes": [
+   "CreditNoteRequestView"
+  ],
+  "money": [
+   {
+    "path": "CreditNoteRequestView.AmountPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CreditNoteRequestView"
+   },
+   {
+    "path": "CreditNoteRequestView.Lines.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditLineRequest"
+   },
+   {
+    "path": "CreditNoteRequestView.CreditNoteId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CreditNoteRequestView"
+   }
+  ]
+ },
+ "GET /credit-notes/{creditNoteId:long}": {
+  "returnTypes": [
+   "CreditNoteView"
+  ],
+  "money": [
+   {
+    "path": "CreditNoteView.CreditNoteId",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   },
+   {
+    "path": "CreditNoteView.CreditNoteNo",
+    "type": "string",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   },
+   {
+    "path": "CreditNoteView.Lines.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteLineView"
+   },
+   {
+    "path": "CreditNoteView.Lines.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "CreditNoteLineView"
+   },
+   {
+    "path": "CreditNoteView.Lines.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteLineView"
+   },
+   {
+    "path": "CreditNoteView.Lines.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteLineView"
+   },
+   {
+    "path": "CreditNoteView.Lines.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteLineView"
+   },
+   {
+    "path": "CreditNoteView.Lines.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteLineView"
+   },
+   {
+    "path": "CreditNoteView.Lines.FolioChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CreditNoteLineView"
+   },
+   {
+    "path": "CreditNoteView.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   },
+   {
+    "path": "CreditNoteView.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   },
+   {
+    "path": "CreditNoteView.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   },
+   {
+    "path": "CreditNoteView.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   },
+   {
+    "path": "CreditNoteView.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   },
+   {
+    "path": "CreditNoteView.AmountInWords",
+    "type": "string",
+    "nullable": false,
+    "declared": "CreditNoteView"
+   }
+  ]
+ },
+ "GET /credit-notes/{creditNoteId:long}/document": {
+  "returnTypes": [
+   "RenderedDocumentView"
+  ],
+  "money": []
+ },
+ "GET /customers": {
+  "returnTypes": [
+   "CustomerList"
+  ],
+  "money": [
+   {
+    "path": "CustomerList.Customers.LifetimePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CustomerSummary"
+   },
+   {
+    "path": "CustomerList.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "CustomerList"
+   }
+  ]
+ },
+ "GET /customers/duplicates": {
+  "returnTypes": [
+   "DuplicateList"
+  ],
+  "money": [
+   {
+    "path": "DuplicateList.Groups.Customers.LifetimePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CustomerSummary"
+   }
+  ]
+ },
+ "GET /customers/merges": {
+  "returnTypes": [
+   "MergeList"
+  ],
+  "money": []
+ },
+ "GET /customers/profile": {
+  "returnTypes": [
+   "CustomerProfile"
+  ],
+  "money": [
+   {
+    "path": "CustomerProfile.Stays.TotalPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CustomerStayView"
+   },
+   {
+    "path": "CustomerProfile.LifetimePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CustomerProfile"
+   },
+   {
+    "path": "CustomerProfile.AvgRatePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CustomerProfile"
+   },
+   {
+    "path": "CustomerProfile.Current.TotalPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CustomerStayView"
+   },
+   {
+    "path": "CustomerProfile.Upcoming.TotalPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CustomerStayView"
+   }
+  ]
+ },
+ "GET /documents/id-captures": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "money": []
+ },
+ "GET /documents/id-captures/{id:long}": {
+  "returnTypes": [
+   "IdCaptureView"
+  ],
+  "money": []
+ },
+ "GET /expenses": {
+  "returnTypes": [
+   "ExpensePage"
+  ],
+  "money": [
+   {
+    "path": "ExpensePage.Items.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseView"
+   },
+   {
+    "path": "ExpensePage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "ExpensePage"
+   }
+  ]
+ },
+ "GET /expenses/{expenseId:long}": {
+  "returnTypes": [
+   "ExpenseView"
+  ],
+  "money": [
+   {
+    "path": "ExpenseView.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseView"
+   }
+  ]
+ },
+ "GET /expenses/options": {
+  "returnTypes": [
+   "ExpenseOptionsView"
+  ],
+  "money": []
+ },
+ "GET /expenses/summary": {
+  "returnTypes": [
+   "ExpenseSummaryView"
+  ],
+  "money": [
+   {
+    "path": "ExpenseSummaryView.CashPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseSummaryView"
+   },
+   {
+    "path": "ExpenseSummaryView.NonCashPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseSummaryView"
+   },
+   {
+    "path": "ExpenseSummaryView.VendorCreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseSummaryView"
+   },
+   {
+    "path": "ExpenseSummaryView.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseSummaryView"
+   },
+   {
+    "path": "ExpenseSummaryView.ReversalsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseSummaryView"
+   }
+  ]
+ },
+ "GET /folios/{folioId:long}": {
+  "returnTypes": [
+   "FolioView"
+  ],
+  "money": [
+   {
+    "path": "FolioView.Lines.ChargeId",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "FolioView.Lines.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "FolioView.Lines.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "FolioView.Lines.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "FolioView.Lines.ReversesChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "FolioView.Receipts.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "FolioView.Receipts.RefundOf",
+    "type": "long?",
+    "nullable": true,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "FolioView.Receipts.RefundedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "FolioView.Receipts.RefundablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "FolioView.Approvals.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ApprovalView"
+   },
+   {
+    "path": "FolioView.Totals.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "FolioView.Totals.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "FolioView.Totals.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "FolioView.Totals.PaidPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "FolioView.Totals.DepositPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "FolioView.Totals.CompanyCreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "FolioView.Totals.BalancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   }
+  ]
+ },
+ "GET /folios/by-reservation/{reservationId:long}": {
+  "returnTypes": [
+   "ReservationFolioView"
+  ],
+  "money": [
+   {
+    "path": "ReservationFolioView.Folio.Lines.ChargeId",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Lines.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Lines.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Lines.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Lines.ReversesChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "FolioLineView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Receipts.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Receipts.RefundOf",
+    "type": "long?",
+    "nullable": true,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Receipts.RefundedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Receipts.RefundablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioReceiptView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Approvals.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ApprovalView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Totals.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Totals.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Totals.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Totals.PaidPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Totals.DepositPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Totals.CompanyCreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   },
+   {
+    "path": "ReservationFolioView.Folio.Totals.BalancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FolioTotalsView"
+   }
+  ]
+ },
+ "GET /groups": {
+  "returnTypes": [
+   "GroupSummaryView"
+  ],
+  "money": []
+ },
+ "GET /groups/{groupId:long}/statement": {
+  "returnTypes": [
+   "GroupStatementView"
+  ],
+  "money": [
+   {
+    "path": "GroupStatementView.Pickup.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupPickupView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.ChargeId",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.ReversesChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.TaxTarget",
+    "type": "string",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.MasterPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.Lines.GuestPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupLineView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.MasterPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupNightView"
+   },
+   {
+    "path": "GroupStatementView.Members.Nights.GuestPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupNightView"
+   },
+   {
+    "path": "GroupStatementView.Members.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.MasterSharePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.GuestSharePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.TransferredPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.PendingTransferPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.FolioPaidPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.FolioBalancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Members.EstimatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMemberView"
+   },
+   {
+    "path": "GroupStatementView.Master.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupMasterLineView"
+   },
+   {
+    "path": "GroupStatementView.Master.TaxBps",
+    "type": "int?",
+    "nullable": true,
+    "declared": "GroupMasterLineView"
+   },
+   {
+    "path": "GroupStatementView.Master.TaxPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "GroupMasterLineView"
+   },
+   {
+    "path": "GroupStatementView.Master.CgstPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "GroupMasterLineView"
+   },
+   {
+    "path": "GroupStatementView.Master.SgstPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "GroupMasterLineView"
+   },
+   {
+    "path": "GroupStatementView.Attrition.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupAttritionView"
+   },
+   {
+    "path": "GroupStatementView.Attrition.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupAttritionView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MasterNetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MasterTaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MasterCgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MasterSgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MasterChargesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.ReceivedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.DepositsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.RefundedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MasterBalancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.TransferredPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.PendingTransferPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.GuestSharePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MembersPaidPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   },
+   {
+    "path": "GroupStatementView.Totals.MembersEstimatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GroupTotalsView"
+   }
+  ]
+ },
+ "GET /groups/companies": {
+  "returnTypes": [
+   "CompanyBookView"
+  ],
+  "money": [
+   {
+    "path": "CompanyBookView.Companies.Rates",
+    "type": "long>",
+    "nullable": false,
+    "declared": "CompanyView"
+   },
+   {
+    "path": "CompanyBookView.Companies.CreditLimitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CompanyView"
+   },
+   {
+    "path": "CompanyBookView.Requests.FromPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CompanyLimitRequestView"
+   },
+   {
+    "path": "CompanyBookView.Requests.ToPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CompanyLimitRequestView"
+   }
+  ]
+ },
+ "GET /guest-services/complaints": {
+  "returnTypes": [
+   "GuestServicePage<ComplaintView>"
+  ],
+  "money": []
+ },
+ "GET /guest-services/complaints/{id:long}": {
+  "returnTypes": [
+   "ComplaintView"
+  ],
+  "money": [
+   {
+    "path": "ComplaintView.Recovery.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RecoveryView"
+   },
+   {
+    "path": "ComplaintView.Recovery.ChargeId",
+    "type": "long?",
+    "nullable": true,
+    "declared": "RecoveryView"
+   }
+  ]
+ },
+ "GET /guest-services/histories/{kind}": {
+  "returnTypes": [
+   "RecordHistory"
+  ],
+  "money": []
+ },
+ "GET /guest-services/history/{kind}/{id:long}": {
+  "returnTypes": [
+   "HistoryEntry"
+  ],
+  "money": []
+ },
+ "GET /guest-services/lost-items": {
+  "returnTypes": [
+   "GuestServicePage<LostItemView>"
+  ],
+  "money": []
+ },
+ "GET /guest-services/reports/complaints": {
+  "returnTypes": [
+   "ComplaintCategoryRow"
+  ],
+  "money": [
+   {
+    "path": "ComplaintCategoryRow.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "ComplaintCategoryRow"
+   }
+  ]
+ },
+ "GET /guest-services/reports/lost-found": {
+  "returnTypes": [
+   "LostFoundSummary"
+  ],
+  "money": []
+ },
+ "GET /guest-services/reports/response": {
+  "returnTypes": [
+   "ResponseReport"
+  ],
+  "money": []
+ },
+ "GET /guest-services/requests": {
+  "returnTypes": [
+   "GuestServicePage<ServiceRequestView>"
+  ],
+  "money": []
+ },
+ "GET /guest-services/requests/{id:long}": {
+  "returnTypes": [
+   "ServiceRequestView"
+  ],
+  "money": []
+ },
+ "GET /guest-services/settings": {
+  "returnTypes": [
+   "GuestServiceSettingsView"
+  ],
+  "money": []
+ },
+ "GET /guest-services/stays": {
+  "returnTypes": [
+   "StayLookupList"
+  ],
+  "money": []
+ },
+ "GET /guests": {
+  "returnTypes": [
+   "GuestListPage"
+  ],
+  "money": [
+   {
+    "path": "GuestListPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "GuestListPage"
+   }
+  ]
+ },
+ "GET /guests/{guestId:long}": {
+  "returnTypes": [
+   "GuestView"
+  ],
+  "money": []
+ },
+ "GET /handover/carry": {
+  "returnTypes": [
+   "OpenCarryList"
+  ],
+  "money": []
+ },
+ "GET /handover/checklists": {
+  "returnTypes": [
+   "ChecklistList"
+  ],
+  "money": [
+   {
+    "path": "ChecklistList.Runs.Progress.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "ChecklistProgressView"
+   }
+  ]
+ },
+ "GET /handover/dashboard": {
+  "returnTypes": [
+   "HandoverDashboardView"
+  ],
+  "money": []
+ },
+ "GET /handover/notes": {
+  "returnTypes": [
+   "HandoverNoteList"
+  ],
+  "money": [
+   {
+    "path": "HandoverNoteList.Notes.Cash.AmountPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "HandoverCashView"
+   }
+  ]
+ },
+ "GET /handover/templates": {
+  "returnTypes": [
+   "HandoverTemplateList"
+  ],
+  "money": []
+ },
+ "GET /housekeeping/tasks": {
+  "returnTypes": [
+   "HousekeepingTaskPage"
+  ],
+  "money": [
+   {
+    "path": "HousekeepingTaskPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "HousekeepingTaskPage"
+   }
+  ]
+ },
+ "GET /import/batches": {
+  "returnTypes": [
+   "ImportBatchList"
+  ],
+  "money": []
+ },
+ "GET /import/batches/{batchId:long}": {
+  "returnTypes": [
+   "ImportBatchReport"
+  ],
+  "money": [
+   {
+    "path": "ImportBatchReport.DebitPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ImportBatchReport"
+   },
+   {
+    "path": "ImportBatchReport.CreditPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ImportBatchReport"
+   }
+  ]
+ },
+ "GET /import/ledgers": {
+  "returnTypes": [
+   "ImportLedgersView"
+  ],
+  "money": []
+ },
+ "GET /import/masters": {
+  "returnTypes": [
+   "ImportMastersView"
+  ],
+  "money": []
+ },
+ "GET /import/opening-balances": {
+  "returnTypes": [
+   "OpeningBalancesView"
+  ],
+  "money": [
+   {
+    "path": "OpeningBalancesView.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OpeningBalancesView"
+   },
+   {
+    "path": "OpeningBalancesView.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OpeningBalancesView"
+   },
+   {
+    "path": "OpeningBalancesView.Rows.DebitPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OpeningBalanceRowView"
+   },
+   {
+    "path": "OpeningBalancesView.Rows.CreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OpeningBalanceRowView"
+   }
+  ]
+ },
+ "GET /invoices": {
+  "returnTypes": [
+   "InvoiceRegisterView"
+  ],
+  "money": [
+   {
+    "path": "InvoiceRegisterView.Rows.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RegisterRowView"
+   },
+   {
+    "path": "InvoiceRegisterView.Rows.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RegisterRowView"
+   },
+   {
+    "path": "InvoiceRegisterView.Rows.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RegisterRowView"
+   },
+   {
+    "path": "InvoiceRegisterView.Rows.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RegisterRowView"
+   },
+   {
+    "path": "InvoiceRegisterView.Rows.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RegisterRowView"
+   },
+   {
+    "path": "InvoiceRegisterView.InvoicedTaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceRegisterView"
+   },
+   {
+    "path": "InvoiceRegisterView.InvoicedTaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceRegisterView"
+   },
+   {
+    "path": "InvoiceRegisterView.InvoicedTotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceRegisterView"
+   },
+   {
+    "path": "InvoiceRegisterView.CreditedTaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceRegisterView"
+   },
+   {
+    "path": "InvoiceRegisterView.CreditedTaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceRegisterView"
+   },
+   {
+    "path": "InvoiceRegisterView.CreditedTotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceRegisterView"
+   },
+   {
+    "path": "InvoiceRegisterView.NetTotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceRegisterView"
+   }
+  ]
+ },
+ "GET /invoices/{invoiceId:long}": {
+  "returnTypes": [
+   "InvoiceView"
+  ],
+  "money": [
+   {
+    "path": "InvoiceView.Lines.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.CreditedTaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.CreditedTaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.AmountInWords",
+    "type": "string",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CreditableTaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CreditableValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.CreditNoteId",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.CreditNoteNo",
+    "type": "string",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   }
+  ]
+ },
+ "GET /invoices/{invoiceId:long}/document": {
+  "returnTypes": [
+   "RenderedDocumentView"
+  ],
+  "money": []
+ },
+ "GET /invoices/by-source/{sourceKind}/{sourceId:long}": {
+  "returnTypes": [
+   "InvoiceView"
+  ],
+  "money": [
+   {
+    "path": "InvoiceView.Lines.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.CreditedTaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.Lines.CreditedTaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceLineView"
+   },
+   {
+    "path": "InvoiceView.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.AmountInWords",
+    "type": "string",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CreditableTaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CreditableValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "InvoiceView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.CreditNoteId",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.CreditNoteNo",
+    "type": "string",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   },
+   {
+    "path": "InvoiceView.CreditNotes.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CreditNoteSummaryView"
+   }
+  ]
+ },
+ "GET /invoices/gstr1": {
+  "returnTypes": [
+   "Gstr1View"
+  ],
+  "money": [
+   {
+    "path": "Gstr1View.Rates.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "Gstr1RateView"
+   },
+   {
+    "path": "Gstr1View.Rates.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1RateView"
+   },
+   {
+    "path": "Gstr1View.Rates.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1RateView"
+   },
+   {
+    "path": "Gstr1View.Rates.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1RateView"
+   },
+   {
+    "path": "Gstr1View.Rates.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1RateView"
+   },
+   {
+    "path": "Gstr1View.Sac.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "Gstr1SacView"
+   },
+   {
+    "path": "Gstr1View.Sac.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1SacView"
+   },
+   {
+    "path": "Gstr1View.Sac.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1SacView"
+   },
+   {
+    "path": "Gstr1View.Sac.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1SacView"
+   },
+   {
+    "path": "Gstr1View.Sac.IgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "Gstr1SacView"
+   }
+  ]
+ },
+ "GET /maintenance/amcs": {
+  "returnTypes": [
+   "AmcPage"
+  ],
+  "money": [
+   {
+    "path": "AmcPage.Amcs.ValuePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "AmcView"
+   }
+  ]
+ },
+ "GET /maintenance/registers": {
+  "returnTypes": [
+   "RegistersView"
+  ],
+  "money": [
+   {
+    "path": "RegistersView.Spares.CostPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "SpareView"
+   }
+  ]
+ },
+ "GET /maintenance/report": {
+  "returnTypes": [
+   "MaintenanceReport"
+  ],
+  "money": [
+   {
+    "path": "MaintenanceReport.ByKind.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "KindRowView"
+   },
+   {
+    "path": "MaintenanceReport.MonthPartsCostPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "MaintenanceReport"
+   }
+  ]
+ },
+ "GET /maintenance/work-orders": {
+  "returnTypes": [
+   "WorkOrderPage"
+  ],
+  "money": [
+   {
+    "path": "WorkOrderPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "WorkOrderPage"
+   },
+   {
+    "path": "WorkOrderPage.Rows.Parts.UnitCostPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "WorkOrderPartView"
+   },
+   {
+    "path": "WorkOrderPage.Rows.PartsCostPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "WorkOrderView"
+   }
+  ]
+ },
+ "GET /maintenance/work-orders/{id:long}": {
+  "returnTypes": [
+   "WorkOrderDetail"
+  ],
+  "money": [
+   {
+    "path": "WorkOrderDetail.Order.Parts.UnitCostPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "WorkOrderPartView"
+   },
+   {
+    "path": "WorkOrderDetail.Order.PartsCostPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "WorkOrderView"
+   }
+  ]
+ },
+ "GET /me/capabilities": {
+  "returnTypes": [
+   "CapabilitiesResult"
+  ],
+  "money": []
+ },
+ "GET /me/directory": {
+  "returnTypes": [
+   "StaffDirectoryResult"
+  ],
+  "money": []
+ },
+ "GET /messaging/consent/{guestId:long}": {
+  "returnTypes": [
+   "ConsentView"
+  ],
+  "money": []
+ },
+ "GET /messaging/consents": {
+  "returnTypes": [
+   "ConsentRoster"
+  ],
+  "money": []
+ },
+ "GET /messaging/messages": {
+  "returnTypes": [
+   "MessageListResult"
+  ],
+  "money": [
+   {
+    "path": "MessageListResult.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "MessageListResult"
+   }
+  ]
+ },
+ "GET /messaging/messages/{id:long}": {
+  "returnTypes": [
+   "MessageView"
+  ],
+  "money": []
+ },
+ "GET /messaging/rules": {
+  "returnTypes": [
+   "RuleView"
+  ],
+  "money": []
+ },
+ "GET /messaging/summary": {
+  "returnTypes": [
+   "MessagingSummary"
+  ],
+  "money": []
+ },
+ "GET /messaging/templates": {
+  "returnTypes": [
+   "TemplatesResult"
+  ],
+  "money": []
+ },
+ "GET /ota/channels": {
+  "returnTypes": [
+   "ChannelView"
+  ],
+  "money": [
+   {
+    "path": "ChannelView.CommissionBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "ChannelView"
+   }
+  ]
+ },
+ "GET /ota/channels/{id:int}/push-preview": {
+  "returnTypes": [
+   "PushPreviewView"
+  ],
+  "money": [
+   {
+    "path": "PushPreviewView.Rows.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PushRowView"
+   }
+  ]
+ },
+ "GET /ota/commission": {
+  "returnTypes": [
+   "CommissionReportView"
+  ],
+  "money": [
+   {
+    "path": "CommissionReportView.Rows.BasePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionRowView"
+   },
+   {
+    "path": "CommissionReportView.Rows.CommissionBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "CommissionRowView"
+   },
+   {
+    "path": "CommissionReportView.Rows.CommissionPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionRowView"
+   },
+   {
+    "path": "CommissionReportView.Rows.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionRowView"
+   },
+   {
+    "path": "CommissionReportView.ByChannel.BasePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionChannelTotal"
+   },
+   {
+    "path": "CommissionReportView.ByChannel.CommissionPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionChannelTotal"
+   },
+   {
+    "path": "CommissionReportView.ByChannel.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionChannelTotal"
+   },
+   {
+    "path": "CommissionReportView.Total.BasePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionChannelTotal"
+   },
+   {
+    "path": "CommissionReportView.Total.CommissionPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionChannelTotal"
+   },
+   {
+    "path": "CommissionReportView.Total.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CommissionChannelTotal"
+   }
+  ]
+ },
+ "GET /ota/messages": {
+  "returnTypes": [
+   "ChannelMessageView"
+  ],
+  "money": [
+   {
+    "path": "ChannelMessageView.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ChannelMessageView"
+   }
+  ]
+ },
+ "GET /ota/messages/{id:long}/check": {
+  "returnTypes": [
+   "MessageCheckView"
+  ],
+  "money": []
+ },
+ "GET /ota/pushes": {
+  "returnTypes": [
+   "PushLogView"
+  ],
+  "money": []
+ },
+ "GET /ota/reconciliation": {
+  "returnTypes": [
+   "ReconciliationView"
+  ],
+  "money": [
+   {
+    "path": "ReconciliationView.ReportPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReconciliationView"
+   },
+   {
+    "path": "ReconciliationView.LedgerPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReconciliationView"
+   }
+  ]
+ },
+ "GET /payroll/board": {
+  "returnTypes": [
+   "PayrollBoardView"
+  ],
+  "money": [
+   {
+    "path": "PayrollBoardView.RateVersions.PfWageCap",
+    "type": "long",
+    "nullable": false,
+    "declared": "RateVersionView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Rates.PfWageCap",
+    "type": "long",
+    "nullable": false,
+    "declared": "RateVersionView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.PayType",
+    "type": "string",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.BasePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.EarnedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.BasicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.HraPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.WashingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.SpecialPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.OtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.PfWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.PfPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.PfErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.EsicWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.EsicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.EsicErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.PtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.AdvancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.DeductionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.Lines.CtcPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Runs.BankFiles.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardBankFileView"
+   },
+   {
+    "path": "PayrollBoardView.Advances.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardAdvanceView"
+   },
+   {
+    "path": "PayrollBoardView.Advances.InstallmentPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardAdvanceView"
+   },
+   {
+    "path": "PayrollBoardView.Advances.RecoveredPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardAdvanceView"
+   },
+   {
+    "path": "PayrollBoardView.Advances.Recoveries.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardRecoveryView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.PayType",
+    "type": "string",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.BasePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.EarnedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.BasicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.HraPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.WashingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.SpecialPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.OtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.PfWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.PfPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.PfErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.EsicWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.EsicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.EsicErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.PtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.AdvancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.DeductionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Line.CtcPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardLineView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Rates.PfWageCap",
+    "type": "long",
+    "nullable": false,
+    "declared": "RateVersionView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.AdvanceOutstandingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardFnfView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.Adjustments.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "FnfAdjustmentDto"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.EarningsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardFnfView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.RecoveriesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardFnfView"
+   },
+   {
+    "path": "PayrollBoardView.Fnf.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BoardFnfView"
+   }
+  ]
+ },
+ "GET /payroll/my/payslips": {
+  "returnTypes": [
+   "PayslipView"
+  ],
+  "money": [
+   {
+    "path": "PayslipView.Line.PayType",
+    "type": "string",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EarnedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.BasicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.HraPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.WashingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.SpecialPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.OtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PfWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PfPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PfErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EsicWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EsicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EsicErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.AdvancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.DeductionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.CtcPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   }
+  ]
+ },
+ "GET /payroll/payslips/{runId:long}/{staffId:long}": {
+  "returnTypes": [
+   "PayslipView"
+  ],
+  "money": [
+   {
+    "path": "PayslipView.Line.PayType",
+    "type": "string",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EarnedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.BasicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.HraPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.WashingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.SpecialPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.OtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PfWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PfPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PfErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EsicWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EsicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.EsicErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.PtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.AdvancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.DeductionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayslipView.Line.CtcPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   }
+  ]
+ },
+ "GET /payroll/rates/{month}": {
+  "returnTypes": [
+   "string",
+   "PayrollRates",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "money": [
+   {
+    "path": "PayrollRates.PfWageCap",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayrollRates"
+   }
+  ]
+ },
+ "GET /payroll/run/{runId:long}/bank-files/{issueNo:int}": {
+  "returnTypes": [
+   "CsvFile"
+  ],
+  "money": []
+ },
+ "GET /payroll/run/{runId:long}/bank-files/latest": {
+  "returnTypes": [
+   "CsvFile"
+  ],
+  "money": []
+ },
+ "GET /payroll/runs/{month}": {
+  "returnTypes": [
+   "PayRunView",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "money": [
+   {
+    "path": "PayRunView.Lines.PayType",
+    "type": "string",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.EarnedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.BasicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.HraPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.WashingPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.SpecialPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.OtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.PfWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.PfPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.PfErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.EsicWagesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.EsicPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.EsicErPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.PtPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.AdvancePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.DeductionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.Lines.CtcPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayLineView"
+   },
+   {
+    "path": "PayRunView.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PayRunView"
+   }
+  ]
+ },
+ "GET /payroll/runs/{month}/register.csv": {
+  "returnTypes": [
+   "CsvFile",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "money": []
+ },
+ "GET /payroll/runs/{month}/statutory.csv": {
+  "returnTypes": [
+   "CsvFile",
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory"
+  ],
+  "money": []
+ },
+ "GET /payroll/staff": {
+  "returnTypes": [
+   "StaffView"
+  ],
+  "money": []
+ },
+ "GET /payroll/staff/{staffId:long}/leave-balance": {
+  "returnTypes": [
+   "LeaveBalanceView"
+  ],
+  "money": []
+ },
+ "GET /pos/checks": {
+  "returnTypes": [
+   "OpenCheckSummary"
+  ],
+  "money": [
+   {
+    "path": "OpenCheckSummary.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OpenCheckSummary"
+   }
+  ]
+ },
+ "GET /pos/checks/{orderId:long}": {
+  "returnTypes": [
+   "CheckView"
+  ],
+  "money": [
+   {
+    "path": "CheckView.Lines.PricePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "LineView"
+   },
+   {
+    "path": "CheckView.Lines.ValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "LineView"
+   },
+   {
+    "path": "CheckView.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.Bill.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BillView"
+   },
+   {
+    "path": "CheckView.Bill.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "BillView"
+   },
+   {
+    "path": "CheckView.Bill.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BillView"
+   },
+   {
+    "path": "CheckView.Bill.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BillView"
+   }
+  ]
+ },
+ "GET /pos/checks/closed": {
+  "returnTypes": [
+   "CheckView"
+  ],
+  "money": [
+   {
+    "path": "CheckView.Lines.PricePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "LineView"
+   },
+   {
+    "path": "CheckView.Lines.ValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "LineView"
+   },
+   {
+    "path": "CheckView.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CheckView"
+   },
+   {
+    "path": "CheckView.Bill.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BillView"
+   },
+   {
+    "path": "CheckView.Bill.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "BillView"
+   },
+   {
+    "path": "CheckView.Bill.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BillView"
+   },
+   {
+    "path": "CheckView.Bill.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "BillView"
+   }
+  ]
+ },
+ "GET /pos/close-blockers": {
+  "returnTypes": [
+   "PosCloseBlockers"
+  ],
+  "money": []
+ },
+ "GET /pos/day-summary": {
+  "returnTypes": [
+   "DaySummaryView"
+  ],
+  "money": [
+   {
+    "path": "DaySummaryView.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.CashPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.UpiPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.CardPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.RoomFolioPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.OutletCashPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.VoidValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.OpenValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DaySummaryView"
+   },
+   {
+    "path": "DaySummaryView.ByOutlet.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DayOutletSummary"
+   },
+   {
+    "path": "DaySummaryView.ByOutlet.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DayOutletSummary"
+   },
+   {
+    "path": "DaySummaryView.ByOutlet.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DayOutletSummary"
+   },
+   {
+    "path": "DaySummaryView.Top.ValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TopItem"
+   }
+  ]
+ },
+ "GET /pos/in-house": {
+  "returnTypes": [
+   "PosStayView"
+  ],
+  "money": []
+ },
+ "GET /pos/kitchen": {
+  "returnTypes": [
+   "KitchenItem"
+  ],
+  "money": [
+   {
+    "path": "KitchenItem.Lines.PricePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "LineView"
+   },
+   {
+    "path": "KitchenItem.Lines.ValuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "LineView"
+   }
+  ]
+ },
+ "GET /pos/menu": {
+  "returnTypes": [
+   "MenuItemView"
+  ],
+  "money": [
+   {
+    "path": "MenuItemView.PricePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "MenuItemView"
+   }
+  ]
+ },
+ "GET /pos/outlets": {
+  "returnTypes": [
+   "OutletView"
+  ],
+  "money": []
+ },
+ "GET /pos/till": {
+  "returnTypes": [
+   "PosTillView"
+  ],
+  "money": []
+ },
+ "GET /pos/void-requests": {
+  "returnTypes": [
+   "VoidRequestView"
+  ],
+  "money": [
+   {
+    "path": "VoidRequestView.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "VoidRequestView"
+   }
+  ]
+ },
+ "GET /public/booking/deposit/{token}": {
+  "returnTypes": [
+   "PublicDepositView"
+  ],
+  "money": [
+   {
+    "path": "PublicDepositView.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicDepositView"
+   }
+  ]
+ },
+ "GET /public/booking/quote": {
+  "returnTypes": [
+   "PublicQuoteResult"
+  ],
+  "money": [
+   {
+    "path": "PublicQuoteResult.RoomTypes.NightlyRatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicRoomTypeQuote"
+   },
+   {
+    "path": "PublicQuoteResult.RoomTypes.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicRoomTypeQuote"
+   },
+   {
+    "path": "PublicQuoteResult.RoomTypes.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicRoomTypeQuote"
+   },
+   {
+    "path": "PublicQuoteResult.RoomTypes.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicRoomTypeQuote"
+   },
+   {
+    "path": "PublicQuoteResult.RoomTypes.NightRates.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicQuoteNight"
+   },
+   {
+    "path": "PublicQuoteResult.RoomTypes.NightRates.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "PublicQuoteNight"
+   },
+   {
+    "path": "PublicQuoteResult.RoomTypes.NightRates.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicQuoteNight"
+   }
+  ]
+ },
+ "POST /public/booking/requests": {
+  "returnTypes": [
+   "WebRequestReceipt"
+  ],
+  "money": [
+   {
+    "path": "WebRequestReceipt.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebRequestReceipt"
+   },
+   {
+    "path": "WebRequestReceipt.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebRequestReceipt"
+   },
+   {
+    "path": "WebRequestReceipt.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebRequestReceipt"
+   }
+  ]
+ },
+ "GET /reports/daily": {
+  "returnTypes": [
+   "DailyReportView"
+  ],
+  "money": [
+   {
+    "path": "DailyReportView.Report.Occupancy.RoomRevenuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Occupancy.AdrPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Occupancy.RevParPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "OccupancyFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.RoomPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.ServicePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.DiscountsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.CorrectionsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Revenue.GrossPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "RevenueFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Gst.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "DailyReportView.Report.Gst.TaxablePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "DailyReportView.Report.Gst.CgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "DailyReportView.Report.Gst.SgstPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "DailyReportView.Report.Gst.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstCategoryRow"
+   },
+   {
+    "path": "DailyReportView.Report.Receipts.ByTender.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "DailyReportView.Report.Receipts.ByTender.RefundsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "DailyReportView.Report.Receipts.ByTender.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "TenderRow"
+   },
+   {
+    "path": "DailyReportView.Report.Receipts.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Receipts.DepositsInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Receipts.DepositsOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Receipts.CompanyCreditPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReceiptFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Expenses.CashPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Expenses.ReversalsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Expenses.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpenseFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.Tills.CountedBy",
+    "type": "int?",
+    "nullable": true,
+    "declared": "DrawerDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.CashInPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.CashOutPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Drawer.DifferencePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DrawerFigures"
+   },
+   {
+    "path": "DailyReportView.Report.Days.NetRevenuePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Days.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Days.NetReceiptsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   },
+   {
+    "path": "DailyReportView.Report.Days.CashExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReportDayRow"
+   }
+  ]
+ },
+ "GET /reservations": {
+  "returnTypes": [
+   "ReservationList"
+  ],
+  "money": [
+   {
+    "path": "ReservationList.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "ReservationList"
+   },
+   {
+    "path": "ReservationList.Items.NightlyRatePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ReservationListItem"
+   }
+  ]
+ },
+ "GET /reservations/{id:long}": {
+  "returnTypes": [
+   "ReservationDetails"
+  ],
+  "money": [
+   {
+    "path": "ReservationDetails.NightlyRatePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ReservationDetails"
+   },
+   {
+    "path": "ReservationDetails.Nights.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReservationNight"
+   },
+   {
+    "path": "ReservationDetails.Nights.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "ReservationNight"
+   },
+   {
+    "path": "ReservationDetails.Nights.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReservationNight"
+   },
+   {
+    "path": "ReservationDetails.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReservationDetails"
+   },
+   {
+    "path": "ReservationDetails.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReservationDetails"
+   },
+   {
+    "path": "ReservationDetails.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ReservationDetails"
+   }
+  ]
+ },
+ "GET /room-blocks/history": {
+  "returnTypes": [
+   "RoomBlockHistoryItem"
+  ],
+  "money": []
+ },
+ "GET /rooms/board": {
+  "returnTypes": [
+   "RoomBoardPage"
+  ],
+  "money": [
+   {
+    "path": "RoomBoardPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "RoomBoardPage"
+   }
+  ]
+ },
+ "GET /rooms/status": {
+  "returnTypes": [
+   "RoomStatusResult"
+  ],
+  "money": []
+ },
+ "POST /setup/SetupProperty": {
+  "returnTypes": [
+   "SetupPropertyResult"
+  ],
+  "money": []
+ },
+ "GET /setup/status": {
+  "returnTypes": [
+   "SetupStatusResult"
+  ],
+  "money": []
+ },
+ "GET /shifts/{shiftId:long}": {
+  "returnTypes": [
+   "ShiftView"
+  ],
+  "money": [
+   {
+    "path": "ShiftView.Shift.OpeningFloatPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "ShiftView.Shift.ExpectedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "ShiftView.Shift.CountedPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "ShiftResult"
+   },
+   {
+    "path": "ShiftView.Expected.OpeningPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.PaymentsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.DepositsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.RefundsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.ReturnsPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.ExpensesPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.OtherPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.RestaurantPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.TransfersPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Expected.ExpectedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "ExpectedCashView"
+   },
+   {
+    "path": "ShiftView.Movements.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "CashMovementView"
+   }
+  ]
+ },
+ "GET /stock/alerts": {
+  "returnTypes": [
+   "StockAlertView"
+  ],
+  "money": []
+ },
+ "GET /stock/consumption": {
+  "returnTypes": [
+   "ConsumptionReport"
+  ],
+  "money": []
+ },
+ "GET /stock/counts": {
+  "returnTypes": [
+   "CountsPage"
+  ],
+  "money": [
+   {
+    "path": "CountsPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "CountsPage"
+   },
+   {
+    "path": "CountsPage.Rows.Lines.Counted",
+    "type": "int",
+    "nullable": false,
+    "declared": "CountLineView"
+   },
+   {
+    "path": "CountsPage.Rows.VarianceValuePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "CountView"
+   }
+  ]
+ },
+ "GET /stock/items": {
+  "returnTypes": [
+   "StockItemsPage"
+  ],
+  "money": [
+   {
+    "path": "StockItemsPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "StockItemsPage"
+   },
+   {
+    "path": "StockItemsPage.Rows.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "StockItemView"
+   },
+   {
+    "path": "StockItemsPage.Rows.UnitCostPaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "StockItemView"
+   },
+   {
+    "path": "StockItemsPage.Rows.ValuePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "StockItemView"
+   },
+   {
+    "path": "StockItemsPage.Rows.LaundryRatePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "StockItemView"
+   },
+   {
+    "path": "StockItemsPage.TotalValuePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "StockItemsPage"
+   }
+  ]
+ },
+ "GET /stock/laundry": {
+  "returnTypes": [
+   "LaundryBatchesPage"
+  ],
+  "money": [
+   {
+    "path": "LaundryBatchesPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "LaundryBatchesPage"
+   },
+   {
+    "path": "LaundryBatchesPage.Rows.ChargePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "LaundryBatchView"
+   }
+  ]
+ },
+ "GET /stock/losses": {
+  "returnTypes": [
+   "LossesPage"
+  ],
+  "money": [
+   {
+    "path": "LossesPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "LossesPage"
+   },
+   {
+    "path": "LossesPage.Rows.ValuePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "LossView"
+   },
+   {
+    "path": "LossesPage.TotalValuePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "LossesPage"
+   }
+  ]
+ },
+ "GET /stock/moves": {
+  "returnTypes": [
+   "MovesPage"
+  ],
+  "money": [
+   {
+    "path": "MovesPage.Total",
+    "type": "int",
+    "nullable": false,
+    "declared": "MovesPage"
+   }
+  ]
+ },
+ "GET /stock/settings": {
+  "returnTypes": [
+   "StockSettingsResult"
+  ],
+  "money": []
+ },
+ "GET /system/discovery": {
+  "returnTypes": [],
+  "money": []
+ },
+ "GET /system/health": {
+  "returnTypes": [
+   "SqlConnection",
+   "int"
+  ],
+  "money": []
+ },
+ "GET /tax/gst": {
+  "returnTypes": [
+   "byte[]",
+   "ConfigValue",
+   "DateOnly",
+   "InvoiceDocType",
+   "CashMovementKind",
+   "PayMonth",
+   "GstCategory",
+   "GstMasterView"
+  ],
+  "money": [
+   {
+    "path": "GstMasterView.Settings.Value",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstSettingView"
+   },
+   {
+    "path": "GstMasterView.History.Value",
+    "type": "long",
+    "nullable": false,
+    "declared": "GstHistoryRow"
+   }
+  ]
+ },
+ "GET /web-booking/requests": {
+  "returnTypes": [
+   "WebRequestList"
+  ],
+  "money": [
+   {
+    "path": "WebRequestList.Requests.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebRequestSummary"
+   }
+  ]
+ },
+ "GET /web-booking/requests/{id:long}": {
+  "returnTypes": [
+   "WebRequestDetail"
+  ],
+  "money": [
+   {
+    "path": "WebRequestDetail.NetPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebRequestDetail"
+   },
+   {
+    "path": "WebRequestDetail.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebRequestDetail"
+   },
+   {
+    "path": "WebRequestDetail.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "WebRequestDetail"
+   },
+   {
+    "path": "WebRequestDetail.QuotedNights.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicQuoteNight"
+   },
+   {
+    "path": "WebRequestDetail.QuotedNights.TaxBps",
+    "type": "int",
+    "nullable": false,
+    "declared": "PublicQuoteNight"
+   },
+   {
+    "path": "WebRequestDetail.QuotedNights.TaxPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "PublicQuoteNight"
+   },
+   {
+    "path": "WebRequestDetail.DepositLinks.AmountPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "DepositLinkView"
+   }
+  ]
+ },
+ "GET /yield/calendar": {
+  "returnTypes": [
+   "YieldCalendarResult"
+  ],
+  "money": [
+   {
+    "path": "YieldCalendarResult.Cells.BasePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldNightView"
+   },
+   {
+    "path": "YieldCalendarResult.Cells.ComputedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldNightView"
+   },
+   {
+    "path": "YieldCalendarResult.Cells.OverridePaise",
+    "type": "long?",
+    "nullable": true,
+    "declared": "YieldNightView"
+   },
+   {
+    "path": "YieldCalendarResult.Cells.SuggestedPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldNightView"
+   },
+   {
+    "path": "YieldCalendarResult.Cells.LivePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldNightView"
+   },
+   {
+    "path": "YieldCalendarResult.Summary.AverageBar7Paise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldSummaryView"
+   }
+  ]
+ },
+ "GET /yield/config": {
+  "returnTypes": [
+   "YieldConfigResult"
+  ],
+  "money": [
+   {
+    "path": "YieldConfigResult.RoundToPaise",
+    "type": "int",
+    "nullable": false,
+    "declared": "YieldConfigResult"
+   },
+   {
+    "path": "YieldConfigResult.Overrides.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldOverrideView"
+   }
+  ]
+ },
+ "GET /yield/proposals": {
+  "returnTypes": [
+   "YieldProposalView"
+  ],
+  "money": []
+ },
+ "GET /yield/publishes": {
+  "returnTypes": [
+   "YieldPublishView"
+  ],
+  "money": [
+   {
+    "path": "YieldPublishView.Rows.BeforePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldPublishRowView"
+   },
+   {
+    "path": "YieldPublishView.Rows.AfterPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldPublishRowView"
+   }
+  ]
+ },
+ "GET /yield/quote": {
+  "returnTypes": [
+   "YieldQuoteResult"
+  ],
+  "money": [
+   {
+    "path": "YieldQuoteResult.Rows.RatePaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldQuoteRow"
+   },
+   {
+    "path": "YieldQuoteResult.Rows.BarPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldQuoteRow"
+   },
+   {
+    "path": "YieldQuoteResult.TotalPaise",
+    "type": "long",
+    "nullable": false,
+    "declared": "YieldQuoteResult"
+   }
+  ]
+ }
+}

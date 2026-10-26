@@ -1,0 +1,4 @@
+PATH entry #0 : E:\Tools\nodejs  (v25.9.0)
+PATH entry #13 : E:\Program Files\nodejs\  (v24.13.1)
+PATH entry #27 : E:\Tools\nodejs  (v25.9.0)
+Machine entries=24, User entries=19

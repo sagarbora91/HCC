@@ -1,0 +1,82 @@
+# A03b static evidence (grep outputs), 2026-10-26T15:13:23+05:30
+## Events consumed by Accounting
+33:    public static readonly IReadOnlyList<string> Consumed =
+34-        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked];
+## Money events published (string literal names)
+      1 103:PublishAsync("StockGoodsReceived"
+      1 234:PublishAsync("CreditNoteIssued"
+      1 268:PublishAsync("WebDepositPaid"
+      1 283:PublishAsync("GroupMemberTransferred"
+      1 343:PublishAsync("GroupReceiptRecorded"
+      1 344:PublishAsync("FnfSettled"
+      1 417:PublishAsync("GroupAttritionPosted"
+      1 44:PublishAsync("AdvanceGiven"
+      1 79:PublishAsync("InvoiceIssued"
+## Group master folio refuses cash
+299:            throw HccException.Validation("The master folio takes UPI, card or bank transfer. Take cash on a member folio (the shared till), or ask for the Billing group-cash port.");
+## Producers of banking / transfer movements (expect none outside CashDrawer/Calculator)
+08 Production/src/Hcc.Application/Payments/CashierService.cs:139:        var inward = kind is CashMovementKind.PosSale or CashMovementKind.ExpenseReversal or CashMovementKind.TransferIn;
+08 Production/src/Hcc.Domain/Payments/CashDrawer.cs:47:        CashMovementKind.TransferIn => "transfer-in",
+08 Production/src/Hcc.Domain/Payments/CashDrawer.cs:48:        CashMovementKind.TransferOut => "transfer-out",
+08 Production/src/Hcc.Domain/Payments/CashDrawer.cs:49:        CashMovementKind.Banking => "banking",
+08 Production/src/Hcc.Domain/Payments/CashDrawer.cs:82:        var transfers = Sum(CashMovementKind.TransferIn, CashMovementKind.TransferOut, CashMovementKind.Banking);
+## Cash book endpoints (no export)
+61:        g.MapGet("/cashbook/{date}", async (HttpContext http, ClosingService s, DateOnly date, CancellationToken ct) =>
+63:        g.MapGet("/cashbook", async (HttpContext http, CashBookQueries q, DateOnly from, DateOnly? to, CancellationToken ct) =>
+65:        g.MapGet("/cashbook/{date}/book", async (HttpContext http, CashBookQueries q, DateOnly date, CancellationToken ct) =>
+## Client cash book figures derived on the client
+9://            cashbookX          ← GET /cashbook?from&to (locks and lock/reopen history; the figures stay derived on the client: cbDay).
+51:  const mv=known?(movementsOf?movementsOf(d):shiftMovements({...s,date:d})):[];
+121:export function cbCsv(s:State,from:string,to:string){
+## Outbox consumer: batch stops on first failing event
+69:        foreach (var evt in pending)
+70-        {
+71-            if (await DeliverAsync(consumer, evt, effect, ct).ConfigureAwait(false)) applied++;
+72-        }
+78-            }
+79-#pragma warning disable CA1031 // A failed poll is logged and retried on the next tick; the event stays undelivered.
+80:            catch (Exception ex)
+81-#pragma warning restore CA1031
+82-            {
+83-                LogFailed(logger, ex);
+## Own-shift scope = opened_by
+23:            WHERE s.shift_id = @s AND t.property_id = @p AND s.opened_by = @u;
+## Close mapper opens next shift as the closer
+38:      await c.api.command('OpenShift',{tillId:till,openingFloatPaise:null},{step:'shift'});
+## Close gates
+80:    public static readonly IReadOnlySet<string> PreflightBlocking = new HashSet<string>(StringComparer.Ordinal) { Arrivals, Departures, Holds, Approvals, Pos, PosVoidRequests };
+83:    public static readonly IReadOnlySet<string> CashBlocking = new HashSet<string>(StringComparer.Ordinal) { Shift };
+137:    {id:'expenses',title:'Expenses resolved',hint:'Approve or reject pending expenses.',page:'expenses',
+## Tally export: no pending/lock check
+    public async Task<TallyExportView> TallyAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await RequireAsync(caller, AccountingPermissions.Tally, ct).ConfigureAwait(false);
+        if (VoucherExport.TallyRangeError(from, to) is { } error) throw HccException.Validation(error);
+        var days = await AccountingDays.RangeAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false);
+        var vouchers = days.SelectMany(d => d.Vouchers).ToList();
+        var (d, c) = VoucherBuilder.Totals(vouchers);
+        var company = await store.PropertyNameAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        return new TallyExportView(from, to, days.Count, vouchers.Count, d, c, true, $"HCC-tally-SIMULATED-{Iso(from)}_{Iso(to)}.xml", VoucherExport.TallyXml(vouchers, company));
+    }
+## Production bundle Tally comment
+SIMULATED PREVIEW \xB7 Hotel Control Centre prototype \xB7 nothing was sent to Tally \xB7 saving this file does not mean it was imported 
+## Stale golden
+109:   "drawerPaise": 1075000,
+111:   "outletCashPaise": 55000,
+123:    "taxBps": 1000
+130:    "taxBps": 1000
+137:    "taxBps": 1000
+144:    "taxBps": 1000
+08 Production/tests/Hcc.Platform.Tests/Golden/GoldenFigureTests.cs:38:    public void BASE_expected_drawer_is_10750_rupees()
+08 Production/tests/Hcc.Platform.Tests/Golden/GoldenFigureTests.cs:53:    public void Room_105_journey_invoice_is_4400_rupees_with_deposit_kept_separate()
+08 Production/tests/Hcc.Billing.Tests/Golden/GoldenBillingTests.cs:45:    public async Task BASE_drawer_is_10750_and_collections_21500_through_commands()
+08 Production/tests/Hcc.Billing.Tests/Golden/GoldenBillingTests.cs:109:    public async Task Room_105_journey_invoice_is_4400_with_400_tax_and_the_500_deposit_kept_separate()
+## A01 per-project results used (A1 holds the test lock)
+8:Passed!  - Failed:     0, Passed:    36, Skipped:     0, Total:    36, Duration: 8 s - Hcc.Accounting.Tests.dll (net10.0)
+12:Passed!  - Failed:     0, Passed:    36, Skipped:     0, Total:    36, Duration: 11 s - Hcc.Billing.Tests.dll (net10.0)
+16:Passed!  - Failed:     0, Passed:    42, Skipped:     0, Total:    42, Duration: 1 m 4 s - Hcc.Closing.Tests.dll (net10.0)
+40:Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 34 s - Hcc.Groups.Tests.dll (net10.0)
+56:Passed!  - Failed:     0, Passed:    38, Skipped:     0, Total:    38, Duration: 27 s - Hcc.Import.Tests.dll (net10.0)
+140:Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 15 s - Hcc.Payroll.Tests.dll (net10.0)
+144:Passed!  - Failed:     0, Passed:    56, Skipped:     0, Total:    56, Duration: 25 s - Hcc.Platform.Tests.dll (net10.0)

@@ -1,0 +1,75 @@
+{
+ "routesInFile": 78,
+ "unmatched": [],
+ "cellsCompared": 702,
+ "agree": 696,
+ "disagree": 6,
+ "disagreements": [
+  {
+   "pattern": "GET /configuration/requests",
+   "route": "/configuration/requests",
+   "role": "MGR",
+   "real": "200",
+   "predicted": "403",
+   "gate": "PERM-ADM-003:VIEW",
+   "reveal": "",
+   "cell": "-",
+   "uses": "ADM-003:VIEW:RequireAsync/none"
+  },
+  {
+   "pattern": "GET /handover/templates",
+   "route": "/handover/templates",
+   "role": "REC",
+   "real": "403",
+   "predicted": "200",
+   "gate": "PERM-APR-001 PERM-HK-001 PERM-PAY-001",
+   "reveal": "PERM-RPT-002",
+   "cell": "AS",
+   "uses": "APR-001:RequireAsync/none HK-001:foreach/any PAY-001:foreach/any APR-001:foreach/any APR-001:HasAsync/any PAY-001:HasAsync/any RPT-002:HasAsync/any"
+  },
+  {
+   "pattern": "GET /handover/templates",
+   "route": "/handover/templates",
+   "role": "CSH",
+   "real": "403",
+   "predicted": "200",
+   "gate": "PERM-APR-001 PERM-HK-001 PERM-PAY-001",
+   "reveal": "PERM-RPT-002",
+   "cell": "AS",
+   "uses": "APR-001:RequireAsync/none HK-001:foreach/any PAY-001:foreach/any APR-001:foreach/any APR-001:HasAsync/any PAY-001:HasAsync/any RPT-002:HasAsync/any"
+  },
+  {
+   "pattern": "GET /handover/templates",
+   "route": "/handover/templates",
+   "role": "SUP",
+   "real": "403",
+   "predicted": "200",
+   "gate": "PERM-APR-001 PERM-HK-001 PERM-PAY-001",
+   "reveal": "PERM-RPT-002",
+   "cell": "AP",
+   "uses": "APR-001:RequireAsync/none HK-001:foreach/any PAY-001:foreach/any APR-001:foreach/any APR-001:HasAsync/any PAY-001:HasAsync/any RPT-002:HasAsync/any"
+  },
+  {
+   "pattern": "GET /handover/templates",
+   "route": "/handover/templates",
+   "role": "HKP",
+   "real": "403",
+   "predicted": "200",
+   "gate": "PERM-APR-001 PERM-HK-001 PERM-PAY-001",
+   "reveal": "PERM-RPT-002",
+   "cell": "AA",
+   "uses": "APR-001:RequireAsync/none HK-001:foreach/any PAY-001:foreach/any APR-001:foreach/any APR-001:HasAsync/any PAY-001:HasAsync/any RPT-002:HasAsync/any"
+  },
+  {
+   "pattern": "GET /handover/templates",
+   "route": "/handover/templates",
+   "role": "MNT",
+   "real": "403",
+   "predicted": "200",
+   "gate": "PERM-APR-001 PERM-HK-001 PERM-PAY-001",
+   "reveal": "PERM-RPT-002",
+   "cell": "AA",
+   "uses": "APR-001:RequireAsync/none HK-001:foreach/any PAY-001:foreach/any APR-001:foreach/any APR-001:HasAsync/any PAY-001:HasAsync/any RPT-002:HasAsync/any"
+  }
+ ]
+}

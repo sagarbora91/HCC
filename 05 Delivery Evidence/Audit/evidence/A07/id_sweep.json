@@ -1,0 +1,397 @@
+{
+  "generated": "2026-10-26T09:32:04.982Z",
+  "node": "v25.9.0",
+  "scanned": 1780,
+  "skipped": 1202,
+  "counts": {
+    "pan | pattern-only (4th letter not a PAN holder type)": 7,
+    "passport | fictional-pattern (Z…)": 16,
+    "licence | REAL-LOOKING (state code + 13 digits)": 5,
+    "pan | fictional-pattern (ZZZZZ…)": 9,
+    "licence | fictional-pattern (ZZ…)": 9,
+    "aadhaar12 | not-aadhaar (checksum fails: phone/timestamp/other)": 40,
+    "aadhaar12 | REAL-LOOKING (starts 2-9, valid checksum)": 10,
+    "passport | pattern-only (1 letter + 7 digits: also matches many codes)": 2,
+    "aadhaar12 | fictional-pattern (starts 0/1, valid checksum)": 8
+  },
+  "topFiles": {
+    "pan | pattern-only (4th letter not a PAN holder type)": [
+      [
+        "03 Prototype/src/domain/streams/guests.ts",
+        1
+      ],
+      [
+        "03 Prototype/tests/stream-guestid-full.mjs",
+        1
+      ],
+      [
+        "08 Production/src/Hcc.Domain/GuestIds/GuestIdRules.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.Access.Tests/Unit/CredentialRuleTests.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html",
+        1
+      ]
+    ],
+    "passport | fictional-pattern (Z…)": [
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs",
+        4
+      ],
+      [
+        "03 Prototype/tests/stream-guestid-full.mjs",
+        2
+      ],
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs",
+        2
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html",
+        2
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html",
+        2
+      ],
+      [
+        "03 Prototype/src/domain/streams/guests.ts",
+        1
+      ],
+      [
+        "03 Prototype/src/features/guests/GuestForm.tsx",
+        1
+      ],
+      [
+        "08 Production/src/Hcc.Domain/GuestIds/GuestIdRules.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.Documents.Tests/Sql/DocumentsSqlTests.cs",
+        1
+      ]
+    ],
+    "licence | REAL-LOOKING (state code + 13 digits)": [
+      [
+        "03 Prototype/src/domain/streams/guests.ts",
+        1
+      ],
+      [
+        "08 Production/src/Hcc.Domain/GuestIds/GuestIdRules.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html",
+        1
+      ]
+    ],
+    "pan | fictional-pattern (ZZZZZ…)": [
+      [
+        "03 Prototype/tests/stream-guestid-full.mjs",
+        3
+      ],
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs",
+        2
+      ],
+      [
+        "03 Prototype/src/features/guests/GuestForm.tsx",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html",
+        1
+      ]
+    ],
+    "licence | fictional-pattern (ZZ…)": [
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs",
+        4
+      ],
+      [
+        "03 Prototype/src/features/guests/GuestForm.tsx",
+        1
+      ],
+      [
+        "03 Prototype/tests/stream-guestid-full.mjs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdUnitTests.cs",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-demo/assets/public/index.html",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A10/unzip-server/assets/public/index.html",
+        1
+      ]
+    ],
+    "aadhaar12 | not-aadhaar (checksum fails: phone/timestamp/other)": [
+      [
+        "08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json",
+        10
+      ],
+      [
+        "03 Prototype/tests/stream-payroll-scc.mjs",
+        3
+      ],
+      [
+        "08 Production/tests/Hcc.GuestServices.Tests/Kernel/RulesGoldenTests.cs",
+        3
+      ],
+      [
+        "03 Prototype/tests/stream-payroll-fixes.mjs",
+        2
+      ],
+      [
+        "03 Prototype/tests/sync-credentials.mjs",
+        2
+      ],
+      [
+        "03 Prototype/tests/sync-payfiles.mjs",
+        2
+      ],
+      [
+        "08 Production/database/migrations/2202_groups_company.sql",
+        2
+      ],
+      [
+        "08 Production/tests/Hcc.GuestServices.Tests/Sql/LostFoundSqlTests.cs",
+        2
+      ],
+      [
+        "08 Production/tests/Hcc.Messaging.Tests/Kernel/MessagingRulesGoldenTests.cs",
+        2
+      ],
+      [
+        "08 Production/tests/Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs",
+        2
+      ],
+      [
+        "03 Prototype/tests/stream-b.mjs",
+        1
+      ],
+      [
+        "03 Prototype/tests/stream-messaging.mjs",
+        1
+      ],
+      [
+        "03 Prototype/tests/stream-services.mjs",
+        1
+      ],
+      [
+        "07 Integration Lab/evidence/sql-spike-results.json",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.Documents.Tests/Sql/DocumentsSqlTests.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.Documents.Tests/Unit/DocumentUnitTests.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.Messaging.Tests/Sql/MessagingSqlTests.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.Payroll.Tests/Sql/PayrollSqlTests.cs",
+        1
+      ],
+      [
+        "08 Production/tests/Hcc.Stays.Tests/Kernel/RulesGoldenTests.cs",
+        1
+      ],
+      [
+        "05 Delivery Evidence/Audit/evidence/A01/disk-before.txt",
+        1
+      ]
+    ],
+    "aadhaar12 | REAL-LOOKING (starts 2-9, valid checksum)": [
+      [
+        "08 Production/tests/Hcc.Payroll.Tests/Sql/PayrollSqlTests.cs",
+        5
+      ],
+      [
+        "03 Prototype/tests/stream-payroll-fixes.mjs",
+        4
+      ],
+      [
+        "05 Delivery Evidence/Assembly/W05B_Payroll_Code_Review_2026-10-25.md",
+        1
+      ]
+    ],
+    "passport | pattern-only (1 letter + 7 digits: also matches many codes)": [
+      [
+        "03 Prototype/tests/sync-frontdesk.mjs",
+        2
+      ]
+    ],
+    "aadhaar12 | fictional-pattern (starts 0/1, valid checksum)": [
+      [
+        "08 Production/tests/Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs",
+        3
+      ],
+      [
+        "03 Prototype/tests/sync-guestid.mjs",
+        2
+      ],
+      [
+        "08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json",
+        2
+      ],
+      [
+        "08 Production/tests/Hcc.Payroll.Tests/Harness/PayrollDb.cs",
+        1
+      ]
+    ]
+  },
+  "samples": {
+    "pan | pattern-only (4th letter not a PAN holder type)": [
+      [
+        "******234F",
+        "03 Prototype/src/domain/streams/guests.ts"
+      ]
+    ],
+    "passport | fictional-pattern (Z…)": [
+      [
+        "****4567",
+        "03 Prototype/src/domain/streams/guests.ts"
+      ],
+      [
+        "****4321",
+        "03 Prototype/tests/stream-guestid-full.mjs"
+      ],
+      [
+        "****4322",
+        "08 Production/tests/Hcc.GstIds.Tests/GuestIds/GuestIdSqlTests.cs"
+      ]
+    ],
+    "licence | REAL-LOOKING (state code + 13 digits)": [
+      [
+        "***********2345",
+        "03 Prototype/src/domain/streams/guests.ts"
+      ]
+    ],
+    "pan | fictional-pattern (ZZZZZ…)": [
+      [
+        "******234Z",
+        "03 Prototype/src/features/guests/GuestForm.tsx"
+      ]
+    ],
+    "licence | fictional-pattern (ZZ…)": [
+      [
+        "***********2345",
+        "03 Prototype/src/features/guests/GuestForm.tsx"
+      ]
+    ],
+    "aadhaar12 | not-aadhaar (checksum fails: phone/timestamp/other)": [
+      [
+        "********9012",
+        "03 Prototype/tests/stream-b.mjs"
+      ],
+      [
+        "********4219",
+        "03 Prototype/tests/stream-messaging.mjs"
+      ],
+      [
+        "********7777",
+        "03 Prototype/tests/stream-payroll-fixes.mjs"
+      ],
+      [
+        "********0029",
+        "03 Prototype/tests/stream-payroll-fixes.mjs"
+      ],
+      [
+        "********8000",
+        "03 Prototype/tests/sync-credentials.mjs"
+      ],
+      [
+        "********0000",
+        "03 Prototype/tests/sync-credentials.mjs"
+      ],
+      [
+        "********1533",
+        "07 Integration Lab/evidence/sql-spike-results.json"
+      ],
+      [
+        "********0111",
+        "08 Production/tests/Hcc.GuestServices.Tests/Kernel/RulesGoldenTests.cs"
+      ],
+      [
+        "********0014",
+        "08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json"
+      ],
+      [
+        "********0027",
+        "08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json"
+      ],
+      [
+        "********0053",
+        "08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json"
+      ],
+      [
+        "********0066",
+        "08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json"
+      ]
+    ],
+    "aadhaar12 | REAL-LOOKING (starts 2-9, valid checksum)": [
+      [
+        "********9999",
+        "03 Prototype/tests/stream-payroll-fixes.mjs"
+      ]
+    ],
+    "passport | pattern-only (1 letter + 7 digits: also matches many codes)": [
+      [
+        "****4777",
+        "03 Prototype/tests/sync-frontdesk.mjs"
+      ]
+    ],
+    "aadhaar12 | fictional-pattern (starts 0/1, valid checksum)": [
+      [
+        "********1234",
+        "03 Prototype/tests/sync-guestid.mjs"
+      ],
+      [
+        "********0001",
+        "08 Production/tests/Hcc.Payroll.Tests/Domain/PayrollRulesTests.cs"
+      ],
+      [
+        "********0040",
+        "08 Production/tests/Hcc.Payroll.Tests/Golden/payroll-base.golden.json"
+      ]
+    ]
+  }
+}

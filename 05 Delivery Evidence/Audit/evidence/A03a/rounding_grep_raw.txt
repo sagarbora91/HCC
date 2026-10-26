@@ -1,0 +1,81 @@
+Hcc.Domain/Closing/CashBookCalculator.cs:28:    public const string Note = "Derived from the shared cash drawer (opening float carried from the last count, signed movements, counts). Payroll is paid by bank transfer, not drawer cash.";
+Hcc.Domain/Compliance/ComplianceRules.cs:88:        var yy = y + (int)Math.Floor(m / 12.0);
+Hcc.Domain/Configuration/SettingRules.cs:75:    public static string Percent(long bps) => (bps / 100m).ToString("#,##0.##", CultureInfo.InvariantCulture) + "%";
+Hcc.Domain/Configuration/SettingRules.cs:140:                        ? $"Use a percentage between {Num(lo / 100m)} and {Num(hi / 100m)}%."
+Hcc.Domain/Configuration/SettingRules.cs:152:    private static string Num(decimal d) => d.ToString("0.##", CultureInfo.InvariantCulture);
+Hcc.Domain/Customers/CustomerRules.cs:147:            var avg = completed.Count == 0 ? 0 : (long)Math.Round((decimal)completed.Sum(b => b.RatePaise) / completed.Count, MidpointRounding.AwayFromZero);
+Hcc.Domain/Groups/GroupRules.cs:159:        var pct = baseCount == 0 ? 0 : (int)Math.Round(c.Picked * 100m / baseCount, MidpointRounding.AwayFromZero);
+Hcc.Domain/Groups/GroupRules.cs:168:        return (a, p, lines.Sum(l => l.Released), lines.Sum(l => l.Remaining), a == 0 ? 0 : (int)Math.Round(p * 100m / a, MidpointRounding.AwayFromZero));
+Hcc.Domain/GuestServices/GuestServicesRules.cs:83:        return urgent ? Math.Max(5, (int)Math.Round(m / 2.0, MidpointRounding.AwayFromZero)) : m;
+Hcc.Domain/GuestServices/GuestServicesRules.cs:94:    public static int MinutesBetween(DateTime from, DateTime to) => (int)Math.Round((to - from).TotalMinutes, MidpointRounding.AwayFromZero);
+Hcc.Domain/GuestServices/GuestServicesRules.cs:157:            return new ResponseFacts(k, rs.Count, done.Count, mins.Count == 0 ? 0 : (int)Math.Round(mins.Average(), MidpointRounding.AwayFromZero), within,
+Hcc.Domain/GuestServices/GuestServicesRules.cs:158:                done.Count == 0 ? 0 : (int)Math.Round(within * 100.0 / done.Count, MidpointRounding.AwayFromZero), rs.Count(r => IsOpen(r.Status)), rs.Count(r => IsOverdue(r, nowUtc)));
+Hcc.Domain/GuestServices/GuestServicesRules.cs:171:        return (done, within, done == 0 ? 0 : (int)Math.Round(within * 100.0 / done, MidpointRounding.AwayFromZero),
+Hcc.Domain/GuestServices/GuestServicesRules.cs:172:            mins.Count == 0 ? 0 : (int)Math.Round(mins.Average(), MidpointRounding.AwayFromZero), rows.Sum(r => r.Open), rows.Sum(r => r.Overdue));
+Hcc.Domain/Handover/HandoverRules.cs:151:    public static int RoundPct(int part, int whole) => (int)Math.Round(part * 100m / whole, MidpointRounding.AwayFromZero);
+Hcc.Domain/Import/ImportMasters.cs:86:            new("openingCash", true, "Cash physically in the drawer when HCC starts, in rupees. The first shift opens with this float.", "5000.00"),
+Hcc.Domain/Import/ImportPlanner.cs:27:/// <summary>A till; <see cref="ImportedOpening"/> = the float of its only shift when that shift is an untouched opening count (opening = counted, no movements).</summary>
+Hcc.Domain/Import/ImportPlanner.cs:416:            var show = $"{ImportValues.Wire(data.From)} to {ImportValues.Wire(data.To)} · {(adj > 0 ? "+" : "")}{(adj / 100m).ToString("0.##", CultureInfo.InvariantCulture)}% · {(typeCodes.Count == 0 ? "all room types" : string.Join(", ", typeCodes))}";
+Hcc.Domain/Import/ImportValues.cs:42:            || !decimal.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var rupees))
+Hcc.Domain/Import/ImportValues.cs:44:            error = $"'{text?.Trim()}' is not an amount in rupees (use digits, an optional decimal point and up to 2 decimals).";
+Hcc.Domain/Import/ImportValues.cs:48:        var exact = rupees * 100m;
+Hcc.Domain/Import/ImportValues.cs:55:        var p = decimal.Round(exact, 0, MidpointRounding.AwayFromZero);
+Hcc.Domain/Import/ImportValues.cs:74:        if (!decimal.TryParse(t, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var pct)) return false;
+Hcc.Domain/Import/ImportValues.cs:76:        bps = (int)decimal.Round(pct * 100m, 0, MidpointRounding.AwayFromZero);
+Hcc.Domain/Maintenance/MaintenanceRules.cs:90:    public static int Minutes(DateTime from, DateTime to) => (int)Math.Round((to - from).TotalMinutes, MidpointRounding.AwayFromZero);
+Hcc.Domain/Maintenance/MaintenanceRules.cs:174:    private static readonly (string Label, double Max)[] AgeBucketDefs = [("Under 1 day", 1440), ("1–3 days", 4320), ("3–7 days", 10080), ("Over 7 days", double.PositiveInfinity)];
+Hcc.Domain/Maintenance/MaintenanceRules.cs:191:        return (int)Math.Round(done.Sum(w => (double)Minutes(w.CreatedUtc, w.DoneUtc!.Value)) / done.Count, MidpointRounding.AwayFromZero);
+Hcc.Domain/Maintenance/MaintenanceRules.cs:199:        return new MntPmCompliance(due.Count, onTime, due.Count == 0 ? null : (int)Math.Round(onTime * 100.0 / due.Count, MidpointRounding.AwayFromZero));
+Hcc.Domain/Messaging/MessagingRules.cs:217:        return text.Length <= 160 ? 1 : (int)Math.Ceiling(text.Length / 153.0);
+Hcc.Domain/Messaging/MessagingRules.cs:294:    private static int RealMinutes(DateTime queuedUtc, DateTime nowUtc) => Math.Max(0, (int)Math.Floor((nowUtc - queuedUtc).TotalMinutes));
+Hcc.Domain/Money/CashFigures.cs:42:    /// Opening float + cash payments/deposits − other cash receipt kinds (refunds, deposit returns) + outlet (restaurant)
+Hcc.Domain/Money/Paise.cs:61:        var abs = Value < 0 ? -(decimal)Value : Value;
+Hcc.Domain/Money/Paise.cs:62:        var rupees = decimal.Truncate(abs / 100m);
+Hcc.Domain/Money/Paise.cs:63:        var paise = (long)(abs % 100m);
+Hcc.Domain/Ota/OtaRules.cs:25:    public static string Pct(int bps) => (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+Hcc.Domain/Payments/CashDrawer.cs:32:/// expected = opening float + Σ movements. Refunds, returns and expenses are reported as positive parts.
+Hcc.Domain/Payroll/LeaveAndFnf.cs:4:public sealed record LeaveBalance(LeaveType Type, int Entitled, decimal Used, decimal Left, decimal Over);
+Hcc.Domain/Payroll/LeaveAndFnf.cs:15:    public static decimal Used(IEnumerable<LeaveSpan> leaves, DateOnly date, LeaveType type, long exceptLeaveId = 0)
+Hcc.Domain/Payroll/LeaveAndFnf.cs:66:    public static long ElEncashment(StaffProfile st, decimal elLeft, DateOnly lastDay)
+Hcc.Domain/Payroll/LeaveAndFnf.cs:70:        return PayMath.MulDiv(st.MonthlyPaise, (long)Math.Round(Math.Max(0, elLeft) * 2, MidpointRounding.AwayFromZero), 1, 2L * PayMonth.Of(lastDay).Days);
+Hcc.Domain/Payroll/PayrollFiles.cs:27:    public static string Rupees(long paise) => (paise / 100m).ToString("0.00", CultureInfo.InvariantCulture);
+Hcc.Domain/Payroll/PayrollFiles.cs:40:        decimal d => Cell(PayrollRules.Num(d), false),
+Hcc.Domain/Payroll/PayrollModel.cs:123:public sealed record LeaveSpan(long LeaveId, long StaffId, LeaveType Type, DateOnly From, DateOnly To, LeaveHalf? Half, decimal Days, LeaveStatus Status)
+Hcc.Domain/Payroll/PayrollModel.cs:150:public sealed record AttendanceCounts(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
+Hcc.Domain/Payroll/PayrollModel.cs:151:    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin);
+Hcc.Domain/Payroll/PayrollModel.cs:196:    AttendanceCounts Counts, int LatePenaltyHalf, decimal PayableDays,
+Hcc.Domain/Payroll/PayrollRules.cs:87:    public static decimal LeaveDays(StaffProfile st, StaffDays days, DateOnly from, DateOnly to, LeaveHalf? half)
+Hcc.Domain/Payroll/PayrollRules.cs:89:        if (half is not null) return ShiftFor(st, days, from) == ShiftCode.OFF ? 0m : 0.5m;
+Hcc.Domain/Payroll/PayrollRules.cs:90:        var n = 0m;
+Hcc.Domain/Payroll/PayrollRules.cs:100:        decimal p = 0, l = 0, h = 0, hl = 0, a = 0, offw = 0, off = 0, paid = 0, lop = 0, unmarked = 0, na = 0;
+Hcc.Domain/Payroll/PayrollRules.cs:102:        void AddLeave(LeaveSpan x, decimal n)
+Hcc.Domain/Payroll/PayrollRules.cs:125:                    AddLeave(halves[0], 0.5m);
+Hcc.Domain/Payroll/PayrollRules.cs:127:                    else a += 0.5m;
+Hcc.Domain/Payroll/PayrollRules.cs:142:            else if (full is not null) AddLeave(full, 1m);
+Hcc.Domain/Payroll/PayrollRules.cs:145:                foreach (var x in halves) AddLeave(x, 0.5m);
+Hcc.Domain/Payroll/PayrollRules.cs:146:                unmarked += 1m - 0.5m * halves.Count;
+Hcc.Domain/Payroll/PayrollRules.cs:165:    private static long HalfUnits(decimal twice) => (long)Math.Round(twice, MidpointRounding.AwayFromZero);
+Hcc.Domain/Payroll/PayrollRules.cs:177:        var late = r.LateBlock > 0 ? (int)Math.Floor(c.L / r.LateBlock) : 0;
+Hcc.Domain/Payroll/PayrollRules.cs:216:        return new PayLine(st.StaffId, st.Name, st.Dept, st.Designation, st.PayType, structure, gender, st.BasePaise, c, late, payHalf / 2m,
+Hcc.Domain/Payroll/PayrollRules.cs:249:    /// <summary>A decimal count as the prototype prints it (0.5, 3).</summary>
+Hcc.Domain/Payroll/PayrollRules.cs:250:    public static string Num(decimal v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+Hcc.Domain/Reporting/DailyPackCalculator.cs:193:    /// <summary>Per till and business date: first shift's float, Σ cash in/out over the shifts, last shift's expected/counted (DEC-035 multi-shift).</summary>
+Hcc.Domain/Tax/GstMaster.cs:258:    public static string Percent(int bps) => (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture) + " %";
+Hcc.Domain/Yield/YieldModel.cs:57:        var v = Math.Abs(bps) / 100m;
+Hcc.Application/Closing/ClosingService.cs:297:    /// <summary>NEXT_DAY (DEC-042): the only place the business date moves. The next shift's float is carried by P4 (DEC-035).</summary>
+Hcc.Application/Groups/CompanyAccounts.cs:209:    private static string Rupees(long paise) => "Rs " + (paise / 100m).ToString("N2", CultureInfo.InvariantCulture);
+Hcc.Application/GuestServices/GuestServicesCommands.cs:495:            var money = (claim.Value.AmountPaise / 100m).ToString("0.00", CultureInfo.InvariantCulture);
+Hcc.Application/Handover/HandoverCommands.cs:209:            if (cin.AmountPaise is < 0 or > HandoverRules.MaxCashPaise) throw HccException.Validation("Enter the cash float handed over (₹0 – ₹10,00,000).");
+Hcc.Application/Handover/HandoverCommands.cs:239:            await tx.AuditAsync("HOV_NOTE", Target("hov-note", id), $"{HandoverRules.NoteRef(req.Desk, date, shift)} · {req.Desk} {shift} → {write.ToShift}{(cash is null ? string.Empty : " · float recorded")} · {carry.Count} carry-forward{(old is null ? string.Empty : " · replaced")}", c).ConfigureAwait(false);
+Hcc.Application/Invoices/SimpleInvoiceRenderer.cs:18:    public static string Rupees(Paise p) => (p.Value < 0 ? "-" : "") + "₹" + (Math.Abs(p.Value) / 100m).ToString("#,##0.00", India);
+Hcc.Application/Messaging/TriggerEngine.cs:17:/// One message per (rule, event) through <c>msg.message.trigger_key</c>, so redelivery and re-runs never double-send. A message that
+Hcc.Application/Payments/CashierService.cs:18:/// production shifts: one active shift per till, several per business date, float carried from the previous counted close.
+Hcc.Application/Payments/CashierService.cs:59:                // DEC-035: the opening float is the cash counted at the previous close.
+Hcc.Application/Payments/CashierService.cs:62:                    throw HccException.Validation($"The opening float is carried from the last count ({opening}).");
+Hcc.Application/Payments/CashierService.cs:66:                if (req.OpeningFloatPaise is not { } given) throw HccException.Validation("Enter the opening float for this till's first shift.");
+Hcc.Application/Payments/CashierService.cs:68:                if (opening < Paise.Zero) throw HccException.Validation("The opening float cannot be negative.");
+Hcc.Application/Payments/CashierService.cs:72:            await tx.AuditAsync("SHIFT_OPENED", Target("shift", s.ShiftId), $"till {till.Code} · {date:yyyy-MM-dd} · float {opening}", ct2).ConfigureAwait(false);
+Hcc.Application/Payroll/PayrollQueries.cs:95:    private static string Pct(int bps) => (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+Hcc.Application/Payroll/PayrollQueries.cs:189:            $"{run.Month.Label} bank transfer file {issueNo} downloaded · {lines.Count} staff · net Rs. {(lines.Sum(l => l.Net) / 100m).ToString("N2", CultureInfo.InvariantCulture)} (simulated — no money moves)", ct).ConfigureAwait(false);
+Hcc.Application/Payroll/PayrollService.Pay.cs:11:    private static string Rs(long paise) => "₹" + (paise / 100m).ToString("N2", CultureInfo.GetCultureInfo("en-IN"));
+Hcc.Application/Stock/StockQueries.cs:129:            return new ConsumptionRow(i.Code, i.Name, i.Kind, u, rn > 0 ? Math.Round((decimal)u / rn, 4) : 0m, std / 100m, variance, StockRules.FlagVariance(variance));

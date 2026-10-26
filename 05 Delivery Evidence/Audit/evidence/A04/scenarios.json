@@ -1,0 +1,484 @@
+{
+ "fnf": {
+  "staffCode": "HR-S05",
+  "exit": "2026-10-24",
+  "octAttendance": [
+   {
+    "date": "2026-10-01",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-03",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-04",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-05",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-06",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-07",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-08",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-10",
+    "status": "P",
+    "otMin": 60
+   },
+   {
+    "date": "2026-10-11",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-12",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-13",
+    "status": "A",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-14",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-15",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-17",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-18",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-19",
+    "status": "P",
+    "otMin": 120
+   },
+   {
+    "date": "2026-10-20",
+    "status": "P",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-21",
+    "status": "P",
+    "otMin": 60
+   },
+   {
+    "date": "2026-10-22",
+    "status": "L",
+    "otMin": 0
+   },
+   {
+    "date": "2026-10-24",
+    "status": "P",
+    "otMin": 0
+   }
+  ],
+  "advance": {
+   "amount": 300000,
+   "installment": 100000,
+   "recovered": 100000,
+   "date": "2026-08-10"
+  },
+  "adjustments": [
+   {
+    "label": "EL encashment",
+    "kind": "add",
+    "amount": 653226
+   },
+   {
+    "label": "Uniform",
+    "kind": "ded",
+    "amount": 50000
+   }
+  ]
+ },
+ "edges": [
+  {
+   "label": "E1 Feb PT top slab, man ₹18,000",
+   "payType": "monthly",
+   "monthly": 1800000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2027-02",
+   "counts": {
+    "days": 28,
+    "present": 28,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E2 Feb PT middle slab, man ₹9,000 (no Feb bump)",
+   "payType": "monthly",
+   "monthly": 900000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2027-02",
+   "counts": {
+    "days": 28,
+    "present": 28,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E3 PT woman ₹25,000 (nil)",
+   "payType": "monthly",
+   "monthly": 2500000,
+   "daily": 0,
+   "gender": "F",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 30,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E4 PT woman ₹25,000.01 (₹200)",
+   "payType": "monthly",
+   "monthly": 2500001,
+   "daily": 0,
+   "gender": "F",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 30,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E5 ESIC ceiling ₹21,000 exactly (covered)",
+   "payType": "monthly",
+   "monthly": 2100000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 30,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E6 ESIC ₹22,000 with 2 LOP days (period rule: contract wage > ceiling → not covered)",
+   "payType": "monthly",
+   "monthly": 2200000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 28,
+    "late": 0,
+    "half": 0,
+    "absent": 2,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E7 ESIC raised to ₹23,000 in Dec after October locked covered (covered to March)",
+   "payType": "monthly",
+   "monthly": 2300000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-12",
+   "counts": {
+    "days": 31,
+    "present": 31,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": true
+  },
+  {
+   "label": "E8 Overtime 600 min on ₹12,000, 30-day month",
+   "payType": "monthly",
+   "monthly": 1200000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 30,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 600
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E9 Three late marks = ½ day",
+   "payType": "monthly",
+   "monthly": 3000000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 27,
+    "late": 3,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E10 Advance instalment ₹5,000 larger than net (₹10,000, 25 days absent)",
+   "payType": "monthly",
+   "monthly": 1000000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 5,
+    "late": 0,
+    "half": 0,
+    "absent": 25,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": {
+    "installment": 500000,
+    "balance": 500000
+   },
+   "esicCovered": null
+  },
+  {
+   "label": "E11 Advance instalment 0 = full balance ₹4,000",
+   "payType": "monthly",
+   "monthly": 1500000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 30,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": {
+    "installment": 0,
+    "balance": 400000
+   },
+   "esicCovered": null
+  },
+  {
+   "label": "E12 Daily ₹850 (×26 = ₹22,100 > ceiling → not covered although month earns ₹17,000)",
+   "payType": "daily",
+   "monthly": 0,
+   "daily": 85000,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 20,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E13 PF cap: basic ₹20,000 (₹40,000 pay) → PF on ₹15,000",
+   "payType": "monthly",
+   "monthly": 4000000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2025-04-01",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 30,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 0,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  },
+  {
+   "label": "E14 Part-month joiner from 21 Sep, man ₹9,000 (earned ₹3,000 → PT nil)",
+   "payType": "monthly",
+   "monthly": 900000,
+   "daily": 0,
+   "gender": "M",
+   "joined": "2026-09-21",
+   "ym": "2026-09",
+   "counts": {
+    "days": 30,
+    "present": 10,
+    "late": 0,
+    "half": 0,
+    "absent": 0,
+    "workedOff": 0,
+    "weeklyOff": 0,
+    "paidLeave": 0,
+    "lopLeave": 0,
+    "unmarked": 0,
+    "notInService": 20,
+    "otMin": 0
+   },
+   "advance": null,
+   "esicCovered": null
+  }
+ ]
+}

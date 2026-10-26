@@ -1,0 +1,70 @@
+A08 golden regeneration check 2026-10-26T09:41:03.275Z node v25.9.0
+
+## tests\Hcc.Accounting.Tests\Golden\accounting-golden.json: identical
+
+## tests\Hcc.Customers.Tests\Golden\customers-golden.json: 26+ differing paths (first 25)
+$.guests: array length committed=10 regenerated=1156
+$.guests.10: committed=undefined | regenerated={"id":"G-H0001","name":"Sneha Ghate","phone":"+91 93295 27994","email":"sneha.ghate59@example.test","preferences":"High floor"}
+$.guests.11: committed=undefined | regenerated={"id":"G-H0002","name":"Sneha Wagh","phone":"+91 96687 25168","email":"sneha.wagh5@example.test","preferences":null}
+$.guests.12: committed=undefined | regenerated={"id":"G-H0003","name":"Pooja Yadav","phone":"+91 94478 22328","email":"pooja.yadav31@example.test","preferences":"Arriving late evening"}
+$.guests.13: committed=undefined | regenerated={"id":"G-H0004","name":"Rohan Zende","phone":"+91 92788 93162","email":"rohan.zende45@example.test","preferences":"Early breakfast"}
+$.guests.14: committed=undefined | regenerated={"id":"G-H0005","name":"Suresh Rao","phone":"+91 97257 55601","email":"suresh.rao73@example.test","preferences":"Late checkout requests"}
+$.guests.15: committed=undefined | regenerated={"id":"G-H0006","name":"Suresh Thakur","phone":"+91 91390 18780","email":"suresh.thakur71@example.test","preferences":null}
+$.guests.16: committed=undefined | regenerated={"id":"G-H0007","name":"Prakash Yadav","phone":"+91 99636 97578","email":"prakash.yadav1@example.test","preferences":"Arriving late evening"
+$.guests.17: committed=undefined | regenerated={"id":"G-H0008","name":"Suresh Mehta","phone":"+91 94934 24021","email":"suresh.mehta38@example.test","preferences":null}
+$.guests.18: committed=undefined | regenerated={"id":"G-H0009","name":"Ananya Shah","phone":"+91 91521 10561","email":"ananya.shah96@example.test","preferences":"Late checkout requests"}
+$.guests.19: committed=undefined | regenerated={"id":"G-H0010","name":"Sana Kamble","phone":"+91 98446 26102","email":"sana.kamble83@example.test","preferences":"Quiet room"}
+$.guests.20: committed=undefined | regenerated={"id":"G-H0011","name":"Alka Jadhav","phone":"+91 92932 61889","email":"alka.jadhav15@example.test","preferences":null}
+$.guests.21: committed=undefined | regenerated={"id":"G-H0012","name":"Sana Thakur","phone":"+91 92964 51209","email":"sana.thakur47@example.test","preferences":"Extra pillows"}
+$.guests.22: committed=undefined | regenerated={"id":"G-H0013","name":"Prakash Zende","phone":"+91 98516 90003","email":"prakash.zende69@example.test","preferences":"Quiet room"}
+$.guests.23: committed=undefined | regenerated={"id":"G-H0014","name":"Yash Thakur","phone":"+91 97505 74135","email":"yash.thakur23@example.test","preferences":"Ground floor preferred"}
+$.guests.24: committed=undefined | regenerated={"id":"G-H0015","name":"Aditi Chavan","phone":"+91 94818 21734","email":"aditi.chavan42@example.test","preferences":null}
+$.guests.25: committed=undefined | regenerated={"id":"G-H0016","name":"Harsh Thakur","phone":"+91 95985 89794","email":"harsh.thakur10@example.test","preferences":"Twin beds"}
+$.guests.26: committed=undefined | regenerated={"id":"G-H0017","name":"Anil Wagh","phone":"+91 91650 40998","email":"anil.wagh45@example.test","preferences":null}
+$.guests.27: committed=undefined | regenerated={"id":"G-H0018","name":"Tanvi Deshmukh","phone":"+91 98081 49498","email":"tanvi.deshmukh40@example.test","preferences":"Extra pillows"}
+$.guests.28: committed=undefined | regenerated={"id":"G-H0019","name":"Zoya Rao","phone":"+91 97994 47090","email":"zoya.rao13@example.test","preferences":"High floor"}
+$.guests.29: committed=undefined | regenerated={"id":"G-H0020","name":"Omkar Thakur","phone":"+91 96391 29674","email":"omkar.thakur11@example.test","preferences":"Ground floor preferred"
+$.guests.30: committed=undefined | regenerated={"id":"G-H0021","name":"Yash Yadav","phone":"+91 96791 33510","email":"yash.yadav24@example.test","preferences":"Quiet room"}
+$.guests.31: committed=undefined | regenerated={"id":"G-H0022","name":"Divya Chavan","phone":"+91 98976 84784","email":"divya.chavan57@example.test","preferences":null}
+$.guests.32: committed=undefined | regenerated={"id":"G-H0023","name":"Anil Ghate","phone":"+91 92651 97650","email":"anil.ghate70@example.test","preferences":null}
+$.guests.33: committed=undefined | regenerated={"id":"G-H0024","name":"Omkar Joshi","phone":"+91 97811 76942","email":"omkar.joshi61@example.test","preferences":"Vegetarian meals"}
+
+## tests\Hcc.Messaging.Tests\Golden\messaging-golden.json: 26+ differing paths (first 25)
+$.rendered.0.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.0.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.1.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.1.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.2.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.2.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.3.body: committed="HCC Demo Residency: payment of ₹2,200 received for booking HCC-1041. Balance due ₹200. Thank you." | regenerated="HCC Demo Residency: payment of ₹2,100 received for booking HCC-1041. Balance due ₹100. Thank you."
+$.rendered.3.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.3.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.4.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.4.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.5.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.5.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.6.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.6.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.7.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.7.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.8.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.8.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.9.body: committed="HCC Demo Residency: payment of ₹2,200 received for booking HCC-1042. Balance due ₹200. Thank you." | regenerated="HCC Demo Residency: payment of ₹2,100 received for booking HCC-1042. Balance due ₹100. Thank you."
+$.rendered.9.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.9.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.10.amountText: committed="₹2,200" | regenerated="₹2,100"
+$.rendered.10.balanceText: committed="₹200" | regenerated="₹100"
+$.rendered.11.amountText: committed="₹2,200" | regenerated="₹2,100"
+
+## tests\Hcc.Payroll.Tests\Golden\payroll-base.golden.json: identical
+
+## tests\Hcc.Stays.Tests\Golden\stays-golden.json: 5 differing paths (first 25)
+$.journey.folio.lines.0.taxBps: committed=1000 | regenerated=500
+$.journey.folio.lines.1.taxBps: committed=1000 | regenerated=500
+$.journey.folio.receipts.0.amountPaise: committed=440000 | regenerated=420000
+$.journey.folio.balanceDuePaise: committed=440000 | regenerated=420000
+$.cases.unpaidDeparture.balancePaise: committed=20000 | regenerated=10000
+
+## tests\Hcc.Platform.Tests\Golden\base-fixture.golden.json: NOT regenerated — the exporter fails on the current prototype
+
+## tests\Hcc.Inventory.Tests\Golden\inventory-base.golden.json: NOT regenerated — the exporter fails on the current prototype

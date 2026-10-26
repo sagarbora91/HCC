@@ -1,0 +1,42 @@
+dotnet 10.0.401
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+
+The following sources were used:
+   https://api.nuget.org/v3/index.json
+
+The given project `Hcc.Api` has no vulnerable packages given the current sources.
+The given project `Hcc.Application` has no vulnerable packages given the current sources.
+The given project `Hcc.Contracts` has no vulnerable packages given the current sources.
+The given project `Hcc.Domain` has no vulnerable packages given the current sources.
+The given project `Hcc.Infrastructure.SqlServer` has no vulnerable packages given the current sources.
+The given project `Hcc.Operations` has no vulnerable packages given the current sources.
+The given project `Hcc.Access.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Accounting.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Billing.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Closing.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Compliance.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Configuration.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Customers.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Documents.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Expenses.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Groups.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.GstIds.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.GuestServices.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Handover.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Import.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Integration.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Inventory.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Invoices.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Maintenance.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Messaging.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Operations.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Ota.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Payroll.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Platform.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Pos.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Stays.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Stock.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.WebBooking.Tests` has no vulnerable packages given the current sources.
+The given project `Hcc.Yield.Tests` has no vulnerable packages given the current sources.
+exit=0

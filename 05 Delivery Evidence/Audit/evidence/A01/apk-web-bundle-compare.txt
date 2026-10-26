@@ -1,0 +1,4 @@
+HCC-0.1.0-proto-debug.apk : assets/public/index.html size=2367400 sha=B3CC915FFDAE01D6234463196244D2F92644A7837402AD03D0B5B86D2567FE24 ; dist sha=B3CC915FFDAE01D6234463196244D2F92644A7837402AD03D0B5B86D2567FE24
+HCC-0.1.0-proto-debug.apk entries: assets/public/cordova.js, assets/public/cordova_plugins.js, assets/public/index.html
+HCC-0.1.0-server-debug-TESTCA.apk : assets/public/index.html size=2559813 sha=F0D8B92800572FF8917376A2170FC5973CE69F2175B93B78B406D5DF87531463 ; dist sha=F0D8B92800572FF8917376A2170FC5973CE69F2175B93B78B406D5DF87531463
+HCC-0.1.0-server-debug-TESTCA.apk entries: assets/public/cordova.js, assets/public/cordova_plugins.js, assets/public/index.html, res/raw/hcc_hotel_ca.pem, res/xml/network_security_config.xml
