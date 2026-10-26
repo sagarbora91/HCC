@@ -98,6 +98,37 @@ public sealed class WebAppHostingTests : IDisposable
         Assert.Matches("script-src 'self' 'sha256-[^;]*; style-src", two);
     }
 
+    /// <summary>
+    /// A10-05: the production build (03 Prototype/tools/csp.mjs) puts its own CSP meta into index.html for the APK, hashing each inline block
+    /// over its UTF-8 bytes. A browser enforces both that meta and this header, so both must name the same hash. The known answers below are
+    /// the values the browser reported and the ones pinned in 03 Prototype/tests/stream-csp.mjs.
+    /// </summary>
+    [Fact]
+    public async Task A10_05_page_with_its_own_csp_meta_is_served_unchanged_and_the_header_names_the_same_utf8_script_hash()
+    {
+        const string hash = "'sha256-ocHLj6bOal4ZQL+5Og9MaBAMJpfXFKuP6jIxXg43t6I='"; // SHA-256 of the UTF-8 bytes of: window.r='₹ ·';
+        var page = "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src "
+            + hash + "; style-src 'sha256-IAdwN3biDCQ3brrgp1m8kBEsPQYyqfREKOEfeoREopc=' data:; connect-src 'self' https:; object-src 'none'; base-uri 'none'\"><style>body{margin:0}</style></head>"
+            + "<body><div id=\"root\"></div><script>window.r='₹ ·';</script></body></html>";
+        Assert.Contains("script-src 'self' 'sha256-wPLFDDlm0UuafW5zggSwu3dtgfgDZ0XpvOXam9dYF88=';", WebAppHosting.ContentSecurityPolicy(Page), StringComparison.Ordinal);
+
+        var ct = TestContext.Current.CancellationToken;
+        await File.WriteAllTextAsync(Path.Combine(_root, "index.html"), page, new System.Text.UTF8Encoding(false), ct);
+        var (app, http) = await StartAsync(_root, ct);
+        using (http)
+        {
+            var res = await http.GetAsync("/", ct);
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            Assert.Equal(page, await res.Content.ReadAsStringAsync(ct));
+            var csp = res.Headers.GetValues("Content-Security-Policy").Single();
+            Assert.Contains("script-src 'self' " + hash + ";", csp, StringComparison.Ordinal);
+            Assert.Contains("connect-src 'self';", csp, StringComparison.Ordinal);   // the header keeps the browser app on its own origin
+            Assert.Contains("frame-ancestors 'none'", csp, StringComparison.Ordinal); // header only: a meta policy cannot carry it
+        }
+
+        await app.DisposeAsync();
+    }
+
     [Fact]
     public void Default_web_root_is_the_web_folder_next_to_the_program()
         => Assert.Equal(Path.Combine(AppContext.BaseDirectory, "web"), WebAppHosting.WebRoot(new ConfigurationBuilder().Build()));

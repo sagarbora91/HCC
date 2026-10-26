@@ -28,6 +28,8 @@ public static partial class WebAppHosting
     /// <summary>
     /// Content-Security-Policy for a single-file app: the inline script is allowed by its SHA-256 only (nothing else may run), styles may be
     /// inline (React style attributes), and the page may talk only to its own origin. No framing, no plugins, no base-tag tricks.
+    /// A10-05: the production build also embeds its own CSP meta (03 Prototype/tools/csp.mjs) because the APK serves the same file with no
+    /// header; a browser enforces both. 03 Prototype/tests/stream-csp.mjs reads the directives below and keeps the meta in line with them.
     /// </summary>
     public static string ContentSecurityPolicy(string html)
     {
