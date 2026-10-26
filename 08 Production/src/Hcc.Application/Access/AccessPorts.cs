@@ -161,6 +161,9 @@ public interface ICapabilitiesQuery
 /// <summary>W4-5 admin reads for the Access control and Approvals &amp; audit screens (read-only; the server stays the authority).</summary>
 public interface IAccessAdminQueries
 {
+    /// <summary>Display names and ids of the property's users (no login names). Any signed-in user: screens show who requested or prepared something.</summary>
+    Task<StaffDirectoryResult> DirectoryAsync(AuthenticatedSession actor, CancellationToken ct = default);
+
     /// <summary>Role templates (grants + explicit denies) and the permission catalogue. PERM-ADM-001/002/003 at any mode.</summary>
     Task<RolesResult> RolesAsync(AuthenticatedSession actor, CancellationToken ct = default);
 

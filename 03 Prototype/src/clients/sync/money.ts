@@ -174,7 +174,7 @@ function paymentPrecheck(cmd:Command,s:State){
   for(const t of tenders){
     if(!positive(t.amount))return 'Enter an amount greater than zero.';
     if(!['Cash','UPI','Card','Bank transfer'].includes(t.method))return 'Select a payment method.';
-    if(t.method!=='Cash'&&!t.reference)return 'Enter a demonstration transaction reference.';
+    if(t.method!=='Cash'&&!t.reference)return 'Enter the transaction reference.';
     if(t.method==='Cash'&&!s.shiftOpen)return 'The cash shift is closed. Open the next business day first.';
   }
   if(tenders.reduce((a,t)=>a+t.amount,0)!==cmd.amount)return 'Tender rows must add up to the payment amount.';
@@ -282,7 +282,7 @@ export const money:SyncArea={
         if(!l)throw new HccClientError('NOT_FOUND','Select the posted line to correct.');
         return {result:await requestAdjustment(c,'correction',b,Math.abs(l.amount),text(c.cmd.reason),serverId(l.id,'Folio line'))};}},
     {type:'REFUND_EXECUTE',reload:[...FOLIO,'shiftOpen','openingCash','shift','shiftClose'],
-      precheck:(cmd,s)=>cmd.method==='Cash'&&!s.shiftOpen?'The cash shift is closed. Open the next business day first.':cmd.method&&cmd.method!=='Cash'&&!text(cmd.reference)?'Enter a demonstration transaction reference.':undefined,
+      precheck:(cmd,s)=>cmd.method==='Cash'&&!s.shiftOpen?'The cash shift is closed. Open the next business day first.':cmd.method&&cmd.method!=='Cash'&&!text(cmd.reference)?'Enter the transaction reference.':undefined,
       async send(c){const id=String(c.cmd.approvalId??'');const a=c.state.approvals.find(x=>x.id===id&&x.kind==='refund');
         if(!a)throw new HccClientError('NOT_FOUND','Refund request not found.');
         const b=c.state.bookings.find(x=>x.id===a.booking),r=b?.receipts.find(x=>x.id===a.target);

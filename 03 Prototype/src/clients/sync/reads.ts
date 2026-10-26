@@ -41,6 +41,7 @@ const YIELD=one(wide('PERM-RPT-001',true));
 /** Route pattern (as in tests/_role-reads.json) → may the user send it. */
 export const READS={
   'GET /me/capabilities':always,
+  'GET /me/directory':always,
   'GET /closing/business-date':always,
   'GET /closing/records':FINANCE,
   'GET /reservations':RES,

@@ -1,5 +1,7 @@
 import {build} from 'esbuild';
 import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
+import {prodTextPlugin} from './build-prod-text.mjs'; // production-only wording clean-up (N7)
+import {resolve} from 'node:path';
 import {moHeadTags} from './src/mobile/ops/manifest.mjs'; // MB-10 manifest + icons (inline data URIs)
 // Build flavour (compile-time constant process.env.HCC_BUILD): "prototype" (default; mock adapter, demo controls) or
 // "production" (--production: HTTP adapter; demo toolbar, scenario switcher, simulated clock and Reset are compiled out).
@@ -7,7 +9,7 @@ const production=process.argv.includes('--production');
 const flavour={'process.env.NODE_ENV':'"production"','process.env.HCC_BUILD':production?'"production"':'"prototype"'};
 // Scenario worker (audit P-01): bundled on its own and inlined into the app as a string, started from a Blob URL at runtime.
 const worker=await build({entryPoints:['src/app/scenarioWorker.ts'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,define:flavour});
-const result=await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,define:{...flavour,__HCC_SCENARIO_WORKER__:JSON.stringify(worker.outputFiles[0].text)}});
+const result=await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,plugins:production?[prodTextPlugin(resolve('src'))]:[],define:{...flavour,__HCC_SCENARIO_WORKER__:JSON.stringify(worker.outputFiles[0].text)}});
 const extra=(await readdir('src/styles')).filter(f=>f.endsWith('.css')).sort();
 const css=[await readFile('src/styles.css','utf8'),...await Promise.all(extra.map(f=>readFile('src/styles/'+f,'utf8')))].join('\n');
 const js=result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script');

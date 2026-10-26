@@ -156,3 +156,5 @@
 .mm-exp-extra small{font-size:13px;color:#5c4636;display:inline-flex;align-items:center;gap:4px;overflow-wrap:anywhere}
 .mm-exp-actions{display:flex;flex-direction:column;gap:6px;border-top:1px solid #efe4d6;padding-top:10px}
 .mm-exp-actions>.btn{min-height:48px;width:100%}
+/* W4 N3 (E2E2 N11): at 360 px three nowrap buttons clipped "Record payment"; the main action gets its own row, the others share the next. */
+@media(max-width:400px){.modal.m-sheet .modal-actions.mm-foot{flex-wrap:wrap}.modal.m-sheet .modal-actions.mm-foot .btn.mm-foot-main{flex:1 1 100%}}

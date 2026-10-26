@@ -31,7 +31,7 @@ export function Housekeeping(){
     <div className="small-stats">{columns.map(c=><div key={c}><span>{columnLabel[c]}</span><strong>{list.filter(x=>x.status===c).length}</strong></div>)}</div>
     <div className="hk-filters" role="group" aria-label="Filter tasks">
       <label>Floor<select value={floor} onChange={e=>setFloor(e.target.value)}><option value="All">All floors</option>{floors.map(f=><option key={f} value={String(f)}>Floor {f}</option>)}</select></label>
-      <label>Assignee<select value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="All">Everyone</option>{assignees.map(u=><option key={u.id} value={u.id}>{first(u.name)} · {u.role}</option>)}</select></label>
+      <label>Assignee<select value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="All">Everyone</option>{s.tasks.some(t=>!t.assignee)&&<option value="">Unassigned</option>}{assignees.map(u=><option key={u.id} value={u.id}>{first(u.name)} · {u.role}</option>)}</select></label>
       {(floor!=='All'||assignee!=='All')&&<button className="text-btn" onClick={()=>{setFloor('All');setAssignee('All');}}>Clear filters</button>}
       <span className="muted">{list.length} of {taskList.length} tasks</span>
     </div>
@@ -65,9 +65,10 @@ export function TaskCard({t,large}:{t:Task;large?:boolean}){
     {room?.blocked&&<div className="hk-note warn"><Lock size={13}/> Blocked · {room.blockReason||'Out of service'}{room.blockFrom||room.blockTo?` · ${room.blockFrom?shortDate(room.blockFrom):'now'} → ${room.blockTo?shortDate(room.blockTo):'open-ended'}`:''}</div>}
     {t.note&&<div className="hk-note"><Wrench size={13}/> {t.note}</div>}
     {t.rejectReason&&t.status!=='Done'&&<div className="hk-note warn"><TriangleAlert size={13}/> Returned: {t.rejectReason}</div>}
-    <div className="assignee"><span className="avatar small">{who?.name[0]??'?'}</span>{first(who?.name)||t.assignee}{who&&!who.enabled?' (disabled)':''}</div>
+    <div className="assignee"><span className="avatar small">{who?.name[0]??'?'}</span>{first(who?.name)||(t.assignee||'Unassigned')}{who&&!who.enabled?' (disabled)':''}</div>
+    {!t.assignee&&t.status!=='Done'&&<div className="hk-note warn"><TriangleAlert size={13}/> {permission('inspect')?'Unassigned. Choose a housekeeper below so the task appears on their list.':'Unassigned. A supervisor assigns this task.'}</div>}
     {permission('inspect')&&t.status!=='Done'&&!large&&<select aria-label={'Assign room '+t.room} value={t.assignee} disabled={busy} onChange={e=>run({type:'TASK',id:t.id,action:'assign',assignee:e.target.value},'Task reassigned')}>
-      {!pool.some(h=>h.id===t.assignee)&&<option value={t.assignee}>{first(who?.name)||t.assignee}</option>}
+      {!pool.some(h=>h.id===t.assignee)&&<option value={t.assignee}>{first(who?.name)||t.assignee||'Assign to…'}</option>}
       {pool.map(h=><option key={h.id} value={h.id}>{first(h.name)}</option>)}</select>}
     {t.status==='In progress'&&kind!=='repair'&&<div className={'checklist'+(large?' hk-big-check':'')}>{hkChecklist.map((l,i)=><label key={l}><input type="checkbox" checked={!!t.checked[i]} disabled={busy} onChange={()=>run({type:'TASK',id:t.id,action:'check',index:i},'Checklist updated')}/>{l}</label>)}</div>}
     {t.status==='To do'&&<button className={btn} disabled={busy} onClick={()=>run({type:'TASK',id:t.id,action:'start'},`Started ${verb}`)}>Start {verb} <ArrowRight size={15}/></button>}

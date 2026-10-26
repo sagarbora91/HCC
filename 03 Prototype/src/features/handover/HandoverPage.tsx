@@ -107,7 +107,7 @@ export function HovTemplatesBody({compact}:{compact?:boolean}){
 
 /** Demo clock (managers): shows overdue flags appearing as simulated time passes. */
 export function HovClockDemo(){
-  const {s,run,busy,permission}=useHcc();if(!permission('close'))return null;
+  const {s,run,busy,permission}=useHcc();if(process.env.HCC_BUILD==='production'||!permission('close'))return null;
   const can=(m:number)=>addMinutes(s.clock,m)<=hovClockCap(s.date)&&!s.closedDates.includes(s.date);
   return <div className="hov-clock" aria-label="Demo clock"><FlaskConical size={15}/><span>Demo · simulated clock {hovTime(s.clock)}</span>
     {[30,60].map(m=><button key={m} className="btn hov-mini" disabled={busy||!can(m)} onClick={()=>run({type:'HOV_CLOCK',minutes:m,key:hovKey(s,'clock',m)},`Simulated clock +${m} min`)}><TimerReset size={14}/>+{m} min</button>)}</div>;}

@@ -36,6 +36,7 @@ function routes(role){
   const board=[row(7,'105',{hk:'Dirty',status:'Dirty'}),row(9,'207',{hk:'Inspection',status:'Inspection'}),row(11,'305',{status:'Blocked',block:{blockId:55,from:BD,to:'2026-10-27',reason:'AC repair',source:'manual',version:'BV55'}})];
   return {
     'GET /me/capabilities':null,
+    'GET /me/directory':()=>({items:[{userId:uid,displayName:'Matrix '+role,enabled:true,roles:[role]}]}),
     'GET /closing/business-date':()=>({businessDate:BD,closed:false}),
     'GET /closing/records':()=>({items:[]}),
     'GET /reservations':()=>({businessDate:BD,total:2,page:1,pageSize:500,items:[resItem(1201),resItem(1202,{status:'Confirmed',roomId:9,roomNo:'207',arrival:BD,stayId:null,stayVersion:null,stayStatus:null,checkedInDate:null,registered:false,segments:[]})]}),

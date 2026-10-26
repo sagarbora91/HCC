@@ -20,6 +20,26 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         throw new HccException(HccErrorCode.FORBIDDEN, "Not permitted: administration access is needed to read this.", null);
     }
 
+    public async Task<StaffDirectoryResult> DirectoryAsync(AuthenticatedSession actor, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var q = connections.Command("""
+            SELECT user_id, display_name, enabled FROM plat.app_user WHERE property_id = @p ORDER BY user_id;
+            SELECT r.user_id, r.role_code FROM plat.user_role r JOIN plat.app_user u ON u.user_id = r.user_id
+             WHERE u.property_id = @p AND r.valid_from_utc <= SYSUTCDATETIME() AND (r.valid_until_utc IS NULL OR r.valid_until_utc > SYSUTCDATETIME());
+            """, conn);
+        q.Parameters.Add("@p", SqlDbType.Int).Value = actor.PropertyId;
+        await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        var users = new List<(int Id, string Name, bool Enabled)>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) users.Add((rd.GetInt32(0), rd.GetString(1), rd.GetBoolean(2)));
+        var roles = new List<(int UserId, string Role)>();
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) roles.Add((rd.GetInt32(0), rd.GetString(1)));
+        var items = users.Select(u => new StaffNameView(u.Id, u.Name, u.Enabled, roles.Where(r => r.UserId == u.Id).Select(r => r.Role).ToList())).ToList();
+        return new StaffDirectoryResult(items);
+    }
+
     public async Task<RolesResult> RolesAsync(AuthenticatedSession actor, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(actor);

@@ -42,6 +42,9 @@ import {channels} from './channels';
 // W4 fix F3 cashier (SHIFT_OPEN: the first-day open-shift control):
 import {cashier} from './cashier';
 
+// W4 N3: display names of all staff for every role (patch on users):
+import {directory} from './directory';
+
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -69,4 +72,6 @@ export const AREAS:SyncArea[]=[
   channels, // W4-11
 
   cashier, // W4 fix F3
+
+  directory, // W4 N3
 ];
