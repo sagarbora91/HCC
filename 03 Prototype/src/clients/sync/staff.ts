@@ -8,7 +8,8 @@
 //             Payroll figures are the server's stored lines, never recomputed here. Lines and rates are built in the prototype's own
 //             key order (hrComputeLine / hrDefaultRates), so the screen's "changed after this draft" check compares like with like.
 //   commands  HR_* → SaveStaff, SetStaffActive, SetRoster, CopyRosterWeek, MarkAttendance, RequestLeave, DecideLeave, CancelLeave,
-//             SetLeavePolicy (+ SaveDepartment per changed department limit), GiveAdvance, SetStatutoryRates, PreparePayRun, LockPayRun,
+//             SetLeavePolicy (+ SaveDepartment per changed department limit), HR_DEPT_SAVE → SaveDepartment (production-only department
+//             editor, N3: a fresh server has none; the department's leave limit is sent unchanged), GiveAdvance, SetStatutoryRates, PreparePayRun, LockPayRun,
 //             UnlockPayRun, IssueBankFile, SendPayslip, PrepareFnf, ConfirmFnf, DiscardFnf. Versioned commands send the version loaded
 //             with the record (STALE_VERSION when someone changed it meanwhile). Every command reloads staffX.
 import type {Command} from '../../services/mock';
@@ -145,6 +146,7 @@ function saveStaffBody(c:CommandCtx):Record<string,unknown>{
   const body:Record<string,unknown>={staffId:cmd.id?serverId(cmd.id,'Staff'):null,name:cmd.name,dept:cmd.dept,designation:cmd.designation,
     defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,linkUserId:cmd.userId?serverId(cmd.userId,'User'):null};
   if(cmd.confirmRelink)body.confirmRelink=true;
+  if(!cmd.id&&cmd.joined)body.joined=String(cmd.joined);   // N3: joining date of a new staff member (the server keeps it on edits)
   if(cmd.phone!==undefined&&(!old||String(cmd.phone).trim()!==old.phone))body.phone=String(cmd.phone).trim();
   if(cmd.gender!==undefined&&(!old||old.gender!==undefined))body.gender=cmd.gender;
   if(cmd.payType!==undefined)body.payType=cmd.payType;
@@ -173,9 +175,17 @@ export const staff:SyncArea={
   loaders:[{slice:'staffX',load:loadStaffX}],
   commands:[
     {type:'HR_STAFF_SAVE',reload:RELOAD,
-      precheck:cmd=>String(cmd.name??'').trim().length<2?'Enter the staff member’s name.':undefined,
+      precheck:(cmd,s)=>String(cmd.name??'').trim().length<2?'Enter the staff member’s name.'
+        :!String(cmd.dept??'').trim()?(s.staffX?.depts.length?'Choose a department.':'Add a department first (Staff › Departments).')
+        :!cmd.id&&cmd.joined&&String(cmd.joined)>s.date?'The joining date cannot be after the business date.':undefined,
       async send(c){const r=await c.api.command<{staffId:number}>('SaveStaff',saveStaffBody(c),c.cmd.id?{expectedVersion:version(c,'staff',c.cmd.id,'Staff member')}:undefined);
         return {result:{staffId:protoId(r.staffId)}};}},
+    {type:'HR_DEPT_SAVE',reload:RELOAD,
+      precheck:cmd=>!/^[A-Z0-9]{2,10}$/.test(String(cmd.code??'').trim().toUpperCase())?'Department code: 2–10 capital letters or digits.'
+        :String(cmd.name??'').trim().length<2?'Enter the department name.':undefined,
+      // Add or rename. The leave limit belongs to the leave policy (Owner): the loaded value is sent back unchanged.
+      send:c=>{const code=String(c.cmd.code).trim().toUpperCase();
+        return post(c,'SaveDepartment',{code,name:String(c.cmd.name).trim(),leaveCap:hr(c)?.leavePolicy?.deptCap?.[code]??null});}},
     {type:'HR_STAFF_ACTIVE',reload:RELOAD,send:c=>post(c,'SetStaffActive',({staffId:serverId(c.cmd.id,'Staff'),active:!!c.cmd.active}),['staff',c.cmd.id,'Staff member'])},
     {type:'HR_ROSTER_SET',reload:RELOAD,send:c=>post(c,'SetRoster',({staffId:serverId(c.cmd.staffId,'Staff'),date:c.cmd.date,shift:c.cmd.shift}))},
     {type:'HR_ROSTER_COPY',reload:RELOAD,send:c=>post(c,'CopyRosterWeek',({week:c.cmd.from}))},

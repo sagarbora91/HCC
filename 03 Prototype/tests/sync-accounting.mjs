@@ -24,7 +24,7 @@ export async function register({test,assert,M}){
       reconciliation:M.accReconcile(P,d).map(c=>({id:c.id,label:c.label,reportPaise:c.report,ledgerPaise:c.ledger,ok:c.ok,note:c.note}))};};
   const mapRows=M.accMapRows(P).map(r=>({mapKey:r.key,group:r.group,value:r.value,account:r.key==='expense:Laundry'?'5050':r.account||null,defaultAccount:r.defaultAccount??null,
     changed:r.key==='expense:Laundry'?true:r.changed,uses:r.uses,mapped:r.mapped}));
-  let opening=[];
+  let opening=[],tbExtra={};
   // ── expenses: the prototype's two seed expenses + whatever SubmitExpense adds ──
   const exps=new Map();let nextExp=103;
   const srvExp=(id,e,over={})=>({expenseId:id,ref:'EXP-'+id,vendor:e.vendor,category:e.category,amountPaise:e.amount,method:e.method,businessDate:e.date,status:e.status,
@@ -41,7 +41,7 @@ export async function register({test,assert,M}){
   const srv=fakeServer({
     'GET /me/capabilities':()=>ownerCaps(),
     'GET /accounting/days':({query})=>M.accDates(P).filter(d=>d>=query.from&&d<=query.to).sort().map(day),
-    'GET /accounting/trial-balance':()=>({date:'2026-08-23',cumulative:true,debitPaise:0,creditPaise:0,balanced:true,rows:opening}),
+    'GET /accounting/trial-balance':()=>({date:'2026-08-23',cumulative:true,debitPaise:0,creditPaise:0,balanced:true,rows:opening,...tbExtra}),
     'GET /accounting/mapping':()=>mapRows,
     'GET /accounting/mapping/history':()=>[{changeId:3,atUtc:'2026-10-23T10:00:00Z',actor:1,mapKey:'expense:Laundry',before:'5010',after:'5050'}],
     'GET /accounting/locks/history':()=>[{lockId:5,businessDate:Y,action:'lock',atUtc:'2026-10-24T03:00:00',actor:8,reason:null}],
@@ -211,6 +211,27 @@ export async function register({test,assert,M}){
     const area=S.AREAS.find(a=>a.id==='accounting');assert.deepEqual(area.unmapped,{});
     assert.deepEqual(area.commands.map(c=>c.type).sort(),['ACC_LOCK','ACC_MAP_RESET','ACC_MAP_SET','ACC_UNLOCK','CMP_CA_PACK','CMP_FILE','CMP_NA','CMP_OBLIGATION_SAVE','CMP_OBLIGATION_TOGGLE',
       'CMP_REOPEN','CMP_SETTINGS_SET','EXPENSE','EXPENSE_APPROVE','EXPENSE_REVERSE','EXPENSE_SUBMIT']);
+  });
+  // N5: the imported opening trial balance dated inside the window counts from its own date (names / groups of imported ledgers kept).
+  const imp=[{account:'1000',name:'Cash in hand',group:'Asset',debitPaise:2500000,creditPaise:0,balancePaise:2500000},
+    {account:'FURN01',name:'Furniture and fixtures',group:'Asset',debitPaise:120000000,creditPaise:0,balancePaise:120000000},
+    {account:'CAP01',name:"Owner's capital",group:'Equity',debitPaise:0,creditPaise:122500000,balancePaise:-122500000}];
+  const asOf=M.addDays(D,-3);
+  tbExtra={openingAsOf:asOf,openingIncluded:false,opening:imp};await rt.refresh();const s3=rt.get().state;
+  const tbImp=M.accTrialBalance(M.accVouchersUpTo(s3,D),s3.accountingX.server.accounts),tbBefore=M.accTrialBalance(M.accVouchersUpTo(s3,M.addDays(D,-4)),s3.accountingX.server.accounts);
+  const tbBase=M.accTrialBalance(M.accVouchersUpTo(s2,D));
+  // already inside the balance before the window: not added twice
+  tbExtra={openingAsOf:'2026-01-01',openingIncluded:true,opening:imp};await rt.refresh();const s4=rt.get().state;
+  tbExtra={};
+  test('[N5 accounting] Imported opening balances (W4-13) join the cumulative trial balance from their own date, keep their ledger names / groups and stay balanced',()=>{
+    assert.deepEqual(row(tbImp,'1000').debit-row(tbBase,'1000').debit,2500000);
+    assert.deepEqual(tbImp.find(r=>r.account==='CAP01'),{account:'CAP01',name:"Owner's capital",group:'Equity',debit:0,credit:122500000,balance:-122500000});
+    assert.equal(tbImp.find(r=>r.account==='FURN01').group,'Asset');
+    assert.equal(tbImp.reduce((a,r)=>a+r.debit-r.credit,0),0,'balanced');
+    assert.ok(!tbBefore.some(r=>r.account==='CAP01'),'not before its date');
+    assert.equal(s3.accountingX.server.opening.filter(v=>v.source.sub==='opening-import').length,1);
+    assert.equal(s4.accountingX.server.opening.filter(v=>v.source.sub==='opening-import').length,0);
+    assert.deepEqual(M.accTrialBalance(M.accVouchers(s3,D)),M.accTrialBalance(M.accVouchers(P,D)),'day movement has no opening');
   });
   void reply;
 }

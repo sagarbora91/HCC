@@ -96,7 +96,15 @@ public sealed record AccountingDayView(DateOnly Date, string Status, bool Provis
 
 public sealed record TrialBalanceRowView(string Account, string Name, string Group, long DebitPaise, long CreditPaise, long BalancePaise);
 
-public sealed record TrialBalanceView(DateOnly Date, bool Cumulative, long DebitPaise, long CreditPaise, bool Balanced, IReadOnlyList<TrialBalanceRowView> Rows);
+/// <summary>
+/// Trial balance for one date (day movement) or up to it (<see cref="Cumulative"/>). N5: a cumulative balance on or after the imported
+/// opening balances date (W4-13 Import, <see cref="OpeningAsOf"/>) includes the imported opening trial balance in <see cref="Rows"/> and the
+/// totals (<see cref="OpeningIncluded"/>); a ledger mapped to an HCC account adds to that account, an unmapped one keeps its own code,
+/// name and group. <see cref="Opening"/> repeats the imported opening rows on every cumulative answer (empty for a day movement), so a
+/// client that folds an earlier cumulative balance can add the opening on its own date.
+/// </summary>
+public sealed record TrialBalanceView(DateOnly Date, bool Cumulative, long DebitPaise, long CreditPaise, bool Balanced, IReadOnlyList<TrialBalanceRowView> Rows,
+    DateOnly? OpeningAsOf = null, bool OpeningIncluded = false, IReadOnlyList<TrialBalanceRowView>? Opening = null);
 
 public sealed record MappingRowView(string MapKey, string Group, string Value, string? Account, string? DefaultAccount, bool Changed, int Uses, bool Mapped);
 

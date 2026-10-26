@@ -121,6 +121,11 @@ export async function register({test,assert,M}){
         dailyPaise:0,esicApplicable:true},'v-staff-'+ravi],
     [{type:'HR_STAFF_SAVE',name:'New Cook',dept:'KIT',designation:'Cook',defaultShift:'M',weeklyOff:2,phone:'90000 55555',gender:'M'},'SaveStaff',
       {staffId:null,name:'New Cook',dept:'KIT',designation:'Cook',defaultShift:'M',weeklyOff:2,linkUserId:null,phone:'90000 55555',gender:'M'},undefined],
+    // N3: joining date of a new staff member; department editor (code upper-cased, the loaded leave limit sent back unchanged).
+    [{type:'HR_STAFF_SAVE',name:'Back-dated Clerk',dept:'FO',designation:'Clerk',defaultShift:'G',weeklyOff:0,phone:'',gender:'F',joined:'2026-09-01'},'SaveStaff',
+      {staffId:null,name:'Back-dated Clerk',dept:'FO',designation:'Clerk',defaultShift:'G',weeklyOff:0,linkUserId:null,joined:'2026-09-01',phone:'',gender:'F'},undefined],
+    [{type:'HR_DEPT_SAVE',code:'sec',name:' Security '},'SaveDepartment',{code:'SEC',name:'Security',leaveCap:null}],
+    [{type:'HR_DEPT_SAVE',id:'HK',code:'HK',name:'Housekeeping team'},'SaveDepartment',{code:'HK',name:'Housekeeping team',leaveCap:P.staffX.leavePolicy.deptCap?.HK??null}],
     [{type:'HR_STAFF_ACTIVE',id:ravi,active:false},'SetStaffActive',{staffId:+ravi,active:false},'v-staff-'+ravi],
     [{type:'HR_ROSTER_SET',staffId:ravi,date:'2026-10-27',shift:'N'},'SetRoster',{staffId:+ravi,date:'2026-10-27',shift:'N'}],
     [{type:'HR_ROSTER_COPY',from:'2026-10-26'},'CopyRosterWeek',{week:'2026-10-26'}],
@@ -143,6 +148,12 @@ export async function register({test,assert,M}){
   const sent=[];
   for(const [i,[cmd,name,body,ver]] of cases.entries()){srv.reset();const r=await rt.run({...cmd,key:'k-'+i});
     sent.push({r,name,body,ver,call:srv.commands(name)[0],reloaded:srv.gets('/payroll/board').length,key:'k-'+i});}
+  // N3 prechecks: no department chosen (none on a fresh server), a joining date after the business date, a bad department code.
+  srv.reset();
+  const noDept=await rt.run({type:'HR_STAFF_SAVE',name:'Nobody',dept:'',designation:'X',defaultShift:'G',weeklyOff:0,key:'k-nd'});
+  const future=await rt.run({type:'HR_STAFF_SAVE',name:'Future Joiner',dept:'FO',designation:'X',defaultShift:'G',weeklyOff:0,joined:'2099-01-01',key:'k-fj'});
+  const badCode=await rt.run({type:'HR_DEPT_SAVE',code:'front office',name:'Front office',key:'k-bc'});
+  const precheckCalls=srv.commands('SaveStaff').length+srv.commands('SaveDepartment').length;
   // Leave policy: entitlements + the default limit, then one SaveDepartment per department whose own limit changed (step keys).
   srv.reset();const pol=await rt.run({type:'HR_LEAVE_POLICY_SET',ent:{CL:10,SL:7,EL:15},defaultCap:3,deptCap:{HK:1,FO:''},key:'k-pol'});
   const polCalls=srv.calls.filter(c=>c.method==='POST').map(c=>[c.path,c.key,c.body]);
@@ -171,8 +182,10 @@ export async function register({test,assert,M}){
     assert.deepEqual(srv.commands('DiscardFnf').map(c=>c.body),[{fnfId:701,expectedVersion:'v-fnf-701'}]);
     assert.deepEqual([stale.ok,stale.reason],[false,'server']);assert.match(stale.text,/Refresh and try again/);
     assert.deepEqual(S.AREAS.find(a=>a.id==='staff').unmapped,{});
+    assert.deepEqual([noDept.reason,future.reason,badCode.reason,precheckCalls],['precheck','precheck','precheck',0]);
+    assert.match(noDept.text,/Choose a department/);assert.match(future.text,/cannot be after the business date/);assert.match(badCode.text,/2–10 capital letters or digits/);
     for(const t of ['HR_STAFF_SAVE','HR_STAFF_ACTIVE','HR_ROSTER_SET','HR_ROSTER_COPY','HR_ATT_MARK','HR_LEAVE_REQUEST','HR_LEAVE_DECIDE','HR_LEAVE_CANCEL','HR_LEAVE_POLICY_SET',
       'HR_ADVANCE_ADD','HR_STAT_RATES_SET','HR_RATES_SET','HR_PAYROLL_RUN','HR_PAYROLL_LOCK','HR_PAYROLL_UNLOCK','HR_PAYROLL_BANK_FILE','HR_PAYSLIP_SEND','HR_FNF_SETTLE',
-      'HR_FNF_CONFIRM','HR_FNF_DISCARD'])assert.ok(rt.mapped(t),t);
+      'HR_FNF_CONFIRM','HR_FNF_DISCARD','HR_DEPT_SAVE'])assert.ok(rt.mapped(t),t);
   });
 }

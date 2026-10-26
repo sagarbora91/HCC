@@ -2,7 +2,8 @@
 //
 //   loaders   accountingX ← GET /accounting/days?from&to (the server's evaluated days for the last 62 business dates: vouchers,
 //                           exceptions, reconciliation, status, lock), /accounting/trial-balance?cumulative (opening balances
-//                           before the window), /accounting/mapping (+/history), /accounting/locks/history. The prototype
+//                           before the window; N5: the server adds the imported opening trial balance from its "as of" date — when
+//                           that date is inside the window, its rows come as `opening` and become a voucher on that date), /accounting/mapping (+/history), /accounting/locks/history. The prototype
 //                           selectors read `accountingX.server` (domain/streams/accounting.ts) instead of deriving vouchers on the
 //                           device; locked days also fill `locks` (who/when, snapshot) for the lock / unlock dialogs.
 //             expenses    ← GET /expenses (window of 62 days + every Draft / Pending, pages of 100). Version kept per expense.
@@ -17,8 +18,8 @@
 //   till      a Cash expense decision / reversal needs the till with the open shift (DEC-052): ids 'till' → 'current' (learned by the
 //             money area when it loads the shift) or the only till known on this device.
 import type {Command,Expense,State} from '../../services/mock';
-import type {ACCState,ACCVoucher,ACCServerDay,ACCLock,ACCMapRow,ACCException,ACCCheck,ACCDayStatus,ACCVoucherType,ACCSourceKind} from '../../domain/streams/accounting';
-import {ACC_DEFAULT_MAP} from '../../domain/streams/accounting';
+import type {ACCState,ACCVoucher,ACCServerDay,ACCLock,ACCMapRow,ACCException,ACCCheck,ACCDayStatus,ACCVoucherType,ACCSourceKind,ACCServer,ACCTBGroup} from '../../domain/streams/accounting';
+import {ACC_DEFAULT_MAP,accAccount} from '../../domain/streams/accounting';
 import type {CMPState,CMPObligation,CMPFiling,CMPPack,CMPRule,CMPKind,CMPFreq} from '../../domain/streams/compliance';
 import {EXPENSE_METHODS} from '../../domain/streams/closing';
 import {addDays} from '../../domain/money';
@@ -36,8 +37,10 @@ type SrvRecon={id:string;label:string;reportPaise:number;ledgerPaise:number;ok:b
 type SrvLockInfo={lockId:number;lockedUtc:string;lockedBy:number;version:string};
 export type SrvAccountingDay={date:string;status:string;provisional:boolean;voucherCount:number;debitPaise:number;creditPaise:number;balanced:boolean;errors:number;warnings:number;
   lock?:SrvLockInfo|null;vouchers:SrvVoucher[];exceptions:SrvIssue[];reconciliation:SrvRecon[]};
-type SrvTrialBalance={date:string;cumulative:boolean;debitPaise:number;creditPaise:number;balanced:boolean;
-  rows:{account:string;name:string;group:string;debitPaise:number;creditPaise:number;balancePaise:number}[]};
+type SrvTbRow={account:string;name:string;group:string;debitPaise:number;creditPaise:number;balancePaise:number};
+type SrvTrialBalance={date:string;cumulative:boolean;debitPaise:number;creditPaise:number;balanced:boolean;rows:SrvTbRow[];
+  /** N5: imported opening trial balance (W4-13 Import) — its date, whether `rows` include it, and its rows. */
+  openingAsOf?:string|null;openingIncluded?:boolean;opening?:SrvTbRow[]|null};
 type SrvMappingRow={mapKey:string;group:string;value:string;account?:string|null;defaultAccount?:string|null;changed:boolean;uses:number;mapped:boolean};
 type SrvMappingChange={changeId:number;atUtc:string;actor:number;mapKey:string;before?:string|null;after?:string|null};
 type SrvLockEvent={lockId:number;businessDate:string;action:string;atUtc:string;actor:number;reason?:string|null};
@@ -94,8 +97,15 @@ async function loadAccounting(c:LoaderCtx):Promise<ACCState>{
   const out:Record<string,ACCServerDay>={},locks:Record<string,ACCLock>={};
   for(const d of days){const m=dayFromServer(d);out[d.date]=m.day;
     if(m.lock&&d.lock){locks[d.date]=m.lock;c.ids.learn('accLock',d.date,d.lock.lockId);c.ids.setVersion('accLock',d.date,d.lock.version);}}
+  const entries=(rows:SrvTbRow[])=>rows.map(r=>({account:r.account,debit:paise(r.debitPaise),credit:paise(r.creditPaise)}));
   const opening:ACCVoucher[]=tb.rows.length?[{no:'OPENING',date:addDays(from,-1),type:'Journal',narration:`Balances before ${from}`,
-    source:{kind:'closing',id:'OPENING/'+from,sub:'opening'},entries:tb.rows.map(r=>({account:r.account,debit:paise(r.debitPaise),credit:paise(r.creditPaise)})),unmapped:[]}]:[];
+    source:{kind:'closing',id:'OPENING/'+from,sub:'opening'},entries:entries(tb.rows),unmapped:[]}]:[];
+  // N5: the imported opening trial balance dated inside the window (not yet in the balance before it) counts from its own date.
+  const imported=!tb.openingIncluded&&tb.openingAsOf&&tb.opening?.length?isoDate(tb.openingAsOf,'openingAsOf'):undefined;
+  if(imported)opening.push({no:'OPENING-IMPORT',date:imported,type:'Journal',narration:`Imported opening balances as of ${imported}`,
+    source:{kind:'closing',id:'OPENING-IMPORT/'+imported,sub:'opening-import'},entries:entries(tb.opening!),unmapped:[]});
+  const accounts:NonNullable<ACCServer['accounts']>={};
+  for(const r of [...tb.rows,...(tb.opening??[])])if(!accAccount(r.account))accounts[r.account]={name:r.name,group:tbGroup(r.group)};
   const mapRows=rows.map(mapRowFromServer);
   // Overrides only (the selectors overlay them on ACC_DEFAULT_MAP); '' = no ledger (Suspense).
   const mapping:Record<string,string>={};
@@ -104,8 +114,10 @@ async function loadAccounting(c:LoaderCtx):Promise<ACCState>{
     mapHistory:[...mapHist].sort((a,b)=>a.changeId-b.changeId).map(h=>({id:String(h.changeId),at:clock(h.atUtc),actor:protoUserId(h.actor),key:h.mapKey,before:h.before??'',after:h.after??''})),
     lockHistory:[...lockHist].sort((a,b)=>utc(a.atUtc).localeCompare(utc(b.atUtc))).map(h=>({id:`${h.lockId}:${h.action}`,at:clock(h.atUtc),actor:protoUserId(h.actor),date:h.businessDate,
       action:h.action==='unlock'?'unlock':'lock',...(h.reason?{reason:h.reason}:{})})),
-    server:{from,to,days:out,opening,mapRows}};
+    server:{from,to,days:out,opening,mapRows,...(Object.keys(accounts).length?{accounts}:{})}};
 }
+const TB_GROUPS:readonly ACCTBGroup[]=['Asset','Liability','Equity','Income','Expense','Suspense'];
+function tbGroup(g:string):ACCTBGroup{return (TB_GROUPS as readonly string[]).includes(g)?g as ACCTBGroup:'Suspense';}
 
 // ── Expenses ──
 export function expenseFromServer(e:SrvExpense):Expense{
