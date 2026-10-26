@@ -2,6 +2,7 @@ using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Application.Ota;
 using Hcc.Contracts.Ota;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Ota;
 
@@ -29,15 +30,16 @@ public static class OtaEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        BillingEndpoints.Command<SaveChannelRequest, ChannelResult>(g, "SaveChannel", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SaveChannelAsync(Ctx(c, "SaveChannel", k), r, ct));
-        BillingEndpoints.Command<SetChannelStatusRequest, ChannelResult>(g, "SetChannelStatus", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStatusAsync(Ctx(c, "SetChannelStatus", k), r, ct));
-        BillingEndpoints.Command<SetChannelStopSellRequest, ChannelResult>(g, "SetChannelStopSell", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStopSellAsync(Ctx(c, "SetChannelStopSell", k), r, ct));
-        BillingEndpoints.Command<PushChannelRatesRequest, PushResult>(g, "PushChannelRates", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PushRatesAsync(Ctx(c, "PushChannelRates", k), r, ct));
-        BillingEndpoints.Command<ImportChannelMessageRequest, ChannelMessageResult>(g, "ImportChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().ImportMessageAsync(Ctx(c, "ImportChannelMessage", k), r, ct));
-        BillingEndpoints.Command<QueueSimulatedMessageRequest, ChannelMessageResult>(g, "QueueSimulatedMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().QueueSimulatedAsync(Ctx(c, "QueueSimulatedMessage", k), r, ct));
-        BillingEndpoints.Command<PullChannelMessagesRequest, PullResult>(g, "PullChannelMessages", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PullAsync(Ctx(c, "PullChannelMessages", k), r, ct));
-        BillingEndpoints.Command<AcceptChannelMessageRequest, AcceptResult>(g, "AcceptChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().AcceptAsync(Ctx(c, "AcceptChannelMessage", k), r, ct));
-        BillingEndpoints.Command<RejectChannelMessageRequest, ChannelMessageResult>(g, "RejectChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().RejectAsync(Ctx(c, "RejectChannelMessage", k), r, ct));
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Ota); // DEC-057 / A11-01: refused while OTA channels is off; reads stay
+        BillingEndpoints.Command<SaveChannelRequest, ChannelResult>(cmd, "SaveChannel", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SaveChannelAsync(Ctx(c, "SaveChannel", k), r, ct));
+        BillingEndpoints.Command<SetChannelStatusRequest, ChannelResult>(cmd, "SetChannelStatus", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStatusAsync(Ctx(c, "SetChannelStatus", k), r, ct));
+        BillingEndpoints.Command<SetChannelStopSellRequest, ChannelResult>(cmd, "SetChannelStopSell", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStopSellAsync(Ctx(c, "SetChannelStopSell", k), r, ct));
+        BillingEndpoints.Command<PushChannelRatesRequest, PushResult>(cmd, "PushChannelRates", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PushRatesAsync(Ctx(c, "PushChannelRates", k), r, ct));
+        BillingEndpoints.Command<ImportChannelMessageRequest, ChannelMessageResult>(cmd, "ImportChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().ImportMessageAsync(Ctx(c, "ImportChannelMessage", k), r, ct));
+        BillingEndpoints.Command<QueueSimulatedMessageRequest, ChannelMessageResult>(cmd, "QueueSimulatedMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().QueueSimulatedAsync(Ctx(c, "QueueSimulatedMessage", k), r, ct));
+        BillingEndpoints.Command<PullChannelMessagesRequest, PullResult>(cmd, "PullChannelMessages", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PullAsync(Ctx(c, "PullChannelMessages", k), r, ct));
+        BillingEndpoints.Command<AcceptChannelMessageRequest, AcceptResult>(cmd, "AcceptChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().AcceptAsync(Ctx(c, "AcceptChannelMessage", k), r, ct));
+        BillingEndpoints.Command<RejectChannelMessageRequest, ChannelMessageResult>(cmd, "RejectChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().RejectAsync(Ctx(c, "RejectChannelMessage", k), r, ct));
 
         g.MapGet("/ota/channels", async (HttpContext http, OtaQueries q, CancellationToken ct) =>
         {

@@ -59,6 +59,7 @@ public sealed class PayrollHttpTests(PayrollDb db) : IClassFixture<PayrollDb>
         builder.Services.AddSingleton<IAccessPolicy>(db.Policy);
         builder.Services.AddSingleton<ISessionService>(new TestSessions(h.PropertyId));
         builder.Services.AddPayrollModule();
+        builder.Services.AddHccConfiguration(); // DEC-057 / A11-01: the module gate on the command routes (every module on by default)
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
         var app = builder.Build();
         app.UseMiddleware<HccErrorMiddleware>();

@@ -36,6 +36,7 @@ public class MessagingHttpTests : IAsyncLifetime
         builder.Services.AddSingleton<ICommandRunner>(_w.Platform.Commands);
         builder.Services.AddSingleton<TimeProvider>(_w.Clock);
         builder.Services.AddHccMessaging();
+        builder.Services.AddHccConfiguration(); // DEC-057 / A11-01: the module gate on the command routes (every module on by default)
         builder.Services.AddSingleton<IAccessPolicy>(_w.Policy);
         builder.Services.AddSingleton<ISessionService>(new TestSessions(_w.PropertyId));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);

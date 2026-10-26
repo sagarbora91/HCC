@@ -1,5 +1,6 @@
 using Hcc.Application.Stock;
 using Hcc.Contracts.Stock;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Stock;
 
@@ -25,29 +26,30 @@ public static class StockEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + StockCommands.OpReceiveGrn, async (HttpContext http, ReceiveGrnRequest body, StockCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Inventory); // DEC-057 / A11-01: refused while Linen & stock is off; reads stay
+        cmd.MapPost("/commands/" + StockCommands.OpReceiveGrn, async (HttpContext http, ReceiveGrnRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReceiveGrnAsync(http.HccCommand(StockCommands.OpReceiveGrn), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpIssue, async (HttpContext http, IssueStockRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpIssue, async (HttpContext http, IssueStockRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.IssueAsync(http.HccCommand(StockCommands.OpIssue), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpUse, async (HttpContext http, UseStockRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpUse, async (HttpContext http, UseStockRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.UseAsync(http.HccCommand(StockCommands.OpUse), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpRoomChange, async (HttpContext http, RoomChangeRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpRoomChange, async (HttpContext http, RoomChangeRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.RoomChangeAsync(http.HccCommand(StockCommands.OpRoomChange), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpLaundrySend, async (HttpContext http, SendLaundryRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpLaundrySend, async (HttpContext http, SendLaundryRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.SendLaundryAsync(http.HccCommand(StockCommands.OpLaundrySend), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpLaundryReceive, async (HttpContext http, ReceiveLaundryRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpLaundryReceive, async (HttpContext http, ReceiveLaundryRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReceiveLaundryAsync(http.HccCommand(StockCommands.OpLaundryReceive), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpRecordLoss, async (HttpContext http, RecordLossRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpRecordLoss, async (HttpContext http, RecordLossRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.RecordLossAsync(http.HccCommand(StockCommands.OpRecordLoss), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpCountSubmit, async (HttpContext http, SubmitCountRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpCountSubmit, async (HttpContext http, SubmitCountRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.SubmitCountAsync(http.HccCommand(StockCommands.OpCountSubmit), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpCountDecide, async (HttpContext http, DecideCountRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpCountDecide, async (HttpContext http, DecideCountRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.DecideCountAsync(http.HccCommand(StockCommands.OpCountDecide), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpItemCreate, async (HttpContext http, CreateStockItemRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpItemCreate, async (HttpContext http, CreateStockItemRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.CreateItemAsync(http.HccCommand(StockCommands.OpItemCreate), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpItemSet, async (HttpContext http, SetStockItemRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpItemSet, async (HttpContext http, SetStockItemRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetItemAsync(http.HccCommand(StockCommands.OpItemSet), body, ct)));
-        g.MapPost("/commands/" + StockCommands.OpSettingsSet, async (HttpContext http, SetStockSettingsRequest body, StockCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + StockCommands.OpSettingsSet, async (HttpContext http, SetStockSettingsRequest body, StockCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetSettingsAsync(http.HccCommand(StockCommands.OpSettingsSet), body, ct)));
 
         g.MapGet("/stock/items", async (HttpContext http, StockQueries q, CancellationToken ct, int page = 1, int pageSize = 50, string? kind = null, bool belowMinimum = false) =>

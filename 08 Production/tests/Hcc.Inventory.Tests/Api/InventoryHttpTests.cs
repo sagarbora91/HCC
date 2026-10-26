@@ -43,6 +43,7 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         builder.Services.AddInventoryModule(builder.Configuration);
         builder.Services.AddReservationsModule();
         builder.Services.AddBillingModule(); // tax rates + folio money check
+        builder.Services.AddHccConfiguration(); // DEC-057 / A11-01: the module gate on the command routes (every module on by default)
         builder.Services.AddSingleton<IAccessPolicy>(new FakeAccessPolicy());
         builder.Services.AddSingleton<ISessionService>(new TestSessions(1));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);

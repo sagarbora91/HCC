@@ -1,6 +1,7 @@
 using Hcc.Application.Commands;
 using Hcc.Application.Payroll;
 using Hcc.Contracts.Payroll;
+using Hcc.Domain.Configuration;
 using Hcc.Domain.Payroll;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Payroll;
@@ -31,6 +32,9 @@ public static class PayrollEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
+        // DEC-057 / A11-01: the pay-run side is refused while Payroll is off (prototype CFG_MODULES payroll prefixes); staff, roster,
+        // attendance, leave, corrections, payroll requests and paid holidays stay on, and so does every read.
+        var pay = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Payroll);
         Command<SaveDepartmentRequest, DepartmentResult>(g, PayrollService.OpSaveDepartment, (s, c, r, ct) => s.SaveDepartmentAsync(c, r, ct));
         Command<SaveStaffRequest, StaffResult>(g, PayrollService.OpSaveStaff, (s, c, r, ct) => s.SaveStaffAsync(c, r, ct));
         Command<SetStaffActiveRequest, StaffResult>(g, PayrollService.OpSetStaffActive, (s, c, r, ct) => s.SetStaffActiveAsync(c, r, ct));
@@ -41,16 +45,16 @@ public static class PayrollEndpoints
         Command<DecideLeaveRequest, LeaveResult>(g, PayrollService.OpDecideLeave, (s, c, r, ct) => s.DecideLeaveAsync(c, r, ct));
         Command<CancelLeaveRequest, LeaveResult>(g, PayrollService.OpCancelLeave, (s, c, r, ct) => s.CancelLeaveAsync(c, r, ct));
         Command<SetLeavePolicyRequest, LeavePolicyResult>(g, PayrollService.OpSetLeavePolicy, (s, c, r, ct) => s.SetLeavePolicyAsync(c, r, ct));
-        Command<GiveAdvanceRequest, AdvanceResult>(g, PayrollService.OpGiveAdvance, (s, c, r, ct) => s.GiveAdvanceAsync(c, r, ct));
-        Command<SetStatutoryRatesRequest, RatesResult>(g, PayrollService.OpSetStatutoryRates, (s, c, r, ct) => s.SetStatutoryRatesAsync(c, r, ct));
-        Command<PreparePayRunRequest, PayRunResult>(g, PayrollService.OpPreparePayRun, (s, c, r, ct) => s.PreparePayRunAsync(c, r, ct));
-        Command<LockPayRunRequest, PayRunResult>(g, PayrollService.OpLockPayRun, (s, c, r, ct) => s.LockPayRunAsync(c, r, ct));
-        Command<UnlockPayRunRequest, PayRunResult>(g, PayrollService.OpUnlockPayRun, (s, c, r, ct) => s.UnlockPayRunAsync(c, r, ct));
-        Command<IssueBankFileRequest, BankFileResult>(g, PayrollService.OpIssueBankFile, (s, c, r, ct) => s.IssueBankFileAsync(c, r, ct));
-        Command<SendPayslipRequest, PayslipSendResult>(g, PayrollService.OpSendPayslip, (s, c, r, ct) => s.SendPayslipAsync(c, r, ct));
-        Command<PrepareFnfRequest, FnfResult>(g, PayrollService.OpPrepareFnf, (s, c, r, ct) => s.PrepareFnfAsync(c, r, ct));
-        Command<DecideFnfRequest, FnfResult>(g, PayrollService.OpConfirmFnf, (s, c, r, ct) => s.ConfirmFnfAsync(c, r, ct));
-        Command<DecideFnfRequest, FnfResult>(g, PayrollService.OpDiscardFnf, (s, c, r, ct) => s.DiscardFnfAsync(c, r, ct));
+        Command<GiveAdvanceRequest, AdvanceResult>(pay, PayrollService.OpGiveAdvance, (s, c, r, ct) => s.GiveAdvanceAsync(c, r, ct));
+        Command<SetStatutoryRatesRequest, RatesResult>(pay, PayrollService.OpSetStatutoryRates, (s, c, r, ct) => s.SetStatutoryRatesAsync(c, r, ct));
+        Command<PreparePayRunRequest, PayRunResult>(pay, PayrollService.OpPreparePayRun, (s, c, r, ct) => s.PreparePayRunAsync(c, r, ct));
+        Command<LockPayRunRequest, PayRunResult>(pay, PayrollService.OpLockPayRun, (s, c, r, ct) => s.LockPayRunAsync(c, r, ct));
+        Command<UnlockPayRunRequest, PayRunResult>(pay, PayrollService.OpUnlockPayRun, (s, c, r, ct) => s.UnlockPayRunAsync(c, r, ct));
+        Command<IssueBankFileRequest, BankFileResult>(pay, PayrollService.OpIssueBankFile, (s, c, r, ct) => s.IssueBankFileAsync(c, r, ct));
+        Command<SendPayslipRequest, PayslipSendResult>(pay, PayrollService.OpSendPayslip, (s, c, r, ct) => s.SendPayslipAsync(c, r, ct));
+        Command<PrepareFnfRequest, FnfResult>(pay, PayrollService.OpPrepareFnf, (s, c, r, ct) => s.PrepareFnfAsync(c, r, ct));
+        Command<DecideFnfRequest, FnfResult>(pay, PayrollService.OpConfirmFnf, (s, c, r, ct) => s.ConfirmFnfAsync(c, r, ct));
+        Command<DecideFnfRequest, FnfResult>(pay, PayrollService.OpDiscardFnf, (s, c, r, ct) => s.DiscardFnfAsync(c, r, ct));
         // Wave B item B4: DEC-075 past-attendance corrections, DEC-083 paid holidays, DEC-084 bank-change requests (decided by the Owner).
         Command<CorrectAttendanceRequest, CorrectionResult>(g, PayrollService.OpCorrectAttendance, (s, c, r, ct) => s.CorrectAttendanceAsync(c, r, ct));
         Command<DecidePayrollRequestRequest, PayrollRequestResult>(g, PayrollService.OpDecidePayrollRequest, (s, c, r, ct) => s.DecidePayrollRequestAsync(c, r, ct));

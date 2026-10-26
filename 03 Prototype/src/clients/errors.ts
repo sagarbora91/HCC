@@ -31,6 +31,9 @@ export class HccClientError extends HccError{
   get resultUnknown(){return this.wireCode==='UNAVAILABLE';}
 }
 
+/** `details.reason` of the server's FORBIDDEN refusal of a command whose module is switched off in Master configuration (A11-01, DEC-057;
+ *  `ConfigCatalog.ModuleOffReason` on the server; `details.moduleId` names the module). The message is the prototype's cfgModuleOffMessage. */
+export const MODULE_OFF_REASON='MODULE_OFF';
 /** Shown when the server answers that guest-ID encryption has no key yet (install guide, "Guest ID key"). */
 export const GUEST_ID_NOT_SET_UP='ID storage is not set up on the server. Ask the owner to complete the guest ID key step of the install guide (New-HccGuestIdKey.ps1), then try again.';
 /** Maps a non-2xx response. Unknown or missing codes fall back to the HTTP status (5xx → UNAVAILABLE, else VALIDATION). */

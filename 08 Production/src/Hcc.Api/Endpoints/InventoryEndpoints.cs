@@ -1,5 +1,7 @@
+using Hcc.Api.Endpoints;
 using Hcc.Application.Inventory;
 using Hcc.Contracts.Inventory;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer.Inventory;
 
 namespace Hcc.Api;
@@ -52,9 +54,11 @@ public static class InventoryEndpoints
         g.MapPost("/commands/QuoteStay", async (HttpContext http, InventoryService inventory, QuoteStayRequest body, CancellationToken ct) =>
             http.HccReply(await inventory.QuoteStayAsync(http.HccCommand("QuoteStay", keyRequired: false), body, ct)));
         g.MapPost("/commands/CreateGroupBlock", async (HttpContext http, InventoryService inventory, CreateGroupBlockRequest body, CancellationToken ct) =>
-            http.HccReply(await inventory.CreateGroupBlockAsync(http.HccCommand("CreateGroupBlock"), body, ct)));
+            http.HccReply(await inventory.CreateGroupBlockAsync(http.HccCommand("CreateGroupBlock"), body, ct)))
+            .RequireHccModule(ConfigModuleIds.Groups); // DEC-057 / A11-01: group blocks belong to Groups & companies (prototype GRP_BLOCK_*)
         g.MapPost("/commands/ReleaseGroupBlock", async (HttpContext http, InventoryService inventory, ReleaseGroupBlockRequest body, CancellationToken ct) =>
-            http.HccReply(await inventory.ReleaseGroupBlockAsync(http.HccCommand("ReleaseGroupBlock"), body, ct)));
+            http.HccReply(await inventory.ReleaseGroupBlockAsync(http.HccCommand("ReleaseGroupBlock"), body, ct)))
+            .RequireHccModule(ConfigModuleIds.Groups);
         return api;
     }
 }

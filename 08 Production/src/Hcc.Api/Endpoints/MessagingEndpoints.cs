@@ -1,5 +1,6 @@
 using Hcc.Application.Messaging;
 using Hcc.Contracts.Messaging;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Messaging;
 
@@ -30,19 +31,20 @@ public static class MessagingEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + MessagingCommands.OpSend, async (HttpContext http, SendMessageRequest body, MessagingCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Messaging); // DEC-057 / A11-01: refused while Guest messaging is off; reads stay
+        cmd.MapPost("/commands/" + MessagingCommands.OpSend, async (HttpContext http, SendMessageRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.SendAsync(http.HccCommand(MessagingCommands.OpSend), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpRunTriggers, async (HttpContext http, RunMessagingTriggersRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpRunTriggers, async (HttpContext http, RunMessagingTriggersRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.RunTriggersAsync(http.HccCommand(MessagingCommands.OpRunTriggers), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpSimulate, async (HttpContext http, SimulateMessageDeliveryRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpSimulate, async (HttpContext http, SimulateMessageDeliveryRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.SimulateAsync(http.HccCommand(MessagingCommands.OpSimulate), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpRetry, async (HttpContext http, RetryMessageRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpRetry, async (HttpContext http, RetryMessageRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.RetryAsync(http.HccCommand(MessagingCommands.OpRetry), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpConsent, async (HttpContext http, SetMessagingConsentRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpConsent, async (HttpContext http, SetMessagingConsentRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetConsentAsync(http.HccCommand(MessagingCommands.OpConsent), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpTemplate, async (HttpContext http, UpdateMessageTemplateRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpTemplate, async (HttpContext http, UpdateMessageTemplateRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.UpdateTemplateAsync(http.HccCommand(MessagingCommands.OpTemplate), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpRule, async (HttpContext http, UpdateMessageRuleRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpRule, async (HttpContext http, UpdateMessageRuleRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.UpdateRuleAsync(http.HccCommand(MessagingCommands.OpRule), body, ct)));
 
         g.MapGet("/messaging/messages", async (HttpContext http, MessagingQueries q, CancellationToken ct, string? status = null, int page = 1, int pageSize = 50) =>

@@ -1,6 +1,7 @@
 using Hcc.Application.Billing;
 using Hcc.Application.Groups;
 using Hcc.Contracts.Groups;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Groups;
 
@@ -34,37 +35,38 @@ public static class GroupsEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + GroupCommands.OpCreate, async (HttpContext http, CreateGroupRequest body, GroupCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Groups); // DEC-057 / A11-01: refused while Groups & companies is off; reads stay
+        cmd.MapPost("/commands/" + GroupCommands.OpCreate, async (HttpContext http, CreateGroupRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.CreateAsync(http.HccCommand(GroupCommands.OpCreate), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpUpdate, async (HttpContext http, UpdateGroupRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpUpdate, async (HttpContext http, UpdateGroupRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.UpdateAsync(http.HccCommand(GroupCommands.OpUpdate), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpRouting, async (HttpContext http, SetGroupRoutingRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpRouting, async (HttpContext http, SetGroupRoutingRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetRoutingAsync(http.HccCommand(GroupCommands.OpRouting), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpAttach, async (HttpContext http, GroupMemberRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpAttach, async (HttpContext http, GroupMemberRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.AttachMemberAsync(http.HccCommand(GroupCommands.OpAttach), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpDetach, async (HttpContext http, GroupMemberRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpDetach, async (HttpContext http, GroupMemberRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.DetachMemberAsync(http.HccCommand(GroupCommands.OpDetach), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpApply, async (HttpContext http, ApplyGroupRoutingRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpApply, async (HttpContext http, ApplyGroupRoutingRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.ApplyRoutingAsync(http.HccCommand(GroupCommands.OpApply), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpReroute, async (HttpContext http, RerouteGroupChargeRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpReroute, async (HttpContext http, RerouteGroupChargeRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.RerouteAsync(http.HccCommand(GroupCommands.OpReroute), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpTransfer, async (HttpContext http, TransferGroupMemberRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpTransfer, async (HttpContext http, TransferGroupMemberRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.TransferAsync(http.HccCommand(GroupCommands.OpTransfer), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpReceipt, async (HttpContext http, RecordGroupReceiptRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpReceipt, async (HttpContext http, RecordGroupReceiptRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.RecordReceiptAsync(http.HccCommand(GroupCommands.OpReceipt), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpAttrition, async (HttpContext http, RequestGroupAttritionRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpAttrition, async (HttpContext http, RequestGroupAttritionRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.RequestAttritionAsync(http.HccCommand(GroupCommands.OpAttrition), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpDecide, async (HttpContext http, DecideGroupAttritionRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpDecide, async (HttpContext http, DecideGroupAttritionRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.DecideAttritionAsync(http.HccCommand(GroupCommands.OpDecide), body, ct)));
-        g.MapPost("/commands/" + GroupCommands.OpSettle, async (HttpContext http, SettleGroupRequest body, GroupCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + GroupCommands.OpSettle, async (HttpContext http, SettleGroupRequest body, GroupCommands c, CancellationToken ct) =>
             http.HccReply(await c.SettleAsync(http.HccCommand(GroupCommands.OpSettle), body, ct)));
-        g.MapPost("/commands/" + CompanyCommands.OpSave, async (HttpContext http, SaveCompanyRequest body, CompanyCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CompanyCommands.OpSave, async (HttpContext http, SaveCompanyRequest body, CompanyCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveAsync(http.HccCommand(CompanyCommands.OpSave), body, ct)));
-        g.MapPost("/commands/" + CompanyCommands.OpLimit, async (HttpContext http, SetCompanyLimitRequest body, CompanyCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CompanyCommands.OpLimit, async (HttpContext http, SetCompanyLimitRequest body, CompanyCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetLimitAsync(http.HccCommand(CompanyCommands.OpLimit), body, ct)));
-        g.MapPost("/commands/" + CompanyCommands.OpDecide, async (HttpContext http, DecideCompanyLimitRequest body, CompanyCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CompanyCommands.OpDecide, async (HttpContext http, DecideCompanyLimitRequest body, CompanyCommands c, CancellationToken ct) =>
             http.HccReply(await c.DecideAsync(http.HccCommand(CompanyCommands.OpDecide), body, ct)));
-        g.MapPost("/commands/" + CompanyCredit.OpPayment, async (HttpContext http, RecordCompanyPaymentRequest body, CompanyCredit c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CompanyCredit.OpPayment, async (HttpContext http, RecordCompanyPaymentRequest body, CompanyCredit c, CancellationToken ct) =>
             http.HccReply(await c.RecordPaymentAsync(http.HccCommand(CompanyCredit.OpPayment), body, ct)));
         g.MapGet("/groups/companies", async (HttpContext http, CompanyQueries q, CancellationToken ct) =>
         {

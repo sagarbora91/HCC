@@ -10,7 +10,7 @@ import type {State,Command,Permission} from '../../services/mock';
 import {can} from '../../services/mock';
 import {HTTP_ADAPTER_ID,createHttpTransport,createHttpReservationsClient,createHttpSystemClient,createHttpMeClient,type FetchLike,type HttpTransport} from '../http';
 import {createConnection,type Connection} from '../connection';
-import {HccClientError,errorText,signInText} from '../errors';
+import {HccClientError,errorText,signInText,MODULE_OFF_REASON} from '../errors';
 import {IDEMPOTENCY_KEY_MAX} from '../wire';
 import type {HccClients} from '../types';
 import type {SrvCapabilities} from '../server';
@@ -319,6 +319,9 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     try{out=await m.send(c);}
     catch(e){
       if(e instanceof HccClientError&&e.wireCode==='UNAUTHENTICATED'){endSession('Your session has ended. Sign in again.');}
+      // A11-01 (DEC-057): the server refused because the module is switched off in Master configuration (maybe from another device).
+      // Show its sentence as it is and reload the module switches, so the module's screens disappear here too.
+      else if(e instanceof HccClientError&&e.details?.reason===MODULE_OFF_REASON)await reload(['configX','settings']);
       return {ok:false,reason:'server',text:errorText(e),error:e};
     }
     generation++;

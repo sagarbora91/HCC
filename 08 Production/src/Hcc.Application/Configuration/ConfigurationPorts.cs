@@ -168,8 +168,12 @@ public interface ISettingsReader
 }
 
 /// <summary>
-/// Modules on/off (DEC-057): a switchable module calls <see cref="EnsureOnAsync"/> at the start of each of its commands (or adds
-/// <c>.RequireHccModule(id)</c> to its command routes); a switched-off module's commands are refused with FORBIDDEN. Data is kept.
+/// Modules on/off (DEC-057, A11-01): every command route of a switchable module carries <c>.RequireHccModule(id)</c> (the endpoint
+/// filter calls <see cref="EnsureOnAsync"/>); a switched-off module's commands are refused with FORBIDDEN, <c>details.reason</c>
+/// <see cref="ConfigCatalog.ModuleOffReason"/> and <c>details.moduleId</c>. Data is kept: its read routes (and, for document capture,
+/// the audited image/number views and the manual erasure purge) keep answering, and its background projectors keep processing
+/// already-published outbox events (DEC-057 does not pause them; pausing would also hold back the outbox retention purge).
+/// Core modules are never switchable.
 /// </summary>
 public interface IModuleGate
 {
@@ -209,8 +213,18 @@ public sealed class ModuleGate(ISettingsReader reader) : IModuleGate
     public async Task EnsureOnAsync(int propertyId, string moduleId, CancellationToken ct = default)
     {
         if (await IsOnAsync(propertyId, moduleId, ct).ConfigureAwait(false)) return;
-        throw new HccException(HccErrorCode.FORBIDDEN, ConfigCatalog.ModuleOffMessage(ConfigCatalog.Module(moduleId)!),
-            new Dictionary<string, System.Text.Json.JsonElement> { ["moduleId"] = System.Text.Json.JsonSerializer.SerializeToElement(moduleId) });
+        throw Refusal(moduleId);
+    }
+
+    /// <summary>The refusal of a switched-off module's command: FORBIDDEN, the prototype's text, reason MODULE_OFF and the module id.</summary>
+    public static HccException Refusal(string moduleId)
+    {
+        var m = ConfigCatalog.Module(moduleId) ?? throw new InvalidOperationException($"'{moduleId}' is not a switchable module.");
+        return new HccException(HccErrorCode.FORBIDDEN, ConfigCatalog.ModuleOffMessage(m), new Dictionary<string, System.Text.Json.JsonElement>
+        {
+            ["reason"] = System.Text.Json.JsonSerializer.SerializeToElement(ConfigCatalog.ModuleOffReason),
+            ["moduleId"] = System.Text.Json.JsonSerializer.SerializeToElement(m.Id),
+        });
     }
 }
 
