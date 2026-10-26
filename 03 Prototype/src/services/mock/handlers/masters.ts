@@ -132,6 +132,7 @@ function importRows(k:Kit,sets:MstIoSet[]):MstImportReport{
       const input:Record<string,unknown>={};
       for(const [key,v] of Object.entries(row))if(keys.has(key)&&key!=='active'&&key!=='code'&&v!==undefined)input[key]=v;
       input.code=code;
+      if(!name&&sp.autoName&&!old)input.name=sp.autoName(code); // V14-7: rooms are named after their number
       if(!old)for(const f of sp.fields)if(f.type==='toggle'&&!(f.key in input)&&f.key in MST_IO_TOGGLE_DEFAULT)input[f.key]=MST_IO_TOGGLE_DEFAULT[f.key]; // a new row takes the field default
       if(!('name' in input)&&old)input.name=old.name;
       for(const f of sp.fields)if(f.type==='datedMoney'&&f.key in input)input[f.key]=mstMergeDated(old?.[f.key],input[f.key],k.s.date,set.source==='csv');

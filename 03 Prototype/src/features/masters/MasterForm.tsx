@@ -34,6 +34,7 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
   const row=rowId?mstById(s,specId,rowId):undefined;
   const [d,setD]=useState<Draft>(()=>spec?draftOf(spec,row,rows):{});
   const [touched,setTouched]=useState(false);
+  const {open}=useHcc(); // V14-6: Retire asks first (modal 'mst-retire', RetireConfirm.tsx)
   if(!spec)return <p className="muted">This list is not available.</p>;
   if(rowId&&!row)return <p className="muted">This {spec?.singular} no longer exists.</p>;
   const can=mstCanEdit(s,uid,spec),money=mstCanEditMoney(s,uid);
@@ -54,7 +55,7 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
     for(const f of spec.fields)if(isMoney(f)&&!money&&row)payload[f.key]=row[f.key]; // never send a money change without the Owner's right
     void run({type:'MST_MASTER_SAVE',master:specId,row:payload,key:key('save')},row?`${spec.singular[0].toUpperCase()+spec.singular.slice(1)} saved · history recorded`:`${clean.name} added`,
       {close:!!sheet,after:()=>{if(sheet)setDirty(false);onDone?.(row?.id);}});};
-  const status=(type:'MST_MASTER_RETIRE'|'MST_MASTER_REACTIVATE'|'MST_MASTER_DELETE',msg:string)=>void run({type,master:specId,id:row!.id,key:key(type)},msg,{close:!!sheet,after:()=>onDone?.(type==='MST_MASTER_DELETE'?undefined:row!.id)});
+  const status=(type:'MST_MASTER_REACTIVATE'|'MST_MASTER_DELETE',msg:string)=>void run({type,master:specId,id:row!.id,key:key(type)},msg,{close:!!sheet,after:()=>onDone?.(type==='MST_MASTER_DELETE'?undefined:row!.id)});
   const title=row?`${row.name}`:`New ${spec.singular}`;
   return <div className={'mst-form'+(sheet?' mst-sheet':'')}>
     <div className={sheet?'modal-heading':'mst-form-head'}><div className="eyebrow">{spec.label.toUpperCase()}{row?` · ${row.code}`:''}</div><h2>{title}</h2>
@@ -73,7 +74,7 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
       </div>
     </form>
     {row&&can.ok&&<div className="mst-status-act">
-      {row.active?<button type="button" className="btn" disabled={busy} onClick={()=>status('MST_MASTER_RETIRE',`${row.name} retired · old records keep the name`)}><Archive size={15}/> Retire</button>
+      {row.active?<button type="button" className="btn" disabled={busy} onClick={()=>open({type:'mst-retire',id:`${specId}:${row.id}${sheet?':sheet':''}`})}><Archive size={15}/> Retire…</button>
         :<button type="button" className="btn" disabled={busy} onClick={()=>status('MST_MASTER_REACTIVATE',`${row.name} reactivated`)}><RotateCcw size={15}/> Reactivate</button>}
       {usage.count===0?<button type="button" className="btn danger" disabled={busy} onClick={()=>status('MST_MASTER_DELETE',`${row.name} deleted`)}><Trash2 size={15}/> Delete (never used)</button>
         :<small className="muted">In use — it can be retired, not deleted.</small>}

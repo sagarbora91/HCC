@@ -15,7 +15,8 @@ export type MockHost={
   dispatch(cmd:Command):Promise<void>;
 };
 
-const REASON:Record<string,AvailabilityReason>={'Blocked':'Blocked','Over capacity':'OverCapacity','Occupied':'Occupied','Booked':'Booked','Held':'Held'};
+// V14-5: retired and out-of-order rooms travel as Blocked (the contract has no own code); reasonText carries the exact wording.
+const REASON:Record<string,AvailabilityReason>={'Blocked':'Blocked','Retired':'Blocked','Out of order':'Blocked','Over capacity':'OverCapacity','Occupied':'Occupied','Booked':'Booked','Held':'Held','Group hold':'GroupHold'};
 const QUOTE_PREFIX='mockq';
 /** Mock quotes carry their request in the id, so no quote store is needed; version is always "1". */
 export function mockQuoteId(q:{roomId:string;arrival:string;departure:string;adults:number;children?:number}){return [QUOTE_PREFIX,q.roomId,q.arrival,q.departure,q.adults,q.children??0].join('|');}

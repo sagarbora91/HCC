@@ -268,7 +268,8 @@ async function funcPhase(browser){
     await sheet.getByRole('button',{name:/^Add floor/}).click();await sleep(800);
     note('Floors: add saves, sheet closes',(await sheet.count())===0&&/added/i.test(await toastText(page)),await toastText(page));
     await page.locator('.mst-m-spec .mst-m-row .m-list-card',{hasText:'Terrace'}).click();await sleep(500);
-    await sheet.getByRole('button',{name:/Retire/}).click();await sleep(700);
+    await sheet.getByRole('button',{name:/Retire/}).click();await sleep(500);
+    await page.locator('.modal-actions .btn.danger',{hasText:'Retire'}).click();await sleep(700); // V14-6: the retire confirmation
     const chip=await page.locator('.m-chips button',{hasText:'Retired'}).innerText();
     note('Floors: retire from the sheet',/1/.test(chip),chip.replace(/\n/g,' ')+'; '+await toastText(page));
     await page.locator('.m-chips button',{hasText:'Retired'}).click();await sleep(300);

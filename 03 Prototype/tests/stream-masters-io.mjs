@@ -175,6 +175,37 @@ export async function register({test,M,assert}){
       const sample=readFileSync(`${TPL}/samples/${wire}.csv`,'utf8').split(/\r?\n/)[0].split(',');assert.deepEqual(sample,want,'sample '+wire);}
     const legacy=['room-types','rooms','tariffs','seasons','staff','ledgers','opening-balances','till-cash','guests','departments','companies','suppliers','stock-items'];
     assert.deepEqual(names.map(f=>f.replace(/\.csv$/,'')).filter(w=>!Object.values(MST_IO_WIRE).includes(w)).sort(),legacy.sort(),'every other template is one of the older imports');});
+  // ── V14-7: Paste rows for room types and rooms (demo build), rooms through the range-add rules ──
+  test('[MIO] V14-7 every master offers Paste rows in the demo build: the server-file lists plus room types and rooms (MST_IO_LOCAL)',()=>{
+    assert.deepEqual(M.MST_IO_LOCAL,['roomTypes','rooms']);
+    assert.deepEqual(masterSpecs().filter(x=>!M.mstCanPaste(x.id)).map(x=>x.id),[]);});
+  test('[MIO] V14-7 Paste rows adds rooms like range add: name optional (Room <n>), floor / type by code or name, Ready, rack rate of the type, added today',()=>{
+    const res=mstRowsFromCsv(base,mstSpec('rooms'),'code,floor,type,smoking\n404,F3,Deluxe,no\n405,Floor 3,DELUXE,yes\n');
+    assert.deepEqual(res.errors,[]);assert.deepEqual(res.rows.map(x=>[x.row.code,x.row.name,x.row.floor,x.row.type,x.row.smoking]),[['404','Room 404','F3','DELUXE',false],['405','Room 405','F3','DELUXE',true]]);
+    const sets=[{master:'rooms',source:'csv',rows:res.rows.map(x=>x.row)}];
+    assert.deepEqual(mstImportPreview(base,'owner',sets).counts,{create:2,update:0,unchanged:0,skipped:0,errors:0});
+    const t=importSets(base,'techadmin',sets),r=t.rooms.find(x=>x.id==='405');
+    assert.deepEqual([r.floor,r.type,r.hk,r.rate,r.smoking,r.addedOn,r.blocked],[3,'Deluxe','Ready',300000,true,base.date,false]);
+    assert.equal(mstRows(t,'rooms').length,26);assert.ok(M.available(t,'404',base.date,M.addDays(base.date,2)),'bookable from today (V14-5)');
+    assert.ok(mstHistory(t,'rooms').some(h=>h.code==='404'),'history like the form');});
+  test('[MIO] V14-7 Paste rows refuses rooms the way range add does: number on past stays, retired type, floor not F<n>, unknown type',()=>{
+    let s=structuredClone(base);const past=s.bookings.find(b=>b.status==='Departed')??s.bookings[0];s.bookings.push({...past,id:'HCC-T499',room:'499',status:'Departed'});
+    s=execute(s,'owner',{type:'MST_MASTER_SAVE',master:'floors',row:{code:'ROOF',name:'Roof'}});
+    s=execute(s,'owner',{type:'MST_MASTER_SAVE',master:'roomTypes',row:{code:'OLD',name:'Old type',maxAdults:2,rackRate:[{amount:100000,effectiveFrom:s.date}]}});
+    s=execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'roomTypes',id:mstByCode(s,'roomTypes','OLD').id});
+    const rows=[{code:'499',floor:'F3',type:'DELUXE'},{code:'406',floor:'F3',type:'OLD'},{code:'407',floor:'ROOF',type:'DELUXE'},{code:'408',floor:'F3',type:'NOPE'},{code:'409',floor:'F3',type:'DELUXE'}];
+    const rep=mstImportPreview(s,'owner',[{master:'rooms',rows}]);
+    assert.deepEqual(rep.items.map(i=>[i.code,i.action]),[['499','error'],['406','error'],['407','error'],['408','error'],['409','create']]);
+    assert.equal(rep.items[0].detail,M.rmsNumberTaken(s,'499'),'the same message as range add');
+    assert.match(rep.items[1].detail,/retired/);assert.match(rep.items[2].detail,/F<number>/);assert.match(rep.items[3].detail,/not in Room types/);
+    assert.throws(()=>importSets(s,'owner',[{master:'rooms',rows}]),/4 rows refused — nothing was imported/);
+    const again=mstImportPreview(base,'owner',[{master:'rooms',rows:[{code:'101',floor:'F1',type:'CLASSIC'}]}]);assert.equal(again.items[0].action,'unchanged','a known number updates that room, never a second one');});
+  test('[MIO] V14-7 Paste rows adds room types (the Owner sets the rack rate; the Tech admin\'s rack-rate row is skipped)',()=>{
+    const res=mstRowsFromCsv(base,mstSpec('roomTypes'),'code,name,maxAdults,maxChildren,bedType,rackRate\nFAM,Family room,4,2,King,3500\n');assert.deepEqual(res.errors,[]);
+    const sets=[{master:'roomTypes',source:'csv',rows:res.rows.map(x=>x.row)}];
+    const t=importSets(base,'owner',sets),fam=mstByCode(t,'roomTypes','FAM');
+    assert.deepEqual([fam.name,fam.maxAdults,fam.maxChildren,fam.bedType,M.rmsRackOn(t,'FAM',base.date)],['Family room',4,2,'King',350000]);
+    assert.equal(mstImportPreview(base,'techadmin',sets).items[0].action,'skipped');});
   await registerUi({test,M,assert});
   test('[MIO] header sync: the server samples parse through the prototype FieldSpecs (columns known, no header problem) for every master',()=>{
     for(const [id,wire] of Object.entries(MST_IO_WIRE)){
@@ -196,6 +227,9 @@ import {MasterList} from '../../src/features/masters/MasterList';
 import {MasterListPhone} from '../../src/mobile/masters/MasterListPhone';
 import {CfgDataPanel} from '../../src/features/admin/config/panels';
 import {registration} from '../../src/features/masters/register';
+import {MasterForm} from '../../src/features/masters/MasterForm';
+import {MstRetireConfirm} from '../../src/features/masters/RetireConfirm';
+import '../../src/features/roommasters/register'; // V14-7: the Rooms tools entry (range add, Renumber, Out of order, no-reorder note)
 function ctx(s:any,uid:string,mobile:boolean):any{
   const user=s.users.find((u:any)=>u.id===uid);const noop=()=>{};
   return {s,uid,user,m:metrics(s),page:'settings',go:noop,modal:{type:'x',key:'k'},open:noop,closeModal:noop,booking:noop,error:'',busy:false,run:async()=>false,toast:noop,permission:(p:any)=>can(s,uid,p),act:()=>null,
@@ -204,7 +238,9 @@ function ctx(s:any,uid:string,mobile:boolean):any{
 }
 export const html=(s:any,uid:string,what:string,mobile=false)=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid,mobile)}>{
   what==='paste'?<MstPasteSheet id="floors"/>:what==='pasteVendors'?<MstPasteSheet id="expenseVendors"/>:what==='import'?<MstImportSheet/>:what==='panel'?<MstIoPanel/>:what==='data'?<CfgDataPanel/>:what==='list'?<MasterList spec="floors"/>:
-  what==='listPhone'?<MasterListPhone spec="floors"/>:what==='listRooms'?<MasterList spec="rooms"/>:null}</HccContext.Provider>);
+  what==='listPhone'?<MasterListPhone spec="floors"/>:what==='listRooms'?<MasterList spec="rooms"/>:what==='listRoomsPhone'?<MasterListPhone spec="rooms"/>:
+  what==='listTypes'?<MasterList spec="roomTypes"/>:what==='listTypesPhone'?<MasterListPhone spec="roomTypes"/>:what.startsWith('retire:')?<MstRetireConfirm id={what.slice(7)}/>:
+  what.startsWith('form:')?<MasterForm specId={what.split(':')[1]} rowId={what.split(':')[2]} sheet={mobile}/>:null}</HccContext.Provider>);
 export const reg=registration;
 `);
   await build({entryPoints:[dir+'/mio-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:dir+'/mio-entry.mjs',logLevel:'error',jsx:'automatic',
@@ -219,9 +255,28 @@ export const reg=registration;
     const p=U.html(base,'owner','paste');assert.match(p,/Paste rows/);assert.match(p,/code, name, sortOrder, active/);assert.match(p,/Copy this list as CSV/);assert.match(p,/<textarea/);
     const i=U.html(base,'owner','import');assert.match(i,/Import masters/);assert.match(i,/All or nothing/);assert.match(i,/never retires a row/);
     assert.match(U.html(base,'reception','paste'),/masters permission/);});
-  test('[MIO-UI] MasterList (desktop and phone) offers Paste rows next to Add for lists with a server file, not for rooms; Reception sees neither',()=>{
+  test('[MIO-UI] MasterList (desktop and phone) offers Paste rows next to Add for every list incl. room types and rooms (V14-7); Reception sees neither',()=>{ // V14-7 old → new: rooms had no Paste rows
     assert.match(U.html(base,'owner','list'),/Paste rows/);assert.match(U.html(base,'owner','listPhone',true),/Paste rows/);
-    assert.ok(!/Paste rows/.test(U.html(base,'owner','listRooms')));assert.ok(!/Paste rows/.test(U.html(base,'reception','list')));});
+    for(const w of ['listRooms','listTypes'])assert.match(U.html(base,'owner',w),/Paste rows/,w);
+    for(const w of ['listRoomsPhone','listTypesPhone'])assert.match(U.html(base,'owner',w,true),/Paste rows/,w);
+    assert.ok(!/Paste rows/.test(U.html(base,'reception','list')));});
+  test('[MIO-UI] V14-7 list tools uniform: room types have move arrows; rooms keep range add / Renumber / Out of order and say why they have no arrows (desktop + phone)',()=>{
+    assert.match(U.html(base,'owner','listTypes'),/Move Deluxe up/);assert.match(U.html(base,'owner','listTypesPhone',true),/Move Deluxe up/);
+    for(const [w,m] of [['listRooms',false],['listRoomsPhone',true]]){const h=U.html(base,'owner',w,m);
+      assert.match(h,/Add rooms/,w);assert.match(h,/Renumber a room/,w);assert.match(h,/Set out of order/,w);
+      assert.doesNotMatch(h,/Move Room 101 up/,w);assert.match(h,/Rooms are listed by floor and room number, so they have no manual order/,w);}
+    assert.doesNotMatch(U.html(base,'owner','listTypes'),/no manual order/);});
+  test('[MIO-UI] V14-6 Retire asks first in the app dialog (desktop + phone): "Retire Floor 1?", old records keep the name, Back + Retire; Reactivate runs at once',()=>{
+    const src=f=>readFileSync(f,'utf8'),f=src('src/features/masters/MasterForm.tsx');
+    assert.doesNotMatch(f,/MST_MASTER_RETIRE/,'the form no longer retires directly');assert.match(f,/open\(\{type:'mst-retire',id:`\$\{specId\}:\$\{row\.id\}\$\{sheet\?':sheet':''\}`\}\)/);
+    assert.match(f,/status\('MST_MASTER_REACTIVATE'/,'reactivate needs no confirmation');
+    for(const x of [f,src('src/features/masters/RetireConfirm.tsx')])assert.doesNotMatch(x,/window\.confirm|[^.\w]confirm\(/);
+    for(const m of [false,true])assert.match(U.html(base,'owner','form:floors:flr-1',m),/Retire…/);
+    const d=U.html(base,'owner','retire:floors:flr-1');
+    assert.match(d,/Retire Floor 1\?/);assert.match(d,/Old records keep the name/);assert.match(d,/Used in 8/);assert.match(d,/>Back</);assert.match(d,/class="btn danger"/);assert.doesNotMatch(d,/disabled=""/);
+    assert.match(U.html(base,'owner','retire:rooms:105:sheet'),/Room 105 leaves the room board, the calendar and New booking/);
+    const live=U.html(base,'owner','retire:rooms:101');assert.match(live,/has bookings/);assert.match(live,/disabled=""/,'a room with a live booking cannot be retired');
+    for(const where of [U.reg.modals,U.reg.mobile.modals])assert.equal(typeof where['mst-retire'],'function');});
   test('[MIO-UI] both modals are registered for desktop and phone (mst-import, mst-paste)',()=>{
     for(const where of [U.reg.modals,U.reg.mobile.modals]){assert.equal(typeof where['mst-import'],'function');assert.equal(typeof where['mst-paste'],'function');assert.equal(typeof where['mst-row'],'function');}});
 }

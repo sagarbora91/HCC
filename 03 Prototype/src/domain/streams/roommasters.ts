@@ -163,7 +163,7 @@ function writeRooms(s:State,rows:RmsRoomRow[]){
     if(n===undefined)mstFail('MASTER_INVALID',`Floor ${row.floor}: rooms can be placed on floors coded F<number> (F0 = ground).`,'floor');
     const key=rmsTypeKeyOfCode(s,String(row.type));
     const next:Room=prev?{...prev}:{id:String(row.code),floor:n!,type:key,rate:0,hk:'Ready',blocked:false};
-    if(!prev){const rate=rmsRackOn(s,key,s.date);if(!rate)mstFail('MASTER_INVALID',`Set the rack rate of ${row.type} before adding rooms of that type.`,'type');next.rate=rate!;}
+    if(!prev){const rate=rmsRackOn(s,key,s.date);if(!rate)mstFail('MASTER_INVALID',`Set the rack rate of ${row.type} before adding rooms of that type.`,'type');next.rate=rate!;next.addedOn=s.date;}
     if(prev&&row.code!==prev.id){next.id=String(row.code);tasks=tasks.map(t=>t.room===prev.id?{...t,room:next.id}:t);}
     if(prev&&key!==prev.type){const l=rmsLiveBookings(s,prev.id);
       if(l.length)mstFail('MASTER_LOCKED_BY_BOOKINGS',`Room ${prev.id} has bookings ${rmsLockText(l)} — change its type from a date with no booking (move them first).`,'type');
@@ -200,11 +200,14 @@ export const ROOM_SPEC:MasterSpec<RmsRoomRow>={
   canRetire:(s,row)=>{const l=rmsLiveBookings(s,row.id);return l.length?`Room ${row.id} has bookings ${rmsLockText(l)} — move them before retiring the room.`:undefined;},
   validate:(s,row)=>{
     if(!RMS_ROOM_NO.test(String(row.code)))return 'Room number: 1–10 capital letters, digits or “-”.';
+    // V14-7: a new room (Paste rows / import) passes the same number check as range add (rooms incl. retired, numbers on past stays).
+    if(!s.rooms.some(r=>r.id===row.id)){const why=rmsNumberTaken(s,String(row.code));if(why)return why;}
     if(mstFloorNumber(String(row.floor))===undefined)return `Floor ${row.floor}: rooms can be placed on floors coded F<number> (F0 = ground).`;
     if(row.connecting&&(row.connecting===row.code||!s.rooms.some(r=>r.id===row.connecting)))return `Connecting room ${row.connecting}: choose another existing room.`;
     if(row.extension&&!/^\d{2,6}$/.test(String(row.extension)))return 'Phone extension: 2–6 digits.';
     return undefined;},
   store:{read:readRooms,write:writeRooms},
+  autoName:code=>'Room '+code,
 };
 /** Room numbers already used: rooms (incl. retired) and numbers on past stays (renumbered rooms keep their old stays). */
 export function rmsNumberTaken(s:State,no:string):string|undefined{

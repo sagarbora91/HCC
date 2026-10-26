@@ -51,6 +51,8 @@ export type Room={id:string;floor:number;type:string;rate:number;hk:'Ready'|'Dir
   /** Out-of-order window: nights [from, to) (to absent = until cleared) and the reason. A room hold (registerRoomHold), not a block. */
   ooo?:{from:string;to?:string;reason:string};
   /** Business date the room was retired. */ retiredOn?:string;
+  /** V14-5: business date the room was added through the rooms master (absent = an original room). Group holds take rooms that
+   *  were there before (oldest first), so a room added today stays bookable while older free rooms can carry a block. */ addedOn?:string;
 };
 export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'service'|'discount'|'adjustment';taxBps:number;
   // ── Line · stream C fields (add below this line) ──
