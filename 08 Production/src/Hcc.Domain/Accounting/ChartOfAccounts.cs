@@ -91,6 +91,10 @@ public static partial class ChartOfAccounts
         ["payroll:salaries"] = "5100", ["payroll:employer-pf"] = "5110", ["payroll:employer-esic"] = "5110",
         ["payroll:net-payable"] = "2300", ["payroll:pf-payable"] = "2310", ["payroll:esic-payable"] = "2320",
         ["payroll:pt-payable"] = "2330", ["payroll:other-deductions"] = "2340", ["payroll:advances"] = "1200",
+
+        // DEC-074 (wave B3): group attrition and deposits; full-and-final additions, deductions and an amount the leaver owes (illustrative — CA to confirm).
+        ["line:attrition"] = "4000", ["receipt:group-deposit"] = "2000",
+        ["payroll:fnf-additions"] = "5100", ["payroll:fnf-deductions"] = "2340", ["payroll:fnf-recoverable"] = "1200",
     };
 
     private static readonly (string Prefix, string Label)[] KeyGroups =

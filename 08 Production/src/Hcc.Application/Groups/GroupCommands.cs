@@ -5,6 +5,7 @@ using Hcc.Application.Closing;
 using Hcc.Application.Commands;
 using Hcc.Application.Tax;
 using Hcc.Contracts;
+using Hcc.Contracts.Accounting;
 using Hcc.Contracts.Groups;
 using Hcc.Domain.Billing;
 using Hcc.Domain.Errors;
@@ -313,6 +314,7 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
             if (days is not null) await days.EnsureCashBookOpenAsync(tx, ctx.PropertyId, s.BusinessDate, "a group receipt", c).ConfigureAwait(false);
             var ledger = GroupLedger.Build(s);
             string label;
+            string? refundOfKind = null;   // DEC-074: accounting books a refund against the ledger the refunded receipt credited
             switch (req.Kind)
             {
                 case "payment":
@@ -332,6 +334,7 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
                     var credit = -ledger.Master.Balance;
                     if (amount > credit) throw Invalid($"Only a credit balance can be refunded (credit {Clamp(credit)}).");
                     label = $"Refund of receipt {N(parent.EntryId)} · {tender}";
+                    refundOfKind = parent.Kind;
                     break;
                 }
             }
@@ -340,7 +343,8 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
                 tender, reference, null, null, null, null, req.Kind == "refund" ? req.RefundOf : null, ctx.PrincipalId, Now), c).ConfigureAwait(false);
             var version = await store.TouchGroupAsync(tx, s.Group.GroupId, c).ConfigureAwait(false);
             await tx.AuditAsync("GROUP_RECEIPT_RECORDED", Target(s.Group.GroupId), $"{s.Group.Code} · {req.Kind} · {tender} · {amount} · ref {reference} · manual entry, not verified", c).ConfigureAwait(false);
-            await tx.PublishAsync("GroupReceiptRecorded", s.Group.GroupId, new { groupId = s.Group.GroupId, entryId, kind = req.Kind, tender, amountPaise = amount.Value, businessDate = s.BusinessDate }, c).ConfigureAwait(false);
+            await tx.PublishAsync(AccountingEvents.GroupReceiptRecorded, s.Group.GroupId,
+                new GroupReceiptRecordedEvent(s.Group.GroupId, entryId, req.Kind, tender, amount.Value, s.BusinessDate, refundOfKind), c).ConfigureAwait(false);
             return new GroupReceiptResult(s.Group.GroupId, entryId, req.Kind, tender, amount.Value, s.BusinessDate, version);
         }, ct).ConfigureAwait(false);
     }
@@ -363,7 +367,7 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
             var detail = JsonSerializer.Serialize(priced.Select(p => new
             {
                 roomType = p.Line.RoomType, night = p.Line.Night, rooms = p.Line.Rooms, perRoomNightPaise = p.Line.PerRoomNight.Value, netPaise = p.Line.Amount.Value,
-                taxBps = p.Rate.Bps, taxPaise = p.Tax.Value, itc = p.Rate.Itc, rule = p.Rate.Rule,
+                taxBps = p.Rate.Bps, taxPaise = p.Tax.Value, itc = p.Rate.Itc, rule = p.Rate.Rule, slabBasisPaise = GroupAttrition.GstSlabBasis(p.Line).Value,
             }), CanonicalJson.SerializerOptions);
             var net = priced.Aggregate(Paise.Zero, (a, p) => a + p.Line.Amount);
             var tax = priced.Aggregate(Paise.Zero, (a, p) => a + p.Tax);
@@ -414,8 +418,8 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
             if (req.Approve)
             {
                 var split = GstSplitOf(a.Tax, a.DetailJson);
-                await tx.PublishAsync("GroupAttritionPosted", s.Group.GroupId, new { groupId = s.Group.GroupId, attritionId = a.AttritionId, entryIds = ids, netPaise = a.Net.Value,
-                    taxPaise = a.Tax.Value, cgstPaise = split.Cgst, sgstPaise = split.Sgst, businessDate = s.BusinessDate }, c).ConfigureAwait(false);
+                await tx.PublishAsync(AccountingEvents.GroupAttritionPosted, s.Group.GroupId,
+                    new GroupAttritionPostedEvent(s.Group.GroupId, a.AttritionId, ids, a.Net.Value, a.Tax.Value, split.Cgst, split.Sgst, s.BusinessDate), c).ConfigureAwait(false);
             }
 
             return new GroupAttritionResult(a.AttritionId, s.Group.GroupId, req.Approve ? "Posted" : "Rejected", a.Net.Value, a.Tax.Value, ids, version);
@@ -452,7 +456,8 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
         var priced = new List<PricedAttrition>();
         foreach (var l in lines)
         {
-            var rate = await gst.RoomNightAsync(tx, s.Group.PropertyId, l.Night, l.PerRoomNight, ct).ConfigureAwait(false); // per unit per night
+            // DEC-074 / A03a-06: the room slab of the contracted per-night block rate (per unit per night), not of the retention price.
+            var rate = await gst.RoomNightAsync(tx, s.Group.PropertyId, l.Night, GroupAttrition.GstSlabBasis(l), ct).ConfigureAwait(false);
             priced.Add(new PricedAttrition(l, rate, GstMath.LineTax(l.Amount, rate.Bps)));
         }
 
@@ -483,7 +488,8 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
                 throw Invalid(ledger.Master.Balance > Paise.Zero ? $"Collect the master balance due ({ledger.Master.Balance}) first." : $"Refund the master credit ({-ledger.Master.Balance}) first.");
             var version = await store.SettleGroupAsync(tx, s.Group.GroupId, req.ExpectedVersion, ctx.PrincipalId, Now, c).ConfigureAwait(false);
             await tx.AuditAsync("GROUP_SETTLED", Target(s.Group.GroupId), $"{s.Group.Code} · master charges {ledger.Master.Charges} · received {ledger.Master.Received} · balance 0", c).ConfigureAwait(false);
-            await tx.PublishAsync("GroupSettled", s.Group.GroupId, new { groupId = s.Group.GroupId, chargesPaise = ledger.Master.Charges.Value, receivedPaise = ledger.Master.Received.Value }, c).ConfigureAwait(false);
+            await tx.PublishAsync(AccountingEvents.GroupSettled, s.Group.GroupId, new GroupSettledEvent(s.Group.GroupId, ledger.Master.Charges.Value, ledger.Master.Received.Value,
+                GroupLedger.DepositsHeld(s.Entries).Value, s.BusinessDate), c).ConfigureAwait(false);
             return new GroupResult(s.Group.GroupId, s.Group.Code, "Settled", version);
         }, ct).ConfigureAwait(false);
     }

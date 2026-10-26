@@ -162,8 +162,11 @@ public sealed class Hotel(PayrollDb db, int propertyId)
     public async Task<string> RowVersionAsync(string table, string key, long id) =>
         Convert.ToBase64String((byte[])(await Db.ScalarAsync($"SELECT row_ver FROM {table} WHERE {key} = @i;", ("@i", id)))!);
 
-    /// <summary>Seeds the prototype BASE payroll fixture: 12 staff (8 linked), Aug + Sep 2026 attendance, leave, the open advance.</summary>
-    public async Task SeedGoldenAsync()
+    /// <summary>
+    /// Seeds the prototype BASE payroll fixture: 12 staff (8 linked), Aug + Sep 2026 attendance, leave, the open advance. With
+    /// <paramref name="advances"/> false the advance is left out (DEC-074 tests give it through the GiveAdvance command, which publishes AdvanceGiven).
+    /// </summary>
+    public async Task SeedGoldenAsync(bool advances = true)
     {
         var g = PayrollGolden.Data;
         foreach (var s in g.Staff)
@@ -192,7 +195,7 @@ public sealed class Hotel(PayrollDb db, int propertyId)
                 VALUES (@p, @s, @t, @f, @to, @h, @dx, N'Fictional', @st, @rb, '2026-09-08', @db, @du);
                 """, ("@p", PropertyId), ("@s", Staff[l.StaffId]), ("@t", l.Type), ("@f", l.From), ("@to", l.To), ("@h", l.Half), ("@dx", (int)(l.Days * 2)), ("@st", l.Status),
                 ("@rb", U("owner")), ("@db", l.Status == "Approved" ? U("manager") : null), ("@du", l.Status == "Approved" ? "2026-09-08" : null));
-        foreach (var a in g.Advances)
+        foreach (var a in advances ? g.Advances : [])
             await Db.ScalarAsync("""
                 INSERT hr.advance(property_id, staff_id, amount_paise, installment_paise, advance_date, from_month, reason, given_by, given_utc)
                 VALUES (@p, @s, @a, @i, @d, @f, N'Festival advance (fictional)', @by, '2026-08-10');

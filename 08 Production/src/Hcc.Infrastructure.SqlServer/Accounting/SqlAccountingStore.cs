@@ -341,6 +341,11 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
                        ISNULL(SUM(CASE x.kind WHEN 'company-credit' THEN x.amount_paise END), 0)
                 FROM pay.receipt x JOIN bill.folio f ON f.folio_id = x.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
                 WHERE r.property_id = @p AND x.business_date = @d;
+                -- DEC-074 (wave B3): group master folios — attrition net and GST, receipts in − out (posted on that business date).
+                SELECT ISNULL(SUM(CASE WHEN e.kind = 'attrition' THEN e.amount_paise END), 0), ISNULL(SUM(CASE WHEN e.kind = 'attrition' THEN e.tax_paise END), 0),
+                       ISNULL(SUM(CASE e.kind WHEN 'payment' THEN e.amount_paise WHEN 'deposit' THEN e.amount_paise WHEN 'refund' THEN -e.amount_paise END), 0)
+                FROM grp.master_entry e JOIN grp.group_account g ON g.group_id = e.group_id
+                WHERE g.property_id = @p AND e.business_date = @d;
                 """, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
@@ -349,7 +354,10 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
             var (room, service, discount, adjustment, tax) = (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3), rd.GetInt64(4));
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             await rd.ReadAsync(ct).ConfigureAwait(false);
-            return new OperationalFigures(room, service, discount, adjustment, tax, rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2));
+            var (receipts, deposits, credit) = (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            await rd.ReadAsync(ct).ConfigureAwait(false);
+            return new OperationalFigures(room, service, discount, adjustment, tax, receipts, deposits, credit, rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2));
         }, ct);
 
     public Task<IReadOnlyList<DateOnly>> ActivityDatesAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct)

@@ -249,15 +249,16 @@ export function HRFnfModal({id}:{id?:string}){
   const clean:HRFnfAdj[]=adj.filter(a=>a.label.trim()&&Number(a.amount)>0).map(a=>({label:a.label.trim(),kind:a.kind,amount:rs(a.amount)}));
   const c=hrFnfCompute(s,st,clean),enc=hrElEncashment(s,st);
   const row=(l:string,v:number,sign='')=><div key={l}><span>{l}</span><strong className="number">{sign}{money(v)}</strong></div>;
-  return <><div className="modal-heading"><h2>Full and final · {st.name}</h2><p>Last day {dateLabel(c.lastDay)}. {c.salaryIncluded?`Includes ${hrMonthLabel(c.month)} salary to the last day.`:`${hrMonthLabel(c.month)} salary was already paid in the locked run.`} The full outstanding advance is recovered. Simulated bank transfer.</p></div>
+  return <><div className="modal-heading"><h2>Full and final · {st.name}</h2><p>Last day {dateLabel(c.lastDay)}. {c.salaryIncluded?`Includes ${hrMonthLabel(c.month)} salary to the last day.`:`${hrMonthLabel(c.month)} salary was already paid in the locked run.`} The outstanding advance is recovered up to what the settlement covers; the rest stays open. Simulated bank transfer.</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_FNF_SETTLE',staffId:st.id,adjustments:clean},'Draft settlement prepared — the other payroll user confirms',{close:true});}}>
       <div className="summary-list hr-fnf-sum">
         {c.line&&row(`Salary ${hrMonthLabel(c.month)} (${c.line.payableDays} days)`,c.line.earned,'+ ')}{c.line&&!!c.line.ot&&row('Overtime',c.line.ot,'+ ')}
         {clean.filter(a=>a.kind==='add').map(a=>row(a.label,a.amount,'+ '))}
         {c.line&&!!c.line.pf&&row('PF (employee)',c.line.pf,'− ')}{c.line&&!!c.line.esic&&row('ESIC (employee)',c.line.esic,'− ')}{c.line&&!!c.line.pt&&row('Professional tax',c.line.pt,'− ')}
-        {!!c.advanceOutstanding&&row('Advance outstanding (full recovery)',c.advanceOutstanding,'− ')}
         {clean.filter(a=>a.kind==='ded').map(a=>row(a.label,a.amount,'− '))}
+        {!!c.advanceOutstanding&&row(c.advanceLeftOpen?`Advance recovered (of ${money(c.advanceOutstanding)} outstanding)`:'Advance outstanding (full recovery)',c.advanceRecovered,'− ')}
       </div>
+      {c.advanceLeftOpen>0&&<div className="info-note hr-warn" role="note"><AlertTriangle size={16}/><span>The settlement does not cover the whole advance: {money(c.advanceLeftOpen)} stays open as an advance the employee still owes.</span></div>}
       <div className="hr-ps-net"><span>{c.net<0?'Recoverable from employee':'Net payable'}</span><strong className="number">{money(Math.abs(c.net))}</strong></div>
       <fieldset className="hr-fieldset"><legend>Adjustments (up to 4)</legend>
         {adj.map((a,i)=><div key={i} className="hr-adj-row">

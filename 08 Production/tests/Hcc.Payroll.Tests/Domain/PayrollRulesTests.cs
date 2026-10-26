@@ -234,10 +234,32 @@ public sealed class PayrollRulesTests
         Assert.Equal(line.Gross + 100_000, f.Earnings);
         Assert.Equal(line.Pf + line.Esic + line.Pt + 200_000 + 50_000, f.Recoveries);
         Assert.Equal(f.Earnings - f.Recoveries, f.Net);
+        Assert.Equal((200_000L, 0L, 50_000L), (f.AdvanceRecovered, f.AdvanceLeftOpen, f.Deductions));
+        // DEC-074 / A04-06: exit month already paid and nothing else due → nothing covers the ₹5,000 advance: none recovered, net 0, all of it
+        // stays open (before: net −₹5,000 and the whole advance marked recovered, so what the leaver owes disappeared from the register).
         var paid = FnfRules.Compute(st, st.ExitedOn!.Value, null, R, 500_000, []);
-        Assert.Equal((false, -500_000L), (paid.SalaryIncluded, paid.Net));
+        Assert.Equal((false, 0L, 0L, 500_000L, 0L), (paid.SalaryIncluded, paid.Net, paid.AdvanceRecovered, paid.AdvanceLeftOpen, paid.Recoveries));
         Assert.Equal((20_000_000L, 10_000_000L), (FnfRules.AdjustmentMax, FnfRules.OwnerAbove));   // DEC-066
         Assert.Equal(PayMath.MulDiv(1_350_000, 7, 1, 62), FnfRules.ElEncashment(st, 3.5m, st.ExitedOn!.Value));
+    }
+
+    [Fact]
+    public void DEC074_A04_06_fnf_recovers_only_the_part_of_the_advance_the_settlement_covers()
+    {
+        var st = Mon(1_350_000) with { Active = false, ExitedOn = new DateOnly(2026, 10, 24) };
+        var line = PayrollRules.ComputeLine(st, Full("2026-10", 31, p: 24, a: 0) with { Na = 7 }, R);
+        var statutory = line.Pf + line.Esic + line.Pt;
+        // Covered = gross − statutory − deductions. A deduction leaving exactly ₹1,000 covers ₹1,000 of the ₹3,000 advance: net 0, ₹2,000 open.
+        var part = FnfRules.Compute(st, st.ExitedOn!.Value, line, R, 300_000, [new FnfAdjustment("Damage", false, line.Gross - statutory - 100_000)]);
+        Assert.Equal((100_000L, 200_000L, 0L), (part.AdvanceRecovered, part.AdvanceLeftOpen, part.Net));
+        Assert.Equal(statutory + 100_000 + (line.Gross - statutory - 100_000), part.Recoveries);
+        Assert.Equal(line.Gross - statutory - 100_000, part.Deductions);
+        // Deductions ₹500 beyond the settlement: no advance recovered, net −₹500 recoverable, the whole ₹3,000 stays open.
+        var neg = FnfRules.Compute(st, st.ExitedOn!.Value, line, R, 300_000, [new FnfAdjustment("Damage", false, line.Gross - statutory + 50_000)]);
+        Assert.Equal((0L, 300_000L, -50_000L), (neg.AdvanceRecovered, neg.AdvanceLeftOpen, neg.Net));
+        // Enough to cover: the whole advance (unchanged behaviour), net = gross − statutory − ₹3,000.
+        var full = FnfRules.Compute(st, st.ExitedOn!.Value, line, R, 300_000, []);
+        Assert.Equal((300_000L, 0L, line.Gross - statutory - 300_000), (full.AdvanceRecovered, full.AdvanceLeftOpen, full.Net));
     }
 
     [Fact]

@@ -326,7 +326,7 @@ export const handlers:Record<string,Handler>={
     const c=hrFnfCompute(s,st,clean),id=k.id('HR-FNF'),adds=clean.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0);
     x.fnf=[...(x.fnf??[]),{id,staffId:st.id,name:st.name,lastDay:c.lastDay,month:c.month,salaryIncluded:c.salaryIncluded,...(c.line?{line:c.line}:{}),rates:{...c.rates},
       advanceOutstanding:c.advanceOutstanding,adjustments:clean,earnings:c.earnings,recoveries:c.recoveries,net:c.net,by:k.uid,at:s.clock,status:'Draft'}];
-    return `${id} · ${st.name} · full and final DRAFT · ${c.net<0?'recoverable from employee '+money(-c.net):'net payable '+money(c.net)} · to be confirmed by ${adds>HR_FNF_OWNER_ABOVE?'the Owner (additions above '+money(HR_FNF_OWNER_ABOVE)+')':'the other payroll user'}`;
+    return `${id} · ${st.name} · full and final DRAFT · ${c.net<0?'recoverable from employee '+money(-c.net):'net payable '+money(c.net)}${c.advanceLeftOpen>0?` · advance ${money(c.advanceLeftOpen)} not covered, stays open`:''} · to be confirmed by ${adds>HR_FNF_OWNER_ABOVE?'the Owner (additions above '+money(HR_FNF_OWNER_ABOVE)+')':'the other payroll user'}`;
   },
   /** F-12 checker: another payroll user (never the maker, never your own account) confirms; the figures must still match a fresh computation. */
   HR_FNF_CONFIRM:k=>{
@@ -339,9 +339,12 @@ export const handlers:Record<string,Handler>={
     const c=hrFnfCompute(s,st,f!.adjustments);
     assert(c.net===f!.net&&c.earnings===f!.earnings&&c.recoveries===f!.recoveries&&c.advanceOutstanding===f!.advanceOutstanding&&JSON.stringify(c.line)===JSON.stringify(f!.line),
       'Attendance, advances or rates changed after this draft. Discard it and prepare the settlement again.','STALE_VERSION');
-    for(const a of x.advances.filter(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0)){const b=hrAdvanceBalance(a);a.recovered+=b;a.recoveries.push({runId:f!.id,amount:b});}
+    // DEC-074 / A04-06: only the part of the advance the settlement covers is recovered (oldest advance first); the rest stays open.
+    let left=c.advanceRecovered;
+    for(const a of x.advances.filter(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0)){const b=Math.min(left,hrAdvanceBalance(a));if(b<=0)break;a.recovered+=b;a.recoveries.push({runId:f!.id,amount:b});left-=b;}
     f!.status='Settled';f!.confirmedBy=k.uid;f!.confirmedAt=s.clock;
-    return `${f!.id} · ${f!.name} · full and final confirmed · ${f!.net<0?'recoverable from employee '+money(-f!.net):'net payable '+money(f!.net)} (simulated transfer)`;
+    return `${f!.id} · ${f!.name} · full and final confirmed · ${f!.net<0?'recoverable from employee '+money(-f!.net):'net payable '+money(f!.net)} (simulated transfer)`
+      +(c.advanceOutstanding>0?` · advance ${money(c.advanceRecovered)} recovered${c.advanceLeftOpen>0?`, ${money(c.advanceLeftOpen)} left open (still owed)`:''}`:'');
   },
   /** F-12: discard a draft settlement (payroll roles). */
   HR_FNF_DISCARD:k=>{

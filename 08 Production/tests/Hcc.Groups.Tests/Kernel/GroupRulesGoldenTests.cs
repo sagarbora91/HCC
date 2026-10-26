@@ -3,6 +3,7 @@ using Hcc.Domain.Billing;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Groups;
 using Hcc.Domain.Money;
+using Hcc.Domain.Tax;
 
 namespace Hcc.Groups.Tests.Kernel;
 
@@ -176,6 +177,25 @@ public sealed class GroupRulesGoldenTests
         Assert.Equal(("Deluxe", 5, 50000L, 250000L), (l.RoomType, l.Rooms, l.PerRoomNight.Value, l.Amount.Value));
         Assert.Equal(1, GroupAttrition.FreeRooms(9, 2000));
         Assert.Empty(GroupAttrition.Lines([new AttritionInput("Classic", 5, 4, new Paise(190000))], D(11, 6), D(11, 8), 2000, 10000));
+    }
+
+    [Fact]
+    public void DEC074_attrition_GST_slab_comes_from_the_contracted_block_rate_not_the_retention_price()
+    {
+        // A03a-06: ₹9,000 block at 50 % → ₹4,500 charged per room-night. On the retention price the slab would be 5 % (₹4,500 ≤ ₹7,500);
+        // DEC-074 takes it from the contracted ₹9,000 night → 18 %: per line 2 rooms × ₹4,500 = ₹9,000 × 18 % = ₹1,620 (CGST ₹810 + SGST ₹810).
+        var gst = GstMaster.Seed();
+        var l = Assert.Single(GroupAttrition.Lines([new AttritionInput("Suite", 4, 2, new Paise(900000))], D(10, 23), D(10, 24), 0, 5000));
+        Assert.Equal((450000L, 900000L, 900000L), (l.PerRoomNight.Value, l.BlockRate.Value, GroupAttrition.GstSlabBasis(l).Value));
+        Assert.Equal(500, gst.RoomNight(l.Night, l.PerRoomNight).Bps);                 // the old basis (the bug)
+        var rate = gst.RoomNight(l.Night, GroupAttrition.GstSlabBasis(l));
+        Assert.Equal(1800, rate.Bps);
+        Assert.Equal((162000L, 81000L, 81000L), (GstMath.LineTax(l.Amount, rate.Bps).Value, GstMath.SplitLine(l.Amount, rate.Bps).Cgst.Value, GstMath.SplitLine(l.Amount, rate.Bps).Sgst.Value));
+        // At or below ₹7,500 the slab is unchanged: GB-1's ₹1,750 block at 50 % stays 5 %.
+        var gb1 = GroupAttrition.Lines([new AttritionInput("Classic", 4, 2, new Paise(175000))], D(10, 23), D(10, 24), 0, 5000).Single();
+        Assert.Equal(500, gst.RoomNight(gb1.Night, GroupAttrition.GstSlabBasis(gb1)).Bps);
+        Assert.Equal(1800, gst.RoomNight(D(10, 23), new Paise(750001)).Bps);         // the threshold itself (₹7,500) is the 5 % slab; one paisa above is 18 %
+        Assert.Equal(500, gst.RoomNight(D(10, 23), new Paise(750000)).Bps);
     }
 
     [Fact]
