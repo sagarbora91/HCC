@@ -4,6 +4,7 @@ export * from './map';
 export * from './capabilities';
 export * from './auth';
 export * from './apk';
+export * from './credentials';
 export * from './cache';
 export * from './empty';
 export * from './runtime';
