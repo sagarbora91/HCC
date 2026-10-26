@@ -5,7 +5,7 @@ import type {Handler,Kit} from '../commands';
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
 import {totals} from '../../../domain/selectors';
-import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
+import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
@@ -203,8 +203,12 @@ const APPROVAL:Handler=k=>{
       assert(x&&x.status==='Departed','A credit note applies only to a departed stay.','INVALID_TRANSITION');stale();
       assert(a!.amount<=totals(x!).net,'Credit note cannot exceed the net charges on this folio.');
       s.creditNoteSeqC=(s.creditNoteSeqC??0)+1;const no=folioCreditNoteNo(s.creditNoteSeqC);
-      const lid=id('credit');
-      x!.lines.push({id:lid,label:`Credit note ${no} · ${a!.reason}`,amount:-a!.amount,date:s.date,kind:'adjustment',taxBps:gstForFolioAdjustment(s,x!,s.date).bps,approvalId:a!.id});
+      const lid=id('credit'),bps=gstForFolioAdjustment(s,x!,s.date).bps,t=totals(x!);
+      // A03a-04: crediting the folio's whole remaining net, all at the credit's rate, credits exactly the tax still on it (never a paisa
+      // more after an earlier credit whose tax was exactly half a paisa): pieces that each follow the per-line rule.
+      const whole=a!.amount===t.net&&x!.lines.every(l=>l.taxBps===bps);
+      const pieces=(whole&&gstExactPieces(-a!.amount,bps,-t.tax))||[-a!.amount];
+      pieces.forEach((amount,i)=>x!.lines.push({id:i?id('credit'):lid,label:`Credit note ${no} · ${a!.reason}`,amount,date:s.date,kind:'adjustment',taxBps:bps,approvalId:a!.id}));
       (x!.creditNotes??=[]).push({id:id('CN'),no,amount:a!.amount,reason:a!.reason,date:s.date,approvalId:a!.id,lineId:lid});
       x!.version++;a!.status='Executed';a!.meta={...a!.meta,creditNote:no};extra=' · '+no+' issued';
     }

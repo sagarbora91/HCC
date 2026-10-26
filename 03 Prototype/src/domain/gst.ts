@@ -75,6 +75,20 @@ export function gstLineTax(amount:number,bps:number):number{
   const p=amount*bps,a=Math.abs(p),q=Math.floor(a/10000),r=a-q*10000,t=q+(r>=5000?1:0);
   return p<0&&t?-t:t;
 }
+/**
+ * A whole remainder as pieces whose own taxes (each half away from zero) add up to exactly `tax` — usually `[amount]`. After a credit whose
+ * tax was exactly half a paisa (₹333.30 at 5 % = 1666.5 → 1667), the rest's own tax rounds a paisa past what is left; the rest is then the
+ * remainder less m small pieces (A03a-04, as the server's CreditNoteRules). null when no split of at most five pieces exists.
+ */
+export function gstExactPieces(amount:number,bps:number,tax:number):number[]|null{
+  if(gstLineTax(amount,bps)===tax)return [amount];
+  const sign=amount<0?-1:1;
+  for(let m=1;m<=4;m++)for(let k=1;k<=20000;k++){
+    const a=sign*(k<=10000?k:10000-k),rest=amount-m*a; // same sign first, then the opposite sign
+    if(rest!==0&&gstLineTax(rest,bps)+m*gstLineTax(a,bps)===tax)return [rest,...Array<number>(m).fill(a)];
+  }
+  return null;
+}
 /** Tax of a stored folio line (its snapshot rate). */
 export const lineTax=(l:{amount:number;taxBps:number})=>gstLineTax(l.amount,l.taxBps);
 /** Intra-state split: SGST = half rounded toward zero, CGST = the rest (takes the odd paisa) — always sums to the line tax. */

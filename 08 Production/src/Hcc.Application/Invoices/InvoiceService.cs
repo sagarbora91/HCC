@@ -206,7 +206,7 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
     private async Task<IReadOnlyList<CreditableLine>> CreditableAsync(ICommandTransaction tx, InvoiceRecord inv, CancellationToken ct)
     {
         var credited = await store.CreditedAsync(tx, inv.InvoiceId, ct).ConfigureAwait(false);
-        return inv.Lines.Select(l => credited.TryGetValue(l.LineNo, out var x) ? new CreditableLine(l, x.Taxable, x.Tax) : new CreditableLine(l, Paise.Zero, Paise.Zero)).ToList();
+        return inv.Lines.Select(l => credited.TryGetValue(l.LineNo, out var x) ? new CreditableLine(l, x.Taxable, x.Tax, x.Cgst, x.Sgst) : new CreditableLine(l, Paise.Zero, Paise.Zero, Paise.Zero, Paise.Zero)).ToList();
     }
 
     /// <summary>Plans against the current credits, numbers the note (CRN series of the business date's FY), posts it to the source, stores it.</summary>
@@ -221,7 +221,7 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         var (prefix, seq) = await store.NextNumberAsync(tx, inv.PropertyId, fy, InvoiceDocType.CreditNote, InvoiceNumbering.DefaultPrefix(InvoiceDocType.CreditNote), Now, ct).ConfigureAwait(false);
         var number = InvoiceNumbering.Format(prefix, fy, seq);
         var byLine = inv.Lines.ToDictionary(l => l.LineNo);
-        var postings = lines.Select(l => new CreditPosting(l.LineNo, byLine[l.InvoiceLineNo].SourceLineId, l.Category, l.Bps, l.Taxable, l.Tax)).ToList();
+        var postings = lines.Select(l => new CreditPosting(l.LineNo, byLine[l.InvoiceLineNo].SourceLineId, l.Category, l.Bps, l.Taxable, l.Tax, l.Cgst, l.Sgst)).ToList();
         var chargeIds = await Source(inv.SourceKind).PostCreditAsync(tx, inv.PropertyId, inv.SourceId, number, r.Reason, date, postings, ct).ConfigureAwait(false);
         var now = Now;
         var note = new CreditNoteRecord(0, inv.PropertyId, number, fy, seq, date, inv.InvoiceId, r.RequestId, r.Mode, r.Reason, lines, chargeIds, figures,

@@ -73,7 +73,9 @@ public sealed class FolioInvoiceSource(IBillingStore billing, IGstChargeSnapshot
             if (MoneyMath.TaxOf(amount, c.Bps) != tax) throw new InvalidOperationException("Credit posting tax does not follow the line rate.");
             var id = await billing.InsertChargeAsync(tx, new NewCharge(f.FolioId, ChargeKind.Correction, date, label, amount, c.Bps, tax, null, null, tx.Context.PrincipalId, now), ct).ConfigureAwait(false);
             var original = c.SourceLineId is { } sid ? await gst.FindAsync(tx, sid, ct).ConfigureAwait(false) : null;
-            var split = GstMath.Split(tax);
+            // The credit line's own CGST / SGST, negated like the tax (A03a-04: a line credited in full ends at exactly its invoiced heads);
+            // an IGST credit line carries no CGST / SGST, so the folio snapshot keeps the kernel split as before.
+            var split = c.Cgst + c.Sgst == c.Tax ? new GstSplit(tax, -c.Cgst, -c.Sgst) : GstMath.Split(tax);
             await gst.RecordAsync(tx, new GstChargeSnapshot(id, c.Category, c.Bps, original?.Itc ?? false, tax, split.Cgst, split.Sgst,
                 "Credit note " + creditNoteNo + (c.SourceLineId is { } s2 ? " · charge " + s2.ToString(CultureInfo.InvariantCulture) : "")), ct).ConfigureAwait(false);
             await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "correction", serviceDate = date, amountPaise = amount.Value, taxPaise = tax.Value }, ct).ConfigureAwait(false);
