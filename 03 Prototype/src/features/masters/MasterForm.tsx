@@ -46,14 +46,14 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
   const errOf=(k:string)=>touched?problems.find(p=>p.field===k)?.message:undefined;
   const general=touched?problems.find(p=>!p.field)?.message:undefined;
   const usage=row?mstUsage(s,spec,row):{count:0,where:[]};
-  const set=(k:string,v:unknown)=>{setD(x=>({...x,[k]:v}));setDirty?.(true);};
+  const set=(k:string,v:unknown)=>{setD(x=>({...x,[k]:v}));if(sheet)setDirty(true);};
   const key=(what:string)=>sheet&&modal?`${modal.key}:${what}`:`mst-${what}:${specId}:${rowId??'new'}:${s.sequence}`;
   const save=()=>{setTouched(true);if(problems.length||!editable)return;
     const payload:Draft={};for(const k of ['code','name','sortOrder',...spec.fields.map(f=>f.key)])if(k!=='active'&&k in clean)payload[k]=clean[k];
     if(row)payload.id=row.id;
     for(const f of spec.fields)if(isMoney(f)&&!money&&row)payload[f.key]=row[f.key]; // never send a money change without the Owner's right
     void run({type:'MST_MASTER_SAVE',master:specId,row:payload,key:key('save')},row?`${spec.singular[0].toUpperCase()+spec.singular.slice(1)} saved · history recorded`:`${clean.name} added`,
-      {close:!!sheet,after:()=>{setDirty?.(false);onDone?.(row?.id);}});};
+      {close:!!sheet,after:()=>{if(sheet)setDirty(false);onDone?.(row?.id);}});};
   const status=(type:'MST_MASTER_RETIRE'|'MST_MASTER_REACTIVATE'|'MST_MASTER_DELETE',msg:string)=>void run({type,master:specId,id:row!.id,key:key(type)},msg,{close:!!sheet,after:()=>onDone?.(type==='MST_MASTER_DELETE'?undefined:row!.id)});
   const title=row?`${row.name}`:`New ${spec.singular}`;
   return <div className={'mst-form'+(sheet?' mst-sheet':'')}>
