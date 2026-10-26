@@ -141,6 +141,33 @@ export function register({test,M,assert}){
     assert.equal(bk(execute(baseFixture(),'reception',{type:'MOVE',id:b.id,room:b.room,departure:'2026-10-30'}),b.id).departure,'2026-10-30');
   });
 
+  test('[A02b-02] STAY_EARLY_DEPARTURE: an in-house guest leaves today — departure becomes the business date, a reason is required, then checkout works',()=>{
+    const s=baseFixture(),b=bk(s,'HCC-1041'),ev=b.version;
+    // the case the audit found: shortening to today is refused, and checkout needs every booked night posted
+    assert.equal(code(()=>execute(s,'reception',{type:'MOVE',id:b.id,room:b.room,departure:s.date})),'VALIDATION');
+    assert.equal(code(()=>execute(s,'reception',{type:'CHECKOUT',id:b.id})),'INVALID_TRANSITION');
+    assert.equal(code(()=>execute(s,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id})),'VALIDATION','a reason is required');
+    assert.equal(code(()=>execute(s,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'  '})),'VALIDATION');
+    assert.equal(code(()=>execute(s,'housekeeper',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Family emergency'})),'FORBIDDEN');
+    let t=execute(s,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Family emergency',key:'ed1'});
+    assert.deepEqual([bk(t,b.id).departure,bk(t,b.id).version,bk(t,b.id).status],[s.date,ev+1,'In house']);
+    assert.equal(execute(t,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Family emergency',key:'ed1'}),t,'same key = same result');
+    assert.equal(code(()=>execute(t,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Again'})),'INVALID_TRANSITION','no nights left to release');
+    assert.ok(M.available(t,b.room,s.date,'2026-10-26',b.id),'the released nights are bookable again');
+    const due=M.totals(bk(t,b.id)).balance;
+    t=execute(t,'reception',{type:'PAYMENT',id:b.id,amount:due,method:'Cash'});
+    t=execute(t,'reception',{type:'CHECKOUT',id:b.id});assert.equal(bk(t,b.id).status,'Departed');
+  });
+
+  test('[A02b-02] STAY_EARLY_DEPARTURE is refused on the arrival day, when a night on or after today is posted, and for a stay not in house',()=>{
+    const s=baseFixture(),b=bk(s,'HCC-1042');
+    const posted=execute(s,'owner',{type:'POST_NIGHTS',id:b.id});
+    assert.equal(code(()=>execute(posted,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Guest leaves'})),'INVALID_TRANSITION');
+    const arrivedToday=structuredClone(s);bk(arrivedToday,b.id).arrival=s.date;
+    assert.equal(code(()=>execute(arrivedToday,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Guest leaves'})),'VALIDATION');
+    const confirmed=bk(s,'HCC-1049');assert.equal(confirmed.status,'Confirmed');
+    assert.equal(code(()=>execute(s,'reception',{type:'STAY_EARLY_DEPARTURE',id:confirmed.id,reason:'Guest leaves'})),'INVALID_TRANSITION');
+  });
   test('[B] Arrivals and in-house selectors',()=>{
     const s=baseFixture();assert.deepEqual(M.stayArrivals(s).map(b=>b.id),['HCC-1049','HCC-1050']);assert.equal(M.stayInHouse(s).length,8);
     assert.equal(M.stayArrivals(loadScenario('S0')).length,0);
