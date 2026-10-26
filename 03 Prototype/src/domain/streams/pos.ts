@@ -2,6 +2,7 @@
 // Money = integer paise. Tax = round(net × taxBps / 10000) on the bill net (matches one folio service line). See 02 Planning/modules/HCC_Module_23_POS_Spec.md.
 import type {State} from '../types';
 import {gstForFood,gstLineTax} from '../gst';
+import {mnyNames,mnyIsDrawer} from './money-master';
 
 export type POSOutletKind='table'|'room';
 export type POSOutlet={id:string;name:string;kind:POSOutletKind;tables?:string[]};
@@ -26,6 +27,7 @@ export const posSlice=(s:State):POSState=>s.posX??posEmpty();
 
 /** Void value above which a different user with `approve` must decide (₹500). */
 export const POS_VOID_LIMIT=50000;
+/** LEGACY (MA-3): seed of the POS payment methods; read mnyNames(s,'pos') (money masters). */
 export const POS_TENDERS=['Cash','UPI','Card'] as const;
 export const POS_KOT_FLOW:POSKotStatus[]=['Preparing','Ready','Served'];
 /** Approval TTL (simulated minutes) for void requests. */
@@ -74,7 +76,7 @@ export type POSDaySummary={date:string;checks:number;covers:number;net:number;ta
 export function posDaySummary(s:State,date=s.date):POSDaySummary{
   const p=posSlice(s),settled=p.orders.filter(o=>o.status==='Settled'&&o.settlement?.date===date);
   const sum=(xs:POSOrder[],k:'net'|'tax'|'total')=>xs.reduce((a,o)=>a+(o.settlement?.[k]??0),0);
-  const byMode:Record<string,number>={Cash:0,UPI:0,Card:0,'Room folio':0};
+  const byMode:Record<string,number>={...Object.fromEntries(mnyNames(s,'pos').map(m=>[m,0])),'Room folio':0}; // MA-3: POS methods (seed Cash, UPI, Card)
   for(const o of settled){const m=o.settlement!.mode==='folio'?'Room folio':o.settlement!.method!;byMode[m]=(byMode[m]||0)+o.settlement!.total;}
   // A voided settled bill (same business date only) leaves the settled list; its sale and reversal receipts net to zero in outlet cash.
   const voided=p.orders.flatMap(o=>o.lines.filter(l=>l.voided&&l.voidDate===date));
@@ -82,7 +84,7 @@ export function posDaySummary(s:State,date=s.date):POSDaySummary{
   const qty:Record<string,{name:string;qty:number;value:number}>={};
   for(const o of settled)for(const l of posActiveLines(o)){const q=qty[l.item]??={name:l.name,qty:0,value:0};q.qty+=l.qty;q.value+=posLineValue(l);}
   return {date,checks:settled.length,covers:settled.reduce((a,o)=>a+o.covers,0),net:sum(settled,'net'),tax:sum(settled,'tax'),gross:sum(settled,'total'),
-    byMode,outletCash:p.receipts.filter(r=>r.date===date&&r.method==='Cash').reduce((a,r)=>a+r.amount,0),
+    byMode,outletCash:p.receipts.filter(r=>r.date===date&&mnyIsDrawer(s,r.method)).reduce((a,r)=>a+r.amount,0),
     voids:{count:voided.length,value:voided.reduce((a,l)=>a+posLineValue(l),0)},
     open:{count:open.length,value:open.reduce((a,o)=>a+posOrderTotals(s,o).total,0)},
     byOutlet:p.outlets.map(x=>{const os=settled.filter(o=>o.outlet===x.id);return {id:x.id,name:x.name,checks:os.length,net:sum(os,'net'),tax:sum(os,'tax'),gross:sum(os,'total'),open:open.filter(o=>o.outlet===x.id).length};}),

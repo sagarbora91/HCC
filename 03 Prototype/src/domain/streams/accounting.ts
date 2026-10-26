@@ -7,6 +7,7 @@ import {drawer} from '../selectors';
 import {reportPack,expenseCounts,closingOutlet} from './closing';
 import {posSlice,type POSReceipt} from './pos';
 import {lineTax,gstSplit} from '../gst';
+import {mnyLedgerDefaults,mnyIsCredit} from './money-master';
 
 // ── Chart of accounts (synthetic) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
@@ -84,8 +85,9 @@ export type ACCServer={from:string;to:string;days:Record<string,ACCServerDay>;op
 export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer};
 export const accEmpty=():ACCState=>({});
 export const accSlice=(s:State):ACCState=>s.accountingX??accEmpty();
-/** Effective mapping = defaults overlaid with the slice's overrides. */
-export function accMapping(s:State):Record<string,string>{return {...ACC_DEFAULT_MAP,...(accSlice(s).mapping??{})};}
+/** Effective mapping = defaults, then the ledgers of the money masters (MA-3: payment methods, expense categories; seed = the same
+ *  defaults), overlaid with the slice's overrides (Accounting › Mapping wins). */
+export function accMapping(s:State):Record<string,string>{return {...ACC_DEFAULT_MAP,...mnyLedgerDefaults(s),...(accSlice(s).mapping??{})};}
 export const accLockOf=(s:State,date:string)=>accSlice(s).locks?.[date];
 /** Roles that may lock a closed period (with the coarse 'reports' permission). */
 export const ACC_LOCK_ROLES=['Owner','Manager','Accountant'];
@@ -130,7 +132,7 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   }
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0)){
     const miss:string[]=[],head=map('expense:'+e.category,miss),fund=map('funding:'+e.method,miss);
-    push({date,type:e.method==='Vendor credit'?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor} · ${e.category} · ${e.method}`,
+    push({date,type:mnyIsCredit(s,e.method)?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor} · ${e.category} · ${e.method}`,
       source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount),cr(fund,e.amount)]);
   }
   const diff=accCashDifference(s,date);

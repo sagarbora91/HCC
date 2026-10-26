@@ -4,7 +4,7 @@ import {Check,CheckCheck,Clock,AlertCircle,Ban,MessageCircle,Smartphone,Mail,Inf
 import {useHcc} from '../../app/context';
 import {Pill,clockTime,shortDate} from '../../components/ui';
 import {money,MSGMessage,MSGStatus,MSGChannel,MSGDoc,MSGDocKind,MSG_STATUS_TONE,MSG_LOW_CONFIDENCE,MSG_DOC_KIND_LABEL,msgStatus,msgLowFields,msgParseRupees,
-  msgLooksLikeFullId,guestIdTypes,guestNormaliseName,EXPENSE_METHODS,EXPENSE_CATEGORIES} from '../../services/mock';
+  msgLooksLikeFullId,guestIdTypes,guestNormaliseName,mnyCategoryNames,mnyNames} from '../../services/mock';
 import {msgSampleDocs} from '../../fixtures/ext/messaging';
 
 export const msgChannelIcon=(c:MSGChannel,size=16)=>c==='WhatsApp'?<MessageCircle size={size} aria-hidden/>:c==='SMS'?<Smartphone size={size} aria-hidden/>:<Mail size={size} aria-hidden/>;
@@ -64,7 +64,7 @@ export function MsgDocReview({doc,onDone,sheet}:{doc:MSGDoc;onDone?:()=>void;she
     if(!guestIdTypes.includes(vals.idType))errors.push(`ID type must be one of: ${guestIdTypes.join(', ')}.`);
   }
   if(doc.kind==='vendor-bill'){const a=msgParseRupees(vals.amount);if(!(a>0))errors.push('Enter the amount in rupees, e.g. 1240.00.');
-    if(!EXPENSE_CATEGORIES.includes(vals.category))errors.push(`Category must be one of: ${EXPENSE_CATEGORIES.join(', ')}.`);}
+    const cats=mnyCategoryNames(s);if(!cats.includes(vals.category))errors.push(`Category must be one of: ${cats.join(', ')}.`);}
   if(doc.kind!=='vendor-bill'&&!g)errors.push('Choose the guest profile to update.');
   if(pending.length)errors.push(`Tick or correct the low-confidence field${pending.length>1?'s':''}: ${pending.map(k=>doc.fields.find(f=>f.key===k)!.label).join(', ')}.`);
   const noExpense=doc.kind==='vendor-bill'&&!permission('expenses');
@@ -84,7 +84,7 @@ export function MsgDocReview({doc,onDone,sheet}:{doc:MSGDoc;onDone?:()=>void;she
           return <div key={f.key} className={'msg-field'+(isLow?' low':'')}>
             <label>{f.label}{f.locked?' (read-only)':''}
               {f.key==='idType'?<select value={vals[f.key]} onChange={e=>setVals({...vals,[f.key]:e.target.value})}>{!guestIdTypes.includes(vals[f.key])&&<option>{vals[f.key]}</option>}{guestIdTypes.map(t=><option key={t}>{t}</option>)}</select>
-              :f.key==='category'?<select value={vals[f.key]} onChange={e=>setVals({...vals,[f.key]:e.target.value})}>{!EXPENSE_CATEGORIES.includes(vals[f.key])&&<option>{vals[f.key]}</option>}{EXPENSE_CATEGORIES.map(t=><option key={t}>{t}</option>)}</select>
+              :f.key==='category'?<select value={vals[f.key]} onChange={e=>setVals({...vals,[f.key]:e.target.value})}>{!mnyCategoryNames(s).includes(vals[f.key])&&<option>{vals[f.key]}</option>}{mnyCategoryNames(s).map(t=><option key={t}>{t}</option>)}</select>
               :<input value={vals[f.key]} readOnly={f.locked} maxLength={f.key==='idLast4'?4:120} enterKeyHint="next"
                   inputMode={f.key==='amount'?'decimal':undefined} autoCapitalize={f.key==='idLast4'||f.key==='gstin'?'characters':undefined}
                   onChange={e=>setVals({...vals,[f.key]:e.target.value})}/>}</label>
@@ -92,7 +92,7 @@ export function MsgDocReview({doc,onDone,sheet}:{doc:MSGDoc;onDone?:()=>void;she
               {isLow&&!changed(f.key)&&<label className="msg-check"><input type="checkbox" checked={reviewed.includes(f.key)} onChange={e=>setReviewed(e.target.checked?[...reviewed,f.key]:reviewed.filter(k=>k!==f.key))}/>Checked against the document</label>}</div>
           </div>;})}
         {doc.kind!=='vendor-bill'&&<label>Apply to guest profile<select value={guestId} onChange={e=>setGuestId(e.target.value)}><option value="">Choose a guest…</option>{(s.guests||[]).map(x=><option key={x.id} value={x.id}>{x.name} · {x.id}</option>)}</select></label>}
-        {doc.kind==='vendor-bill'&&<label>Funding source<select value={method} onChange={e=>setMethod(e.target.value)}>{EXPENSE_METHODS.map(m=><option key={m}>{m}</option>)}</select></label>}
+        {doc.kind==='vendor-bill'&&<label>Funding source<select value={method} onChange={e=>setMethod(e.target.value)}>{mnyNames(s,'expenses').map(m=><option key={m}>{m}</option>)}</select></label>}
       </div>
     </div>
     {doc.kind==='id-card'&&<div className="info-note"><Info size={16}/><span>Only the <b>ID type</b> and <b>last 4 characters</b> are saved to the profile. No image and no full ID number are stored.</span></div>}

@@ -5,7 +5,11 @@ import type {Approval} from '../../../domain/types';
 import {money,addMinutes} from '../../../domain/money';
 import {gstForFood,gstLineTax} from '../../../domain/gst';
 import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,
-  POS_VOID_LIMIT,POS_TENDERS,POS_APPROVAL_TTL_MINUTES} from '../../../domain/streams/pos';
+  POS_VOID_LIMIT,POS_APPROVAL_TTL_MINUTES} from '../../../domain/streams/pos';
+import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyNames} from '../../../domain/streams/money-master';
+import {mstFail} from '../../../domain/streams/masters';
+/** "Cash, UPI or Card" — the active POS methods (money masters, MA-3). */
+const orList=(xs:string[])=>xs.length>1?xs.slice(0,-1).join(', ')+' or '+xs[xs.length-1]:xs[0]??'a payment method';
 import type {POSOrder,POSState,POSKotStatus} from '../../../domain/streams/pos';
 
 const slice=(k:Kit):POSState=>{k.s.posX??=posEmpty();return k.s.posX;};
@@ -103,17 +107,23 @@ const POS_SETTLE:Handler=k=>{
     return `${o.id} · bill ${billNo} · ${money(total)} (net ${money(net)} + tax ${money(tax)}) posted to folio ${x!.id} · room ${x!.room}`;
   }
   assert(cmd.mode==='outlet','Choose how the bill is settled.');
-  assert((POS_TENDERS as readonly string[]).includes(cmd.method),'Select Cash, UPI or Card.');
+  // MA-3: an active payment method usable at the POS (money masters; seed = the old POS_TENDERS Cash / UPI / Card).
+  {const row=typeof cmd.method==='string'?mnyMethod(s,cmd.method):undefined;
+    if(row&&!row.active&&(row.usableAt??[]).includes('pos'))mstFail('MASTER_RETIRED',`${row.name} is retired — choose an active payment method.`);}
+  const pm=mnyMethodFor(s,cmd.method,'pos');
+  assert(pm,`Select ${orList(mnyNames(s,'pos'))}.`);
+  const method=pm!.name;
   const reference=String(cmd.reference??'').trim();
+  const cash=mnyIsDrawer(s,pm!.name);
   // Shared till (DEC-052): outlet cash goes into the front-desk drawer, so it needs the open cash shift like folio cash.
-  if(cmd.method==='Cash')assert(s.shiftOpen,'The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.','INVALID_TRANSITION');
-  else assert(reference,'Enter a demonstration transaction reference.');
+  if(cash)assert(s.shiftOpen,'The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.','INVALID_TRANSITION');
+  else if(pm!.needsReference)assert(reference,'Enter a demonstration transaction reference.');
   const rid=id('POSR');
-  p.receipts.push({id:rid,order:o.id,outlet:o.outlet,method:cmd.method,amount:total,net,tax,taxBps,reference:reference||'Outlet cash',date:s.date,actor:uid,kind:'sale'});
-  o.settlement={mode:'outlet',billNo,method:cmd.method,reference:reference||undefined,net,taxBps,tax,total,date:s.date,at:s.clock,by:uid,receiptId:rid};
+  p.receipts.push({id:rid,order:o.id,outlet:o.outlet,method:method,amount:total,net,tax,taxBps,reference:reference||(cash?'Outlet cash':method),date:s.date,actor:uid,kind:'sale'});
+  o.settlement={mode:'outlet',billNo,method:method,reference:reference||undefined,net,taxBps,tax,total,date:s.date,at:s.clock,by:uid,receiptId:rid};
   if(o.settlement.reference===undefined)delete o.settlement.reference;
   p.billSeq++;o.status='Settled';o.version++;
-  return `${o.id} · bill ${billNo} · ${money(total)} ${cmd.method} at ${outletName(k,o)} (outlet receipt ${rid}${cmd.method==='Cash'?' · counted in the front-desk drawer':''})`;
+  return `${o.id} · bill ${billNo} · ${money(total)} ${method} at ${outletName(k,o)} (outlet receipt ${rid}${cash?' · counted in the front-desk drawer':''})`;
 };
 
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
@@ -125,7 +135,7 @@ function applyVoid(k:Kit,o:POSOrder,scope:'item'|'bill',lineId:string|undefined,
   if(o.status==='Settled'){
     const st=o.settlement!;assert(!cbIsLocked(s,st.date),cbLockedMessage(st.date,'voiding a bill settled that day'),'DAY_CLOSED'); // DEC-065
     assert(st.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
-    if(st.method==='Cash')assert(s.shiftOpen,'The cash shift is closed. A cash bill cannot be reversed now.','INVALID_TRANSITION');
+    if(mnyIsDrawer(s,st.method!))assert(s.shiftOpen,'The cash shift is closed. A cash bill cannot be reversed now.','INVALID_TRANSITION');
     slice(k).receipts.push({id:id('POSR'),order:o.id,outlet:o.outlet,method:st.method!,amount:-st.total,net:-st.net,tax:-st.tax,taxBps:st.taxBps,reference:'Void of '+st.billNo,date:s.date,actor:by,kind:'void'});
   }
   posActiveLines(o).forEach(mark);

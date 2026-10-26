@@ -6,7 +6,7 @@ import {can} from '../../../domain/selectors';
 import {addMinutes} from '../../../domain/money';
 import {registry} from './index';
 import {guestIdTypes,guestValidate} from '../../../domain/streams/guests';
-import {EXPENSE_CATEGORIES,EXPENSE_METHODS} from '../../../domain/streams/closing';
+import {mnyCategoryNames,mnyMethodFor} from '../../../domain/streams/money-master';
 import {msgSampleDocs} from '../../../fixtures/ext/messaging';
 import {MSGState,MSGChannel,MSGMessage,MSG_CHANNELS,MSG_DEFAULT_TEMPLATES,MSG_DEFAULT_RULES,MSG_DEFAULT_CONSENT,msgTemplate,msgValues,msgRender,msgRecipient,
   msgBlockReason,msgGuestKey,msgOutcome,msgPendingTriggers,msgStatus,msgNextBoost,msgUnknownPlaceholders,msgLowFields,msgLooksLikeFullId,msgParseRupees,
@@ -136,8 +136,9 @@ export const handlers:Record<string,Handler>={
     let target='';
     if(d!.kind==='vendor-bill'){
       const amount=msgParseRupees(val('amount'));assert(Number.isSafeInteger(amount)&&amount>0,'Enter the bill amount in rupees, e.g. 1240.00.');
-      assert(EXPENSE_CATEGORIES.includes(val('category')),`Category must be one of: ${EXPENSE_CATEGORIES.join(', ')}.`);
-      const method=cmd.method||'Cash';assert(EXPENSE_METHODS.includes(method),'Choose a funding source.');
+      const cats=mnyCategoryNames(s); // MA-3: the expense categories master (seed = the old five)
+      assert(cats.includes(val('category')),`Category must be one of: ${cats.join(', ')}.`);
+      const method=cmd.method||'Cash';assert(mnyMethodFor(s,method,'expenses'),'Choose a funding source.');
       const ex=registry.EXPENSE;assert(ex,'The expense command is unavailable.','NOT_FOUND');
       const smp=msgSampleDocs.find(m=>m.id===d!.sample);
       ex!({...k,cmd:{type:'EXPENSE',vendor:val('vendor'),category:val('category'),amount,method,draft:true,
