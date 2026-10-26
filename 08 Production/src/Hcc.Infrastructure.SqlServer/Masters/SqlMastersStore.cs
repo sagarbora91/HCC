@@ -18,6 +18,9 @@ internal static class MstSql
     /// <summary>Floor number of inv.room alias r: hundreds digit of an all-digit number of 3+ characters, else 1 (MastersRules.FloorOfRoom).</summary>
     public const string RoomFloor = "IIF(r.room_no NOT LIKE '%[^0-9]%' AND LEN(r.room_no) >= 3, IIF(CAST(r.room_no AS BIGINT) / 100 < 1, 1, CAST(r.room_no AS BIGINT) / 100), 1)";
 
+    /// <summary>MA-1: floor code of inv.room alias r with mst.floor alias rf left-joined on r.floor_id (hundreds digit when the room has none).</summary>
+    public const string RoomFloorCode = $"COALESCE(rf.code, CONCAT('F', {RoomFloor}))";
+
     public const string FloorColumns = "f.floor_id, f.code, f.name, f.sort_order, f.active, f.retired_on, f.updated_utc, f.row_ver";
 
     public static SqlCommandTransaction Sql(ICommandTransaction tx) =>
@@ -148,7 +151,8 @@ public sealed class SqlMastersReadStore(SqlConnectionFactory connections) : IMas
         await using var cmd = connections.Command($"""
             SELECT {MstSql.FloorColumns}, ISNULL(n.rooms, 0)
               FROM mst.floor f
-              LEFT JOIN (SELECT CONCAT('F', {MstSql.RoomFloor}) AS code, COUNT(*) AS rooms FROM inv.room r WHERE r.property_id = @p GROUP BY CONCAT('F', {MstSql.RoomFloor})) n
+              LEFT JOIN (SELECT {MstSql.RoomFloorCode} AS code, COUNT(*) AS rooms FROM inv.room r LEFT JOIN mst.floor rf ON rf.floor_id = r.floor_id
+                          WHERE r.property_id = @p GROUP BY {MstSql.RoomFloorCode}) n
                 ON n.code = f.code
              WHERE f.property_id = @p ORDER BY f.sort_order, f.code;
             """, conn);
@@ -188,8 +192,8 @@ public sealed class SqlMastersReadStore(SqlConnectionFactory connections) : IMas
 }
 
 /// <summary>
-/// In-use provider of the Floors master until MA-1 (migration 2810) links rooms to floors: the rooms whose number's hundreds digit
-/// equals the floor code F&lt;n&gt;. A named wing (code without a number) has no rooms yet. MA-1 replaces this with inv.room.floor_id.
+/// In-use provider of the Floors master: the rooms on the floor — inv.room.floor_id (MA-1, migration 2810), or for a room without one the
+/// floor coded F&lt;hundreds digit of its number&gt;.
 /// </summary>
 public sealed class SqlFloorUsage : IMasterUsage
 {
@@ -198,8 +202,8 @@ public sealed class SqlFloorUsage : IMasterUsage
     public async Task<MasterUsageCount> CountAsync(ICommandTransaction tx, int propertyId, string master, long rowId, CancellationToken ct = default)
     {
         await using var cmd = MstSql.Sql(tx).Command($"""
-            SELECT COUNT(*) FROM inv.room r JOIN mst.floor f ON f.floor_id = @f AND f.property_id = r.property_id
-             WHERE r.property_id = @p AND f.code = CONCAT('F', {MstSql.RoomFloor});
+            SELECT COUNT(*) FROM inv.room r JOIN mst.floor f ON f.floor_id = @f AND f.property_id = r.property_id LEFT JOIN mst.floor rf ON rf.floor_id = r.floor_id
+             WHERE r.property_id = @p AND f.code = {MstSql.RoomFloorCode};
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
         cmd.P("@f", SqlDbType.Int, (int)rowId);
