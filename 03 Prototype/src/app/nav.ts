@@ -22,3 +22,5 @@ export const navItems=navGroups.flatMap(g=>g.items);
 /** Default landing page per role (Prototype Spec §1.1). Falls back to the first permitted page. */
 const baseLanding:Record<Role,string>={Owner:'overview',Manager:'overview',Reception:'rooms',Cashier:'folios',Supervisor:'housekeeping',Housekeeper:'housekeeping',Accountant:'reports',Maintenance:'housekeeping','Tech admin':'access'};
 export const landing:Record<Role,string>={...baseLanding,...extraLanding} as Record<Role,string>;
+/** CP-1: the start page after sign-in honours the device preference when the user may open that page (pure, app/prefs.ts). */
+export {resolveStartPage} from './prefs';
