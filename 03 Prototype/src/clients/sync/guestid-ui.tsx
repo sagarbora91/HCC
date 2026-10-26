@@ -3,6 +3,7 @@ import React,{useEffect,useMemo,useState,useSyncExternalStore} from 'react';
 import {Eye,EyeOff,X} from 'lucide-react';
 import {getSyncRuntime} from './instance';
 import {canRevealGuestId,createReveal,revealGuestId,REVEAL_MS,type RevealView} from './guestid';
+import {useSecureScreen} from '../../app/native';
 
 /** Current user's right to reveal (PERM-GST-003 from /me/capabilities). */
 export function useCanRevealGuestId():boolean{
@@ -29,6 +30,9 @@ export function GuestIdRevealButton({guestId,uid}:{guestId:string;uid:string}){
     const t=setInterval(()=>setLeft(n=>Math.max(0,n-1)),1000);return ()=>clearInterval(t);
   },[shown]);
   const loading=view.phase==='loading';
+  // A07-04: in the APK the window is FLAG_SECURE from the moment the number is requested until the dialog closes (no screenshot, screen
+  // recording, casting or recent-apps thumbnail of the number); a no-op in a browser.
+  useSecureScreen(loading||shown);
   return <>
     <button type="button" className="text-btn gs-idshow" disabled={loading} onClick={()=>{void ctl.show();}}><Eye size={13}/> {loading?'Checking…':'Show ID'}</button>
     {view.phase==='error'&&<small className="form-error" role="alert"> {view.text}</small>}

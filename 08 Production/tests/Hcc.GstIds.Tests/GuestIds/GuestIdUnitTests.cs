@@ -86,6 +86,29 @@ public class GuestIdUnitTests
     }
 
     [Fact]
+    public void Free_text_ID_shapes_full_Aadhaar_or_passport_is_caught_but_phones_and_booking_refs_are_not()
+    {
+        // A07-05; the same table runs in 03 Prototype/tests/stream-guestid-freetext.mjs ([GIDTXT]).
+        var spaced = Aad[..4] + " " + Aad[4..8] + " " + Aad[8..];
+        foreach (var t in new[] { Aad, spaced, Aad[..4] + "-" + Aad[4..8] + "-" + Aad[8..], "Guest showed Aadhaar " + spaced + " at the desk", "aadhaar:" + Aad + ".",
+                     "Z1234567", "passport z7654321 copied", "(Z7654321)" })
+            Assert.True(GuestIdRules.LooksLikeIdNumber(t), t);
+        var badChecksum = Aad[..11] + (char)('0' + (Aad[11] - '0' + 1) % 10);
+        foreach (var t in new[] { null, "", "Prefers a high floor", "9820005555", "Call 98200 05555 after 6 pm", "+91 98200 05555", "+" + Aad, "Booking HCC-1041", "OTA ref 4471029384",
+                     "GSTIN 27ABCDE1234F1Z5", badChecksum, "9" + Aad, Aad + "7", "Z123456", "ZZ1234567", "Z12345678", "Room 105, 2 adults" })
+            Assert.False(GuestIdRules.LooksLikeIdNumber(t), t);
+        Assert.Equal("This looks like an ID number. Store ID numbers only in the ID section.", GuestIdRules.FreeTextIdMessage);
+    }
+
+    [Fact]
+    public void Secret_key_id_reads_the_sealing_key_of_a_sealed_secret_only()
+    {
+        Assert.Equal("k1", GuestIdProtector.SecretKeyId(P().SealSecret(1, "doc-ocr|x", "{}")));
+        Assert.Equal("k2", GuestIdProtector.SecretKeyId(P("k2").SealSecret(1, "doc-img|x", "AAAA")));
+        foreach (var t in new[] { null, "", "plain text", "enc:v1:", "enc:v1::AAAA", "enc:v1:k1" }) Assert.Null(GuestIdProtector.SecretKeyId(t));
+    }
+
+    [Fact]
     public void AES_GCM_round_trip_random_nonce_ciphertext_never_holds_the_number()
     {
         var p = P();

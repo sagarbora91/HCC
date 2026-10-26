@@ -40,6 +40,7 @@ public static partial class GuestRules
     {
         ["name"] = "Name", ["phone"] = "Phone", ["email"] = "Email", ["address"] = "Address", ["nationality"] = "Nationality",
         ["idType"] = "ID type", ["idLast4"] = "ID last 4", ["idNumber"] = "ID number", ["gstin"] = "GSTIN", ["company"] = "Company", ["party"] = "Party",
+        ["preferences"] = "Preferences", ["notes"] = "Notes",
     };
 
     [GeneratedRegex(@"^[+\d\s()-]+$")]
@@ -95,6 +96,11 @@ public static partial class GuestRules
             // Profiles saved before DEC-068 hold only the last 4 characters; they stay valid.
             if (T(d.IdNumber).Length == 0 && T(d.IdLast4).Length == 0) e["idNumber"] = "Enter the ID number.";
         }
+
+        // A07-05: no full ID number in free text — it would be stored and shown in clear, around the sealed ID storage (prototype guestValidate, same order).
+        if (!e.ContainsKey("address") && GuestIds.GuestIdRules.LooksLikeIdNumber(d.Address)) e["address"] = GuestIds.GuestIdRules.FreeTextIdMessage;
+        if (GuestIds.GuestIdRules.LooksLikeIdNumber(d.Preferences)) e["preferences"] = GuestIds.GuestIdRules.FreeTextIdMessage;
+        if (GuestIds.GuestIdRules.LooksLikeIdNumber(d.Notes)) e["notes"] = GuestIds.GuestIdRules.FreeTextIdMessage;
 
         // Production length limits (SQL columns); the prototype has none.
         if (T(d.Name).Length > 200) e["name"] = "Name is at most 200 characters.";

@@ -13,7 +13,7 @@ export type GuestDraft=Partial<Omit<Guest,'id'|'verified'|'origin'|'version'>>;
 
 export const guestIdTypes=['Aadhaar (demo)','Passport (demo)','Driving licence (demo)','Voter ID (demo)','PAN (demo)','Other (demo)'];
 export const guestAgeBands=['Adult','Child','Infant','Senior'];
-export const guestFieldLabels:Record<string,string>={name:'Name',phone:'Phone',email:'Email',address:'Address',nationality:'Nationality',idType:'ID type',idLast4:'ID last 4',idNumber:'ID number',gstin:'GSTIN',party:'Party'};
+export const guestFieldLabels:Record<string,string>={name:'Name',phone:'Phone',email:'Email',address:'Address',nationality:'Nationality',idType:'ID type',idLast4:'ID last 4',idNumber:'ID number',gstin:'GSTIN',party:'Party',preferences:'Preferences',notes:'Notes'};
 
 // ── Full ID number (DEC-068): stored for every ID type, validated per type, shown masked (last 4) everywhere ──
 // LEGAL RISK (DEC-068): UIDAI rules expect hotels to keep only a masked Aadhaar; storing the full number can be an offence under the
@@ -54,6 +54,16 @@ export function guestIdNumberError(type:string|undefined,raw:unknown):string{
     case 'pan':return /^[A-Z]{5}\d{4}[A-Z]$/.test(n)?'':'PAN is 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).';
     default:return /^[A-Z0-9]{4,20}$/.test(n)?'':'ID number is 4 to 20 letters or digits.';
   }
+}
+/** A07-05: refusal for an ID number typed into free text (guest notes, preferences, address, a capture discard reason). Server: GuestIdRules.FreeTextIdMessage. */
+export const GUEST_FREE_TEXT_ID_MESSAGE='This looks like an ID number. Store ID numbers only in the ID section.';
+/** True when free text holds a full Aadhaar — 12 digits, optionally 4-4-4 with one space or hyphen, not part of a longer number or a "+" phone
+ *  number, Verhoeff-valid (most 12-digit bank/UPI references still pass) — or a passport number (1 letter + 7 digits as its own word).
+ *  A 10-digit phone, a booking reference (HCC-1041) or a GSTIN never match. Server twin: GuestIdRules.LooksLikeIdNumber (same table of cases). */
+export function guestLooksLikeIdNumber(text:unknown):boolean{
+  const t=String(text??'');if(!t)return false;
+  for(const m of t.matchAll(/(?<![0-9+])([0-9]{4})[ -]?([0-9]{4})[ -]?([0-9]{4})(?![0-9])/g))if(guestVerhoeff(m[1]+m[2]+m[3]))return true;
+  return /(?<![A-Za-z0-9])[A-Za-z][0-9]{7}(?![A-Za-z0-9])/.test(t);
 }
 export const guestIdLast4=(n:unknown)=>guestIdNormalise(n).slice(-4);
 /** Masked form shown everywhere: XXXX-XXXX-1234 (last 4 only). */
@@ -124,6 +134,10 @@ export function guestValidate(d:GuestDraft,registration=false):Record<string,str
     // Profiles saved before DEC-068 hold only the last 4 characters; they stay valid.
     if(!t(d.idNumber)&&!t(d.idLast4))e.idNumber='Enter the ID number.';
   }
+  // A07-05: no full ID number in free text — it would be stored and shown in clear, around the protected ID field (server GuestRules.Validate, same order).
+  if(!e.address&&guestLooksLikeIdNumber(d.address))e.address=GUEST_FREE_TEXT_ID_MESSAGE;
+  if(guestLooksLikeIdNumber(d.preferences))e.preferences=GUEST_FREE_TEXT_ID_MESSAGE;
+  if(guestLooksLikeIdNumber(d.notes))e.notes=GUEST_FREE_TEXT_ID_MESSAGE;
   return e;
 }
 /** True when the profile satisfies the registration requirements. */

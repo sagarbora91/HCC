@@ -166,6 +166,42 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections) : IDocume
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// A07-07: the prefix test is a binary (case-sensitive) LEFT(...) comparison, not LIKE, so a key id is never read as a pattern; capture rows are locked before image rows
+    /// (the order the purge uses).
+    /// </summary>
+    public Task<IReadOnlyList<IdCaptureRow>> LockSealedUnderOtherKeysAsync(ICommandTransaction tx, int propertyId, string keyId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(keyId);
+        return QueryAsync(tx, $"""
+            SELECT {Cols} FROM doc.id_capture c WITH (UPDLOCK, ROWLOCK)
+            WHERE c.property_id = @p
+              AND ((c.ocr_sealed IS NOT NULL AND LEFT(c.ocr_sealed, LEN(@prefix)) COLLATE Latin1_General_BIN2 <> @prefix)
+                   OR EXISTS (SELECT 1 FROM doc.id_capture_image i WITH (UPDLOCK, ROWLOCK) WHERE i.capture_id = c.capture_id AND LEFT(i.sealed, LEN(@prefix)) COLLATE Latin1_General_BIN2 <> @prefix))
+            ORDER BY c.capture_id;
+            """, cmd =>
+        {
+            cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+            cmd.Parameters.Add("@prefix", SqlDbType.VarChar, 200).Value = Hcc.Application.GuestIds.GuestIdProtector.SecretPrefix + keyId + ":";
+        }, ct);
+    }
+
+    public async Task ResealOcrAsync(ICommandTransaction tx, long captureId, string ocrSealed, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("UPDATE doc.id_capture SET ocr_sealed = @os WHERE capture_id = @c AND ocr_sealed IS NOT NULL;");
+        cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
+        cmd.Parameters.Add("@os", SqlDbType.VarChar, 4000).Value = ocrSealed;
+        if (await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1) throw new InvalidOperationException("The capture's OCR text to re-seal was not found.");
+    }
+
+    public async Task ReplaceAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("UPDATE doc.id_capture_image SET sealed = @s WHERE capture_id = @c;");
+        cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
+        cmd.Parameters.Add("@s", SqlDbType.VarChar, -1).Value = sealedImage;
+        if (await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1) throw new InvalidOperationException("The capture image to re-seal was not found.");
+    }
+
     public async Task PutAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default)
     {
         await using var cmd = Sql(tx).Command("INSERT doc.id_capture_image(capture_id, sealed) VALUES (@c, @s);");

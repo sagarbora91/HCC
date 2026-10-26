@@ -33,6 +33,20 @@ public interface IGuestIdStore
     Task<IReadOnlyList<(long GuestId, SealedGuestId Sealed)>> LockStaleAsync(ICommandTransaction tx, int propertyId, string currentKeyId, CancellationToken ct = default);
 }
 
+/// <summary>What one participant re-sealed during a key rotation: a label for the audit text, how many values, and the key ids they were under.</summary>
+public sealed record GuestIdRekeyPart(string What, int Rekeyed, IReadOnlyList<string> FromKeyIds);
+
+/// <summary>
+/// Other data sealed with the guest-ID key ring (A07-07): <see cref="GuestIdService.RekeyAsync"/> re-seals it in the same transaction as the ID
+/// numbers, so after a rotation nothing stays under the old key and the old key can be retired. The Documents module takes part (ID capture
+/// images and OCR text). Sealed configuration secrets (<c>msg.gatewayKey</c>) are not covered yet: see the GuestIds README, "Key rotation".
+/// </summary>
+public interface IGuestIdRekeyParticipant
+{
+    /// <summary>Re-seals, inside <paramref name="tx"/>, every value of the property not sealed under <paramref name="currentKeyId"/>.</summary>
+    Task<GuestIdRekeyPart> RekeyAsync(ICommandTransaction tx, int propertyId, string currentKeyId, CancellationToken ct = default);
+}
+
 /// <summary>Result stored by the runner for a reveal: never the number (the idempotency record is not encrypted).</summary>
 public sealed record GuestIdRevealAudit(long GuestId, bool Audited);
 
@@ -41,8 +55,11 @@ public sealed record GuestIdRevealAudit(long GuestId, bool Audited);
 /// RevealGuestId command, and key rotation. The number is never written to audit text, outbox events, the idempotency record
 /// (results or payload hash) or exception messages.
 /// </summary>
-public sealed class GuestIdService(ICommandRunner runner, IAccessPolicy policy, IGuestIdStore store, GuestIdProtector protector, TimeProvider clock)
+public sealed class GuestIdService(ICommandRunner runner, IAccessPolicy policy, IGuestIdStore store, GuestIdProtector protector, TimeProvider clock,
+    IEnumerable<IGuestIdRekeyParticipant>? rekeyParticipants = null)
 {
+    private readonly IReadOnlyList<IGuestIdRekeyParticipant> _participants = rekeyParticipants?.ToList() ?? [];
+
     public const string OpReveal = "RevealGuestId";
     public const string OpRekey = "RekeyGuestIds";
 
@@ -142,6 +159,7 @@ public sealed class GuestIdService(ICommandRunner runner, IAccessPolicy policy, 
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GuestIdPermissions.Rekey, ct: ct).ConfigureAwait(false);
         var reason = req.Reason?.Trim() ?? string.Empty;
         if (reason.Length is < 3 or > 200) throw HccException.Validation("Give a reason for the key rotation (3–200 characters).");
+        if (GuestIdRules.LooksLikeIdNumber(reason)) throw HccException.Validation(GuestIdRules.FreeTextIdMessage); // A07-05: the reason is audited in clear
         return await runner.RunAsync(ctx with { Operation = OpRekey }, req, async (tx, c) =>
         {
             var current = protector.CurrentKeyId;
@@ -152,10 +170,21 @@ public sealed class GuestIdService(ICommandRunner runner, IAccessPolicy policy, 
                 await store.UpsertAsync(tx, guestId, protector.Seal(ctx.PropertyId, guestId, number), Now, c).ConfigureAwait(false);
             }
 
-            var from = stale.Select(s => s.Sealed.KeyId).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+            // A07-07: the other data sealed with the same ring (ID capture images and OCR text) moves to the current key in the same transaction.
+            var parts = new List<GuestIdRekeyPart>();
+            foreach (var p in _participants) parts.Add(await p.RekeyAsync(tx, ctx.PropertyId, current, c).ConfigureAwait(false));
+
+            static string From(IEnumerable<string> keyIds)
+            {
+                var k = keyIds.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+                return k.Count > 0 ? " from " + string.Join(", ", k) : string.Empty;
+            }
+
+            var from = stale.Select(s => s.Sealed.KeyId).Concat(parts.SelectMany(p => p.FromKeyIds)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+            var others = string.Concat(parts.Select(p => string.Create(CultureInfo.InvariantCulture, $" · {p.Rekeyed} {p.What} re-encrypted") + From(p.FromKeyIds)));
             await tx.AuditAsync("GUEST_ID_REKEY", "guest-id-keys",
-                $"{stale.Count} guest ID numbers re-encrypted to key {current}" + (from.Count > 0 ? " from " + string.Join(", ", from) : string.Empty) + " · " + reason, c).ConfigureAwait(false);
-            return new RekeyGuestIdsResult(stale.Count, current, from);
+                $"{stale.Count} guest ID numbers re-encrypted to key {current}" + From(stale.Select(s => s.Sealed.KeyId)) + others + " · " + reason, c).ConfigureAwait(false);
+            return new RekeyGuestIdsResult(stale.Count, current, from, parts.Sum(p => p.Rekeyed));
         }, ct).ConfigureAwait(false);
     }
 }

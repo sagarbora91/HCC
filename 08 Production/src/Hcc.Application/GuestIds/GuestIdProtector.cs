@@ -85,6 +85,14 @@ public sealed class GuestIdProtector(IGuestIdKeyRing keys)
 
     public static bool IsSealedSecret(string? text) => text is not null && text.StartsWith(SecretPrefix, StringComparison.Ordinal);
 
+    /// <summary>The key id a <see cref="SealSecret"/> value is sealed under (key rotation, A07-07), or null when the text is not a sealed secret.</summary>
+    public static string? SecretKeyId(string? sealedText)
+    {
+        if (!IsSealedSecret(sealedText)) return null;
+        var colon = sealedText!.IndexOf(':', SecretPrefix.Length);
+        return colon > SecretPrefix.Length ? sealedText[SecretPrefix.Length..colon] : null;
+    }
+
     private static byte[] SecretAad(int propertyId, string purpose, string keyId)
         => Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"HCC-SECRET-v1|{propertyId}|{purpose}|{keyId}"));
 

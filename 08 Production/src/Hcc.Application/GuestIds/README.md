@@ -65,10 +65,16 @@ configured ring, loaded by the same `GuestIdEndpoints.KeyRing` as the server, an
 ## Key rotation
 1. Generate a new key (above) under a new id, add it to `Keys`, keep the old one, set `Current` to the new id, restart HCC.
    New and edited numbers are sealed under the new key at once; old rows still open with the old key.
-2. As the Owner: `POST /commands/RekeyGuestIds {reason}` (PERM-ADM-003 'A') — re-encrypts every row not under `Current` in one
-   transaction and audits `GUEST_ID_REKEY` (count and key ids only).
-3. Check `SELECT key_id, COUNT(*) FROM gst.guest_id_secret GROUP BY key_id` shows only the new id, then remove the old key from
-   configuration (and destroy its copies). Suggested cadence: yearly, and at once if a key may have leaked.
+2. As the Owner: `POST /commands/RekeyGuestIds {reason}` (PERM-CFG-003, Owner) — re-encrypts every row not under `Current` in one
+   transaction: the ID numbers in `gst.guest_id_secret` **and** (A07-07) the sealed ID capture images and OCR text of the Documents module
+   (`doc.id_capture_image.sealed`, `doc.id_capture.ocr_sealed`, whatever the capture's status). It audits `GUEST_ID_REKEY` (counts and key ids
+   only) and returns `rekeyed`, `sealedSecretsRekeyed`, `fromKeyIds`. If any row cannot be opened (old key missing, altered data) nothing is changed.
+3. Check that only the new id is left, then remove the old key from configuration (and destroy its copies):
+   `SELECT key_id, COUNT(*) FROM gst.guest_id_secret GROUP BY key_id` and
+   `SELECT COUNT(*) FROM doc.id_capture WHERE ocr_sealed NOT LIKE 'enc:v1:<new id>:%'` / the same on `doc.id_capture_image.sealed` (both 0).
+   **Not covered yet:** sealed configuration secrets (the messaging gateway key `msg.gatewayKey` in Master configuration, history rows
+   included) stay under the key that sealed them. Before removing the old key, set `msg.gatewayKey` again (it is then sealed under the new
+   key) — or keep the old key in `Keys` while any older sealed setting must stay readable. Suggested cadence: yearly, and at once if a key may have leaked.
 
 ## Requested / open (owner or lead)
 - CA/lawyer ruling on storing full Aadhaar (above).

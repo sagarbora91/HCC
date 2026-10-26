@@ -74,6 +74,7 @@ node scripts\build-production.mjs --release --ca "<path>\HCC-Hotel-CA.cer" --ass
 
 ## What the app adds over the browser build (`03 Prototype\src\app\native.ts`)
 Android back button (sheet → wizard step → previous page → landing → "Exit?"), maroon status bar, CSV / Excel export (written to the app's private cache `exports/…` + share sheet, never to public storage; the FileProvider shares only that folder, F-L10 / A10-01; every sign-out, session expiry and offline-copy wipe deletes the folder; files an older build wrote to `Documents/HCC/` are not touched and must be deleted by hand), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
+**Show ID (audit A07-04):** while the production "Show ID" dialog is open (from the request until it closes) the window is `FLAG_SECURE` (`SecureScreenPlugin.java`, JS `holdSecureScreen`/`useSecureScreen` in `native.ts`): screenshots, screen recording and casting come out black and the recent-apps thumbnail is blank; the flag is cleared when the dialog closes, but only once the app is in the foreground again. So acceptance screenshots can no longer capture a full ID number from that dialog — and on a real-data run nobody should try (photographing the screen with another phone is still possible).
 
 ## Known limits
 Debug build only · demo data lives per device (no sync) · no backend · Auto display = desktop on tablet-sized native screens and phone layout on phones; Display toggle allows an explicit choice.

@@ -35,9 +35,9 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
 
     private sealed record OcrPayload(string Number, string Name, DateOnly? Dob);
 
-    private static string ImagePurpose(Guid r) => "doc-img|" + r.ToString("N");
+    internal static string ImagePurpose(Guid r) => "doc-img|" + r.ToString("N");
 
-    private static string OcrPurpose(Guid r) => "doc-ocr|" + r.ToString("N");
+    internal static string OcrPurpose(Guid r) => "doc-ocr|" + r.ToString("N");
 
     private static string Target(long id) => "id-capture-" + id.ToString(CultureInfo.InvariantCulture);
 
@@ -132,6 +132,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
         var expected = VersionToken.Parse(req.ExpectedVersion);
         var reason = req.Reason?.Trim() ?? string.Empty;
         if (reason.Length is < 3 or > 200) throw HccException.Validation("Give a reason (3–200 characters).");
+        if (GuestIdRules.LooksLikeIdNumber(reason)) throw HccException.Validation(GuestIdRules.FreeTextIdMessage); // A07-05: the reason is stored and audited in clear
         return await runner.RunAsync(ctx with { Operation = OpReject }, req, async (tx, c) =>
         {
             await DayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
@@ -214,6 +215,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.Purge, ct: ct).ConfigureAwait(false);
         var reason = req.Reason?.Trim() ?? string.Empty;
         if (reason.Length is < 3 or > 200) throw HccException.Validation("Give a reason (3–200 characters).");
+        if (GuestIdRules.LooksLikeIdNumber(reason)) throw HccException.Validation(GuestIdRules.FreeTextIdMessage); // A07-05: the reason is audited in clear
         return await runner.RunAsync(ctx with { Operation = OpPurge }, req, async (tx, c) =>
         {
             var today = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
