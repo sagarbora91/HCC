@@ -43,6 +43,7 @@ public sealed class AccessModule
         Sessions = new SqlSessionService(platform.Connections, Hasher, options, clock);
         Users = new SqlUserAdministration(platform.Connections, platform.Commands, Policy, Hasher, options, clock);
         Capabilities = new SqlCapabilitiesQuery(platform.Connections, options, clock);
+        AdminQueries = new SqlAccessAdminQueries(platform.Connections, Policy);
     }
 
     public AccessOptions Options { get; }
@@ -56,4 +57,7 @@ public sealed class AccessModule
     public IUserAdministration Users { get; }
 
     public ICapabilitiesQuery Capabilities { get; }
+
+    /// <summary>W4-5 admin reads (role templates, user exceptions, audit log).</summary>
+    public IAccessAdminQueries AdminQueries { get; }
 }

@@ -19,7 +19,7 @@ import {rooms} from './rooms';
 import {closing} from './closing';
 
 // W4-5 admin (users, roles, devices, configuration, setup):
-// import {admin} from './admin';
+import {admin} from './admin';
 
 // W4-6 staff, payroll, leave:
 // import {staff} from './staff';
@@ -51,7 +51,7 @@ export const AREAS:SyncArea[]=[
 
   closing, // W4-4
 
-  // admin, // W4-5
+  admin, // W4-5
 
   // staff, // W4-6
 

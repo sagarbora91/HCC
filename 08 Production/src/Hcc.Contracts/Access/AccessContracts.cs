@@ -77,3 +77,29 @@ public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSi
 
 /// <summary>First Owner of an empty installation (allowed only while no user exists, from the server PC itself).</summary>
 public sealed record BootstrapOwnerRequest(int PropertyId, string LoginName, string DisplayName, string Password);
+
+// ---------- W4-5 admin reads (Access control, Approvals & audit screens) ----------
+
+/// <summary>An explicit deny on a role template (DEC-040 step 3).</summary>
+public sealed record RoleDenyView(string PermissionId, string Reason);
+
+/// <summary>One role template: its grants (mode A/L/R/V/M, scope P/S/A/O, limit) and explicit denies.</summary>
+public sealed record RoleTemplateView(string RoleCode, string Name, string CredentialKind, bool OwnerOnlyAssign, IReadOnlyList<CapabilityGrant> Grants, IReadOnlyList<RoleDenyView> Denies);
+
+public sealed record PermissionView(string PermissionId, string ResourceAction, string Kind, bool IsMoney);
+
+/// <summary>GET /api/v1/admin/roles (PERM-ADM-001/002/003 at any mode): the role templates of the RBAC matrix, read-only.</summary>
+public sealed record RolesResult(IReadOnlyList<RoleTemplateView> Roles, IReadOnlyList<PermissionView> Permissions);
+
+/// <summary>One user-level exception (RBAC §1). <see cref="RevokedUtc"/> is set once revoked; expired ones have <see cref="ValidUntilUtc"/> in the past.</summary>
+public sealed record UserExceptionView(int ExceptionId, int UserId, string PermissionId, string Effect, string Mode, string Scope, long? Limit, string? LimitUnit,
+    string Reason, DateTime ValidUntilUtc, int GrantedBy, DateTime GrantedUtc, DateTime? RevokedUtc);
+
+/// <summary>GET /api/v1/admin/exceptions?includeRevoked= (PERM-ADM-001/002 at any mode).</summary>
+public sealed record ExceptionsResult(IReadOnlyList<UserExceptionView> Items);
+
+/// <summary>One audit event (append-only <c>plat.audit_event</c>). <see cref="Actor"/> is the principal's display name.</summary>
+public sealed record AuditEventView(long AuditId, DateTime AtUtc, int PrincipalId, string Actor, string Action, string Target, string Detail, string? Operation);
+
+/// <summary>GET /api/v1/admin/audit?page&amp;pageSize&amp;action&amp;principalId&amp;from&amp;to (PERM-ADM-004), newest first.</summary>
+public sealed record AuditPage(int Page, int PageSize, int Total, IReadOnlyList<AuditEventView> Items);

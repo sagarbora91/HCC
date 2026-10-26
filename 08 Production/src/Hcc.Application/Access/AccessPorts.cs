@@ -157,3 +157,16 @@ public interface ICapabilitiesQuery
 {
     Task<CapabilitiesResult> GetAsync(AuthenticatedSession session, CancellationToken ct = default);
 }
+
+/// <summary>W4-5 admin reads for the Access control and Approvals &amp; audit screens (read-only; the server stays the authority).</summary>
+public interface IAccessAdminQueries
+{
+    /// <summary>Role templates (grants + explicit denies) and the permission catalogue. PERM-ADM-001/002/003 at any mode.</summary>
+    Task<RolesResult> RolesAsync(AuthenticatedSession actor, CancellationToken ct = default);
+
+    /// <summary>User exceptions (active and expired; revoked only when asked). PERM-ADM-001/002 at any mode.</summary>
+    Task<ExceptionsResult> ExceptionsAsync(AuthenticatedSession actor, bool includeRevoked, CancellationToken ct = default);
+
+    /// <summary>Audit events, newest first. PERM-ADM-004.</summary>
+    Task<AuditPage> AuditAsync(AuthenticatedSession actor, int page, int pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+}
