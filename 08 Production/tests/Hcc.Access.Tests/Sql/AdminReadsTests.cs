@@ -74,4 +74,17 @@ public class AdminReadsTests(AccessDatabase db) : IClassFixture<AccessDatabase>
         Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => m.AdminQueries.AuditAsync(As(hkp), 1, 10, null, null, null, null))).Code);
         Assert.Equal(HccErrorCode.VALIDATION, (await Assert.ThrowsAsync<HccException>(() => m.AdminQueries.AuditAsync(As(acc), 1, ApiConventions.MaxPageSize + 1, null, null, null, null))).Code);
     }
+
+    [Fact]
+    public async Task Directory_gives_every_signed_in_role_names_and_ids_only()
+    {
+        var m = db.Module(FakeClock.At2026());
+        var rec = await db.SeedUserAsync("dir.rec", ["REC"], pin: "482913");
+        var hkp = await db.SeedUserAsync("dir.hkp", ["HKP"], pin: "482913");
+
+        var d = await m.AdminQueries.DirectoryAsync(As(hkp));
+        Assert.Contains(d.Items, x => x.UserId == rec && x.Roles.Contains("REC") && x.Enabled);
+        Assert.Contains(d.Items, x => x.UserId == hkp && x.DisplayName == "User dir.hkp");
+        Assert.DoesNotContain(typeof(StaffNameView).GetProperties(), p => p.Name.Contains("Login", StringComparison.OrdinalIgnoreCase));
+    }
 }

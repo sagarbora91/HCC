@@ -22,6 +22,12 @@ public sealed record SignInResult(int UserId, string DisplayName, string Credent
 public sealed record CapabilityGrant(string PermissionId, string Mode, string Scope, long? Limit, string? LimitUnit);
 
 /// <summary>GET /api/v1/me/capabilities. Menus only — the server re-checks every request.</summary>
+/// <summary>One staff member's display name and current role codes, for screens that show who did something or pick an assignee (no login name, no credentials).</summary>
+public sealed record StaffNameView(int UserId, string DisplayName, bool Enabled, IReadOnlyList<string> Roles);
+
+/// <summary>GET /api/v1/me/directory: names, ids and current role codes of the property's users, for any signed-in user.</summary>
+public sealed record StaffDirectoryResult(IReadOnlyList<StaffNameView> Items);
+
 public sealed record CapabilitiesResult(
     int UserId,
     int PropertyId,

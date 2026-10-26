@@ -55,6 +55,8 @@ public sealed class WebAppHostingTests : IDisposable
             Assert.Contains("connect-src 'self'", csp, StringComparison.Ordinal);
             Assert.Contains("frame-ancestors 'none'", csp, StringComparison.Ordinal);
             Assert.Contains("base-uri 'none'", csp, StringComparison.Ordinal);
+            Assert.Contains("manifest-src 'self' data:", csp, StringComparison.Ordinal); // the web-app manifest and the empty @import are data: URLs
+            Assert.Contains("style-src 'self' 'unsafe-inline' data:", csp, StringComparison.Ordinal);
 
             // Unchanged page: 304 on revalidation; the same page is also at /index.html; the API on the same origin still answers.
             using var again = new HttpRequestMessage(HttpMethod.Get, "/index.html");

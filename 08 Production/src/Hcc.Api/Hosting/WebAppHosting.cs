@@ -40,8 +40,8 @@ public static partial class WebAppHosting
         }
 
         var scriptSrc = scripts.Count == 0 ? "'self'" : "'self' " + string.Join(' ', scripts);
-        return "default-src 'none'; script-src " + scriptSrc + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; "
-            + "connect-src 'self'; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+        return "default-src 'none'; script-src " + scriptSrc + "; style-src 'self' 'unsafe-inline' data:; img-src 'self' data: blob:; font-src 'self' data:; "
+            + "connect-src 'self'; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
     }
 
     private sealed record Loaded(DateTime Stamp, long Length, byte[] Body, string ETag, string Csp);

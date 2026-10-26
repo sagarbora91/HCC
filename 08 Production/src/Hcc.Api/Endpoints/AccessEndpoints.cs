@@ -142,6 +142,10 @@ public static class AccessEndpoints
         me.MapGet("/capabilities", async (HttpContext http, ICapabilitiesQuery query, CancellationToken ct) =>
             Results.Ok(await query.GetAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
 
+        // Names and ids only (no login names), so every role's screens can show who requested/prepared/decided something.
+        me.MapGet("/directory", async (HttpContext http, IAccessAdminQueries q, CancellationToken ct) =>
+            Results.Ok(await q.DirectoryAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
+
         var admin = api.MapGroup("/admin").RequireHccSession();
         admin.MapGet("/users", async (HttpContext http, IUserAdministration users, int? page, int? pageSize, CancellationToken ct) =>
             Results.Ok(await users.ListUsersAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, ct).ConfigureAwait(false)));

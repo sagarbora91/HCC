@@ -6,6 +6,7 @@ import {shortDate} from '../../components/ui';
 
 export function ChnPill({status,children}:{status:string;children?:React.ReactNode}){return <span className={'chn-pill '+chnStatusTone(status)}>{children??status}</span>;}
 export function ChnSimulated({text='No data leaves this device. Channels and guests are fictional.'}:{text?:string}){
+  if(process.env.HCC_BUILD==='production')return null; // production: channel actions are real or refused by the server, never simulated
   return <div className="chn-sim" role="note"><FlaskConical size={16} aria-hidden/><span><b>Simulated.</b> {text.replace(/^Simulated[ —.-]*/,'')}</span></div>;
 }
 export const stay=(a:string,d:string)=>`${shortDate(a)} → ${shortDate(d)}`;

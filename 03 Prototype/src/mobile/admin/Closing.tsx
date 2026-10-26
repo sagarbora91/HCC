@@ -46,7 +46,7 @@ export function MaClosing(){
         {md.resume&&<div className="ma-warn" role="status"><AlertTriangle size={18}/><span>Night audit was interrupted after <b>{md.resume.posted} of {md.resume.total}</b> stays. Resume posts only the remaining {md.resume.remaining}; nothing is posted twice.</span></div>}
         <MaRows rows={[['In-house tonight',md.targets],['To post',md.toPost],['Already posted',md.targets-md.toPost]]}/>
         {st.blockers.length>0&&<Blockers list={st.blockers} onTap={drill}/>}
-        {!md.closed&&md.toPost>=2&&canClose&&<button type="button" className="btn ma-subtle" disabled={busy} onClick={()=>run({type:'CLOSE_RUN',interruptAfter:Math.min(3,md.toPost-1)},'Simulated interruption — progress saved. Resume to continue.')}><Zap size={16}/>Demo: interrupt after {Math.max(1,Math.min(3,md.toPost-1))}</button>}
+        {process.env.HCC_BUILD==='production'?null:!md.closed&&md.toPost>=2&&canClose&&<button type="button" className="btn ma-subtle" disabled={busy} onClick={()=>run({type:'CLOSE_RUN',interruptAfter:Math.min(3,md.toPost-1)},'Simulated interruption — progress saved. Resume to continue.')}><Zap size={16}/>Demo: interrupt after {Math.max(1,Math.min(3,md.toPost-1))}</button>}
         {md.closed&&canClose&&<button type="button" className="btn ma-subtle" disabled={busy} onClick={()=>run({type:'CLOSE_RUN',key:'closerun-rerun:'+s.date+':'+s.sequence})}><RotateCcw size={16}/>Try posting again (refused)</button>}
       </>;
       case 'cash':return <>

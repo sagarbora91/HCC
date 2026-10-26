@@ -47,7 +47,7 @@ Assert-HccGuestIdKeyId $KeyId | Out-Null
 if (-not (Test-Path -LiteralPath $SettingsFile)) { throw "Settings file not found: $SettingsFile. Install the server first (INSTALL.md step 3)." }
 $full = [IO.Path]::GetFullPath($OfflineCopyPath)
 $serverDir = [IO.Path]::GetFullPath((Split-Path -Parent $SettingsFile))
-if ($full.StartsWith($serverDir, [StringComparison]::OrdinalIgnoreCase)) { throw 'The offline copy must NOT be inside the server folder: put it on a USB stick or another PC.' }
+if (("$full" + [IO.Path]::DirectorySeparatorChar).StartsWith(($serverDir.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar), [StringComparison]::OrdinalIgnoreCase)) { throw 'The offline copy must NOT be inside the server folder: put it on a USB stick or another PC.' }
 if (Test-Path -LiteralPath $full) { throw "$full already exists; give a new file name (never overwrite an earlier offline copy)." }
 
 $json = Get-Content -LiteralPath $SettingsFile -Raw | ConvertFrom-Json

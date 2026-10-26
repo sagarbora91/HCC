@@ -144,7 +144,7 @@ export const pos:SyncArea={id:'pos',
       async send(c){await c.api.command('AdvanceKot',{orderId:checkId(c.cmd),kotId:serverId(c.cmd.kot,'KOT'),status:String(c.cmd.status)});}},
     {type:'POS_SETTLE',reload:['posX'],
       precheck:cmd=>cmd.mode==='folio'?undefined:cmd.mode!=='outlet'?'Choose how the bill is settled.':!['Cash','UPI','Card'].includes(cmd.method)?'Select Cash, UPI or Card.':
-        cmd.method!=='Cash'&&!String(cmd.reference??'').trim()?'Enter a demonstration transaction reference.':undefined,
+        cmd.method!=='Cash'&&!String(cmd.reference??'').trim()?'Enter the transaction reference.':undefined,
       async send(c){
         const cmd=c.cmd,v=checkVersion(c);
         if(!v)throw new HccClientError('STALE_VERSION','This check was not loaded from the server. Refresh and try again.');

@@ -49,7 +49,7 @@ export function DayClosing(){
           </tbody></table>{!targets.length&&<Empty title="No in-house stays tonight" body="Nothing to post."/>}</div>
           <div className="card-footer f-actions">
             <button className="btn primary" disabled={busy||!canClose||!toPost.length} onClick={()=>run({type:'CLOSE_RUN'},prog?.interrupted?'Night audit resumed — remaining nights posted once':'Room nights posted once for '+shortDate(s.date))}>{prog?.interrupted?'Resume posting':'Post room nights'} ({toPost.length})</button>
-            <button className="btn subtle" disabled={busy||!canClose||toPost.length<2} title="Demo tool: stops the run part-way" onClick={()=>run({type:'CLOSE_RUN',interruptAfter:Math.min(3,toPost.length-1)},'Simulated interruption — progress saved. Resume to continue.')}><Zap size={14}/> Demo: interrupt after {Math.max(1,Math.min(3,toPost.length-1))}</button>
+            {process.env.HCC_BUILD==='production'?null:<button className="btn subtle" disabled={busy||!canClose||toPost.length<2} title="Demo tool: stops the run part-way" onClick={()=>run({type:'CLOSE_RUN',interruptAfter:Math.min(3,toPost.length-1)},'Simulated interruption — progress saved. Resume to continue.')}><Zap size={14}/> Demo: interrupt after {Math.max(1,Math.min(3,toPost.length-1))}</button>}
             {(!canClose||!toPost.length)&&<span className="f-why">{!canClose?'Needs close permission.':'All nights posted — rerunning posts nothing.'}</span>}
           </div></>}
       </Step>
