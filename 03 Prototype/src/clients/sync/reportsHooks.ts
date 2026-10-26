@@ -3,7 +3,8 @@ import {useEffect,useRef,useState} from 'react';
 import {getSyncRuntime} from './instance';
 import {useSync} from './react';
 import type {SyncApi} from './types';
-import {loadServerReport,loadServerHistory,type ServerReport,type ServerHistory} from './reports';
+import {loadServerReport,loadServerHistory,loadCollections,type ServerReport,type ServerHistory,type ServerCollections} from './reports';
+import {mayRead,type ReadRoute} from './reads';
 
 export type Fetched<T>={status:'idle'|'loading'|'ready'|'error';data?:T;error?:string};
 
@@ -25,3 +26,6 @@ export function useServerFetch<T>(key:string|null,load:(api:SyncApi)=>Promise<T>
 }
 export const useServerReport=(from:string,to:string,enabled=true):Fetched<ServerReport>=>useServerFetch(enabled?`${from}|${to}`:null,api=>loadServerReport(api,from,to));
 export const useServerHistory=(date:string,enabled=true):Fetched<ServerHistory>=>useServerFetch(enabled&&date?date:null,api=>loadServerHistory(api,date));
+export const useServerCollections=(date:string,enabled=true):Fetched<ServerCollections>=>useServerFetch(enabled&&date?'coll|'+date:null,api=>loadCollections(api,date));
+/** May the signed-in user send this read (sync/reads.ts, the same rule as the loaders)? */
+export function useMayRead(route:ReadRoute):boolean{return mayRead(useSync().me,route);}

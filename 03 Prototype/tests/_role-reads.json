@@ -5,6 +5,8 @@
     "GET /me/directory": "/me/directory",
     "GET /closing/business-date": "/closing/business-date",
     "GET /closing/records": "/closing/records?from=2026-08-24&to=2026-10-24",
+    "GET /cashier/collections": "/cashier/collections?date=2026-10-24",
+    "GET /reports/daily": "/reports/daily?from=2026-10-24&to=2026-10-24",
     "GET /reservations": "/reservations?view=range&from=2026-04-27&page=1&pageSize=500",
     "GET /reservations/:id": "/reservations/1",
     "GET /guests": "/guests?page=1&pageSize=500",
@@ -149,6 +151,21 @@
           "P"
         ],
         [
+          "PERM-CFG-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CFG-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CFG-003",
+          "A",
+          "P"
+        ],
+        [
           "PERM-CLS-001",
           "A",
           "P"
@@ -189,12 +206,37 @@
           "P"
         ],
         [
+          "PERM-CRM-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CRM-004",
+          "A",
+          "P"
+        ],
+        [
           "PERM-DOC-001",
           "A",
           "P"
         ],
         [
           "PERM-DOC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-005",
           "A",
           "P"
         ],
@@ -304,6 +346,31 @@
           "P"
         ],
         [
+          "PERM-GSV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-005",
+          "A",
+          "P"
+        ],
+        [
           "PERM-HK-001",
           "A",
           "P"
@@ -320,6 +387,26 @@
         ],
         [
           "PERM-HK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-004",
           "A",
           "P"
         ],
@@ -399,6 +486,56 @@
           "P"
         ],
         [
+          "PERM-INV-006",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-005",
+          "A",
+          "P"
+        ],
+        [
           "PERM-OTA-001",
           "A",
           "P"
@@ -410,6 +547,16 @@
         ],
         [
           "PERM-OTA-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-005",
           "A",
           "P"
         ],
@@ -435,6 +582,36 @@
         ],
         [
           "PERM-PAY-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-006",
           "A",
           "P"
         ],
@@ -499,6 +676,31 @@
           "P"
         ],
         [
+          "PERM-STK-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-005",
+          "A",
+          "P"
+        ],
+        [
           "PERM-STY-001",
           "A",
           "P"
@@ -517,6 +719,41 @@
           "PERM-WEB-001",
           "A",
           "P"
+        ],
+        [
+          "PERM-WEB-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-YLD-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-YLD-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-YLD-003",
+          "A",
+          "P"
         ]
       ],
       "fieldMasks": {
@@ -532,6 +769,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "200",
+        "GET /cashier/collections": "200",
+        "GET /reports/daily": "200",
         "GET /reservations": "200",
         "GET /reservations/:id": "404",
         "GET /guests": "200",
@@ -666,12 +905,32 @@
           "P"
         ],
         [
+          "PERM-CRM-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CRM-004",
+          "A",
+          "P"
+        ],
+        [
           "PERM-DOC-001",
           "A",
           "P"
         ],
         [
           "PERM-DOC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-004",
           "A",
           "P"
         ],
@@ -781,6 +1040,31 @@
           "P"
         ],
         [
+          "PERM-GSV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-003",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-GSV-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-005",
+          "A",
+          "P"
+        ],
+        [
           "PERM-HK-001",
           "A",
           "P"
@@ -797,6 +1081,26 @@
         ],
         [
           "PERM-HK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-004",
           "A",
           "P"
         ],
@@ -836,6 +1140,51 @@
           "P"
         ],
         [
+          "PERM-MNT-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-005",
+          "A",
+          "P"
+        ],
+        [
           "PERM-OTA-001",
           "A",
           "P"
@@ -847,6 +1196,11 @@
         ],
         [
           "PERM-OTA-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-004",
           "A",
           "P"
         ],
@@ -873,6 +1227,36 @@
         [
           "PERM-PAY-005",
           "L",
+          "P"
+        ],
+        [
+          "PERM-POS-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-003",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-POS-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-006",
+          "R",
           "P"
         ],
         [
@@ -936,6 +1320,31 @@
           "P"
         ],
         [
+          "PERM-STK-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-005",
+          "A",
+          "P"
+        ],
+        [
           "PERM-STY-001",
           "A",
           "P"
@@ -954,6 +1363,36 @@
           "PERM-WEB-001",
           "A",
           "P"
+        ],
+        [
+          "PERM-WEB-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-YLD-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-YLD-002",
+          "A",
+          "P"
         ]
       ],
       "fieldMasks": {
@@ -969,6 +1408,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "200",
+        "GET /cashier/collections": "200",
+        "GET /reports/daily": "200",
         "GET /reservations": "200",
         "GET /reservations/:id": "404",
         "GET /guests": "200",
@@ -990,7 +1431,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "200",
-        "GET /configuration/requests": "200",
+        "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
         "GET /tax/gst": "403",
@@ -1053,7 +1494,27 @@
       ],
       "permissions": [
         [
+          "PERM-CRM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CRM-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-DOC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-004",
           "A",
           "P"
         ],
@@ -1138,6 +1599,36 @@
           "P"
         ],
         [
+          "PERM-GSV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-HND-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-004",
+          "A",
+          "S"
+        ],
+        [
           "PERM-HR-004",
           "A",
           "O"
@@ -1158,7 +1649,27 @@
           "P"
         ],
         [
+          "PERM-MSG-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-005",
+          "A",
+          "P"
+        ],
+        [
           "PERM-OTA-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-002",
           "A",
           "P"
         ],
@@ -1179,6 +1690,26 @@
         ],
         [
           "PERM-PAY-004",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-POS-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-003",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-POS-005",
           "A",
           "S"
         ],
@@ -1236,6 +1767,11 @@
           "PERM-WEB-001",
           "A",
           "P"
+        ],
+        [
+          "PERM-WEB-002",
+          "A",
+          "P"
         ]
       ],
       "fieldMasks": {
@@ -1251,6 +1787,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "403",
+        "GET /cashier/collections": "403",
+        "GET /reports/daily": "403",
         "GET /reservations": "200",
         "GET /reservations/:id": "404",
         "GET /guests": "200",
@@ -1335,7 +1873,17 @@
       ],
       "permissions": [
         [
-          "PERM-ACC-001",
+          "PERM-CRM-001",
+          "M",
+          "P"
+        ],
+        [
+          "PERM-DOC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-002",
           "A",
           "P"
         ],
@@ -1395,6 +1943,21 @@
           "P"
         ],
         [
+          "PERM-HND-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-004",
+          "A",
+          "S"
+        ],
+        [
           "PERM-HR-004",
           "A",
           "O"
@@ -1435,6 +1998,31 @@
           "S"
         ],
         [
+          "PERM-POS-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-003",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-POS-004",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-POS-005",
+          "A",
+          "S"
+        ],
+        [
           "PERM-RPT-002",
           "V",
           "S"
@@ -1458,6 +2046,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "403",
+        "GET /cashier/collections": "200",
+        "GET /reports/daily": "403",
         "GET /reservations": "403",
         "GET /reservations/:id": "403",
         "GET /guests": "200",
@@ -1485,11 +2075,11 @@
         "GET /tax/gst": "403",
         "GET /payroll/staff": "200",
         "GET /payroll/board": "200",
-        "GET /accounting/days": "200",
-        "GET /accounting/trial-balance": "200",
-        "GET /accounting/mapping": "200",
-        "GET /accounting/mapping/history": "200",
-        "GET /accounting/locks/history": "200",
+        "GET /accounting/days": "403",
+        "GET /accounting/trial-balance": "403",
+        "GET /accounting/mapping": "403",
+        "GET /accounting/mapping/history": "403",
+        "GET /accounting/locks/history": "403",
         "GET /expenses": "200",
         "GET /compliance/obligations": "403",
         "GET /compliance/calendar": "403",
@@ -1582,6 +2172,26 @@
           "P"
         ],
         [
+          "PERM-CRM-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-DOC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-003",
+          "A",
+          "P"
+        ],
+        [
           "PERM-DRW-003",
           "V",
           "P"
@@ -1618,6 +2228,11 @@
         ],
         [
           "PERM-GRP-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-HND-004",
           "V",
           "P"
         ],
@@ -1662,8 +2277,33 @@
           "P"
         ],
         [
-          "PERM-OTA-003",
+          "PERM-INV-006",
           "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-OTA-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-OTA-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-POS-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-POS-004",
+          "V",
           "P"
         ],
         [
@@ -1685,6 +2325,31 @@
           "PERM-SHF-002",
           "A",
           "P"
+        ],
+        [
+          "PERM-STK-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-STK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-WEB-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-YLD-001",
+          "V",
+          "P"
         ]
       ],
       "fieldMasks": {
@@ -1700,6 +2365,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "200",
+        "GET /cashier/collections": "200",
+        "GET /reports/daily": "200",
         "GET /reservations": "403",
         "GET /reservations/:id": "403",
         "GET /guests": "403",
@@ -1736,18 +2403,18 @@
         "GET /compliance/obligations": "200",
         "GET /compliance/calendar": "200",
         "GET /compliance/ca-packs": "200",
-        "GET /pos/outlets": "403",
-        "GET /pos/menu": "403",
-        "GET /pos/checks": "403",
-        "GET /pos/checks/closed": "403",
-        "GET /pos/checks/:id": "403",
-        "GET /pos/void-requests": "403",
-        "GET /pos/in-house": "403",
-        "GET /pos/till": "403",
+        "GET /pos/outlets": "200",
+        "GET /pos/menu": "200",
+        "GET /pos/checks": "200",
+        "GET /pos/checks/closed": "200",
+        "GET /pos/checks/:id": "404",
+        "GET /pos/void-requests": "200",
+        "GET /pos/in-house": "200",
+        "GET /pos/till": "200",
         "GET /maintenance/registers": "403",
         "GET /maintenance/work-orders": "403",
         "GET /maintenance/work-orders/:id": "403",
-        "GET /maintenance/amcs": "403",
+        "GET /maintenance/amcs": "200",
         "GET /stock/items": "200",
         "GET /stock/laundry": "200",
         "GET /stock/counts": "200",
@@ -1767,11 +2434,11 @@
         "GET /messaging/templates": "403",
         "GET /messaging/rules": "403",
         "GET /messaging/consents": "403",
-        "GET /ota/channels": "403",
-        "GET /ota/messages": "403",
-        "GET /ota/pushes": "403",
-        "GET /web-booking/requests": "403",
-        "GET /web-booking/requests/:id": "403",
+        "GET /ota/channels": "200",
+        "GET /ota/messages": "200",
+        "GET /ota/pushes": "200",
+        "GET /web-booking/requests": "200",
+        "GET /web-booking/requests/:id": "404",
         "GET /yield/calendar": "200",
         "GET /yield/config": "200",
         "GET /yield/publishes": "200",
@@ -1783,6 +2450,21 @@
         "SUP"
       ],
       "permissions": [
+        [
+          "PERM-GSV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GSV-005",
+          "A",
+          "P"
+        ],
         [
           "PERM-HK-001",
           "A",
@@ -1804,9 +2486,34 @@
           "P"
         ],
         [
+          "PERM-HND-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HND-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-HR-004",
           "A",
           "O"
+        ],
+        [
+          "PERM-MNT-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MNT-003",
+          "A",
+          "P"
         ],
         [
           "PERM-ROOM-001",
@@ -1815,6 +2522,26 @@
         ],
         [
           "PERM-ROOM-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STK-005",
           "A",
           "P"
         ]
@@ -1832,6 +2559,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "403",
+        "GET /cashier/collections": "403",
+        "GET /reports/daily": "403",
         "GET /reservations": "403",
         "GET /reservations/:id": "403",
         "GET /guests": "403",
@@ -1879,7 +2608,7 @@
         "GET /maintenance/registers": "200",
         "GET /maintenance/work-orders": "200",
         "GET /maintenance/work-orders/:id": "404",
-        "GET /maintenance/amcs": "200",
+        "GET /maintenance/amcs": "403",
         "GET /stock/items": "200",
         "GET /stock/laundry": "200",
         "GET /stock/counts": "200",
@@ -1887,11 +2616,11 @@
         "GET /stock/moves": "200",
         "GET /stock/settings": "200",
         "GET /guest-services/requests": "200",
-        "GET /guest-services/complaints": "403",
+        "GET /guest-services/complaints": "200",
         "GET /guest-services/lost-items": "200",
-        "GET /guest-services/settings": "403",
-        "GET /guest-services/stays": "403",
-        "GET /guest-services/histories/:kind": "403",
+        "GET /guest-services/settings": "200",
+        "GET /guest-services/stays": "200",
+        "GET /guest-services/histories/:kind": "200",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "403",
         "GET /handover/notes": "200",
@@ -1916,6 +2645,16 @@
       ],
       "permissions": [
         [
+          "PERM-GSV-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-GSV-002",
+          "A",
+          "A"
+        ],
+        [
           "PERM-HK-001",
           "A",
           "A"
@@ -1926,12 +2665,42 @@
           "A"
         ],
         [
+          "PERM-HND-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-HND-002",
+          "A",
+          "O"
+        ],
+        [
           "PERM-HR-004",
           "A",
           "O"
         ],
         [
+          "PERM-MNT-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-MNT-002",
+          "A",
+          "A"
+        ],
+        [
           "PERM-ROOM-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-STK-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-STK-002",
           "A",
           "A"
         ]
@@ -1949,6 +2718,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "403",
+        "GET /cashier/collections": "403",
+        "GET /reports/daily": "403",
         "GET /reservations": "403",
         "GET /reservations/:id": "403",
         "GET /guests": "403",
@@ -2033,14 +2804,44 @@
       ],
       "permissions": [
         [
+          "PERM-GSV-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-GSV-002",
+          "A",
+          "A"
+        ],
+        [
           "PERM-HK-001",
           "A",
           "A"
         ],
         [
+          "PERM-HND-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-HND-002",
+          "A",
+          "O"
+        ],
+        [
           "PERM-HR-004",
           "A",
           "O"
+        ],
+        [
+          "PERM-MNT-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-MNT-002",
+          "A",
+          "A"
         ],
         [
           "PERM-ROOM-001",
@@ -2061,6 +2862,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "403",
+        "GET /cashier/collections": "403",
+        "GET /reports/daily": "403",
         "GET /reservations": "403",
         "GET /reservations/:id": "403",
         "GET /guests": "403",
@@ -2160,6 +2963,16 @@
           "P"
         ],
         [
+          "PERM-CFG-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-CFG-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-HR-001",
           "V",
           "P"
@@ -2171,6 +2984,26 @@
         ],
         [
           "PERM-IMP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MSG-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-OTA-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-005",
           "A",
           "P"
         ]
@@ -2188,6 +3021,8 @@
         "GET /me/directory": "200",
         "GET /closing/business-date": "200",
         "GET /closing/records": "403",
+        "GET /cashier/collections": "403",
+        "GET /reports/daily": "403",
         "GET /reservations": "403",
         "GET /reservations/:id": "403",
         "GET /guests": "403",
@@ -2232,6 +3067,125 @@
         "GET /pos/void-requests": "403",
         "GET /pos/in-house": "403",
         "GET /pos/till": "403",
+        "GET /maintenance/registers": "403",
+        "GET /maintenance/work-orders": "403",
+        "GET /maintenance/work-orders/:id": "403",
+        "GET /maintenance/amcs": "403",
+        "GET /stock/items": "403",
+        "GET /stock/laundry": "403",
+        "GET /stock/counts": "403",
+        "GET /stock/losses": "403",
+        "GET /stock/moves": "403",
+        "GET /stock/settings": "403",
+        "GET /guest-services/requests": "403",
+        "GET /guest-services/complaints": "403",
+        "GET /guest-services/lost-items": "403",
+        "GET /guest-services/settings": "403",
+        "GET /guest-services/stays": "403",
+        "GET /guest-services/histories/:kind": "403",
+        "GET /handover/checklists": "403",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "403",
+        "GET /messaging/messages": "403",
+        "GET /messaging/templates": "200",
+        "GET /messaging/rules": "200",
+        "GET /messaging/consents": "403",
+        "GET /ota/channels": "200",
+        "GET /ota/messages": "200",
+        "GET /ota/pushes": "200",
+        "GET /web-booking/requests": "403",
+        "GET /web-booking/requests/:id": "403",
+        "GET /yield/calendar": "403",
+        "GET /yield/config": "403",
+        "GET /yield/publishes": "403",
+        "GET /yield/proposals": "403"
+      }
+    },
+    "RST": {
+      "roles": [
+        "RST"
+      ],
+      "permissions": [
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-POS-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-POS-003",
+          "R",
+          "P"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "actionAndTimeOnly",
+        "guest.contact": "last4",
+        "guest.idNumber": "restricted",
+        "money": "hidden",
+        "staff.list": "hidden",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "403",
+        "GET /cashier/collections": "403",
+        "GET /reports/daily": "403",
+        "GET /reservations": "403",
+        "GET /reservations/:id": "403",
+        "GET /guests": "403",
+        "GET /availability": "403",
+        "GET /rooms/board": "403",
+        "GET /rooms/status": "403",
+        "GET /housekeeping/tasks": "403",
+        "GET /folios/by-reservation/:id": "403",
+        "GET /invoices/by-source/folio/:id": "403",
+        "GET /credit-note-requests": "403",
+        "GET /cashier/desk": "403",
+        "GET /cashier/folios": "403",
+        "GET /cashier/transfers": "403",
+        "GET /cashbook": "403",
+        "GET /groups": "403",
+        "GET /groups/companies": "403",
+        "GET /groups/:id/statement": "403",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "403",
+        "GET /configuration/requests": "403",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /tax/gst": "403",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "403",
+        "GET /accounting/trial-balance": "403",
+        "GET /accounting/mapping": "403",
+        "GET /accounting/mapping/history": "403",
+        "GET /accounting/locks/history": "403",
+        "GET /expenses": "403",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "200",
+        "GET /pos/menu": "200",
+        "GET /pos/checks": "200",
+        "GET /pos/checks/closed": "403",
+        "GET /pos/checks/:id": "404",
+        "GET /pos/void-requests": "200",
+        "GET /pos/in-house": "200",
+        "GET /pos/till": "200",
         "GET /maintenance/registers": "403",
         "GET /maintenance/work-orders": "403",
         "GET /maintenance/work-orders/:id": "403",

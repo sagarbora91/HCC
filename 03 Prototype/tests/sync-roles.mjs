@@ -4,14 +4,15 @@
 //   1. sync/reads.ts READS agrees with the server for every role × route;
 //   2. per role, a fake server answers 403 exactly where the real one does (and 404 for a route the file does not list): the runtime
 //      sends no 403 read, no unknown read, has no load errors, fills the role's core slices and every page renders (desktop + phone).
-// Grants are not changed (role matrix v2 D1–D7 are the owner's): Reception reads the front-desk room list (GET /rooms/status,
-// PERM-RES-001) instead of the housekeeping board, the Cashier its folio list (GET /cashier/folios, PERM-FOL-001) instead of reservations.
+// Role matrix v2 (DEC-079): Reception reads the front-desk room list (GET /rooms/status, PERM-RES-001) instead of the housekeeping board,
+// the Cashier its folio list (GET /cashier/folios, PERM-FOL-001) instead of reservations and the daily collections report instead of the
+// finance reports / books; the Restaurant role (RST, D1) boots on the POS (PERM-POS-001/002) without closed bills or day sales.
 import {readFileSync} from 'node:fs';
 import {loadSync,loadPages,fakeServer,startRuntime,reply} from './_sync-harness.mjs';
 
 const MATRIX=JSON.parse(readFileSync(new URL('./_role-reads.json',import.meta.url),'utf8'));
 const BD='2026-10-24';
-const USER_ID={OWN:1,MGR:2,REC:3,CSH:4,ACC:5,SUP:6,HKP:7,MNT:8,TAD:9};
+const USER_ID={OWN:1,MGR:2,REC:3,CSH:4,ACC:5,SUP:6,HKP:7,MNT:8,TAD:9,RST:10};
 
 const page=(rows,q={},key='rows')=>{const p=Number(q.page||1),n=Number(q.pageSize||100);return {page:p,pageSize:n,total:rows.length,[key]:rows.slice((p-1)*n,p*n)};};
 const task=(id,roomId,roomNo,assigneeId,over={})=>({taskId:id,roomId,roomNo,kind:'checkout',status:'ToDo',assigneeId,checklist:[false,false,false],note:null,rejectReason:null,
@@ -39,6 +40,8 @@ function routes(role){
     'GET /me/directory':()=>({items:[{userId:uid,displayName:'Matrix '+role,enabled:true,roles:[role]}]}),
     'GET /closing/business-date':()=>({businessDate:BD,closed:false}),
     'GET /closing/records':()=>({items:[]}),
+    'GET /cashier/collections':()=>({businessDate:BD,collectionsPaise:420000,byTenderPaise:{Cash:300000,UPI:120000},depositsReceivedPaise:0,depositsReturnedPaise:0}),
+    'GET /reports/daily':()=>reply(404,{code:'NOT_FOUND',message:'Not used by the loaders.'}),
     'GET /reservations':()=>({businessDate:BD,total:2,page:1,pageSize:500,items:[resItem(1201),resItem(1202,{status:'Confirmed',roomId:9,roomNo:'207',arrival:BD,stayId:null,stayVersion:null,stayStatus:null,checkedInDate:null,registered:false,segments:[]})]}),
     'GET /reservations/:id':()=>reply(404,{code:'NOT_FOUND',message:'Reservation not found.'}),
     'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),
@@ -78,8 +81,8 @@ function routes(role){
     'GET /compliance/obligations':()=>[],
     'GET /compliance/calendar':()=>({asOf:BD,items:[],counts:{},settings:{reminderDays:7,version:'C1'},note:''}),
     'GET /compliance/ca-packs':()=>[],
-    'GET /pos/outlets':()=>[],
-    'GET /pos/menu':()=>[],
+    'GET /pos/outlets':()=>[{outletId:1,code:'REST',name:'Restaurant',kind:'table',tables:['T1','T2']}],
+    'GET /pos/menu':()=>[{itemId:11,code:'TEA',name:'Masala chai',category:'Beverages',pricePaise:6000,veg:true,available:true,outletIds:[1],version:'M11'}],
     'GET /pos/checks':()=>[],
     'GET /pos/checks/closed':()=>[],
     'GET /pos/checks/:id':()=>reply(404,{code:'NOT_FOUND',message:'No check.'}),
@@ -132,6 +135,7 @@ const CORE={
   HKP:s=>[['tasks',s.tasks.length],['rooms',s.rooms.length]],
   MNT:s=>[['work orders',s.maintenanceX?.orders?.length??0],['rooms',s.rooms.length]],
   TAD:s=>[['users',s.users.length]],
+  RST:s=>[['outlets',s.posX?.outlets?.length??0],['menu',s.posX?.menu?.length??0]],
 };
 
 export async function register({test,assert}){
@@ -139,7 +143,7 @@ export async function register({test,assert}){
   const roles=Object.keys(MATRIX.roles);
 
   test('[D5] The fixture covers every seeded role and every listed route',()=>{
-    assert.deepEqual(roles,['OWN','MGR','REC','CSH','ACC','SUP','HKP','MNT','TAD']);
+    assert.deepEqual(roles,['OWN','MGR','REC','CSH','ACC','SUP','HKP','MNT','TAD','RST']);
     for(const r of roles)assert.deepEqual(Object.keys(MATRIX.roles[r].reads),Object.keys(MATRIX.routes),r);
     assert.deepEqual(Object.keys(S.READS).sort(),Object.keys(MATRIX.routes).sort(),'sync/reads.ts READS lists exactly the fixture routes');
   });
@@ -195,6 +199,16 @@ export async function register({test,assert}){
     const s=results.CSH.state,b=s.bookings[0];
     assert.deepEqual([s.bookings.length,b.id,b.guest,b.room,b.status,b.email,b.phone],[1,'1201','Fictional Guest 1201','105','In house','',undefined]);
     assert.equal(b.lines.length,1);assert.equal(s.rooms.length,0);
+  });
+  test('[DEC-079] Restaurant: POS home with outlets and menu, no closed bills, no folio, no cash desk; only the POS and own shifts & pay pages',()=>{
+    const s=results.RST.state,uid=s.users.find(u=>u.role==='Restaurant')?.id;
+    assert.ok(uid,'the signed-in RST user is the prototype role "Restaurant"');
+    assert.deepEqual([s.posX.outlets.length,s.posX.menu.length,s.posX.receipts.length,s.bookings.length,s.shiftOpen],[1,1,0,0,false]);
+    assert.deepEqual(MATRIX.roles.RST.roles,['RST']);
+  });
+  test('[DEC-079] Cashier: the collections report is readable, the books and the daily finance report are not',()=>{
+    const r=MATRIX.roles.CSH.reads;
+    assert.deepEqual([r['GET /cashier/collections'],r['GET /accounting/trial-balance'],r['GET /reports/daily']],['200','403','403']);
   });
   test('[D5] Housekeeping and Maintenance roles never receive money: no bookings, no cash desk',()=>{
     for(const r of ['SUP','HKP','MNT']){const s=results[r].state;assert.deepEqual([r,s.bookings.length,s.shiftOpen,s.openingCash],[r,0,false,0]);}

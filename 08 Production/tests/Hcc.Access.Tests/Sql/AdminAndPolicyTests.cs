@@ -305,9 +305,11 @@ public class AdminAndPolicyTests(AccessDatabase db) : IClassFixture<AccessDataba
 
         var h = await m.Capabilities.GetAsync(hkp);
         Assert.Equal(["HKP"], h.Roles);
-        // PERM-HR-004 (0901 payroll): own roster, check-in, leave and OWN payslip, scope O (DEC-061).
-        Assert.Equal(["PERM-HK-001", "PERM-HK-003", "PERM-HR-004", "PERM-ROOM-001"], h.Permissions.Select(p => p.PermissionId).ToArray());
-        Assert.All(h.Permissions, p => Assert.Equal(p.PermissionId == "PERM-HR-004" ? "O" : "A", p.Scope));
+        // PERM-HR-004 (0901 payroll): own roster, check-in, leave and OWN payslip, scope O (DEC-061). Role matrix v2 (3700): guest services,
+        // handover (own notes), maintenance and stock at assigned scope, never a money permission.
+        Assert.Equal(["PERM-GSV-001", "PERM-GSV-002", "PERM-HK-001", "PERM-HK-003", "PERM-HND-001", "PERM-HND-002", "PERM-HR-004", "PERM-MNT-001", "PERM-MNT-002",
+            "PERM-ROOM-001", "PERM-STK-001", "PERM-STK-002"], h.Permissions.Select(p => p.PermissionId).ToArray());
+        Assert.All(h.Permissions, p => Assert.Equal(p.PermissionId is "PERM-HR-004" or "PERM-HND-002" ? "O" : "A", p.Scope));
         Assert.Equal((FieldMasks.Hidden, FieldMasks.OwnOnly), (h.FieldMasks[FieldMasks.HotelMoney], h.FieldMasks[FieldMasks.StaffPay]));
         Assert.Equal("PIN", h.CredentialKind);
 

@@ -22,8 +22,10 @@ public static class Who
 }
 
 /// <summary>
-/// Test stand-in for P1's policy: grants from RBAC matrix v1 for the permission ids this module reuses (P = property-wide, A = assigned only)
-/// plus billing's folio / approval grants with the DEC-063 discount limits (Reception ₹250, Manager ₹1,000).
+/// Test stand-in for P1's policy: the guest-services grants of role matrix v2 (DEC-079, migration 3700; P = property-wide, A = assigned only),
+/// the core housekeeping / room ids that mark housekeeping and maintenance staff for assignment, plus billing's folio / discount grants with
+/// the DEC-063 limits (Reception ₹250, Manager ₹1,000). GSV-003 is unlimited here for the Manager (the module test exercises the flows, the
+/// seeded Rs 1,000 limit is checked by the access tests).
 /// </summary>
 public sealed class FakePolicy : IAccessPolicy
 {
@@ -31,14 +33,14 @@ public sealed class FakePolicy : IAccessPolicy
 
     private readonly Dictionary<int, Dictionary<string, (char Scope, long Limit)>> _g = new()
     {
-        [Who.Owner] = Wide("PERM-GST-002", "PERM-HK-002", "PERM-HK-003", "PERM-ROOM-001", "PERM-APR-001", "PERM-RPT-001", "PERM-FOL-001", "PERM-FOL-003"),
-        [Who.Manager] = Wide("PERM-GST-002", "PERM-HK-002", "PERM-HK-003", "PERM-ROOM-001", "PERM-APR-001", "PERM-RPT-001", "PERM-FOL-001", "PERM-FOL-003"),
-        [Who.Reception] = Wide("PERM-GST-002", "PERM-ROOM-001", "PERM-FOL-001", "PERM-FOL-003"),
+        [Who.Owner] = Wide("PERM-GSV-001", "PERM-GSV-002", "PERM-GSV-003", "PERM-GSV-004", "PERM-GSV-005", "PERM-HK-003", "PERM-ROOM-001", "PERM-RPT-001", "PERM-FOL-001", "PERM-FOL-003", "PERM-APR-001"),
+        [Who.Manager] = Wide("PERM-GSV-001", "PERM-GSV-002", "PERM-GSV-003", "PERM-GSV-004", "PERM-GSV-005", "PERM-HK-003", "PERM-ROOM-001", "PERM-RPT-001", "PERM-FOL-001", "PERM-FOL-003", "PERM-APR-001"),
+        [Who.Reception] = Wide("PERM-GSV-001", "PERM-GSV-002", "PERM-GSV-004", "PERM-ROOM-001", "PERM-FOL-001", "PERM-FOL-003"),
         [Who.Cashier] = Wide("PERM-FOL-001"),
-        [Who.Supervisor] = Wide("PERM-HK-002", "PERM-HK-003", "PERM-ROOM-001"),
-        [Who.Housekeeper] = new() { ["PERM-HK-003"] = ('A', Unlimited), ["PERM-ROOM-001"] = ('A', Unlimited) },
-        [Who.Housekeeper2] = new() { ["PERM-HK-003"] = ('A', Unlimited), ["PERM-ROOM-001"] = ('A', Unlimited) },
-        [Who.Maint] = new() { ["PERM-ROOM-001"] = ('A', Unlimited) },
+        [Who.Supervisor] = Wide("PERM-GSV-001", "PERM-GSV-002", "PERM-GSV-005", "PERM-HK-003", "PERM-ROOM-001"),
+        [Who.Housekeeper] = Assigned("PERM-GSV-001", "PERM-GSV-002", "PERM-HK-003", "PERM-ROOM-001"),
+        [Who.Housekeeper2] = Assigned("PERM-GSV-001", "PERM-GSV-002", "PERM-HK-003", "PERM-ROOM-001"),
+        [Who.Maint] = Assigned("PERM-GSV-001", "PERM-GSV-002", "PERM-ROOM-001"),
         [Who.Accountant] = Wide("PERM-RPT-001"),
     };
 
@@ -49,6 +51,8 @@ public sealed class FakePolicy : IAccessPolicy
     }
 
     private static Dictionary<string, (char, long)> Wide(params string[] perms) => perms.ToDictionary(p => p, _ => ('P', Unlimited));
+
+    private static Dictionary<string, (char, long)> Assigned(params string[] perms) => perms.ToDictionary(p => p, _ => ('A', Unlimited));
 
     public Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default)
     {

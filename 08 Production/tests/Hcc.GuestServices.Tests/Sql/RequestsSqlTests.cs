@@ -86,14 +86,18 @@ public class RequestsSqlTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Assignment_pools_by_department_and_supervisor_cannot_touch_front_desk_requests()
+    public async Task Assignment_is_for_supervising_roles_and_pools_by_department()
     {
         var r = await Log(Who.Reception, "p1", "HCC-1044", "Extra towels");
-        Assert.Equal("VALIDATION", await Expect.CodeAsync(() => _w.Commands.AssignRequestAsync(_w.Ctx(Who.Reception, "p2"), new AssignServiceRequestRequest(r.RequestId, Who.Maint, null, r.Version), Ct)));
+        // DEC-079: assigning is PERM-GSV-005 (Owner, Manager, Housekeeping supervisor); Reception logs and works requests but no longer assigns.
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Commands.AssignRequestAsync(_w.Ctx(Who.Reception, "p2"), new AssignServiceRequestRequest(r.RequestId, Who.Housekeeper2, null, r.Version), Ct)));
+        Assert.Equal("VALIDATION", await Expect.CodeAsync(() => _w.Commands.AssignRequestAsync(_w.Ctx(Who.Supervisor, "p2b"), new AssignServiceRequestRequest(r.RequestId, Who.Maint, null, r.Version), Ct)));
         var a = (await _w.Commands.AssignRequestAsync(_w.Ctx(Who.Supervisor, "p3"), new AssignServiceRequestRequest(r.RequestId, Who.Housekeeper2, null, r.Version), Ct)).Value;
         Assert.Equal(("Assigned", Who.Housekeeper2), (a.Status, a.AssigneeId));
+        // v2: the supervisor's view and assignment cover every department, the front desk included (GSV-001 / GSV-005 property-wide).
         var taxi = await Log(Who.Reception, "p4", "HCC-1044", "Taxi");
-        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Commands.AssignRequestAsync(_w.Ctx(Who.Supervisor, "p5"), new AssignServiceRequestRequest(taxi.RequestId, Who.Reception, null, taxi.Version), Ct)));
+        var t = (await _w.Commands.AssignRequestAsync(_w.Ctx(Who.Supervisor, "p5"), new AssignServiceRequestRequest(taxi.RequestId, Who.Reception, null, taxi.Version), Ct)).Value;
+        Assert.Equal(("Assigned", Who.Reception), (t.Status, t.AssigneeId));
         Assert.Equal("VALIDATION", await Expect.CodeAsync(() => _w.Commands.CancelRequestAsync(_w.Ctx(Who.Reception, "p6"), new CancelServiceRequestRequest(a.RequestId, "", a.Version), Ct)));
         var c = (await _w.Commands.CancelRequestAsync(_w.Ctx(Who.Reception, "p7"), new CancelServiceRequestRequest(a.RequestId, "Guest found spare towels", a.Version), Ct)).Value;
         Assert.Equal("Cancelled", c.Status);
@@ -113,9 +117,9 @@ public class RequestsSqlTests : IAsyncLifetime
         Assert.Equal(hk.RequestId, Assert.Single(own.Items).RequestId);
         Assert.Equal("Overdue · 10 min", own.Items[0].Sla.Label);
 
-        var sup = await _w.Queries.RequestsAsync(_w.PropertyId, Who.Supervisor, ct: Ct);
-        Assert.DoesNotContain(sup.Items, i => i.Dept == "Front desk");
-        Assert.Equal(2, sup.Items.Count);
+        var sup = await _w.Queries.RequestsAsync(_w.PropertyId, Who.Supervisor, ct: Ct);   // DEC-079: PERM-GSV-001 property-wide, every department
+        Assert.False(sup.OwnOnly);
+        Assert.Equal(3, sup.Items.Count);
         Assert.Equal(3, (await _w.Queries.RequestsAsync(_w.PropertyId, Who.Reception, ct: Ct)).Total);
         Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.RequestsAsync(_w.PropertyId, Who.Cashier, ct: Ct)));
         Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.RequestAsync(_w.PropertyId, Who.Housekeeper2, hk.RequestId, Ct)));

@@ -69,9 +69,12 @@ public class CustomersSqlTests : IAsyncLifetime
         var owner = await Profile("owner", CrmWorld.Asha);
         Assert.False(owner.Masked);
         Assert.Equal("asha.rao@gmail.com", owner.Email);
-        Assert.Equal(1_732_500, (await Profile("reception", CrmWorld.Asha)).LifetimePaise);
+        // DEC-079 (v2 CRM-004): lifetime spend is money for the Owner and Manager; Reception and the Cashier see the profile without it.
+        Assert.Equal(1_732_500, (await Profile("manager", CrmWorld.Asha)).LifetimePaise);
+        Assert.Null((await Profile("reception", CrmWorld.Asha)).LifetimePaise);
         var cash = await Profile("cashier", CrmWorld.Asha);
         Assert.True(cash.Masked);
+        Assert.Null(cash.LifetimePaise);
         Assert.Equal("••••••1111", cash.Phone);
         Assert.Equal("a•••@gmail.com", cash.Email);
         // masked roles cannot search by number, and the list rows are masked too

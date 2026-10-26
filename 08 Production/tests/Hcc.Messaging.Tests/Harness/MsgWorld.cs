@@ -14,7 +14,7 @@ namespace Hcc.Messaging.Tests.Harness;
 
 public static class Users
 {
-    public const int Owner = 1, Manager = 2, Reception = 3, Cashier = 4, Housekeeper = 6, Accountant = 8;
+    public const int Owner = 1, Manager = 2, Reception = 3, Cashier = 4, Housekeeper = 6, Accountant = 8, TechAdmin = 10;
 }
 
 /// <summary>Controllable clock (event times come from the injected TimeProvider).</summary>
@@ -27,19 +27,20 @@ public sealed class TestClock(DateTimeOffset start) : TimeProvider
     public void Advance(int minutes) => Now = Now.AddMinutes(minutes);
 }
 
-/// <summary>RBAC v1 grants for the PERM ids messaging uses (RES-001/002, STY-001, APR-001); Owner/Manager/Reception per the matrix.</summary>
+/// <summary>Role matrix v2 grants of messaging (DEC-079, migration 3700): MSG-001/002/005 Owner, Manager, Reception; MSG-003 templates Owner, Manager, Tech admin (D4).</summary>
 public sealed class FakeAccessPolicy : IAccessPolicy
 {
-    private static readonly string[] Front = ["PERM-RES-001", "PERM-RES-002", "PERM-STY-001"];
+    private static readonly string[] Front = ["PERM-MSG-001", "PERM-MSG-002", "PERM-MSG-005"];
 
     private readonly Dictionary<int, HashSet<string>> _grants = new()
     {
-        [Users.Owner] = [.. Front, "PERM-APR-001"],
-        [Users.Manager] = [.. Front, "PERM-APR-001"],
+        [Users.Owner] = [.. Front, "PERM-MSG-003"],
+        [Users.Manager] = [.. Front, "PERM-MSG-003"],
         [Users.Reception] = [.. Front],
         [Users.Cashier] = [],
         [Users.Housekeeper] = [],
         [Users.Accountant] = [],
+        [Users.TechAdmin] = ["PERM-MSG-003"],
     };
 
     public Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default) =>

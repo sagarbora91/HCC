@@ -6,7 +6,7 @@ import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
 import {cfgPageOn} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
-import {rbacCanViewClosing,rbacSeesApprovals} from '../domain/streams/rbac';
+import {rbacCanViewClosing,rbacSeesApprovals,rbacIsRestaurant,rbacSeesBooks,rbacIsRole,rbacTechAdminTemplates,RBAC_RESTAURANT_PAGES} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
 export type NavCategory={id:CategoryId;label:string;blurb:string;icon:typeof Store};
@@ -184,10 +184,15 @@ export function visibleEntries(entries:SearchEntry[],allowedPages:Set<string>,ca
 export function navFilterModules<T extends {id:string}>(s:State,items:readonly T[],uid?:string):T[]{return items.filter(i=>cfgPageOn(s,i.id)&&(uid===undefined||navRoleOk(s,uid,i.id)));}
 /** Pages that permissions alone cannot express. W05-1 · DEC-055: Compliance calendar = Owner + Accountant only (Manager/Cashier also hold
  * 'reports'). DEC-063: Day closing = close holders + the Accountant read-only, not the Cashier (G4/G8); Approvals & audit = Owner,
- * Manager, Accountant, not the Cashier (G10). */
+ * Manager, Accountant, not the Cashier (G10). DEC-079: Accounting (the books) not for the Cashier; D1: the Restaurant role sees the POS and
+ * its own shifts & pay only. */
 export function navRoleOk(s:State,uid:string,page:string):boolean{
+  if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
   if(page==='compliance')return cmpHasAccess(s,uid);
   if(page==='closing')return rbacCanViewClosing(s,uid);
   if(page==='approvals')return rbacSeesApprovals(s,uid);
+  if(page==='accounting')return rbacSeesBooks(s,uid);   // DEC-079: not the Cashier (collections only, Reports)
+  // DEC-079 D4: the Tech admin reaches Messages only for its templates, in production (the demo baseline stays matrix v1, D6).
+  if(page==='messages'&&rbacIsRole(s,uid,'Tech admin'))return rbacTechAdminTemplates(s,uid);
   return true;
 }

@@ -5,18 +5,19 @@ using Hcc.Domain.Handover;
 namespace Hcc.Application.Handover;
 
 /// <summary>
-/// PERM ids used by the Shift handover module. The RBAC matrix has no handover rows, so the prototype's coarse permissions map onto
-/// seeded ids (no new PERM ids, which keeps the 45-permission matrix test intact): housekeeping → PERM-HK-001, payments → PERM-PAY-001,
-/// approve → PERM-APR-001, reports → PERM-RPT-002. Module access = any of Board / Payments / Approve (Accountant and Tech admin hold none).
+/// PERM ids of the Shift handover module: its own set from role matrix v2 (DEC-079, migration 3700) instead of the borrowed board, payment,
+/// approval and finance-report ids. <see cref="View"/> = module access (Accountant and Tech admin hold none); <see cref="Write"/> = write notes,
+/// tick and submit checklists, acknowledge the incoming note of the own desk and close carry-forward items (desk rules in
+/// <c>HandoverRules</c>; Housekeeper and Maintenance own records); <see cref="Decide"/> = the manager level (templates, reopening a
+/// checklist, every desk); cash amounts on front-desk notes only with <see cref="Money"/> (C4: never Housekeeping or Maintenance).
+/// The proposal's grid puts acknowledging under the manager cell, but §3.4 keeps today's behaviour: the incoming desk acknowledges.
 /// </summary>
 public static class HandoverPermissions
 {
-    public const string Board = "PERM-HK-001";
-    public const string Payments = "PERM-PAY-001";
-    public const string Approve = "PERM-APR-001";
-    public const string FinanceReport = "PERM-RPT-002";
-
-    public static readonly IReadOnlyList<string> AnyAccess = [Board, Payments, Approve];
+    public const string View = "PERM-HND-001";
+    public const string Write = "PERM-HND-002";
+    public const string Decide = "PERM-HND-003";
+    public const string Money = "PERM-HND-004";
 }
 
 public sealed record HovTemplateRec(long TemplateId, string Name, string Desk, string Shift, bool Active, int Version, byte[] RowVer, IReadOnlyList<string> Roles, IReadOnlyList<HovItemDef> Items);

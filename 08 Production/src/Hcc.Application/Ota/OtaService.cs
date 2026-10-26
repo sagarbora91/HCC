@@ -28,11 +28,12 @@ public sealed class OtaService(IOtaStore store, OtaQueries queries, InventorySer
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
-    // ───────────── channel setup (Manage) ─────────────
+    // ───────────── channel setup (Decide, Connect) ─────────────
     public async Task<CommandResult<ChannelResult>> SaveChannelAsync(CommandContext ctx, SaveChannelRequest r, CancellationToken ct = default)
     {
         Check(ctx, r);
-        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, OtaPermissions.Manage, ct: ct).ConfigureAwait(false);
+        // Commission and markup are commercial terms (D7: Owner and Manager); the mapping rides along.
+        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, OtaPermissions.Decide, ct: ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx, r, async (tx, c) =>
         {
             OtaRules.Terms(r.CommissionBps, r.MarkupBps);
@@ -75,7 +76,8 @@ public sealed class OtaService(IOtaStore store, OtaQueries queries, InventorySer
     public async Task<CommandResult<ChannelResult>> SetStatusAsync(CommandContext ctx, SetChannelStatusRequest r, CancellationToken ct = default)
     {
         Check(ctx, r);
-        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, OtaPermissions.Manage, ct: ct).ConfigureAwait(false);
+        // Connecting a channel is a module switch (DEC-057): Owner and Tech admin.
+        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, OtaPermissions.Connect, ct: ct).ConfigureAwait(false);
         var to = (r.Action ?? "").Trim().ToLowerInvariant() switch
         {
             ChannelActions.Connect => ChannelStatuses.Connected,
@@ -179,7 +181,7 @@ public sealed class OtaService(IOtaStore store, OtaQueries queries, InventorySer
     public async Task<CommandResult<ChannelMessageResult>> QueueSimulatedAsync(CommandContext ctx, QueueSimulatedMessageRequest r, CancellationToken ct = default)
     {
         Check(ctx, r);
-        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, OtaPermissions.Manage, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, OtaPermissions.Connect, ct: ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx, r, async (tx, c) =>
         {
             var m = r.Message ?? throw HccException.Validation("The message is required.");

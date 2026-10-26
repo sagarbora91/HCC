@@ -2,12 +2,19 @@ namespace Hcc.Contracts.Ota;
 
 // W3-1 OTA channel wire contracts. EVERYTHING IS SIMULATED: no network call leaves the server (prototype modules 21-22, fictional channels).
 
-/// <summary>Module PERM ids (migration 2501). Operate = inbox, push, stop-sell; Manage = connection, commission, markup, mapping; ViewMoney = commission ledger and reconciliation.</summary>
+/// <summary>
+/// Module PERM ids (role matrix v2, DEC-079 D7, migration 3700 redefines the 2501 ids). View = channel status, inbox, pushes (Owner, Manager,
+/// Reception; Accountant and Tech admin read); Operate = day-to-day: inbox accept / reject / import / pull, push availability and rates, stop-sell
+/// per channel (Owner, Manager, Reception); Decide = commission terms, markup and room mapping (Owner, Manager); ViewMoney = commission ledger and
+/// reconciliation (Owner, Manager, Accountant); Connect = connect / pause / disconnect and the simulator (Owner, Tech admin; module switch, DEC-057).
+/// </summary>
 public static class OtaPermissions
 {
-    public const string Operate = "PERM-OTA-001";
-    public const string Manage = "PERM-OTA-002";
-    public const string ViewMoney = "PERM-OTA-003";
+    public const string View = "PERM-OTA-001";
+    public const string Operate = "PERM-OTA-002";
+    public const string Decide = "PERM-OTA-003";
+    public const string ViewMoney = "PERM-OTA-004";
+    public const string Connect = "PERM-OTA-005";
 }
 
 /// <summary>Outbox event types written by this module (and the ones its dispatcher listens to).</summary>

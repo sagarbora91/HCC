@@ -55,7 +55,7 @@ const PAGES={
   staff:['OWN MGR CSH ACC','Module 17 §2'],
   closing:['OWN MGR ACC','CLS-001/002 (DEC-063 G4: Accountant read-only; G8: not REC/CSH)'],
   reports:['OWN MGR CSH ACC','RPT-001/002 (DEC-063 G8: not REC/SUP)'],
-  accounting:['OWN MGR CSH ACC','Module 20 §8 (Cashier view, no lock; DEC-063 G13: Tally tab Owner + Accountant only)'],
+  accounting:['OWN MGR ACC','Module 20 §8 (DEC-063 G13: Tally tab Owner + Accountant only); DEC-079: the books are not the Cashier\'s — the Cashier keeps the daily collections report'],
   assistant:['OWN MGR CSH ACC','Module 26 (reports)'],
   compliance:['OWN ACC','DEC-055: Owner and Accountant only'],
   yield:['OWN MGR CSH ACC','Module 13 roles table'],
@@ -215,15 +215,27 @@ export function register({test,M,assert}){
     for(const u of ['manager','cashier']){const v=surfaces(M,s,u);
       assert.ok(!v.drawer.has('compliance'),u+' drawer lists Compliance');assert.ok(!v.home.has('compliance'),u+' Modules Home tile');
       assert.ok(!X.searchEntries(v.entries,'gst due date').some(h=>h.entry.page==='compliance'),u+' search finds Compliance');}});
-  test('[RBAC] G13 · Accounting › Tally export tab: Owner + Accountant only; Manager and Cashier keep Accounting without it (Wave 0.5, DEC-055)',()=>{
+  test('[RBAC] G13 · Accounting › Tally export tab: Owner + Accountant only; the Manager keeps Accounting without it (Wave 0.5, DEC-055)',()=>{
     for(const u of USERS){assert.equal(M.rbacCanTally(s,u),['owner','accountant'].includes(u),u);
-      if(['manager','cashier'].includes(u))assert.ok(surfaces(M,s,u).allowed.has('accounting'),u+' lost Accounting');}});
+      if(u==='manager')assert.ok(surfaces(M,s,u).allowed.has('accounting'),u+' lost Accounting');}});
   test('[RBAC] G13 · Reports Excel/CSV export (RPT-003): Owner, Manager, Accountant; the Cashier still opens Reports and prints',()=>{
     for(const u of USERS)assert.equal(M.rbacCanExportReports(s,u),['owner','manager','accountant'].includes(u),u);
     assert.ok(surfaces(M,s,'cashier').allowed.has('reports'));});
-  test('[RBAC] G13 · Accounting voucher CSV/Excel export: Owner, Manager, Accountant; the Cashier keeps Accounting without it (hidden and refused)',()=>{
+  test('[RBAC] G13 · Accounting voucher CSV/Excel export: Owner, Manager, Accountant; DEC-079: the Cashier no longer opens the books at all',()=>{
     for(const u of USERS)assert.equal(M.rbacCanExportVouchers(s,u),['owner','manager','accountant'].includes(u),u);
-    assert.ok(surfaces(M,s,'cashier').allowed.has('accounting'));});
+    const v=surfaces(M,s,'cashier');assert.ok(!v.allowed.has('accounting'));assert.ok(!v.drawer.has('accounting'));assert.ok(!v.search.has('accounting'));
+    assert.ok(v.allowed.has('reports'),'the Cashier keeps Reports (production: the daily collections report)');});
+  test('[RBAC] DEC-079 D1 · Restaurant role: POS and own shifts & pay only; operates checks, never settles or sees day sales',()=>{
+    // Production-only role: the demo has no Restaurant user or grants, so the test gives it what the server maps (PERM-POS-002 → billing).
+    const w=structuredClone(s);w.users.push({id:'waiter',name:'Waiter · Restaurant',role:'Restaurant',enabled:true});w.grants.Restaurant=['billing'];
+    const v=surfaces(M,w,'waiter');
+    assert.deepEqual([...v.allowed].sort(),['my-hr','pos']);assert.deepEqual([...v.drawer].sort(),['my-hr','pos']);
+    assert.equal(M.rbacPosCanSettle(w,'waiter'),false);assert.equal(M.rbacPosSeesDaySales(w,'waiter'),false);
+    assert.equal(M.rbacPosCanSettle(w,'cashier'),true);assert.equal(M.rbacPosSeesDaySales(w,'cashier'),true);
+    let x=M.execute(w,'waiter',{type:'POS_ORDER_OPEN',outlet:'restaurant',table:'T8',covers:2});const id=M.posSlice(x).orders.at(-1).id;
+    x=M.execute(x,'waiter',{type:'POS_ITEM_ADD',id,item:'m-dal',qty:1});x=M.execute(x,'waiter',{type:'POS_KOT_SEND',id});
+    assert.throws(()=>M.execute(x,'waiter',{type:'POS_SETTLE',id,mode:'folio',booking:'HCC-1041'}),forbidden());
+    assert.equal(outcome(()=>M.execute(x,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash'})),'ok');});
   test('[RBAC] G4 · Day pack (printed day summary) follows the Day closing view: Owner, Manager, Accountant',()=>{
     for(const u of USERS)assert.equal(M.rbacCanDayPack(s,u),['owner','manager','accountant'].includes(u),u);});
 

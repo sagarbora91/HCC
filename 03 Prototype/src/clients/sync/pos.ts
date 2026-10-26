@@ -3,7 +3,8 @@
 // taxBps / taxPaise / totalPaise are what the screens show; nothing is recomputed here).
 //
 //   loaders   posX       ← GET /pos/outlets + /pos/menu + /pos/checks (open) + one GET /pos/checks/{id} per open check
-//                          + GET /pos/checks/closed (today's settled / void checks, at most 50).
+//                          + GET /pos/checks/closed (today's settled / void checks, at most 50; only for the money view or the settling desk:
+//                          the Restaurant role, DEC-079 D1, works from open checks only).
 //                          Outlet receipts (posX.receipts) are derived from today's closed outlet bills (a sale; plus its reversal for a
 //                          voided bill) — the cash ones are what drawerOutletCash() adds to the shared drawer figure.
 //             approvals  ← pending void requests (GET /pos/void-requests) as kind 'pos-void' approvals (id "posv-<id>"), patched
@@ -93,7 +94,7 @@ export const approvalFromServer=(v:SrvVoidRequest):Approval=>({id:approvalId(v.v
 async function loadPos(c:LoaderCtx):Promise<POSState>{
   const [outlets,menu,open,closed]=await Promise.all([
     c.api.get<SrvOutlet[]>('/pos/outlets'),c.api.get<SrvMenuItem[]>('/pos/menu'),c.api.get<SrvOpenCheck[]>('/pos/checks'),
-    c.api.get<SrvCheck[]>('/pos/checks/closed',{date:c.current('date')||undefined})]);
+    c.mayRead('GET /pos/checks/closed')?c.api.get<SrvCheck[]>('/pos/checks/closed',{date:c.current('date')||undefined}):Promise.resolve<SrvCheck[]>([])]);
   for(const m of menu)c.ids.setVersion('menuItem',String(m.itemId),m.version);
   const checks:SrvCheck[]=[];
   for(let i=0;i<open.length;i+=8){
@@ -135,7 +136,7 @@ async function stayOf(c:CommandCtx):Promise<number|undefined>{
 
 export const pos:SyncArea={id:'pos',
   loaders:[
-    {slice:'posX',requires:'billing',reads:['GET /pos/outlets','GET /pos/menu','GET /pos/checks','GET /pos/checks/closed','GET /pos/checks/:id'],needs:['date'],load:loadPos},
+    {slice:'posX',requires:'billing',reads:['GET /pos/outlets','GET /pos/menu','GET /pos/checks','GET /pos/checks/:id'],needs:['date'],load:loadPos},
     // approvals is owned by the admin area (W4-5); pending void requests are patched in (kind 'pos-void'), other kinds kept.
     {slice:'approvals',kind:'patch',requires:'billing',reads:['GET /pos/void-requests'],load:patchApprovals},
   ],

@@ -1,5 +1,5 @@
 // MB-02 Bottom tabs per role (Mobile plan §3). Only pages the user may open are shown (same can() rules as desktop).
-import {Home,Grid2X2,ClipboardCheck,ChartNoAxesCombined,Sunset,DoorOpen,CalendarDays,Receipt,Banknote,Wallet,Brush,SearchCheck,Wrench,ShieldCheck,ScrollText,ListChecks,Hammer} from 'lucide-react';
+import {Home,Grid2X2,ClipboardCheck,ChartNoAxesCombined,Sunset,DoorOpen,CalendarDays,Receipt,Banknote,Wallet,Brush,SearchCheck,Wrench,ShieldCheck,ScrollText,ListChecks,Hammer,UtensilsCrossed,CalendarClock} from 'lucide-react';
 import type {Role} from '../../services/mock';
 export type MobileTab={key:string;page:string;label:string;icon:typeof Home;badge?:'approvals'|'tasks'|'arrivals';focus?:string};
 const T={
@@ -31,6 +31,8 @@ export const roleTabs:Record<Role,MobileTab[]>={
   Maintenance:[{key:'workorders',page:'maintenance',label:'Work orders',icon:Wrench},T.repairs,T.rooms],
   Accountant:[T.reports,T.expenses,T.approvals],
   'Tech admin':[T.users,T.audit],
+  // DEC-079 D1: the waiter's phone / tablet opens on the POS (orders, kitchen); own shifts and pay as the second tab.
+  Restaurant:[{key:'pos',page:'pos',label:'Orders',icon:UtensilsCrossed},{key:'myhr',page:'my-hr',label:'My shifts',icon:CalendarClock}],
 };
 /** Permitted tabs for a role (max 4 + More). */
 export function tabsFor(role:Role,allowed:string[]):MobileTab[]{return (roleTabs[role]||[]).filter(t=>allowed.includes(t.page)).slice(0,4);}

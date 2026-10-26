@@ -13,6 +13,8 @@ const SEED={
   SUP:'HK-001 HK-002 HK-003 HK-004 ROOM-001 ROOM-002',HKP:'HK-001 HK-003 ROOM-001',MNT:'HK-001 ROOM-001',
   ACC:'ADM-004 CLS-001:V CLS-003 EXP-001 EXP-002 EXP-003 FOL-001:V FOL-004:V FOL-005:R RPT-001 RPT-002 RPT-003 SHF-002',
   TAD:'ADM-001 ADM-002:R ADM-003:V ADM-005',
+  // Role matrix v2 D1 (DEC-079, migration 3700): the Restaurant role — POS view and operate, void request only, own pay.
+  RST:'POS-001 POS-002 POS-003:R HR-004',
 };
 const seedGrants=code=>SEED[code].split(' ').map(x=>{const [p,m='A']=x.split(':');return ['PERM-'+p,m];});
 
@@ -63,13 +65,16 @@ export async function register({test,assert,M}){
   for(const code of Object.keys(SEED))perRole[code]=S.meFromCapabilities(capabilities({roles:[code],grants:seedGrants(code)}));
   const base=M.seed();
   test('[W4-0] Capabilities: seeded server role grants → prototype can() permissions equal the prototype role grants (gap: Accountant gets expenses)',()=>{
-    const byRole={OWN:'Owner',MGR:'Manager',REC:'Reception',CSH:'Cashier',SUP:'Supervisor',HKP:'Housekeeper',ACC:'Accountant',MNT:'Maintenance',TAD:'Tech admin'};
+    const byRole={OWN:'Owner',MGR:'Manager',REC:'Reception',CSH:'Cashier',SUP:'Supervisor',HKP:'Housekeeper',ACC:'Accountant',MNT:'Maintenance',TAD:'Tech admin',RST:'Restaurant'};
     for(const [code,role] of Object.entries(byRole)){
       assert.equal(perRole[code].role,role,code);
-      const want=[...base.grants[role]].sort();if(code==='ACC')want.push('expenses');
+      // RST is production-only (DEC-079 D1): no demo grants; the server's POS operate maps to 'billing' alone.
+      const want=[...(base.grants[role]??(code==='RST'?['billing']:[]))].sort();if(code==='ACC')want.push('expenses');
       assert.deepEqual([...perRole[code].permissions].sort(),want.sort(),code);
     }
     assert.ok(S.CAPABILITY_GAPS.length>=4);
+    // A05-14: an unknown server role is shown as the least-privileged role name, never as Reception.
+    assert.equal(S.meFromCapabilities(capabilities({roles:['ZZZ'],grants:[]})).role,'Housekeeper');
     const s=S.overlayMe(S.emptyState(),perRole.HKP);
     assert.equal(M.can(s,perRole.HKP.uid,'housekeeping'),true);assert.equal(M.can(s,perRole.HKP.uid,'payments'),false);
   });

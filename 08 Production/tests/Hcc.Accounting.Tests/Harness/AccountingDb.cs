@@ -105,7 +105,7 @@ public sealed partial class AccountingDb : IAsyncLifetime
         PropertyId = Convert.ToInt32(await ScalarAsync("""
             INSERT inv.property(code, name, time_zone, business_date) OUTPUT INSERTED.property_id VALUES ('DEMO', N'HCC Demo Residency', 'Asia/Kolkata', '2026-10-24');
             """), CultureInfo.InvariantCulture);
-        foreach (var role in new[] { "OWN", "MGR", "REC", "CSH", "ACC", "SUP", "HKP", "MNT", "TAD" })
+        foreach (var role in new[] { "OWN", "MGR", "REC", "CSH", "ACC", "SUP", "HKP", "MNT", "TAD", "RST" })
         {
             var id = Convert.ToInt32(await ScalarAsync("""
                 INSERT plat.app_user(property_id, login_name, display_name, created_utc) OUTPUT INSERTED.user_id VALUES (@p, @l, @n, '2026-01-01');

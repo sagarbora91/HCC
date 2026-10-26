@@ -1,6 +1,6 @@
 namespace Hcc.Domain.Access;
 
-/// <summary>Role codes of the RBAC matrix v1 §3 (DEC-032 adds ACC, MNT, TAD).</summary>
+/// <summary>Role codes of the RBAC matrix v1 §3 (DEC-032 adds ACC, MNT, TAD; role matrix v2 D1 / DEC-079 adds RST, the PIN-signed Restaurant role).</summary>
 public static class RoleCodes
 {
     public const string Owner = "OWN";
@@ -11,10 +11,11 @@ public static class RoleCodes
     public const string Supervisor = "SUP";
     public const string Housekeeper = "HKP";
     public const string Maintenance = "MNT";
+    public const string Restaurant = "RST";
     public const string TechAdmin = "TAD";
 
-    /// <summary>Matrix column order.</summary>
-    public static IReadOnlyList<string> All { get; } = [Owner, Manager, Reception, Cashier, Accountant, Supervisor, Housekeeper, Maintenance, TechAdmin];
+    /// <summary>Matrix column order (the first held role is the primary one a client shows).</summary>
+    public static IReadOnlyList<string> All { get; } = [Owner, Manager, Reception, Cashier, Accountant, Supervisor, Housekeeper, Maintenance, Restaurant, TechAdmin];
 
     /// <summary>DEC-062: these roles sign in with a per-user password and may never sign in by PIN.</summary>
     public static IReadOnlySet<string> PasswordRoles { get; } = new HashSet<string>(StringComparer.Ordinal) { Owner, Accountant, TechAdmin };

@@ -28,6 +28,9 @@ public static class Who
     public const int Reception = 3;
     public const int Cashier = 4;
     public const int Housekeeper = 6;
+
+    /// <summary>The Restaurant role (RST, DEC-079 D1): POS operate only.</summary>
+    public const int Waiter = 7;
 }
 
 public sealed class ManualClock(DateTimeOffset start) : TimeProvider
@@ -129,7 +132,7 @@ public sealed partial class PosDb : IAsyncLifetime
         var connections = platform.Connections;
         Policy = new SqlAccessPolicy(connections, Clock, [new SqlShiftScopeResolver(connections)]);
         // Real P1 roles; principal ids line up with Who (fresh database: identity starts at 1; id 5 is an unused filler).
-        foreach (var (login, role, expected) in new[] { ("owner", "OWN", Who.Owner), ("manager", "MGR", Who.Manager), ("reception", "REC", Who.Reception), ("cashier", "CSH", Who.Cashier), ("supervisor", "SUP", 5), ("housekeeper", "HKP", Who.Housekeeper) })
+        foreach (var (login, role, expected) in new[] { ("owner", "OWN", Who.Owner), ("manager", "MGR", Who.Manager), ("reception", "REC", Who.Reception), ("cashier", "CSH", Who.Cashier), ("supervisor", "SUP", 5), ("housekeeper", "HKP", Who.Housekeeper), ("waiter", "RST", Who.Waiter) })
         {
             var uid = Convert.ToInt32(await ScalarAsync($"INSERT plat.app_user(property_id, login_name, display_name, created_utc) OUTPUT INSERTED.user_id VALUES (@p, '{login}', N'{login}', '2026-01-01');", ("@p", SqlDbType.Int, PropertyId)), CultureInfo.InvariantCulture);
             if (uid != expected) throw new InvalidOperationException($"Seeded {login} got user id {uid}, expected {expected}.");

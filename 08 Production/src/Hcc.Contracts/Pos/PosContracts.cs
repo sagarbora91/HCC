@@ -5,14 +5,24 @@ namespace Hcc.Contracts.Pos;
 /// <summary>POST /api/v1/commands/CreateOutlet (K). Kind <c>table</c> (with <c>Tables</c>) or <c>room</c> (room service).</summary>
 public sealed record CreateOutletRequest(string Code, string Name, string Kind, IReadOnlyList<string>? Tables);
 
-/// <summary>POST /api/v1/commands/SaveMenuItem (K). <c>ItemId</c> null creates; otherwise updates (then <c>ExpectedVersion</c> is required).</summary>
+/// <summary>
+/// POST /api/v1/commands/SaveMenuItem (K). <c>ItemId</c> null creates; otherwise updates (then <c>ExpectedVersion</c> is required). The Owner saves at once;
+/// a Manager's save becomes a request the Owner decides (DEC-079 D5, PERM-POS-006 R); <c>Reason</c> is optional and kept on the request.
+/// </summary>
 public sealed record SaveMenuItemRequest(int? ItemId, string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds,
-    string? ExpectedVersion);
+    string? ExpectedVersion, string? Reason = null);
 
 /// <summary>POST /api/v1/commands/SetMenuItemAvailability (K). false = "86" (unavailable).</summary>
 public sealed record SetMenuItemAvailabilityRequest(int ItemId, bool Available);
 
-public sealed record MenuItemResult(int ItemId, bool Available, string Version);
+/// <summary><c>Status</c> <c>saved</c> (applied) or <c>requested</c> (D5: waiting for the Owner; then <c>RequestId</c> is set and <c>ItemId</c> is 0 for a new item).</summary>
+public sealed record MenuItemResult(int ItemId, bool Available, string Version, string Status = "saved", long? RequestId = null);
+
+/// <summary>POST /api/v1/commands/DecideMenuChange (K). The Owner (PERM-POS-006, never the requester) approves or rejects a Manager's menu change.</summary>
+public sealed record DecideMenuChangeRequest(long RequestId, bool Approve, string? Reason);
+
+/// <summary><c>Status</c> <c>Executed</c> (the change is applied; <c>ItemId</c>/<c>Version</c> of the item) or <c>Rejected</c>.</summary>
+public sealed record DecideMenuChangeResult(long RequestId, string Status, int? ItemId, string? Version);
 
 public sealed record OutletResult(int OutletId, string Code, string Version);
 
@@ -117,6 +127,10 @@ public sealed record PosCloseBlockers(int OpenChecks, int PendingVoids)
 /// <summary>A pending void request (check locked until decided): the approvals queue and the check panel read this. <c>RequestedBy</c> is the user id.</summary>
 public sealed record VoidRequestView(long VoidRequestId, long OrderId, string Spot, string Scope, long? LineId, long AmountPaise, string Reason, int RequestedBy,
     DateTime ExpiresUtc, string OrderVersion);
+
+/// <summary>A pending menu change (D5): what the Manager asked for, the price before (null for a new item) and who asked.</summary>
+public sealed record MenuRequestView(long RequestId, int? ItemId, string Code, string Name, string Category, long PricePaise, long? PriceBeforePaise, bool Veg,
+    IReadOnlyList<int> OutletIds, string? Reason, int RequestedBy, DateTime RequestedUtc, string Version);
 
 /// <summary>An in-house guest the outlet can charge to (room service targets, "post to room"): stay, folio, reservation (= the web client's booking id), room.</summary>
 public sealed record PosStayView(long StayId, long FolioId, long ReservationId, string RoomNo, string Guest);

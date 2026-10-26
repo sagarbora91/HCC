@@ -4,31 +4,38 @@ using Hcc.Domain.Maintenance;
 namespace Hcc.Application.Maintenance;
 
 /// <summary>
-/// PERM ids used by Maintenance. No new permissions: the RBAC matrix (v1 + DEC-063) has no maintenance PERM, so the module rides
-/// the housekeeping/room/report grants exactly as the prototype's <c>can()</c> checks did (see the W2-7 report for the PERM-MNT-* decision).
+/// PERM ids of Maintenance: the module's own set from role matrix v2 (DEC-079, migration 3700) instead of the borrowed housekeeping, room and
+/// finance-report ids. Reception holds none of them (it raises repairs through a guest request, DEC-063 G7); money rides only on
+/// <see cref="Money"/> and <see cref="Amc"/>, which the Cashier, Supervisor, Housekeeper and Maintenance do not hold (D3, DEC-061).
 /// </summary>
 public static class MaintenancePermissions
 {
     /// <summary>Use the module at all (Owner, Manager, Supervisor property-wide; Housekeeper, Maintenance assigned scope).</summary>
-    public const string View = "PERM-HK-001";
+    public const string View = "PERM-MNT-001";
 
-    /// <summary>Assign work orders (prototype <c>inspect</c> = supervisor level).</summary>
-    public const string Assign = "PERM-HK-002";
+    /// <summary>Assign work orders (supervisor level).</summary>
+    public const string Assign = "PERM-MNT-003";
 
-    /// <summary>Housekeeping task work: marks a Housekeeper (cannot create work orders; reports repairs from the task card).</summary>
+    /// <summary>
+    /// Housekeeping task work (a core housekeeping id, not a maintenance grant): identifies a Housekeeper, who cannot create work orders and
+    /// reports repairs from the task card, and sees only the work orders of rooms with an open task of theirs.
+    /// </summary>
     public const string HousekeeperWork = "PERM-HK-003";
 
-    /// <summary>Supervisor-level control: verify, cancel, PM generation, registers (prototype <c>inspect</c>).</summary>
-    public const string Manage = "PERM-HK-004";
+    /// <summary>Supervisor-level control: verify, cancel, PM generation, registers, reports.</summary>
+    public const string Manage = "PERM-MNT-003";
 
-    /// <summary>Technician work on an assigned work order (start, hold, parts, complete) — assigned scope.</summary>
-    public const string Work = "PERM-ROOM-001";
+    /// <summary>Technician work on an assigned work order (start, hold, parts, complete) and a repair from an assigned task — assigned scope.</summary>
+    public const string Work = "PERM-MNT-002";
 
     /// <summary>Apply / lift a room block (downtime).</summary>
-    public const string Block = "PERM-ROOM-002";
+    public const string Block = "PERM-MNT-003";
 
-    /// <summary>Finance rights: part unit prices, AMC contract values (DEC-063 G12). Owner, Manager, Accountant property-wide.</summary>
-    public const string Money = "PERM-RPT-002";
+    /// <summary>Reveal money: part unit prices, order cost, parts cost in reports. Owner, Manager, Accountant (view) property-wide.</summary>
+    public const string Money = "PERM-MNT-004";
+
+    /// <summary>AMC contracts (cost, renewal): Owner and Manager edit, the Accountant reads (DEC-063 G12).</summary>
+    public const string Amc = "PERM-MNT-005";
 }
 
 /// <summary>An open Housekeeping repair task (ops.hk_task kind repair) as Maintenance needs it.</summary>

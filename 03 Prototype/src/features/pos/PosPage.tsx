@@ -1,7 +1,7 @@
 // Module 23 · Restaurant POS & room service — desktop page (Orders · Kitchen · Day summary).
 import React,{useState} from 'react';
 import {Printer,ChefHat,ClipboardList,BarChart3,Info} from 'lucide-react';
-import {money,posSlice,posOpenOrderAt,posKitchen,posDaySummary,posOpenOrders,posOrderTotals,posSpot,posMenuFor,isDayClosed} from '../../services/mock';
+import {money,posSlice,posOpenOrderAt,posKitchen,posDaySummary,posOpenOrders,posOrderTotals,posSpot,posMenuFor,isDayClosed,rbacPosSeesDaySales} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {CfgHubLink} from '../admin/config/panels'; // W05-A: settings also in Master configuration
 import {PageTitle,Empty,Stat,dateLabel} from '../../components/ui';
@@ -10,25 +10,27 @@ import {PosSummaryTables} from './modals';
 
 export type PosView='orders'|'kitchen'|'summary';
 export function PosPage(){
-  const {s}=useHcc();const p=posSlice(s);
+  const {s,uid}=useHcc();const p=posSlice(s);
   const [view,setView]=useState<PosView>('orders');
   const kitchenOpen=posKitchen(s).filter(x=>x.kot.status!=='Served').length;
+  const sales=rbacPosSeesDaySales(s,uid); // DEC-079 D1: no day sales for the Restaurant role
   if(!p.outlets.length)return <><PageTitle title="Restaurant & room service" sub="Outlet checks, KOTs and room-service charges"/><Empty title="No outlets configured" body="Load a demo scenario to get the fictional restaurant and room-service menu."/></>;
-  const tabs:[PosView,string,React.ReactNode,number?][]=[['orders','Orders',<ClipboardList size={15}/>,posOpenOrders(s).length],['kitchen','Kitchen (KOT)',<ChefHat size={15}/>,kitchenOpen],['summary','Day summary',<BarChart3 size={15}/>]];
+  const tabs:[PosView,string,React.ReactNode,number?][]=[['orders','Orders',<ClipboardList size={15}/>,posOpenOrders(s).length],['kitchen','Kitchen (KOT)',<ChefHat size={15}/>,kitchenOpen],
+    ...(sales?[['summary','Day summary',<BarChart3 size={15}/>] as [PosView,string,React.ReactNode]]:[])];
   return <><PageTitle title="Restaurant & room service" sub={`Outlet checks, KOTs and room-service charges · ${dateLabel(s.date)} · fictional menu, GST from the master`}
       action={<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span>}/>
     {isDayClosed(s)&&<div className="info-note"><Info size={16}/>The business day is closed — checks are read-only until the next day is opened.</div>}
     <section className="card pos-card"><div className="tabs" role="tablist">{tabs.map(([id,label,icon,n])=><button key={id} role="tab" aria-selected={view===id} className={view===id?'active':''} onClick={()=>setView(id)}>{icon}{label}{n!==undefined&&<span>{n}</span>}</button>)}</div>
-      {view==='orders'&&<PosOrders/>}{view==='kitchen'&&<PosKitchenBoard/>}{view==='summary'&&<PosSummary/>}
+      {view==='orders'&&<PosOrders/>}{view==='kitchen'&&<PosKitchenBoard/>}{view==='summary'&&sales&&<PosSummary/>}
     </section></>;
 }
 
 function PosOrders(){
-  const {s,open}=useHcc();const p=posSlice(s);
+  const {s,uid,open}=useHcc();const p=posSlice(s);
   const [outlet,setOutlet]=useState(p.outlets[0].id);const [spot,setSpot]=useState<string>();
   const order=spot?posOpenOrderAt(s,outlet,spot):undefined;
   const select=(x:string)=>{setSpot(x);if(!posOpenOrderAt(s,outlet,x))open({type:'pos-open',id:outlet,room:x});};
-  const recent=p.orders.filter(o=>o.outlet===outlet&&o.status!=='Open'&&(o.settlement?.date===s.date||o.date===s.date)).slice(-6).reverse();
+  const recent=rbacPosSeesDaySales(s,uid)?p.orders.filter(o=>o.outlet===outlet&&o.status!=='Open'&&(o.settlement?.date===s.date||o.date===s.date)).slice(-6).reverse():[];
   return <div className="pos-layout">
     <aside className="pos-col"><div className="pos-seg" role="group" aria-label="Outlet">{p.outlets.map(o=><button key={o.id} aria-pressed={outlet===o.id} className={outlet===o.id?'on':''} onClick={()=>{setOutlet(o.id);setSpot(undefined);}}>{o.name}</button>)}</div>
       <PosSpots outlet={outlet} selected={spot} onSelect={select}/>

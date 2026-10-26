@@ -88,6 +88,12 @@ public class ComplaintsSqlTests : IAsyncLifetime
         var view = await _w.Queries.ComplaintAsync(_w.PropertyId, Who.Reception, c.ComplaintId, Ct);
         Assert.Equal(("Approved", 30000L), (view.RecoveryStatus, view.Recovery!.AmountPaise));
         Assert.Equal(0, await _w.Db.CountAsync("SELECT COUNT(*) FROM bill.charge WHERE kind = 'discount' AND approval_id IS NULL;", Ct));   // only Billing's approved path posted money
+        // DEC-079: the Supervisor reads complaints (PERM-GSV-001) but never the Rs 300 recovery amount (PERM-GSV-004, money invariant); nor offers one.
+        var sup = await _w.Queries.ComplaintAsync(_w.PropertyId, Who.Supervisor, c.ComplaintId, Ct);
+        Assert.Equal(("Approved", (RecoveryView?)null), (sup.RecoveryStatus, sup.Recovery));
+        Assert.All((await _w.Queries.ComplaintsAsync(_w.PropertyId, Who.Supervisor, ct: Ct)).Items, x => Assert.Null(x.Recovery));
+        var supVersion = (await _w.Queries.ComplaintAsync(_w.PropertyId, Who.Supervisor, c.ComplaintId, Ct)).Version;
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Commands.OfferRecoveryDiscountAsync(_w.Ctx(Who.Supervisor, "r7"), new OfferRecoveryDiscountRequest(c.ComplaintId, 10000, null, supVersion), Ct)));
     }
 
     [Fact]

@@ -175,7 +175,8 @@ export async function register({test,assert,M}){
 
   // Housekeeper: only own requests, no complaints/history/stays/settings (403 tolerated), handover for HKP only.
   const hkSrv=fakeServer({...routes,
-    'GET /me/capabilities':()=>capabilities({roles:['HKP'],grants:[['PERM-HK-001','A'],['PERM-HK-003','A']]}),
+    // Role matrix v2 (3700): guest services and handover (GSV-001/002, HND-001/002), never a money permission.
+    'GET /me/capabilities':()=>capabilities({roles:['HKP'],grants:[['PERM-HK-001','A'],['PERM-HK-003','A'],['PERM-GSV-001','A'],['PERM-GSV-002','A'],['PERM-HND-001','A'],['PERM-HND-002','A']]}),
     'GET /guest-services/requests':()=>({...page([request(12,{assigneeId:1})]),ownOnly:true}),
     'GET /guest-services/complaints':()=>reply(403,{code:'FORBIDDEN',message:'Access denied.'}),
     'GET /guest-services/stays':()=>reply(403,{code:'FORBIDDEN',message:'Access denied.'}),

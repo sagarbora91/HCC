@@ -52,12 +52,13 @@ public class MaintenanceSqlTests : IAsyncLifetime
     public async Task Money_is_hidden_from_maintenance_supervisor_reception_and_cashier_but_not_the_owner_or_manager()
     {
         var p = _w.PropertyId;
-        // AMC contract values: Owner/Manager only (G12). Supervisor sees the contracts without values; Reception, Cashier, Maintenance are refused outright.
+        // AMC contracts (PERM-MNT-005, DEC-079 / G12): Owner and Manager; the Accountant reads them with values (MNT-004 V). The Supervisor,
+        // Reception, Cashier, Maintenance and Housekeeper are refused outright (v2: the Supervisor no longer lists them).
         Assert.NotNull((await _w.Queries.AmcsAsync(p, _w.Users["manager"], Ct)).Amcs[0].ValuePaise);
-        var sup = await _w.Queries.AmcsAsync(p, _w.Users["supervisor"], Ct);
-        Assert.True(sup.ValuesHidden);
-        Assert.All(sup.Amcs, a => Assert.Null(a.ValuePaise));
-        foreach (var who in new[] { "reception", "cashier", "maint", "housekeeper" })
+        var acc = await _w.Queries.AmcsAsync(p, _w.Users["accountant"], Ct);
+        Assert.False(acc.ValuesHidden);
+        Assert.NotNull(acc.Amcs[0].ValuePaise);
+        foreach (var who in new[] { "supervisor", "reception", "cashier", "maint", "housekeeper" })
             Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.AmcsAsync(p, _w.Users[who], Ct)));
 
         // Part prices on work orders: WO-0901 carries 1 × ₹1,800 gas. Only finance readers receive the unit cost.

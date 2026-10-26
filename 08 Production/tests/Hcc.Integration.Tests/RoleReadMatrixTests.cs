@@ -37,6 +37,7 @@ public sealed class RoleReadMatrixTests
     private static readonly (string Role, string? Pin)[] Roles =
     [
         ("OWN", null), ("MGR", "618204"), ("REC", "472913"), ("CSH", "730582"), ("ACC", null), ("SUP", "829471"), ("HKP", "583104"), ("MNT", "940263"), ("TAD", null),
+        ("RST", "264917"),   // role matrix v2 D1 (DEC-079): the Restaurant role, PIN
     ];
 
     private static string FixturePath()
@@ -125,6 +126,18 @@ public sealed class RoleReadMatrixTests
         Assert.Equal("200", actual["REC"]!["reads"]!["GET /rooms/status"]!.GetValue<string>());
         Assert.Equal("403", actual["CSH"]!["reads"]!["GET /reservations"]!.GetValue<string>());
         Assert.Equal("200", actual["CSH"]!["reads"]!["GET /cashier/folios"]!.GetValue<string>());
+        // DEC-079: the Cashier reads the daily collections report but not the books (trial balance) or the property-wide finance reports.
+        Assert.Equal("200", actual["CSH"]!["reads"]!["GET /cashier/collections"]!.GetValue<string>());
+        Assert.Equal("403", actual["CSH"]!["reads"]!["GET /accounting/trial-balance"]!.GetValue<string>());
+        Assert.Equal("403", actual["CSH"]!["reads"]!["GET /reports/daily"]!.GetValue<string>());
+        // D1: the Restaurant role reads the POS (checks, menu, kitchen) but no closed bills / day sales and no folio.
+        Assert.Equal("200", actual["RST"]!["reads"]!["GET /pos/checks"]!.GetValue<string>());
+        Assert.Equal("200", actual["RST"]!["reads"]!["GET /pos/menu"]!.GetValue<string>());
+        Assert.Equal("403", actual["RST"]!["reads"]!["GET /pos/checks/closed"]!.GetValue<string>());
+        Assert.Equal("403", actual["RST"]!["reads"]!["GET /cashier/folios"]!.GetValue<string>());
+        // D4: the Tech admin reads message templates (to edit them) but not the message log.
+        Assert.Equal("200", actual["TAD"]!["reads"]!["GET /messaging/templates"]!.GetValue<string>());
+        Assert.Equal("403", actual["TAD"]!["reads"]!["GET /messaging/messages"]!.GetValue<string>());
 
         var options = new JsonSerializerOptions { WriteIndented = true };
         var expected = fixture["roles"]?.ToJsonString(options) ?? "{}";

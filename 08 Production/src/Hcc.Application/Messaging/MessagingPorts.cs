@@ -4,15 +4,16 @@ using Hcc.Domain.Messaging;
 namespace Hcc.Application.Messaging;
 
 /// <summary>
-/// PERM ids used by messaging. RBAC v1 has no messaging PERM, so the module reuses the ids the prototype maps to
-/// (<c>reservations</c> → RES, <c>checkin</c> → STY, <c>approve</c> → APR) instead of adding PERM ids (decision listed in the W2-10 report).
+/// PERM ids of messaging: the module's own set from role matrix v2 (DEC-079, migration 3700) instead of the borrowed reservation, check-in
+/// and approval ids. Editing templates and trigger rules is non-money configuration (DEC-058, D4): Owner, Manager and the Tech admin, who
+/// reads templates and rules through <see cref="EditTemplates"/> without the message log.
 /// </summary>
 public static class MessagingPermissions
 {
-    public const string View = "PERM-RES-001";
-    public const string Send = "PERM-RES-002";
-    public const string ConsentFallback = "PERM-STY-001";
-    public const string EditTemplates = "PERM-APR-001";
+    public const string View = "PERM-MSG-001";
+    public const string Send = "PERM-MSG-002";
+    public const string EditTemplates = "PERM-MSG-003";
+    public const string ConsentFallback = "PERM-MSG-005";
 }
 
 /// <summary>Messaging settings. Check-in/out times belong to Master configuration (W2-1) later; defaults = prototype fixture.</summary>

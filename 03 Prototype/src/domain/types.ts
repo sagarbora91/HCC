@@ -1,5 +1,6 @@
 // Core prototype types. Pure data — no React, no storage.
-export type Role='Owner'|'Manager'|'Reception'|'Cashier'|'Supervisor'|'Housekeeper'|'Accountant'|'Maintenance'|'Tech admin';
+/** 'Restaurant' = role matrix v2 D1 (DEC-079): the PIN-signed waiter role of the production server (RST); the demo fixture has no such user. */
+export type Role='Owner'|'Manager'|'Reception'|'Cashier'|'Supervisor'|'Housekeeper'|'Accountant'|'Maintenance'|'Tech admin'|'Restaurant';
 export type Permission='reservations'|'checkin'|'billing'|'payments'|'checkout'|'housekeeping'|'inspect'|'expenses'|'approve'|'close'|'reports'|'admin';
 export const permissions:Permission[]=['reservations','checkin','billing','payments','checkout','housekeeping','inspect','expenses','approve','close','reports','admin'];
 export const roles:Role[]=['Owner','Manager','Reception','Cashier','Supervisor','Housekeeper','Accountant','Maintenance','Tech admin'];
@@ -199,7 +200,8 @@ export type State={
   /** Simulated hotel clock, local Asia/Kolkata time YYYY-MM-DDTHH:mm. Never the real clock (DEC-030). */
   clock:string;
   rooms:Room[];bookings:Booking[];users:User[];tasks:Task[];expenses:Expense[];approvals:Approval[];audit:Audit[];
-  grants:Record<Role,Permission[]>;settings:Settings;
+  /** Coarse grants per role. Partial: the production-only Restaurant role (DEC-079 D1) has no demo entry; production fills the signed-in role. */
+  grants:Partial<Record<Role,Permission[]>>;settings:Settings;
   openingCash:number;shiftOpen:boolean;shiftClose?:{expected:number;counted:number;/** Who counted the drawer (W05 review F1; absent in old saves). */countedBy?:string};
   closedDates:string[];
   /** Idempotency keys already executed. A repeated key returns the earlier result (no new effect). */

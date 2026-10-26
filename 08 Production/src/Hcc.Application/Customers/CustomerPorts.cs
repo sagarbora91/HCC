@@ -4,16 +4,17 @@ using Hcc.Domain.Customers;
 namespace Hcc.Application.Customers;
 
 /// <summary>
-/// PERM ids of Customers / CRM. View = PERM-GST-001 (Cashier holds it masked), contact reveal / tags / notes / preferences / consent = PERM-GST-002
-/// (the Stays module's contact rule), money = PERM-FOL-001, merge = the module's own PERM-CRM-001/002 (migration 2301, maker-checker).
+/// PERM ids of Customers / CRM (role matrix v2, DEC-079, migration 3700 redefines the 2301 ids). View = profiles and history (Cashier masked);
+/// Edit = contact reveal, tags, notes, preferences, consent (Owner, Manager, Reception); Money = lifetime spend and balances (Owner, Manager);
+/// merging duplicates = PERM-CRM-003 for both steps (maker-checker: never the same person, DEC-066 pattern).
 /// </summary>
 public static class CustomerPermissions
 {
-    public const string View = "PERM-GST-001";
-    public const string Edit = "PERM-GST-002";
-    public const string Money = "PERM-FOL-001";
-    public const string MergePropose = "PERM-CRM-001";
-    public const string MergeDecide = "PERM-CRM-002";
+    public const string View = "PERM-CRM-001";
+    public const string Edit = "PERM-CRM-002";
+    public const string Money = "PERM-CRM-004";
+    public const string MergePropose = "PERM-CRM-003";
+    public const string MergeDecide = "PERM-CRM-003";
 }
 
 /// <summary>Everything the pure customer index needs, read from the other modules' tables (read side only).</summary>

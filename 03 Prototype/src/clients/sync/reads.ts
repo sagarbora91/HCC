@@ -5,7 +5,8 @@
 //     A assigned, O own submissions) because the server filters the rows to what the user may see.
 // tests/sync-roles.mjs checks every rule against the real server's answers per seeded role (tests/_role-reads.json, written by
 // Hcc.Integration.Tests RoleReadMatrixTests) and boots each role against a fake server that answers 403 where the real one does.
-// No grant is changed here: a read a role does not hold is simply not sent (role matrix v2 decisions D1–D7 stay with the owner).
+// No grant is changed here: a read a role does not hold is simply not sent. Role matrix v2 (DEC-079, D1–D7): each module reads with its
+// own ids (PERM-<MOD>-001 view, -004 money), the same check the server's module query makes.
 import type {SyncMe} from './types';
 
 type Me=Pick<SyncMe,'grants'>;
@@ -23,20 +24,28 @@ const one=(...hs:Hold[])=>(me:Me)=>hs.some(h=>holdsGrant(me,h));
 const always=()=>true;
 
 // Server permission per read (module *Permissions classes): RES-001 reservation.view, GST-001 guest.view, HK-001 board, FOL-001 folio.view,
-// INV-001 invoice view, SHF-001 shift, RPT-001/002 reports, ADM-* admin, ACC-001 accounting, CMP-001 compliance, FOL-002 POS operate,
-// PAY-001 POS settle, GST-002 guest services manage, APR-001 approvals, OTA-001 channels, WEB-001 booking website, GRP-001/004 groups.
+// INV-001 invoice view, SHF-001 shift, RPT-002 finance reports (the Cashier's own-shift cell reaches only the daily collections report),
+// ADM-* admin, ACC-001 accounting, CMP-001 compliance, GRP-001/004 groups; role matrix v2 (DEC-079): POS-001 view / 004 day sales / 005 settle,
+// MNT-001 view / 004 money / 005 AMC, STK-001 view / 004 money, GSV-001 view / 003 approve, HND-001 view / 003 manager, MSG-001 view /
+// 003 templates, OTA-001, WEB-001, YLD-001, CFG-001 view / 002 non-money / 003 money.
 const RES=one(wide('PERM-RES-001',true));
 const BOARD=one(anyScope('PERM-HK-001',true));
 const FINANCE=one(wide('PERM-RPT-002',true));
-const STOCK=one(wide('PERM-RPT-002',true),anyScope('PERM-HK-003'));
-const POS=one(wide('PERM-FOL-002'));
-const GSV=one(wide('PERM-GST-002'));
+const STOCK=one(wide('PERM-STK-004',true),anyScope('PERM-STK-001',true));
+const POS=one(wide('PERM-POS-001',true));
+const MNT=one(anyScope('PERM-MNT-001',true));
+const GSV=one(wide('PERM-GSV-001',true));
+const GSV_OWN=one(anyScope('PERM-GSV-001',true));
+const HND=one(anyScope('PERM-HND-001',true));
+const MSG=one(wide('PERM-MSG-001',true));
+const MSG_TEMPLATES=one(anyScope('PERM-MSG-003'),wide('PERM-MSG-001',true));
 const ACCOUNTING=one(wide('PERM-ACC-001',true));
 const COMPLIANCE=one(wide('PERM-CMP-001'));
 const ADMIN=one(wide('PERM-ADM-001'));
-const OTA=one(wide('PERM-OTA-001'));
-const WEB=one(wide('PERM-WEB-001'));
-const YIELD=one(wide('PERM-RPT-001',true));
+const CONFIG=one(wide('PERM-CFG-001',true));
+const OTA=one(wide('PERM-OTA-001',true));
+const WEB=one(wide('PERM-WEB-001',true));
+const YIELD=one(wide('PERM-YLD-001',true));
 
 /** Route pattern (as in tests/_role-reads.json) → may the user send it. */
 export const READS={
@@ -44,6 +53,9 @@ export const READS={
   'GET /me/directory':always,
   'GET /closing/business-date':always,
   'GET /closing/records':FINANCE,
+  // DEC-079: the daily collections report — the Cashier's finance-report cell (V·S) counts here (any scope); every other finance report is property-wide.
+  'GET /cashier/collections':one(anyScope('PERM-RPT-002',true)),
+  'GET /reports/daily':FINANCE,
   'GET /reservations':RES,
   'GET /reservations/:id':RES,
   'GET /guests':one(wide('PERM-GST-001',true)),
@@ -65,13 +77,12 @@ export const READS={
   'GET /admin/roles':ADMIN,
   'GET /admin/exceptions':ADMIN,
   'GET /admin/audit':one(wide('PERM-ADM-004',true)),
-  // ADM-003:VIEW. /me/capabilities lists no V/M cell of an ACTION permission (e.g. Tech admin ADM-003 V), so the Tech admin's view is
-  // recognised by ADM-001 (only the Owner and the Tech admin hold either; matrix v1 §5).
-  'GET /configuration/requests':one(wide('PERM-ADM-003',true),wide('PERM-ADM-001'),wide('PERM-APR-001')),
-  'GET /configuration/history':one(wide('PERM-ADM-003',true),wide('PERM-ADM-001')),
+  // PERM-CFG-001 is a VIEW permission (Owner A, Tech admin V), so /me/capabilities lists it for both; requests also answer CFG-002/003 holders.
+  'GET /configuration/requests':one(wide('PERM-CFG-001',true),wide('PERM-CFG-002'),wide('PERM-CFG-003')),
+  'GET /configuration/history':CONFIG,
   'GET /configuration/values':always,
-  // GST master (DEC-069): TaxPermissions.ConfigurationView = PERM-ADM-003:VIEW, the same check as /configuration/history.
-  'GET /tax/gst':one(wide('PERM-ADM-003',true),wide('PERM-ADM-001')),
+  // GST master (DEC-069): TaxPermissions.ConfigurationView = PERM-CFG-001, the same check as /configuration/history.
+  'GET /tax/gst':CONFIG,
   'GET /payroll/staff':always,
   'GET /payroll/board':always,
   'GET /accounting/days':ACCOUNTING,
@@ -86,34 +97,36 @@ export const READS={
   'GET /pos/outlets':POS,
   'GET /pos/menu':POS,
   'GET /pos/checks':POS,
-  'GET /pos/checks/closed':POS,
+  // Today's settled bills add up to the day's sales: the money view (Cashier own shift) or the settling desk (Reception), not the Restaurant role.
+  'GET /pos/checks/closed':one(anyScope('PERM-POS-004',true),anyScope('PERM-POS-005')),
   'GET /pos/checks/:id':POS,
   'GET /pos/void-requests':POS,
   'GET /pos/in-house':POS,
-  'GET /pos/till':one(anyScope('PERM-PAY-001')),
-  'GET /maintenance/registers':BOARD,
-  'GET /maintenance/work-orders':BOARD,
-  'GET /maintenance/work-orders/:id':BOARD,
-  'GET /maintenance/amcs':one(wide('PERM-HK-004')),
+  'GET /pos/till':POS,
+  'GET /maintenance/registers':MNT,
+  'GET /maintenance/work-orders':MNT,
+  'GET /maintenance/work-orders/:id':MNT,
+  // AMC contracts: PERM-MNT-005 (Owner, Manager) or the money view PERM-MNT-004 (the Accountant's V; the action's V cell is not listed).
+  'GET /maintenance/amcs':one(wide('PERM-MNT-005'),wide('PERM-MNT-004',true)),
   'GET /stock/items':STOCK,
   'GET /stock/laundry':STOCK,
   'GET /stock/counts':STOCK,
   'GET /stock/losses':STOCK,
   'GET /stock/moves':STOCK,
   'GET /stock/settings':STOCK,
-  'GET /guest-services/requests':one(wide('PERM-GST-002'),anyScope('PERM-HK-002'),anyScope('PERM-HK-003'),anyScope('PERM-ROOM-001')),
+  'GET /guest-services/requests':GSV_OWN,
   'GET /guest-services/complaints':GSV,
-  'GET /guest-services/lost-items':one(wide('PERM-GST-002'),anyScope('PERM-HK-002'),anyScope('PERM-HK-003'),anyScope('PERM-ROOM-001')),
-  'GET /guest-services/settings':one(wide('PERM-GST-002'),wide('PERM-APR-001')),
+  'GET /guest-services/lost-items':GSV_OWN,
+  'GET /guest-services/settings':one(wide('PERM-GSV-001',true),wide('PERM-GSV-003')),
   'GET /guest-services/stays':GSV,
   'GET /guest-services/histories/:kind':GSV,
-  'GET /handover/checklists':one(anyScope('PERM-HK-001',true),anyScope('PERM-PAY-001'),wide('PERM-APR-001')),
-  'GET /handover/templates':one(wide('PERM-APR-001')),
-  'GET /handover/notes':one(anyScope('PERM-HK-001',true),anyScope('PERM-PAY-001'),wide('PERM-APR-001')),
-  'GET /messaging/messages':RES,
-  'GET /messaging/templates':RES,
-  'GET /messaging/rules':RES,
-  'GET /messaging/consents':RES,
+  'GET /handover/checklists':HND,
+  'GET /handover/templates':one(wide('PERM-HND-003')),
+  'GET /handover/notes':HND,
+  'GET /messaging/messages':MSG,
+  'GET /messaging/templates':MSG_TEMPLATES,
+  'GET /messaging/rules':MSG_TEMPLATES,
+  'GET /messaging/consents':MSG,
   'GET /ota/channels':OTA,
   'GET /ota/messages':OTA,
   'GET /ota/pushes':OTA,

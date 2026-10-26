@@ -71,7 +71,7 @@ public static class HccComposition
                 .ValidateAsync(token, device.Length > 0 ? device : null, ct);
             var policy = http.RequestServices.GetRequiredService<Application.Access.IAccessPolicy>();
             return await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-005", null, ct)
-                || await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-003", null, ct);
+                || await policy.HasAsync(session.PropertyId, session.UserId, "PERM-CFG-001", null, ct);
         }
         catch (Domain.Errors.HccException)
         {
