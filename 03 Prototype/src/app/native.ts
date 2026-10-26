@@ -16,6 +16,11 @@ export function nativePlugin(name:string):Plugin|undefined{
   try{p=cap()!.registerPlugin?.(name)??cap()!.Plugins?.[name];}catch{p=cap()?.Plugins?.[name];}
   cache.set(name,p);return p;
 }
+/** True when the APK really contains the native plugin (registerPlugin returns a proxy for any name). */
+export function nativePluginAvailable(name:string):boolean{
+  if(!isNative())return false;
+  try{const c=cap() as CapacitorLike&{isPluginAvailable?:(n:string)=>boolean};return c?.isPluginAvailable?c.isPluginAvailable(name):!!c?.Plugins?.[name];}catch{return false;}
+}
 /** Test hook: forget cached plugin proxies. */
 export const resetNativeCache=()=>cache.clear();
 

@@ -3,6 +3,7 @@ export * from './types';
 export * from './map';
 export * from './capabilities';
 export * from './auth';
+export * from './apk';
 export * from './cache';
 export * from './empty';
 export * from './runtime';
