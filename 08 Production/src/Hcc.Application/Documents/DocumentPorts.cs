@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Hcc.Application.Commands;
 using Hcc.Application.Configuration;
+using Hcc.Application.GuestIds;
 using Hcc.Domain.Configuration;
 using Hcc.Domain.Documents;
 using Hcc.Domain.Errors;
@@ -170,6 +171,15 @@ public interface IDocumentStore
 
     /// <summary>Status Purged, sealed OCR text removed.</summary>
     Task MarkPurgedAsync(ICommandTransaction tx, long captureId, DateTime utc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Key rotation (A07-07): row-locked captures of the property whose sealed OCR text or sealed image is not sealed under <paramref name="keyId"/>
+    /// (whatever their status), capture id order. Reads only the start of the sealed image, never the image itself.
+    /// </summary>
+    Task<IReadOnlyList<IdCaptureRow>> LockSealedUnderOtherKeysAsync(ICommandTransaction tx, int propertyId, string keyId, CancellationToken ct = default);
+
+    /// <summary>Replaces the sealed OCR text of a capture (key rotation: the same content sealed under the current key).</summary>
+    Task ResealOcrAsync(ICommandTransaction tx, long captureId, string ocrSealed, CancellationToken ct = default);
 }
 
 /// <summary>Where the sealed image text is kept (SQL adapter in production; in-memory adapter for tests). Only sealed text ever reaches it.</summary>
@@ -180,6 +190,9 @@ public interface IDocumentImageStore
     Task<string?> GetAsync(ICommandTransaction? tx, long captureId, CancellationToken ct = default);
 
     Task DeleteAsync(ICommandTransaction tx, long captureId, CancellationToken ct = default);
+
+    /// <summary>Replaces the sealed image of a capture (key rotation: the same image sealed under the current key).</summary>
+    Task ReplaceAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default);
 }
 
 /// <summary>Test adapter: keeps sealed images in memory.</summary>
@@ -200,5 +213,57 @@ public sealed class InMemoryDocumentImageStore : IDocumentImageStore
     {
         Images.TryRemove(captureId, out _);
         return Task.CompletedTask;
+    }
+
+    public Task ReplaceAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default)
+    {
+        if (!Images.ContainsKey(captureId)) throw new InvalidOperationException("No stored image to replace.");
+        Images[captureId] = sealedImage;
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Key rotation of the ID capture secrets (A07-07): part of <see cref="GuestIdService.RekeyAsync"/>, in its transaction. Every capture whose OCR text
+/// or image is still sealed under an older key is opened with that key and sealed again under the current one (same associated data: property and
+/// capture reference), so after a rotation no capture depends on the old key and it can be retired. Nothing is decrypted outside this loop and no
+/// number, name or image reaches the audit text (only counts and key ids).
+/// </summary>
+public sealed class DocumentSecretsRekey(IDocumentStore store, IDocumentImageStore images, GuestIdProtector protector) : IGuestIdRekeyParticipant
+{
+    public async Task<GuestIdRekeyPart> RekeyAsync(ICommandTransaction tx, int propertyId, string currentKeyId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentException.ThrowIfNullOrEmpty(currentKeyId);
+        if (!string.Equals(protector.CurrentKeyId, currentKeyId, StringComparison.Ordinal))
+            throw new InvalidOperationException("The guest ID key ring changed during the key rotation.");
+        var count = 0;
+        var from = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var row in await store.LockSealedUnderOtherKeysAsync(tx, propertyId, currentKeyId, ct).ConfigureAwait(false))
+        {
+            if (Reseal(propertyId, DocumentService.OcrPurpose(row.CaptureRef), row.OcrSealed, currentKeyId, from) is { } ocr)
+            {
+                await store.ResealOcrAsync(tx, row.CaptureId, ocr, ct).ConfigureAwait(false);
+                count++;
+            }
+
+            if (Reseal(propertyId, DocumentService.ImagePurpose(row.CaptureRef), await images.GetAsync(tx, row.CaptureId, ct).ConfigureAwait(false), currentKeyId, from) is { } image)
+            {
+                await images.ReplaceAsync(tx, row.CaptureId, image, ct).ConfigureAwait(false);
+                count++;
+            }
+        }
+
+        return new GuestIdRekeyPart("ID capture images and OCR texts", count, [.. from]);
+    }
+
+    /// <summary>The value sealed again under the current key, or null when it is empty or already under it (the old key id goes to <paramref name="from"/>).</summary>
+    private string? Reseal(int propertyId, string purpose, string? sealedText, string currentKeyId, ISet<string> from)
+    {
+        if (string.IsNullOrEmpty(sealedText) || GuestIdProtector.SecretKeyId(sealedText) == currentKeyId) return null;
+        // UNAVAILABLE (the whole rotation rolls back) when the old key is not in the ring or the text was altered — never a half-rotated table.
+        var plain = protector.OpenSecret(propertyId, purpose, sealedText);
+        from.Add(GuestIdProtector.SecretKeyId(sealedText)!);
+        return protector.SealSecret(propertyId, purpose, plain);
     }
 }

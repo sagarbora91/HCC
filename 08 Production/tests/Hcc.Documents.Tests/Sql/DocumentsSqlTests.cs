@@ -66,6 +66,17 @@ public sealed partial class DocWorld : IAsyncDisposable
 
     public CommandContext Ctx(string role, string? key = null) => new(PropertyId, Users[role], "D", key ?? Guid.NewGuid().ToString("N"));
 
+    /// <summary>The document and guest-ID services of this database under another key ring, wired as the server wires them (key rotation, A07-07).</summary>
+    public (DocumentService Docs, GuestIdService GuestIds) WithRing(IGuestIdKeyRing ring)
+    {
+        var policy = new SqlAccessPolicy(Platform.Connections, TimeProvider.System, []);
+        var protector = new GuestIdProtector(ring);
+        var docs = new SqlDocumentStore(Platform.Connections);
+        var guestIds = new SqlGuestIdStore(Platform.Connections);
+        return (new DocumentService(Platform.Commands, policy, docs, docs, new SimulatedIdOcrEngine(), guestIds, protector, TimeProvider.System),
+            new GuestIdService(Platform.Commands, policy, guestIds, protector, TimeProvider.System, [new DocumentSecretsRekey(docs, docs, protector)]));
+    }
+
     public static async Task<DocWorld> CreateAsync(CancellationToken ct, long? retention = null, IIdOcrEngine? ocr = null)
     {
         var server = Environment.GetEnvironmentVariable("HCC_TEST_SQL_SERVER") is { Length: > 0 } s ? s : @".\SQLEXPRESS";
@@ -236,6 +247,72 @@ public class DocumentsSqlTests : IAsyncLifetime
         var r = (await _w.Svc.RejectAsync(_w.Ctx("REC"), new RejectIdCaptureRequest(v.CaptureId, v.Version, "Blurred, retake"), Ct)).Value;
         Assert.Equal(("Rejected", "Blurred, retake"), (r.Status, r.RejectReason));
         await Fails(HccErrorCode.INVALID_TRANSITION, () => _w.Svc.ConfirmAsync(_w.Ctx("REC"), new ConfirmIdCaptureRequest(v.CaptureId, r.Version, true, null), Ct));
+    }
+
+    [Fact]
+    public async Task Reject_and_purge_reasons_may_not_carry_an_ID_number()
+    {
+        // A07-05: both reasons are stored and audited in clear.
+        var v = (await Capture()).Value;
+        var spaced = Number[..4] + " " + Number[4..8] + " " + Number[8..];
+        var e = await Assert.ThrowsAsync<HccException>(() => _w.Svc.RejectAsync(_w.Ctx("REC"), new RejectIdCaptureRequest(v.CaptureId, v.Version, "Wrong number " + spaced), Ct));
+        Assert.Equal((HccErrorCode.VALIDATION, "This looks like an ID number. Store ID numbers only in the ID section."), (e.Code, e.Message));
+        await Fails(HccErrorCode.VALIDATION, () => _w.Svc.RejectAsync(_w.Ctx("REC"), new RejectIdCaptureRequest(v.CaptureId, v.Version, "Passport Z7654321 expired"), Ct));
+        await Fails(HccErrorCode.VALIDATION, () => _w.Svc.PurgeAsync(_w.Ctx("OWN"), new PurgeIdCapturesRequest("Guest " + Number + " asked for erasure"), Ct));
+        Assert.Equal("Captured", (await _w.Svc.GetAsync(_w.PropertyId, _w.Users["REC"], v.CaptureId, Ct)).Status);
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action IN ('ID_CAPTURE_REJECT','ID_CAPTURE_PURGE');"));
+        // A reason with a phone number or a booking reference is fine.
+        Assert.Equal("Rejected", (await _w.Svc.RejectAsync(_w.Ctx("REC"), new RejectIdCaptureRequest(v.CaptureId, v.Version, "Blurred; guest on 9820005555, booking HCC-1041"), Ct)).Value.Status);
+        var all = await _w.DumpAsync("SELECT * FROM doc.id_capture;", "SELECT * FROM plat.audit_event;");
+        Assert.DoesNotContain(Number, all, StringComparison.Ordinal);
+        Assert.DoesNotContain(spaced, all, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Key_rotation_re_seals_capture_images_and_ocr_text_so_the_old_key_can_be_retired()
+    {
+        // A07-07. Three captures sealed under k1, in each state that keeps sealed data: awaiting review, confirmed (its number also goes to
+        // gst.guest_id_secret), rejected.
+        var waiting = (await Capture()).Value;
+        var confirmedNo = Imgs.AadhaarNumber("3456789012");
+        var c2 = (await Capture(number: confirmedNo)).Value;
+        await _w.Svc.ConfirmAsync(_w.Ctx("REC"), new ConfirmIdCaptureRequest(c2.CaptureId, c2.Version, true, null), Ct);
+        var c3 = (await Capture(number: "Z7654321", kind: "passport")).Value;
+        await _w.Svc.RejectAsync(_w.Ctx("REC"), new RejectIdCaptureRequest(c3.CaptureId, c3.Version, "Blurred, retake"), Ct);
+        var k2Only = _w.WithRing(new StaticGuestIdKeyRing("k2", new Dictionary<string, byte[]> { ["k2"] = Imgs.Key2 }));
+        // Before the rotation a server holding only the new key cannot open them: k1 could not be retired yet.
+        await Fails(HccErrorCode.UNAVAILABLE, () => k2Only.Docs.ViewImageAsync(_w.Ctx("REC"), new ViewIdCaptureImageRequest(waiting.CaptureId), Ct));
+        await Fails(HccErrorCode.UNAVAILABLE, () => k2Only.Docs.RevealAsync(_w.Ctx("REC"), new RevealIdCaptureRequest(c3.CaptureId), Ct));
+
+        // Rotation: ring {k1, k2 current}; the Owner's RekeyGuestIds moves the numbers AND every capture image and OCR text to k2.
+        var both = _w.WithRing(new StaticGuestIdKeyRing("k2", new Dictionary<string, byte[]> { ["k1"] = Imgs.Key1, ["k2"] = Imgs.Key2 }));
+        await Fails(HccErrorCode.FORBIDDEN, () => both.GuestIds.RekeyAsync(_w.Ctx("MGR"), new RekeyGuestIdsRequest("Annual rotation (fictional)"), Ct));
+        var rk = (await both.GuestIds.RekeyAsync(_w.Ctx("OWN"), new RekeyGuestIdsRequest("Annual rotation (fictional)"), Ct)).Value;
+        Assert.Equal((1, 6, "k2"), (rk.Rekeyed, rk.SealedSecretsRekeyed, rk.CurrentKeyId));
+        Assert.Equal("k1", Assert.Single(rk.FromKeyIds));
+        Assert.Equal(3, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture_image;"));
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture_image WHERE sealed NOT LIKE 'enc:v1:k2:%';"));
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture WHERE ocr_sealed IS NULL OR ocr_sealed NOT LIKE 'enc:v1:k2:%';"));
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM gst.guest_id_secret WHERE key_id <> 'k2';"));
+
+        // k1 retired: every capture opens with k2 alone (image, extracted number), so does the confirmed number, and the waiting capture can still be confirmed.
+        foreach (var (id, kind, no) in new[] { (waiting.CaptureId, "aadhaar", Number), (c2.CaptureId, "aadhaar", confirmedNo), (c3.CaptureId, "passport", "Z7654321") })
+        {
+            Assert.Equal(Imgs.Scan(kind, no), Convert.FromBase64String((await k2Only.Docs.ViewImageAsync(_w.Ctx("REC"), new ViewIdCaptureImageRequest(id), Ct)).Value.ImageBase64));
+            Assert.Equal(no, (await k2Only.Docs.RevealAsync(_w.Ctx("REC"), new RevealIdCaptureRequest(id), Ct)).Value.IdNumber);
+        }
+
+        Assert.Equal(confirmedNo, (await k2Only.GuestIds.RevealAsync(_w.Ctx("REC"), new RevealGuestIdRequest(_w.GuestId), Ct)).Value.IdNumber);
+        var current = await k2Only.Docs.GetAsync(_w.PropertyId, _w.Users["REC"], waiting.CaptureId, Ct);
+        Assert.Equal("Confirmed", (await k2Only.Docs.ConfirmAsync(_w.Ctx("REC"), new ConfirmIdCaptureRequest(waiting.CaptureId, current.Version, true, null), Ct)).Value.Status);
+
+        // A second run finds nothing left; the audit rows carry counts and key ids only.
+        var again = (await both.GuestIds.RekeyAsync(_w.Ctx("OWN"), new RekeyGuestIdsRequest("Second run (fictional)"), Ct)).Value;
+        Assert.Equal((0, 0), (again.Rekeyed, again.SealedSecretsRekeyed));
+        Assert.Contains("1 guest ID numbers re-encrypted to key k2 from k1 · 6 ID capture images and OCR texts re-encrypted from k1 · Annual rotation (fictional)",
+            await _w.DumpAsync("SELECT detail FROM plat.audit_event WHERE action = 'GUEST_ID_REKEY';"), StringComparison.Ordinal);
+        var all = await _w.DumpAsync("SELECT * FROM plat.audit_event;", "SELECT * FROM plat.idempotency;", "SELECT * FROM plat.outbox;", "SELECT * FROM doc.id_capture;", "SELECT * FROM doc.id_capture_image;");
+        foreach (var secret in new[] { Number, confirmedNo, "Z7654321", "Test Guest", "1990-01-31", "HCCFAKEID" }) Assert.DoesNotContain(secret, all, StringComparison.Ordinal);
     }
 
     [Fact]

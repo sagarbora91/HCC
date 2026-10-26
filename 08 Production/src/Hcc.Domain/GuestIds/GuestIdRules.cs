@@ -101,6 +101,27 @@ public static partial class GuestIdRules
         };
     }
 
+    /// <summary>
+    /// The refusal for an ID number typed into free text (A07-05): guest notes, preferences, address and the reasons staff type for ID
+    /// commands. Fixed text, never the input. Same words in the prototype (<c>GUEST_FREE_TEXT_ID_MESSAGE</c>, guests.ts).
+    /// </summary>
+    public const string FreeTextIdMessage = "This looks like an ID number. Store ID numbers only in the ID section.";
+
+    // A07-05 · ID-number shapes in free text. Aadhaar: 12 digits, optionally grouped 4-4-4 with one space or hyphen, not part of a longer number and
+    // not a "+"-prefixed phone number, Verhoeff-valid (so most 12-digit bank or UPI references still pass). Passport: 1 letter + 7 digits as a word
+    // of its own (Z1234567). A 10-digit phone, a booking reference (HCC-1041) or a GSTIN never match. Prototype twin: guestLooksLikeIdNumber.
+    [GeneratedRegex(@"(?<![0-9+])([0-9]{4})[ -]?([0-9]{4})[ -]?([0-9]{4})(?![0-9])")] private static partial Regex AadhaarInText();
+    [GeneratedRegex(@"(?<![A-Za-z0-9])[A-Za-z][0-9]{7}(?![A-Za-z0-9])")] private static partial Regex PassportInText();
+
+    /// <summary>True when free text holds a full Aadhaar or passport number (A07-05); such text is refused with <see cref="FreeTextIdMessage"/>.</summary>
+    public static bool LooksLikeIdNumber(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        foreach (Match m in AadhaarInText().Matches(text))
+            if (Verhoeff(m.Groups[1].Value + m.Groups[2].Value + m.Groups[3].Value)) return true;
+        return PassportInText().IsMatch(text);
+    }
+
     public static string Last4(string? number)
     {
         var n = Normalise(number);

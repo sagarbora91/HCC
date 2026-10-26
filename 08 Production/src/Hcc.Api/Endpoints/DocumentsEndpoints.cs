@@ -26,6 +26,8 @@ public static class DocumentsEndpoints
         services.AddSingleton<IDocumentImageStore>(sp => sp.GetRequiredService<SqlDocumentStore>());
         services.AddSingleton(SimulatedAdapters.IdOcrEngine); // A09-08: simulated outside Production, "not configured" in Production
         services.AddSingleton<DocumentService>();
+        // A07-07: RekeyGuestIds also re-seals the capture images and OCR text, so a retired key never strands a capture.
+        services.AddSingleton<IGuestIdRekeyParticipant>(sp => new DocumentSecretsRekey(sp.GetRequiredService<IDocumentStore>(), sp.GetRequiredService<IDocumentImageStore>(), sp.GetRequiredService<GuestIdProtector>()));
         return services;
     }
 

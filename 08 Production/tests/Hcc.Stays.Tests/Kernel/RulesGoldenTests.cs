@@ -122,6 +122,25 @@ public class RulesGoldenTests
     }
 
     [Fact]
+    public void Guest_free_text_may_not_hold_a_full_ID_number()
+    {
+        // A07-05 (prototype guestValidate, [GIDTXT]): notes, preferences and address refuse a full Aadhaar (spaced or not) or a passport number.
+        var aad = "1234567890" + "1";
+        aad += Hcc.Domain.GuestIds.GuestIdRules.VerhoeffDigit(aad).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var spaced = aad[..4] + " " + aad[4..8] + " " + aad[8..];
+        const string Msg = "This looks like an ID number. Store ID numbers only in the ID section.";
+        var full = new GuestDraft("Sonal Kulkarni", "+91 98200 05555", "sonal@example.test", "5 Demo Lane, Latur (fictional)", "Indian", "Passport (demo)", "K555");
+        Assert.Equal(Msg, GuestRules.Validate(full with { Notes = "Aadhaar " + aad }, true)["notes"]);
+        Assert.Equal(Msg, GuestRules.Validate(full with { Preferences = spaced }, false)["preferences"]);
+        Assert.Equal(Msg, GuestRules.Validate(full with { Address = "5 Demo Lane, passport Z1234567" }, true)["address"]);
+        Assert.Equal(Msg + " (1 more: Notes)", GuestRules.Summary(GuestRules.Validate(full with { Notes = spaced, Preferences = aad }, false)));
+        Assert.DoesNotContain(aad[^4..], GuestRules.Summary(GuestRules.Validate(full with { Notes = aad }, false)), StringComparison.Ordinal);
+        // A phone number, a booking reference or a GSTIN in free text is fine.
+        Assert.Empty(GuestRules.Validate(full with { Notes = "Call 9820005555 before arrival · booking HCC-1041", Preferences = "Bill to GSTIN 27ABCDE1234F1Z5" }, true));
+        Assert.Empty(GuestRules.Validate(full with { Notes = "Second phone +91 98200 05556" }, true));
+    }
+
+    [Fact]
     public void Check_in_preconditions_give_the_prototype_codes()
     {
         var ok = new CheckInFacts("Confirmed", StayDates.Parse("2026-10-24"), StayDates.Parse("2026-10-26"), StayDates.Parse("2026-10-24"), true, "Ready", false, false, true);

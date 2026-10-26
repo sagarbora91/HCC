@@ -5,6 +5,7 @@ import {Eye,EyeOff} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Guest,guestView,guestRevealId,guestIdFormat} from '../../services/mock';
 import {GuestIdRevealButton,useCanRevealGuestId} from '../../clients/sync/guestid-ui';
+import {useSecureScreen} from '../../app/native';
 
 /** Production: the full number is never in state; Show ID asks the server (PERM-GST-003, audited) and shows it in a transient dialog. */
 function GuestIdValueServer({g}:{g:Guest}){
@@ -18,6 +19,7 @@ function GuestIdValueDemo({g}:{g:Guest}){
   const {s,uid,run,busy}=useHcc();const v=guestView(s,uid,g);
   const [shown,setShown]=useState(false);
   useEffect(()=>{setShown(false);},[g.id,uid]);
+  useSecureScreen(shown&&!v.masked); // A07-04: the demo APK, like production, keeps the shown number out of screenshots (FLAG_SECURE)
   if(v.masked)return <>Restricted</>;
   const full=shown?guestRevealId(s,uid,g):undefined;
   const head=`${v.idType} · `;

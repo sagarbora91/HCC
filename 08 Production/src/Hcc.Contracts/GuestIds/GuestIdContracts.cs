@@ -12,4 +12,6 @@ public sealed record RevealGuestIdResult(long GuestId, string IdType, string IdN
 /// <summary>POST /api/v1/commands/RekeyGuestIds (K). Owner only: re-encrypts every stored number under the current key (key rotation).</summary>
 public sealed record RekeyGuestIdsRequest(string Reason);
 
-public sealed record RekeyGuestIdsResult(int Rekeyed, string CurrentKeyId, IReadOnlyList<string> FromKeyIds);
+/// <summary><c>Rekeyed</c> = guest ID numbers re-encrypted; <c>FromKeyIds</c> = the keys any re-encrypted value was under; <c>SealedSecretsRekeyed</c> = other
+/// values sealed with the same keys and re-encrypted with them (ID capture images and OCR text, A07-07).</summary>
+public sealed record RekeyGuestIdsResult(int Rekeyed, string CurrentKeyId, IReadOnlyList<string> FromKeyIds, int SealedSecretsRekeyed = 0);

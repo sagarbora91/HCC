@@ -5,7 +5,7 @@ import type {Booking} from '../../../domain/types';
 import {can} from '../../../domain/selectors';
 import {addMinutes} from '../../../domain/money';
 import {registry} from './index';
-import {guestIdTypes,guestValidate} from '../../../domain/streams/guests';
+import {guestIdTypes,guestValidate,guestLooksLikeIdNumber,GUEST_FREE_TEXT_ID_MESSAGE} from '../../../domain/streams/guests';
 import {mnyCategoryNames,mnyMethodFor} from '../../../domain/streams/money-master';
 import {msgSampleDocs} from '../../../fixtures/ext/messaging';
 import {MSGState,MSGChannel,MSGMessage,MSG_CHANNELS,MSG_DEFAULT_TEMPLATES,MSG_DEFAULT_RULES,MSG_DEFAULT_CONSENT,msgTemplate,msgValues,msgRender,msgRecipient,
@@ -170,6 +170,7 @@ export const handlers:Record<string,Handler>={
     const {cmd,s}=k;k.req('checkin');const x=slice(k);
     const d=x.docs.find(d=>d.id===cmd.id);k.assert(d,'Capture not found.','NOT_FOUND');
     k.assert(d!.status==='Extracted',`This capture is already ${d!.status.toLowerCase()}.`,'INVALID_TRANSITION');
+    k.assert(!guestLooksLikeIdNumber(cmd.reason),GUEST_FREE_TEXT_ID_MESSAGE); // A07-05: the reason is kept in clear (server RejectIdCapture, same rule)
     d!.status='Discarded';d!.appliedAt=s.clock;if(cmd.reason?.trim())d!.reason=String(cmd.reason).trim().slice(0,200);
     return `${d!.id} discarded`;
   },

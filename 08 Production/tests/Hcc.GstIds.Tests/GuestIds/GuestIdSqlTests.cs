@@ -185,6 +185,33 @@ public class GuestIdSqlTests(GstIdsDb db) : IClassFixture<GstIdsDb>
     }
 
     [Fact]
+    public async Task An_ID_number_typed_into_notes_preferences_address_or_the_rekey_reason_is_refused_and_never_stored()
+    {
+        // A07-05: these fields are stored in clear (gst.guest, shown to every guest-view role) and the rekey reason goes into the audit text.
+        var spaced = Aad[..4] + " " + Aad[4..8] + " " + Aad[8..];
+        foreach (var d in new[]
+                 {
+                     Full("Notes Guest (fictional)", "Passport (demo)", "Z7654321") with { Notes = "Aadhaar " + spaced },
+                     Full("Pref Guest (fictional)", "Passport (demo)", "Z7654321") with { Preferences = Aad },
+                     Full("Addr Guest (fictional)", number: Aad) with { Address = "5 Demo Lane, passport Z7654321" },
+                 })
+        {
+            var ex = await Expect.Fails(HccErrorCode.VALIDATION, () => RegisterAsync(d));
+            Assert.Equal("This looks like an ID number. Store ID numbers only in the ID section.", ex.Message);
+            Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM gst.guest WHERE full_name = @n;", ("@n", SqlDbType.NVarChar, d.Name!)));
+        }
+
+        var rk = await Expect.Fails(HccErrorCode.VALIDATION, () => db.GuestIds.RekeyAsync(db.Ctx("OWN"), new RekeyGuestIdsRequest("rotation after " + spaced), Ct));
+        Assert.DoesNotContain(Aad[^4..], rk.Message, StringComparison.Ordinal);
+        // A phone number and a booking reference in the notes are fine.
+        var ok = await RegisterAsync(Full("Phone Note Guest (fictional)", "Passport (demo)", "Z7654321") with { Notes = "Call 9820005555 · booking HCC-1041" });
+        Assert.Equal("Call 9820005555 · booking HCC-1041", await db.ScalarAsync($"SELECT notes FROM gst.guest WHERE guest_id = {ok.GuestId};"));
+        var all = await EverythingButSecretsAsync();
+        Assert.DoesNotContain(Aad, all, StringComparison.Ordinal);
+        Assert.DoesNotContain(spaced, all, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Wrong_key_fails_closed_and_rotation_re_encrypts_under_the_new_key()
     {
         var r = await RegisterAsync(Full("Rotate Guest (fictional)", "Driving licence (demo)", "ZZ0120110012345"));

@@ -23,7 +23,12 @@ public static class Imgs
 
     public static string B64(byte[] b) => Convert.ToBase64String(b);
 
-    public static GuestIdProtector Protector() => new(new StaticGuestIdKeyRing("k1", new Dictionary<string, byte[]> { ["k1"] = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray() }));
+    public static readonly byte[] Key1 = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
+
+    /// <summary>A second test key (key rotation, A07-07).</summary>
+    public static readonly byte[] Key2 = Enumerable.Range(101, 32).Select(i => (byte)i).ToArray();
+
+    public static GuestIdProtector Protector() => new(new StaticGuestIdKeyRing("k1", new Dictionary<string, byte[]> { ["k1"] = Key1 }));
 }
 
 public class DocumentUnitTests
@@ -137,7 +142,10 @@ public class DocumentUnitTests
         var s = new InMemoryDocumentImageStore();
         await s.PutAsync(null!, 5, "sealed");
         Assert.Equal("sealed", await s.GetAsync(null, 5));
+        await s.ReplaceAsync(null!, 5, "sealed again");
+        Assert.Equal("sealed again", await s.GetAsync(null, 5));
         await s.DeleteAsync(null!, 5);
         Assert.Null(await s.GetAsync(null, 5));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => s.ReplaceAsync(null!, 5, "nothing to replace"));
     }
 }

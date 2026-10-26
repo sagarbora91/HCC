@@ -190,3 +190,28 @@ export async function readSystemFontScale():Promise<number|undefined>{
   const p=textZoomPlugin();if(!p?.getTextZoom)return undefined;
   try{const r=await p.getTextZoom();const s=Number(r?.systemScale);return Number.isFinite(s)&&s>0?s:undefined;}catch{return undefined;}
 }
+
+// ── Screen privacy while a full guest ID number is on screen (audit A07-04) ──
+// The APK's SecureScreen plugin (04 Android … SecureScreenPlugin.java) sets Android's FLAG_SECURE on the window: no screenshots, no screen
+// recording or casting, and a blank recent-apps thumbnail. Each caller holds the flag while its content is shown; it is cleared when the last
+// holder lets go (the plugin clears it only once the app is in the foreground again). No-op in a browser or an older APK without the plugin. Never throws.
+/** The native SecureScreen plugin (`setSecure({secure})`), or undefined in a browser / an APK without it. */
+export function secureScreenPlugin():Plugin|undefined{
+  if(!isNative()||!nativePluginAvailable('SecureScreen'))return undefined;
+  return nativePlugin('SecureScreen');
+}
+let secureHolds=0;
+function sendSecure(secure:boolean){
+  const p=secureScreenPlugin();if(!p?.setSecure)return;
+  try{void Promise.resolve(p.setSecure({secure})).catch(()=>{/* an older plugin or a bridge error: nothing more to do */});}catch{/* ignore */}
+}
+/** Turns FLAG_SECURE on (first holder) and returns the release function (idempotent); the flag goes off when the last holder releases. */
+export function holdSecureScreen():()=>void{
+  secureHolds++;if(secureHolds===1)sendSecure(true);
+  let released=false;
+  return ()=>{if(released)return;released=true;secureHolds=Math.max(0,secureHolds-1);if(secureHolds===0)sendSecure(false);};
+}
+/** How many holders keep the screen secure now (tests and diagnostics). */
+export const secureScreenHolds=()=>secureHolds;
+/** While `active`, the APK window is FLAG_SECURE (React hook; released on unmount). */
+export function useSecureScreen(active:boolean){useEffect(()=>active?holdSecureScreen():undefined,[active]);}

@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(TextZoomPlugin.class); // CP-4: in-app switch for "follow the Android font size" (must run before super.onCreate)
+        registerPlugin(SecureScreenPlugin.class); // A07-04: FLAG_SECURE while a full guest ID number is on screen (Show ID dialog)
         super.onCreate(savedInstanceState);
         // Security review F-H02: a non-debuggable (release) build never allows WebView remote debugging (chrome://inspect),
         // whatever capacitor.config says. Debug builds (the prototype) are unchanged.
