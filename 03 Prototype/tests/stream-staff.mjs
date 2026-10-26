@@ -103,7 +103,7 @@ export function register({test,M,assert}){
   test('[HR] leave: balance per FY, overlap, daily-wage LOP only, no backdating, weekly offs excluded',()=>{
     const s=seed();
     assert.equal(M.hrLeaveBalance(s,'HR-S05','2026').find(b=>b.type==='CL').left,10);assert.equal(M.hrLeaveBalance(s,'HR-S05','2026-10-24').find(b=>b.type==='CL').left,10);
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-14',reason:'Long trip'}),/balance/);
+    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-16',reason:'Long trip'}),/balance/);// MA-6 old → new: to 11-14 → 11-16 (the seeded paid holiday Diwali, Sun 8 Nov, is no leave day: 2–14 Nov now needs 10 days = fits; 2–16 Nov needs 12 > 10 left)
     assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S10',leaveType:'CL',from:'2026-11-02',to:'2026-11-02',reason:'Trip'}),/without pay/);
     assert.throws(()=>execute(s,'housekeeper2',{type:'HR_LEAVE_REQUEST',staffId:'HR-S06',leaveType:'SL',from:'2026-10-29',to:'2026-10-30',reason:'Unwell'}),code('NOT_AVAILABLE'));
     assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-10-20',to:'2026-10-20',reason:'Late'}),code('VALIDATION'));
