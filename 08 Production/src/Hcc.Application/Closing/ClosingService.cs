@@ -25,7 +25,8 @@ namespace Hcc.Application.Closing;
 /// <param name="runner">The platform runner (not the business-day guarded one: the close writes on the day it closes).</param>
 /// <param name="accounting">DEC-077 hooks into Accounting (period lock check, Tally re-export flag); null when Accounting is not composed.</param>
 public sealed class ClosingService(ICommandRunner runner, IClosingStore store, IReportSource reports, IAccessPolicy policy, BillingService billing,
-    ICloseStepObserver observer, TimeProvider clock, Hcc.Application.Pos.IPosCloseGate? pos = null, Hcc.Application.Accounting.IAccountingDayHooks? accounting = null)
+    ICloseStepObserver observer, TimeProvider clock, Hcc.Application.Pos.IPosCloseGate? pos = null, Hcc.Application.Accounting.IAccountingDayHooks? accounting = null,
+    IMealPlanNightPoster? mealPlans = null)
 {
     public const string OpRun = "RunBusinessDayClose";
     public const string OpPostNights = "PostRoomNights";
@@ -116,6 +117,9 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
             var r = await billing.PostRoomNightAsync(caller, $"nights:{date:yyyyMMdd}:{t.StayId}", new PostRoomNightRequest(t.StayId, date), ct).ConfigureAwait(false);
             if (r.Value.Created && !r.Replayed) posted++;
         }
+
+        // MA-11: the night's meal-plan lines follow the room nights (idempotent per folio and date; a repeat posts nothing twice).
+        if (mealPlans is not null) await mealPlans.PostAsync(caller, date, idempotencyKey + ":plans", ct).ConfigureAwait(false);
 
         return new(new PostRoomNightsResult(date, targets.Count, posted, targets.Count - posted), false);
     }
@@ -239,12 +243,16 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
             if (r.Value.Created && !r.Replayed) posted++;
         }
 
+        // MA-11 (MA-2 gap): the night's meal-plan lines right after the room nights, in production as in the prototype's night posting
+        // (PostMealPlanNights: one line per in-house folio with a plan, idempotent per folio and date - a resumed attempt posts only what is missing).
+        var planLines = mealPlans is null ? 0 : await mealPlans.PostAsync(caller, date, $"cls:{a.RunId}:{a.Attempt}:plans", ct).ConfigureAwait(false);
+
         await runner.RunAsync(Ctx(caller, "CloseNights", StepKey(a, CloseStep.Nights)), new { a.RunId, a.Attempt }, async (tx, ct2) =>
         {
-            var detail = CanonicalJson.Serialize(new { stays = targets.Count, postedNow = posted, alreadyPosted = targets.Count(t => t.HasNight) });
+            var detail = CanonicalJson.Serialize(new { stays = targets.Count, postedNow = posted, alreadyPosted = targets.Count(t => t.HasNight), planLines });
             await store.UpsertStepAsync(tx, a.RunId, CloseStep.Nights, "Done", a.Attempt, detail, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
             await store.UpdateRunAsync(tx, a.RunId, CloseRunStatus.Running, CloseSteps.Code(CloseStep.Cash), null, null, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("DAY_CLOSE_STEP", Target(date), $"nights · {posted} new night(s) posted · {targets.Count} in-house stays", ct2).ConfigureAwait(false);
+            await tx.AuditAsync("DAY_CLOSE_STEP", Target(date), $"nights · {posted} new night(s) posted · {targets.Count} in-house stays" + (planLines > 0 ? $" · {planLines} meal-plan line(s)" : ""), ct2).ConfigureAwait(false);
             return new StepResult(false, []);
         }, ct).ConfigureAwait(false);
     }

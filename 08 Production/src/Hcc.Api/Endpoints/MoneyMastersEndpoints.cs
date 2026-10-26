@@ -18,7 +18,10 @@ public static class MoneyMastersEndpoints
     {
         services.AddSingleton<IMoneyMastersStore, SqlMoneyMastersStore>();
         services.AddSingleton<IMoneyMastersReadStore>(sp => new SqlMoneyMastersReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
-        services.AddSingleton<IMasterUsage, MoneyMasterUsage>();   // records per payment method / category / vendor; methods per account
+        services.AddSingleton<IMasterUsage, MoneyMasterUsage>();
+        // MA-11: receipts, outlet bills and expenses resolve their method through mst.payment_method (BillingService, PosService, ExpenseCommands /
+        // ExpenseQueries take it as an optional dependency; without this module they keep the old fixed lists).
+        services.AddSingleton<IPaymentMethodSource>(sp => new SqlPaymentMethodSource(sp.GetRequiredService<SqlPlatform>().Connections));   // records per payment method / category / vendor; methods per account
         services.AddSingleton<MoneyMastersCommands>();
         services.AddSingleton<MoneyMastersQueries>();
         return services;

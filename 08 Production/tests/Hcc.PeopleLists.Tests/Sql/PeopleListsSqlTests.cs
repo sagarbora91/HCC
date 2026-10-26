@@ -282,8 +282,9 @@ public sealed class PeopleListsSqlTests(PeopleDb db) : IClassFixture<PeopleDb>
         Assert.Equal(1, used.Used);
         await Hotel.FailsAsync(() => h.Lists.SaveHolidayAsync(h.As("owner", "SaveHoliday", "h4"), new SaveHolidayRequest(r.HolidayId, "2026-08-16", "Independence Day", "paid", null, r.Version), Ct), HccErrorCode.INVALID_TRANSITION, MasterReasons.InUse);
         await Hotel.FailsAsync(() => h.Lists.DeleteHolidayAsync(h.As("owner", "DeleteHoliday", "h5"), new DeleteHolidayRequest(r.HolidayId, r.Version), Ct), HccErrorCode.INVALID_TRANSITION, MasterReasons.InUse);
-        var retired = (await h.Lists.RetireHolidayAsync(h.As("owner", "RetireHoliday", "h6"), new RetireHolidayRequest(r.HolidayId, r.Version), Ct)).Value;
-        Assert.False(retired.Active);
+        // MA-11 old → new: retiring a paid holiday of a LOCKED pay month is refused (was allowed) — the rule of Wave B's RemoveHoliday (DEC-083).
+        var locked = await Hotel.FailsAsync(() => h.Lists.RetireHolidayAsync(h.As("owner", "RetireHoliday", "h6"), new RetireHolidayRequest(r.HolidayId, r.Version), Ct), HccErrorCode.INVALID_TRANSITION);
+        Assert.Equal("August 2026 payroll is locked — its holidays cannot change.", locked.Message);
         var kind = (await h.Lists.SaveHolidayAsync(h.As("owner", "SaveHoliday", "h7"), new SaveHolidayRequest(null, "2026-09-14", "Ganesh Chaturthi", "restricted"), Ct)).Value;
         Assert.Equal(("restricted", 20), (kind.Kind, kind.SortOrder));
         var order = (await h.Lists.ReorderHolidaysAsync(h.As("owner", "ReorderHolidays", "h9"), new ReorderHolidaysRequest([kind.HolidayId, r.HolidayId]), Ct)).Value;

@@ -26,7 +26,7 @@ namespace Hcc.Application.Pos;
 /// </summary>
 public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingStore billing, IAccessPolicy policy, IPosTaxRates taxRates,
     ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null, Configuration.ISettingsReader? settings = null,
-    IPosInvoicePort? invoices = null)
+    IPosInvoicePort? invoices = null, MoneyMasters.IPaymentMethodSource? methods = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -66,6 +66,8 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         }, ct).ConfigureAwait(false);
     }
 
+    private const string MenuRequestFields = "A menu request carries the name, category, price, veg and outlets only. The GST class (Owner) and the kitchen station are changed in Master configuration › Restaurant.";
+
     /// <summary>MA-4 + Wave B: SaveMenuItem is the menu master's command (<see cref="PosMastersService.SaveMenuItemAsync"/>: PERM-MST-001, prices and
     /// GST class PERM-MST-002, dated prices, categories, history) for everyone except a request-only caller: a Manager (PERM-POS-006 'R', DEC-079 D5)
     /// sends a request the Owner decides (<see cref="DecideMenuChangeAsync"/>); the W2-6 body keeps working through both.</summary>
@@ -101,6 +103,13 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
 
             if (!direct)
             {
+                // MA-11 (DEC-MA-11b): a Manager's request carries name, category, price, veg and outlets only (Wave B D5). The GST class is a money
+                // field (Owner, DEC-058) and the kitchen station a masters field (Owner / Tech admin, DEC-MA-1): a different value is refused here
+                // instead of being dropped silently; the current values (as the screens send them) pass.
+                if (req.GstClass is { Length: > 0 } g && !string.Equals(g.Trim(), current?.GstClass ?? "food", StringComparison.OrdinalIgnoreCase))
+                    throw HccException.Validation(MenuRequestFields);
+                if (req.Station is { } st && !string.Equals(st.Trim(), current?.Station ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+                    throw HccException.Validation(MenuRequestFields);
                 if (await store.PendingMenuRequestExistsAsync(tx, caller.PropertyId, code, req.ItemId, ct2).ConfigureAwait(false))
                     throw Invalid("A change to this menu item is already waiting for the Owner.");
                 var requestId = await store.InsertMenuRequestAsync(tx, new NewMenuRequest(caller.PropertyId, req.ItemId, code, name, category, price, req.Veg, outlets,
@@ -348,11 +357,14 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         VersionToken.Validate(req.ExpectedVersion);
         var reference = BillingText.Optional(req.Reference, 120);
         var tender = req.Tender;
+        var cash = false;
         if (!folioMode)
         {
-            if (tender is null || !PosRules.Tenders.Contains(tender, StringComparer.Ordinal)) throw HccException.Validation("Select Cash, UPI or Card.");
-            if (tender == PosRules.Cash && req.TillId is null) throw HccException.Validation("Choose the till that receives the cash.");
-            if (tender != PosRules.Cash && reference.Length == 0) throw HccException.Validation("Enter the transaction reference for a non-cash payment.");
+            // MA-11: the Payment methods master (usable at the outlet); a method that settles to a till is drawer cash (DEC-052).
+            var list = methods is null ? null : await methods.MethodsAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
+            var method = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(list, tender, Hcc.Contracts.MoneyMasters.MoneyMasterValues.Pos, reference);
+            (tender, cash) = (method.Name, method.SettlesToTill);
+            if (cash && req.TillId is null) throw HccException.Validation("Choose the till that receives the cash.");
         }
 
         // DEC-079: settling (outlet tender or charge to a room) is PERM-POS-005; the Restaurant role operates checks but never settles (D1).
@@ -369,7 +381,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             if (days is not null)
             {
                 await days.EnsureOpenAsync(tx, caller.PropertyId, date, ct2).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
-                if (tender == PosRules.Cash) await days.EnsureCashBookOpenAsync(tx, caller.PropertyId, date, "outlet cash", ct2).ConfigureAwait(false); // DEC-065
+                if (cash) await days.EnsureCashBookOpenAsync(tx, caller.PropertyId, date, "outlet cash", ct2).ConfigureAwait(false); // DEC-065
             }
 
             var lines = (await store.LinesAsync(tx, o.OrderId, ct2).ConfigureAwait(false)).Where(l => !l.Voided).ToList();
@@ -402,7 +414,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             {
                 long? shiftId = null;
                 long? moveId = null;
-                if (tender == PosRules.Cash)
+                if (cash)
                 {
                     // Shared till (DEC-052): outlet cash is a movement in the front-desk drawer, so it needs that till's open shift (and own-shift scope).
                     var shift = await Application_Payments.CashDesk.RequireOpenShiftAsync(billing, tx, caller.PropertyId, req.TillId!.Value, date, ct2).ConfigureAwait(false);
@@ -414,7 +426,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
                 }
 
                 billId = await store.InsertBillAsync(tx, new NewBill(o.OrderId, caller.PropertyId, billNo, "outlet", tender, reference.Length == 0 ? null : reference, totals.Net, bps,
-                    totals.Tax, totals.Total, date, now, caller.PrincipalId, tender == PosRules.Cash ? req.TillId : null, shiftId, moveId, stayId, null, null, split.Cgst, split.Sgst), ct2).ConfigureAwait(false);
+                    totals.Tax, totals.Total, date, now, caller.PrincipalId, cash ? req.TillId : null, shiftId, moveId, stayId, null, null, split.Cgst, split.Sgst), ct2).ConfigureAwait(false);
                 receiptId = await store.InsertReceiptAsync(tx, new NewReceipt(billId, o.OrderId, o.OutletId, "sale", tender!, totals.Total, totals.Net, totals.Tax, bps,
                     reference.Length == 0 ? "Outlet cash" : reference, date, caller.PrincipalId, now), ct2).ConfigureAwait(false);
             }
@@ -422,7 +434,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             await store.SetOrderStatusAsync(tx, o.OrderId, "Settled", null, null, null, stayId, ct2).ConfigureAwait(false);
             var version = await store.TouchOrderAsync(tx, o.OrderId, ct2).ConfigureAwait(false);
             await tx.AuditAsync("POS_BILL_SETTLED", Target("check", o.OrderId),
-                $"bill {billNo} · {totals.Total} (net {totals.Net} + tax {totals.Tax}) · " + (folioMode ? $"posted to folio of stay {stayId}" : $"{tender} at {o.OutletName}" + (tender == PosRules.Cash ? " · counted in the front-desk drawer" : "")), ct2).ConfigureAwait(false);
+                $"bill {billNo} · {totals.Total} (net {totals.Net} + tax {totals.Tax}) · " + (folioMode ? $"posted to folio of stay {stayId}" : $"{tender} at {o.OutletName}" + (cash ? " · counted in the front-desk drawer" : "")), ct2).ConfigureAwait(false);
             // Accounting consumes this per OUTLET bill (PosBillSettledEvent: Sales voucher by tender). A room-posted bill is accounted once, from the
             // folio line's ChargePosted (published by the folio port), so Accounting skips mode = folio here.
             await tx.PublishAsync("PosBillSettled", billId, new
@@ -588,12 +600,12 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             if (days is not null)
             {
                 await days.EnsureOpenAsync(tx, o.PropertyId, bill.BusinessDate, ct).ConfigureAwait(false); // P6: the bill's day must still be open
-                if (bill.Tender == PosRules.Cash) await days.EnsureCashBookOpenAsync(tx, o.PropertyId, bill.BusinessDate, "an outlet cash void", ct).ConfigureAwait(false); // DEC-065
+                if (bill.TillId is not null) await days.EnsureCashBookOpenAsync(tx, o.PropertyId, bill.BusinessDate, "an outlet cash void", ct).ConfigureAwait(false); // DEC-065
             }
 
             var voidSplit = GstMath.Split(bill.Tax);
             long? movement = null;
-            if (bill.Tender == PosRules.Cash)
+            if (bill.TillId is not null) // MA-11: a bill paid by a method that settles to a till went into the drawer (till_id set at settle)
             {
                 // The reversal leaves the same drawer; its shift must still be open (a counted/closed shift cannot be reversed).
                 movement = await drawer.RecordMovementAsync(tx, bill.TillId!.Value, CashMovementKind.PosVoid, "pos-void", o.OrderId, -bill.Total, $"{o.OutletName} · void of {bill.BillNo}",

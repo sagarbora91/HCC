@@ -88,6 +88,14 @@ public class FrontDeskMastersHttpTests : IAsyncLifetime
         Assert.Contains("\"commissionBps\":null", await GetAsync("/masters/booking-sources", "housekeeper"), StringComparison.Ordinal);
         Assert.Contains("\"nextNumber\":\"INV/2627/0000001\"", await GetAsync("/masters/number-series", "reception"), StringComparison.Ordinal);
         Assert.Contains("\"sources\":[]", await GetAsync("/masters/policies", "reception"), StringComparison.Ordinal);
+        // MA-11 (DEC-061): policy charge / deposit percentages are money — sent to the front desk, null for housekeeping and maintenance.
+        Assert.Contains("\"cancelChargeBps\":0", await GetAsync("/masters/policies", "reception"), StringComparison.Ordinal);
+        foreach (var u in new[] { "housekeeper", "maint" })
+        {
+            var pol = await GetAsync("/masters/policies", u);
+            Assert.Contains("\"cancelChargeBps\":null", pol, StringComparison.Ordinal);
+            Assert.Contains("\"depositBps\":null", pol, StringComparison.Ordinal);
+        }
         await GetAsync("/masters/booking-sources/history", "manager", HttpStatusCode.Forbidden);
         await GetAsync("/masters/id-types/history?page=1&pageSize=200", "techadmin");
         await GetAsync("/masters/number-series/history", "techadmin", HttpStatusCode.Forbidden);

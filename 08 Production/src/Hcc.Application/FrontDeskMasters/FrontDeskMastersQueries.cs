@@ -100,10 +100,12 @@ public sealed class FrontDeskMastersQueries(IAccessPolicy policy, IFrontDeskMast
 
     public async Task<FrontDeskList<BookingPolicyView>> PoliciesAsync(int propertyId, int principalId, int? page = null, int? pageSize = null, string? status = null, CancellationToken ct = default)
     {
-        _ = principalId; // policy terms are told to guests at booking
+        // Policy terms are told to guests at booking (front desk); MA-11: the charge / deposit percentages are money (DEC-061) — null for
+        // Supervisor, Housekeeping, Maintenance, Tech admin and Restaurant.
+        var money = await Hcc.Application.Masters.MastersMoney.SeesMoneyAsync(policy, propertyId, principalId, ct).ConfigureAwait(false);
         var (rows, _) = await RowsAsync(propertyId, FrontDeskMasterIds.Policies, status, ct).ConfigureAwait(false);
-        return Page(rows.Select(x => new BookingPolicyView(x.Row.RowId, x.Row.Code, x.Row.Name, x.Row.Get<int>("freeCancelHours"), x.Row.Get<int>("cancelChargeBps"),
-            x.Row.Get<int>("noShowChargeBps"), x.Row.Get<int>("depositBps"), x.Row.Get<IReadOnlyList<string>>("sources") ?? [], x.Row.SortOrder, x.Row.Active, Retired(x.Row), x.Usage,
+        return Page(rows.Select(x => new BookingPolicyView(x.Row.RowId, x.Row.Code, x.Row.Name, x.Row.Get<int>("freeCancelHours"), money ? x.Row.Get<int>("cancelChargeBps") : null,
+            money ? x.Row.Get<int>("noShowChargeBps") : null, money ? x.Row.Get<int>("depositBps") : null, x.Row.Get<IReadOnlyList<string>>("sources") ?? [], x.Row.SortOrder, x.Row.Active, Retired(x.Row), x.Usage,
             Utc(x.Row.UpdatedUtc), Ver(x.Row))).ToList(), page, pageSize);
     }
 
@@ -126,7 +128,8 @@ public sealed class NumberSeriesSource(IFrontDeskMastersStore store) : INumberSe
     public async Task<SeriesInForce?> InForceAsync(ICommandTransaction tx, int propertyId, string document, DateOnly date, CancellationToken ct = default)
     {
         var rows = await store.ReadAllAsync(tx, propertyId, FrontDeskMasterIds.NumberSeries, ct).ConfigureAwait(false);
-        if (rows.Count == 0) return null;
+        // No list, or (MA-11) a list stored before the document had a row (e.g. RST lists stored before migration 2891): built-in numbering.
+        if (rows.Count == 0 || !rows.Any(r => r.Get<string>("document") == document)) return null;
         return InForce(rows, document, date)
             ?? throw new HccException(HccErrorCode.INVALID_TRANSITION,
                 $"No numbering series is in force for the {FrontDeskMastersRules.DocumentLabel(document)} on {FrontDeskMastersRules.Iso(date)}. The Owner adds one in Master configuration › Front-desk policies › Numbering series.");

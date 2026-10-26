@@ -130,7 +130,7 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
     {
         ArgumentNullException.ThrowIfNull(caller);
         await RequireAsync(caller, AccountingPermissions.View, ct).ConfigureAwait(false);
-        var map = ChartOfAccounts.Effective(await store.MappingOverridesAsync(null, caller.PropertyId, ct).ConfigureAwait(false));
+        var map = await store.EffectiveMappingAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
         var uses = await store.KeyUsesAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
         return ChartOfAccounts.DefaultMapping.Keys.Concat(uses.Keys).Distinct(StringComparer.Ordinal)
             .OrderBy(ChartOfAccounts.KeyGroupOrder).ThenBy(k => k, StringComparer.Ordinal)

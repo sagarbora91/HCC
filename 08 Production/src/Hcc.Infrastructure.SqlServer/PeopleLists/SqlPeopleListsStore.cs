@@ -287,6 +287,14 @@ public sealed class SqlPeopleListsStore : IPeopleListsStore
         cmd.P("@p", SqlDbType.Int, propertyId);
         return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is DateTime d ? DateOnly.FromDateTime(d) : throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
     }
+
+    public async Task<bool> PayMonthLockedAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct = default)
+    {
+        await using var cmd = PlSql.Sql(tx).Command("SELECT COUNT(*) FROM hr.pay_run WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND pay_month = @m AND status = 'Locked';");
+        cmd.P("@p", SqlDbType.Int, propertyId);
+        cmd.P("@m", SqlDbType.Date, new DateTime(date.Year, date.Month, 1));
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture) > 0;
+    }
 }
 
 /// <summary>Read side of the People lists (own connection).</summary>

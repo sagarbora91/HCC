@@ -184,6 +184,8 @@ export const SEED_NUMBER_SERIES:FDMSeriesRow[]=[
   {id:'nsr-rcp',code:'RCP',name:'Receipt',document:'RCP',prefix:'RCP',start:1,padding:5,reset:'NEVER',activeFrom:SEED_FROM,sortOrder:40,active:true},
   {id:'nsr-kot',code:'KOT',name:'Kitchen order ticket',document:'KOT',prefix:'KOT',start:1,padding:4,reset:'NEVER',activeFrom:SEED_FROM,sortOrder:50,active:true},
   {id:'nsr-reg',code:'REG',name:'Registration card',document:'REG',prefix:'REG',start:1,padding:5,reset:'NEVER',activeFrom:SEED_FROM,sortOrder:60,active:true},
+  // MA-11: Wave B's restaurant tax invoices (DEC-072) are a row of this master; the seeded row continues POS's own per-FY counter (posX.rstSeq), so numbers stay RST/2627/0000001… (16 characters).
+  {id:'nsr-rst',code:'RST',name:'Restaurant tax invoice',document:'RST',prefix:'RST',start:1,padding:7,reset:'FY',activeFrom:SEED_FROM,sortOrder:70,active:true},
 ];
 /** "Default" = today's global behaviour: free cancellation up to arrival, no cancellation or no-show charge, no advance required. */
 export const SEED_POLICIES:FDMPolicyRow[]=[{id:'pol-default',code:'DEFAULT',name:'Default',freeCancelHours:0,cancelChargeBps:0,noShowChargeBps:0,depositBps:0,sources:[],sortOrder:10,active:true}];

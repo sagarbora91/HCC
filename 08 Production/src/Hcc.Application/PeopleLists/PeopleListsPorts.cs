@@ -41,6 +41,10 @@ public interface IPeopleListsStore
     Task MirrorLeavePolicyAsync(ICommandTransaction tx, int propertyId, string code, int quota, int principalId, DateTime utc, CancellationToken ct = default);
 
     Task<DateOnly> BusinessDateAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
+
+    /// <summary>MA-11: is the pay run of the date's month locked (hr.pay_run status Locked)? A paid holiday of a locked month cannot change —
+    /// the same rule as Wave B's SavePaidHoliday / RemoveHoliday. Default: never locked (stores without payroll).</summary>
+    Task<bool> PayMonthLockedAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct = default) => Task.FromResult(false);
 }
 
 /// <summary>Read side (own connection).</summary>

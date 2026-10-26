@@ -16,7 +16,8 @@ public static class FrontDeskMastersEndpoints
     {
         services.AddSingleton<IFrontDeskMastersStore, SqlFrontDeskMastersStore>();
         services.AddSingleton<IFrontDeskMastersReadStore>(sp => new SqlFrontDeskMastersReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
-        services.AddSingleton<INumberSeriesSource, NumberSeriesSource>();   // read by InvoiceService (tax invoice, bill of supply, credit note)
+        services.AddSingleton<INumberSeriesSource, NumberSeriesSource>();   // read by InvoiceService (tax invoice, bill of supply, credit note, RST)
+        services.AddSingleton<Application.Reservations.IBookingSourceCheck, Infrastructure.SqlServer.FrontDeskMasters.SqlBookingSourceCheck>(); // MA-11: CreateReservation
         services.AddSingleton<FrontDeskMastersCommands>();
         services.AddSingleton<FrontDeskMastersQueries>();
         return services;

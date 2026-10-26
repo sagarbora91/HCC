@@ -36,7 +36,7 @@ export function register({test,M,assert}){
     const s=seed();assert.equal(s.mastersX,undefined);assert.equal(s.frontdeskMasterX,undefined);
     assert.deepEqual(mstRows(s,'bookingSources').filter(r=>!r.auto).map(r=>r.name),['Walk-in','Phone','WhatsApp','Direct','Website','OTA','Agent','Corporate']);
     assert.deepEqual(mstRows(s,'idTypes').map(r=>r.name),[...M.guestIdTypes,'Passport + visa (demo, foreign national)']);
-    assert.deepEqual(mstRows(s,'numberSeries').map(r=>[r.code,r.document,r.prefix,r.reset]),[['INV','INV','DEMO','FY'],['BOS','BOS','BOS','FY'],['CRN','CRN','DEMO-CN','FY'],['RCP','RCP','RCP','NEVER'],['KOT','KOT','KOT','NEVER'],['REG','REG','REG','NEVER']]);
+    assert.deepEqual(mstRows(s,'numberSeries').map(r=>[r.code,r.document,r.prefix,r.reset]),[['INV','INV','DEMO','FY'],['BOS','BOS','BOS','FY'],['CRN','CRN','DEMO-CN','FY'],['RCP','RCP','RCP','NEVER'],['KOT','KOT','KOT','NEVER'],['REG','REG','REG','NEVER'],['RST','RST','RST','FY']]); // MA-11 old → new: + RST (restaurant tax invoices)
     assert.deepEqual(mstRows(s,'policies').map(r=>[r.code,r.name,r.cancelChargeBps,r.noShowChargeBps,r.depositBps,r.sources.length]),[['DEFAULT','Default',0,0,0,0]]);});
   test('[FDM] Fixture figures, BASE and FY26 history hashes unchanged',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);

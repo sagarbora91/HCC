@@ -68,6 +68,20 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
     private Task RequireAsync(CommandContext ctx, PeopleList l, CancellationToken ct) =>
         policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, PeopleListsRules.OwnerOnlyList(l) ? MastersPermissions.ManageMoney : MastersPermissions.Manage, null, null, ct);
 
+    /// <summary>
+    /// MA-11 (merge report §6.1): a PAID holiday whose pay month is locked cannot be added, changed, moved, retired, reactivated or deleted —
+    /// the rule of Wave B's SavePaidHoliday / RemoveHoliday (DEC-083), so the two holiday commands agree. Restricted holidays do not change pay.
+    /// </summary>
+    private async Task EnsureHolidayMonthsOpenAsync(ICommandTransaction tx, int propertyId, IEnumerable<(string? Code, string? Kind)> rows, CancellationToken ct)
+    {
+        foreach (var (code, kind) in rows)
+        {
+            if (kind != "paid" || !DateOnly.TryParseExact(code, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)) continue;
+            if (await store.PayMonthLockedAsync(tx, propertyId, d, ct).ConfigureAwait(false))
+                throw new HccException(HccErrorCode.INVALID_TRANSITION, $"{Hcc.Domain.Payroll.PayMonth.Of(d).Label} payroll is locked — its holidays cannot change.");
+        }
+    }
+
     private Task RequireMoneyAsync(CommandContext ctx, CancellationToken ct) => policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MastersPermissions.ManageMoney, null, null, ct);
 
     private static string Target(PeopleList l, int id) => "mst-" + PeopleListsRules.Id(l) + ":" + id.ToString(CultureInfo.InvariantCulture);
@@ -113,6 +127,8 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
             }
 
             await CheckListRulesAsync(tx, l, ctx.PropertyId, rows, old, clean, c).ConfigureAwait(false);
+            if (l == PeopleList.Holidays)
+                await EnsureHolidayMonthsOpenAsync(tx, ctx.PropertyId, [(old?.Code, old?.Text("kind")), (clean.Code, clean.Fields.GetValueOrDefault("kind") as string)], c).ConfigureAwait(false);
 
             var sort = clean.SortOrder ?? old?.SortOrder ?? MastersRules.NextSort(rows.Select(r => r.SortOrder));
             var changes = PeopleListsRules.Diff(l, old?.Code, old?.Name, old?.SortOrder, old?.Fields, clean, sort);
@@ -183,6 +199,7 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
             if (active && l == PeopleList.ShiftPatterns && rows.Any(x => x.Id != r.Id && x.Active && PeopleListsRules.SameTimes(r.Text("start")!, r.Text("end")!, x.Text("start")!, x.Text("end")!)))
                 throw MastersRules.Fail(MasterReasons.Invalid, "Another active pattern already has these times.");
             if (!active) await CheckCanRetireAsync(tx, l, ctx.PropertyId, rows, r, c).ConfigureAwait(false);
+            if (l == PeopleList.Holidays) await EnsureHolidayMonthsOpenAsync(tx, ctx.PropertyId, [(r.Code, r.Text("kind"))], c).ConfigureAwait(false);
             var date = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var now = UtcNow;
             await store.SetActiveAsync(tx, l, r.Id, expected, active, active ? null : date, ctx.PrincipalId, now, c).ConfigureAwait(false);
@@ -221,6 +238,7 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
             VersionToken.EnsureMatches(r.RowVer, expected, "This " + PeopleListsRules.Singular(l));
             var used = await UsageAsync(tx, ctx.PropertyId, l, r.Id, c).ConfigureAwait(false);
             MastersRules.EnsureDeletable(r.Name, used.Count, UsedBy(l));
+            if (l == PeopleList.Holidays) await EnsureHolidayMonthsOpenAsync(tx, ctx.PropertyId, [(r.Code, r.Text("kind"))], c).ConfigureAwait(false);
             if (l == PeopleList.LeaveTypes && !r.Flag("paid") && r.Active && !rows.Any(x => x.Id != r.Id && x.Active && !x.Flag("paid")))
                 throw MastersRules.Fail(MasterReasons.InUse, PeopleListsRules.KeepUnpaid);
             await store.DeleteAsync(tx, l, r.Id, expected, c).ConfigureAwait(false);

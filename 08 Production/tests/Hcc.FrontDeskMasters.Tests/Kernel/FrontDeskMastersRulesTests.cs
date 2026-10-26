@@ -22,7 +22,10 @@ public class FrontDeskMastersRulesTests
         Assert.Equal(7, ids.Count);
         Assert.Equal((true, true), ((bool)ids[^1].Fields["needsPhoto"]!, (bool)ids[^1].Fields["foreignerOnly"]!));
         var series = FrontDeskMastersRules.Defaults(FrontDeskMasterIds.NumberSeries);
-        Assert.Equal(new[] { "INV", "BOS", "CRN", "RCP", "KOT", "REG" }, series.Select(d => d.Code));
+        // MA-11 old → new: + RST (Wave B's restaurant tax invoices are a row of the master, RST/2627/0000001 as before).
+        Assert.Equal(new[] { "INV", "BOS", "CRN", "RCP", "KOT", "REG", "RST" }, series.Select(d => d.Code));
+        Assert.Equal(InvoiceNumbering.Format("RST", "2627", 1), Number(series[6], 1));
+        Assert.Equal("RST/2627/0000001", Number(series[6], 1));
         string Number(FrontDeskDefault d, int seq) => FrontDeskMastersRules.Format((string)d.Fields["prefix"]!, (string)d.Fields["reset"]!, (int)d.Fields["padding"]!, new DateOnly(2026, 10, 24), seq);
         Assert.Equal(InvoiceNumbering.Format("INV", "2627", 1), Number(series[0], 1));
         Assert.Equal(InvoiceNumbering.Format("CN", "2627", 12), Number(series[2], 12));
@@ -114,5 +117,32 @@ public class FrontDeskMastersRulesTests
         Assert.Equal("2027-04-01", FrontDeskMastersRules.Show("activeFrom", new DateOnly(2027, 4, 1)));
         Assert.Equal("OTA, PHONE", FrontDeskMastersRules.Show("sources", new List<string> { "OTA", "PHONE" }));
         Assert.Null(FrontDeskMastersRules.Show("channel", null));
+    }
+
+    [Fact]
+    public void MA11_RST_is_a_GST_document_and_RCP_KOT_REG_are_reserved()
+    {
+        Assert.True(FrontDeskMastersRules.IsGst("RST"));
+        Assert.Equal("restaurant tax invoice", FrontDeskMastersRules.DocumentLabel("RST"));
+        Assert.Equal(new[] { "RCP", "KOT", "REG" }, FrontDeskMastersRules.ReservedDocuments);
+        Assert.Throws<HccException>(() => FrontDeskMastersRules.NumberSeries("RST", "RST", 1, 7, "NEVER", "2027-04-01")); // GST: yearly reset
+        Assert.Equal("RST", FrontDeskMastersRules.NumberSeries("RST", "RS", 1, 5, "FY", "2027-04-01")["document"]);
+    }
+
+    [Fact]
+    public void MA11_booking_source_text_resolves_to_its_row_like_the_prototype()
+    {
+        BookingSourceRow[] rows =
+        [
+            new("WALKIN", "Walk-in", "DIRECT", null, false), new("OTA", "OTA", "OTA", null, true),
+            new("OTA-MMT", "MakeMyTrip", "OTA", "MakeMyTrip (fictional)", false),
+        ];
+        Assert.Equal("WALKIN", FrontDeskMastersRules.SourceRowOf(rows, "walk-in")!.Code);
+        Assert.Equal("WALKIN", FrontDeskMastersRules.SourceRowOf(rows, "WALKIN")!.Code);
+        Assert.Equal("OTA-MMT", FrontDeskMastersRules.SourceRowOf(rows, "OTA · makemytrip (fictional)")!.Code);
+        Assert.Equal("OTA", FrontDeskMastersRules.SourceRowOf(rows, "OTA · manual")!.Code);
+        Assert.Null(FrontDeskMastersRules.SourceRowOf(rows, "OTA · Agoda (fictional)"));
+        Assert.Null(FrontDeskMastersRules.SourceRowOf(rows, "Newspaper"));
+        Assert.Null(FrontDeskMastersRules.SourceRowOf(rows, " "));
     }
 }

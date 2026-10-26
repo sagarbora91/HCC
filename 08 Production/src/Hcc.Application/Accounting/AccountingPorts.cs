@@ -75,6 +75,16 @@ public interface IAccountingStore
 
     Task<IReadOnlyDictionary<string, string>> MappingOverridesAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
+    /// <summary>MA-11: ledgers stored on the masters (payment method ledger → <c>method:&lt;name&gt;</c> and <c>funding:&lt;name&gt;</c>, expense
+    /// category ledger → <c>expense:&lt;name&gt;</c>). Default: none (stores without the money masters).</summary>
+    Task<IReadOnlyDictionary<string, string>> MasterLedgersAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
+
+    /// <summary>The effective ledger mapping of the property (defaults → master ledgers → overrides).</summary>
+    async Task<Dictionary<string, string>> EffectiveMappingAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        Hcc.Domain.Accounting.ChartOfAccounts.Effective(await MappingOverridesAsync(tx, propertyId, ct).ConfigureAwait(false),
+            await MasterLedgersAsync(tx, propertyId, ct).ConfigureAwait(false));
+
     /// <summary>Classification keys found in the property's sources with how many source records use each.</summary>
     Task<IReadOnlyDictionary<string, int>> KeyUsesAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 

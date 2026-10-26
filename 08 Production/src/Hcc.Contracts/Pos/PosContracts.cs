@@ -127,7 +127,7 @@ public sealed record TopItem(string Name, int Qty, long ValuePaise);
 /// <summary>Outlet day summary (prototype <c>posDaySummary</c>): settled checks by settlement date; open checks as of now.</summary>
 public sealed record DaySummaryView(DateOnly Date, int Checks, int Covers, long NetPaise, long TaxPaise, long GrossPaise, long CashPaise, long UpiPaise,
     long CardPaise, long RoomFolioPaise, long OutletCashPaise, int VoidCount, long VoidValuePaise, int OpenCount, long OpenValuePaise,
-    IReadOnlyList<DayOutletSummary> ByOutlet, IReadOnlyList<TopItem> Top, int PendingVoids);
+    IReadOnlyList<DayOutletSummary> ByOutlet, IReadOnlyList<TopItem> Top, int PendingVoids, long OtherPaise = 0);
 
 /// <summary>What stops a business-day close (the closing module's preflight reads this): open checks and pending void requests.</summary>
 public sealed record PosCloseBlockers(int OpenChecks, int PendingVoids)
