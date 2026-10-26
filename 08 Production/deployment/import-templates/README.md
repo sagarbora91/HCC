@@ -34,6 +34,8 @@ that has such a column. Staff get their first password or PIN from you in Access
 | 7 | opening-balances | ledgers | Owner, **only before the first day is closed** |
 | 8 | till-cash | – | Owner, **only before the first day is closed** |
 | 9 | guests (optional) | – | Owner |
+| 10 | pos-outlets (restaurant, room service) | – | Owner |
+| 11 | pos-menu | pos-outlets | Owner |
 
 ## Upload → check → commit
 
@@ -89,6 +91,8 @@ Bookings already made keep the price agreed at booking. GST is added by HCC from
 | priority | optional | When seasons overlap the higher number wins (default 1). |
 
 A season whose name already exists in HCC with other dates is refused – change it on the Yield screen.
+
+**A season does not change a quote by itself.** It is a yield rule: HCC applies it to the BAR only when the Yield screen publishes the rates for those nights (then new quotes and bookings show the adjusted price). Importing a season only stores the rule; until the rates are published a quote for those nights still shows the plain BAR from the tariffs file.
 
 ### staff.csv
 | Column | Required | Meaning |
@@ -176,6 +180,30 @@ day is closed and only for a till that has no shifts yet. It should match the ca
 | notes | optional | Notes for the front desk. |
 
 A guest with the same name and phone already in HCC is not changed. ID documents are captured at check-in, never imported.
+
+### pos-outlets.csv (restaurant & room service)
+| Column | Required | Meaning |
+|---|---|---|
+| outletCode | yes | Outlet code, letters/digits/dash, up to 20 characters (stored in capitals), e.g. `REST`. The menu file uses it. |
+| outletName | yes | Name shown on the POS screen and on bills (up to 100 characters). |
+| kind | yes | `table` for a dining outlet with tables, `room` for room service (charged to the guest's room). |
+| tables | for kind table | Table names separated by `;` (each up to 10 characters), e.g. `T1;T2;T3`. Blank for kind `room`. |
+
+An outlet that already exists with the same details is "unchanged"; one that exists with different details is refused (change it
+on the POS setup screen). Nothing here posts any money.
+
+### pos-menu.csv (restaurant & room-service menu)
+| Column | Required | Meaning |
+|---|---|---|
+| itemCode | yes | Item code, letters/digits/dash/underscore, up to 20 characters (stored in capitals). |
+| itemName | yes | Name shown on the POS screen and on bills (up to 100 characters). |
+| category | yes | Menu category, e.g. `Main course`, `Beverages` (up to 60 characters). |
+| price | yes | Selling price in rupees **before GST** (0 is allowed). GST is added by HCC from the GST master (restaurant 5 %). |
+| veg | yes | `yes` for vegetarian, `no` for non-vegetarian. |
+| outlets | optional | Outlet codes that sell the item, separated by `;`. Blank = every outlet already in HCC. Import the outlets file first. |
+
+An item already in HCC (same code) is **updated** when its name, category, price, veg flag or outlets differ, and "unchanged"
+otherwise. Items sold out ("86") keep their availability; it is changed on the POS screen.
 
 ## Limits
 

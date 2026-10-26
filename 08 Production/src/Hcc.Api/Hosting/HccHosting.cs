@@ -22,6 +22,9 @@ public sealed class HccHostingOptions
 
     /// <summary>SHA-1 thumbprint (40 hex) of the server certificate in LocalMachine\My (created by New-HccCertificate.ps1).</summary>
     public string? CertificateThumbprint { get; set; }
+
+    /// <summary>Folder holding the production web build's <c>index.html</c> (served at <c>/</c>). Empty = the <c>web</c> folder next to <c>Hcc.Api.exe</c>.</summary>
+    public string? WebRoot { get; set; }
 }
 
 /// <summary>

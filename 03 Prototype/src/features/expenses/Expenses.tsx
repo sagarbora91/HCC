@@ -15,7 +15,7 @@ export function Expenses(){
   const list=s.expenses.filter(e=>tab==='All'||e.status===tab).slice().reverse();
   const pg=usePaged(list,DESKTOP_PAGE);
   const today=s.expenses.filter(e=>expenseCounts(e)&&e.date===s.date);
-  const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
+  const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??(id&&process.env.HCC_BUILD==='production'&&/^\d+$/.test(id)?'another user':id)??'—';
   function actions(e:Expense){
     if(e.status==='Draft')return e.actor===uid&&canSubmit?<button className="btn small-btn" disabled={busy} onClick={()=>run({type:'EXPENSE_SUBMIT',id:e.id,key:'expsubmit:'+e.id},'Draft submitted for approval')}>Submit</button>:<span className="muted">Draft · {name(e.actor)}</span>;
     if(e.status==='Pending'){

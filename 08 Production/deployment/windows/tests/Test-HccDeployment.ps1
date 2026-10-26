@@ -123,11 +123,45 @@ Check 'Initialize-HccDatabase refuses a non-HCC database' {
     (DryRun 'Initialize-HccDatabase.ps1' @('-Database', 'EtpReporting', '-ServiceAccount', 'x\y', '-BackupDirectory', 'D:\b')).Exit -ne 0
 }
 Check 'Initialize-HccProperty -WhatIf prints the setup request, password hidden, sends nothing' {
-    $r = DryRun 'Initialize-HccProperty.ps1' @('-HotelName', 'Hotel Sagar', '-Address', 'Station Road, Latur', '-OwnerDisplayName', 'Sagar', '-Gstin', '27aaaaa0000a1z5')
-    $r.Exit -eq 0 -and $r.Out -match 'POST http://127\.0\.0\.1:5080/api/v1/setup/SetupProperty' -and $r.Out -match '27AAAAA0000A1Z5' -and $r.Out -match 'Maharashtra' -and $r.Out -match 'Asia/Kolkata' -and $r.Out -match '\*{8}'
+    $r = DryRun 'Initialize-HccProperty.ps1' @('-HotelName', 'Hotel Sagar', '-Address', 'Station Road, Latur', '-OwnerDisplayName', 'Sagar', '-Gstin', '27aaaaa0000a1z2')
+    $r.Exit -eq 0 -and $r.Out -match 'POST http://127\.0\.0\.1:5080/api/v1/setup/SetupProperty' -and $r.Out -match '27AAAAA0000A1Z2' -and $r.Out -match 'Maharashtra' -and $r.Out -match 'Asia/Kolkata' -and $r.Out -match '\*{8}'
 }
 Check 'Initialize-HccProperty refuses a server address that is not this PC' {
     (DryRun 'Initialize-HccProperty.ps1' @('-HotelName', 'H', '-Address', 'A', '-OwnerDisplayName', 'S', '-ServerUrl', 'https://192.168.1.20:5443')).Exit -ne 0
+}
+Check 'New-HccGuestIdKey -WhatIf prints the plan and writes nothing' {
+    $s = Join-Path $tmp 'server\appsettings.Production.json'; $off = Join-Path $tmp 'usb\key.txt'
+    New-Item -ItemType Directory -Path (Join-Path $tmp 'server') -Force | Out-Null; Set-Content -LiteralPath $s -Value '{"Hcc":{"Sql":{"ConnectionString":"x"}}}'
+    $r = DryRun 'New-HccGuestIdKey.ps1' @('-SettingsFile', $s, '-OfflineCopyPath', $off, '-KeyId', '2026-10')
+    $ok = $r.Exit -eq 0 -and $r.Out -match 'DRY RUN' -and $r.Out -match 'DPAPI' -and -not (Test-Path $off) -and ((Get-Content -LiteralPath $s -Raw) -notmatch 'GuestIdKeys')
+    Remove-Item -LiteralPath $tmp -Recurse -Force; $ok
+}
+Check 'New-HccGuestIdKey installs a DPAPI machine key, writes the offline copy, refuses a second run, rotates with -Rotate' {
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccKeyTest_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path "$dir\server", "$dir\usb" -Force | Out-Null
+    $s = "$dir\server\appsettings.Production.json"; Set-Content -LiteralPath $s -Value '{"Hcc":{"Sql":{"ConnectionString":"x"}},"_notes":["a"]}'
+    $script = Join-Path $root 'New-HccGuestIdKey.ps1'
+    $ErrorActionPreference = 'Continue'
+    try {
+        $r1 = & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $s -OfflineCopyPath "$dir\usb\k1.txt" -KeyId '2026-10' -SkipAcl 2>&1 | Out-String
+        $x1 = $LASTEXITCODE
+        $c = Get-Content -LiteralPath $s -Raw | ConvertFrom-Json
+        $wrapped = $c.Hcc.GuestIdKeys.Keys.'2026-10'
+        $rawB64 = (((Get-Content "$dir\usb\k1.txt") | Where-Object { $_ -like 'Raw key*' }) -split ': ')[1]
+        $raw = [Convert]::FromBase64String($rawB64)
+        Add-Type -AssemblyName System.Security
+        $back = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($wrapped.Substring('dpapi-machine:'.Length)), [Text.Encoding]::ASCII.GetBytes('HCC guest ID key v1'), 'LocalMachine')
+        $roundTrip = $x1 -eq 0 -and $c.Hcc.GuestIdKeys.Current -eq '2026-10' -and $wrapped.StartsWith('dpapi-machine:') -and $raw.Length -eq 32 -and ([Convert]::ToBase64String($back) -eq $rawB64) -and -not $r1.Contains($rawB64) -and $c.Hcc.Sql.ConnectionString -eq 'x'
+        $again = & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $s -OfflineCopyPath "$dir\usb\k2.txt" -SkipAcl 2>&1 | Out-String
+        $refused = $LASTEXITCODE -ne 0 -and $again -match 'already configured' -and -not (Test-Path "$dir\usb\k2.txt")
+        $inside = & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $s -OfflineCopyPath "$dir\server\k3.txt" -SkipAcl 2>&1 | Out-String
+        $insideRefused = $LASTEXITCODE -ne 0 -and $inside -match 'NOT be inside'
+        & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $s -OfflineCopyPath "$dir\usb\k4.txt" -KeyId '2027-10' -Rotate -SkipAcl 2>&1 | Out-Null
+        $x4 = $LASTEXITCODE
+        $c2 = Get-Content -LiteralPath $s -Raw | ConvertFrom-Json
+        $rotated = $x4 -eq 0 -and $c2.Hcc.GuestIdKeys.Current -eq '2027-10' -and $c2.Hcc.GuestIdKeys.Keys.'2026-10' -eq $wrapped -and [bool]$c2.Hcc.GuestIdKeys.Keys.'2027-10'
+        $roundTrip -and $refused -and $insideRefused -and $rotated
+    } finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 Check 'Install-HccService -WhatIf prints plan; -Uninstall -WhatIf changes nothing' {
     $r = DryRun 'Install-HccService.ps1' @()

@@ -5,6 +5,7 @@ import {money,shiftExpected,shiftMovements,shiftStatus,SHIFT_MANAGER_DIFF_LIMIT,
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,dateLabel} from '../../components/ui';
 import {ShiftCountForm} from './ShiftCount';
+import {OpenShiftPanel} from '../../clients/sync/cashier-ui';
 
 export function Cashier(){
   const {s,go,booking,permission}=useHcc();
@@ -30,7 +31,7 @@ export function Cashier(){
         <p className="footnote padded">{money(ex.opening)} + {money(ex.payments)} + {money(ex.deposits)} + {money(ex.restaurant)} − {money(ex.refunds)} − {money(ex.returns)} − {money(ex.expenses)} = {money(ex.expected)}. Restaurant and room-service cash bills go into this drawer (one shared till); UPI, card, bank, vendor-credit amounts and room charges to a folio are excluded.</p>
       </section>
       <section className="card"><div className="section-title"><h2>{st==='Open'?'Count the drawer':st==='Submitted'?'Difference approval':'Shift result'}</h2></div>
-        <div className="padded">{st==='Open'?(closed?<Empty title="Business day closed" body="Open the next business day to start a new shift."/>:<ShiftCountForm/>):st==='Submitted'?<DifferencePanel/>:<ClosedPanel name={name}/>}</div>
+        <div className="padded">{st==='Open'?(closed?<Empty title="Business day closed" body="Open the next business day to start a new shift."/>:<ShiftCountForm/>):st==='Submitted'?<DifferencePanel/>:<><ClosedPanel name={name}/>{process.env.HCC_BUILD==='production'&&!closed?<OpenShiftPanel/>:null}</>}</div>
       </section>
     </div>
     <section className="card"><div className="section-title"><h2>Today’s cash movements</h2><span className="muted">{mv.length} movement{mv.length===1?'':'s'} · cash only</span></div>

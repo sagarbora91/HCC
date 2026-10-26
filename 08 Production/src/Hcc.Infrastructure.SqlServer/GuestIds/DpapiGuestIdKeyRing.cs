@@ -11,8 +11,8 @@ namespace Hcc.Infrastructure.SqlServer.GuestIds;
 /// <c>dpapi-user:&lt;base64&gt;</c> (bound to the Windows account that runs the HCC service — preferred) or
 /// <c>dpapi-machine:&lt;base64&gt;</c> (any process on this PC). <c>plain:&lt;base64&gt;</c> is accepted only when
 /// <c>allowPlainKeys</c> is set (development / tests). Key values never go in git: put them in the service account's
-/// environment or a protected appsettings.Production.json outside the repository. Generate one with
-/// <c>dotnet run --project src/Hcc.Api -- guest-id-key new &lt;keyId&gt;</c>.
+/// environment or a protected appsettings.Production.json outside the repository. Install one on the hotel PC with
+/// <c>deployment/windows/New-HccGuestIdKey.ps1</c> (INSTALL.md section 6b).
 /// </summary>
 public sealed class DpapiGuestIdKeyRing : IGuestIdKeyRing
 {

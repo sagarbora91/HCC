@@ -26,7 +26,7 @@ public static class DocumentsEndpoints
     }
 
     private static DocumentService Svc(IServiceProvider sp) => sp.GetService<DocumentService>()
-        ?? throw new Hcc.Domain.Errors.HccException(Hcc.Contracts.HccErrorCode.UNAVAILABLE, "ID document capture needs guest ID encryption, which is not configured on this server.");
+        ?? throw Hcc.Domain.Errors.HccException.NotConfigured("guest-id", "ID document capture needs guest ID encryption, which is not configured on this server.");
 
     public static RouteGroupBuilder MapDocumentsEndpoints(this RouteGroupBuilder api)
     {

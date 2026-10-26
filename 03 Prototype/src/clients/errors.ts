@@ -31,12 +31,20 @@ export class HccClientError extends HccError{
   get resultUnknown(){return this.wireCode==='UNAVAILABLE';}
 }
 
+/** Shown when the server answers that guest-ID encryption has no key yet (install guide, "Guest ID key"). */
+export const GUEST_ID_NOT_SET_UP='ID storage is not set up on the server. Ask the owner to complete the guest ID key step of the install guide (New-HccGuestIdKey.ps1), then try again.';
 /** Maps a non-2xx response. Unknown or missing codes fall back to the HTTP status (5xx → UNAVAILABLE, else VALIDATION). */
 export function errorFromResponse(status:number,body:unknown):HccClientError{
   const b=(body&&typeof body==='object'?body:{}) as {code?:unknown;message?:unknown;details?:unknown};
-  const code:ClientWireCode=isWireCode(b.code)?b.code:status>=500||status===0?'UNAVAILABLE':status===404?'NOT_FOUND':status===401?'UNAUTHENTICATED':status===403?'FORBIDDEN':'VALIDATION';
-  const message=typeof b.message==='string'&&b.message?b.message:WIRE_TITLE[code];
+  let code:ClientWireCode=isWireCode(b.code)?b.code:status>=500||status===0?'UNAVAILABLE':status===404?'NOT_FOUND':status===401?'UNAUTHENTICATED':status===403?'FORBIDDEN':'VALIDATION';
+  let message=typeof b.message==='string'&&b.message?b.message:WIRE_TITLE[code];
   const details=b.details&&typeof b.details==='object'?b.details as Record<string,unknown>:undefined;
+  // A 503 that the server itself answered with details.reason NOT_CONFIGURED (a setup step is missing, e.g. the guest-ID key) is not a
+  // lost connection: the server is reachable, so it must not switch the app to read-only nor be retried. Surfaced as NOT_AVAILABLE.
+  if(code==='UNAVAILABLE'&&details?.reason==='NOT_CONFIGURED'){
+    code='NOT_AVAILABLE';
+    if(details.feature==='guest-id')message=GUEST_ID_NOT_SET_UP;
+  }
   return new HccClientError(code,message,details,status);
 }
 

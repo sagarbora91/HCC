@@ -12,6 +12,8 @@ public enum ImportMaster
     OpeningBalances,
     TillCash,
     Guests,
+    PosOutlets,
+    PosMenu,
 }
 
 /// <summary>A template column: canonical name (the template header), required flag, plain-English meaning and an example.</summary>
@@ -93,6 +95,22 @@ public static class ImportMasters
             new("company", false, "Company name (required when a GSTIN is given).", ""),
             new("gstin", false, "Company GSTIN, 15 characters.", ""),
             new("notes", false, "Notes for the front desk.", "Prefers a ground-floor room"),
+        ]),
+        new(ImportMaster.PosOutlets, "pos-outlets", "Restaurant & room-service outlets (POS)", false, false, "—",
+        [
+            new("outletCode", true, "Outlet code, letters/digits/dash, up to 20 characters (stored in capitals).", "REST"),
+            new("outletName", true, "Outlet name shown on the POS screen and bills, up to 100 characters.", "Restaurant"),
+            new("kind", true, "table (a dining outlet with tables) or room (room service, no tables).", "table"),
+            new("tables", false, "Table names separated by ; (up to 10 characters each). Required for kind table, must be blank for kind room.", "T1;T2;T3;T4"),
+        ]),
+        new(ImportMaster.PosMenu, "pos-menu", "Restaurant & room-service menu (POS)", true, false, "pos-outlets",
+        [
+            new("itemCode", true, "Menu item code, letters/digits/dash/underscore, up to 20 characters (stored in capitals).", "DAL"),
+            new("itemName", true, "Item name shown on the POS screen and bills, up to 100 characters.", "Dal Tadka"),
+            new("category", true, "Menu category, up to 60 characters.", "Main course"),
+            new("price", true, "Selling price in rupees before GST (0 allowed). Up to 2 decimals.", "180.00"),
+            new("veg", true, "yes for vegetarian, no for non-vegetarian.", "yes"),
+            new("outlets", false, "Outlet codes that sell the item, separated by ; (blank = every outlet already in HCC).", "REST;RS"),
         ]),
     ];
 

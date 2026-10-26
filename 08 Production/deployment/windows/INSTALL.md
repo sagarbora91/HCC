@@ -60,13 +60,32 @@ PowerShell (Admin), scripts folder (replace the values in quotes with yours):
 .\Initialize-HccProperty.ps1 -HotelName "Your Hotel Name" -Address "Street, City, PIN" -Gstin "27ABCDE1234F1Z5" -OwnerLogin "owner" -OwnerDisplayName "Your Name"
 ```
 - It asks for the Owner password twice (12 or more characters; it is not shown on screen and not saved in the PowerShell history).
-- Leave out `-Gstin` if the hotel has no GSTIN yet. A Maharashtra GSTIN starts with 27; the script refuses one from another state.
+- You may leave out `-Gstin` to finish the setup, but **a valid hotel GSTIN (with its correct check character) is required before the first tax invoice**: the server refuses to issue invoices without it. Set or correct it later in Master configuration > Property and branding > GSTIN on documents. A Maharashtra GSTIN starts with 27; the script refuses one from another state.
 - Already filled in for you (add the option only to change it): state `-State "Maharashtra"`, time zone `-TimeZone "Asia/Kolkata"`, check-in `-CheckInTime "14:00"`, checkout `-CheckOutTime "11:00"`, business date `-BusinessDate` = today (write it as `2026-11-01` if you start on another day).
 - Add `-WhatIf` first to see what it will send (the password is shown as `********`, nothing is sent).
 
 It answers "Hotel '...' is set up. Sign in as 'owner' ...". Now sign in from the app as `owner` with that password, then add staff in Admin > Users. The hotel name, address, GSTIN and check-in/checkout times are also in Master configuration, where the Owner can change them later. Rooms, rates and other master data are loaded by the later setup steps of HCC (not part of this installer).
 **Check:** `http://127.0.0.1:5080/api/v1/setup/status` in a browser on the server PC shows `"setupRequired":false`.
 (No SQL commands are needed any more. On an older installation where the hotel row was already typed in by hand but no Owner exists, the earlier `auth/bootstrap-owner` call still works.)
+
+## 6b. Guest ID key (once, before the first check-in)
+HCC stores guest ID numbers (Aadhaar, passport, ...) encrypted. The key is made on this PC and kept only in the settings file (never in git, never in the database or its backups). **Without this step check-in with an ID number is refused** with "ID storage is not set up on the server" (names, phones and the last 4 digits still work, and the rest of the app keeps working).
+Plug in a USB stick (it will hold the only spare copy of the key) and, in PowerShell (Admin), scripts folder:
+```
+.\New-HccGuestIdKey.ps1 -OfflineCopyPath "E:\HCC-guest-id-key-2026-10.txt"        # add -WhatIf first to preview; E: is the USB stick
+Restart-Service HccServer
+```
+- It makes a random key, wraps it with Windows DPAPI for this PC (`dpapi-machine:`), writes it into `appsettings.Production.json` (`Hcc:GuestIdKeys`) and limits that file to Administrators, SYSTEM and the HCC service. The key is never printed. It refuses to run again once a key exists (replacing it would make stored numbers unreadable); the yearly change is `-Rotate -KeyId 2027-10` (steps in `src\Hcc.Application\GuestIds\README.md`, "Key rotation").
+- **The USB file is the offline copy: put it in the safe, never e-mail it, never leave it on this PC.** A DPAPI key only opens on this PC and this Windows installation. If the PC is replaced or Windows reinstalled, or the settings file is lost, every stored ID number is unreadable (last 4 digits stay) unless you have that copy. To restore, ask your developer to wrap the raw key from the file for the new PC (same wrapping as the script, `ConvertTo-HccWrappedGuestIdKey`). After the first successful check-in delete `appsettings.Production.json.before-guestid-key` (the script's safety copy).
+- Optional: instead of the settings file you may put the same two values in the service account's environment (`Hcc__GuestIdKeys__Current`, `Hcc__GuestIdKeys__Keys__2026-10`); the script writes the settings file.
+**Check:** sign in, check a guest in with an ID number: it saves and shows `XXXX-XXXX-1234`. If the app says "ID storage is not set up on the server", this step was missed or the service was not restarted.
+
+## 6c. Web app (browsers on the hotel network)
+The server also serves the HCC web app itself, on the same address as the API, so staff just open `https://<server>:5443/` in a browser (no separate web server). The web app is one file, `index.html`, built from the source (`03 Prototype`): `npm run build:production` makes `03 Prototype\dist\production\index.html`.
+1. Copy that file to **`C:\Program Files\HCC\Server\web\index.html`** on the server PC (create the `web` folder if it is not there; another place can be set with `Hcc:Hosting:WebRoot` in `appsettings.Production.json`).
+2. No restart is needed, also not when you replace it later with a newer build: browsers fetch the new page the next time they open it (the page is never reused without asking the server first).
+3. **Check:** `https://<server>:5443/` shows the HCC sign-in screen. If it says "The HCC web app is not installed on this server", the file is not in the `web` folder.
+The page is sent with a strict content security policy (only its own script, only this server as a data source, no framing). The phones' APK has the web app built in and only needs the server address.
 
 ## 7. Backups (do not skip)
 PowerShell (Admin), scripts folder:
@@ -85,6 +104,7 @@ See `ANDROID_SERVER_ADDRESS.md` (installing the certificate on Android and typin
 ## 9. Final check list
 - `https://<server>:5443/api/v1/system/health` shows ok, from a tablet, without a certificate warning.
 - `https://<server>:5443/api/v1/system/discovery` shows the server name and version (this is also what the app uses to confirm it found HCC).
+- `https://<server>:5443/` opens the sign-in screen (section 6c), and a check-in with an ID number saves (section 6b).
 - A backup file exists and the restore drill passed.
 - Restart the PC: the service comes back by itself (give it two minutes).
 

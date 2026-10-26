@@ -62,7 +62,7 @@ public sealed partial class ImportWorld : IAsyncDisposable
         Yield = new SqlYieldStore(Platform.Connections);
         Rates = new SqlRatePublicationPort(Platform.Connections);
         Store = new SqlImportStore(Platform.Connections);
-        Service = new ImportService(Platform.Commands, Policy, Store, new SqlImportInventoryWriter(), new SqlImportAccessWriter(), Rates, Yield, Billing, new SqlStaysStore(), Clock);
+        Service = new ImportService(Platform.Commands, Policy, Store, new SqlImportInventoryWriter(), new SqlImportAccessWriter(), Rates, Yield, Billing, new SqlStaysStore(), new Hcc.Infrastructure.SqlServer.Pos.SqlPosStore(Platform.Connections), Clock);
     }
 
     public SqlPlatform Platform { get; }

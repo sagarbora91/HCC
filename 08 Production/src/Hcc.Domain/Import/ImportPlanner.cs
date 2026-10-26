@@ -27,6 +27,10 @@ public sealed record SnapOpening(string LedgerCode, long DebitPaise, long Credit
 /// <summary>A till; <see cref="ImportedOpening"/> = the float of its only shift when that shift is an untouched opening count (opening = counted, no movements).</summary>
 public sealed record SnapTill(int TillId, string Code, string Name, int Shifts, long? ImportedOpening);
 
+public sealed record SnapOutlet(int Id, string Code, string Name, string Kind, IReadOnlyList<string> Tables);
+
+public sealed record SnapMenuItem(int Id, string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds);
+
 /// <summary>What the property holds today, read from the owning modules (planning input; loaded again inside the commit transaction).</summary>
 public sealed record ImportSnapshot(
     DateOnly BusinessDate,
@@ -41,7 +45,9 @@ public sealed record ImportSnapshot(
     DateOnly? OpeningAsOf,
     IReadOnlyList<SnapOpening> Opening,
     IReadOnlyList<SnapTill> Tills,
-    IReadOnlySet<string> GuestKeys);
+    IReadOnlySet<string> GuestKeys,
+    IReadOnlyList<SnapOutlet>? PosOutlets = null,
+    IReadOnlyList<SnapMenuItem>? PosMenu = null);
 
 public enum ImportAction
 {
@@ -71,6 +77,10 @@ public sealed record OpeningData(string LedgerCode, long DebitPaise, long Credit
 public sealed record TillData(string Code, string Name, long OpeningPaise, int? TillId) : ImportData;
 
 public sealed record GuestData(GuestDraft Draft, string Key) : ImportData;
+
+public sealed record OutletData(string Code, string Name, string Kind, IReadOnlyList<string> Tables) : ImportData;
+
+public sealed record MenuItemData(string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds, int? ExistingId) : ImportData;
 
 public sealed record ImportPlanItem(int Row, ImportAction Action, string Key, string Detail, ImportData? Data);
 
@@ -257,6 +267,8 @@ public static partial class ImportPlanner
             case ImportMaster.OpeningBalances: return Opening(sheet, snap, asOf);
             case ImportMaster.TillCash: Tills(sheet, snap); break;
             case ImportMaster.Guests: Guests(sheet, snap); break;
+            case ImportMaster.PosOutlets: PosOutlets(sheet, snap); break;
+            case ImportMaster.PosMenu: PosMenu(sheet, snap); break;
             default: throw new ArgumentOutOfRangeException(nameof(master));
         }
 
@@ -557,6 +569,110 @@ public static partial class ImportPlanner
             }
             else if (existing.ImportedOpening == cash.Value) s.Item(r, ImportAction.Unchanged, code, $"Opening cash {Rs(cash.Value)} already recorded", data);
             else s.Error(r, "openingCash", $"Till {code} already has cash history in HCC. Correct its cash through a shift count, not by import.");
+        }
+    }
+
+    [GeneratedRegex(@"^[A-Z0-9-]{1,20}$")]
+    private static partial Regex OutletCodePattern();
+
+    [GeneratedRegex(@"^[A-Z0-9][A-Z0-9_-]{0,19}$")]
+    private static partial Regex MenuCodePattern();
+
+    private static void PosOutlets(Sheet s, ImportSnapshot snap)
+    {
+        var existingOutlets = snap.PosOutlets ?? [];
+        var seen = new Dictionary<string, int>(Ci);
+        foreach (var r in s.Table.Rows)
+        {
+            var errs = s.Errors.Count;
+            var code = s.Required(r, "outletCode", 20, "outlet code")?.ToUpperInvariant();
+            if (code is not null && !OutletCodePattern().IsMatch(code)) s.Error(r, "outletCode", "An outlet code uses letters, digits and '-' only (up to 20).");
+            var name = s.Required(r, "outletName", 100, "outlet name");
+            var kindText = s.Cell(r, "kind").ToLowerInvariant();
+            if (kindText is not ("table" or "room")) s.Error(r, "kind", "The kind is table (dining outlet) or room (room service).");
+            var tables = ImportValues.List(s.Cell(r, "tables")).ToList();
+            foreach (var t in tables.Where(t => t.Length > 10)) s.Error(r, "tables", $"Table name '{t}' is longer than 10 characters.");
+            if (tables.Distinct(Ci).Count() != tables.Count) s.Error(r, "tables", "Table names must be unique within the outlet.");
+            if (kindText == "table" && tables.Count == 0) s.Error(r, "tables", "A dining outlet needs at least one table (separate them with ;).");
+            if (kindText == "room" && tables.Count > 0) s.Error(r, "tables", "A room-service outlet has no tables: leave the column blank.");
+            if (code is null || Duplicate(s, seen, r, code, "outletCode") || s.Errors.Count > errs) continue;
+            var data = new OutletData(code, name!, kindText, tables);
+            var show = kindText == "room" ? "room service" : $"{I(tables.Count)} table(s): {string.Join(", ", tables)}";
+            var existing = existingOutlets.FirstOrDefault(o => Ci.Equals(o.Code, code));
+            if (existing is null) s.Item(r, ImportAction.Create, code, $"New outlet {name} · {show}", data);
+            else if (string.Equals(existing.Name, name, StringComparison.Ordinal) && existing.Kind == kindText && existing.Tables.Order(Ci).SequenceEqual(tables.Order(Ci), Ci))
+                s.Item(r, ImportAction.Unchanged, existing.Code, "Already in HCC: " + show, data);
+            else s.Error(r, "outletCode", $"Outlet {existing.Code} already exists with a different name, kind or tables. Change it on the POS setup screen, or use another code.");
+        }
+    }
+
+    private static bool TryVeg(string text, out bool veg)
+    {
+        switch (text.Trim().ToLowerInvariant())
+        {
+            case "yes" or "y" or "true" or "1" or "veg" or "vegetarian": veg = true; return true;
+            case "no" or "n" or "false" or "0" or "non-veg" or "nonveg" or "non veg" or "non-vegetarian": veg = false; return true;
+            default: veg = false; return false;
+        }
+    }
+
+    private static void PosMenu(Sheet s, ImportSnapshot snap)
+    {
+        var outlets = snap.PosOutlets ?? [];
+        var items = snap.PosMenu ?? [];
+        var seen = new Dictionary<string, int>(Ci);
+        foreach (var r in s.Table.Rows)
+        {
+            var errs = s.Errors.Count;
+            var code = s.Required(r, "itemCode", 20, "item code")?.ToUpperInvariant();
+            if (code is not null && !MenuCodePattern().IsMatch(code)) s.Error(r, "itemCode", "An item code uses letters, digits, '-' or '_' (up to 20).");
+            var name = s.Required(r, "itemName", 100, "item name");
+            var category = s.Required(r, "category", 60, "category");
+            var price = s.Money(r, "price", true, false);
+            var vegText = s.Cell(r, "veg");
+            var veg = false;
+            if (!TryVeg(vegText, out veg)) s.Error(r, "veg", "Enter yes (vegetarian) or no (non-vegetarian).");
+            var ids = new List<int>();
+            var codes = new List<string>();
+            var listed = ImportValues.List(s.Cell(r, "outlets"));
+            if (listed.Count == 0)
+            {
+                if (outlets.Count == 0) s.Error(r, "outlets", "No outlet is in HCC yet. Import the POS outlets file first.");
+                foreach (var o in outlets)
+                {
+                    ids.Add(o.Id);
+                    codes.Add(o.Code);
+                }
+            }
+
+            foreach (var oc in listed)
+            {
+                var o = outlets.FirstOrDefault(x => Ci.Equals(x.Code, oc));
+                if (o is null) s.Error(r, "outlets", $"Outlet {oc} is not in HCC yet. Import the POS outlets file first.");
+                else if (!ids.Contains(o.Id))
+                {
+                    ids.Add(o.Id);
+                    codes.Add(o.Code);
+                }
+            }
+
+            if (code is null || Duplicate(s, seen, r, code, "itemCode") || s.Errors.Count > errs) continue;
+            ids.Sort();
+            var existing = items.FirstOrDefault(x => Ci.Equals(x.Code, code));
+            var data = new MenuItemData(code, name!, category!, price!.Value, veg, ids, existing?.Id);
+            var show = $"{name} · {category} · {Rs(price.Value)} · {(veg ? "veg" : "non-veg")} · {string.Join(", ", codes)}";
+            if (existing is null) s.Item(r, ImportAction.Create, code, "New item " + show, data);
+            else
+            {
+                var changes = new List<string>();
+                if (!string.Equals(existing.Name, name, StringComparison.Ordinal)) changes.Add($"name {existing.Name} → {name}");
+                if (!string.Equals(existing.Category, category, StringComparison.Ordinal)) changes.Add($"category {existing.Category} → {category}");
+                if (existing.PricePaise != price.Value) changes.Add($"price {Rs(existing.PricePaise)} → {Rs(price.Value)}");
+                if (existing.Veg != veg) changes.Add(veg ? "now vegetarian" : "now non-vegetarian");
+                if (!existing.OutletIds.Order().SequenceEqual(ids)) changes.Add("outlets " + string.Join(", ", codes));
+                if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, existing.Code, "Already in HCC: " + show, data);
+                else s.Item(r, ImportAction.Update, existing.Code, string.Join(" · ", changes), data);
+            }
         }
     }
 

@@ -96,6 +96,7 @@ public static class HccComposition
         api.MapGroupsEndpoints();        // W3-4 groups billing
         api.MapInvoicesEndpoints();      // W3-6 invoices & credit notes
         api.MapImportEndpoints();        // W4-13 masters & opening balances import
+        app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }
 }
