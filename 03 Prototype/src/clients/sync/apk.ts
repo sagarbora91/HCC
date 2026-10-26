@@ -93,6 +93,8 @@ const saveStaff=(list:DeviceStaff[],s?:Kv)=>put(DEVICE_STAFF_KEY,JSON.stringify(
 /** Adds a staff member who signed in with a PIN here (so the name appears in the list next time). */
 export function rememberStaff(x:DeviceStaff,s?:Kv){const list=deviceStaff(s);if(!list.some(y=>y.loginName.toLowerCase()===x.loginName.toLowerCase()))saveStaff([...list,x],s);}
 /** Drops the registration on this device (the server keeps the device until it is revoked in Admin › Devices). */
+/** Keeps a new registration on this device: the device token (shown once by RegisterDevice) and its server label. */
+export function adoptDeviceRegistration(token:string,label:string,s?:Kv){const st=s??ls();put(DEVICE_TOKEN_KEY,token,st);put(DEVICE_LABEL_KEY,label,st);}
 export function forgetDevice(s?:Kv){const st=s??ls();del(DEVICE_TOKEN_KEY,st);del(DEVICE_LABEL_KEY,st);del(DEVICE_STAFF_KEY,st);}
 
 type SrvUser={loginName:string;displayName:string;enabled:boolean;credentialKind:string};
@@ -121,7 +123,7 @@ export async function registerThisDevice(t:HttpTransport,name:string,s?:Kv):Prom
   try{r=await t.command('RegisterDevice',{label},{idempotencyKey:fitKey(`RegisterDevice:${deviceId(st)}:${Date.now().toString(36)}`)});}
   catch(e){return {ok:false,text:errorText(e)};}
   if(!r?.deviceToken)return {ok:false,text:`The server registered device #${r?.deviceId??'?'} but did not return its key (repeated request). Revoke it in Admin › Devices and register again.`};
-  put(DEVICE_TOKEN_KEY,r.deviceToken,st);put(DEVICE_LABEL_KEY,label,st);
+  adoptDeviceRegistration(r.deviceToken,label,st);
   let staff=0;try{staff=await refreshDeviceStaff(t,st);}catch{/* the list can be updated later from Settings */}
   return {ok:true,deviceId:r.deviceId,label,staff};
 }

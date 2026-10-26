@@ -7,11 +7,16 @@ import type {User,PolicyCell} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate,clockTime,field,submit} from '../../components/ui';
 import {DecisionPill,StatusPill,GuardedButton,Tabs,firstName} from './parts';
+import {CredentialsPanel} from '../../clients/sync/CredentialsPanel'; // production build only (Wave 4 G1: passwords / PINs, hotel devices — DEC-062)
 
-const TABS=['Users','Role templates','Effective access','Exceptions','Policy history'] as const;
+const BASE_TABS=['Users','Role templates','Effective access','Exceptions','Policy history'] as const;
+/** Production adds the server sign-in tab (set / reset a password or PIN, register / revoke devices). */
+const SIGN_IN_TAB='Sign-in & devices';
+const TABS:readonly string[]=process.env.HCC_BUILD==='production'?[...BASE_TABS,SIGN_IN_TAB]:BASE_TABS;
 export function AccessControl(){
   const {s,uid,go}=useHcc();
   const [tab,setTab]=useState<string>('Users');
+  const [credUser,setCredUser]=useState<string|undefined>();
   const pol=adminPolicy(s);
   const pending=adminApprovalInbox(s).filter(r=>r.kind==='policy'&&r.status==='Pending');
   const own=authorize(s,uid,'PERM-ADM-002');
@@ -19,7 +24,8 @@ export function AccessControl(){
     {pending.length>0&&<div className="info-note adm-banner"><Info size={16}/><span>{pending.length} policy change request{pending.length>1?'s':''} waiting for Owner approval.</span><button className="text-btn" onClick={()=>go('approvals')}>Open approvals</button></div>}
     {own.decision==='approval'&&<div className="info-note adm-banner"><ShieldCheck size={16}/><span>Your role may only <strong>request</strong> role-template and exception changes. Each change you make becomes a request the Owner approves (PERM-ADM-002).</span></div>}
     <section className="card"><Tabs tabs={TABS} value={tab} onChange={setTab} counts={{Exceptions:pol.exceptions.filter(e=>adminExceptionActive(s,e)).length,'Policy history':pol.history.length}}/>
-      {tab==='Users'&&<UsersTab/>}{tab==='Role templates'&&<TemplatesTab/>}{tab==='Effective access'&&<EffectiveTab/>}{tab==='Exceptions'&&<ExceptionsTab/>}{tab==='Policy history'&&<HistoryTab/>}
+      {tab==='Users'&&<UsersTab onCredential={process.env.HCC_BUILD==='production'?id=>{setCredUser(id);setTab(SIGN_IN_TAB);}:undefined}/>}{tab==='Role templates'&&<TemplatesTab/>}{tab==='Effective access'&&<EffectiveTab/>}{tab==='Exceptions'&&<ExceptionsTab/>}{tab==='Policy history'&&<HistoryTab/>}
+      {process.env.HCC_BUILD==='production'&&tab===SIGN_IN_TAB&&<CredentialsPanel key={credUser??''} uid={uid} initialUser={credUser}/>}
     </section></>;
 }
 
@@ -30,7 +36,7 @@ function userBlock(s:ReturnType<typeof useHcc>['s'],uid:string,u:User):string|un
   if(u.role==='Owner'&&u.enabled&&!adminOtherActiveOwners(s,u.id).length)return 'Last active owner — cannot be disabled (DEC-033).';
   return undefined;
 }
-function UsersTab(){
+function UsersTab({onCredential}:{onCredential?:(id:string)=>void}){
   const {s,uid,run,open,busy}=useHcc();
   const canAdmin=authorize(s,uid,'PERM-ADM-001');
   return <div className="padded">
@@ -44,6 +50,7 @@ function UsersTab(){
         <td>{u.assignedBy?<>{firstName(s.users.find(x=>x.id===u.assignedBy)?.name||u.assignedBy)}<small>{u.assignedOn&&shortDate(u.assignedOn)}</small></>:<span className="muted">Fixture</span>}</td>
         <td className="adm-wrap"><div className="inline">
           <GuardedButton block={canAdmin.decision==='allow'?undefined:'No admin.users permission'} busy={busy} className="text-btn" onClick={()=>open({type:'admin-user',id:u.id})}>Edit</GuardedButton>
+          {process.env.HCC_BUILD==='production'&&onCredential&&<GuardedButton block={canAdmin.decision==='allow'?(u.id===uid?'Change your own password from your profile':undefined):'No admin.users permission'} busy={busy} className="text-btn" onClick={()=>onCredential(u.id)}>Password / PIN</GuardedButton>}
           <GuardedButton block={block} busy={busy} onClick={()=>run({type:'USER',id:u.id,key:`user:${u.id}:${u.enabled}:${s.sequence}`},u.enabled?`${firstName(u.name)} disabled — their next action is denied`:`${firstName(u.name)} enabled`)}>{u.enabled?'Disable':'Enable'}</GuardedButton>
         </div></td></tr>;})}
     </tbody></table></div></div>;
