@@ -9,6 +9,7 @@
 // history are unchanged until a list is saved. Nothing here imports staff.ts at run time (staff.ts imports this file).
 import type {State} from '../types';
 import {registerMaster,mstRows,mstStored,type MasterRow,type MasterSpec} from './masters';
+import {mastersSeed,seedSlug,seedDesignations,SEED_SHIFTS,SEED_LEAVES,SEED_DEMO_HOLIDAYS} from '../../fixtures/ext/masters-seed';
 
 // ───────────────────────────── Row types ─────────────────────────────
 export type HRPayRule='monthly-structured'|'monthly-basic'|'daily';
@@ -32,18 +33,10 @@ export const HR_WEEKLY_OFF_RULES:{value:HRWeeklyOffRule;label:string}[]=[
 
 // ───────────────────────────── Seeds (today's constants) ─────────────────────────────
 /** Shift times of the prototype since module 17 (07–15, 15–23, 23–07, 09–18); break 30 minutes; fixed weekly off. */
-export const HR_SHIFT_SEED:{code:string;name:string;start:string;end:string;night?:boolean}[]=[
-  {code:'M',name:'Morning',start:'07:00',end:'15:00'},{code:'E',name:'Evening',start:'15:00',end:'23:00'},
-  {code:'N',name:'Night',start:'23:00',end:'07:00',night:true},{code:'G',name:'General',start:'09:00',end:'18:00'}];
-export const HR_LEAVE_SEED:{code:string;name:string;paid:boolean;tracked?:'CL'|'SL'|'EL';encashment?:boolean}[]=[
-  {code:'CL',name:'Casual leave',paid:true,tracked:'CL'},{code:'SL',name:'Sick leave',paid:true,tracked:'SL'},{code:'EL',name:'Earned leave',paid:true,tracked:'EL',encashment:true},
-  {code:'CO',name:'Compensatory off',paid:true},{code:'ML',name:'Maternity / paternity leave',paid:true},{code:'LOP',name:'Leave without pay',paid:false}];
-/** Illustrative holiday calendar (owner/CA to confirm each year). Paid = national and major public holidays; restricted = optional. */
-export const HR_HOLIDAY_SEED:{code:string;name:string;kind:HRHolidayKind}[]=[
-  {code:'2026-08-15',name:'Independence Day',kind:'paid'},{code:'2026-09-14',name:'Ganesh Chaturthi',kind:'restricted'},
-  {code:'2026-10-02',name:'Gandhi Jayanti',kind:'paid'},{code:'2026-10-20',name:'Dussehra',kind:'paid'},
-  {code:'2026-11-08',name:'Diwali (Lakshmi Puja)',kind:'paid'},{code:'2026-12-25',name:'Christmas',kind:'paid'},
-  {code:'2027-01-26',name:'Republic Day',kind:'paid'},{code:'2027-05-01',name:'Maharashtra Day',kind:'paid'}];
+export const HR_SHIFT_SEED=SEED_SHIFTS;
+export const HR_LEAVE_SEED=SEED_LEAVES;
+/** DEMO calendar (8 rows) — the rows are seeded only while the demo switch MASTERS_SEED_OPTIONS is on (fixtures/ext/masters-seed.ts). */
+export const HR_HOLIDAY_SEED:{code:string;name:string;kind:HRHolidayKind}[]=SEED_DEMO_HOLIDAYS;
 
 const NO:object=Object.freeze({});
 /** A selector memoised on the identity of the rows array it reads (the framework replaces row arrays on every write, never edits them in place). */
@@ -100,18 +93,9 @@ export const hrHolidayDates=(s:State):ReadonlySet<string>=>holMemo(s).paid;
 export function hrHolidayFy(date:string){const y=+date.slice(5,7)>=4?+date.slice(0,4):+date.slice(0,4)-1;return `FY ${y}–${String(y+1).slice(-2)}`;}
 
 // ───────────────────────────── Designations ─────────────────────────────
-const slugCode=(name:string)=>name.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,20).replace(/-+$/,'')||'DESIG';
+const slugCode=(name:string)=>seedSlug(name)||'DESIG';
 /** Seed: one designation per distinct designation text of the staff master (first department / pay type seen), in order of appearance. */
-export function hrSeedDesignations(s:State):HRDesignation[]{
-  const out:HRDesignation[]=[],seen=new Set<string>(),codes=new Set<string>();
-  for(const st of s.staffX?.staff??[]){
-    const name=String(st.designation??'').trim();if(!name||seen.has(name.toLowerCase()))continue;seen.add(name.toLowerCase());
-    let code=slugCode(name),n=2;while(codes.has(code)){const suf='-'+n++;code=slugCode(name).slice(0,20-suf.length)+suf;}codes.add(code);
-    const rule:HRPayRule=st.payType==='daily'?'daily':(st.structure??'S')==='B'?'monthly-basic':'monthly-structured';
-    out.push({id:'dsg-'+code,code,name:name.slice(0,60),sortOrder:(out.length+1)*10,active:true,dept:st.dept,defaultPayRule:rule});
-  }
-  return out;
-}
+export const hrSeedDesignations=(s:State):HRDesignation[]=>seedDesignations(s);
 /** Designation row of a staff record: by code when set, else by the designation text (legacy records). */
 export function hrDesignationOf(s:State,st:{designation:string;designationCode?:string}):HRDesignation|undefined{
   const rows=mstRows(s,HRM_DESIGNATIONS) as HRDesignation[];
@@ -140,7 +124,7 @@ const DESIGNATION_SPEC:MasterSpec<HRDesignation>={
   validate:(s,row)=>{const ids=deptIds(s);
     if(row.dept&&ids.length&&!ids.includes(String(row.dept)))return `Department ${row.dept} does not exist. Use one of: ${ids.join(', ')}.`;
     if(row.grade&&!/^[A-Za-z0-9 ./-]{1,20}$/.test(String(row.grade)))return 'Grade: letters, digits, space, “.”, “/” or “-”.';return undefined;},
-  seed:hrSeedDesignations,
+  seed:s=>mastersSeed(HRM_DESIGNATIONS,s) as HRDesignation[],
 };
 const SHIFT_SPEC:MasterSpec<HRShiftPattern>={
   id:HRM_SHIFTS,label:'Shift patterns',singular:'shift pattern',group:'people',prefix:'SHP',money:false,permission:'masters',
@@ -168,7 +152,7 @@ const SHIFT_SPEC:MasterSpec<HRShiftPattern>={
     if(String(row.end)<String(row.start)&&!row.night)return 'A shift that ends after midnight must be marked as a night shift.';
     const m=hrShiftMinutes(row as HRShiftPattern);if((Number(row.breakMinutes)||0)>=m)return 'The break must be shorter than the shift.';
     return rows.some(r=>r.id!==row.id&&r.active&&row.active!==false&&r.start===row.start&&r.end===row.end)?'Another active pattern already has these times.':undefined;},
-  seed:()=>HR_SHIFT_SEED.map((x,i)=>({id:'shp-'+x.code,code:x.code,name:x.name,sortOrder:(i+1)*10,active:true,start:x.start,end:x.end,breakMinutes:30,night:!!x.night,weeklyOffRule:'fixed' as const})),
+  seed:s=>mastersSeed(HRM_SHIFTS,s) as HRShiftPattern[],
 };
 const LEAVE_SPEC:MasterSpec<HRLeaveTypeRow>={
   id:HRM_LEAVE_TYPES,label:'Leave types',singular:'leave type',group:'people',prefix:'LVT',money:false,permission:'masters',
@@ -194,11 +178,13 @@ const LEAVE_SPEC:MasterSpec<HRLeaveTypeRow>={
     const others=rows.filter(r=>r.id!==row.id&&r.active&&(r as HRLeaveTypeRow).paid===false);
     if(row.paid!==false&&row.active!==false&&!others.length)return 'Keep at least one active unpaid leave type — daily-wage staff can take unpaid leave only.';
     return undefined;},
-  seed:s=>{const ent=s.staffX?.leavePolicy?.ent??{CL:12,SL:7,EL:15};
-    return HR_LEAVE_SEED.map((x,i)=>({id:'lvt-'+x.code,code:x.code,name:x.name,sortOrder:(i+1)*10,active:true,paid:x.paid,...(x.tracked?{yearlyQuota:ent[x.tracked]}:{}),carryForward:0,encashment:!!x.encashment}));},
+  seed:s=>mastersSeed(HRM_LEAVE_TYPES,s) as HRLeaveTypeRow[],
 };
 const ISO=/^\d{4}-\d{2}-\d{2}$/;
 const validDate=(d:string)=>ISO.test(d)&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
+const holidayMonthLocked=(s:State,date:string)=>(s.staffX?.runs??[]).some(r=>r.status==='Locked'&&r.month===String(date).slice(0,7));
+// Same words as staff.ts HR_HOLIDAY_SAVE (hrMonthLabel; not imported: staff.ts imports this module).
+const holidayLockedText=(date:string)=>`${new Date(String(date).slice(0,7)+'-15T12:00:00Z').toLocaleDateString('en-IN',{month:'long',year:'numeric',timeZone:'UTC'})} payroll is locked — its holidays cannot change.`;
 const HOLIDAY_SPEC:MasterSpec<HRHoliday>={
   id:HRM_HOLIDAYS,label:'Holiday calendar',singular:'holiday',group:'people',prefix:'HOL',money:true,permission:'settings',
   help:'Public holidays by date (Owner only — they change pay and statutory due dates). A paid holiday is a paid day for staff and is not counted as leave; compliance due dates falling on one move to the next working day. Restricted holidays are information only.',
@@ -211,8 +197,16 @@ const HOLIDAY_SPEC:MasterSpec<HRHoliday>={
   ],
   inUse:(s,row)=>{const months=(s.staffX?.runs??[]).filter(r=>r.status==='Locked'&&r.month===row.code.slice(0,7));
     return {count:months.length,where:months.length?[`Locked pay-run ${months[0].month}`]:[]};},
-  validate:(s,row)=>{if(!validDate(row.code))return 'Date: a real calendar date like 2026-11-08.';return undefined;},
-  seed:()=>HR_HOLIDAY_SEED.map((x,i)=>({id:'hol-'+x.code,code:x.code,name:x.name,sortOrder:(i+1)*10,active:true,kind:x.kind})),
+  // MA-11: a PAID holiday of a locked pay month cannot be added, changed or retired — the rule of Wave B's HR_HOLIDAY_SAVE / _REMOVE (DEC-083).
+  validate:(s,row,rows)=>{if(!validDate(row.code))return 'Date: a real calendar date like 2026-11-08.';
+    const old=rows.find(r=>r.id===row.id);
+    // Lead (batch merge): an identical re-save (seed validation, same-state import) is not a change — only adds, edits and retires are locked.
+    const same=!!old&&['code','name','kind','active','sortOrder'].every(k=>(old as Record<string,unknown>)[k]===(row as Record<string,unknown>)[k]);
+    if(same)return undefined;
+    for(const r of [old,row])if(r&&r.kind==='paid'&&holidayMonthLocked(s,r.code))return holidayLockedText(r.code);
+    return undefined;},
+  canRetire:(s,row)=>row.kind==='paid'&&holidayMonthLocked(s,row.code)?holidayLockedText(row.code):undefined,
+  seed:s=>mastersSeed(HRM_HOLIDAYS,s) as HRHoliday[],
 };
 registerMaster(DESIGNATION_SPEC);registerMaster(SHIFT_SPEC);registerMaster(LEAVE_SPEC);registerMaster(HOLIDAY_SPEC);
 /** True once any people list has been saved (rows live in s.mastersX). */

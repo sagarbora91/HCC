@@ -1,1 +1,1 @@
-itemCode,itemName,category,price,veg,outlets
+code,name,category,shortCode,price,gstClass,veg,outlets,station,sortOrder,active

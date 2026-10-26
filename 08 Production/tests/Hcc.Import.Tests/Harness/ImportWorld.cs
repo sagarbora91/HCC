@@ -65,7 +65,8 @@ public sealed partial class ImportWorld : IAsyncDisposable
         Store = new SqlImportStore(Platform.Connections);
         Service = new ImportService(Platform.Commands, Policy, Store, new SqlImportInventoryWriter(), new SqlImportAccessWriter(), Rates, Yield, Billing, new SqlStaysStore(), new Hcc.Infrastructure.SqlServer.Pos.SqlPosStore(Platform.Connections),
             new Hcc.Infrastructure.SqlServer.Payroll.SqlPayrollStore(Platform.Connections), new Hcc.Infrastructure.SqlServer.Groups.SqlCompanyStore(Platform.Connections),
-            new Hcc.Infrastructure.SqlServer.Maintenance.SqlMaintenanceStore(), new Hcc.Infrastructure.SqlServer.Stock.SqlStockStore(), Clock);
+            new Hcc.Infrastructure.SqlServer.Maintenance.SqlMaintenanceStore(), new Hcc.Infrastructure.SqlServer.Stock.SqlStockStore(),
+            new SqlImportListWriter(new Hcc.Infrastructure.SqlServer.FrontDeskMasters.SqlFrontDeskMastersStore()), Clock);
     }
 
     public SqlPlatform Platform { get; }

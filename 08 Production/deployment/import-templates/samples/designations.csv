@@ -1,0 +1,4 @@
+code,name,dept,grade,defaultPayRule,sortOrder,active
+RECEPTIONIST,Receptionist,FO,G2,monthly-structured,100,yes
+ATTENDANT,Room attendant,HK,G1,daily,110,yes
+CHEF,Chef,FB,G3,monthly-basic,120,yes

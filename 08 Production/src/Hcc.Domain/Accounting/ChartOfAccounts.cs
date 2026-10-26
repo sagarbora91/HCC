@@ -136,10 +136,15 @@ public static partial class ChartOfAccounts
         return i < 0 ? key : key[(i + 1)..];
     }
 
-    /// <summary>Effective mapping = defaults overlaid with the property's overrides.</summary>
-    public static Dictionary<string, string> Effective(IReadOnlyDictionary<string, string>? overrides)
+    /// <summary>Effective mapping = defaults, then the ledgers stored on the masters (MA-11: payment methods → <c>method:</c> / <c>funding:</c>,
+    /// expense categories → <c>expense:</c>; only codes of this chart, never Suspense), then the property's explicit overrides (Accounting ›
+    /// Ledger mapping wins).</summary>
+    public static Dictionary<string, string> Effective(IReadOnlyDictionary<string, string>? overrides, IReadOnlyDictionary<string, string>? masterLedgers = null)
     {
         var m = new Dictionary<string, string>(DefaultMapping, StringComparer.Ordinal);
+        if (masterLedgers is not null)
+            foreach (var (k, v) in masterLedgers)
+                if (IsValidKey(k) && Find(v) is not null && v != Suspense) m[k] = v;
         if (overrides is not null)
             foreach (var (k, v) in overrides) m[k] = v;
         return m;

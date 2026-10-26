@@ -8,6 +8,8 @@
 import type {Handler,Kit} from '../commands';
 import type {State} from '../../../domain/types';
 import {can} from '../../../domain/selectors';
+import {HccError} from '../../../domain/errors';
+import {mstImportOrder,mstIoKeys,mstMergeDated,mstImportCounts,MST_IO_TOGGLE_DEFAULT,type MstIoSet,type MstIoRow,type MstImportItem,type MstImportReport} from '../../../domain/streams/mastersio';
 import {
   mstSpec,mstRows,mstStored,mstClean,mstProblems,mstUsage,mstCanEdit,mstCanEditMoney,mstMoneyFields,mstNextSort,mstFail,mstShow,MST_OWNER_ONLY,
   type MasterSpec,type MasterRow,type MSTState,
@@ -102,9 +104,78 @@ function remove(k:Kit):string{
   return `Master ${sp.label}: ${row.code} · ${row.name} deleted (never used)`;
 }
 
+// ───────────────────────────── MA-8 · MST_IMPORT {sets:[{master,rows}]} (masters JSON import and "Paste rows") ─────────────────────────────
+// Every row goes through the same save / reactivate logic as the list's own form (permissions, code rules, validation, history, audit).
+// Rows are matched by code: a new code adds a row, a known code is updated; a file never retires an active row. All or nothing: a row error
+// refuses the whole command. {dryRun:true} runs the same code and throws MstImportPreview (the report) instead of applying it.
+export class MstImportPreview extends HccError{constructor(public readonly report:MstImportReport){super('VALIDATION','Preview only.');this.name='MstImportPreview';}}
+const truthy=(v:unknown)=>v===true||(typeof v==='string'&&['yes','y','true','1'].includes(v.trim().toLowerCase()));
+const falsy=(v:unknown)=>v===false||(typeof v==='string'&&['no','n','false','0'].includes(v.trim().toLowerCase()));
+function importRows(k:Kit,sets:MstIoSet[]):MstImportReport{
+  const items:MstImportItem[]=[],skippedMasters:{master:string;reason:string}[]=[];
+  const order=mstImportOrder(sets.map(x=>x.master));
+  for(const id of order){
+    const set=sets.find(x=>x.master===id)!,sp=mstSpec(id);
+    if(!sp){skippedMasters.push({master:id,reason:'Not in this registry'});continue;}
+    const d=mstCanEdit(k.s,k.uid,sp);
+    if(!d.ok){skippedMasters.push({master:id,reason:d.reason??'Not permitted'});continue;}
+    const keys=mstIoKeys(sp),seen=new Set<string>();
+    for(const [n,raw] of (Array.isArray(set.rows)?set.rows:[]).entries()){
+      const row=(raw&&typeof raw==='object'?raw:{}) as MstIoRow;
+      const code=String(row.code??'').trim().toUpperCase(),name=String(row.name??'').trim();
+      const line=n+1;
+      const put=(action:MstImportItem['action'],detail:string)=>items.push({master:id,code,name:name||code,action,detail,line});
+      if(!code){put('error','Enter a code.');continue;}
+      if(seen.has(code)){put('error',`Duplicate of an earlier row (${code}).`);continue;}
+      seen.add(code);
+      const rows=mstRows(k.s,id),old=rows.find(r=>r.code===code);
+      const input:Record<string,unknown>={};
+      for(const [key,v] of Object.entries(row))if(keys.has(key)&&key!=='active'&&key!=='code'&&v!==undefined)input[key]=v;
+      input.code=code;
+      if(!old)for(const f of sp.fields)if(f.type==='toggle'&&!(f.key in input)&&f.key in MST_IO_TOGGLE_DEFAULT)input[f.key]=MST_IO_TOGGLE_DEFAULT[f.key]; // a new row takes the field default
+      if(!('name' in input)&&old)input.name=old.name;
+      for(const f of sp.fields)if(f.type==='datedMoney'&&f.key in input)input[f.key]=mstMergeDated(old?.[f.key],input[f.key],k.s.date,set.source==='csv');
+      const wantActive=truthy(row.active)?true:falsy(row.active)?false:undefined;
+      const sub=(cmd:Record<string,unknown>)=>({...k,cmd:{...k.cmd,...cmd}}) as Kit;
+      try{
+        if(old&&old.active&&wantActive===false){put('error',`${old.name} is active. A file does not retire rows — retire it on its list, where its use is checked.`);continue;}
+        let reactivated=false;
+        if(old&&!old.active){
+          if(wantActive===true){setActive(sub({master:id,id:old.id}),true);reactivated=true;}
+          else{
+            const same=Object.entries(input).every(([key,v])=>key==='code'||JSON.stringify(old[key]??null)===JSON.stringify(v??null));
+            if(same){put('unchanged','Already retired.');continue;}
+            put('error',`${old.name} is retired — set active to yes to reactivate it first.`);continue;
+          }
+        }
+        let changed:string;
+        try{changed=save(sub({master:id,row:old?{...input,id:old.id}:input}));}
+        catch(e){if(e instanceof HccError&&e.message==='Nothing changed.'){put(reactivated?'update':'unchanged',reactivated?'Reactivated.':'Already in HCC.');continue;}throw e;}
+        if(!old&&wantActive===false){const made=mstRows(k.s,id).find(r=>r.code===code)!;setActive(sub({master:id,id:made.id}),false);}
+        put(old?'update':'create',changed.replace(`Master ${sp.label}: `,'')+(reactivated?'; reactivated':''));
+      }catch(e){
+        if(e instanceof HccError)put(e.code==='FORBIDDEN'?'skipped':'error',e.message.replace(/^Access denied: /,''));else throw e;
+      }
+    }
+  }
+  return {items,counts:mstImportCounts(items),skippedMasters};
+}
+const MST_IMPORT:Handler=k=>{
+  if(!can(k.s,k.uid,'masters')&&!mstCanEditMoney(k.s,k.uid))k.fail('FORBIDDEN','Access denied: masters permission is required.');
+  const sets=Array.isArray(k.cmd.sets)?k.cmd.sets as MstIoSet[]:[];
+  k.assert(sets.length&&sets.every(x=>x&&typeof x.master==='string'&&Array.isArray(x.rows)),'Nothing to import: send the lists and their rows.');
+  const rep=importRows(k,sets);
+  if(k.cmd.dryRun)throw new MstImportPreview(rep);
+  const bad=rep.items.filter(i=>i.action==='error');
+  if(bad.length)k.fail('VALIDATION',`${bad.length} row${bad.length===1?'':'s'} refused — nothing was imported: ${bad.slice(0,3).map(i=>`${i.master} ${i.code||'row '+i.line}: ${i.detail}`).join(' · ')}${bad.length>3?` (+${bad.length-3} more)`:''}`);
+  const c=rep.counts;
+  k.assert(c.create+c.update>0,`Nothing to import: ${c.unchanged} unchanged, ${c.skipped} skipped.`);
+  return `Masters import · ${c.create} added · ${c.update} changed · ${c.unchanged} unchanged · ${c.skipped} skipped (${rep.items.filter(i=>i.action==='create'||i.action==='update').map(i=>i.master).filter((x,i,a)=>a.indexOf(x)===i).join(', ')})`;
+};
+
 /** The five generic commands under a prefix (MST by default; modules may add aliases such as RMS_MASTER_SAVE). */
 export function mstHandlersFor(prefix:string):Record<string,Handler>{
   return {[`${prefix}_MASTER_SAVE`]:save,[`${prefix}_MASTER_RETIRE`]:k=>setActive(k,false),[`${prefix}_MASTER_REACTIVATE`]:k=>setActive(k,true),
     [`${prefix}_MASTER_REORDER`]:reorder,[`${prefix}_MASTER_DELETE`]:remove};
 }
-export const handlers:Record<string,Handler>=mstHandlersFor('MST');
+export const handlers:Record<string,Handler>={...mstHandlersFor('MST'),MST_IMPORT};

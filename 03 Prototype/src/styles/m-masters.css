@@ -64,3 +64,27 @@
 .mst-m-order .btn{min-width:48px;min-height:48px;padding:0;justify-content:center}
 .mst-sheet .mst-fields input,.mst-sheet .mst-fields select{font-size:16px;min-height:48px}
 .mst-sheet .mst-status-act .btn{min-height:48px}
+/* MA-8 · masters export / import and "Paste rows" (features/masters/MastersIo.tsx) */
+.mst-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.mst-io textarea{font:13px/1.45 ui-monospace,Consolas,monospace;min-height:120px;width:100%}
+.mst-io-cols{overflow-wrap:anywhere}
+.mst-io-cols code{font-size:12.5px}
+.mst-io-counts{display:flex;gap:14px;flex-wrap:wrap;list-style:none;margin:2px 0 8px;padding:0;font-size:13px}
+.mst-io-counts .bad{color:var(--c-9b2c2c)}
+.mst-io-rows{list-style:none;margin:4px 0;padding:0}
+.mst-io-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--c-efe4d6);font-size:13px;overflow-wrap:anywhere}
+.mst-io-row:first-child{border-top:0}
+.mst-io-row small{display:block;color:var(--muted);font-size:12.5px}
+.mst-io-row.error .mst-io-detail{color:var(--c-9b2c2c)}
+.mst-io-h{margin:8px 0 2px;font-size:13px}
+.mst-m-add+.mst-m-add{margin-top:0}
+@media(max-width:520px){.mst-io .cfg-actions .btn{min-height:48px;font-size:16px}.mst-io textarea{font-size:16px}}
+/* MA-10 · phone fixes found by the smoke (360 px, text scale 1.3): status chips wrap instead of scrolling the third chip out of view,
+   "Add amount" in the dated-money sub-form is a 48 px target, long labels wrap. */
+.mst-m-list .m-chips{flex-wrap:wrap;overflow:visible}
+.mst-m-list .m-chips button{min-height:48px;font-size:16px}
+.mst-sheet .mst-dated-add .btn{min-height:48px;flex:1 1 100%;justify-content:center}
+.mst-sheet .mst-dated .text-btn{min-height:48px}
+.mst-sheet .mst-dated-add input{min-height:48px;font-size:16px}
+.mst-sheet .mst-toggle{min-height:48px}
+.mst-m-spec .m-list-card .m-lc-main{min-width:0;overflow-wrap:anywhere}

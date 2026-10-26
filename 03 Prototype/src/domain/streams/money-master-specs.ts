@@ -9,6 +9,7 @@
 // retired; one default account per method kind; the opening balance is setup-only (fixed once money settles through the account).
 import {registerMaster,type MasterSpec,type FieldSpec,type MasterRow} from './masters';
 import {ACC_CHART} from './accounting';
+import {mastersSeed} from '../../fixtures/ext/masters-seed';
 import {
   MNY_PM,MNY_BA,MNY_EC,MNY_EV,MNY_KINDS,MNY_PLACES,MNY_VENDOR_TYPES,MNY_SEED_METHODS,MNY_SEED_ACCOUNTS,MNY_SEED_CATEGORIES,mnySeedVendors,
   mnyMethods,mnyAccounts,mnyMethodUsage,mnyAccountUsage,mnyCategoryUsage,mnyVendorUsage,mnyMethodRecords,
@@ -53,7 +54,7 @@ export const MNY_PM_SPEC:MasterSpec<MnyMethod>={
   },
   canRetire:(s,row)=>{const left=mnyMethods(s).filter(m=>m.active&&m.id!==row.id&&(m.usableAt??[]).includes('frontdesk'));
     return (row.usableAt??[]).includes('frontdesk')&&!left.length?'Keep at least one active payment method for the front desk.':undefined;},
-  seed:()=>MNY_SEED_METHODS.map(r=>({...r,usableAt:[...r.usableAt]})),
+  seed:s=>mastersSeed(MNY_PM,s) as MnyMethod[],
 };
 
 export const MNY_BA_SPEC:MasterSpec<MnyAccount>={
@@ -85,7 +86,7 @@ export const MNY_BA_SPEC:MasterSpec<MnyAccount>={
   },
   canRetire:(s,row)=>{const ms=mnyMethods(s).filter(m=>m.active&&m.settlesTo===row.code);
     return ms.length?`Active payment methods settle to ${row.name} (${ms.map(m=>m.name).join(', ')}) — retire or move them first.`:undefined;},
-  seed:()=>MNY_SEED_ACCOUNTS.map(r=>({...r,...(r.defaultFor?{defaultFor:[...r.defaultFor]}:{})})),
+  seed:s=>mastersSeed(MNY_BA,s) as MnyAccount[],
 };
 
 export const MNY_EC_SPEC:MasterSpec<MnyCategory>={
@@ -97,7 +98,7 @@ export const MNY_EC_SPEC:MasterSpec<MnyCategory>={
     {key:'approvalLimit',label:'Manager approval limit',type:'money',money:true,help:'Leave empty for the hotel limit (₹5,000). Above it the Owner approves.'},
     ...tail],
   inUse:(s,row)=>mnyCategoryUsage(s,row),
-  seed:()=>MNY_SEED_CATEGORIES.map(r=>({...r})),
+  seed:s=>mastersSeed(MNY_EC,s) as MnyCategory[],
 };
 
 export const MNY_EV_SPEC:MasterSpec<MnyVendor>={
@@ -121,7 +122,7 @@ export const MNY_EV_SPEC:MasterSpec<MnyVendor>={
     if(row.tds&&!p)return 'Enter the PAN when TDS applies.';
     return undefined;
   },
-  seed:s=>mnySeedVendors(s).map(r=>({...r})),
+  seed:s=>mastersSeed(MNY_EV,s) as MnyVendor[],
 };
 
 export const MNY_SPECS=[MNY_PM_SPEC,MNY_BA_SPEC,MNY_EC_SPEC,MNY_EV_SPEC] as const;

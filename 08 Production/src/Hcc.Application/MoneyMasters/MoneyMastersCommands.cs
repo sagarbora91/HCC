@@ -442,16 +442,16 @@ public sealed class MoneyMastersCommands(ICommandRunner runner, IAccessPolicy po
 
     private static string Utc(MoneyRow r) => r.UpdatedUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
 
-    internal static PaymentMethodView PaymentMethodView(MoneyRow r, int usage) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
+    internal static PaymentMethodView PaymentMethodView(MoneyRow r, int usage, bool money = true) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
         r.Text(MoneyMastersRules.Kind)!, r.Text(MoneyMastersRules.SettlesTo), r.Flag(MoneyMastersRules.NeedsReference), r.List(MoneyMastersRules.UsableAt),
-        r[MoneyMastersRules.SurchargePct] is int bps ? bps : 0, r.Text(MoneyMastersRules.Ledger), usage, Utc(r), VersionToken.ToWire(r.RowVer));
+        money ? (r[MoneyMastersRules.SurchargePct] is int bps ? bps : 0) : null, r.Text(MoneyMastersRules.Ledger), usage, Utc(r), VersionToken.ToWire(r.RowVer));
 
     internal static BankAccountView BankAccountView(MoneyRow r, int usage, bool money) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
         r.Text(MoneyMastersRules.Kind)!, r.Text(MoneyMastersRules.Bank), r.Text(MoneyMastersRules.AccountLast4), r.Text(MoneyMastersRules.Ifsc),
         money ? (r[MoneyMastersRules.OpeningBalance] is long p ? p : 0) : null, r.List(MoneyMastersRules.DefaultFor), usage, Utc(r), VersionToken.ToWire(r.RowVer));
 
-    internal static ExpenseCategoryView ExpenseCategoryView(MoneyRow r, int usage) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
-        r.Text(MoneyMastersRules.Ledger)!, r.Flag(MoneyMastersRules.NeedsBill), r[MoneyMastersRules.ApprovalLimit] as long?, usage, Utc(r), VersionToken.ToWire(r.RowVer));
+    internal static ExpenseCategoryView ExpenseCategoryView(MoneyRow r, int usage, bool money = true) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
+        r.Text(MoneyMastersRules.Ledger)!, r.Flag(MoneyMastersRules.NeedsBill), money ? r[MoneyMastersRules.ApprovalLimit] as long? : null, usage, Utc(r), VersionToken.ToWire(r.RowVer));
 
     internal static ExpenseVendorView ExpenseVendorView(MoneyRow r, int usage, bool money) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
         r.Text(MoneyMastersRules.Type)!, r.Text(MoneyMastersRules.Gstin), money ? r.Text(MoneyMastersRules.Pan) : null, r.Flag(MoneyMastersRules.Tds),

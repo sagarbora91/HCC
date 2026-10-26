@@ -27,7 +27,7 @@ public class MoneyMastersSqlTests : IAsyncLifetime
     private async Task<BankAccountView> AccountAsync(string code) => (await _w.Queries.BankAccountsAsync(_w.PropertyId, _w.Users["owner"], ct: Ct)).Items.Single(a => a.Code == code);
 
     private static SavePaymentMethodRequest Edit(PaymentMethodView m, string? name = null, string? code = null, string? kind = null) =>
-        new(m.PaymentMethodId, code ?? m.Code, name ?? m.Name, kind ?? m.Kind, m.SettlesTo, m.NeedsReference, m.UsableAt, m.SurchargeBps, m.Ledger, m.SortOrder, m.Version);
+        new(m.PaymentMethodId, code ?? m.Code, name ?? m.Name, kind ?? m.Kind, m.SettlesTo, m.NeedsReference, m.UsableAt, m.SurchargeBps ?? 0, m.Ledger, m.SortOrder, m.Version);
 
     [Fact]
     public async Task First_read_seeds_the_old_lists_and_the_free_text_vendors_once_with_usage_counts()

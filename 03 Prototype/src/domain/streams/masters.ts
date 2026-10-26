@@ -23,6 +23,7 @@ import type {CfgGroupId} from './config';
 import {HccError,type ErrorCode} from '../errors';
 import {can} from '../selectors';
 import {authorize} from './admin';
+import {mastersSeed} from '../../fixtures/ext/masters-seed';
 
 // ───────────────────────────── Types ─────────────────────────────
 /** One dated amount (paise) of a datedMoney field; the latest effectiveFrom ≤ date is in force (tariff pattern). */
@@ -206,6 +207,8 @@ export function mstSeesMoney(s:State,uid:string):boolean{
   if(assignedScopeRoles.includes(u.role as Role)||u.role==='Supervisor')return false;
   return can(s,uid,['billing','payments','reports','approve','admin']);
 }
+/** MA-10 (DEC-061): text for a role without money visibility — every rupee amount becomes "₹ ••" (hub values, help texts, summaries). */
+export const mstMaskMoney=(s:State,uid:string,text:string)=>mstSeesMoney(s,uid)?text:text.replace(/₹\s?[\d,]+(\.\d+)?/g,'₹ ••');
 const ownerAllowed=(s:State,uid:string)=>{const u=s.users.find(x=>x.id===uid);return u?.role==='Owner'&&can(s,uid,'admin')&&authorize(s,uid,'PERM-ADM-003',{act:true}).decision==='allow';};
 /** May this user change the list at all? Operational lists: the `masters` permission; money lists ('settings'/money): the Owner. */
 export function mstCanEdit(s:State,uid:string,spec:MasterSpec):{ok:boolean;reason?:string}{
@@ -258,9 +261,7 @@ export const mstFloorCode=(n:number)=>'F'+n;
 /** Floor number of a code F<n> (undefined for other codes, e.g. a named wing until MA-1 links rooms to codes). */
 export const mstFloorNumber=(code:string)=>{const m=/^F(\d{1,4})$/.exec(code);return m?Number(m[1]):undefined;};
 /** Fixture seed: one row per floor number used by the rooms ("Floor 1" …), sort order 10, 20, … */
-export function mstSeedFloors(s:State):MasterRow[]{
-  return [...new Set(s.rooms.map(r=>r.floor))].sort((a,b)=>a-b).map(n=>({id:'flr-'+n,code:mstFloorCode(n),name:'Floor '+n,sortOrder:n*10,active:true}));
-}
+export const mstSeedFloors=(s:State):MasterRow[]=>mastersSeed(MST_FLOORS,s); // fixtures/ext/masters-seed.ts
 /** Master row of a room's floor (retired rows resolve too). */
 export const mstFloorOf=(s:State,room:Pick<Room,'floor'>)=>mstByCode(s,MST_FLOORS,mstFloorCode(room.floor));
 /** Floor name of a room, or of a floor number ("Floor n" when the master has no row). */

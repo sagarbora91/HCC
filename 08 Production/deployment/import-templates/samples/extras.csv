@@ -1,0 +1,5 @@
+code,name,category,price,gst,unit,department,sortOrder,active
+LAUNDRY,Laundry,laundry,500.00,laundry,bag,laundry,10,yes
+PICKUP,Airport pickup,transport,1200.00,other,trip,transport,20,yes
+MINIBAR,Minibar,fnb,250.00,food,each,restaurant,30,yes
+XBED,Extra bed,room,1000.00,other,night,housekeeping,40,yes

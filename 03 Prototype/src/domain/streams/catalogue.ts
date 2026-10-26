@@ -16,6 +16,7 @@
 // site / OTA mapping: catPlansForSite, catPlanQuote, catPlanFromChannel (RO / BB / HB / FB / AI meal codes).
 import type {State,Booking,Line,Role} from '../types';
 import {totals} from '../selectors';
+import {SEED_FROM,seedMealPlans,seedExtras,seedDiscountReasons} from '../../fixtures/ext/masters-seed';
 import {gstForRoomNight,gstForFood,gstForCharge,GST_CHARGE_CATEGORIES,GST_ILLUSTRATIVE,type GstCategory} from '../gst';
 import {registerMaster,mstRows,mstByCode,mstById,mstSpec,mstMoneyOn,mstFail,type MasterRow,type MasterSpec,type FieldSpec,type MstDatedAmount} from './masters';
 
@@ -23,7 +24,7 @@ export const CAT_MEAL_PLANS='mealPlans';
 export const CAT_EXTRAS='extras';
 export const CAT_DISCOUNT_REASONS='discountReasons';
 /** Seeded amounts take effect from the start of FY 2025-26 (before the FY26 history window), so every historical date resolves. */
-export const CAT_SEED_FROM='2025-04-01';
+export const CAT_SEED_FROM=SEED_FROM;
 type ChargeCat=Exclude<GstCategory,'room'>;
 
 // ───────────────────────────── Row shapes ─────────────────────────────
@@ -49,42 +50,10 @@ export const CAT_FALLBACK_ROOM_TYPES=['Classic','Deluxe','Suite'];
 const opt=(xs:readonly string[])=>xs.map(x=>({value:x,label:x}));
 
 // ───────────────────────────── Seeds (fixture values; nothing posted, no figure moves) ─────────────────────────────
-const dm=(rupees:number):MstDatedAmount[]=>[{amount:rupees*100,effectiveFrom:CAT_SEED_FROM}];
-export function catSeedMealPlans():CatMealPlan[]{
-  return [
-    {id:'mpl-ep',code:'EP',name:'Room only (EP)',sortOrder:10,active:true,meals:[],addOn:dm(0),gst:'separate',roomTypes:[]},
-    {id:'mpl-cp',code:'CP',name:'Breakfast included (CP)',sortOrder:20,active:true,meals:['B'],addOn:dm(300),gst:'bundled',roomTypes:[]},
-    {id:'mpl-map',code:'MAP',name:'Breakfast and dinner (MAP)',sortOrder:30,active:true,meals:['B','D'],addOn:dm(750),gst:'separate',roomTypes:[]},
-    {id:'mpl-ap',code:'AP',name:'All meals (AP)',sortOrder:40,active:true,meals:['B','L','D'],addOn:dm(1200),gst:'separate',roomTypes:[]},
-  ];
-}
-export function catSeedExtras():CatExtra[]{
-  const x=(code:string,name:string,category:string,rupees:number,gst:ChargeCat,unit:string,department:string,i:number):CatExtra=>
-    ({id:'ext-'+code.toLowerCase(),code,name,sortOrder:(i+1)*10,active:true,category,price:dm(rupees),gst,unit,department});
-  // "Laundry" ₹500 at the laundry rate (18 %) is the worked ₹4,265 GST journey's charge (tests/run.mjs, stream-c, stream-f, m1).
-  return [
-    x('LAUNDRY','Laundry','laundry',500,'laundry','bag','laundry',0),
-    x('DRYCLEAN','Dry cleaning','laundry',250,'laundry','piece','laundry',1),
-    x('XBED','Extra bed','room',1000,'other','night','housekeeping',2),
-    x('PICKUP','Airport pickup','transport',1200,'other','trip','transport',3),
-    x('DROP','Airport drop','transport',1200,'other','trip','transport',4),
-    x('MINIBAR','Minibar','fnb',250,'food','each','restaurant',5),
-    x('LATECO','Late checkout','misc',1000,'other','each','frontdesk',6),
-    x('HALL','Meeting hall','misc',2500,'banquet','hour','banquet',7),
-  ];
-}
-export function catSeedDiscountReasons():CatDiscountReason[]{
-  const r=(code:string,name:string,maxPct:number,approvalAbovePct:number|undefined,roles:Role[],i:number):CatDiscountReason=>{
-    const row:CatDiscountReason={id:'dsr-'+code.toLowerCase(),code,name,sortOrder:(i+1)*10,active:true,maxPct:maxPct*100,roles};
-    if(approvalAbovePct!==undefined)row.approvalAbovePct=approvalAbovePct*100;return row;};
-  return [
-    r('SERVICE','Service recovery',25,10,[],0),
-    r('CORP','Corporate rate',20,undefined,[],1),
-    r('REPEAT','Repeat guest',10,undefined,[],2),
-    r('LONGSTAY','Long stay',15,undefined,['Owner','Manager'],3),
-    r('MGMT','Management courtesy',100,undefined,['Owner','Manager'],4),
-  ];
-}
+/** Seeds (fixture values; nothing posted, no figure moves) live in fixtures/ext/masters-seed.ts. */
+export const catSeedMealPlans=():CatMealPlan[]=>seedMealPlans();
+export const catSeedExtras=():CatExtra[]=>seedExtras();
+export const catSeedDiscountReasons=():CatDiscountReason[]=>seedDiscountReasons();
 
 // ───────────────────────────── Usage (in-use selectors; retire, never delete, when used) ─────────────────────────────
 const allLines=(s:State)=>s.bookings.flatMap(b=>b.lines.map(l=>({b,l})));
@@ -144,8 +113,8 @@ export const DISCOUNT_REASON_SPEC:MasterSpec<CatDiscountReason>={
   fields:[
     {key:'code',label:'Code',type:'text',required:true,maxLength:20,placeholder:'SERVICE'},
     {key:'name',label:'Name',type:'text',required:true,maxLength:60,placeholder:'Service recovery'},
-    {key:'maxPct',label:'Maximum discount (% of the folio charges)',type:'percent',required:true,min:1,max:10000},
-    {key:'approvalAbovePct',label:'Needs approval above (% of the charges)',type:'percent',min:0,max:10000,help:'Optional. Above it, another user approves even within the role limit (the Owner decides directly).'},
+    {key:'maxPct',label:'Maximum discount (% of the folio charges)',type:'percent',money:true,required:true,min:1,max:10000},
+    {key:'approvalAbovePct',label:'Needs approval above (% of the charges)',type:'percent',money:true,min:0,max:10000,help:'Optional. Above it, another user approves even within the role limit (the Owner decides directly).'},
     {key:'roles',label:'Shown to roles',type:'multiselect',options:opt(CAT_DISCOUNT_ROLES),help:'None ticked = every role that may give discounts (Owner, Manager, Reception).'},
     {key:'sortOrder',label:'Sort order',type:'number',min:0,max:1_000_000},
     {key:'active',label:'Active',type:'toggle'},

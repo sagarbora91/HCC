@@ -22,6 +22,7 @@ import {MNY_MST_SERVER} from './money-master'; // MA-3 money masters (rows loade
 import {CAT_MST_DELEGATES} from './catalogue'; // MA-2 meal plans, extras, discount reasons (sync/catalogue.ts)
 import {FDM_SERVER} from './frontdesk-master'; // MA-5 front-desk lists
 import {OPS_MST_SERVER} from './ops-masters'; // MA-7: task types, zones, complaint and lost-and-found categories
+import {MST_IMPORT_COMMANDS} from './masters-import'; // MA-8: MST_IMPORT (masters JSON import, Paste rows) → the server import
 
 /** Server wire shapes (08 Production/src/Hcc.Contracts/Masters/MastersContracts.cs). */
 type SrvFloor={floorId:number;code:string;name:string;sortOrder:number;active:boolean;retiredOn:string|null;roomCount:number;updatedUtc:string;version:string};
@@ -159,5 +160,6 @@ export const masters:SyncArea={
       async send(c){const d=delegateOf(c.cmd.master);if(d)return d.reorder(c);const r=routeOf(c.cmd.master)!;
         await c.api.command(r.reorder,{[r.idsField]:(c.cmd.ids as unknown[]).filter(id=>!r.rowId||r.rowId(String(id),c)!==undefined).map(id=>idOf(c,r,id))});
         return r.reload?.length?{reload:r.reload}:undefined;}},
+    ...MST_IMPORT_COMMANDS, // MA-8
   ],
 };

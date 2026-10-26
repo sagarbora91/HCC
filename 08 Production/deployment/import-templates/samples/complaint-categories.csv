@@ -1,0 +1,3 @@
+code,name,department,slaHours,sortOrder,active
+WIFI,Wi-Fi and internet,Maintenance,6,100,yes
+SAFETY,Safety and security,Front desk,2,110,yes

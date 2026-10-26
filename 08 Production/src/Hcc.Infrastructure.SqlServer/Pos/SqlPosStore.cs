@@ -542,7 +542,7 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
         P(cmd, "@p", SqlDbType.Int, b.PropertyId);
         P(cmd, "@no", SqlDbType.VarChar, b.BillNo, 20);
         P(cmd, "@m", SqlDbType.VarChar, b.Mode, 6);
-        P(cmd, "@t", SqlDbType.VarChar, b.Tender, 8);
+        P(cmd, "@t", SqlDbType.NVarChar, b.Tender, 60);
         P(cmd, "@ref", SqlDbType.NVarChar, b.Reference, 120);
         P(cmd, "@n", SqlDbType.BigInt, b.Net.Value);
         P(cmd, "@bps", SqlDbType.Int, b.TaxBps);
@@ -603,7 +603,7 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
         P(cmd, "@o", SqlDbType.BigInt, r.OrderId);
         P(cmd, "@ou", SqlDbType.Int, r.OutletId);
         P(cmd, "@k", SqlDbType.VarChar, r.Kind, 4);
-        P(cmd, "@t", SqlDbType.VarChar, r.Tender, 8);
+        P(cmd, "@t", SqlDbType.NVarChar, r.Tender, 60);
         P(cmd, "@a", SqlDbType.BigInt, r.Amount.Value);
         P(cmd, "@n", SqlDbType.BigInt, r.Net.Value);
         P(cmd, "@tx", SqlDbType.BigInt, r.Tax.Value);
@@ -1012,9 +1012,13 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
             covers = Convert.ToInt32(await c.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        long cash = 0, upi = 0, card = 0, room = 0;
+        // MA-11: a bill that went into a till (till_id, any method settling to a till) is cash; UPI and Card by name; room postings have no
+        // tender; any other method of the Payment methods master is "other" (it no longer falls into the room-folio figure).
+        long cash = 0, upi = 0, card = 0, room = 0, other = 0;
         await using (var c = connections.Command("""
-            SELECT ISNULL(tender, 'Room'), SUM(total_paise) FROM pos.bill WHERE property_id = @p AND status = 'Settled' AND business_date = @d GROUP BY ISNULL(tender, 'Room');
+            SELECT CASE WHEN tender IS NULL THEN 'Room' WHEN till_id IS NOT NULL THEN 'Cash' WHEN tender IN ('UPI', 'Card') THEN tender ELSE 'Other' END, SUM(total_paise)
+              FROM pos.bill WHERE property_id = @p AND status = 'Settled' AND business_date = @d
+             GROUP BY CASE WHEN tender IS NULL THEN 'Room' WHEN till_id IS NOT NULL THEN 'Cash' WHEN tender IN ('UPI', 'Card') THEN tender ELSE 'Other' END;
             """, conn))
         {
             P(c, "@p", SqlDbType.Int, propertyId);
@@ -1026,15 +1030,16 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
                     case "Cash": cash = total; break;
                     case "UPI": upi = total; break;
                     case "Card": card = total; break;
-                    default: room = total; break;
+                    case "Room": room = total; break;
+                    default: other = total; break;
                 }
             }
         }
 
         long outletCash;
         await using (var c = connections.Command("""
-            SELECT ISNULL(SUM(r.amount_paise), 0) FROM pos.receipt r JOIN pos.outlet ou ON ou.outlet_id = r.outlet_id
-            WHERE ou.property_id = @p AND r.business_date = @d AND r.tender = 'Cash';
+            SELECT ISNULL(SUM(r.amount_paise), 0) FROM pos.receipt r JOIN pos.outlet ou ON ou.outlet_id = r.outlet_id JOIN pos.bill b ON b.bill_id = r.bill_id
+            WHERE ou.property_id = @p AND r.business_date = @d AND b.till_id IS NOT NULL;
             """, conn))
         {
             P(c, "@p", SqlDbType.Int, propertyId);
@@ -1096,7 +1101,7 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
 
         return new DaySummaryView(date, outlets.Sum(o => o.Checks), covers, outlets.Sum(o => o.Net), outlets.Sum(o => o.Tax), outlets.Sum(o => o.Total), cash, upi, card, room,
             outletCash, voidCount, voidValue, openCount, openValue.Value,
-            outlets.Select(o => new DayOutletSummary(o.Outlet, o.Name, o.Checks, o.Net, o.Tax, o.Total, openByOutlet.GetValueOrDefault(o.Outlet))).ToList(), top, pending);
+            outlets.Select(o => new DayOutletSummary(o.Outlet, o.Name, o.Checks, o.Net, o.Tax, o.Total, openByOutlet.GetValueOrDefault(o.Outlet))).ToList(), top, pending, other);
     }
 
     public async Task<PosCloseBlockers> BlockersAsync(int propertyId, CancellationToken ct)

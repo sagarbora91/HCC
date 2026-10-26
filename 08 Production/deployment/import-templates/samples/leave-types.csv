@@ -1,0 +1,3 @@
+code,name,paid,yearlyQuota,carryForward,encashment,sortOrder,active
+BL,Bereavement leave,yes,3,0,no,100,yes
+WL,Wedding leave,yes,5,0,no,110,yes

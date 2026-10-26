@@ -18,6 +18,7 @@
 import type {State} from '../types';
 import type {POSOutlet,POSMenuItem,POSOrder,POSTable,POSState} from './pos';
 import {registerMaster,mstRows,mstByCode,mstLabel,mstMoneyOn,type MasterRow,type MasterSpec,type MstDatedAmount} from './masters';
+import {mastersSeed,seedPosCode} from '../../fixtures/ext/masters-seed';
 import {gstForFood,gstForService,gstValueOn,type GstRate} from '../gst';
 
 // ───────────────────────────── Ids and choices ─────────────────────────────
@@ -43,9 +44,7 @@ const TIME=/^([01]\d|2[0-3]):[0-5]\d$/;
 
 const px=(s:State):POSState|undefined=>s.posX;
 /** Code from a fixture id or name: upper-case, other characters → "-", at most 20 ("restaurant" → RESTAURANT, "Breads & rice" → BREADS-RICE). */
-export function posCodeOf(x:string):string{
-  return String(x).toUpperCase().replace(/&/g,' ').replace(/[^A-Z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,20)||'X';
-}
+export const posCodeOf=seedPosCode;
 
 // ───────────────────────────── Outlets ─────────────────────────────
 export const posOutletType=(o:POSOutlet):POSOutletType=>o.type??(o.kind==='room'?'room-service':'restaurant');
@@ -84,10 +83,7 @@ export function posTablesOf(s:State,outletId:string):POSTable[]{
 export function posTableLabel(t:POSTable){return [t.counter?'Counter '+t.tableNo:'Table '+t.tableNo,t.seats?`${t.seats} seats`:'',t.section??''].filter(Boolean).join(' · ');}
 
 // ───────────────────────────── Menu categories and items ─────────────────────────────
-export function posSeedCategories(s:State):MasterRow[]{
-  const names:string[]=[];for(const m of px(s)?.menu??[])if(!names.includes(m.category))names.push(m.category);
-  return names.map((n,i)=>({id:'mcat-'+posCodeOf(n).toLowerCase(),code:posCodeOf(n),name:n,sortOrder:(i+1)*10,active:true}));
-}
+export const posSeedCategories=(s:State):MasterRow[]=>mastersSeed(POS_MST_CATEGORIES,s); // fixtures/ext/masters-seed.ts
 /** Category code of an item: stored code, else the category row with that name, else the code derived from the name. */
 export function posItemCategoryCode(s:State,m:POSMenuItem):string{
   if(m.categoryCode)return m.categoryCode;

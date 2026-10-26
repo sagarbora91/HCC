@@ -262,9 +262,10 @@ Check 'A09-03 .NET runtime: both Microsoft.NETCore.App 10 and Microsoft.AspNetCo
 Check 'import order: every shipped template, dependencies first (room types, ledgers, outlets before their users)' {
     $order = Get-HccImportOrder
     $templates = @(Get-ChildItem -LiteralPath (Join-Path (Split-Path -Parent $root) 'import-templates\templates') -Filter '*.csv' | ForEach-Object { $_.BaseName } | Sort-Object)
-    (($order | Sort-Object) -join ',') -eq ($templates -join ',') -and $order.Count -eq 15 -and
+    (($order | Sort-Object) -join ',') -eq ($templates -join ',') -and $order.Count -eq 39 -and
     $order.IndexOf('room-types') -lt $order.IndexOf('rooms') -and $order.IndexOf('room-types') -lt $order.IndexOf('companies') -and
-    $order.IndexOf('ledgers') -lt $order.IndexOf('opening-balances') -and $order.IndexOf('pos-outlets') -lt $order.IndexOf('pos-menu')
+    $order.IndexOf('ledgers') -lt $order.IndexOf('opening-balances') -and $order.IndexOf('pos-outlets') -lt $order.IndexOf('pos-menu') -and
+    $order.IndexOf('bank-accounts') -lt $order.IndexOf('payment-methods') -and $order.IndexOf('booking-sources') -lt $order.IndexOf('policies') -and $order.IndexOf('pos-outlets') -lt $order.IndexOf('pos-tables')
 }
 Check 'import files: picked from a folder in server order, case-insensitive, unknown CSVs reported, -Only filters, bad -Only refused' {
     $names = @('D:\m\Rooms.CSV', 'D:\m\room-types.csv', 'D:\m\notes.txt', 'D:\m\menu.csv', 'D:\m\pos-menu.csv', 'D:\m\opening-balances.csv', 'D:\m\ledgers.csv')
@@ -503,7 +504,7 @@ Check 'Import-HccMasters -WhatIf lists the sample files in server order, asks fo
     $r = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples, '-OpeningBalancesDate', '2026-10-25', '-ServerUrl', 'https://hotelpc:5443')
     $d = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples, '-OpeningBalancesDate', '2026-10-25', '-DryRun', '-Only', 'rooms')
     $lines = @($r.Out -split "`r?`n" | Where-Object { $_ -match 'UploadImportBatch' })
-    $r.Exit -eq 0 -and $lines.Count -eq 15 -and $lines[0] -match ' 1\. room-types\.csv' -and $lines[1] -match 'rooms\.csv' -and $lines[14] -match 'stock-items\.csv' -and
+    $r.Exit -eq 0 -and $lines.Count -eq 39 -and $lines[0] -match ' 1\. room-types\.csv' -and $lines[1] -match 'rooms\.csv' -and $lines[14] -match 'stock-items\.csv' -and
     $r.Out -match 'POST https://hotelpc:5443/api/v1/auth/sign-in' -and $r.Out -match 'opening-balances as at 2026-10-25' -and $r.Out -match '\*{8}' -and
     $d.Exit -eq 0 -and $d.Out -match 'POST https://localhost:5443/api/v1/commands/UploadImportBatch \(master rooms\)' -and $d.Out -match 'dryRun=true' -and @($d.Out -split "`r?`n" | Where-Object { $_ -match 'UploadImportBatch' }).Count -eq 1
 }

@@ -127,12 +127,12 @@ public class ImportScriptTests : IAsyncLifetime
         Assert.Contains("expected in a dry run", dry.Out, StringComparison.Ordinal);
         Assert.Contains("dry run passed", dry.Out, StringComparison.Ordinal);
         Assert.Contains("Dry run finished: nothing was kept. 0 file(s) with rejected rows.", dry.Out, StringComparison.Ordinal);
-        Assert.Equal(15, await _w.CountAsync("SELECT COUNT(*) FROM imp.batch WHERE status = 'Uploaded'"));
+        Assert.Equal(39, await _w.CountAsync("SELECT COUNT(*) FROM imp.batch WHERE status = 'Uploaded'"));
         Assert.Equal(0, await _w.CountAsync("SELECT (SELECT COUNT(*) FROM inv.room_type) + (SELECT COUNT(*) FROM hr.department) + (SELECT COUNT(*) FROM stk.item) + (SELECT COUNT(*) FROM imp.ledger)"));
 
         var real = await RunAsync(Password, "-OpeningBalancesDate 2026-10-25");
         Assert.True(real.Exit == 0, real.Out);
-        Assert.Contains("Finished: 15 file(s) committed, 0 file(s) with rejected rows.", real.Out, StringComparison.Ordinal);
+        Assert.Contains("Finished: 39 file(s) committed, 0 file(s) with rejected rows.", real.Out, StringComparison.Ordinal);
         Assert.Contains("priya.reception (Priya Kulkarni) cannot sign in yet: set the first PIN", real.Out, StringComparison.Ordinal);
         Assert.Contains("Total debits Rs 16,20,000 = total credits Rs 16,20,000", real.Out, StringComparison.Ordinal);
         Assert.Equal(6, await _w.CountAsync("SELECT COUNT(*) FROM inv.room"));
@@ -143,12 +143,12 @@ public class ImportScriptTests : IAsyncLifetime
         Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM grp.company_account"));
         Assert.Equal(3, await _w.CountAsync("SELECT COUNT(*) FROM mnt.vendor"));
         Assert.Equal(4, await _w.CountAsync("SELECT COUNT(*) FROM stk.item"));
-        Assert.Equal(15, await _w.CountAsync("SELECT COUNT(*) FROM imp.batch WHERE status = 'Committed'"));
-        Assert.Equal(15, await _w.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'IMPORT_COMMIT' AND principal_id = {_w.Users["owner"]}"));
+        Assert.Equal(39, await _w.CountAsync("SELECT COUNT(*) FROM imp.batch WHERE status = 'Committed'"));
+        Assert.Equal(39, await _w.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'IMPORT_COMMIT' AND principal_id = {_w.Users["owner"]}"));
 
         var again = await RunAsync(Password, "-OpeningBalancesDate 2026-10-25");
         Assert.True(again.Exit == 0, again.Out);
-        Assert.Equal(15, again.Out.Split("nothing to change: every row is already in HCC").Length - 1);
+        Assert.Equal(39, again.Out.Split("nothing to change: every row is already in HCC").Length - 1);
         Assert.Contains("Finished: 0 file(s) committed", again.Out, StringComparison.Ordinal);
         Assert.Equal(3, _signOuts);
         Assert.DoesNotContain(Password, dry.Out + real.Out + again.Out, StringComparison.Ordinal);

@@ -1,0 +1,8995 @@
+{
+ "startedAt": "2026-10-26T18:21:44.658Z",
+ "masters": [
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "floors",
+   "label": "Floors",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-floors-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-floors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "amenities",
+   "label": "Amenities",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-amenities-list.jpg",
+    "rows": 9
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-amenities-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "roomTypes",
+   "label": "Room types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-roomTypes-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-roomTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 20,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "rooms",
+   "label": "Rooms",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-rooms-list.jpg",
+    "rows": 24
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-rooms-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 16,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "occupancyCharges",
+   "label": "Occupancy and extra charges",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-occupancyCharges-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-occupancyCharges-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "mealPlans",
+   "label": "Meal plans",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-mealPlans-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-mealPlans-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "extras",
+   "label": "Extras and services",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-extras-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-extras-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "discountReasons",
+   "label": "Discount reasons",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-discountReasons-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-discountReasons-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 2
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "paymentMethods",
+   "label": "Payment methods",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-paymentMethods-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-paymentMethods-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "bankAccounts",
+   "label": "Bank accounts and tills",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-bankAccounts-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-bankAccounts-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "expenseCategories",
+   "label": "Expense categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-expenseCategories-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-expenseCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "expenseVendors",
+   "label": "Expense vendors",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-expenseVendors-list.jpg",
+    "rows": 16
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-expenseVendors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "outlets",
+   "label": "Outlets",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-outlets-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-outlets-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "posTables",
+   "label": "Tables and counters",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-posTables-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-posTables-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "menuCategories",
+   "label": "Menu categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-menuCategories-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-menuCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "menuItems",
+   "label": "Menu items",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-menuItems-list.jpg",
+    "rows": 21
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-menuItems-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 13,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "bookingSources",
+   "label": "Booking sources",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-bookingSources-list.jpg",
+    "rows": 15
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-bookingSources-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "idTypes",
+   "label": "Guest ID types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-idTypes-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-idTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "numberSeries",
+   "label": "Numbering series",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-numberSeries-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-numberSeries-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "policies",
+   "label": "Booking policies",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-policies-list.jpg",
+    "rows": 1
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-policies-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 22,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "complaintCategories",
+   "label": "Complaint categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-complaintCategories-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-complaintCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "lostFoundCategories",
+   "label": "Lost-and-found categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-lostFoundCategories-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-lostFoundCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "designations",
+   "label": "Designations",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-designations-list.jpg",
+    "rows": 11
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-designations-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "shiftPatterns",
+   "label": "Shift patterns",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-shiftPatterns-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-shiftPatterns-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "leaveTypes",
+   "label": "Leave types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-leaveTypes-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-leaveTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 7,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "holidays",
+   "label": "Holiday calendar",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-holidays-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-holidays-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 4,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "hkTaskTypes",
+   "label": "Housekeeping task types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-hkTaskTypes-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-hkTaskTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1,
+   "master": "hkZones",
+   "label": "Housekeeping zones",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-hkZones-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1-hkZones-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 31,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "floors",
+   "label": "Floors",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-floors-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-floors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "amenities",
+   "label": "Amenities",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-amenities-list.jpg",
+    "rows": 9
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-amenities-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "roomTypes",
+   "label": "Room types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-roomTypes-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-roomTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 20,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "rooms",
+   "label": "Rooms",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-rooms-list.jpg",
+    "rows": 24
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-rooms-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 16,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "occupancyCharges",
+   "label": "Occupancy and extra charges",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-occupancyCharges-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-occupancyCharges-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "mealPlans",
+   "label": "Meal plans",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-mealPlans-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-mealPlans-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "extras",
+   "label": "Extras and services",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-extras-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-extras-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "discountReasons",
+   "label": "Discount reasons",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-discountReasons-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-discountReasons-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 2
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "paymentMethods",
+   "label": "Payment methods",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-paymentMethods-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-paymentMethods-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "bankAccounts",
+   "label": "Bank accounts and tills",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-bankAccounts-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-bankAccounts-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "expenseCategories",
+   "label": "Expense categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-expenseCategories-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-expenseCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "expenseVendors",
+   "label": "Expense vendors",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-expenseVendors-list.jpg",
+    "rows": 16
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-expenseVendors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "outlets",
+   "label": "Outlets",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-outlets-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-outlets-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "posTables",
+   "label": "Tables and counters",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-posTables-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-posTables-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "menuCategories",
+   "label": "Menu categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-menuCategories-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-menuCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "menuItems",
+   "label": "Menu items",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-menuItems-list.jpg",
+    "rows": 21
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-menuItems-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 13,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "bookingSources",
+   "label": "Booking sources",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-bookingSources-list.jpg",
+    "rows": 15
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-bookingSources-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "idTypes",
+   "label": "Guest ID types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-idTypes-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-idTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "numberSeries",
+   "label": "Numbering series",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-numberSeries-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-numberSeries-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "policies",
+   "label": "Booking policies",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-policies-list.jpg",
+    "rows": 1
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-policies-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 22,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "complaintCategories",
+   "label": "Complaint categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-complaintCategories-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-complaintCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "lostFoundCategories",
+   "label": "Lost-and-found categories",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-lostFoundCategories-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-lostFoundCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "designations",
+   "label": "Designations",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-designations-list.jpg",
+    "rows": 11
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-designations-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "shiftPatterns",
+   "label": "Shift patterns",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-shiftPatterns-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-shiftPatterns-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "leaveTypes",
+   "label": "Leave types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-leaveTypes-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-leaveTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 7,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "holidays",
+   "label": "Holiday calendar",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-holidays-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-holidays-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 4,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "hkTaskTypes",
+   "label": "Housekeeping task types",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-hkTaskTypes-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-hkTaskTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "360",
+   "scale": 1.3,
+   "master": "hkZones",
+   "label": "Housekeeping zones",
+   "list": {
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-hkZones-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 360,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "360-s1.3-hkZones-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 31,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "floors",
+   "label": "Floors",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-floors-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-floors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "amenities",
+   "label": "Amenities",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-amenities-list.jpg",
+    "rows": 9
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-amenities-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "roomTypes",
+   "label": "Room types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-roomTypes-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-roomTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 20,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "rooms",
+   "label": "Rooms",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-rooms-list.jpg",
+    "rows": 24
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-rooms-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 16,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "occupancyCharges",
+   "label": "Occupancy and extra charges",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-occupancyCharges-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-occupancyCharges-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "mealPlans",
+   "label": "Meal plans",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-mealPlans-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-mealPlans-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "extras",
+   "label": "Extras and services",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-extras-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-extras-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "discountReasons",
+   "label": "Discount reasons",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-discountReasons-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-discountReasons-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 2
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "paymentMethods",
+   "label": "Payment methods",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-paymentMethods-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-paymentMethods-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "bankAccounts",
+   "label": "Bank accounts and tills",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-bankAccounts-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-bankAccounts-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "expenseCategories",
+   "label": "Expense categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-expenseCategories-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-expenseCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "expenseVendors",
+   "label": "Expense vendors",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-expenseVendors-list.jpg",
+    "rows": 16
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-expenseVendors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "outlets",
+   "label": "Outlets",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-outlets-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-outlets-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "posTables",
+   "label": "Tables and counters",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-posTables-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-posTables-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "menuCategories",
+   "label": "Menu categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-menuCategories-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-menuCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "menuItems",
+   "label": "Menu items",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-menuItems-list.jpg",
+    "rows": 21
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-menuItems-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 13,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "bookingSources",
+   "label": "Booking sources",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-bookingSources-list.jpg",
+    "rows": 15
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-bookingSources-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "idTypes",
+   "label": "Guest ID types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-idTypes-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-idTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "numberSeries",
+   "label": "Numbering series",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-numberSeries-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-numberSeries-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "policies",
+   "label": "Booking policies",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-policies-list.jpg",
+    "rows": 1
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-policies-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 22,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "complaintCategories",
+   "label": "Complaint categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-complaintCategories-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-complaintCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "lostFoundCategories",
+   "label": "Lost-and-found categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-lostFoundCategories-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-lostFoundCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "designations",
+   "label": "Designations",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-designations-list.jpg",
+    "rows": 11
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-designations-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "shiftPatterns",
+   "label": "Shift patterns",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-shiftPatterns-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-shiftPatterns-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "leaveTypes",
+   "label": "Leave types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-leaveTypes-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-leaveTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 7,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "holidays",
+   "label": "Holiday calendar",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-holidays-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-holidays-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 4,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "hkTaskTypes",
+   "label": "Housekeeping task types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-hkTaskTypes-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-hkTaskTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1,
+   "master": "hkZones",
+   "label": "Housekeeping zones",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-hkZones-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1-hkZones-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 31,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "floors",
+   "label": "Floors",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-floors-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-floors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "amenities",
+   "label": "Amenities",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-amenities-list.jpg",
+    "rows": 9
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-amenities-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "roomTypes",
+   "label": "Room types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-roomTypes-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-roomTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 20,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "rooms",
+   "label": "Rooms",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-rooms-list.jpg",
+    "rows": 24
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-rooms-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 16,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "occupancyCharges",
+   "label": "Occupancy and extra charges",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-occupancyCharges-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-occupancyCharges-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "mealPlans",
+   "label": "Meal plans",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-mealPlans-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-mealPlans-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "extras",
+   "label": "Extras and services",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-extras-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-extras-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "discountReasons",
+   "label": "Discount reasons",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-discountReasons-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-discountReasons-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 2
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "paymentMethods",
+   "label": "Payment methods",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-paymentMethods-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-paymentMethods-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "bankAccounts",
+   "label": "Bank accounts and tills",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-bankAccounts-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-bankAccounts-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "expenseCategories",
+   "label": "Expense categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-expenseCategories-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-expenseCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "expenseVendors",
+   "label": "Expense vendors",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-expenseVendors-list.jpg",
+    "rows": 16
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-expenseVendors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "outlets",
+   "label": "Outlets",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-outlets-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-outlets-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "posTables",
+   "label": "Tables and counters",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-posTables-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-posTables-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "menuCategories",
+   "label": "Menu categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-menuCategories-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-menuCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "menuItems",
+   "label": "Menu items",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-menuItems-list.jpg",
+    "rows": 21
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-menuItems-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 13,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "bookingSources",
+   "label": "Booking sources",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-bookingSources-list.jpg",
+    "rows": 15
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-bookingSources-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "idTypes",
+   "label": "Guest ID types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-idTypes-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-idTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "numberSeries",
+   "label": "Numbering series",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-numberSeries-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-numberSeries-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "policies",
+   "label": "Booking policies",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-policies-list.jpg",
+    "rows": 1
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-policies-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 22,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "complaintCategories",
+   "label": "Complaint categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-complaintCategories-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-complaintCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "lostFoundCategories",
+   "label": "Lost-and-found categories",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-lostFoundCategories-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-lostFoundCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "designations",
+   "label": "Designations",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-designations-list.jpg",
+    "rows": 11
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-designations-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "shiftPatterns",
+   "label": "Shift patterns",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-shiftPatterns-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-shiftPatterns-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "leaveTypes",
+   "label": "Leave types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-leaveTypes-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-leaveTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 7,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "holidays",
+   "label": "Holiday calendar",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-holidays-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-holidays-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 4,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "hkTaskTypes",
+   "label": "Housekeeping task types",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-hkTaskTypes-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-hkTaskTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 11,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "390",
+   "scale": 1.3,
+   "master": "hkZones",
+   "label": "Housekeeping zones",
+   "list": {
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-hkZones-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 390,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "390-s1.3-hkZones-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 31,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "floors",
+   "label": "Floors",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-floors-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-floors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "amenities",
+   "label": "Amenities",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-amenities-list.jpg",
+    "rows": 9
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-amenities-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "roomTypes",
+   "label": "Room types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-roomTypes-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-roomTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 20,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "rooms",
+   "label": "Rooms",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-rooms-list.jpg",
+    "rows": 24
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-rooms-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 16,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "occupancyCharges",
+   "label": "Occupancy and extra charges",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-occupancyCharges-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-occupancyCharges-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "mealPlans",
+   "label": "Meal plans",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-mealPlans-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-mealPlans-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "extras",
+   "label": "Extras and services",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-extras-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-extras-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "discountReasons",
+   "label": "Discount reasons",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-discountReasons-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-discountReasons-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 2
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "paymentMethods",
+   "label": "Payment methods",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-paymentMethods-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-paymentMethods-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 11,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "bankAccounts",
+   "label": "Bank accounts and tills",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-bankAccounts-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-bankAccounts-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "expenseCategories",
+   "label": "Expense categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-expenseCategories-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-expenseCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "expenseVendors",
+   "label": "Expense vendors",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-expenseVendors-list.jpg",
+    "rows": 16
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-expenseVendors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "outlets",
+   "label": "Outlets",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-outlets-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-outlets-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "posTables",
+   "label": "Tables and counters",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-posTables-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-posTables-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "menuCategories",
+   "label": "Menu categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-menuCategories-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-menuCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "menuItems",
+   "label": "Menu items",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-menuItems-list.jpg",
+    "rows": 21
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-menuItems-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 13,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "bookingSources",
+   "label": "Booking sources",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-bookingSources-list.jpg",
+    "rows": 15
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-bookingSources-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "idTypes",
+   "label": "Guest ID types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-idTypes-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-idTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "numberSeries",
+   "label": "Numbering series",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-numberSeries-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-numberSeries-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "policies",
+   "label": "Booking policies",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-policies-list.jpg",
+    "rows": 1
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-policies-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 22,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "complaintCategories",
+   "label": "Complaint categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-complaintCategories-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-complaintCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "lostFoundCategories",
+   "label": "Lost-and-found categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-lostFoundCategories-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-lostFoundCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "designations",
+   "label": "Designations",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-designations-list.jpg",
+    "rows": 11
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-designations-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "shiftPatterns",
+   "label": "Shift patterns",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-shiftPatterns-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-shiftPatterns-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "leaveTypes",
+   "label": "Leave types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-leaveTypes-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-leaveTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 7,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "holidays",
+   "label": "Holiday calendar",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-holidays-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-holidays-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 4,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "hkTaskTypes",
+   "label": "Housekeeping task types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-hkTaskTypes-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-hkTaskTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 11,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1,
+   "master": "hkZones",
+   "label": "Housekeeping zones",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-hkZones-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1-hkZones-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 31,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "floors",
+   "label": "Floors",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-floors-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-floors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "amenities",
+   "label": "Amenities",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-amenities-list.jpg",
+    "rows": 9
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-amenities-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "roomTypes",
+   "label": "Room types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-roomTypes-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-roomTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 20,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "rooms",
+   "label": "Rooms",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-rooms-list.jpg",
+    "rows": 24
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-rooms-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 16,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "occupancyCharges",
+   "label": "Occupancy and extra charges",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-occupancyCharges-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-occupancyCharges-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "mealPlans",
+   "label": "Meal plans",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-mealPlans-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-mealPlans-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "extras",
+   "label": "Extras and services",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-extras-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-extras-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 9,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "discountReasons",
+   "label": "Discount reasons",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-discountReasons-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-discountReasons-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 2
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "paymentMethods",
+   "label": "Payment methods",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-paymentMethods-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-paymentMethods-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 11,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "bankAccounts",
+   "label": "Bank accounts and tills",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-bankAccounts-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-bankAccounts-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 12,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "expenseCategories",
+   "label": "Expense categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-expenseCategories-list.jpg",
+    "rows": 5
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-expenseCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "expenseVendors",
+   "label": "Expense vendors",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-expenseVendors-list.jpg",
+    "rows": 16
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-expenseVendors-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "outlets",
+   "label": "Outlets",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-outlets-list.jpg",
+    "rows": 2
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-outlets-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "posTables",
+   "label": "Tables and counters",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-posTables-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-posTables-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "menuCategories",
+   "label": "Menu categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-menuCategories-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-menuCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 3,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "menuItems",
+   "label": "Menu items",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-menuItems-list.jpg",
+    "rows": 21
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-menuItems-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 13,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "bookingSources",
+   "label": "Booking sources",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-bookingSources-list.jpg",
+    "rows": 15
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-bookingSources-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 6,
+     "money": 1
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "idTypes",
+   "label": "Guest ID types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-idTypes-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-idTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "numberSeries",
+   "label": "Numbering series",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-numberSeries-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-numberSeries-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 9,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "policies",
+   "label": "Booking policies",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-policies-list.jpg",
+    "rows": 1
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-policies-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 22,
+     "money": 3
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "complaintCategories",
+   "label": "Complaint categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-complaintCategories-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-complaintCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 5,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "lostFoundCategories",
+   "label": "Lost-and-found categories",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-lostFoundCategories-list.jpg",
+    "rows": 7
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-lostFoundCategories-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "designations",
+   "label": "Designations",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-designations-list.jpg",
+    "rows": 11
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-designations-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 6,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "shiftPatterns",
+   "label": "Shift patterns",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-shiftPatterns-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-shiftPatterns-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 8,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "leaveTypes",
+   "label": "Leave types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-leaveTypes-list.jpg",
+    "rows": 6
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-leaveTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 7,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "holidays",
+   "label": "Holiday calendar",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-holidays-list.jpg",
+    "rows": 8
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-holidays-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": true,
+     "hasSave": true,
+     "fields": 4,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "hkTaskTypes",
+   "label": "Housekeeping task types",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-hkTaskTypes-list.jpg",
+    "rows": 4
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-hkTaskTypes-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 11,
+     "money": 0
+    }
+   },
+   "problems": []
+  },
+  {
+   "vp": "1366",
+   "scale": 1.3,
+   "master": "hkZones",
+   "label": "Housekeeping zones",
+   "list": {
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-hkZones-list.jpg",
+    "rows": 3
+   },
+   "form": {
+    "how": "edit first row",
+    "vw": 1366,
+    "doc": 0,
+    "body": 0,
+    "outside": [],
+    "clipped": [],
+    "small": [],
+    "smallCount": 0,
+    "wide": [],
+    "smallFonts": 0,
+    "shot": "1366-s1.3-hkZones-form.jpg",
+    "actions": {
+     "found": true,
+     "saveVisible": false,
+     "hasSave": true,
+     "fields": 31,
+     "money": 0
+    }
+   },
+   "problems": []
+  }
+ ],
+ "roles": [
+  {
+   "role": "Owner",
+   "vp": "1366",
+   "granted": false,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 1
+     },
+     "shot": "roles-owner-1366-default-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 0
+     },
+     "shot": "roles-owner-1366-default-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 1
+     }
+    }
+   },
+   "shot": "roles-owner-1366-default-hub.jpg"
+  },
+  {
+   "role": "Manager",
+   "vp": "1366",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": false,
+   "shot": "roles-manager-1366-default-hub.jpg"
+  },
+  {
+   "role": "Reception",
+   "vp": "1366",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "",
+    "Modules Home",
+    "Search\nCtrl K",
+    "Sign out",
+    "",
+    "",
+    "",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Scenario:\nFY26\nFY 2026-27 history (Apr–Oct)",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Reset",
+    "Walkthrough",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-reception-1366-default-hub.jpg"
+  },
+  {
+   "role": "Cashier",
+   "vp": "1366",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": false,
+   "shot": "roles-cashier-1366-default-hub.jpg"
+  },
+  {
+   "role": "Supervisor",
+   "vp": "1366",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "",
+    "Modules Home",
+    "Search\nCtrl K",
+    "Sign out",
+    "",
+    "",
+    "",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Scenario:\nFY26\nFY 2026-27 history (Apr–Oct)",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Reset",
+    "Walkthrough",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-supervisor-1366-default-hub.jpg"
+  },
+  {
+   "role": "Housekeeper",
+   "vp": "1366",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "",
+    "Modules Home",
+    "Search\nCtrl K",
+    "Sign out",
+    "",
+    "",
+    "",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Scenario:\nFY26\nFY 2026-27 history (Apr–Oct)",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Reset",
+    "Walkthrough",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-housekeeper-1366-default-hub.jpg"
+  },
+  {
+   "role": "Accountant",
+   "vp": "1366",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": false,
+   "shot": "roles-accountant-1366-default-hub.jpg"
+  },
+  {
+   "role": "Maintenance",
+   "vp": "1366",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "",
+    "Modules Home",
+    "Search\nCtrl K",
+    "Sign out",
+    "",
+    "",
+    "",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Scenario:\nFY26\nFY 2026-27 history (Apr–Oct)",
+    "Auto",
+    "Desktop",
+    "Mobile",
+    "Reset",
+    "Walkthrough",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-maint-1366-default-hub.jpg"
+  },
+  {
+   "role": "Tech admin",
+   "vp": "1366",
+   "granted": false,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Rooms and rate plans",
+    "Money and tax",
+    "Restaurant and POS",
+    "People, payroll and leave",
+    "Compliance obligations"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-techadmin-1366-default-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-techadmin-1366-default-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-techadmin-1366-default-hub.jpg"
+  },
+  {
+   "role": "Owner",
+   "vp": "390",
+   "granted": false,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 1
+     },
+     "shot": "roles-owner-390-default-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 0
+     },
+     "shot": "roles-owner-390-default-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 1
+     }
+    }
+   },
+   "shot": "roles-owner-390-default-hub.jpg"
+  },
+  {
+   "role": "Manager",
+   "vp": "390",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": false,
+   "shot": "roles-manager-390-default-hub.jpg"
+  },
+  {
+   "role": "Reception",
+   "vp": "390",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "Modules Home",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-reception-390-default-hub.jpg"
+  },
+  {
+   "role": "Cashier",
+   "vp": "390",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": false,
+   "shot": "roles-cashier-390-default-hub.jpg"
+  },
+  {
+   "role": "Supervisor",
+   "vp": "390",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "Modules Home",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-supervisor-390-default-hub.jpg"
+  },
+  {
+   "role": "Housekeeper",
+   "vp": "390",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "Modules Home",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-housekeeper-390-default-hub.jpg"
+  },
+  {
+   "role": "Accountant",
+   "vp": "390",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": false,
+   "shot": "roles-accountant-390-default-hub.jpg"
+  },
+  {
+   "role": "Maintenance",
+   "vp": "390",
+   "granted": false,
+   "reachable": false,
+   "groups": 0,
+   "readOnlyGroups": [],
+   "specs": {},
+   "homeAdminTile": true,
+   "adminItems": [
+    "Modules Home",
+    "Appearance & display\nText size, motion, start page, lists, messages (this device)"
+   ],
+   "shot": "roles-maint-390-default-hub.jpg"
+  },
+  {
+   "role": "Tech admin",
+   "vp": "390",
+   "granted": false,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Rooms and rate plans",
+    "Money and tax",
+    "Restaurant and POS",
+    "People, payroll and leave",
+    "Compliance obligations"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-techadmin-390-default-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-techadmin-390-default-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-techadmin-390-default-hub.jpg"
+  },
+  {
+   "role": "Owner",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 1
+     },
+     "shot": "roles-owner-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 0
+     },
+     "shot": "roles-owner-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 1
+     }
+    }
+   },
+   "shot": "roles-owner-1366-granted-hub.jpg"
+  },
+  {
+   "role": "Manager",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-manager-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-manager-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-manager-1366-granted-hub.jpg"
+  },
+  {
+   "role": "Reception",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-reception-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-reception-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-reception-1366-granted-hub.jpg"
+  },
+  {
+   "role": "Cashier",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-cashier-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-cashier-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-cashier-1366-granted-hub.jpg"
+  },
+  {
+   "role": "Supervisor",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 17,
+      "disabledMoney": 1
+     },
+     "shot": "roles-supervisor-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 0,
+      "disabledMoney": 5
+     },
+     "shot": "roles-supervisor-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 9,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 6
+     }
+    }
+   },
+   "shot": "roles-supervisor-1366-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
+  },
+  {
+   "role": "Housekeeper",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 17,
+      "disabledMoney": 1
+     },
+     "shot": "roles-housekeeper-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 0,
+      "disabledMoney": 5
+     },
+     "shot": "roles-housekeeper-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 9,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 6
+     }
+    }
+   },
+   "shot": "roles-housekeeper-1366-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
+  },
+  {
+   "role": "Accountant",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-accountant-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-accountant-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-accountant-1366-granted-hub.jpg"
+  },
+  {
+   "role": "Maintenance",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 17,
+      "disabledMoney": 1
+     },
+     "shot": "roles-maint-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 0,
+      "disabledMoney": 5
+     },
+     "shot": "roles-maint-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 9,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 6
+     }
+    }
+   },
+   "shot": "roles-maint-1366-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
+  },
+  {
+   "role": "Tech admin",
+   "vp": "1366",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Rooms and rate plans",
+    "Money and tax",
+    "Restaurant and POS",
+    "People, payroll and leave",
+    "Compliance obligations"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-techadmin-1366-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-techadmin-1366-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-techadmin-1366-granted-hub.jpg"
+  },
+  {
+   "role": "Owner",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 1
+     },
+     "shot": "roles-owner-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 0
+     },
+     "shot": "roles-owner-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 12,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 1
+     }
+    }
+   },
+   "shot": "roles-owner-390-granted-hub.jpg"
+  },
+  {
+   "role": "Manager",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-manager-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-manager-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-manager-390-granted-hub.jpg"
+  },
+  {
+   "role": "Reception",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-reception-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-reception-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-reception-390-granted-hub.jpg"
+  },
+  {
+   "role": "Cashier",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-cashier-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-cashier-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-cashier-390-granted-hub.jpg"
+  },
+  {
+   "role": "Supervisor",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 17,
+      "disabledMoney": 1
+     },
+     "shot": "roles-supervisor-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 0,
+      "disabledMoney": 5
+     },
+     "shot": "roles-supervisor-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 9,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 6
+     }
+    }
+   },
+   "shot": "roles-supervisor-390-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
+  },
+  {
+   "role": "Housekeeper",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 17,
+      "disabledMoney": 1
+     },
+     "shot": "roles-housekeeper-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 0,
+      "disabledMoney": 5
+     },
+     "shot": "roles-housekeeper-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 9,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 6
+     }
+    }
+   },
+   "shot": "roles-housekeeper-390-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
+  },
+  {
+   "role": "Accountant",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-accountant-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-accountant-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-accountant-390-granted-hub.jpg"
+  },
+  {
+   "role": "Maintenance",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Property and branding",
+    "Rooms and rate plans",
+    "Front-desk policies",
+    "Money and tax",
+    "Restaurant and POS",
+    "Housekeeping and maintenance",
+    "People, payroll and leave",
+    "Compliance obligations",
+    "Modules on/off",
+    "Users, roles and PINs",
+    "Messages and documents",
+    "Data and system"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 17,
+      "disabledMoney": 1
+     },
+     "shot": "roles-maint-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 0,
+      "disabledMoney": 5
+     },
+     "shot": "roles-maint-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": true,
+      "inputs": 9,
+      "disabledMoney": 1
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [],
+      "ownerOnlyNotes": 0,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 6
+     }
+    }
+   },
+   "shot": "roles-maint-390-granted-hub.jpg",
+   "rupee": {
+    "Rooms and rate plans": [
+     "₹ ••"
+    ],
+    "Front-desk policies": [
+     "₹ ••"
+    ],
+    "Money and tax": [
+     "₹ ••",
+     "Discount ₹ •• · rate 15% · cas",
+     "h diff ₹ •• · credit ₹ •• · expense ₹ ••"
+    ],
+    "Restaurant and POS": [
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not",
+     "Beverages · ₹ ••. Off = “86”, not"
+    ],
+    "People, payroll and leave": [
+     "ployer 13% on basic capped at ₹ •• (SCC). Illustrat",
+     "₹ ••",
+     "r from the contractual wage ≤ ₹ •• kept to the peri"
+    ]
+   }
+  },
+  {
+   "role": "Tech admin",
+   "vp": "390",
+   "granted": true,
+   "reachable": true,
+   "groups": 12,
+   "readOnlyGroups": [
+    "Rooms and rate plans",
+    "Money and tax",
+    "Restaurant and POS",
+    "People, payroll and leave",
+    "Compliance obligations"
+   ],
+   "specs": {
+    "roomTypes": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 19,
+      "disabledMoney": 2
+     },
+     "shot": "roles-techadmin-390-granted-roomTypes.jpg"
+    },
+    "occupancyCharges": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 3,
+      "rupeeLabels": [
+       "Amount (₹)",
+       "Amount (₹)",
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 3,
+      "saveBtn": false,
+      "inputs": 6,
+      "disabledMoney": 8
+     },
+     "shot": "roles-techadmin-390-granted-occupancyCharges.jpg"
+    },
+    "menuItems": {
+     "visible": true,
+     "lock": null,
+     "addShown": true,
+     "form": {
+      "dated": 1,
+      "rupeeLabels": [
+       "Amount (₹)"
+      ],
+      "ownerOnlyNotes": 2,
+      "saveBtn": true,
+      "inputs": 11,
+      "disabledMoney": 2
+     }
+    },
+    "bankAccounts": {
+     "visible": true,
+     "lock": "Owner changes this — money lists and money fields are Owner-only (DEC-058).",
+     "addShown": false,
+     "form": {
+      "dated": 0,
+      "rupeeLabels": [
+       "Opening balance (₹)"
+      ],
+      "ownerOnlyNotes": 1,
+      "saveBtn": false,
+      "inputs": 4,
+      "disabledMoney": 7
+     }
+    }
+   },
+   "shot": "roles-techadmin-390-granted-hub.jpg"
+  }
+ ],
+ "func": [
+  {
+   "name": "Rooms: range add refuses a taken number with a reason",
+   "ok": true,
+   "detail": "Room 101 already exists."
+  },
+  {
+   "name": "Rooms: Add button names the range and is a 48 px target",
+   "ok": true,
+   "detail": "Add 401–403 (3 rooms) 48 px"
+  },
+  {
+   "name": "Rooms: 401–403 added",
+   "ok": true,
+   "detail": "Added 401–403 (3 rooms) | Rooms 27 rooms",
+   "shot": "func-390-rooms-range-add.jpg"
+  },
+  {
+   "name": "Rooms: Renumber and Set out of order tools present",
+   "ok": true
+  },
+  {
+   "name": "Floors: reorder by arrow button moves the row and saves",
+   "ok": true,
+   "detail": "Floor 1 → Floor 2; Order saved",
+   "shot": "func-390-floors-reorder.jpg"
+  },
+  {
+   "name": "Room types: dated-money Add amount is a 48 px target",
+   "ok": true,
+   "detail": "48 px"
+  },
+  {
+   "name": "Room types: dated-money sub-form adds an amount with an effective date",
+   "ok": true,
+   "detail": "1 → 2 rows",
+   "shot": "func-390-roomtypes-dated-money.jpg"
+  },
+  {
+   "name": "Room types: multiselect (amenities) toggles from a 44 px+ row",
+   "ok": true,
+   "detail": "row 54 px",
+   "shot": "func-390-roomtypes-multiselect.jpg"
+  },
+  {
+   "name": "Room types: save closes the sheet and confirms",
+   "ok": true,
+   "detail": "Room type saved · history recorded"
+  },
+  {
+   "name": "Floors: empty Add shows inline validation",
+   "ok": true,
+   "detail": "Enter a code.",
+   "shot": "func-390-floors-validation.jpg"
+  },
+  {
+   "name": "Floors: add saves, sheet closes",
+   "ok": true,
+   "detail": "Terrace added"
+  },
+  {
+   "name": "Floors: retire from the sheet",
+   "ok": true,
+   "detail": "Retired 1; Terrace retired · old records keep the name"
+  },
+  {
+   "name": "Floors: retired row form shows the reactivate path and a Delete (never used)",
+   "ok": true,
+   "detail": "",
+   "shot": "func-390-floors-retired-sheet.jpg"
+  },
+  {
+   "name": "Floors: unused row deletes",
+   "ok": true,
+   "detail": "Terrace deleted"
+  },
+  {
+   "name": "Back button closes the sheet and stays in Master configuration (History API)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "Floors: a floor in use offers Retire, not Delete",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "consoleErrors": []
+}

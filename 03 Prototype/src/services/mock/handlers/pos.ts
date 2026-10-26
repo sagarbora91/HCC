@@ -9,7 +9,7 @@ import {gstLineTax,gstSplit} from '../../../domain/gst';
 import {rbacIsRestaurant} from '../../../domain/streams/rbac';
 import {cfgValueOn} from '../../../domain/streams/config';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
-import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,posFyCode,posRstNo,posBuyerOf,
+import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,posBuyerOf,
   POS_VOID_LIMIT,POS_APPROVAL_TTL_MINUTES,POS_RST_SAC} from '../../../domain/streams/pos';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyNames} from '../../../domain/streams/money-master';
 import {mstFail} from '../../../domain/streams/masters';
@@ -31,7 +31,9 @@ const outletName=(k:Kit,o:POSOrder)=>slice(k).outlets.find(x=>x.id===o.outlet)?.
 /** DEC-072: numbers the bill's tax invoice in the RST series of the business date's FY (the next number, never reused) with the bill's own
  *  CGST / SGST, SAC 996331 and the hotel GSTIN on documents (Master configuration brand.gstin; fictional in the demo). */
 function issueRst(k:Kit,st:POSSettlement,supply:'B2C'|'B2B',buyer?:POSSettlement['buyer']){
-  const p=slice(k),fy=posFyCode(k.s.date),seq=((p.rstSeq??={})[fy]??0)+1,invoiceNo=posRstNo(fy,seq);p.rstSeq[fy]=seq;
+  slice(k); // posX exists before the series counts in posX.rstSeq
+  // MA-11: the RST series is a row of the numbering-series master (MA-5) — the seeded row continues posX.rstSeq (RST/2627/0000001…).
+  const invoiceNo=fdmAllocate(k.s,'RST');
   const x=gstSplit(st.tax),gstin=String(cfgValueOn(k.s,'brand.gstin')??'').trim();
   Object.assign(st,{invoiceNo,supply,...(buyer?{buyer}:{}),cgst:x.cgst,sgst:x.sgst,sac:POS_RST_SAC,...(gstin?{hotelGstin:gstin}:{})});
   return invoiceNo;

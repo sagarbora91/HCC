@@ -47,9 +47,10 @@ public sealed class MoneyMastersQueries(IAccessPolicy policy, IMoneyMastersReadS
 
     public async Task<PaymentMethodList> PaymentMethodsAsync(int propertyId, int principalId, int? page = null, int? pageSize = null, string? status = null, CancellationToken ct = default)
     {
-        _ = principalId; // session checked by the endpoint group; methods carry no money amounts and no guest data
+        // MA-11: the surcharge % is money (DEC-061): null for Supervisor / Housekeeping / Maintenance / Tech admin / Restaurant.
+        var money = await Masters.MastersMoney.SeesMoneyAsync(policy, propertyId, principalId, ct).ConfigureAwait(false);
         var (rows, total, usage, p) = await PageAsync(propertyId, MoneyMasterIds.PaymentMethods, page, pageSize, status, ct).ConfigureAwait(false);
-        return new PaymentMethodList(p.Page, p.PageSize, total, rows.Select(r => MoneyMastersCommands.PaymentMethodView(r, usage.GetValueOrDefault(r.Id))).ToList());
+        return new PaymentMethodList(p.Page, p.PageSize, total, rows.Select(r => MoneyMastersCommands.PaymentMethodView(r, usage.GetValueOrDefault(r.Id), money)).ToList());
     }
 
     public async Task<BankAccountList> BankAccountsAsync(int propertyId, int principalId, int? page = null, int? pageSize = null, string? status = null, CancellationToken ct = default)
@@ -61,9 +62,9 @@ public sealed class MoneyMastersQueries(IAccessPolicy policy, IMoneyMastersReadS
 
     public async Task<ExpenseCategoryList> ExpenseCategoriesAsync(int propertyId, int principalId, int? page = null, int? pageSize = null, string? status = null, CancellationToken ct = default)
     {
-        _ = principalId;
+        var money = await Masters.MastersMoney.SeesMoneyAsync(policy, propertyId, principalId, ct).ConfigureAwait(false); // MA-11: approval limit is money
         var (rows, total, usage, p) = await PageAsync(propertyId, MoneyMasterIds.ExpenseCategories, page, pageSize, status, ct).ConfigureAwait(false);
-        return new ExpenseCategoryList(p.Page, p.PageSize, total, rows.Select(r => MoneyMastersCommands.ExpenseCategoryView(r, usage.GetValueOrDefault(r.Id))).ToList());
+        return new ExpenseCategoryList(p.Page, p.PageSize, total, rows.Select(r => MoneyMastersCommands.ExpenseCategoryView(r, usage.GetValueOrDefault(r.Id), money)).ToList());
     }
 
     public async Task<ExpenseVendorList> ExpenseVendorsAsync(int propertyId, int principalId, int? page = null, int? pageSize = null, string? status = null, CancellationToken ct = default)

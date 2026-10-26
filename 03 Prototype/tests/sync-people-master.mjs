@@ -75,7 +75,7 @@ export async function register({test,M,assert}){
   test('[PPL-SYNC] Read gates and capabilities: the four lists are readable by every signed-in role, their history needs PERM-MST-001',()=>{
     const reads=readFileSource('src/clients/sync/reads.ts');
     for(const r of ['designations','shift-patterns','leave-types','holidays']){assert.match(reads,new RegExp(`'GET /hr/${r}':always`));assert.match(reads,new RegExp(`'GET /hr/${r}/history':one\\(wide\\('PERM-MST-001'\\)\\)`));}
-    assert.equal(S.AREAS.find(a=>a.id==='masters').commands.length,5);});
+    assert.equal(S.AREAS.find(a=>a.id==='masters').commands.length,6);}); // MA-8 old → new: 5 → 6 (MST_IMPORT)
 
   test('[PPL-SYNC] Staff: the designation code and any shift code come across; SaveStaff carries the designation code only when one was chosen',()=>{
     const row={staffId:7,name:'Asha',dept:'KIT',designation:'Head chef',defaultShift:'S1',weeklyOff:2,joined:'2025-04-01',exitedOn:null,active:true,linked:false,phoneMasked:'••••1234',version:'v1',

@@ -22,6 +22,8 @@ public static class CatalogueEndpoints
             sp.GetRequiredService<ICatalogueStore>(), sp.GetRequiredService<IMastersStore>(), sp.GetRequiredService<Application.Billing.IBillingStore>(),
             sp.GetRequiredService<IGstRateResolver>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<IGstChargeSnapshots>()));
         services.AddSingleton<CatalogueQueries>();
+        services.AddSingleton<Application.Closing.IMealPlanNightPoster, MealPlanNightPoster>();          // MA-11: close night step posts plan lines
+        services.AddSingleton<Application.Billing.IRoomNightBundle, Infrastructure.SqlServer.Catalogue.SqlRoomNightBundle>(); // MA-11: bundled slab
         return services;
     }
 

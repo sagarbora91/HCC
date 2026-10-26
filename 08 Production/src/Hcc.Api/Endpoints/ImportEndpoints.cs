@@ -2,13 +2,14 @@ using Hcc.Application.Import;
 using Hcc.Contracts.Import;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Import;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Masters &amp; opening balances import (W4-13): <c>POST /api/v1/commands/{UploadImportBatch|CommitImportBatch}</c> (Idempotency-Key) and
 /// <c>GET /api/v1/import/masters</c> (templates + setup state), <c>/import/batches[?limit=]</c>, <c>/import/batches/{id}</c> (fresh validation + preview),
-/// <c>/import/opening-balances</c>, <c>/import/ledgers</c>.
+/// <c>/import/opening-balances</c>, <c>/import/ledgers</c>, <c>/import/masters/{master}/export</c> (MA-8: a master's rows as the import file).
 /// </summary>
 public static class ImportEndpoints
 {
@@ -17,6 +18,8 @@ public static class ImportEndpoints
         services.AddSingleton<IImportStore>(sp => new SqlImportStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IImportInventoryWriter, SqlImportInventoryWriter>();
         services.AddSingleton<IImportAccessWriter, SqlImportAccessWriter>();
+        services.TryAddSingleton<Hcc.Application.FrontDeskMasters.IFrontDeskMastersStore, Hcc.Infrastructure.SqlServer.FrontDeskMasters.SqlFrontDeskMastersStore>(); // the list writer stores the front-desk defaults like the module itself
+        services.AddSingleton<IImportListWriter>(sp => new SqlImportListWriter(sp.GetRequiredService<Hcc.Application.FrontDeskMasters.IFrontDeskMastersStore>(), sp.GetService<Hcc.Application.Configuration.ISettingsReader>()));
         services.AddSingleton<ImportService>();
         services.AddSingleton<IOpeningBalanceSource>(sp => sp.GetRequiredService<ImportService>());
         return services;
@@ -34,6 +37,11 @@ public static class ImportEndpoints
         {
             var (property, principal) = http.HccActor();
             return Results.Ok(await s.MastersAsync(property, principal, ct));
+        });
+        g.MapGet("/import/masters/{master}/export", async (HttpContext http, ImportService s, string master, CancellationToken ct) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await s.ExportAsync(property, principal, master, ct));
         });
         g.MapGet("/import/batches", async (HttpContext http, ImportService s, CancellationToken ct, int limit = 50) =>
         {
