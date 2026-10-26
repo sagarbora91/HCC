@@ -90,7 +90,9 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   segments?:{room:string;from:string;to?:string}[];
 
   // ── Booking · stream C fields (add below this line) ──
-  company?:{name:string;gstin?:string};
+  /** `account` (DEC-076) = the stay is billed to that company account (Groups & corporate › Companies): it counts in the company's credit
+   *  exposure and may go on company credit. Without it the company is invoice details only (the guest pays). */
+  company?:{name:string;gstin?:string;account?:string};
   /** Sample invoice number, allocated once at checkout (DEMO/2026-27/NNNN). */
   invoiceNo?:string;
   /** Sample credit notes issued after departure. */

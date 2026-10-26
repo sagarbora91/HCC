@@ -51,6 +51,20 @@
 .grp-credit-box div{display:flex;flex-direction:column;gap:3px;color:#2b1d16}
 .grp-credit-box.near{border-left-color:#b07a1e}
 .grp-credit-box.over{border-left-color:#9a3b2a;background:#fdf3f0}
+/* DEC-076 company credit: refusal text, account link (checkout), account picker (new booking) */
+.grp-refusal{color:#8a2f20;display:flex;gap:6px;align-items:flex-start;line-height:1.45}
+.grp-refusal svg{flex:none;margin-top:2px}
+.grp-credit-line{color:#2b1d16}
+.grp-link{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:6px}
+.grp-link label,.grp-acct label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#6b5547;flex:1;min-width:200px}
+.grp-link select,.grp-acct select{border:1px solid #cdb9a3;border-radius:6px;padding:6px 8px;background:#fff;color:#2b1d16}
+.grp-acct{display:flex;flex-direction:column;gap:6px}
+.grp-acct small{font-size:12px;color:#6b5547;display:flex;gap:6px;align-items:flex-start}
+.grp-acct small.grp-refusal{color:#8a2f20}
+.grp-link-m,.grp-acct-m{flex-direction:column;align-items:stretch}
+.grp-link-m label,.grp-acct-m label{font-size:14px;min-width:0;width:100%}
+.grp-link-m select,.grp-link-m .btn,.grp-acct-m select{min-height:48px;font-size:16px;justify-content:center}
+.grp-acct-m small{font-size:14px}
 .grp-print-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
 .grp-print-head h2{margin:4px 0}
 .grp-print-head p{margin:0;font-size:13px;color:#6b5547}

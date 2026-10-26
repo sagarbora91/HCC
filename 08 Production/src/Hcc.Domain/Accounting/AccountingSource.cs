@@ -92,6 +92,15 @@ public static class SourceRules
             inflow ? [Dr(t, amountPaise), Cr(counter, amountPaise)] : [Dr(counter, amountPaise), Cr(t, amountPaise)]);
     }
 
+    /// <summary>
+    /// DEC-076: money received from a company against its company-credit receivable = Receipt (Dr tender · Cr company receivables, the
+    /// <c>receipt:company-credit</c> ledger the checkout's company credit debited). Sub <c>company-payment</c>, so the daily company-credit
+    /// reconciliation (Sub <c>company-credit</c>) is unchanged.
+    /// </summary>
+    public static AccountingSource CompanyPayment(string sourceKey, string tender, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Receipt, "company-payment", date, VoucherType.Receipt, narration,
+            [Dr("method:" + tender, amountPaise), Cr("receipt:company-credit", amountPaise)]);
+
     /// <summary>Outlet bill settled at the outlet (DEC-052): Sales, Dr tender total · Cr outlet revenue net · Cr CGST · Cr SGST. A void is negative.</summary>
     public static AccountingSource PosBill(string sourceKey, string kind, string tender, DateOnly date, long totalPaise, long netPaise, long cgst, long sgst, string narration)
     {

@@ -62,8 +62,9 @@ public interface ICashDrawerPort
 
 // ── Store port (implemented by Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore) ──
 
+/// <summary><see cref="CompanyId"/> = the company account the reservation is billed to (DEC-076; null = the guest pays, or a free-text company).</summary>
 public sealed record FolioHeader(long FolioId, int PropertyId, long ReservationId, string ReservationStatus, DateOnly Arrival, DateOnly Departure,
-    DateOnly BusinessDate, string Version)
+    DateOnly BusinessDate, string Version, long? CompanyId = null)
 {
     public bool IsOpen => ReservationStatus is "Confirmed" or "InHouse";
 }
@@ -71,8 +72,9 @@ public sealed record FolioHeader(long FolioId, int PropertyId, long ReservationI
 public sealed record NewCharge(long FolioId, ChargeKind Kind, DateOnly ServiceDate, string Label, Paise Amount, int TaxBps, Paise Tax,
     long? ReversesChargeId, long? ApprovalId, int PrincipalId, DateTime PostedUtc);
 
+/// <summary><see cref="CompanyId"/>: a company-credit receipt executed for a stay billed to a company account (DEC-076: the company's receivable).</summary>
 public sealed record NewReceipt(long FolioId, ReceiptKind Kind, string Tender, Paise Amount, long? RefundOf, DateOnly BusinessDate, int? TillId,
-    long? ShiftId, string Reference, long? ApprovalId, int PrincipalId, DateTime RecordedUtc);
+    long? ShiftId, string Reference, long? ApprovalId, int PrincipalId, DateTime RecordedUtc, long? CompanyId = null);
 
 public sealed record ReceiptLock(long FolioId, PostedReceipt Receipt);
 

@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hcc.Application.Access;
 using Hcc.Application.Commands;
+using Hcc.Application.Groups;
 using Hcc.Application.Inventory;
 using Hcc.Contracts;
 using Hcc.Contracts.Inventory;
@@ -17,9 +18,12 @@ namespace Hcc.Application.Reservations;
 /// CreateReservation, AmendReservation, CancelReservation / MarkNoShow, ConfirmHold and reservation details (contracts §3),
 /// ported from the prototype BOOK / CHANGE_DATES / CANCEL / CONFIRM handlers (03 Prototype/src/services/mock/handlers/reservations.ts):
 /// same check order and messages. Lapsed holds and past-cut-off blocks are swept in a short transaction before each command.
+/// A booking billed to a company account (<c>CompanyInput.CompanyId</c>, DEC-076) is a credit guarantee: with <paramref name="credit"/> wired, the
+/// stay's estimated value (agreed nights + GST, less what the guest paid) must fit the company's remaining credit, or the command is refused and
+/// rolled back (an amendment only when it raises the exposure).
 /// </summary>
 public sealed class ReservationService(IReservationStore reservations, IInventoryStore inventory, InventoryService inventoryService,
-    ICommandRunner runner, IAccessPolicy access, IReservationMoneyCheck money, TimeProvider clock)
+    ICommandRunner runner, IAccessPolicy access, IReservationMoneyCheck money, TimeProvider clock, ICompanyCreditGuard? credit = null)
 {
     public async Task<CommandResult<ReservationResult>> CreateAsync(CommandContext context, CreateReservationRequest request, CancellationToken ct = default)
     {
@@ -38,6 +42,8 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             if (source.Length > 40) throw HccException.Validation("Booking source is too long.");
             var notes = TrimNotes(request.Notes);
             var company = ToCompany(request.Company);
+            var account = await AccountAsync(tx, context.PropertyId, request.Company, c).ConfigureAwait(false);
+            if (account is not null) company = new ReservationCompany(account.Name, account.Gstin, account.CompanyId);
 
             var quote = await UsableQuoteAsync(tx, context.PropertyId, request.QuoteId, quoteVersion, now, c).ConfigureAwait(false);
             StayRules.Stay(StayDates.ToWire(quote.Arrival), StayDates.ToWire(quote.Departure), property.BusinessDate);
@@ -71,6 +77,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
                 new StayAllocation(room.RoomId, room.RoomTypeId, quote.Arrival, quote.Departure, block?.GroupBlockId), quote.Adults, quote.Children,
                 status, holdUntil, block is null ? source : "Group · " + block.Code, quote.QuoteId, nights, overrideNote,
                 JoinNotes(notes, block is null ? null : $"Group block {block.Code} · {block.Name}"), now, company), c).ConfigureAwait(false);
+            if (account is not null) await CompanyCreditCheck.NewAsync(credit!, tx, account, "stay", saved.ReservationId, "booking", c).ConfigureAwait(false);
             await inventory.MarkQuoteUsedAsync(tx, quote.QuoteId, saved.ReservationId, c).ConfigureAwait(false);
 
             var holdText = holdUntil is { } hu ? " · held until " + LocalTime(hu, property.TimeZone) : "";
@@ -119,6 +126,10 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             var reasons = AvailabilityRules.Exclusion(snap, holds, room, a, d, x.Adults + x.Children, x.ReservationId, x.GroupBlockId);
             if (reasons.Count > 0) throw InventoryErrors.NotAvailable("Target room is unavailable for the requested stay.", reasons);
             var company = request.Company is null ? x.Company : ToCompany(request.Company);
+            var account = request.Company is null
+                ? x.Company?.CompanyId is { } kept ? await LockAccountAsync(tx, context.PropertyId, kept, c).ConfigureAwait(false) : null
+                : await AccountAsync(tx, context.PropertyId, request.Company, c).ConfigureAwait(false);
+            if (account is not null) company = new ReservationCompany(account.Name, account.Gstin, account.CompanyId);
             if (room.RoomId == x.RoomId && a == x.Arrival && d == x.Departure && company == x.Company) throw HccException.Validation("Nothing changed. Choose a different room or dates.");
             var overrideNote = await RestrictionsAsync(context, snap, room, a, d, request.RestrictionOverride, c).ConfigureAwait(false);
 
@@ -144,8 +155,10 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             }
 
             var notes = overrideNote is null ? x.Notes : JoinNotes(x.Notes, overrideNote);
+            var before = account is null ? null : await credit!.ExposureAsync(tx, context.PropertyId, account.CompanyId, c).ConfigureAwait(false);
             var saved = await reservations.ChangeAsync(tx, context.PropertyId, x,
                 new ReservationChange(new StayAllocation(room.RoomId, room.RoomTypeId, a, d, x.GroupBlockId), rate, quoteId, nights, notes, company), c).ConfigureAwait(false);
+            if (account is not null) await CompanyCreditCheck.ChangeAsync(credit!, tx, account, before!, "stay", x.ReservationId, "booking", c).ConfigureAwait(false);
             if (quoteId is { } usedQuote) await inventory.MarkQuoteUsedAsync(tx, usedQuote, x.ReservationId, c).ConfigureAwait(false);
 
             var oldRoom = snap.Rooms.FirstOrDefault(r => r.RoomId == x.RoomId)?.RoomNo ?? x.RoomId.ToString(CultureInfo.InvariantCulture);
@@ -159,6 +172,40 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
                 Arrival = StayDates.ToWire(a),
                 Departure = StayDates.ToWire(d),
             }, c).ConfigureAwait(false);
+            return new ReservationResult(x.ReservationId, x.PublicNo, InventoryErrors.VersionToWire(saved.RowVersion), x.Status,
+                x.HoldUntilUtc is null ? null : InventoryService.ToWireInstant(x.HoldUntilUtc.Value));
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// DEC-076 SetReservationCompany: bill a Held (running), Confirmed or InHouse booking to a company account — refused when it raises the
+    /// company's exposure beyond its credit limit — or make the company invoice details only, or clear it. Room nights are untouched.
+    /// </summary>
+    public async Task<CommandResult<ReservationResult>> SetCompanyAsync(CommandContext context, SetReservationCompanyRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
+        await access.RequireAsync(context.PropertyId, context.PrincipalId, InventoryPermissions.EditReservation, ct: ct).ConfigureAwait(false);
+        var expected = InventoryErrors.ParseVersion(request.ExpectedVersion);
+        var company = ToCompany(request.Company);
+        return await runner.RunAsync(context, request, async (tx, c) =>
+        {
+            var now = clock.GetUtcNow().UtcDateTime;
+            var x = await reservations.GetForUpdateAsync(tx, context.PropertyId, request.ReservationId, c).ConfigureAwait(false) ?? throw InventoryErrors.NotFound("Reservation");
+            if (x.Status != ReservationStatuses.InHouse && x.Status != ReservationStatuses.Confirmed && !ReservationStatusMap.HoldRunning(x.Status, x.HoldUntilUtc, now))
+                throw new HccException(HccErrorCode.INVALID_TRANSITION, "Only a held, confirmed or in-house booking can change the company it is billed to.");
+            if (!InventoryErrors.VersionEquals(x.RowVersion, expected)) throw InventoryErrors.Stale("This reservation");
+            var account = await AccountAsync(tx, context.PropertyId, request.Company, c).ConfigureAwait(false);
+            if (account is not null) company = new ReservationCompany(account.Name, account.Gstin, account.CompanyId);
+            if (company == x.Company) throw HccException.Validation("Nothing changed: the booking already has this company.");
+            var before = account is null ? null : await credit!.ExposureAsync(tx, context.PropertyId, account.CompanyId, c).ConfigureAwait(false);
+            var saved = await reservations.SetCompanyAsync(tx, context.PropertyId, x, company, c).ConfigureAwait(false);
+            if (account is not null) await CompanyCreditCheck.ChangeAsync(credit!, tx, account, before!, "stay", x.ReservationId, "booking", c).ConfigureAwait(false);
+            var what = account is not null ? $"billed to company account {account.Name} ({account.CompanyId.ToString(CultureInfo.InvariantCulture)})"
+                : company is null ? "company cleared" : $"company {company.Name} (invoice details only)";
+            await tx.AuditAsync("SetReservationCompany", x.PublicNo, Clip($"{x.PublicNo} · {what}" + (x.Company?.CompanyId is { } was && was != account?.CompanyId
+                ? $" · was billed to company account {was.ToString(CultureInfo.InvariantCulture)}" : "")), c).ConfigureAwait(false);
+            await tx.PublishAsync("ReservationCompanyChanged", x.ReservationId, new { x.ReservationId, CompanyId = account?.CompanyId }, c).ConfigureAwait(false);
             return new ReservationResult(x.ReservationId, x.PublicNo, InventoryErrors.VersionToWire(saved.RowVersion), x.Status,
                 x.HoldUntilUtc is null ? null : InventoryService.ToWireInstant(x.HoldUntilUtc.Value));
         }, ct).ConfigureAwait(false);
@@ -291,10 +338,27 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
         return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), tz).ToString("HH:mm", CultureInfo.InvariantCulture);
     }
 
-    /// <summary>Company on a booking: name 2–200 characters, optional GSTIN in the 15-character format (upper-cased). An empty name means "no company".</summary>
+    /// <summary>
+    /// DEC-076: the company account a booking is billed to (<see cref="CompanyInput.CompanyId"/>), row-locked for the credit check; null for a
+    /// free-text company. Needs the company-credit guard (production wiring).
+    /// </summary>
+    private async Task<CompanyRow?> AccountAsync(ICommandTransaction tx, int propertyId, CompanyInput? input, CancellationToken ct)
+        => input?.CompanyId is { } id ? await LockAccountAsync(tx, propertyId, id, ct).ConfigureAwait(false) : null;
+
+    private async Task<CompanyRow> LockAccountAsync(ICommandTransaction tx, int propertyId, long companyId, CancellationToken ct)
+    {
+        if (credit is null) throw HccException.Validation("Company accounts are not available on this server.");
+        return await credit.LockAsync(tx, propertyId, companyId, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Company on a booking: name 2–200 characters, optional GSTIN in the 15-character format (upper-cased). An empty name means "no company".
+    /// With a company account (<see cref="CompanyInput.CompanyId"/>) the account's name and GSTIN replace these (see <see cref="AccountAsync"/>).
+    /// </summary>
     private static ReservationCompany? ToCompany(CompanyInput? input)
     {
         if (input is null) return null;
+        if (input.CompanyId is not null) return null; // the account decides the name and GSTIN
         var name = (input.Name ?? "").Trim();
         var gstin = GroupText.Gstin(input.Gstin);
         if (name.Length == 0)

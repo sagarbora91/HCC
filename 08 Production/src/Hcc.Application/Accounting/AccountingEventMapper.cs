@@ -47,6 +47,16 @@ public static class AccountingEventMapper
         return SourceRules.FolioReceipt(ReceiptKey(receiptId), kind, tender, businessDate, amountPaise, narration);
     }
 
+    public static string CompanyPaymentKey(long paymentId) => "company-payment:" + N(paymentId);
+
+    /// <summary>DEC-076: a company's payment against its company-credit receivable (Dr tender · Cr company receivables).</summary>
+    public static AccountingSource CompanyPayment(CompanyPaymentRecordedEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.CompanyPayment(CompanyPaymentKey(e.PaymentId), e.Tender, e.BusinessDate, e.AmountPaise,
+            $"Company payment received · {e.Company} · {e.Tender} · {e.Reference} · payment {N(e.PaymentId)}");
+    }
+
     public static AccountingSource CashDifference(long shiftId, int tillId, DateOnly businessDate, long expectedPaise, long countedPaise)
     {
         var diff = checked(countedPaise - expectedPaise);

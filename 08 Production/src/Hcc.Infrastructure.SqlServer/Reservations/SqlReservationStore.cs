@@ -20,7 +20,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
 {
     private const string Columns = """
         reservation_id, public_no, status, guest_name, room_id, room_type_id, arrival, departure, adults, children, hold_until_utc,
-        nightly_rate_paise, group_block_id, notes, row_ver, company_name, company_gstin
+        nightly_rate_paise, group_block_id, notes, row_ver, company_name, company_gstin, company_id
         """;
 
     public async Task<ReservationRecord?> GetForUpdateAsync(ICommandTransaction tx, int propertyId, long reservationId, CancellationToken ct = default)
@@ -31,7 +31,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
         await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await rd.ReadAsync(ct).ConfigureAwait(false) || rd.IsDBNull(4)) return null;
         return new ReservationRecord(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt32(4), rd.GetInt32(5), rd.GetDate(6),
-            rd.GetDate(7), rd.GetByte(8), rd.GetByte(9), rd.GetUtcOrNull(10), rd.GetInt64OrNull(11), rd.GetInt64OrNull(12), rd.GetStringOrNull(13), (byte[])rd[14], CompanyOf(rd.GetStringOrNull(15), rd.GetStringOrNull(16)));
+            rd.GetDate(7), rd.GetByte(8), rd.GetByte(9), rd.GetUtcOrNull(10), rd.GetInt64OrNull(11), rd.GetInt64OrNull(12), rd.GetStringOrNull(13), (byte[])rd[14], CompanyOf(rd.GetStringOrNull(15), rd.GetStringOrNull(16), rd.GetInt64OrNull(17)));
     }
 
     public async Task<SavedReservation> InsertAsync(ICommandTransaction tx, NewReservation r, CancellationToken ct = default)
@@ -43,9 +43,10 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
         await using (var ins = s.Command("""
             DECLARE @no VARCHAR(20) = CONCAT('HCC-', NEXT VALUE FOR inv.seq_reservation_no);
             INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status, hold_until_utc, created_utc, room_id, room_type_id,
-              adults, children, phone, source, nightly_rate_paise, quote_id, group_block_id, restriction_override, notes, created_by, status_utc, company_name, company_gstin)
+              adults, children, phone, source, nightly_rate_paise, quote_id, group_block_id, restriction_override, notes, created_by, status_utc, company_name, company_gstin,
+              company_id)
             OUTPUT INSERTED.reservation_id, INSERTED.public_no
-            VALUES (@p, @no, @g, @a, @d, @st, @hold, @now, @room, @type, @ad, @ch, @phone, @src, @rate, @quote, @block, @ovr, @notes, @u, @now, @cname, @cgstin);
+            VALUES (@p, @no, @g, @a, @d, @st, @hold, @now, @room, @type, @ad, @ch, @phone, @src, @rate, @quote, @block, @ovr, @notes, @u, @now, @cname, @cgstin, @cid);
             """))
         {
             ins.Parameters.Int("@p", r.PropertyId);
@@ -69,6 +70,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
             ins.Parameters.Int("@u", r.PrincipalId);
             ins.Parameters.Text("@cname", r.Company?.Name, 200);
             ins.Parameters.Add("@cgstin", SqlDbType.VarChar, 15).Value = (object?)r.Company?.Gstin ?? DBNull.Value;
+            ins.Parameters.Add("@cid", SqlDbType.BigInt).Value = (object?)r.Company?.CompanyId ?? DBNull.Value;
             await using var rd = await ins.ExecuteReaderAsync(ct).ConfigureAwait(false);
             await rd.ReadAsync(ct).ConfigureAwait(false);
             (id, publicNo) = (rd.GetInt64(0), rd.GetString(1));
@@ -100,7 +102,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
         byte[] ver;
         await using (var up = s.Command("""
             UPDATE inv.reservation SET room_id = @room, room_type_id = @type, arrival = @a, departure = @d, nightly_rate_paise = @rate,
-              quote_id = COALESCE(@quote, quote_id), notes = @notes, company_name = @cname, company_gstin = @cgstin
+              quote_id = COALESCE(@quote, quote_id), notes = @notes, company_name = @cname, company_gstin = @cgstin, company_id = @cid
             OUTPUT INSERTED.row_ver WHERE reservation_id = @r AND row_ver = @v;
             """))
         {
@@ -113,6 +115,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
             up.Parameters.Text("@notes", change.Notes, 400);
             up.Parameters.Text("@cname", change.Company?.Name, 200);
             up.Parameters.Add("@cgstin", SqlDbType.VarChar, 15).Value = (object?)change.Company?.Gstin ?? DBNull.Value;
+            up.Parameters.Add("@cid", SqlDbType.BigInt).Value = (object?)change.Company?.CompanyId ?? DBNull.Value;
             up.Parameters.Big("@r", current.ReservationId);
             up.Parameters.Version("@v", current.RowVersion);
             var o = await up.ExecuteScalarAsync(ct).ConfigureAwait(false);
@@ -128,6 +131,22 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
 
         await WriteNightsAsync(s, current.ReservationId, change.Nights, ct).ConfigureAwait(false);
         return new SavedReservation(current.ReservationId, current.PublicNo, ver);
+    }
+
+    public async Task<SavedReservation> SetCompanyAsync(ICommandTransaction tx, int propertyId, ReservationRecord current, ReservationCompany? company, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        await using var up = SqlScope.Of(tx, connections).Command(
+            "UPDATE inv.reservation SET company_name = @cname, company_gstin = @cgstin, company_id = @cid OUTPUT INSERTED.row_ver WHERE reservation_id = @r AND property_id = @p AND row_ver = @v;");
+        up.Parameters.Text("@cname", company?.Name, 200);
+        up.Parameters.Add("@cgstin", SqlDbType.VarChar, 15).Value = (object?)company?.Gstin ?? DBNull.Value;
+        up.Parameters.Add("@cid", SqlDbType.BigInt).Value = (object?)company?.CompanyId ?? DBNull.Value;
+        up.Parameters.Big("@r", current.ReservationId);
+        up.Parameters.Int("@p", propertyId);
+        up.Parameters.Version("@v", current.RowVersion);
+        var o = await up.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        SqlValues.EnsureVersionMatched(o is null ? 0 : 1, "This reservation");
+        return new SavedReservation(current.ReservationId, current.PublicNo, (byte[])o!);
     }
 
     public async Task<SavedReservation> SetStatusAsync(ICommandTransaction tx, int propertyId, ReservationRecord current, string status, string? reason,
@@ -165,7 +184,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
         await using var q = connections.Command("""
             SELECT r.reservation_id, r.public_no, r.row_ver, r.status, r.guest_name, r.phone, r.room_id, rm.room_no, r.room_type_id, t.code,
               r.arrival, r.departure, r.adults, r.children, r.source, r.nightly_rate_paise, r.hold_until_utc, r.group_block_id,
-              r.restriction_override, r.cancel_reason, r.notes, r.company_name, r.company_gstin
+              r.restriction_override, r.cancel_reason, r.notes, r.company_name, r.company_gstin, r.company_id
             FROM inv.reservation r JOIN inv.room rm ON rm.room_id = r.room_id JOIN inv.room_type t ON t.room_type_id = r.room_type_id
             WHERE r.reservation_id = @r AND r.property_id = @p;
             SELECT night, rate_paise, tax_bps, tax_paise FROM inv.reservation_night WHERE reservation_id = @r ORDER BY night;
@@ -181,7 +200,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
             Id = rd.GetInt64(0), No = rd.GetString(1), Ver = (byte[])rd[2], Guest = rd.GetString(4), Phone = rd.GetStringOrNull(5), RoomId = rd.GetInt32(6),
             RoomNo = rd.GetString(7), TypeId = rd.GetInt32(8), Type = rd.GetString(9), A = rd.GetDate(10), D = rd.GetDate(11), Ad = (int)rd.GetByte(12),
             Ch = (int)rd.GetByte(13), Src = rd.GetString(14), Rate = rd.GetInt64OrNull(15), Block = rd.GetInt64OrNull(17), Ovr = rd.GetStringOrNull(18),
-            Cancel = rd.GetStringOrNull(19), Notes = rd.GetStringOrNull(20), Company = CompanyOf(rd.GetStringOrNull(21), rd.GetStringOrNull(22)),
+            Cancel = rd.GetStringOrNull(19), Notes = rd.GetStringOrNull(20), Company = CompanyOf(rd.GetStringOrNull(21), rd.GetStringOrNull(22), rd.GetInt64OrNull(23)),
         };
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var nights = new List<ReservationNight>();
@@ -233,7 +252,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
               r.arrival, r.departure, r.adults, r.children, r.source, r.nightly_rate_paise, r.hold_until_utc, r.group_block_id,
               r.restriction_override, r.cancel_reason, r.notes,
               COALESCE(s.guest_id, g.guest_id), CASE WHEN g.reservation_id IS NULL THEN 0 ELSE 1 END, s.stay_id, s.row_ver, s.status, s.checked_in_date, s.checked_out_date,
-              r.company_name, r.company_gstin
+              r.company_name, r.company_gstin, r.company_id
             FROM #pg pg JOIN inv.reservation r ON r.reservation_id = pg.reservation_id
               JOIN inv.room rm ON rm.room_id = r.room_id JOIN inv.room_type t ON t.room_type_id = r.room_type_id
               LEFT JOIN gst.registration g ON g.reservation_id = r.reservation_id
@@ -278,7 +297,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
                 holdUntil is null ? null : InventoryService.ToWireInstant(holdUntil.Value), rd.GetInt64OrNull(17), rd.GetStringOrNull(18), rd.GetStringOrNull(19), rd.GetStringOrNull(20),
                 rd.GetInt64OrNull(21), rd.GetInt32(22) == 1, rd.GetInt64OrNull(23), rd.IsDBNull(24) ? null : InventoryErrors.VersionToWire((byte[])rd[24]), rd.GetStringOrNull(25),
                 checkedIn is null ? null : Domain.Dates.StayDates.ToWire(checkedIn.Value), checkedOut is null ? null : Domain.Dates.StayDates.ToWire(checkedOut.Value), [],
-                CompanyOf(rd.GetStringOrNull(28), rd.GetStringOrNull(29))), rd.GetInt64(0)));
+                CompanyOf(rd.GetStringOrNull(28), rd.GetStringOrNull(29), rd.GetInt64OrNull(30))), rd.GetInt64(0)));
         }
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var segments = new Dictionary<long, List<ReservationStaySegment>>();
@@ -293,7 +312,7 @@ public sealed class SqlReservationStore(SqlConnectionFactory connections) : IRes
         return new ReservationList(businessDate, total, query.Page, query.PageSize, items);
     }
 
-    private static ReservationCompany? CompanyOf(string? name, string? gstin) => string.IsNullOrEmpty(name) ? null : new ReservationCompany(name, gstin);
+    private static ReservationCompany? CompanyOf(string? name, string? gstin, long? companyId) => string.IsNullOrEmpty(name) ? null : new ReservationCompany(name, gstin, companyId);
 
     private static async Task WriteNightsAsync(SqlScope s, long reservationId, IReadOnlyList<PricedNight> nights, CancellationToken ct)
     {

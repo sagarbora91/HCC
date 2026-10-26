@@ -21,7 +21,7 @@ namespace Hcc.Infrastructure.SqlServer.Groups;
 public sealed class SqlGroupStore(SqlConnectionFactory connections) : IGroupStore
 {
     private const string GroupColumns = "group_id, property_id, code, name, group_block_id, organiser, billing_name, billing_contact, billing_phone, billing_email, "
-        + "billing_address, gstin, attrition_allowance_bps, attrition_rate_bps, status, created_by, row_ver";
+        + "billing_address, gstin, attrition_allowance_bps, attrition_rate_bps, status, created_by, row_ver, company_id";
 
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
         tx as SqlCommandTransaction ?? throw new InvalidOperationException("The Groups SQL store needs the SQL command transaction.");
@@ -56,7 +56,7 @@ public sealed class SqlGroupStore(SqlConnectionFactory connections) : IGroupStor
     }
 
     private static GroupRow ReadGroup(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), L(rd, 4), rd.GetString(5), rd.GetString(6),
-        rd.GetString(7), S(rd, 8), S(rd, 9), S(rd, 10), S(rd, 11), rd.GetInt32(12), rd.GetInt32(13), rd.GetString(14), rd.GetInt32(15), V(rd, 16));
+        rd.GetString(7), S(rd, 8), S(rd, 9), S(rd, 10), S(rd, 11), rd.GetInt32(12), rd.GetInt32(13), rd.GetString(14), rd.GetInt32(15), V(rd, 16), L(rd, 17));
 
     private static async Task<GroupRow?> ReadGroupAsync(SqlCommand cmd, CancellationToken ct)
     {
@@ -85,12 +85,13 @@ public sealed class SqlGroupStore(SqlConnectionFactory connections) : IGroupStor
         await using var cmd = Sql(tx).Command($"""
             DECLARE @n BIGINT = NEXT VALUE FOR grp.seq_group_no;
             INSERT grp.group_account(property_id, code, name, group_block_id, organiser, billing_name, billing_contact, billing_phone, billing_email, billing_address,
-              gstin, attrition_allowance_bps, attrition_rate_bps, status, created_by, created_utc)
+              gstin, attrition_allowance_bps, attrition_rate_bps, status, created_by, created_utc, company_id)
             OUTPUT {string.Join(", ", GroupColumns.Split(", ").Select(c => "INSERTED." + c))}
-            VALUES (@p, CONCAT('GRP-', @n), @name, @b, @org, @bn, @bc, @ph, @em, @ad, @gstin, @al, @ar, 'Open', @u, @utc);
+            VALUES (@p, CONCAT('GRP-', @n), @name, @b, @org, @bn, @bc, @ph, @em, @ad, @gstin, @al, @ar, 'Open', @u, @utc, @co);
             """);
         P(cmd, "@p", SqlDbType.Int, group.PropertyId);
         P(cmd, "@b", SqlDbType.BigInt, group.GroupBlockId);
+        P(cmd, "@co", SqlDbType.BigInt, group.CompanyId);
         Bind(cmd, d);
         P(cmd, "@u", SqlDbType.Int, group.CreatedBy);
         P(cmd, "@utc", SqlDbType.DateTime2, group.CreatedUtc);

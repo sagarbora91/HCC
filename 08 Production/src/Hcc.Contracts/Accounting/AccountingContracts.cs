@@ -25,14 +25,24 @@ public static class AccountingEvents
     public const string PayrollPaid = "PayrollPaid";
     public const string PayRunUnlocked = "PayRunUnlocked";   // W3-b: reversal of that lock's PayrollPosted voucher
 
+    // DEC-076 company credit: money received from a company against its company-credit receivable (Dr tender · Cr company receivables).
+    public const string CompanyPaymentRecorded = "CompanyPaymentRecorded";
+
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
 
     public const string AccountingPeriodUnlocked = "AccountingPeriodUnlocked";
 
     public static readonly IReadOnlyList<string> Consumed =
-        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked];
+        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked,
+            CompanyPaymentRecorded];
 }
+
+/// <summary>
+/// DEC-076: a payment received from a company account against its company-credit receivable (Groups <c>RecordCompanyPayment</c>; tender UPI | Card |
+/// Bank transfer). Booked as a Receipt voucher: Dr the tender · Cr company receivables (the <c>receipt:company-credit</c> ledger).
+/// </summary>
+public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company);
 
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
 public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, string Status, DateOnly BusinessDate, long ExpectedPaise, long CountedPaise);

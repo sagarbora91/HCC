@@ -8,7 +8,8 @@
 //             `kind:'patch'` loader on 'bookings'). Needs `guests` (the e-mail of the linked profile). Without PERM-RES-001 (Cashier) the
 //             bookings come from the money area's GET /cashier/folios (in-house, today's arrivals and departures; D5).
 //   commands  BOOK → [GET /availability] → QuoteStay (key `<action>:quote`) → CreateReservation (key `<action>`); reload `bookings`.
-//             CHANGE_DATES → AmendReservation (price decision keep: the agreed tariff is preserved), CANCEL → CancelReservation or
+//             CHANGE_DATES → AmendReservation (price decision keep: the agreed tariff is preserved), BOOKING_COMPANY → SetReservationCompany
+//             (DEC-076: bill a held / confirmed / in-house booking to a company account, credit-checked; '' = invoice details only), CANCEL → CancelReservation or
 //             MarkNoShow (cmd.noShow), CONFIRM → ConfirmHold. Versions are the server versions recorded at load time.
 //             MOVE (room / departure change of a booking) lives in sync/frontdesk.ts (it is a stay command once the guest is in house).
 //   queries   availability and booking details for the dialogs stay on the typed client (clients/react.tsx useAvailability /
@@ -81,6 +82,15 @@ export const reservations:SyncArea={
       // The company (name + GSTIN) is a server field; only sent when the dialog carries one (a missing company leaves the stored one).
       const co=cmd.company as {name?:string;gstin?:string}|undefined;if(co&&String(co.name??'').trim())body.company={name:String(co.name).trim(),...(String(co.gstin??'').trim()?{gstin:String(co.gstin).trim()}:{})};
       await c.api.command('AmendReservation',body,{expectedVersion:versionOf(c,'booking',id,'Booking')});
+    },
+  },{
+    // DEC-076 → SetReservationCompany: the account's name and GSTIN; unlinking keeps the company as invoice details only. The server checks the limit.
+    // (The company book's figures follow on the next groups refresh: groupsX belongs to the money area.)
+    type:'BOOKING_COMPANY',reload:['bookings'],
+    async send(c){
+      const cmd=c.cmd,id=String(cmd.id),b=bookingOf(c,id),account=String(cmd.account??'');
+      const company=account?{name:'',companyId:serverId(account,'Company')}:b.company?.name?{name:b.company.name,...(b.company.gstin?{gstin:b.company.gstin}:{})}:null;
+      await c.api.command('SetReservationCompany',{reservationId:serverId(id,'Booking'),company},{expectedVersion:versionOf(c,'booking',id,'Booking')});
     },
   },{
     // Cancel (also a running hold) or record a no-show (cmd.noShow) → CancelReservation / MarkNoShow.

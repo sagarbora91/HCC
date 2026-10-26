@@ -6,7 +6,7 @@ using Hcc.Infrastructure.SqlServer.Reservations;
 namespace Hcc.Api;
 
 /// <summary>
-/// Reservation endpoints (P2): POST /commands/CreateReservation, AmendReservation, CancelReservation, MarkNoShow, ConfirmHold;
+/// Reservation endpoints (P2): POST /commands/CreateReservation, AmendReservation, SetReservationCompany (DEC-076), CancelReservation, MarkNoShow, ConfirmHold;
 /// GET /reservations/{id}; GET /reservations?view&from&to&status&q&page&pageSize (W4-1 front-desk list). Every route requires a session; every command needs Idempotency-Key; versioned commands carry
 /// expectedVersion in the body.
 /// </summary>
@@ -29,6 +29,8 @@ public static class ReservationsEndpoints
             http.HccReply(await svc.CreateAsync(http.HccCommand("CreateReservation"), body, ct)));
         g.MapPost("/commands/AmendReservation", async (HttpContext http, ReservationService svc, AmendReservationRequest body, CancellationToken ct) =>
             http.HccReply(await svc.AmendAsync(http.HccCommand("AmendReservation"), body, ct)));
+        g.MapPost("/commands/SetReservationCompany", async (HttpContext http, ReservationService svc, SetReservationCompanyRequest body, CancellationToken ct) =>
+            http.HccReply(await svc.SetCompanyAsync(http.HccCommand("SetReservationCompany"), body, ct)));
         g.MapPost("/commands/CancelReservation", async (HttpContext http, ReservationService svc, CancelReservationRequest body, CancellationToken ct) =>
             http.HccReply(await svc.CancelAsync(http.HccCommand("CancelReservation"), body, ct)));
         g.MapPost("/commands/MarkNoShow", async (HttpContext http, ReservationService svc, CancelReservationRequest body, CancellationToken ct) =>

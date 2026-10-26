@@ -28,8 +28,9 @@ export type Quote={quoteId:string;version:string;roomId:string;roomTypeId:string
   expiresAt?:string;violations:QuoteViolation[]};
 
 export type GuestInput={name:string;phone?:string;email?:string};
+/** `company.account` (DEC-076) = bill the stay to that company account (credit-checked); without it the company is invoice details only. */
 export type CreateReservationRequest={quoteId:string;quoteVersion:string;roomId:string;guest:GuestInput;
-  source:string;otaChannel?:string;company?:{name:string;gstin?:string};notes?:string;
+  source:string;otaChannel?:string;company?:{name:string;gstin?:string;account?:string};notes?:string;
   /** Save as a 2-hour hold instead of Confirmed. */
   hold?:boolean;
   /** Approver's reason for overriding a stay restriction (needs the approve grant). */
@@ -39,7 +40,7 @@ export type CreateReservationResult={reservationId:string;publicNo:string;versio
 export type BookingStatusDto='Held'|'Expired'|'Confirmed'|'In house'|'Departed'|'Cancelled'|'No show';
 export type BookingDetails={reservationId:string;publicNo:string;version:string;status:BookingStatusDto;
   guest:GuestInput;roomId:string;roomTypeId:string;arrival:string;departure:string;adults:number;children:number;
-  source:string;otaChannel?:string;company?:{name:string;gstin?:string};nightlyRatePaise:number;holdUntil?:string;
+  source:string;otaChannel?:string;company?:{name:string;gstin?:string;account?:string};nightlyRatePaise:number;holdUntil?:string;
   /** Mock only: the server keeps registration on the stay side (P3 RegisterGuest), not on the reservation read. */
   registered?:boolean;
   /** Agreed price. Paid / deposit / balance come from the folio (GET /folios/{id}, billing) — the mock fills them, the server read does not. */

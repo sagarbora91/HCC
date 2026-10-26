@@ -6,7 +6,7 @@ import type {Booking,Line,Receipt,Approval} from '../../../services/mock';
 import {totals,lineTax} from '../../../services/mock';
 import type {ShiftRecord} from '../../../domain/streams/closing';
 import type {CBState,CBLogEntry} from '../../../domain/streams/cashbook';
-import type {GRPBlock,GRPCompany,GRPLimitRequest} from '../../../domain/streams/groups';
+import type {GRPBlock,GRPCompany,GRPLimitRequest,GRPCompanyPayment} from '../../../domain/streams/groups';
 import {HccClientError} from '../../errors';
 import {protoId,protoUserId,utcToClock,paise,isoDate} from '../map';
 
@@ -167,13 +167,27 @@ export function cashbookFromServer(r:SrvCashBookRange):CBState{
 }
 
 /** A server group with a block → the prototype's block card (read-only figures; member room types come from the reservation reads). */
-export type SrvCompany={companyId:number;name:string;gstin:string|null;contact:string|null;phone:string|null;email:string|null;city:string|null;rates:Record<string,number>;creditLimitPaise:number;version:string};
+/** DEC-076 credit picture (PERM-GRP-004 holders only; null otherwise): exposure = receivable + open stays + group masters, remaining = limit − exposure. */
+export type SrvCompanyCredit={companyId:number;creditLimitPaise:number;exposurePaise:number;receivablePaise:number;openStaysPaise:number;groupMastersPaise:number;
+  remainingPaise:number;items:{kind:string;id:number;reference:string;amountPaise:number}[]};
+export type SrvCompany={companyId:number;name:string;gstin:string|null;contact:string|null;phone:string|null;email:string|null;city:string|null;rates:Record<string,number>;creditLimitPaise:number;version:string;
+  credit?:SrvCompanyCredit|null};
 export type SrvCompanyRequest={requestId:number;companyId:number;fromPaise:number;toPaise:number;reason:string;status:string;requestedBy:number;requestedUtc:string;decidedBy:number|null;note:string|null};
-export type SrvCompanyBook={companies:SrvCompany[];requests:SrvCompanyRequest[]};
+export type SrvCompanyPayment={paymentId:number;companyId:number;businessDate:string;tender:string;reference:string;invoiceNo:string|null;amountPaise:number;recordedBy:number;recordedUtc:string};
+export type SrvCompanyBook={companies:SrvCompany[];requests:SrvCompanyRequest[];payments?:SrvCompanyPayment[]|null};
 export function companyFromServer(c:SrvCompany):GRPCompany{
   const rates:Record<string,number>={};for(const [t,v] of Object.entries(c.rates??{}))rates[t]=paise(v,'rate');
-  return {id:protoId(c.companyId),name:c.name,gstin:c.gstin??'',contact:c.contact??'',phone:c.phone??'',email:c.email??'',city:c.city??'',rates,
+  const out:GRPCompany={id:protoId(c.companyId),name:c.name,gstin:c.gstin??'',contact:c.contact??'',phone:c.phone??'',email:c.email??'',city:c.city??'',rates,
     creditLimit:paise(c.creditLimitPaise,'creditLimitPaise'),openingOutstanding:0,limitHistory:[]};
+  // The server's figures replace the local estimate (the client does not hold every folio, group master or payment the server counts).
+  if(c.credit)out.credit={exposure:paise(c.credit.exposurePaise,'exposurePaise'),receivable:paise(c.credit.receivablePaise,'receivablePaise'),
+    openStays:paise(c.credit.openStaysPaise,'openStaysPaise'),groupMasters:paise(c.credit.groupMastersPaise,'groupMastersPaise'),remaining:paise(c.credit.remainingPaise,'remainingPaise'),
+    items:c.credit.items.map(i=>({kind:i.kind,id:protoId(i.id),reference:i.reference,amount:i.amountPaise}))};
+  return out;
+}
+export function companyPaymentFromServer(p:SrvCompanyPayment):GRPCompanyPayment{
+  return {id:protoId(p.paymentId),company:protoId(p.companyId),amount:paise(p.amountPaise,'amountPaise'),method:p.tender,reference:p.reference,...(p.invoiceNo?{invoice:p.invoiceNo}:{}),
+    date:isoDate(p.businessDate,'businessDate'),actor:protoUserId(p.recordedBy),at:utcToClock(p.recordedUtc)};
 }
 export function limitRequestFromServer(r:SrvCompanyRequest):GRPLimitRequest{
   const status=r.status==='Approved'||r.status==='Rejected'?r.status:'Pending';

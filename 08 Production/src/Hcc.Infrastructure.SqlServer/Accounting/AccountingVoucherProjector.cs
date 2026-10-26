@@ -165,6 +165,9 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.PayRunUnlocked:
                 source = await PayRunReversalAsync(connection, transaction, propertyId, Parse<PayRunUnlockedEvent>(evt), ct).ConfigureAwait(false);
                 break;
+            case AccountingEvents.CompanyPaymentRecorded:
+                source = AccountingEventMapper.CompanyPayment(Parse<CompanyPaymentRecordedEvent>(evt));
+                break;
         }
 
         if (source is not null && !source.IsZero)

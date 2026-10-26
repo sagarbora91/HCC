@@ -8,7 +8,8 @@ namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Groups billing endpoints (W3-4): <c>POST /api/v1/commands/{CreateGroup|UpdateGroup|SetGroupRouting|AttachGroupMember|DetachGroupMember|ApplyGroupRouting|
-/// RerouteGroupCharge|TransferGroupMember|RecordGroupReceipt|RequestGroupAttrition|DecideGroupAttrition|SettleGroup|SaveCompany|SetCompanyLimit|DecideCompanyLimit}</c> (Idempotency-Key required),
+/// RerouteGroupCharge|TransferGroupMember|RecordGroupReceipt|RequestGroupAttrition|DecideGroupAttrition|SettleGroup|SaveCompany|SetCompanyLimit|DecideCompanyLimit|
+/// RecordCompanyPayment}</c> (Idempotency-Key required),
 /// <c>GET /api/v1/groups</c> and <c>GET /api/v1/groups/{groupId}/statement</c>. Every route requires a session.
 /// </summary>
 public static class GroupsEndpoints
@@ -19,6 +20,9 @@ public static class GroupsEndpoints
         services.AddSingleton<IGroupFolioPort>(sp => new BillingGroupFolioPort(sp.GetRequiredService<IBillingStore>()));
         services.AddSingleton<IGroupInvoiceSource, GroupInvoiceSource>(); // read port for W3-6 (group invoice from the master folio)
         services.AddSingleton<ICompanyStore>(sp => new SqlCompanyStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<ICompanyCreditStore>(sp => new SqlCompanyCreditStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<CompanyCredit>();                                                          // DEC-076 exposure + company payments
+        services.AddSingleton<ICompanyCreditGuard>(sp => sp.GetRequiredService<CompanyCredit>());       // Reservations / Billing / Groups credit checks
         services.AddSingleton<CompanyCommands>();
         services.AddSingleton<CompanyQueries>();
         services.AddSingleton<GroupCommands>();
@@ -60,6 +64,8 @@ public static class GroupsEndpoints
             http.HccReply(await c.SetLimitAsync(http.HccCommand(CompanyCommands.OpLimit), body, ct)));
         g.MapPost("/commands/" + CompanyCommands.OpDecide, async (HttpContext http, DecideCompanyLimitRequest body, CompanyCommands c, CancellationToken ct) =>
             http.HccReply(await c.DecideAsync(http.HccCommand(CompanyCommands.OpDecide), body, ct)));
+        g.MapPost("/commands/" + CompanyCredit.OpPayment, async (HttpContext http, RecordCompanyPaymentRequest body, CompanyCredit c, CancellationToken ct) =>
+            http.HccReply(await c.RecordPaymentAsync(http.HccCommand(CompanyCredit.OpPayment), body, ct)));
         g.MapGet("/groups/companies", async (HttpContext http, CompanyQueries q, CancellationToken ct) =>
         {
             var (property, principal) = http.HccActor();

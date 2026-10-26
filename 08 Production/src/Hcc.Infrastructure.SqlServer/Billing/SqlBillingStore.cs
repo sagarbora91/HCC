@@ -21,7 +21,7 @@ namespace Hcc.Infrastructure.SqlServer.Billing;
 public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBillingStore
 {
     private const string FolioColumns = """
-        f.folio_id, r.property_id, r.reservation_id, r.status, r.arrival, r.departure, p.business_date, f.row_ver
+        f.folio_id, r.property_id, r.reservation_id, r.status, r.arrival, r.departure, p.business_date, f.row_ver, r.company_id
         """;
     private const string LineColumns = "charge_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id";
     private const string ReceiptColumns = "receipt_id, kind, method, amount_paise, business_date, refund_of, reference";
@@ -158,8 +158,8 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
     {
         ArgumentNullException.ThrowIfNull(r);
         await using var cmd = Cmd(tx, """
-            INSERT pay.receipt(folio_id, kind, method, amount_paise, refund_of, business_date, till_id, shift_id, reference, principal_id, recorded_utc, approval_id)
-            OUTPUT INSERTED.receipt_id VALUES (@f, @k, @m, @a, @ro, @d, @till, @shift, @ref, @p, @u, @apr);
+            INSERT pay.receipt(folio_id, kind, method, amount_paise, refund_of, business_date, till_id, shift_id, reference, principal_id, recorded_utc, approval_id, company_id)
+            OUTPUT INSERTED.receipt_id VALUES (@f, @k, @m, @a, @ro, @d, @till, @shift, @ref, @p, @u, @apr, @co);
             """);
         cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = r.FolioId;
         cmd.Parameters.Add("@k", SqlDbType.VarChar, 16).Value = FolioTotals.KindCode(r.Kind);
@@ -173,6 +173,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = r.PrincipalId;
         Utc(cmd, "@u", r.RecordedUtc);
         cmd.Parameters.Add("@apr", SqlDbType.BigInt).Value = (object?)r.ApprovalId ?? DBNull.Value;
+        cmd.Parameters.Add("@co", SqlDbType.BigInt).Value = (object?)r.CompanyId ?? DBNull.Value;
         return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
     }
 
@@ -604,7 +605,8 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
 
     private static async Task<FolioHeader?> ReadFolioHeaderAsync(SqlCommand cmd, CancellationToken ct)
         => (await ReadListAsync(cmd, rd => new FolioHeader(rd.GetInt64(0), rd.GetInt32(1), rd.GetInt64(2), rd.GetString(3), rd.GetFieldValue<DateOnly>(4),
-            rd.GetFieldValue<DateOnly>(5), rd.GetFieldValue<DateOnly>(6), SqlValues.RowVersionToWire((byte[])rd[7])), ct).ConfigureAwait(false)).SingleOrDefault();
+            rd.GetFieldValue<DateOnly>(5), rd.GetFieldValue<DateOnly>(6), SqlValues.RowVersionToWire((byte[])rd[7]), rd.IsDBNull(8) ? null : rd.GetInt64(8)), ct)
+            .ConfigureAwait(false)).SingleOrDefault();
 
     private static PostedLine ReadLine(SqlDataReader rd) => new(rd.GetInt64(0), BillingCodes.ParseChargeKind(rd.GetString(1)), rd.GetFieldValue<DateOnly>(2),
         rd.GetString(3), SqlValues.ReadPaise(rd, 4), rd.GetInt32(5), SqlValues.ReadPaise(rd, 6), rd.IsDBNull(7) ? null : rd.GetInt64(7));

@@ -38,8 +38,8 @@ public sealed class CompanySqlTests : IAsyncLifetime
         Assert.NotNull(r.RequestId);
         Assert.Equal(0, (await _w.CompanyBook.BookAsync(_w.PropertyId, _w.Users["owner"])).Companies[0].CreditLimitPaise);
         await Expect.Fails(HccErrorCode.FORBIDDEN, () => _w.Companies.DecideAsync(_w.Ctx("reception"), new DecideCompanyLimitRequest(r.RequestId!.Value, true)));
-        // Manager's decision limit is Rs 10,000: a Rs 2,00,000 limit needs the Owner.
-        await Expect.Fails(HccErrorCode.APPROVAL_REQUIRED, () => _w.Companies.DecideAsync(_w.Ctx("manager"), new DecideCompanyLimitRequest(r.RequestId!.Value, true)));
+        // DEC-076: only the Owner decides a limit request (was: the Manager up to Rs 10,000).
+        await Expect.Fails(HccErrorCode.FORBIDDEN, () => _w.Companies.DecideAsync(_w.Ctx("manager"), new DecideCompanyLimitRequest(r.RequestId!.Value, true)));
         var d = (await _w.Companies.DecideAsync(_w.Ctx("owner"), new DecideCompanyLimitRequest(r.RequestId!.Value, true))).Value;
         Assert.Equal("set", d.LimitStatus);
         var book = await _w.CompanyBook.BookAsync(_w.PropertyId, _w.Users["owner"]);

@@ -83,7 +83,7 @@ export function register({test,M,assert}){
   test('[C] S4 fixture: HCC-1052 in room 203, ₹6,300 due (GST 5 %; was ₹6,600), company and GSTIN placeholder, 22 Oct closed',()=>{
     const s=loadScenario('S4'),b=bk(s,'HCC-1052');
     assert.equal(b.room,'203');assert.equal(b.status,'In house');assert.equal(totals(b).balance,630000); // DEC-069 GST: 660000 → 630000
-    assert.deepEqual(b.company,{name:'Demo Industries Pvt Ltd (fictional)',gstin:'27AAAAA0000A1Z5'});
+    assert.deepEqual(b.company,{name:'Demo Industries Pvt Ltd (fictional)',gstin:'27AAAAA0000A1Z5',account:'CO-4'}); // DEC-076: billed to the company account CO-4
     assert.ok(s.closedDates.includes('2026-10-22'));assert.deepEqual(M.folioNights(b),{agreed:2,posted:2});
   });
   test('[C] S4 company-credit checkout: request, manager approval, receivable receipt, invoice number',()=>{
