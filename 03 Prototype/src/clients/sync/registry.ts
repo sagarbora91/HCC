@@ -37,7 +37,7 @@ import {reservations} from './reservations';
 // import {services} from './services';
 
 // W4-11 yield, OTA channels, booking website, ID capture:
-// import {channels} from './channels';
+import {channels} from './channels';
 
 export const AREAS:SyncArea[]=[
   core,
@@ -63,5 +63,5 @@ export const AREAS:SyncArea[]=[
 
   // services, // W4-10
 
-  // channels, // W4-11
+  channels, // W4-11
 ];
