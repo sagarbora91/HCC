@@ -67,6 +67,7 @@ src/
     demo/               demo toolbar and dialogs (removable for production)
   features/             one folder per area: overview, rooms, reservations, folio,
                         housekeeping, expenses, closing, reports, admin
+  clients/              typed feature clients (mock + HTTP adapters); clients/sync/ = production server sync layer (Wave 4, see its README.md)
   components/           shared presentation components
   domain/               types, typed errors, money/date helpers, selectors (pure)
   services/mock/        command service (execute), fault simulation, persistence format
