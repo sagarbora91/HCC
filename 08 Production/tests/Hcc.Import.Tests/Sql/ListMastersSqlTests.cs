@@ -96,7 +96,7 @@ public class ListMastersSqlTests : IAsyncLifetime
         Assert.Equal(1800, await Count("SELECT commission_bps FROM mst.booking_source WHERE code = 'OTA-MMT'"));
         Assert.Equal(9, await Count("SELECT COUNT(*) FROM mst.id_type"));
         Assert.Equal(0, await Count("SELECT CAST(accepted AS int) FROM mst.id_type WHERE code = 'STUDENT'"));
-        Assert.Equal(8, await Count("SELECT COUNT(*) FROM bill.number_series"));
+        Assert.Equal(9, await Count("SELECT COUNT(*) FROM bill.number_series")); // was 8: MA-11 seeds the RST restaurant series as a default row (DEC-MA-11d)
         Assert.Equal("FY", (string?)await _w.ScalarAsync("SELECT reset_rule FROM bill.number_series WHERE code = 'INV-FY28'"));
         Assert.Equal(3, await Count("SELECT COUNT(*) FROM inv.policy"));
         Assert.Equal("[\"OTA-BKG\"]", (string?)await _w.ScalarAsync("SELECT sources FROM inv.policy WHERE code = 'NONREF'"));

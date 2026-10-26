@@ -537,7 +537,7 @@ Which IDs the hotel accepts at check-in. Validators stay in the app; the file ne
 |---|---|---|
 | code | yes | Short code: capital letters, digits or dash, up to 20 characters. Never changes once the row is used; the row is found again by it on a re-import. |
 | name | yes | Name shown on screens and documents, 1 to 60 characters. Another active row may not have the same name. |
-| document | yes | INV tax invoice, BOS bill of supply, CRN credit note, RCP receipt, KOT kitchen ticket, REG registration card. |
+| document | yes | INV tax invoice, BOS bill of supply, CRN credit note, RCP receipt, KOT kitchen ticket, REG registration card, RST restaurant tax invoice. |
 | prefix | yes | Printed prefix, 1 to 8 capital letters, digits or dash (GST documents: at most 6). |
 | start | yes | First number of the series, 1 to 9,999,999. |
 | padding | yes | Digits the number is padded to, 1 to 10 (GST documents: prefix + 6 + digits is at most 16 characters). |

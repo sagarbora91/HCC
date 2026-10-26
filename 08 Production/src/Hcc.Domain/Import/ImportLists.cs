@@ -386,7 +386,7 @@ public static partial class ImportLists
         },
         new(ImportMaster.NumberSeries, "number-series", "numberSeries", "Document numbering series", "numbering series", true, "—",
         [
-            Pick("document", true, "INV tax invoice, BOS bill of supply, CRN credit note, RCP receipt, KOT kitchen ticket, REG registration card.", "INV", "INV", "BOS", "CRN", "RCP", "KOT", "REG"),
+            Pick("document", true, "INV tax invoice, BOS bill of supply, CRN credit note, RCP receipt, KOT kitchen ticket, REG registration card, RST restaurant tax invoice.", "INV", "INV", "BOS", "CRN", "RCP", "KOT", "REG", "RST"), // RST: MA-11 (DEC-MA-11d) made the restaurant series a row of this master
             Text("prefix", true, "Printed prefix, 1 to 8 capital letters, digits or dash (GST documents: at most 6).", "HCC", 8),
             Int("start", true, "First number of the series, 1 to 9,999,999.", "1", 1, 9_999_999),
             Int("padding", true, "Digits the number is padded to, 1 to 10 (GST documents: prefix + 6 + digits is at most 16 characters).", "4", 1, 10),
