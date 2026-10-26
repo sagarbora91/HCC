@@ -140,6 +140,22 @@ public sealed class AccountingRulesTests
     }
 
     [Fact]
+    public void A06_08_voucher_csv_neutralises_formula_narrations_quotes_line_breaks_and_keeps_amounts_plain()
+    {
+        var v = new Voucher("RV-1", D, VoucherType.Receipt, "=HYPERLINK(\"http://x.test\",\"y\") from @guest", "-src-1", "payment", "",
+            [new VoucherEntry("1000", 1_234_550, 0), new VoucherEntry("1100", 0, 1_234_550)], []);
+        var cr = v with { Number = "RV-2", Narration = "Room 101\r=cmd|' /C calc'!A0", SourceKey = "+src-2" };
+        var rows = VoucherExport.Csv([v, cr]).Split("\r\n");
+        Assert.Equal(VoucherExport.CsvHeader, rows[0]);
+        Assert.EndsWith(",12345.50,,\"'=HYPERLINK(\"\"http://x.test\"\",\"\"y\"\") from @guest\",'-src-1", rows[1], StringComparison.Ordinal);
+        Assert.EndsWith(",,12345.50,\"'=HYPERLINK(\"\"http://x.test\"\",\"\"y\"\") from @guest\",'-src-1", rows[2], StringComparison.Ordinal);
+        Assert.EndsWith(",12345.50,,\"Room 101\r=cmd|' /C calc'!A0\",'+src-2", rows[3], StringComparison.Ordinal);   // the CR stays inside its quoted cell
+        Assert.Equal("-1,250.50", VoucherExport.CsvSafe("-1,250.50"));                                                    // a negative amount keeps its sign
+        Assert.Equal("'-2+3", VoucherExport.CsvSafe("-2+3"));
+        Assert.Equal("'\t=1", VoucherExport.CsvSafe("\t=1"));
+    }
+
+    [Fact]
     public void Company_payment_is_a_receipt_against_company_receivables_and_leaves_the_company_credit_check_alone()
     {
         // DEC-076: checkout put Rs 6,300 on company credit (Journal Dr 1110 company receivables · Cr 1100 guest ledger); the company pays

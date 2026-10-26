@@ -110,7 +110,7 @@ Restart-Service HccServer
 The server also serves the HCC web app itself, on the same address as the API, so staff just open `https://<server>:5443/` in a browser (no separate web server). The web app is one file, `index.html`, built from the source (`03 Prototype`): `npm run build:production` makes `03 Prototype\dist\production\index.html`.
 1. Copy that file to **`C:\Program Files\HCC\Server\web\index.html`** on the server PC (create the `web` folder if it is not there; another place can be set with `Hcc:Hosting:WebRoot` in `appsettings.Production.json`).
 2. No restart is needed, also not when you replace it later with a newer build: browsers fetch the new page the next time they open it (the page is never reused without asking the server first).
-3. **Check:** `https://<server>:5443/` shows the HCC sign-in screen. If it says "The HCC web app is not installed on this server", the file is not in the `web` folder.
+3. **Check:** `https://<server>:5443/` shows the HCC sign-in screen. If it says "The HCC web app is not installed on this server", the file is not in the `web` folder. That page never shows the folder (anyone on the network can open it); the server log has one warning naming the folder it looked in.
 The page is sent with a strict content security policy (only its own script, only this server as a data source, no framing); every answer over HTTPS also tells the browser to use HTTPS only (HSTS), and API answers are never cached. The phones' APK has the web app built in and only needs the server address.
 
 ## 6d. Load your masters (rooms, rates, staff, opening balances, ...)

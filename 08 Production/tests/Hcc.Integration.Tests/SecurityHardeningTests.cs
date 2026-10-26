@@ -100,6 +100,48 @@ public sealed class SecurityHardeningTests
         Assert.Equal(20, await s.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'SIGN_IN_FAILED';", Ct));   // throttled tries never reach the database
     }
 
+    /// <summary>
+    /// A10-08 / A06-16 (APK12-2): the wire answer the app turns into its throttle message. Wrong PINs from a registered tablet answer 403 with the
+    /// bad-credentials text; from the 6th attempt (also with the right PIN) 429 with Retry-After and the throttle text + reason TOO_MANY_ATTEMPTS —
+    /// exactly what <c>03 Prototype/tests/sync-v12fix.mjs</c> and <c>sync-security-d1.mjs</c> feed the client. Another tablet is not affected.
+    /// </summary>
+    [Fact]
+    public async Task A10_08_wrong_PINs_from_a_tablet_get_429_with_Retry_After_and_the_throttle_text_the_app_shows()
+    {
+        await using var s = await ServerAsync();
+        using var owner = await OwnerAsync(s);
+        var rec = await Wire.CommandAsync<UserVersionResult>(owner, "CreateUser", new CreateUserRequest("rec.anita", "Anita (Reception)", [new RoleAssignmentInput("REC")]), Ct);
+        await Wire.CommandAsync<UserVersionResult>(owner, "SetCredential", new SetCredentialRequest(rec.UserId, null, ReceptionPin, rec.Version), Ct);
+        var device = (await Wire.CommandAsync<RegisterDeviceResult>(owner, "RegisterDevice", new RegisterDeviceRequest("Front desk tablet"), Ct)).DeviceToken!;
+        var other = (await Wire.CommandAsync<RegisterDeviceResult>(owner, "RegisterDevice", new RegisterDeviceRequest("Restaurant tablet"), Ct)).DeviceToken!;
+
+        using var tablet = Lan(s, "192.168.1.80", device);
+        for (var i = 0; i < 5; i++)
+        {
+            using var bad = await SignInAsync(tablet, new SignInRequest("rec.anita", Pin: "30571" + i, ReturnToken: true));
+            Assert.Equal(HttpStatusCode.Forbidden, bad.StatusCode);
+            var e = await ErrorAsync(bad);
+            Assert.Equal(("FORBIDDEN", "Sign-in failed. Check the name and the password or PIN.", "BAD_CREDENTIALS"), (e.Code, e.Message, e.Details!["reason"].GetString()));
+        }
+
+        using (var limited = await SignInAsync(tablet, new SignInRequest("rec.anita", Pin: ReceptionPin, ReturnToken: true)))
+        {
+            Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+            Assert.Equal("application/json", limited.Content.Headers.ContentType!.MediaType);
+            var wait = limited.Headers.RetryAfter!.Delta!.Value;
+            Assert.InRange(wait, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(15));
+            var e = await ErrorAsync(limited);
+            Assert.Equal(("FORBIDDEN", "Too many sign-in attempts from this device. Wait a few minutes and try again.", "TOO_MANY_ATTEMPTS"),
+                (e.Code, e.Message, e.Details!["reason"].GetString()));
+        }
+
+        // The restaurant tablet (another address) signs Anita in at once: the throttle is per device address, and its name delay
+        // applies only to addresses that failed themselves (A06-06).
+        using var restaurant = Lan(s, "192.168.1.81", other);
+        using (var ok = await SignInAsync(restaurant, new SignInRequest("rec.anita", Pin: ReceptionPin, ReturnToken: true)))
+            await Wire.OkAsync<SignInResult>(ok, "PIN sign-in on another tablet", Ct);
+    }
+
     [Fact]
     public async Task PIN_bearer_token_works_only_with_its_device_header_and_failures_do_not_reveal_accounts()
     {

@@ -19,6 +19,10 @@ The installer also copies this folder to `C:\Program Files\HCC\ImportTemplates`.
    a warning.
 5. Dates: `2026-11-01` is best; `01-11-2026` and `01/11/2026` (day first) are also accepted.
 6. Lists inside one cell (for example two roles) are separated by `;` – never by a comma.
+7. Text that a spreadsheet would run as a formula – a name, note, e-mail or table name starting with `=`, `+`, `-` or `@` – is kept
+   as plain text with a leading apostrophe (`=HYPERLINK(…)` is stored as `'=HYPERLINK(…)`), and the check shows a warning for that
+   cell. Codes, numbers, dates, phone numbers and lists of codes are checked by their own rules instead: formula text there is an
+   error, while a minus sign in a number column stays a minus (`-10` percent in seasons).
 
 **Never put passwords, PINs, setup codes, Aadhaar, PAN, passport or any other ID number in any file.** HCC refuses a file
 that has such a column. Staff get their first password or PIN from you in Access control after the import.

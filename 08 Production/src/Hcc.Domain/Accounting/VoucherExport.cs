@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Hcc.Domain.Text;
 
 namespace Hcc.Domain.Accounting;
 
@@ -41,18 +42,11 @@ public static partial class VoucherExport
         return "HCC-" + identity + "-" + sourceKey;
     }
 
-    [GeneratedRegex(@"^[+-]?\d[\d,]*(\.\d+)?$")]
-    private static partial Regex Numeric();
-
     [GeneratedRegex(@"[\u0000-\u0008\u000B\u000C\u000E-\u001F]")]
     private static partial Regex XmlControl();
 
-    /// <summary>Formula-injection guard (prototype csvSafe): text starting with = + - @ tab CR gets a leading apostrophe unless numeric.</summary>
-    public static string CsvSafe(string t)
-    {
-        ArgumentNullException.ThrowIfNull(t);
-        return t.Length > 0 && "=+-@\t\r".Contains(t[0], StringComparison.Ordinal) && !Numeric().IsMatch(t) ? "'" + t : t;
-    }
+    /// <summary>Formula-injection guard (prototype csvSafe): text starting with = + - @ tab CR gets a leading apostrophe unless numeric (<see cref="CsvFormula"/>).</summary>
+    public static string CsvSafe(string t) => CsvFormula.Neutralise(t);
 
     /// <summary>Quoted only when needed (prototype csvMinimal).</summary>
     public static string CsvCell(string v)
