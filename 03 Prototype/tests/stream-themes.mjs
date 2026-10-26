@@ -142,7 +142,8 @@ export function register({test,assert,M}){
     for(const s of ['src/styles/zz-print.css'])assert.doesNotMatch(read(s),/data-theme/);});
   test('[THEME] named colours that a dark surface must replace are overridden (styles.css .small-stats>div background:white)',()=>{
     assert.match(read('src/styles.css'),/\.small-stats>div\{[^}]*background:white/);
-    assert.match(themesCss,/\[data-theme="dark"\] \.small-stats>div\{background:var\(--surface\)\}/);});
+    assert.match(themesCss,/\[data-theme="dark"\] \.small-stats>div\{background:var\(--surface\)\}/);
+    assert.match(themesCss,/\.pf-seg button\.on small\{color:inherit\}/,'size names on the selected text-size button follow its text colour');});
   test('[THEME] prefs: theme defaults to light, round-trips, invalid values fall back; resolveTheme follows the device only for "system"',()=>{
     assert.equal(X.PREFS_DEFAULTS.theme,'light');assert.deepEqual([...X.THEMES],['light','dark','hc','system']);
     withStorage(data=>{X.savePrefs({theme:'hc'});X.resetPrefsCache();assert.equal(X.readPrefs().theme,'hc');assert.equal(JSON.parse(data.get('hcc-prefs-1')).p.theme,'hc');

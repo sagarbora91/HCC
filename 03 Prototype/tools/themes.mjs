@@ -218,7 +218,9 @@ export function generatedValues(tokens,usage){
 }
 const block=(sel,decls)=>`${sel}{\n${decls.map(d=>d+';').join('\n')}\n}`;
 /** Theme-specific rules beyond variables (named colours, hc borders and focus). */
-const EXTRA_RULES=`/* named colours in the stylesheets that a dark surface must replace */
+const EXTRA_RULES=`/* the size names under the "A" letters inherit the selected button's text colour (was --muted on maroon: 1.5:1, CP-1) */
+.pf-seg button.on small{color:inherit}
+/* named colours in the stylesheets that a dark surface must replace */
 [data-theme="dark"] .small-stats>div{background:var(--surface)}
 /* High contrast: 2 px borders on controls, a stronger focus ring, no translucent hover tints */
 [data-theme="hc"] :is(input,select,textarea,.btn,.pf-seg,.pf-quick,.m-chips button,.mo-seg button,.display-toggle button){border-width:2px}
