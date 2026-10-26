@@ -1,5 +1,5 @@
 // W05-A · Master configuration UI helpers shared by the desktop hub, the phone hub and the setting sheet (no React state here).
-import {cfgDefs,cfgGroupAccess,cfgGroupSummary,cfgSearch,CFG_GROUPS,mstSearch,mstSpecsOfGroup,type CfgSettingDef,type CfgGroupId,type State} from '../../../services/mock';
+import {cfgDefs,cfgGroupAccess,cfgGroupSummary,cfgSearch,CFG_GROUPS,mstSearch,mstSpecsOfGroup,mstMaskMoney,type CfgSettingDef,type CfgGroupId,type State} from '../../../services/mock';
 
 /** Editor text for a raw value (money in rupees, percent in %, boolean on/off). */
 export function cfgToInput(def:CfgSettingDef,v:unknown):string{
@@ -21,6 +21,8 @@ export function cfgFromInput(def:CfgSettingDef,t:string):unknown{
     default:return t;
   }
 }
+/** MA-10 (DEC-061): roles without money visibility (housekeeping, maintenance, supervisor, roles with no money permission) see no rupee amount anywhere in Master configuration. */
+export const cfgMoneyMask=mstMaskMoney;
 export type CfgListRow={id:CfgGroupId;label:string;section:string;summary:string;readOnly:boolean;reason?:string;hits?:number;money:boolean;
   /** MA-0: masters (lists) of the group that match the search. */listHits?:number};
 /** Rows for the group list (search applied). */
@@ -30,7 +32,7 @@ export function cfgListRows(s:State,uid:string,q:string):CfgListRow[]{
   return CFG_GROUPS.filter(g=>!hits||hits.some(h=>h.group.id===g.id)||lists.some(x=>x.group===g.id)).map(g=>{
     const a=cfgGroupAccess(s,uid,g.id);const h=hits?.find(x=>x.group.id===g.id);const lh=lists.filter(x=>x.group===g.id).length;
     const nl=mstSpecsOfGroup(g.id).length;
-    return {id:g.id,label:g.label,section:g.section,summary:cfgGroupSummary(s,g.id)+(nl?` · ${nl} list${nl>1?'s':''}`:''),readOnly:a.readOnly,reason:a.reason,
+    return {id:g.id,label:g.label,section:g.section,summary:cfgMoneyMask(s,uid,cfgGroupSummary(s,g.id))+(nl?` · ${nl} list${nl>1?'s':''}`:''),readOnly:a.readOnly,reason:a.reason,
       hits:(h?.defs.length??0)+lh||undefined,money:g.money,listHits:lh||undefined};
   });
 }

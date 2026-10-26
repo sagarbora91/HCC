@@ -3,13 +3,14 @@
 // groups show the reason. Tariff schedules and the dated GST master rows (DEC-069) stay editable for the Owner; modules on/off and data panels are shared.
 import React,{useState} from 'react';
 import {Lock,ArrowLeft,CalendarClock,Search} from 'lucide-react';
-import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,CFG_SECTIONS,
+import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,mstSeesMoney,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,CFG_SECTIONS,
   type CfgGroupId,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {useStepBack} from '../../app/native';
 import {ListCard} from '../../app/mobile/components';
 import {Empty,shortDate} from '../../components/ui';
 import {MaTag,MaIntro,MaGuard,MaRows} from './parts';
+import {cfgMoneyMask} from '../../features/admin/config/logic';
 import {cfgListRows,cfgDetailDefs,cfgNav} from '../../features/admin/config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from '../../features/admin/config/panels';
 import {scheduleBlock} from '../../features/admin/HotelSettings';
@@ -40,14 +41,15 @@ function MaGroup({g,q,onBack}:{g:CfgGroupId;q:string;onBack:()=>void}){
     <h2 className="ma-h2">{grp.label}</h2><MaIntro>{grp.blurb}</MaIntro><CfgGroupLink g={g}/>
     {row.readOnly&&<div className="ma-note"><Lock size={18}/><span>Read only — {row.reason}</span></div>}
     <MstListsBlockPhone key={g} g={g} q={q}/>
-    {g==='rooms'&&!q&&<Tariffs block={block}/>}
-    {g==='money'&&!q&&<Tax block={block}/>}
+    {(g==='rooms'||g==='money')&&!q&&!mstSeesMoney(s,uid)&&<div className="ma-note"><Lock size={18}/><span>Tariffs and the GST master are hidden — this role does not see hotel money (DEC-061).</span></div>}
+    {g==='rooms'&&!q&&mstSeesMoney(s,uid)&&<Tariffs block={block}/>}
+    {g==='money'&&!q&&mstSeesMoney(s,uid)&&<Tax block={block}/>}
     {g==='modules'&&<CfgModulesPanel/>}
     {g!=='modules'&&defs.map(d=>{const dec=cfgCanChange(s,uid,d);const sched=cfgScheduled(s,d.key);const pend=cfgPendingRequests(s,d.key).length>0;
       return <article className="ma-card" key={d.key} aria-label={d.label}>
-        <div className="ma-card-top"><div><strong>{d.label}</strong><span>{d.help}</span></div></div>
+        <div className="ma-card-top"><div><strong>{d.label}</strong><span>{cfgMoneyMask(s,uid,d.help)}</span></div></div>
         {d.illustrative&&<MaTag tone="warn">Illustrative — CA to confirm</MaTag>}
-        <MaRows rows={[['Current value',<strong>{cfgDisplay(s,uid,d)}</strong>],...sched.map(x=>[`From ${shortDate(x.effectiveFrom)}`,cfgShow(d,x.value)] as [string,string]),['Effective',d.effective],['Who can change',d.approval]]}/>
+        <MaRows rows={[['Current value',<strong>{cfgMoneyMask(s,uid,cfgDisplay(s,uid,d))}</strong>],...sched.map(x=>[`From ${shortDate(x.effectiveFrom)}`,cfgMoneyMask(s,uid,cfgShow(d,x.value))] as [string,string]),['Effective',d.effective],['Who can change',d.approval]]}/>
         {pend&&<MaTag tone="warn">Approval pending</MaTag>}
         {d.editable?<MaGuard block={dec.mode==='deny'?dec.reason:undefined} busy={busy} onClick={()=>open({type:'cfg-setting',id:d.key})}>{dec.mode==='request'?'Request change…':'Change… (what it affects)'}</MaGuard>
           :<button type="button" className="btn" onClick={()=>open({type:'cfg-setting',id:d.key})}><Lock size={15}/> Details</button>}
