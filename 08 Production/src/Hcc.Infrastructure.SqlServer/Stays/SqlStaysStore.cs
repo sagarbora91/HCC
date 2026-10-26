@@ -296,6 +296,46 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
         return await ReadGuestAsync(connections.Command(GuestSql(string.Empty), conn), propertyId, guestId, ct).ConfigureAwait(false);
     }
 
+    public async Task<(int Total, IReadOnlyList<GuestRecord> Items)> ListGuestsAsync(int propertyId, string? text, int page, int pageSize, CancellationToken ct = default)
+    {
+        var filter = text is null ? string.Empty : " AND (full_name LIKE @t ESCAPE '!' OR phone LIKE @t ESCAPE '!' OR company LIKE @t ESCAPE '!')";
+        var sql = $"""
+            SELECT COUNT(*) FROM gst.guest WHERE property_id = @p{filter};
+            CREATE TABLE #g(ord INT IDENTITY PRIMARY KEY, guest_id BIGINT NOT NULL);
+            INSERT #g(guest_id) SELECT guest_id FROM gst.guest WHERE property_id = @p{filter} ORDER BY guest_id DESC OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;
+            SELECT g.guest_id, g.property_id, g.full_name, g.phone, g.email, g.address, g.nationality, g.id_type, g.id_last4, g.company, g.gstin, g.preferences, g.notes, g.verified, g.origin, g.row_ver,
+                   CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = g.guest_id) THEN 1 ELSE 0 END
+            FROM #g x JOIN gst.guest g ON g.guest_id = x.guest_id ORDER BY x.ord;
+            SELECT p.guest_id, p.name, p.age_band, p.relation FROM #g x JOIN gst.guest_party p ON p.guest_id = x.guest_id ORDER BY x.ord, p.seq;
+            DROP TABLE #g;
+            """;
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command(sql, conn);
+        cmd.Add("@p", SqlDbType.Int, propertyId);
+        cmd.Add("@skip", SqlDbType.Int, (page - 1) * pageSize);
+        cmd.Add("@take", SqlDbType.Int, pageSize);
+        if (text is not null)
+            cmd.Add("@t", SqlDbType.NVarChar, "%" + text.Replace("!", "!!", StringComparison.Ordinal).Replace("%", "!%", StringComparison.Ordinal).Replace("_", "!_", StringComparison.Ordinal).Replace("[", "![", StringComparison.Ordinal) + "%");
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await rd.ReadAsync(ct).ConfigureAwait(false);
+        var total = rd.GetInt32(0);
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var heads = new List<(long Id, int Prop, GuestDraft Draft, bool Verified, string Origin, byte[] Ver, bool IdOnFile)>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            heads.Add((rd.GetInt64(0), rd.GetInt32(1), new GuestDraft(rd.GetString(2), rd.GetString(3), P3Sql.StrOrNull(rd, 4), P3Sql.StrOrNull(rd, 5), rd.GetString(6), P3Sql.StrOrNull(rd, 7),
+                P3Sql.StrOrNull(rd, 8), P3Sql.StrOrNull(rd, 9), P3Sql.StrOrNull(rd, 10), P3Sql.StrOrNull(rd, 11), P3Sql.StrOrNull(rd, 12), []), rd.GetBoolean(13), rd.GetString(14), (byte[])rd[15], rd.GetInt32(16) == 1));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var parties = new Dictionary<long, List<GuestPartyMember>>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var id = rd.GetInt64(0);
+            if (!parties.TryGetValue(id, out var list)) parties[id] = list = [];
+            list.Add(new GuestPartyMember(rd.GetString(1), rd.GetString(2), P3Sql.StrOrNull(rd, 3)));
+        }
+        IReadOnlyList<GuestRecord> items = heads.Select(h => new GuestRecord(h.Id, h.Prop, h.Draft with { Party = parties.TryGetValue(h.Id, out var p) ? p : [] }, h.Verified, h.Origin, h.Ver, h.IdOnFile)).ToList();
+        return (total, items);
+    }
+
     internal static async Task<GuestRecord?> ReadGuestAsync(SqlCommand command, int propertyId, long guestId, CancellationToken ct)
     {
         await using var cmd = command;

@@ -66,7 +66,21 @@ public sealed record GuestView(
     string Version,
     string IdMasked = "",
     bool IdOnFile = false,
-    bool CanRevealId = false);
+    bool CanRevealId = false,
+    string? Preferences = null,
+    string? Notes = null,
+    string Origin = "manual");
+
+/// <summary>
+/// SaveGuestProfile (W4-1): create (<c>GuestId</c> null) or edit a guest profile without touching a reservation (prototype GUEST_SAVE with no
+/// booking link). <c>GuestExpectedVersion</c> is required to edit. <c>Verified</c> = the front desk checked the ID.
+/// </summary>
+public sealed record SaveGuestProfileRequest(GuestDraftDto Guest, bool Verified = false, long? GuestId = null, string? GuestExpectedVersion = null);
+
+public sealed record SaveGuestProfileResult(long GuestId, string GuestVersion, bool Verified, bool Created);
+
+/// <summary>Page of GET /guests (field-masked like GET /guests/{id}).</summary>
+public sealed record GuestListPage(int Total, int Page, int PageSize, IReadOnlyList<GuestView> Items);
 
 /// <summary>Outbox payload of <c>StayDeparted</c> (consumed by housekeeping: exactly one checkout clean per stay).</summary>
 public sealed record StayDepartedEvent(long StayId, long ReservationId, int PropertyId, int RoomId, string BusinessDate);

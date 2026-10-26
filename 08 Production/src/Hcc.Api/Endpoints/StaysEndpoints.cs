@@ -44,6 +44,13 @@ public static class StaysEndpoints
             http.HccReply(await cmds.ShortenStayAsync(http.HccCommand(StayChangeCommands.OpShortenStay), body, ct)));
         g.MapPost("/commands/" + StayChangeCommands.OpEarlyDeparture, async (HttpContext http, EarlyDepartureRequest body, StayChangeCommands cmds, CancellationToken ct) =>
             http.HccReply(await cmds.EarlyDepartureAsync(http.HccCommand(StayChangeCommands.OpEarlyDeparture), body, ct)));
+        g.MapPost("/commands/" + StaysCommands.OpSaveGuestProfile, async (HttpContext http, SaveGuestProfileRequest body, StaysCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.SaveGuestProfileAsync(http.HccCommand(StaysCommands.OpSaveGuestProfile), body, ct)));
+        g.MapGet("/guests", async (HttpContext http, StaysQueries queries, CancellationToken ct, string? q = null, int page = 1, int pageSize = 200) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await queries.ListGuestsAsync(property, principal, q, page, pageSize, ct));
+        });
         g.MapGet("/guests/{guestId:long}", async (HttpContext http, long guestId, StaysQueries q, CancellationToken ct) =>
         {
             var (property, principal) = http.HccActor();
