@@ -10,6 +10,7 @@ import {Pill,Empty} from '../../components/ui';
 import {cfgNav} from '../admin/config/logic';
 import {MasterForm} from './MasterForm';
 import {mstNav} from './nav';
+import {mstTools} from './tools';
 
 export type MstFilter='active'|'retired'|'all';
 /** Rows after search + status filter (shared by desktop and phone). */
@@ -26,14 +27,15 @@ export function MasterList({spec:specId,select}:MasterListProps){
   const [sel,setSel]=useState<string|undefined>(select);const [adding,setAdding]=useState(false);
   if(!spec)return <Empty title="List not found"/>;
   const all=mstRows(s,specId),rows=mstFilterRows(all,q,f);
-  const can=mstCanEdit(s,uid,spec);
+  const can=mstCanEdit(s,uid,spec),ext=mstTools[specId]; // MA-1: per-master tools / hidden Add / hidden reorder
   const move=(id:string,dir:-1|1)=>{const ids=mstMove(all,id,dir);void run({type:'MST_MASTER_REORDER',master:specId,ids,key:`mst-order:${specId}:${id}:${dir}:${s.sequence}`},'Order saved');};
   const current=adding?undefined:sel&&all.some(r=>r.id===sel)?sel:undefined;
   const counts={active:all.filter(r=>r.active).length,retired:all.filter(r=>!r.active).length,all:all.length};
   return <div className="mst-list" aria-label={spec.label}>
     <div className="mst-list-head"><div><h3>{spec.label}</h3>{spec.help&&<p className="muted">{spec.help}</p>}</div>
-      {can.ok&&<button type="button" className="btn primary" onClick={()=>{setAdding(true);setSel(undefined);}}><Plus size={16}/> Add {spec.singular}</button>}</div>
+      {can.ok&&!ext?.hideAdd&&<button type="button" className="btn primary" onClick={()=>{setAdding(true);setSel(undefined);}}><Plus size={16}/> Add {spec.singular}</button>}</div>
     {!can.ok&&<p className="mst-lock" role="note">{can.reason}</p>}
+    {ext?.Tools&&<ext.Tools specId={specId}/>}
     <div className="mst-tools">
       <label className="cfg-search mst-search"><Search size={16}/><input type="search" aria-label={`Search ${spec.label.toLowerCase()}`} placeholder="Search code or name" value={q} onChange={e=>setQ(e.target.value)}/></label>
       <div className="filters" role="group" aria-label="Status">{(['active','retired','all'] as const).map(x=><button type="button" key={x} className={f===x?'active':''} aria-pressed={f===x} onClick={()=>setF(x)}>{x==='active'?'Active':x==='retired'?'Retired':'All'} ({counts[x]})</button>)}</div>
@@ -43,7 +45,7 @@ export function MasterList({spec:specId,select}:MasterListProps){
         return <li key={r.id} className={'mst-row'+(r.id===current?' on':'')+(r.active?'':' retired')}>
           <button type="button" className="mst-row-main" aria-current={r.id===current?'true':undefined} onClick={()=>{setSel(r.id);setAdding(false);}}>
             <span className="mst-code">{r.code}</span><span className="mst-name"><strong>{r.name}</strong><small>Used in {u.count}{r.active?'':' · retired'}</small></span><ChevronRight size={15} aria-hidden="true"/></button>
-          {can.ok&&f!=='retired'&&!q&&<span className="mst-order">
+          {can.ok&&!ext?.noReorder&&f!=='retired'&&!q&&<span className="mst-order">
             <button type="button" className="icon-btn" aria-label={`Move ${r.name} up`} disabled={busy||i===0} onClick={()=>move(r.id,-1)}><ArrowUp size={15}/></button>
             <button type="button" className="icon-btn" aria-label={`Move ${r.name} down`} disabled={busy||i===all.length-1} onClick={()=>move(r.id,1)}><ArrowDown size={15}/></button></span>}
         </li>;}):<li className="muted mst-none">No {f==='retired'?'retired ':''}{spec.label.toLowerCase()}{q?` match “${q}”`:''}.</li>}</ul>

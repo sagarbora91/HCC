@@ -6,7 +6,7 @@ import {bookingRef} from '../../domain/bookingRef';
 import React,{useState,useRef} from 'react';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,Printer,UserPlus,Info,Loader2,X,RotateCcw} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,stayArrivals,stayCheckinAlternatives,stayFreeRooms,staySegments} from '../../services/mock';
+import {Booking,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,stayArrivals,stayCheckinAlternatives,stayFreeRooms,staySegments,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
 import {Fab,ListCard,Stepper,NumberStepper} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from '../../features/guests/GuestForm';
@@ -90,7 +90,7 @@ export function MfCheckin({id}:{id?:string}){
     body=<>{st.elig.ok?<div className="mf-ok"><Check size={18}/><div><strong>Room {b.room} · {room?.type} is vacant, ready and unblocked.</strong><p>Free for {shortDate(b.arrival)} – {shortDate(b.departure)}.</p></div></div>
       :<><div className="mf-deny" role="alert"><AlertCircle size={18}/><div><strong>Room {b.room} cannot be used now.</strong><ul>{st.elig.reasons.map(r=><li key={r}>{r}</li>)}</ul></div></div>
         <h3 className="mf-sub">Eligible {room?.type} rooms</h3>
-        {alts.length?alts.map(r=><div key={r.id} className="mf-agenda mf-ag-free"><span className="mf-ag-room">{r.id}</span><span className="mf-ag-main"><strong>{r.type} · floor {r.floor}</strong><small>Ready · vacant · unblocked</small></span>
+        {alts.length?alts.map(r=><div key={r.id} className="mf-agenda mf-ag-free"><span className="mf-ag-room">{r.id}</span><span className="mf-ag-main"><strong>{rmsRoomLine(s,r)}</strong><small>Ready · vacant · unblocked</small></span>
           {permission('reservations')?<button className="btn small-btn" disabled={busy} onClick={()=>run({type:'MOVE',id:b.id,room:r.id,departure:b.departure,key:`${modal!.key}:move:${r.id}`},`Allocation changed to room ${r.id}. Agreed tariff kept.`)}>Use {r.id}</button>:null}</div>)
           :<Empty title={`No eligible ${room?.type||''} rooms`} body="Ask housekeeping to finish and inspect a room."/>}
         <p className="mf-note">Switching re-checks availability; the agreed tariff ({money(b.rate)}/night) is kept.</p></>}
@@ -165,7 +165,7 @@ export function MfWalkin(){
       </div>
       <h3 className="mf-sub">Room — vacant, ready and free until departure</h3>
       {free.length?<div className="mf-options" role="radiogroup" aria-label="Room">{free.map(r=><label key={r.id} className={'mf-option'+(chosen===r.id?' on':'')}><input type="radio" name="mf-walk-room" checked={chosen===r.id} onChange={()=>setRoom(r.id)}/>
-          <span><strong>{r.id} · {r.type}</strong><small>Floor {r.floor}{permission('billing')?` · ${money(r.rate)}/night`:''}</small></span></label>)}</div>
+          <span><strong>{r.id} · {rmsTypeName(s,r.type)}</strong><small>{mstFloorLabel(s,r)}{permission('billing')?` · ${money(r.rate)}/night`:''}</small></span></label>)}</div>
         :<Empty title="No room available" body="No room is vacant, ready and free for these dates. Try a shorter stay."/>}
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>open({type:'guest-checkin'})}>Has a reservation?</button>
         <button type="button" className="btn primary" disabled={!chosen} onClick={()=>setScreen(1)}>Next <ArrowRight size={16}/></button></div></>}

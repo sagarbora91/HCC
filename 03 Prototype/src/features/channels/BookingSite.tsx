@@ -1,7 +1,7 @@
 // Module 22 · Direct booking website — phone-first guest page preview (not published) + staff panel for web booking requests.
 import React,{useState,useRef,useEffect} from 'react';
 import {BedDouble,CheckCircle2,ArrowLeft,Check,X,Users,Eye} from 'lucide-react';
-import {money,addDays,nights,chnSlice,chnRoomTypes,chnWebQuote,chnWebSearchError,chnWebStatus,resHoldLeftLabel,CHN_TYPE_COPY,type CHNQuote} from '../../services/mock';
+import {money,addDays,nights,chnSlice,chnRoomTypes,chnWebQuote,chnWebSearchError,chnWebStatus,resHoldLeftLabel,CHN_TYPE_COPY,rmsTypeCopy,type CHNQuote} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,clockTime} from '../../components/ui';
 import {NumberStepper,ChipFilter} from '../../app/mobile/components';
@@ -55,9 +55,9 @@ export function GuestPreview(){
         <NumberStepper label="Children" value={children} min={0} max={3} onChange={setChildren}/>
       </div>
       {err?<p className="chn-err-text" role="alert">{err}</p>:<p className="chn-site-count" aria-live="polite">{nights(arrival,departure)} night{nights(arrival,departure)===1?'':'s'} · {party(adults,children)} · prices include {pct(quotes[0]?.taxBps??0)} GST in the total</p>}
-      {quotes.map(q=>{const copy=CHN_TYPE_COPY[q.type];return <article key={q.type} className={'chn-room'+(q.ok?'':' off')}>
+      {quotes.map(q=>{const copy=rmsTypeCopy(s,q.type)??(CHN_TYPE_COPY[q.type]?{name:q.type,...CHN_TYPE_COPY[q.type]}:undefined);/* MA-1: room-types master */return <article key={q.type} className={'chn-room'+(q.ok?'':' off')}>
         <div className={'chn-room-img t-'+q.type.toLowerCase()} aria-hidden><BedDouble size={34}/></div>
-        <div className="chn-room-body"><div className="chn-room-head"><h3>{q.type}</h3><span><Users size={14} aria-hidden/> Sleeps {q.capacity}</span></div>
+        <div className="chn-room-body"><div className="chn-room-head"><h3>{copy?.name??q.type}</h3><span><Users size={14} aria-hidden/> Sleeps {q.capacity}</span></div>
           {copy&&<p>{copy.blurb}</p>}
           {copy&&<ul className="chn-feats">{copy.features.map(f=><li key={f}>{f}</li>)}</ul>}
           <div className="chn-room-price"><div><b>{money(q.rate)}</b><span> / night</span><small>{money(q.total)} total for {q.nights} night{q.nights===1?'':'s'} incl. tax</small></div>

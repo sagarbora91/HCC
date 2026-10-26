@@ -2,7 +2,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Check,X,Printer} from 'lucide-react';
-import {money,chnSlice,chnAcceptCheck,chnChannelName,chnFreeRooms,chnRoomTypes,chnPct,chnOriginal,chnWebStatus,CHN_MAX_COMMISSION_BPS,CHN_MAX_MARKUP_BPS} from '../../services/mock';
+import {money,chnSlice,chnAcceptCheck,chnChannelName,chnFreeRooms,chnRoomTypes,chnPct,chnOriginal,chnWebStatus,CHN_MAX_COMMISSION_BPS,CHN_MAX_MARKUP_BPS,rmsRoomLine} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import type {ModalProps} from '../../app/registry';
 import {clockTime,shortDate,dateLabel} from '../../components/ui';
@@ -29,7 +29,7 @@ export function MessageModal({id}:ModalProps){
       {m.reason&&<div><span>Reason</span><strong>{m.reason}</strong></div>}
     </div>
     {m.status==='Pending'&&<>
-      {free.length>1&&<label className="form chn-mt">Room to allocate<select value={room} onChange={e=>setRoom(e.target.value)}><option value="">First free room ({free[0].id})</option>{free.map(r=><option key={r.id} value={r.id}>Room {r.id} · floor {r.floor}</option>)}</select></label>}
+      {free.length>1&&<label className="form chn-mt">Room to allocate<select value={room} onChange={e=>setRoom(e.target.value)}><option value="">First free room ({free[0].id})</option>{free.map(r=><option key={r.id} value={r.id}>Room {r.id} · {rmsRoomLine(s,r)}</option>)}</select></label>}
       <div className={'chn-verdict '+(chk.ok?'ok':'bad')} role="status"><strong>{chk.ok?'Can accept':'Cannot accept'}</strong><span>{chk.reason}</span>{chk.warning&&<em>{chk.warning}</em>}</div>
       {m.kind==='New'&&<p className="chn-muted chn-mt">Accepting creates a Confirmed booking (source OTA · {chnChannelName(s,m.channel)}) at the hotel tariff through the normal booking rules.</p>}
       <div className="modal-actions"><button className="btn" onClick={()=>open({type:'chn-reject',id:m.id})}><X size={15}/> Reject…</button>
