@@ -27,10 +27,18 @@ public static class ConfigurationEndpoints
         return services;
     }
 
-    /// <summary>Refuses the endpoint (FORBIDDEN, prototype message) while the module is switched off (DEC-057). Use on a switchable module's commands.</summary>
+    /// <summary>
+    /// Refuses the endpoint (FORBIDDEN, prototype message, <c>details.reason</c> MODULE_OFF) while the module is switched off (DEC-057,
+    /// A11-01). Put it on every command route (or command route group) of a switchable module, after the session filter; reads stay open.
+    /// Fails closed: without the configuration services (<see cref="AddHccConfiguration"/>) the request fails instead of passing.
+    /// The route carries <see cref="HccModuleGateMetadata"/> so tests can check which routes are gated.
+    /// </summary>
     public static TBuilder RequireHccModule<TBuilder>(this TBuilder builder, string moduleId) where TBuilder : IEndpointConventionBuilder
     {
         ArgumentNullException.ThrowIfNull(builder);
+        if (Hcc.Domain.Configuration.ConfigCatalog.Module(moduleId) is null)
+            throw new ArgumentException($"'{moduleId}' is not a switchable module; core modules are always on (DEC-057).", nameof(moduleId));
+        builder.WithMetadata(new HccModuleGateMetadata(moduleId));
         builder.AddEndpointFilter(async (ctx, next) =>
         {
             var http = ctx.HttpContext;
@@ -104,3 +112,6 @@ public static class ConfigurationEndpoints
         return api;
     }
 }
+
+/// <summary>Endpoint metadata of a route gated by <see cref="ConfigurationEndpoints.RequireHccModule{TBuilder}"/> (DEC-057, A11-01).</summary>
+public sealed record HccModuleGateMetadata(string ModuleId);

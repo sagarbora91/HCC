@@ -82,6 +82,12 @@ public static class ConfigCatalog
 
     public static ConfigModule? Module(string id) => Modules.FirstOrDefault(m => m.Id == id);
 
+    /// <summary>
+    /// <c>details.reason</c> of the FORBIDDEN refusal of a switched-off module's command (A11-01); <c>details.moduleId</c> names the module.
+    /// Stable on the wire: the production client reloads Master configuration when it sees it.
+    /// </summary>
+    public const string ModuleOffReason = "MODULE_OFF";
+
     /// <summary>Refusal text for a command of a switched-off module (prototype <c>cfgModuleOffMessage</c>).</summary>
     public static string ModuleOffMessage(ConfigModule m)
     {

@@ -33,6 +33,7 @@ public sealed class OtaHttpTests : OtaSqlTest
         builder.Services.AddSingleton<TimeProvider>(F.Clock);
         builder.Services.AddSingleton(F.Queries);
         builder.Services.AddSingleton(F.Service);
+        builder.Services.AddHccConfiguration(); // DEC-057 / A11-01: the module gate on the command routes (every module on by default)
         builder.Services.AddSingleton<IAccessPolicy>(F.Policy);
         builder.Services.AddSingleton<ISessionService>(new TestSessions(1));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);

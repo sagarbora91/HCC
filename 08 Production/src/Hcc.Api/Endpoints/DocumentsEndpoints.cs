@@ -1,6 +1,7 @@
 using Hcc.Application.Documents;
 using Hcc.Application.GuestIds;
 using Hcc.Contracts.Documents;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Documents;
 
@@ -32,11 +33,15 @@ public static class DocumentsEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + DocumentService.OpCapture, async (HttpContext http, CaptureIdDocumentRequest body, IServiceProvider sp, CancellationToken ct) =>
+        // DEC-057 / A11-01: capture, confirm and reject are refused while Document capture is off. Its data is kept, so ViewIdCaptureImage and
+        // RevealIdCaptureNumber (audited reads: POST only for the audit row and no-store) stay like the GETs, and so does PurgeIdCaptures,
+        // the manual erasure a guest may ask for (DEC-071, DPDP Act): switching the module off never blocks erasing a guest's ID images.
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Documents);
+        cmd.MapPost("/commands/" + DocumentService.OpCapture, async (HttpContext http, CaptureIdDocumentRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).CaptureAsync(http.HccCommand(DocumentService.OpCapture), body, ct)));
-        g.MapPost("/commands/" + DocumentService.OpConfirm, async (HttpContext http, ConfirmIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + DocumentService.OpConfirm, async (HttpContext http, ConfirmIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).ConfirmAsync(http.HccCommand(DocumentService.OpConfirm), body, ct)));
-        g.MapPost("/commands/" + DocumentService.OpReject, async (HttpContext http, RejectIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + DocumentService.OpReject, async (HttpContext http, RejectIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).RejectAsync(http.HccCommand(DocumentService.OpReject), body, ct)));
         g.MapPost("/commands/" + DocumentService.OpViewImage, async (HttpContext http, ViewIdCaptureImageRequest body, IServiceProvider sp, CancellationToken ct) =>
         {
