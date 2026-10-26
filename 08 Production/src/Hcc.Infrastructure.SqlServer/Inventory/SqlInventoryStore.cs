@@ -193,7 +193,7 @@ public sealed class SqlInventoryStore(SqlConnectionFactory connections) : IInven
         // Due blocks first, then lapsed holds; one record per short transaction so the sweep never holds two reservations' locks.
         foreach (var blockId in await IdsAsync(conn, "SELECT group_block_id FROM inv.group_block g JOIN inv.property p ON p.property_id = g.property_id WHERE g.property_id = @p AND g.status = 'Open' AND g.cutoff < p.business_date ORDER BY group_block_id;", propertyId, nowUtc, ct).ConfigureAwait(false))
         {
-            changed += await InOwnTransactionAsync(conn, async s =>
+            changed += await InOwnTransactionAsync(conn, principalId, async s =>
             {
                 var r = await ReleaseAsync(s, propertyId, blockId, null, dueOnly: true, ct).ConfigureAwait(false);
                 if (r is null) return 0;
@@ -204,7 +204,7 @@ public sealed class SqlInventoryStore(SqlConnectionFactory connections) : IInven
 
         foreach (var resId in await IdsAsync(conn, "SELECT reservation_id FROM inv.reservation WHERE property_id = @p AND status = 'Held' AND hold_until_utc <= @now ORDER BY reservation_id;", propertyId, nowUtc, ct).ConfigureAwait(false))
         {
-            changed += await InOwnTransactionAsync(conn, async s =>
+            changed += await InOwnTransactionAsync(conn, principalId, async s =>
             {
                 await using var q = s.Command("""
                     SELECT room_id, room_type_id, arrival, departure, group_block_id, public_no FROM inv.reservation WITH (UPDLOCK, ROWLOCK)
@@ -365,12 +365,14 @@ public sealed class SqlInventoryStore(SqlConnectionFactory connections) : IInven
         return ids;
     }
 
-    private async Task<int> InOwnTransactionAsync(SqlConnection conn, Func<SqlScope, Task<int>> work, CancellationToken ct)
+    /// <summary>One sweep step in its own transaction; A08-03: its count changes publish InventoryChanged in that transaction, stamped with the
+    /// user whose command ran the sweep.</summary>
+    private async Task<int> InOwnTransactionAsync(SqlConnection conn, int principalId, Func<SqlScope, Task<int>> work, CancellationToken ct)
     {
         await using var tx = (SqlTransaction)await conn.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct).ConfigureAwait(false);
         try
         {
-            var n = await work(new SqlScope(conn, tx, connections)).ConfigureAwait(false);
+            var n = await work(new SqlScope(conn, tx, connections) { PrincipalId = principalId }).ConfigureAwait(false);
             await tx.CommitAsync(ct).ConfigureAwait(false);
             return n;
         }

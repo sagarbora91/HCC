@@ -16,13 +16,16 @@ public sealed class SqlScope(SqlConnection connection, SqlTransaction? transacti
 
     public SqlTransaction? Transaction { get; } = transaction;
 
+    /// <summary>Who causes the writes (the command's principal, or the user whose command ran the sweep); stamped on outbox rows written here.</summary>
+    public int? PrincipalId { get; init; }
+
     public SqlCommand Command(string sql) => factory.Command(sql, Connection, Transaction);
 
     public static SqlScope Of(ICommandTransaction tx, SqlConnectionFactory factory)
     {
         ArgumentNullException.ThrowIfNull(tx);
         var sql = tx as SqlCommandTransaction ?? throw new InvalidOperationException("The P2 SQL stores need a SQL command transaction.");
-        return new SqlScope(sql.Connection, sql.Transaction, factory);
+        return new SqlScope(sql.Connection, sql.Transaction, factory) { PrincipalId = sql.Context.PrincipalId };
     }
 }
 
@@ -165,7 +168,10 @@ public sealed class TypeNightDeltas
         }
     }
 
-    /// <summary>Applies the deltas in the caller's transaction (ascending room type, night).</summary>
+    /// <summary>
+    /// Applies the deltas in the caller's transaction (ascending room type, night). A08-03: the nights whose counts changed (non-zero deltas;
+    /// the zero rows only take the locks) are reported to <see cref="InventoryChangePublisher"/> (one InventoryChanged per room type per transaction).
+    /// </summary>
     public async Task ApplyAsync(SqlScope scope, int propertyId, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(scope);
@@ -185,5 +191,7 @@ public sealed class TypeNightDeltas
         p.TypeName = "inv.type_night_delta";
         p.Value = table;
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await InventoryChangePublisher.RecordAsync(scope, propertyId,
+            _rows.Where(r => r.Value != (0, 0, 0)).Select(r => (r.Key.Type, r.Key.Night)), ct).ConfigureAwait(false);
     }
 }

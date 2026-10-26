@@ -323,6 +323,9 @@ public sealed class OtaChannelSqlTests : OtaSqlTest
         await F.AcceptAsync("F3");
         Assert.True(await F.Projector.RunOnceAsync(ct: Ct) >= 1);
         Assert.True((await ChannelAsync("BOOKNEST")).PushDue); // the booking made the pushed availability stale
+        // A08-03: the booking's InventoryChanged also queued an automatic Suite availability push for BookNest (the staff push below is separate).
+        var auto = await F.Db.ScalarAsync($"SELECT push_id FROM ota.push WHERE origin = 'Inventory' AND status = 'Queued' AND channel_id = {F.ChannelIds["BOOKNEST"]};", Ct);
+        Assert.Equal(1, await CountAsync($"SELECT COUNT(*) FROM ota.push WHERE origin = 'Inventory' AND channel_id = {F.ChannelIds["BOOKNEST"]};"));
         await F.Service.SetStopSellAsync(F.Ctx(F.Reception, "SetChannelStopSell"), new SetChannelStopSellRequest(null, F.TypeIds["Suite"], true), Ct);
         var preview = await F.Queries.PushPreviewAsync(1, F.Reception, F.ChannelIds["BOOKNEST"], Ct);
         Assert.True(preview.Rows.Where(r => r.RoomType == "Suite").All(r => r.Closed));
@@ -331,12 +334,13 @@ public sealed class OtaChannelSqlTests : OtaSqlTest
         Assert.Equal((21, 7, "Queued"), (push.Value.Rows, push.Value.Closed, push.Value.Status));
         Assert.Equal(1, await CountAsync($"SELECT COUNT(*) FROM ota.push_row WHERE push_id = {push.Value.PushId} AND closed = 1 AND why = 'Stop-sell' AND room_type_id = {F.TypeIds["Suite"]} AND channel_code = 'BN-STE' AND night = '2026-10-25' AND rate_paise = 495000"));
         Assert.True((await F.Service.PushRatesAsync(F.Ctx(F.Reception, "PushChannelRates", key), new PushChannelRatesRequest(F.ChannelIds["BOOKNEST"]), Ct)).Replayed);
-        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM ota.push;"));
-        var queued = (await F.Queries.PushLogAsync(1, F.Reception, F.ChannelIds["BOOKNEST"], 10, Ct)).Single();
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM ota.push WHERE origin = 'Staff';"));
+        var queued = (await F.Queries.PushLogAsync(1, F.Reception, F.ChannelIds["BOOKNEST"], 10, Ct)).Single(x => x.PushId == push.Value.PushId);
         Assert.Equal(("Queued", null), (queued.Status, queued.AckRef));
         await F.Projector.RunOnceAsync(ct: Ct);
-        var done = (await F.Queries.PushLogAsync(1, F.Reception, F.ChannelIds["BOOKNEST"], 10, Ct)).Single();
+        var done = (await F.Queries.PushLogAsync(1, F.Reception, F.ChannelIds["BOOKNEST"], 10, Ct)).Single(x => x.PushId == push.Value.PushId);
         Assert.Equal(("Delivered", "SIM-" + push.Value.PushId.ToString(CultureInfo.InvariantCulture)), (done.Status, done.AckRef));
+        Assert.Equal("Delivered", await F.Db.ScalarAsync($"SELECT status FROM ota.push WHERE push_id = {auto};", Ct)); // the automatic push, by the same handling
         Assert.False((await ChannelAsync("BOOKNEST")).PushDue);
         Assert.NotNull((await ChannelAsync("BOOKNEST")).LastSync);
         Assert.Equal(0, await F.Projector.RunOnceAsync(ct: Ct)); // exactly-once per consumer

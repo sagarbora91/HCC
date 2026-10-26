@@ -135,6 +135,7 @@ public sealed class SqlRoomBlockPort(SqlConnectionFactory connections, TimeProvi
 
         await InventorySql.Guard(async () => { await deltas.ApplyAsync(s, propertyId, ct).ConfigureAwait(false); return 0; }).ConfigureAwait(false);
         var bd = await BusinessDateAsync(s, propertyId, ct).ConfigureAwait(false);
+        await RecordWindowAsync(s, propertyId, type, from, to, bd, ct).ConfigureAwait(false);
         await using var ins = s.Command("""
             INSERT inv.room_block(room_id, from_night, to_night, reason, source, source_ref, created_on, created_utc) OUTPUT INSERTED.room_block_id
             VALUES (@room, @from, @to, @reason, @src, @ref, @bd, @now);
@@ -156,6 +157,7 @@ public sealed class SqlRoomBlockPort(SqlConnectionFactory connections, TimeProvi
         var (type, _) = await RoomAsync(s, propertyId, row.RoomId, ct).ConfigureAwait(false);
         var deltas = await NightsAsync(s, type, row.RoomId, row.From, row.To, row.Id, +1, bd, ct).ConfigureAwait(false);
         await deltas.ApplyAsync(s, propertyId, ct).ConfigureAwait(false);
+        await RecordWindowAsync(s, propertyId, type, row.From, row.To, bd, ct).ConfigureAwait(false);
         await using var up = s.Command("UPDATE inv.room_block SET active = 0, released_on = @bd, released_by = @u, released_utc = @now WHERE room_block_id = @b;");
         up.Parameters.Big("@b", row.Id);
         up.Parameters.Date("@bd", bd);
@@ -190,6 +192,17 @@ public sealed class SqlRoomBlockPort(SqlConnectionFactory connections, TimeProvi
     }
 
     private DateTime Now() => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
+    /// <summary>
+    /// A08-03: the block's window from the business date on is reported as changed for the room type, also the nights that have no count row yet
+    /// (they get no delta, but their availability changed). An open-ended block reports one year (<see cref="InventoryChangePublisher.OpenEndedNights"/>).
+    /// </summary>
+    private static Task RecordWindowAsync(SqlScope s, int propertyId, int type, DateOnly? from, DateOnly? to, DateOnly bd, CancellationToken ct)
+    {
+        var f = from is { } x && x > bd ? x : bd;
+        var t = to ?? f.AddDays(InventoryChangePublisher.OpenEndedNights);
+        return InventoryChangePublisher.RecordRangeAsync(s, propertyId, type, f, t, ct);
+    }
 
     private static async Task<(int Type, string RoomNo)> RoomAsync(SqlScope s, int propertyId, int roomId, CancellationToken ct)
     {

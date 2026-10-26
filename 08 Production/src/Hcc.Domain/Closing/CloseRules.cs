@@ -57,13 +57,23 @@ public sealed record PendingApproval(long ApprovalId, string Action, Paise Amoun
 
 public sealed record ActiveShift(long ShiftId, string TillCode, string Status, DateOnly BusinessDate, Paise Expected);
 
+/// <summary>A03b-09: an expense submitted for approval (status Pending) — the prototype's "Expenses resolved" gate.</summary>
+public sealed record PendingExpense(long ExpenseId, string Vendor, Paise Amount);
+
+/// <summary>A03b-09: a credit-note request awaiting the Owner (unexpired) — in the prototype a pending approval like any other.
+/// <see cref="Amount"/> is null when the request credits selected lines.</summary>
+public sealed record PendingCreditNote(long RequestId, string InvoiceNo, Paise? Amount);
+
 public sealed record PreflightData(DateOnly BusinessDate, IReadOnlyList<PendingArrival> Arrivals, IReadOnlyList<OverdueDeparture> Departures,
     IReadOnlyList<ExpiredHold> Holds, IReadOnlyList<NightTarget> Nights, IReadOnlyList<PendingApproval> Approvals, IReadOnlyList<ActiveShift> Shifts,
-    IReadOnlyList<PreflightItem>? PosChecks = null, IReadOnlyList<PreflightItem>? PosVoids = null, IReadOnlyList<DateOnly>? Reopened = null);
+    IReadOnlyList<PreflightItem>? PosChecks = null, IReadOnlyList<PreflightItem>? PosVoids = null, IReadOnlyList<DateOnly>? Reopened = null,
+    IReadOnlyList<PendingExpense>? Expenses = null, IReadOnlyList<PendingCreditNote>? CreditNotes = null);
 
 /// <summary>
 /// Closing checks ported from the prototype (<c>closingPreflight</c>, <c>DAY_CLOSE</c> in <c>03 Prototype/src/domain/streams/closing.ts</c>
-/// and <c>services/mock/handlers/closing.ts</c>). Restaurant checks (POS) and pending expenses join when those modules reach the server.
+/// and <c>services/mock/handlers/closing.ts</c>), with the prototype's gate list (A03b-09): reopened day, arrivals, departures, expired holds,
+/// room nights, approvals (folio approvals, till transfers and credit-note requests), pending expenses, restaurant checks, cash shift — plus the
+/// server's pending POS void requests (the prototype keeps those among its approvals).
 /// </summary>
 public static class CloseRules
 {
@@ -72,6 +82,9 @@ public static class CloseRules
     public const string Holds = "holds";
     public const string Nights = "nights";
     public const string Approvals = "approvals";
+
+    /// <summary>A03b-09: expenses submitted for approval block the close (prototype <c>closingPreflight</c> "expenses").</summary>
+    public const string Expenses = "expenses";
     public const string Pos = "pos";
     public const string PosVoidRequests = "posVoids";
     public const string Shift = "shift";
@@ -80,7 +93,7 @@ public static class CloseRules
     public const string Reopened = "reopened";
 
     /// <summary>Checks the preflight step blocks on (before the night posting).</summary>
-    public static readonly IReadOnlySet<string> PreflightBlocking = new HashSet<string>(StringComparer.Ordinal) { Reopened, Arrivals, Departures, Holds, Approvals, Pos, PosVoidRequests };
+    public static readonly IReadOnlySet<string> PreflightBlocking = new HashSet<string>(StringComparer.Ordinal) { Reopened, Arrivals, Departures, Holds, Approvals, Expenses, Pos, PosVoidRequests };
 
     /// <summary>Checks the cash step blocks on.</summary>
     public static readonly IReadOnlySet<string> CashBlocking = new HashSet<string>(StringComparer.Ordinal) { Shift };
@@ -111,7 +124,12 @@ public static class CloseRules
             Check(Nights, "Room-night charges posted", "The close posts tonight's room line for every in-house stay (step 2).",
                 data.Nights.Where(n => !n.HasNight).Select(n => new PreflightItem($"{n.Guest}{Room(n.RoomNo)} · {n.PublicNo}", "stay:" + n.StayId))),
             Check(Approvals, "Approvals resolved", "Approve or reject pending requests.",
-                data.Approvals.Select(a => new PreflightItem($"{Label(a.Action)} · {a.Amount} · approval {a.ApprovalId}", "approval:" + a.ApprovalId))),
+                data.Approvals.Select(a => new PreflightItem($"{Label(a.Action)} · {a.Amount} · approval {a.ApprovalId}", "approval:" + a.ApprovalId))
+                    .Concat((data.CreditNotes ?? []).Select(c => new PreflightItem(
+                        $"Credit-note · {(c.Amount is { } amt ? amt.ToString() : "selected lines")} · invoice {c.InvoiceNo} · request {c.RequestId}", "credit-note:" + c.RequestId)))),
+            Check(Expenses, "Expenses resolved", "Approve or reject pending expenses.",
+                // Prototype label "vendor · amount · id"; EXP-n is the server's expense reference (ExpenseMapping.Ref).
+                (data.Expenses ?? []).Select(e => new PreflightItem($"{e.Vendor} · {e.Amount} · EXP-{e.ExpenseId}", "expense:" + e.ExpenseId))),
             Check(Pos, "Restaurant checks settled", "Settle each open check, charge it to the room, or void it (with approval above the limit).", data.PosChecks ?? []),
             Check(PosVoidRequests, "POS void requests decided", "Approve or reject each pending void request.", data.PosVoids ?? []),
             Check(Shift, "Cash shifts reconciled", "Count every drawer and submit the shift; a difference must be decided.",

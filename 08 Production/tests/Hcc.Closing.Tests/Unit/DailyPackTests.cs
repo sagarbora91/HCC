@@ -168,15 +168,37 @@ public sealed class DailyPackTests
             [new NightTarget(3, 30, "HCC-1041", "Guest B (fictional)", "101", false), new NightTarget(4, 40, "HCC-1042", "Guest C (fictional)", "102", true)],
             [new PendingApproval(5, "cash-difference", new Paise(30000), "Short")], [new ActiveShift(6, "FD-1", "Open", D1, new Paise(1072500))]);
         var checks = CloseRules.Evaluate(data);
-        // DEC-077: a reopened earlier day comes first; POS checks (W3-a) sit between approvals and the cash shift.
-        Assert.Equal(["reopened", "arrivals", "departures", "holds", "nights", "approvals", "pos", "posVoids", "shift"], checks.Select(c => c.Id));
-        Assert.Equal([false, true, false, true, true, true, false, false, true], checks.Select(c => c.Blocking));
+        // DEC-077: a reopened earlier day comes first; pending expenses (A03b-09, the prototype's order) follow the approvals; POS checks (W3-a)
+        // sit between them and the cash shift.
+        Assert.Equal(["reopened", "arrivals", "departures", "holds", "nights", "approvals", "expenses", "pos", "posVoids", "shift"], checks.Select(c => c.Id));
+        Assert.Equal([false, true, false, true, true, true, false, false, false, true], checks.Select(c => c.Blocking));
         Assert.Single(checks.Single(c => c.Id == "nights").Items); // only the stay without tonight's line
         Assert.Contains("₹10,725", checks.Single(c => c.Id == "shift").Items[0].Label, StringComparison.Ordinal);
         Assert.Equal(["arrivals", "holds", "approvals"], CloseRules.Blockers(checks, CloseRules.PreflightBlocking).Select(b => b.Id));
         var ex = CloseRules.Blocked(D1, CloseRules.Blockers(checks));
         Assert.Equal(HccErrorCode.INVALID_TRANSITION, ex.Code);
         Assert.Equal(5, ex.Details!["blockers"].GetArrayLength());
+    }
+
+    [Fact]
+    public void Pending_expenses_and_credit_note_requests_block_the_preflight_with_the_prototype_wording()
+    {
+        // A03b-09: prototype closingPreflight "expenses" (Expenses resolved · Approve or reject pending expenses.) and a pending credit-note
+        // approval under "approvals"; both are preflight blockers like the prototype's DAY_CLOSE ("Resolve pending approvals and expenses.").
+        var data = new PreflightData(D1, [], [], [], [], [], [],
+            Expenses: [new PendingExpense(7, "Aqua Water Cans", new Paise(30000))],
+            CreditNotes: [new PendingCreditNote(3, "INV/2627/0000001", new Paise(10000)), new PendingCreditNote(4, "INV/2627/0000002", null)]);
+        var checks = CloseRules.Evaluate(data);
+        var expenses = checks.Single(c => c.Id == CloseRules.Expenses);
+        Assert.Equal(("Expenses resolved", "Approve or reject pending expenses.", true), (expenses.Title, expenses.Hint, expenses.Blocking));
+        Assert.Equal([("Aqua Water Cans · ₹300 · EXP-7", "expense:7")], expenses.Items.Select(i => (i.Label, i.Ref)));
+        Assert.Equal([("Credit-note · ₹100 · invoice INV/2627/0000001 · request 3", "credit-note:3"), ("Credit-note · selected lines · invoice INV/2627/0000002 · request 4", "credit-note:4")],
+            checks.Single(c => c.Id == CloseRules.Approvals).Items.Select(i => (i.Label, i.Ref)));
+        Assert.Contains(CloseRules.Expenses, CloseRules.PreflightBlocking);
+        Assert.Equal(["approvals", "expenses"], CloseRules.Blockers(checks, CloseRules.PreflightBlocking).Select(b => b.Id));
+        Assert.Equal("Day close 2026-10-24 is blocked: approvals resolved — Approve or reject pending requests.", CloseRules.Blocked(D1, CloseRules.Blockers(checks)).Message);
+        Assert.Equal("Day close 2026-10-24 is blocked: expenses resolved — Approve or reject pending expenses.",
+            CloseRules.Blocked(D1, CloseRules.Blockers(CloseRules.Evaluate(data with { CreditNotes = [] }))).Message);
     }
 
     [Fact]
