@@ -3,20 +3,6 @@ namespace Hcc.Contracts.Handover;
 // Wire contracts for the Shift handover module (module 19, W2-11). Roles are role codes (OWN MGR REC CSH SUP HKP MNT).
 // Money appears only as HandoverCashView.AmountPaise on Front desk notes and is null for readers without PERM-PAY-001 / PERM-RPT-002 (R10).
 
-public static class HandoverDesk
-{
-    public const string FrontDesk = "Front desk";
-    public const string Housekeeping = "Housekeeping";
-    public const string Maintenance = "Maintenance";
-}
-
-public static class HandoverShift
-{
-    public const string Morning = "Morning";
-    public const string Evening = "Evening";
-    public const string Night = "Night";
-}
-
 public sealed record HandoverItemInput(string Text, bool Mandatory = false, string? Due = null, bool Photo = false, string? Link = null);
 
 /// <summary>SaveHandoverTemplate K [V]: <c>TemplateId</c> null = create; an edit needs <c>ExpectedVersion</c> (base64 rowversion) and bumps the template version.</summary>

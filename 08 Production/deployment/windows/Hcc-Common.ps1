@@ -116,9 +116,11 @@ function ConvertFrom-HccBackupFileName {
 # Which backup file names to delete. Keeps at least $KeepMinFulls newest FULL files regardless of age; a FULL older than
 # $RetentionDays (and not among the newest $KeepMinFulls) is deleted; a DIFF is deleted when no kept FULL precedes it or it is
 # older than the oldest kept FULL; PRE files are deleted after $PreMigrateRetentionDays. Unrecognised names are never touched.
+# A09-10: with -Database only that database's files count (parsed name, not a "Hcc_*" pattern that also matches Hcc_X_...), so two HCC
+# databases sharing one folder never delete or keep each other's backups.
 function Select-HccBackupsToDelete {
-    param([string[]]$Names, [Parameter(Mandatory)][datetime]$UtcNow, [int]$RetentionDays = 30, [int]$KeepMinFulls = 3, [int]$PreMigrateRetentionDays = 90)
-    $items = @($Names | ForEach-Object { ConvertFrom-HccBackupFileName $_ } | Where-Object { $_ })
+    param([string[]]$Names, [Parameter(Mandatory)][datetime]$UtcNow, [int]$RetentionDays = 30, [int]$KeepMinFulls = 3, [int]$PreMigrateRetentionDays = 90, [string]$Database)
+    $items = @($Names | ForEach-Object { ConvertFrom-HccBackupFileName $_ } | Where-Object { $_ -and (-not $Database -or $_.Database -eq $Database) })
     $fulls = @($items | Where-Object Type -eq 'FULL' | Sort-Object TimeUtc -Descending)
     $keep = New-Object System.Collections.Generic.List[object]
     for ($i = 0; $i -lt $fulls.Count; $i++) {
@@ -409,6 +411,50 @@ function Unprotect-HccBackupFile {
         finally { if ($out) { $out.Dispose() }; $aes.Dispose() }
     }
     finally { $in.Dispose() }
+}
+
+# A09-13: SQL Server Express cannot encrypt while it backs up, so the plain .bak exists between BACKUP DATABASE and its encryption, inside
+# the private backup folder only. Invoke-HccBackupToFile runs $Backup (BACKUP DATABASE + RESTORE VERIFYONLY into $Target), encrypts $Target
+# into $Target.hccenc and deletes the plain file. When anything fails after $Backup started (the backup, the verify, the encryption or the
+# delete), this run's plain file is deleted before the error goes on: a failed run never leaves an unencrypted copy (a failure to delete
+# it is logged as an ERROR naming the file). Without -Key (EncryptBackups=false) the plain .bak is the backup and is left as it is.
+# Returns the file to keep. $Backup must not write output.
+function Invoke-HccBackupToFile {
+    param([Parameter(Mandatory)][string]$Target, [Parameter(Mandatory)][scriptblock]$Backup, [byte[]]$Key, [string]$LogFile)
+    if (-not $Key) { & $Backup | Out-Null; return $Target }
+    $enc = $Target + $script:HccEncryptedSuffix
+    try {
+        & $Backup | Out-Null
+        Protect-HccBackupFile -Source $Target -Destination $enc -Key $Key
+        Remove-Item -LiteralPath $Target -Force -ErrorAction Stop
+        Write-HccLog ("Encrypted: {0} ({1:N1} MB); plain .bak deleted." -f (Split-Path -Leaf $enc), ((Get-Item -LiteralPath $enc).Length / 1MB)) -LogFile $LogFile
+        return $enc
+    }
+    catch {
+        $failure = $_
+        if (Test-Path -LiteralPath $Target) {
+            try {
+                Remove-Item -LiteralPath $Target -Force -ErrorAction Stop
+                Write-HccLog ("The unencrypted file of this failed run was deleted: " + (Split-Path -Leaf $Target)) -LogFile $LogFile -Level WARN
+            }
+            catch { Write-HccLog ("Could not delete the unencrypted backup file ${Target} of this failed run: delete it by hand (" + $_.Exception.Message + ').') -LogFile $LogFile -Level ERROR }
+        }
+        throw $failure
+    }
+}
+
+# A09-13: the restore drill decrypts each encrypted backup into its private scratch folder (RESTORE cannot read a .hccenc file). The copies
+# are deleted at the end of every drill, also a failed one; a copy that cannot be deleted is logged (WARN, naming the file), never ignored.
+# Returns the copies that are still there.
+function Remove-HccPlainCopies {
+    param([string[]]$Paths, [string]$LogFile)
+    $left = @()
+    foreach ($p in @($Paths | Where-Object { $_ })) {
+        if (-not (Test-Path -LiteralPath $p)) { continue }
+        try { Remove-Item -LiteralPath $p -Force -ErrorAction Stop }
+        catch { $left += $p; Write-HccLog ("Could not delete the decrypted backup copy ${p}: delete it by hand (" + $_.Exception.Message + ').') -LogFile $LogFile -Level WARN }
+    }
+    return , @($left)
 }
 
 # Key file text: a comment, the fingerprint and "dpapi-machine:<base64>" (DPAPI for this PC). Readable only by SYSTEM, Administrators

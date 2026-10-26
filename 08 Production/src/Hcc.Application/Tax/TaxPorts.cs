@@ -73,26 +73,6 @@ public interface IGstChargeSnapshots
     Task<GstChargeSnapshot?> FindAsync(ICommandTransaction tx, long chargeId, CancellationToken ct = default);
 }
 
-/// <summary>
-/// Test stand-in pinned to one rate for every supply (the DEC-039 synthetic 10 % that the P2–P4 module tests were written
-/// against). Never registered by the composition — production uses <see cref="GstRateResolver"/>.
-/// </summary>
-public sealed class FixedGstRateResolver(int taxBps = 1000) : IGstRateResolver
-{
-    public Task<GstRate> RoomNightAsync(ICommandTransaction? tx, int propertyId, DateOnly night, Paise chargedPerUnit, CancellationToken ct = default)
-        => Task.FromResult(new GstRate(taxBps, false, GstCategory.Room, "Fixed test rate"));
-
-    public Task<IReadOnlyList<(DateOnly Night, GstRate Rate)>> RoomNightsAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, Paise nightly, CancellationToken ct = default)
-    {
-        var list = new List<(DateOnly, GstRate)>();
-        for (var d = from; d < to; d = d.AddDays(1)) list.Add((d, new GstRate(taxBps, false, GstCategory.Room, "Fixed test rate")));
-        return Task.FromResult<IReadOnlyList<(DateOnly Night, GstRate Rate)>>(list);
-    }
-
-    public Task<GstRate> ChargeAsync(ICommandTransaction? tx, int propertyId, DateOnly date, GstCategory category, CancellationToken ct = default)
-        => Task.FromResult(new GstRate(taxBps, false, category, "Fixed test rate"));
-}
-
 /// <summary>The resolver over the dated master (<see cref="IGstMasterStore"/>) and the pure rules (<see cref="GstMaster"/>).</summary>
 public sealed class GstRateResolver(IGstMasterStore store) : IGstRateResolver
 {

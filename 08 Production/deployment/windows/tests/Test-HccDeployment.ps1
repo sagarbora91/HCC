@@ -258,6 +258,90 @@ Check 'A09-03 .NET runtime: both Microsoft.NETCore.App 10 and Microsoft.AspNetCo
     $doc -match 'dotnet --list-runtimes' -and $doc -match 'Microsoft\.AspNetCore\.App 10' -and $doc -match 'Hosting Bundle'
 }
 
+# --- A09-10: retention and the differential's base count only this database's files -------------------------------------------
+function NmDb([string]$Db, [string]$Type, [int]$DaysAgo) { New-HccBackupFileName -Database $Db -Type $Type -UtcNow $now.AddDays(-$DaysAgo) }
+Check 'A09-10 retention: with -Database only that database counts; Hcc_X backups are never deleted and never take the place of Hcc fulls' {
+    $names = @((NmDb Hcc_X Full 1), (NmDb Hcc_X Full 2), (NmDb Hcc_X Full 3), (NmDb Hcc Full 40), (NmDb Hcc Full 50), (NmDb Hcc Full 60), (NmDb Hcc Full 70), (NmDb Hcc_X Differential 0))
+    $del = Select-HccBackupsToDelete -Names $names -Database Hcc -UtcNow $now -RetentionDays 30 -KeepMinFulls 3
+    $other = Select-HccBackupsToDelete -Names $names -Database Hcc_X -UtcNow $now -RetentionDays 30 -KeepMinFulls 3
+    $unfiltered = Select-HccBackupsToDelete -Names $names -UtcNow $now -RetentionDays 30 -KeepMinFulls 3   # why: the Hcc_X fulls would fill the newest three
+    $del.Count -eq 1 -and $del[0] -eq (NmDb Hcc Full 70) -and $other.Count -eq 0 -and ($unfiltered -contains (NmDb Hcc Full 40)) -and
+    (ConvertFrom-HccBackupFileName (NmDb Hcc_X Full 1)).Database -eq 'Hcc_X'
+}
+Check 'A09-10 a FULL of another HCC database is no base for this database''s differential; Backup-HccDatabase filters both by the database' {
+    $src = Get-Content -LiteralPath (Join-Path $root 'Backup-HccDatabase.ps1') -Raw
+    $null -eq (Select-HccRestoreChain -Names @((NmDb Hcc_X Full 1)) -Database Hcc) -and (Select-HccRestoreChain -Names @((NmDb Hcc_X Full 1)) -Database Hcc_X).Full -eq (NmDb Hcc_X Full 1) -and
+    $src -match 'Select-HccBackupsToDelete -Names \$all -Database \$Database' -and $src -match 'Select-HccRestoreChain -Names \$existing -Database \$Database' -and $src -notmatch '-like "\$\{Database\}_\*"'
+}
+
+# --- A09-13: no unencrypted backup file is left behind ---------------------------------------------------------------------------
+Check 'A09-13 Invoke-HccBackupToFile: a good backup leaves only the .hccenc; a failed backup/verify or encryption deletes the plain .bak and rethrows' {
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccA0913_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $dir | Out-Null
+    try {
+        $bk = New-HccRandomBytes 32
+        $ok = Join-Path $dir 'Hcc_FULL_20261025T120000Z.bak'
+        $r = Invoke-HccBackupToFile -Target $ok -Key $bk -Backup { [IO.File]::WriteAllBytes($ok, (New-HccRandomBytes 4096)) }
+        $good = $r -eq "$ok.hccenc" -and (Test-Path -LiteralPath "$ok.hccenc") -and -not (Test-Path -LiteralPath $ok)
+        # SQL Server wrote the file, then RESTORE VERIFYONLY failed
+        $v = Join-Path $dir 'Hcc_FULL_20261025T120100Z.bak'
+        $msg = ''
+        try { Invoke-HccBackupToFile -Target $v -Key $bk -Backup { [IO.File]::WriteAllBytes($v, (New-HccRandomBytes 100)); throw 'sqlcmd failed (exit 1): Msg 3013' } | Out-Null } catch { $msg = $_.Exception.Message }
+        $verify = $msg -match 'Msg 3013' -and -not (Test-Path -LiteralPath $v) -and -not (Test-Path -LiteralPath "$v.hccenc")
+        # the encryption fails (its file name is taken): the plain file goes, the other file is not touched
+        $e = Join-Path $dir 'Hcc_DIFF_20261025T120200Z.bak'; Set-Content -LiteralPath "$e.hccenc" -Value 'other'
+        $encFailed = Throws { Invoke-HccBackupToFile -Target $e -Key $bk -Backup { [IO.File]::WriteAllBytes($e, (New-HccRandomBytes 100)) } }
+        $enc = $encFailed -and -not (Test-Path -LiteralPath $e) -and (Get-Content -LiteralPath "$e.hccenc" -Raw).Trim() -eq 'other'
+        # EncryptBackups=false: the plain .bak is the backup and stays
+        $p = Join-Path $dir 'Hcc_FULL_20261025T120300Z.bak'
+        $plain = (Invoke-HccBackupToFile -Target $p -Backup { [IO.File]::WriteAllBytes($p, (New-HccRandomBytes 10)) }) -eq $p -and (Test-Path -LiteralPath $p)
+        $good -and $verify -and $enc -and $plain -and (Get-Content -LiteralPath (Join-Path $root 'Backup-HccDatabase.ps1') -Raw) -match 'Invoke-HccBackupToFile -Target \$target -Key \$key'
+    }
+    finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+Check 'A09-13 Remove-HccPlainCopies: the drill deletes its decrypted copies and reports (never hides) one it cannot delete' {
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccA0913d_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $dir | Out-Null
+    try {
+        $a = Join-Path $dir 'HccDrill_1_Hcc_FULL_20261025T120000Z.bak'; $b = Join-Path $dir 'HccDrill_1_Hcc_DIFF_20261025T160000Z.bak'
+        Set-Content -LiteralPath $a -Value 'a'; Set-Content -LiteralPath $b -Value 'b'
+        $lock = [IO.File]::Open($b, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)
+        try { $left = Remove-HccPlainCopies -Paths @($a, $b, (Join-Path $dir 'gone.bak'), '') } finally { $lock.Dispose() }
+        $none = Remove-HccPlainCopies -Paths @($b)
+        $src = Get-Content -LiteralPath (Join-Path $root 'Restore-HccDrill.ps1') -Raw
+        -not (Test-Path -LiteralPath $a) -and $left.Count -eq 1 -and $left[0] -eq $b -and $none.Count -eq 0 -and -not (Test-Path -LiteralPath $b) -and
+        $src -match 'Remove-HccPlainCopies -Paths @\(\$script:plainCopies\)' -and $src -match 'plainCopiesLeft' -and $src -notmatch 'plainCopies\)\) \{ if \(\$p'
+    }
+    finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+# --- A09-11 / A09-12 / A09-14 / A09-15 / A09-16: INSTALL.md matches the installer -------------------------------------------------
+Check 'A09-12 folders: installer default C:\Program Files\HCC, INSTALL says keep it, the samples and script defaults use it' {
+    $doc = Get-Content -LiteralPath (Join-Path $root 'INSTALL.md') -Raw
+    $iss = Get-Content -LiteralPath (Join-Path $root 'installer\Hcc.iss') -Raw
+    $app = Get-Content -LiteralPath (Join-Path $root 'appsettings.Production.sample.json') -Raw | ConvertFrom-Json
+    $reg = Get-Content -LiteralPath (Join-Path $root 'Register-HccBackupTasks.ps1') -Raw
+    $iss -match '(?m)^DefaultDirName=\{autopf\}\\HCC\s*$' -and $iss -match 'DestDir: "\{app\}\\Server"' -and $iss -match 'DestDir: "\{app\}\\Operations"' -and $iss -match 'DestDir: "\{app\}\\ImportTemplates"' -and
+    $doc -match 'keep the folder it suggests, `C:\\Program Files\\HCC`' -and $app.Hcc.Operations.BackupScript -eq 'C:\Program Files\HCC\Operations\Backup-HccDatabase.ps1' -and
+    (Get-HccOpsConfig -Path (Join-Path $root 'hcc-ops.sample.json')).ServerDirectory -eq 'C:\Program Files\HCC\Server' -and $reg -match "Join-Path \`$env:ProgramFiles 'HCC\\Operations'"
+}
+Check 'A09-14 / A09-16 settings files: the installer creates both once (onlyifdoesntexist, kept on uninstall); INSTALL never copies the sample over hcc-ops.json and says new settings are not merged' {
+    $doc = Get-Content -LiteralPath (Join-Path $root 'INSTALL.md') -Raw
+    $iss = Get-Content -LiteralPath (Join-Path $root 'installer\Hcc.iss') -Raw
+    $iss -match 'DestName: "appsettings\.Production\.json"; Flags: onlyifdoesntexist uninsneveruninstall' -and $iss -match 'DestName: "hcc-ops\.json"; Flags: onlyifdoesntexist uninsneveruninstall' -and
+    $doc.Contains('if (-not (Test-Path hcc-ops.json)) { Copy-Item hcc-ops.sample.json hcc-ops.json }') -and $doc -notmatch '(?m)^Copy-Item hcc-ops\.sample\.json hcc-ops\.json' -and
+    $doc -match 'never copy the sample over it' -and $doc -match 'New settings are not added to your settings files' -and $doc -match 'appsettings\.Production\.sample\.json`, `C:\\Program Files\\HCC\\Operations\\hcc-ops\.sample\.json'
+}
+Check 'A09-15 upgrade: New-HccBackupKey comes before migrate (the safety backup is encrypted); A09-11 elevation is stated; A09-13 free space is stated' {
+    $doc = Get-Content -LiteralPath (Join-Path $root 'INSTALL.md') -Raw
+    $up = $doc.Substring($doc.IndexOf('## Upgrading, uninstalling'))
+    $key = $up.IndexOf('New-HccBackupKey.ps1'); $mig = $up.IndexOf('Run `Hcc.Api.exe migrate`')
+    $key -gt 0 -and $mig -gt $key -and $up -match 'before `migrate`' -and
+    $doc -match 'Notepad \*\*started as administrator\*\*' -and $doc -match 'This needs an administrator: in PowerShell \(Admin\) `Copy-Item' -and $doc -match 'Local Machine needs an administrator' -and
+    $doc -match 'twice one full backup' -and $doc -match 'twice the database''s size' -and $doc -match 'The unencrypted file of this failed run was deleted' -and
+    (Get-Content -LiteralPath (Join-Path $root 'Hcc-Common.ps1') -Raw).Contains('The unencrypted file of this failed run was deleted')
+}
+
 # --- masters import (A02b-01) -----------------------------------------------------------------------------------------------
 Check 'import order: every shipped template, dependencies first (room types, ledgers, outlets before their users)' {
     $order = Get-HccImportOrder

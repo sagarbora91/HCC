@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -172,7 +171,7 @@ public interface IDocumentStore
     Task MarkPurgedAsync(ICommandTransaction tx, long captureId, DateTime utc, CancellationToken ct = default);
 }
 
-/// <summary>Where the sealed image text is kept (SQL adapter in production; in-memory adapter for tests). Only sealed text ever reaches it.</summary>
+/// <summary>Where the sealed image text is kept (the SQL adapter <c>SqlDocumentStore</c>). Only sealed text ever reaches it.</summary>
 public interface IDocumentImageStore
 {
     Task PutAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default);
@@ -180,25 +179,4 @@ public interface IDocumentImageStore
     Task<string?> GetAsync(ICommandTransaction? tx, long captureId, CancellationToken ct = default);
 
     Task DeleteAsync(ICommandTransaction tx, long captureId, CancellationToken ct = default);
-}
-
-/// <summary>Test adapter: keeps sealed images in memory.</summary>
-public sealed class InMemoryDocumentImageStore : IDocumentImageStore
-{
-    public ConcurrentDictionary<long, string> Images { get; } = new();
-
-    public Task PutAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default)
-    {
-        Images[captureId] = sealedImage;
-        return Task.CompletedTask;
-    }
-
-    public Task<string?> GetAsync(ICommandTransaction? tx, long captureId, CancellationToken ct = default) =>
-        Task.FromResult(Images.TryGetValue(captureId, out var s) ? s : null);
-
-    public Task DeleteAsync(ICommandTransaction tx, long captureId, CancellationToken ct = default)
-    {
-        Images.TryRemove(captureId, out _);
-        return Task.CompletedTask;
-    }
 }

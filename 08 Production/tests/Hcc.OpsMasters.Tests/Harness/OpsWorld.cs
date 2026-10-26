@@ -60,7 +60,7 @@ public sealed partial class OpsWorld : IAsyncDisposable
             new SqlHkTaskTypeSource());
         Stayover = new StayoverCommands(Platform.Commands, Policy, new SqlStayoverStore(), Clock);
         var billingStore = new SqlBillingStore(conns);
-        var billing = new BillingService(Platform.Commands, billingStore, Policy, new StayNightSource(billingStore, new SqlAgreedNightRateSource(conns)), new Hcc.Application.Tax.FixedGstRateResolver(), Clock);
+        var billing = new BillingService(Platform.Commands, billingStore, Policy, new StayNightSource(billingStore, new SqlAgreedNightRateSource(conns)), new Hcc.Application.Tax.GstRateResolver(new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(conns)), Clock);
         Categories = new SqlGsCategorySource(conns);
         var gsStore = new SqlGuestServicesStore(conns);
         GuestServices = new GuestServicesCommands(Platform.Commands, Policy, gsStore, billing, billingStore, Clock, null, Categories);
