@@ -52,3 +52,15 @@ public sealed record CashBookEventView(string Action, int PrincipalId, DateTime 
 /// <summary>Cash-book day: lock state and history (DEC-065), and the day's drawer from the closing snapshot.</summary>
 public sealed record CashBookDayResult(DateOnly BusinessDate, bool Closed, bool Locked, int? LockedBy, DateTime? LockedUtc,
     IReadOnlyList<CashBookEventView> History, DrawerFigures? Drawer);
+
+/// <summary>POST /api/v1/commands/PostRoomNights (K). Posts tonight's room line for every in-house stay of the current business date, once each (the same step the day close runs; no close, no date change).</summary>
+public sealed record PostRoomNightsRequest(DateOnly BusinessDate);
+
+/// <summary>Stays that needed tonight's night, how many were posted by this call and how many had it already.</summary>
+public sealed record PostRoomNightsResult(DateOnly BusinessDate, int Stays, int PostedNow, int AlreadyPosted);
+
+/// <summary>GET /api/v1/closing/business-date (any session). The property's current business date (DEC-042) and whether it is already closed (next day not yet opened).</summary>
+public sealed record BusinessDateView(DateOnly BusinessDate, bool Closed);
+
+/// <summary>GET /api/v1/closing/records?from=&amp;to= (PERM-RPT-002): the closing records of the closed dates in the range, oldest first.</summary>
+public sealed record ClosingRecordsView(DateOnly From, DateOnly To, IReadOnlyList<ClosingSnapshotView> Items);
