@@ -27,6 +27,7 @@ public sealed class DeploymentScriptTests
         Assert.NotNull(script);
         var psi = new ProcessStartInfo("powershell.exe") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
         foreach (var a in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script! }) psi.ArgumentList.Add(a);
+        psi.Environment.Remove("PSModulePath");   // audit A01-01: a PowerShell 7 parent's module path breaks Windows PowerShell's own modules (Get-Acl)
         using var p = Process.Start(psi)!;
         var ct = TestContext.Current.CancellationToken;
         var output = p.StandardOutput.ReadToEndAsync(ct);
