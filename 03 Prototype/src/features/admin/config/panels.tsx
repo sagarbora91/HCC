@@ -27,7 +27,7 @@ export function CfgModulesPanel(){
 }
 
 export function CfgDataPanel(){
-  const {s,uid,open,display,toast}=useHcc();
+  const {s,uid,open,display,toast,go}=useHcc();
   const role=s.users.find(u=>u.id===uid)?.role;
   const doExport=async()=>{const r=await saveTextFile(nativeFileName('Master-configuration','json',s.date),JSON.stringify(cfgExport(s),null,2),'application/json');
     toast(r==='failed'?'Export failed — try again':'Configuration exported (no secrets)',r==='failed');};
@@ -37,6 +37,9 @@ export function CfgDataPanel(){
       <div className="cfg-actions"><button type="button" className="btn" onClick={()=>void doExport()}><Download size={16}/> Export configuration</button>
         <button type="button" className="btn" disabled={role!=='Owner'&&role!=='Tech admin'} onClick={()=>open({type:'cfg-import'})}><Upload size={16}/> Import…</button></div></section>
     <DisplaySection display={display}/>
+    <section className="cfg-box"><h3>Appearance &amp; display (this device only)</h3>
+      <p className="muted">Text size, reduce motion, density, start page, list size and alert timing — personal, saved on this device, never hotel data (CP-1).</p>
+      <div className="cfg-actions"><button type="button" className="btn" onClick={()=>go('prefs')}><ExternalLink size={16}/> Open Appearance &amp; display</button></div></section>
     <section className="cfg-box"><h3><ShieldCheck size={17}/> Not configurable (safety invariants)</h3>
       <ul className="cfg-inv">{CFG_INVARIANTS.map(([k,v])=><li key={k}><span><strong>{k}</strong> — {v}</span><Pill tone="green">Always on</Pill></li>)}</ul></section>
     {process.env.HCC_BUILD==='production'?null:<section className="cfg-box"><h3>Prototype boundaries</h3>
