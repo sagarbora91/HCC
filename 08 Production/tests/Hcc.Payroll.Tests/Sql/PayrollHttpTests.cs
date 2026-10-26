@@ -116,6 +116,9 @@ public sealed class PayrollHttpTests(PayrollDb db) : IClassFixture<PayrollDb>
         Assert.Equal(HttpStatusCode.NotFound, other.StatusCode);
         var rates = await acc.GetStringAsync($"{ApiConventions.BasePath}/payroll/rates/2026-08", Ct);
         Assert.Contains("\"rounding\":\"paise\"", rates, StringComparison.Ordinal);
+        var board = await hk.GetStringAsync($"{ApiConventions.BasePath}/payroll/board?from=2026-08-01&to=2026-10-31", Ct);
+        Assert.Contains("\"payroll\":false", board, StringComparison.Ordinal);   // W4-6: own record and own locked line only
+        Assert.Contains("\"rounding\":\"paise\"", board, StringComparison.Ordinal);
         using var anon = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync($"{ApiConventions.BasePath}/payroll/my/payslips", Ct)).StatusCode);
     }

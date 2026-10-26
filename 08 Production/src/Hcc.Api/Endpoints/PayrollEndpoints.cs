@@ -92,6 +92,11 @@ public static class PayrollEndpoints
             var (p, u) = http.HccActor();
             return Results.Ok(await q.GetPayslipAsync(p, u, runId, staffId, ct).ConfigureAwait(false));
         });
+        g.MapGet("/payroll/board", async (HttpContext http, DateOnly? from, DateOnly? to, PayrollQueries q, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await q.GetBoardAsync(p, u, from, to, ct).ConfigureAwait(false));
+        });
         g.MapGet("/payroll/my/payslips", async (HttpContext http, PayrollQueries q, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();
