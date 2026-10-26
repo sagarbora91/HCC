@@ -4,6 +4,7 @@ import {readFileSync,existsSync,readdirSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {tokenizeColours,resolveTokens,hexKey,SEMANTIC,TOKEN_SHEET,TOKEN_HEADER,parseTokenSheet} from '../tools/cssTokens.mjs';
 import {buildBundleCss} from '../tools/cssTextScale.mjs';
+import {ROLE_LIGHT} from '../tools/themes.mjs';
 
 const BASE='799e4cc';
 const FILES=['src/styles.css',...['home','mobile','mobile-frontdesk','mobile-money','mobile-ops','search','demo','native','sync','y-a11y','z-tablet','z-touch','zz-print'].map(f=>'src/styles/'+f+'.css')];
@@ -18,6 +19,8 @@ const strip=s=>s.replace(/\/\*[\s\S]*?\*\//g,'');
 const bundle=await buildBundleCss('.');
 const sheet=cur(SHEET);
 const defs=parseTokenSheet(sheet);
+// CP-5 role rewrites (applyRoles: --primary-fill, --on-primary …) resolve to the very hex they replaced (tools/themes.mjs ROLE_LIGHT)
+const resolveMap=new Map([...defs,...ROLE_LIGHT]);
 const ALL_FILES=['src/styles.css',...readdirSync('src/styles').filter(f=>f.endsWith('.css')).map(f=>'src/styles/'+f)];
 const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2];};
 const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
@@ -36,7 +39,7 @@ export function register({test,assert}){
   for(const f of FILES){
     test(`[CT-A] ${f}: resolving the tokens gives back the original css (no visible change)`,()=>{
       const o=orig(f),n=cur(f);
-      assert.equal(ws(hexNorm(resolveTokens(n,defs))),ws(hexNorm(resolveTokens(o,defs))));
+      assert.equal(ws(hexNorm(resolveTokens(n,resolveMap))),ws(hexNorm(resolveTokens(o,defs))));
     });
   }
   test('[CT-A] line endings and line counts of every converted file are unchanged (only colour literals differ)',()=>{
@@ -99,7 +102,7 @@ export function register({test,assert}){
   });
   test('[CT-A] contrast: every colour/background rule pair in the converted files gives the same ratio as before, and none is below the 4.5:1 baseline',()=>{
     const before=[],after=[];
-    for(const f of FILES){before.push(...contrastPairs(hexNorm(orig(f))));after.push(...contrastPairs(resolveTokens(cur(f),defs)));}
+    for(const f of FILES){before.push(...contrastPairs(hexNorm(orig(f))));after.push(...contrastPairs(resolveTokens(cur(f),resolveMap)));}
     assert.deepEqual(after,before);
     assert.ok(after.length>=30,'pairs checked: '+after.length);
     const low=after.filter(p=>p[3]<4.5).map(p=>p.join(' | '));

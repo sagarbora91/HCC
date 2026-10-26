@@ -8,7 +8,7 @@
 .hist-months li{display:grid;grid-template-columns:76px minmax(60px,1fr) minmax(0,2fr);gap:10px;align-items:center}
 .hist-label{font-weight:600;color:var(--ink)}
 .hist-bar{display:block;height:12px;background:var(--c-efe6d8);border-radius:6px;overflow:hidden}
-.hist-bar i{display:block;height:100%;background:var(--primary);border-radius:6px}
+.hist-bar i{display:block;height:100%;background:var(--primary-fill);border-radius:6px}
 .hist-val{display:flex;flex-direction:column;min-width:0}.hist-val strong{color:var(--ink)}.hist-val small{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
 .hist-compact .hist-tile strong{font-size:18px}
 .hist-compact .hist-months li{grid-template-columns:1fr;gap:4px}

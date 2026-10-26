@@ -180,3 +180,48 @@ export function parseTokenSheet(text) {
 }
 /** The canonical 0-tokens.css text for a token map. */
 export const tokenSheetFile = (tokens) => tokenSheet(tokens, TOKEN_HEADER);
+
+// ── CP-5 role rewrites: the few places where one colour plays two roles that a dark theme must separate ──
+// A colour used as a solid fill BEHIND white text (e.g. maroon buttons) and the same colour used AS text on a surface cannot both
+// stay readable once surfaces turn dark, so solid fills get their own role (--*-fill) and white text becomes --on-primary.
+// Light values of every role equal the hex they replace (tools/themes.mjs ROLES), so the light theme renders identically.
+/** var() inside background / background-color / background-image -> fill role */
+export const FILL_ROLES = new Map([
+  ['--primary', '--primary-fill'], ['--primary-dark', '--primary-fill-dark'], ['--c-2e6b34', '--success-fill'],
+  ['--c-9a3b2a', '--danger-fill'], ['--c-8a5a10', '--warn-fill'], ['--c-4c7084', '--info-fill'],
+]);
+const BG_PROP = /^background(-color|-image)?$/;
+const BORDER_PROP = /^border(-(top|right|bottom|left))?(-color)?$/;
+const ONFILL_PROP = /^(color|outline|outline-color|accent-color)$/;
+/**
+ * applyRoles(css) -> css. Per rule:
+ *  1. background* values: var(--primary|--primary-dark|--c-2e6b34|--c-9a3b2a|--c-8a5a10|--c-4c7084) -> the matching --*-fill role;
+ *  2. in a rule changed by 1, border* values: var(--primary) / var(--primary-dark) -> --primary-fill / --primary-fill-dark;
+ *  3. color / outline / outline-color / accent-color: var(--c-ffffff) -> var(--on-primary) (white text on a fill), unless the rule's
+ *     own background is white (then it is a surface colour, e.g. a hidden tick);
+ *  4. color: var(--primary-tint) -> var(--on-primary-soft) (pale text on a maroon hero).
+ * Deterministic and idempotent; comments and everything else are copied as they are.
+ */
+export function applyRoles(css) {
+  return css.replace(/\{([^{}]*)\}/g, (whole, body) => {
+    if (body.includes('/*')) return whole;
+    const decl = /(^|;)(\s*)([a-z-]+)(\s*:\s*)([^;]*)/g;
+    const bgWhite = /(^|;)\s*background(-color)?\s*:\s*var\(--c-ffffff\)/.test(body);
+    let filled = false;
+    let out = body.replace(decl, (m, sep, sp, prop, colon, val) => {
+      if (!BG_PROP.test(prop) || /url\(/i.test(val)) return m;
+      const nv = val.replace(/var\((--[\w-]+)\)/g, (v, n) => (FILL_ROLES.has(n) ? `var(${FILL_ROLES.get(n)})` : v));
+      if (nv !== val) filled = true;
+      return sep + sp + prop + colon + nv;
+    });
+    const filledNow = filled || /(^|;)\s*background(-color|-image)?\s*:[^;]*var\(--[\w-]+-fill(-dark)?\)/.test(out);
+    out = out.replace(decl, (m, sep, sp, prop, colon, val) => {
+      let nv = val;
+      if (filledNow && BORDER_PROP.test(prop)) nv = nv.replace(/var\(--primary\)/g, 'var(--primary-fill)').replace(/var\(--primary-dark\)/g, 'var(--primary-fill-dark)');
+      if (ONFILL_PROP.test(prop) && !bgWhite) nv = nv.replace(/var\(--c-ffffff\)/g, 'var(--on-primary)');
+      if (prop === 'color') nv = nv.replace(/var\(--primary-tint\)/g, 'var(--on-primary-soft)');
+      return sep + sp + prop + colon + nv;
+    });
+    return '{' + out + '}';
+  });
+}

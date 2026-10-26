@@ -30,7 +30,7 @@
 .gs-steps li.done button{background:var(--c-eaf4e4);color:var(--c-517246);border-color:var(--c-bfd9b0)}
 .gs-steps li.current button{border-color:var(--primary);box-shadow:0 0 0 1px var(--ink);color:var(--primary);font-weight:600}
 .gs-step-no{width:20px;height:20px;border-radius:50%;background:var(--c-efe4d6);display:inline-flex;align-items:center;justify-content:center;font-size:10px}
-.gs-steps li.done .gs-step-no{background:var(--c-3b7530);color:var(--c-ffffff)}
+.gs-steps li.done .gs-step-no{background:var(--c-3b7530);color:var(--on-primary)}
 .gs-step-name{text-align:center;line-height:1.3}
 .gs-step-body .gs-sub{margin-top:4px}
 .gs-pick{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}

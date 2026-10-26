@@ -5,8 +5,8 @@ button:focus,a:focus,input:focus,select:focus,textarea:focus,summary:focus,[tabi
 .signin-user:focus,.tile:focus,.drawer-item:focus,.drawer-sub:focus,.yld-cell:focus,button.res-cal-cell.free:focus{outline:3px solid var(--primary);outline-offset:2px}
 .signin-user:focus-visible,.tile:focus-visible,.drawer-item:focus-visible,.drawer-sub:focus-visible,.yld-cell:focus-visible,button.res-cal-cell.free:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .drawer-item:focus,.drawer-sub:focus,.drawer-item:focus-visible,.drawer-sub:focus-visible,.cfg-row:focus,.cfg-row:focus-visible{outline-offset:-3px}
-.m-appbar button:focus,.m-appbar a:focus,.m-tabbar button:focus{outline-color:var(--c-ffffff)}
-.m-appbar button:focus-visible,.m-appbar a:focus-visible,.m-tabbar button:focus-visible{outline-color:var(--c-ffffff)}
+.m-appbar button:focus,.m-appbar a:focus,.m-tabbar button:focus{outline-color:var(--on-primary)}
+.m-appbar button:focus-visible,.m-appbar a:focus-visible,.m-tabbar button:focus-visible{outline-color:var(--on-primary)}
 [role="dialog"]:focus,main:focus,[tabindex="-1"]:focus{outline:none}
 /* search fields hide the native outline on the input, so ring the whole field */
 .search:focus-within,.cfg-search:focus-within,.search-field:focus-within,.ai-input:focus-within{outline:3px solid var(--primary);outline-offset:2px}
@@ -17,8 +17,8 @@ button:focus,a:focus,input:focus,select:focus,textarea:focus,summary:focus,[tabi
 button:focus:not(:focus-visible),a:focus:not(:focus-visible),summary:focus:not(:focus-visible),.tile:focus:not(:focus-visible),.signin-user:focus:not(:focus-visible),.drawer-item:focus:not(:focus-visible),.drawer-sub:focus:not(:focus-visible){outline:none}
 
 /* 2. Skip link */
-.skip-link{position:absolute;left:8px;top:-60px;z-index:100;background:var(--primary);color:var(--c-ffffff);padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none}
-.skip-link:focus{top:8px;outline:3px solid var(--c-ffffff);outline-offset:2px;box-shadow:0 0 0 6px var(--primary)}
+.skip-link{position:absolute;left:8px;top:-60px;z-index:100;background:var(--primary-fill);color:var(--on-primary);padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none}
+.skip-link:focus{top:8px;outline:3px solid var(--on-primary);outline-offset:2px;box-shadow:0 0 0 6px var(--primary)}
 
 /* 3. Control boundaries >= 3:1 (#8c7766 is 4.25:1 on white and 3.94:1 on #faf6f0). The :not(#_) trick lifts specificity above class rules. */
 input:not(#_):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),select:not(#_),textarea:not(#_){border-color:var(--c-8c7766)}

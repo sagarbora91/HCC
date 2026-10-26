@@ -13,7 +13,7 @@
 .hov-run-head .hov-progress{grid-column:1/-1}
 .hov-run-head .hov-pills{grid-column:1/-1}
 .hov-progress{height:8px;border-radius:5px;background:var(--c-efe4d6);overflow:hidden;min-width:60px}
-.hov-progress span{display:block;height:100%;background:var(--primary);border-radius:5px;transition:width .2s}
+.hov-progress span{display:block;height:100%;background:var(--primary-fill);border-radius:5px;transition:width .2s}
 .hov-pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .hov-pills .pill,.hov-item-meta .pill{font-size:11px}
 .pill.hov-overdue{background:var(--c-fbe9e5);color:var(--c-9a3b2a);font-weight:600}
@@ -22,7 +22,7 @@
 .hov-item{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
 .hov-item.overdue{background:linear-gradient(90deg,var(--c-fbe9e5),transparent 60%)}
 .hov-check{width:44px;height:44px;border-radius:9px;border:2px solid var(--c-cdb9a3);background:var(--c-ffffff);display:flex;align-items:center;justify-content:center;color:var(--c-ffffff);padding:0}
-.hov-item.done .hov-check{background:var(--c-2e6b34);border-color:var(--c-2e6b34)}
+.hov-item.done .hov-check{background:var(--success-fill);border-color:var(--c-2e6b34)}
 .hov-item.overdue .hov-check{border-color:var(--c-9a3b2a)}
 .hov-item-body{display:flex;flex-direction:column;gap:6px;min-width:0}
 .hov-item-text{font-size:13px;color:var(--ink);line-height:1.4}

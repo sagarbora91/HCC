@@ -4,6 +4,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {tokenizeColours,resolveTokens,canonHex,SEMANTIC_TOKENS,TOKEN_SHEET,TOKEN_HEADER,tokenSheetFile} from '../tools/cssTokens.mjs';
 import {buildBundleCss} from '../tools/cssTextScale.mjs';
+import {ROLE_LIGHT} from '../tools/themes.mjs';
 
 const BASE='799e4cc';
 const FILES=['m-channels','m-pos','m-staff','m-yield','m-messaging','m-groups','m-assistant','m-handover','m-maintenance','m-inventory','m-accounting','m-compliance','m-config','m-cashbook'];
@@ -20,7 +21,7 @@ const dist=existsSync('dist/index.html')?readFileSync('dist/index.html','utf8'):
 export function register({test,assert}){
   test('[CT-B] every module sheet resolves back to its original css (zero visible change)',()=>{
     for(const f of FILES){
-      const back=resolveTokens(current(f),new Map([...SEMANTIC_TOKENS,...tokens]));
+      const back=resolveTokens(current(f),new Map([...SEMANTIC_TOKENS,...tokens,...ROLE_LIGHT])); // CP-5 roles resolve to the hex they replaced
       assert.equal(ws(canonHex(back)),ws(canonHex(original(f))),f+' differs from '+BASE);
     }});
   test('[CT-B] no raw hex colour remains outside url(...) and comments in any module sheet',()=>{

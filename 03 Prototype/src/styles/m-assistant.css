@@ -12,7 +12,7 @@
 .ai-thread{display:flex;flex-direction:column;gap:14px;padding:6px 23px 18px;max-height:560px;min-height:260px;overflow:auto;scrollbar-width:thin}
 .ai-msg{display:flex;gap:9px;align-items:flex-start;max-width:100%}
 .ai-me{justify-content:flex-end}
-.ai-me .ai-bubble{background:var(--primary);color:var(--c-ffffff);border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:13px;line-height:1.5;max-width:75%;overflow-wrap:anywhere}
+.ai-me .ai-bubble{background:var(--primary-fill);color:var(--on-primary);border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:13px;line-height:1.5;max-width:75%;overflow-wrap:anywhere}
 .ai-bot .ai-bubble{background:var(--c-fffcf8);border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:12px 15px;max-width:calc(100% - 40px);min-width:0;overflow-wrap:anywhere}
 .ai-avatar{width:30px;height:30px;flex-shrink:0;border-radius:50%;background:var(--primary-tint);color:var(--primary);display:inline-flex;align-items:center;justify-content:center}
 .ai-answer-title{display:block;font-size:13px;color:var(--ink);margin-bottom:4px}

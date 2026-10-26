@@ -3,7 +3,7 @@
 .rst-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .rst-head svg{color:var(--c-8a5a10)}
 .rst-head strong{color:var(--ink)}
-.rst-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:var(--c-8a5a10);color:var(--c-ffffff);border-radius:4px;padding:3px 6px}
+.rst-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:var(--warn-fill);color:var(--on-primary);border-radius:4px;padding:3px 6px}
 .rst-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .rst-code{font-weight:600;margin-right:6px}
 .rst-code:after{content:':'}

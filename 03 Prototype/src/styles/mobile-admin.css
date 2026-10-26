@@ -65,7 +65,7 @@
 .ma-vsteps>li.focus{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
 .ma-vstep-head{width:100%;display:flex;align-items:center;gap:12px;background:transparent;border:0;padding:12px 14px;min-height:64px;text-align:left;color:var(--ink)}
 .ma-dot{width:34px;height:34px;border-radius:50%;border:2px solid var(--c-cdb9a3);display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;background:var(--c-ffffff);color:var(--c-4a372c)}
-li.done .ma-dot{background:var(--c-2e6b34);border-color:var(--c-2e6b34);color:var(--c-ffffff)}
+li.done .ma-dot{background:var(--success-fill);border-color:var(--c-2e6b34);color:var(--on-primary)}
 li.focus .ma-dot{border-color:var(--primary);color:var(--primary)}
 li.blocked .ma-dot{border-color:var(--orange);color:var(--c-7a4b0c)}
 .ma-vstep-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ma-vstep-text strong{font-size:16px}.ma-vstep-text small{font-size:14px;color:var(--c-5c4636);line-height:1.4}

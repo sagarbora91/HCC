@@ -25,7 +25,7 @@
 .mo-checklist input{position:absolute;opacity:0;width:100%;height:100%;top:0;right:0;bottom:0;left:0;margin:0;cursor:pointer}
 .mo-checklist input:focus-visible+.mo-box{outline:3px solid var(--primary);outline-offset:2px}
 .mo-box{width:30px;height:30px;flex-shrink:0;border:2px solid var(--primary);border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--c-ffffff);color:var(--c-ffffff)}
-.mo-checklist label.on .mo-box{background:var(--c-2e6b34);border-color:var(--c-2e6b34)}
+.mo-checklist label.on .mo-box{background:var(--success-fill);border-color:var(--c-2e6b34)}
 .mo-actions{display:flex;flex-direction:column;gap:10px}
 .mo-actions>.pill{align-self:flex-start}
 .btn.mo-big{min-height:56px;width:100%;justify-content:center;font-size:17px;gap:8px;border-radius:12px}
@@ -39,7 +39,7 @@
 .mo-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--c-efe4d6);border-radius:12px;padding:4px;position:sticky;top:0;z-index:2}
 .mo-seg button{min-height:52px;border:0;border-radius:9px;background:transparent;color:var(--c-4a372c);font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 2px}
 .mo-seg button b{font-size:15px}
-.mo-seg button.on{background:var(--primary);color:var(--c-ffffff);font-weight:600}
+.mo-seg button.on{background:var(--primary-fill);color:var(--on-primary);font-weight:600}
 .mo-repair-row{flex-direction:row;align-items:center;justify-content:space-between}
 .mo-repair-row>div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .mo-repair-row strong{font-size:19px}
@@ -54,7 +54,7 @@
 .mo-pick button.on>svg:last-child{color:var(--primary)}
 .mo-quick{display:flex;flex-wrap:wrap;gap:8px}
 .mo-quick button{min-height:48px;padding:0 14px;border:1px solid var(--c-cdb9a3);border-radius:24px;background:var(--c-ffffff);color:var(--c-4a372c);font-size:15px}
-.mo-quick button.on{background:var(--primary);border-color:var(--primary);color:var(--c-ffffff)}
+.mo-quick button.on{background:var(--primary-fill);border-color:var(--primary-fill);color:var(--on-primary)}
 /* Demo sheet (M24) + phone walkthrough (MB-09) */
 .modal.m-sheet .mo-device-note{margin:0 0 14px;font-size:15px;line-height:1.5;color:var(--c-4a372c)}
 .modal.m-sheet .mo-guide-path{font-size:14px;margin:8px 0}

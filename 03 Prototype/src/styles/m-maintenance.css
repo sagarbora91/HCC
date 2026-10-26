@@ -47,7 +47,7 @@
 .mnt-seg{display:inline-flex;border:1px solid var(--c-cdb9a3);border-radius:7px;overflow:hidden;align-self:flex-start}
 .mnt-seg button{border:0;background:var(--c-ffffff);color:var(--c-4a372c);padding:9px 16px;font-size:11px;min-height:38px}
 .mnt-seg button+button{border-left:1px solid var(--line)}
-.mnt-seg button.on{background:var(--primary);color:var(--c-ffffff);font-weight:600}
+.mnt-seg button.on{background:var(--primary-fill);color:var(--on-primary);font-weight:600}
 /* PM + reports */
 .mnt-pm-row{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
 .mnt-big-num{display:block;font-size:34px;font-weight:550;letter-spacing:-1px;margin:4px 0}

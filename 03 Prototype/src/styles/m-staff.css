@@ -26,8 +26,8 @@ button.hr-cell:hover{border-color:var(--c-9e4a55);background:var(--primary-tint)
 .hr-shift-pick .btn span{font-size:11px;font-weight:400}
 .hr-status-pick{display:flex;flex-wrap:wrap;gap:8px}
 .form .hr-status-pick label{flex-direction:row;align-items:center;gap:6px;border:1px solid var(--c-cdb9a3);border-radius:20px;padding:8px 14px;min-height:40px;color:var(--ink);cursor:pointer}
-.form .hr-status-pick label.on{background:var(--primary);border-color:var(--primary);color:var(--c-ffffff)}
-.form .hr-status-pick input{width:auto;accent-color:var(--c-ffffff);margin:0}
+.form .hr-status-pick label.on{background:var(--primary-fill);border-color:var(--primary-fill);color:var(--on-primary)}
+.form .hr-status-pick input{width:auto;accent-color:var(--on-primary);margin:0}
 .hr-who{font-size:12px;color:var(--ink)}
 .hr-warn{background:var(--c-fdf6e7);border-color:var(--c-ecd9a8);color:var(--c-5e4a1c)}
 .hr-warn svg{color:var(--c-84673b)}

@@ -72,7 +72,7 @@
 .mm-label{font-size:14px;color:var(--c-4a372c);font-weight:500}
 .mm-chips{display:flex;flex-wrap:wrap;gap:8px}
 .mm-chips button{border:1px solid var(--c-cdb9a3);background:var(--c-ffffff);color:var(--c-4a372c);border-radius:24px;min-height:48px;min-width:64px;padding:0 16px;font-size:15px;font-weight:500}
-.mm-chips button.on{background:var(--primary);border-color:var(--primary);color:var(--c-ffffff);font-weight:700}
+.mm-chips button.on{background:var(--primary-fill);border-color:var(--primary-fill);color:var(--on-primary);font-weight:700}
 .mm-amount input{font-size:28px!important;font-weight:600;min-height:60px!important;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
 .mm-tenders{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
 .mm-tenders legend{font-size:14px;font-weight:600;color:var(--c-4a372c);padding:0 6px}
