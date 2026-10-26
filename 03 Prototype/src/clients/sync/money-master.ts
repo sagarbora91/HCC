@@ -73,16 +73,16 @@ export function evToServer(row:Wire):Wire{
 export const MNY_MST_SERVER:Record<string,MstServerRoute>={
   paymentMethods:{list:'GET /masters/payment-methods',history:'GET /masters/payment-methods/history',listPath:'/masters/payment-methods',historyPath:'/masters/payment-methods/history',
     kind:'paymentMethod',idField:'paymentMethodId',idsField:'paymentMethodIds',save:'SavePaymentMethod',retire:'RetirePaymentMethod',reactivate:'ReactivatePaymentMethod',
-    reorder:'ReorderPaymentMethods',remove:'DeletePaymentMethod',toServer:pmToServer,ownLoader:true},
+    reorder:'ReorderPaymentMethods',remove:'DeletePaymentMethod',toBody:pmToServer,ownLoader:true},
   bankAccounts:{list:'GET /masters/bank-accounts',history:'GET /masters/bank-accounts/history',listPath:'/masters/bank-accounts',historyPath:'/masters/bank-accounts/history',
     kind:'bankAccount',idField:'bankAccountId',idsField:'bankAccountIds',save:'SaveBankAccount',retire:'RetireBankAccount',reactivate:'ReactivateBankAccount',
-    reorder:'ReorderBankAccounts',remove:'DeleteBankAccount',toServer:baToServer,ownLoader:true},
+    reorder:'ReorderBankAccounts',remove:'DeleteBankAccount',toBody:baToServer,ownLoader:true},
   expenseCategories:{list:'GET /masters/expense-categories',history:'GET /masters/expense-categories/history',listPath:'/masters/expense-categories',historyPath:'/masters/expense-categories/history',
     kind:'expenseCategory',idField:'expenseCategoryId',idsField:'expenseCategoryIds',save:'SaveExpenseCategory',retire:'RetireExpenseCategory',reactivate:'ReactivateExpenseCategory',
-    reorder:'ReorderExpenseCategories',remove:'DeleteExpenseCategory',toServer:ecToServer,ownLoader:true},
+    reorder:'ReorderExpenseCategories',remove:'DeleteExpenseCategory',toBody:ecToServer,ownLoader:true},
   expenseVendors:{list:'GET /masters/expense-vendors',history:'GET /masters/expense-vendors/history',listPath:'/masters/expense-vendors',historyPath:'/masters/expense-vendors/history',
     kind:'expenseVendor',idField:'expenseVendorId',idsField:'expenseVendorIds',save:'SaveExpenseVendor',retire:'RetireExpenseVendor',reactivate:'ReactivateExpenseVendor',
-    reorder:'ReorderExpenseVendors',remove:'DeleteExpenseVendor',toServer:evToServer,ownLoader:true},
+    reorder:'ReorderExpenseVendors',remove:'DeleteExpenseVendor',toBody:evToServer,ownLoader:true},
 };
 const FROM:Record<string,(x:Wire)=>MasterRow>={paymentMethods:pmFromServer,bankAccounts:baFromServer,expenseCategories:ecFromServer,expenseVendors:evFromServer};
 

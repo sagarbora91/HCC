@@ -30,15 +30,17 @@ const complaintBody=(r:Record<string,unknown>)=>({department:r.department===unde
 const lostFoundBody=(r:Record<string,unknown>)=>({...complaintBody(r),valuable:!!r.valuable});
 
 /** One entry per operations master; merged into MST_SERVER (sync/masters.ts). */
+/** Masters integration: MstServerRoute.fromServer takes the raw list row; these mappers read it as the typed wire item. */
+const wire=(f:(w:Wire)=>MasterRow)=>(x:Record<string,unknown>)=>f(x as unknown as Wire);
 export const OPS_MST_SERVER:Record<string,MstServerRoute>={
   hkTaskTypes:{list:'GET /housekeeping/task-types',history:'GET /housekeeping/task-types/history',listPath:'/housekeeping/task-types',historyPath:'/housekeeping/task-types/history',kind:'hkTaskType',idField:'id',idsField:'ids',
-    save:'SaveHkTaskType',retire:'RetireHkTaskType',reactivate:'ReactivateHkTaskType',reorder:'ReorderHkTaskTypes',remove:'DeleteHkTaskType',fromWire:taskTypeFromWire,toBody:taskTypeBody},
+    save:'SaveHkTaskType',retire:'RetireHkTaskType',reactivate:'ReactivateHkTaskType',reorder:'ReorderHkTaskTypes',remove:'DeleteHkTaskType',fromServer:wire(taskTypeFromWire),toBody:taskTypeBody},
   hkZones:{list:'GET /housekeeping/zones',history:'GET /housekeeping/zones/history',listPath:'/housekeeping/zones',historyPath:'/housekeeping/zones/history',kind:'hkZone',idField:'id',idsField:'ids',
-    save:'SaveHkZone',retire:'RetireHkZone',reactivate:'ReactivateHkZone',reorder:'ReorderHkZones',remove:'DeleteHkZone',fromWire:zoneFromWire,toBody:zoneBody},
+    save:'SaveHkZone',retire:'RetireHkZone',reactivate:'ReactivateHkZone',reorder:'ReorderHkZones',remove:'DeleteHkZone',fromServer:wire(zoneFromWire),toBody:zoneBody},
   complaintCategories:{list:'GET /guest-services/complaint-categories',history:'GET /guest-services/complaint-categories/history',listPath:'/guest-services/complaint-categories',
     historyPath:'/guest-services/complaint-categories/history',kind:'complaintCategory',idField:'id',idsField:'ids',
-    save:'SaveComplaintCategory',retire:'RetireComplaintCategory',reactivate:'ReactivateComplaintCategory',reorder:'ReorderComplaintCategories',remove:'DeleteComplaintCategory',fromWire:complaintFromWire,toBody:complaintBody},
+    save:'SaveComplaintCategory',retire:'RetireComplaintCategory',reactivate:'ReactivateComplaintCategory',reorder:'ReorderComplaintCategories',remove:'DeleteComplaintCategory',fromServer:wire(complaintFromWire),toBody:complaintBody},
   lostFoundCategories:{list:'GET /guest-services/lost-found-categories',history:'GET /guest-services/lost-found-categories/history',listPath:'/guest-services/lost-found-categories',
     historyPath:'/guest-services/lost-found-categories/history',kind:'lostFoundCategory',idField:'id',idsField:'ids',
-    save:'SaveLostFoundCategory',retire:'RetireLostFoundCategory',reactivate:'ReactivateLostFoundCategory',reorder:'ReorderLostFoundCategories',remove:'DeleteLostFoundCategory',fromWire:lostFoundFromWire,toBody:lostFoundBody},
+    save:'SaveLostFoundCategory',retire:'RetireLostFoundCategory',reactivate:'ReactivateLostFoundCategory',reorder:'ReorderLostFoundCategories',remove:'DeleteLostFoundCategory',fromServer:wire(lostFoundFromWire),toBody:lostFoundBody},
 };

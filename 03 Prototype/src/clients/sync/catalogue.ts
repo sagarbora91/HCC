@@ -38,22 +38,22 @@ export function reasonFromServer(x:SrvReason):MasterRow{
 
 /** One catalogue list on the server: routes, command names, id fields, wire mapping. */
 type CatRoute={list:ReadRoute;history:ReadRoute;listPath:string;historyPath:string;kind:string;what:string;idField:string;idsField:string;
-  save:string;retire:string;reactivate:string;remove:string;reorder:string;fromServer:(x:never)=>MasterRow;body:(row:Record<string,unknown>)=>Record<string,unknown>};
+  save:string;retire:string;reactivate:string;remove:string;reorder:string;fromServer:(x:never)=>MasterRow;toBody:(row:Record<string,unknown>)=>Record<string,unknown>};
 const text=(v:unknown)=>String(v??'').trim();
 export const CAT_SERVER:Record<string,CatRoute>={
   mealPlans:{list:'GET /catalogue/meal-plans',history:'GET /catalogue/meal-plans/history',listPath:'/catalogue/meal-plans',historyPath:'/catalogue/meal-plans/history',
     kind:'mealPlan',what:'Meal plan',idField:'mealPlanId',idsField:'mealPlanIds',save:'SaveMealPlan',retire:'RetireMealPlan',reactivate:'ReactivateMealPlan',
     remove:'DeleteMealPlan',reorder:'ReorderMealPlans',fromServer:mealPlanFromServer as (x:never)=>MasterRow,
-    body:row=>({meals:Array.isArray(row.meals)?row.meals:[],gstTreatment:text(row.gst),roomTypes:Array.isArray(row.roomTypes)?row.roomTypes:[],addOn:toDated(row.addOn)})},
+    toBody:row=>({meals:Array.isArray(row.meals)?row.meals:[],gstTreatment:text(row.gst),roomTypes:Array.isArray(row.roomTypes)?row.roomTypes:[],addOn:toDated(row.addOn)})},
   extras:{list:'GET /catalogue/extras',history:'GET /catalogue/extras/history',listPath:'/catalogue/extras',historyPath:'/catalogue/extras/history',
     kind:'extraItem',what:'Extra item',idField:'extraItemId',idsField:'extraItemIds',save:'SaveExtraItem',retire:'RetireExtraItem',reactivate:'ReactivateExtraItem',
     remove:'DeleteExtraItem',reorder:'ReorderExtraItems',fromServer:extraFromServer as (x:never)=>MasterRow,
-    body:row=>({category:text(row.category),gstCategory:text(row.gst),unit:text(row.unit),department:text(row.department)||null,prices:toDated(row.price)})},
+    toBody:row=>({category:text(row.category),gstCategory:text(row.gst),unit:text(row.unit),department:text(row.department)||null,prices:toDated(row.price)})},
   discountReasons:{list:'GET /catalogue/discount-reasons',history:'GET /catalogue/discount-reasons/history',listPath:'/catalogue/discount-reasons',
     historyPath:'/catalogue/discount-reasons/history',kind:'discountReason',what:'Discount reason',idField:'discountReasonId',idsField:'discountReasonIds',
     save:'SaveDiscountReason',retire:'RetireDiscountReason',reactivate:'ReactivateDiscountReason',remove:'DeleteDiscountReason',reorder:'ReorderDiscountReasons',
     fromServer:reasonFromServer as (x:never)=>MasterRow,
-    body:row=>({maxBps:Number(row.maxPct),approvalAboveBps:row.approvalAbovePct===undefined||row.approvalAbovePct===null||row.approvalAbovePct===''?null:Number(row.approvalAbovePct),
+    toBody:row=>({maxBps:Number(row.maxPct),approvalAboveBps:row.approvalAbovePct===undefined||row.approvalAbovePct===null||row.approvalAbovePct===''?null:Number(row.approvalAbovePct),
       roles:(Array.isArray(row.roles)?row.roles:[]).map(r=>CODE_OF[String(r)]).filter(Boolean)})},
 };
 const PAGE=200;
@@ -101,7 +101,7 @@ const idOf=(r:CatRoute,id:unknown)=>{if(id===undefined||id===null||id==='')throw
 /** MST_MASTER_* of the three lists (called by the masters area; one mapper per command type stays there). */
 const DELEGATE:MstDelegate={
   async save(c:CommandCtx){const r=routeOf(c),row=(c.cmd.row??{}) as Record<string,unknown>;
-    const body:Record<string,unknown>={code:text(row.code).toUpperCase(),name:text(row.name),...r.body(row)};
+    const body:Record<string,unknown>={code:text(row.code).toUpperCase(),name:text(row.name),...r.toBody(row)};
     if(row.sortOrder!==undefined&&row.sortOrder!==null&&row.sortOrder!=='')body.sortOrder=Number(row.sortOrder);
     let expectedVersion:string|undefined;
     if(row.id){body[r.idField]=idOf(r,row.id);expectedVersion=c.ids.version(r.kind,String(row.id));}
