@@ -18,6 +18,7 @@ Inputs: `HCC_RBAC_Matrix_v1.md`, DEC-055 / 057 / 058 / 061 / 062 / 063, `RBAC_Mi
 | 1001 accounting | `PERM-ACC-001…006` | Dedicated |
 | 1101 compliance | `PERM-CMP-001…002` | Dedicated |
 | POS, stock, maintenance, guest services, messaging, handover, yield, property setup, master configuration | **none** | These modules have a table migration (1200 to 1900) but **no RBAC seed**. Their code points at matrix permissions that were written for something else |
+| 2801 masters (MA-0) | `PERM-MST-001` masters.manage (operational lists), `PERM-MST-002` masters.manage-money (money) | Dedicated. DEC-MA-1: MST-001 → Owner and Tech admin only (not the Manager; grantable later in Access control); MST-002 → Owner. Prototype coarse permission `masters` (Owner, Tech admin) maps from MST-001; reading floors needs only a session |
 
 There is no Restaurant role in the seed (nine roles only). POS today is operated by whoever holds the billing and payment permissions.
 

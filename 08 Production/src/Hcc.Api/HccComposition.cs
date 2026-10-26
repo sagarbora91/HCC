@@ -50,6 +50,7 @@ public static class HccComposition
         services.AddGroupsModule();                      // W3-4 groups billing (master folio, routing, pickup billing, attrition)
         services.AddInvoicesModule();                    // W3-6 tax invoices & credit notes (numbering per FY, documents)
         services.AddImportModule();                      // W4-13 masters & opening balances import (CSV validate/preview/commit)
+        services.AddMastersModule();                     // MA-0 masters framework + Floors (DEC-MA-1)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -125,6 +126,7 @@ public static class HccComposition
         api.MapGroupsEndpoints();        // W3-4 groups billing
         api.MapInvoicesEndpoints();      // W3-6 invoices & credit notes
         api.MapImportEndpoints();        // W4-13 masters & opening balances import
+        api.MapMastersEndpoints();       // MA-0 masters framework + Floors
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }
