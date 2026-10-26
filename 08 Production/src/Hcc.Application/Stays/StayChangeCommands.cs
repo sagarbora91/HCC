@@ -26,7 +26,7 @@ public static class StayChangePermissions
 /// transaction: stay + reservation locked, version checked, <see cref="IBusinessDayGuard"/> (the business date must be open), inventory changed
 /// only through <see cref="IInventoryAllocator"/>, nightly price snapshots rewritten for un-posted nights only (posted nights are never
 /// touched), audit + outbox in the same transaction. A rate change below the agreed tariff gives revenue up and also needs PERM-APR-001
-/// for that amount (Manager within its limit, Owner). The prototype has no early-departure fee; none is charged.
+/// for that amount (Manager within its limit, Owner). DEC-082: no early-departure fee is charged, only the nights stayed; a Manager may add a charge by hand.
 /// </summary>
 public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy policy, IStayChangeStore store, IInventoryAllocator allocator,
     IStayNightPricer pricer, TimeProvider clock, IBusinessDayGuard? days = null)
@@ -139,6 +139,7 @@ public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy poli
         return await runner.RunAsync(ctx with { Operation = OpShortenStay }, req, (tx, c) => ReleaseAsync(tx, ctx, req.StayId, expected, newDeparture, reason, early: false, c), ct).ConfigureAwait(false);
     }
 
+    /// <summary>EarlyDeparture: the guest leaves today and the remaining nights are released. DEC-082: no early-departure fee (only nights stayed are charged; a Manager may add a charge by hand).</summary>
     public async Task<CommandResult<ChangeStayDatesResult>> EarlyDepartureAsync(CommandContext ctx, EarlyDepartureRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);

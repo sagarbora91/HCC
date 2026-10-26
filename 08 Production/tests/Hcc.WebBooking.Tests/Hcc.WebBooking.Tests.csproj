@@ -18,6 +18,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- DEC-085: the shipped settings sample and the install guide are read by BookingWebsiteOffAtGoLiveTests. -->
+    <None Include="..\..\deployment\windows\appsettings.Production.sample.json" Link="Deployment\appsettings.Production.sample.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\deployment\windows\INSTALL.md" Link="Deployment\INSTALL.md" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

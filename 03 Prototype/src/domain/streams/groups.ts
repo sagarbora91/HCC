@@ -38,6 +38,14 @@ export type GRPLimitRequest={id:string;company:string;from:number;to:number;reas
 export type GRPOverride={id:string;block:string;company:string;exposure:number;limit:number;reason:string;actor:string;at:string};
 /** State slice for this module, stored at s.groupsX (optional; absent in old saves → treat as empty). */
 export type GRPState={companies:GRPCompany[];blocks:GRPBlock[];requests:GRPLimitRequest[];overrides:GRPOverride[]};
+
+// ── DEC-080 (audit A02b-04): no group blocks in production until pickup, release, cancel and re-allot exist ──
+/** Shown by the production client (and by the server, GroupBlockOptions.RefusalMessage, option Hcc:GroupBlocks:Enabled, default off). The demo build is unchanged. */
+export const GRP_BLOCKS_REFUSAL='Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.';
+let blocksOnServer=false;
+/** Whether the production client sends GRP_BLOCK_CREATE. Off until the server option is switched on: then change the default here (or call grpSetBlocksOnServer). */
+export const grpBlocksOnServer=()=>blocksOnServer;
+export function grpSetBlocksOnServer(on:boolean){blocksOnServer=on;}
 export const grpEmpty=():GRPState=>({companies:[],blocks:[],requests:[],overrides:[]});
 export const grpSlice=(s:State):GRPState=>{const x=s.groupsX as Partial<GRPState>|undefined;return {companies:x?.companies??[],blocks:x?.blocks??[],requests:x?.requests??[],overrides:x?.overrides??[]};};
 /** Ensure the slice exists on a (cloned) state and return it for mutation. */

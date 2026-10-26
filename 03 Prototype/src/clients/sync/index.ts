@@ -11,6 +11,7 @@ export * from './runtime';
 export * from './registry';
 export {core} from './core';
 export {cashBlockedReason,shiftClosedText,CASH_NEEDS_OWN_SHIFT} from './money';
+export {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,grpSetBlocksOnServer} from '../../domain/streams/groups'; // DEC-080 group-block switch (tests flip it)
 export {signInText,errorText,HccClientError} from '../errors';
 export {reservations,bookingFromServer} from './reservations';
 export * from './guestid';

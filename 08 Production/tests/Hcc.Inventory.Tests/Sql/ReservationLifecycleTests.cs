@@ -312,6 +312,37 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
         Assert.Equal(0, await S.DriftAsync());
     }
 
+    /// <summary>The production wiring: no GroupBlockOptions (or Enabled=false) = DEC-080 refusal.</summary>
+    private InventoryService ProductionDefaultInventory(GroupBlockOptions? options = null)
+        => new(S.Store, S.Runner, S.Access, new Hcc.Application.Tax.FixedGstRateResolver(f.Golden.Raw.TaxBps), S.Clock, S.BlockHistory, options);
+
+    [Fact]
+    public async Task Group_block_creation_is_refused_with_a_written_reason_unless_the_switch_is_on()
+    {
+        // DEC-080 / A02b-04: pickup, release, cancel and re-allot do not exist yet, so a block would only lock rooms away.
+        var request = new CreateGroupBlockRequest("GB-OFF1", "Refused group", "2027-02-10", "2027-02-12", "2027-02-05", [new GroupBlockAllotment(f.TypeIds["Deluxe"], 1)]);
+        foreach (var off in new[] { ProductionDefaultInventory(), ProductionDefaultInventory(new GroupBlockOptions()), ProductionDefaultInventory(new GroupBlockOptions { Enabled = false }) })
+        {
+            var refused = await Assert.ThrowsAsync<HccException>(() => off.CreateGroupBlockAsync(P2Services.Ctx(3, "CreateGroupBlock"), request, Ct));
+            Assert.Equal(HccErrorCode.NOT_AVAILABLE, refused.Code);
+            Assert.Equal("Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.", refused.Message);
+            Assert.Equal("GROUP_BLOCKS_OFF", refused.Details!["reason"].GetString());
+        }
+
+        Assert.Equal(0, await f.Db.CountAsync("SELECT COUNT(*) FROM inv.group_block WHERE code = 'GB-OFF1';", Ct));
+        Assert.Equal(0, await f.Db.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CreateGroupBlock' AND target = 'GB-OFF1';", Ct));
+
+        // Permission is judged first: a housekeeper is told FORBIDDEN, not the group-block reason.
+        Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => ProductionDefaultInventory().CreateGroupBlockAsync(P2Services.Ctx(4, "CreateGroupBlock"), request, Ct)));
+
+        // Switched on, the same request creates the block. It can then be released while the switch is off again (release stays available).
+        var made = (await ProductionDefaultInventory(new GroupBlockOptions { Enabled = true }).CreateGroupBlockAsync(P2Services.Ctx(3, "CreateGroupBlock"), request, Ct)).Value;
+        Assert.Equal(("GB-OFF1", "Open"), (made.Code, made.Status));
+        var released = (await ProductionDefaultInventory().ReleaseGroupBlockAsync(P2Services.Ctx(3, "ReleaseGroupBlock"), new ReleaseGroupBlockRequest(made.GroupBlockId, made.Version), Ct)).Value;
+        Assert.Equal("Released", released.Status);
+        Assert.Equal(0, await S.DriftAsync());
+    }
+
     [Fact]
     public async Task Room_blocks_reduce_sellable_and_cannot_cover_booked_nights()
     {

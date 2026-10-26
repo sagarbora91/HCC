@@ -29,8 +29,8 @@ public static class DocumentSettings
         {
             Min = DocumentRules.MinRetentionDays, Max = DocumentRules.MaxRetentionDays, Default = ConfigValue.Of(DocumentRules.DefaultRetentionDays),
             Suffix = "days", Unit = "days after capture", Effective = EffectiveMode.Date, Dated = true,
-            Help = "Captured ID images and their extracted text are deleted by the purge once older than this. The confirmed ID number on the guest profile is not touched.",
-            Affects = "The next purge run (older captures are judged by the value in force on the purge date).",
+            Help = "Used only by the manual purge (Purge ID captures): it deletes captured ID images and their extracted text older than this. Nothing is deleted automatically; ID data is kept until someone runs the purge (DEC-071). The confirmed ID number on the guest profile is not touched.",
+            Affects = "The next manual purge (older captures are judged by the value in force on the purge date).",
         },
     ]);
 }

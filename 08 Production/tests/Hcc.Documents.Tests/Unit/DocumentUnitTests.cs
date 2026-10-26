@@ -1,5 +1,7 @@
 #pragma warning disable xUnit1051 // helper calls are short-lived and do not need per-call cancellation
 using System.Text;
+using System.Reflection;
+using Hcc.Application.Configuration;
 using Hcc.Application.Documents;
 using Hcc.Application.GuestIds;
 using Hcc.Contracts;
@@ -51,6 +53,33 @@ public class DocumentUnitTests
         Assert.Equal(90, DocumentRules.RetentionDays(0));
         Assert.Equal(90, DocumentRules.RetentionDays(99999));
         Assert.Equal(30, DocumentRules.RetentionDays(30));
+    }
+
+    [Fact]
+    public void One_ID_retention_rule_is_registered_and_the_duplicate_doc_retentionDays_is_gone()
+    {
+        // DEC-071 / A11-02: "doc.retentionDays" (365 days) was read nowhere; the only rule is documents.retentionDays, used by the manual purge.
+        var registry = new SettingsRegistry([DocumentSettings.Provider]);
+        Assert.Null(registry.Find("doc.retentionDays"));
+        var rule = Assert.Single(registry.All, s => s.Key.StartsWith("doc", StringComparison.OrdinalIgnoreCase) && s.Key.Contains("retention", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(("documents.retentionDays", 90L), (rule.Key, rule.Default.Number));
+        Assert.Contains("manual purge", rule.Definition.Help, StringComparison.Ordinal);
+        Assert.Contains("Nothing is deleted automatically", rule.Definition.Help, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_background_worker_is_wired_to_the_ID_capture_purge()
+    {
+        // DEC-071: ID data is kept indefinitely. The purge is a manual command only, so no hosted service may take the document service or stores.
+        var hosted = new[] { typeof(Hcc.Api.HccComposition).Assembly, typeof(DocumentService).Assembly, typeof(Hcc.Infrastructure.SqlServer.Access.SqlRetentionPurge).Assembly }
+            .SelectMany(a => a.GetTypes()).Where(t => !t.IsAbstract && typeof(Microsoft.Extensions.Hosting.IHostedService).IsAssignableFrom(t)).ToList();
+        Assert.Contains(hosted, t => t.Name == "RetentionWorker");   // the scan really sees the workers
+        const BindingFlags all = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        foreach (var t in hosted)
+        {
+            var wired = t.GetConstructors(all).SelectMany(c => c.GetParameters()).Select(p => p.ParameterType).Concat(t.GetFields(all).Select(f => f.FieldType));
+            Assert.DoesNotContain(wired, w => w == typeof(DocumentService) || w.Namespace == typeof(DocumentService).Namespace || w.Namespace == "Hcc.Infrastructure.SqlServer.Documents");
+        }
     }
 
     [Theory]

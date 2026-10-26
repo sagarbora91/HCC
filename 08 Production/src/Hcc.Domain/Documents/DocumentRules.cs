@@ -12,8 +12,9 @@ public static class DocumentRules
     public const int MinImageBytes = 16;
 
     /// <summary>
-    /// Retention of captured images and OCR text. Master configuration key <c>documents.retentionDays</c> (group "Data and system") overrides
-    /// this default; owner/lawyer to confirm the period (DEC-068 legal risk) - until then 90 days, counted from the capture's business date.
+    /// Age at which the MANUAL purge deletes captured images and OCR text. Master configuration key <c>documents.retentionDays</c> (group "Data and
+    /// system") overrides this default; counted from the capture's business date. DEC-071: ID data is kept indefinitely, so there is no automatic
+    /// purge; lawyer to confirm the DPDP Act 2023 position (DEC-068 legal risk).
     /// </summary>
     public const int DefaultRetentionDays = 90;
 
