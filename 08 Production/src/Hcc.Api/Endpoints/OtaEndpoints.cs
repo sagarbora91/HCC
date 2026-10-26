@@ -2,6 +2,7 @@ using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Application.Ota;
 using Hcc.Contracts.Ota;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Ota;
 
@@ -29,15 +30,16 @@ public static class OtaEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        BillingEndpoints.Command<SaveChannelRequest, ChannelResult>(g, "SaveChannel", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SaveChannelAsync(Ctx(c, "SaveChannel", k), r, ct));
-        BillingEndpoints.Command<SetChannelStatusRequest, ChannelResult>(g, "SetChannelStatus", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStatusAsync(Ctx(c, "SetChannelStatus", k), r, ct));
-        BillingEndpoints.Command<SetChannelStopSellRequest, ChannelResult>(g, "SetChannelStopSell", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStopSellAsync(Ctx(c, "SetChannelStopSell", k), r, ct));
-        BillingEndpoints.Command<PushChannelRatesRequest, PushResult>(g, "PushChannelRates", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PushRatesAsync(Ctx(c, "PushChannelRates", k), r, ct));
-        BillingEndpoints.Command<ImportChannelMessageRequest, ChannelMessageResult>(g, "ImportChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().ImportMessageAsync(Ctx(c, "ImportChannelMessage", k), r, ct));
-        BillingEndpoints.Command<QueueSimulatedMessageRequest, ChannelMessageResult>(g, "QueueSimulatedMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().QueueSimulatedAsync(Ctx(c, "QueueSimulatedMessage", k), r, ct));
-        BillingEndpoints.Command<PullChannelMessagesRequest, PullResult>(g, "PullChannelMessages", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PullAsync(Ctx(c, "PullChannelMessages", k), r, ct));
-        BillingEndpoints.Command<AcceptChannelMessageRequest, AcceptResult>(g, "AcceptChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().AcceptAsync(Ctx(c, "AcceptChannelMessage", k), r, ct));
-        BillingEndpoints.Command<RejectChannelMessageRequest, ChannelMessageResult>(g, "RejectChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().RejectAsync(Ctx(c, "RejectChannelMessage", k), r, ct));
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Ota); // DEC-057 / A11-01: refused while OTA channels is off; reads stay
+        BillingEndpoints.Command<SaveChannelRequest, ChannelResult>(cmd, "SaveChannel", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SaveChannelAsync(Ctx(c, "SaveChannel", k), r, ct));
+        BillingEndpoints.Command<SetChannelStatusRequest, ChannelResult>(cmd, "SetChannelStatus", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStatusAsync(Ctx(c, "SetChannelStatus", k), r, ct));
+        BillingEndpoints.Command<SetChannelStopSellRequest, ChannelResult>(cmd, "SetChannelStopSell", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().SetStopSellAsync(Ctx(c, "SetChannelStopSell", k), r, ct));
+        BillingEndpoints.Command<PushChannelRatesRequest, PushResult>(cmd, "PushChannelRates", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PushRatesAsync(Ctx(c, "PushChannelRates", k), r, ct));
+        BillingEndpoints.Command<ImportChannelMessageRequest, ChannelMessageResult>(cmd, "ImportChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().ImportMessageAsync(Ctx(c, "ImportChannelMessage", k), r, ct));
+        BillingEndpoints.Command<QueueSimulatedMessageRequest, ChannelMessageResult>(cmd, "QueueSimulatedMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().QueueSimulatedAsync(Ctx(c, "QueueSimulatedMessage", k), r, ct));
+        BillingEndpoints.Command<PullChannelMessagesRequest, PullResult>(cmd, "PullChannelMessages", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().PullAsync(Ctx(c, "PullChannelMessages", k), r, ct));
+        BillingEndpoints.Command<AcceptChannelMessageRequest, AcceptResult>(cmd, "AcceptChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().AcceptAsync(Ctx(c, "AcceptChannelMessage", k), r, ct));
+        BillingEndpoints.Command<RejectChannelMessageRequest, ChannelMessageResult>(cmd, "RejectChannelMessage", (sp, c, k, r, ct) => sp.GetRequiredService<OtaService>().RejectAsync(Ctx(c, "RejectChannelMessage", k), r, ct));
 
         g.MapGet("/ota/channels", async (HttpContext http, OtaQueries q, CancellationToken ct) =>
         {
@@ -82,40 +84,7 @@ public static class OtaEndpoints
 
 /// <summary>Polls the outbox for channel-manager events every 2 s (simulated channel manager).</summary>
 // ETP-REUSE: align with ETP background-job hosting (Windows service worker, retry/back-off, logging) when ETP (V: drive) is available.
-public sealed partial class OtaChannelManagerWorker(OtaChannelManagerProjector projector, ILogger<OtaChannelManagerWorker> logger) : BackgroundService
+public sealed class OtaChannelManagerWorker(OtaChannelManagerProjector projector, ILogger<OtaChannelManagerWorker> logger) : OutboxPollingWorker(logger, "OTA channel-manager outbox projection")
 {
-    public static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await projector.RunOnceAsync(ct: stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-#pragma warning disable CA1031 // A failed poll is logged and retried on the next tick; the event stays undelivered.
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                LogFailed(logger, ex);
-            }
-
-            try
-            {
-                await Task.Delay(Interval, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "OTA channel-manager outbox projection failed; retrying")]
-    private static partial void LogFailed(ILogger logger, Exception ex);
+    protected override Task PollAsync(CancellationToken ct) => projector.RunOnceAsync(ct: ct);
 }

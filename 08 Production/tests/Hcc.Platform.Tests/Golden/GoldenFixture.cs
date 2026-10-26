@@ -6,7 +6,8 @@ namespace Hcc.Platform.Tests.Golden;
 
 /// <summary>
 /// Raw records + prototype-computed figures exported from the prototype BASE fixture by
-/// <c>08 Production/tools/golden/export-golden.mjs</c> (regenerate after a prototype fixture change).
+/// <c>08 Production/tools/golden/export-golden.mjs</c> (regenerate after a prototype fixture change; 03 Prototype <c>npm test</c>
+/// fails while it is out of date — 08 Production/tools/golden/check-goldens.mjs).
 /// </summary>
 public sealed record GoldenFixture(string GeneratedBy, string Source, bool FictionalDataOnly, GoldenBase Base, GoldenJourney Journey)
 {
@@ -24,7 +25,8 @@ public sealed record GoldenReceipt(string? BookingId, string Date, string Method
     public DatedReceipt ToDated() => new(StayDates.Parse(Date), Method, FolioTotals.ParseKind(Kind), new Paise(AmountPaise));
 }
 
-public sealed record GoldenOutletReceipt(string Date, string Method, long AmountPaise);
+/// <summary>An outlet (restaurant) receipt: gross amount and, since A08-04, the net + GST the prototype master put on it.</summary>
+public sealed record GoldenOutletReceipt(string Date, string Method, long AmountPaise, long? NetPaise = null, long? TaxPaise = null, int? TaxBps = null);
 
 public sealed record GoldenExpense(string Id, string Date, string Status, string Method, long AmountPaise);
 

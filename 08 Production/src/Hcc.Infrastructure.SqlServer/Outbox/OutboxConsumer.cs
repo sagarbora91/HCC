@@ -55,6 +55,24 @@ public sealed class OutboxConsumer(SqlConnectionFactory connections)
 
     public delegate Task EffectHandler(OutboxEvent evt, SqlConnection connection, SqlTransaction transaction, CancellationToken ct);
 
+    /// <summary>
+    /// Wave C3 (fix wave A "Left open"): releases a parked event for one more delivery attempt, inside the caller's transaction
+    /// (RetryParkedEvent, audited by the command runner). The park mark is cleared (attempts keep counting, so one more failure parks it
+    /// again at once) and the consumer's watermark moves back to just below the event, so the next poll reads it again; the poll never
+    /// moves the watermark past an undelivered event that is not parked (see the poll's UPDATE). Parameters: @c consumer, @o outbox id.
+    /// Returns the number of released rows (0 = not parked, or already delivered).
+    /// </summary>
+    public const string ReleaseParkedSql = """
+        UPDATE f SET parked_utc = NULL
+        FROM plat.consumer_failure f
+        WHERE f.consumer = @c AND f.outbox_id = @o AND f.parked_utc IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = f.consumer AND d.outbox_id = f.outbox_id);
+        DECLARE @released INT = @@ROWCOUNT;
+        IF @released > 0
+          UPDATE plat.outbox_consumer SET low_outbox_id = @o - 1, updated_utc = SYSUTCDATETIME() WHERE consumer = @c AND low_outbox_id >= @o;
+        SELECT @released;
+        """;
+
     /// <summary>Raised after every recorded delivery failure (also when it parks the event). Handlers must not throw.</summary>
     public event EventHandler<OutboxDeliveryFailure>? DeliveryFailed;
 
@@ -153,8 +171,12 @@ public sealed class OutboxConsumer(SqlConnectionFactory connections)
                                               WHERE created_utc < DATEADD(SECOND, -@settle, SYSUTCDATETIME()) ORDER BY outbox_id DESC), 0);
             DECLARE @first BIGINT = (SELECT MIN(outbox_id) FROM @p);
             DECLARE @new BIGINT = CASE WHEN @first IS NOT NULL AND @first - 1 < @settled THEN @first - 1 ELSE @settled END;
+            -- Wave C3: never past an undelivered event that is NOT parked (an event released by RetryParkedEvent after this poll's read).
             IF @new > @low
-              UPDATE plat.outbox_consumer SET low_outbox_id = @new, updated_utc = SYSUTCDATETIME() WHERE consumer = @c AND low_outbox_id < @new;
+              UPDATE plat.outbox_consumer SET low_outbox_id = @new, updated_utc = SYSUTCDATETIME()
+              WHERE consumer = @c AND low_outbox_id < @new
+                AND NOT EXISTS (SELECT 1 FROM plat.consumer_failure f WHERE f.consumer = @c AND f.parked_utc IS NULL AND f.outbox_id <= @new
+                                AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = f.outbox_id));
             SELECT o.outbox_id, o.event_type, o.aggregate_id, o.payload, o.created_utc
             FROM @p p JOIN plat.outbox o ON o.outbox_id = p.outbox_id
             ORDER BY o.outbox_id;

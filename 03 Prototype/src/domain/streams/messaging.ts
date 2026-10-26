@@ -31,7 +31,8 @@ export type MSGDoc={id:string;sample:string;kind:MSGDocKind;title:string;status:
   fields:(MSGField&{original?:string})[];actor:string;at:string;appliedTo?:string;appliedAt?:string;reason?:string};
 
 /** State slice for this module, stored at s.messagingX (optional; absent in old saves → treat as empty). */
-export type MSGState={templates?:MSGTemplate[];rules?:MSGRule[];consent?:Record<string,MSGConsent>;outbox?:MSGMessage[];fired?:string[];docs?:MSGDoc[]};
+/** `notConfigured` (production client only): the server's sentence when it has no messaging provider (A09-08); the screens show it as a notice. */
+export type MSGState={templates?:MSGTemplate[];rules?:MSGRule[];consent?:Record<string,MSGConsent>;outbox?:MSGMessage[];fired?:string[];docs?:MSGDoc[];notConfigured?:string};
 export const msgEmpty=():MSGState=>({});
 export const msgSlice=(s:State):MSGState=>s.messagingX??msgEmpty();
 

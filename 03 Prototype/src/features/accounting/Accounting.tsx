@@ -14,7 +14,7 @@ export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:strin
     {dates.map(d=><option key={d} value={d}>{shortDate(d)} {d.slice(0,4)}</option>)}</select></label>;
 }
 export function AccountingPage(){
-  const {s,uid,open}=useHcc();const {canMap}=useAccPerms();
+  const {s,uid,open,go,permission}=useHcc();const {canMap}=useAccPerms();
   const tally=rbacCanTally(s,uid); // DEC-063 G13: Tally export tab = Owner + Accountant (Manager/Cashier keep Accounting without it)
   const dates=useMemo(()=>accDates(s),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
@@ -56,7 +56,7 @@ export function AccountingPage(){
             <tr className="acc-total"><td/><td><strong>Total</strong></td><td/><td className="acc-num number"><strong>{money(tbT.debit)}</strong></td><td className="acc-num number"><strong>{money(tbT.credit)}</strong></td><td/></tr></tbody></table></div>
           :<Empty title="No ledger movement" body="No vouchers for this scope."/>}</>}
       {tab==='exceptions'&&(ex.length?<div className="acc-exlist">{ex.map(x=><div key={x.id} className={'acc-ex acc-ex-'+x.severity}><AccSeverity x={x}/><div><strong>{x.title}</strong><p>{x.detail}</p>
-          <div className="inline">{x.voucher&&<button className="text-btn" onClick={()=>open({type:'acc-voucher',id:date+'|'+x.voucher})}>View {x.voucher}</button>}{x.key&&canMap&&<button className="text-btn" onClick={()=>open({type:'acc-map',id:x.key})}>Map now</button>}</div></div></div>)}</div>
+          <div className="inline">{x.voucher&&<button className="text-btn" onClick={()=>open({type:'acc-voucher',id:date+'|'+x.voucher})}>View {x.voucher}</button>}{x.key&&canMap&&<button className="text-btn" onClick={()=>open({type:'acc-map',id:x.key})}>Map now</button>}{x.kind==='stuck'&&permission('admin')&&<button className="text-btn" onClick={()=>go('syshealth')}>Open System health</button>}</div></div></div>)}</div>
         :<Empty title="No exceptions" body="Every voucher is balanced and mapped."/>)}
       {tab==='recon'&&<div className="table-wrap"><table className="acc-table"><thead><tr><th>Check</th><th className="acc-num">Reports / closing</th><th className="acc-num">Ledger</th><th>Result</th><th>Compared with</th></tr></thead>
         <tbody>{recon.map(c=><tr key={c.id}><td><strong>{c.label}</strong></td><td className="acc-num number">{money(c.report)}</td><td className="acc-num number">{money(c.ledger)}</td>
@@ -95,7 +95,11 @@ export function TallyExport(){
           server builds, records and returns the file (GET /accounting/export/tally) and the mapper saves it. */}
       <button className="btn" disabled={busy||!p.count} onClick={()=>{void run({type:'ACC_TALLY_EXPORT',from,to},'Simulated Tally XML saved · not imported into Tally',
         {after:()=>{if(process.env.HCC_BUILD!=='production')void saveAndReport(saveTextFile(`HCC-Demo-tally-${from}_${to}.xml`,p.xml,'application/xml'),toast,'Simulated Tally XML saved · not imported into Tally','the Tally XML');}});}}><Download size={16}/> Download XML</button></div>
-    {p.reexport.length>0&&<div className="info-note f-warn" role="status"><AlertTriangle size={16}/><span>Re-export: {p.reexport.join(', ')} changed after {p.reexport.length===1?'it was':'they were'} exported (the day was reopened) and {p.reexport.length===1?'is':'are'} carried again in this file. Delete {p.reexport.length===1?'that day’s':'those days’'} HCC vouchers in Tally before importing, or Tally will hold them twice.{p.provisional.length?` ${p.provisional.join(', ')} is still reopened and may change again.`:''}</span></div>}
+    {/* A03b-05: every voucher carries a fixed REMOTEID, so a re-import replaces instead of duplicating; provisional while events are pending. */}
+    <p className="muted">Every voucher carries a fixed voucher ID (REMOTEID): importing a day again replaces its vouchers in Tally instead of adding them twice — set “Overwrite vouchers when a voucher with same GUID exists” to Yes in Tally’s import.{process.env.HCC_BUILD==='production'?' The downloaded file is built by the hotel server with the hotel’s own voucher IDs.':''}</p>
+    {p.reexport.length>0&&<div className="info-note f-warn" role="status"><AlertTriangle size={16}/><span>Re-export: {p.reexport.join(', ')} changed after {p.reexport.length===1?'it was':'they were'} exported and {p.reexport.length===1?'is':'are'} carried again in this file. The vouchers keep their IDs, so importing it replaces them in Tally and adds the new ones — nothing needs deleting first.{p.reopened.length?` ${p.reopened.join(', ')} is still reopened and may change again.`:''}</span></div>}
+    {p.pending>0&&p.lagging.length>0&&<div className="info-note f-warn" role="status"><AlertTriangle size={16}/><span>Provisional: {p.pending} accounting event{p.pending===1?' is':'s are'} not yet in the vouchers, so {p.lagging.join(', ')} may be incomplete. {p.lagging.length===1?'That day is':'Those days are'} carried again by the first export after the events are processed; locked days are not affected.</span></div>}
+    {p.legacy.length>0&&<div className="info-note f-warn" role="status"><AlertTriangle size={16}/><span>Exported before voucher IDs: {p.legacy.join(', ')}. If that earlier file was imported, delete {p.legacy.length===1?'that day’s':'those days’'} HCC vouchers from it in Tally before importing, or Tally will hold them twice.</span></div>}
     {p.error?<p className="f-why" role="alert">{p.error}</p>:<>
       <p className="muted">{p.count} voucher{p.count===1?'':'s'} over {p.dates} business date{p.dates===1?'':'s'} · debits {money(p.debit)} · credits {money(p.credit)} · {p.debit===p.credit?'balanced':'NOT balanced'} · up to {TALLY_MAX_DAYS} days</p>
       {p.count?<><pre className="exp-xml" aria-label="Tally XML preview">{shown}</pre>{lines.length>60&&<p className="muted">Preview shows the first 60 of {lines.length} lines; the download has everything.</p>}</>

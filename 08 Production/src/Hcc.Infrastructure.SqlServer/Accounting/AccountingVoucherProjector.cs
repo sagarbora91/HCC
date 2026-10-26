@@ -57,22 +57,27 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
         """;
 
     /// <summary>
-    /// Unprocessed consumed events + unswept accepted cash differences for a property (blocks locking). A08-01: events above the
-    /// consumer's watermark are counted with one IX_outbox_type seek per type (types as a typed row source, not OPENJSON inside the
-    /// scan); at or below the watermark only parked events can still be unprocessed (A08-02: parked = not booked, still blocks).
+    /// Unprocessed consumed events + unswept accepted cash differences for a property (blocks locking), as two columns: still being
+    /// processed, and parked (Wave C3: "stuck — see System health"). A08-01: events above the consumer's watermark are counted with one
+    /// IX_outbox_type seek per type (types as a typed row source, not OPENJSON inside the scan); at or below the watermark only parked
+    /// events can still be unprocessed (A08-02: parked = not booked, still blocks). Parked events are counted wherever they are.
     /// </summary>
     public const string PendingSql = """
         DECLARE @low BIGINT = ISNULL((SELECT low_outbox_id FROM plat.outbox_consumer WHERE consumer = @c), 0);
         SELECT (SELECT COUNT(*) FROM OPENJSON(@types) WITH (event_type VARCHAR(60) '$') t
                 CROSS APPLY (SELECT o.outbox_id FROM plat.outbox o WITH (INDEX(IX_outbox_type))
                              WHERE o.event_type = t.event_type AND o.outbox_id > @low AND o.property_id = @p
-                               AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = o.outbox_id)) x)
-             + (SELECT COUNT(*) FROM plat.consumer_failure f JOIN plat.outbox o ON o.outbox_id = f.outbox_id
-                WHERE f.consumer = @c AND f.parked_utc IS NOT NULL AND f.outbox_id <= @low AND o.property_id = @p
-                  AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = f.outbox_id))
+                               AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = o.outbox_id)
+                               AND NOT EXISTS (SELECT 1 FROM plat.consumer_failure f WHERE f.consumer = @c AND f.outbox_id = o.outbox_id AND f.parked_utc IS NOT NULL)) x)
              + (SELECT COUNT(*) FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id JOIN bill.approval a ON a.approval_id = s.approval_id
                 WHERE t.property_id = @p AND
-        """ + " " + SweepWhere + ");";
+        """ + " " + SweepWhere + """
+        ),
+               (SELECT COUNT(*) FROM plat.consumer_failure f JOIN plat.outbox o ON o.outbox_id = f.outbox_id
+                WHERE f.consumer = @c AND f.parked_utc IS NOT NULL AND o.property_id = @p
+                  AND o.event_type IN (SELECT event_type FROM OPENJSON(@types) WITH (event_type VARCHAR(60) '$'))
+                  AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = @c AND d.outbox_id = f.outbox_id));
+        """;
 
     private static readonly JsonSerializerOptions Json = CanonicalJson.SerializerOptions;
 

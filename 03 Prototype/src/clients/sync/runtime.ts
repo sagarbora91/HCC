@@ -6,11 +6,14 @@
 // • Read cache: last loaded slices in IndexedDB (cache.ts) with their "as of" time, shown while the server is unreachable —
 //   encrypted, and only to a signed-in user (security review F-H01): a session the server confirms, a still-valid local session
 //   (resume key in `keyStore`), or offline re-authentication (status 'locked' → unlock(secret)). Wiped on sign-out / expiry.
+// • A06-01 must-change: a session whose password / PIN an administrator set (me.mustChange, from sign-in / capabilities) loads
+//   nothing and runs only OWN_CREDENTIAL_CHANGE (the server refuses the rest with 403 MUST_CHANGE_CREDENTIAL anyway). A successful
+//   own change starts a new offline copy keyed by the NEW secret (the old one may be known to an administrator), then loads all.
 import type {State,Command,Permission} from '../../services/mock';
 import {can} from '../../services/mock';
 import {HTTP_ADAPTER_ID,createHttpTransport,createHttpReservationsClient,createHttpSystemClient,createHttpMeClient,type FetchLike,type HttpTransport} from '../http';
 import {createConnection,type Connection} from '../connection';
-import {HccClientError,errorText,signInText} from '../errors';
+import {HccClientError,errorText,signInText,MODULE_OFF_REASON,OCR_NOT_CONFIGURED} from '../errors';
 import {IDEMPOTENCY_KEY_MAX} from '../wire';
 import type {HccClients} from '../types';
 import type {SrvCapabilities} from '../server';
@@ -22,9 +25,14 @@ import {createMemoryCache,type ReadCache,type CachedSlice,type CacheLock,type Ca
 import {cookieAuth,memoryTokenStore,type AuthAdapter,type SignInInput,type TokenStore} from './auth';
 import {emptyState} from './empty';
 import {mayRead} from './reads';
+import {OWN_CREDENTIAL_CHANGE,MUST_CHANGE_REASON,mustChangeText} from '../../domain/credentials';
 
 export const SYNC_MARKER='hcc-sync-layer';
 export const NOT_ON_SERVER='Not available on the server yet';
+/** Commands no area maps whose refusal says more than NOT_ON_SERVER. MSG_DOC_EXTRACT (A09-08): the production app has no capture screen for
+ *  CaptureIdDocument yet, and a Production server has no OCR engine, so a scan request gets the server's own sentence (errors.ts) instead of a
+ *  developer-style "not on the server yet". Once a capture screen sends the real command, the server's refusal reaches the user unchanged. */
+export const UNMAPPED_TEXT:Record<string,string>={MSG_DOC_EXTRACT:OCR_NOT_CONFIGURED};
 export const READ_ONLY_REFUSAL='Server unavailable — read-only. Nothing was sent and nothing is saved on this device';
 /** Focus / visibility refreshes at most this often. */
 export const FOCUS_REFRESH_MS=30_000;
@@ -51,7 +59,7 @@ export type SyncSnapshot={
 };
 export type RunResult={ok:true;result?:unknown;/** Partial success: show this instead of the success message (CommandOutcome.warning). */warning?:string}|{ok:false;text:string;error?:unknown;
   /** 'unmapped' = no area maps this command; 'read-only' = server unreachable; 'precheck' = refused on the client; 'server' = sent and refused / failed. */
-  reason:'unmapped'|'read-only'|'precheck'|'server'|'signed-out'};
+  reason:'unmapped'|'read-only'|'precheck'|'server'|'signed-out'|'must-change'};
 
 export type SyncRuntimeOptions={
   areas:SyncArea[];
@@ -68,6 +76,17 @@ export type SyncRuntimeOptions={
   skeleton?:()=>State;
 };
 
+/** What the production app shows for a snapshot (react.tsx ConnectedApp). A06-01: 'must-change' replaces every other screen until
+ *  the administrator-set password / PIN is changed; `deviceOffer` = the one-time "Register this device?" offer applies. */
+export type AppScreen='booting'|'locked'|'sign-in'|'must-change'|'device-setup'|'app';
+export function appScreen(snap:Pick<SyncSnapshot,'status'|'me'|'locked'>,deviceOffer=false):AppScreen{
+  if(snap.status==='booting')return 'booting';
+  if(snap.status==='locked'&&snap.locked)return 'locked';
+  if(snap.status==='signed-out'||!snap.me)return 'sign-in';
+  if(snap.me.mustChange)return 'must-change';
+  return deviceOffer?'device-setup':'app';
+}
+
 /** Registry rules: one owner per slice, patches/needs only on owned slices, one mapper per command type. */
 export function validateAreas(areas:SyncArea[]):string[]{
   const problems:string[]=[],owners=new Map<string,string>(),types=new Map<string,string>(),ids=new Set<string>();
@@ -83,6 +102,9 @@ export function validateAreas(areas:SyncArea[]):string[]{
   for(const a of areas)for(const c of a.commands)for(const r of c.reload)if(!owners.has(r))problems.push(`${a.id}: ${c.type} reloads "${r}" but no area owns it.`);
   return problems;
 }
+
+/** The server's A06-01 refusal (403, details.reason MUST_CHANGE_CREDENTIAL): the password / PIN must be changed first. */
+const isMustChange=(e:unknown)=>e instanceof HccClientError&&e.wireCode==='FORBIDDEN'&&e.details?.reason===MUST_CHANGE_REASON;
 
 /** FNV-1a 32-bit, hex — short stable digest for idempotency keys. */
 export function digest(s:string){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h.toString(16).padStart(8,'0');}
@@ -209,7 +231,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     if(!batch.length)return;
     loading++;emit();
     const fresh:Partial<Record<SliceKey,unknown>>={},done=new Set<typeof batch[number]>(),stamp=now().toISOString();
-    const loadedOk=new Set<SliceKey>(),patchFailed=new Set<SliceKey>();let sessionLost=false;
+    const loadedOk=new Set<SliceKey>(),patchFailed=new Set<SliceKey>();let sessionLost=false,mustChange=false;
     const sliceDone=(k:SliceKey)=>batch.filter(x=>x.l.slice===k).every(x=>done.has(x));
     const ctx:LoaderCtx={
       api:apiFor(undefined),
@@ -223,6 +245,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
       catch(e){
         const w=e instanceof HccClientError?e.wireCode:undefined;
         if(w==='UNAUTHENTICATED'){sessionLost=true;return;}
+        if(isMustChange(e))mustChange=true;
         if(w==='FORBIDDEN'&&own){fresh[k]=skeleton[k];loadedOk.add(k);delete errors[k];return;}
         // A failed patch (not a 403: the user may simply not see those fields) must not commit the owner's unpatched value,
         // e.g. bookings without their folio would show ₹0 balances; the previous value stays (see the commit below).
@@ -243,6 +266,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     }
     loading--;
     if(sessionLost){endSession('Your session has ended. Sign in again.');return;}
+    if(mustChange&&me&&!me.mustChange){me={...me,mustChange:true};emit();return;} // A06-01 answered by the server: the change screen
     const cached:Record<string,CachedSlice>={};
     // Keep the previous value of a slice whose patch failed (its error stays listed); without one, the owner's value is shown.
     for(const k of patchFailed)if(k in values)loadedOk.delete(k);
@@ -280,6 +304,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     if(r==='unreachable'){emit();return;}
     await adoptOnline();
     status='ready';lastFull=now().getTime();
+    if(me?.mustChange){emit();return;} // A06-01: no reads until the administrator-set credential is changed
     await reload(allSlices());
   }
   function forget(){values={};asOf={};errors={};ids=createIdDirectory();void wipeCache();}
@@ -303,10 +328,22 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     return fitKey(`${cmd.type}:${nonce}:${generation}:${digest(stable(body))}`);
   }
 
+  /** A02b-05 / A06-01: after the user's own password / PIN change. The offline copy was sealed under a key wrapped by the OLD
+   *  secret (an administrator may know it): drop it and start a new one keyed by the new secret, then re-read capabilities (the
+   *  must-change flag is gone) and every slice. The secret is used for the key derivation only and is not kept. */
+  async function credentialChanged(cmd:Command){
+    if(!me)return;
+    const pin=!!cmd.newPin,secret=String((pin?cmd.newPin:cmd.newPassword)??'');
+    await wipeCache();
+    await newCacheKey(me,pin?'pin':'password',secret,srvSession);
+    await loadAll();
+  }
+
   async function run(cmd:Command):Promise<RunResult>{
     if(!me)return {ok:false,reason:'signed-out',text:'Sign in again: your session has ended.'};
+    if(me.mustChange&&cmd.type!==OWN_CREDENTIAL_CHANGE)return {ok:false,reason:'must-change',text:mustChangeText(me.credentialKind??'PASSWORD')};
     const m=mappers.get(cmd.type);
-    if(!m)return {ok:false,reason:'unmapped',text:`${NOT_ON_SERVER}: ${cmd.type}`};
+    if(!m)return {ok:false,reason:'unmapped',text:UNMAPPED_TEXT[cmd.type]??`${NOT_ON_SERVER}: ${cmd.type}`};
     if(connection.readOnly){await clients.system.health().catch(()=>undefined);
       if(connection.readOnly)return {ok:false,reason:'read-only',text:`${READ_ONLY_REFUSAL} (${cmd.type}).`};}
     const state=snap.state;
@@ -319,10 +356,15 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     try{out=await m.send(c);}
     catch(e){
       if(e instanceof HccClientError&&e.wireCode==='UNAUTHENTICATED'){endSession('Your session has ended. Sign in again.');}
+      else if(isMustChange(e)&&me&&!me.mustChange){me={...me,mustChange:true};emit();}
+      // A11-01 (DEC-057): the server refused because the module is switched off in Master configuration (maybe from another device).
+      // Show its sentence as it is and reload the module switches, so the module's screens disappear here too.
+      else if(e instanceof HccClientError&&e.details?.reason===MODULE_OFF_REASON)await reload(['configX','settings']);
       return {ok:false,reason:'server',text:errorText(e),error:e};
     }
     generation++;
-    await reload([...m.reload,...(out?.reload??[])]);
+    if(cmd.type===OWN_CREDENTIAL_CHANGE)await credentialChanged(cmd);
+    else await reload([...m.reload,...(out?.reload??[])]);
     return {ok:true,result:out?.result,...(out?.warning?{warning:out.warning}:{})};
   }
 
@@ -350,6 +392,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
         emit();return;}
       await adoptOnline(raw);
       status='ready';lastFull=now().getTime();emit();
+      if(me?.mustChange)return; // A06-01: the change screen only, no reads
       await reload(allSlices());
     },
     /** status 'locked' (server unreachable): re-authenticate with the PIN / password of the cached user to see the read-only copy. */

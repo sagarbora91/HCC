@@ -60,6 +60,7 @@ public static class HccComposition
         services.AddFrontDeskMastersModule();            // MA-5 booking sources, ID types, numbering series, policies
         services.AddPeopleListsModule();                 // MA-6 designations, shift patterns, leave types, holidays
         services.AddOpsMastersModule();                  // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
+        services.AddSystemHealthModule();                // Wave C3 (A09-05): parked outbox events, retry, last backup (PERM-SYS-001)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -76,6 +77,7 @@ public static class HccComposition
             var device = http.Request.Headers[Contracts.Access.AccessConventions.DeviceTokenHeader].ToString();
             var session = await http.RequestServices.GetRequiredService<Application.Access.ISessionService>()
                 .ValidateAsync(token, device.Length > 0 ? device : null, ct);
+            if (session.MustChangeCredential) return false;   // A06-01: nothing but the credential change before it is changed
             var policy = http.RequestServices.GetRequiredService<Application.Access.IAccessPolicy>();
             return await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-005", null, ct)
                 || await policy.HasAsync(session.PropertyId, session.UserId, "PERM-CFG-001", null, ct);
@@ -144,6 +146,7 @@ public static class HccComposition
         api.MapFrontDeskMastersEndpoints(); // MA-5 front-desk lists
         api.MapPeopleListsEndpoints();   // MA-6 people lists
         api.MapOpsMastersEndpoints();    // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
+        api.MapSystemHealthEndpoints();  // Wave C3 (A09-05): GET /admin/system-health, RetryParkedEvent
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

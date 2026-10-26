@@ -25,7 +25,7 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
 
     public const string OpExportTally = "ExportTally";
 
-    private sealed record ExportLogged(long ExportId);
+    private sealed record ExportLogged(long ExportId, string Identity);
 
     private Task RequireAsync(Caller c, string perm, CancellationToken ct) => policy.RequireAsync(c.PropertyId, c.PrincipalId, perm, ct: ct);
 
@@ -179,10 +179,16 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
     }
 
     /// <summary>
-    /// Simulated Tally XML for ≤ 31 days. Nothing is sent to Tally; only Tally's own import confirms an import. DEC-077: dates flagged
-    /// changed after an earlier export (their day was reopened) are carried again even outside the range, each with a RE-EXPORT note;
-    /// the day still reopened is marked PROVISIONAL and stays flagged. The export is recorded (log + audit) when a runner is composed;
-    /// recording clears the flags of the closed dates it carried.
+    /// Simulated Tally XML for ≤ 31 days. Nothing is sent to Tally; only Tally's own import confirms an import.
+    /// A03b-05: every voucher carries a stable REMOTEID / GUID (<see cref="VoucherExport.RemoteId"/> of the property's Tally identity and
+    /// the voucher's source key), so importing a voucher again replaces it in Tally (with "Overwrite vouchers when a voucher with same GUID
+    /// exists" = Yes) instead of adding it twice; ACTION stays Create. DEC-077: dates flagged changed after an earlier export (their day was
+    /// reopened) are carried again even outside the range, each with a RE-EXPORT note; the day still reopened is PROVISIONAL and stays
+    /// flagged. A03b-05: while accounting events are pending or parked (<c>AccountingVoucherProjector.PendingSql</c>, the count that blocks
+    /// a lock), every carried date that is not locked is PROVISIONAL as well (its vouchers may be incomplete; a locked date is its
+    /// snapshot), the count is in the note and in the response, and the date is flagged so that the first export after the events are
+    /// processed carries it again. A date that an export recorded before voucher ids existed took to Tally gets a LEGACY note. The export
+    /// is recorded (log + audit) when a runner is composed; recording clears the flags of the dates it carried that are not provisional.
     /// </summary>
     // ETP-REUSE: ETP Tally preparation (ledger/voucher-type masters, company GUID, import report parsing) when V:\ETP is available.
     public async Task<TallyExportView> TallyAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default)
@@ -190,42 +196,63 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
         ArgumentNullException.ThrowIfNull(caller);
         await RequireAsync(caller, AccountingPermissions.Tally, ct).ConfigureAwait(false);
         if (VoucherExport.TallyRangeError(from, to) is { } error) throw HccException.Validation(error);
+        var now = (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
         var flags = await store.TallyReexportsAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
         var reopened = await store.ReopenedDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
-        var days = (await AccountingDays.RangeAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false)).ToList();
+        // A03b-05 x A09-05 (Wave C3): still being processed and parked (stuck) both make an export provisional.
+        var pending = (await store.PendingEventsAsync(null, caller.PropertyId, ct).ConfigureAwait(false)).Total;
+        var days = (await AccountingDays.RangeWithLocksAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false)).ToList();
         foreach (var f in flags.Where(f => f.BusinessDate < from || f.BusinessDate > to))
-            days.AddRange(await AccountingDays.RangeAsync(store, caller.PropertyId, f.BusinessDate, f.BusinessDate, ct).ConfigureAwait(false));
+            days.AddRange(await AccountingDays.RangeWithLocksAsync(store, caller.PropertyId, f.BusinessDate, f.BusinessDate, ct).ConfigureAwait(false));
         days = [.. days.OrderBy(x => x.Date)];
         var flagged = flags.ToDictionary(f => f.BusinessDate);
         var reexport = days.Where(x => flagged.ContainsKey(x.Date)).Select(x => x.Date).ToList();
-        var provisional = days.Where(x => x.Date == reopened).Select(x => x.Date).ToList();
-        var notes = reexport.Select(x => $"RE-EXPORT · {Iso(x)} changed after it was exported (day reopened: {flagged[x].Reason}). Delete that day's HCC vouchers in Tally before importing this file, or Tally will hold them twice.")
-            .Concat(provisional.Select(x => $"PROVISIONAL · {Iso(x)} is reopened and may still change; it is carried again by the first export after it is closed again.")).ToList();
+        var lagging = pending > 0 ? days.Where(x => !x.Locked).Select(x => x.Date).ToList() : [];
+        var provisional = days.Where(x => x.Date == reopened || lagging.Contains(x.Date)).Select(x => x.Date).ToList();
+        var legacy = days.Count == 0 ? [] : await store.TallyExportedWithoutIdsAsync(null, caller.PropertyId, days.Select(x => x.Date).ToList(), ct).ConfigureAwait(false);
+        var notes = reexport.Select(x => flagged[x].ReopenId is null ? VoucherExport.ReexportAfterProvisionalNote(x, flagged[x].Reason) : VoucherExport.ReexportNote(x, flagged[x].Reason))
+            .Concat(provisional.Where(x => x == reopened).Select(VoucherExport.ReopenedNote))
+            .Concat(lagging.Select(x => VoucherExport.PendingNote(x, pending)))
+            .Concat(legacy.Select(VoucherExport.LegacyNote)).ToList();
         var vouchers = days.SelectMany(x => x.Vouchers).ToList();
         var (d, c) = VoucherBuilder.Totals(vouchers);
         var company = await store.PropertyNameAsync(caller.PropertyId, ct).ConfigureAwait(false);
         long? exportId = null;
+        string identity;
         if (runner is not null)
         {
-            var clear = flags.Where(f => f.BusinessDate != reopened && days.Any(x => x.Date == f.BusinessDate)).Select(f => f.ReexportId).ToList();
-            var log = new NewTallyExport(caller.PropertyId, from, to, vouchers.Count, d, c, caller.PrincipalId, (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime,
-                days.Select(x => (x.Date, x.Vouchers.Count, flagged.ContainsKey(x.Date), x.Date == reopened)).ToList(), clear);
+            var clear = flags.Where(f => !provisional.Contains(f.BusinessDate) && days.Any(x => x.Date == f.BusinessDate)).Select(f => f.ReexportId).ToList();
+            var log = new NewTallyExport(caller.PropertyId, from, to, vouchers.Count, d, c, caller.PrincipalId, now,
+                days.Select(x => (x.Date, x.Vouchers.Count, flagged.ContainsKey(x.Date), provisional.Contains(x.Date))).ToList(), clear);
             var r = await runner.RunAsync(new CommandContext(caller.PropertyId, caller.PrincipalId, OpExportTally, "tally-export:" + Guid.NewGuid().ToString("N")),
                 new { from, to }, async (tx, ct2) =>
                 {
+                    var tallyId = await store.TallyIdentityAsync(tx, caller.PropertyId, now, ct2).ConfigureAwait(false);
                     var id = await store.RecordTallyExportAsync(tx, log, ct2).ConfigureAwait(false);
+                    // A03b-05: a date exported while events were pending is carried again by the first export after they are processed.
+                    foreach (var x in lagging)
+                        await store.FlagTallyReexportAsync(tx, caller.PropertyId, x, null, PendingFlagReason(pending), now, ct2).ConfigureAwait(false);
                     await tx.AuditAsync("TALLY_EXPORTED", "acc-tally:" + id.ToString(CultureInfo.InvariantCulture),
-                        $"{Iso(from)} to {Iso(to)} · {vouchers.Count} voucher(s) over {days.Count} date(s) · simulated"
+                        $"{Iso(from)} to {Iso(to)} · {vouchers.Count} voucher(s) over {days.Count} date(s) · simulated · voucher ids HCC-{tallyId}"
                         + (reexport.Count > 0 ? " · re-export " + string.Join(", ", reexport.Select(Iso)) : "")
-                        + (provisional.Count > 0 ? " · provisional " + string.Join(", ", provisional.Select(Iso)) : ""), ct2).ConfigureAwait(false);
-                    return new ExportLogged(id);
+                        + (provisional.Count > 0 ? " · provisional " + string.Join(", ", provisional.Select(Iso)) : "")
+                        + (pending > 0 ? $" · {pending} accounting event(s) pending" : ""), ct2).ConfigureAwait(false);
+                    return new ExportLogged(id, tallyId);
                 }, ct).ConfigureAwait(false);
             exportId = r.Value.ExportId;
+            identity = r.Value.Identity;
+        }
+        else
+        {
+            identity = await store.TallyIdentityAsync(null, caller.PropertyId, now, ct).ConfigureAwait(false);
         }
 
-        return new TallyExportView(from, to, days.Count, vouchers.Count, d, c, true, $"HCC-tally-SIMULATED-{Iso(from)}_{Iso(to)}.xml", VoucherExport.TallyXml(vouchers, company, notes),
-            reexport, provisional, exportId);
+        return new TallyExportView(from, to, days.Count, vouchers.Count, d, c, true, $"HCC-tally-SIMULATED-{Iso(from)}_{Iso(to)}.xml",
+            VoucherExport.TallyXml(vouchers, company, identity, notes), reexport, provisional, exportId, pending, legacy);
     }
+
+    /// <summary>The re-export flag reason of a date exported while accounting events were pending (A03b-05; ≤ 200 characters).</summary>
+    public static string PendingFlagReason(int pending) => $"{pending.ToString(CultureInfo.InvariantCulture)} accounting event(s) were still pending";
 
     public static VoucherView ToView(Voucher v)
     {

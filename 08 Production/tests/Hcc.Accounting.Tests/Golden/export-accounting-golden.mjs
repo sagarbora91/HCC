@@ -1,27 +1,17 @@
 // W2-3 golden figures: accounting vouchers, trial balance, CSV and simulated Tally XML, exported from the prototype
-// (read-only use of 03 Prototype/src; same esbuild approach as tools/golden/export-golden.mjs).
+// (read-only use of 03 Prototype/src; shared helper ../../../tools/golden/golden-lib.mjs).
 // For every scenario it records the RAW source facts in the prototype's derivation order (folio lines with their tax, folio
 // receipts, outlet receipts, counted expenses, the accepted cash difference) and the prototype's own accLiveVouchers output,
 // accTrialBalance, accCsv and accTallyXml. The C# tests rebuild the vouchers from the raw facts with Hcc.Domain.Accounting and
 // must match exactly (numbers, types, entries, narration, CSV, XML body).
+// Golden source = the 03 Prototype of the same checkout (was the MAIN checkout; a worktree now compares with its own prototype).
 // Output: 08 Production/tests/Hcc.Accounting.Tests/Golden/accounting-golden.json
-// Usage (Node 25): node "08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs" [--esbuild <path to esbuild.cmd>]
-import {spawnSync} from 'node:child_process';
-import path from 'node:path';import fs from 'node:fs';import {fileURLToPath,pathToFileURL} from 'node:url';
+// Usage (Node 25): node "08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs" [--check] [--proto <path>]
+import path from 'node:path';import {fileURLToPath} from 'node:url';
+import {CHECK,bundleMock,writeGolden} from '../../../tools/golden/golden-lib.mjs';
 const DIR=path.dirname(fileURLToPath(import.meta.url));
-const PROD=path.resolve(DIR,'..','..','..'),ROOT=path.resolve(PROD,'..'),PROTO=path.join(ROOT,'03 Prototype');
-const arg=n=>{const i=process.argv.indexOf(n);return i>0?process.argv[i+1]:undefined;};
-const candidates=[arg('--esbuild'),path.join(PROTO,'node_modules','.bin','esbuild.cmd'),
-  'E:/Projects/HCC/Hotel Control Centre/03 Prototype/node_modules/.bin/esbuild.cmd'].filter(Boolean);
-const esbuild=candidates.find(p=>fs.existsSync(p));
-if(!esbuild)throw new Error('esbuild not found; run npm install in 03 Prototype or pass --esbuild');
-const protoSrc='E:/Projects/HCC/Hotel Control Centre/03 Prototype'; // MAIN checkout = golden source (worktree copies may be older)
-const outDir=path.join(PROD,'tools','golden','.generated');fs.mkdirSync(outDir,{recursive:true});
-const bundle=path.join(outDir,'mock-accounting.mjs');
-const r=spawnSync(`"${esbuild}"`,[`"${path.join(protoSrc,'src','services','mock','index.ts')}"`,'--bundle','--platform=node','--format=esm',`--outfile="${bundle}"`,'--log-level=error'],{shell:true,encoding:'utf8'});
-if(r.status!==0)throw new Error('esbuild failed: '+r.stderr+r.stdout);
-const M=await import(pathToFileURL(bundle).href);
-const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts}=M;
+const M=await bundleMock('mock-accounting');
+const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts,ACC_TALLY_DEMO_ID}=M;
 
 /** Raw source facts for a date in the prototype's derivation order (accLiveVouchers). */
 function sources(s,date){
@@ -85,7 +75,6 @@ days.push(day('acc-mapped',a2,D,{mapping:{'expense:Kitchen gas':'5050'}}));
 const t=accTallyXml(s0,Y,D);
 const out={generatedBy:'08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs',
   source:'03 Prototype BASE fixture + stream-accounting scenarios',fictionalDataOnly:true,defaultMapping:accMapping(s0),days,
-  tally:{from:Y,to:D,company:s0.settings.hotel,xml:t.xml,count:t.count,debitPaise:t.debit,creditPaise:t.credit}};
+  tally:{from:Y,to:D,company:s0.settings.hotel,identity:ACC_TALLY_DEMO_ID,xml:t.xml,count:t.count,debitPaise:t.debit,creditPaise:t.credit}};
 const dest=path.join(DIR,'accounting-golden.json');
-fs.writeFileSync(dest,JSON.stringify(out,null,1)+'\n');
-console.log('Wrote',dest,days.map(d=>`${d.name}:${d.vouchers.length}`).join(' '),'tally',t.count);
+if(writeGolden(dest,JSON.stringify(out,null,1)+'\n')&&!CHECK)console.log('Wrote',dest,days.map(d=>`${d.name}:${d.vouchers.length}`).join(' '),'tally',t.count);

@@ -8,8 +8,16 @@ using Hcc.Infrastructure.SqlServer.Connection;
 // HCC API host bootstrap. Usage:
 //   dotnet run --project src/Hcc.Api                -> serve /api/v1 (Kestrel; LAN TLS + Windows service hosting are P7)
 //   dotnet run --project src/Hcc.Api -- migrate     -> apply pending migrations (backup gate first on a non-empty database) and exit
+//   Hcc.Api.exe verify-guest-id [--database <name>] -> open one sealed guest ID per key with the installed key (restore drill, A07-03); read-only
 // ETP-REUSE: replace/align with ETP migration CLI / operator entry point (and its logging) when V:\ETP is available.
 var builder = WebApplication.CreateBuilder(args);
+if (GuestIdCheckCommand.IsVerb(args))
+{
+    // A07-03 / A09-07: read-only check before any hosting set-up (no listener, no Windows-service hooks); prints one line, never a number.
+    Environment.ExitCode = await GuestIdCheckCommand.RunAsync(args, builder.Configuration, Console.Out);
+    return;
+}
+
 builder.UseHccHosting(); // P7: Windows service, production config validation, LAN HTTPS (Kestrel + machine-store certificate)
 var sqlOptions = builder.Configuration.GetSection("Hcc:Sql").Get<SqlOptions>() ?? new SqlOptions();
 var platform = new SqlPlatform(sqlOptions);

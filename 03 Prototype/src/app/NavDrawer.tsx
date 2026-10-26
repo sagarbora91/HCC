@@ -1,14 +1,16 @@
 // Hamburger menu: one slide-in drawer on desktop and phone (replaces the long sidebar and the phone "More" list).
 // Categories collapse; only the one holding the current page starts open. Everything comes from navmap.ts, filtered by role.
 import React,{useEffect,useRef,useState} from 'react';
-import {X,LayoutGrid,Search,ChevronDown,FlaskConical,LogOut,Hotel,Smartphone} from 'lucide-react';
+import {X,LayoutGrid,Search,ChevronDown,FlaskConical,LogOut,Hotel,Smartphone,KeyRound} from 'lucide-react';
 import {useHcc} from './context';
 import {navItems} from './nav';
 import {trapTab,useReturnFocus} from '../components/ui';
+import {useOwnCredentialKind,wordOf} from './OwnCredential';
 import {NAV_CATEGORIES,DASHBOARD,HOME_PAGE,PAGE_CATEGORY,catPage,pagesOfCategory,parseCatPage,navFilterModules,type CategoryId} from './navmap';
 
 export function NavDrawer({onClose}:{onClose:()=>void}){
   const {s,uid,user,page,go,permission,open,openSearch,signOut,taskList}=useHcc();
+  const credWord=wordOf(useOwnCredentialKind());
   const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
   const here:CategoryId|undefined=parseCatPage(page)??PAGE_CATEGORY[page];
   const [openCat,setOpenCat]=useState<CategoryId|undefined>(here);
@@ -41,6 +43,7 @@ export function NavDrawer({onClose}:{onClose:()=>void}){
         {process.env.HCC_BUILD==='production'?null:<button type="button" className="drawer-item" onClick={()=>{onClose();open({type:'demo'});}}><FlaskConical size={18}/>Demo controls</button>}
         <button type="button" className="drawer-item" onClick={()=>{onClose();open({type:'user-menu'});}}><Smartphone size={18}/>Display mode</button>
         </details>
+        <button type="button" className="drawer-item" onClick={()=>{onClose();open({type:'own-credential'});}}><KeyRound size={18}/>Change my {credWord}</button>
         <button type="button" className="drawer-item" onClick={()=>{onClose();signOut();}}><LogOut size={18}/>Sign out</button>
       </div>
     </aside>

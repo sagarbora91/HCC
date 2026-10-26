@@ -299,4 +299,32 @@ public class MessagingSqlTests : IAsyncLifetime
         Assert.Equal(3, done.Delivered + done.Failed);
         Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.SummaryAsync(_w.PropertyId, Users.Cashier, Ct)));
     }
+
+    /// <summary>Master configuration › Modules on/off switched off for this hotel, as the hub stores it (cfg.setting + one applied change).</summary>
+    private async Task SwitchOffAsync(string moduleId)
+    {
+        var by = Convert.ToInt32(await _w.ScalarAsync($"INSERT plat.app_user(property_id, login_name, display_name, created_utc) OUTPUT INSERTED.user_id VALUES ({_w.PropertyId}, 'cfg-{moduleId}', N'Owner (test)', '2026-01-01');", Ct), CultureInfo.InvariantCulture);
+        await _w.ExecAsync($"INSERT cfg.setting(property_id, setting_key, created_utc, changed_utc) VALUES ({_w.PropertyId}, 'module.{moduleId}', '2026-10-24', '2026-10-24');" +
+            "INSERT cfg.setting_change(property_id, setting_key, effective_from, value_json, before_json, before_text, after_text, source, changed_by, changed_utc) " +
+            $"VALUES ({_w.PropertyId}, 'module.{moduleId}', '2026-10-24', N'false', N'true', N'On', N'Off', 'change', {by}, '2026-10-24');", Ct);
+    }
+
+    [Fact]
+    public async Task Messaging_switched_off_still_turns_already_published_events_into_messages()
+    {
+        // DEC-057 switches commands off and keeps the data; it does not pause background work (A11-01): the trigger projector keeps
+        // consuming its outbox events, so nothing piles up in the outbox and nothing is sent in a burst when the module comes back on.
+        var (res, _, _) = await _w.BookingAsync("104", "2026-10-24", "2026-10-26", "Riya Mehta", "9820007777", null, ct: Ct);
+        await PublishAsync("ReservationConfirmed", res, $"{{\"reservationId\":{res}}}");
+        await SwitchOffAsync("messaging");
+        var store = new Hcc.Infrastructure.SqlServer.Configuration.SqlConfigurationStore(_w.Platform.Connections);
+        var gate = new Hcc.Application.Configuration.ModuleGate(new Hcc.Application.Configuration.SettingsReader(new Hcc.Application.Configuration.SettingsRegistry([]), store, store));
+        Assert.False(await gate.IsOnAsync(_w.PropertyId, "messaging", Ct));
+        var refused = await Assert.ThrowsAsync<Hcc.Domain.Errors.HccException>(() => gate.EnsureOnAsync(_w.PropertyId, "messaging", Ct));
+        Assert.Equal("MODULE_OFF", refused.Details!["reason"].GetString());
+
+        Assert.Equal(1, await _w.Projector.RunOnceAsync(ct: Ct));
+        Assert.Equal("R1", await _w.StringAsync($"SELECT rule_id FROM msg.message WHERE reservation_id = {res};", Ct));
+        Assert.Equal(0, await _w.CountAsync("SELECT COUNT(*) FROM plat.outbox o WHERE o.event_type = 'ReservationConfirmed' AND NOT EXISTS (SELECT 1 FROM plat.consumer_dedup d WHERE d.consumer = 'messaging-triggers' AND d.outbox_id = o.outbox_id);", Ct));
+    }
 }

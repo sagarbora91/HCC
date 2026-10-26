@@ -40,6 +40,24 @@ public class MessagingRulesGoldenTests
     }
 
     [Fact]
+    public void Payment_texts_carry_the_GST_master_figures_of_the_BASE_folios()
+    {
+        // A08-04 hand check: each in-house BASE booking has its 23 Oct night posted at the rack rate and taxed 5 % (≤ ₹7,500 a night,
+        // DEC-069), and the net paid: HCC-1041 Classic ₹2,000 → amount ₹2,100, balance ₹100; HCC-1043 Deluxe ₹3,000 → ₹3,150 / ₹150;
+        // HCC-1046 Suite ₹4,500 → ₹4,725 / ₹225. (The pre-DEC-069 golden said ₹2,200 / ₹200, ₹3,300 / ₹300 and ₹4,950 / ₹450.)
+        var master = Hcc.Domain.Tax.GstMaster.Seed();
+        var night = new DateOnly(2026, 10, 23);
+        foreach (var (id, rate) in new[] { ("HCC-1041", 200_000L), ("HCC-1043", 300_000L), ("HCC-1046", 450_000L) })
+        {
+            var tax = Hcc.Domain.Tax.GstMath.LineTax(new Hcc.Domain.Money.Paise(rate), master.RoomNight(night, new Hcc.Domain.Money.Paise(rate)).Bps).Value;
+            Assert.All(G.Rendered.Where(r => r.Booking == id), r => Assert.Equal((MessagingRules.FormatMoney(rate + tax), MessagingRules.FormatMoney(tax)), (r.AmountText, r.BalanceText)));
+        }
+
+        Assert.Equal(("₹2,100", "₹100"), G.Rendered.Where(r => r.Booking == "HCC-1041").Select(r => (r.AmountText, r.BalanceText)).Distinct().Single());
+        Assert.Contains(G.Rendered, r => r.Body == "HCC Demo Residency: payment of ₹2,100 received for booking HCC-1041. Balance due ₹100. Thank you.");
+    }
+
+    [Fact]
     public void Recipients_are_masked_and_consent_blocking_matches()
     {
         foreach (var r in G.Recipients)

@@ -48,6 +48,8 @@ import {directory} from './directory';
 // MA-0 masters framework (floors; MA-1 … MA-7 add routes in masters.ts MST_SERVER):
 import {masters} from './masters';
 
+// Wave C3 System health (A09-05: parked outbox events, retry, last backup):
+import {syshealth} from './syshealth';
 // MA-1 rooms masters (room types / amenities / occupancy charges routes live in roommasters.ts RMS_SERVER; rooms tools here):
 import {roommasters} from './roommasters';
 // MA-3 money masters (patch loader on mastersX; commands through masters.ts MST_SERVER):
@@ -87,6 +89,7 @@ export const AREAS:SyncArea[]=[
 
   masters, // MA-0
 
+  syshealth, // Wave C3
   roommasters, // MA-1
   moneyMasters, // MA-3
   catalogue, // MA-2

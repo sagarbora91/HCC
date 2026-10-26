@@ -10,5 +10,6 @@
   "TrustServerCertificate": true,
   "EncryptBackups": true,
   "BackupKeyFile": "C:\\ProgramData\\HCC\\Keys\\hcc-backup-key.txt",
-  "BackupAccount": ""
+  "BackupAccount": "",
+  "ServerDirectory": "C:\\Program Files\\HCC\\Server"
 }

@@ -9,8 +9,10 @@ import {isSealed,sealText,openText} from './seal';
 /** POST /auth/sign-in body (Hcc.Contracts SignInRequest). Exactly one of password (Owner, Accountant, Tech admin) or pin
  *  (other staff, registered device only — DEC-062). */
 export type SignInInput={loginName:string;password?:string;pin?:string};
-/** SignInResult (sessionToken only when returnToken was asked for). */
-export type SrvSignInResult={userId:number;displayName:string;credentialKind:string;session:{idleExpiresUtc:string;absoluteExpiresUtc:string;idleTimeoutSeconds:number};sessionToken?:string|null};
+/** SignInResult (sessionToken only when returnToken was asked for). mustChangeCredential (A06-01): an administrator set this password / PIN —
+ *  the app shows only "Change my password / PIN" until it is changed (the server refuses everything else meanwhile). */
+export type SrvSignInResult={userId:number;displayName:string;credentialKind:string;session:{idleExpiresUtc:string;absoluteExpiresUtc:string;idleTimeoutSeconds:number};sessionToken?:string|null;
+  mustChangeCredential?:boolean};
 
 export interface AuthAdapter{
   readonly kind:'cookie'|'token';

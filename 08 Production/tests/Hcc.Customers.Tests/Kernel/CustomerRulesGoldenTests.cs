@@ -68,6 +68,26 @@ public class CustomerRulesGoldenTests
     }
 
     [Fact]
+    public void Folio_totals_in_the_golden_are_taxed_by_the_server_GST_master()
+    {
+        // A08-04 hand check: FY26 history stays are taxed by the DEC-069 master, not the old synthetic 10 %. HCC-H0001 (May 2026) is
+        // 2 nights × ₹2,050 = ₹4,100 + 5 % (≤ ₹7,500 a night) ₹205 = ₹4,305 (the pre-DEC-069 golden had ₹4,510); HCC-H0008 is 2 × ₹4,650
+        // = ₹9,300 + 5 % ₹465 = ₹9,765. The server's statutory seed gives the same rate on those nights.
+        var (root, _) = Data.Value;
+        var master = Hcc.Domain.Tax.GstMaster.Seed();
+        foreach (var (id, rate, total) in new[] { ("HCC-H0001", 205_000L, 430_500L), ("HCC-H0008", 465_000L, 976_500L) })
+        {
+            var b = root.GetProperty("bookings").EnumerateArray().Single(x => x.GetProperty("id").GetString() == id);
+            var arrival = DateOnly.Parse(b.GetProperty("arrival").GetString()!, CultureInfo.InvariantCulture);
+            var departure = DateOnly.Parse(b.GetProperty("departure").GetString()!, CultureInfo.InvariantCulture);
+            Assert.Equal((rate, 2), (b.GetProperty("rate").GetInt64(), departure.DayNumber - arrival.DayNumber));
+            var nightly = new Hcc.Domain.Money.Paise(rate);
+            Assert.Equal(total, 2 * rate + master.StayTax(nightly, arrival, departure).Value);
+            Assert.Equal(total, b.GetProperty("total").GetInt64());
+        }
+    }
+
+    [Fact]
     public void A_repeat_customer_lists_stays_newest_first_with_totals_over_stays_that_happened()
     {
         var (root, idx) = Data.Value;

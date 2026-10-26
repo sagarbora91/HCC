@@ -1,11 +1,13 @@
-// Mobile sheets for the demo controls (M24, collapsed DEMO pill) and the user menu (switch user, display mode, sign-out placeholder).
+// Mobile sheets for the demo controls (M24, collapsed DEMO pill) and the user menu (profile: change my password / PIN, display mode,
+// sign out; demo: switch user). The user menu is also the desktop profile dialog (top-bar name chip).
 import React from 'react';
-import {Layers,Users,RotateCcw,BookOpen,LogOut,Smartphone,FlaskConical,ArrowRight} from 'lucide-react';
+import {Layers,Users,RotateCcw,BookOpen,LogOut,Smartphone,FlaskConical,ArrowRight,KeyRound} from 'lucide-react';
 import {useHcc} from '../context';
 import {scenarios} from '../../services/mock';
 import {faultModes,FaultMode} from '../../services/mock/faults';
 import {DisplayToggle} from '../display';
 import {guideSteps,type GuideStep} from '../demo/DemoModals';
+import {useOwnCredentialKind,wordOf} from '../OwnCredential';
 import {PrefsQuickSheet} from '../../features/prefs/MenuPrefs'; // CP-1 text size + Appearance & display link
 function UserSelect(){const {s,uid,switchUser}=useHcc();
   return <label><span>Preview as (demo user)</span><select value={uid} onChange={e=>switchUser(e.target.value)}>{s.users.map(u=><option key={u.id} value={u.id}>{u.name}{!u.enabled?' (disabled)':''}</option>)}</select></label>;}
@@ -31,9 +33,12 @@ export function DemoSheet(){
     <div className="modal-actions"><button className="btn" onClick={()=>open({type:'reset'})}><RotateCcw size={18}/>Reset</button><button className="btn primary" onClick={()=>open({type:'guide'})}><BookOpen size={18}/>Walkthrough</button></div></>;
 }
 export function UserMenuSheet(){
-  const {user,display,signOut}=useHcc();
-  return <><div className="modal-heading"><Users size={25}/><h2>{user.name.split(' · ')[0]}</h2><p>{user.role}. Sign out returns to the staff picker; Preview as is a demo tool.</p></div>
-    <div className="form m-sheet-form"><UserSelect/>
+  const {user,display,signOut,open}=useHcc();const word=wordOf(useOwnCredentialKind());
+  const prod=process.env.HCC_BUILD==='production';
+  return <><div className="modal-heading"><Users size={25}/><h2>{user.name.split(' · ')[0]}</h2><p>{user.role}. {prod?'Sign out returns to the sign-in screen.':'Sign out returns to the staff picker; Preview as is a demo tool.'}</p></div>
+    <div className="form m-sheet-form">
+      <button type="button" className="btn full mo-btn" onClick={()=>open({type:'own-credential'})}><KeyRound size={18}/>Change my {word}</button>
+      {!prod&&<UserSelect/>}
       <div><span className="m-field-label"><Smartphone size={15}/> Display mode (this device only)</span><DisplayToggle display={display}/></div>
       <PrefsQuickSheet/></div>
     <div className="modal-actions"><button className="btn" onClick={signOut}><LogOut size={18}/>Sign out</button></div></>;

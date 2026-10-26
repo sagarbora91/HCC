@@ -29,13 +29,14 @@ public class MessagingHttpTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _w = await MsgWorld.CreateAsync(Ct);
-        var builder = WebApplication.CreateBuilder();
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });   // A09-08: the simulated gateway is for Development and the tests, never Production
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddSingleton(_w.Platform);
         builder.Services.AddSingleton(_w.Platform.Connections);
         builder.Services.AddSingleton<ICommandRunner>(_w.Platform.Commands);
         builder.Services.AddSingleton<TimeProvider>(_w.Clock);
         builder.Services.AddHccMessaging();
+        builder.Services.AddHccConfiguration(); // DEC-057 / A11-01: the module gate on the command routes (every module on by default)
         builder.Services.AddSingleton<IAccessPolicy>(_w.Policy);
         builder.Services.AddSingleton<ISessionService>(new TestSessions(_w.PropertyId));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);

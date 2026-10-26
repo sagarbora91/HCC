@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-  Restore drill: proves the newest backups can really be restored. Restores into a SCRATCH database, runs DBCC CHECKDB and a
-  row-count check, logs the result, and drops the scratch database. The live database is never written to.
+  Restore drill: proves the newest backups can really be restored. Restores into a SCRATCH database, runs DBCC CHECKDB, a
+  row-count check and a guest ID check, logs the result, and drops the scratch database. The live database is never written to.
 .DESCRIPTION
   1. Picks the newest FULL backup (+ the newest DIFFERENTIAL after it) from the backup folder. Encrypted backups (.bak.hccenc, F-H03)
      are first checked (HMAC) and decrypted with the backup key into the private scratch folder; the decrypted copies are deleted at
@@ -11,14 +11,23 @@
   3. DBCC CHECKDB on the scratch copy must be clean.
   4. Row counts per table (scratch vs live): a table missing from the restore, or an empty restore of a non-empty live
      database, fails the drill. Small differences are normal (the live database moved on) and are only listed.
-  5. Drops the scratch database (unless -KeepScratch) and appends a JSON line to drill-history.jsonl next to the log.
+  5. Guest ID check (A07-03 / A09-07): the guest ID key is never in a backup, so "Hcc.Api.exe verify-guest-id" (in -ServerDirectory,
+     default C:\Program Files\HCC\Server) opens the newest sealed ID number per key in the scratch copy with the key installed on
+     this PC, through the server's own code, and prints one line (never a number): "Guest ID check: OK (1 ID opened)" passes; a
+     database without sealed ID numbers reports "no guest IDs to check" and passes; a missing or wrong key fails the drill.
+     The server folder must be changeable only by administrators (F-M06: the task runs as SYSTEM). -SkipGuestIdCheck skips it (logged).
+  6. Drops the scratch database (unless -KeepScratch) and appends a JSON line to drill-history.jsonl next to the log
+     (guestIdCheck = ok / no guest IDs / FAILED / skipped).
   Exit code 0 = passed, 1 = failed. -WhatIf prints the plan only (no SQL connection, no files).
+  A09-05: the result is recorded in <Database>.plat.backup_run (Admin & Setup > System health shows the last drill); a failed drill also
+  writes an Error to the Windows Event Log (source HCC, event 2002; skipped silently when the source is not registered).
 # ETP-REUSE: replace/align with ETP's restore-drill script (report format, e-mail of the result, scheduling) when V:\ETP is available.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$SqlInstance, [string]$Database, [string]$BackupDirectory, [string]$LogDirectory, [string]$ScratchDirectory,
-    [string]$ScratchName, [switch]$KeepScratch, [switch]$TrustServerCertificate, [string]$ConfigPath, [string]$BackupKeyFile
+    [string]$ScratchName, [switch]$KeepScratch, [switch]$TrustServerCertificate, [string]$ConfigPath, [string]$BackupKeyFile,
+    [string]$ServerDirectory, [switch]$SkipGuestIdCheck
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Hcc-Common.ps1"
@@ -31,6 +40,7 @@ if (-not $ScratchDirectory) { $ScratchDirectory = if ($cfg.ScratchDirectory) { $
 $explicitTrust = if ($PSBoundParameters.ContainsKey('TrustServerCertificate')) { [bool]$TrustServerCertificate } else { $null }
 $trust = Resolve-HccTrustServerCertificate -Instance $SqlInstance -Explicit $explicitTrust -Configured $cfg.TrustServerCertificate   # A09-01
 if (-not $BackupKeyFile) { $BackupKeyFile = if ($cfg.BackupKeyFile) { $cfg.BackupKeyFile } else { Get-HccDefaultBackupKeyFile } }
+if (-not $ServerDirectory) { $ServerDirectory = if ($cfg.ServerDirectory) { $cfg.ServerDirectory } else { Get-HccDefaultServerDirectory } }
 $sqlService = Get-HccSqlServiceAccount -Instance $SqlInstance
 Assert-HccDatabaseName $Database | Out-Null
 if (-not $BackupDirectory) { throw 'No backup folder: set BackupDirectory in hcc-ops.json or pass -BackupDirectory.' }
@@ -40,16 +50,20 @@ Assert-HccScratchName $ScratchName | Out-Null
 if ($ScratchName -eq $Database) { throw 'The scratch database must differ from the live database.' }
 $log = Join-Path $LogDirectory ('restore-drill_{0:yyyyMMdd_HHmmss}.log' -f $started)
 
-if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest backup of [$Database] from $BackupDirectory, DBCC CHECKDB, row-count check, drop scratch")) {
+if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest backup of [$Database] from $BackupDirectory, DBCC CHECKDB, row-count check, guest ID check, drop scratch")) {
     Write-HccLog "DRY RUN: sqlcmd trusts the server certificate (-C): $(if ($trust) { 'yes' } else { 'no' })" -LogFile $null
     Write-HccLog "DRY RUN: would pick the newest FULL (+ later DIFF) backup of [$Database] in $BackupDirectory" -LogFile $null
     Write-HccLog "DRY RUN: encrypted backups (.bak.hccenc) would be checked and decrypted with $BackupKeyFile into $ScratchDirectory (private: SYSTEM, Administrators, $sqlService) and deleted afterwards" -LogFile $null
     Write-HccLog "DRY RUN: would RESTORE as [$ScratchName] with MOVE into $ScratchDirectory on $SqlInstance (live database untouched)" -LogFile $null
-    Write-HccLog ('DRY RUN: would run DBCC CHECKDB, compare per-table row counts with the live database, drop the scratch database and log to ' + $log) -LogFile $null
+    Write-HccLog 'DRY RUN: would run DBCC CHECKDB and compare per-table row counts with the live database' -LogFile $null
+    if ($SkipGuestIdCheck) { Write-HccLog 'DRY RUN: guest ID check SKIPPED (-SkipGuestIdCheck): the drill would not prove that stored ID numbers open' -LogFile $null }
+    else { Write-HccLog ('DRY RUN: guest ID check: would run ' + (Join-Path $ServerDirectory 'Hcc.Api.exe') + ' verify-guest-id --database ' + $ScratchName + ' (opens the newest sealed ID number per key with the installed key; never prints a number; no guest IDs = reported, not a failure)') -LogFile $null }
+    Write-HccLog "DRY RUN: would record the result (RestoreDrill) in [$Database].plat.backup_run for System health; a failed drill also goes to the Windows Event Log (source $script:HccEventSource, event $($script:HccEventIds.DrillFailed))" -LogFile $null
+    Write-HccLog ('DRY RUN: would drop the scratch database and log to ' + $log) -LogFile $null
     return
 }
 
-$result = [ordered]@{ startedUtc = $started.ToString('o'); database = $Database; scratch = $ScratchName; full = $null; differential = $null; checkdb = 'not run'; rowCounts = 'not run'; passed = $false; error = $null }
+$result = [ordered]@{ startedUtc = $started.ToString('o'); database = $Database; scratch = $ScratchName; full = $null; differential = $null; checkdb = 'not run'; rowCounts = 'not run'; guestIdCheck = 'not run'; passed = $false; error = $null }
 $created = $false
 $script:plainCopies = @()
 $script:drillKey = $null
@@ -110,12 +124,25 @@ try {
     $result.tables = $cmp.Tables; $result.restoredRows = $cmp.RestoredRows; $result.liveRows = $cmp.LiveRows
     Write-HccLog ("Row counts: {0} tables, {1} rows restored vs {2} rows live now; {3} table(s) differ (normal if the hotel has worked since the backup); missing from restore: {4}." -f $cmp.Tables, $cmp.RestoredRows, $cmp.LiveRows, $cmp.DifferingTables.Count, $cmp.MissingTables.Count) -LogFile $log
     if (-not $cmp.Ok) { throw ('Row-count check failed. Missing tables: ' + ($cmp.MissingTables -join ', ')) }
+
+    # A07-03 / A09-07: the restored ID numbers must open with the key installed on this PC (the key is never in the backup).
+    if ($SkipGuestIdCheck) {
+        $result.guestIdCheck = 'skipped'
+        Write-HccLog 'Guest ID check SKIPPED (-SkipGuestIdCheck): this drill does not prove that stored ID numbers open.' -LogFile $log -Level WARN
+    }
+    else {
+        $gid = Invoke-HccGuestIdCheck -ServerDirectory $ServerDirectory -Database $ScratchName -SqlInstance $SqlInstance
+        $result.guestIdCheck = $gid.Status; $result.guestIdMessage = $gid.Message
+        if (-not $gid.Ok) { throw $gid.Message }
+        Write-HccLog $gid.Message -LogFile $log
+    }
     $result.passed = $true
     Write-HccLog 'DRILL PASSED.' -LogFile $log
 }
 catch {
     $result.error = $_.Exception.Message
     Write-HccLog ('DRILL FAILED: ' + $_.Exception.Message) -LogFile $log -Level ERROR
+    Write-HccOperationFailure -Operation RestoreDrill -Database $Database -SqlInstance $SqlInstance -Reason (Get-HccFailureReason $_.Exception.Message) -LogFile $log | Out-Null   # A09-05: event 2002
 }
 finally {
     foreach ($p in @($script:plainCopies)) { if ($p -and (Test-Path -LiteralPath $p)) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue } }
@@ -131,5 +158,7 @@ finally {
     }
     $result.finishedUtc = (Get-Date).ToUniversalTime().ToString('o')
     try { Add-Content -LiteralPath (Join-Path $LogDirectory 'drill-history.jsonl') -Value ($result | ConvertTo-Json -Compress) -Encoding UTF8 } catch { Write-Host "Could not write drill history: $($_.Exception.Message)" }
+    $why = if ($result.passed) { $null } else { Get-HccFailureReason ([string]$result.error) }
+    Write-HccBackupRun -SqlInstance $SqlInstance -Database $Database -Kind RestoreDrill -Succeeded ([bool]$result.passed) -StartedUtc $started -FileName ([string]$result.full) -Reason $why -TrustServerCertificate:$trust -LogFile $log | Out-Null
 }
 if (-not $result.passed) { exit 1 }

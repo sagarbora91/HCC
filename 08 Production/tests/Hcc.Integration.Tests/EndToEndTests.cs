@@ -27,6 +27,8 @@ public sealed class EndToEndTests
     private const string OwnerPassword = "Maroon&Sand#Ledger26";
     private const string ReceptionPin = "472913";
     private const string HousekeeperPin = "583104";
+    /// <summary>A06-01: the Owner sets this first PIN; each staff member replaces it with their own at the first sign-in.</summary>
+    private const string FirstPin = "816305";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -71,7 +73,7 @@ public sealed class EndToEndTests
         async Task<int> CreatePinUserAsync(string login, string name, string role, string pin)
         {
             var u = await Wire.CommandAsync<UserVersionResult>(owner, "CreateUser", new CreateUserRequest(login, name, [new RoleAssignmentInput(role)]), Ct);
-            await Wire.CommandAsync<UserVersionResult>(owner, "SetCredential", new SetCredentialRequest(u.UserId, null, pin, u.Version), Ct);
+            await Wire.CommandAsync<UserVersionResult>(owner, "SetCredential", new SetCredentialRequest(u.UserId, null, FirstPin, u.Version), Ct);
             return u.UserId;
         }
 
@@ -85,13 +87,15 @@ public sealed class EndToEndTests
         using (var refused = await Wire.PostAsync(noDevice, "/auth/sign-in", new SignInRequest("rec.asha", Pin: ReceptionPin, ReturnToken: true), null, Ct))
             Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
 
+        // First sign-in with the Owner's PIN (A06-01: must be changed first), then the staff member's own PIN; the session continues.
         async Task<HttpClient> PinClientAsync(string login, string pin)
         {
             var c = s.DeviceClient(device.DeviceToken!);
-            using var r = await Wire.PostAsync(c, "/auth/sign-in", new SignInRequest(login, Pin: pin, ReturnToken: true), null, Ct);
+            using var r = await Wire.PostAsync(c, "/auth/sign-in", new SignInRequest(login, Pin: FirstPin, ReturnToken: true), null, Ct);
             var result = await Wire.OkAsync<SignInResult>(r, login + " sign-in", Ct);
-            Assert.Equal("PIN", result.CredentialKind);
+            Assert.Equal(("PIN", true), (result.CredentialKind, result.MustChangeCredential));
             HccServer.UseBearer(c, result.SessionToken!);
+            await Wire.CommandAsync<UserVersionResult>(c, "ChangeOwnCredential", new ChangeOwnCredentialRequest(FirstPin, null, pin), Ct);
             return c;
         }
 

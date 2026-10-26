@@ -28,7 +28,7 @@ function Get-HccOpsConfig {
     param([string]$Path)
     if (-not $Path) { $Path = Join-Path $PSScriptRoot 'hcc-ops.json' }
     $cfg = [ordered]@{ SqlInstance = '.\SQLEXPRESS'; Database = 'Hcc'; BackupDirectory = ''; LogDirectory = ''; RetentionDays = 30; KeepMinFulls = 3; PreMigrateRetentionDays = 90; ScratchDirectory = ''; TrustServerCertificate = $null
-        EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = '' }
+        EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = ''; ServerDirectory = '' }
     if (Test-Path -LiteralPath $Path) {
         $json = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
         foreach ($p in $json.PSObject.Properties) { if ($cfg.Contains($p.Name)) { $cfg[$p.Name] = $p.Value } }
@@ -250,14 +250,16 @@ function Test-HccProtectedDirectory {
 }
 
 # F-M06: a script folder run by a scheduled task as SYSTEM must be writable only by SYSTEM, Administrators and TrustedInstaller.
-# Checks the folder itself and every .ps1/.psm1/.psd1/.json in it. Returns the problems (empty = safe).
+# Checks the folder itself and every .ps1/.psm1/.psd1/.json in it (-Extensions: other file types, e.g. the server's .exe/.dll for the
+# restore drill's guest ID check). Returns the problems (empty = safe).
 function Test-HccAdminOnlyWritable {
-    param([Parameter(Mandatory)][string]$Path)
+    param([Parameter(Mandatory)][string]$Path, [string[]]$Extensions = @('.ps1', '.psm1', '.psd1', '.json'))
     if (-not (Test-Path -LiteralPath $Path)) { return "$Path does not exist" }
     # write/append data, write (extended) attributes, change permissions, take ownership, GENERIC_ALL, GENERIC_WRITE
     $writeMask = 0x2 -bor 0x4 -bor 0x10 -bor 0x100 -bor 0x40000 -bor 0x80000 -bor 0x10000000 -bor 0x40000000
     $ok = @($script:HccSidSystem, $script:HccSidAdministrators, $script:HccSidTrustedInstaller)
-    $items = @(Get-Item -LiteralPath $Path) + @(Get-ChildItem -LiteralPath $Path -File | Where-Object { @('.ps1', '.psm1', '.psd1', '.json') -contains $_.Extension.ToLowerInvariant() })
+    $ext = @($Extensions | ForEach-Object { $_.ToLowerInvariant() })
+    $items = @(Get-Item -LiteralPath $Path) + @(Get-ChildItem -LiteralPath $Path -File | Where-Object { $ext -contains $_.Extension.ToLowerInvariant() })
     $problems = @()
     foreach ($i in $items) {
         $acl = Get-Acl -LiteralPath $i.FullName
@@ -437,6 +439,47 @@ function Read-HccBackupKey {
     $key = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($line.Substring('dpapi-machine:'.Length)), $script:HccBackupEntropy, [Security.Cryptography.DataProtectionScope]::LocalMachine)
     if ($key.Length -ne 32) { throw "$Path does not hold a 32-byte key." }
     return , $key
+}
+
+# --- guest ID check after a restore (A07-03 / A09-07, Restore-HccDrill.ps1) --------------------------------------------------------
+# The guest ID key is never in a backup (it is DPAPI-wrapped in appsettings.Production.json), so a restored database proves nothing about
+# the ID numbers by itself. The drill runs "Hcc.Api.exe verify-guest-id" against the scratch copy: the server's own code opens the newest
+# sealed ID number per key with the key installed on this PC and prints one line, never a number. Exit 0 = OK or no guest IDs, 1 = failed.
+function Get-HccDefaultServerDirectory { return (Join-Path $env:ProgramFiles 'HCC\Server') }
+
+function Get-HccGuestIdCheckArgs {
+    param([Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][string]$SqlInstance, [Parameter(Mandatory)][string]$ServerDirectory)
+    return , @('verify-guest-id', '--database', $Database, '--server', $SqlInstance, '--environment', 'Production', '--contentRoot', $ServerDirectory)
+}
+
+# Output lines + exit code of verify-guest-id -> @{ Ok; Status = 'ok' | 'no guest IDs' | 'FAILED'; Message } (pure, unit-tested).
+function ConvertFrom-HccGuestIdCheckOutput {
+    param([string[]]$Lines = @(), [int]$ExitCode)
+    $line = @($Lines | Where-Object { $_ -like 'Guest ID check: *' }) | Select-Object -Last 1
+    if ($ExitCode -eq 0 -and $line -like 'Guest ID check: OK*') { return @{ Ok = $true; Status = 'ok'; Message = [string]$line } }
+    if ($ExitCode -eq 0 -and $line -like 'Guest ID check: no guest IDs to check*') { return @{ Ok = $true; Status = 'no guest IDs'; Message = [string]$line } }
+    if (-not $line) {
+        $first = @($Lines | Where-Object { $_ -and $_.Trim() }) | Select-Object -First 1
+        $hint = if ($first) { ': ' + $(if ($first.Length -gt 200) { $first.Substring(0, 200) } else { $first }).Trim() } else { '' }
+        $line = "Guest ID check: FAILED - Hcc.Api.exe verify-guest-id ended with exit code $ExitCode and no result$hint"
+    }
+    elseif ($line -notlike 'Guest ID check: FAILED*') { $line = "Guest ID check: FAILED - unexpected result (exit code $ExitCode): " + $line.Substring('Guest ID check: '.Length) }
+    return @{ Ok = $false; Status = 'FAILED'; Message = [string]$line }
+}
+
+# Runs the check. The drill task runs as SYSTEM, so (F-M06) the program it starts must not be changeable by normal users.
+function Invoke-HccGuestIdCheck {
+    param([Parameter(Mandatory)][string]$ServerDirectory, [Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][string]$SqlInstance)
+    $exe = Join-Path $ServerDirectory 'Hcc.Api.exe'
+    if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { return @{ Ok = $false; Status = 'FAILED'; Message = "Guest ID check: FAILED - $exe not found: set ServerDirectory in hcc-ops.json (or pass -ServerDirectory), or run the drill with -SkipGuestIdCheck." } }
+    $unsafe = @(Test-HccAdminOnlyWritable -Path $ServerDirectory -Extensions @('.exe', '.dll', '.json'))
+    if ($unsafe.Count -gt 0) { return @{ Ok = $false; Status = 'FAILED'; Message = ("Guest ID check: FAILED - refusing to run ${exe}: " + (@($unsafe | Select-Object -First 3) -join '; ')) } }
+    $a = Get-HccGuestIdCheckArgs -Database $Database -SqlInstance $SqlInstance -ServerDirectory $ServerDirectory
+    $eap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'   # a .NET start-up error on stderr must become a FAILED line, not a script error
+    try { $out = @(& $exe @a 2>&1 | ForEach-Object { "$_" }); $code = $LASTEXITCODE }
+    finally { $ErrorActionPreference = $eap }
+    return (ConvertFrom-HccGuestIdCheckOutput -Lines $out -ExitCode $code)
 }
 
 # --- SQL permissions (F-L08) -----------------------------------------------------------------------------------------------------
@@ -659,4 +702,118 @@ function ConvertFrom-HccApiError {
         return "$Fallback (HTTPS certificate problem: install HCC-Hotel-CA.cer into Local Machine > Trusted Root Certification Authorities on this PC, INSTALL.md section 8, and use a name that is in the certificate, for example https://localhost:5443.)"
     }
     return $Fallback
+}
+
+# --- operator alerts: Windows Event Log and the System health backup record (A09-05) ------------------------------------------
+# The server and these scripts write operator alerts to the Application log under source "HCC" (Event Viewer > Windows Logs >
+# Application, filter on source HCC). Creating a source needs an administrator, so Install-HccService.ps1 (and the installer, with
+# -EventSourceOnly) registers it once; the scheduled tasks (SYSTEM) and the service account only write to it. A missing source is never
+# an error: the entry is skipped and the log file still has the line. Event ids: server 1001-1099 (src\Hcc.Api\Hosting\OperatorAlerts.cs),
+# scripts 2001 backup failed, 2002 restore drill failed, 2003 a backup result could not be recorded for System health.
+# No guest data goes there: SQL Server errors are reduced to their numbers (Get-HccFailureReason).
+$script:HccEventSource = 'HCC'
+$script:HccEventLogName = 'Application'
+$script:HccEventIds = @{ BackupFailed = 2001; DrillFailed = 2002; BackupRunNotRecorded = 2003 }
+
+# True when the source is registered on this PC (registry; every account may read it).
+function Test-HccEventSource {
+    param([string]$Source = $script:HccEventSource)
+    try { return [bool](Test-Path -LiteralPath ('HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\{0}\{1}' -f $script:HccEventLogName, $Source)) } catch { return $false }
+}
+
+# Registers the source in the Application log (administrator). Returns 'exists', 'created' or 'planned' (-WhatIf: nothing is created).
+function Register-HccEventSource {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string]$Source = $script:HccEventSource)
+    if (Test-HccEventSource -Source $Source) { return 'exists' }
+    if (-not $PSCmdlet.ShouldProcess("Windows Event Log source '$Source' ($script:HccEventLogName log)", 'Register')) { return 'planned' }
+    [System.Diagnostics.EventLog]::CreateEventSource($Source, $script:HccEventLogName)
+    return 'created'
+}
+
+# The one call that writes to the Event Log (Test-HccDeployment.ps1 replaces it to capture the entry).
+function Invoke-HccEventLogWrite {
+    param([string]$Source, [string]$EntryType, [int]$EventId, [string]$Message)
+    [System.Diagnostics.EventLog]::WriteEntry($Source, $Message, [System.Diagnostics.EventLogEntryType]$EntryType, $EventId)
+}
+
+# Writes one entry when the source is registered. Returns $true when written, $false (silently) otherwise. Never throws.
+function Write-HccEventLog {
+    param([ValidateSet('Error', 'Warning', 'Information')][string]$Level = 'Error', [int]$EventId = 2001, [string]$Message, [string]$Source = $script:HccEventSource)
+    try {
+        if (-not (Test-HccEventSource -Source $Source)) { return $false }
+        $text = if (-not $Message) { '(no text)' } elseif ($Message.Length -gt 4000) { $Message.Substring(0, 4000) } else { $Message }
+        Invoke-HccEventLogWrite -Source $Source -EntryType $Level -EventId $EventId -Message $text
+        return $true
+    }
+    catch { return $false }
+}
+
+# Why a run failed, for the Event Log and System health: sqlcmd failures as their SQL Server error numbers only ("sqlcmd failed: Msg 3201,
+# Msg 3013"; the message text can quote data), anything else as the scripts' own message, on one line, at most 300 characters.
+function Get-HccFailureReason {
+    param([string]$Message)
+    if (-not $Message) { return 'unknown error' }
+    $text = ($Message -replace '\s+', ' ').Trim()
+    if ($text -match '^sqlcmd failed') {
+        $numbers = @([regex]::Matches($text, 'Msg (\d+)') | ForEach-Object { 'Msg ' + $_.Groups[1].Value } | Select-Object -Unique)
+        $exit = if ($text -match '^sqlcmd failed \(exit (-?\d+)\)') { ' (exit ' + $Matches[1] + ')' } else { '' }
+        if ($numbers.Count -gt 0) { return 'sqlcmd failed' + $exit + ': ' + ($numbers -join ', ') }
+        if ($text -match 'Login timeout|TCP Provider|Named Pipes Provider|network-related') { return 'sqlcmd failed' + $exit + ': SQL Server could not be reached' }
+        return 'sqlcmd failed' + $exit
+    }
+    if ($text.Length -gt 300) { $text = $text.Substring(0, 300) }
+    return $text
+}
+
+# The failure entry of a backup or restore drill (event 2001 / 2002). Returns the message (also when the Event Log is not set up).
+function Write-HccOperationFailure {
+    param([Parameter(Mandatory)][ValidateSet('Backup', 'RestoreDrill')][string]$Operation, [string]$Kind, [string]$Database, [string]$SqlInstance, [string]$Reason, [string]$LogFile)
+    $when = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss\Z', [Globalization.CultureInfo]::InvariantCulture)
+    if ($Operation -eq 'Backup') {
+        $id = $script:HccEventIds.BackupFailed
+        $text = "HCC backup FAILED: $Kind backup of [$Database] on $SqlInstance at $when. Reason: $Reason. Until it works again no new backups are taken: check the backup folder, the disk space and SQL Server, then run Backup-HccDatabase.ps1 by hand (INSTALL.md section 7)."
+    }
+    else {
+        $id = $script:HccEventIds.DrillFailed
+        $text = "HCC restore drill FAILED for [$Database] on $SqlInstance at $when. Reason: $Reason. The newest backup could not be proven restorable: run Restore-HccDrill.ps1 by hand and read its log (INSTALL.md section 7)."
+    }
+    if ($LogFile) { $text += " Log: $LogFile" }
+    Write-HccEventLog -Level Error -EventId $id -Message $text | Out-Null
+    return $text
+}
+
+# The INSERT that records one run in <Database>.plat.backup_run (migration 3920; shown in Admin & Setup > System health). Guarded:
+# nothing happens before that migration ran. Pure (unit-tested): every value is quoted with ConvertTo-HccSqlLiteral.
+function Get-HccBackupRunSql {
+    param([Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][ValidateSet('Full', 'Differential', 'PreMigration', 'RestoreDrill')][string]$Kind,
+        [bool]$Succeeded, [Parameter(Mandatory)][datetime]$StartedUtc, [Parameter(Mandatory)][datetime]$FinishedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [string]$HostName = $env:COMPUTERNAME)
+    Assert-HccDatabaseName $Database | Out-Null
+    $inv = [Globalization.CultureInfo]::InvariantCulture
+    $t = { param($d) "'" + $d.ToString('yyyy-MM-ddTHH:mm:ss', $inv) + "'" }
+    $s = { param($v, $max) if ($null -eq $v -or "$v" -eq '') { 'NULL' } else { $x = "$v"; if ($x.Length -gt $max) { $x = $x.Substring(0, $max) }; ConvertTo-HccSqlLiteral $x } }
+    $size = if ($null -ne $SizeBytes -and "$SizeBytes" -match '^\d+$') { "$SizeBytes" } else { 'NULL' }
+    $finished = if ($FinishedUtc -lt $StartedUtc) { $StartedUtc } else { $FinishedUtc }
+    $table = (ConvertTo-HccSqlName $Database) + '.plat.backup_run'
+    return ('IF OBJECT_ID({0}) IS NOT NULL INSERT {1}(kind, succeeded, started_utc, finished_utc, file_name, size_bytes, reason, host_name) VALUES ({2}, {3}, {4}, {5}, {6}, {7}, {8}, {9});' -f
+        (ConvertTo-HccSqlLiteral $table), $table, (ConvertTo-HccSqlLiteral $Kind), $(if ($Succeeded) { 1 } else { 0 }), (& $t $StartedUtc), (& $t $finished),
+        (& $s $FileName 260), $size, (& $s $Reason 400), (& $s $HostName 64))
+}
+
+# Records one run for System health. A failure to record never fails the run: it is logged (WARN) and, after a successful backup,
+# written as Warning 2003 (the panel would otherwise show an older result). Returns $true when recorded.
+function Write-HccBackupRun {
+    param([Parameter(Mandatory)][string]$SqlInstance, [Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][string]$Kind, [bool]$Succeeded,
+        [Parameter(Mandatory)][datetime]$StartedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [switch]$TrustServerCertificate, [string]$LogFile)
+    try {
+        $sql = Get-HccBackupRunSql -Database $Database -Kind $Kind -Succeeded $Succeeded -StartedUtc $StartedUtc -FinishedUtc ((Get-Date).ToUniversalTime()) -FileName $FileName -SizeBytes $SizeBytes -Reason $Reason
+        Invoke-HccSql -Instance $SqlInstance -Query $sql -TrustServerCertificate:$TrustServerCertificate | Out-Null
+        return $true
+    }
+    catch {
+        $why = Get-HccFailureReason $_.Exception.Message
+        Write-HccLog "Could not record this result for System health ([$Database].plat.backup_run): $why" -LogFile $LogFile -Level WARN
+        if ($Succeeded) { Write-HccEventLog -Level Warning -EventId $script:HccEventIds.BackupRunNotRecorded -Message "HCC $Kind backup of [$Database] succeeded but its result could not be recorded for System health ($why). The panel shows an older result." | Out-Null }
+        return $false
+    }
 }

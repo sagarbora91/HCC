@@ -25,7 +25,10 @@ public sealed record MappingChange(long ChangeId, DateTime AtUtc, int Actor, str
 
 public sealed record LockEvent(long LockId, DateOnly BusinessDate, string Action, DateTime AtUtc, int Actor, string? Reason);
 
-/// <summary>An open Tally re-export flag (DEC-077, migration 3601): the date's vouchers changed after they were exported (its day was reopened).</summary>
+/// <summary>
+/// An open Tally re-export flag (DEC-077, migration 3601): the date's vouchers changed after they were exported (its day was reopened,
+/// <see cref="ReopenId"/> set), or (A03b-05, <see cref="ReopenId"/> null) the date was exported while accounting events were still pending.
+/// </summary>
 public sealed record TallyReexportFlag(long ReexportId, DateOnly BusinessDate, long? ReopenId, string Reason, DateTime MarkedUtc);
 
 /// <summary>One recorded Tally export: the range asked for, what it carried per date, and the flags it clears.</summary>
@@ -45,6 +48,12 @@ public interface IAccountingDayHooks
 
     /// <summary>Flags an exported date changed (its day was reopened) so the next Tally export carries it again (an open flag stays as it is).</summary>
     Task MarkChangedForTallyAsync(ICommandTransaction tx, int propertyId, DateOnly date, long reopenId, string reason, DateTime nowUtc, CancellationToken ct);
+}
+
+/// <summary>Unbooked accounting events of a property: <see cref="Pending"/> still being processed, <see cref="Parked"/> set aside after repeated failures.</summary>
+public sealed record PendingEvents(int Pending, int Parked)
+{
+    public int Total => Pending + Parked;
 }
 
 /// <summary>SQL-agnostic <see cref="IAccountingDayHooks"/> over the accounting store.</summary>
@@ -107,8 +116,11 @@ public interface IAccountingStore
     /// <summary>The property's current business date (inv.property); null when the property does not exist.</summary>
     Task<DateOnly?> BusinessDateAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
-    /// <summary>Consumed outbox events for this property not yet processed by the accounting consumer.</summary>
-    Task<int> PendingEventsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
+    /// <summary>
+    /// Consumed outbox events for this property not yet processed by the accounting consumer: still being processed (incl. accepted cash
+    /// differences not yet swept) and parked after repeated failures (Wave C3: shown as "stuck — see System health").
+    /// </summary>
+    Task<PendingEvents> PendingEventsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
     /// <summary>Folio/receipt figures for the date straight from billing and payments (reconciliation).</summary>
     Task<OperationalFigures> OperationalFiguresAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct);
@@ -132,6 +144,17 @@ public interface IAccountingStore
     /// <summary>The property's open re-export flags, oldest date first.</summary>
     Task<IReadOnlyList<TallyReexportFlag>> TallyReexportsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
-    /// <summary>Writes the export log row and its days and clears <see cref="NewTallyExport.ClearFlags"/>; returns the export id.</summary>
+    /// <summary>Writes the export log row (A03b-05: marked as carrying voucher ids) and its days and clears <see cref="NewTallyExport.ClearFlags"/>; returns the export id.</summary>
     Task<long> RecordTallyExportAsync(ICommandTransaction tx, NewTallyExport export, CancellationToken ct);
+
+    // ── A03b-05: stable Tally voucher ids (migration 3950) ──
+
+    /// <summary>
+    /// The property's Tally identity (32 hex digits, <c>acc.tally_identity</c>), created once on first use and never changed: the middle
+    /// part of every voucher's REMOTEID. Inside a command it is created in the command's transaction.
+    /// </summary>
+    Task<string> TallyIdentityAsync(ICommandTransaction? tx, int propertyId, DateTime now, CancellationToken ct);
+
+    /// <summary>Those of <paramref name="dates"/> that an export recorded before vouchers carried a REMOTEID took to Tally (Tally may hold them without an id).</summary>
+    Task<IReadOnlyList<DateOnly>> TallyExportedWithoutIdsAsync(ICommandTransaction? tx, int propertyId, IReadOnlyCollection<DateOnly> dates, CancellationToken ct);
 }

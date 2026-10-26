@@ -159,7 +159,7 @@ public sealed class GoldenAccountingTests
         Assert.Equal(L(t, "debitPaise"), d);
         Assert.Equal(L(t, "creditPaise"), c);
         var expected = S(t, "xml").Split('\n').ToList();
-        var actual = VoucherExport.TallyXml(vouchers, S(t, "company")).Split('\n').ToList();
+        var actual = VoucherExport.TallyXml(vouchers, S(t, "company"), S(t, "identity")).Split('\n').ToList();
         Assert.StartsWith("<!-- SIMULATED PREVIEW", expected[1], StringComparison.Ordinal);
         Assert.Equal(VoucherExport.TallyComment, actual[1]);
         expected.RemoveAt(1);

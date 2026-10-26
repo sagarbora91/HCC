@@ -7,14 +7,15 @@ confirm"** (public sources, 25 Oct 2026). Pure rules: `src/Hcc.Domain/Tax/GstMas
 | Supply | Rate (seed) | Test |
 |---|---|---|
 | Room night, per unit per night on the **actual price charged** | ≤ ₹7,500 → 5 % without ITC from 22 Sep 2025 (12 % with ITC before); > ₹7,500 → 18 % with ITC | ₹7,500.00 → 5 %, ₹7,500.01 → 18 %; never averaged |
-| Restaurant / room service | 5 % without ITC; 18 % with ITC when "specified premises" | specified = any unit > ₹7,500 on any day of the previous FY (rack rate, dated tariffs, or a room night actually charged) **or** the Owner's opt-in in force on the date |
+| Restaurant / room service | 5 % without ITC; 18 % with ITC when "specified premises" | specified = any unit > ₹7,500 on any day of the previous FY (rack rate, dated tariffs, or a room night actually charged and not reversed — A03a-02; read as the highest such night through `IX_charge_room_night_amount`, migration 3951) **or** the Owner's opt-in in force on the date |
 | Laundry, banquet/hall, other | one dated rate each, seed 18 % | category from `PostCharge.gstCategory` (food/laundry/banquet/other) or guessed from the label |
 | Discount | follows the folio's room-night rate (that date's line, else latest earlier, else latest, else room rule at the booked rate) | CA to confirm apportionment on mixed-rate folios |
 | Reversal (correction) | copies the original line's rate, category, ITC | |
 
 Per line: tax = amount × bps / 10 000, half away from zero; SGST = half toward zero, CGST = the rest (takes the odd paisa).
 Ledgers (`GstPosting`): 1100 Guest ledger dr · revenue cr (4000 room, 4100 other, 4900 discounts, 4910 adjustments) · **2110 Output CGST**
-cr · **2120 Output SGST** cr. Intra-state only (IGST out of scope).
+cr · **2120 Output SGST** cr. Intra-state only (IGST out of scope): A03a-03 refuses any place of supply other than the hotel's state on every invoice path
+("Inter-state place of supply is not supported yet (CA question G9).") until `InvoiceRules.InterStateSupplySupported` is switched on.
 
 ## Storage (migration 0600, schema `tax`)
 - `tax.gst_setting` — the 10 keys (`gst.room.threshold`, `gst.room.lowBps`, `gst.room.lowItc`, `gst.room.highBps`, `gst.food.bps`,

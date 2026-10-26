@@ -105,7 +105,8 @@ public sealed class GroupBooksSqlTests : IAsyncLifetime
         // Tally (simulated) carries the vouchers with their Tally voucher types.
         var tally = await Books.TallyAsync(_w.Caller("owner"), Today, Today, Ct);
         Assert.Equal((7, true), (tally.VoucherCount, tally.DebitPaise == tally.CreditPaise));
-        Assert.Contains("<VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\"", tally.Xml, StringComparison.Ordinal);
+        Assert.Contains(" VCHTYPE=\"Sales\" ACTION=\"Create\"", tally.Xml, StringComparison.Ordinal);
+        Assert.Matches("<VOUCHER REMOTEID=\"HCC-[0-9a-f]{32}-group-attrition:[0-9]+\" VCHTYPE=\"Sales\"", tally.Xml); // A03b-05: stable voucher id
         Assert.Contains("<NARRATION>Group attrition · 3 line(s)", tally.Xml, StringComparison.Ordinal);
         Assert.Contains("<NARRATION>Group settled · deposits applied to the company receivable", tally.Xml, StringComparison.Ordinal);
         Assert.Contains("<LEDGERNAME>Advance deposits</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-4200.00</AMOUNT>", tally.Xml, StringComparison.Ordinal);

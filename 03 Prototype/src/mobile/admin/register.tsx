@@ -6,9 +6,10 @@ import {MaReports} from './Reports';
 import {MaAccess} from './Access';
 import {MaSettings} from './Settings';
 import {MaBackup,MaRoadmap} from './Backup';
+import {MaSystemHealth} from './SystemHealth';
 import {MaRejectSheet,MaAuditFilterSheet,MaRangeSheet,MaDrillSheet,MaDictionarySheet} from './sheets';
 export const registration:FeatureRegistration={mobile:{
-  pages:{approvals:MaApprovals,closing:MaClosing,reports:MaReports,access:MaAccess,settings:MaSettings,backup:MaBackup,roadmap:MaRoadmap},
+  pages:{approvals:MaApprovals,closing:MaClosing,reports:MaReports,access:MaAccess,settings:MaSettings,backup:MaBackup,roadmap:MaRoadmap,syshealth:MaSystemHealth},
   // Phone-only sheets. They are not desktop modals, so they live under mobile.modals with the ma- prefix.
   modals:{'ma-reject':MaRejectSheet,'ma-audit-filter':MaAuditFilterSheet,'ma-range':MaRangeSheet,'ma-drill':MaDrillSheet,'ma-dictionary':MaDictionarySheet},
 }};

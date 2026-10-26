@@ -15,17 +15,27 @@ public static class GuestIdEndpoints
 {
     public static IServiceCollection AddGuestIdModule(this IServiceCollection services, IConfiguration configuration)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-        var section = configuration.GetSection("Hcc:GuestIdKeys");
-        var current = section["Current"];
-        if (string.IsNullOrWhiteSpace(current)) return services;
-        var keys = section.GetSection("Keys").GetChildren().ToDictionary(c => c.Key, c => c.Value, StringComparer.Ordinal);
-        var ring = new DpapiGuestIdKeyRing(current, keys, section.GetValue<bool>("AllowPlainKeys"));
+        var ring = KeyRing(configuration);
+        if (ring is null) return services;
         services.AddSingleton<IGuestIdKeyRing>(ring);
         services.AddSingleton<GuestIdProtector>();
         services.AddSingleton<IGuestIdStore>(sp => new SqlGuestIdStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<GuestIdService>();
         return services;
+    }
+
+    /// <summary>
+    /// The guest ID key ring exactly as the server loads it from <c>Hcc:GuestIdKeys</c> (also used by <c>Hcc.Api.exe verify-guest-id</c>),
+    /// or null when no current key is configured. Throws when a configured key cannot be opened on this PC (DPAPI) or is malformed.
+    /// </summary>
+    public static DpapiGuestIdKeyRing? KeyRing(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        var section = configuration.GetSection("Hcc:GuestIdKeys");
+        var current = section["Current"];
+        if (string.IsNullOrWhiteSpace(current)) return null;
+        var keys = section.GetSection("Keys").GetChildren().ToDictionary(c => c.Key, c => c.Value, StringComparer.Ordinal);
+        return new DpapiGuestIdKeyRing(current, keys, section.GetValue<bool>("AllowPlainKeys"));
     }
 
     public static RouteGroupBuilder MapGuestIdEndpoints(this RouteGroupBuilder api)

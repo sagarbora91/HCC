@@ -6,6 +6,7 @@ using Hcc.Application.Commands;
 using Hcc.Application.Configuration;
 using Hcc.Domain.Configuration;
 using Hcc.Domain.Documents;
+using Hcc.Domain.Errors;
 using Hcc.Domain.GuestIds;
 
 namespace Hcc.Application.Documents;
@@ -44,11 +45,38 @@ public static class DocumentSettings
 /// <summary>What the (simulated) OCR read from an image. The number, name and date of birth are sensitive: sealed before they are stored.</summary>
 public sealed record OcrExtraction(string DocKind, string Number, string Name, DateOnly? DateOfBirth, int Confidence);
 
-/// <summary>OCR engine port. The simulated engine below is deterministic; a real engine replaces it behind this interface.</summary>
-// ETP-REUSE: real OCR / document-capture engine (ETP has none on this PC); only the port and the simulated adapter exist.
+/// <summary>
+/// OCR engine port. The simulated engine below is deterministic (Development and the tests); in Production the not-configured engine refuses
+/// (A09-08) until a real engine replaces it behind this interface.
+/// </summary>
+// ETP-REUSE: real OCR / document-capture engine (ETP has none on this PC); only the port, the simulated adapter and the not-configured one exist.
 public interface IIdOcrEngine
 {
+    /// <summary>False when this server has no OCR engine (Production): a scan is refused with <see cref="OcrNotConfigured.Message"/> and the details are typed by hand.</summary>
+    bool IsConfigured { get; }
+
     Task<OcrExtraction> ExtractAsync(ReadOnlyMemory<byte> image, string contentType, string hintDocKind, CancellationToken ct = default);
+}
+
+/// <summary>The words and the stable feature id of the "ID scanning is not set up" refusal (error UNAVAILABLE, details.reason NOT_CONFIGURED, details.feature "ocr").</summary>
+public static class OcrNotConfigured
+{
+    public const string Feature = "ocr";
+
+    public const string Message = "ID scanning (OCR) is not configured on this server: enter the details by hand.";
+
+    public static HccException Refusal() => HccException.NotConfigured(Feature, Message);
+}
+
+/// <summary>
+/// The Production OCR engine until a real one is wired (A09-08): it never invents an ID number. A scan is refused with a clear message,
+/// so a fictional but checksum-valid number can never be stored as a real guest's ID.
+/// </summary>
+public sealed class NotConfiguredIdOcrEngine : IIdOcrEngine
+{
+    public bool IsConfigured => false;
+
+    public Task<OcrExtraction> ExtractAsync(ReadOnlyMemory<byte> image, string contentType, string hintDocKind, CancellationToken ct = default) => throw OcrNotConfigured.Refusal();
 }
 
 /// <summary>
@@ -58,6 +86,8 @@ public interface IIdOcrEngine
 /// </summary>
 public sealed class SimulatedIdOcrEngine : IIdOcrEngine
 {
+    public bool IsConfigured => true;
+
     private static readonly string[] First = ["Aarav", "Diya", "Ishaan", "Meera", "Rohan", "Sana", "Vihaan", "Anaya"];
     private static readonly string[] Last = ["Demo", "Sample", "Testwala", "Fictional", "Specimen"];
 

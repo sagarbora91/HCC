@@ -89,13 +89,36 @@ public class InvoiceRulesTests
     {
         var b2b = InvoiceRules.Recipient("B2B", "Demo Industries Pvt Ltd (fictional)", "29AAGCB7383J1Z4", null, null, "27", P(426500));
         Assert.Equal((SupplyType.B2B, "27", false), (b2b.Type, b2b.PlaceOfSupply, b2b.InterState)); // hotel supply: place of supply = hotel state
-        Assert.True(InvoiceRules.Recipient("B2B", "X", "29AAGCB7383J1Z4", null, "29", "27", P(1)).InterState);
+        Assert.True(InvoiceRules.Recipient("B2B", "X", "29AAGCB7383J1Z4", null, "29", "27", P(1), interStateSupported: true).InterState);
         Assert.Throws<HccException>(() => InvoiceRules.Recipient("B2B", null, "29AAGCB7383J1Z4", null, null, "27", P(1)));
         Assert.Throws<HccException>(() => InvoiceRules.Recipient("B2B", "X", "29AAGCB7383J1Z5", null, null, "27", P(1)));
         Assert.Throws<HccException>(() => InvoiceRules.Recipient("B2C", "X", "29AAGCB7383J1Z4", null, null, "27", P(1)));
         Assert.Throws<HccException>(() => InvoiceRules.Recipient("B2C", "Guest", null, null, null, "27", Paise.FromRupees(50_000)));
         Assert.NotNull(InvoiceRules.Recipient("B2C", "Guest", null, "Latur", null, "27", Paise.FromRupees(50_000)));
         Assert.Throws<HccException>(() => InvoiceRules.Recipient("B2C", null, null, null, "28", "27", P(1))); // 28 is not a state code
+    }
+
+    [Fact]
+    public void A03a_03_an_inter_state_place_of_supply_is_refused_until_CA_G9_while_the_hotels_own_state_and_an_out_of_state_buyer_stay_intra_state()
+    {
+        Assert.False(InvoiceRules.InterStateSupplySupported); // the one switch: lifted only once the CA has answered G9
+        foreach (var (type, name, gstin) in new[] { ("B2B", "Karnataka Co (fictional)", "29AAGCB7383J1Z4"), ("B2C", "Guest", (string?)null) })
+        {
+            var e = Assert.Throws<HccException>(() => InvoiceRules.Recipient(type, name, gstin, null, "29", "27", P(426500)));
+            Assert.Equal(HccErrorCode.VALIDATION, e.Code);
+            Assert.StartsWith("Inter-state place of supply is not supported yet (CA question G9).", e.Message, StringComparison.Ordinal);
+            Assert.Contains("Maharashtra, 27", e.Message, StringComparison.Ordinal);
+            var own = InvoiceRules.Recipient(type, name, gstin, null, " 27 ", "27", P(426500));
+            Assert.Equal(("27", false), (own.PlaceOfSupply, own.InterState));
+        }
+
+        // A B2B buyer registered in another state, no place of supply given: the hotel's state, CGST + SGST (s.12(3)/(4) as read).
+        var buyer = InvoiceRules.Recipient("B2B", "Karnataka Co (fictional)", "29AAGCB7383J1Z4", null, null, "27", P(426500));
+        Assert.Equal(("27", false), (buyer.PlaceOfSupply, buyer.InterState));
+        Assert.Equal(0, InvoiceRules.Totals(InvoiceRules.BuildLines(Ac006(), buyer.InterState)).Igst.Value);
+        // With the switch lifted the IGST path works as before (whole line tax in IGST, same total).
+        var lifted = InvoiceRules.Recipient("B2B", "Karnataka Co (fictional)", "29AAGCB7383J1Z4", null, "29", "27", P(426500), interStateSupported: true);
+        Assert.True(lifted.InterState);
     }
 
     private static IReadOnlyList<CreditableLine> Fresh(IEnumerable<InvoiceLine> lines) => lines.Select(l => new CreditableLine(l, Paise.Zero, Paise.Zero, Paise.Zero, Paise.Zero)).ToList();

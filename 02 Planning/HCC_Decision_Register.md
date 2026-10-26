@@ -1,10 +1,10 @@
 # Hotel Control Centre — Decision Register
 
-Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
+Version: 1.2 · Updated: 26 October 2026 (audit A11-11 clean-up) · Owner: Sagar
 
-**Statuses:** Agreed · Proposed · Needs owner decision · Unverified.
+**Statuses:** Agreed · Proposed · Proposed (agent rule, needs owner confirmation) · Needs owner decision · Superseded · Unverified.
 **Rule:** later owner changes take precedence; earlier entries are superseded (never rewritten) and the impact is recorded.
-**Sources:** [C] conversation export · [P] execution plan · [B] observed in the existing prototype build · [O] owner.
+**Sources:** [C] conversation export · [P] execution plan · [B] observed in the existing prototype build · [O] owner · [H] `HANDOFF.md` · [A] independent audit of 26 Oct 2026 (A11 paper §b2) · [M] `HCC_Mobile_Version_Plan_v1.md` §11.
 
 ## 1. Approval log
 
@@ -35,7 +35,7 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-05 | Backend | NestJS + TypeScript | **Superseded by DEC-054 (24 Oct 2026)** | C | M4 |
 | DEC-06 | Frontend | React + TypeScript, responsive | Agreed; design system pending approval | C | M1–M3 |
 | DEC-07 | Desktop delivery | Windows-hosted server, browser frontend, optional wrapper | Agreed | C | M6 |
-| DEC-08 | Android | Responsive browser/PWA over hotel LAN | Agreed; PWA behaviour pending | C | M6 |
+| DEC-08 | Android | Responsive browser/PWA over hotel LAN | Agreed; **replaced in practice** by the Capacitor APK (DEC-051) and the production web build served by the API (no service worker) — see section 4 | C | M6 |
 | DEC-09 | SQLite | Not the master DB; possible restricted offline tablet cache later | Agreed conceptually | C | Later |
 | DEC-10 | Access | Master Access Control Panel: roles, enable/disable, actions, approvals, scopes | Agreed; matrix = `HCC_RBAC_Matrix_v1.md` (Proposed) | C | Area 12 |
 | DEC-11 | UI reference | Kamra (workflow), Open Hotel PMS (UI/housekeeping), QloApps (admin) — inspiration only | Agreed direction | C | Prototype spec §6 |
@@ -54,14 +54,14 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | ID | Topic | Proposal | Status | Src | Affects |
 |---|---|---|---|---|---|
 | DEC-021 | Prototype build tool | Keep the existing esbuild single-file bundle (instead of the plan's Vite-style suggestion). Output is a self-contained HTML; `npm start` serving is the documented route. | Proposed | B | M1 |
-| DEC-022 | Prototype persistence | Browser `localStorage`, versioned key (`hcc-prototype-v1`), schema check, Reset control. Survives refresh; per browser only; not shared across devices. | Proposed | B, P | AC-024 |
-| DEC-023 | Money representation | Integer paise everywhere; per-line tax rounded half-up to the paisa; no floating point. | Proposed | B, P | Financial rulebook |
+| DEC-022 | Prototype persistence | Browser `localStorage`, versioned key (`hcc-prototype-v1`), schema check, Reset control. Survives refresh; per browser only; not shared across devices. | Proposed; **changed in practice**: IndexedDB since 24 Oct 2026 — see section 4 | B, P | AC-024 |
+| DEC-023 | Money representation | Integer paise everywhere; per-line tax rounded half-up to the paisa; no floating point. | Proposed; built as **half away from zero** (differs from "half-up" only for negative lines) — see section 4 | B, P | Financial rulebook |
 | DEC-024 | Stay interval | Arrival-inclusive, departure-exclusive dates. Back-to-back stays on the same room are allowed. Day-use is a separate future rule. | Proposed | P | REQ-BOOK-006 |
 | DEC-025 | Unpaid departure | Checkout blocked while balance ≠ 0 or deposit held, unless an authorised company-credit approval exists. | Proposed default | C, P | REQ-STAY-004, AC-008 |
 | DEC-026 | Inspection | Supervisor inspection required before Ready (configurable; default ON). | Proposed default | P | REQ-HK-003 |
-| DEC-027 | Discount threshold | Discounts above ₹250 per request require approval by another user with approval rights (configurable). | Proposed default | B | REQ-FOLIO-003 |
-| DEC-028 | Closed-date corrections | Prototype: corrections post as dated adjustments in the open business day, referencing the closed date. Production: choose **adjustment-only** or **controlled reopen** — not both. | **Needs owner decision** (production) | C, P | REQ-CLOSE-006 |
-| DEC-029 | Room-night posting timing (**Approved option B, APR-003**) | Night audit posts each night once. The current build also has a "post full stay" action that pre-posts future nights; proposal: remove it and run the walkthrough across simulated days 24→26 Oct. | **Needs owner decision** | B | REQ-CLOSE-003, walkthrough |
+| DEC-027 | Discount threshold | Discounts above ₹250 per request require approval by another user with approval rights (configurable). | Proposed default; **superseded as a rule** by DEC-063 G1 (Reception ≤ ₹250, Manager ≤ ₹1,000) — see section 4 | B | REQ-FOLIO-003 |
+| DEC-028 | Closed-date corrections | Prototype: corrections post as dated adjustments in the open business day, referencing the closed date. Production: choose **adjustment-only** or **controlled reopen** — not both. | **Superseded by DEC-077** (the Owner reopens a closed day, APR-013, 26 Oct 2026) | C, P | REQ-CLOSE-006 |
+| DEC-029 | Room-night posting timing (**Approved option B, APR-003**) | Night audit posts each night once. The current build also has a "post full stay" action that pre-posts future nights; proposal: remove it and run the walkthrough across simulated days 24→26 Oct. | Agreed (O, APR-003 Q1, option B) | B | REQ-CLOSE-003, walkthrough |
 | DEC-030 | Deterministic clock | All prototype timestamps (including audit entries) come from the simulated clock, not the real clock. The current build uses the real clock for audit times — to be fixed. | Proposed | P, B | AC-018, AC-024 |
 | DEC-031 | Refund authority | Cashier executes a refund only against an approved refund request (approver ≠ requester). The current build lets any user with `approve` refund directly. | Proposed | P, B | REQ-PAY-003 |
 | DEC-032 | Prototype role set | Add Accountant, Technical administrator and Maintenance templates to the six already built. | Proposed | C, P | RBAC |
@@ -69,12 +69,21 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-034 | Advance handling | An advance is a receipt allocated to the reservation folio when received; it is never subtracted again at checkout. | Proposed | P | AC-006 |
 | DEC-035 | Cash shifts | Prototype: one cashier shift per business day with opening float carried from the previous counted close. Production: multi-shift per day. | Proposed | B | REQ-PAY-004 |
 | DEC-036 | LAN preview | `npm start` binds 127.0.0.1 by default; an explicit `--lan` option binds 0.0.0.0 for tablet testing, with firewall notes. | Proposed | B, P | Device testing |
-| DEC-037 | Fixture property name (**Approved, APR-003; done in M1**) | Rename the demo property from "Saagar Residency" to "HCC Demo Residency" so fixtures are never mistaken for the real business; keep owner first name only in demo user labels. | **Needs owner decision** (minor) | B, P | Fixtures |
+| DEC-037 | Fixture property name (**Approved, APR-003; done in M1**) | Rename the demo property from "Saagar Residency" to "HCC Demo Residency" so fixtures are never mistaken for the real business; keep owner first name only in demo user labels. | Agreed (O, APR-003 Q2); done in M1 | B, P | Fixtures |
 | DEC-038 | Hold expiry | Default hold expiry 2 hours of simulated time; expiry checked on every availability query. | Proposed default | P | REQ-BOOK-004 |
-| DEC-039 | Synthetic tax | 10% synthetic tax, applied per line after discount (discount lines carry the same tax rate as negative tax). Not a GST statement. | Proposed (prototype only) | P, B | Financial rulebook |
+| DEC-039 | Synthetic tax | 10% synthetic tax, applied per line after discount (discount lines carry the same tax rate as negative tax). Not a GST statement. | Proposed (prototype only); **superseded by DEC-069** (dated GST master) — see section 4 | P, B | Financial rulebook |
 | DEC-040 | Policy evaluation order | Disabled/expired → deny; scope mismatch → deny; explicit deny overrides grants; no grant → deny; then thresholds/approvals. Multiple roles = union of allows minus any explicit deny. | Proposed | P | RBAC §2 |
 | DEC-041 | Approval binding | Approval bound to action + target record + amount + record version; any change invalidates it; execution re-checked. | Proposed | P, B | AC-014 |
 | DEC-042 | Business date | Business date changes only through day close → open next day; calendar midnight does not change it. | Proposed | P | AC-018 |
+| DEC-043 | Source reuse in prototype | Prototype uses original components only; no third-party code imported, so no Source Reuse Register entries yet. | Proposed | P | Reuse register |
+| DEC-044 | One codebase for desktop and phone | One codebase with a separate mobile shell; an Auto / Desktop / Mobile display toggle stored per device | Agreed (O, 24 Oct 2026) | O, M | Mobile plan §11 |
+| DEC-045 | Roles on the phone | All 9 roles fully usable on the phone; access-matrix editing is desktop-only | Agreed (O, 24 Oct 2026) | O, M | Mobile plan §11 |
+| DEC-046 | Phone calendar | Agenda view by default on the phone; compact grid optional (mobile plan §9). Not listed in §11, so no owner answer is recorded; built as the agenda default | Proposed default (mobile plan §9) — owner to confirm | M | Mobile plan §9 |
+| DEC-047 | Printing on the phone | **Changed from "hidden on phone":** printing stays available on the phone (wireless printers). Invoice, registration card, booking confirmation and closing report get phone-friendly print layouts via the browser print/share dialog. Update M07/M09/M11/M18/M19 accordingly | Agreed (O, 24 Oct 2026) | O, M | Mobile plan §11 |
+| DEC-048 | Phone validation | Validation on an Android emulator (Chrome on emulated Pixel-class devices 360×800 and 412×915) plus Playwright emulation, recorded as **emulated**, not as physical-device evidence. The physical test device is named in DEC-093 | Agreed (O, 24 Oct 2026) | O, M | Mobile plan §11 |
+| DEC-049 | Colour scheme | **Option D — Maroon & Sand.** Primary maroon #7A1F2B, background sand #FAF6F0, text dark brown #2B1D16; status colours unchanged (with text labels). Applies to desktop and phone; replaces the green theme and the 24 Oct contrast override. (The mobile plan also keeps the earlier row "Open — owner choosing between colour options A–D"; the approval supersedes it.) | Agreed (O, 24 Oct 2026) | O, M | Mobile plan §11 |
+| DEC-050 | Single HTML | The mobile version is part of the same single HTML (`Hotel Control Centre.html`), switched by the display toggle — no separate mobile file | Agreed (O, 24 Oct 2026) | O, M | Mobile plan §11 |
+| DEC-051 | Android APK | Direction approved: later wrap the same HTML in an Android APK with Capacitor for on-phone usability testing. Prototype only; not a production release (the production APK came later with Wave 4) | Agreed (O, 24 Oct 2026) | O, M | Mobile plan §11; `04 Android` |
 | DEC-052 | Till model (A2.3) | **Approved option A — shared till:** restaurant / room-service cash goes into the front-desk drawer; POS cash sales and voids count once in the cashier's expected cash; room-service charged to a folio is a charge, not cash; open POS checks block day close. | Agreed (O, APR-005) | O | `HCC_A2_Till_Decision_Pack.md`, W0-B |
 | DEC-053 | Stay-restriction override (A2.1) | Min-stay / closed-to-arrival restrictions are enforced for every booking source; users with the approve permission (Owner, Manager) may override with a reason, recorded on the booking and in the audit log. | Agreed (O, APR-005) | O | W0-C, contracts package §7 |
 | DEC-054 | Production server stack | **.NET 10 (ASP.NET Core Web API, C#) + SQL Server 2025 Express**, reusing the owner's ETP Reporting Engine platform code (migrations with backup gate, backups/restore drills, Task Scheduler operations, installer, Excel/PDF/e-mail, Tally export) with provenance; React web + Capacitor APK stay as the clients. Supersedes DEC-05. Production construction still needs the A4 go-ahead. | Agreed (O, 24 Oct 2026) | O | `HCC_FirstParty_Reuse_ETP_SCC_v1.md`, contracts package §5, multi-agent plan Wave 1 |
@@ -114,7 +123,6 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-088 | Credit note of a voided restaurant bill | When a walk-in restaurant bill that already has an RST tax invoice is voided, its credit note is issued with the void and approved by the **normal POS void approval** (a Manager above the ₹500 void limit); it does not need the Owner. This is an exception to DEC-079 D7 (credit-note approval Owner only), which keeps applying to every other credit note | Agreed (O, chat, 26 Oct 2026) | O | POS, Invoices (DEC-072, Wave B2) |
 | DEC-089 | Pending cash movements at day close | A **bank deposit waiting for confirmation does not block** the business-day close (the cash has already left the drawer and the deposit stays on the approvals list); a **pending till transfer does block** it (the cash is between two tills) | Agreed (O, chat, 26 Oct 2026) | O | Cashier, Closing (DEC-073, Wave B1) |
 | DEC-090 | Checkout during a server outage | A guest who checks out while the server is down gets a **numbered payment receipt** from the paper pad at once; the **tax invoice is issued when the server is back** (invoice numbers come only from the server and stay in order), then sent or handed over (INSTALL §8b) | Agreed (O, chat, 26 Oct 2026) | O | Downtime procedure (DEC-081), Invoices |
-| DEC-043 | Source reuse in prototype | Prototype uses original components only; no third-party code imported, so no Source Reuse Register entries yet. | Proposed | P | Reuse register |
 | DEC-MA-1 | Who edits masters | New `masters` permission (operational lists: floors, rooms, shifts, task types, menu availability…) granted to **Owner and Tech admin only** by default; the Owner may grant it to a Manager later in Access control. Money fields of any master stay Owner-only (DEC-058). | Agreed (O, 26 Oct 2026) | O | Masters wave MA-0…MA-7 |
 | DEC-MA-2 | Floors | **Named floors/wings master** (code, name, order, active); room board, housekeeping and room filters group by it; a floor with rooms can only be retired. | Agreed (O, 26 Oct 2026) | O | MA-0, MA-1 |
 | DEC-MA-3 | Meal plans | Build **now** (MA-2): EP/CP/MAP/AP + custom on bookings, folio plan lines, booking site and OTA mapping. GST treatment of a bundled breakfast is marked illustrative — CA to confirm. | Agreed (O, 26 Oct 2026) | O | MA-2, Billing |
@@ -150,9 +158,71 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-CP-1 | Personal preferences (Customisation Part 1, CP-1) | Per-device preferences in localStorage `hcc-prefs-1` (versioned; text size 90/100/115/130 %, honour Android font size, reduce motion, density, start page, list page size, message duration) on the page **Appearance & display** (`prefs`, every role, Admin & Setup); never hotel data, never audited, never sent to the server (DEC-044 extended); start page falls back to Modules Home when the user may not open it; printing ignores personal text size. Assumptions until the owner answers plan §6: APK keeps honouring the Android font size, dark theme second phase, staff may choose their own start page, per device only, no Hindi/Marathi | Proposed (CP-1, 27 Oct 2026) | P | Customisation plan Part 1 |
 | DEC-CP-5 | Themes: Light, Dark, High contrast, Follow device (CP-5, plan B1/B2) | Per-device preference `theme` in `hcc-prefs-1` (default **Light** = Maroon & Sand, unchanged); Dark = warm dark surfaces, maroon lighter on dark (text/borders `#f0a3ae`, solid fills `#ae4155` with white text), every text colour ≥ 4.5:1 on every dark surface; High contrast = **light based** (white surfaces, near-black hue-kept text ≥ 7:1, no tints, dark control borders 2 px, 4 px focus ring); Follow device = Light/Dark from `prefers-color-scheme`, live (high contrast is never chosen automatically). Status colours keep their hue and always their text label. Printing always uses the light palette (dark/hc blocks are `@media screen`). APK status bar and `<meta theme-color>` follow the theme (app-bar fill colour, light icons). Colours are roles (`src/styles/themes.css`, generated by `tools/themes.mjs`) over the CP-3 tokens (`0-tokens.css`, one sheet) | Proposed (CP-5, 27 Oct 2026; tests `tests/stream-themes.mjs`; new stylesheet colours need `node tools/themes.mjs --write`) | P | Customisation plan Part 1 (B1, B2) |
 
+## 3b. Production rules chosen by agents or recorded only in HANDOFF (audit A11-11, paper A11 §b2)
+
+The independent audit of 26 Oct 2026 found 25 rules in the code and in `HANDOFF.md` that had no decision id. Every one of them now has a home, either a row below or an existing decision (mapping table after the rows). Rows marked **Proposed (agent rule, needs owner confirmation)** are what the code does today because an agent had to choose; **nobody has approved them**. The owner can answer yes or no per row; a "no" becomes a change request. Rows marked Agreed record an answer the owner already gave in chat, as written down in `HANDOFF.md`. Numbers continue after DEC-090; DEC-MA-1…7 keep their own series.
+
+| ID | Topic | Rule as built / as recorded | Status | Src | Affects |
+|---|---|---|---|---|---|
+| DEC-091 | Default demo scenario (OWNER-1) | The app opens on the **FY26** demo scenario (FY 2026-27 history, Apr–Oct, seeded generator); the small BASE fixture stays the default for the tests | Agreed (O, chat 24 Oct 2026, HANDOFF Session 4) | O, H | Prototype, `fixtures/scenarios.ts` |
+| DEC-092 | Printing fallback (OWNER-2) | Where a device cannot print directly, the **share-sheet fallback** is acceptable (`printDocument` in `app/native.ts`) | Agreed (O, chat 24 Oct 2026, HANDOFF Session 4) | O, H | Prototype, DEC-047 |
+| DEC-093 | Physical test device (OWNER-3) | **Samsung Galaxy Tab S7, model SM-T875, Android 13** — a tablet, not a phone; answers the phone-model question of DEC-048 | Agreed (O, chat 24 Oct 2026, HANDOFF Session 6) | O, H | APK acceptance |
+| DEC-094 | Phone and tablet layout in the APK | Phones keep the phone layout; tablet-width screens (short side of at least 600 CSS px) get the **desktop layout** inside the APK (`nativePhoneLayout`). The T-01/T-02 brief cites this as DEC-044 by mistake | Agreed (O, chat 24 Oct 2026, HANDOFF Session 7b) | O, H | `app/native.ts`, `display.tsx` |
+| DEC-095 | Navigation redesign | Hamburger menu instead of the long sidebar; sign-in, then Modules Home with ten category tiles; Ctrl+K search that finds **pages and actions only**; booking-ID search only on Arrivals & check-in; the Guests profile moves under Customers; a Customers tile with the full customer history. The prototype's staff-picker sign-in without PIN was for the prototype only (production sign-in is DEC-062) | Agreed (O, chat 24 Oct 2026, HANDOFF Session 8) | O, H | `app/navmap.ts`, `SearchPalette.tsx` |
+| DEC-096 | Wave 1 P0 design choices | Nine server design choices were listed for confirmation and never answered. Built: tax rounding **half away from zero** (the prototype used `Math.round`), an **audit row on every command** (mandatory in the command runner), **IANA time-zone names**; the other six are in the Wave 1 P0 report (branch `claude/wave1-p0`) | Proposed (agent rule, needs owner confirmation) | H, A | `MoneyMath.cs`, `SqlCommandRunner` |
+| DEC-097 | Folio at check-in | The guest folio is created at **check-in**; a payment taken before check-in opens it. (The "own shift" and "Cashier refused the daily-collections report" rules raised with it are settled by DEC-078 and DEC-079.) | Proposed (agent rule, needs owner confirmation) | H, A | `StaysCommands.cs`, `BillingService.cs` |
+| DEC-098 | ESIC coverage and daily-wage basis | ESIC coverage follows the **contribution-period** rule and tests the contractual monthly wage against the ceiling; for daily-paid staff the contractual wage is **daily rate × 26**. Illustrative — CA to confirm (CA pack P5) | Proposed (agent rule, needs owner confirmation) | H, A | `PayrollRules.cs`, `PayrollModel.cs` |
+| DEC-099 | SCC "extra days" rule not ported | HCC pays rostered weekly offs from the roster and overtime per minute; the SCC "extra days" rule, its 5.5-day monthly cap on leaves applied and day-based overtime are **not ported** (review F-08; CA pack P10) | Proposed (agent rule, needs owner confirmation) | H, A | `PayrollModel.cs` |
+| DEC-100 | Downgrade of the agreed rate | When a stay change lowers the agreed rate, the **rate loss needs the approval permission**; there is no early-departure fee (DEC-082) | Proposed (agent rule, needs owner confirmation) | H, A | `StayChangeRules.cs`, `StayChangeCommands.cs` |
+| DEC-101 | OTA party-size change | An OTA modification that changes the **party size** is refused: the front desk amends the reservation and rejects the channel message with a reason | Proposed (agent rule, needs owner confirmation) | H, A | `OtaService.cs` |
+| DEC-102 | Website deposit | Staff mark a website booking's deposit as paid (the deposit link and its "paid" callback are simulated; there is no payment gateway). The website itself stays off at go-live (DEC-085) | Proposed (agent rule, needs owner confirmation) | H, A | `WebBookingService.cs` |
+| DEC-103 | CRM merge | Merging duplicate customers cannot be undone: there is **no un-merge** | Proposed (agent rule, needs owner confirmation) | H, A | `Customers/*` |
+| DEC-104 | Old released room blocks | Room blocks released before block history existed (migration 0202) are backfilled as **released on their creation date** | Proposed (agent rule, needs owner confirmation) | H, A | `0202_inventory_block_history.sql` |
+| DEC-105 | Cash book export | The production cash book has **no export** (the demo build has a CSV) | Proposed (agent rule, needs owner confirmation) | H, A | `ClosingEndpoints.cs` |
+| DEC-106 | Group attrition charge | Rooms not picked up beyond the allowance × the group's attrition % × the contracted block rate; GST per room-night on the contracted slab (DEC-074); Manager posts up to ₹10,000. CA to confirm (G7) | Proposed (agent rule, needs owner confirmation) | H, A | `GroupRules.cs`, `GroupCommands.cs` |
+| DEC-107 | Group master folio and invoices | The group master folio takes **no cash** (UPI, card or bank transfer; cash goes on a member folio at the shared till); moving a member's share before checkout is manual; tax invoices are issued by a call after checkout, not automatically; the **hotel GSTIN** must be recorded before the first invoice; the invoice prefix is at most 6 characters | Proposed (agent rule, needs owner confirmation) | H, A | `GroupCommands.cs`, `InvoiceService.cs` |
+| DEC-108 | Booking history window | The production client loads bookings from **180 days before the business date** (at most 5,000) | Proposed (agent rule, needs owner confirmation) | H, A | `clients/sync/reservations.ts` |
+| DEC-109 | Cash-book lock permission | The cash-book day lock reuses `close.correction.request` (PERM-CLS-003: Owner, Manager, Accountant) instead of a dedicated PERM-CLS-005; the reopen uses `close.correction.approve` (PERM-CLS-004, Owner). Confirm, or add a dedicated permission | Proposed (agent rule, needs owner confirmation) | A | `ClosingPorts.cs` |
+| DEC-110 | Quote lifetime | A rate quote is valid for **30 minutes** (a code constant today; to become a setting) | Proposed (agent rule, needs owner confirmation) | A | `InventoryService.cs` |
+| DEC-111 | Device revocation | **RevokeDevice stays with the Owner and the Tech admin** (as built); the audit's suggestion (A06-01) to make it Owner only is declined. The forced credential change after an admin reset (A06-01 first half) is built (Wave C2) | Agreed (O, chat, 27 Oct 2026) | O | Access / devices |
+
+**Where each of the 25 items of the audit's table (b2) is recorded**
+
+| b2 # | Item | Recorded as |
+|---|---|---|
+| 1, 2, 3 | OWNER-1 default scenario, OWNER-2 print fallback, OWNER-3 test device | DEC-091, DEC-092, DEC-093 |
+| 4 | Phone vs tablet layout | DEC-094 |
+| 5 | Navigation redesign | DEC-095 |
+| 6 | Wave 1 P0 design choices | DEC-096 |
+| 7 | "Own shift" = the shift you opened; Cashier refused the daily-collections report; folio created at check-in | DEC-078; DEC-079; DEC-097 |
+| 8 | ESIC rule and daily-wage × 26 | DEC-098 |
+| 9 | SCC "extra days" rule | DEC-099 |
+| 10 | Bank-detail change without a second approver | Settled: DEC-084 |
+| 11 | Where the ID-encryption key lives and who keeps the offline copy | Settled: DEC-087 (D10, two USBs) |
+| 12 | Early-departure fee | Settled: DEC-082 (no fee) |
+| 13 | Downgrade-rate loss approval | DEC-100 |
+| 14 | OTA party-size change | DEC-101 |
+| 15 | Web booking needs reverse proxy and CAPTCHA; staff mark deposits paid | DEC-085 (reverse proxy, CAPTCHA, off at go-live); DEC-102 |
+| 16 | ID image retention and purge | Settled: DEC-071 (keep, manual purge only) |
+| 17 | CRM un-merge | DEC-103 |
+| 18 | Released room blocks backfill | DEC-104 |
+| 19 | Cash book export | DEC-105 |
+| 20 | Attrition rule | DEC-074 (books and GST slab); DEC-106 (the charge itself) |
+| 21 | Group master folio, invoices, GSTIN, prefix | DEC-107 |
+| 22 | Booking-history window | DEC-108 |
+| 23 | Role matrix v2 D1–D7 | Settled: DEC-079 |
+| 24 | Correction-request permission | DEC-109 |
+| 25 | Quote lifetime | DEC-110 |
+
 ## 4. Superseded / changed decisions
 
 | Old | New | Date | Impact |
 |---|---|---|---|
 | DEC-05 NestJS + TypeScript backend | DEC-054 .NET 10 + ETP platform reuse | 24 Oct 2026 | Production server in C#; prototype business rules are ported with the prototype tests as golden figures; Node SQL-driver spike no longer needed (Microsoft.Data.SqlClient, as ETP); T-SQL spike results unchanged |
 | DEC-028 closed-date corrections "needs owner decision" (production) | DEC-077 controlled reopen by the Owner | 26 Oct 2026 | Production gets a Reopen-day command (Owner, reason, audited) with the build rules in DEC-077; the demo build mirrors it (Wave B, B6); the older prototype-only closed-date adjustments stay as a demo extra |
+| DEC-08 Android = responsive browser/PWA | DEC-051 Capacitor APK + the production web build served by the API | 24–26 Oct 2026 | No service worker and no PWA install; phones and tablets use the APK, desktops the web build from the server (`03 Prototype/README.md`) |
+| DEC-022 prototype persistence in `localStorage` (`hcc-prototype-v1`) | IndexedDB (`app/storage.ts`: one record per state slice plus a manifest); the legacy key is only migrated | 24 Oct 2026 | Needed for the FY26 history (about 1.4 MB). `localStorage` is only a fallback for small states. The decision text above is kept as written |
+| DEC-023 per-line tax "rounded half-up" | Rounded **half away from zero** (`money.ts`, `gst.ts`, `MoneyMath.cs`) | 25–26 Oct 2026 | Identical to half-up for non-negative amounts; differs only for negative lines (discounts, credit notes). Part of the unanswered Wave 1 P0 choices (DEC-096) |
+| DEC-027 discounts above ₹250 need approval | DEC-063 G1: Cashier none, Reception ≤ ₹250, Manager ≤ ₹1,000, Owner no limit | 25 Oct 2026 | The ₹250 threshold survives as the Reception limit; the seeded limits are in `0101_access_rbac_seed.sql` |
+| DEC-039 synthetic 10 % tax | DEC-069 dated GST master | 25 Oct 2026 | The tax adapter is `IGstRateResolver`; posted lines keep their tax snapshot |
+| DEC-029 and DEC-037 "Needs owner decision" | Agreed in APR-003 (Q1 option B; Q2 rename) | 24 Oct 2026 | Status cells corrected on 26 Oct 2026 (audit A11-11); the decisions themselves did not change |

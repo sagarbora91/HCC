@@ -40,7 +40,7 @@ public sealed partial class DocWorld : IAsyncDisposable
     private readonly string _server;
     private readonly string _name;
 
-    private DocWorld(string server, string name, long? retention)
+    private DocWorld(string server, string name, long? retention, IIdOcrEngine ocr)
     {
         _server = server;
         _name = name;
@@ -48,7 +48,7 @@ public sealed partial class DocWorld : IAsyncDisposable
         var policy = new SqlAccessPolicy(Platform.Connections, TimeProvider.System, []);
         Protector = Imgs.Protector();
         var docs = new SqlDocumentStore(Platform.Connections);
-        Svc = new DocumentService(Platform.Commands, policy, docs, docs, new SimulatedIdOcrEngine(), new SqlGuestIdStore(Platform.Connections), Protector, TimeProvider.System,
+        Svc = new DocumentService(Platform.Commands, policy, docs, docs, ocr, new SqlGuestIdStore(Platform.Connections), Protector, TimeProvider.System,
             settings: retention is { } r ? new FixedRetention(r) : null);
     }
 
@@ -66,7 +66,7 @@ public sealed partial class DocWorld : IAsyncDisposable
 
     public CommandContext Ctx(string role, string? key = null) => new(PropertyId, Users[role], "D", key ?? Guid.NewGuid().ToString("N"));
 
-    public static async Task<DocWorld> CreateAsync(CancellationToken ct, long? retention = null)
+    public static async Task<DocWorld> CreateAsync(CancellationToken ct, long? retention = null, IIdOcrEngine? ocr = null)
     {
         var server = Environment.GetEnvironmentVariable("HCC_TEST_SQL_SERVER") is { Length: > 0 } s ? s : @".\SQLEXPRESS";
         var name = "HccTest_" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "_" + Guid.NewGuid().ToString("N")[..8];
@@ -78,7 +78,7 @@ public sealed partial class DocWorld : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
-        var w = new DocWorld(server, name, retention);
+        var w = new DocWorld(server, name, retention, ocr ?? new SimulatedIdOcrEngine());
         try
         {
             await w.Platform.Migrations.MigrateAsync(ct);
@@ -335,5 +335,34 @@ public class DocumentsSqlTests : IAsyncLifetime
         await w.ScalarAsync("UPDATE inv.property SET business_date = '2026-11-23' WHERE property_id = " + w.PropertyId);
         var p = (await w.Svc.PurgeAsync(w.Ctx("OWN"), new PurgeIdCapturesRequest("30 day rule"), Ct)).Value;
         Assert.Equal((1, 30), (p.Purged, p.RetentionDays));
+    }
+}
+
+/// <summary>A09-08: with the Production OCR engine (not configured) a scan is refused clearly and nothing, least of all an invented ID number, is stored.</summary>
+[Trait("Category", "Sql")]
+public class DocumentsNotConfiguredTests : IAsyncLifetime
+{
+    private DocWorld _w = null!;
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    public async ValueTask InitializeAsync() => _w = await DocWorld.CreateAsync(Ct, ocr: new NotConfiguredIdOcrEngine());
+
+    public async ValueTask DisposeAsync() => await _w.DisposeAsync();
+
+    [Fact]
+    public async Task A_scan_is_refused_with_the_clear_message_and_a_stable_reason_and_stores_nothing()
+    {
+        var request = new CaptureIdDocumentRequest(_w.GuestId, null, "aadhaar", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Imgs.AadhaarNumber("2345678901"))));
+        var e = await Assert.ThrowsAsync<HccException>(() => _w.Svc.CaptureAsync(_w.Ctx("REC"), request, Ct));
+        Assert.Equal(HccErrorCode.UNAVAILABLE, e.Code);
+        Assert.Equal("ID scanning (OCR) is not configured on this server: enter the details by hand.", e.Message);
+        Assert.Equal("NOT_CONFIGURED", e.Details!["reason"].GetString());
+        Assert.Equal("ocr", e.Details["feature"].GetString());
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture;"));
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture_image;"));
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'ID_CAPTURE';"));
+        // the refusal is not shown to someone who may not capture IDs at all
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => _w.Svc.CaptureAsync(_w.Ctx("HKP"), request, Ct))).Code);
     }
 }

@@ -1,6 +1,8 @@
+using Hcc.Api.Hosting;
 using Hcc.Application.Documents;
 using Hcc.Application.GuestIds;
 using Hcc.Contracts.Documents;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Documents;
 
@@ -9,7 +11,9 @@ namespace Hcc.Api.Endpoints;
 /// <summary>
 /// ID document capture (W3-3, DEC-068): <c>POST /api/v1/commands/{CaptureIdDocument|ConfirmIdCapture|RejectIdCapture|ViewIdCaptureImage|RevealIdCaptureNumber|
 /// PurgeIdCaptures}</c> and masked <c>GET /api/v1/documents/id-captures[/{id}]</c>. Needs the guest-ID key (<c>Hcc:GuestIdKeys</c>): without it the module is not
-/// registered and the routes answer UNAVAILABLE. Image and OCR text are sealed with the guest-ID service; the simulated OCR engine is the default.
+/// registered and the routes answer UNAVAILABLE. Image and OCR text are sealed with the guest-ID service. The OCR engine is the simulated one in Development and the
+/// tests; in Production it is the not-configured one (A09-08): CaptureIdDocument is refused (503 UNAVAILABLE, details.reason NOT_CONFIGURED, feature "ocr") and the
+/// ID number is typed by hand.
 /// </summary>
 public static class DocumentsEndpoints
 {
@@ -20,7 +24,7 @@ public static class DocumentsEndpoints
         services.AddSingleton(sp => new SqlDocumentStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IDocumentStore>(sp => sp.GetRequiredService<SqlDocumentStore>());
         services.AddSingleton<IDocumentImageStore>(sp => sp.GetRequiredService<SqlDocumentStore>());
-        services.AddSingleton<IIdOcrEngine, SimulatedIdOcrEngine>();
+        services.AddSingleton(SimulatedAdapters.IdOcrEngine); // A09-08: simulated outside Production, "not configured" in Production
         services.AddSingleton<DocumentService>();
         return services;
     }
@@ -32,11 +36,15 @@ public static class DocumentsEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + DocumentService.OpCapture, async (HttpContext http, CaptureIdDocumentRequest body, IServiceProvider sp, CancellationToken ct) =>
+        // DEC-057 / A11-01: capture, confirm and reject are refused while Document capture is off. Its data is kept, so ViewIdCaptureImage and
+        // RevealIdCaptureNumber (audited reads: POST only for the audit row and no-store) stay like the GETs, and so does PurgeIdCaptures,
+        // the manual erasure a guest may ask for (DEC-071, DPDP Act): switching the module off never blocks erasing a guest's ID images.
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Documents);
+        cmd.MapPost("/commands/" + DocumentService.OpCapture, async (HttpContext http, CaptureIdDocumentRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).CaptureAsync(http.HccCommand(DocumentService.OpCapture), body, ct)));
-        g.MapPost("/commands/" + DocumentService.OpConfirm, async (HttpContext http, ConfirmIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + DocumentService.OpConfirm, async (HttpContext http, ConfirmIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).ConfirmAsync(http.HccCommand(DocumentService.OpConfirm), body, ct)));
-        g.MapPost("/commands/" + DocumentService.OpReject, async (HttpContext http, RejectIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + DocumentService.OpReject, async (HttpContext http, RejectIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).RejectAsync(http.HccCommand(DocumentService.OpReject), body, ct)));
         g.MapPost("/commands/" + DocumentService.OpViewImage, async (HttpContext http, ViewIdCaptureImageRequest body, IServiceProvider sp, CancellationToken ct) =>
         {

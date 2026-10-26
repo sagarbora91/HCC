@@ -1,12 +1,15 @@
+using Hcc.Api.Hosting;
 using Hcc.Application.Messaging;
 using Hcc.Contracts.Messaging;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Messaging;
 
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
-/// Messaging endpoints (W2-10). ALL SENDING IS SIMULATED. Commands: <c>POST /api/v1/commands/{SendMessage|RunMessagingTriggers|SimulateMessageDelivery|
+/// Messaging endpoints (W2-10). Sending is SIMULATED in Development and the tests; in Production the gateway is the not-configured one (A09-08):
+/// a manual send is refused (503 UNAVAILABLE, details.reason NOT_CONFIGURED, feature "messaging") and event-driven messages are recorded as Not sent. Commands: <c>POST /api/v1/commands/{SendMessage|RunMessagingTriggers|SimulateMessageDelivery|
 /// RetryMessage|SetMessagingConsent|UpdateMessageTemplate|UpdateMessageRule}</c>; reads under <c>/api/v1/messaging/*</c>. Recipients are masked everywhere.
 /// A background worker turns outbox events (confirmed booking, payment, departure) into queued messages.
 /// </summary>
@@ -15,7 +18,7 @@ public static class MessagingEndpoints
     public static IServiceCollection AddHccMessaging(this IServiceCollection services)
     {
         services.AddSingleton(new MessagingOptions());
-        services.AddSingleton<IMessageGateway, FakeMessageGateway>(); // a real WhatsApp/SMS gateway replaces this one registration
+        services.AddSingleton(SimulatedAdapters.MessageGateway); // A09-08: simulated outside Production, "not configured" in Production; a real WhatsApp/SMS gateway replaces this one registration
         services.AddSingleton<IMessagingDataFactory>(sp => new SqlMessagingDataFactory(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<TriggerEngine>();
         services.AddSingleton(sp => new MessagingTriggerProjector(sp.GetRequiredService<SqlPlatform>().Outbox, sp.GetRequiredService<SqlPlatform>().Connections,
@@ -30,19 +33,20 @@ public static class MessagingEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + MessagingCommands.OpSend, async (HttpContext http, SendMessageRequest body, MessagingCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Messaging); // DEC-057 / A11-01: refused while Guest messaging is off; reads stay
+        cmd.MapPost("/commands/" + MessagingCommands.OpSend, async (HttpContext http, SendMessageRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.SendAsync(http.HccCommand(MessagingCommands.OpSend), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpRunTriggers, async (HttpContext http, RunMessagingTriggersRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpRunTriggers, async (HttpContext http, RunMessagingTriggersRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.RunTriggersAsync(http.HccCommand(MessagingCommands.OpRunTriggers), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpSimulate, async (HttpContext http, SimulateMessageDeliveryRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpSimulate, async (HttpContext http, SimulateMessageDeliveryRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.SimulateAsync(http.HccCommand(MessagingCommands.OpSimulate), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpRetry, async (HttpContext http, RetryMessageRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpRetry, async (HttpContext http, RetryMessageRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.RetryAsync(http.HccCommand(MessagingCommands.OpRetry), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpConsent, async (HttpContext http, SetMessagingConsentRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpConsent, async (HttpContext http, SetMessagingConsentRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetConsentAsync(http.HccCommand(MessagingCommands.OpConsent), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpTemplate, async (HttpContext http, UpdateMessageTemplateRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpTemplate, async (HttpContext http, UpdateMessageTemplateRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.UpdateTemplateAsync(http.HccCommand(MessagingCommands.OpTemplate), body, ct)));
-        g.MapPost("/commands/" + MessagingCommands.OpRule, async (HttpContext http, UpdateMessageRuleRequest body, MessagingCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + MessagingCommands.OpRule, async (HttpContext http, UpdateMessageRuleRequest body, MessagingCommands c, CancellationToken ct) =>
             http.HccReply(await c.UpdateRuleAsync(http.HccCommand(MessagingCommands.OpRule), body, ct)));
 
         g.MapGet("/messaging/messages", async (HttpContext http, MessagingQueries q, CancellationToken ct, string? status = null, int page = 1, int pageSize = 50) =>
@@ -86,40 +90,7 @@ public static class MessagingEndpoints
 
 /// <summary>Polls the outbox for messaging trigger events every 2 s.</summary>
 // ETP-REUSE: align with ETP background-job hosting (Windows service worker, retry/back-off, logging) when ETP (V: drive) is available.
-public sealed partial class MessagingTriggerWorker(MessagingTriggerProjector projector, ILogger<MessagingTriggerWorker> logger) : BackgroundService
+public sealed class MessagingTriggerWorker(MessagingTriggerProjector projector, ILogger<MessagingTriggerWorker> logger) : OutboxPollingWorker(logger, "Messaging outbox projection")
 {
-    public static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await projector.RunOnceAsync(ct: stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-#pragma warning disable CA1031 // A failed poll is logged and retried on the next tick; the event stays undelivered.
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                LogFailed(logger, ex);
-            }
-
-            try
-            {
-                await Task.Delay(Interval, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Messaging outbox projection failed; retrying")]
-    private static partial void LogFailed(ILogger logger, Exception ex);
+    protected override Task PollAsync(CancellationToken ct) => projector.RunOnceAsync(ct: ct);
 }

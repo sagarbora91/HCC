@@ -16,7 +16,7 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
     private async Task<(long Rid, long Folio)> StayAsync(long rate = 200_000)
     {
         var (rid, folio) = await db.NewFolioAsync("InHouse", BillingDb.Day, BillingDb.Day.AddDays(3));
-        db.Stays[rid] = (folio, rate, 1000);
+        db.Stays[rid] = (folio, rate);
         return (rid, folio);
     }
 
@@ -29,7 +29,7 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         var key = BillingDb.Key();
         var first = await db.Billing.PostRoomNightAsync(db.As(Who.Manager), key, new PostRoomNightRequest(rid, BillingDb.Day), Ct);
         Assert.True(first.Value.Created);
-        Assert.Equal((200_000L, 1000, 20_000L), (first.Value.AmountPaise, first.Value.TaxBps, first.Value.TaxPaise));
+        Assert.Equal((200_000L, 500, 10_000L), (first.Value.AmountPaise, first.Value.TaxBps, first.Value.TaxPaise)); // ₹2,000 ≤ ₹7,500 → 5 % (DEC-069)
 
         var replay = await db.Billing.PostRoomNightAsync(db.As(Who.Manager), key, new PostRoomNightRequest(rid, BillingDb.Day), Ct);
         Assert.True(replay.Replayed);
@@ -61,7 +61,7 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
     public async Task Night_posting_needs_an_in_house_stay_inside_its_dates()
     {
         var (rid, folio) = await db.NewFolioAsync("Confirmed");
-        db.Stays[rid] = (folio, 100_000, 1000);
+        db.Stays[rid] = (folio, 100_000);
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid, BillingDb.Day), Ct));
         var (rid2, _) = await StayAsync();
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid2, BillingDb.Day.AddDays(-1)), Ct));
@@ -197,7 +197,7 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
             new RequestAdjustmentRequest("discount", folio, null, 25_000, "Loyalty", await db.FolioVersionAsync(folio)), Ct);
         Assert.Equal("Posted", small.Value.Outcome);
         var f = await db.Queries.GetFolioAsync(db.As(Who.Owner), folio, Ct);
-        Assert.Contains(f.Lines, l => l.Kind == "discount" && l.AmountPaise == -25_000 && l.TaxPaise == -2_500 && l.Label == "Discount · Loyalty");
+        Assert.Contains(f.Lines, l => l.Kind == "discount" && l.AmountPaise == -25_000 && l.TaxBps == 500 && l.TaxPaise == -1_250 && l.Label == "Discount · Loyalty"); // follows the 5 % room night
 
         await Fails(HccErrorCode.VALIDATION, () => db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(),
             new RequestAdjustmentRequest("discount", folio, null, 175_001, "Too much", f.Version), Ct));
@@ -217,7 +217,7 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.DecideApprovalAsync(db.As(Who.Owner), BillingDb.Key(), new DecideApprovalRequest(id, true, null, ok.Value.Version), Ct));
         var after = await db.Queries.GetFolioAsync(db.As(Who.Owner), folio, Ct);
         Assert.Equal(200_000 - 25_000 - 30_000, after.Totals.NetPaise);
-        Assert.Equal(14_500, after.Totals.TaxPaise);
+        Assert.Equal(10_000 - 1_250 - 1_500, after.Totals.TaxPaise); // 5 % of ₹2,000 − 5 % of ₹250 − 5 % of ₹300 = ₹72.50
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
     {
         var (_, folio) = await StayAsync();
         var charge = await db.Billing.PostChargeAsync(db.As(Who.Reception), BillingDb.Key(), new PostChargeRequest(folio, "Minibar", 33_333), Ct);
-        Assert.Equal(3_333, charge.Value.TaxPaise);
+        Assert.Equal((500, 1_667L), (charge.Value.TaxBps, charge.Value.TaxPaise)); // minibar = food, 5 % (not specified premises): 1,666.65 paise → 1,667
         await Fails(HccErrorCode.VALIDATION, () => db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(),
             new RequestAdjustmentRequest("correction", folio, charge.Value.ChargeId, 1_000, "Wrong", charge.Value.FolioVersion), Ct));
         var req = await db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(),
@@ -439,7 +439,9 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         var (rid, folio) = await StayAsync(1_500_000);
         var night = await db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid, BillingDb.Day), Ct);
         await Fails(HccErrorCode.VALIDATION, () => db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(), new RequestAdjustmentRequest("credit", folio, null, 1_000_000, "Acme", night.Value.FolioVersion), Ct));
-        var req = await db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(), new RequestAdjustmentRequest("credit", folio, null, 1_650_000, "Acme Travels", night.Value.FolioVersion), Ct);
+        // ₹15,000 a night is above ₹7,500 → 18 % = ₹2,700: the exact balance is ₹17,700 (was ₹16,500 at the pinned 10 %).
+        Assert.Equal((1800, 270_000L), (night.Value.TaxBps, night.Value.TaxPaise));
+        var req = await db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(), new RequestAdjustmentRequest("credit", folio, null, 1_770_000, "Acme Travels", night.Value.FolioVersion), Ct);
         var id = req.Value.ApprovalId!.Value;
         await Fails(HccErrorCode.APPROVAL_REQUIRED, () => db.Billing.DecideApprovalAsync(db.As(Who.Manager), BillingDb.Key(), new DecideApprovalRequest(id, true, null, req.Value.ApprovalVersion!), Ct));
         var ok = await db.Billing.DecideApprovalAsync(db.As(Who.Owner), BillingDb.Key(), new DecideApprovalRequest(id, true, null, req.Value.ApprovalVersion!), Ct);
@@ -447,6 +449,6 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         var done = await db.Billing.ExecuteAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(), new ExecuteAdjustmentRequest(id, ok.Value.Version, null, null, null), Ct);
         Assert.Equal("Executed", done.Value.Status);
         var f = await db.Queries.GetFolioAsync(db.As(Who.Owner), folio, Ct);
-        Assert.Equal((0L, 1_650_000L, 0L), (f.Totals.BalancePaise, f.Totals.CompanyCreditPaise, f.Totals.PaidPaise));
+        Assert.Equal((0L, 1_770_000L, 0L), (f.Totals.BalancePaise, f.Totals.CompanyCreditPaise, f.Totals.PaidPaise));
     }
 }

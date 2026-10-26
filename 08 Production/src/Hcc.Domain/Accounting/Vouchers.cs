@@ -115,11 +115,15 @@ public static class VoucherBuilder
     public static string Fingerprint(IEnumerable<Voucher> vouchers)
         => string.Join("|", vouchers.Select(v => v.SourceKey + "=" + v.Debit.ToString(CultureInfo.InvariantCulture)).Order(StringComparer.Ordinal));
 
+    /// <summary>Title of the exception for parked (stuck) accounting events (Wave C3; the prototype's mock uses the same text).</summary>
+    public const string StuckTitle = "Accounting events stuck — see System health";
+
     /// <summary>
     /// Exceptions for a date (spec §6): unbalanced voucher / day (error), unmapped key (error), snapshot drift (warning),
-    /// events still pending (error, production), day open (info).
+    /// events parked after repeated failures (error "stuck", production), events still pending (error, production), day open (info).
     /// </summary>
-    public static IReadOnlyList<AccountingIssue> Exceptions(IReadOnlyList<Voucher> shown, IReadOnlyList<Voucher>? live, bool locked, DayStatus status, int pendingEvents = 0)
+    public static IReadOnlyList<AccountingIssue> Exceptions(IReadOnlyList<Voucher> shown, IReadOnlyList<Voucher>? live, bool locked, DayStatus status, int pendingEvents = 0,
+        int parkedEvents = 0)
     {
         ArgumentNullException.ThrowIfNull(shown);
         var out_ = new List<AccountingIssue>();
@@ -138,6 +142,10 @@ public static class VoucherBuilder
         if (locked && live is not null && Fingerprint(shown) != Fingerprint(live))
             out_.Add(new("drift", "warning", "drift", "Live sources differ from the locked snapshot",
                 "Source records for this locked date changed after locking. The snapshot is kept; review and unlock if a correction is needed."));
+        // Wave C3 (fix wave A "Left open"): a parked event is not "still being processed" — it waits for a person to retry it.
+        if (parkedEvents > 0 && !locked)
+            out_.Add(new("stuck", "error", "stuck", StuckTitle,
+                $"{parkedEvents} posting event(s) for this property could not be booked after repeated attempts and were set aside. The Owner or the Tech admin can retry them in Admin & Setup › System health; this date cannot be locked until they are booked."));
         if (pendingEvents > 0 && !locked)
             out_.Add(new("pending", "error", "pending", "Accounting events still being processed",
                 $"{pendingEvents} posting event(s) for this property are not yet in the vouchers. Wait a moment, then lock."));

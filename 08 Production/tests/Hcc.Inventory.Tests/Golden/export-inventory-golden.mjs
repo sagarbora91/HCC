@@ -1,29 +1,22 @@
 // Exports P2 (inventory & reservations) golden figures from the prototype BASE scenario (read-only use of 03 Prototype/src).
-// Bundles the prototype mock service with esbuild (like 08 Production/tools/golden/export-golden.mjs), then writes the raw
-// BASE records (rooms, live bookings, group blocks, restrictions, tax) and the prototype's own computed figures
-// (availability search reasons, group-hold room assignment, stay-restriction violations, nightly rate/tax, BOOK outcomes) to
+// Bundles the prototype mock service with esbuild (shared helper ../../../tools/golden/golden-lib.mjs), then writes the raw
+// BASE records (rooms, live bookings, group blocks, restrictions) and the prototype's own computed figures
+// (availability search reasons, group-hold room assignment, stay-restriction violations, nightly rate/GST, BOOK outcomes) to
 //   08 Production/tests/Hcc.Inventory.Tests/Golden/inventory-base.golden.json
-// The C# tests load the raw records into SQL and must reproduce the figures exactly.
-// Usage (Node 24/25): node "08 Production/tests/Hcc.Inventory.Tests/Golden/export-inventory-golden.mjs" [--esbuild <esbuild.cmd>]
-import {spawnSync} from 'node:child_process';
-import path from 'node:path';import fs from 'node:fs';import os from 'node:os';import {fileURLToPath,pathToFileURL} from 'node:url';
+// The C# tests load the raw records into SQL and must reproduce the figures exactly. GST per night comes from the prototype's dated
+// GST master (DEC-069, gstForRoomNight on the agreed nightly price); the server reproduces it with its own master (migration 0600).
+// Usage (Node 25): node "08 Production/tests/Hcc.Inventory.Tests/Golden/export-inventory-golden.mjs" [--check] [--proto <path>]
+import path from 'node:path';import {fileURLToPath} from 'node:url';
+const SERVER_REASON={'Group hold':'GroupHold'}; // V14-5 renamed the group-hold reason; the golden keeps the code the server test compares
+import {CHECK,bundleMock,writeGolden} from '../../../tools/golden/golden-lib.mjs';
 const DIR=path.dirname(fileURLToPath(import.meta.url));
-const PROD=path.resolve(DIR,'..','..','..'),ROOT=path.resolve(PROD,'..'),PROTO=path.join(ROOT,'03 Prototype');
-const arg=n=>{const i=process.argv.indexOf(n);return i>0?process.argv[i+1]:undefined;};
-const esbuild=[arg('--esbuild'),path.join(PROTO,'node_modules','.bin','esbuild.cmd'),
-  'E:/Projects/HCC/Hotel Control Centre/03 Prototype/node_modules/.bin/esbuild.cmd'].filter(Boolean).find(p=>fs.existsSync(p));
-if(!esbuild)throw new Error('esbuild not found; run npm install in 03 Prototype or pass --esbuild');
-const outDir=fs.mkdtempSync(path.join(os.tmpdir(),'hcc-inv-golden-'));
-const bundle=path.join(outDir,'mock.mjs');
-const r=spawnSync(`"${esbuild}"`,[`"${path.join(PROTO,'src','services','mock','index.ts')}"`,'--bundle','--platform=node','--format=esm',`--outfile="${bundle}"`,'--log-level=error'],{shell:true,encoding:'utf8'});
-if(r.status!==0)throw new Error('esbuild failed: '+r.stderr+r.stdout);
-const M=await import(pathToFileURL(bundle).href);
-const {loadScenario,execute,resSearch,resCapacity,grpHolds,grpSlice,yldSlice,yldStayViolations,roomHold,availableRaw,available,rateFor,taxRateFor,addDays,nights,RES_HOLD_MINUTES}=M;
+const M=await bundleMock('mock-inventory');
+const {loadScenario,execute,resSearch,resCapacity,grpHolds,grpSlice,yldSlice,yldStayViolations,roomHold,availableRaw,available,rateFor,gstForRoomNight,gstLineTax,addDays,RES_HOLD_MINUTES}=M;
 
 const s=loadScenario('BASE');
 const live=b=>b.status==='Confirmed'||b.status==='In house'||b.status==='Held';
 const raw={
-  businessDate:s.date,clock:s.clock,taxBps:s.settings.taxBps,holdMinutes:RES_HOLD_MINUTES,
+  businessDate:s.date,clock:s.clock,holdMinutes:RES_HOLD_MINUTES,
   roomTypes:[...new Set(s.rooms.map(r=>r.type))].map(t=>({code:t,maxOccupancy:resCapacity(s.rooms.find(r=>r.type===t)),rackRatePaise:s.rooms.find(r=>r.type===t).rate})),
   rooms:s.rooms.map(r=>({roomNo:r.id,type:r.type,blocked:!!r.blocked,blockFrom:r.blockFrom??null,blockTo:r.blockTo??null})),
   bookings:s.bookings.filter(live).map(b=>({id:b.id,room:b.room,guest:b.guest,arrival:b.arrival,departure:b.departure,status:b.status,holdUntil:b.holdUntil??null,people:b.people,children:b.children??0})),
@@ -46,7 +39,8 @@ const queries=[
 const searches=queries.map(q=>{const res=resSearch(s,q);const rows=[...res.available,...res.excluded].sort((a,b)=>a.room.id.localeCompare(b.room.id));
   return {query:{arrival:q.arrival,departure:q.departure,adults:q.people,children:0,type:q.type??null},
     rooms:rows.map(x=>{const held=!!roomHold(s,x.room.id,q.arrival,q.departure);
-      const reasons=x.reasons.map(rr=>rr==='Booked'&&held&&!x.conflict?'GroupHold':rr);
+      // V14-5: the prototype says "Group hold"; the golden keeps "GroupHold" (src/clients/mock.ts REASON maps it the same way).
+      const reasons=x.reasons.map(rr=>rr==='Booked'&&held&&!x.conflict?'GroupHold':(SERVER_REASON[rr]??rr));
       return {roomNo:x.room.id,available:x.ok,reasons,availableRaw:availableRaw(s,x.room.id,q.arrival,q.departure),bookable:available(s,x.room.id,q.arrival,q.departure)};})};});
 
 const holds=grpHolds(s).map(h=>({roomNo:h.room,block:h.block,type:h.type,from:h.a,to:h.d}));
@@ -54,11 +48,11 @@ const holds=grpHolds(s).map(h=>({roomNo:h.room,block:h.block,type:h.type,from:h.
 const violationCases=[['Classic','2026-11-07','2026-11-08'],['Suite','2026-11-08','2026-11-10'],['Classic','2026-11-07','2026-11-09'],['Classic','2026-11-10','2026-11-11'],['Suite','2026-11-08','2026-11-09'],['Deluxe','2026-11-09','2026-11-10']]
   .map(([type,arrival,departure])=>({type,arrival,departure,violations:yldStayViolations(s,type,arrival,departure).map(v=>({code:v.code,restriction:v.restriction,message:v.message}))}));
 
-// Nightly rate and tax: BOOK stores rateFor(room, arrival) as the agreed nightly rate (WF-BOOK-001); each night is posted with
-// the tax rate effective on its service date (taxRateFor). Tax per night rounds half away from zero (Math.round on positives).
+// Nightly rate and GST: BOOK stores rateFor(room, arrival) as the agreed nightly rate (WF-BOOK-001); each night is taxed by the GST
+// master on its service date at that price per unit (gstForRoomNight: <= Rs 7,500 5 %, above 18 %); tax per line rounds half away from zero (gstLineTax).
 const quoteCases=[['105','2026-10-24','2026-10-26'],['203','2026-10-25','2026-10-28'],['106','2026-10-26','2026-10-27'],['107','2026-11-07','2026-11-09']].map(([room,arrival,departure])=>{
   const rm=s.rooms.find(r=>r.id===room),rate=rateFor(s,rm,arrival);const ns=[];
-  for(let d=arrival;d<departure;d=addDays(d,1)){const bps=taxRateFor(s,d);ns.push({date:d,ratePaise:rate,taxBps:bps,taxPaise:Math.round(rate*bps/10000)});}
+  for(let d=arrival;d<departure;d=addDays(d,1)){const bps=gstForRoomNight(s,d,rate).bps;ns.push({date:d,ratePaise:rate,taxBps:bps,taxPaise:gstLineTax(rate,bps)});}
   const net=ns.reduce((a,n)=>a+n.ratePaise,0),tax=ns.reduce((a,n)=>a+n.taxPaise,0);
   return {roomNo:room,type:rm.type,arrival,departure,nights:ns,netPaise:net,taxPaise:tax,totalPaise:net+tax,violations:yldStayViolations(s,rm.type,arrival,departure).map(v=>v.code)};});
 
@@ -86,6 +80,5 @@ const bookCases=[
 const out={generatedBy:'08 Production/tests/Hcc.Inventory.Tests/Golden/export-inventory-golden.mjs',source:"03 Prototype loadScenario('BASE')",fictionalDataOnly:true,
   raw,expected:{searches,holds,violationCases,quoteCases,bookCases}};
 const dest=path.join(DIR,'inventory-base.golden.json');
-fs.writeFileSync(dest,JSON.stringify(out,null,1)+'\n');
-fs.rmSync(outDir,{recursive:true,force:true});
-console.log('Wrote',dest,'searches',searches.length,'holds',holds.length,'bookCases',bookCases.map(c=>c.name+'='+c.result.code).join('; '));
+if(writeGolden(dest,JSON.stringify(out,null,1)+'\n')&&!CHECK)
+  console.log('Wrote',dest,'searches',searches.length,'holds',holds.length,'bookCases',bookCases.map(c=>c.name+'='+c.result.code).join('; '));

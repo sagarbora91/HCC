@@ -2,6 +2,7 @@ using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Application.Pos;
 using Hcc.Contracts.Pos;
+using Hcc.Domain.Configuration;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer.Pos;
 using Hcc.Infrastructure.SqlServer;
@@ -33,20 +34,22 @@ public static class PosEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        Command<CreateOutletRequest, OutletResult>(g, "CreateOutlet", (s, c, k, r, ct) => s.CreateOutletAsync(c, k, r, ct));
-        Command<SaveMenuItemRequest, MenuItemResult>(g, "SaveMenuItem", (s, c, k, r, ct) => s.SaveMenuItemAsync(c, k, r, ct));
-        MapMasters(g);
-        Command<DecideMenuChangeRequest, DecideMenuChangeResult>(g, "DecideMenuChange", (s, c, k, r, ct) => s.DecideMenuChangeAsync(c, k, r, ct));
-        Command<SetMenuItemAvailabilityRequest, MenuItemResult>(g, "SetMenuItemAvailability", (s, c, k, r, ct) => s.SetMenuItemAvailabilityAsync(c, k, r, ct));
-        Command<OpenCheckRequest, CheckResult>(g, "OpenCheck", (s, c, k, r, ct) => s.OpenCheckAsync(c, k, r, ct));
-        Command<AddCheckItemRequest, CheckResult>(g, "AddCheckItem", (s, c, k, r, ct) => s.AddItemAsync(c, k, r, ct));
-        Command<SetCheckItemQtyRequest, CheckResult>(g, "SetCheckItemQty", (s, c, k, r, ct) => s.SetItemQtyAsync(c, k, r, ct));
-        Command<SendKotRequest, KotResult>(g, "SendKot", (s, c, k, r, ct) => s.SendKotAsync(c, k, r, ct));
-        Command<AdvanceKotRequest, KotResult>(g, "AdvanceKot", (s, c, k, r, ct) => s.AdvanceKotAsync(c, k, r, ct));
-        Command<SettleCheckRequest, SettleResult>(g, "SettleCheck", (s, c, k, r, ct) => s.SettleCheckAsync(c, k, r, ct));
-        Command<VoidCheckItemRequest, VoidResult>(g, "VoidCheckItem", (s, c, k, r, ct) => s.VoidItemAsync(c, k, r, ct));
-        Command<VoidBillRequest, VoidResult>(g, "VoidBill", (s, c, k, r, ct) => s.VoidBillAsync(c, k, r, ct));
-        Command<DecideVoidRequest, DecideVoidResult>(g, "DecideVoid", (s, c, k, r, ct) => s.DecideVoidAsync(c, k, r, ct));
+        var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Pos); // DEC-057 / A11-01: refused while Restaurant & POS is off; reads stay
+        Command<CreateOutletRequest, OutletResult>(cmd, "CreateOutlet", (s, c, k, r, ct) => s.CreateOutletAsync(c, k, r, ct));
+        Command<SaveMenuItemRequest, MenuItemResult>(cmd, "SaveMenuItem", (s, c, k, r, ct) => s.SaveMenuItemAsync(c, k, r, ct));
+        MapMasters(g);   // MA-4 POS masters (outlets, tables, menu): configuration, not refused while POS is off, so the Owner can
+                         // prepare the menu before switching POS on (DEC-057 refuses the module's operations, not its master lists)
+        Command<DecideMenuChangeRequest, DecideMenuChangeResult>(cmd, "DecideMenuChange", (s, c, k, r, ct) => s.DecideMenuChangeAsync(c, k, r, ct));
+        Command<SetMenuItemAvailabilityRequest, MenuItemResult>(cmd, "SetMenuItemAvailability", (s, c, k, r, ct) => s.SetMenuItemAvailabilityAsync(c, k, r, ct));
+        Command<OpenCheckRequest, CheckResult>(cmd, "OpenCheck", (s, c, k, r, ct) => s.OpenCheckAsync(c, k, r, ct));
+        Command<AddCheckItemRequest, CheckResult>(cmd, "AddCheckItem", (s, c, k, r, ct) => s.AddItemAsync(c, k, r, ct));
+        Command<SetCheckItemQtyRequest, CheckResult>(cmd, "SetCheckItemQty", (s, c, k, r, ct) => s.SetItemQtyAsync(c, k, r, ct));
+        Command<SendKotRequest, KotResult>(cmd, "SendKot", (s, c, k, r, ct) => s.SendKotAsync(c, k, r, ct));
+        Command<AdvanceKotRequest, KotResult>(cmd, "AdvanceKot", (s, c, k, r, ct) => s.AdvanceKotAsync(c, k, r, ct));
+        Command<SettleCheckRequest, SettleResult>(cmd, "SettleCheck", (s, c, k, r, ct) => s.SettleCheckAsync(c, k, r, ct));
+        Command<VoidCheckItemRequest, VoidResult>(cmd, "VoidCheckItem", (s, c, k, r, ct) => s.VoidItemAsync(c, k, r, ct));
+        Command<VoidBillRequest, VoidResult>(cmd, "VoidBill", (s, c, k, r, ct) => s.VoidBillAsync(c, k, r, ct));
+        Command<DecideVoidRequest, DecideVoidResult>(cmd, "DecideVoid", (s, c, k, r, ct) => s.DecideVoidAsync(c, k, r, ct));
         g.MapGet("/pos/checks/{orderId:long}", async (long orderId, HttpContext http, PosQueries q, CancellationToken ct)
             => Results.Ok(await q.GetCheckAsync(http.PosCaller(), orderId, ct).ConfigureAwait(false)));
         g.MapGet("/pos/checks", async (HttpContext http, PosQueries q, CancellationToken ct)

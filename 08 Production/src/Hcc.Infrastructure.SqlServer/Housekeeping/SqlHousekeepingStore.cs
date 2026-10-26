@@ -264,27 +264,40 @@ public sealed class SqlHousekeepingReadStore(SqlConnectionFactory connections) :
         return await P3Sql.BusinessDateAsync(cmd, propertyId, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The room board: one row per room with its active block, the current guest (open stay segment) and the next arrival (the
+    /// earliest Confirmed reservation, by arrival then id, holding a night in the room). A09-18: both used to be per-room TOP (1)
+    /// subqueries whose plans walked the room's history (every room night, or the whole reservation / segment table, once per
+    /// room). They are now read once for the property: open segments from UX_stay_segment_open_room (at most one per room, so the
+    /// join cannot repeat a room) and Confirmed reservations from the filtered index IX_reservation_confirmed (migration 3930), so
+    /// the cost follows the guests in house and the future bookings, not the history. Same rows, column for column.
+    /// </summary>
+    public const string BoardSql = """
+        SELECT r.room_id, r.room_no, t.code, r.hk_status, r.row_ver,
+               b.block_id, b.room_id, b.from_date, b.to_date, b.reason, b.source, b.row_ver,
+               cur.guest_name, cur.arrival, cur.departure,
+               nxt.guest_name, nxt.arrival, nxt.departure
+        FROM inv.room r
+        JOIN inv.room_type t ON t.room_type_id = r.room_type_id
+        LEFT JOIN ops.room_block b ON b.room_id = r.room_id AND b.released_utc IS NULL
+        LEFT JOIN (SELECT seg.room_id, res.guest_name, s.arrival, s.departure
+                   FROM gst.stay_segment seg JOIN gst.stay s ON s.stay_id = seg.stay_id JOIN inv.reservation res ON res.reservation_id = s.reservation_id
+                   WHERE seg.to_date IS NULL) cur ON cur.room_id = r.room_id
+        LEFT JOIN (SELECT x.room_id, x.guest_name, x.arrival, x.departure
+                   FROM (SELECT night.room_id, res.guest_name, res.arrival, res.departure,
+                                ROW_NUMBER() OVER (PARTITION BY night.room_id ORDER BY res.arrival, res.reservation_id) AS pick
+                         FROM inv.reservation res
+                         CROSS APPLY (SELECT DISTINCT n.room_id FROM inv.room_night n WHERE n.reservation_id = res.reservation_id) night
+                         WHERE res.status = 'Confirmed') x
+                   WHERE x.pick = 1) nxt ON nxt.room_id = r.room_id
+        WHERE r.property_id = @p
+        ORDER BY r.room_no;
+        """;
+
     public async Task<IReadOnlyList<BoardRoomData>> BoardAsync(int propertyId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command($"""
-            SELECT r.room_id, r.room_no, t.code, r.hk_status, r.row_ver,
-                   b.block_id, b.room_id, b.from_date, b.to_date, b.reason, b.source, b.row_ver,
-                   cur.guest_name, cur.arrival, cur.departure,
-                   nxt.guest_name, nxt.arrival, nxt.departure
-            FROM inv.room r
-            JOIN inv.room_type t ON t.room_type_id = r.room_type_id
-            LEFT JOIN ops.room_block b ON b.room_id = r.room_id AND b.released_utc IS NULL
-            OUTER APPLY (SELECT TOP (1) res.guest_name, s.arrival, s.departure
-                         FROM gst.stay_segment seg JOIN gst.stay s ON s.stay_id = seg.stay_id JOIN inv.reservation res ON res.reservation_id = s.reservation_id
-                         WHERE seg.room_id = r.room_id AND seg.to_date IS NULL) cur
-            OUTER APPLY (SELECT TOP (1) res.guest_name, res.arrival, res.departure
-                         FROM inv.reservation res
-                         WHERE res.status = 'Confirmed' AND EXISTS (SELECT 1 FROM inv.room_night n WHERE n.reservation_id = res.reservation_id AND n.room_id = r.room_id)
-                         ORDER BY res.arrival, res.reservation_id) nxt
-            WHERE r.property_id = @p
-            ORDER BY r.room_no;
-            """, conn);
+        await using var cmd = connections.Command(BoardSql, conn);
         cmd.Add("@p", SqlDbType.Int, propertyId);
         var list = new List<BoardRoomData>();
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);

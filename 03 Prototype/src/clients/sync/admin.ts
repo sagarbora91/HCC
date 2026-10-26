@@ -1,7 +1,8 @@
 // Admin area (W4-5): users, role templates / fine-grained policy, user exceptions, approvals & audit, Master configuration.
 // Screens: features/admin (Access control, Approvals & audit, Master configuration + its dialogs) and mobile/admin.
 // Server (08 Production): Access — GET /admin/users, /admin/roles, /admin/exceptions, /admin/audit; commands CreateUser,
-// SetUserEnabled, AssignRole, RevokeRole, SetCredential, GrantException, RevokeException, RegisterDevice, RevokeDevice.
+// SetUserEnabled, AssignRole, RevokeRole, SetCredential, GrantException, RevokeException, RegisterDevice, RevokeDevice; ChangeOwnCredential
+// (every signed-in user, A02b-05; the only command while an administrator-set password / PIN must be changed, A06-01).
 // Configuration — GET /configuration/values (every user), /configuration/history, /configuration/requests; commands SetSetting,
 // DecideSettingRequest, WithdrawScheduledSetting, RevertSetting, ImportConfiguration. GST master (DEC-069, Hcc.Contracts.Tax) —
 // GET /tax/gst?date= (Owner, Tech admin view); commands SetGstSetting, WithdrawGstSetting (Owner only, reason required). The server
@@ -25,6 +26,7 @@ import type {SyncArea,LoaderCtx,CommandCtx,SyncMe} from './types';
 import {serverId,protoId,utcToClock,clockToUtc,utcToDate} from './map';
 import {ROLE_MAP,permissionsFromGrants} from './capabilities';
 import {gstinProblem} from '../../domain/gstin';
+import {OWN_CREDENTIAL_CHANGE,ownCredentialProblem,type CredKind} from '../../domain/credentials';
 
 // ───────────── Server DTOs (Hcc.Contracts.Access / Configuration) ─────────────
 export type SrvGrant={permissionId:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null};
@@ -307,6 +309,16 @@ export const admin:SyncArea={
       precheck:(cmd,s,me)=>noSelf(cmd,me)??(!cmd.key?'Open the credential dialog to set a PIN or password.':!userOf(s,cmd.id)?'User not found.':!cmd.pin===!cmd.password?'Give either a PIN or a password.':undefined),
       async send(c){const u=userOf(c.state,c.cmd.id)!;
         await c.api.command('SetCredential',{userId:serverId(u.id,'User'),password:c.cmd.password?String(c.cmd.password):null,pin:c.cmd.pin?String(c.cmd.pin):null,expectedVersion:userVersion(c,u.id)});}},
+    // A02b-05 · every signed-in user changes their own password / PIN (also the only command while an administrator-set one must be
+    // changed, A06-01). Same rules as the server (domain/credentials.ts); the screen's key never contains a secret. The runtime then
+    // re-keys the offline copy with the new secret and reloads everything (runtime.ts credentialChanged).
+    {type:OWN_CREDENTIAL_CHANGE,reload:[],
+      precheck:(cmd,_s,me)=>{if(!cmd.key)return 'Open "Change my password / PIN" to change it.';
+        const kind:CredKind=me.credentialKind??'PASSWORD';const next=String((kind==='PIN'?cmd.newPin:cmd.newPassword)??'');
+        if(kind==='PIN'?!cmd.newPin||cmd.newPassword:!cmd.newPassword||cmd.newPin)return `Your account signs in with a ${kind==='PIN'?'PIN':'password'}.`;
+        return ownCredentialProblem(kind,String(cmd.current??''),next,next);},
+      async send(c){const cmd=c.cmd;
+        await c.api.command('ChangeOwnCredential',{current:String(cmd.current),newPassword:cmd.newPassword?String(cmd.newPassword):null,newPin:cmd.newPin?String(cmd.newPin):null});}},
     {type:'DEVICE_REGISTER',reload:[],precheck:cmd=>String(cmd.label??'').trim()?undefined:'Name the device (e.g. Front desk tablet).',
       async send(c){const r=await c.api.command<{deviceId:number;deviceToken?:string|null}>('RegisterDevice',{label:String(c.cmd.label).trim()});
         return {result:{deviceId:protoId(r.deviceId),deviceToken:r.deviceToken??null}};}},

@@ -30,9 +30,9 @@ public static class AccountingDays
         var lk = await store.CurrentLockAsync(tx, propertyId, date, ct).ConfigureAwait(false);
         var reopened = lk is null ? await store.ReopenedDateAsync(tx, propertyId, ct).ConfigureAwait(false) : null;
         var status = Status(lk is not null, date, businessDate, reopened);
-        var pending = lk is null ? await store.PendingEventsAsync(tx, propertyId, ct).ConfigureAwait(false) : 0;
+        var pending = lk is null ? await store.PendingEventsAsync(tx, propertyId, ct).ConfigureAwait(false) : new PendingEvents(0, 0);
         var shown = lk?.Vouchers ?? live;
-        return new AccountingDayState(date, status, lk, live, shown, VoucherBuilder.Exceptions(shown, live, lk is not null, status, pending), mapping);
+        return new AccountingDayState(date, status, lk, live, shown, VoucherBuilder.Exceptions(shown, live, lk is not null, status, pending.Pending, pending.Parked), mapping);
     }
 
     /// <summary>
@@ -49,13 +49,18 @@ public static class AccountingDays
     /// <summary>Shown vouchers (snapshot for locked dates, live otherwise) for every date with activity in [from, to].</summary>
     public static async Task<IReadOnlyList<(DateOnly Date, IReadOnlyList<Voucher> Vouchers)>> RangeAsync(IAccountingStore store, int propertyId, DateOnly from, DateOnly to,
         CancellationToken ct)
+        => (await RangeWithLocksAsync(store, propertyId, from, to, ct).ConfigureAwait(false)).Select(x => (x.Date, x.Vouchers)).ToList();
+
+    /// <summary><see cref="RangeAsync"/> plus whether each date's vouchers are its lock snapshot (A03b-05: a locked date is never provisional).</summary>
+    public static async Task<IReadOnlyList<(DateOnly Date, IReadOnlyList<Voucher> Vouchers, bool Locked)>> RangeWithLocksAsync(IAccountingStore store, int propertyId,
+        DateOnly from, DateOnly to, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(store);
         var mapping = await store.EffectiveMappingAsync(null, propertyId, ct).ConfigureAwait(false);
         var sources = await store.SourcesAsync(null, propertyId, from, to, ct).ConfigureAwait(false);
         var locks = (await store.LocksAsync(null, propertyId, from, to, ct).ConfigureAwait(false)).ToDictionary(l => l.BusinessDate);
         var dates = sources.Select(s => s.BusinessDate).Concat(locks.Keys).Distinct().Order().ToList();
-        return dates.Select(d => (d, locks.TryGetValue(d, out var l) ? l.Vouchers : VoucherBuilder.Build(d, sources, mapping))).ToList();
+        return dates.Select(d => locks.TryGetValue(d, out var l) ? (d, l.Vouchers, true) : (d, VoucherBuilder.Build(d, sources, mapping), false)).ToList();
     }
 }
 

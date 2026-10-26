@@ -232,15 +232,17 @@ public class GstSqlTests(GstIdsDb db) : IClassFixture<GstIdsDb>
             await db.Billing.RecordReceiptAsync(db.As("CSH"), GstIdsDb.Key(), new RecordReceiptRequest(folio, r.Kind, "Cash", r.AmountPaise, null, till.TillId), Ct);
         }
 
-        // Restaurant cash bill: net from the DEC-039 fixture (₹550 = ₹500 + 10 %), re-taxed by the GST master (₹500 + 5 % = ₹525).
+        // Restaurant cash bill: the prototype's net taxed by THIS server's GST master must give the prototype's own gross and tax
+        // (₹500 + 5 % = ₹525; since A08-04 the golden carries the DEC-069 figures instead of the DEC-039 ₹550 = ₹500 + 10 %).
         await db.Runner.RunAsync(new(db.PropertyId, db.User["CSH"], "GstBaseOutlet", GstIdsDb.Key()), new { fixture = "BASE" }, async (tx, ct) =>
         {
             var n = 0;
             foreach (var o in g.OutletReceipts.Where(o => o.Method == "Cash"))
             {
-                Assert.Equal(0, o.AmountPaise * 10_000 % 11_000);
-                var net = new Paise(o.AmountPaise * 10_000 / 11_000);
+                var net = new Paise(o.NetPaise);
+                Assert.Equal((o.TaxBps, o.TaxPaise), (food.Bps, GstMath.LineTax(net, food.Bps).Value));
                 var gross = net + GstMath.LineTax(net, food.Bps);
+                Assert.Equal(o.AmountPaise, gross.Value);
                 Assert.Equal(52_500, gross.Value);
                 await db.Cashier.RecordMovementAsync(tx, till.TillId, CashMovementKind.PosSale, "pos-receipt", ++n, gross, "Restaurant · BASE", "POS", ct);
             }

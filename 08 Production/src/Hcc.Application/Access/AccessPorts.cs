@@ -136,8 +136,13 @@ public interface IAccessEvaluator
     Task<AccessDecision> EvaluateAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default);
 }
 
-/// <summary>A validated server session (contracts §1). The actor of every request comes from here, never from the body.</summary>
-public sealed record AuthenticatedSession(long SessionId, int UserId, int PropertyId, string DisplayName, CredentialKind Kind, int? DeviceId, DateTime IdleExpiresUtc, DateTime AbsoluteExpiresUtc)
+/// <summary>
+/// A validated server session (contracts §1). The actor of every request comes from here, never from the body.
+/// <see cref="MustChangeCredential"/> (A06-01): the session was opened with a password / PIN an administrator set; until the user
+/// changes it, the API answers every request except /me/capabilities and ChangeOwnCredential with <see cref="Hcc.Domain.Access.CredentialChangeGate.Refusal"/>.
+/// </summary>
+public sealed record AuthenticatedSession(long SessionId, int UserId, int PropertyId, string DisplayName, CredentialKind Kind, int? DeviceId, DateTime IdleExpiresUtc, DateTime AbsoluteExpiresUtc,
+    bool MustChangeCredential = false)
 {
     public CommandContext CommandContext(string operation, string idempotencyKey) => new(PropertyId, UserId, operation, idempotencyKey);
 

@@ -15,7 +15,9 @@ public enum FireResult
 /// Turns a business event into messages (prototype <c>msgPendingTriggers</c> + <c>MSG_RUN_RULES</c>), inside whatever transaction
 /// <see cref="IMessagingData"/> is bound to: a trigger consumer's outbox transaction or the RunMessagingTriggers command.
 /// One message per (rule, event) through <c>msg.message.trigger_key</c>, so redelivery and re-runs never double-send. A message that
-/// consent, opt-out or a missing contact forbids is still recorded, as "Not sent" with the reason (visible, never delivered).
+/// consent, opt-out or a missing contact forbids is still recorded, as "Not sent" with the reason (visible, never delivered). The same
+/// goes when messaging is not configured on the server (Production without a provider, A09-08): the message is recorded as
+/// "Not sent: Messaging not configured" instead of the gateway refusing, so the outbox consumer never fails or parks the event.
 /// </summary>
 public sealed class TriggerEngine(IMessageGateway gateway, MessagingOptions options)
 {
@@ -54,9 +56,11 @@ public sealed class TriggerEngine(IMessageGateway gateway, MessagingOptions opti
             options.CheckInTime, options.CheckOutTime, figures.TotalPaise, figures.BalancePaise, figures.ReceiptPaise));
         var consent = await d.GetConsentAsync(propertyId, booking.GuestId, ct).ConfigureAwait(false);
         var why = MessagingRules.BlockReason(consent, booking.Contact, rule.Channel);
+        if (why.Length == 0 && !gateway.IsConfigured) why = MessagingNotConfigured.BlockedReason;
         var recipient = MessagingRules.Recipient(booking.Contact, rule.Channel);
         var id = await d.NextMessageIdAsync(ct).ConfigureAwait(false);
-        var outcome = gateway.Submit(new OutboundMessage(id, rule.Channel, recipient.Valid));
+        // Nothing is submitted when no gateway is configured; the stored outcome is a placeholder that a Not sent message never shows.
+        var outcome = gateway.IsConfigured ? gateway.Submit(new OutboundMessage(id, rule.Channel, recipient.Valid)) : MsgOutcome.Failed;
         var body = MessagingRules.Render(template.Def.Body, values).Text;
         var subject = rule.Channel == MsgChannel.Email ? MessagingRules.Render(template.Def.Subject, values).Text : null;
         var inserted = await d.InsertMessageAsync(new NewMessage(id, propertyId, reservationId, booking.GuestId, rule.TemplateCode, rule.Channel, recipient.Masked, subject, body,

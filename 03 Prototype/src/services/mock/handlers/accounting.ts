@@ -2,8 +2,7 @@
 import type {Handler,Kit} from '../commands';
 import {money} from '../../../domain/money';
 import {rbacMoneyAdmin,rbacCanTally} from '../../../domain/streams/rbac';
-import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accAccount,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accLedgerName,accTallyXml,type ACCState} from '../../../domain/streams/accounting';
-import {closingReopened} from '../../../domain/streams/closing';
+import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accAccount,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accLedgerName,accTallyXml,accTallyPendingReason,type ACCState} from '../../../domain/streams/accounting';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 /** Writable slice on the cloned state (creates it for old saves). */
@@ -40,10 +39,12 @@ export const handlers:Record<string,Handler>={
     if(!rbacCanTally(s,uid))fail('FORBIDDEN','Access denied: the Tally export is for the Owner and the Accountant (DEC-063 G13).');
     const p=accTallyXml(s,String(cmd.from??''),String(cmd.to??''));
     if(p.error)fail('VALIDATION',p.error);
-    const x=slice(k),open=closingReopened(s)?.date,flags={...(x.reexport??{})};
-    for(const d of p.reexport)if(d!==open)delete flags[d];
+    const x=slice(k),flags={...(x.reexport??{})};
+    // A flag is cleared by an export that carries its date when the date is no longer provisional (reopened, or A03b-05: pending events).
+    for(const d of p.reexport)if(!p.provisional.includes(d))delete flags[d];
+    for(const d of p.lagging)if(!flags[d])flags[d]={at:s.clock,reason:accTallyPendingReason(p.pending)};
     x.reexport=flags;
-    x.tallyExports=[...(x.tallyExports??[]),{id:id('TLY'),at:s.clock,by:uid,from:p.from,to:p.to,dates:p.dateList,reexport:p.reexport,provisional:p.provisional,count:p.count}];
+    x.tallyExports=[...(x.tallyExports??[]),{id:id('TLY'),at:s.clock,by:uid,from:p.from,to:p.to,dates:p.dateList,reexport:p.reexport,provisional:p.provisional,count:p.count,ids:true}];
     return `Simulated Tally XML exported · ${p.count} voucher(s) over ${p.dates} date(s)`+(p.reexport.length?` · re-export ${p.reexport.join(', ')}`:'');
   },
   // Change the ledger for one source classification (affects unlocked dates only).

@@ -11,7 +11,9 @@
     "Hcc.Api.exe migrate" in an elevated PowerShell (their own Windows login, sysadmin), only at install and upgrade.
     -RuntimeDbOwner keeps the old db_owner grant (not recommended; only if a future version needs it and says so).
   - Backup account (default NT AUTHORITY\SYSTEM, the account the scheduled tasks run as): login + db_backupoperator + db_datareader
-    (row-count check of the drill), and dbcreator with -GrantDrillRights so the restore drill can create its scratch copy.
+    (row-count check of the drill), and dbcreator with -GrantDrillRights so the restore drill can create its scratch copy. A09-05: once
+    migration 3920 has run, also hcc_backup_reporter (may only add rows to plat.backup_run: the backup results System health shows;
+    "migrate" adds the existing backup operators itself, so this matters when the script is re-run).
   - Backup folder (F-H03): created or re-protected with inheritance REMOVED; only SYSTEM, Administrators (full), the SQL Server
     service NT Service\MSSQL$<instance> (it writes the .bak) and the backup account (Modify) get in. Logs and drill folders below it
     inherit that. No other Windows user of this PC can open the backups.
@@ -52,6 +54,8 @@ if ($BackupAccount -ne $ServiceAccount) {
     $steps += ('IF SUSER_ID({0}) IS NULL CREATE LOGIN {1} FROM WINDOWS;' -f (ConvertTo-HccSqlLiteral $BackupAccount), $backupLogin)
     $steps += ('USE {0}; IF USER_ID({1}) IS NULL CREATE USER {2} FOR LOGIN {2}; ALTER ROLE db_backupoperator ADD MEMBER {2}; ALTER ROLE db_datareader ADD MEMBER {2};' -f $db, (ConvertTo-HccSqlLiteral $BackupAccount), $backupLogin)
 }
+# A09-05: the backup account records each run's result for System health (role from migration 3920; skipped before that migration).
+$steps += ("USE {0}; IF DATABASE_PRINCIPAL_ID(N'hcc_backup_reporter') IS NOT NULL AND USER_ID({1}) IS NOT NULL AND IS_ROLEMEMBER(N'hcc_backup_reporter', {1}) = 0 ALTER ROLE hcc_backup_reporter ADD MEMBER {2};" -f $db, (ConvertTo-HccSqlLiteral $BackupAccount), $backupLogin)
 if ($GrantDrillRights) { $steps += ('ALTER SERVER ROLE dbcreator ADD MEMBER {0};' -f $backupLogin) }
 $folderWriters = @($sqlService) + @($BackupAccount | Where-Object { $_ -and $_ -ne 'NT AUTHORITY\SYSTEM' -and $_ -ne 'SYSTEM' })
 $icacls = Get-HccProtectedDirectoryArgs -Path $BackupDirectory -ModifyAccounts $folderWriters

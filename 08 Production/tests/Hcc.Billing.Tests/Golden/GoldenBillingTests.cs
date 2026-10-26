@@ -33,8 +33,9 @@ public sealed record GoldenJourney(string Room, IReadOnlyList<GLine> Lines, IRea
 
 /// <summary>
 /// Golden figures reproduced end-to-end through the P4 commands on SQL Server (not just the kernel): the prototype BASE drawer
-/// ₹10,750 and collections ₹21,500, and the Room 105 journey invoice ₹4,400 incl. ₹400 tax with the ₹500 deposit kept separate.
-/// Constants are the prototype tests' own assertions (03 Prototype/tests/run.mjs, stream-a2-till.mjs).
+/// ₹10,725 and collections ₹21,500, and the Room 105 journey invoice ₹4,265 incl. ₹265 tax with the ₹500 deposit kept separate,
+/// all under the DEC-069 GST master (the harness uses the real master resolver since A08-04; before, a pinned DEC-039 10 % gave
+/// ₹10,750 / ₹4,400). Constants are the prototype tests' own assertions (03 Prototype/tests/run.mjs, stream-a2-till.mjs).
 /// </summary>
 [Trait("Category", "Sql")]
 public class GoldenBillingTests(BillingDb db) : IClassFixture<BillingDb>
@@ -42,9 +43,10 @@ public class GoldenBillingTests(BillingDb db) : IClassFixture<BillingDb>
     private static readonly Golden G = Golden.Load();
 
     [Fact]
-    public async Task BASE_drawer_is_10750_and_collections_21500_through_commands()
+    public async Task BASE_drawer_is_10725_and_collections_21500_through_commands()
     {
-        Assert.Equal(1_075_000, G.Base.Expected.DrawerPaise);
+        // ₹10,725 = ₹5,000 float + ₹7,000 cash payments − ₹1,800 posted cash expense + ₹525 restaurant cash (₹500 + 5 % GST).
+        Assert.Equal(1_072_500, G.Base.Expected.DrawerPaise);
         Assert.Equal(2_150_000, G.Base.Expected.CollectionsPaise);
         var date = DateOnly.Parse(G.Base.BusinessDate, System.Globalization.CultureInfo.InvariantCulture);
         Assert.Equal(BillingDb.Day, date);
@@ -70,9 +72,10 @@ public class GoldenBillingTests(BillingDb db) : IClassFixture<BillingDb>
         }, TestContext.Current.CancellationToken);
 
         var view = await db.Queries.GetShiftAsync(db.As(Who.Cashier), shift.ShiftId, TestContext.Current.CancellationToken);
-        Assert.Equal(1_075_000, view.Expected.ExpectedPaise);
-        Assert.Equal("₹10,750", new Paise(view.Expected.ExpectedPaise).ToString());
-        Assert.Equal(G.Base.Expected.OutletCashPaise, view.Expected.RestaurantPaise); // ₹550
+        Assert.Equal(1_072_500, view.Expected.ExpectedPaise);
+        Assert.Equal("₹10,725", new Paise(view.Expected.ExpectedPaise).ToString());
+        Assert.Equal(G.Base.Expected.OutletCashPaise, view.Expected.RestaurantPaise); // ₹525
+        Assert.Equal(52_500, view.Expected.RestaurantPaise);
         Assert.Equal(700_000, view.Expected.PaymentsPaise);
         Assert.Equal(180_000, view.Expected.ExpensesPaise);
         Assert.True(view.Expected.Consistent);
@@ -91,11 +94,12 @@ public class GoldenBillingTests(BillingDb db) : IClassFixture<BillingDb>
         Assert.Equal(1_450_000, collections.ByTenderPaise["UPI"]);
 
         // The count reconciles exactly and closes the shift; the next shift opens with that cash as its float (DEC-035).
+        // ₹10,725 = 21 × ₹500 + 1 × ₹200 + 1 × ₹20 + ₹5 in coins.
         var closed = await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), BillingDb.Key(),
-            new SubmitShiftCountRequest(shift.ShiftId, 1_075_000, new Dictionary<string, int> { ["500"] = 21, ["200"] = 1, ["50"] = 1 }, 0, null, view.Shift.Version), TestContext.Current.CancellationToken);
+            new SubmitShiftCountRequest(shift.ShiftId, 1_072_500, new Dictionary<string, int> { ["500"] = 21, ["200"] = 1, ["20"] = 1 }, 500, null, view.Shift.Version), TestContext.Current.CancellationToken);
         Assert.Equal("Closed", closed.Value.Status);
         var next = await db.Cashier.OpenShiftAsync(db.As(Who.Cashier), BillingDb.Key(), new OpenShiftRequest(till, null), TestContext.Current.CancellationToken);
-        Assert.Equal(1_075_000, next.Value.OpeningFloatPaise);
+        Assert.Equal(1_072_500, next.Value.OpeningFloatPaise);
     }
 }
 
@@ -106,7 +110,7 @@ public class GoldenJourneyTests(BillingDb db) : IClassFixture<BillingDb>
     private static readonly Golden G = Golden.Load();
 
     [Fact]
-    public async Task Room_105_journey_invoice_is_4400_with_400_tax_and_the_500_deposit_kept_separate()
+    public async Task Room_105_journey_invoice_is_4265_with_265_tax_and_the_500_deposit_kept_separate()
     {
         var j = G.Journey;
         Assert.Equal("105", j.Room);
@@ -115,19 +119,21 @@ public class GoldenJourneyTests(BillingDb db) : IClassFixture<BillingDb>
         var (till, _) = await db.OpenTillAsync(0, "J105");
         var (rid, folio) = await db.NewFolioAsync("InHouse", day, day.AddDays(2));
         var room = j.Lines.Where(l => l.Kind == "room").ToList();
-        db.Stays[rid] = (folio, room[0].AmountPaise, room[0].TaxBps);
+        db.Stays[rid] = (folio, room[0].AmountPaise);
         var ct = TestContext.Current.CancellationToken;
         var receipts = j.Receipts;
 
-        // Financial Rulebook §3 order. 24 Oct: advance + refundable deposit (cash), night 1.
+        // Financial Rulebook §3 order. 24 Oct: advance + refundable deposit (cash), night 1 (₹2,000 ≤ ₹7,500 → 5 % = ₹100).
         await db.PayAsync(folio, receipts[0].AmountPaise, receipts[0].Method, receipts[0].Kind, till);
         await db.PayAsync(folio, receipts[1].AmountPaise, receipts[1].Method, receipts[1].Kind, till);
         var n1 = await db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid, day), ct);
-        Assert.Equal((200_000L, 20_000L, "Room night · 2026-10-24"), (n1.Value.AmountPaise, n1.Value.TaxPaise, n1.Value.Label));
+        Assert.Equal((200_000L, 500, 10_000L, "Room night · 2026-10-24"), (n1.Value.AmountPaise, n1.Value.TaxBps, n1.Value.TaxPaise, n1.Value.Label));
 
-        // Laundry + discount above the reception limit (₹250) → approval by the manager (approver ≠ requester, DEC-041).
+        // Laundry (18 % = ₹90) + discount above the reception limit (₹250) → approval by the manager (approver ≠ requester, DEC-041);
+        // the discount follows the room-night rate (5 % of −₹500 = −₹25).
         var service = j.Lines.Single(l => l.Kind == "service");
-        await db.Billing.PostChargeAsync(db.As(Who.Reception), BillingDb.Key(), new PostChargeRequest(folio, service.Label, service.AmountPaise), ct);
+        var laundry = await db.Billing.PostChargeAsync(db.As(Who.Reception), BillingDb.Key(), new PostChargeRequest(folio, service.Label, service.AmountPaise), ct);
+        Assert.Equal((1800, 9_000L), (laundry.Value.TaxBps, laundry.Value.TaxPaise));
         var discount = j.Lines.Single(l => l.Kind == "discount");
         var req = await db.Billing.RequestAdjustmentAsync(db.As(Who.Reception), BillingDb.Key(),
             new RequestAdjustmentRequest("discount", folio, null, -discount.AmountPaise, "Service recovery", await db.FolioVersionAsync(folio)), ct);
@@ -135,14 +141,14 @@ public class GoldenJourneyTests(BillingDb db) : IClassFixture<BillingDb>
         var approved = await db.Billing.DecideApprovalAsync(db.As(Who.Manager), BillingDb.Key(), new DecideApprovalRequest(req.Value.ApprovalId!.Value, true, null, req.Value.ApprovalVersion!), ct);
         Assert.Equal("Executed", approved.Value.Status);
 
-        // 25 Oct: night 2. Then the balance before settlement is ₹3,400 — the ₹500 deposit does not reduce it.
+        // 25 Oct: night 2. Then the balance before settlement is ₹3,265 (₹4,265 − ₹1,000 advance) — the ₹500 deposit does not reduce it.
         await db.SetBusinessDateAsync(day.AddDays(1));
         await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), BillingDb.Key(), await CountExactAsync(till, ct), ct);
         await db.Cashier.OpenShiftAsync(db.As(Who.Cashier), BillingDb.Key(), new OpenShiftRequest(till, null), ct);
         await db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid, day.AddDays(1)), ct);
         var mid = await db.Queries.GetFolioAsync(db.As(Who.Owner), folio, ct);
         Assert.Equal(j.Expected.BalanceBeforeSettlementPaise, mid.Totals.BalancePaise);
-        Assert.Equal(340_000, mid.Totals.BalancePaise);
+        Assert.Equal(326_500, mid.Totals.BalancePaise);
         Assert.Equal(50_000, mid.Totals.DepositPaise);
 
         // Settlement and deposit return.
@@ -153,9 +159,10 @@ public class GoldenJourneyTests(BillingDb db) : IClassFixture<BillingDb>
         var e = j.Expected;
         Assert.Equal((e.NetPaise, e.TaxPaise, e.TotalPaise, e.PaidPaise, e.DepositPaise, e.BalancePaise),
             (f.Totals.NetPaise, f.Totals.TaxPaise, f.Totals.TotalPaise, f.Totals.PaidPaise, f.Totals.DepositPaise, f.Totals.BalancePaise));
-        Assert.Equal(440_000, f.Totals.TotalPaise);
-        Assert.Equal(40_000, f.Totals.TaxPaise);
-        Assert.Equal("₹4,400", new Paise(f.Totals.TotalPaise).ToString());
+        // ₹4,265 by hand: 2 × ₹2,000 at 5 % (₹200) + ₹500 laundry at 18 % (₹90) − ₹500 discount at 5 % (−₹25) = ₹4,000 + ₹265.
+        Assert.Equal(426_500, f.Totals.TotalPaise);
+        Assert.Equal(26_500, f.Totals.TaxPaise);
+        Assert.Equal("₹4,265", new Paise(f.Totals.TotalPaise).ToString());
 
         // Same lines as the prototype (amount, tax rate, kind, label); dates follow the nightly posting (prototype M1 pre-posted both nights on day 1).
         static string Sig(string kind, string label, long amount, int bps) => $"{kind}|{label}|{amount}|{bps}";

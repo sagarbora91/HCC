@@ -26,7 +26,7 @@ public sealed class GoldenDatabaseFixture : IAsyncLifetime
     {
         _db = await InventoryDatabase.CreateAsync();
         await Golden.SeedAsync(_db);
-        Services = new P2Services(_db, new TestClock(new DateTimeOffset(GoldenInventory.LocalToUtc(Golden.Raw.Clock), TimeSpan.Zero)), Golden.Raw.TaxBps);
+        Services = new P2Services(_db, new TestClock(new DateTimeOffset(GoldenInventory.LocalToUtc(Golden.Raw.Clock), TimeSpan.Zero)));
         await using var conn = await _db.Platform.Connections.OpenAsync();
         await using (var q = new SqlCommand("SELECT room_no, room_id FROM inv.room;", conn))
         await using (var rd = await q.ExecuteReaderAsync())
@@ -44,7 +44,7 @@ public sealed class GoldenDatabaseFixture : IAsyncLifetime
 
 /// <summary>
 /// Golden figures: GetAvailability, group-hold assignment, QuoteStay and CreateReservation outcomes reproduce the prototype
-/// (03 Prototype resSearch / grpHolds / rateFor+taxRateFor / BOOK) on the BASE fixture exactly.
+/// (03 Prototype resSearch / grpHolds / rateFor + gstForRoomNight / BOOK) on the BASE fixture exactly; quotes use the real DEC-069 GST master.
 /// </summary>
 [Trait("Category", "Sql")]
 public sealed class GoldenAvailabilityTests(GoldenDatabaseFixture f) : IClassFixture<GoldenDatabaseFixture>
@@ -104,6 +104,9 @@ public sealed class GoldenAvailabilityTests(GoldenDatabaseFixture f) : IClassFix
     [Fact]
     public async Task Quotes_reproduce_the_prototype_nightly_rate_tax_and_totals()
     {
+        // Hand check (A08-04): room 105, 24-26 Oct = 2 × ₹2,000 at 5 % (≤ ₹7,500 a night) = ₹4,200; room 203, 25-28 Oct = 3 × ₹3,000 at 5 % =
+        // ₹9,450; Suite 106, one night ₹4,500 + 5 % = ₹4,725 (the pre-DEC-069 golden had 10 %: ₹4,400, ₹9,900, ₹4,950).
+        Assert.Equal([("105", 420_000L), ("203", 945_000L), ("106", 472_500L), ("107", 630_000L)], f.Golden.Expected.QuoteCases.Select(c => (c.RoomNo, c.TotalPaise)));
         foreach (var c in f.Golden.Expected.QuoteCases)
         {
             var q = (await f.Services.Inventory.QuoteStayAsync(P2Services.Ctx(FakeAccessPolicy.Reception, "QuoteStay"),

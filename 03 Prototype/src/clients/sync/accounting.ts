@@ -30,9 +30,17 @@ import {serverId,protoUserId,utcToClock,paise,isoDate} from './map';
 import {CASH_SLICES} from './money';
 import {saveTextFile} from '../../app/native';
 
-/** GET /accounting/export/tally (TallyExportView; DEC-077 re-export / provisional dates and the export log id). */
+/** GET /accounting/export/tally (TallyExportView; DEC-077 re-export / provisional dates and the export log id; A03b-05 pending accounting
+ *  events — every unlocked date carried is then provisional — and the dates an export before voucher ids took to Tally). */
 type SrvTallyExport={from:string;to:string;dates:number;voucherCount:number;debitPaise:number;creditPaise:number;simulated:boolean;fileName:string;xml:string;
-  reexportDates?:string[]|null;provisionalDates?:string[]|null;exportId?:number|null};
+  reexportDates?:string[]|null;provisionalDates?:string[]|null;exportId?:number|null;pendingEvents?:number|null;legacyDates?:string[]|null};
+/** A03b-05: what the Accountant must know about a downloaded Tally file (provisional days, days Tally may hold without voucher ids), or undefined. */
+export function tallyExportWarning(r:Pick<SrvTallyExport,'pendingEvents'|'provisionalDates'|'legacyDates'>):string|undefined{
+  const pending=r.pendingEvents??0,prov=r.provisionalDates??[],legacy=r.legacyDates??[],parts:string[]=[];
+  if(pending>0&&prov.length)parts.push(`Provisional: ${pending} accounting event${pending===1?' was':'s were'} not yet in the vouchers, so ${prov.join(', ')} may be incomplete — export again once Accounting shows no pending events (the vouchers keep their IDs, so the new file replaces them in Tally).`);
+  if(legacy.length)parts.push(`${legacy.join(', ')} ${legacy.length===1?'was':'were'} exported before voucher IDs: if that earlier file was imported, delete those HCC vouchers in Tally before importing this one.`);
+  return parts.length?parts.join(' '):undefined;
+}
 
 // ── Server DTOs (Hcc.Contracts.Accounting / Expenses / Compliance, camelCase) ──
 type SrvEntry={account:string;ledger:string;debitPaise:number;creditPaise:number};
@@ -228,8 +236,9 @@ export const accounting:SyncArea={
         :!(DATE.test(String(cmd.from??''))&&DATE.test(String(cmd.to??''))&&String(cmd.from)<=String(cmd.to))?'Choose a valid range: "from" on or before "to".':undefined,
       async send(c){const r=await c.api.get<SrvTallyExport>('/accounting/export/tally',{from:String(c.cmd.from),to:String(c.cmd.to)});
         const saved=await saveTextFile(/^[\w.-]+\.xml$/.test(r.fileName)?r.fileName:`HCC-tally-SIMULATED-${c.cmd.from}_${c.cmd.to}.xml`,r.xml,'application/xml');
-        return {result:{count:r.voucherCount,dates:r.dates,reexport:r.reexportDates??[],provisional:r.provisionalDates??[],saved},
-          ...(saved==='failed'?{warning:'The server recorded the Tally export, but this device could not save the XML. Try the download again.'}:{})};}},
+        const note=tallyExportWarning(r);
+        return {result:{count:r.voucherCount,dates:r.dates,reexport:r.reexportDates??[],provisional:r.provisionalDates??[],pending:r.pendingEvents??0,legacy:r.legacyDates??[],saved},
+          ...(saved==='failed'?{warning:'The server recorded the Tally export, but this device could not save the XML. Try the download again.'+(note?' '+note:'')}:note?{warning:note}:{})};}},
     // ── Expenses & petty cash (Petty cash is a category; limits per role are the server's PERM-EXP-002 limits) ──
     {type:'EXPENSE',reload:['expenses'],precheck:expensePrecheck,
       async send(c){const m=c.cmd;

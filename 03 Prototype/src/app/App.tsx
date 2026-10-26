@@ -247,7 +247,8 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
             {process.env.HCC_BUILD==='production'?null:<><span className="today" title="Simulated hotel clock (Asia/Kolkata)"><Clock size={15}/>{clockTime(s.clock)} IST</span>
             <span className="conn-chip" title="All data comes from the in-browser mock service"><Wifi size={13}/>Local mock service</span>
             <span className="demo-badge">DEMO — FICTIONAL DATA</span></>}
-            <span className="current-user">{user.name.split(' · ')[0]} · {user.role}</span>
+            <button type="button" className="current-user current-user-btn" aria-haspopup="dialog" title="Your profile: change my password / PIN, display mode, sign out"
+              onClick={()=>open({type:'user-menu'})}>{user.name.split(' · ')[0]} · {user.role}</button>
             <button type="button" className="search-btn topbar-signout" onClick={signOut}><LogOut size={16}/>Sign out</button>
             <TextSizeQuick/>
             <DisplayToggle display={display} compact/>
