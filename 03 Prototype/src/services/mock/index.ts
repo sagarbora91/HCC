@@ -36,3 +36,4 @@ export * from '../../domain/gst';
 export {buildHistory,HISTORY_DEFAULTS,setHistoryProgress} from '../../fixtures/history/generate';
 export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
+export * from '../../domain/streams/catalogue'; // MA-2 meal plans, extras, discount reasons

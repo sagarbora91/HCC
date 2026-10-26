@@ -37,6 +37,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   inventory:'stock',
   staff:'people','my-hr':'people',
   closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
+  'plans-extras':'accounts', // MA-2
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -70,6 +71,7 @@ export const PAGE_BLURB:Record<string,string>={
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
   closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
+  'plans-extras':'Catalogue vs free-text charges, meal plans, discount reasons',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
 };
 
@@ -104,6 +106,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   closing:['day closing','day close','night audit','close day','end of day','eod','close'],
   reports:['report','reports','revenue','occupancy','adr','revpar','csv','export','print','daily'],
   accounting:['accounting','ledger','voucher','trial balance','tally','lock','period','journal'],
+  'plans-extras':['meal plan','meal plans','ep','cp','map','ap','breakfast','extras','extra bed','catalogue','free text','discount reason','laundry','package'],
   assistant:['assistant','ask','question','ai','management assistant','insight'],
   compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
   access:['access','users','roles','permissions','rbac','login','disable user'],

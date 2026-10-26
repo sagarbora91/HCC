@@ -133,6 +133,8 @@ const CMDS={
   POS_VOID_DECIDE:C('OWN MGR','Module 23 §2 (approve)'),
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
+  // MA-2 catalogue: catalogue charge = CHARGE (FOL-002), reasoned discount = DISCOUNT (FOL-003, DEC-063), meal plan = reservations or billing.
+  CAT_CHARGE:C('OWN MGR REC CSH','FOL-002'),CAT_DISCOUNT:C('OWN MGR REC','FOL-003'),CAT_PLAN_SET:C('OWN MGR REC CSH','RES-002 / FOL-002'),
 };
 const K=k=>'cmd:'+k;
 

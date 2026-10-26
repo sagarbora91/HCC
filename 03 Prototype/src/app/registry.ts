@@ -28,6 +28,7 @@ import {registration as m_frontdesk} from '../mobile/frontdesk/register';
 import {registration as m_money} from '../mobile/money/register';
 import {registration as m_ops} from '../mobile/ops/register';
 import {registration as m_admin} from '../mobile/admin/register';
+import {registration as catalogue} from '../features/folio/catalogue'; // MA-2 charge/discount dialogs, meal plan, Plans & extras
 export type ModalProps={id?:string;room?:string};
 export type FeatureRegistration={
   /** Page components by page ID (shown when the nav item with this ID is selected). */
@@ -47,7 +48,7 @@ export type FeatureRegistration={
 };
 export const registrations:FeatureRegistration[]=[reservations,guests,customers,folio,housekeeping,admin,closing,
   yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,compliance,
-  cashbook,masters,m_frontdesk,m_money,m_ops,m_admin];
+  cashbook,masters,m_frontdesk,m_money,m_ops,m_admin,catalogue];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;
 export const mobileModals=Object.assign({},...registrations.map(r=>r.mobile?.modals||{})) as Record<string,React.ComponentType<ModalProps>>;
 export const extraPages=Object.assign({},...registrations.map(r=>r.pages||{})) as Record<string,React.ComponentType>;

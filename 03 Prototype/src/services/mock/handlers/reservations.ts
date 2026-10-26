@@ -11,6 +11,7 @@ import {available,rateFor,totals} from '../../../domain/selectors';
 import {nights,addMinutes} from '../../../domain/money';
 import {resCapacity,resHoldActive,resSweepHolds,RES_HOLD_MINUTES,RES_GSTIN,RES_PHONE} from '../../../domain/streams/reservations';
 import {yldStayViolations} from '../../../domain/streams/yield';
+import {catCheckPlan} from '../../../domain/streams/catalogue';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 /** Shared stay validation for BOOK and CHANGE_DATES. Message texts match the M1 BOOK command. */
@@ -55,6 +56,7 @@ export const handlers:Record<string,Handler>={
     capacity(k,r!,cmd.people,children);
     assert(available(s,cmd.room,cmd.arrival,cmd.departure),'This room is not available for those dates.','NOT_AVAILABLE');
     const overridden=restrictions(k,r!.type,cmd.arrival,cmd.departure);
+    const plan=catCheckPlan(s,cmd.plan,r!.type); // MA-2 meal plan (optional; active, allowed for the room type)
     const bid=id('HCC'),hold=!!cmd.hold;
     const x:Booking={id:bid,guest:cmd.guest.trim(),email:cmd.email||'',people:cmd.people,room:r!.id,arrival:cmd.arrival,departure:cmd.departure,rate:rateFor(s,r!,cmd.arrival),source,status:hold?'Held':'Confirmed',registered:false,lines:[],receipts:[],version:1,notes:[cmd.notes||'',overridden.slice(3)].filter(Boolean).join(' · ')};
     if(hold)x.holdUntil=addMinutes(s.clock,RES_HOLD_MINUTES);
@@ -62,6 +64,7 @@ export const handlers:Record<string,Handler>={
     if(children)x.children=children;
     if(ota&&source.startsWith('OTA'))x.otaChannel=ota;
     if(companyName)x.company=gstin?{name:companyName,gstin}:{name:companyName};
+    if(plan)x.plan=plan.code;
     s.bookings.push(x);
     return `${bid} · ${cmd.guest} · room ${cmd.room}${hold?' · held until '+x.holdUntil!.slice(11,16):''}${overridden}`;
   },

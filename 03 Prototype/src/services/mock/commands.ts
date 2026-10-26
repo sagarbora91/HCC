@@ -8,6 +8,7 @@ import {money,addDays,nights,addMinutes,OPENING_TIME} from '../../domain/money';
 import {can,available,occupant,totals,drawer,rateFor} from '../../domain/selectors';
 import {gstForRoomNight,gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment} from '../../domain/gst';
 import {cfgBeforeCommand} from '../../domain/streams/config';
+import {catPlanNight} from '../../domain/streams/catalogue';
 
 export function execute(input:State,uid:string,cmd:Command):State{
   const fail=(code:ErrorCode,msg:string):never=>{throw new HccError(code,msg);};
@@ -27,7 +28,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
   const open=()=>assert(!s.closedDates.includes(s.date),'This business day is closed. Open the next business day first.','DAY_CLOSED');
   const mutable=(x:Booking)=>assert(x.status==='In house'||x.status==='Confirmed','This booking is no longer open.','INVALID_TRANSITION');
   const financial=(x:Booking)=>{mutable(x);open();};
-  const addNight=(x:Booking,date:string)=>{const lid=`night:${x.id}:${date}`;if(!x.lines.some(l=>l.id===lid||l.kind==='room'&&l.date===date))x.lines.push({id:lid,label:'Room night · '+date,amount:x.rate,date,kind:'room',taxBps:gstForRoomNight(s,date,x.rate).bps});};
+  const addNight=(x:Booking,date:string)=>{const lid=`night:${x.id}:${date}`;if(!x.lines.some(l=>l.id===lid||l.kind==='room'&&l.date===date)){x.lines.push({id:lid,label:'Room night · '+date,amount:x.rate,date,kind:'room',taxBps:gstForRoomNight(s,date,x.rate).bps});catPlanNight(s,x,date);}}; // MA-2: meal plan line with the night
   // W05-A Master configuration: apply due dated values; refuse commands of a switched-off module (DEC-057).
   {const off=cfgBeforeCommand(s,cmd);if(off)fail('FORBIDDEN',off);}
   let detail='';
