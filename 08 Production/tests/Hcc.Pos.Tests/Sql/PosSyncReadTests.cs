@@ -59,6 +59,19 @@ public class PosSyncReadTests(PosDb db) : IClassFixture<PosDb>
     }
 
     [Fact]
+    public async Task A_room_check_and_its_folio_bill_carry_the_reservation_id()
+    {
+        var g = await db.NewInHouseAsync("321", guest: "Guest C");
+        var o = (await db.Pos.OpenCheckAsync(db.As(Who.Reception), PosDb.Key(), new OpenCheckRequest(db.RoomService, null, "321", 1, null))).Value;
+        await db.AddAsync(o.OrderId, "TEA", 1, Who.Reception);
+        await db.SendAsync(o.OrderId, Who.Reception);
+        Assert.Equal(g.ReservationId, (await db.Queries.GetCheckAsync(db.As(Who.Reception), o.OrderId)).ReservationId);
+        await db.SettleFolioAsync(o.OrderId, null, Who.Reception);
+        var done = await db.Queries.GetCheckAsync(db.As(Who.Reception), o.OrderId);
+        Assert.Equal(("folio", g.ReservationId), (done.Bill!.Mode, done.Bill.ReservationId));
+    }
+
+    [Fact]
     public async Task In_house_read_lists_only_in_house_stays_with_reservation_folio_and_room()
     {
         var a = await db.NewInHouseAsync("311", guest: "Guest A");

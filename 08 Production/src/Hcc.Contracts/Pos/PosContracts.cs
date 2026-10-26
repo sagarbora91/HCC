@@ -66,11 +66,12 @@ public sealed record LineView(long LineId, int ItemId, string Name, long PricePa
 public sealed record KotView(long KotId, int KotNo, string Label, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc, int? CreatedBy = null);
 
 public sealed record BillView(long BillId, string BillNo, string Mode, string? Tender, string? Reference, long NetPaise, int TaxBps, long TaxPaise,
-    long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null);
+    long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null, long? ReservationId = null);
 
 public sealed record CheckView(long OrderId, int OutletId, string Outlet, string Spot, string? Guest, int Covers, DateOnly BusinessDate, string Status,
     string Version, long? PendingVoidId, IReadOnlyList<LineView> Lines, IReadOnlyList<KotView> Kots, long NetPaise, int TaxBps, long TaxPaise,
-    long TotalPaise, int Items, BillView? Bill, DateTime? OpenedUtc = null, int? OpenedBy = null, string? VoidReason = null, DateTime? VoidedUtc = null);
+    long TotalPaise, int Items, BillView? Bill, DateTime? OpenedUtc = null, int? OpenedBy = null, string? VoidReason = null, DateTime? VoidedUtc = null,
+    long? ReservationId = null);
 
 public sealed record OpenCheckSummary(long OrderId, string Outlet, string Spot, string? Guest, DateOnly BusinessDate, int Items, long NetPaise,
     bool KotPending, long? PendingVoidId);

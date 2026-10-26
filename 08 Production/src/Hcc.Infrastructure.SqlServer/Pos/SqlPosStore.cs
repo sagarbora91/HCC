@@ -643,18 +643,25 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
         DateTime? settledUtc = null;
         int? settledBy = null;
-        await using (var c = connections.Command("SELECT settled_utc, settled_by FROM pos.bill WHERE order_id = @o;", conn, tx))
+        long? billReservation = null;
+        await using (var c = connections.Command("""
+            SELECT b.settled_utc, b.settled_by, st.reservation_id
+            FROM pos.bill b LEFT JOIN gst.stay st ON st.stay_id = b.stay_id WHERE b.order_id = @o;
+            """, conn, tx))
         {
             P(c, "@o", SqlDbType.BigInt, orderId);
-            var s = (await ReadAsync(c, rd => (At: Dt(rd, 0), By: rd.GetInt32(1)), ct).ConfigureAwait(false)).SingleOrDefault();
-            if (s.At is not null) { settledUtc = s.At; settledBy = s.By; }
+            var s = (await ReadAsync(c, rd => (At: Dt(rd, 0), By: rd.GetInt32(1), Res: rd.IsDBNull(2) ? (long?)null : rd.GetInt64(2)), ct).ConfigureAwait(false)).SingleOrDefault();
+            if (s.At is not null) { settledUtc = s.At; settledBy = s.By; billReservation = s.Res; }
         }
 
-        (DateTime? OpenedUtc, int OpenedBy, string? Reason, DateTime? VoidedUtc) head;
-        await using (var c = connections.Command("SELECT opened_utc, opened_by, void_reason, voided_utc FROM pos.check_order WHERE order_id = @o;", conn, tx))
+        (DateTime? OpenedUtc, int OpenedBy, string? Reason, DateTime? VoidedUtc, long? Res) head;
+        await using (var c = connections.Command("""
+            SELECT o.opened_utc, o.opened_by, o.void_reason, o.voided_utc, st.reservation_id
+            FROM pos.check_order o LEFT JOIN gst.stay st ON st.stay_id = o.stay_id WHERE o.order_id = @o;
+            """, conn, tx))
         {
             P(c, "@o", SqlDbType.BigInt, orderId);
-            head = (await ReadAsync(c, rd => (Dt(rd, 0), rd.GetInt32(1), Str(rd, 2), Dt(rd, 3)), ct).ConfigureAwait(false)).Single();
+            head = (await ReadAsync(c, rd => (Dt(rd, 0), rd.GetInt32(1), Str(rd, 2), Dt(rd, 3), rd.IsDBNull(4) ? (long?)null : rd.GetInt64(4)), ct).ConfigureAwait(false)).Single();
         }
 
         await tx.CommitAsync(ct).ConfigureAwait(false);
@@ -668,9 +675,9 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
             : PosRules.Totals(active.Select(l => new PosLineAmount(l.Price, l.Qty)), taxBps);
         var spot = o.TableNo is not null ? "Table " + o.TableNo : "Room " + o.RoomNo;
         var billView = bill is null ? null : new BillView(bill.BillId, bill.BillNo, bill.Mode, bill.Tender, bill.Reference, bill.Net.Value, bill.TaxBps, bill.Tax.Value,
-            bill.Total.Value, bill.BusinessDate, bill.Status, settledUtc, settledBy);
+            bill.Total.Value, bill.BusinessDate, bill.Status, settledUtc, settledBy, billReservation);
         return new CheckView(o.OrderId, o.OutletId, o.OutletName, spot, o.Guest, o.Covers, o.BusinessDate, o.Status, o.Version, o.PendingVoidId, views, kots,
-            t.Net.Value, t.TaxBps, t.Tax.Value, t.Total.Value, items, billView, head.OpenedUtc, head.OpenedBy, head.Reason, head.VoidedUtc);
+            t.Net.Value, t.TaxBps, t.Tax.Value, t.Total.Value, items, billView, head.OpenedUtc, head.OpenedBy, head.Reason, head.VoidedUtc, head.Res);
     }
 
     public async Task<IReadOnlyList<OpenCheckSummary>> OpenChecksAsync(int propertyId, CancellationToken ct)
