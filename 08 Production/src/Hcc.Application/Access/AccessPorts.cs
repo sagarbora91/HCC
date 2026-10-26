@@ -40,6 +40,12 @@ public sealed class AccessOptions
     /// <summary>Ended (revoked or expired) sessions older than this are purged (F-L03).</summary>
     public TimeSpan SessionRetention { get; set; } = TimeSpan.FromDays(90);
 
+    /// <summary>
+    /// Delivered outbox events older than this are purged once every consumer that subscribes to their type has processed them (A08-01).
+    /// Parked or unprocessed events and events an accounting source points to are kept.
+    /// </summary>
+    public TimeSpan OutboxRetention { get; set; } = TimeSpan.FromDays(30);
+
     /// <summary>PBKDF2-SHA256 iterations for new password hashes (OWASP 2023 guidance: 600,000).</summary>
     public int PasswordIterations { get; set; } = 600_000;
 

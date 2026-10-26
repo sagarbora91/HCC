@@ -21,6 +21,7 @@ public static class HccComposition
         services.AddSingleton(platform.Connections);
         services.AddSingleton<ICommandRunner>(platform.Commands);
         services.AddSingleton(TimeProvider.System);
+        services.AddHostedService<OutboxFailureLogger>();  // A08-02: failed and parked outbox deliveries as log warnings
         services.AddHccAccess(configuration, platform);  // P1: sessions, THE IAccessPolicy (scope resolvers from the modules below)
         services.AddInventoryModule();                   // P2
         services.AddReservationsModule();                // P2

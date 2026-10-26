@@ -82,5 +82,6 @@
     <File Path="database/migrations/2401_invoices_rbac_seed.sql" />
     <File Path="database/migrations/2700_import.sql" />
     <File Path="database/migrations/2701_import_rbac_seed.sql" />
+    <File Path="database/migrations/2900_outbox_consumers.sql" />
   </Folder>
 </Solution>
