@@ -64,7 +64,7 @@ export function register({test,assert}){
   test('[TS] whole bundle: no plain px font size survives outside print blocks, and the source had >1,000 of them',()=>{
     assert.ok(untransformedFontSizes(sourceCss).length>1000,'premise: the sources are full of plain px sizes');
     assert.deepEqual(untransformedFontSizes(bundle),[]);
-    assert.equal((bundle.match(/var\(--hcc-text,1\)/g)||[]).length,untransformedFontSizes(sourceCss).length+1/* the y-a11y max() */);});
+    assert.equal((bundle.match(/var\(--hcc-text,1\)/g)||[]).length,untransformedFontSizes(sourceCss).length+(sourceCss.match(/var\(--hcc-text,1\)/g)||[]).length/* explicit uses in the sources: the y-a11y max(), CP-1's sample line */);});
   test('[TS] whole bundle: print blocks keep their px sizes and the bundle ends with the print reset',()=>{
     for(const frag of ['.invoice .footnote{font-size:10px}','.chn-table{font-size:10px}','.grp-print-doc .grp-table{font-size:11px}','.gsv-report table{font-size:10px}','.invoice-stamp{border:2px dashed #7a1f2b;font-size:11px}','.mnt-print-head{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;font-size:12px}','font-size:10.5pt!important'])
       assert.ok(bundle.includes(frag),'print fragment kept: '+frag);

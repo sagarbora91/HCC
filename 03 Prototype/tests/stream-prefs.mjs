@@ -3,6 +3,7 @@
 import {build} from 'esbuild';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
+import {buildBundleCss,PRINT_RESET} from '../tools/cssTextScale.mjs';
 await mkdir('tests/.generated',{recursive:true});
 await writeFile('tests/.generated/prefs-entry.tsx',`
 import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
@@ -30,6 +31,7 @@ await build({entryPoints:['tests/.generated/prefs-entry.tsx'],bundle:true,platfo
   define:{'process.env.NODE_ENV':'"production"'},banner:{js:"import {createRequire as __pfReq} from 'node:module';const require=__pfReq(import.meta.url);"}});
 const X=await import('./.generated/prefs.mjs');
 const css=readFileSync('src/styles/prefs.css','utf8');
+const bundleCss=await buildBundleCss('.');
 
 /** In-memory localStorage installed for one test, then the original global is restored. */
 function withStorage(fn,{failGet=false,failSet=false,initial={}}={}){
@@ -132,8 +134,8 @@ export function register({test,M,assert}){
     assert.deepEqual(props,{'--hcc-text':'1.15'});assert.deepEqual(attrs,{'data-density':'compact','data-motion':'off'});
     X.applyPrefsToDocument({...D},doc);assert.equal(props['--hcc-text'],'1');assert.equal(attrs['data-motion'],'system');
     assert.doesNotThrow(()=>X.applyPrefsToDocument({...D},undefined));});
-  test('[PREFS] printing ignores personal text size: print rule pins --hcc-text to 1 with !important (beats the inline style)',()=>{
-    assert.match(css,/@media print\{:root\{--hcc-text:1!important\}\}/);});
+  test('[PREFS] printing ignores personal text size: the bundle ends with the print reset that pins --hcc-text to 1 with !important (appended by CP-2, tools/cssTextScale.mjs)',()=>{
+    assert.ok(bundleCss.trimEnd().endsWith(PRINT_RESET)&&PRINT_RESET.includes('--hcc-text:1!important'));});
   test('[PREFS] text size steps: Small 90 %, Default, Large 115 %, Extra large 130 %; A−/A+ stop at the ends',()=>{
     assert.deepEqual([...X.TEXT_SCALES],[0.9,1,1.15,1.3]);assert.deepEqual(X.TEXT_SCALES.map(X.textScaleLabel),['Small','Default','Large','Extra large']);
     assert.equal(X.stepTextScale(1,1),1.15);assert.equal(X.stepTextScale(1.3,1),1.3);assert.equal(X.stepTextScale(0.9,-1),0.9);assert.equal(X.stepTextScale(1.15,-1),1);});
