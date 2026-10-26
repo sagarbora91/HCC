@@ -11,8 +11,8 @@ import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {GuardedButton} from './parts';
 import {cfgListRows,cfgDetailDefs,cfgNav} from './config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from './config/panels';
-import {ServerDevicePanel} from '../../clients/sync/react';
-import {MstListsBlock} from '../masters/MasterList'; // MA-0: "Lists" block (masters of the group) // production build only (W4-12: server address, device registration)
+import {ServerDevicePanel} from '../../clients/sync/react'; // production build only (W4-12: server address, device registration)
+import {MstListsBlock} from '../masters/MasterList'; // MA-0: "Lists" block (masters of the group)
 
 /** Owner-only block text for the legacy tariff/tax schedules (PERM-ADM-003; Tech admin view-only for money — DEC-058). */
 export function scheduleBlock(s:ReturnType<typeof useHcc>['s'],uid:string){
