@@ -173,6 +173,9 @@ public interface IBillingStore
 
     Task<ShiftRow> UpdateShiftAsync(ICommandTransaction tx, long shiftId, string expectedVersion, ShiftUpdate update, CancellationToken ct);
 
+    /// <summary>DEC-078: the opener's handover count of the drawer they took over (and the reason when it differs from the carried float).</summary>
+    Task SetShiftHandoverAsync(ICommandTransaction tx, long shiftId, Paise handoverCount, string? reason, CancellationToken ct);
+
     Task<long> InsertMovementAsync(ICommandTransaction tx, NewMovement movement, CancellationToken ct);
 
     Task<IReadOnlyList<MovementRow>> MovementsAsync(ICommandTransaction tx, long shiftId, CancellationToken ct);
@@ -203,7 +206,8 @@ public sealed record DeskFolioRow(long ReservationId, string PublicNo, string St
 
 public sealed record ReservationFolioRef(long ReservationId, long? FolioId, long? StayId, string? StayVersion);
 
-public sealed record CashDeskShiftRead(ShiftRow Shift, string? Reason, int? ClosedBy, ApprovalRow? Approval);
+public sealed record CashDeskShiftRead(ShiftRow Shift, string? Reason, int? ClosedBy, ApprovalRow? Approval, int? OpenedBy = null, Paise? HandoverCount = null,
+    string? HandoverReason = null);
 
 public sealed record CashDeskTillRead(TillRow Till, CashDeskShiftRead? Active, CashDeskShiftRead? LastClosed);
 

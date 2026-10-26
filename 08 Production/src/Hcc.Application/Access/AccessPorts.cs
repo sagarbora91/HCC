@@ -46,6 +46,12 @@ public sealed class AccessOptions
     /// </summary>
     public TimeSpan OutboxRetention { get; set; } = TimeSpan.FromDays(30);
 
+    /// <summary>
+    /// DEC-073: bank-deposit slip photos are deleted this long after the deposit was recorded (600 days). The banking record itself stays and
+    /// reads "Slip photo purged after 600 days."
+    /// </summary>
+    public TimeSpan BankingSlipRetention { get; set; } = TimeSpan.FromDays(Hcc.Domain.Payments.CashOutRules.SlipRetentionDays);
+
     /// <summary>PBKDF2-SHA256 iterations for new password hashes (OWASP 2023 guidance: 600,000).</summary>
     public int PasswordIterations { get; set; } = 600_000;
 

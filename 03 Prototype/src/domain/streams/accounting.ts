@@ -7,6 +7,7 @@ import {drawer} from '../selectors';
 import {reportPack,expenseCounts,closingOutlet,closingReopened} from './closing';
 import {posSlice,type POSReceipt} from './pos';
 import {lineTax,gstSplit} from '../gst';
+import {cxSlice} from './cashout';
 
 // ── Chart of accounts (synthetic) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
@@ -30,6 +31,7 @@ export const ACC_CHART:ACCAccount[]=[
   {code:'2320',name:'ESIC payable',group:'Liability',note:'Employee + employer ESIC (illustrative — CA to confirm)'},
   {code:'2330',name:'Professional tax payable',group:'Liability'},
   {code:'2340',name:'Other payroll deductions',group:'Liability'},
+  {code:'3000',name:"Owner's drawings",group:'Liability',note:'Capital account (contra): cash the Owner takes from the drawer (DEC-073) — CA to confirm'},
   {code:'4000',name:'Room revenue',group:'Income'},
   {code:'4100',name:'Other revenue',group:'Income',note:'Services and extras'},
   {code:'4900',name:'Discounts allowed',group:'Income',note:'Contra revenue'},
@@ -56,6 +58,8 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   'expense:Supplies':'5000','expense:Laundry':'5010','expense:Maintenance':'5020','expense:Utilities':'5030','expense:Petty cash':'5040',
   'funding:Cash':'1000','funding:UPI':'1010','funding:Card':'1020','funding:Bank transfer':'1030','funding:Vendor credit':'2200',
   'closing:cash-difference':'5900',
+  // Wave B1 (DEC-073): drawer cash banked (Dr bank / Cr cash) and taken by the Owner (Dr drawings / Cr cash); a till transfer books nothing.
+  'closing:bank-deposit':'1030','closing:owner-drawing':'3000',
   // Restaurant / room-service bills settled at the outlet (shared till, DEC-052). Bills charged to a folio stay in the folio flow.
   'pos:sales':'4100','pos:cgst':'2110','pos:sgst':'2120',
 };
@@ -138,6 +142,18 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
     push({date,type:e.method==='Vendor credit'?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor} · ${e.category} · ${e.method}`,
       source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount),cr(fund,e.amount)]);
   }
+  // ── Wave B1 (DEC-073): cash leaving the drawer — same vouchers as the server projector (keys banking:{id}, banking:{id}/rejected, drawing:{id}) ──
+  for(const r of cxSlice(s).records){
+    const cash=(m:string[])=>map('method:Cash',m);
+    if(r.kind==='banking'){
+      if(r.date===date){const miss:string[]=[];push({date,type:'Journal',narration:`Cash deposited in bank · ${r.bank??''} · slip ${r.slip??''} · deposit ${r.id}`,source:{kind:'closing',id:'banking:'+r.id,sub:'bank-deposit'}},miss,
+        [dr(map('closing:bank-deposit',miss),r.amount),cr(cash(miss),r.amount)]);}
+      if(r.status==='Rejected'&&r.decidedDate===date){const miss:string[]=[];push({date,type:'Journal',narration:`Bank deposit rejected · cash back in the drawer · ${r.bank??''} · slip ${r.slip??''} · deposit ${r.id}`,
+        source:{kind:'closing',id:'banking:'+r.id+'/rejected',sub:'bank-deposit-rejected'}},miss,[dr(cash(miss),r.amount),cr(map('closing:bank-deposit',miss),r.amount)]);}
+    }else if(r.kind==='drawing'&&r.date===date){const miss:string[]=[];push({date,type:'Payment',narration:`Owner drawing · ${r.reason??''} · drawing ${r.id}`,source:{kind:'closing',id:'drawing:'+r.id,sub:'owner-drawing'}},miss,
+      [dr(map('closing:owner-drawing',miss),r.amount),cr(cash(miss),r.amount)]);}
+  }
+  // ── end Wave B1 ──
   const diff=accCashDifference(s,date);
   if(diff){const miss:string[]=[],cash=map('method:Cash',miss),acct=map('closing:cash-difference',miss);
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,

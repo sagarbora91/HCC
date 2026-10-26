@@ -84,7 +84,8 @@ public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, Ti
         if (desk.BusinessDate is not { } date) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
         var now = clock.GetUtcNow().UtcDateTime;
         CashDeskShiftView? Shift(CashDeskShiftRead? s) => s is null ? null
-            : new CashDeskShiftView(CashierService.ToResult(s.Shift), s.Shift.SubmittedBy, s.Reason, s.ClosedBy, s.Approval is { } a ? ToView(a, now) : null);
+            : new CashDeskShiftView(CashierService.ToResult(s.Shift), s.Shift.SubmittedBy, s.Reason, s.ClosedBy, s.Approval is { } a ? ToView(a, now) : null,
+                s.OpenedBy, s.HandoverCount?.Value, s.HandoverCount is { } h ? (h - s.Shift.OpeningFloat).Value : null, s.HandoverReason); // DEC-078 opener + handover
         var tills = new List<CashDeskTillView>();
         foreach (var t in desk.Tills)
         {

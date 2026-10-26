@@ -22,7 +22,9 @@ export type SrvFolio={folioId:number;reservationId:number;reservationStatus:stri
 export type SrvReservationFolio={reservationId:number;stayId:number|null;stayVersion:string|null;folio:SrvFolio|null};
 export type SrvShift={shiftId:number;tillId:number;businessDate:string;status:'Open'|'Submitted'|'Closed';openingFloatPaise:number;expectedPaise:number|null;
   countedPaise:number|null;approvalId:number|null;version:string};
-export type SrvDeskShift={shift:SrvShift;submittedBy:number|null;differenceReason:string|null;closedBy:number|null;approval:SrvApproval|null};
+export type SrvDeskShift={shift:SrvShift;submittedBy:number|null;differenceReason:string|null;closedBy:number|null;approval:SrvApproval|null;
+  /** DEC-078 (Wave B1): the shift's owner and the opener's handover count (null / absent from older servers). */
+  openedBy?:number|null;handoverCountPaise?:number|null;handoverDifferencePaise?:number|null;handoverReason?:string|null};
 export type SrvDeskTill={till:{tillId:number;code:string;name:string;version:string};active:SrvDeskShift|null;expected:{expectedPaise:number}|null;lastClosed:SrvDeskShift|null};
 /** GET /cashier/desk (W4-3). */
 export type SrvCashDesk={businessDate:string;tills:SrvDeskTill[]};
@@ -107,20 +109,22 @@ export function folioIntoBooking(b:Booking,f:SrvFolio|null,inv:SrvInvoice|null):
   return next;
 }
 
-/** Cash-desk till the cashier screens show (DEC-052 one shared till): the till with an active shift, else the first till. */
-export const deskTill=(d:SrvCashDesk):SrvDeskTill|undefined=>d.tills.find(t=>t.active)??d.tills[0];
+/** Cash-desk till the cashier screens show (DEC-052 one shared till): DEC-078 the till whose active shift `userId` opened, else the till with an
+ *  active shift, else the first till. */
+export const deskTill=(d:SrvCashDesk,userId?:number):SrvDeskTill|undefined=>
+  (userId!==undefined?d.tills.find(t=>t.active&&t.active.openedBy===userId):undefined)??d.tills.find(t=>t.active)??d.tills[0];
 /** shiftOpen: an Open shift of the current business date on the desk till (a Submitted count pauses cash, as in the prototype). */
-export function deskShiftOpen(d:SrvCashDesk){const a=deskTill(d)?.active?.shift;return !!a&&a.status==='Open'&&a.businessDate===d.businessDate;}
+export function deskShiftOpen(d:SrvCashDesk,userId?:number){const a=deskTill(d,userId)?.active?.shift;return !!a&&a.status==='Open'&&a.businessDate===d.businessDate;}
 /** openingCash: the active shift's float; after a close on this business date, that shift's float; otherwise the next float (last count). */
-export function deskOpeningCash(d:SrvCashDesk){
-  const t=deskTill(d);if(!t)return 0;
+export function deskOpeningCash(d:SrvCashDesk,userId?:number){
+  const t=deskTill(d,userId);if(!t)return 0;
   if(t.active)return paise(t.active.shift.openingFloatPaise,'openingFloatPaise');
   const c=t.lastClosed?.shift;if(!c)return 0;
   return c.businessDate===d.businessDate?paise(c.openingFloatPaise,'openingFloatPaise'):paise(c.countedPaise??0,'countedPaise');
 }
 /** shift: the submitted count awaiting a difference decision, or the count that closed today's shift; undefined while counting is open. */
-export function deskShiftRecord(d:SrvCashDesk):ShiftRecord|undefined{
-  const t=deskTill(d);if(!t)return undefined;
+export function deskShiftRecord(d:SrvCashDesk,userId?:number):ShiftRecord|undefined{
+  const t=deskTill(d,userId);if(!t)return undefined;
   const a=t.active;
   if(a&&a.shift.status==='Submitted'){
     const r:ShiftRecord={date:a.shift.businessDate,status:'Submitted',expected:paise(a.shift.expectedPaise??0,'expectedPaise'),counted:paise(a.shift.countedPaise??0,'countedPaise'),
@@ -140,8 +144,8 @@ export function deskShiftRecord(d:SrvCashDesk):ShiftRecord|undefined{
   return undefined;
 }
 /** shiftClose: the count that closed today's shift (next float = counted). */
-export function deskShiftClose(d:SrvCashDesk){
-  const t=deskTill(d),c=t?.lastClosed;
+export function deskShiftClose(d:SrvCashDesk,userId?:number){
+  const t=deskTill(d,userId),c=t?.lastClosed;
   if(!t||t.active||!c||c.shift.businessDate!==d.businessDate)return undefined;
   return {expected:paise(c.shift.expectedPaise??0,'expectedPaise'),counted:paise(c.shift.countedPaise??0,'countedPaise'),countedBy:c.submittedBy!=null?protoUserId(c.submittedBy):undefined};
 }

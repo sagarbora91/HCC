@@ -6,6 +6,7 @@
 import {csvQuoted} from '../csv';
 import type {State} from '../types';
 import {shiftMovements,shiftMovementsByDate,type CashMovement} from './closing';
+import {cxDeposited} from './cashout';
 
 export type CBLogEntry={action:'lock'|'reopen';by:string;at:string;reason?:string};
 export type CBLock={lockedBy:string;lockedAt:string;log:CBLogEntry[]};
@@ -22,6 +23,8 @@ export type CBDay={
   date:string;known:boolean;status:'Open'|'Closed';locked?:CBLock;
   /** Opening balance carried forward from the previous day's counted cash less banking. */
   opening:number;entries:CBEntry[];receipts:number;payments:number;banked:number;
+  /** Wave B1 (DEC-073): bank deposits recorded in the shift that day, net of rejections (already inside entries / payments); absent when none. */
+  deposited?:number;
   /** Book balance: opening + receipts − payments − banking. */
   closing:number;
   /** From the closing record / cashier shift: expected cash, counted cash, difference (counted − expected). */
@@ -61,7 +64,8 @@ export function cbDay(s:State,d:string,movementsOf?:(d:string)=>CashMovement[]):
   const difference=counted!==undefined&&expected!==undefined?counted-expected:undefined;
   const carried=counted!==undefined?counted-banked:closing;
   const reconciles=expected===undefined?true:expected===opening+receipts-(payments-banked);
-  return {date:d,known,status:rec||s.closedDates.includes(d)?'Closed':'Open',locked:cbSlice(s).locks[d],opening,entries,receipts,payments,banked,closing,expected,counted,difference,carried,reconciles};
+  const deposited=cxDeposited(s,d);
+  return {date:d,known,status:rec||s.closedDates.includes(d)?'Closed':'Open',locked:cbSlice(s).locks[d],opening,entries,receipts,payments,banked,...(deposited?{deposited}:{}),closing,expected,counted,difference,carried,reconciles};
 }
 export type CBRange={days:CBDay[];opening:number;receipts:number;payments:number;
   /** Σ cash over/short at the counts (counted − expected) — the gap between a day's book closing and the cash carried forward. */

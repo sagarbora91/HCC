@@ -57,6 +57,29 @@ public sealed class AccountingRulesTests
     }
 
     [Fact]
+    public void Wave_B1_bank_deposit_rejection_and_owner_drawing_vouchers_balance_on_1030_3000_and_1000()
+    {
+        // DEC-073: ₹6,000 banked = Dr 1030 Bank account 6,000 / Cr 1000 Cash in hand 6,000 (Journal); its rejection is the exact reverse; a ₹1,500
+        // Owner drawing = Dr 3000 Owner's drawings / Cr 1000 (Payment). Net on 1000: −6,000 + 6,000 − 1,500 = −₹1,500.
+        var bank = new CashBankingEvent(11, 3, 42, D, 600_000, "SBI current ••4321", "DS-1001");
+        var vs = VoucherBuilder.Build(D, [AccountingEventMapper.Banking(bank, rejected: false), AccountingEventMapper.Banking(bank with { Reason = "Wrong slip" }, rejected: true),
+            AccountingEventMapper.OwnerDrawing(new OwnerDrawingEvent(12, 3, 42, D, 150_000, "Household"))], Map);
+        Assert.All(vs, v => Assert.True(v.Balanced, v.Number));
+        var dep = vs.Single(v => v.SourceKey == "banking:11");
+        Assert.Equal((VoucherType.Journal, "closing", "bank-deposit"), (dep.Type, dep.SourceKind, dep.Sub));
+        Assert.Equal([("1030", 600_000L, 0L), ("1000", 0L, 600_000L)], dep.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal([("1000", 600_000L, 0L), ("1030", 0L, 600_000L)], vs.Single(v => v.SourceKey == "banking:11/rejected").Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        var drawing = vs.Single(v => v.SourceKey == "drawing:12");
+        Assert.Equal(VoucherType.Payment, drawing.Type);
+        Assert.Equal([("3000", 150_000L, 0L), ("1000", 0L, 150_000L)], drawing.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal(-150_000, vs.SelectMany(v => v.Entries).Where(x => x.Account == "1000").Sum(x => x.DebitPaise - x.CreditPaise));
+        Assert.Equal("Owner's drawings", ChartOfAccounts.NameOf("3000"));
+        Assert.Contains(AccountingEvents.CashBanked, AccountingEvents.Consumed);
+        Assert.Contains(AccountingEvents.CashBankingRejected, AccountingEvents.Consumed);
+        Assert.Contains(AccountingEvents.OwnerDrawingRecorded, AccountingEvents.Consumed);
+    }
+
+    [Fact]
     public void Outlet_bill_void_swaps_sides_and_vendor_credit_expense_is_a_journal()
     {
         var sale = new PosBillSettledEvent(11, "sale", D, "restaurant", "UPI", 105_000, 100_000, 2_500, 2_500, "DEMO-UPI");

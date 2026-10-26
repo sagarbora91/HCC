@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {readHotelCa,checkReleaseConfig,checkApkDump,checkCapacitorPlugins} from './build-production.mjs';
+import {readHotelCa,checkReleaseConfig,checkApkDump,checkCapacitorPlugins,SLIP_CAPTURE_PATH} from './build-production.mjs';
 const androidDir=join(dirname(fileURLToPath(import.meta.url)),'..','android');
 
 const dir=mkdtempSync(join(tmpdir(),'hcc-ca-'));let n=0;
@@ -30,6 +30,8 @@ try{
   // ── Security review F-H02 / F-L10: production release configuration ──
   ok('release configuration as shipped: not debuggable, hccRelease signing from env / keystore.properties, no backup, narrow FileProvider, WebView debugging off',()=>{
     assert.deepEqual(checkReleaseConfig(androidDir),[]);
+    const paths=readFileSync(join(androidDir,'app/src/main/res/xml/file_paths.xml'),'utf8');
+    assert.equal(paths.split(SLIP_CAPTURE_PATH).length,2,'the slip-capture folder (Capacitor 8 camera capture) is shared exactly once');
   });
   const files=['app/build.gradle','app/src/productionRelease/AndroidManifest.xml','app/src/productionRelease/res/xml/hcc_data_extraction_rules.xml',
     'app/src/productionRelease/res/xml/hcc_full_backup_rules.xml','app/src/main/res/xml/file_paths.xml','app/src/main/java/in/hcc/prototype/MainActivity.java'];
@@ -41,6 +43,12 @@ try{
     assert.match(mutated('app/src/productionRelease/res/xml/hcc_data_extraction_rules.xml','<exclude domain="sharedpref" path="." />','<include domain="sharedpref" path="." />').join(),/sharedpref|include/);
     assert.match(mutated('app/src/main/res/xml/file_paths.xml','<cache-path name="hcc_exports" path="exports/" />','<external-path name="hcc_exports" path="Documents/HCC/" />').join(),/external or public storage/);
     assert.match(mutated('app/src/main/res/xml/file_paths.xml','path="exports/"','path="."').join(),/whole app cache/);
+    // Wave B1 (DEC-073): only the camera's slip-capture folder (Capacitor's getExternalFilesDir(Pictures)) may be shared, exactly as written.
+    assert.match(mutated('app/src/main/res/xml/file_paths.xml',SLIP_CAPTURE_PATH,'<external-files-path name="hcc_slip_capture" path="." />').join(),/external or public storage/);
+    assert.match(mutated('app/src/main/res/xml/file_paths.xml',SLIP_CAPTURE_PATH,'<external-cache-path name="hcc_slip_capture" path="Pictures/" />').join(),/external or public storage/);
+    assert.match(mutated('app/src/main/res/xml/file_paths.xml',SLIP_CAPTURE_PATH,SLIP_CAPTURE_PATH+'\n    <external-path name="x" path="DCIM/" />').join(),/external or public storage/);
+    assert.match(mutated('app/src/main/res/xml/file_paths.xml',SLIP_CAPTURE_PATH,SLIP_CAPTURE_PATH+SLIP_CAPTURE_PATH).join(),/more than once/);
+    assert.deepEqual(mutated('app/src/main/res/xml/file_paths.xml',SLIP_CAPTURE_PATH,''),[],'without the capture entry the config is still valid (the camera then falls back to the file picker)');
     assert.match(mutated('app/build.gradle','storePassword hccStorePassword',"storePassword 'secret'").join(),/password is written/);
     assert.match(mutated('app/src/main/java/in/hcc/prototype/MainActivity.java','setWebContentsDebuggingEnabled(false)','toString()').join(),/WebView debugging/);
   });

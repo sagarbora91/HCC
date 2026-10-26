@@ -136,8 +136,9 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
               OUTER APPLY (SELECT TOP 1 room_id FROM gst.stay_segment g WHERE g.stay_id = s.stay_id ORDER BY g.seq DESC) sg
               LEFT JOIN inv.room rm ON rm.room_id = sg.room_id
              WHERE s.property_id = @p AND s.status = 'InHouse' AND s.arrival <= @d AND s.departure > @d ORDER BY s.stay_id;
+            -- DEC-073: a bank deposit awaiting confirmation does not hold up the close (the cash already left the drawer); a till transfer does.
             SELECT approval_id, action, amount_paise, reason FROM bill.approval
-             WHERE property_id = @p AND status = 'Pending' AND expires_utc >= @now ORDER BY approval_id;
+             WHERE property_id = @p AND status = 'Pending' AND expires_utc >= @now AND action <> 'cash-banking' ORDER BY approval_id;
             SELECT s.shift_id, t.code, s.status, s.business_date, s.opening_float_paise
                    + COALESCE((SELECT SUM(m.amount_paise) FROM pay.cash_movement m WHERE m.shift_id = s.shift_id), 0)
               FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id

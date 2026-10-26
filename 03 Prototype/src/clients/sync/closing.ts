@@ -11,7 +11,8 @@
 //             (re-runs its checks, replaces its closing record; the business date does not move). The records view carries the reopens and the
 //             replaced records (attached to their date); the open reopen's date comes from GET /closing/business-date (reopenedDate) and is
 //             read on its own when it lies outside the 62-day window.
-//             After a Completed run: OpenShift on the desk till (key <action>:shift, float carried by the server), when the till is known and PERM-SHF-001 is held.
+//             DEC-078 (Wave B1, APK12-3): the close no longer opens the next day's cash shift (it used to open it in the CLOSER's name, so Reception could
+//             not take cash next morning without a Manager). Whoever takes the desk opens their own shift with a handover count (SHIFT_OPEN, sync/cashier.ts).
 //   not loaded here: closeProgress (the server posts the night step per stay and records it as the charges themselves; the demo interruption is not available),
 //             preflight (the screen derives it from the loaded bookings/approvals/expenses/POS/shift slices; the server re-checks every blocker on close and refuses with the list),
 //             reports/exports/overview (computed on the client from slices; see reportPackFromServer in closing/figures.ts and the W4-4 report).
@@ -30,18 +31,12 @@ const nightsMapper=(type:string):CommandMapper=>({type,reload:['bookings'],
   precheck:(cmd,s)=>cmd.interruptAfter!==undefined?'The interrupted night-audit demo is not available on the server: it posts every night once.':!isIsoDate(s.date)?'The business date is not loaded yet. Refresh and try again.':undefined,
   async send(c){const r=await c.api.command<{postedNow:number;stays:number}>('PostRoomNights',{businessDate:c.state.date});return {result:r};}});
 
-/** PERM id the server's OpenShift requires (BillingPermissions.ShiftCount). */
-const SHIFT_PERM='PERM-SHF-001';
 const closeMapper=(type:string):CommandMapper=>({type,reload:['date','closedDates','closings','bookings','clock'],
   precheck:(cmd,s)=>!isIsoDate(s.date)?'The business date is not loaded yet. Refresh and try again.':undefined,
   async send(c){const r=await c.api.command<{status:string}>('RunBusinessDayClose',{businessDate:c.state.date,runId:'close-'+c.state.date});
-    // The prototype's next day opens the cashier shift with the counted cash (DEC-035); the server's close does not, so once the run is
-    // Completed (next day open) open the shared desk till's shift (money area learns ids 'till','desk'); the server carries the float.
-    const till=c.ids.server('till','desk');
-    if(r?.status==='Completed'&&till!==undefined&&c.me.permIds.includes(SHIFT_PERM)){
-      await c.api.command('OpenShift',{tillId:till,openingFloatPaise:null},{step:'shift'});
-      return {result:r,reload:CASH_SLICES};}
-    return {result:r};}});
+    // DEC-078: no OpenShift here (APK12-3). A Completed run opens the next business date with every till's shift closed; the cash desk reloads
+    // so the screens show "Open my cashier shift" to whoever takes the desk next.
+    return r?.status==='Completed'?{result:r,reload:CASH_SLICES}:{result:r};}});
 
 export const closing:SyncArea={
   id:'closing',

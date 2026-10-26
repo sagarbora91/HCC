@@ -2,11 +2,11 @@
 // difference → reason → approval request. Reuses the closing stream commands SHIFT_SUBMIT / SHIFT_DIFFERENCE_DECIDE.
 import React,{useState} from 'react';
 import {Calculator,Check,X,ShieldCheck,ArrowRight,Send,Info,ArrowLeft} from 'lucide-react';
-import {money,shiftExpected,shiftMovements,shiftStatus,isDayClosed,SHIFT_DENOMINATIONS,SHIFT_MANAGER_DIFF_LIMIT,closingUnlimitedRoles} from '../../services/mock';
+import {money,shiftExpected,shiftMovements,shiftStatus,isDayClosed,SHIFT_DENOMINATIONS,SHIFT_MANAGER_DIFF_LIMIT,closingUnlimitedRoles,cxSlice} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ListCard,NumberStepper,StickyFooter,Stepper} from '../../app/mobile/components';
 import {Pill,Empty,dateLabel} from '../../components/ui';
-import {OpenShiftPanel} from '../../clients/sync/cashier-ui';
+import {OpenShiftForm,CashOutPanel} from '../../features/closing/CashOut';
 import {mmDenominations,mmCountTotal,mmShiftSubmitCommand,mmPaise,mmDiffKind} from './logic';
 
 const diffText=(d:number)=>mmDiffKind(d)==='exact'?'None · exact':(d>0?'Over ':'Short ')+money(Math.abs(d));
@@ -17,13 +17,16 @@ export function MmCashier(){
   const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
   const [reason,setReason]=useState('');
   const sh=s.shift,a=sh?.approval?s.approvals.find(x=>x.id===sh.approval):undefined;
-  const cashIn=ex.payments+ex.deposits+ex.restaurant+ex.other,cashOut=ex.refunds+ex.returns+ex.expenses;
+  // Wave B1 (DEC-073): banking, till transfers and Owner drawings are part of cash out (a received transfer or a returned deposit is cash in).
+  const cashIn=ex.payments+ex.deposits+ex.restaurant+ex.other+Math.max(0,ex.transfers),cashOut=ex.refunds+ex.returns+ex.expenses+Math.max(0,-ex.transfers);
+  const opener=cxSlice(s).opener,mine=opener&&opener.date===s.date&&st==='Open'?opener:undefined;
   return <div className="mm-page">
     <section className="mm-hero mm-hero-cash" aria-label="Expected cash">
       <div className="mm-hero-main"><span>Expected cash in drawer</span><strong className="number">{money(ex.expected)}</strong></div>
       <div className="mm-hero-status"><Pill tone={st==='Open'?'green':st==='Submitted'?'orange':'neutral'}>{st==='Open'?'Shift open':st==='Submitted'?'Awaiting approval':'Shift closed'}</Pill><span>{dateLabel(s.date)}</span></div>
       <div className="mm-hero-sub"><div><span>Opening float</span><strong className="number">{money(ex.opening)}</strong></div><div><span>Cash in</span><strong className="number">+{money(cashIn)}</strong></div><div><span>Cash out</span><strong className="number">−{money(cashOut)}</strong></div></div>
-      <p className="mm-formula">{money(ex.opening)} + {money(cashIn)} − {money(cashOut)} = {money(ex.expected)}. Cash in includes restaurant cash {money(ex.restaurant)} (one shared till). UPI, card, bank, vendor credit and room charges are excluded.</p>
+      <p className="mm-formula">{money(ex.opening)} + {money(cashIn)} − {money(cashOut)} = {money(ex.expected)}. Cash in includes restaurant cash {money(ex.restaurant)} (one shared till){ex.transfers!==0?`; bank deposits, till transfers and Owner drawings net ${money(ex.transfers)}`:''}. UPI, card, bank, vendor credit and room charges are excluded.</p>
+      {mine&&<p className="mm-formula">Opened by {name(mine.by)}{mine.handover!==undefined?` · handover count ${money(mine.handover)}${mine.difference?` · ${mine.difference>0?'over':'short'} ${money(Math.abs(mine.difference))}`:''}`:''}</p>}
     </section>
 
     {st==='Submitted'&&sh&&<section className="mm-card mm-diffcard" aria-label="Difference approval">
@@ -48,9 +51,11 @@ export function MmCashier(){
         <div className="mm-row"><div className="mm-row-main"><strong>Difference</strong></div><div className="mm-row-amt"><strong className="number">{diffText(s.shiftClose.counted-s.shiftClose.expected)}</strong></div></div>
         <div className="mm-row"><div className="mm-row-main"><strong>Next opening float</strong></div><div className="mm-row-amt"><strong className="number">{money(s.shiftClose.counted)}</strong></div></div></>
         :<p className="mm-meta">{closed?'Business day closed.':'No count recorded for this date.'}</p>}
-      {process.env.HCC_BUILD==='production'&&!closed?<OpenShiftPanel compact/>:null}
+      {!closed&&(process.env.HCC_BUILD==='production'||!s.shiftClose)?<OpenShiftForm compact/>:null}
       {permission('close')&&<button className="btn full" onClick={()=>go('closing')}>Day closing <ArrowRight size={16}/></button>}
     </section>}
+
+    <CashOutPanel phone/>
 
     <h2 className="m-group">TODAY’S CASH MOVEMENTS · {mv.length}</h2>
     {mv.map(m=><ListCard key={m.id} title={m.label} sub={`${m.id} · ${m.reference}`} meta={`${m.guest?m.guest+' · ':''}by ${name(m.actor)}`}

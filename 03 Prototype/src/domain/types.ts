@@ -250,6 +250,8 @@ export type State={
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
   cashbookX?:import('./streams/cashbook').CBState;
+  /** Wave B1 (DEC-073 / DEC-078): bank deposits, till transfers, Owner drawings, the other tills and the desk shift's opener. */
+  cashOutX?:import('./streams/cashout').CXState;
   /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
   configX?:import('./streams/config').CFGState;
 

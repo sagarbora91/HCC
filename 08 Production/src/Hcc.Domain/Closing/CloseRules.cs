@@ -124,6 +124,7 @@ public static class CloseRules
     private static string Label(string action) => action switch
     {
         "cash-difference" => "Cash difference",
+        "till-transfer" => "Till transfer awaiting the receiver", // DEC-073: accept it or send it back before the close
         "" => "Request",
         _ => char.ToUpperInvariant(action[0]) + action[1..],
     };

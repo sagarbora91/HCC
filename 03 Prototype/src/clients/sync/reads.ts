@@ -56,6 +56,7 @@ export const READS={
   'GET /credit-note-requests':one(wide('PERM-INV-001',true)),
   'GET /cashier/desk':one(anyScope('PERM-SHF-001')),
   'GET /cashier/folios':one(wide('PERM-FOL-001',true)),
+  'GET /cashier/transfers':one(anyScope('PERM-SHF-001'),wide('PERM-DRW-003',true)), // Wave B1 (DEC-073): cash-shift holders + slip viewers (Accountant)
   'GET /cashbook':FINANCE,
   'GET /groups':one(wide('PERM-GRP-001',true)),
   'GET /groups/companies':one(wide('PERM-GRP-001',true)),

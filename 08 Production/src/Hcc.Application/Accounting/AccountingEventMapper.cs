@@ -70,6 +70,28 @@ public static class AccountingEventMapper
             $"{(reversal ? $"Reversal of {N(e.ReversalOf!.Value)} · " : "")}{e.Vendor} · {e.Category} · {e.Funding}");
     }
 
+    // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer. Keys banking:{id}, banking:{id}/rejected, drawing:{id} (one source per record). ──
+
+    public static string BankingKey(long transferId, bool rejected) => "banking:" + N(transferId) + (rejected ? "/rejected" : "");
+
+    public static string DrawingKey(long transferId) => "drawing:" + N(transferId);
+
+    public static AccountingSource Banking(CashBankingEvent e, bool rejected)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.CashBanking(BankingKey(e.TransferId, rejected), rejected, e.BusinessDate, e.AmountPaise,
+            $"{(rejected ? "Bank deposit rejected · cash back in the drawer" : "Cash deposited in bank")} · {e.Bank} · slip {e.SlipNo} · till {e.TillId.ToString(CultureInfo.InvariantCulture)} · deposit {N(e.TransferId)}");
+    }
+
+    public static AccountingSource OwnerDrawing(OwnerDrawingEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.OwnerDrawing(DrawingKey(e.TransferId), e.BusinessDate, e.AmountPaise,
+            $"Owner drawing · {e.Reason} · till {e.TillId.ToString(CultureInfo.InvariantCulture)} · drawing {N(e.TransferId)}");
+    }
+
+    // ── end Wave B1 ──
+
     /// <summary>Pay-run voucher of one lock: lock 1 keeps the Wave 2 key <c>payroll:{run}</c>; a re-lock is <c>payroll:{run}/lock{n}</c>.</summary>
     public static string PayRunKey(long runId, int lockSeq) => "payroll:" + N(runId) + LockSuffix(lockSeq);
 

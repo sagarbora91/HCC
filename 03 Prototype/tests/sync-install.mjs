@@ -46,7 +46,7 @@ export async function register({test,assert}){
   });
   const crt=await startRuntime(S,cs,{areas:S.AREAS.filter(a=>a.id!=='channels')});
   const before=crt.get().state;
-  const opened=await crt.run({type:'SHIFT_OPEN'});
+  const opened=await crt.run({type:'SHIFT_OPEN',handover:2500000}); // DEC-078: the cashier counts the drawer she takes over
   const open=cs.commands('OpenShift');
   const after=crt.get().state;
 
@@ -56,10 +56,10 @@ export async function register({test,assert}){
   const denied=await lrt.run({type:'SHIFT_OPEN'});
   const again=await crt.run({type:'SHIFT_OPEN'});
 
-  test('[F3 D4] First day after the till-cash import: shift closed with no open control state → SHIFT_OPEN sends OpenShift {tillId, openingFloatPaise:null}; the desk reloads and the shift is open',()=>{
+  test('[F3 D4] First day after the till-cash import: shift closed with no open control state → SHIFT_OPEN sends OpenShift {tillId, openingFloatPaise:null, handover count}; the desk reloads and the shift is open',()=>{
     assert.equal(before.shiftOpen,false);assert.equal(before.openingCash,2500000);
     assert.ok(opened.ok,opened.text);
-    assert.equal(open.length,1);assert.deepEqual(open[0].body,{tillId:3,openingFloatPaise:null});assert.ok(open[0].key);
+    assert.equal(open.length,1);assert.deepEqual(open[0].body,{tillId:3,openingFloatPaise:null,handoverCountPaise:2500000,handoverReason:null});assert.ok(open[0].key);
     assert.equal(after.shiftOpen,true);assert.equal(after.openingCash,2500000);
   });
   test('[F3 D4] SHIFT_OPEN is refused without PERM-SHF-001 and while a shift is already open (nothing sent)',()=>{

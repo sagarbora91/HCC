@@ -18,6 +18,9 @@ public enum CashMovementKind
     TransferIn,
     TransferOut,
     Banking,
+
+    /// <summary>DEC-073: cash the Owner takes out of the drawer (Owner only, with a reason).</summary>
+    OwnerDrawing,
 }
 
 public sealed record CashMovement(CashMovementKind Kind, Paise Amount);
@@ -47,6 +50,7 @@ public static class CashDrawer
         CashMovementKind.TransferIn => "transfer-in",
         CashMovementKind.TransferOut => "transfer-out",
         CashMovementKind.Banking => "banking",
+        CashMovementKind.OwnerDrawing => "owner-drawing",
         _ => throw new ArgumentOutOfRangeException(nameof(k), k, "Unknown movement kind."),
     };
 
@@ -79,7 +83,8 @@ public static class CashDrawer
         var expenses = -Sum(CashMovementKind.Expense, CashMovementKind.ExpenseReversal);
         var other = Sum(CashMovementKind.CompanyCredit);
         var restaurant = Sum(CashMovementKind.PosSale, CashMovementKind.PosVoid);
-        var transfers = Sum(CashMovementKind.TransferIn, CashMovementKind.TransferOut, CashMovementKind.Banking);
+        // DEC-073: bank deposits, till transfers and Owner drawings (a rejected deposit / returned transfer is the same kind, opposite sign).
+        var transfers = Sum(CashMovementKind.TransferIn, CashMovementKind.TransferOut, CashMovementKind.Banking, CashMovementKind.OwnerDrawing);
         var expected = openingFloat + payments + deposits + restaurant + other + transfers - refunds - returns - expenses;
         var direct = movements.Aggregate(openingFloat, (a, m) => a + m.Amount);
         return new ExpectedCash(openingFloat, payments, deposits, refunds, returns, expenses, other, restaurant, transfers, expected, expected == direct);

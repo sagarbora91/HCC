@@ -24,7 +24,8 @@ namespace Hcc.Application.Billing;
 /// name it as the service date (<see cref="PostingDateAsync"/>); every other line still posts on the business date (adjustment-only).
 /// </summary>
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
-    IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null)
+    IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
+    ICashOutDecisions? cashOut = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -167,6 +168,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         ArgumentNullException.ThrowIfNull(req);
         var action = BillingCodes.ParseAction(req.Action);
         if (action == AdjustmentAction.CashDifference) throw HccException.Validation("Cash differences are raised by submitting a shift count.");
+        if (action is AdjustmentAction.CashBanking or AdjustmentAction.TillTransfer)
+            throw HccException.Validation("Bank deposits and till transfers are raised by recording them on the cashier screen (DEC-073)."); // Wave B1
         var reason = BillingText.Required(req.Reason, 200, "A reason is required.");
         var amount = Paise.FromWire(req.AmountPaise).EnsureReceiptAmount();
         VersionToken.Validate(req.ExpectedVersion);
@@ -275,6 +278,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             if (peek is null || peek.PropertyId != caller.PropertyId) throw NotFound("Approval request not found.");
             if (peek.Action == AdjustmentAction.CashDifference)
                 return await CashDesk.DecideCashDifferenceAsync(store, policy, tx, caller, peek, req.Approve, decisionReason, req.ExpectedVersion, Now, ct2).ConfigureAwait(false);
+            if (peek.Action is AdjustmentAction.CashBanking or AdjustmentAction.TillTransfer) // Wave B1, DEC-073: same decision as ConfirmCashBanking / AcceptTillTransfer
+                return cashOut is null ? throw Invalid("Bank deposits and till transfers are decided on the cashier screen.")
+                    : await cashOut.DecideAsync(tx, caller, peek, req.Approve, decisionReason, req.ExpectedVersion, ct2).ConfigureAwait(false);
 
             var f = await RequireFolioAsync(tx, caller, peek.FolioId!.Value, ct2).ConfigureAwait(false);
             var a = (await store.LockApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false))!;

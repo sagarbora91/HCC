@@ -19,7 +19,7 @@
 //            written reason until the server option Hcc:GroupBlocks:Enabled is on (DEC-080, audit A02b-04: pickup, release, cancel and re-allot are not built).
 // The server re-checks everything (limits, self-approval, DEC-041 version binding, DEC-065 locks); prechecks only repeat cheap prototype refusals.
 import type {Booking,Approval,Command,State} from '../../services/mock';
-import {totals,addDays} from '../../services/mock';
+import {totals,addDays,cxSlice} from '../../services/mock';
 import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,type GRPState} from '../../domain/streams/groups';
 import {HccClientError} from '../errors';
 import type {SrvAvailability} from '../server';
@@ -45,10 +45,12 @@ export const CASH_NEEDS_OWN_SHIFT='Cash needs your own open cashier shift — us
 /** Why this user cannot take a CASH tender (undefined = allowed as far as the client can tell). The owner of an open shift is not
  *  on the wire, so a user with only own-shift (S) payment scope needs an open shift AND the cashier permission to open one; the
  *  server remains the judge (and its refusal reads the same way). Users with property scope (Owner, Manager) are not limited. */
-export function cashBlockedReason(me:SyncMe|null|undefined,shiftOpen:boolean):string|undefined{
+export function cashBlockedReason(me:SyncMe|null|undefined,shiftOpen:boolean,openerUid?:string):string|undefined{
   if(!me)return undefined;
   const g=me.grants.filter(x=>x.permissionId===PAY_PERM);
   if(!g.length||g.some(x=>x.scope!=='S'))return undefined;
+  // DEC-078 (Wave B1): the desk read carries the shift's opener, so "own shift" is checked exactly when it is known.
+  if(openerUid)return shiftOpen&&openerUid===me.uid?undefined:CASH_NEEDS_OWN_SHIFT;
   return shiftOpen&&me.permIds.includes(SHIFT_PERM)?undefined:CASH_NEEDS_OWN_SHIFT;
 }
 const wire=(e:unknown)=>e instanceof HccClientError?e.wireCode:undefined;
@@ -124,7 +126,7 @@ async function patchApprovals(c:LoaderCtx):Promise<Approval[]>{
 /** One desk read per cash slice (four small GETs; each slice owns its whole value). Learns the till and the active shift. */
 async function desk(c:LoaderCtx):Promise<SrvCashDesk>{
   const d=await c.api.get<SrvCashDesk>('/cashier/desk');
-  const t=deskTill(d);
+  const t=deskTill(d,c.me.userId);
   if(t){c.ids.learn('till','desk',t.till.tillId);
     const a=t.active;
     // 'current' = the till with the open shift: what accounting (W4-7) passes for cash expense approve / reverse.
@@ -199,7 +201,7 @@ function paymentPrecheck(cmd:Command,s:State,me?:SyncMe){
     if(!positive(t.amount))return 'Enter an amount greater than zero.';
     if(!['Cash','UPI','Card','Bank transfer'].includes(t.method))return 'Select a payment method.';
     if(t.method!=='Cash'&&!t.reference)return 'Enter the transaction reference.';
-    if(t.method==='Cash'){const b=cashBlockedReason(me,s.shiftOpen);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
+    if(t.method==='Cash'){const b=cashBlockedReason(me,s.shiftOpen,cxSlice(s).opener?.by);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
   }
   if(tenders.reduce((a,t)=>a+t.amount,0)!==cmd.amount)return 'Tender rows must add up to the payment amount.';
   return undefined;
@@ -252,7 +254,7 @@ export function invoiceStepWarning(e:unknown):string{
     +'Once that is fixed, open the departed stay and choose “Issue invoice”.';
 }
 /** Slices another area reloads after it moves cash (POS settle/void, expenses): the cash desk and the cash book. Folio changes: FOLIO_SLICES. */
-export const CASH_SLICES:SliceKey[]=['shiftOpen','openingCash','shift','shiftClose','cashbookX'];
+export const CASH_SLICES:SliceKey[]=['shiftOpen','openingCash','shift','shiftClose','cashbookX','cashOutX'];
 export const FOLIO_SLICES:SliceKey[]=['bookings','approvals'];
 
 export const money:SyncArea={
@@ -260,10 +262,10 @@ export const money:SyncArea={
   loaders:[
     {slice:'bookings',kind:'patch',requires:FOLIO_READERS,load:patchBookings},
     {slice:'approvals',kind:'patch',needs:['bookings','shift'],load:patchApprovals},
-    {slice:'shiftOpen',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftOpen(await desk(c));}},
-    {slice:'openingCash',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskOpeningCash(await desk(c));}},
-    {slice:'shift',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftRecord(await desk(c));}},
-    {slice:'shiftClose',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftClose(await desk(c));}},
+    {slice:'shiftOpen',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftOpen(await desk(c),c.me.userId);}},
+    {slice:'openingCash',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskOpeningCash(await desk(c),c.me.userId);}},
+    {slice:'shift',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftRecord(await desk(c),c.me.userId);}},
+    {slice:'shiftClose',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftClose(await desk(c),c.me.userId);}},
     {slice:'cashbookX',requires:'reports',reads:['GET /cashbook'],needs:['date'],load:loadCashbook},
     {slice:'groupsX',requires:'reservations',reads:['GET /groups'],load:loadGroups},
   ],

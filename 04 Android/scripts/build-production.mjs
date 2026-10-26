@@ -33,6 +33,9 @@ export function readHotelCa(file){
   if(Date.parse(x.validTo)<Date.now())return {ok:false,text:`${file} expired on ${x.validTo}.`};
   return {ok:true,pem:x.toString(),subject:x.subject.replace(/\n/g,', '),validTo:x.validTo,sha256:x.fingerprint256,ca:x.ca,warnings};
 }
+/** Wave B1 (DEC-073): the one external entry the FileProvider may have — Capacitor 8's camera capture file
+ *  (BridgeWebChromeClient.createImageFile → getExternalFilesDir(DIRECTORY_PICTURES), app-specific, never public storage). */
+export const SLIP_CAPTURE_PATH='<external-files-path name="hcc_slip_capture" path="Pictures/" />';
 /** Static checks of the release configuration (F-H02, F-L10) — no Gradle needed. Returns the problems found. */
 export function checkReleaseConfig(androidDir){
   const read=f=>readFileSync(join(androidDir,f),'utf8');const problems=[];
@@ -55,7 +58,10 @@ export function checkReleaseConfig(androidDir){
     if(!full.includes(`<exclude domain="${d}" path="." />`))problems.push(`full-backup rules must exclude ${d}`);
   }
   if(/<include/.test(rules+full))problems.push('backup rules must not include anything');
-  if(/external-path|root-path|external-files-path|external-cache-path/.test(paths))problems.push('FileProvider must not share external or public storage (F-L10, A10-01)');
+  // Exactly the slip-capture entry is allowed (once); anything else external, or a wider variant of it, is refused.
+  const others=paths.split(SLIP_CAPTURE_PATH);
+  if(others.length>2)problems.push('FileProvider lists the slip-capture folder more than once');
+  if(/external-path|root-path|external-files-path|external-cache-path/.test(others.join('')))problems.push('FileProvider must not share external or public storage (F-L10, A10-01) — only '+SLIP_CAPTURE_PATH);
   if(/cache-path[^>]*path="\.?\/?"/.test(paths))problems.push('FileProvider must not share the whole app cache (A10-01)');
   if(!/cache-path name="hcc_exports" path="exports\/"/.test(paths))problems.push('FileProvider must share only the cache exports/ folder (A10-01)');
   if(!/setWebContentsDebuggingEnabled\(false\)/.test(act)||!/FLAG_DEBUGGABLE/.test(act))problems.push('MainActivity must switch WebView debugging off in non-debuggable builds');

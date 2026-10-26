@@ -20,6 +20,7 @@ const R={};
   calls=fakeBridge();R.print=await N.printPage('Invoice 1','<html>x</html>');R.printCalls=calls;clear();
   calls=fakeBridge({failPrinter:true});R.printFallback=await N.printPage('Invoice 2','<html>y</html>');R.printFallbackCalls=calls;clear();
   calls=fakeBridge();await N.clearExports();R.clear=calls;clear();
+  calls=fakeBridge();await N.clearCapturedPhotos();R.clearPhotos=calls;clear();R.clearPhotosBrowser=await N.clearCapturedPhotos().then(()=>'ok',()=>'threw');
   fakeBridge({failFs:true});R.clearFail=await N.clearExports().then(()=>'ok',()=>'threw');clear();
   R.clearBrowser=await N.clearExports().then(()=>'ok',()=>'threw');
   calls=fakeBridge();const off=N.listenBackButton(()=>{});await new Promise(r=>setTimeout(r,5));R.listen=[...calls];off();await new Promise(r=>setTimeout(r,5));R.listenAfter=[...calls];clear();
@@ -82,5 +83,9 @@ export function register({test,assert}){
     const h=N.printablePage('A <b> & C','<div class="invoice">x</div>','.invoice{color:#000}');
     assert.match(h,/^<!doctype html>/);assert.match(h,/<title>A &lt;b> &amp; C<\/title>/);assert.match(h,/\.no-print,\.modal-actions\{display:none!important\}/);assert.match(h,/<div class="invoice">x<\/div>/);
     assert.match(h,/html,body\{background:#fff!important/);assert.match(h,/@page\{size:A4;margin:14mm\}/);
+  });
+  test('[B1 DEC-073] clearCapturedPhotos deletes the camera capture folder (EXTERNAL Pictures/) recursively; a no-op in a browser',()=>{
+    const r=R.clearPhotos.filter(c=>c[0]==='Filesystem');assert.equal(r.length,1);
+    assert.deepEqual([r[0][1],r[0][2]],['rmdir',{path:'Pictures',directory:'EXTERNAL',recursive:true}]);assert.equal(R.clearPhotosBrowser,'ok');
   });
 }

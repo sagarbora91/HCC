@@ -31,6 +31,11 @@ public static class AccountingEvents
     public const string GroupSettled = "GroupSettled";                   // Groups: master folio settled at balance 0 (deposits still held are applied)
     public const string AdvanceGiven = "AdvanceGiven";                   // Payroll: a salary advance paid out
     public const string FnfSettled = "FnfSettled";                       // Payroll: full and final confirmed (salary journal + net pay paid)
+    // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer. A till transfer is cash to cash in the one 1000 ledger: no event consumed. ──
+    public const string CashBanked = "CashBanked";                     // {transferId, tillId, shiftId, businessDate, amountPaise, bank, slipNo}: Dr bank / Cr cash
+    public const string CashBankingRejected = "CashBankingRejected";   // {transferId, tillId, shiftId, businessDate (rejection), amountPaise, bank, slipNo, reason}: the reverse
+    public const string OwnerDrawingRecorded = "OwnerDrawingRecorded"; // {transferId, tillId, shiftId, businessDate, amountPaise, reason}: Dr Owner's drawings / Cr cash
+    // ── end Wave B1 ──
 
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
@@ -39,8 +44,15 @@ public static class AccountingEvents
 
     public static readonly IReadOnlyList<string> Consumed =
         [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked,
-         GroupReceiptRecorded, GroupAttritionPosted, GroupSettled, AdvanceGiven, FnfSettled];   // DEC-074 (wave B3)
+         GroupReceiptRecorded, GroupAttritionPosted, GroupSettled, AdvanceGiven, FnfSettled,   // DEC-074 (wave B3)
+         CashBanked, CashBankingRejected, OwnerDrawingRecorded];                                 // Wave B1 (DEC-073)
 }
+
+/// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>
+public sealed record CashBankingEvent(long TransferId, int TillId, long ShiftId, DateOnly BusinessDate, long AmountPaise, string Bank, string SlipNo, string? Reason = null);
+
+/// <summary>Wave B1 (DEC-073): cash the Owner took from a drawer.</summary>
+public sealed record OwnerDrawingEvent(long TransferId, int TillId, long ShiftId, DateOnly BusinessDate, long AmountPaise, string Reason);
 
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
 public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, string Status, DateOnly BusinessDate, long ExpectedPaise, long CountedPaise);

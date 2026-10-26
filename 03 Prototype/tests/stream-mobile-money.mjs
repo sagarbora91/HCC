@@ -23,10 +23,12 @@ export async function register({test,M,assert}){
     X('cashier',L.mmPaymentCommand(id,'deposit','500',one,'mm-dep'));
     X('manager',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});X('manager',{type:'CLOSE_RUN'});
     X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('cashier',{type:'SHIFT_OPEN'}); // DEC-078: the cashier who counted re-opens her own shift
     X('reception',{type:'CHARGE',id,amount:50000,label:'Laundry service'});
     X('reception',{type:'DISCOUNT',id,amount:50000,reason:'Service delay goodwill'});
     X('manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});X('manager',{type:'CLOSE_RUN'});
     X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('cashier',{type:'SHIFT_OPEN'}); // DEC-078: the cashier who counted re-opens her own shift
     return {s,id};
   }
 

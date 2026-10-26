@@ -111,6 +111,19 @@ public static class SourceRules
                 ? [Dr("method:Cash", differencePaise), Cr("closing:cash-difference", differencePaise)]
                 : [Dr("closing:cash-difference", -differencePaise), Cr("method:Cash", -differencePaise)]);
 
+    // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer ──
+
+    /// <summary>Drawer cash banked: Journal (a contra in Tally), Dr bank deposit (1030) · Cr cash. A rejected deposit is the same with a negative amount.</summary>
+    public static AccountingSource CashBanking(string sourceKey, bool rejected, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Closing, rejected ? "bank-deposit-rejected" : "bank-deposit", date, VoucherType.Journal, narration,
+            rejected ? [Dr("method:Cash", amountPaise), Cr("closing:bank-deposit", amountPaise)] : [Dr("closing:bank-deposit", amountPaise), Cr("method:Cash", amountPaise)]);
+
+    /// <summary>Owner drawing: Payment, Dr Owner's drawings (3000) · Cr cash.</summary>
+    public static AccountingSource OwnerDrawing(string sourceKey, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Closing, "owner-drawing", date, VoucherType.Payment, narration, [Dr("closing:owner-drawing", amountPaise), Cr("method:Cash", amountPaise)]);
+
+    // ── end Wave B1 ──
+
     /// <summary>
     /// Pay run posted (W2-2 contract): Journal. Dr salaries (gross) · Dr employer PF · Dr employer ESIC ·
     /// Cr salaries payable (net) · Cr PF payable (employee + employer) · Cr ESIC payable (employee + employer) · Cr PT payable ·

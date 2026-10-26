@@ -50,8 +50,13 @@ public sealed record CreateTillRequest(string Code, string Name);
 
 public sealed record TillResult(int TillId, string Code, string Name, string Version);
 
-/// <summary>POST /api/v1/commands/OpenShift (K). The float is carried from the previous counted close (DEC-035); only a till's first shift takes one.</summary>
-public sealed record OpenShiftRequest(int TillId, long? OpeningFloatPaise);
+/// <summary>
+/// POST /api/v1/commands/OpenShift (K). The float is carried from the previous counted close (DEC-035); only a till's first shift takes one.
+/// DEC-078: the shift belongs to whoever opens it. When the previous close was counted by someone else, the opener counts the drawer they take
+/// over (<c>HandoverCountPaise</c>); a count that differs from the carried float needs <c>HandoverReason</c> and is flagged (audited, shown
+/// on the cash desk). The float stays the carried count either way.
+/// </summary>
+public sealed record OpenShiftRequest(int TillId, long? OpeningFloatPaise, long? HandoverCountPaise = null, string? HandoverReason = null);
 
 /// <summary>POST /api/v1/commands/SubmitShiftCount (K V). Notes = count per note denomination (₹500…₹10); coins in paise.</summary>
 public sealed record SubmitShiftCountRequest(long ShiftId, long CountedPaise, IReadOnlyDictionary<string, int>? Notes, long? CoinsPaise, string? Reason,
@@ -99,8 +104,13 @@ public sealed record CollectionsView(DateOnly BusinessDate, long CollectionsPais
 /// </summary>
 public sealed record ReservationFolioView(long ReservationId, long? StayId, string? StayVersion, FolioView? Folio);
 
-/// <summary>One shift on the cash desk with the count reason, who closed it and its cash-difference approval (if any).</summary>
-public sealed record CashDeskShiftView(ShiftResult Shift, int? SubmittedBy, string? DifferenceReason, int? ClosedBy, ApprovalView? Approval);
+/// <summary>
+/// One shift on the cash desk with the count reason, who closed it and its cash-difference approval (if any). DEC-078: <c>OpenedBy</c> = the
+/// shift's owner ("own shift"); <c>HandoverCountPaise</c> / <c>HandoverDifferencePaise</c> / <c>HandoverReason</c> = the opener's handover count
+/// (null when none was taken), difference = handover count − opening float.
+/// </summary>
+public sealed record CashDeskShiftView(ShiftResult Shift, int? SubmittedBy, string? DifferenceReason, int? ClosedBy, ApprovalView? Approval,
+    int? OpenedBy = null, long? HandoverCountPaise = null, long? HandoverDifferencePaise = null, string? HandoverReason = null);
 
 /// <summary>A till with its active (Open / Submitted) shift and expected cash, and its last closed shift.</summary>
 public sealed record CashDeskTillView(TillResult Till, CashDeskShiftView? Active, ExpectedCashView? Expected, CashDeskShiftView? LastClosed);
