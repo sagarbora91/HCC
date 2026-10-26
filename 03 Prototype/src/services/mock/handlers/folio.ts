@@ -10,7 +10,8 @@ import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrec
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer} from '../../../domain/streams/money-master';
 import {mstFail} from '../../../domain/streams/masters';
-import {FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
+import {FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable} from '../../../domain/streams/folio';
+import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
 const STALE_MSG='The folio changed after this request. Reject it and request again.';
@@ -209,7 +210,7 @@ const APPROVAL:Handler=k=>{
     }else if(kind==='credit-note'){
       assert(x&&x.status==='Departed','A credit note applies only to a departed stay.','INVALID_TRANSITION');stale();
       assert(a!.amount<=totals(x!).net,'Credit note cannot exceed the net charges on this folio.');
-      s.creditNoteSeqC=(s.creditNoteSeqC??0)+1;const no=folioCreditNoteNo(s.creditNoteSeqC);
+      const no=fdmAllocate(s,'CRN'); // MA-5: numbering series (seeded CRN series continues s.creditNoteSeqC)
       const lid=id('credit'),bps=gstForFolioAdjustment(s,x!,s.date).bps,t=totals(x!);
       // A03a-04: crediting the folio's whole remaining net, all at the credit's rate, credits exactly the tax still on it (never a paisa
       // more after an earlier credit whose tax was exactly half a paisa): pieces that each follow the per-line rule.
@@ -251,7 +252,7 @@ const CHECKOUT:Handler=k=>{
   assert(!pending.length,'Resolve the pending approval request on this folio before checkout.','INVALID_TRANSITION');
   x.status='Departed';x.version++;s.rooms.find(r=>r.id===x.room)!.hk='Dirty';
   // Sample invoice number allocated once, at checkout (Financial Rulebook §5).
-  if(!x.invoiceNo){s.invoiceSeqC=(s.invoiceSeqC??0)+1;x.invoiceNo=folioInvoiceNo(s.invoiceSeqC);}
+  if(!x.invoiceNo)x.invoiceNo=fdmAllocate(s,'INV'); // MA-5: numbering series (seeded INV series continues s.invoiceSeqC)
   if(!s.tasks.some(t=>t.booking===x.id))s.tasks.push({id:id('task'),room:x.room,booking:x.id,assignee:'housekeeper',status:'To do',checked:[false,false,false]});
   void cmd;
   return x.id+' · departed; room dirty; housekeeping task created; sample invoice '+x.invoiceNo+detail;

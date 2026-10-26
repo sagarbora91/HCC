@@ -104,7 +104,15 @@
     "GET /catalogue/meal-plans/history": "/catalogue/meal-plans/history?page=1&pageSize=200",
     "GET /catalogue/extras/history": "/catalogue/extras/history?page=1&pageSize=200",
     "GET /catalogue/discount-reasons/history": "/catalogue/discount-reasons/history?page=1&pageSize=200",
-    "GET /catalogue/links": "/catalogue/links"
+    "GET /catalogue/links": "/catalogue/links",
+    "GET /masters/booking-sources": "/masters/booking-sources?page=1&pageSize=200",
+    "GET /masters/booking-sources/history": "/masters/booking-sources/history?page=1&pageSize=200",
+    "GET /masters/id-types": "/masters/id-types?page=1&pageSize=200",
+    "GET /masters/id-types/history": "/masters/id-types/history?page=1&pageSize=200",
+    "GET /masters/number-series": "/masters/number-series?page=1&pageSize=200",
+    "GET /masters/number-series/history": "/masters/number-series/history?page=1&pageSize=200",
+    "GET /masters/policies": "/masters/policies?page=1&pageSize=200",
+    "GET /masters/policies/history": "/masters/policies/history?page=1&pageSize=200"
   },
   "roles": {
     "OWN": {
@@ -640,7 +648,15 @@
         "GET /catalogue/meal-plans/history": "200",
         "GET /catalogue/extras/history": "200",
         "GET /catalogue/discount-reasons/history": "200",
-        "GET /catalogue/links": "200"
+        "GET /catalogue/links": "200",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "200",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "200",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "200",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "200"
       }
     },
     "MGR": {
@@ -1076,7 +1092,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "200"
+        "GET /catalogue/links": "200",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "403",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "403",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     },
     "REC": {
@@ -1372,7 +1396,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "200"
+        "GET /catalogue/links": "200",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "403",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "403",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     },
     "CSH": {
@@ -1593,7 +1625,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "200"
+        "GET /catalogue/links": "200",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "403",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "403",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     },
     "ACC": {
@@ -1854,7 +1894,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "200"
+        "GET /catalogue/links": "200",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "403",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "403",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     },
     "SUP": {
@@ -2010,7 +2058,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "403"
+        "GET /catalogue/links": "403",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "403",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "403",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     },
     "HKP": {
@@ -2151,7 +2207,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "403"
+        "GET /catalogue/links": "403",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "403",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "403",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     },
     "MNT": {
@@ -2287,7 +2351,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "403"
+        "GET /catalogue/links": "403",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "403",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "403",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     },
     "TAD": {
@@ -2443,7 +2515,15 @@
         "GET /catalogue/meal-plans/history": "403",
         "GET /catalogue/extras/history": "403",
         "GET /catalogue/discount-reasons/history": "403",
-        "GET /catalogue/links": "403"
+        "GET /catalogue/links": "403",
+        "GET /masters/booking-sources": "200",
+        "GET /masters/booking-sources/history": "200",
+        "GET /masters/id-types": "200",
+        "GET /masters/id-types/history": "200",
+        "GET /masters/number-series": "200",
+        "GET /masters/number-series/history": "403",
+        "GET /masters/policies": "200",
+        "GET /masters/policies/history": "403"
       }
     }
   }

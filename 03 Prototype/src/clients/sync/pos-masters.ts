@@ -34,14 +34,14 @@ function categoryIdOf(c:CommandCtx,code:unknown):number{
   if(!r)throw new HccClientError('VALIDATION',`Menu category ${String(code??'')} is not on the server. Refresh and try again.`);
   return serverId(r.id,'Menu category');
 }
-export function outletBody(_c:CommandCtx,row:Record<string,unknown>){
+export function outletBody(row:Record<string,unknown>,_c:CommandCtx){
   return {type:String(row.type??'restaurant'),opens:str(row.opens),closes:str(row.closes),gstProfile:String(row.gstProfile??'hotel'),kotStation:str(row.kotStation)};
 }
-export function tableBody(c:CommandCtx,row:Record<string,unknown>){
+export function tableBody(row:Record<string,unknown>,c:CommandCtx){
   const seats=row.seats===undefined||row.seats===null||row.seats===''?null:Number(row.seats);
   return {outletId:outletIdOf(c,row.outlet),tableNo:String(row.tableNo??'').trim(),seats,section:str(row.section),counter:!!row.counter};
 }
-export function itemBody(c:CommandCtx,row:Record<string,unknown>){
+export function itemBody(row:Record<string,unknown>,c:CommandCtx){
   const prices=(Array.isArray(row.price)?row.price as MstDatedAmount[]:[]).map(p=>({effectiveFrom:p.effectiveFrom,amountPaise:Number(p.amount)}));
   const today=c.state.date,inForce=[...prices].filter(p=>p.effectiveFrom<=today).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).pop();
   const categoryId=categoryIdOf(c,row.category);

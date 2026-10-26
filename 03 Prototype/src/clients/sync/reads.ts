@@ -148,6 +148,16 @@ export const READS={
   'GET /catalogue/extras/history':one(wide('PERM-MST-002')),
   'GET /catalogue/discount-reasons/history':one(wide('PERM-MST-002')),
   'GET /catalogue/links':one(wide('PERM-FOL-001',true)),
+  // MA-5 front-desk lists: booking forms, registration, documents and policies read them (any signed-in user; commission masked by the
+  // server for roles without money visibility); the history needs masters.manage (sources, ID types) or masters.manage-money (numbering, policies).
+  'GET /masters/booking-sources':always,
+  'GET /masters/booking-sources/history':one(wide('PERM-MST-001')),
+  'GET /masters/id-types':always,
+  'GET /masters/id-types/history':one(wide('PERM-MST-001')),
+  'GET /masters/number-series':always,
+  'GET /masters/number-series/history':one(wide('PERM-MST-002')),
+  'GET /masters/policies':always,
+  'GET /masters/policies/history':one(wide('PERM-MST-002')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

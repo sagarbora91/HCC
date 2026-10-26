@@ -3,6 +3,7 @@ using Hcc.Application.Access;
 using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Application.Configuration;
+using Hcc.Application.FrontDeskMasters;
 using Hcc.Contracts;
 using Hcc.Contracts.Invoices;
 using Hcc.Domain.Billing;
@@ -20,7 +21,7 @@ namespace Hcc.Application.Invoices;
 /// reason, never above what is still on the invoice, one pending request at a time, approved by an Owner and never by the requester.
 /// </summary>
 public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, IInvoiceStore store, IEnumerable<IInvoiceSource> sources, TimeProvider clock,
-    ISettingsReader? settings = null)
+    ISettingsReader? settings = null, INumberSeriesSource? series = null)
 {
     public const string OpIssue = "IssueInvoice";
     public const string OpRequestCreditNote = "RequestCreditNote";
@@ -68,9 +69,12 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
             var type = InvoiceRules.DocTypeFor(lines);
             var date = supplier.BusinessDate;
             var fy = InvoiceNumbering.FyCode(date);
-            var prefix = type == InvoiceDocType.TaxInvoice ? await PrefixAsync(tx, ctx.PropertyId, c).ConfigureAwait(false) : InvoiceNumbering.DefaultPrefix(type);
-            var (seriesPrefix, seq) = await store.NextNumberAsync(tx, ctx.PropertyId, fy, type, prefix, Now, c).ConfigureAwait(false);
-            var number = InvoiceNumbering.Format(seriesPrefix, fy, seq);
+            // MA-5: the numbering series master decides prefix, first number and digits of a new FY series (one tax-invoice series, DEC-MA-5);
+            // before the Owner stores the list the built-in numbering applies (invoicePrefix / INV, BOS, CN at full width — the same as the defaults).
+            var inForce = series is null ? null : await series.InForceAsync(tx, ctx.PropertyId, InvoiceNumbering.Code(type), date, c).ConfigureAwait(false);
+            var prefix = inForce?.Prefix ?? (type == InvoiceDocType.TaxInvoice ? await PrefixAsync(tx, ctx.PropertyId, c).ConfigureAwait(false) : InvoiceNumbering.DefaultPrefix(type));
+            var (seriesPrefix, seq) = await store.NextNumberAsync(tx, ctx.PropertyId, fy, type, InvoiceNumbering.ValidatePrefix(prefix), Now, c, inForce?.StartNo ?? 1).ConfigureAwait(false);
+            var number = InvoiceNumbering.Format(seriesPrefix, fy, seq, inForce?.Padding);
             var record = new InvoiceRecord(0, ctx.PropertyId, type, number, fy, seq, date, source.Kind, doc.SourceId, doc.Reference, doc.PeriodFrom, doc.PeriodTo,
                 recipient, supplier.Name, supplierGstin, supplierState, supplier.Address, lines, figures, InvoiceRules.Words(figures.Total), ctx.PrincipalId, Now);
             var id = await store.InsertInvoiceAsync(tx, record, c).ConfigureAwait(false);
@@ -218,8 +222,9 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         var supplier = await store.SupplierAsync(tx, inv.PropertyId, ct).ConfigureAwait(false);
         var date = supplier.BusinessDate;
         var fy = InvoiceNumbering.FyCode(date);
-        var (prefix, seq) = await store.NextNumberAsync(tx, inv.PropertyId, fy, InvoiceDocType.CreditNote, InvoiceNumbering.DefaultPrefix(InvoiceDocType.CreditNote), Now, ct).ConfigureAwait(false);
-        var number = InvoiceNumbering.Format(prefix, fy, seq);
+        var inForce = series is null ? null : await series.InForceAsync(tx, inv.PropertyId, "CRN", date, ct).ConfigureAwait(false); // MA-5 numbering series
+        var (prefix, seq) = await store.NextNumberAsync(tx, inv.PropertyId, fy, InvoiceDocType.CreditNote, InvoiceNumbering.ValidatePrefix(inForce?.Prefix ?? InvoiceNumbering.DefaultPrefix(InvoiceDocType.CreditNote)), Now, ct, inForce?.StartNo ?? 1).ConfigureAwait(false);
+        var number = InvoiceNumbering.Format(prefix, fy, seq, inForce?.Padding);
         var byLine = inv.Lines.ToDictionary(l => l.LineNo);
         var postings = lines.Select(l => new CreditPosting(l.LineNo, byLine[l.InvoiceLineNo].SourceLineId, l.Category, l.Bps, l.Taxable, l.Tax, l.Cgst, l.Sgst)).ToList();
         var chargeIds = await Source(inv.SourceKind).PostCreditAsync(tx, inv.PropertyId, inv.SourceId, number, r.Reason, date, postings, ct).ConfigureAwait(false);

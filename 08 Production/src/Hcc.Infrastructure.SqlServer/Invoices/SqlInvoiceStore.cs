@@ -98,7 +98,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
             return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is long id ? id : null;
         }, ct);
 
-    public async Task<(string Prefix, int Seq)> NextNumberAsync(ICommandTransaction tx, int propertyId, string fyCode, InvoiceDocType type, string prefixIfNew, DateTime utc, CancellationToken ct)
+    public async Task<(string Prefix, int Seq)> NextNumberAsync(ICommandTransaction tx, int propertyId, string fyCode, InvoiceDocType type, string prefixIfNew, DateTime utc, CancellationToken ct, int startIfNew = 1)
     {
         // An exclusive transaction-scoped app lock per series serializes numbering (also the first use of a series, where two key-range
         // locks would otherwise deadlock on the insert); then check-then-insert or a single-row advance (gap-free within the transaction).
@@ -110,8 +110,8 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
             SELECT @prefix = prefix, @seq = last_seq FROM ivc.series WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND fy_code = @fy AND doc_type = @t;
             IF @prefix IS NULL
             BEGIN
-              INSERT ivc.series(property_id, fy_code, doc_type, prefix, last_seq, created_utc) VALUES (@p, @fy, @t, @np, 1, @utc);
-              SELECT @np, 1;
+              INSERT ivc.series(property_id, fy_code, doc_type, prefix, last_seq, created_utc) VALUES (@p, @fy, @t, @np, @start, @utc);
+              SELECT @np, @start;
             END
             ELSE
             BEGIN
@@ -124,6 +124,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
         P(cmd, "@t", SqlDbType.Char, InvoiceNumbering.Code(type), 3);
         P(cmd, "@np", SqlDbType.VarChar, prefixIfNew, 6);
         P(cmd, "@utc", SqlDbType.DateTime2, utc);
+        P(cmd, "@start", SqlDbType.Int, Math.Max(1, startIfNew));
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await rd.ReadAsync(ct).ConfigureAwait(false);
         return (rd.GetString(0), rd.GetInt32(1));

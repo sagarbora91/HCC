@@ -143,6 +143,14 @@ function routes(role){
     'GET /catalogue/discount-reasons':({query})=>page([],query,'items'),'GET /catalogue/meal-plans/history':({query})=>page([],query,'items'),
     'GET /catalogue/extras/history':({query})=>page([],query,'items'),'GET /catalogue/discount-reasons/history':({query})=>page([],query,'items'),
     'GET /catalogue/links':()=>({plans:[],charges:[]}),
+    'GET /masters/booking-sources':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/booking-sources/history':({query})=>page([],query,'items'),
+    'GET /masters/id-types':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/id-types/history':({query})=>page([],query,'items'),
+    'GET /masters/number-series':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/number-series/history':({query})=>page([],query,'items'),
+    'GET /masters/policies':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/policies/history':({query})=>page([],query,'items'),
   };
 }
 

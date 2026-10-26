@@ -57,6 +57,7 @@ public static class HccComposition
         services.AddRoomMastersModule();                 // MA-1 room types, rooms, amenities, occupancy charges
         services.AddMoneyMastersModule();                // MA-3 payment methods, bank accounts, expense categories and vendors (DEC-058)
         services.AddCatalogueModule();                   // MA-2 meal plans, extras catalogue, discount reasons
+        services.AddFrontDeskMastersModule();            // MA-5 booking sources, ID types, numbering series, policies
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -138,6 +139,7 @@ public static class HccComposition
         api.MapRoomMastersEndpoints();   // MA-1 rooms and room types masters
         api.MapMoneyMastersEndpoints();  // MA-3 money masters
         api.MapCatalogueEndpoints();     // MA-2 meal plans, extras catalogue, discount reasons
+        api.MapFrontDeskMastersEndpoints(); // MA-5 front-desk lists
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

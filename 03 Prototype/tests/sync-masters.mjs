@@ -14,6 +14,7 @@ export async function register({test,M,assert}){
   // MA-1 (old → new): the masters loader also reads the room-types / amenities / occupancy-charges lists — empty here (tests/sync-roommasters.mjs covers them).
   for(const x of ['room-types','amenities','occupancy-charges'])for(const h of ['','/history'])routes[`GET /masters/${x}${h}`]=()=>page([]);
   routes['GET /pos/menu-categories']=()=>page([]); // MA-4: the masters loader also reads the POS menu categories (sync/pos-masters.ts)
+  for(const x of ['booking-sources','id-types','number-series','policies'])routes['GET /masters/'+x]=routes['GET /masters/'+x+'/history']=()=>page([]); // MA-5 lists (own tests: sync-frontdesk-master.mjs)
   for(const n of names)routes['POST /commands/'+n]=()=>(n==='SaveFloor'?floor(4,'F4','Annexe',40,{roomCount:0}):n==='ReorderFloors'?page(floors):{});
   const srv=fakeServer(routes);
   const rt=await startRuntime(S,srv,mine);
@@ -65,6 +66,7 @@ export async function register({test,M,assert}){
   test('[MST-SYNC] MASTER_CODE_TAKEN from the server surfaces with its reason; Reception loads floors without the history read',()=>{
     assert.deepEqual([taken.ok,taken.reason],[false,'server']);assert.equal(M.mstReasonOf(taken.error),'MASTER_CODE_TAKEN');assert.match(taken.text,/already used/);
     assert.deepEqual(rec.gets().map(c=>c.path).filter(p=>p.startsWith('/masters')&&p.endsWith('/history')),[]);assert.ok(rec.gets().some(c=>c.path==='/masters/floors'));
+    assert.deepEqual(rec.gets().map(c=>c.path).filter(p=>p.startsWith('/masters/floors')),['/masters/floors']);
     assert.equal(rrt.get().state.mastersX.rows.floors.length,3);assert.deepEqual(rrt.get().state.mastersX.history,[]);
     assert.deepEqual(rrt.get().errors,{});});
 
