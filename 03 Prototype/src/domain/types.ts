@@ -37,6 +37,19 @@ export type Room={id:string;floor:number;type:string;rate:number;hk:'Ready'|'Dir
   // ── Room · stream E fields (add below this line) ──
 
   // ── Room · stream F fields (add below this line) ──
+
+  // ── Room · MA-1 rooms master fields (domain/streams/roommasters.ts; all optional, absent in BASE) ──
+  /** Amenity codes (amenities master) this room has on top of its room type. */
+  features?:string[];
+  /** Smoking room (default no). */ smoking?:boolean;
+  /** Number of the connecting room, if any. */ connecting?:string;
+  /** Phone extension. */ extension?:string;
+  /** Free notes for staff. */ notes?:string;
+  /** Master status: absent = in service; 'out-of-order' while `ooo` is set; 'retired' = no longer sold (kept for history). */
+  status?:'out-of-order'|'retired';
+  /** Out-of-order window: nights [from, to) (to absent = until cleared) and the reason. A room hold (registerRoomHold), not a block. */
+  ooo?:{from:string;to?:string;reason:string};
+  /** Business date the room was retired. */ retiredOn?:string;
 };
 export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'service'|'discount'|'adjustment';taxBps:number;
   // ── Line · stream C fields (add below this line) ──

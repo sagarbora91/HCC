@@ -15,7 +15,7 @@ public static class MastersEndpoints
     {
         services.AddSingleton<IMastersStore, SqlMastersStore>();
         services.AddSingleton<IMastersReadStore>(sp => new SqlMastersReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
-        services.AddSingleton<IMasterUsage, SqlFloorUsage>();   // rooms per floor (hundreds digit) until MA-1 adds inv.room.floor_id
+        services.AddSingleton<IMasterUsage, SqlFloorUsage>();   // rooms per floor (inv.room.floor_id, MA-1; hundreds digit for rooms without one)
         services.AddSingleton<MastersCommands>();
         services.AddSingleton<MastersQueries>();
         return services;

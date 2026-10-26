@@ -133,7 +133,7 @@ export function mfAttention(s:State,can:(p:Permission)=>boolean,pages:string[]):
 
 // ── M02 Room board ──
 export function mfRoomList(s:State,floor:number,status:string,statusOf:(r:Room)=>string){
-  return s.rooms.filter(r=>(!floor||r.floor===floor)&&(status==='All'||statusOf(r)===status)).sort((a,b)=>a.id.localeCompare(b.id));
+  return s.rooms.filter(r=>r.status!=='retired'&&(!floor||r.floor===floor)&&(status==='All'||statusOf(r)===status)).sort((a,b)=>a.id.localeCompare(b.id));
 }
 /** Today's confirmed arrival for a room (for "Check in" on the room sheet). */
 export function mfArrivalFor(s:State,room:string){return stayArrivals(s).find(b=>b.room===room);}

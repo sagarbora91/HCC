@@ -6,7 +6,10 @@
 //            GenerateStayoverTasks}.
 //   loaders  rooms <- board rows (+ nightly rates from /availability for the business date when the user may see reservations;
 //            forbidden -> rate 0). Without PERM-HK-001 (Reception, DEC-063) rooms <- GET /rooms/status (PERM-RES-001: number, type,
-//            clean/dirty, block flag + window), so the front desk never calls the board it does not hold (D5). tasks <- open tasks. The server has no floor column: floor = hundreds digit of the room number.
+//            clean/dirty, block flag + window), so the front desk never calls the board it does not hold (D5). tasks <- open tasks.
+//            MA-1: GET /masters/rooms adds the floor (inv.room.floor_id → floor code F<n> → Room.floor; hundreds digit when unset) and the
+//            rooms-master fields (amenities, smoking, connecting room, extension, notes, retired); a block whose reason starts with
+//            "Out of order · " (RMS_ROOM_OOO) is shown as the room's out-of-order window instead of a plain block.
 //   commands TASK -> TransitionHousekeepingTask (expectedVersion = task version from the load; the prototype command carries none),
 //            BLOCK -> BlockRoom (or UnblockRoom for the prototype's "BLOCK{id} on a blocked room" toggle), UNBLOCK -> UnblockRoom
 //            (expectedVersion = the active block's version), REPAIR_REQUEST -> RequestRepair, STAYOVER_GENERATE -> GenerateStayoverTasks.
@@ -14,6 +17,7 @@ import type {Room,Task} from '../../services/mock';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx} from './types';
 import {serverId,protoUserId,utcToClock,isoDate} from './map';
+import type {SrvRoomMaster} from './roommasters';
 
 type SrvBlock={blockId:number;from:string|null;to:string|null;reason:string;source:string;version:string};
 type SrvTask={taskId:number;roomId:number;roomNo:string;kind:string;status:string;assigneeId:number|null;checklist:boolean[];note:string|null;rejectReason:string|null;
@@ -39,6 +43,32 @@ export function roomFromServer(r:SrvRow,rate:number):Room{
   const b=r.block;
   return {id:r.roomNo,floor:floorOf(r.roomNo),type:r.roomType,rate,hk:(HK.includes(r.hk)?r.hk:'Dirty') as Room['hk'],blocked:!!b,
     blockReason:b?.reason,blockFrom:b?.from??undefined,blockTo:b?.to??undefined} as Room;
+}
+
+/** Floor number of a floor code F<n> (MA-0 convention); undefined for other codes. */
+const floorNo=(code:string|null|undefined)=>{const m=/^F(\d{1,4})$/.exec(code??'');return m?Number(m[1]):undefined;};
+export const RMS_OOO_PREFIX='Out of order · ';
+/** MA-1: rooms-master fields of GET /masters/rooms onto the loaded rooms (floor from floor_id, amenities, notes, retired, out of order). */
+export function withMasterFields(rooms:Room[],master:SrvRoomMaster[],businessDate:string):Room[]{
+  const by=new Map(master.map(m=>[m.roomNo,m]));
+  return rooms.map(r=>{
+    const m=by.get(r.id);const x={...r} as Room;
+    if(m){x.floor=floorNo(m.floorCode)??floorOf(r.id);if(m.features?.length)x.features=[...m.features];if(m.smoking)x.smoking=true;
+      if(m.connectingRoomNo)x.connecting=m.connectingRoomNo;if(m.extension)x.extension=m.extension;if(m.notes)x.notes=m.notes;
+      if(!m.active){x.status='retired';if(m.retiredOn)x.retiredOn=m.retiredOn;}}
+    if(x.blocked&&x.blockReason?.startsWith(RMS_OOO_PREFIX)&&x.status!=='retired'){
+      x.ooo={from:x.blockFrom??businessDate,...(x.blockTo?{to:x.blockTo}:{}),reason:x.blockReason.slice(RMS_OOO_PREFIX.length)};x.status='out-of-order';
+      x.blocked=false;delete x.blockReason;delete x.blockFrom;delete x.blockTo;}
+    return x;
+  });
+}
+async function masterRooms(c:LoaderCtx):Promise<SrvRoomMaster[]>{
+  if(!c.mayRead('GET /masters/rooms'))return [];
+  let r:{items:SrvRoomMaster[]};
+  try{r=await c.api.get<{items:SrvRoomMaster[]}>('/masters/rooms');}
+  catch(e){if(e instanceof HccClientError&&e.wireCode==='NOT_FOUND')return [];throw e;} // a server without MA-1: floor from the room number
+  for(const m of r.items){c.ids.learn('room',m.roomNo,m.roomId);c.ids.setVersion('room',m.roomNo,m.version);}
+  return r.items;
 }
 
 async function allPages<T>(c:LoaderCtx,path:string):Promise<{first:{businessDate?:string};rows:T[]}>{
@@ -71,11 +101,12 @@ type SrvStatus={asOf:string;businessDate:string;rooms:SrvStatusRow[]};
 async function loadRoomStatus(c:LoaderCtx):Promise<Room[]>{
   const r=await c.api.get<SrvStatus>('/rooms/status');
   const rate=await rates(c,r.businessDate);
-  return r.rooms.map(x=>{
+  const master=await masterRooms(c);
+  return withMasterFields(r.rooms.map(x=>{
     c.ids.learn('room',x.roomNo,x.roomId);
     const b=x.blocked?{blockId:x.roomBlockId??0,from:x.blockFrom??null,to:x.blockTo??null,reason:x.blockReason??'',source:'Inventory',version:''}:null;
     return roomFromServer({roomId:x.roomId,roomNo:x.roomNo,roomType:x.roomType,hk:x.hk??'Ready',status:'',block:b,openTasks:[],roomVersion:''},rate.get(x.roomNo)??0);
-  }).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+  }).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0),master,r.businessDate);
 }
 
 /** Rooms: the housekeeping board (PERM-HK-001) when the user holds it, otherwise the front-desk status list (PERM-RES-001). */
@@ -89,7 +120,8 @@ async function loadRooms(c:LoaderCtx):Promise<Room[]>{
     if(r.block)c.ids.setVersion('roomBlock',r.roomNo,r.block.version);
     return roomFromServer(r,rate.get(r.roomNo)??0);
   });
-  return out.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+  const master=await masterRooms(c);
+  return withMasterFields(out.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0),master,first.businessDate??'');
 }
 async function loadTasks(c:LoaderCtx):Promise<Task[]>{
   const {rows}=await allPages<SrvTask>(c,'/housekeeping/tasks');

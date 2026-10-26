@@ -3,6 +3,7 @@ import {Booking,State,Permission,Room} from './types';
 import {addDays} from './money';
 import {adminTariffOn} from './streams/admin';
 import {lineTax} from './gst';
+import {rmsOffline} from './streams/roomoffline';
 
 // ── Cross-stream contract functions (stubs in M1; owners noted). Signatures must not change. ──
 /** Nightly tariff for a room on a date. Owner: stream E (effective-dated tariffs). */
@@ -63,11 +64,12 @@ export function drawer(s:State){
 /** POS cash settled today (sale receipts +, void receipts −). Room-service bills charged to a folio have no POS receipt. */
 export function drawerOutletCash(s:State){return (s.posX?.receipts??[]).filter(r=>r.date===s.date&&r.method==='Cash').reduce((a,r)=>a+r.amount,0);}
 export function metrics(s:State){
-  const active=s.bookings.filter(b=>b.status==='In house'),sellable=s.rooms.filter(r=>!blockedTonight(s,r)).length;
+  const off=(r:Room)=>rmsOffline(r,s.date,addDays(s.date,1)); // MA-1: retired / out-of-order rooms are not sellable
+  const active=s.bookings.filter(b=>b.status==='In house'),sellable=s.rooms.filter(r=>!blockedTonight(s,r)&&!off(r)).length;
   const lines=s.bookings.flatMap(b=>b.lines).filter(l=>l.date===s.date),receipts=s.bookings.flatMap(b=>b.receipts).filter(r=>r.date===s.date);
   return {
     occupied:active.length,
-    available:s.rooms.filter(r=>!blockedTonight(s,r)&&!occupant(s,r.id)&&r.hk==='Ready').length,
+    available:s.rooms.filter(r=>!blockedTonight(s,r)&&!off(r)&&!occupant(s,r.id)&&r.hk==='Ready').length,
     sellable,
     occupancy:sellable?Math.round(active.length/sellable*100):0,
     revenue:lines.reduce((a,l)=>a+l.amount,0),

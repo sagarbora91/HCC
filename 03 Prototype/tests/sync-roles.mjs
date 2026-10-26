@@ -120,6 +120,13 @@ function routes(role){
     'GET /yield/proposals':()=>[],
     'GET /masters/floors':({query})=>page([{floorId:1,code:'F1',name:'Floor 1',sortOrder:10,active:true,retiredOn:null,roomCount:8,updatedUtc:'2026-10-24T03:00:00.000Z',version:'FV1'}],query,'items'), // MA-0
     'GET /masters/floors/history':({query})=>page([],query,'items'),
+    // MA-1 rooms masters (one Deluxe type with its rack rate, amenities / charges empty, the rooms' master fields).
+    'GET /masters/room-types':({query})=>page([{roomTypeId:1,code:'Deluxe',name:'Deluxe',maxAdults:2,maxChildren:1,extraBedAllowed:true,bedType:null,sizeSqft:null,amenities:[],description:null,
+      sortOrder:1,active:true,retiredOn:null,roomCount:2,rackRates:[{amountPaise:200000,effectiveFrom:'2000-01-01'}],updatedUtc:'2026-10-24T03:00:00.000Z',version:'TV1'}],query,'items'),
+    'GET /masters/room-types/history':({query})=>page([],query,'items'),
+    'GET /masters/amenities':({query})=>page([],query,'items'),'GET /masters/amenities/history':({query})=>page([],query,'items'),
+    'GET /masters/occupancy-charges':({query})=>page([],query,'items'),'GET /masters/occupancy-charges/history':({query})=>page([],query,'items'),
+    'GET /masters/rooms':()=>({items:[{roomId:1,roomNo:'105',floorId:1,floorCode:'F1',roomTypeId:1,roomTypeCode:'Deluxe',features:[],smoking:false,connectingRoomNo:null,extension:null,notes:null,active:true,retiredOn:null,version:'RV1'}]}),
   };
 }
 

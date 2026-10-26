@@ -125,6 +125,14 @@ export const READS={
   // MA-0 masters: floor names label every board (any signed-in user); the change history needs masters.manage (PERM-MST-001).
   'GET /masters/floors':always,
   'GET /masters/floors/history':one(wide('PERM-MST-001')),
+  // MA-1 rooms masters: lists for every signed-in user (amounts empty without money visibility); history = masters.manage, money list = Owner.
+  'GET /masters/room-types':always,
+  'GET /masters/room-types/history':one(wide('PERM-MST-001')),
+  'GET /masters/amenities':always,
+  'GET /masters/amenities/history':one(wide('PERM-MST-001')),
+  'GET /masters/occupancy-charges':always,
+  'GET /masters/occupancy-charges/history':one(wide('PERM-MST-002')),
+  'GET /masters/rooms':always,
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

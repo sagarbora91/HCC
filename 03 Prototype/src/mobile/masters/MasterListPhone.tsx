@@ -7,24 +7,26 @@ import {useHcc} from '../../app/context';
 import {ChipFilter,ListCard} from '../../app/mobile/components';
 import {mstFilterRows,type MstFilter} from '../../features/masters/MasterList';
 import {mstNav} from '../../features/masters/nav';
+import {mstTools} from '../../features/masters/tools';
 
 export function MasterListPhone({spec:specId}:{spec:string}){
   const {s,uid,run,busy,open}=useHcc();
   const spec=mstSpec(specId);
   const [q,setQ]=useState('');const [f,setF]=useState<MstFilter>('active');
   if(!spec)return null;
-  const all=mstRows(s,specId),rows=mstFilterRows(all,q,f),can=mstCanEdit(s,uid,spec);
+  const all=mstRows(s,specId),rows=mstFilterRows(all,q,f),can=mstCanEdit(s,uid,spec),ext=mstTools[specId]; // MA-1 tools
   const move=(id:string,dir:-1|1)=>void run({type:'MST_MASTER_REORDER',master:specId,ids:mstMove(all,id,dir),key:`mst-order:${specId}:${id}:${dir}:${s.sequence}`},'Order saved');
   return <div className="mst-m-list" aria-label={spec.label}>
     {spec.help&&<p className="ma-intro">{spec.help}</p>}
     {!can.ok&&<p className="mst-lock" role="note">{can.reason}</p>}
-    {can.ok&&<button type="button" className="btn primary mst-m-add" onClick={()=>open({type:'mst-row',id:specId+':'})}><Plus size={18}/> Add {spec.singular}</button>}
+    {ext?.Tools&&<ext.Tools specId={specId} phone/>}
+    {can.ok&&!ext?.hideAdd&&<button type="button" className="btn primary mst-m-add" onClick={()=>open({type:'mst-row',id:specId+':'})}><Plus size={18}/> Add {spec.singular}</button>}
     <label className="cfg-search cfg-m-search"><Search size={18}/><input type="search" aria-label={`Search ${spec.label.toLowerCase()}`} placeholder="Search code or name" value={q} onChange={e=>setQ(e.target.value)} enterKeyHint="search"/></label>
     <ChipFilter label="Status" value={f} onChange={setF} options={[{id:'active',label:'Active',count:all.filter(r=>r.active).length},{id:'retired',label:'Retired',count:all.filter(r=>!r.active).length},{id:'all',label:'All',count:all.length}]}/>
     {rows.length?rows.map(r=>{const i=all.indexOf(r);const u=mstUsage(s,spec,r);
       return <div key={r.id} className={'mst-m-row'+(r.active?'':' retired')}>
         <ListCard title={r.name} sub={`${r.code} · used in ${u.count}`} meta={r.active?undefined:'Retired'} onClick={()=>open({type:'mst-row',id:`${specId}:${r.id}`})}/>
-        {can.ok&&f!=='retired'&&!q&&<div className="mst-m-order">
+        {can.ok&&!ext?.noReorder&&f!=='retired'&&!q&&<div className="mst-m-order">
           <button type="button" className="btn" aria-label={`Move ${r.name} up`} disabled={busy||i===0} onClick={()=>move(r.id,-1)}><ArrowUp size={18}/></button>
           <button type="button" className="btn" aria-label={`Move ${r.name} down`} disabled={busy||i===all.length-1} onClick={()=>move(r.id,1)}><ArrowDown size={18}/></button></div>}
       </div>;}):<p className="muted">No {f==='retired'?'retired ':''}{spec.label.toLowerCase()}{q?` match “${q}”`:''}.</p>}

@@ -1,6 +1,6 @@
 import React from 'react';
 import {BedDouble,LogOut,CheckCircle2,IndianRupee,Wallet,Brush,Sunset,ArrowRight} from 'lucide-react';
-import {money,drawer} from '../../services/mock';
+import {money,drawer,mstFloorGroups,rmsListed} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {BookingTable} from '../reservations/BookingTable';
 import {CmpDueCard} from '../compliance/DueCard';
@@ -42,7 +42,7 @@ export function Overview(){
   <CmpDueCard/>
   <BackupStatusCard/>
   <section className="card"><div className="section-title"><div><h2>A view across your rooms</h2><p>Occupancy and cleaning status, in one place.</p></div>{act('reservations',()=>go('rooms'),'Open room board ↗','text-btn')}</div>
-    <div className="floor-overview">{[1,2,3].map(f=><div className="floor-line" key={f}><span>Floor {f.toString().padStart(2,'0')}</span><div>{s.rooms.filter(r=>r.floor===f).map(r=><button className={'mini-room '+roomStatus(r).toLowerCase()} key={r.id} aria-label={`Room ${r.id}: ${roomStatus(r)}`} onClick={()=>open({type:'room',id:r.id})}>{r.id}<span className="mr-code" aria-hidden="true">{ROOM_CODE[roomStatus(r)]}</span></button>)}</div></div>)}</div>
+    <div className="floor-overview">{mstFloorGroups(s).map(({floor:f,label})=><div className="floor-line" key={f}><span>{label}</span><div>{s.rooms.filter(r=>r.floor===f&&rmsListed(r)).map(r=><button className={'mini-room '+roomStatus(r).toLowerCase()} key={r.id} aria-label={`Room ${r.id}: ${roomStatus(r)}`} onClick={()=>open({type:'room',id:r.id})}>{r.id}<span className="mr-code" aria-hidden="true">{ROOM_CODE[roomStatus(r)]}</span></button>)}</div></div>)}</div>
     <div className="legend">{['Occupied','Ready','Dirty','Cleaning','Inspection','Blocked'].map(v=><span key={v}><i className={'dot '+v.toLowerCase()}/>{v} ({ROOM_CODE[v]})</span>)}</div>
   </section>
   </>;

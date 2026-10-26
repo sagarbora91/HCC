@@ -68,7 +68,7 @@ export function resCalendarShows(s:State,b:Booking){return b.status==='Confirmed
 /** Rooms × `days` nights from `start`. Bars are clipped to the window; clipStart/clipEnd mark stays continuing outside it. */
 export function resCalendar(s:State,start:string,days=14,type='All'){
   const dates=Array.from({length:days},(_,i)=>addDays(start,i)),end=addDays(start,days);
-  const rooms=s.rooms.filter(r=>type==='All'||r.type===type);
+  const rooms=s.rooms.filter(r=>r.status!=='retired'&&(type==='All'||r.type===type)); // MA-1: retired rooms stay in history only
   const types=[...new Set(rooms.map(r=>r.type))].sort((a,b)=>(TYPE_ORDER.indexOf(a)+1||99)-(TYPE_ORDER.indexOf(b)+1||99)||a.localeCompare(b));
   const row=(room:Room):ResCalRow=>{
     const stays=s.bookings.filter(b=>b.room===room.id&&resCalendarShows(s,b)&&b.arrival<end&&b.departure>start).sort((a,b)=>a.arrival.localeCompare(b.arrival));
