@@ -26,6 +26,7 @@ import type {State,Command,Permission} from '../../services/mock';
 import type {HttpTransport} from '../http';
 import type {HccClients} from '../types';
 import type {IdDirectory} from './map';
+import type {ReadRoute} from './reads';
 
 /** A top-level key of the prototype State (array slice, module slice `…X`, or a scalar such as `date`/`clock`). */
 export type SliceKey=Extract<keyof State,string>;
@@ -57,6 +58,8 @@ export interface LoaderCtx{
   current<K extends SliceKey>(slice:K):State[K];
   /** True when the signed-in user holds the prototype permission (same rule as can()). */
   can(p:Permission|readonly Permission[]):boolean;
+  /** True when the server lets the user send every given read (sync/reads.ts, D5): never send a GET this returns false for. */
+  mayRead(...routes:ReadRoute[]):boolean;
   me:SyncMe;
   /** Server id ↔ prototype id directory + record versions (persisted with the read cache). */
   ids:IdDirectory;
@@ -69,6 +72,9 @@ export type SliceLoader={
   kind?:'own'|'patch';
   /** Skip (slice stays as the skeleton) unless the user holds this prototype permission — avoids 403 noise. */
   requires?:Permission|readonly Permission[];
+  /** Skip (slice stays as the skeleton) unless the user may send every one of these server reads (sync/reads.ts READS, D5). List the
+   *  reads the loader cannot do without; optional parts are gated inside with `c.mayRead`. */
+  reads?:readonly ReadRoute[];
   /** Slices that must be loaded first in the same batch (their owners run before this loader). */
   needs?:SliceKey[];
   load(c:LoaderCtx):Promise<unknown>;

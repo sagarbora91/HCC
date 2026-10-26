@@ -5,7 +5,8 @@
 //   loaders   bookings ← GET /reservations?view=range&from=<business date − 180 d> (all pages, 500 each, at most 10 pages = 5 000 bookings).
 //             Each item carries the linked guest, registration, stay (id, version) and room segments; company comes from the server's company field (older bookings: read
 //             back from the notes), e-mail / OTA channel written into the server notes by BOOK are read back. Folio lines / receipts are NOT loaded here (money area W4-3 adds a
-//             `kind:'patch'` loader on 'bookings'). Needs `guests` (the e-mail of the linked profile).
+//             `kind:'patch'` loader on 'bookings'). Needs `guests` (the e-mail of the linked profile). Without PERM-RES-001 (Cashier) the
+//             bookings come from the money area's GET /cashier/folios (in-house, today's arrivals and departures; D5).
 //   commands  BOOK → [GET /availability] → QuoteStay (key `<action>:quote`) → CreateReservation (key `<action>`); reload `bookings`.
 //             CHANGE_DATES → AmendReservation (price decision keep: the agreed tariff is preserved), CANCEL → CancelReservation or
 //             MarkNoShow (cmd.noShow), CONFIRM → ConfirmHold. Versions are the server versions recorded at load time.
@@ -19,6 +20,7 @@ import {addDays} from '../../domain/money';
 import {quoteAndCreate,createRequestFromBook} from '../view';
 import type {SyncArea,LoaderCtx} from './types';
 import {utcToClock,serverId} from './map';
+import {loadDeskBookings} from './money';
 import {allPages,bookingFromList,bookingOf,learnListed,roomIdOf,versionOf,type SrvReservationList} from './frontdesk/shared';
 
 /** Server booking details (typed client DTO) → prototype Booking. Kept for the typed-client dialogs (single reads). */
@@ -31,7 +33,10 @@ export function bookingFromServer(b:BookingDetails):Booking{
 /** How far back the bookings window reaches (days before the business date). Customers 360 shows what is in this window. */
 export const BOOKINGS_WINDOW_DAYS=180;
 
+/** Bookings: the reservations list (PERM-RES-001) when the user holds it; otherwise the cashier's folio list (PERM-FOL-001, D5: the
+ *  Cashier works from folios and has no reservations read, DEC-063); otherwise none. */
 async function loadBookings(c:LoaderCtx):Promise<Booking[]>{
+  if(!c.mayRead('GET /reservations'))return c.mayRead('GET /cashier/folios')?loadDeskBookings(c):[];
   const today=c.current('date');const from=isIsoDate(today)?addDays(today,-BOOKINGS_WINDOW_DAYS):undefined;
   const items=await allPages(async page=>{
     const r=await c.api.get<SrvReservationList>('/reservations',{view:'range',from,page,pageSize:500});

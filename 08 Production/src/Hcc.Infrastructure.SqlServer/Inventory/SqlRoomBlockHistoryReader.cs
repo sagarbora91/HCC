@@ -61,13 +61,12 @@ public sealed class SqlRoomBlockHistoryReader(SqlConnectionFactory connections) 
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var q = connections.Command($"""
-            SELECT r.room_id, r.room_no, t.code,
-              (SELECT TOP (1) w.room_block_id FROM ({AsOfWindows}) w WHERE w.room_id = r.room_id
-                 AND (w.from_night IS NULL OR w.from_night <= @asof) AND (w.to_eff IS NULL OR w.to_eff > @asof) ORDER BY w.room_block_id DESC) AS block_id,
-              (SELECT TOP (1) w.reason FROM ({AsOfWindows}) w WHERE w.room_id = r.room_id
-                 AND (w.from_night IS NULL OR w.from_night <= @asof) AND (w.to_eff IS NULL OR w.to_eff > @asof) ORDER BY w.room_block_id DESC) AS reason,
-              CASE WHEN EXISTS (SELECT 1 FROM inv.room_night rn WHERE rn.room_id = r.room_id AND rn.night = @asof) THEN 1 ELSE 0 END AS occupied
+            SELECT r.room_id, r.room_no, t.code, b.room_block_id, b.reason,
+              CASE WHEN EXISTS (SELECT 1 FROM inv.room_night rn WHERE rn.room_id = r.room_id AND rn.night = @asof) THEN 1 ELSE 0 END AS occupied,
+              r.hk_status, b.from_night, b.to_eff
             FROM inv.room r JOIN inv.room_type t ON t.room_type_id = r.room_type_id
+            OUTER APPLY (SELECT TOP (1) w.room_block_id, w.reason, w.from_night, w.to_eff FROM ({AsOfWindows}) w WHERE w.room_id = r.room_id
+                 AND (w.from_night IS NULL OR w.from_night <= @asof) AND (w.to_eff IS NULL OR w.to_eff > @asof) ORDER BY w.room_block_id DESC) b
             WHERE r.property_id = @p
             ORDER BY r.room_no;
             """, conn);
@@ -76,7 +75,8 @@ public sealed class SqlRoomBlockHistoryReader(SqlConnectionFactory connections) 
         var list = new List<RoomStatusEntry>();
         await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            list.Add(new RoomStatusEntry(rd.GetInt32(0), rd.GetString(1), rd.GetString(2), !rd.IsDBNull(3), rd.GetStringOrNull(4), rd.GetInt64OrNull(3), rd.GetInt32(5) == 1));
+            list.Add(new RoomStatusEntry(rd.GetInt32(0), rd.GetString(1), rd.GetString(2), !rd.IsDBNull(3), rd.GetStringOrNull(4), rd.GetInt64OrNull(3), rd.GetInt32(5) == 1,
+                rd.GetString(6), rd.GetDateOrNull(7), rd.GetDateOrNull(8)));
         return list;
     }
 }

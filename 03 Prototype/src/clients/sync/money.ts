@@ -24,6 +24,7 @@ import {HccClientError} from '../errors';
 import type {SrvAvailability} from '../server';
 import type {SyncArea,LoaderCtx,CommandCtx,SliceKey} from './types';
 import {serverId,protoId} from './map';
+import {BOOKING_STATUS} from './frontdesk/shared';
 import {folioIntoBooking,approvalFromServer,creditNoteRequestFromServer,cashDifferenceApproval,CNR_PREFIX,deskTill,deskShiftOpen,deskOpeningCash,
   deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,
   type SrvReservationFolio,type SrvInvoice,type SrvCreditNoteRequest,type SrvCashDesk,type SrvCashBookRange,type SrvGroupSummary,type SrvGroupStatement} from './money/wire';
@@ -49,19 +50,43 @@ async function inBatches<T,R>(list:T[],n:number,f:(x:T)=>Promise<R>):Promise<R[]
 async function patchBookings(c:LoaderCtx):Promise<MoneyBooking[]>{
   const list=(c.current('bookings')??[]) as MoneyBooking[];
   return inBatches(list,8,async b=>{
-    if(!/^\d+$/.test(b.id))return b;
+    if(!/^\d+$/.test(b.id)||!c.mayRead('GET /folios/by-reservation/:id'))return b;
     const r=await optional(c.api.get<SrvReservationFolio>(`/folios/by-reservation/${b.id}`));
     if(!r)return b;
     if(r.stayId!=null){c.ids.learn('stay',b.id,r.stayId);if(r.stayVersion)c.ids.setVersion('stay',b.id,r.stayVersion);}
     const f=r.folio;
     if(f){c.ids.learn('folio',b.id,f.folioId);c.ids.setVersion('folio',b.id,f.version);}
     let inv:SrvInvoice|null=null;
-    if(f&&b.status==='Departed')inv=await optional(c.api.get<SrvInvoice>(`/invoices/by-source/folio/${f.folioId}`));
+    if(f&&b.status==='Departed'&&c.mayRead('GET /invoices/by-source/folio/:id'))inv=await optional(c.api.get<SrvInvoice>(`/invoices/by-source/folio/${f.folioId}`));
     if(inv)c.ids.learn('invoice',b.id,inv.invoiceId);
     const next=folioIntoBooking(b,f,inv) as MoneyBooking;
     next.srvApprovals=(f?.approvals??[]).map(a=>{c.ids.setVersion('approval',protoId(a.approvalId),a.version);return approvalFromServer(a,b.id);});
     return next;
   });
+}
+
+/** GET /cashier/folios item (Hcc.Contracts Billing `DeskFolioItem`, D5): no phone / e-mail / ID fields (the Cashier's guest view is masked). */
+type SrvDeskFolio={reservationId:number;publicNo:string;status:string;guestName:string;roomId:number|null;roomNo:string|null;roomType:string|null;
+  arrival:string;departure:string;adults:number;children:number;source:string;nightlyRatePaise:number|null;stayId:number|null;folioId:number|null;
+  folioVersion:string|null;balancePaise:number;companyName:string|null;companyGstin:string|null};
+
+/** Bookings for a role that holds the folio read but not the reservations read (Cashier, DEC-063: "Cashier works from folios"): the
+ *  cashier's folio list — in-house stays, today's arrivals (advances) and today's departures. Called by the bookings owner
+ *  (sync/reservations.ts); lines / receipts follow from this area's patch loader as for every booking. */
+export async function loadDeskBookings(c:LoaderCtx):Promise<Booking[]>{
+  const r=await c.api.get<{businessDate:string;items:SrvDeskFolio[]}>('/cashier/folios');
+  return r.items.map(x=>{
+    const id=String(x.reservationId);
+    c.ids.learn('booking',id,x.reservationId);
+    if(x.roomNo&&x.roomId!=null)c.ids.learn('room',x.roomNo,x.roomId);
+    if(x.stayId!=null)c.ids.learn('stay',id,x.stayId);
+    if(x.folioId!=null){c.ids.learn('folio',id,x.folioId);if(x.folioVersion)c.ids.setVersion('folio',id,x.folioVersion);}
+    const b:Booking={id,guest:x.guestName,email:'',people:x.adults,room:x.roomNo??'',arrival:x.arrival,departure:x.departure,rate:x.nightlyRatePaise??0,
+      source:x.source,status:BOOKING_STATUS[x.status]??(x.status as Booking['status']),registered:x.stayId!=null,lines:[],receipts:[],version:1,notes:''} as Booking;
+    if(x.children)b.children=x.children;
+    if(x.companyName)b.company=x.companyGstin?{name:x.companyName,gstin:x.companyGstin}:{name:x.companyName};
+    return b;
+  }).sort((a,b)=>Number(a.id)-Number(b.id));
 }
 
 /** Patch on the admin area's approvals (W4-5 owns the slice: configuration requests): appends the money requests. */
@@ -72,7 +97,7 @@ async function patchApprovals(c:LoaderCtx):Promise<Approval[]>{
   if(cash)out.push(cash);
   const byInvoice=new Map<number,string>();
   for(const b of bookings){const i=c.ids.server('invoice',b.id);if(i!==undefined)byInvoice.set(i,b.id);}
-  if(byInvoice.size){
+  if(byInvoice.size&&c.mayRead('GET /credit-note-requests')){
     const reqs=await optional(c.api.get<SrvCreditNoteRequest[]>('/credit-note-requests',{status:'Pending'}))??[];
     for(const r of reqs){const bid=byInvoice.get(r.invoiceId);if(!bid)continue;
       const a=creditNoteRequestFromServer(r,bid);c.ids.setVersion('approval',a.id,r.version);out.push(a);}
@@ -102,12 +127,12 @@ async function loadCashbook(c:LoaderCtx){
 async function loadGroups(c:LoaderCtx):Promise<GRPState>{
   const groups=(await c.api.get<SrvGroupSummary[]>('/groups')).filter(g=>g.groupBlockId!=null);
   const blocks=await inBatches(groups,4,async g=>{
-    const st=await optional(c.api.get<SrvGroupStatement>(`/groups/${g.groupId}/statement`));
+    const st=c.mayRead('GET /groups/:id/statement')?await optional(c.api.get<SrvGroupStatement>(`/groups/${g.groupId}/statement`)):null;
     if(!st)return null;
     c.ids.learn('group',protoId(g.groupId),g.groupId);c.ids.setVersion('group',protoId(g.groupId),st.version);
     if(g.groupBlockId!=null)c.ids.learn('groupBlock',protoId(g.groupId),g.groupBlockId);
     const types:Record<string,string>={};
-    await inBatches(st.members,8,async m=>{const d=await optional(c.api.clients.reservations.getBooking(protoId(m.reservationId)));if(d)types[protoId(m.reservationId)]=d.roomTypeId;});
+    if(c.mayRead('GET /reservations/:id'))await inBatches(st.members,8,async m=>{const d=await optional(c.api.clients.reservations.getBooking(protoId(m.reservationId)));if(d)types[protoId(m.reservationId)]=d.roomTypeId;});
     const arr=g.arrival??st.members[0]?.arrival??st.businessDate,dep=g.departure??st.members[0]?.departure??addDays(arr,1);
     return blockFromServer(st,arr,dep,types);
   });
@@ -211,12 +236,12 @@ export const money:SyncArea={
   loaders:[
     {slice:'bookings',kind:'patch',requires:FOLIO_READERS,load:patchBookings},
     {slice:'approvals',kind:'patch',needs:['bookings','shift'],load:patchApprovals},
-    {slice:'shiftOpen',requires:CASH_READERS,async load(c){return deskShiftOpen(await desk(c));}},
-    {slice:'openingCash',requires:CASH_READERS,async load(c){return deskOpeningCash(await desk(c));}},
-    {slice:'shift',requires:CASH_READERS,async load(c){return deskShiftRecord(await desk(c));}},
-    {slice:'shiftClose',requires:CASH_READERS,async load(c){return deskShiftClose(await desk(c));}},
-    {slice:'cashbookX',requires:'reports',needs:['date'],load:loadCashbook},
-    {slice:'groupsX',requires:'reservations',load:loadGroups},
+    {slice:'shiftOpen',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftOpen(await desk(c));}},
+    {slice:'openingCash',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskOpeningCash(await desk(c));}},
+    {slice:'shift',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftRecord(await desk(c));}},
+    {slice:'shiftClose',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftClose(await desk(c));}},
+    {slice:'cashbookX',requires:'reports',reads:['GET /cashbook'],needs:['date'],load:loadCashbook},
+    {slice:'groupsX',requires:'reservations',reads:['GET /groups'],load:loadGroups},
   ],
   commands:[
     {type:'PAYMENT',reload:FOLIO,precheck:paymentPrecheck,

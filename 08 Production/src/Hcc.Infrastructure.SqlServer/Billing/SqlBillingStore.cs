@@ -500,6 +500,41 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
             rd.IsDBNull(3) ? null : SqlValues.RowVersionToWire((byte[])rd[3]));
     }
 
+    public async Task<(DateOnly? BusinessDate, IReadOnlyList<DeskFolioRow> Rows)> ListDeskFoliosAsync(int propertyId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            DECLARE @bd DATE = (SELECT business_date FROM inv.property WHERE property_id = @p);
+            SELECT @bd;
+            SELECT r.reservation_id, r.public_no, r.status, r.guest_name, COALESCE(cur.room_id, r.room_id), COALESCE(cur.room_no, rm.room_no), t.code,
+                   r.arrival, r.departure, r.adults, r.children, r.source, r.nightly_rate_paise, s.stay_id, f.folio_id, r.company_name, r.company_gstin
+            FROM inv.reservation r
+              LEFT JOIN inv.room rm ON rm.room_id = r.room_id
+              LEFT JOIN inv.room_type t ON t.room_type_id = r.room_type_id
+              LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
+              LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+              OUTER APPLY (SELECT TOP (1) sg.room_id, sr.room_no FROM gst.stay_segment sg JOIN inv.room sr ON sr.room_id = sg.room_id
+                           WHERE sg.stay_id = s.stay_id AND sg.to_date IS NULL) cur
+            WHERE r.property_id = @p
+              AND (r.status = 'InHouse'
+                   OR (r.status = 'Confirmed' AND r.arrival <= @bd AND r.departure > @bd)
+                   OR (r.status = 'Departed' AND s.checked_out_date = @bd))
+            ORDER BY COALESCE(cur.room_no, rm.room_no), r.reservation_id;
+            """, conn);
+        cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        DateOnly? date = null;
+        if (await rd.ReadAsync(ct).ConfigureAwait(false) && !rd.IsDBNull(0)) date = DateOnly.FromDateTime(rd.GetDateTime(0));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var rows = new List<DeskFolioRow>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            rows.Add(new DeskFolioRow(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.IsDBNull(4) ? null : rd.GetInt32(4), rd.IsDBNull(5) ? null : rd.GetString(5), rd.IsDBNull(6) ? null : rd.GetString(6),
+                DateOnly.FromDateTime(rd.GetDateTime(7)), DateOnly.FromDateTime(rd.GetDateTime(8)), rd.GetByte(9), rd.GetByte(10), rd.GetString(11),
+                rd.IsDBNull(12) ? null : rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt64(13), rd.IsDBNull(14) ? null : rd.GetInt64(14),
+                rd.IsDBNull(15) ? null : rd.GetString(15), rd.IsDBNull(16) ? null : rd.GetString(16)));
+        return (date, rows);
+    }
+
     public async Task<CashDeskRead> ReadCashDeskAsync(int propertyId, CancellationToken ct)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);

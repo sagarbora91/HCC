@@ -49,9 +49,9 @@ export function webRequestFromServer(d:SrvWebDetail):CHNWebRequest{
 async function loadChannels(c:LoaderCtx):Promise<CHNState>{
   const [chs,msgs,pushes,web]=await Promise.all([
     c.api.get<SrvChannel[]>('/ota/channels'),
-    optional(c.api.get<SrvMessage[]>('/ota/messages',{limit:500}),[] as SrvMessage[]),
-    optional(c.api.get<SrvPush[]>('/ota/pushes',{limit:50}),[] as SrvPush[]),
-    optional(c.api.get<SrvWebList>('/web-booking/requests'),{requests:[],pending:0} as SrvWebList)]);
+    c.mayRead('GET /ota/messages')?optional(c.api.get<SrvMessage[]>('/ota/messages',{limit:500}),[] as SrvMessage[]):[] as SrvMessage[],
+    c.mayRead('GET /ota/pushes')?optional(c.api.get<SrvPush[]>('/ota/pushes',{limit:50}),[] as SrvPush[]):[] as SrvPush[],
+    c.mayRead('GET /web-booking/requests')?optional(c.api.get<SrvWebList>('/web-booking/requests'),{requests:[],pending:0} as SrvWebList):{requests:[],pending:0} as SrvWebList]);
   for(const x of chs)c.ids.setVersion('channel',String(x.channelId),x.version);
   const details:SrvWebDetail[]=[];
   const rows=web.requests.slice(0,100);
@@ -67,7 +67,7 @@ async function loadChannels(c:LoaderCtx):Promise<CHNState>{
     webRequests:details.slice().sort((a,b)=>a.requestId-b.requestId).map(webRequestFromServer)};
 }
 
-export const otaLoaders:SliceLoader[]=[{slice:'channelsX',requires:'reservations',load:loadChannels}];
+export const otaLoaders:SliceLoader[]=[{slice:'channelsX',requires:'reservations',reads:['GET /ota/channels'],load:loadChannels}];
 
 const reasonCheck=(cmd:Command)=>String(cmd.reason??'').trim().length>=3?undefined:'Enter a reason (at least 3 characters).';
 function version(c:Parameters<CommandMapper['send']>[0],kind:string,id:string):string{

@@ -40,6 +40,42 @@ public class SyncReadTests(BillingDb db) : IClassFixture<BillingDb>
     }
 
     [Fact]
+    public async Task Cashier_folio_list_shows_in_house_folios_with_balance_and_todays_arrivals_without_the_reservations_read()
+    {
+        // D5: the Cashier holds PERM-FOL-001 but not PERM-RES-001 (DEC-063), so its folio screen reads GET /cashier/folios.
+        var (rid, fid) = await db.NewFolioAsync();
+        await db.Billing.PostChargeAsync(db.As(Who.Reception), BillingDb.Key(), new PostChargeRequest(fid, "Laundry", 10_000, "laundry"), Ct);
+        await db.PayAsync(fid, 4_000);
+        var arrival = await db.LongAsync("""
+            INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status)
+            OUTPUT INSERTED.reservation_id VALUES (@p, 'DESK-ARR', N'Fictional arrival', '2026-10-24', '2026-10-26', 'Confirmed');
+            """, ("@p", System.Data.SqlDbType.Int, db.PropertyId));
+        var future = await db.LongAsync("""
+            INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status)
+            OUTPUT INSERTED.reservation_id VALUES (@p, 'DESK-FUT', N'Fictional future', '2026-11-02', '2026-11-04', 'Confirmed');
+            """, ("@p", System.Data.SqlDbType.Int, db.PropertyId));
+        var (cancelled, _) = await db.NewFolioAsync(status: "Cancelled");
+        var (other, _) = await db.NewFolioAsync(property: db.OtherPropertyId);
+
+        var list = await db.Queries.GetDeskFoliosAsync(db.As(Who.Cashier), Ct);
+        Assert.Equal(BillingDb.Day, list.BusinessDate);
+        var ids = list.Items.Select(i => i.ReservationId).ToHashSet();
+        Assert.Contains(rid, ids);
+        Assert.Contains(arrival, ids);
+        Assert.DoesNotContain(future, ids);
+        Assert.DoesNotContain(cancelled, ids);
+        Assert.DoesNotContain(other, ids);
+        var inHouse = list.Items.Single(i => i.ReservationId == rid);
+        var direct = await db.Queries.GetFolioAsync(db.As(Who.Owner), fid, Ct);
+        Assert.Equal(("InHouse", (long?)fid, direct.Version, direct.Totals.BalancePaise), (inHouse.Status, inHouse.FolioId, inHouse.FolioVersion, inHouse.BalancePaise));
+        Assert.True(inHouse.BalancePaise > 0);
+        var arr = list.Items.Single(i => i.ReservationId == arrival);
+        Assert.Equal(("Confirmed", (long?)null, 0L, "Fictional arrival"), (arr.Status, arr.FolioId, arr.BalancePaise, arr.GuestName));
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.GetDeskFoliosAsync(db.As(Who.Housekeeper), Ct));
+        Assert.Contains(db.Policy.Calls, c => c.Principal == Who.Cashier && c.Permission == "PERM-FOL-001" && c.Scope is null);
+    }
+
+    [Fact]
     public async Task Cash_desk_shows_the_active_shift_with_expected_cash_the_pending_difference_and_then_the_last_closed_shift()
     {
         var (till, shift) = await db.OpenTillAsync(100_000, "DESK1");

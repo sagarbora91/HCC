@@ -96,7 +96,7 @@ async function loadMaintenance(c:LoaderCtx):Promise<MNTState>{
   const [reg,orders,amcs]=await Promise.all([
     c.api.get<SrvRegisters>('/maintenance/registers'),
     allPages<SrvOrder>(p=>c.api.get<Page<SrvOrder>>('/maintenance/work-orders',{page:p,pageSize:PAGE})),
-    c.can('inspect')?c.api.get<SrvAmcPage>('/maintenance/amcs'):Promise.resolve<SrvAmcPage>({amcs:[]}),
+    c.can('inspect')&&c.mayRead('GET /maintenance/amcs')?c.api.get<SrvAmcPage>('/maintenance/amcs'):Promise.resolve<SrvAmcPage>({amcs:[]}),
   ]);
   const prev=c.current('maintenanceX')?.orders??[];const users=c.current('users');
   for(const a of reg.assets){c.ids.setVersion('asset',String(a.assetId),a.version);if(a.roomNo&&a.roomId)c.ids.learn('room',a.roomNo,a.roomId);}
@@ -201,8 +201,8 @@ const woVer=(c:CommandCtx)=>({expectedVersion:version(c.ids,'wo',c.cmd.id,'Work 
 export const maintenance:SyncArea={
   id:'maintenance',
   loaders:[
-    {slice:'maintenanceX',requires:'housekeeping',load:loadMaintenance},
-    {slice:'inventoryX',requires:['housekeeping','reports','expenses'],load:loadInventory},
+    {slice:'maintenanceX',requires:'housekeeping',reads:['GET /maintenance/registers','GET /maintenance/work-orders','GET /maintenance/work-orders/:id'],load:loadMaintenance},
+    {slice:'inventoryX',requires:['housekeeping','reports','expenses'],reads:['GET /stock/items','GET /stock/laundry','GET /stock/counts','GET /stock/losses','GET /stock/moves','GET /stock/settings'],load:loadInventory},
   ],
   commands:[
     // ── work orders ──

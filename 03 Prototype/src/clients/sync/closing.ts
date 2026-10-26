@@ -43,7 +43,7 @@ export const closing:SyncArea={
   id:'closing',
   loaders:[
     {slice:'date',kind:'patch',async load(c){return (await bizDate(c)).businessDate;}},
-    {slice:'closings',needs:['date'],requires:'reports',async load(c){
+    {slice:'closings',needs:['date'],requires:'reports',reads:['GET /closing/records'],async load(c){
       const to=c.current('date');const r=await c.api.get<SrvRecords>('/closing/records',{from:addDays(to,-(HISTORY_DAYS-1)),to});
       const out:Record<string,ReturnType<typeof closingFromServer>>={};
       for(const x of r.items)out[x.record.businessDate]=closingFromServer(x.record);

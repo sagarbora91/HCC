@@ -136,6 +136,30 @@ public sealed class RoomBlockHistoryTests(GoldenDatabaseFixture f) : IClassFixtu
     }
 
     [Fact]
+    public async Task Front_desk_room_status_carries_clean_dirty_and_the_block_window_for_today_only()
+    {
+        // D5: Reception has no PERM-HK-001 (DEC-063), so its room board reads GET /rooms/status (PERM-RES-001): clean/dirty + block window.
+        await SetBusinessDateAsync("2026-11-10");
+        await f.Db.ExecAsync("UPDATE inv.room SET hk_status = 'Dirty' WHERE room_no = '104' AND property_id = 1;", Ct);
+        try
+        {
+            await PlaceAsync("104", "2026-11-09", "2026-11-14");
+            var today = (await S.BlockQueries.GetRoomStatusAsync(1, FakeAccessPolicy.Reception, null, Ct)).Rooms.Single(x => x.RoomNo == "104");
+            Assert.Equal(("Dirty", true, "2026-11-09", "2026-11-14"), (today.Hk, today.Blocked, today.BlockFrom, today.BlockTo));
+            var free = (await S.BlockQueries.GetRoomStatusAsync(1, FakeAccessPolicy.Reception, null, Ct)).Rooms.Single(x => x.RoomNo == "103");
+            Assert.Equal((false, (string?)null, (string?)null), (free.Blocked, free.BlockFrom, free.BlockTo));
+            Assert.NotNull(free.Hk);
+            var past = (await S.BlockQueries.GetRoomStatusAsync(1, FakeAccessPolicy.Reception, "2026-11-09", Ct)).Rooms.Single(x => x.RoomNo == "104");
+            Assert.Null(past.Hk); // no history of clean/dirty: never reported for a past date
+            Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.BlockQueries.GetRoomStatusAsync(1, FakeAccessPolicy.Housekeeper, null, Ct)));
+        }
+        finally
+        {
+            await f.Db.ExecAsync("UPDATE inv.room SET hk_status = 'Ready' WHERE room_no = '104' AND property_id = 1;", Ct);
+        }
+    }
+
+    [Fact]
     public async Task A_block_created_later_is_invisible_as_of_an_earlier_date_and_permissions_are_checked()
     {
         await SetBusinessDateAsync("2026-11-10");

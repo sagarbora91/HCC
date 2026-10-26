@@ -146,12 +146,13 @@ export async function register({test,assert,M}){
     'GET /stock/settings':()=>({parSets:3,vendorName:null,turnaroundDays:1}),
   });
   const trt=await startRuntime(S,tech);const ts=trt.get().state;
-  test('[W4-9] Technician: own work orders only, no part prices / spare costs / stock costs; vendors, plans and AMCs stay empty and are never requested',()=>{
+  test('[W4-9] Technician: own work orders only, no part prices / spare costs; vendors, plans, AMCs and stock stay empty and are never requested',()=>{
     assert.ok(ts.maintenanceX.orders.length>0&&ts.maintenanceX.orders.every(w=>w.assignee==='5'));
     assert.ok(ts.maintenanceX.orders.every(w=>w.parts.every(p=>p.unitCost===undefined)),'no unit cost on parts');
     assert.ok(ts.maintenanceX.spares.every(s=>s.cost===0));assert.deepEqual([ts.maintenanceX.vendors,ts.maintenanceX.plans,ts.maintenanceX.amcs],[[],[],[]]);
     assert.equal(tech.gets('/maintenance/amcs').length,0);
-    assert.ok(ts.inventoryX.items.every(i=>i.cost===0&&i.laundryRate===undefined));assert.equal(ts.inventoryX.vendor,undefined);
+    // D5: the server refuses the stock reads to Maintenance (no PERM-HK-003 / PERM-RPT-002), so they are never sent (sync/reads.ts).
+    assert.equal(tech.calls.filter(c=>c.path.startsWith('/stock')).length,0);assert.deepEqual(ts.inventoryX.items,[]);
   });
 
   // ── pages render on server data (desktop + phone) ──

@@ -18,6 +18,7 @@ import {meFromCapabilities,overlayMe} from './capabilities';
 import {createMemoryCache,type ReadCache,type CachedSlice} from './cache';
 import {cookieAuth,type AuthAdapter,type SignInInput} from './auth';
 import {emptyState} from './empty';
+import {mayRead} from './reads';
 import {CACHE_FORMAT} from './cache';
 
 export const SYNC_MARKER='hcc-sync-layer';
@@ -127,11 +128,11 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     const ctx:LoaderCtx={
       api:apiFor(undefined),
       current:<K extends SliceKey>(k:K)=>(k in fresh?fresh[k]:k in values?values[k]:assemble()[k]) as State[K],
-      can:p=>canMe(p),get me(){return me!;},ids,
+      can:p=>canMe(p),mayRead:(...r)=>mayRead(me,...r),get me(){return me!;},ids,
     };
     const runOne=async(x:typeof batch[number])=>{
       const k=x.l.slice,own=(x.l.kind??'own')==='own';
-      if(x.l.requires&&!canMe(x.l.requires)){if(own){fresh[k]=skeleton[k];loadedOk.add(k);}return;}
+      if((x.l.requires&&!canMe(x.l.requires))||(x.l.reads&&!mayRead(me,...x.l.reads))){if(own){fresh[k]=skeleton[k];loadedOk.add(k);}return;}
       try{fresh[k]=await x.l.load(ctx);loadedOk.add(k);delete errors[k];}
       catch(e){
         const w=e instanceof HccClientError?e.wireCode:undefined;

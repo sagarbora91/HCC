@@ -12,6 +12,7 @@ import type {GSVState,GSVRequest,GSVComplaint,GSVItem,GSVSettings,GSVLog,GSVRequ
 import {HccClientError} from '../../errors';
 import type {SyncArea,LoaderCtx,CommandCtx,SyncApi} from '../types';
 import {utcToClock,serverId} from '../map';
+import type {ReadRoute} from '../reads';
 
 // ── Server DTOs (08 Production/src/Hcc.Contracts/GuestServices) ──
 type SrvPage<T>={page:number;pageSize:number;total:number;items:T[];ownOnly:boolean};
@@ -71,16 +72,16 @@ export function itemFromServer(i:SrvItem,booking:string|undefined,log:GSVLog[]):
 }
 
 async function loadServices(c:LoaderCtx):Promise<GSVState>{
-  const api=c.api;
+  const api=c.api,may=(r:ReadRoute)=>c.mayRead(r),hist=may('GET /guest-services/histories/:kind');
   const [requests,complaints,items,settings,stays,hReq,hCmp,hItm]=await Promise.all([
     soft(allPages<SrvRequest>(api,'/guest-services/requests'),[]),
-    soft(allPages<SrvComplaint>(api,'/guest-services/complaints'),[]),
-    soft(allPages<SrvItem>(api,'/guest-services/lost-items'),[]),
-    soft(api.get<SrvSettings>('/guest-services/settings'),null),
-    soft(api.get<{items:SrvStay[]}>('/guest-services/stays').then(r=>r.items),[] as SrvStay[]),
-    soft(api.get<SrvHistory[]>('/guest-services/histories/request'),[] as SrvHistory[]),
-    soft(api.get<SrvHistory[]>('/guest-services/histories/complaint'),[] as SrvHistory[]),
-    soft(api.get<SrvHistory[]>('/guest-services/histories/item'),[] as SrvHistory[]),
+    may('GET /guest-services/complaints')?soft(allPages<SrvComplaint>(api,'/guest-services/complaints'),[]):[] as SrvComplaint[],
+    may('GET /guest-services/lost-items')?soft(allPages<SrvItem>(api,'/guest-services/lost-items'),[]):[] as SrvItem[],
+    may('GET /guest-services/settings')?soft(api.get<SrvSettings>('/guest-services/settings'),null):null,
+    may('GET /guest-services/stays')?soft(api.get<{items:SrvStay[]}>('/guest-services/stays').then(r=>r.items),[] as SrvStay[]):[] as SrvStay[],
+    hist?soft(api.get<SrvHistory[]>('/guest-services/histories/request'),[] as SrvHistory[]):[] as SrvHistory[],
+    hist?soft(api.get<SrvHistory[]>('/guest-services/histories/complaint'),[] as SrvHistory[]):[] as SrvHistory[],
+    hist?soft(api.get<SrvHistory[]>('/guest-services/histories/item'),[] as SrvHistory[]):[] as SrvHistory[],
   ]);
   const byStay=new Map<number,string>();
   for(const s of stays){byStay.set(s.stayId,String(s.reservationId));c.ids.learn('stay',String(s.reservationId),s.stayId);}
@@ -116,7 +117,7 @@ const need=(msg:string,...vals:unknown[])=>vals.every(v=>txt(v))?undefined:msg;
 
 export const guestServices:SyncArea={
   id:'guest-services',
-  loaders:[{slice:'servicesX',requires:['reservations','checkin','housekeeping','inspect'],load:loadServices}],
+  loaders:[{slice:'servicesX',requires:['reservations','checkin','housekeeping','inspect'],reads:['GET /guest-services/requests'],load:loadServices}],
   commands:[
     {type:'GSV_REQUEST_CREATE',reload:['servicesX'],
       precheck:(cmd:Cmd)=>need('Choose an in-house guest.',cmd.id)??need('Choose the request type.',cmd.requestType),

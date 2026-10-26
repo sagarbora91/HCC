@@ -105,3 +105,18 @@ public sealed record CashDeskTillView(TillResult Till, CashDeskShiftView? Active
 
 /// <summary>GET /api/v1/cashier/desk (PERM-SHF-001, any shift): every till of the property (DEC-052: normally one shared till), by till id.</summary>
 public sealed record CashDeskView(DateOnly BusinessDate, IReadOnlyList<CashDeskTillView> Tills);
+
+/// <summary>
+/// One booking on the cashier's folio list (D5). Only what billing needs: no phone, e-mail, address or ID fields (the Cashier's guest
+/// view is masked, PERM-GST-001 M). <c>RoomNo</c> is the current room of an in-house stay (after a move), else the booked room.
+/// <c>FolioId</c> is null for a confirmed arrival without a receipt yet (the first advance opens the folio).
+/// </summary>
+public sealed record DeskFolioItem(long ReservationId, string PublicNo, string Status, string GuestName, int? RoomId, string? RoomNo, string? RoomType,
+    string Arrival, string Departure, int Adults, int Children, string Source, long? NightlyRatePaise, long? StayId, long? FolioId, string? FolioVersion,
+    long BalancePaise, string? CompanyName, string? CompanyGstin);
+
+/// <summary>
+/// GET /api/v1/cashier/folios (PERM-FOL-001, property scope): the cashier's working list without the reservations read (PERM-RES-001):
+/// every in-house stay, today's confirmed arrivals (advances) and today's departures, by room number.
+/// </summary>
+public sealed record DeskFolioListView(DateOnly BusinessDate, IReadOnlyList<DeskFolioItem> Items);

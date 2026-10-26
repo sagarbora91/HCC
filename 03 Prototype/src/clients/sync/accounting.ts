@@ -188,9 +188,9 @@ const reason5=(cmd:Command)=>{const r=txt(cmd.reason);return r.length>=5&&r.leng
 export const accounting:SyncArea={
   id:'accounting',
   loaders:[
-    {slice:'accountingX',requires:'reports',needs:['date'],load:loadAccounting},
-    {slice:'expenses',needs:['date'],load:loadExpenses},
-    {slice:'complianceX',requires:'reports',load:loadCompliance},
+    {slice:'accountingX',requires:'reports',reads:['GET /accounting/days','GET /accounting/trial-balance','GET /accounting/mapping','GET /accounting/mapping/history','GET /accounting/locks/history'],needs:['date'],load:loadAccounting},
+    {slice:'expenses',reads:['GET /expenses'],needs:['date'],load:loadExpenses},
+    {slice:'complianceX',requires:'reports',reads:['GET /compliance/obligations','GET /compliance/calendar','GET /compliance/ca-packs'],load:loadCompliance},
   ],
   commands:[
     // ── Accounting (module 20) ──

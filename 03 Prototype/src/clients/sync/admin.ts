@@ -154,8 +154,8 @@ async function loadUsers(c:LoaderCtx):Promise<User[]>{
 }
 async function loadPolicy(c:LoaderCtx):Promise<HccPolicy>{
   if(!isAdmin(c))return policyFromServer(null,[],c.me);
-  const roles=await optional(()=>c.api.get<SrvRoles>('/admin/roles'),null);
-  const exc=await optional(()=>c.api.get<{items:SrvException[]}>('/admin/exceptions'),{items:[]});
+  const roles=c.mayRead('GET /admin/roles')?await optional(()=>c.api.get<SrvRoles>('/admin/roles'),null):null;
+  const exc=c.mayRead('GET /admin/exceptions')?await optional(()=>c.api.get<{items:SrvException[]}>('/admin/exceptions'),{items:[]}):{items:[]};
   for(const e of exc.items)c.ids.learn('exception',protoId(e.exceptionId),e.exceptionId);
   return policyFromServer(roles,exc.items,c.me);
 }
@@ -165,12 +165,12 @@ async function loadApprovals(c:LoaderCtx):Promise<Approval[]>{
   return r.items.map(x=>approvalFromRequest(x,c.me,c.current('users')??[]));
 }
 async function loadAudit(c:LoaderCtx):Promise<Audit[]>{
-  if(!c.me.permIds.includes('PERM-ADM-004'))return [];
+  if(!c.mayRead('GET /admin/audit'))return [];
   const r=await c.api.get<SrvPage<SrvAudit>>('/admin/audit',{page:1,pageSize:PAGE});
   return r.items.map(auditFromServer);
 }
 async function loadHistory(c:LoaderCtx):Promise<SrvHistoryEntry[]>{
-  if(!isAdmin(c))return [];
+  if(!isAdmin(c)||!c.mayRead('GET /configuration/history'))return [];
   return optional(()=>c.api.get<SrvPage<SrvHistoryEntry>>('/configuration/history',{page:1,pageSize:PAGE}).then(r=>r.items),[]);
 }
 async function loadConfig(c:LoaderCtx):Promise<CFGState>{
@@ -198,10 +198,10 @@ const configReload=['configX','settings','configHistory','approvals'] as const;
 export const admin:SyncArea={
   id:'admin',
   loaders:[
-    {slice:'users',requires:'admin',needs:['date'],load:loadUsers},
+    {slice:'users',requires:'admin',reads:['GET /admin/users'],needs:['date'],load:loadUsers},
     {slice:'policy',load:loadPolicy},
     {slice:'grants',needs:['policy'],requires:'admin',async load(c){return grantsFromPolicy(c.current('policy')!);}},
-    {slice:'approvals',needs:['users'],requires:['admin','approve'],load:loadApprovals},
+    {slice:'approvals',needs:['users'],requires:['admin','approve'],reads:['GET /configuration/requests'],load:loadApprovals},
     {slice:'audit',load:loadAudit},
     {slice:'configX',load:loadConfig},
     {slice:'configHistory',requires:'admin',async load(c){return historyFromServer(await loadHistory(c));}},
