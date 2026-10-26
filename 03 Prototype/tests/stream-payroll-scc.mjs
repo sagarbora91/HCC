@@ -219,7 +219,10 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.throws(()=>execute(s,'manager',{...b,esicApplicable:false}),code('FORBIDDEN'));
     assert.throws(()=>execute(s,'accountant',{...b,ifsc:'BAD'}),code('VALIDATION'));
     const n=execute(s,'accountant',{...b,esicApplicable:false,ifsc:'DEMO0000777',accountNo:'00001234567'});const t=x(n).staff.find(t=>t.id==='HR-S09');
-    assert.deepEqual([t.esicApplicable,t.ifsc,t.accountNo],[false,'DEMO0000777','00001234567']);
+    // DEC-084: the PF / ESIC flag applies; the bank details wait for the Owner's approval.
+    assert.deepEqual([t.esicApplicable,t.ifsc,t.accountNo],[false,x(s).staff.find(t=>t.id==='HR-S09').ifsc,x(s).staff.find(t=>t.id==='HR-S09').accountNo]);
+    const a=x(execute(n,'owner',{type:'HR_REQUEST_DECIDE',id:M.hrPendingRequests(n,'bank')[0].id,approve:true})).staff.find(t=>t.id==='HR-S09');
+    assert.deepEqual([a.esicApplicable,a.ifsc,a.accountNo],[false,'DEMO0000777','00001234567']);
   });
   test('[PAY-SCC] hrSettingDefs for the Master configuration hub: one group, dated statutory rates, values from the state',()=>{
     const s=seed(),defs=M.hrSettingDefs();

@@ -157,6 +157,11 @@ public sealed partial class PayrollService
             var lines = await db.RunLinesAsync(run.RunId, c2).ConfigureAwait(false);
             var errors = PayrollRules.LockErrors(lines).ToList();
             if (errors.Count > 0) throw HccException.Validation("Fix before locking: " + string.Join("; ", errors) + ".");
+            // DEC-075: a correction of this month waiting for the Owner is decided before the month is locked (a locked month never changes).
+            var waiting = (await db.RequestsAsync(ctx.PropertyId, PayrollRequests.Pending, c2).ConfigureAwait(false))
+                .Count(r => r.Kind == PayrollRequests.Attendance && r.Date is { } d && PayMonth.Of(d) == run.Month);
+            if (waiting > 0)
+                throw Invalid($"{waiting} attendance correction{(waiting == 1 ? "" : "s")} for {run.Month.Label} {(waiting == 1 ? "waits" : "wait")} for the Owner — approve or reject {(waiting == 1 ? "it" : "them")} before locking.");
             var rates = RateVersions.For(await db.RateVersionsAsync(ctx.PropertyId, c2).ConfigureAwait(false), run.Month);
             var world = await PayrollCalculator.LoadAsync(db, ctx.PropertyId, run.Month, c2).ConfigureAwait(false);
             var fresh = PayrollCalculator.ComputeRun(world, rates);

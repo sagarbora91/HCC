@@ -12,8 +12,13 @@
 //             editor, N3: a fresh server has none; the department's leave limit is sent unchanged), GiveAdvance, SetStatutoryRates, PreparePayRun, LockPayRun,
 //             UnlockPayRun, IssueBankFile, SendPayslip, PrepareFnf, ConfirmFnf, DiscardFnf. Versioned commands send the version loaded
 //             with the record (STALE_VERSION when someone changed it meanwhile). Every command reloads staffX.
+//   Wave B item B4: HR_ATT_CORRECT → CorrectAttendance (DEC-075 past days; the server decides applied vs waiting for the Owner),
+//             HR_REQUEST_DECIDE → DecidePayrollRequest, HR_REQUEST_WITHDRAW → WithdrawPayrollRequest (request version), HR_HOLIDAY_SAVE /
+//             HR_HOLIDAY_REMOVE → SaveHoliday / RemoveHoliday (DEC-083); SaveStaff's bank details become a request unless the Owner saves
+//             them (DEC-084, server rule). The board adds holidays, requests (pay effect for payroll roles only, masked bank details) and
+//             the server's open correction window.
 import type {Command} from '../../services/mock';
-import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile} from '../../domain/streams/staff';
+import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile,HRRequest,HRDayEntry,HRBank} from '../../domain/streams/staff';
 import {HccClientError} from '../errors';
 import type {SyncArea,CommandCtx} from './types';
 import {protoId,serverId,utcToClock} from './map';
@@ -26,7 +31,13 @@ export type SrvStaffView={staffId:number;name:string;dept:string;designation:str
 export type SrvRates={from:string;basicBps:number;hraBps:number;washBps:number;pfEeBps:number;pfErBps:number;pfWageCap:number;esicEeBps:number;esicErBps:number;
   esicCeiling:number;ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;otBps:number;lateBlock:number;
   rounding:string;esicPeriod:boolean};
-export type SrvCounts={ym:string;days:number;p:number;l:number;h:number;hl:number;a:number;offw:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number};
+export type SrvCounts={ym:string;days:number;p:number;l:number;h:number;hl:number;a:number;offw:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
+  /** DEC-083 paid holidays not worked (absent on an older server). */hol?:number};
+/** DEC-075 day entry: kind none|mark|leave. */
+export type SrvDayEntry={kind:string;status:string|null;otMinutes:number;leaveType:string|null};
+export type SrvRequest={requestId:number;kind:string;staffId:number;date:string|null;before:SrvDayEntry|null;after:SrvDayEntry|null;
+  bankBefore:{bankName:string|null;accountMasked:string|null;ifsc:string|null}|null;bankAfter:{bankName:string|null;accountMasked:string|null;ifsc:string|null}|null;
+  payEffectPaise:number|null;reason:string;status:string;direct:boolean;requestedBy:number;requestedUtc:string;decidedBy:number|null;decidedUtc:string|null;note:string|null;version:string};
 export type SrvLine={staffId:number;name:string;dept:string;designation:string;payType:string;structure:string;gender:string;basePaise:number;counts:SrvCounts;
   latePenaltyHalf:number;payableDays:number;earnedPaise:number;basicPaise:number;hraPaise:number;washingPaise:number;specialPaise:number;otPaise:number;grossPaise:number;
   pfWagesPaise:number;pfPaise:number;pfErPaise:number;esicWagesPaise:number;esicPaise:number;esicErPaise:number;ptPaise:number;advancePaise:number;
@@ -45,7 +56,9 @@ export type SrvBoard={businessDate:string;from:string;to:string;allStaff:boolean
     recoveries:{runId:number|null;fnfId:number|null;amountPaise:number}[]}[];
   fnf:{fnfId:number;staffId:number;lastDay:string;month:string;salaryIncluded:boolean;line:SrvLine|null;rates:SrvRates;advanceOutstandingPaise:number;
     adjustments:{label:string;kind:string;amountPaise:number}[];earningsPaise:number;recoveriesPaise:number;netPaise:number;status:string;preparedBy:number;
-    preparedUtc:string;decidedBy:number|null;decidedUtc:string|null;version:string}[]};
+    preparedUtc:string;decidedBy:number|null;decidedUtc:string|null;version:string}[];
+  /** Wave B item B4 (absent on an older server): DEC-083 holidays, DEC-075 / DEC-084 requests, the open correction window (staff-view callers). */
+  holidays?:{date:string;name:string}[];requests?:SrvRequest[];correctFrom?:string|null;correctTo?:string|null};
 
 // ── Mapping (server → prototype HRState) ──
 const opt=<T,>(v:T|null|undefined)=>v===null||v===undefined?undefined:v;
@@ -56,7 +69,8 @@ export function ratesFromServer(r:SrvRates):HRRates{
     ptFemaleExempt:r.ptFemaleExempt,otBps:r.otBps,lateBlock:r.lateBlock,rounding:r.rounding==='rupee'?'rupee':'paise',esicPeriod:r.esicPeriod};
 }
 function countsFromServer(c:SrvCounts):HRCounts{
-  return {ym:c.ym,days:c.days,P:c.p,L:c.l,H:c.h,HL:c.hl,A:c.a,OFFW:c.offw,off:c.off,paidLeave:c.paidLeave,lopLeave:c.lopLeave,unmarked:c.unmarked,na:c.na,otMin:c.otMin};
+  return {ym:c.ym,days:c.days,P:c.p,L:c.l,H:c.h,HL:c.hl,A:c.a,OFFW:c.offw,off:c.off,paidLeave:c.paidLeave,lopLeave:c.lopLeave,unmarked:c.unmarked,na:c.na,otMin:c.otMin,
+    ...(c.hol?{hol:c.hol}:{})};   // DEC-083: present only when > 0, as hrCounts builds it
 }
 /** A stored server line → prototype HRLine (hrComputeLine key order); the figures are the server's, unchanged. */
 export function lineFromServer(l:SrvLine):HRLine{
@@ -98,6 +112,19 @@ function runFromServer(r:SrvRun):HRRun{
   return run;
 }
 
+const entryFromServer=(e:SrvDayEntry|null):HRDayEntry|undefined=>!e?undefined:e.kind==='mark'?{kind:'mark',status:(e.status??'P') as HRAtt['status'],otMin:e.otMinutes}
+  :e.kind==='leave'?{kind:'leave',type:(e.leaveType??'LOP') as HRLeave['type']}:{kind:'none'};
+const bankFromServer=(b:SrvRequest['bankBefore']):HRBank|undefined=>b?{bankName:b.bankName??'',accountNo:b.accountMasked??'',ifsc:b.ifsc??''}:undefined;   // masked: never unmasked here
+/** A server request → HRRequest (DEC-075 / DEC-084); its version is kept for DecidePayrollRequest / WithdrawPayrollRequest. */
+function requestFromServer(r:SrvRequest):HRRequest{
+  const before=entryFromServer(r.before),after=entryFromServer(r.after),bb=bankFromServer(r.bankBefore),ba=bankFromServer(r.bankAfter);
+  return {id:protoId(r.requestId),kind:r.kind==='bank'?'bank':'attendance',staffId:protoId(r.staffId),...(r.date?{date:r.date}:{}),...(before?{before}:{}),...(after?{after}:{}),
+    ...(bb?{bankBefore:bb}:{}),...(ba?{bankAfter:ba}:{}),...(r.payEffectPaise!=null?{payEffect:r.payEffectPaise}:{}),reason:r.reason,
+    status:(['Pending','Approved','Rejected','Withdrawn'].includes(r.status)?r.status:'Pending') as HRRequest['status'],...(r.direct?{direct:true}:{}),
+    requestedBy:protoId(r.requestedBy),requestedAt:utcToClock(r.requestedUtc),...(r.decidedBy!=null?{decidedBy:protoId(r.decidedBy)}:{}),
+    ...(r.decidedUtc?{decidedAt:utcToClock(r.decidedUtc)}:{}),...(r.note?{note:r.note}:{})};
+}
+
 async function loadStaffX(c:Parameters<SyncArea['loaders'][number]['load']>[0]):Promise<HRState>{
   const [list,b]=await Promise.all([c.api.get<SrvStaffView[]>('/payroll/staff'),c.api.get<SrvBoard>('/payroll/board')]);
   const staff=list.map(staffFromServer);
@@ -122,8 +149,10 @@ async function loadStaffX(c:Parameters<SyncArea['loaders'][number]['load']>[0]):
       net:f.netPaise,by:protoId(f.preparedBy),at:utcToClock(f.preparedUtc),status:f.status==='Draft'?'Draft':'Settled',
       ...(f.decidedBy!=null&&f.status!=='Draft'?{confirmedBy:protoId(f.decidedBy)}:{}),...(f.decidedUtc&&f.status!=='Draft'?{confirmedAt:utcToClock(f.decidedUtc)}:{})};});
   const deptCap:Record<string,number>={};for(const d of b.departments)if(d.leaveCap!=null)deptCap[d.code]=d.leaveCap;
+  const requests=(b.requests??[]).map(r=>{c.ids.setVersion('hrreq',protoId(r.requestId),r.version);return requestFromServer(r);});
   return {depts:b.departments.map(d=>({id:d.code,name:d.name})),staff,roster,att,leaves,advances,rateVersions:b.rateVersions.map(ratesFromServer),
-    leavePolicy:{ent:{CL:b.leavePolicy.cl,SL:b.leavePolicy.sl,EL:b.leavePolicy.el},defaultCap:b.leavePolicy.defaultCap,deptCap},runs,fnf};
+    leavePolicy:{ent:{CL:b.leavePolicy.cl,SL:b.leavePolicy.sl,EL:b.leavePolicy.el},defaultCap:b.leavePolicy.defaultCap,deptCap},runs,fnf,
+    holidays:(b.holidays??[]).map(h=>({date:h.date,name:h.name})),requests,...(b.correctFrom&&b.correctTo?{correctWindow:{from:b.correctFrom,to:b.correctTo}}:{})};
 }
 
 // ── Command mapping ──
@@ -158,6 +187,7 @@ function saveStaffBody(c:CommandCtx):Record<string,unknown>{
   if(cmd.bankName!==undefined&&String(cmd.bankName).trim()!==(old?.bankName??''))body.bankName=String(cmd.bankName).trim();
   if(cmd.accountNo!==undefined&&String(cmd.accountNo).trim()!==(old?.accountNo??''))body.accountNo=String(cmd.accountNo).trim();
   if(cmd.ifsc!==undefined){const v=String(cmd.ifsc).trim().toUpperCase();if(old?v!==(old.ifsc??'').toUpperCase():!!v)body.ifsc=v;}
+  if(String(cmd.bankReason??'').trim())body.bankReason=String(cmd.bankReason).trim();   // DEC-084: the reason the Owner sees on the bank request
   return body;
 }
 
@@ -219,6 +249,18 @@ export const staff:SyncArea={
       adjustments:(Array.isArray(c.cmd.adjustments)?c.cmd.adjustments:[]).map((a:{label:string;kind:string;amount:number})=>({label:a.label,kind:a.kind,amountPaise:a.amount}))}))},
     {type:'HR_FNF_CONFIRM',reload:RELOAD,send:c=>post(c,'ConfirmFnf',({fnfId:serverId(c.cmd.id,'Settlement')}),['fnf',c.cmd.id,'Settlement'])},
     {type:'HR_FNF_DISCARD',reload:RELOAD,send:c=>post(c,'DiscardFnf',({fnfId:serverId(c.cmd.id,'Settlement')}),['fnf',c.cmd.id,'Settlement'])},
+    // Wave B item B4 — DEC-075 past-day corrections (the server decides applied vs waiting for the Owner), the Owner's decision / the requester's
+    // withdrawal (request version), DEC-083 paid holidays.
+    {type:'HR_ATT_CORRECT',reload:RELOAD,
+      precheck:cmd=>String(cmd.reason??'').trim().length<3?'Give the reason for the correction (3–200 characters).':!/^\d{4}-\d{2}-\d{2}$/.test(String(cmd.date??''))?'Choose the day to correct.':undefined,
+      send:c=>post(c,'CorrectAttendance',{staffId:serverId(c.cmd.staffId,'Staff'),date:c.cmd.date,mark:String(c.cmd.mark),reason:String(c.cmd.reason).trim(),
+        ...(['P','L','H','OFF'].includes(String(c.cmd.mark))?{otMinutes:Number(c.cmd.otMin??0)}:{})})},
+    {type:'HR_REQUEST_DECIDE',reload:RELOAD,send:c=>post(c,'DecidePayrollRequest',({requestId:serverId(c.cmd.id,'Request'),approve:!!c.cmd.approve,
+      ...(text(c.cmd.note)?.trim()?{note:String(c.cmd.note).trim()}:{})}),['hrreq',c.cmd.id,'Request'])},
+    {type:'HR_REQUEST_WITHDRAW',reload:RELOAD,send:c=>post(c,'WithdrawPayrollRequest',({requestId:serverId(c.cmd.id,'Request')}),['hrreq',c.cmd.id,'Request'])},
+    {type:'HR_HOLIDAY_SAVE',reload:RELOAD,precheck:cmd=>String(cmd.name??'').trim().length<2?'Name the holiday (2–60 characters).':undefined,
+      send:c=>post(c,'SaveHoliday',{date:c.cmd.date,name:String(c.cmd.name).trim()})},
+    {type:'HR_HOLIDAY_REMOVE',reload:RELOAD,send:c=>post(c,'RemoveHoliday',{date:c.cmd.date})},
   ],
   unmapped:{},
 };

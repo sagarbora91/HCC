@@ -70,6 +70,13 @@ public static class PayrollRules
         return (int)date.DayOfWeek == st.WeeklyOff ? ShiftCode.OFF : st.DefaultShift;
     }
 
+    /// <summary>A day without duty for leave: a rostered weekly off or a DEC-083 paid holiday (leave days skip both; nobody is "off" on them).</summary>
+    public static bool DayOff(StaffProfile st, StaffDays days, DateOnly date)
+    {
+        ArgumentNullException.ThrowIfNull(days);
+        return ShiftFor(st, days, date) == ShiftCode.OFF || days.Holidays.ContainsKey(date);
+    }
+
     public static IEnumerable<LeaveSpan> ApprovedOn(StaffDays days, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(days);
@@ -83,12 +90,12 @@ public static class PayrollRules
         return ls.FirstOrDefault(l => l.Half is null) ?? ls.FirstOrDefault();
     }
 
-    /// <summary>Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate); a half-day leave is 0.5.</summary>
+    /// <summary>Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (DEC-083); a half-day leave is 0.5.</summary>
     public static decimal LeaveDays(StaffProfile st, StaffDays days, DateOnly from, DateOnly to, LeaveHalf? half)
     {
-        if (half is not null) return ShiftFor(st, days, from) == ShiftCode.OFF ? 0m : 0.5m;
+        if (half is not null) return DayOff(st, days, from) ? 0m : 0.5m;
         var n = 0m;
-        for (var d = from; d <= to; d = d.AddDays(1)) if (ShiftFor(st, days, d) != ShiftCode.OFF) n++;
+        for (var d = from; d <= to; d = d.AddDays(1)) if (!DayOff(st, days, d)) n++;
         return n;
     }
 
@@ -97,7 +104,7 @@ public static class PayrollRules
     {
         ArgumentNullException.ThrowIfNull(st);
         ArgumentNullException.ThrowIfNull(days);
-        decimal p = 0, l = 0, h = 0, hl = 0, a = 0, offw = 0, off = 0, paid = 0, lop = 0, unmarked = 0, na = 0;
+        decimal p = 0, l = 0, h = 0, hl = 0, a = 0, offw = 0, off = 0, paid = 0, lop = 0, unmarked = 0, na = 0, hol = 0;
         var ot = 0;
         void AddLeave(LeaveSpan x, decimal n)
         {
@@ -138,7 +145,8 @@ public static class PayrollRules
                     }
                 }
             }
-            else if (ShiftFor(st, days, d) == ShiftCode.OFF) off++;   // F-01 (holidays would belong in this branch too)
+            else if (ShiftFor(st, days, d) == ShiftCode.OFF) off++;   // F-01
+            else if (days.Holidays.ContainsKey(d)) hol++;              // DEC-083: an unmarked paid holiday counts like a weekly off (a worked one is marked)
             else if (full is not null) AddLeave(full, 1m);
             else if (halves.Count > 0)
             {
@@ -148,7 +156,7 @@ public static class PayrollRules
             else unmarked++;
         }
 
-        return new AttendanceCounts(ym.ToString(), ym.Days, p, l, h, hl, a, offw, off, paid, lop, unmarked, na, ot);
+        return new AttendanceCounts(ym.ToString(), ym.Days, p, l, h, hl, a, offw, off, paid, lop, unmarked, na, ot, hol);
     }
 
     /// <summary>Maharashtra professional tax for a month (SCC ptFor): women exempt up to the female limit; men nil / mid slab / standard; February top slab.</summary>
@@ -234,12 +242,15 @@ public static class PayrollRules
         return prior.Covered ?? st.EsicContractWage <= r.EsicCeiling;
     }
 
+    /// <summary>DEC-075: the unmarked-days warning points to the correction action (prototype HR_UNMARKED_HINT).</summary>
+    public const string UnmarkedHint = "a manager can correct them on Staff & payroll › Attendance › Past days before the lock.";
+
     /// <summary>Run warnings for one line (prototype hrComputeRun).</summary>
     public static IEnumerable<string> Warnings(StaffProfile st, AttendanceCounts c)
     {
         ArgumentNullException.ThrowIfNull(st);
         ArgumentNullException.ThrowIfNull(c);
-        if (c.Unmarked != 0) yield return $"{st.Name}: {Num(c.Unmarked)} unmarked day{(c.Unmarked == 1 ? "" : "s")} counted as absent.";
+        if (c.Unmarked != 0) yield return $"{st.Name}: {Num(c.Unmarked)} unmarked day{(c.Unmarked == 1 ? "" : "s")} counted as absent — {UnmarkedHint}";
         if (st.BasePaise <= 0) yield return $"{st.Name}: salary not set — pays ₹0.";
     }
 

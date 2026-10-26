@@ -153,6 +153,10 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
         if (bankName is { Length: > 80 }) throw HccException.Validation("Bank name: up to 80 characters.");
         if (req.Phone is { } ph && ph.Trim().Length > 20) throw HccException.Validation("Mobile number: up to 20 characters.");
         if (req.StaffId is not null && string.IsNullOrWhiteSpace(req.ExpectedVersion)) throw HccException.Validation("expectedVersion is required to edit a staff record.");
+        var bankReason = (req.BankReason ?? string.Empty).Trim();
+        if (bankReason.Length > 200) throw HccException.Validation("Reason for the bank change: up to 200 characters.");
+        // DEC-084: only the Owner's bank-detail change applies at once (audited); anyone else's becomes a request the Owner approves.
+        var owner = await Has(ctx, PayrollPermissions.OwnerPayroll, ct: ct).ConfigureAwait(false);
 
         return await runner.RunAsync(ctx, req, async (tx, c2) =>
         {
@@ -204,6 +208,10 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
             if ((flagsChanged || bankChanged) && !pay) throw Forbidden("Only the Owner or Accountant can set PF / ESIC and bank details.");
             if (flagsChanged && existing is not null) NotSelf(ctx, existing, "change the salary structure or PF / ESIC");
             if (bankChanged && IsOwn(ctx, existing)) throw Forbidden("You cannot change the bank details on your own staff record (no self-approval). Ask the other payroll user.");
+            if (bankChanged && existing is not null
+                && (await db.RequestsAsync(ctx.PropertyId, PayrollRequests.Pending, c2).ConfigureAwait(false)).FirstOrDefault(r => r.Kind == PayrollRequests.Bank && r.StaffId == existing.StaffId) is { } waiting)
+                throw Invalid($"A bank-detail change for {existing.Profile.Name} is already waiting for the Owner (request {Id(waiting.RequestId)}). Withdraw or decide it first.");
+            var bankRequest = bankChanged && !owner;
 
             // F-11: the PT slab (gender) and the payslip WhatsApp number of an existing record are payroll fields.
             var phone = req.Phone is null ? existing?.Phone ?? string.Empty : req.Phone.Trim();
@@ -227,28 +235,47 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
             var newBank = pay && req.BankName is not null ? Norm(req.BankName) : existing?.BankName;
             var newAccount = pay && req.AccountNo is not null ? Norm(req.AccountNo) : existing?.AccountNo;
             var newIfsc = pay && req.Ifsc is not null ? Norm(req.Ifsc) : existing?.Ifsc;
+            // DEC-084: a bank request keeps the stored details (payments use them) until the Owner approves the requested ones.
+            var requested = new BankChange(newBank, newAccount, newIfsc);
+            var current = new BankChange(existing?.BankName, existing?.AccountNo, existing?.Ifsc);
+            if (bankRequest) (newBank, newAccount, newIfsc) = (current.BankName, current.AccountNo, current.Ifsc);
 
+            async Task<PayrollRequestRow?> BankRequestAsync(long staffId)
+            {
+                if (!bankRequest) return null;
+                var row = await db.InsertRequestAsync(new NewPayrollRequest(ctx.PropertyId, PayrollRequests.Bank, staffId, null, null, null, current, requested, null,
+                    bankReason.Length > 0 ? bankReason : "Bank details changed in the staff master", false, ctx.PrincipalId, Now), c2).ConfigureAwait(false);
+                await tx.AuditAsync("HR_BANK_CHANGE_REQUESTED", Target("hr.staff", staffId),
+                    Clip($"{name} · bank {Masked(current)} → {Masked(requested)} · waiting for the Owner (request {Id(row.RequestId)}; payments keep the current details){(bankReason.Length > 0 ? " · reason: " + bankReason : "")}", 1000),
+                    c2).ConfigureAwait(false);
+                return row;
+            }
+
+            const string BankWaits = "bank details sent to the Owner for approval (payments keep the current details until approved)";
             if (existing is null)
             {
                 var sid = await db.InsertStaffAsync(new NewStaff(ctx.PropertyId, profile, req.LinkUserId, phone, newBank, newAccount, newIfsc, ctx.PrincipalId, Now), c2).ConfigureAwait(false);
                 var created = await RequireStaffAsync(db, ctx, sid, lockRow: false, c2).ConfigureAwait(false);
-                var detail = $"{name} added{(req.LinkUserId is { } u ? $" · login {u}" : "")}{(pay ? "" : " (salary to be set by payroll)")}";
+                var bankRow = await BankRequestAsync(sid).ConfigureAwait(false);
+                var detail = $"{name} added{(req.LinkUserId is { } u ? $" · login {u}" : "")}{(pay ? "" : " (salary to be set by payroll)")}{(bankRow is null ? "" : " · " + BankWaits)}";
                 await tx.AuditAsync("HR_STAFF_ADDED", Target("hr.staff", sid), detail, c2).ConfigureAwait(false);
-                return new StaffResult(sid, name, created.Version, detail);
+                return new StaffResult(sid, name, created.Version, detail, bankRow?.RequestId);
             }
 
             if (salaryChanged) notes.Add("salary changed");
             if (flagsChanged) notes.Add("PF / ESIC / structure changed");
             if (genderChanged) notes.Add($"PT slab {(old!.EffectiveGender == Gender.F ? "women" : "men")} → {(gender == Gender.F ? "women" : "men")}");
             if (phoneChanged) notes.Add($"payslip mobile {MaskPhone(existing.Phone)} → {MaskPhone(phone)}");
-            // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock.
-            if (bankChanged)
-                notes.Add($"bank {existing.BankName ?? "(none)"} {BankDetails.Mask(existing.AccountNo)} {existing.Ifsc} → {newBank ?? "(none)"} {BankDetails.Mask(newAccount)} {newIfsc} (future runs only; locked runs keep their frozen details)");
+            // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock. DEC-084: the Owner's change applies here.
+            if (bankChanged && !bankRequest)
+                notes.Add($"bank {existing.BankName ?? "(none)"} {BankDetails.Mask(existing.AccountNo)} {existing.Ifsc} → {newBank ?? "(none)"} {BankDetails.Mask(newAccount)} {newIfsc} (Owner; future runs only; locked runs keep their frozen details)");
             var row = new StaffRow(profile, req.LinkUserId, phone, newBank, newAccount, newIfsc, existing.Version);
             var version = await db.UpdateStaffAsync(row, req.ExpectedVersion!, c2).ConfigureAwait(false);
+            var waits = await BankRequestAsync(existing.StaffId).ConfigureAwait(false);
+            if (waits is not null) notes.Add(BankWaits + $" · request {Id(waits.RequestId)}");
             var text = $"{name} updated{(notes.Count > 0 ? " · " + string.Join(" · ", notes) : "")}";
             await tx.AuditAsync("HR_STAFF_UPDATED", Target("hr.staff", existing.StaffId), Clip(text, 1000), c2).ConfigureAwait(false);
-            return new StaffResult(existing.StaffId, name, version, text);
+            return new StaffResult(existing.StaffId, name, version, text, waits?.RequestId);
         }, ct).ConfigureAwait(false);
     }
 

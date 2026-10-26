@@ -218,12 +218,36 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
     {
         var c = l.Counts;
         return new BoardLineView(l.StaffId, l.Name, l.Dept, l.Designation, PayrollService.PayTypeWire(l.PayType), l.Structure.ToString(), l.Gender.ToString(), l.Base,
-            new AttendanceCountsView(c.Ym, c.Days, c.P, c.L, c.H, c.HL, c.A, c.OFFW, c.Off, c.PaidLeave, c.LopLeave, c.Unmarked, c.Na, c.OtMin),
+            new AttendanceCountsView(c.Ym, c.Days, c.P, c.L, c.H, c.HL, c.A, c.OFFW, c.Off, c.PaidLeave, c.LopLeave, c.Unmarked, c.Na, c.OtMin, c.Hol),
             l.LatePenaltyHalf, l.PayableDays, l.Earned, l.Basic, l.Hra, l.Washing, l.Special, l.Ot, l.Gross, l.PfWages, l.Pf, l.PfEr, l.EsicWages, l.Esic, l.EsicEr, l.Pt,
             l.Advance, l.Deductions, l.Net, l.Ctc, l.EsicCovered);
     }
 
     private static string MaskTo(string to) => to.Length <= 4 ? "••••" : "••••" + to[^4..];
+
+    private static DayEntryView? EntryView(DayEntry? e) => e is null ? null
+        : new DayEntryView(e.Kind.ToString().ToLowerInvariant(), e.Status?.ToString(), e.OtMinutes, e.LeaveType?.ToString());
+
+    private static BankDetailsView? BankView(BankChange? b) => b is null ? null : new BankDetailsView(b.BankName, b.AccountNo is null ? null : BankDetails.Mask(b.AccountNo), b.Ifsc);
+
+    /// <summary>DEC-075 / DEC-084 requests on the board: attendance corrections for staff-view and payroll callers (gross pay effect for payroll roles
+    /// only — the Manager sees no salaries), bank-detail changes for PERM-HR-005 holders (account numbers masked). Pending ones and those of the window.</summary>
+    private static List<PayrollRequestView> RequestViews(IReadOnlyList<PayrollRequestRow> rows, DateOnly from, DateOnly to, bool salary, bool money)
+    {
+        var list = new List<PayrollRequestView>();
+        foreach (var r in rows)
+        {
+            var on = r.Date ?? DateOnly.FromDateTime(r.RequestedUtc);
+            if (r.Status != PayrollRequests.Pending && (on < from || on > to)) continue;
+            var bank = r.Kind == PayrollRequests.Bank;
+            if (bank && !salary) continue;
+            list.Add(new PayrollRequestView(r.RequestId, r.Kind, r.StaffId, r.Date, EntryView(r.Before), EntryView(r.After), bank ? BankView(r.BankBefore) : null,
+                bank ? BankView(r.BankAfter) : null, money ? r.PayEffect : null, r.Reason, r.Status, r.Direct, r.RequestedBy, Iso(r.RequestedUtc), r.DecidedBy,
+                r.DecidedUtc is { } du ? Iso(du) : null, r.Note, r.Version));
+        }
+
+        return list;
+    }
 
     /// <summary>
     /// The HR desk board (W4-6): departments, leave policy, roster / attendance in [from, to] and every leave of the visible staff (all staff
@@ -259,7 +283,8 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
             d.LeaveDecidedUtc.TryGetValue(x.Span.LeaveId, out var du) ? Iso(du) : null, x.Note, x.Version)).ToList();
 
         var runs = new List<BoardRunView>();
-        foreach (var r in await db.RunsAsync(propertyId, ct).ConfigureAwait(false))
+        var runRows = await db.RunsAsync(propertyId, ct).ConfigureAwait(false);
+        foreach (var r in runRows)
         {
             if (!payroll && (!r.Locked || me is null)) continue;
             var lines = await db.RunLinesAsync(r.RunId, ct).ConfigureAwait(false);
@@ -296,7 +321,13 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
             }).ToList();
         }
 
+        // DEC-083 holidays for everyone (not money); DEC-075 / DEC-084 requests and the open correction window for staff-view and payroll callers.
+        var holidays = (await db.HolidaysAsync(propertyId, ct).ConfigureAwait(false)).Select(h => new HolidayView(h.Date, h.Name)).ToList();
+        var salary = await Has(propertyId, principalId, PayrollPermissions.Salary, ct: ct).ConfigureAwait(false);
+        var requests = all ? RequestViews(await db.RequestsAsync(propertyId, null, ct).ConfigureAwait(false), f, t, salary, salary || payroll) : [];
+        var window = PayrollCorrections.Window(clock.BusinessDate, runRows.Where(r => r.Locked).Select(r => (PayMonth?)r.Month).Max());
         return new PayrollBoardView(clock.BusinessDate, f, t, all, payroll, depts.Select(x => new DepartmentView(x.Code, x.Name, x.LeaveCap)).ToList(),
-            new LeavePolicyView(leavePolicy.Cl, leavePolicy.Sl, leavePolicy.El, leavePolicy.DefaultCap), roster, att, leaves, rates, runs, advances, fnf);
+            new LeavePolicyView(leavePolicy.Cl, leavePolicy.Sl, leavePolicy.El, leavePolicy.DefaultCap), roster, att, leaves, rates, runs, advances, fnf,
+            holidays, requests, all ? window.From : null, all ? window.To : null);
     }
 }
