@@ -200,6 +200,9 @@ const HOLIDAY_SPEC:MasterSpec<HRHoliday>={
   // MA-11: a PAID holiday of a locked pay month cannot be added, changed or retired — the rule of Wave B's HR_HOLIDAY_SAVE / _REMOVE (DEC-083).
   validate:(s,row,rows)=>{if(!validDate(row.code))return 'Date: a real calendar date like 2026-11-08.';
     const old=rows.find(r=>r.id===row.id);
+    // Lead (batch merge): an identical re-save (seed validation, same-state import) is not a change — only adds, edits and retires are locked.
+    const same=!!old&&['code','name','kind','active','sortOrder'].every(k=>(old as Record<string,unknown>)[k]===(row as Record<string,unknown>)[k]);
+    if(same)return undefined;
     for(const r of [old,row])if(r&&r.kind==='paid'&&holidayMonthLocked(s,r.code))return holidayLockedText(r.code);
     return undefined;},
   canRetire:(s,row)=>row.kind==='paid'&&holidayMonthLocked(s,row.code)?holidayLockedText(row.code):undefined,

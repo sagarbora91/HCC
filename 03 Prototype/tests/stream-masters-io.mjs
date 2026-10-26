@@ -21,7 +21,8 @@ export async function register({test,M,assert}){
   const importSets=(s,u,sets,key)=>execute(s,u,{type:'MST_IMPORT',sets,key:key??'mio:'+(++seq)+':'+sets.map(x=>x.master).join('+')});
   /** Masters that cannot be rebuilt from nothing in one step: their own rules need rows that only exist together (rooms ↔ room types), a series cannot start
    *  in the past, and a leave policy needs an unpaid type before a paid one. They are covered by the same-state round trip and by their own tests. */
-  const NOT_FROM_EMPTY=['roomTypes','rooms','numberSeries','leaveTypes'];
+  // holidays: a paid holiday of a locked pay month cannot be added (MA-11, DEC-MA-11c), so the fixture's August 2026 row cannot be rebuilt from an empty list; the same-state round trip still covers it.
+  const NOT_FROM_EMPTY=['roomTypes','rooms','numberSeries','leaveTypes','holidays'];
 
   // ── Registry ──
   test('[MIO] CSV columns = code, name, the FieldSpec keys in order, sortOrder, active (no ID numbers, no per-day toggles); every master has a server file except room types and rooms',()=>{

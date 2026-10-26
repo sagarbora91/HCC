@@ -168,7 +168,7 @@ export function register({test,M,assert}){
     assert.deepEqual(codes('paymentMethods'),['CASH','UPI','CARD','BANK','VCREDIT','COMPANY']);
     assert.deepEqual(codes('bankAccounts'),['TILL','BANK-1']);
     assert.deepEqual(codes('expenseCategories'),['SUPPLIES','LAUNDRY','MAINT','UTIL','PETTY']);
-    assert.deepEqual(codes('numberSeries'),['INV','BOS','CRN','RCP','KOT','REG']);
+    assert.deepEqual(codes('numberSeries'),['INV','BOS','CRN','RCP','KOT','REG','RST']); // MA-11 (DEC-MA-11d): old list without RST → RST is a seeded row on both sides
     assert.deepEqual(codes('hkTaskTypes'),['DEP','STAY','DEEP','INSP']);
     assert.deepEqual(codes('leaveTypes'),['CL','SL','EL','CO','ML','LOP']);
     assert.deepEqual(codes('shiftPatterns'),['M','E','N','G']);
