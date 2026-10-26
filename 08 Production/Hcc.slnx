@@ -85,6 +85,7 @@
     <File Path="database/migrations/2701_import_rbac_seed.sql" />
     <File Path="database/migrations/2801_masters_floors.sql" />
     <File Path="database/migrations/2802_masters_rbac_seed.sql" />
+    <File Path="database/migrations/2840_pos_masters.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
   </Folder>
 </Solution>
