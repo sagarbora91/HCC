@@ -104,6 +104,7 @@ export async function register({test,assert,M}){
     ['INV_LOSS',{type:'INV_LOSS',item:'LIN-BS',loc:'store',qty:1,reason:'Damaged',note:'',key:'k-loss'},'StockRecordLoss',{itemCode:'LIN-BS',qty:1,loc:'store',reason:'Damaged'},'k-loss'],
     ['INV_COUNT_SUBMIT',{type:'INV_COUNT_SUBMIT',loc:'store',counts:{'LIN-BS':40},key:'k-cs'},'StockCountSubmit',{loc:'store',counts:{'LIN-BS':40}},'k-cs'],
     ['INV_COUNT_POST',{type:'INV_COUNT_POST',id:'CNT-7',approve:true,reason:'Recount agreed',key:'k-cp'},'StockCountDecide',{countId:7,approve:true,reason:'Recount agreed',expectedVersion:'c7'},'k-cp'],
+    ['INV_ITEM_CREATE',{type:'INV_ITEM_CREATE',code:' lin-bt ',name:' Bath towel ',kind:'linen',unit:'pc',min:40,reorderQty:30,stdX100:150,supplier:'',cost:25000,key:'k-new'},'StockItemCreate',{code:'LIN-BT',name:'Bath towel',kind:'linen',unit:'pc',minQty:40,reorderQty:30,stdX100:150,unitCostPaise:25000},'k-new'],
     ['INV_ITEM_SET',{type:'INV_ITEM_SET',id:'LIN-BS',min:50,reorderQty:40,stdX100:150,par:{Classic:2,Deluxe:2,Suite:2},key:'k-set'},'StockItemSet',{code:'LIN-BS',minQty:50,reorderQty:40,stdX100:150,par:{Classic:2,Deluxe:2,Suite:2},expectedVersion:'i-LIN-BS'},'k-set'],
   ];
   const got=[];for(const c of cases)got.push([c,await run(c[1])]);

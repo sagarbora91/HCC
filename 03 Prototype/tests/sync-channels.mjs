@@ -117,6 +117,8 @@ export async function register({test,assert}){
   const p={};
   p.status=await run({type:'CHN_CHANNEL_STATUS',channel:'1',action:'pause',key:'chs:1'});
   p.save=await run({type:'CHN_CHANNEL_SAVE',channel:'1',commissionBps:2000,markupBps:300,mapping:{Deluxe:'dlx',Classic:'',Suite:'st-1'},key:'chsave:1'});
+  p.add=await run({type:'CHN_CHANNEL_SAVE',name:' Booking.com ',code:'booking',commissionBps:1500,markupBps:0,mapping:{Deluxe:'dlx',Classic:''},key:'chadd:1'});
+  p.addBad=await run({type:'CHN_CHANNEL_SAVE',name:'X',code:'b',commissionBps:0,key:'chadd:2'});
   p.stop=await run({type:'CHN_STOP_SELL',channel:'ALL',roomType:'Deluxe',on:true,key:'stop:1'});
   p.push=await run({type:'CHN_PUSH',channel:'1',key:'push:1'});
   p.pull=await run({type:'CHN_PULL',key:'pull:1'});
@@ -132,6 +134,8 @@ export async function register({test,assert}){
     const one=(x,name)=>{assert.ok(x.r.ok,x.r.text);assert.equal(x.cmds.length,1);assert.equal(x.cmds[0].path,'/commands/'+name);return x.cmds[0];};
     let c=one(p.status,'SetChannelStatus');assert.deepEqual(c.body,{channelId:1,action:'pause',expectedVersion:V('C1')});assert.equal(c.key,'chs:1');
     c=one(p.save,'SaveChannel');assert.deepEqual(c.body,{channelId:1,code:'BKG',name:'Booking.test',commissionBps:2000,markupBps:300,mapping:[{roomTypeId:2,channelCode:'DLX'},{roomTypeId:3,channelCode:'ST-1'}],expectedVersion:V('C1')});
+    c=one(p.add,'SaveChannel');assert.deepEqual(c.body,{channelId:null,code:'BOOKING',name:'Booking.com',commissionBps:1500,markupBps:0,mapping:[{roomTypeId:2,channelCode:'DLX'}]});assert.equal(c.key,'chadd:1');
+    assert.equal(p.addBad.r.ok,false);assert.equal(p.addBad.cmds.length,0,'precheck: no request for a nameless / badly coded new channel');
     c=one(p.stop,'SetChannelStopSell');assert.deepEqual(c.body,{channelId:null,roomTypeId:2,on:true});
     c=one(p.push,'PushChannelRates');assert.deepEqual(c.body,{channelId:1});
     c=one(p.pull,'PullChannelMessages');assert.deepEqual(c.body,{});

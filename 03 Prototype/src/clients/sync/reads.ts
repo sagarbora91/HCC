@@ -57,6 +57,7 @@ export const READS={
   'GET /cashier/folios':one(wide('PERM-FOL-001',true)),
   'GET /cashbook':FINANCE,
   'GET /groups':one(wide('PERM-GRP-001',true)),
+  'GET /groups/companies':one(wide('PERM-GRP-001',true)),
   'GET /groups/:id/statement':one(wide('PERM-GRP-004',true)),
   'GET /admin/users':ADMIN,
   'GET /admin/roles':ADMIN,

@@ -1,6 +1,6 @@
 // Module 21 · OTA channel management — desktop page (inbox, channels & mapping, rate/availability push, commission report). All SIMULATED.
 import React,{useState} from 'react';
-import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X} from 'lucide-react';
+import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X,Plus} from 'lucide-react';
 import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,CHN_PUSH_DAYS,
   type CHNMessage,type CHNChannel} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -78,6 +78,7 @@ function ChannelsTab(){
   const {s,open,permission}=useHcc();const st=chnSlice(s),types=chnRoomTypes(s);
   return <div className="padded">
     {!permission('approve')&&<div className="info-note chn-note">Connection, commission and mapping changes need a Manager or Owner. You can toggle stop-sell and push availability.</div>}
+    {process.env.HCC_BUILD==='production'&&<div className="chn-add">{permission('approve')?<button className="btn small-btn" onClick={()=>open({type:'chn-channel',id:'new'})}><Plus size={14}/> Add channel</button>:!st.channels.length&&<p className="chn-muted">No channels yet. A Manager or Owner adds the first one.</p>}</div>}
     <div className="chn-grid">{st.channels.map(c=><article key={c.id} className="chn-channel">
       <header><div><h3>{c.name}</h3><small>{c.statusNote}</small></div><ChnPill status={c.status}/></header>
       <div className="summary-list"><div><span>Last sync</span><strong>{c.lastSync?`${shortDate(c.lastSync.slice(0,10))} ${clockTime(c.lastSync)}`:'Never'}</strong></div>

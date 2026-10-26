@@ -26,7 +26,7 @@ import type {SyncArea,LoaderCtx,CommandCtx,SliceKey} from './types';
 import {serverId,protoId} from './map';
 import {BOOKING_STATUS} from './frontdesk/shared';
 import {folioIntoBooking,approvalFromServer,creditNoteRequestFromServer,cashDifferenceApproval,CNR_PREFIX,deskTill,deskShiftOpen,deskOpeningCash,
-  deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,
+  deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,companyFromServer,limitRequestFromServer,type SrvCompanyBook,
   type SrvReservationFolio,type SrvInvoice,type SrvCreditNoteRequest,type SrvCashDesk,type SrvCashBookRange,type SrvGroupSummary,type SrvGroupStatement} from './money/wire';
 
 /** A booking as the money patch leaves it: the folio's approvals travel with it to the approvals loader (same batch). */
@@ -136,7 +136,11 @@ async function loadGroups(c:LoaderCtx):Promise<GRPState>{
     const arr=g.arrival??st.members[0]?.arrival??st.businessDate,dep=g.departure??st.members[0]?.departure??addDays(arr,1);
     return blockFromServer(st,arr,dep,types);
   });
-  return {companies:[],blocks:blocks.filter((b):b is NonNullable<typeof b>=>!!b),requests:[],overrides:[]};
+  // Company accounts (W4 N1): GET /groups/companies (PERM-GRP-001) — the account book and the pending credit-limit requests.
+  const book=c.mayRead('GET /groups/companies')?await optional(c.api.get<SrvCompanyBook>('/groups/companies')):null;
+  const companies=(book?.companies??[]).map(x=>{c.ids.learn('company',protoId(x.companyId),x.companyId);c.ids.setVersion('company',protoId(x.companyId),x.version);return companyFromServer(x);});
+  const requests=(book?.requests??[]).map(r=>{c.ids.learn('limitRequest',protoId(r.requestId),r.requestId);return limitRequestFromServer(r);});
+  return {companies,blocks:blocks.filter((b):b is NonNullable<typeof b>=>!!b),requests,overrides:[]};
 }
 
 // ── command helpers ──
@@ -334,18 +338,34 @@ export const money:SyncArea={
         const block=await c.api.command<{groupBlockId:number}>('CreateGroupBlock',{code:blockCode(cmd.name,cmd.arrival),name:text(cmd.name),arrival:cmd.arrival,departure:cmd.departure,cutoff:cmd.cutoff,
           allotments:allot.map(([t,n])=>({roomTypeId:ids[t],rooms:Number(n),ratePaise:cmd.rates?.[t]??null}))});
         const contact=text(cmd.contact)||text(cmd.name);
+        const co=cmd.billTo==='company'&&cmd.company?c.state.groupsX?.companies.find(x=>x.id===String(cmd.company)):undefined;
         const rules=cmd.billTo==='guest'?[{category:'room',target:'guest'},{category:'extras',target:'guest'},{category:'tax',target:'follow'}]:null;
-        const group=await c.api.command('CreateGroup',{name:text(cmd.name),groupBlockId:block.groupBlockId,organiser:contact,billingName:text(cmd.name),billingContact:contact,rules},{step:'group'});
+        const group=await c.api.command('CreateGroup',{name:text(cmd.name),groupBlockId:block.groupBlockId,organiser:contact,billingName:co?.name??text(cmd.name),billingContact:co?.contact||contact,gstin:co?.gstin||null,rules},{step:'group'});
         return {result:{block,group}};
       }},
+    {type:'GRP_COMPANY_SAVE',reload:['groupsX'],
+      precheck:cmd=>text(cmd.name).length<2?'Enter the company name.':undefined,
+      async send(c){
+        const m=c.cmd,id=m.id?String(m.id):undefined;
+        const rates:Record<string,number>={};for(const [t,v] of Object.entries((m.rates??{}) as Record<string,number>))if(Number(v)>0)rates[t]=Number(v);
+        const body:Record<string,unknown>={name:text(m.name),gstin:text(m.gstin)||null,contact:text(m.contact)||null,phone:text(m.phone)||null,email:text(m.email)||null,
+          city:text(m.city)||null,rates:rates};
+        if(id===undefined)return {result:await c.api.command('SaveCompany',{...body,companyId:null,creditLimitPaise:Number(m.creditLimit)>0?Number(m.creditLimit):0})};
+        const v=c.ids.version('company',id);if(v===undefined)throw new HccClientError('NOT_FOUND','Company account not found. Refresh and try again.');
+        return {result:await c.api.command('SaveCompany',{...body,companyId:serverId(id,'Company'),creditLimitPaise:0},{expectedVersion:v})};
+      }},
+    {type:'GRP_LIMIT_SET',reload:['groupsX'],
+      precheck:cmd=>!Number.isSafeInteger(cmd.limit)||(cmd.limit as number)<0?'Enter a credit limit of 0 or more.':undefined,
+      async send(c){const m=c.cmd;
+        return {result:await c.api.command('SetCompanyLimit',{companyId:serverId(m.company,'Company'),limitPaise:m.limit,reason:text(m.reason)||null})};}},
+    {type:'GRP_LIMIT_DECIDE',reload:['groupsX'],
+      async send(c){const m=c.cmd;
+        return {result:await c.api.command('DecideCompanyLimit',{requestId:serverId(m.id,'Limit request'),approve:!!m.approve,note:text(m.note)||null})};}},
   ],
   unmapped:{
     GRP_BLOCK_ALLOT:'no server command changes a block’s allotment (inventory backlog)',
     GRP_RELEASE:'ReleaseGroupBlock needs the block version, which no server read returns yet; partial release has no server command',
     GRP_BLOCK_CANCEL:'no server command cancels a group block',
     GRP_ROOMING:'rooming-list pickup = one CreateReservation per row with the block — reservations area (W4-1) / backlog',
-    GRP_COMPANY_SAVE:'company accounts (negotiated rates, credit limit) do not exist on the server — groups billing keeps billing name/GSTIN per group',
-    GRP_LIMIT_SET:'company credit limits do not exist on the server',
-    GRP_LIMIT_DECIDE:'company credit limits do not exist on the server',
   },
 };

@@ -84,7 +84,15 @@ const roomTypeServerId=(c:Parameters<CommandMapper['send']>[0],code:string)=>{
 export const otaCommands:CommandMapper[]=[
   {type:'CHN_CHANNEL_STATUS',reload:['channelsX'],async send(c){const m=c.cmd;
     await c.api.command('SetChannelStatus',{channelId:serverId(m.channel,'Channel'),action:m.action},{expectedVersion:version(c,'channel',String(m.channel))});}},
-  {type:'CHN_CHANNEL_SAVE',reload:['channelsX'],async send(c){const m=c.cmd;
+  {type:'CHN_CHANNEL_SAVE',reload:['channelsX'],
+    // New channel (production "Add channel"): no channel id → SaveChannel with channelId null; the server starts it Disconnected.
+    precheck:cmd=>cmd.channel?undefined:String(cmd.name??'').trim().length<2?'Enter the channel name.':!/^[A-Z0-9-]{2,20}$/.test(String(cmd.code??'').trim().toUpperCase())?'Channel code: 2–20 letters, digits or dashes.':undefined,
+    async send(c){const m=c.cmd;
+    if(!m.channel){
+      const mapping=Object.entries((m.mapping??{}) as Record<string,string>).filter(([,code])=>String(code??'').trim())
+        .map(([type,code])=>({roomTypeId:roomTypeServerId(c,type),channelCode:String(code).trim().toUpperCase()}));
+      return {result:await c.api.command('SaveChannel',{channelId:null,code:String(m.code).trim().toUpperCase(),name:String(m.name).trim(),commissionBps:m.commissionBps,markupBps:m.markupBps??0,mapping})};
+    }
     const cur=(c.state.channelsX?.channels??[]).find(x=>x.id===String(m.channel)) as (CHNChannel&{code?:string})|undefined;
     if(!cur?.code)throw new HccClientError('VALIDATION','Channel not found. Refresh and try again.');
     const mapping=Object.entries((m.mapping??{}) as Record<string,string>).filter(([,code])=>String(code??'').trim())

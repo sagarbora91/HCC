@@ -180,7 +180,34 @@ export function InvCountReviewModal({id}:ModalProps){
 }
 
 // ── Item settings (min, reorder, par, standard) ──────────────────────
+/** Production only (reached from the "New item" button, which exists only in the production build): create an item in the stock master. */
+function InvNewItemModal(){
+  const {run,busy,permission,money:showMoney}=useInv();
+  const [code,setCode]=useState(''),[name,setName]=useState(''),[kind,setKind]=useState<INVItem['kind']>('amenity'),[unit,setUnit]=useState('pc');
+  const [min,setMin]=useState(0),[ro,setRo]=useState(0),[std,setStd]=useState('0'),[sup,setSup]=useState(''),[cost,setCost]=useState('');
+  const stdX=Math.round(Number(std)*100),costP=cost.trim()?Math.round(Number(cost)*100):0;
+  const why=!permission('inspect')?'Adding an item needs the inspect permission.':!/^[A-Z0-9]+-[A-Z0-9]+$/.test(code.trim().toUpperCase())?'The code looks like LIN-BS (letters or digits, a dash, letters or digits).'
+    :name.trim().length<2?'Enter the item name.':!unit.trim()?'Enter the unit (pc, kg, bottle…).':!(stdX>=0&&stdX<=10000)?'Standard use must be 0–100 per room-night.':!(costP>=0&&Number.isFinite(costP))?'Enter a valid cost.':'';
+  function submit(e:React.FormEvent){e.preventDefault();if(why)return;
+    run({type:'INV_ITEM_CREATE',code:code.trim().toUpperCase(),name:name.trim(),kind,unit:unit.trim(),min,reorderQty:ro,stdX100:stdX,supplier:kind==='linen'?'':sup.trim(),cost:showMoney?costP:0},`${name.trim()} added`,{close:true});}
+  return <><Heading icon={PackagePlus} title="New stock item" sub="Add an item to the stock master. Receive it afterwards with Receive stock."/>
+    <form className="form" onSubmit={submit} aria-label="New stock item">
+      <div className="form-row"><label>Code<input required maxLength={20} value={code} autoCapitalize="characters" onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="e.g. LIN-BT"/></label>
+        <label>Kind<select value={kind} onChange={e=>setKind(e.target.value as INVItem['kind'])}>{INV_KINDS.map(k=><option key={k.id} value={k.id}>{k.label}</option>)}</select></label></div>
+      <label>Item name<input required minLength={2} maxLength={120} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Bath towel"/></label>
+      <div className="form-row"><label>Unit<input required maxLength={20} value={unit} onChange={e=>setUnit(e.target.value)}/></label>
+        {kind!=='linen'&&<label>Supplier (optional)<input maxLength={120} value={sup} onChange={e=>setSup(e.target.value)}/></label>}</div>
+      <InvQty label="Minimum clean stock" value={min} onChange={setMin}/>
+      <InvQty label="Reorder quantity" value={ro} onChange={setRo}/>
+      <label>Standard use per occupied room-night<input type="number" inputMode="decimal" min="0" max="100" step="0.01" value={std} onChange={e=>setStd(e.target.value)}/></label>
+      {showMoney&&<label>Unit cost (₹, optional)<input inputMode="decimal" value={cost} onChange={e=>setCost(e.target.value)}/></label>}
+      <Why text={why}/>
+      <div className="modal-actions"><button className="btn primary" disabled={busy||!!why}>Add item</button></div>
+    </form></>;
+}
+
 export function InvItemModal({id}:ModalProps){
+  if(id==='new')return <InvNewItemModal/>; // eslint-disable-line react-hooks/rules-of-hooks
   const {s,run,busy,permission}=useInv();const it=id?invItem(s,id):undefined;const types=invRoomTypes(s);
   const [min,setMin]=useState(it?.min??0);const [ro,setRo]=useState(it?.reorderQty??0);const [std,setStd]=useState(String((it?.stdX100??0)/100));
   const [par,setPar]=useState<Record<string,number>>(()=>({...Object.fromEntries(types.map(t=>[t,0])),...(it?.par??{})}));
