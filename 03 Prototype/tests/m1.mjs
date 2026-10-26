@@ -65,12 +65,14 @@ export function register({test,M,assert}){
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit',key:'w-dep'});drawers.push(drawer(s));
     X('manager',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});X('manager',{type:'NIGHT_POST'});
     X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});drawers.push(drawer(s));
+    X('cashier',{type:'SHIFT_OPEN',handover:s.openingCash}); // DEC-078: the cashier opens her own shift, counting the drawer she takes over
     X('reception',{type:'CHARGE',id,amount:50000,label:'Laundry service'});
     X('reception',{type:'DISCOUNT',id,amount:50000,reason:'Service delay goodwill'});
     const apr=s.approvals.at(-1).id;const selfApprove=code(()=>execute(s,'reception',{type:'APPROVAL',id:apr,approve:true}));
     X('manager',{type:'APPROVAL',id:apr,approve:true});X('manager',{type:'NIGHT_POST'});
     const balance25=totals(s.bookings.find(b=>b.id===id)).balance;
     X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('cashier',{type:'SHIFT_OPEN',handover:s.openingCash}); // DEC-078
     X('cashier',{type:'PAYMENT',id,amount:200000,method:'Cash',kind:'payment'});
     X('cashier',{type:'PAYMENT',id,amount:126500,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'}); // DEC-069 GST: 140000 → 126500
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit-return'});drawers.push(drawer(s));

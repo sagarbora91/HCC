@@ -11,6 +11,7 @@ export * from './runtime';
 export * from './registry';
 export {core} from './core';
 export {cashBlockedReason,shiftClosedText,CASH_NEEDS_OWN_SHIFT} from './money';
+export {cashTransferFromServer,cashDeskFromServer} from './cashier'; // Wave B1 (DEC-073 / DEC-078)
 export {signInText,errorText,HccClientError} from '../errors';
 export {reservations,bookingFromServer} from './reservations';
 export * from './guestid';

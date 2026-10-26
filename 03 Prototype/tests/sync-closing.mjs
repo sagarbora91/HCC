@@ -110,7 +110,8 @@ export async function register({test,assert}){
     assert.deepEqual(tab('occupancy').ratios.map(r=>r.display),['80.0%','₹2,000','₹1,600']);
     assert.deepEqual(tab('daily').table.rows[0],['2026-10-23','Closed',2,1,8,1630000,450000,180000]);
   });
-  // Next day's cashier shift (DEC-035): after a Completed run the desk till (learned by the money area) gets OpenShift, float carried by the server.
+  // DEC-078 (Wave B1, APK12-3): a Completed run no longer opens the next day's cashier shift in the closer's name; the cash desk reloads and
+  // stays closed until whoever takes the desk opens their own shift (SHIFT_OPEN with a handover count, sync/cashier.ts).
   let deskOpen=false;
   const tillSrv=fakeServer({'GET /closing/business-date':()=>({businessDate:'2026-10-24',closed:false}),'GET /closing/records':()=>({items:[]}),
     'GET /cashier/desk':()=>({businessDate:deskOpen?'2026-10-25':'2026-10-24',tills:[{till:{tillId:3,code:'FRONT',name:'Front desk',version:'T1'},active:deskOpen?{shift:{shiftId:42,tillId:3,businessDate:'2026-10-25',
@@ -124,13 +125,13 @@ export async function register({test,assert}){
     'POST /commands/RunBusinessDayClose':({body})=>({runId:5,runRef:body.runId,businessDate:body.businessDate,status:'Completed',currentStep:'done',attempts:1,nextBusinessDate:'2026-10-25',snapshotId:5,steps:[]}),
     'GET /closing/business-date':()=>({businessDate:'2026-10-24',closed:false})});
   const nrt=await startRuntime(S,noPerm);const np=await nrt.run({type:'DAY_CLOSE',key:'dayclose:n'});
-  test('[W4-4 closing] A Completed close opens the next cashier shift: OpenShift {desk till, float carried} key <action>:shift, cash desk reloads; not without PERM-SHF-001 or a known till',()=>{
+  test('[DEC-078 APK12-3] A Completed close opens NO cashier shift (not in the closer\'s name): no OpenShift, the cash desk reloads closed',()=>{
     assert.ok(opened.ok,opened.text);
-    assert.deepEqual(os.map(c=>[c.key,c.body]),[['dayclose:t:shift',{tillId:3,openingFloatPaise:null}]]);
-    assert.ok(tillCalls.indexOf('GET /cashier/desk')>tillCalls.indexOf('POST /commands/OpenShift'),tillCalls.join(','));
-    assert.equal(trt.get().state.shiftOpen,true,'the reloaded desk shows the new open shift');
+    assert.deepEqual(os,[],'no OpenShift after the close');
+    assert.ok(tillCalls.indexOf('GET /cashier/desk')>tillCalls.indexOf('POST /commands/RunBusinessDayClose'),tillCalls.join(','));
+    assert.equal(trt.get().state.shiftOpen,false,'the next morning starts with the shift closed: Reception opens her own');
     assert.ok(np.ok,np.text);assert.equal(noPerm.commands('OpenShift').length,0);
-    assert.equal(srv.commands('OpenShift').length,0,'first fake: no desk till learned → no OpenShift');
+    assert.equal(srv.commands('OpenShift').length,0);
   });
   srv.down=true;const off=await startRuntime(S,srv,{cache:S.createMemoryCache()});void off;
   test('[W4-4 closing] The area declares what stays unmapped (corrections, POST_NIGHTS) with reasons',()=>{

@@ -8,6 +8,7 @@ import {money,addDays} from '../money';
 import {drawer,blockedDuring,totals} from '../selectors';
 import {posSlice,posOpenOrders,posOrderTotals,posSpot} from './pos';
 import {lineTax} from '../gst';
+import {cxDeskMovements,cxPendingTransfers} from './cashout';
 
 // ── Limits (RBAC Matrix §6, demonstration defaults) ──
 /** Manager may accept a cash difference up to ₹200; above → Owner (PERM-SHF-002). */
@@ -62,7 +63,7 @@ export function shiftMovements(s:State):CashMovement[]{
   const exp=s.expenses.filter(e=>e.date===s.date&&e.method==='Cash'&&expenseCounts(e)).map(expMovement);
   const p=posSlice(s);
   const pos=p.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
-  return [...rec,...pos,...exp];
+  return [...rec,...pos,...exp,...cxDeskMovements(s,s.date)]; // DEC-073: bank deposits, till transfers, Owner drawings
 }
 const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
   label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor});
@@ -83,7 +84,7 @@ export function shiftMovementsByDate(s:State,from:string,to:string):(d:string)=>
   const p=posSlice(s),orders=new Map<string,(typeof p.orders)[number]>();
   for(const o of p.orders)if(!orders.has(o.id))orders.set(o.id,o);
   for(const r of p.receipts)if(r.method==='Cash'&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
-  return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[])];
+  return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[]),...cxDeskMovements(s,d)];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
 /** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
@@ -93,8 +94,10 @@ export function shiftExpected(s:State){
   const mv=shiftMovements(s),sum=(k:string[])=>mv.filter(m=>k.includes(m.kind)).reduce((a,m)=>a+m.amount,0);
   const neg=(n:number)=>0-n||0; // avoid −0 ("-₹0" on screen)
   const parts={opening:s.openingCash,payments:sum(['payment']),deposits:sum(['deposit']),refunds:neg(sum(['refund'])),returns:neg(sum(['deposit-return'])),
-    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void'])};
-  const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other-parts.refunds-parts.returns-parts.expenses;
+    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void']),
+    /** DEC-073: bank deposits, till transfers and Owner drawings, signed (usually negative: cash out of the drawer). */
+    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing'])};
+  const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other+parts.transfers-parts.refunds-parts.returns-parts.expenses;
   return {...parts,expected,consistent:expected===drawer(s)};
 }
 /** Denomination grid → paise. counts[note]=number of notes; coins = rupee amount. */
@@ -134,7 +137,9 @@ export function closingPreflight(s:State):PreflightIssue[]{
     {id:'nights',title:'Room-night charges posted',hint:'Post tonight’s room line for every in-house stay (step 2).',
       items:s.bookings.filter(b=>b.status==='In house'&&!closingHasNight(b,s.date)).map(b=>({label:`${b.guest} · room ${b.room} · ${money(b.rate)}`,booking:b.id}))},
     {id:'approvals',title:'Approvals resolved',hint:'Approve or reject pending requests.',page:'expenses',
-      items:pendingApprovals.map(a=>({label:`${approvalKindLabel(a.kind)} · ${money(a.amount)} · ${a.id}`,page:a.kind==='cash-difference'?'cashier':'expenses'}))},
+      items:[...pendingApprovals.map(a=>({label:`${approvalKindLabel(a.kind)} · ${money(a.amount)} · ${a.id}`,page:a.kind==='cash-difference'?'cashier':'expenses'})),
+        // DEC-073: a pending till transfer holds up the close (a bank deposit awaiting confirmation does not).
+        ...cxPendingTransfers(s).map(r=>({label:`Till transfer awaiting the receiver · ${money(r.amount)} · ${r.id}`,page:'cashier'}))]},
     {id:'expenses',title:'Expenses resolved',hint:'Approve or reject pending expenses.',page:'expenses',
       items:s.expenses.filter(e=>e.status==='Pending').map(e=>({label:`${e.vendor} · ${money(e.amount)} · ${e.id}`,page:'expenses'}))},
     {id:'pos',title:'Restaurant checks settled',hint:'Settle each open check, charge it to the room, or void it (with approval above the limit).',page:'pos',

@@ -9,6 +9,7 @@ import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
+import {cxCashBlocked} from '../../../domain/streams/cashout';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
 const STALE_MSG='The folio changed after this request. Reject it and request again.';
@@ -24,7 +25,11 @@ function request(k:Kit,x:Booking,fields:Pick<Approval,'amount'|'reason'|'kind'>&
 const pendingOf=(k:Kit,bookingId:string,kind:string)=>k.s.approvals.some(a=>a.booking===bookingId&&folioKind(a)===kind&&a.status==='Pending'&&!folioApprovalExpired(k.s,a));
 const validMethod=(k:Kit,method:unknown,reference:unknown)=>{
   k.assert((FOLIO_TENDERS as readonly string[]).includes(method as string),'Select a payment method.');
-  if(method==='Cash')k.assert(k.s.shiftOpen,'The cash shift is closed. Open the next business day first.','INVALID_TRANSITION');
+  if(method==='Cash'){
+    // DEC-078 (Wave B1): after the next day opens no shift is open until the cashier opens their own; one counted shift per demo day.
+    k.assert(k.s.shiftOpen,k.s.shiftClose||k.s.closedDates.includes(k.s.date)?'The cash shift is closed. Open the next business day first.':'The cash shift is closed. Open a cashier shift first.','INVALID_TRANSITION');
+    const own=cxCashBlocked(k.s,k.uid);if(own)k.fail('FORBIDDEN',own); // own shift (PERM-PAY-001 scope S for Reception / Cashier)
+  }
   if(method!=='Cash')k.assert(String(reference??'').trim(),'Enter a demonstration transaction reference.');
 };
 

@@ -17,6 +17,7 @@
     "GET /credit-note-requests": "/credit-note-requests?status=Pending",
     "GET /cashier/desk": "/cashier/desk",
     "GET /cashier/folios": "/cashier/folios",
+    "GET /cashier/transfers": "/cashier/transfers?from=2026-07-24&to=2026-10-24",
     "GET /cashbook": "/cashbook?from=2026-07-24&to=2026-10-24",
     "GET /groups": "/groups",
     "GET /groups/companies": "/groups/companies",
@@ -194,6 +195,26 @@
         ],
         [
           "PERM-DOC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DRW-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DRW-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DRW-004",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-DRW-005",
           "A",
           "P"
         ],
@@ -518,6 +539,7 @@
         "GET /credit-note-requests": "200",
         "GET /cashier/desk": "200",
         "GET /cashier/folios": "200",
+        "GET /cashier/transfers": "200",
         "GET /cashbook": "200",
         "GET /groups": "200",
         "GET /groups/companies": "200",
@@ -647,6 +669,26 @@
           "PERM-DOC-002",
           "A",
           "P"
+        ],
+        [
+          "PERM-DRW-001",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-DRW-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DRW-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DRW-004",
+          "A",
+          "S"
         ],
         [
           "PERM-EXP-001",
@@ -929,6 +971,7 @@
         "GET /credit-note-requests": "200",
         "GET /cashier/desk": "200",
         "GET /cashier/folios": "200",
+        "GET /cashier/transfers": "200",
         "GET /cashbook": "200",
         "GET /groups": "200",
         "GET /groups/companies": "200",
@@ -1003,6 +1046,11 @@
           "PERM-DOC-001",
           "A",
           "P"
+        ],
+        [
+          "PERM-DRW-004",
+          "A",
+          "S"
         ],
         [
           "PERM-EXP-001",
@@ -1200,6 +1248,7 @@
         "GET /credit-note-requests": "200",
         "GET /cashier/desk": "200",
         "GET /cashier/folios": "200",
+        "GET /cashier/transfers": "200",
         "GET /cashbook": "403",
         "GET /groups": "200",
         "GET /groups/companies": "200",
@@ -1274,6 +1323,16 @@
           "PERM-ACC-001",
           "A",
           "P"
+        ],
+        [
+          "PERM-DRW-001",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-DRW-004",
+          "A",
+          "S"
         ],
         [
           "PERM-EXP-001",
@@ -1396,6 +1455,7 @@
         "GET /credit-note-requests": "200",
         "GET /cashier/desk": "200",
         "GET /cashier/folios": "200",
+        "GET /cashier/transfers": "200",
         "GET /cashbook": "403",
         "GET /groups": "200",
         "GET /groups/companies": "200",
@@ -1504,6 +1564,11 @@
         [
           "PERM-CMP-001",
           "A",
+          "P"
+        ],
+        [
+          "PERM-DRW-003",
+          "V",
           "P"
         ],
         [
@@ -1632,6 +1697,7 @@
         "GET /credit-note-requests": "200",
         "GET /cashier/desk": "403",
         "GET /cashier/folios": "200",
+        "GET /cashier/transfers": "200",
         "GET /cashbook": "200",
         "GET /groups": "200",
         "GET /groups/companies": "200",
@@ -1763,6 +1829,7 @@
         "GET /credit-note-requests": "403",
         "GET /cashier/desk": "403",
         "GET /cashier/folios": "403",
+        "GET /cashier/transfers": "403",
         "GET /cashbook": "403",
         "GET /groups": "403",
         "GET /groups/companies": "403",
@@ -1879,6 +1946,7 @@
         "GET /credit-note-requests": "403",
         "GET /cashier/desk": "403",
         "GET /cashier/folios": "403",
+        "GET /cashier/transfers": "403",
         "GET /cashbook": "403",
         "GET /groups": "403",
         "GET /groups/companies": "403",
@@ -1990,6 +2058,7 @@
         "GET /credit-note-requests": "403",
         "GET /cashier/desk": "403",
         "GET /cashier/folios": "403",
+        "GET /cashier/transfers": "403",
         "GET /cashbook": "403",
         "GET /groups": "403",
         "GET /groups/companies": "403",
@@ -2116,6 +2185,7 @@
         "GET /credit-note-requests": "403",
         "GET /cashier/desk": "403",
         "GET /cashier/folios": "403",
+        "GET /cashier/transfers": "403",
         "GET /cashbook": "403",
         "GET /groups": "403",
         "GET /groups/companies": "403",

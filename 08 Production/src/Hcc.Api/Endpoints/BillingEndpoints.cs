@@ -22,6 +22,9 @@ public static class BillingEndpoints
         services.AddSingleton<BillingService>();
         services.AddSingleton<CashierService>();
         services.AddSingleton<ICashDrawerPort>(sp => sp.GetRequiredService<CashierService>());
+        services.AddSingleton<ICashOutStore>(sp => new Hcc.Infrastructure.SqlServer.Payments.SqlCashOutStore(sp.GetRequiredService<SqlPlatform>().Connections)); // Wave B1 DEC-073
+        services.AddSingleton<CashOutService>();
+        services.AddSingleton<ICashOutDecisions>(sp => sp.GetRequiredService<CashOutService>()); // DecideApproval on cash-banking / till-transfer
         services.AddSingleton<BillingQueries>();
         return services;
     }

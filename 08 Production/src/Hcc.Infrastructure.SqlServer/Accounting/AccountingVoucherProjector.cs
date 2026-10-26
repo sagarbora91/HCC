@@ -165,6 +165,18 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.PayRunUnlocked:
                 source = await PayRunReversalAsync(connection, transaction, propertyId, Parse<PayRunUnlockedEvent>(evt), ct).ConfigureAwait(false);
                 break;
+
+            // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer (a till transfer books nothing: cash to cash) ──
+            case AccountingEvents.CashBanked:
+                source = AccountingEventMapper.Banking(Parse<CashBankingEvent>(evt), rejected: false);
+                break;
+            case AccountingEvents.CashBankingRejected:
+                source = AccountingEventMapper.Banking(Parse<CashBankingEvent>(evt), rejected: true);
+                break;
+            case AccountingEvents.OwnerDrawingRecorded:
+                source = AccountingEventMapper.OwnerDrawing(Parse<OwnerDrawingEvent>(evt));
+                break;
+            // ── end Wave B1 ──
         }
 
         if (source is not null && !source.IsZero)

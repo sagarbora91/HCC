@@ -23,6 +23,7 @@ export * from '../../domain/streams/maintenance';
 export * from '../../domain/streams/inventory';
 export * from '../../domain/streams/handover';
 export * from '../../domain/streams/cashbook';
+export * from '../../domain/streams/cashout';
 export * from '../../domain/memo';
 export * from '../../domain/streams/services';
 export * from '../../domain/streams/messaging';

@@ -368,6 +368,15 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         return (await PeekShiftAsync(tx, shiftId, ct).ConfigureAwait(false))!;
     }
 
+    public async Task SetShiftHandoverAsync(ICommandTransaction tx, long shiftId, Paise handoverCount, string? reason, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "UPDATE pay.shift SET handover_counted_paise = @h, handover_reason = @r WHERE shift_id = @s;");
+        cmd.Parameters.Add("@h", SqlDbType.BigInt).Value = handoverCount.EnsureFieldRange().Value;
+        cmd.Parameters.Add("@r", SqlDbType.NVarChar, 200).Value = string.IsNullOrEmpty(reason) ? DBNull.Value : reason;
+        cmd.Parameters.Add("@s", SqlDbType.BigInt).Value = shiftId;
+        if (await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1) throw new InvalidOperationException("Shift not found.");
+    }
+
     public async Task<long> InsertMovementAsync(ICommandTransaction tx, NewMovement m, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(m);
@@ -558,9 +567,12 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
             ShiftRow? shift;
             string? reason;
             int? closedBy;
+            int openedBy;
+            Paise? handover;
+            string? handoverReason;
             await using (var s = connections.Command($"""
                 SELECT TOP (1) s.shift_id, s.till_id, t.property_id, s.business_date, s.status, s.opening_float_paise, s.expected_paise, s.counted_paise,
-                       s.submitted_by, s.approval_id, s.row_ver, s.difference_reason, s.closed_by
+                       s.submitted_by, s.approval_id, s.row_ver, s.difference_reason, s.closed_by, s.opened_by, s.handover_counted_paise, s.handover_reason
                 FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id
                 WHERE s.till_id = @t AND {where} ORDER BY s.shift_id DESC;
                 """, conn, tx))
@@ -571,6 +583,9 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
                 shift = ReadShift(rd);
                 reason = rd.IsDBNull(11) ? null : rd.GetString(11);
                 closedBy = rd.IsDBNull(12) ? null : rd.GetInt32(12);
+                openedBy = rd.GetInt32(13);
+                handover = rd.IsDBNull(14) ? null : SqlValues.ReadPaise(rd, 14);
+                handoverReason = rd.IsDBNull(15) ? null : rd.GetString(15);
             }
 
             ApprovalRow? approval = null;
@@ -581,7 +596,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
                 approval = (await ReadListAsync(a, ReadApproval, ct).ConfigureAwait(false)).SingleOrDefault();
             }
 
-            return new CashDeskShiftRead(shift, reason, closedBy, approval);
+            return new CashDeskShiftRead(shift, reason, closedBy, approval, openedBy, handover, handoverReason);
         }
 
         var list = new List<CashDeskTillRead>();
