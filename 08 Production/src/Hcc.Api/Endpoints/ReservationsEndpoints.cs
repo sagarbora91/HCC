@@ -7,7 +7,7 @@ namespace Hcc.Api;
 
 /// <summary>
 /// Reservation endpoints (P2): POST /commands/CreateReservation, AmendReservation, CancelReservation, MarkNoShow, ConfirmHold;
-/// GET /reservations/{id}. Every route requires a session; every command needs Idempotency-Key; versioned commands carry
+/// GET /reservations/{id}; GET /reservations?view&from&to&status&q&page&pageSize (W4-1 front-desk list). Every route requires a session; every command needs Idempotency-Key; versioned commands carry
 /// expectedVersion in the body.
 /// </summary>
 public static class ReservationsEndpoints
@@ -35,6 +35,12 @@ public static class ReservationsEndpoints
             http.HccReply(await svc.MarkNoShowAsync(http.HccCommand("MarkNoShow"), body, ct)));
         g.MapPost("/commands/ConfirmHold", async (HttpContext http, ReservationService svc, ConfirmHoldRequest body, CancellationToken ct) =>
             http.HccReply(await svc.ConfirmHoldAsync(http.HccCommand("ConfirmHold"), body, ct)));
+        g.MapGet("/reservations", async (HttpContext http, ReservationService svc, CancellationToken ct, string? view = null, string? from = null, string? to = null,
+            string? status = null, string? q = null, int page = 1, int pageSize = 200) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await svc.ListAsync(property, principal, view, from, to, status, q, page, pageSize, ct));
+        });
         g.MapGet("/reservations/{id:long}", async (HttpContext http, ReservationService svc, long id, CancellationToken ct) =>
         {
             var (property, principal) = http.HccActor();

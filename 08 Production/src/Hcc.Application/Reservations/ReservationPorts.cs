@@ -7,17 +7,17 @@ namespace Hcc.Application.Reservations;
 
 public sealed record ReservationRecord(long ReservationId, string PublicNo, string Status, string GuestName, int RoomId, int RoomTypeId,
     DateOnly Arrival, DateOnly Departure, int Adults, int Children, DateTime? HoldUntilUtc, long? NightlyRatePaise, long? GroupBlockId,
-    string? Notes, byte[] RowVersion)
+    string? Notes, byte[] RowVersion, ReservationCompany? Company = null)
 {
     public StayAllocation Allocation => new(RoomId, RoomTypeId, Arrival, Departure, GroupBlockId);
 }
 
 public sealed record NewReservation(int PropertyId, int PrincipalId, string GuestName, string? Phone, StayAllocation Allocation,
     int Adults, int Children, string Status, DateTime? HoldUntilUtc, string Source, long? QuoteId, IReadOnlyList<PricedNight> Nights,
-    string? RestrictionOverride, string? Notes, DateTime NowUtc);
+    string? RestrictionOverride, string? Notes, DateTime NowUtc, ReservationCompany? Company = null);
 
 public sealed record ReservationChange(StayAllocation Allocation, long? NightlyRatePaise, long? QuoteId, IReadOnlyList<PricedNight> Nights,
-    string? Notes);
+    string? Notes, ReservationCompany? Company = null);
 
 public sealed record SavedReservation(long ReservationId, string PublicNo, byte[] RowVersion);
 
@@ -38,7 +38,16 @@ public interface IReservationStore
         DateTime nowUtc, CancellationToken ct = default);
 
     Task<ReservationDetails?> GetDetailsAsync(int propertyId, long reservationId, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>Front-desk list (W4-1): filtered, paged reservations with the stay-side facts; <paramref name="query"/> dates are inclusive/exclusive as documented there.</summary>
+    Task<ReservationList> ListAsync(int propertyId, ReservationListQuery query, DateTime nowUtc, CancellationToken ct = default);
 }
+
+/// <summary>
+/// Filter of <see cref="IReservationStore.ListAsync"/>. <c>View</c> is one of <see cref="ReservationViews"/>; for <c>range</c> a reservation matches
+/// when it overlaps [From, To) (arrival &lt; To and departure &gt; From; a missing bound is open). <c>Statuses</c> (wire statuses) narrow any view.
+/// </summary>
+public sealed record ReservationListQuery(string View, DateOnly? From, DateOnly? To, IReadOnlyList<string> Statuses, string? Text, int Page, int PageSize);
 
 /// <summary>
 /// Cancel/no-show guard (prototype CANCEL): net payments (payment − refund) or a deposit balance on the reservation's folio.

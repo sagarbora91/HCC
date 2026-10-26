@@ -141,4 +141,23 @@ public class RequestsSqlTests : IAsyncLifetime
         Assert.Equal(saved.RetentionDays, (await _w.Queries.SettingsAsync(_w.PropertyId, Who.Manager, Ct)).RetentionDays);
         Assert.Equal("30", (await _w.Db.ScalarAsync("SELECT retention_days FROM ops.guest_service_setting;", Ct))!.ToString());
     }
+    [Fact]
+    public async Task Stay_lookup_and_bulk_history_give_the_screens_reservation_ids_and_every_trail_in_one_call()
+    {
+        var r = await Log(Who.Reception, "bh1", "HCC-1043", "Extra towels", "2 towels", assignee: Who.Housekeeper);
+        await _w.Commands.StartRequestAsync(_w.Ctx(Who.Housekeeper, "bh2"), new StartServiceRequestRequest(r.RequestId, r.Version), Ct);
+        var stays = await _w.Queries.StaysAsync(_w.PropertyId, Who.Reception, Ct);
+        var row = stays.Items.Single(x => x.StayId == _w.Stays["HCC-1043"]);
+        Assert.Equal("104", row.RoomNo);
+        Assert.True(row.ReservationId > 0 && row.GuestId > 0);
+        Assert.DoesNotContain(stays.Items, x => x.Status != "InHouse" && x.StayId != _w.Stays["HCC-1042"]);   // departed stays appear only when a record points to them
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.StaysAsync(_w.PropertyId, Who.Housekeeper, Ct)));
+
+        var all = await _w.Queries.HistoriesAsync(_w.PropertyId, Who.Reception, "request", Ct);
+        var mine = Assert.Single(all, h => h.RecordId == r.RequestId);
+        Assert.Equal(new[] { "Logged · assigned to", "Started" }, mine.Entries.Select(e => e.What.StartsWith("Logged", StringComparison.Ordinal) ? "Logged · assigned to" : e.What).ToArray());
+        Assert.Empty(await _w.Queries.HistoriesAsync(_w.PropertyId, Who.Reception, "complaint", Ct));
+        Assert.Equal("VALIDATION", await Expect.CodeAsync(() => _w.Queries.HistoriesAsync(_w.PropertyId, Who.Reception, "folio", Ct)));
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.HistoriesAsync(_w.PropertyId, Who.Housekeeper, "request", Ct)));
+    }
 }

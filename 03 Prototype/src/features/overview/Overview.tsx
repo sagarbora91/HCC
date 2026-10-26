@@ -4,27 +4,30 @@ import {money,drawer} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {BookingTable} from '../reservations/BookingTable';
 import {CmpDueCard} from '../compliance/DueCard';
+import {asOfText} from '../reports/asOf';
 import {BackupStatusCard} from '../housekeeping/BackupStatus';
 /** Room tiles carry a letter as well as a colour (WCAG 1.4.1); the legend spells the letters out. */
 const ROOM_CODE:Record<string,string>={Occupied:'O',Ready:'R',Dirty:'D',Cleaning:'C',Inspection:'I',Blocked:'B'};
 export function Overview(){
   const {s,user,m,act,open,go,tab,setTab,arrivals,departures,pending,roomStatus,permission}=useHcc();
   const stayList=tab==='Arrivals'?arrivals:tab==='Departures'?departures:s.bookings.filter(b=>b.status==='In house');
+  const wait=!!m.live&&!m.live.ready,PD='…'; // production: the server's figures for today are still loading (or unreachable)
   const inspection=s.tasks.filter(t=>t.status==='Inspection').length;
   return <>
   <div className="welcome"><div><div className="eyebrow">YOUR HOTEL, AT A GLANCE</div><h1>A little clarity for a busy day.</h1><p>Welcome back, {user.name.split(' · ')[0]}. Here’s what’s happening at {s.settings.hotel}.</p></div>{act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}</div>
   <div className="stats">
-    <div className="stat"><div className="stat-label">Room occupancy <BedDouble size={18}/></div><strong>{m.occupancy}<span>%</span></strong><div className="progress"><span style={{width:m.occupancy+'%'}}/></div><small>{m.occupied} occupied of {m.sellable} sellable rooms</small></div>
+    <div className="stat"><div className="stat-label">Room occupancy <BedDouble size={18}/></div><strong>{wait?PD:m.occupancy}<span>%</span></strong><div className="progress"><span style={{width:(wait?0:m.occupancy)+'%'}}/></div><small>{wait?'Waiting for the server…':`${m.occupied} occupied of ${m.sellable} sellable rooms`}</small></div>
     <div className="stat"><div className="stat-label">Today’s arrivals <LogOut size={18}/></div><strong>{arrivals.length.toString().padStart(2,'0')}</strong><small><span className="status-dot blue"/>Expected check-ins · {s.settings.checkin}</small></div>
     <div className="stat"><div className="stat-label">Room ready <CheckCircle2 size={18}/></div><strong>{String(m.available).padStart(2,'0')}</strong><small><span className="status-dot green"/>Vacant, clean and available now</small></div>
-    <div className="stat"><div className="stat-label">Payment receipts <IndianRupee size={18}/></div><strong className="money-stat">{money(m.collections)}</strong><small>Today’s net receipts · deposits excluded</small></div>
+    <div className="stat"><div className="stat-label">Payment receipts <IndianRupee size={18}/></div><strong className="money-stat">{wait?PD:money(m.collections)}</strong><small>Today’s net receipts · deposits excluded</small></div>
   </div>
+  {m.live&&<p className="sync-report-note" role="status" aria-live="polite">{m.live.ready?`Today’s occupancy, receipts, expenses and drawer cash come from the server’s report as of ${asOfText(m.live.asOfUtc)}${m.live.error?' (the server could not be reached since)':m.live.loading?' · refreshing…':''}.`:m.live.error?'Today’s figures could not be loaded from the server.':'Loading today’s figures from the server…'} Outstanding balances and deposits held are totals of the folios loaded from the server.</p>}
   {/* SCR-01 cash cards: each drills to its source page. Overview is gated by 'reports' (Owner, Manager, Accountant). */}
   <div className="small-stats overview-cash" aria-label="Cash and balances">
-    <div><span>Expected drawer cash</span><strong>{money(drawer(s))}</strong>{(permission('payments')||permission('close'))&&<button className="text-btn" onClick={()=>go(permission('payments')?'cashier':'closing')}>Cash shift <ArrowRight size={13}/></button>}</div>
+    <div><span>Expected drawer cash</span><strong>{m.live?(m.live.ready?money(m.live.drawer??0):PD):money(drawer(s))}</strong>{(permission('payments')||permission('close'))&&<button className="text-btn" onClick={()=>go(permission('payments')?'cashier':'closing')}>Cash shift <ArrowRight size={13}/></button>}</div>
     <div><span>Outstanding balances</span><strong>{money(m.outstanding)}</strong>{permission('billing')&&<button className="text-btn" onClick={()=>go('folios')}>Folios <ArrowRight size={13}/></button>}</div>
     <div><span>Deposits held</span><strong>{money(m.deposits)}</strong></div>
-    <div><span>Today’s posted expenses</span><strong>{money(m.expenses)}</strong>{permission('expenses')&&<button className="text-btn" onClick={()=>go('expenses')}>Expenses <ArrowRight size={13}/></button>}</div>
+    <div><span>Today’s posted expenses</span><strong>{wait?PD:money(m.expenses)}</strong>{permission('expenses')&&<button className="text-btn" onClick={()=>go('expenses')}>Expenses <ArrowRight size={13}/></button>}</div>
   </div>
   <div className="dashboard-grid">
     <section className="card"><div className="section-title"><div><h2>Front desk today</h2><p>A smooth arrival starts here.</p></div>{act('reservations',()=>go('reservations'),'All reservations ↗','text-btn')}</div>

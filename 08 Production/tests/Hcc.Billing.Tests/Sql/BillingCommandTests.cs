@@ -68,6 +68,60 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         await Fails(HccErrorCode.NOT_FOUND, () => db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(999_999, BillingDb.Day), Ct));
     }
 
+    // ── Advance before check-in (W4 gap G5) ──
+
+    [Fact]
+    public async Task Advance_deposit_on_a_confirmed_booking_opens_its_folio_and_check_in_finds_the_same_one()
+    {
+        var (rid, folio) = await db.NewFolioAsync("Confirmed");
+        await db.ScalarAsync("DELETE bill.folio WHERE folio_id = @f;", ("@f", SqlDbType.BigInt, folio));
+        Assert.Null(await db.ScalarAsync("SELECT folio_id FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)));
+
+        // Without a folio and without a reservation the request is refused as before.
+        await Fails(HccErrorCode.VALIDATION, () => db.PayAsync(0, 50_000, kind: "deposit"));
+
+        var key = BillingDb.Key();
+        var req = new RecordReceiptRequest(0, "deposit", "UPI", 50_000, "ADV-1", null, rid);
+        var r = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), key, req, Ct);
+        Assert.Equal(("deposit", 50_000L), (r.Value.Kind, r.Value.AmountPaise));
+        var opened = Convert.ToInt64(await db.ScalarAsync("SELECT folio_id FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)), System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(opened, r.Value.FolioId);
+
+        // Replay with the same key returns the same receipt (one folio, one receipt).
+        var replay = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), key, req, Ct);
+        Assert.True(replay.Replayed);
+        Assert.Equal(1, Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)), System.Globalization.CultureInfo.InvariantCulture));
+
+        // A second advance by reservation uses the same folio and the folio read shows the deposit.
+        var second = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "payment", "UPI", 20_000, "ADV-2", null, rid), Ct);
+        Assert.Equal(opened, second.Value.FolioId);
+        var view = await db.Queries.GetFolioAsync(db.As(Who.Owner), opened, Ct);
+        Assert.Equal((50_000L, 20_000L), (view.Totals.DepositPaise, view.Totals.PaidPaise));
+        Assert.Equal(2, view.Receipts.Count);
+
+        // A deposit can be returned with the folio id; a given folio id wins over the reservation id.
+        var ret = await db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(opened, "deposit-return", "UPI", 10_000, "RET", null, 999_999), Ct);
+        Assert.Equal(opened, ret.Value.FolioId);
+    }
+
+    [Fact]
+    public async Task Advance_by_reservation_refuses_unknown_foreign_and_closed_bookings_without_leaving_a_folio()
+    {
+        await Fails(HccErrorCode.NOT_FOUND, () => db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "deposit", "UPI", 1000, "X", null, 999_999), Ct));
+
+        var (foreignRid, foreignFolio) = await db.NewFolioAsync("Confirmed", property: db.OtherPropertyId);
+        await db.ScalarAsync("DELETE bill.folio WHERE folio_id = @f;", ("@f", SqlDbType.BigInt, foreignFolio));
+        await Fails(HccErrorCode.NOT_FOUND, () => db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "deposit", "UPI", 1000, "X", null, foreignRid), Ct));
+
+        foreach (var status in new[] { "Cancelled", "Held" })
+        {
+            var (rid, folio) = await db.NewFolioAsync(status);
+            await db.ScalarAsync("DELETE bill.folio WHERE folio_id = @f;", ("@f", SqlDbType.BigInt, folio));
+            await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.RecordReceiptAsync(db.As(Who.Reception), BillingDb.Key(), new RecordReceiptRequest(0, "deposit", "UPI", 1000, "X", null, rid), Ct));
+            Assert.Null(await db.ScalarAsync("SELECT folio_id FROM bill.folio WHERE reservation_id = @r;", ("@r", SqlDbType.BigInt, rid)));
+        }
+    }
+
     // ── RecordReceipt ──
 
     [Fact]
@@ -254,6 +308,63 @@ public class BillingCommandTests(BillingDb db) : IClassFixture<BillingDb>
         var drawer = await db.Queries.GetShiftAsync(db.As(Who.Owner), shift.ShiftId, Ct);
         Assert.Equal(100_000 + 100_000 - 60_000, drawer.Expected.ExpectedPaise);
         Assert.Equal(60_000, drawer.Expected.RefundsPaise);
+    }
+
+    /// <summary>
+    /// N10 / S3 (prototype validMethod, DEC-052 shared drawer): a CASH refund is paid out of the till, so it needs that till's shift open on
+    /// the current business date — no open shift, or a shift left open from an earlier date, is refused (INVALID_TRANSITION) and the
+    /// drawer is untouched. A non-cash refund of the same receipt needs no shift.
+    /// </summary>
+    [Fact]
+    public async Task Cash_refund_needs_the_tills_shift_open_today_non_cash_refund_does_not()
+    {
+        var (till, shift) = await db.OpenTillAsync(50_000);
+        var (_, folio) = await StayAsync();
+        var cash = await db.PayAsync(folio, 100_000, "Cash", till: till);
+        async Task<ApprovalResult> ApprovedAsync(long receiptId, long amount)
+        {
+            var req = await db.Billing.RequestAdjustmentAsync(db.As(Who.Cashier), BillingDb.Key(),
+                new RequestAdjustmentRequest("refund", folio, receiptId, amount, "Early departure", await db.FolioVersionAsync(folio)), Ct);
+            return (await db.Billing.DecideApprovalAsync(db.As(Who.Manager), BillingDb.Key(), new DecideApprovalRequest(req.Value.ApprovalId!.Value, true, null, req.Value.ApprovalVersion!), Ct)).Value;
+        }
+
+        var refund = await ApprovedAsync(cash.Value.ReceiptId, 5_000);
+        var view = await db.Queries.GetShiftAsync(db.As(Who.Owner), shift.ShiftId, Ct);
+        var closed = await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), BillingDb.Key(),
+            new SubmitShiftCountRequest(shift.ShiftId, view.Expected.ExpectedPaise, null, null, null, view.Shift.Version), Ct);
+        Assert.Equal("Closed", closed.Value.Status);
+
+        // no open shift on the till
+        var ex = await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(),
+            new ExecuteAdjustmentRequest(refund.ApprovalId, refund.Version, null, null, till), Ct));
+        Assert.Contains("No cash shift is open", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM pay.receipt WHERE folio_id = @f AND kind = 'refund'", ("@f", SqlDbType.BigInt, folio)));
+
+        // a shift left open from an earlier business date
+        var stale = (await db.Cashier.OpenShiftAsync(db.As(Who.Cashier), BillingDb.Key(), new OpenShiftRequest(till, null), Ct)).Value;
+        await db.SetBusinessDateAsync(BillingDb.Day.AddDays(1));
+        try
+        {
+            ex = await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(),
+                new ExecuteAdjustmentRequest(refund.ApprovalId, refund.Version, "Cash", null, till), Ct));
+            Assert.Contains("earlier business date", ex.Message, StringComparison.Ordinal);
+            Assert.Equal(0, (await db.Queries.GetShiftAsync(db.As(Who.Owner), stale.ShiftId, Ct)).Expected.RefundsPaise);
+        }
+        finally
+        {
+            await db.SetBusinessDateAsync(BillingDb.Day);
+        }
+
+        // non-cash: the same approved refund paid by UPI needs no till or shift (the shift is closed again first)
+        var sv = await db.Queries.GetShiftAsync(db.As(Who.Owner), stale.ShiftId, Ct);
+        await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), BillingDb.Key(), new SubmitShiftCountRequest(stale.ShiftId, sv.Expected.ExpectedPaise, null, null, null, sv.Shift.Version), Ct);
+        var upi = await db.Billing.ExecuteAdjustmentAsync(db.As(Who.Cashier2), BillingDb.Key(),
+            new ExecuteAdjustmentRequest(refund.ApprovalId, refund.Version, "UPI", "DEMO-UPI-REFUND", null), Ct);
+        Assert.Equal("Executed", upi.Value.Status);
+        var f = await db.Queries.GetFolioAsync(db.As(Who.Owner), folio, Ct);
+        var paid = f.Receipts.Single(r => r.Kind == "refund");
+        Assert.Equal(("UPI", 5_000L), (paid.Tender, paid.AmountPaise));
+        Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM pay.cash_movement WHERE source_type = 'receipt' AND source_id = @r", ("@r", SqlDbType.BigInt, upi.Value.ResultId!.Value)));
     }
 
     [Fact]

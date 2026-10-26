@@ -50,7 +50,11 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
         Assert.Matches("whole number between 1 and 72 h", await Expect.Message(() => Set(h, h.Owner, "fd.holdHours", 0)));
         Assert.Matches("Enter an amount from", await Expect.Message(() => Set(h, h.Owner, "discountLimit", -1)));
         Assert.Matches("15 capital letters", await Expect.Message(() => Set(h, h.Owner, "brand.gstin", "12345")));
-        await Set(h, h.Owner, "brand.gstin", "27DEMO0000X0Z05");
+        // W4 D2: format, state code and check character (the invoicing rule), so a typing error cannot block invoices later.
+        Assert.Matches("check character is wrong", await Expect.Message(() => Set(h, h.Owner, "brand.gstin", "27AAAAA0000A1Z5")));
+        Assert.Matches("15 characters: state code, PAN", await Expect.Message(() => Set(h, h.Owner, "brand.gstin", "27DEMO0000X0Z05")));
+        Assert.Matches("unknown state code", await Expect.Message(() => Set(h, h.Owner, "brand.gstin", "99AAAAA0000A1Z5")));
+        await Set(h, h.Owner, "brand.gstin", "27AAAAA0000A1Z2");
         Assert.Equal("OK", await Expect.Code(() => Set(h, h.Owner, "brand.gstin", "")));
         Assert.Equal(SettingRules.NoChange, await Expect.Message(() => Set(h, h.Owner, "brand.printFormat", "A4")));
         Assert.Equal(T("Grand"), T((await Set(h, h.Owner, "hotel", "  Grand  ")).After));

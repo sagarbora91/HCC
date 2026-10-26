@@ -42,14 +42,18 @@ off the database server's backups. `System.Security.Cryptography` (BCL) only; DP
 Put this in the service account's environment (`Hcc__GuestIdKeys__Current`, `Hcc__GuestIdKeys__Keys__2026-10`) or an
 `appsettings.Production.json` outside the repository with an ACL for the service account only. Schemes: `dpapi-user:` (bound to the
 Windows account that runs HCC — preferred), `dpapi-machine:` (any process on that PC), `plain:` (development/tests only, and only with
-`Hcc:GuestIdKeys:AllowPlainKeys=true`). Generate a key **as the service account**, in Windows PowerShell 5.1 (`powershell.exe`):
+`Hcc:GuestIdKeys:AllowPlainKeys=true`).
+**Production start-up rules (F-M05, `HccConfigValidator` + `GuestIdKeyFileCheck`):** `plain:` keys and `AllowPlainKeys` are refused;
+`dpapi-machine:` is refused unless `Hcc:GuestIdKeys:AllowMachineScope=true`; the settings file must be readable only by SYSTEM, Administrators
+and the service account (checked at every start, with the fixing `icacls` command in the error); `Required=true` (written by the script)
+refuses to start when the key is missing. Generate a key **as the service account**, in Windows PowerShell 5.1 (`powershell.exe`):
 ```
 Add-Type -AssemblyName System.Security
 $k = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($k)
 $e = [Text.Encoding]::ASCII.GetBytes('HCC guest ID key v1')
 'dpapi-user:' + [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Protect($k, $e, 'CurrentUser'))
 ```
-(`DpapiGuestIdKeyRing.NewWrappedKey` does the same from code.) **Back up the key**: a DPAPI-user blob is useless on another PC or
+**On the hotel PC use `deployment/windows/New-HccGuestIdKey.ps1`** (INSTALL.md section 6b): it does the above with `dpapi-machine:` (an administrator can run it; the service account cannot be logged in to), writes `Hcc:GuestIdKeys` into `appsettings.Production.json`, restricts that file and writes the offline copy to a USB path. (`DpapiGuestIdKeyRing.NewWrappedKey` does the same from code.) A missing key answers 503 UNAVAILABLE with `details.reason = NOT_CONFIGURED`; the web client then shows "ID storage is not set up on the server" and does **not** switch to read-only. **Back up the key**: a DPAPI-user blob is useless on another PC or
 account, so also keep an offline copy of the raw key (sealed envelope / owner's password manager). Losing every copy makes the stored
 numbers unreadable (last 4 stay). Database backups alone never contain the key.
 
@@ -63,4 +67,4 @@ numbers unreadable (last 4 stay). Database backups alone never contain the key.
 
 ## Requested / open (owner or lead)
 - CA/lawyer ruling on storing full Aadhaar (above).
-- Where the production key lives (service-account environment vs protected appsettings) and who holds the offline copy — P7 deployment.
+- Who holds the offline copy of the key (owner's safe; script and checklist in INSTALL.md 6b are done).

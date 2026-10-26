@@ -12,6 +12,7 @@ const statusIcon:Record<MSGStatus,React.ReactNode>={Queued:<Clock size={14} aria
   Read:<CheckCheck size={14} aria-hidden className="msg-read"/>,Failed:<AlertCircle size={14} aria-hidden/>,'Not sent':<Ban size={14} aria-hidden/>};
 export function MsgStatusPill({st}:{st:MSGStatus}){return <Pill tone={MSG_STATUS_TONE[st]}><span className="msg-status">{statusIcon[st]}{st}</span></Pill>;}
 export function MsgSimulated({children}:{children?:React.ReactNode}){
+  if(process.env.HCC_BUILD==='production')return null;
   return <div className="info-note msg-sim" role="note"><Info size={16}/><span><b>Simulated.</b> {children||'Nothing is sent — no WhatsApp, SMS or email leaves this prototype, and there is no network access.'}</span></div>;
 }
 export const msgTemplateName=(s:ReturnType<typeof useHcc>['s'],id:string)=>id==='manual'?'Manual message':(s.messagingX?.templates||[]).find(t=>t.id===id)?.name||id;

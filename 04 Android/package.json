@@ -7,12 +7,15 @@
     "copy-web": "node scripts/copy-web.mjs",
     "sync": "npm run copy-web && npx cap sync android",
     "postinstall": "node scripts/patch-printer.mjs",
-    "patch-printer": "node scripts/patch-printer.mjs"
+    "patch-printer": "node scripts/patch-printer.mjs",
+    "production": "node scripts/build-production.mjs",
+    "test:production": "node scripts/build-production.test.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.3",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4",

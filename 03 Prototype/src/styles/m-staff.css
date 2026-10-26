@@ -120,3 +120,4 @@ button.hr-cell:hover{border-color:#9e4a55;background:#f5e4e6}
 .m-shell .hr-m .btn,.m-shell .hr-m .text-btn,.m-shell .hr-m .small-btn{min-height:48px;font-size:16px}
 .m-shell .hr-m .hr-m-note,.m-shell .hr-m .info-note,.m-shell .hr-m .summary-list span,.m-shell .hr-m .summary-list strong{font-size:16px}
 .m-shell .hr-m .m-group{font-size:14px}
+.hr-dept-list{list-style:none;margin:0 0 14px;padding:0;border:1px solid #e6d9c8;border-radius:8px}.hr-dept-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;min-height:48px;border-top:1px solid #e6d9c8}.hr-dept-list li:first-child{border-top:0}

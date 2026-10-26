@@ -10,7 +10,7 @@ import {chnTabOf,usePushChannel,StopSellToggle,type ChnTab} from './Channels';
 
 const pl=(n:number,w:string)=>`${n} ${w}${n===1?'':'s'}`;
 export function ChannelsMobile(){
-  const {s,tab,setTab,run,busy,open}=useHcc();const t=chnTabOf(tab);
+  const {s,tab,setTab,run,busy,open,permission}=useHcc();const t=chnTabOf(tab);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   const [ch,setCh]=usePushChannel();const pc=st.channels.find(c=>c.id===ch);
   return <div className="chn-m">
@@ -22,6 +22,7 @@ export function ChannelsMobile(){
         meta={<>{stay(m.arrival,m.departure)} · {party(m.adults,m.children)}<br/><span className={c.ok?'chn-ok-text':'chn-err-text'}>{c.ok?'Can accept':'Cannot accept'}: {c.reason}</span></>}/>;})}
       {!pend.length&&<Empty title="Inbox clear" body="No pending OTA messages."/>}
       <StickyFooter><button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={18}/> Check for new messages</button></StickyFooter></>}
+    {t==='channels'&&process.env.HCC_BUILD==='production'&&(permission('approve')?<button className="btn" onClick={()=>open({type:'chn-channel',id:'new'})}>Add channel</button>:!st.channels.length&&<p className="chn-muted">No channels yet. A Manager or Owner adds the first one.</p>)}
     {t==='channels'&&st.channels.map(c=><section key={c.id} className="chn-mcard">
       <ListCard title={c.name} sub={c.statusNote} meta={`Commission ${chnPct(c.commissionBps)} · markup ${chnPct(c.markupBps)} · last sync ${c.lastSync?clockTime(c.lastSync):'never'}`} right={<ChnPill status={c.status}/>} onClick={()=>open({type:'chn-channel',id:c.id})}/>
       <div className="chn-mstop">{chnRoomTypes(s).map(type=><div key={type}><span>{type}<small>{c.mapping[type]||'Not mapped'}</small></span>{c.mapping[type]?<StopSellToggle c={c} type={type}/>:<span className="chn-muted">—</span>}</div>)}</div>

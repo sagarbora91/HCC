@@ -7,7 +7,9 @@ import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate,dateLabel} from '../../components/ui';
 import {downloadCsv} from '../../features/reports/Reports';
-import {maApprovalActions,maAuditOptions,maRangeCheck,maReportPack,maDrillTotal,maMaskReports,MA_REPORT_CHIPS} from './logic';
+import {maApprovalActions,maAuditOptions,maRangeCheck,maDrillTotal,maMaskReports,MA_REPORT_CHIPS,maLimit} from './logic';
+import {useMaPack} from './serverPack';
+import {SERVER_DETAIL_NOTE,fyMonths} from '../../features/reports/serverBits';
 import {useMaUi,maSetUi,maRange} from './store';
 import {MaRows} from './parts';
 
@@ -44,11 +46,11 @@ export function MaAuditFilterSheet(){
 export function MaRangeSheet(){
   const {s,closeModal}=useHcc();const u=useMaUi();const cur=maRange(u,s.date);
   const [from,setFrom]=useState(cur.from),[to,setTo]=useState(cur.to);
-  const chk=maRangeCheck(from,to,s.date,reportRangeLimit(s));
+  const chk=maRangeCheck(from,to,s.date,maLimit(s));
   const apply=(a:string,b:string)=>{maSetUi({reportFrom:a,reportTo:b});closeModal();};
-  return <><div className="modal-heading"><h2>Report date range</h2><p>Business dates up to today ({dateLabel(s.date)}). At most {reportRangeLimit(s)} days.</p></div>
+  return <><div className="modal-heading"><h2>Report date range</h2><p>Business dates up to today ({dateLabel(s.date)}). At most {maLimit(s)} days.</p></div>
     <div className="ma-presets">{reportRangePresets(s).map(p=><button type="button" key={p.id} className="btn" onClick={()=>apply(p.from,p.to)}>{p.label}</button>)}
-      {(s.historyX?historyMonths(s).months:[]).map(m=>{const r=reportMonthRange(s,m.month);return <button type="button" key={m.month} className="btn" onClick={()=>apply(r.from,r.to)}>{m.label}</button>;})}</div>
+      {(process.env.HCC_BUILD==='production'?fyMonths(s.date):s.historyX?historyMonths(s).months:[]).map(m=>{const r=reportMonthRange(s,m.month);return <button type="button" key={m.month} className="btn" onClick={()=>apply(r.from,r.to)}>{m.label}</button>;})}</div>
     <form className="form" onSubmit={e=>{e.preventDefault();if(chk.ok)apply(from,to);}}>
       <label>From (business date)<input type="date" value={from} max={s.date} onChange={e=>setFrom(e.target.value)}/></label>
       <label>To<input type="date" value={to} max={s.date} onChange={e=>setTo(e.target.value)}/></label>
@@ -59,17 +61,17 @@ export function MaRangeSheet(){
 
 export function MaDrillSheet({id,room}:{id?:string;room?:string}){
   const {s,uid,booking,toast,closeModal}=useHcc();const u=useMaUi();const {from,to}=maRange(u,s.date);
-  const pack=maReportPack(s,uid,from,to);const m=pack?.tabs.find(t=>t.id===room)?.metrics.find(x=>x.id===id);
+  const {pack}=useMaPack(s,uid,from,to);const m=pack?.tabs.find(t=>t.id===room)?.metrics.find(x=>x.id===id);
   const pg=usePaged(m?.rows??[],PHONE_PAGE);
   if(!pack||!m)return <Empty title="No report for this range"/>;
   const mask=maMaskReports(s,uid);const fmt=(v:number)=>m.unit==='money'?money(v):String(v);
-  return <><div className="modal-heading"><div className="eyebrow">{MA_REPORT_CHIPS.find(c=>c.id===room)?.label.toUpperCase()} · {shortDate(from)} – {shortDate(to)}</div><h2>{m.label}</h2><p>{m.rows.length} source row{m.rows.length===1?'':'s'}{m.note?' · '+m.note:''}</p></div>
-    <div className="ma-total" role="status"><span>Total — equals the report figure</span><strong className="number">{fmt(maDrillTotal(m))}</strong></div>
-    {m.rows.length?<><ul className="ma-drill">{pg.shown.map(r=><li key={r.ref}>
+  return <><div className="modal-heading"><div className="eyebrow">{MA_REPORT_CHIPS.find(c=>c.id===room)?.label.toUpperCase()} · {shortDate(from)} – {shortDate(to)}</div><h2>{m.label}</h2><p>{process.env.HCC_BUILD==='production'?'Server figure':<>{m.rows.length} source row{m.rows.length===1?'':'s'}</>}{m.note?' · '+m.note:''}</p></div>
+    <div className="ma-total" role="status"><span>{process.env.HCC_BUILD==='production'?'Report figure (from the server)':'Total — equals the report figure'}</span><strong className="number">{fmt(process.env.HCC_BUILD==='production'?m.value:maDrillTotal(m))}</strong></div>
+    {process.env.HCC_BUILD==='production'?<p className="ma-why" role="note">{SERVER_DETAIL_NOTE}</p>:m.rows.length?<><ul className="ma-drill">{pg.shown.map(r=><li key={r.ref}>
       {r.booking&&!mask?<button type="button" onClick={()=>booking(r.booking!)}><DrillBody r={r} v={fmt(r.amount)}/></button>:<div><DrillBody r={r} v={fmt(r.amount)}/></div>}</li>)}</ul><ShowMore p={pg}/></>
       :<Empty title="No source records" body="Nothing matches this figure in the selected range."/>}
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Close</button>
-      {rbacCanExportReports(s,uid)&&<button type="button" className="btn primary" onClick={()=>{downloadCsv(`HCC-Demo-rows-${m.id}-${pack.from}_${pack.to}.csv`,reportDrillCsv(s,pack,m));toast('Source rows downloaded');}}><Download size={18}/>Rows CSV</button>}</div></>;
+      {process.env.HCC_BUILD!=='production'&&rbacCanExportReports(s,uid)&&<button type="button" className="btn primary" onClick={()=>{downloadCsv(`HCC-Demo-rows-${m.id}-${pack.from}_${pack.to}.csv`,reportDrillCsv(s,pack,m));toast('Source rows downloaded');}}><Download size={18}/>Rows CSV</button>}</div></>;
 }
 function DrillBody({r,v}:{r:{date:string;ref:string;booking?:string;guest?:string;room?:string;detail:string;method?:string};v:string}){
   return <><span className="ma-drill-main"><strong>{r.booking?`${r.guest??''} · ${r.booking}`:r.room?`Room ${r.room}`:r.detail}</strong><small>{r.detail}{r.method?' · '+r.method:''}</small><small>{shortDate(r.date)} · {r.ref}</small></span><strong className="number">{v}</strong></>;

@@ -22,7 +22,7 @@ export function AccountingPage(){
   const vs=useMemo(()=>accVouchers(s,date),[s,date]);
   const ex=useMemo(()=>accExceptions(s,date),[s,date]);
   const recon=useMemo(()=>accReconcile(s,date),[s,date]);
-  const tb=useMemo(()=>accTrialBalance(cum?accVouchersUpTo(s,date):vs),[s,date,vs,cum]);
+  const tb=useMemo(()=>accTrialBalance(cum?accVouchersUpTo(s,date):vs,s.accountingX?.server?.accounts),[s,date,vs,cum]);
   const t=accTotals(vs),status=accDayStatus(s,date),lock=accLockOf(s,date),why=accLockBlocker(s,date);
   const errors=ex.filter(x=>x.severity==='error').length,reconOk=recon.every(c=>c.ok);
   const tabs:[Tab,string,number?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],['chart','Chart of accounts'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];

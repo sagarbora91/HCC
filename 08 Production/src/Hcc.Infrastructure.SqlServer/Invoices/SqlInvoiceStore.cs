@@ -89,6 +89,15 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
         return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is long id ? id : null;
     }
 
+    public Task<long?> FindInvoiceForSourceAsync(int propertyId, string sourceKind, long sourceId, CancellationToken ct) =>
+        WithAsync<long?>(null, "SELECT invoice_id FROM ivc.invoice WHERE property_id = @p AND source_kind = @k AND source_id = @s;", async cmd =>
+        {
+            P(cmd, "@p", SqlDbType.Int, propertyId);
+            P(cmd, "@k", SqlDbType.VarChar, sourceKind, 10);
+            P(cmd, "@s", SqlDbType.BigInt, sourceId);
+            return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is long id ? id : null;
+        }, ct);
+
     public async Task<(string Prefix, int Seq)> NextNumberAsync(ICommandTransaction tx, int propertyId, string fyCode, InvoiceDocType type, string prefixIfNew, DateTime utc, CancellationToken ct)
     {
         // An exclusive transaction-scoped app lock per series serializes numbering (also the first use of a series, where two key-range

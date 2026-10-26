@@ -70,6 +70,11 @@ public static class MessagingEndpoints
             var (p, u) = http.HccActor();
             return Results.Ok(await q.RulesAsync(p, u, ct));
         });
+        g.MapGet("/messaging/consents", async (HttpContext http, MessagingQueries q, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await q.ConsentRosterAsync(p, u, ct));
+        });
         g.MapGet("/messaging/consent/{guestId:long}", async (HttpContext http, long guestId, MessagingQueries q, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();

@@ -11,10 +11,34 @@ public sealed class AccessOptions
 
     public TimeSpan AbsoluteLifetime { get; set; } = TimeSpan.FromHours(12);
 
-    /// <summary>Consecutive failed sign-ins before the credential locks.</summary>
+    /// <summary>
+    /// Wrong current secrets before a self-service credential change (ChangeOwnCredential) locks for <see cref="LockoutDuration"/>.
+    /// Sign-in has no per-account lockout any more (F-M02); see the <c>SignIn*</c> throttle settings.
+    /// </summary>
     public int MaxFailedAttempts { get; set; } = 5;
 
     public TimeSpan LockoutDuration { get; set; } = TimeSpan.FromMinutes(15);
+
+    /// <summary>Sliding window of the sign-in throttle (F-M02).</summary>
+    public TimeSpan SignInWindow { get; set; } = TimeSpan.FromMinutes(15);
+
+    /// <summary>Failed sign-ins per client address (IPv4 address or IPv6 /64) in the window before that address gets 429.</summary>
+    public int SignInFailuresPerSource { get; set; } = 20;
+
+    /// <summary>Failed sign-ins for one sign-in name from one address in the window before that pair gets 429 (other addresses are unaffected).</summary>
+    public int SignInFailuresPerSourceAndLogin { get; set; } = 5;
+
+    /// <summary>Failed sign-ins for one name (from all addresses) in the window after which each further attempt is slowed down.</summary>
+    public int SignInDelayAfterFailures { get; set; } = 5;
+
+    /// <summary>Upper bound of the progressive delay (1 s, 2 s, 4 s … up to this); never a refusal.</summary>
+    public TimeSpan SignInMaxDelay { get; set; } = TimeSpan.FromSeconds(8);
+
+    /// <summary>Idempotency records older than this are purged (F-L03).</summary>
+    public TimeSpan IdempotencyRetention { get; set; } = TimeSpan.FromDays(30);
+
+    /// <summary>Ended (revoked or expired) sessions older than this are purged (F-L03).</summary>
+    public TimeSpan SessionRetention { get; set; } = TimeSpan.FromDays(90);
 
     /// <summary>PBKDF2-SHA256 iterations for new password hashes (OWASP 2023 guidance: 600,000).</summary>
     public int PasswordIterations { get; set; } = 600_000;
@@ -119,6 +143,13 @@ public interface ISessionService
     /// <summary>Throws UNAUTHENTICATED (401; details.reason = SESSION_INVALID) when the session is missing, unknown, expired, revoked or its user changed.</summary>
     Task<AuthenticatedSession> ValidateAsync(string? token, CancellationToken ct = default);
 
+    /// <summary>
+    /// As <see cref="ValidateAsync(string?, CancellationToken)"/>, with the request's <c>X-HCC-Device</c> token: a PIN session is
+    /// refused (UNAUTHENTICATED, sessionEnd DEVICE_MISMATCH) unless the token is that of the device it was opened on (F-M07).
+    /// Password sessions ignore it. The default (test doubles) ignores the device.
+    /// </summary>
+    Task<AuthenticatedSession> ValidateAsync(string? token, string? deviceToken, CancellationToken ct) => ValidateAsync(token, ct);
+
     Task SignOutAsync(string? token, CancellationToken ct = default);
 }
 
@@ -156,4 +187,20 @@ public interface IUserAdministration
 public interface ICapabilitiesQuery
 {
     Task<CapabilitiesResult> GetAsync(AuthenticatedSession session, CancellationToken ct = default);
+}
+
+/// <summary>W4-5 admin reads for the Access control and Approvals &amp; audit screens (read-only; the server stays the authority).</summary>
+public interface IAccessAdminQueries
+{
+    /// <summary>Display names and ids of the property's users (no login names). Any signed-in user: screens show who requested or prepared something.</summary>
+    Task<StaffDirectoryResult> DirectoryAsync(AuthenticatedSession actor, CancellationToken ct = default);
+
+    /// <summary>Role templates (grants + explicit denies) and the permission catalogue. PERM-ADM-001/002/003 at any mode.</summary>
+    Task<RolesResult> RolesAsync(AuthenticatedSession actor, CancellationToken ct = default);
+
+    /// <summary>User exceptions (active and expired; revoked only when asked). PERM-ADM-001/002 at any mode.</summary>
+    Task<ExceptionsResult> ExceptionsAsync(AuthenticatedSession actor, bool includeRevoked, CancellationToken ct = default);
+
+    /// <summary>Audit events, newest first. PERM-ADM-004.</summary>
+    Task<AuditPage> AuditAsync(AuthenticatedSession actor, int page, int pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
 }

@@ -255,4 +255,19 @@ export async function register({test,M,assert}){
     for(const m of demo)assert.ok(proto.includes(m),'prototype bundle lost '+m);
     assert.ok(!proto.includes('hcc-http-adapter'));assert.ok(!proto.includes('read-only-banner'));assert.ok(!/process\.env\.HCC_BUILD/.test(proto));
   });
+  // W4-0: the server sync layer (src/clients/sync/*) is production-only. Besides the fixed markers, every server path literal
+  // ('/…') and command name (api.command('Name', …)) written in a sync file must be absent from the prototype bundle — this
+  // catches an area module that leaks in (e.g. through a top-level call) without each area adding its own check.
+  const {readdir,readFile}=await import('node:fs/promises');
+  const syncSrc=(await Promise.all((await readdir('src/clients/sync')).filter(f=>/\.tsx?$/.test(f)).map(f=>readFile('src/clients/sync/'+f,'utf8')))).join('\n');
+  const syncPaths=[...new Set([...syncSrc.matchAll(/'(\/[a-z][\w\-/]{3,})'/g)].map(m=>m[1]))];
+  const syncCommands=[...new Set([...syncSrc.matchAll(/command(?:<[^>]*>)?\(\s*'([A-Z][A-Za-z]+)'/g)].map(m=>m[1]))];
+  const syncMarkers=['hcc-sync-layer','Not available on the server yet','hcc-server-cache','Connecting to the hotel server','Server data as of'];
+  test('[W4-0] Sync layer only in the production bundle: markers, server paths and command names of every sync file absent from the prototype',()=>{
+    for(const m of syncMarkers){assert.ok(prod.includes(m),'production bundle lacks '+m);assert.ok(!proto.includes(m),'prototype bundle contains '+m);}
+    assert.ok(syncPaths.includes('/system/health')&&syncPaths.includes('/auth/sign-in'),syncPaths.join(','));
+    for(const p of syncPaths)assert.ok(!proto.includes(p),'prototype bundle contains sync path '+p);
+    for(const c of syncCommands)assert.ok(!proto.includes(`"${c}"`),'prototype bundle contains sync command '+c);
+    assert.ok(!proto.includes('hcc-session-cache')&&!proto.includes('X-HCC-Device'));
+  });
 }

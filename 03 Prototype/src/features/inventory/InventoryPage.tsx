@@ -18,6 +18,7 @@ export function InventoryPage(){
   const counts:Partial<Record<Tab,number>>={Laundry:x.batches.filter(b=>b.status==='Out').length,Counts:pend.length,Losses:x.losses.length};
   return <><PageTitle title="Linen & stock" sub="Linen par, laundry, amenities and cleaning supplies — every piece accounted for."
       action={<div className="inv-actions">
+        {process.env.HCC_BUILD==='production'&&permission('inspect')&&<button className="btn" onClick={()=>open({type:'inv-item',id:'new'})}><PackagePlus size={16}/> New item</button>}
         {canGrn&&<button className="btn" onClick={()=>open({type:'inv-grn'})}><PackagePlus size={16}/> Receive stock</button>}
         <button className="btn primary" onClick={()=>open({type:'inv-move'})}><ArrowRightLeft size={16}/> Issue / use</button></div>}/>
     <div className="small-stats">

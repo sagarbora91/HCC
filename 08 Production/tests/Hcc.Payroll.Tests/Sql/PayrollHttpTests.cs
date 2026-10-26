@@ -110,12 +110,25 @@ public sealed class PayrollHttpTests(PayrollDb db) : IClassFixture<PayrollDb>
         var csv = await acc.GetAsync($"{ApiConventions.BasePath}/payroll/runs/2026-08/register.csv", Ct);
         Assert.Equal("text/csv", csv.Content.Headers.ContentType!.MediaType);
         Assert.StartsWith("Month,Staff ID,Name", await csv.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+        // W4 G2: the production app downloads the bank file from the server right after IssueBankFile (never built from masked data).
+        var latestPath = $"{ApiConventions.BasePath}/payroll/run/{run.RunId}/bank-files/latest";
+        Assert.Equal(HttpStatusCode.NotFound, (await acc.GetAsync(latestPath, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await acc.SendAsync(Post(PayrollService.OpIssueBankFile, new IssueBankFileRequest(run.RunId), "k4"), Ct)).StatusCode);
+        var bank = await acc.GetAsync(latestPath, Ct);
+        Assert.Equal("text/csv", bank.Content.Headers.ContentType!.MediaType);
+        Assert.Equal("bank-transfer-2026-08-1.csv", bank.Content.Headers.ContentDisposition!.FileName?.Trim('"'));
+        Assert.DoesNotContain("••••", await bank.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Forbidden, (await mgr.GetAsync(latestPath, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await hk.GetAsync($"{ApiConventions.BasePath}/payroll/runs/2026-08/statutory.csv", Ct)).StatusCode);
         var slip = await hk.GetAsync($"{ApiConventions.BasePath}/payroll/payslips/{run.RunId}/{h.S("HR-S05")}", Ct);
         Assert.Equal(HttpStatusCode.OK, slip.StatusCode);
         var other = await hk.GetAsync($"{ApiConventions.BasePath}/payroll/payslips/{run.RunId}/{h.S("HR-S06")}", Ct);
         Assert.Equal(HttpStatusCode.NotFound, other.StatusCode);
         var rates = await acc.GetStringAsync($"{ApiConventions.BasePath}/payroll/rates/2026-08", Ct);
         Assert.Contains("\"rounding\":\"paise\"", rates, StringComparison.Ordinal);
+        var board = await hk.GetStringAsync($"{ApiConventions.BasePath}/payroll/board?from=2026-08-01&to=2026-10-31", Ct);
+        Assert.Contains("\"payroll\":false", board, StringComparison.Ordinal);   // W4-6: own record and own locked line only
+        Assert.Contains("\"rounding\":\"paise\"", board, StringComparison.Ordinal);
         using var anon = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync($"{ApiConventions.BasePath}/payroll/my/payslips", Ct)).StatusCode);
     }

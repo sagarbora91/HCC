@@ -35,6 +35,7 @@
     <Project Path="tests/Hcc.WebBooking.Tests/Hcc.WebBooking.Tests.csproj" />
     <Project Path="tests/Hcc.Ota.Tests/Hcc.Ota.Tests.csproj" />
     <Project Path="tests/Hcc.Invoices.Tests/Hcc.Invoices.Tests.csproj" />
+    <Project Path="tests/Hcc.Import.Tests/Hcc.Import.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -43,6 +44,7 @@
     <File Path="database/migrations/0101_access_rbac_seed.sql" />
     <File Path="database/migrations/0200_inventory_reservations.sql" />
     <File Path="database/migrations/0202_inventory_block_history.sql" />
+    <File Path="database/migrations/0203_reservation_company.sql" />
     <File Path="database/migrations/0300_stays_housekeeping.sql" />
     <File Path="database/migrations/0301_stays_changes.sql" />
     <File Path="database/migrations/0400_billing_payments.sql" />
@@ -78,5 +80,7 @@
     <File Path="database/migrations/2201_groups_rbac_seed.sql" />
     <File Path="database/migrations/2400_invoices.sql" />
     <File Path="database/migrations/2401_invoices_rbac_seed.sql" />
+    <File Path="database/migrations/2700_import.sql" />
+    <File Path="database/migrations/2701_import_rbac_seed.sql" />
   </Folder>
 </Solution>

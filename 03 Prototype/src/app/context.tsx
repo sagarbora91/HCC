@@ -3,10 +3,11 @@ import React,{createContext,useContext} from 'react';
 import {State,Command,Permission,User,Room,Booking,Task,RoomStatus,metrics} from '../services/mock';
 import {FaultMode} from '../services/mock/faults';
 import type {Display} from './display';
+import type {Metrics} from './useMetrics';
 export type Modal={type:string;id?:string;room?:string;key:string}|null;
 export type RunOptions={close?:boolean;after?:()=>void};
 export type Ctx={
-  s:State;uid:string;user:User;m:ReturnType<typeof metrics>;
+  s:State;uid:string;user:User;m:Metrics;
   page:string;go:(p:string,opts?:{tab?:string;replace?:boolean})=>void;
   modal:Modal;open:(m:{type:string;id?:string;room?:string})=>void;closeModal:()=>void;booking:(id:string)=>void;
   error:string;busy:boolean;

@@ -3,7 +3,7 @@
 .form [aria-invalid=true]{border-color:#e0b39d}
 .res-fieldset{border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .res-fieldset legend{font-size:10px;letter-spacing:1px;color:#6b5547;padding:0 6px;text-transform:uppercase}
-.res-search-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.res-search-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:12px}
 .res-results{display:flex;flex-direction:column;gap:10px;min-width:0}
 .res-results-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;color:#2b1d16}
 .res-room-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:220px;overflow:auto;padding:2px}

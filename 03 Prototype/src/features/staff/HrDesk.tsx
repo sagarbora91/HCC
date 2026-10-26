@@ -5,6 +5,9 @@
 // half-day, max staff off per department per day, leave calendar). Payroll run and statutory rates are desktop/tablet tasks:
 // the phone shows a read-only summary (Wave 0.5 placement §2).
 import {saveCsv,saveBinaryFile} from '../../app/native';
+import {getSyncRuntime} from '../../clients/sync/instance'; // production build only (W4 G2: payroll files from the server)
+import {downloadServerPayrollFile} from '../../clients/sync/payfiles'; // production build only
+import {errorText} from '../../clients/errors';
 import {buildXlsx,XLSX_MIME} from '../../app/xlsx';
 import React,{useState} from 'react';
 import {UserPlus,ChevronLeft,ChevronRight,Copy,Download,Lock,Unlock,Calculator,Printer,Plus,Settings2,AlertTriangle,Check,X,Landmark,FileSpreadsheet,Info} from 'lucide-react';
@@ -56,11 +59,14 @@ function People({phone}:{phone:boolean}){
     <ChipFilter label="Department" value={dept} onChange={setDept} options={deptOpts}/>
     {list.map(st=><ListCard key={st.id} title={st.name} sub={`${st.designation} · ${hrDeptName(s,st.dept)}`} meta={`${hrShiftInfo(st.defaultShift).label} · off ${HR_WEEKDAYS[st.weeklyOff]}${st.userId?' · login '+hrUserName(s,st.userId):' · no login'}${pay?' · '+payOf(st):''}`}
       right={st.active?undefined:<Pill>Exited</Pill>} onClick={mgr||pay?()=>open({type:'hr-staff',id:st.id}):undefined}/>)}
-    {(mgr||pay)&&<StickyFooter><button className="btn primary" onClick={()=>open({type:'hr-staff'})}><UserPlus size={18}/> Add staff member</button></StickyFooter>}</>;
+    {(mgr||pay)&&<StickyFooter>{process.env.HCC_BUILD==='production'&&<button className="btn" onClick={()=>open({type:'hr-dept'})}><Settings2 size={18}/> Departments</button>}<button className="btn primary" onClick={()=>open({type:'hr-staff'})}><UserPlus size={18}/> Add staff member</button></StickyFooter>}</>;
   return <>
     <div className="small-stats"><div><span>Active staff</span><strong>{active.length}</strong></div><div><span>Present today</span><strong>{present}</strong></div><div><span>On leave today</span><strong>{onLeave}</strong></div><div><span>Pending leave</span><strong>{x.leaves.filter(l=>l.status==='Pending').length}</strong></div></div>
     <section className="card"><div className="section-title"><div className="filters">{deptOpts.map(o=><button key={o.id} className={dept===o.id?'active':''} onClick={()=>setDept(o.id)}>{o.label}{o.count!==undefined?` (${o.count})`:''}</button>)}</div>
-      {(mgr||pay)&&<button className="btn primary" onClick={()=>open({type:'hr-staff'})}><UserPlus size={16}/> Add staff member</button>}</div>
+      {(mgr||pay)&&(process.env.HCC_BUILD==='production'
+        // N3: a fresh server has no departments — the production build adds and renames them here (SaveDepartment).
+        ?<div className="inline"><button className="btn" onClick={()=>open({type:'hr-dept'})}><Settings2 size={16}/> Departments</button><button className="btn primary" onClick={()=>open({type:'hr-staff'})}><UserPlus size={16}/> Add staff member</button></div>
+        :<button className="btn primary" onClick={()=>open({type:'hr-staff'})}><UserPlus size={16}/> Add staff member</button>)}</div>
       <div className="table-wrap"><table><thead><tr><th>Staff member</th><th>Department</th><th>Demo login</th><th>Default shift · weekly off</th>{pay&&<th className="number">Pay</th>}<th>Status</th><th></th></tr></thead><tbody>
         {list.map(st=><tr key={st.id}><td><strong>{st.name}</strong><small>{st.id} · {st.designation}</small></td><td>{hrDeptName(s,st.dept)}</td><td>{st.userId?hrUserName(s,st.userId):<span className="muted">No login</span>}</td>
           <td>{hrShiftInfo(st.defaultShift).label} {hrShiftInfo(st.defaultShift).start}–{hrShiftInfo(st.defaultShift).end} · {HR_WEEKDAYS[st.weeklyOff]}</td>
@@ -196,26 +202,36 @@ function registerXlsx(s:ReturnType<typeof useHcc>['s'],r:HRRun){
   return buildXlsx([{name:'Payroll '+r.month,rows:[head,...rows],widths:[10,22,16,10,12,12,12,12,12,12,12,12,12,10,10,12,12,12,12]}]);
 }
 function Payroll({phone}:{phone:boolean}){
-  const {s,uid,run,open,busy,toast}=useHcc();
+  const {s,uid,run,open,busy,toast,error}=useHcc();
+  // N3 (production): the server's refusal of a pay run (e.g. "No staff to pay for this month.") stays on the tab, not only in the 6.5 s toast.
+  const [refused,setRefused]=useState<string|undefined>();
   const months:string[]=[];for(let m=hrPrevMonth(s.date.slice(0,7)),i=0;i<6;i++,m=hrPrevMonth(m))months.push(m);
   const [ym,setYm]=useState(months.find(m=>!hrRunFor(s,m)||hrRunFor(s,m)!.status==='Draft')??months[0]);
   const r=hrRunFor(s,ym),t=r&&hrRunTotals(r),preview=!r&&hrMonthComplete(s,ym)?hrComputeRun(s,ym):undefined;
   const stale=r?.status==='Draft'&&(JSON.stringify(hrComputeRun(s,ym).lines)!==JSON.stringify(r.lines)||JSON.stringify(hrRatesFor(s,ym))!==JSON.stringify(r.rates));
   const own=r?.status==='Draft'&&r.preparedBy===uid,errors=r?.status==='Draft'?hrRunErrors(r):[];
   const canUnlock=r?.status==='Locked'&&hrCanRates(s,uid)&&hrLastLockedMonth(s)===ym;
-  const file=(kind:'register'|'bank'|'statutory')=>{const name={register:'payroll-register',bank:'bank-transfer',statutory:'statutory-pf-esic-pt'}[kind]+'-'+ym+'.csv';
+  // W4 G2: production downloads the files the server builds from its run snapshot (the loaded staff master holds MASKED account
+  // numbers, so a browser-built bank file would be wrong); the prototype keeps building them here from its demo data.
+  // (Inline in the branch so the prototype build drops the sync layer.)
+  const file=(kind:'register'|'bank'|'statutory',issueNo?:number)=>{
+    if(process.env.HCC_BUILD==='production'){void downloadServerPayrollFile(getSyncRuntime().transport,kind,r!,saveCsv,issueNo).then(name=>toast(`${name} saved`),
+      e=>toast(`${kind==='bank'?'The bank file is recorded on the server but could not be downloaded':'The file could not be downloaded'}: ${errorText(e)}`,true));return;}
+    const name={register:'payroll-register',bank:'bank-transfer',statutory:'statutory-pf-esic-pt'}[kind]+'-'+ym+'.csv';
     downloadCsv(name,kind==='register'?hrRegisterCsv(s,r!):kind==='bank'?hrBankCsv(s,r!):hrStatutoryCsv(s,r!));toast(`${name} saved (fictional data)`);};
   // F-09: the bank file is recorded; a repeat (also after an unlock) warns about paying twice.
   const issued=r?hrBankFilesIssued(r):[];
   const bankFile=async()=>{const again=issued.length>0;
     if(again&&!window.confirm(`A bank file for ${hrMonthLabel(ym)} was already generated on ${issued[issued.length-1].at} (net ${money(issued[issued.length-1].net)}). Paying a full file again may pay staff twice. Generate it again?`))return;
-    if(await run({type:'HR_PAYROLL_BANK_FILE',id:r!.id,...(again?{confirmReissue:true}:{})},again?'Bank file generated again (reissue recorded)':'Bank file recorded'))file('bank');};
+    if(await run({type:'HR_PAYROLL_BANK_FILE',id:r!.id,...(again?{confirmReissue:true}:{})},again?'Bank file generated again (reissue recorded)':'Bank file recorded'))file('bank',issued.length+1);};
   const xlsx=()=>{void saveBinaryFile(`payroll-register-${ym}.xlsx`,registerXlsx(s,r!),XLSX_MIME);toast('Payroll register Excel saved (fictional data)');};
-  const runBtn=<button className={'btn'+(r?'':' primary')} disabled={busy||r?.status==='Locked'} onClick={()=>run({type:'HR_PAYROLL_RUN',month:ym},r?'Payroll recalculated':'Payroll draft prepared')}><Calculator size={16}/> {r?'Recalculate':'Run payroll'}</button>;
+  const runBtn=<button className={'btn'+(r?'':' primary')} disabled={busy||r?.status==='Locked'} onClick={()=>{const p=run({type:'HR_PAYROLL_RUN',month:ym},r?'Payroll recalculated':'Payroll draft prepared');
+    if(process.env.HCC_BUILD==='production'){setRefused(undefined);void p.then(ok=>setRefused(ok?undefined:ym));}}}><Calculator size={16}/> {r?'Recalculate':'Run payroll'}</button>;
   const lockBtn=r?.status==='Draft'&&<button className="btn primary" disabled={busy||own||errors.length>0} title={own?'Prepared by you — the other payroll user locks':undefined} onClick={()=>{if(window.confirm(`Lock ${hrMonthLabel(ym)} payroll? Figures freeze, advance recoveries are posted and payslips are released.`))run({type:'HR_PAYROLL_LOCK',id:r.id},'Payroll locked · payslips released');}}><Lock size={16}/> Lock pay-run</button>;
   const status=r?<Pill tone={r.status==='Locked'?'green':'orange'}>{r.status}</Pill>:<Pill>Not run</Pill>;
   const meta=r?`Prepared by ${hrUserName(s,r.preparedBy)} ${r.preparedAt.slice(0,10)} ${r.preparedAt.slice(11)}${r.lockedBy?` · locked by ${hrUserName(s,r.lockedBy)}`:''} · rates from ${r.rates?.from??'—'}${r.legacy?' · legacy run':''}${r.unlocks?.length?` · unlocked ${r.unlocks.length}× (${r.unlocks[r.unlocks.length-1].reason})`:''}`:'';
-  const notes=<>{r&&!!r.warnings.length&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/><div>{r.warnings.map(w=><div key={w}>{w}</div>)}</div></div>}
+  const notes=<>{process.env.HCC_BUILD==='production'&&refused===ym&&error&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>Payroll was not prepared. {error}</div>}
+    {r&&!!r.warnings.length&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/><div>{r.warnings.map(w=><div key={w}>{w}</div>)}</div></div>}
     {!!errors.length&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>Fix before locking: {errors.join('; ')}.</div>}
     {stale&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>Attendance, leave, advances or rates changed after this draft — recalculate before locking.</div>}
     {r&&issued.length>0&&<div className="info-note hr-warn" role="alert"><AlertTriangle size={16}/>A bank file for this month was already generated {issued.length}× (last {issued[issued.length-1].at}, net {money(issued[issued.length-1].net)}){r.status==='Draft'?' before the unlock':''}. Do not pay a full file twice.</div>}

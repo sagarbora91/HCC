@@ -64,6 +64,73 @@ public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, Ti
             Sum(ReceiptKind.Deposit), Sum(ReceiptKind.DepositReturn));
     }
 
+    /// <summary>W4-3: the reservation's folio (null before check-in) with its stay id/version (PERM-FOL-001).</summary>
+    public async Task<ReservationFolioView> GetReservationFolioAsync(Caller caller, long reservationId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FolioView, ct: ct).ConfigureAwait(false);
+        var r = await store.FindReservationFolioAsync(caller.PropertyId, reservationId, ct).ConfigureAwait(false)
+            ?? throw new HccException(HccErrorCode.NOT_FOUND, "Reservation not found.");
+        var folio = r.FolioId is { } fid ? await GetFolioAsync(caller, fid, ct).ConfigureAwait(false) : null;
+        return new ReservationFolioView(r.ReservationId, r.StayId, r.StayVersion, folio);
+    }
+
+    /// <summary>W4-3: the cash desk — every till with its active shift (expected cash) and last closed shift (PERM-SHF-001, any shift; DEC-052 shared till).</summary>
+    public async Task<CashDeskView> GetCashDeskAsync(Caller caller, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.ShiftCount, AccessScopes.Any, ct: ct).ConfigureAwait(false);
+        var desk = await store.ReadCashDeskAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        if (desk.BusinessDate is not { } date) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        var now = clock.GetUtcNow().UtcDateTime;
+        CashDeskShiftView? Shift(CashDeskShiftRead? s) => s is null ? null
+            : new CashDeskShiftView(CashierService.ToResult(s.Shift), s.Shift.SubmittedBy, s.Reason, s.ClosedBy, s.Approval is { } a ? ToView(a, now) : null);
+        var tills = new List<CashDeskTillView>();
+        foreach (var t in desk.Tills)
+        {
+            ExpectedCashView? expected = null;
+            if (t.Active is { } active && await store.ReadShiftAsync(active.Shift.ShiftId, ct).ConfigureAwait(false) is { } read)
+            {
+                var e = CashDrawer.Expected(read.Shift.OpeningFloat, read.Movements.Select(m => new CashMovement(m.Kind, m.Amount)).ToList());
+                expected = new ExpectedCashView(e.Opening.Value, e.Payments.Value, e.Deposits.Value, e.Refunds.Value, e.Returns.Value, e.Expenses.Value, e.Other.Value,
+                    e.Restaurant.Value, e.Transfers.Value, e.Expected.Value, e.Consistent);
+            }
+
+            tills.Add(new CashDeskTillView(new TillResult(t.Till.TillId, t.Till.Code, t.Till.Name, t.Till.Version), Shift(t.Active), expected, Shift(t.LastClosed)));
+        }
+
+        return new CashDeskView(date, tills);
+    }
+
+    /// <summary>
+    /// D5: the cashier's folio list (PERM-FOL-001, property scope) — in-house stays, today's confirmed arrivals and today's departures with
+    /// folio id, version and balance. Lets a role without the reservations read (Cashier, DEC-063: "Cashier works from folios") take payments.
+    /// </summary>
+    public async Task<DeskFolioListView> GetDeskFoliosAsync(Caller caller, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FolioView, ct: ct).ConfigureAwait(false);
+        var (date, rows) = await store.ListDeskFoliosAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        if (date is not { } businessDate) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        var items = new List<DeskFolioItem>(rows.Count);
+        foreach (var r in rows)
+        {
+            string? version = null;
+            long balance = 0;
+            if (r.FolioId is { } fid && await store.ReadFolioAsync(fid, ct).ConfigureAwait(false) is { } snap && snap.Header.PropertyId == caller.PropertyId)
+            {
+                version = snap.Header.Version;
+                balance = FolioStatement.Compute(snap.Lines, snap.Receipts).Balance.Value;
+            }
+
+            items.Add(new DeskFolioItem(r.ReservationId, r.PublicNo, r.Status, r.GuestName, r.RoomId, r.RoomNo, r.RoomType,
+                Hcc.Domain.Dates.StayDates.ToWire(r.Arrival), Hcc.Domain.Dates.StayDates.ToWire(r.Departure), r.Adults, r.Children, r.Source, r.NightlyRatePaise,
+                r.StayId, r.FolioId, version, balance, r.CompanyName, r.CompanyGstin));
+        }
+
+        return new DeskFolioListView(businessDate, items);
+    }
+
     internal static ApprovalView ToView(ApprovalRow a, DateTime now) => new(a.ApprovalId, BillingCodes.Code(a.Action), a.TargetKind, a.TargetId, a.Amount.Value,
         ApprovalRules.Effective(a.Status, a.Action, a.ExpiresUtc, now).ToString(), a.Reason, a.RequestedBy, a.DecidedBy, a.ExpiresUtc, a.ResultId, a.Version);
 }

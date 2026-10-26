@@ -17,11 +17,32 @@ public sealed class HccHostingOptions
     /// <summary>LAN HTTPS port (all interfaces). Default 5443.</summary>
     public int HttpsPort { get; set; } = 5443;
 
-    /// <summary>Plain-HTTP port bound to 127.0.0.1 ONLY (first-Owner bootstrap and local checks from the server PC). 0 = none.</summary>
-    public int LoopbackHttpPort { get; set; } = 5080;
+    /// <summary>Plain-HTTP port bound to 127.0.0.1 ONLY, for FIRST-TIME SETUP (setup, first-Owner bootstrap, health, discovery; no
+    /// sign-in). 0 = none (the default, F-L11). INSTALL.md sets 5080 for setup; Initialize-HccProperty.ps1 sets it back to 0.</summary>
+    public int LoopbackHttpPort { get; set; }
+
+    /// <summary>Separate listener for the anonymous booking routes only (F-H04). 0 = none (default). Bound only while
+    /// <c>Hcc:WebBooking:Enabled</c> is true. Must differ from the other ports.</summary>
+    public int PublicPort { get; set; }
+
+    /// <summary>Address the public listener binds to. Default 127.0.0.1 (plain HTTP behind a reverse proxy on this PC that terminates
+    /// TLS). Any other address gets HTTPS with the server certificate.</summary>
+    public string? PublicBindAddress { get; set; } = "127.0.0.1";
+
+    /// <summary>Reverse-proxy addresses whose <c>X-Forwarded-For</c>/<c>X-Forwarded-Proto</c> are trusted on the public listener (only there).</summary>
+    public string[]? KnownProxies { get; set; }
+
+    /// <summary>Same as <see cref="KnownProxies"/> as CIDR networks (for example 10.0.0.0/24).</summary>
+    public string[]? KnownNetworks { get; set; }
+
+    /// <summary>Largest request body in MB (F-L02). Default 8: the largest legitimate request is an ID image of about 5.4 MB.</summary>
+    public int MaxRequestBodyMegabytes { get; set; } = 8;
 
     /// <summary>SHA-1 thumbprint (40 hex) of the server certificate in LocalMachine\My (created by New-HccCertificate.ps1).</summary>
     public string? CertificateThumbprint { get; set; }
+
+    /// <summary>Folder holding the production web build's <c>index.html</c> (served at <c>/</c>). Empty = the <c>web</c> folder next to <c>Hcc.Api.exe</c>.</summary>
+    public string? WebRoot { get; set; }
 }
 
 /// <summary>
@@ -69,9 +90,60 @@ public static partial class HccConfigValidator
         if (h.HttpsPort is < 1 or > 65535) errors.Add("Hcc:Hosting:HttpsPort must be between 1 and 65535.");
         if (h.LoopbackHttpPort is < 0 or > 65535) errors.Add("Hcc:Hosting:LoopbackHttpPort must be between 0 and 65535.");
         if (h.LoopbackHttpPort != 0 && h.LoopbackHttpPort == h.HttpsPort) errors.Add("Hcc:Hosting:LoopbackHttpPort must differ from HttpsPort.");
+        if (h.MaxRequestBodyMegabytes is < 1 or > 64) errors.Add("Hcc:Hosting:MaxRequestBodyMegabytes must be between 1 and 64.");
+        ValidatePublicListener(configuration, h, errors);
+        var hosts = configuration["AllowedHosts"];
+        if (string.IsNullOrWhiteSpace(hosts) || hosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Any(x => x == "*"))
+            errors.Add("AllowedHosts must list this server's names and addresses separated by ';' (for example hotel-pc;localhost;192.168.1.20;127.0.0.1), not \"*\". New-HccCertificate.ps1 -UpdateConfig writes it.");
+        ValidateGuestIdKeys(configuration, errors);
         if (string.IsNullOrWhiteSpace(h.CertificateThumbprint) || !Thumbprint().IsMatch(h.CertificateThumbprint.Replace(" ", "", StringComparison.Ordinal)))
             errors.Add("Hcc:Hosting:CertificateThumbprint must be the 40-character thumbprint printed by New-HccCertificate.ps1.");
         return errors;
+    }
+
+    private static void ValidatePublicListener(IConfiguration configuration, HccHostingOptions h, List<string> errors)
+    {
+        if (h.PublicPort is < 0 or > 65535) errors.Add("Hcc:Hosting:PublicPort must be between 0 and 65535.");
+        if (h.PublicPort != 0 && (h.PublicPort == h.HttpsPort || h.PublicPort == h.LoopbackHttpPort)) errors.Add("Hcc:Hosting:PublicPort must differ from HttpsPort and LoopbackHttpPort.");
+        foreach (var p in h.KnownProxies ?? [])
+            if (!IPAddress.TryParse(p?.Trim(), out _)) errors.Add($"Hcc:Hosting:KnownProxies: '{p}' is not an IP address.");
+        foreach (var n in h.KnownNetworks ?? [])
+            if (!System.Net.IPNetwork.TryParse(n?.Trim(), out _)) errors.Add($"Hcc:Hosting:KnownNetworks: '{n}' is not a network (for example 10.0.0.0/24).");
+        if (h.PublicPort == 0 || !configuration.GetValue<bool>("Hcc:WebBooking:Enabled")) return;
+        if (!IPAddress.TryParse(h.PublicBindAddress?.Trim(), out var bind))
+        {
+            errors.Add("Hcc:Hosting:PublicBindAddress must be an IP address (127.0.0.1 behind a reverse proxy on this PC).");
+            return;
+        }
+
+        if (IPAddress.IsLoopback(bind) && (h.KnownProxies ?? []).Length == 0 && (h.KnownNetworks ?? []).Length == 0)
+            errors.Add("Hcc:Hosting:PublicPort is bound to loopback for a reverse proxy, so Hcc:Hosting:KnownProxies must list the proxy's address (for example 127.0.0.1); otherwise every caller looks like one client and HTTPS cannot be confirmed.");
+    }
+
+    /// <summary>F-M05: in Production refuse plain keys, and machine-wide DPAPI unless explicitly allowed (with the settings file ACL checked at start-up).</summary>
+    private static void ValidateGuestIdKeys(IConfiguration configuration, List<string> errors)
+    {
+        var g = configuration.GetSection("Hcc:GuestIdKeys");
+        if (g.GetValue<bool>("AllowPlainKeys")) errors.Add("Hcc:GuestIdKeys:AllowPlainKeys is for development only; remove it in Production.");
+        var current = g["Current"];
+        var keys = g.GetSection("Keys").GetChildren().Where(c => !string.IsNullOrWhiteSpace(c.Value)).ToList();
+        if (string.IsNullOrWhiteSpace(current))
+        {
+            if (g.GetValue<bool>("Required")) errors.Add("Hcc:GuestIdKeys:Required is set but no guest ID key is configured (Hcc:GuestIdKeys:Current). Restore the key (INSTALL.md section 6b) before starting HCC; stored ID numbers cannot be opened without it.");
+            return;
+        }
+
+        if (!keys.Any(k => k.Key == current)) errors.Add($"Hcc:GuestIdKeys:Keys:{current} (the current guest ID key) is missing.");
+        var allowMachine = g.GetValue<bool>("AllowMachineScope");
+        foreach (var k in keys)
+        {
+            var v = k.Value!.Trim();
+            if (v.StartsWith("plain:", StringComparison.Ordinal)) errors.Add($"Guest ID key {k.Key} is a plain (unencrypted) key; Production accepts only DPAPI-wrapped keys (New-HccGuestIdKey.ps1).");
+            else if (v.StartsWith("dpapi-machine:", StringComparison.Ordinal) && !allowMachine)
+                errors.Add($"Guest ID key {k.Key} is wrapped for the whole PC (dpapi-machine:), which any program on this PC can open. Use a dpapi-user: key of the service account, or set Hcc:GuestIdKeys:AllowMachineScope=true only with appsettings.Production.json limited to SYSTEM, Administrators and the service account (New-HccGuestIdKey.ps1 does both; the server checks the file at start-up).");
+            else if (!v.StartsWith("dpapi-user:", StringComparison.Ordinal) && !v.StartsWith("dpapi-machine:", StringComparison.Ordinal))
+                errors.Add($"Guest ID key {k.Key} must start with dpapi-user: or dpapi-machine:.");
+        }
     }
 
     /// <summary>Throws one <see cref="InvalidOperationException"/> listing every problem; used at start-up.</summary>
@@ -102,15 +174,44 @@ public static class HccHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.Host.UseWindowsService(o => o.ServiceName = "HccServer");
-        HccConfigValidator.EnsureValid(builder.Configuration, builder.Environment.IsProduction());
+        var production = builder.Environment.IsProduction();
+        HccConfigValidator.EnsureValid(builder.Configuration, production);
+        if (production && OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(builder.Configuration["Hcc:GuestIdKeys:Current"]))
+            GuestIdKeyFileCheck.EnsureProtected(Path.Combine(builder.Environment.ContentRootPath, "appsettings.Production.json"));
 
         var h = builder.Configuration.GetSection(HccHostingOptions.Section).Get<HccHostingOptions>() ?? new HccHostingOptions();
-        if (string.IsNullOrWhiteSpace(h.CertificateThumbprint)) return builder; // development: default Urls / launch settings
-        var cert = FindCertificate(h.CertificateThumbprint);
+        var map = new HccListeners.Map();
+        builder.Services.AddSingleton(map);
         builder.WebHost.ConfigureKestrel(k =>
         {
-            k.ListenAnyIP(h.HttpsPort, o => o.UseHttps(cert));
-            if (h.LoopbackHttpPort != 0) k.Listen(IPAddress.Loopback, h.LoopbackHttpPort);
+            k.AddServerHeader = false;
+            k.Limits.MaxRequestBodySize = Math.Clamp(h.MaxRequestBodyMegabytes, 1, 64) * 1024L * 1024L;
+            k.Limits.MaxRequestHeaderCount = 64;
+        });
+        if (string.IsNullOrWhiteSpace(h.CertificateThumbprint)) return builder; // development: default Urls / launch settings
+        var cert = FindCertificate(h.CertificateThumbprint);
+        var webBooking = builder.Configuration.GetValue<bool>("Hcc:WebBooking:Enabled");
+        builder.WebHost.ConfigureKestrel(k =>
+        {
+            k.ListenAnyIP(h.HttpsPort, o => o.MarkAs(HccListenerKind.Lan).UseHttps(cert));
+            map.Add(h.HttpsPort, HccListenerKind.Lan);
+            if (h.LoopbackHttpPort != 0)
+            {
+                k.Listen(IPAddress.Loopback, h.LoopbackHttpPort, o => o.MarkAs(HccListenerKind.Setup));
+                map.Add(h.LoopbackHttpPort, HccListenerKind.Setup);
+            }
+
+            // F-H04: the public booking listener exists only while web booking is switched on.
+            if (webBooking && h.PublicPort != 0)
+            {
+                var bind = IPAddress.Parse(h.PublicBindAddress!.Trim());
+                k.Listen(bind, h.PublicPort, o =>
+                {
+                    o.MarkAs(HccListenerKind.Public);
+                    if (!IPAddress.IsLoopback(bind)) o.UseHttps(cert);
+                });
+                map.Add(h.PublicPort, HccListenerKind.Public);
+            }
         });
         return builder;
     }

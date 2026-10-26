@@ -7,6 +7,7 @@ import {money,totals,cmpHasAccess,cmpDueThisWeek,cmpSlice,rbacSeesBackupStatus} 
 import {CmpStatusPill} from '../../features/compliance/shared';
 import {KpiCard,ListCard,ChipFilter,Fab} from '../../app/mobile/components';
 import {shortDate,dateLabel} from '../../components/ui';
+import {asOfText} from '../../features/reports/asOf';
 import {mfAttention,mfInitials} from './logic';
 import {MfStatus,useMfPages,useMfTop} from './shared';
 
@@ -21,10 +22,10 @@ export function MfHome(){
   return <div className="mf-page">
     <p className="mf-hello">Hello, {user.name.split(' · ')[0]} · {s.settings.hotel}</p>
     <div className="mf-kpis">
-      <KpiCard label="Occupancy" value={m.occupancy+'%'} sub={`${m.occupied} of ${m.sellable} rooms`} onClick={goto('rooms','Occupied')}/>
+      <KpiCard label="Occupancy" value={m.live&&!m.live.ready?'…':m.occupancy+'%'} sub={m.live&&!m.live.ready?'Waiting for the server':`${m.occupied} of ${m.sellable} rooms`} onClick={goto('rooms','Occupied')}/>
       <KpiCard label="Arrivals today" value={arrivals.length} sub={`From ${s.settings.checkin}`} onClick={goto('arrivals')}/>
       <KpiCard label="Ready rooms" value={m.available} sub="Vacant, clean, available" onClick={goto('rooms','Ready')}/>
-      {money_?<KpiCard label="Receipts today" value={money(m.collections)} sub="Net · deposits excluded" onClick={goto(pages.includes('cashier')?'cashier':'reports')}/>
+      {money_?<KpiCard label="Receipts today" value={m.live&&!m.live.ready?'…':money(m.collections)} sub={m.live?.ready?`Net · from the server as of ${asOfText(m.live.asOfUtc)}`:'Net · deposits excluded'} onClick={goto(pages.includes('cashier')?'cashier':'reports')}/>
         :<KpiCard label="Departures due" value={departures.length} sub="Check out today" onClick={goto('inhouse')}/>}
     </div>
     <h2 className="m-group">NEEDS ATTENTION</h2>

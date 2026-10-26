@@ -153,6 +153,18 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
             await tx.AuditAsync(auditAction, Target(captureId), $"guest {row.GuestId} · {what} · {DocumentRules.Label(row.DocKind)}", c).ConfigureAwait(false);
             return new IdCaptureViewAudit(captureId, true);
         }, ct).ConfigureAwait(false);
+        if (stored.Replayed)
+        {
+            // F-L04: a replayed view shows the image / number again, so it is audited again under a fresh server key.
+            await runner.RunAsync(ctx with { Operation = op + "Replay", IdempotencyKey = "replay-" + Guid.NewGuid().ToString("N") }, new ViewIdCaptureImageRequest(captureId), async (tx, c) =>
+            {
+                var row = await store.FindAsync(tx, ctx.PropertyId, captureId, c).ConfigureAwait(false) ?? throw NotFound();
+                if (row.Status == DocumentRules.Purged) throw new HccException(HccErrorCode.NOT_FOUND, "This capture was deleted by the retention purge.");
+                await tx.AuditAsync(auditAction, Target(captureId), $"guest {row.GuestId} · {what} again (replayed request) · {DocumentRules.Label(row.DocKind)}", c).ConfigureAwait(false);
+                return new IdCaptureViewAudit(captureId, true);
+            }, ct).ConfigureAwait(false);
+        }
+
         var now = await store.FindAsync(null, ctx.PropertyId, captureId, ct).ConfigureAwait(false) ?? throw NotFound();
         if (now.Status == DocumentRules.Purged) throw new HccException(HccErrorCode.NOT_FOUND, "This capture was deleted by the retention purge.");
         return (now, stored.Replayed);

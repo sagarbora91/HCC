@@ -49,20 +49,50 @@ public static class HccComposition
         services.AddOtaModule();                         // W3-1 OTA channels (simulated channel manager)
         services.AddGroupsModule();                      // W3-4 groups billing (master folio, routing, pickup billing, attrition)
         services.AddInvoicesModule();                    // W3-6 tax invoices & credit notes (numbering per FY, documents)
+        services.AddImportModule();                      // W4-13 masters & opening balances import (CSV validate/preview/commit)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
+    }
+
+    private static async Task<bool> HealthDetailsAllowedAsync(HttpContext http, CancellationToken ct)
+    {
+        if (AccessEndpoints.IsServerPc(http)) return true;
+        var auth = http.Request.Headers.Authorization.ToString();
+        var token = auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? auth["Bearer ".Length..].Trim()
+            : http.Request.Cookies.TryGetValue(Contracts.Access.AccessConventions.SessionCookie, out var cookie) ? cookie : null;
+        if (string.IsNullOrEmpty(token)) return false;
+        try
+        {
+            var device = http.Request.Headers[Contracts.Access.AccessConventions.DeviceTokenHeader].ToString();
+            var session = await http.RequestServices.GetRequiredService<Application.Access.ISessionService>()
+                .ValidateAsync(token, device.Length > 0 ? device : null, ct);
+            var policy = http.RequestServices.GetRequiredService<Application.Access.IAccessPolicy>();
+            return await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-005", null, ct)
+                || await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-003", null, ct);
+        }
+        catch (Domain.Errors.HccException)
+        {
+            return false;   // no or ended session: the anonymous answer
+        }
     }
 
     public static RouteGroupBuilder MapHcc(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
+        app.UseHccHostingGuards();       // F-H04/F-L11/F-L02: listener rules, forwarded headers (public listener only), security headers
         app.UseMiddleware<HccErrorMiddleware>();
         var api = app.MapGroup(ApiConventions.BasePath);
-        api.MapGet("/system/health", async (SqlConnectionFactory connections, TimeProvider clock, CancellationToken ct) =>
+        // F-L01: anonymous callers get only "ok" and the server time (the clients' clock) — no database name, no schema version and
+        // no SQL connection. The server PC itself (loopback, no proxy header) and signed-in administrators (configuration or
+        // backup permission) get the database check and details.
+        api.MapGet("/system/health", async (HttpContext http, SqlConnectionFactory connections, TimeProvider clock, CancellationToken ct) =>
         {
+            http.Response.Headers.CacheControl = "no-store";
+            var time = clock.GetUtcNow().ToString("O", System.Globalization.CultureInfo.InvariantCulture);
+            if (!await HealthDetailsAllowedAsync(http, ct)) return Results.Ok(new HealthResult("ok", null, null, time));
             await using var conn = await connections.OpenAsync(ct);
             var version = await MigrationRunner.CurrentVersionAsync(conn, ct);
-            return Results.Ok(new HealthResult("ok", conn.Database, version, clock.GetUtcNow().ToString("O", System.Globalization.CultureInfo.InvariantCulture)));
+            return Results.Ok(new HealthResult("ok", conn.Database, version, time));
         });
         api.MapHccDiscovery();           // P7: GET /system/discovery (no auth, no secrets)
         api.MapAccessEndpoints();        // P1 (sign-in/out, /me/capabilities, admin)
@@ -94,6 +124,8 @@ public static class HccComposition
         api.MapOtaEndpoints();           // W3-1 OTA channels
         api.MapGroupsEndpoints();        // W3-4 groups billing
         api.MapInvoicesEndpoints();      // W3-6 invoices & credit notes
+        api.MapImportEndpoints();        // W4-13 masters & opening balances import
+        app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }
 }

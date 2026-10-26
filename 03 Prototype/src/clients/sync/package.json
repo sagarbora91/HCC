@@ -1,0 +1,4 @@
+{
+  "//": "Lets esbuild drop every module in this folder from the prototype bundle (W4-0: the sync layer is production-only).",
+  "sideEffects": false
+}

@@ -14,8 +14,13 @@ public sealed record PostChargeRequest(long FolioId, string Label, long AmountPa
 public sealed record ChargeResult(long ChargeId, long FolioId, string Kind, DateOnly ServiceDate, string Label, long AmountPaise, int TaxBps,
     long TaxPaise, bool Created, string FolioVersion);
 
-/// <summary>POST /api/v1/commands/RecordReceipt (K). Kind payment | deposit | deposit-return; cash needs an open shift on <c>TillId</c>.</summary>
-public sealed record RecordReceiptRequest(long FolioId, string Kind, string Tender, long AmountPaise, string? Reference, int? TillId);
+/// <summary>
+/// POST /api/v1/commands/RecordReceipt (K). Kind payment | deposit | deposit-return; cash needs an open shift on <c>TillId</c>.
+/// Advance before check-in: a Confirmed booking has no folio until check-in, so send <c>FolioId</c> 0 (or omit it) with
+/// <c>ReservationId</c>; the reservation's folio is opened in the same transaction (it is the one check-in then finds) and the
+/// receipt is recorded on it. With a <c>FolioId</c> the reservation id is ignored.
+/// </summary>
+public sealed record RecordReceiptRequest(long FolioId, string Kind, string Tender, long AmountPaise, string? Reference, int? TillId, long? ReservationId = null);
 
 public sealed record ReceiptResult(long ReceiptId, long FolioId, string Kind, string Tender, long AmountPaise, DateOnly BusinessDate, long? ShiftId,
     long? RefundOf, string FolioVersion);
@@ -83,3 +88,35 @@ public sealed record ShiftView(ShiftResult Shift, ExpectedCashView Expected, IRe
 /// <summary>GET /api/v1/cashier/collections?date= (PERM-RPT-002): payments − refunds by receipt date; deposits shown separately.</summary>
 public sealed record CollectionsView(DateOnly BusinessDate, long CollectionsPaise, IReadOnlyDictionary<string, long> ByTenderPaise,
     long DepositsReceivedPaise, long DepositsReturnedPaise);
+
+// ── W4-3 (sync layer) reads ──
+
+/// <summary>
+/// GET /api/v1/folios/by-reservation/{reservationId} (PERM-FOL-001): the reservation's folio (null until check-in opens one) and its stay
+/// (id + version for CheckoutStay; null before check-in). NOT_FOUND when the reservation is not on this property.
+/// </summary>
+public sealed record ReservationFolioView(long ReservationId, long? StayId, string? StayVersion, FolioView? Folio);
+
+/// <summary>One shift on the cash desk with the count reason, who closed it and its cash-difference approval (if any).</summary>
+public sealed record CashDeskShiftView(ShiftResult Shift, int? SubmittedBy, string? DifferenceReason, int? ClosedBy, ApprovalView? Approval);
+
+/// <summary>A till with its active (Open / Submitted) shift and expected cash, and its last closed shift.</summary>
+public sealed record CashDeskTillView(TillResult Till, CashDeskShiftView? Active, ExpectedCashView? Expected, CashDeskShiftView? LastClosed);
+
+/// <summary>GET /api/v1/cashier/desk (PERM-SHF-001, any shift): every till of the property (DEC-052: normally one shared till), by till id.</summary>
+public sealed record CashDeskView(DateOnly BusinessDate, IReadOnlyList<CashDeskTillView> Tills);
+
+/// <summary>
+/// One booking on the cashier's folio list (D5). Only what billing needs: no phone, e-mail, address or ID fields (the Cashier's guest
+/// view is masked, PERM-GST-001 M). <c>RoomNo</c> is the current room of an in-house stay (after a move), else the booked room.
+/// <c>FolioId</c> is null for a confirmed arrival without a receipt yet (the first advance opens the folio).
+/// </summary>
+public sealed record DeskFolioItem(long ReservationId, string PublicNo, string Status, string GuestName, int? RoomId, string? RoomNo, string? RoomType,
+    string Arrival, string Departure, int Adults, int Children, string Source, long? NightlyRatePaise, long? StayId, long? FolioId, string? FolioVersion,
+    long BalancePaise, string? CompanyName, string? CompanyGstin);
+
+/// <summary>
+/// GET /api/v1/cashier/folios (PERM-FOL-001, property scope): the cashier's working list without the reservations read (PERM-RES-001):
+/// every in-house stay, today's confirmed arrivals (advances) and today's departures, by room number.
+/// </summary>
+public sealed record DeskFolioListView(DateOnly BusinessDate, IReadOnlyList<DeskFolioItem> Items);

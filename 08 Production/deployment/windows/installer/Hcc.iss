@@ -47,6 +47,7 @@ Source: "{#OpsDir}\hcc-ops.sample.json"; DestDir: "{app}\Operations"; DestName: 
 
 [Dirs]
 Name: "{app}\Server\logs"
+Name: "{app}\Server\web"
 
 [Run]
 ; Upgrade path: if the service already exists it was stopped in PrepareToInstall; start it again.

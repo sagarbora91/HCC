@@ -29,6 +29,7 @@
 .tile-text{display:flex;flex-direction:column;gap:3px;min-width:0}
 .tile-text strong{font-size:17px}
 .tile-text small{color:#6B5547;font-size:14px;line-height:1.35}
+.tile:has(.tile-badge){padding-right:52px}
 .tile-badge{position:absolute;top:10px;right:12px;min-width:26px;height:26px;padding:0 8px;border-radius:999px;background:#7A1F2B;color:#fff;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
 
 .crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;font-size:14px;color:#6B5547}

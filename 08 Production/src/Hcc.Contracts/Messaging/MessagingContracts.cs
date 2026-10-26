@@ -21,7 +21,7 @@ public sealed record MessageTimelineStep(string Status, string AtUtc);
 
 public sealed record MessageView(long MessageId, string Id, long ReservationId, string BookingNo, string GuestName, string? TemplateCode, string Channel,
     string To, string? Subject, string Body, string Status, string? BlockedReason, string QueuedUtc, IReadOnlyList<MessageTimelineStep> Timeline,
-    string? RuleId, long? RetryOf, long? RetriedBy, int? SmsSegments, bool Simulated);
+    string? RuleId, long? RetryOf, long? RetriedBy, int? SmsSegments, bool Simulated, string? Outcome = null, int BoostMinutes = 0, long? GuestId = null);
 
 public sealed record MessageListResult(IReadOnlyList<MessageView> Items, int Total, int Page, int PageSize);
 
@@ -36,6 +36,12 @@ public sealed record SimulateMessageDeliveryResult(int Advanced, string Summary)
 public sealed record RetryMessageResult(long OriginalId, long NewMessageId, string Summary);
 
 public sealed record ConsentView(long GuestId, bool WhatsApp, bool Sms, bool Email, bool OptOut, string? UpdatedUtc, string? Version);
+
+/// <summary>One registered guest of an active (Confirmed or in-house) reservation: lets the screens key consent by booking.</summary>
+public sealed record ConsentGuestRef(long ReservationId, long GuestId);
+
+/// <summary>Every stored consent of the property plus the registered guests of active reservations (GET /messaging/consents).</summary>
+public sealed record ConsentRoster(IReadOnlyList<ConsentView> Consents, IReadOnlyList<ConsentGuestRef> Guests);
 
 public sealed record SetMessagingConsentResult(ConsentView Consent, int QueuedStopped, string Summary);
 

@@ -68,6 +68,8 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
         var normalized = body with { Guest = guest, Phone = phone, Email = email, Notes = notes, Website = null };
         return await runner.RunAsync(ctx, normalized, async (tx, c) =>
         {
+            if (await store.PendingCountAsync(propertyId, c).ConfigureAwait(false) >= options.MaxPendingRequests)
+                throw new HccException(HccErrorCode.NOT_AVAILABLE, "The hotel is not taking more online requests right now. Please call the hotel.");
             var now = clock.GetUtcNow().UtcDateTime;
             var priced = (await PriceAsync(tx, propertyId, a, d, body.Adults, body.Children, body.RoomType.Trim(), c).ConfigureAwait(false)).FirstOrDefault()
                 ?? throw HccException.Validation("Choose a room type from the list.");
@@ -104,7 +106,8 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
         var now = clock.GetUtcNow().UtcDateTime;
         var nights = JsonSerializer.Deserialize<List<PublicQuoteNight>>(r.QuoteNightsJson, Json) ?? [];
         var links = (await store.LinksAsync(r.RequestId, ct).ConfigureAwait(false)).Select(l => ToView(l, now)).ToList();
-        return new WebRequestDetail(r.RequestId, r.PublicNo, r.Status, r.Guest, r.Phone, r.Email, r.Notes, r.RoomTypeId, r.RoomType, StayDates.ToWire(r.Arrival),
+        var contact = await GuestContactMask.CanSeeAsync(access, propertyId, principalId, ct).ConfigureAwait(false);   // F-L06
+        return new WebRequestDetail(r.RequestId, r.PublicNo, r.Status, r.Guest, GuestContactMask.Phone(contact, r.Phone)!, GuestContactMask.Email(contact, r.Email), r.Notes, r.RoomTypeId, r.RoomType, StayDates.ToWire(r.Arrival),
             StayDates.ToWire(r.Departure), r.Adults, r.Children, r.NetPaise, r.TaxPaise, r.TotalPaise, nights, Wire(r.CreatedUtc), r.ReservationId, r.ReservationNo,
             r.Reason, r.DecidedBy, InventoryErrors.VersionToWire(r.RowVersion), links);
     }
@@ -195,7 +198,9 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Review, ct: ct).ConfigureAwait(false);
-        return await runner.RunAsync(context, request, async (tx, c) =>
+        // F-L03: the plaintext token is made outside the command and never enters its stored (idempotency) result; only its hash is kept.
+        var token = WebBookingRules.NewToken();
+        var made = await runner.RunAsync(context, request, async (tx, c) =>
         {
             var now = clock.GetUtcNow().UtcDateTime;
             var r = await store.GetForUpdateAsync(tx, context.PropertyId, request.RequestId, c).ConfigureAwait(false) ?? throw InventoryErrors.NotFound("Web request");
@@ -209,12 +214,12 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
                 await store.SetLinkStateAsync(tx, open.LinkId, DepositLinkStatuses.Cancelled, null, null, null, null, c).ConfigureAwait(false);
             }
 
-            var token = WebBookingRules.NewToken();
             var link = await store.InsertLinkAsync(tx, r.RequestId, WebBookingRules.TokenHash(token), amount.Value, now + options.DepositLife, context.PrincipalId, now, c).ConfigureAwait(false);
             await tx.AuditAsync("WebDepositLinkCreated", "web:" + r.PublicNo, $"{r.PublicNo} · deposit link {amount} · expires {Wire(link.ExpiresUtc)}", c).ConfigureAwait(false);
             await tx.PublishAsync("WebDepositLinkCreated", r.RequestId, new { r.RequestId, link.LinkId, AmountPaise = amount.Value }, c).ConfigureAwait(false);
-            return new WebDepositLinkResult(link.LinkId, r.RequestId, token, "/pay/" + token, amount.Value, Wire(link.ExpiresUtc), DepositLinkStatuses.Open);
+            return new WebDepositLinkResult(link.LinkId, r.RequestId, null, null, amount.Value, Wire(link.ExpiresUtc), DepositLinkStatuses.Open);
         }, ct).ConfigureAwait(false);
+        return made.Replayed ? made : new CommandResult<WebDepositLinkResult>(made.Value with { Token = token, Url = "/pay/" + token }, false);
     }
 
     public async Task<PublicDepositView> DepositViewAsync(string token, CancellationToken ct = default)
@@ -303,7 +308,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
         return list;
     }
 
-    private static PublicRoomTypeQuote ToPublic(Priced p) => new(p.Type.RoomTypeId, p.Type.Code, p.Type.MaxOccupancy, p.RoomsLeft, p.Bookable, p.Reason, p.Rate,
+    private static PublicRoomTypeQuote ToPublic(Priced p) => new(p.Type.RoomTypeId, p.Type.Code, p.Type.MaxOccupancy, WebBookingRules.AvailabilityBand(p.RoomsLeft), p.Bookable, p.Reason, p.Rate,
         p.Nights.Count, p.Net, p.Tax, p.Net + p.Tax, p.Nights.Select(n => new PublicQuoteNight(StayDates.ToWire(n.Date), n.RatePaise, n.TaxBps, n.TaxPaise)).ToList());
 
     private static DepositLinkView ToView(DepositLinkRow l, DateTime now)

@@ -493,4 +493,45 @@ public sealed class SqlGuestServicesStore(SqlConnectionFactory connections) : IG
         while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(new LogEntry(U(rd, 0), rd.GetInt32(1), rd.GetString(2)));
         return list;
     }
+
+    public async Task<IReadOnlyList<(long RecordId, LogEntry Entry)>> HistoriesAsync(int propertyId, string kind, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT l.record_id, l.at_utc, l.by_principal, l.what FROM ops.guest_service_log l
+            WHERE l.kind = @k AND (
+                   (@k = 'request' AND EXISTS (SELECT 1 FROM ops.guest_request x WHERE x.request_id = l.record_id AND x.property_id = @p))
+                OR (@k = 'complaint' AND EXISTS (SELECT 1 FROM ops.guest_complaint x WHERE x.complaint_id = l.record_id AND x.property_id = @p))
+                OR (@k = 'item' AND EXISTS (SELECT 1 FROM ops.lost_item x WHERE x.item_id = l.record_id AND x.property_id = @p)))
+            ORDER BY l.record_id, l.log_id;
+            """, conn);
+        P(cmd, "@k", SqlDbType.VarChar, kind, 10);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        var list = new List<(long, LogEntry)>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add((rd.GetInt64(0), new LogEntry(U(rd, 1), rd.GetInt32(2), rd.GetString(3))));
+        return list;
+    }
+
+    public async Task<IReadOnlyList<StayLookupRow>> StaysAsync(int propertyId, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT s.stay_id, s.reservation_id, s.guest_id, r.room_no, g.full_name, s.status
+            FROM gst.stay s
+            JOIN gst.guest g ON g.guest_id = s.guest_id
+            JOIN gst.stay_segment seg ON seg.stay_id = s.stay_id AND seg.seq = (SELECT MAX(x.seq) FROM gst.stay_segment x WHERE x.stay_id = s.stay_id)
+            JOIN inv.room r ON r.room_id = seg.room_id
+            WHERE s.property_id = @p AND (s.status = 'InHouse'
+                OR s.stay_id IN (SELECT stay_id FROM ops.guest_request WHERE property_id = @p AND stay_id IS NOT NULL)
+                OR s.stay_id IN (SELECT stay_id FROM ops.guest_complaint WHERE property_id = @p AND stay_id IS NOT NULL)
+                OR s.stay_id IN (SELECT stay_id FROM ops.lost_item WHERE property_id = @p AND stay_id IS NOT NULL))
+            ORDER BY s.stay_id;
+            """, conn);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        var list = new List<StayLookupRow>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(new StayLookupRow(rd.GetInt64(0), rd.GetInt64(1), L(rd, 2), rd.GetString(3), rd.GetString(4), rd.GetString(5)));
+        return list;
+    }
 }

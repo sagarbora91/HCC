@@ -20,7 +20,7 @@ export function MmExpenses(){
   const list=s.expenses.filter(e=>tab==='All'||e.status===tab).slice().reverse();
   const pg=usePaged(list,PHONE_PAGE);
   const today=s.expenses.filter(e=>expenseCounts(e)&&e.date===s.date);
-  const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
+  const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??(id&&process.env.HCC_BUILD==='production'&&/^\d+$/.test(id)?'another user':id)??'—';
   function actions(e:Expense){
     if(e.status==='Draft')return e.actor===uid&&rbacCanSubmitExpense(s,uid)?<button className="btn small-btn" disabled={busy} onClick={()=>run({type:'EXPENSE_SUBMIT',id:e.id,key:'expsubmit:'+e.id},'Draft submitted for approval')}>Submit for approval</button>:<span className="mm-why">Draft · {name(e.actor)}</span>;
     if(e.status==='Pending'){

@@ -21,7 +21,111 @@ public sealed class HostingTests
         ["Hcc:Sql:ConnectionString"] = GoodConn,
         ["Hcc:Sql:BackupDirectory"] = "D:\\HccBackups",
         ["Hcc:Hosting:CertificateThumbprint"] = new string('A', 40),
+        ["AllowedHosts"] = "hotel-pc;localhost;192.168.1.20;127.0.0.1",
     };
+
+    private static List<string> Errors(Dictionary<string, string?> c) => [.. HccConfigValidator.Validate(Config(c), production: true)];
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("*")]
+    [InlineData("hotel-pc;*")]
+    public void Production_requires_explicit_allowed_hosts(string? hosts)
+    {
+        var c = Good();
+        c["AllowedHosts"] = hosts;
+        Assert.Contains(Errors(c), e => e.Contains("AllowedHosts", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Public_listener_behind_a_loopback_proxy_needs_known_proxies_and_valid_addresses()
+    {
+        var c = Good();
+        c["Hcc:Hosting:PublicPort"] = "5444";
+        Assert.Empty(Errors(c)); // web booking off: the listener is never bound
+        c["Hcc:WebBooking:Enabled"] = "true";
+        Assert.Contains(Errors(c), e => e.Contains("KnownProxies must list", StringComparison.Ordinal));
+        c["Hcc:Hosting:KnownProxies:0"] = "127.0.0.1";
+        Assert.Empty(Errors(c));
+        c["Hcc:Hosting:KnownProxies:1"] = "not-an-ip";
+        c["Hcc:Hosting:KnownNetworks:0"] = "10.0.0.0/99";
+        var errors = Errors(c);
+        Assert.Contains(errors, e => e.Contains("'not-an-ip'", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.Contains("KnownNetworks", StringComparison.Ordinal));
+        c.Remove("Hcc:Hosting:KnownProxies:1");
+        c.Remove("Hcc:Hosting:KnownNetworks:0");
+        c["Hcc:Hosting:PublicPort"] = "5443";
+        Assert.Contains(Errors(c), e => e.Contains("PublicPort must differ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Production_refuses_plain_guest_id_keys_and_machine_keys_unless_allowed()
+    {
+        var c = Good();
+        c["Hcc:GuestIdKeys:Current"] = "2026-10";
+        c["Hcc:GuestIdKeys:Keys:2026-10"] = "plain:" + Convert.ToBase64String(new byte[32]);
+        c["Hcc:GuestIdKeys:AllowPlainKeys"] = "true";
+        var errors = Errors(c);
+        Assert.Contains(errors, e => e.Contains("AllowPlainKeys", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.Contains("plain (unencrypted)", StringComparison.Ordinal));
+
+        c.Remove("Hcc:GuestIdKeys:AllowPlainKeys");
+        c["Hcc:GuestIdKeys:Keys:2026-10"] = "dpapi-machine:AAAA";
+        Assert.Contains(Errors(c), e => e.Contains("AllowMachineScope", StringComparison.Ordinal));
+        c["Hcc:GuestIdKeys:AllowMachineScope"] = "true";
+        Assert.Empty(Errors(c));
+        c["Hcc:GuestIdKeys:Keys:2026-10"] = "dpapi-user:AAAA";
+        c.Remove("Hcc:GuestIdKeys:AllowMachineScope");
+        Assert.Empty(Errors(c));
+        c["Hcc:GuestIdKeys:Current"] = "2027-10";
+        Assert.Contains(Errors(c), e => e.Contains("Keys:2027-10", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Required_guest_id_key_must_be_present()
+    {
+        var c = Good();
+        c["Hcc:GuestIdKeys:Required"] = "true";
+        Assert.Contains(Errors(c), e => e.Contains("Required", StringComparison.Ordinal));
+        Assert.Empty(HccConfigValidator.Validate(Config(new() { ["Hcc:Sql:ConnectionString"] = GoodConn, ["Hcc:GuestIdKeys:AllowPlainKeys"] = "true" }), production: false));
+    }
+
+    [Fact]
+    public void Guest_id_key_file_must_be_readable_only_by_system_administrators_and_the_service()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var dir = Path.Combine(Path.GetTempPath(), "HccAclTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var file = Path.Combine(dir, "appsettings.Production.json");
+        File.WriteAllText(file, "{}");
+        try
+        {
+            var me = System.Security.Principal.WindowsIdentity.GetCurrent().User!;
+            var users = new System.Security.Principal.SecurityIdentifier("S-1-5-32-545");
+            var fi = new FileInfo(file);
+            var sec = new System.Security.AccessControl.FileSecurity();
+            sec.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+            sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(new System.Security.Principal.SecurityIdentifier("S-1-5-18"), System.Security.AccessControl.FileSystemRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
+            sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(new System.Security.Principal.SecurityIdentifier("S-1-5-32-544"), System.Security.AccessControl.FileSystemRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
+            sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(me, System.Security.AccessControl.FileSystemRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
+            fi.SetAccessControl(sec);
+            Assert.Empty(GuestIdKeyFileCheck.Problems(fi.GetAccessControl(), GuestIdKeyFileCheck.AllowedReaders()));
+            GuestIdKeyFileCheck.EnsureProtected(file);
+
+            sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(users, System.Security.AccessControl.FileSystemRights.Read, System.Security.AccessControl.AccessControlType.Allow));
+            fi.SetAccessControl(sec);
+            Assert.Single(GuestIdKeyFileCheck.Problems(fi.GetAccessControl(), GuestIdKeyFileCheck.AllowedReaders()));
+            var ex = Assert.Throws<InvalidOperationException>(() => { if (OperatingSystem.IsWindows()) GuestIdKeyFileCheck.EnsureProtected(file); });
+            Assert.Contains("icacls", ex.Message, StringComparison.Ordinal);
+
+            // A missing file (keys from the environment) is not an error.
+            GuestIdKeyFileCheck.EnsureProtected(Path.Combine(dir, "missing.json"));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
 
     [Fact]
     public void Production_config_that_is_complete_is_valid() => Assert.Empty(HccConfigValidator.Validate(Config(Good()), production: true));

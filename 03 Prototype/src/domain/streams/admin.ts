@@ -1,5 +1,6 @@
 // Stream E · Access & configuration (owns USER, GRANT, SETTINGS) — pure domain helpers and selectors (re-exported by services/mock/index.ts for UI and tests).
 // Fine-grained policy layer (BL-024, RBAC matrix v1, DEC-040), approvals inbox (BL-026) and configuration selectors (BL-027).
+import {isProductionBuild} from '../build';
 import type {State,Role,User,Booking,Approval,Audit,Permission} from '../types';
 import {money} from '../money';
 import {gstForRoomNight,gstForFood,gstPct} from '../gst';
@@ -263,7 +264,7 @@ export const ADMIN_SETTINGS:AdminSettingDef[]=[
   {key:'openingCash',category:'Shifts',label:'Opening float for the current business day',type:'fixed',unit:'₹',editable:false,approval:'Set by day close → open next day',effective:'—',help:'Carried forward from the reconciled drawer (Financial Rulebook §4).'},
   {key:'shiftModel',category:'Shifts',label:'Cash shift model',type:'fixed',unit:'—',editable:false,approval:'Fixed in this prototype',effective:'—',help:'One cash shift per business day; cash receipts need an open shift.'},
   {key:'invoicePrefix',category:'Documents',label:'Sample invoice number prefix',type:'text',unit:'2–8 capitals, digits or hyphen',editable:true,approval:OWNER,effective:'Documents generated after the change',help:'Used on demonstration documents only.'},
-  {key:'watermark',category:'Documents',label:'Demonstration watermark',type:'fixed',unit:'—',editable:false,approval:'Not configurable',effective:'—',help:'“Demonstration — not a tax invoice / fictional” is always printed.'},
+  {key:'watermark',category:'Documents',label:'Demonstration watermark',type:'fixed',unit:'—',editable:false,approval:'Not configurable',effective:'—',help:isProductionBuild()?'Tax invoices are issued and rendered by the hotel server without a demonstration watermark.':'“Demonstration — not a tax invoice / fictional” is always printed.'},
 ];
 export function adminSettingValue(s:State,key:string):string{
   const st=s.settings;

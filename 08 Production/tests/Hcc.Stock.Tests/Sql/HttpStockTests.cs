@@ -127,6 +127,9 @@ public class HttpStockTests : IAsyncLifetime
             Assert.Equal(HttpStatusCode.Forbidden, grn.StatusCode);
         using (var alerts = await _http.SendAsync(Req(HttpMethod.Get, "/stock/alerts", Users.Supervisor), Ct))
             Assert.Equal(3, JsonSerializer.Deserialize<List<StockAlertView>>(await alerts.Content.ReadAsStringAsync(Ct), Web)!.Count);
+        using (var set = await _http.SendAsync(Req(HttpMethod.Get, "/stock/settings", Users.Supervisor), Ct))
+            Assert.True(JsonSerializer.Deserialize<StockSettingsResult>(await set.Content.ReadAsStringAsync(Ct), Web)!.ParSets >= 1);
+        using (var setDenied = await _http.SendAsync(Req(HttpMethod.Get, "/stock/settings", Users.Reception), Ct)) Assert.Equal(HttpStatusCode.Forbidden, setDenied.StatusCode);
         using (var cons = await _http.SendAsync(Req(HttpMethod.Get, "/stock/consumption?from=2026-10-17&to=2026-10-23", Users.Supervisor), Ct))
             Assert.Equal(79, JsonSerializer.Deserialize<ConsumptionReport>(await cons.Content.ReadAsStringAsync(Ct), Web)!.OccupiedRoomNights);
         using (var bad = await _http.SendAsync(Req(HttpMethod.Get, "/stock/losses?from=oops", Users.Manager), Ct)) Assert.Equal(HttpStatusCode.UnprocessableEntity, bad.StatusCode);

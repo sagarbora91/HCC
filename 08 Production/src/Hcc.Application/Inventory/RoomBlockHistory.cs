@@ -12,7 +12,8 @@ public sealed record RoomBlockHistoryEntry(long HistoryId, long RoomBlockId, int
     DateOnly? ToNight, string Reason, string Source, long? SourceRef, long? RelatedBlockId, int? ActorId, DateTime EventUtc);
 
 /// <summary>A room's state on one night as known at that business date (see <see cref="IRoomBlockHistoryReader.RoomStatusAsync"/>).</summary>
-public sealed record RoomStatusEntry(int RoomId, string RoomNo, string RoomType, bool Blocked, string? BlockReason, long? RoomBlockId, bool Occupied);
+public sealed record RoomStatusEntry(int RoomId, string RoomNo, string RoomType, bool Blocked, string? BlockReason, long? RoomBlockId, bool Occupied,
+    string? Hk = null, DateOnly? BlockFrom = null, DateOnly? BlockTo = null);
 
 /// <summary>
 /// Effective-dated view of room blocks (W3-8). A block placed on business date C and released on R covers its window clipped to
@@ -59,7 +60,9 @@ public sealed class RoomBlockQueries(IRoomBlockHistoryReader history, IInventory
         var date = string.IsNullOrWhiteSpace(asOf) ? property.BusinessDate : StayDates.Parse(asOf, "asOf");
         if (date > property.BusinessDate) throw HccException.Validation("asOf cannot be after the current business date.");
         var rows = await history.RoomStatusAsync(propertyId, date, ct).ConfigureAwait(false);
+        var today = date == property.BusinessDate; // clean/dirty is a current fact only (no history): reported for today's question
         return new RoomStatusResult(StayDates.ToWire(date), StayDates.ToWire(property.BusinessDate),
-            rows.Select(r => new RoomStatusRow(r.RoomId, r.RoomNo, r.RoomType, r.Blocked, r.BlockReason, r.RoomBlockId, r.Occupied)).ToList());
+            rows.Select(r => new RoomStatusRow(r.RoomId, r.RoomNo, r.RoomType, r.Blocked, r.BlockReason, r.RoomBlockId, r.Occupied,
+                today ? r.Hk : null, r.Blocked && r.BlockFrom is { } f ? StayDates.ToWire(f) : null, r.Blocked && r.BlockTo is { } t ? StayDates.ToWire(t) : null)).ToList());
     }
 }

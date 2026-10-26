@@ -1,0 +1,37 @@
+/* W4-0 production sync layer: server sign-in and the "as of · Refresh" strip (production build only uses these). */
+.sync-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 24px 0;padding:6px 12px;border-radius:8px;background:#F3ECE2;color:#6B5547;font-size:13px}
+.sync-status .btn{margin-left:auto;min-height:32px;padding:4px 10px;display:inline-flex;align-items:center;gap:6px}
+.sync-status-error{color:#9B1C1C;font-weight:600}
+.server-signin{display:grid;gap:12px;text-align:left}
+.server-signin label{display:grid;gap:4px}
+.server-signin-mode{display:flex;gap:16px;flex-wrap:wrap}
+.server-signin-mode label{display:flex;align-items:center;gap:6px}
+.server-signin .btn{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+@media (max-width:767px){.sync-status{margin:8px 12px 0}}
+/* W4-12 APK: server address, staff pick + PIN, device registration */
+.server-staff{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.server-staff-btn{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.server-ok{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#1E5631;margin:0}
+.server-change{display:grid;gap:8px}
+.server-change .signin{min-height:0;padding:0;background:none}.server-change .signin-card{box-shadow:none;border:0;padding:0}
+.btn.link{background:none;border:0;padding:0 4px;min-height:0;color:#7A1F2B;text-decoration:underline}
+.server-device{display:grid;gap:10px}
+.server-device-actions{display:flex;gap:8px;flex-wrap:wrap}
+.server-device .btn{min-height:44px;display:inline-flex;align-items:center;gap:6px}
+/* Wave 4 gap G1: Access control › Sign-in & devices (passwords / PINs, hotel devices; DEC-062) */
+.cred-panel{display:grid;gap:12px}
+.cred-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.cred-card{border:1px solid var(--line);border-radius:8px;background:#fff;padding:12px 14px;display:grid;gap:10px}
+.cred-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.cred-head strong{display:block;color:#2B1D16}.cred-head small{display:block}
+.cred-form{gap:12px;max-width:440px}
+.cred-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cred-actions .form-error{margin:0;flex-basis:100%}
+.cred-panel .btn{min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.cred-toggle{justify-self:start}
+.cred-note{margin:0}
+.cred-revoked summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:#6B5547}
+.m-shell .cred-panel,.m-shell .cred-panel p,.m-shell .cred-panel .muted,.m-shell .cred-panel label,.m-shell .cred-head small{font-size:16px}
+.m-shell .cred-panel .btn,.m-shell .cred-panel input,.m-shell .cred-revoked summary{min-height:48px;font-size:16px}
+.m-shell .cred-panel .pill{font-size:14px}
+.m-shell .cred-form{max-width:none}.m-shell .cred-actions .btn{flex:1 1 140px;justify-content:center}

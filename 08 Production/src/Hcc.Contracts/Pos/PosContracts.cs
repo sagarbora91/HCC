@@ -63,14 +63,15 @@ public sealed record DecideVoidResult(long VoidRequestId, string Status, long Or
 public sealed record LineView(long LineId, int ItemId, string Name, long PricePaise, int Qty, long ValuePaise, long? KotId, string Status,
     bool Voided, string? VoidReason);
 
-public sealed record KotView(long KotId, int KotNo, string Label, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc);
+public sealed record KotView(long KotId, int KotNo, string Label, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc, int? CreatedBy = null);
 
 public sealed record BillView(long BillId, string BillNo, string Mode, string? Tender, string? Reference, long NetPaise, int TaxBps, long TaxPaise,
-    long TotalPaise, DateOnly BusinessDate, string Status);
+    long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null, long? ReservationId = null);
 
 public sealed record CheckView(long OrderId, int OutletId, string Outlet, string Spot, string? Guest, int Covers, DateOnly BusinessDate, string Status,
     string Version, long? PendingVoidId, IReadOnlyList<LineView> Lines, IReadOnlyList<KotView> Kots, long NetPaise, int TaxBps, long TaxPaise,
-    long TotalPaise, int Items, BillView? Bill);
+    long TotalPaise, int Items, BillView? Bill, DateTime? OpenedUtc = null, int? OpenedBy = null, string? VoidReason = null, DateTime? VoidedUtc = null,
+    long? ReservationId = null);
 
 public sealed record OpenCheckSummary(long OrderId, string Outlet, string Spot, string? Guest, DateOnly BusinessDate, int Items, long NetPaise,
     bool KotPending, long? PendingVoidId);
@@ -97,3 +98,14 @@ public sealed record PosCloseBlockers(int OpenChecks, int PendingVoids)
 {
     public bool Blocked => OpenChecks > 0 || PendingVoids > 0;
 }
+
+/// <summary>A pending void request (check locked until decided): the approvals queue and the check panel read this. <c>RequestedBy</c> is the user id.</summary>
+public sealed record VoidRequestView(long VoidRequestId, long OrderId, string Spot, string Scope, long? LineId, long AmountPaise, string Reason, int RequestedBy,
+    DateTime ExpiresUtc, string OrderVersion);
+
+/// <summary>An in-house guest the outlet can charge to (room service targets, "post to room"): stay, folio, reservation (= the web client's booking id), room.</summary>
+public sealed record PosStayView(long StayId, long FolioId, long ReservationId, string RoomNo, string Guest);
+
+/// <summary>The shared front-desk till (DEC-052) and its open shift, so the outlet can take cash. <c>ShiftOpen</c> false = no cash can be taken.</summary>
+public sealed record PosTillView(int? TillId, string? Code, long? ShiftId, bool ShiftOpen);
+

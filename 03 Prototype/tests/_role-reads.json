@@ -1,0 +1,2175 @@
+{
+  "about": "D5 role read matrix. routes = every GET the production sync loaders send (pattern -> sample URL, business date 2026-10-24). roles = what the REAL server answers each seeded role (Hcc.Integration.Tests RoleReadMatrixTests writes it with HCC_UPDATE_ROLE_READS=1 and fails when it drifts). tests/sync-roles.mjs serves 403 exactly where this file says so.",
+  "routes": {
+    "GET /me/capabilities": "/me/capabilities",
+    "GET /me/directory": "/me/directory",
+    "GET /closing/business-date": "/closing/business-date",
+    "GET /closing/records": "/closing/records?from=2026-08-24&to=2026-10-24",
+    "GET /reservations": "/reservations?view=range&from=2026-04-27&page=1&pageSize=500",
+    "GET /reservations/:id": "/reservations/1",
+    "GET /guests": "/guests?page=1&pageSize=500",
+    "GET /availability": "/availability?arrival=2026-10-24&departure=2026-10-25&adults=1",
+    "GET /rooms/board": "/rooms/board?page=1&pageSize=100",
+    "GET /rooms/status": "/rooms/status",
+    "GET /housekeeping/tasks": "/housekeeping/tasks?page=1&pageSize=100",
+    "GET /folios/by-reservation/:id": "/folios/by-reservation/1",
+    "GET /invoices/by-source/folio/:id": "/invoices/by-source/folio/1",
+    "GET /credit-note-requests": "/credit-note-requests?status=Pending",
+    "GET /cashier/desk": "/cashier/desk",
+    "GET /cashier/folios": "/cashier/folios",
+    "GET /cashbook": "/cashbook?from=2026-07-24&to=2026-10-24",
+    "GET /groups": "/groups",
+    "GET /groups/companies": "/groups/companies",
+    "GET /groups/:id/statement": "/groups/1/statement",
+    "GET /admin/users": "/admin/users?page=1&pageSize=100",
+    "GET /admin/roles": "/admin/roles",
+    "GET /admin/exceptions": "/admin/exceptions",
+    "GET /admin/audit": "/admin/audit?page=1&pageSize=100",
+    "GET /configuration/requests": "/configuration/requests?status=",
+    "GET /configuration/history": "/configuration/history?page=1&pageSize=100",
+    "GET /configuration/values": "/configuration/values",
+    "GET /payroll/staff": "/payroll/staff",
+    "GET /payroll/board": "/payroll/board",
+    "GET /accounting/days": "/accounting/days?from=2026-08-24&to=2026-10-24",
+    "GET /accounting/trial-balance": "/accounting/trial-balance?date=2026-08-23&cumulative=true",
+    "GET /accounting/mapping": "/accounting/mapping",
+    "GET /accounting/mapping/history": "/accounting/mapping/history",
+    "GET /accounting/locks/history": "/accounting/locks/history",
+    "GET /expenses": "/expenses?status=Pending&page=1&pageSize=100",
+    "GET /compliance/obligations": "/compliance/obligations",
+    "GET /compliance/calendar": "/compliance/calendar?includeInactive=true",
+    "GET /compliance/ca-packs": "/compliance/ca-packs",
+    "GET /pos/outlets": "/pos/outlets",
+    "GET /pos/menu": "/pos/menu",
+    "GET /pos/checks": "/pos/checks",
+    "GET /pos/checks/closed": "/pos/checks/closed?date=2026-10-24",
+    "GET /pos/checks/:id": "/pos/checks/1",
+    "GET /pos/void-requests": "/pos/void-requests",
+    "GET /pos/in-house": "/pos/in-house",
+    "GET /pos/till": "/pos/till",
+    "GET /maintenance/registers": "/maintenance/registers",
+    "GET /maintenance/work-orders": "/maintenance/work-orders?page=1&pageSize=100",
+    "GET /maintenance/work-orders/:id": "/maintenance/work-orders/1",
+    "GET /maintenance/amcs": "/maintenance/amcs",
+    "GET /stock/items": "/stock/items?page=1&pageSize=100",
+    "GET /stock/laundry": "/stock/laundry?page=1&pageSize=100",
+    "GET /stock/counts": "/stock/counts?page=1&pageSize=100",
+    "GET /stock/losses": "/stock/losses?page=1&pageSize=100",
+    "GET /stock/moves": "/stock/moves?page=1&pageSize=100",
+    "GET /stock/settings": "/stock/settings",
+    "GET /guest-services/requests": "/guest-services/requests?page=1&pageSize=100",
+    "GET /guest-services/complaints": "/guest-services/complaints?page=1&pageSize=100",
+    "GET /guest-services/lost-items": "/guest-services/lost-items?page=1&pageSize=100",
+    "GET /guest-services/settings": "/guest-services/settings",
+    "GET /guest-services/stays": "/guest-services/stays",
+    "GET /guest-services/histories/:kind": "/guest-services/histories/request",
+    "GET /handover/checklists": "/handover/checklists",
+    "GET /handover/templates": "/handover/templates",
+    "GET /handover/notes": "/handover/notes",
+    "GET /messaging/messages": "/messaging/messages?page=1&pageSize=100",
+    "GET /messaging/templates": "/messaging/templates",
+    "GET /messaging/rules": "/messaging/rules",
+    "GET /messaging/consents": "/messaging/consents",
+    "GET /ota/channels": "/ota/channels",
+    "GET /ota/messages": "/ota/messages?limit=500",
+    "GET /ota/pushes": "/ota/pushes?limit=50",
+    "GET /web-booking/requests": "/web-booking/requests",
+    "GET /web-booking/requests/:id": "/web-booking/requests/1",
+    "GET /yield/calendar": "/yield/calendar?nights=1",
+    "GET /yield/config": "/yield/config",
+    "GET /yield/publishes": "/yield/publishes",
+    "GET /yield/proposals": "/yield/proposals"
+  },
+  "roles": {
+    "OWN": {
+      "roles": [
+        "OWN"
+      ],
+      "permissions": [
+        [
+          "PERM-ACC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-006",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-APR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CLS-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CLS-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CLS-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CLS-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CMP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CMP-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CRM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CRM-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-HR-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-006",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-007",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-008",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-009",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-IMP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-IMP-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-IMP-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RATE-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ROOM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ROOM-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-SHF-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-SHF-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-001",
+          "A",
+          "P"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "visible",
+        "guest.contact": "visible",
+        "guest.idNumber": "visible",
+        "money": "visible",
+        "staff.list": "visible",
+        "staff.pay": "visible"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "200",
+        "GET /reservations": "200",
+        "GET /reservations/:id": "404",
+        "GET /guests": "200",
+        "GET /availability": "200",
+        "GET /rooms/board": "200",
+        "GET /rooms/status": "200",
+        "GET /housekeeping/tasks": "200",
+        "GET /folios/by-reservation/:id": "404",
+        "GET /invoices/by-source/folio/:id": "404",
+        "GET /credit-note-requests": "200",
+        "GET /cashier/desk": "200",
+        "GET /cashier/folios": "200",
+        "GET /cashbook": "200",
+        "GET /groups": "200",
+        "GET /groups/companies": "200",
+        "GET /groups/:id/statement": "404",
+        "GET /admin/users": "200",
+        "GET /admin/roles": "200",
+        "GET /admin/exceptions": "200",
+        "GET /admin/audit": "200",
+        "GET /configuration/requests": "200",
+        "GET /configuration/history": "200",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "200",
+        "GET /accounting/trial-balance": "200",
+        "GET /accounting/mapping": "200",
+        "GET /accounting/mapping/history": "200",
+        "GET /accounting/locks/history": "200",
+        "GET /expenses": "200",
+        "GET /compliance/obligations": "200",
+        "GET /compliance/calendar": "200",
+        "GET /compliance/ca-packs": "200",
+        "GET /pos/outlets": "200",
+        "GET /pos/menu": "200",
+        "GET /pos/checks": "200",
+        "GET /pos/checks/closed": "200",
+        "GET /pos/checks/:id": "404",
+        "GET /pos/void-requests": "200",
+        "GET /pos/in-house": "200",
+        "GET /pos/till": "200",
+        "GET /maintenance/registers": "200",
+        "GET /maintenance/work-orders": "200",
+        "GET /maintenance/work-orders/:id": "404",
+        "GET /maintenance/amcs": "200",
+        "GET /stock/items": "200",
+        "GET /stock/laundry": "200",
+        "GET /stock/counts": "200",
+        "GET /stock/losses": "200",
+        "GET /stock/moves": "200",
+        "GET /stock/settings": "200",
+        "GET /guest-services/requests": "200",
+        "GET /guest-services/complaints": "200",
+        "GET /guest-services/lost-items": "200",
+        "GET /guest-services/settings": "200",
+        "GET /guest-services/stays": "200",
+        "GET /guest-services/histories/:kind": "200",
+        "GET /handover/checklists": "200",
+        "GET /handover/templates": "200",
+        "GET /handover/notes": "200",
+        "GET /messaging/messages": "200",
+        "GET /messaging/templates": "200",
+        "GET /messaging/rules": "200",
+        "GET /messaging/consents": "200",
+        "GET /ota/channels": "200",
+        "GET /ota/messages": "200",
+        "GET /ota/pushes": "200",
+        "GET /web-booking/requests": "200",
+        "GET /web-booking/requests/:id": "404",
+        "GET /yield/calendar": "200",
+        "GET /yield/config": "200",
+        "GET /yield/publishes": "200",
+        "GET /yield/proposals": "200"
+      }
+    },
+    "MGR": {
+      "roles": [
+        "MGR"
+      ],
+      "permissions": [
+        [
+          "PERM-ACC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-APR-001",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-CLS-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CLS-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CLS-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CRM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CRM-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-002",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-EXP-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-003",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-FOL-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-GRP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-003",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-GRP-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-INV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-OTA-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-005",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-RATE-001",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-RES-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ROOM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ROOM-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-SHF-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-SHF-002",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-STY-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-001",
+          "A",
+          "P"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "visible",
+        "guest.contact": "visible",
+        "guest.idNumber": "visible",
+        "money": "visible",
+        "staff.list": "visible",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "200",
+        "GET /reservations": "200",
+        "GET /reservations/:id": "404",
+        "GET /guests": "200",
+        "GET /availability": "200",
+        "GET /rooms/board": "200",
+        "GET /rooms/status": "200",
+        "GET /housekeeping/tasks": "200",
+        "GET /folios/by-reservation/:id": "404",
+        "GET /invoices/by-source/folio/:id": "404",
+        "GET /credit-note-requests": "200",
+        "GET /cashier/desk": "200",
+        "GET /cashier/folios": "200",
+        "GET /cashbook": "200",
+        "GET /groups": "200",
+        "GET /groups/companies": "200",
+        "GET /groups/:id/statement": "404",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "200",
+        "GET /configuration/requests": "200",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "200",
+        "GET /accounting/trial-balance": "200",
+        "GET /accounting/mapping": "200",
+        "GET /accounting/mapping/history": "200",
+        "GET /accounting/locks/history": "200",
+        "GET /expenses": "200",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "200",
+        "GET /pos/menu": "200",
+        "GET /pos/checks": "200",
+        "GET /pos/checks/closed": "200",
+        "GET /pos/checks/:id": "404",
+        "GET /pos/void-requests": "200",
+        "GET /pos/in-house": "200",
+        "GET /pos/till": "200",
+        "GET /maintenance/registers": "200",
+        "GET /maintenance/work-orders": "200",
+        "GET /maintenance/work-orders/:id": "404",
+        "GET /maintenance/amcs": "200",
+        "GET /stock/items": "200",
+        "GET /stock/laundry": "200",
+        "GET /stock/counts": "200",
+        "GET /stock/losses": "200",
+        "GET /stock/moves": "200",
+        "GET /stock/settings": "200",
+        "GET /guest-services/requests": "200",
+        "GET /guest-services/complaints": "200",
+        "GET /guest-services/lost-items": "200",
+        "GET /guest-services/settings": "200",
+        "GET /guest-services/stays": "200",
+        "GET /guest-services/histories/:kind": "200",
+        "GET /handover/checklists": "200",
+        "GET /handover/templates": "200",
+        "GET /handover/notes": "200",
+        "GET /messaging/messages": "200",
+        "GET /messaging/templates": "200",
+        "GET /messaging/rules": "200",
+        "GET /messaging/consents": "200",
+        "GET /ota/channels": "200",
+        "GET /ota/messages": "200",
+        "GET /ota/pushes": "200",
+        "GET /web-booking/requests": "200",
+        "GET /web-booking/requests/:id": "404",
+        "GET /yield/calendar": "200",
+        "GET /yield/config": "200",
+        "GET /yield/publishes": "200",
+        "GET /yield/proposals": "200"
+      }
+    },
+    "REC": {
+      "roles": [
+        "REC"
+      ],
+      "permissions": [
+        [
+          "PERM-DOC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-001",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-FOL-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-003",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-FOL-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-GRP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-003",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-GRP-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GRP-005",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-GST-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-INV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-OTA-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-PAY-001",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-PAY-002",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-PAY-003",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-PAY-004",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-RATE-001",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-RES-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RES-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ROOM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-SHF-001",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-STY-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-WEB-001",
+          "A",
+          "P"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "actionAndTimeOnly",
+        "guest.contact": "visible",
+        "guest.idNumber": "visible",
+        "money": "visible",
+        "staff.list": "hidden",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "403",
+        "GET /reservations": "200",
+        "GET /reservations/:id": "404",
+        "GET /guests": "200",
+        "GET /availability": "200",
+        "GET /rooms/board": "403",
+        "GET /rooms/status": "200",
+        "GET /housekeeping/tasks": "403",
+        "GET /folios/by-reservation/:id": "404",
+        "GET /invoices/by-source/folio/:id": "404",
+        "GET /credit-note-requests": "200",
+        "GET /cashier/desk": "200",
+        "GET /cashier/folios": "200",
+        "GET /cashbook": "403",
+        "GET /groups": "200",
+        "GET /groups/companies": "200",
+        "GET /groups/:id/statement": "404",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "403",
+        "GET /configuration/requests": "403",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "403",
+        "GET /accounting/trial-balance": "403",
+        "GET /accounting/mapping": "403",
+        "GET /accounting/mapping/history": "403",
+        "GET /accounting/locks/history": "403",
+        "GET /expenses": "200",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "200",
+        "GET /pos/menu": "200",
+        "GET /pos/checks": "200",
+        "GET /pos/checks/closed": "200",
+        "GET /pos/checks/:id": "404",
+        "GET /pos/void-requests": "200",
+        "GET /pos/in-house": "200",
+        "GET /pos/till": "200",
+        "GET /maintenance/registers": "403",
+        "GET /maintenance/work-orders": "403",
+        "GET /maintenance/work-orders/:id": "403",
+        "GET /maintenance/amcs": "403",
+        "GET /stock/items": "403",
+        "GET /stock/laundry": "403",
+        "GET /stock/counts": "403",
+        "GET /stock/losses": "403",
+        "GET /stock/moves": "403",
+        "GET /stock/settings": "403",
+        "GET /guest-services/requests": "200",
+        "GET /guest-services/complaints": "200",
+        "GET /guest-services/lost-items": "200",
+        "GET /guest-services/settings": "200",
+        "GET /guest-services/stays": "200",
+        "GET /guest-services/histories/:kind": "200",
+        "GET /handover/checklists": "200",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "200",
+        "GET /messaging/messages": "200",
+        "GET /messaging/templates": "200",
+        "GET /messaging/rules": "200",
+        "GET /messaging/consents": "200",
+        "GET /ota/channels": "200",
+        "GET /ota/messages": "200",
+        "GET /ota/pushes": "200",
+        "GET /web-booking/requests": "200",
+        "GET /web-booking/requests/:id": "404",
+        "GET /yield/calendar": "403",
+        "GET /yield/config": "403",
+        "GET /yield/publishes": "403",
+        "GET /yield/proposals": "403"
+      }
+    },
+    "CSH": {
+      "roles": [
+        "CSH"
+      ],
+      "permissions": [
+        [
+          "PERM-ACC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-001",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-FOL-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-GRP-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-GRP-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-GRP-005",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-GST-001",
+          "M",
+          "P"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-INV-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-INV-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-PAY-001",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-PAY-002",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-PAY-003",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-PAY-004",
+          "A",
+          "S"
+        ],
+        [
+          "PERM-RPT-002",
+          "V",
+          "S"
+        ],
+        [
+          "PERM-SHF-001",
+          "A",
+          "S"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "actionAndTimeOnly",
+        "guest.contact": "visible",
+        "guest.idNumber": "restricted",
+        "money": "visible",
+        "staff.list": "hidden",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "403",
+        "GET /reservations": "403",
+        "GET /reservations/:id": "403",
+        "GET /guests": "200",
+        "GET /availability": "403",
+        "GET /rooms/board": "403",
+        "GET /rooms/status": "403",
+        "GET /housekeeping/tasks": "403",
+        "GET /folios/by-reservation/:id": "404",
+        "GET /invoices/by-source/folio/:id": "404",
+        "GET /credit-note-requests": "200",
+        "GET /cashier/desk": "200",
+        "GET /cashier/folios": "200",
+        "GET /cashbook": "403",
+        "GET /groups": "200",
+        "GET /groups/companies": "200",
+        "GET /groups/:id/statement": "404",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "403",
+        "GET /configuration/requests": "403",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "200",
+        "GET /accounting/trial-balance": "200",
+        "GET /accounting/mapping": "200",
+        "GET /accounting/mapping/history": "200",
+        "GET /accounting/locks/history": "200",
+        "GET /expenses": "200",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "200",
+        "GET /pos/menu": "200",
+        "GET /pos/checks": "200",
+        "GET /pos/checks/closed": "200",
+        "GET /pos/checks/:id": "404",
+        "GET /pos/void-requests": "200",
+        "GET /pos/in-house": "200",
+        "GET /pos/till": "200",
+        "GET /maintenance/registers": "403",
+        "GET /maintenance/work-orders": "403",
+        "GET /maintenance/work-orders/:id": "403",
+        "GET /maintenance/amcs": "403",
+        "GET /stock/items": "403",
+        "GET /stock/laundry": "403",
+        "GET /stock/counts": "403",
+        "GET /stock/losses": "403",
+        "GET /stock/moves": "403",
+        "GET /stock/settings": "403",
+        "GET /guest-services/requests": "403",
+        "GET /guest-services/complaints": "403",
+        "GET /guest-services/lost-items": "403",
+        "GET /guest-services/settings": "403",
+        "GET /guest-services/stays": "403",
+        "GET /guest-services/histories/:kind": "403",
+        "GET /handover/checklists": "200",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "200",
+        "GET /messaging/messages": "403",
+        "GET /messaging/templates": "403",
+        "GET /messaging/rules": "403",
+        "GET /messaging/consents": "403",
+        "GET /ota/channels": "403",
+        "GET /ota/messages": "403",
+        "GET /ota/pushes": "403",
+        "GET /web-booking/requests": "403",
+        "GET /web-booking/requests/:id": "403",
+        "GET /yield/calendar": "403",
+        "GET /yield/config": "403",
+        "GET /yield/publishes": "403",
+        "GET /yield/proposals": "403"
+      }
+    },
+    "ACC": {
+      "roles": [
+        "ACC"
+      ],
+      "permissions": [
+        [
+          "PERM-ACC-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-006",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CLS-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-CLS-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CMP-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-001",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-EXP-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-EXP-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FOL-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-FOL-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-GRP-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-GRP-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-HR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-HR-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-006",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-007",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-008",
+          "L",
+          "P"
+        ],
+        [
+          "PERM-INV-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-INV-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-OTA-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-RPT-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-SHF-002",
+          "A",
+          "P"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "visible",
+        "guest.contact": "last4",
+        "guest.idNumber": "restricted",
+        "money": "visible",
+        "staff.list": "hidden",
+        "staff.pay": "visible"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "200",
+        "GET /reservations": "403",
+        "GET /reservations/:id": "403",
+        "GET /guests": "403",
+        "GET /availability": "403",
+        "GET /rooms/board": "403",
+        "GET /rooms/status": "403",
+        "GET /housekeeping/tasks": "403",
+        "GET /folios/by-reservation/:id": "404",
+        "GET /invoices/by-source/folio/:id": "404",
+        "GET /credit-note-requests": "200",
+        "GET /cashier/desk": "403",
+        "GET /cashier/folios": "200",
+        "GET /cashbook": "200",
+        "GET /groups": "200",
+        "GET /groups/companies": "200",
+        "GET /groups/:id/statement": "404",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "200",
+        "GET /configuration/requests": "403",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "200",
+        "GET /accounting/trial-balance": "200",
+        "GET /accounting/mapping": "200",
+        "GET /accounting/mapping/history": "200",
+        "GET /accounting/locks/history": "200",
+        "GET /expenses": "200",
+        "GET /compliance/obligations": "200",
+        "GET /compliance/calendar": "200",
+        "GET /compliance/ca-packs": "200",
+        "GET /pos/outlets": "403",
+        "GET /pos/menu": "403",
+        "GET /pos/checks": "403",
+        "GET /pos/checks/closed": "403",
+        "GET /pos/checks/:id": "403",
+        "GET /pos/void-requests": "403",
+        "GET /pos/in-house": "403",
+        "GET /pos/till": "403",
+        "GET /maintenance/registers": "403",
+        "GET /maintenance/work-orders": "403",
+        "GET /maintenance/work-orders/:id": "403",
+        "GET /maintenance/amcs": "403",
+        "GET /stock/items": "200",
+        "GET /stock/laundry": "200",
+        "GET /stock/counts": "200",
+        "GET /stock/losses": "200",
+        "GET /stock/moves": "200",
+        "GET /stock/settings": "200",
+        "GET /guest-services/requests": "403",
+        "GET /guest-services/complaints": "403",
+        "GET /guest-services/lost-items": "403",
+        "GET /guest-services/settings": "403",
+        "GET /guest-services/stays": "403",
+        "GET /guest-services/histories/:kind": "403",
+        "GET /handover/checklists": "403",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "403",
+        "GET /messaging/messages": "403",
+        "GET /messaging/templates": "403",
+        "GET /messaging/rules": "403",
+        "GET /messaging/consents": "403",
+        "GET /ota/channels": "403",
+        "GET /ota/messages": "403",
+        "GET /ota/pushes": "403",
+        "GET /web-booking/requests": "403",
+        "GET /web-booking/requests/:id": "403",
+        "GET /yield/calendar": "200",
+        "GET /yield/config": "200",
+        "GET /yield/publishes": "200",
+        "GET /yield/proposals": "200"
+      }
+    },
+    "SUP": {
+      "roles": [
+        "SUP"
+      ],
+      "permissions": [
+        [
+          "PERM-HK-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HK-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-ROOM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ROOM-002",
+          "A",
+          "P"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "actionAndTimeOnly",
+        "guest.contact": "last4",
+        "guest.idNumber": "restricted",
+        "money": "hidden",
+        "staff.list": "hidden",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "403",
+        "GET /reservations": "403",
+        "GET /reservations/:id": "403",
+        "GET /guests": "403",
+        "GET /availability": "403",
+        "GET /rooms/board": "200",
+        "GET /rooms/status": "403",
+        "GET /housekeeping/tasks": "200",
+        "GET /folios/by-reservation/:id": "403",
+        "GET /invoices/by-source/folio/:id": "403",
+        "GET /credit-note-requests": "403",
+        "GET /cashier/desk": "403",
+        "GET /cashier/folios": "403",
+        "GET /cashbook": "403",
+        "GET /groups": "403",
+        "GET /groups/companies": "403",
+        "GET /groups/:id/statement": "403",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "403",
+        "GET /configuration/requests": "403",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "403",
+        "GET /accounting/trial-balance": "403",
+        "GET /accounting/mapping": "403",
+        "GET /accounting/mapping/history": "403",
+        "GET /accounting/locks/history": "403",
+        "GET /expenses": "403",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "403",
+        "GET /pos/menu": "403",
+        "GET /pos/checks": "403",
+        "GET /pos/checks/closed": "403",
+        "GET /pos/checks/:id": "403",
+        "GET /pos/void-requests": "403",
+        "GET /pos/in-house": "403",
+        "GET /pos/till": "403",
+        "GET /maintenance/registers": "200",
+        "GET /maintenance/work-orders": "200",
+        "GET /maintenance/work-orders/:id": "404",
+        "GET /maintenance/amcs": "200",
+        "GET /stock/items": "200",
+        "GET /stock/laundry": "200",
+        "GET /stock/counts": "200",
+        "GET /stock/losses": "200",
+        "GET /stock/moves": "200",
+        "GET /stock/settings": "200",
+        "GET /guest-services/requests": "200",
+        "GET /guest-services/complaints": "403",
+        "GET /guest-services/lost-items": "200",
+        "GET /guest-services/settings": "403",
+        "GET /guest-services/stays": "403",
+        "GET /guest-services/histories/:kind": "403",
+        "GET /handover/checklists": "200",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "200",
+        "GET /messaging/messages": "403",
+        "GET /messaging/templates": "403",
+        "GET /messaging/rules": "403",
+        "GET /messaging/consents": "403",
+        "GET /ota/channels": "403",
+        "GET /ota/messages": "403",
+        "GET /ota/pushes": "403",
+        "GET /web-booking/requests": "403",
+        "GET /web-booking/requests/:id": "403",
+        "GET /yield/calendar": "403",
+        "GET /yield/config": "403",
+        "GET /yield/publishes": "403",
+        "GET /yield/proposals": "403"
+      }
+    },
+    "HKP": {
+      "roles": [
+        "HKP"
+      ],
+      "permissions": [
+        [
+          "PERM-HK-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-HK-003",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-ROOM-001",
+          "A",
+          "A"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "actionAndTimeOnly",
+        "guest.contact": "last4",
+        "guest.idNumber": "restricted",
+        "money": "hidden",
+        "staff.list": "hidden",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "403",
+        "GET /reservations": "403",
+        "GET /reservations/:id": "403",
+        "GET /guests": "403",
+        "GET /availability": "403",
+        "GET /rooms/board": "200",
+        "GET /rooms/status": "403",
+        "GET /housekeeping/tasks": "200",
+        "GET /folios/by-reservation/:id": "403",
+        "GET /invoices/by-source/folio/:id": "403",
+        "GET /credit-note-requests": "403",
+        "GET /cashier/desk": "403",
+        "GET /cashier/folios": "403",
+        "GET /cashbook": "403",
+        "GET /groups": "403",
+        "GET /groups/companies": "403",
+        "GET /groups/:id/statement": "403",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "403",
+        "GET /configuration/requests": "403",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "403",
+        "GET /accounting/trial-balance": "403",
+        "GET /accounting/mapping": "403",
+        "GET /accounting/mapping/history": "403",
+        "GET /accounting/locks/history": "403",
+        "GET /expenses": "403",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "403",
+        "GET /pos/menu": "403",
+        "GET /pos/checks": "403",
+        "GET /pos/checks/closed": "403",
+        "GET /pos/checks/:id": "403",
+        "GET /pos/void-requests": "403",
+        "GET /pos/in-house": "403",
+        "GET /pos/till": "403",
+        "GET /maintenance/registers": "200",
+        "GET /maintenance/work-orders": "200",
+        "GET /maintenance/work-orders/:id": "404",
+        "GET /maintenance/amcs": "403",
+        "GET /stock/items": "200",
+        "GET /stock/laundry": "200",
+        "GET /stock/counts": "200",
+        "GET /stock/losses": "200",
+        "GET /stock/moves": "200",
+        "GET /stock/settings": "200",
+        "GET /guest-services/requests": "200",
+        "GET /guest-services/complaints": "403",
+        "GET /guest-services/lost-items": "200",
+        "GET /guest-services/settings": "403",
+        "GET /guest-services/stays": "403",
+        "GET /guest-services/histories/:kind": "403",
+        "GET /handover/checklists": "200",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "200",
+        "GET /messaging/messages": "403",
+        "GET /messaging/templates": "403",
+        "GET /messaging/rules": "403",
+        "GET /messaging/consents": "403",
+        "GET /ota/channels": "403",
+        "GET /ota/messages": "403",
+        "GET /ota/pushes": "403",
+        "GET /web-booking/requests": "403",
+        "GET /web-booking/requests/:id": "403",
+        "GET /yield/calendar": "403",
+        "GET /yield/config": "403",
+        "GET /yield/publishes": "403",
+        "GET /yield/proposals": "403"
+      }
+    },
+    "MNT": {
+      "roles": [
+        "MNT"
+      ],
+      "permissions": [
+        [
+          "PERM-HK-001",
+          "A",
+          "A"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-ROOM-001",
+          "A",
+          "A"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "actionAndTimeOnly",
+        "guest.contact": "last4",
+        "guest.idNumber": "restricted",
+        "money": "hidden",
+        "staff.list": "hidden",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "403",
+        "GET /reservations": "403",
+        "GET /reservations/:id": "403",
+        "GET /guests": "403",
+        "GET /availability": "403",
+        "GET /rooms/board": "200",
+        "GET /rooms/status": "403",
+        "GET /housekeeping/tasks": "200",
+        "GET /folios/by-reservation/:id": "403",
+        "GET /invoices/by-source/folio/:id": "403",
+        "GET /credit-note-requests": "403",
+        "GET /cashier/desk": "403",
+        "GET /cashier/folios": "403",
+        "GET /cashbook": "403",
+        "GET /groups": "403",
+        "GET /groups/companies": "403",
+        "GET /groups/:id/statement": "403",
+        "GET /admin/users": "403",
+        "GET /admin/roles": "403",
+        "GET /admin/exceptions": "403",
+        "GET /admin/audit": "403",
+        "GET /configuration/requests": "403",
+        "GET /configuration/history": "403",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "403",
+        "GET /accounting/trial-balance": "403",
+        "GET /accounting/mapping": "403",
+        "GET /accounting/mapping/history": "403",
+        "GET /accounting/locks/history": "403",
+        "GET /expenses": "403",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "403",
+        "GET /pos/menu": "403",
+        "GET /pos/checks": "403",
+        "GET /pos/checks/closed": "403",
+        "GET /pos/checks/:id": "403",
+        "GET /pos/void-requests": "403",
+        "GET /pos/in-house": "403",
+        "GET /pos/till": "403",
+        "GET /maintenance/registers": "200",
+        "GET /maintenance/work-orders": "200",
+        "GET /maintenance/work-orders/:id": "404",
+        "GET /maintenance/amcs": "403",
+        "GET /stock/items": "403",
+        "GET /stock/laundry": "403",
+        "GET /stock/counts": "403",
+        "GET /stock/losses": "403",
+        "GET /stock/moves": "403",
+        "GET /stock/settings": "403",
+        "GET /guest-services/requests": "200",
+        "GET /guest-services/complaints": "403",
+        "GET /guest-services/lost-items": "200",
+        "GET /guest-services/settings": "403",
+        "GET /guest-services/stays": "403",
+        "GET /guest-services/histories/:kind": "403",
+        "GET /handover/checklists": "200",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "200",
+        "GET /messaging/messages": "403",
+        "GET /messaging/templates": "403",
+        "GET /messaging/rules": "403",
+        "GET /messaging/consents": "403",
+        "GET /ota/channels": "403",
+        "GET /ota/messages": "403",
+        "GET /ota/pushes": "403",
+        "GET /web-booking/requests": "403",
+        "GET /web-booking/requests/:id": "403",
+        "GET /yield/calendar": "403",
+        "GET /yield/config": "403",
+        "GET /yield/publishes": "403",
+        "GET /yield/proposals": "403"
+      }
+    },
+    "TAD": {
+      "roles": [
+        "TAD"
+      ],
+      "permissions": [
+        [
+          "PERM-ADM-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-002",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-ADM-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HR-001",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-HR-004",
+          "A",
+          "O"
+        ],
+        [
+          "PERM-IMP-001",
+          "A",
+          "P"
+        ]
+      ],
+      "fieldMasks": {
+        "audit.values": "actionAndTimeOnly",
+        "guest.contact": "last4",
+        "guest.idNumber": "restricted",
+        "money": "hidden",
+        "staff.list": "visible",
+        "staff.pay": "own"
+      },
+      "reads": {
+        "GET /me/capabilities": "200",
+        "GET /me/directory": "200",
+        "GET /closing/business-date": "200",
+        "GET /closing/records": "403",
+        "GET /reservations": "403",
+        "GET /reservations/:id": "403",
+        "GET /guests": "403",
+        "GET /availability": "403",
+        "GET /rooms/board": "403",
+        "GET /rooms/status": "403",
+        "GET /housekeeping/tasks": "403",
+        "GET /folios/by-reservation/:id": "403",
+        "GET /invoices/by-source/folio/:id": "403",
+        "GET /credit-note-requests": "403",
+        "GET /cashier/desk": "403",
+        "GET /cashier/folios": "403",
+        "GET /cashbook": "403",
+        "GET /groups": "403",
+        "GET /groups/companies": "403",
+        "GET /groups/:id/statement": "403",
+        "GET /admin/users": "200",
+        "GET /admin/roles": "200",
+        "GET /admin/exceptions": "200",
+        "GET /admin/audit": "403",
+        "GET /configuration/requests": "200",
+        "GET /configuration/history": "200",
+        "GET /configuration/values": "200",
+        "GET /payroll/staff": "200",
+        "GET /payroll/board": "200",
+        "GET /accounting/days": "403",
+        "GET /accounting/trial-balance": "403",
+        "GET /accounting/mapping": "403",
+        "GET /accounting/mapping/history": "403",
+        "GET /accounting/locks/history": "403",
+        "GET /expenses": "403",
+        "GET /compliance/obligations": "403",
+        "GET /compliance/calendar": "403",
+        "GET /compliance/ca-packs": "403",
+        "GET /pos/outlets": "403",
+        "GET /pos/menu": "403",
+        "GET /pos/checks": "403",
+        "GET /pos/checks/closed": "403",
+        "GET /pos/checks/:id": "403",
+        "GET /pos/void-requests": "403",
+        "GET /pos/in-house": "403",
+        "GET /pos/till": "403",
+        "GET /maintenance/registers": "403",
+        "GET /maintenance/work-orders": "403",
+        "GET /maintenance/work-orders/:id": "403",
+        "GET /maintenance/amcs": "403",
+        "GET /stock/items": "403",
+        "GET /stock/laundry": "403",
+        "GET /stock/counts": "403",
+        "GET /stock/losses": "403",
+        "GET /stock/moves": "403",
+        "GET /stock/settings": "403",
+        "GET /guest-services/requests": "403",
+        "GET /guest-services/complaints": "403",
+        "GET /guest-services/lost-items": "403",
+        "GET /guest-services/settings": "403",
+        "GET /guest-services/stays": "403",
+        "GET /guest-services/histories/:kind": "403",
+        "GET /handover/checklists": "403",
+        "GET /handover/templates": "403",
+        "GET /handover/notes": "403",
+        "GET /messaging/messages": "403",
+        "GET /messaging/templates": "403",
+        "GET /messaging/rules": "403",
+        "GET /messaging/consents": "403",
+        "GET /ota/channels": "403",
+        "GET /ota/messages": "403",
+        "GET /ota/pushes": "403",
+        "GET /web-booking/requests": "403",
+        "GET /web-booking/requests/:id": "403",
+        "GET /yield/calendar": "403",
+        "GET /yield/config": "403",
+        "GET /yield/publishes": "403",
+        "GET /yield/proposals": "403"
+      }
+    }
+  }
+}

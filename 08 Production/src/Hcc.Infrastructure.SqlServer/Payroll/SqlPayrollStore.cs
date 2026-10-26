@@ -710,6 +710,17 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         return await ReadAsync(c, r => (r.GetInt32(0), r.GetInt32(1), r.GetInt64(2), r.GetDateTime(3)), ct).ConfigureAwait(false);
     }
 
+    public async Task AuditDownloadAsync(int propertyId, int principalId, string action, string target, string detail, CancellationToken ct)
+    {
+        await using var c = Cmd("INSERT plat.audit_event(property_id, principal_id, action, target, detail, operation) VALUES (@p, @u, @a, @t, @d, 'Download');");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@u", SqlDbType.Int, principalId);
+        P(c, "@a", SqlDbType.VarChar, 60, action);
+        P(c, "@t", SqlDbType.VarChar, 60, target);
+        P(c, "@d", SqlDbType.NVarChar, 1000, detail);
+        await c.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task InsertBankFileAsync(long runId, int issueNo, int lockSeq, long net, int by, DateTime utc, CancellationToken ct)
     {
         var c = Cmd("INSERT hr.bank_file(run_id, issue_no, lock_seq, net_paise, issued_by, issued_utc) VALUES (@r, @n, @seq, @net, @by, @at);");
@@ -815,5 +826,65 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         var v = await ScalarAsync(c, ct).ConfigureAwait(false) as byte[];
         SqlValues.EnsureVersionMatched(v is null ? 0 : 1, "The settlement");
         return SqlValues.RowVersionToWire(v!);
+    }
+
+    // ── HR desk board (W4-6 read model) ──
+
+    private static DateTime Utc(SqlDataReader r, int i) => DateTime.SpecifyKind(r.GetDateTime(i), DateTimeKind.Utc);
+
+    private static DateTime? UtcOrNull(SqlDataReader r, int i) => r.IsDBNull(i) ? null : Utc(r, i);
+
+    public async Task<PayrollBoardDetail> BoardDetailAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        SqlCommand Q(string sql, bool range = false)
+        {
+            var c = Cmd(sql);
+            P(c, "@p", SqlDbType.Int, propertyId);
+            if (range)
+            {
+                P(c, "@f", SqlDbType.Date, from.ToDateTime(TimeOnly.MinValue));
+                P(c, "@t", SqlDbType.Date, to.ToDateTime(TimeOnly.MinValue));
+            }
+
+            return c;
+        }
+
+        var roster = await ReadAsync(Q("""
+            SELECT r.staff_id, r.work_date, r.shift_code FROM hr.roster r JOIN hr.staff s ON s.staff_id = r.staff_id
+            WHERE s.property_id = @p AND r.work_date BETWEEN @f AND @t ORDER BY r.work_date, r.staff_id;
+            """, true), r => new RosterCell(r.GetInt64(0), D(r, 1), Enum.Parse<ShiftCode>(r.GetString(2))), ct).ConfigureAwait(false);
+        var att = await ReadAsync(Q("""
+            SELECT a.staff_id, a.work_date, a.status, a.ot_minutes, a.marked_by, a.marked_utc, a.note FROM hr.attendance a JOIN hr.staff s ON s.staff_id = a.staff_id
+            WHERE s.property_id = @p AND a.work_date BETWEEN @f AND @t ORDER BY a.work_date, a.staff_id;
+            """, true), r => new AttendanceDetail(r.GetInt64(0), D(r, 1), Enum.Parse<AttendanceStatus>(r.GetString(2)), r.GetInt16(3), r.GetInt32(4), Utc(r, 5), S(r, 6)), ct)
+            .ConfigureAwait(false);
+        var leaves = await ReadAsync(Q($"SELECT {LeaveColumns}, decided_utc FROM hr.leave_request WHERE property_id = @p ORDER BY leave_id;"),
+            r => (Row: MapLeave(r), Decided: UtcOrNull(r, 15)), ct).ConfigureAwait(false);
+        var runs = await ReadAsync(Q("SELECT run_id, prepared_utc, locked_utc FROM hr.pay_run WHERE property_id = @p ORDER BY pay_month;"),
+            r => new RunDetail(r.GetInt64(0), Utc(r, 1), UtcOrNull(r, 2)), ct).ConfigureAwait(false);
+        var advances = await ReadAsync(Q("SELECT advance_id, reason, given_by FROM hr.advance WHERE property_id = @p ORDER BY advance_id;"),
+            r => new AdvanceDetail(r.GetInt64(0), r.GetString(1), r.GetInt32(2)), ct).ConfigureAwait(false);
+        var recoveries = await ReadAsync(Q("""
+            SELECT x.advance_id, x.run_id, x.fnf_id, x.amount_paise FROM hr.advance_recovery x JOIN hr.advance a ON a.advance_id = x.advance_id
+            WHERE a.property_id = @p AND x.reversed_utc IS NULL ORDER BY x.recovery_id;
+            """), r => new RecoveryDetail(r.GetInt64(0), r.IsDBNull(1) ? null : r.GetInt64(1), r.IsDBNull(2) ? null : r.GetInt64(2), r.GetInt64(3)), ct).ConfigureAwait(false);
+        var files = await ReadAsync(Q("""
+            SELECT b.run_id, b.issue_no, b.lock_seq, b.net_paise, b.issued_by, b.issued_utc FROM hr.bank_file b JOIN hr.pay_run r ON r.run_id = b.run_id
+            WHERE r.property_id = @p ORDER BY b.run_id, b.issue_no;
+            """), r => new BankFileDetail(r.GetInt64(0), r.GetInt32(1), r.GetInt32(2), r.GetInt64(3), r.GetInt32(4), Utc(r, 5)), ct).ConfigureAwait(false);
+        var sends = await ReadAsync(Q("""
+            SELECT x.run_id, x.lock_seq, x.staff_id, x.to_number, x.sent_by, x.sent_utc FROM hr.payslip_send x JOIN hr.pay_run r ON r.run_id = x.run_id
+            WHERE r.property_id = @p ORDER BY x.send_id;
+            """), r => new PayslipSendDetail(r.GetInt64(0), r.GetInt32(1), r.GetInt64(2), r.GetString(3), r.GetInt32(4), Utc(r, 5)), ct).ConfigureAwait(false);
+        var unlocks = await ReadAsync(Q("""
+            SELECT u.run_id, u.lock_seq, u.reason, u.nets_json, u.bank_files, u.unlocked_by, u.unlocked_utc FROM hr.pay_run_unlock u JOIN hr.pay_run r ON r.run_id = u.run_id
+            WHERE r.property_id = @p ORDER BY u.run_id, u.lock_seq;
+            """), r => new UnlockDetail(r.GetInt64(0), r.GetInt32(1), r.GetString(2), JsonSerializer.Deserialize<Dictionary<long, long>>(r.GetString(3)) ?? [],
+                r.GetInt32(4), r.GetInt32(5), Utc(r, 6)), ct).ConfigureAwait(false);
+        var fnfs = await ReadAsync(Q("SELECT fnf_id, last_day, rates_json, prepared_utc, decided_by, decided_utc FROM hr.fnf WHERE property_id = @p ORDER BY fnf_id;"),
+            r => new FnfDetail(r.GetInt64(0), D(r, 1), PayrollJson.Read<PayrollRates>(r.GetString(2)), Utc(r, 3), r.IsDBNull(4) ? null : r.GetInt32(4), UtcOrNull(r, 5)), ct)
+            .ConfigureAwait(false);
+        return new PayrollBoardDetail(roster, att, leaves.Select(l => l.Row).ToList(),
+            leaves.Where(l => l.Decided is not null).ToDictionary(l => l.Row.Span.LeaveId, l => l.Decided!.Value), runs, advances, recoveries, files, sends, unlocks, fnfs);
     }
 }

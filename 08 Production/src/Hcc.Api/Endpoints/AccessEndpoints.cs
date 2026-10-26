@@ -27,12 +27,16 @@ public static class AccessEndpoints
         ArgumentNullException.ThrowIfNull(configuration);
         var options = configuration.GetSection("Hcc:Access").Get<AccessOptions>() ?? new AccessOptions();
         services.AddSingleton(options);
+        services.AddSingleton(sp => new SignInThrottle(options, sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton(sp => new SqlRetentionPurge(platform.Connections, options, sp.GetRequiredService<TimeProvider>()));
+        services.AddHostedService<RetentionWorker>();   // F-L03
         services.AddSingleton(sp => new AccessModule(platform, options, sp.GetRequiredService<TimeProvider>(), sp.GetServices<IAccessScopeResolver>()));
         services.AddSingleton<IAccessPolicy>(sp => sp.GetRequiredService<AccessModule>().Policy);
         services.AddSingleton<IAccessEvaluator>(sp => sp.GetRequiredService<AccessModule>().Policy);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Sessions);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Users);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Capabilities);
+        services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().AdminQueries);
         return services;
     }
 
@@ -42,7 +46,7 @@ public static class AccessEndpoints
         {
             var http = ctx.HttpContext;
             var sessions = http.RequestServices.GetRequiredService<ISessionService>();
-            http.Items[SessionItem] = await sessions.ValidateAsync(TokenOf(http.Request), http.RequestAborted).ConfigureAwait(false);
+            http.Items[SessionItem] = await sessions.ValidateAsync(TokenOf(http.Request), DeviceTokenOf(http.Request), http.RequestAborted).ConfigureAwait(false);
             return await next(ctx).ConfigureAwait(false);
         });
 
@@ -107,9 +111,34 @@ public static class AccessEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
 
-        api.MapPost("/auth/sign-in", async (SignInRequest body, HttpContext http, ISessionService sessions, AccessOptions options, CancellationToken ct) =>
+        api.MapPost("/auth/sign-in", async (SignInRequest body, HttpContext http, ISessionService sessions, AccessOptions options, SignInThrottle throttle,
+            TimeProvider clock, CancellationToken ct) =>
         {
-            var (session, token) = await sessions.SignInAsync(body, http.Request.Headers[AccessConventions.DeviceTokenHeader].ToString(), ct).ConfigureAwait(false);
+            ArgumentNullException.ThrowIfNull(body);
+            // F-M02: per-address and per-(address, name) limits, progressive delay per name (policy on SignInThrottle).
+            var source = ClientAddress.Key(http.Connection.RemoteIpAddress);
+            var gate = throttle.Check(source, body.LoginName, IsServerPc(http));
+            if (!gate.Allowed)
+            {
+                http.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(gate.RetryAfter.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return Results.Json(new ErrorResponse(nameof(HccErrorCode.FORBIDDEN), "Too many sign-in attempts from this device. Wait a few minutes and try again.",
+                    new Dictionary<string, System.Text.Json.JsonElement> { ["reason"] = System.Text.Json.JsonSerializer.SerializeToElement("TOO_MANY_ATTEMPTS") }), statusCode: StatusCodes.Status429TooManyRequests);
+            }
+
+            if (gate.Delay > TimeSpan.Zero) await Task.Delay(gate.Delay, clock, ct).ConfigureAwait(false);
+            AuthenticatedSession session;
+            string token;
+            try
+            {
+                (session, token) = await sessions.SignInAsync(body, DeviceTokenOf(http.Request), ct).ConfigureAwait(false);
+            }
+            catch (HccException ex) when (ex.Code == HccErrorCode.FORBIDDEN)
+            {
+                throttle.RecordFailure(source, body.LoginName);
+                throw;
+            }
+
+            throttle.RecordSuccess(source, body.LoginName);
             http.Response.Cookies.Append(AccessConventions.SessionCookie, token, new CookieOptions
             {
                 HttpOnly = true,
@@ -141,11 +170,22 @@ public static class AccessEndpoints
         me.MapGet("/capabilities", async (HttpContext http, ICapabilitiesQuery query, CancellationToken ct) =>
             Results.Ok(await query.GetAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
 
+        // Names and ids only (no login names), so every role's screens can show who requested/prepared/decided something.
+        me.MapGet("/directory", async (HttpContext http, IAccessAdminQueries q, CancellationToken ct) =>
+            Results.Ok(await q.DirectoryAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
+
         var admin = api.MapGroup("/admin").RequireHccSession();
         admin.MapGet("/users", async (HttpContext http, IUserAdministration users, int? page, int? pageSize, CancellationToken ct) =>
             Results.Ok(await users.ListUsersAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, ct).ConfigureAwait(false)));
         admin.MapGet("/devices", async (HttpContext http, IUserAdministration users, int? page, int? pageSize, CancellationToken ct) =>
             Results.Ok(await users.ListDevicesAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, ct).ConfigureAwait(false)));
+        // W4-5: read-only role templates, user exceptions and the audit log for the Access control / Approvals & audit screens.
+        admin.MapGet("/roles", async (HttpContext http, IAccessAdminQueries q, CancellationToken ct) =>
+            Results.Ok(await q.RolesAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
+        admin.MapGet("/exceptions", async (HttpContext http, IAccessAdminQueries q, bool? includeRevoked, CancellationToken ct) =>
+            Results.Ok(await q.ExceptionsAsync(http.GetHccSession(), includeRevoked ?? false, ct).ConfigureAwait(false)));
+        admin.MapGet("/audit", async (HttpContext http, IAccessAdminQueries q, int? page, int? pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct) =>
+            Results.Ok(await q.AuditAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, action, principalId, from, to, ct).ConfigureAwait(false)));
 
         var commands = api.MapGroup("/commands").RequireHccSession();
         Command<CreateUserRequest, UserVersionResult>(commands, "CreateUser", (u, s, k, b, ct) => u.CreateUserAsync(s, k, b, ct));
@@ -168,6 +208,20 @@ public static class AccessEndpoints
             var result = await run(users, http.GetHccSession(), http.Request.IdempotencyKey(), body, ct).ConfigureAwait(false);
             return http.HccReply(result);
         });
+
+    /// <summary>
+    /// The request comes from the server PC itself: a loopback address and no proxy header (a local reverse proxy makes every
+    /// caller look like loopback; those requests carry X-Forwarded-For and are not trusted as local).
+    /// </summary>
+    public static bool IsServerPc(HttpContext http)
+    {
+        ArgumentNullException.ThrowIfNull(http);
+        var remote = http.Connection.RemoteIpAddress;
+        return remote is not null && IPAddress.IsLoopback(remote) && !http.Request.Headers.ContainsKey("X-Forwarded-For");
+    }
+
+    private static string? DeviceTokenOf(HttpRequest request) =>
+        request.Headers[AccessConventions.DeviceTokenHeader].ToString() is { Length: > 0 } d ? d : null;
 
     private static string? TokenOf(HttpRequest request)
     {
