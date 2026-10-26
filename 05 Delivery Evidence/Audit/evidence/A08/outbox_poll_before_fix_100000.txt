@@ -1,0 +1,98 @@
+what outbox_rows dedup_rows  outbox_mb           
+---- ----------- ----------- --------------------
+rows      100000       86652                   65
+
+ SQL Server Execution Times:
+   CPU time = 0 ms,  elapsed time = 0 ms.
+SQL Server parse and compile time: 
+   CPU time = 94 ms, elapsed time = 106 ms.
+
+ SQL Server Execution Times:
+   CPU time = 0 ms,  elapsed time = 0 ms.
+outbox_id            event_type                                                   aggregate_id         payload                                                                                                                                                                                                                                                          created_utc                           
+-------------------- ------------------------------------------------------------ -------------------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- --------------------------------------
+               99990 Event0                                                                      99990 {"folioId":99990,"chargeId":99990,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99991 Event1                                                                      99991 {"folioId":99991,"chargeId":99991,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99992 Event2                                                                      99992 {"folioId":99992,"chargeId":99992,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99993 Event3                                                                      99993 {"folioId":99993,"chargeId":99993,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99994 Event4                                                                      99994 {"folioId":99994,"chargeId":99994,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99995 Event5                                                                      99995 {"folioId":99995,"chargeId":99995,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99996 Event6                                                                      99996 {"folioId":99996,"chargeId":99996,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99997 Event7                                                                      99997 {"folioId":99997,"chargeId":99997,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99998 Event8                                                                      99998 {"folioId":99998,"chargeId":99998,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+               99999 Event9                                                                      99999 {"folioId":99999,"chargeId":99999,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+              100000 Event10                                                                    100000 {"folioId":100000,"chargeId":100000,"kind":"room","serviceDate":"2026-10-24","amountPaise":200000,"taxPaise":10000,"note":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                2026-10-26 11:44:58.368
+Table 'consumer_dedup'. Scan count 1, logical reads 192, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'outbox'. Scan count 1, logical reads 8374, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+
+ SQL Server Execution Times:
+   CPU time = 1078 ms,  elapsed time = 1102 ms.
+SQL Server parse and compile time: 
+   CPU time = 0 ms, elapsed time = 4 ms.
+
+ SQL Server Execution Times:
+   CPU time = 0 ms,  elapsed time = 0 ms.
+outbox_id           
+--------------------
+               99990
+               99991
+               99992
+               99993
+               99994
+               99995
+               99996
+               99997
+               99998
+               99999
+              100000
+Table 'consumer_dedup'. Scan count 1, logical reads 192, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'outbox'. Scan count 1, logical reads 8374, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+
+ SQL Server Execution Times:
+   CPU time = 1109 ms,  elapsed time = 1136 ms.
+SQL Server parse and compile time: 
+   CPU time = 0 ms, elapsed time = 3 ms.
+
+ SQL Server Execution Times:
+   CPU time = 0 ms,  elapsed time = 0 ms.
+outbox_id           
+--------------------
+Table 'consumer_dedup'. Scan count 1, logical reads 21, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'outbox'. Scan count 1, logical reads 8374, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+
+ SQL Server Execution Times:
+   CPU time = 250 ms,  elapsed time = 249 ms.
+SQL Server parse and compile time: 
+   CPU time = 0 ms, elapsed time = 2 ms.
+
+ SQL Server Execution Times:
+   CPU time = 0 ms,  elapsed time = 0 ms.
+SQL Server parse and compile time: 
+   CPU time = 0 ms, elapsed time = 0 ms.
+Table '#A11C1109'. Scan count 0, logical reads 25, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+
+ SQL Server Execution Times:
+   CPU time = 0 ms,  elapsed time = 0 ms.
+SQL Server parse and compile time: 
+   CPU time = 0 ms, elapsed time = 2 ms.
+outbox_id           
+--------------------
+               99990
+               99991
+               99992
+               99993
+               99994
+               99995
+               99996
+               99997
+               99998
+               99999
+              100000
+Table '#A11C1109'. Scan count 0, logical reads 120010, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'consumer_dedup'. Scan count 1, logical reads 192, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'outbox'. Scan count 1, logical reads 8374, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+
+ SQL Server Execution Times:
+   CPU time = 125 ms,  elapsed time = 128 ms.
+SQL Server parse and compile time: 
+   CPU time = 0 ms, elapsed time = 0 ms.
