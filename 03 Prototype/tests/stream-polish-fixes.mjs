@@ -7,7 +7,7 @@ export function register({test,M,assert}){
     assert.ok(/\.modal\.m-sheet \.form label[^{]*\{font-size:16px\}/.test(blk),'sheet label 16');
     assert.ok(/\.mm-seg button[^{]*\{min-height:var\(--hcc-touch-primary,48px\)\}/.test(blk),'mm-seg 48');
     assert.ok(/\.mm-seg b\{font-size:14px\}/.test(blk)&&/\.m-chips button b[^{]*\{font-size:14px\}/.test(blk),'badges 14');
-    assert.ok(/\.m-demo-pill\{font-size:14px\}/.test(blk),'demo 14');
+    assert.ok(/\.m-demo-pill\{font-size:16px\}/.test(blk),'demo 16');
     const mob=await readFile('src/styles/mobile.css','utf8');assert.ok(/\.modal\.m-sheet \.form label\{font-size:14px\}/.test(mob),'premise: the 14 px rule exists');
     const sheets=await readFile('src/mobile/admin/sheets.tsx','utf8');assert.ok(/From \(business date\)/.test(sheets));
     const cash=await readFile('src/mobile/money/Cashier.tsx','utf8');assert.ok(/className="mm-seg"/.test(cash));});

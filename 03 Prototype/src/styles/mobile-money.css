@@ -48,9 +48,9 @@
 .mm-out{color:#9a3b2a}.mm-in{color:#2e6b34}.mm-bad{color:#9a3b2a}
 .mm-inline-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:14px;padding:0;color:#7a1f2b;font-weight:600}
 .modal.m-sheet .modal-actions.mm-foot{flex-wrap:nowrap}
-.modal.m-sheet .modal-actions.mm-foot .btn{flex:1 1 0;min-width:0;padding:10px 8px;gap:6px;white-space:nowrap}
+.modal.m-sheet .modal-actions.mm-foot .btn{flex:1 1 0;min-width:0;padding:10px 12px;gap:6px;white-space:nowrap}
 .modal.m-sheet .modal-actions.mm-foot .btn.mm-foot-main{flex:1.6 1 0}
-@media(max-width:380px){.modal.m-sheet .mm-foot .btn:not(.mm-foot-main) svg{display:none}}
+@media(max-width:430px){.modal.m-sheet .mm-foot .btn:not(.mm-foot-main) svg{display:none}}
 .mm-more-list{display:flex;flex-direction:column;margin-bottom:12px}
 .mm-slot-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .mm-slot-actions .btn{min-height:48px;flex:1 1 45%}

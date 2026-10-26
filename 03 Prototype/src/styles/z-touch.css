@@ -22,7 +22,8 @@
   .modal.m-sheet .form label,.modal .form label{font-size:16px}
   .mm-seg button,.modal.m-sheet .f-seg button{min-height:var(--hcc-touch-primary,48px)}
   .mm-seg b{font-size:14px}
-  .m-demo-pill{font-size:14px}
+  .m-demo-pill{font-size:16px}
+  .modal.m-sheet .m-chips button{min-height:var(--hcc-touch-primary,48px);font-size:16px}
 }
 /* PB-3: phone button text is 16 px. Many per-screen rules (m-*.css, mobile-*.css) set 15 px on .btn / segment / chip buttons inside .m-shell and
    .modal.m-sheet; this file loads last, and !important keeps those from winning on specificity. Child badges keep their own sizes (V9-2). */
