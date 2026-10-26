@@ -1,13 +1,13 @@
 // CP-3a · colour-token migration for the core + phone shell stylesheets. Names prefixed [CT-A].
 // Proves "no visible change": resolving every var(--c-…) / semantic var back to its hex gives the ORIGINAL css (git 799e4cc).
-import {readFileSync,existsSync} from 'node:fs';
+import {readFileSync,existsSync,readdirSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
-import {tokenizeColours,resolveTokens,hexKey,SEMANTIC} from '../tools/cssTokens.mjs';
+import {tokenizeColours,resolveTokens,hexKey,SEMANTIC,TOKEN_SHEET,TOKEN_HEADER,parseTokenSheet} from '../tools/cssTokens.mjs';
 import {buildBundleCss} from '../tools/cssTextScale.mjs';
 
 const BASE='799e4cc';
 const FILES=['src/styles.css',...['home','mobile','mobile-frontdesk','mobile-money','mobile-ops','search','demo','native','sync','y-a11y','z-tablet','z-touch','zz-print'].map(f=>'src/styles/'+f+'.css')];
-const SHEET='src/styles/0-tokens-a.css';
+const SHEET=TOKEN_SHEET; // CP-5: the three CP-3 sheets are merged into src/styles/0-tokens.css
 const orig=f=>execFileSync('git',['show',`${BASE}:03 Prototype/${f}`],{maxBuffer:1<<26}).toString('utf8');
 const cur=f=>readFileSync(f,'utf8');
 const ws=s=>s.replace(/\s+/g,' ').trim();
@@ -17,7 +17,8 @@ const strip=s=>s.replace(/\/\*[\s\S]*?\*\//g,'');
 
 const bundle=await buildBundleCss('.');
 const sheet=cur(SHEET);
-const defs=new Map([...sheet.matchAll(/^(--c-[0-9a-f]+):(#[0-9a-f]+);$/gm)].map(m=>[m[1],m[2]]));
+const defs=parseTokenSheet(sheet);
+const ALL_FILES=['src/styles.css',...readdirSync('src/styles').filter(f=>f.endsWith('.css')).map(f=>'src/styles/'+f)];
 const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2];};
 const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
 /** (selector, colour, background, ratio) for every rule with both a 6-digit colour and background(-color) */
@@ -53,16 +54,17 @@ export function register({test,assert}){
       assert.deepEqual(css.match(/:\s*[^;{}]*#[0-9a-fA-F]{3,8}\b/g)||[],[],f);
     }
   });
-  test('[CT-A] every var(--c-…) used in the converted files has a definition in 0-tokens-a.css, and none is unused',()=>{
-    const used=new Set();
+  test('[CT-A] every var(--c-…) used in the converted files has a definition in 0-tokens.css, and none is unused by the stylesheets',()=>{
+    const used=new Set(),any=new Set();
+    for(const f of ALL_FILES)for(const m of cur(f).matchAll(/var\((--c-[0-9a-f]+)\)/g))any.add(m[1]);
     for(const f of FILES)for(const m of cur(f).matchAll(/var\((--c-[0-9a-f]+)\)/g))used.add(m[1]);
     for(const u of used)assert.ok(defs.has(u),u+' undefined');
-    for(const d of defs.keys())assert.ok(used.has(d),d+' defined but unused');
+    for(const d of defs.keys())assert.ok(any.has(d),d+' defined but unused');
     assert.ok(used.size>=100,'token count '+used.size);
   });
   test('[CT-A] token sheet: header comment, exactly one :root block, sorted one-per-line, value equals the key, no semantic duplicates',()=>{
     const lines=sheet.split(/\r?\n/);
-    assert.equal(lines[0],'/* CP-3a colour tokens — light theme values; the lead merges 0-tokens-{a,b,c}.css into styles.css */');
+    assert.equal(lines[0],TOKEN_HEADER);
     assert.equal((sheet.match(/:root\{/g)||[]).length,1);
     const body=lines.slice(2,lines.indexOf('}'));
     assert.deepEqual(body,[...body].sort((a,b)=>{const x=a.split(":")[0],y=b.split(":")[0];return x<y?-1:x>y?1:0;}));
@@ -107,8 +109,8 @@ export function register({test,assert}){
     assert.ok(low.length<=3,'low-contrast pairs: '+low.join('; '));
   });
   test('[CT-A] bundle: the token sheet loads right after styles.css and every --c- variable used in the bundle from these files is defined once',()=>{
-    const at=bundle.indexOf('/* CP-3a colour tokens');
-    assert.ok(at>0&&at<bundle.indexOf('.app-shell')+200000);assert.equal(bundle.split('/* CP-3a colour tokens').length,2);
+    const at=bundle.indexOf(TOKEN_HEADER);
+    assert.ok(at>0&&at<bundle.indexOf('.app-shell')+200000);assert.equal(bundle.split(TOKEN_HEADER).length,2);
     for(const [k,v] of defs)assert.ok(bundle.includes(`${k}:${v};`),k);
     if(existsSync('dist/index.html'))assert.ok(readFileSync('dist/index.html','utf8').includes('--c-'));
   });

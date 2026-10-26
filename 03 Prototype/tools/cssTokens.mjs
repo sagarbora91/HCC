@@ -1,8 +1,8 @@
-// cssTokens.mjs - generic colour-literal <-> CSS-variable migration helper (CP-3).
+// cssTokens.mjs - generic colour-literal <-> CSS-variable migration helper (CP-3; the one tokenizer since CP-5 merged the .b/.c copies).
 //   tokenizeColours(css) -> {css, tokens, stats}   hex literal -> var(--c-<key>) / semantic var
 //   resolveTokens(css, tokens) -> css              inverse (var(...) -> hex literal)
 // Only hex literals in declaration values are converted. Skipped: url(...), comments, strings,
-// selectors/at-rule preludes, and custom-property DEFINITIONS inside :root blocks.
+// selectors/at-rule preludes, and custom-property DEFINITIONS (in any block).
 // rgb()/rgba()/hsl()/hsla() and named colours are left untouched (counted in stats).
 
 export const SEMANTIC = new Map([
@@ -100,8 +100,7 @@ export function tokenizeColours(css) {
   const top = () => stack[stack.length - 1];
   const after = () => (top() && top().kind === 'decl' ? 'prop' : 'rules');
   const flushValue = () => {
-    const root = top() && top().root;
-    if (root && prop.trim().startsWith('--')) out += value;
+    if (prop.trim().startsWith('--')) out += value; // custom-property definitions are never rewritten (anywhere; .c copy folded in)
     else out += convertValue(value, tokens, stats);
     value = '';
   };
@@ -147,7 +146,7 @@ export function tokenizeColours(css) {
   }
   if (state === 'value') flushValue();
   const sorted = new Map([...tokens.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)));
-  return { css: out, tokens: sorted, stats };
+  return { css: out, tokens: sorted, stats, left: { fn: stats.rgb, named: stats.named } };
 }
 
 /** inverse: var(--c-xxx) / var(--semantic) -> literal colour. Unknown vars are untouched. */
@@ -163,3 +162,21 @@ export function tokenSheet(tokens, header) {
   const lines = [...tokens.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).map(([n, v]) => `${n}:${v};`);
   return `${header}\n:root{\n${lines.join('\n')}\n}\n`;
 }
+
+/** The same semantic mapping as variable -> '#hex' (resolveTokens input, styles.css :root values). */
+export const SEMANTIC_TOKENS = new Map([...SEMANTIC].map(([hex, name]) => [name, hex]));
+
+/** Lowercase every hex literal and expand #abc -> #aabbcc, #abcd -> #aabbccdd, so original and resolved CSS compare equal. */
+export function canonHex(css) {
+  return css.replace(/#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?![\w-])/g, (m) => '#' + hexKey(m));
+}
+
+// ── The single token sheet (CP-5): src/styles/0-tokens.css holds every --c-<hex> light value, sorted, one per line. ──
+export const TOKEN_SHEET = 'src/styles/0-tokens.css';
+export const TOKEN_HEADER = '/* Colour tokens: the light palette, one --c-<hex> per colour used in the stylesheets (CP-3, merged into one sheet by CP-5). Generated: tools/cssTokens.mjs; themes re-point them in themes.css */';
+/** --c-name -> '#hex' for every definition line of the token sheet. */
+export function parseTokenSheet(text) {
+  return new Map([...text.matchAll(/^(--c-[0-9a-f]+):(#[0-9a-f]+);$/gm)].map((m) => [m[1], m[2]]));
+}
+/** The canonical 0-tokens.css text for a token map. */
+export const tokenSheetFile = (tokens) => tokenSheet(tokens, TOKEN_HEADER);
