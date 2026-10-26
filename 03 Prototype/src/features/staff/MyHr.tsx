@@ -8,7 +8,7 @@ import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {ListCard,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {
   money,isDayClosed,hrSlice,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,hrLeaveBalance,hrVisiblePayslips,
-  hrMonthLabel,hrApprovedLeaveOn,hrCheckinStatus,hrFy,HR_ATT_LABEL,hrLeaveName,HR_WEEKDAYS,type HRStaff,type HRRun,type HRLine,type HRLeave,
+  hrMonthLabel,hrApprovedLeaveOn,hrCheckinStatus,hrFy,HR_ATT_LABEL,hrLeaveName,hrHolidayOn,HR_WEEKDAYS,type HRStaff,type HRRun,type HRLine,type HRLeave,
 } from '../../services/mock';
 
 export const hrLeaveTone=(st:string)=>st==='Approved'?'green':st==='Pending'?'orange':'neutral';
@@ -44,7 +44,7 @@ export function MyHr({phone=false}:{phone?:boolean}){
   const myLeaves=hrSlice(s).leaves.filter(l=>l.staffId===me.id).sort((a,b)=>b.from.localeCompare(a.from));
   const slips=hrVisiblePayslips(s,uid).filter(p=>p.line.staffId===me.id);
   const bal=hrLeaveBalance(s,me.id,s.date),fy=hrFy(s.date).label,latest=slips[0];
-  const todayStatus=att?<Pill tone={hrAttTone(att.status)}>{HR_ATT_LABEL[att.status]} · {att.at.slice(11)}</Pill>:leave?<Pill tone="blue">On leave</Pill>:shift==='OFF'?<Pill>Off</Pill>:<Pill tone="orange">Not checked in</Pill>;
+  const todayStatus=att?<Pill tone={hrAttTone(att.status)}>{HR_ATT_LABEL[att.status]} · {att.at.slice(11)}</Pill>:leave?<Pill tone="blue">On leave</Pill>:shift==='OFF'?<Pill>Off</Pill>:hrHolidayOn(s,s.date)?<Pill tone="green">{hrHolidayOn(s,s.date)!.kind==='paid'?'Paid holiday':'Restricted holiday'} · {hrHolidayOn(s,s.date)!.name}</Pill>:<Pill tone="orange">Not checked in</Pill>;
   const dayCell=(d:string)=>{const x=hrDayStatus(s,me,d),sh=hrShiftInfo(hrShiftFor(s,me,d),s);
     const st=x.kind==='att'?HR_ATT_LABEL[x.att!.status]:x.kind==='leave'?'Leave':x.kind==='off'?'Off':x.kind==='holiday'?'Holiday':d<s.date?'Unmarked':d===s.date?'Today':'';
     return {sh,st};};

@@ -29,7 +29,7 @@ public sealed record DeletePeopleListResult(int Id, string Code, bool Deleted);
 public sealed record DesignationView(int DesignationId, string Code, string Name, int SortOrder, bool Active, string? RetiredOn, string? Dept, string? Grade,
     string? DefaultPayRule, int Used, string UpdatedUtc, string Version);
 
-/// <summary>SaveDesignation K [V]: <c>DesignationId</c> null = create. <c>DefaultPayRule</c> changes need PERM-MST-002 (Owner).</summary>
+/// <summary>SaveDesignation K [V]: <c>DesignationId</c> null = create. <c>DefaultPayRule</c> changes need PERM-MST-002 (Owner); null on an edit = unchanged, "" = cleared.</summary>
 public sealed record SaveDesignationRequest(int? DesignationId, string Code, string Name, int? SortOrder = null, string? Dept = null, string? Grade = null,
     string? DefaultPayRule = null, string? ExpectedVersion = null);
 

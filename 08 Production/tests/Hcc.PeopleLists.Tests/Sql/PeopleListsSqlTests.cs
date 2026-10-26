@@ -216,6 +216,12 @@ public sealed class PeopleListsSqlTests(PeopleDb db) : IClassFixture<PeopleDb>
         await Hotel.FailsAsync(() => h.Lists.SaveDesignationAsync(h.As("owner", "SaveDesignation", "d1"), new SaveDesignationRequest(null, "CHEF", "Chef", null, "ZZ"), Ct), HccErrorCode.VALIDATION, MasterReasons.Invalid);
         var chef = (await h.Lists.SaveDesignationAsync(h.As("owner", "SaveDesignation", "d2"), new SaveDesignationRequest(null, "chef", "Chef", null, "kit", "G3", "monthly-basic"), Ct)).Value;
         Assert.Equal(("CHEF", "KIT", "G3", "monthly-basic"), (chef.Code, chef.Dept, chef.Grade, chef.DefaultPayRule));
+        // The Tech admin cannot see the pay rule, so their save leaves it out (null = unchanged); the Owner's "" clears it.
+        var tech = (await h.Lists.SaveDesignationAsync(h.As("techadmin", "SaveDesignation", "d2b"), new SaveDesignationRequest(chef.DesignationId, "CHEF", "Chef", null, "KIT", "G4", null, chef.Version), Ct)).Value;
+        Assert.Equal(("G4", "monthly-basic"), (tech.Grade, tech.DefaultPayRule));
+        var cleared = (await h.Lists.SaveDesignationAsync(h.As("owner", "SaveDesignation", "d2c"), new SaveDesignationRequest(chef.DesignationId, "CHEF", "Chef", null, "KIT", "G4", "", tech.Version), Ct)).Value;
+        Assert.Null(cleared.DefaultPayRule);
+        chef = (await h.Lists.SaveDesignationAsync(h.As("owner", "SaveDesignation", "d2d"), new SaveDesignationRequest(chef.DesignationId, "CHEF", "Chef", null, "KIT", "G3", "monthly-basic", cleared.Version), Ct)).Value;
         await Hotel.FailsAsync(() => h.Lists.SaveDesignationAsync(h.As("owner", "SaveDesignation", "d3"), new SaveDesignationRequest(null, "CHEF", "Head chef"), Ct), HccErrorCode.VALIDATION, MasterReasons.CodeTaken);
         await Hotel.FailsAsync(() => h.Lists.SaveDesignationAsync(h.As("owner", "SaveDesignation", "d4"), new SaveDesignationRequest(null, "HEAD", "Chef"), Ct), HccErrorCode.VALIDATION, MasterReasons.Invalid);
         var staff = await h.AddStaffAsync("Asha", dept: "KIT", designation: "x", designationCode: "CHEF");

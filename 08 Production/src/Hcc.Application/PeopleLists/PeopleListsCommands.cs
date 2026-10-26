@@ -74,7 +74,8 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
 
     // ── Save ──
 
-    private async Task<CommandResult<TView>> SaveAsync<TView>(PeopleList l, CommandContext ctx, object req, int? id, string? version, CleanListRow clean, Func<ListRec, int, TView> view, CancellationToken ct)
+    private async Task<CommandResult<TView>> SaveAsync<TView>(PeopleList l, CommandContext ctx, object req, int? id, string? version, CleanListRow cleanIn, Func<ListRec, int, TView> view, CancellationToken ct,
+        Func<ListRec, CleanListRow, CleanListRow>? keepHidden = null)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         await RequireAsync(ctx, l, ct).ConfigureAwait(false);
@@ -85,6 +86,7 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
             await store.EnsureSeededAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var rows = await store.LockRowsAsync(tx, l, ctx.PropertyId, c).ConfigureAwait(false);
             ListRec? old = null;
+            var clean = cleanIn;
             if (id is { } oid)
             {
                 old = rows.FirstOrDefault(r => r.Id == oid) ?? throw new HccException(HccErrorCode.NOT_FOUND, $"This {PeopleListsRules.Singular(l)} was not found.");
@@ -92,6 +94,7 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
                 MastersRules.EnsureActive(old.Active, old.Name);
                 var used = await UsageAsync(tx, ctx.PropertyId, l, oid, c).ConfigureAwait(false);
                 MastersRules.EnsureCodeMayChange(old.Code, clean.Code, used.Count, UsedBy(l));
+                if (keepHidden is not null) clean = keepHidden(old, clean);
             }
 
             if (rows.Any(r => r.Id != old?.Id && string.Equals(r.Code, clean.Code, StringComparison.Ordinal)))
@@ -293,8 +296,9 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
     public Task<CommandResult<DesignationView>> SaveDesignationAsync(CommandContext ctx, SaveDesignationRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(req);
+        // DefaultPayRule null = unchanged (the pay rule is hidden from roles without PERM-MST-002 / PERM-HR-005, so their form cannot send it back); "" = cleared.
         return SaveAsync(PeopleList.Designations, ctx, req, req.DesignationId, req.ExpectedVersion, PeopleListsRules.Designation(req.Code, req.Name, req.SortOrder, req.Dept, req.Grade, req.DefaultPayRule),
-            (r, u) => ToDesignation(r, u), ct);
+            (r, u) => ToDesignation(r, u), ct, req.DefaultPayRule is null ? (old, c) => c with { Fields = new Dictionary<string, object?>(c.Fields) { ["defaultPayRule"] = old.Text("defaultPayRule") } } : null);
     }
 
     public Task<CommandResult<DesignationView>> RetireDesignationAsync(CommandContext ctx, RetireDesignationRequest req, CancellationToken ct = default)

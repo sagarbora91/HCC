@@ -590,7 +590,7 @@ export function hrSettingDefs():HRSettingDef[]{
     rate('hr.ot','Overtime rate','percent','× ordinary hourly rate',['otBps'],'SCC pays overtime at the ordinary daily rate (1×).'),
     rate('hr.late','Late marks rule','integer','late marks per ½-day loss of pay',['lateBlock'],'SCC: 3 late marks = ½ day.'),
     rate('hr.rounding','Statutory rounding','text','paise / rupee',['rounding'],'SCC rounds to paise; "rupee" rounds PF to the nearest rupee and ESIC up to the next rupee.'),
-    leave('hr.leave.ent','Yearly leave entitlement','integer','days per financial year (CL / SL / EL)',['ent'],'SCC defaults: casual 12, sick 7, earned 15 (April–March).'),
+    leave('hr.leave.ent','Yearly leave entitlement','integer','days per financial year (CL / SL / EL)',['ent'],'SCC defaults: casual 12, sick 7, earned 15 (April–March). Each type also has its own carry-forward, paid / unpaid and encashment setting in Master configuration › People › Leave types.'),
     leave('hr.leave.cap','Maximum staff off per department per day','integer','staff (pending + approved)',['defaultCap','deptCap'],'SCC MAX_DAY capacity, applied per department.'),
     leave('hr.leave.half','Half-day leave','fixed','first half / second half = 0.5 day',[],'Always on (SCC leaveDaysOf).',false),
     leave('hr.leave.weeklyoff','Weekly offs','fixed','one day per staff member',[],'Weekly offs inside leave dates are skipped (SCC isWeekOffDate).',false),

@@ -125,6 +125,15 @@ export const READS={
   // MA-0 masters: floor names label every board (any signed-in user); the change history needs masters.manage (PERM-MST-001).
   'GET /masters/floors':always,
   'GET /masters/floors/history':one(wide('PERM-MST-001')),
+  // MA-6 people lists: designations, shift patterns, leave types and holidays label staff, roster and leave screens (any signed-in user); history needs PERM-MST-001.
+  'GET /hr/designations':always,
+  'GET /hr/designations/history':one(wide('PERM-MST-001')),
+  'GET /hr/shift-patterns':always,
+  'GET /hr/shift-patterns/history':one(wide('PERM-MST-001')),
+  'GET /hr/leave-types':always,
+  'GET /hr/leave-types/history':one(wide('PERM-MST-001')),
+  'GET /hr/holidays':always,
+  'GET /hr/holidays/history':one(wide('PERM-MST-001')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

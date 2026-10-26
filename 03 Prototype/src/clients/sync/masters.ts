@@ -2,6 +2,8 @@
 //
 //   server   GET /masters/floors (every signed-in user: floor names label the boards), GET /masters/floors/history (PERM-MST-001),
 //            POST /commands/{SaveFloor,RetireFloor,ReactivateFloor,ReorderFloors,DeleteFloor} (PERM-MST-001; expectedVersion on edits).
+//            MA-6: the same for designations, shift patterns, leave types and holidays on /hr/{designations,shift-patterns,leave-types,holidays} (any signed-in user reads;
+//            holidays and the pay fields need PERM-MST-002).
 //   loaders  mastersX ← rows of every master in MST_SERVER (+ their history when the user may read it). Prototype row id = String(server id).
 //   commands MST_MASTER_SAVE / _RETIRE / _REACTIVATE / _REORDER / _DELETE {master,…} → the master's server commands. A master that is
 //            not in MST_SERVER is refused before any network call ("Not available on the server yet: <list>").
@@ -18,13 +20,39 @@ type SrvFloor={floorId:number;code:string;name:string;sortOrder:number;active:bo
 type SrvPage<T>={page:number;pageSize:number;total:number;items:T[]};
 type SrvHistory={historyId:number;rowId:number;code:string|null;field:string;oldValue:string|null;newValue:string|null;changedBy:number;changedByName:string|null;changedUtc:string};
 
-/** One server-backed master: list + history routes, command names, id field names and the id-directory kind for versions. */
+/** One server-backed master: list + history routes, command names, id field names and the id-directory kind for versions.
+ *  A master whose rows carry fields beyond code / name / sortOrder / active (MA-6 people lists) adds `fromServer` (server row → prototype row)
+ *  and `saveFields` (prototype row → the extra fields of its Save command); without them the row shape is the Floors one. */
 export type MstServerRoute={list:ReadRoute;history:ReadRoute;listPath:string;historyPath:string;kind:string;idField:string;idsField:string;
-  save:string;retire:string;reactivate:string;reorder:string;remove:string};
+  save:string;retire:string;reactivate:string;reorder:string;remove:string;
+  fromServer?:(row:Record<string,unknown>)=>MasterRow;saveFields?:(row:Record<string,unknown>)=>Record<string,unknown>};
 export const MST_SERVER:Record<string,MstServerRoute>={
   floors:{list:'GET /masters/floors',history:'GET /masters/floors/history',listPath:'/masters/floors',historyPath:'/masters/floors/history',kind:'floor',idField:'floorId',idsField:'floorIds',
     save:'SaveFloor',retire:'RetireFloor',reactivate:'ReactivateFloor',reorder:'ReorderFloors',remove:'DeleteFloor'},
+  // MA-6 people lists (server module PeopleLists: hr.designation, hr.shift_pattern, hr.leave_type, hr.holiday).
+  designations:{list:'GET /hr/designations',history:'GET /hr/designations/history',listPath:'/hr/designations',historyPath:'/hr/designations/history',kind:'designation',idField:'designationId',idsField:'designationIds',
+    save:'SaveDesignation',retire:'RetireDesignation',reactivate:'ReactivateDesignation',reorder:'ReorderDesignations',remove:'DeleteDesignation',
+    fromServer:r=>({...listBase(r,'designationId'),...optional(r,['dept','grade','defaultPayRule'])}),
+    // The pay rule is hidden from roles without PERM-MST-002 / PERM-HR-005: absent = unchanged on the server, "" = cleared.
+    saveFields:r=>({dept:r.dept??null,grade:r.grade??null,...(r.defaultPayRule!==undefined?{defaultPayRule:r.defaultPayRule}:{})})},
+  shiftPatterns:{list:'GET /hr/shift-patterns',history:'GET /hr/shift-patterns/history',listPath:'/hr/shift-patterns',historyPath:'/hr/shift-patterns/history',kind:'shiftPattern',idField:'shiftPatternId',idsField:'shiftPatternIds',
+    save:'SaveShiftPattern',retire:'RetireShiftPattern',reactivate:'ReactivateShiftPattern',reorder:'ReorderShiftPatterns',remove:'DeleteShiftPattern',
+    fromServer:r=>({...listBase(r,'shiftPatternId'),start:r.start,end:r.end,breakMinutes:r.breakMinutes,night:!!r.night,weeklyOffRule:r.weeklyOffRule}),
+    saveFields:r=>({start:r.start,end:r.end,breakMinutes:r.breakMinutes??0,night:!!r.night,weeklyOffRule:r.weeklyOffRule??'fixed'})},
+  leaveTypes:{list:'GET /hr/leave-types',history:'GET /hr/leave-types/history',listPath:'/hr/leave-types',historyPath:'/hr/leave-types/history',kind:'leaveType',idField:'leaveTypeId',idsField:'leaveTypeIds',
+    save:'SaveLeaveType',retire:'RetireLeaveType',reactivate:'ReactivateLeaveType',reorder:'ReorderLeaveTypes',remove:'DeleteLeaveType',
+    fromServer:r=>({...listBase(r,'leaveTypeId'),paid:!!r.paid,...optional(r,['yearlyQuota']),carryForward:r.carryForward,encashment:!!r.encashment}),
+    saveFields:r=>({paid:r.paid!==false,yearlyQuota:r.yearlyQuota??null,carryForward:r.carryForward??0,encashment:!!r.encashment})},
+  holidays:{list:'GET /hr/holidays',history:'GET /hr/holidays/history',listPath:'/hr/holidays',historyPath:'/hr/holidays/history',kind:'holiday',idField:'holidayId',idsField:'holidayIds',
+    save:'SaveHoliday',retire:'RetireHoliday',reactivate:'ReactivateHoliday',reorder:'ReorderHolidays',remove:'DeleteHoliday',
+    fromServer:r=>({...listBase(r,'holidayId'),kind:r.kind}),
+    saveFields:r=>({kind:r.kind})},
 };
+/** Framework columns of any server list row → prototype MasterRow base (id = String(server id)). */
+const listBase=(r:Record<string,unknown>,idField:string):MasterRow=>({id:protoId(r[idField] as number),code:String(r.code),name:String(r.name),sortOrder:Number(r.sortOrder),active:!!r.active,
+  ...(r.retiredOn?{retiredOn:String(r.retiredOn)}:{})});
+/** Only the keys the server sent with a value (null = hidden or empty). */
+const optional=(r:Record<string,unknown>,keys:string[])=>Object.fromEntries(keys.filter(k=>r[k]!==null&&r[k]!==undefined).map(k=>[k,r[k]]));
 const PAGE=200;
 
 export function floorFromServer(f:SrvFloor):MasterRow{
@@ -44,9 +72,9 @@ async function loadMasters(c:LoaderCtx):Promise<MSTState>{
   const out:MSTState={rows:{},history:[]};
   for(const [master,r] of Object.entries(MST_SERVER)){
     if(!c.mayRead(r.list))continue;
-    const rows=await pages<SrvFloor>(c,r.listPath);
-    for(const f of rows)c.ids.setVersion(r.kind,protoId(f.floorId),f.version);
-    out.rows[master]=rows.map(floorFromServer);
+    const rows=await pages<Record<string,unknown>>(c,r.listPath);
+    for(const f of rows)c.ids.setVersion(r.kind,protoId(f[r.idField] as number),String(f.version));
+    out.rows[master]=rows.map(f=>r.fromServer?r.fromServer(f):floorFromServer(f as unknown as SrvFloor));
     if(c.mayRead(r.history))out.history.push(...(await pages<SrvHistory>(c,r.historyPath)).map(h=>historyFromServer(master,h)));
   }
   out.history.sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:Number(b.id)-Number(a.id));
@@ -66,6 +94,7 @@ function idOf(c:CommandCtx,r:MstServerRoute,id:unknown){
 function saveBody(c:CommandCtx,r:MstServerRoute,row:Record<string,unknown>):{body:Record<string,unknown>;expectedVersion?:string}{
   const body:Record<string,unknown>={code:String(row.code??'').trim().toUpperCase(),name:String(row.name??'').trim()};
   if(row.sortOrder!==undefined&&row.sortOrder!==null&&row.sortOrder!=='')body.sortOrder=Number(row.sortOrder);
+  if(r.saveFields)Object.assign(body,r.saveFields(row));
   if(row.id){body[r.idField]=idOf(c,r,row.id);return {body,expectedVersion:version(c,r,String(row.id))};}
   return {body};
 }
