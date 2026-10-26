@@ -54,6 +54,17 @@ export function register({test,M,assert}){
     assert.deepEqual([gstForFood(s,s.date).bps,gstForFood(s,s.date).itc],[500,false]);
     assert.deepEqual(gstFy('2026-03-31'),{label:'2025-26',from:'2025-04-01',to:'2026-03-31'});assert.equal(gstFy('2026-04-01').label,'2026-27');
   });
+  test('[GST] A03a-02: a night above ₹7,500 posted by mistake and reversed never makes next FY specified premises',()=>{
+    // The prototype derives the status from tariffs only (G5; the server also counts nights actually charged, minus reversed ones).
+    let [s,id]=inhouse(seed(),'106');bk(s,id).rate=900000;s=execute(s,'owner',{type:'POST_NIGHTS',id});
+    const night=bk(s,id).lines.find(l=>l.kind==='room');assert.deepEqual([night.amount,night.taxBps],[900000,1800]);
+    s=execute(s,'reception',{type:'CORRECTION_REQUEST',id,lineId:night.id,reason:'Posted at the wrong rate'});
+    s=execute(s,'owner',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
+    assert.ok(bk(s,id).lines.some(l=>l.reversalOf===night.id));
+    const sp=gstSpecifiedPremises(s,'2027-04-01');
+    assert.deepEqual([sp.prevFy,sp.specified,sp.derived,sp.maxPrevTariff],['2026-27',false,false,450000]);
+    assert.equal(gstForFood(s,'2027-04-01').bps,500);
+  });
   test('[GST] specified premises derived from last FY: a unit above ₹7,500 in FY 2025-26 → 18 % with ITC in FY 2026-27',()=>{
     const s=seed();s.tariffs=[{type:'Suite',rate:800000,effectiveFrom:'2025-06-01'},{type:'Suite',rate:450000,effectiveFrom:'2025-07-01'}];
     const sp=gstSpecifiedPremises(s,s.date);assert.equal(sp.specified,true);assert.equal(sp.derived,true);assert.equal(sp.maxPrevTariff,800000);

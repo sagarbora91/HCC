@@ -98,7 +98,15 @@ public class InvoiceRulesTests
         Assert.Throws<HccException>(() => InvoiceRules.Recipient("B2C", null, null, null, "28", "27", P(1))); // 28 is not a state code
     }
 
-    private static IReadOnlyList<CreditableLine> Fresh(IEnumerable<InvoiceLine> lines) => lines.Select(l => new CreditableLine(l, Paise.Zero, Paise.Zero)).ToList();
+    private static IReadOnlyList<CreditableLine> Fresh(IEnumerable<InvoiceLine> lines) => lines.Select(l => new CreditableLine(l, Paise.Zero, Paise.Zero, Paise.Zero, Paise.Zero)).ToList();
+
+    /// <summary>The invoice lines with every credit-note line issued so far added up per invoice line (as <c>CreditedAsync</c> reads them).</summary>
+    private static IReadOnlyList<CreditableLine> After(IEnumerable<InvoiceLine> lines, params IEnumerable<CreditLine>[] notes) => lines.Select(l =>
+    {
+        var c = notes.SelectMany(n => n).Where(x => x.InvoiceLineNo == l.LineNo).ToList();
+        Paise Sum(Func<CreditLine, Paise> f) => c.Aggregate(Paise.Zero, (a, x) => a + f(x));
+        return new CreditableLine(l, Sum(x => x.Taxable), Sum(x => x.Tax), Sum(x => x.Cgst), Sum(x => x.Sgst));
+    }).ToList();
 
     [Fact]
     public void Golden_credit_note_100_rupees_on_a_room_only_stay_is_105_rupees()
@@ -150,9 +158,9 @@ public class InvoiceRulesTests
         // After a ₹4,000 credit only the full mode (which also reverses the discount) has anything left: nothing net.
         var credited = inv.Select(l => l.LineNo switch
         {
-            1 => new CreditableLine(l, P(200000), P(10000)),
-            2 => new CreditableLine(l, P(200000), P(10000)),
-            _ => new CreditableLine(l, Paise.Zero, Paise.Zero),
+            1 => new CreditableLine(l, P(200000), P(10000), P(5000), P(5000)),
+            2 => new CreditableLine(l, P(200000), P(10000), P(5000), P(5000)),
+            _ => new CreditableLine(l, Paise.Zero, Paise.Zero, Paise.Zero, Paise.Zero),
         }).ToList();
         Assert.Equal(HccErrorCode.INVALID_TRANSITION, Assert.Throws<HccException>(() => CreditNoteRules.Plan(credited, CreditMode.Amount, P(1), null, false)).Code);
     }
@@ -160,19 +168,100 @@ public class InvoiceRulesTests
     [Fact]
     public void Rounding_never_credits_more_tax_than_was_charged()
     {
-        // ₹0.10 at 5 % = 0.5 → 1 paisa; crediting 5 + 5 paise would credit 1 + 1 = 2 paise of tax: the second credit is refused.
+        // ₹0.10 at 5 % = 0.5 → 1 paisa. Crediting 5 paise (0.25 → 0) and then the remaining 5 paise credits exactly the 1 paisa left
+        // (A03a-04: a whole remainder carries the tax still on the line, as pieces that each follow the per-line rule: −5 at 0 + 10 at 1).
         var inv = InvoiceRules.BuildLines([Line(1, "service", GstCategory.Food, 10, 500)], false);
         var first = CreditNoteRules.Plan(Fresh(inv), CreditMode.Lines, null, [new RequestedCreditLine(1, P(5))], false);
         Assert.Equal(0L, first[0].Tax.Value); // 0.25 → 0
-        var after = new[] { new CreditableLine(inv[0], P(5), first[0].Tax) };
-        var second = CreditNoteRules.Plan(after, CreditMode.Full, null, null, false);
-        Assert.Equal(0L, second[0].Tax.Value);
-        var inv2 = InvoiceRules.BuildLines([Line(1, "service", GstCategory.Food, 30, 500)], false); // tax 1.5 → 2
-        var part = new[] { new CreditableLine(inv2[0], P(10), P(1)) };                              // 0.5 → 1
-        var ok = CreditNoteRules.Plan(part, CreditMode.Lines, null, [new RequestedCreditLine(1, P(10))], false); // 0.5 → 1, total 2
+        var second = CreditNoteRules.Plan(After(inv, first), CreditMode.Full, null, null, false);
+        Assert.Equal((5L, 1L), (CreditNoteRules.Totals(second).Taxable.Value, CreditNoteRules.Totals(second).Tax.Value));
+        Assert.All(second, l => Assert.Equal(MoneyMath.TaxOf(l.Taxable, 500), l.Tax));
+        var inv2 = InvoiceRules.BuildLines([Line(1, "service", GstCategory.Food, 40, 500)], false); // tax 2
+        var part = CreditNoteRules.Plan(Fresh(inv2), CreditMode.Lines, null, [new RequestedCreditLine(1, P(10))], false);   // 0.5 → 1
+        var ok = CreditNoteRules.Plan(After(inv2, part), CreditMode.Lines, null, [new RequestedCreditLine(1, P(10))], false); // 0.5 → 1, total 2
         Assert.Equal(1L, ok[0].Tax.Value);
-        var over = new[] { new CreditableLine(inv2[0], P(20), P(2)) };
-        Assert.Throws<HccException>(() => CreditNoteRules.Plan(over, CreditMode.Full, null, null, false)); // 10 more paise → 1 more paisa > 2 charged
+        // 10 more paise (not the whole remainder) → 1 more paisa > 2 charged: refused.
+        Assert.Throws<HccException>(() => CreditNoteRules.Plan(After(inv2, part, ok), CreditMode.Lines, null, [new RequestedCreditLine(1, P(10))], false));
+        // The remaining 20 paise carry no tax: the full mode credits them at 0 (8 + 6 + 6 paise, each 0 by the per-line rule), never refused.
+        var rest = CreditNoteRules.Plan(After(inv2, part, ok), CreditMode.Full, null, null, false);
+        Assert.Equal((20L, 0L), (CreditNoteRules.Totals(rest).Taxable.Value, CreditNoteRules.Totals(rest).Tax.Value));
+    }
+
+    [Fact]
+    public void A03a_04_full_credit_after_a_half_paisa_partial_credits_exactly_the_rest_of_the_invoice()
+    {
+        // Probe V1_creditnote_halfpaisa.mjs: a ₹1,000 room line at 5 % (tax ₹50.00 = CGST 25.00 + SGST 25.00). A partial credit of ₹333.30 carries
+        // 1666.5 → 1667 paise of tax. The rest, ₹666.70, would carry 3333.5 → 3334 on its own (5001 in all: refused before the fix).
+        var inv = InvoiceRules.BuildLines([Line(1, "room", GstCategory.Room, 100000, 500)], false);
+        Assert.Equal((5000L, 2500L, 2500L), (inv[0].Tax.Value, inv[0].Cgst.Value, inv[0].Sgst.Value));
+        var partial = CreditNoteRules.Plan(Fresh(inv), CreditMode.Lines, null, [new RequestedCreditLine(1, P(33330))], false);
+        Assert.Equal((33330L, 1667L, 834L, 833L), (partial[0].Taxable.Value, partial[0].Tax.Value, partial[0].Cgst.Value, partial[0].Sgst.Value));
+
+        foreach (var (mode, amount, lines) in new (CreditMode, Paise?, IReadOnlyList<RequestedCreditLine>?)[]
+                 { (CreditMode.Full, null, null), (CreditMode.Amount, P(66670), null), (CreditMode.Lines, null, [new RequestedCreditLine(1, P(66670))]) })
+        {
+            var rest = CreditNoteRules.Plan(After(inv, partial), mode, amount, lines, false);
+            // 666.69 at 3333 (3333.45) + 0.01 at 0: each line follows the per-line rule; together exactly the ₹666.70 and ₹33.33 left.
+            Assert.Equal([(66669L, 3333L), (1L, 0L)], rest.Select(l => (l.Taxable.Value, l.Tax.Value)));
+            var t = CreditNoteRules.Totals(rest);
+            Assert.Equal((66670L, 1666L, 1667L, 70003L), (t.Taxable.Value, t.Cgst.Value, t.Sgst.Value, t.Total.Value));
+            var all = After(inv, partial, rest).Single();
+            Assert.Equal((100000L, 5000L, 2500L, 2500L), (all.CreditedTaxable.Value, all.CreditedTax.Value, all.CreditedCgst.Value, all.CreditedSgst.Value));
+            Assert.Equal(105000L, (CreditNoteRules.Totals(partial).Total + t.Total).Value); // the invoice's ₹1,050.00 exactly
+            Assert.Equal(HccErrorCode.INVALID_TRANSITION, Assert.Throws<HccException>(() => CreditNoteRules.Plan(After(inv, partial, rest), CreditMode.Full, null, null, false)).Code);
+        }
+
+        // The audit paper's figures: ₹2,000 at 5 % (₹100), ₹100.10 credited (500.5 → 501), then the line's remaining ₹1,899.90 by naming it.
+        var inv2 = InvoiceRules.BuildLines([Line(1, "room", GstCategory.Room, 200000, 500)], false);
+        var p2 = CreditNoteRules.Plan(Fresh(inv2), CreditMode.Lines, null, [new RequestedCreditLine(1, P(10010))], false);
+        Assert.Equal(501L, p2[0].Tax.Value);
+        var r2 = CreditNoteRules.Plan(After(inv2, p2), CreditMode.Lines, null, [new RequestedCreditLine(1, P(189990))], false);
+        Assert.Equal((189990L, 9499L), (CreditNoteRules.Totals(r2).Taxable.Value, CreditNoteRules.Totals(r2).Tax.Value));
+        var end = After(inv2, p2, r2)[0];
+        Assert.Equal((10000L, 5000L, 5000L), (end.CreditedTax.Value, end.CreditedCgst.Value, end.CreditedSgst.Value));
+    }
+
+    [Fact]
+    public void A03a_04_any_run_of_partial_credits_then_full_ends_at_exactly_the_invoice_tax_CGST_and_SGST()
+    {
+        var rnd = new Random(20261026);
+        for (var run = 0; run < 400; run++)
+        {
+            var src = Enumerable.Range(1, rnd.Next(1, 4)).Select(i =>
+            {
+                var (cat, bps) = rnd.Next(3) switch { 0 => (GstCategory.Room, 500), 1 => (GstCategory.Room, 1800), _ => (GstCategory.Laundry, 1800) };
+                return Line(i, "room", cat, rnd.Next(1, 300_000), bps);
+            }).ToList();
+            var inter = run % 10 == 9;
+            var inv = InvoiceRules.BuildLines(src, false);
+            if (inter) inv = inv.Select(l => l with { Cgst = Paise.Zero, Sgst = Paise.Zero, Igst = l.Tax }).ToList();
+            var notes = new List<IReadOnlyList<CreditLine>>();
+            for (var k = rnd.Next(0, 6); k > 0; k--)
+            {
+                var now = After(inv, [.. notes]);
+                try
+                {
+                    notes.Add(rnd.Next(2) == 0
+                        ? CreditNoteRules.Plan(now, CreditMode.Amount, P(rnd.Next(1, (int)Math.Max(2, CreditNoteRules.RemainingTaxable(now).Value / 3))), null, inter)
+                        : CreditNoteRules.Plan(now, CreditMode.Lines, null, [new RequestedCreditLine(1, P(rnd.Next(1, 40)))], inter));
+                }
+                catch (HccException)
+                {
+                    // A partial credit that would over-credit tax, or more than is left: refused; the run goes on.
+                }
+            }
+
+            if (CreditNoteRules.RemainingTaxable(After(inv, [.. notes])) > Paise.Zero)
+                notes.Add(CreditNoteRules.Plan(After(inv, [.. notes]), CreditMode.Full, null, null, inter));
+            foreach (var c in After(inv, [.. notes]))
+                Assert.Equal((c.Line.Taxable, c.Line.Tax, c.Line.Cgst, c.Line.Sgst), (c.CreditedTaxable, c.CreditedTax, c.CreditedCgst, c.CreditedSgst));
+            Assert.All(notes.SelectMany(n => n), l =>
+            {
+                Assert.Equal(MoneyMath.TaxOf(l.Taxable, l.Bps), l.Tax);
+                Assert.Equal(l.Tax, l.Cgst + l.Sgst + l.Igst);
+                Assert.True(Math.Abs((l.Cgst - l.Sgst).Value) <= 1);
+            });
+        }
     }
 
     [Fact]

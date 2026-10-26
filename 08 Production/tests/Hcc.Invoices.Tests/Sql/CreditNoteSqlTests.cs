@@ -103,6 +103,37 @@ public class CreditNoteSqlTests
     }
 
     [Fact]
+    public async Task A03a_04_full_credit_after_a_half_paisa_partial_is_issued_and_ends_at_exactly_the_invoice_tax_CGST_and_SGST()
+    {
+        await using var w = await InvoiceWorld.CreateAsync(ct: Ct);
+        var h = w.H;
+        var stay = await w.DepartedStayAsync("105", ac006: false, ct: Ct);
+        var inv = await w.IssueAsync(stay.FolioId, ct: Ct); // 2 × ₹2,000 at 5 % = ₹4,200 (CGST ₹100 + SGST ₹100)
+
+        // Audit paper figures: ₹100.10 on the first night carries 500.5 → 501 paise of tax.
+        var partial = await w.RequestCreditAsync(h.Owner, inv.InvoiceId, "lines", lines: [new CreditLineRequest(1, 10010)], ct: Ct);
+        Assert.Equal(("Issued", 10511L), (partial.Outcome, partial.TotalPaise));
+        // Refused before the fix ("rounding would credit more tax than was charged"): ₹1,899.90 alone would carry 9499.5 → 9500 against 9499 left.
+        var full = await w.RequestCreditAsync(h.Owner, inv.InvoiceId, "full", ct: Ct);
+        Assert.Equal(("Issued", 420000L - 10511L), (full.Outcome, full.TotalPaise));
+
+        var cn = await w.Queries.GetCreditNoteAsync(h.PropertyId, h.Accountant, full.CreditNoteId!.Value, Ct);
+        Assert.Equal([(1, 189989L, 9499L), (1, 1L, 0L), (2, 200000L, 10000L)], cn.Lines.Select(l => (l.InvoiceLineNo, l.TaxablePaise, l.TaxPaise)));
+        Assert.Equal((389990L, 9749L, 9750L), (cn.TaxablePaise, cn.CgstPaise, cn.SgstPaise)); // + the partial's 251 / 250 = exactly 10000 / 10000
+        var v = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Owner, inv.InvoiceId, Ct);
+        Assert.Equal((0L, 0L), (v.CreditableTaxablePaise, v.CreditableValuePaise));
+        Assert.Equal([(200000L, 10000L), (200000L, 10000L)], v.Lines.Select(l => (l.CreditedTaxablePaise, l.CreditedTaxPaise)));
+
+        // Folio and its GST snapshots end at exactly nothing: no paisa of tax, CGST or SGST stranded; the whole ₹4,200 is a credit.
+        Assert.Equal(-420000, (await h.BillingQueries.GetFolioAsync(h.As(h.Owner), stay.FolioId, Ct)).Totals.BalancePaise);
+        Assert.Equal((0L, 0L, 0L, 0L), (await h.RowsAsync($"""
+            SELECT SUM(c.amount_paise), SUM(c.tax_paise), SUM(g.cgst_paise), SUM(g.sgst_paise)
+            FROM bill.charge c JOIN tax.charge_gst g ON g.charge_id = c.charge_id WHERE c.folio_id = {stay.FolioId}
+            """, r => (r.GetInt64(0), r.GetInt64(1), r.GetInt64(2), r.GetInt64(3)), Ct)).Single());
+        await Expect.Fails(HccErrorCode.INVALID_TRANSITION, () => w.RequestCreditAsync(h.Owner, inv.InvoiceId, "full", ct: Ct));
+    }
+
+    [Fact]
     public async Task Requester_never_decides_and_an_expired_request_cannot_be_approved()
     {
         await using var w = await InvoiceWorld.CreateAsync(ct: Ct);

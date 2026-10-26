@@ -29,7 +29,7 @@ public sealed record InvoiceSourceDocument(string Kind, long SourceId, string Re
     IReadOnlyList<SourceLine> Lines);
 
 /// <summary>One credit-note line to post back to the source account (positive amounts; the source books them as reductions).</summary>
-public sealed record CreditPosting(int CreditLineNo, long? SourceLineId, GstCategory Category, int Bps, Paise Taxable, Paise Tax);
+public sealed record CreditPosting(int CreditLineNo, long? SourceLineId, GstCategory Category, int Bps, Paise Taxable, Paise Tax, Paise Cgst, Paise Sgst);
 
 /// <summary>
 /// Invoice source port. The folio source (<see cref="FolioInvoiceSource"/>) serves checked-out, settled stay folios; W3-4's group master
@@ -99,8 +99,8 @@ public interface IInvoiceStore
 
     Task<InvoiceRecord?> ReadInvoiceAsync(ICommandTransaction? tx, int propertyId, long invoiceId, CancellationToken ct);
 
-    /// <summary>Taxable value and tax already credited per invoice line (issued credit notes).</summary>
-    Task<IReadOnlyDictionary<int, (Paise Taxable, Paise Tax)>> CreditedAsync(ICommandTransaction? tx, long invoiceId, CancellationToken ct);
+    /// <summary>Taxable value, tax, CGST and SGST already credited per invoice line (issued credit notes).</summary>
+    Task<IReadOnlyDictionary<int, (Paise Taxable, Paise Tax, Paise Cgst, Paise Sgst)>> CreditedAsync(ICommandTransaction? tx, long invoiceId, CancellationToken ct);
 
     /// <summary>The invoice's pending request under UPDLOCK, or null (callers hold the source lock).</summary>
     Task<CreditNoteRequestRow?> PendingRequestAsync(ICommandTransaction tx, long invoiceId, CancellationToken ct);
