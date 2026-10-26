@@ -15,14 +15,17 @@ public class PosRbacV2Tests(PosDb db) : IClassFixture<PosDb>
     [Fact]
     public async Task Restaurant_role_opens_checks_adds_items_and_sends_kots()
     {
+        // Prices from the menu as it is now: the price-change test in this class may already have moved PANEER from Rs 380 to Rs 420.
+        var menu = await db.Queries.MenuAsync(db.As(Who.Owner), db.Restaurant);
+        var net = menu.Single(m => m.Code == "PANEER").PricePaise + 2 * menu.Single(m => m.Code == "ROTI").PricePaise;   // Rs 380 + 2 x Rs 40 = Rs 460 at seed
         var o = await db.OpenTableAsync("T1", Who.Waiter);
-        await db.AddAsync(o.OrderId, "PANEER", 1, Who.Waiter);                                 // Rs 380
-        var c = await db.AddAsync(o.OrderId, "ROTI", 2, Who.Waiter);                           // + 2 x Rs 40 = Rs 460 net
-        Assert.Equal(46_000, c.NetPaise);
+        await db.AddAsync(o.OrderId, "PANEER", 1, Who.Waiter);
+        var c = await db.AddAsync(o.OrderId, "ROTI", 2, Who.Waiter);
+        Assert.Equal(net, c.NetPaise);
         var kot = await db.SendAsync(o.OrderId, Who.Waiter);
         await db.Pos.AdvanceKotAsync(db.As(Who.Waiter), PosDb.Key(), new AdvanceKotRequest(o.OrderId, kot.KotId, "Ready"));
         // The waiter sees the check, the menu and the kitchen board (PERM-POS-001) …
-        Assert.Equal(46_000, (await db.Queries.GetCheckAsync(db.As(Who.Waiter), o.OrderId)).NetPaise);
+        Assert.Equal(net, (await db.Queries.GetCheckAsync(db.As(Who.Waiter), o.OrderId)).NetPaise);
         Assert.NotEmpty(await db.Queries.MenuAsync(db.As(Who.Waiter), db.Restaurant));
         Assert.Contains(await db.Queries.KitchenAsync(db.As(Who.Waiter)), k => k.OrderId == o.OrderId);
         Assert.Contains(await db.Queries.OpenChecksAsync(db.As(Who.Waiter)), x => x.OrderId == o.OrderId);
