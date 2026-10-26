@@ -146,6 +146,7 @@ export function register({test,M,assert}){
     assert.throws(()=>save(s,'owner','numberSeries',{...row,reset:'NEVER'}),msg(/restart every financial year/));
     assert.throws(()=>save(s,'owner','numberSeries',{...row,prefix:'LONGPRE',padding:6}),msg(/at most 16/));
     assert.throws(()=>save(s,'owner','numberSeries',{...row,prefix:'bs'}),msg(/capital letters/));
+    assert.throws(()=>save(s,'owner','numberSeries',{...row,prefix:'ABCDEFG',padding:1}),msg(/at most 6 characters for GST/));
     assert.throws(()=>save(s,'owner','numberSeries',{...row,activeFrom:'01-04-2027'}),msg(/YYYY-MM-DD/));
     assert.ok(mstByCode(save(s,'owner','numberSeries',row),'numberSeries','BOS-2'));
     assert.ok(mstByCode(save(s,'owner','numberSeries',{code:'KOT-2',name:'KOT 2',document:'KOT',prefix:'K',start:1,padding:6,reset:'NEVER',activeFrom:'2026-11-01'}),'numberSeries','KOT-2'));});

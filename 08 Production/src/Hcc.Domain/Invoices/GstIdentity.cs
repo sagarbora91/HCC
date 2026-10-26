@@ -181,7 +181,11 @@ public static partial class InvoiceNumbering
         return p;
     }
 
-    public static string Format(string prefix, string fyCode, int seq)
+    public static string Format(string prefix, string fyCode, int seq) => Format(prefix, fyCode, seq, null);
+
+    /// <summary>PREFIX/FY/digits within the 16-character GST limit. <paramref name="padding"/> = zero-padded width of the running number
+    /// from the numbering series master (MA-5, bill.number_series); null = fill the 16 characters (the format before MA-5).</summary>
+    public static string Format(string prefix, string fyCode, int seq, int? padding)
     {
         ArgumentNullException.ThrowIfNull(prefix);
         ArgumentNullException.ThrowIfNull(fyCode);
@@ -189,6 +193,6 @@ public static partial class InvoiceNumbering
         var width = MaxLength - prefix.Length - fyCode.Length - 2;
         var digits = seq.ToString(CultureInfo.InvariantCulture);
         if (digits.Length > width) throw HccException.Validation($"The {prefix} series for FY {fyCode} is full ({width} digits). Use a shorter prefix next year.");
-        return prefix + "/" + fyCode + "/" + digits.PadLeft(width, '0');
+        return prefix + "/" + fyCode + "/" + digits.PadLeft(Math.Min(width, padding ?? width), '0');
     }
 }

@@ -93,7 +93,8 @@ public interface IInvoiceStore
     /// Next number of the (property, FY, type) series in this transaction: the row is created on first use with <paramref name="prefixIfNew"/>
     /// (locked check-then-insert), else advanced by one under an update lock; a rollback releases the number (gap-free).
     /// </summary>
-    Task<(string Prefix, int Seq)> NextNumberAsync(ICommandTransaction tx, int propertyId, string fyCode, InvoiceDocType type, string prefixIfNew, DateTime utc, CancellationToken ct);
+    /// <paramref name="startIfNew"/> = first number of a new FY series (MA-5 numbering series master; 1 before it).
+    Task<(string Prefix, int Seq)> NextNumberAsync(ICommandTransaction tx, int propertyId, string fyCode, InvoiceDocType type, string prefixIfNew, DateTime utc, CancellationToken ct, int startIfNew = 1);
 
     Task<long> InsertInvoiceAsync(ICommandTransaction tx, InvoiceRecord invoice, CancellationToken ct);
 

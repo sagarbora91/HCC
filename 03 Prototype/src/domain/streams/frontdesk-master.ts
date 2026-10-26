@@ -313,7 +313,8 @@ function seriesProblem(s:State,row:FDMSeriesRow,rows:FDMSeriesRow[]):string|unde
   const changed=!old||NUMBERING_KEYS.some(k=>String(old[k])!==String(row[k]));
   if(!changed)return undefined;
   if(old){const i=fdmIssued(s,old);if(i.count)return `${old.code} has issued ${i.count} number${i.count===1?'':'s'} — document, prefix, start, digits, reset and active-from cannot change (sequential, no gaps). Add a new series from a date with no documents instead.`;}
-  if(gst){const sample=fdmFormat(row,Math.max(row.start,1),row.activeFrom);if(sample.length>FDM_NUMBER_MAX)return `The number would be ${sample.length} characters (${sample}); GST allows at most ${FDM_NUMBER_MAX}. Shorten the prefix or the digits.`;}
+  if(gst){const sample=fdmFormat(row,Math.max(row.start,1),row.activeFrom);if(sample.length>FDM_NUMBER_MAX)return `The number would be ${sample.length} characters (${sample}); GST allows at most ${FDM_NUMBER_MAX}. Shorten the prefix or the digits.`;
+    if(String(row.prefix).length>6)return 'Prefix: at most 6 characters for GST documents.';}
   if(!old||old.activeFrom!==row.activeFrom){
     if(row.activeFrom<s.date)return `Active from: ${s.date} (today's business date) or later.`;
     const a=docActivity(s,row.document,row.id);
