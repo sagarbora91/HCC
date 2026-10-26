@@ -34,5 +34,5 @@ button:disabled:not(.btn):not(.text-btn){opacity:.6}
 .mr-code{margin-left:4px;font-weight:700}
 .legend b{font-weight:700}
 
-/* 6. Phone: form text 16 px so fields do not zoom or shrink (A-19) */
-.m-shell input:not([type="checkbox"]):not([type="radio"]),.m-shell select,.m-shell textarea{font-size:16px}
+/* 6. Phone: form text 16 px so fields do not zoom or shrink (A-19). CP-2: max() keeps 16 px at text scale 0.9; the build transform leaves max() alone. */
+.m-shell input:not([type="checkbox"]):not([type="radio"]),.m-shell select,.m-shell textarea{font-size:max(16px, calc(16px * var(--hcc-text,1)))}
