@@ -41,6 +41,8 @@ const requests={items:[{requestId:5,key:'sec.pinLock',label:'PIN lock on shared 
 
 export async function register({test,assert,M}){
   const S=await loadSync();
+  // Only this area (+ core, reservations): other W4 areas load their own routes, which this fake server does not serve.
+  const mine={areas:S.AREAS.filter(a=>['core','reservations','admin'].includes(a.id))};
   let userVer=2;
   const srv=fakeServer({
     'GET /admin/users':()=>({items:users,page:1,pageSize:100,total:users.length}),
@@ -60,7 +62,7 @@ export async function register({test,assert,M}){
     'POST /commands/SetCredential':({body})=>({userId:body.userId,version:'VC'}),
     'POST /commands/RegisterDevice':()=>({deviceId:3,deviceToken:'tok-once'}),
   });
-  const rt=await startRuntime(S,srv);const st=rt.get().state;const bootErrors=rt.get().errors;
+  const rt=await startRuntime(S,srv,mine);const st=rt.get().state;const bootErrors=rt.get().errors;
   const proto=M.seed();
 
   test('[W4-5 admin] Loaders: users (role, expiry, status), role templates → policy cells, limits (BPS → %), denies, exceptions, module gates',()=>{
@@ -152,7 +154,7 @@ export async function register({test,assert,M}){
     'POST /commands/SetSetting':()=>({status:'applied'}),'POST /commands/DecideSettingRequest':()=>({status:'Executed'}),'POST /commands/WithdrawScheduledSetting':()=>({}),
     'POST /commands/RevertSetting':()=>({}),'POST /commands/SetCredential':()=>({userId:2,version:'VC'}),
   })));
-  const rt2=await startRuntime(S,srv2);
+  const rt2=await startRuntime(S,srv2,mine);
   await rt2.run({type:'USER',id:'2',key:'user:2:true:0'});
   await rt2.run({type:'USER_CREATE',name:'Rohan Patil',role:'Cashier',expiresOn:'2026-11-30',key:'new:u1'});
   await rt2.run({type:'USER_UPDATE',id:'4',role:'Supervisor',enabled:true,key:'edit:u4'});
@@ -191,7 +193,7 @@ export async function register({test,assert,M}){
   const rec=fakeServer({'GET /me/capabilities':()=>capabilities({userId:2,displayName:'Rohan',roles:['REC'],
     grants:[['PERM-RES-001','A'],['PERM-RES-002','A'],['PERM-FOL-002','A'],['PERM-FOL-003','L'],['PERM-PAY-001','A']]}),'GET /configuration/values':()=>values,
     'GET /configuration/requests':()=>reply(403,{code:'FORBIDDEN',message:'Not permitted'})});
-  const rr=await startRuntime(S,rec);const rs=rr.get().state;
+  const rr=await startRuntime(S,rec,mine);const rs=rr.get().state;
   test('[W4-5 admin] Non-admin: no /admin reads, policy from own capabilities (authorize follows the server), settings and module switches still load',()=>{
     assert.equal(rec.calls.filter(c=>c.path.startsWith('/admin')||c.path==='/configuration/history').length,0);
     assert.deepEqual(rr.get().errors,{});
