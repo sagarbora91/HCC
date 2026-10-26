@@ -46,7 +46,7 @@ public sealed class YieldFixture : IAsyncLifetime
         _db = await InventoryDatabase.CreateAsync();
         await Golden.SeedAsync(_db);
         Clock = new TestClock(new DateTimeOffset(GoldenInventory.LocalToUtc(Golden.Raw.Clock), TimeSpan.Zero));
-        P2 = new P2Services(_db, Clock, Golden.Raw.TaxBps);
+        P2 = new P2Services(_db, Clock); // real DEC-069 GST master (A08-04)
         var conns = _db.Platform.Connections;
         Policy = new SqlAccessPolicy(conns, Clock, []);
         Store = new SqlYieldStore(conns);

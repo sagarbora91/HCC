@@ -92,12 +92,15 @@ public sealed class ManualClock(DateTimeOffset start) : TimeProvider
     public override DateTimeOffset GetUtcNow() => Now;
 }
 
-/// <summary>Stand-in for the P2/P3 stay port: stay id = reservation id; rate and tax per reservation set by the test.</summary>
+/// <summary>
+/// Stand-in for the P2/P3 stay port: stay id = reservation id; the agreed nightly rate per reservation is set by the test. The GST
+/// rate is not part of the port: BillingService takes it from the GST master on the charged price (DEC-069).
+/// </summary>
 public sealed class FakeStayNightSource : IStayNightSource
 {
-    public ConcurrentDictionary<long, (long FolioId, long RatePaise, int TaxBps)> Stays { get; } = new();
+    public ConcurrentDictionary<long, (long FolioId, long RatePaise)> Stays { get; } = new();
 
-    public (long FolioId, long RatePaise, int TaxBps) this[long stayId] { get => Stays[stayId]; set => Stays[stayId] = value; }
+    public (long FolioId, long RatePaise) this[long stayId] { get => Stays[stayId]; set => Stays[stayId] = value; }
 
     public Task<StayNight> ResolveAsync(ICommandTransaction tx, int propertyId, long stayId, DateOnly serviceDate, CancellationToken ct)
         => Stays.TryGetValue(stayId, out var s)
@@ -171,7 +174,10 @@ public sealed partial class BillingDb : IAsyncLifetime
         OtherPropertyId = Convert.ToInt32(await ScalarAsync("INSERT inv.property(code, name, time_zone, business_date) OUTPUT INSERTED.property_id VALUES ('OTHER', N'Other Demo', 'Asia/Kolkata', '2026-10-24');"), CultureInfo.InvariantCulture);
         Runner = new SqlPlatform(options).Commands;
         var store = new SqlBillingStore(connections);
-        Billing = new BillingService(Runner, store, Policy, Stays, new Hcc.Application.Tax.FixedGstRateResolver(), Clock); // pinned DEC-039 10 % (GST figures: Hcc.GstIds.Tests)
+        // A08-04: the real DEC-069 GST master (statutory seed of migration 0600) and its per-charge records, as production wires them
+        // (TaxEndpoints.AddTaxModule) — the folio figures here are the ones a hotel sees. It was a pinned DEC-039 10 % stand-in.
+        var gst = new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(connections);
+        Billing = new BillingService(Runner, store, Policy, Stays, new Hcc.Application.Tax.GstRateResolver(gst), Clock, gst);
         Cashier = new CashierService(Runner, store, Policy, Clock);
         Queries = new BillingQueries(store, Policy, Clock);
     }

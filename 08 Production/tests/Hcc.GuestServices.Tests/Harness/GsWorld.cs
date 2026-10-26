@@ -173,7 +173,7 @@ public sealed partial class GsDatabase : IAsyncDisposable
 
 /// <summary>
 /// A fictional property (business date 2026-10-24, Asia/Kolkata) with rooms 101 / 102 / 104 / 201 / 202 / 206 / 301, four in-house stays
-/// (each folio holds two room nights of ₹2,000 + 10 % tax = ₹4,000 net), one departed stay and one confirmed (not yet arrived) booking.
+/// (each folio holds two room nights of ₹2,000 + 5 % GST = ₹4,000 net), one departed stay and one confirmed (not yet arrived) booking.
 /// </summary>
 public sealed class GsWorld : IAsyncDisposable
 {
@@ -187,7 +187,8 @@ public sealed class GsWorld : IAsyncDisposable
         Clock = new TestClock(new DateTimeOffset(2026, 10, 24, 8, 0, 0, TimeSpan.Zero));
         BillingStore = new SqlBillingStore(conns);
         Billing = new BillingService(db.Platform.Commands, BillingStore, Policy,
-            new StayNightSource(BillingStore, new SqlAgreedNightRateSource(conns)), new Hcc.Application.Tax.FixedGstRateResolver(), Clock);
+            new StayNightSource(BillingStore, new SqlAgreedNightRateSource(conns)),
+            new Hcc.Application.Tax.GstRateResolver(new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(conns)), Clock); // A08-04: real DEC-069 master (was a pinned 10 %)
         Store = new SqlGuestServicesStore(conns);
         Commands = new GuestServicesCommands(db.Platform.Commands, Policy, Store, Billing, BillingStore, Clock);
         Queries = new GuestServicesQueries(Policy, Store, Clock);
@@ -268,7 +269,7 @@ public sealed class GsWorld : IAsyncDisposable
         if (status == "InHouse")
             await Db.ExecAsync($"""
                 INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES
-                ({folio}, 'room', '2026-10-23', N'Room night', 200000, 1000, 20000), ({folio}, 'room', '2026-10-24', N'Room night', 200000, 1000, 20000);
+                ({folio}, 'room', '2026-10-23', N'Room night', 200000, 500, 10000), ({folio}, 'room', '2026-10-24', N'Room night', 200000, 500, 10000);
                 """, ct);
         Stays[publicNo] = stay;
         Folios[publicNo] = folio;

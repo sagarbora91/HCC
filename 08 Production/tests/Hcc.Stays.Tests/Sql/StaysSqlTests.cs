@@ -60,6 +60,9 @@ public class StaysSqlTests : IAsyncLifetime
         Assert.Equal(1, await _w.Db.CountAsync($"SELECT COUNT(*) FROM bill.folio WHERE reservation_id = {res};", Ct));
 
         // Billing (P4 stand-in): the prototype's posted nights; unpaid checkout is refused exactly as in the prototype.
+        // DEC-069 by hand: 2 × ₹2,000 at 5 % (≤ ₹7,500 a night) = ₹4,200 due (the pre-A08-04 golden had 10 %: ₹4,400).
+        Assert.Equal(["room|200000|500", "room|200000|500"], j.Folio.Lines.Select(l => $"{l.Kind}|{l.AmountPaise}|{l.TaxBps}"));
+        Assert.Equal(420000, j.Folio.BalanceDuePaise);
         await _w.Seed.PostLinesAsync(ci.Value.FolioId, j.Folio.Lines, Ct);
         var stayVer = await _w.Seed.StayVersionAsync(ci.Value.StayId, Ct);
         Assert.Equal(j.Expected.UnpaidCheckout, await Expect.CodeAsync(() => _w.Stays.CheckoutStayAsync(_w.Ctx(Users.Reception, "co-unpaid"), new CheckoutStayRequest(ci.Value.StayId, stayVer), Ct)));
@@ -192,12 +195,14 @@ public class StaysSqlTests : IAsyncLifetime
     [Fact]
     public async Task Golden_unpaid_departure_and_deposit_held_block_checkout()
     {
-        // Prototype S3: HCC-1042 owes ₹200 → INVALID_TRANSITION. Same shape here: one posted night short of payment.
+        // Prototype S3: HCC-1042 owes ₹100 (the 5 % GST on its ₹2,000 night, DEC-069) → INVALID_TRANSITION. Same shape here: three ₹2,000
+        // nights at 5 % = ₹6,300, paid ₹6,300 less the golden balance.
         var resId = _w.Seed.Reservations[G.Cases.UnpaidDeparture.Booking];
         var stay = _w.Seed.Stays[G.Cases.UnpaidDeparture.Booking];
         var folio = await _w.Seed.FolioOfAsync(resId, Ct);
-        await _w.Seed.PostLinesAsync(folio, [new GoldenLine("room", "2026-10-23", 200000, 1000), new GoldenLine("room", "2026-10-24", 200000, 1000), new GoldenLine("room", "2026-10-25", 200000, 1000)], Ct);
-        await _w.Seed.ReceiptAsync(folio, "payment", "UPI", 660000 - G.Cases.UnpaidDeparture.BalancePaise, Ct);
+        await _w.Seed.PostLinesAsync(folio, [new GoldenLine("room", "2026-10-23", 200000, 500), new GoldenLine("room", "2026-10-24", 200000, 500), new GoldenLine("room", "2026-10-25", 200000, 500)], Ct);
+        Assert.Equal(10000, G.Cases.UnpaidDeparture.BalancePaise);
+        await _w.Seed.ReceiptAsync(folio, "payment", "UPI", 630000 - G.Cases.UnpaidDeparture.BalancePaise, Ct);
         var req = new CheckoutStayRequest(stay, await _w.Seed.StayVersionAsync(stay, Ct));
         Assert.Equal(G.Cases.UnpaidDeparture.Code, await Expect.CodeAsync(() => _w.Stays.CheckoutStayAsync(_w.Ctx(Users.Reception, "u1"), req, Ct)));
         await _w.Seed.ReceiptAsync(folio, "payment", "Cash", G.Cases.UnpaidDeparture.BalancePaise, Ct);

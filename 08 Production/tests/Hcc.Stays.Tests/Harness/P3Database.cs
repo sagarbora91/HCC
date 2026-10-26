@@ -107,8 +107,10 @@ public sealed class P3World : IAsyncDisposable
         Clock = new TestClock(new DateTimeOffset(2026, 10, 24, 8, 0, 0, TimeSpan.Zero));
         HkReads = new SqlHousekeepingReadStore(conns);
         var billingStore = new SqlBillingStore(conns);
+        // A08-04: the real DEC-069 GST master (statutory seed of migration 0600), as production wires billing; was a pinned DEC-039 10 %.
         Billing = new BillingService(db.Platform.Commands, billingStore, Policy,
-            new StayNightSource(billingStore, new SqlAgreedNightRateSource(conns)), new Hcc.Application.Tax.FixedGstRateResolver(), Clock);
+            new StayNightSource(billingStore, new SqlAgreedNightRateSource(conns)),
+            new Hcc.Application.Tax.GstRateResolver(new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(conns)), Clock);
         Stays = new StaysCommands(db.Platform.Commands, Policy, new SqlStaysStore(), new BillingStayFolioPort(billingStore, Billing), Clock);
         StayQueries = new StaysQueries(Policy, new SqlStaysReadStore(conns));
         Housekeeping = new HousekeepingCommands(db.Platform.Commands, Policy, new SqlHousekeepingStore(), HkReads, new PolicyTaskAssigneeEligibility(Policy), new SqlRoomBlockPort(conns), Options, Clock);

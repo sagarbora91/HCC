@@ -30,6 +30,8 @@
   "funding:Bank transfer": "1030",
   "funding:Vendor credit": "2200",
   "closing:cash-difference": "5900",
+  "closing:bank-deposit": "1030",
+  "closing:owner-drawing": "3000",
   "pos:sales": "4100",
   "pos:cgst": "2110",
   "pos:sgst": "2120"

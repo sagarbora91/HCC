@@ -26,10 +26,10 @@ public sealed class ManualClock(DateTimeOffset start) : TimeProvider
     public override DateTimeOffset GetUtcNow() => Now;
 }
 
-/// <summary>Stand-in for the P3 stay port: stay id → (folio, nightly rate, tax bps) set by the test.</summary>
+/// <summary>Stand-in for the P3 stay port: stay id → (folio, nightly rate) set by the test; the GST rate comes from the master (DEC-069).</summary>
 public sealed class FakeStayNightSource : IStayNightSource
 {
-    public ConcurrentDictionary<long, (long FolioId, long RatePaise, int TaxBps)> Stays { get; } = new();
+    public ConcurrentDictionary<long, (long FolioId, long RatePaise)> Stays { get; } = new();
 
     public Task<StayNight> ResolveAsync(ICommandTransaction tx, int propertyId, long stayId, DateOnly serviceDate, CancellationToken ct)
         => Stays.TryGetValue(stayId, out var s)
@@ -117,8 +117,11 @@ public sealed partial class AccountingDb : IAsyncLifetime
 
         var policy = new SqlAccessPolicy(Platform.Connections, Clock, [new SqlShiftScopeResolver(Platform.Connections)]);
         var billingStore = new SqlBillingStore(Platform.Connections);
-        Billing = new BillingService(Platform.Commands, billingStore, policy, Stays, new Hcc.Application.Tax.FixedGstRateResolver(), Clock,
-            new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(Platform.Connections)); // pinned 10 % (the accounting goldens); vouchers read the stored tax.charge_gst split
+        // A08-04: the real DEC-069 GST master (statutory seed of migration 0600) and its per-charge records, as production wires billing;
+        // vouchers read the stored tax.charge_gst split. It was a pinned DEC-039 10 % stand-in. (The accounting golden needs no resolver:
+        // GoldenAccountingTests rebuild the vouchers from the prototype's own source facts.)
+        var gst = new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(Platform.Connections);
+        Billing = new BillingService(Platform.Commands, billingStore, policy, Stays, new Hcc.Application.Tax.GstRateResolver(gst), Clock, gst);
         Cashier = new CashierService(Platform.Commands, billingStore, policy, Clock);
         BillingQueries = new BillingQueries(billingStore, policy, Clock);
         Store = new SqlAccountingStore(Platform.Connections);
@@ -158,7 +161,7 @@ public sealed partial class AccountingDb : IAsyncLifetime
         => ScalarAsync("UPDATE inv.property SET business_date = @d WHERE property_id = @p;", ("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue)), ("@p", SqlDbType.Int, PropertyId));
 
     /// <summary>A fictional in-house reservation with its folio; stay id = folio id for the fake stay port.</summary>
-    public async Task<long> NewFolioAsync(long ratePaise = 200_000, int taxBps = 1000)
+    public async Task<long> NewFolioAsync(long ratePaise = 200_000)
     {
         var no = "A" + Interlocked.Increment(ref _publicNo).ToString("00000", CultureInfo.InvariantCulture);
         var rid = await LongAsync("""
@@ -166,7 +169,7 @@ public sealed partial class AccountingDb : IAsyncLifetime
             OUTPUT INSERTED.reservation_id VALUES (@p, @no, N'Fictional guest', '2026-10-23', '2026-10-26', 'InHouse');
             """, ("@p", SqlDbType.Int, PropertyId), ("@no", SqlDbType.VarChar, no));
         var fid = await LongAsync("INSERT bill.folio(reservation_id) OUTPUT INSERTED.folio_id VALUES (@r);", ("@r", SqlDbType.BigInt, rid));
-        Stays.Stays[fid] = (fid, ratePaise, taxBps);
+        Stays.Stays[fid] = (fid, ratePaise);
         return fid;
     }
 

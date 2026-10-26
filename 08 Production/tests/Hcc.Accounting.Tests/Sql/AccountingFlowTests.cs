@@ -27,7 +27,7 @@ public sealed class AccountingFlowTests(AccountingDb db) : IClassFixture<Account
     public async Task Folio_day_becomes_balanced_vouchers_that_reconcile_then_lock_drift_and_unlock()
     {
         // ── a day of folio activity (P4 commands, real grants) ──
-        var f = await db.NewFolioAsync(ratePaise: 200_000, taxBps: 1000);
+        var f = await db.NewFolioAsync(ratePaise: 200_000); // ₹2,000 a night → 5 % GST (DEC-069 master)
         // P6 late-write barrier: a night posts only on its own business date, so yesterday's is posted before the date moves to D.
         await db.ScalarAsync("UPDATE inv.property SET business_date = @d WHERE property_id = @p;", ("@d", SqlDbType.Date, Y.ToDateTime(TimeOnly.MinValue)), ("@p", SqlDbType.Int, db.PropertyId));
         await db.Billing.PostRoomNightAsync(db.As("OWN"), Key(), new PostRoomNightRequest(f, Y), Ct);
@@ -72,11 +72,15 @@ public sealed class AccountingFlowTests(AccountingDb db) : IClassFixture<Account
         Assert.Equal(["SAL/20261024/001", "SAL/20261024/002", "SAL/20261024/003", "SAL/20261024/004", "RCT/20261024/001", "RCT/20261024/002", "PMT/20261024/001", "JRN/20261024/001"],
             day.Vouchers.Select(v => v.Number));
 
-        // Stored tax split into CGST / SGST (10 % fixed source today: ₹500 laundry → ₹50 tax → ₹25 + ₹25).
+        // Stored tax split into CGST / SGST under the GST master: ₹500 laundry at 18 % → ₹90 tax → CGST ₹45 + SGST ₹45 (guest owes ₹590).
+        // (Before A08-04 the harness pinned 10 %: ₹50 tax → ₹25 + ₹25, ₹550.)
         var service = day.Vouchers.Single(v => v.Sub == "service");
-        Assert.Equal([("1100", 55_000L, 0L), ("4100", 0L, 50_000L), ("2110", 0L, 2_500L), ("2120", 0L, 2_500L)], service.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("1100", 59_000L, 0L), ("4100", 0L, 50_000L), ("2110", 0L, 4_500L), ("2120", 0L, 4_500L)], service.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         var reversal = day.Vouchers.Single(v => v.Sub == "correction");
-        Assert.Equal([("1100", 0L, 55_000L), ("4910", 50_000L, 0L), ("2110", 2_500L, 0L), ("2120", 2_500L, 0L)], reversal.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("1100", 0L, 59_000L), ("4910", 50_000L, 0L), ("2110", 4_500L, 0L), ("2120", 4_500L, 0L)], reversal.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        // The ₹200 goodwill discount follows the 5 % room night: −₹10 tax → CGST −₹5 + SGST −₹5.
+        var discount = day.Vouchers.Single(v => v.Sub == "discount");
+        Assert.Equal(-1_000L, discount.Entries.Where(e => e.Account is "2110" or "2120").Sum(e => e.CreditPaise - e.DebitPaise));
         Assert.Equal([("1100", 5_000L, 0L), ("1010", 0L, 5_000L)], day.Vouchers.Single(v => v.Sub == "refund").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.Equal([("5900", 5_000L, 0L), ("1000", 0L, 5_000L)], day.Vouchers.Single(v => v.SourceKind == "closing").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.Equal(1, (await db.Queries.DayAsync(db.As("ACC"), Y, Ct)).VoucherCount);

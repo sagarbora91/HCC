@@ -17,7 +17,7 @@
 | `tests/Hcc.Closing.Tests` | P6: daily-pack/closing rules (no database) and SQL with the real composition: S0 three-day walkthrough (drawer ₹10,725 → ₹12,425), crash-resume at every step, late-write barrier across P2–P4, concurrent closes, snapshot immutability, DEC-065 cash-book lock |
 | `tests/Hcc.GstIds.Tests` | Wave 1 C: GST master golden rules + SQL (room 105 ₹4,265 incl. ₹265 GST, BASE drawer ₹10,725), guest ID encryption / masking / audited reveal / rotation / no-leak scans (DEC-068/069). Module notes: `src/Hcc.Application/Tax/README.md`, `src/Hcc.Application/GuestIds/README.md` (legal note) |
 | `tests/Hcc.Integration.Tests` | End to end over HTTP with the real composition: sign-in (Owner password; Reception/Housekeeper PIN on a registered device) → book → register → check in → room nights → cash receipt on own shift → checkout → housekeeping task → inspect → Ready (room 105: ₹4,200 incl. ₹200 GST at the DEC-069 master's 5 %); company credit inside checkout with rollback |
-| `tools/golden/export-golden.mjs` | Regenerates `tests/Hcc.Platform.Tests/Golden/base-fixture.golden.json` from the prototype BASE fixture |
+| `tools/golden/` | Golden exporters' shared helper (`golden-lib.mjs`); `export-golden.mjs` regenerates `tests/Hcc.Platform.Tests/Golden/base-fixture.golden.json` from the prototype BASE fixture (drawer ₹10,725, room 105 ₹4,265 under the DEC-069 GST master); `check-goldens.mjs` re-runs all seven exporters (`tools/golden/export-golden.mjs`, `tests/Hcc.*.Tests/Golden/export-*-golden.mjs`) with `--check` against the `03 Prototype` of the same checkout and fails when a committed golden differs — `03 Prototype` `npm test` runs it (`tests/stream-goldens.mjs`, A08-04). After a prototype change that moves a figure: run that exporter, then fix the server tests that read the golden; never hand-edit golden numbers |
 | `src/Hcc.Operations` | (P7) `ScriptBackupGate`: the pre-migration backup runs `Backup-HccDatabase.ps1` |
 | `deployment/windows` | (P7) service install, LAN HTTPS certificate, backup/differential/restore-drill scripts + Task Scheduler, Inno Setup template, `INSTALL.md` (owner), `ANDROID_SERVER_ADDRESS.md`; `tests\Test-HccDeployment.ps1` (dry runs, also run by `Hcc.Operations.Tests`) |
 | `third-party/` | `packages.json` (every NuGet package, version, licence), `source-reuse.json` (H02/H04 provenance) |
@@ -31,6 +31,7 @@ dotnet test Hcc.slnx --filter "Category!=Sql"      # kernel + golden tests only,
 dotnet run --project src/Hcc.Api -- migrate        # apply migrations to the Hcc database in appsettings.json
 dotnet run --project src/Hcc.Api                   # serve http://localhost:5000/api/v1/system/health (dev)
 node tools/golden/export-golden.mjs                # Node 25 (E:\Tools\nodejs); needs 03 Prototype node_modules (esbuild)
+node tools/golden/check-goldens.mjs                # every golden = what its exporter produces from this checkout's prototype (also in npm test)
 ```
 
 ## Production hosting (P7)

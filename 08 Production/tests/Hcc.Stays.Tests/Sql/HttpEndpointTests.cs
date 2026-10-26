@@ -107,8 +107,8 @@ public class HttpEndpointTests : IAsyncLifetime
         }
 
         var folio = await _w.Seed.FolioOfAsync(_w.Seed.Reservations["HCC-1041"], Ct);
-        await _w.Seed.PostLinesAsync(folio, new[] { "2026-10-23", "2026-10-24", "2026-10-25" }.Select(d => new GoldenLine("room", d, 200000, 1000)), Ct);
-        await _w.Seed.ReceiptAsync(folio, "payment", "UPI", 660000, Ct);
+        await _w.Seed.PostLinesAsync(folio, new[] { "2026-10-23", "2026-10-24", "2026-10-25" }.Select(d => new GoldenLine("room", d, 200000, 500)), Ct); // 5 % GST (DEC-069)
+        await _w.Seed.ReceiptAsync(folio, "payment", "UPI", 630000, Ct);
         using (var ok = await _http.SendAsync(Req(HttpMethod.Post, "/commands/CheckoutStay", Users.Reception, body, "k2"), Ct))
         {
             Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
