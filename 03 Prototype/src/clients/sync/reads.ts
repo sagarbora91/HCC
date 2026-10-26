@@ -138,6 +138,14 @@ export const READS={
   'GET /masters/bank-accounts':always,'GET /masters/bank-accounts/history':one(wide('PERM-MST-002')),
   'GET /masters/expense-categories':always,'GET /masters/expense-categories/history':one(wide('PERM-MST-002')),
   'GET /masters/expense-vendors':always,'GET /masters/expense-vendors/history':one(wide('PERM-MST-002')),
+  // MA-2 catalogue: prices are hotel money → folio view (PERM-FOL-001; never housekeeping / maintenance, DEC-061); history → PERM-MST-002 (Owner).
+  'GET /catalogue/meal-plans':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/extras':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/discount-reasons':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/meal-plans/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/extras/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/discount-reasons/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/links':one(wide('PERM-FOL-001',true)),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

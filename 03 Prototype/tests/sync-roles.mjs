@@ -137,6 +137,11 @@ function routes(role){
     'GET /masters/expense-categories/history':({query})=>page([],query,'items'),
     'GET /masters/expense-vendors':({query})=>page([],query,'items'),
     'GET /masters/expense-vendors/history':({query})=>page([],query,'items'),
+    // MA-2 catalogue (lists for folio viewers, history for the Owner, links of bookings / charges)
+    'GET /catalogue/meal-plans':({query})=>page([],query,'items'),'GET /catalogue/extras':({query})=>page([],query,'items'),
+    'GET /catalogue/discount-reasons':({query})=>page([],query,'items'),'GET /catalogue/meal-plans/history':({query})=>page([],query,'items'),
+    'GET /catalogue/extras/history':({query})=>page([],query,'items'),'GET /catalogue/discount-reasons/history':({query})=>page([],query,'items'),
+    'GET /catalogue/links':()=>({plans:[],charges:[]}),
   };
 }
 

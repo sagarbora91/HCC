@@ -96,7 +96,14 @@
     "GET /masters/expense-categories": "/masters/expense-categories?page=1&pageSize=200",
     "GET /masters/expense-categories/history": "/masters/expense-categories/history?page=1&pageSize=200",
     "GET /masters/expense-vendors": "/masters/expense-vendors?page=1&pageSize=200",
-    "GET /masters/expense-vendors/history": "/masters/expense-vendors/history?page=1&pageSize=200"
+    "GET /masters/expense-vendors/history": "/masters/expense-vendors/history?page=1&pageSize=200",
+    "GET /catalogue/meal-plans": "/catalogue/meal-plans?page=1&pageSize=200",
+    "GET /catalogue/extras": "/catalogue/extras?page=1&pageSize=200",
+    "GET /catalogue/discount-reasons": "/catalogue/discount-reasons?page=1&pageSize=200",
+    "GET /catalogue/meal-plans/history": "/catalogue/meal-plans/history?page=1&pageSize=200",
+    "GET /catalogue/extras/history": "/catalogue/extras/history?page=1&pageSize=200",
+    "GET /catalogue/discount-reasons/history": "/catalogue/discount-reasons/history?page=1&pageSize=200",
+    "GET /catalogue/links": "/catalogue/links"
   },
   "roles": {
     "OWN": {
@@ -624,7 +631,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "200",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "200"
+        "GET /masters/expense-vendors/history": "200",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "200",
+        "GET /catalogue/extras/history": "200",
+        "GET /catalogue/discount-reasons/history": "200",
+        "GET /catalogue/links": "200"
       }
     },
     "MGR": {
@@ -1052,7 +1066,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "REC": {
@@ -1340,7 +1361,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "CSH": {
@@ -1553,7 +1581,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "ACC": {
@@ -1806,7 +1841,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "SUP": {
@@ -1954,7 +1996,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     },
     "HKP": {
@@ -2087,7 +2136,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     },
     "MNT": {
@@ -2215,7 +2271,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     },
     "TAD": {
@@ -2363,7 +2426,14 @@
         "GET /masters/expense-categories": "200",
         "GET /masters/expense-categories/history": "403",
         "GET /masters/expense-vendors": "200",
-        "GET /masters/expense-vendors/history": "403"
+        "GET /masters/expense-vendors/history": "403",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     }
   }

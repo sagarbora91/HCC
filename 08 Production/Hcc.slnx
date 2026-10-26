@@ -39,6 +39,7 @@
     <Project Path="tests/Hcc.Masters.Tests/Hcc.Masters.Tests.csproj" />
     <Project Path="tests/Hcc.RoomMasters.Tests/Hcc.RoomMasters.Tests.csproj" />
     <Project Path="tests/Hcc.MoneyMasters.Tests/Hcc.MoneyMasters.Tests.csproj" />
+    <Project Path="tests/Hcc.Catalogue.Tests/Hcc.Catalogue.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -89,6 +90,7 @@
     <File Path="database/migrations/2802_masters_rbac_seed.sql" />
     <File Path="database/migrations/2810_masters_rooms.sql" />
     <File Path="database/migrations/2830_money_masters.sql" />
+    <File Path="database/migrations/2820_catalogue.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
   </Folder>
 </Solution>

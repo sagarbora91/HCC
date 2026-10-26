@@ -21,4 +21,5 @@ import {handlers as compliance} from './compliance';
 import {handlers as cashbook} from './cashbook';
 import {handlers as masters} from './masters';
 import {handlers as roommasters} from './roommasters';
-export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...masters,...roommasters};
+import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
+export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...masters,...roommasters,...catalogue};

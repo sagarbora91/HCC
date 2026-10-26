@@ -61,6 +61,14 @@ export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'
   // ── Line · stream F fields (add below this line) ──
   /** Closed business date this adjustment corrects (DEC-028). */
   correctionOf?:string;
+
+  // ── Line · MA-2 catalogue fields (add below this line) ──
+  /** Extras catalogue row id (CAT_CHARGE); absent on a free-text charge (DEC-MA-4: reports show catalogue vs free text). */
+  extraId?:string;
+  /** Meal plan code of a plan line posted with the room night (MA-2). */
+  planCode?:string;
+  /** Discount reason code (CAT_DISCOUNT); absent on a free-text reason. */
+  discountReason?:string;
 };
 export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit';reference:string;actor:string;
   // ── Receipt · stream A fields (add below this line) ──
@@ -115,6 +123,10 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   // ── Booking · stream E fields (add below this line) ──
 
   // ── Booking · stream F fields (add below this line) ──
+
+  // ── Booking · MA-2 catalogue fields (add below this line) ──
+  /** Meal plan code (master mealPlans: EP / CP / MAP / AP / custom); absent = no plan. Plan lines post with each room night. */
+  plan?:string;
 };
 export type Task={id:string;room:string;booking?:string;assignee:string;status:'To do'|'In progress'|'Inspection'|'Done';checked:boolean[];
   // ── Task · stream A fields (add below this line) ──

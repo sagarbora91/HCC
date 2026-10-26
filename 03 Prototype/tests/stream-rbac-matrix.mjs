@@ -55,6 +55,7 @@ const PAGES={
   staff:['OWN MGR CSH ACC','Module 17 §2'],
   closing:['OWN MGR ACC','CLS-001/002 (DEC-063 G4: Accountant read-only; G8: not REC/CSH)'],
   reports:['OWN MGR CSH ACC','RPT-001/002 (DEC-063 G8: not REC/SUP)'],
+  'plans-extras':['OWN MGR CSH ACC','MA-2 Plans & extras report = reports (catalogue vs free text, plans, discount reasons)'],
   accounting:['OWN MGR CSH ACC','Module 20 §8 (Cashier view, no lock; DEC-063 G13: Tally tab Owner + Accountant only)'],
   assistant:['OWN MGR CSH ACC','Module 26 (reports)'],
   compliance:['OWN ACC','DEC-055: Owner and Accountant only'],
@@ -135,6 +136,8 @@ const CMDS={
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
   // MA-1 rooms master tools (range add, renumber, out of order): the rooms master's `masters` permission (old → new: 199 → 203 commands).
   ...Object.fromEntries(['RMS_ROOMS_ADD','RMS_ROOM_RENUMBER','RMS_ROOM_OOO','RMS_ROOM_OOO_CLEAR'].map(c=>[c,C('OWN TAD','MA-1 rooms master (DEC-MA-1)')])),
+  // MA-2 catalogue: catalogue charge = CHARGE (FOL-002), reasoned discount = DISCOUNT (FOL-003, DEC-063), meal plan = reservations or billing.
+  CAT_CHARGE:C('OWN MGR REC CSH','FOL-002'),CAT_DISCOUNT:C('OWN MGR REC','FOL-003'),CAT_PLAN_SET:C('OWN MGR REC CSH','RES-002 / FOL-002'),
 };
 const K=k=>'cmd:'+k;
 

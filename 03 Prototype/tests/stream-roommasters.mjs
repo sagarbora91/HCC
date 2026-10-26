@@ -189,7 +189,7 @@ export async function register({test,M,assert}){
   test('[RMS] registration: Rooms tools (Add hidden, no reorder), modal rms-extra desktop + phone, booking-dialog slot; no new page; sync mapping',()=>{
     const reg=src('src/features/roommasters/register.tsx');assert.match(reg,/registerMasterTools\('rooms',\{Tools:RoomTools,hideAdd:true,noReorder:true\}\)/);
     assert.match(reg,/modals:\{'rms-extra':ExtraModal\}/);assert.match(reg,/mobile:\{modals:\{'rms-extra':ExtraModal\}\}/);assert.match(reg,/bookingActions:RmsBookingActions/);
-    assert.match(src('src/app/registry.ts'),/m_admin,roommasters\]/);assert.doesNotMatch(src('src/app/navmap.ts'),/roommasters|rms-/);
+    assert.match(src('src/app/registry.ts'),/m_admin,(\w+,)*roommasters[,\]]/);assert.doesNotMatch(src('src/app/navmap.ts'),/roommasters|rms-/);
     assert.match(src('src/features/masters/MasterList.tsx'),/ext\?\.Tools&&<ext\.Tools/);assert.match(src('src/mobile/masters/MasterListPhone.tsx'),/ext\?\.Tools&&<ext\.Tools specId=\{specId\} phone\/>/);});
 
   // Render the masters UI on desktop and phone (lists, forms, tools, extra dialog) for Owner, Tech admin and Housekeeper.

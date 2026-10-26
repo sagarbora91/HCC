@@ -52,6 +52,8 @@ import {masters} from './masters';
 import {roommasters} from './roommasters';
 // MA-3 money masters (patch loader on mastersX; commands through masters.ts MST_SERVER):
 import {moneyMasters} from './money-master';
+// MA-2 meal plans, extras catalogue, discount reasons (after money: patches the folio lines it loaded):
+import {catalogue} from './catalogue';
 
 export const AREAS:SyncArea[]=[
   core,
@@ -87,4 +89,5 @@ export const AREAS:SyncArea[]=[
 
   roommasters, // MA-1
   moneyMasters, // MA-3
+  catalogue, // MA-2
 ];
