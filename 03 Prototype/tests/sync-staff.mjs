@@ -59,6 +59,8 @@ function remap(x,{sid,rid,lid}){
 
 export async function register({test,assert,M}){
   const S=await loadSync();
+  // Only this area (+ core, reservations): other W4 areas load their own routes, which this fake server does not serve.
+  const mine={areas:S.AREAS.filter(a=>['core','reservations','staff'].includes(a.id))};
   const P=M.execute(M.seed(),'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});
   const srvData=toServer(M,S,P);
   const ok=name=>({body})=>({name,...body,version:'v-new'});
@@ -69,7 +71,7 @@ export async function register({test,assert,M}){
     ...Object.fromEntries(['SetStaffActive','SetRoster','CopyRosterWeek','MarkAttendance','RequestLeave','DecideLeave','CancelLeave','SetLeavePolicy','SaveDepartment',
       'GiveAdvance','SetStatutoryRates','PreparePayRun','LockPayRun','UnlockPayRun','IssueBankFile','SendPayslip','PrepareFnf','ConfirmFnf','DiscardFnf'].map(n=>['POST /commands/'+n,ok(n)])),
   });
-  const rt=await startRuntime(S,srv);
+  const rt=await startRuntime(S,srv,mine);
   const st=rt.get().state,x=st.staffX;
   const want=remap(P.staffX,srvData);
   const sep=x.runs.find(r=>r.month==='2026-09');
@@ -94,7 +96,7 @@ export async function register({test,assert,M}){
   const hkData=toServer(M,S,P,{self:'housekeeper'});
   const hkSrv=fakeServer({'GET /me/capabilities':()=>capabilities({userId:6,displayName:'Ravi',roles:['HKP'],grants:[['PERM-HK-001','A']]}),
     'GET /payroll/staff':()=>hkData.staff,'GET /payroll/board':()=>hkData.board,'POST /commands/MarkAttendance':ok('MarkAttendance')});
-  const hk=await startRuntime(S,hkSrv);const hs=hk.get().state;
+  const hk=await startRuntime(S,hkSrv,mine);const hs=hk.get().state;
   const slips=M.hrVisiblePayslips(hs,'6');
   const hkShown=[P_.renderPages(hs,'6',false),P_.renderPages(hs,'6',true)];
   hkSrv.reset();const checkin=await hk.run({type:'HR_ATT_MARK',staffId:String(hkData.sid.get('HR-S05')),key:'k-checkin'});

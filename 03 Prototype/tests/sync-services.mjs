@@ -27,6 +27,8 @@ const msg=(id,over={})=>({messageId:id,id:'MSG-'+id,reservationId:1201,bookingNo
 
 export async function register({test,assert,M}){
   const S=await loadSync();
+  // Only this area (+ core, reservations): other W4 areas load their own routes, which this fake server does not serve.
+  const mine={areas:S.AREAS.filter(a=>['core','reservations','services'].includes(a.id))};
   const page=(items)=>({page:1,pageSize:100,total:items.length,items,ownOnly:false});
   const names=['LogServiceRequest','AssignServiceRequest','StartServiceRequest','CompleteServiceRequest','CancelServiceRequest','LogComplaint','UpdateComplaint','ResolveComplaint','RecordComplaintFollowUp',
     'OfferRecoveryDiscount','LogLostItem','ClaimLostItem','HandOverLostItem','DisposeLostItem','SaveGuestServiceSettings','SendMessage','RunMessagingTriggers','SimulateMessageDelivery','RetryMessage',
@@ -52,7 +54,7 @@ export async function register({test,assert,M}){
   };
   for(const n of names)routes['POST /commands/'+n]=()=>({});
   const srv=fakeServer(routes);
-  const rt=await startRuntime(S,srv);
+  const rt=await startRuntime(S,srv,mine);
   const st=rt.get().state;
   const bootErrors=rt.get().errors;
 
@@ -184,7 +186,7 @@ export async function register({test,assert,M}){
     'GET /guest-services/lost-items':()=>({...page([item(40,{claim:null})]),ownOnly:true}),
     'GET /handover/templates':()=>reply(403,{code:'FORBIDDEN',message:'Access denied.'}),
     'GET /handover/notes':()=>({notes:[note({desk:'Housekeeping',ref:'HOVN-HOUSEKEEPING-2026-10-24-M',cash:{amountPaise:null,note:null}})],incomingNoteIds:[]})});
-  const hk=await startRuntime(S,hkSrv);const hs=hk.get();
+  const hk=await startRuntime(S,hkSrv,mine);const hs=hk.get();
   test('[W4-10] A housekeeper loads only what the server lets them see: own requests, no complaints, no messaging reads, masked cash stays absent',()=>{
     assert.deepEqual(hs.state.servicesX.requests.map(r=>[r.id,r.booking,r.by]),[['12','','']]);
     assert.deepEqual(hs.state.servicesX.complaints,[]);assert.equal(hs.state.servicesX.settings,undefined);
@@ -194,8 +196,8 @@ export async function register({test,assert,M}){
   });
 
   // Offline restart: cached slices visible, commands refused.
-  const cache=S.createMemoryCache();const a=await startRuntime(S,srv,{cache});void a;
-  srv.down=true;const off=await startRuntime(S,srv,{cache});const ro=await off.run({type:'MSG_RETRY',id:'MSG-6'});
+  const cache=S.createMemoryCache();const a=await startRuntime(S,srv,{cache,...mine});void a;
+  srv.down=true;const off=await startRuntime(S,srv,{cache,...mine});const ro=await off.run({type:'MSG_RETRY',id:'MSG-6'});
   test('[W4-10] Offline restart shows the cached outbox read-only and refuses commands',()=>{
     assert.equal(off.get().readOnly,true);assert.deepEqual(off.get().state.messagingX.outbox.map(m=>m.id),['MSG-5','MSG-6']);assert.equal(ro.reason,'read-only');
   });
