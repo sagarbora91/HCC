@@ -13,7 +13,7 @@ export const BOOKING_STATUS:Record<string,BookingStatus>={Held:'Held',Expired:'E
 /** GET /reservations item (08 Production/src/Hcc.Contracts/Reservations/ReservationContracts.cs `ReservationListItem`). */
 export type SrvReservationItem={reservationId:number;publicNo:string;version:string;status:string;guestName:string;phone:string|null;roomId:number;roomNo:string;
   roomTypeId:number;roomType:string;arrival:string;departure:string;adults:number;children:number;source:string;nightlyRatePaise:number|null;holdUntil:string|null;
-  groupBlockId:number|null;restrictionOverride:string|null;cancelReason:string|null;notes:string|null;guestId:number|null;registered:boolean;stayId:number|null;
+  groupBlockId:number|null;restrictionOverride:string|null;cancelReason:string|null;notes:string|null;company?:{name:string;gstin?:string|null}|null;guestId:number|null;registered:boolean;stayId:number|null;
   stayVersion:string|null;stayStatus:string|null;checkedInDate:string|null;checkedOutDate:string|null;segments:{roomNo:string;from:string;to:string|null}[]};
 export type SrvReservationList={businessDate:string;total:number;page:number;pageSize:number;items:SrvReservationItem[]};
 
@@ -30,8 +30,9 @@ export async function allPages<T>(read:(page:number)=>Promise<{items:T[];total:n
   return out;
 }
 
-/** BOOK stores the guest e-mail, OTA channel and company in the server's free-text notes (clients/http.ts createReservation):
- *  "<notes> · E-mail: x · OTA: y · Company: name · GSTIN g". Read them back so the prototype fields are filled again. */
+/** BOOK stores the guest e-mail and OTA channel in the server's free-text notes (clients/http.ts createReservation):
+ *  "<notes> · E-mail: x · OTA: y". Read them back so the prototype fields are filled again. Bookings made before the company became a real
+ *  server field (W4 G5) also carry " · Company: name · GSTIN g" there: still read (fallback) and kept out of the notes. */
 export function parseBookingNotes(raw:string|null|undefined):{notes:string;email?:string;otaChannel?:string;company?:{name:string;gstin?:string}}{
   const parts=String(raw??'').split(' · ');const keep:string[]=[];let email:string|undefined,ota:string|undefined,company:{name:string;gstin?:string}|undefined;
   for(let i=0;i<parts.length;i++){
@@ -44,13 +45,20 @@ export function parseBookingNotes(raw:string|null|undefined):{notes:string;email
   return {notes:keep.join(' · '),email,otaChannel:ota,company};
 }
 
+/** The real server company (name + GSTIN) of a list item or details; undefined when none. */
+export function companyOf(x:{company?:{name:string;gstin?:string|null}|null}):{name:string;gstin?:string}|undefined{
+  const name=x.company?.name?.trim();if(!name)return undefined;
+  const gstin=x.company?.gstin?.trim();return gstin?{name,gstin}:{name};
+}
+
 /** Server list item → prototype Booking. Folio lines/receipts are the money area's (patch loader); `version` stays neutral (the server version is in `ids`). */
 export function bookingFromList(x:SrvReservationItem,emailOf:(guestId:string|undefined)=>string|undefined):Booking{
   const gid=x.guestId==null?undefined:String(x.guestId);const n=parseBookingNotes(x.notes);
   const b:Booking={id:String(x.reservationId),guest:x.guestName,email:emailOf(gid)??n.email??'',people:x.adults,room:x.roomNo,arrival:x.arrival,departure:x.departure,
     rate:x.nightlyRatePaise??0,source:x.source,status:BOOKING_STATUS[x.status]??(x.status as BookingStatus),registered:x.registered,lines:[],receipts:[],version:1,notes:n.notes};
   if(x.phone)b.phone=x.phone;if(x.children)b.children=x.children;if(x.holdUntil)b.holdUntil=utcToClock(x.holdUntil);
-  if(n.otaChannel)b.otaChannel=n.otaChannel;if(n.company)b.company=n.company;if(x.cancelReason)b.cancelReason=x.cancelReason;
+  if(n.otaChannel)b.otaChannel=n.otaChannel;
+  const company=companyOf(x)??n.company;if(company)b.company=company;if(x.cancelReason)b.cancelReason=x.cancelReason;
   if(gid)b.guestId=gid;
   if(x.segments.length)b.segments=x.segments.map(g=>g.to?{room:g.roomNo,from:g.from,to:g.to}:{room:g.roomNo,from:g.from});
   return b;

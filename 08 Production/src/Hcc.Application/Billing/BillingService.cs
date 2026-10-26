@@ -114,7 +114,16 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
 
         return await runner.RunAsync(Ctx(caller, "RecordReceipt", idempotencyKey), req, async (tx, ct2) =>
         {
-            var f = await RequireFolioAsync(tx, caller, req.FolioId, ct2).ConfigureAwait(false);
+            var folioId = req.FolioId;
+            if (folioId <= 0)
+            {
+                // Advance before check-in (the folio normally opens at check-in): open the reservation's folio here, as the web deposit link does.
+                if (req.ReservationId is not { } reservationId) throw HccException.Validation("Choose the booking (folio) the money is for.");
+                var known = await store.FindReservationFolioAsync(caller.PropertyId, reservationId, ct2).ConfigureAwait(false) ?? throw NotFound("Booking not found.");
+                folioId = known.FolioId ?? await store.EnsureFolioAsync(tx, reservationId, ct2).ConfigureAwait(false);
+            }
+
+            var f = await RequireFolioAsync(tx, caller, folioId, ct2).ConfigureAwait(false);
             if (kind is ReceiptKind.Payment or ReceiptKind.Deposit && !f.IsOpen) throw Invalid("This booking is no longer open.");
             if (kind == ReceiptKind.DepositReturn)
             {

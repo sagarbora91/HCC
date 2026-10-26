@@ -7,6 +7,7 @@ using Hcc.Contracts.Inventory;
 using Hcc.Contracts.Reservations;
 using Hcc.Domain.Dates;
 using Hcc.Domain.Errors;
+using Hcc.Domain.Groups;
 using Hcc.Domain.Inventory;
 using Hcc.Domain.Reservations;
 
@@ -36,6 +37,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             var source = string.IsNullOrWhiteSpace(request.Source) ? "Direct" : request.Source.Trim();
             if (source.Length > 40) throw HccException.Validation("Booking source is too long.");
             var notes = TrimNotes(request.Notes);
+            var company = ToCompany(request.Company);
 
             var quote = await UsableQuoteAsync(tx, context.PropertyId, request.QuoteId, quoteVersion, now, c).ConfigureAwait(false);
             StayRules.Stay(StayDates.ToWire(quote.Arrival), StayDates.ToWire(quote.Departure), property.BusinessDate);
@@ -68,7 +70,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             var saved = await reservations.InsertAsync(tx, new NewReservation(context.PropertyId, context.PrincipalId, guest, phone,
                 new StayAllocation(room.RoomId, room.RoomTypeId, quote.Arrival, quote.Departure, block?.GroupBlockId), quote.Adults, quote.Children,
                 status, holdUntil, block is null ? source : "Group · " + block.Code, quote.QuoteId, nights, overrideNote,
-                JoinNotes(notes, block is null ? null : $"Group block {block.Code} · {block.Name}"), now), c).ConfigureAwait(false);
+                JoinNotes(notes, block is null ? null : $"Group block {block.Code} · {block.Name}"), now, company), c).ConfigureAwait(false);
             await inventory.MarkQuoteUsedAsync(tx, quote.QuoteId, saved.ReservationId, c).ConfigureAwait(false);
 
             var holdText = holdUntil is { } hu ? " · held until " + LocalTime(hu, property.TimeZone) : "";
@@ -116,7 +118,8 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             var holds = AvailabilityRules.GroupHolds(snap);
             var reasons = AvailabilityRules.Exclusion(snap, holds, room, a, d, x.Adults + x.Children, x.ReservationId, x.GroupBlockId);
             if (reasons.Count > 0) throw InventoryErrors.NotAvailable("Target room is unavailable for the requested stay.", reasons);
-            if (room.RoomId == x.RoomId && a == x.Arrival && d == x.Departure) throw HccException.Validation("Nothing changed. Choose a different room or dates.");
+            var company = request.Company is null ? x.Company : ToCompany(request.Company);
+            if (room.RoomId == x.RoomId && a == x.Arrival && d == x.Departure && company == x.Company) throw HccException.Validation("Nothing changed. Choose a different room or dates.");
             var overrideNote = await RestrictionsAsync(context, snap, room, a, d, request.RestrictionOverride, c).ConfigureAwait(false);
 
             IReadOnlyList<PricedNight> nights;
@@ -142,7 +145,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
 
             var notes = overrideNote is null ? x.Notes : JoinNotes(x.Notes, overrideNote);
             var saved = await reservations.ChangeAsync(tx, context.PropertyId, x,
-                new ReservationChange(new StayAllocation(room.RoomId, room.RoomTypeId, a, d, x.GroupBlockId), rate, quoteId, nights, notes), c).ConfigureAwait(false);
+                new ReservationChange(new StayAllocation(room.RoomId, room.RoomTypeId, a, d, x.GroupBlockId), rate, quoteId, nights, notes, company), c).ConfigureAwait(false);
             if (quoteId is { } usedQuote) await inventory.MarkQuoteUsedAsync(tx, usedQuote, x.ReservationId, c).ConfigureAwait(false);
 
             var oldRoom = snap.Rooms.FirstOrDefault(r => r.RoomId == x.RoomId)?.RoomNo ?? x.RoomId.ToString(CultureInfo.InvariantCulture);
@@ -283,6 +286,23 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
     {
         var tz = CalendarDate.AssertTimeZone(timeZone);
         return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), tz).ToString("HH:mm", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Company on a booking: name 2–200 characters, optional GSTIN in the 15-character format (upper-cased). An empty name means "no company".</summary>
+    private static ReservationCompany? ToCompany(CompanyInput? input)
+    {
+        if (input is null) return null;
+        var name = (input.Name ?? "").Trim();
+        var gstin = GroupText.Gstin(input.Gstin);
+        if (name.Length == 0)
+        {
+            if (gstin is not null) throw HccException.Validation("Enter the company name.");
+            return null;
+        }
+
+        if (name.Length < 2) throw HccException.Validation("Enter the company name (at least 2 characters).");
+        if (name.Length > 200) throw HccException.Validation("The company name is too long (200 characters at most).");
+        return new ReservationCompany(name, gstin);
     }
 
     private static string? TrimNotes(string? notes)

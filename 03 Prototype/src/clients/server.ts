@@ -14,16 +14,17 @@ export type SrvQuoteNight={date:string;ratePaise:number;taxBps:number;taxPaise:n
 export type SrvQuote={quoteId:number;version:string;roomTypeId:number;roomId?:number|null;arrival:string;departure:string;adults:number;children:number;
   ratePlanId:string;nights:SrvQuoteNight[];netPaise:number;taxPaise:number;totalPaise:number;expiresAt:string;violations:SrvStayViolation[]};
 
-/** CreateReservationRequest (server): no email / OTA channel / company fields yet (Wave 2 guest/company profiles). */
+/** CreateReservationRequest (server): company = name + GSTIN (W4 G5, stored on the reservation). No e-mail / OTA channel fields yet: those stay in notes. */
+export type SrvCompany={name:string;gstin?:string|null};
 export type SrvCreateReservation={quoteId:number;quoteVersion:string;guest:{name:string;phone?:string};roomId:number;hold?:boolean;
-  restrictionOverride?:string;groupBlockId?:number;source?:string;notes?:string};
+  restrictionOverride?:string;groupBlockId?:number;source?:string;notes?:string;company?:SrvCompany};
 export type SrvReservationResult={reservationId:number;publicNo:string;version:string;status:string;holdUntil?:string|null};
 
 /** ReservationStatuses: Held | Expired | Confirmed | InHouse | Departed | Cancelled | NoShow. */
 export type SrvReservationDetails={reservationId:number;publicNo:string;version:string;status:string;guestName:string;phone?:string|null;
   roomId:number;roomNo:string;roomTypeId:number;roomType:string;arrival:string;departure:string;adults:number;children:number;source:string;
   nightlyRatePaise?:number|null;holdUntil?:string|null;groupBlockId?:number|null;restrictionOverride?:string|null;cancelReason?:string|null;notes?:string|null;
-  nights:SrvQuoteNight[];netPaise:number;taxPaise:number;totalPaise:number};
+  nights:SrvQuoteNight[];netPaise:number;taxPaise:number;totalPaise:number;company?:SrvCompany|null};
 
 export type SrvCapabilityGrant={permissionId:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null};
 export type SrvCapabilities={userId:number;propertyId:number;displayName:string;credentialKind:string;roles:string[];

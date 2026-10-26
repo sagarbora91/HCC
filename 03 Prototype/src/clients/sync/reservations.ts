@@ -3,8 +3,8 @@
 // GET /reservations (W4-1 list: arrivals / in-house / departures / date range, with the stay-side facts), GET /reservations/{id}.
 //
 //   loaders   bookings ← GET /reservations?view=range&from=<business date − 180 d> (all pages, 500 each, at most 10 pages = 5 000 bookings).
-//             Each item carries the linked guest, registration, stay (id, version) and room segments; e-mail / OTA channel / company
-//             written into the server notes by BOOK are read back. Folio lines / receipts are NOT loaded here (money area W4-3 adds a
+//             Each item carries the linked guest, registration, stay (id, version) and room segments; company comes from the server's company field (older bookings: read
+//             back from the notes), e-mail / OTA channel written into the server notes by BOOK are read back. Folio lines / receipts are NOT loaded here (money area W4-3 adds a
 //             `kind:'patch'` loader on 'bookings'). Needs `guests` (the e-mail of the linked profile).
 //   commands  BOOK → [GET /availability] → QuoteStay (key `<action>:quote`) → CreateReservation (key `<action>`); reload `bookings`.
 //             CHANGE_DATES → AmendReservation (price decision keep: the agreed tariff is preserved), CANCEL → CancelReservation or
@@ -73,6 +73,8 @@ export const reservations:SyncArea={
       const roomId=await roomIdOf(c,String(cmd.room),cmd.arrival,cmd.departure);
       const body:Record<string,unknown>={reservationId:serverId(id,'Booking'),arrival:cmd.arrival,departure:cmd.departure,roomId,priceDecision:'keep'};
       if(cmd.restrictionOverride)body.restrictionOverride=String(cmd.restrictionOverride);
+      // The company (name + GSTIN) is a server field; only sent when the dialog carries one (a missing company leaves the stored one).
+      const co=cmd.company as {name?:string;gstin?:string}|undefined;if(co&&String(co.name??'').trim())body.company={name:String(co.name).trim(),...(String(co.gstin??'').trim()?{gstin:String(co.gstin).trim()}:{})};
       await c.api.command('AmendReservation',body,{expectedVersion:versionOf(c,'booking',id,'Booking')});
     },
   },{

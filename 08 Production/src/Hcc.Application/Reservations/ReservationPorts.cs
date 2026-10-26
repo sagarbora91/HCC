@@ -7,17 +7,17 @@ namespace Hcc.Application.Reservations;
 
 public sealed record ReservationRecord(long ReservationId, string PublicNo, string Status, string GuestName, int RoomId, int RoomTypeId,
     DateOnly Arrival, DateOnly Departure, int Adults, int Children, DateTime? HoldUntilUtc, long? NightlyRatePaise, long? GroupBlockId,
-    string? Notes, byte[] RowVersion)
+    string? Notes, byte[] RowVersion, ReservationCompany? Company = null)
 {
     public StayAllocation Allocation => new(RoomId, RoomTypeId, Arrival, Departure, GroupBlockId);
 }
 
 public sealed record NewReservation(int PropertyId, int PrincipalId, string GuestName, string? Phone, StayAllocation Allocation,
     int Adults, int Children, string Status, DateTime? HoldUntilUtc, string Source, long? QuoteId, IReadOnlyList<PricedNight> Nights,
-    string? RestrictionOverride, string? Notes, DateTime NowUtc);
+    string? RestrictionOverride, string? Notes, DateTime NowUtc, ReservationCompany? Company = null);
 
 public sealed record ReservationChange(StayAllocation Allocation, long? NightlyRatePaise, long? QuoteId, IReadOnlyList<PricedNight> Nights,
-    string? Notes);
+    string? Notes, ReservationCompany? Company = null);
 
 public sealed record SavedReservation(long ReservationId, string PublicNo, byte[] RowVersion);
 
