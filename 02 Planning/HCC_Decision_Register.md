@@ -119,6 +119,8 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-MA-5 | Invoice numbering | **One tax-invoice series** for the hotel; the numbering-series master exists so outlets/documents can get separate series later if the CA advises. | Agreed (O, 26 Oct 2026) | O | MA-5, Invoices |
 | DEC-MA-6 | Vendors | **Keep maintenance vendors and expense vendors separate**; expenses get their own vendor master; `mnt.vendor` untouched. | Agreed (O, 26 Oct 2026) | O | MA-3, Expenses |
 | DEC-MA-7 | Masters batch order | After MA-0, **MA-1…MA-7 all run in parallel**, then MA-8…MA-11. | Agreed (O, 26 Oct 2026) | O | Masters wave |
+| DEC-MA-5a | Numbering series rules (MA-5 working assumption) | GST documents (tax invoice, bill of supply, credit note) restart every 1 April, prefix ≤ 6 so PREFIX/2627/digits ≤ 16 characters; a series that has issued a number never changes; a new series starts from a date with no documents and, for yearly series, in a financial year without documents of that kind (normally 1 April). Receipt / KOT / registration-card series are configured but not yet used for numbering. Illustrative — CA to confirm. | Proposed (MA-5, 26 Oct 2026) | O + CA | MA-5, Invoices |
+| DEC-MA-5b | Booking policies (MA-5 working assumption) | Named cancellation / no-show / deposit policies; "Default" (no charges, no advance) applies to every source not named in another policy. Charges are shown on the cancel dialog and confirmation, **not posted automatically** — posting needs an owner decision. | Proposed (MA-5, 26 Oct 2026) | O | MA-5, Reservations |
 
 ## 4. Superseded / changed decisions
 
