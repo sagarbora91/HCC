@@ -2,6 +2,7 @@ using Hcc.Application.Import;
 using Hcc.Contracts.Import;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Import;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hcc.Api.Endpoints;
 
@@ -17,6 +18,7 @@ public static class ImportEndpoints
         services.AddSingleton<IImportStore>(sp => new SqlImportStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IImportInventoryWriter, SqlImportInventoryWriter>();
         services.AddSingleton<IImportAccessWriter, SqlImportAccessWriter>();
+        services.TryAddSingleton<Hcc.Application.FrontDeskMasters.IFrontDeskMastersStore, Hcc.Infrastructure.SqlServer.FrontDeskMasters.SqlFrontDeskMastersStore>(); // the list writer stores the front-desk defaults like the module itself
         services.AddSingleton<IImportListWriter>(sp => new SqlImportListWriter(sp.GetRequiredService<Hcc.Application.FrontDeskMasters.IFrontDeskMastersStore>(), sp.GetService<Hcc.Application.Configuration.ISettingsReader>()));
         services.AddSingleton<ImportService>();
         services.AddSingleton<IOpeningBalanceSource>(sp => sp.GetRequiredService<ImportService>());

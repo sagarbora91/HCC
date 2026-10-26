@@ -136,7 +136,7 @@ public static class ImportMasters
             new("kotStation", false, "Kitchen station a ticket prints at, up to 20 characters (blank = one ticket per send).", "Kitchen"),
             new("sortOrder", false, "Order on screens (10, 20 …). Blank keeps the outlet's order, or puts a new outlet last.", "10"),
             new("active", false, "yes or no (blank keeps the state, new = yes). A file cannot retire an outlet — retire it on its list, where open checks are looked at.", "yes"),
-            new("tables", false, "Table names separated by ; (up to 10 characters each) — missing tables are added; none are removed. Required for a new dining outlet, blank for room-service.", "T1;T2;T3;T4"),
+            new("tables", false, "Table names separated by ; (up to 10 characters each). Creates the tables of a new dining outlet (required then); an existing outlet keeps its tables, which are added or retired in the pos-tables list. Blank for room-service.", "T1;T2;T3;T4"),
         ]),
         new(ImportMaster.PosMenu, "pos-menu", "Restaurant & room-service menu (POS)", true, false, "pos-outlets",
         [

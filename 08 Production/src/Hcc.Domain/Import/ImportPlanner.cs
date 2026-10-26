@@ -721,9 +721,9 @@ public static partial class ImportPlanner
                 continue;
             }
 
-            if (s.HasColumn("tables") && !existing.Tables.Order(Ci).SequenceEqual(tables.Order(Ci), Ci))
+            if (s.HasColumn("tables") && tables.Where(t => !existing.Tables.Contains(t, Ci)).ToList() is { Count: > 0 } missing)
             {
-                s.Error(r, "code", $"Outlet {existing.Code} already exists with different tables. Add, rename or retire tables in the POS tables list (or the pos-tables file), or use another code.");
+                s.Error(r, "code", $"Outlet {existing.Code} already exists without table(s) {string.Join(", ", missing)}. Tables of an existing outlet are added in the POS tables list (or the pos-tables file); this file never adds or removes them.");
                 continue;
             }
 

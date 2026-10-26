@@ -596,7 +596,7 @@ public static partial class ImportLists
         if (kind == "till" && (c.Has("bank") || c.Has("accountLast4") || c.Has("ifsc"))) c.Error("bank", "A till has no bank, account number or IFSC.");
         if (kind == "till" && c.Has("defaultFor")) c.Error("defaultFor", "A till is not a default for UPI, card or bank methods.");
         if (kind == "bank" && !c.Has("bank")) c.Error("bank", "Enter the bank name.");
-        if (c.Existing is { } e && PaiseOf(e.Values.GetValueOrDefault("openingBalance")) != PaiseOf(c["openingBalance"]) && (PaiseOf(c["openingBalance"]) ?? 0) != (PaiseOf(e.Values.GetValueOrDefault("openingBalance")) ?? 0))
+        if (c.Existing is { } e && (PaiseOf(e.Values.GetValueOrDefault("openingBalance")) ?? 0) != (PaiseOf(c["openingBalance"]) ?? 0))
             c.Error("openingBalance", $"The opening balance of {e.Name} is set once (setup-only); it is not changed by an import. Leave it as it is in HCC ({e.Values.GetValueOrDefault("openingBalance")}).");
     }
 

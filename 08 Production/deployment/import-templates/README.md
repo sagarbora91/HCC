@@ -246,9 +246,9 @@ A guest with the same name and phone already in HCC is not changed. ID documents
 | kotStation | optional | Kitchen station a ticket prints at, up to 20 characters (blank = one ticket per send). |
 | sortOrder | optional | Order on screens (10, 20 …). Blank keeps the outlet's order, or puts a new outlet last. |
 | active | optional | yes or no (blank keeps the state, new = yes). A file cannot retire an outlet — retire it on its list, where open checks are looked at. |
-| tables | optional | Table names separated by ; (up to 10 characters each) — missing tables are added; none are removed. Required for a new dining outlet, blank for room-service. |
+| tables | optional | Table names separated by ; (up to 10 characters each). Creates the tables of a new dining outlet (required then); an existing outlet keeps its tables, which are added or retired in the pos-tables list. Blank for room-service. |
 
-An outlet already in HCC is **updated** (name, type, hours, GST profile, station, order) when those differ and "unchanged" otherwise. Its kind (dining or room service) cannot change, and a `tables` list that differs from its active tables is refused: add, rename or retire tables in the pos-tables file or list. Older files with `outletCode`, `outletName` and `kind` (`table` / `room`) still work. The GST profile is Owner-only, so the whole file is committed by the Owner. Nothing here posts any money.
+An outlet already in HCC is **updated** (name, type, hours, GST profile, station, order) when those differ and "unchanged" otherwise. Its kind (dining or room service) cannot change, and a `tables` list naming a table HCC does not have is refused: tables are added, renamed or retired in the pos-tables file or list. Older files with `outletCode`, `outletName` and `kind` (`table` / `room`) still work. The GST profile is Owner-only, so the whole file is committed by the Owner. Nothing here posts any money.
 
 ### pos-menu.csv (Restaurant & room-service menu (POS))
 | Column | Required | Meaning |
