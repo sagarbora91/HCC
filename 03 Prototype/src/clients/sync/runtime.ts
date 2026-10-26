@@ -219,7 +219,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     const runOne=async(x:typeof batch[number])=>{
       const k=x.l.slice,own=(x.l.kind??'own')==='own';
       if((x.l.requires&&!canMe(x.l.requires))||(x.l.reads&&!mayRead(me,...x.l.reads))){if(own){fresh[k]=skeleton[k];loadedOk.add(k);}return;}
-      try{fresh[k]=await x.l.load(ctx);loadedOk.add(k);delete errors[k];}
+      try{fresh[k]=await x.l.load(ctx);loadedOk.add(k);if(own)delete errors[k];} // MA-2: a later patch's success must not hide an earlier patch's error
       catch(e){
         const w=e instanceof HccClientError?e.wireCode:undefined;
         if(w==='UNAUTHENTICATED'){sessionLost=true;return;}

@@ -81,7 +81,14 @@
     "GET /yield/publishes": "/yield/publishes",
     "GET /yield/proposals": "/yield/proposals",
     "GET /masters/floors": "/masters/floors?page=1&pageSize=200",
-    "GET /masters/floors/history": "/masters/floors/history?page=1&pageSize=200"
+    "GET /masters/floors/history": "/masters/floors/history?page=1&pageSize=200",
+    "GET /catalogue/meal-plans": "/catalogue/meal-plans?page=1&pageSize=200",
+    "GET /catalogue/extras": "/catalogue/extras?page=1&pageSize=200",
+    "GET /catalogue/discount-reasons": "/catalogue/discount-reasons?page=1&pageSize=200",
+    "GET /catalogue/meal-plans/history": "/catalogue/meal-plans/history?page=1&pageSize=200",
+    "GET /catalogue/extras/history": "/catalogue/extras/history?page=1&pageSize=200",
+    "GET /catalogue/discount-reasons/history": "/catalogue/discount-reasons/history?page=1&pageSize=200",
+    "GET /catalogue/links": "/catalogue/links"
   },
   "roles": {
     "OWN": {
@@ -594,7 +601,14 @@
         "GET /yield/publishes": "200",
         "GET /yield/proposals": "200",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "200"
+        "GET /masters/floors/history": "200",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "200",
+        "GET /catalogue/extras/history": "200",
+        "GET /catalogue/discount-reasons/history": "200",
+        "GET /catalogue/links": "200"
       }
     },
     "MGR": {
@@ -1007,7 +1021,14 @@
         "GET /yield/publishes": "200",
         "GET /yield/proposals": "200",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "REC": {
@@ -1280,7 +1301,14 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "CSH": {
@@ -1478,7 +1506,14 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "ACC": {
@@ -1716,7 +1751,14 @@
         "GET /yield/publishes": "200",
         "GET /yield/proposals": "200",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /catalogue/meal-plans": "200",
+        "GET /catalogue/extras": "200",
+        "GET /catalogue/discount-reasons": "200",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "200"
       }
     },
     "SUP": {
@@ -1849,7 +1891,14 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     },
     "HKP": {
@@ -1967,7 +2016,14 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     },
     "MNT": {
@@ -2080,7 +2136,14 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     },
     "TAD": {
@@ -2213,7 +2276,14 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "200"
+        "GET /masters/floors/history": "200",
+        "GET /catalogue/meal-plans": "403",
+        "GET /catalogue/extras": "403",
+        "GET /catalogue/discount-reasons": "403",
+        "GET /catalogue/meal-plans/history": "403",
+        "GET /catalogue/extras/history": "403",
+        "GET /catalogue/discount-reasons/history": "403",
+        "GET /catalogue/links": "403"
       }
     }
   }

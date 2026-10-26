@@ -55,6 +55,7 @@ const PAGES={
   staff:['OWN MGR CSH ACC','Module 17 §2'],
   closing:['OWN MGR ACC','CLS-001/002 (DEC-063 G4: Accountant read-only; G8: not REC/CSH)'],
   reports:['OWN MGR CSH ACC','RPT-001/002 (DEC-063 G8: not REC/SUP)'],
+  'plans-extras':['OWN MGR CSH ACC','MA-2 Plans & extras report = reports (catalogue vs free text, plans, discount reasons)'],
   accounting:['OWN MGR CSH ACC','Module 20 §8 (Cashier view, no lock; DEC-063 G13: Tally tab Owner + Accountant only)'],
   assistant:['OWN MGR CSH ACC','Module 26 (reports)'],
   compliance:['OWN ACC','DEC-055: Owner and Accountant only'],

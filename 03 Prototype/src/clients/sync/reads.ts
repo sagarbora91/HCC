@@ -125,6 +125,14 @@ export const READS={
   // MA-0 masters: floor names label every board (any signed-in user); the change history needs masters.manage (PERM-MST-001).
   'GET /masters/floors':always,
   'GET /masters/floors/history':one(wide('PERM-MST-001')),
+  // MA-2 catalogue: prices are hotel money → folio view (PERM-FOL-001; never housekeeping / maintenance, DEC-061); history → PERM-MST-002 (Owner).
+  'GET /catalogue/meal-plans':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/extras':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/discount-reasons':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/meal-plans/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/extras/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/discount-reasons/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/links':one(wide('PERM-FOL-001',true)),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

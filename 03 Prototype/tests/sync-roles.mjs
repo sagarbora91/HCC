@@ -120,6 +120,11 @@ function routes(role){
     'GET /yield/proposals':()=>[],
     'GET /masters/floors':({query})=>page([{floorId:1,code:'F1',name:'Floor 1',sortOrder:10,active:true,retiredOn:null,roomCount:8,updatedUtc:'2026-10-24T03:00:00.000Z',version:'FV1'}],query,'items'), // MA-0
     'GET /masters/floors/history':({query})=>page([],query,'items'),
+    // MA-2 catalogue (lists for folio viewers, history for the Owner, links of bookings / charges)
+    'GET /catalogue/meal-plans':({query})=>page([],query,'items'),'GET /catalogue/extras':({query})=>page([],query,'items'),
+    'GET /catalogue/discount-reasons':({query})=>page([],query,'items'),'GET /catalogue/meal-plans/history':({query})=>page([],query,'items'),
+    'GET /catalogue/extras/history':({query})=>page([],query,'items'),'GET /catalogue/discount-reasons/history':({query})=>page([],query,'items'),
+    'GET /catalogue/links':()=>({plans:[],charges:[]}),
   };
 }
 
