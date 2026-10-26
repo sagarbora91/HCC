@@ -85,11 +85,14 @@ export function ownCredentialLockedText(minutesLeft:number){
 }
 
 // ── Demo only (services/mock/handlers/credentials.ts) ──
-// The demo signs in by picking a fictional staff member, so it has no real secrets. Every demo user starts with DEMO_PIN or
-// DEMO_PASSWORD (shown on the change sheet of the demo build only); a changed one is kept as a digest in s.credentialsX.
+// The demo signs in by picking a fictional staff member, so it has no real secrets. Every demo user starts with demoPin() or
+// demoPassword() (shown on the change sheet of the demo build only); a changed one is kept as a digest in s.credentialsX.
 // Not mirrored in the demo: the wrong-attempt lockout (a refused demo action changes nothing, so it cannot count attempts) and
 // the A06-01 must-change flag (the demo has no administrator reset; Access control › Sign-in & devices is production only).
-export const DEMO_PIN='246810',DEMO_PASSWORD='Demo-Hotel-2026';
+// Compiled out of the production flavour (build.mjs defines process.env.HCC_BUILD, the minifier folds the condition): the server
+// build never carries them (tests/stream-clients.mjs [P5] production-bundle check). Functions, so `process` is read only when called.
+export const demoPin=()=>process.env.HCC_BUILD==='production'?'':'246810';
+export const demoPassword=()=>process.env.HCC_BUILD==='production'?'':'Demo-Hotel-2026';
 /** Fictional-data digest for the demo store (FNV-1a over user + secret). Not a security measure: the demo has none. */
 export function demoSecretDigest(uid:string,secret:string){
   let h=0x811c9dc5;const t=uid+'|'+secret;
@@ -104,6 +107,6 @@ export type DemoCredentials=Record<string,DemoCredential>;
 export function demoCredentialOf(all:DemoCredentials|undefined,uid:string,role:Role,clock:string):DemoCredential{
   const kind=kindOfRole(role);const have=all?.[uid];
   if(have&&have.kind===kind)return have;
-  const digest=demoSecretDigest(uid,kind==='PIN'?DEMO_PIN:DEMO_PASSWORD);
+  const digest=demoSecretDigest(uid,kind==='PIN'?demoPin():demoPassword());
   return {kind,digest,history:kind==='PIN'?[digest]:[],changedAt:clock};
 }

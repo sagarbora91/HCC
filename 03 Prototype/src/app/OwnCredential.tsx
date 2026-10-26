@@ -8,7 +8,7 @@ import React,{useRef,useState} from 'react';
 import {KeyRound} from 'lucide-react';
 import {useHcc} from './context';
 import type {Command} from '../services/mock';
-import {credentialRules,ownCredentialProblem,ownCredentialCommand,ownCredentialKey,kindOfRole,DEMO_PIN,DEMO_PASSWORD,PIN_LENGTH,PASSWORD_MAX,type CredKind} from '../domain/credentials';
+import {credentialRules,ownCredentialProblem,ownCredentialCommand,ownCredentialKey,kindOfRole,demoPin,demoPassword,PIN_LENGTH,PASSWORD_MAX,type CredKind} from '../domain/credentials';
 import {getSyncRuntime} from '../clients/sync/instance'; // production build only
 
 export type OwnCredentialOutcome={ok:true}|{ok:false;text?:string;/** the answer is known (a corrected try is a new action); false = lost answer, same key */definitive?:boolean};
@@ -69,6 +69,6 @@ export function OwnCredentialSheet(){
   };
   return <><div className="modal-heading"><div className="eyebrow">{user.name.split(' · ')[0]} · {user.role}</div><h2>Change my {word}</h2>
     <p>Type your current {word}, then your new one twice. Nobody else — not the Owner or the Tech admin — learns it.{prod?' Your sessions on other devices end; this one continues.':''}</p></div>
-    {!prod&&<p className="info-note" role="note">Demo: every demo user starts with {kind==='PIN'?`PIN ${DEMO_PIN}`:`password ${DEMO_PASSWORD}`} until they change it on this device.</p>}
+    {!prod&&<p className="info-note" role="note">Demo: every demo user starts with {kind==='PIN'?`PIN ${demoPin()}`:`password ${demoPassword()}`} until they change it on this device.</p>}
     <OwnCredentialForm kind={kind} uid={uid} loginName={prod?'':uid} send={send} mobile={display.isMobile}/></>;
 }

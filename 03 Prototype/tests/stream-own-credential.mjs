@@ -5,6 +5,7 @@
 import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
 export async function register({test,M,assert}){
+  const DEMO_PIN=M.demoPin(),DEMO_PASSWORD=M.demoPassword();
   const cmd=(current,next,kind,key)=>kind==='PIN'?{type:'OWN_CREDENTIAL_CHANGE',current,newPin:next,...(key?{key}:{})}:{type:'OWN_CREDENTIAL_CHANGE',current,newPassword:next,...(key?{key}:{})};
   const refused=(s,uid,c)=>{try{M.execute(s,uid,c);return null;}catch(e){return {code:e.code,message:e.message};}};
 
@@ -18,63 +19,63 @@ export async function register({test,M,assert}){
   test('[OWN-CRED] PIN user (Reception): current PIN required and checked, server PIN rules, not the current one, then a digest only',()=>{
     const s=M.seed();
     assert.deepEqual(refused(s,'reception',cmd('000000','305718','PIN')),{code:'FORBIDDEN',message:'The current password or PIN is wrong.'});
-    assert.deepEqual(refused(s,'reception',cmd(M.DEMO_PIN,'30571','PIN')),{code:'VALIDATION',message:'The PIN must be exactly 6 digits.'});
-    assert.deepEqual(refused(s,'reception',cmd(M.DEMO_PIN,'30a718','PIN')),{code:'VALIDATION',message:'The PIN must be exactly 6 digits.'});
+    assert.deepEqual(refused(s,'reception',cmd(DEMO_PIN,'30571','PIN')),{code:'VALIDATION',message:'The PIN must be exactly 6 digits.'});
+    assert.deepEqual(refused(s,'reception',cmd(DEMO_PIN,'30a718','PIN')),{code:'VALIDATION',message:'The PIN must be exactly 6 digits.'});
     for(const weak of ['123456','111111','121212','123123','123321','147258','110011'])
-      assert.deepEqual(refused(s,'reception',cmd(M.DEMO_PIN,weak,'PIN')),{code:'VALIDATION',message:'This PIN is too easy to guess. Choose one without runs or repeats.'},weak);
-    assert.deepEqual(refused(s,'reception',cmd(M.DEMO_PIN,M.DEMO_PIN,'PIN')),{code:'VALIDATION',message:'Choose a new PIN: it must be different from the current one.'});
-    assert.deepEqual(refused(s,'reception',cmd(M.DEMO_PIN,'A-long-enough-pass-1','PASSWORD')),{code:'VALIDATION',message:'Your account does not use a PASSWORD.'});
-    assert.deepEqual(refused(s,'reception',{type:'OWN_CREDENTIAL_CHANGE',current:M.DEMO_PIN}),{code:'VALIDATION',message:'Give either a password or a PIN.'});
-    const next=M.execute(s,'reception',cmd(M.DEMO_PIN,'305718','PIN','own-credential:reception:n1:1'));
+      assert.deepEqual(refused(s,'reception',cmd(DEMO_PIN,weak,'PIN')),{code:'VALIDATION',message:'This PIN is too easy to guess. Choose one without runs or repeats.'},weak);
+    assert.deepEqual(refused(s,'reception',cmd(DEMO_PIN,DEMO_PIN,'PIN')),{code:'VALIDATION',message:'Choose a new PIN: it must be different from the current one.'});
+    assert.deepEqual(refused(s,'reception',cmd(DEMO_PIN,'A-long-enough-pass-1','PASSWORD')),{code:'VALIDATION',message:'Your account does not use a PASSWORD.'});
+    assert.deepEqual(refused(s,'reception',{type:'OWN_CREDENTIAL_CHANGE',current:DEMO_PIN}),{code:'VALIDATION',message:'Give either a password or a PIN.'});
+    const next=M.execute(s,'reception',cmd(DEMO_PIN,'305718','PIN','own-credential:reception:n1:1'));
     const json=JSON.stringify(next);
-    assert.ok(!json.includes('305718')&&!json.includes(M.DEMO_PIN),'no secret in the state');
+    assert.ok(!json.includes('305718')&&!json.includes(DEMO_PIN),'no secret in the state');
     assert.deepEqual(Object.keys(next.credentialsX),['reception']);assert.equal(next.credentialsX.reception.kind,'PIN');
     assert.equal(next.audit[0].detail,'Own PIN changed.');assert.equal(next.audit[0].action,'OWN CREDENTIAL CHANGE');
-    assert.deepEqual(M.execute(next,'reception',cmd(M.DEMO_PIN,'305718','PIN','own-credential:reception:n1:1')),next,'same key = already recorded');
+    assert.deepEqual(M.execute(next,'reception',cmd(DEMO_PIN,'305718','PIN','own-credential:reception:n1:1')),next,'same key = already recorded');
     // The old PIN no longer opens it; the new one does; untouched users keep the starting PIN.
-    assert.equal(refused(next,'reception',cmd(M.DEMO_PIN,'920461','PIN')).message,'The current password or PIN is wrong.');
-    assert.equal(refused(next,'cashier',cmd(M.DEMO_PIN,'920461','PIN')),null);
+    assert.equal(refused(next,'reception',cmd(DEMO_PIN,'920461','PIN')).message,'The current password or PIN is wrong.');
+    assert.equal(refused(next,'cashier',cmd(DEMO_PIN,'920461','PIN')),null);
     assert.deepEqual([next.bookings,next.users,next.grants],[s.bookings,s.users,s.grants],'nothing else changes');
   });
 
   test('[OWN-CRED] PIN history: none of the last 3 PINs (the current included), as PinHistory on the server',()=>{
-    let s=M.seed();const pins=['305718','920461','581734'];let cur=M.DEMO_PIN;
+    let s=M.seed();const pins=['305718','920461','581734'];let cur=DEMO_PIN;
     for(const p of pins){s=M.execute(s,'housekeeper',cmd(cur,p,'PIN'));cur=p;}
     // history now: 581734, 920461, 305718 → those three are refused; the starting PIN (4th back) is allowed again.
     for(const p of ['920461','305718'])assert.equal(refused(s,'housekeeper',cmd(cur,p,'PIN')).message,'Choose a PIN you have not used for your last 3 PINs.',p);
-    s=M.execute(s,'housekeeper',cmd(cur,M.DEMO_PIN,'PIN'));
+    s=M.execute(s,'housekeeper',cmd(cur,DEMO_PIN,'PIN'));
     assert.equal(s.credentialsX.housekeeper.history.length,3);
   });
 
   test('[OWN-CRED] password user (Owner, Tech admin): 12–128 characters, not the sign-in name, ≥ 4 different characters, not the current one; no password history',()=>{
     const s=M.seed();
     assert.equal(refused(s,'owner',cmd('wrong-password-1','Sand-Maroon-Ledger-9','PASSWORD')).message,'The current password or PIN is wrong.');
-    assert.equal(refused(s,'owner',cmd(M.DEMO_PASSWORD,'short-pass','PASSWORD')).message,'The password must be 12–128 characters.');
-    assert.equal(refused(s,'owner',cmd(M.DEMO_PASSWORD,'the-owner-password','PASSWORD')).message,'The password must not contain the sign-in name.');
-    assert.equal(refused(s,'owner',cmd(M.DEMO_PASSWORD,'abababababab','PASSWORD')).message,'The password is too simple.');
-    assert.equal(refused(s,'owner',cmd(M.DEMO_PASSWORD,M.DEMO_PASSWORD,'PASSWORD')).message,'Choose a new password: it must be different from the current one.');
-    assert.equal(refused(s,'owner',cmd(M.DEMO_PASSWORD,'305718','PIN')).message,'Your account does not use a PIN.');
-    const a=M.execute(s,'techadmin',cmd(M.DEMO_PASSWORD,'Sand-Maroon-Ledger-9','PASSWORD'));
-    const b=M.execute(a,'techadmin',cmd('Sand-Maroon-Ledger-9',M.DEMO_PASSWORD,'PASSWORD'));
+    assert.equal(refused(s,'owner',cmd(DEMO_PASSWORD,'short-pass','PASSWORD')).message,'The password must be 12–128 characters.');
+    assert.equal(refused(s,'owner',cmd(DEMO_PASSWORD,'the-owner-password','PASSWORD')).message,'The password must not contain the sign-in name.');
+    assert.equal(refused(s,'owner',cmd(DEMO_PASSWORD,'abababababab','PASSWORD')).message,'The password is too simple.');
+    assert.equal(refused(s,'owner',cmd(DEMO_PASSWORD,DEMO_PASSWORD,'PASSWORD')).message,'Choose a new password: it must be different from the current one.');
+    assert.equal(refused(s,'owner',cmd(DEMO_PASSWORD,'305718','PIN')).message,'Your account does not use a PIN.');
+    const a=M.execute(s,'techadmin',cmd(DEMO_PASSWORD,'Sand-Maroon-Ledger-9','PASSWORD'));
+    const b=M.execute(a,'techadmin',cmd('Sand-Maroon-Ledger-9',DEMO_PASSWORD,'PASSWORD'));
     assert.deepEqual([a.credentialsX.techadmin.history,b.credentialsX.techadmin.kind],[[],'PASSWORD']);
     assert.ok(!JSON.stringify(b).includes('Sand-Maroon-Ledger-9'));
   });
 
   test('[OWN-CRED] every signed-in role may change its own; a disabled or expired user may not',()=>{
     for(const u of M.seed().users){const pw=M.kindOfRole(u.role)==='PASSWORD';
-      assert.ok(M.execute(M.seed(),u.id,cmd(pw?M.DEMO_PASSWORD:M.DEMO_PIN,pw?'Sand-Maroon-Ledger-9':'305718',pw?'PASSWORD':'PIN')).credentialsX[u.id],u.id);}
+      assert.ok(M.execute(M.seed(),u.id,cmd(pw?DEMO_PASSWORD:DEMO_PIN,pw?'Sand-Maroon-Ledger-9':'305718',pw?'PASSWORD':'PIN')).credentialsX[u.id],u.id);}
     const off=M.execute(M.seed(),'owner',{type:'USER',id:'reception'});
-    assert.match(refused(off,'reception',cmd(M.DEMO_PIN,'305718','PIN')).message,/disabled/);
+    assert.match(refused(off,'reception',cmd(DEMO_PIN,'305718','PIN')).message,/disabled/);
   });
 
   test('[OWN-CRED] the client check gives the same refusals before anything is sent (shared rules, one more: the two new entries must match)',()=>{
     assert.equal(M.ownCredentialProblem('PIN','','305718','305718'),'Type your current PIN.');
     assert.equal(M.ownCredentialProblem('PASSWORD','','x','x'),'Type your current password.');
-    assert.equal(M.ownCredentialProblem('PIN',M.DEMO_PIN,'123456','123456'),'This PIN is too easy to guess. Choose one without runs or repeats.');
-    assert.equal(M.ownCredentialProblem('PIN',M.DEMO_PIN,'305718','305719'),'The two PINs do not match.');
-    assert.equal(M.ownCredentialProblem('PIN',M.DEMO_PIN,M.DEMO_PIN,M.DEMO_PIN),'Choose a new PIN: it must be different from the current one.');
+    assert.equal(M.ownCredentialProblem('PIN',DEMO_PIN,'123456','123456'),'This PIN is too easy to guess. Choose one without runs or repeats.');
+    assert.equal(M.ownCredentialProblem('PIN',DEMO_PIN,'305718','305719'),'The two PINs do not match.');
+    assert.equal(M.ownCredentialProblem('PIN',DEMO_PIN,DEMO_PIN,DEMO_PIN),'Choose a new PIN: it must be different from the current one.');
     assert.equal(M.ownCredentialProblem('PASSWORD','x','the-owner-password','the-owner-password','owner'),'The password must not contain the sign-in name.');
-    assert.equal(M.ownCredentialProblem('PIN',M.DEMO_PIN,'305718','305718'),undefined);
+    assert.equal(M.ownCredentialProblem('PIN',DEMO_PIN,'305718','305718'),undefined);
     assert.deepEqual(M.ownCredentialCommand('PIN','1','2','k'),{type:'OWN_CREDENTIAL_CHANGE',current:'1',newPin:'2',key:'k'});
     assert.deepEqual(M.ownCredentialCommand('PASSWORD','1','2','k'),{type:'OWN_CREDENTIAL_CHANGE',current:'1',newPassword:'2',key:'k'});
     assert.equal(M.ownCredentialKey('reception','abc123',2),'own-credential:reception:abc123:2');
