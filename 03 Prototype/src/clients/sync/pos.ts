@@ -121,9 +121,9 @@ async function stayOf(c:CommandCtx):Promise<number|undefined>{
 
 export const pos:SyncArea={id:'pos',
   loaders:[
-    {slice:'posX',requires:'billing',needs:['date'],load:loadPos},
+    {slice:'posX',requires:'billing',reads:['GET /pos/outlets','GET /pos/menu','GET /pos/checks','GET /pos/checks/closed','GET /pos/checks/:id'],needs:['date'],load:loadPos},
     // approvals is owned by the admin area (W4-5); pending void requests are patched in (kind 'pos-void'), other kinds kept.
-    {slice:'approvals',kind:'patch',requires:'billing',load:patchApprovals},
+    {slice:'approvals',kind:'patch',requires:'billing',reads:['GET /pos/void-requests'],load:patchApprovals},
   ],
   commands:[
     {type:'POS_ORDER_OPEN',reload:['posX'],

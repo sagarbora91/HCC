@@ -76,7 +76,7 @@ type Cmd=CommandCtx['cmd'];
 
 export const messaging:SyncArea={
   id:'messaging',
-  loaders:[{slice:'messagingX',requires:['reservations','checkin'],load:loadMessaging}],
+  loaders:[{slice:'messagingX',requires:['reservations','checkin'],reads:['GET /messaging/messages','GET /messaging/templates','GET /messaging/rules','GET /messaging/consents'],load:loadMessaging}],
   commands:[
     {type:'MSG_SEND',reload:['messagingX'],
       precheck:(cmd:Cmd)=>!cmd.booking?'Choose an in-house guest.':String(cmd.body??'').trim().length<1||String(cmd.body).trim().length>600?'Write a message of 1–600 characters.':undefined,

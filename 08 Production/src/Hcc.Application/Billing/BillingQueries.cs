@@ -102,6 +102,35 @@ public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, Ti
         return new CashDeskView(date, tills);
     }
 
+    /// <summary>
+    /// D5: the cashier's folio list (PERM-FOL-001, property scope) — in-house stays, today's confirmed arrivals and today's departures with
+    /// folio id, version and balance. Lets a role without the reservations read (Cashier, DEC-063: "Cashier works from folios") take payments.
+    /// </summary>
+    public async Task<DeskFolioListView> GetDeskFoliosAsync(Caller caller, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FolioView, ct: ct).ConfigureAwait(false);
+        var (date, rows) = await store.ListDeskFoliosAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        if (date is not { } businessDate) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        var items = new List<DeskFolioItem>(rows.Count);
+        foreach (var r in rows)
+        {
+            string? version = null;
+            long balance = 0;
+            if (r.FolioId is { } fid && await store.ReadFolioAsync(fid, ct).ConfigureAwait(false) is { } snap && snap.Header.PropertyId == caller.PropertyId)
+            {
+                version = snap.Header.Version;
+                balance = FolioStatement.Compute(snap.Lines, snap.Receipts).Balance.Value;
+            }
+
+            items.Add(new DeskFolioItem(r.ReservationId, r.PublicNo, r.Status, r.GuestName, r.RoomId, r.RoomNo, r.RoomType,
+                Hcc.Domain.Dates.StayDates.ToWire(r.Arrival), Hcc.Domain.Dates.StayDates.ToWire(r.Departure), r.Adults, r.Children, r.Source, r.NightlyRatePaise,
+                r.StayId, r.FolioId, version, balance, r.CompanyName, r.CompanyGstin));
+        }
+
+        return new DeskFolioListView(businessDate, items);
+    }
+
     internal static ApprovalView ToView(ApprovalRow a, DateTime now) => new(a.ApprovalId, BillingCodes.Code(a.Action), a.TargetKind, a.TargetId, a.Amount.Value,
         ApprovalRules.Effective(a.Status, a.Action, a.ExpiresUtc, now).ToString(), a.Reason, a.RequestedBy, a.DecidedBy, a.ExpiresUtc, a.ResultId, a.Version);
 }

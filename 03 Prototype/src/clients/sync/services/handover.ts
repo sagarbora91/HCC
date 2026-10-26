@@ -61,8 +61,8 @@ async function soft<T>(p:Promise<T>,fallback:T):Promise<T>{
 async function loadHandover(c:LoaderCtx):Promise<HOVState>{
   const [cl,tl,nl]=await Promise.all([
     c.api.get<{date:string;runs:SrvRun[]}>('/handover/checklists'),
-    soft(c.api.get<{templates:SrvTemplate[]}>('/handover/templates'),null),
-    soft(c.api.get<{notes:SrvNote[]}>('/handover/notes'),{notes:[]}),
+    c.mayRead('GET /handover/templates')?soft(c.api.get<{templates:SrvTemplate[]}>('/handover/templates'),null):null,
+    c.mayRead('GET /handover/notes')?soft(c.api.get<{notes:SrvNote[]}>('/handover/notes'),{notes:[]}):{notes:[] as SrvNote[]},
   ]);
   const templates=new Map<string,HOVTemplate>();
   // Cards first (what this user may use)…
@@ -96,7 +96,7 @@ type Cmd=CommandCtx['cmd'];
 
 export const handover:SyncArea={
   id:'handover',
-  loaders:[{slice:'handoverX',requires:['housekeeping','payments','approve'],load:loadHandover}],
+  loaders:[{slice:'handoverX',requires:['housekeeping','payments','approve'],reads:['GET /handover/checklists'],load:loadHandover}],
   commands:[
     {type:'HOV_TEMPLATE_SAVE',reload:['handoverX'],
       precheck:(cmd:Cmd)=>txt(cmd.template?.name).length<3?'Template name must be 3–60 characters.':undefined,

@@ -5,7 +5,8 @@
 //            GET /availability via the typed reservations client (rates only), POST /commands/{TransitionHousekeepingTask,BlockRoom,UnblockRoom,RequestRepair,
 //            GenerateStayoverTasks}.
 //   loaders  rooms <- board rows (+ nightly rates from /availability for the business date when the user may see reservations;
-//            forbidden -> rate 0). tasks <- open tasks. The server has no floor column: floor = hundreds digit of the room number.
+//            forbidden -> rate 0). Without PERM-HK-001 (Reception, DEC-063) rooms <- GET /rooms/status (PERM-RES-001: number, type,
+//            clean/dirty, block flag + window), so the front desk never calls the board it does not hold (D5). tasks <- open tasks. The server has no floor column: floor = hundreds digit of the room number.
 //   commands TASK -> TransitionHousekeepingTask (expectedVersion = task version from the load; the prototype command carries none),
 //            BLOCK -> BlockRoom (or UnblockRoom for the prototype's "BLOCK{id} on a blocked room" toggle), UNBLOCK -> UnblockRoom
 //            (expectedVersion = the active block's version), REPAIR_REQUEST -> RequestRepair, STAYOVER_GENERATE -> GenerateStayoverTasks.
@@ -52,7 +53,7 @@ async function allPages<T>(c:LoaderCtx,path:string):Promise<{first:{businessDate
 
 async function rates(c:LoaderCtx,businessDate:string|undefined):Promise<Map<string,number>>{
   const out=new Map<string,number>();
-  if(!businessDate||!c.can('reservations'))return out;
+  if(!businessDate||!c.mayRead('GET /availability'))return out;
   try{
     const a=await c.api.clients.reservations.getAvailability({arrival:isoDate(businessDate),departure:addDay(businessDate),adults:1});
     for(const r of a.rooms)out.set(r.roomId,r.nightlyRatePaise);
@@ -60,7 +61,26 @@ async function rates(c:LoaderCtx,businessDate:string|undefined):Promise<Map<stri
   return out;
 }
 
+/** GET /rooms/status row (Inventory, PERM-RES-001; W3-8 + D5 clean/dirty and block window). No money, no guest fields. */
+type SrvStatusRow={roomId:number;roomNo:string;roomType:string;blocked:boolean;blockReason:string|null;roomBlockId:number|null;occupied:boolean;
+  hk?:string|null;blockFrom?:string|null;blockTo?:string|null};
+type SrvStatus={asOf:string;businessDate:string;rooms:SrvStatusRow[]};
+
+/** Front-desk room list for a role without the housekeeping board (Reception, DEC-063 G7: "Reception sees clean/dirty on the Room
+ *  board"): GET /rooms/status for the business date. Block changes stay with the board's roles (no block version is learned here). */
+async function loadRoomStatus(c:LoaderCtx):Promise<Room[]>{
+  const r=await c.api.get<SrvStatus>('/rooms/status');
+  const rate=await rates(c,r.businessDate);
+  return r.rooms.map(x=>{
+    c.ids.learn('room',x.roomNo,x.roomId);
+    const b=x.blocked?{blockId:x.roomBlockId??0,from:x.blockFrom??null,to:x.blockTo??null,reason:x.blockReason??'',source:'Inventory',version:''}:null;
+    return roomFromServer({roomId:x.roomId,roomNo:x.roomNo,roomType:x.roomType,hk:x.hk??'Ready',status:'',block:b,openTasks:[],roomVersion:''},rate.get(x.roomNo)??0);
+  }).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+}
+
+/** Rooms: the housekeeping board (PERM-HK-001) when the user holds it, otherwise the front-desk status list (PERM-RES-001). */
 async function loadRooms(c:LoaderCtx):Promise<Room[]>{
+  if(!c.mayRead('GET /rooms/board'))return c.mayRead('GET /rooms/status')?loadRoomStatus(c):[];
   const {first,rows}=await allPages<SrvRow>(c,'/rooms/board');
   const rate=await rates(c,first.businessDate);
   const out=rows.map(r=>{
@@ -87,8 +107,8 @@ const ISO=/^\d{4}-\d{2}-\d{2}$/;
 export const rooms:SyncArea={
   id:'rooms',
   loaders:[
-    {slice:'rooms',requires:'housekeeping',load:loadRooms},
-    {slice:'tasks',requires:'housekeeping',load:loadTasks},
+    {slice:'rooms',requires:['housekeeping','reservations'],load:loadRooms},
+    {slice:'tasks',requires:'housekeeping',reads:['GET /housekeeping/tasks'],load:loadTasks},
   ],
   commands:[
     {type:'TASK',reload:['tasks','rooms'],

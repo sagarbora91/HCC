@@ -13,6 +13,7 @@
 // test() is synchronous: do every await first, assert on the captured results (as tests/stream-clients.mjs does).
 import {build} from 'esbuild';
 import {mkdir,writeFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 
 const OUT=(process.env.HCC_SYNC_TEST_DIR||'tests/.generated')+'/sync.mjs';
 let loaded;
@@ -32,12 +33,16 @@ export const reply=(status,body)=>({[REPLY]:true,status,body});
 /** A handler result that simulates a lost request / server down (fetch rejects). */
 export const netDown=()=>new TypeError('Failed to fetch');
 
-/** Every PERM id the capabilities mapping knows, mode A (an Owner-like user). */
+/** The Owner template's PERM ids as the real server lists them (tests/_role-reads.json, D5: module ids included, so the read gates of
+ *  sync/reads.ts let an Owner-like test user send every read), plus every id the capabilities mapping knows; mode A, scope P. */
+const OWNER_PERMS=JSON.parse(readFileSync(new URL('./_role-reads.json',import.meta.url),'utf8')).roles.OWN.permissions.map(p=>p[0]);
 export function capabilities({userId=1,displayName='Test Owner',roles=['OWN'],grants,fieldMasks={}}={}){
-  const all=['PERM-RES-001','PERM-RES-002','PERM-RES-003','PERM-RES-004','PERM-STY-001','PERM-STY-002','PERM-STY-003','PERM-GST-001','PERM-GST-002','PERM-GST-003',
+  const all0=['PERM-RES-001','PERM-RES-002','PERM-RES-003','PERM-RES-004','PERM-STY-001','PERM-STY-002','PERM-STY-003','PERM-GST-001','PERM-GST-002','PERM-GST-003',
     'PERM-FOL-001','PERM-FOL-002','PERM-FOL-003','PERM-FOL-004','PERM-FOL-005','PERM-PAY-001','PERM-PAY-002','PERM-PAY-003','PERM-PAY-004','PERM-PAY-005',
     'PERM-SHF-001','PERM-SHF-002','PERM-HK-001','PERM-HK-002','PERM-HK-003','PERM-HK-004','PERM-ROOM-001','PERM-ROOM-002','PERM-EXP-001','PERM-EXP-002','PERM-EXP-003',
     'PERM-CLS-001','PERM-CLS-002','PERM-CLS-003','PERM-CLS-004','PERM-APR-001','PERM-RPT-001','PERM-RPT-002','PERM-RPT-003','PERM-ADM-001','PERM-ADM-002','PERM-ADM-003','PERM-ADM-004','PERM-ADM-005'];
+  // PERM-INV-002 (issue invoice) stays opt-in as before D5: with it, CHECKOUT also issues the invoice (tests that cover that flow pass it).
+  const all=[...new Set([...all0,...OWNER_PERMS])].filter(p=>p!=='PERM-INV-002');
   const list=grants??all.map(p=>[p,'A']);
   return {userId,propertyId:1,displayName,credentialKind:'PASSWORD',roles,
     permissions:list.map(([permissionId,mode='A'])=>({permissionId,mode,scope:'P',limit:null,limitUnit:null})),fieldMasks,

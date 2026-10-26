@@ -79,7 +79,7 @@ async function move(c:CommandCtx):Promise<void>{
 
 export const frontdesk:SyncArea={
   id:'frontdesk',
-  loaders:[{slice:'guests',requires:['reservations','checkin','checkout','billing'],load:loadGuests}],
+  loaders:[{slice:'guests',requires:['reservations','checkin','checkout','billing'],reads:['GET /guests'],load:loadGuests}],
   commands:[{
     type:'REGISTER',reload:['bookings','guests'],
     precheck:cmd=>cmd.guest&&typeof cmd.guest==='object'&&maskedContact(cmd.guest as Record<string,unknown>)?MASK_MSG:undefined,

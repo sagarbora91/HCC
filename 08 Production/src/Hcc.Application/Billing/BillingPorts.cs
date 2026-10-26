@@ -192,7 +192,14 @@ public interface IBillingStore
 
     /// <summary>W4-3: every till of the property with its active shift and last closed shift (cash desk read).</summary>
     Task<CashDeskRead> ReadCashDeskAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>D5: in-house stays, today's confirmed arrivals and today's departures with their folio (cashier's list; no contact fields).</summary>
+    Task<(DateOnly? BusinessDate, IReadOnlyList<DeskFolioRow> Rows)> ListDeskFoliosAsync(int propertyId, CancellationToken ct);
 }
+
+public sealed record DeskFolioRow(long ReservationId, string PublicNo, string Status, string GuestName, int? RoomId, string? RoomNo, string? RoomType,
+    DateOnly Arrival, DateOnly Departure, int Adults, int Children, string Source, long? NightlyRatePaise, long? StayId, long? FolioId,
+    string? CompanyName, string? CompanyGstin);
 
 public sealed record ReservationFolioRef(long ReservationId, long? FolioId, long? StayId, string? StayVersion);
 

@@ -20,6 +20,8 @@ public static class PaymentsEndpoints
             => Results.Ok(await q.GetCollectionsAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
         g.MapGet("/cashier/desk", async (HttpContext http, BillingQueries q, CancellationToken ct)
             => Results.Ok(await q.GetCashDeskAsync(http.HccCaller(), ct).ConfigureAwait(false))); // W4-3 sync layer
+        g.MapGet("/cashier/folios", async (HttpContext http, BillingQueries q, CancellationToken ct)
+            => Results.Ok(await q.GetDeskFoliosAsync(http.HccCaller(), ct).ConfigureAwait(false))); // D5: Cashier's folio list (PERM-FOL-001)
         return api;
     }
 }
