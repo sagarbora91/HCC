@@ -4,7 +4,7 @@
 // SaveGuestProfile (W4-1).
 //
 //   loaders   guests ← GET /guests (all pages, 500 each, at most 10 pages). Masked values stay masked ("Restricted", ••••1041); the full ID
-//             number is never loaded (the screens then show "full number not on file" — see unmapped GUEST_ID_VIEW).
+//             number is never loaded ("Show ID" calls RevealGuestId directly — see guestid.ts).
 //   commands  REGISTER   → RegisterGuest (guest draft, or only the chosen guestId; reservation + guest versions from the load)
 //             CHECKIN    → CheckIn
 //             CHECKOUT   → CheckoutStay (stay version; companyCreditApprovalId when the command carries one). Folio settlement is
@@ -141,6 +141,6 @@ export const frontdesk:SyncArea={
     },
   }],
   unmapped:{
-    GUEST_ID_VIEW:'RevealGuestId (audited) returns the number to the caller, but the screens read idNumber from state and the production state never holds it; needs a screen change (show the command result) — W4-11 / shared UI',
+    GUEST_ID_VIEW:'deliberately not a mapper: run() returns no result and the number must never enter state. Production uses guestid.ts / guestid-ui.tsx (GuestIdRevealButton calls RevealGuestId: PERM-GST-003, transient dialog, nothing stored)',
   },
 };

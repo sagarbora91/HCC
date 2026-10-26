@@ -4,8 +4,17 @@ import React,{useState,useEffect} from 'react';
 import {Eye,EyeOff} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Guest,guestView,guestRevealId,guestIdFormat} from '../../services/mock';
+import {GuestIdRevealButton,useCanRevealGuestId} from '../../clients/sync/guestid-ui';
 
-export function GuestIdValue({g}:{g:Guest}){
+/** Production: the full number is never in state; Show ID asks the server (PERM-GST-003, audited) and shows it in a transient dialog. */
+function GuestIdValueServer({g}:{g:Guest}){
+  const {s,uid}=useHcc();const v=guestView(s,uid,g);const can=useCanRevealGuestId();
+  if(v.masked)return <>Restricted</>;
+  return <><span className="gs-idval">{v.idType} · {v.idMasked||'—'}</span>
+    {can&&g.idType?<GuestIdRevealButton guestId={g.id} uid={uid}/>:null}</>;
+}
+export function GuestIdValue({g}:{g:Guest}){return process.env.HCC_BUILD==='production'?<GuestIdValueServer g={g}/>:<GuestIdValueDemo g={g}/>;}
+function GuestIdValueDemo({g}:{g:Guest}){
   const {s,uid,run,busy}=useHcc();const v=guestView(s,uid,g);
   const [shown,setShown]=useState(false);
   useEffect(()=>{setShown(false);},[g.id,uid]);

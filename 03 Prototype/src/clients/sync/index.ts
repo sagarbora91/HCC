@@ -10,3 +10,4 @@ export * from './runtime';
 export * from './registry';
 export {core} from './core';
 export {reservations,bookingFromServer} from './reservations';
+export * from './guestid';
