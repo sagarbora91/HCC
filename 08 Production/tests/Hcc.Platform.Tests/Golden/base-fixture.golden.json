@@ -81,12 +81,18 @@
    {
     "date": "2026-10-24",
     "method": "Cash",
-    "amountPaise": 55000
+    "amountPaise": 52500,
+    "netPaise": 50000,
+    "taxPaise": 2500,
+    "taxBps": 500
    },
    {
     "date": "2026-10-24",
     "method": "UPI",
-    "amountPaise": 74800
+    "amountPaise": 71400,
+    "netPaise": 68000,
+    "taxPaise": 3400,
+    "taxBps": 500
    }
   ],
   "expenses": [
@@ -106,9 +112,9 @@
    }
   ],
   "expected": {
-   "drawerPaise": 1075000,
+   "drawerPaise": 1072500,
    "collectionsPaise": 2150000,
-   "outletCashPaise": 55000,
+   "outletCashPaise": 52500,
    "occupied": 8
   }
  },
@@ -120,28 +126,28 @@
     "label": "Room night · 2026-10-24",
     "date": "2026-10-24",
     "amountPaise": 200000,
-    "taxBps": 1000
+    "taxBps": 500
    },
    {
     "kind": "room",
     "label": "Room night · 2026-10-25",
     "date": "2026-10-25",
     "amountPaise": 200000,
-    "taxBps": 1000
+    "taxBps": 500
    },
    {
     "kind": "service",
     "label": "Laundry",
     "date": "2026-10-24",
     "amountPaise": 50000,
-    "taxBps": 1000
+    "taxBps": 1800
    },
    {
     "kind": "discount",
     "label": "Approved discount · Service recovery",
     "date": "2026-10-24",
     "amountPaise": -50000,
-    "taxBps": 1000
+    "taxBps": 500
    }
   ],
   "receipts": [
@@ -161,7 +167,7 @@
     "date": "2026-10-24",
     "method": "UPI",
     "kind": "payment",
-    "amountPaise": 340000
+    "amountPaise": 326500
    },
    {
     "date": "2026-10-24",
@@ -171,11 +177,11 @@
    }
   ],
   "expected": {
-   "balanceBeforeSettlementPaise": 340000,
+   "balanceBeforeSettlementPaise": 326500,
    "netPaise": 400000,
-   "taxPaise": 40000,
-   "totalPaise": 440000,
-   "paidPaise": 440000,
+   "taxPaise": 26500,
+   "totalPaise": 426500,
+   "paidPaise": 426500,
    "depositPaise": 0,
    "balancePaise": 0
   }

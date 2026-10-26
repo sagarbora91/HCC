@@ -99,7 +99,7 @@ public sealed record GoldenBlock(string Id, string Name, string Arrival, string 
 
 public sealed record GoldenRestriction(string Id, string Type, string From, string To, int MinStay, bool Cta, string Note);
 
-public sealed record GoldenRaw(string BusinessDate, string Clock, int TaxBps, int HoldMinutes, IReadOnlyList<GoldenRoomType> RoomTypes, IReadOnlyList<GoldenRoom> Rooms,
+public sealed record GoldenRaw(string BusinessDate, string Clock, int HoldMinutes, IReadOnlyList<GoldenRoomType> RoomTypes, IReadOnlyList<GoldenRoom> Rooms,
     IReadOnlyList<GoldenBooking> Bookings, IReadOnlyList<GoldenBlock> Blocks, IReadOnlyList<GoldenRestriction> Restrictions);
 
 public sealed record GoldenQuery(string Arrival, string Departure, int Adults, int Children, string? Type);

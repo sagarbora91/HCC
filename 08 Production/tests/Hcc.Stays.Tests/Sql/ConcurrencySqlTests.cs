@@ -25,8 +25,8 @@ public class ConcurrencySqlTests : IAsyncLifetime
         var stay = _w.Seed.Stays[booking];
         var folio = await _w.Seed.FolioOfAsync(_w.Seed.Reservations[booking], Ct);
         var rate = Convert.ToInt64(await _w.Db.ScalarAsync($"SELECT CASE t.code WHEN 'Suite' THEN 450000 WHEN 'Deluxe' THEN 300000 ELSE 200000 END FROM gst.stay_segment s JOIN inv.room r ON r.room_id = s.room_id JOIN inv.room_type t ON t.room_type_id = r.room_type_id WHERE s.stay_id = {stay};", Ct), System.Globalization.CultureInfo.InvariantCulture);
-        await _w.Seed.PostLinesAsync(folio, new[] { "2026-10-23", "2026-10-24", "2026-10-25" }.Select(d => new GoldenLine("room", d, rate, 1000)), Ct);
-        await _w.Seed.ReceiptAsync(folio, "payment", "UPI", rate * 3 * 11 / 10, Ct);
+        await _w.Seed.PostLinesAsync(folio, new[] { "2026-10-23", "2026-10-24", "2026-10-25" }.Select(d => new GoldenLine("room", d, rate, 500)), Ct); // 5 % GST (DEC-069; every BASE rate is <= Rs 7,500)
+        await _w.Seed.ReceiptAsync(folio, "payment", "UPI", rate * 3 * 21 / 20, Ct);
         return (stay, await _w.Seed.StayVersionAsync(stay, Ct));
     }
 

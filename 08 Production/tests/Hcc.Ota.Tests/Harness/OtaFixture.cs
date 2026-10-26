@@ -57,7 +57,10 @@ public sealed class OtaFixture : IAsyncLifetime
         var conns = _db.Platform.Connections;
         Policy = new SqlAccessPolicy(conns, Clock, []);
         var inv = new SqlInventoryStore(conns);
-        Inventory = new InventoryService(inv, _db.Platform.Commands, Policy, new Hcc.Application.Tax.FixedGstRateResolver(Golden.Raw.TaxBps), Clock);
+        // A08-04: channel bookings are quoted with the real DEC-069 GST master (statutory seed of migration 0600), as in production;
+        // this was a fixed resolver at the inventory golden's old DEC-039 10 %.
+        Inventory = new InventoryService(inv, _db.Platform.Commands, Policy,
+            new Hcc.Application.Tax.GstRateResolver(new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(conns)), Clock);
         Booking = new ReservationService(new SqlReservationStore(conns), inv, Inventory, _db.Platform.Commands, Policy,
             new Hcc.Application.Billing.BillingReservationMoney(new Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore(conns)), Clock);
         Store = new SqlOtaStore(conns);

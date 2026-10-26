@@ -11,7 +11,8 @@ namespace Hcc.Platform.Tests.Sql;
 
 /// <summary>
 /// The BASE fixture's folio receipts persisted in the production schema (0002) through SqlClient; collections and the
-/// expected drawer are then derived from the persisted rows and must equal the prototype's ₹21,500 / ₹10,750.
+/// expected drawer are then derived from the persisted rows and must equal the prototype's ₹21,500 / ₹10,725 (DEC-069 GST master:
+/// the ₹500 restaurant cash bill carries 5 % = ₹525; it was ₹550 at the DEC-039 10 %, so ₹10,750 before A08-04).
 /// </summary>
 [Trait("Category", "Sql")]
 public class GoldenSqlTests(MigratedDatabaseFixture f) : IClassFixture<MigratedDatabaseFixture>
@@ -69,7 +70,7 @@ public class GoldenSqlTests(MigratedDatabaseFixture f) : IClassFixture<MigratedD
 
         Assert.Equal(g.FolioReceipts.Count, persisted.Count);
         Assert.Equal(2_150_000, CashFigures.Collections(persisted, g.Date).Value);
-        Assert.Equal(1_075_000, CashFigures.ExpectedDrawer(new Paise(g.OpeningCashPaise), g.Date, persisted, g.Outlet, g.CashExpenses).Value);
+        Assert.Equal(1_072_500, CashFigures.ExpectedDrawer(new Paise(g.OpeningCashPaise), g.Date, persisted, g.Outlet, g.CashExpenses).Value);
 
         // Same figure computed set-based in T-SQL from the persisted rows.
         await using var sum = new SqlCommand("""

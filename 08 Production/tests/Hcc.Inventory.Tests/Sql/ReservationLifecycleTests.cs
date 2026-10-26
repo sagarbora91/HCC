@@ -184,7 +184,7 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
             var rq = (await S.Booking.AmendAsync(P2Services.Ctx(3, "AmendReservation"),
                 new AmendReservationRequest(id, moved.Version, "2026-10-26", "2026-10-29", f.RoomIds["105"], PriceDecisions.Requote, q.QuoteId, q.Version), Ct)).Value;
             var rd = await DetailsAsync(id);
-            Assert.Equal((210000L, 693000L), (rd.NightlyRatePaise!.Value, rd.TotalPaise));
+            Assert.Equal((210000L, 661500L), (rd.NightlyRatePaise!.Value, rd.TotalPaise)); // 3 × ₹2,100 = ₹6,300 + 5 % GST ₹315 (DEC-069; was ₹6,930 at a pinned 10 %)
             Assert.Equal("VALIDATION", await Outcome.CodeAsync(() => S.Booking.AmendAsync(P2Services.Ctx(3, "AmendReservation"),
                 new AmendReservationRequest(id, rq.Version, "2026-10-26", "2026-10-30", f.RoomIds["105"], PriceDecisions.Requote, q.QuoteId, q.Version), Ct)));
         }
@@ -314,7 +314,7 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
 
     /// <summary>The production wiring: no GroupBlockOptions (or Enabled=false) = DEC-080 refusal.</summary>
     private InventoryService ProductionDefaultInventory(GroupBlockOptions? options = null)
-        => new(S.Store, S.Runner, S.Access, new Hcc.Application.Tax.FixedGstRateResolver(f.Golden.Raw.TaxBps), S.Clock, S.BlockHistory, options);
+        => new(S.Store, S.Runner, S.Access, S.Gst, S.Clock, S.BlockHistory, options);
 
     [Fact]
     public async Task Group_block_creation_is_refused_with_a_written_reason_unless_the_switch_is_on()
@@ -397,7 +397,7 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
         var r = await BookAsync("105", "2026-12-20", "2026-12-23", adults: 2);
         var d = await DetailsAsync(r.ReservationId);
         Assert.StartsWith("HCC-", d.PublicNo, StringComparison.Ordinal);
-        Assert.Equal((3, 600000L, 60000L, 660000L), (d.Nights.Count, d.NetPaise, d.TaxPaise, d.TotalPaise));
+        Assert.Equal((3, 600000L, 30000L, 630000L), (d.Nights.Count, d.NetPaise, d.TaxPaise, d.TotalPaise)); // 3 × ₹2,000 at 5 % (≤ ₹7,500 per night)
         Assert.Equal("+91 90000 12345", d.Phone);
         var night = await S.Runner.RunAsync(P2Services.Ctx(1, "TestNightRate"), new { r.ReservationId }, async (tx, ct) =>
         {
@@ -405,7 +405,7 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
             await tx.AuditAsync("TestNightRate", "x", "x", ct);
             return n!;
         }, Ct);
-        Assert.Equal((200000L, 1000, 20000L), (night.Value.RatePaise, night.Value.TaxBps, night.Value.TaxPaise));
+        Assert.Equal((200000L, 500, 10000L), (night.Value.RatePaise, night.Value.TaxBps, night.Value.TaxPaise));
         Assert.Equal(1, await f.Db.CountAsync($"SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ReservationCreated' AND aggregate_id = {r.ReservationId};", Ct));
         Assert.Equal(1, await f.Db.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CreateReservation' AND target = '{d.PublicNo}';", Ct));
         Assert.Equal(r.ReservationId, Convert.ToInt64(await f.Db.ScalarAsync($"SELECT used_by_reservation_id FROM bill.quote WHERE quote_id = (SELECT quote_id FROM inv.reservation WHERE reservation_id = {r.ReservationId});", Ct), CultureInfo.InvariantCulture));

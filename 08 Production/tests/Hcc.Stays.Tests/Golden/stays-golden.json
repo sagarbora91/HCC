@@ -413,23 +413,23 @@
      "kind": "room",
      "date": "2026-10-24",
      "amountPaise": 200000,
-     "taxBps": 1000
+     "taxBps": 500
     },
     {
      "kind": "room",
      "date": "2026-10-25",
      "amountPaise": 200000,
-     "taxBps": 1000
+     "taxBps": 500
     }
    ],
    "receipts": [
     {
      "kind": "payment",
      "method": "UPI",
-     "amountPaise": 440000
+     "amountPaise": 420000
     }
    ],
-   "balanceDuePaise": 440000,
+   "balanceDuePaise": 420000,
    "balanceAtCheckoutPaise": 0
   },
   "steps": [
@@ -524,7 +524,7 @@
   },
   "unpaidDeparture": {
    "booking": "HCC-1042",
-   "balancePaise": 20000,
+   "balancePaise": 10000,
    "code": "INVALID_TRANSITION"
   },
   "inspectionKeepsBlock": {

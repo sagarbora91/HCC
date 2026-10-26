@@ -5,7 +5,6 @@
  "raw": {
   "businessDate": "2026-10-24",
   "clock": "2026-10-24T08:00",
-  "taxBps": 1000,
   "holdMinutes": 120,
   "roomTypes": [
    {
@@ -1367,19 +1366,19 @@
      {
       "date": "2026-10-24",
       "ratePaise": 200000,
-      "taxBps": 1000,
-      "taxPaise": 20000
+      "taxBps": 500,
+      "taxPaise": 10000
      },
      {
       "date": "2026-10-25",
       "ratePaise": 200000,
-      "taxBps": 1000,
-      "taxPaise": 20000
+      "taxBps": 500,
+      "taxPaise": 10000
      }
     ],
     "netPaise": 400000,
-    "taxPaise": 40000,
-    "totalPaise": 440000,
+    "taxPaise": 20000,
+    "totalPaise": 420000,
     "violations": []
    },
    {
@@ -1391,25 +1390,25 @@
      {
       "date": "2026-10-25",
       "ratePaise": 300000,
-      "taxBps": 1000,
-      "taxPaise": 30000
+      "taxBps": 500,
+      "taxPaise": 15000
      },
      {
       "date": "2026-10-26",
       "ratePaise": 300000,
-      "taxBps": 1000,
-      "taxPaise": 30000
+      "taxBps": 500,
+      "taxPaise": 15000
      },
      {
       "date": "2026-10-27",
       "ratePaise": 300000,
-      "taxBps": 1000,
-      "taxPaise": 30000
+      "taxBps": 500,
+      "taxPaise": 15000
      }
     ],
     "netPaise": 900000,
-    "taxPaise": 90000,
-    "totalPaise": 990000,
+    "taxPaise": 45000,
+    "totalPaise": 945000,
     "violations": []
    },
    {
@@ -1421,13 +1420,13 @@
      {
       "date": "2026-10-26",
       "ratePaise": 450000,
-      "taxBps": 1000,
-      "taxPaise": 45000
+      "taxBps": 500,
+      "taxPaise": 22500
      }
     ],
     "netPaise": 450000,
-    "taxPaise": 45000,
-    "totalPaise": 495000,
+    "taxPaise": 22500,
+    "totalPaise": 472500,
     "violations": []
    },
    {
@@ -1439,19 +1438,19 @@
      {
       "date": "2026-11-07",
       "ratePaise": 300000,
-      "taxBps": 1000,
-      "taxPaise": 30000
+      "taxBps": 500,
+      "taxPaise": 15000
      },
      {
       "date": "2026-11-08",
       "ratePaise": 300000,
-      "taxBps": 1000,
-      "taxPaise": 30000
+      "taxBps": 500,
+      "taxPaise": 15000
      }
     ],
     "netPaise": 600000,
-    "taxPaise": 60000,
-    "totalPaise": 660000,
+    "taxPaise": 30000,
+    "totalPaise": 630000,
     "violations": []
    }
   ],

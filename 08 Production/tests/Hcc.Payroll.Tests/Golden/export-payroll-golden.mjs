@@ -1,18 +1,12 @@
-// Regenerates payroll-base.golden.json from the prototype BASE fixture (03 Prototype, MAIN checkout, read-only):
+// Regenerates payroll-base.golden.json from the prototype BASE fixture (read-only; shared helper ../../../tools/golden/golden-lib.mjs):
 // 12 fictional staff, attendance for Aug + Sep 2026, leave, the open advance, the locked August run and the September run
-// computed after it (ESIC contribution-period rule F-07, weekly off inside leave F-01). Run from 08 Production:
-//   node tests/Hcc.Payroll.Tests/Golden/export-payroll-golden.mjs ["<path to 03 Prototype>"]
-import {createRequire} from 'node:module';
-import {writeFile,mkdtemp} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
-import path from 'node:path';
-import {fileURLToPath,pathToFileURL} from 'node:url';
+// computed after it (ESIC contribution-period rule F-07, weekly off inside leave F-01).
+// Golden source = the 03 Prototype of the same checkout (was the MAIN checkout; a worktree now compares with its own prototype).
+// Usage (Node 25): node "08 Production/tests/Hcc.Payroll.Tests/Golden/export-payroll-golden.mjs" [--check] [--proto <path>]
+import path from 'node:path';import {fileURLToPath} from 'node:url';
+import {CHECK,bundleMock,writeGolden} from '../../../tools/golden/golden-lib.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url));
-const proto=process.argv[2]??'E:/Projects/HCC/Hotel Control Centre/03 Prototype';
-const {build}=createRequire(path.join(proto,'package.json'))('esbuild');
-const out=path.join(await mkdtemp(path.join(tmpdir(),'hcc-payroll-golden-')),'mock.mjs');
-await build({entryPoints:[path.join(proto,'src/services/mock/index.ts')],bundle:true,platform:'node',format:'esm',outfile:out,logLevel:'error'});
-const M=await import(pathToFileURL(out).href);
+const M=await bundleMock('mock-payroll');
 const s=M.seed(),x=M.hrSlice(s);
 // The fixture drops the raw August marks after locking; regenerate them with the fixture's own deterministic pattern.
 const SHIFT_START={M:'07:00',E:'15:00',N:'23:00',G:'09:00'};
@@ -50,5 +44,5 @@ const golden={
   august:{lines:augRun.lines.map(line),totals:tot(augRun),warnings:augRun.warnings},
   september:{lines:sep.lines.map(line),totals:tot({lines:sep.lines}),warnings:sep.warnings},
 };
-await writeFile(path.join(here,'payroll-base.golden.json'),JSON.stringify(golden,null,1)+'\n');
-console.log('August net',tot(augRun).net,'September net',tot({lines:sep.lines}).net,'attendance rows',att.length);
+if(writeGolden(path.join(here,'payroll-base.golden.json'),JSON.stringify(golden,null,1)+'\n')&&!CHECK)
+  console.log('August net',tot(augRun).net,'September net',tot({lines:sep.lines}).net,'attendance rows',att.length);

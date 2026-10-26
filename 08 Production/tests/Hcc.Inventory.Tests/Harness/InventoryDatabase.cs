@@ -133,7 +133,7 @@ public sealed class FakeAccessPolicy : IAccessPolicy
 /// <summary>The P2 services wired over one test database.</summary>
 public sealed class P2Services
 {
-    public P2Services(InventoryDatabase db, TestClock clock, int taxBps = 1000)
+    public P2Services(InventoryDatabase db, TestClock clock)
     {
         ArgumentNullException.ThrowIfNull(db);
         Db = db;
@@ -144,8 +144,11 @@ public sealed class P2Services
         Allocator = new SqlInventoryAllocator(db.Platform.Connections);
         RoomBlocks = new SqlRoomBlockPort(db.Platform.Connections, clock);
         BlockHistory = new SqlRoomBlockHistoryReader(db.Platform.Connections);
+        // A08-04: quotes and agreed nights are taxed by the real DEC-069 GST master (statutory seed of migration 0600), as in
+        // production — the figures are the ones a guest is quoted. It was a pinned DEC-039 10 % stand-in (FixedGstRateResolver).
+        Gst = new Hcc.Application.Tax.GstRateResolver(new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(db.Platform.Connections));
         // Group blocks are ON for these tests (the fixtures build and pick up blocks); production defaults to OFF (DEC-080), see GroupBlockSwitchTests.
-        Inventory = new InventoryService(Store, db.Platform.Commands, Access, new Hcc.Application.Tax.FixedGstRateResolver(taxBps), clock, BlockHistory,
+        Inventory = new InventoryService(Store, db.Platform.Commands, Access, Gst, clock, BlockHistory,
             new GroupBlockOptions { Enabled = true });
         BlockQueries = new RoomBlockQueries(BlockHistory, Store, Access);
         // DEC-076: the company-credit guard as production wires it (Groups module), so a booking billed to a company account is credit-checked.
@@ -175,6 +178,9 @@ public sealed class P2Services
     public SqlRoomBlockHistoryReader BlockHistory { get; }
 
     public RoomBlockQueries BlockQueries { get; }
+
+    /// <summary>The GST master resolver (DEC-069) the inventory service quotes with.</summary>
+    public Hcc.Application.Tax.GstRateResolver Gst { get; }
 
     public InventoryService Inventory { get; }
 
