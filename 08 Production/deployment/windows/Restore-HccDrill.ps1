@@ -5,7 +5,9 @@
 .DESCRIPTION
   1. Picks the newest FULL backup (+ the newest DIFFERENTIAL after it) from the backup folder. Encrypted backups (.bak.hccenc, F-H03)
      are first checked (HMAC) and decrypted with the backup key into the private scratch folder; the decrypted copies are deleted at
-     the end, whatever the result. A wrong key or an altered file fails the drill before anything is restored.
+     the end, whatever the result (A09-13: a copy that cannot be deleted is logged as a warning naming the file, and counted in
+     drill-history.jsonl as plainCopiesLeft). A wrong key or an altered file fails the drill before anything is restored.
+     Free space: the scratch folder needs about twice the database's size during a drill (the decrypted copy plus the restored files).
   2. RESTORE FILELISTONLY, then RESTORE ... WITH MOVE into the scratch folder as database HccDrill_<UTC time>
      (names must start with HccDrill_ or HccTest_; anything else is refused; EtpReporting / EtpScratch_* can never match).
   3. DBCC CHECKDB on the scratch copy must be clean.
@@ -145,7 +147,8 @@ catch {
     Write-HccOperationFailure -Operation RestoreDrill -Database $Database -SqlInstance $SqlInstance -Reason (Get-HccFailureReason $_.Exception.Message) -LogFile $log | Out-Null   # A09-05: event 2002
 }
 finally {
-    foreach ($p in @($script:plainCopies)) { if ($p -and (Test-Path -LiteralPath $p)) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue } }
+    $left = Remove-HccPlainCopies -Paths @($script:plainCopies) -LogFile $log   # A09-13: also after a failed drill; never silently left
+    if ($left.Count -gt 0) { $result.plainCopiesLeft = $left.Count }
     if ($script:drillKey) { [Array]::Clear($script:drillKey, 0, $script:drillKey.Length) }
     if ($created -and -not $KeepScratch) {
         try {

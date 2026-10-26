@@ -331,13 +331,24 @@ public sealed class SqlRoomMastersStore(SqlConnectionFactory connections) : IRoo
             INSERT inv.room(property_id, room_no, room_type_id, hk_status, floor_id) VALUES (@p, @r, @t, 'Ready', @f);
             DECLARE @id INT = CAST(SCOPE_IDENTITY() AS INT);
             UPDATE inv.type_night_count SET sellable = sellable + 1 WHERE room_type_id = @t AND night IN (SELECT night FROM @n);
-            SELECT @id;
+            SELECT @id, (SELECT business_date FROM inv.property WHERE property_id = @p), (SELECT MAX(night) FROM @n);
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
         cmd.P("@t", SqlDbType.Int, roomTypeId);
         cmd.P("@r", SqlDbType.VarChar, roomNo, 10);
         cmd.P("@f", SqlDbType.Int, floorId);
-        return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
+        var (id, businessDate, lastCounted) = await ReadRoomCountChangeAsync(cmd, ct).ConfigureAwait(false);
+        // A08-03 follow-up: the type's availability changed from today on (also nights without a count row): one InventoryChanged.
+        await RoomCountChange.RecordAsync(SqlScope.Of(tx, connections), propertyId, roomTypeId, businessDate, lastCounted, ct).ConfigureAwait(false);
+        return id;
+    }
+
+    /// <summary>The batch's last SELECT: the room id (or deleted-row count), the property's business date and the last counted night of the type.</summary>
+    private static async Task<(int Value, DateOnly BusinessDate, DateOnly? LastCounted)> ReadRoomCountChangeAsync(SqlCommand cmd, CancellationToken ct)
+    {
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await rd.ReadAsync(ct).ConfigureAwait(false)) throw new InvalidOperationException("The room count batch returned no row.");
+        return (rd.GetInt32(0), DateOnly.FromDateTime(rd.GetDateTime(1)), RmsSql.Date(rd, 2));
     }
 
     public async Task UpdateRoomAsync(ICommandTransaction tx, RoomRec row, byte[] expectedVersion, int principalId, DateTime utc, CancellationToken ct = default)
@@ -389,6 +400,9 @@ public sealed class SqlRoomMastersStore(SqlConnectionFactory connections) : IRoo
         }
 
         await InventorySql.Guard(async () => { await deltas.ApplyAsync(s, propertyId, ct).ConfigureAwait(false); return 0; }).ConfigureAwait(false);
+        // A08-03 follow-up: the deltas report the counted nights; both types also changed on the nights without a count row yet.
+        foreach (var type in new[] { oldTypeId, newTypeId }.Order())
+            await RoomCountChange.RecordAsync(s, propertyId, type, from, null, ct).ConfigureAwait(false);
     }
 
     public async Task<LiveNights> LiveNightsAsync(ICommandTransaction tx, int roomId, DateOnly from, CancellationToken ct = default)
@@ -435,17 +449,22 @@ public sealed class SqlRoomMastersStore(SqlConnectionFactory connections) : IRoo
             DELETE inv.room WHERE room_id = @id AND property_id = @p AND row_ver = @v;
             DECLARE @d INT = @@ROWCOUNT;
             IF @d = 1 UPDATE inv.type_night_count SET sellable = sellable - 1 WHERE room_type_id = @t AND night IN (SELECT night FROM @n);
-            SELECT @d;
+            SELECT @d, (SELECT business_date FROM inv.property WHERE property_id = @p), (SELECT MAX(night) FROM @n);
             """);
         cmd.P("@t", SqlDbType.Int, roomTypeId);
         cmd.P("@id", SqlDbType.Int, roomId);
         cmd.P("@p", SqlDbType.Int, propertyId);
         cmd.P("@v", SqlDbType.Binary, expectedVersion, 8);
-        try { SqlValues.EnsureVersionMatched(Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture), "This room"); }
+        (int Value, DateOnly BusinessDate, DateOnly? LastCounted) r;
+        try { r = await ReadRoomCountChangeAsync(cmd, ct).ConfigureAwait(false); }
         catch (SqlException e) when (e.Number == 547)
         {
             throw MastersRules.Fail(MasterReasons.InUse, "This room is used by other records — retire it instead of deleting.");
         }
+
+        SqlValues.EnsureVersionMatched(r.Value, "This room");
+        // A08-03 follow-up: one room fewer for the type from today on: one InventoryChanged.
+        await RoomCountChange.RecordAsync(SqlScope.Of(tx, connections), propertyId, roomTypeId, r.BusinessDate, r.LastCounted, ct).ConfigureAwait(false);
     }
 
     // ── Shared list operations ──

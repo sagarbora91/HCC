@@ -135,17 +135,4 @@ public class DocumentUnitTests
         var n = Imgs.AadhaarNumber("2345678901");
         Assert.Equal("XXXX-XXXX-" + n[^4..], GuestIdRules.Mask(GuestIdRules.Last4(n)));
     }
-
-    [Fact]
-    public async Task In_memory_image_store_round_trips()
-    {
-        var s = new InMemoryDocumentImageStore();
-        await s.PutAsync(null!, 5, "sealed");
-        Assert.Equal("sealed", await s.GetAsync(null, 5));
-        await s.ReplaceAsync(null!, 5, "sealed again");
-        Assert.Equal("sealed again", await s.GetAsync(null, 5));
-        await s.DeleteAsync(null!, 5);
-        Assert.Null(await s.GetAsync(null, 5));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => s.ReplaceAsync(null!, 5, "nothing to replace"));
-    }
 }

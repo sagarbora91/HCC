@@ -23,6 +23,8 @@ AppName=Hotel Control Centre Server
 AppVersion={#AppVersion}
 AppPublisher=Saagar Traders
 DefaultDirName={autopf}\HCC
+; auto = the folder page shows on a first install only. INSTALL.md section 3 says to keep {autopf}\HCC: the scripts' defaults, the backup
+; tasks and Hcc:Operations:BackupScript in the settings sample all use C:\Program Files\HCC (A09-12; "yes" would enforce it: owner decision).
 DisableDirPage=auto
 DefaultGroupName=HCC
 PrivilegesRequired=admin
@@ -43,7 +45,10 @@ Source: "{#OpsDir}\INSTALL.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "{#OpsDir}\ANDROID_SERVER_ADDRESS.md"; DestDir: "{app}"; Flags: ignoreversion
 ; Masters import templates, fictional samples and their README (INSTALL.md step 6d, Import-HccMasters.ps1).
 Source: "{#OpsDir}\..\import-templates\*"; DestDir: "{app}\ImportTemplates"; Flags: recursesubdirs ignoreversion
-; Settings are created once from the samples and never overwritten on upgrade.
+; Settings are created once from the samples (onlyifdoesntexist): an existing file is never overwritten on upgrade and never removed on
+; uninstall (uninsneveruninstall), and settings a new version adds are NOT merged into it; the samples above are replaced every time, so
+; INSTALL.md "Upgrading" step 5 compares them by hand (A09-14 / A09-16). INSTALL.md section 7 copies hcc-ops.sample.json only when
+; hcc-ops.json is missing.
 Source: "{#OpsDir}\appsettings.Production.sample.json"; DestDir: "{app}\Server"; DestName: "appsettings.Production.json"; Flags: onlyifdoesntexist uninsneveruninstall
 Source: "{#OpsDir}\hcc-ops.sample.json"; DestDir: "{app}\Operations"; DestName: "hcc-ops.json"; Flags: onlyifdoesntexist uninsneveruninstall
 

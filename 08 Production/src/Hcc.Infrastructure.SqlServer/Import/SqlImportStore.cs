@@ -308,7 +308,8 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
 
 /// <summary>
 /// P2 inventory writer used by the import (see <see cref="IImportInventoryWriter"/>): inv.room_type insert/update, inv.room insert, and the
-/// sellable count of materialised type-nights kept in step (lock order of P2: inv.type_night_count by type asc, night asc).
+/// sellable count of materialised type-nights kept in step (lock order of P2: inv.type_night_count by type asc, night asc). A room insert
+/// publishes InventoryChanged for its type (A08-03 follow-up, <see cref="Inventory.RoomCountChange"/>), once per type per import transaction.
 /// </summary>
 public sealed class SqlImportInventoryWriter : IImportInventoryWriter
 {
@@ -349,11 +350,22 @@ public sealed class SqlImportInventoryWriter : IImportInventoryWriter
             INSERT @n SELECT night FROM inv.type_night_count WITH (UPDLOCK, HOLDLOCK) WHERE room_type_id = @t;
             INSERT inv.room(property_id, room_no, room_type_id, hk_status) VALUES (@p, @r, @t, 'Ready');
             UPDATE inv.type_night_count SET sellable = sellable + 1 WHERE room_type_id = @t AND night IN (SELECT night FROM @n);
+            SELECT (SELECT business_date FROM inv.property WHERE property_id = @p), (SELECT MAX(night) FROM @n);
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
         cmd.P("@t", SqlDbType.Int, room.TypeId);
         cmd.P("@r", SqlDbType.VarChar, room.RoomNo, 10);
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        DateOnly businessDate;
+        DateOnly? lastCounted;
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        {
+            if (!await rd.ReadAsync(ct).ConfigureAwait(false)) throw new InvalidOperationException("The room insert returned no row.");
+            businessDate = ImportSql.Date(rd, 0);
+            lastCounted = rd.IsDBNull(1) ? null : ImportSql.Date(rd, 1);
+        }
+
+        // A08-03 follow-up: the type's availability changed from the business date on (also nights without a count row): one InventoryChanged.
+        await Inventory.RoomCountChange.RecordAsync(Inventory.SqlScope.Of(tx, ImportSql.Sql(tx).Factory), propertyId, room.TypeId, businessDate, lastCounted, ct).ConfigureAwait(false);
     }
 }
 

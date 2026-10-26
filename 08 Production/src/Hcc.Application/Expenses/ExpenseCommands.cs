@@ -80,8 +80,12 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
         ArgumentNullException.ThrowIfNull(req);
         var expected = VersionToken.Parse(req.ExpectedVersion);
         // The amount is immutable after submission, so the limit check on the peeked amount holds under the row lock below.
+        // PERM-EXP-002's limit applies to the amount approved. A rejection posts nothing, so it is checked at 0: any A or L cell (the Manager's
+        // ₹5,000 limit included) may reject at any amount, as the prototype's EXPENSE_APPROVE (limit only when approving) and POS DecideVoid.
+        // Without an amount a limited grant answers "Amount needed for a limited permission" (Wave D: a Manager could not reject).
         var peek = await store.GetAsync(ctx.PropertyId, req.ExpenseId, ct).ConfigureAwait(false);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Decide, null, req.Approve && peek is not null ? peek.Amount.Value : null, ct).ConfigureAwait(false);
+        var checkedAmount = req.Approve && peek is not null ? peek.Amount.Value : 0L;
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Decide, null, checkedAmount, ct).ConfigureAwait(false);
         if (req.Approve) await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.PostReverse, null, null, ct).ConfigureAwait(false);
         if (peek is null) throw new HccException(HccErrorCode.NOT_FOUND, "Expense not found.");
         var reason = ExpenseRules.OptionalReason(req.Reason);

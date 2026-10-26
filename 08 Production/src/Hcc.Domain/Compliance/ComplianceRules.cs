@@ -47,8 +47,6 @@ public sealed record DatedRule(DateOnly From, DueRule Rule);
 /// <summary>The parts of an obligation the date rules need.</summary>
 public sealed record ObligationSchedule(string Frequency, string FromPeriod, IReadOnlyList<DatedRule> Rules);
 
-public sealed record FilingFacts(string Status, DateTime AtUtc, string? Reference, string? Reason);
-
 public sealed record CalendarRow(string Period, string PeriodLabel, DateOnly Due, int Days, string Status);
 
 public sealed record CalendarCounts(int Overdue, int Due, int Upcoming, int Filed, int NotApplicable, int Open);

@@ -4,7 +4,10 @@
 .DESCRIPTION
   BACKUP DATABASE ... WITH CHECKSUM, then RESTORE VERIFYONLY ... WITH CHECKSUM, then (F-H03) encrypts the .bak into <name>.bak.hccenc
   (AES-256 + HMAC-SHA256 with the DPAPI-protected backup key from New-HccBackupKey.ps1; see Hcc-Common.ps1) and deletes the plain file,
-  then deletes old backups per the retention rules in Hcc-Common.ps1. SQL Server Express has no native backup encryption, hence this step.
+  then deletes old backups of THIS database per the retention rules in Hcc-Common.ps1 (A09-10: by the parsed file name, so Hcc_X_... files
+  of another database in the same folder are never counted or deleted). SQL Server Express has no native backup encryption, hence this step.
+  A09-13: the plain .bak exists only from BACKUP DATABASE until it is encrypted (needs about twice the backup's size free for that moment);
+  if the backup, the verify or the encryption fails, the plain file of the run is deleted before the failure is reported.
   The backup folder must be private (inheritance removed; SYSTEM, Administrators, the SQL Server service and the backup account only):
   Initialize-HccDatabase.ps1 sets that; this script warns in its log when the folder is no longer protected.
   The SQL Server service account (NT Service\MSSQL$SQLEXPRESS) writes the .bak itself. SQL Express has no SQL Agent, hence Task Scheduler.
@@ -78,7 +81,7 @@ try {
     if ($encrypt) { $key = Read-HccBackupKey -Path $BackupKeyFile }   # before the backup: no plain .bak is left behind when the key is missing
 
     $existing = @(Get-ChildItem -LiteralPath $BackupDirectory -Filter '*.bak*' -File | ForEach-Object Name)
-    if ($Type -eq 'Differential' -and -not ($existing | Where-Object { (ConvertFrom-HccBackupFileName $_) -and (ConvertFrom-HccBackupFileName $_).Type -eq 'FULL' })) {
+    if ($Type -eq 'Differential' -and -not (Select-HccRestoreChain -Names $existing -Database $Database)) {   # A09-10: a FULL of this database
         Write-HccLog 'No full backup in the folder yet; taking a FULL backup instead of a differential.' -LogFile $log -Level WARN
         $Type = 'Full'
         $name = New-HccBackupFileName -Database $Database -Type Full -UtcNow $now
@@ -87,21 +90,15 @@ try {
         $verifySql = 'RESTORE VERIFYONLY FROM DISK = {0} WITH CHECKSUM;' -f (ConvertTo-HccSqlLiteral $target)
     }
     Write-HccLog "Starting $Type backup of [$Database] -> $target" -LogFile $log
-    Invoke-HccSql -Instance $SqlInstance -Query $backupSql -TrustServerCertificate:$trust | Out-Null
-    Invoke-HccSql -Instance $SqlInstance -Query $verifySql -TrustServerCertificate:$trust | Out-Null
-    $size = (Get-Item -LiteralPath $target).Length
-    Write-HccLog ("Backup OK and verified: {0} ({1:N1} MB)" -f $name, ($size / 1MB)) -LogFile $log
-    $result = $target
-    if ($encrypt) {
-        $enc = $target + $script:HccEncryptedSuffix
-        Protect-HccBackupFile -Source $target -Destination $enc -Key $key
-        Remove-Item -LiteralPath $target -Force
-        Write-HccLog ("Encrypted: {0} ({1:N1} MB); plain .bak deleted." -f (Split-Path -Leaf $enc), ((Get-Item -LiteralPath $enc).Length / 1MB)) -LogFile $log
-        $result = $enc
+    # A09-13: backup, verify, encrypt, delete the plain file; on any failure the run's plain .bak is deleted (encrypted backups only).
+    $result = Invoke-HccBackupToFile -Target $target -Key $key -LogFile $log -Backup {
+        Invoke-HccSql -Instance $SqlInstance -Query $backupSql -TrustServerCertificate:$trust | Out-Null
+        Invoke-HccSql -Instance $SqlInstance -Query $verifySql -TrustServerCertificate:$trust | Out-Null
+        Write-HccLog ("Backup OK and verified: {0} ({1:N1} MB)" -f $name, ((Get-Item -LiteralPath $target).Length / 1MB)) -LogFile $log
     }
 
-    $all = @(Get-ChildItem -LiteralPath $BackupDirectory -Filter '*.bak*' -File | Where-Object { $_.Name -like "${Database}_*" } | ForEach-Object Name)
-    $del = Select-HccBackupsToDelete -Names $all -UtcNow $now -RetentionDays $RetentionDays -KeepMinFulls $KeepMinFulls -PreMigrateRetentionDays ([int]$cfg.PreMigrateRetentionDays)
+    $all = @(Get-ChildItem -LiteralPath $BackupDirectory -Filter '*.bak*' -File | ForEach-Object Name)
+    $del = Select-HccBackupsToDelete -Names $all -Database $Database -UtcNow $now -RetentionDays $RetentionDays -KeepMinFulls $KeepMinFulls -PreMigrateRetentionDays ([int]$cfg.PreMigrateRetentionDays)
     foreach ($d in $del) {
         Remove-Item -LiteralPath (Join-Path $BackupDirectory $d) -Force
         Write-HccLog "Retention: deleted $d" -LogFile $log
