@@ -7,7 +7,7 @@
   "RetentionDays": 30,
   "KeepMinFulls": 3,
   "PreMigrateRetentionDays": 90,
-  "TrustServerCertificate": false,
+  "TrustServerCertificate": true,
   "EncryptBackups": true,
   "BackupKeyFile": "C:\\ProgramData\\HCC\\Keys\\hcc-backup-key.txt",
   "BackupAccount": ""

@@ -141,6 +141,27 @@ public sealed class SqlBackupGate(SqlOptions options) : IBackupGate
 public sealed record MigrationResult(int FromVersion, int ToVersion, IReadOnlyList<int> Applied, bool BackupTaken);
 
 /// <summary>
+/// A09-04: the database schema compared with the migrations embedded in this build. <see cref="IsBehind"/> when any embedded
+/// migration is missing from <c>dbo.schema_migration</c> (for example the installer started the new build before
+/// <c>Hcc.Api.exe migrate</c> ran). Versions the build does not know (a newer database) are not "behind"; <c>migrate</c> refuses them.
+/// </summary>
+public sealed record SchemaStatus(int AppliedCount, int BuildCount, int DatabaseVersion, int BuildVersion, IReadOnlyList<int> Missing)
+{
+    public bool IsBehind => Missing.Count > 0;
+
+    public string Message => $"Database schema is behind this build: run `Hcc.Api migrate` (applied {AppliedCount} of {BuildCount}).";
+
+    public static SchemaStatus Compare(IReadOnlyCollection<int> applied, IReadOnlyList<MigrationScript> scripts)
+    {
+        ArgumentNullException.ThrowIfNull(applied);
+        ArgumentNullException.ThrowIfNull(scripts);
+        var missing = scripts.Select(s => s.Version).Where(v => !applied.Contains(v)).Order().ToList();
+        return new SchemaStatus(scripts.Count - missing.Count, scripts.Count, applied.Count == 0 ? 0 : applied.Max(),
+            scripts.Count == 0 ? 0 : scripts.Max(s => s.Version), missing);
+    }
+}
+
+/// <summary>
 /// Applies pending migrations in version order, one transaction per migration (XACT_ABORT ON), under an exclusive
 /// application lock so two runners cannot interleave. The journal <c>dbo.schema_migration</c> stores each script's checksum;
 /// an applied script whose text changed stops the run (drift), and a database newer than this build is refused.
@@ -241,6 +262,17 @@ public sealed class MigrationRunner(SqlConnectionFactory connections, IMigration
     {
         await using var q = new SqlCommand("SELECT CASE WHEN OBJECT_ID('dbo.schema_migration') IS NULL THEN 0 ELSE (SELECT ISNULL(MAX(version), 0) FROM dbo.schema_migration) END;", connection);
         return (int)(await q.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0);
+    }
+
+    /// <summary>A09-04: which of <paramref name="scripts"/> (the migrations of this build) the database's journal lacks. Read-only
+    /// (the runtime login's db_datareader is enough); an empty database counts as applied 0 of M.</summary>
+    public static async Task<SchemaStatus> StatusAsync(SqlConnection connection, IReadOnlyList<MigrationScript> scripts, CancellationToken ct = default)
+    {
+        var applied = new HashSet<int>();
+        await using var q = new SqlCommand("IF OBJECT_ID('dbo.schema_migration') IS NOT NULL SELECT version FROM dbo.schema_migration;", connection);
+        await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) applied.Add(rd.GetInt32(0));
+        return SchemaStatus.Compare(applied, scripts);
     }
 
     private async Task ExecAsync(SqlConnection conn, SqlTransaction? tx, string sql, CancellationToken ct)
