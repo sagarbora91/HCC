@@ -88,18 +88,22 @@ export function MsgMessagesPage(){
     </section></>;
 }
 
-const mtabs=[{id:'outbox',label:'Outbox'},{id:'triggers',label:'Triggers'},{id:'consent',label:'Consent'}] as const;
+const mtabs=[{id:'outbox',label:'Outbox'},{id:'triggers',label:'Triggers'},{id:'templates',label:'Templates'},{id:'consent',label:'Consent'}] as const;
 type MTab=typeof mtabs[number]['id'];
 export function MsgMessagesMobile(){
-  const {s,open,run,busy}=useHcc();
-  const [tab,setTab]=useState<MTab>('outbox');const [ch,setCh]=useState<'all'|MSGChannel>('all');
+  const {s,uid,open,run,busy}=useHcc();
+  // DEC-079 D4 (Wave D5, B8 leftover): as on desktop, the Tech admin (production) gets Templates and Triggers only, opening on Templates.
+  const templatesOnly=rbacTechAdminTemplates(s,uid);const canEdit=rbacCanEditTemplates(s,uid);
+  const [tab,setTab]=useState<MTab>(templatesOnly?'templates':'outbox');const [ch,setCh]=useState<'all'|MSGChannel>('all');
   const a=useMsgActions();const c=msgCounts(s);
   const list=msgOutbox(s).filter(m=>ch==='all'||m.channel===ch);
   const rows=consentRows(s);
+  const shown=templatesOnly?mtabs.filter(t=>t.id==='templates'||t.id==='triggers'):mtabs;
+  const sample=s.bookings.find(b=>b.status==='In house')||s.bookings[0];
   return <div className="msg-m">
     <MsgSimulated/>
     <div className="msg-m-kpis"><KpiCard label="Delivered / read" value={c.Delivered+c.Read}/><KpiCard label="Failed" value={c.Failed}/><KpiCard label="Pending triggers" value={a.pending.length} onClick={()=>setTab('triggers')}/></div>
-    <ChipFilter label="Messages section" value={tab} onChange={setTab} options={mtabs.map(t=>({id:t.id,label:t.label,count:t.id==='outbox'?msgOutbox(s).length:t.id==='triggers'?a.pending.length:rows.length}))}/>
+    <ChipFilter label="Messages section" value={tab} onChange={setTab} options={shown.map(t=>({id:t.id,label:t.label,count:t.id==='outbox'?msgOutbox(s).length:t.id==='triggers'?a.pending.length:t.id==='templates'?msgTemplates(s).length:rows.length}))}/>
     {tab==='outbox'&&<>
       <ChipFilter label="Channel" value={ch} onChange={setCh} options={[{id:'all',label:'All'},...MSG_CHANNELS.map(x=>({id:x,label:x}))]}/>
       {a.canAct&&a.unfinished>0&&<button type="button" className="btn full msg-m-btn" disabled={busy} onClick={a.simulateAll}><FastForward size={18}/> Simulate delivery ({a.unfinished})</button>}
@@ -112,7 +116,13 @@ export function MsgMessagesMobile(){
           right={msgConsent(s,msgGuestKey(t.booking)).optOut?<Pill tone="orange">Opted out</Pill>:<Pill tone="blue">Ready</Pill>}/>)}
       <h2 className="msg-m-h">Rules</h2>
       {msgRules(s).map(r=><ListCard key={r.id} title={`${r.id} · ${MSG_EVENT_LABEL[r.event]}`} sub={`${msgTemplate(s,r.template)?.name} · ${r.channel}`} right={<Pill tone={r.enabled?'green':'neutral'}>{r.enabled?'On':'Off'}</Pill>}/>)}
-      <p className="muted">Rules are changed on desktop by the Owner or Manager.</p>
+      <p className="muted">{canEdit?'Rules are changed on desktop.':'Rules are changed on desktop by the Owner or Manager.'}</p>
+    </>}
+    {tab==='templates'&&<>
+      <p className="muted">{canEdit?'Tap a template to edit it. The preview uses a guest in house.':'View only — the Owner or Manager changes templates.'}</p>
+      {msgTemplates(s).map(t=>{const p=sample?msgRender(t.body,msgValues(s,sample)).text:t.body;
+        return <ListCard key={t.id} title={t.name} sub={`${t.channel} · ${p.length} chars${t.channel==='SMS'?` · ${msgSmsSegments(p)} segment(s)`:''}`} meta={p}
+          right={canEdit?<Pill tone="blue"><Pencil size={13}/> Edit</Pill>:undefined} onClick={canEdit?()=>open({type:'msg-template',id:t.id}):undefined}/>;})}
     </>}
     {tab==='consent'&&(!rows.length?<Empty title="No current guests"/>:rows.map(({key,b})=>{const x=msgConsent(s,key);
       return <ListCard key={key} title={b.guest} sub={`${b.status} · room ${b.room}`} meta={consentText(x)} right={<Pill tone={x.optOut?'orange':'green'}>{x.optOut?'Opted out':'OK'}</Pill>}

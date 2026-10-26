@@ -81,6 +81,21 @@ const LIMIT_META:Record<string,{unit:'paise'|'percent';label:string}>={
 export const ADMIN_PERMS:AdminPerm[]=MATRIX.map(([id,action,group,financial,module])=>({id,action,group,financial,module,limit:LIMIT_META[id]}));
 export const adminPerm=(id:string)=>ADMIN_PERMS.find(p=>p.id===id);
 export const ADMIN_ROLE_ORDER=ROLE_ORDER;
+/** Role templates Access control shows: the nine matrix v1 roles, plus the production-only Restaurant role (DEC-079 D1) when the
+ *  server's roles read returned its template (sync/admin.ts policyFromServer). The demo policy has no Restaurant template. */
+export const adminTemplateRoles=(p:HccPolicy):Role[]=>p.templates.Restaurant?[...ROLE_ORDER,'Restaurant']:ROLE_ORDER;
+/** Permission ids held in the shown templates that have no matrix v1 row (the role matrix v2 module ids the server seeds, e.g. the
+ *  Restaurant role's PERM-POS-001…003 and PERM-HR-004). Empty in the demo build. Sorted by id. */
+export function adminServerPermIds(p:HccPolicy):string[]{
+  const known=new Set(MATRIX.map(m=>m[0])),ids=new Set<string>();
+  for(const r of adminTemplateRoles(p))for(const id of Object.keys(p.templates[r]??{}))if(!known.has(id))ids.add(id);
+  return [...ids].sort();
+}
+const MODULE_NAMES:Record<string,string>={ACC:'Accounting',CFG:'Master configuration',CMP:'Compliance',CRM:'Customers',DOC:'Document capture',GRP:'Groups & companies',
+  GSV:'Guest services',HND:'Handover',HR:'Payroll & HR',IMP:'Data import',INV:'Invoices',MNT:'Maintenance',MSG:'Messaging',MST:'Masters',OTA:'OTA channels',
+  POS:'Restaurant POS',STK:'Linen & stock',SYS:'System health',WEB:'Booking website',YLD:'Yield & tariffs'};
+/** Module name of a server permission id ("PERM-POS-002" → "Restaurant POS"). */
+export const adminPermModule=(id:string)=>MODULE_NAMES[id.split('-')[1]??'']??'Module';
 /** Coarse module permissions that carry financial power (Tech admin may never hold them; plan §12). */
 export const ADMIN_FINANCIAL_MODULES:Permission[]=['billing','payments','checkout','expenses','approve','close'];
 

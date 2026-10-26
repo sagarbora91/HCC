@@ -2,7 +2,8 @@
 import React,{useState} from 'react';
 import {PolicyLimitEditor} from './PolicyLimitEditor';
 import {ShieldCheck,Info,UserPlus} from 'lucide-react';
-import {permissions,Role,money,authorize,adminPolicy,adminUserStatus,adminOtherActiveOwners,adminEffectiveAccess,adminCellCode,adminDescribeCell,adminLimitFor,adminExceptionActive,adminApprovalInbox,ADMIN_PERMS,ADMIN_ROLE_ORDER,ADMIN_FINANCIAL_MODULES,adminScopeText} from '../../services/mock';
+import {permissions,Role,money,authorize,adminPolicy,adminUserStatus,adminOtherActiveOwners,adminEffectiveAccess,adminCellCode,adminDescribeCell,adminLimitFor,adminExceptionActive,adminApprovalInbox,ADMIN_PERMS,ADMIN_FINANCIAL_MODULES,adminScopeText,
+  adminTemplateRoles,adminServerPermIds,adminPermModule} from '../../services/mock';
 import type {User,PolicyCell} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate,clockTime,field,submit} from '../../components/ui';
@@ -58,21 +59,27 @@ function UsersTab({onCredential}:{onCredential?:(id:string)=>void}){
 
 const CELL_OPTIONS:[string,string][]=[['none','— Not granted'],['allow','A · Allow'],['view','V · View only'],['masked','M · Masked view'],['limit','L · Allow up to limit'],['request','R · Request only'],['deny','D · Explicit deny']];
 const cellValue=(c?:PolicyCell)=>!c?'none':c.effect==='allow'?(c.mode||'allow'):c.effect;
-function TemplatesTab(){
+/** Production: the templates are the server's role matrix v2 seed (GET /admin/roles); no server command edits them yet (sync/admin.ts
+ *  GRANT / POLICY_SET unmapped), so every template — the Restaurant one included — is shown read-only. */
+const SERVER_TEMPLATES_LOCK='Role templates come from the server (role matrix v2, DEC-079) and are read-only here: no server command changes them yet.';
+export function TemplatesTab(){
   const {s,uid,user,run,busy}=useHcc();
   const [role,setRole]=useState<Role>('Reception');
   const pol=adminPolicy(s),tpl=pol.templates[role]||{};
+  // Wave D5 (B8 leftover): the production-only Restaurant role (DEC-079 D1) shows when the server's roles read returned its template,
+  // with the module permission ids the v1 matrix has no row for (its PERM-POS-* and PERM-HR-004 among them). Demo: unchanged.
+  const roles=adminTemplateRoles(pol),serverPerms=adminServerPermIds(pol);
   const d=authorize(s,uid,'PERM-ADM-002');
-  const lock=d.decision==='deny'?d.reason:role==='Owner'?'The Owner template is protected in this prototype.':role===user.role?'This is your own role — another administrator must change it (no self-escalation).':undefined;
+  const lock=process.env.HCC_BUILD==='production'?SERVER_TEMPLATES_LOCK:d.decision==='deny'?d.reason:role==='Owner'?'The Owner template is protected in this prototype.':role===user.role?'This is your own role — another administrator must change it (no self-escalation).':undefined;
   const groups=[...new Set(ADMIN_PERMS.map(p=>p.group))];
   const set=(perm:string,v:string,scope?:string)=>{const effect=['view','masked'].includes(v)?'allow':v;run({type:'POLICY_SET',role,perm,effect,scope:scope||tpl[perm]?.scope||'P',...(['view','masked'].includes(v)?{mode:v}:{})},d.decision==='approval'?'Request sent to the Owner for approval':'Role template updated · policy version bumped');};
   return <div>
     <div className="section-title"><div><h2>Permission matrix</h2><p>Codes: A allow · L allow up to limit · R request only · V view only · M masked · D explicit deny · — not granted. Scope after “·”: S own shift, A assigned, O own submissions.</p></div></div>
-    <div className="table-wrap adm-matrix-wrap"><table className="adm-matrix"><thead><tr><th>Permission</th>{ADMIN_ROLE_ORDER.map(r=><th key={r}><button className={'text-btn'+(r===role?' adm-sel':'')} onClick={()=>setRole(r)} aria-pressed={r===role}>{r}</button></th>)}</tr></thead><tbody>
-      {ADMIN_PERMS.map(p=><tr key={p.id}><td><strong>{p.id}</strong><small>{p.action}</small></td>{ADMIN_ROLE_ORDER.map(r=>{const c=pol.templates[r]?.[p.id];const code=adminCellCode(c);return <td key={r} className={'adm-code adm-'+code[0]+(r===role?' adm-selcol':'')} title={`${r}: ${adminDescribeCell(c)}`}>{code}</td>;})}</tr>)}
+    <div className="table-wrap adm-matrix-wrap"><table className="adm-matrix"><thead><tr><th>Permission</th>{roles.map(r=><th key={r}><button className={'text-btn'+(r===role?' adm-sel':'')} onClick={()=>setRole(r)} aria-pressed={r===role}>{r}</button></th>)}</tr></thead><tbody>
+      {[...ADMIN_PERMS.map(p=>({id:p.id,action:p.action})),...serverPerms.map(id=>({id,action:`${adminPermModule(id)} · module permission (server)`}))].map(p=><tr key={p.id}><td><strong>{p.id}</strong><small>{p.action}</small></td>{roles.map(r=>{const c=pol.templates[r]?.[p.id];const code=adminCellCode(c);return <td key={r} className={'adm-code adm-'+code[0]+(r===role?' adm-selcol':'')} title={`${r}: ${adminDescribeCell(c)}`}>{code}</td>;})}</tr>)}
     </tbody></table></div>
     <div className="section-title"><div><h2>Edit role template</h2><p>Permission and scope changes submit immediately, with approval where required. Save limit applies only to its edited amount. Applied changes are audited.</p></div>
-      <label className="adm-inline-label">Role<select aria-label="Role to edit" value={role} onChange={e=>setRole(e.target.value as Role)}>{ADMIN_ROLE_ORDER.map(r=><option key={r}>{r}</option>)}</select></label></div>
+      <label className="adm-inline-label">Role<select aria-label="Role to edit" value={role} onChange={e=>setRole(e.target.value as Role)}>{roles.map(r=><option key={r}>{r}</option>)}</select></label></div>
     {lock&&<p className="adm-lock" role="note"><ShieldCheck size={15}/> {lock}</p>}
     {groups.map(g=><div key={g} className="adm-group"><h3>{g}</h3>
       {ADMIN_PERMS.filter(p=>p.group===g).map(p=>{const c=tpl[p.id];const tadFin=role==='Tech admin'&&p.financial;const lim=p.limit?adminLimitFor(s,role,p.id):undefined;

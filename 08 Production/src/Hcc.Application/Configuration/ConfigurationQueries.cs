@@ -12,9 +12,11 @@ namespace Hcc.Application.Configuration;
 /// <summary>
 /// Master configuration reads. The hub (groups, settings, history, search, export, import dry run) needs PERM-CFG-001 (Owner, Tech admin)
 /// (Owner, Tech admin); groups a viewer cannot change are shown read-only with the reason, never hidden. Owner-only values are
-/// masked for everyone else; secrets are never returned. Requests: hub viewers. Module switches: everyone.
+/// masked for everyone else; secrets are never returned. Requests: hub viewers. Module switches: everyone. The values read also carries
+/// the group-block server option (DEC-080, <see cref="GroupBlockOptions"/>; off when the inventory module is not composed).
 /// </summary>
-public sealed class ConfigurationQueries(IAccessPolicy policy, SettingsRegistry registry, IConfigurationReadStore reads, ConfigurationService service, TimeProvider clock)
+public sealed class ConfigurationQueries(IAccessPolicy policy, SettingsRegistry registry, IConfigurationReadStore reads, ConfigurationService service, TimeProvider clock,
+    Inventory.GroupBlockOptions? groupBlocks = null)
 {
     private readonly ConfigAuthorityResolver _authority = new(policy);
 
@@ -155,7 +157,8 @@ public sealed class ConfigurationQueries(IAccessPolicy policy, SettingsRegistry 
         var rowVersions = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (var s in registry.All)
             if (s.Editable && snap.RowVersions.TryGetValue(s.Key, out var rv)) rowVersions[s.Key] = VersionToken.ToWire(rv);
-        return new ConfigurationValuesResult(SettingRules.Wire(snap.BusinessDate), values, scheduled.OrderBy(x => x.EffectiveFrom, StringComparer.Ordinal).ToList(), rowVersions);
+        return new ConfigurationValuesResult(SettingRules.Wire(snap.BusinessDate), values, scheduled.OrderBy(x => x.EffectiveFrom, StringComparer.Ordinal).ToList(), rowVersions,
+            groupBlocks?.Enabled == true);
     }
 
     /// <summary>Configuration export for backup / a second property (prototype <c>cfgExport</c>): editable values, no secrets, nothing personal.</summary>

@@ -1,7 +1,7 @@
 // Module 21 · OTA channel management — desktop page (inbox, channels & mapping, rate/availability push, commission report). All SIMULATED.
 import React,{useState} from 'react';
 import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X,Plus} from 'lucide-react';
-import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,CHN_PUSH_DAYS,
+import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,
   type CHNMessage,type CHNChannel,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,shortDate,clockTime} from '../../components/ui';
@@ -10,9 +10,12 @@ import {ChnPill,ChnSimulated,stay,party,firstName} from './shared';
 export type ChnTab='inbox'|'channels'|'push'|'commission';
 export const CHN_TABS:{id:ChnTab;label:string}[]=[{id:'inbox',label:'Inbox'},{id:'channels',label:'Channels & mapping'},{id:'push',label:'Rate & availability push'},{id:'commission',label:'Commission report'}];
 export const chnTabOf=(t:string):ChnTab=>(CHN_TABS.some(x=>x.id===t)?t:'inbox') as ChnTab;
+/** DEC-079 D7 (Wave D5): without the commission rates (production, no PERM-OTA-004) there is no commission report to show. */
+export const chnTabsFor=(hidden:boolean)=>hidden?CHN_TABS.filter(x=>x.id!=='commission'):CHN_TABS;
+export const chnTabFor=(t:string,hidden:boolean):ChnTab=>{const x=chnTabOf(t);return hidden&&x==='commission'?'inbox':x;};
 
 export function ChannelsPage(){
-  const {s,tab,setTab,run,busy}=useHcc();const t=chnTabOf(tab);
+  const {s,tab,setTab,run,busy}=useHcc();const hidden=chnCommissionHidden(s);const t=chnTabFor(tab,hidden);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   return <><PageTitle title="OTA channels" sub="Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated."
     action={<button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={15}/> Check for new messages</button>}/>
@@ -21,10 +24,10 @@ export function ChannelsPage(){
       <div><span>Pending messages</span><strong>{pend.length}</strong></div>
       <div><span>Connected channels</span><strong>{st.channels.filter(c=>c.status==='Connected').length}/{st.channels.length}</strong></div>
       <div><span>OTA bookings (active)</span><strong>{rep.total.bookings}</strong></div>
-      <div><span>Commission due</span><strong>{money(rep.total.commission)}</strong></div>
+      {!hidden&&<div><span>Commission due</span><strong>{money(rep.total.commission)}</strong></div>}
     </div>
     <section className="card">
-      <div className="tabs chn-tabs" role="tablist">{CHN_TABS.map(x=><button key={x.id} role="tab" aria-selected={t===x.id} className={t===x.id?'active':''} onClick={()=>setTab(x.id)}>{x.label}{x.id==='inbox'&&pend.length>0&&<span>{pend.length}</span>}</button>)}</div>
+      <div className="tabs chn-tabs" role="tablist">{chnTabsFor(hidden).map(x=><button key={x.id} role="tab" aria-selected={t===x.id} className={t===x.id?'active':''} onClick={()=>setTab(x.id)}>{x.label}{x.id==='inbox'&&pend.length>0&&<span>{pend.length}</span>}</button>)}</div>
       {t==='inbox'&&<InboxTab/>}{t==='channels'&&<ChannelsTab/>}{t==='push'&&<PushTab/>}{t==='commission'&&<CommissionTab/>}
     </section></>;
 }
@@ -82,7 +85,7 @@ function ChannelsTab(){
     <div className="chn-grid">{st.channels.map(c=><article key={c.id} className="chn-channel">
       <header><div><h3>{c.name}</h3><small>{c.statusNote}</small></div><ChnPill status={c.status}/></header>
       <div className="summary-list"><div><span>Last sync</span><strong>{c.lastSync?`${shortDate(c.lastSync.slice(0,10))} ${clockTime(c.lastSync)}`:'Never'}</strong></div>
-        <div><span>Commission</span><strong>{chnPct(c.commissionBps)}</strong></div><div><span>Rate markup</span><strong>{chnPct(c.markupBps)}</strong></div></div>
+        <div><span>Commission</span><strong>{chnRate(c)}</strong></div><div><span>Rate markup</span><strong>{chnPct(c.markupBps)}</strong></div></div>
       <table className="chn-map"><thead><tr><th>Room type</th><th>Channel code</th><th>Stop-sell</th></tr></thead><tbody>
         {types.map(t=><tr key={t}><td>{rmsTypeName(s,t)}</td><td>{c.mapping[t]?<code>{c.mapping[t]}</code>:<span className="chn-muted">Not mapped</span>}</td><td>{c.mapping[t]?<StopSellToggle c={c} type={t}/>:'—'}</td></tr>)}
       </tbody></table>
@@ -119,6 +122,7 @@ function PushTab(){
 
 export function CommissionTables(){
   const {s,booking,permission}=useHcc();const r=chnCommissionReport(s);
+  if(chnCommissionHidden(s))return <p className="chn-muted">Commission figures are shown to the Owner, the Manager and the Accountant.</p>;
   return <>
     <div className="table-wrap"><table className="chn-table"><thead><tr><th>Channel</th><th>Rate</th><th className="number">Bookings</th><th className="number">Room nights</th><th className="number">Room revenue</th><th className="number">Commission</th><th className="number">Net to hotel</th></tr></thead><tbody>
       {r.byChannel.map(x=><tr key={x.channel.id}><td><strong>{x.channel.name}</strong></td><td>{chnPct(x.channel.commissionBps)}</td><td className="number">{x.bookings}</td><td className="number">{x.nights}</td><td className="number">{money(x.base)}</td><td className="number">{money(x.commission)}</td><td className="number">{money(x.net)}</td></tr>)}
