@@ -1,0 +1,5 @@
+code,name,group,hccAccount
+CAP01,Owner's capital,Equity,
+LOAN01,Term loan (fictional bank),Liability,
+FURN01,Furniture and fixtures,Asset,
+SBI01,Current account (fictional bank),Asset,1030
