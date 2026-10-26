@@ -86,7 +86,12 @@ public static class ConfigurationEndpoints
             var (p, _) = http.HccActor();
             return Results.Ok(await q.ModulesAsync(p, ct));
         });
-        g.MapGet("/configuration/export", async (HttpContext http, ConfigurationQueries q, CancellationToken ct) =>
+        g.MapGet("/configuration/values", async (HttpContext http, ConfigurationQueries q, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await q.ValuesAsync(p, u, ct));
+        });
+        g.MapGet("/configuration/export",async (HttpContext http, ConfigurationQueries q, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();
             return Results.Ok(await q.ExportAsync(p, u, ct));
