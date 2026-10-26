@@ -37,8 +37,8 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   inventory:'stock',
   staff:'people','my-hr':'people',
   closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
-  access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
   prefs:'admin', // CP-1 Appearance & display (every role, this device only)
+  access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
 /** Virtual pages (not nav items): Modules Home and one tile page per category. Always allowed once signed in. */

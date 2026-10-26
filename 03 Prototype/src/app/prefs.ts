@@ -118,6 +118,8 @@ export function subscribePrefs(fn:()=>void):()=>void{
   if(!storageHooked){try{window.addEventListener('storage',onStorage);storageHooked=true;}catch{/* no window (tests) */}}
   return ()=>{listeners.delete(fn);};
 }
+/** Current preferences (the same copy every usePrefs() hook sees). */
+export const getPrefs=():Prefs=>snapshot();
 /** Test hook: forget the in-memory copy so the next read comes from storage. */
 export const resetPrefsCache=()=>{cache=null;};
 
