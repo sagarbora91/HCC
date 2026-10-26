@@ -37,4 +37,13 @@ export function register({test,M,assert}){
     const i=css.indexOf('@media screen and (pointer: coarse)');assert.ok(i>0);
     const block=css.slice(i);assert.ok(/min-height: var\(--hcc-touch-dense\)/.test(block)&&/min-height: var\(--hcc-touch-primary\)/.test(block));
   });
+  test('[PF] V11 S4 fixes: demo pill and tab labels 16 px, sheet chips 48 px, tile badge room, CGST/SGST span, back after role switch',async()=>{
+    const m=await readFile('src/styles/mobile.css','utf8'),z=await readFile('src/styles/z-touch.css','utf8');
+    assert.ok(/\.m-demo-pill\{[^}]*font-size:16px/.test(m)&&/\.m-tabbar button\{[^}]*font-size:16px/.test(m));
+    assert.ok(!/\.m-demo-pill\{font-size:1[0-5]px/.test(z));
+    assert.ok(/\.modal\.m-sheet \.m-chips button\{min-height:var\(--hcc-touch-primary,48px\);font-size:16px\}/.test(z));
+    assert.ok(/\.tile:has\(\.tile-badge\)\{padding-right:5\d+px\}/.test(await readFile('src/styles/home.css','utf8')));
+    assert.ok(/repeat\(auto-fit,minmax\(172px/.test(await readFile('src/styles/reservations.css','utf8')));
+    assert.ok(/data-label="CGST"><span>/.test(await readFile('src/mobile/money/Checkout.tsx','utf8')));
+    assert.ok(/catOk/.test(await readFile('src/app/App.tsx','utf8')));});
 }

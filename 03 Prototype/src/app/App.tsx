@@ -8,7 +8,7 @@ import {loadStored,saveStored,onStorageError} from './storage';
 import {generateScenario,type GenProgress} from './scenarioGen';
 import type {Restored} from '../services/mock';
 import {navItems} from './nav';
-import {HOME_PAGE,parseCatPage,navFilterModules} from './navmap';
+import {HOME_PAGE,parseCatPage,navFilterModules,pagesOfCategory} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoToolbar} from './demo/DemoToolbar';
 import {ProductionApp,SyncStatus,type ServerBinding} from '../clients/sync/react'; // production build only (W4-0 server sync layer)
@@ -94,7 +94,9 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const user=s.users.find(u=>u.id===uid)??s.users[0];
   const m=metrics(s);
   const allowedIds=navFilterModules(s,navItems,uid).filter(n=>can(s,uid,n.p)).map(n=>n.id);
-  const current=page===HOME_PAGE||parseCatPage(page)?page:page==='more'&&display.isMobile?'more':allowedIds.includes(page)?page:HOME_PAGE;
+  // V11-7: a module page left over from another role (Back after a role switch) with nothing for this user shows the role's home instead
+  const catOk=(()=>{const c=parseCatPage(page);return !c||pagesOfCategory(c).some(p=>allowedIds.includes(p));})();
+  const current=page===HOME_PAGE||(parseCatPage(page)&&catOk)?page:page==='more'&&display.isMobile?'more':allowedIds.includes(page)?page:HOME_PAGE;
 
   const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotice(null),6500);},[]);
   function persist(next:State){setS(next);stateRef.current=next;if(!saveStored(next))setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true});}

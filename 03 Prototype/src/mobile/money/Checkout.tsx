@@ -59,7 +59,7 @@ export function MmInvoice({id}:{id?:string}){
         <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><strong>{b.invoiceNo??'Not yet issued'}</strong><span>{shortDate(b.arrival)} — {shortDate(b.departure)}</span><span>{b.invoiceNo?'Allocated once at checkout':'Number allocated once at checkout'}</span></div>
       </div>
       <table className="mm-inv-table"><thead><tr><th>Description</th><th>Date</th><th className="number">Net</th><th className="number">CGST</th><th className="number">SGST</th></tr></thead>
-        <tbody>{b.lines.map(l=><tr key={l.id}><td data-label="Description">{l.label}</td><td data-label="Date">{shortDate(l.date)}</td><td className="number" data-label="Net">{money(l.amount)}</td>{(()=>{const g=gstLineSplit(l);return <><td className="number" data-label="CGST">{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></td><td className="number" data-label="SGST">{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></td></>;})()}</tr>)}</tbody></table>
+        <tbody>{b.lines.map(l=><tr key={l.id}><td data-label="Description">{l.label}</td><td data-label="Date">{shortDate(l.date)}</td><td className="number" data-label="Net">{money(l.amount)}</td>{(()=>{const g=gstLineSplit(l);return <><td className="number" data-label="CGST"><span>{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></span></td><td className="number" data-label="SGST"><span>{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></span></td></>;})()}</tr>)}</tbody></table>
       <div className="mm-inv-sum">
         <div><span>Net charges</span><strong className="number">{money(t.net)}</strong></div>
         <div><span>CGST</span><strong className="number">{money(gstSplitLines(b.lines).cgst)}</strong></div>
