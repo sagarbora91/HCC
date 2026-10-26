@@ -10,3 +10,4 @@ export * from './runtime';
 export * from './registry';
 export {core} from './core';
 export {reservations,bookingFromServer} from './reservations';
+export {loadServerReport,loadServerHistory,closingFromDailyView,todayFigures,fyMonths,REPORT_MAX_DAYS,SERVER_DETAIL_NOTE} from './reports';

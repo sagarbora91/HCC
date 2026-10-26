@@ -279,6 +279,8 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     /** Typed-client flow finished (see CommandMapper.track): remember ids, then reload that command's slices. */
     async flowDone(type:string,result:unknown){const m=mappers.get(type);if(!m)return;m.track?.(result,ids);generation++;await reload(m.reload);},
     mapped:(type:string)=>mappers.has(type),
+    /** Read-only server calls for screens that fetch outside the slice loaders (reports, W4 G3). Commands are refused. */
+    get api(){return apiFor(undefined);},
     get ids(){return ids;},
     /** Browser wiring: focus + visibilitychange → focusRefresh. Returns the detach function. */
     attachWindow(w:Pick<Window,'addEventListener'|'removeEventListener'>&{document?:Pick<Document,'addEventListener'|'removeEventListener'|'visibilityState'>}){

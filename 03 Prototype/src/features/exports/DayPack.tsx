@@ -6,7 +6,10 @@ import {useHcc} from '../../app/context';
 import {printDocument} from '../../app/native';
 import {dateLabel,shortDate} from '../../components/ui';
 
-export function DayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
+import {ServerDayPackSheet} from './ServerDayPack';
+/** Production: figures from the server's report; prototype: derived from the loaded records. */
+export function DayPackSheet(p:{date:string;onClose:()=>void}){return process.env.HCC_BUILD==='production'?<ServerDayPackSheet {...p}/>:<LocalDayPackSheet {...p}/>;}
+function LocalDayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
   const {s}=useHcc();
   const rec=s.closings?.[date]??(date===s.date&&!isDayClosed(s)?closingSummary(s):undefined);
   const pack=reportPack(s,date,date);
