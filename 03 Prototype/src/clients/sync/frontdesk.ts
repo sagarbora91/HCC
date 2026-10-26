@@ -1,7 +1,7 @@
 // Front desk area (W4-1): guests, registration, check-in / check-out, room move / extend / shorten, guest profile edits.
 // (Bookings, BOOK, CHANGE_DATES, CANCEL, CONFIRM live in sync/reservations.ts; customers 360 is derived from `bookings` + `guests`.)
 // Server: GET /guests (W4-1 list), POST /commands/RegisterGuest, CheckIn, CheckoutStay, MoveRoom, ExtendStay, ShortenStay,
-// SaveGuestProfile (W4-1).
+// EarlyDeparture, SaveGuestProfile (W4-1).
 //
 //   loaders   guests ← GET /guests (all pages, 500 each, at most 10 pages). Masked values stay masked ("Restricted", ••••1041); the full ID
 //             number is never loaded ("Show ID" calls RevealGuestId directly — see guestid.ts).
@@ -13,6 +13,8 @@
 //             MOVE       → Confirmed/Held booking: AmendReservation (room and/or departure, tariff kept);
 //                          In house: MoveRoom (step "room") then ExtendStay / ShortenStay (step "depart") with the stay version
 //                          returned by the first call.
+//             STAY_EARLY_DEPARTURE → EarlyDeparture (A02b-02): an in-house guest leaves today, the remaining nights are released and CheckoutStay
+//                          can follow. The reason is required (ShortenStay refuses today's date). Same stay version as MOVE.
 //             GUEST_SAVE → with a booking and `verified`: RegisterGuest; otherwise SaveGuestProfile (create / edit, versioned).
 //   Customers 360 has no command of its own in the prototype (read only); the server's CRM commands (tags, notes, consent, merge)
 //   have no prototype screen yet — see `unmapped`.
@@ -127,6 +129,19 @@ export const frontdesk:SyncArea={
       return b&&b.room===cmd.room&&b.departure===cmd.departure?'Nothing changed. Choose a different room or departure date.':undefined;
     },
     async send(c){await move(c);return {reload:['rooms','tasks']};},
+  },{
+    type:'STAY_EARLY_DEPARTURE',reload:['bookings'],
+    precheck:(cmd:Command,s:State)=>{
+      const b=s.bookings.find(x=>x.id===String(cmd.id));
+      if(b&&b.status!=='In house')return 'Only an in-house guest can leave early.';
+      return String(cmd.reason??'').trim().length<3?'Enter the reason the guest leaves early.':undefined;
+    },
+    async send(c){
+      const id=String(c.cmd.id),b=bookingOf(c,id);
+      if(b.status!=='In house')throw new HccClientError('VALIDATION','Only an in-house guest can leave early.');
+      await c.api.command('EarlyDeparture',{stayId:stayIdOf(c,id),reason:String(c.cmd.reason).trim()},{expectedVersion:versionOf(c,'stay',id,'Stay')});
+      return {reload:['rooms','tasks']};
+    },
   },{
     type:'GUEST_SAVE',reload:['guests','bookings'],
     precheck:cmd=>!cmd.guest||typeof cmd.guest!=='object'?'Enter the guest details.':maskedContact(cmd.guest as Record<string,unknown>)?MASK_MSG:undefined,

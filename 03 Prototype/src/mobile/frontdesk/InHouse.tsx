@@ -1,8 +1,8 @@
 // M08 In-house stays (phone): list cards → 'stay-detail' sheet override with header card (room, dates, balance),
-// room-segment timeline and an actions row. Move / extend uses the guests stream's 'stay-move' sheet (conflicts + alternatives).
+// room-segment timeline and an actions row. Move / extend / Leaves today use the guests stream's 'stay-move' sheet (conflicts + alternatives; STAY_EARLY_DEPARTURE).
 import React from 'react';
 import {bookingRef} from '../../domain/bookingRef';
-import {MoveRight,CalendarPlus,Printer,ArrowRight,UserRound} from 'lucide-react';
+import {MoveRight,CalendarPlus,Printer,ArrowRight,UserRound,LogOut} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,plural} from '../../services/mock';
 import {ListCard} from '../../app/mobile/components';
@@ -42,7 +42,8 @@ export function MfStayDetail({id}:{id?:string}){
     </div>
     {inHouse&&<div className="mf-actions-row">
       {permission('reservations')&&<><button className="btn" onClick={()=>open({type:'stay-move',id:b.id,room:'move'})}><MoveRight size={16}/>Move</button>
-        <button className="btn" onClick={()=>open({type:'stay-move',id:b.id,room:'dates'})}><CalendarPlus size={16}/>Extend</button></>}
+        <button className="btn" onClick={()=>open({type:'stay-move',id:b.id,room:'dates'})}><CalendarPlus size={16}/>Extend</button>
+        {b.departure>s.date&&<button className="btn" onClick={()=>open({type:'stay-move',id:b.id,room:'today'})}><LogOut size={16}/>Leaves today</button>}</>}
       {permission('billing')&&<button className="btn" onClick={()=>open({type:'charge',id:b.id})}>Add charge</button>}
       {permission('checkout')&&<button className="btn" onClick={()=>open({type:'checkout',id:b.id})}>Checkout</button>}
     </div>}
