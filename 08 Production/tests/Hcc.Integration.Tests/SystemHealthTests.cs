@@ -23,6 +23,7 @@ public sealed class SystemHealthTests
 {
     private const string OwnerLogin = "owner.health";
     private const string Password = "Maroon&Sand#Ledger26";
+    private const string OwnPassword = "Sand&Maroon#Ledger27";   // what each user chooses after the Owner's reset (A06-01)
     private const string Consumer = "health-probe";
     private const string EventType = "HealthProbe";
     private const string Secret = "duplicate key value is (98765 43210, Ravi Kumar)";
@@ -41,6 +42,8 @@ public sealed class SystemHealthTests
         var client = s.CookieClient();
         using var r = await Wire.PostAsync(client, "/auth/sign-in", new SignInRequest(login, Password: Password), null, Ct);
         await Wire.OkAsync<SignInResult>(r, login + " sign-in", Ct);
+        // A06-01 (Wave C2): a password the Owner set must be replaced at the first sign-in before anything else answers.
+        await Wire.CommandAsync<UserVersionResult>(client, "ChangeOwnCredential", new ChangeOwnCredentialRequest(Password, OwnPassword, null), Ct);
         return client;
     }
 
@@ -61,6 +64,7 @@ public sealed class SystemHealthTests
         using var mgr = s.DeviceClient(device.DeviceToken!);
         using (var r = await Wire.PostAsync(mgr, "/auth/sign-in", new SignInRequest("health.mgr", Pin: "618204", ReturnToken: true), null, Ct))
             HccServer.UseBearer(mgr, (await Wire.OkAsync<SignInResult>(r, "manager sign-in", Ct)).SessionToken!);
+        await Wire.CommandAsync<UserVersionResult>(mgr, "ChangeOwnCredential", new ChangeOwnCredentialRequest("618204", null, "739215"), Ct);   // A06-01: own PIN first
 
         // Nothing parked, nothing recorded yet.
         var empty = await Wire.GetAsync<SystemHealthView>(owner, "/admin/system-health", Ct);
