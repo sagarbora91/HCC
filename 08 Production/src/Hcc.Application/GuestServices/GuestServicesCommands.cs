@@ -57,7 +57,7 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
 
     private static HccException NotFound(string message) => new(HccErrorCode.NOT_FOUND, message);
 
-    // ── Authorization helpers (grants reused from other modules; see GuestServicePermissions) ──
+    // ── Authorization helpers (role matrix v2 ids; see GuestServicePermissions) ──
 
     private Task<bool> WideAsync(CommandContext c, string perm, CancellationToken ct) =>
         policy.HasAsync(c.PropertyId, c.PrincipalId, perm, AccessScopes.Property(c.PropertyId), ct);
@@ -65,46 +65,40 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
     private Task<bool> AnyScopeAsync(int propertyId, int principalId, string perm, CancellationToken ct) =>
         policy.HasAsync(propertyId, principalId, perm, AccessScopes.Any, ct);
 
-    /// <summary>Front office, or (for housekeeping / maintenance requests) a supervisor.</summary>
-    private async Task RequireSuperviseAsync(CommandContext c, string dept, CancellationToken ct)
-    {
-        if (await WideAsync(c, GuestServicePermissions.Manage, ct).ConfigureAwait(false)) return;
-        if (dept != GuestServiceVocab.FrontDesk && await WideAsync(c, GuestServicePermissions.Supervise, ct).ConfigureAwait(false)) return;
-        await policy.RequireAsync(c.PropertyId, c.PrincipalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
-    }
+    /// <summary>Assign and supervise: Owner, Manager, Housekeeping supervisor (PERM-GSV-005, DEC-079).</summary>
+    private Task RequireSuperviseAsync(CommandContext c, CancellationToken ct) =>
+        policy.RequireAsync(c.PropertyId, c.PrincipalId, GuestServicePermissions.Supervise, ct: ct);
 
-    /// <summary>Assignees: HK-003 for housekeeping, a maintenance profile (room.block.request without HK-003 or front-office rights) for maintenance, front office for the desk.</summary>
+    /// <summary>Assignees: housekeeping staff (HK-003) for housekeeping, a maintenance profile (ROOM-001 without HK-003 or desk rights) for maintenance, the desk for the desk.</summary>
     private async Task<bool> EligibleAsync(CommandContext c, int user, string dept, CancellationToken ct)
     {
         if (user <= 0) return false;
         switch (dept)
         {
             case GuestServiceVocab.Housekeeping:
-                return await AnyScopeAsync(c.PropertyId, user, GuestServicePermissions.HousekeepingWork, ct).ConfigureAwait(false);
+                return await AnyScopeAsync(c.PropertyId, user, GuestServicePermissions.HousekeepingStaff, ct).ConfigureAwait(false);
             case GuestServiceVocab.Maintenance:
-                return await AnyScopeAsync(c.PropertyId, user, GuestServicePermissions.MaintenanceWork, ct).ConfigureAwait(false)
-                    && !await AnyScopeAsync(c.PropertyId, user, GuestServicePermissions.HousekeepingWork, ct).ConfigureAwait(false)
+                return await AnyScopeAsync(c.PropertyId, user, GuestServicePermissions.MaintenanceStaff, ct).ConfigureAwait(false)
+                    && !await AnyScopeAsync(c.PropertyId, user, GuestServicePermissions.HousekeepingStaff, ct).ConfigureAwait(false)
                     && !await policy.HasAsync(c.PropertyId, user, GuestServicePermissions.Manage, AccessScopes.Property(c.PropertyId), ct).ConfigureAwait(false);
             default:
                 return await policy.HasAsync(c.PropertyId, user, GuestServicePermissions.Manage, AccessScopes.Property(c.PropertyId), ct).ConfigureAwait(false);
         }
     }
 
-    /// <summary>Front office may work any request; housekeeping / maintenance staff only the ones assigned to them (RBAC scope A).</summary>
+    /// <summary>The desk (PERM-GSV-002 property-wide) may work any request; housekeeping / maintenance staff only the ones assigned to them (RBAC scope A).</summary>
     private async Task RequireWorkAsync(CommandContext c, RequestRecord r, CancellationToken ct)
     {
         if (await WideAsync(c, GuestServicePermissions.Manage, ct).ConfigureAwait(false)) return;
-        var perm = r.Dept switch
+        var staff = r.Dept switch
         {
-            GuestServiceVocab.Housekeeping => GuestServicePermissions.HousekeepingWork,
-            GuestServiceVocab.Maintenance => GuestServicePermissions.MaintenanceWork,
+            GuestServiceVocab.Housekeeping => GuestServicePermissions.HousekeepingStaff,
+            GuestServiceVocab.Maintenance => GuestServicePermissions.MaintenanceStaff,
             _ => null,
         };
-        if (perm is not null)
-        {
-            if (await WideAsync(c, perm, ct).ConfigureAwait(false)) return;
-            if (r.AssigneeId == c.PrincipalId && await AnyScopeAsync(c.PropertyId, c.PrincipalId, perm, ct).ConfigureAwait(false)) return;
-        }
+        if (staff is not null && r.AssigneeId == c.PrincipalId
+            && await AnyScopeAsync(c.PropertyId, c.PrincipalId, GuestServicePermissions.Manage, ct).ConfigureAwait(false)
+            && await AnyScopeAsync(c.PropertyId, c.PrincipalId, staff, ct).ConfigureAwait(false)) return;
 
         throw new HccException(HccErrorCode.FORBIDDEN, "Only requests assigned to you are accessible.");
     }
@@ -184,11 +178,10 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
         {
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             var r = await LockRequestAsync(tx, ctx, req.RequestId, req.ExpectedVersion, ct2).ConfigureAwait(false);
-            await RequireSuperviseAsync(ctx, r.Dept, ct2).ConfigureAwait(false);
+            await RequireSuperviseAsync(ctx, ct2).ConfigureAwait(false);
             if (!GuestServiceRules.IsOpen(r.Status)) throw Invalid("This request is already finished.");
             var dept = string.IsNullOrWhiteSpace(req.Dept) ? r.Dept : req.Dept;
             if (!GuestServiceVocab.Depts.Contains(dept)) throw HccException.Validation("Choose a department.");
-            if (dept != r.Dept) await RequireSuperviseAsync(ctx, dept, ct2).ConfigureAwait(false);
             if (!await EligibleAsync(ctx, req.AssigneeId, dept, ct2).ConfigureAwait(false))
                 throw HccException.Validation($"Choose an enabled {dept.ToLowerInvariant()} team member.");
             var u = r with { Dept = dept, AssigneeId = req.AssigneeId, Status = r.Status == GuestServiceVocab.Open ? GuestServiceVocab.Assigned : r.Status };
@@ -247,7 +240,7 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
         {
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             var r = await LockRequestAsync(tx, ctx, req.RequestId, req.ExpectedVersion, ct2).ConfigureAwait(false);
-            await RequireSuperviseAsync(ctx, r.Dept, ct2).ConfigureAwait(false);
+            await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.Manage, ct: ct2).ConfigureAwait(false);
             if (!GuestServiceRules.IsOpen(r.Status)) throw Invalid("This request is already finished.");
             var reason = Text(req.Reason, 3, 200, "Enter the reason for cancelling.", "Keep the reason under 200 characters.");
             var u = r with { Status = GuestServiceVocab.Cancelled, CancelReason = reason };
@@ -273,7 +266,7 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
     private async Task RequireOwnerAsync(CommandContext c, int owner, CancellationToken ct)
     {
         if (owner <= 0 || !await policy.HasAsync(c.PropertyId, owner, GuestServicePermissions.Manage, AccessScopes.Property(c.PropertyId), ct).ConfigureAwait(false))
-            throw HccException.Validation("The owner must be an enabled front-office user.");
+            throw HccException.Validation("The owner must be an enabled front-office or supervisor user.");
     }
 
     public async Task<CommandResult<ComplaintResult>> LogComplaintAsync(CommandContext ctx, LogComplaintRequest req, CancellationToken ct = default)
@@ -425,6 +418,8 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        // A recovery discount is money: only roles that see recovery amounts offer one (PERM-GSV-004: Owner, Manager, Reception; DEC-079).
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.Money, ct: ct).ConfigureAwait(false);
         if (req.AmountPaise is < 1 or > 10_000_000_000) throw HccException.Validation("Enter the discount amount.");
         var extra = (req.Reason ?? string.Empty).Trim();
         if (extra.Length > 120) throw HccException.Validation("Keep the reason under 120 characters.");
@@ -519,9 +514,8 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         var wide = await WideAsync(ctx, GuestServicePermissions.Manage, ct).ConfigureAwait(false);
-        if (!wide && !await AnyScopeAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.HousekeepingWork, ct).ConfigureAwait(false)
-            && !await AnyScopeAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.MaintenanceWork, ct).ConfigureAwait(false))
-            await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        // Housekeeping / maintenance staff (assigned scope) log what they find in their own rooms.
+        if (!wide) await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.Manage, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx, req, async (tx, ct2) =>
         {
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed

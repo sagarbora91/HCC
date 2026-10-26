@@ -290,7 +290,9 @@ public class DocumentsSqlTests : IAsyncLifetime
         await _w.ScalarAsync("UPDATE inv.property SET business_date = '2027-01-21' WHERE property_id = " + _w.PropertyId); // day 89
         Assert.Equal(0, (await _w.Svc.PurgeAsync(_w.Ctx("OWN"), new PurgeIdCapturesRequest("retention run"), Ct)).Value.Purged);
         await _w.ScalarAsync("UPDATE inv.property SET business_date = '2027-01-22' WHERE property_id = " + _w.PropertyId); // day 90
-        var p = (await _w.Svc.PurgeAsync(_w.Ctx("MGR"), new PurgeIdCapturesRequest("retention run"), Ct)).Value;
+        // DEC-079 (v2 DOC-005): retention / archive is the Owner's; the Manager no longer runs the purge.
+        await Fails(HccErrorCode.FORBIDDEN, () => _w.Svc.PurgeAsync(_w.Ctx("MGR"), new PurgeIdCapturesRequest("retention run"), Ct));
+        var p = (await _w.Svc.PurgeAsync(_w.Ctx("OWN"), new PurgeIdCapturesRequest("retention run"), Ct)).Value;
         Assert.Equal((1, 90, new DateOnly(2026, 10, 24)), (p.Purged, p.RetentionDays, p.CutoffDate));
         Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture_image;"));
         Assert.Equal(1, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture WHERE status = 'Purged' AND ocr_sealed IS NULL AND purged_utc IS NOT NULL;"));

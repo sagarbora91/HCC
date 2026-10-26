@@ -4,18 +4,22 @@ using Hcc.Domain.GuestServices;
 namespace Hcc.Application.GuestServices;
 
 /// <summary>
-/// PERM ids used by guest services. The RBAC matrix has no guest-services rows, so the module reuses existing ids (no new
-/// permissions or grants, which keeps P1's matrix-coverage test exact): front-office management = guest.edit, department
-/// supervision = hk.assign, working an assigned request = hk.task.work (Housekeeping) or room.block.request (Maintenance, as
-/// in P3's assignee rule), approvals and settings = approval.decide, reports = report.operations.
+/// PERM ids of guest services: the module's own set from role matrix v2 (DEC-079, migration 3700) instead of the borrowed guest-register,
+/// housekeeping, room and approval ids. <see cref="Manage"/> held property-wide = the desk that logs and works every request (Owner, Manager,
+/// Reception, Housekeeping supervisor); held at assigned scope = housekeeping / maintenance staff working their own requests.
+/// <see cref="HousekeepingStaff"/> and <see cref="MaintenanceStaff"/> are core ids used only to tell the two departments apart when a request
+/// is assigned (not access grants). Recovery amounts are money (<see cref="Money"/>): Supervisor, Housekeeper and Maintenance never see them.
+/// Reports: the module view property-wide or the operations-report permission (PERM-RPT-001, its own meaning).
 /// </summary>
 public static class GuestServicePermissions
 {
-    public const string Manage = "PERM-GST-002";
-    public const string Supervise = "PERM-HK-002";
-    public const string HousekeepingWork = "PERM-HK-003";
-    public const string MaintenanceWork = "PERM-ROOM-001";
-    public const string Approve = "PERM-APR-001";
+    public const string View = "PERM-GSV-001";
+    public const string Manage = "PERM-GSV-002";
+    public const string Approve = "PERM-GSV-003";
+    public const string Money = "PERM-GSV-004";
+    public const string Supervise = "PERM-GSV-005";
+    public const string HousekeepingStaff = "PERM-HK-003";
+    public const string MaintenanceStaff = "PERM-ROOM-001";
     public const string Report = "PERM-RPT-001";
 }
 

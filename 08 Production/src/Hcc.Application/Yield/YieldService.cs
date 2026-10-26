@@ -262,8 +262,7 @@ public sealed class YieldService(IYieldStore store, IRatePublicationPort publica
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(r);
         await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, YieldPermissions.View, ct: ct).ConfigureAwait(false);
-        // approval.decide is a limited grant for the Manager (Rs 1,000): proposing a tariff publish moves no money, so the amount checked is 0.
-        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, YieldPermissions.Propose, amountPaise: 0, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(ctx.PropertyId, ctx.PrincipalId, YieldPermissions.Propose, ct: ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx, r, async (tx, c) =>
         {
             await store.EnsureSeededAsync(tx, ctx.PropertyId, true, c).ConfigureAwait(false);

@@ -20,20 +20,21 @@ public static class Users
 }
 
 /// <summary>
-/// Test stand-in for P1's policy with the grants Linen &amp; stock needs (RBAC v1 + DEC-063): PERM-HK-003 (Housekeeper/Housekeeper2 assigned scope,
-/// Supervisor/Manager/Owner property-wide), PERM-HK-004 (Supervisor/Manager/Owner), PERM-RPT-002 (Manager/Owner/Accountant; Cashier own shift only).
+/// Test stand-in for P1's policy with the Linen &amp; stock grants of role matrix v2 (DEC-079, migration 3700): STK-001 view (Owner, Manager,
+/// Supervisor, Accountant; Housekeepers assigned scope), STK-002 work (Owner, Manager, Supervisor; Housekeepers assigned scope), STK-003 approve and
+/// STK-005 configure (Owner, Manager, Supervisor), STK-004 money (Owner, Manager, Accountant; never the Cashier, D3).
 /// </summary>
 public sealed class FakeAccessPolicy : IAccessPolicy
 {
     private readonly Dictionary<int, Dictionary<string, char>> _grants = new()
     {
-        [Users.Owner] = new() { ["PERM-HK-003"] = 'P', ["PERM-HK-004"] = 'P', ["PERM-RPT-002"] = 'P' },
-        [Users.Manager] = new() { ["PERM-HK-003"] = 'P', ["PERM-HK-004"] = 'P', ["PERM-RPT-002"] = 'P' },
-        [Users.Supervisor] = new() { ["PERM-HK-003"] = 'P', ["PERM-HK-004"] = 'P' },
-        [Users.Housekeeper] = new() { ["PERM-HK-003"] = 'A' },
-        [Users.Housekeeper2] = new() { ["PERM-HK-003"] = 'A' },
-        [Users.Accountant] = new() { ["PERM-RPT-002"] = 'P' },
-        [Users.Cashier] = new() { ["PERM-RPT-002"] = 'S' },
+        [Users.Owner] = new() { ["PERM-STK-001"] = 'P', ["PERM-STK-002"] = 'P', ["PERM-STK-003"] = 'P', ["PERM-STK-004"] = 'P', ["PERM-STK-005"] = 'P' },
+        [Users.Manager] = new() { ["PERM-STK-001"] = 'P', ["PERM-STK-002"] = 'P', ["PERM-STK-003"] = 'P', ["PERM-STK-004"] = 'P', ["PERM-STK-005"] = 'P' },
+        [Users.Supervisor] = new() { ["PERM-STK-001"] = 'P', ["PERM-STK-002"] = 'P', ["PERM-STK-003"] = 'P', ["PERM-STK-005"] = 'P' },
+        [Users.Housekeeper] = new() { ["PERM-STK-001"] = 'A', ["PERM-STK-002"] = 'A' },
+        [Users.Housekeeper2] = new() { ["PERM-STK-001"] = 'A', ["PERM-STK-002"] = 'A' },
+        [Users.Accountant] = new() { ["PERM-STK-001"] = 'P', ["PERM-STK-004"] = 'P' },
+        [Users.Cashier] = new(),
         [Users.Reception] = new(),
         [Users.Maint] = new(),
         [Users.TechAdmin] = new(),

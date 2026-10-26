@@ -12,7 +12,8 @@ export const registration:FeatureRegistration={
   pages:{'staff':HrDesk,'my-hr':()=><MyHr/>},
   nav:[
     {group:'ADMINISTRATION',item:{id:'staff',label:'Staff & payroll',icon:IdCard,p:'reports'}},
-    {group:'OPERATIONS',item:{id:'my-hr',label:'My shifts & pay',icon:CalendarClock,p:['housekeeping','reservations','payments','reports','admin']}},
+    // 'billing' adds the Restaurant role (DEC-079 D1, POS operate only): every other billing holder already reaches it through another permission.
+    {group:'OPERATIONS',item:{id:'my-hr',label:'My shifts & pay',icon:CalendarClock,p:['housekeeping','reservations','payments','reports','admin','billing']}},
   ],
   modals:{'hr-staff':HRStaffModal,'hr-roster':HRRosterModal,'hr-att':HRAttModal,'hr-leave':HRLeaveModal,'hr-leave-decide':HRLeaveDecideModal,
     'hr-advance':HRAdvanceModal,'hr-rates':HRRatesModal,'hr-payslip':HRPayslipModal,'hr-leave-policy':HRLeavePolicyModal,'hr-unlock':HRUnlockModal,'hr-fnf':HRFnfModal,

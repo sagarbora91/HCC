@@ -56,7 +56,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        // No configuration gate: a Manager decides requests whose approver is Manager (from Approvals). DecideBlock is the gate.
+        // No configuration gate: DecideBlock is the gate (the Owner decides every request, never their own; DEC-079 leaves the Manager none).
         var authority = await _authority.ResolveAsync(ctx.PropertyId, ctx.PrincipalId, ct).ConfigureAwait(false);
         var approve = await _authority.HoldsApproveAsync(ctx.PropertyId, ctx.PrincipalId, ct).ConfigureAwait(false);
         if (authority == ConfigAuthority.None && !approve)
@@ -204,7 +204,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
 
     // ───────────── shared rules ─────────────
 
-    /// <summary>Hub gate: PERM-ADM-003 at any mode (Owner A, Tech admin V); DEC-058 rights for the rest of the command.</summary>
+    /// <summary>Hub gate: PERM-CFG-001 (Owner A, Tech admin V); DEC-058 rights (CFG-002 non-money, CFG-003 money) for the rest of the command.</summary>
     private async Task<ConfigAuthority> GateAsync(CommandContext ctx, CancellationToken ct)
     {
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, ConfigurationPermissions.ConfigurationView, null, null, ct).ConfigureAwait(false);

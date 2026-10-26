@@ -45,7 +45,7 @@ public sealed class FakeAccessPolicy(IEnumerable<IAccessScopeResolver> resolvers
     {
         [Who.Owner] = new()
         {
-            ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-ADM-003"] = new('P'),
+            ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-ADM-003"] = new('P'), ["PERM-CFG-003"] = new('P'),
         },
         [Who.Manager] = new() { ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P', 500_000), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P') },
         [Who.Reception] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P') },

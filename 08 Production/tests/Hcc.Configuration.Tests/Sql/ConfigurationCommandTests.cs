@@ -71,10 +71,10 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
         Assert.Equal(("Pending", "Owner", "Master configuration · PIN lock on shared devices · Off → On"), (a.Status, a.Approver, a.Summary));
         Assert.Equal("INVALID_TRANSITION", await Expect.Code(() => Set(h, h.TechAdmin, "sec.pinLock", true)));
         Assert.Matches("You raised this request", await Expect.Message(() => db.DecideAsync(h, h.TechAdmin, a.RequestId, true)));
-        Assert.Matches("Only the Owner", await Expect.Message(() => db.DecideAsync(h, h.Manager, a.RequestId, true)));
+        // DEC-079 (role matrix v2, CFG rows): the Manager has no configuration rights, so neither decides nor lists setting requests.
+        Assert.Equal("FORBIDDEN", await Expect.Code(() => db.DecideAsync(h, h.Manager, a.RequestId, true)));
         Assert.Equal("FORBIDDEN", await Expect.Code(() => db.DecideAsync(h, h.Reception, a.RequestId, true)));
-        var managerView = await db.Queries.RequestsAsync(h.PropertyId, h.Manager);
-        Assert.Empty(managerView.Items); // a Manager sees only Manager-approver requests
+        Assert.Equal("FORBIDDEN", await Expect.Code(() => db.Queries.RequestsAsync(h.PropertyId, h.Manager)));
         Assert.Equal("Executed", (await db.DecideAsync(h, h.Owner, a.RequestId, true)).Status);
         Assert.Equal(ConfigValue.Of(true), await db.ValueAsync(h, "sec.pinLock"));
         Assert.Equal("Executed", (await db.RequestAsync(h, a.RequestId)).Status);
@@ -85,22 +85,24 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
     }
 
     [Fact]
-    public async Task Manager_approver_request_Manager_decides_rejection_keeps_value_stale_and_expired_refused()
+    public async Task Manager_approver_request_is_decided_by_the_Owner_rejection_keeps_value_stale_and_expired_refused()
     {
-        // Approve.
+        // Approve. DEC-079: a request naming the Manager as approver is decided by the Owner (the Manager holds no PERM-CFG-*; A05-05).
         var h = await db.NewHotelAsync();
         var r = await Set(h, h.TechAdmin, "inspection", false);
         Assert.Equal("Manager", (await db.RequestAsync(h, r.RequestId!.Value)).Approver);
-        Assert.Null((await db.Queries.RequestsAsync(h.PropertyId, h.Manager)).Items.Single().DecideBlock);
+        Assert.Null((await db.Queries.RequestsAsync(h.PropertyId, h.Owner)).Items.Single().DecideBlock);
+        Assert.Equal("FORBIDDEN", await Expect.Code(() => db.Queries.RequestsAsync(h.PropertyId, h.Manager)));
         Assert.Equal("FORBIDDEN", await Expect.Code(() => db.Queries.RequestsAsync(h.PropertyId, h.Reception)));
         Assert.Equal("FORBIDDEN", await Expect.Code(() => db.DecideAsync(h, h.Accountant, r.RequestId.Value, true)));
-        await db.DecideAsync(h, h.Manager, r.RequestId.Value, true);
+        Assert.Equal("FORBIDDEN", await Expect.Code(() => db.DecideAsync(h, h.Manager, r.RequestId.Value, true)));
+        await db.DecideAsync(h, h.Owner, r.RequestId.Value, true);
         Assert.Equal(ConfigValue.Of(false), await db.ValueAsync(h, "inspection"));
 
         // Reject keeps the value.
         var h2 = await db.NewHotelAsync();
         var r2 = await Set(h2, h2.TechAdmin, "inspection", false);
-        Assert.Equal("Rejected", (await db.DecideAsync(h2, h2.Manager, r2.RequestId!.Value, false, "Keep inspections")).Status);
+        Assert.Equal("Rejected", (await db.DecideAsync(h2, h2.Owner, r2.RequestId!.Value, false, "Keep inspections")).Status);
         Assert.Equal(ConfigValue.Of(true), await db.ValueAsync(h2, "inspection"));
         Assert.Equal(("Rejected", "Keep inspections"), ((await db.RequestAsync(h2, r2.RequestId.Value)).Status, (await db.RequestAsync(h2, r2.RequestId.Value)).DecisionReason));
 
@@ -108,7 +110,7 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
         var h3 = await db.NewHotelAsync();
         var r3 = await Set(h3, h3.TechAdmin, "inspection", false);
         await Set(h3, h3.Owner, "inspection", false);
-        Assert.Equal("STALE_VERSION", await Expect.Code(() => db.DecideAsync(h3, h3.Manager, r3.RequestId!.Value, true)));
+        Assert.Equal("STALE_VERSION", await Expect.Code(() => db.DecideAsync(h3, h3.Owner, r3.RequestId!.Value, true)));
 
         // Expired after approvalExpiryHours (24 h).
         var h4 = await db.NewHotelAsync();
@@ -117,8 +119,8 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
         db.Clock.Now = start.AddHours(25);
         try
         {
-            Assert.Equal("INVALID_TRANSITION", await Expect.Code(() => db.DecideAsync(h4, h4.Manager, r4.RequestId!.Value, true)));
-            Assert.Equal("Rejected", (await db.DecideAsync(h4, h4.Manager, r4.RequestId!.Value, false)).Status);
+            Assert.Equal("INVALID_TRANSITION", await Expect.Code(() => db.DecideAsync(h4, h4.Owner, r4.RequestId!.Value, true)));
+            Assert.Equal("Rejected", (await db.DecideAsync(h4, h4.Owner, r4.RequestId!.Value, false)).Status);
         }
         finally
         {

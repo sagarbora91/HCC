@@ -5,22 +5,28 @@ using Hcc.Domain.Money;
 namespace Hcc.Application.Pos;
 
 /// <summary>
-/// PERM ids used by the POS. The RBAC matrix has no POS rows; the prototype's coarse model maps onto existing ids with the same roles
-/// (<c>billing</c> → PERM-FOL-002, <c>payments</c> → PERM-PAY-001, <c>approve</c> → PERM-APR-001), so no seed change is needed (DEC-063).
+/// PERM ids of the POS: the module's own set from role matrix v2 (DEC-079, migration 3700) instead of the borrowed billing, payment,
+/// approval and configuration ids. The Restaurant role (RST, D1) holds View and Operate and may only request a void (R on VoidDecide).
 /// </summary>
 public static class PosPermissions
 {
-    /// <summary>Open checks, items, KOTs, kitchen status, 86 an item, post a check to a room, void within the limit (prototype <c>billing</c>).</summary>
-    public const string Operate = "PERM-FOL-002";
+    /// <summary>See checks, menu, kitchen board, outlets, in-house targets, till status and pending voids (PERM-POS-001, view).</summary>
+    public const string View = "PERM-POS-001";
 
-    /// <summary>Settle at the outlet (Cash/UPI/Card) and void a settled outlet bill (prototype <c>payments</c>); own-shift scope for REC/CSH.</summary>
-    public const string Settle = "PERM-PAY-001";
+    /// <summary>Open checks, items, KOTs, kitchen status, 86 an item, void within the limit (larger voids become a request).</summary>
+    public const string Operate = "PERM-POS-002";
 
-    /// <summary>Decide a void above the limit (prototype <c>approve</c>); the Manager's limit applies to the void value.</summary>
-    public const string VoidDecide = "PERM-APR-001";
+    /// <summary>Decide a void above the limit; the Manager's limit applies to the void value. Reception, Cashier and Restaurant: request only.</summary>
+    public const string VoidDecide = "PERM-POS-003";
 
-    /// <summary>Outlet and menu setup (price, outlets, new items).</summary>
-    public const string Setup = "PERM-ADM-003";
+    /// <summary>Reveal money: the outlet day sales summary and the closed-bills list (Cashier own shift, DEC-052 shared till).</summary>
+    public const string Money = "PERM-POS-004";
+
+    /// <summary>Settle at the outlet (Cash/UPI/Card) or charge to a room folio, and void a settled outlet bill; own-shift scope for REC/CSH cash.</summary>
+    public const string Settle = "PERM-POS-005";
+
+    /// <summary>Outlet and menu setup (price, outlets, new items): Owner; a Manager's menu change becomes a request the Owner decides (D5).</summary>
+    public const string Setup = "PERM-POS-006";
 
     /// <summary>Shift scope kind for the own-shift grant (same as billing).</summary>
     public const string ShiftScope = "shift";
@@ -103,6 +109,13 @@ public sealed record NewReceipt(long BillId, long OrderId, int OutletId, string 
 public sealed record VoidRequestRow(long VoidId, int PropertyId, long OrderId, string Scope, long? LineId, Paise Amount, string Reason, string Status,
     int OrderRev, int RequestedBy, DateTime ExpiresUtc, string Version);
 
+/// <summary>A Manager's menu change waiting for the Owner (D5, migration 3701). <c>ItemId</c> null = a new item; <c>ItemVersion</c> = the item's version when asked.</summary>
+public sealed record MenuRequestRow(long RequestId, int PropertyId, int? ItemId, string Code, string Name, string Category, Paise Price, bool Veg,
+    IReadOnlyList<int> OutletIds, Paise? PriceBefore, byte[]? ItemVersion, string? Reason, string Status, int RequestedBy, DateTime RequestedUtc, string Version);
+
+public sealed record NewMenuRequest(int PropertyId, int? ItemId, string Code, string Name, string Category, Paise Price, bool Veg, IReadOnlyList<int> OutletIds,
+    Paise? PriceBefore, byte[]? ItemVersion, string? Reason, int RequestedBy, DateTime RequestedUtc);
+
 public sealed record NewVoidRequest(int PropertyId, long OrderId, string Scope, long? LineId, Paise Amount, string Reason, int OrderRev, int RequestedBy,
     DateTime RequestedUtc, DateTime ExpiresUtc);
 
@@ -136,6 +149,16 @@ public interface IPosStore
         bool veg, IReadOnlyList<int> outletIds, CancellationToken ct);
 
     Task<string> SetAvailabilityAsync(ICommandTransaction tx, int itemId, bool available, CancellationToken ct);
+
+    // menu change requests (D5)
+    Task<bool> PendingMenuRequestExistsAsync(ICommandTransaction tx, int propertyId, string code, int? itemId, CancellationToken ct);
+
+    Task<long> InsertMenuRequestAsync(ICommandTransaction tx, NewMenuRequest request, CancellationToken ct);
+
+    /// <summary>The request under UPDLOCK; null when unknown at the property.</summary>
+    Task<MenuRequestRow?> LockMenuRequestAsync(ICommandTransaction tx, int propertyId, long requestId, CancellationToken ct);
+
+    Task DecideMenuRequestAsync(ICommandTransaction tx, long requestId, string status, int decidedBy, DateTime utc, string? reason, CancellationToken ct);
 
     // in-house guests (read from the stays tables)
     Task<StayRoomRow?> InHouseByRoomAsync(ICommandTransaction tx, int propertyId, string roomNo, CancellationToken ct);
@@ -218,6 +241,9 @@ public interface IPosStore
 
     /// <summary>Checks that left the open state (settled or void) with a bill on, or opened on, <paramref name="date"/>, newest first (at most <paramref name="take"/>).</summary>
     Task<IReadOnlyList<long>> ClosedCheckIdsAsync(int propertyId, DateOnly date, int take, CancellationToken ct);
+
+    /// <summary>Pending menu change requests (D5), oldest first.</summary>
+    Task<IReadOnlyList<MenuRequestView>> PendingMenuRequestsAsync(int propertyId, CancellationToken ct);
 
     /// <summary>Pending void requests, oldest first.</summary>
     Task<IReadOnlyList<VoidRequestView>> PendingVoidsAsync(int propertyId, CancellationToken ct);

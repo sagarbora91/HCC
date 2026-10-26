@@ -62,7 +62,7 @@ public sealed class FakeAccessPolicy : IAccessPolicy
     private static Dictionary<string, long> All(long limit) => new[]
     {
         "PERM-FOL-001", "PERM-FOL-002", "PERM-FOL-003", "PERM-FOL-005", "PERM-PAY-001", "PERM-PAY-002", "PERM-PAY-003", "PERM-PAY-004", "PERM-PAY-005",
-        "PERM-SHF-001", "PERM-SHF-002", "PERM-CLS-002", "PERM-APR-001", "PERM-STY-003", "PERM-RPT-002", "PERM-ADM-003",
+        "PERM-SHF-001", "PERM-SHF-002", "PERM-CLS-002", "PERM-APR-001", "PERM-STY-003", "PERM-RPT-002", "PERM-ADM-003", "PERM-CFG-003",
     }.ToDictionary(p => p, _ => limit);
 
     private static Dictionary<string, long> Cashier() => new()

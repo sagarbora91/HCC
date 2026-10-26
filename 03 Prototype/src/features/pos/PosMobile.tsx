@@ -1,7 +1,7 @@
 // Module 23 · Restaurant POS & room service — phone page: spot list → menu grid with big tap targets → cart sheet.
 import React,{useState} from 'react';
 import {ArrowLeft,ShoppingCart,Printer} from 'lucide-react';
-import {money,posSlice,posOpenOrderAt,posOrderTotals,posDaySummary,posKitchen,posOpenOrders,posUnsent} from '../../services/mock';
+import {money,posSlice,posOpenOrderAt,posOrderTotals,posDaySummary,posKitchen,posOpenOrders,posUnsent,rbacPosSeesDaySales} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ChipFilter,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {Empty} from '../../components/ui';
@@ -11,13 +11,15 @@ import {PosAvailability} from './PosPage';
 
 type View='orders'|'kitchen'|'summary';
 export function PosMobile(){
-  const {s}=useHcc();const p=posSlice(s);
+  const {s,uid}=useHcc();const p=posSlice(s);
   const [view,setView]=useState<View>('orders');
   if(!p.outlets.length)return <Empty title="No outlets configured" body="Load a demo scenario to get the fictional menu."/>;
   const kitchenOpen=posKitchen(s).filter(x=>x.kot.status!=='Served').length;
+  const sales=rbacPosSeesDaySales(s,uid); // DEC-079 D1: the Restaurant role has orders and kitchen, no day sales
   return <div className="pos-m">
-    <ChipFilter<View> label="POS view" value={view} onChange={setView} options={[{id:'orders',label:'Orders',count:posOpenOrders(s).length},{id:'kitchen',label:'Kitchen',count:kitchenOpen},{id:'summary',label:'Summary'}]}/>
-    {view==='orders'&&<MobileOrders/>}{view==='kitchen'&&<MobileKitchen/>}{view==='summary'&&<MobileSummary/>}
+    <ChipFilter<View> label="POS view" value={view} onChange={setView} options={[{id:'orders',label:'Orders',count:posOpenOrders(s).length},{id:'kitchen',label:'Kitchen',count:kitchenOpen},
+      ...(sales?[{id:'summary' as View,label:'Summary'}]:[])]}/>
+    {view==='orders'&&<MobileOrders/>}{view==='kitchen'&&<MobileKitchen/>}{view==='summary'&&sales&&<MobileSummary/>}
   </div>;
 }
 

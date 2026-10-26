@@ -1,7 +1,7 @@
 // Module 23 · POS shared UI parts (desktop page, phone page and sheets).
 import React,{useState} from 'react';
 import {Send,Minus,Plus,Ban,Printer,Wallet,ShieldCheck,Check,X,Leaf,Drumstick} from 'lucide-react';
-import {money,posOrderTotals,posLineStatus,posLineValue,posUnsent,posActiveLines,posSpot,posMenuFor,posCategories,posOpenOrderAt,posOutlet,posInHouse,
+import {money,rbacPosCanSettle,posOrderTotals,posLineStatus,posLineValue,posUnsent,posActiveLines,posSpot,posMenuFor,posCategories,posOpenOrderAt,posOutlet,posInHouse,
   posPendingVoid,posSlice,POS_VOID_LIMIT} from '../../services/mock';
 import type {POSOrder,POSKotStatus} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -77,7 +77,7 @@ export function PosCheck({o,compact}:{o:POSOrder;compact?:boolean}){
     {o.status==='Void'&&<p className="pos-settled">Voided · {o.voidReason} · {o.voidedAt&&clockTime(o.voidedAt)}</p>}
     <div className="pos-actions">
       {isOpen&&permission('billing')&&<button className="btn primary" disabled={busy||!unsent.length||lockedVoid} onClick={()=>run({type:'POS_KOT_SEND',id:o.id},'KOT sent to the kitchen')}><Send size={15}/> Send KOT{unsent.length?` (${unsent.reduce((a,l)=>a+l.qty,0)})`:''}</button>}
-      {isOpen&&(permission('payments')||permission('billing'))&&<button className="btn primary" disabled={busy||!posActiveLines(o).length||!!unsent.length||lockedVoid} onClick={()=>open({type:'pos-settle',id:o.id})}><Wallet size={15}/> Settle</button>}
+      {isOpen&&rbacPosCanSettle(s,uid)&&<button className="btn primary" disabled={busy||!posActiveLines(o).length||!!unsent.length||lockedVoid} onClick={()=>open({type:'pos-settle',id:o.id})}><Wallet size={15}/> Settle</button>}
       {o.kots.length>0&&<button className="btn" onClick={()=>open({type:'pos-print',id:o.id,room:o.kots.slice(-1)[0]!.id})}><Printer size={15}/> Print KOT</button>}
       {posActiveLines(o).length>0||o.settlement?<button className="btn" onClick={()=>open({type:'pos-print',id:o.id,room:'bill'})}><Printer size={15}/> {o.settlement?'Print bill':'Print pro-forma'}</button>:null}
       {permission('billing')&&!lockedVoid&&(isOpen&&o.lines.length>0||o.status==='Settled'&&o.settlement?.mode==='outlet'&&o.settlement.date===s.date&&permission('payments'))&&

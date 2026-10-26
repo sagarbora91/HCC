@@ -23,7 +23,8 @@ public static class BillingPermissions
     public const string ApprovalDecide = "PERM-APR-001";
     public const string Checkout = "PERM-STY-003";
     public const string FinanceReport = "PERM-RPT-002";
-    public const string Configuration = "PERM-ADM-003";
+    /// <summary>Tills and other money setup: Owner only (PERM-CFG-003, role matrix v2; before: PERM-ADM-003 'A').</summary>
+    public const string Configuration = "PERM-CFG-003";
 
     /// <summary>Scope kind for "own cash shift" grants (RBAC legend S).</summary>
     public const string ShiftScope = "shift";

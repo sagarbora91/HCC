@@ -7,7 +7,8 @@ import {MsgComposeModal,MsgMessageModal,MsgTemplateModal,MsgConsentModal,MsgDocM
 export const registration:FeatureRegistration={
   pages:{'messages':MsgMessagesPage,'documents':MsgDocumentsPage},
   nav:[
-    {group:'FRONT DESK',item:{id:'messages',label:'Messages',icon:MessageSquare,p:'reservations'}},
+    // 'admin' = the Tech admin's template editing (DEC-079 D4, production only: navRoleOk keeps the demo Tech admin off this page).
+    {group:'FRONT DESK',item:{id:'messages',label:'Messages',icon:MessageSquare,p:['reservations','admin']}},
     {group:'FRONT DESK',item:{id:'documents',label:'Document capture',icon:ScanLine,p:'checkin'}}
   ],
   modals:{

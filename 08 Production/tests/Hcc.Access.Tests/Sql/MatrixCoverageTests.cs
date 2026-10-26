@@ -157,7 +157,7 @@ public partial class MatrixCoverageTests(AccessDatabase db) : IClassFixture<Acce
     public async Task Credential_kind_per_role_is_DEC062_and_money_roles_are_owner_only_DEC058()
     {
         var roles = await db.RowsAsync("SELECT role_code, credential_kind, owner_only_assign FROM plat.role ORDER BY sort_order;");
-        Assert.Equal(Roles, roles.Select(r => (string)r[0]).ToArray());
+        Assert.Equal([.. Roles, "RST"], roles.Select(r => (string)r[0]).ToArray());   // role matrix v2 D1 adds the Restaurant role (PIN, migration 3700)
         Assert.Equal(["OWN", "ACC", "TAD"], roles.Where(r => (string)r[1] == "PASSWORD").Select(r => (string)r[0]).ToArray());
         // owner_only_assign = the role holds a money permission or user/role administration.
         var expectedOwnerOnly = await db.RowsAsync("""

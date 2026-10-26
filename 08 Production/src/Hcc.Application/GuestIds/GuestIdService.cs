@@ -15,8 +15,8 @@ public static class GuestIdPermissions
     /// <summary>guest.idDetails.view (field) — OWN, MGR, REC (seed 0101). Required for the audited reveal.</summary>
     public const string IdView = "PERM-GST-003";
 
-    /// <summary>Key rotation is a configuration change: Owner only (PERM-ADM-003 'A').</summary>
-    public const string Rekey = "PERM-ADM-003";
+    /// <summary>Key rotation is an Owner-only configuration change (PERM-CFG-003, role matrix v2; before: PERM-ADM-003 'A').</summary>
+    public const string Rekey = "PERM-CFG-003";
 }
 
 /// <summary>Persistence of sealed numbers (<c>gst.guest_id_secret</c>, migration 0601).</summary>

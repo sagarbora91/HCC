@@ -4,7 +4,7 @@ import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Printer,Wallet,Ban,ShieldCheck,BedDouble} from 'lucide-react';
 import type {ModalProps} from '../../app/registry';
-import {money,posOrder,posOrderTotals,posOutlet,posInHouse,posSpot,posActiveLines,posLineValue,posKotLabel,posDaySummary,posOpenOrders,
+import {money,rbacPosCanSettle,posOrder,posOrderTotals,posOutlet,posInHouse,posSpot,posActiveLines,posLineValue,posKotLabel,posDaySummary,posOpenOrders,
   POS_VOID_LIMIT,POS_TENDERS} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,dateLabel,clockTime} from '../../components/ui';
@@ -26,12 +26,14 @@ export function PosOpenModal({id,room}:ModalProps){
 }
 
 export function PosSettleModal({id}:ModalProps){
-  const {s,run,busy,closeModal,permission}=useHcc();const o=posOrder(s,id);
-  const canOutlet=permission('payments'),canFolio=permission('billing');
+  const {s,uid,run,busy,closeModal,permission}=useHcc();const o=posOrder(s,id);
+  // DEC-079 D1: the Restaurant role never settles (the server refuses it too); the desk settles.
+  const settle=rbacPosCanSettle(s,uid),canOutlet=settle&&permission('payments'),canFolio=settle&&permission('billing');
   const inHouse=posInHouse(s);
   const [mode,setMode]=useState<string>(o?.booking&&canFolio?'folio':canOutlet?'Cash':'folio');
   const [ref,setRef]=useState('');const [tendered,setTendered]=useState('');const [booking,setBooking]=useState(o?.booking||inHouse[0]?.id||'');
   if(!o)return <Empty title="This record is unavailable"/>;
+  if(!settle)return <Empty title="Reception or the Cashier settles this bill" body="Your role takes orders and sends them to the kitchen."/>;
   const t=posOrderTotals(s,o),paid=Math.round(Number(tendered||0)*100),change=paid-t.total;
   const target=s.bookings.find(b=>b.id===booking);
   const submit=(e:React.FormEvent)=>{e.preventDefault();

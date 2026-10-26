@@ -28,7 +28,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
 
     public async Task<IReadOnlyList<ChannelView>> ListChannelsAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
-        await access.RequireAsync(propertyId, principalId, OtaPermissions.Operate, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(propertyId, principalId, OtaPermissions.View, ct: ct).ConfigureAwait(false);
         var channels = await store.ListChannelsAsync(propertyId, null, ct).ConfigureAwait(false);
         var pending = (await store.ListMessagesAsync(propertyId, MessageStatuses.Pending, 1000, ct).ConfigureAwait(false)).GroupBy(m => m.ChannelId).ToDictionary(g => g.Key, g => g.Count());
         return channels.Select(c => ToView(c, pending.TryGetValue(c.ChannelId, out var n) ? n : 0)).ToList();
@@ -40,7 +40,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
 
     public async Task<IReadOnlyList<ChannelMessageView>> ListMessagesAsync(int propertyId, int principalId, string? status, int limit, CancellationToken ct = default)
     {
-        await access.RequireAsync(propertyId, principalId, OtaPermissions.Operate, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(propertyId, principalId, OtaPermissions.View, ct: ct).ConfigureAwait(false);
         if (status is not null && status is not (MessageStatuses.Queued or MessageStatuses.Pending or "Importing" or MessageStatuses.Accepted or MessageStatuses.Applied or MessageStatuses.Rejected))
             throw HccException.Validation("Unknown message status.");
         var channels = (await store.ListChannelsAsync(propertyId, null, ct).ConfigureAwait(false)).ToDictionary(c => c.ChannelId);
@@ -81,7 +81,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
     /// <summary>Pre-check shown in the inbox and enforced by Accept. Never throws for a business problem: it returns Ok = false with the reason.</summary>
     public async Task<MessageCheckView> CheckMessageAsync(int propertyId, int principalId, long messageId, int? roomId, CancellationToken ct = default)
     {
-        await access.RequireAsync(propertyId, principalId, OtaPermissions.Operate, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(propertyId, principalId, OtaPermissions.View, ct: ct).ConfigureAwait(false);
         var m = await store.GetMessageAsync(propertyId, messageId, null, false, ct).ConfigureAwait(false) ?? throw InventoryErrors.NotFound("Message");
         return await CheckAsync(propertyId, principalId, m, roomId, ct).ConfigureAwait(false);
     }
@@ -147,7 +147,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
     // ───────────── rate and availability push ─────────────
     public async Task<PushPreviewView> PushPreviewAsync(int propertyId, int principalId, int channelId, CancellationToken ct = default)
     {
-        await access.RequireAsync(propertyId, principalId, OtaPermissions.Operate, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(propertyId, principalId, OtaPermissions.View, ct: ct).ConfigureAwait(false);
         var c = await store.GetChannelAsync(propertyId, channelId, null, false, ct).ConfigureAwait(false) ?? throw InventoryErrors.NotFound("Channel");
         var (rows, unmapped, business) = await BuildRowsAsync(propertyId, principalId, c, ct).ConfigureAwait(false);
         return new PushPreviewView(c.ChannelId, StayDates.ToWire(business), OtaRules.PushDays,
@@ -191,7 +191,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
 
     public async Task<IReadOnlyList<PushLogView>> PushLogAsync(int propertyId, int principalId, int? channelId, int limit, CancellationToken ct = default)
     {
-        await access.RequireAsync(propertyId, principalId, OtaPermissions.Operate, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(propertyId, principalId, OtaPermissions.View, ct: ct).ConfigureAwait(false);
         return await store.ListPushesAsync(propertyId, channelId, Math.Clamp(limit, 1, 200), ct).ConfigureAwait(false);
     }
 

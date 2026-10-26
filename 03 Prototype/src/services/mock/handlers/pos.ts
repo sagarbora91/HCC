@@ -4,6 +4,7 @@ import type {Handler,Kit} from '../commands';
 import type {Approval} from '../../../domain/types';
 import {money,addMinutes} from '../../../domain/money';
 import {gstForFood,gstLineTax} from '../../../domain/gst';
+import {rbacIsRestaurant} from '../../../domain/streams/rbac';
 import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,
   POS_VOID_LIMIT,POS_TENDERS,POS_APPROVAL_TTL_MINUTES} from '../../../domain/streams/pos';
 import type {POSOrder,POSState,POSKotStatus} from '../../../domain/streams/pos';
@@ -81,6 +82,7 @@ const POS_KOT_STATUS:Handler=k=>{
 const POS_SETTLE:Handler=k=>{
   const {s,cmd,req,open,assert,id,uid,financial}=k;
   req(cmd.mode==='folio'?'billing':'payments');
+  assert(!rbacIsRestaurant(s,uid),'The Restaurant role takes orders; Reception or the Cashier settles the bill (DEC-079).','FORBIDDEN');
   const o=order(k);
   if(o.status==='Settled')assert(false,'This check is already settled.','INVALID_TRANSITION');
   editable(k,o);open();

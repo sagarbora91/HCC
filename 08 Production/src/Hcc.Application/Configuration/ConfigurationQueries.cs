@@ -10,9 +10,9 @@ using Hcc.Domain.Errors;
 namespace Hcc.Application.Configuration;
 
 /// <summary>
-/// Master configuration reads. The hub (groups, settings, history, search, export, import dry run) needs PERM-ADM-003 at any mode
+/// Master configuration reads. The hub (groups, settings, history, search, export, import dry run) needs PERM-CFG-001 (Owner, Tech admin)
 /// (Owner, Tech admin); groups a viewer cannot change are shown read-only with the reason, never hidden. Owner-only values are
-/// masked for everyone else; secrets are never returned. Requests: hub viewers and approvers (PERM-APR-001). Module switches: everyone.
+/// masked for everyone else; secrets are never returned. Requests: hub viewers. Module switches: everyone.
 /// </summary>
 public sealed class ConfigurationQueries(IAccessPolicy policy, SettingsRegistry registry, IConfigurationReadStore reads, ConfigurationService service, TimeProvider clock)
 {

@@ -10,8 +10,8 @@ using Hcc.Domain.Stock;
 namespace Hcc.Application.Stock;
 
 /// <summary>
-/// Stock reads. Readable by whoever works with stock (PERM-HK-003, any scope) or sees finance (PERM-RPT-002); every money field
-/// (unit cost, value, laundry rate/charge, loss value) is null unless the caller holds PERM-RPT-002 property-wide.
+/// Stock reads. Readable with the module's view permission (PERM-STK-001, any scope) or its money permission (PERM-STK-004); every money
+/// field (unit cost, value, laundry rate/charge, loss value) is null unless the caller holds PERM-STK-004 property-wide (DEC-079 D3).
 /// </summary>
 public sealed class StockQueries(IAccessPolicy policy, IStockReadStore reads)
 {
@@ -20,7 +20,7 @@ public sealed class StockQueries(IAccessPolicy policy, IStockReadStore reads)
     private async Task<bool> RequireReadAsync(int propertyId, int principalId, CancellationToken ct)
     {
         var money = await policy.HasAsync(propertyId, principalId, StockPermissions.Money, AccessScopes.Property(propertyId), ct).ConfigureAwait(false);
-        if (!money && !await policy.HasAsync(propertyId, principalId, StockPermissions.Work, AccessScopes.Any, ct).ConfigureAwait(false))
+        if (!money && !await policy.HasAsync(propertyId, principalId, StockPermissions.View, AccessScopes.Any, ct).ConfigureAwait(false))
             throw new HccException(HccErrorCode.FORBIDDEN, "Access denied.");
         return money;
     }

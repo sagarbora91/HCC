@@ -596,6 +596,86 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
         return SqlValues.RowVersionToWire(v!);
     }
 
+    // ── menu change requests (D5, migration 3701) ──
+    private const string MenuRequestColumns = """
+        request_id, property_id, item_id, code, name, category, price_paise, veg, outlet_ids, price_before_paise, item_version, reason, status, requested_by, requested_utc, row_ver
+        """;
+
+    private static IReadOnlyList<int> OutletList(string csv) =>
+        csv.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+
+    private static MenuRequestRow ReadMenuRequest(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), rd.IsDBNull(2) ? null : rd.GetInt32(2), rd.GetString(3),
+        rd.GetString(4), rd.GetString(5), SqlValues.ReadPaise(rd, 6), rd.GetBoolean(7), OutletList(rd.GetString(8)), rd.IsDBNull(9) ? null : SqlValues.ReadPaise(rd, 9),
+        rd.IsDBNull(10) ? null : (byte[])rd[10], rd.IsDBNull(11) ? null : rd.GetString(11), rd.GetString(12), rd.GetInt32(13), Dt(rd, 14)!.Value, Ver(rd, 15));
+
+    public async Task<bool> PendingMenuRequestExistsAsync(ICommandTransaction tx, int propertyId, string code, int? itemId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, """
+            SELECT COUNT(*) FROM pos.menu_change_request WITH (UPDLOCK, HOLDLOCK)
+            WHERE property_id = @p AND status = 'Pending' AND (code = @c OR (@i IS NOT NULL AND item_id = @i));
+            """);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        P(cmd, "@c", SqlDbType.VarChar, code, 20);
+        P(cmd, "@i", SqlDbType.Int, itemId);
+        return (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0;
+    }
+
+    public async Task<long> InsertMenuRequestAsync(ICommandTransaction tx, NewMenuRequest r, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(r);
+        await using var cmd = Cmd(tx, """
+            INSERT pos.menu_change_request(property_id, item_id, code, name, category, price_paise, price_before_paise, veg, outlet_ids, item_version, reason, status,
+                requested_by, requested_utc)
+            OUTPUT INSERTED.request_id VALUES (@p, @i, @c, @n, @g, @a, @b, @v, @o, @iv, @r, 'Pending', @by, @u);
+            """);
+        P(cmd, "@p", SqlDbType.Int, r.PropertyId);
+        P(cmd, "@i", SqlDbType.Int, r.ItemId);
+        P(cmd, "@c", SqlDbType.VarChar, r.Code, 20);
+        P(cmd, "@n", SqlDbType.NVarChar, r.Name, 100);
+        P(cmd, "@g", SqlDbType.NVarChar, r.Category, 60);
+        P(cmd, "@a", SqlDbType.BigInt, r.Price.Value);
+        P(cmd, "@b", SqlDbType.BigInt, r.PriceBefore?.Value);
+        P(cmd, "@v", SqlDbType.Bit, r.Veg);
+        P(cmd, "@o", SqlDbType.VarChar, string.Join(',', r.OutletIds.Select(x => x.ToString(System.Globalization.CultureInfo.InvariantCulture))), 400);
+        P(cmd, "@iv", SqlDbType.Binary, r.ItemVersion, 8);
+        P(cmd, "@r", SqlDbType.NVarChar, r.Reason, 200);
+        P(cmd, "@by", SqlDbType.Int, r.RequestedBy);
+        Utc(cmd, "@u", r.RequestedUtc);
+        return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+    }
+
+    public async Task<MenuRequestRow?> LockMenuRequestAsync(ICommandTransaction tx, int propertyId, long requestId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, $"SELECT {MenuRequestColumns} FROM pos.menu_change_request WITH (UPDLOCK) WHERE request_id = @r AND property_id = @p;");
+        P(cmd, "@r", SqlDbType.BigInt, requestId);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        return (await ReadAsync(cmd, ReadMenuRequest, ct).ConfigureAwait(false)).SingleOrDefault();
+    }
+
+    public async Task DecideMenuRequestAsync(ICommandTransaction tx, long requestId, string status, int decidedBy, DateTime utc, string? reason, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, """
+            UPDATE pos.menu_change_request SET status = @s, decided_by = @b, decided_utc = @u, decision_reason = @r
+            WHERE request_id = @q AND status = 'Pending';
+            """);
+        P(cmd, "@s", SqlDbType.VarChar, status, 8);
+        P(cmd, "@b", SqlDbType.Int, decidedBy);
+        Utc(cmd, "@u", utc);
+        P(cmd, "@r", SqlDbType.NVarChar, reason, 200);
+        P(cmd, "@q", SqlDbType.BigInt, requestId);
+        SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "The menu change request");
+    }
+
+    public async Task<IReadOnlyList<MenuRequestView>> PendingMenuRequestsAsync(int propertyId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command($"SELECT {MenuRequestColumns} FROM pos.menu_change_request WHERE property_id = @p AND status = 'Pending' ORDER BY request_id;", conn);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        var rows = await ReadAsync(cmd, ReadMenuRequest, ct).ConfigureAwait(false);
+        return rows.Select(r => new MenuRequestView(r.RequestId, r.ItemId, r.Code, r.Name, r.Category, r.Price.Value, r.PriceBefore?.Value, r.Veg, r.OutletIds, r.Reason,
+            r.RequestedBy, r.RequestedUtc, r.Version)).ToList();
+    }
+
     // ── queries ──
 
     public async Task<DateOnly?> PropertyBusinessDateAsync(int propertyId, CancellationToken ct)

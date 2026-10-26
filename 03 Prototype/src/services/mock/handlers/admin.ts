@@ -32,7 +32,7 @@ function plan(k:Kit,actor:User,c:Command):Planned{
     assert(c.role!=='Owner','Owner template is protected in this prototype.','FORBIDDEN');
     assert(c.role!==actor.role,'You cannot change the permissions of your own role.','FORBIDDEN');
     assert(c.permission!=='admin','Administrator delegation is outside this prototype.','FORBIDDEN');
-    const arr=s.grants[c.role as Role],has=arr.includes(c.permission);
+    const arr=s.grants[c.role as Role]??[],has=arr.includes(c.permission);
     if(!has)assert(!(c.role==='Tech admin'&&ADMIN_FINANCIAL_MODULES.includes(c.permission)),'Tech admin cannot hold financial actions (technical and financial power are kept separate).');
     return {summary:`Module access · ${c.role} · ${c.permission} ${has?'removed':'granted'}`,before:has?'on':'off',after:has?'off':'on',target:c.role,
       apply:()=>{s.grants[c.role as Role]=has?arr.filter(p=>p!==c.permission):[...arr,c.permission as Permission];}};

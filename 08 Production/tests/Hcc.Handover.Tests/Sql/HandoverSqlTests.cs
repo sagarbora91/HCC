@@ -56,13 +56,15 @@ public class HandoverSqlTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Fixture_has_6_templates_8_runs_3_notes_and_no_new_permissions()
+    public async Task Fixture_has_6_templates_8_runs_3_notes_and_the_v2_handover_permissions()
     {
         Assert.Equal(6, await _w.CountAsync("SELECT COUNT(*) FROM ops.hov_template;", Ct));
         Assert.Equal(8, await _w.CountAsync("SELECT COUNT(*) FROM ops.hov_run;", Ct));
         Assert.Equal(3, await _w.CountAsync("SELECT COUNT(*) FROM ops.hov_note;", Ct));
-        // No handover PERM ids (the module reuses matrix permissions); other Wave 2 modules seed theirs in *_rbac_seed.sql migrations.
-        Assert.Equal(0, await _w.CountAsync("SELECT COUNT(*) FROM plat.permission WHERE permission_id LIKE 'PERM-HOV%' OR resource_action LIKE 'handover%';", Ct));
+        // Role matrix v2 (DEC-079, migration 3700): the module's own four ids (view, write, decide, cash amounts) and no PERM-HOV-* ids.
+        Assert.Equal(0, await _w.CountAsync("SELECT COUNT(*) FROM plat.permission WHERE permission_id LIKE 'PERM-HOV%';", Ct));
+        Assert.Equal(4, await _w.CountAsync("SELECT COUNT(*) FROM plat.permission WHERE permission_id LIKE 'PERM-HND-%' AND resource_action LIKE 'handover.%';", Ct));
+        Assert.Equal(1, await _w.CountAsync("SELECT COUNT(*) FROM plat.permission WHERE permission_id LIKE 'PERM-HND-%' AND is_money = 1;", Ct));
     }
 
     [Fact]

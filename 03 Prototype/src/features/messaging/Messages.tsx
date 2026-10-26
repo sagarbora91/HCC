@@ -6,7 +6,7 @@ import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,clockTime,shortDate} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,Fab} from '../../app/mobile/components';
 import {MSG_CHANNELS,MSG_EVENT_LABEL,MSGChannel,msgOutbox,msgCounts,msgPendingTriggers,msgRules,msgTemplates,msgTemplate,msgValues,msgRender,msgStatus,msgDone,
-  msgConsent,msgGuestKey,msgSmsSegments,Booking} from '../../services/mock';
+  msgConsent,msgGuestKey,msgSmsSegments,Booking,rbacCanEditTemplates,rbacTechAdminTemplates} from '../../services/mock';
 import {MsgBubble,MsgStatusPill,MsgSimulated,msgChannelIcon,msgTemplateName} from './shared';
 
 const tabs=['Outbox','Triggers','Templates','Consent'] as const;
@@ -30,10 +30,13 @@ function useMsgActions(){
 }
 
 export function MsgMessagesPage(){
-  const {s,open,run,permission,busy}=useHcc();
-  const [tab,setTab]=useState<Tab>('Outbox');
+  const {s,uid,open,run,busy}=useHcc();
+  // DEC-079 D4: the Tech admin (production) sees and edits templates and rules only — no outbox, consent or sending.
+  const templatesOnly=rbacTechAdminTemplates(s,uid);
+  const [tab,setTab]=useState<Tab>(templatesOnly?'Templates':'Outbox');
   const a=useMsgActions();const c=msgCounts(s);const list=msgOutbox(s);
-  const canEdit=permission('approve');
+  const canEdit=rbacCanEditTemplates(s,uid);
+  const shown=templatesOnly?tabs.filter(t=>t==='Templates'||t==='Triggers'):tabs;
   const sample=s.bookings.find(b=>b.status==='In house')||s.bookings[0];
   return <><PageTitle title="Messages" sub="Guest notifications — templates, consent, outbox and trigger rules. Simulated: nothing is ever sent."
       action={<div className="inline">{a.canAct&&<button className="btn" disabled={busy||!a.unfinished} onClick={a.simulateAll}><FastForward size={16}/> Simulate delivery</button>}
@@ -42,7 +45,7 @@ export function MsgMessagesPage(){
     <div className="small-stats msg-stats"><div><span>Queued / sent</span><strong>{c.Queued+c.Sent}</strong></div><div><span>Delivered / read</span><strong>{c.Delivered+c.Read}</strong></div>
       <div><span>Failed</span><strong>{c.Failed}</strong></div><div><span>Not sent (consent)</span><strong>{c['Not sent']}</strong></div><div><span>Pending triggers</span><strong>{a.pending.length}</strong></div></div>
     <section className="card">
-      <div className="tabs" role="tablist" aria-label="Messages sections">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}
+      <div className="tabs" role="tablist" aria-label="Messages sections">{shown.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}
         <span>{t==='Outbox'?list.length:t==='Triggers'?a.pending.length:t==='Templates'?msgTemplates(s).length:consentRows(s).length}</span></button>)}</div>
       {tab==='Outbox'&&<div className="table-wrap">{!list.length?<Empty title="Outbox is empty" body="Queued, sent and failed messages appear here."/>:
         <table><thead><tr><th>Queued</th><th>Guest</th><th>Channel</th><th>Message</th><th>Status</th><th>Action</th></tr></thead><tbody>

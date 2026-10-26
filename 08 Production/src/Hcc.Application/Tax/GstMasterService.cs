@@ -11,9 +11,9 @@ using Hcc.Domain.Tax;
 namespace Hcc.Application.Tax;
 
 /// <summary>
-/// GST master commands and read (DEC-069 in Master configuration, Tax group). Changes are Owner-only (DEC-058; PERM-ADM-003 'A'),
+/// GST master commands and read (DEC-069 in Master configuration, Tax group). Changes are Owner-only (DEC-058; PERM-CFG-003),
 /// dated (effective from the business date or later, never backdated), kept as history (each change is a new version row) and
-/// can be withdrawn until they take effect. Tech admin reads (PERM-ADM-003 'V'). Posted charges keep their own snapshot.
+/// can be withdrawn until they take effect. Tech admin reads (PERM-CFG-001 'V'). Posted charges keep their own snapshot.
 /// </summary>
 public sealed class GstMasterService(ICommandRunner runner, IAccessPolicy policy, IGstMasterStore store, GstRateResolver resolver, TimeProvider clock)
 {

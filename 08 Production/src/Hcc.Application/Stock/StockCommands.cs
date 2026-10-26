@@ -46,6 +46,9 @@ public sealed partial class StockCommands(ICommandRunner runner, IAccessPolicy p
     private Task RequireSuperviseAsync(CommandContext ctx, CancellationToken ct) =>
         policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StockPermissions.Supervise, null, null, ct);
 
+    private Task RequireConfigureAsync(CommandContext ctx, CancellationToken ct) =>
+        policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StockPermissions.Configure, null, null, ct);
+
     private Task<bool> HasAsync(CommandContext ctx, string perm, CancellationToken ct) =>
         policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, perm, AccessScopes.Property(ctx.PropertyId), ct);
 
@@ -453,7 +456,7 @@ public sealed partial class StockCommands(ICommandRunner runner, IAccessPolicy p
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await RequireSuperviseAsync(ctx, ct).ConfigureAwait(false);
+        await RequireConfigureAsync(ctx, ct).ConfigureAwait(false);
         var expected = VersionToken.Parse(req.ExpectedVersion);
         CheckLevels(req.MinQty, req.ReorderQty, req.StdX100);
         CheckPar(req.Par);
@@ -480,7 +483,7 @@ public sealed partial class StockCommands(ICommandRunner runner, IAccessPolicy p
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await RequireSuperviseAsync(ctx, ct).ConfigureAwait(false);
+        await RequireConfigureAsync(ctx, ct).ConfigureAwait(false);
         if (req.ParSets is < 1 or > 10) throw HccException.Validation("Par sets in circulation must be 1–10.");
         if (req.TurnaroundDays is < 0 or > 30) throw HccException.Validation("Laundry turnaround must be 0–30 days.");
         var vendor = Text(req.VendorName, 120, "The vendor name");

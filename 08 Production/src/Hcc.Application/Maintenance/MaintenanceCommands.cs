@@ -68,7 +68,7 @@ public sealed partial class MaintenanceCommands(ICommandRunner runner, IAccessPo
     private async Task RequireWorkerAsync(CommandContext ctx, long workOrderId, CancellationToken ct)
     {
         if (await IsManagerAsync(ctx, ct).ConfigureAwait(false)) return;
-        // Module access first: Reception holds PERM-ROOM-001 property-wide but has no housekeeping/maintenance access (DEC-063 G7).
+        // Module access first (v2: Reception holds no maintenance id; the check stays until the retire step, DEC-079 §3.2).
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MaintenancePermissions.View, AccessScopes.Any, null, ct).ConfigureAwait(false);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MaintenancePermissions.Work, new AccessScope(AccessScopeKinds.WorkOrder, workOrderId), null, ct).ConfigureAwait(false);
     }
@@ -526,13 +526,12 @@ public sealed partial class MaintenanceCommands(ICommandRunner runner, IAccessPo
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>AMC contracts carry money: Owner and Manager only (supervisor rights plus finance rights; DEC-063 G12).</summary>
+    /// <summary>AMC contracts carry money: Owner and Manager only (PERM-MNT-005; DEC-063 G12).</summary>
     public async Task<CommandResult<RegisterSaveResult>> SaveAmcAsync(CommandContext ctx, SaveAmcRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await RequireManagerAsync(ctx, ct).ConfigureAwait(false);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MaintenancePermissions.Money, null, null, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MaintenancePermissions.Amc, null, null, ct).ConfigureAwait(false);
         var scope = Text(req.Scope, 3, 200, "Describe what the AMC covers (3–200 characters).");
         var from = Date(req.From, "Enter a valid start date.");
         var to = Date(req.To, "Enter a valid end date.");

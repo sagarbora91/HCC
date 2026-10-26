@@ -58,6 +58,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.IdView, ct: ct).ConfigureAwait(false);
         if (req.GuestId <= 0) throw HccException.Validation("Select a guest.");
         var kind = DocumentRules.Kind(req.DocKind);
         var type = (req.ContentType ?? string.Empty).Trim().ToLowerInvariant();
@@ -126,6 +127,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.IdView, ct: ct).ConfigureAwait(false);
         var expected = VersionToken.Parse(req.ExpectedVersion);
         var reason = req.Reason?.Trim() ?? string.Empty;
         if (reason.Length is < 3 or > 200) throw HccException.Validation("Give a reason (3–200 characters).");
@@ -228,13 +230,13 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
 
     public async Task<IReadOnlyList<IdCaptureView>> ListAsync(int propertyId, int principalId, long? guestId, long? stayId, string? status, CancellationToken ct = default)
     {
-        await policy.RequireAsync(propertyId, principalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, DocumentPermissions.View, ct: ct).ConfigureAwait(false);
         return (await store.ListAsync(propertyId, guestId, stayId, status, ct).ConfigureAwait(false)).Select(ToView).ToList();
     }
 
     public async Task<IdCaptureView> GetAsync(int propertyId, int principalId, long captureId, CancellationToken ct = default)
     {
-        await policy.RequireAsync(propertyId, principalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, DocumentPermissions.View, ct: ct).ConfigureAwait(false);
         return ToView(await store.FindAsync(null, propertyId, captureId, ct).ConfigureAwait(false) ?? throw NotFound());
     }
 }
