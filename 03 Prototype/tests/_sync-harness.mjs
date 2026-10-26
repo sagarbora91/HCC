@@ -59,7 +59,9 @@ export function fakeServer(routes={}){
   const table={'GET /system/health':()=>({status:'ok',database:'ok',schemaVersion:2,serverTimeUtc:'2026-10-24T04:30:00.000Z'}),
     'GET /me/capabilities':()=>capabilities(),
     // Empty front-desk lists (W4-1): every runtime with the full registry reloads bookings / guests; area tests override them.
-    'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),...routes};
+    'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),
+    // MA-1: rooms-master fields read with the rooms (empty = no master data; floor from the room number) and the room masters' lists.
+    'GET /masters/rooms':()=>({items:[]}),...Object.fromEntries(['room-types','amenities','occupancy-charges'].map(x=>[`GET /masters/${x}`,()=>({page:1,pageSize:200,total:0,items:[]})])),...routes};
   const calls=[],unrouted=[];
   const compiled=()=>Object.entries(table).map(([spec,h])=>{const [m,p]=spec.split(' ');const names=[];
     const re=new RegExp('^'+p.replace(/:[A-Za-z]+/g,x=>{names.push(x.slice(1));return '([^/]+)';})+'$');return {m,re,names,h};});
