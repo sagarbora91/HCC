@@ -157,6 +157,7 @@ The independent audit of 26 Oct 2026 found 25 rules in the code and in `HANDOFF.
 | DEC-108 | Booking history window | The production client loads bookings from **180 days before the business date** (at most 5,000) | Proposed (agent rule, needs owner confirmation) | H, A | `clients/sync/reservations.ts` |
 | DEC-109 | Cash-book lock permission | The cash-book day lock reuses `close.correction.request` (PERM-CLS-003: Owner, Manager, Accountant) instead of a dedicated PERM-CLS-005; the reopen uses `close.correction.approve` (PERM-CLS-004, Owner). Confirm, or add a dedicated permission | Proposed (agent rule, needs owner confirmation) | A | `ClosingPorts.cs` |
 | DEC-110 | Quote lifetime | A rate quote is valid for **30 minutes** (a code constant today; to become a setting) | Proposed (agent rule, needs owner confirmation) | A | `InventoryService.cs` |
+| DEC-111 | Device revocation | **RevokeDevice stays with the Owner and the Tech admin** (as built); the audit's suggestion (A06-01) to make it Owner only is declined. The forced credential change after an admin reset (A06-01 first half) is built (Wave C2) | Agreed (O, chat, 27 Oct 2026) | O | Access / devices |
 
 **Where each of the 25 items of the audit's table (b2) is recorded**
 
