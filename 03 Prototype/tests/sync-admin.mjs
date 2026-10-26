@@ -41,8 +41,8 @@ const requests={items:[{requestId:5,key:'sec.pinLock',label:'PIN lock on shared 
 
 export async function register({test,assert,M}){
   const S=await loadSync();
-  // Only this area (+ core, reservations): other W4 areas load their own routes, which this fake server does not serve.
-  const mine={areas:S.AREAS.filter(a=>['core','reservations','admin'].includes(a.id))};
+  // Only this area (+ core, reservations, frontdesk: bookings needs guests): other W4 areas load their own routes, which this fake server does not serve.
+  const mine={areas:S.AREAS.filter(a=>['core','reservations','frontdesk','admin'].includes(a.id))};
   let userVer=2;
   const srv=fakeServer({
     'GET /admin/users':()=>({items:users,page:1,pageSize:100,total:users.length}),

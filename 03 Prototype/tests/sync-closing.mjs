@@ -60,7 +60,7 @@ export async function register({test,assert}){
   test('[W4-4 closing] CLOSE_RUN → PostRoomNights {businessDate} with the dialog key, then reloads bookings; the interrupt demo is refused locally; NIGHT_POST maps the same way',()=>{
     assert.ok(nights.ok,nights.text);assert.deepEqual(nights.result,{businessDate:'2026-10-24',stays:3,postedNow:3,alreadyPosted:0});
     assert.deepEqual([pn.key,pn.body],['cr:1',{businessDate:'2026-10-24'}]);
-    assert.deepEqual(nightCalls,['POST /commands/PostRoomNights']);
+    assert.deepEqual(nightCalls,['POST /commands/PostRoomNights','GET /reservations'],'bookings reload = the W4-1 reservation list');
     assert.deepEqual([demo.ok,demo.reason],[false,'precheck']);assert.match(demo.text,/interrupted night-audit demo/);
     assert.ok(post.ok);assert.equal(srv.commands('PostRoomNights')[0].key,'np:1');
   });

@@ -7,7 +7,7 @@ import {core} from './core';
 import {reservations} from './reservations';
 
 // W4-1 front desk (stays, guests, customers; extend reservations.ts too):
-// import {frontdesk} from './frontdesk';
+import {frontdesk} from './frontdesk';
 
 // W4-2 rooms, housekeeping, room blocks:
 import {rooms} from './rooms';
@@ -43,7 +43,7 @@ export const AREAS:SyncArea[]=[
   core,
   reservations,
 
-  // frontdesk, // W4-1
+  frontdesk, // W4-1
 
   rooms, // W4-2
 

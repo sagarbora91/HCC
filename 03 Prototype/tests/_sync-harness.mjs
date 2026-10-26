@@ -5,7 +5,7 @@
 //   import {loadSync,fakeServer,startRuntime,reply,settle} from './_sync-harness.mjs';
 //   export async function register({test,assert,M}){
 //     const S=await loadSync();                                     // bundled src/clients/sync/index.ts (Node ESM)
-//     const srv=fakeServer({'GET /rooms/status':()=>({rooms:[…]})}); // + defaults: /system/health, /me/capabilities (Owner)
+//     const srv=fakeServer({'GET /rooms/status':()=>({rooms:[…]})}); // + defaults: /system/health, /me/capabilities (Owner), empty /reservations + /guests
 //     const rt=await startRuntime(S,srv);                           // boot: capabilities → every registered loader
 //     const r=await rt.run({type:'TASK',id:'12',action:'start'});   // ctx.run in production = rt.run (+ toast/busy in App)
 //     test('[W4-2] …',()=>{assert.equal(rt.get().state.rooms.length,24);assert.deepEqual(srv.commands('TransitionHousekeepingTask')[0].body,{…});});
@@ -52,7 +52,9 @@ export function capabilities({userId=1,displayName='Test Owner',roles=['OWN'],gr
  */
 export function fakeServer(routes={}){
   const table={'GET /system/health':()=>({status:'ok',database:'ok',schemaVersion:2,serverTimeUtc:'2026-10-24T04:30:00.000Z'}),
-    'GET /me/capabilities':()=>capabilities(),...routes};
+    'GET /me/capabilities':()=>capabilities(),
+    // Empty front-desk lists (W4-1): every runtime with the full registry reloads bookings / guests; area tests override them.
+    'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),...routes};
   const calls=[],unrouted=[];
   const compiled=()=>Object.entries(table).map(([spec,h])=>{const [m,p]=spec.split(' ');const names=[];
     const re=new RegExp('^'+p.replace(/:[A-Za-z]+/g,x=>{names.push(x.slice(1));return '([^/]+)';})+'$');return {m,re,names,h};});

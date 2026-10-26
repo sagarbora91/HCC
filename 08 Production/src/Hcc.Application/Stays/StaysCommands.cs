@@ -25,6 +25,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
     public const string OpRegisterGuest = "RegisterGuest";
     public const string OpCheckIn = "CheckIn";
     public const string OpCheckoutStay = "CheckoutStay";
+    public const string OpSaveGuestProfile = "SaveGuestProfile";
 
     private static readonly string[] Registrable = [ReservationStatus.Held, ReservationStatus.Confirmed, ReservationStatus.InHouse];
 
@@ -77,8 +78,9 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
             else
             {
                 // Production has no auto-created demo profile (prototype REGISTER {id}): the linked profile must already be complete.
-                if (linked is null) throw HccException.Validation("Enter the guest’s registration details.");
-                var g = await store.LockGuestAsync(tx, ctx.PropertyId, linked.Value, c).ConfigureAwait(false)
+                var existing = req.GuestId ?? linked; // W4-1: "use existing profile" links the chosen guest without retyping its details
+                if (existing is null) throw HccException.Validation("Enter the guest’s registration details.");
+                var g = await store.LockGuestAsync(tx, ctx.PropertyId, existing.Value, c).ConfigureAwait(false)
                     ?? throw new HccException(HccErrorCode.NOT_FOUND, "Guest profile not found.");
                 var errors = GuestRules.Validate(g.Draft, registration: true);
                 if (errors.Count > 0) throw HccException.Validation(GuestRules.Summary(errors));
@@ -91,6 +93,56 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
             await tx.AuditAsync("REGISTER", Target("reservation", res.ReservationId), $"guest {guestId} · registration verified", c).ConfigureAwait(false);
             var version = await store.GuestVersionAsync(tx, guestId, c).ConfigureAwait(false);
             return new RegisterGuestResult(res.ReservationId, guestId, VersionToken.ToWire(version), true);
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// SaveGuestProfile (W4-1, prototype GUEST_SAVE without a booking): create or edit a profile. Registration rules (address + ID) apply when
+    /// <c>Verified</c>; an edit keeps a verified profile verified while it still has an ID and an address (prototype upsert).
+    /// </summary>
+    public async Task<CommandResult<SaveGuestProfileResult>> SaveGuestProfileAsync(CommandContext ctx, SaveGuestProfileRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        if (req.Guest is null) throw HccException.Validation("Enter the guest details.");
+        var guestExpected = req.GuestExpectedVersion is null ? null : VersionToken.Parse(req.GuestExpectedVersion, "guestExpectedVersion");
+        if (req.GuestId is not null && guestExpected is null) throw HccException.Validation("guestExpectedVersion is required to change an existing guest profile.");
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.GuestRegister, null, null, ct).ConfigureAwait(false);
+        if (guestIds is null && GuestIdService.HasNumber(req.Guest))
+            throw new HccException(HccErrorCode.UNAVAILABLE, "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
+        var hashed = guestIds?.HashablePayload(req) ?? req;
+
+        return await runner.RunAsync(ctx with { Operation = OpSaveGuestProfile }, hashed, async (tx, c) =>
+        {
+            var draft = ToDraft(req.Guest);
+            var errors = GuestRules.Validate(draft, registration: req.Verified);
+            if (errors.Count > 0) throw HccException.Validation(GuestRules.Summary(errors));
+            var clean = GuestRules.Clean(draft);
+            long guestId;
+            bool verified, created;
+            if (req.GuestId is { } existingId)
+            {
+                var g = await store.LockGuestAsync(tx, ctx.PropertyId, existingId, c).ConfigureAwait(false)
+                    ?? throw new HccException(HccErrorCode.NOT_FOUND, "Guest profile not found.");
+                VersionToken.EnsureMatches(g.Version, guestExpected!, "This guest profile");
+                if (guestIds is not null) clean = await guestIds.ApplyAsync(tx, ctx.PropertyId, g.GuestId, clean, g.Draft, c).ConfigureAwait(false);
+                verified = req.Verified || (g.Verified && !string.IsNullOrEmpty(clean.IdLast4) && !string.IsNullOrEmpty(clean.Address));
+                await store.UpdateGuestAsync(tx, g.GuestId, guestExpected!, clean, verified, c).ConfigureAwait(false);
+                guestId = g.GuestId;
+                created = false;
+            }
+            else
+            {
+                verified = req.Verified;
+                guestId = await store.InsertGuestAsync(tx, ctx.PropertyId, clean, verified, "manual", UtcNow, c).ConfigureAwait(false);
+                if (guestIds is not null) await guestIds.ApplyAsync(tx, ctx.PropertyId, guestId, clean, null, c).ConfigureAwait(false);
+                created = true;
+            }
+
+            // Audit carries ids only — never name, phone or ID details.
+            await tx.AuditAsync("SAVE_GUEST", Target("guest", guestId), $"guest {guestId} · profile {(created ? "created" : "updated")}{(verified ? " · verified" : "")}", c).ConfigureAwait(false);
+            var version = await store.GuestVersionAsync(tx, guestId, c).ConfigureAwait(false);
+            return new SaveGuestProfileResult(guestId, VersionToken.ToWire(version), verified, created);
         }, ct).ConfigureAwait(false);
     }
 
@@ -182,6 +234,19 @@ public sealed class StaysQueries(IAccessPolicy policy, IStaysReadStore reads)
         return Mask(g, idDetails, contact);
     }
 
+    /// <summary>GET /guests (W4-1): the property's profiles with the same masks as <see cref="GetGuestAsync"/>.</summary>
+    public async Task<GuestListPage> ListGuestsAsync(int propertyId, int principalId, string? text, int page, int pageSize, CancellationToken ct = default)
+    {
+        await policy.RequireAsync(propertyId, principalId, StaysPermissions.GuestView, null, null, ct).ConfigureAwait(false);
+        if (page < 1) throw HccException.Validation("page must be 1 or more.");
+        if (pageSize is < 1 or > 500) throw HccException.Validation("pageSize must be between 1 and 500.");
+        var t = text?.Trim();
+        var (total, items) = await reads.ListGuestsAsync(propertyId, string.IsNullOrEmpty(t) ? null : t.Length > 100 ? t[..100] : t, page, pageSize, ct).ConfigureAwait(false);
+        var idDetails = await policy.HasAsync(propertyId, principalId, StaysPermissions.GuestIdDetails, null, ct).ConfigureAwait(false);
+        var contact = await policy.HasAsync(propertyId, principalId, StaysPermissions.GuestRegister, null, ct).ConfigureAwait(false);
+        return new GuestListPage(total, page, pageSize, items.Select(g => Mask(g, idDetails, contact)).ToList());
+    }
+
     // DEC-068: the view never carries the full number. ID-view holders see XXXX-XXXX-1234 and may call RevealGuestId (audited).
 
     public static GuestView Mask(GuestRecord g, bool idDetails, bool contact)
@@ -199,6 +264,6 @@ public sealed class StaysQueries(IAccessPolicy policy, IStaysReadStore reads)
             (d.Party ?? []).Select(p => new GuestPartyDto(p.Name, p.AgeBand, p.Relation)).ToList(),
             g.Verified, !idDetails, VersionToken.ToWire(g.Version),
             idDetails ? Domain.GuestIds.GuestIdRules.Mask(d.IdLast4) : GuestRules.Restricted,
-            g.IdOnFile, idDetails && g.IdOnFile);
+            g.IdOnFile, idDetails && g.IdOnFile, d.Preferences, d.Notes, g.Origin);
     }
 }

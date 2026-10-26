@@ -47,3 +47,29 @@ public sealed record ReservationDetails(long ReservationId, string PublicNo, str
     int RoomId, string RoomNo, int RoomTypeId, string RoomType, string Arrival, string Departure, int Adults, int Children, string Source,
     long? NightlyRatePaise, string? HoldUntil, long? GroupBlockId, string? RestrictionOverride, string? CancelReason, string? Notes,
     IReadOnlyList<ReservationNight> Nights, long NetPaise, long TaxPaise, long TotalPaise);
+
+/// <summary>One room segment of an in-house stay (the room the guest slept in from..to; <c>To</c> null = the current room).</summary>
+public sealed record ReservationStaySegment(string RoomNo, string From, string? To);
+
+/// <summary>
+/// One row of GET /reservations (W4-1, front desk list): the reservation plus what the front desk needs from the stay side —
+/// the linked guest profile, whether registration is done, and the stay (id + version) once checked in. Server read only.
+/// </summary>
+public sealed record ReservationListItem(long ReservationId, string PublicNo, string Version, string Status, string GuestName, string? Phone,
+    int RoomId, string RoomNo, int RoomTypeId, string RoomType, string Arrival, string Departure, int Adults, int Children, string Source,
+    long? NightlyRatePaise, string? HoldUntil, long? GroupBlockId, string? RestrictionOverride, string? CancelReason, string? Notes,
+    long? GuestId, bool Registered, long? StayId, string? StayVersion, string? StayStatus, string? CheckedInDate, string? CheckedOutDate,
+    IReadOnlyList<ReservationStaySegment> Segments);
+
+/// <summary>Page of reservations. <c>BusinessDate</c> is the property's current business date (YYYY-MM-DD).</summary>
+public sealed record ReservationList(string BusinessDate, int Total, int Page, int PageSize, IReadOnlyList<ReservationListItem> Items);
+
+/// <summary>GET /reservations views: arrivals (Held/Confirmed arriving on or before today and not yet in house), inhouse, departures (in house leaving today or earlier), active (everything not closed), range.</summary>
+public static class ReservationViews
+{
+    public const string Arrivals = "arrivals";
+    public const string InHouse = "inhouse";
+    public const string Departures = "departures";
+    public const string Active = "active";
+    public const string Range = "range";
+}

@@ -27,8 +27,8 @@ const msg=(id,over={})=>({messageId:id,id:'MSG-'+id,reservationId:1201,bookingNo
 
 export async function register({test,assert,M}){
   const S=await loadSync();
-  // Only this area (+ core, reservations): other W4 areas load their own routes, which this fake server does not serve.
-  const mine={areas:S.AREAS.filter(a=>['core','reservations','services'].includes(a.id))};
+  // Only this area (+ core, reservations, frontdesk: bookings needs guests): other W4 areas load their own routes, which this fake server does not serve.
+  const mine={areas:S.AREAS.filter(a=>['core','reservations','frontdesk','services'].includes(a.id))};
   const page=(items)=>({page:1,pageSize:100,total:items.length,items,ownOnly:false});
   const names=['LogServiceRequest','AssignServiceRequest','StartServiceRequest','CompleteServiceRequest','CancelServiceRequest','LogComplaint','UpdateComplaint','ResolveComplaint','RecordComplaintFollowUp',
     'OfferRecoveryDiscount','LogLostItem','ClaimLostItem','HandOverLostItem','DisposeLostItem','SaveGuestServiceSettings','SendMessage','RunMessagingTriggers','SimulateMessageDelivery','RetryMessage',

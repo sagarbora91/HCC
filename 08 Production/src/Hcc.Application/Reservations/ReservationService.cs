@@ -195,6 +195,34 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             ?? throw InventoryErrors.NotFound("Reservation");
     }
 
+    /// <summary>
+    /// Front-desk list (W4-1): requires the reservation view permission; page size is capped at 500, an unknown view or status is a validation error.
+    /// </summary>
+    public async Task<ReservationList> ListAsync(int propertyId, int principalId, string? view, string? from, string? to, string? status, string? text,
+        int page, int pageSize, CancellationToken ct = default)
+    {
+        await access.RequireAsync(propertyId, principalId, InventoryPermissions.ViewReservations, ct: ct).ConfigureAwait(false);
+        var v = string.IsNullOrWhiteSpace(view) ? ReservationViews.Range : view.Trim().ToLowerInvariant();
+        if (v is not (ReservationViews.Arrivals or ReservationViews.InHouse or ReservationViews.Departures or ReservationViews.Active or ReservationViews.Range))
+            throw HccException.Validation("view must be arrivals, inhouse, departures, active or range.");
+        var statuses = new List<string>();
+        foreach (var s in (status ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (s is not (ReservationStatuses.Held or ReservationStatuses.Expired or ReservationStatuses.Confirmed or ReservationStatuses.InHouse or ReservationStatuses.Departed
+                or ReservationStatuses.Cancelled or ReservationStatuses.NoShow))
+                throw HccException.Validation("Unknown reservation status '" + s + "'.");
+            statuses.Add(s);
+        }
+        DateOnly? f = null, t = null;
+        if (!string.IsNullOrWhiteSpace(from)) f = StayDates.Parse(from, "from");
+        if (!string.IsNullOrWhiteSpace(to)) t = StayDates.Parse(to, "to");
+        if (f is not null && t is not null && t <= f) throw HccException.Validation("to must be after from.");
+        if (page < 1) throw HccException.Validation("page must be 1 or more.");
+        if (pageSize is < 1 or > 500) throw HccException.Validation("pageSize must be between 1 and 500.");
+        return await reservations.ListAsync(propertyId, new ReservationListQuery(v, f, t, statuses, text?.Trim() is { Length: > 0 } x ? (x.Length > 100 ? x[..100] : x) : null, page, pageSize),
+            clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
+    }
+
     private async Task<CommandResult<ReservationResult>> CancelOrNoShowAsync(CommandContext context, CancelReservationRequest request, bool noShow, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(context);

@@ -91,4 +91,7 @@ public interface IStaysReadStore
 {
     /// <summary>The profile including its party; null when absent or outside the property.</summary>
     Task<GuestRecord?> GetGuestAsync(int propertyId, long guestId, CancellationToken ct = default);
+
+    /// <summary>Guest profiles of the property, newest first, optionally filtered by name / phone / company (W4-1 front-desk list).</summary>
+    Task<(int Total, IReadOnlyList<GuestRecord> Items)> ListGuestsAsync(int propertyId, string? text, int page, int pageSize, CancellationToken ct = default);
 }

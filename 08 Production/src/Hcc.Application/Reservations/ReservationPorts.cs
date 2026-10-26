@@ -38,7 +38,16 @@ public interface IReservationStore
         DateTime nowUtc, CancellationToken ct = default);
 
     Task<ReservationDetails?> GetDetailsAsync(int propertyId, long reservationId, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>Front-desk list (W4-1): filtered, paged reservations with the stay-side facts; <paramref name="query"/> dates are inclusive/exclusive as documented there.</summary>
+    Task<ReservationList> ListAsync(int propertyId, ReservationListQuery query, DateTime nowUtc, CancellationToken ct = default);
 }
+
+/// <summary>
+/// Filter of <see cref="IReservationStore.ListAsync"/>. <c>View</c> is one of <see cref="ReservationViews"/>; for <c>range</c> a reservation matches
+/// when it overlaps [From, To) (arrival &lt; To and departure &gt; From; a missing bound is open). <c>Statuses</c> (wire statuses) narrow any view.
+/// </summary>
+public sealed record ReservationListQuery(string View, DateOnly? From, DateOnly? To, IReadOnlyList<string> Statuses, string? Text, int Page, int PageSize);
 
 /// <summary>
 /// Cancel/no-show guard (prototype CANCEL): net payments (payment − refund) or a deposit balance on the reservation's folio.

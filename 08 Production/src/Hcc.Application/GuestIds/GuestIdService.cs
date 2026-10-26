@@ -52,6 +52,13 @@ public sealed class GuestIdService(ICommandRunner runner, IAccessPolicy policy, 
     /// The registration payload as the idempotency hash sees it: the full number replaced by a keyed fingerprint (same number →
     /// same fingerprint, so replays still match; the SHA-256 in plat.idempotency cannot be brute-forced to the number).
     /// </summary>
+    public SaveGuestProfileRequest HashablePayload(SaveGuestProfileRequest req)
+    {
+        ArgumentNullException.ThrowIfNull(req);
+        if (req.Guest?.IdNumber is not { } raw || GuestIdRules.Normalise(raw).Length == 0) return req;
+        return req with { Guest = req.Guest with { IdNumber = protector.Fingerprint(GuestIdRules.Normalise(raw)) } };
+    }
+
     public RegisterGuestRequest HashablePayload(RegisterGuestRequest req)
     {
         ArgumentNullException.ThrowIfNull(req);
