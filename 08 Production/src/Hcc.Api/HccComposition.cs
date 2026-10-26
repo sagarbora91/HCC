@@ -49,6 +49,7 @@ public static class HccComposition
         services.AddOtaModule();                         // W3-1 OTA channels (simulated channel manager)
         services.AddGroupsModule();                      // W3-4 groups billing (master folio, routing, pickup billing, attrition)
         services.AddInvoicesModule();                    // W3-6 tax invoices & credit notes (numbering per FY, documents)
+        services.AddImportModule();                      // W4-13 masters & opening balances import (CSV validate/preview/commit)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -94,6 +95,7 @@ public static class HccComposition
         api.MapOtaEndpoints();           // W3-1 OTA channels
         api.MapGroupsEndpoints();        // W3-4 groups billing
         api.MapInvoicesEndpoints();      // W3-6 invoices & credit notes
+        api.MapImportEndpoints();        // W4-13 masters & opening balances import
         return api;
     }
 }

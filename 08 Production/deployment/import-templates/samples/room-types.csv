@@ -1,0 +1,4 @@
+code,name,maxOccupancy,rackRate,sortOrder
+STD,Standard Room,2,"2,800.00",1
+DLX,Deluxe Room,3,4200,2
+STE,Suite,4,7500.00,3
