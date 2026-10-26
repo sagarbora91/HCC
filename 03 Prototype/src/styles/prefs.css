@@ -1,0 +1,68 @@
+/* CP-1 · Appearance & display (app/prefs.ts). <html> carries --hcc-text (CP-2 scales px text with it), data-density and data-motion. */
+/* Printed documents are never affected by personal preferences. */
+/* print reset (--hcc-text:1) is appended to the bundle by CP-2 (tools/cssTextScale.mjs) */
+/* Reduce motion: forced off in this app (data-motion="off"); "system" leaves the existing prefers-reduced-motion rules in charge. */
+[data-motion="off"]{scroll-behavior:auto!important}
+[data-motion="off"] *,[data-motion="off"] *::before,[data-motion="off"] *::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+/* Density: Compact tightens desktop/tablet rows and card padding. Touch tokens never below 44 px (DEC-060); the phone shell and sheets keep 48 px. */
+[data-density="compact"] .app-shell{--hcc-touch-dense:44px;--hcc-touch-primary:44px}
+[data-density="compact"] .app-shell .card{margin-bottom:14px}
+[data-density="compact"] .app-shell .padded{padding:14px 16px}
+[data-density="compact"] .app-shell .section-title{padding:14px 16px}
+[data-density="compact"] .app-shell th{padding:8px 12px}
+[data-density="compact"] .app-shell td{padding:8px 12px}
+[data-density="compact"] .app-shell .content{padding-top:16px}
+
+/* Segmented control (≤ 4 options) */
+.pf-seg{display:inline-flex;flex-wrap:wrap;border:1px solid #cdb9a3;border-radius:8px;overflow:hidden;background:#fff;max-width:100%}
+.pf-seg button{border:0;background:#fff;color:#4a372c;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;min-height:38px;font-size:13px;font-weight:500;cursor:pointer}
+.pf-seg button+button{border-left:1px solid #e6d9c8}
+.pf-seg button.on{background:#7a1f2b;color:#fff;font-weight:600}
+.pf-seg button:focus-visible{outline:3px solid #7a1f2b;outline-offset:-3px}
+.pf-seg button.on:focus-visible{outline-color:#2b1d16}
+.pf-a{display:inline-flex;flex-direction:column;align-items:center;line-height:1.1;min-width:64px}
+.pf-a b{font-weight:700}
+.pf-a small{font-size:11px;margin-top:2px}
+.pf-seg-text button{padding:6px 12px}
+
+/* Desktop page */
+.pf-page{max-width:920px}
+.pf-card .section-title p{font-size:12px}
+.pf-body{display:flex;flex-direction:column;gap:18px}
+.pf-row{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap}
+.pf-row-label{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1 1 240px}
+.pf-row-label label,.pf-row-label span{font-size:14px;font-weight:600;color:#2b1d16}
+.pf-row-label small{font-size:12px;color:#6b5547;max-width:52ch}
+.pf-row-control{flex:0 1 auto;max-width:100%}
+.pf-row-control select{min-height:38px;font-size:13px;padding:6px 10px;border:1px solid #cdb9a3;border-radius:7px;background:#fff;color:#2b1d16;max-width:100%}
+.pf-sample{font-size:calc(16px * var(--hcc-text,1));color:#2b1d16;background:#faf6f0;border:1px dashed #cdb9a3;border-radius:8px;padding:12px 14px;margin:0;overflow-wrap:anywhere}
+.pf-static{font-size:13px;color:#6b5547}
+.pf-note{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#4a372c;margin:0}
+.pf-check{width:22px;height:22px;accent-color:#7a1f2b}
+
+/* Top-bar quick control: A− A+ and the page link */
+.pf-quick{display:inline-flex;border:1px solid #cdb9a3;border-radius:8px;overflow:hidden;background:#fff;flex-shrink:0}
+.pf-quick button{border:0;background:#fff;color:#4a372c;display:inline-flex;align-items:center;justify-content:center;min-height:32px;min-width:32px;padding:4px 7px;cursor:pointer}
+.pf-quick button+button{border-left:1px solid #e6d9c8}
+.pf-quick button:disabled{color:#a8968a;cursor:default}
+.pf-quick button:focus-visible{outline:3px solid #7a1f2b;outline-offset:-3px}
+@media screen and (pointer:coarse) and (min-width:600px){.app-shell .topbar-right .pf-quick{display:none!important}}
+
+/* Phone page and user-menu sheet: 48 px targets, 16 px text, cards, no sideways scroll at 360 px */
+.pf-m-page{display:flex;flex-direction:column;gap:14px;padding:4px 0 24px;min-width:0}
+.pf-m-card{background:#fff;border:1px solid #e6d9c8;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.pf-m-card h2{font-size:18px;margin:0;color:#2b1d16}
+.pf-m-scope{font-size:14px;color:#6b5547;margin:-8px 0 0}
+.pf-m-field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pf-m-label{font-size:16px;font-weight:600;color:#2b1d16}
+.pf-m-field small,.pf-m-toggle small{font-size:14px;color:#6b5547}
+.pf-m-field select{min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cdb9a3;border-radius:8px;background:#fff;color:#2b1d16;width:100%;max-width:100%}
+.pf-m-toggle{display:flex;gap:12px;align-items:flex-start;min-height:48px}
+.pf-m-toggle span{display:flex;flex-direction:column;gap:4px;font-size:16px}
+.pf-m-toggle .pf-check{margin-top:2px;flex-shrink:0}
+.pf-m-note{display:flex;gap:8px;align-items:flex-start;font-size:16px;color:#4a372c;margin:0}
+.pf-m-page .pf-static{font-size:16px}
+.pf-m-page .pf-seg,.m-sheet-form .pf-seg{display:flex;width:100%}
+.pf-m-page .pf-seg button,.m-sheet-form .pf-seg button{flex:1 1 0;min-width:0;min-height:48px;font-size:16px;padding:8px 6px;text-align:center;white-space:normal}
+.pf-m-page .pf-a,.m-sheet-form .pf-a{min-width:0}
+.pf-m-page .pf-a small,.m-sheet-form .pf-a small{font-size:14px}

@@ -32,6 +32,8 @@ import {DayClosing} from '../features/closing/DayClosing';
 import {Reports} from '../features/reports/Reports';
 import {AccessControl} from '../features/admin/AccessControl';
 import {HotelSettings} from '../features/admin/HotelSettings';
+import {useApplyPrefs,usePrefs,toastMs,resolveStartPage} from './prefs'; // CP-1 personal preferences (this device)
+import {TextSizeQuick} from '../features/prefs/parts';
 
 const SESSION_KEY='hcc-session'; // staff picked on this device (per device, not hotel data)
 const readSession=(s:State)=>{try{const id=localStorage.getItem(SESSION_KEY);return s.users.find(u=>u.id===id&&u.enabled)?id:null;}catch{return null;}};
@@ -41,6 +43,7 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 
 /** Production build (W4-0): server sign-in, then the same shell over the server state (sync layer). Prototype: demo state. */
 export function App(){
+  useApplyPrefs(); // CP-1: --hcc-text, data-density, data-motion on <html> from boot (loading and sign-in screens too)
   return process.env.HCC_BUILD==='production'?<ProductionApp render={b=><AppShell initial={{state:b.state,reset:false}} server={b}/>}/>:<PrototypeApp/>;
 }
 
@@ -69,7 +72,10 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const uid=process.env.HCC_BUILD==='production'&&server?server.uid:uidLocal;
   const [signedInLocal,setSignedIn]=useState(()=>!!readSession(initial.state));
   const signedIn=process.env.HCC_BUILD==='production'&&server?true:signedInLocal;
-  const [page,setPage]=useState(HOME_PAGE);
+  const prefsApi=usePrefs();const prefsRef=useRef(prefsApi.prefs);prefsRef.current=prefsApi.prefs;
+  // CP-1 C1: start page after sign-in = the device preference when this user may open it, else Modules Home.
+  const startFor=(st:State,id:string)=>resolveStartPage(st.users.find(u=>u.id===id)?.role??'',prefsRef.current.startPage,navFilterModules(st,navItems,id).filter(n=>can(st,id,n.p)).map(n=>n.id));
+  const [page,setPage]=useState(()=>signedIn?startFor(s,uid):HOME_PAGE);
   const [modal,setModal]=useState<Modal>(null);
   const [notice,setNotice]=useState<{text:string;error?:boolean}|null>(initial.reset?{text:initial.reason!,error:false}:null);
   const [error,setError]=useState('');
@@ -101,7 +107,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const catOk=(()=>{const c=parseCatPage(page);return !c||pagesOfCategory(c).some(p=>allowedIds.includes(p));})();
   const current=page===HOME_PAGE||(parseCatPage(page)&&catOk)?page:page==='more'&&display.isMobile?'more':allowedIds.includes(page)?page:HOME_PAGE;
 
-  const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotice(null),6500);},[]);
+  const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);const ms=toastMs(prefsRef.current.toastSeconds);if(ms!==null)toastTimer.current=window.setTimeout(()=>setNotice(null),ms);},[]); // CP-1 E1: duration from prefs (6.5 s default)
   function persist(next:State){setS(next);stateRef.current=next;if(!saveStored(next))setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true});}
   const open=(x:{type:string;id?:string;room?:string})=>{
     if(offline&&x.type==='new'){toast(READ_ONLY_HINT,true);return;} // APK12-5: no new booking while the server is unreachable
@@ -189,9 +195,9 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   }
   function switchUser(id:string){
     const u=s.users.find(x=>x.id===id);setUid(id);setModal(null);setError('');setSearch('');setFilter('All');
-    if(u){writeSession(id);go(HOME_PAGE,{replace:true});}
+    if(u){writeSession(id);go(startFor(s,id),{replace:true});}
   }
-  function signIn(id:string){setUid(id);setSignedIn(true);writeSession(id);setPage(HOME_PAGE);setModal(null);setError('');setSearch('');setFilter('All');}
+  function signIn(id:string){setUid(id);setSignedIn(true);writeSession(id);{const p=startFor(s,id);setPage(p);try{history.replaceState({hcc:'page',page:p,idx:histIdx()},'');}catch{/* history unavailable */}}setModal(null);setError('');setSearch('');setFilter('All');}
   function signOut(){void clearExports();if(process.env.HCC_BUILD==='production'&&server)server.signOut();cancelBackFallback();writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
   // FY26 is built in the scenario worker so a scenario switch or reset does not freeze the page (audit P-01).
   async function loadScenario(id:string){cancelBackFallback();if(busyRef.current)return;
@@ -209,7 +215,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const taskList=s.tasks.filter(t=>(!assignedScopeRoles.includes(user.role)||t.assignee===uid)&&!(t.status==='Done'&&t.date&&t.date<addDays(s.date,-2)));
   const roomStatus=(r:Room)=>statusOf(s,r);
 
-  const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>{cancelBackFallback();setSearchOpen(true);},openMenu:()=>{cancelBackFallback();setMenuOpen(true);},signOut};
+  const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>{cancelBackFallback();setSearchOpen(true);},openMenu:()=>{cancelBackFallback();setMenuOpen(true);},signOut,prefs:prefsApi};
   const pages:Record<string,()=>React.ReactNode>={overview:()=><Overview/>,rooms:()=><RoomBoard/>,reservations:()=><Reservations/>,folios:()=><Reservations folio/>,housekeeping:()=><Housekeeping/>,expenses:()=><Expenses/>,closing:()=><DayClosing/>,reports:()=><Reports/>,access:()=><AccessControl/>,settings:()=><HotelSettings/>};
   for(const [id,Page] of Object.entries(extraPages))pages[id]=()=><Page/>;
   useEffect(()=>{if(!signedIn)return;const l=navItems.find(n=>n.id===current)?.label;document.title=(l?l+' · ':'')+'Hotel Control Centre';},[current,signedIn]);
@@ -238,6 +244,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
             <span className="demo-badge">DEMO — FICTIONAL DATA</span></>}
             <span className="current-user">{user.name.split(' · ')[0]} · {user.role}</span>
             <button type="button" className="search-btn topbar-signout" onClick={signOut}><LogOut size={16}/>Sign out</button>
+            <TextSizeQuick/>
             <DisplayToggle display={display} compact/>
           </div>
         </header>

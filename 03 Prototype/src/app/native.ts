@@ -166,3 +166,22 @@ export async function printDocument():Promise<SaveResult|'printed'>{
   const css=Array.from(document.querySelectorAll('style')).map(s=>s.textContent??'').join('\n');
   return printPage(title,printablePage(title,html,css));
 }
+
+// ── Android system font size switch (CP-4) ──
+// The APK's TextZoom plugin (04 Android … TextZoomPlugin.java) decides whether the web view follows Android's own "Font size" setting.
+// Everything below is a no-op / undefined outside the APK, or in an older APK that has no TextZoom plugin. Never throws.
+/** The native TextZoom plugin (`getTextZoom()` → {zoom, systemScale, honour}; `setHonourSystem({honour})`), or undefined in a browser / an APK without it. */
+export function textZoomPlugin():Plugin|undefined{
+  if(!isNative()||!nativePluginAvailable('TextZoom'))return undefined;
+  return nativePlugin('TextZoom');
+}
+/** Switches "follow the Android font size" on or off (stored on the device and applied at every start). Resolves true when the APK applied it. */
+export async function setHonourSystemFont(flag:boolean):Promise<boolean>{
+  const p=textZoomPlugin();if(!p?.setHonourSystem)return false;
+  try{await p.setHonourSystem({honour:!!flag});return true;}catch{return false;}
+}
+/** The Android font-size setting as a multiplier (1 = normal, 1.3 ≈ "Largest"), or undefined when not running in the APK / the value is unusable. */
+export async function readSystemFontScale():Promise<number|undefined>{
+  const p=textZoomPlugin();if(!p?.getTextZoom)return undefined;
+  try{const r=await p.getTextZoom();const s=Number(r?.systemScale);return Number.isFinite(s)&&s>0?s:undefined;}catch{return undefined;}
+}

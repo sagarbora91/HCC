@@ -32,6 +32,8 @@ export type Ctx={
   openMenu:()=>void;
   /** Back to the staff-picker sign-in screen. */
   signOut:()=>void;
+  /** CP-1 personal preferences of this device (app/prefs.ts; components may also call usePrefs() directly). */
+  prefs?:import('./prefs').PrefsApi;
 };
 export const HccContext=createContext<Ctx|null>(null);
 export function useHcc(){const c=useContext(HccContext);if(!c)throw new Error('HccContext missing');return c;}
