@@ -15,3 +15,4 @@ export * from './guestid';
 export * from './payfiles';
 export {staffFromServer} from './staff';
 export {createHttpTransport,dispositionFileName} from '../http';
+export {loadServerReport,loadServerHistory,closingFromDailyView,todayFigures,fyMonths,REPORT_MAX_DAYS,SERVER_DETAIL_NOTE} from './reports';

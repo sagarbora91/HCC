@@ -1,18 +1,21 @@
 // MB-08 pure helpers for the phone admin / closing / reports screens. They only re-shape the SAME selectors the desktop
 // pages use (closingPreflight, reportPack, adminApprovalInbox, adminDecideBlock…) so every figure is identical on both.
 import {isDayClosed,closingPreflight,closingNightTargets,closingHasNight,shiftStatus,reportPackMemo,adminDecideBlock,adminExpenseBlock,adminOtherActiveOwners,authorize,adminUserActive,can,reportRangeLimit} from '../../services/mock';
+import {REPORT_MAX_DAYS} from '../../clients/sync/reports';
 import type {State,User,Expense,ReportPack,ReportMetric,AdminInboxRow,AdminAuditFilter} from '../../services/mock';
 
 // ───────────── Reports (M19) ─────────────
 export const MA_REPORT_CHIPS=[{id:'daily',label:'Operations'},{id:'revenue',label:'Revenue & tax'},{id:'receipts',label:'Receipts'},{id:'expenses',label:'Expenses & cash'},{id:'occupancy',label:'Occupancy'}] as const;
 export type MaReportTabId=typeof MA_REPORT_CHIPS[number]['id'];
 export const MA_MAX_RANGE_DAYS=62;
+/** Longest report range: the server report allows 31 business dates; the demo allows reportRangeLimit. */
+export const maLimit=(s:State)=>process.env.HCC_BUILD==='production'?REPORT_MAX_DAYS:reportRangeLimit(s);
 /** Same validation as the desktop Reports page (ISO dates, from ≤ to ≤ business date, ≤ 62 days). */
 export function maRangeCheck(from:string,to:string,today:string,maxDays=MA_MAX_RANGE_DAYS):{ok:boolean;span:number;error?:string}{
   const iso=/^\d{4}-\d{2}-\d{2}$/;
   if(!iso.test(from)||!iso.test(to)||from>to||to>today)return {ok:false,span:0,error:`Choose a valid range: “from” on or before “to”, and not after today’s business date.`};
   const span=Math.round((Date.parse(to)-Date.parse(from))/86400000)+1;
-  if(span>maxDays)return {ok:false,span,error:`Choose at most ${maxDays} days in this demo.`};
+  if(span>maxDays)return {ok:false,span,error:`Choose at most ${maxDays} days${process.env.HCC_BUILD==='production'?' (the server report limit)':' in this demo'}.`};
   return {ok:true,span};
 }
 export const maMaskName=(n?:string)=>n?n.split(' ').map(w=>w[0]+'•••').join(' '):n;
@@ -24,7 +27,7 @@ export function maScopedPack(pack:ReportPack,mask:boolean):ReportPack{
 }
 /** The report pack for the phone: reportPack() + masking, or null when the range is invalid. */
 export function maReportPack(s:State,uid:string,from:string,to:string):ReportPack|null{
-  return maRangeCheck(from,to,s.date,reportRangeLimit(s)).ok?maScopedPack(reportPackMemo(s,from,to),maMaskReports(s,uid)):null;
+  return maRangeCheck(from,to,s.date,maLimit(s)).ok?maScopedPack(reportPackMemo(s,from,to),maMaskReports(s,uid)):null;
 }
 /** Sum of the drill-down rows shown as cards — must equal the KPI figure. */
 export const maDrillTotal=(m:ReportMetric)=>m.rows.reduce((a,r)=>a+r.amount,0);

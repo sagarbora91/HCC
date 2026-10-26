@@ -1,7 +1,8 @@
 // App shell: state, the single run() command path, navigation, header and demo toolbar.
 import React,{useState,useRef,useMemo,useCallback,useEffect} from 'react';
 import {Search,Hotel,Menu,CalendarDays,AlertCircle,CheckCircle2,X,Clock,Wifi,LogOut} from 'lucide-react';
-import {State,Command,Permission,Room,addDays,metrics,can,roomStatus as statusOf,errorTitle,codeOf,assignedScopeRoles,isDayClosed} from '../services/mock';
+import {useMetrics} from './useMetrics';
+import {State,Command,Permission,Room,addDays,can,roomStatus as statusOf,errorTitle,codeOf,assignedScopeRoles,isDayClosed} from '../services/mock';
 import {executeWithFault,FaultMode,LATENCY_MS} from '../services/mock/faults';
 import {HccContext,Ctx,Modal,RunOptions} from './context';
 import {loadStored,saveStored,onStorageError} from './storage';
@@ -92,7 +93,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     onStorageError(()=>setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true}));},[]);
 
   const user=s.users.find(u=>u.id===uid)??s.users[0];
-  const m=metrics(s);
+  const m=useMetrics(s,uid);
   const allowedIds=navFilterModules(s,navItems,uid).filter(n=>can(s,uid,n.p)).map(n=>n.id);
   // V11-7: a module page left over from another role (Back after a role switch) with nothing for this user shows the role's home instead
   const catOk=(()=>{const c=parseCatPage(page);return !c||pagesOfCategory(c).some(p=>allowedIds.includes(p));})();
