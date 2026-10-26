@@ -5,7 +5,7 @@
 import React,{useState} from 'react';
 import {Lock,CalendarClock,Search,ChevronRight} from 'lucide-react';
 import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRATIVE,authorize,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
-  type CfgGroupId,type CfgSettingDef} from '../../services/mock';
+  type CfgGroupId,type CfgSettingDef,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {GuardedButton} from './parts';
@@ -78,7 +78,7 @@ function Tariffs({block}:{block?:string}){
       <GuardedButton className="btn primary" block={block} busy={busy} onClick={()=>open({type:'admin-tariff'})}><CalendarClock size={16}/> Schedule tariff</GuardedButton></div>
     <div className="table-wrap"><table className="adm-table"><thead><tr><th>Room type</th><th>Rooms</th><th>Base (fixture)</th><th>Today ({shortDate(s.date)})</th><th>Scheduled</th><th></th></tr></thead><tbody>
       {types.map(t=>{const room=s.rooms.find(r=>r.type===t)!;const sched=(s.tariffs||[]).filter(x=>x.type===t).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1);
-        return <tr key={t}><td><strong>{t}</strong></td><td>{s.rooms.filter(r=>r.type===t).length}</td><td>{money(adminBaseRate(s,t))}</td><td><strong>{money(rateFor(s,room,s.date))}</strong></td>
+        return <tr key={t}><td><strong>{rmsTypeName(s,t)}</strong></td><td>{s.rooms.filter(r=>r.type===t).length}</td><td>{money(adminBaseRate(s,t))}</td><td><strong>{money(rateFor(s,room,s.date))}</strong></td>
           <td className="adm-wrap">{sched.length?sched.map(x=><div key={x.effectiveFrom} className="adm-sched">{money(x.rate)} from {shortDate(x.effectiveFrom)}{x.effectiveFrom<=s.date?<Pill tone="green">In effect</Pill>:<><Pill tone="blue">Future</Pill><GuardedButton className="text-btn" block={block} busy={busy} onClick={()=>run({type:'TARIFF_SCHEDULE',roomType:t,effectiveFrom:x.effectiveFrom,remove:true,key:`tariff-rm:${t}:${x.effectiveFrom}:${s.sequence}`},'Future tariff withdrawn')}>Withdraw</GuardedButton></>}</div>):<span className="muted">None</span>}</td>
           <td><GuardedButton className="text-btn" block={block} busy={busy} onClick={()=>open({type:'admin-tariff',room:t})}>Schedule…</GuardedButton></td></tr>;})}
     </tbody></table></div></div>;

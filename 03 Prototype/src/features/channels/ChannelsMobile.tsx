@@ -2,7 +2,7 @@
 import React from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {RefreshCw,Send,Printer} from 'lucide-react';
-import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,CHN_PUSH_DAYS} from '../../services/mock';
+import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,CHN_PUSH_DAYS,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate,clockTime} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
@@ -26,14 +26,14 @@ export function ChannelsMobile(){
     {t==='channels'&&process.env.HCC_BUILD==='production'&&(permission('approve')?<button className="btn" onClick={()=>open({type:'chn-channel',id:'new'})}>Add channel</button>:!st.channels.length&&<p className="chn-muted">No channels yet. A Manager or Owner adds the first one.</p>)}
     {t==='channels'&&st.channels.map(c=><section key={c.id} className="chn-mcard">
       <ListCard title={c.name} sub={c.statusNote} meta={`Commission ${chnPct(c.commissionBps)} · markup ${chnPct(c.markupBps)} · last sync ${c.lastSync?clockTime(c.lastSync):'never'}`} right={<ChnPill status={c.status}/>} onClick={()=>open({type:'chn-channel',id:c.id})}/>
-      <div className="chn-mstop">{chnRoomTypes(s).map(type=><div key={type}><span>{type}<small>{c.mapping[type]||'Not mapped'}</small></span>{c.mapping[type]?<StopSellToggle c={c} type={type}/>:<span className="chn-muted">—</span>}</div>)}</div>
+      <div className="chn-mstop">{chnRoomTypes(s).map(type=><div key={type}><span>{rmsTypeName(s,type)}<small>{c.mapping[type]||'Not mapped'}</small></span>{c.mapping[type]?<StopSellToggle c={c} type={type}/>:<span className="chn-muted">—</span>}</div>)}</div>
     </section>)}
     {t==='push'&&<>
       <label className="m-field-label chn-mselect">Channel<select value={ch} onChange={e=>setCh(e.target.value)}>{st.channels.map(c=><option key={c.id} value={c.id}>{c.name} · {c.status}</option>)}</select></label>
       <p className="chn-muted">Next {CHN_PUSH_DAYS} nights · rooms free and rate incl. {pc?chnPct(pc.markupBps):'0%'} markup.</p>
       {chnPushPreview(s,ch).unmapped.length>0&&<p className="chn-muted">Not mapped: {chnPushPreview(s,ch).unmapped.join(', ')}</p>}
       {[...new Set(chnPushPreview(s,ch).rows.map(r=>r.type))].map(type=>{const rows=chnPushPreview(s,ch).rows.filter(r=>r.type===type);
-        return <section key={type} className="chn-mpush"><h3>{type} <small>{rows[0].code}</small></h3>
+        return <section key={type} className="chn-mpush"><h3>{rmsTypeName(s,type)} <small>{rows[0].code}</small></h3>
           <ul>{rows.map(r=><li key={r.date} className={r.closed?'closed':''}><span>{shortDate(r.date)}</span><b>{r.closed?'Closed':`${r.avail} left`}</b><small>{r.closed?r.why:money(r.rate)}</small></li>)}</ul></section>;})}
       {!chnPushPreview(s,ch).rows.length&&<Empty title="Nothing to push" body="Map a room type on desktop or in the channel sheet."/>}
       <StickyFooter><button className="btn primary" disabled={busy||pc?.status!=='Connected'||!chnPushPreview(s,ch).rows.length} onClick={()=>run({type:'CHN_PUSH',channel:ch},`Pushed to ${pc?.name} (simulated)`)}><Send size={18}/> {pc?.status==='Connected'?`Push to ${pc.name}`:`${pc?.name??'Channel'} not connected`}</button></StickyFooter></>}

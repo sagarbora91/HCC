@@ -2,7 +2,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Check,X,Printer} from 'lucide-react';
-import {money,chnSlice,chnAcceptCheck,chnChannelName,chnFreeRooms,chnRoomTypes,chnPct,chnOriginal,chnWebStatus,CHN_MAX_COMMISSION_BPS,CHN_MAX_MARKUP_BPS,rmsRoomLine} from '../../services/mock';
+import {money,chnSlice,chnAcceptCheck,chnChannelName,chnFreeRooms,chnRoomTypes,chnPct,chnOriginal,chnWebStatus,CHN_MAX_COMMISSION_BPS,CHN_MAX_MARKUP_BPS,rmsRoomLine,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import type {ModalProps} from '../../app/registry';
 import {clockTime,shortDate,dateLabel} from '../../components/ui';
@@ -69,7 +69,7 @@ export function ChannelModal({id}:ModalProps){
       <label>Rate markup %<input inputMode="decimal" enterKeyHint="next" value={mk} onChange={e=>setMk(e.target.value)}/><small>0–{chnPct(CHN_MAX_MARKUP_BPS)} added to the hotel tariff when pushed</small></label>
     </div>
     <fieldset className="chn-fieldset"><legend>Room type → channel room code</legend>
-      {types.map(t=><label key={t}>{t}<input value={map[t]||''} autoCapitalize="characters" maxLength={20} placeholder="Not mapped" onChange={e=>setMap({...map,[t]:e.target.value.toUpperCase()})}/></label>)}
+      {types.map(t=><label key={t}>{rmsTypeName(s,t)}<input value={map[t]||''} autoCapitalize="characters" maxLength={20} placeholder="Not mapped" onChange={e=>setMap({...map,[t]:e.target.value.toUpperCase()})}/></label>)}
       <small>Leave blank to stop selling that room type on {c?.name??'this channel'}. Codes: 2–20 letters, digits or dashes; unique per channel.</small></fieldset>
     </fieldset>
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>{ro?'Close':'Cancel'}</button>{!ro&&<button className="btn primary" disabled={busy}><Check size={15}/> Save</button>}</div>
