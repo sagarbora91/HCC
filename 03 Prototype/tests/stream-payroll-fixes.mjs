@@ -46,6 +46,9 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id});
     const old=S(s,'HR-S05').accountNo;assert.equal(M.hrRunFor(s,'2026-09').bank['HR-S05'].accountNo,old);
     s=execute(s,'accountant',staffCmd(S(s,'HR-S05'),{accountNo:'999999999999',ifsc:'EVIL0000001'}));
+    // DEC-084: the Accountant's change waits for the Owner; once approved the staff master changes (future runs).
+    assert.equal(S(s,'HR-S05').accountNo,old,'not applied before the Owner approves');
+    s=execute(s,'owner',{type:'HR_REQUEST_DECIDE',id:M.hrPendingRequests(s,'bank')[0].id,approve:true});
     assert.equal(S(s,'HR-S05').accountNo,'999999999999','the staff master changes (future runs)');
     const row=M.hrBankCsv(s,M.hrRunFor(s,'2026-09')).split('\n').find(l=>l.includes(',HR-S05,'));
     assert.ok(row.includes("'"+old)&&!row.includes('999999999999')&&!row.includes('EVIL'),row);

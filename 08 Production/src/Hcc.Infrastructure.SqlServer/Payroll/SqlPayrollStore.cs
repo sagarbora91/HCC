@@ -280,10 +280,187 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c3, "@ids", SqlDbType.VarChar, -1, ids);
         P(c3, "@p", SqlDbType.Int, propertyId);
         var leaves = await ReadAsync(c3, MapSpan, ct).ConfigureAwait(false);
+        // DEC-083: the property's paid holidays in the range (the same for every staff member).
+        var c4 = Cmd("SELECT holiday_date, name FROM hr.holiday WHERE property_id = @p AND holiday_date BETWEEN @f AND @t;");
+        P(c4, "@p", SqlDbType.Int, propertyId);
+        P(c4, "@f", SqlDbType.Date, from.ToDateTime(TimeOnly.MinValue));
+        P(c4, "@t", SqlDbType.Date, to.ToDateTime(TimeOnly.MinValue));
+        var holidays = (await ReadAsync(c4, r => (D(r, 0), r.GetString(1)), ct).ConfigureAwait(false)).ToDictionary(x => x.Item1, x => x.Item2);
         foreach (var id in staffIds)
             result[id] = new StaffDays(roster.Where(x => x.Item1 == id).ToDictionary(x => x.Item2, x => x.Item3),
-                att.Where(x => x.Item1 == id).ToDictionary(x => x.m.Date, x => x.m), leaves.Where(l => l.StaffId == id).ToList());
+                att.Where(x => x.Item1 == id).ToDictionary(x => x.m.Date, x => x.m), leaves.Where(l => l.StaffId == id).ToList(), holidays);
         return result;
+    }
+
+    // ── DEC-083 paid holidays ──
+
+    public async Task<IReadOnlyList<HolidayRow>> HolidaysAsync(int propertyId, CancellationToken ct)
+    {
+        var c = Cmd("SELECT holiday_date, name FROM hr.holiday WHERE property_id = @p ORDER BY holiday_date;");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        return await ReadAsync(c, r => new HolidayRow(D(r, 0), r.GetString(1)), ct).ConfigureAwait(false);
+    }
+
+    public async Task<string?> UpsertHolidayAsync(int propertyId, DateOnly date, string name, int by, DateTime utc, CancellationToken ct)
+    {
+        var c = Cmd("""
+            DECLARE @old NVARCHAR(60) = (SELECT name FROM hr.holiday WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND holiday_date = @d);
+            IF @old IS NULL INSERT hr.holiday(property_id, holiday_date, name, set_by, set_utc) VALUES (@p, @d, @n, @by, @at);
+            ELSE UPDATE hr.holiday SET name = @n, set_by = @by, set_utc = @at WHERE property_id = @p AND holiday_date = @d;
+            SELECT @old;
+            """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+        P(c, "@n", SqlDbType.NVarChar, 60, name);
+        P(c, "@by", SqlDbType.Int, by);
+        P(c, "@at", SqlDbType.DateTime2, utc);
+        return await ScalarAsync(c, ct).ConfigureAwait(false) as string;
+    }
+
+    public async Task<string?> DeleteHolidayAsync(int propertyId, DateOnly date, CancellationToken ct)
+    {
+        var c = Cmd("DELETE hr.holiday OUTPUT DELETED.name WHERE property_id = @p AND holiday_date = @d;");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+        return await ScalarAsync(c, ct).ConfigureAwait(false) as string;
+    }
+
+    // ── DEC-075 / DEC-084 requests (hr.change_request) ──
+
+    private const string RequestColumns = """
+        request_id, property_id, kind, staff_id, work_date, before_json, after_json, pay_effect_paise, reason, status, direct, requested_by, requested_utc,
+        decided_by, decided_utc, decision_reason, row_ver
+        """;
+
+    private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
+    private sealed record EntryJson(string Kind, string? Status, int OtMinutes, string? LeaveType);
+
+    private sealed record BankJson(string? BankName, string? AccountNo, string? Ifsc);
+
+    private static string? EntryToJson(DayEntry? e) => e is null ? null
+        : JsonSerializer.Serialize(new EntryJson(e.Kind.ToString().ToLowerInvariant(), e.Status?.ToString(), e.OtMinutes, e.LeaveType?.ToString()), WebJson);
+
+    private static DayEntry? EntryFromJson(string? json)
+    {
+        if (json is null) return null;
+        var x = JsonSerializer.Deserialize<EntryJson>(json, WebJson) ?? throw new InvalidOperationException("Empty day entry.");
+        return x.Kind switch
+        {
+            "mark" => DayEntry.Mark(Enum.Parse<AttendanceStatus>(x.Status!), x.OtMinutes),
+            "leave" => DayEntry.Leave(Enum.Parse<LeaveType>(x.LeaveType!)),
+            _ => DayEntry.Unmarked,
+        };
+    }
+
+    private static string? BankToJson(BankChange? b) => b is null ? null : JsonSerializer.Serialize(new BankJson(b.BankName, b.AccountNo, b.Ifsc), WebJson);
+
+    private static BankChange? BankFromJson(string? json) =>
+        json is null ? null : JsonSerializer.Deserialize<BankJson>(json, WebJson) is { } x ? new BankChange(x.BankName, x.AccountNo, x.Ifsc) : null;
+
+    private static PayrollRequestRow MapRequest(SqlDataReader r)
+    {
+        var kind = r.GetString(2);
+        var bank = kind == PayrollRequests.Bank;
+        string? before = S(r, 5), after = r.GetString(6);
+        return new PayrollRequestRow(r.GetInt64(0), r.GetInt32(1), kind, r.GetInt64(3), r.IsDBNull(4) ? null : D(r, 4),
+            bank ? null : EntryFromJson(before), bank ? null : EntryFromJson(after), bank ? BankFromJson(before) : null, bank ? BankFromJson(after) : null,
+            r.IsDBNull(7) ? null : r.GetInt64(7), r.GetString(8), r.GetString(9), r.GetBoolean(10), r.GetInt32(11), DateTime.SpecifyKind(r.GetDateTime(12), DateTimeKind.Utc),
+            r.IsDBNull(13) ? null : r.GetInt32(13), r.IsDBNull(14) ? null : DateTime.SpecifyKind(r.GetDateTime(14), DateTimeKind.Utc), S(r, 15), V(r, 16));
+    }
+
+    public async Task DeleteAttendanceAsync(long staffId, DateOnly date, CancellationToken ct)
+    {
+        var c = Cmd("DELETE hr.attendance WHERE staff_id = @s AND work_date = @d;");
+        P(c, "@s", SqlDbType.BigInt, staffId);
+        P(c, "@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+        await ExecAsync(c, ct).ConfigureAwait(false);
+    }
+
+    public async Task<long> InsertCorrectionLeaveAsync(int propertyId, LeaveSpan span, string reason, int requestedBy, int decidedBy, long requestId, DateTime utc,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(span);
+        var c = Cmd("""
+            INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, half, days_x2, reason, status, requested_by, requested_utc, decided_by, decided_utc,
+                                    note, correction_id)
+            OUTPUT INSERTED.leave_id
+            VALUES (@p, @s, @ty, @f, @t, NULL, @dx, @r, 'Approved', @rb, @at, @db, @at, @n, @c);
+            """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@s", SqlDbType.BigInt, span.StaffId);
+        P(c, "@ty", SqlDbType.VarChar, 3, span.Type.ToString());
+        P(c, "@f", SqlDbType.Date, span.From.ToDateTime(TimeOnly.MinValue));
+        P(c, "@t", SqlDbType.Date, span.To.ToDateTime(TimeOnly.MinValue));
+        P(c, "@dx", SqlDbType.SmallInt, (short)(span.Days * 2));
+        P(c, "@r", SqlDbType.NVarChar, 200, reason);
+        P(c, "@rb", SqlDbType.Int, requestedBy);
+        P(c, "@db", SqlDbType.Int, decidedBy);
+        P(c, "@at", SqlDbType.DateTime2, utc);
+        P(c, "@n", SqlDbType.NVarChar, 200, "Back-dated by attendance correction " + requestId.ToString(CultureInfo.InvariantCulture));
+        P(c, "@c", SqlDbType.BigInt, requestId);
+        return Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
+    }
+
+    public async Task<PayrollRequestRow> InsertRequestAsync(NewPayrollRequest request, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var bank = request.Kind == PayrollRequests.Bank;
+        var c = Cmd("""
+            INSERT hr.change_request(property_id, kind, staff_id, work_date, before_json, after_json, pay_effect_paise, reason, status, direct, requested_by, requested_utc,
+                                     decided_by, decided_utc)
+            OUTPUT INSERTED.request_id
+            VALUES (@p, @k, @s, @d, @b, @a, @e, @r, @st, @dir, @by, @at, @db, @dat);
+            """);
+        P(c, "@p", SqlDbType.Int, request.PropertyId);
+        P(c, "@k", SqlDbType.VarChar, 10, request.Kind);
+        P(c, "@s", SqlDbType.BigInt, request.StaffId);
+        P(c, "@d", SqlDbType.Date, request.Date?.ToDateTime(TimeOnly.MinValue));
+        P(c, "@b", SqlDbType.NVarChar, 400, bank ? BankToJson(request.BankBefore) : EntryToJson(request.Before));
+        P(c, "@a", SqlDbType.NVarChar, 400, bank ? BankToJson(request.BankAfter) : EntryToJson(request.After));
+        P(c, "@e", SqlDbType.BigInt, request.PayEffect);
+        P(c, "@r", SqlDbType.NVarChar, 200, request.Reason);
+        P(c, "@st", SqlDbType.VarChar, 9, request.Direct ? PayrollRequests.Approved : PayrollRequests.Pending);
+        P(c, "@dir", SqlDbType.Bit, request.Direct);
+        P(c, "@by", SqlDbType.Int, request.By);
+        P(c, "@at", SqlDbType.DateTime2, request.Utc);
+        P(c, "@db", SqlDbType.Int, request.Direct ? request.By : null);
+        P(c, "@dat", SqlDbType.DateTime2, request.Direct ? request.Utc : null);
+        var id = Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
+        return (await RequestAsync(request.PropertyId, id, lockRow: false, ct).ConfigureAwait(false))!;
+    }
+
+    public async Task<PayrollRequestRow?> RequestAsync(int propertyId, long requestId, bool lockRow, CancellationToken ct)
+    {
+        var c = Cmd($"SELECT {RequestColumns} FROM hr.change_request {(lockRow ? "WITH (UPDLOCK)" : "")} WHERE request_id = @id AND property_id = @p;");
+        P(c, "@id", SqlDbType.BigInt, requestId);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        return (await ReadAsync(c, MapRequest, ct).ConfigureAwait(false)).FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyList<PayrollRequestRow>> RequestsAsync(int propertyId, string? status, CancellationToken ct)
+    {
+        var c = Cmd($"SELECT {RequestColumns} FROM hr.change_request WHERE property_id = @p AND (@st IS NULL OR status = @st) ORDER BY request_id;");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@st", SqlDbType.VarChar, 9, status);
+        return await ReadAsync(c, MapRequest, ct).ConfigureAwait(false);
+    }
+
+    public async Task<string> DecideRequestAsync(long requestId, string expectedVersion, string status, int by, DateTime utc, string? note, CancellationToken ct)
+    {
+        var c = Cmd("""
+            UPDATE hr.change_request SET status = @st, decided_by = @by, decided_utc = @at, decision_reason = @n
+            OUTPUT INSERTED.row_ver WHERE request_id = @id AND row_ver = @v AND status = 'Pending';
+            """);
+        P(c, "@id", SqlDbType.BigInt, requestId);
+        P(c, "@st", SqlDbType.VarChar, 9, status);
+        P(c, "@by", SqlDbType.Int, by);
+        P(c, "@at", SqlDbType.DateTime2, utc);
+        P(c, "@n", SqlDbType.NVarChar, 200, note);
+        P(c, "@v", SqlDbType.Binary, 8, SqlValues.RowVersionFromWire(expectedVersion));
+        var v = await ScalarAsync(c, ct).ConfigureAwait(false) as byte[];
+        SqlValues.EnsureVersionMatched(v is null ? 0 : 1, "The request");
+        return SqlValues.RowVersionToWire(v!);
     }
 
     public async Task SetRosterAsync(long staffId, DateOnly date, ShiftCode shift, int by, DateTime utc, CancellationToken ct)

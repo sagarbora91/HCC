@@ -90,6 +90,34 @@ public sealed record PayrollBoardDetail(IReadOnlyList<RosterCell> Roster, IReadO
 /// <summary>ESIC coverage recorded on a locked run line (F-07 contribution period).</summary>
 public sealed record LockedCoverage(long StaffId, PayMonth Month, bool? Covered);
 
+/// <summary>DEC-083: a paid holiday of the property (hr.holiday).</summary>
+public sealed record HolidayRow(DateOnly Date, string Name);
+
+/// <summary>Bank details as a bank-change request holds them (full account number: the request applies it; screens and audit mask it).</summary>
+public sealed record BankChange(string? BankName, string? AccountNo, string? Ifsc);
+
+/// <summary>Payroll request kinds and statuses (hr.change_request, migration 3400).</summary>
+public static class PayrollRequests
+{
+    public const string Attendance = "attendance";
+    public const string Bank = "bank";
+    public const string Pending = "Pending";
+    public const string Approved = "Approved";
+    public const string Rejected = "Rejected";
+    public const string Withdrawn = "Withdrawn";
+}
+
+/// <summary>
+/// A payroll request as stored: DEC-075 attendance correction (date, before → after entry, gross pay change of the month) or DEC-084 bank-detail
+/// change (before → after details). <see cref="Direct"/> = applied at once without a checker (a correction that lowers or keeps pay, or the Owner's own).
+/// </summary>
+public sealed record PayrollRequestRow(long RequestId, int PropertyId, string Kind, long StaffId, DateOnly? Date, DayEntry? Before, DayEntry? After,
+    BankChange? BankBefore, BankChange? BankAfter, long? PayEffect, string Reason, string Status, bool Direct, int RequestedBy, DateTime RequestedUtc,
+    int? DecidedBy, DateTime? DecidedUtc, string? Note, string Version);
+
+public sealed record NewPayrollRequest(int PropertyId, string Kind, long StaffId, DateOnly? Date, DayEntry? Before, DayEntry? After, BankChange? BankBefore,
+    BankChange? BankAfter, long? PayEffect, string Reason, bool Direct, int By, DateTime Utc);
+
 /// <summary>
 /// Payroll persistence over one connection (inside a command transaction, or a read connection for queries). <c>Lock*</c> methods take
 /// UPDLOCK; money commands first take the property's payroll anchor (<see cref="LockAnchorAsync"/>). Lock order: anchor → department → staff
@@ -122,8 +150,34 @@ public interface IPayrollDb
 
     Task<int> LockedPayslipCountAsync(long staffId, CancellationToken ct);
 
-    /// <summary>Roster overrides and attendance in [from, to] and ALL leaves (any status, request order) for the given staff.</summary>
+    /// <summary>Roster overrides, attendance and the property's paid holidays in [from, to] and ALL leaves (any status, request order) for the given staff.</summary>
     Task<IReadOnlyDictionary<long, StaffDays>> DaysAsync(int propertyId, IReadOnlyCollection<long> staffIds, DateOnly from, DateOnly to, CancellationToken ct);
+
+    /// <summary>DEC-083: every paid holiday of the property, by date.</summary>
+    Task<IReadOnlyList<HolidayRow>> HolidaysAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>Adds or renames a holiday; returns the previous name (null when it was added).</summary>
+    Task<string?> UpsertHolidayAsync(int propertyId, DateOnly date, string name, int by, DateTime utc, CancellationToken ct);
+
+    /// <summary>Removes a holiday; returns its name (null when there was none).</summary>
+    Task<string?> DeleteHolidayAsync(int propertyId, DateOnly date, CancellationToken ct);
+
+    /// <summary>DEC-075: removes a day's attendance mark (the correction's request row keeps it as "before").</summary>
+    Task DeleteAttendanceAsync(long staffId, DateOnly date, CancellationToken ct);
+
+    /// <summary>DEC-075: a one-day approved leave created by an attendance correction (linked to its request; decided by the approver).</summary>
+    Task<long> InsertCorrectionLeaveAsync(int propertyId, LeaveSpan span, string reason, int requestedBy, int decidedBy, long requestId, DateTime utc,
+        CancellationToken ct);
+
+    Task<PayrollRequestRow> InsertRequestAsync(NewPayrollRequest request, CancellationToken ct);
+
+    Task<PayrollRequestRow?> RequestAsync(int propertyId, long requestId, bool lockRow, CancellationToken ct);
+
+    /// <summary>The property's requests (all, or only those in <paramref name="status"/>), oldest first.</summary>
+    Task<IReadOnlyList<PayrollRequestRow>> RequestsAsync(int propertyId, string? status, CancellationToken ct);
+
+    /// <summary>Pending → Approved / Rejected / Withdrawn, versioned (STALE_VERSION when the request changed).</summary>
+    Task<string> DecideRequestAsync(long requestId, string expectedVersion, string status, int by, DateTime utc, string? note, CancellationToken ct);
 
     Task SetRosterAsync(long staffId, DateOnly date, ShiftCode shift, int by, DateTime utc, CancellationToken ct);
 

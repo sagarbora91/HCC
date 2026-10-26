@@ -96,10 +96,13 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         var aug = await LockAsync(h, await PrepareAsync(h, "2026-08"));
         var ravi = h.S("HR-S05");
         var old = (string)(await db.ScalarAsync("SELECT account_no FROM hr.staff WHERE staff_id = @s;", ("@s", ravi)))!;
-        // Accountant edits Ravi's bank account after the lock.
+        // Accountant edits Ravi's bank account after the lock; DEC-084: it waits for the Owner, who approves it (masked in the audit).
         var save = await h.Payroll.SaveStaffAsync(h.As("accountant", PayrollService.OpSaveStaff), new SaveStaffRequest(ravi, await h.StaffVersionAsync(ravi), "Ravi Shinde", "HK",
             "Room attendant", "M", 5, LinkUserId: h.U("housekeeper"), AccountNo: "999999999999", Ifsc: "EVIL0000001"), Ct);
-        Assert.Contains("••••9999", save.Value.Notes, StringComparison.Ordinal);
+        var bankRequest = save.Value.BankRequestId!.Value;
+        await h.Payroll.DecidePayrollRequestAsync(h.As("owner", PayrollService.OpDecidePayrollRequest),
+            new DecidePayrollRequestRequest(bankRequest, await h.RowVersionAsync("hr.change_request", "request_id", bankRequest), true), Ct);
+        Assert.Contains("••••9999", (string)(await db.ScalarAsync("SELECT STRING_AGG(detail, '|') FROM plat.audit_event WHERE action = 'HR_BANK_CHANGE_APPROVED';"))!, StringComparison.Ordinal);
         Assert.DoesNotContain("999999999999", save.Value.Notes, StringComparison.Ordinal);
         Assert.DoesNotContain("999999999999", (string)(await db.ScalarAsync("SELECT STRING_AGG(detail, '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
 

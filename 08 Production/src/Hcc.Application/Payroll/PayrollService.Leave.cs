@@ -39,14 +39,15 @@ public sealed partial class PayrollService
             var st = await RequireStaffAsync(db, ctx, req.StaffId, lockRow: true, c2).ConfigureAwait(false);
             if (!st.Profile.Active) throw Invalid("This staff member is inactive.");
             if (st.Profile.PayType == PayType.Daily && type != LeaveType.LOP) throw HccException.Validation("Daily-wage staff can take leave without pay only (illustrative policy).");
-            if (req.From < clockInfo.BusinessDate) throw HccException.Validation("Leave cannot start before the business date.");
+            if (req.From < clockInfo.BusinessDate)
+                throw HccException.Validation("Leave cannot start before the business date. A past day of the open pay month is corrected on Attendance › Past days (DEC-075).");
 
             var days = (await db.DaysAsync(ctx.PropertyId, [st.StaffId], req.From, to, c2).ConfigureAwait(false)).GetValueOrDefault(st.StaffId) ?? new StaffDays();
             // SCC duplicate rule: a full day conflicts with anything; first and second half of the same day can coexist.
             if (days.Leaves.Any(l => l.Holds && l.From <= to && l.To >= req.From && !(half is not null && l.Half is not null && l.Half != half)))
                 throw new HccException(HccErrorCode.NOT_AVAILABLE, "These dates overlap another leave request.");
             var n = PayrollRules.LeaveDays(st.Profile, days, req.From, to, half);
-            if (n <= 0) throw HccException.Validation(half is not null ? "That day is a weekly off." : "The chosen dates are all weekly offs.");
+            if (n <= 0) throw HccException.Validation(half is not null ? "That day is a weekly off or a paid holiday." : "The chosen dates are all weekly offs or paid holidays.");
             var policy = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
             if (PayrollRules.Tracked(type))
             {
@@ -61,7 +62,7 @@ public sealed partial class PayrollService
             var otherDays = await db.DaysAsync(ctx.PropertyId, others.Select(o => o.Staff.StaffId).Distinct().ToList(), req.From, to, c2).ConfigureAwait(false);
             for (var d = req.From; d <= to; d = d.AddDays(1))
             {
-                if (PayrollRules.ShiftFor(st.Profile, days, d) == ShiftCode.OFF) continue;
+                if (PayrollRules.DayOff(st.Profile, days, d)) continue;   // weekly off or paid holiday (DEC-083): no leave day, no slot
                 var off = others.Count(o => o.Leave.Covers(d)
                     && PayrollRules.ShiftFor(o.Staff, otherDays.GetValueOrDefault(o.Staff.StaffId) ?? new StaffDays(), d) != ShiftCode.OFF);
                 if (off >= cap)

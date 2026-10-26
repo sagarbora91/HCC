@@ -127,16 +127,20 @@ public sealed record LeaveSpan(long LeaveId, long StaffId, LeaveType Type, DateO
     public bool Holds => Status is LeaveStatus.Pending or LeaveStatus.Approved;
 }
 
-/// <summary>Roster overrides, attendance marks and leaves of one staff member (any date range the caller loaded).</summary>
+/// <summary>Roster overrides, attendance marks and leaves of one staff member (any date range the caller loaded), and the property's paid holidays.</summary>
 public sealed class StaffDays
 {
     public StaffDays(IReadOnlyDictionary<DateOnly, ShiftCode>? roster = null, IReadOnlyDictionary<DateOnly, AttendanceMark>? attendance = null,
-        IReadOnlyList<LeaveSpan>? leaves = null)
+        IReadOnlyList<LeaveSpan>? leaves = null, IReadOnlyDictionary<DateOnly, string>? holidays = null)
     {
         Roster = roster ?? new Dictionary<DateOnly, ShiftCode>();
         Attendance = attendance ?? new Dictionary<DateOnly, AttendanceMark>();
         Leaves = leaves ?? [];
+        Holidays = holidays ?? new Dictionary<DateOnly, string>();
     }
+
+    /// <summary>DEC-083: the property's paid holidays (date → name) in the loaded range; treated like weekly offs in pay (<see cref="PayrollRules.DayOff"/>).</summary>
+    public IReadOnlyDictionary<DateOnly, string> Holidays { get; }
 
     public IReadOnlyDictionary<DateOnly, ShiftCode> Roster { get; }
 
@@ -146,9 +150,10 @@ public sealed class StaffDays
     public IReadOnlyList<LeaveSpan> Leaves { get; }
 }
 
-/// <summary>Month counts (prototype HRCounts). Leave and absence can be half days.</summary>
+/// <summary>Month counts (prototype HRCounts). Leave and absence can be half days. <see cref="Hol"/> = DEC-083 paid holidays not worked
+/// (paid like weekly offs: monthly pay keeps them; daily wage pays neither, as today — CA item A04-04 still open).</summary>
 public sealed record AttendanceCounts(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
-    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin);
+    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0);
 
 /// <summary>Dated statutory rate version (one per effective-from date, the 1st of a month). bps = basis points; money in paise.</summary>
 public sealed record PayrollRates(DateOnly From,

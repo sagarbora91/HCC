@@ -46,7 +46,7 @@ export function MyHr({phone=false}:{phone?:boolean}){
   const bal=hrLeaveBalance(s,me.id,s.date),fy=hrFy(s.date).label,latest=slips[0];
   const todayStatus=att?<Pill tone={hrAttTone(att.status)}>{HR_ATT_LABEL[att.status]} · {att.at.slice(11)}</Pill>:leave?<Pill tone="blue">On leave</Pill>:shift==='OFF'?<Pill>Off</Pill>:<Pill tone="orange">Not checked in</Pill>;
   const dayCell=(d:string)=>{const x=hrDayStatus(s,me,d),sh=hrShiftInfo(hrShiftFor(s,me,d));
-    const st=x.kind==='att'?HR_ATT_LABEL[x.att!.status]:x.kind==='leave'?'Leave':x.kind==='off'?'Off':d<s.date?'Unmarked':d===s.date?'Today':'';
+    const st=x.kind==='att'?HR_ATT_LABEL[x.att!.status]:x.kind==='leave'?'Leave':x.kind==='off'?'Off':x.kind==='holiday'?'Holiday':d<s.date?'Unmarked':d===s.date?'Today':'';
     return {sh,st};};
 
   if(phone)return <div className="hr-m">

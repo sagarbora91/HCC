@@ -13,13 +13,15 @@ public sealed record DepartmentResult(string Code, string Name, int? LeaveCap, s
 /// Create (StaffId null) or edit a staff record. The non-money fields are the full record (an omitted phone keeps the old number).
 /// <see cref="LinkUserId"/> is the desired login link (null = none): changing it is Owner-only and never on your own record (F-03).
 /// Money and payroll fields (null = unchanged) need PERM-HR-005; changing them on your own record is refused (F-10, F-11).
+/// DEC-084: bank details set by anyone but the Owner are not applied: they become a pending bank-change request the Owner approves
+/// (<see cref="StaffResult.BankRequestId"/>; payments keep the current details meanwhile). <see cref="BankReason"/> = optional reason for it.
 /// </summary>
 public sealed record SaveStaffRequest(long? StaffId, string? ExpectedVersion, string Name, string Dept, string Designation, string DefaultShift, int WeeklyOff,
     string? Phone = null, int? LinkUserId = null, bool ConfirmRelink = false, DateOnly? Joined = null,
     string? PayType = null, long? MonthlyPaise = null, long? DailyPaise = null, string? Gender = null, string? Structure = null,
-    bool? PfApplicable = null, bool? EsicApplicable = null, string? BankName = null, string? AccountNo = null, string? Ifsc = null);
+    bool? PfApplicable = null, bool? EsicApplicable = null, string? BankName = null, string? AccountNo = null, string? Ifsc = null, string? BankReason = null);
 
-public sealed record StaffResult(long StaffId, string Name, string Version, string Notes);
+public sealed record StaffResult(long StaffId, string Name, string Version, string Notes, long? BankRequestId = null);
 
 /// <summary>Exit (Active false: exit on the business date) or reactivate a staff record.</summary>
 public sealed record SetStaffActiveRequest(long StaffId, string ExpectedVersion, bool Active);
@@ -89,6 +91,34 @@ public sealed record FnfResult(long FnfId, long StaffId, string Status, long Net
 
 public sealed record DecideFnfRequest(long FnfId, string ExpectedVersion);
 
+/// <summary>
+/// DEC-075: correct a PAST day of the open pay month (from the 1st of the month after the latest locked pay-run, at the earliest the month before
+/// the business date's month, to yesterday). <see cref="Mark"/> = P|L|H|A|OFF (with <see cref="OtMinutes"/> 0–480), a full-day leave type
+/// CL|SL|EL|CO|ML|LOP (back-dated leave, one day) or <c>none</c> (clear the day). A correction that raises the month's gross pay becomes a
+/// pending request the Owner approves; one that lowers or keeps pay (or any correction by the Owner) applies at once. Audited before → after.
+/// </summary>
+public sealed record CorrectAttendanceRequest(long StaffId, DateOnly Date, string Mark, string Reason, int? OtMinutes = null);
+
+/// <summary>Status Applied (the day changed; the month's draft pay-run is recalculated) or PendingApproval (waiting for the Owner).
+/// Money is not in the result (the Manager sees no salaries); the request view shows the pay effect to payroll roles.</summary>
+public sealed record CorrectionResult(long RequestId, long StaffId, DateOnly Date, string Status, string Before, string After, bool RaisesPay, string Version,
+    string Notes);
+
+/// <summary>The Owner approves or rejects a pending request (attendance correction or bank-detail change); a rejection needs a note.</summary>
+public sealed record DecidePayrollRequestRequest(long RequestId, string ExpectedVersion, bool Approve, string? Note = null);
+
+/// <summary>The requester withdraws their own pending request.</summary>
+public sealed record WithdrawPayrollRequestRequest(long RequestId, string ExpectedVersion);
+
+public sealed record PayrollRequestResult(long RequestId, string Kind, long StaffId, string Status, string Version, string Notes);
+
+/// <summary>DEC-083: add or rename a paid holiday (Owner). A holiday in a locked pay month cannot change.</summary>
+public sealed record SaveHolidayRequest(DateOnly Date, string Name);
+
+public sealed record RemoveHolidayRequest(DateOnly Date);
+
+public sealed record HolidayResult(DateOnly Date, string Name, string Notes);
+
 // ── Queries ──
 
 public sealed record StaffView(long StaffId, string Name, string Dept, string Designation, string DefaultShift, int WeeklyOff, DateOnly Joined, DateOnly? ExitedOn,
@@ -132,7 +162,7 @@ public sealed record RateVersionView(DateOnly From, int BasicBps, int HraBps, in
     bool EsicPeriod);
 
 public sealed record AttendanceCountsView(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
-    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin);
+    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0);
 
 /// <summary>A stored pay-run line in full (counts, structure, base) as calculated by the server.</summary>
 public sealed record BoardLineView(long StaffId, string Name, string Dept, string Designation, string PayType, string Structure, string Gender, long BasePaise,
@@ -167,6 +197,25 @@ public sealed record BoardFnfView(long FnfId, long StaffId, DateOnly LastDay, st
     long AdvanceOutstandingPaise, IReadOnlyList<FnfAdjustmentDto> Adjustments, long EarningsPaise, long RecoveriesPaise, long NetPaise, string Status,
     int PreparedBy, string PreparedUtc, int? DecidedBy, string? DecidedUtc, string Version);
 
+/// <summary>DEC-083: a paid holiday of the property (every caller; not money).</summary>
+public sealed record HolidayView(DateOnly Date, string Name);
+
+/// <summary>A day entry: Kind none|mark|leave, Status P|L|H|A|OFF (mark), LeaveType (leave).</summary>
+public sealed record DayEntryView(string Kind, string? Status, int OtMinutes, string? LeaveType);
+
+/// <summary>Bank details in a bank-change request; the account number is always masked (••••1234).</summary>
+public sealed record BankDetailsView(string? BankName, string? AccountMasked, string? Ifsc);
+
+/// <summary>
+/// A payroll request (DEC-075 attendance correction, DEC-084 bank-detail change): pending, decided, withdrawn, or applied at once (Direct).
+/// Attendance requests for PERM-HR-001 / PERM-HR-006 holders, with <see cref="PayEffectPaise"/> (gross pay change of the month) only for
+/// payroll roles (PERM-HR-005 / PERM-HR-006); bank requests only for PERM-HR-005 holders. Pending ones and those requested in the board window.
+/// </summary>
+public sealed record PayrollRequestView(long RequestId, string Kind, long StaffId, DateOnly? Date, DayEntryView? Before, DayEntryView? After,
+    BankDetailsView? BankBefore, BankDetailsView? BankAfter, long? PayEffectPaise, string Reason, string Status, bool Direct, int RequestedBy, string RequestedUtc,
+    int? DecidedBy, string? DecidedUtc, string? Note, string Version);
+
 public sealed record PayrollBoardView(DateOnly BusinessDate, DateOnly From, DateOnly To, bool AllStaff, bool Payroll, IReadOnlyList<DepartmentView> Departments,
     LeavePolicyView LeavePolicy, IReadOnlyList<BoardRosterView> Roster, IReadOnlyList<BoardAttendanceView> Attendance, IReadOnlyList<BoardLeaveView> Leaves,
-    IReadOnlyList<RateVersionView> RateVersions, IReadOnlyList<BoardRunView> Runs, IReadOnlyList<BoardAdvanceView> Advances, IReadOnlyList<BoardFnfView> Fnf);
+    IReadOnlyList<RateVersionView> RateVersions, IReadOnlyList<BoardRunView> Runs, IReadOnlyList<BoardAdvanceView> Advances, IReadOnlyList<BoardFnfView> Fnf,
+    IReadOnlyList<HolidayView> Holidays, IReadOnlyList<PayrollRequestView> Requests, DateOnly? CorrectFrom, DateOnly? CorrectTo);

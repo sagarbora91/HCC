@@ -110,6 +110,8 @@ const CMDS={
   HR_PAYROLL_UNLOCK:C('OWN','DEC-058 payroll Owner-only'),HR_RATES_SET:C('OWN','DEC-058'),HR_STAT_RATES_SET:C('OWN','DEC-058'),HR_LEAVE_POLICY_SET:C('OWN','DEC-058'),
   HR_LEAVE_DECIDE:C('OWN MGR','Placement: managers approve'),HR_STAFF_ACTIVE:C('OWN MGR','Module 17'),HR_ROSTER_SET:C('OWN MGR','Module 17'),HR_ROSTER_COPY:C('OWN MGR','Module 17'),HR_STAFF_SAVE:C('OWN MGR ACC','Module 17 §3'),
   HR_ATT_MARK:C(ALL,'Module 17 self check-in'),HR_LEAVE_REQUEST:C(ALL,'Placement: every staff member applies'),HR_LEAVE_CANCEL:C(ALL,'Module 17 own request'),
+  HR_ATT_CORRECT:C('OWN MGR','DEC-075: managers correct past days (raising pay waits for the Owner)'),HR_REQUEST_DECIDE:C('OWN','DEC-075 / DEC-084: the Owner decides'),
+  HR_REQUEST_WITHDRAW:C('OWN MGR ACC','DEC-075 / DEC-084: the requester withdraws (managers and payroll roles make requests)'),HR_HOLIDAY_SAVE:C('OWN','DEC-083 holiday calendar (Owner)'),HR_HOLIDAY_REMOVE:C('OWN','DEC-083 holiday calendar (Owner)'),
   YLD_PROPOSE:C('OWN MGR','Module 13'),YLD_DECIDE:C('OWN','Module 13'),
   ...Object.fromEntries(['YLD_DOW_SET','YLD_GUARD_SET','YLD_OCC_SAVE','YLD_OVERRIDE','YLD_PLAN_SAVE','YLD_PUBLISH','YLD_RESTRICTION_SAVE','YLD_SEASON_SAVE'].map(c=>[c,C('OWN','Module 13 (admin + reports)')])),
   ...Object.fromEntries(['GRP_BLOCK_ALLOT','GRP_BLOCK_CANCEL','GRP_BLOCK_CREATE','GRP_COMPANY_SAVE','GRP_RELEASE','GRP_ROOMING','GRP_SWEEP'].map(c=>[c,C('OWN MGR REC','Module 14')])),
