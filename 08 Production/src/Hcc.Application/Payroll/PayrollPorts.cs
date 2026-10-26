@@ -207,7 +207,11 @@ public interface IPayrollDb
 }
 
 /// <summary>A read connection for queries (read committed, no transaction).</summary>
-public interface IPayrollReadDb : IPayrollDb, IAsyncDisposable;
+public interface IPayrollReadDb : IPayrollDb, IAsyncDisposable
+{
+    /// <summary>W4 G2: an audit row for a file download (register, statutory or bank file) — append-only plat.audit_event, operation 'Download'.</summary>
+    Task AuditDownloadAsync(int propertyId, int principalId, string action, string target, string detail, CancellationToken ct);
+}
 
 /// <summary>Payroll store: the same operations inside a command transaction or on a read connection.</summary>
 public interface IPayrollStore

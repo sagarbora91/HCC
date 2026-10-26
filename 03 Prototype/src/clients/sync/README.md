@@ -27,6 +27,7 @@ The prototype build is unchanged: it keeps the mock `execute()` and demo data. I
 | `cache.ts` | Read cache (IndexedDB `hcc-server-cache`, memory fallback) |
 | `empty.ts` | Production skeleton state |
 | `core.ts` | `clock` and a provisional `date` from `GET /system/health` |
+| `payfiles.ts` | Payroll files from the server (W4 G2): register / PF-ESIC-PT CSV and the latest bank file of the current lock via `transport.getText`, saved with `saveCsv`; called from the production branch of `HrDesk.tsx` (the staff master holds masked account numbers) |
 | `reservations.ts` | **Reference area**: `bookings` loader, `BOOK` mapper (availability → QuoteStay → CreateReservation) |
 | `instance.ts`, `react.tsx` | The app's runtime singleton, `ProductionApp`, server sign-in screen, `SyncStatus` strip |
 | `../../../tests/_sync-harness.mjs` | Fake server + runtime + page smoke render for your tests |

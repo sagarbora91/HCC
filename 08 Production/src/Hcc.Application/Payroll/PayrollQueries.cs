@@ -37,7 +37,8 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
                 MaskPhone(s.Phone), s.Version,
                 showPay ? PayrollService.PayTypeWire(p.PayType) : null, showPay ? p.MonthlyPaise : null, showPay ? p.DailyPaise : null,
                 pay ? p.EffectiveGender.ToString() : null, pay ? p.EffectiveStructure.ToString() : null, pay ? p.PfOn : null, pay ? p.EsicOn : null,
-                pay ? s.BankName : null, pay ? BankDetails.Mask(s.AccountNo) : null, s.UserId);
+                pay ? s.BankName : null, pay ? BankDetails.Mask(s.AccountNo) : null, s.UserId,
+                PayrollFiles.WhatsAppNumber(s.Phone).Length > 0, pay ? s.Ifsc : null);
         }).ToList();
     }
 
@@ -139,6 +140,8 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         var run = await RunOfMonthAsync(db, propertyId, month, ct).ConfigureAwait(false);
         var depts = (await db.DepartmentsAsync(propertyId, ct).ConfigureAwait(false)).ToDictionary(d => d.Code, d => d.Name);
         var lines = await db.RunLinesAsync(run.RunId, ct).ConfigureAwait(false);
+        await db.AuditDownloadAsync(propertyId, principalId, "HR_REGISTER_DOWNLOADED", PayrollService.Target("hr.run", run.RunId),
+            $"{month.Label} payroll register CSV ({(run.Locked ? "locked" : "draft")}, {lines.Count} staff)", ct).ConfigureAwait(false);
         return new CsvFile($"payroll-register-{month}.csv", PayrollFiles.Register(month, run.Locked, lines, c => depts.GetValueOrDefault(c, c)));
     }
 
@@ -148,6 +151,8 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         await using var db = await store.OpenReadAsync(ct).ConfigureAwait(false);
         var run = await RunOfMonthAsync(db, propertyId, month, ct).ConfigureAwait(false);
         var lines = await db.RunLinesAsync(run.RunId, ct).ConfigureAwait(false);
+        await db.AuditDownloadAsync(propertyId, principalId, "HR_STATUTORY_DOWNLOADED", PayrollService.Target("hr.run", run.RunId),
+            $"{month.Label} PF / ESIC / PT statement CSV ({(run.Locked ? "locked" : "draft")})", ct).ConfigureAwait(false);
         return new CsvFile($"pf-esic-pt-{month}.csv", PayrollFiles.Statutory(month, run.Locked, run.Rates.From, lines));
     }
 
@@ -160,8 +165,28 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         var file = (await db.BankFilesAsync(runId, ct).ConfigureAwait(false)).FirstOrDefault(f => f.IssueNo == issueNo);
         if (file == default) throw new HccException(HccErrorCode.NOT_FOUND, "Bank file not found. Issue it first (IssueBankFile).");
         if (!run.Locked || file.LockSeq != run.LockSeq) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This bank file belongs to a lock that was undone; it is superseded.");
-        var lines = await db.RunLinesAsync(runId, ct).ConfigureAwait(false);
-        var bank = await db.BankSnapshotAsync(runId, run.LockSeq, ct).ConfigureAwait(false);
+        return await BankFileAsync(db, propertyId, principalId, run, issueNo, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>W4 G2: the latest bank file of the CURRENT lock (the one IssueBankFile just recorded) — the production app downloads it
+    /// right after issuing, so the file carries the real account numbers frozen at lock while the screen only ever holds masked ones.</summary>
+    public async Task<CsvFile> LatestBankCsvAsync(int propertyId, int principalId, long runId, CancellationToken ct = default)
+    {
+        await policy.RequireAsync(propertyId, principalId, PayrollPermissions.Run, ct: ct).ConfigureAwait(false);
+        await using var db = await store.OpenReadAsync(ct).ConfigureAwait(false);
+        var run = await db.RunAsync(propertyId, runId, false, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Payroll run not found.");
+        if (!run.Locked) throw new HccException(HccErrorCode.INVALID_TRANSITION, "The bank file is made after the pay-run is locked.");
+        var file = (await db.BankFilesAsync(runId, ct).ConfigureAwait(false)).Where(f => f.LockSeq == run.LockSeq).OrderBy(f => f.IssueNo).LastOrDefault();
+        if (file == default) throw new HccException(HccErrorCode.NOT_FOUND, "Bank file not found. Issue it first (IssueBankFile).");
+        return await BankFileAsync(db, propertyId, principalId, run, file.IssueNo, ct).ConfigureAwait(false);
+    }
+
+    private static async Task<CsvFile> BankFileAsync(IPayrollReadDb db, int propertyId, int principalId, RunRow run, int issueNo, CancellationToken ct)
+    {
+        var lines = await db.RunLinesAsync(run.RunId, ct).ConfigureAwait(false);
+        var bank = await db.BankSnapshotAsync(run.RunId, run.LockSeq, ct).ConfigureAwait(false);
+        await db.AuditDownloadAsync(propertyId, principalId, "HR_BANK_FILE_DOWNLOADED", PayrollService.Target("hr.run", run.RunId),
+            $"{run.Month.Label} bank transfer file {issueNo} downloaded · {lines.Count} staff · net Rs. {(lines.Sum(l => l.Net) / 100m).ToString("N2", CultureInfo.InvariantCulture)} (simulated — no money moves)", ct).ConfigureAwait(false);
         return new CsvFile($"bank-transfer-{run.Month}-{issueNo}.csv", PayrollFiles.Bank(run.Month, lines, bank, issueNo));
     }
 

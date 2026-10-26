@@ -38,7 +38,9 @@ export type HRStaff={id:string;name:string;dept:string;designation:string;
   /** Default: monthly → 'S', daily → 'B'. */ structure?:HRStructure;
   /** Default (SCC migration rule): PF only for structured pay. */ pfApplicable?:boolean;
   /** Default true; ESIC still applies only when earned ≤ ceiling. */ esicApplicable?:boolean;
-  /** Fictional bank details for the bank-transfer file. */ bankName?:string;accountNo?:string;ifsc?:string};
+  /** Fictional bank details for the bank-transfer file. */ bankName?:string;accountNo?:string;ifsc?:string;
+  /** Production build only (W4 G2): the server says the stored mobile is a usable WhatsApp number while `phone` stays masked.
+   *  Never set by the prototype (its `phone` is the real fictional number, checked with hrWaNumber). */ phoneUsable?:boolean};
 export type HRAtt={status:HRAttStatus;at:string;otMin:number;by:string;note?:string};
 export type HRLeave={id:string;staffId:string;type:HRLeaveType;from:string;to:string;days:number;reason:string;
   /** Half-day leave (from = to, days = 0.5). */ half?:HRHalf;
