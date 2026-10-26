@@ -3,6 +3,7 @@
 import type {Booking,BookingStatus,Room,State} from '../types';
 import {available,blockedDuring,roomHold} from '../selectors';
 import {addDays,nights} from '../money';
+import {rmsRetiredDuring,rmsOooDuring} from './roomoffline';
 
 /** Maximum occupants (adults + children) per room type (REQ-BOOK-002; Fixture Catalogue room types). */
 export const RES_CAPACITY:Record<string,number>={Classic:2,Deluxe:3,Suite:4};
@@ -30,20 +31,31 @@ export function resHoldLeftLabel(s:State,b:Booking){
 /** Persist lapsed holds as Expired (called inside stream A commands; display never depends on it). Returns IDs swept. */
 export function resSweepHolds(s:State){const ids:string[]=[];for(const b of s.bookings)if(b.status==='Held'&&!resHoldActive(s,b)){b.status='Expired';b.version++;ids.push(b.id);}return ids;}
 
-export type ResReason='Blocked'|'Over capacity'|'Occupied'|'Booked'|'Held';
+export type ResReason='Retired'|'Blocked'|'Out of order'|'Over capacity'|'Occupied'|'Booked'|'Held'|'Group hold';
 export type ResSearchRow={room:Room;capacity:number;ok:boolean;reasons:ResReason[];reason:string;conflict?:Booking};
-/** Why a room cannot take the stay [a, d) for `party` occupants. Empty list = available. Order: blocked, capacity, occupied, booked/held. */
-export function resExclusion(s:State,room:Room,a:string,d:string,party:number,except=''):{reasons:ResReason[];conflict?:Booking}{
+/** Why a room cannot take the stay [a, d) for `party` occupants. Empty list = available.
+ *  Order: retired, blocked, out of order, capacity, occupied, booked/held, group hold (V14-5: the hold's own label, never "Booked"). */
+export function resExclusion(s:State,room:Room,a:string,d:string,party:number,except=''):{reasons:ResReason[];conflict?:Booking;hold?:string}{
   const reasons:ResReason[]=[];
+  const retired=rmsRetiredDuring(room,a,d);
+  if(retired)reasons.push('Retired');
   if(blockedDuring(room,a,d))reasons.push('Blocked');
+  if(!retired&&rmsOooDuring(room,a,d))reasons.push('Out of order');
   if(party>resCapacity(room))reasons.push('Over capacity');
   const clash=s.bookings.filter(b=>b.id!==except&&b.room===room.id&&a<b.departure&&d>b.arrival&&(b.status==='In house'||b.status==='Confirmed'||resHoldActive(s,b)));
   const inHouse=clash.find(b=>b.status==='In house'),booked=clash.find(b=>b.status==='Confirmed'),held=clash.find(b=>b.status==='Held');
   if(inHouse)reasons.push('Occupied');if(booked)reasons.push('Booked');if(held)reasons.push('Held');
+  // Soft holds from other modules (group blocks). Retired / out-of-order rooms are holds too, already named above.
+  let hold:string|undefined;
+  if(!reasons.includes('Retired')&&!reasons.includes('Out of order')){const h=roomHold(s,room.id,a,d);if(h){reasons.push('Group hold');hold=h.label;}}
   // Defensive: available() is the authority; if it disagrees without a reason found here, report "Booked".
   if(!reasons.length&&!available(s,room.id,a,d,except))reasons.push('Booked');
-  return {reasons,conflict:inHouse||booked||held};
+  return {reasons,conflict:inHouse||booked||held,...(hold?{hold}:{})};
 }
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dmy=(d:string)=>{const [y,m,day]=d.split('-');return `${Number(day)} ${MONTHS[Number(m)-1]} ${y}`;};
+/** "Out of order until 28 Oct 2026" (the room is back in service on that date) / "… until further notice" (open-ended). */
+export const resOooText=(room:Room)=>`Out of order until ${room.ooo?.to?dmy(room.ooo.to):'further notice'}`;
 const reasonText=(s:State,r:ResReason,c?:Booking)=>r==='Over capacity'?'Over capacity':r==='Occupied'?`Occupied · ${c?.guest??'in-house guest'}`:r==='Held'?`Held · ${c?resHoldLeftLabel(s,c):''}`:`Booked · ${c?.guest??'another reservation'}`;
 /** Availability search (REQ-BOOK-001): every room of the chosen type, with the reason each excluded room is excluded. */
 export function resSearch(s:State,q:{arrival:string;departure:string;people:number;children?:number;type?:string;except?:string}){
@@ -52,7 +64,8 @@ export function resSearch(s:State,q:{arrival:string;departure:string;people:numb
     if(!valid)return {room,capacity:resCapacity(room),ok:false,reasons:[],reason:'Choose valid dates'};
     const x=resExclusion(s,room,q.arrival,q.departure,party,q.except||'');
     const first=x.reasons[0];
-    const reason=!first?'Available':first==='Blocked'?'Blocked · '+((room as Room&{blockReason?:string}).blockReason||'out of service'):first==='Over capacity'?`Over capacity · sleeps ${resCapacity(room)}`:reasonText(s,first,x.conflict);
+    const reason=!first?'Available':first==='Retired'?'Retired':first==='Blocked'?'Blocked · '+((room as Room&{blockReason?:string}).blockReason||'out of service'):first==='Out of order'?resOooText(room)
+      :first==='Over capacity'?`Over capacity · sleeps ${resCapacity(room)}`:first==='Group hold'?(x.hold??'Group hold'):reasonText(s,first,x.conflict);
     return {room,capacity:resCapacity(room),ok:!x.reasons.length,reasons:x.reasons,reason,conflict:x.conflict};
   });
   return {valid,party,available:rows.filter(r=>r.ok),excluded:rows.filter(r=>!r.ok)};

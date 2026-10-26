@@ -163,7 +163,7 @@ function writeRooms(s:State,rows:RmsRoomRow[]){
     if(n===undefined)mstFail('MASTER_INVALID',`Floor ${row.floor}: rooms can be placed on floors coded F<number> (F0 = ground).`,'floor');
     const key=rmsTypeKeyOfCode(s,String(row.type));
     const next:Room=prev?{...prev}:{id:String(row.code),floor:n!,type:key,rate:0,hk:'Ready',blocked:false};
-    if(!prev){const rate=rmsRackOn(s,key,s.date);if(!rate)mstFail('MASTER_INVALID',`Set the rack rate of ${row.type} before adding rooms of that type.`,'type');next.rate=rate!;}
+    if(!prev){const rate=rmsRackOn(s,key,s.date);if(!rate)mstFail('MASTER_INVALID',`Set the rack rate of ${row.type} before adding rooms of that type.`,'type');next.rate=rate!;next.addedOn=s.date;}
     if(prev&&row.code!==prev.id){next.id=String(row.code);tasks=tasks.map(t=>t.room===prev.id?{...t,room:next.id}:t);}
     if(prev&&key!==prev.type){const l=rmsLiveBookings(s,prev.id);
       if(l.length)mstFail('MASTER_LOCKED_BY_BOOKINGS',`Room ${prev.id} has bookings ${rmsLockText(l)} — change its type from a date with no booking (move them first).`,'type');
