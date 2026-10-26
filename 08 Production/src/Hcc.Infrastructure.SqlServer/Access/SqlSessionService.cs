@@ -40,13 +40,17 @@ internal static class AccessAudit
 }
 
 /// <summary>
-/// Sign-in (DEC-062: password for OWN/ACC/TAD; PIN only on a registered, unrevoked device for everyone else), lockout after
-/// <see cref="AccessOptions.MaxFailedAttempts"/> failures, opaque sessions (idle/absolute expiry) and revocation on the next
+/// Sign-in (DEC-062: password for OWN/ACC/TAD; PIN only on a registered, unrevoked device for everyone else) with one uniform
+/// failure (F-M01: same message, reason BAD_CREDENTIALS and hashing cost for unknown, disabled, role-less, wrong-kind and wrong
+/// secret; the precise reason goes to the audit row only), opaque sessions (idle/absolute expiry) and revocation on the next
 /// request when the user is disabled, their roles/credential change (security stamp) or the device is revoked (AS-07).
+/// PIN sessions are bound to their device: every request must carry the same device token (F-M07). Attempt throttling is
+/// per client address in the API (<see cref="SignInThrottle"/>, F-M02), not a per-account lockout.
 /// </summary>
 public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretHasher hasher, AccessOptions options, TimeProvider clock) : ISessionService
 {
-    private static readonly HashedSecret Dummy = new(Pbkdf2SecretHasher.Algorithm, 1000, new byte[16], new byte[32]);
+    private HashedSecret? _dummyPassword;
+    private HashedSecret? _dummyPin;
     private const string SignInFailed = "Sign-in failed. Check the name and the password or PIN.";
 
     public async Task<(AuthenticatedSession Session, string Token)> SignInAsync(SignInRequest request, string? deviceToken, CancellationToken ct = default)
@@ -81,10 +85,37 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
 
     private async Task<((AuthenticatedSession, string)?, HccException?)> TrySignInAsync(SqlConnection conn, SqlTransaction tx, string login, CredentialKind kind, string secret, string? deviceToken, DateTime now, CancellationToken ct)
     {
-        int userId, propertyId, stamp;
-        string displayName;
-        bool enabled;
-        DateTime? from, until;
+        // PIN sign-in needs a registered, unrevoked device first. This check depends only on the device token, never on the
+        // account, so its distinct message says nothing about which sign-in names exist — and without a device no PIN is
+        // ever tried (no PIN oracle from an unregistered host).
+        int? deviceId = null, devicePropertyId = null;
+        if (kind == CredentialKind.Pin)
+        {
+            if (!string.IsNullOrEmpty(deviceToken) && deviceToken.Length <= 200)
+            {
+                await using var q = connections.Command("SELECT device_id, property_id FROM plat.device WHERE token_sha256 = @h AND revoked_utc IS NULL;", conn, tx);
+                q.Parameters.Add("@h", SqlDbType.Binary, 32).Value = AccessTokens.Sha256(deviceToken);
+                await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                if (await rd.ReadAsync(ct).ConfigureAwait(false))
+                {
+                    deviceId = rd.GetInt32(0);
+                    devicePropertyId = rd.GetInt32(1);
+                }
+            }
+
+            if (deviceId is null)
+            {
+                await AccessAudit.WriteAsync(connections, conn, tx, 0, 0, "SIGN_IN_FAILED", "device:unknown",
+                    string.IsNullOrEmpty(deviceToken) ? "PIN sign-in without a device token." : "PIN sign-in from an unknown or revoked device.", "SignIn", ct).ConfigureAwait(false);
+                return (null, Forbidden("PIN sign-in works only on a registered hotel device.", "DEVICE_NOT_REGISTERED"));
+            }
+        }
+
+        int? userId = null;
+        int propertyId = 0, stamp = 0;
+        var displayName = string.Empty;
+        var enabled = false;
+        DateTime? from = null, until = null;
         await using (var q = connections.Command("""
             SELECT user_id, property_id, display_name, enabled, valid_from_utc, valid_until_utc, security_stamp
               FROM plat.app_user WITH (UPDLOCK, ROWLOCK) WHERE login_name = @l;
@@ -92,120 +123,85 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
         {
             q.Parameters.Add("@l", SqlDbType.VarChar, 40).Value = login;
             await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            if (!await rd.ReadAsync(ct).ConfigureAwait(false))
-            {
-                await rd.CloseAsync().ConfigureAwait(false);
-                hasher.Verify(secret, Dummy);   // similar timing for unknown names
-                await AccessAudit.WriteAsync(connections, conn, tx, 0, 0, "SIGN_IN_FAILED", "user:unknown", $"Unknown sign-in name '{Trim(login)}'.", "SignIn", ct).ConfigureAwait(false);
-                return (null, Forbidden(SignInFailed, "BAD_CREDENTIALS"));
-            }
-
-            userId = rd.GetInt32(0);
-            propertyId = rd.GetInt32(1);
-            displayName = rd.GetString(2);
-            enabled = rd.GetBoolean(3);
-            from = rd.IsDBNull(4) ? null : rd.GetDateTime(4);
-            until = rd.IsDBNull(5) ? null : rd.GetDateTime(5);
-            stamp = rd.GetInt32(6);
-        }
-
-        async Task<((AuthenticatedSession, string)?, HccException?)> Fail(string detail, HccException error)
-        {
-            await AccessAudit.WriteAsync(connections, conn, tx, propertyId, userId, "SIGN_IN_FAILED", $"user:{userId}", detail, "SignIn", ct).ConfigureAwait(false);
-            return (null, error);
-        }
-
-        if (!enabled || (from is not null && now < from) || (until is not null && now >= until))
-            return await Fail("User disabled or outside validity.", Forbidden(SignInFailed, "BAD_CREDENTIALS")).ConfigureAwait(false);
-
-        var roles = new List<string>();
-        await using (var q = connections.Command("SELECT role_code FROM plat.user_role WHERE user_id = @u;", conn, tx))
-        {
-            q.Parameters.Add("@u", SqlDbType.Int).Value = userId;
-            await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) roles.Add(rd.GetString(0));
-        }
-
-        var required = CredentialPolicy.RequiredKind(roles);
-        if (required is null) return await Fail("User has no role.", Forbidden(SignInFailed, "BAD_CREDENTIALS")).ConfigureAwait(false);
-        if (required != kind)
-        {
-            var msg = required == CredentialKind.Password
-                ? "PIN sign-in is not allowed for this account. Sign in with your password."
-                : "This account signs in with a PIN on a registered hotel device.";
-            return await Fail($"Refused {CredentialPolicy.ToWire(kind)} sign-in; account requires {CredentialPolicy.ToWire(required.Value)} (DEC-062).",
-                Forbidden(msg, "WRONG_CREDENTIAL_KIND")).ConfigureAwait(false);
-        }
-
-        int? deviceId = null;
-        if (kind == CredentialKind.Pin)
-        {
-            if (string.IsNullOrEmpty(deviceToken))
-                return await Fail("PIN sign-in without a device token.", Forbidden("PIN sign-in works only on a registered hotel device.", "DEVICE_NOT_REGISTERED")).ConfigureAwait(false);
-            await using var q = connections.Command("SELECT device_id FROM plat.device WHERE token_sha256 = @h AND property_id = @p AND revoked_utc IS NULL;", conn, tx);
-            q.Parameters.Add("@h", SqlDbType.Binary, 32).Value = AccessTokens.Sha256(deviceToken);
-            q.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
-            deviceId = (int?)await q.ExecuteScalarAsync(ct).ConfigureAwait(false);
-            if (deviceId is null)
-                return await Fail("PIN sign-in from an unknown or revoked device.", Forbidden("PIN sign-in works only on a registered hotel device.", "DEVICE_NOT_REGISTERED")).ConfigureAwait(false);
-        }
-
-        HashedSecret? stored = null;
-        var failed = 0;
-        DateTime? lockedUntil = null;
-        await using (var q = connections.Command("""
-            SELECT algorithm, iterations, salt, secret_hash, failed_count, locked_until_utc FROM plat.credential WITH (UPDLOCK, ROWLOCK)
-             WHERE user_id = @u AND kind = @k;
-            """, conn, tx))
-        {
-            q.Parameters.Add("@u", SqlDbType.Int).Value = userId;
-            q.Parameters.Add("@k", SqlDbType.VarChar, 8).Value = CredentialPolicy.ToWire(kind);
-            await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
             if (await rd.ReadAsync(ct).ConfigureAwait(false))
             {
-                stored = new HashedSecret(rd.GetString(0), rd.GetInt32(1), (byte[])rd[2], (byte[])rd[3]);
-                failed = rd.GetInt32(4);
-                lockedUntil = rd.IsDBNull(5) ? null : rd.GetDateTime(5);
+                userId = rd.GetInt32(0);
+                propertyId = rd.GetInt32(1);
+                displayName = rd.GetString(2);
+                enabled = rd.GetBoolean(3);
+                from = rd.IsDBNull(4) ? null : rd.GetDateTime(4);
+                until = rd.IsDBNull(5) ? null : rd.GetDateTime(5);
+                stamp = rd.GetInt32(6);
             }
         }
 
-        if (stored is null)
+        var roles = new List<string>();
+        HashedSecret? stored = null;
+        var failed = 0;
+        if (userId is not null)
         {
-            hasher.Verify(secret, Dummy);
-            return await Fail("No credential set.", Forbidden(SignInFailed, "BAD_CREDENTIALS")).ConfigureAwait(false);
-        }
-
-        if (lockedUntil is not null && now < lockedUntil)
-        {
-            return await Fail("Attempt while locked.", new HccException(HccErrorCode.FORBIDDEN,
-                $"Too many wrong attempts. Try again after {lockedUntil.Value:HH:mm} UTC or ask an administrator to reset it.",
-                SqlAccessPolicy.Details(("reason", "LOCKED_OUT"), ("lockedUntilUtc", AuthenticatedSession.Iso(lockedUntil.Value))))).ConfigureAwait(false);
-        }
-
-        if (!hasher.Verify(secret, stored))
-        {
-            failed++;
-            var lockNow = failed >= options.MaxFailedAttempts;
-            await using (var u = connections.Command("UPDATE plat.credential SET failed_count = @f, locked_until_utc = @l WHERE user_id = @u AND kind = @k;", conn, tx))
+            await using (var q = connections.Command("SELECT role_code FROM plat.user_role WHERE user_id = @u;", conn, tx))
             {
-                u.Parameters.Add("@f", SqlDbType.Int).Value = lockNow ? 0 : failed;
-                u.Parameters.Add("@l", SqlDbType.DateTime2).Value = lockNow ? now + options.LockoutDuration : (lockedUntil is null ? DBNull.Value : lockedUntil.Value);
-                u.Parameters.Add("@u", SqlDbType.Int).Value = userId;
+                q.Parameters.Add("@u", SqlDbType.Int).Value = userId.Value;
+                await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                while (await rd.ReadAsync(ct).ConfigureAwait(false)) roles.Add(rd.GetString(0));
+            }
+
+            await using (var q = connections.Command("""
+                SELECT algorithm, iterations, salt, secret_hash, failed_count FROM plat.credential WITH (UPDLOCK, ROWLOCK)
+                 WHERE user_id = @u AND kind = @k;
+                """, conn, tx))
+            {
+                q.Parameters.Add("@u", SqlDbType.Int).Value = userId.Value;
+                q.Parameters.Add("@k", SqlDbType.VarChar, 8).Value = CredentialPolicy.ToWire(kind);
+                await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                if (await rd.ReadAsync(ct).ConfigureAwait(false))
+                {
+                    stored = new HashedSecret(rd.GetString(0), rd.GetInt32(1), (byte[])rd[2], (byte[])rd[3]);
+                    failed = rd.GetInt32(4);
+                }
+            }
+        }
+
+        // F-M01: the secret is always hashed once, at the configured iteration count of the attempted kind when there is no
+        // stored hash (unknown name, disabled user, no role, wrong kind, no credential), so every path costs the same.
+        var verified = hasher.Verify(secret, stored ?? DummyFor(kind));
+
+        var required = CredentialPolicy.RequiredKind(roles);
+        var refusal = userId is null ? $"Unknown sign-in name '{Trim(login)}'."
+            : !enabled || (from is not null && now < from) || (until is not null && now >= until) ? "User disabled or outside validity."
+            : required is null ? "User has no role."
+            : required != kind ? $"Refused {CredentialPolicy.ToWire(kind)} sign-in; account requires {CredentialPolicy.ToWire(required.Value)} (DEC-062)."
+            : stored is null ? "No credential set."
+            : !verified ? $"Wrong {CredentialPolicy.ToWire(kind)} ({failed + 1} in a row)."
+            : devicePropertyId is not null && devicePropertyId != propertyId ? "PIN sign-in on a device of another property."
+            : null;
+
+        if (refusal is not null)
+        {
+            if (userId is not null && stored is not null && !verified)
+            {
+                // Consecutive-failure counter for the administrators' view only. There is no hard lockout here: throttling is per
+                // client address and per (address, sign-in name) in the API (F-M02), so a LAN device cannot lock the Owner out.
+                await using var u = connections.Command("UPDATE plat.credential SET failed_count = failed_count + 1 WHERE user_id = @u AND kind = @k;", conn, tx);
+                u.Parameters.Add("@u", SqlDbType.Int).Value = userId.Value;
                 u.Parameters.Add("@k", SqlDbType.VarChar, 8).Value = CredentialPolicy.ToWire(kind);
                 await u.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             }
 
-            return await Fail(lockNow ? $"Wrong {CredentialPolicy.ToWire(kind)}; locked for {options.LockoutDuration.TotalMinutes:0} min." : $"Wrong {CredentialPolicy.ToWire(kind)} ({failed}).",
-                Forbidden(SignInFailed, "BAD_CREDENTIALS")).ConfigureAwait(false);
+            // The precise reason is kept in the audit row; the caller always gets the same message and reason (F-M01).
+            await AccessAudit.WriteAsync(connections, conn, tx, userId is null ? 0 : propertyId, userId ?? 0, "SIGN_IN_FAILED",
+                userId is null ? "user:unknown" : $"user:{userId}", refusal, "SignIn", ct).ConfigureAwait(false);
+            return (null, Forbidden(SignInFailed, "BAD_CREDENTIALS"));
         }
 
         await using (var u = connections.Command("UPDATE plat.credential SET failed_count = 0, locked_until_utc = NULL WHERE user_id = @u AND kind = @k;", conn, tx))
         {
-            u.Parameters.Add("@u", SqlDbType.Int).Value = userId;
+            u.Parameters.Add("@u", SqlDbType.Int).Value = userId!.Value;
             u.Parameters.Add("@k", SqlDbType.VarChar, 8).Value = CredentialPolicy.ToWire(kind);
             await u.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
-
+        var uid = userId.Value;
         var token = AccessTokens.NewToken();
         var absolute = now + options.AbsoluteLifetime;
         long sessionId;
@@ -216,7 +212,7 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
             """, conn, tx))
         {
             ins.Parameters.Add("@h", SqlDbType.Binary, 32).Value = AccessTokens.Sha256(token);
-            ins.Parameters.Add("@u", SqlDbType.Int).Value = userId;
+            ins.Parameters.Add("@u", SqlDbType.Int).Value = uid;
             ins.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
             ins.Parameters.Add("@k", SqlDbType.VarChar, 8).Value = CredentialPolicy.ToWire(kind);
             ins.Parameters.Add("@d", SqlDbType.Int).Value = (object?)deviceId ?? DBNull.Value;
@@ -226,20 +222,22 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
             sessionId = (long)(await ins.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
         }
 
-        await AccessAudit.WriteAsync(connections, conn, tx, propertyId, userId, "SIGN_IN", $"session:{sessionId}",
+        await AccessAudit.WriteAsync(connections, conn, tx, propertyId, uid, "SIGN_IN", $"session:{sessionId}",
             $"Signed in with {CredentialPolicy.ToWire(kind)}{(deviceId is null ? string.Empty : $" on device {deviceId}")}.", "SignIn", ct).ConfigureAwait(false);
-        var session = new AuthenticatedSession(sessionId, userId, propertyId, displayName, kind, deviceId, Min(now + options.IdleTimeout, absolute), absolute);
+        var session = new AuthenticatedSession(sessionId, uid, propertyId, displayName, kind, deviceId, Min(now + options.IdleTimeout, absolute), absolute);
         return ((session, token), null);
     }
 
-    public async Task<AuthenticatedSession> ValidateAsync(string? token, CancellationToken ct = default)
+    public Task<AuthenticatedSession> ValidateAsync(string? token, CancellationToken ct = default) => ValidateAsync(token, null, ct);
+
+    public async Task<AuthenticatedSession> ValidateAsync(string? token, string? deviceToken, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(token) || token.Length > 200) throw Invalid("NO_SESSION");
         var now = Now();
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var q = connections.Command("""
             SELECT s.session_id, s.user_id, s.property_id, s.credential_kind, s.device_id, s.security_stamp, s.created_utc, s.last_seen_utc,
-                   s.absolute_expires_utc, s.revoked_utc, u.display_name, u.enabled, u.valid_from_utc, u.valid_until_utc, u.security_stamp, d.revoked_utc
+                   s.absolute_expires_utc, s.revoked_utc, u.display_name, u.enabled, u.valid_from_utc, u.valid_until_utc, u.security_stamp, d.revoked_utc, d.token_sha256
               FROM plat.session s JOIN plat.app_user u ON u.user_id = s.user_id LEFT JOIN plat.device d ON d.device_id = s.device_id
              WHERE s.token_sha256 = @h;
             """, conn);
@@ -263,6 +261,10 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
                 : now >= absolute ? "ABSOLUTE_TIMEOUT"
                 : !SessionLifetime.IsAlive(created, lastSeen, now, options.IdleTimeout, options.AbsoluteLifetime) ? "IDLE_TIMEOUT"
                 : null;
+            // F-M07: a PIN session works only from the device it was opened on. A missing or different device token is refused
+            // without ending the session (a stolen token must not let its holder log the real tablet out).
+            if (rd.GetString(3) == CredentialPolicy.ToWire(CredentialKind.Pin) && reason is null && !SameDevice(rd.IsDBNull(16) ? null : (byte[])rd[16], deviceToken))
+                throw Invalid("DEVICE_MISMATCH");
             session = new AuthenticatedSession(sessionId, rd.GetInt32(1), rd.GetInt32(2), rd.GetString(10), CredentialPolicy.FromWire(rd.GetString(3)),
                 rd.IsDBNull(4) ? null : rd.GetInt32(4), Min(now + options.IdleTimeout, absolute), absolute);
         }
@@ -310,8 +312,20 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
 
     private DateTime Now() => Truncate(clock.GetUtcNow().UtcDateTime);
 
+    /// <summary>A hash nobody can match, at the same iteration count as real hashes of that kind (F-M01 timing).</summary>
+    private static HashedSecret Dummy(int iterations) =>
+        new(Pbkdf2SecretHasher.Algorithm, Math.Max(iterations, 1000), RandomNumberGenerator.GetBytes(16), RandomNumberGenerator.GetBytes(32));
+
+    private HashedSecret DummyFor(CredentialKind kind) => kind == CredentialKind.Pin
+        ? _dummyPin ??= Dummy(options.PinIterations)
+        : _dummyPassword ??= Dummy(options.PasswordIterations);
+
     /// <summary>DATETIME2(3) precision so values read back compare equal.</summary>
     internal static DateTime Truncate(DateTime utc) => new(utc.Ticks - (utc.Ticks % TimeSpan.TicksPerMillisecond), DateTimeKind.Utc);
+
+    private static bool SameDevice(byte[]? storedHash, string? deviceToken) =>
+        storedHash is not null && !string.IsNullOrEmpty(deviceToken) && deviceToken.Length <= 200
+        && CryptographicOperations.FixedTimeEquals(storedHash, AccessTokens.Sha256(deviceToken));
 
     private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
 

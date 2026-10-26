@@ -28,8 +28,7 @@ public static class WebBookingEndpoints
     {
         http.Response.Headers.CacheControl = "no-store";
         if (!options.Enabled) return Results.NotFound(new ErrorResponse(nameof(HccErrorCode.NOT_FOUND), "Online booking is not available."));
-        var client = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        if (limiter.TryAcquire(bucket, client, limit, window, out var retry)) return null;
+        if (limiter.TryAcquire(bucket, http.Connection.RemoteIpAddress, limit, window, out var retry)) return null;
         http.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(retry.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
         return Results.Json(new ErrorResponse(nameof(HccErrorCode.UNAVAILABLE), "Too many requests. Please wait a moment and try again."), statusCode: StatusCodes.Status429TooManyRequests);
     }

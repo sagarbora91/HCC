@@ -45,6 +45,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
             throw HccException.Validation("Unknown message status.");
         var channels = (await store.ListChannelsAsync(propertyId, null, ct).ConfigureAwait(false)).ToDictionary(c => c.ChannelId);
         var rows = await store.ListMessagesAsync(propertyId, status, Math.Clamp(limit, 1, 500), ct).ConfigureAwait(false);
+        var contact = await GuestContactMask.CanSeeAsync(access, propertyId, principalId, ct).ConfigureAwait(false);   // F-L06
         var views = new List<ChannelMessageView>();
         foreach (var m in rows)
         {
@@ -58,7 +59,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
             }
 
             views.Add(new ChannelMessageView(m.MessageId, InventoryErrors.VersionToWire(m.RowVersion), m.ChannelId, ch?.Name ?? m.ChannelId.ToString(CultureInfo.InvariantCulture),
-                m.ExternalId, m.Kind, m.ChannelRef, m.Guest, m.Phone, m.Email, m.ChannelRoomCode, map?.RoomTypeId, map?.RoomType, StayDates.ToWire(m.Arrival),
+                m.ExternalId, m.Kind, m.ChannelRef, m.Guest, GuestContactMask.Phone(contact, m.Phone), GuestContactMask.Email(contact, m.Email), m.ChannelRoomCode, map?.RoomTypeId, map?.RoomType, StayDates.ToWire(m.Arrival),
                 StayDates.ToWire(m.Departure), m.Adults, m.Children, m.AmountPaise, m.ReceivedUtc is { } r ? Iso(r) : null, m.Status, m.ReservationId, publicNo, room, m.Reason));
         }
 

@@ -16,6 +16,9 @@ public sealed class WebBookingOptions
     public int QuotesPerMinute { get; set; } = 30;
 
     public int RequestsPerTenMinutes { get; set; } = 5;
+
+    /// <summary>Global cap of open (Pending) web requests; new requests are refused above it so spam cannot fill the staff queue (F-L05).</summary>
+    public int MaxPendingRequests { get; set; } = 100;
 }
 
 /// <summary>Fixed actor of the anonymous public path in audit and idempotency rows (no staff account is involved).</summary>
@@ -83,6 +86,9 @@ public sealed class PublicRateLimiter(TimeProvider clock)
     private readonly Dictionary<string, (DateTime WindowStart, int Count)> _hits = [];
 
     /// <summary>True when the call is allowed (and counted); false when the window's limit is used up.</summary>
+    public bool TryAcquire(string bucket, System.Net.IPAddress? client, int limit, TimeSpan window, out TimeSpan retryAfter) =>
+        TryAcquire(bucket, Access.ClientAddress.Key(client), limit, window, out retryAfter);   // F-L05: IPv6 keyed by /64
+
     public bool TryAcquire(string bucket, string client, int limit, TimeSpan window, out TimeSpan retryAfter)
     {
         var now = clock.GetUtcNow().UtcDateTime;

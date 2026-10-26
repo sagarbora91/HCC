@@ -106,7 +106,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             var now = Now();
             await LockOwnersAsync(t, c).ConfigureAwait(false);
             var target = await LoadTargetAsync(t, actor, request.UserId, now, c).ConfigureAwait(false);
-            await EnsureOwnerForOwnerAccountAsync(t, actor, target, now, c).ConfigureAwait(false);
+            await EnsureOwnerForMoneyRoleAccountAsync(t, actor, target, now, c).ConfigureAwait(false);
             if (!request.Enabled && target.IsActiveOwner) await EnsureAnotherActiveOwnerAsync(t, target.UserId, now, c).ConfigureAwait(false);
 
             await using (var u = t.Command("UPDATE plat.app_user SET enabled = @e, security_stamp = security_stamp + 1 WHERE user_id = @u AND row_ver = @v;"))
@@ -202,7 +202,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             var t = (SqlCommandTransaction)itx;
             var now = Now();
             var target = await LoadTargetAsync(t, actor, request.UserId, now, c).ConfigureAwait(false);
-            await EnsureOwnerForOwnerAccountAsync(t, actor, target, now, c).ConfigureAwait(false);
+            await EnsureOwnerForMoneyRoleAccountAsync(t, actor, target, now, c).ConfigureAwait(false);
             await StoreCredentialAsync(t, target, kind, secret, now, c).ConfigureAwait(false);
             await BumpAsync(t, request.UserId, version, c).ConfigureAwait(false);
             await t.AuditAsync("CREDENTIAL_SET", $"user:{request.UserId}", $"{CredentialPolicy.ToWire(kind)} set by administrator; lockout cleared.", c).ConfigureAwait(false);
@@ -613,6 +613,28 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
         if (!target.AssignedRoles.Contains(RoleCodes.Owner)) return;
         var actorRoles = await ActiveRolesAsync(t, actor.UserId, now, ct).ConfigureAwait(false);
         if (!actorRoles.Contains(RoleCodes.Owner)) throw new HccException(HccErrorCode.FORBIDDEN, "Only an Owner can change an Owner account (DEC-058).");
+    }
+
+    /// <summary>
+    /// F-M03 / DEC-057/058: resetting the credential of, enabling or disabling an account that holds any owner_only_assign role (money or
+    /// admin permissions: Owner, Manager, Reception, Cashier, Accountant, Tech admin) needs an active Owner. A Tech admin keeps devices and
+    /// the non-money staff accounts (housekeeping, supervisor, maintenance); otherwise they could reset an Accountant's password and sign
+    /// in as them.
+    /// </summary>
+    private static async Task EnsureOwnerForMoneyRoleAccountAsync(SqlCommandTransaction t, AuthenticatedSession actor, Target target, DateTime now, CancellationToken ct)
+    {
+        if (target.AssignedRoles.Count == 0) return;
+        bool guarded;
+        await using (var q = t.Command("SELECT COUNT(*) FROM plat.role r JOIN plat.user_role ur ON ur.role_code = r.role_code WHERE ur.user_id = @u AND r.owner_only_assign = 1;"))
+        {
+            q.Parameters.Add("@u", SqlDbType.Int).Value = target.UserId;
+            guarded = (int)(await q.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0;
+        }
+
+        if (!guarded) return;
+        var actorRoles = await ActiveRolesAsync(t, actor.UserId, now, ct).ConfigureAwait(false);
+        if (!actorRoles.Contains(RoleCodes.Owner))
+            throw new HccException(HccErrorCode.FORBIDDEN, "Only an Owner can reset the password or PIN of, enable or disable an account with money or admin roles (DEC-058).");
     }
 
     /// <summary>PERM-SOD-003 / DEC-033: at least one other enabled, valid, active Owner must remain. Caller holds the owners lock.</summary>

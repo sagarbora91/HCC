@@ -194,8 +194,9 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
     public async Task<ReservationDetails> GetAsync(int propertyId, int principalId, long reservationId, CancellationToken ct = default)
     {
         await access.RequireAsync(propertyId, principalId, InventoryPermissions.ViewReservations, ct: ct).ConfigureAwait(false);
-        return await reservations.GetDetailsAsync(propertyId, reservationId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false)
+        var d = await reservations.GetDetailsAsync(propertyId, reservationId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false)
             ?? throw InventoryErrors.NotFound("Reservation");
+        return await GuestContactMask.CanSeeAsync(access, propertyId, principalId, ct).ConfigureAwait(false) ? d : d with { Phone = GuestContactMask.Phone(false, d.Phone) };   // F-L06
     }
 
     /// <summary>
@@ -222,8 +223,10 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
         if (f is not null && t is not null && t <= f) throw HccException.Validation("to must be after from.");
         if (page < 1) throw HccException.Validation("page must be 1 or more.");
         if (pageSize is < 1 or > 500) throw HccException.Validation("pageSize must be between 1 and 500.");
-        return await reservations.ListAsync(propertyId, new ReservationListQuery(v, f, t, statuses, text?.Trim() is { Length: > 0 } x ? (x.Length > 100 ? x[..100] : x) : null, page, pageSize),
+        var list = await reservations.ListAsync(propertyId, new ReservationListQuery(v, f, t, statuses, text?.Trim() is { Length: > 0 } x ? (x.Length > 100 ? x[..100] : x) : null, page, pageSize),
             clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
+        if (await GuestContactMask.CanSeeAsync(access, propertyId, principalId, ct).ConfigureAwait(false)) return list;
+        return list with { Items = list.Items.Select(i => i with { Phone = GuestContactMask.Phone(false, i.Phone) }).ToList() };   // F-L06
     }
 
     private async Task<CommandResult<ReservationResult>> CancelOrNoShowAsync(CommandContext context, CancelReservationRequest request, bool noShow, CancellationToken ct)

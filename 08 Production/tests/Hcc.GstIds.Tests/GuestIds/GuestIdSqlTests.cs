@@ -130,13 +130,17 @@ public class GuestIdSqlTests(GstIdsDb db) : IClassFixture<GstIdsDb>
             Assert.StartsWith(db.User[role] + "|guest-" + r.GuestId + "|", audit, StringComparison.Ordinal);
             Assert.DoesNotContain(Aad, audit, StringComparison.Ordinal);
             Assert.DoesNotContain(Aad[^4..], audit, StringComparison.Ordinal);
-            // Stored command result has no number; a replay returns it again without a second audit row.
+            // Stored command result has no number; a replay shows it again and is audited again (F-L04), still without the number.
             var result = (string?)await db.ScalarAsync("SELECT result_json FROM plat.idempotency WHERE idem_key = @k;", ("@k", SqlDbType.VarChar, key));
             Assert.DoesNotContain(Aad, result!, StringComparison.Ordinal);
             var replay = await db.GuestIds.RevealAsync(db.Ctx(role, key), new RevealGuestIdRequest(r.GuestId), Ct);
             Assert.True(replay.Replayed);
             Assert.Equal(Aad, replay.Value.IdNumber);
-            Assert.Equal(before + 1, await db.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'GUEST_ID_VIEW';"));
+            Assert.Equal(before + 2, await db.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'GUEST_ID_VIEW';"));
+            var again = await db.DumpAsync($"SELECT TOP (1) principal_id, target, detail FROM plat.audit_event WHERE action = 'GUEST_ID_VIEW' ORDER BY audit_id DESC;");
+            Assert.StartsWith(db.User[role] + "|guest-" + r.GuestId + "|", again, StringComparison.Ordinal);
+            Assert.Contains("replayed request", again, StringComparison.Ordinal);
+            Assert.DoesNotContain(Aad[^4..], again, StringComparison.Ordinal);
         }
 
         await Expect.Fails(HccErrorCode.NOT_FOUND, () => db.GuestIds.RevealAsync(db.Ctx("OWN"), new RevealGuestIdRequest(99_999_999), Ct));

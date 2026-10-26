@@ -24,6 +24,9 @@ namespace Hcc.WebBooking.Tests.Harness;
 public static class Who
 {
     public const int Owner = 1, Manager = 2, Reception = 3, Housekeeper = 4;
+
+    /// <summary>An Accountant given the web queue and reservation view by a user exception, without guest registration (F-L06 masks).</summary>
+    public const int AccountantWithException = 5;
 }
 
 /// <summary>Stand-in for P1's policy (RBAC matrix v1 + the 2001 seed): Reception reviews web requests; only Owner/Manager record deposits.</summary>
@@ -31,10 +34,11 @@ public sealed class FakePolicy : IAccessPolicy
 {
     private readonly Dictionary<int, HashSet<string>> _g = new()
     {
-        [Who.Owner] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-PAY-002"],
-        [Who.Manager] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-PAY-002"],
-        [Who.Reception] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001"],
+        [Who.Owner] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-PAY-002", "PERM-GST-002"],
+        [Who.Manager] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-PAY-002", "PERM-GST-002"],
+        [Who.Reception] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-GST-002"],
         [Who.Housekeeper] = [],
+        [Who.AccountantWithException] = ["PERM-RES-001", "PERM-WEB-001"],
     };
 
     public Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default)
