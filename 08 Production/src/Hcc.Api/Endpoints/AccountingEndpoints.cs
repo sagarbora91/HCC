@@ -64,40 +64,7 @@ public static class AccountingEndpoints
 
 /// <summary>Polls the outbox for accounting events every 2 s (at-least-once delivery, exactly-once effect per consumer).</summary>
 // ETP-REUSE: align with ETP background-job hosting (Windows service worker, retry/back-off, logging) when ETP (V: drive) is available.
-public sealed partial class AccountingProjectorWorker(AccountingVoucherProjector projector, ILogger<AccountingProjectorWorker> logger) : BackgroundService
+public sealed class AccountingProjectorWorker(AccountingVoucherProjector projector, ILogger<AccountingProjectorWorker> logger) : OutboxPollingWorker(logger, "Accounting outbox projection")
 {
-    public static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await projector.RunOnceAsync(ct: stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-#pragma warning disable CA1031 // A failed poll is logged and retried on the next tick; the event stays undelivered.
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                LogFailed(logger, ex);
-            }
-
-            try
-            {
-                await Task.Delay(Interval, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Accounting outbox projection failed; retrying")]
-    private static partial void LogFailed(ILogger logger, Exception ex);
+    protected override Task PollAsync(CancellationToken ct) => projector.RunOnceAsync(ct: ct);
 }

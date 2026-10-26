@@ -98,10 +98,10 @@ public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigra
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "HCC database schema is behind this build: applied {Applied} of {Build} migrations (database version {DatabaseVersion}, build version {BuildVersion}). Run Hcc.Api.exe migrate (INSTALL.md step 5); until then the API answers 503.")]
+    [LoggerMessage(EventId = HccEventLog.SchemaBehind, Level = LogLevel.Error, Message = "HCC database schema is behind this build: applied {Applied} of {Build} migrations (database version {DatabaseVersion}, build version {BuildVersion}). Run Hcc.Api.exe migrate (INSTALL.md step 5); until then the API answers 503.")]
     private static partial void LogBehind(ILogger logger, int applied, int build, int databaseVersion, int buildVersion);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "HCC schema check could not read the database (SQL error {SqlNumber}); requests are served unchecked and the check is retried.")]
+    [LoggerMessage(EventId = HccEventLog.SchemaCheckFailed, Level = LogLevel.Warning, Message = "HCC schema check could not read the database (SQL error {SqlNumber}); requests are served unchecked and the check is retried.")]
     private static partial void LogCheckFailed(ILogger logger, int sqlNumber);
 }
 

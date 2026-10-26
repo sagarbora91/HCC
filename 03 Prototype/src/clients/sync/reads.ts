@@ -77,6 +77,8 @@ export const READS={
   'GET /admin/roles':ADMIN,
   'GET /admin/exceptions':ADMIN,
   'GET /admin/audit':one(wide('PERM-ADM-004',true)),
+  // Wave C3 (A09-05) System health: PERM-SYS-001 (Owner, Tech admin), an action permission held in A.
+  'GET /admin/system-health':one(wide('PERM-SYS-001')),
   // PERM-CFG-001 is a VIEW permission (Owner A, Tech admin V), so /me/capabilities lists it for both; requests also answer CFG-002/003 holders.
   'GET /configuration/requests':one(wide('PERM-CFG-001',true),wide('PERM-CFG-002'),wide('PERM-CFG-003')),
   'GET /configuration/history':CONFIG,

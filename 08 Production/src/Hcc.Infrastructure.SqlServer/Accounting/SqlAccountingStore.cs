@@ -317,14 +317,16 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
             return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is DateTime d ? DateOnly.FromDateTime(d) : null;
         }, ct);
 
-    public Task<int> PendingEventsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
+    public Task<PendingEvents> PendingEventsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
         => WithAsync(tx, async (c, t) =>
         {
             await using var cmd = Cmd(AccountingVoucherProjector.PendingSql, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             cmd.Parameters.Set("@c", SqlDbType.VarChar, AccountingVoucherProjector.ConsumerName, 40);
             cmd.Parameters.Set("@types", SqlDbType.NVarChar, System.Text.Json.JsonSerializer.Serialize(AccountingEvents.Consumed));
-            return (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            await rd.ReadAsync(ct).ConfigureAwait(false);
+            return new PendingEvents(rd.GetInt32(0), rd.GetInt32(1));
         }, ct);
 
     public Task<OperationalFigures> OperationalFiguresAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct)

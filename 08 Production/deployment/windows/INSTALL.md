@@ -37,7 +37,7 @@ Add `-WhatIf` first to see what it will do. It creates the empty `Hcc` database 
 ```
 .\Install-HccService.ps1            # add -WhatIf first to preview; add -ServiceAccount HOTELPC\svc-hcc for a dedicated user
 ```
-It creates the Windows service "Hotel Control Centre server" (starts automatically, restarts itself after a crash), opens port 5443 for the hotel network only (Private/Domain networks), and makes `appsettings.Production.json` readable only by SYSTEM, Administrators and the HCC service. Do not start it yet.
+It creates the Windows service "Hotel Control Centre server" (starts automatically, restarts itself after a crash), opens port 5443 for the hotel network only (Private/Domain networks), makes `appsettings.Production.json` readable only by SYSTEM, Administrators and the HCC service, and registers the Windows Event Log source **HCC** that the server and the backups write their alerts to (section 7b; the installer registers it too). Do not start it yet.
 
 ## 4. Secure connection (HTTPS certificate)
 Browsers and Android refuse plain HTTP logins on a network, so the server uses HTTPS with the hotel's own certificate authority (CA). Plug in the keys USB stick (here `E:`):
@@ -70,7 +70,7 @@ Start-Service HccServer
 `migrate` builds the tables (on an upgrade it first takes a safety backup through the backup script and refuses to continue if that fails).
 The server checks this itself: while the database is behind the installed version (`migrate` not run yet), every API address answers "503 unavailable" and the health page says "Database schema is behind this build: run `Hcc.Api migrate` (applied N of M)". Run `migrate`; within 10 seconds the server serves again (no restart needed).
 **Check:** open a browser on the server PC: `http://127.0.0.1:5080/api/v1/system/health` should show `"status":"ok"`, the database name `Hcc` and a schema version (this plain address only works until step 6 is done). From another device on the Wi-Fi: `https://192.168.1.20:5443/api/v1/system/health` (works without a warning only after the CA certificate is installed, see below).
-If it does not start: Event Viewer > Windows Logs > Application, source "HccServer" / ".NET Runtime": the message lists exactly which setting is wrong.
+If it does not start: Event Viewer > Windows Logs > Application, source ".NET Runtime" (a settings problem at start-up: the message lists exactly which setting is wrong) or source "HCC" (section 7b).
 
 ## 6. Set up the hotel and the first Owner (once)
 HCC needs to know your hotel and needs its first Owner account. One script does both, in one step. It works **only on the server PC itself** and **only on a new, empty installation**: once the hotel exists, it refuses to run again (nothing is changed).
@@ -164,6 +164,25 @@ The backups hold the whole database but **none of the keys**: those come from a 
 4. `hcc-ops.json` as in section 7; copy the newest `.bak.hccenc` files from the backup USB disk into the backup folder and run `.\Restore-HccDrill.ps1`: it must end with `Guest ID check: OK (...)` and `DRILL PASSED`. A `Guest ID check: FAILED` line names the key that is missing: import it (step 3) and run the drill again.
 5. Restore the newest backup into the `Hcc` database with your technical person (it overwrites that database, so there is deliberately no one-click script), then as in step 5: `.\Hcc.Api.exe migrate`, `.\Hcc.Api.exe verify-guest-id` (must say `OK`, or `no guest IDs to check` for a hotel that never stored one), set `"LoopbackHttpPort": 0` in `appsettings.Production.json` (setup is not run on a restored hotel), then `Start-Service HccServer`.
 6. `.\Register-HccBackupTasks.ps1` (section 7) and a full backup; then the final check list (section 9). Sign in as the Owner and open a guest who left an ID number: it shows `XXXX-XXXX-1234`, and Reveal ID shows the number.
+
+## 7b. When something fails: Windows Event Log and System health (audit A09-05)
+Nothing in HCC fails silently any more. Two places to look, both on the server side:
+- **Windows Event Log**, source **HCC**: Event Viewer > Windows Logs > Application > "Filter Current Log..." > Event sources: HCC. `Install-HccService.ps1` (and the installer) register the source; without it nothing is written (check with `[System.Diagnostics.EventLog]::SourceExists("HCC")` in PowerShell (Admin), or run `.\Install-HccService.ps1 -EventSourceOnly`). The entries never contain guest data: only names of the parts that failed, event numbers, error types and SQL Server error numbers.
+
+  | Event | Level | Meaning | What to do |
+  |---|---|---|---|
+  | 1001 | Warning | An outbox event failed once in a consumer (accounting vouchers, cleaning tasks, guest messages, OTA); it is retried, later events continue | Nothing yet; it becomes 1002 after 5 failures |
+  | 1002 | Error | The event was **parked** after 5 failures: it is no longer retried; accounting periods with it cannot be locked | Admin & Setup > System health: fix the cause with your technical person, then **Retry** |
+  | 1010 | Warning, then Error | A projector cannot work at all (usually SQL Server stopped): Warning at the first failure, Error after about a minute, then once an hour | Start SQL Server (`Get-Service MSSQL$SQLEXPRESS`) |
+  | 1011 | Information | That projector works again | - |
+  | 1020 | Error | The retention purge (old sessions, idempotency records, processed outbox events, old slip photos) failed; it tries again in 6 hours | Tell your technical person if it repeats |
+  | 1030 | Error | A background part of the server crashed; the service stops and Windows restarts it | Tell your technical person |
+  | 1040 / 1041 | Error / Warning | The database is behind this version (run `migrate`, section 5) / the schema check could not read the database | Section 5 |
+  | 2001 | Error | A backup failed (reason: the script's message or the SQL Server error numbers) | Check the backup folder, the free disk space and SQL Server, then run `.\Backup-HccDatabase.ps1 -Type Full` |
+  | 2002 | Error | The restore drill failed: the newest backup is not proven restorable | Run `.\Restore-HccDrill.ps1` and read its log |
+  | 2003 | Warning | A backup worked but its result could not be recorded for System health | Re-run `Initialize-HccDatabase.ps1` (same options as section 2) |
+- **Admin & Setup > System health** (Owner and Tech admin, desktop and phone): the parked events (which part, which event, how many attempts, when it last failed; never the guest data in it), **Retry** for each (the next poll tries it once more; if it fails again it is parked again at once), the last backup (kind, time, result, reason), the last good backup and the last restore drill, and whether the Event Log source is registered. The backup scripts record every run in the database for this (`plat.backup_run`); the backup account may only add rows there (`hcc_backup_reporter`; `migrate` adds the existing backup account, and re-running `Initialize-HccDatabase.ps1` adds it again).
+- The accounting page shows a parked accounting event as "Accounting events stuck - see System health" (not "still being processed"): waiting does not help, a person must retry it.
 
 ## 8. Phones and tablets
 See `ANDROID_SERVER_ADDRESS.md` (installing the certificate on Android and typing the server address in the app). For a browser on a Windows PC: double-click `HCC-Hotel-CA.cer` > Install Certificate > Local Machine > "Trusted Root Certification Authorities". Because of its name constraint the hotel CA is trusted only for the HCC server's own names and addresses.

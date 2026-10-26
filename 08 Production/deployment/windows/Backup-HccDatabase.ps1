@@ -11,6 +11,8 @@
   -WhatIf prints the plan and touches nothing (no connection to SQL Server, no files).
   -CopyOnly -Tag premigrate_X_to_Y is what the migration backup gate uses (does not disturb the differential chain).
   EncryptBackups=false in hcc-ops.json turns encryption off (not recommended: then BitLocker on the backup drive is the only protection).
+  A09-05: every run records its result in <Database>.plat.backup_run (Admin & Setup > System health shows the last backup); a failed run
+  also writes an Error to the Windows Event Log (source HCC, event 2001; skipped silently when the source is not registered).
 .EXAMPLE
   .\Backup-HccDatabase.ps1 -Type Full
   .\Backup-HccDatabase.ps1 -Type Differential -WhatIf
@@ -44,6 +46,7 @@ if ($Tag -and -not $CopyOnly) { throw '-Tag is for pre-migration backups and req
 if ($Tag -and $Type -ne 'Full') { throw 'A tagged backup is always Full.' }
 
 $now = (Get-Date).ToUniversalTime()
+$runKind = if ($Tag) { 'PreMigration' } else { $Type }
 $name = New-HccBackupFileName -Database $Database -Type $Type -UtcNow $now -Tag $Tag
 $target = Join-Path $BackupDirectory $name
 $log = if ($LogDirectory) { Join-Path $LogDirectory ('backup_{0:yyyyMM}.log' -f $now) } else { $null }
@@ -63,6 +66,7 @@ if (-not $PSCmdlet.ShouldProcess($target, "$Type backup of [$Database] on $SqlIn
     else { Write-HccLog 'DRY RUN: encryption is OFF (EncryptBackups=false): the .bak stays readable to anyone who can open the folder' -LogFile $null }
     Write-HccLog "DRY RUN: would check that $BackupDirectory is private (SYSTEM, Administrators, $sqlService$(if ($cfg.BackupAccount) { ', ' + $cfg.BackupAccount }))" -LogFile $null
     Write-HccLog "DRY RUN: would keep >= $KeepMinFulls full backups and delete older than $RetentionDays days from $BackupDirectory" -LogFile $null
+    Write-HccLog "DRY RUN: would record the result ($runKind) in [$Database].plat.backup_run for System health; a failure also goes to the Windows Event Log (source $script:HccEventSource, event $($script:HccEventIds.BackupFailed); source registered here: $(if (Test-HccEventSource) { 'yes' } else { 'no, entry skipped' }))" -LogFile $null
     return
 }
 
@@ -102,10 +106,16 @@ try {
         Remove-Item -LiteralPath (Join-Path $BackupDirectory $d) -Force
         Write-HccLog "Retention: deleted $d" -LogFile $log
     }
+    Write-HccBackupRun -SqlInstance $SqlInstance -Database $Database -Kind $runKind -Succeeded $true -StartedUtc $now -FileName (Split-Path -Leaf $result) -SizeBytes ((Get-Item -LiteralPath $result).Length) -TrustServerCertificate:$trust -LogFile $log | Out-Null
     Write-Output $result
 }
 catch {
-    Write-HccLog ("Backup FAILED: " + $_.Exception.Message) -LogFile $log -Level ERROR
-    throw
+    $failure = $_
+    Write-HccLog ("Backup FAILED: " + $failure.Exception.Message) -LogFile $log -Level ERROR
+    # A09-05: the operator sees it in the Windows Event Log (source HCC, 2001) and in System health; neither step may hide the failure.
+    $reason = Get-HccFailureReason $failure.Exception.Message
+    Write-HccOperationFailure -Operation Backup -Kind $runKind -Database $Database -SqlInstance $SqlInstance -Reason $reason -LogFile $log | Out-Null
+    Write-HccBackupRun -SqlInstance $SqlInstance -Database $Database -Kind $runKind -Succeeded $false -StartedUtc $now -Reason $reason -TrustServerCertificate:$trust -LogFile $log | Out-Null
+    throw $failure
 }
 finally { if ($key) { [Array]::Clear($key, 0, $key.Length) } }

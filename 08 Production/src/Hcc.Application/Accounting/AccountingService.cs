@@ -30,9 +30,9 @@ public static class AccountingDays
         var lk = await store.CurrentLockAsync(tx, propertyId, date, ct).ConfigureAwait(false);
         var reopened = lk is null ? await store.ReopenedDateAsync(tx, propertyId, ct).ConfigureAwait(false) : null;
         var status = Status(lk is not null, date, businessDate, reopened);
-        var pending = lk is null ? await store.PendingEventsAsync(tx, propertyId, ct).ConfigureAwait(false) : 0;
+        var pending = lk is null ? await store.PendingEventsAsync(tx, propertyId, ct).ConfigureAwait(false) : new PendingEvents(0, 0);
         var shown = lk?.Vouchers ?? live;
-        return new AccountingDayState(date, status, lk, live, shown, VoucherBuilder.Exceptions(shown, live, lk is not null, status, pending), mapping);
+        return new AccountingDayState(date, status, lk, live, shown, VoucherBuilder.Exceptions(shown, live, lk is not null, status, pending.Pending, pending.Parked), mapping);
     }
 
     /// <summary>

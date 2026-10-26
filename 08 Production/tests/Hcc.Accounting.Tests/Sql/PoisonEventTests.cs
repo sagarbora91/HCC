@@ -48,12 +48,17 @@ public sealed class PoisonEventTests(AccountingDb db) : IClassFixture<Accounting
         var parked = Assert.Single(await db.Platform.Outbox.ParkedAsync(AccountingVoucherProjector.ConsumerName, Ct));
         Assert.Equal((poison, AccountingEvents.ChargePosted, db.PropertyId, OutboxConsumer.ParkAfterFailures), (parked.OutboxId, parked.EventType, parked.PropertyId, parked.Attempts));
 
-        // Parked = still not booked: the closed day reports it as pending and cannot be locked.
+        // Parked = still not booked: the closed day reports it and cannot be locked. Wave C3: as "stuck — see System health", not as the
+        // generic "still being processed" (which sent the owner in the wrong direction: waiting never helps a parked event).
         await db.SetBusinessDateAsync(D.AddDays(1));
         var day = await db.Queries.DayAsync(db.As("ACC"), D, Ct);
-        Assert.Contains(day.Exceptions, x => x.Kind == "pending" && x.Severity == "error");
+        var stuck = Assert.Single(day.Exceptions, x => x.Kind == "stuck");
+        Assert.Equal(("stuck", "Accounting events stuck — see System health"), (stuck.Kind, stuck.Title));
+        Assert.StartsWith("1 posting event(s)", stuck.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(day.Exceptions, x => x.Kind == "pending");
         var refused = await Fails(HccErrorCode.VALIDATION, () => db.Accounting.LockAsync(db.As("ACC"), Key(), new LockPeriodRequest(D), Ct));
-        Assert.Contains("still being processed", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("stuck — see System health", refused.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("still being processed", refused.Message, StringComparison.Ordinal);
         Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM acc.period_lock WHERE business_date = @d;", ("@d", SqlDbType.Date, D.ToDateTime(TimeOnly.MinValue))));
 
         // A08-01: once the consumer's watermark has moved past the parked event (60 s later in real life), the pending count reads only
@@ -62,7 +67,7 @@ public sealed class PoisonEventTests(AccountingDb db) : IClassFixture<Accounting
             ("@c", SqlDbType.VarChar, AccountingVoucherProjector.ConsumerName));
         Assert.True(await db.LongAsync("SELECT low_outbox_id FROM plat.outbox_consumer WHERE consumer = @c;",
             ("@c", SqlDbType.VarChar, AccountingVoucherProjector.ConsumerName)) > poison);
-        Assert.Contains((await db.Queries.DayAsync(db.As("ACC"), D, Ct)).Exceptions, x => x.Kind == "pending" && x.Severity == "error");
+        Assert.Contains((await db.Queries.DayAsync(db.As("ACC"), D, Ct)).Exceptions, x => x.Kind == "stuck" && x.Severity == "error");
         await Fails(HccErrorCode.VALIDATION, () => db.Accounting.LockAsync(db.As("ACC"), Key(), new LockPeriodRequest(D), Ct));
 
         // Once the event is dealt with (here: marked processed by hand), the same day locks: the parked event was the only blocker.

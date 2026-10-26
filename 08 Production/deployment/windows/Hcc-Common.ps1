@@ -700,3 +700,117 @@ function ConvertFrom-HccApiError {
     }
     return $Fallback
 }
+
+# --- operator alerts: Windows Event Log and the System health backup record (A09-05) ------------------------------------------
+# The server and these scripts write operator alerts to the Application log under source "HCC" (Event Viewer > Windows Logs >
+# Application, filter on source HCC). Creating a source needs an administrator, so Install-HccService.ps1 (and the installer, with
+# -EventSourceOnly) registers it once; the scheduled tasks (SYSTEM) and the service account only write to it. A missing source is never
+# an error: the entry is skipped and the log file still has the line. Event ids: server 1001-1099 (src\Hcc.Api\Hosting\OperatorAlerts.cs),
+# scripts 2001 backup failed, 2002 restore drill failed, 2003 a backup result could not be recorded for System health.
+# No guest data goes there: SQL Server errors are reduced to their numbers (Get-HccFailureReason).
+$script:HccEventSource = 'HCC'
+$script:HccEventLogName = 'Application'
+$script:HccEventIds = @{ BackupFailed = 2001; DrillFailed = 2002; BackupRunNotRecorded = 2003 }
+
+# True when the source is registered on this PC (registry; every account may read it).
+function Test-HccEventSource {
+    param([string]$Source = $script:HccEventSource)
+    try { return [bool](Test-Path -LiteralPath ('HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\{0}\{1}' -f $script:HccEventLogName, $Source)) } catch { return $false }
+}
+
+# Registers the source in the Application log (administrator). Returns 'exists', 'created' or 'planned' (-WhatIf: nothing is created).
+function Register-HccEventSource {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string]$Source = $script:HccEventSource)
+    if (Test-HccEventSource -Source $Source) { return 'exists' }
+    if (-not $PSCmdlet.ShouldProcess("Windows Event Log source '$Source' ($script:HccEventLogName log)", 'Register')) { return 'planned' }
+    [System.Diagnostics.EventLog]::CreateEventSource($Source, $script:HccEventLogName)
+    return 'created'
+}
+
+# The one call that writes to the Event Log (Test-HccDeployment.ps1 replaces it to capture the entry).
+function Invoke-HccEventLogWrite {
+    param([string]$Source, [string]$EntryType, [int]$EventId, [string]$Message)
+    [System.Diagnostics.EventLog]::WriteEntry($Source, $Message, [System.Diagnostics.EventLogEntryType]$EntryType, $EventId)
+}
+
+# Writes one entry when the source is registered. Returns $true when written, $false (silently) otherwise. Never throws.
+function Write-HccEventLog {
+    param([ValidateSet('Error', 'Warning', 'Information')][string]$Level = 'Error', [int]$EventId = 2001, [string]$Message, [string]$Source = $script:HccEventSource)
+    try {
+        if (-not (Test-HccEventSource -Source $Source)) { return $false }
+        $text = if (-not $Message) { '(no text)' } elseif ($Message.Length -gt 4000) { $Message.Substring(0, 4000) } else { $Message }
+        Invoke-HccEventLogWrite -Source $Source -EntryType $Level -EventId $EventId -Message $text
+        return $true
+    }
+    catch { return $false }
+}
+
+# Why a run failed, for the Event Log and System health: sqlcmd failures as their SQL Server error numbers only ("sqlcmd failed: Msg 3201,
+# Msg 3013"; the message text can quote data), anything else as the scripts' own message, on one line, at most 300 characters.
+function Get-HccFailureReason {
+    param([string]$Message)
+    if (-not $Message) { return 'unknown error' }
+    $text = ($Message -replace '\s+', ' ').Trim()
+    if ($text -match '^sqlcmd failed') {
+        $numbers = @([regex]::Matches($text, 'Msg (\d+)') | ForEach-Object { 'Msg ' + $_.Groups[1].Value } | Select-Object -Unique)
+        $exit = if ($text -match '^sqlcmd failed \(exit (-?\d+)\)') { ' (exit ' + $Matches[1] + ')' } else { '' }
+        if ($numbers.Count -gt 0) { return 'sqlcmd failed' + $exit + ': ' + ($numbers -join ', ') }
+        if ($text -match 'Login timeout|TCP Provider|Named Pipes Provider|network-related') { return 'sqlcmd failed' + $exit + ': SQL Server could not be reached' }
+        return 'sqlcmd failed' + $exit
+    }
+    if ($text.Length -gt 300) { $text = $text.Substring(0, 300) }
+    return $text
+}
+
+# The failure entry of a backup or restore drill (event 2001 / 2002). Returns the message (also when the Event Log is not set up).
+function Write-HccOperationFailure {
+    param([Parameter(Mandatory)][ValidateSet('Backup', 'RestoreDrill')][string]$Operation, [string]$Kind, [string]$Database, [string]$SqlInstance, [string]$Reason, [string]$LogFile)
+    $when = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss\Z', [Globalization.CultureInfo]::InvariantCulture)
+    if ($Operation -eq 'Backup') {
+        $id = $script:HccEventIds.BackupFailed
+        $text = "HCC backup FAILED: $Kind backup of [$Database] on $SqlInstance at $when. Reason: $Reason. Until it works again no new backups are taken: check the backup folder, the disk space and SQL Server, then run Backup-HccDatabase.ps1 by hand (INSTALL.md section 7)."
+    }
+    else {
+        $id = $script:HccEventIds.DrillFailed
+        $text = "HCC restore drill FAILED for [$Database] on $SqlInstance at $when. Reason: $Reason. The newest backup could not be proven restorable: run Restore-HccDrill.ps1 by hand and read its log (INSTALL.md section 7)."
+    }
+    if ($LogFile) { $text += " Log: $LogFile" }
+    Write-HccEventLog -Level Error -EventId $id -Message $text | Out-Null
+    return $text
+}
+
+# The INSERT that records one run in <Database>.plat.backup_run (migration 3920; shown in Admin & Setup > System health). Guarded:
+# nothing happens before that migration ran. Pure (unit-tested): every value is quoted with ConvertTo-HccSqlLiteral.
+function Get-HccBackupRunSql {
+    param([Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][ValidateSet('Full', 'Differential', 'PreMigration', 'RestoreDrill')][string]$Kind,
+        [bool]$Succeeded, [Parameter(Mandatory)][datetime]$StartedUtc, [Parameter(Mandatory)][datetime]$FinishedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [string]$HostName = $env:COMPUTERNAME)
+    Assert-HccDatabaseName $Database | Out-Null
+    $inv = [Globalization.CultureInfo]::InvariantCulture
+    $t = { param($d) "'" + $d.ToString('yyyy-MM-ddTHH:mm:ss', $inv) + "'" }
+    $s = { param($v, $max) if ($null -eq $v -or "$v" -eq '') { 'NULL' } else { $x = "$v"; if ($x.Length -gt $max) { $x = $x.Substring(0, $max) }; ConvertTo-HccSqlLiteral $x } }
+    $size = if ($null -ne $SizeBytes -and "$SizeBytes" -match '^\d+$') { "$SizeBytes" } else { 'NULL' }
+    $finished = if ($FinishedUtc -lt $StartedUtc) { $StartedUtc } else { $FinishedUtc }
+    $table = (ConvertTo-HccSqlName $Database) + '.plat.backup_run'
+    return ('IF OBJECT_ID({0}) IS NOT NULL INSERT {1}(kind, succeeded, started_utc, finished_utc, file_name, size_bytes, reason, host_name) VALUES ({2}, {3}, {4}, {5}, {6}, {7}, {8}, {9});' -f
+        (ConvertTo-HccSqlLiteral $table), $table, (ConvertTo-HccSqlLiteral $Kind), $(if ($Succeeded) { 1 } else { 0 }), (& $t $StartedUtc), (& $t $finished),
+        (& $s $FileName 260), $size, (& $s $Reason 400), (& $s $HostName 64))
+}
+
+# Records one run for System health. A failure to record never fails the run: it is logged (WARN) and, after a successful backup,
+# written as Warning 2003 (the panel would otherwise show an older result). Returns $true when recorded.
+function Write-HccBackupRun {
+    param([Parameter(Mandatory)][string]$SqlInstance, [Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][string]$Kind, [bool]$Succeeded,
+        [Parameter(Mandatory)][datetime]$StartedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [switch]$TrustServerCertificate, [string]$LogFile)
+    try {
+        $sql = Get-HccBackupRunSql -Database $Database -Kind $Kind -Succeeded $Succeeded -StartedUtc $StartedUtc -FinishedUtc ((Get-Date).ToUniversalTime()) -FileName $FileName -SizeBytes $SizeBytes -Reason $Reason
+        Invoke-HccSql -Instance $SqlInstance -Query $sql -TrustServerCertificate:$TrustServerCertificate | Out-Null
+        return $true
+    }
+    catch {
+        $why = Get-HccFailureReason $_.Exception.Message
+        Write-HccLog "Could not record this result for System health ([$Database].plat.backup_run): $why" -LogFile $LogFile -Level WARN
+        if ($Succeeded) { Write-HccEventLog -Level Warning -EventId $script:HccEventIds.BackupRunNotRecorded -Message "HCC $Kind backup of [$Database] succeeded but its result could not be recorded for System health ($why). The panel shows an older result." | Out-Null }
+        return $false
+    }
+}

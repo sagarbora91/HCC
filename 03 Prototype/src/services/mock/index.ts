@@ -39,3 +39,4 @@ export {buildHistory,HISTORY_DEFAULTS,setHistoryProgress} from '../../fixtures/h
 export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
 export * from '../../domain/credentials';
+export * from '../../domain/streams/syshealth';
