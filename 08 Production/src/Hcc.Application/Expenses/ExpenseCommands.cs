@@ -19,8 +19,12 @@ namespace Hcc.Application.Expenses;
 /// (DEC-052) through <see cref="ICashDrawerPort"/> inside the same transaction, exactly once; every approved or reversed expense
 /// publishes an outbox event for Accounting.
 /// </summary>
-public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null)
+public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
+    MoneyMasters.IPaymentMethodSource? methods = null)
 {
+    private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
+
     public const string OpSubmit = "SubmitExpense";
     public const string OpSubmitDraft = "SubmitExpenseDraft";
     public const string OpDecide = "DecideExpense";
@@ -37,7 +41,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
         ArgumentNullException.ThrowIfNull(req);
         // Any scope: Reception / Cashier / Accountant hold the grant for their own submissions; the new record is theirs by construction.
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Submit, AccessScopes.Any, null, ct).ConfigureAwait(false);
-        var n = ExpenseRules.NormalizeNew(req.Vendor, req.Category, req.Method, req.AmountPaise, req.Notes, req.Receipt);
+        var n = ExpenseRules.NormalizeNew(req.Vendor, req.Category, req.Method, req.AmountPaise, req.Notes, req.Receipt, await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false));
 
         return await runner.RunAsync(ctx with { Operation = OpSubmit }, req, async (tx, c) =>
         {
@@ -96,11 +100,13 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             // P6: the posting date bd must be open; a cash expense also needs bd's cash book unlocked (DEC-065; approval re-dates the expense to bd).
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
-            if (days is not null && req.Approve && e.Method == ExpenseMethods.Cash)
+            // MA-11: drawer cash = the method settles to a till (Payment methods master; a retired method still resolves).
+            var tillCash = Hcc.Domain.MoneyMasters.PaymentMethodBook.SettlesToTill(await MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), e.Method);
+            if (days is not null && req.Approve && tillCash)
                 await days.EnsureCashBookOpenAsync(tx, ctx.PropertyId, bd, "a cash expense", c).ConfigureAwait(false);
             long? movementId = null;
             int? till = null;
-            if (req.Approve && ExpenseRules.DrawerMovement(e.Method, e.Amount, reversal: false) is { } move)
+            if (req.Approve && ExpenseRules.DrawerMovement(tillCash, e.Amount, reversal: false) is { } move)
             {
                 till = req.TillId ?? throw HccException.Validation("Choose the till that pays this cash expense.");
                 movementId = await drawer.RecordMovementAsync(tx, till.Value, move.Kind, DrawerSourceExpense, e.ExpenseId, move.Amount,
@@ -160,7 +166,8 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             // P6: the reversal posts on the open business date; the original's cash-book day must not be locked (DEC-065, like Billing corrections).
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
             if (days is not null) await days.EnsureCashBookOpenAsync(tx, ctx.PropertyId, e.BusinessDate, "reversing this expense", c).ConfigureAwait(false);
-            var needsDrawer = ExpenseRules.DrawerMovement(e.Method, e.Amount, reversal: true);
+            var needsDrawer = ExpenseRules.DrawerMovement(Hcc.Domain.MoneyMasters.PaymentMethodBook.SettlesToTill(await MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), e.Method),
+                e.Amount, reversal: true);
             int? till = null;
             if (needsDrawer is not null) till = req.TillId ?? throw HccException.Validation("Choose the till that takes this cash back.");
 
@@ -220,8 +227,11 @@ public static class ExpenseMapping
 }
 
 /// <summary>Expense reads. Holders of PERM-EXP-002/003 (or property-wide EXP-001) see every expense; own-submission holders see only theirs.</summary>
-public sealed class ExpenseQueries(IAccessPolicy policy, IExpenseStore store)
+public sealed class ExpenseQueries(IAccessPolicy policy, IExpenseStore store, MoneyMasters.IPaymentMethodSource? methods = null)
 {
+    private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(int propertyId, CancellationToken ct) =>
+        methods is null ? null : await methods.MethodsAsync(null, propertyId, ct).ConfigureAwait(false);
+
     private async Task<bool> WideAsync(int propertyId, int principalId, CancellationToken ct)
     {
         foreach (var perm in new[] { ExpensePermissions.Decide, ExpensePermissions.PostReverse, ExpensePermissions.Submit })
@@ -261,13 +271,15 @@ public sealed class ExpenseQueries(IAccessPolicy policy, IExpenseStore store)
     {
         await policy.RequireAsync(propertyId, principalId, ExpensePermissions.Decide, AccessScopes.Any, null, ct).ConfigureAwait(false);
         var d = StayDates.Parse(date);
-        var t = ExpenseRules.Totals(await store.FactsOnAsync(propertyId, d, ct).ConfigureAwait(false), d);
+        var t = ExpenseRules.Totals(await store.FactsOnAsync(propertyId, d, ct).ConfigureAwait(false), d, await MethodsAsync(propertyId, ct).ConfigureAwait(false));
         return new ExpenseSummaryView(StayDates.ToWire(d), t.Cash.Value, t.NonCash.Value, t.VendorCredit.Value, t.Total.Value, t.Reversals.Value, t.Count);
     }
 
     public async Task<ExpenseOptionsView> OptionsAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
         await RequireViewerAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        return new ExpenseOptionsView(ExpenseMethods.All, ExpenseMethods.SuggestedCategories);
+        // MA-11: the active funding sources of the Payment methods master (the old fixed list when the property has none).
+        return new ExpenseOptionsView(Hcc.Domain.MoneyMasters.PaymentMethodBook.NamesAt(await MethodsAsync(propertyId, ct).ConfigureAwait(false),
+            Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses), ExpenseMethods.SuggestedCategories);
     }
 }

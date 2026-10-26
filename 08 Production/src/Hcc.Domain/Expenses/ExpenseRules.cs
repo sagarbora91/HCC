@@ -1,6 +1,8 @@
 using Hcc.Contracts;
 using Hcc.Domain.Errors;
+using Hcc.Contracts.MoneyMasters;
 using Hcc.Domain.Money;
+using Hcc.Domain.MoneyMasters;
 using Hcc.Domain.Payments;
 
 namespace Hcc.Domain.Expenses;
@@ -48,7 +50,7 @@ public static class ExpenseRules
     public static bool Counts(string status) => status is ExpenseState.Posted or ExpenseState.Reversed;
 
     public static (string Vendor, string Category, string Method, Paise Amount, string? Notes, string? Receipt) NormalizeNew(
-        string? vendor, string? category, string? method, long amountPaise, string? notes, string? receipt)
+        string? vendor, string? category, string? method, long amountPaise, string? notes, string? receipt, IReadOnlyList<TenderMethod>? methods = null)
     {
         var v = (vendor ?? string.Empty).Trim();
         if (v.Length == 0) throw HccException.Validation("Enter a vendor.");
@@ -56,8 +58,8 @@ public static class ExpenseRules
         var c = (category ?? string.Empty).Trim();
         if (c.Length == 0) throw HccException.Validation("Choose a category.");
         if (c.Length > CategoryMax) throw HccException.Validation($"The category is at most {CategoryMax} characters.");
-        var m = (method ?? string.Empty).Trim();
-        if (!ExpenseMethods.All.Contains(m, StringComparer.Ordinal)) throw HccException.Validation("Choose a funding source.");
+        // MA-11: a funding source of the Payment methods master usable for expenses (the old fixed list when the property has none).
+        var m = PaymentMethodBook.Pick(methods, method, MoneyMasterValues.Expenses, null, requireReference: false).Name;
         var amount = Paise.FromWire(amountPaise).EnsureReceiptAmount();
         return (v, c, m, amount, Clip(notes, NotesMax), Clip(receipt, ReceiptMax));
     }
@@ -92,7 +94,7 @@ public static class ExpenseRules
     }
 
     /// <summary>Net posted figures for a date, split by funding source (prototype report pack: cash, UPI+bank, vendor credit, total; reversals shown separately).</summary>
-    public static ExpenseTotals Totals(IEnumerable<ExpenseFact> all, DateOnly date)
+    public static ExpenseTotals Totals(IEnumerable<ExpenseFact> all, DateOnly date, IReadOnlyList<TenderMethod>? methods = null)
     {
         ArgumentNullException.ThrowIfNull(all);
         Paise cash = Paise.Zero, nonCash = Paise.Zero, vendor = Paise.Zero, reversals = Paise.Zero;
@@ -100,12 +102,9 @@ public static class ExpenseRules
         foreach (var e in all.Where(e => e.Date == date && Counts(e.Status)))
         {
             count++;
-            switch (e.Method)
-            {
-                case ExpenseMethods.Cash: cash += e.Amount; break;
-                case ExpenseMethods.Upi or ExpenseMethods.BankTransfer: nonCash += e.Amount; break;
-                case ExpenseMethods.VendorCredit: vendor += e.Amount; break;
-            }
+            // MA-11: by the method's master row — settles to a till = cash, credit = vendor credit, any other known method = non-cash.
+            if (PaymentMethodBook.SettlesToTill(methods, e.Method)) cash += e.Amount;
+            else if (PaymentMethodBook.KindOf(methods, e.Method) is { } kind) { if (kind == MoneyMasterValues.Credit) vendor += e.Amount; else nonCash += e.Amount; }
 
             if (e.IsReversal) reversals += e.Amount;
         }
@@ -117,9 +116,12 @@ public static class ExpenseRules
     /// The drawer effect of a posted/reversed expense: only Cash moves the drawer (negative on posting, positive on reversal);
     /// null for UPI, bank transfer and vendor credit. Amount is the positive expense amount.
     /// </summary>
-    public static CashMovement? DrawerMovement(string method, Paise amount, bool reversal)
+    public static CashMovement? DrawerMovement(string method, Paise amount, bool reversal) => DrawerMovement(method == ExpenseMethods.Cash, amount, reversal);
+
+    /// <summary>MA-11: the drawer effect when the method settles to a till (Payment methods master), null otherwise.</summary>
+    public static CashMovement? DrawerMovement(bool settlesToTill, Paise amount, bool reversal)
     {
-        if (method != ExpenseMethods.Cash) return null;
+        if (!settlesToTill) return null;
         return reversal ? new CashMovement(CashMovementKind.ExpenseReversal, amount) : new CashMovement(CashMovementKind.Expense, -amount);
     }
 

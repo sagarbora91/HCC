@@ -103,6 +103,23 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
             return d;
         }, ct);
 
+    public Task<IReadOnlyDictionary<string, string>> MasterLedgersAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
+        => WithAsync<IReadOnlyDictionary<string, string>>(tx, async (c, t) =>
+        {
+            // MA-11: the ledger column of the payment methods (2830; a method's money lands in it, and an expense funded by it is credited
+            // to it) and of the expense categories. Earlier names keep the mapping they had (defaults / overrides).
+            await using var cmd = Cmd("""
+                SELECT CONCAT('method:', name), ledger FROM mst.payment_method WHERE property_id = @p AND ledger IS NOT NULL
+                UNION ALL SELECT CONCAT('funding:', name), ledger FROM mst.payment_method WHERE property_id = @p AND ledger IS NOT NULL
+                UNION ALL SELECT CONCAT('expense:', name), ledger FROM ops.expense_category WHERE property_id = @p AND ledger IS NOT NULL;
+                """, c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            var d = new Dictionary<string, string>(StringComparer.Ordinal);
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) d[rd.GetString(0)] = rd.GetString(1).TrimEnd();
+            return d;
+        }, ct);
+
     public Task<IReadOnlyDictionary<string, int>> KeyUsesAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
         => WithAsync<IReadOnlyDictionary<string, int>>(tx, async (c, t) =>
         {

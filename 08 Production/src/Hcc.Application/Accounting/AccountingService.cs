@@ -24,7 +24,7 @@ public static class AccountingDays
         ArgumentNullException.ThrowIfNull(store);
         var businessDate = await store.BusinessDateAsync(tx, propertyId, ct).ConfigureAwait(false)
             ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
-        var mapping = ChartOfAccounts.Effective(await store.MappingOverridesAsync(tx, propertyId, ct).ConfigureAwait(false));
+        var mapping = await store.EffectiveMappingAsync(tx, propertyId, ct).ConfigureAwait(false);
         var sources = await store.SourcesAsync(tx, propertyId, date, date, ct).ConfigureAwait(false);
         var live = VoucherBuilder.Build(date, sources, mapping);
         var lk = await store.CurrentLockAsync(tx, propertyId, date, ct).ConfigureAwait(false);
@@ -51,7 +51,7 @@ public static class AccountingDays
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(store);
-        var mapping = ChartOfAccounts.Effective(await store.MappingOverridesAsync(null, propertyId, ct).ConfigureAwait(false));
+        var mapping = await store.EffectiveMappingAsync(null, propertyId, ct).ConfigureAwait(false);
         var sources = await store.SourcesAsync(null, propertyId, from, to, ct).ConfigureAwait(false);
         var locks = (await store.LocksAsync(null, propertyId, from, to, ct).ConfigureAwait(false)).ToDictionary(l => l.BusinessDate);
         var dates = sources.Select(s => s.BusinessDate).Concat(locks.Keys).Distinct().Order().ToList();
@@ -137,8 +137,7 @@ public sealed class AccountingService(ICommandRunner runner, IAccountingStore st
             await store.SerializeAsync(tx, $"acc:mapping:{caller.PropertyId}", ct2).ConfigureAwait(false);
             if (!ChartOfAccounts.DefaultMapping.ContainsKey(key) && !(await store.KeyUsesAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false)).ContainsKey(key))
                 throw new HccException(HccErrorCode.NOT_FOUND, "Unknown source classification.");
-            var overrides = await store.MappingOverridesAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
-            var before = ChartOfAccounts.Effective(overrides).GetValueOrDefault(key);
+            var before = (await store.EffectiveMappingAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false)).GetValueOrDefault(key);
             if (before == account.Code) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This classification already maps to that ledger.");
             await store.WriteMappingAsync(tx, caller.PropertyId, key, account.Code, before, Now, ct2).ConfigureAwait(false);
             await tx.AuditAsync("ACC_MAPPING_SET", "acc-map:" + Clip(key), $"{key} → {account.Code} {account.Name}"

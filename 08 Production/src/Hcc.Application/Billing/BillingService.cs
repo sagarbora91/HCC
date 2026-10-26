@@ -4,9 +4,11 @@ using Hcc.Application.Payments;
 using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Contracts.Billing;
+using Hcc.Contracts.MoneyMasters;
 using Hcc.Domain.Billing;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Money;
+using Hcc.Domain.MoneyMasters;
 using Hcc.Domain.Tax;
 
 namespace Hcc.Application.Billing;
@@ -28,7 +30,7 @@ namespace Hcc.Application.Billing;
 /// </summary>
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
-    ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null)
+    ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -116,8 +118,12 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         var amount = Paise.FromWire(req.AmountPaise).EnsureReceiptAmount();
         var reference = BillingText.Optional(req.Reference, 120);
-        var tender = Tenders.Validate(req.Tender, reference);
-        if (tender == Tenders.Cash && req.TillId is null) throw HccException.Validation("Choose the till that receives the cash.");
+        // MA-11: the method comes from the Payment methods master (mst.payment_method; defaults when the list is empty); a method that settles
+        // to a till is drawer cash (open shift, pay.cash_movement), every other method is not.
+        var method = PaymentMethodBook.Pick(await MethodsAsync(null, caller.PropertyId, ct).ConfigureAwait(false), req.Tender, MoneyMasterValues.FrontDesk, reference);
+        var tender = method.Name;
+        var cash = method.SettlesToTill;
+        if (cash && req.TillId is null) throw HccException.Validation("Choose the till that receives the cash.");
 
         return await runner.RunAsync(Ctx(caller, "RecordReceipt", idempotencyKey), req, async (tx, ct2) =>
         {
@@ -140,7 +146,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
 
             int? tillId = null;
             long? shiftId = null;
-            if (tender == Tenders.Cash)
+            if (cash)
             {
                 var shift = await CashDesk.RequireOpenShiftAsync(store, tx, caller.PropertyId, req.TillId!.Value, f.BusinessDate, ct2).ConfigureAwait(false);
                 await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, new AccessScope(BillingPermissions.ShiftScope, shift.ShiftId), ct: ct2).ConfigureAwait(false);
@@ -152,12 +158,12 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             }
 
             var receipt = new NewReceipt(f.FolioId, kind, tender, amount, null, f.BusinessDate, tillId, shiftId,
-                tender == Tenders.Cash && reference.Length == 0 ? "Cash" : reference, null, caller.PrincipalId, Now);
+                cash && reference.Length == 0 ? tender : reference, null, caller.PrincipalId, Now);
             var id = await store.InsertReceiptAsync(tx, receipt, ct2).ConfigureAwait(false);
             if (shiftId is { } sid)
                 await CashDesk.RecordReceiptMovementAsync(store, tx, sid, tillId!.Value, f.BusinessDate, kind, id, amount, f.FolioId, receipt.Reference, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("RECEIPT_RECORDED", Target("folio", f.FolioId), $"{FolioTotals.KindCode(kind)} · {tender} · {amount} · receipt {id}" + (tender == Tenders.Cash ? "" : " · manual entry, not verified"), ct2).ConfigureAwait(false);
+            await tx.AuditAsync("RECEIPT_RECORDED", Target("folio", f.FolioId), $"{FolioTotals.KindCode(kind)} · {tender} · {amount} · receipt {id}" + (cash ? "" : " · manual entry, not verified"), ct2).ConfigureAwait(false);
             await tx.PublishAsync("ReceiptRecorded", f.FolioId, new { folioId = f.FolioId, receiptId = id, kind = FolioTotals.KindCode(kind), tender, amountPaise = amount.Value, businessDate = f.BusinessDate }, ct2).ConfigureAwait(false);
             return new ReceiptResult(id, f.FolioId, FolioTotals.KindCode(kind), tender, amount.Value, f.BusinessDate, shiftId, null, version);
         }, ct).ConfigureAwait(false);
@@ -447,10 +453,13 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                 throw Invalid("A settled departed stay requires a credit note before a refund.");
             var reference = BillingText.Optional(req.Reference, 120);
             if (reference.Length == 0) reference = $"Refund of receipt {parent.Receipt.ReceiptId}";
-            var tender = Tenders.Validate(req.Tender ?? parent.Receipt.Tender, reference);
+            // MA-11: a refund goes back by the original receipt's method even when it has been retired since; another method must be active.
+            var method = PaymentMethodBook.Pick(await MethodsAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false), req.Tender ?? parent.Receipt.Tender,
+                MoneyMasterValues.FrontDesk, reference, allowRetired: req.Tender is null || string.Equals(req.Tender.Trim(), parent.Receipt.Tender, StringComparison.Ordinal));
+            var tender = method.Name;
             int? tillId = null;
             long? shiftId = null;
-            if (tender == Tenders.Cash)
+            if (method.SettlesToTill)
             {
                 if (req.TillId is not { } t) throw HccException.Validation("Choose the till that pays out the cash.");
                 var shift = await CashDesk.RequireOpenShiftAsync(store, tx, caller.PropertyId, t, f.BusinessDate, ct2).ConfigureAwait(false);
@@ -481,6 +490,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     }
 
     // ── helpers ──
+
+    private async Task<IReadOnlyList<TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
 
     private async Task<FolioHeader> RequireFolioAsync(ICommandTransaction tx, Caller caller, long folioId, CancellationToken ct)
     {

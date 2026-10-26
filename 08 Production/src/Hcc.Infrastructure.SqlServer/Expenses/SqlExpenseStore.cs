@@ -58,7 +58,7 @@ public sealed class SqlExpenseStore(SqlConnectionFactory connections) : IExpense
         Add(cmd, "@v", SqlDbType.NVarChar, e.Vendor, ExpenseRules.VendorMax);
         Add(cmd, "@c", SqlDbType.NVarChar, e.Category, ExpenseRules.CategoryMax);
         Add(cmd, "@a", SqlDbType.BigInt, e.Amount.Value);
-        Add(cmd, "@m", SqlDbType.VarChar, e.Method, 14);
+        Add(cmd, "@m", SqlDbType.NVarChar, e.Method, 60);
         Add(cmd, "@d", SqlDbType.Date, e.BusinessDate.ToDateTime(TimeOnly.MinValue));
         Add(cmd, "@s", SqlDbType.VarChar, e.Status, 10);
         Add(cmd, "@u", SqlDbType.Int, e.SubmittedBy);
