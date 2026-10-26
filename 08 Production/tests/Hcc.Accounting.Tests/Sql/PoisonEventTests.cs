@@ -56,6 +56,15 @@ public sealed class PoisonEventTests(AccountingDb db) : IClassFixture<Accounting
         Assert.Contains("still being processed", refused.Message, StringComparison.Ordinal);
         Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM acc.period_lock WHERE business_date = @d;", ("@d", SqlDbType.Date, D.ToDateTime(TimeOnly.MinValue))));
 
+        // A08-01: once the consumer's watermark has moved past the parked event (60 s later in real life), the pending count reads only
+        // the tail above the watermark, and the parked event below it still counts and still blocks the lock.
+        await db.ScalarAsync("UPDATE plat.outbox_consumer SET low_outbox_id = (SELECT MAX(outbox_id) FROM plat.outbox) WHERE consumer = @c;",
+            ("@c", SqlDbType.VarChar, AccountingVoucherProjector.ConsumerName));
+        Assert.True(await db.LongAsync("SELECT low_outbox_id FROM plat.outbox_consumer WHERE consumer = @c;",
+            ("@c", SqlDbType.VarChar, AccountingVoucherProjector.ConsumerName)) > poison);
+        Assert.Contains((await db.Queries.DayAsync(db.As("ACC"), D, Ct)).Exceptions, x => x.Kind == "pending" && x.Severity == "error");
+        await Fails(HccErrorCode.VALIDATION, () => db.Accounting.LockAsync(db.As("ACC"), Key(), new LockPeriodRequest(D), Ct));
+
         // Once the event is dealt with (here: marked processed by hand), the same day locks: the parked event was the only blocker.
         await db.ScalarAsync("INSERT plat.consumer_dedup(consumer, outbox_id) VALUES (@c, @o);",
             ("@c", SqlDbType.VarChar, AccountingVoucherProjector.ConsumerName), ("@o", SqlDbType.BigInt, poison));
