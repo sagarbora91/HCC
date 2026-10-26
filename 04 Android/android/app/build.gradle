@@ -1,5 +1,25 @@
 apply plugin: 'com.android.application'
 
+// Security review F-H02: release signing for the production (server) APK. Values come from environment variables or from
+// android/keystore.properties (git-ignored); the keystore itself must live OUTSIDE the repository. See 04 Android/README.md.
+def hccSigningProps = new Properties()
+def hccSigningFile = rootProject.file('keystore.properties')
+if (hccSigningFile.exists()) hccSigningFile.withInputStream { hccSigningProps.load(it) }
+def hccSigning = { String env, String key -> System.getenv(env) ?: hccSigningProps.getProperty(key) }
+def hccStoreFile = hccSigning('HCC_RELEASE_STORE_FILE', 'storeFile')
+def hccStorePassword = hccSigning('HCC_RELEASE_STORE_PASSWORD', 'storePassword')
+def hccKeyAlias = hccSigning('HCC_RELEASE_KEY_ALIAS', 'keyAlias')
+def hccKeyPassword = hccSigning('HCC_RELEASE_KEY_PASSWORD', 'keyPassword') ?: hccStorePassword
+def hccRepoRoot = rootProject.projectDir.parentFile.parentFile.canonicalFile
+def hccSigningProblem = null
+if (!hccStoreFile || !hccStorePassword || !hccKeyAlias) {
+    hccSigningProblem = 'Release signing is not configured: set HCC_RELEASE_STORE_FILE, HCC_RELEASE_STORE_PASSWORD, HCC_RELEASE_KEY_ALIAS (and HCC_RELEASE_KEY_PASSWORD) or android/keystore.properties (04 Android/README.md).'
+} else if (!new File(hccStoreFile).isAbsolute() || !new File(hccStoreFile).exists()) {
+    hccSigningProblem = "Release keystore not found (use an absolute path): ${hccStoreFile}"
+} else if (new File(hccStoreFile).canonicalPath.toLowerCase().startsWith(hccRepoRoot.path.toLowerCase() + File.separator)) {
+    hccSigningProblem = "The release keystore must be kept outside the repository (${hccRepoRoot}): ${hccStoreFile}"
+}
+
 android {
     namespace = "in.hcc.prototype"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -14,6 +34,16 @@ android {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (hccSigningProblem == null) {
+            hccRelease {
+                storeFile file(hccStoreFile)
+                storePassword hccStorePassword
+                keyAlias hccKeyAlias
+                keyPassword hccKeyPassword
+            }
         }
     }
     buildTypes {
@@ -31,8 +61,40 @@ android {
             versionNameSuffix "-server"
             matchingFallbacks = ['debug']
         }
+        // Security review F-H02: the production (server) APK handed out to the hotel. ./gradlew assembleProductionRelease after
+        // scripts/build-production.mjs. Not debuggable (no adb run-as, WebView remote debugging off), release-signed with the hotel's
+        // own keystore (signing above), app id in.hcc.server (androidComponents below), allowBackup="false" and data-extraction
+        // rules excluding everything (src/productionRelease). Shares the web build, hotel CA and network security config of
+        // src/productionDebug. R8 / minify stays off until a device test with keep rules for the Capacitor plugins.
+        productionRelease {
+            initWith release
+            debuggable false
+            minifyEnabled false
+            versionNameSuffix "-server"
+            matchingFallbacks = ['release']
+            if (hccSigningProblem == null) signingConfig signingConfigs.hccRelease
+        }
+    }
+    sourceSets {
+        productionRelease {
+            manifest.srcFile 'src/productionRelease/AndroidManifest.xml'
+            res.srcDirs = ['src/productionDebug/res', 'src/productionRelease/res']
+            assets.srcDirs = ['src/productionDebug/assets']
+        }
     }
 }
+
+androidComponents {
+    onVariants(selector().withBuildType('productionRelease')) { variant ->
+        variant.applicationId.set('in.hcc.server')
+    }
+}
+
+// Refuse to build a production release that is unsigned, signed with a keystore inside the repo, or misconfigured.
+tasks.register('checkHccReleaseSigning') {
+    doLast { if (hccSigningProblem != null) throw new GradleException(hccSigningProblem) }
+}
+tasks.matching { it.name == 'preProductionReleaseBuild' }.configureEach { dependsOn 'checkHccReleaseSigning' }
 
 repositories {
     flatDir{

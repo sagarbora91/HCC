@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Security review F-L10: the FileProvider shares only the app's own export folder (Documents/HCC, written by saveTextFile /
+     saveBinaryFile in 03 Prototype/src/app/native.ts) and the app's private cache — not the whole external storage. -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
+    <external-path name="hcc_exports" path="Documents/HCC/" />
     <cache-path name="my_cache_images" path="." />
 </paths>

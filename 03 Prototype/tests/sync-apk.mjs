@@ -32,7 +32,7 @@ export async function register({test,assert}){
   // ── Token sign-in → Bearer on every request ──
   let clock=T0;const now=()=>clock;
   const {srv,live}=tokenServer();const store=S.memoryTokenStore();const auth=S.tokenAuth({store,now});
-  const mk=(a,f)=>S.createSyncRuntime({areas:S.AREAS,fetch:a.observe(f),cache:S.createMemoryCache(),auth:a,commandRetries:0});
+  const mk=(a,f)=>S.createSyncRuntime({areas:S.AREAS,fetch:a.observe(f),cache:S.createMemoryCache(),auth:a,commandRetries:0,cacheIterations:1000});
   await auth.ready();const rt=mk(auth,srv.fetch);
   await rt.boot();const bootStatus=rt.get().status;
   srv.reset();
@@ -112,7 +112,7 @@ export async function register({test,assert}){
   srv.reset();
   const reg=await S.registerThisDevice(rt2.transport,'  Front desk tablet ');
   const regCall=srv.commands('RegisterDevice')[0];const userPages=srv.gets('/admin/users').map(c=>c.query.page);
-  const staff=S.deviceStaff();
+  const staff=S.deviceStaff();const staffRaw=ls.getItem(S.DEVICE_STAFF_KEY);const staffLogins=[];for(const x of staff)staffLogins.push(await S.resolveStaffLogin(x.id));
   replay=true;const reg2=await S.registerThisDevice(rt2.transport,'Again');replay=false;
   const empty=await S.registerThisDevice(rt2.transport,'  ');
   test('[W4-12] Register this device (admin session): RegisterDevice{label: name · device id}, device token stored once, PIN staff list read from /admin/users',()=>{
@@ -122,7 +122,11 @@ export async function register({test,assert}){
     assert.equal(regCall.headers.Authorization,'Bearer tok-4');
     assert.equal(ls.getItem(S.DEVICE_TOKEN_KEY),'dev-tok');assert.equal(S.deviceRegistered(),true);assert.equal(S.deviceLabel(),'Front desk tablet · '+id.slice(0,8));
     assert.deepEqual(userPages,['1','2']);
-    assert.deepEqual(staff,[{loginName:'arun',displayName:'Arun Cashier'},{loginName:'rina',displayName:'Rina Reception'}],'enabled PIN users only, sorted by name');
+    assert.deepEqual(staff.map(x=>x.displayName),['Arun Cashier','Rina Reception'],'enabled PIN users only, sorted by name');
+    assert.deepEqual(staffLogins,['arun','rina'],'the opaque id opens to the login name with this device key');
+    // F-L09: the stored roster is display name + opaque id only — no login name in device storage.
+    for(const x of staff){assert.deepEqual(Object.keys(x).sort(),['displayName','id']);assert.match(x.id,/^hccs1\./);}
+    assert.ok(!/arun|rina|loginName/.test(staffRaw.replace(/Arun Cashier|Rina Reception/g,'')),'no login names stored: '+staffRaw);
     assert.equal(reg2.ok,false);assert.match(reg2.text,/did not return its key/);assert.equal(ls.getItem(S.DEVICE_TOKEN_KEY),'dev-tok','a replay keeps the stored token');
     assert.equal(empty.ok,false);
     assert.ok(S.deviceServerLabel('x'.repeat(80),id).length<=60);
@@ -131,9 +135,11 @@ export async function register({test,assert}){
   await rt2.signOut();srv.reset();
   const pin=await rt2.signIn({loginName:'rina',pin:'1234'});
   const pinCall=srv.calls.find(c=>c.path==='/auth/sign-in');const pinGet=srv.gets('/me/capabilities').at(-1);
-  S.rememberStaff({loginName:'kiran',displayName:'Kiran Kitchen'});S.rememberStaff({loginName:'RINA',displayName:'dup'});
-  const remembered=S.deviceStaff().map(x=>x.loginName);
-  S.forgetDevice();const forgotten=[S.deviceRegistered(),S.deviceStaff().length,S.deviceId()===id];
+  await S.rememberStaff({loginName:'kiran',displayName:'Kiran Kitchen'});await S.rememberStaff({loginName:'RINA',displayName:'dup'});
+  const remembered=[];for(const x of S.deviceStaff())remembered.push(await S.resolveStaffLogin(x.id));
+  const oldId=S.deviceStaff()[0].id;
+  await S.forgetDevice();const forgotten=[S.deviceRegistered(),S.deviceStaff().length,S.deviceId()===id];
+  await S.adoptDeviceRegistration('other-device-token','Other');const foreign=await S.resolveStaffLogin(oldId);await S.forgetDevice();
   await rt2.signOut();const unreg=await rt2.signIn({loginName:'rina',pin:'1234'});
   test('[W4-12] PIN sign-in on the registered device: X-HCC-Device + pin + returnToken; without the device token the server refuses it',()=>{
     assert.equal(pin.ok,true,pin.text);
@@ -141,6 +147,7 @@ export async function register({test,assert}){
     assert.equal(pinGet.headers['X-HCC-Device'],'dev-tok');assert.match(pinGet.headers.Authorization,/^Bearer tok-/);
     assert.deepEqual(remembered,['arun','kiran','rina']);
     assert.deepEqual(forgotten,[false,0,true],'forgetting the registration keeps the device id');
+    assert.equal(foreign,null,'a roster id cannot be opened with another registration key');
     assert.equal(unreg.ok,false);assert.match(unreg.text,/registered hotel device/);
   });
 
@@ -197,12 +204,12 @@ export const panel=()=>renderToStaticMarkup(<ServerDevicePanel/>);
     define:{'process.env.NODE_ENV':'"production"','process.env.HCC_BUILD':'"production"'},banner:{js:"import {createRequire as __apReq} from 'node:module';const require=__apReq(import.meta.url);"}});
   const V=await import(new URL('./.generated/apk-screens.mjs',import.meta.url).href);
   ls.m.clear();const unregHtml=V.signIn();const setupHtml=V.setup();const panelUnreg=V.panel();
-  ls.setItem(S.DEVICE_TOKEN_KEY,'dev-tok');ls.setItem(S.DEVICE_LABEL_KEY,'Front desk tablet · abcd1234');
-  ls.setItem(S.DEVICE_STAFF_KEY,JSON.stringify([{loginName:'rina',displayName:'Rina Reception'},{loginName:'arun',displayName:'Arun Cashier'}]));
+  await S.adoptDeviceRegistration('dev-tok','Front desk tablet · abcd1234');
+  await S.rememberStaff({loginName:'rina',displayName:'Rina Reception'});await S.rememberStaff({loginName:'arun',displayName:'Arun Cashier'});
   const regHtml=V.signIn('Your session has ended. Sign in again.');const panelReg=V.panel();
   test('[W4-12] Screens: unregistered device = password sign-in + register hint; registered = staff names + PIN, password for Owner/Accountant/Tech admin; setup; Settings panel',()=>{
     assert.match(unregHtml,/Password/);assert.doesNotMatch(unregHtml,/aria-label="Sign in with"/);assert.match(unregHtml,/registered hotel device/);
-    assert.match(regHtml,/Staff PIN/);assert.match(regHtml,/Rina Reception/);assert.match(regHtml,/Arun Cashier/);assert.match(regHtml,/Someone else/);
+    assert.match(regHtml,/Staff PIN/);assert.match(regHtml,/Rina Reception/);assert.doesNotMatch(regHtml.replace(/Rina Reception|Arun Cashier/g,''),/rina|arun/i,'no login names on the screen');assert.match(regHtml,/Arun Cashier/);assert.match(regHtml,/Someone else/);
     assert.match(regHtml,/Owner \/ Accountant \/ Tech admin \(password\)/);assert.match(regHtml,/Hotel device · Front desk tablet · abcd1234/);assert.match(regHtml,/session has ended/);
     assert.match(setupHtml,/Server address/);assert.match(setupHtml,/Test connection/);assert.match(setupHtml,/Save and continue/);
     assert.match(panelUnreg,/Server and this device/);assert.match(panelUnreg,/not registered/);

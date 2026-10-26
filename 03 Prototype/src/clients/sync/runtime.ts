@@ -3,7 +3,9 @@
 // • Loads: after sign-in, after each command (its reload slices), on window focus / page visible (throttled), manual refresh.
 // • Commands: ctx.run(cmd) → mapper of cmd.type → HTTP command(s) with a stable Idempotency-Key → reload → result.
 //   Unmapped → refused "Not available on the server yet: <type>". Server unreachable → refused (read-only); nothing queued.
-// • Read cache: last loaded slices in IndexedDB (cache.ts) with their "as of" time, shown while the server is unreachable.
+// • Read cache: last loaded slices in IndexedDB (cache.ts) with their "as of" time, shown while the server is unreachable —
+//   encrypted, and only to a signed-in user (security review F-H01): a session the server confirms, a still-valid local session
+//   (resume key in `keyStore`), or offline re-authentication (status 'locked' → unlock(secret)). Wiped on sign-out / expiry.
 import type {State,Command,Permission} from '../../services/mock';
 import {can} from '../../services/mock';
 import {HTTP_ADAPTER_ID,createHttpTransport,createHttpReservationsClient,createHttpSystemClient,createHttpMeClient,type FetchLike,type HttpTransport} from '../http';
@@ -15,11 +17,11 @@ import type {SrvCapabilities} from '../server';
 import type {SyncArea,SliceKey,SliceLoader,CommandMapper,SyncApi,SyncMe,LoaderCtx,CommandCtx} from './types';
 import {createIdDirectory,type IdDirectory} from './map';
 import {meFromCapabilities,overlayMe} from './capabilities';
-import {createMemoryCache,type ReadCache,type CachedSlice} from './cache';
-import {cookieAuth,type AuthAdapter,type SignInInput} from './auth';
+import {createMemoryCache,type ReadCache,type CachedSlice,type CacheLock,type CacheMeta,CACHE_KDF_ITERATIONS,CACHE_MAX_UNLOCK_FAILURES,LOCK_RECORD,META_RECORD,SLICE_PREFIX,
+  parseLock,lockExpired,createCacheKey,keyFromResume,keyFromSecret,rewrapResume,sealRecord,openRecord} from './cache';
+import {cookieAuth,memoryTokenStore,type AuthAdapter,type SignInInput,type TokenStore} from './auth';
 import {emptyState} from './empty';
 import {mayRead} from './reads';
-import {CACHE_FORMAT} from './cache';
 
 export const SYNC_MARKER='hcc-sync-layer';
 export const NOT_ON_SERVER='Not available on the server yet';
@@ -27,7 +29,8 @@ export const READ_ONLY_REFUSAL='Server unavailable — read-only. Nothing was se
 /** Focus / visibility refreshes at most this often. */
 export const FOCUS_REFRESH_MS=30_000;
 
-export type SyncStatus='booting'|'signed-out'|'loading'|'ready';
+/** 'locked' = server unreachable and an encrypted read cache exists, but no valid local session: re-authenticate (unlock). */
+export type SyncStatus='booting'|'signed-out'|'loading'|'ready'|'locked';
 export type SyncSnapshot={
   status:SyncStatus;
   state:State;
@@ -42,6 +45,8 @@ export type SyncSnapshot={
   errors:Partial<Record<SliceKey,string>>;
   /** Shown on the sign-in screen (wrong PIN, session ended, server unreachable). */
   signInMessage?:string;
+  /** status 'locked': whose offline copy this is and which secret opens it. */
+  locked?:{displayName:string;credentialKind:'password'|'pin'};
 };
 export type RunResult={ok:true;result?:unknown;/** Partial success: show this instead of the success message (CommandOutcome.warning). */warning?:string}|{ok:false;text:string;error?:unknown;
   /** 'unmapped' = no area maps this command; 'read-only' = server unreachable; 'precheck' = refused on the client; 'server' = sent and refused / failed. */
@@ -50,6 +55,10 @@ export type RunResult={ok:true;result?:unknown;/** Partial success: show this in
 export type SyncRuntimeOptions={
   areas:SyncArea[];
   baseUrl?:string;fetch?:FetchLike;cache?:ReadCache;auth?:AuthAdapter;
+  /** Where the read cache's resume key lives — never the cache database itself (APK: sealed Preferences; browser: sessionStorage). */
+  keyStore?:TokenStore;
+  /** PBKDF2 iterations for the offline unlock key (tests use a small number). */
+  cacheIterations?:number;
   now?:()=>Date;timeoutMs?:number;commandRetries?:number;focusRefreshMs?:number;
   /** Override the skeleton (tests). */
   skeleton?:()=>State;
@@ -80,12 +89,23 @@ export function fitKey(raw:string){
 }
 const stable=(v:unknown):string=>Array.isArray(v)?'['+v.map(stable).join(',')+']':v&&typeof v==='object'?'{'+Object.keys(v as object).sort().filter(k=>(v as Record<string,unknown>)[k]!==undefined).map(k=>JSON.stringify(k)+':'+stable((v as Record<string,unknown>)[k])).join(',')+'}':JSON.stringify(v)??'null';
 
+type SessionTimes={idleExpiresUtc?:string;absoluteExpiresUtc?:string;idleTimeoutSeconds?:number};
+/** The server session's absolute end on THIS device's clock (ISO): the server's remaining lifetime (absolute − server now, server
+ *  now = idleExpires − idleTimeout) added to the local time, so a tablet with a wrong clock neither keeps nor drops the copy early. */
+export function localSessionEnd(s:SessionTimes|undefined,nowMs:number):string{
+  const abs=Date.parse(s?.absoluteExpiresUtc??''),idle=Date.parse(s?.idleExpiresUtc??''),secs=s?.idleTimeoutSeconds??0;
+  let left=12*3600_000;
+  if(Number.isFinite(abs)&&Number.isFinite(idle))left=abs-(idle-secs*1000);else if(Number.isFinite(abs))left=abs-nowMs;
+  return new Date(nowMs+Math.max(0,Math.min(left,24*3600_000))).toISOString();
+}
+
 export function createSyncRuntime(o:SyncRuntimeOptions){
   const problems=validateAreas(o.areas);
   if(problems.length)throw new Error('Sync registry: '+problems.join(' '));
   const now=o.now??(()=>new Date());
   const cache=o.cache??createMemoryCache();
   const auth=o.auth??cookieAuth();
+  const keyStore=o.keyStore??memoryTokenStore();
   const connection:Connection=createConnection();
   const transport:HttpTransport=createHttpTransport({baseUrl:o.baseUrl,fetch:o.fetch,connection,headers:()=>auth.headers(),timeoutMs:o.timeoutMs,commandRetries:o.commandRetries});
   const clients:HccClients&{adapter:typeof HTTP_ADAPTER_ID}={kind:'http',adapter:HTTP_ADAPTER_ID,reservations:createHttpReservationsClient(transport),system:createHttpSystemClient(transport),me:createHttpMeClient(transport)};
@@ -98,6 +118,8 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
   let values:Partial<Record<SliceKey,unknown>>={},asOf:Partial<Record<SliceKey,string>>={},errors:SyncSnapshot['errors']={};
   let me:SyncMe|null=null,ids:IdDirectory=createIdDirectory(),status:SyncStatus='booting',fromCache=false,loading=0,signInMessage:string|undefined;
   let nonce=newNonce(),generation=0,lastFull=0,chain:Promise<void>=Promise.resolve();
+  /** Read-cache data key (memory only) and the lock record it belongs to; the server's last session times (capabilities). */
+  let cacheKey:CryptoKey|null=null,lock:CacheLock|null=null,srvSession:SessionTimes|undefined;
   const subs=new Set<()=>void>();
   let snap:SyncSnapshot=build();
 
@@ -105,15 +127,75 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
   function assemble():State{return overlayMe({...skeleton,...values} as State,me);}
   function build():SyncSnapshot{
     const shown=Object.keys(values).filter(k=>owned.has(k as SliceKey)).map(k=>asOf[k as SliceKey]).filter(Boolean) as string[];
-    return {status,state:assemble(),me,asOf:shown.length?shown.sort()[0]:undefined,fromCache,loading:loading>0,readOnly:connection.readOnly,errors:{...errors},signInMessage};
+    return {status,state:assemble(),me,asOf:shown.length?shown.sort()[0]:undefined,fromCache,loading:loading>0,readOnly:connection.readOnly,errors:{...errors},signInMessage,
+      ...(status==='locked'&&lock?{locked:{displayName:lock.displayName,credentialKind:lock.credentialKind}}:{})};
   }
   function emit(){snap=build();subs.forEach(f=>f());}
   connection.subscribe(()=>{snap={...snap,readOnly:connection.readOnly};subs.forEach(f=>f());});
   const canMe=(p:Permission|readonly Permission[])=>!!me&&can(snap.state,me.uid,p as Permission|Permission[]);
 
+  /** Seals the fresh slices + meta under the data key; also records server activity (idle expiry) in the lock record. */
   async function persist(fresh:Record<string,CachedSlice>){
+    const k=cacheKey,l=lock;
+    if(!me||!k||!l||me.userId!==l.userId)return;
+    const next:CacheLock={...l,lastActivity:now().getTime()};lock=next;
+    const out:Record<string,string>={};
+    try{
+      for(const [name,v] of Object.entries(fresh))out[SLICE_PREFIX+name]=await sealRecord(k,l.userId,SLICE_PREFIX+name,v);
+      const meta:CacheMeta={me,asOf:snap.asOf??now().toISOString(),ids:ids.snapshot()};
+      out[META_RECORD]=await sealRecord(k,l.userId,META_RECORD,meta);
+    }catch{return;}
+    if(cacheKey!==k||!lock)return; // signed out / wiped while sealing
+    out[LOCK_RECORD]=JSON.stringify(lock);
+    await cache.write(out).catch(()=>undefined);
+  }
+  /** Drops the data key and deletes the cache and its resume key. The in-memory part is synchronous. */
+  async function wipeCache(){
+    cacheKey=null;lock=null;
+    await Promise.all([cache.clear().catch(()=>undefined),keyStore.clear().catch(()=>undefined)]);
+  }
+  async function resumeKey():Promise<CryptoKey|null>{
+    const l=lock;if(!l)return null;
+    const v=await keyStore.load().catch(()=>null);if(!v)return null;
+    let rec:{userId?:number;resume?:string};try{rec=JSON.parse(v);}catch{return null;}
+    if(rec?.userId!==l.userId||typeof rec.resume!=='string')return null;
+    return (await keyFromResume(l,rec.resume))?.key??null;
+  }
+  /** Decrypts the cached records into the state. keepMe: the server already confirmed the user (online start). */
+  async function openCache(raw:Record<string,string>,k:CryptoKey,keepMe:boolean):Promise<boolean>{
+    if(!lock)return false;const uid=lock.userId;
+    const m=await openRecord<CacheMeta>(k,uid,META_RECORD,raw[META_RECORD]);
+    if(!m||m.me?.userId!==uid)return false;
+    const vals:Partial<Record<SliceKey,unknown>>={},at:Partial<Record<SliceKey,string>>={};
+    for(const [name,sealed] of Object.entries(raw)){
+      if(!name.startsWith(SLICE_PREFIX))continue;
+      const v=await openRecord<CachedSlice>(k,uid,name,sealed);
+      if(v){const key=name.slice(SLICE_PREFIX.length) as SliceKey;vals[key]=v.value;at[key]=v.asOf;}
+    }
+    if(!keepMe)me=m.me;
+    ids=createIdDirectory(m.ids);values={...vals,...values};asOf={...at,...asOf};fromCache=true;
+    return true;
+  }
+  /** New data key. With the sign-in secret the copy can also be opened offline by re-authentication; without it (a session
+   *  the server confirmed after a restart) only by this session's resume key. */
+  async function newCacheKey(u:{userId:number;displayName:string},kind:'password'|'pin',secret:string,session:SessionTimes|undefined){
+    const t=now().getTime();
+    const made=await createCacheKey({userId:u.userId,displayName:u.displayName??'',credentialKind:kind,secret,
+      absoluteExpiresUtc:localSessionEnd(session,t),idleTimeoutSeconds:session?.idleTimeoutSeconds||1800,now:t,iterations:o.cacheIterations??CACHE_KDF_ITERATIONS}).catch(()=>null);
+    if(!made)return;
+    cacheKey=made.key;lock=made.lock;
+    await keyStore.save(JSON.stringify({userId:made.lock.userId,resume:made.resume})).catch(()=>undefined);
+  }
+  /** Server confirmed `me`: keep the cache only for the same user with this session's resume key; otherwise wipe it and start
+   *  a new (resume-only) copy for this session. */
+  async function adoptOnline(raw?:Record<string,string>){
     if(!me)return;
-    await cache.save({format:CACHE_FORMAT,me,asOf:snap.asOf??now().toISOString(),ids:ids.snapshot()},fresh);
+    if(lock&&lock.userId===me.userId){
+      if(!cacheKey){const k=await resumeKey();if(k){cacheKey=k;if(raw)await openCache(raw,k,true);}}
+      if(cacheKey&&lock){lock={...lock,absoluteExpiresUtc:localSessionEnd(srvSession,now().getTime())};return;}
+    }
+    if(lock||cacheKey)await wipeCache();
+    await newCacheKey(me,'password','',srvSession);
   }
 
   /** Loads the given slices (owners, then patches, in `needs` order). Never throws. */
@@ -178,6 +260,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
       const c=await transport.get<SrvCapabilities>('/me/capabilities');
       const next=meFromCapabilities(c);
       if(me&&me.userId!==next.userId)forget();
+      srvSession=c?.session;
       me=next;signInMessage=undefined;return 'ok';
     }catch(e){
       const w=e instanceof HccClientError?e.wireCode:undefined;
@@ -189,12 +272,13 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
   /** Re-reads capabilities (session check, role changes) then every slice. */
   async function loadAll():Promise<void>{
     const r=await fetchMe();
-    if(r==='signed-out'){endSession(me?'Your session has ended. Sign in again.':undefined);return;}
+    if(r==='signed-out'){endSession(me||lock?'Your session has ended. Sign in again.':undefined);return;}
     if(r==='unreachable'){emit();return;}
+    await adoptOnline();
     status='ready';lastFull=now().getTime();
     await reload(allSlices());
   }
-  function forget(){values={};asOf={};errors={};ids=createIdDirectory();void cache.clear();}
+  function forget(){values={};asOf={};errors={};ids=createIdDirectory();void wipeCache();}
   function endSession(message?:string){forget();me=null;status='signed-out';signInMessage=message;fromCache=false;nonce=newNonce();generation=0;emit();}
 
   function apiFor(key:string|undefined):SyncApi{
@@ -242,26 +326,65 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     marker:SYNC_MARKER,connection,transport,clients,
     get:()=>snap,
     subscribe(f:()=>void){subs.add(f);return ()=>{subs.delete(f);};},
-    /** Start: read the cache, check the session, then load everything. The cached slices are shown (with their "as of") only
-     *  once the session is confirmed (same user) or the server is unreachable (read-only) — never after a 401. */
+    /** Start: read the (encrypted) cache, check the session, then load everything. Nothing cached is decrypted or shown before
+     *  the session is confirmed (same user), or — server unreachable — before a valid local session or an offline unlock;
+     *  never after a 401. An expired session's cache and an old unencrypted cache are deleted. */
     async boot(){
-      const c=await cache.load().catch(()=>null);
-      if(c){me=c.meta.me;ids=createIdDirectory(c.meta.ids);
-        for(const [k,v] of Object.entries(c.slices)){values[k as SliceKey]=v.value;asOf[k as SliceKey]=v.asOf;}
-        fromCache=true;}
+      const raw=await cache.readAll().catch(()=>({} as Record<string,string>));
+      let l=parseLock(raw);
+      if(!l&&Object.keys(raw).length)await wipeCache();
+      if(l&&lockExpired(l,now().getTime())){await wipeCache();l=null;}
+      lock=l;
       const r=await fetchMe();
       if(r==='signed-out'){endSession();return;}
       if(r==='unreachable'){
-        if(c)status='ready';
-        else{status='signed-out';signInMessage=signInMessage??'The hotel server cannot be reached. Check the network and try again.';}
+        if(!lock){status='signed-out';signInMessage=signInMessage??'The hotel server cannot be reached. Check the network and try again.';emit();return;}
+        const k=await resumeKey();
+        if(k&&await openCache(raw,k,false)){cacheKey=k;status='ready';}
+        else if(lock.bySecret)status='locked';
+        else{await wipeCache();status='signed-out';signInMessage=signInMessage??'The hotel server cannot be reached. Check the network and try again.';}
         emit();return;}
+      await adoptOnline(raw);
       status='ready';lastFull=now().getTime();emit();
       await reload(allSlices());
     },
+    /** status 'locked' (server unreachable): re-authenticate with the PIN / password of the cached user to see the read-only copy. */
+    async unlock(secret:string):Promise<{ok:boolean;text?:string}>{
+      const l=lock;
+      if(status!=='locked'||!l)return {ok:false,text:'There is no offline copy to open.'};
+      const kind=l.credentialKind==='pin'?'PIN':'password';
+      if(!secret)return {ok:false,text:`Enter your ${kind}.`};
+      const raw=await cache.readAll().catch(()=>({} as Record<string,string>));
+      const u=await keyFromSecret(l,secret);
+      if(u&&await openCache(raw,u.key,false)){
+        cacheKey=u.key;
+        const w=await rewrapResume(l,u.raw);const next:CacheLock={...w.lock,failures:0};lock=next;
+        await keyStore.save(JSON.stringify({userId:next.userId,resume:w.resume})).catch(()=>undefined);
+        await cache.write({[LOCK_RECORD]:JSON.stringify(next)}).catch(()=>undefined);
+        status='ready';emit();return {ok:true};
+      }
+      const failures=l.failures+1;
+      if(failures>=CACHE_MAX_UNLOCK_FAILURES){
+        const text='Too many wrong attempts: the offline copy on this device was deleted. Sign in when the hotel server is reachable.';
+        endSession(text);return {ok:false,text};
+      }
+      const next:CacheLock={...l,failures};lock=next;await cache.write({[LOCK_RECORD]:JSON.stringify(next)}).catch(()=>undefined);emit();
+      const left=CACHE_MAX_UNLOCK_FAILURES-failures;
+      return {ok:false,text:`Wrong ${kind}. ${left} more wrong attempt${left===1?'':'s'} delete${left===1?'s':''} the offline copy.`};
+    },
+    /** Idle / absolute session expiry by the lock record: signs out here and wipes the cache. True when it did. */
+    checkExpiry():boolean{
+      if(!lock||status==='signed-out'||!lockExpired(lock,now().getTime()))return false;
+      endSession('You were signed out after a period without activity. Sign in again.');return true;
+    },
     async signIn(input:SignInInput):Promise<{ok:boolean;text?:string}>{
-      try{await auth.signIn(transport,input);}
+      let res;
+      try{res=await auth.signIn(transport,input);}
       catch(e){signInMessage=errorText(e);emit();return {ok:false,text:signInMessage};}
+      // A sign-in always starts a new offline copy, keyed by this sign-in's secret (the secret itself is not kept).
+      forget();me=null;await wipeCache();
       nonce=newNonce();generation=0;status='loading';emit();
+      if(res&&typeof res.userId==='number')await newCacheKey(res,input.pin?'pin':'password',input.password??input.pin??'',res.session);
       await loadAll();
       return snap.status==='ready'?{ok:true}:{ok:false,text:snap.signInMessage};
     },

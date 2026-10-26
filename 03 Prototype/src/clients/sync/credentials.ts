@@ -116,7 +116,7 @@ export async function registerDeviceHere(run:Run,transport:HttpTransport|undefin
   if(!r.ok)return {ok:false,text:r.text,definitive:definitiveOf(r)};
   const res=(r.result??{}) as {deviceId?:string;deviceToken?:string|null};
   if(!res.deviceToken)return {ok:false,text:`The server registered device #${res.deviceId??'?'} but did not return its key (repeated request). Revoke it below and register again.`,definitive:true};
-  adoptDeviceRegistration(res.deviceToken,label);
+  await adoptDeviceRegistration(res.deviceToken,label);
   let staff=0;if(transport){try{staff=await refreshDeviceStaff(transport);}catch{/* updated later from Master configuration */}}
   return {ok:true,text:`This device is registered as "${label}" (device #${res.deviceId}). ${staff} staff member${staff===1?'':'s'} can pick their name and sign in with a PIN here.`};
 }
@@ -124,6 +124,6 @@ export async function registerDeviceHere(run:Run,transport:HttpTransport|undefin
 export async function revokeDevice(run:Run,d:DeviceRow):Promise<ActionOutcome>{
   const r=await run({type:'DEVICE_REVOKE',id:d.id,key:`device-revoke:${d.id}`});
   if(!r.ok)return {ok:false,text:r.text,definitive:definitiveOf(r)};
-  if(d.thisDevice)forgetDevice();
+  if(d.thisDevice)await forgetDevice();
   return {ok:true,text:`Device "${d.label}" revoked: staff can no longer sign in with a PIN on it.${d.thisDevice?' This device’s registration was removed too.':''}`};
 }

@@ -6,11 +6,15 @@
 //   config = the hotel CA bundled at build time, 04 Android/README.md). In a browser the normal fetch is used.
 // • Server address: `hcc-server-url` (origin only, https only), checked with GET /system/discovery + /system/health first.
 // • Device: an Owner / Tech admin (PERM-ADM-001) signs in with a password on the tablet and registers it (RegisterDevice);
-//   the device token is shown once and kept in localStorage `hcc-device-token` (sent as X-HCC-Device). The admin's session
-//   also reads the staff list once (GET /admin/users) so staff can pick their name and type their PIN on this device.
+//   the device token is shown once and kept by auth.ts (production: sealed Capacitor Preferences; sent as X-HCC-Device). The
+//   admin's session also reads the staff list once (GET /admin/users) so staff can pick their name and type their PIN here.
+// • Staff roster (security review F-L09): only the display name and an opaque id are kept (localStorage `hcc-device-staff`).
+//   The opaque id is the login name sealed with a key derived from the device token (HKDF), so the stored list names no
+//   login; it becomes unreadable — and is deleted — when the registration is forgotten or revoked.
 import {createHttpTransport,type FetchLike,type HttpTransport} from '../http';
 import {HccClientError,errorText} from '../errors';
-import {DEVICE_TOKEN_KEY} from './auth';
+import {deviceToken,setDeviceToken} from './auth';
+import {subtle,hkdfKey,sealText,openText} from './seal';
 import {fitKey} from './runtime';
 
 export const SERVER_URL_KEY='hcc-server-url';
@@ -83,19 +87,40 @@ export function deviceId(s?:Kv):string{
   if(!id){id=(globalThis.crypto?.randomUUID?.()??`${Date.now().toString(16)}-${Math.random().toString(16).slice(2,14)}`).toLowerCase();put(DEVICE_ID_KEY,id,st);}
   return id;
 }
-export const deviceRegistered=(s?:Kv)=>!!get(DEVICE_TOKEN_KEY,s??ls());
+export const deviceRegistered=()=>!!deviceToken();
 export const deviceLabel=(s?:Kv)=>get(DEVICE_LABEL_KEY,s??ls());
-export type DeviceStaff={loginName:string;displayName:string};
+/** Stored roster entry: display name + opaque id (sealed login name). No login name in clear. */
+export type DeviceStaff={id:string;displayName:string};
+/** A PIN user as read from the server or after a sign-in (login name only in memory). */
+export type StaffLogin={loginName:string;displayName:string};
+const ROSTER_PURPOSE='hcc-roster-v1';
+const rosterKey=async():Promise<CryptoKey|null>=>{const t=deviceToken();if(!t||!subtle())return null;try{return await hkdfKey(t,ROSTER_PURPOSE);}catch{return null;}};
 export function deviceStaff(s?:Kv):DeviceStaff[]{
-  try{const v=JSON.parse(get(DEVICE_STAFF_KEY,s??ls())||'[]');return Array.isArray(v)?v.filter(x=>x&&typeof x.loginName==='string').map(x=>({loginName:x.loginName,displayName:String(x.displayName??x.loginName)})):[];}catch{return [];}
+  try{const v=JSON.parse(get(DEVICE_STAFF_KEY,s??ls())||'[]');
+    return Array.isArray(v)?v.filter(x=>x&&typeof x.id==='string'&&x.id&&typeof x.displayName==='string').map(x=>({id:x.id,displayName:x.displayName})):[];}catch{return [];}
 }
-const saveStaff=(list:DeviceStaff[],s?:Kv)=>put(DEVICE_STAFF_KEY,JSON.stringify([...new Map(list.map(x=>[x.loginName.toLowerCase(),x])).values()].sort((a,b)=>a.displayName.localeCompare(b.displayName))),s??ls());
+/** The login name behind a roster id (null: not this device's roster, or the registration was forgotten). */
+export async function resolveStaffLogin(id:string):Promise<string|null>{const k=await rosterKey();return k?openText(k,id,ROSTER_PURPOSE):null;}
+async function saveStaff(list:StaffLogin[],s?:Kv):Promise<number>{
+  const st=s??ls();const k=await rosterKey();
+  if(!k){del(DEVICE_STAFF_KEY,st);return 0;} // no device key: keep no roster (staff type their login name)
+  const uniq=[...new Map(list.map(x=>[x.loginName.toLowerCase(),x])).values()].sort((a,b)=>a.displayName.localeCompare(b.displayName));
+  const out:DeviceStaff[]=[];for(const x of uniq)out.push({id:await sealText(k,x.loginName,ROSTER_PURPOSE),displayName:x.displayName||'Staff member'});
+  put(DEVICE_STAFF_KEY,JSON.stringify(out),st);return out.length;
+}
+async function staffLogins(s?:Kv):Promise<StaffLogin[]>{
+  const out:StaffLogin[]=[];for(const x of deviceStaff(s)){const loginName=await resolveStaffLogin(x.id);if(loginName)out.push({loginName,displayName:x.displayName});}
+  return out;
+}
 /** Adds a staff member who signed in with a PIN here (so the name appears in the list next time). */
-export function rememberStaff(x:DeviceStaff,s?:Kv){const list=deviceStaff(s);if(!list.some(y=>y.loginName.toLowerCase()===x.loginName.toLowerCase()))saveStaff([...list,x],s);}
-/** Drops the registration on this device (the server keeps the device until it is revoked in Admin › Devices). */
+export async function rememberStaff(x:StaffLogin,s?:Kv):Promise<void>{
+  const list=await staffLogins(s);
+  if(!list.some(y=>y.loginName.toLowerCase()===x.loginName.toLowerCase()))await saveStaff([...list,x],s);
+}
 /** Keeps a new registration on this device: the device token (shown once by RegisterDevice) and its server label. */
-export function adoptDeviceRegistration(token:string,label:string,s?:Kv){const st=s??ls();put(DEVICE_TOKEN_KEY,token,st);put(DEVICE_LABEL_KEY,label,st);}
-export function forgetDevice(s?:Kv){const st=s??ls();del(DEVICE_TOKEN_KEY,st);del(DEVICE_LABEL_KEY,st);del(DEVICE_STAFF_KEY,st);}
+export async function adoptDeviceRegistration(token:string,label:string,s?:Kv){const st=s??ls();del(DEVICE_STAFF_KEY,st);await setDeviceToken(token);put(DEVICE_LABEL_KEY,label,st);}
+/** Drops the registration on this device (the server keeps the device until it is revoked in Admin › Devices), with the roster. */
+export async function forgetDevice(s?:Kv){const st=s??ls();del(DEVICE_LABEL_KEY,st);del(DEVICE_STAFF_KEY,st);await setDeviceToken(null);}
 
 type SrvUser={loginName:string;displayName:string;enabled:boolean;credentialKind:string};
 type SrvPage<T>={items:T[];page:number;pageSize:number;total:number};
@@ -108,7 +133,7 @@ export async function refreshDeviceStaff(t:HttpTransport,s?:Kv):Promise<number>{
     if(!r?.items?.length||all.length>=r.total)break;
   }
   const pin=all.filter(u=>u.enabled&&u.credentialKind==='PIN').map(u=>({loginName:u.loginName,displayName:u.displayName||u.loginName}));
-  saveStaff(pin,s);return pin.length;
+  return saveStaff(pin,s);
 }
 const LABEL_MAX=60;
 /** Server label: "<name> · <first 8 of the device id>" (≤ 60 characters). */
@@ -123,7 +148,7 @@ export async function registerThisDevice(t:HttpTransport,name:string,s?:Kv):Prom
   try{r=await t.command('RegisterDevice',{label},{idempotencyKey:fitKey(`RegisterDevice:${deviceId(st)}:${Date.now().toString(36)}`)});}
   catch(e){return {ok:false,text:errorText(e)};}
   if(!r?.deviceToken)return {ok:false,text:`The server registered device #${r?.deviceId??'?'} but did not return its key (repeated request). Revoke it in Admin › Devices and register again.`};
-  adoptDeviceRegistration(r.deviceToken,label,st);
+  await adoptDeviceRegistration(r.deviceToken,label,st);
   let staff=0;try{staff=await refreshDeviceStaff(t,st);}catch{/* the list can be updated later from Settings */}
   return {ok:true,deviceId:r.deviceId,label,staff};
 }

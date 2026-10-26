@@ -4,6 +4,7 @@
 // in the sync layer needs to change: the runtime asks the adapter for request headers and for sign-in / sign-out.
 import type {HttpTransport} from '../http';
 import {HccClientError} from '../errors';
+import {isSealed,sealText,openText} from './seal';
 
 /** POST /auth/sign-in body (Hcc.Contracts SignInRequest). Exactly one of password (Owner, Accountant, Tech admin) or pin
  *  (other staff, registered device only — DEC-062). */
@@ -19,11 +20,34 @@ export interface AuthAdapter{
   signOut(t:HttpTransport):Promise<void>;
 }
 
-/** Device token of a registered shared device (X-HCC-Device). Assumption until W4-5/W4-12 add device registration screens:
- *  stored under localStorage `hcc-device-token`. */
+/** Device token of a registered shared device, sent as X-HCC-Device on EVERY request of this device — sign-in and every later
+ *  request of the session (security review F-M07: the server checks it for PIN sessions on each request; header name agreed
+ *  with the server job S2). Storage: the production app calls useDeviceTokenStore() at start (APK: Capacitor Preferences, sealed
+ *  with the local wrapping key; browser: sealed localStorage) and keeps the token in memory for the synchronous header. Without
+ *  that call (tests, prototype) it is read from localStorage `hcc-device-token` as before. */
 export const DEVICE_HEADER='X-HCC-Device';
 export const DEVICE_TOKEN_KEY='hcc-device-token';
-function deviceToken(){try{return globalThis.localStorage?.getItem(DEVICE_TOKEN_KEY)||'';}catch{return '';}}
+const lsKv=()=>{try{return globalThis.localStorage;}catch{return undefined;}};
+let deviceVault:{store:TokenStore;token:string}|null=null;
+export function deviceToken():string{
+  if(deviceVault)return deviceVault.token;
+  try{return lsKv()?.getItem(DEVICE_TOKEN_KEY)||'';}catch{return '';}
+}
+/** Keeps (token) or drops (null) this device's token. Resolves once it is stored. */
+export async function setDeviceToken(token:string|null):Promise<void>{
+  if(deviceVault){deviceVault.token=token??'';await (token?deviceVault.store.save(token):deviceVault.store.clear()).catch(()=>undefined);return;}
+  try{if(token)lsKv()?.setItem(DEVICE_TOKEN_KEY,token);else lsKv()?.removeItem(DEVICE_TOKEN_KEY);}catch{/* storage unavailable */}
+}
+/** Production start: device token from `store` (an older plain localStorage copy is moved into it and deleted). */
+export async function useDeviceTokenStore(store:TokenStore):Promise<void>{
+  let t=(await store.load().catch(()=>null))||'';
+  let legacy='';try{legacy=lsKv()?.getItem(DEVICE_TOKEN_KEY)||'';}catch{/* ignore */}
+  if(!t&&legacy){t=legacy;await store.save(legacy).catch(()=>undefined);}
+  if(legacy){try{lsKv()?.removeItem(DEVICE_TOKEN_KEY);}catch{/* ignore */}}
+  deviceVault={store,token:t};
+}
+/** Test hook: back to the localStorage default. */
+export const resetDeviceTokenStore=()=>{deviceVault=null;};
 
 function check(input:SignInInput){
   if(!input.loginName?.trim())throw new HccClientError('VALIDATION','Enter your login name.');
@@ -58,20 +82,38 @@ export interface TokenStore{
   load():Promise<string|null>;save(v:string):Promise<void>;clear():Promise<void>;
 }
 export function memoryTokenStore():TokenStore{let v:string|null=null;return {kind:'memory',async load(){return v;},async save(x){v=x;},async clear(){v=null;}};}
-/** Fallback when the APK has no Preferences plugin: the web view's sessionStorage (the token is gone when Android closes the app). */
-export function sessionTokenStore(storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>|null|undefined=globalThis.sessionStorage):TokenStore{
+/** Fallback when the APK has no Preferences plugin: the web view's sessionStorage (the token is gone when Android closes the app).
+ *  Also used over another Web Storage / key (e.g. the browser's sealed device token in localStorage). */
+export function sessionTokenStore(storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>|null|undefined=(()=>{try{return globalThis.sessionStorage;}catch{return undefined;}})(),key=SESSION_TOKEN_KEY):TokenStore{
   return {kind:storage?'session':'memory',
-    async load(){try{return storage?.getItem(SESSION_TOKEN_KEY)??null;}catch{return null;}},
-    async save(x){try{storage?.setItem(SESSION_TOKEN_KEY,x);}catch{/* storage unavailable: memory only */}},
-    async clear(){try{storage?.removeItem(SESSION_TOKEN_KEY);}catch{/* ignore */}}};
+    async load(){try{return storage?.getItem(key)??null;}catch{return null;}},
+    async save(x){try{storage?.setItem(key,x);}catch{/* storage unavailable: memory only */}},
+    async clear(){try{storage?.removeItem(key);}catch{/* ignore */}}};
 }
 type PreferencesLike={get(o:{key:string}):Promise<{value:string|null}>;set(o:{key:string;value:string}):Promise<void>;remove(o:{key:string}):Promise<void>};
 /** Capacitor Preferences (app-private SharedPreferences), reached through the native bridge (no npm package in 03 Prototype). */
-export function preferencesTokenStore(p:PreferencesLike):TokenStore{
+export function preferencesTokenStore(p:PreferencesLike,key=SESSION_TOKEN_KEY):TokenStore{
   return {kind:'preferences',
-    async load(){try{return (await p.get({key:SESSION_TOKEN_KEY}))?.value??null;}catch{return null;}},
-    async save(x){await p.set({key:SESSION_TOKEN_KEY,value:x});},
-    async clear(){try{await p.remove({key:SESSION_TOKEN_KEY});}catch{/* ignore */}}};
+    async load(){try{return (await p.get({key}))?.value??null;}catch{return null;}},
+    async save(x){await p.set({key,value:x});},
+    async clear(){try{await p.remove({key});}catch{/* ignore */}}};
+}
+/** F-M07: values sealed with AES-256-GCM under `key()` (the local wrapping key, seal.ts localWrapKey) before they reach the
+ *  inner store, so SharedPreferences / Web Storage never hold the token in clear. A plain value written by an older build is
+ *  read once and re-written sealed. Without a key (no WebCrypto / IndexedDB) values are stored unsealed (documented limit). */
+export function sealedTokenStore(inner:TokenStore,key:()=>Promise<CryptoKey|null>,purpose:string):TokenStore{
+  const aad='hcc-store|'+purpose;const k=()=>key().catch(()=>null);
+  return {kind:inner.kind,
+    async load(){
+      const v=await inner.load().catch(()=>null);if(v==null||v==='')return null;
+      const wk=await k();
+      if(!isSealed(v)){if(wk)await inner.save(await sealText(wk,v,aad)).catch(()=>undefined);return v;}
+      if(!wk)return null;
+      const t=await openText(wk,v,aad);if(t===null)await inner.clear();
+      return t;
+    },
+    async save(v){const wk=await k();await inner.save(wk?await sealText(wk,v,aad):v);},
+    clear:()=>inner.clear()};
 }
 
 export type TokenAuth=AuthAdapter&{
