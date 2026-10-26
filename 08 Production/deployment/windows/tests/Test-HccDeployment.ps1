@@ -179,6 +179,52 @@ Check 'runtime SQL grants: read, write, execute; never db_owner' {
     $g -match 'db_datareader' -and $g -match 'db_datawriter' -and $g -match 'GRANT EXECUTE' -and $g -notmatch 'db_owner'
 }
 
+# --- A09-01: sqlcmd trusts the server certificate of a LOCAL instance by default --------------------------------------------
+Check 'A09-01 sqlcmd trust: a local instance (., (local), localhost, 127.0.0.1, this PC, with or without \INSTANCE) is trusted by default (-C)' {
+    $local = @('.', '.\SQLEXPRESS', '(local)', '(local)\SQLEXPRESS', 'localhost', 'LOCALHOST\HCC', '127.0.0.1', '127.0.0.1,1433', 'tcp:127.0.0.1\SQLEXPRESS', 'lpc:.\SQLEXPRESS', "$env:COMPUTERNAME", "$($env:COMPUTERNAME.ToLowerInvariant())\SQLEXPRESS")
+    $all = @($local | Where-Object { -not (Test-HccLocalSqlInstance $_) -or -not (Resolve-HccTrustServerCertificate -Instance $_ -Explicit $null -Configured $null) }).Count -eq 0
+    $a = Get-HccSqlcmdArgs -Instance '.\SQLEXPRESS' -Query 'SELECT 1' -TrustServerCertificate:(Resolve-HccTrustServerCertificate -Instance '.\SQLEXPRESS')
+    $all -and ($a -contains '-C') -and $null -eq (Get-HccOpsConfig -Path (Join-Path $env:TEMP 'no-such-hcc-ops.json')).TrustServerCertificate
+}
+Check 'A09-01 sqlcmd trust: an explicit false (parameter or hcc-ops.json) wins over the local default' {
+    (-not (Resolve-HccTrustServerCertificate -Instance '.\SQLEXPRESS' -Explicit $false -Configured $true)) -and
+    (-not (Resolve-HccTrustServerCertificate -Instance '.\SQLEXPRESS' -Configured $false)) -and
+    (-not (Resolve-HccTrustServerCertificate -Instance 'localhost' -Configured 'false')) -and
+    -not ((Get-HccSqlcmdArgs -Instance '.\SQLEXPRESS' -Query 'SELECT 1' -TrustServerCertificate:$false) -contains '-C')
+}
+Check 'A09-01 sqlcmd trust: a remote instance gets no -C unless asked; the sample hcc-ops.json turns it on for the local instance' {
+    $remote = @('DBSERVER\SQLEXPRESS', '192.168.1.30', 'tcp:sql.hotel.local,1433', 'np:\\DBSERVER\pipe\sql\query', '')
+    $none = @($remote | Where-Object { (Test-HccLocalSqlInstance $_) -or (Resolve-HccTrustServerCertificate -Instance $_) }).Count -eq 0
+    $sample = Get-HccOpsConfig -Path (Join-Path $root 'hcc-ops.sample.json')
+    $none -and (Resolve-HccTrustServerCertificate -Instance 'DBSERVER\SQLEXPRESS' -Explicit $true) -and (Resolve-HccTrustServerCertificate -Instance 'DBSERVER' -Configured $true) -and
+    $sample.TrustServerCertificate -eq $true -and (Test-HccLocalSqlInstance $sample.SqlInstance)
+}
+
+# --- A09-02: no differential starts with the full backup or the restore drill ------------------------------------------------
+Check 'A09-02 schedule: differentials every 4 h from 04:30 = 00:30 04:30 08:30 12:30 16:30 20:30, none at the 02:30 full or the 03:30 drill' {
+    $t = Get-HccRepetitionTimes -Start '04:30' -EveryHours 4
+    ($t -join ' ') -eq '00:30 04:30 08:30 12:30 16:30 20:30' -and
+    (Test-HccBackupSchedule -FullTime '02:30' -DifferentialStart '04:30' -DifferentialEveryHours 4 -DrillTime '03:30').Count -eq 0
+}
+Check 'A09-02 schedule: the old 06:30 start (diff at 02:30), a drifting 5 h interval and diff = drill are reported' {
+    $old = Test-HccBackupSchedule -FullTime '02:30' -DifferentialStart '06:30' -DifferentialEveryHours 4 -DrillTime '04:30'
+    $drift = Test-HccBackupSchedule -FullTime '02:30' -DifferentialStart '04:30' -DifferentialEveryHours 5 -DrillTime '03:00'
+    $drill = Test-HccBackupSchedule -FullTime '02:30' -DifferentialStart '04:30' -DifferentialEveryHours 4 -DrillTime '04:30'
+    ((Get-HccRepetitionTimes -Start '06:30' -EveryHours 4) -contains '02:30') -and $old.Count -eq 1 -and $old[0] -match '02:30' -and
+    $drift.Count -eq 1 -and $drift[0] -match 'full' -and $drill.Count -eq 1 -and $drill[0] -match 'drill' -and (Throws { ConvertTo-HccTimeOfDay '25:00' })
+}
+
+# --- A09-03: .NET 10 runtime prerequisite ------------------------------------------------------------------------------------
+Check 'A09-03 .NET runtime: both Microsoft.NETCore.App 10 and Microsoft.AspNetCore.App 10 are required; INSTALL.md lists them' {
+    $ok = @('Microsoft.AspNetCore.App 10.0.12 [C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App]', 'Microsoft.NETCore.App 8.0.31 [C:\x]', 'Microsoft.NETCore.App 10.0.12 [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]')
+    $coreOnly = @('Microsoft.NETCore.App 10.0.12 [C:\x]', 'Microsoft.WindowsDesktop.App 10.0.12 [C:\x]')
+    $old = @('Microsoft.AspNetCore.App 8.0.31 [C:\x]', 'Microsoft.NETCore.App 8.0.31 [C:\x]')
+    $doc = Get-Content -LiteralPath (Join-Path $root 'INSTALL.md') -Raw
+    (Test-HccDotnetRuntime -Lines $ok).Count -eq 0 -and ((Test-HccDotnetRuntime -Lines $coreOnly) -join ',') -eq 'Microsoft.AspNetCore.App 10.x' -and
+    (Test-HccDotnetRuntime -Lines $old).Count -eq 2 -and (Test-HccDotnetRuntime -Lines @()).Count -eq 2 -and
+    $doc -match 'dotnet --list-runtimes' -and $doc -match 'Microsoft\.AspNetCore\.App 10' -and $doc -match 'Hosting Bundle'
+}
+
 # --- every script in dry-run mode ---------------------------------------------------------------------------------------
 $psExe = (Get-Process -Id $PID).Path
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('hcc-ps-test-' + [guid]::NewGuid().ToString('N'))
@@ -205,6 +251,29 @@ Check 'Restore-HccDrill -WhatIf: exit 0, plan mentions scratch DB, CHECKDB, row 
 }
 Check 'Restore-HccDrill refuses a non-scratch name or the live name' {
     (DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ScratchName', 'EtpReporting')).Exit -ne 0 -and (DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ScratchName', 'Hcc')).Exit -ne 0
+}
+Check 'A09-01 Backup/Restore/Initialize -WhatIf: -C for the local instance by default, not for a remote one, not when hcc-ops.json says false' {
+    New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+    try {
+        $off = Join-Path $tmp 'hcc-ops-false.json'; Set-Content -LiteralPath $off -Value '{ "TrustServerCertificate": false }'
+        $none = Join-Path $tmp 'none.json'
+        $b = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-BackupDirectory', $tmp, '-ConfigPath', $none)
+        $br = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-BackupDirectory', $tmp, '-ConfigPath', $none, '-SqlInstance', 'DBSERVER\SQLEXPRESS')
+        $bf = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-BackupDirectory', $tmp, '-ConfigPath', $off)
+        $r = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ConfigPath', $none)
+        $i = DryRun 'Initialize-HccDatabase.ps1' @('-ServiceAccount', 'NT SERVICE\HccServer', '-BackupDirectory', 'D:\HccBackups')
+        $ir = DryRun 'Initialize-HccDatabase.ps1' @('-ServiceAccount', 'NT SERVICE\HccServer', '-BackupDirectory', 'D:\HccBackups', '-SqlInstance', 'DBSERVER\SQLEXPRESS')
+        $yes = 'trusts the server certificate \(-C\): yes'; $no = 'trusts the server certificate \(-C\): no'
+        $b.Out -match $yes -and $br.Out -match $no -and $bf.Out -match $no -and $r.Out -match $yes -and $i.Out -match $yes -and $ir.Out -match $no -and
+        @(@($b, $br, $bf, $r, $i, $ir) | Where-Object { $_.Exit -ne 0 }).Count -eq 0
+    }
+    finally { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
+}
+Check 'A09-02 Register-HccBackupTasks -WhatIf: differentials from 04:30 (none at 02:30), drill Sunday 03:30; a colliding schedule is refused' {
+    $r = DryRun 'Register-HccBackupTasks.ps1' @()
+    $c = DryRun 'Register-HccBackupTasks.ps1' @('-DifferentialStart', '06:30')
+    $r.Exit -eq 0 -and $r.Out -match 'differentials at 00:30, 04:30, 08:30, 12:30, 16:30, 20:30;' -and $r.Out -match 'restore drill Sunday 03:30' -and
+    $c.Exit -ne 0 -and $c.Out -match 'Refusing the backup schedule' -and $c.Out -match '02:30'
 }
 Check 'Register-HccBackupTasks -WhatIf lists three tasks from the Program Files folder' {
     $r = DryRun 'Register-HccBackupTasks.ps1' @()
@@ -286,7 +355,8 @@ Check 'New-HccGuestIdKey installs a DPAPI machine key, writes the offline copy, 
 Check 'Install-HccService -WhatIf prints plan; -Uninstall -WhatIf changes nothing' {
     $r = DryRun 'Install-HccService.ps1' @()
     $u = DryRun 'Install-HccService.ps1' @('-Uninstall')
-    $r.Exit -eq 0 -and $r.Out -match 'New-Service HccServer' -and $r.Out -match 'New-NetFirewallRule' -and $r.Out -match 'appsettings\.Production\.json /inheritance:r' -and $u.Exit -eq 0 -and $null -eq (Get-Service HccServer -ErrorAction SilentlyContinue)
+    $r.Exit -eq 0 -and $r.Out -match 'New-Service HccServer' -and $r.Out -match 'New-NetFirewallRule' -and $r.Out -match 'appsettings\.Production\.json /inheritance:r' -and $u.Exit -eq 0 -and $null -eq (Get-Service HccServer -ErrorAction SilentlyContinue) -and
+    $r.Out -match '\.NET runtime check: Microsoft\.NETCore\.App 10 and Microsoft\.AspNetCore\.App 10 found'   # A09-03 (this PC runs the .NET 10 tests); the real run refuses when missing
 }
 Check 'New-HccBackupKey: -WhatIf writes nothing; creates key + offline copy; refuses a second key; imports on another PC' {
     $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccBkKey_' + [guid]::NewGuid().ToString('N'))

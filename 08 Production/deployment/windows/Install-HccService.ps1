@@ -20,6 +20,7 @@ param(
     [switch]$Uninstall
 )
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\Hcc-Common.ps1"
 $exe = Join-Path $InstallDirectory 'Hcc.Api.exe'
 $ruleName = "HCC HTTPS $HttpsPort (LAN)"
 
@@ -32,7 +33,13 @@ if ($Uninstall) {
 }
 
 $account = if ($ServiceAccount) { $ServiceAccount } else { "NT SERVICE\$ServiceName" }
+# A09-03: the published server is framework-dependent (needs the .NET 10 / ASP.NET Core 10 x64 runtimes) unless it carries its own.
+$selfContained = Test-Path -LiteralPath (Join-Path $InstallDirectory 'hostfxr.dll')
+$runtimeMissing = @()
+if (-not $selfContained) { $runtimeMissing = Test-HccDotnetRuntime -Lines (Get-HccDotnetRuntimeLines) }
+$runtimeHelp = 'Install the "ASP.NET Core Runtime 10.0 - Windows Hosting Bundle" from https://dotnet.microsoft.com/download/dotnet/10.0 (INSTALL.md section 0), then check with: dotnet --list-runtimes'
 if (-not $PSCmdlet.ShouldProcess($ServiceName, "Create service: $exe as $account, auto start, restart on failure; firewall allow TCP $HttpsPort (Private,Domain)")) {
+    Write-Host ("DRY RUN: .NET runtime check: " + $(if ($selfContained) { 'self-contained publish, no runtime needed' } elseif ($runtimeMissing.Count) { 'MISSING ' + ($runtimeMissing -join ', ') + ' (the real run refuses). ' + $runtimeHelp } else { 'Microsoft.NETCore.App 10 and Microsoft.AspNetCore.App 10 found' }))
     Write-Host "DRY RUN: New-Service $ServiceName -BinaryPathName '$exe' -StartupType Automatic (account $account)"
     Write-Host "DRY RUN: sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/30000/restart/60000"
     Write-Host "DRY RUN: grant $account Modify on $InstallDirectory\logs and ReadAndExecute on $InstallDirectory"
@@ -42,6 +49,7 @@ if (-not $PSCmdlet.ShouldProcess($ServiceName, "Create service: $exe as $account
 }
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) { throw 'Run this script from an elevated (Administrator) PowerShell.' }
+if ($runtimeMissing.Count) { throw ("The .NET runtime HCC needs is not installed (missing: " + ($runtimeMissing -join ', ') + "). $runtimeHelp") }
 if (-not (Test-Path -LiteralPath $exe)) { throw "Hcc.Api.exe not found in $InstallDirectory. Publish or copy the server files first." }
 if (-not (Test-Path (Join-Path $InstallDirectory 'appsettings.Production.json'))) { throw 'appsettings.Production.json is missing in the install folder (copy appsettings.Production.sample.json and fill it in).' }
 

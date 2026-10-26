@@ -50,6 +50,9 @@ public sealed partial class HccServer : IAsyncDisposable
 
     public Uri BaseAddress { get; private set; } = null!;
 
+    /// <summary>The running server's services (e.g. the A09-04 schema guard).</summary>
+    public IServiceProvider Services => _app?.Services ?? throw new InvalidOperationException("The server is not started.");
+
     public int PropertyId { get; private set; }
 
     /// <param name="beforeMap">Optional middleware added before the HCC pipeline (e.g. a simulated LAN client address in the setup tests).</param>

@@ -21,6 +21,8 @@ public static class HccComposition
         services.AddSingleton(platform.Connections);
         services.AddSingleton<ICommandRunner>(platform.Commands);
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(sp => new SchemaGuard(platform.Connections, new EmbeddedMigrationSource(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILogger<SchemaGuard>>()));   // A09-04: refuse to serve while the schema is behind this build
         services.AddHccAccess(configuration, platform);  // P1: sessions, THE IAccessPolicy (scope resolvers from the modules below)
         services.AddInventoryModule();                   // P2
         services.AddReservationsModule();                // P2
@@ -81,13 +83,15 @@ public static class HccComposition
         ArgumentNullException.ThrowIfNull(app);
         app.UseHccHostingGuards();       // F-H04/F-L11/F-L02: listener rules, forwarded headers (public listener only), security headers
         app.UseMiddleware<HccErrorMiddleware>();
+        app.UseHccSchemaGuard();         // A09-04: 503 on /api/v1 while the database schema is behind this build (health says why)
         var api = app.MapGroup(ApiConventions.BasePath);
         // F-L01: anonymous callers get only "ok" and the server time (the clients' clock) — no database name, no schema version and
         // no SQL connection. The server PC itself (loopback, no proxy header) and signed-in administrators (configuration or
-        // backup permission) get the database check and details.
-        api.MapGet("/system/health", async (HttpContext http, SqlConnectionFactory connections, TimeProvider clock, CancellationToken ct) =>
+        // backup permission) get the database check and details. A09-04: 503 with the reason while the schema is behind this build.
+        api.MapGet("/system/health", async (HttpContext http, SqlConnectionFactory connections, SchemaGuard schema, TimeProvider clock, CancellationToken ct) =>
         {
             http.Response.Headers.CacheControl = "no-store";
+            if (await schema.BehindAsync(ct) is { } behind) return SchemaGuard.Unavailable(http, behind);
             var time = clock.GetUtcNow().ToString("O", System.Globalization.CultureInfo.InvariantCulture);
             if (!await HealthDetailsAllowedAsync(http, ct)) return Results.Ok(new HealthResult("ok", null, null, time));
             await using var conn = await connections.OpenAsync(ct);

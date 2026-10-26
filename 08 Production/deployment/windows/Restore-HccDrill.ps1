@@ -28,7 +28,8 @@ if (-not $Database) { $Database = $cfg.Database }
 if (-not $BackupDirectory) { $BackupDirectory = $cfg.BackupDirectory }
 if (-not $LogDirectory) { $LogDirectory = if ($cfg.LogDirectory) { $cfg.LogDirectory } else { Join-Path $BackupDirectory 'Logs' } }
 if (-not $ScratchDirectory) { $ScratchDirectory = if ($cfg.ScratchDirectory) { $cfg.ScratchDirectory } else { Join-Path $BackupDirectory 'DrillScratch' } }
-$trust = $TrustServerCertificate -or [bool]$cfg.TrustServerCertificate
+$explicitTrust = if ($PSBoundParameters.ContainsKey('TrustServerCertificate')) { [bool]$TrustServerCertificate } else { $null }
+$trust = Resolve-HccTrustServerCertificate -Instance $SqlInstance -Explicit $explicitTrust -Configured $cfg.TrustServerCertificate   # A09-01
 if (-not $BackupKeyFile) { $BackupKeyFile = if ($cfg.BackupKeyFile) { $cfg.BackupKeyFile } else { Get-HccDefaultBackupKeyFile } }
 $sqlService = Get-HccSqlServiceAccount -Instance $SqlInstance
 Assert-HccDatabaseName $Database | Out-Null
@@ -40,6 +41,7 @@ if ($ScratchName -eq $Database) { throw 'The scratch database must differ from t
 $log = Join-Path $LogDirectory ('restore-drill_{0:yyyyMMdd_HHmmss}.log' -f $started)
 
 if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest backup of [$Database] from $BackupDirectory, DBCC CHECKDB, row-count check, drop scratch")) {
+    Write-HccLog "DRY RUN: sqlcmd trusts the server certificate (-C): $(if ($trust) { 'yes' } else { 'no' })" -LogFile $null
     Write-HccLog "DRY RUN: would pick the newest FULL (+ later DIFF) backup of [$Database] in $BackupDirectory" -LogFile $null
     Write-HccLog "DRY RUN: encrypted backups (.bak.hccenc) would be checked and decrypted with $BackupKeyFile into $ScratchDirectory (private: SYSTEM, Administrators, $sqlService) and deleted afterwards" -LogFile $null
     Write-HccLog "DRY RUN: would RESTORE as [$ScratchName] with MOVE into $ScratchDirectory on $SqlInstance (live database untouched)" -LogFile $null

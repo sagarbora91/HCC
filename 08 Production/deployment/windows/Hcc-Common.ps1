@@ -27,7 +27,7 @@ function ConvertTo-HccSqlName { param([string]$Value) return '[' + $Value.Replac
 function Get-HccOpsConfig {
     param([string]$Path)
     if (-not $Path) { $Path = Join-Path $PSScriptRoot 'hcc-ops.json' }
-    $cfg = [ordered]@{ SqlInstance = '.\SQLEXPRESS'; Database = 'Hcc'; BackupDirectory = ''; LogDirectory = ''; RetentionDays = 30; KeepMinFulls = 3; PreMigrateRetentionDays = 90; ScratchDirectory = ''; TrustServerCertificate = $false
+    $cfg = [ordered]@{ SqlInstance = '.\SQLEXPRESS'; Database = 'Hcc'; BackupDirectory = ''; LogDirectory = ''; RetentionDays = 30; KeepMinFulls = 3; PreMigrateRetentionDays = 90; ScratchDirectory = ''; TrustServerCertificate = $null
         EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = '' }
     if (Test-Path -LiteralPath $Path) {
         $json = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
@@ -48,14 +48,41 @@ function Write-HccLog {
 }
 
 # --- SQL via sqlcmd (Windows login of whoever runs the script; -b makes SQL errors a non-zero exit) -------------------------
-function Invoke-HccSql {
+# A09-01: sqlcmd 18 (ODBC Driver 18) encrypts by default and SQL Server Express ships a self-signed certificate, so without -C
+# (trust the server certificate) every script fails to connect. The certificate is trusted by default only for an instance on THIS
+# PC (nothing crosses the network), like the API's "Encrypt=Optional only for a local instance" rule. Order: an explicit
+# -TrustServerCertificate[:$false] wins, then TrustServerCertificate true/false in hcc-ops.json, then local = trust, remote = not.
+function Test-HccLocalSqlInstance {
+    param([string]$Instance)
+    if (-not $Instance -or -not $Instance.Trim()) { return $false }
+    $h = $Instance.Trim()
+    if ($h -match '^(tcp|np|lpc):') { $h = $h.Substring($h.IndexOf(':') + 1) }
+    $h = (($h -split '\\')[0] -split ',')[0].Trim()   # host part: .\SQLEXPRESS, HOTELPC\SQLEXPRESS, localhost,1433
+    return (@('.', '(local)', 'localhost', '127.0.0.1', '::1') -contains $h) -or ($env:COMPUTERNAME -and $h -eq $env:COMPUTERNAME)
+}
+
+function Resolve-HccTrustServerCertificate {
+    param([string]$Instance, [object]$Explicit, [object]$Configured)
+    if ($null -ne $Explicit) { return [bool]$Explicit }
+    if ($Configured -is [bool]) { return $Configured }
+    if ($Configured -is [string] -and $Configured.Trim()) { return $Configured.Trim() -match '^(true|yes|1)$' }
+    return (Test-HccLocalSqlInstance -Instance $Instance)
+}
+
+function Get-HccSqlcmdArgs {
     param([Parameter(Mandatory)][string]$Instance, [Parameter(Mandatory)][string]$Query, [switch]$TrustServerCertificate, [switch]$Scalar, [switch]$Table)
-    $sqlcmd = (Get-Command sqlcmd.exe -ErrorAction SilentlyContinue)
-    if (-not $sqlcmd) { throw 'sqlcmd.exe was not found. Install "Microsoft Command Line Utilities for SQL Server" (see INSTALL.md).' }
     $a = @('-S', $Instance, '-E', '-b', '-l', '30', '-Q', $Query)
     if ($TrustServerCertificate) { $a += '-C' }
     if ($Scalar -or $Table) { $a += @('-h', '-1', '-W') }
     if ($Table) { $a += @('-s', '|') }
+    return ,$a
+}
+
+function Invoke-HccSql {
+    param([Parameter(Mandatory)][string]$Instance, [Parameter(Mandatory)][string]$Query, [switch]$TrustServerCertificate, [switch]$Scalar, [switch]$Table)
+    $sqlcmd = (Get-Command sqlcmd.exe -ErrorAction SilentlyContinue)
+    if (-not $sqlcmd) { throw 'sqlcmd.exe was not found. Install "Microsoft Command Line Utilities for SQL Server" (see INSTALL.md).' }
+    $a = Get-HccSqlcmdArgs -Instance $Instance -Query $Query -TrustServerCertificate:$TrustServerCertificate -Scalar:$Scalar -Table:$Table
     $out = & $sqlcmd.Source @a 2>&1
     if ($LASTEXITCODE -ne 0) { throw ("sqlcmd failed (exit $LASTEXITCODE): " + (($out | Out-String).Trim())) }
     $text = ($out | Out-String).Trim()
@@ -126,6 +153,37 @@ function Compare-HccRowCounts {
     $diff = @($Live.Keys | Where-Object { $Restored.ContainsKey($_) -and [long]$Restored[$_] -ne [long]$Live[$_] } | Sort-Object)
     $ok = ($missing.Count -eq 0) -and -not ($rs -eq 0 -and $ls -gt 0)
     return [pscustomobject]@{ Ok = $ok; MissingTables = $missing; DifferingTables = $diff; RestoredRows = $rs; LiveRows = $ls; Tables = $Restored.Count }
+}
+
+# --- backup schedule (A09-02; pure, unit-tested) ----------------------------------------------------------------------------------
+function ConvertTo-HccTimeOfDay {
+    param([Parameter(Mandatory)][string]$Time)
+    if ($Time.Trim() -notmatch '^(\d{1,2}):(\d{2})$' -or [int]$Matches[1] -gt 23 -or [int]$Matches[2] -gt 59) { throw "Time '$Time' must look like 02:30 (24-hour clock)." }
+    return '{0:00}:{1:00}' -f [int]$Matches[1], [int]$Matches[2]
+}
+
+# Every time of day a "-Once -At <Start> -RepetitionInterval <EveryHours>h" trigger fires, over enough days to repeat itself
+# (an interval that does not divide 24 h moves to other times on later days).
+function Get-HccRepetitionTimes {
+    param([Parameter(Mandatory)][string]$Start, [Parameter(Mandatory)][int]$EveryHours)
+    if ($EveryHours -lt 1 -or $EveryHours -gt 23) { throw 'The differential interval must be 1 to 23 hours.' }
+    $t = ConvertTo-HccTimeOfDay $Start
+    $m0 = [int]$t.Substring(0, 2) * 60 + [int]$t.Substring(3, 2)
+    $times = for ($k = 0; $k -lt 24; $k++) { $m = ($m0 + 60 * $EveryHours * $k) % 1440; '{0:00}:{1:00}' -f [math]::Floor($m / 60), ($m % 60) }
+    return ,@($times | Sort-Object -Unique)
+}
+
+# Problems with the task times: a differential that starts at the same minute as the daily full or the weekly restore drill
+# (they would compete for the database and the backup folder; the drill could pick a half-written differential), or full = drill.
+function Test-HccBackupSchedule {
+    param([Parameter(Mandatory)][string]$FullTime, [Parameter(Mandatory)][string]$DifferentialStart, [Parameter(Mandatory)][int]$DifferentialEveryHours, [Parameter(Mandatory)][string]$DrillTime)
+    $full = ConvertTo-HccTimeOfDay $FullTime; $drill = ConvertTo-HccTimeOfDay $DrillTime
+    $diffs = Get-HccRepetitionTimes -Start $DifferentialStart -EveryHours $DifferentialEveryHours
+    $problems = @()
+    if ($diffs -contains $full) { $problems += "a differential backup starts at $full, the same minute as the daily full backup" }
+    if ($diffs -contains $drill) { $problems += "a differential backup starts at $drill, the same minute as the weekly restore drill" }
+    if ($full -eq $drill) { $problems += "the restore drill starts at $drill, the same minute as the daily full backup" }
+    return ,@($problems)
 }
 
 # --- folder protection (F-H03, F-M06) ------------------------------------------------------------------------------------------
@@ -389,4 +447,25 @@ function Read-HccBackupKey {
 function Get-HccRuntimeGrantSql {
     param([Parameter(Mandatory)][string]$User)
     return "ALTER ROLE db_datareader ADD MEMBER $User; ALTER ROLE db_datawriter ADD MEMBER $User; GRANT EXECUTE TO $User;"
+}
+
+# --- .NET runtime prerequisite (A09-03) --------------------------------------------------------------------------------------------
+# The server is published framework-dependent for win-x64 (installer\Build-Installer.ps1: --self-contained false), so the PC needs
+# the ASP.NET Core Runtime 10 (x64), which needs the .NET Runtime 10 (x64): the "ASP.NET Core Runtime 10.0 Hosting Bundle" installs
+# both. $Lines = the output of "dotnet --list-runtimes". Returns the missing frameworks (empty = ready).
+function Test-HccDotnetRuntime {
+    param([string[]]$Lines, [int]$Major = 10)
+    $missing = @()
+    foreach ($fx in @('Microsoft.NETCore.App', 'Microsoft.AspNetCore.App')) {
+        $pattern = '^\s*' + [regex]::Escape($fx) + ' ' + $Major + '\.\d+\.\d+'
+        if (-not @($Lines | Where-Object { $_ -match $pattern }).Count) { $missing += "$fx $Major.x" }
+    }
+    return ,@($missing)
+}
+
+# "dotnet --list-runtimes" of the machine-wide x64 install the service uses (C:\Program Files\dotnet); empty when there is none.
+function Get-HccDotnetRuntimeLines {
+    $dotnet = Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
+    if (-not (Test-Path -LiteralPath $dotnet)) { return ,@() }
+    return ,@(& $dotnet --list-runtimes 2>$null)
 }
