@@ -3,18 +3,22 @@
 // Server (08 Production): Access — GET /admin/users, /admin/roles, /admin/exceptions, /admin/audit; commands CreateUser,
 // SetUserEnabled, AssignRole, RevokeRole, SetCredential, GrantException, RevokeException, RegisterDevice, RevokeDevice.
 // Configuration — GET /configuration/values (every user), /configuration/history, /configuration/requests; commands SetSetting,
-// DecideSettingRequest, WithdrawScheduledSetting, RevertSetting, ImportConfiguration.
+// DecideSettingRequest, WithdrawScheduledSetting, RevertSetting, ImportConfiguration. GST master (DEC-069, Hcc.Contracts.Tax) —
+// GET /tax/gst?date= (Owner, Tech admin view); commands SetGstSetting, WithdrawGstSetting (Owner only, reason required). The server
+// refuses SetSetting on gst.* keys (GstSettings: read-only pointers), so gst.* saves / withdrawals / reverts go to the GST commands.
 //
 //   slices   users ← /admin/users · policy ← /admin/roles + /admin/exceptions (admins) or the signed-in user's own capabilities
 //            (everyone else: their role's template = what /me/capabilities says they hold, so authorize() follows the server) ·
 //            grants ← the loaded role templates through PERMISSION_MAP · approvals ← configuration requests (kind 'config') ·
 //            audit ← /admin/audit (PERM-ADM-004) · configX (+ history/changes) ← /configuration/values + /configuration/history ·
-//            configHistory ← /configuration/history · settings ← the legacy keys of configX.values.
+//            configHistory ← /configuration/history · settings ← the legacy keys of configX.values ·
+//            GST master ← /tax/gst (date = business date) into configX.values (in force today), .scheduled (Owner versions ahead),
+//            .changes (every version incl. the seed: gstValueOn reads the server's dated master) and configHistory (Owner versions).
 //   ids      users / exceptions / setting changes = String(server id); configuration requests "CFG-REQ-<id>" (the approvals slice
-//            mixes kinds from several server tables). Versions: 'user' (rowversion, sent as expectedVersion — the server requires it
-//            for user changes), 'cfgRequest'.
+//            mixes kinds from several server tables); GST versions "GST-V<versionId>" (configX.changes / scheduled, configHistory).
+//            Versions: 'user' (rowversion, sent as expectedVersion — the server requires it for user changes), 'cfgRequest'.
 import type {State,Command,Role,Approval,Audit,User,Permission} from '../../services/mock';
-import {ADMIN_ROLE_ORDER,addDays} from '../../services/mock';
+import {ADMIN_ROLE_ORDER,addDays,isGstKey,gstReasonProblem,gstSeedDef,gstShow,cfgRevertBlock} from '../../services/mock';
 import type {HccPolicy,PolicyCell,PolicyException,CFGState,CFGChange,CFGScheduled} from '../../services/mock';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx,SyncMe} from './types';
@@ -36,6 +40,11 @@ export type SrvValues={businessDate:string;values:Record<string,unknown>;schedul
   /** Setting row version per key saved at least once (SetSetting expectedVersion; absent = never saved). */versions?:Record<string,string>|null};
 export type SrvHistoryEntry={changeId:number;key:string;label:string;before:string;after:string;effectiveFrom:string;status:string;changedBy:string;approvedBy?:string|null;
   reason?:string|null;source:string;revertOf?:number|null;at:string;canRevert:boolean;revertBlock?:string|null};
+/** GET /tax/gst (Hcc.Contracts.Tax GstMasterView): values in bps / paise / 0-1, dates YYYY-MM-DD. */
+export type SrvGstSetting={key:string;label:string;kind:string;unit:string;help:string;value:number;effectiveFrom:string};
+export type SrvGstHistoryRow={versionId:number;key:string;effectiveFrom:string;value:number;source:string;status:string;reason?:string|null;changedBy?:number|null;changedUtc:string};
+export type SrvGstMaster={date:string;note:string;canChange:boolean;financialYear:string;specifiedPremises:boolean;specifiedReason:string;settings:SrvGstSetting[];
+  summary:{supply:string;bps:number;itc:boolean;note:string}[];history:SrvGstHistoryRow[]};
 export type SrvRequest={requestId:number;key:string;label:string;summary:string;reason?:string|null;approver:string;requestedBy:string;requestedAt:string;expiresAt:string;
   status:string;decidedBy?:string|null;decisionReason?:string|null;effectiveFrom:string;version:string;decideBlock?:string|null};
 
@@ -115,7 +124,7 @@ export const auditFromServer=(a:SrvAudit):Audit=>({id:protoId(a.auditId),at:utcT
 export const SETTINGS_KEYS=['hotel','discountLimit','inspection','checkin','checkout','invoicePrefix','approvalExpiryHours'] as const;
 const STATUS:Record<string,CFGChange['status']>={applied:'applied',scheduled:'scheduled',withdrawn:'withdrawn'};
 /** configX from the values in force + history (scheduled change ids and revert state come from the history). */
-export function configFromServer(v:SrvValues,history:SrvHistoryEntry[]):CFGState{
+export function configFromServer(v:SrvValues,history:SrvHistoryEntry[],gst?:SrvGstMaster|null):CFGState{
   const values={...v.values};
   const modulesOff=Object.entries(values).filter(([k,x])=>k.startsWith('module.')&&x===false).map(([k])=>k.slice('module.'.length));
   const scheduled:CFGScheduled[]=v.scheduled.map(x=>{const h=history.find(e=>e.key===x.key&&e.effectiveFrom===x.effectiveFrom&&e.status==='scheduled');
@@ -124,7 +133,46 @@ export function configFromServer(v:SrvValues,history:SrvHistoryEntry[]):CFGState
   const changes:CFGChange[]=history.map(h=>({id:protoId(h.changeId),key:h.key,before:undefined,after:h.canRevert?values[h.key]:{notRevertible:h.revertBlock??true},
     effectiveFrom:h.effectiveFrom,at:utcToClock(h.at),by:h.changedBy,...(h.approvedBy?{approvedBy:h.approvedBy}:{}),status:STATUS[h.status]??'applied',
     ...(h.revertOf!=null?{revertOf:protoId(h.revertOf)}:{})}));
-  return {modulesOff,values,scheduled,changes};
+  if(!gst)return {modulesOff,values,scheduled,changes};
+  const g=gstFromServer(gst,v.businessDate);
+  return {modulesOff,values:{...values,...g.values},scheduled:[...scheduled,...g.scheduled],changes:[...changes,...g.changes]};
+}
+
+// ── GST master (DEC-069) ──
+/** GST version id in configX / configHistory ("GST-V<versionId>": kept apart from configuration change ids). */
+export const gstChangeId=(versionId:number)=>'GST-V'+versionId;
+export const gstVersionOf=(id:unknown)=>{const m=/^GST-V(\d+)$/.exec(String(id??''));return m?Number(m[1]):undefined;};
+/** Server GST value (bps, paise, 0/1) ↔ hub value (booleans are true/false in the prototype). */
+export const gstToProto=(key:string,v:number):number|boolean=>gstSeedDef(key)?.type==='boolean'?v===1:v;
+export const gstToServer=(key:string,v:unknown):number=>gstSeedDef(key)?.type==='boolean'?(v===true||v===1?1:0):Number(v);
+const newestFirst=(rows:SrvGstHistoryRow[])=>[...rows].sort((a,b)=>b.versionId-a.versionId);
+/** Value in force just before a version: the latest other active version of the key before it (earlier date, or same date and lower id —
+ *  the server's GstMaster.ValueOn order). */
+function gstBefore(rows:SrvGstHistoryRow[],r:SrvGstHistoryRow):number|undefined{
+  const before=(x:SrvGstHistoryRow,y:SrvGstHistoryRow)=>x.effectiveFrom<y.effectiveFrom||(x.effectiveFrom===y.effectiveFrom&&x.versionId<y.versionId);
+  let hit:SrvGstHistoryRow|undefined;
+  for(const x of rows)if(x.key===r.key&&x.status==='active'&&before(x,r)&&(!hit||before(hit,x)))hit=x;
+  return hit?.value;
+}
+/** /tax/gst → hub values in force on the business date, Owner versions still ahead (withdrawable) and every version as a change
+ *  (newest first; gstValueOn reads them, so the screens show the server's dated master, not the client seed). */
+export function gstFromServer(g:SrvGstMaster,businessDate:string):{values:Record<string,unknown>;scheduled:CFGScheduled[];changes:CFGChange[]}{
+  const rows=newestFirst(g.history);const by=(r:SrvGstHistoryRow)=>r.changedBy!=null?protoId(r.changedBy):'';
+  const values=Object.fromEntries(g.settings.map(x=>[x.key,gstToProto(x.key,x.value)]));
+  const scheduled:CFGScheduled[]=rows.filter(r=>r.source==='owner'&&r.status==='active'&&r.effectiveFrom>businessDate)
+    .map(r=>({id:gstChangeId(r.versionId),key:r.key,value:gstToProto(r.key,r.value),effectiveFrom:r.effectiveFrom,by:by(r),at:utcToClock(r.changedUtc)}));
+  const changes:CFGChange[]=rows.map(r=>{const b=gstBefore(rows,r);
+    return {id:gstChangeId(r.versionId),key:r.key,before:b===undefined?undefined:gstToProto(r.key,b),after:gstToProto(r.key,r.value),effectiveFrom:r.effectiveFrom,
+      at:utcToClock(r.changedUtc),by:by(r),status:r.status==='withdrawn'?'withdrawn':r.effectiveFrom>businessDate?'scheduled':'applied'};});
+  return {values,scheduled,changes};
+}
+/** Owner GST versions as Master configuration history lines (the seed rows are statutory history, not changes). */
+export function gstHistoryFromServer(g:SrvGstMaster,users:User[],me:SyncMe):NonNullable<State['configHistory']>{
+  const rows=newestFirst(g.history);
+  const actor=(id:number|null|undefined)=>id==null?'':id===me.userId?me.displayName:users.find(u=>u.id===protoId(id))?.name??'User '+id;
+  return rows.filter(r=>r.source==='owner').map(r=>{const b=gstBefore(rows,r);const after=gstShow(r.key,gstToProto(r.key,r.value));
+    return {id:gstChangeId(r.versionId),key:r.key,before:b===undefined?'—':gstShow(r.key,gstToProto(r.key,b)),after:r.status==='withdrawn'?after+' (withdrawn)':after,
+      at:utcToClock(r.changedUtc),actor:actor(r.changedBy),effectiveFrom:r.effectiveFrom,reason:r.reason??''};});
 }
 export const historyFromServer=(h:SrvHistoryEntry[]):NonNullable<State['configHistory']>=>h.map(e=>({id:protoId(e.changeId),key:e.key,before:e.before,after:e.after,
   at:utcToClock(e.at),actor:e.changedBy,effectiveFrom:e.effectiveFrom,reason:e.reason??''}));
@@ -173,11 +221,21 @@ async function loadHistory(c:LoaderCtx):Promise<SrvHistoryEntry[]>{
   if(!isAdmin(c)||!c.mayRead('GET /configuration/history'))return [];
   return optional(()=>c.api.get<SrvPage<SrvHistoryEntry>>('/configuration/history',{page:1,pageSize:PAGE}).then(r=>r.items),[]);
 }
+/** The dated GST master (Owner and Tech admin; other roles keep the client seed on screen — only the Owner changes it anyway). */
+async function loadGst(c:LoaderCtx,date:string):Promise<SrvGstMaster|null>{
+  if(!c.mayRead('GET /tax/gst'))return null;
+  return optional(()=>c.api.get<SrvGstMaster>('/tax/gst',{date}),null);
+}
 async function loadConfig(c:LoaderCtx):Promise<CFGState>{
   const v=await c.api.get<SrvValues>('/configuration/values');
   // W4 D2: SetSetting needs the row version once a setting has been saved (else STALE_VERSION on every second edit).
   for(const [key,ver] of Object.entries(v.versions??{}))c.ids.setVersion('setting',key,ver);
-  return configFromServer(v,await loadHistory(c));
+  return configFromServer(v,await loadHistory(c),await loadGst(c,v.businessDate));
+}
+async function loadConfigHistory(c:LoaderCtx):Promise<NonNullable<State['configHistory']>>{
+  const h=historyFromServer(await loadHistory(c));
+  const g=await loadGst(c,c.current('date'));
+  return g?[...h,...gstHistoryFromServer(g,c.current('users')??[],c.me)]:h;
 }
 
 // ───────────── Command mappers ─────────────
@@ -204,7 +262,7 @@ export const admin:SyncArea={
     {slice:'approvals',needs:['users'],requires:['admin','approve'],reads:['GET /configuration/requests'],load:loadApprovals},
     {slice:'audit',load:loadAudit},
     {slice:'configX',load:loadConfig},
-    {slice:'configHistory',requires:'admin',async load(c){return historyFromServer(await loadHistory(c));}},
+    {slice:'configHistory',requires:'admin',needs:['date','users'],load:loadConfigHistory},
     {slice:'settings',needs:['configX'],async load(c){return settingsFromConfig(c.current('configX'),c.current('settings'));}},
   ],
   commands:[
@@ -256,8 +314,12 @@ export const admin:SyncArea={
     // Master configuration.
     {type:'SETTING_SET',reload:[...configReload],
       precheck:cmd=>cmd.setting==='taxBps'?'The synthetic tax is replaced by the dated GST master (DEC-069): change GST rates in Master configuration › Money and tax.'
-        :!cmd.setting?'Choose a setting.':cmd.setting==='brand.gstin'&&String(cmd.value??'').trim()?gstinProblem(cmd.value):undefined,
+        :!cmd.setting?'Choose a setting.'
+        :isGstKey(cmd.setting)?(!gstSeedDef(cmd.setting)?'This setting is not configurable.':gstReasonProblem(cmd.reason))
+        :cmd.setting==='brand.gstin'&&String(cmd.value??'').trim()?gstinProblem(cmd.value):undefined,
       async send(c){const cmd=c.cmd,key=String(cmd.setting);const reason=String(cmd.reason??'').trim();
+        // GST master: the server keeps gst.* out of SetSetting (GstSettings, Editable = false) — dated versions through SetGstSetting.
+        if(isGstKey(key)){await c.api.command('SetGstSetting',{key,value:gstToServer(key,cmd.value),effectiveFrom:cmd.effectiveFrom||null,reason});return;}
         // expectedVersion = the setting's row version from the last load (null before its first save); the reload refreshes it.
         await c.api.command('SetSetting',{key,value:cmd.value??null,...(cmd.effectiveFrom?{effectiveFrom:cmd.effectiveFrom}:{}),...(reason?{reason}:{}),
           expectedVersion:c.ids.version('setting',key)??null});}},
@@ -266,9 +328,17 @@ export const admin:SyncArea={
         const reason=String(cmd.reason??'').trim();
         await c.api.command('DecideSettingRequest',{requestId,approve:!!cmd.approve,...(reason?{reason}:{}),expectedVersion:c.ids.version('cfgRequest',id)??null});}},
     {type:'CFG_WITHDRAW',reload:[...configReload],
-      async send(c){const reason=String(c.cmd.reason??'').trim();await c.api.command('WithdrawScheduledSetting',{changeId:serverId(c.cmd.id,'Scheduled change'),...(reason?{reason}:{})});}},
+      precheck:cmd=>gstVersionOf(cmd.id)!==undefined?gstReasonProblem(cmd.reason):undefined,
+      async send(c){const reason=String(c.cmd.reason??'').trim();const versionId=gstVersionOf(c.cmd.id);
+        if(versionId!==undefined){await c.api.command('WithdrawGstSetting',{versionId,reason});return;}
+        await c.api.command('WithdrawScheduledSetting',{changeId:serverId(c.cmd.id,'Scheduled change'),...(reason?{reason}:{})});}},
     {type:'CFG_REVERT',reload:[...configReload],
+      // A GST version has no server revert: "set the previous value again" = SetGstSetting with the value before it (as WithdrawGstSetting advises).
+      precheck:(cmd,s)=>{if(gstVersionOf(cmd.id)===undefined)return undefined;const rb=cfgRevertBlock(s,String(cmd.id));if(rb)return rb;
+        const ch=s.configX?.changes?.find(x=>x.id===cmd.id);return ch?.before===undefined?'There is no earlier GST value to go back to.':undefined;},
       async send(c){const reason=String(c.cmd.reason??'').trim();
+        if(gstVersionOf(c.cmd.id)!==undefined){const ch=c.state.configX!.changes!.find(x=>x.id===c.cmd.id)!;
+          await c.api.command('SetGstSetting',{key:ch.key,value:gstToServer(ch.key,ch.before),effectiveFrom:c.cmd.effectiveFrom||null,reason:reason||'Revert to previous value'});return;}
         await c.api.command('RevertSetting',{changeId:serverId(c.cmd.id,'Change'),...(c.cmd.effectiveFrom?{effectiveFrom:c.cmd.effectiveFrom}:{}),...(reason?{reason}:{})});}},
     {type:'CFG_IMPORT',reload:[...configReload],precheck:cmd=>cmd.config&&typeof cmd.config==='object'?undefined:'This is not a Master configuration export file.',
       async send(c){const r=await c.api.command<{changed:number;unchanged:number;skipped:unknown[];message:string}>('ImportConfiguration',{config:c.cmd.config});return {result:r};}},
@@ -278,7 +348,7 @@ export const admin:SyncArea={
     POLICY_SET:'no server command edits role templates or role limits yet (same as GRANT)',
     POLICY_DECIDE:'no policy change requests on the server (Tech admin PERM-ADM-002 R has nothing to request yet)',
     TARIFF_SCHEDULE:'dated tariffs are published by the Yield module (PublishYieldTariffs, W4-11); no plain schedule/withdraw command',
-    TAX_SCHEDULE:'replaced by the dated GST master (DEC-069) — SETTING_SET on gst.* keys',
+    TAX_SCHEDULE:'replaced by the dated GST master (DEC-069) — SETTING_SET on a gst.* key (sent as SetGstSetting) and CFG_WITHDRAW (WithdrawGstSetting)',
     SETTINGS:'legacy BL-027 command; no screen sends it — SETTING_SET per key instead',
     EXPENSE_APPROVE:'expenses area (W4-7) — shown on Approvals & audit',
   },

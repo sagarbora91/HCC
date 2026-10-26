@@ -48,6 +48,12 @@ export const GST_SEED:SeedDef[]=[
   {key:'gst.svc.otherBps',label:'GST · other hotel services',type:'percent',unit:'% of the charge',help:'Seed 18 % — CA to confirm. Used for any charge that is not room, food, laundry or banquet.',versions:[{from:'2017-07-01',value:1800}]},
 ];
 export const GST_KEYS=GST_SEED.map(d=>d.key);
+export const isGstKey=(key:unknown)=>typeof key==='string'&&key.startsWith('gst.');
+/** A GST master change or withdrawal needs a reason (same rule and wording as the server, GstMasterService.Reason). */
+export function gstReasonProblem(reason:unknown):string|undefined{
+  const r=String(reason??'').trim();
+  return r.length<3?'Give a reason for the GST change (at least 3 characters).':r.length>200?'Keep the reason to 200 characters.':undefined;
+}
 export const gstSeedDef=(key:string)=>GST_SEED.find(d=>d.key===key);
 /** Seed value in force on a date (statutory history built into the prototype). */
 export function gstSeedOn(key:GstKey,date:string):number|boolean{
