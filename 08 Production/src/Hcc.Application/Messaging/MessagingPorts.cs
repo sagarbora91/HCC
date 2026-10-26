@@ -119,6 +119,12 @@ public interface IMessagingData
 
     Task UpsertConsentAsync(int propertyId, long guestId, MsgConsent consent, int principalId, DateTime utc, CancellationToken ct = default);
 
+    /// <summary>Every stored consent row of the property (guest id, flags, version).</summary>
+    Task<IReadOnlyList<(long GuestId, StoredConsent Consent)>> ConsentsAsync(int propertyId, CancellationToken ct = default);
+
+    /// <summary>Registered guests of Confirmed reservations and in-house stays (reservation id, guest id).</summary>
+    Task<IReadOnlyList<(long ReservationId, long GuestId)>> ActiveGuestsAsync(int propertyId, CancellationToken ct = default);
+
     Task<IReadOnlyList<StoredTemplate>> TemplatesAsync(int propertyId, CancellationToken ct = default);
 
     Task<IReadOnlyList<StoredRule>> RulesAsync(int propertyId, CancellationToken ct = default);

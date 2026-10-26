@@ -21,6 +21,16 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        // W4-12 production (server) flavour of the debug APK: ./gradlew assembleProductionDebug after scripts/build-production.mjs.
+        // Own app id (installs next to the prototype), web build dist/production/index.html and the hotel CA trust from
+        // src/productionDebug (network_security_config.xml; res/raw/hcc_hotel_ca.pem and assets/public are generated, git-ignored).
+        // assembleDebug (the prototype) is unchanged.
+        productionDebug {
+            initWith debug
+            applicationIdSuffix ".server"
+            versionNameSuffix "-server"
+            matchingFallbacks = ['debug']
+        }
     }
 }
 

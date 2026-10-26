@@ -33,6 +33,7 @@ public static class AccessEndpoints
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Sessions);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Users);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Capabilities);
+        services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().AdminQueries);
         return services;
     }
 
@@ -146,6 +147,13 @@ public static class AccessEndpoints
             Results.Ok(await users.ListUsersAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, ct).ConfigureAwait(false)));
         admin.MapGet("/devices", async (HttpContext http, IUserAdministration users, int? page, int? pageSize, CancellationToken ct) =>
             Results.Ok(await users.ListDevicesAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, ct).ConfigureAwait(false)));
+        // W4-5: read-only role templates, user exceptions and the audit log for the Access control / Approvals & audit screens.
+        admin.MapGet("/roles", async (HttpContext http, IAccessAdminQueries q, CancellationToken ct) =>
+            Results.Ok(await q.RolesAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
+        admin.MapGet("/exceptions", async (HttpContext http, IAccessAdminQueries q, bool? includeRevoked, CancellationToken ct) =>
+            Results.Ok(await q.ExceptionsAsync(http.GetHccSession(), includeRevoked ?? false, ct).ConfigureAwait(false)));
+        admin.MapGet("/audit", async (HttpContext http, IAccessAdminQueries q, int? page, int? pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct) =>
+            Results.Ok(await q.AuditAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, action, principalId, from, to, ct).ConfigureAwait(false)));
 
         var commands = api.MapGroup("/commands").RequireHccSession();
         Command<CreateUserRequest, UserVersionResult>(commands, "CreateUser", (u, s, k, b, ct) => u.CreateUserAsync(s, k, b, ct));

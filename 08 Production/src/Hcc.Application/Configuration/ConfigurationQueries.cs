@@ -134,6 +134,26 @@ public sealed class ConfigurationQueries(IAccessPolicy policy, SettingsRegistry 
         return new ModulesResult(ConfigCatalog.Modules.Select(m => new ModuleStateView(m.Id, m.Label, m.Note, On(registry.All, snap, m.Id))).ToList(), ConfigCatalog.CoreModules);
     }
 
+    /// <summary>
+    /// Every signed-in user (W4-5): the values screens read (in force on the business date) and future-dated values. Secrets and fixed
+    /// pointer lines are never returned; Owner-only-visible values only for full configuration authority (the Owner).
+    /// </summary>
+    public async Task<ConfigurationValuesResult> ValuesAsync(int propertyId, int principalId, CancellationToken ct = default)
+    {
+        var a = await _authority.ResolveAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        var snap = await SnapshotAsync(propertyId, ct).ConfigureAwait(false);
+        var values = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
+        var scheduled = new List<ExportScheduled>();
+        foreach (var s in registry.All)
+        {
+            if (s.Secret || s.Type == SettingType.Fixed || (s.OwnerOnlyVisible && a != ConfigAuthority.Full)) continue;
+            values[s.Key] = SettingRules.ValueOn(snap.Of(s.Key), snap.BusinessDate, s.Default).ToElement();
+            scheduled.AddRange(SettingRules.Scheduled(snap.Of(s.Key), snap.BusinessDate).Select(x => new ExportScheduled(s.Key, x.Value.ToElement(), SettingRules.Wire(x.EffectiveFrom))));
+        }
+
+        return new ConfigurationValuesResult(SettingRules.Wire(snap.BusinessDate), values, scheduled.OrderBy(x => x.EffectiveFrom, StringComparer.Ordinal).ToList());
+    }
+
     /// <summary>Configuration export for backup / a second property (prototype <c>cfgExport</c>): editable values, no secrets, nothing personal.</summary>
     public async Task<ConfigurationExport> ExportAsync(int propertyId, int principalId, CancellationToken ct = default)
     {

@@ -62,6 +62,31 @@ public sealed record FnfRow(long FnfId, int PropertyId, long StaffId, PayMonth M
 
 public sealed record NewFnf(int PropertyId, long StaffId, FnfFigures Figures, IReadOnlyList<FnfAdjustment> Adjustments, int By, DateTime Utc);
 
+/// <summary>HR desk board detail (W4-6 read model): who / when / notes that the rule inputs (<see cref="StaffDays"/>, <see cref="RunRow"/>) leave out.</summary>
+public sealed record AttendanceDetail(long StaffId, DateOnly Date, AttendanceStatus Status, int OtMinutes, int MarkedBy, DateTime MarkedUtc, string? Note);
+
+public sealed record RosterCell(long StaffId, DateOnly Date, ShiftCode Shift);
+
+public sealed record RunDetail(long RunId, DateTime PreparedUtc, DateTime? LockedUtc);
+
+public sealed record AdvanceDetail(long AdvanceId, string Reason, int GivenBy);
+
+/// <summary>A recovery still in force (reversed recoveries are left out).</summary>
+public sealed record RecoveryDetail(long AdvanceId, long? RunId, long? FnfId, long AmountPaise);
+
+public sealed record BankFileDetail(long RunId, int IssueNo, int LockSeq, long NetPaise, int IssuedBy, DateTime IssuedUtc);
+
+public sealed record PayslipSendDetail(long RunId, int LockSeq, long StaffId, string To, int SentBy, DateTime SentUtc);
+
+public sealed record UnlockDetail(long RunId, int LockSeq, string Reason, IReadOnlyDictionary<long, long> Nets, int BankFiles, int UnlockedBy, DateTime UnlockedUtc);
+
+public sealed record FnfDetail(long FnfId, DateOnly LastDay, PayrollRates Rates, DateTime PreparedUtc, int? DecidedBy, DateTime? DecidedUtc);
+
+/// <summary>Everything the board needs beyond the existing reads, for one property: roster and attendance in [from, to], every leave with its decision time.</summary>
+public sealed record PayrollBoardDetail(IReadOnlyList<RosterCell> Roster, IReadOnlyList<AttendanceDetail> Attendance, IReadOnlyList<LeaveRow> Leaves,
+    IReadOnlyDictionary<long, DateTime> LeaveDecidedUtc, IReadOnlyList<RunDetail> Runs, IReadOnlyList<AdvanceDetail> Advances, IReadOnlyList<RecoveryDetail> Recoveries,
+    IReadOnlyList<BankFileDetail> BankFiles, IReadOnlyList<PayslipSendDetail> Sends, IReadOnlyList<UnlockDetail> Unlocks, IReadOnlyList<FnfDetail> Fnfs);
+
 /// <summary>ESIC coverage recorded on a locked run line (F-07 contribution period).</summary>
 public sealed record LockedCoverage(long StaffId, PayMonth Month, bool? Covered);
 
@@ -176,6 +201,9 @@ public interface IPayrollDb
     Task<(long FnfId, string Version)> InsertFnfAsync(NewFnf fnf, CancellationToken ct);
 
     Task<string> DecideFnfAsync(long fnfId, string expectedVersion, string status, int by, DateTime utc, CancellationToken ct);
+
+    /// <summary>Read model of the HR desk board (W4-6): roster and attendance in [from, to] plus the who/when detail of leaves, runs, advances and F&amp;F.</summary>
+    Task<PayrollBoardDetail> BoardDetailAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
 }
 
 /// <summary>A read connection for queries (read committed, no transaction).</summary>

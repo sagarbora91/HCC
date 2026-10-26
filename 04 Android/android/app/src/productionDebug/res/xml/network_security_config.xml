@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- W4-12: the APK talks to the hotel server only over HTTPS (cleartext refused) and trusts the system CAs plus the hotel CA
+     (HCC-Hotel-CA.cer from deployment\windows\New-HccCertificate.ps1), copied to res/raw/hcc_hotel_ca.pem by
+     scripts/build-production.mjs. User-installed CAs are NOT trusted: the app does not depend on each device's install step.
+     Requests go through CapacitorHttp (native), which applies this config. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/hcc_hotel_ca" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -22,7 +22,8 @@ The prototype build is unchanged: it keeps the mock `execute()` and demo data. I
 | `map.ts` | Mapping helpers: `protoId` / `serverId`, `paise`, `isoDate`, `utcToClock` / `clockToUtc` / `utcToDate`, `IdDirectory` (room number ↔ room id, record versions) |
 | `runtime.ts` | `createSyncRuntime` (framework-free): boot, sign-in/out, loader batches, `run`, key derivation, read-only, cache, focus refresh; `validateAreas` |
 | `capabilities.ts` | `PERMISSION_MAP` (server PERM ids → prototype `can()` permissions), `ROLE_MAP`, `CAPABILITY_GAPS`, `overlayMe` |
-| `auth.ts` | Sign-in seam: `AuthAdapter`, `cookieAuth()` (browser, HttpOnly cookie). W4-12 adds the APK token adapter here |
+| `auth.ts` | Sign-in seam: `AuthAdapter`, `cookieAuth()` (browser, HttpOnly cookie), `tokenAuth()` (APK: `returnToken`, Bearer, `TokenStore` = Capacitor Preferences or sessionStorage, 401 drops the token, idle/absolute expiry) |
+| `apk.ts` | APK ↔ server (W4-12): `capacitorFetch` (CapacitorHttp: no CORS, hotel CA trust from the APK), server address `normaliseServerUrl` / `probeServer` (discovery + health) / `hcc-server-url`, device id, `registerThisDevice` (RegisterDevice, admin), PIN staff list (`/admin/users`) |
 | `cache.ts` | Read cache (IndexedDB `hcc-server-cache`, memory fallback) |
 | `empty.ts` | Production skeleton state |
 | `core.ts` | `clock` and a provisional `date` from `GET /system/health` |
@@ -83,4 +84,5 @@ The prototype build is unchanged: it keeps the mock `execute()` and demo data. I
 - **No reservation list endpoint.** `bookings` reloads the bookings this device knows (created here or already loaded). W4-1 adds a list read.
 - **`date` is provisional:** it is the server's local calendar date. W4-4 patches it with the real business date.
 - **Capabilities:** see `CAPABILITY_GAPS` in `capabilities.ts`. The Accountant gets "expenses". "approve" follows PERM-APR-001 only. Module PERM ids do not change `can()`. `s.policy` (fine-grained) is not derived yet (W4-5).
-- **PIN sign-in** needs a registered device token (`X-HCC-Device`, read from localStorage `hcc-device-token`). Device registration screens and the APK token sign-in belong to W4-5 / W4-12 (`auth.ts` seam).
+- **PIN sign-in** needs a registered device token (`X-HCC-Device`, localStorage `hcc-device-token`). W4-12: an Owner / Tech admin registers the device (sign-in screen offer in the APK, or Master configuration › Server and this device); staff then pick their name and type their PIN. In the APK (`isNative()`) the runtime uses `tokenAuth` + `capacitorFetch`; the browser keeps the cookie.
+- **APK session storage:** `04 Android` has no `@capacitor/preferences`, so the token lives in sessionStorage (sign in again after Android closes the app). Adding that plugin to `04 Android` switches to Preferences automatically.

@@ -92,4 +92,27 @@ public class MessagingHttpTests : IAsyncLifetime
         Assert.Contains("booking-confirmation", await templates.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.NotFound, (await _http.SendAsync(Req(HttpMethod.Get, "/messaging/messages/99999", Users.Reception), Ct)).StatusCode);
     }
+    [Fact]
+    public async Task Consent_roster_lists_stored_consents_and_registered_guests_and_messages_carry_outcome_and_guest()
+    {
+        var (res, guest, _) = await _w.BookingAsync("102", "2026-10-23", "2026-10-26", "Ravi Nair", "9820002222", "r@example.test", inHouse: true, ct: Ct);
+        Assert.Equal(HttpStatusCode.OK, (await _http.SendAsync(Req(HttpMethod.Post, "/commands/SetMessagingConsent", Users.Reception, new { guestId = guest, sms = false }, "r1"), Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _http.SendAsync(Req(HttpMethod.Post, "/commands/SendMessage", Users.Reception, new { reservationId = res, channel = "WhatsApp", body = "Hi" }, "r2"), Ct)).StatusCode);
+
+        var roster = await _http.SendAsync(Req(HttpMethod.Get, "/messaging/consents", Users.Reception), Ct);
+        Assert.Equal(HttpStatusCode.OK, roster.StatusCode);
+        using var doc = JsonDocument.Parse(await roster.Content.ReadAsStringAsync(Ct));
+        var c = doc.RootElement.GetProperty("consents").EnumerateArray().Single(x => x.GetProperty("guestId").GetInt64() == guest);
+        Assert.False(c.GetProperty("sms").GetBoolean());
+        Assert.True(c.GetProperty("whatsApp").GetBoolean());
+        Assert.Contains(doc.RootElement.GetProperty("guests").EnumerateArray(), g => g.GetProperty("reservationId").GetInt64() == res && g.GetProperty("guestId").GetInt64() == guest);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _http.SendAsync(Req(HttpMethod.Get, "/messaging/consents", Users.Cashier), Ct)).StatusCode);
+
+        var list = await _http.SendAsync(Req(HttpMethod.Get, "/messaging/messages", Users.Reception), Ct);
+        using var msgs = JsonDocument.Parse(await list.Content.ReadAsStringAsync(Ct));
+        var m = msgs.RootElement.GetProperty("items")[0];
+        Assert.Contains(m.GetProperty("outcome").GetString(), new[] { "Read", "Delivered", "Failed" });
+        Assert.Equal(guest, m.GetProperty("guestId").GetInt64());
+        Assert.Equal(0, m.GetProperty("boostMinutes").GetInt32());
+    }
 }

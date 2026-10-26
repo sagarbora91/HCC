@@ -10,19 +10,19 @@ import {reservations} from './reservations';
 // import {frontdesk} from './frontdesk';
 
 // W4-2 rooms, housekeeping, room blocks:
-// import {rooms} from './rooms';
+import {rooms} from './rooms';
 
 // W4-3 money (folio, cashier, cash book, invoices, groups billing):
 import {money} from './money';
 
 // W4-4 closing, reports, exports, overview:
-// import {closing} from './closing';
+import {closing} from './closing';
 
 // W4-5 admin (users, roles, devices, configuration, setup):
-// import {admin} from './admin';
+import {admin} from './admin';
 
 // W4-6 staff, payroll, leave:
-// import {staff} from './staff';
+import {staff} from './staff';
 
 // W4-7 accounting, expenses, compliance:
 // import {accounting} from './accounting';
@@ -31,13 +31,13 @@ import {money} from './money';
 // import {pos} from './pos';
 
 // W4-9 maintenance, linen & stock:
-// import {maintenance} from './maintenance';
+import {maintenance} from './maintenance';
 
 // W4-10 guest services, messaging, shift handover:
-// import {services} from './services';
+import {services} from './services';
 
 // W4-11 yield, OTA channels, booking website, ID capture:
-// import {channels} from './channels';
+import {channels} from './channels';
 
 export const AREAS:SyncArea[]=[
   core,
@@ -45,23 +45,23 @@ export const AREAS:SyncArea[]=[
 
   // frontdesk, // W4-1
 
-  // rooms, // W4-2
+  rooms, // W4-2
 
   money, // W4-3
 
-  // closing, // W4-4
+  closing, // W4-4
 
-  // admin, // W4-5
+  admin, // W4-5
 
-  // staff, // W4-6
+  staff, // W4-6
 
   // accounting, // W4-7
 
   // pos, // W4-8
 
-  // maintenance, // W4-9
+  maintenance, // W4-9
 
-  // services, // W4-10
+  services, // W4-10
 
-  // channels, // W4-11
+  channels, // W4-11
 ];

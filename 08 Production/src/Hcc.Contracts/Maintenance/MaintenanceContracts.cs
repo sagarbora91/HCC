@@ -64,7 +64,7 @@ public sealed record WorkOrderView(
     string CreatedUtc, int CreatedBy, string? StartedUtc, string? DoneUtc, string? VerifiedUtc,
     string? HoldReason, int? AwaitingSpareId, string? Note, string? ReturnReason, string? CancelReason,
     long? RepairTaskId, int? PlanId, string? DueDate, string? DowntimeFromUtc, string? DowntimeToUtc, long? BlockId,
-    IReadOnlyList<WorkOrderPartView> Parts, long? PartsCostPaise, string Version);
+    IReadOnlyList<WorkOrderPartView> Parts, long? PartsCostPaise, string Version, int? DoneBy = null, int? VerifiedBy = null);
 
 public sealed record WorkOrderDetail(WorkOrderView Order, IReadOnlyList<WorkOrderHistoryView> History);
 

@@ -95,7 +95,9 @@ public sealed record StaffView(long StaffId, string Name, string Dept, string De
     bool Active, bool Linked, string PhoneMasked, string Version,
     // Payroll fields: null unless the caller holds PERM-HR-005 (the Manager sees the master without salaries, module 17 §2).
     string? PayType = null, long? MonthlyPaise = null, long? DailyPaise = null, string? Gender = null, string? Structure = null, bool? PfApplicable = null,
-    bool? EsicApplicable = null, string? BankName = null, string? AccountMasked = null);
+    bool? EsicApplicable = null, string? BankName = null, string? AccountMasked = null,
+    // W4-6: the linked login (null = none), so a manager's edit keeps the link and "my record" is found (DEC-061); not money.
+    int? LinkedUserId = null);
 
 public sealed record PayLineView(long StaffId, string Name, string Dept, string Designation, string PayType, decimal PayableDays,
     long EarnedPaise, long BasicPaise, long HraPaise, long WashingPaise, long SpecialPaise, long OtPaise, long GrossPaise, long PfWagesPaise, long PfPaise,
@@ -111,3 +113,57 @@ public sealed record PayslipView(long RunId, string Month, string Status, PayLin
 public sealed record LeaveBalanceView(string LeaveType, int Entitled, decimal Used, decimal Left, decimal Over);
 
 public sealed record CsvFile(string FileName, string Content);
+
+// ── HR desk board (W4-6): one read for the Staff & payroll and My shifts & pay screens ──
+// GET /payroll/board?from&to. Departments and the leave policy for every caller; roster, attendance and leave of every staff member
+// for PERM-HR-001 holders, otherwise only the caller's own record (PERM-HR-004, DEC-061). Payroll (rate versions, runs with full
+// lines, advances, full and final) only for PERM-HR-006 holders; everyone else gets only their OWN line of each LOCKED run (own pay
+// only — never hotel money). Figures are the server's stored run lines (never recomputed). Times are ISO-8601 UTC strings.
+
+public sealed record DepartmentView(string Code, string Name, int? LeaveCap);
+
+public sealed record LeavePolicyView(int Cl, int Sl, int El, int DefaultCap);
+
+public sealed record RateVersionView(DateOnly From, int BasicBps, int HraBps, int WashBps, int PfEeBps, int PfErBps, long PfWageCap, int EsicEeBps, int EsicErBps,
+    long EsicCeiling, long PtMaleExempt, long PtMaleMid, long PtMaleMidAmt, long PtStd, long PtFeb, long PtFemaleExempt, int OtBps, int LateBlock, string Rounding,
+    bool EsicPeriod);
+
+public sealed record AttendanceCountsView(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
+    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin);
+
+/// <summary>A stored pay-run line in full (counts, structure, base) as calculated by the server.</summary>
+public sealed record BoardLineView(long StaffId, string Name, string Dept, string Designation, string PayType, string Structure, string Gender, long BasePaise,
+    AttendanceCountsView Counts, int LatePenaltyHalf, decimal PayableDays, long EarnedPaise, long BasicPaise, long HraPaise, long WashingPaise, long SpecialPaise,
+    long OtPaise, long GrossPaise, long PfWagesPaise, long PfPaise, long PfErPaise, long EsicWagesPaise, long EsicPaise, long EsicErPaise, long PtPaise,
+    long AdvancePaise, long DeductionsPaise, long NetPaise, long CtcPaise, bool? EsicCovered);
+
+public sealed record BoardSendView(long StaffId, int LockSeq, string ToMasked, int SentBy, string SentUtc);
+
+public sealed record BoardBankFileView(int IssueNo, int LockSeq, long NetPaise, int IssuedBy, string IssuedUtc);
+
+/// <summary>An undone lock: reason and the net pay per staff id of that lock (F-09).</summary>
+public sealed record BoardUnlockView(int LockSeq, string Reason, IReadOnlyDictionary<string, long> Nets, int BankFiles, int UnlockedBy, string UnlockedUtc);
+
+public sealed record BoardRunView(long RunId, string Month, string Status, RateVersionView Rates, IReadOnlyList<string> Warnings, int LockSeq, string Version,
+    int PreparedBy, string PreparedUtc, int? LockedBy, string? LockedUtc, IReadOnlyList<BoardLineView> Lines, IReadOnlyList<BoardSendView> Sends,
+    IReadOnlyList<BoardBankFileView> BankFiles, IReadOnlyList<BoardUnlockView> Unlocks);
+
+public sealed record BoardRosterView(long StaffId, DateOnly Date, string Shift);
+
+public sealed record BoardAttendanceView(long StaffId, DateOnly Date, string Status, int OtMinutes, int MarkedBy, string MarkedUtc, string? Note);
+
+public sealed record BoardLeaveView(long LeaveId, long StaffId, string LeaveType, DateOnly From, DateOnly To, string? Half, decimal Days, string Reason, string Status,
+    int RequestedBy, string RequestedUtc, int? DecidedBy, string? DecidedUtc, string? Note, string Version);
+
+public sealed record BoardRecoveryView(long? RunId, long? FnfId, long AmountPaise);
+
+public sealed record BoardAdvanceView(long AdvanceId, long StaffId, long AmountPaise, long InstallmentPaise, long RecoveredPaise, DateOnly Date, string FromMonth,
+    string Reason, int GivenBy, IReadOnlyList<BoardRecoveryView> Recoveries);
+
+public sealed record BoardFnfView(long FnfId, long StaffId, DateOnly LastDay, string Month, bool SalaryIncluded, BoardLineView? Line, RateVersionView Rates,
+    long AdvanceOutstandingPaise, IReadOnlyList<FnfAdjustmentDto> Adjustments, long EarningsPaise, long RecoveriesPaise, long NetPaise, string Status,
+    int PreparedBy, string PreparedUtc, int? DecidedBy, string? DecidedUtc, string Version);
+
+public sealed record PayrollBoardView(DateOnly BusinessDate, DateOnly From, DateOnly To, bool AllStaff, bool Payroll, IReadOnlyList<DepartmentView> Departments,
+    LeavePolicyView LeavePolicy, IReadOnlyList<BoardRosterView> Roster, IReadOnlyList<BoardAttendanceView> Attendance, IReadOnlyList<BoardLeaveView> Leaves,
+    IReadOnlyList<RateVersionView> RateVersions, IReadOnlyList<BoardRunView> Runs, IReadOnlyList<BoardAdvanceView> Advances, IReadOnlyList<BoardFnfView> Fnf);

@@ -211,6 +211,15 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
             return await rd.ReadAsync(ct).ConfigureAwait(false) ? new SnapshotRow(rd.GetInt64(0), ClosingSql.Date(rd, 1), rd.GetString(2), (byte[])rd[3]) : null;
         }, ct, P(propertyId), D(date));
 
+    public Task<IReadOnlyList<SnapshotRow>> ReadSnapshotsAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        ClosingSql.RunAsync<IReadOnlyList<SnapshotRow>>(connections, null, "SELECT snapshot_id, business_date, record_json, record_sha256 FROM cls.closing_snapshot WHERE property_id = @p AND business_date BETWEEN @from AND @to ORDER BY business_date;", async c =>
+        {
+            var list = new List<SnapshotRow>();
+            await using var rd = await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(new SnapshotRow(rd.GetInt64(0), ClosingSql.Date(rd, 1), rd.GetString(2), (byte[])rd[3]));
+            return list;
+        }, ct, P(propertyId), D(from, "@from"), D(to, "@to"));
+
     public async Task<bool> AdvanceBusinessDateAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct) =>
         await ClosingSql.ExecAsync(tx, "UPDATE inv.property SET business_date = DATEADD(day, 1, @d) WHERE property_id = @p AND business_date = @d;", ct, P(propertyId), D(date)).ConfigureAwait(false) == 1;
 

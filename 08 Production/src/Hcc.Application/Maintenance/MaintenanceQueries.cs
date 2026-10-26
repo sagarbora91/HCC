@@ -58,7 +58,7 @@ public sealed class MaintenanceQueries(IAccessPolicy policy, IMaintenanceReadSto
             w.RoomId, w.RoomNo, w.AssetId, w.Area, w.AssigneeId, w.VendorId, Iso(w.CreatedUtc), w.CreatedBy, Iso(w.StartedUtc), Iso(w.DoneUtc), Iso(w.VerifiedUtc),
             w.HoldReason, w.AwaitingSpareId, w.Note, w.ReturnReason, w.CancelReason, w.RepairTaskId, w.PlanId,
             w.DueDate is { } d ? StayDates.ToWire(d) : null, Iso(w.DowntimeFromUtc), Iso(w.DowntimeToUtc), w.BlockId,
-            parts, money ? w.PartsCostPaise : null, VersionToken.ToWire(w.Version));
+            parts, money ? w.PartsCostPaise : null, VersionToken.ToWire(w.Version), w.DoneBy, w.VerifiedBy);
     }
 
     public async Task<WorkOrderPage> ListWorkOrdersAsync(int propertyId, int principalId, int page = 1, int pageSize = 50, string? status = null, string? priority = null, CancellationToken ct = default)

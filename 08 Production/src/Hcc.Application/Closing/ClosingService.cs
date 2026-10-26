@@ -26,6 +26,8 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
     ICloseStepObserver observer, TimeProvider clock, Hcc.Application.Pos.IPosCloseGate? pos = null)
 {
     public const string OpRun = "RunBusinessDayClose";
+    public const string OpPostNights = "PostRoomNights";
+    public const int MaxRecordDays = 100;
     public const string OpLockCashBook = "LockCashBookDay";
     public const string OpReopenCashBook = "ReopenCashBookDay";
 
@@ -77,6 +79,55 @@ public sealed class ClosingService(ICommandRunner runner, IClosingStore store, I
         await NextDayStepAsync(caller, date, attempt, ct).ConfigureAwait(false);
         var run = (await store.FindRunAsync(null, caller.PropertyId, date, ct).ConfigureAwait(false))!;
         return new(await ResultAsync(run, ct).ConfigureAwait(false), false);
+    }
+
+    /// <summary>
+    /// PostRoomNights: the close's night step on its own (prototype CLOSE_RUN / NIGHT_POST). Only the current, still open business date;
+    /// each stay goes through P4 PostRoomNight (idempotent per folio and service date), so a repeat, or the later close, posts nothing twice.
+    /// </summary>
+    public async Task<CommandResult<PostRoomNightsResult>> PostRoomNightsAsync(Caller caller, string idempotencyKey, PostRoomNightsRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(req);
+        Ctx(caller, OpPostNights, idempotencyKey).Validate();
+        var date = req.BusinessDate;
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.Close, ct: ct).ConfigureAwait(false);
+        var bd = await store.BusinessDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        if (date != bd)
+        {
+            if (date < bd || await store.IsClosedAsync(null, caller.PropertyId, date, ct).ConfigureAwait(false)) throw CloseRules.DayClosed(date);
+            throw HccException.Validation($"Only the current business date ({Iso(bd)}) can be posted.");
+        }
+
+        if (await store.IsClosedAsync(null, caller.PropertyId, date, ct).ConfigureAwait(false)) throw CloseRules.DayClosed(date);
+        var targets = (await store.PreflightDataAsync(null, caller.PropertyId, date, Now, ct).ConfigureAwait(false)).Nights;
+        var posted = 0;
+        foreach (var t in targets.Where(t => !t.HasNight))
+        {
+            var r = await billing.PostRoomNightAsync(caller, $"nights:{date:yyyyMMdd}:{t.StayId}", new PostRoomNightRequest(t.StayId, date), ct).ConfigureAwait(false);
+            if (r.Value.Created && !r.Replayed) posted++;
+        }
+
+        return new(new PostRoomNightsResult(date, targets.Count, posted, targets.Count - posted), false);
+    }
+
+    /// <summary>The current business date for any signed-in user (screens need it before anything else); no permission beyond the session.</summary>
+    public async Task<BusinessDateView> GetBusinessDateAsync(Caller caller, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        var d = await store.BusinessDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        return new BusinessDateView(d, await store.IsClosedAsync(null, caller.PropertyId, d, ct).ConfigureAwait(false));
+    }
+
+    /// <summary>The stored closing records of a date range in one read (the closing history screens).</summary>
+    public async Task<ClosingRecordsView> GetRecordsAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.ReportFinance, ct: ct).ConfigureAwait(false);
+        if (to < from) throw HccException.Validation("'to' must be on or after 'from'.");
+        if (to.DayNumber - from.DayNumber + 1 > MaxRecordDays) throw HccException.Validation($"Choose at most {MaxRecordDays} business dates.");
+        var rows = await store.ReadSnapshotsAsync(caller.PropertyId, from, to, ct).ConfigureAwait(false);
+        return new ClosingRecordsView(from, to, rows.Select(s => new ClosingSnapshotView(s.SnapshotId, Convert.ToHexString(s.Sha256), ParseRecord(s.Json))).ToList());
     }
 
     private async Task<AttemptResult> StartAttemptAsync(Caller caller, DateOnly date, string runRef, string idempotencyKey, CancellationToken ct)

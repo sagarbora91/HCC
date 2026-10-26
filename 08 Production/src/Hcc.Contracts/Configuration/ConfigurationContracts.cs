@@ -76,3 +76,10 @@ public sealed record ModuleStateView(string Id, string Label, string Note, bool 
 
 /// <summary>GET /configuration/modules (any signed-in user: menus, tiles, search and phone tabs hide switched-off modules).</summary>
 public sealed record ModulesResult(IReadOnlyList<ModuleStateView> Modules, IReadOnlyList<string> Core);
+
+/// <summary>
+/// GET /api/v1/configuration/values (W4-5; any signed-in user): the values in force on the business date that every screen reads
+/// (property name, check-in/out times, discount threshold, inspection, module switches …) plus future-dated values. Secrets and
+/// Owner-only-visible values are left out for viewers without full configuration authority; fixed pointer lines are never included.
+/// </summary>
+public sealed record ConfigurationValuesResult(string BusinessDate, IReadOnlyDictionary<string, JsonElement> Values, IReadOnlyList<ExportScheduled> Scheduled);

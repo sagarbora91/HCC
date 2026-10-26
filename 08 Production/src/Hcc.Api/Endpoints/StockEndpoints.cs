@@ -7,7 +7,7 @@ namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Linen, laundry &amp; stock (W2-8): <c>POST /api/v1/commands/Stock*</c> (Idempotency-Key required) and
-/// <c>GET /api/v1/stock/{items|alerts|laundry|counts|losses|moves|consumption}</c>. Every route needs a session; money fields are
+/// <c>GET /api/v1/stock/{items|settings|alerts|laundry|counts|losses|moves|consumption}</c>. Every route needs a session; money fields are
 /// null for callers without PERM-RPT-002.
 /// </summary>
 public static class StockEndpoints
@@ -54,6 +54,11 @@ public static class StockEndpoints
         {
             var (property, principal) = http.HccActor();
             return Results.Ok(await q.ItemsAsync(property, principal, page, pageSize, kind, belowMinimum, ct));
+        });
+        g.MapGet("/stock/settings", async (HttpContext http, StockQueries q, CancellationToken ct) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await q.SettingsAsync(property, principal, ct));
         });
         g.MapGet("/stock/alerts", async (HttpContext http, StockQueries q, CancellationToken ct) =>
         {

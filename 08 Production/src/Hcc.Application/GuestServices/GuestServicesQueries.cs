@@ -134,6 +134,23 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
         return (await reads.HistoryAsync(propertyId, kind, recordId, ct).ConfigureAwait(false)).Select(l => new HistoryEntry(Iso(l.AtUtc), l.By, l.What)).ToList();
     }
 
+    /// <summary>Bulk history of one register (request | complaint | item) so the screens can show every trail without one call per record; front office only.</summary>
+    public async Task<IReadOnlyList<RecordHistory>> HistoriesAsync(int propertyId, int principalId, string kind, CancellationToken ct = default)
+    {
+        if (kind is not ("request" or "complaint" or "item")) throw HccException.Validation("kind is request, complaint or item.");
+        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        return (await reads.HistoriesAsync(propertyId, kind, ct).ConfigureAwait(false)).GroupBy(x => x.RecordId)
+            .Select(g => new RecordHistory(g.Key, g.Select(x => new HistoryEntry(Iso(x.Entry.AtUtc), x.Entry.By, x.Entry.What)).ToList())).ToList();
+    }
+
+    /// <summary>Stays the guest-service screens refer to (in house + referenced by a record): booking id = reservation id; front office only.</summary>
+    public async Task<StayLookupList> StaysAsync(int propertyId, int principalId, CancellationToken ct = default)
+    {
+        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        return new StayLookupList((await reads.StaysAsync(propertyId, ct).ConfigureAwait(false))
+            .Select(s => new StayLookupView(s.StayId, s.ReservationId, s.GuestId, s.RoomNo, s.GuestName, s.Status)).ToList());
+    }
+
     private async Task RequireReportAsync(int propertyId, int principalId, CancellationToken ct)
     {
         if (!await WideAsync(propertyId, principalId, GuestServicePermissions.Manage, ct).ConfigureAwait(false))

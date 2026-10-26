@@ -121,6 +121,9 @@ public interface IClosingStore
 
     Task<SnapshotRow?> ReadSnapshotAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct);
 
+    /// <summary>The closing snapshots of the dates in the inclusive range, oldest first.</summary>
+    Task<IReadOnlyList<SnapshotRow>> ReadSnapshotsAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
     /// <summary>Moves the business date from <paramref name="date"/> to the next day; false when it had already moved.</summary>
     Task<bool> AdvanceBusinessDateAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct);
 
