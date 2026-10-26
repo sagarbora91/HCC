@@ -24,12 +24,12 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
 
     internal static RuleView ToView(StoredRule r) => new(r.Def.RuleId, r.Def.Event, r.Def.TemplateCode, r.Def.Channel, r.Def.Enabled, VersionToken.ToWire(r.Version));
 
-    private static MessageView ToView(StoredMessage m, DateTime now)
+    private static MessageView ToView(StoredMessage m, DateTime now)  // Outcome/BoostMinutes/GuestId let the screens reproduce the simulated delivery path
     {
         var timeline = MessagingRules.Timeline(m.QueuedUtc, now, m.BoostMinutes, m.Outcome, m.Blocked);
         return new MessageView(m.MessageId, MessagingRules.WireId(m.MessageId), m.ReservationId, m.BookingNo, m.GuestName, m.TemplateCode, m.Channel, m.RecipientMasked,
             m.Subject, m.Body, timeline[^1].Status, m.BlockedReason, Iso(m.QueuedUtc), timeline.Select(t => new MessageTimelineStep(t.Status, Iso(t.AtUtc))).ToList(),
-            m.RuleId, m.RetryOf, m.RetriedBy, m.Channel == MsgChannel.Sms ? MessagingRules.SmsSegments(m.Body) : null, true);
+            m.RuleId, m.RetryOf, m.RetriedBy, m.Channel == MsgChannel.Sms ? MessagingRules.SmsSegments(m.Body) : null, true, m.Outcome, m.BoostMinutes, m.GuestId);
     }
 
     public async Task<MessageListResult> MessagesAsync(int propertyId, int principalId, string? status, int page, int pageSize, CancellationToken ct = default)
@@ -90,6 +90,14 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
             return await d.RulesAsync(propertyId, c).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
         return list.Select(ToView).ToList();
+    }
+
+    /// <summary>All stored consents + registered guests of active reservations (so consent can be keyed by booking on the screens).</summary>
+    public async Task<ConsentRoster> ConsentRosterAsync(int propertyId, int principalId, CancellationToken ct = default)
+    {
+        await policy.RequireAsync(propertyId, principalId, MessagingPermissions.View, null, null, ct).ConfigureAwait(false);
+        var (rows, guests) = await data.ReadAsync(async (d, c) => (await d.ConsentsAsync(propertyId, c).ConfigureAwait(false), await d.ActiveGuestsAsync(propertyId, c).ConfigureAwait(false)), ct).ConfigureAwait(false);
+        return new ConsentRoster(rows.Select(r => ToView(r.GuestId, r.Consent)).ToList(), guests.Select(g => new ConsentGuestRef(g.ReservationId, g.GuestId)).ToList());
     }
 
     public async Task<ConsentView> ConsentAsync(int propertyId, int principalId, long guestId, CancellationToken ct = default)

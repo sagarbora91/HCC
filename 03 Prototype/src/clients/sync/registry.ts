@@ -34,7 +34,7 @@ import {closing} from './closing';
 import {maintenance} from './maintenance';
 
 // W4-10 guest services, messaging, shift handover:
-// import {services} from './services';
+import {services} from './services';
 
 // W4-11 yield, OTA channels, booking website, ID capture:
 import {channels} from './channels';
@@ -61,7 +61,7 @@ export const AREAS:SyncArea[]=[
 
   maintenance, // W4-9
 
-  // services, // W4-10
+  services, // W4-10
 
   channels, // W4-11
 ];

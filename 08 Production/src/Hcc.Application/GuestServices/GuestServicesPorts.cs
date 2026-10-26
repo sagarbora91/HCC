@@ -154,4 +154,12 @@ public interface IGuestServicesReadStore
     Task<IReadOnlyList<ItemRecord>> ItemsAsync(int propertyId, int? foundBy, CancellationToken ct = default);
 
     Task<IReadOnlyList<LogEntry>> HistoryAsync(int propertyId, string kind, long recordId, CancellationToken ct = default);
+
+    /// <summary>Every history entry of the register <paramref name="kind"/> (request | complaint | item) of the property, oldest first, with its record id.</summary>
+    Task<IReadOnlyList<(long RecordId, LogEntry Entry)>> HistoriesAsync(int propertyId, string kind, CancellationToken ct = default);
+
+    /// <summary>In-house stays plus the stays referenced by a request, complaint or lost item (reservation + guest ids for the screens).</summary>
+    Task<IReadOnlyList<StayLookupRow>> StaysAsync(int propertyId, CancellationToken ct = default);
 }
+
+public sealed record StayLookupRow(long StayId, long ReservationId, long? GuestId, string RoomNo, string GuestName, string Status);

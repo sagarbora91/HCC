@@ -96,4 +96,12 @@ public sealed record ResponseReport(IReadOnlyList<ResponseRow> Rows, ResponseTot
 
 public sealed record ComplaintCategoryRow(string Category, int Total, int Open, IReadOnlyDictionary<string, int> BySeverity, int Recovery);
 
+/// <summary>Stay lookup for the screens: in-house stays plus every stay a request, complaint or lost item points to. <c>ReservationId</c> is the booking id the screens use.</summary>
+public sealed record StayLookupView(long StayId, long ReservationId, long? GuestId, string RoomNo, string GuestName, string Status);
+
+public sealed record StayLookupList(IReadOnlyList<StayLookupView> Items);
+
+/// <summary>History trail of one record (bulk read for a register: every record of a kind in one call).</summary>
+public sealed record RecordHistory(long RecordId, IReadOnlyList<HistoryEntry> Entries);
+
 public sealed record LostFoundSummary(int Stored, int Claimed, int HandedOver, int Disposed, int DueDisposal, int Valuables);
