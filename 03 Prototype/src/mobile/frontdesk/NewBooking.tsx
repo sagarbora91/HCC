@@ -4,7 +4,7 @@ import {useStepBack} from '../../app/native';
 import React,{useState} from 'react';
 import {ArrowRight,ArrowLeft,Hourglass,Check,TriangleAlert,DoorOpen,Printer,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,nights,addDays,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS} from '../../services/mock';
+import {money,nights,addDays,RES_CAPACITY,RES_OTA_CHANNELS,fdmSourceChoices,fdmOtaChannelNames} from '../../services/mock';
 import {useReservations,useAvailability,useBooking} from '../../clients/react';
 import {quoteAndCreate,createRequestFromBook} from '../../clients/view';
 import {Stepper,NumberStepper,ChipFilter} from '../../app/mobile/components';
@@ -87,8 +87,8 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
         <label>Guest name *<input value={d.guest} maxLength={80} autoComplete="off" enterKeyHint="next" placeholder="e.g. Demo Guest" aria-invalid={!!shown.guest} onChange={e=>set('guest',e.target.value)}/><Err m={shown.guest}/></label>
         <label>Phone *<input type="tel" inputMode="tel" value={d.phone} maxLength={16} enterKeyHint="next" placeholder="+91 90000 00000" aria-invalid={!!shown.phone} onChange={e=>set('phone',e.target.value)}/><Err m={shown.phone}/></label>
         <label>Fictional email (optional)<input type="email" inputMode="email" value={d.email} enterKeyHint="next" placeholder="guest@example.test" onChange={e=>set('email',e.target.value)}/></label>
-        <label>Booking source *<select value={d.source} onChange={e=>set('source',e.target.value)}>{RES_SOURCES.map(x=><option key={x}>{x}</option>)}</select></label>
-        {d.source==='OTA'&&<label>OTA channel name *<input list="mf-ota" value={d.otaChannel} maxLength={60} enterKeyHint="next" aria-invalid={!!shown.otaChannel} onChange={e=>set('otaChannel',e.target.value)}/><datalist id="mf-ota">{RES_OTA_CHANNELS.map(x=><option key={x} value={x}/>)}</datalist><Err m={shown.otaChannel}/></label>}
+        <label>Booking source *<select value={d.source} onChange={e=>set('source',e.target.value)}>{fdmSourceChoices(s,d.source).map(x=><option key={x}>{x}</option>)}</select></label>
+        {d.source==='OTA'&&<label>OTA channel name *<input list="mf-ota" value={d.otaChannel} maxLength={60} enterKeyHint="next" aria-invalid={!!shown.otaChannel} onChange={e=>set('otaChannel',e.target.value)}/><datalist id="mf-ota">{fdmOtaChannelNames(s,RES_OTA_CHANNELS).map(x=><option key={x} value={x}/>)}</datalist><Err m={shown.otaChannel}/></label>}
         <label>Company (optional)<input value={d.company} maxLength={80} enterKeyHint="next" aria-invalid={!!shown.company} onChange={e=>set('company',e.target.value)}/><Err m={shown.company}/></label>
         <label>GSTIN (optional, fictional)<input value={d.gstin} maxLength={15} autoCapitalize="characters" enterKeyHint="next" placeholder="27AAAAA0000A1Z5" aria-invalid={!!shown.gstin} onChange={e=>set('gstin',e.target.value.toUpperCase())}/><Err m={shown.gstin}/></label>
         <label>Notes<textarea rows={2} value={d.notes} maxLength={300} enterKeyHint="done" onChange={e=>set('notes',e.target.value)}/></label>

@@ -12,6 +12,7 @@ import {useHcc} from '../../app/context';
 import {PageTitle,Empty,dateLabel,shortDate} from '../../components/ui';
 import {useServerReport,ServerReportStrip,ServerDetailNote,ServerHistorySummary,fyMonths,SERVER_DETAIL_NOTE} from './serverBits';
 import {asOfText,NO_FETCH} from './asOf';
+import {FdmSourceReport} from '../reservations/masters';
 import {REPORT_MAX_DAYS} from '../../clients/sync/reports';
 
 /** CSV export: a download in the browser, app-cache exports/ + share sheet in the Android app. */
@@ -67,6 +68,7 @@ export function Reports(){
         <span>{x.label}</span><strong>{x.unit==='money'?money(x.value):x.value}</strong><small>{process.env.HCC_BUILD==='production'?'Server figure · details on the server PC':<>{x.rows.length} source row{x.rows.length===1?'':'s'} · view ›</>}</small>{x.note&&<small>{x.note}</small>}</button>)}
         {t.ratios.map(r=><div key={r.id} className="f-metric ratio"><span>{r.label}</span><strong>{r.display}</strong><small>{r.formula}</small></div>)}</div>
       {m&&(process.env.HCC_BUILD==='production'?<ServerDetailNote label={m.label}/>:<Drill key={m.id+pack.from+pack.to} pack={pack} m={m} mask={mask} onClose={()=>setDrill(null)}/>)}
+      {tab==='occupancy'&&process.env.HCC_BUILD!=='production'&&<FdmSourceReport from={from} to={to}/>}
       {t.table&&<section className="card"><div className="section-title"><h2>By business date</h2><span className="muted">{shortDate(from)} – {shortDate(to)}</span></div><TableView t={t}/></section>}
       <div className="info-note"><Info size={17}/>Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. GST from the dated GST master (illustrative — CA to confirm).</div>
     </>}</>;

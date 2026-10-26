@@ -7,6 +7,7 @@ import {Booking,money,nights,totals,resStatus,resHoldActive,resHoldLeftLabel} fr
 import {useHcc} from '../../app/context';
 import {Empty,Pill,dateLabel} from '../../components/ui';
 import {RestrictionOverrideNote} from './RestrictionNotice';
+import {FdmPolicyLine} from './masters';
 
 /** 'confirmation' modal (wide). Props: id = booking ID. */
 export function BookingConfirmation({id}:{id?:string}){
@@ -23,6 +24,7 @@ export function BookingConfirmation({id}:{id?:string}){
       <div><span>Agreed nightly rate</span><strong>{money(b.rate)}</strong></div><div><span>Room charges ({n} night{n===1?'':'s'}, before GST)</span><strong>{money(b.rate*n)}</strong></div>
       <div><span>Advance received</span><strong>{money(t.paid)}</strong></div><div><span>Booking source</span><strong>{b.source}{b.otaChannel?' · '+b.otaChannel:''}</strong></div></div>
     {b.notes&&<p className="footnote">Notes: {b.notes}</p>}
+    <FdmPolicyLine b={b}/>
     <p className="footnote">Demonstration document. All names, numbers and references are fictional. GST applies per the dated GST master (illustrative — CA to confirm).</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }

@@ -11,6 +11,7 @@ export async function register({test,M,assert}){
   const page=items=>({page:1,pageSize:200,total:items.length,items});
   const names=['SaveFloor','RetireFloor','ReactivateFloor','ReorderFloors','DeleteFloor'];
   const routes={'GET /masters/floors':()=>page(floors),'GET /masters/floors/history':()=>page(hist)};
+  for(const x of ['booking-sources','id-types','number-series','policies'])routes['GET /masters/'+x]=routes['GET /masters/'+x+'/history']=()=>page([]); // MA-5 lists (own tests: sync-frontdesk-master.mjs)
   for(const n of names)routes['POST /commands/'+n]=()=>(n==='SaveFloor'?floor(4,'F4','Annexe',40,{roomCount:0}):n==='ReorderFloors'?page(floors):{});
   const srv=fakeServer(routes);
   const rt=await startRuntime(S,srv,mine);
@@ -61,7 +62,7 @@ export async function register({test,M,assert}){
   const rrt=await startRuntime(S,rec,mine);
   test('[MST-SYNC] MASTER_CODE_TAKEN from the server surfaces with its reason; Reception loads floors without the history read',()=>{
     assert.deepEqual([taken.ok,taken.reason],[false,'server']);assert.equal(M.mstReasonOf(taken.error),'MASTER_CODE_TAKEN');assert.match(taken.text,/already used/);
-    assert.deepEqual(rec.gets().map(c=>c.path).filter(p=>p.startsWith('/masters')),['/masters/floors']);
+    assert.deepEqual(rec.gets().map(c=>c.path).filter(p=>p.startsWith('/masters/floors')),['/masters/floors']);
     assert.equal(rrt.get().state.mastersX.rows.floors.length,3);assert.deepEqual(rrt.get().state.mastersX.history,[]);
     assert.deepEqual(rrt.get().errors,{});});
 

@@ -255,6 +255,8 @@ export type State={
   configX?:import('./streams/config').CFGState;
   /** MA-0 masters framework: stored master rows per list + change history (absent = fixture seed). */
   mastersX?:import('./streams/masters').MSTState;
+  /** MA-5 front-desk lists: numbering-series allocation counters (absent until a non-seeded series issues a number). */
+  frontdeskMasterX?:import('./streams/frontdesk-master').FDMState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;

@@ -12,6 +12,7 @@ import type {Command} from '../../services/mock';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import type {ReadRoute} from './reads';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
+import {FDM_SERVER} from './frontdesk-master'; // MA-5 front-desk lists
 
 /** Server wire shapes (08 Production/src/Hcc.Contracts/Masters/MastersContracts.cs). */
 type SrvFloor={floorId:number;code:string;name:string;sortOrder:number;active:boolean;retiredOn:string|null;roomCount:number;updatedUtc:string;version:string};
@@ -20,10 +21,14 @@ type SrvHistory={historyId:number;rowId:number;code:string|null;field:string;old
 
 /** One server-backed master: list + history routes, command names, id field names and the id-directory kind for versions. */
 export type MstServerRoute={list:ReadRoute;history:ReadRoute;listPath:string;historyPath:string;kind:string;idField:string;idsField:string;
-  save:string;retire:string;reactivate:string;reorder:string;remove:string};
+  save:string;retire:string;reactivate:string;reorder:string;remove:string;
+  /** Row from the server view (default: the floor mapper). */fromServer?:(x:Record<string,unknown>)=>MasterRow;
+  /** Extra Save body fields from the prototype row (default: none — code, name, sortOrder and the id are always sent). */toBody?:(row:Record<string,unknown>)=>Record<string,unknown>;
+  /** Server id of a prototype row id; undefined = a row the server does not hold yet (Save creates it). Default: serverId (positive ids). */rowId?:(id:string)=>number|undefined};
 export const MST_SERVER:Record<string,MstServerRoute>={
   floors:{list:'GET /masters/floors',history:'GET /masters/floors/history',listPath:'/masters/floors',historyPath:'/masters/floors/history',kind:'floor',idField:'floorId',idsField:'floorIds',
     save:'SaveFloor',retire:'RetireFloor',reactivate:'ReactivateFloor',reorder:'ReorderFloors',remove:'DeleteFloor'},
+  ...FDM_SERVER, // MA-5: bookingSources, idTypes, numberSeries, policies
 };
 const PAGE=200;
 
@@ -44,9 +49,9 @@ async function loadMasters(c:LoaderCtx):Promise<MSTState>{
   const out:MSTState={rows:{},history:[]};
   for(const [master,r] of Object.entries(MST_SERVER)){
     if(!c.mayRead(r.list))continue;
-    const rows=await pages<SrvFloor>(c,r.listPath);
-    for(const f of rows)c.ids.setVersion(r.kind,protoId(f.floorId),f.version);
-    out.rows[master]=rows.map(floorFromServer);
+    const rows=await pages<Record<string,unknown>>(c,r.listPath);
+    for(const f of rows)c.ids.setVersion(r.kind,protoId(f[r.idField] as number),String(f.version??''));
+    out.rows[master]=rows.map(x=>r.fromServer?r.fromServer(x):floorFromServer(x as unknown as SrvFloor));
     if(c.mayRead(r.history))out.history.push(...(await pages<SrvHistory>(c,r.historyPath)).map(h=>historyFromServer(master,h)));
   }
   out.history.sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:Number(b.id)-Number(a.id));
@@ -60,13 +65,15 @@ function precheck(cmd:Command):string|undefined{
 const version=(c:CommandCtx,r:MstServerRoute,id:string)=>c.ids.version(r.kind,id);
 function idOf(c:CommandCtx,r:MstServerRoute,id:unknown){
   if(id===undefined||id===null||id==='')throw new HccClientError('VALIDATION','Choose a row.');
+  if(r.rowId){const n=r.rowId(String(id));if(n===undefined)throw new HccClientError('VALIDATION','This row is not on the server yet. Refresh and try again.');return n;}
   return serverId(String(id),r.kind[0].toUpperCase()+r.kind.slice(1));
 }
 /** Body of SaveFloor from the prototype row (only the fields the server knows; no money fields on floors). */
 function saveBody(c:CommandCtx,r:MstServerRoute,row:Record<string,unknown>):{body:Record<string,unknown>;expectedVersion?:string}{
   const body:Record<string,unknown>={code:String(row.code??'').trim().toUpperCase(),name:String(row.name??'').trim()};
   if(row.sortOrder!==undefined&&row.sortOrder!==null&&row.sortOrder!=='')body.sortOrder=Number(row.sortOrder);
-  if(row.id){body[r.idField]=idOf(c,r,row.id);return {body,expectedVersion:version(c,r,String(row.id))};}
+  Object.assign(body,r.toBody?.(row));
+  if(row.id&&(!r.rowId||r.rowId(String(row.id))!==undefined)){body[r.idField]=idOf(c,r,row.id);return {body,expectedVersion:version(c,r,String(row.id))};}
   return {body};
 }
 async function status(c:CommandCtx,name:'retire'|'reactivate'|'remove'){
@@ -86,6 +93,6 @@ export const masters:SyncArea={
     {type:'MST_MASTER_DELETE',reload:['mastersX'],precheck,send:c=>status(c,'remove')},
     {type:'MST_MASTER_REORDER',reload:['mastersX'],
       precheck(cmd){const p=precheck(cmd);if(p)return p;return Array.isArray(cmd.ids)&&cmd.ids.length?undefined:'Send the new order.';},
-      async send(c){const r=routeOf(c.cmd.master)!;await c.api.command(r.reorder,{[r.idsField]:(c.cmd.ids as unknown[]).map(id=>idOf(c,r,id))});}},
+      async send(c){const r=routeOf(c.cmd.master)!;await c.api.command(r.reorder,{[r.idsField]:(c.cmd.ids as unknown[]).filter(id=>!r.rowId||r.rowId(String(id))!==undefined).map(id=>idOf(c,r,id))});}},
   ],
 };
