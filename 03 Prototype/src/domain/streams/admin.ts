@@ -286,7 +286,8 @@ export const adminSettingHistory=(s:State,key:string)=>(s.configHistory||[]).fil
 export function adminTariffOn(s:State,type:string,date:string){
   return (s.tariffs||[]).filter(t=>t.type===type&&t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0];
 }
-/** Room types that have rooms in service, in the room-types master order (MA-1: replaces the plain derivation; retired rooms are left
+/** LEGACY (MA-1/MA-9): the pre-master derivation of the room-type list — read rmsRoomTypeKeys(s) (domain/streams/roommasters.ts) in new code.
+ *  Kept for the settings screens and the tariff command. Room types that have rooms in service, in the room-types master order (MA-1: replaces the plain derivation; retired rooms are left
  *  out; without stored master rows the order is the fixture's first appearance, as before). */
 export const adminRoomTypes=(s:State)=>{
   const t=[...new Set(s.rooms.filter(r=>r.status!=='retired').map(r=>r.type))],m=s.mastersX?.rows?.roomTypes;if(!Array.isArray(m))return t;

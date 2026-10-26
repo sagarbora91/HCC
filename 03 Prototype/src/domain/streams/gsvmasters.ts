@@ -2,7 +2,8 @@
 // SLA in hours. Registered in the masters framework in the group "Front-desk policies" (next to the guest-service SLAs); changed through
 // the generic MST_MASTER_* commands (Owner + Tech admin). Helpers (resolve, labels, SLA, reports) live in services.ts.
 import {registerMaster,type MasterSpec} from './masters';
-import {GSV_DEPTS,GCC,LFC,GCC_SEED,LFC_SEED,gcatKeyOf,lfcKeyOf,gsvSlice,type GcatRow,type LfcRow} from './services';
+import {mastersSeed} from '../../fixtures/ext/masters-seed';
+import {GSV_DEPTS,GCC,LFC,gcatKeyOf,lfcKeyOf,gsvSlice,type GcatRow,type LfcRow} from './services';
 
 const deptOptions=GSV_DEPTS.map(d=>({value:d,label:d}));
 const common=(sla:string)=>[
@@ -18,7 +19,7 @@ export const GCC_SPEC:MasterSpec<GcatRow>={
   help:'Categories offered when logging a complaint, with the department and the hours within which it should be answered. Guest services and the complaints report group by them.',
   fields:[...common('Hours from logging within which the complaint should be answered or resolved; Guest services flags “Over SLA”.'),{key:'active',label:'Active',type:'toggle'}],
   inUse:(s,row)=>{const n=gsvSlice(s).complaints.filter(c=>gcatKeyOf(s,c)===row.code).length;return {count:n,where:n?[`${n} complaint${n===1?'':'s'}`]:[]};},
-  seed:()=>GCC_SEED.map(([code,name,department,slaHours],i)=>({id:'gcc-'+code.toLowerCase(),code,name,sortOrder:(i+1)*10,active:true,department,slaHours})),
+  seed:s=>mastersSeed(GCC,s) as GcatRow[],
 };
 export const LFC_SPEC:MasterSpec<LfcRow>={
   id:LFC,label:'Lost-and-found categories',singular:'lost-and-found category',group:'frontdesk',prefix:'LFC',money:false,permission:'masters',
@@ -26,7 +27,7 @@ export const LFC_SPEC:MasterSpec<LfcRow>={
   fields:[...common('Hours from finding within which the owner should be traced and informed (shown on the item).'),
     {key:'valuable',label:'Valuable',type:'toggle' as const,help:'Held in the front-office safe; disposal needs a manager.'},{key:'active',label:'Active',type:'toggle'}],
   inUse:(s,row)=>{const n=gsvSlice(s).items.filter(i=>lfcKeyOf(i)===row.code).length;return {count:n,where:n?[`${n} item${n===1?'':'s'}`]:[]};},
-  seed:()=>LFC_SEED.map(([code,name,department,slaHours,valuable],i)=>({id:'lfc-'+code.toLowerCase(),code,name,sortOrder:(i+1)*10,active:true,department,slaHours,valuable})),
+  seed:s=>mastersSeed(LFC,s) as LfcRow[],
 };
 registerMaster(GCC_SPEC as unknown as MasterSpec);
 registerMaster(LFC_SPEC as unknown as MasterSpec);

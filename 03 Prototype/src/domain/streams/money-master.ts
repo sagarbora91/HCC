@@ -10,6 +10,7 @@
 // DEC-MA-6: expense vendors are their own list; maintenance vendors (s.maintenanceX) are untouched.
 import type {State,Expense} from '../types';
 import type {MasterRow,MSTHistory} from './masters';
+import {SEED_TILL,SEED_BANK,SEED_ACCOUNTS,SEED_METHODS,SEED_CATEGORIES,seedVendorCode,seedVendorType,seedVendors} from '../../fixtures/ext/masters-seed';
 
 export const MNY_PM='paymentMethods';
 export const MNY_BA='bankAccounts';
@@ -38,45 +39,18 @@ export type MnyVendor=MasterRow&{type:string;gstin?:string;pan?:string;tds:boole
 
 // ───────────────────────────── Seeds = the old constants (folio FOLIO_TENDERS, POS_TENDERS, closing EXPENSE_METHODS / TENDERS /
 // EXPENSE_CATEGORIES, accounting ACC_DEFAULT_MAP) + "Company credit" (receipts of authorised company credit) ─────────────────────────────
-export const MNY_TILL='TILL';
-export const MNY_BANK='BANK-1';
-export const MNY_SEED_ACCOUNTS:MnyAccount[]=[
-  {id:'ba-till',code:MNY_TILL,name:'Front-desk cash drawer',sortOrder:10,active:true,kind:'till'},
-  {id:'ba-bank-1',code:MNY_BANK,name:'Hotel current account',sortOrder:20,active:true,kind:'bank',bank:'Demo Bank (fictional)',accountLast4:'4321',ifsc:'DEMO0001234',defaultFor:['upi','card','bank']},
-];
-export const MNY_SEED_METHODS:MnyMethod[]=[
-  {id:'pm-cash',code:'CASH',name:'Cash',sortOrder:10,active:true,kind:'cash',settlesTo:MNY_TILL,needsReference:false,usableAt:['frontdesk','pos','expenses'],ledger:'1000'},
-  {id:'pm-upi',code:'UPI',name:'UPI',sortOrder:20,active:true,kind:'upi',settlesTo:MNY_BANK,needsReference:true,usableAt:['frontdesk','pos','expenses'],ledger:'1010'},
-  {id:'pm-card',code:'CARD',name:'Card',sortOrder:30,active:true,kind:'card',settlesTo:MNY_BANK,needsReference:true,usableAt:['frontdesk','pos'],ledger:'1020'},
-  {id:'pm-bank',code:'BANK',name:'Bank transfer',sortOrder:40,active:true,kind:'bank',settlesTo:MNY_BANK,needsReference:true,usableAt:['frontdesk','expenses'],ledger:'1030'},
-  {id:'pm-vendor-credit',code:'VCREDIT',name:'Vendor credit',sortOrder:50,active:true,kind:'credit',needsReference:false,usableAt:['expenses'],ledger:'2200'},
-  {id:'pm-company-credit',code:'COMPANY',name:'Company credit',sortOrder:60,active:true,kind:'credit',needsReference:false,usableAt:[]},
-];
-export const MNY_SEED_CATEGORIES:MnyCategory[]=[
-  {id:'ec-supplies',code:'SUPPLIES',name:'Supplies',sortOrder:10,active:true,ledger:'5000',needsBill:false},
-  {id:'ec-laundry',code:'LAUNDRY',name:'Laundry',sortOrder:20,active:true,ledger:'5010',needsBill:false},
-  {id:'ec-maintenance',code:'MAINT',name:'Maintenance',sortOrder:30,active:true,ledger:'5020',needsBill:false},
-  {id:'ec-utilities',code:'UTIL',name:'Utilities',sortOrder:40,active:true,ledger:'5030',needsBill:false},
-  {id:'ec-petty-cash',code:'PETTY',name:'Petty cash',sortOrder:50,active:true,ledger:'5040',needsBill:false},
-];
+// The rows are in fixtures/ext/masters-seed.ts (one place for every master's seed); the names below are kept for the existing imports.
+export const MNY_TILL=SEED_TILL;
+export const MNY_BANK=SEED_BANK;
+export const MNY_SEED_ACCOUNTS:MnyAccount[]=SEED_ACCOUNTS;
+export const MNY_SEED_METHODS:MnyMethod[]=SEED_METHODS;
+export const MNY_SEED_CATEGORIES:MnyCategory[]=SEED_CATEGORIES;
 /** Code of a vendor seeded from free text: V-<WORDS> (capitals, digits, “-”; ≤ 20), unique among `taken`. */
-export function mnyVendorCode(name:string,taken:Set<string>):string{
-  const base=('V-'+name.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'')).slice(0,20).replace(/-+$/,'')||'V-VENDOR';
-  let code=base,n=2;while(taken.has(code)){const suf='-'+n++;code=base.slice(0,20-suf.length).replace(/-+$/,'')+suf;}
-  taken.add(code);return code;
-}
+export const mnyVendorCode=seedVendorCode;
 /** Vendor type guessed from a free-text name (seed only; the Owner corrects it in the master). */
-export const mnyVendorTypeOf=(name:string)=>/linen|laundry|dhobi/i.test(name)?'laundry':/power|water|broadband|electricity board|gas agency|internet/i.test(name)?'utility':'supplier';
-const vendorSeedCache=new WeakMap<object,MnyVendor[]>();
+export const mnyVendorTypeOf=seedVendorType;
 /** Seed of the vendor list: every distinct free-text vendor on the expenses (name order), so every historical expense resolves. */
-export function mnySeedVendors(s:Pick<State,'expenses'>):MnyVendor[]{
-  const key=s.expenses as unknown as object;const hit=vendorSeedCache.get(key);if(hit)return hit;
-  const names=[...new Set(s.expenses.map(e=>String(e.vendor??'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'en'));
-  const taken=new Set<string>();
-  const rows=names.map((name,i)=>{const code=mnyVendorCode(name,taken);
-    return {id:'ev-'+code.toLowerCase(),code,name:name.slice(0,60),sortOrder:(i+1)*10,active:true,type:mnyVendorTypeOf(name),tds:false} as MnyVendor;});
-  vendorSeedCache.set(key,rows);return rows;
-}
+export const mnySeedVendors=(s:Pick<State,'expenses'>):MnyVendor[]=>seedVendors(s);
 
 // ───────────────────────────── Rows (stored list, else the seed) ─────────────────────────────
 const stored=(s:State,id:string)=>{const r=s.mastersX?.rows?.[id];return Array.isArray(r)?r:undefined;};
