@@ -3,6 +3,7 @@ import {CalendarCheck} from 'lucide-react';
 import type {FeatureRegistration} from '../../app/registry';
 import {CompliancePage,ComplianceMobile} from './CompliancePage';
 import {CmpFileModal,CmpNaModal,CmpReopenModal,CmpPackModal,CmpManageModal,CmpObligationModal} from './modals';
+import {CmpGstr1Modal,CmpGstr1Mobile} from './Gstr1';
 // Visible to Owner and Accountant only (DEC-055). Nav can only test permissions, so the page and every command re-check the role (cmpHasAccess).
 export const registration:FeatureRegistration={
   pages:{'compliance':CompliancePage},
@@ -14,7 +15,8 @@ export const registration:FeatureRegistration={
     'cmp-pack':CmpPackModal,
     'cmp-manage':CmpManageModal,
     'cmp-obligation':CmpObligationModal, // id = obligation ID (absent = new)
+    'cmp-gstr1':CmpGstr1Modal,         // DEC-072 GSTR-1 working summary (rooms INV + restaurant RST + credit notes)
   },
-  wideModals:['cmp-manage','cmp-pack'],
-  mobile:{pages:{'compliance':ComplianceMobile},modals:{}},
+  wideModals:['cmp-manage','cmp-pack','cmp-gstr1'],
+  mobile:{pages:{'compliance':ComplianceMobile},modals:{'cmp-gstr1':CmpGstr1Mobile}},
 };

@@ -1,7 +1,8 @@
 // Module 23 · Restaurant POS & room service — pure helpers, selectors and the state slice type. Exported names MUST start with 'pos' / 'POS' (shared mock namespace).
 // Money = integer paise. Tax = round(net × taxBps / 10000) on the bill net (matches one folio service line). See 02 Planning/modules/HCC_Module_23_POS_Spec.md.
 import type {State} from '../types';
-import {gstForFood,gstLineTax} from '../gst';
+import {gstForFood,gstLineTax,gstFy,gstSplit} from '../gst';
+import {gstinProblem} from '../gstin';
 
 export type POSOutletKind='table'|'room';
 export type POSOutlet={id:string;name:string;kind:POSOutletKind;tables?:string[]};
@@ -12,15 +13,28 @@ export type POSLine={id:string;item:string;name:string;price:number;qty:number;
   /** KOT ID once sent to the kitchen; unsent lines have none. */ kot?:string;
   voided?:boolean;voidReason?:string;voidBy?:string;voidApproval?:string;/** Business date of the void. */ voidDate?:string};
 export type POSSettlement={mode:'outlet'|'folio';billNo:string;method?:string;reference?:string;net:number;taxBps:number;tax:number;total:number;
-  date:string;at:string;by:string;receiptId?:string;booking?:string;folioLineId?:string};
+  date:string;at:string;by:string;receiptId?:string;booking?:string;folioLineId?:string;
+  /** DEC-072: GST tax invoice of an outlet bill (RST/<FY>/<7 digits>); absent for a room-folio bill and for bills settled before the series. */
+  invoiceNo?:string;
+  /** B2C (walk-in) or B2B (buyer GSTIN given) — with the buyer as entered at settlement. */
+  supply?:'B2C'|'B2B';buyer?:{name?:string;gstin?:string;address?:string};
+  /** Intra-state CGST / SGST of the bill tax (stored with the bill, never recomputed). */
+  cgst?:number;sgst?:number;
+  /** Hotel GSTIN and SAC printed on the invoice (snapshot at issue). */
+  hotelGstin?:string;sac?:string;
+  /** Credit note that reversed the invoice when the bill was voided (CN series). */
+  creditNoteNo?:string;creditNoteDate?:string;
+  /** Production only: the server bill id (IssueInvoice for a bill settled before the hotel GSTIN was recorded). */
+  billId?:string};
 export type POSOrderStatus='Open'|'Settled'|'Void';
 export type POSOrder={id:string;outlet:string;table?:string;room?:string;booking?:string;guest?:string;covers:number;
   /** Business date the check was opened. */ date:string;openedAt:string;openedBy:string;status:POSOrderStatus;version:number;
   lines:POSLine[];kots:POSKot[];settlement?:POSSettlement;voidReason?:string;voidedBy?:string;voidedAt?:string;
   /** Pending void approval ID — the check is locked until it is decided. */ pendingVoid?:string};
 export type POSReceipt={id:string;order:string;outlet:string;method:string;amount:number;net:number;tax:number;taxBps:number;reference:string;date:string;actor:string;kind:'sale'|'void'};
-/** State slice for this module, stored at s.posX (optional; absent in old saves → treat as empty). */
-export type POSState={outlets:POSOutlet[];menu:POSMenuItem[];orders:POSOrder[];receipts:POSReceipt[];kotSeq:Record<string,number>;billSeq:number};
+/** State slice for this module, stored at s.posX (optional; absent in old saves → treat as empty). `rstSeq`: last RST invoice number per
+ *  financial-year code ("2627"), gap-free (DEC-072; optional — absent in old saves = none issued yet). */
+export type POSState={outlets:POSOutlet[];menu:POSMenuItem[];orders:POSOrder[];receipts:POSReceipt[];kotSeq:Record<string,number>;billSeq:number;rstSeq?:Record<string,number>};
 export const posEmpty=():POSState=>({outlets:[],menu:[],orders:[],receipts:[],kotSeq:{},billSeq:0});
 export const posSlice=(s:State):POSState=>s.posX??posEmpty();
 
@@ -30,6 +44,33 @@ export const POS_TENDERS=['Cash','UPI','Card'] as const;
 export const POS_KOT_FLOW:POSKotStatus[]=['Preparing','Ready','Served'];
 /** Approval TTL (simulated minutes) for void requests. */
 export const POS_APPROVAL_TTL_MINUTES=24*60;
+
+// ───────────── DEC-072 · restaurant tax invoices (RST series) — same rules as the server (InvoiceNumbering, PosInvoiceSource) ─────────────
+/** Prefix of the restaurant tax-invoice series. Numbers are RST/<FY>/<7 digits>: exactly 16 characters, restarting each 1 April. */
+export const POS_RST_PREFIX='RST';
+/** SAC of restaurant service (CGST Rules r.46 needs the SAC on each line; illustrative — CA to confirm). */
+export const POS_RST_SAC='996331';
+/** B2C invoices of ₹50,000 or more need the buyer's name and address (r.46(e) as read — CA to confirm). */
+export const POS_B2C_NAME_ADDRESS_LIMIT=5000000;
+/** "2627" for any date in FY 2026-27 (1 April 2026 – 31 March 2027). */
+export function posFyCode(date:string){const f=gstFy(date).from;const y=+f.slice(0,4);return String(y%100).padStart(2,'0')+String((y+1)%100).padStart(2,'0');}
+/** RST/2627/0000001 — the sequence fills the 16 characters; the series is full at 9,999,999 (refused, never wrapped). */
+export function posRstNo(fy:string,seq:number){
+  const width=16-POS_RST_PREFIX.length-fy.length-2,digits=String(seq);
+  if(!Number.isInteger(seq)||seq<1||digits.length>width)throw new RangeError(`The ${POS_RST_PREFIX} series for FY ${fy} is full (${width} digits).`);
+  return `${POS_RST_PREFIX}/${fy}/${digits.padStart(width,'0')}`;
+}
+/** The buyer of an outlet bill as entered (trimmed, GSTIN upper-cased), or the reason it is refused — the server's wording. */
+export function posBuyerOf(cmd:Record<string,unknown>,total:number):{buyer?:{name?:string;gstin?:string;address?:string};supply:'B2C'|'B2B'}|{error:string}{
+  const gstin=String(cmd.buyerGstin??'').trim().toUpperCase(),name=String(cmd.buyerName??'').trim(),address=String(cmd.buyerAddress??'').trim();
+  if(name.length>120)return {error:'Keep it to 120 characters.'};if(address.length>200)return {error:'Keep it to 200 characters.'};
+  if(gstin){const bad=gstinProblem(gstin,'buyer');if(bad)return {error:bad};if(!name)return {error:"Enter the buyer's legal name for a B2B tax invoice."};}
+  else if(total>=POS_B2C_NAME_ADDRESS_LIMIT&&(!name||!address))return {error:"An invoice of ₹50,000 or more to an unregistered guest needs the recipient's name and address."};
+  const buyer={...(name?{name}:{}),...(gstin?{gstin}:{}),...(address?{address}:{})};
+  return {supply:gstin?'B2B':'B2C',...(Object.keys(buyer).length?{buyer}:{})};
+}
+/** The CGST / SGST of a settled bill: as stored with it, else the split of its tax (bills settled before the split was stored). */
+export const posBillSplit=(t:POSSettlement)=>t.cgst!==undefined&&t.sgst!==undefined?{cgst:t.cgst,sgst:t.sgst}:gstSplit(t.tax);
 
 export const posLineValue=(l:POSLine)=>l.price*l.qty;
 export const posActiveLines=(o:POSOrder)=>o.lines.filter(l=>!l.voided);

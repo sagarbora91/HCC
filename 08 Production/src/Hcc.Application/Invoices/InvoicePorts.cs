@@ -24,9 +24,11 @@ public static class InvoicePermissions
     public const string PrefixSetting = "invoicePrefix";
 }
 
-/// <summary>The document being invoiced as the source module provides it (lines carry their stored tax snapshot).</summary>
+/// <summary>The document being invoiced as the source module provides it (lines carry their stored tax snapshot). <paramref name="Series"/> =
+/// the tax-invoice series the source is numbered in: INV (stay folios) or RST (restaurant bills, DEC-072); a nil-rated document is a bill of
+/// supply (BOS) whatever the source.</summary>
 public sealed record InvoiceSourceDocument(string Kind, long SourceId, string Reference, string? DefaultRecipientName, DateOnly? PeriodFrom, DateOnly? PeriodTo,
-    IReadOnlyList<SourceLine> Lines);
+    IReadOnlyList<SourceLine> Lines, InvoiceDocType Series = InvoiceDocType.TaxInvoice);
 
 /// <summary>One credit-note line to post back to the source account (positive amounts; the source books them as reductions).</summary>
 public sealed record CreditPosting(int CreditLineNo, long? SourceLineId, GstCategory Category, int Bps, Paise Taxable, Paise Tax, Paise Cgst, Paise Sgst);
@@ -39,6 +41,12 @@ public sealed record CreditPosting(int CreditLineNo, long? SourceLineId, GstCate
 public interface IInvoiceSource
 {
     string Kind { get; }
+
+    /// <summary>False when the source reverses its own invoice (a voided POS bill gets its credit note from the void, DEC-072): RequestCreditNote
+    /// is then refused with <see cref="CreditNoteRefusal"/>.</summary>
+    bool CreditNoteRequests => true;
+
+    string CreditNoteRefusal => "Credit notes for this document are issued by its own reversal.";
 
     /// <summary>Locks the source and returns it; INVALID_TRANSITION while it is not closed and settled; NOT_FOUND for another property.</summary>
     Task<InvoiceSourceDocument> LoadForIssueAsync(ICommandTransaction tx, int propertyId, long sourceId, CancellationToken ct);

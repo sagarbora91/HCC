@@ -45,3 +45,18 @@
   .cmp-ob-btns .btn{min-height:48px;font-size:16px;flex:1}
   .cmp-due-list li{flex-wrap:wrap}
 }
+/* DEC-072 · GSTR-1 working summary (desktop dialog + phone sheet) */
+.gstr1-bar{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.gstr1-period{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#6b5547}
+.gstr1-doc h3{font-size:14px;margin:16px 0 6px;color:#2b1d16}
+.gstr1-table th,.gstr1-table td{font-size:12px;white-space:nowrap}
+.gstr1-doc .info-note{margin-top:14px}
+.gstr1-m{display:flex;flex-direction:column;gap:12px}
+.gstr1-m .gstr1-period{font-size:14px}.gstr1-m select{min-height:48px;font-size:16px}
+.gstr1-m h3{font-size:16px;margin:6px 0 0;color:#2b1d16}
+.gstr1-m-card{padding:14px;margin:0;font-size:16px;color:#2b1d16;display:flex;flex-direction:column;gap:6px}
+.gstr1-m-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gstr1-m-top span,.gstr1-m-range{font-size:14px;color:#6b5547;overflow-wrap:anywhere}
+.gstr1-m-row{display:flex;justify-content:space-between;gap:12px}.gstr1-m-row span{font-size:14px;color:#6b5547}.gstr1-m-row strong{font-size:16px}
+.gstr1-m-note{font-size:14px;margin:0;color:#4a372c}
+.gstr1-m .btn{min-height:48px;font-size:16px}

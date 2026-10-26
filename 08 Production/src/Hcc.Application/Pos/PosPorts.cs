@@ -60,6 +60,30 @@ public interface IPosFolioPort
         Hcc.Domain.Tax.GstRate rate, DateTime utc, CancellationToken ct = default);
 }
 
+/// <summary>A business buyer (B2B tax invoice) or a named buyer on a walk-in bill (DEC-072). Gstin set = B2B (validated, with the legal name).</summary>
+public sealed record PosBuyer(string? Gstin, string? Name, string? Address)
+{
+    public static readonly PosBuyer None = new(null, null, null);
+}
+
+/// <summary>The RST tax invoice of a settled outlet bill, or why none was issued (hotel GSTIN missing / invalid).</summary>
+public sealed record PosInvoiceOutcome(long? InvoiceId, string? InvoiceNo, string? NotIssuedReason);
+
+/// <summary>
+/// DEC-072 tax-invoice port toward Invoices (implemented by <c>Hcc.Application.Invoices.PosInvoicePort</c>); runs inside the settling / voiding
+/// transaction so the bill and its document commit or roll back together. Only OUTLET bills are invoiced here (a room-posted bill reaches
+/// the guest's room invoice); the invoice is a document: Accounting books the sale and its void from PosBillSettled / PosBillVoided only.
+/// </summary>
+public interface IPosInvoicePort
+{
+    /// <summary>Issues the bill's RST tax invoice (B2B when <paramref name="buyer"/> has a GSTIN). A missing / invalid hotel GSTIN returns no
+    /// number and the reason; the settle still stands.</summary>
+    Task<PosInvoiceOutcome> IssueAsync(ICommandTransaction tx, long billId, PosBuyer buyer, CancellationToken ct);
+
+    /// <summary>The full credit note (CN series) of a voided bill's invoice; null when no invoice was issued for the bill.</summary>
+    Task<string?> CreditVoidAsync(ICommandTransaction tx, long billId, int requestedBy, string reason, CancellationToken ct);
+}
+
 /// <summary>Business-day close preflight input (P6 closing reads this): open checks and pending void requests block the close.</summary>
 public interface IPosCloseGate
 {
@@ -90,8 +114,9 @@ public sealed record LineRow(long LineId, long OrderId, int ItemId, string Name,
 
 public sealed record KotRow(long KotId, long OrderId, int OutletId, int KotNo, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc);
 
+/// <summary>A settled bill. <paramref name="Cgst"/> / <paramref name="Sgst"/>: the stored intra-state split (migration 1201; null on older rows).</summary>
 public sealed record BillRow(long BillId, long OrderId, string BillNo, string Mode, string? Tender, string? Reference, Paise Net, int TaxBps, Paise Tax,
-    Paise Total, DateOnly BusinessDate, int? TillId, long? ShiftId, long? FolioId, long? ChargeId, string Status);
+    Paise Total, DateOnly BusinessDate, int? TillId, long? ShiftId, long? FolioId, long? ChargeId, string Status, Paise? Cgst = null, Paise? Sgst = null);
 
 public sealed record NewBill(long OrderId, int PropertyId, string BillNo, string Mode, string? Tender, string? Reference, Paise Net, int TaxBps, Paise Tax,
     Paise Total, DateOnly BusinessDate, DateTime SettledUtc, int SettledBy, int? TillId, long? ShiftId, long? CashMovementId, long? StayId, long? FolioId,
@@ -184,6 +209,9 @@ public interface IPosStore
     Task<long> InsertBillAsync(ICommandTransaction tx, NewBill bill, CancellationToken ct);
 
     Task<BillRow?> BillForOrderAsync(ICommandTransaction tx, long orderId, CancellationToken ct);
+
+    /// <summary>The bill at the property by id (no lock; callers then lock its check and read it again), or null.</summary>
+    Task<BillRow?> BillByIdAsync(ICommandTransaction tx, int propertyId, long billId, CancellationToken ct);
 
     Task MarkBillVoidAsync(ICommandTransaction tx, long billId, string reason, int by, DateTime utc, CancellationToken ct);
 

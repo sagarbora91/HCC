@@ -16,6 +16,8 @@ public static class InvoicesEndpoints
     {
         services.AddSingleton<IInvoiceStore>(sp => new SqlInvoiceStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IInvoiceSource, FolioInvoiceSource>();   // W3-4 adds its group master-folio source as another IInvoiceSource
+        services.AddSingleton<IInvoiceSource, PosInvoiceSource>();     // DEC-072: settled outlet POS bills, RST series
+        services.AddSingleton<Hcc.Application.Pos.IPosInvoicePort, PosInvoicePort>(); // the POS settle / void issue their documents through it
         services.AddSingleton<IInvoiceDocumentRenderer, SimpleInvoiceRenderer>(); // ETP-REUSE: ETP PDF exporter behind the same port
         services.AddSingleton<InvoiceService>();
         services.AddSingleton<InvoiceQueries>();

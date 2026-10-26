@@ -73,8 +73,8 @@ export function PosCheck({o,compact}:{o:POSOrder;compact?:boolean}){
     </ul>
     <div className="pos-totals"><div><span>Items</span><strong>{t.items}</strong></div><div><span>Net</span><strong>{money(t.net)}</strong></div>
       <div><span>GST {t.taxBps/100}%{o.settlement?' (snapshot)':''}</span><strong>{money(t.tax)}</strong></div><div className="pos-grand"><span>Bill total</span><strong>{money(t.total)}</strong></div></div>
-    {o.settlement&&<p className="pos-settled">Bill {o.settlement.billNo} · {o.settlement.mode==='folio'?`posted to room folio ${o.settlement.booking}`:`${o.settlement.method}${o.settlement.reference?' · '+o.settlement.reference:''} at outlet`} · {clockTime(o.settlement.at)} by {posUserName(s,o.settlement.by)}</p>}
-    {o.status==='Void'&&<p className="pos-settled">Voided · {o.voidReason} · {o.voidedAt&&clockTime(o.voidedAt)}</p>}
+    {o.settlement&&<p className="pos-settled">Bill {o.settlement.billNo} · {o.settlement.mode==='folio'?`posted to room folio ${o.settlement.booking}`:`${o.settlement.method}${o.settlement.reference?' · '+o.settlement.reference:''} at outlet`} · {clockTime(o.settlement.at)} by {posUserName(s,o.settlement.by)}{o.settlement.invoiceNo?` · tax invoice ${o.settlement.invoiceNo}${o.settlement.supply==='B2B'?' (B2B)':''}`:''}</p>}
+    {o.status==='Void'&&<p className="pos-settled">Voided · {o.voidReason} · {o.voidedAt&&clockTime(o.voidedAt)}{o.settlement?.creditNoteNo?` · credit note ${o.settlement.creditNoteNo}`:''}</p>}
     <div className="pos-actions">
       {isOpen&&permission('billing')&&<button className="btn primary" disabled={busy||!unsent.length||lockedVoid} onClick={()=>run({type:'POS_KOT_SEND',id:o.id},'KOT sent to the kitchen')}><Send size={15}/> Send KOT{unsent.length?` (${unsent.reduce((a,l)=>a+l.qty,0)})`:''}</button>}
       {isOpen&&(permission('payments')||permission('billing'))&&<button className="btn primary" disabled={busy||!posActiveLines(o).length||!!unsent.length||lockedVoid} onClick={()=>open({type:'pos-settle',id:o.id})}><Wallet size={15}/> Settle</button>}
