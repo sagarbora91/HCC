@@ -11,7 +11,9 @@ const FILES='admin closing folio guests history housekeeping reservations mobile
 // canonical colour spelling: #ABC and #aabbcc are the same colour, so the original's shorthand/uppercase hex is spelled the way the tokens spell it
 const canon=s=>s.replace(/#([0-9a-fA-F]{3,4})(?![0-9a-zA-Z_-])/g,(m,h)=>'#'+[...h.toLowerCase()].map(c=>c+c).join('')).replace(/#[0-9a-fA-F]{6,8}(?![0-9a-zA-Z_-])/g,m=>m.toLowerCase());
 const norm=s=>canon(s).replace(/\s+/g,' ').trim();
-const orig=f=>execFileSync('git',['show',`${BASE}:03 Prototype/src/styles/${f}`],{encoding:'utf8',maxBuffer:1<<24});
+// m-masters.css gained import-panel rules after the token pass (MA-8, 5784515): its pre-token baseline is that commit.
+const BASE_OF={'m-masters.css':'5784515'};
+const orig=f=>execFileSync('git',['show',`${BASE_OF[f]??BASE}:03 Prototype/src/styles/${f}`],{encoding:'utf8',maxBuffer:1<<24});
 const cur=f=>readFileSync(`src/styles/${f}`,'utf8');
 const sheet=readFileSync(TOKEN_SHEET,'utf8'); // CP-5: one merged sheet (0-tokens.css) and one tokenizer (tools/cssTokens.mjs)
 const defs=parseTokenSheet(sheet);
