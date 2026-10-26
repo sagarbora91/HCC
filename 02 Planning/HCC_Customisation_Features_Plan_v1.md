@@ -275,12 +275,12 @@ Pattern as in Waves 3–4: isolated worktrees, own files only, shared files by a
 
 **Exit checks:** tsc clean; prototype 1008 + new tests; server 962 + new tests (serial); `npm run build` and `build:production`; FY26 history hash unchanged (MA-9); every hard-coded list named in §7 removed (a test greps for the old constants); a room added through the UI appears on the board, calendar, availability, housekeeping and yield counts on desktop and phone; invoices from the extras catalogue show the right GST per line; the old 5 expense categories and 3 payment lists still resolve on historical records.
 
-## 11. Owner decisions for Part 2
+## 11. Owner decisions for Part 2 — answered 26 Oct 2026 (DEC-MA-1…7 in the Decision Register)
 
-1. **Who edits operational lists** (floors, rooms, shifts, task types, menu availability): Owner + Tech admin only (DEC-058 as is) or also the **Manager** (proposed, scope M)? Money fields stay Owner either way.
-2. **Floors as a master** (M1, recommended: named floors/wings, room board grouped by them) or keep a plain floor number on each room?
-3. **Meal plans** (M6): needed now (EP/CP/MAP/AP on bookings, booking site and OTA mapping) or later? GST treatment of bundled breakfast is a CA question.
-4. **Extras catalogue** (M7): may staff still post a free-text charge? Proposed: only "Other" with Manager approval; everything else from the catalogue.
-5. **Numbering series** (M12): one tax-invoice series for the hotel (recommended until the CA says otherwise) or separate series per outlet/document?
-6. **Vendor merge** (M18): one vendor list for maintenance, expenses and AMC (recommended) — confirm, since existing maintenance vendors are migrated into it.
-7. Batch order if agents are limited: proposed **batch 1** = MA-0 then MA-1, MA-3, MA-4, MA-2 (what the owner asked for first: rooms, money lists, POS, extras); **batch 2** = MA-5, MA-6, MA-7; then MA-8…MA-11.
+1. **Who edits operational lists:** **Owner + Tech admin only** (DEC-058 unchanged; the Manager does not get the `masters` permission by default — the Owner may grant it later in Access control). Scope column "M" in §8 therefore reads as T. Money fields stay Owner.
+2. **Floors as a master:** **yes** — named floors/wings, room board grouped by them (M1, in MA-0).
+3. **Meal plans:** **now**, in MA-2 (EP/CP/MAP/AP on bookings, booking site, OTA mapping); GST treatment of bundled breakfast marked "Illustrative — CA to confirm".
+4. **Extras catalogue:** **free text stays allowed for Reception** — the catalogue prefills name, price and GST class, but any label and amount may still be posted (no approval). Reports show "catalogue vs free text" so the Owner can tighten this later.
+5. **Numbering series:** **one tax-invoice series** for the hotel; the series master (M12) exists so outlets/documents can get their own later.
+6. **Vendors:** **keep separate** — maintenance vendors stay as they are; expenses get their own vendor master (M18 becomes "expense vendors": name, type, GSTIN, PAN/TDS flag, contact, terms). No migration of `mnt.vendor`.
+7. **Batch order:** **all seven at once** — MA-1…MA-7 in parallel right after MA-0; then MA-8…MA-11.
