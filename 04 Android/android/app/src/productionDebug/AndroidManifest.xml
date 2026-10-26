@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- W4-12 production (server) flavour: HTTPS only, trusting the system CAs plus the hotel CA bundled at build time. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false" />
+</manifest>
