@@ -1,0 +1,3 @@
+code,name,roomType,extraAdult,extraChild,extraBed,childAgeFrom,childAgeTo,sortOrder,active
+OC-DLX,Deluxe extra person,DLX,800.00,400.00,600.00,6,12,10,yes
+OC-STE,Suite extra person,STE,1000.00,500.00,800.00,6,12,20,yes

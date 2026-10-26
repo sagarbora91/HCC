@@ -18,10 +18,35 @@ public enum ImportMaster
     Companies,
     Suppliers,
     StockItems,
+    // MA-8: the list masters of the masters wave (definitions in ImportLists).
+    Floors,
+    Amenities,
+    OccupancyCharges,
+    MealPlans,
+    Extras,
+    DiscountReasons,
+    PaymentMethods,
+    BankAccounts,
+    ExpenseCategories,
+    ExpenseVendors,
+    MenuCategories,
+    PosTables,
+    BookingSources,
+    IdTypes,
+    NumberSeries,
+    Policies,
+    Designations,
+    ShiftPatterns,
+    LeaveTypes,
+    Holidays,
+    HkTaskTypes,
+    HkZones,
+    ComplaintCategories,
+    LostFoundCategories,
 }
 
 /// <summary>A template column: canonical name (the template header), required flag, plain-English meaning and an example.</summary>
-public sealed record ImportColumn(string Name, bool Required, string Meaning, string Example);
+public sealed record ImportColumn(string Name, bool Required, string Meaning, string Example, IReadOnlyList<string>? Aliases = null);
 
 public sealed record ImportMasterSpec(ImportMaster Master, string Wire, string Title, bool OwnerOnlyCommit, bool SetupStateOnly, string DependsOn,
     IReadOnlyList<ImportColumn> Columns);
@@ -34,7 +59,7 @@ public sealed record ImportMasterSpec(ImportMaster Master, string Wire, string T
 /// </summary>
 public static class ImportMasters
 {
-    public static readonly IReadOnlyList<ImportMasterSpec> All =
+    private static readonly IReadOnlyList<ImportMasterSpec> Legacy =
     [
         new(ImportMaster.RoomTypes, "room-types", "Room types", true, false, "—",
         [
@@ -100,21 +125,32 @@ public static class ImportMasters
             new("gstin", false, "Company GSTIN, 15 characters.", ""),
             new("notes", false, "Notes for the front desk.", "Prefers a ground-floor room"),
         ]),
-        new(ImportMaster.PosOutlets, "pos-outlets", "Restaurant & room-service outlets (POS)", false, false, "—",
+        new(ImportMaster.PosOutlets, "pos-outlets", "Restaurant & room-service outlets (POS)", true, false, "—",
         [
-            new("outletCode", true, "Outlet code, letters/digits/dash, up to 20 characters (stored in capitals).", "REST"),
-            new("outletName", true, "Outlet name shown on the POS screen and bills, up to 100 characters.", "Restaurant"),
-            new("kind", true, "table (a dining outlet with tables) or room (room service, no tables).", "table"),
-            new("tables", false, "Table names separated by ; (up to 10 characters each). Required for kind table, must be blank for kind room.", "T1;T2;T3;T4"),
+            new("code", true, "Outlet code, letters/digits/dash, up to 20 characters (stored in capitals).", "REST", ["outletCode"]),
+            new("name", true, "Outlet name shown on the POS screen and bills, up to 100 characters.", "Restaurant", ["outletName"]),
+            new("type", true, "restaurant, room-service, bar or banquet (the older words table = restaurant and room = room-service still work). Room-service outlets have no tables.", "restaurant", ["kind"]),
+            new("opens", false, "Opening time HH:mm (blank = not set).", "07:00"),
+            new("closes", false, "Closing time HH:mm (blank = not set).", "23:00"),
+            new("gstProfile", false, "hotel (hotel status, default), standard or specified premises — decides the restaurant GST rate (illustrative, CA to confirm). Owner-only.", "hotel"),
+            new("kotStation", false, "Kitchen station a ticket prints at, up to 20 characters (blank = one ticket per send).", "Kitchen"),
+            new("sortOrder", false, "Order on screens (10, 20 …). Blank keeps the outlet's order, or puts a new outlet last.", "10"),
+            new("active", false, "yes or no (blank keeps the state, new = yes). A file cannot retire an outlet — retire it on its list, where open checks are looked at.", "yes"),
+            new("tables", false, "Table names separated by ; (up to 10 characters each). Creates the tables of a new dining outlet (required then); an existing outlet keeps its tables, which are added or retired in the pos-tables list. Blank for room-service.", "T1;T2;T3;T4"),
         ]),
         new(ImportMaster.PosMenu, "pos-menu", "Restaurant & room-service menu (POS)", true, false, "pos-outlets",
         [
-            new("itemCode", true, "Menu item code, letters/digits/dash/underscore, up to 20 characters (stored in capitals).", "DAL"),
-            new("itemName", true, "Item name shown on the POS screen and bills, up to 100 characters.", "Dal Tadka"),
-            new("category", true, "Menu category, up to 60 characters.", "Main course"),
-            new("price", true, "Selling price in rupees before GST (0 allowed). Up to 2 decimals.", "180.00"),
+            new("code", true, "Menu item code, letters/digits/dash/underscore, up to 20 characters (stored in capitals).", "DAL", ["itemCode"]),
+            new("name", true, "Item name shown on the POS screen and bills, up to 100 characters.", "Dal Tadka", ["itemName"]),
+            new("category", true, "Menu category: the code or the name of a category (a new name creates the category), up to 60 characters.", "Main course"),
+            new("shortCode", false, "Short code the waiter types, up to 10 characters.", "DT"),
+            new("price", true, "Selling price in rupees before GST (0 allowed). A different price starts from the business date; earlier prices stay in the history.", "180.00"),
+            new("gstClass", false, "food (default), laundry, banquet or other — the GST master holds the rates. Owner-only.", "food"),
             new("veg", true, "yes for vegetarian, no for non-vegetarian.", "yes"),
             new("outlets", false, "Outlet codes that sell the item, separated by ; (blank = every outlet already in HCC).", "REST;RS"),
+            new("station", false, "Kitchen station, up to 20 characters (blank = the outlet's station).", "Tandoor"),
+            new("sortOrder", false, "Order on screens (10, 20 …). Blank keeps the item's order, or puts a new item last.", "10"),
+            new("active", false, "yes or no (blank keeps the state, new = yes). A file cannot retire an item — retire it on the menu list.", "yes"),
         ]),
         new(ImportMaster.Departments, "departments", "Departments (staff and payroll)", true, false, "—",
         [
@@ -153,6 +189,10 @@ public static class ImportMasters
             new("supplier", false, "Usual supplier, up to 120 characters.", "Shree Linen House (fictional)"),
         ]),
     ];
+
+    public static readonly IReadOnlyList<ImportMasterSpec> All = [.. Legacy, .. ImportLists.All.Select(ListSpec)];
+
+    private static ImportMasterSpec ListSpec(ListDef d) => new(d.Master, d.Wire, d.Title, d.OwnerOnlyCommit, false, d.DependsOn, ImportLists.ColumnsOf(d));
 
     public static ImportMasterSpec Spec(ImportMaster m) => All.First(s => s.Master == m);
 

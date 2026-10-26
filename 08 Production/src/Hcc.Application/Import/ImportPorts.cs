@@ -87,3 +87,23 @@ public interface IOpeningBalanceSource
 {
     Task<OpeningBalancesView> GetAsync(int propertyId, CancellationToken ct = default);
 }
+
+/// <summary>
+/// Writer of the list masters (MA-8; tables of the masters wave: mst.*, inv.amenity, bill.*, hr.*, ops.*, gsv.*, pos.menu_category …) and of the
+/// MA-4 columns of POS outlets and menu items. Runs inside the commit transaction; records the change history (mst.master_history) like the
+/// owning module's own commands. Implemented over SQL in Infrastructure/Import.
+/// </summary>
+public interface IImportListWriter
+{
+    /// <summary>Stores the list's built-in defaults / seed first when its module does that on the first change (front-desk lists, people lists, money masters, operations lists), so a file never hides them.</summary>
+    Task EnsureSeededAsync(ICommandTransaction tx, int propertyId, string wire, CancellationToken ct = default);
+
+    /// <summary>Inserts or updates one row (matched by code) with its dated amounts and history; returns the row id.</summary>
+    Task<long> UpsertAsync(ICommandTransaction tx, int propertyId, ListDef def, ListRowData row, DateOnly businessDate, int principalId, DateTime utc, CancellationToken ct = default);
+
+    /// <summary>Sets the MA-4 columns of an outlet written through the POS store (type, hours, GST profile, station, order, active).</summary>
+    Task ApplyOutletAsync(ICommandTransaction tx, int propertyId, int outletId, OutletData row, DateOnly businessDate, int principalId, DateTime utc, CancellationToken ct = default);
+
+    /// <summary>Sets the MA-4 columns of a menu item written through the POS store (short code, GST class, station, order, active).</summary>
+    Task ApplyMenuItemAsync(ICommandTransaction tx, int propertyId, int itemId, MenuItemData row, DateOnly businessDate, int principalId, DateTime utc, CancellationToken ct = default);
+}

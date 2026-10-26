@@ -1,0 +1,3 @@
+code,name,accepted,needsPhoto,foreignerOnly,sortOrder,active
+RATION,Ration card,yes,no,no,100,yes
+STUDENT,Student ID card,no,no,no,110,yes

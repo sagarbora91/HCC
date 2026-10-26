@@ -1,0 +1,4 @@
+code,name,meals,addOn,gst,roomTypes,sortOrder,active
+EP,Room only (EP),,0.00,separate,,10,yes
+CP,Breakfast included (CP),B,300.00,bundled,,20,yes
+MAP,Breakfast and dinner (MAP),B;D,750.00,separate,DLX;STE,30,yes

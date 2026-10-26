@@ -160,7 +160,7 @@ export function register({test,M,assert}){
 
   // ── UI wiring, navigation, production mapping (source checks; render checks are in tests/sync-masters.mjs) ──
   test('[MST] desktop + phone registration: modal mst-row on both; Lists block in both hubs; registry entry',()=>{
-    const reg=src('src/features/masters/register.tsx');assert.match(reg,/modals:\{'mst-row':MasterSheet\}/);assert.match(reg,/mobile:\{modals:\{'mst-row':MasterSheet\}\}/);
+    const reg=src('src/features/masters/register.tsx');assert.match(reg,/modals:\{'mst-row':MasterSheet[,}]/);assert.match(reg,/mobile:\{modals:\{'mst-row':MasterSheet[,}]/); // MA-8 old → new: the two MA-8 modals (mst-import, mst-paste) follow mst-row
     assert.match(src('src/app/registry.ts'),/features\/masters\/register/);assert.match(src('src/app/registry.ts'),/cashbook,masters,m_frontdesk/);
     assert.match(src('src/features/admin/HotelSettings.tsx'),/<MstListsBlock key=\{g\} g=\{g\} q=\{q\}\/>/);
     assert.match(src('src/mobile/admin/Settings.tsx'),/<MstListsBlockPhone key=\{g\} g=\{g\} q=\{q\}\/>/);});

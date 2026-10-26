@@ -30,9 +30,11 @@ public sealed record SnapOpening(string LedgerCode, long DebitPaise, long Credit
 /// <summary>A till; <see cref="ImportedOpening"/> = the float of its only shift when that shift is an untouched opening count (opening = counted, no movements).</summary>
 public sealed record SnapTill(int TillId, string Code, string Name, int Shifts, long? ImportedOpening);
 
-public sealed record SnapOutlet(int Id, string Code, string Name, string Kind, IReadOnlyList<string> Tables);
+public sealed record SnapOutlet(int Id, string Code, string Name, string Kind, IReadOnlyList<string> Tables, string Type = "", string? Opens = null, string? Closes = null,
+    string GstProfile = "hotel", string? KotStation = null, int SortOrder = 0, bool Active = true);
 
-public sealed record SnapMenuItem(int Id, string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds);
+public sealed record SnapMenuItem(int Id, string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds, string? ShortCode = null,
+    string GstClass = "food", string? Station = null, int SortOrder = 0, bool Active = true);
 
 public sealed record SnapDepartment(string Code, string Name, int? LeaveCap);
 
@@ -64,7 +66,8 @@ public sealed record ImportSnapshot(
     IReadOnlyList<SnapDepartment>? Departments = null,
     IReadOnlyList<SnapCompany>? Companies = null,
     IReadOnlyList<SnapSupplier>? Suppliers = null,
-    IReadOnlyList<SnapStockItem>? StockItems = null);
+    IReadOnlyList<SnapStockItem>? StockItems = null,
+    IReadOnlyDictionary<string, IReadOnlyList<ListSnapRow>>? Lists = null);
 
 public enum ImportAction
 {
@@ -95,9 +98,16 @@ public sealed record TillData(string Code, string Name, long OpeningPaise, int? 
 
 public sealed record GuestData(GuestDraft Draft, string Key) : ImportData;
 
-public sealed record OutletData(string Code, string Name, string Kind, IReadOnlyList<string> Tables) : ImportData;
+/// <summary>An outlet row; <see cref="Type"/> restaurant / room-service / bar / banquet (Kind = room for room-service). Null optional fields = leave as they are (new rows get the defaults).</summary>
+public sealed record OutletData(string Code, string Name, string Kind, IReadOnlyList<string> Tables, string Type = "", string? Opens = null, string? Closes = null, string? GstProfile = null,
+    string? KotStation = null, int? SortOrder = null, bool? Active = null, int? ExistingId = null, bool TimesGiven = false, bool StationGiven = false) : ImportData;
 
-public sealed record MenuItemData(string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds, int? ExistingId) : ImportData;
+public sealed record MenuItemData(string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds, int? ExistingId, string? ShortCode = null,
+    string? GstClass = null, string? Station = null, int? SortOrder = null, bool? Active = null, bool ShortCodeGiven = false, bool StationGiven = false) : ImportData;
+
+/// <summary>A row of a list master (see <see cref="ImportLists"/>): canonical cell values; <see cref="Active"/> null = keep.</summary>
+public sealed record ListRowData(string Wire, string Code, string Name, int SortOrder, bool? Active, IReadOnlyDictionary<string, string> Values, long? ExistingId,
+    IReadOnlyList<(string Field, string? Old, string? New)> Changes) : ImportData;
 
 public sealed record DepartmentData(string Code, string Name, int? LeaveCap, bool Exists) : ImportData;
 
@@ -166,7 +176,7 @@ public static partial class ImportPlanner
     /// <summary>Guest duplicate key: last 10 phone digits + lower-case name.</summary>
     public static string GuestKey(string? phone, string? name) => GuestRules.NormalisePhone(phone) + "|" + (name ?? string.Empty).Trim().ToLowerInvariant();
 
-    private sealed class Sheet(CsvTable table, ImportMasterSpec spec)
+    internal sealed class Sheet(CsvTable table, ImportMasterSpec spec)
     {
         public readonly List<ImportRowError> Errors = [];
         public readonly List<ImportRowError> Warnings = [];
@@ -178,6 +188,9 @@ public static partial class ImportPlanner
         public bool CheckHeaders()
         {
             var known = spec.Columns.ToDictionary(c => CsvParser.Key(c.Name), c => c.Name, StringComparer.Ordinal);
+            foreach (var c in spec.Columns)
+                foreach (var a in c.Aliases ?? [])
+                    known.TryAdd(CsvParser.Key(a), c.Name);
             for (var i = 0; i < table.Headers.Count; i++)
             {
                 var h = table.Headers[i];
@@ -195,7 +208,7 @@ public static partial class ImportPlanner
                     continue;
                 }
 
-                if (!_index.TryAdd(k, i)) Errors.Add(new(1, h, $"Column '{h}' appears twice."));
+                if (!_index.TryAdd(CsvParser.Key(known[k]), i)) Errors.Add(new(1, h, $"Column '{h}' appears twice."));
             }
 
             foreach (var c in spec.Columns.Where(c => c.Required && !_index.ContainsKey(CsvParser.Key(c.Name))))
@@ -204,6 +217,9 @@ public static partial class ImportPlanner
                 Errors.Add(new(1, "debit", "Add the 'debit' and 'credit' columns."));
             return Errors.Count == 0;
         }
+
+        /// <summary>The file has this column (under its name or an older alias). An absent optional column leaves existing rows as they are.</summary>
+        public bool HasColumn(string column) => _index.ContainsKey(CsvParser.Key(column));
 
         public string Cell(CsvRow r, string column) =>
             _index.TryGetValue(CsvParser.Key(column), out var i) && i < r.Cells.Count ? r.Cells[i].Trim() : string.Empty;
@@ -302,7 +318,10 @@ public static partial class ImportPlanner
             case ImportMaster.Companies: Companies(sheet, snap); break;
             case ImportMaster.Suppliers: Suppliers(sheet, snap); break;
             case ImportMaster.StockItems: StockItems(sheet, snap); break;
-            default: throw new ArgumentOutOfRangeException(nameof(master));
+            default:
+                if (ImportLists.Find(master) is { } list) ImportListPlanner.Plan(sheet, snap, list);
+                else throw new ArgumentOutOfRangeException(nameof(master));
+                break;
         }
 
         return sheet.Result();
@@ -611,6 +630,43 @@ public static partial class ImportPlanner
     [GeneratedRegex(@"^[A-Z0-9][A-Z0-9_-]{0,19}$")]
     private static partial Regex MenuCodePattern();
 
+    private static readonly string[] OutletTypes = ["restaurant", "room-service", "bar", "banquet"];
+    private static readonly string[] GstProfiles = ["hotel", "standard", "specified"];
+    private static readonly string[] GstClasses = ["food", "laundry", "banquet", "other"];
+
+    [GeneratedRegex(@"^([01]?\d|2[0-3])[:.]([0-5]\d)$")]
+    private static partial Regex ClockPattern();
+
+    /// <summary>An optional time column: blank = not set (null); an absent column = leave as it is (<paramref name="given"/> false).</summary>
+    private static string? ClockCell(Sheet s, CsvRow r, string column, out bool given)
+    {
+        given = s.HasColumn(column);
+        var t = s.Cell(r, column);
+        if (!given || t.Length == 0) return null;
+        var m = ClockPattern().Match(t);
+        if (m.Success) return $"{int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture):00}:{m.Groups[2].Value}";
+        s.Error(r, column, $"The {column} time is a 24-hour time such as 07:00.");
+        return null;
+    }
+
+    private static int? SortCell(Sheet s, CsvRow r)
+    {
+        var t = s.Cell(r, "sortOrder");
+        if (t.Length == 0) return null;
+        if (ImportValues.TryInt(t, out var v) && v is >= 0 and <= 1_000_000) return v;
+        s.Error(r, "sortOrder", "Sort order is a whole number from 0 to 1,000,000.");
+        return null;
+    }
+
+    private static bool? ActiveCell(Sheet s, CsvRow r)
+    {
+        var t = s.Cell(r, "active");
+        if (t.Length == 0) return null;
+        if (ImportListPlanner.TryBool(t, out var b)) return b;
+        s.Error(r, "active", "Enter yes or no.");
+        return null;
+    }
+
     private static void PosOutlets(Sheet s, ImportSnapshot snap)
     {
         var existingOutlets = snap.PosOutlets ?? [];
@@ -618,24 +674,70 @@ public static partial class ImportPlanner
         foreach (var r in s.Table.Rows)
         {
             var errs = s.Errors.Count;
-            var code = s.Required(r, "outletCode", 20, "outlet code")?.ToUpperInvariant();
-            if (code is not null && !OutletCodePattern().IsMatch(code)) s.Error(r, "outletCode", "An outlet code uses letters, digits and '-' only (up to 20).");
-            var name = s.Required(r, "outletName", 100, "outlet name");
-            var kindText = s.Cell(r, "kind").ToLowerInvariant();
-            if (kindText is not ("table" or "room")) s.Error(r, "kind", "The kind is table (dining outlet) or room (room service).");
+            var code = s.Required(r, "code", 20, "outlet code")?.ToUpperInvariant();
+            if (code is not null && !OutletCodePattern().IsMatch(code)) s.Error(r, "code", "An outlet code uses letters, digits and '-' only (up to 20).");
+            var name = s.Required(r, "name", 100, "outlet name");
+            var typeText = s.Cell(r, "type").ToLowerInvariant();
+            typeText = typeText switch { "table" => "restaurant", "room" => "room-service", _ => typeText };
+            if (!OutletTypes.Contains(typeText)) s.Error(r, "type", "The type is restaurant, room-service, bar or banquet (older files: table or room).");
+            var kindText = typeText == "room-service" ? "room" : "table";
+            var opens = ClockCell(s, r, "opens", out var timesGiven);
+            var closes = ClockCell(s, r, "closes", out _);
+            string? profile = null;
+            if (s.Cell(r, "gstProfile") is { Length: > 0 } gp)
+            {
+                profile = GstProfiles.FirstOrDefault(x => Ci.Equals(x, gp));
+                if (profile is null) s.Error(r, "gstProfile", "The GST profile is hotel, standard or specified.");
+            }
+
+            var station = Optional(s, r, "kotStation", 20, "KOT station");
+            var stationGiven = s.HasColumn("kotStation");
+            var sort = SortCell(s, r);
+            var wanted = ActiveCell(s, r);
             var tables = ImportValues.List(s.Cell(r, "tables")).ToList();
             foreach (var t in tables.Where(t => t.Length > 10)) s.Error(r, "tables", $"Table name '{t}' is longer than 10 characters.");
             if (tables.Distinct(Ci).Count() != tables.Count) s.Error(r, "tables", "Table names must be unique within the outlet.");
-            if (kindText == "table" && tables.Count == 0) s.Error(r, "tables", "A dining outlet needs at least one table (separate them with ;).");
+            var existing = code is null ? null : existingOutlets.FirstOrDefault(o => Ci.Equals(o.Code, code));
+            if (existing is null && kindText == "table" && tables.Count == 0) s.Error(r, "tables", "A dining outlet needs at least one table (separate them with ;).");
             if (kindText == "room" && tables.Count > 0) s.Error(r, "tables", "A room-service outlet has no tables: leave the column blank.");
-            if (code is null || Duplicate(s, seen, r, code, "outletCode") || s.Errors.Count > errs) continue;
-            var data = new OutletData(code, name!, kindText, tables);
-            var show = kindText == "room" ? "room service" : $"{I(tables.Count)} table(s): {string.Join(", ", tables)}";
-            var existing = existingOutlets.FirstOrDefault(o => Ci.Equals(o.Code, code));
-            if (existing is null) s.Item(r, ImportAction.Create, code, $"New outlet {name} · {show}", data);
-            else if (string.Equals(existing.Name, name, StringComparison.Ordinal) && existing.Kind == kindText && existing.Tables.Order(Ci).SequenceEqual(tables.Order(Ci), Ci))
-                s.Item(r, ImportAction.Unchanged, existing.Code, "Already in HCC: " + show, data);
-            else s.Error(r, "outletCode", $"Outlet {existing.Code} already exists with a different name, kind or tables. Change it on the POS setup screen, or use another code.");
+            if (code is null || Duplicate(s, seen, r, code, "code") || s.Errors.Count > errs) continue;
+            var data = new OutletData(code, name!, kindText, tables, typeText, opens, closes, profile, station, sort, wanted, existing?.Id, timesGiven, stationGiven);
+            var show = kindText == "room" ? "room service" : $"{typeText}, {I(tables.Count)} table(s): {string.Join(", ", tables)}";
+            if (existing is null)
+            {
+                s.Item(r, ImportAction.Create, code, $"New outlet {name} · {show}", data);
+                continue;
+            }
+
+            if (existing.Kind != kindText)
+            {
+                s.Error(r, "type", $"Outlet {existing.Code} is a {(existing.Kind == "room" ? "room-service" : "dining")} outlet in HCC; the kind cannot change. Use another code.");
+                continue;
+            }
+
+            if (existing.Active && wanted == false)
+            {
+                s.Error(r, "active", $"Outlet {existing.Code} is active in HCC. A file does not retire outlets: retire it on the POS outlets list, where open checks are looked at.");
+                continue;
+            }
+
+            if (s.HasColumn("tables") && tables.Where(t => !existing.Tables.Contains(t, Ci)).ToList() is { Count: > 0 } missing)
+            {
+                s.Error(r, "code", $"Outlet {existing.Code} already exists without table(s) {string.Join(", ", missing)}. Tables of an existing outlet are added in the POS tables list (or the pos-tables file); this file never adds or removes them.");
+                continue;
+            }
+
+            var changes = new List<string>();
+            if (!string.Equals(existing.Name, name, StringComparison.Ordinal)) changes.Add($"name {existing.Name} → {name}");
+            var haveType = existing.Type.Length == 0 ? (existing.Kind == "room" ? "room-service" : "restaurant") : existing.Type;
+            if (!string.Equals(haveType, typeText, StringComparison.Ordinal)) changes.Add($"type {haveType} → {typeText}");
+            if (timesGiven && (existing.Opens != opens || existing.Closes != closes)) changes.Add($"hours {existing.Opens ?? "—"}–{existing.Closes ?? "—"} → {opens ?? "—"}–{closes ?? "—"}");
+            if (profile is not null && existing.GstProfile != profile) changes.Add($"GST profile {existing.GstProfile} → {profile}");
+            if (stationGiven && !string.Equals(existing.KotStation, station, StringComparison.Ordinal)) changes.Add($"KOT station {existing.KotStation ?? "—"} → {station ?? "—"}");
+            if (sort is { } so && existing.SortOrder != so) changes.Add($"sort order {I(existing.SortOrder)} → {I(so)}");
+            if (wanted is { } w && existing.Active != w) changes.Add($"active {(existing.Active ? "yes" : "no")} → {(w ? "yes" : "no")}");
+            if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, existing.Code, "Already in HCC: " + show, data);
+            else s.Item(r, ImportAction.Update, existing.Code, string.Join(" · ", changes), data);
         }
     }
 
@@ -653,15 +755,28 @@ public static partial class ImportPlanner
     {
         var outlets = snap.PosOutlets ?? [];
         var items = snap.PosMenu ?? [];
+        var categories = snap.Lists is { } lists && lists.TryGetValue("menu-categories", out var cats) ? cats : [];
         var seen = new Dictionary<string, int>(Ci);
         foreach (var r in s.Table.Rows)
         {
             var errs = s.Errors.Count;
-            var code = s.Required(r, "itemCode", 20, "item code")?.ToUpperInvariant();
-            if (code is not null && !MenuCodePattern().IsMatch(code)) s.Error(r, "itemCode", "An item code uses letters, digits, '-' or '_' (up to 20).");
-            var name = s.Required(r, "itemName", 100, "item name");
+            var code = s.Required(r, "code", 20, "item code")?.ToUpperInvariant();
+            if (code is not null && !MenuCodePattern().IsMatch(code)) s.Error(r, "code", "An item code uses letters, digits, '-' or '_' (up to 20).");
+            var name = s.Required(r, "name", 100, "item name");
             var category = s.Required(r, "category", 60, "category");
+            if (category is not null && categories.FirstOrDefault(c => Ci.Equals(c.Code, category)) is { } byCode) category = byCode.Name;
+            var shortCode = Optional(s, r, "shortCode", 10, "short code");
             var price = s.Money(r, "price", true, false);
+            string? gstClass = null;
+            if (s.Cell(r, "gstClass") is { Length: > 0 } gc)
+            {
+                gstClass = GstClasses.FirstOrDefault(x => Ci.Equals(x, gc));
+                if (gstClass is null) s.Error(r, "gstClass", "The GST class is food, laundry, banquet or other.");
+            }
+
+            var station = Optional(s, r, "station", 20, "station");
+            var sort = SortCell(s, r);
+            var wanted = ActiveCell(s, r);
             var vegText = s.Cell(r, "veg");
             var veg = false;
             if (!TryVeg(vegText, out veg)) s.Error(r, "veg", "Enter yes (vegetarian) or no (non-vegetarian).");
@@ -689,10 +804,16 @@ public static partial class ImportPlanner
                 }
             }
 
-            if (code is null || Duplicate(s, seen, r, code, "itemCode") || s.Errors.Count > errs) continue;
+            if (code is null || Duplicate(s, seen, r, code, "code") || s.Errors.Count > errs) continue;
             ids.Sort();
             var existing = items.FirstOrDefault(x => Ci.Equals(x.Code, code));
-            var data = new MenuItemData(code, name!, category!, price!.Value, veg, ids, existing?.Id);
+            if (existing is { Active: true } && wanted == false)
+            {
+                s.Error(r, "active", $"Item {existing.Code} is active in HCC. A file does not retire items: retire it on the menu list.");
+                continue;
+            }
+
+            var data = new MenuItemData(code, name!, category!, price!.Value, veg, ids, existing?.Id, shortCode, gstClass, station, sort, wanted, s.HasColumn("shortCode"), s.HasColumn("station"));
             var show = $"{name} · {category} · {Rs(price.Value)} · {(veg ? "veg" : "non-veg")} · {string.Join(", ", codes)}";
             if (existing is null) s.Item(r, ImportAction.Create, code, "New item " + show, data);
             else
@@ -703,6 +824,11 @@ public static partial class ImportPlanner
                 if (existing.PricePaise != price.Value) changes.Add($"price {Rs(existing.PricePaise)} → {Rs(price.Value)}");
                 if (existing.Veg != veg) changes.Add(veg ? "now vegetarian" : "now non-vegetarian");
                 if (!existing.OutletIds.Order().SequenceEqual(ids)) changes.Add("outlets " + string.Join(", ", codes));
+                if (s.HasColumn("shortCode") && !string.Equals(existing.ShortCode, shortCode, StringComparison.Ordinal)) changes.Add($"short code {existing.ShortCode ?? "—"} → {shortCode ?? "—"}");
+                if (gstClass is not null && existing.GstClass != gstClass) changes.Add($"GST class {existing.GstClass} → {gstClass}");
+                if (s.HasColumn("station") && !string.Equals(existing.Station, station, StringComparison.Ordinal)) changes.Add($"station {existing.Station ?? "—"} → {station ?? "—"}");
+                if (sort is { } so && existing.SortOrder != so) changes.Add($"sort order {I(existing.SortOrder)} → {I(so)}");
+                if (wanted is { } w && existing.Active != w) changes.Add($"active {(existing.Active ? "yes" : "no")} → {(w ? "yes" : "no")}");
                 if (changes.Count == 0) s.Item(r, ImportAction.Unchanged, existing.Code, "Already in HCC: " + show, data);
                 else s.Item(r, ImportAction.Update, existing.Code, string.Join(" · ", changes), data);
             }

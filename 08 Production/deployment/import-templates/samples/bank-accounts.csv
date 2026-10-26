@@ -1,0 +1,3 @@
+code,name,kind,bank,accountLast4,ifsc,openingBalance,defaultFor,sortOrder,active
+HDFC,HDFC current account (fictional),bank,HDFC Bank,4821,HDFC0001234,250000.00,wallet,100,yes
+POS-TILL,Restaurant cash drawer,till,,,,0.00,,110,yes

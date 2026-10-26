@@ -1,0 +1,5 @@
+code,name,icon,showOnWebsite,sortOrder,active
+WIFI,Free Wi-Fi,wifi,yes,10,yes
+AC,Air conditioning,snowflake,yes,20,yes
+TV,Television,tv,yes,30,yes
+TEAMAKER,Tea and coffee maker,coffee,no,40,yes

@@ -1,0 +1,3 @@
+code,name,document,prefix,start,padding,reset,activeFrom,sortOrder,active
+INV-FY28,Tax invoice from FY 2027-28,INV,HCC,1,4,FY,2027-04-01,100,yes
+RCP-2,Receipts (new book),RCP,RCPT,1,5,NEVER,2027-04-01,110,yes

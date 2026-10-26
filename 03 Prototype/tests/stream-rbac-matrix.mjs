@@ -142,6 +142,8 @@ const CMDS={
   POS_VOID_DECIDE:C('OWN MGR','Module 23 §2 (approve)'),
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
+  // MA-8 masters import (JSON import and Paste rows): the `masters` permission (Owner + Tech admin); a money list inside the file is refused per list unless the Owner imports it.
+  MST_IMPORT:C('OWN TAD','MA-8 masters import (DEC-MA-1, DEC-058)'),
   // MA-1 rooms master tools (range add, renumber, out of order): the rooms master's `masters` permission (old → new: 199 → 203 commands).
   ...Object.fromEntries(['RMS_ROOMS_ADD','RMS_ROOM_RENUMBER','RMS_ROOM_OOO','RMS_ROOM_OOO_CLEAR'].map(c=>[c,C('OWN TAD','MA-1 rooms master (DEC-MA-1)')])),
   // MA-2 catalogue: catalogue charge = CHARGE (FOL-002), reasoned discount = DISCOUNT (FOL-003, DEC-063), meal plan = reservations or billing.

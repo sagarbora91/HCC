@@ -1,0 +1,4 @@
+code,name,segment,channel,commissionBps,sortOrder,active
+OTA-BKG,Booking.com,OTA,Booking.com,15,100,yes
+OTA-MMT,MakeMyTrip,OTA,MakeMyTrip,18,110,yes
+CORP-TRD,Mehta Traders (fictional),CORPORATE,Mehta Traders (fictional),0,120,yes

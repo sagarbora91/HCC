@@ -102,6 +102,7 @@
     <File Path="database/migrations/2860_people_lists.sql" />
     <File Path="database/migrations/2870_ops_masters.sql" />
     <File Path="database/migrations/2871_ops_masters_seed.sql" />
+    <File Path="database/migrations/2880_import_all_masters.sql" />
     <File Path="database/migrations/2890_payment_method_records.sql" />
     <File Path="database/migrations/2891_number_series_rst.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />

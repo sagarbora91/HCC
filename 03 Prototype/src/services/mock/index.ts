@@ -38,6 +38,7 @@ export * from '../../domain/gstr1';
 export {buildHistory,HISTORY_DEFAULTS,setHistoryProgress} from '../../fixtures/history/generate';
 export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
+export * from '../../domain/streams/mastersio'; export {mstImportPreview} from './mastersio'; // MA-8 masters import / export
 export * from '../../domain/streams/roommasters';
 export * from '../../domain/streams/money-master'; export * from '../../domain/streams/money-master-specs'; // MA-3 money masters
 export * from '../../domain/streams/catalogue'; // MA-2 meal plans, extras, discount reasons
