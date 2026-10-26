@@ -7,6 +7,7 @@ using Hcc.Domain.Groups;
 using Hcc.Domain.Money;
 using Hcc.Domain.Stays;
 using Hcc.Domain.Stock;
+using Hcc.Domain.Text;
 
 namespace Hcc.Domain.Import;
 
@@ -155,6 +156,10 @@ public static partial class ImportPlanner
     [GeneratedRegex(@"^[A-Z0-9][A-Z0-9-]{0,19}$")]
     private static partial Regex TillCodePattern();
 
+    /// <summary>One item of a ;- or |-separated list cell (<see cref="ImportValues.List"/>), with its surrounding spaces.</summary>
+    [GeneratedRegex(@"[^;|]+")]
+    private static partial Regex ListItem();
+
     public static readonly IReadOnlyList<string> LedgerGroups = ["Asset", "Liability", "Equity", "Income", "Expense"];
 
     private static readonly StringComparer Ci = StringComparer.OrdinalIgnoreCase;
@@ -172,15 +177,16 @@ public static partial class ImportPlanner
         public readonly List<ImportRowError> Warnings = [];
         public readonly List<ImportPlanItem> Items = [];
         private readonly Dictionary<string, int> _index = new(StringComparer.Ordinal);
+        private CsvTable _table = table;
 
-        public CsvTable Table => table;
+        public CsvTable Table => _table;
 
         public bool CheckHeaders()
         {
             var known = spec.Columns.ToDictionary(c => CsvParser.Key(c.Name), c => c.Name, StringComparer.Ordinal);
-            for (var i = 0; i < table.Headers.Count; i++)
+            for (var i = 0; i < _table.Headers.Count; i++)
             {
-                var h = table.Headers[i];
+                var h = _table.Headers[i];
                 var k = CsvParser.Key(h);
                 if (k.Length == 0) continue;
                 if (ImportMasters.IsForbiddenHeader(k))
@@ -203,6 +209,49 @@ public static partial class ImportPlanner
             if (spec.Master == ImportMaster.OpeningBalances && !_index.ContainsKey("debit") && !_index.ContainsKey("credit"))
                 Errors.Add(new(1, "debit", "Add the 'debit' and 'credit' columns."));
             return Errors.Count == 0;
+        }
+
+        /// <summary>
+        /// A06-08 (OWASP CSV injection): a free-text cell (<see cref="ImportCellText.Free"/>, or an item of a <see cref="ImportCellText.FreeList"/>)
+        /// that a spreadsheet would run as a formula — it starts with = + - @ and is not a plain number — is kept as text with a leading
+        /// apostrophe (<see cref="CsvFormula.Neutralise"/>), and the preview warns. Checked columns are left to their own rule, which refuses
+        /// formula text and reads a minus sign as a number. Runs once, after the headers are known and before any row is planned.
+        /// </summary>
+        public void NeutraliseFormulas()
+        {
+            var free = spec.Columns.Where(c => c.Text != ImportCellText.Checked && _index.ContainsKey(CsvParser.Key(c.Name)))
+                .Select(c => (Column: c, Index: _index[CsvParser.Key(c.Name)])).ToList();
+            if (free.Count == 0) return;
+            var rows = new List<CsvRow>(_table.Rows.Count);
+            foreach (var r in _table.Rows)
+            {
+                string[]? cells = null;
+                foreach (var (column, i) in free)
+                {
+                    if (i >= r.Cells.Count) continue;
+                    var v = r.Cells[i].Trim();
+                    var safe = column.Text == ImportCellText.FreeList ? ListItem().Replace(v, NeutraliseItem) : CsvFormula.Neutralise(v);
+                    if (string.Equals(safe, v, StringComparison.Ordinal)) continue;
+                    cells ??= [.. r.Cells];
+                    cells[i] = safe;
+                    var first = column.Text == ImportCellText.FreeList ? ImportValues.List(v).First(CsvFormula.IsRisky)[0] : v[0];
+                    Warn(r, column.Name, column.Text == ImportCellText.FreeList
+                        ? $"A name in this list starts with '{first}', which a spreadsheet would run as a formula; it is kept as text with a leading apostrophe ('). Remove the '{first}' from the file if it is not wanted."
+                        : $"The text starts with '{first}', which a spreadsheet would run as a formula; it is kept as text with a leading apostrophe ('). Remove the '{first}' from the file if it is not wanted.");
+                }
+
+                rows.Add(cells is null ? r : r with { Cells = cells });
+            }
+
+            _table = _table with { Rows = rows };
+        }
+
+        private static string NeutraliseItem(Match m)
+        {
+            var item = m.Value.Trim();
+            if (!CsvFormula.IsRisky(item)) return m.Value;
+            var lead = m.Value.Length - m.Value.TrimStart().Length;
+            return m.Value[..lead] + "'" + m.Value[lead..];
         }
 
         public string Cell(CsvRow r, string column) =>
@@ -266,7 +315,7 @@ public static partial class ImportPlanner
         }
 
         public ImportPlan Result(long? debit = null, long? credit = null) =>
-            new(spec.Master, table.Rows.Count, Errors, Warnings, Items, debit, credit);
+            new(spec.Master, _table.Rows.Count, Errors, Warnings, Items, debit, credit);
     }
 
     /// <summary>Plans a parsed file. <paramref name="asOf"/> is the opening-balance date (opening-balances only).</summary>
@@ -284,6 +333,8 @@ public static partial class ImportPlanner
             sheet.Errors.Add(new(0, "", "The file has a header row but no data rows."));
             return sheet.Result();
         }
+
+        sheet.NeutraliseFormulas();
 
         switch (master)
         {

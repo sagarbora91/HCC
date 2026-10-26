@@ -284,6 +284,33 @@ public sealed class PayrollRulesTests
     }
 
     [Fact]
+    public void A06_08_bank_file_neutralises_formula_text_keeps_a_negative_amount_and_quotes_a_carriage_return()
+    {
+        var line = PayrollRules.ComputeLine(Mon(2_000_000), Full(), R) with { Name = "=HYPERLINK(\"http://x.test\",\"pay me\")", Net = -50_000 };
+        var crLine = line with { StaffId = 2, Name = "Asha\r=cmd|' /C calc'!A0", Net = 1_234_550 };
+        var bank = PayrollFiles.Bank(new PayMonth(2026, 9), [line, crLine], new Dictionary<long, BankDetails>
+        {
+            [1] = new("@Demo Bank", "000012340001", "+DEMO0000101"),
+            [2] = new("-2+3 Bank", "000012340002", "DEMO0000102"),
+        }, 1);
+        var rows = bank.Split('\n');
+        Assert.Equal("1,\"'=HYPERLINK(\"\"http://x.test\"\",\"\"pay me\"\")\",1,'@Demo Bank,'000012340001,'+DEMO0000101,-500.00", rows[1]);
+        // A CR inside a name stays inside its quoted cell: Excel cannot start a new row there and read "=cmd…" as a formula of its own.
+        Assert.StartsWith("2,\"Asha\r=cmd|' /C calc'!A0\",2,'-2+3 Bank,'000012340002,DEMO0000102,12345.50", bank.Split('\n')[2], StringComparison.Ordinal);
+        Assert.Equal("\"a\rb\"", PayrollFiles.Cell("a\rb"));
+        Assert.Contains(",TOTAL,,,,,11845.50", bank, StringComparison.Ordinal);   // totals are numbers: never an apostrophe, the sign kept
+        Assert.DoesNotMatch(@"(?m)(^|,)""?[=+@]", bank);                          // no cell anywhere starts with = + @ unneutralised
+
+        // Register and statutory file: the same guard on every text cell; amounts and the negative net stay plain numbers.
+        var register = PayrollFiles.Register(new PayMonth(2026, 9), true, [line], _ => "-Front office");
+        Assert.Contains(",\"'=HYPERLINK(\"\"http://x.test\"\",\"\"pay me\"\")\",'-Front office,", register, StringComparison.Ordinal);
+        Assert.EndsWith(",-500.00", register.Split('\n')[1], StringComparison.Ordinal);
+        var statutory = PayrollFiles.Statutory(new PayMonth(2026, 9), true, R.From, [line]);
+        Assert.Contains(",\"'=HYPERLINK(", statutory, StringComparison.Ordinal);
+        Assert.DoesNotContain(",=", statutory, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A04_01_statutory_statement_adds_full_and_final_rows_to_members_and_totals_and_is_unchanged_without_them()
     {
         var sep = new PayMonth(2026, 9);

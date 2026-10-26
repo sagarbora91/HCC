@@ -24,18 +24,24 @@ public static class ClientAddress
 public readonly record struct SignInGate(bool Allowed, TimeSpan RetryAfter, TimeSpan Delay);
 
 /// <summary>
-/// F-M02 sign-in throttle (in memory: the LAN server is one process). Policy, over a sliding window (<see cref="AccessOptions.SignInWindow"/>, 15 min):
+/// F-M02 sign-in throttle. Policy, over a sliding window (<see cref="AccessOptions.SignInWindow"/>, 15 min):
 /// <list type="number">
 /// <item>Per client address (IPv4 / IPv6 /64): after <see cref="AccessOptions.SignInFailuresPerSource"/> failures (20) the address gets 429 —
 /// stops password spraying across accounts and flooding the audit log.</item>
 /// <item>Per (address, sign-in name): after <see cref="AccessOptions.SignInFailuresPerSourceAndLogin"/> failures (5) that address gets 429 for that
 /// name. This replaces the old per-account lockout: a LAN attacker locks only <i>their own</i> address out, never the Owner on another device.</item>
-/// <item>Per sign-in name (all addresses): after <see cref="AccessOptions.SignInDelayAfterFailures"/> failures (5) each further attempt waits
-/// 1 s, 2 s, 4 s … up to <see cref="AccessOptions.SignInMaxDelay"/> (8 s). A delay, never a refusal; attempts from the server PC itself
-/// (loopback, no proxy header) are not delayed, so the Owner can always sign in there.</item>
+/// <item>Per sign-in name, counted over all addresses but applied per address (A06-06): once the name has
+/// <see cref="AccessOptions.SignInDelayAfterFailures"/> failures (5), each further attempt <i>from an address that has itself failed for that
+/// name in the window</i> waits 1 s, 2 s, 4 s … up to <see cref="AccessOptions.SignInMaxDelay"/> (8 s). Guessing spread over several addresses is
+/// still slowed down, but an address with no failure of its own for the name is never delayed — someone who knows the Owner's sign-in name
+/// cannot slow the Owner down on another device. A delay, never a refusal; attempts from the server PC itself (loopback, no proxy header) are
+/// not delayed either, so the Owner can always sign in there.</item>
 /// </list>
 /// Only failed sign-ins count (wrong or unknown name, wrong secret, unregistered device); a success clears that (address, name) pair
 /// and the name's delay. Validation errors (both or neither secret) do not count.
+/// <para>The counters live in memory only (the LAN server is one process): a service restart clears every count and every 429 at once.
+/// That is accepted on a hotel LAN (A06-06) — a restart needs Windows administrator rights on the server PC, and the limits apply again
+/// from the next failure.</para>
 /// </summary>
 public sealed class SignInThrottle(AccessOptions options, TimeProvider clock)
 {
@@ -66,7 +72,8 @@ public sealed class SignInThrottle(AccessOptions options, TimeProvider clock)
 
             var byLogin = Recent("l|" + name, now).Count;
             var over = byLogin - options.SignInDelayAfterFailures;
-            if (trustedLocal || over < 0) return new SignInGate(true, TimeSpan.Zero, TimeSpan.Zero);
+            // A06-06: the name's delay is keyed by the address too — only an address that has failed for this name itself is slowed down.
+            if (trustedLocal || over < 0 || byPair.Count == 0) return new SignInGate(true, TimeSpan.Zero, TimeSpan.Zero);
             var delay = TimeSpan.FromSeconds(Math.Pow(2, Math.Min(over, 10)));
             return new SignInGate(true, TimeSpan.Zero, delay > options.SignInMaxDelay ? options.SignInMaxDelay : delay);
         }

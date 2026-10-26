@@ -79,7 +79,8 @@ public interface IWebBookingStore
     Task<IReadOnlyList<DepositLinkRow>> LinksAsync(long requestId, CancellationToken ct = default);
 }
 
-/// <summary>Sliding-minute style fixed-window counter per client key (in memory; the LAN server is one process).</summary>
+/// <summary>Sliding-minute style fixed-window counter per client key (in memory; the LAN server is one process). A service restart clears every
+/// count; accepted, like the sign-in throttle (A06-06): the windows are one or ten minutes, and the limits apply again from the next request.</summary>
 public sealed class PublicRateLimiter(TimeProvider clock)
 {
     private readonly object _gate = new();

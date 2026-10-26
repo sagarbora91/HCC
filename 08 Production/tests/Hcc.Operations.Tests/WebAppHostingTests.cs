@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Hcc.Operations.Tests;
 
-/// <summary>W4 F3 (H1): the API host serves the production web build (single index.html) on the same origin.</summary>
+/// <summary>W4 F3 (H1): the API host serves the production web build (single index.html) on the same origin; A06-10: a missing build never reveals the folder.</summary>
 public sealed class WebAppHostingTests : IDisposable
 {
     private const string Page = "<!doctype html><html><head><style>body{margin:0}</style></head><body><div id=\"root\"></div><script>window.hcc=1;</script></body></html>";
@@ -22,10 +23,36 @@ public sealed class WebAppHostingTests : IDisposable
         try { Directory.Delete(_root, true); } catch (IOException) { /* temp folder, best effort */ }
     }
 
-    private async Task<(WebApplication App, HttpClient Http)> StartAsync(string? webRoot, CancellationToken ct)
+    /// <summary>Collects the warnings the host writes (A06-10: the web-root folder goes to the log, never to the caller).</summary>
+    private sealed class Warnings : ILoggerProvider
+    {
+        public List<string> Lines { get; } = [];
+
+        public ILogger CreateLogger(string categoryName) => new Sink(this);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class Sink(Warnings owner) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            {
+                if (!IsEnabled(logLevel)) return;
+                lock (owner.Lines) owner.Lines.Add(formatter(state, exception));
+            }
+        }
+    }
+
+    private async Task<(WebApplication App, HttpClient Http)> StartAsync(string? webRoot, CancellationToken ct, Warnings? log = null)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
+        if (log is not null) builder.Logging.AddProvider(log);
         if (webRoot is not null) builder.Configuration["Hcc:Hosting:WebRoot"] = webRoot;
         var app = builder.Build();
         app.MapGroup("/api/v1").MapHccDiscovery();
@@ -78,13 +105,33 @@ public sealed class WebAppHostingTests : IDisposable
     public async Task Missing_index_html_answers_404_with_install_hint_and_never_caches()
     {
         var ct = TestContext.Current.CancellationToken;
-        var (app, http) = await StartAsync(Path.Combine(_root, "nope"), ct);
+        var folder = Path.Combine(_root, "nope");
+        var log = new Warnings();
+        var (app, http) = await StartAsync(folder, ct, log);
         using (http)
         {
             var res = await http.GetAsync("/", ct);
             Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
-            Assert.Contains("not installed", await res.Content.ReadAsStringAsync(ct), StringComparison.Ordinal);
+            var body = await res.Content.ReadAsStringAsync(ct);
+            Assert.Contains("not installed", body, StringComparison.Ordinal);
             Assert.Equal("no-store", res.Headers.CacheControl!.ToString());
+
+            // A06-10: the anonymous answer is the fixed text — no web-root folder, no drive or temp path, no file name of the server.
+            Assert.Equal(WebAppHosting.NotInstalledText, body);
+            Assert.DoesNotContain(folder, body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(Path.GetTempPath(), body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(AppContext.BaseDirectory, body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotMatch(@"[A-Za-z]:\\|\\\\|/home/|/tmp/", body);
+
+            // The folder goes to the server log instead, once (not one line per anonymous request).
+            using var again = await http.GetAsync("/index.html", ct);
+            Assert.Equal(HttpStatusCode.NotFound, again.StatusCode);
+            Assert.Equal(WebAppHosting.NotInstalledText, await again.Content.ReadAsStringAsync(ct));
+            lock (log.Lines)
+            {
+                var line = Assert.Single(log.Lines, l => l.Contains("web app is not installed", StringComparison.Ordinal));
+                Assert.Contains(folder, line, StringComparison.Ordinal);
+            }
         }
 
         await app.DisposeAsync();

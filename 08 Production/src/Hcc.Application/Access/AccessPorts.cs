@@ -28,7 +28,8 @@ public sealed class AccessOptions
     /// <summary>Failed sign-ins for one sign-in name from one address in the window before that pair gets 429 (other addresses are unaffected).</summary>
     public int SignInFailuresPerSourceAndLogin { get; set; } = 5;
 
-    /// <summary>Failed sign-ins for one name (from all addresses) in the window after which each further attempt is slowed down.</summary>
+    /// <summary>Failed sign-ins for one name (from all addresses) in the window after which each further attempt is slowed down — only attempts from
+    /// an address that has itself failed for that name (A06-06), so the name's real owner on another device is never delayed.</summary>
     public int SignInDelayAfterFailures { get; set; } = 5;
 
     /// <summary>Upper bound of the progressive delay (1 s, 2 s, 4 s … up to this); never a refusal.</summary>

@@ -34,7 +34,8 @@ public static partial class PayrollFiles
         ArgumentNullException.ThrowIfNull(text);
         var t = text;
         if (isText && Risky().IsMatch(t) && !Numeric().IsMatch(t)) t = "'" + t;
-        return t.IndexOfAny([',', '"', '\n']) >= 0 ? "\"" + t.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : t;
+        // A06-08: a carriage return inside a cell is quoted too (unquoted it starts a new row in Excel and the cell after it is read on its own).
+        return t.IndexOfAny([',', '"', '\n', '\r']) >= 0 ? "\"" + t.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : t;
     }
 
     private static string Row(params object[] cells) => string.Join(',', cells.Select(c => c switch

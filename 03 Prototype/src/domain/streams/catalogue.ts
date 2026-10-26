@@ -16,6 +16,7 @@
 // site / OTA mapping: catPlansForSite, catPlanQuote, catPlanFromChannel (RO / BB / HB / FB / AI meal codes).
 import type {State,Booking,Line,Role} from '../types';
 import {totals} from '../selectors';
+import {csvMinimal} from '../csv';
 import {gstForRoomNight,gstForFood,gstForCharge,GST_CHARGE_CATEGORIES,GST_ILLUSTRATIVE,type GstCategory} from '../gst';
 import {registerMaster,mstRows,mstByCode,mstById,mstSpec,mstMoneyOn,mstFail,type MasterRow,type MasterSpec,type FieldSpec,type MstDatedAmount} from './masters';
 
@@ -303,9 +304,10 @@ export function catDiscountReport(s:State,from:string,to:string):CatSplitRow[]{
   }
   return [...m.values()].sort((a,b)=>b.amount-a.amount);
 }
-/** CSV of the three reports (one section each). */
+/** CSV of the three reports (one section each). A06-08: every cell goes through the shared formula guard — free-text charge labels and
+ *  discount reasons are typed by staff, so =HYPERLINK(…) stays text — and is quoted when it holds a comma, a quote or a line break. */
 export function catReportCsv(s:State,from:string,to:string):string{
-  const q=(v:unknown)=>{const t=String(v??'');return /[",\n]/.test(t)?`"${t.replace(/"/g,'""')}"`:t;};
+  const q=(v:unknown)=>csvMinimal(String(v??''));
   const rs=(p:number)=>(p/100).toFixed(2);
   const split=catChargeSplit(s,from,to),plans=catPlanReport(s,from,to),disc=catDiscountReport(s,from,to);
   const lines:string[][]=[['Section','Item','Count','Amount (₹, before GST)']];

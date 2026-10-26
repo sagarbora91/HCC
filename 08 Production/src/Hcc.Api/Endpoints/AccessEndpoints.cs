@@ -138,7 +138,7 @@ public static class AccessEndpoints
             TimeProvider clock, CancellationToken ct) =>
         {
             ArgumentNullException.ThrowIfNull(body);
-            // F-M02: per-address and per-(address, name) limits, progressive delay per name (policy on SignInThrottle).
+            // F-M02: per-address and per-(address, name) limits, progressive delay per name for addresses that failed for it (A06-06; policy on SignInThrottle).
             var source = ClientAddress.Key(http.Connection.RemoteIpAddress);
             var gate = throttle.Check(source, body.LoginName, IsServerPc(http));
             if (!gate.Allowed)

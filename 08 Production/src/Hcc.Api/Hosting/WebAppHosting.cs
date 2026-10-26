@@ -46,12 +46,24 @@ public static partial class WebAppHosting
 
     private sealed record Loaded(DateTime Stamp, long Length, byte[] Body, string ETag, string Csp);
 
+    /// <summary>
+    /// A06-10: the anonymous answer when <c>index.html</c> is missing. Fixed text without any server path (the folder is written to the server
+    /// log instead, once, as a warning), so a caller on the network never learns where HCC is installed.
+    /// </summary>
+    public const string NotInstalledText = "The HCC web app is not installed on this server. Copy index.html (from npm run build:production) into the server's web folder "
+        + "(see deployment/windows/INSTALL.md, section 'Web app'; the server log names the folder).";
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The HCC web app is not installed: {File} is missing. Copy index.html (npm run build:production) into {Folder} (INSTALL.md, section 'Web app').")]
+    private static partial void LogNotInstalled(ILogger logger, string file, string folder);
+
     public static IEndpointRouteBuilder MapHccWebApp(this IEndpointRouteBuilder app, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(app);
-        var path = Path.Combine(WebRoot(configuration), FileName);
+        var root = WebRoot(configuration);
+        var path = Path.Combine(root, FileName);
         var gate = new object();
         Loaded? cache = null;
+        var warned = 0;
 
         Loaded? Load()
         {
@@ -76,8 +88,12 @@ public static partial class WebAppHosting
             if (page is null)
             {
                 h.CacheControl = "no-store";
-                return Results.Text("The HCC web app is not installed on this server. Copy index.html (from npm run build:production) to " + WebRoot(configuration) + " (see deployment/windows/INSTALL.md, section 'Web app').", "text/plain", Encoding.UTF8, StatusCodes.Status404NotFound);
+                if (Interlocked.Exchange(ref warned, 1) == 0 && http.RequestServices.GetService<ILoggerFactory>() is { } logs)
+                    LogNotInstalled(logs.CreateLogger(typeof(WebAppHosting).FullName!), path, root);
+                return Results.Text(NotInstalledText, "text/plain", Encoding.UTF8, StatusCodes.Status404NotFound);
             }
+
+            Interlocked.Exchange(ref warned, 0);   // installed (again): warn once more if it ever goes missing
 
             // The page itself is revalidated on every open (ETag, 304 when unchanged), so an upgrade reaches every browser at once.
             h.CacheControl = "no-cache";
