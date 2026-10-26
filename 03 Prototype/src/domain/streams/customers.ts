@@ -79,5 +79,6 @@ export function customerService(s:State,c:Customer){
 export function bookingIdLookup(s:State,q:string):Booking[]{
   const t=q.trim().toLowerCase();
   if(t.length<3)return [];
-  return s.bookings.filter(b=>b.id.toLowerCase().includes(t)).sort((a,b)=>(a.id.toLowerCase()===t?-1:0)-(b.id.toLowerCase()===t?-1:0)||b.arrival.localeCompare(a.arrival)).slice(0,8);
+  const ref=(b:Booking)=>(b.publicNo||b.id).toLowerCase();
+  return s.bookings.filter(b=>ref(b).includes(t)||b.id.toLowerCase()===t).sort((a,b)=>(ref(a)===t?-1:0)-(ref(b)===t?-1:0)||b.arrival.localeCompare(a.arrival)).slice(0,8);
 }

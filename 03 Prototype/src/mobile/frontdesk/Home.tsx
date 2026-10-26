@@ -1,5 +1,6 @@
 // M01 Home / Overview (phone): KPI cards 2-up, "Needs attention", arrivals / departures / in-house segmented list.
 import React from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {Plus,AlertTriangle,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {backupStatusText} from '../../features/housekeeping/BackupStatus';
@@ -40,7 +41,7 @@ export function MfHome(){
     <h2 className="m-group">FRONT DESK TODAY</h2>
     <ChipFilter label="Front desk list" value={seg} onChange={v=>setTab(v)} options={[{id:'Arrivals',label:'Arrivals',count:arrivals.length},{id:'Departures',label:'Departures',count:departures.length},{id:'In house',label:'In house',count:m.occupied}]}/>
     {list.length?list.slice(0,8).map(b=><ListCard key={b.id} title={<span className="mf-lc-guest"><span className="mf-initials" aria-hidden>{mfInitials(b.guest)}</span>{b.guest}</span>}
-        sub={`Room ${b.room} · ${shortDate(b.arrival)} – ${shortDate(b.departure)}`} meta={b.id}
+        sub={`Room ${b.room} · ${shortDate(b.arrival)} – ${shortDate(b.departure)}`} meta={bookingRef(b)}
         right={<>{<MfStatus status={b.status}/>}{money_&&<small className="mf-bal">Bal {money(totals(b).balance)}</small>}</>} onClick={()=>booking(b.id)}/>)
       :<p className="mf-empty">No {seg.toLowerCase()} to show.</p>}
     {list.length>8&&pages.includes(seg==='Arrivals'?'arrivals':'inhouse')&&<button className="btn full mf-more" onClick={()=>go(seg==='Arrivals'?'arrivals':'inhouse')}>See all {list.length}</button>}

@@ -1,6 +1,7 @@
 // M10 Payment (phone override of 'payment'): keypad amount, tender chips, "+ Split" rows, confirm screen, lost-response recovery.
 // Sends the same PAYMENT command as the desktop PaymentModal (built by mmPaymentCommand).
 import React,{useState} from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {Plus,Trash2,ArrowRight,Check,AlertTriangle,RefreshCw,Info} from 'lucide-react';
 import {money,totals} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -37,7 +38,7 @@ export function MmPayment({id}:{id?:string}){
   const post=async()=>{const ok=await run(mmPaymentCommand(b.id,kind,total,rows,key),single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});setFailed(!ok);};
   const kindLong=MM_PAY_KINDS.find(k=>k.id===kind)!.long;
 
-  if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLong}</p></div>
+  if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLong}</p></div>
     <div className="mm-confirm-amt"><span>Total</span><strong className="number">{money(target)}</strong></div>
     <div className="mm-card">{eff.map((r,i)=><div className="mm-row" key={i}><div className="mm-row-main"><strong>{r.method}</strong><small>{r.reference.trim()||'Demo cash'}</small></div><div className="mm-row-amt"><strong className="number">{money(mmPaise(r.amount))}</strong></div></div>)}
       {kind==='payment'&&<div className="mm-row mm-row-total"><div className="mm-row-main"><strong>Balance after posting</strong></div><div className="mm-row-amt"><strong className="number">{money(t.balance-target)}</strong></div></div>}
@@ -48,7 +49,7 @@ export function MmPayment({id}:{id?:string}){
     <div className="modal-actions"><button type="button" className="btn" disabled={busy} onClick={()=>{setStep('form');setFailed(false);}}>Edit</button>
       <button className="btn primary mm-big" disabled={busy} onClick={post}>{busy?'Posting…':failed?(saved?'Check again':'Try again'):'Confirm '+money(target)} <Check size={18}/></button></div></>;
 
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
     <form className="form mm-form" onSubmit={review} noValidate>
       <div className="mm-field"><span className="mm-label" id="mm-kind">Entry type</span>
         <div className="mm-chips" role="radiogroup" aria-labelledby="mm-kind">{MM_PAY_KINDS.map(k=><button key={k.id} type="button" role="radio" aria-checked={kind===k.id} className={kind===k.id?'on':''} disabled={k.id==='deposit-return'&&t.deposit<=0} onClick={()=>chooseKind(k.id)}>{k.label}</button>)}</div></div>

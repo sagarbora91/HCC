@@ -1,6 +1,7 @@
 // Module 21–22 · OTA channels & direct booking — pure helpers, selectors and the state slice type. Exported names MUST start with 'chn' / 'CHN' (shared mock namespace).
 // Everything here is SIMULATED: fictional channels, no network. Inventory rules come from the shared selectors (available, rateFor, taxRateFor).
 import type {State,Booking,Room} from '../types';
+import {bookingRef} from '../bookingRef';
 import {available,rateFor} from '../selectors';
 import {gstForRoomNight,gstStayTax} from '../gst';
 import {addDays,nights} from '../money';
@@ -108,17 +109,17 @@ export function chnAcceptCheck(s:State,m:CHNMessage,room?:string):CHNCheck{
   const b=s.bookings.find(b=>b.id===o.booking);
   if(!b)return {ok:false,reason:'Linked booking not found.',original:o};
   if(m.kind==='Cancel'){
-    if(b.status==='Cancelled')return {ok:true,reason:`${b.id} already cancelled`,original:o};
-    if(b.status!=='Confirmed')return {ok:false,reason:`${b.id} is ${b.status} — handle at the front desk.`,original:o};
-    return {ok:true,reason:`Cancels ${b.id}`,original:o};
+    if(b.status==='Cancelled')return {ok:true,reason:`${bookingRef(b)} already cancelled`,original:o};
+    if(b.status!=='Confirmed')return {ok:false,reason:`${bookingRef(b)} is ${b.status} — handle at the front desk.`,original:o};
+    return {ok:true,reason:`Cancels ${bookingRef(b)}`,original:o};
   }
-  if(b.status!=='Confirmed')return {ok:false,reason:`${b.id} is ${b.status} — handle at the front desk.`,original:o};
+  if(b.status!=='Confirmed')return {ok:false,reason:`${bookingRef(b)} is ${b.status} — handle at the front desk.`,original:o};
   const cap=chnTypeCapacity(s,o.roomType);
   if(party>cap)return {ok:false,reason:`Party of ${party} exceeds ${o.roomType} capacity (${cap}).`,original:o};
   if(m.arrival<s.date||!(nights(m.arrival,m.departure)>0))return {ok:false,reason:'Invalid new dates.',original:o};
   const target=available(s,b.room,m.arrival,m.departure,b.id)?b.room:chnFreeRooms(s,o.roomType,m.arrival,m.departure,party,b.id)[0]?.id;
   if(!target)return {ok:false,reason:`No ${o.roomType} room free for the new dates.`,original:o};
-  return {ok:true,reason:target===b.room?`${b.id} stays in room ${b.room}`:`${b.id} moves to room ${target}`,room:target,original:o};
+  return {ok:true,reason:target===b.room?`${bookingRef(b)} stays in room ${b.room}`:`${bookingRef(b)} moves to room ${target}`,room:target,original:o};
 }
 export function chnPending(s:State){return chnSlice(s).messages.filter(m=>m.status==='Pending').sort((a,b)=>a.receivedAt.localeCompare(b.receivedAt));}
 

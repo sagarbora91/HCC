@@ -1,5 +1,6 @@
 // Module 23 · POS dialogs: open check, settle, void, KOT / bill print, day report, phone cart sheet.
 import {printDocument} from '../../app/native';
+import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Printer,Wallet,Ban,ShieldCheck,BedDouble} from 'lucide-react';
 import type {ModalProps} from '../../app/registry';
@@ -16,7 +17,7 @@ export function PosOpenModal({id,room}:ModalProps){
   const b=out.kind==='room'?posInHouse(s).find(b=>b.room===room):undefined;
   const submit=(e:React.FormEvent)=>{e.preventDefault();run({type:'POS_ORDER_OPEN',outlet:out.id,...(out.kind==='table'?{table:room,guest:guest.trim()||undefined}:{room}),covers:Number(covers)},`Check opened · ${out.kind==='table'?'Table':'Room'} ${room}`,{close:true});};
   return <><div className="modal-heading"><div className="eyebrow">{out.name.toUpperCase()}</div><h2>Open a check · {out.kind==='table'?'Table':'Room'} {room}</h2>
-    <p>{b?<>Room service for <strong>{b.guest}</strong> ({b.id}). The bill can be posted to this folio.</>:'Start a new dine-in check. Add dishes from the menu, then send the KOT.'}</p></div>
+    <p>{b?<>Room service for <strong>{b.guest}</strong> ({bookingRef(b)}). The bill can be posted to this folio.</>:'Start a new dine-in check. Add dishes from the menu, then send the KOT.'}</p></div>
     <form className="form pos-form" onSubmit={submit}>
       <label>Covers (guests)<input inputMode="numeric" enterKeyHint="next" value={covers} onChange={e=>setCovers(e.target.value.replace(/\D/g,'').slice(0,2))} required/></label>
       {out.kind==='table'&&<label>Guest / reference (optional)<input enterKeyHint="done" maxLength={60} value={guest} onChange={e=>setGuest(e.target.value)} placeholder="e.g. Walk-in · Mr. Patil"/></label>}

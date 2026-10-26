@@ -1,5 +1,6 @@
 // Stream C · "Guests & folios" page (SCR-08 list): balances, posted vs agreed nights, invoices and folio requests.
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
+import {bookingRef} from '../../domain/bookingRef';
 import React,{useMemo} from 'react';
 import {ArrowUpRight} from 'lucide-react';
 import {money,totals,folioNights,folioApprovalStatus,folioKind,FOLIO_APPROVAL_KINDS} from '../../services/mock';
@@ -13,7 +14,7 @@ export function Folios(){
   const list=useMemo(()=>s.bookings.filter(b=>{
     const t=totals(b);
     const ok=filter==='All'||(filter==='Due out'?b.status==='In house'&&b.departure<=s.date:filter==='Balance due'?t.balance>0:b.status===filter);
-    return ok&&`${b.guest} ${b.id} ${b.room} ${b.company?.name??''} ${b.invoiceNo??''}`.toLowerCase().includes(q);
+    return ok&&`${b.guest} ${bookingRef(b)} ${b.room} ${b.company?.name??''} ${b.invoiceNo??''}`.toLowerCase().includes(q);
   }),[s.bookings,s.date,filter,q]);
   const pg=usePaged(list,DESKTOP_PAGE);
   const requests=s.approvals.filter(a=>FOLIO_APPROVAL_KINDS.includes(folioKind(a))).filter(a=>{const st=folioApprovalStatus(s,a);return st==='Pending'||(st==='Approved'&&a.kind==='refund')||st==='Expired'&&a.status==='Pending';}).slice().reverse();
@@ -23,7 +24,7 @@ export function Folios(){
     <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room, company or invoice…"/><div className="filters">{FILTERS.map(x=><button key={x} className={filter===x?'active':''} aria-pressed={filter===x} onClick={()=>setFilter(x)}>{x}</button>)}</div></div>
     <section className="card"><div className="table-wrap"><table><thead><tr><th>Guest / booking</th><th>Room</th><th>Stay</th><th>Nights posted</th><th>Status</th><th>Balance</th><th>Invoice</th><th></th></tr></thead><tbody>
       {pg.shown.map(b=>{const t=totals(b),n=folioNights(b);return <tr key={b.id}>
-        <td><button className="guest-link" onClick={()=>booking(b.id)}><span className="avatar">{b.guest.split(' ').map(x=>x[0]).slice(0,2).join('')}</span><span><strong>{b.guest}</strong><small>{b.id}{b.company?' · '+b.company.name:' · '+b.source}</small></span></button></td>
+        <td><button className="guest-link" onClick={()=>booking(b.id)}><span className="avatar">{b.guest.split(' ').map(x=>x[0]).slice(0,2).join('')}</span><span><strong>{b.guest}</strong><small>{bookingRef(b)}{b.company?' · '+b.company.name:' · '+b.source}</small></span></button></td>
         <td><span className="room-number">{b.room}</span></td>
         <td>{shortDate(b.arrival)} — {shortDate(b.departure)}{b.status==='In house'&&b.departure<=s.date&&<small>Due out today</small>}</td>
         <td>{n.posted} of {n.agreed}</td>

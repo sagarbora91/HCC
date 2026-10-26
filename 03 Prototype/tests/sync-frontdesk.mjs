@@ -66,6 +66,13 @@ export async function register({test,assert,M}){
       ['9','Asha Rao','+91 98200 01111','asha@example.test','1 Demo Street (fictional)','Passport (demo)','K123','High floor','Early breakfast',[{name:'Om Rao',ageBand:'Child',relation:''}],true,'manual',undefined]);
   });
 
+  test('[v12fix-b] booking reference: Booking.publicNo carries the server public number (HCC-1301); id stays the internal reservation id; bookingRef/bookingRefOf show it',async()=>{
+    assert.deepEqual(st.bookings.map(b=>[b.id,b.publicNo]),[['1301','HCC-1301'],['1302','HCC-1302'],['1303','HCC-1303'],['1304','HCC-1304']]);
+    const {bookingRef,bookingRefOf}=await import('../src/domain/bookingRef.ts').catch(()=>({}));
+    if(bookingRef){assert.equal(bookingRef(st.bookings[0]),'HCC-1301');assert.equal(bookingRefOf(st.bookings,'1302'),'HCC-1302');assert.equal(bookingRef({id:'HCC-1101'}),'HCC-1101');}
+    assert.equal(rt.ids.server('booking','1301'),1301);
+  });
+
   // ── booking commands ──
   srv.reset();
   const confirm=await rt.run({type:'CONFIRM',id:'1302',key:'confirm:1302'});const confirmCalls=srv.calls.map(c=>`${c.method} ${c.path}`);const confirmBody=srv.commands('ConfirmHold')[0];

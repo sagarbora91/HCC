@@ -3,6 +3,7 @@ import {mkdirSync,copyFileSync,statSync,readdirSync,existsSync} from 'node:fs';
 import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {applyPrinterPatch} from './patch-printer.mjs';
+if(!existsSync(join(dirname(fileURLToPath(import.meta.url)),'..','node_modules','@capacitor','preferences'))){console.error('node_modules/@capacitor/preferences is missing. Run "npm ci" in 04 Android first (every build): without it "cap sync" silently drops the Preferences plugin from the APK.');process.exit(1);}
 const here=dirname(fileURLToPath(import.meta.url));
 const proto=join(here,'..','..','03 Prototype');
 const built=join(proto,'dist','index.html');

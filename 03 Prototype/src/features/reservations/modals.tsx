@@ -1,5 +1,6 @@
 // Stream A · reservation dialogs: new booking (availability search + hold), cancel, move / change dates.
 import React,{useState} from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {ArrowRight,Info,Hourglass,TriangleAlert} from 'lucide-react';
 import {money,addDays,nights,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -101,7 +102,7 @@ export function CancelReservation({id}:{id:string}){
   const held=resHoldActive(s,b)&&b.status==='Held',t=totals(b),money_=t.paid!==0||t.deposit!==0;
   const open_=b.status==='Confirmed'||held;
   const noShowWhy=held?'Holds cannot be marked no-show.':b.arrival>s.date?`No-show is available from the arrival date (${shortDate(b.arrival)}).`:'';
-  return <><div className="modal-heading"><h2>{held?'Cancel hold':'Cancel or mark no-show'}</h2><p>{b.guest} · {b.id} · Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)}</p></div>
+  return <><div className="modal-heading"><h2>{held?'Cancel hold':'Cancel or mark no-show'}</h2><p>{b.guest} · {bookingRef(b)} · Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)}</p></div>
     {!open_&&<div className="info-note"><Info size={16}/>This booking is {resStatus(s,b)} and can no longer be cancelled.</div>}
     {money_&&<div className="info-note"><TriangleAlert size={16}/>Money is held on this booking ({money(t.paid)} paid, {money(t.deposit)} deposit). Refund the advance and return any deposit first.</div>}
     <div className="form"><label>Reason (optional)<input value={reason} onChange={e=>setReason(e.target.value)} maxLength={200} placeholder="e.g. Guest changed plans"/></label></div>
@@ -140,7 +141,7 @@ function ChangeDates({id}:{id:string}){
   const unchanged=room===b.room&&arrival===b.arrival&&departure===b.departure,stale=b.version!==version;
   const [rstOn,setRstOn]=useState(false),[rstReason,setRstReason]=useState('');
   const rst=rstState(s,uid,q.valid&&!unchanged?target?.room.type||'':'',arrival,departure,rstOn?rstReason:null);
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · {resStatus(s,b).toUpperCase()}</div><h2>Move / change dates</h2><p>{b.guest} · now Room {b.room}, {shortDate(b.arrival)} — {shortDate(b.departure)}. The agreed tariff {money(b.rate)}/night is kept.</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {resStatus(s,b).toUpperCase()}</div><h2>Move / change dates</h2><p>{b.guest} · now Room {b.room}, {shortDate(b.arrival)} — {shortDate(b.departure)}. The agreed tariff {money(b.rate)}/night is kept.</p></div>
     {!editable&&<div className="info-note"><Info size={16}/>This booking is {resStatus(s,b)}; its dates can no longer be changed here.</div>}
     {stale&&<div className="info-note"><TriangleAlert size={16}/>This reservation changed after you opened this dialog. Saving will be rejected — reopen it to see the latest version.</div>}
     <form className="form" noValidate onSubmit={e=>{e.preventDefault();if(!rst.canSubmit)return;run({type:'CHANGE_DATES',id:b.id,room,arrival,departure,version,restrictionOverride:rst.restrictionOverride,key:modal!.key},'Reservation updated. Full interval revalidated.',{after:()=>booking(b.id)});}}>

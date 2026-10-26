@@ -1,5 +1,6 @@
 // Arrivals page, guided check-in stepper and walk-in flow (SCR-06, REQ-STAY-001, WF-STAY-001).
 import React,{useState,useRef,useEffect} from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural} from '../../services/mock';
@@ -17,7 +18,7 @@ function RoomState({b}:{b:Booking}){const {s}=useHcc();const e=stayRoomEligibili
 /** Page 'arrivals': today's arrivals (Confirmed, arrival ≤ business date) + Walk-in. */
 export function ArrivalsPage(){
   const {s,uid,open,booking,permission,search,setSearch}=useHcc();
-  const list=stayArrivals(s).filter(b=>`${b.guest} ${b.id} ${b.room}`.toLowerCase().includes(search.toLowerCase()));
+  const list=stayArrivals(s).filter(b=>`${b.guest} ${bookingRef(b)} ${b.room}`.toLowerCase().includes(search.toLowerCase()));
   // Booking-ID lookup (any status): the one place to find a booking by its ID (Customers search by name or mobile only).
   const found=bookingIdLookup(s,search).filter(b=>!list.some(x=>x.id===b.id));
   const today=s.bookings.filter(b=>b.status==='In house'&&staySegments(b)[0]?.from===s.date);
@@ -30,7 +31,7 @@ export function ArrivalsPage(){
         <button className="text-btn" onClick={()=>booking(b.id)}>Open booking</button>{b.status==='Confirmed'&&b.arrival>s.date&&<small>Arrives {shortDate(b.arrival)} — check-in opens that day</small>}</li>)}</ul></section>}
     <section className="card"><div className="table-wrap"><table><thead><tr><th>Guest / booking</th><th>Room</th><th>Stay</th><th>Registration</th><th>Room status</th><th>Advance</th><th></th></tr></thead><tbody>
       {list.map(b=>{const g=guestForBooking(s,b);const v=g?guestView(s,uid,g):undefined;return <tr key={b.id}>
-        <td><strong>{b.guest}</strong><small>{b.id} · {b.source}{v?' · '+v.phone:''}</small></td>
+        <td><strong>{b.guest}</strong><small>{bookingRef(b)} · {b.source}{v?' · '+v.phone:''}</small></td>
         <td><span className="room-number">{b.room}</span><small>{s.rooms.find(r=>r.id===b.room)?.type}</small></td>
         <td>{shortDate(b.arrival)} — {shortDate(b.departure)}<small>{plural(nights(b.arrival,b.departure),'night')}{b.arrival<s.date?' · overdue arrival':''}</small></td>
         <td>{b.registered?<Pill tone="green">✓ Verified</Pill>:<Pill tone="blue">Not yet</Pill>}</td>
@@ -39,7 +40,7 @@ export function ArrivalsPage(){
         <td>{permission('checkin')?<button className="btn small-btn primary" aria-label={`${b.registered?'Continue check-in':'Start check-in'}, ${b.guest}`} onClick={()=>open({type:'guest-checkin',id:b.id})}>{b.registered?'Continue check-in':'Start check-in'}</button>:<span className="muted">Check-in permission needed</span>}</td></tr>;})}
     </tbody></table>{!list.length&&<Empty title="No arrivals waiting" body="Everyone expected today has checked in. Use Walk-in for guests without a reservation."/>}</div></section>
     {today.length>0&&<section className="card"><div className="section-title"><h2>Checked in today</h2><span className="muted">{today.length}</span></div>
-      <ul className="gs-simple-list">{today.map(b=><li key={b.id}><span className="room-number">{b.room}</span><strong>{b.guest}</strong><small>{b.id}</small><button className="text-btn" onClick={()=>open({type:'stay-detail',id:b.id})}>Stay details</button></li>)}</ul></section>}
+      <ul className="gs-simple-list">{today.map(b=><li key={b.id}><span className="room-number">{b.room}</span><strong>{b.guest}</strong><small>{bookingRef(b)}</small><button className="text-btn" onClick={()=>open({type:'stay-detail',id:b.id})}>Stay details</button></li>)}</ul></section>}
     <p className="footnote">Check-in requires a verified registration and a vacant, ready, unblocked room. All records are fictional.</p></>;
 }
 
@@ -61,7 +62,7 @@ export function CheckinModal({id}:{id?:string}){
   const [step,setStep]=useState(()=>!b?1:b.status==='In house'?6:!b.registered?2:!stayRoomEligibility(s,b).ok?3:4);
   const reachable=firstOpen<0?6:firstOpen+1;
   if(!permission('checkin'))return <Empty title="Not permitted" body="Check-in needs the check-in permission (PERM-STY-001)."/>;
-  if(b&&!['Confirmed','In house'].includes(b.status))return <><div className="modal-heading"><h2>Check-in unavailable</h2><p>{b.guest} · {b.id} is {b.status}.</p></div><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
+  if(b&&!['Confirmed','In house'].includes(b.status))return <><div className="modal-heading"><h2>Check-in unavailable</h2><p>{b.guest} · {bookingRef(b)} is {b.status}.</p></div><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
   if(b&&b.arrival>s.date&&b.status==='Confirmed')return <><div className="modal-heading"><h2>Not arriving yet</h2><p>{b.guest} arrives {shortDate(b.arrival)}. Check-in opens on the arrival business date.</p></div><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
   const next=<button type="button" className="btn primary" disabled={!done[step-1]&&step!==5} onClick={()=>setStep(step+1)}>Continue <ArrowRight size={16}/></button>;
   const prev=step>1&&<button type="button" className="btn" onClick={()=>setStep(step-1)}><ArrowLeft size={16}/>Back</button>;
@@ -69,7 +70,7 @@ export function CheckinModal({id}:{id?:string}){
   let body:React.ReactNode=null;
   if(b?.status==='In house')body=<div className="gs-success"><Check size={30}/><h3>{b.guest} is checked in to room {b.room}</h3><p>Room segment started {shortDate(staySegments(b)[0]?.from||s.date)}. The room board and arrivals list are updated.</p>
     <div className="modal-actions"><button className="btn" onClick={()=>open({type:'guest-regcard',id:b.id})}><Printer size={15}/>Registration card</button><button className="btn" onClick={()=>open({type:'stay-detail',id:b.id})}>Stay details</button><button className="btn primary" onClick={closeModal}>Done</button></div></div>;
-  else if(step===1){const list=stayArrivals(s).filter(x=>`${x.guest} ${x.id} ${x.room}`.toLowerCase().includes(q.toLowerCase()));
+  else if(step===1){const list=stayArrivals(s).filter(x=>`${x.guest} ${bookingRef(x)} ${x.room}`.toLowerCase().includes(q.toLowerCase()));
     body=<><SearchBox value={q} onChange={setQ} placeholder="Search today’s arrivals…"/>
       <ul className="gs-pick">{list.map(x=><li key={x.id}><button type="button" className={x.id===bid?'active':''} aria-pressed={x.id===bid} onClick={()=>{setBid(x.id);setTariffOk(false);}}><strong>{x.guest}</strong><small>{x.id} · room {x.room} · {shortDate(x.arrival)} — {shortDate(x.departure)}</small>{x.registered&&<Pill tone="green">Verified</Pill>}</button></li>)}</ul>
       {!list.length&&<Empty title="No matching arrivals" body="Use Walk-in for a guest without a reservation."/>}
@@ -105,7 +106,7 @@ export function CheckinModal({id}:{id?:string}){
     body=<><div className="summary-list"><div><span>Guest</span><strong>{b.guest}</strong></div><div><span>Room</span><strong>{b.room} · {room?.type}</strong></div><div><span>Stay</span><strong>{shortDate(b.arrival)} — {shortDate(b.departure)}</strong></div><div><span>Tariff</span><strong>{money(b.rate)}/night</strong></div></div>
       {missing.length>0&&<div className="gs-deny" role="alert"><AlertCircle size={18}/><div><strong>Complete these steps first:</strong> {missing.join(', ')}.</div></div>}
       <div className="modal-actions">{prev}<button type="button" className="btn primary" disabled={busy||missing.length>0} onClick={()=>run({type:'CHECKIN',id:b.id,key:'checkin:'+b.id},`Checked in to room ${b.room}. Room board updated.`)}><DoorOpen size={16}/>Check in</button></div></>;}
-  return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · GUIDED CHECK-IN{b?' · '+b.id:''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}</div>
+  return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · GUIDED CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}</div>
     {b?.status!=='In house'&&<Progress step={step} done={done} setStep={setStep} reachable={reachable}/>}
     <div className="gs-step-body"><h3 className="gs-sub">{b?.status==='In house'?'Checked in':`Step ${step} of 6 · ${stepNames[step-1]}`}</h3>{body}</div></>;
 }

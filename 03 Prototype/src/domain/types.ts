@@ -70,6 +70,8 @@ export type Receipt={id:string;amount:number;method:string;date:string;kind:'pay
 export type BookingStatus='Held'|'Expired'|'Confirmed'|'In house'|'Departed'|'Cancelled'|'No show';
 export type Booking={id:string;guest:string;email:string;people:number;room:string;arrival:string;departure:string;rate:number;source:string;status:BookingStatus;registered:boolean;lines:Line[];receipts:Receipt[];version:number;notes:string;
   // ── Booking · stream A fields (add below this line) ──
+  /** Production only: the server public booking number (e.g. HCC-1101) shown to people; `id` stays the internal key. See domain/bookingRef.ts. */
+  publicNo?:string;
   /** Hold expiry (simulated clock value). A Held booking blocks inventory only while s.clock < holdUntil (DEC-038). */
   holdUntil?:string;
   /** Contact phone (fictional). Required in the booking form; optional in BOOK for backward compatibility. */

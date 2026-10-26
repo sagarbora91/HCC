@@ -81,7 +81,7 @@ export async function loadDeskBookings(c:LoaderCtx):Promise<Booking[]>{
     if(x.roomNo&&x.roomId!=null)c.ids.learn('room',x.roomNo,x.roomId);
     if(x.stayId!=null)c.ids.learn('stay',id,x.stayId);
     if(x.folioId!=null){c.ids.learn('folio',id,x.folioId);if(x.folioVersion)c.ids.setVersion('folio',id,x.folioVersion);}
-    const b:Booking={id,guest:x.guestName,email:'',people:x.adults,room:x.roomNo??'',arrival:x.arrival,departure:x.departure,rate:x.nightlyRatePaise??0,
+    const b:Booking={id,publicNo:x.publicNo||undefined,guest:x.guestName,email:'',people:x.adults,room:x.roomNo??'',arrival:x.arrival,departure:x.departure,rate:x.nightlyRatePaise??0,
       source:x.source,status:BOOKING_STATUS[x.status]??(x.status as Booking['status']),registered:x.stayId!=null,lines:[],receipts:[],version:1,notes:''} as Booking;
     if(x.children)b.children=x.children;
     if(x.companyName)b.company=x.companyGstin?{name:x.companyName,gstin:x.companyGstin}:{name:x.companyName};

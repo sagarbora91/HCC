@@ -1,6 +1,7 @@
 // Module 26 · AI management assistant — pure helpers, selectors and the state slice type. Exported names MUST start with 'ai' / 'AI' (shared mock namespace).
 // SIMULATED: no language model and no network. A keyword matcher picks an intent; pure selectors compute the answer from State.
 import type {State,Booking,Permission} from '../types';
+import {bookingRef} from '../bookingRef';
 import {assignedScopeRoles} from '../types';
 import {money,addDays} from '../money';
 import {can,totals,drawer,metrics,blockedDuring,blockedTonight,occupant,roomStatus} from '../selectors';
@@ -170,7 +171,7 @@ export function aiFlags(s:State,uid?:string):AIFlag[]{
   // Large discounts in the last 7 days
   const from=addDays(s.date,-6);
   for(const b of s.bookings)for(const l of b.lines)if(l.kind==='discount'&&l.date>=from&&l.date<=s.date&&-l.amount>limit)
-    out.push({id:'disc:'+l.id,severity:-l.amount>2*limit?'High':'Medium',title:`Large discount · ${b.guest} (${b.id})`,
+    out.push({id:'disc:'+l.id,severity:-l.amount>2*limit?'High':'Medium',title:`Large discount · ${b.guest} (${bookingRef(b)})`,
       detail:`${money(-l.amount)} discount on ${l.date} is above the ${money(limit)} limit. “${l.label}”.`,page:'folios',money:true});
   // Cash difference / formula mismatch
   if(s.shift?.date===s.date&&s.shift.counted!==s.shift.expected){const diff=s.shift.counted-s.shift.expected;
@@ -189,11 +190,11 @@ export function aiFlags(s:State,uid?:string):AIFlag[]{
       detail:`${b.guest} arrives today; room ${r.id} is ${roomStatus(s,r).toLowerCase()}.`,page:'housekeeping',money:false});}
   // Unbalanced folios
   for(const b of s.bookings){const t=totals(b);
-    if(b.status==='Departed'&&(t.balance!==0||t.deposit!==0))out.push({id:'unbal:'+b.id,severity:'High',title:`Departed folio not settled · ${b.guest} (${b.id})`,
+    if(b.status==='Departed'&&(t.balance!==0||t.deposit!==0))out.push({id:'unbal:'+b.id,severity:'High',title:`Departed folio not settled · ${b.guest} (${bookingRef(b)})`,
       detail:`${t.balance!==0?`Balance ${money(t.balance)}`:''}${t.balance!==0&&t.deposit!==0?'; ':''}${t.deposit!==0?`deposit ${money(t.deposit)} still held`:''} after departure.`,page:'folios',money:true});
     else if(b.status==='In house'&&b.departure<=s.date&&t.balance>0)out.push({id:'overdue:'+b.id,severity:'Medium',title:`Overdue departure with balance · ${b.guest}`,
       detail:`Room ${b.room} was due out ${b.departure}; ${money(t.balance)} still due.`,page:'folios',money:true});
-    else if(b.status==='In house'&&t.balance<0&&b.lines.length)out.push({id:'credit:'+b.id,severity:'Low',title:`Credit balance · ${b.guest} (${b.id})`,
+    else if(b.status==='In house'&&t.balance<0&&b.lines.length)out.push({id:'credit:'+b.id,severity:'Low',title:`Credit balance · ${b.guest} (${bookingRef(b)})`,
       detail:`Receipts exceed charges by ${money(-t.balance)} — apply to later nights or refund.`,page:'folios',money:true});}
   // Pending approvals / expenses waiting
   const pa=s.approvals.filter(a=>a.status==='Pending'),pe=s.expenses.filter(e=>e.status==='Pending');
@@ -261,7 +262,7 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
     return ans('Arrivals today',x.due.length?`${plural(x.due.length,'arrival')} still to check in; ${x.done.length} already checked in today.`:`No arrivals left to check in; ${x.done.length} checked in today.`,
       [{label:'Due',value:String(x.due.length)},{label:'Checked in today',value:String(x.done.length)}],
       'Confirmed bookings with arrival on or before the business date (late arrivals included) are due; in-house stays that arrived today are done.',[link('arrivals','Arrivals & check-in'),link('reservations','Reservations')],
-      x.due.map(b=>`${b.guest} · room ${b.room} · ${b.id}${b.arrival<s.date?' · late since '+b.arrival:''}${s.rooms.find(r=>r.id===b.room)?.hk!=='Ready'?' · room not ready':''}`));}
+      x.due.map(b=>`${b.guest} · room ${b.room} · ${bookingRef(b)}${b.arrival<s.date?' · late since '+b.arrival:''}${s.rooms.find(r=>r.id===b.room)?.hk!=='Ready'?' · room not ready':''}`));}
   case 'departures':{const x=aiDepartures(s);
     return ans('Departures today',x.due.length?`${plural(x.due.length,'departure')} due to check out; ${x.done.length} already departed.`:`No departures due; ${x.done.length} departed today.`,
       [{label:'Due',value:String(x.due.length)},{label:'Departed',value:String(x.done.length)}],

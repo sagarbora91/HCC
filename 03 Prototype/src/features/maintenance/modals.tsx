@@ -1,6 +1,7 @@
 // Module 15 · Maintenance dialogs (desktop dialogs; full-screen sheets on phones). All mutations via run().
 // mnt-wo · mnt-new · mnt-hold · mnt-part · mnt-done · mnt-asset · mnt-plan · mnt-vendor · mnt-amc · mnt-receive
 import React,{useState} from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {Lock,Unlock,Check,Undo2,X,Info,Wrench,PauseCircle,PackagePlus,CheckCircle2,Play,TriangleAlert} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Empty,dateLabel} from '../../components/ui';
@@ -64,7 +65,7 @@ export function MntWoModal({id}:{id?:string}){
     :mode==='block'&&room?<form className="form mnt-inline-form" onSubmit={e=>{e.preventDefault();run({type:'MNT_WO_BLOCK',id:w.id,to:to||undefined},`Room ${room.id} blocked for maintenance`,{after:reset});}}>
         <p className="muted">Blocks room {room.id} from today ({dateLabel(s.date)}) so it cannot be sold. Same rules as a supervisor room block.</p>
         <label>Available again on (optional)<input type="date" value={to} min={addDays(s.date,1)} onChange={e=>setTo(e.target.value)}/></label>
-        {conflicts.length>0&&<div className="info-note mnt-warn" role="alert"><TriangleAlert size={16}/><span>Resolve active and future allocations first: {conflicts.map(b=>`${b.id} (${b.status})`).join(', ')}. Move the stay or choose an end date before the arrival.</span></div>}
+        {conflicts.length>0&&<div className="info-note mnt-warn" role="alert"><TriangleAlert size={16}/><span>Resolve active and future allocations first: {conflicts.map(b=>`${bookingRef(b)} (${b.status})`).join(', ')}. Move the stay or choose an end date before the arrival.</span></div>}
         <div className="modal-actions"><button type="button" className="btn" onClick={reset}>Back</button><button className="btn primary" disabled={busy||conflicts.length>0}><Lock size={15}/> Block room</button></div></form>
     :<div className="modal-actions">
       {worker&&w.status==='Open'&&<button className="btn primary" disabled={busy} onClick={()=>run({type:'MNT_WO_START',id:w.id},'Work started')}><Play size={15}/> Start</button>}

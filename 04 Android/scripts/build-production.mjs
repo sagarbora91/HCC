@@ -77,6 +77,10 @@ export function checkApkDump(badging,xmltree){
   if(/android:usesCleartextTraffic\([^)]*\)=\(type 0x12\)0xffffffff/.test(xmltree))problems.push('cleartext traffic is allowed');
   return {ok:problems.length===0,problems,pkg};
 }
+/** A stale checkout (no `npm ci`) silently drops @capacitor/preferences from the gradle files at `cap sync` and the APK then cannot keep its sign-in. Returns the problem, or ''. */
+export function checkCapacitorPlugins(androidRoot){
+  return existsSync(join(androidRoot,'node_modules','@capacitor','preferences'))?'':`node_modules/@capacitor/preferences is missing in ${androidRoot}. Run "npm ci" in 04 Android first (every build, after every checkout): without it "cap sync" silently drops the Preferences plugin from the APK.`;
+}
 /** Newest build-tools aapt under ANDROID_HOME / ANDROID_SDK_ROOT. */
 export function findAapt(){
   const sdk=process.env.ANDROID_HOME||process.env.ANDROID_SDK_ROOT;if(!sdk)return undefined;
@@ -99,6 +103,7 @@ const verifyAndReport=apk=>{
 const main=process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url);
 if(main&&args.includes('--verify')){verifyAndReport(resolve(opt('--verify')??''));process.exit(0);}
 if(main){
+  const npmProblem=checkCapacitorPlugins(root);if(npmProblem)fail(npmProblem);
   const release=args.includes('--release');
   if(release){const p=checkReleaseConfig(join(root,'android'));if(p.length)fail('release configuration:\n  - '+p.join('\n  - '));}
   const built=join(proto,'dist','production','index.html');

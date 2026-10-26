@@ -2,6 +2,7 @@
 // sticky Next) overriding 'guest-checkin'; walk-in as a 3-screen flow overriding 'guest-walkin', with partial-failure recovery.
 // Same commands as the desktop guests stream: REGISTER, MOVE, CHECKIN (check-in) and BOOK → REGISTER → CHECKIN (walk-in).
 import {useStepBack} from '../../app/native';
+import {bookingRef} from '../../domain/bookingRef';
 import React,{useState,useRef} from 'react';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,Printer,UserPlus,Info,Loader2,X,RotateCcw} from 'lucide-react';
 import {useHcc} from '../../app/context';
@@ -55,7 +56,7 @@ export function MfCheckin({id}:{id?:string}){
   const [step,setStep]=useState(()=>st.start);
   useStepBack(step>1,()=>{setStep(x=>Math.max(1,x-1));setFail('');});
   if(!permission('checkin'))return <Empty title="Not permitted" body="Check-in needs the check-in permission."/>;
-  if(b&&!['Confirmed','In house'].includes(b.status))return <><div className="modal-heading"><h2>Check-in unavailable</h2><p>{b.guest} · {b.id} is {b.status}.</p></div><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
+  if(b&&!['Confirmed','In house'].includes(b.status))return <><div className="modal-heading"><h2>Check-in unavailable</h2><p>{b.guest} · {bookingRef(b)} is {b.status}.</p></div><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
   if(b&&b.arrival>s.date&&b.status==='Confirmed')return <><div className="modal-heading"><h2>Not arriving yet</h2><p>{b.guest} arrives {shortDate(b.arrival)}. Check-in opens on the arrival business date.</p></div><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
   const g=b?guestForBooking(s,b):undefined;const room=b?s.rooms.find(r=>r.id===b.room):undefined;
   const goStep=(n:number)=>{setStep(n);setFail('');document.querySelector('.m-sheet')?.scrollTo?.({top:0});};
@@ -74,7 +75,7 @@ export function MfCheckin({id}:{id?:string}){
   else if(step===1){const list=stayArrivals(s).filter(x=>`${x.guest} ${x.id} ${x.room}`.toLowerCase().includes(q.toLowerCase()));
     body=<><MfSearch value={q} onChange={setQ} placeholder="Search today’s arrivals"/>
       <div className="mf-options" role="radiogroup" aria-label="Today's arrivals">{list.map(x=><label key={x.id} className={'mf-option'+(x.id===bid?' on':'')}><input type="radio" name="mf-arr" checked={x.id===bid} onChange={()=>{setBid(x.id);setTariffOk(false);}}/>
-        <span><strong>{x.guest}</strong><small>{x.id} · room {x.room} · {shortDate(x.arrival)} – {shortDate(x.departure)}{x.registered?' · verified':''}</small></span></label>)}</div>
+        <span><strong>{x.guest}</strong><small>{bookingRef(x)} · room {x.room} · {shortDate(x.arrival)} – {shortDate(x.departure)}{x.registered?' · verified':''}</small></span></label>)}</div>
       {!list.length&&<Empty title="No matching arrivals" body="Use Walk-in for a guest without a reservation."/>}
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={16}/>Walk-in</button>{nextBtn}</div></>;}
   else if(b&&step===2){
@@ -111,7 +112,7 @@ export function MfCheckin({id}:{id?:string}){
           <button className="btn small-btn" onClick={()=>goStep(3)}>Choose another room</button>
           <button className="btn small-btn" onClick={()=>{closeModal();go('arrivals');}}>Back to arrivals</button></div></div></div>}
       <div className="modal-actions">{prevBtn}<button type="button" className="btn primary" disabled={busy||st.missing.length>0} onClick={checkin}><DoorOpen size={16}/>Check in</button></div></>;}
-  return <><div className="modal-heading"><div className="eyebrow">CHECK-IN{b?' · '+b.id:''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} – {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}</div>
+  return <><div className="modal-heading"><div className="eyebrow">CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} – {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}</div>
     {b?.status!=='In house'&&<Stepper steps={mfCheckinSteps} current={step-1}/>}
     {b?.status!=='In house'&&<h3 className="mf-sub">Step {step} of 6 · {mfCheckinSteps[step-1]}</h3>}
     {body}</>;

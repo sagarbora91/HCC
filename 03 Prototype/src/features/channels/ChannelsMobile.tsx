@@ -1,5 +1,6 @@
 // Module 21 · OTA channels — phone page: chips Inbox / Channels / Push / Commission; cards instead of tables; one sticky primary action.
 import React from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {RefreshCw,Send,Printer} from 'lucide-react';
 import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,CHN_PUSH_DAYS} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -40,7 +41,7 @@ export function ChannelsMobile(){
       <div className="chn-mkpis"><KpiCard label="Commission due" value={money(rep.total.commission)} sub={pl(rep.total.bookings,'booking')}/><KpiCard label="Net to hotel" value={money(rep.total.net)} sub={pl(rep.total.nights,'room night')}/></div>
       {rep.byChannel.map(x=><ListCard key={x.channel.id} title={x.channel.name} sub={`${pl(x.bookings,'booking')} · ${pl(x.nights,'night')} · ${chnPct(x.channel.commissionBps)}`} meta={`Revenue ${money(x.base)} · net ${money(x.net)}`} right={<strong>{money(x.commission)}</strong>}/>)}
       <h3 className="m-group">BOOKINGS</h3>
-      {rep.rows.map(x=><ListCard key={x.booking.id} title={x.booking.guest} sub={`${chnChannelName(s,x.channel)} · ${x.booking.id} · ${x.booking.status}`} meta={`${stay(x.booking.arrival,x.booking.departure)} · ${x.nights} × ${money(x.booking.rate)}`} right={<strong>{money(x.commission)}</strong>}/>)}
+      {rep.rows.map(x=><ListCard key={x.booking.id} title={x.booking.guest} sub={`${chnChannelName(s,x.channel)} · ${bookingRef(x.booking)} · ${x.booking.status}`} meta={`${stay(x.booking.arrival,x.booking.departure)} · ${x.nights} × ${money(x.booking.rate)}`} right={<strong>{money(x.commission)}</strong>}/>)}
       {!rep.rows.length&&<Empty title="No OTA bookings yet" body="Accept a reservation from the inbox."/>}
       <StickyFooter><button className="btn primary" onClick={()=>open({type:'chn-commission-print'})}><Printer size={18}/> Print report</button></StickyFooter></>}
   </div>;

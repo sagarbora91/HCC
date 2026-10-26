@@ -1,6 +1,7 @@
 // M11 Checkout (phone override of 'checkout'): checklist with ticks + text, Confirm only when clear, invoice preview sheet.
 // Phone override of 'invoice': phone-friendly invoice that still prints (DEC-047) at A4 and in a phone print preview.
 import {printDocument} from '../../app/native';
+import {bookingRef} from '../../domain/bookingRef';
 import React from 'react';
 import {Check,AlertTriangle,ArrowRight,Printer,Building2,Receipt,Hotel,Info} from 'lucide-react';
 import {money,totals,gstLineSplit,gstSplitLines,gstHalfPct,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
@@ -15,7 +16,7 @@ export function MmCheckout({id}:{id?:string}){
   if(!b)return <Empty title="This record is unavailable"/>;
   const t=totals(b),c=mmCheckoutChecklist(s,b),cc=folioCompanyCreditState(s,b,t.balance);
   const canCheckout=permission('checkout');
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · ROOM {b.room}</div><h2>Checkout</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}</div><h2>Checkout</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
     <section className="mm-card mm-checklist" aria-label="Checkout checklist">
       {c.items.map(i=><div key={i.id} className={'mm-check '+(i.ok?'ok':'todo')}>
         <span className="mm-check-icon" aria-hidden>{i.ok?<Check size={18}/>:<AlertTriangle size={18}/>}</span>
@@ -57,7 +58,7 @@ export function MmInvoice({id}:{id?:string}){
       {process.env.HCC_BUILD==='production'?<div className="invoice-stamp">Folio summary — the tax invoice is issued and kept on the hotel server</div>
         :<div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>}
       <div className="mm-inv-meta">
-        <div><small>GUEST</small><strong>{b.guest}</strong><span>Room {b.room} · {plural(b.people,'guest')} · {b.id}</span>{b.company&&<span>Bill to: {b.company.name}{b.company.gstin?` · ${process.env.HCC_BUILD==='production'?'GSTIN':'GSTIN (placeholder)'} ${b.company.gstin}`:''}</span>}</div>
+        <div><small>GUEST</small><strong>{b.guest}</strong><span>Room {b.room} · {plural(b.people,'guest')} · {bookingRef(b)}</span>{b.company&&<span>Bill to: {b.company.name}{b.company.gstin?` · ${process.env.HCC_BUILD==='production'?'GSTIN':'GSTIN (placeholder)'} ${b.company.gstin}`:''}</span>}</div>
         <div><small>{b.invoiceNo?(process.env.HCC_BUILD==='production'?'TAX INVOICE NO.':'SAMPLE INVOICE NO.'):'FOLIO PREVIEW'}</small><strong>{b.invoiceNo??'Not yet issued'}</strong><span>{shortDate(b.arrival)} — {shortDate(b.departure)}</span><span>{process.env.HCC_BUILD==='production'?(b.invoiceNo?'Issued by the hotel server':'Issued after checkout'):b.invoiceNo?'Allocated once at checkout':'Number allocated once at checkout'}</span><IssueInvoiceAction b={b} className="btn small-btn no-print"/></div>
       </div>
       <table className="mm-inv-table"><thead><tr><th>Description</th><th>Date</th><th className="number">Net</th><th className="number">CGST</th><th className="number">SGST</th></tr></thead>

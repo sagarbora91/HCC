@@ -25,7 +25,7 @@ import {allPages,bookingFromList,bookingOf,learnListed,roomIdOf,versionOf,type S
 
 /** Server booking details (typed client DTO) → prototype Booking. Kept for the typed-client dialogs (single reads). */
 export function bookingFromServer(b:BookingDetails):Booking{
-  return {id:b.reservationId,guest:b.guest.name,email:b.guest.email??'',phone:b.guest.phone,people:b.adults,children:b.children,room:b.roomId,
+  return {id:b.reservationId,publicNo:b.publicNo||undefined,guest:b.guest.name,email:b.guest.email??'',phone:b.guest.phone,people:b.adults,children:b.children,room:b.roomId,
     arrival:b.arrival,departure:b.departure,rate:b.nightlyRatePaise,source:b.source,status:b.status as BookingStatus,registered:!!b.registered,
     lines:[],receipts:[],version:1,notes:'',holdUntil:b.holdUntil?utcToClock(b.holdUntil):undefined,otaChannel:b.otaChannel,company:b.company} as Booking;
 }

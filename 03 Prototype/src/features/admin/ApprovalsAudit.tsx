@@ -1,5 +1,6 @@
 // SCR-17 Approvals & audit (BL-026): approvals inbox with derived expiry/invalidation, pending expenses, full audit log.
 import React,{useState} from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {Lock} from 'lucide-react';
 import {money,authorize,adminApprovalInbox,adminDecideBlock,adminAuditFilter,adminAuditDetailVisible,adminUserActive,adminExpenseBlock,ADMIN_INBOX_TABS} from '../../services/mock';
 import type {AdminInboxRow} from '../../services/mock';
@@ -32,7 +33,7 @@ function InboxRow({r}:{r:AdminInboxRow}){
   const live=a.status==='Pending';
   const approveBlock=block||(r.status==='Expired'?'Expired — reject it and ask for a new request.':r.status==='Invalidated'?(r.derived||'Target changed')+' — reject it and request again.':undefined);
   return <tr><td><strong>{a.id}</strong>{a.decidedAt&&<small>decided {shortDate(a.decidedAt.slice(0,10))} {clockTime(a.decidedAt)}{a.approver?' by '+firstName(s.users.find(u=>u.id===a.approver)?.name||a.approver):''}</small>}</td>
-    <td className="adm-wrap">{r.kind}<small>{r.kind==='policy'?String(a.meta?.summary||r.target):booking?`${booking.guest} · ${booking.id}`:r.target||'—'}</small></td>
+    <td className="adm-wrap">{r.kind}<small>{r.kind==='policy'?String(a.meta?.summary||r.target):booking?`${booking.guest} · ${bookingRef(booking)}`:r.target||'—'}</small></td>
     <td className="number">{a.amount?money(a.amount):'—'}</td><td>{r.requester}</td><td className="adm-wrap">{a.reason}{r.kind==='policy'&&<small>{String(a.meta?.before||'')} → {String(a.meta?.after||'')}</small>}</td>
     <td>v{a.version}</td><td>{a.expiresAt?<>{shortDate(a.expiresAt.slice(0,10))}<small>{clockTime(a.expiresAt)} IST</small></>:<span className="muted">No expiry</span>}</td>
     <td><StatusPill status={r.status}/>{r.derived&&<small className="adm-wrap">{r.derived}</small>}</td>

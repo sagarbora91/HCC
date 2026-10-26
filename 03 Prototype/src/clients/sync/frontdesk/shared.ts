@@ -54,7 +54,7 @@ export function companyOf(x:{company?:{name:string;gstin?:string|null}|null}):{n
 /** Server list item → prototype Booking. Folio lines/receipts are the money area's (patch loader); `version` stays neutral (the server version is in `ids`). */
 export function bookingFromList(x:SrvReservationItem,emailOf:(guestId:string|undefined)=>string|undefined):Booking{
   const gid=x.guestId==null?undefined:String(x.guestId);const n=parseBookingNotes(x.notes);
-  const b:Booking={id:String(x.reservationId),guest:x.guestName,email:emailOf(gid)??n.email??'',people:x.adults,room:x.roomNo,arrival:x.arrival,departure:x.departure,
+  const b:Booking={id:String(x.reservationId),publicNo:x.publicNo||undefined,guest:x.guestName,email:emailOf(gid)??n.email??'',people:x.adults,room:x.roomNo,arrival:x.arrival,departure:x.departure,
     rate:x.nightlyRatePaise??0,source:x.source,status:BOOKING_STATUS[x.status]??(x.status as BookingStatus),registered:x.registered,lines:[],receipts:[],version:1,notes:n.notes};
   if(x.phone)b.phone=x.phone;if(x.children)b.children=x.children;if(x.holdUntil)b.holdUntil=utcToClock(x.holdUntil);
   if(n.otaChannel)b.otaChannel=n.otaChannel;

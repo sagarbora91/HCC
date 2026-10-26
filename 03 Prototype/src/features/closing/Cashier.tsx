@@ -1,5 +1,6 @@
 // SCR-11 Cashier shift: opening float, today's cash movements, expected-cash formula, count, difference approval.
 import React,{useState} from 'react';
+import {bookingRefOf} from '../../domain/bookingRef';
 import {Wallet,ArrowRight,ShieldCheck,Check,X} from 'lucide-react';
 import {money,shiftExpected,shiftMovements,shiftStatus,SHIFT_MANAGER_DIFF_LIMIT,closingUnlimitedRoles,isDayClosed} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -37,7 +38,7 @@ export function Cashier(){
     <section className="card"><div className="section-title"><h2>Today’s cash movements</h2><span className="muted">{mv.length} movement{mv.length===1?'':'s'} · cash only</span></div>
       <div className="table-wrap"><table><thead><tr><th>Reference</th><th>Movement</th><th>Guest / detail</th><th>Recorded by</th><th className="number">Drawer effect</th></tr></thead><tbody>
         {mv.map(m=><tr key={m.id}><td><strong>{m.id}</strong><small>{m.reference}</small></td><td>{m.label}</td>
-          <td>{m.booking?(permission('billing')||permission('reservations')?<button className="text-btn" onClick={()=>booking(m.booking!)}>{m.guest} · {m.booking}</button>:<span>{m.booking}</span>):m.order?(permission('billing')?<button className="text-btn" onClick={()=>go('pos')}>{m.guest??'Outlet bill'} · {m.order}</button>:<span>{m.order}</span>):<span className="muted">{m.kind==='expense-reversal'?'Reversal':'Expense'}</span>}</td>
+          <td>{m.booking?(permission('billing')||permission('reservations')?<button className="text-btn" onClick={()=>booking(m.booking!)}>{m.guest} · {bookingRefOf(s.bookings,m.booking)}</button>:<span>{bookingRefOf(s.bookings,m.booking)}</span>):m.order?(permission('billing')?<button className="text-btn" onClick={()=>go('pos')}>{m.guest??'Outlet bill'} · {m.order}</button>:<span>{m.order}</span>):<span className="muted">{m.kind==='expense-reversal'?'Reversal':'Expense'}</span>}</td>
           <td>{name(m.actor)}</td><td className="number">{m.amount>=0?'+':'−'}{money(Math.abs(m.amount))}</td></tr>)}
       </tbody></table>{!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds, restaurant cash bills and posted cash expenses appear here."/>}</div></section></>;
 }

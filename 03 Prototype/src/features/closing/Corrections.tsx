@@ -1,5 +1,6 @@
 // Closed-date corrections (DEC-028, REQ-CLOSE-006): request → Owner approves → adjustment line dated today referencing the closed date.
 import React,{useState} from 'react';
+import {bookingRefOf} from '../../domain/bookingRef';
 import {Info} from 'lucide-react';
 import {money,rbacCanRequestClosedCorrection,cbIsLocked,cbLockedMessage} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -33,7 +34,7 @@ export function Corrections(){
       </form>
       {!list.length?<Empty title="No correction requests" body="Requests and their decisions appear here."/>:<div className="request-list">{list.map(a=>{
         const own=a.actor===uid,owner=user.role==='Owner',amount=Number(a.meta?.amount);
-        return <div className="request" key={a.id}><div><strong><button className="text-btn" onClick={()=>booking(a.booking)}>{a.booking}</button> · {money(amount)} for {String(a.meta?.date)}</strong><p>{a.id} · {a.reason} · requested by {s.users.find(u=>u.id===a.actor)?.name}</p></div>
+        return <div className="request" key={a.id}><div><strong><button className="text-btn" onClick={()=>booking(a.booking)}>{bookingRefOf(s.bookings,a.booking)}</button> · {money(amount)} for {String(a.meta?.date)}</strong><p>{a.id} · {a.reason} · requested by {s.users.find(u=>u.id===a.actor)?.name}</p></div>
           <Pill tone={a.status==='Pending'?'orange':a.status==='Approved'?'green':'neutral'}>{a.status}</Pill>
           {a.status==='Pending'&&(owner&&!own?<><button className="btn small-btn" disabled={busy||cbIsLocked(s,String(a.meta?.date))} title={cbIsLocked(s,String(a.meta?.date))?cbLockedMessage(String(a.meta?.date),'posting this correction'):undefined} onClick={()=>run({type:'CORRECTION_ADJUST_DECIDE',id:a.id,approve:true,key:'corr:'+a.id},'Correction approved — adjustment posted today')}>Approve</button>
             <button className="text-btn" disabled={busy} onClick={()=>run({type:'CORRECTION_ADJUST_DECIDE',id:a.id,approve:false,key:'corr:'+a.id},'Correction rejected')}>Reject</button></>

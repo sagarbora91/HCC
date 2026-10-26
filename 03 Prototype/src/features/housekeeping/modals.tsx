@@ -1,5 +1,6 @@
 // Stream D dialogs. open({type:'hk-reject', id:taskId}) · open({type:'room-block', id:roomId}) · open({type:'room-repair', id:roomId}).
 import React,{useState} from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {Info,Lock,Wrench,TriangleAlert} from 'lucide-react';
 import {hkAllocationsOverlapping,HK_REPAIR_ASSIGNEE,addDays} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -38,7 +39,7 @@ export function BlockModal({id}:{id?:string}){
       <div className="form-row"><label>From<input type="date" value={from} min={s.date} onChange={e=>setFrom(e.target.value)} required/></label><label>To (optional)<input type="date" value={to} min={from?addDays(from,1):s.date} onChange={e=>setTo(e.target.value)}/></label></div>
       <small className="muted">{to?`Blocks ${shortDate(from)} → ${shortDate(to)} (${to>from?'available again on '+shortDate(to):'invalid'}).`:'No end date: the block stays until a supervisor unblocks the room.'}</small>
       {touched&&errors.map(x=><small key={x} className="hk-reason error" role="alert">{x}</small>)}
-      {conflicts.length>0&&<div className="info-note hk-conflict" role="alert"><TriangleAlert size={16}/><span>Resolve active and future allocations before blocking this room: {conflicts.map(b=>`${b.id} (${b.status}, ${shortDate(b.arrival)} → ${shortDate(b.departure)})`).join(', ')}. Move or shorten these stays, or choose other dates.</span></div>}
+      {conflicts.length>0&&<div className="info-note hk-conflict" role="alert"><TriangleAlert size={16}/><span>Resolve active and future allocations before blocking this room: {conflicts.map(b=>`${bookingRef(b)} (${b.status}, ${shortDate(b.arrival)} → ${shortDate(b.departure)})`).join(', ')}. Move or shorten these stays, or choose other dates.</span></div>}
       <div className="info-note"><Info size={16}/>Inspection never clears a block. Completing a repair does not unblock either — unblock the room from its details when it is ready to sell.</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>open({type:'room',id:r.id})}>Back</button><button className="btn primary" disabled={busy||!!conflicts.length} title={conflicts.length?'Dates overlap existing allocations':''}><Lock size={15}/> {r.blocked?'Save block':'Block room'}</button></div>
     </form></>;

@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {readHotelCa,checkReleaseConfig,checkApkDump} from './build-production.mjs';
+import {readHotelCa,checkReleaseConfig,checkApkDump,checkCapacitorPlugins} from './build-production.mjs';
 const androidDir=join(dirname(fileURLToPath(import.meta.url)),'..','android');
 
 const dir=mkdtempSync(join(tmpdir(),'hcc-ca-'));let n=0;
@@ -52,4 +52,14 @@ try{
     assert.equal(bad.ok,false);assert.equal(bad.problems.length,4,bad.problems.join(' | '));
   });
 }finally{rmSync(dir,{recursive:true,force:true});}
+{
+  const root=mkdtempSync(join(tmpdir(),'hcc-npm-'));
+  try{
+    ok('[v12fix-b] a checkout without node_modules/@capacitor/preferences is refused with "npm ci"',()=>{
+      assert.match(checkCapacitorPlugins(root),/npm ci/);
+      mkdirSync(join(root,'node_modules','@capacitor','preferences'),{recursive:true});
+      assert.equal(checkCapacitorPlugins(root),'');
+    });
+  }finally{rmSync(root,{recursive:true,force:true});}
+}
 console.log(`${n} build-production checks passed`);

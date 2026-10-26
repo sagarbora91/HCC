@@ -1,5 +1,6 @@
 // Module 24 · WhatsApp / notifications (simulated). Desktop page + phone page.
 import React,{useState} from 'react';
+import {bookingRef,bookingRefOf} from '../../domain/bookingRef';
 import {Send,FastForward,Zap,Pencil,ShieldOff,ShieldCheck} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,clockTime,shortDate} from '../../components/ui';
@@ -47,7 +48,7 @@ export function MsgMessagesPage(){
         <table><thead><tr><th>Queued</th><th>Guest</th><th>Channel</th><th>Message</th><th>Status</th><th>Action</th></tr></thead><tbody>
           {list.map(m=>{const st=msgStatus(m,s.clock);return <tr key={m.id}>
             <td>{shortDate(m.queuedAt.slice(0,10))} {clockTime(m.queuedAt)}<small>{m.id}</small></td>
-            <td><strong>{m.guest}</strong><small>{m.booking} · {m.to||'no recipient'}</small></td>
+            <td><strong>{m.guest}</strong><small>{bookingRefOf(s.bookings,m.booking)} · {m.to||'no recipient'}</small></td>
             <td><span className="msg-kind">{msgChannelIcon(m.channel)}{m.channel}</span></td>
             <td className="msg-cell-body"><strong>{msgTemplateName(s,m.template)}</strong><small>{m.body}</small>{m.blocked&&<small className="f-why">{m.blocked}</small>}</td>
             <td><MsgStatusPill st={st}/></td>
@@ -59,7 +60,7 @@ export function MsgMessagesPage(){
         <div className="section-title"><h2>Pending triggers</h2>{a.canAct&&<button className="btn primary" disabled={busy||!a.pending.length} onClick={a.queueAll}><Zap size={16}/> Queue {a.pending.length||''} now</button>}</div>
         {!a.pending.length?<Empty title="No pending triggers" body="New bookings, check-ins, payments and checkouts create triggers here."/>:
           <div className="table-wrap"><table><thead><tr><th>Event</th><th>Guest</th><th>Template</th><th>Channel</th><th>Consent</th></tr></thead><tbody>
-            {a.pending.map(t=>{const c=msgConsent(s,msgGuestKey(t.booking));return <tr key={t.key}><td><strong>{t.label}</strong><small>rule {t.rule.id} · {t.key}</small></td><td>{t.booking.guest}<small>{t.booking.id} · room {t.booking.room}</small></td>
+            {a.pending.map(t=>{const c=msgConsent(s,msgGuestKey(t.booking));return <tr key={t.key}><td><strong>{t.label}</strong><small>rule {t.rule.id} · {t.key}</small></td><td>{t.booking.guest}<small>{bookingRef(t.booking)} · room {t.booking.room}</small></td>
               <td>{msgTemplate(s,t.rule.template)?.name}</td><td>{t.rule.channel}</td><td>{c.optOut?<Pill tone="orange">Opted out · will not send</Pill>:consentText(c)}</td></tr>;})}
           </tbody></table></div>}
         <div className="section-title"><h2>Trigger rules</h2><span className="muted">{canEdit?'Owner / Manager can change rules':'View only — Owner or Manager changes rules'}</span></div>
