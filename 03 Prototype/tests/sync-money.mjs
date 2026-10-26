@@ -4,7 +4,7 @@
 import {loadSync,loadPages,fakeServer,startRuntime,reply,capabilities,ownErrors} from './_sync-harness.mjs';
 
 const CMDS=['RecordReceipt','PostCharge','RequestAdjustment','DecideApproval','ExecuteAdjustment','CheckoutStay','IssueInvoice','RequestCreditNote','DecideCreditNote',
-  'SubmitShiftCount','LockCashBookDay','ReopenCashBookDay','CreateGroupBlock','CreateGroup'];
+  'SubmitShiftCount','LockCashBookDay','ReopenCashBookDay','CreateGroupBlock','CreateGroup','SaveCompany','SetCompanyLimit','DecideCompanyLimit'];
 
 export async function register({test,assert,M}){
   const S=await loadSync();
@@ -37,6 +37,8 @@ export async function register({test,assert,M}){
       {businessDate:'2026-10-22',status:'Closed',locked:true,lockedBy:3,lockedUtc:'2026-10-23T05:00:00.000Z',history:[{action:'lock',principalId:3,atUtc:'2026-10-23T05:00:00.000Z',reason:null}]},
       {businessDate:'2026-10-23',status:'Closed',locked:false,lockedBy:null,lockedUtc:null,history:[{action:'lock',principalId:3,atUtc:'2026-10-24T04:00:00.000Z',reason:null},{action:'reopen',principalId:1,atUtc:'2026-10-24T04:30:00.000Z',reason:'Late bill'}]},
       {businessDate:'2026-10-24',status:'Open',locked:false,lockedBy:null,lockedUtc:null,history:[]}]},
+    companies:{companies:[{companyId:5,name:'Deccan Pharma Distributors',gstin:'27ZZFIC0009F1Z5',contact:'Asha Rao',phone:null,email:null,city:'Pune',rates:{Deluxe:350000},creditLimitPaise:50000000,version:'CO5'}],
+      requests:[{requestId:9,companyId:5,fromPaise:50000000,toPaise:80000000,reason:'Annual contract',status:'Pending',requestedBy:2,requestedUtc:'2026-10-24T04:30:00.000Z',decidedBy:null,note:null}]},
     groups:[{groupId:61,code:'GRP-61',name:'Sharma wedding',status:'Open',groupBlockId:71,blockCode:'SHARMA-1220',arrival:'2026-12-20',departure:'2026-12-22',members:1,version:'G1'},
       {groupId:62,code:'GRP-62',name:'Walk-in tour (no block)',status:'Open',groupBlockId:null,blockCode:null,arrival:null,departure:null,members:0,version:'G2'}]};
   const statement={groupId:61,code:'GRP-61',name:'Sharma wedding',status:'Open',organiser:'R. Sharma',billingName:'Sharma family',billingContact:'R. Sharma',gstin:null,
@@ -61,6 +63,7 @@ export async function register({test,assert,M}){
     'GET /cashier/desk':()=>st.desk,
     'GET /cashbook':()=>st.cashbook,
     'GET /groups':()=>st.groups,
+    'GET /groups/companies':()=>st.companies,
     'GET /groups/:id/statement':({params})=>params.id==='61'?statement:reply(404,{code:'NOT_FOUND',message:'Group not found.'}),
     'GET /availability':()=>({businessDate:'2026-10-24',arrival:'2026-12-20',departure:'2026-12-22',nights:2,party:1,types:[{roomTypeId:2,code:'Deluxe',maxOccupancy:3,availableRooms:5,violations:[]},
       {roomTypeId:3,code:'Suite',maxOccupancy:4,availableRooms:2,violations:[]}],rooms:[]}),
@@ -98,7 +101,7 @@ export async function register({test,assert,M}){
     const g=s0.state.groupsX;assert.equal(g.blocks.length,1,'groups without a block are not block cards');
     assert.deepEqual([g.blocks[0].id,g.blocks[0].name,g.blocks[0].billTo,g.blocks[0].cutoff,g.blocks[0].allot,g.blocks[0].rates,g.blocks[0].members],
       ['61','Sharma wedding','company','2026-12-10',{Deluxe:4},{Deluxe:180000},[{booking:'1301',type:'Deluxe'}]]);
-    assert.deepEqual([g.companies,g.requests,g.overrides],[[],[],[]]);
+    assert.deepEqual([g.companies.length,g.requests.length,g.overrides],[1,1,[]],'companies and the pending limit request come from GET /groups/companies');
   });
   const P=await loadPages();const shown=[P.renderPages(s0.state,'1',false),P.renderPages(s0.state,'1',true)];
   test('[W4-3 money] Every desktop and phone page renders on the money slices',()=>{assert.deepEqual(shown.map(x=>x.errors),[{},{}]);assert.ok(shown[0].rendered>10);});
@@ -211,6 +214,25 @@ export async function register({test,assert,M}){
     assert.ok(grp.calls.includes('GET /groups'));
   });
 
+  // ── W4 N1: company accounts ──
+  const sc1=await run({type:'GRP_COMPANY_SAVE',name:' Kale Textiles ',gstin:'27ZZFIC0010F1Z5',contact:'S. Kale',phone:'',email:'',city:'Latur',rates:{Deluxe:300000,Suite:0},creditLimit:20000000,key:'co:1'});const c1=srv.commands('SaveCompany')[0];
+  const sc2=await run({type:'GRP_COMPANY_SAVE',id:'5',name:'Deccan Pharma Distributors',gstin:'27ZZFIC0009F1Z5',contact:'Asha Rao',city:'Pune',rates:{Deluxe:360000},key:'co:2'});const c2=srv.commands('SaveCompany')[0];
+  const ls=await run({type:'GRP_LIMIT_SET',company:'5',limit:60000000,reason:'Review',key:'co:3'});const lsCmd=srv.commands('SetCompanyLimit')[0];
+  const ld=await run({type:'GRP_LIMIT_DECIDE',id:'9',approve:true,note:'ok',key:'co:4'});const ldCmd=srv.commands('DecideCompanyLimit')[0];
+  test('[W4 N1] groups loader: companies (limit, rates, GSTIN) and the pending limit request; GRP_COMPANY_SAVE / GRP_LIMIT_SET / GRP_LIMIT_DECIDE → SaveCompany / SetCompanyLimit / DecideCompanyLimit with version, groups reload',()=>{
+    const g=s0.state.groupsX;
+    assert.deepEqual(g.companies.map(c=>[c.id,c.name,c.gstin,c.rates,c.creditLimit,c.contact,c.city]),[['5','Deccan Pharma Distributors','27ZZFIC0009F1Z5',{Deluxe:350000},50000000,'Asha Rao','Pune']]);
+    assert.deepEqual(g.requests.map(r=>[r.id,r.company,r.from,r.to,r.status,r.actor]),[['9','5',50000000,80000000,'Pending','2']]);
+    assert.equal(rt.ids.version('company','5'),'CO5');
+    for(const x of [sc1,sc2,ls,ld])assert.ok(x.r.ok,x.r.text);
+    assert.deepEqual(c1.body,{name:'Kale Textiles',gstin:'27ZZFIC0010F1Z5',contact:'S. Kale',phone:null,email:null,city:'Latur',rates:{Deluxe:300000},companyId:null,creditLimitPaise:20000000});
+    assert.equal(c1.key,'co:1');
+    assert.deepEqual([c2.body.companyId,c2.body.creditLimitPaise,c2.body.expectedVersion,c2.body.rates],[5,0,'CO5',{Deluxe:360000}]);
+    assert.deepEqual(lsCmd.body,{companyId:5,limitPaise:60000000,reason:'Review'});
+    assert.deepEqual(ldCmd.body,{requestId:9,approve:true,note:'ok'});
+    assert.ok(sc1.calls.includes('GET /groups')&&sc1.calls.includes('GET /groups/companies'));
+  });
+
   // Refusals: prechecks (no request), unmapped commands, a folio whose posted GST disagrees with its snapshot.
   st.desk={businessDate:'2026-10-24',tills:[]};await rt.refresh();
   srv.reset();
@@ -218,14 +240,14 @@ export async function register({test,assert,M}){
   const refundDirect=await rt.run({type:'PAYMENT',id:'1201',amount:1000,kind:'refund',method:'UPI',reference:'x',key:'pay:10'});
   const split=await rt.run({type:'PAYMENT',id:'1201',amount:1000,kind:'payment',tenders:[{method:'UPI',amount:600,reference:'a'},{method:'Card',amount:300,reference:'b'}],key:'pay:11'});
   const refusedCalls=srv.calls.length;
-  const unmapped=await Promise.all(['GRP_LIMIT_SET','GRP_ROOMING','GRP_RELEASE'].map(type=>rt.run({type})));
+  const unmapped=await Promise.all(['GRP_ROOMING','GRP_RELEASE','GRP_BLOCK_CANCEL'].map(type=>rt.run({type})));
   const area=S.AREAS.find(a=>a.id==='money');
   st.folio={...st.folio,lines:[{...srvLines[0],taxPaise:srvLines[0].taxPaise+1}]};await rt.refresh();const s2=rt.get();
   test('[W4-3 money] Prechecks refuse without a request (cash with no open shift, direct refund, tenders not adding up); GRP company/limit/rooming/release stay unmapped with reasons; a folio with a re-rounded GST line is refused, last good data kept',()=>{
     assert.deepEqual([cashClosed.reason,refundDirect.reason,split.reason],['precheck','precheck','precheck']);
     assert.match(cashClosed.text,/cash shift is closed/);assert.match(refundDirect.text,/Request refund/);assert.equal(refusedCalls,0);
     assert.deepEqual(unmapped.map(r=>r.reason),['unmapped','unmapped','unmapped']);
-    assert.deepEqual(Object.keys(area.unmapped).sort(),['GRP_BLOCK_ALLOT','GRP_BLOCK_CANCEL','GRP_COMPANY_SAVE','GRP_LIMIT_DECIDE','GRP_LIMIT_SET','GRP_RELEASE','GRP_ROOMING']);
+    assert.deepEqual(Object.keys(area.unmapped).sort(),['GRP_BLOCK_ALLOT','GRP_BLOCK_CANCEL','GRP_RELEASE','GRP_ROOMING']);
     assert.match(s2.errors.bookings??'',/posted GST/);
     assert.ok(!s2.state.bookings.find(b=>b.id==='1201').lines.some(l=>l.id==='9001'&&M.lineTax(l)!==srvLines[0].taxPaise),'a re-rounded line never reaches the screens');
     assert.deepEqual([s2.state.shiftOpen,s2.state.openingCash,s2.state.shift],[false,0,undefined],'no till yet → shift closed, nothing to count');

@@ -6,7 +6,7 @@ import type {Booking,Line,Receipt,Approval} from '../../../services/mock';
 import {totals,lineTax} from '../../../services/mock';
 import type {ShiftRecord} from '../../../domain/streams/closing';
 import type {CBState,CBLogEntry} from '../../../domain/streams/cashbook';
-import type {GRPBlock} from '../../../domain/streams/groups';
+import type {GRPBlock,GRPCompany,GRPLimitRequest} from '../../../domain/streams/groups';
 import {HccClientError} from '../../errors';
 import {protoId,protoUserId,utcToClock,paise,isoDate} from '../map';
 
@@ -167,6 +167,20 @@ export function cashbookFromServer(r:SrvCashBookRange):CBState{
 }
 
 /** A server group with a block → the prototype's block card (read-only figures; member room types come from the reservation reads). */
+export type SrvCompany={companyId:number;name:string;gstin:string|null;contact:string|null;phone:string|null;email:string|null;city:string|null;rates:Record<string,number>;creditLimitPaise:number;version:string};
+export type SrvCompanyRequest={requestId:number;companyId:number;fromPaise:number;toPaise:number;reason:string;status:string;requestedBy:number;requestedUtc:string;decidedBy:number|null;note:string|null};
+export type SrvCompanyBook={companies:SrvCompany[];requests:SrvCompanyRequest[]};
+export function companyFromServer(c:SrvCompany):GRPCompany{
+  const rates:Record<string,number>={};for(const [t,v] of Object.entries(c.rates??{}))rates[t]=paise(v,'rate');
+  return {id:protoId(c.companyId),name:c.name,gstin:c.gstin??'',contact:c.contact??'',phone:c.phone??'',email:c.email??'',city:c.city??'',rates,
+    creditLimit:paise(c.creditLimitPaise,'creditLimitPaise'),openingOutstanding:0,limitHistory:[]};
+}
+export function limitRequestFromServer(r:SrvCompanyRequest):GRPLimitRequest{
+  const status=r.status==='Approved'||r.status==='Rejected'?r.status:'Pending';
+  return {id:protoId(r.requestId),company:protoId(r.companyId),from:paise(r.fromPaise,'fromPaise'),to:paise(r.toPaise,'toPaise'),reason:r.reason,actor:protoUserId(r.requestedBy),
+    at:utcToClock(r.requestedUtc),status,...(r.decidedBy!=null?{approver:protoUserId(r.decidedBy)}:{}),...(r.note?{note:r.note}:{})};
+}
+
 export function blockFromServer(g:SrvGroupStatement,arrival:string,departure:string,memberTypes:Record<string,string>):GRPBlock{
   const allot:Record<string,number>={},rates:Record<string,number>={},released:Record<string,number>={};
   for(const p of g.pickup){allot[p.roomType]=p.allotted;rates[p.roomType]=paise(p.ratePaise,'ratePaise');if(p.released)released[p.roomType]=p.released;}

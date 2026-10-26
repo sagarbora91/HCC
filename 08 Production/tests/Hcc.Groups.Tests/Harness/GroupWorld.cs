@@ -71,6 +71,9 @@ public sealed partial class GroupWorld : IAsyncDisposable
         Store = new SqlGroupStore(c);
         Commands = new GroupCommands(Platform.Commands, Store, Policy, new BillingGroupFolioPort(BillingStore), gst, Clock, new SqlBusinessDayGuard());
         Queries = new GroupQueries(Store, Policy, gst);
+        CompanyStore = new SqlCompanyStore(c);
+        Companies = new CompanyCommands(Platform.Commands, CompanyStore, Policy, Clock);
+        CompanyBook = new CompanyQueries(CompanyStore, Policy);
         Invoices = new GroupInvoiceSource(Store);
         Billing = new BillingService(Platform.Commands, BillingStore, Policy, new NoStayNights(), gst, Clock, gstStore, new SqlBusinessDayGuard());
         Folios = new BillingQueries(BillingStore, Policy, Clock);
@@ -89,6 +92,12 @@ public sealed partial class GroupWorld : IAsyncDisposable
     public GroupCommands Commands { get; }
 
     public GroupQueries Queries { get; }
+
+    public SqlCompanyStore CompanyStore { get; }
+
+    public CompanyCommands Companies { get; }
+
+    public CompanyQueries CompanyBook { get; }
 
     public GroupInvoiceSource Invoices { get; }
 

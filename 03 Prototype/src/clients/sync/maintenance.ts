@@ -293,6 +293,11 @@ export const maintenance:SyncArea={
       precheck:cmd=>String(cmd.reason??'').trim().length<3?'A reason is required.':undefined,
       async send(c){const m=c.cmd;
         await c.api.command('StockCountDecide',{countId:known(c.ids,'count',m.id,'Count'),approve:!!m.approve,reason:String(m.reason).trim()},{expectedVersion:version(c.ids,'count',m.id,'Count')});}},
+    {type:'INV_ITEM_CREATE',reload:['inventoryX'],
+      precheck:cmd=>!/^[A-Z0-9]+-[A-Z0-9]+$/.test(String(cmd.code??'').trim().toUpperCase())?'The code looks like LIN-BS (letters or digits, a dash, letters or digits).':String(cmd.name??'').trim().length<2?'Enter the item name.':undefined,
+      async send(c){const m=c.cmd;
+        await c.api.command('StockItemCreate',{code:String(m.code).trim().toUpperCase(),name:String(m.name).trim(),kind:m.kind,unit:String(m.unit??'pc').trim(),minQty:m.min??0,reorderQty:m.reorderQty??0,
+          stdX100:m.stdX100??undefined,unitCostPaise:Number(m.cost)>0?Number(m.cost):undefined,supplier:text(m.supplier)||undefined});}},
     {type:'INV_ITEM_SET',reload:['inventoryX'],
       async send(c){const m=c.cmd;
         await c.api.command('StockItemSet',{code:m.id,minQty:m.min,reorderQty:m.reorderQty,stdX100:m.stdX100,par:m.par},{expectedVersion:version(c.ids,'item',m.id,'Stock item')});}},

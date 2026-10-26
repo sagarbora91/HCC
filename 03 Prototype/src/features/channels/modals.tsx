@@ -51,14 +51,18 @@ export function RejectModal({id}:ModalProps){
 }
 
 export function ChannelModal({id}:ModalProps){
-  const {s,run,busy,closeModal,permission}=useHcc();const c=chnSlice(s).channels.find(c=>c.id===id);const types=chnRoomTypes(s);const ro=!permission('approve');
+  const {s,run,busy,closeModal,permission}=useHcc();const isNew=id==='new';const c=isNew?undefined:chnSlice(s).channels.find(c=>c.id===id);const types=chnRoomTypes(s);const ro=!permission('approve');
+  const [nm,setNm]=useState(''),[cd,setCd]=useState('');
   const [com,setCom]=useState(c?String(c.commissionBps/100):'');const [mk,setMk]=useState(c?String(c.markupBps/100):'');
   const [map,setMap]=useState<Record<string,string>>(c?{...c.mapping}:{});
-  if(!c)return <div className="modal-heading"><h2>Channel not found</h2></div>;
+  if(!c&&!isNew)return <div className="modal-heading"><h2>Channel not found</h2></div>;
   const bps=(v:string)=>Math.round(Number(v)*100);
-  return <form className="form" onSubmit={e=>{e.preventDefault();run({type:'CHN_CHANNEL_SAVE',channel:c.id,commissionBps:bps(com),markupBps:bps(mk),mapping:Object.fromEntries(types.map(t=>[t,map[t]||'']))},`${c.name} terms saved`,{close:true});}}>
-    <div className="modal-heading"><div className="eyebrow">CHANNEL · SIMULATED</div><h2>{c.name} · terms & room mapping</h2><p>Status <ChnPill status={c.status}/> {c.statusNote}</p></div>
-    {ro?<div className="info-note chn-note">View only — a Manager or Owner changes connection, commission and mapping.</div>:<div className="chn-conn"><ConnectionButtons c={c}/></div>}
+  return <form className="form" onSubmit={e=>{e.preventDefault();run({type:'CHN_CHANNEL_SAVE',channel:c?.id,...(c?{}:{name:nm.trim(),code:cd.trim().toUpperCase()}),commissionBps:bps(com),markupBps:bps(mk),mapping:Object.fromEntries(types.map(t=>[t,map[t]||'']))},c?`${c.name} terms saved`:`${nm.trim()} added`,{close:true});}}>
+    {c?<div className="modal-heading"><div className="eyebrow">CHANNEL · SIMULATED</div><h2>{c.name} · terms & room mapping</h2><p>Status <ChnPill status={c.status}/> {c.statusNote}</p></div>
+      :<div className="modal-heading"><div className="eyebrow">NEW CHANNEL</div><h2>Add a channel</h2><p>The channel starts disconnected. Connect it once its terms and room mapping are set.</p></div>}
+    {!c?<><label>Channel name<input required minLength={2} maxLength={80} value={nm} onChange={e=>setNm(e.target.value)} placeholder="e.g. Booking.com"/></label>
+      <label>Channel code<input required minLength={2} maxLength={20} value={cd} autoCapitalize="characters" onChange={e=>setCd(e.target.value.toUpperCase())} placeholder="e.g. BOOKING"/><small>2–20 letters, digits or dashes; unique.</small></label></>:null}
+    {!c?null:ro?<div className="info-note chn-note">View only — a Manager or Owner changes connection, commission and mapping.</div>:<div className="chn-conn"><ConnectionButtons c={c}/></div>}
     <fieldset className="chn-fieldset chn-plain" disabled={ro}>
     <div className="form-row">
       <label>Commission %<input inputMode="decimal" enterKeyHint="next" value={com} onChange={e=>setCom(e.target.value)} aria-describedby="chn-com-help"/><small id="chn-com-help">0–{chnPct(CHN_MAX_COMMISSION_BPS)} of room revenue</small></label>
@@ -66,7 +70,7 @@ export function ChannelModal({id}:ModalProps){
     </div>
     <fieldset className="chn-fieldset"><legend>Room type → channel room code</legend>
       {types.map(t=><label key={t}>{t}<input value={map[t]||''} autoCapitalize="characters" maxLength={20} placeholder="Not mapped" onChange={e=>setMap({...map,[t]:e.target.value.toUpperCase()})}/></label>)}
-      <small>Leave blank to stop selling that room type on {c.name}. Codes: 2–20 letters, digits or dashes; unique per channel.</small></fieldset>
+      <small>Leave blank to stop selling that room type on {c?.name??'this channel'}. Codes: 2–20 letters, digits or dashes; unique per channel.</small></fieldset>
     </fieldset>
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>{ro?'Close':'Cancel'}</button>{!ro&&<button className="btn primary" disabled={busy}><Check size={15}/> Save</button>}</div>
   </form>;
