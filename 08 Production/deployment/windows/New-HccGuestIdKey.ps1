@@ -7,6 +7,9 @@
     1. makes a new random 32-byte key,
     2. wraps it with Windows DPAPI for THIS PC (scheme dpapi-machine: only programs on this PC can unwrap it; the key never appears in git, SQL or backups),
     3. writes it to Hcc:GuestIdKeys in appsettings.Production.json (that file is then readable only by Administrators, SYSTEM and the HCC service),
+       with Required=true (the server then refuses to start if the key ever disappears) and, for -Scope Machine, AllowMachineScope=true:
+       in Production the server accepts a machine-wide key ONLY with that flag AND only while the settings file keeps that ACL (it checks
+       the file at every start, F-M05); plain keys and AllowPlainKeys are refused in Production,
     4. writes the raw key to an OFFLINE COPY file you give with -OfflineCopyPath (a USB stick, not this PC). Put that stick in the safe.
        A DPAPI blob is useless on another PC or after Windows is reinstalled: without the offline copy every stored ID number is lost
        (the last 4 digits stay). Database backups never contain the key.
@@ -63,6 +66,7 @@ elseif ($Rotate) { throw 'Nothing to rotate: no guest ID key is configured yet. 
 $what = "Create guest ID key '$KeyId' (DPAPI $Scope) in $SettingsFile, offline copy -> $full"
 if (-not $PSCmdlet.ShouldProcess($SettingsFile, $what)) {
     Write-Host "DRY RUN: $what"
+    Write-Host "DRY RUN: Hcc:GuestIdKeys gets Required=true$(if ($Scope -eq 'Machine') { ' and AllowMachineScope=true' }); the server checks the file permissions at every start"
     Write-Host "DRY RUN: settings file then readable only by Administrators, SYSTEM and '$ServiceAccount' (icacls)"
     Write-Host 'DRY RUN: then Restart-Service HccServer. The raw key is never printed.'
     return
@@ -83,6 +87,8 @@ if (-not $json.PSObject.Properties['Hcc']) { $json | Add-Member -NotePropertyNam
 if (-not $json.Hcc.PSObject.Properties['GuestIdKeys']) { $json.Hcc | Add-Member -NotePropertyName GuestIdKeys -NotePropertyValue ([pscustomobject]@{ Current = $KeyId; Keys = [pscustomobject]@{} }) }
 $g = $json.Hcc.GuestIdKeys
 $g | Add-Member -NotePropertyName Current -NotePropertyValue $KeyId -Force
+$g | Add-Member -NotePropertyName Required -NotePropertyValue $true -Force
+if ($Scope -eq 'Machine') { $g | Add-Member -NotePropertyName AllowMachineScope -NotePropertyValue $true -Force }
 if (-not $g.PSObject.Properties['Keys']) { $g | Add-Member -NotePropertyName Keys -NotePropertyValue ([pscustomobject]@{}) }
 $g.Keys | Add-Member -NotePropertyName $KeyId -NotePropertyValue $wrapped -Force
 $backup = "$SettingsFile.before-guestid-key"

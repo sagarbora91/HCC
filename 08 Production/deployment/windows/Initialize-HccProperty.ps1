@@ -9,6 +9,9 @@
   The Owner password is asked for twice and never shown, written to a file or kept in the PowerShell history.
   The same values fill Master configuration (hotel name, address, GSTIN, check-in/checkout), which the Owner can change later.
   Running it again after success is refused by the server ("already set up"); nothing is changed.
+  F-L11: the plain-HTTP setup listener (127.0.0.1:5080) is for this step only. After a successful setup the script sets
+  Hcc:Hosting:LoopbackHttpPort to 0 in -SettingsFile and restarts the service, so the listener is gone (-KeepSetupListener skips that).
+  Afterwards the server is reached only over HTTPS (https://localhost:5443 on the server PC itself).
   -WhatIf prints the request (password hidden) and sends nothing.
 #>
 [CmdletBinding(SupportsShouldProcess)]
@@ -24,7 +27,10 @@ param(
     [string]$OwnerLogin = 'owner',
     [Parameter(Mandatory)][string]$OwnerDisplayName,
     [string]$Code = 'MAIN',
-    [string]$ServerUrl = 'http://127.0.0.1:5080'
+    [string]$ServerUrl = 'http://127.0.0.1:5080',
+    [string]$SettingsFile = 'C:\Program Files\HCC\Server\appsettings.Production.json',
+    [string]$ServiceName = 'HccServer',
+    [switch]$KeepSetupListener
 )
 $ErrorActionPreference = 'Stop'
 $uri = [Uri]$ServerUrl
@@ -42,6 +48,7 @@ if ($BusinessDate) { $body.businessDate = $BusinessDate }
 if (-not $PSCmdlet.ShouldProcess("$base/SetupProperty", "Set up hotel '$HotelName' with first Owner '$OwnerLogin'")) {
     Write-Host "DRY RUN: GET $base/status (must say setupRequired)"
     Write-Host ("DRY RUN: POST $base/SetupProperty " + ($body | ConvertTo-Json -Compress))
+    if (-not $KeepSetupListener) { Write-Host "DRY RUN: then set Hcc:Hosting:LoopbackHttpPort to 0 in $SettingsFile and restart $ServiceName (setup listener off)" }
     return
 }
 
@@ -69,3 +76,16 @@ catch {
 finally { $p1 = $null; $p2 = $null; $body.ownerPassword = $null; $json = $null }
 Write-Host $r.message
 Write-Host ("Hotel number {0} ({1}), business date {2}, Owner sign-in name '{3}'." -f $r.propertyId, $r.code, $r.businessDate, $r.ownerLoginName)
+
+# F-L11: switch the plain-HTTP setup listener off now that setup is done.
+if (-not $KeepSetupListener) {
+    if (Test-Path -LiteralPath $SettingsFile) {
+        $cfg = Get-Content -LiteralPath $SettingsFile -Raw | ConvertFrom-Json
+        if (-not $cfg.Hcc.PSObject.Properties['Hosting']) { $cfg.Hcc | Add-Member -NotePropertyName Hosting -NotePropertyValue ([pscustomobject]@{}) }
+        $cfg.Hcc.Hosting | Add-Member -NotePropertyName LoopbackHttpPort -NotePropertyValue 0 -Force
+        [IO.File]::WriteAllText($SettingsFile, ($cfg | ConvertTo-Json -Depth 12), (New-Object Text.UTF8Encoding($false)))
+        if (Get-Service $ServiceName -ErrorAction SilentlyContinue) { Restart-Service $ServiceName }
+        Write-Host "Setup listener switched off (${SettingsFile}: LoopbackHttpPort = 0; $ServiceName restarted). Use https://localhost:5443 on this PC from now on."
+    }
+    else { Write-Warning "Set Hcc:Hosting:LoopbackHttpPort to 0 in appsettings.Production.json and restart ${ServiceName}: the setup listener is no longer needed." }
+}

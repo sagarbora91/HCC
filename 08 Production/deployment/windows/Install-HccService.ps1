@@ -36,6 +36,7 @@ if (-not $PSCmdlet.ShouldProcess($ServiceName, "Create service: $exe as $account
     Write-Host "DRY RUN: New-Service $ServiceName -BinaryPathName '$exe' -StartupType Automatic (account $account)"
     Write-Host "DRY RUN: sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/30000/restart/60000"
     Write-Host "DRY RUN: grant $account Modify on $InstallDirectory\logs and ReadAndExecute on $InstallDirectory"
+    Write-Host "DRY RUN: icacls $InstallDirectory\appsettings.Production.json /inheritance:r /grant:r SYSTEM:F Administrators:F ${account}:R (F-M05: only they may read the settings and the guest ID key)"
     Write-Host "DRY RUN: New-NetFirewallRule '$ruleName' -Direction Inbound -Protocol TCP -LocalPort $HttpsPort -Profile Private,Domain -Action Allow"
     return
 }
@@ -57,6 +58,10 @@ $logs = Join-Path $InstallDirectory 'logs'
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 & icacls.exe $InstallDirectory /grant ("{0}:(OI)(CI)RX" -f $account) | Out-Null
 & icacls.exe $logs /grant ("{0}:(OI)(CI)M" -f $account) | Out-Null
+# F-M05: the settings file (guest ID key, connection details) is readable only by SYSTEM, Administrators and the service account.
+$settings = Join-Path $InstallDirectory 'appsettings.Production.json'
+& icacls.exe $settings /inheritance:r /grant:r '*S-1-5-18:(F)' '*S-1-5-32-544:(F)' ("{0}:(R)" -f $account) | Out-Null
+if ($LASTEXITCODE -ne 0) { Write-Warning "Could not restrict $settings; only SYSTEM, Administrators and $account may read it (the server refuses to start with a guest ID key in a file others can read)." }
 if (-not (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort $HttpsPort -Profile Private, Domain -Action Allow | Out-Null
 }
