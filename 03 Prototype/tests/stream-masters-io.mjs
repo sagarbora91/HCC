@@ -196,6 +196,8 @@ import {MasterList} from '../../src/features/masters/MasterList';
 import {MasterListPhone} from '../../src/mobile/masters/MasterListPhone';
 import {CfgDataPanel} from '../../src/features/admin/config/panels';
 import {registration} from '../../src/features/masters/register';
+import {MasterForm} from '../../src/features/masters/MasterForm';
+import {MstRetireConfirm} from '../../src/features/masters/RetireConfirm';
 function ctx(s:any,uid:string,mobile:boolean):any{
   const user=s.users.find((u:any)=>u.id===uid);const noop=()=>{};
   return {s,uid,user,m:metrics(s),page:'settings',go:noop,modal:{type:'x',key:'k'},open:noop,closeModal:noop,booking:noop,error:'',busy:false,run:async()=>false,toast:noop,permission:(p:any)=>can(s,uid,p),act:()=>null,
@@ -204,7 +206,8 @@ function ctx(s:any,uid:string,mobile:boolean):any{
 }
 export const html=(s:any,uid:string,what:string,mobile=false)=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid,mobile)}>{
   what==='paste'?<MstPasteSheet id="floors"/>:what==='pasteVendors'?<MstPasteSheet id="expenseVendors"/>:what==='import'?<MstImportSheet/>:what==='panel'?<MstIoPanel/>:what==='data'?<CfgDataPanel/>:what==='list'?<MasterList spec="floors"/>:
-  what==='listPhone'?<MasterListPhone spec="floors"/>:what==='listRooms'?<MasterList spec="rooms"/>:null}</HccContext.Provider>);
+  what==='listPhone'?<MasterListPhone spec="floors"/>:what==='listRooms'?<MasterList spec="rooms"/>:what.startsWith('retire:')?<MstRetireConfirm id={what.slice(7)}/>:
+  what.startsWith('form:')?<MasterForm specId={what.split(':')[1]} rowId={what.split(':')[2]} sheet={mobile}/>:null}</HccContext.Provider>);
 export const reg=registration;
 `);
   await build({entryPoints:[dir+'/mio-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:dir+'/mio-entry.mjs',logLevel:'error',jsx:'automatic',
@@ -222,6 +225,17 @@ export const reg=registration;
   test('[MIO-UI] MasterList (desktop and phone) offers Paste rows next to Add for lists with a server file, not for rooms; Reception sees neither',()=>{
     assert.match(U.html(base,'owner','list'),/Paste rows/);assert.match(U.html(base,'owner','listPhone',true),/Paste rows/);
     assert.ok(!/Paste rows/.test(U.html(base,'owner','listRooms')));assert.ok(!/Paste rows/.test(U.html(base,'reception','list')));});
+  test('[MIO-UI] V14-6 Retire asks first in the app dialog (desktop + phone): "Retire Floor 1?", old records keep the name, Back + Retire; Reactivate runs at once',()=>{
+    const src=f=>readFileSync(f,'utf8'),f=src('src/features/masters/MasterForm.tsx');
+    assert.doesNotMatch(f,/MST_MASTER_RETIRE/,'the form no longer retires directly');assert.match(f,/open\(\{type:'mst-retire',id:`\$\{specId\}:\$\{row\.id\}\$\{sheet\?':sheet':''\}`\}\)/);
+    assert.match(f,/status\('MST_MASTER_REACTIVATE'/,'reactivate needs no confirmation');
+    for(const x of [f,src('src/features/masters/RetireConfirm.tsx')])assert.doesNotMatch(x,/window\.confirm|[^.\w]confirm\(/);
+    for(const m of [false,true])assert.match(U.html(base,'owner','form:floors:flr-1',m),/Retire…/);
+    const d=U.html(base,'owner','retire:floors:flr-1');
+    assert.match(d,/Retire Floor 1\?/);assert.match(d,/Old records keep the name/);assert.match(d,/Used in 8/);assert.match(d,/>Back</);assert.match(d,/class="btn danger"/);assert.doesNotMatch(d,/disabled=""/);
+    assert.match(U.html(base,'owner','retire:rooms:105:sheet'),/Room 105 leaves the room board, the calendar and New booking/);
+    const live=U.html(base,'owner','retire:rooms:101');assert.match(live,/has bookings/);assert.match(live,/disabled=""/,'a room with a live booking cannot be retired');
+    for(const where of [U.reg.modals,U.reg.mobile.modals])assert.equal(typeof where['mst-retire'],'function');});
   test('[MIO-UI] both modals are registered for desktop and phone (mst-import, mst-paste)',()=>{
     for(const where of [U.reg.modals,U.reg.mobile.modals]){assert.equal(typeof where['mst-import'],'function');assert.equal(typeof where['mst-paste'],'function');assert.equal(typeof where['mst-row'],'function');}});
 }
