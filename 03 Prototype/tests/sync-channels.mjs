@@ -1,6 +1,6 @@
 // W4-11 area "channels" (sync/channels.ts): yield & tariffs, OTA channels, booking-website queue. Fake server shaped like the .NET DTOs
 // (Hcc.Contracts Yield / Ota / WebBooking), the real runtime, requests asserted, slices compared with the prototype's own figures.
-import {loadSync,loadPages,fakeServer,startRuntime,reply,capabilities} from './_sync-harness.mjs';
+import {loadSync,loadPages,fakeServer,startRuntime,reply,capabilities,ownErrors} from './_sync-harness.mjs';
 
 const V=n=>'AAAAAAAAB'+n;
 const calendar={from:'2026-10-24',nights:1,cells:[
@@ -48,7 +48,7 @@ export async function register({test,assert}){
   const st=rt.get().state;const errs=rt.get().errors;
 
   test('[W4-11 yield] yieldX is built from calendar/config/publishes in the prototype shape; ids and versions are learned',()=>{
-    assert.deepEqual(errs,{});
+    assert.deepEqual(ownErrors(errs,"channels"),{});
     const y=st.yieldX;
     assert.deepEqual(y.plans.map(p=>[p.id,p.code,p.adjBps,p.minNights,p.nights,p.dayUse]),[['BAR','BAR',0,1,undefined,undefined],['WKND','WKND',-500,2,[5,6,0],undefined],['DAYUSE','DAYUSE',-4500,0,undefined,{from:'10:00',to:'17:00',closeAtOcc:90}]]);
     assert.deepEqual(y.seasons,[{id:'5',name:'Diwali',from:'2026-11-05',to:'2026-11-12',adjBps:2000,types:['Deluxe','Suite'],priority:2}]);

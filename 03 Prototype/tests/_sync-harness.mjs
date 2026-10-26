@@ -92,6 +92,9 @@ export async function startRuntime(S,srv,{areas,cache,now,focusRefreshMs,boot=tr
   return rt;
 }
 
+/** Load errors of the given area ids only (other areas in the registry have no fake routes in an area test). */
+export function ownErrors(errors,...areaIds){return Object.fromEntries(Object.entries(errors).filter(([,m])=>areaIds.some(a=>String(m).startsWith(a+": "))));}
+
 // ── Screen smoke render ──
 // Renders every desktop page (and every phone page with mobile=true) of the PRODUCTION build over a given state with the
 // app's context, server-side (react-dom/server; effects do not run). Returns {pageId: error message} for pages that throw.
