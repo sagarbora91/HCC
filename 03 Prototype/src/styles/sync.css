@@ -8,3 +8,13 @@
 .server-signin-mode label{display:flex;align-items:center;gap:6px}
 .server-signin .btn{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 @media (max-width:767px){.sync-status{margin:8px 12px 0}}
+/* W4-12 APK: server address, staff pick + PIN, device registration */
+.server-staff{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.server-staff-btn{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.server-ok{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#1E5631;margin:0}
+.server-change{display:grid;gap:8px}
+.server-change .signin{min-height:0;padding:0;background:none}.server-change .signin-card{box-shadow:none;border:0;padding:0}
+.btn.link{background:none;border:0;padding:0 4px;min-height:0;color:#7A1F2B;text-decoration:underline}
+.server-device{display:grid;gap:10px}
+.server-device-actions{display:flex;gap:8px;flex-wrap:wrap}
+.server-device .btn{min-height:44px;display:inline-flex;align-items:center;gap:6px}

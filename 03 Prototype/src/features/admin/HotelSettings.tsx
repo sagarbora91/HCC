@@ -11,6 +11,7 @@ import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {GuardedButton} from './parts';
 import {cfgListRows,cfgDetailDefs,cfgNav} from './config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from './config/panels';
+import {ServerDevicePanel} from '../../clients/sync/react'; // production build only (W4-12: server address, device registration)
 
 /** Owner-only block text for the legacy tariff/tax schedules (PERM-ADM-003; Tech admin view-only for money — DEC-058). */
 export function scheduleBlock(s:ReturnType<typeof useHcc>['s'],uid:string){
@@ -24,6 +25,7 @@ export function HotelSettings(){
   const rows=cfgListRows(s,uid,q);
   const current=rows.some(r=>r.id===sel)?sel:rows[0]?.id;
   return <><PageTitle title="Master configuration" sub="Every setting in one place — 12 groups, dated values, approvals, history and modules on/off." action={<Pill tone="orange">Fictional property · GST illustrative</Pill>}/>
+    {process.env.HCC_BUILD==='production'&&<div className="padded"><ServerDevicePanel/></div>}
     <div className="cfg-hub">
       <aside className="card cfg-list" aria-label="Configuration groups">
         <label className="cfg-search"><Search size={17}/><input type="search" aria-label="Search settings" placeholder="Search settings (e.g. GSTIN, deposit, PF)" value={q} onChange={e=>setQ(e.target.value)}/></label>
