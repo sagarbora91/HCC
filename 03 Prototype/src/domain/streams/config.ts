@@ -22,6 +22,8 @@
 import type {State,Command,Role} from '../types';
 import {SCHEMA} from '../types';
 import {money,addDays} from '../money';
+import {gstinProblem} from '../gstin';
+import {isProductionBuild} from '../build';
 import {can} from '../selectors';
 import {ADMIN_SETTINGS,adminSettingValue,adminUserActive,authorize,type AdminSettingDef} from './admin';
 import {yldSlice,yldPct,YLD_ROUND_OPTIONS} from './yield';
@@ -439,9 +441,13 @@ function builtins(){
   for(const g of CFG_GROUPS)registerSettingsGroup({id:'core-'+g.id,group:g.id,defs:()=>legacyDefs().filter(d=>GROUP_OF_LEGACY[d.key]===g.id)});
   registerSettingsGroup({id:'property',group:'property',defs:[
     {key:'brand.address',label:'Address on documents',type:'text',maxLength:120,default:'12 Station Road, Latur 413512 (fictional)',unit:'text, ≤ 120 chars',help:'Printed under the property name.',affects:'Invoices, folios and confirmations generated after the change.'},
-    {key:'brand.gstin',label:'GSTIN on documents',type:'text',maxLength:15,allowEmpty:true,default:'',pattern:/^[0-9A-Z]{15}$/,patternMsg:'A GSTIN has 15 capital letters and digits (fictional values only in the prototype).',unit:'15 characters, optional',help:'Fictional only — the prototype never validates a real GSTIN.',affects:'Document headers generated after the change.'},
+    {key:'brand.gstin',label:'GSTIN on documents',type:'text',maxLength:15,allowEmpty:true,default:'',pattern:/^[0-9A-Z]{15}$/,patternMsg:'A GSTIN has 15 capital letters and digits (fictional values only in the prototype).',unit:'15 characters, optional',help:'Fictional only — the prototype never validates a real GSTIN.',affects:'Document headers generated after the change.',
+      // Production (W4 D2): the server rule — format + check character — and the server's wording; required before the first tax invoice.
+      ...(isProductionBuild()?{patternMsg:'A GSTIN has 15 capital letters and digits.',unit:'15 characters, required for tax invoices',
+        help:'Printed on invoices and required before the first tax invoice. Format and check character are verified; the GST portal is not queried.',
+        affects:'Tax invoices and document headers generated after the change.',validate:(v:unknown)=>String(v??'').trim()?gstinProblem(v):undefined}:{})},
     {key:'brand.invoiceHeader',label:'Invoice header line',type:'text',maxLength:80,default:'HCC Demo Residency · fictional property',unit:'text, ≤ 80 chars',help:'Second line of the invoice header.'},
-    {key:'brand.invoiceFooter',label:'Invoice footer',type:'text',maxLength:120,default:'Thank you for staying with us.',unit:'text, ≤ 120 chars',help:'The demonstration watermark is always printed as well.'},
+    {key:'brand.invoiceFooter',label:'Invoice footer',type:'text',maxLength:120,default:'Thank you for staying with us.',unit:'text, ≤ 120 chars',help:isProductionBuild()?'Last line of invoices and receipts.':'The demonstration watermark is always printed as well.'},
     {key:'brand.printFormat',label:'Print format',type:'choice',options:['A4','A5','80 mm thermal'],default:'A4',unit:'choice',help:'Default paper for invoices and receipts.'},
     {key:'brand.language',label:'Document language',type:'choice',options:['English','English + Hindi labels'],default:'English',unit:'choice',help:'Labels on printed documents.'},
   ]});

@@ -7,6 +7,7 @@ import {money,totals,gstLineSplit,gstSplitLines,gstHalfPct,folioCompanyCreditSta
 import {useHcc} from '../../app/context';
 import {Empty,shortDate} from '../../components/ui';
 import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
+import {IssueInvoiceAction} from '../../features/folio/modals';
 
 export function MmCheckout({id}:{id?:string}){
   const {s,run,booking,open,busy,permission}=useHcc();
@@ -52,11 +53,12 @@ export function MmInvoice({id}:{id?:string}){
   if(!b)return <Empty title="This record is unavailable"/>;
   const t=totals(b),cc=b.receipts.filter(r=>r.kind==='company-credit').reduce((a,r)=>a+r.amount,0);
   return <><div className="invoice mm-invoice">
-      <div className="invoice-top mm-inv-top"><Hotel size={30}/><div><h2>{s.settings.hotel}</h2><p>Hotel Control Centre · Fictional property</p></div></div>
-      <div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>
+      <div className="invoice-top mm-inv-top"><Hotel size={30}/><div><h2>{s.settings.hotel}</h2><p>{process.env.HCC_BUILD==='production'?'Hotel Control Centre':'Hotel Control Centre · Fictional property'}</p></div></div>
+      {process.env.HCC_BUILD==='production'?<div className="invoice-stamp">Folio summary — the tax invoice is issued and kept on the hotel server</div>
+        :<div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>}
       <div className="mm-inv-meta">
-        <div><small>GUEST</small><strong>{b.guest}</strong><span>Room {b.room} · {plural(b.people,'guest')} · {b.id}</span>{b.company&&<span>Bill to: {b.company.name}{b.company.gstin?` · GSTIN (placeholder) ${b.company.gstin}`:''}</span>}</div>
-        <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><strong>{b.invoiceNo??'Not yet issued'}</strong><span>{shortDate(b.arrival)} — {shortDate(b.departure)}</span><span>{b.invoiceNo?'Allocated once at checkout':'Number allocated once at checkout'}</span></div>
+        <div><small>GUEST</small><strong>{b.guest}</strong><span>Room {b.room} · {plural(b.people,'guest')} · {b.id}</span>{b.company&&<span>Bill to: {b.company.name}{b.company.gstin?` · ${process.env.HCC_BUILD==='production'?'GSTIN':'GSTIN (placeholder)'} ${b.company.gstin}`:''}</span>}</div>
+        <div><small>{b.invoiceNo?(process.env.HCC_BUILD==='production'?'TAX INVOICE NO.':'SAMPLE INVOICE NO.'):'FOLIO PREVIEW'}</small><strong>{b.invoiceNo??'Not yet issued'}</strong><span>{shortDate(b.arrival)} — {shortDate(b.departure)}</span><span>{process.env.HCC_BUILD==='production'?(b.invoiceNo?'Issued by the hotel server':'Issued after checkout'):b.invoiceNo?'Allocated once at checkout':'Number allocated once at checkout'}</span><IssueInvoiceAction b={b} className="btn small-btn no-print"/></div>
       </div>
       <table className="mm-inv-table"><thead><tr><th>Description</th><th>Date</th><th className="number">Net</th><th className="number">CGST</th><th className="number">SGST</th></tr></thead>
         <tbody>{b.lines.map(l=><tr key={l.id}><td data-label="Description">{l.label}</td><td data-label="Date">{shortDate(l.date)}</td><td className="number" data-label="Net">{money(l.amount)}</td>{(()=>{const g=gstLineSplit(l);return <><td className="number" data-label="CGST"><span>{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></span></td><td className="number" data-label="SGST"><span>{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></span></td></>;})()}</tr>)}</tbody></table>
@@ -70,8 +72,8 @@ export function MmInvoice({id}:{id?:string}){
         <div className="mm-inv-bal"><span>Balance</span><strong className="number">{money(t.balance)}</strong></div>
         <div><span>Refundable deposit held separately</span><strong className="number">{money(t.deposit)}</strong></div>
       </div>
-      {!!b.creditNotes?.length&&<div className="mm-inv-cn"><small>SAMPLE CREDIT NOTES</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
-      <p className="footnote">GST from the dated GST master (CGST + SGST, illustrative — CA to confirm). All names, transactions and references are fictional. Demonstration — not a tax invoice.</p>
+      {!!b.creditNotes?.length&&<div className="mm-inv-cn"><small>{process.env.HCC_BUILD==='production'?'CREDIT NOTES':'SAMPLE CREDIT NOTES'}</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
+      <p className="footnote">{process.env.HCC_BUILD==='production'?'GST from the dated GST master (CGST + SGST). The issued tax invoice is the hotel server’s document.':'GST from the dated GST master (CGST + SGST, illustrative — CA to confirm). All names, transactions and references are fictional. Demonstration — not a tax invoice.'}</p>
     </div>
     <p className="mm-help no-print">Prints on A4 through the phone’s print / share dialog (wireless printer or Save as PDF).</p>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={18}/> Print / share</button></div></>;

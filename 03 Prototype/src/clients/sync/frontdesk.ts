@@ -8,7 +8,8 @@
 //   commands  REGISTER   → RegisterGuest (guest draft, or only the chosen guestId; reservation + guest versions from the load)
 //             CHECKIN    → CheckIn
 //             CHECKOUT   → CheckoutStay (stay version; companyCreditApprovalId when the command carries one). Folio settlement is
-//                          enforced by the server (money area W4-3 may take this mapper over — one type, one owner).
+//                          enforced by the server (money area W4-3 may take this mapper over — one type, one owner). Then IssueInvoice
+//                          (step "invoice"); if that is refused the checkout still counts: reload + `warning` (W4 D1).
 //             MOVE       → Confirmed/Held booking: AmendReservation (room and/or departure, tariff kept);
 //                          In house: MoveRoom (step "room") then ExtendStay / ShortenStay (step "depart") with the stay version
 //                          returned by the first call.
@@ -18,10 +19,10 @@
 import type {Command,State} from '../../services/mock';
 import {HccClientError} from '../errors';
 import {isIsoDate} from '../wire';
-import type {SyncArea,LoaderCtx,CommandCtx} from './types';
+import type {SyncArea,LoaderCtx,CommandCtx,SliceKey} from './types';
 import {serverId} from './map';
 import {allPages,bookingOf,roomIdOf,versionOf,type SrvGuestPage} from './frontdesk/shared';
-import {companyCreditApprovalId,issueInvoiceAfterCheckout,FOLIO_SLICES} from './money';
+import {companyCreditApprovalId,issueInvoiceAfterCheckout,invoiceStepWarning,FOLIO_SLICES} from './money';
 
 type Guest=NonNullable<State['guests']>[number];
 
@@ -109,8 +110,13 @@ export const frontdesk:SyncArea={
       const given=c.cmd.companyCreditApprovalId;
       const approval=given?serverId(given,'Approval'):companyCreditApprovalId(c.state,id);
       await c.api.command('CheckoutStay',{stayId:stayIdOf(c,id),...(approval?{companyCreditApprovalId:approval}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});
-      const invoice=await issueInvoiceAfterCheckout(c,id);
-      return {reload:['rooms','tasks',...FOLIO_SLICES],...(invoice!==undefined?{result:{invoice}}:{})};
+      // W4 D1: the checkout has happened on the server. An invoice refusal (e.g. no hotel GSTIN yet) must not report the checkout as
+      // failed: the slices still reload (the stay shows Departed) and the screen shows the warning; "Issue invoice" retries later.
+      const reload:SliceKey[]=['rooms','tasks',...FOLIO_SLICES];
+      let invoice:unknown;
+      try{invoice=await issueInvoiceAfterCheckout(c,id);}
+      catch(e){if(e instanceof HccClientError&&e.wireCode==='UNAUTHENTICATED')throw e;return {reload,warning:invoiceStepWarning(e)};}
+      return {reload,...(invoice!==undefined?{result:{invoice}}:{})};
     },
   },{
     type:'MOVE',reload:['bookings'],

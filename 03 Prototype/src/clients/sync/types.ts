@@ -87,7 +87,9 @@ export interface CommandCtx<C extends Command=Command>{
    *  (the prototype's own stale check); otherwise undefined. Pass it as `expectedVersion`. */
   expectedVersion(kind:string,protoId:string):string|undefined;
 }
-export type CommandOutcome={/** Extra slices to reload (on top of the mapper's `reload`). */reload?:SliceKey[];/** Returned to the caller. */result?:unknown};
+export type CommandOutcome={/** Extra slices to reload (on top of the mapper's `reload`). */reload?:SliceKey[];/** Returned to the caller. */result?:unknown;
+  /** Partial success (W4 D1): the main command succeeded but a follow-up step did not (e.g. checkout done, invoice refused). The screen
+   *  shows this text instead of its success message; the reload still runs so the screen shows what the server now holds. */warning?:string};
 
 export type CommandMapper={
   /** Prototype command type (`cmd.type`). One mapper per type across all areas (a test enforces it). */

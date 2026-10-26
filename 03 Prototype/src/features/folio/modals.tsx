@@ -9,6 +9,13 @@ import {cbIsLocked,cbLockedMessage,lineTax,gstLineSplit,gstSplitLines,gstPct,gst
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
 import {bookingActionSlots} from '../../app/registry';
 const useBooking=(id:string)=>{const c=useHcc();return {...c,b:c.s.bookings.find(b=>b.id===id)};};
+/** Production only (W4 D1): issue the tax invoice for a departed stay that has none — the step after checkout was refused (e.g. no hotel
+ *  GSTIN yet) or the checkout user could not issue invoices. Maps to IssueInvoice (sync/money.ts INVOICE_ISSUE) with a stable key. */
+export function IssueInvoiceAction({b,className='btn primary'}:{b:{id:string;status:string;invoiceNo?:string};className?:string}){
+  const {run,busy,permission}=useHcc();
+  if(process.env.HCC_BUILD!=='production'||b.status!=='Departed'||b.invoiceNo||!permission('checkout'))return null;
+  return <button className={className} disabled={busy} onClick={()=>run({type:'INVOICE_ISSUE',id:b.id,key:'invoice:'+b.id},'Tax invoice issued')}><Receipt size={16}/> Issue invoice</button>;
+}
 const Missing=()=><Empty title="This record is unavailable" body="The booking may have been removed when a scenario was reloaded."/>;
 const userName=(s:ReturnType<typeof useHcc>['s'],id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
 const statusTone=(st:string)=>st==='Pending'?'orange':st==='Approved'||st==='Executed'?'green':'neutral';
@@ -53,12 +60,13 @@ export function BookingModal({id}:{id:string}){
   return <><div className="modal-heading"><div className="eyebrow">{b.id} · ROOM {b.room}{b.invoiceNo?` · INVOICE ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
       <div className="inline">{(()=>{const st=resStatus(s,b);return <Pill tone={st==='In house'?'green':st==='Confirmed'?'blue':st==='Held'?'orange':'neutral'}>{st}</Pill>;})()}<span>{shortDate(b.arrival)} — {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')} · {plural(b.people,'guest')}</span>
         <span className={'folio-nights '+(n.posted<n.agreed?'short':'')} title="Room nights are posted by the nightly audit">Nights posted {n.posted} of {n.agreed} agreed</span></div>
-      {b.company&&<p className="folio-company"><Building2 size={14}/>{b.company.name}{b.company.gstin?` · GSTIN (placeholder) ${b.company.gstin}`:''}</p>}</div>
+      {b.company&&<p className="folio-company"><Building2 size={14}/>{b.company.name}{b.company.gstin?` · ${process.env.HCC_BUILD==='production'?'GSTIN':'GSTIN (placeholder)'} ${b.company.gstin}`:''}</p>}</div>
     <div className="booking-actions">
       {b.status==='Confirmed'&&act('reservations',()=>open({type:'cancel',id:b.id}),'Cancel / no-show','btn subtle')}
       {b.status==='In house'&&act('checkout',()=>open({type:'checkout',id:b.id}),'Checkout','btn primary')}
       {active&&act('reservations',()=>open({type:b.status==='In house'?'stay-move':'move',id:b.id}),b.status==='In house'?'Move / extend stay':'Change dates / room','btn subtle')}
       {b.status==='Departed'&&canCorrect&&<button className="btn subtle" disabled={busy} onClick={()=>open({type:'credit-note',id:b.id})}>Request credit note</button>}
+      <IssueInvoiceAction b={b}/>
       {bookingActionSlots.map((Slot,i)=><Slot key={i} b={b}/>)}
     </div>
     {readOnly&&<div className="info-note"><Info size={16}/>Read-only check (Accountant). You can request a correction or credit note; the Owner approves it.</div>}
@@ -74,7 +82,7 @@ export function BookingModal({id}:{id:string}){
         {refundable>0&&permission('payments')&&(()=>{const locked=cbIsLocked(s,r.date),why=cbLockedMessage(r.date,'a refund against receipt '+r.id);return <><button className="text-btn" disabled={busy||locked} title={locked?why:undefined} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={13}/> Request refund</button>{locked&&<small className="f-why">{why}</small>}</>;})()} {/* DEC-065 */}</div>;})}
       {!b.receipts.length&&<p className="muted padded">No receipts recorded.</p>}</div>
     {approvals.length>0&&<><div className="section-title compact"><h3>Folio requests</h3><span className="muted">No one approves their own request</span></div><div className="request-list folio-requests">{approvals.map(a=><FolioApprovalRow key={a.id} a={a}/>)}</div></>}
-    <div className="modal-actions"><span className="footnote">GST per line at its snapshot rate (illustrative — CA to confirm). No real guest documents stored.</span><button className="btn" disabled={busy} onClick={()=>open({type:'invoice',id:b.id})}><Printer size={16}/>{b.invoiceNo?'Sample invoice '+b.invoiceNo:'Folio preview'}</button></div></>;
+    <div className="modal-actions"><span className="footnote">GST per line at its snapshot rate (illustrative — CA to confirm). No real guest documents stored.</span><button className="btn" disabled={busy} onClick={()=>open({type:'invoice',id:b.id})}><Printer size={16}/>{b.invoiceNo?(process.env.HCC_BUILD==='production'?'Invoice ':'Sample invoice ')+b.invoiceNo:'Folio preview'}</button></div></>;
 }
 type Row={method:string;amount:string;reference:string};
 const paise=(v:string)=>Math.round(Number(v||0)*100);
@@ -162,7 +170,7 @@ export function CheckoutModal({id}:{id:string}){
         :<p className="muted">Your role cannot request company credit.</p>)}
     </div></div>}
     {blockers.length>0?<div className="info-note folio-blockers" role="status"><AlertTriangle size={17}/><div><strong>Checkout is blocked until:</strong><ul>{blockers.map(x=><li key={x}>{x}</li>)}</ul></div></div>
-      :<div className="info-note"><Info size={17}/>Checkout preserves all stay charges, marks the room dirty, creates exactly one housekeeping task and allocates a sample invoice number once. Repeating checkout returns the same result.</div>}
+      :<div className="info-note"><Info size={17}/>Checkout preserves all stay charges, marks the room dirty, creates exactly one housekeeping task and {process.env.HCC_BUILD==='production'?'then issues the tax invoice':'allocates a sample invoice number once'}. Repeating checkout returns the same result.</div>}
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Review folio</button>
       {permission('payments')&&(t.balance>0||t.deposit>0)&&<button className="btn subtle" disabled={busy} onClick={()=>open({type:'payment',id:b.id})}>Settle / return deposit</button>}
       <button className="btn primary" disabled={busy} onClick={()=>run({type:'CHECKOUT',id:b.id,key:'checkout:'+b.id},'Checkout completed. Housekeeping task created.',{after:()=>booking(b.id)})}>Confirm checkout <ArrowRight size={16}/></button></div></>;
@@ -171,16 +179,17 @@ export function InvoiceModal({id}:{id:string}){
   const {b,s,booking}=useBooking(id);
   if(!b)return <Missing/>;
   const t=totals(b);
-  return <><div className="invoice"><div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>Hotel Control Centre · Fictional property</p></div></div>
-    <div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>
+  return <><div className="invoice"><div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>{process.env.HCC_BUILD==='production'?'Hotel Control Centre':'Hotel Control Centre · Fictional property'}</p></div></div>
+    {process.env.HCC_BUILD==='production'?<div className="invoice-stamp">Folio summary — the tax invoice is issued and kept on the hotel server</div>
+      :<div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>}
     <div className="invoice-meta"><div><small>GUEST</small><h3>{b.guest}</h3><p>Room {b.room} · {plural(b.people,'guest')}</p>{b.company&&<p>Bill to: {b.company.name}{b.company.gstin?<><br/>GSTIN (placeholder): {b.company.gstin}</>:null}</p>}</div>
-      <div><small>{b.invoiceNo?'SAMPLE INVOICE NO.':'FOLIO PREVIEW'}</small><h3>{b.invoiceNo??'Not yet issued'}</h3><p>{b.invoiceNo?'Allocated once at checkout':'A number is allocated once at checkout'}</p><p>{shortDate(b.arrival)} — {shortDate(b.departure)} · {b.id}</p></div></div>
+      <div><small>{b.invoiceNo?(process.env.HCC_BUILD==='production'?'TAX INVOICE NO.':'SAMPLE INVOICE NO.'):'FOLIO PREVIEW'}</small><h3>{b.invoiceNo??'Not yet issued'}</h3><p>{process.env.HCC_BUILD==='production'?(b.invoiceNo?'Issued by the hotel server':'Issued after checkout'):b.invoiceNo?'Allocated once at checkout':'A number is allocated once at checkout'}</p><IssueInvoiceAction b={b} className="btn small-btn no-print"/><p>{shortDate(b.arrival)} — {shortDate(b.departure)} · {b.id}</p></div></div>
     <table><thead><tr><th>Description</th><th>Date</th><th>Net</th><th>GST rate</th><th>CGST</th><th>SGST</th></tr></thead><tbody>{b.lines.map(l=>{const g=gstLineSplit(l);return <tr key={l.id}><td>{l.label}</td><td>{shortDate(l.date)}</td><td>{money(l.amount)}</td><td>{gstPct(l.taxBps)}</td><td>{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></td><td>{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></td></tr>;})}</tbody></table>
     <div className="summary-list invoice-summary"><div><span>Net charges</span><strong>{money(t.net)}</strong></div><div><span>CGST</span><strong>{money(gstSplitLines(b.lines).cgst)}</strong></div><div><span>SGST</span><strong>{money(gstSplitLines(b.lines).sgst)}</strong></div><div><span>Total including GST</span><strong>{money(t.total)}</strong></div><div><span>Net receipts applied</span><strong>{money(t.paid)}</strong></div>
       {b.receipts.some(r=>r.kind==='company-credit')&&<div><span>On company credit (receivable)</span><strong>{money(b.receipts.filter(r=>r.kind==='company-credit').reduce((a,r)=>a+r.amount,0))}</strong></div>}
       <div><span>Balance</span><strong>{money(t.balance)}</strong></div><div><span>Refundable deposit held separately</span><strong>{money(t.deposit)}</strong></div></div>
-    {!!b.creditNotes?.length&&<div className="folio-cn-list"><small>SAMPLE CREDIT NOTES</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
-    <p className="footnote">GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero — illustrative, CA to confirm. All names, transactions and references are fictional. Demonstration — not a tax invoice.</p></div>
+    {!!b.creditNotes?.length&&<div className="folio-cn-list"><small>{process.env.HCC_BUILD==='production'?'CREDIT NOTES':'SAMPLE CREDIT NOTES'}</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
+    <p className="footnote">{process.env.HCC_BUILD==='production'?'GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero. The issued tax invoice is the hotel server’s document.':'GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero — illustrative, CA to confirm. All names, transactions and references are fictional. Demonstration — not a tax invoice.'}</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 

@@ -78,11 +78,20 @@ public static partial class Gstin
     public static string Validate(string? gstin, string whose)
     {
         var g = (gstin ?? string.Empty).Trim().ToUpperInvariant();
-        if (g.Length == 0) throw HccException.Validation($"Enter the {whose} GSTIN.");
-        if (!Shape().IsMatch(g)) throw HccException.Validation($"The {whose} GSTIN must be 15 characters: state code, PAN, entity number, Z and a check character.");
-        if (!GstStates.IsCode(g[..2])) throw HccException.Validation($"The {whose} GSTIN starts with an unknown state code ({g[..2]}).");
-        if (CheckCharacter(g[..14]) != g[14]) throw HccException.Validation($"The {whose} GSTIN check character is wrong; check the number for a typing error.");
+        if (Problem(g, whose) is { } problem) throw HccException.Validation(problem);
         return g;
+    }
+
+    /// <summary>The plain reason a GSTIN is not acceptable (format, state code, check character), or null when it is valid. Used by
+    /// <see cref="Validate"/>, first-time setup and the Master configuration setting <c>brand.gstin</c> (same rule everywhere).</summary>
+    public static string? Problem(string? gstin, string whose)
+    {
+        var g = (gstin ?? string.Empty).Trim().ToUpperInvariant();
+        if (g.Length == 0) return $"Enter the {whose} GSTIN.";
+        if (!Shape().IsMatch(g)) return $"The {whose} GSTIN must be 15 characters: state code, PAN, entity number, Z and a check character.";
+        if (!GstStates.IsCode(g[..2])) return $"The {whose} GSTIN starts with an unknown state code ({g[..2]}).";
+        if (CheckCharacter(g[..14]) != g[14]) return $"The {whose} GSTIN check character is wrong; check the number for a typing error.";
+        return null;
     }
 
     public static string StateCode(string gstin) => gstin[..2];
