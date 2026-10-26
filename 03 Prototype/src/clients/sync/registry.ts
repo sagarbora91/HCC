@@ -22,7 +22,7 @@ import {closing} from './closing';
 import {admin} from './admin';
 
 // W4-6 staff, payroll, leave:
-// import {staff} from './staff';
+import {staff} from './staff';
 
 // W4-7 accounting, expenses, compliance:
 // import {accounting} from './accounting';
@@ -53,7 +53,7 @@ export const AREAS:SyncArea[]=[
 
   admin, // W4-5
 
-  // staff, // W4-6
+  staff, // W4-6
 
   // accounting, // W4-7
 
