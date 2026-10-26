@@ -1,8 +1,9 @@
 // Core prototype types. Pure data — no React, no storage.
 /** 'Restaurant' = role matrix v2 D1 (DEC-079): the PIN-signed waiter role of the production server (RST); the demo fixture has no such user. */
 export type Role='Owner'|'Manager'|'Reception'|'Cashier'|'Supervisor'|'Housekeeper'|'Accountant'|'Maintenance'|'Tech admin'|'Restaurant';
-export type Permission='reservations'|'checkin'|'billing'|'payments'|'checkout'|'housekeeping'|'inspect'|'expenses'|'approve'|'close'|'reports'|'admin';
-export const permissions:Permission[]=['reservations','checkin','billing','payments','checkout','housekeeping','inspect','expenses','approve','close','reports','admin'];
+export type Permission='reservations'|'checkin'|'billing'|'payments'|'checkout'|'housekeeping'|'inspect'|'expenses'|'approve'|'close'|'reports'|'admin'|'masters';
+/** 'masters' (MA-0, DEC-MA-1): change operational lists in Master configuration (floors …); Owner + Tech admin by default, grantable. */
+export const permissions:Permission[]=['reservations','checkin','billing','payments','checkout','housekeeping','inspect','expenses','approve','close','reports','admin','masters'];
 export const roles:Role[]=['Owner','Manager','Reception','Cashier','Supervisor','Housekeeper','Accountant','Maintenance','Tech admin'];
 /** Roles that may only act on tasks assigned to them (scope "A" in the RBAC matrix). */
 export const assignedScopeRoles:Role[]=['Housekeeper','Maintenance'];
@@ -258,6 +259,8 @@ export type State={
   cashOutX?:import('./streams/cashout').CXState;
   /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
   configX?:import('./streams/config').CFGState;
+  /** MA-0 masters framework: stored master rows per list + change history (absent = fixture seed). */
+  mastersX?:import('./streams/masters').MSTState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;

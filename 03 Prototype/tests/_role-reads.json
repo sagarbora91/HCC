@@ -82,7 +82,9 @@
     "GET /yield/calendar": "/yield/calendar?nights=1",
     "GET /yield/config": "/yield/config",
     "GET /yield/publishes": "/yield/publishes",
-    "GET /yield/proposals": "/yield/proposals"
+    "GET /yield/proposals": "/yield/proposals",
+    "GET /masters/floors": "/masters/floors?page=1&pageSize=200",
+    "GET /masters/floors/history": "/masters/floors/history?page=1&pageSize=200"
   },
   "roles": {
     "OWN": {
@@ -536,6 +538,16 @@
           "P"
         ],
         [
+          "PERM-MST-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MST-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-OTA-001",
           "A",
           "P"
@@ -846,7 +858,9 @@
         "GET /yield/calendar": "200",
         "GET /yield/config": "200",
         "GET /yield/publishes": "200",
-        "GET /yield/proposals": "200"
+        "GET /yield/proposals": "200",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "200"
       }
     },
     "MGR": {
@@ -1485,7 +1499,9 @@
         "GET /yield/calendar": "200",
         "GET /yield/config": "200",
         "GET /yield/publishes": "200",
-        "GET /yield/proposals": "200"
+        "GET /yield/proposals": "200",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     },
     "REC": {
@@ -1864,7 +1880,9 @@
         "GET /yield/calendar": "403",
         "GET /yield/config": "403",
         "GET /yield/publishes": "403",
-        "GET /yield/proposals": "403"
+        "GET /yield/proposals": "403",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     },
     "CSH": {
@@ -2123,7 +2141,9 @@
         "GET /yield/calendar": "403",
         "GET /yield/config": "403",
         "GET /yield/publishes": "403",
-        "GET /yield/proposals": "403"
+        "GET /yield/proposals": "403",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     },
     "ACC": {
@@ -2442,7 +2462,9 @@
         "GET /yield/calendar": "200",
         "GET /yield/config": "200",
         "GET /yield/publishes": "200",
-        "GET /yield/proposals": "200"
+        "GET /yield/proposals": "200",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     },
     "SUP": {
@@ -2636,7 +2658,9 @@
         "GET /yield/calendar": "403",
         "GET /yield/config": "403",
         "GET /yield/publishes": "403",
-        "GET /yield/proposals": "403"
+        "GET /yield/proposals": "403",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     },
     "HKP": {
@@ -2795,7 +2819,9 @@
         "GET /yield/calendar": "403",
         "GET /yield/config": "403",
         "GET /yield/publishes": "403",
-        "GET /yield/proposals": "403"
+        "GET /yield/proposals": "403",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     },
     "MNT": {
@@ -2939,7 +2965,9 @@
         "GET /yield/calendar": "403",
         "GET /yield/config": "403",
         "GET /yield/publishes": "403",
-        "GET /yield/proposals": "403"
+        "GET /yield/proposals": "403",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     },
     "TAD": {
@@ -2989,6 +3017,11 @@
         ],
         [
           "PERM-MSG-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-MST-001",
           "A",
           "P"
         ],
@@ -3098,7 +3131,9 @@
         "GET /yield/calendar": "403",
         "GET /yield/config": "403",
         "GET /yield/publishes": "403",
-        "GET /yield/proposals": "403"
+        "GET /yield/proposals": "403",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "200"
       }
     },
     "RST": {
@@ -3217,7 +3252,9 @@
         "GET /yield/calendar": "403",
         "GET /yield/config": "403",
         "GET /yield/publishes": "403",
-        "GET /yield/proposals": "403"
+        "GET /yield/proposals": "403",
+        "GET /masters/floors": "200",
+        "GET /masters/floors/history": "403"
       }
     }
   }

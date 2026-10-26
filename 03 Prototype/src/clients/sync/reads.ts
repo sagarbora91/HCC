@@ -136,6 +136,9 @@ export const READS={
   'GET /yield/config':YIELD,
   'GET /yield/publishes':YIELD,
   'GET /yield/proposals':YIELD,
+  // MA-0 masters: floor names label every board (any signed-in user); the change history needs masters.manage (PERM-MST-001).
+  'GET /masters/floors':always,
+  'GET /masters/floors/history':one(wide('PERM-MST-001')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

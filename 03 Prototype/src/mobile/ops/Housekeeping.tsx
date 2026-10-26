@@ -3,7 +3,7 @@
 // No financial data is rendered anywhere on this page (AC-M07). Touch targets ≥ 48 px; main buttons 56 px.
 import React,{useEffect,useState} from 'react';
 import {Brush,BedDouble,Wrench,ArrowRight,Check,CheckCheck,CalendarClock,Lock,TriangleAlert,Sparkles,UserRound,Hammer,ListChecks,Info,X} from 'lucide-react';
-import {Task,hkTaskKind,hkKindLabel,hkArrivalToday,hkStayoverRooms,hkStayoverId} from '../../services/mock';
+import {Task,mstFloorLabel,hkTaskKind,hkKindLabel,hkArrivalToday,hkStayoverRooms,hkStayoverId} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {MOBILE_TAB_EVENT,takeTabFocus} from '../../app/mobile/tabs';
 import {Pill,shortDate,clockTime} from '../../components/ui';
@@ -81,7 +81,7 @@ export function MoTaskCard({t,mode}:{t:Task;mode:'mine'|'board'}){
     <div className="mo-task-top"><span className="mo-room"><Icon size={22} aria-hidden/>Room {t.room}</span><Pill tone={statusTone[t.status]}>{statusLabel[t.status]}</Pill></div>
     <div className="mo-tags"><Pill tone={kind==='repair'?'orange':kind==='stayover'?'blue':'neutral'}>{hkKindLabel[kind]}</Pill>
       {arrival&&t.status!=='Done'&&<Pill tone="orange"><CalendarClock size={13}/> Priority · arrival today</Pill>}</div>
-    <p className="mo-sub">{room?.type} · Floor {room?.floor}{t.createdAt?` · since ${clockTime(t.createdAt)}`:''}</p>
+    <p className="mo-sub">{room?.type} · {room?mstFloorLabel(s,room):''}{t.createdAt?` · since ${clockTime(t.createdAt)}`:''}</p>
     {room?.blocked&&<div className="mo-note warn"><Lock size={16}/><span>Room blocked · {room.blockReason||'Out of service'}{room.blockFrom||room.blockTo?` · ${room.blockFrom?shortDate(room.blockFrom):'now'} → ${room.blockTo?shortDate(room.blockTo):'open-ended'}`:''}</span></div>}
     {kind==='repair'&&!room?.blocked&&<div className="mo-note"><Info size={16}/><span>Room is not blocked — it stays sellable while you work.</span></div>}
     {t.note&&<div className="mo-note"><Wrench size={16}/><span>{t.note}</span></div>}

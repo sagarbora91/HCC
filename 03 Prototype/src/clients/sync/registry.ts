@@ -45,6 +45,9 @@ import {cashier} from './cashier';
 // W4 N3: display names of all staff for every role (patch on users):
 import {directory} from './directory';
 
+// MA-0 masters framework (floors; MA-1 … MA-7 add routes in masters.ts MST_SERVER):
+import {masters} from './masters';
+
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -74,4 +77,6 @@ export const AREAS:SyncArea[]=[
   cashier, // W4 fix F3
 
   directory, // W4 N3
+
+  masters, // MA-0
 ];

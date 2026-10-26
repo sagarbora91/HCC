@@ -2,7 +2,8 @@
 import React,{useState} from 'react';
 import {Plus,BedDouble,CheckCircle2,Brush,SearchCheck,Lock,Sparkles,Wrench,Unlock,DoorOpen,CalendarPlus,ArrowRight} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,occupant,hkGuests,resHoldLeftLabel,holdTonight} from '../../services/mock';
+import {money,occupant,hkGuests,resHoldLeftLabel,holdTonight,mstFloorGroups,mstFloorLabel} from '../../services/mock';
+import {MstLink} from '../../features/masters/MasterList';
 import {ChipFilter,Fab,ListCard} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {mfRoomList,mfInitials,mfArrivalFor,mfNextFor} from './logic';
@@ -16,11 +17,12 @@ export function MfRooms(){
   const {s,open,filter,setFilter,roomStatus,permission}=useHcc();
   const [floor,setFloor]=useState(0);
   const status=STATUSES.includes(filter)?filter:'All';
-  const floors=[...new Set(s.rooms.map(r=>r.floor))].sort();
+  const floors=mstFloorGroups(s); // MA-0: names and order from the Floors master
   const list=mfRoomList(s,floor,status,roomStatus);
   const count=(st:string)=>s.rooms.filter(r=>(!floor||r.floor===floor)&&(st==='All'||roomStatus(r)===st)).length;
   return <div className="mf-page">
-    <ChipFilter label="Floor" value={String(floor)} onChange={v=>setFloor(Number(v))} options={[{id:'0',label:'All floors'},...floors.map(f=>({id:String(f),label:'Floor '+f}))]}/>
+    <ChipFilter label="Floor" value={String(floor)} onChange={v=>setFloor(Number(v))} options={[{id:'0',label:'All floors'},...floors.map(f=>({id:String(f.floor),label:f.label}))]}/>
+    <MstLink spec="floors"/>
     <ChipFilter label="Room status" value={status} onChange={setFilter} options={STATUSES.map(x=>({id:x,label:x,count:count(x)}))}/>
     {list.length?<div className="mf-tiles">{list.map(r=>{const st=roomStatus(r),b=occupant(s,r.id),next=mfNextFor(s,r.id),Icon=ICON[st]||BedDouble;
       return <button key={r.id} type="button" className={'mf-tile mf-st-'+st.toLowerCase()} onClick={()=>open({type:'mf-room',id:r.id})} aria-label={`Room ${r.id}, ${r.type}, ${st}${b?', '+b.guest:''}`}>
@@ -41,7 +43,7 @@ export function MfRoomSheet({id}:{id?:string}){
   const st=roomStatus(r),b=occupant(s,r.id),arr=mfArrivalFor(s,r.id),next=mfNextFor(s,r.id),g=hkGuests(s,r.id),finance=permission('billing');
   const openRepair=s.tasks.find(t=>t.room===r.id&&t.kind==='repair'&&t.status!=='Done');
   const canReport=permission('housekeeping')||permission('reservations')||permission('inspect');
-  return <><div className="modal-heading"><div className="eyebrow">FLOOR {r.floor} · {r.type.toUpperCase()}</div><h2>Room {r.id}</h2>
+  return <><div className="modal-heading"><div className="eyebrow">{mstFloorLabel(s,r).toUpperCase()} · {r.type.toUpperCase()}</div><h2>Room {r.id}</h2>
       <div className="mf-inline"><Pill tone={st==='Ready'?'green':st==='Occupied'?'blue':'orange'}>{st}</Pill>{r.blocked&&<Pill tone="orange"><Lock size={11}/> Out of service</Pill>}{holdTonight(s,r)&&<Pill tone="orange"><Lock size={11}/> {holdTonight(s,r)!.label}</Pill>}</div>
       {finance&&<p>{money(r.rate)} per night · GST additional</p>}</div>
     <MfRows rows={[['Housekeeping',r.hk],['Current guest',b?`${b.guest} · to ${shortDate(b.departure)}`:g.current?g.current.guest:'None'],

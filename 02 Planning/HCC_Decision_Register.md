@@ -112,6 +112,13 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-086 | CA question pack | Reword the pack into "setting" and "needs code" columns before the CA meeting (a third of the rules are code constants: A04-03 / A11-12) | Agreed (O, APR-013) | O | CA pack |
 | DEC-087 | Keys, keystore and push (audit D10, D12) | **D10:** a one-hour guided session on the hotel PC creates the release keystore, the hotel CA, the guest-ID and backup keys on **two USBs** (hotel safe + off-site with the owner) and turns on **BitLocker** on the backup drive. **D12:** push to a **private** GitHub repository after a secret scan, once fix wave A is on `main` | Agreed (O, APR-013) | O | 04 Android, deployment scripts, git |
 | DEC-043 | Source reuse in prototype | Prototype uses original components only; no third-party code imported, so no Source Reuse Register entries yet. | Proposed | P | Reuse register |
+| DEC-MA-1 | Who edits masters | New `masters` permission (operational lists: floors, rooms, shifts, task types, menu availability…) granted to **Owner and Tech admin only** by default; the Owner may grant it to a Manager later in Access control. Money fields of any master stay Owner-only (DEC-058). | Agreed (O, 26 Oct 2026) | O | Masters wave MA-0…MA-7 |
+| DEC-MA-2 | Floors | **Named floors/wings master** (code, name, order, active); room board, housekeeping and room filters group by it; a floor with rooms can only be retired. | Agreed (O, 26 Oct 2026) | O | MA-0, MA-1 |
+| DEC-MA-3 | Meal plans | Build **now** (MA-2): EP/CP/MAP/AP + custom on bookings, folio plan lines, booking site and OTA mapping. GST treatment of a bundled breakfast is marked illustrative — CA to confirm. | Agreed (O, 26 Oct 2026) | O | MA-2, Billing |
+| DEC-MA-4 | Extras catalogue vs free text | Catalogue prefills name, price and GST class; **Reception may still post any free-text label and amount without approval**. Lines record whether they came from the catalogue so reports show catalogue vs free text. | Agreed (O, 26 Oct 2026) | O | MA-2, Folio |
+| DEC-MA-5 | Invoice numbering | **One tax-invoice series** for the hotel; the numbering-series master exists so outlets/documents can get separate series later if the CA advises. | Agreed (O, 26 Oct 2026) | O | MA-5, Invoices |
+| DEC-MA-6 | Vendors | **Keep maintenance vendors and expense vendors separate**; expenses get their own vendor master; `mnt.vendor` untouched. | Agreed (O, 26 Oct 2026) | O | MA-3, Expenses |
+| DEC-MA-7 | Masters batch order | After MA-0, **MA-1…MA-7 all run in parallel**, then MA-8…MA-11. | Agreed (O, 26 Oct 2026) | O | Masters wave |
 
 ## 4. Superseded / changed decisions
 

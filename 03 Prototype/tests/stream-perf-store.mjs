@@ -14,7 +14,9 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 // old 2aadeee5…2c84a63 → new 26889bd0…1f7f2e7c; worker, main-thread and direct generation must still all match it.
 // DEC-069 GST (merge of claude/dec-gst): FY26 history is regenerated with real GST (room 5 %, restaurant 5 %, laundry 18 %, payments follow the
 // new folio totals), so FY26 changed on purpose again: old 26889bd0…1f7f2e7c → new 3521729b…ec6e46b4; worker, main and direct must still match.
-const FY26_SHA_BEFORE='3521729b95e695493f6a41052a1bb6efe970d410d97d232c0464025aec6e46b4';
+// MA-0 (DEC-MA-1): the new `masters` permission is granted to Owner and Tech admin in s.grants, so the whole-state hash changed on purpose:
+// old 3521729b…ec6e46b4 → new 260433ce…1e009df941. The generated history itself is unchanged (stream-masters.mjs pins the hash without grants).
+const FY26_SHA_BEFORE='260433ce3e60b9d4a00fd0ea5248eb176f54f4e56736ffb4d2f167e1009df941';
 
 // ── fake IndexedDB with real transaction semantics: writes are staged and applied only on commit; `failPut` aborts the
 // transaction when a put for that key is issued (nothing of that transaction is applied) ──

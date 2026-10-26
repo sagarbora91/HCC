@@ -2,9 +2,10 @@
 // generation) and the housekeeper/maintenance "My tasks" view (own tasks first, large controls, no financial data).
 import React,{useState} from 'react';
 import {Brush,ArrowRight,Check,CheckCheck,Wrench,BedDouble,CalendarClock,Info,Sparkles,TriangleAlert,Lock} from 'lucide-react';
-import {Task,assignedScopeRoles,hkTaskKind,hkKindLabel,hkArrivalToday,hkSortTasks,hkStayoverRooms,hkStayoverId} from '../../services/mock';
+import {Task,assignedScopeRoles,mstFloorGroups,mstFloorLabel,hkTaskKind,hkKindLabel,hkArrivalToday,hkSortTasks,hkStayoverRooms,hkStayoverId} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,shortDate,clockTime} from '../../components/ui';
+import {MstLink} from '../masters/MasterList';
 const columns=['To do','In progress','Inspection','Done'] as const;
 const columnLabel:Record<string,string>={'To do':'To do','In progress':'In progress','Inspection':'Awaiting inspection','Done':'Done'};
 const dotFor:Record<string,string>={'To do':'dirty','In progress':'cleaning','Inspection':'inspection','Done':'ready'};
@@ -16,7 +17,7 @@ export function Housekeeping(){
   const {s,user,run,permission,taskList,busy}=useHcc();
   const scoped=assignedScopeRoles.includes(user.role);
   const [floor,setFloor]=useState('All'),[assignee,setAssignee]=useState('All');
-  const floors=[...new Set(s.rooms.map(r=>r.floor))].sort();
+  const floors=mstFloorGroups(s); // MA-0: floor names and order from the Floors master (fallback "Floor n")
   const assignees=[...new Set(s.tasks.map(t=>t.assignee))].map(id=>s.users.find(u=>u.id===id)).filter(Boolean) as typeof s.users;
   const list=taskList.filter(t=>(floor==='All'||String(s.rooms.find(r=>r.id===t.room)?.floor)===floor)&&(assignee==='All'||t.assignee===assignee));
   const pendingStay=hkStayoverRooms(s).filter(r=>!s.tasks.some(t=>t.id===hkStayoverId(r,s.date))).length;
@@ -30,7 +31,7 @@ export function Housekeeping(){
   return <><PageTitle title="Housekeeping" sub="A well-kept room is the beginning of a good stay." action={generate}/>
     <div className="small-stats">{columns.map(c=><div key={c}><span>{columnLabel[c]}</span><strong>{list.filter(x=>x.status===c).length}</strong></div>)}</div>
     <div className="hk-filters" role="group" aria-label="Filter tasks">
-      <label>Floor<select value={floor} onChange={e=>setFloor(e.target.value)}><option value="All">All floors</option>{floors.map(f=><option key={f} value={String(f)}>Floor {f}</option>)}</select></label>
+      <label>Floor<select value={floor} onChange={e=>setFloor(e.target.value)}><option value="All">All floors</option>{floors.map(f=><option key={f.floor} value={String(f.floor)}>{f.label}</option>)}</select></label><MstLink spec="floors"/>
       <label>Assignee<select value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="All">Everyone</option>{s.tasks.some(t=>!t.assignee)&&<option value="">Unassigned</option>}{assignees.map(u=><option key={u.id} value={u.id}>{first(u.name)} · {u.role}</option>)}</select></label>
       {(floor!=='All'||assignee!=='All')&&<button className="text-btn" onClick={()=>{setFloor('All');setAssignee('All');}}>Clear filters</button>}
       <span className="muted">{list.length} of {taskList.length} tasks</span>
@@ -61,7 +62,7 @@ export function TaskCard({t,large}:{t:Task;large?:boolean}){
   return <article className={'task-card hk-card '+(large?'hk-large':'')} aria-label={`Room ${t.room} · ${hkKindLabel[kind]} · ${t.status}`}>
     <div className="flex-between"><h2>Room {t.room}</h2><Icon size={19} aria-hidden/></div>
     <div className="hk-tags"><Pill tone={kindTone[kind]}>{hkKindLabel[kind]}</Pill>{arrival&&t.status!=='Done'&&<Pill tone="orange"><CalendarClock size={12}/> Priority · Arrival today</Pill>}{large&&<Pill>{columnLabel[t.status]}</Pill>}</div>
-    <p>{room?.type} · Floor {room?.floor}{t.createdAt?` · created ${clockTime(t.createdAt)} (${age(t.createdAt,s.clock)} ago)`:''}</p>
+    <p>{room?.type} · {room?mstFloorLabel(s,room):''}{t.createdAt?` · created ${clockTime(t.createdAt)} (${age(t.createdAt,s.clock)} ago)`:''}</p>
     {room?.blocked&&<div className="hk-note warn"><Lock size={13}/> Blocked · {room.blockReason||'Out of service'}{room.blockFrom||room.blockTo?` · ${room.blockFrom?shortDate(room.blockFrom):'now'} → ${room.blockTo?shortDate(room.blockTo):'open-ended'}`:''}</div>}
     {t.note&&<div className="hk-note"><Wrench size={13}/> {t.note}</div>}
     {t.rejectReason&&t.status!=='Done'&&<div className="hk-note warn"><TriangleAlert size={13}/> Returned: {t.rejectReason}</div>}

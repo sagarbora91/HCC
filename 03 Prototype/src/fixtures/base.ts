@@ -38,11 +38,11 @@ export function baseFixture():State{
       {id:'EXP-102',vendor:'Morning Supplies',category:'Supplies',amount:85000,method:'UPI',date:BUSINESS_DATE,status:'Pending',actor:'reception'}],
     approvals:[],
     audit:[{id:'a0',at:BUSINESS_DATE+'T08:00',actor:'System',action:'Demo initialized',detail:'24 rooms · fictional operational records'}],
-    grants:{Owner:[...permissions],Manager:permissions.filter(p=>p!=='admin'),
+    grants:{Owner:[...permissions],Manager:permissions.filter(p=>p!=='admin'&&p!=='masters'), // DEC-MA-1: masters = Owner + Tech admin
       Reception:['reservations','checkin','checkout','billing','payments','expenses'],
       Cashier:['billing','payments','expenses','reports'],Supervisor:['housekeeping','inspect'],Housekeeper:['housekeeping'],
       // M1 approximations on the coarse model; replaced by the resource.action matrix in M3 (BL-024).
-      Accountant:['reports'],Maintenance:['housekeeping'],'Tech admin':['admin']},
+      Accountant:['reports'],Maintenance:['housekeeping'],'Tech admin':['admin','masters']},
     settings:{hotel:'HCC Demo Residency',discountLimit:25000,inspection:true,checkin:'14:00',checkout:'11:00'},
     openingCash:500000,shiftOpen:true,closedDates:['2026-10-23'],processed:[],sequence:1100};
   // DEC-069: seeded room nights take the GST master rate for their night (₹2,000–₹4,500 ≤ ₹7,500 → 5 %).
