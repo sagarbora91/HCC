@@ -154,7 +154,7 @@ public sealed class TallyProvisionalSqlTests(AccountingDb db) : IClassFixture<Ac
         for (var i = 0; i <= OutboxConsumer.ParkAfterFailures; i++) await db.Projector.RunOnceAsync(ct: Ct);
         Assert.Single(await db.Platform.Outbox.ParkedAsync(AccountingVoucherProjector.ConsumerName, Ct));
         await ExpenseAsync(703, D2, 5_000);
-        Assert.Equal(2, await db.Store.PendingEventsAsync(null, db.PropertyId, Ct));
+        Assert.Equal(new Hcc.Application.Accounting.PendingEvents(1, 1), await db.Store.PendingEventsAsync(null, db.PropertyId, Ct));   // 1 processing + 1 parked (Wave C3)
 
         var during = await q.TallyAsync(db.As("ACC"), D2, D3, Ct);
         Assert.Equal(2, during.PendingEvents);

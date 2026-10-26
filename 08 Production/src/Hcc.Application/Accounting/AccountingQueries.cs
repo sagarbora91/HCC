@@ -199,7 +199,8 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
         var now = (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
         var flags = await store.TallyReexportsAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
         var reopened = await store.ReopenedDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
-        var pending = await store.PendingEventsAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
+        // A03b-05 x A09-05 (Wave C3): still being processed and parked (stuck) both make an export provisional.
+        var pending = (await store.PendingEventsAsync(null, caller.PropertyId, ct).ConfigureAwait(false)).Total;
         var days = (await AccountingDays.RangeWithLocksAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false)).ToList();
         foreach (var f in flags.Where(f => f.BusinessDate < from || f.BusinessDate > to))
             days.AddRange(await AccountingDays.RangeWithLocksAsync(store, caller.PropertyId, f.BusinessDate, f.BusinessDate, ct).ConfigureAwait(false));
