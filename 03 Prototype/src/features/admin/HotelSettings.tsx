@@ -11,7 +11,8 @@ import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {GuardedButton} from './parts';
 import {cfgListRows,cfgDetailDefs,cfgNav} from './config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from './config/panels';
-import {ServerDevicePanel} from '../../clients/sync/react'; // production build only (W4-12: server address, device registration)
+import {ServerDevicePanel} from '../../clients/sync/react';
+import {MstListsBlock} from '../masters/MasterList'; // MA-0: "Lists" block (masters of the group) // production build only (W4-12: server address, device registration)
 
 /** Owner-only block text for the legacy tariff/tax schedules (PERM-ADM-003; Tech admin view-only for money — DEC-058). */
 export function scheduleBlock(s:ReturnType<typeof useHcc>['s'],uid:string){
@@ -47,10 +48,11 @@ export function CfgGroupDetail({g,q}:{g:CfgGroupId;q:string}){
   return <>
     <div className="cfg-head"><div><h2>{grp.label}</h2><p>{grp.blurb}</p></div><CfgGroupLink g={g}/></div>
     {row.readOnly&&<div className="info-note adm-banner cfg-readonly"><Lock size={16}/><span>Read only — {row.reason}</span></div>}
+    <MstListsBlock key={g} g={g} q={q}/>
     {g==='rooms'&&!q&&<Tariffs block={block}/>}
     {g==='money'&&!q&&<GstPanel/>}
     {g==='modules'&&<CfgModulesPanel/>}
-    {g!=='modules'&&(defs.length?<ul className="cfg-rows">{defs.map(d=><CfgRow key={d.key} def={d}/>)}</ul>:!['rooms','money','data'].includes(g)||q?<Empty title="No matching settings in this group"/>:null)}
+    {g!=='modules'&&(defs.length?<ul className="cfg-rows">{defs.map(d=><CfgRow key={d.key} def={d}/>)}</ul>:(!['rooms','money','data'].includes(g)||q)&&!(q&&row.listHits)?<Empty title="No matching settings in this group"/>:null)}
     {g==='people'&&<p className="muted padded">Dated statutory rates, leave policy and weekly offs from the payroll module join this group through the settings provider API.</p>}
     {g==='data'&&!q&&<CfgDataPanel/>}
   </>;

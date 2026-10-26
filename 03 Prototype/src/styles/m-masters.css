@@ -1,0 +1,66 @@
+/* MA-0 · Masters framework (features/masters, mobile/masters). Classes prefixed mst- . Desktop: list beside detail inside the
+   Master configuration group; below 760 px stacked. Phone shell: cards, 48 px targets, 16 px text, no sideways scroll at 360 px. */
+.mst-block{margin:4px 20px 16px;padding:12px 14px;border:1px solid #e6d9c8;border-radius:10px;background:#fff}
+.mst-block-title{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:15px;color:#2b1d16}
+.mst-specs{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.mst-spec{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:48px;min-width:160px;padding:8px 12px;border:1px solid #cdb9a3;border-radius:10px;background:#faf6f0;color:#2b1d16;cursor:pointer;text-align:left}
+.mst-spec small{color:#6b5547;font-size:12.5px}
+.mst-spec.on{border-color:#7a1f2b;background:#f5e4e6}
+.mst-spec:focus-visible{outline:2px solid #7a1f2b;outline-offset:2px}
+.mst-list{display:flex;flex-direction:column;gap:10px;min-width:0}
+.mst-list-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.mst-list-head h3{margin:0;font-size:16px}
+.mst-list-head p{margin:2px 0 0;font-size:13.5px}
+.mst-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mst-search{margin:0;flex:1;min-width:200px}
+.mst-split{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:14px;align-items:start}
+.mst-rows{list-style:none;margin:0;padding:0;border:1px solid #e6d9c8;border-radius:10px;overflow:hidden}
+.mst-row{display:flex;align-items:center;border-top:1px solid #e6d9c8;background:#fff}
+.mst-row:first-child{border-top:0}
+.mst-row.on{background:#f5e4e6}
+.mst-row.retired .mst-name strong{color:#6b5547}
+.mst-row-main{flex:1;min-width:0;display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 10px;border:0;background:transparent;color:#2b1d16;text-align:left;cursor:pointer}
+.mst-row-main:focus-visible{outline:2px solid #7a1f2b;outline-offset:-2px}
+.mst-code{font:600 12.5px/1.2 ui-monospace,Consolas,monospace;background:#efe4d6;color:#2b1d16;border-radius:6px;padding:3px 6px;white-space:nowrap}
+.mst-name{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mst-name strong{font-size:14px;overflow-wrap:anywhere}
+.mst-name small{color:#6b5547;font-size:12.5px}
+.mst-order{display:flex;gap:2px;padding-right:6px}
+.mst-order .icon-btn{min-width:36px;min-height:36px}
+.mst-none{padding:12px}
+.mst-detail{min-width:0;border:1px solid #e6d9c8;border-radius:10px;padding:12px 14px;background:#fff}
+.mst-pick{margin:8px 0}
+.mst-form-head h2{margin:2px 0 4px;font-size:18px}
+.mst-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 8px;color:#6b5547;font-size:13.5px}
+.mst-lock{display:flex;align-items:center;gap:6px;margin:6px 0;padding:8px 10px;border-radius:8px;background:#f6efe6;color:#2b1d16;font-size:13.5px}
+.mst-fields .mst-help{display:flex;align-items:center;gap:4px;color:#6b5547;font-size:12.5px;font-weight:400;margin-top:2px}
+.mst-fields .mst-err{color:#9a3b2a;font-size:13px;font-weight:600;margin-top:2px}
+.mst-toggle{display:flex!important;flex-direction:row!important;flex-wrap:wrap;align-items:center;gap:8px;min-height:44px}
+.mst-toggle input{width:22px;height:22px;min-height:0}
+.mst-multi,.mst-dated{border:1px solid #e6d9c8;border-radius:10px;padding:8px 12px;margin:0}
+.mst-multi legend,.mst-dated legend{font-weight:600;font-size:14px;padding:0 4px}
+.mst-dated ul{list-style:none;margin:4px 0;padding:0}
+.mst-dated li{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0;border-top:1px solid #efe4d6}
+.mst-dated-add{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.mst-dated-add label{flex:1;min-width:120px}
+.mst-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.mst-status-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 4px;padding-top:10px;border-top:1px solid #e6d9c8}
+.mst-hist{margin-top:10px}
+.mst-hist h3{display:flex;align-items:center;gap:6px;font-size:14px;margin:0 0 4px}
+.mst-hist ul{list-style:none;margin:0;padding:0;font-size:13px;color:#2b1d16}
+.mst-hist li{padding:4px 0;border-top:1px solid #efe4d6;overflow-wrap:anywhere}
+.mst-link{display:inline-flex;align-items:center;gap:5px;min-height:36px;white-space:nowrap}
+@media(max-width:760px){.mst-split{grid-template-columns:minmax(0,1fr)}.mst-block{margin:4px 12px 14px}}
+/* Phone shell */
+.mst-m-block{display:flex;flex-direction:column;gap:8px;margin:8px 0 14px}
+.mst-m-block .ma-h2{display:flex;align-items:center;gap:6px}
+.mst-m-spec{display:flex;flex-direction:column;gap:8px}
+.mst-m-list{display:flex;flex-direction:column;gap:8px;padding:4px 0 8px;min-width:0}
+.mst-m-add{min-height:48px;font-size:16px}
+.mst-m-row{display:flex;align-items:stretch;gap:6px;min-width:0}
+.mst-m-row>.m-list-card{flex:1;min-width:0}
+.mst-m-row.retired .m-lc-main strong{color:#6b5547}
+.mst-m-order{display:flex;flex-direction:column;gap:4px}
+.mst-m-order .btn{min-width:48px;min-height:48px;padding:0;justify-content:center}
+.mst-sheet .mst-fields input,.mst-sheet .mst-fields select{font-size:16px;min-height:48px}
+.mst-sheet .mst-status-act .btn{min-height:48px}

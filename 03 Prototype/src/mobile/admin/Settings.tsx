@@ -13,6 +13,7 @@ import {MaTag,MaIntro,MaGuard,MaRows} from './parts';
 import {cfgListRows,cfgDetailDefs,cfgNav} from '../../features/admin/config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from '../../features/admin/config/panels';
 import {scheduleBlock} from '../../features/admin/HotelSettings';
+import {MstListsBlockPhone} from '../masters/MasterListPhone'; // MA-0: "Lists" block
 
 export function MaSettings(){
   const {s,uid}=useHcc();
@@ -38,6 +39,7 @@ function MaGroup({g,q,onBack}:{g:CfgGroupId;q:string;onBack:()=>void}){
     <button type="button" className="btn ma-back" onClick={onBack}><ArrowLeft size={18}/>All groups</button>
     <h2 className="ma-h2">{grp.label}</h2><MaIntro>{grp.blurb}</MaIntro><CfgGroupLink g={g}/>
     {row.readOnly&&<div className="ma-note"><Lock size={18}/><span>Read only — {row.reason}</span></div>}
+    <MstListsBlockPhone key={g} g={g} q={q}/>
     {g==='rooms'&&!q&&<Tariffs block={block}/>}
     {g==='money'&&!q&&<Tax block={block}/>}
     {g==='modules'&&<CfgModulesPanel/>}
@@ -50,7 +52,7 @@ function MaGroup({g,q,onBack}:{g:CfgGroupId;q:string;onBack:()=>void}){
         {d.editable?<MaGuard block={dec.mode==='deny'?dec.reason:undefined} busy={busy} onClick={()=>open({type:'cfg-setting',id:d.key})}>{dec.mode==='request'?'Request change…':'Change… (what it affects)'}</MaGuard>
           :<button type="button" className="btn" onClick={()=>open({type:'cfg-setting',id:d.key})}><Lock size={15}/> Details</button>}
       </article>;})}
-    {g!=='modules'&&!defs.length&&(q||!['rooms','money','data'].includes(g))&&<Empty title="No matching settings in this group"/>}
+    {g!=='modules'&&!defs.length&&(q||!['rooms','money','data'].includes(g))&&!(q&&row.listHits)&&<Empty title="No matching settings in this group"/>}
     {g==='data'&&!q&&<CfgDataPanel/>}
   </div>;
 }

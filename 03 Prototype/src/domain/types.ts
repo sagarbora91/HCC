@@ -1,7 +1,8 @@
 // Core prototype types. Pure data — no React, no storage.
 export type Role='Owner'|'Manager'|'Reception'|'Cashier'|'Supervisor'|'Housekeeper'|'Accountant'|'Maintenance'|'Tech admin';
-export type Permission='reservations'|'checkin'|'billing'|'payments'|'checkout'|'housekeeping'|'inspect'|'expenses'|'approve'|'close'|'reports'|'admin';
-export const permissions:Permission[]=['reservations','checkin','billing','payments','checkout','housekeeping','inspect','expenses','approve','close','reports','admin'];
+export type Permission='reservations'|'checkin'|'billing'|'payments'|'checkout'|'housekeeping'|'inspect'|'expenses'|'approve'|'close'|'reports'|'admin'|'masters';
+/** 'masters' (MA-0, DEC-MA-1): change operational lists in Master configuration (floors …); Owner + Tech admin by default, grantable. */
+export const permissions:Permission[]=['reservations','checkin','billing','payments','checkout','housekeeping','inspect','expenses','approve','close','reports','admin','masters'];
 export const roles:Role[]=['Owner','Manager','Reception','Cashier','Supervisor','Housekeeper','Accountant','Maintenance','Tech admin'];
 /** Roles that may only act on tasks assigned to them (scope "A" in the RBAC matrix). */
 export const assignedScopeRoles:Role[]=['Housekeeper','Maintenance'];
@@ -252,6 +253,8 @@ export type State={
   cashbookX?:import('./streams/cashbook').CBState;
   /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
   configX?:import('./streams/config').CFGState;
+  /** MA-0 masters framework: stored master rows per list + change history (absent = fixture seed). */
+  mastersX?:import('./streams/masters').MSTState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;

@@ -21,6 +21,7 @@ export const PERMISSION_MAP:Record<Permission,PermissionRule>={
   close:{any:['PERM-CLS-002'],modes:'AL'},
   reports:{any:['PERM-RPT-001','PERM-RPT-002'],modes:'ALV'},
   admin:{any:['PERM-ADM-001','PERM-ADM-002','PERM-ADM-003'],modes:'ALR'},
+  masters:{any:['PERM-MST-001'],modes:'AL'}, // MA-0 (DEC-MA-1): operational lists; money lists re-checked as PERM-MST-002 by the server
 };
 /** Known differences between the server seed and the prototype's coarse grants (documented, owner decision D1–D7 pending). */
 export const CAPABILITY_GAPS:string[]=[

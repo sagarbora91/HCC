@@ -131,6 +131,8 @@ const CMDS={
   MSG_RULE:C('OWN MGR','Module 24 §7 (approve)'),MSG_TEMPLATE:C('OWN MGR','Module 24 §7 (approve)'),
   ...Object.fromEntries(['POS_ITEM_ADD','POS_ITEM_QTY','POS_KOT_SEND','POS_KOT_STATUS','POS_MENU_TOGGLE','POS_ORDER_OPEN','POS_SETTLE','POS_VOID_BILL','POS_VOID_ITEM'].map(c=>[c,C('OWN MGR REC CSH','Module 23 §2')])),
   POS_VOID_DECIDE:C('OWN MGR','Module 23 §2 (approve)'),
+  // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
+  ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
 };
 const K=k=>'cmd:'+k;
 
