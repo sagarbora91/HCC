@@ -1,0 +1,40 @@
+MaxUnitTariffAsync on HccTest_PERF_20261026163525 · @from 2025-04-01 · @to 2026-03-31 · 2026-10-26T22:25:40.5361177+05:30
+bill.charge rows: 3007
+result (paise): 820000
+runs: reads=[9304, 9304, 9304, 9304, 9304] cpu_ms=[0, 0, 16, 16, 15] elapsed_ms=[7, 12, 12, 10, 7]
+  CPU time = 0 ms, elapsed time = 0 ms.
+  Table 'reservation'. Scan count 0, logical reads 4586
+  Table 'folio'. Scan count 0, logical reads 4586
+  Table 'Workfile'. Scan count 0, logical reads 0
+  Table 'Worktable'. Scan count 0, logical reads 0
+  Table 'charge'. Scan count 2, logical reads 104
+  Table 'room'. Scan count 2, logical reads 12
+  Table 'room_type_tariff'. Scan count 6, logical reads 12
+  Table 'room_type'. Scan count 2, logical reads 4
+  Table 'Worktable'. Scan count 0, logical reads 0
+  SQL Server Execution Times:
+  CPU time = 0 ms, elapsed time = 7 ms.
+  Stream Aggregate (Aggregate) rows=1 execs=1
+    Concatenation (Concatenation) rows=2299 execs=1
+        Nested Loops (Left Outer Join) rows=3 execs=1
+          Nested Loops (Left Outer Join) rows=3 execs=1
+            Nested Loops (Left Semi Join) rows=3 execs=1
+              Clustered Index Scan (Clustered Index Scan) inv.room_type.PK_room_type rows=3 execs=1 reads=2
+              Clustered Index Scan (Clustered Index Scan) inv.room.PK_room rows=35 execs=3 reads=6
+            Top (Top) rows=0 execs=3
+              Clustered Index Seek (Clustered Index Seek) inv.room_type_tariff.PK_room_type_tariff rows=0 execs=3 reads=6
+          Top (Top) rows=0 execs=0
+            Clustered Index Seek (Clustered Index Seek) inv.room_type_tariff.PK_room_type_tariff rows=0 execs=0
+      Nested Loops (Left Semi Join) rows=3 execs=1
+        Nested Loops (Inner Join) rows=3 execs=1
+          Index Seek (Index Seek) inv.room_type.UQ_room_type rows=3 execs=1 reads=2
+          Clustered Index Seek (Clustered Index Seek) inv.room_type_tariff.PK_room_type_tariff rows=3 execs=3 reads=6
+        Clustered Index Scan (Clustered Index Scan) inv.room.PK_room rows=35 execs=3 reads=6
+      Nested Loops (Inner Join) rows=2293 execs=1
+        Nested Loops (Inner Join) rows=2293 execs=1
+          Hash Match (Right Anti Semi Join) rows=2293 execs=1
+            Hash Match (Aggregate) rows=1 execs=1
+              Clustered Index Scan (Clustered Index Scan) bill.charge.PK_charge rows=3007 execs=1 reads=52
+            Clustered Index Scan (Clustered Index Scan) bill.charge.PK_charge rows=2293 execs=1 reads=52
+          Clustered Index Seek (Clustered Index Seek) bill.folio.PK_folio rows=2293 execs=2293 reads=4586
+        Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation rows=2293 execs=2293 reads=4586

@@ -1,0 +1,202 @@
+=== plan 127: 84 executions, avg 677 reads (max 762), avg 7.06 ms (max 15.77 ms), first 2026-10-26 16:35:34 UTC, last 2026-10-26 16:44:46 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=24
+          Nested Loops (Inner Join) est.rows=1 est.executions=24
+              Nested Loops (Inner Join) est.rows=1 est.executions=24
+                Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=24
+                Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay est.rows=1 est.executions=24
+            Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=24
+    Sort (TopN Sort) est.rows=1 est.executions=24
+      Nested Loops (Left Semi Join) est.rows=1 est.executions=24
+          Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=1 est.executions=24
+        Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=24
+
+=== plan 281: 74 executions, avg 445 reads (max 673), avg 2.11 ms (max 9.42 ms), first 2026-10-26 16:35:39 UTC, last 2026-10-26 16:37:54 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=24
+          Nested Loops (Inner Join) est.rows=1 est.executions=24
+              Nested Loops (Inner Join) est.rows=1 est.executions=24
+                Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=24
+                Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay est.rows=1 est.executions=42
+            Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=42
+    Sort (TopN Sort) est.rows=1 est.executions=24
+        Nested Loops (Inner Join) est.rows=1 est.executions=24
+          Stream Aggregate (Aggregate) est.rows=1 est.executions=24
+            Index Scan (Index Scan) inv.room_night.IX_room_night_res est.rows=8 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=24
+
+=== plan 334: 61 executions, avg 52192 reads (max 72243), avg 600.55 ms (max 974.27 ms), first 2026-10-26 16:37:57 UTC, last 2026-10-26 16:40:19 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=24
+        Nested Loops (Inner Join) est.rows=1 est.executions=24
+          Nested Loops (Inner Join) est.rows=1 est.executions=24
+              Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=1 est.executions=24
+              Clustered Index Scan (Clustered Index Scan) gst.stay.PK_stay est.rows=210 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=48
+    Top (Top) est.rows=1 est.executions=24
+      Nested Loops (Left Semi Join) est.rows=1 est.executions=24
+        Sort (Sort) est.rows=10.4 est.executions=24
+            Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=13.3 est.executions=24
+        Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=254
+
+=== plan 359: 40 executions, avg 563 reads (max 622), avg 6.02 ms (max 9.95 ms), first 2026-10-26 16:40:22 UTC, last 2026-10-26 16:41:42 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=24
+          Nested Loops (Inner Join) est.rows=1 est.executions=24
+            Nested Loops (Inner Join) est.rows=1 est.executions=24
+              Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=24
+                Clustered Index Scan (Clustered Index Scan) gst.stay.PK_stay est.rows=18.5 est.executions=24
+            Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=49
+    Sort (TopN Sort) est.rows=1 est.executions=24
+      Nested Loops (Left Semi Join) est.rows=1 est.executions=24
+          Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=1.5 est.executions=24
+        Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=36
+
+=== plan 373: 20 executions, avg 68898 reads (max 72289), avg 61.10 ms (max 93.22 ms), first 2026-10-26 16:41:45 UTC, last 2026-10-26 16:42:23 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=24
+        Nested Loops (Inner Join) est.rows=1 est.executions=24
+            Nested Loops (Inner Join) est.rows=1 est.executions=24
+              Nested Loops (Inner Join) est.rows=1 est.executions=24
+                  Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=1 est.executions=24
+                Index Seek (Index Seek) gst.stay.UQ_stay_reservation est.rows=1 est.executions=48
+              Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay est.rows=1 est.executions=48
+          Clustered Index Seek (Clustered Index Seek) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=48
+    Top (Top) est.rows=1 est.executions=24
+      Nested Loops (Left Semi Join) est.rows=1 est.executions=24
+        Sort (Sort) est.rows=10.4 est.executions=24
+            Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=19 est.executions=24
+        Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=260
+
+=== plan 379: 107 executions, avg 286 reads (max 316), avg 2.33 ms (max 17.09 ms), first 2026-10-26 16:42:23 UTC, last 2026-10-26 16:50:24 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=24
+          Nested Loops (Inner Join) est.rows=1 est.executions=24
+              Nested Loops (Inner Join) est.rows=1 est.executions=24
+                Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=24
+                Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay est.rows=1 est.executions=24
+            Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=24
+    Top (Top) est.rows=1 est.executions=24
+      Nested Loops (Left Semi Join) est.rows=1 est.executions=24
+        Sort (Sort) est.rows=10.4 est.executions=24
+            Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=19.4 est.executions=24
+        Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=260
+
+=== plan 400: 103 executions, avg 505 reads (max 662), avg 12.57 ms (max 38.02 ms), first 2026-10-26 16:44:49 UTC, last 2026-10-26 16:51:02 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=24
+          Nested Loops (Inner Join) est.rows=1 est.executions=24
+              Nested Loops (Inner Join) est.rows=1 est.executions=24
+                Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=24
+                Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay est.rows=1 est.executions=28
+            Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=33
+    Sort (TopN Sort) est.rows=1 est.executions=24
+      Nested Loops (Left Semi Join) est.rows=1 est.executions=24
+          Nested Loops (Inner Join) est.rows=1 est.executions=24
+            Index Scan (Index Scan) inv.reservation.IX_reservation_room est.rows=1 est.executions=24
+            Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=24
+        Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=24
+
+=== plan 466: 16 executions, avg 2314 reads (max 2315), avg 7.25 ms (max 12.27 ms), first 2026-10-26 16:51:48 UTC, last 2026-10-26 16:53:21 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=2 est.executions=24
+      Index Spool (Lazy Spool) est.rows=1 est.executions=24
+        Top (Top) est.rows=1 est.executions=18
+            Nested Loops (Inner Join) est.rows=1 est.executions=18
+                Nested Loops (Inner Join) est.rows=1 est.executions=18
+                  Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=18
+                  Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay est.rows=1 est.executions=29
+              Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=32
+    Index Spool (Lazy Spool) est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=18
+        Nested Loops (Left Semi Join) est.rows=1 est.executions=18
+          Sort (Sort) est.rows=10 est.executions=18
+              Clustered Index Scan (Clustered Index Scan) inv.reservation.PK_reservation est.rows=34 est.executions=18
+          Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=198
+
+=== plan 497: 16 executions, avg 1527 reads (max 1555), avg 3.32 ms (max 6.72 ms), first 2026-10-26 16:53:56 UTC, last 2026-10-26 16:54:11 UTC ===
+  Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+    Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+      Nested Loops (Left Outer Join) est.rows=24 est.executions=1
+        Nested Loops (Inner Join) est.rows=24 est.executions=1
+          Nested Loops (Inner Join) est.rows=24 est.executions=1
+            Index Seek (Index Seek) inv.room.UQ_room est.rows=24 est.executions=1
+            Clustered Index Seek (Clustered Index Seek) inv.room.PK_room est.rows=1 est.executions=24
+          Clustered Index Seek (Clustered Index Seek) inv.room_type.PK_room_type est.rows=1 est.executions=24
+        Clustered Index Scan (Clustered Index Scan) ops.room_block.PK_room_block est.rows=2 est.executions=24
+      Index Spool (Lazy Spool) est.rows=1 est.executions=24
+        Top (Top) est.rows=1 est.executions=18
+            Nested Loops (Inner Join) est.rows=1 est.executions=18
+                Nested Loops (Inner Join) est.rows=1 est.executions=18
+                  Clustered Index Scan (Clustered Index Scan) gst.stay_segment.PK_stay_segment est.rows=1 est.executions=18
+                  Clustered Index Seek (Clustered Index Seek) gst.stay.PK_stay est.rows=1 est.executions=29
+              Clustered Index Seek (Clustered Index Seek) inv.reservation.PK_reservation est.rows=1 est.executions=32
+    Index Spool (Lazy Spool) est.rows=1 est.executions=24
+      Top (Top) est.rows=1 est.executions=18
+        Nested Loops (Left Semi Join) est.rows=1 est.executions=18
+            Index Scan (Index Scan) inv.reservation.IX_reservation_confirmed est.rows=10 est.executions=18
+          Index Seek (Index Seek) inv.room_night.IX_room_night_res est.rows=1 est.executions=198
+
