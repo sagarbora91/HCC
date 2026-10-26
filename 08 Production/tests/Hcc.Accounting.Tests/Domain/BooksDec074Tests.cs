@@ -223,8 +223,8 @@ public sealed class BooksDec074Tests
         Assert.Equal(1_920_000, checks["group-receipts"].LedgerPaise);
         Assert.False(Reconciliation.Check(vs, Map, new OperationalFigures(0, 0, 0, 0, 0, 0, 0, 0, 2_700_000, 486_000, 2_000_000)).Single(c => c.Id == "group-receipts").Ok);
 
-        var xml = VoucherExport.TallyXml(vs, "HCC Demo Residency");
-        Assert.Contains("<VOUCHER VCHTYPE=\"Sales\"", xml, StringComparison.Ordinal);
+        var xml = VoucherExport.TallyXml(vs, "HCC Demo Residency", "DEMO");
+        Assert.Contains("VCHTYPE=\"Sales\" ACTION=\"Create\"", xml, StringComparison.Ordinal);
         Assert.Contains("<LEDGERNAME>Company receivables (city ledger)</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-31860.00</AMOUNT>", xml, StringComparison.Ordinal);
         Assert.Contains("<LEDGERNAME>Staff advances</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-3000.00</AMOUNT>", xml, StringComparison.Ordinal);
         Assert.Contains("<VOUCHERTYPENAME>Journal</VOUCHERTYPENAME><VOUCHERNUMBER>JRN/20261024/001</VOUCHERNUMBER><NARRATION>Full and final 2026-08", xml, StringComparison.Ordinal);

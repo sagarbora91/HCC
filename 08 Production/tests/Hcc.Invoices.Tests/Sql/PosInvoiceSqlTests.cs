@@ -316,4 +316,29 @@ public class PosInvoiceSqlTests
         Assert.Equal("RST/2627/0000001", (await r.CheckViewAsync(s.OrderId)).Bill!.Invoice!.InvoiceNo);
         await Expect.Fails(HccErrorCode.NOT_FOUND, () => w.Invoices.IssueInvoiceAsync(h.Ctx(h.Reception, InvoiceService.OpIssue), new IssueInvoiceRequest("pos", 999999), Ct));
     }
+
+    [Fact]
+    public async Task A03a_03_IssueInvoice_pos_refuses_an_inter_state_place_of_supply_and_numbers_nothing_the_hotels_state_is_issued()
+    {
+        await using var w = await InvoiceWorld.CreateAsync(withGstin: false, ct: Ct);
+        var h = w.H;
+        var r = await Restaurant.CreateAsync(h);
+        var s = await r.SettleUpiAsync(await r.CheckAsync("T3", ("DAL", 1), ("ROTI", 2)));
+        Assert.Null(s.InvoiceNo);
+        await h.ScalarAsync($"UPDATE inv.property SET gstin = '{InvoiceRulesTestsGstin}' WHERE property_id = {h.PropertyId};", Ct);
+
+        foreach (var (supply, name, gstin) in new[] { ("B2B", "Karnataka Co (fictional)", "29AAGCB7383J1Z4"), ("B2C", null, (string?)null) })
+        {
+            var e = await Expect.Fails(HccErrorCode.VALIDATION, () => w.Invoices.IssueInvoiceAsync(h.Ctx(h.Reception, InvoiceService.OpIssue),
+                new IssueInvoiceRequest("pos", s.BillId, supply, name, gstin, null, "29"), Ct));
+            Assert.StartsWith(InvoiceRules.InterStateRefusal, e.Message, StringComparison.Ordinal);
+        }
+
+        Assert.Equal(0, await CountAsync(h, "SELECT COUNT(*) FROM ivc.series"));
+        var issued = (await w.Invoices.IssueInvoiceAsync(h.Ctx(h.Reception, InvoiceService.OpIssue),
+            new IssueInvoiceRequest("pos", s.BillId, "B2B", "Karnataka Co (fictional)", "29AAGCB7383J1Z4", null, "27"), Ct)).Value;
+        Assert.Equal("RST/2627/0000001", issued.InvoiceNo);
+        var v = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Owner, issued.InvoiceId, Ct);
+        Assert.Equal(("B2B", "27", false, 0L), (v.SupplyType, v.PlaceOfSupply, v.InterState, v.IgstPaise));
+    }
 }

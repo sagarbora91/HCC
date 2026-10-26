@@ -115,12 +115,20 @@ public class InvoiceSqlTests
         var view = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Owner, b2b.InvoiceId, Ct);
         Assert.Equal(("B2B", "29AAGCB7383J1Z4", "29", "27", false), (view.SupplyType, view.Recipient.Gstin, view.Recipient.StateCode, view.PlaceOfSupply, view.InterState));
 
-        // Inter-state place of supply (CA question G9): whole tax as IGST, same total.
+        // A03a-03: an inter-state place of supply (CA question G9) is refused through the API, B2B or B2C, and numbers nothing; the hotel's
+        // own state given explicitly is accepted and stays CGST + SGST.
         var other = await w.DepartedStayAsync("103", ac006: false, ct: Ct);
-        var igst = await w.IssueAsync(other.FolioId, supply: "B2B", name: "Karnataka Co (fictional)", gstin: "29AAGCB7383J1Z4", pos: "29", ct: Ct);
-        Assert.Equal("INV/2627/0000002", igst.InvoiceNo);
-        var iv = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Owner, igst.InvoiceId, Ct);
-        Assert.Equal((true, 0L, 0L, 20000L, 420000L), (iv.InterState, iv.CgstPaise, iv.SgstPaise, iv.IgstPaise, iv.TotalPaise));
+        foreach (var (supply, name, gstin) in new[] { ("B2B", "Karnataka Co (fictional)", "29AAGCB7383J1Z4"), ("B2C", "Guest (fictional)", (string?)null) })
+        {
+            var inter = await Expect.Fails(HccErrorCode.VALIDATION, () => w.IssueAsync(other.FolioId, supply: supply, name: name, gstin: gstin, pos: "29", ct: Ct));
+            Assert.StartsWith("Inter-state place of supply is not supported yet (CA question G9).", inter.Message, StringComparison.Ordinal);
+        }
+
+        Assert.Equal(0, await h.LongAsync($"SELECT COUNT(*) FROM ivc.invoice WHERE source_id = {other.FolioId}", Ct));
+        var own = await w.IssueAsync(other.FolioId, supply: "B2B", name: "Karnataka Co (fictional)", gstin: "29AAGCB7383J1Z4", pos: "27", ct: Ct);
+        Assert.Equal("INV/2627/0000002", own.InvoiceNo);
+        var iv = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Owner, own.InvoiceId, Ct);
+        Assert.Equal(("27", false, 10000L, 10000L, 0L, 420000L), (iv.PlaceOfSupply, iv.InterState, iv.CgstPaise, iv.SgstPaise, iv.IgstPaise, iv.TotalPaise));
     }
 
     [Fact]

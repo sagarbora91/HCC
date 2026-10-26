@@ -100,5 +100,7 @@
     <File Path="database/migrations/3920_system_health.sql" />
     <File Path="database/migrations/3921_system_health_rbac_seed.sql" />
     <File Path="database/migrations/3930_room_board_indexes.sql" />
+    <File Path="database/migrations/3950_accounting_tally_voucher_ids.sql" />
+    <File Path="database/migrations/3951_gst_specified_premises_indexes.sql" />
   </Folder>
 </Solution>

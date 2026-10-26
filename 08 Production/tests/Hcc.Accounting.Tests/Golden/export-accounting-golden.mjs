@@ -11,7 +11,7 @@ import path from 'node:path';import {fileURLToPath} from 'node:url';
 import {CHECK,bundleMock,writeGolden} from '../../../tools/golden/golden-lib.mjs';
 const DIR=path.dirname(fileURLToPath(import.meta.url));
 const M=await bundleMock('mock-accounting');
-const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts}=M;
+const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts,ACC_TALLY_DEMO_ID}=M;
 
 /** Raw source facts for a date in the prototype's derivation order (accLiveVouchers). */
 function sources(s,date){
@@ -75,6 +75,6 @@ days.push(day('acc-mapped',a2,D,{mapping:{'expense:Kitchen gas':'5050'}}));
 const t=accTallyXml(s0,Y,D);
 const out={generatedBy:'08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs',
   source:'03 Prototype BASE fixture + stream-accounting scenarios',fictionalDataOnly:true,defaultMapping:accMapping(s0),days,
-  tally:{from:Y,to:D,company:s0.settings.hotel,xml:t.xml,count:t.count,debitPaise:t.debit,creditPaise:t.credit}};
+  tally:{from:Y,to:D,company:s0.settings.hotel,identity:ACC_TALLY_DEMO_ID,xml:t.xml,count:t.count,debitPaise:t.debit,creditPaise:t.credit}};
 const dest=path.join(DIR,'accounting-golden.json');
 if(writeGolden(dest,JSON.stringify(out,null,1)+'\n')&&!CHECK)console.log('Wrote',dest,days.map(d=>`${d.name}:${d.vouchers.length}`).join(' '),'tally',t.count);
