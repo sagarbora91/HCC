@@ -1,0 +1,35 @@
+Total messages: 33 (Errors: 33, Warnings: 0)
+
+[ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5099/api/v1/me/capabilities:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/items?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/laundry?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/counts?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/losses?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/moves?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/settings:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/handover/templates:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/yield/calendar?nights=1:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/cashbook?from=2026-07-26&to=2026-10-26:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/reservations?view=range&from=2026-04-29&page=1&pageSize=500:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/closing/records?from=2026-08-26&to=2026-10-26:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/yield/calendar?nights=1:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/items?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/laundry?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/counts?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/losses?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/settings:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/handover/templates:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/moves?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/yield/calendar?nights=1:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/closing/records?from=2026-08-26&to=2026-10-26:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/reservations?view=range&from=2026-04-29&page=1&pageSize=500:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/cashbook?from=2026-07-26&to=2026-10-26:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/yield/calendar?nights=1:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/yield/calendar?nights=1:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/items?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/counts?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/losses?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/laundry?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/moves?page=1&pageSize=100:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/stock/settings:0
+[ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:5099/api/v1/handover/templates:0
