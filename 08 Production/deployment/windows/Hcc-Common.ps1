@@ -28,7 +28,7 @@ function Get-HccOpsConfig {
     param([string]$Path)
     if (-not $Path) { $Path = Join-Path $PSScriptRoot 'hcc-ops.json' }
     $cfg = [ordered]@{ SqlInstance = '.\SQLEXPRESS'; Database = 'Hcc'; BackupDirectory = ''; LogDirectory = ''; RetentionDays = 30; KeepMinFulls = 3; PreMigrateRetentionDays = 90; ScratchDirectory = ''; TrustServerCertificate = $null
-        EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = '' }
+        EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = ''; ServerDirectory = '' }
     if (Test-Path -LiteralPath $Path) {
         $json = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
         foreach ($p in $json.PSObject.Properties) { if ($cfg.Contains($p.Name)) { $cfg[$p.Name] = $p.Value } }
@@ -250,14 +250,16 @@ function Test-HccProtectedDirectory {
 }
 
 # F-M06: a script folder run by a scheduled task as SYSTEM must be writable only by SYSTEM, Administrators and TrustedInstaller.
-# Checks the folder itself and every .ps1/.psm1/.psd1/.json in it. Returns the problems (empty = safe).
+# Checks the folder itself and every .ps1/.psm1/.psd1/.json in it (-Extensions: other file types, e.g. the server's .exe/.dll for the
+# restore drill's guest ID check). Returns the problems (empty = safe).
 function Test-HccAdminOnlyWritable {
-    param([Parameter(Mandatory)][string]$Path)
+    param([Parameter(Mandatory)][string]$Path, [string[]]$Extensions = @('.ps1', '.psm1', '.psd1', '.json'))
     if (-not (Test-Path -LiteralPath $Path)) { return "$Path does not exist" }
     # write/append data, write (extended) attributes, change permissions, take ownership, GENERIC_ALL, GENERIC_WRITE
     $writeMask = 0x2 -bor 0x4 -bor 0x10 -bor 0x100 -bor 0x40000 -bor 0x80000 -bor 0x10000000 -bor 0x40000000
     $ok = @($script:HccSidSystem, $script:HccSidAdministrators, $script:HccSidTrustedInstaller)
-    $items = @(Get-Item -LiteralPath $Path) + @(Get-ChildItem -LiteralPath $Path -File | Where-Object { @('.ps1', '.psm1', '.psd1', '.json') -contains $_.Extension.ToLowerInvariant() })
+    $ext = @($Extensions | ForEach-Object { $_.ToLowerInvariant() })
+    $items = @(Get-Item -LiteralPath $Path) + @(Get-ChildItem -LiteralPath $Path -File | Where-Object { $ext -contains $_.Extension.ToLowerInvariant() })
     $problems = @()
     foreach ($i in $items) {
         $acl = Get-Acl -LiteralPath $i.FullName
@@ -437,6 +439,47 @@ function Read-HccBackupKey {
     $key = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($line.Substring('dpapi-machine:'.Length)), $script:HccBackupEntropy, [Security.Cryptography.DataProtectionScope]::LocalMachine)
     if ($key.Length -ne 32) { throw "$Path does not hold a 32-byte key." }
     return , $key
+}
+
+# --- guest ID check after a restore (A07-03 / A09-07, Restore-HccDrill.ps1) --------------------------------------------------------
+# The guest ID key is never in a backup (it is DPAPI-wrapped in appsettings.Production.json), so a restored database proves nothing about
+# the ID numbers by itself. The drill runs "Hcc.Api.exe verify-guest-id" against the scratch copy: the server's own code opens the newest
+# sealed ID number per key with the key installed on this PC and prints one line, never a number. Exit 0 = OK or no guest IDs, 1 = failed.
+function Get-HccDefaultServerDirectory { return (Join-Path $env:ProgramFiles 'HCC\Server') }
+
+function Get-HccGuestIdCheckArgs {
+    param([Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][string]$SqlInstance, [Parameter(Mandatory)][string]$ServerDirectory)
+    return , @('verify-guest-id', '--database', $Database, '--server', $SqlInstance, '--environment', 'Production', '--contentRoot', $ServerDirectory)
+}
+
+# Output lines + exit code of verify-guest-id -> @{ Ok; Status = 'ok' | 'no guest IDs' | 'FAILED'; Message } (pure, unit-tested).
+function ConvertFrom-HccGuestIdCheckOutput {
+    param([string[]]$Lines = @(), [int]$ExitCode)
+    $line = @($Lines | Where-Object { $_ -like 'Guest ID check: *' }) | Select-Object -Last 1
+    if ($ExitCode -eq 0 -and $line -like 'Guest ID check: OK*') { return @{ Ok = $true; Status = 'ok'; Message = [string]$line } }
+    if ($ExitCode -eq 0 -and $line -like 'Guest ID check: no guest IDs to check*') { return @{ Ok = $true; Status = 'no guest IDs'; Message = [string]$line } }
+    if (-not $line) {
+        $first = @($Lines | Where-Object { $_ -and $_.Trim() }) | Select-Object -First 1
+        $hint = if ($first) { ': ' + $(if ($first.Length -gt 200) { $first.Substring(0, 200) } else { $first }).Trim() } else { '' }
+        $line = "Guest ID check: FAILED - Hcc.Api.exe verify-guest-id ended with exit code $ExitCode and no result$hint"
+    }
+    elseif ($line -notlike 'Guest ID check: FAILED*') { $line = "Guest ID check: FAILED - unexpected result (exit code $ExitCode): " + $line.Substring('Guest ID check: '.Length) }
+    return @{ Ok = $false; Status = 'FAILED'; Message = [string]$line }
+}
+
+# Runs the check. The drill task runs as SYSTEM, so (F-M06) the program it starts must not be changeable by normal users.
+function Invoke-HccGuestIdCheck {
+    param([Parameter(Mandatory)][string]$ServerDirectory, [Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][string]$SqlInstance)
+    $exe = Join-Path $ServerDirectory 'Hcc.Api.exe'
+    if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { return @{ Ok = $false; Status = 'FAILED'; Message = "Guest ID check: FAILED - $exe not found: set ServerDirectory in hcc-ops.json (or pass -ServerDirectory), or run the drill with -SkipGuestIdCheck." } }
+    $unsafe = @(Test-HccAdminOnlyWritable -Path $ServerDirectory -Extensions @('.exe', '.dll', '.json'))
+    if ($unsafe.Count -gt 0) { return @{ Ok = $false; Status = 'FAILED'; Message = ("Guest ID check: FAILED - refusing to run ${exe}: " + (@($unsafe | Select-Object -First 3) -join '; ')) } }
+    $a = Get-HccGuestIdCheckArgs -Database $Database -SqlInstance $SqlInstance -ServerDirectory $ServerDirectory
+    $eap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'   # a .NET start-up error on stderr must become a FAILED line, not a script error
+    try { $out = @(& $exe @a 2>&1 | ForEach-Object { "$_" }); $code = $LASTEXITCODE }
+    finally { $ErrorActionPreference = $eap }
+    return (ConvertFrom-HccGuestIdCheckOutput -Lines $out -ExitCode $code)
 }
 
 # --- SQL permissions (F-L08) -----------------------------------------------------------------------------------------------------

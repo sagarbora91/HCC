@@ -179,6 +179,39 @@ Check 'runtime SQL grants: read, write, execute; never db_owner' {
     $g -match 'db_datareader' -and $g -match 'db_datawriter' -and $g -match 'GRANT EXECUTE' -and $g -notmatch 'db_owner'
 }
 
+# --- A07-03 / A09-07: guest ID check after a restore (Restore-HccDrill.ps1 -> Hcc.Api.exe verify-guest-id) ------------------------
+Check 'A07-03 guest ID check: verify-guest-id arguments name the scratch database, the instance and the server folder' {
+    $a = Get-HccGuestIdCheckArgs -Database 'HccDrill_20261026' -SqlInstance '.\SQLEXPRESS' -ServerDirectory 'C:\Program Files\HCC\Server'
+    ($a -join ' ') -eq 'verify-guest-id --database HccDrill_20261026 --server .\SQLEXPRESS --environment Production --contentRoot C:\Program Files\HCC\Server' -and $a.Count -eq 9 -and
+    (Get-HccDefaultServerDirectory) -eq (Join-Path $env:ProgramFiles 'HCC\Server') -and (Get-HccOpsConfig -Path (Join-Path $root 'hcc-ops.sample.json')).ServerDirectory -eq 'C:\Program Files\HCC\Server' -and
+    (Get-HccOpsConfig -Path (Join-Path $env:TEMP 'no-such-hcc-ops.json')).ServerDirectory -eq ''
+}
+Check 'A07-03 guest ID check: OK and "no guest IDs" pass; FAILED, a wrong exit code or no result line fail with a clear message' {
+    $ok = ConvertFrom-HccGuestIdCheckOutput -Lines @('noise', 'Guest ID check: OK (1 ID opened)') -ExitCode 0
+    $none = ConvertFrom-HccGuestIdCheckOutput -Lines @('Guest ID check: no guest IDs to check (the database holds no sealed ID numbers).') -ExitCode 0
+    $bad = ConvertFrom-HccGuestIdCheckOutput -Lines @("Guest ID check: FAILED - 3 ID number(s) are sealed with key '2026-10', which is not installed on this server.") -ExitCode 1
+    $mixed = ConvertFrom-HccGuestIdCheckOutput -Lines @('Guest ID check: OK (1 ID opened)') -ExitCode 1
+    $silent = ConvertFrom-HccGuestIdCheckOutput -Lines @('', 'You must install or update .NET to run this application.') -ExitCode -2147450730
+    $empty = ConvertFrom-HccGuestIdCheckOutput -Lines @() -ExitCode 1
+    $ok.Ok -and $ok.Status -eq 'ok' -and $ok.Message -eq 'Guest ID check: OK (1 ID opened)' -and $none.Ok -and $none.Status -eq 'no guest IDs' -and
+    -not $bad.Ok -and $bad.Status -eq 'FAILED' -and $bad.Message -match "key '2026-10'" -and -not $mixed.Ok -and $mixed.Message -match 'unexpected result \(exit code 1\)' -and
+    -not $silent.Ok -and $silent.Message -match 'no result: You must install or update \.NET' -and -not $empty.Ok -and $empty.Message -match 'exit code 1 and no result$'
+}
+Check 'A07-03 guest ID check: a missing Hcc.Api.exe, or a server folder normal users can change (F-M06), is refused before anything runs' {
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccSrv_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $dir | Out-Null
+    try {
+        $missing = Invoke-HccGuestIdCheck -ServerDirectory $dir -Database 'HccDrill_1' -SqlInstance '.\SQLEXPRESS'
+        Set-Content -LiteralPath (Join-Path $dir 'Hcc.Api.exe') -Value 'not a program'
+        $unsafe = Invoke-HccGuestIdCheck -ServerDirectory $dir -Database 'HccDrill_1' -SqlInstance '.\SQLEXPRESS'
+        $exe = @(Test-HccAdminOnlyWritable -Path $dir -Extensions @('.exe')) -join ' '
+        $default = @(Test-HccAdminOnlyWritable -Path $dir) -join ' '
+        -not $missing.Ok -and $missing.Status -eq 'FAILED' -and $missing.Message -match 'Hcc\.Api\.exe not found' -and $missing.Message -match 'ServerDirectory' -and
+        -not $unsafe.Ok -and $unsafe.Message -match 'refusing to run' -and $unsafe.Message -match 'can change' -and $exe -match 'Hcc\.Api\.exe' -and $default -notmatch 'Hcc\.Api\.exe'
+    }
+    finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # --- A09-01: sqlcmd trusts the server certificate of a LOCAL instance by default --------------------------------------------
 Check 'A09-01 sqlcmd trust: a local instance (., (local), localhost, 127.0.0.1, this PC, with or without \INSTANCE) is trusted by default (-C)' {
     $local = @('.', '.\SQLEXPRESS', '(local)', '(local)\SQLEXPRESS', 'localhost', 'LOCALHOST\HCC', '127.0.0.1', '127.0.0.1,1433', 'tcp:127.0.0.1\SQLEXPRESS', 'lpc:.\SQLEXPRESS', "$env:COMPUTERNAME", "$($env:COMPUTERNAME.ToLowerInvariant())\SQLEXPRESS")
@@ -326,6 +359,15 @@ Check 'Restore-HccDrill -WhatIf: exit 0, plan mentions scratch DB, CHECKDB, row 
     $r = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp)
     $r.Exit -eq 0 -and $r.Out -match 'HccDrill_' -and $r.Out -match 'DBCC CHECKDB' -and $r.Out -match 'row counts' -and $r.Out -match 'decrypted' -and -not (Test-Path $tmp)
 }
+Check 'A07-03 Restore-HccDrill -WhatIf: plans the guest ID check on the scratch copy (server folder from -ServerDirectory); -SkipGuestIdCheck says so' {
+    $none = Join-Path $tmp 'none.json'
+    $r = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ConfigPath', $none, '-ScratchName', 'HccDrill_20261026')
+    $d = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ConfigPath', $none, '-ServerDirectory', 'D:\HccServer')
+    $s = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ConfigPath', $none, '-SkipGuestIdCheck')
+    $r.Exit -eq 0 -and $r.Out -match ([regex]::Escape((Join-Path $env:ProgramFiles 'HCC\Server\Hcc.Api.exe')) + ' verify-guest-id --database HccDrill_20261026') -and $r.Out -match 'never prints a number' -and
+    $r.Out -match 'no guest IDs = reported, not a failure' -and $d.Exit -eq 0 -and $d.Out -match 'D:\\HccServer\\Hcc\.Api\.exe verify-guest-id' -and
+    $s.Exit -eq 0 -and $s.Out -match 'guest ID check SKIPPED' -and $s.Out -notmatch 'verify-guest-id' -and -not (Test-Path $tmp)
+}
 Check 'Restore-HccDrill refuses a non-scratch name or the live name' {
     (DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ScratchName', 'EtpReporting')).Exit -ne 0 -and (DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ScratchName', 'Hcc')).Exit -ne 0
 }
@@ -448,6 +490,81 @@ Check 'New-HccGuestIdKey installs a DPAPI machine key, writes the offline copy, 
         $roundTrip = $roundTrip -and $c.Hcc.GuestIdKeys.Required -eq $true -and $c.Hcc.GuestIdKeys.AllowMachineScope -eq $true   # F-M05: explicit machine-scope opt-in
         $roundTrip -and $refused -and $insideRefused -and $rotated
     } finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+Check 'A07-03 New-HccGuestIdKey -ImportOfflineCopy: -WhatIf writes nothing; imports the key under its id (DPAPI round trip, never printed); a second run changes nothing' {
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccKeyImp_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path "$dir\old", "$dir\new", "$dir\usb" -Force | Out-Null
+    $script = Join-Path $root 'New-HccGuestIdKey.ps1'
+    $ErrorActionPreference = 'Continue'
+    try {
+        # The old PC: a key made by the script, its offline copy on the keys USB stick.
+        $old = "$dir\old\appsettings.Production.json"; Set-Content -LiteralPath $old -Value '{"Hcc":{"Sql":{"ConnectionString":"x"}}}'
+        & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $old -OfflineCopyPath "$dir\usb\k.txt" -KeyId '2026-10' -SkipAcl 2>&1 | Out-Null
+        $rawB64 = (((Get-Content "$dir\usb\k.txt") | Where-Object { $_ -like 'Raw key*' }) -split ': ', 2)[1].Trim()
+        # The replacement PC: the installer's fresh settings file.
+        $s = "$dir\new\appsettings.Production.json"; Set-Content -LiteralPath $s -Value '{"Hcc":{"Sql":{"ConnectionString":"x"}},"_notes":["a"]}'
+        $w = & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $s -ImportOfflineCopy "$dir\usb\k.txt" -SkipAcl -WhatIf 2>&1 | Out-String
+        $dry = $LASTEXITCODE -eq 0 -and $w -match "DRY RUN: Import guest ID key '2026-10'" -and $w -match 'as the current key' -and -not $w.Contains($rawB64) -and
+            ((Get-Content -LiteralPath $s -Raw) -notmatch 'GuestIdKeys') -and -not (Test-Path "$s.before-guestid-key")
+        $o = & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $s -ImportOfflineCopy "$dir\usb\k.txt" -SkipAcl 2>&1 | Out-String
+        $x = $LASTEXITCODE
+        $c = Get-Content -LiteralPath $s -Raw | ConvertFrom-Json
+        $wrapped = $c.Hcc.GuestIdKeys.Keys.'2026-10'
+        Add-Type -AssemblyName System.Security
+        $back = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($wrapped.Substring('dpapi-machine:'.Length)), [Text.Encoding]::ASCII.GetBytes('HCC guest ID key v1'), 'LocalMachine')
+        $imported = $x -eq 0 -and $o -match 'imported from the offline copy' -and $o -match 'verify-guest-id' -and $c.Hcc.GuestIdKeys.Current -eq '2026-10' -and $c.Hcc.GuestIdKeys.Required -eq $true -and
+            $c.Hcc.GuestIdKeys.AllowMachineScope -eq $true -and $wrapped.StartsWith('dpapi-machine:') -and ([Convert]::ToBase64String($back) -eq $rawB64) -and -not $o.Contains($rawB64) -and
+            -not (Get-Content -LiteralPath $s -Raw).Contains($rawB64) -and $c.Hcc.Sql.ConnectionString -eq 'x' -and (Test-Path "$s.before-guestid-key")
+        $again = & $psExe -NoProfile -ExecutionPolicy Bypass -File $script -SettingsFile $s -ImportOfflineCopy "$dir\usb\k.txt" -SkipAcl 2>&1 | Out-String
+        $idem = $LASTEXITCODE -eq 0 -and $again -match 'nothing to do' -and (Get-Content -LiteralPath $s -Raw | ConvertFrom-Json).Hcc.GuestIdKeys.Keys.'2026-10' -eq $wrapped
+        $dry -and $imported -and $idem
+    }
+    finally { $ErrorActionPreference = 'Stop'; Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+Check 'A07-03 New-HccGuestIdKey -ImportOfflineCopy refuses to overwrite a key unless -Force (with a warning); refuses the backup key copy and a wrong -KeyId; adds an older key next to the current one' {
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccKeyImp2_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path "$dir\server", "$dir\usb" -Force | Out-Null
+    $script = Join-Path $root 'New-HccGuestIdKey.ps1'
+    $s = "$dir\server\appsettings.Production.json"
+    $ErrorActionPreference = 'Continue'
+    try {
+        Add-Type -AssemblyName System.Security
+        $e = [Text.Encoding]::ASCII.GetBytes('HCC guest ID key v1')
+        $raw = New-Object byte[] 32; for ($i = 0; $i -lt 32; $i++) { $raw[$i] = [byte](200 - $i) }   # fictional test key
+        $rawB64 = [Convert]::ToBase64String($raw)
+        $copy = "$dir\usb\HCC-guest-id-key-2026-10.txt"
+        Set-Content -LiteralPath $copy -Value @('HCC guest ID key (OFFLINE COPY - keep in the safe, never e-mail, never on the server PC)', 'Key id: 2026-10', 'Created (UTC): 2026-10-26 10:00', "Raw key (base64, 32 bytes): $rawB64")
+        $foreign = 'dpapi-machine:' + [Convert]::ToBase64String((New-HccRandomBytes 180))   # an entry copied from the old PC: DPAPI cannot open it here
+        $different = 'dpapi-machine:' + [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Protect((New-HccRandomBytes 32), $e, 'LocalMachine'))
+        function SettingsWith([string]$v) { Set-Content -LiteralPath $s -Value ('{"Hcc":{"Sql":{"ConnectionString":"x"},"GuestIdKeys":{"Current":"2026-10","Required":true,"AllowMachineScope":true,"Keys":{"2026-10":"' + $v + '"}}}}') }
+        function Entry([string]$id) { return (Get-Content -LiteralPath $s -Raw | ConvertFrom-Json).Hcc.GuestIdKeys.Keys.$id }
+        function Run([string[]]$extra) { $out = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -SettingsFile $s -SkipAcl @extra 2>&1 | Out-String; return @{ Exit = $LASTEXITCODE; Out = ($out -replace '\s+', ' ') } }
+
+        SettingsWith $foreign
+        $r1 = Run @('-ImportOfflineCopy', $copy)
+        $kept1 = (Entry '2026-10') -eq $foreign
+        $f = Run @('-ImportOfflineCopy', $copy, '-Force')
+        $now = Entry '2026-10'
+        $opens = [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($now.Substring(14)), $e, 'LocalMachine')) -eq $rawB64
+        SettingsWith $different
+        $r2 = Run @('-ImportOfflineCopy', $copy)
+        $kept2 = (Entry '2026-10') -eq $different
+        $bk = "$dir\usb\HCC-backup-key.txt"
+        Set-Content -LiteralPath $bk -Value @('HCC BACKUP key (OFFLINE COPY - keep in the safe, apart from the backup disk; never e-mail it)', 'Key fingerprint: 00', "Raw key (base64, 32 bytes): $rawB64")
+        $r3 = Run @('-ImportOfflineCopy', $bk)
+        $r4 = Run @('-ImportOfflineCopy', $copy, '-KeyId', '2027-10')
+        $copy2 = "$dir\usb\HCC-guest-id-key-2025-10.txt"
+        Set-Content -LiteralPath $copy2 -Value @('HCC guest ID key (OFFLINE COPY - keep in the safe, never e-mail, never on the server PC)', 'Key id: 2025-10', "Raw key (base64, 32 bytes): $rawB64")
+        $r5 = Run @('-ImportOfflineCopy', $copy2)
+        $g5 = (Get-Content -LiteralPath $s -Raw | ConvertFrom-Json).Hcc.GuestIdKeys
+        $added = $r5.Exit -eq 0 -and $r5.Out -match "next to the current key '2026-10'" -and $g5.Current -eq '2026-10' -and [bool]$g5.Keys.'2025-10' -and $g5.Keys.'2026-10' -eq $different
+        $r1.Exit -ne 0 -and $r1.Out -match 'cannot be opened on this PC' -and $r1.Out -match 'with -Force' -and $kept1 -and
+        $f.Exit -eq 0 -and $f.Out -match 'WARNING' -and $f.Out -match "Replacing guest ID key '2026-10'" -and $opens -and -not $f.Out.Contains($rawB64) -and
+        $r2.Exit -ne 0 -and $r2.Out -match 'DIFFERENT key' -and $kept2 -and
+        $r3.Exit -ne 0 -and $r3.Out -match 'not an HCC guest ID key offline copy' -and $r4.Exit -ne 0 -and $r4.Out -match "is key '2026-10', not '2027-10'" -and $added -and
+        -not (($r1.Out + $r2.Out + $r3.Out + $r4.Out + $r5.Out).Contains($rawB64))
+    }
+    finally { $ErrorActionPreference = 'Stop'; Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 Check 'Install-HccService -WhatIf prints plan; -Uninstall -WhatIf changes nothing' {
     $r = DryRun 'Install-HccService.ps1' @()
