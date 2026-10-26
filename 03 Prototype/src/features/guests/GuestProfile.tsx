@@ -1,5 +1,6 @@
 // Guest profile: read-only (masked) card, edit modal, registration card print, and the Guests page (SCR-05).
 import {printDocument} from '../../app/native';
+import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Printer,Hotel,ShieldCheck,UserPlus,Lock} from 'lucide-react';
 import {useHcc} from '../../app/context';
@@ -70,7 +71,7 @@ export function RegistrationCard({id}:{id?:string}){
     <div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>Guest registration card · Fictional property</p></div></div>
     <div className="invoice-stamp">DEMONSTRATION — FICTIONAL · NOT A STATUTORY REGISTRATION RECORD</div>
     <div className="invoice-meta"><div><small>GUEST</small><h3>{v?.name||b.guest}</h3><p>{v?.address||'—'}</p><p>{v?.phone||'—'} · {v?.email||'—'}</p></div>
-      <div><small>REGISTRATION</small><h3>DEMO-REG-{b.id}</h3><p>Room {b.room} · {b.people} guest{b.people>1?'s':''}</p><p>{dateLabel(b.arrival)} — {dateLabel(b.departure)}</p></div></div>
+      <div><small>REGISTRATION</small><h3>DEMO-REG-{bookingRef(b)}</h3><p>Room {b.room} · {b.people} guest{b.people>1?'s':''}</p><p>{dateLabel(b.arrival)} — {dateLabel(b.departure)}</p></div></div>
     <div className="summary-list"><div><span>Nationality</span><strong>{v?.nationality||'—'}</strong></div>
       <div><span>ID document (masked)</span><strong>{!v?'—':v.masked?'Restricted':`${v.idType} · ${v.idMasked}`}</strong></div>
       <div><span>Company / GSTIN</span><strong>{v?.company?`${v.company}${v.gstin?' · '+v.gstin:''}`:'—'}</strong></div>

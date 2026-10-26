@@ -1,5 +1,6 @@
 // Day pack: one A4 printable pack (summary, cash, receipts, expenses) for a business date, printed through printDocument (ETP ReportPackageService.cs idea: one pack per day).
 import React,{useState} from 'react';
+import {bookingRefOf} from '../../domain/bookingRef';
 import {Printer,Hotel,X} from 'lucide-react';
 import {money,reportPack,closingSummary,isDayClosed,rbacCanDayPack} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -31,7 +32,7 @@ function LocalDayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
         <h3>3 · Receipts ({receipts.length})</h3>
         {rec&&<div className="summary-list">{Object.entries(rec.receipts.byTender).map(([t,v])=>L(t,money(v)))}</div>}
         <div className="table-wrap"><table><thead><tr><th>Ref</th><th>Booking / guest</th><th>Detail</th><th>Method</th><th className="number">Amount</th></tr></thead><tbody>
-          {receipts.map(r=><tr key={r.ref}><td><small>{r.ref}</small></td><td>{r.booking?`${r.booking} · ${r.guest??''}`:'—'}</td><td>{r.detail}</td><td>{r.method??'—'}</td><td className="number">{money(r.amount)}</td></tr>)}
+          {receipts.map(r=><tr key={r.ref}><td><small>{r.ref}</small></td><td>{r.booking?`${bookingRefOf(s.bookings,r.booking)} · ${r.guest??''}`:'—'}</td><td>{r.detail}</td><td>{r.method??'—'}</td><td className="number">{money(r.amount)}</td></tr>)}
           {!receipts.length&&<tr><td colSpan={5}>No receipts on this date.</td></tr>}</tbody></table></div>
         <h3>4 · Expenses ({expenses.length})</h3>
         <div className="table-wrap"><table><thead><tr><th>Ref</th><th>Detail</th><th>Method</th><th className="number">Amount</th></tr></thead><tbody>

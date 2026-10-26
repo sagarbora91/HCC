@@ -21,7 +21,7 @@ $env:JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStore=`"$ts`" -Djavax.net.ssl.trust
 ## Build
 ```powershell
 cd "V:\Codex\Hotel Control Centre\03 Prototype"; npm run build
-cd "V:\Codex\Hotel Control Centre\04 Android"; npm install            # first time only
+cd "V:\Codex\Hotel Control Centre\04 Android"; npm ci                 # before EVERY build and after every checkout (a stale node_modules silently drops @capacitor/preferences at cap sync)
 node scripts\copy-web.mjs; npx cap sync android                       # refuses a stale build
 cd android; .\gradlew.bat assembleDebug
 ```

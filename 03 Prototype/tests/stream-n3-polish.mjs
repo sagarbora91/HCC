@@ -14,6 +14,9 @@ export function register({test,assert}){
     assert.equal(fix("<ChnSimulated text={x}/>"),"<ChnSimulated text={x}/>");
     assert.equal(fix("const o={simulated:true,a:1};"),"const o={simulated:true,a:1};");
     assert.ok(!/fictional/i.test(fix("'Fictional staff only. One role per user.'")));
+    assert.equal(fix('<span>Preview as (demo user)</span>'),'<span>Switch user</span>');
+    assert.equal(fix('<p>{user.role}. Sign out returns to the staff picker; Preview as is a demo tool.</p>'),'<p>{user.role}. Sign out returns to the staff picker.</p>');
+    assert.equal(fix('<h3>DEMO-{bookingRef(b)}</h3>'),'<h3>{bookingRef(b)}</h3>');
   });
   test('[N3-2] demo-only controls are compiled out of the production build',()=>{
     assert.match(src('src/features/closing/DayClosing.tsx'),/process\.env\.HCC_BUILD==='production'\?null:<button className="btn subtle"[^\n]*Demo: interrupt after/);

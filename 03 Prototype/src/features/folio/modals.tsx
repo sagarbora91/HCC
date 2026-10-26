@@ -1,6 +1,7 @@
 // Stream C · Folio dialogs: booking/folio (SCR-08), payment with mixed tenders (SCR-09), charge/discount, checkout with
 // company credit (SCR-10), sample invoice, refund request, correction request and credit note.
 import {printDocument} from '../../app/native';
+import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
 import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
@@ -34,7 +35,7 @@ export function FolioApprovalRow({a,showGuest=false}:{a:Approval;showGuest?:bool
   const okMsg:Record<string,string>={discount:'Discount approved and posted',refund:'Refund approved — a cashier can now execute it','company-credit':'Company credit approved — it is applied at checkout',correction:'Correction approved — reversal line posted','credit-note':'Credit note approved and issued'};
   return <div className="request folio-request">
     <div><strong>{folioKindLabel[kind]??kind} · {money(a.amount)}{showGuest&&b?` · ${b.guest}`:''}</strong>
-      <p>{a.id}{showGuest&&b?` · ${b.id}`:''}{target} · {a.reason} · requested by {userName(s,a.actor)}{a.approver?` · decided by ${userName(s,a.approver)}`:''}{a.expiresAt&&status==='Pending'?` · expires ${shortDate(a.expiresAt.slice(0,10))} ${a.expiresAt.slice(11)}`:''}</p>
+      <p>{a.id}{showGuest&&b?` · ${bookingRef(b)}`:''}{target} · {a.reason} · requested by {userName(s,a.actor)}{a.approver?` · decided by ${userName(s,a.approver)}`:''}{a.expiresAt&&status==='Pending'?` · expires ${shortDate(a.expiresAt.slice(0,10))} ${a.expiresAt.slice(11)}`:''}</p>
       {status==='Pending'&&own&&<p className="muted">Your own request — another authorised user must decide it.</p>}
       {canDecide&&!own&&overLimit&&<p className="muted">{ownerOnly?'Corrections and credit notes are approved by an Owner.':aprLimit!==undefined?`Above ${money(aprLimit)} — only an Owner can approve this discount.`:`Above ${money(FOLIO_MANAGER_CREDIT_LIMIT)} — only an Owner can approve this company credit.`}</p>}
     </div>
@@ -58,7 +59,7 @@ export function BookingModal({id}:{id:string}){
   const t=totals(b),active=['Confirmed','In house'].includes(b.status),n=folioNights(b);
   const approvals=folioApprovalsFor(s,b.id);
   const closed=(d:string)=>s.closedDates.includes(d);
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · ROOM {b.room}{b.invoiceNo?` · INVOICE ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}{b.invoiceNo?` · INVOICE ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
       <div className="inline">{(()=>{const st=resStatus(s,b);return <Pill tone={st==='In house'?'green':st==='Confirmed'?'blue':st==='Held'?'orange':'neutral'}>{st}</Pill>;})()}<span>{shortDate(b.arrival)} — {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')} · {plural(b.people,'guest')}</span>
         <span className={'folio-nights '+(n.posted<n.agreed?'short':'')} title="Room nights are posted by the nightly audit">Nights posted {n.posted} of {n.agreed} agreed</span></div>
       {b.company&&<p className="folio-company"><Building2 size={14}/>{b.company.name}{b.company.gstin?` · ${process.env.HCC_BUILD==='production'?'GSTIN':'GSTIN (placeholder)'} ${b.company.gstin}`:''}</p>}</div>
@@ -117,13 +118,13 @@ export function PaymentModal({id}:{id:string}){
     run(cmd,single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});
   };
   const kindLabel:Record<string,string>={payment:'Payment / advance against folio',deposit:'Receive refundable deposit','deposit-return':'Return refundable deposit'};
-  if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLabel[kind]} · {money(target)}</p></div>
+  if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLabel[kind]} · {money(target)}</p></div>
     <div className="summary-list">{effective.map((r,i)=><div key={i}><span>{r.method}{r.reference.trim()?' · '+r.reference.trim():''}</span><strong>{money(paise(r.amount))}</strong></div>)}
       <div><span>Total</span><strong>{money(target)}</strong></div>
       {kind==='payment'&&<div><span>Balance after posting</span><strong>{money(t.balance-target)}</strong></div>}</div>
     <div className="info-note folio-unverified"><AlertTriangle size={16}/><span><strong>Manual entry — bank/UPI transaction not verified</strong>. This is a fictional demonstration receipt; no money moves. Retrying after an unclear result reuses the same request and never creates a second receipt.</span></div>
     <div className="modal-actions"><button type="button" className="btn" disabled={busy} onClick={()=>setStep('form')}>Edit</button><button className="btn primary" disabled={busy} onClick={post}>{busy?'Posting…':'Post '+(single?'receipt':rows.length+' receipts')} <Check size={16}/></button></div></>;
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
     <form className="form" onSubmit={next} noValidate>
       <label>Entry type<select name="kind" value={kind} onChange={e=>{setKind(e.target.value);if(e.target.value==='deposit-return')setRows(rows.slice(0,1));}}>{Object.entries(kindLabel).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
       <label>Amount (₹)<input type="number" name="amount" min="0.01" step="0.01" value={total} onChange={e=>setTotal(e.target.value)} required/></label>
@@ -146,7 +147,7 @@ export function ChargeModal({id,discount}:{id:string;discount:boolean}){
   const {b,s,uid,run,booking,modal,busy}=useBooking(id);
   if(!b)return <Missing/>;
   const lim=rbacDiscountLimit(s,uid); // DEC-063 G1: limit of the signed-in role (undefined = Owner, no limit)
-  return <><div className="modal-heading"><h2>{discount?'Add a discount':'Add a service charge'}</h2><p>{b.guest} · {b.id}</p></div>
+  return <><div className="modal-heading"><h2>{discount?'Add a discount':'Add a service charge'}</h2><p>{b.guest} · {bookingRef(b)}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run(discount?{type:'DISCOUNT',id:b.id,amount:amount(f),reason:field(f,'description'),key:modal!.key}:{type:'CHARGE',id:b.id,amount:amount(f),label:field(f,'description'),...(field(f,'gst')?{gst:field(f,'gst')}:{}),key:modal!.key},discount?'Discount recorded or submitted for approval':'Service charge posted',{after:()=>booking(b.id)}))}>
       <label>{discount?'Reason for discount':'Service description'}<input required name="description" maxLength={120} placeholder={discount?'e.g. Service recovery':'e.g. Laundry service'}/></label>
       <label>Amount before GST (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
@@ -202,7 +203,7 @@ export function RefundRequestModal({id,room}:{id?:string;room?:string}){
   const r=b?.receipts.find(r=>r.id===room);
   if(!b||!r)return <Missing/>;
   const max=folioRefundable(s,b,r.id),departedCredit=b.status==='Departed'?Math.max(0,-totals(b).balance):undefined;
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}</div><h2>Request a refund</h2><p>Against {r.id} · {r.method} · {money(r.amount)} on {shortDate(r.date)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Request a refund</h2><p>Against {r.id} · {r.method} · {money(r.amount)} on {shortDate(r.date)}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run({type:'REFUND_REQUEST',id:b.id,receiptId:r.id,amount:amount(f),reason:field(f,'reason'),key:modal!.key},'Refund requested — awaiting approval by another user',{after:()=>booking(b.id)}))}>
       <label>Refund amount (₹)<input name="amount" type="number" min="0.01" step="0.01" max={max/100} defaultValue={(()=>{const bal=totals(b).balance;return bal<0?Math.min(max,-bal)/100:'';})()} required/></label>
       <label>Reason<input name="reason" required maxLength={120} placeholder="e.g. Overpayment at check-in"/></label>
@@ -215,7 +216,7 @@ export function RefundExecuteModal({id}:{id?:string}){
   const a=s.approvals.find(a=>a.id===id&&a.kind==='refund'),b=a&&s.bookings.find(b=>b.id===a.booking),r=b?.receipts.find(r=>r.id===a!.target);
   const [method,setMethod]=useState(r?.method??'Cash');
   if(!a||!b||!r)return <Missing/>;
-  return <><div className="modal-heading"><div className="eyebrow">{a.id} · {b.id} · {b.guest}</div><h2>Execute approved refund</h2><p>{money(a.amount)} against {r.id} ({r.method}) · approved by {userName(s,a.approver)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{a.id} · {bookingRef(b)} · {b.guest}</div><h2>Execute approved refund</h2><p>{money(a.amount)} against {r.id} ({r.method}) · approved by {userName(s,a.approver)}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run({type:'REFUND_EXECUTE',approvalId:a.id,method,reference:field(f,'reference'),key:modal!.key},'Refund executed and linked to the original receipt',{after:()=>booking(b.id)}))}>
       <label>Refund via<select value={method} onChange={e=>setMethod(e.target.value)}>{FOLIO_TENDERS.map(x=><option key={x}>{x}</option>)}</select></label>
       <label>Reference{method==='Cash'?' (optional)':''}<input name="reference" maxLength={100} required={method!=='Cash'} placeholder={'Refund of '+r.id}/></label>
@@ -227,7 +228,7 @@ export function CorrectionModal({id,room}:{id?:string;room?:string}){
   const {b,run,booking,modal,busy}=useBooking(id??'');
   const l=b?.lines.find(l=>l.id===room);
   if(!b||!l)return <Missing/>;
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}</div><h2>Request a correction</h2><p>{l.label} · {shortDate(l.date)} · {money(l.amount)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Request a correction</h2><p>{l.label} · {shortDate(l.date)} · {money(l.amount)}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run({type:'CORRECTION_REQUEST',id:b.id,lineId:l.id,reason:field(f,'reason'),key:modal!.key},'Correction requested — awaiting approval',{after:()=>booking(b.id)}))}>
       <label>Reason<input name="reason" required maxLength={120} placeholder="e.g. Posted to the wrong folio"/></label>
       <div className="info-note"><Info size={16}/>Posted lines are never edited. On approval, a reversal line of {money(-l.amount)} is posted on today’s business date with the original tax snapshot, linked to this line. Post the correct charge separately if needed.</div>
@@ -237,7 +238,7 @@ export function CorrectionModal({id,room}:{id?:string;room?:string}){
 export function CreditNoteModal({id}:{id?:string}){
   const {b,s,run,booking,modal,busy}=useBooking(id??'');
   if(!b)return <Missing/>;
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · {b.guest}{b.invoiceNo?' · '+b.invoiceNo:''}</div><h2>Request a sample credit note</h2><p>Net charges {money(totals(b).net)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}{b.invoiceNo?' · '+b.invoiceNo:''}</div><h2>Request a sample credit note</h2><p>Net charges {money(totals(b).net)}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run({type:'CREDIT_NOTE',id:b.id,amount:amount(f),reason:field(f,'reason'),key:modal!.key},'Credit note requested — awaiting approval',{after:()=>booking(b.id)}))}>
       <label>Credit amount before GST (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
       <label>Reason<input name="reason" required maxLength={120} placeholder="e.g. Service recovery after departure"/></label>

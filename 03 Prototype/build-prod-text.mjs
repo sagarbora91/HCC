@@ -7,6 +7,11 @@ import {sep} from 'node:path';
 
 const Q='[^.<>"\'\x60{}\n;=()/*]'; // one text run: no quotes, tags, braces, newlines or code punctuation
 export const RULES=[
+  // v12fix-b: booking references and placeholders that still carried demo prefixes
+  [/DEMO-REG-\{/g,'REG-{'],
+  [/>DEMO-\{bookingRef/g,'>{bookingRef'],
+  [/placeholder="DEMO0000101"/g,'placeholder="IFSC code"'],
+  [/<p className="signin-foot">DEMO [\u2014-] FICTIONAL DATA \u00B7 Scenario \{s\.scenario\}<\/p>/g,''],
   // parenthesised flavour tags: "Aadhaar (demo)", "Retry queued (simulated)", "Generated (simulated clock)"
   [/\s*\((?:simulated clock|simulated|Simulated|demo|fictional)\)/g,''],
   // headers and watermarks
@@ -69,7 +74,10 @@ export const RULES=[
   [/Switch to another authorized demo user\./g,'Ask another authorised user.'],
   [/Switch user in the demo toolbar\./g,'Ask another authorised user.'],
   [/Your demo user is not linked to a staff record\./g,'Your user is not linked to a staff record.'],
-  [/Preview as demo user/g,'Preview as user'],
+  [/ Sign out returns to the staff picker; Preview as is a demo tool\./g,' Sign out returns to the staff picker.'],
+  [/Preview as \(demo user\)/g,'Switch user'],
+  [/Preview as demo user/g,'Switch user'],
+  [/<span>Preview as<\/span>/g,'<span>Switch user</span>'],
   [/Self-service for staff with a demo login/g,'Self-service for staff with a login'],
   [/linked demo login/g,'linked login'],
   [/may link to a demo login/g,'may link to a login'],

@@ -1,5 +1,6 @@
 // Module 24–25 · dialogs (full-screen sheets on phones): compose, message detail, template editor, consent editor, document review.
 import React,{useState,useMemo} from 'react';
+import {bookingRefOf} from '../../domain/bookingRef';
 import {Info,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Empty,clockTime,shortDate} from '../../components/ui';
@@ -51,7 +52,7 @@ export function MsgMessageModal({id}:{id?:string}){
   const m=(msgSlice(s).outbox||[]).find(x=>x.id===id);
   if(!m)return <Empty title="This message is unavailable"/>;
   const st=msgStatus(m,s.clock),tl=msgTimeline(m,s.clock);
-  return <><div className="modal-heading"><h2>{msgTemplateName(s,m.template)}</h2><p>{m.id} · {m.channel} · booking {m.booking}{m.rule?` · rule ${m.rule}`:' · manual'}{m.retryOf?` · retry of ${m.retryOf}`:''}</p></div>
+  return <><div className="modal-heading"><h2>{msgTemplateName(s,m.template)}</h2><p>{m.id} · {m.channel} · booking {bookingRefOf(s.bookings,m.booking)}{m.rule?` · rule ${m.rule}`:' · manual'}{m.retryOf?` · retry of ${m.retryOf}`:''}</p></div>
     <MsgSimulated>Statuses advance on the simulated hotel clock; nothing is delivered for real.</MsgSimulated>
     <MsgBubble m={m}/>
     <h3 className="msg-sub">Delivery timeline</h3>

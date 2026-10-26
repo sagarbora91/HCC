@@ -1,5 +1,6 @@
 // In-house stays (SCR-07, REQ-STAY-002/003): list, stay detail with room segments, move / extend / shorten.
 import React,{useState} from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {ArrowRight,Info,AlertCircle,Printer,MoveRight,CalendarPlus} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant,plural} from '../../services/mock';
@@ -10,7 +11,7 @@ export function StayDetail({b}:{b:Booking;inModal?:boolean}){
   const {s,uid,open,permission,booking}=useHcc();const g=guestForBooking(s,b),v=g?guestView(s,uid,g):undefined;const t=totals(b);
   const segs=staySegments(b);const left=b.status==='In house'?Math.max(0,nights(s.date,b.departure)):0;
   return <div className="gs-stay">
-    <div className="gs-stay-head"><div><div className="eyebrow">{b.id} · ROOM {b.room}</div><h2>{b.guest}</h2>
+    <div className="gs-stay-head"><div><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}</div><h2>{b.guest}</h2>
       <div className="inline"><Pill tone={b.status==='In house'?'green':'neutral'}>{b.status}</Pill><span className="muted">{shortDate(b.arrival)} — {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')}{b.status==='In house'?` · ${left} night${left===1?'':'s'} left`:''}</span></div></div></div>
     <h3 className="gs-sub">Room segments</h3>
     <p className="gs-seg-label">{staySegmentLabel(b)||'—'}</p>
@@ -42,7 +43,7 @@ export function StayDetailModal({id}:{id?:string}){
 /** Page 'inhouse': list of in-house stays with detail panel. */
 export function InHousePage(){
   const {s,search,setSearch}=useHcc();const all=stayInHouse(s);
-  const list=all.filter(b=>`${b.guest} ${b.id} ${b.room} ${staySegments(b).map(x=>x.room).join(' ')}`.toLowerCase().includes(search.toLowerCase()));
+  const list=all.filter(b=>`${b.guest} ${bookingRef(b)} ${b.room} ${staySegments(b).map(x=>x.room).join(' ')}`.toLowerCase().includes(search.toLowerCase()));
   const [sel,setSel]=useState('');const b=list.find(x=>x.id===sel)||list[0];
   return <><PageTitle title="In-house stays" sub={`${all.length} stay${all.length===1?'':'s'} in house · business date ${shortDate(s.date)}`}/>
     <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking…"/></div>
@@ -50,7 +51,7 @@ export function InHousePage(){
     <div className="gs-split">
       <section className="card"><div className="section-title"><h2>Stays</h2><span className="muted">{list.length} shown</span></div>
         {list.length?<ul className="gs-list">{list.map(x=>{const due=x.departure<=s.date;return <li key={x.id}><button className={'gs-list-item '+(b?.id===x.id?'active':'')} aria-pressed={b?.id===x.id} onClick={()=>setSel(x.id)}>
-          <span className="room-number">{x.room}</span><span className="gs-list-main"><strong>{x.guest}</strong><small>{x.id} · {staySegmentLabel(x)}</small></span>
+          <span className="room-number">{x.room}</span><span className="gs-list-main"><strong>{x.guest}</strong><small>{bookingRef(x)} · {staySegmentLabel(x)}</small></span>
           <span className="gs-list-tags">{due?<Pill tone="orange">Departure due</Pill>:<Pill tone="blue">to {shortDate(x.departure)}</Pill>}<span className="number">Balance {money(totals(x).balance)}</span></span></button></li>;})}</ul>
         :<Empty title="No matching stays" body="Try another guest, room or booking."/>}</section>
       {b&&<section className="card"><div className="padded"><StayDetail b={b}/></div></section>}
@@ -64,7 +65,7 @@ export function StayMoveModal({id,room:mode}:{id?:string;room?:string}){
   const [tab,setTab]=useState(mode==='dates'?'dates':'move');
   const [dep,setDep]=useState(b?.departure||'');const [target,setTarget]=useState('');const [failed,setFailed]=useState(false);
   if(!b)return <Empty title="This record is unavailable"/>;
-  if(b.status!=='In house')return <><div className="modal-heading"><h2>Not in house</h2><p>{b.guest} · {b.id} is {b.status}. Use Move / extend in the booking dialog for reservations.</p></div>
+  if(b.status!=='In house')return <><div className="modal-heading"><h2>Not in house</h2><p>{b.guest} · {bookingRef(b)} is {b.status}. Use Move / extend in the booking dialog for reservations.</p></div>
     <div className="modal-actions"><button className="btn" onClick={()=>open({type:'move',id:b.id})}>Open reservation move</button></div></>;
   if(!permission('reservations'))return <Empty title="Not permitted" body="Room moves and date changes need the reservations permission (PERM-STY-002)."/>;
   const bounds=stayDepartureBounds(s,b);const validDep=dep>=bounds.min&&dep<=bounds.max;
@@ -75,7 +76,7 @@ export function StayMoveModal({id,room:mode}:{id?:string;room?:string}){
   const postedBeyond=dep<b.departure&&b.lines.some(l=>l.kind==='room'&&l.date>=dep);
   const submit=(room:string,departure:string)=>{setFailed(false);run({type:'MOVE',id:b.id,room,departure,key:`${modal!.key}:${room}:${departure}`},room!==b.room?`Moved to room ${room}. Old room ${b.room} is dirty with one housekeeping task.`:`Departure changed to ${shortDate(departure)}. Availability revalidated.`,{after:()=>open({type:'stay-detail',id:b.id})}).then(ok=>{if(!ok)setFailed(true);});};
   const conflictAlts=validDep&&tab==='dates'&&!fits?stayMoveAlternatives(s,b,dep):[];
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · IN HOUSE</div><h2>{tab==='move'?'Move room':'Extend or shorten stay'}</h2><p>{b.guest} · room {b.room} ({curType}) · departs {shortDate(b.departure)} · agreed tariff {money(b.rate)}/night is kept.</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · IN HOUSE</div><h2>{tab==='move'?'Move room':'Extend or shorten stay'}</h2><p>{b.guest} · room {b.room} ({curType}) · departs {shortDate(b.departure)} · agreed tariff {money(b.rate)}/night is kept.</p></div>
     <div className="tabs gs-tabs" role="tablist">{[['move','Move room'],['dates','Extend / shorten']].map(([k,l])=><button key={k} role="tab" aria-selected={tab===k} className={tab===k?'active':''} onClick={()=>{setTab(k);setFailed(false);}}>{l}</button>)}</div>
     <div className="form">
       <label>Departure<input type="date" value={dep} min={bounds.min} max={bounds.max} onChange={e=>{setDep(e.target.value);setFailed(false);}} aria-invalid={!validDep}/>

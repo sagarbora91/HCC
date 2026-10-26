@@ -2,6 +2,7 @@
 // Every figure is derived from source records (REQ-RPT-003): lines by service date, receipts by receipt date,
 // expenses by business date, occupancy from stay intervals. Money is integer paise.
 import {csvQuoted} from '../csv';
+import {bookingRef} from '../bookingRef';
 import type {State,Booking,Expense,Receipt,Line} from '../types';
 import {money,addDays} from '../money';
 import {drawer,blockedDuring,totals} from '../selectors';
@@ -125,7 +126,7 @@ export function closingPreflight(s:State):PreflightIssue[]{
   const st=shiftStatus(s);
   return [
     {id:'arrivals',title:'Arrivals resolved',hint:'Check in, or cancel after refunding advances.',page:'reservations',
-      items:s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).map(b=>({label:`${b.guest} · room ${b.room} · ${b.id}`,booking:b.id}))},
+      items:s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).map(b=>({label:`${b.guest} · room ${b.room} · ${bookingRef(b)}`,booking:b.id}))},
     {id:'departures',title:'Overdue departures resolved',hint:'Settle and check out, or extend the stay.',page:'folios',
       items:s.bookings.filter(b=>b.status==='In house'&&b.departure<=s.date).map(b=>({label:`${b.guest} · room ${b.room} · due ${b.departure}`,booking:b.id}))},
     {id:'holds',title:'Expired holds released',hint:'Release or confirm holds whose expiry has passed.',page:'reservations',
@@ -154,7 +155,7 @@ export function closingSummary(s:State,closedBy=''):ClosingRecord{
   if(counted!==expected)exceptions.push(`Cash difference ${money(counted-expected)} accepted${sh?.decidedBy?' by '+userName(s,sh.decidedBy):''}${sh?.reason?' · '+sh.reason:''}`);
   if(s.closeProgress?.date===d&&s.closeProgress.runs>1)exceptions.push(`Night audit resumed after an interruption (${s.closeProgress.runs} runs; no night posted twice)`);
   const corrections=s.bookings.flatMap(b=>b.lines.filter(l=>l.date===d&&l.kind==='adjustment'&&(l as Line&{correctionOf?:string}).correctionOf).map(l=>({b,l})));
-  corrections.forEach(({b,l})=>exceptions.push(`Correction ${money(l.amount)} on ${b.id} for closed date ${(l as Line&{correctionOf?:string}).correctionOf}`));
+  corrections.forEach(({b,l})=>exceptions.push(`Correction ${money(l.amount)} on ${bookingRef(b)} for closed date ${(l as Line&{correctionOf?:string}).correctionOf}`));
   s.expenses.filter(e=>e.reversalOf&&e.date===d).forEach(e=>exceptions.push(`Expense ${e.reversalOf} reversed (${money(e.amount)})`));
   s.expenses.filter(e=>e.status==='Rejected'&&e.date===d).forEach(e=>exceptions.push(`Expense ${e.id} rejected${e.reason?' · '+e.reason:''}`));
   return {date:d,closedAt:s.clock,closedBy,

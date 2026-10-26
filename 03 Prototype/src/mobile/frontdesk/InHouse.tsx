@@ -1,6 +1,7 @@
 // M08 In-house stays (phone): list cards → 'stay-detail' sheet override with header card (room, dates, balance),
 // room-segment timeline and an actions row. Move / extend uses the guests stream's 'stay-move' sheet (conflicts + alternatives).
 import React from 'react';
+import {bookingRef} from '../../domain/bookingRef';
 import {MoveRight,CalendarPlus,Printer,ArrowRight,UserRound} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,plural} from '../../services/mock';
@@ -19,7 +20,7 @@ export function MfInHouse(){
     <p className="mf-count">{all.length} stay{all.length===1?'':'s'} in house · business date {shortDate(s.date)}</p>
     {list.length?list.map(b=>{const due=b.departure<=s.date;
       return <ListCard key={b.id} title={<span className="mf-lc-guest"><span className="mf-room-no">{b.room}</span>{b.guest}</span>}
-        sub={`${shortDate(b.arrival)} – ${shortDate(b.departure)}${staySegments(b).length>1?' · '+staySegmentLabel(b):''}`} meta={b.id}
+        sub={`${shortDate(b.arrival)} – ${shortDate(b.departure)}${staySegments(b).length>1?' · '+staySegmentLabel(b):''}`} meta={bookingRef(b)}
         right={<span className="mf-stack">{due?<Pill tone="orange">Departure due</Pill>:<Pill tone="blue">to {shortDate(b.departure)}</Pill>}{finance&&<small className="mf-bal">Bal {money(totals(b).balance)}</small>}</span>}
         onClick={()=>open({type:'stay-detail',id:b.id})}/>;})
       :<Empty title={all.length?'No matching stays':'No guests in house'} body={all.length?'Try another guest, room or booking.':'Check in an arrival from Arrivals.'}/>}
@@ -34,7 +35,7 @@ export function MfStayDetail({id}:{id?:string}){
   const left=b.status==='In house'?Math.max(0,nights(s.date,b.departure)):0;const inHouse=b.status==='In house';
   return <><div className="mf-stay-head">
       <div className="mf-stay-room"><span>ROOM</span><strong>{b.room}</strong></div>
-      <div className="mf-stay-main"><div className="eyebrow">{b.id}</div><h2>{b.guest}</h2>
+      <div className="mf-stay-main"><div className="eyebrow">{bookingRef(b)}</div><h2>{b.guest}</h2>
         <p>{shortDate(b.arrival)} – {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')}{inHouse?` · ${left} left`:''}</p>
         <MfStatus status={b.status}/></div>
       {finance&&<div className={'mf-stay-bal '+(t.balance>0?'due':'clear')}><span>{t.balance<0?'Credit':'Balance due'}</span><strong>{money(t.balance)}</strong>{t.deposit>0&&<small>Deposit held {money(t.deposit)}</small>}</div>}

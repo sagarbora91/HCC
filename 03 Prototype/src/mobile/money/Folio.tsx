@@ -1,5 +1,6 @@
 // M09 Folio (phone): folio list page + folio sheet (balance hero, Charges · Receipts · Requests, sticky footer) + "More" sheet.
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
+import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Receipt,Plus,MoreHorizontal,RotateCcw,Printer,LogOut,Percent,CalendarRange,XCircle,FileMinus,PencilLine,Building2} from 'lucide-react';
 import {cbIsLocked,cbLockedMessage,money,totals,lineTax,resStatus,nights,folioNights,folioApprovalStatus,folioKind,folioApprovalsFor,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioReceiptLabel,FOLIO_APPROVAL_KINDS,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection} from '../../services/mock';
@@ -23,7 +24,7 @@ export function MmFolios(){
   const list=s.bookings.filter(b=>{
     const t=totals(b);
     const ok=f==='All'||(f==='Due out'?b.status==='In house'&&b.departure<=s.date:f==='Balance due'?t.balance>0:b.status===f);
-    return ok&&`${b.guest} ${b.id} ${b.room} ${b.company?.name??''} ${b.invoiceNo??''}`.toLowerCase().includes(q);
+    return ok&&`${b.guest} ${bookingRef(b)} ${b.room} ${b.company?.name??''} ${b.invoiceNo??''}`.toLowerCase().includes(q);
   });
   const pg=usePaged(list,PHONE_PAGE);
   const outstanding=s.bookings.reduce((a,b)=>a+Math.max(0,totals(b).balance),0);
@@ -35,7 +36,7 @@ export function MmFolios(){
     {f==='Requests'?(!requests.length?<Empty title="Nothing waiting" body="Requests that need a decision or an approved refund awaiting execution appear here."/>
       :<div className="mm-requests">{requests.map(a=><FolioApprovalRow key={a.id} a={a} showGuest/>)}</div>)
     :<>{pg.shown.map(b=>{const t=totals(b),n=folioNights(b);return <ListCard key={b.id} onClick={()=>booking(b.id)}
-        title={b.guest} sub={`Room ${b.room} · ${b.id}${b.company?' · '+b.company.name:''}`}
+        title={b.guest} sub={`Room ${b.room} · ${bookingRef(b)}${b.company?' · '+b.company.name:''}`}
         meta={<><Pill tone={statusTone(b.status)}>{b.status}</Pill> {shortDate(b.arrival)}–{shortDate(b.departure)} · nights {n.posted}/{n.agreed}</>}
         right={<span className="mm-amt"><strong className="number">{money(Math.abs(t.balance))}</strong><small className={t.balance>0?'mm-due':t.balance<0?'mm-credit':'mm-ok'}>{t.balance>0?'Due':t.balance<0?'Credit':'Settled'}</small></span>}/>;})}
       {!list.length&&<Empty title="No folios match" body="Try another filter or search."/>}<ShowMore p={pg}/></>}
@@ -56,7 +57,7 @@ export function MmFolioSheet({id}:{id?:string}){
   const canCharge=active&&permission('billing');
   const userName=(uid?:string)=>s.users.find(u=>u.id===uid)?.name.split(' · ')[0]??uid??'—';
   return <>
-    <div className="modal-heading mm-folio-head"><div className="eyebrow">{b.id} · ROOM {b.room}{b.invoiceNo?` · ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
+    <div className="modal-heading mm-folio-head"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}{b.invoiceNo?` · ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
       <p className="mm-meta"><Pill tone={statusTone(st)}>{st}</Pill> {shortDate(b.arrival)} – {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')} · {plural(b.people,'guest')}</p>
       <p className={'mm-meta '+(n.posted<n.agreed?'mm-warn-text':'')}>Nights posted {n.posted} of {n.agreed} agreed</p>
       {b.company&&<p className="mm-meta"><Building2 size={14}/> {b.company.name}</p>}</div>
@@ -100,7 +101,7 @@ export function MmFolioMore({id}:{id?:string}){
   const firstRefundable=b.receipts.find(r=>r.kind==='payment'&&folioRefundable(s,b,r.id)>0);
   const firstCorrectable=b.lines.find(l=>folioLineCorrectable(s,b,l));
   const item=(show:boolean,icon:React.ReactNode,title:string,sub:string,fn:()=>void)=>show?<ListCard key={title} title={<span className="m-lc-title">{icon}{title}</span>} sub={sub} onClick={fn}/>:null;
-  return <><div className="modal-heading"><div className="eyebrow">{b.id} · ROOM {b.room}</div><h2>More actions</h2><p>{b.guest} · balance {money(totals(b).balance)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}</div><h2>More actions</h2><p>{b.guest} · balance {money(totals(b).balance)}</p></div>
     <div className="mm-more-list">
       {item(active&&rbacCanDiscount(s,uid),<Percent size={20}/>,'Discount','Above the limit, another user approves',()=>open({type:'discount',id:b.id}))}
       {item(!!firstRefundable&&permission('payments'),<RotateCcw size={20}/>,'Request refund',firstRefundable&&cbIsLocked(s,firstRefundable.date)?cbLockedMessage(firstRefundable.date,'a refund against receipt '+firstRefundable.id):`Against ${firstRefundable?.id} (pick another on the Receipts tab)`,()=>{if(!firstRefundable||cbIsLocked(s,firstRefundable.date))return;open({type:'refund',id:b.id,room:firstRefundable.id});})} {/* DEC-065: locked day = no-op, reason shown */}
