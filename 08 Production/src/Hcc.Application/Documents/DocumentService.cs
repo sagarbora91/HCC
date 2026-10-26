@@ -201,7 +201,9 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
         return v.Kind == ConfigValueKind.Number ? DocumentRules.RetentionDays(v.Number) : DocumentRules.DefaultRetentionDays;
     }
 
-    // TODO(owner): a background worker could call PurgeAsync nightly; for now the purge is an audited command (PERM-DOC-002).
+    // DEC-071 (owner, against advice): guest ID numbers and ID images are kept indefinitely, so NO background worker calls PurgeAsync. The purge stays
+    // a manual, audited command (PERM-DOC-002) for the Owner / Manager when a guest asks for erasure; documents.retentionDays only sets how old a capture
+    // must be for that manual purge. Risk recorded in the Decision Register: DPDP Act 2023 expects erasure once the purpose is served (lawyer to confirm).
     public async Task<CommandResult<PurgeIdCapturesResult>> PurgeAsync(CommandContext ctx, PurgeIdCapturesRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);

@@ -10,8 +10,11 @@ namespace Hcc.Api;
 /// </summary>
 public static class InventoryEndpoints
 {
-    public static IServiceCollection AddInventoryModule(this IServiceCollection services)
+    public static IServiceCollection AddInventoryModule(this IServiceCollection services, IConfiguration? configuration = null)
     {
+        var groupBlocks = new GroupBlockOptions();   // DEC-080: group blocks are refused until Hcc:GroupBlocks:Enabled is true
+        configuration?.GetSection("Hcc:GroupBlocks").Bind(groupBlocks);
+        services.AddSingleton(groupBlocks);
         services.AddSingleton<IInventoryStore, SqlInventoryStore>();
         services.AddSingleton<IInventoryAllocator, SqlInventoryAllocator>();
         services.AddSingleton<IRoomBlockPort>(sp => sp.GetRequiredService<SqlRoomBlockPort>());

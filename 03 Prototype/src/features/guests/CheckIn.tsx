@@ -7,6 +7,7 @@ import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstP
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestDetails,statusTone} from './GuestProfile';
+import {PrintListButton} from './FrontDeskList';
 import {bookingIdLookup} from '../../domain/streams/customers';
 
 const stepNames=['Find reservation','Verify guest','Room eligibility','Confirm tariff','Advance / deposit','Check in'];
@@ -24,7 +25,7 @@ export function ArrivalsPage(){
   const today=s.bookings.filter(b=>b.status==='In house'&&staySegments(b)[0]?.from===s.date);
   const canWalkin=permission('reservations')&&permission('checkin');
   return <><PageTitle title="Arrivals & check-in" sub={`Expected today and overdue arrivals · business date ${shortDate(s.date)} · check-in from ${s.settings.checkin}`}
-      action={canWalkin?<button className="btn primary" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={16}/>Walk-in</button>:<span className="muted">Walk-in needs reservation and check-in permissions.</span>}/>
+      action={<div className="inline"><PrintListButton kind="arrivals"/>{canWalkin?<button className="btn primary" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={16}/>Walk-in</button>:<span className="muted">Walk-in needs reservation and check-in permissions.</span>}</div>}/>
     <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking ID…"/><span className="muted">{list.length} awaiting check-in</span></div>
     {found.length>0&&<section className="card" aria-label="Booking ID lookup"><div className="section-title"><h2>Booking ID lookup</h2><span className="muted">{found.length} found</span></div>
       <ul className="gs-simple-list">{found.map(b=><li key={b.id}><strong>{b.id}</strong><span>{b.guest} · room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)}</span><Pill tone={statusTone(b.status)}>{b.status}</Pill>

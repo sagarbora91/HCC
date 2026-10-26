@@ -8,6 +8,7 @@ import {useHcc} from '../../app/context';
 import {GuestsPage,GuestProfileModal,RegistrationCard} from './GuestProfile';
 import {ArrivalsPage,CheckinModal,WalkinModal} from './CheckIn';
 import {InHousePage,StayDetailModal,StayMoveModal} from './InHouse';
+import {FrontDeskListModal} from './FrontDeskList';
 
 /** Booking dialog buttons: guided check-in, guest profile, stay details, registration card. */
 function BookingActions({b}:{b:Booking}){
@@ -29,7 +30,7 @@ export const registration:FeatureRegistration={
     {group:'GUESTS & STAYS',item:{id:'inhouse',label:'In-house stays',icon:BedDouble,p:'billing'}},
     // 'guests' page stays registered (modals/deep links) but has no nav item: profiles are the Profile tab of Customers.
   ],
-  modals:{'guest-profile':GuestProfileModal,'guest-regcard':RegistrationCard,'guest-checkin':CheckinModal,'guest-walkin':WalkinModal,'stay-detail':StayDetailModal,'stay-move':StayMoveModal},
-  wideModals:['guest-profile','guest-regcard','guest-checkin','guest-walkin','stay-detail','stay-move'],
+  modals:{'guest-profile':GuestProfileModal,'guest-regcard':RegistrationCard,'guest-checkin':CheckinModal,'guest-walkin':WalkinModal,'stay-detail':StayDetailModal,'stay-move':StayMoveModal,'front-list':FrontDeskListModal}, // front-list: printable in-house / arrivals list (DEC-081)
+  wideModals:['guest-profile','guest-regcard','guest-checkin','guest-walkin','stay-detail','stay-move','front-list'],
   bookingActions:BookingActions,
 };

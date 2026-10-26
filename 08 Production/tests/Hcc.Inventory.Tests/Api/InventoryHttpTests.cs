@@ -30,16 +30,17 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private async Task<(WebApplication App, HttpClient Http)> StartAsync()
+    private async Task<(WebApplication App, HttpClient Http)> StartAsync(bool groupBlocksOn = false)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
+        if (groupBlocksOn) builder.Configuration["Hcc:GroupBlocks:Enabled"] = "true";
         var platform = f.Db.Platform;
         builder.Services.AddSingleton(platform);
         builder.Services.AddSingleton<SqlConnectionFactory>(platform.Connections);
         builder.Services.AddSingleton<ICommandRunner>(platform.Commands);
         builder.Services.AddSingleton<TimeProvider>(f.Services.Clock);
-        builder.Services.AddInventoryModule();
+        builder.Services.AddInventoryModule(builder.Configuration);
         builder.Services.AddReservationsModule();
         builder.Services.AddBillingModule(); // tax rates + folio money check
         builder.Services.AddSingleton<IAccessPolicy>(new FakeAccessPolicy());
@@ -118,5 +119,34 @@ public sealed class InventoryHttpTests(GoldenDatabaseFixture f) : IClassFixture<
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         var anonymous = await other.GetAsync($"{ApiConventions.BasePath}/availability?arrival=2026-10-24&departure=2026-10-25&adults=1", Ct);
         Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_group_block_answers_409_with_the_written_reason_until_Hcc_GroupBlocks_Enabled_is_true()
+    {
+        // DEC-080 / A02b-04: production default = refused (no configuration at all).
+        var request = new CreateGroupBlockRequest("GB-HTTP", "Http group", "2027-03-10", "2027-03-11", "2027-03-05", [new GroupBlockAllotment(f.TypeIds["Deluxe"], 1)]);
+        var (app, http) = await StartAsync();
+        await using (app)
+        using (http)
+        {
+            var refused = await http.SendAsync(Post("CreateGroupBlock", request, "http-block-off"), Ct);
+            Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+            using var doc = JsonDocument.Parse(await refused.Content.ReadAsStringAsync(Ct));
+            Assert.Equal("NOT_AVAILABLE", doc.RootElement.GetProperty("code").GetString());
+            Assert.Equal("Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.", doc.RootElement.GetProperty("message").GetString());
+            Assert.Equal("GROUP_BLOCKS_OFF", doc.RootElement.GetProperty("details").GetProperty("reason").GetString());
+            Assert.Equal(0, await f.Db.CountAsync("SELECT COUNT(*) FROM inv.group_block WHERE code = 'GB-HTTP';", Ct));
+        }
+
+        // The option is read from configuration (what appsettings.Production.json feeds in).
+        var (app2, http2) = await StartAsync(groupBlocksOn: true);
+        await using (app2)
+        using (http2)
+        {
+            var made = await http2.SendAsync(Post("CreateGroupBlock", request, "http-block-on"), Ct);
+            Assert.Equal(HttpStatusCode.OK, made.StatusCode);
+            Assert.Equal(1, await f.Db.CountAsync("SELECT COUNT(*) FROM inv.group_block WHERE code = 'GB-HTTP';", Ct));
+        }
     }
 }

@@ -15,11 +15,12 @@
 //            after CheckoutStay, issueInvoiceAfterCheckout() from here (a refusal does not fail the checkout: invoiceStepWarning) ·
 //            INVOICE_ISSUE → IssueInvoice (departed stay without an invoice; production "Issue invoice" action) ·
 //            CREDIT_NOTE → RequestCreditNote · SHIFT_SUBMIT → SubmitShiftCount · SHIFT_DIFFERENCE_DECIDE → DecideApproval ·
-//            CB_LOCK / CB_REOPEN → LockCashBookDay / ReopenCashBookDay · GRP_BLOCK_CREATE → CreateGroupBlock → CreateGroup.
+//            CB_LOCK / CB_REOPEN → LockCashBookDay / ReopenCashBookDay · GRP_BLOCK_CREATE → CreateGroupBlock → CreateGroup — but REFUSED with a
+//            written reason until the server option Hcc:GroupBlocks:Enabled is on (DEC-080, audit A02b-04: pickup, release, cancel and re-allot are not built).
 // The server re-checks everything (limits, self-approval, DEC-041 version binding, DEC-065 locks); prechecks only repeat cheap prototype refusals.
 import type {Booking,Approval,Command,State} from '../../services/mock';
 import {totals,addDays} from '../../services/mock';
-import type {GRPState} from '../../domain/streams/groups';
+import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,type GRPState} from '../../domain/streams/groups';
 import {HccClientError} from '../errors';
 import type {SrvAvailability} from '../server';
 import type {SyncArea,LoaderCtx,CommandCtx,SliceKey,SyncMe} from './types';
@@ -355,6 +356,8 @@ export const money:SyncArea={
     {type:'GRP_BLOCK_CREATE',reload:['groupsX'],
       precheck:cmd=>text(cmd.name).length<2?'Enter the group name.':!Object.values(cmd.allot??{}).some(n=>Number(n)>0)?'Hold at least one room.':undefined,
       async send(c){
+        // DEC-080 / A02b-04: refused before any request (same title and sentence as the server's own NOT_AVAILABLE answer, option Hcc:GroupBlocks:Enabled).
+        if(!grpBlocksOnServer())throw new HccClientError('NOT_AVAILABLE',GRP_BLOCKS_REFUSAL,{reason:'GROUP_BLOCKS_OFF'});
         const cmd=c.cmd,allot=Object.entries(cmd.allot??{}).filter(([,n])=>Number(n)>0) as [string,number][];
         const ids=await roomTypeIds(c,allot.map(([t])=>t),cmd.arrival,cmd.departure);
         const block=await c.api.command<{groupBlockId:number}>('CreateGroupBlock',{code:blockCode(cmd.name,cmd.arrival),name:text(cmd.name),arrival:cmd.arrival,departure:cmd.departure,cutoff:cmd.cutoff,

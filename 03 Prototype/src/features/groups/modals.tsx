@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Check,Plus,Trash2,AlertTriangle,Info,Printer} from 'lucide-react';
-import {money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
+import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
@@ -61,7 +61,10 @@ export function BlockModal(){
   const dep=d||(a?new Date(Date.parse(a+'T12:00:00Z')+86400000).toISOString().slice(0,10):'');
   const company=grpCompany(s,co);
   const valid=a>=s.date&&dep>a&&nights(a,dep)<=30;
+  // DEC-080: the production server refuses blocks until pickup / release / cancel / re-allot exist; say so up front (the demo build is unchanged).
+  const refused=process.env.HCC_BUILD==='production'&&!grpBlocksOnServer();
   return <><Head eyebrow="GROUP BLOCK" title="New group block" sub="Hold rooms by type for a group. Unpicked rooms are released automatically when the business date passes the cut-off."/>
+    {refused&&<div className="gs-deny" role="alert"><AlertTriangle size={18}/><div>{GRP_BLOCKS_REFUSAL}</div></div>}
     <form className="form" onSubmit={e=>submit(e,f=>{
       const rates:Record<string,number>={};types.forEach(t=>{const v=grpPaise(f.get('rate-'+t));if(v!==undefined&&allot[t])rates[t]=v;});
       run({type:'GRP_BLOCK_CREATE',name:field(f,'name'),company:co||undefined,billTo:bill,arrival:a,departure:dep,cutoff:field(f,'cutoff'),allot,rates,contact:field(f,'contact'),notes:field(f,'notes'),key:modal!.key},'Group block created',{close:true});})}>
@@ -77,7 +80,7 @@ export function BlockModal(){
             <small>{valid?`${cap} can be held (${free} free${held?`, ${held} held by other blocks`:''})`:'Choose valid dates'}</small></div>;})}
       </fieldset>
       <div className="form-row"><label>Group contact<input name="contact" maxLength={60}/></label><label>Notes<input name="notes" maxLength={200}/></label></div>
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!valid||!Object.values(allot).some(n=>n>0)}>Create block <Check size={16}/></button></div>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||refused||!valid||!Object.values(allot).some(n=>n>0)}>Create block <Check size={16}/></button></div>
     </form></>;
 }
 

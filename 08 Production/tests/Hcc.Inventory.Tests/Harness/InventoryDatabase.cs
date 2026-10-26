@@ -144,7 +144,9 @@ public sealed class P2Services
         Allocator = new SqlInventoryAllocator(db.Platform.Connections);
         RoomBlocks = new SqlRoomBlockPort(db.Platform.Connections, clock);
         BlockHistory = new SqlRoomBlockHistoryReader(db.Platform.Connections);
-        Inventory = new InventoryService(Store, db.Platform.Commands, Access, new Hcc.Application.Tax.FixedGstRateResolver(taxBps), clock, BlockHistory);
+        // Group blocks are ON for these tests (the fixtures build and pick up blocks); production defaults to OFF (DEC-080), see GroupBlockSwitchTests.
+        Inventory = new InventoryService(Store, db.Platform.Commands, Access, new Hcc.Application.Tax.FixedGstRateResolver(taxBps), clock, BlockHistory,
+            new GroupBlockOptions { Enabled = true });
         BlockQueries = new RoomBlockQueries(BlockHistory, Store, Access);
         Booking = new ReservationService(Reservations, Store, Inventory, db.Platform.Commands, Access,
             new Hcc.Application.Billing.BillingReservationMoney(new Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore(db.Platform.Connections)), clock);

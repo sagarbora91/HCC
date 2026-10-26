@@ -1,7 +1,8 @@
 // Stream B · Guests & check-in (owns REGISTER, CHECKIN, MOVE) — pure domain helpers and selectors (re-exported by services/mock/index.ts for UI and tests).
 // Export names are prefixed guest*/stay* to avoid clashes with other streams.
 import type {State,Booking,Room} from '../types';
-import {available,can,occupant,blockedDuring} from '../selectors';
+import {available,can,occupant,blockedDuring,totals} from '../selectors';
+import {bookingRef} from '../bookingRef';
 import {addDays,nights} from '../money';
 
 export type Guest=NonNullable<State['guests']>[number];
@@ -172,6 +173,19 @@ export function guestSearch(s:State,q:string,uid?:string){
 /** Today's arrivals: Confirmed with arrival ≤ business date. */
 export const stayArrivals=(s:State)=>s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).sort((a,b)=>a.arrival.localeCompare(b.arrival)||a.room.localeCompare(b.room));
 export const stayInHouse=(s:State)=>s.bookings.filter(b=>b.status==='In house').sort((a,b)=>a.room.localeCompare(b.room));
+// ── Printed front-desk lists (DEC-081, audit A09-06) ──
+// The morning in-house list and arrivals list: the paper copy the desk works from while the server is down. Same selection as the
+// In-house stays and Arrivals pages. Phone numbers follow the viewer's masking (guestView); money columns are shown only to roles with billing.
+export type StayListKind='inhouse'|'arrivals';
+export const STAY_LIST_TITLE:Record<StayListKind,string>={inhouse:'In-house list',arrivals:'Arrivals list'};
+export type StayListRow={room:string;guest:string;ref:string;people:number;arrival:string;departure:string;nights:number;phone:string;registered:boolean;source:string;paid:number;balance:number};
+export function stayListRows(s:State,uid:string,kind:StayListKind):StayListRow[]{
+  return (kind==='arrivals'?stayArrivals(s):stayInHouse(s)).map(b=>{
+    const g=guestForBooking(s,b),t=totals(b);
+    return {room:b.room,guest:b.guest,ref:bookingRef(b),people:b.people,arrival:b.arrival,departure:b.departure,nights:nights(b.arrival,b.departure),
+      phone:g?guestView(s,uid,g).phone:'—',registered:!!b.registered,source:b.source,paid:t.paid,balance:t.balance};
+  });
+}
 /** Room segments; a stay checked in before segments existed gets one derived open segment. */
 export function staySegments(b:Booking):StaySegment[]{
   if(b.segments?.length)return b.segments;

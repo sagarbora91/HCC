@@ -203,8 +203,22 @@ export async function register({test,assert,M}){
     assert.deepEqual([lockCmd.body,reoCmd.body],[{businessDate:'2026-10-23'},{businessDate:'2026-10-22',reason:'Missed expense'}]);
     assert.deepEqual(lock.calls,['POST /commands/LockCashBookDay','GET /cashbook']);
   });
-  const grp=await run({type:'GRP_BLOCK_CREATE',name:'Iyer conference',billTo:'guest',arrival:'2026-12-20',departure:'2026-12-22',cutoff:'2026-12-10',allot:{Deluxe:3,Suite:0},rates:{Deluxe:190000},contact:'A. Iyer',key:'grp:1'});
+  // DEC-080 (A02b-04): production refuses a group block until the server option is on — a written reason, no request at all.
+  const blockCmd={type:'GRP_BLOCK_CREATE',name:'Iyer conference',billTo:'guest',arrival:'2026-12-20',departure:'2026-12-22',cutoff:'2026-12-10',allot:{Deluxe:3,Suite:0},rates:{Deluxe:190000},contact:'A. Iyer'};
+  const grpOff=await run({...blockCmd,key:'grp:0'});
+  const grpOffSent=srv.calls.length;
+  S.grpSetBlocksOnServer(true);   // the day Hcc:GroupBlocks:Enabled is switched on, the same mapping sends again
+  const grp=await run({...blockCmd,key:'grp:1'});
+  S.grpSetBlocksOnServer(false);
   const gb=srv.commands('CreateGroupBlock')[0],gg=srv.commands('CreateGroup')[0];
+  test('[DEC-080] GRP_BLOCK_CREATE is refused in production with the written reason (same sentence and title as the server) and sends nothing; the default is off',()=>{
+    assert.equal(S.grpBlocksOnServer(),false);
+    assert.equal(S.GRP_BLOCKS_REFUSAL,'Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.');
+    assert.equal(grpOff.r.ok,false);assert.equal(grpOff.r.reason,'server');
+    assert.equal(grpOff.r.text,'Not available: Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.');
+    assert.equal(grpOff.r.error.wireCode,'NOT_AVAILABLE');assert.equal(grpOff.r.error.details.reason,'GROUP_BLOCKS_OFF');
+    assert.deepEqual([grpOff.calls,grpOffSent],[[],0],'no availability read, no CreateGroupBlock, no CreateGroup');
+  });
   test('[W4-3 money] GRP_BLOCK_CREATE → [GET /availability for room-type ids] → CreateGroupBlock → CreateGroup (guest-paid routing), groups reload',()=>{
     assert.ok(grp.r.ok,grp.r.text);
     assert.deepEqual(grp.calls.slice(0,3),['GET /availability','POST /commands/CreateGroupBlock','POST /commands/CreateGroup']);

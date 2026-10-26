@@ -25,7 +25,7 @@ public static class HccComposition
         services.AddSingleton(sp => new SchemaGuard(platform.Connections, new EmbeddedMigrationSource(), sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ILogger<SchemaGuard>>()));   // A09-04: refuse to serve while the schema is behind this build
         services.AddHccAccess(configuration, platform);  // P1: sessions, THE IAccessPolicy (scope resolvers from the modules below)
-        services.AddInventoryModule();                   // P2
+        services.AddInventoryModule(configuration);      // P2 (+ Hcc:GroupBlocks:Enabled, DEC-080)
         services.AddReservationsModule();                // P2
         services.AddHccStays();                          // P3
         services.AddHccHousekeeping();                   // P3

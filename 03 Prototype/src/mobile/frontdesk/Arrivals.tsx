@@ -15,6 +15,7 @@ import {mfCheckinState,mfCheckinSteps,mfInitials} from './logic';
 import {MfRows,MfSearch,useMfTop} from './shared';
 import {bookingIdLookup} from '../../domain/streams/customers';
 import {statusTone} from '../../features/guests/GuestProfile';
+import {PrintListButton} from '../../features/guests/FrontDeskList';
 
 /** Waits until React has re-rendered with the result of the last run() (the context's state is per render). */
 function useSettle(){const renders=useRef(0);renders.current++;
@@ -31,6 +32,7 @@ export function MfArrivals(){
     <MfSearch value={search} onChange={setSearch} placeholder="Search guest, room or booking ID"/>
     {found.length>0&&<><h2 className="m-group">BOOKING ID LOOKUP ({found.length})</h2>{found.map(b=><ListCard key={b.id} title={b.id} sub={`${b.guest} · room ${b.room} · ${shortDate(b.arrival)} – ${shortDate(b.departure)}`} meta={<Pill tone={statusTone(b.status)}>{b.status}</Pill>} onClick={()=>booking(b.id)}/>)}</>}
     <p className="mf-count">{list.length} awaiting check-in · from {s.settings.checkin}</p>
+    <PrintListButton kind="arrivals" className="btn full mf-more"/>
     {list.length?list.map(b=>{const st=mfCheckinState(s,b,false);
       return <ListCard key={b.id} title={<span className="mf-lc-guest"><span className="mf-initials" aria-hidden>{mfInitials(b.guest)}</span>{b.guest}</span>}
         sub={`Room ${b.room} · ${shortDate(b.arrival)} – ${shortDate(b.departure)}${b.arrival<s.date?' · overdue':''}`}
