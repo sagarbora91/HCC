@@ -8,7 +8,9 @@
 //            shiftOpen / openingCash / shift / shiftClose ← GET /cashier/desk (DEC-052 shared till; learns till + shift ids/versions).
 //            cashbookX          ← GET /cashbook?from&to (locks and lock/reopen history; the figures stay derived on the client: cbDay).
 //            groupsX            ← GET /groups + /groups/{id}/statement (blocks of groups that have one; member room types from the
-//                                reservation reads). Company accounts / credit limits / overrides do not exist on the server (empty).
+//                                reservation reads) and GET /groups/companies: company accounts, limit requests and — for PERM-GRP-004
+//                                holders — the DEC-076 credit picture per company (exposure, receivable, remaining; shown instead of the
+//                                local estimate) and the company payments. Credit-limit overrides no longer exist (DEC-076: refused, no override).
 //   commands PAYMENT → RecordReceipt (one per tender; before check-in by reservationId: the server opens the folio)  · CHARGE → PostCharge · DISCOUNT / REFUND_REQUEST / COMPANY_CREDIT_REQUEST /
 //            CORRECTION_REQUEST → RequestAdjustment (expectedVersion = the folio version loaded) · REFUND_EXECUTE → ExecuteAdjustment ·
 //            APPROVAL → DecideApproval | DecideCreditNote · CHECKOUT is W4-1's (CheckoutStay): it calls companyCreditApprovalId() and,
@@ -17,9 +19,10 @@
 //            CREDIT_NOTE → RequestCreditNote · SHIFT_SUBMIT → SubmitShiftCount · SHIFT_DIFFERENCE_DECIDE → DecideApproval ·
 //            CB_LOCK / CB_REOPEN → LockCashBookDay / ReopenCashBookDay · GRP_BLOCK_CREATE → CreateGroupBlock → CreateGroup — but REFUSED with a
 //            written reason until the server option Hcc:GroupBlocks:Enabled is on (DEC-080, audit A02b-04: pickup, release, cancel and re-allot are not built).
+//            GRP_BLOCK_CREATE / CreateGroup carry companyId when billed to a company account · GRP_COMPANY_PAYMENT → RecordCompanyPayment (DEC-076).
 // The server re-checks everything (limits, self-approval, DEC-041 version binding, DEC-065 locks); prechecks only repeat cheap prototype refusals.
 import type {Booking,Approval,Command,State} from '../../services/mock';
-import {totals,addDays,cxSlice} from '../../services/mock';
+import {totals,addDays,cxSlice,grpAccountOf} from '../../services/mock';
 import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,type GRPState} from '../../domain/streams/groups';
 import {HccClientError} from '../errors';
 import type {SrvAvailability} from '../server';
@@ -27,7 +30,7 @@ import type {SyncArea,LoaderCtx,CommandCtx,SliceKey,SyncMe} from './types';
 import {serverId,protoId} from './map';
 import {BOOKING_STATUS} from './frontdesk/shared';
 import {folioIntoBooking,approvalFromServer,creditNoteRequestFromServer,cashDifferenceApproval,CNR_PREFIX,deskTill,deskShiftOpen,deskOpeningCash,
-  deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,companyFromServer,limitRequestFromServer,type SrvCompanyBook,
+  deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,companyFromServer,companyPaymentFromServer,limitRequestFromServer,type SrvCompanyBook,
   type SrvReservationFolio,type SrvInvoice,type SrvCreditNoteRequest,type SrvCashDesk,type SrvCashBookRange,type SrvGroupSummary,type SrvGroupStatement} from './money/wire';
 
 /** A booking as the money patch leaves it: the folio's approvals travel with it to the approvals loader (same batch). */
@@ -157,7 +160,8 @@ async function loadGroups(c:LoaderCtx):Promise<GRPState>{
   const book=c.mayRead('GET /groups/companies')?await optional(c.api.get<SrvCompanyBook>('/groups/companies')):null;
   const companies=(book?.companies??[]).map(x=>{c.ids.learn('company',protoId(x.companyId),x.companyId);c.ids.setVersion('company',protoId(x.companyId),x.version);return companyFromServer(x);});
   const requests=(book?.requests??[]).map(r=>{c.ids.learn('limitRequest',protoId(r.requestId),r.requestId);return limitRequestFromServer(r);});
-  return {companies,blocks:blocks.filter((b):b is NonNullable<typeof b>=>!!b),requests,overrides:[]};
+  const payments=(book?.payments??[]).map(companyPaymentFromServer);
+  return {companies,blocks:blocks.filter((b):b is NonNullable<typeof b>=>!!b),requests,overrides:[],payments};
 }
 
 // ── command helpers ──
@@ -299,11 +303,13 @@ export const money:SyncArea={
         return {result:await requestAdjustment(c,'refund',b,c.cmd.amount,text(c.cmd.reason),serverId(c.cmd.receiptId,'Receipt'))};}},
     {type:'COMPANY_CREDIT_REQUEST',reload:FOLIO,
       precheck:(cmd,s)=>{const b=s.bookings.find(x=>x.id===cmd.id);if(!b)return undefined;
-        if(b.status!=='In house')return 'This stay is not in house.';if(!b.company?.name?.trim())return 'Add a company to this booking before requesting company credit.';
+        if(b.status!=='In house')return 'This stay is not in house.';if(!b.company?.name?.trim()&&!grpAccountOf(s,b))return 'Add a company to this booking before requesting company credit.';
         if(totals(b).balance<=0)return 'There is no outstanding balance to place on company credit.';return undefined;},
       async send(c){const b=bookingOf(c,c.cmd.id);
         // Server rule: the credit equals the current balance — the folio's own figures, which the loader reconciled paise-exact with the server.
-        return {result:await requestAdjustment(c,'credit',b,totals(b).balance,text(c.cmd.reason)||('Company credit · '+(b.company?.name??'')),null)};}},
+        // DEC-076: the server also needs the booking billed to a company account and checks that account's credit limit.
+        const company=b.company?.name||grpAccountOf(c.state,b)?.name||'';
+        return {result:await requestAdjustment(c,'credit',b,totals(b).balance,text(c.cmd.reason)||('Company credit · '+company),null)};}},
     {type:'CORRECTION_REQUEST',reload:FOLIO,
       precheck:cmd=>!text(cmd.reason)?'A reason is required.':!cmd.lineId?'Select the posted line to correct.':undefined,
       async send(c){const b=bookingOf(c,c.cmd.id),l=b.lines.find(x=>x.id===c.cmd.lineId);
@@ -369,7 +375,9 @@ export const money:SyncArea={
         const contact=text(cmd.contact)||text(cmd.name);
         const co=cmd.billTo==='company'&&cmd.company?c.state.groupsX?.companies.find(x=>x.id===String(cmd.company)):undefined;
         const rules=cmd.billTo==='guest'?[{category:'room',target:'guest'},{category:'extras',target:'guest'},{category:'tax',target:'follow'}]:null;
-        const group=await c.api.command('CreateGroup',{name:text(cmd.name),groupBlockId:block.groupBlockId,organiser:contact,billingName:co?.name??text(cmd.name),billingContact:co?.contact||contact,gstin:co?.gstin||null,rules},{step:'group'});
+        // DEC-076: a bill-to-company block's master is billed to the company account (routing to it is credit-checked on the server).
+        const group=await c.api.command('CreateGroup',{name:text(cmd.name),groupBlockId:block.groupBlockId,organiser:contact,billingName:co?.name??text(cmd.name),billingContact:co?.contact||contact,gstin:co?.gstin||null,rules,
+          companyId:co?serverId(co.id,'Company'):null},{step:'group'});
         return {result:{block,group}};
       }},
     {type:'GRP_COMPANY_SAVE',reload:['groupsX'],
@@ -390,6 +398,12 @@ export const money:SyncArea={
     {type:'GRP_LIMIT_DECIDE',reload:['groupsX'],
       async send(c){const m=c.cmd;
         return {result:await c.api.command('DecideCompanyLimit',{requestId:serverId(m.id,'Limit request'),approve:!!m.approve,note:text(m.note)||null})};}},
+    // DEC-076: money received from a company (PERM-GRP-005; UPI, card or bank transfer; at most what it owes on company credit — the server checks).
+    {type:'GRP_COMPANY_PAYMENT',reload:['groupsX'],
+      precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':cmd.method==='Cash'?'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.'
+        :!text(cmd.reference)?'Enter the transaction reference for a non-cash payment.':undefined,
+      async send(c){const m=c.cmd;
+        return {result:await c.api.command('RecordCompanyPayment',{companyId:serverId(m.company,'Company'),tender:m.method,amountPaise:m.amount,reference:text(m.reference),invoiceNo:text(m.invoice)||null})};}},
   ],
   unmapped:{
     GRP_BLOCK_ALLOT:'no server command changes a block’s allotment (inventory backlog)',

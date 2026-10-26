@@ -51,9 +51,9 @@ public interface ICompanyStore
 
 /// <summary>
 /// Company accounts of the Groups module (W4 N1; prototype <c>GRP_COMPANY_SAVE</c> / <c>GRP_LIMIT_SET</c> / <c>GRP_LIMIT_DECIDE</c>).
-/// Save needs PERM-GRP-002. A credit limit is maker-checker: an approver (PERM-GRP-003 within its amount limit) sets it directly,
-/// anyone else with group.manage raises a request that a different approver decides (PERM-SOD-001). Every command goes through
-/// <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox).
+/// Save needs PERM-GRP-002. A credit limit is maker-checker and Owner only (DEC-076, audit A05-01): the Owner (PERM-GRP-006, mode A) sets it
+/// directly; anyone else with group.manage (the Manager, Reception) raises a request that the Owner, never the requester, approves or rejects
+/// (PERM-SOD-001). Every command goes through <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox).
 /// </summary>
 public sealed class CompanyCommands(ICommandRunner runner, ICompanyStore store, IAccessPolicy policy, TimeProvider clock)
 {
@@ -158,7 +158,8 @@ public sealed class CompanyCommands(ICommandRunner runner, ICompanyStore store, 
             var co = await store.LockAsync(tx, ctx.PropertyId, r.CompanyId, c).ConfigureAwait(false) ?? throw GroupCommands.NotFound("Company account not found.");
             if (r.Status != "Pending") throw GroupCommands.Invalid("This credit-limit request is no longer pending.");
             if (r.RequestedBy == ctx.PrincipalId) throw new HccException(HccErrorCode.FORBIDDEN, "You cannot decide your own request (PERM-SOD-001).");
-            await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GroupPermissions.Approve, amountPaise: r.ToPaise, ct: c).ConfigureAwait(false);
+            if (!await CanSetDirectlyAsync(ctx, r.ToPaise, c).ConfigureAwait(false))
+                throw new HccException(HccErrorCode.FORBIDDEN, "Only the Owner approves or rejects a company credit-limit request (DEC-076).");
             var version = co.Version;
             if (req.Approve) version = await store.SetLimitAsync(tx, co.CompanyId, r.ToPaise, c).ConfigureAwait(false);
             await store.DecideRequestAsync(tx, r.RequestId, req.Approve ? "Approved" : "Rejected", ctx.PrincipalId, Now, note, c).ConfigureAwait(false);
@@ -168,12 +169,15 @@ public sealed class CompanyCommands(ICommandRunner runner, ICompanyStore store, 
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>True when the caller may set a limit of this size without a second person: PERM-GRP-003 within its amount limit.</summary>
+    /// <summary>
+    /// True when the caller may set (or decide) a limit of this size without a second person: PERM-GRP-006 held outright — the Owner (DEC-076).
+    /// The Manager and Reception hold it request-only (R: APPROVAL_REQUIRED), every other role not at all (FORBIDDEN).
+    /// </summary>
     private async Task<bool> CanSetDirectlyAsync(CommandContext ctx, long limitPaise, CancellationToken ct)
     {
         try
         {
-            await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GroupPermissions.Approve, amountPaise: limitPaise, ct: ct).ConfigureAwait(false);
+            await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GroupPermissions.CreditLimit, amountPaise: limitPaise, ct: ct).ConfigureAwait(false);
             return true;
         }
         catch (HccException e) when (e.Code is HccErrorCode.FORBIDDEN or HccErrorCode.APPROVAL_REQUIRED)
@@ -211,16 +215,35 @@ public sealed class CompanyCommands(ICommandRunner runner, ICompanyStore store, 
     private static string Target(long id) => "company:" + id.ToString(CultureInfo.InvariantCulture);
 }
 
-/// <summary>Company list and pending limit requests (PERM-GRP-001).</summary>
-public sealed class CompanyQueries(ICompanyStore store, IAccessPolicy policy)
+/// <summary>
+/// Company list and pending limit requests (PERM-GRP-001). With <see cref="CompanyCredit"/> wired, a PERM-GRP-004 (money view) holder also gets
+/// each company's credit picture (DEC-076: exposure, receivable, open stays, group masters, remaining, items) and the company payments.
+/// </summary>
+public sealed class CompanyQueries(ICompanyStore store, IAccessPolicy policy, CompanyCredit? credit = null)
 {
     public async Task<CompanyBookView> BookAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
         await policy.RequireAsync(propertyId, principalId, GroupPermissions.View, ct: ct).ConfigureAwait(false);
         var companies = await store.ListAsync(propertyId, ct).ConfigureAwait(false);
         var requests = await store.ListRequestsAsync(propertyId, ct).ConfigureAwait(false);
-        return new CompanyBookView(
-            companies.Select(c => new CompanyView(c.CompanyId, c.Name, c.Gstin, c.Contact, c.Phone, c.Email, c.City, c.Rates, c.CreditLimitPaise, c.Version)).ToList(),
-            requests.Select(r => new CompanyLimitRequestView(r.RequestId, r.CompanyId, r.FromPaise, r.ToPaise, r.Reason, r.Status, r.RequestedBy, r.RequestedUtc, r.DecidedBy, r.Note)).ToList());
+        var money = credit is not null && await policy.HasAsync(propertyId, principalId, GroupPermissions.MoneyView, ct: ct).ConfigureAwait(false);
+        var views = new List<CompanyView>();
+        var payments = new List<CompanyPaymentView>();
+        foreach (var c in companies)
+        {
+            CompanyCreditView? figures = null;
+            if (money)
+            {
+                var (view, paid) = await credit!.PictureAsync(propertyId, c, ct).ConfigureAwait(false);
+                figures = view;
+                payments.AddRange(paid);
+            }
+
+            views.Add(new CompanyView(c.CompanyId, c.Name, c.Gstin, c.Contact, c.Phone, c.Email, c.City, c.Rates, c.CreditLimitPaise, c.Version, figures));
+        }
+
+        return new CompanyBookView(views,
+            requests.Select(r => new CompanyLimitRequestView(r.RequestId, r.CompanyId, r.FromPaise, r.ToPaise, r.Reason, r.Status, r.RequestedBy, r.RequestedUtc, r.DecidedBy, r.Note)).ToList(),
+            money ? payments.OrderByDescending(p => p.PaymentId).ToList() : null);
     }
 }

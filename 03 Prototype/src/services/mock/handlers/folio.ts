@@ -9,6 +9,18 @@ import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {closingReopened} from '../../../domain/streams/closing';
+import {grpAccountOf,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
+
+/**
+ * DEC-076 (audit A03a-05): company credit needs a booking billed to a company account, and the balance must fit beside everything else
+ * billed to that company (its exposure without this stay); checked at the request, the approval and the checkout. No override.
+ */
+function companyCreditCheck(k:Kit,x:Booking,amount:number){
+  const c=grpAccountOf(k.s,x);
+  if(!c)k.fail('INVALID_TRANSITION','This booking is not billed to a company account. Link the booking to the company account before requesting company credit.');
+  const refusal=grpCreditRefusal(c!,grpExposure(k.s,c!)-grpBookingExposure(k.s,x),amount,'stay on company credit');
+  if(refusal)k.fail('INVALID_TRANSITION',refusal);
+}
 import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
 import {cxCashBlocked} from '../../../domain/streams/cashout';
 
@@ -143,12 +155,14 @@ const COMPANY_CREDIT_REQUEST:Handler=k=>{
   const {s,cmd,req,b,open,assert}=k;
   req('checkout');open();const x=b();
   assert(x.status==='In house','This stay is not in house.','INVALID_TRANSITION');
-  assert(x.company?.name?.trim(),'Add a company to this booking before requesting company credit.');
+  const account=grpAccountOf(s,x),company=x.company?.name?.trim()||account?.name;
+  assert(company,'Add a company to this booking before requesting company credit.');
   const bal=totals(x).balance;
   assert(bal>0,'There is no outstanding balance to place on company credit.','INVALID_TRANSITION');
   assert(!pendingOf(k,x.id,'company-credit'),'A company-credit request is already pending.','INVALID_TRANSITION');
-  const a=request(k,x,{amount:bal,reason:String(cmd.reason??'').trim()||('Company credit · '+x.company!.name),kind:'company-credit',meta:{command:'APPROVAL',company:x.company!.name,gstin:x.company!.gstin}});
-  return `${x.id} · company credit ${money(bal)} requested for ${x.company!.name} · ${a.id}`;
+  companyCreditCheck(k,x,bal);
+  const a=request(k,x,{amount:bal,reason:String(cmd.reason??'').trim()||('Company credit · '+company),kind:'company-credit',meta:{command:'APPROVAL',company:company!,gstin:x.company?.gstin??account?.gstin}});
+  return `${x.id} · company credit ${money(bal)} requested for ${company} · ${a.id}`;
 };
 
 const CORRECTION_REQUEST:Handler=k=>{
@@ -207,6 +221,7 @@ const APPROVAL:Handler=k=>{
       financial(x!);stale();
       assert(totals(x!).balance===a!.amount,STALE_MSG,'STALE_VERSION');
       if(user.role!=='Owner')assert(a!.amount<=FOLIO_MANAGER_CREDIT_LIMIT,`Company credit above ${money(FOLIO_MANAGER_CREDIT_LIMIT)} per stay needs an Owner’s approval.`,'FORBIDDEN');
+      companyCreditCheck(k,x!,a!.amount);
       extra=' · apply at checkout';
     }else if(kind==='correction'){
       financial(x!);stale();
@@ -250,6 +265,7 @@ const CHECKOUT:Handler=k=>{
     // Approved company credit for exactly this balance and folio version settles the folio to a receivable (AC-008).
     const credit=s.approvals.find(a=>a.booking===x.id&&a.kind==='company-credit'&&a.status==='Approved'&&!folioApprovalExpired(s,a)&&a.amount===bal&&a.version===x.version);
     if(credit){
+      companyCreditCheck(k,x,bal);
       x.receipts.push({id:id('RCPT'),amount:bal,method:'Company credit',date:s.date,kind:'company-credit',reference:`${x.company?.name??'Company'} · ${credit.id}`,actor:uid,approvalId:credit.id});
       credit.status='Executed';credit.meta={...credit.meta,executedBy:uid,executedAt:s.clock};
       detail=` · ${money(bal)} to company credit (${credit.id})`;

@@ -22,10 +22,13 @@ namespace Hcc.Application.Billing;
 /// and CGST / SGST split go to <c>tax.charge_gst</c> in the same transaction.
 /// DEC-077: while the Owner has reopened an earlier business day, a correction of a line dated that day posts on it, and PostCharge may
 /// name it as the service date (<see cref="PostingDateAsync"/>); every other line still posts on the business date (adjustment-only).
+/// Company credit (DEC-076, audit A03a-05): with <paramref name="credit"/> wired (production), a stay's balance goes on company credit only
+/// when its booking is billed to a company account (<c>inv.reservation.company_id</c>) and fits that company's credit limit — checked at the
+/// request, at the approval and again when it is executed at checkout; the receipt records the company (its receivable).
 /// </summary>
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
-    ICashOutDecisions? cashOut = null)
+    ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -236,6 +239,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                     if (figures.Balance <= Paise.Zero) throw Invalid("There is no outstanding balance to place on company credit.");
                     if (amount != figures.Balance) throw HccException.Validation($"Company credit must equal the current balance ({figures.Balance}).");
                     if (Pending(AdjustmentAction.Credit)) throw Invalid("A company-credit request is already pending.");
+                    await EnsureCompanyCreditAsync(tx, caller, f, amount, ct2).ConfigureAwait(false);
                     (targetKind, targetId) = ("folio", f.FolioId);
                     break;
                 }
@@ -336,6 +340,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                 {
                     if (f.ReservationStatus != "InHouse") throw Invalid("This stay is not in house.");
                     if (figures.Balance != a.Amount) throw Stale("The folio changed after this request. Reject it and request again.");
+                    await EnsureCompanyCreditAsync(tx, caller, f, a.Amount, ct2).ConfigureAwait(false);
                     change = new ApprovalChange(ApprovalStatus.Approved, caller.PrincipalId, now, decisionReason, null, null, null);
                     break;
                 }
@@ -459,8 +464,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         {
             if (f.ReservationStatus != "InHouse") throw Invalid("This stay is not in house.");
             if (figures.Balance != a.Amount || a.TargetVersion != f.Version) throw Stale("The folio changed after this approval. Request company credit again.");
+            await EnsureCompanyCreditAsync(tx, caller, f, a.Amount, ct2).ConfigureAwait(false);
             receipt = new NewReceipt(f.FolioId, ReceiptKind.CompanyCredit, Tenders.CompanyCredit, a.Amount, null, f.BusinessDate, null, null,
-                $"Company credit · approval {a.ApprovalId}", a.ApprovalId, caller.PrincipalId, now);
+                $"Company credit · approval {a.ApprovalId}", a.ApprovalId, caller.PrincipalId, now, f.CompanyId);
         }
 
         var receiptId = await store.InsertReceiptAsync(tx, receipt, ct2).ConfigureAwait(false);
@@ -502,6 +508,19 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     private async Task<DateOnly> ReversalDateAsync(ICommandTransaction tx, Caller caller, FolioHeader f, PostedLine line, CancellationToken ct)
         => line.ServiceDate < f.BusinessDate && days is not null && await days.IsReopenedAsync(tx, caller.PropertyId, line.ServiceDate, ct).ConfigureAwait(false)
             ? line.ServiceDate : f.BusinessDate;
+
+    /// <summary>
+    /// DEC-076: with the company-credit guard wired, company credit needs a booking billed to a company account, and the amount must fit the
+    /// company's remaining credit (everything else billed to it + this balance ≤ the limit; a limit of 0 = no credit). No override: the Owner
+    /// raises the limit, or the guest pays.
+    /// </summary>
+    private async Task EnsureCompanyCreditAsync(ICommandTransaction tx, Caller caller, FolioHeader f, Paise amount, CancellationToken ct)
+    {
+        if (credit is null) return;
+        if (f.CompanyId is not { } companyId)
+            throw Invalid("This booking is not billed to a company account. Link the booking to the company account before requesting company credit.");
+        await Groups.CompanyCreditCheck.CreditAsync(credit, tx, caller.PropertyId, companyId, f.ReservationId, amount, ct).ConfigureAwait(false);
+    }
 
     private async Task<FolioFigures> FiguresAsync(ICommandTransaction tx, long folioId, CancellationToken ct)
         => FolioStatement.Compute(await store.LinesAsync(tx, folioId, ct).ConfigureAwait(false), await store.ReceiptsAsync(tx, folioId, ct).ConfigureAwait(false));

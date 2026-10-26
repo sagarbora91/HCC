@@ -5,7 +5,7 @@ using Hcc.Domain.Money;
 
 namespace Hcc.Application.Groups;
 
-/// <summary>PERM ids of the Groups module (migration 2201; ids per the role matrix v2 proposal, "Groups billing").</summary>
+/// <summary>PERM ids of the Groups module (migrations 2201, 3501; ids per the role matrix v2 proposal, "Groups billing").</summary>
 public static class GroupPermissions
 {
     public const string View = "PERM-GRP-001";
@@ -13,18 +13,22 @@ public static class GroupPermissions
     public const string Approve = "PERM-GRP-003";
     public const string MoneyView = "PERM-GRP-004";
     public const string Payment = "PERM-GRP-005";
+
+    /// <summary>DEC-076: set a company credit limit or decide a limit request — the Owner only (A); Manager and Reception request (R).</summary>
+    public const string CreditLimit = "PERM-GRP-006";
 }
 
 // ── Store rows ──
 
+/// <summary><see cref="CompanyId"/> = the company account the master is billed to (DEC-076: its routed balance counts in that company's exposure).</summary>
 public sealed record GroupRow(long GroupId, int PropertyId, string Code, string Name, long? GroupBlockId, string Organiser, string BillingName,
     string BillingContact, string? BillingPhone, string? BillingEmail, string? BillingAddress, string? Gstin, int AllowanceBps, int AttritionRateBps,
-    string Status, int CreatedBy, string Version);
+    string Status, int CreatedBy, string Version, long? CompanyId = null);
 
 public sealed record GroupDetails(string Name, string Organiser, string BillingName, string BillingContact, string? BillingPhone, string? BillingEmail,
     string? BillingAddress, string? Gstin, int AllowanceBps, int AttritionRateBps);
 
-public sealed record NewGroup(int PropertyId, long? GroupBlockId, GroupDetails Details, int CreatedBy, DateTime CreatedUtc);
+public sealed record NewGroup(int PropertyId, long? GroupBlockId, GroupDetails Details, int CreatedBy, DateTime CreatedUtc, long? CompanyId = null);
 
 public sealed record BlockTypeRow(int RoomTypeId, string RoomType, int Allotted, int Picked, int Released, long? RatePaise);
 

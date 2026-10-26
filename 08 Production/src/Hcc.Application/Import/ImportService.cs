@@ -381,7 +381,7 @@ public sealed class ImportService(
                         id = existing;
                         if (d.LimitChanged)
                         {
-                            // Stored value only (A09-09): the Owner commits the file, as the Owner sets a limit directly in the app; no enforcement is added here.
+                            // The Owner commits the file (PERM-IMP-003), as the Owner sets a limit directly in the app (DEC-076); the limit is enforced where company billing happens.
                             await companies.SupersedePendingAsync(tx, id, actor, now, ct).ConfigureAwait(false);
                             await companies.SetLimitAsync(tx, id, d.CreditLimitPaise, ct).ConfigureAwait(false);
                             await tx.AuditAsync("COMPANY_LIMIT_SET", $"company:{id.ToString(CultureInfo.InvariantCulture)}",

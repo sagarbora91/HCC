@@ -125,6 +125,28 @@ public sealed class AccountingRulesTests
     }
 
     [Fact]
+    public void Company_payment_is_a_receipt_against_company_receivables_and_leaves_the_company_credit_check_alone()
+    {
+        // DEC-076: checkout put Rs 6,300 on company credit (Journal Dr 1110 company receivables · Cr 1100 guest ledger); the company pays
+        // Rs 6,300 by bank transfer → Receipt Dr 1030 bank · Cr 1110, so 1110 nets to 0 and the guest ledger is untouched.
+        Assert.Contains(AccountingEvents.CompanyPaymentRecorded, AccountingEvents.Consumed);
+        var vs = VoucherBuilder.Build(D,
+        [
+            SourceRules.FolioReceipt("receipt:9", "company-credit", "Company credit", D, 630_000, "n"),
+            AccountingEventMapper.CompanyPayment(new CompanyPaymentRecordedEvent(4, 12, D, "Bank transfer", 630_000, "NEFT-DEMO-12", "Demo Industries (fictional)")),
+        ], Map);
+        var pay = vs.Single(v => v.SourceKey == "company-payment:12");
+        Assert.Equal((VoucherType.Receipt, "company-payment", true), (pay.Type, pay.Sub, pay.Balanced));
+        Assert.Equal([("1030", 630_000L, 0L), ("1110", 0L, 630_000L)], pay.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Contains("Demo Industries (fictional)", pay.Narration, StringComparison.Ordinal);
+        Assert.Equal(0, vs.SelectMany(v => v.Entries).Where(e => e.Account == "1110").Sum(e => e.DebitPaise - e.CreditPaise));
+        // The daily company-credit reconciliation still compares only the checkout's company credit (Sub company-credit): Rs 6,300.
+        var check = Reconciliation.Check(vs, Map, new OperationalFigures(0, 0, 0, 0, 0, 0, 0, 630_000)).Single(c => c.Id == "company-credit");
+        Assert.True(check.Ok);
+        Assert.Equal(630_000, check.LedgerPaise);
+    }
+
+    [Fact]
     public void Reconciliation_compares_ledger_movements_with_operational_figures()
     {
         var vs = VoucherBuilder.Build(D,

@@ -1,10 +1,11 @@
 // Module 14 · Group & corporate — command handlers. Command types MUST start with 'GRP_'. Return value = audit/summary text.
-//   GRP_COMPANY_SAVE   create / edit a company account (reservations). New-company credit limit: admin sets, others raise a request.
-//   GRP_LIMIT_SET      admin → sets the credit limit; reservations → raises a limit request.
-//   GRP_LIMIT_DECIDE   approve / reject a limit request (approve; never your own request).
+//   GRP_COMPANY_SAVE   create / edit a company account (reservations). New-company credit limit: the Owner sets, others raise a request.
+//   GRP_LIMIT_SET      Owner → sets the credit limit; reservations → raises a limit request (DEC-076: the Manager only requests).
+//   GRP_LIMIT_DECIDE   approve / reject a limit request — the Owner only (DEC-076), never your own request.
+//   GRP_COMPANY_PAYMENT money received from a company against its company-credit receivable (payments; non-cash, ≤ what it owes; DEC-076).
 //   GRP_BLOCK_CREATE   group block: allotment per room type, dates, cut-off (reservations).
 //   GRP_BLOCK_ALLOT    change allotment (not below pickup; increases revalidated).
-//   GRP_ROOMING        rooming list → real bookings via the stream-A BOOK handler, atomic; credit-limit check.
+//   GRP_ROOMING        rooming list → real bookings via the stream-A BOOK handler, atomic; credit-limit check (DEC-076: refused, no override).
 //   GRP_RELEASE        manual release of unpicked rooms ({roomType,count} or all).
 //   GRP_SWEEP          auto-release blocks whose cut-off has passed (also runs before every GRP command).
 //   GRP_BLOCK_CANCEL   cancel a block with no active member bookings.
@@ -14,7 +15,7 @@ import {can} from '../../../domain/selectors';
 import {money,nights} from '../../../domain/money';
 import {withHoldExempt} from '../../../domain/selectors';
 import {grpPickupRooms,grpEnsure,grpSweep,grpRoomTypes,grpFreeRooms,grpHeldElsewhere,grpRemaining,grpPicked,grpCompany,grpCredit,grpMembers,
-  GRP_GSTIN,GRP_MAX_LIMIT} from '../../../domain/streams/groups';
+  grpStayValue,grpCreditRefusal,grpReceivable,GRP_GSTIN,GRP_MAX_LIMIT,GRP_PAY_METHODS} from '../../../domain/streams/groups';
 import type {GRPBlock,GRPCompany} from '../../../domain/streams/groups';
 import {RES_PHONE} from '../../../domain/streams/reservations';
 import {rbacMoneyAdmin} from '../../../domain/streams/rbac';
@@ -79,7 +80,10 @@ export const handlers:Record<string,Handler>={
     return `${rid} · ${c.name} · limit ${money(c.creditLimit)} → ${money(limit)} requested`;
   },
   GRP_LIMIT_DECIDE:k=>{
-    const {s,cmd,uid,req,open,assert}=k;req('approve');open();const x=begin(k);
+    const {s,cmd,uid,req,open,assert}=k;req('approve');
+    // DEC-076 (audit A05-01): only the Owner approves or rejects a company credit-limit request (was: any approver).
+    assert(rbacMoneyAdmin(s,uid),'Only the Owner approves or rejects a company credit-limit request (DEC-076).','FORBIDDEN');
+    open();const x=begin(k);
     const r=x.requests.find(r=>r.id===cmd.id);assert(r&&r.status==='Pending','This credit-limit request is no longer pending.','INVALID_TRANSITION');
     assert(r!.actor!==uid,'You cannot approve your own request. Switch to another authorized demo user.','FORBIDDEN');
     const c=companyOf(k,r!.company);
@@ -127,12 +131,18 @@ export const handlers:Record<string,Handler>={
     return `${blk.id} · allotment ${before} → ${Object.entries(next).filter(([,n])=>n>0).map(([t,n])=>n+' '+t).join(', ')}`;
   },
   GRP_ROOMING:k=>{
-    const {s,cmd,uid,req,open,assert,fail}=k;req('reservations');open();begin(k);const blk=blockOf(k,cmd.block);
+    const {s,cmd,req,open,assert,fail}=k;req('reservations');open();begin(k);const blk=blockOf(k,cmd.block);
     assert(blk.status==='Open',blk.status==='Released'?`Pickup is closed: unpicked rooms were released${blk.releasedBy==='auto'?' at the cut-off ('+blk.cutoff+')':''}.`:'This block was cancelled.','INVALID_TRANSITION');
     const rows=Array.isArray(cmd.rows)?cmd.rows as Record<string,unknown>[]:[];
     assert(rows.length>0&&rows.length<=50,'Add 1–50 guests to the rooming list.');
     const company=grpCompany(s,blk.company),bill=blk.billTo==='company'&&company;
-    const before=bill?grpCredit(s,company!).exposure:0;
+    if(bill){
+      // DEC-076: the whole list at the block rates (nights × rate + GST) must fit the company's remaining credit; no override.
+      const a=blk.arrival<s.date?s.date:blk.arrival;
+      const added=rows.reduce((n,row)=>n+(blk.allot[String(row.type||'')]>0?grpStayValue(s,blk.rates[String(row.type)]||0,a,blk.departure):0),0);
+      const refusal=grpCreditRefusal(company!,grpCredit(s,company!).exposure,added,'rooming list');
+      if(refusal)fail('INVALID_TRANSITION',refusal);
+    }
     const made:string[]=[];
     rows.forEach((row,i)=>{
       const n=i+1,type=String(row.type||'');
@@ -150,17 +160,22 @@ export const handlers:Record<string,Handler>={
       const b=s.bookings.slice(-1)[0]!;b.rate=blk.rates[type]||b.rate;
       blk.members.push({booking:b.id,type});made.push(`${b.id} ${b.room}`);
     });
-    let extra='';
-    if(bill){
-      const after=grpCredit(s,company!);
-      if(after.exposure>company!.creditLimit){
-        if(!cmd.override)fail('VALIDATION',`Credit limit exceeded: ${company!.name} exposure would be ${money(after.exposure)} against a limit of ${money(company!.creditLimit)} (+${money(after.exposure-before)} from this list). An approver may override with a reason.`);
-        req('approve');const reason=str(cmd.overrideReason,200);assert(reason.length>=3,'Give a reason for overriding the credit limit.');
-        const x=grpEnsure(s);x.overrides.push({id:k.id('GCO'),block:blk.id,company:company!.id,exposure:after.exposure,limit:company!.creditLimit,reason,actor:uid,at:s.clock});
-        extra=` · credit limit overridden (${money(after.exposure)} / ${money(company!.creditLimit)}): ${reason}`;
-      }
-    }
-    return `${blk.id} · ${made.length} picked up: ${made.join(', ')}${extra}`;
+    return `${blk.id} · ${made.length} picked up: ${made.join(', ')}${bill?` · ${company!.name} credit used ${money(grpCredit(s,company!).exposure)} of ${money(company!.creditLimit)}`:''}`;
+  },
+  GRP_COMPANY_PAYMENT:k=>{
+    // DEC-076: money received from the company (PERM-GRP-005; coarse: payments) — UPI, card or bank transfer with a reference, never more than it owes.
+    const {s,cmd,uid,req,open,assert,positive,id}=k;req('payments');open();const x=begin(k);
+    const c=companyOf(k,cmd.company);positive(cmd.amount);
+    const method=String(cmd.method??'');
+    assert((GRP_PAY_METHODS as readonly string[]).includes(method),'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.');
+    const reference=str(cmd.reference,120);assert(reference.length>0,'Enter the transaction reference for a non-cash payment.');
+    const invoice=str(cmd.invoice,16).toUpperCase();
+    const owed=grpReceivable(s,c);
+    assert(owed>0,`${c.name} owes nothing on company credit.`,'INVALID_TRANSITION');
+    assert(cmd.amount<=owed,`Payment cannot exceed what ${c.name} owes on company credit (${money(owed)}).`);
+    const p={id:id('GCP'),company:c.id,amount:cmd.amount as number,method,reference,...(invoice?{invoice}:{}),date:s.date,actor:uid,at:s.clock};
+    (x.payments??=[]).push(p);
+    return `${p.id} · ${c.name} · ${money(p.amount)} by ${method} · ref ${reference}${invoice?' · invoice '+invoice:''} · receivable ${money(owed)} → ${money(owed-p.amount)} · manual entry, not verified`;
   },
   GRP_RELEASE:k=>{
     const {s,cmd,uid,req,open,assert}=k;req('reservations');open();begin(k);const blk=blockOf(k,cmd.id);

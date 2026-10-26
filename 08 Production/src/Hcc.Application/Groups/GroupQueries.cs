@@ -68,7 +68,7 @@ public sealed class GroupQueries(IGroupStore store, IAccessPolicy policy, IGstRa
             ledger.UnroutedLines);
         return new GroupStatementView(g.GroupId, g.Code, g.Name, g.Status, g.Organiser, g.BillingName, g.BillingContact, g.Gstin, g.GroupBlockId, s.Block?.Code,
             s.Block is { } bb ? GroupPickup.EffectiveStatus(bb.Status, bb.Cutoff, s.BusinessDate) : null, s.Block?.Cutoff, s.BusinessDate,
-            s.Rules.Where(r => r.ReservationId is null).Select(Rule).ToList(), pickup, members, master, attrition, totals, g.Version);
+            s.Rules.Where(r => r.ReservationId is null).Select(Rule).ToList(), pickup, members, master, attrition, totals, g.Version, g.CompanyId);
     }
 }
 

@@ -14,8 +14,9 @@ export type SrvQuoteNight={date:string;ratePaise:number;taxBps:number;taxPaise:n
 export type SrvQuote={quoteId:number;version:string;roomTypeId:number;roomId?:number|null;arrival:string;departure:string;adults:number;children:number;
   ratePlanId:string;nights:SrvQuoteNight[];netPaise:number;taxPaise:number;totalPaise:number;expiresAt:string;violations:SrvStayViolation[]};
 
-/** CreateReservationRequest (server): company = name + GSTIN (W4 G5, stored on the reservation). No e-mail / OTA channel fields yet: those stay in notes. */
-export type SrvCompany={name:string;gstin?:string|null};
+/** CreateReservationRequest (server): company = name + GSTIN (W4 G5, stored on the reservation); companyId (DEC-076) = billed to that company
+ *  account (the server takes the account's name and GSTIN). No e-mail / OTA channel fields yet: those stay in notes. */
+export type SrvCompany={name:string;gstin?:string|null;companyId?:number|null};
 export type SrvCreateReservation={quoteId:number;quoteVersion:string;guest:{name:string;phone?:string};roomId:number;hold?:boolean;
   restrictionOverride?:string;groupBlockId?:number;source?:string;notes?:string;company?:SrvCompany};
 export type SrvReservationResult={reservationId:number;publicNo:string;version:string;status:string;holdUntil?:string|null};

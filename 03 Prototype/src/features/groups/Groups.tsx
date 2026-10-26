@@ -1,7 +1,7 @@
 // Module 14 · Group & corporate — desktop page: Blocks, Companies, Pickup report, Master folio, Limit requests.
 import React,{useState} from 'react';
-import {Plus,Building,Printer,ListPlus,Info,AlertTriangle,Check,X,Undo2,SlidersHorizontal,CreditCard,Pencil,Ban} from 'lucide-react';
-import {money,grpSlice,grpKpis,grpLines,grpBlockTotals,grpStatus,grpCompany,grpCredit,grpMasterFolio,grpPickupReport,grpMembers} from '../../services/mock';
+import {Plus,Building,Printer,ListPlus,Info,AlertTriangle,Check,X,Undo2,SlidersHorizontal,CreditCard,Pencil,Ban,Banknote} from 'lucide-react';
+import {money,grpSlice,grpKpis,grpLines,grpBlockTotals,grpStatus,grpCompany,grpCredit,grpMasterFolio,grpPickupReport,grpMembers,rbacMoneyAdmin} from '../../services/mock';
 import type {GRPBlock} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,Stat,shortDate,dateLabel} from '../../components/ui';
@@ -70,16 +70,20 @@ export function BlockCard({blk,showFolio}:{blk:GRPBlock;showFolio?:(id:string)=>
 function CompaniesTab(){
   const {s,open,permission}=useHcc();const x=grpSlice(s);
   if(!x.companies.length)return <Empty title="No company accounts"/>;
-  return <div className="table-wrap"><table className="grp-table"><thead><tr><th>Company</th><th>Contact</th><th>Negotiated rates</th><th className="number">Credit limit</th><th className="number">Exposure (est.)</th><th>Credit</th><th/></tr></thead>
+  return <><div className="info-note grp-gap"><Info size={16}/><span><b>Credit limits are enforced (DEC-076).</b> Used = what the company owes on company credit + the stays billed to it (estimated: agreed nights + GST − what the guest paid).
+      A booking, company credit at checkout or a rooming list beyond the remaining credit is refused; only the Owner sets a limit (others send a request). A payment from the company frees credit.</span></div>
+    <div className="table-wrap"><table className="grp-table"><thead><tr><th>Company</th><th>Contact</th><th>Negotiated rates</th><th className="number">Credit limit</th><th className="number">Used</th><th className="number">Remaining</th><th>Credit</th><th/></tr></thead>
     <tbody>{x.companies.map(c=>{const k=grpCredit(s,c),req=x.requests.find(r=>r.company===c.id&&r.status==='Pending');
       return <tr key={c.id}><td><strong>{c.name}</strong><small>{c.gstin?`GSTIN ${c.gstin} · fictional`:'No GSTIN'}{c.city?' · '+c.city:''}</small></td>
         <td>{c.contact||'—'}<small>{c.phone}</small></td>
         <td>{Object.entries(c.rates).map(([t,r])=><div key={t} className="grp-rate"><span>{t}</span> {money(r)}</div>)}{!Object.keys(c.rates).length&&<span className="muted">Rack rates</span>}</td>
-        <td className="number">{money(c.creditLimit)}{req&&<small>Request → {money(req.to)}</small>}</td>
-        <td className="number">{money(k.exposure)}<small>incl. {money(c.openingOutstanding)} opening</small></td>
+        <td className="number">{money(c.creditLimit)}{c.creditLimit===0&&<small>No credit</small>}{req&&<small>Request → {money(req.to)}</small>}</td>
+        <td className="number">{money(k.exposure)}<small>owed {money(k.receivable)} · stays {money(k.stays)}</small></td>
+        <td className="number">{money(k.available)}</td>
         <td><GrpCreditPill level={k.level}/><GrpCreditBar s={s} c={c}/><small>{k.limit?k.pct+'% used':''}</small></td>
         <td className="grp-row-actions">{permission('reservations')&&<><button className="btn small-btn" onClick={()=>open({type:'grp-company',id:c.id})}><Pencil size={14}/> Edit</button>
-          <button className="btn small-btn" onClick={()=>open({type:'grp-limit',id:c.id})}><CreditCard size={14}/> Credit limit</button></>}</td></tr>;})}</tbody></table></div>;
+          <button className="btn small-btn" onClick={()=>open({type:'grp-limit',id:c.id})}><CreditCard size={14}/> Credit limit</button></>}
+          {permission('payments')&&k.receivable>0&&<button className="btn small-btn" onClick={()=>open({type:'grp-payment',id:c.id})}><Banknote size={14}/> Record payment</button>}</td></tr>;})}</tbody></table></div></>;
 }
 
 function PickupTab(){
@@ -117,15 +121,15 @@ export function MasterFolio({blk,print}:{blk:GRPBlock;print?:boolean}){
 }
 
 function RequestsTab(){
-  const {s,uid,run,busy,permission}=useHcc();const x=grpSlice(s);
+  const {s,uid,run,busy}=useHcc();const x=grpSlice(s);
   const list=x.requests.slice().reverse();
   if(!list.length)return <Empty title="No credit-limit requests"/>;
   return <div className="table-wrap"><table className="grp-table"><thead><tr><th>Request</th><th>Company</th><th className="number">Limit change</th><th>Reason</th><th>Requested by</th><th>Status</th><th/></tr></thead>
     <tbody>{list.map(r=>{const c=grpCompany(s,r.company),own=r.actor===uid;
       return <tr key={r.id}><td><strong>{r.id}</strong><small>{shortDate(r.at.slice(0,10))} {r.at.slice(11,16)}</small></td><td>{c?.name}</td><td className="number">{money(r.from)} → {money(r.to)}</td><td>{r.reason}</td><td>{grpUserName(s,r.actor)}</td>
         <td>{r.status}{r.approver&&<small>by {grpUserName(s,r.approver)}{r.note?' · '+r.note:''}</small>}</td>
-        <td className="grp-row-actions">{r.status==='Pending'&&(permission('approve')&&!own?<>
+        <td className="grp-row-actions">{r.status==='Pending'&&(rbacMoneyAdmin(s,uid)&&!own?<>
           <button className="btn small-btn" disabled={busy} onClick={()=>run({type:'GRP_LIMIT_DECIDE',id:r.id,approve:false,key:'grplr:'+r.id},'Request rejected')}><X size={14}/> Reject</button>
           <button className="btn primary small-btn" disabled={busy} onClick={()=>run({type:'GRP_LIMIT_DECIDE',id:r.id,approve:true,key:'grplr:'+r.id},'Credit limit approved')}><Check size={14}/> Approve</button></>
-          :<small className="muted">{own?'Your request — another approver decides':'Needs an approver (Owner / Manager)'}</small>)}</td></tr>;})}</tbody></table></div>;
+          :<small className="muted">{own?'Your request — the Owner decides':'The Owner decides (DEC-076)'}</small>)}</td></tr>;})}</tbody></table></div>;
 }

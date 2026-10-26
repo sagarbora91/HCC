@@ -23,9 +23,12 @@ namespace Hcc.Application.Groups;
 /// off the guest folio (company-credit receipt through <see cref="IGroupFolioPort"/>), attrition after the cut-off decided by a
 /// different approver, master receipts (non-cash) and settlement. Every command: <see cref="ICommandRunner"/> (Idempotency-Key,
 /// audit, outbox), the real <see cref="IAccessPolicy"/>, the business-day guard, the group row lock and its rowversion.
+/// A master billed to a company account (<c>CreateGroupRequest.CompanyId</c>, DEC-076) is part of that company's credit exposure: with
+/// <paramref name="credit"/> wired, routing member lines to the master (ApplyGroupRouting, RerouteGroupCharge, the routing step of
+/// TransferGroupMember) is refused when it raises the exposure beyond the company's credit limit.
 /// </summary>
 public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAccessPolicy policy, IGroupFolioPort folios, IGstRateResolver gst,
-    TimeProvider clock, IBusinessDayGuard? days = null)
+    TimeProvider clock, IBusinessDayGuard? days = null, ICompanyCreditGuard? credit = null)
 {
     public const string OpCreate = "CreateGroup";
     public const string OpUpdate = "UpdateGroup";
@@ -72,12 +75,20 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
                 if (await store.GroupOfBlockAsync(tx, bid, c).ConfigureAwait(false) is not null) throw Invalid($"Block {block.Code} already has a group master.");
             }
 
-            var g = await store.InsertGroupAsync(tx, new NewGroup(ctx.PropertyId, req.GroupBlockId, details, ctx.PrincipalId, Now), c).ConfigureAwait(false);
+            CompanyRow? company = null;
+            if (req.CompanyId is { } cid)
+            {
+                if (credit is null) throw HccException.Validation("Company accounts are not available on this server.");
+                company = await credit.LockAsync(tx, ctx.PropertyId, cid, c).ConfigureAwait(false);
+            }
+
+            var g = await store.InsertGroupAsync(tx, new NewGroup(ctx.PropertyId, req.GroupBlockId, details, ctx.PrincipalId, Now, company?.CompanyId), c).ConfigureAwait(false);
             foreach (var (category, target) in rules)
                 await store.SetRuleAsync(tx, g.GroupId, null, category, target, ctx.PrincipalId, Now, c).ConfigureAwait(false);
             var version = await store.TouchGroupAsync(tx, g.GroupId, c).ConfigureAwait(false);
             await tx.AuditAsync("GROUP_CREATED", Target(g.GroupId), $"{g.Code} · {details.Name} · bill to {details.BillingName}"
-                + (details.Gstin is null ? "" : " · GSTIN " + details.Gstin) + " · " + RulesText(rules), c).ConfigureAwait(false);
+                + (details.Gstin is null ? "" : " · GSTIN " + details.Gstin) + (company is null ? "" : $" · company account {company.Name} ({N(company.CompanyId)})")
+                + " · " + RulesText(rules), c).ConfigureAwait(false);
             await tx.PublishAsync("GroupCreated", g.GroupId, new { groupId = g.GroupId, code = g.Code, groupBlockId = req.GroupBlockId }, c).ConfigureAwait(false);
             return new GroupResult(g.GroupId, g.Code, g.Status, version);
         }, ct).ConfigureAwait(false);
@@ -183,7 +194,9 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
         {
             var s = await OpenGroupAsync(tx, ctx, req.GroupId, null, c).ConfigureAwait(false);
             var ledger = GroupLedger.Build(s);
+            var watch = await CreditBeforeAsync(tx, s.Group, c).ConfigureAwait(false);
             var (routed, already) = await RouteAsync(tx, ledger, null, c).ConfigureAwait(false);
+            if (routed > 0) await CreditAfterAsync(tx, s.Group, watch, c).ConfigureAwait(false);
             var version = s.Group.Version;
             if (routed > 0)
             {
@@ -245,8 +258,10 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
             var next = GroupRouting.Shares(line.Charge.Line.Amount, line.Charge.Line.Tax, route);
             var newShare = member.MasterShare - line.Shares.Master + next.Master;
             GroupRouting.EnsureRerouteAllowed(member.FolioOpen, member.MasterShare, newShare, member.Transferred);
+            var watch = await CreditBeforeAsync(tx, s.Group, c).ConfigureAwait(false);
             var seq = await store.InsertRouteAsync(tx, new NewRoute(s.Group.GroupId, req.ChargeId, member.Member.ReservationId, route.Net, route.Tax, "reroute", reason,
                 ctx.PrincipalId, Now), c).ConfigureAwait(false);
+            await CreditAfterAsync(tx, s.Group, watch, c).ConfigureAwait(false);
             var version = await store.TouchGroupAsync(tx, s.Group.GroupId, c).ConfigureAwait(false);
             await tx.AuditAsync("GROUP_CHARGE_REROUTED", "charge:" + N(req.ChargeId),
                 $"{s.Group.Code} · {member.Member.PublicNo} · {line.Charge.Line.Label} · net {GroupCodes.Code(line.Route.Net)} → {GroupCodes.Code(route.Net)}, tax {GroupCodes.Code(line.Route.Tax)} → {GroupCodes.Code(route.Tax)} · master share {line.Shares.Master} → {next.Master} · {reason}", c).ConfigureAwait(false);
@@ -270,7 +285,8 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
             if (!folio.IsOpen) throw Invalid("The guest folio is no longer open; nothing can move off it.");
             var s = await store.LoadAsync(tx, ctx.PropertyId, req.GroupId, c).ConfigureAwait(false) ?? throw NotFound("Group not found."); // under the folio lock
             var ledger = GroupLedger.Build(s);
-            await RouteAsync(tx, ledger, req.ReservationId, c).ConfigureAwait(false);
+            var watch = await CreditBeforeAsync(tx, s.Group, c).ConfigureAwait(false);
+            if ((await RouteAsync(tx, ledger, req.ReservationId, c).ConfigureAwait(false)).Routed > 0) await CreditAfterAsync(tx, s.Group, watch, c).ConfigureAwait(false);
             var member = ledger.Members.First(x => x.Member.ReservationId == req.ReservationId);
             var amount = member.PendingTransfer;
             if (amount <= Paise.Zero) throw Invalid("Nothing to transfer: this member's master share is already on the master folio.");
@@ -495,6 +511,21 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
     }
 
     // ── helpers ──
+
+    /// <summary>DEC-076: for a master billed to a company account, lock the company and read its exposure before new lines are routed to the master.</summary>
+    private async Task<(CompanyRow Company, CompanyExposure Before)?> CreditBeforeAsync(ICommandTransaction tx, GroupRow group, CancellationToken ct)
+    {
+        if (credit is null || group.CompanyId is not { } companyId) return null;
+        var co = await credit.LockAsync(tx, group.PropertyId, companyId, ct).ConfigureAwait(false);
+        return (co, await credit.ExposureAsync(tx, group.PropertyId, companyId, ct).ConfigureAwait(false));
+    }
+
+    /// <summary>After the routes are written: refused (rolled back) when the routing raised the company's exposure beyond its credit limit.</summary>
+    private async Task CreditAfterAsync(ICommandTransaction tx, GroupRow group, (CompanyRow Company, CompanyExposure Before)? watch, CancellationToken ct)
+    {
+        if (watch is not { } w) return;
+        await CompanyCreditCheck.ChangeAsync(credit!, tx, w.Company, w.Before, "group", group.GroupId, $"routing to group master {group.Code}", ct).ConfigureAwait(false);
+    }
 
     private async Task OpenDayAsync(ICommandTransaction tx, CancellationToken ct)
     {

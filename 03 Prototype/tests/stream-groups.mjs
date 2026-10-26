@@ -13,7 +13,7 @@ export function register({test,M,assert}){
     return execute(s,'owner',{type:'NEXT_DAY'});
   }
 
-  test('[GRP] module slice defaults to empty',()=>{const s=seed();delete s.groupsX;assert.deepEqual(M.grpSlice(s),{companies:[],blocks:[],requests:[],overrides:[]});});
+  test('[GRP] module slice defaults to empty',()=>{const s=seed();delete s.groupsX;assert.deepEqual(M.grpSlice(s),{companies:[],blocks:[],requests:[],overrides:[],payments:[]});});
   test('[GRP] fixture: fictional companies, 4 blocks, core figures unchanged',()=>{
     const s=seed(),x=M.grpSlice(s);
     assert.equal(x.companies.length,3);assert.equal(x.blocks.length,4);
@@ -67,21 +67,19 @@ export function register({test,M,assert}){
     const n=execute(s,'owner',{type:'GRP_ROOMING',block:'GB-3',rows:[{guest:'Kulkarni Family',type:'Suite',people:2}]});
     assert.equal(n.bookings.at(-1).company,undefined);assert.equal(n.bookings.at(-1).rate,420000);
   });
-  test('[GRP] credit limit: refusal, approver override with reason, reception cannot override',()=>{
+  test('[GRP] credit limit: refusal for every role, no override (DEC-076; was: an approver could override with a reason)',()=>{
     const s=seed();
     assert.ok(execute(s,'reception',{type:'GRP_ROOMING',block:'GB-2',rows:rows(3)}));
     assert.throws(()=>execute(s,'reception',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4)}),/Credit limit exceeded/);
-    assert.throws(()=>execute(s,'reception',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true,overrideReason:'Known client'}),e=>e.code==='FORBIDDEN');
-    assert.throws(()=>execute(s,'manager',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true}),/reason/);
-    const n=execute(s,'manager',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true,overrideReason:'Advance cheque received (simulated)'});
-    assert.equal(M.grpSlice(n).overrides.length,1);assert.equal(M.grpCredit(n,co(n,'CO-2')).level,'over');assert.match(n.audit[0].detail,/overridden/);
+    for(const u of ['reception','manager','owner'])
+      assert.throws(()=>execute(s,u,{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true,overrideReason:'Advance cheque received (simulated)'}),e=>e.code==='INVALID_TRANSITION'&&/Only the Owner can raise the limit/.test(e.message));
   });
   test('[GRP] credit-limit change: admin sets, reception requests, no self-approval',()=>{
     let s=seed();
     assert.throws(()=>execute(s,'manager',{type:'GRP_LIMIT_SET',company:'CO-3',limit:25000000}),/reason/);
     s=execute(s,'manager',{type:'GRP_LIMIT_SET',company:'CO-3',limit:25000000,reason:'Annual contract renewal'});
     const r=M.grpSlice(s).requests.at(-1);assert.equal(r.status,'Pending');assert.equal(co(s,'CO-3').creditLimit,20000000);
-    assert.throws(()=>execute(s,'manager',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true}),/own request/);
+    assert.throws(()=>execute(s,'manager',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true}),e=>e.code==='FORBIDDEN'&&/Only the Owner/.test(e.message)); // DEC-076 (own request too)
     assert.throws(()=>execute(s,'reception',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true}),e=>e.code==='FORBIDDEN');
     s=execute(s,'owner',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true});assert.equal(co(s,'CO-3').creditLimit,25000000);
     assert.throws(()=>execute(s,'owner',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:false}),/no longer pending/);

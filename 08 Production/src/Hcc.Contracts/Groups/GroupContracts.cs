@@ -6,10 +6,14 @@ namespace Hcc.Contracts.Groups;
 /// <summary>A routing rule: category <c>room</c> | <c>extras</c> | <c>tax</c> → target <c>master</c> | <c>guest</c> (| <c>follow</c> for tax).</summary>
 public sealed record RoutingRuleInput(string Category, string Target);
 
-/// <summary>POST /commands/CreateGroup. Without rules: room → master, tax → follow, extras → guest (a guest-paid group sets all to guest).</summary>
+/// <summary>
+/// POST /commands/CreateGroup. Without rules: room → master, tax → follow, extras → guest (a guest-paid group sets all to guest).
+/// <c>CompanyId</c> (DEC-076) = the master is billed to that company account: lines routed to the master count in the company's credit exposure,
+/// and routing beyond its credit limit is refused. The link is set at creation only.
+/// </summary>
 public sealed record CreateGroupRequest(string Name, long? GroupBlockId, string Organiser, string BillingName, string BillingContact,
     string? BillingPhone = null, string? BillingEmail = null, string? BillingAddress = null, string? Gstin = null,
-    int AttritionAllowanceBps = 0, int AttritionRateBps = 0, IReadOnlyList<RoutingRuleInput>? Rules = null);
+    int AttritionAllowanceBps = 0, int AttritionRateBps = 0, IReadOnlyList<RoutingRuleInput>? Rules = null, long? CompanyId = null);
 
 /// <summary>POST /commands/UpdateGroup. Changing the attrition terms needs PERM-GRP-003.</summary>
 public sealed record UpdateGroupRequest(long GroupId, string ExpectedVersion, string Name, string Organiser, string BillingName, string BillingContact,
@@ -86,4 +90,4 @@ public sealed record GroupTotalsView(long MasterNetPaise, long MasterTaxPaise, l
 public sealed record GroupStatementView(long GroupId, string Code, string Name, string Status, string Organiser, string BillingName, string BillingContact,
     string? Gstin, long? GroupBlockId, string? BlockCode, string? BlockStatus, DateOnly? Cutoff, DateOnly BusinessDate, IReadOnlyList<GroupRuleView> Rules,
     IReadOnlyList<GroupPickupView> Pickup, IReadOnlyList<GroupMemberView> Members, IReadOnlyList<GroupMasterLineView> Master,
-    IReadOnlyList<GroupAttritionView> Attrition, GroupTotalsView Totals, string Version);
+    IReadOnlyList<GroupAttritionView> Attrition, GroupTotalsView Totals, string Version, long? CompanyId = null);

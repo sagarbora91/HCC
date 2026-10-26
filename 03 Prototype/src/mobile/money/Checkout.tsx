@@ -3,18 +3,19 @@
 import {printDocument} from '../../app/native';
 import {bookingRef} from '../../domain/bookingRef';
 import React from 'react';
-import {Check,AlertTriangle,ArrowRight,Printer,Building2,Receipt,Hotel,Info} from 'lucide-react';
-import {money,totals,gstLineSplit,gstSplitLines,gstHalfPct,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,plural} from '../../services/mock';
+import {Check,AlertTriangle,ArrowRight,Printer,Receipt,Hotel,Info} from 'lucide-react';
+import {money,totals,gstLineSplit,gstSplitLines,gstHalfPct,plural} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate} from '../../components/ui';
 import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
 import {IssueInvoiceAction} from '../../features/folio/modals';
+import {CompanyCreditPanel} from '../../features/groups/credit';
 
 export function MmCheckout({id}:{id?:string}){
   const {s,run,booking,open,busy,permission}=useHcc();
   const b=s.bookings.find(x=>x.id===id);
   if(!b)return <Empty title="This record is unavailable"/>;
-  const t=totals(b),c=mmCheckoutChecklist(s,b),cc=folioCompanyCreditState(s,b,t.balance);
+  const t=totals(b),c=mmCheckoutChecklist(s,b);
   const canCheckout=permission('checkout');
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}</div><h2>Checkout</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
     <section className="mm-card mm-checklist" aria-label="Checkout checklist">
@@ -29,14 +30,7 @@ export function MmCheckout({id}:{id?:string}){
       <div className="mm-row"><div className="mm-row-main"><strong>Outstanding</strong></div><div className="mm-row-amt"><strong className="number">{money(t.balance)}</strong></div></div>
       <div className="mm-row"><div className="mm-row-main"><strong>Deposit to return</strong></div><div className="mm-row-amt"><strong className="number">{money(t.deposit)}</strong></div></div>
     </div>
-    {b.company&&t.balance>0&&<div className="info-note mm-cc"><Building2 size={18}/><div>
-      <strong>Company credit · {b.company.name}</strong>
-      {cc.state==='none'&&<p>Move the {money(t.balance)} balance to the company’s receivable. A Manager approves up to {money(FOLIO_MANAGER_CREDIT_LIMIT)}, an Owner above.</p>}
-      {cc.state==='pending'&&<p>Requested as {cc.approval!.id} — awaiting approval by another user.</p>}
-      {cc.state==='approved'&&<p>Approved ({cc.approval!.id}) for exactly {money(cc.approval!.amount)}. Applied when you confirm.</p>}
-      {cc.state==='stale'&&<p>Approval {cc.approval!.id} no longer matches the folio. Request again.</p>}
-      {(cc.state==='none'||cc.state==='stale')&&canCheckout&&<button className="btn small-btn" disabled={busy} onClick={()=>run({type:'COMPANY_CREDIT_REQUEST',id:b.id,key:`cc:${b.id}:${b.version}`},'Company credit requested — awaiting approval')}>Request company credit</button>}
-    </div></div>}
+    <CompanyCreditPanel b={b} mobile/>
     {c.clear?<div className="info-note"><Info size={17}/>All clear. Checkout marks the room dirty, creates one housekeeping task and allocates a sample invoice number once.</div>
       :<p className="mm-why" role="status">Confirm is available when every item shows Done.{!canCheckout?' Your role cannot check guests out — reception or a manager does.':''}</p>}
     {!canCheckout&&c.clear&&<p className="mm-why">Your role cannot check guests out — reception or a manager does.</p>}

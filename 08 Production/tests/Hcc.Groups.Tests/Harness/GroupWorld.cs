@@ -77,7 +77,20 @@ public sealed partial class GroupWorld : IAsyncDisposable
         Invoices = new GroupInvoiceSource(Store);
         Billing = new BillingService(Platform.Commands, BillingStore, Policy, new NoStayNights(), gst, Clock, gstStore, new SqlBusinessDayGuard());
         Folios = new BillingQueries(BillingStore, Policy, Clock);
+        // DEC-076 wiring as in production (GroupsEndpoints): the company-credit guard in Billing and Groups, credit figures in the company book.
+        Credit = new CompanyCredit(Platform.Commands, CompanyStore, new SqlCompanyCreditStore(c), Store, Policy, Clock, new SqlBusinessDayGuard());
+        CreditBilling = new BillingService(Platform.Commands, BillingStore, Policy, new NoStayNights(), gst, Clock, gstStore, new SqlBusinessDayGuard(), credit: Credit);
+        CreditGroups = new GroupCommands(Platform.Commands, Store, Policy, new BillingGroupFolioPort(BillingStore), gst, Clock, new SqlBusinessDayGuard(), Credit);
+        CreditBook = new CompanyQueries(CompanyStore, Policy, Credit);
     }
+
+    public CompanyCredit Credit { get; }
+
+    public BillingService CreditBilling { get; }
+
+    public GroupCommands CreditGroups { get; }
+
+    public CompanyQueries CreditBook { get; }
 
     public SqlPlatform Platform { get; }
 

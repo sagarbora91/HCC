@@ -148,9 +148,15 @@ public sealed class P2Services
         Inventory = new InventoryService(Store, db.Platform.Commands, Access, new Hcc.Application.Tax.FixedGstRateResolver(taxBps), clock, BlockHistory,
             new GroupBlockOptions { Enabled = true });
         BlockQueries = new RoomBlockQueries(BlockHistory, Store, Access);
+        // DEC-076: the company-credit guard as production wires it (Groups module), so a booking billed to a company account is credit-checked.
+        var c = db.Platform.Connections;
+        Credit = new Hcc.Application.Groups.CompanyCredit(db.Platform.Commands, new Hcc.Infrastructure.SqlServer.Groups.SqlCompanyStore(c),
+            new Hcc.Infrastructure.SqlServer.Groups.SqlCompanyCreditStore(c), new Hcc.Infrastructure.SqlServer.Groups.SqlGroupStore(c), Access, clock);
         Booking = new ReservationService(Reservations, Store, Inventory, db.Platform.Commands, Access,
-            new Hcc.Application.Billing.BillingReservationMoney(new Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore(db.Platform.Connections)), clock);
+            new Hcc.Application.Billing.BillingReservationMoney(new Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore(db.Platform.Connections)), clock, Credit);
     }
+
+    public Hcc.Application.Groups.CompanyCredit Credit { get; }
 
     public InventoryDatabase Db { get; }
 

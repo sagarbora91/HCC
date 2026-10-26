@@ -36,6 +36,8 @@ public static class AccountingEvents
     public const string CashBankingRejected = "CashBankingRejected";   // {transferId, tillId, shiftId, businessDate (rejection), amountPaise, bank, slipNo, reason}: the reverse
     public const string OwnerDrawingRecorded = "OwnerDrawingRecorded"; // {transferId, tillId, shiftId, businessDate, amountPaise, reason}: Dr Owner's drawings / Cr cash
     // ── end Wave B1 ──
+    // DEC-076 company credit: money received from a company against its company-credit receivable (Dr tender · Cr company receivables).
+    public const string CompanyPaymentRecorded = "CompanyPaymentRecorded";
 
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
@@ -45,7 +47,8 @@ public static class AccountingEvents
     public static readonly IReadOnlyList<string> Consumed =
         [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked,
          GroupReceiptRecorded, GroupAttritionPosted, GroupSettled, AdvanceGiven, FnfSettled,   // DEC-074 (wave B3)
-         CashBanked, CashBankingRejected, OwnerDrawingRecorded];                                 // Wave B1 (DEC-073)
+         CashBanked, CashBankingRejected, OwnerDrawingRecorded,                                  // Wave B1 (DEC-073)
+         CompanyPaymentRecorded];                                                                // DEC-076 (wave B5)
 }
 
 /// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>
@@ -53,6 +56,12 @@ public sealed record CashBankingEvent(long TransferId, int TillId, long ShiftId,
 
 /// <summary>Wave B1 (DEC-073): cash the Owner took from a drawer.</summary>
 public sealed record OwnerDrawingEvent(long TransferId, int TillId, long ShiftId, DateOnly BusinessDate, long AmountPaise, string Reason);
+
+/// <summary>
+/// DEC-076: a payment received from a company account against its company-credit receivable (Groups <c>RecordCompanyPayment</c>; tender UPI | Card |
+/// Bank transfer). Booked as a Receipt voucher: Dr the tender · Cr company receivables (the <c>receipt:company-credit</c> ledger).
+/// </summary>
+public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company);
 
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
 public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, string Status, DateOnly BusinessDate, long ExpectedPaise, long CountedPaise);

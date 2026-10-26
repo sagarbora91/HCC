@@ -2,13 +2,14 @@
 import React,{useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {ArrowRight,Info,Hourglass,TriangleAlert} from 'lucide-react';
-import {money,addDays,nights,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE} from '../../services/mock';
+import {money,addDays,nights,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,grpCompany,grpStayValue,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {field,submit,shortDate,Empty} from '../../components/ui';
 import {RestrictionNotice} from './RestrictionNotice';
 import {rstState} from './restriction';
 import {useReservations,useAvailability} from '../../clients/react';
 import {quoteAndCreate} from '../../clients/view';
+import {CompanyAccountPicker} from '../groups/credit';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const err=(m?:string)=>m?<small className="res-field-error" role="alert">{m}</small>:null;
@@ -24,7 +25,7 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
   const start=id&&DATE.test(id)&&id>=s.date?id:s.date;
   const [arrival,setArrival]=useState(start),[departure,setDeparture]=useState(addDays(start,id?1:2));
   const [people,setPeople]=useState(1),[children,setChildren]=useState(0),[type,setType]=useState(pre?.type||'All');
-  const [pick,setPick]=useState(room||''),[source,setSource]=useState('Direct');
+  const [pick,setPick]=useState(room||''),[source,setSource]=useState('Direct'),[account,setAccount]=useState('');
   const [errors,setErrors]=useState<Record<string,string>>({});
   const {view:q}=useAvailability({arrival,departure,adults:people,children,roomTypeId:type==='All'?undefined:type});
   // Room is optional: with none selected, the first available room of the search is auto-assigned (SCR-04).
@@ -41,14 +42,16 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
     if(guest.length<2)e.guest='Enter the guest’s name (at least 2 characters).';
     if(!phone)e.phone='Phone is required.';else if(!RES_PHONE.test(phone))e.phone='Enter 7–16 digits (fictional number).';
     if(source==='OTA'&&ota.length<2)e.otaChannel='Name the OTA channel.';
-    if(gstin&&!company)e.companyName='Enter the company name for the GSTIN.';
-    if(gstin&&!RES_GSTIN.test(gstin))e.gstin='Use the 15-character format, e.g. 27AAAAA0000A1Z5.';
+    if(!account&&gstin&&!company)e.companyName='Enter the company name for the GSTIN.';
+    if(!account&&gstin&&!RES_GSTIN.test(gstin))e.gstin='Use the 15-character format, e.g. 27AAAAA0000A1Z5.';
+    const co=account?grpCompany(s,account):undefined;
     if(dateError)e.dates=dateError;
     if(!rst.canSubmit)e.restriction='Resolve the stay restriction first.';
     if(!chosen)e.room=q.available.length?'Select one of the available rooms, or Auto-assign.':'No room is available for this search. Change dates, party size or type.';
     setErrors(e);if(Object.keys(e).length)return;
     commit(c=>quoteAndCreate(c,{arrival,departure,adults:people,children},{roomId:chosen!.id,guest:{name:guest,phone,email:field(f,'email')},source,otaChannel:source==='OTA'?ota:undefined,
-      company:company?{name:company,gstin:gstin||undefined}:undefined,notes:field(f,'notes'),hold,restrictionOverride:rst.restrictionOverride},{idempotencyKey:modal!.key}),
+      // DEC-076: billed to a company account → the account's name and GSTIN, and the stay is credit-checked; otherwise invoice details only.
+      company:co?{name:co.name,gstin:co.gstin||undefined,account:co.id}:company?{name:company,gstin:gstin||undefined}:undefined,notes:field(f,'notes'),hold,restrictionOverride:rst.restrictionOverride},{idempotencyKey:modal!.key}),
       hold?'Room held for 2 hours of simulated time. Confirm it before the hold expires.':'Reservation confirmed. Open it to register the guest and check in.',
       r=>booking(r.reservationId));
   };
@@ -83,8 +86,9 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
         <div className="form-row"><label>Fictional email (optional)<input type="email" name="email" placeholder="guest@example.test"/></label>
           <label>Booking source *<select name="source" value={source} onChange={e=>setSource(e.target.value)}>{RES_SOURCES.map(x=><option key={x}>{x}</option>)}</select></label></div>
         {source==='OTA'&&<label>OTA channel name *<input name="otaChannel" list="res-ota" placeholder="e.g. Demo Travel Hub" maxLength={60} aria-invalid={!!errors.otaChannel}/><datalist id="res-ota">{RES_OTA_CHANNELS.map(x=><option key={x} value={x}/>)}</datalist>{err(errors.otaChannel)}</label>}
-        <div className="form-row"><label>Company (optional)<input name="companyName" placeholder="e.g. Demo Industries (fictional)" maxLength={80} aria-invalid={!!errors.companyName}/>{err(errors.companyName)}</label>
-          <label>GSTIN (optional, fictional)<input name="gstin" placeholder="27AAAAA0000A1Z5" maxLength={15} style={{textTransform:'uppercase'}} aria-invalid={!!errors.gstin}/>{err(errors.gstin)}</label></div>
+        <CompanyAccountPicker value={account} onChange={setAccount} stay={chosen&&!dateError?grpStayValue(s,chosenRate,arrival,departure):0}/>
+        {!account&&<div className="form-row"><label>Company (optional)<input name="companyName" placeholder="e.g. Demo Industries (fictional)" maxLength={80} aria-invalid={!!errors.companyName}/>{err(errors.companyName)}</label>
+          <label>GSTIN (optional, fictional)<input name="gstin" placeholder="27AAAAA0000A1Z5" maxLength={15} style={{textTransform:'uppercase'}} aria-invalid={!!errors.gstin}/>{err(errors.gstin)}</label></div>}
         <label>Notes<textarea name="notes" rows={2} placeholder="Preferences or arrival notes…" maxLength={300}/></label>
       </fieldset>
       <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={chosen?`room ${chosen.id} (${chosen.type})`:undefined}/>

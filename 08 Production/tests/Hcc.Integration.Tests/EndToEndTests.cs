@@ -4,6 +4,7 @@ using Hcc.Contracts;
 using Hcc.Contracts.Access;
 using Hcc.Contracts.Billing;
 using Hcc.Contracts.Closing;
+using Hcc.Contracts.Groups;
 using Hcc.Contracts.Housekeeping;
 using Hcc.Contracts.Inventory;
 using Hcc.Contracts.Reservations;
@@ -216,7 +217,12 @@ public sealed class EndToEndTests
         await using var s = await HccServer.StartAsync(Seed, Ct);
         using var staff = await SignInStaffAsync(s);
         var room106 = await s.CountAsync("SELECT room_id FROM inv.room WHERE room_no = '106'", Ct);
-        var (_, stayId, folioId, stayVersion) = await BookAndCheckInAsync(staff.Reception, room106, "2026-10-24", "2026-10-25", "Acme Travels guest (fictional)", 210000);
+        var (reservationId, stayId, folioId, stayVersion) = await BookAndCheckInAsync(staff.Reception, room106, "2026-10-24", "2026-10-25", "Acme Travels guest (fictional)", 210000);
+        // DEC-076: company credit needs the in-house stay billed to a company account (Rs 5,000 limit; the stay is Rs 2,000 + 5 % = Rs 2,100).
+        var company = await Wire.CommandAsync<CompanyResult>(staff.Owner, "SaveCompany", new SaveCompanyRequest(null, null, "Acme Travels (fictional)", CreditLimitPaise: 500_000), Ct);
+        var reservation = await Wire.GetAsync<ReservationDetails>(staff.Reception, $"/reservations/{reservationId}", Ct);
+        await Wire.CommandAsync<ReservationResult>(staff.Reception, "SetReservationCompany",
+            new SetReservationCompanyRequest(reservationId, reservation.Version, new CompanyInput("", null, company.CompanyId)), Ct);
         await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stayId, new DateOnly(2026, 10, 24)), Ct);
         await CloseDayAsync(staff.Owner, new DateOnly(2026, 10, 24));
         await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioId, "deposit", "UPI", 50000, "UPI-DEP-106", null), Ct);
@@ -249,5 +255,10 @@ public sealed class EndToEndTests
         Assert.Equal(("Departed", 210000L, 0L, 0L), (folio.ReservationStatus, folio.Totals.CompanyCreditPaise, folio.Totals.BalancePaise, folio.Totals.DepositPaise));
         Assert.Equal("Executed", (string?)await s.ScalarAsync($"SELECT status FROM bill.approval WHERE approval_id = {second}", Ct));
         Assert.Equal(staff.ReceptionId, await s.CountAsync($"SELECT executed_by FROM bill.approval WHERE approval_id = {second}", Ct));
+        // The receivable belongs to the company account: its exposure is now that Rs 2,100 company credit, Rs 2,900 remaining.
+        Assert.Equal(company.CompanyId, Convert.ToInt64(await s.ScalarAsync($"SELECT company_id FROM pay.receipt WHERE folio_id = {folioId} AND kind = 'company-credit'", Ct), System.Globalization.CultureInfo.InvariantCulture));
+        var book = await Wire.GetAsync<CompanyBookView>(staff.Owner, "/groups/companies", Ct);
+        var credit = book.Companies.Single(c => c.CompanyId == company.CompanyId).Credit!;
+        Assert.Equal((210000L, 210000L, 0L, 290000L), (credit.ExposurePaise, credit.ReceivablePaise, credit.OpenStaysPaise, credit.RemainingPaise));
     }
 }
