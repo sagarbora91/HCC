@@ -56,6 +56,11 @@ $e = [Text.Encoding]::ASCII.GetBytes('HCC guest ID key v1')
 **On the hotel PC use `deployment/windows/New-HccGuestIdKey.ps1`** (INSTALL.md section 6b): it does the above with `dpapi-machine:` (an administrator can run it; the service account cannot be logged in to), writes `Hcc:GuestIdKeys` into `appsettings.Production.json`, restricts that file and writes the offline copy to a USB path. (`DpapiGuestIdKeyRing.NewWrappedKey` does the same from code.) A missing key answers 503 UNAVAILABLE with `details.reason = NOT_CONFIGURED`; the web client then shows "ID storage is not set up on the server" and does **not** switch to read-only. **Back up the key**: a DPAPI-user blob is useless on another PC or
 account, so also keep an offline copy of the raw key (sealed envelope / owner's password manager). Losing every copy makes the stored
 numbers unreadable (last 4 stay). Database backups alone never contain the key.
+**Replacement PC (A07-03 / A09-07):** `New-HccGuestIdKey.ps1 -ImportOfflineCopy <file>` re-wraps the key from its offline copy for the
+new PC under its own key id (refuses to replace an existing entry without `-Force`; INSTALL.md 6b and 7b). `Hcc.Api.exe verify-guest-id
+[--database <name>]` (`Hcc.Api/Hosting/GuestIdCheckCommand.cs` → `GuestIdRestoreCheck`) opens the newest sealed row per key id with the
+configured ring, loaded by the same `GuestIdEndpoints.KeyRing` as the server, and prints one line (never a number); the weekly
+`Restore-HccDrill.ps1` runs it on the restored scratch copy, so a drill fails when the restored IDs would not open.
 
 ## Key rotation
 1. Generate a new key (above) under a new id, add it to `Keys`, keep the old one, set `Current` to the new id, restart HCC.
