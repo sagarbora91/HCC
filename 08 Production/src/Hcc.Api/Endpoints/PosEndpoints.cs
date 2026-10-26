@@ -55,6 +55,14 @@ public static class PosEndpoints
             => Results.Ok(await q.KitchenAsync(http.PosCaller(), ct).ConfigureAwait(false)));
         g.MapGet("/pos/day-summary", async (HttpContext http, PosQueries q, CancellationToken ct, DateOnly? date = null)
             => Results.Ok(await q.DaySummaryAsync(http.PosCaller(), date, ct).ConfigureAwait(false)));
+        g.MapGet("/pos/checks/closed", async (HttpContext http, PosQueries q, CancellationToken ct, DateOnly? date = null)
+            => Results.Ok(await q.ClosedChecksAsync(http.PosCaller(), date, ct).ConfigureAwait(false)));
+        g.MapGet("/pos/void-requests", async (HttpContext http, PosQueries q, CancellationToken ct)
+            => Results.Ok(await q.PendingVoidsAsync(http.PosCaller(), ct).ConfigureAwait(false)));
+        g.MapGet("/pos/in-house", async (HttpContext http, PosQueries q, CancellationToken ct)
+            => Results.Ok(await q.InHouseAsync(http.PosCaller(), ct).ConfigureAwait(false)));
+        g.MapGet("/pos/till", async (HttpContext http, PosQueries q, CancellationToken ct)
+            => Results.Ok(await q.TillAsync(http.PosCaller(), ct).ConfigureAwait(false)));
         g.MapGet("/pos/close-blockers", async (HttpContext http, PosQueries q, CancellationToken ct)
             => Results.Ok(await q.BlockersAsync(http.PosCaller(), ct).ConfigureAwait(false)));
         return api;
