@@ -8,6 +8,10 @@
   which then is the login name to give Initialize-HccDatabase.ps1). It starts automatically at boot. Configuration comes from
   appsettings.Production.json in the install folder; the service refuses to start if it is incomplete (see the Windows
   Event Log / service log). -Uninstall stops and removes the service and the firewall rule (data and backups are never touched).
+  A09-05: registers the Windows Event Log source "HCC" (Application log), which the server (failed or parked outbox events, a failing
+  projector, the retention purge, a crashed background service) and the backup scripts write their alerts to. Creating a source needs an
+  administrator, so it happens here (and in the installer: -EventSourceOnly registers only the source). The source is kept on -Uninstall,
+  so earlier entries stay readable.
 # ETP-REUSE: replace/align with ETP's service install step (service name, recovery actions, logging) when V:\ETP is available.
 #>
 [CmdletBinding(SupportsShouldProcess)]
@@ -17,12 +21,25 @@ param(
     [string]$ServiceAccount,
     [securestring]$ServiceAccountPassword,
     [int]$HttpsPort = 5443,
-    [switch]$Uninstall
+    [switch]$Uninstall,
+    [switch]$EventSourceOnly
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Hcc-Common.ps1"
 $exe = Join-Path $InstallDirectory 'Hcc.Api.exe'
 $ruleName = "HCC HTTPS $HttpsPort (LAN)"
+
+$sourceState = if (Test-HccEventSource) { 'already registered' } else { 'not registered yet' }
+if ($EventSourceOnly) {
+    if (-not $PSCmdlet.ShouldProcess("Windows Event Log source $script:HccEventSource", 'Register in the Application log')) {
+        Write-Host "DRY RUN: register Windows Event Log source $script:HccEventSource in the $script:HccEventLogName log ($sourceState)"
+        return
+    }
+    $isAdminNow = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdminNow) { throw 'Run this script from an elevated (Administrator) PowerShell.' }
+    Write-Host ("Windows Event Log source {0}: {1}" -f $script:HccEventSource, (Register-HccEventSource -Confirm:$false))
+    return
+}
 
 if ($Uninstall) {
     if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop and delete service; remove firewall rule')) {
@@ -45,6 +62,7 @@ if (-not $PSCmdlet.ShouldProcess($ServiceName, "Create service: $exe as $account
     Write-Host "DRY RUN: grant $account Modify on $InstallDirectory\logs and ReadAndExecute on $InstallDirectory"
     Write-Host "DRY RUN: icacls $InstallDirectory\appsettings.Production.json /inheritance:r /grant:r SYSTEM:F Administrators:F ${account}:R (F-M05: only they may read the settings and the guest ID key)"
     Write-Host "DRY RUN: New-NetFirewallRule '$ruleName' -Direction Inbound -Protocol TCP -LocalPort $HttpsPort -Profile Private,Domain -Action Allow"
+    Write-Host "DRY RUN: register Windows Event Log source $script:HccEventSource in the $script:HccEventLogName log ($sourceState): server and backup alerts (A09-05)"
     return
 }
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -73,4 +91,6 @@ if ($LASTEXITCODE -ne 0) { Write-Warning "Could not restrict $settings; only SYS
 if (-not (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort $HttpsPort -Profile Private, Domain -Action Allow | Out-Null
 }
+# A09-05: the operator alerts' Event Log source (needs this elevated session; the service account could not create it).
+Write-Host ("Windows Event Log source {0}: {1} (Event Viewer > Windows Logs > Application, source {0})" -f $script:HccEventSource, (Register-HccEventSource -Confirm:$false))
 Write-Host "Service $ServiceName installed (not started). Next: certificate (New-HccCertificate.ps1), migrate, then Start-Service $ServiceName."

@@ -10,7 +10,7 @@ import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useA
 
 type Filter='all'|'Sales'|'Receipt'|'Payment'|'Journal';
 export function AccountingMobile(){
-  const {s,uid,open}=useHcc();const {canLock,canMap}=useAccPerms();
+  const {s,uid,open,go,permission}=useHcc();const {canLock,canMap}=useAccPerms();
   const dates=useMemo(()=>accDates(s).slice(0,7),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
   const [f,setF]=useState<Filter>('all');const [showAll,setShowAll]=useState(false);
@@ -39,7 +39,7 @@ export function AccountingMobile(){
     </div>
     <h2 className="m-group">EXCEPTIONS</h2>
     {ex.length?ex.map(x=><ListCard key={x.id} tone={'acc-m-ex-'+x.severity} title={x.title} sub={x.detail} meta={<AccSeverity x={x}/>}
-      onClick={x.key&&canMap?()=>open({type:'acc-map',id:x.key}):x.voucher?()=>open({type:'acc-voucher',id:date+'|'+x.voucher}):undefined}/>)
+      onClick={x.kind==='stuck'&&permission('admin')?()=>go('syshealth'):x.key&&canMap?()=>open({type:'acc-map',id:x.key}):x.voucher?()=>open({type:'acc-voucher',id:date+'|'+x.voucher}):undefined}/>)
       :<ListCard title="No exceptions" sub="Every voucher is balanced and mapped." right={<CheckCircle2 size={20} className="acc-ok-icon" aria-hidden/>}/>}
     {unmapped.length>0&&!canMap&&<p className="muted acc-m-note">Ask the Owner to map: {unmapped.map(r=>r.value).join(', ')}.</p>}
     <h2 className="m-group">RECONCILIATION</h2>

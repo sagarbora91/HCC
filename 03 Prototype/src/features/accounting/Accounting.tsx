@@ -14,7 +14,7 @@ export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:strin
     {dates.map(d=><option key={d} value={d}>{shortDate(d)} {d.slice(0,4)}</option>)}</select></label>;
 }
 export function AccountingPage(){
-  const {s,uid,open}=useHcc();const {canMap}=useAccPerms();
+  const {s,uid,open,go,permission}=useHcc();const {canMap}=useAccPerms();
   const tally=rbacCanTally(s,uid); // DEC-063 G13: Tally export tab = Owner + Accountant (Manager/Cashier keep Accounting without it)
   const dates=useMemo(()=>accDates(s),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
@@ -56,7 +56,7 @@ export function AccountingPage(){
             <tr className="acc-total"><td/><td><strong>Total</strong></td><td/><td className="acc-num number"><strong>{money(tbT.debit)}</strong></td><td className="acc-num number"><strong>{money(tbT.credit)}</strong></td><td/></tr></tbody></table></div>
           :<Empty title="No ledger movement" body="No vouchers for this scope."/>}</>}
       {tab==='exceptions'&&(ex.length?<div className="acc-exlist">{ex.map(x=><div key={x.id} className={'acc-ex acc-ex-'+x.severity}><AccSeverity x={x}/><div><strong>{x.title}</strong><p>{x.detail}</p>
-          <div className="inline">{x.voucher&&<button className="text-btn" onClick={()=>open({type:'acc-voucher',id:date+'|'+x.voucher})}>View {x.voucher}</button>}{x.key&&canMap&&<button className="text-btn" onClick={()=>open({type:'acc-map',id:x.key})}>Map now</button>}</div></div></div>)}</div>
+          <div className="inline">{x.voucher&&<button className="text-btn" onClick={()=>open({type:'acc-voucher',id:date+'|'+x.voucher})}>View {x.voucher}</button>}{x.key&&canMap&&<button className="text-btn" onClick={()=>open({type:'acc-map',id:x.key})}>Map now</button>}{x.kind==='stuck'&&permission('admin')&&<button className="text-btn" onClick={()=>go('syshealth')}>Open System health</button>}</div></div></div>)}</div>
         :<Empty title="No exceptions" body="Every voucher is balanced and mapped."/>)}
       {tab==='recon'&&<div className="table-wrap"><table className="acc-table"><thead><tr><th>Check</th><th className="acc-num">Reports / closing</th><th className="acc-num">Ledger</th><th>Result</th><th>Compared with</th></tr></thead>
         <tbody>{recon.map(c=><tr key={c.id}><td><strong>{c.label}</strong></td><td className="acc-num number">{money(c.report)}</td><td className="acc-num number">{money(c.ledger)}</td>

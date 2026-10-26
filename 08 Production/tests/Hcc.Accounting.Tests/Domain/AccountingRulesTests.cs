@@ -113,6 +113,21 @@ public sealed class AccountingRulesTests
     }
 
     [Fact]
+    public void Wave_C3_parked_events_are_stuck_see_system_health_not_still_being_processed()
+    {
+        var a = VoucherBuilder.Build(D, [SourceRules.FolioReceipt("r1", "payment", "Cash", D, 1000, "x")], Map);
+        var parked = VoucherBuilder.Exceptions(a, a, false, DayStatus.Closed, pendingEvents: 0, parkedEvents: 1);
+        var stuck = Assert.Single(parked, x => x.Severity == "error");
+        Assert.Equal(("stuck", "stuck", "Accounting events stuck — see System health"), (stuck.Id, stuck.Kind, stuck.Title));
+        Assert.StartsWith("1 posting event(s) for this property could not be booked after repeated attempts", stuck.Detail, StringComparison.Ordinal);
+        Assert.Contains("Admin & Setup › System health", stuck.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(parked, x => x.Kind == "pending");
+        // Both kinds at once: the stuck one first (it is the one a person must act on); a locked date shows neither.
+        Assert.Equal(["stuck", "pending"], VoucherBuilder.Exceptions(a, a, false, DayStatus.Closed, 3, 2).Where(x => x.Severity == "error").Select(x => x.Kind).ToArray());
+        Assert.DoesNotContain(VoucherBuilder.Exceptions(a, a, true, DayStatus.Locked, 3, 2), x => x.Kind is "stuck" or "pending");
+    }
+
+    [Fact]
     public void Csv_guards_formula_cells_and_tally_range_is_at_most_31_days()
     {
         Assert.Equal("'=HYPERLINK(1)", VoucherExport.CsvSafe("=HYPERLINK(1)"));

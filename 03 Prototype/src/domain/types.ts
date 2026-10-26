@@ -261,6 +261,8 @@ export type State={
   configX?:import('./streams/config').CFGState;
   /** MA-0 masters framework: stored master rows per list + change history (absent = fixture seed). */
   mastersX?:import('./streams/masters').MSTState;
+  /** Wave C3 System health (A09-05): the server's parked outbox events and backup results, or the demo's remaining parked events (absent = demo seed). */
+  sysHealthX?:import('./streams/syshealth').SYSState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;

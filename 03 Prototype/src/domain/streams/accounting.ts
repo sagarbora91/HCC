@@ -8,6 +8,7 @@ import {reportPack,expenseCounts,closingOutlet,closingReopened} from './closing'
 import {posSlice,type POSReceipt} from './pos';
 import {lineTax,gstSplit} from '../gst';
 import {cxSlice} from './cashout';
+import {sysParkedAccounting,SYS_STUCK_TITLE,sysStuckDetail} from './syshealth';
 
 // ── Chart of accounts (synthetic) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
@@ -203,7 +204,8 @@ export type ACCDayStatus='Open'|'Closed'|'Locked';
 export function accDayStatus(s:State,date:string):ACCDayStatus{const sv=accSlice(s).server;if(sv)return sv.days[date]?.status??(date<s.date?'Closed':'Open');
   // DEC-077: the day the Owner reopened counts as Open (live vouchers, not lockable) until it is closed again.
   return accLockOf(s,date)?'Locked':closingReopened(s)?.date===date?'Open':s.closedDates.includes(date)?'Closed':'Open';}
-export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'open-day';title:string;detail:string;voucher?:string;source?:string;key?:string};
+/** kind 'stuck' / 'pending' come from the server (parked / unprocessed outbox events); the demo raises 'stuck' for a parked accounting event (Wave C3). */
+export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'stuck'|'pending'|'open-day';title:string;detail:string;voucher?:string;source?:string;key?:string};
 const fingerprint=(vs:ACCVoucher[])=>vs.map(v=>v.source.id+'='+accVoucherTotals(v).debit).sort().join('|');
 export function accExceptions(s:State,date:string):ACCException[]{
   const sv=accSlice(s).server;if(sv)return sv.days[date]?.exceptions??[];
@@ -215,6 +217,9 @@ export function accExceptions(s:State,date:string):ACCException[]{
   if(t.debit!==t.credit)out.push({id:'unbal:day',severity:'error',kind:'unbalanced',title:'Trial balance does not agree',detail:`Debits ₹${(t.debit/100).toFixed(2)} ≠ credits ₹${(t.credit/100).toFixed(2)}`});
   const lock=accLockOf(s,date);
   if(lock&&fingerprint(lock.vouchers)!==fingerprint(accLiveVouchers(s,date)))out.push({id:'drift',severity:'warning',kind:'drift',title:'Live sources differ from the locked snapshot',detail:'Source records for this locked date changed after locking. The snapshot is kept; review and unlock if a correction is needed.'});
+  // Wave C3: a parked accounting event (System health) blocks the lock of every unlocked date, as on the server.
+  const stuck=lock?0:sysParkedAccounting(s);
+  if(stuck)out.push({id:'stuck',severity:'error',kind:'stuck',title:SYS_STUCK_TITLE,detail:sysStuckDetail(stuck)});
   if(accDayStatus(s,date)==='Open')out.push({id:'open',severity:'info',kind:'open-day',title:'Business day not closed',detail:'Vouchers are provisional until the day is closed and locked.'});
   return out;
 }

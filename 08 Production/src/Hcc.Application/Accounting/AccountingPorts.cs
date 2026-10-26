@@ -47,6 +47,12 @@ public interface IAccountingDayHooks
     Task MarkChangedForTallyAsync(ICommandTransaction tx, int propertyId, DateOnly date, long reopenId, string reason, DateTime nowUtc, CancellationToken ct);
 }
 
+/// <summary>Unbooked accounting events of a property: <see cref="Pending"/> still being processed, <see cref="Parked"/> set aside after repeated failures.</summary>
+public sealed record PendingEvents(int Pending, int Parked)
+{
+    public int Total => Pending + Parked;
+}
+
 /// <summary>SQL-agnostic <see cref="IAccountingDayHooks"/> over the accounting store.</summary>
 public sealed class AccountingDayHooks(IAccountingStore store) : IAccountingDayHooks
 {
@@ -97,8 +103,11 @@ public interface IAccountingStore
     /// <summary>The property's current business date (inv.property); null when the property does not exist.</summary>
     Task<DateOnly?> BusinessDateAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
-    /// <summary>Consumed outbox events for this property not yet processed by the accounting consumer.</summary>
-    Task<int> PendingEventsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
+    /// <summary>
+    /// Consumed outbox events for this property not yet processed by the accounting consumer: still being processed (incl. accepted cash
+    /// differences not yet swept) and parked after repeated failures (Wave C3: shown as "stuck — see System health").
+    /// </summary>
+    Task<PendingEvents> PendingEventsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
     /// <summary>Folio/receipt figures for the date straight from billing and payments (reconciliation).</summary>
     Task<OperationalFigures> OperationalFiguresAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct);

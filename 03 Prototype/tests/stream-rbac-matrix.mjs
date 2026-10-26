@@ -65,6 +65,7 @@ const PAGES={
   settings:['OWN TAD','ADM-003 + DEC-057/058 (DEC-063 G9: no Manager requests)'],
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
+  syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
   roadmap:['OWN MGR CSH ACC','Not in the matrix (informational page); current gate accepted'],
 };
 // Documented cells the app does not honour yet (page keys are 'page:<id>').
@@ -140,6 +141,7 @@ const CMDS={
   POS_VOID_DECIDE:C('OWN MGR','Module 23 §2 (approve)'),
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
+  SYS_RETRY_PARKED:C('OWN TAD','PERM-SYS-001 (Wave C3, A09-05: RetryParkedEvent)'),
 };
 const K=k=>'cmd:'+k;
 

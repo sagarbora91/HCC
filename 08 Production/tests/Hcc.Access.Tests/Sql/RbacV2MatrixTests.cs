@@ -21,6 +21,16 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
     /// <summary>Later owner rulings that change a v2 cell (none yet). Key = (permission, role), value = the ruled cell ("—" = no grant).</summary>
     public static readonly Dictionary<(string Perm, string Role), string> Rulings = [];
 
+    /// <summary>
+    /// Permissions added after the accepted grids, one row each in <see cref="Roles"/> order ("—" = no grant): every cell is pinned like a
+    /// grid cell (and the money invariant covers them).
+    /// </summary>
+    public static readonly Dictionary<string, string[]> LaterPermissions = new(StringComparer.Ordinal)
+    {
+        // Wave C3 (audit A09-05, migration 3921): System health — parked outbox events, retry, last backup. Administration: Owner, Tech admin.
+        ["PERM-SYS-001"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "A"],
+    };
+
     /// <summary>L cells: the Manager's limit in paise (DEC-063 G1 Rs 1,000; GRP-003 Rs 10,000 as seeded by 2201).</summary>
     private static readonly Dictionary<(string Perm, string Role), long> Limits = new()
     {
@@ -56,6 +66,13 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
             for (var i = 0; i < Roles.Length; i++) cells[(m.Groups[1].Value, Roles[i])] = values[i];
         }
 
+        foreach (var (perm, row) in LaterPermissions)
+        {
+            Assert.Equal(Roles.Length, row.Length);
+            Assert.DoesNotContain(cells.Keys, k => k.Item1 == perm);   // a later permission is not a grid row
+            for (var i = 0; i < Roles.Length; i++) cells[(perm, Roles[i])] = row[i];
+        }
+
         foreach (var (key, value) in Rulings)
         {
             Assert.True(cells.ContainsKey(key), $"Ruling for unknown cell {key}");
@@ -80,7 +97,7 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
     {
         var grid = GridCells();
         var perms = grid.Keys.Select(k => k.Perm).ToHashSet(StringComparer.Ordinal);
-        Assert.Equal(64, perms.Count);   // §2.3 (35 rows) + §2.4 (29 rows) of the accepted proposal
+        Assert.Equal(64 + LaterPermissions.Count, perms.Count);   // §2.3 (35 rows) + §2.4 (29 rows) of the accepted proposal + later permissions
         var seeded = await SeededAsync(perms);
         var mismatches = new List<string>();
         foreach (var ((perm, role), cell) in grid)

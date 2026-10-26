@@ -82,40 +82,7 @@ public static class OtaEndpoints
 
 /// <summary>Polls the outbox for channel-manager events every 2 s (simulated channel manager).</summary>
 // ETP-REUSE: align with ETP background-job hosting (Windows service worker, retry/back-off, logging) when ETP (V: drive) is available.
-public sealed partial class OtaChannelManagerWorker(OtaChannelManagerProjector projector, ILogger<OtaChannelManagerWorker> logger) : BackgroundService
+public sealed class OtaChannelManagerWorker(OtaChannelManagerProjector projector, ILogger<OtaChannelManagerWorker> logger) : OutboxPollingWorker(logger, "OTA channel-manager outbox projection")
 {
-    public static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await projector.RunOnceAsync(ct: stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-#pragma warning disable CA1031 // A failed poll is logged and retried on the next tick; the event stays undelivered.
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                LogFailed(logger, ex);
-            }
-
-            try
-            {
-                await Task.Delay(Interval, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "OTA channel-manager outbox projection failed; retrying")]
-    private static partial void LogFailed(ILogger logger, Exception ex);
+    protected override Task PollAsync(CancellationToken ct) => projector.RunOnceAsync(ct: ct);
 }

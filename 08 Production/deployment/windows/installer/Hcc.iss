@@ -52,6 +52,8 @@ Name: "{app}\Server\logs"
 Name: "{app}\Server\web"
 
 [Run]
+; A09-05: register the Windows Event Log source HCC for the server's and the backups' alerts (needs admin, which the installer has).
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\Operations\Install-HccService.ps1"" -EventSourceOnly"; Flags: runhidden; StatusMsg: "Registering the Windows Event Log source HCC..."
 ; Upgrade path: if the service already exists it was stopped in PrepareToInstall; start it again.
 Filename: "{sys}\sc.exe"; Parameters: "start HccServer"; Flags: runhidden; Check: ServiceExists
 ; Fresh install: the owner follows INSTALL.md (database, service account, certificate, first Owner, backups).

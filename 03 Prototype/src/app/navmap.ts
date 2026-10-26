@@ -37,6 +37,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   inventory:'stock',
   staff:'people','my-hr':'people',
   closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
+  syshealth:'admin',   // Wave C3 (A09-05): parked outbox events, retry, last backup — Owner + Tech admin
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -70,7 +71,7 @@ export const PAGE_BLURB:Record<string,string>={
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
   closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
-  access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
+  access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',syshealth:'Stuck background work and the last backups',roadmap:'What is planned next',
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -110,6 +111,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   settings:['settings','configuration','config','master configuration','masters','admin','setup','hotel configuration','tax','tariff','hotel','policy','display','device','modules on off','branding'],
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],
+  syshealth:['system health','health','parked','stuck','retry','outbox','event log','alerts','errors','backup failed','last backup','restore drill'],
   roadmap:['roadmap','future','planned','modules','phases'],
 };
 

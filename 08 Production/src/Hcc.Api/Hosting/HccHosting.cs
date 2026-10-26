@@ -176,6 +176,9 @@ public static class HccHostingExtensions
         builder.Host.UseWindowsService(o => o.ServiceName = "HccServer");
         var production = builder.Environment.IsProduction();
         HccConfigValidator.EnsureValid(builder.Configuration, production);
+        // A09-05: worker, purge, schema and crash alerts to the Windows Event Log, source "HCC" (registered by Install-HccService.ps1;
+        // nothing is written while it is missing). The framework's own EventLog provider is switched off (whole exceptions, F-L07).
+        if (production && OperatingSystem.IsWindows()) builder.Logging.AddHccOperatorAlerts(new WindowsEventLogAlertSink());
         if (production && OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(builder.Configuration["Hcc:GuestIdKeys:Current"]))
             GuestIdKeyFileCheck.EnsureProtected(Path.Combine(builder.Environment.ContentRootPath, "appsettings.Production.json"));
 

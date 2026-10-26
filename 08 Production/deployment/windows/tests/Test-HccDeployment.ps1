@@ -302,6 +302,68 @@ Check 'import report: rupees in Indian grouping; trial balance totals; commit an
     (ConvertFrom-HccApiError -Body '' -Fallback 'The SSL connection could not be established') -match 'HCC-Hotel-CA\.cer' -and (ConvertFrom-HccApiError -Body 'not json' -Fallback 'timeout') -eq 'timeout'
 }
 
+# --- A09-05: Windows Event Log source HCC and the System health backup record ---------------------------------------------------
+$testSource = 'HccTest-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+Check 'A09-05 event source: Register-HccEventSource -WhatIf plans the source and creates nothing; the shipped source is "HCC" in the Application log' {
+    $plan = Register-HccEventSource -Source $testSource -WhatIf
+    $plan -eq 'planned' -and -not (Test-HccEventSource -Source $testSource) -and $script:HccEventSource -eq 'HCC' -and $script:HccEventLogName -eq 'Application' -and
+    (@('exists', 'planned') -contains (Register-HccEventSource -WhatIf))
+}
+Check 'A09-05 Write-HccEventLog: one entry through Invoke-HccEventLogWrite (source HCC, level, id); skipped silently without the source or when writing fails' {
+    $script:captured = @()
+    function Test-HccEventSource { param([string]$Source) return $true }
+    function Invoke-HccEventLogWrite { param([string]$Source, [string]$EntryType, [int]$EventId, [string]$Message) $script:captured += [pscustomobject]@{ Source = $Source; Type = $EntryType; Id = $EventId; Message = $Message } }
+    $written = Write-HccEventLog -Level Error -EventId 2001 -Message ('x' * 5000)
+    $one = $script:captured.Count -eq 1 -and $script:captured[0].Source -eq 'HCC' -and $script:captured[0].Type -eq 'Error' -and $script:captured[0].Id -eq 2001 -and $script:captured[0].Message.Length -eq 4000
+    function Invoke-HccEventLogWrite { param([string]$Source, [string]$EntryType, [int]$EventId, [string]$Message) throw 'Access denied' }
+    $failedWrite = Write-HccEventLog -Level Warning -EventId 2003 -Message 'm'
+    function Test-HccEventSource { param([string]$Source) return $false }
+    function Invoke-HccEventLogWrite { param([string]$Source, [string]$EntryType, [int]$EventId, [string]$Message) $script:captured += 'must not be called' }
+    $noSource = Write-HccEventLog -Level Error -EventId 2002 -Message 'm'
+    $written -and $one -and -not $failedWrite -and -not $noSource -and $script:captured.Count -eq 1
+}
+Check 'A09-05 failure reason: sqlcmd errors reduced to SQL Server error numbers (no message text), script messages kept on one line, at most 300 characters' {
+    $sql = Get-HccFailureReason "sqlcmd failed (exit 1): Msg 2627, Level 14, State 1`r`nViolation of PRIMARY KEY constraint. The duplicate key value is (98765 43210).`r`nMsg 3013, Level 16"
+    $down = Get-HccFailureReason 'sqlcmd failed (exit 1): Sqlcmd: Error: Microsoft ODBC Driver 18 for SQL Server : TCP Provider: No connection could be made.'
+    $sql -eq 'sqlcmd failed (exit 1): Msg 2627, Msg 3013' -and $down -eq 'sqlcmd failed (exit 1): SQL Server could not be reached' -and
+    (Get-HccFailureReason "No backup encryption key at C:\k.txt.`nRun New-HccBackupKey.ps1") -eq 'No backup encryption key at C:\k.txt. Run New-HccBackupKey.ps1' -and
+    (Get-HccFailureReason ('y' * 400)).Length -eq 300 -and (Get-HccFailureReason '') -eq 'unknown error'
+}
+Check 'A09-05 backup failure entry: Error 2001 / 2002 with source HCC, kind, database, reason and log file; returned also without the Event Log' {
+    $script:captured = @()
+    function Test-HccEventSource { param([string]$Source) return $true }
+    function Invoke-HccEventLogWrite { param([string]$Source, [string]$EntryType, [int]$EventId, [string]$Message) $script:captured += [pscustomobject]@{ Source = $Source; Type = $EntryType; Id = $EventId; Message = $Message } }
+    $b = Write-HccOperationFailure -Operation Backup -Kind Differential -Database Hcc -SqlInstance '.\SQLEXPRESS' -Reason 'sqlcmd failed (exit 1): Msg 3201, Msg 3013' -LogFile 'D:\HccBackups\Logs\backup_202610.log'
+    $d = Write-HccOperationFailure -Operation RestoreDrill -Database Hcc -SqlInstance '.\SQLEXPRESS' -Reason 'No FULL backup of [Hcc] found in D:\HccBackups.'
+    $e = $script:captured
+    $e.Count -eq 2 -and $e[0].Source -eq 'HCC' -and $e[0].Type -eq 'Error' -and $e[0].Id -eq 2001 -and $e[1].Id -eq 2002 -and $e[0].Message -eq $b -and
+    $b -match '^HCC backup FAILED: Differential backup of \[Hcc\] on \.\\SQLEXPRESS at \d{4}-\d\d-\d\d \d\d:\d\d:\d\dZ\. Reason: sqlcmd failed \(exit 1\): Msg 3201, Msg 3013\.' -and
+    $b -match 'Log: D:\\HccBackups\\Logs\\backup_202610\.log$' -and $d -match '^HCC restore drill FAILED for \[Hcc\]' -and $d -match 'No FULL backup'
+}
+Check 'A09-05 backup result SQL: one guarded INSERT into [Hcc].plat.backup_run, every value quoted, NULLs for missing values, never another database' {
+    $start = [datetime]::SpecifyKind([datetime]'2026-10-26 02:30:00', 'Utc'); $end = $start.AddSeconds(71)
+    $ok = Get-HccBackupRunSql -Database Hcc -Kind Full -Succeeded $true -StartedUtc $start -FinishedUtc $end -FileName 'Hcc_FULL_20261026T023000Z.bak.hccenc' -SizeBytes 52428800 -HostName 'HOTEL-PC'
+    $bad = Get-HccBackupRunSql -Database Hcc -Kind Differential -Succeeded $false -StartedUtc $start -FinishedUtc $start.AddSeconds(-5) -Reason "it's broken" -HostName 'HOTEL-PC'
+    $ok -eq "IF OBJECT_ID(N'[Hcc].plat.backup_run') IS NOT NULL INSERT [Hcc].plat.backup_run(kind, succeeded, started_utc, finished_utc, file_name, size_bytes, reason, host_name) VALUES (N'Full', 1, '2026-10-26T02:30:00', '2026-10-26T02:31:11', N'Hcc_FULL_20261026T023000Z.bak.hccenc', 52428800, NULL, N'HOTEL-PC');" -and
+    $bad -match "VALUES \(N'Differential', 0, '2026-10-26T02:30:00', '2026-10-26T02:30:00', NULL, NULL, N'it''s broken', N'HOTEL-PC'\);$" -and
+    (Throws { Get-HccBackupRunSql -Database EtpReporting -Kind Full -Succeeded $true -StartedUtc $start -FinishedUtc $end }) -and
+    (Throws { Get-HccBackupRunSql -Database Hcc -Kind Weekly -Succeeded $true -StartedUtc $start -FinishedUtc $end })
+}
+Check 'A09-05 Write-HccBackupRun: sent through sqlcmd as the guarded INSERT; a failed write only warns (Warning 2003 after a good backup) and never throws' {
+    $script:sent = @(); $script:captured = @()
+    function Invoke-HccSql { param([string]$Instance, [string]$Query, [switch]$TrustServerCertificate, [switch]$Scalar, [switch]$Table) $script:sent += [pscustomobject]@{ Instance = $Instance; Query = $Query; Trust = [bool]$TrustServerCertificate } }
+    function Test-HccEventSource { param([string]$Source) return $true }
+    function Invoke-HccEventLogWrite { param([string]$Source, [string]$EntryType, [int]$EventId, [string]$Message) $script:captured += [pscustomobject]@{ Type = $EntryType; Id = $EventId; Message = $Message } }
+    $start = (Get-Date).ToUniversalTime().AddMinutes(-2)
+    $recorded = Write-HccBackupRun -SqlInstance '.\SQLEXPRESS' -Database Hcc -Kind Full -Succeeded $true -StartedUtc $start -FileName 'f.bak.hccenc' -SizeBytes 10 -TrustServerCertificate
+    $sentOk = $recorded -and $script:sent.Count -eq 1 -and $script:sent[0].Trust -and $script:sent[0].Query -match "^IF OBJECT_ID\(N'\[Hcc\]\.plat\.backup_run'\) IS NOT NULL INSERT .*VALUES \(N'Full', 1, " -and $script:captured.Count -eq 0
+    function Invoke-HccSql { param([string]$Instance, [string]$Query, [switch]$TrustServerCertificate, [switch]$Scalar, [switch]$Table) throw 'sqlcmd failed (exit 1): Msg 229, Level 14: The INSERT permission was denied' }
+    $notRecorded = Write-HccBackupRun -SqlInstance '.\SQLEXPRESS' -Database Hcc -Kind Full -Succeeded $true -StartedUtc $start
+    $afterFailure = Write-HccBackupRun -SqlInstance '.\SQLEXPRESS' -Database Hcc -Kind Full -Succeeded $false -StartedUtc $start -Reason 'r'
+    $sentOk -and -not $notRecorded -and -not $afterFailure -and $script:captured.Count -eq 1 -and $script:captured[0].Id -eq 2003 -and $script:captured[0].Type -eq 'Warning' -and
+    $script:captured[0].Message -match 'Msg 229\)' -and $script:captured[0].Message -notmatch 'permission was denied'
+}
+
 # --- every script in dry-run mode ---------------------------------------------------------------------------------------
 $psExe = (Get-Process -Id $PID).Path
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('hcc-ps-test-' + [guid]::NewGuid().ToString('N'))
@@ -454,6 +516,40 @@ Check 'Install-HccService -WhatIf prints plan; -Uninstall -WhatIf changes nothin
     $u = DryRun 'Install-HccService.ps1' @('-Uninstall')
     $r.Exit -eq 0 -and $r.Out -match 'New-Service HccServer' -and $r.Out -match 'New-NetFirewallRule' -and $r.Out -match 'appsettings\.Production\.json /inheritance:r' -and $u.Exit -eq 0 -and $null -eq (Get-Service HccServer -ErrorAction SilentlyContinue) -and
     $r.Out -match '\.NET runtime check: Microsoft\.NETCore\.App 10 and Microsoft\.AspNetCore\.App 10 found'   # A09-03 (this PC runs the .NET 10 tests); the real run refuses when missing
+}
+Check 'A09-05 Install-HccService -WhatIf plans the Event Log source HCC; -EventSourceOnly -WhatIf plans only the source and changes nothing' {
+    $r = DryRun 'Install-HccService.ps1' @()
+    $e = DryRun 'Install-HccService.ps1' @('-EventSourceOnly')
+    $r.Exit -eq 0 -and $r.Out -match 'register Windows Event Log source HCC in the Application log \((already registered|not registered yet)\)' -and
+    $e.Exit -eq 0 -and $e.Out -match 'DRY RUN: register Windows Event Log source HCC' -and $e.Out -notmatch 'New-Service' -and
+    (Get-Content -LiteralPath (Join-Path $root 'installer\Hcc.iss') -Raw) -match 'Install-HccService\.ps1"" -EventSourceOnly'
+}
+Check 'A09-05 Backup / Restore -WhatIf mention the System health record and the Event Log entry; Initialize-HccDatabase grants the backup account hcc_backup_reporter' {
+    $b = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-BackupDirectory', $tmp, '-ConfigPath', (Join-Path $tmp 'none.json'))
+    $r = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ConfigPath', (Join-Path $tmp 'none.json'))
+    $i = DryRun 'Initialize-HccDatabase.ps1' @('-ServiceAccount', 'NT SERVICE\HccServer', '-BackupDirectory', $tmp)
+    $b.Out -match 'record the result \(Full\) in \[Hcc\]\.plat\.backup_run' -and $b.Out -match 'event 2001' -and $r.Out -match 'record the result \(RestoreDrill\)' -and $r.Out -match 'event 2002' -and
+    $i.Out -match "IS_ROLEMEMBER\(N'hcc_backup_reporter', N'NT AUTHORITY\\SYSTEM'\) = 0 ALTER ROLE hcc_backup_reporter ADD MEMBER \[NT AUTHORITY\\SYSTEM\]" -and -not (Test-Path $tmp)
+}
+Check 'A09-05 a real backup / drill failure (no backup key, no backup) exits non-zero, logs FAILED and the unrecordable result, and needs no Event Log source' {
+    if (Test-HccEventSource) { Write-Host '  (source HCC is registered on this PC: real runs skipped so no test entry lands in its Application log)'; return $true }
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccA0905_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $dir | Out-Null
+    $ErrorActionPreference = 'Continue'
+    try {
+        # SQL Server "on this PC" at a closed port: nothing is ever written to a real database; the result write fails fast and only warns.
+        $inst = '127.0.0.1\SQLEXPRESS,1'
+        $bo = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $root 'Backup-HccDatabase.ps1') -Type Full -BackupDirectory $dir -SqlInstance $inst -ConfigPath (Join-Path $dir 'none.json') -BackupKeyFile (Join-Path $dir 'no-key.txt') 2>&1 | Out-String
+        $bx = $LASTEXITCODE
+        $ro = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $root 'Restore-HccDrill.ps1') -BackupDirectory $dir -SqlInstance $inst -ConfigPath (Join-Path $dir 'none.json') 2>&1 | Out-String
+        $rx = $LASTEXITCODE
+        $log = Get-ChildItem -LiteralPath (Join-Path $dir 'Logs') -Filter 'backup_*.log' | Select-Object -First 1
+        $bx -ne 0 -and $bo -match 'Backup FAILED: No backup encryption key' -and $bo -match 'Could not record this result for System health' -and $log -and
+        (Get-Content -LiteralPath $log.FullName -Raw) -match 'ERROR Backup FAILED' -and
+        $rx -eq 1 -and $ro -match 'DRILL FAILED: No FULL backup' -and $ro -match 'Could not record this result for System health' -and
+        @(Get-ChildItem -LiteralPath $dir -Filter '*.bak*' -File).Count -eq 0
+    }
+    finally { $ErrorActionPreference = 'Stop'; Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 Check 'New-HccBackupKey: -WhatIf writes nothing; creates key + offline copy; refuses a second key; imports on another PC' {
     $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccBkKey_' + [guid]::NewGuid().ToString('N'))

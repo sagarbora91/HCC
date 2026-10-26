@@ -1,6 +1,7 @@
 using System.Data;
 using System.Globalization;
 using Hcc.Api;
+using Hcc.Api.Hosting;
 using Hcc.Application.Access;
 using Hcc.Application.Commands;
 using Hcc.Infrastructure.SqlServer.Access;
@@ -126,6 +127,11 @@ public sealed class OutboxConsumerTests : IClassFixture<MigratedDatabaseFixture>
         var log = new CapturingLogger();
         var alerts = new OutboxFailureLogger(platform, log);
         await alerts.StartAsync(Ct);
+        // A09-05: the same entries through the Production Event Log bridge (a fake sink in place of the Windows Event Log, source HCC).
+        var sink = new FakeSink();
+        using var factory = LoggerFactory.Create(b => b.AddProvider(new HccEventLogLoggerProvider(sink)));
+        var operatorLog = new OutboxFailureLogger(platform, factory.CreateLogger<OutboxFailureLogger>());
+        await operatorLog.StartAsync(Ct);
 
         async Task Effect(OutboxEvent e, SqlConnection cn, SqlTransaction t, CancellationToken ct)
         {
@@ -158,10 +164,18 @@ public sealed class OutboxConsumerTests : IClassFixture<MigratedDatabaseFixture>
         var parked = failures[^1];
         Assert.True(parked.Parked);
         Assert.Equal((c, bad, "PoisonT", "InvalidOperationException"), (parked.Consumer, parked.OutboxId, parked.EventType, parked.ErrorType));
-        Assert.Single(log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("PARKED", StringComparison.Ordinal)
+        Assert.Single(log.Entries, e => e.Level == LogLevel.Error && e.Message.Contains("PARKED", StringComparison.Ordinal)
             && e.Message.Contains(c, StringComparison.Ordinal) && e.Message.Contains(bad.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
             && e.Message.Contains("PoisonT", StringComparison.Ordinal) && e.Message.Contains("InvalidOperationException", StringComparison.Ordinal));
         Assert.DoesNotContain(log.Entries, e => e.Message.Contains("unreadable payload", StringComparison.Ordinal)); // F-L07
+        Assert.Equal(OutboxConsumer.ParkAfterFailures - 1, log.Entries.Count(e => e.Level == LogLevel.Warning));
+        // A09-05: four Warnings (event 1001) and one Error (event 1002, "see System health") for the operator; types only (F-L07).
+        Assert.Equal([.. Enumerable.Repeat((OperatorAlertLevel.Warning, HccEventLog.OutboxDeliveryFailed), OutboxConsumer.ParkAfterFailures - 1), (OperatorAlertLevel.Error, HccEventLog.OutboxEventParked)],
+            sink.Entries.Select(e => (e.Level, e.EventId)).ToArray());
+        Assert.Contains("System health", sink.Entries.Last().Message, StringComparison.Ordinal);
+        Assert.All(sink.Entries, e => Assert.Contains("InvalidOperationException", e.Message, StringComparison.Ordinal));
+        Assert.DoesNotContain(sink.Entries, e => e.Message.Contains("unreadable payload", StringComparison.Ordinal));
+        await operatorLog.StopAsync(Ct);
 
         // Parked: no more retries, visible to operators, and the watermark moves past it.
         Assert.Equal(0, await Poll());
@@ -232,6 +246,96 @@ public sealed class OutboxConsumerTests : IClassFixture<MigratedDatabaseFixture>
         Assert.Equal(1, await _db.CountAsync($"SELECT COUNT(*) FROM plat.consumer_failure WHERE outbox_id = {parked} AND parked_utc IS NOT NULL", Ct));
         Assert.Equal(1, await _db.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'RETENTION_PURGE' AND detail LIKE '%3 processed outbox event(s) older than 30 days%'", Ct));
         Assert.Equal(TimeSpan.FromDays(30), new AccessOptions().OutboxRetention);
+    }
+
+    /// <summary>Releases a parked event the way RetryParkedEvent does (its own committed transaction here).</summary>
+    private async Task<int> ReleaseAsync(string consumer, long outboxId)
+    {
+        await using var conn = await _db.OpenAsync(Ct);
+        await using var tx = (SqlTransaction)await conn.BeginTransactionAsync(Ct);
+        await using var cmd = new SqlCommand(OutboxConsumer.ReleaseParkedSql, conn, tx);
+        cmd.Parameters.Add("@c", SqlDbType.VarChar, 40).Value = consumer;
+        cmd.Parameters.Add("@o", SqlDbType.BigInt).Value = outboxId;
+        var n = Convert.ToInt32(await cmd.ExecuteScalarAsync(Ct), CultureInfo.InvariantCulture);
+        await tx.CommitAsync(Ct);
+        return n;
+    }
+
+    [Fact]
+    public async Task Wave_C3_a_released_parked_event_is_retried_by_the_next_poll_attempts_keep_counting_and_it_is_delivered_once_it_works()
+    {
+        const string c = "release-consumer";
+        string[] types = ["RelT"];
+        var bad = await InsertAsync("RelT", """{"bad":true}""", ageMinutes: 10);
+        var later = await InsertAsync("RelT", ageMinutes: 10);
+        var platform = _db.Platform();
+        var failing = true;
+
+        async Task Effect(OutboxEvent e, SqlConnection cn, SqlTransaction t, CancellationToken ct)
+        {
+            await Record(e, cn, t, c, ct);
+            if (failing && e.OutboxId == bad) throw new InvalidOperationException("Test: still broken.");
+        }
+
+        Task<int> Poll() => platform.Outbox.ConsumeAsync(c, types, Effect, ct: Ct);
+        Task<int> Attempts() => _db.CountAsync($"SELECT attempts FROM plat.consumer_failure WHERE consumer = '{c}' AND outbox_id = {bad}", Ct);
+
+        for (var i = 1; i <= OutboxConsumer.ParkAfterFailures; i++) await Poll();
+        var parked = Assert.Single(await platform.Outbox.ParkedAsync(c, Ct));
+        Assert.Equal((bad, OutboxConsumer.ParkAfterFailures), (parked.OutboxId, parked.Attempts));
+        await Poll();
+        Assert.True(await LowAsync(c) >= later, "the watermark moved past the parked event");
+
+        // Released while the cause is still there: the next poll tries it once more; the sixth failure parks it again at once.
+        Assert.Equal(1, await ReleaseAsync(c, bad));
+        Assert.Equal(bad - 1, await LowAsync(c));
+        Assert.Empty(await platform.Outbox.ParkedAsync(c, Ct));
+        Assert.Equal(0, await Poll());
+        Assert.Equal(OutboxConsumer.ParkAfterFailures + 1, await Attempts());
+        Assert.Equal(OutboxConsumer.ParkAfterFailures + 1, Assert.Single(await platform.Outbox.ParkedAsync(c, Ct)).Attempts);
+        Assert.Equal(0, await Poll());
+        Assert.Equal(OutboxConsumer.ParkAfterFailures + 1, await Attempts());   // parked: not tried again without a person
+
+        // Fixed, then released: delivered by the next poll, exactly once; nothing left to release; the watermark moves on.
+        failing = false;
+        Assert.Equal(1, await ReleaseAsync(c, bad));
+        Assert.Equal(1, await Poll());
+        Assert.Equal(1, await _db.CountAsync($"SELECT COUNT(*) FROM plat.consumer_dedup WHERE consumer = '{c}' AND outbox_id = {bad}", Ct));
+        Assert.Equal(1, (await EffectsAsync(c)).Count(x => x == bad));
+        Assert.Empty(await platform.Outbox.ParkedAsync(c, Ct));
+        Assert.Equal(0, await ReleaseAsync(c, bad));
+        Assert.Equal(0, await Poll());
+        Assert.True(await LowAsync(c) >= later);
+    }
+
+    [Fact]
+    public async Task Wave_C3_the_watermark_never_passes_an_undelivered_event_that_is_not_parked()
+    {
+        const string c = "guard-consumer";
+        var first = await InsertAsync("GuardA", ageMinutes: 10);
+        var released = await InsertAsync("GuardB", ageMinutes: 10);
+        var newer = await InsertAsync("GuardA", ageMinutes: 10);
+        var platform = _db.Platform();
+        Task<int> Poll() => platform.Outbox.ConsumeAsync(c, ["GuardA"], (e, cn, t, ct) => Record(e, cn, t, c, ct), ct: Ct);
+        // An undelivered event of this consumer that is not parked and that the poll does not read (as right after RetryParkedEvent
+        // released it while a poll was already past its read): the watermark must stay below it, or the event would never be read again.
+        await _db.ExecAsync($"""
+            INSERT plat.consumer_failure(consumer, outbox_id, attempts, last_error, first_failed_utc, last_failed_utc)
+            VALUES ('{c}', {released}, 5, N'test', SYSUTCDATETIME(), SYSUTCDATETIME());
+            """, Ct);
+        Assert.Equal(2, await Poll());
+        Assert.Equal(0, await Poll());
+        Assert.True(await LowAsync(c) < released, $"watermark {await LowAsync(c)} passed the undelivered event {released} (first {first})");
+        await _db.ExecAsync($"UPDATE plat.consumer_failure SET parked_utc = SYSUTCDATETIME() WHERE consumer = '{c}' AND outbox_id = {released};", Ct);
+        Assert.Equal(0, await Poll());
+        Assert.True(await LowAsync(c) >= newer, "a parked event does not hold the watermark");
+    }
+
+    private sealed class FakeSink : IOperatorAlertSink
+    {
+        public List<(OperatorAlertLevel Level, int EventId, string Message)> Entries { get; } = [];
+
+        public void Write(OperatorAlertLevel level, int eventId, string message) => Entries.Add((level, eventId, message));
     }
 
     private sealed class CapturingLogger : ILogger<OutboxFailureLogger>

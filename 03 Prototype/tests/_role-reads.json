@@ -28,6 +28,7 @@
     "GET /admin/roles": "/admin/roles",
     "GET /admin/exceptions": "/admin/exceptions",
     "GET /admin/audit": "/admin/audit?page=1&pageSize=100",
+    "GET /admin/system-health": "/admin/system-health",
     "GET /configuration/requests": "/configuration/requests?status=",
     "GET /configuration/history": "/configuration/history?page=1&pageSize=100",
     "GET /configuration/values": "/configuration/values",
@@ -728,6 +729,11 @@
           "P"
         ],
         [
+          "PERM-SYS-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-WEB-001",
           "A",
           "P"
@@ -804,6 +810,7 @@
         "GET /admin/roles": "200",
         "GET /admin/exceptions": "200",
         "GET /admin/audit": "200",
+        "GET /admin/system-health": "200",
         "GET /configuration/requests": "200",
         "GET /configuration/history": "200",
         "GET /configuration/values": "200",
@@ -1445,6 +1452,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "200",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
@@ -1826,6 +1834,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "403",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
@@ -2087,6 +2096,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "403",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
@@ -2408,6 +2418,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "200",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
@@ -2604,6 +2615,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "403",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
@@ -2765,6 +2777,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "403",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
@@ -2911,6 +2924,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "403",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",
@@ -3036,6 +3050,11 @@
           "P"
         ],
         [
+          "PERM-SYS-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-WEB-005",
           "A",
           "P"
@@ -3077,6 +3096,7 @@
         "GET /admin/roles": "200",
         "GET /admin/exceptions": "200",
         "GET /admin/audit": "403",
+        "GET /admin/system-health": "200",
         "GET /configuration/requests": "200",
         "GET /configuration/history": "200",
         "GET /configuration/values": "200",
@@ -3198,6 +3218,7 @@
         "GET /admin/roles": "403",
         "GET /admin/exceptions": "403",
         "GET /admin/audit": "403",
+        "GET /admin/system-health": "403",
         "GET /configuration/requests": "403",
         "GET /configuration/history": "403",
         "GET /configuration/values": "200",

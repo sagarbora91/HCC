@@ -13,6 +13,8 @@
      database, fails the drill. Small differences are normal (the live database moved on) and are only listed.
   5. Drops the scratch database (unless -KeepScratch) and appends a JSON line to drill-history.jsonl next to the log.
   Exit code 0 = passed, 1 = failed. -WhatIf prints the plan only (no SQL connection, no files).
+  A09-05: the result is recorded in <Database>.plat.backup_run (Admin & Setup > System health shows the last drill); a failed drill also
+  writes an Error to the Windows Event Log (source HCC, event 2002; skipped silently when the source is not registered).
 # ETP-REUSE: replace/align with ETP's restore-drill script (report format, e-mail of the result, scheduling) when V:\ETP is available.
 #>
 [CmdletBinding(SupportsShouldProcess)]
@@ -46,6 +48,7 @@ if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest 
     Write-HccLog "DRY RUN: encrypted backups (.bak.hccenc) would be checked and decrypted with $BackupKeyFile into $ScratchDirectory (private: SYSTEM, Administrators, $sqlService) and deleted afterwards" -LogFile $null
     Write-HccLog "DRY RUN: would RESTORE as [$ScratchName] with MOVE into $ScratchDirectory on $SqlInstance (live database untouched)" -LogFile $null
     Write-HccLog ('DRY RUN: would run DBCC CHECKDB, compare per-table row counts with the live database, drop the scratch database and log to ' + $log) -LogFile $null
+    Write-HccLog "DRY RUN: would record the result (RestoreDrill) in [$Database].plat.backup_run for System health; a failed drill also goes to the Windows Event Log (source $script:HccEventSource, event $($script:HccEventIds.DrillFailed))" -LogFile $null
     return
 }
 
@@ -116,6 +119,7 @@ try {
 catch {
     $result.error = $_.Exception.Message
     Write-HccLog ('DRILL FAILED: ' + $_.Exception.Message) -LogFile $log -Level ERROR
+    Write-HccOperationFailure -Operation RestoreDrill -Database $Database -SqlInstance $SqlInstance -Reason (Get-HccFailureReason $_.Exception.Message) -LogFile $log | Out-Null   # A09-05: event 2002
 }
 finally {
     foreach ($p in @($script:plainCopies)) { if ($p -and (Test-Path -LiteralPath $p)) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue } }
@@ -131,5 +135,7 @@ finally {
     }
     $result.finishedUtc = (Get-Date).ToUniversalTime().ToString('o')
     try { Add-Content -LiteralPath (Join-Path $LogDirectory 'drill-history.jsonl') -Value ($result | ConvertTo-Json -Compress) -Encoding UTF8 } catch { Write-Host "Could not write drill history: $($_.Exception.Message)" }
+    $why = if ($result.passed) { $null } else { Get-HccFailureReason ([string]$result.error) }
+    Write-HccBackupRun -SqlInstance $SqlInstance -Database $Database -Kind RestoreDrill -Succeeded ([bool]$result.passed) -StartedUtc $started -FileName ([string]$result.full) -Reason $why -TrustServerCertificate:$trust -LogFile $log | Out-Null
 }
 if (-not $result.passed) { exit 1 }
