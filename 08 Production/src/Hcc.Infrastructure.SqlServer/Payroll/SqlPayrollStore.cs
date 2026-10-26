@@ -376,7 +376,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         return x.Kind switch
         {
             "mark" => DayEntry.Mark(Enum.Parse<AttendanceStatus>(x.Status!), x.OtMinutes),
-            "leave" => DayEntry.Leave(Enum.Parse<LeaveType>(x.LeaveType!)),
+            "leave" => DayEntry.Leave(new LeaveType(x.LeaveType!)),
             _ => DayEntry.Unmarked,
         };
     }

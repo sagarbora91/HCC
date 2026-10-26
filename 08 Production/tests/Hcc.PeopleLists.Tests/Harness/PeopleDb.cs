@@ -163,7 +163,7 @@ public sealed class Hotel(PeopleDb db, int propertyId)
     {
         var r = await Db.Payroll.SaveStaffAsync(As("owner", PayrollService.OpSaveStaff), new SaveStaffRequest(null, null, name, dept, designation, shift, weeklyOff, "90000 12345",
             linkUser is null ? null : U(linkUser), false, DateOnly.ParseExact(joined, "yyyy-MM-dd", CultureInfo.InvariantCulture), payType, monthly, daily, "M", null, null, null,
-            "Demo Bank (fictional)", "000099990001", "DEMO0000101", designationCode));
+            "Demo Bank (fictional)", "000099990001", "DEMO0000101", DesignationCode: designationCode));   // named: Wave B added BankReason before it
         return r.Value.StaffId;
     }
 

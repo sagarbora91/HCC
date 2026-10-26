@@ -74,10 +74,11 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
             return Mark(s, ot);
         }
 
-        if (code is "CL" or "SL" or "EL" or "CO" or "ML" or "LOP")
+        // MA-6: any leave-type code (the six built-ins or one from the Leave types list; the service checks it is a known, active type).
+        if (Payroll.LeaveType.IsValid(code))
         {
             if (ot != 0) throw HccException.Validation("A leave day carries no overtime.");
-            return Leave(Enum.Parse<LeaveType>(code));
+            return Leave(new Payroll.LeaveType(code!));
         }
 
         throw HccException.Validation("Choose what the day should be: an attendance mark, a leave type or 'none'.");

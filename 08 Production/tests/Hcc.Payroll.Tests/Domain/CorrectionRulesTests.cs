@@ -75,7 +75,7 @@ public sealed class CorrectionRulesTests
         Assert.Equal(DayEntry.Mark(AttendanceStatus.OFF, 120), DayEntry.Parse("OFF", 120));
         Assert.Equal(DayEntry.Leave(LeaveType.SL), DayEntry.Parse("SL", null));
         Assert.Equal(DayEntry.Unmarked, DayEntry.Parse("none", 0));
-        foreach (var (code, ot) in new[] { ("A", 30), ("CL", 10), ("P", 481), ("none", 5), ("X", 0), ("p", 0) })
+        foreach (var (code, ot) in new[] { ("A", 30), ("CL", 10), ("P", 481), ("none", 5), ("X-1", 0), ("p", 0) })   // masters integration: "X" is a valid MA-6 leave-type code now (the service refuses an unknown type); old: ("X", 0)
             Assert.Equal(HccErrorCode.VALIDATION, Assert.Throws<HccException>(() => DayEntry.Parse(code, ot)).Code);
         Assert.Equal("Present · OT 60 min → Casual leave", $"{DayEntry.Mark(AttendanceStatus.P, 60).Label} → {DayEntry.Leave(LeaveType.CL).Label}");
 

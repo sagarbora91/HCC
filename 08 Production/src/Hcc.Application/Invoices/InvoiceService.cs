@@ -101,7 +101,7 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         // before the Owner stores the list the built-in numbering applies (invoicePrefix / INV, BOS, CN, RST at full width — the same as the defaults).
         var inForce = series is null ? null : await series.InForceAsync(tx, ctx.PropertyId, InvoiceNumbering.Code(type), date, c).ConfigureAwait(false);
         var prefix = inForce?.Prefix ?? (type == InvoiceDocType.TaxInvoice ? await PrefixAsync(tx, ctx.PropertyId, c).ConfigureAwait(false) : InvoiceNumbering.DefaultPrefix(type));
-        var (seriesPrefix, seq) = await store.NextNumberAsync(tx, ctx.PropertyId, fy, type, InvoiceNumbering.ValidatePrefix(prefix), Now, c, inForce?.StartNo ?? 1).ConfigureAwait(false);
+        var (seriesPrefix, seq) = await store.NextNumberAsync(tx, ctx.PropertyId, fy, type, InvoiceNumbering.ValidatePrefix(prefix, type), Now, c, inForce?.StartNo ?? 1).ConfigureAwait(false);
         var number = InvoiceNumbering.Format(seriesPrefix, fy, seq, inForce?.Padding);
         var record = new InvoiceRecord(0, ctx.PropertyId, type, number, fy, seq, date, source.Kind, doc.SourceId, doc.Reference, doc.PeriodFrom, doc.PeriodTo,
             recipient, supplier.Name, supplierGstin, supplierState, supplier.Address, lines, figures, InvoiceRules.Words(figures.Total), ctx.PrincipalId, Now);
@@ -276,7 +276,7 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         var date = supplier.BusinessDate;
         var fy = InvoiceNumbering.FyCode(date);
         var inForce = series is null ? null : await series.InForceAsync(tx, inv.PropertyId, "CRN", date, ct).ConfigureAwait(false); // MA-5 numbering series
-        var (prefix, seq) = await store.NextNumberAsync(tx, inv.PropertyId, fy, InvoiceDocType.CreditNote, InvoiceNumbering.ValidatePrefix(inForce?.Prefix ?? InvoiceNumbering.DefaultPrefix(InvoiceDocType.CreditNote)), Now, ct, inForce?.StartNo ?? 1).ConfigureAwait(false);
+        var (prefix, seq) = await store.NextNumberAsync(tx, inv.PropertyId, fy, InvoiceDocType.CreditNote, InvoiceNumbering.ValidatePrefix(inForce?.Prefix ?? InvoiceNumbering.DefaultPrefix(InvoiceDocType.CreditNote), InvoiceDocType.CreditNote), Now, ct, inForce?.StartNo ?? 1).ConfigureAwait(false);
         var number = InvoiceNumbering.Format(prefix, fy, seq, inForce?.Padding);
         var byLine = inv.Lines.ToDictionary(l => l.LineNo);
         var postings = lines.Select(l => new CreditPosting(l.LineNo, byLine[l.InvoiceLineNo].SourceLineId, l.Category, l.Bps, l.Taxable, l.Tax, l.Cgst, l.Sgst)).ToList();

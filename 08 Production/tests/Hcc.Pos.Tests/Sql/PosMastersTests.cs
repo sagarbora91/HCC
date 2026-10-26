@@ -19,7 +19,7 @@ namespace Hcc.Pos.Tests.Sql;
 /// </summary>
 public class PosMastersTests(PosDb db) : IClassFixture<PosDb>
 {
-    private const int TechAdmin = 7;
+    private const int TechAdmin = 8;   // masters integration: Wave B seeds the Restaurant waiter as id 7 (old: 7)
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static readonly HashSet<string> Seeded = [];
 
@@ -29,7 +29,7 @@ public class PosMastersTests(PosDb db) : IClassFixture<PosDb>
 
     private static string U(string p) => p + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
 
-    /// <summary>The service over the class database, plus a Tech admin principal (id 7, role TAD) once per database.</summary>
+    /// <summary>The service over the class database, plus a Tech admin principal (id 8, role TAD) once per database.</summary>
     private async Task<PosMastersService> SvcAsync()
     {
         await Gate.WaitAsync();

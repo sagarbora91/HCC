@@ -184,6 +184,19 @@ public static partial class InvoiceNumbering
         return string.Create(CultureInfo.InvariantCulture, $"{fy.From.Year % 100:00}{(fy.From.Year + 1) % 100:00}");
     }
 
+    /// <summary>Masters integration (MA-5 numbering series + Wave B RST): the prefix of a document series. The shape rule always applies;
+    /// the reserved names (RST, BOS, CN) only guard the tax-invoice series — they ARE the other series' own prefixes.</summary>
+    public static string ValidatePrefix(string? prefix, InvoiceDocType type)
+        => type == InvoiceDocType.TaxInvoice ? ValidatePrefix(prefix) : ValidatePrefixShape(prefix);
+
+    private static string ValidatePrefixShape(string? prefix)
+    {
+        var p = (prefix ?? string.Empty).Trim().ToUpperInvariant();
+        if (!PrefixShape().IsMatch(p))
+            throw HccException.Validation($"The invoice prefix must be 1–{MaxPrefix} capital letters, digits or hyphens so the number fits the GST limit of 16 characters.");
+        return p;
+    }
+
     public static string ValidatePrefix(string? prefix)
     {
         var p = (prefix ?? string.Empty).Trim().ToUpperInvariant();

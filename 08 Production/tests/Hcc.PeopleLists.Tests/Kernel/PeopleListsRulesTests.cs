@@ -144,13 +144,15 @@ public class PeopleListsRulesTests
     }
 
     [Fact]
-    public void A_paid_holiday_is_one_more_paid_day_for_daily_wage_and_no_loss_of_pay_for_monthly()
+    public void A_paid_holiday_is_no_loss_of_pay_for_monthly_and_unpaid_for_daily_wage_DEC083()
     {
         var r = PayrollRates.Defaults();
         var daily = Staff(PayType.Daily);
         var none = new AttendanceCounts("2026-11", 30, 20, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0);
         var plus = none with { Hol = 1 };
-        Assert.Equal(1m, PayrollRules.ComputeLine(daily, plus, r).PayableDays - PayrollRules.ComputeLine(daily, none, r).PayableDays);
+        // Masters integration — DEC-083 (owner decision, Wave B) is binding: an unworked holiday is not paid to daily-wage staff, like a weekly off
+        // (CA A04-04 open). Old: one more payable day.
+        Assert.Equal(0m, PayrollRules.ComputeLine(daily, plus, r).PayableDays - PayrollRules.ComputeLine(daily, none, r).PayableDays);
         var monthly = Staff();
         var lop = new AttendanceCounts("2026-11", 30, 25, 0, 0, 0, 0, 0, 4, 0, 0, 1, 0, 0);
         Assert.Equal(29m, PayrollRules.ComputeLine(monthly, lop, r).PayableDays);                       // 1 unmarked = absent
