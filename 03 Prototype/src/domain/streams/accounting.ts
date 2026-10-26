@@ -85,9 +85,11 @@ export type ACCLockEvent={id:string;at:string;actor:string;date:string;action:'l
  *  ledgers without an HCC account, e.g. Owner's capital · Equity). Never set in the prototype. */
 export type ACCServerDay={status:ACCDayStatus;vouchers:ACCVoucher[];exceptions:ACCException[];checks:ACCCheck[]};
 export type ACCServer={from:string;to:string;days:Record<string,ACCServerDay>;opening:ACCVoucher[];mapRows:ACCMapRow[];accounts?:Record<string,{name:string;group:ACCTBGroup}>};
-/** DEC-077: one recorded Tally export (the Download XML button): the dates it carried, which were re-exports and which provisional. */
-export type ACCTallyExport={id:string;at:string;by:string;from:string;to:string;dates:string[];reexport:string[];provisional:string[];count:number};
-/** DEC-077: a date whose vouchers changed after they were exported (its day was reopened); the next export carries it again. */
+/** DEC-077: one recorded Tally export (the Download XML button): the dates it carried, which were re-exports and which provisional.
+ *  A03b-05: `ids` = its vouchers carried a REMOTEID (absent on exports recorded before that: Tally may hold those days without ids). */
+export type ACCTallyExport={id:string;at:string;by:string;from:string;to:string;dates:string[];reexport:string[];provisional:string[];count:number;ids?:boolean};
+/** DEC-077: a date whose vouchers changed after they were exported (its day was reopened, `reopen` set); A03b-05: or a date exported
+ *  while accounting events were pending (no `reopen`). The next export carries it again. */
 export type ACCReexport={at:string;reason:string;reopen?:string};
 export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer;
   tallyExports?:ACCTallyExport[];reexport?:Record<string,ACCReexport>};
@@ -203,7 +205,8 @@ export type ACCDayStatus='Open'|'Closed'|'Locked';
 export function accDayStatus(s:State,date:string):ACCDayStatus{const sv=accSlice(s).server;if(sv)return sv.days[date]?.status??(date<s.date?'Closed':'Open');
   // DEC-077: the day the Owner reopened counts as Open (live vouchers, not lockable) until it is closed again.
   return accLockOf(s,date)?'Locked':closingReopened(s)?.date===date?'Open':s.closedDates.includes(date)?'Closed':'Open';}
-export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'open-day';title:string;detail:string;voucher?:string;source?:string;key?:string};
+/** `pending` comes from the server only (production): accounting events not yet in the vouchers (A08-01/02, blocks a lock). */
+export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'open-day'|'pending';title:string;detail:string;voucher?:string;source?:string;key?:string};
 const fingerprint=(vs:ACCVoucher[])=>vs.map(v=>v.source.id+'='+accVoucherTotals(v).debit).sort().join('|');
 export function accExceptions(s:State,date:string):ACCException[]{
   const sv=accSlice(s).server;if(sv)return sv.days[date]?.exceptions??[];
@@ -308,15 +311,42 @@ const xmlEsc=(t:string)=>t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'
 const tallyDate=(d:string)=>d.split('-').join('');
 export type TallyPreview={xml:string;count:number;debit:number;credit:number;from:string;to:string;dates:number;simulated:true;error?:string;
   /** The business dates carried (incl. DEC-077 re-exports outside the range). */dateList:string[];
-  /** DEC-077: dates carried again because they changed after an earlier export; provisional = the day is still reopened. */reexport:string[];provisional:string[]};
+  /** DEC-077: dates carried again because they changed after an earlier export; provisional = the day is still reopened, or (A03b-05) a
+   *  date that is not locked while accounting events are pending (`lagging`, `pending` = their count, production only). */reexport:string[];provisional:string[];
+  /** DEC-077: the reopened day, when carried. */reopened:string[];lagging:string[];pending:number;
+  /** A03b-05: carried dates an export recorded before vouchers carried a REMOTEID took to Tally. */legacy:string[]};
 /** DEC-077: the XML note naming a re-exported / provisional day (escaped; "--" cannot end the comment early). */
 export const accTallyNote=(text:string)=>`<!-- ${xmlEsc(text).split('--').join('- -')} -->`;
+/** A03b-05: the fixed comment line after the SIMULATED comment (server VoucherExport.TallyIdNote, same text). */
+export const ACC_TALLY_ID_NOTE='<!-- VOUCHER IDS · every voucher carries a REMOTEID and the same GUID (HCC-hotel identity-source record) that never changes.'
+  +' With "Overwrite vouchers when a voucher with same GUID exists" set to Yes in Tally\'s import (TallyPrime: Import › Transactions), importing'
+  +' a voucher again replaces it instead of adding a second copy. ACTION stays Create; Tally assigns its own VCHKEY and MASTERID. -->';
+/** A03b-05: the hotel's Tally identity in the demo (the server keeps one random GUID per property, acc.tally_identity). */
+export const ACC_TALLY_DEMO_ID='DEMO';
+/** A03b-05: a voucher's REMOTEID / GUID (server VoucherExport.RemoteId): the same for that voucher in every export, unique per voucher. */
+export const accTallyRemoteId=(identity:string,sourceKey:string)=>`HCC-${identity}-${sourceKey}`;
+// The export notes (server VoucherExport.ReexportNote / ReexportAfterProvisionalNote / ReopenedNote / PendingNote / LegacyNote, same text).
+export const accTallyReexportNote=(d:string,reason:string)=>`RE-EXPORT · ${d} changed after it was exported (day reopened: ${reason}). Its vouchers keep their REMOTEID: importing this file replaces them in Tally and adds the new ones, so nothing needs deleting first.`;
+export const accTallyReexportProvisionalNote=(d:string,reason:string)=>`RE-EXPORT · ${d} was exported while it was provisional (${reason}). Its vouchers keep their REMOTEID: importing this file replaces them in Tally and adds any that were missing.`;
+export const accTallyReopenedNote=(d:string)=>`PROVISIONAL · ${d} is reopened and may still change; it is carried again by the first export after it is closed again, and importing that file replaces these vouchers by their REMOTEID.`;
+export const accTallyPendingNote=(d:string,n:number)=>`PROVISIONAL · ${d} is not locked and ${n} accounting event(s) of this hotel are not yet in the vouchers (still being processed, or parked after an error), so this day may be incomplete. It is carried again by the first export after they are processed, and importing that file replaces these vouchers by their REMOTEID.`;
+export const accTallyLegacyNote=(d:string)=>`LEGACY · ${d} was exported before vouchers carried a REMOTEID. If that earlier file was imported, delete that day's HCC vouchers from it in Tally before importing this file, or Tally will hold them twice.`;
+/** A03b-05: the re-export flag reason of a date exported while accounting events were pending (server AccountingQueries.PendingFlagReason). */
+export const accTallyPendingReason=(n:number)=>`${n} accounting event(s) were still pending`;
+/** Production: accounting events of the property not yet in the vouchers, from the server's "pending" exception (same count on every unlocked date). */
+export function accPendingEvents(s:State,dates:string[]):number{
+  const sv=accSlice(s).server;if(!sv)return 0;
+  return Math.max(0,...dates.flatMap(d=>(sv.days[d]?.exceptions??[]).filter(x=>x.kind==='pending').map(x=>Number(/^(\d+)/.exec(x.detail)?.[1]??1))));
+}
 /**
- * Vouchers of every business date from..to (inclusive, ≤ 31 days) as a Tally "Import Data" envelope. DEC-077: dates flagged changed after
- * an earlier export (accountingX.reexport) are carried again even outside the range, each with a RE-EXPORT note; the reopened day is PROVISIONAL.
+ * Vouchers of every business date from..to (inclusive, ≤ 31 days) as a Tally "Import Data" envelope. A03b-05: every voucher carries a
+ * stable REMOTEID / GUID (accTallyRemoteId; demo identity DEMO, production preview SERVER — the downloaded file is the server's, with the
+ * hotel's own identity), so importing it again replaces it in Tally. DEC-077: dates flagged changed after an earlier export
+ * (accountingX.reexport) are carried again even outside the range, each with a RE-EXPORT note; the reopened day is PROVISIONAL, and so
+ * (A03b-05, production) is every date that is not locked while accounting events are pending.
  */
-export function accTallyXml(s:State,from:string,to:string,company?:string):TallyPreview{
-  const empty={xml:'',count:0,debit:0,credit:0,from,to,dates:0,simulated:true as const,dateList:[],reexport:[],provisional:[]};
+export function accTallyXml(s:State,from:string,to:string,company?:string,identity?:string):TallyPreview{
+  const empty={xml:'',count:0,debit:0,credit:0,from,to,dates:0,simulated:true as const,dateList:[],reexport:[],provisional:[],reopened:[],lagging:[],pending:0,legacy:[]};
   // F10 (W05 review): a real calendar date, not only the yyyy-mm-dd shape (2026-02-30 used to pass).
   const real=(d:string)=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
   if(!real(from)||!real(to)||from>to)return {...empty,error:'Choose a valid range: "from" on or before "to".'};
@@ -324,17 +354,23 @@ export function accTallyXml(s:State,from:string,to:string,company?:string):Tally
   if(days>TALLY_MAX_DAYS)return {...empty,error:`Choose at most ${TALLY_MAX_DAYS} days.`};
   const flags=accSlice(s).reexport??{},open=closingReopened(s)?.date;
   const dates=[...new Set([...accDates(s).filter(d=>d>=from&&d<=to),...Object.keys(flags).filter(d=>accVouchers(s,d).length)])].sort(),vs=dates.flatMap(d=>accVouchers(s,d));
-  const reexport=dates.filter(d=>flags[d]),provisional=dates.filter(d=>d===open);
-  const notes=[...reexport.map(d=>accTallyNote(`RE-EXPORT · ${d} changed after it was exported (day reopened: ${flags[d].reason}). Delete that day's HCC vouchers in Tally before importing this file, or Tally will hold them twice.`)),
-    ...provisional.map(d=>accTallyNote(`PROVISIONAL · ${d} is reopened and may still change; it is carried again by the first export after it is closed again.`))];
-  const name=xmlEsc(company??s.settings.hotel);
-  const body=vs.map(v=>`   <TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER VCHTYPE="${v.type}" ACTION="Create" OBJVIEW="Accounting Voucher View">
-    <DATE>${tallyDate(v.date)}</DATE><VOUCHERTYPENAME>${v.type}</VOUCHERTYPENAME><VOUCHERNUMBER>${xmlEsc(v.no)}</VOUCHERNUMBER><NARRATION>${xmlEsc(v.narration)}</NARRATION><EFFECTIVEDATE>${tallyDate(v.date)}</EFFECTIVEDATE>
+  const pending=accPendingEvents(s,dates),lagging=pending>0?dates.filter(d=>accDayStatus(s,d)!=='Locked'):[];
+  const reexport=dates.filter(d=>flags[d]),reopened=dates.filter(d=>d===open),provisional=dates.filter(d=>d===open||lagging.includes(d));
+  const legacy=dates.filter(d=>(accSlice(s).tallyExports??[]).some(e=>!e.ids&&e.dates.includes(d)));
+  const notes=[...reexport.map(d=>accTallyNote(flags[d].reopen?accTallyReexportNote(d,flags[d].reason):accTallyReexportProvisionalNote(d,flags[d].reason))),
+    ...reopened.map(d=>accTallyNote(accTallyReopenedNote(d))),...lagging.map(d=>accTallyNote(accTallyPendingNote(d,pending))),
+    ...legacy.map(d=>accTallyNote(accTallyLegacyNote(d)))];
+  const name=xmlEsc(company??s.settings.hotel),tag=identity??(accSlice(s).server?'SERVER':ACC_TALLY_DEMO_ID);
+  const ids=vs.map(v=>accTallyRemoteId(tag,v.source.id));
+  if(new Set(ids).size!==ids.length)throw new Error('Two vouchers in one Tally export share a source key; every REMOTEID must be unique.');
+  const body=vs.map((v,i)=>`   <TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER REMOTEID="${xmlEsc(ids[i])}" VCHTYPE="${v.type}" ACTION="Create" OBJVIEW="Accounting Voucher View">
+    <DATE>${tallyDate(v.date)}</DATE><GUID>${xmlEsc(ids[i])}</GUID><VOUCHERTYPENAME>${v.type}</VOUCHERTYPENAME><VOUCHERNUMBER>${xmlEsc(v.no)}</VOUCHERNUMBER><NARRATION>${xmlEsc(v.narration)}</NARRATION><EFFECTIVEDATE>${tallyDate(v.date)}</EFFECTIVEDATE>
 ${v.entries.map(e=>`    <ALLLEDGERENTRIES.LIST><LEDGERNAME>${xmlEsc(accLedgerName(e.account))}</LEDGERNAME><ISDEEMEDPOSITIVE>${e.debit?'Yes':'No'}</ISDEEMEDPOSITIVE><AMOUNT>${e.debit?'-'+rupees(e.debit):rupees(e.credit)}</AMOUNT></ALLLEDGERENTRIES.LIST>`).join('\n')}
    </VOUCHER></TALLYMESSAGE>`).join('\n');
   const t=accTotals(vs);
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
 <!-- SIMULATED PREVIEW · Hotel Control Centre prototype · fictional data · nothing was sent to Tally · saving this file does not mean it was imported -->
+${ACC_TALLY_ID_NOTE}
 ${notes.map(n=>n+'\n').join('')}<ENVELOPE>
  <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>
  <BODY><IMPORTDATA>
@@ -345,5 +381,5 @@ ${body}
  </IMPORTDATA></BODY>
 </ENVELOPE>
 `;
-  return {xml,count:vs.length,debit:t.debit,credit:t.credit,from,to,dates:dates.length,simulated:true,dateList:dates,reexport,provisional};
+  return {xml,count:vs.length,debit:t.debit,credit:t.credit,from,to,dates:dates.length,simulated:true,dateList:dates,reexport,provisional,reopened,lagging,pending,legacy};
 }

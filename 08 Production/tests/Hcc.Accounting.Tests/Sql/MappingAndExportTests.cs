@@ -119,7 +119,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         Assert.Contains("<SVCURRENTCOMPANY>HCC Demo Residency</SVCURRENTCOMPANY>", t.Xml, StringComparison.Ordinal);
         Assert.Contains("<LEDGERNAME>Utilities</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-750.00</AMOUNT>", t.Xml, StringComparison.Ordinal);
         Assert.Contains("&quot;East&quot;", t.Xml, StringComparison.Ordinal);
-        Assert.Equal(16, (await db.Queries.TallyAsync(db.As("OWN"), S2, S2, Ct)).Xml.Split('\n').Length);
+        Assert.Equal(17, (await db.Queries.TallyAsync(db.As("OWN"), S2, S2, Ct)).Xml.Split('\n').Length);
 
         // Views: housekeeping / maintenance / reception / tech admin never see accounting; DEC-079: nor the Cashier (collections report only).
         foreach (var role in new[] { "HKP", "MNT", "REC", "TAD", "SUP", "CSH", "RST" })

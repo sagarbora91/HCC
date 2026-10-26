@@ -93,12 +93,13 @@ public sealed class ReopenRulesTests
     [Fact]
     public void Tally_notes_follow_the_simulated_comment_and_cannot_break_out_of_an_XML_comment()
     {
-        var plain = VoucherExport.TallyXml([], "HCC Demo");
-        Assert.Equal(plain, VoucherExport.TallyXml([], "HCC Demo", []));
-        var noted = VoucherExport.TallyXml([], "HCC Demo", ["RE-EXPORT · 2026-10-24 changed -- see <reason> & more"]);
+        var plain = VoucherExport.TallyXml([], "HCC Demo", "DEMO");
+        Assert.Equal(plain, VoucherExport.TallyXml([], "HCC Demo", "DEMO", []));
+        var noted = VoucherExport.TallyXml([], "HCC Demo", "DEMO", ["RE-EXPORT · 2026-10-24 changed -- see <reason> & more"]);
         var lines = noted.Split('\n');
         Assert.Equal(VoucherExport.TallyComment, lines[1]);
-        Assert.Equal("<!-- RE-EXPORT · 2026-10-24 changed - - see &lt;reason&gt; &amp; more -->", lines[2]);
+        Assert.Equal(VoucherExport.TallyIdNote, lines[2]);
+        Assert.Equal("<!-- RE-EXPORT · 2026-10-24 changed - - see &lt;reason&gt; &amp; more -->", lines[3]);
         Assert.Equal(plain.Split('\n').Length + 1, lines.Length);
     }
 }

@@ -49,13 +49,18 @@ public static class AccountingDays
     /// <summary>Shown vouchers (snapshot for locked dates, live otherwise) for every date with activity in [from, to].</summary>
     public static async Task<IReadOnlyList<(DateOnly Date, IReadOnlyList<Voucher> Vouchers)>> RangeAsync(IAccountingStore store, int propertyId, DateOnly from, DateOnly to,
         CancellationToken ct)
+        => (await RangeWithLocksAsync(store, propertyId, from, to, ct).ConfigureAwait(false)).Select(x => (x.Date, x.Vouchers)).ToList();
+
+    /// <summary><see cref="RangeAsync"/> plus whether each date's vouchers are its lock snapshot (A03b-05: a locked date is never provisional).</summary>
+    public static async Task<IReadOnlyList<(DateOnly Date, IReadOnlyList<Voucher> Vouchers, bool Locked)>> RangeWithLocksAsync(IAccountingStore store, int propertyId,
+        DateOnly from, DateOnly to, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(store);
         var mapping = ChartOfAccounts.Effective(await store.MappingOverridesAsync(null, propertyId, ct).ConfigureAwait(false));
         var sources = await store.SourcesAsync(null, propertyId, from, to, ct).ConfigureAwait(false);
         var locks = (await store.LocksAsync(null, propertyId, from, to, ct).ConfigureAwait(false)).ToDictionary(l => l.BusinessDate);
         var dates = sources.Select(s => s.BusinessDate).Concat(locks.Keys).Distinct().Order().ToList();
-        return dates.Select(d => (d, locks.TryGetValue(d, out var l) ? l.Vouchers : VoucherBuilder.Build(d, sources, mapping))).ToList();
+        return dates.Select(d => locks.TryGetValue(d, out var l) ? (d, l.Vouchers, true) : (d, VoucherBuilder.Build(d, sources, mapping), false)).ToList();
     }
 }
 

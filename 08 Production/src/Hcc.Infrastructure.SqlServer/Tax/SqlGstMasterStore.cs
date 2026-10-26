@@ -63,25 +63,37 @@ public sealed class SqlGstMasterStore(SqlConnectionFactory connections) : IGstMa
         return await ReadVersionsAsync(cmd, propertyId, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The highest per-unit price the property offered or charged in [@from, @to] ("specified premises" for the next FY, DEC-069). Per
+    /// room type that has at least one unit: the tariff in force on the first day (latest dated tariff on or before it, else the rack
+    /// rate), any dated tariff that starts inside the year, and any room night actually charged in the year. A night that was reversed
+    /// (posted by mistake and corrected) was not supplied at that price: neither it nor its reversal counts (A03a-02).
+    /// Wave C7 (performance): the charged-night branch walks <c>IX_charge_room_night_amount</c> (room nights that are not reversals, highest
+    /// amount first) and stops at the first night of the year that belongs to the property and has no reversal (<c>IX_charge_reverses</c>),
+    /// instead of joining every night of the year to its folio and reservation (migration 3951). TOP (1) by amount = the MAX of before;
+    /// no night → NULL, which MAX ignores, as before.
+    /// </summary>
+    public const string MaxUnitTariffSql = """
+        SELECT MAX(v) FROM (
+          SELECT COALESCE((SELECT TOP (1) t.rate_paise FROM inv.room_type_tariff t
+                           WHERE t.room_type_id = rt.room_type_id AND t.effective_from <= @from ORDER BY t.effective_from DESC), rt.rack_rate_paise) AS v
+          FROM inv.room_type rt WHERE rt.property_id = @p AND EXISTS (SELECT 1 FROM inv.room r WHERE r.room_type_id = rt.room_type_id)
+          UNION ALL
+          SELECT t.rate_paise FROM inv.room_type_tariff t JOIN inv.room_type rt ON rt.room_type_id = t.room_type_id
+          WHERE rt.property_id = @p AND t.effective_from > @from AND t.effective_from <= @to
+            AND EXISTS (SELECT 1 FROM inv.room r WHERE r.room_type_id = rt.room_type_id)
+          UNION ALL
+          SELECT (SELECT TOP (1) c.amount_paise
+                  FROM bill.charge c WITH (INDEX(IX_charge_room_night_amount))
+                  JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation res ON res.reservation_id = f.reservation_id
+                  WHERE c.kind = 'room' AND c.reverses_charge_id IS NULL AND c.service_date BETWEEN @from AND @to AND res.property_id = @p
+                    AND NOT EXISTS (SELECT 1 FROM bill.charge r WHERE r.reverses_charge_id IS NOT NULL AND r.reverses_charge_id = c.charge_id)
+                  ORDER BY c.amount_paise DESC)
+        ) x;
+        """;
+
     public Task<long> MaxUnitTariffAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct = default)
-        => WithCommandAsync(tx, """
-            -- Per room type that has at least one unit: the tariff in force on the first day (latest dated tariff on or before it, else
-            -- the rack rate), any dated tariff that starts inside the year, and any room night actually charged in the year. A night that
-            -- was reversed (posted by mistake and corrected) was not supplied at that price: neither it nor its reversal counts (A03a-02).
-            SELECT MAX(v) FROM (
-              SELECT COALESCE((SELECT TOP (1) t.rate_paise FROM inv.room_type_tariff t
-                               WHERE t.room_type_id = rt.room_type_id AND t.effective_from <= @from ORDER BY t.effective_from DESC), rt.rack_rate_paise) AS v
-              FROM inv.room_type rt WHERE rt.property_id = @p AND EXISTS (SELECT 1 FROM inv.room r WHERE r.room_type_id = rt.room_type_id)
-              UNION ALL
-              SELECT t.rate_paise FROM inv.room_type_tariff t JOIN inv.room_type rt ON rt.room_type_id = t.room_type_id
-              WHERE rt.property_id = @p AND t.effective_from > @from AND t.effective_from <= @to
-                AND EXISTS (SELECT 1 FROM inv.room r WHERE r.room_type_id = rt.room_type_id)
-              UNION ALL
-              SELECT c.amount_paise FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation res ON res.reservation_id = f.reservation_id
-              WHERE res.property_id = @p AND c.kind = 'room' AND c.reverses_charge_id IS NULL AND c.service_date BETWEEN @from AND @to
-                AND NOT EXISTS (SELECT 1 FROM bill.charge r WHERE r.reverses_charge_id = c.charge_id)
-            ) x;
-            """, async c =>
+        => WithCommandAsync(tx, MaxUnitTariffSql, async c =>
         {
             Add(c, "@p", SqlDbType.Int, propertyId);
             Add(c, "@from", SqlDbType.Date, from.ToDateTime(TimeOnly.MinValue));

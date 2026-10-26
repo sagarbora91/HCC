@@ -130,6 +130,10 @@ export async function register({test,assert,M}){
     fileName:`HCC-tally-SIMULATED-${query.from}_${query.to}.xml`,xml:'<ENVELOPE/>',reexportDates:['2026-10-22'],provisionalDates:[],exportId:9};});
   await seq('tally',{type:'ACC_TALLY_EXPORT',from:Y,to:Y,key:'tally:1'});
   await seq('tallyBad',{type:'ACC_TALLY_EXPORT',from:Y,to:'2026-01-01'});
+  // A03b-05: events still pending → the server marks the unlocked dates provisional and says how many; a day exported before voucher ids.
+  srv.on('GET /accounting/export/tally',({query})=>({from:query.from,to:query.to,dates:1,voucherCount:2,debitPaise:5000,creditPaise:5000,simulated:true,
+    fileName:`HCC-tally-SIMULATED-${query.from}_${query.to}.xml`,xml:'<ENVELOPE/>',reexportDates:[],provisionalDates:[D],exportId:10,pendingEvents:2,legacyDates:['2026-10-01']}));
+  await seq('tallyPending',{type:'ACC_TALLY_EXPORT',from:D,to:D,key:'tally:2'});
   const proto=M.execute(M.seed(),'owner',{type:'EXPENSE',vendor:'Petty Stores',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false});
   await seq('exp',{type:'EXPENSE',vendor:' Petty Stores ',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false,key:'modal-7:submit'});
   const added=rt.get().state.expenses.find(e=>e.id==='103');
@@ -171,6 +175,13 @@ export async function register({test,assert,M}){
     // No browser download here (node): the device could not save, which is reported as a warning (the server still recorded the export).
     assert.equal(res.tally.r.result.saved,'failed');assert.match(res.tally.r.warning,/could not save the XML/);
     assert.deepEqual([res.tallyBad.r.ok,res.tallyBad.r.reason,res.tallyBad.calls.length],[false,'precheck',0]);
+  });
+  test('[A03b-05] ACC_TALLY_EXPORT: pending accounting events and days exported before voucher ids reach the Accountant as a warning',()=>{
+    const r=res.tallyPending.r;assert.ok(r.ok,r.text);
+    assert.deepEqual([r.result.pending,r.result.provisional,r.result.legacy],[2,[D],['2026-10-01']]);
+    assert.match(r.warning,/Provisional: 2 accounting events were not yet in the vouchers, so 2026-10-24 may be incomplete/);
+    assert.match(r.warning,/2026-10-01 was exported before voucher IDs: if that earlier file was imported, delete those HCC vouchers in Tally/);
+    assert.match(res.tally.r.warning,/could not save the XML\. Try the download again\.$/,'no pending events: no extra note');
   });
   test('[W4-7 expenses] EXPENSE (same record as the prototype) / SUBMIT / APPROVE (till for cash) / reject / REVERSE → server commands with key + loaded version, then expenses reload',()=>{
     assert.ok(res.exp.r.ok,res.exp.r.text);assert.deepEqual(res.exp.calls[0],'POST /commands/SubmitExpense');assert.ok(res.exp.calls.includes('GET /expenses'));

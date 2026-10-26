@@ -25,7 +25,10 @@ public sealed record MappingChange(long ChangeId, DateTime AtUtc, int Actor, str
 
 public sealed record LockEvent(long LockId, DateOnly BusinessDate, string Action, DateTime AtUtc, int Actor, string? Reason);
 
-/// <summary>An open Tally re-export flag (DEC-077, migration 3601): the date's vouchers changed after they were exported (its day was reopened).</summary>
+/// <summary>
+/// An open Tally re-export flag (DEC-077, migration 3601): the date's vouchers changed after they were exported (its day was reopened,
+/// <see cref="ReopenId"/> set), or (A03b-05, <see cref="ReopenId"/> null) the date was exported while accounting events were still pending.
+/// </summary>
 public sealed record TallyReexportFlag(long ReexportId, DateOnly BusinessDate, long? ReopenId, string Reason, DateTime MarkedUtc);
 
 /// <summary>One recorded Tally export: the range asked for, what it carried per date, and the flags it clears.</summary>
@@ -122,6 +125,17 @@ public interface IAccountingStore
     /// <summary>The property's open re-export flags, oldest date first.</summary>
     Task<IReadOnlyList<TallyReexportFlag>> TallyReexportsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
-    /// <summary>Writes the export log row and its days and clears <see cref="NewTallyExport.ClearFlags"/>; returns the export id.</summary>
+    /// <summary>Writes the export log row (A03b-05: marked as carrying voucher ids) and its days and clears <see cref="NewTallyExport.ClearFlags"/>; returns the export id.</summary>
     Task<long> RecordTallyExportAsync(ICommandTransaction tx, NewTallyExport export, CancellationToken ct);
+
+    // ── A03b-05: stable Tally voucher ids (migration 3950) ──
+
+    /// <summary>
+    /// The property's Tally identity (32 hex digits, <c>acc.tally_identity</c>), created once on first use and never changed: the middle
+    /// part of every voucher's REMOTEID. Inside a command it is created in the command's transaction.
+    /// </summary>
+    Task<string> TallyIdentityAsync(ICommandTransaction? tx, int propertyId, DateTime now, CancellationToken ct);
+
+    /// <summary>Those of <paramref name="dates"/> that an export recorded before vouchers carried a REMOTEID took to Tally (Tally may hold them without an id).</summary>
+    Task<IReadOnlyList<DateOnly>> TallyExportedWithoutIdsAsync(ICommandTransaction? tx, int propertyId, IReadOnlyCollection<DateOnly> dates, CancellationToken ct);
 }

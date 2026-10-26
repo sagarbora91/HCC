@@ -5,7 +5,8 @@
 // accTrialBalance, accCsv and accTallyXml. The C# tests rebuild the vouchers from the raw facts with Hcc.Domain.Accounting and
 // must match exactly (numbers, types, entries, narration, CSV, XML body).
 // Output: 08 Production/tests/Hcc.Accounting.Tests/Golden/accounting-golden.json
-// Usage (Node 25): node "08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs" [--esbuild <path to esbuild.cmd>]
+// Usage (Node 25): node "08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs" [--esbuild <path to esbuild.cmd>] [--proto <03 Prototype folder>]
+// (--proto: a worktree's prototype instead of the MAIN checkout, for a change that moves the prototype and the server together.)
 import {spawnSync} from 'node:child_process';
 import path from 'node:path';import fs from 'node:fs';import {fileURLToPath,pathToFileURL} from 'node:url';
 const DIR=path.dirname(fileURLToPath(import.meta.url));
@@ -15,13 +16,13 @@ const candidates=[arg('--esbuild'),path.join(PROTO,'node_modules','.bin','esbuil
   'E:/Projects/HCC/Hotel Control Centre/03 Prototype/node_modules/.bin/esbuild.cmd'].filter(Boolean);
 const esbuild=candidates.find(p=>fs.existsSync(p));
 if(!esbuild)throw new Error('esbuild not found; run npm install in 03 Prototype or pass --esbuild');
-const protoSrc='E:/Projects/HCC/Hotel Control Centre/03 Prototype'; // MAIN checkout = golden source (worktree copies may be older)
+const protoSrc=arg('--proto')??'E:/Projects/HCC/Hotel Control Centre/03 Prototype'; // MAIN checkout = golden source (worktree copies may be older)
 const outDir=path.join(PROD,'tools','golden','.generated');fs.mkdirSync(outDir,{recursive:true});
 const bundle=path.join(outDir,'mock-accounting.mjs');
 const r=spawnSync(`"${esbuild}"`,[`"${path.join(protoSrc,'src','services','mock','index.ts')}"`,'--bundle','--platform=node','--format=esm',`--outfile="${bundle}"`,'--log-level=error'],{shell:true,encoding:'utf8'});
 if(r.status!==0)throw new Error('esbuild failed: '+r.stderr+r.stdout);
 const M=await import(pathToFileURL(bundle).href);
-const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts}=M;
+const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts,ACC_TALLY_DEMO_ID}=M;
 
 /** Raw source facts for a date in the prototype's derivation order (accLiveVouchers). */
 function sources(s,date){
@@ -85,7 +86,7 @@ days.push(day('acc-mapped',a2,D,{mapping:{'expense:Kitchen gas':'5050'}}));
 const t=accTallyXml(s0,Y,D);
 const out={generatedBy:'08 Production/tests/Hcc.Accounting.Tests/Golden/export-accounting-golden.mjs',
   source:'03 Prototype BASE fixture + stream-accounting scenarios',fictionalDataOnly:true,defaultMapping:accMapping(s0),days,
-  tally:{from:Y,to:D,company:s0.settings.hotel,xml:t.xml,count:t.count,debitPaise:t.debit,creditPaise:t.credit}};
+  tally:{from:Y,to:D,company:s0.settings.hotel,identity:ACC_TALLY_DEMO_ID,xml:t.xml,count:t.count,debitPaise:t.debit,creditPaise:t.credit}};
 const dest=path.join(DIR,'accounting-golden.json');
 fs.writeFileSync(dest,JSON.stringify(out,null,1)+'\n');
 console.log('Wrote',dest,days.map(d=>`${d.name}:${d.vouchers.length}`).join(' '),'tally',t.count);

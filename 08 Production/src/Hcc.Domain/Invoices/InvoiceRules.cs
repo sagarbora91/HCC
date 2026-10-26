@@ -95,11 +95,26 @@ public static class InvoiceRules
     public static string Words(Paise amount) => PayrollFiles.AmountInWords(amount.Value);
 
     /// <summary>
+    /// A03a-03 — THE switch for inter-state supplies (CA question G9). While false, a place of supply other than the hotel's own state is
+    /// refused on every path that issues an invoice (IssueInvoice for a folio or an outlet bill, the checkout invoice, the RST invoice of
+    /// a settled outlet bill): an inter-state invoice would put the whole tax, room nights included, into IGST while the vouchers and
+    /// ledgers book CGST + SGST from the stored per-charge split. Set it to true only once the CA has answered G9 and IGST is booked.
+    /// A B2B buyer registered in another state is NOT inter-state here: hotel accommodation and restaurant service are supplied where the
+    /// hotel is (IGST Act s.12(3)/(4), as read), so such an invoice stays CGST + SGST.
+    /// </summary>
+    public const bool InterStateSupplySupported = false;
+
+    /// <summary>The refusal of an inter-state place of supply while <see cref="InterStateSupplySupported"/> is off.</summary>
+    public const string InterStateRefusal = "Inter-state place of supply is not supported yet (CA question G9).";
+
+    /// <summary>
     /// Validates the recipient. Place of supply defaults to the supplier's state: for hotel accommodation and restaurant service it is
     /// the location of the hotel (IGST Act s.12(3)/(4), as read — CA question G9). A different place of supply makes the supply
-    /// inter-state (IGST) — CA TO CONFIRM; the prototype had no IGST.
+    /// inter-state (IGST) — CA TO CONFIRM; the prototype had no IGST. A03a-03: refused while <paramref name="interStateSupported"/>
+    /// (default <see cref="InterStateSupplySupported"/>) is off.
     /// </summary>
-    public static Recipient Recipient(string? supplyType, string? name, string? gstin, string? address, string? placeOfSupply, string supplierState, Paise total)
+    public static Recipient Recipient(string? supplyType, string? name, string? gstin, string? address, string? placeOfSupply, string supplierState, Paise total,
+        bool interStateSupported = InterStateSupplySupported)
     {
         var type = supplyType?.Trim().ToUpperInvariant() switch
         {
@@ -110,6 +125,8 @@ public static class InvoiceRules
         var n = Clean(name, 120, "Keep the recipient name to 120 characters.");
         var a = Clean(address, 200, "Keep the recipient address to 200 characters.");
         var pos = GstStates.ParsePlaceOfSupply(placeOfSupply) ?? supplierState;
+        if (!interStateSupported && !string.Equals(pos, supplierState, StringComparison.Ordinal))
+            throw HccException.Validation($"{InterStateRefusal} Leave the place of supply out, or give the hotel's own state ({GstStates.Name(supplierState)}, {supplierState}).");
         string? g = null;
         if (type == SupplyType.B2B)
         {

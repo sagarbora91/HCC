@@ -439,8 +439,8 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
         {
             long id;
             await using (var cmd = Cmd("""
-                INSERT acc.tally_export(property_id, from_date, to_date, voucher_count, debit_paise, credit_paise, exported_by, exported_utc)
-                OUTPUT INSERTED.export_id VALUES (@p, @f, @t, @n, @dr, @cr, @u, @now);
+                INSERT acc.tally_export(property_id, from_date, to_date, voucher_count, debit_paise, credit_paise, exported_by, exported_utc, remote_ids)
+                OUTPUT INSERTED.export_id VALUES (@p, @f, @t, @n, @dr, @cr, @u, @now, 1);
                 """, c, t))
             {
                 cmd.Parameters.Set("@p", SqlDbType.Int, export.PropertyId);
@@ -479,6 +479,42 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
 
             return id;
         }, ct).ConfigureAwait(false);
+    }
+
+    // ── A03b-05: stable Tally voucher ids (migration 3950) ──
+
+    public Task<string> TallyIdentityAsync(ICommandTransaction? tx, int propertyId, DateTime now, CancellationToken ct)
+        => WithAsync(tx, async (c, t) =>
+        {
+            // The insert is one statement (atomic on its own connection too): the identity is created once, then read. Never updated (trigger).
+            await using var cmd = Cmd("""
+                INSERT acc.tally_identity(property_id, created_utc)
+                SELECT @p, @now WHERE NOT EXISTS (SELECT 1 FROM acc.tally_identity WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p);
+                SELECT LOWER(REPLACE(CONVERT(CHAR(36), tally_guid), '-', '')) FROM acc.tally_identity WHERE property_id = @p;
+                """, c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@now", SqlDbType.DateTime2, now);
+            return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string
+                ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        }, ct);
+
+    public Task<IReadOnlyList<DateOnly>> TallyExportedWithoutIdsAsync(ICommandTransaction? tx, int propertyId, IReadOnlyCollection<DateOnly> dates, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(dates);
+        return WithAsync<IReadOnlyList<DateOnly>>(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("""
+                SELECT DISTINCT d.business_date FROM acc.tally_export_day d JOIN acc.tally_export e ON e.export_id = d.export_id
+                WHERE d.property_id = @p AND e.remote_ids = 0 AND d.business_date IN (SELECT CAST(value AS DATE) FROM OPENJSON(@dates))
+                ORDER BY d.business_date;
+                """, c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@dates", SqlDbType.NVarChar, System.Text.Json.JsonSerializer.Serialize(dates.Select(AccountingVoucherProjector.Iso)));
+            var list = new List<DateOnly>();
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(AccSql.Date(rd, 0));
+            return list;
+        }, ct);
     }
 
     public async Task<string> PropertyNameAsync(int propertyId, CancellationToken ct)
