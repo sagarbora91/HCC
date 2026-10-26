@@ -21,6 +21,31 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
     {
         ArgumentNullException.ThrowIfNull(caller);
         await RequireAsync(caller, AccountingPermissions.View, ct).ConfigureAwait(false);
+        return await DayViewAsync(caller, date, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// W4-7: every business date in [from, to] with vouchers or a lock, plus <paramref name="to"/> itself (the business date the
+    /// screen opens on), each evaluated exactly as <see cref="DayAsync"/> — one request for the production accounting screens.
+    /// At most <see cref="DaysMaxRange"/> days.
+    /// </summary>
+    public async Task<IReadOnlyList<AccountingDayView>> DaysAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await RequireAsync(caller, AccountingPermissions.View, ct).ConfigureAwait(false);
+        if (from > to) throw HccException.Validation("Choose a valid range: \"from\" on or before \"to\".");
+        if (to.DayNumber - from.DayNumber + 1 > DaysMaxRange) throw HccException.Validation($"Choose at most {DaysMaxRange} days.");
+        var active = await AccountingDays.RangeAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false);
+        var dates = active.Select(d => d.Date).Append(to).Distinct().Order().ToList();
+        var list = new List<AccountingDayView>(dates.Count);
+        foreach (var d in dates) list.Add(await DayViewAsync(caller, d, ct).ConfigureAwait(false));
+        return list;
+    }
+
+    public const int DaysMaxRange = 62;
+
+    private async Task<AccountingDayView> DayViewAsync(Caller caller, DateOnly date, CancellationToken ct)
+    {
         var day = await AccountingDays.EvaluateAsync(store, null, caller.PropertyId, date, ct).ConfigureAwait(false);
         var figures = await store.OperationalFiguresAsync(null, caller.PropertyId, date, ct).ConfigureAwait(false);
         var (debit, credit) = VoucherBuilder.Totals(day.Shown);

@@ -7,7 +7,7 @@ namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Accounting & Tally (W2-3): <c>POST /commands/{LockAccountingPeriod|UnlockAccountingPeriod|SetLedgerMapping|ResetLedgerMapping}</c>,
-/// <c>GET /accounting/days/{date}</c>, <c>/accounting/trial-balance</c>, <c>/accounting/mapping</c>(+<c>/history</c>), <c>/accounting/chart</c>,
+/// <c>GET /accounting/days/{date}</c>, <c>/accounting/days?from&amp;to</c> (W4-7, ≤ 62 days), <c>/accounting/trial-balance</c>, <c>/accounting/mapping</c>(+<c>/history</c>), <c>/accounting/chart</c>,
 /// <c>/accounting/locks/history</c>, <c>/accounting/export/csv</c>, <c>/accounting/export/tally</c> (simulated), plus the background
 /// outbox consumer turning billing/payments (and later POS, expenses, payroll) events into voucher sources.
 /// </summary>
@@ -35,6 +35,8 @@ public static class AccountingEndpoints
         BillingEndpoints.Command<ResetLedgerMappingRequest, LedgerMappingResult>(g, AccountingService.OpMapReset, (sp, c, k, r, ct) => sp.GetRequiredService<AccountingService>().ResetMappingAsync(c, k, r, ct));
         g.MapGet("/accounting/days/{date}", async (DateOnly date, HttpContext http, AccountingQueries q, CancellationToken ct)
             => Results.Ok(await q.DayAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
+        g.MapGet("/accounting/days", async (DateOnly from, DateOnly to, HttpContext http, AccountingQueries q, CancellationToken ct)
+            => Results.Ok(await q.DaysAsync(http.HccCaller(), from, to, ct).ConfigureAwait(false)));
         g.MapGet("/accounting/trial-balance", async (DateOnly date, HttpContext http, AccountingQueries q, CancellationToken ct, bool cumulative = false)
             => Results.Ok(await q.TrialBalanceAsync(http.HccCaller(), date, cumulative, ct).ConfigureAwait(false)));
         g.MapGet("/accounting/mapping", async (HttpContext http, AccountingQueries q, CancellationToken ct)
