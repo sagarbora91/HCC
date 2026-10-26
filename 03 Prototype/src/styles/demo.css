@@ -5,10 +5,6 @@
 .today b{font-weight:600}.day-open{color:var(--c-436a41)}.day-closed{color:var(--c-95533e)}
 .conn-chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--c-497447);background:var(--c-eaf4e4);border:1px solid var(--c-bfd9b0);border-radius:20px;padding:4px 9px;white-space:nowrap}
 .current-user{font-size:11px;color:var(--muted);border-left:1px solid var(--line);padding-left:12px;white-space:nowrap}
-/* A02b-05: the name chip opens the profile menu (change my password / PIN, display mode, sign out). */
-.current-user-btn{background:none;border-top:0;border-right:0;border-bottom:0;border-radius:0;font:inherit;font-size:11px;cursor:pointer;min-height:32px}
-.current-user-btn:hover{color:var(--primary);text-decoration:underline}
-.current-user-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .demo-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 36px;background:var(--c-fbf6ea);border-bottom:1px dashed var(--c-e5d5b3);font-size:11px;color:var(--c-7c6640)}
 .demo-label{display:inline-flex;align-items:center;gap:6px;font-size:9px;letter-spacing:1.4px;font-weight:700;color:var(--c-7a5e33)}
 .demo-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--c-ead9b7);background:var(--c-ffffff);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--c-6e5a37);min-height:32px}
