@@ -3,7 +3,9 @@
   Restore drill: proves the newest backups can really be restored. Restores into a SCRATCH database, runs DBCC CHECKDB and a
   row-count check, logs the result, and drops the scratch database. The live database is never written to.
 .DESCRIPTION
-  1. Picks the newest FULL backup (+ the newest DIFFERENTIAL after it) from the backup folder.
+  1. Picks the newest FULL backup (+ the newest DIFFERENTIAL after it) from the backup folder. Encrypted backups (.bak.hccenc, F-H03)
+     are first checked (HMAC) and decrypted with the backup key into the private scratch folder; the decrypted copies are deleted at
+     the end, whatever the result. A wrong key or an altered file fails the drill before anything is restored.
   2. RESTORE FILELISTONLY, then RESTORE ... WITH MOVE into the scratch folder as database HccDrill_<UTC time>
      (names must start with HccDrill_ or HccTest_; anything else is refused; EtpReporting / EtpScratch_* can never match).
   3. DBCC CHECKDB on the scratch copy must be clean.
@@ -16,7 +18,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$SqlInstance, [string]$Database, [string]$BackupDirectory, [string]$LogDirectory, [string]$ScratchDirectory,
-    [string]$ScratchName, [switch]$KeepScratch, [switch]$TrustServerCertificate, [string]$ConfigPath
+    [string]$ScratchName, [switch]$KeepScratch, [switch]$TrustServerCertificate, [string]$ConfigPath, [string]$BackupKeyFile
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Hcc-Common.ps1"
@@ -27,6 +29,8 @@ if (-not $BackupDirectory) { $BackupDirectory = $cfg.BackupDirectory }
 if (-not $LogDirectory) { $LogDirectory = if ($cfg.LogDirectory) { $cfg.LogDirectory } else { Join-Path $BackupDirectory 'Logs' } }
 if (-not $ScratchDirectory) { $ScratchDirectory = if ($cfg.ScratchDirectory) { $cfg.ScratchDirectory } else { Join-Path $BackupDirectory 'DrillScratch' } }
 $trust = $TrustServerCertificate -or [bool]$cfg.TrustServerCertificate
+if (-not $BackupKeyFile) { $BackupKeyFile = if ($cfg.BackupKeyFile) { $cfg.BackupKeyFile } else { Get-HccDefaultBackupKeyFile } }
+$sqlService = Get-HccSqlServiceAccount -Instance $SqlInstance
 Assert-HccDatabaseName $Database | Out-Null
 if (-not $BackupDirectory) { throw 'No backup folder: set BackupDirectory in hcc-ops.json or pass -BackupDirectory.' }
 $started = (Get-Date).ToUniversalTime()
@@ -37,6 +41,7 @@ $log = Join-Path $LogDirectory ('restore-drill_{0:yyyyMMdd_HHmmss}.log' -f $star
 
 if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest backup of [$Database] from $BackupDirectory, DBCC CHECKDB, row-count check, drop scratch")) {
     Write-HccLog "DRY RUN: would pick the newest FULL (+ later DIFF) backup of [$Database] in $BackupDirectory" -LogFile $null
+    Write-HccLog "DRY RUN: encrypted backups (.bak.hccenc) would be checked and decrypted with $BackupKeyFile into $ScratchDirectory (private: SYSTEM, Administrators, $sqlService) and deleted afterwards" -LogFile $null
     Write-HccLog "DRY RUN: would RESTORE as [$ScratchName] with MOVE into $ScratchDirectory on $SqlInstance (live database untouched)" -LogFile $null
     Write-HccLog ('DRY RUN: would run DBCC CHECKDB, compare per-table row counts with the live database, drop the scratch database and log to ' + $log) -LogFile $null
     return
@@ -44,14 +49,27 @@ if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest 
 
 $result = [ordered]@{ startedUtc = $started.ToString('o'); database = $Database; scratch = $ScratchName; full = $null; differential = $null; checkdb = 'not run'; rowCounts = 'not run'; passed = $false; error = $null }
 $created = $false
+$script:plainCopies = @()
+$script:drillKey = $null
 try {
-    $names = @(Get-ChildItem -LiteralPath $BackupDirectory -Filter '*.bak' -File | ForEach-Object Name)
+    $names = @(Get-ChildItem -LiteralPath $BackupDirectory -Filter '*.bak*' -File | ForEach-Object Name)
     $chain = Select-HccRestoreChain -Names $names -Database $Database
     if (-not $chain) { throw "No FULL backup of [$Database] found in $BackupDirectory." }
     $result.full = $chain.Full; $result.differential = $chain.Differential
-    $fullPath = Join-Path $BackupDirectory $chain.Full
     Write-HccLog "Drill start: restoring $($chain.Full) $(if ($chain.Differential) { '+ ' + $chain.Differential })as [$ScratchName]" -LogFile $log
-    if (-not (Test-Path -LiteralPath $ScratchDirectory)) { New-Item -ItemType Directory -Path $ScratchDirectory -Force | Out-Null }
+    if (-not (Test-Path -LiteralPath $ScratchDirectory)) { Set-HccProtectedDirectory -Path $ScratchDirectory -ModifyAccounts @($sqlService, $cfg.BackupAccount) }
+    # Encrypted backups: verify + decrypt into the private scratch folder (deleted in finally).
+    function Get-PlainBackup([string]$file) {
+        if ($file -notlike "*$script:HccEncryptedSuffix") { return (Join-Path $BackupDirectory $file) }
+        if (-not $script:drillKey) { $script:drillKey = Read-HccBackupKey -Path $BackupKeyFile }
+        $plain = Join-Path $ScratchDirectory ($ScratchName + '_' + $file.Substring(0, $file.Length - $script:HccEncryptedSuffix.Length))
+        $script:plainCopies += $plain
+        Unprotect-HccBackupFile -Source (Join-Path $BackupDirectory $file) -Destination $plain -Key $script:drillKey
+        Write-HccLog "Decrypted and integrity-checked $file" -LogFile $log
+        return $plain
+    }
+    $fullPath = Get-PlainBackup $chain.Full
+    $diffPath = if ($chain.Differential) { Get-PlainBackup $chain.Differential } else { $null }
 
     # logical file names inside the backup
     $fl = Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Table -Query ('RESTORE FILELISTONLY FROM DISK = {0};' -f (ConvertTo-HccSqlLiteral $fullPath))
@@ -68,7 +86,7 @@ try {
     $created = $true
     Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ('RESTORE DATABASE {0} FROM DISK = {1} WITH {2}, {3}, CHECKSUM, STATS = 25;' -f $sq, (ConvertTo-HccSqlLiteral $fullPath), ($moves -join ', '), $recovery) | Out-Null
     if ($chain.Differential) {
-        Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ('RESTORE DATABASE {0} FROM DISK = {1} WITH RECOVERY, CHECKSUM;' -f $sq, (ConvertTo-HccSqlLiteral (Join-Path $BackupDirectory $chain.Differential))) | Out-Null
+        Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ('RESTORE DATABASE {0} FROM DISK = {1} WITH RECOVERY, CHECKSUM;' -f $sq, (ConvertTo-HccSqlLiteral $diffPath)) | Out-Null
     }
     Write-HccLog 'Restore finished.' -LogFile $log
 
@@ -98,6 +116,8 @@ catch {
     Write-HccLog ('DRILL FAILED: ' + $_.Exception.Message) -LogFile $log -Level ERROR
 }
 finally {
+    foreach ($p in @($script:plainCopies)) { if ($p -and (Test-Path -LiteralPath $p)) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue } }
+    if ($script:drillKey) { [Array]::Clear($script:drillKey, 0, $script:drillKey.Length) }
     if ($created -and -not $KeepScratch) {
         try {
             Assert-HccScratchName $ScratchName | Out-Null

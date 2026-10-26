@@ -57,6 +57,7 @@ public static class HccComposition
     public static RouteGroupBuilder MapHcc(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
+        app.UseHccHostingGuards();       // F-H04/F-L11/F-L02: listener rules, forwarded headers (public listener only), security headers
         app.UseMiddleware<HccErrorMiddleware>();
         var api = app.MapGroup(ApiConventions.BasePath);
         api.MapGet("/system/health", async (SqlConnectionFactory connections, TimeProvider clock, CancellationToken ct) =>

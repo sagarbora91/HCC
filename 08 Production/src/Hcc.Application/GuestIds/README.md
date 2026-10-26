@@ -42,7 +42,11 @@ off the database server's backups. `System.Security.Cryptography` (BCL) only; DP
 Put this in the service account's environment (`Hcc__GuestIdKeys__Current`, `Hcc__GuestIdKeys__Keys__2026-10`) or an
 `appsettings.Production.json` outside the repository with an ACL for the service account only. Schemes: `dpapi-user:` (bound to the
 Windows account that runs HCC — preferred), `dpapi-machine:` (any process on that PC), `plain:` (development/tests only, and only with
-`Hcc:GuestIdKeys:AllowPlainKeys=true`). Generate a key **as the service account**, in Windows PowerShell 5.1 (`powershell.exe`):
+`Hcc:GuestIdKeys:AllowPlainKeys=true`).
+**Production start-up rules (F-M05, `HccConfigValidator` + `GuestIdKeyFileCheck`):** `plain:` keys and `AllowPlainKeys` are refused;
+`dpapi-machine:` is refused unless `Hcc:GuestIdKeys:AllowMachineScope=true`; the settings file must be readable only by SYSTEM, Administrators
+and the service account (checked at every start, with the fixing `icacls` command in the error); `Required=true` (written by the script)
+refuses to start when the key is missing. Generate a key **as the service account**, in Windows PowerShell 5.1 (`powershell.exe`):
 ```
 Add-Type -AssemblyName System.Security
 $k = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($k)
