@@ -516,9 +516,12 @@ public static partial class ImportLists
         var cols = new List<ImportColumn>
         {
             new("code", true, d.CodeMeaning, d.CodeExample),
-            new("name", true, "Name shown on screens and documents, 1 to 60 characters. Another active row may not have the same name.", d.NameExample),
+            new("name", true, "Name shown on screens and documents, 1 to 60 characters. Another active row may not have the same name.", d.NameExample, Text: ImportCellText.Free),
         };
-        cols.AddRange(d.Fields.Select(f => new ImportColumn(f.Key, f.Required, f.Meaning, f.Example)));
+        // A06-08 (Wave D1 x MA-8): free text keeps formula text with a leading apostrophe; numbers, yes/no, picks, dates, times and codes of other
+        // lists (refused when not in HCC) refuse it by their own rule.
+        cols.AddRange(d.Fields.Select(f => new ImportColumn(f.Key, f.Required, f.Meaning, f.Example,
+            Text: f.Kind switch { ListKind.Text => ImportCellText.Free, ListKind.Lines => ImportCellText.FreeList, _ => ImportCellText.Checked })));
         cols.Add(new ImportColumn("sortOrder", false, "Order on screens (10, 20 …). Blank keeps the row's order, or puts a new row last.", "10"));
         cols.Add(new ImportColumn("active", false, "yes or no (blank keeps the row's state, a new row is active). A file cannot retire an active row — retire it on its list, where its use is checked.", "yes"));
         return cols;
