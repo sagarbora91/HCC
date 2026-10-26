@@ -111,6 +111,8 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
 /** F-08: shown on the leave-policy and statutory-rates screens. */
 export const HR_NOT_PORTED='Not ported from SCC: the extra-days rule (4 or 2 paid days added by total deductions, none above 7; 5.5-day monthly leave cap) and day-based overtime. HCC pays rostered weekly offs from the roster and overtime per minute. Owner decision pending (CA item 9).';
 export const HR_DISCLAIMER='Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff.';
+/** A04-11: shown on payslips and full-and-final documents (server PayrollRates.NotCalculated). */
+export const HR_NOT_CALCULATED='Not calculated: gratuity, notice pay, bonus, TDS on salary.';
 export const hrDefaultRates=():HRRates=>({from:'2025-04-01',basicBps:5000,hraBps:8000,washBps:1000,pfEeBps:1200,pfErBps:1300,pfWageCap:1500000,
   esicEeBps:75,esicErBps:325,esicCeiling:2100000,ptMaleExempt:750000,ptMaleMid:1000000,ptMaleMidAmt:17500,ptStd:20000,ptFeb:30000,ptFemaleExempt:2500000,
   otBps:10000,lateBlock:3,rounding:'paise',esicPeriod:true});
@@ -473,14 +475,23 @@ export function hrBankCsv(s:State,run:HRRun):string{
   const src=run.bank?'bank details as locked':'bank details from the staff master (run locked before bank snapshots)';
   return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status} · ${src} · fictional bank details · simulated transfer — no money moves`)+'\n';
 }
-/** Statutory summary + member-wise register (SCC reportStatutoryCsv + statutoryMemberRows). */
+/** A04-01: leavers settled full-and-final with the run month's salary inside the settlement are not in the run (settledFor), so their PF / ESIC / PT —
+ *  the deductions on the settled F&F line — join that month's statutory statement. A staff member already in the run's lines is never added twice. */
+export function hrStatutoryFnf(s:State,run:HRRun):HRFnf[]{
+  const inRun=new Set(run.lines.map(l=>l.staffId));
+  return (hrSlice(s).fnf??[]).filter(f=>hrFnfSettled(f)&&f.salaryIncluded&&f.month===run.month&&!!f.line&&!inRun.has(f.staffId))
+    .sort((a,b)=>a.staffId.localeCompare(b.staffId));
+}
+/** Statutory summary + member-wise register (SCC reportStatutoryCsv + statutoryMemberRows). A04-01: settled F&F rows follow the run's rows in the same
+ *  columns, count in the totals, and a note line after the table names them (the member columns stay as they are). */
 export function hrStatutoryCsv(s:State,run:HRRun):string{
-  const t=hrRunTotals(run);
+  const fnf=hrStatutoryFnf(s,run),members=[...run.lines,...fnf.map(f=>f.line!)],t=hrRunTotals({lines:members});
   const rows:(string|number)[][]=[['Component','Employee','Employer','Total'],
     ['Provident Fund',rupees(t.pf),rupees(t.pfEr),rupees(t.pf+t.pfEr)],['ESIC',rupees(t.esic),rupees(t.esicEr),rupees(t.esic+t.esicEr)],['Professional Tax (Maharashtra)',rupees(t.pt),'0.00',rupees(t.pt)],[],
     ['Sr','Staff ID','Name','Earned','PF wages','PF EE','PF ER','ESIC wages','ESIC EE','ESIC ER','PT']];
-  run.lines.forEach((l,i)=>rows.push([i+1,l.staffId,l.name,...[l.earned,l.pfWages,l.pf,l.pfEr,l.esicWages,l.esic,l.esicEr,l.pt].map(rupees)]));
-  return csv(rows)+csvCell(`${hrMonthLabel(run.month)} · ${run.status==='Locked'?'Locked run':'DRAFT — NOT FINAL, do not file'} · rates from ${run.rates?.from??'—'}${run.legacy?' · legacy run (before SCC rules; employer share not recorded)':''} · ${HR_DISCLAIMER}`)+'\n';
+  members.forEach((l,i)=>rows.push([i+1,l.staffId,l.name,...[l.earned,l.pfWages,l.pf,l.pfEr,l.esicWages,l.esic,l.esicEr,l.pt].map(rupees)]));
+  const note=fnf.length?csvCell(`F&F — exit month's salary settled in full and final (not in the pay run): ${fnf.map((f,i)=>`Sr ${run.lines.length+i+1} ${f.line!.name} (last day ${f.lastDay})`).join('; ')}`)+'\n':'';
+  return csv(rows)+note+csvCell(`${hrMonthLabel(run.month)} · ${run.status==='Locked'?'Locked run':'DRAFT — NOT FINAL, do not file'} · rates from ${run.rates?.from??'—'}${run.legacy?' · legacy run (before SCC rules; employer share not recorded)':''} · ${HR_DISCLAIMER}`)+'\n';
 }
 /** Pending leave queue a user may decide (excludes own requests and own leave). */
 export function hrDecidable(s:State,uid:string){

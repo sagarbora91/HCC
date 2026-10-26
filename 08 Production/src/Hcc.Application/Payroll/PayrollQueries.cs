@@ -92,6 +92,9 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
             lines.Select(l => View(l, PayslipMark(run, l.StaffId, l.Net, sends, unlocks))).ToList(), lines.Sum(l => l.Net), files.Count);
     }
 
+    /// <summary>A04-11: the payslip footnote — the disclaimer plus what the payslip does not calculate.</summary>
+    internal const string PayslipNote = PayrollRates.Disclaimer + " " + PayrollRates.NotCalculated;
+
     private static string Pct(int bps) => (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture) + "%";
 
     /// <summary>One payslip: payroll roles any; everyone else only their OWN payslip from a LOCKED run (DEC-061). Labels from the run's rates (F-14).</summary>
@@ -111,7 +114,7 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         var sends = await db.PayslipSendsAsync(run.RunId, ct).ConfigureAwait(false);
         var unlocks = await db.UnlockNetsAsync(run.RunId, ct).ConfigureAwait(false);
         return new PayslipView(run.RunId, run.Month.ToString(), run.Locked ? "Locked" : "Draft", View(line, PayslipMark(run, staffId, line.Net, sends, unlocks)),
-            $"Provident Fund ({Pct(run.Rates.PfEeBps)})", $"ESIC ({Pct(run.Rates.EsicEeBps)})", PayrollFiles.AmountInWords(line.Net), PayrollRates.Disclaimer);
+            $"Provident Fund ({Pct(run.Rates.PfEeBps)})", $"ESIC ({Pct(run.Rates.EsicEeBps)})", PayrollFiles.AmountInWords(line.Net), PayslipNote);
     }
 
     /// <summary>The caller's own locked payslips, newest first (every role, DEC-061).</summary>
@@ -127,7 +130,7 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
             var line = (await db.RunLinesAsync(run.RunId, ct).ConfigureAwait(false)).FirstOrDefault(l => l.StaffId == me.StaffId);
             if (line is null) continue;
             result.Add(new PayslipView(run.RunId, run.Month.ToString(), "Locked", View(line, ""), $"Provident Fund ({Pct(run.Rates.PfEeBps)})",
-                $"ESIC ({Pct(run.Rates.EsicEeBps)})", PayrollFiles.AmountInWords(line.Net), PayrollRates.Disclaimer));
+                $"ESIC ({Pct(run.Rates.EsicEeBps)})", PayrollFiles.AmountInWords(line.Net), PayslipNote));
         }
 
         return result;
@@ -151,9 +154,22 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         await using var db = await store.OpenReadAsync(ct).ConfigureAwait(false);
         var run = await RunOfMonthAsync(db, propertyId, month, ct).ConfigureAwait(false);
         var lines = await db.RunLinesAsync(run.RunId, ct).ConfigureAwait(false);
+        var fnf = StatutoryFnf(month, lines, await db.FnfsAsync(propertyId, ct).ConfigureAwait(false), await db.AllStaffAsync(propertyId, ct).ConfigureAwait(false));
         await db.AuditDownloadAsync(propertyId, principalId, "HR_STATUTORY_DOWNLOADED", PayrollService.Target("hr.run", run.RunId),
-            $"{month.Label} PF / ESIC / PT statement CSV ({(run.Locked ? "locked" : "draft")})", ct).ConfigureAwait(false);
-        return new CsvFile($"pf-esic-pt-{month}.csv", PayrollFiles.Statutory(month, run.Locked, run.Rates.From, lines));
+            $"{month.Label} PF / ESIC / PT statement CSV ({(run.Locked ? "locked" : "draft")}{(fnf.Count > 0 ? $", {fnf.Count} full and final" : "")})", ct).ConfigureAwait(false);
+        return new CsvFile($"pf-esic-pt-{month}.csv", PayrollFiles.Statutory(month, run.Locked, run.Rates.From, lines, fnf));
+    }
+
+    /// <summary>A04-01: leavers settled full-and-final with this month's salary inside the settlement are not in the run (PayrollCalculator.SettledFor),
+    /// so their PF / ESIC / PT — the deductions stored on the settled F&amp;F line — join the month's statutory statement. A staff member already in the
+    /// run's lines is never added twice.</summary>
+    internal static IReadOnlyList<FnfStatutoryLine> StatutoryFnf(PayMonth month, IReadOnlyList<PayLine> runLines, IReadOnlyList<FnfRow> fnfs, IReadOnlyList<StaffRow> staff)
+    {
+        var inRun = runLines.Select(l => l.StaffId).ToHashSet();
+        return fnfs.Where(f => f.Status == "Settled" && f.SalaryIncluded && f.Month == month && f.Line is not null && !inRun.Contains(f.StaffId))
+            .OrderBy(f => f.StaffId)
+            .Select(f => new FnfStatutoryLine(f.Line!, staff.FirstOrDefault(s => s.Profile.StaffId == f.StaffId)?.Profile.ExitedOn ?? month.Last))
+            .ToList();
     }
 
     /// <summary>An issued bank file of the CURRENT lock, built from the bank details frozen at lock (F-02); files of an undone lock are superseded.</summary>

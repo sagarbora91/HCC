@@ -56,6 +56,7 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
 
         var csv = await h.Queries.StatutoryCsvAsync(h.PropertyId, h.U("accountant"), new PayMonth(2026, 9), Ct);
         Assert.Contains("DRAFT — NOT FINAL", csv.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("F&F", csv.Content, StringComparison.Ordinal);   // A04-01: no leaver this month — no F&F rows or note
         var reg = await h.Queries.RegisterCsvAsync(h.PropertyId, h.U("owner"), new PayMonth(2026, 8), Ct);
         Assert.Contains("Locked run", reg.Content, StringComparison.Ordinal);
         Assert.Contains(",Housekeeping,", reg.Content, StringComparison.Ordinal);
@@ -231,6 +232,50 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         await h.SetBusinessDateAsync("2026-11-02");
         var oct = await PrepareAsync(h, "2026-10");
         Assert.DoesNotContain(await LinesAsync(h, oct.RunId), l => l.StaffId == ravi);
+    }
+
+    [Fact]
+    public async Task A04_01_leaver_settled_with_the_exit_month_salary_is_in_that_months_PF_ESIC_PT_statement_and_A04_11_payslip_note()
+    {
+        var h = await db.NewHotelAsync("2026-08-31");
+        await h.SeedGoldenAsync();
+        var g = PayrollGolden.Data;
+        var ravi = h.S("HR-S05");
+        await h.Payroll.SetStaffActiveAsync(h.As("manager", PayrollService.OpSetStaffActive), new SetStaffActiveRequest(ravi, await h.StaffVersionAsync(ravi), false), Ct);   // exit 31 Aug 2026
+        var draft = (await h.Payroll.PrepareFnfAsync(h.As("accountant", PayrollService.OpPrepareFnf), new PrepareFnfRequest(ravi), Ct)).Value;
+        Assert.True(draft.SalaryIncluded);
+        await h.Payroll.ConfirmFnfAsync(h.As("owner", PayrollService.OpConfirmFnf), new DecideFnfRequest(draft.FnfId, draft.Version), Ct);
+
+        await h.SetBusinessDateAsync("2026-09-01");
+        var aug = await PrepareAsync(h, "2026-08");
+        var lines = await LinesAsync(h, aug.RunId);
+        Assert.DoesNotContain(lines, l => l.StaffId == ravi);   // settled with August's salary: not in August's run
+        var others = g.August.Lines.Where(x => x.StaffId != "HR-S05").ToList();
+        Assert.Equal(others.Count, lines.Count);
+        foreach (var (gl, l) in others.Zip(lines)) PayrollGolden.AssertLine(gl, l);   // non-leavers unchanged
+
+        var csv = (await h.Queries.StatutoryCsvAsync(h.PropertyId, h.U("accountant"), new PayMonth(2026, 8), Ct)).Content;
+        var rows = csv.Split('\n');
+        // Ravi's August F&F line by hand: ₹13,500/month, 31 days, 1 absent + 1 half-day = 3 half-days LOP (2 late marks < 3, no late loss) →
+        // earned 13,500 × 59/62 = 12,846.77; basic 50 % = 6,423.39 (PF wages, under the ₹15,000 cap) → PF 12 % 770.81, employer 13 % 835.04;
+        // washing 10 % of basic = 642.34 → ESIC wages 12,846.77 − 642.34 = 12,204.43 (covered: contract ₹13,500 ≤ ₹21,000) → 0.75 % 91.53, 3.25 % 396.64;
+        // PT Maharashtra, man, earned above ₹10,000, not February → ₹200.
+        Assert.Contains($"{lines.Count + 1},{ravi},Ravi Shinde,12846.77,6423.39,770.81,835.04,12204.43,91.53,396.64,200.00", rows);
+        Assert.Contains(rows, r => r.StartsWith("F&F — exit month's salary settled in full and final", StringComparison.Ordinal)
+            && r.Contains($"Sr {lines.Count + 1} Ravi Shinde (last day 2026-08-31)", StringComparison.Ordinal));
+        // The statement totals = all 12 staff of the golden August run (advance recovery does not touch PF / ESIC / PT).
+        var t = g.August.Totals;
+        Assert.Equal($"Provident Fund,{PayrollFiles.Rupees(t.Pf)},{PayrollFiles.Rupees(t.PfEr)},{PayrollFiles.Rupees(t.Pf + t.PfEr)}", rows[1]);
+        Assert.Equal($"ESIC,{PayrollFiles.Rupees(t.Esic)},{PayrollFiles.Rupees(t.EsicEr)},{PayrollFiles.Rupees(t.Esic + t.EsicEr)}", rows[2]);
+        Assert.Equal($"Professional Tax (Maharashtra),{PayrollFiles.Rupees(t.Pt)},0.00,{PayrollFiles.Rupees(t.Pt)}", rows[3]);
+        Assert.Equal("Sr,Staff ID,Name,Earned,PF wages,PF EE,PF ER,ESIC wages,ESIC EE,ESIC ER,PT", rows[5]);   // member columns unchanged
+
+        // A04-11: the payslip says what it does not calculate.
+        var locked = await LockAsync(h, aug);
+        var neha = h.S("HR-S04");
+        var slip = await h.Queries.GetPayslipAsync(h.PropertyId, h.U("owner"), locked.RunId, neha, Ct);
+        Assert.Contains("Not calculated: gratuity, notice pay, bonus, TDS on salary.", slip.Disclaimer, StringComparison.Ordinal);
+        Assert.StartsWith(PayrollRates.Disclaimer, slip.Disclaimer, StringComparison.Ordinal);
     }
 
     [Fact]

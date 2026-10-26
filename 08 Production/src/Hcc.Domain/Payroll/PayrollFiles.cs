@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace Hcc.Domain.Payroll;
 
+/// <summary>A04-01: a leaver's exit-month line from a settled full-and-final (salary inside the settlement), for the month's statutory statement.</summary>
+public sealed record FnfStatutoryLine(PayLine Line, DateOnly LastDay);
+
 /// <summary>Bank details as frozen at lock (review F-02: the bank file pays where the checker approved, not the live staff master).</summary>
 public sealed record BankDetails(string BankName, string AccountNo, string Ifsc)
 {
@@ -81,11 +84,15 @@ public static partial class PayrollFiles
         return sb.ToString();
     }
 
-    /// <summary>Statutory summary + member-wise register (SCC reportStatutoryCsv + statutoryMemberRows). Nothing is filed (CA item P17).</summary>
-    public static string Statutory(PayMonth month, bool locked, DateOnly ratesFrom, IReadOnlyList<PayLine> lines)
+    /// <summary>Statutory summary + member-wise register (SCC reportStatutoryCsv + statutoryMemberRows). Nothing is filed (CA item P17).
+    /// A04-01: <paramref name="fnf"/> = leavers settled full-and-final with the month's salary (not in the run); their rows follow the run's rows
+    /// in the same columns, count in the totals, and a note line after the table names them (the member columns stay as they are).</summary>
+    public static string Statutory(PayMonth month, bool locked, DateOnly ratesFrom, IReadOnlyList<PayLine> lines, IReadOnlyList<FnfStatutoryLine>? fnf = null)
     {
         ArgumentNullException.ThrowIfNull(lines);
-        var t = PayTotals.Of(lines);
+        var settled = fnf ?? [];
+        var members = lines.Concat(settled.Select(f => f.Line)).ToList();
+        var t = PayTotals.Of(members);
         var sb = new StringBuilder();
         sb.Append(Row("Component", "Employee", "Employer", "Total")).Append('\n');
         sb.Append(Row("Provident Fund", Money(t.Pf), Money(t.PfEr), Money(t.Pf + t.PfEr))).Append('\n');
@@ -93,13 +100,16 @@ public static partial class PayrollFiles
         sb.Append(Row("Professional Tax (Maharashtra)", Money(t.Pt), "0.00", Money(t.Pt))).Append('\n');
         sb.Append('\n');
         sb.Append(Row("Sr", "Staff ID", "Name", "Earned", "PF wages", "PF EE", "PF ER", "ESIC wages", "ESIC EE", "ESIC ER", "PT")).Append('\n');
-        for (var i = 0; i < lines.Count; i++)
+        for (var i = 0; i < members.Count; i++)
         {
-            var l = lines[i];
+            var l = members[i];
             sb.Append(Row((i + 1).ToString(CultureInfo.InvariantCulture), l.StaffId.ToString(CultureInfo.InvariantCulture), l.Name, Money(l.Earned), Money(l.PfWages),
                 Money(l.Pf), Money(l.PfEr), Money(l.EsicWages), Money(l.Esic), Money(l.EsicEr), Money(l.Pt))).Append('\n');
         }
 
+        if (settled.Count > 0)
+            sb.Append(Cell("F&F — exit month's salary settled in full and final (not in the pay run): " + string.Join("; ", settled.Select((f, i) =>
+                $"Sr {lines.Count + i + 1} {f.Line.Name} (last day {f.LastDay:yyyy-MM-dd})")))).Append('\n');
         sb.Append(Cell($"{month.Label} · {(locked ? "Locked run" : "DRAFT — NOT FINAL, do not file")} · rates from {ratesFrom:yyyy-MM-dd} · {PayrollRates.Disclaimer}")).Append('\n');
         return sb.ToString();
     }

@@ -294,6 +294,38 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const short='Part of the same dated rate version. Illustrative — CA to confirm for a hotel.',others=rows.filter(d=>d.help!==short).map(d=>d.help);
     assert.equal(new Set(others).size,others.length,'each long SCC paragraph appears once');assert.equal(others.length,new Set(rows.map(d=>d.key.split('.').slice(0,2).join('.'))).size);
   });
+  test('[PAY-FIX A04-01] a leaver settled F&F with the exit month salary is in that month’s PF / ESIC / PT statement (not in the run); others unchanged',()=>{
+    const s0=seed();let s=execute(s0,'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false});// Ravi exits on the business date, 24 Oct 2026
+    s=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05'});s=execute(s,'owner',{type:'HR_FNF_CONFIRM',id:x(s).fnf[0].id});
+    const f=x(s).fnf[0];assert.equal(f.salaryIncluded,true);assert.equal(f.month,'2026-10');
+    // Ravi's October F&F line by hand: ₹13,500/month, 31 days; 18 P + 1 late + 4 weekly offs = 23 paid, 1 absent + 7 days after the exit = 16 half-days LOP →
+    // earned 13,500 × 46/62 = 10,016.13; basic 50 % = 5,008.07 (PF wages, under the ₹15,000 cap) → PF 12 % 600.97, employer 13 % 651.05;
+    // washing 10 % of basic = 500.81 → ESIC wages 10,016.13 − 500.81 = 9,515.32 (covered: contract ₹13,500 ≤ ₹21,000) → 0.75 % 71.36, 3.25 % 309.25;
+    // PT Maharashtra, man, earned above ₹10,000 (overtime not in the PT base), not February → ₹200.
+    assert.deepEqual([f.line.earned,f.line.pfWages,f.line.pf,f.line.pfEr,f.line.esicWages,f.line.esic,f.line.esicEr,f.line.pt],[1001613,500807,60097,65105,951532,7136,30925,20000]);
+    const rates=M.hrRatesFor(s,'2026-10'),run={id:'HR-PAY-T',month:'2026-10',status:'Draft',rates,lines:M.hrComputeRun(s,'2026-10').lines};
+    assert.equal(run.lines.some(l=>l.staffId==='HR-S05'),false);assert.equal(run.lines.length,11);
+    const before={...run,lines:M.hrComputeRun(s0,'2026-10').lines.filter(l=>l.staffId!=='HR-S05')};
+    assert.deepEqual(run.lines,before.lines,'non-leavers unchanged');
+    const st=M.hrStatutoryCsv(s,run).split('\n'),t=M.hrRunTotals({lines:[...run.lines,f.line]}),rp=p=>(p/100).toFixed(2);
+    assert.ok(st.includes('12,HR-S05,Ravi Shinde,10016.13,5008.07,600.97,651.05,9515.32,71.36,309.25,200.00'));
+    assert.equal(st[1],`Provident Fund,${rp(t.pf)},${rp(t.pfEr)},${rp(t.pf+t.pfEr)}`);assert.equal(st[2],`ESIC,${rp(t.esic)},${rp(t.esicEr)},${rp(t.esic+t.esicEr)}`);
+    assert.equal(st[3],`Professional Tax (Maharashtra),${rp(t.pt)},0.00,${rp(t.pt)}`);
+    assert.equal(st[5],'Sr,Staff ID,Name,Earned,PF wages,PF EE,PF ER,ESIC wages,ESIC EE,ESIC ER,PT','member columns unchanged');
+    assert.ok(st.includes("F&F — exit month's salary settled in full and final (not in the pay run): Sr 12 Ravi Shinde (last day 2026-10-24)"));
+    // no settled leaver (none, or only a draft F&F): the statement is the run-only one; a leaver already in the run's lines (stale draft) is never added twice
+    const draftOnly=execute(execute(s0,'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false}),'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05'});
+    assert.equal(M.hrStatutoryCsv(draftOnly,before),M.hrStatutoryCsv(s0,before));
+    assert.doesNotMatch(M.hrStatutoryCsv(s0,before),/F&F/);assert.equal(M.hrStatutoryCsv(s0,before).split('\n').filter(l=>/^\d+,HR-S/.test(l)).length,11);
+    const stale={...run,lines:M.hrComputeRun(s0,'2026-10').lines};assert.doesNotMatch(M.hrStatutoryCsv(s,stale),/F&F/);
+    assert.equal(M.hrStatutoryCsv(s,stale).split('\n').filter(l=>/,HR-S05,/.test(l)).length,1);
+  });
+  test('[PAY-FIX A04-11] payslip and full-and-final show "Not calculated: gratuity, notice pay, bonus, TDS on salary" (replaces the gratuity-only line)',()=>{
+    assert.equal(M.HR_NOT_CALCULATED,'Not calculated: gratuity, notice pay, bonus, TDS on salary.');
+    const s=execute(seed(),'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false});
+    for(const html of [UI.renderModal(s,'accountant','hr-payslip','HR-PAY-1|HR-S05'),UI.renderModal(s,'accountant','hr-fnf','HR-S05'),UI.renderSection(s,'accountant','Fnf')]){
+      assert.ok(html.includes(M.HR_NOT_CALCULATED));assert.doesNotMatch(html,/Gratuity is not calculated/);}
+  });
   test('[PAY-FIX COMPAT] staff/payroll code runs without Array.at / replaceAll / structuredClone (Chrome 83 WebView) and the sources do not use them',()=>{
     const bundle=buildSync({entryPoints:['src/services/mock/index.ts'],bundle:true,write:false,platform:'browser',format:'iife',globalName:'HCC',target:'chrome83',logLevel:'error'});
     const ctx=vm.createContext({console});

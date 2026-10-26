@@ -9,7 +9,7 @@ import {dateLabel,shortDate,Empty} from '../../components/ui';
 import {
   money,hrSlice,hrRateVersions,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,hrRatesFor,
   hrLastLockedMonth,hrLeaveOverCount,hrNextMonth,hrRatesDefaultFrom,hrRatesPastMonths,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
-  HR_SHIFTS,HR_WEEKDAYS,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,hrKey,
+  HR_SHIFTS,HR_WEEKDAYS,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,HR_NOT_CALCULATED,hrKey,
   type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,
 } from '../../services/mock';
 
@@ -268,7 +268,7 @@ export function HRFnfModal({id}:{id?:string}){
         <div className="inline">{adj.length<4&&<button type="button" className="btn" onClick={()=>setAdj([...adj,{label:'',kind:'add',amount:''}])}><Plus size={16}/> Add adjustment</button>}
           {adj.length<4&&enc>0&&!adj.some(a=>/encashment/i.test(a.label))&&<button type="button" className="btn" onClick={()=>setAdj([...adj,{label:'Earned leave encashment',kind:'add',amount:String(enc/100)}])}><Plus size={16}/> EL encashment {money(enc)}</button>}</div></fieldset>
       <div className="info-note"><Info size={16}/><span>Maker-checker: this saves a draft. The other payroll user confirms it{clean.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0)>HR_FNF_OWNER_ABOVE?` — additions above ${money(HR_FNF_OWNER_ABOVE)} need the Owner`:''}. Each adjustment is limited to {money(HR_FNF_ADJ_MAX)}.</span></div>
-      <p className="footnote">{HR_DISCLAIMER} Gratuity is not calculated in this prototype.</p>
+      <p className="footnote">{HR_DISCLAIMER} {HR_NOT_CALCULATED}</p>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||clean.some(a=>a.amount>HR_FNF_ADJ_MAX)}>Prepare draft settlement</button></div>
     </form></>;
 }
@@ -289,7 +289,7 @@ export function HRPayslipDoc({run,line}:{run:HRRun;line:HRLine}){
     </div>
     <div className="hr-ps-net"><span>Net pay</span><strong className="number">{money(line.net)}</strong></div>
     <p className="hr-ps-words">{hrAmountWords(line.net)}</p>
-    <p className="footnote">{HR_DISCLAIMER} Rates from {run.rates?.from??'—'}{run.legacy?' (legacy run saved before the SCC rules — employer share and pay split not recorded)':''}. Prepared by {hrUserName(s,run.preparedBy)}{run.lockedBy?` · locked by ${hrUserName(s,run.lockedBy)} at ${run.lockedAt?.slice(11)} on ${dateLabel(run.lockedAt!.slice(0,10))} (simulated clock)`:''}. Payment by simulated bank transfer.</p>
+    <p className="footnote">{HR_DISCLAIMER} Rates from {run.rates?.from??'—'}{run.legacy?' (legacy run saved before the SCC rules — employer share and pay split not recorded)':''}. Prepared by {hrUserName(s,run.preparedBy)}{run.lockedBy?` · locked by ${hrUserName(s,run.lockedBy)} at ${run.lockedAt?.slice(11)} on ${dateLabel(run.lockedAt!.slice(0,10))} (simulated clock)`:''}. Payment by simulated bank transfer. {HR_NOT_CALCULATED}</p>
   </div>;
 }
 
