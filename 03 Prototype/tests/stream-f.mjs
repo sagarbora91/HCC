@@ -139,6 +139,7 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'manager',{type:'DAY_CLOSE'})),'DAY_CLOSED');
     assert.equal(code(()=>execute(s,'manager',{type:'CLOSE_RUN'})),'DAY_CLOSED');
     s=execute(s,'manager',{type:'NEXT_DAY'});
+    s=execute(s,'manager',{type:'SHIFT_OPEN',handover:s.openingCash}); // DEC-078: a cash expense needs an open shift, opened by its owner
     s=execute(s,'reception',{type:'EXPENSE',vendor:'Later Vendor',category:'Supplies',amount:5000,method:'Cash'});
     s=execute(s,'manager',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});
     assert.equal(JSON.stringify(s.closings[d]),rec);
@@ -225,10 +226,12 @@ export function register({test,M,assert}){
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit',key:'w-dep'});drawers.push(drawer(s));
     X('manager',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});X('manager',{type:'CLOSE_RUN',interruptAfter:4});X('manager',{type:'CLOSE_RUN'});
     X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});drawers.push(drawer(s));
+    X('cashier',{type:'SHIFT_OPEN'}); // DEC-078: NEXT_DAY no longer opens the shift; the cashier who counted re-opens her own
     X('reception',{type:'CHARGE',id,amount:50000,label:'Laundry service'});
     X('reception',{type:'DISCOUNT',id,amount:50000,reason:'Service delay goodwill'});
     X('manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});X('manager',{type:'CLOSE_RUN'});
     X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});X('manager',{type:'NEXT_DAY'});
+    X('cashier',{type:'SHIFT_OPEN'}); // DEC-078
     X('cashier',{type:'PAYMENT',id,amount:200000,method:'Cash',kind:'payment'});
     X('cashier',{type:'PAYMENT',id,amount:126500,method:'UPI',kind:'payment',reference:'DEMO-UPI-0002'}); // DEC-069 GST: 140000 → 126500
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit-return'});drawers.push(drawer(s));

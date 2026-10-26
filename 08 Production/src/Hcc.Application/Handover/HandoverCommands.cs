@@ -29,17 +29,15 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
 
     private DateTime NowLocal => HandoverRules.ToLocal(UtcNow);
 
-    /// <summary>The caller's access: module access (any of the three coarse permissions) or FORBIDDEN; manager = approve.</summary>
+    /// <summary>The caller's access for a write: module write permission (any scope) or FORBIDDEN; manager = the decide permission.</summary>
     internal async Task<Caller> RequireAccessAsync(CommandContext ctx, CancellationToken ct)
     {
-        var has = false;
-        foreach (var perm in HandoverPermissions.AnyAccess)
-            if (await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, perm, AccessScopes.Any, ct).ConfigureAwait(false)) { has = true; break; }
-        if (!has) throw new HccException(HccErrorCode.FORBIDDEN, "Access denied: checklists need the housekeeping, payments or approve permission.");
-        var manager = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, AccessScopes.Any, ct).ConfigureAwait(false);
+        if (!await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.View, AccessScopes.Any, ct).ConfigureAwait(false)
+            || !await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Write, AccessScopes.Any, ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, $"Access denied: handover needs {HandoverPermissions.Write}.");
+        var manager = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Decide, AccessScopes.Any, ct).ConfigureAwait(false);
         var roles = await principals.RoleCodesAsync(ctx.PropertyId, ctx.PrincipalId, UtcNow, ct).ConfigureAwait(false);
-        var cash = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Payments, AccessScopes.Any, ct).ConfigureAwait(false)
-            || await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.FinanceReport, AccessScopes.Any, ct).ConfigureAwait(false);
+        var cash = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Money, AccessScopes.Any, ct).ConfigureAwait(false);
         return new Caller(roles, manager, cash);
     }
 
@@ -50,7 +48,7 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Decide, null, null, ct).ConfigureAwait(false);
         var clean = HandoverRules.ValidateTemplate(req.Name, req.Desk, req.Shift, req.Roles,
             req.Items?.Select(i => ((string?)i?.Text, i?.Mandatory ?? false, i?.Due, i?.Photo ?? false, i?.Link)).ToList());
         byte[]? expected = req.TemplateId is null ? null : VersionToken.Parse(req.ExpectedVersion);
@@ -82,7 +80,7 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Decide, null, null, ct).ConfigureAwait(false);
         var expected = VersionToken.Parse(req.ExpectedVersion);
         return await runner.RunAsync(ctx with { Operation = OpToggleTemplate }, req, async (tx, c) =>
         {
@@ -169,7 +167,7 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Decide, null, null, ct).ConfigureAwait(false);
         var reason = (req.Reason ?? string.Empty).Trim();
         if (reason.Length < 3) throw HccException.Validation("A reason is required to reopen a checklist.");
         if (reason.Length > 200) throw HccException.Validation("Reason: maximum 200 characters.");
@@ -205,7 +203,7 @@ public sealed class HandoverCommands(ICommandRunner runner, IAccessPolicy policy
         if (req.Cash is { } cin)
         {
             if (req.Desk != HandoverRules.FrontDesk) throw HccException.Validation("Cash lines belong only on the Front desk handover.");
-            await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Payments, AccessScopes.Any, null, ct).ConfigureAwait(false);
+            await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HandoverPermissions.Money, AccessScopes.Any, null, ct).ConfigureAwait(false);
             if (cin.AmountPaise is < 0 or > HandoverRules.MaxCashPaise) throw HccException.Validation("Enter the cash float handed over (₹0 – ₹10,00,000).");
             cash = cin.AmountPaise;
             cashNote = (cin.Note ?? string.Empty).Trim();

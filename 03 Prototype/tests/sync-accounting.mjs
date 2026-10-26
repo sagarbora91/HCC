@@ -127,6 +127,12 @@ export async function register({test,assert,M}){
   await seq('unlock',{type:'ACC_UNLOCK',date:Y,reason:'Late laundry bill'});
   await seq('mapSet',{type:'ACC_MAP_SET',source:'expense:Laundry',account:'5040'});
   await seq('mapReset',{type:'ACC_MAP_RESET',source:'expense:Laundry'});
+  // DEC-077: the Tally download goes to the server (it records the export and carries days flagged for re-export); the server file is saved.
+  let tallyQuery;
+  srv.on('GET /accounting/export/tally',({query})=>{tallyQuery=query;return {from:query.from,to:query.to,dates:2,voucherCount:3,debitPaise:100000,creditPaise:100000,simulated:true,
+    fileName:`HCC-tally-SIMULATED-${query.from}_${query.to}.xml`,xml:'<ENVELOPE/>',reexportDates:['2026-10-22'],provisionalDates:[],exportId:9};});
+  await seq('tally',{type:'ACC_TALLY_EXPORT',from:Y,to:Y,key:'tally:1'});
+  await seq('tallyBad',{type:'ACC_TALLY_EXPORT',from:Y,to:'2026-01-01'});
   const proto=M.execute(M.seed(),'owner',{type:'EXPENSE',vendor:'Petty Stores',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false});
   await seq('exp',{type:'EXPENSE',vendor:' Petty Stores ',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false,key:'modal-7:submit'});
   const added=rt.get().state.expenses.find(e=>e.id==='103');
@@ -159,6 +165,15 @@ export async function register({test,assert,M}){
     assert.deepEqual(cmds('SetLedgerMapping')[0].body,{mapKey:'expense:Laundry',accountCode:'5040'});
     assert.deepEqual(cmds('ResetLedgerMapping')[0].body,{mapKey:'expense:Laundry'});
     assert.ok(cmds('SetLedgerMapping')[0].key&&cmds('SetLedgerMapping')[0].key!==cmds('ResetLedgerMapping')[0].key);
+  });
+  test('[DEC-077] ACC_TALLY_EXPORT → GET /accounting/export/tally {from,to}: the server records the export and returns re-export days; a bad range is refused locally',()=>{
+    assert.ok(res.tally.r.ok,res.tally.r.text);
+    assert.deepEqual(res.tally.calls,['GET /accounting/export/tally'],'no reload: the export changes no loaded slice');
+    assert.deepEqual(tallyQuery,{from:Y,to:Y});
+    assert.deepEqual([res.tally.r.result.count,res.tally.r.result.reexport],[3,['2026-10-22']]);
+    // No browser download here (node): the device could not save, which is reported as a warning (the server still recorded the export).
+    assert.equal(res.tally.r.result.saved,'failed');assert.match(res.tally.r.warning,/could not save the XML/);
+    assert.deepEqual([res.tallyBad.r.ok,res.tallyBad.r.reason,res.tallyBad.calls.length],[false,'precheck',0]);
   });
   test('[W4-7 expenses] EXPENSE (same record as the prototype) / SUBMIT / APPROVE (till for cash) / reject / REVERSE → server commands with key + loaded version, then expenses reload',()=>{
     assert.ok(res.exp.r.ok,res.exp.r.text);assert.deepEqual(res.exp.calls[0],'POST /commands/SubmitExpense');assert.ok(res.exp.calls.includes('GET /expenses'));
@@ -212,7 +227,7 @@ export async function register({test,assert,M}){
     assert.equal(hk.gets().filter(c=>/^\/(accounting|expenses|compliance)/.test(c.path)).length,0);
     assert.deepEqual([rh.get().state.expenses,rh.get().state.accountingX?.server],[[],undefined]);
     const area=S.AREAS.find(a=>a.id==='accounting');assert.deepEqual(area.unmapped,{});
-    assert.deepEqual(area.commands.map(c=>c.type).sort(),['ACC_LOCK','ACC_MAP_RESET','ACC_MAP_SET','ACC_UNLOCK','CMP_CA_PACK','CMP_FILE','CMP_NA','CMP_OBLIGATION_SAVE','CMP_OBLIGATION_TOGGLE',
+    assert.deepEqual(area.commands.map(c=>c.type).sort(),['ACC_LOCK','ACC_MAP_RESET','ACC_MAP_SET','ACC_TALLY_EXPORT','ACC_UNLOCK','CMP_CA_PACK','CMP_FILE','CMP_NA','CMP_OBLIGATION_SAVE','CMP_OBLIGATION_TOGGLE',
       'CMP_REOPEN','CMP_SETTINGS_SET','EXPENSE','EXPENSE_APPROVE','EXPENSE_REVERSE','EXPENSE_SUBMIT']);
   });
   // N5: the imported opening trial balance dated inside the window counts from its own date (names / groups of imported ledgers kept).

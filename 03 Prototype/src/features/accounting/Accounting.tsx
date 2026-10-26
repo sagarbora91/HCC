@@ -83,7 +83,7 @@ function MappingTable(){
 
 /** Accounting › Tally export: Tally-style XML preview from the existing vouchers. Always Simulated — saving the XML is not an import into Tally. */
 export function TallyExport(){
-  const {s,toast}=useHcc();
+  const {s,toast,run,busy}=useHcc();
   const [to,setTo]=useState(s.date);const [from,setFrom]=useState(addDays(s.date,-6));
   const p=useMemo(()=>accTallyXml(s,from,to),[s,from,to]);
   const lines=p.xml.split(String.fromCharCode(10)),shown=lines.slice(0,60).join(String.fromCharCode(10));
@@ -91,7 +91,11 @@ export function TallyExport(){
     <div className="exp-tally-head"><span className="pill orange" role="status">Simulated</span><span className="muted">No file is sent to Tally. Saving this XML does not mean it was imported — only Tally's own import confirms that.</span></div>
     <div className="inline exp-tally-range"><label className="acc-date">From<input type="date" value={from} max={s.date} onChange={e=>setFrom(e.target.value)}/></label>
       <label className="acc-date">To<input type="date" value={to} max={s.date} onChange={e=>setTo(e.target.value)}/></label>
-      <button className="btn" disabled={!p.count} onClick={()=>{void saveAndReport(saveTextFile(`HCC-Demo-tally-${from}_${to}.xml`,p.xml,'application/xml'),toast,'Simulated Tally XML saved · not imported into Tally','the Tally XML');}}><Download size={16}/> Download XML</button></div>
+      {/* DEC-077: the download is recorded (ACC_TALLY_EXPORT) so a later reopen of an exported day flags it for re-export. Production: the
+          server builds, records and returns the file (GET /accounting/export/tally) and the mapper saves it. */}
+      <button className="btn" disabled={busy||!p.count} onClick={()=>{void run({type:'ACC_TALLY_EXPORT',from,to},'Simulated Tally XML saved · not imported into Tally',
+        {after:()=>{if(process.env.HCC_BUILD!=='production')void saveAndReport(saveTextFile(`HCC-Demo-tally-${from}_${to}.xml`,p.xml,'application/xml'),toast,'Simulated Tally XML saved · not imported into Tally','the Tally XML');}});}}><Download size={16}/> Download XML</button></div>
+    {p.reexport.length>0&&<div className="info-note f-warn" role="status"><AlertTriangle size={16}/><span>Re-export: {p.reexport.join(', ')} changed after {p.reexport.length===1?'it was':'they were'} exported (the day was reopened) and {p.reexport.length===1?'is':'are'} carried again in this file. Delete {p.reexport.length===1?'that day’s':'those days’'} HCC vouchers in Tally before importing, or Tally will hold them twice.{p.provisional.length?` ${p.provisional.join(', ')} is still reopened and may change again.`:''}</span></div>}
     {p.error?<p className="f-why" role="alert">{p.error}</p>:<>
       <p className="muted">{p.count} voucher{p.count===1?'':'s'} over {p.dates} business date{p.dates===1?'':'s'} · debits {money(p.debit)} · credits {money(p.credit)} · {p.debit===p.credit?'balanced':'NOT balanced'} · up to {TALLY_MAX_DAYS} days</p>
       {p.count?<><pre className="exp-xml" aria-label="Tally XML preview">{shown}</pre>{lines.length>60&&<p className="muted">Preview shows the first 60 of {lines.length} lines; the download has everything.</p>}</>

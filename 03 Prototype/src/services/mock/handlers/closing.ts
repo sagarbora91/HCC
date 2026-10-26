@@ -10,8 +10,11 @@ import {gstForFolioAdjustment} from '../../../domain/gst';
 import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
 import {posOpenOrders} from '../../../domain/streams/pos';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
+import {cxPendingTransfers,cxSlice} from '../../../domain/streams/cashout';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
-  closingUnlimitedRoles} from '../../../domain/streams/closing';
+  closingUnlimitedRoles,closingReopened,closingReopenRefusal,closingReopenMessage,closingPendingCorrections,closingResummary,
+  type ClosingReopen} from '../../../domain/streams/closing';
+import {accSlice,accLockOf} from '../../../domain/streams/accounting';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyCategory,mnyVendor,mnyApprovalLimit} from '../../../domain/streams/money-master';
 import {mstFail} from '../../../domain/streams/masters';
 import {rbacCanDecideCash,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanRequestClosedCorrection} from '../../../domain/streams/rbac';
@@ -163,6 +166,8 @@ export const handlers:Record<string,Handler>={
   // PERM-CLS-002 close.closeDay
   DAY_CLOSE:k=>{
     const {s,req,open,assert,uid}=k;req('close');open();
+    const reopened=closingReopened(s); // DEC-077: the reopened earlier day is closed again first
+    assert(!reopened,`Day close ${s.date} is blocked: reopened day closed again — close ${reopened?.date} again (Day closing) before closing today.`,'INVALID_TRANSITION');
     assert(!s.bookings.some(b=>b.status==='Confirmed'&&b.arrival<=s.date),'Resolve pending arrivals: check in or cancel after refunding advances.','INVALID_TRANSITION');
     assert(!s.bookings.some(b=>b.status==='In house'&&b.departure<=s.date),'Resolve overdue departures.','INVALID_TRANSITION');
     assert(!s.bookings.some(b=>{const h=(b as {holdUntil?:string}).holdUntil;return b.status==='Held'&&!!h&&h<s.clock;}),'Release expired holds before closing.','INVALID_TRANSITION');
@@ -170,18 +175,51 @@ export const handlers:Record<string,Handler>={
     assert(!s.approvals.some(a=>a.status==='Pending'&&a.kind!=='policy')&&!s.expenses.some(e=>e.status==='Pending'),'Resolve pending approvals and expenses.','INVALID_TRANSITION');
     const openChecks=posOpenOrders(s);
     assert(!openChecks.length,`Settle, charge to the room or void ${openChecks.length} open restaurant / room-service check${openChecks.length===1?'':'s'} first (${openChecks.map(o=>o.id).join(', ')}).`,'INVALID_TRANSITION');
+    // DEC-073: a till transfer must be accepted or sent back first (a bank deposit awaiting confirmation does not hold up the close).
+    const transfers=cxPendingTransfers(s);
+    assert(!transfers.length,`Accept or send back ${transfers.length} pending till transfer${transfers.length===1?'':'s'} first (${transfers.map(r=>r.id).join(', ')}).`,'INVALID_TRANSITION');
     assert(!s.shiftOpen,'Close and reconcile the cash shift first.','INVALID_TRANSITION');
     s.closedDates.push(s.date);
     // One immutable closing record per date; nothing writes to it after this point.
     s.closings={...(s.closings??{}),[s.date]:closingSummary(s,uid)};
     return 'Business day closed · '+s.date;
   },
-  // PERM-CLS-002 close.openNextDay · opening float = counted cash at close (DEC-035)
+  // PERM-CLS-002 close.openNextDay · opening float = counted cash at close (DEC-035). DEC-078 (Wave B1): the next day's cash shift is NOT
+  // opened here (it used to open in the closer's name, APK12-3); whoever takes the desk opens their own shift with a handover count (SHIFT_OPEN).
   NEXT_DAY:k=>{
     const {s,req,assert}=k;req('close');assert(s.closedDates.includes(s.date),'Close the current business day first.','INVALID_TRANSITION');
-    s.openingCash=s.shiftClose?.counted??drawer(s);s.date=addDays(s.date,1);s.shiftOpen=true;s.shiftClose=undefined;s.shift=undefined;s.closeProgress=undefined;
+    s.openingCash=s.shiftClose?.counted??drawer(s);s.date=addDays(s.date,1);s.shiftOpen=false;s.shiftClose=undefined;s.shift=undefined;s.closeProgress=undefined;
+    if(s.cashOutX&&cxSlice(s).opener){const x=cxSlice(s);delete x.opener;s.cashOutX=x;}
     s.clock=s.date+'T'+OPENING_TIME;const released=hkExpireBlocks(s);
-    return 'Opened '+s.date+' · opening float '+money(s.openingCash)+(released.length?' · blocks ended: '+released.join(', '):'');
+    return 'Opened '+s.date+' · opening float '+money(s.openingCash)+' · the cashier opens their own shift'+(released.length?' · blocks ended: '+released.join(', '):'');
+  },
+  // DEC-077 (resolves DEC-028) · PERM-CLS-004: the Owner reopens a closed business day with a reason. Corrections of that day's lines and
+  // missed charges then post on it; the cash-book lock (DEC-065) is not touched; an exported day is flagged for Tally re-export.
+  DAY_REOPEN:k=>{
+    const {s,cmd,user,uid,fail,assert,id}=k;
+    if(user.role!=='Owner')fail('FORBIDDEN','Only the Owner can reopen a closed business day (DEC-077).');
+    const date=String(cmd.date??'');assert(/^\d{4}-\d{2}-\d{2}$/.test(date),'Choose a closed business date.');
+    const reason=String(cmd.reason??'').trim();
+    assert(reason,'A reason is required to reopen a closed business day.');assert(reason.length<=200,'Keep the reason to 200 characters.');
+    const why=closingReopenRefusal(s,date,!!accLockOf(s,date));if(why)fail('INVALID_TRANSITION',why);
+    const acc=accSlice(s),cashBookLocked=cbIsLocked(s,date),tallyReexport=!!acc.tallyExports?.some(e=>e.dates.includes(date));
+    const r:ClosingReopen={id:id('RDAY'),date,by:uid,at:s.clock,reason,cashBookLocked,tallyReexport};
+    const rec=s.closings![date];
+    s.closings={...s.closings,[date]:{...rec,reopens:[...(rec.reopens??[]),r]}};
+    if(tallyReexport&&!acc.reexport?.[date])s.accountingX={...acc,reexport:{...(acc.reexport??{}),[date]:{at:s.clock,reason,reopen:r.id}}};
+    return closingReopenMessage(date,cashBookLocked,tallyReexport);
+  },
+  // DEC-077 · PERM-CLS-002: close the reopened day again — its pending corrections first; a new closing record replaces the old, which is kept.
+  DAY_RECLOSE:k=>{
+    const {s,cmd,req,fail,assert,uid}=k;req('close');
+    const date=String(cmd.date??''),r=closingReopened(s);
+    assert(r&&r.date===date,`Business day ${date||'(none)'} is not reopened.`,'INVALID_TRANSITION');
+    if(closingPendingCorrections(s,date).length)
+      fail('INVALID_TRANSITION',`Day close ${date} is blocked: corrections of ${date} decided — approve or reject the pending corrections of lines dated ${date}, then close it again.`);
+    const {reopens,replaced,...prior}=s.closings![date];
+    const all=(reopens??[]).map(x=>x.id===r!.id?{...x,reclosedBy:uid,reclosedAt:s.clock}:x);
+    s.closings={...s.closings,[date]:{...closingResummary(s,date,uid,prior,all),reopens:all,replaced:[...(replaced??[]),prior]}};
+    return `Business day ${date} closed again · closing record replaced (the earlier record is kept)`;
   },
   // PERM-CLS-003 close.correction.request (DEC-028: adjustment in the open day, referencing the closed date)
   CORRECTION_ADJUST:k=>{

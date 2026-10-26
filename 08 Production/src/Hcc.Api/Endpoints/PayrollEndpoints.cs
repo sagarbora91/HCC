@@ -51,6 +51,12 @@ public static class PayrollEndpoints
         Command<PrepareFnfRequest, FnfResult>(g, PayrollService.OpPrepareFnf, (s, c, r, ct) => s.PrepareFnfAsync(c, r, ct));
         Command<DecideFnfRequest, FnfResult>(g, PayrollService.OpConfirmFnf, (s, c, r, ct) => s.ConfirmFnfAsync(c, r, ct));
         Command<DecideFnfRequest, FnfResult>(g, PayrollService.OpDiscardFnf, (s, c, r, ct) => s.DiscardFnfAsync(c, r, ct));
+        // Wave B item B4: DEC-075 past-attendance corrections, DEC-083 paid holidays, DEC-084 bank-change requests (decided by the Owner).
+        Command<CorrectAttendanceRequest, CorrectionResult>(g, PayrollService.OpCorrectAttendance, (s, c, r, ct) => s.CorrectAttendanceAsync(c, r, ct));
+        Command<DecidePayrollRequestRequest, PayrollRequestResult>(g, PayrollService.OpDecidePayrollRequest, (s, c, r, ct) => s.DecidePayrollRequestAsync(c, r, ct));
+        Command<WithdrawPayrollRequestRequest, PayrollRequestResult>(g, PayrollService.OpWithdrawPayrollRequest, (s, c, r, ct) => s.WithdrawPayrollRequestAsync(c, r, ct));
+        Command<SavePaidHolidayRequest, HolidayResult>(g, PayrollService.OpSaveHoliday, (s, c, r, ct) => s.SaveHolidayAsync(c, r, ct));
+        Command<RemoveHolidayRequest, HolidayResult>(g, PayrollService.OpRemoveHoliday, (s, c, r, ct) => s.RemoveHolidayAsync(c, r, ct));
 
         g.MapGet("/payroll/staff", async (HttpContext http, PayrollQueries q, CancellationToken ct) =>
         {

@@ -69,7 +69,7 @@ public sealed class OtaHttpTests : OtaSqlTest
         var b = ApiConventions.BasePath;
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync($"{b}/ota/channels", Ct)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await accountant.GetAsync($"{b}/ota/channels", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await accountant.GetAsync($"{b}/ota/channels", Ct)).StatusCode);   // DEC-079 D7: the Accountant reads (OTA-001 V)
         var channels = await reception.GetFromJsonAsync<List<ChannelView>>($"{b}/ota/channels", Web, Ct);
         Assert.Equal(4, channels!.Count);
         Assert.Equal(3, channels.Single(c => c.Code == "BOOKNEST").PendingMessages); // F1, F3, F5 (F0 was rejected)
@@ -100,7 +100,10 @@ public sealed class OtaHttpTests : OtaSqlTest
         Assert.Equal(21, preview!.Rows.Count);
         var bad = await reception.SendAsync(Post("SaveChannel", new SaveChannelRequest(null, null, "XX", "Nope", 100, 0, []), "http-s1"), Ct);
         Assert.Equal(HttpStatusCode.Forbidden, bad.StatusCode);
-        var stale = await manager.SendAsync(Post("SetChannelStatus", new SetChannelStatusRequest(F.ChannelIds["BOOKNEST"], Convert.ToBase64String(new byte[8]), "pause"), "http-s2"), Ct);
+        // Connect / pause is a module switch (PERM-OTA-005: Owner, Tech admin): the Manager is refused, the Owner reaches the version check.
+        Assert.Equal(HttpStatusCode.Forbidden, (await manager.SendAsync(Post("SetChannelStatus", new SetChannelStatusRequest(F.ChannelIds["BOOKNEST"], Convert.ToBase64String(new byte[8]), "pause"), "http-s2m"), Ct)).StatusCode);
+        using var owner = Client(uri, F.Owner);
+        var stale = await owner.SendAsync(Post("SetChannelStatus", new SetChannelStatusRequest(F.ChannelIds["BOOKNEST"], Convert.ToBase64String(new byte[8]), "pause"), "http-s2"), Ct);
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         using var doc = JsonDocument.Parse(await stale.Content.ReadAsStringAsync(Ct));
         Assert.Equal("STALE_VERSION", doc.RootElement.GetProperty("code").GetString());

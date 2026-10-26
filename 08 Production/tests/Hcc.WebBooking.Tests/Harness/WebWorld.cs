@@ -29,16 +29,16 @@ public static class Who
     public const int AccountantWithException = 5;
 }
 
-/// <summary>Stand-in for P1's policy (RBAC matrix v1 + the 2001 seed): Reception reviews web requests; only Owner/Manager record deposits.</summary>
+/// <summary>Stand-in for P1's policy (RBAC matrix v1 + role matrix v2 web ids, DEC-079 D7): Reception handles web requests; only Owner/Manager record deposits.</summary>
 public sealed class FakePolicy : IAccessPolicy
 {
     private readonly Dictionary<int, HashSet<string>> _g = new()
     {
-        [Who.Owner] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-PAY-002", "PERM-GST-002"],
-        [Who.Manager] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-PAY-002", "PERM-GST-002"],
-        [Who.Reception] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-GST-002"],
+        [Who.Owner] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-WEB-002", "PERM-PAY-002", "PERM-GST-002"],
+        [Who.Manager] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-WEB-002", "PERM-PAY-002", "PERM-GST-002"],
+        [Who.Reception] = ["PERM-RES-001", "PERM-RES-002", "PERM-WEB-001", "PERM-WEB-002", "PERM-GST-002"],
         [Who.Housekeeper] = [],
-        [Who.AccountantWithException] = ["PERM-RES-001", "PERM-WEB-001"],
+        [Who.AccountantWithException] = ["PERM-RES-001", "PERM-WEB-001", "PERM-WEB-002"],
     };
 
     public Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default)

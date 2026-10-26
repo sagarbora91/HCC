@@ -28,7 +28,8 @@ public static class AccountingDays
         var sources = await store.SourcesAsync(tx, propertyId, date, date, ct).ConfigureAwait(false);
         var live = VoucherBuilder.Build(date, sources, mapping);
         var lk = await store.CurrentLockAsync(tx, propertyId, date, ct).ConfigureAwait(false);
-        var status = Status(lk is not null, date, businessDate);
+        var reopened = lk is null ? await store.ReopenedDateAsync(tx, propertyId, ct).ConfigureAwait(false) : null;
+        var status = Status(lk is not null, date, businessDate, reopened);
         var pending = lk is null ? await store.PendingEventsAsync(tx, propertyId, ct).ConfigureAwait(false) : 0;
         var shown = lk?.Vouchers ?? live;
         return new AccountingDayState(date, status, lk, live, shown, VoucherBuilder.Exceptions(shown, live, lk is not null, status, pending), mapping);
@@ -36,10 +37,14 @@ public static class AccountingDays
 
     /// <summary>
     /// P6-GUARD: a date counts as closed once the property's business date has moved past it (DEC-042 day close advances it).
-    /// Replace with P6's IBusinessDayGuard (DAY_CLOSED) when it is merged.
+    /// Replace with P6's IBusinessDayGuard (DAY_CLOSED) when it is merged. DEC-077: the day the Owner has reopened counts as Open again
+    /// (its vouchers are live and it cannot be locked) until it is closed again.
     /// </summary>
-    public static DayStatus Status(bool locked, DateOnly date, DateOnly businessDate)
-        => locked ? DayStatus.Locked : date < businessDate ? DayStatus.Closed : DayStatus.Open;
+    public static DayStatus Status(bool locked, DateOnly date, DateOnly businessDate, DateOnly? reopened = null)
+        => locked ? DayStatus.Locked : date == reopened ? DayStatus.Open : date < businessDate ? DayStatus.Closed : DayStatus.Open;
+
+    /// <summary>The application lock LockAccountingPeriod / UnlockAccountingPeriod and the DEC-077 reopen take for one date.</summary>
+    public static string PeriodResource(int propertyId, DateOnly date) => $"acc:period:{propertyId.ToString(CultureInfo.InvariantCulture)}:{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
 
     /// <summary>Shown vouchers (snapshot for locked dates, live otherwise) for every date with activity in [from, to].</summary>
     public static async Task<IReadOnlyList<(DateOnly Date, IReadOnlyList<Voucher> Vouchers)>> RangeAsync(IAccountingStore store, int propertyId, DateOnly from, DateOnly to,
@@ -78,7 +83,7 @@ public sealed class AccountingService(ICommandRunner runner, IAccountingStore st
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, AccountingPermissions.Lock, ct: ct).ConfigureAwait(false);
         return await runner.RunAsync(Ctx(caller, OpLock, idempotencyKey), req, async (tx, ct2) =>
         {
-            await store.SerializeAsync(tx, $"acc:period:{caller.PropertyId}:{D(req.BusinessDate)}", ct2).ConfigureAwait(false);
+            await store.SerializeAsync(tx, AccountingDays.PeriodResource(caller.PropertyId, req.BusinessDate), ct2).ConfigureAwait(false);
             var day = await AccountingDays.EvaluateAsync(store, tx, caller.PropertyId, req.BusinessDate, ct2).ConfigureAwait(false);
             if (day.Lock is not null) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This date is already locked.");
             if (day.Status == DayStatus.Open) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Close the business day before locking it.");
@@ -107,7 +112,7 @@ public sealed class AccountingService(ICommandRunner runner, IAccountingStore st
         VersionToken.Validate(req.ExpectedVersion);
         return await runner.RunAsync(Ctx(caller, OpUnlock, idempotencyKey), req, async (tx, ct2) =>
         {
-            await store.SerializeAsync(tx, $"acc:period:{caller.PropertyId}:{D(req.BusinessDate)}", ct2).ConfigureAwait(false);
+            await store.SerializeAsync(tx, AccountingDays.PeriodResource(caller.PropertyId, req.BusinessDate), ct2).ConfigureAwait(false);
             var lk = await store.CurrentLockAsync(tx, caller.PropertyId, req.BusinessDate, ct2).ConfigureAwait(false)
                 ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "This date is not locked.");
             await store.UnlockAsync(tx, lk.LockId, req.ExpectedVersion, reason, Now, ct2).ConfigureAwait(false);

@@ -5,6 +5,7 @@ import {ArrowRight,Info,AlertCircle,Printer,MoveRight,CalendarPlus,LogOut} from 
 import {useHcc} from '../../app/context';
 import {Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant,plural,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
+import {PrintListButton} from './FrontDeskList';
 
 /** Stay detail body (shared by the In-house page and the 'stay-detail' modal). */
 export function StayDetail({b}:{b:Booking;inModal?:boolean}){
@@ -45,7 +46,7 @@ export function InHousePage(){
   const {s,search,setSearch}=useHcc();const all=stayInHouse(s);
   const list=all.filter(b=>`${b.guest} ${bookingRef(b)} ${b.room} ${staySegments(b).map(x=>x.room).join(' ')}`.toLowerCase().includes(search.toLowerCase()));
   const [sel,setSel]=useState('');const b=list.find(x=>x.id===sel)||list[0];
-  return <><PageTitle title="In-house stays" sub={`${all.length} stay${all.length===1?'':'s'} in house · business date ${shortDate(s.date)}`}/>
+  return <><PageTitle title="In-house stays" sub={`${all.length} stay${all.length===1?'':'s'} in house · business date ${shortDate(s.date)}`} action={<PrintListButton kind="inhouse"/>}/>
     <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking…"/></div>
     {!all.length?<section className="card"><Empty title="No guests in house" body="Check in an arrival from Arrivals & check-in."/></section>:
     <div className="gs-split">

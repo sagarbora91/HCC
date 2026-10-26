@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hcc.Application.Access;
 using Hcc.Application.Billing;
+using Hcc.Application.Commands;
 using Hcc.Application.Import;
 using Hcc.Contracts.Accounting;
 using Hcc.Contracts.Import;
@@ -14,10 +15,17 @@ namespace Hcc.Application.Accounting;
 /// chart, histories; exports: generic CSV (PERM-ACC-005) and simulated Tally XML (PERM-ACC-006, ≤ 31 days).
 /// N5: the cumulative trial balance reads the imported opening trial balance through the Import module's read port
 /// (<see cref="IOpeningBalanceSource"/>; null = no Import module composed, nothing added).
+/// DEC-077: each Tally export is recorded (export log + audit, through <paramref name="runner"/>; null = not recorded) so a reopened day
+/// that had been exported is known to have changed; flagged dates are carried again by the next export.
 /// </summary>
-public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy policy, IOpeningBalanceSource? opening = null)
+public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy policy, IOpeningBalanceSource? opening = null, ICommandRunner? runner = null,
+    TimeProvider? clock = null)
 {
     public const int CsvMaxDays = 366;
+
+    public const string OpExportTally = "ExportTally";
+
+    private sealed record ExportLogged(long ExportId);
 
     private Task RequireAsync(Caller c, string perm, CancellationToken ct) => policy.RequireAsync(c.PropertyId, c.PrincipalId, perm, ct: ct);
 
@@ -170,18 +178,53 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
         return ($"HCC-vouchers-{Iso(from)}_{Iso(to)}.csv", VoucherExport.Csv(days.SelectMany(d => d.Vouchers)));
     }
 
-    /// <summary>Simulated Tally XML for ≤ 31 days. Nothing is sent to Tally; only Tally's own import confirms an import.</summary>
+    /// <summary>
+    /// Simulated Tally XML for ≤ 31 days. Nothing is sent to Tally; only Tally's own import confirms an import. DEC-077: dates flagged
+    /// changed after an earlier export (their day was reopened) are carried again even outside the range, each with a RE-EXPORT note;
+    /// the day still reopened is marked PROVISIONAL and stays flagged. The export is recorded (log + audit) when a runner is composed;
+    /// recording clears the flags of the closed dates it carried.
+    /// </summary>
     // ETP-REUSE: ETP Tally preparation (ledger/voucher-type masters, company GUID, import report parsing) when V:\ETP is available.
     public async Task<TallyExportView> TallyAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(caller);
         await RequireAsync(caller, AccountingPermissions.Tally, ct).ConfigureAwait(false);
         if (VoucherExport.TallyRangeError(from, to) is { } error) throw HccException.Validation(error);
-        var days = await AccountingDays.RangeAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false);
-        var vouchers = days.SelectMany(d => d.Vouchers).ToList();
+        var flags = await store.TallyReexportsAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
+        var reopened = await store.ReopenedDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
+        var days = (await AccountingDays.RangeAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false)).ToList();
+        foreach (var f in flags.Where(f => f.BusinessDate < from || f.BusinessDate > to))
+            days.AddRange(await AccountingDays.RangeAsync(store, caller.PropertyId, f.BusinessDate, f.BusinessDate, ct).ConfigureAwait(false));
+        days = [.. days.OrderBy(x => x.Date)];
+        var flagged = flags.ToDictionary(f => f.BusinessDate);
+        var reexport = days.Where(x => flagged.ContainsKey(x.Date)).Select(x => x.Date).ToList();
+        var provisional = days.Where(x => x.Date == reopened).Select(x => x.Date).ToList();
+        var notes = reexport.Select(x => $"RE-EXPORT · {Iso(x)} changed after it was exported (day reopened: {flagged[x].Reason}). Delete that day's HCC vouchers in Tally before importing this file, or Tally will hold them twice.")
+            .Concat(provisional.Select(x => $"PROVISIONAL · {Iso(x)} is reopened and may still change; it is carried again by the first export after it is closed again.")).ToList();
+        var vouchers = days.SelectMany(x => x.Vouchers).ToList();
         var (d, c) = VoucherBuilder.Totals(vouchers);
         var company = await store.PropertyNameAsync(caller.PropertyId, ct).ConfigureAwait(false);
-        return new TallyExportView(from, to, days.Count, vouchers.Count, d, c, true, $"HCC-tally-SIMULATED-{Iso(from)}_{Iso(to)}.xml", VoucherExport.TallyXml(vouchers, company));
+        long? exportId = null;
+        if (runner is not null)
+        {
+            var clear = flags.Where(f => f.BusinessDate != reopened && days.Any(x => x.Date == f.BusinessDate)).Select(f => f.ReexportId).ToList();
+            var log = new NewTallyExport(caller.PropertyId, from, to, vouchers.Count, d, c, caller.PrincipalId, (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime,
+                days.Select(x => (x.Date, x.Vouchers.Count, flagged.ContainsKey(x.Date), x.Date == reopened)).ToList(), clear);
+            var r = await runner.RunAsync(new CommandContext(caller.PropertyId, caller.PrincipalId, OpExportTally, "tally-export:" + Guid.NewGuid().ToString("N")),
+                new { from, to }, async (tx, ct2) =>
+                {
+                    var id = await store.RecordTallyExportAsync(tx, log, ct2).ConfigureAwait(false);
+                    await tx.AuditAsync("TALLY_EXPORTED", "acc-tally:" + id.ToString(CultureInfo.InvariantCulture),
+                        $"{Iso(from)} to {Iso(to)} · {vouchers.Count} voucher(s) over {days.Count} date(s) · simulated"
+                        + (reexport.Count > 0 ? " · re-export " + string.Join(", ", reexport.Select(Iso)) : "")
+                        + (provisional.Count > 0 ? " · provisional " + string.Join(", ", provisional.Select(Iso)) : ""), ct2).ConfigureAwait(false);
+                    return new ExportLogged(id);
+                }, ct).ConfigureAwait(false);
+            exportId = r.Value.ExportId;
+        }
+
+        return new TallyExportView(from, to, days.Count, vouchers.Count, d, c, true, $"HCC-tally-SIMULATED-{Iso(from)}_{Iso(to)}.xml", VoucherExport.TallyXml(vouchers, company, notes),
+            reexport, provisional, exportId);
     }
 
     public static VoucherView ToView(Voucher v)

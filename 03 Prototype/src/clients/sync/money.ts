@@ -8,25 +8,29 @@
 //            shiftOpen / openingCash / shift / shiftClose ← GET /cashier/desk (DEC-052 shared till; learns till + shift ids/versions).
 //            cashbookX          ← GET /cashbook?from&to (locks and lock/reopen history; the figures stay derived on the client: cbDay).
 //            groupsX            ← GET /groups + /groups/{id}/statement (blocks of groups that have one; member room types from the
-//                                reservation reads). Company accounts / credit limits / overrides do not exist on the server (empty).
+//                                reservation reads) and GET /groups/companies: company accounts, limit requests and — for PERM-GRP-004
+//                                holders — the DEC-076 credit picture per company (exposure, receivable, remaining; shown instead of the
+//                                local estimate) and the company payments. Credit-limit overrides no longer exist (DEC-076: refused, no override).
 //   commands PAYMENT → RecordReceipt (one per tender; before check-in by reservationId: the server opens the folio)  · CHARGE → PostCharge · DISCOUNT / REFUND_REQUEST / COMPANY_CREDIT_REQUEST /
 //            CORRECTION_REQUEST → RequestAdjustment (expectedVersion = the folio version loaded) · REFUND_EXECUTE → ExecuteAdjustment ·
 //            APPROVAL → DecideApproval | DecideCreditNote · CHECKOUT is W4-1's (CheckoutStay): it calls companyCreditApprovalId() and,
 //            after CheckoutStay, issueInvoiceAfterCheckout() from here (a refusal does not fail the checkout: invoiceStepWarning) ·
 //            INVOICE_ISSUE → IssueInvoice (departed stay without an invoice; production "Issue invoice" action) ·
 //            CREDIT_NOTE → RequestCreditNote · SHIFT_SUBMIT → SubmitShiftCount · SHIFT_DIFFERENCE_DECIDE → DecideApproval ·
-//            CB_LOCK / CB_REOPEN → LockCashBookDay / ReopenCashBookDay · GRP_BLOCK_CREATE → CreateGroupBlock → CreateGroup.
+//            CB_LOCK / CB_REOPEN → LockCashBookDay / ReopenCashBookDay · GRP_BLOCK_CREATE → CreateGroupBlock → CreateGroup — but REFUSED with a
+//            written reason until the server option Hcc:GroupBlocks:Enabled is on (DEC-080, audit A02b-04: pickup, release, cancel and re-allot are not built).
+//            GRP_BLOCK_CREATE / CreateGroup carry companyId when billed to a company account · GRP_COMPANY_PAYMENT → RecordCompanyPayment (DEC-076).
 // The server re-checks everything (limits, self-approval, DEC-041 version binding, DEC-065 locks); prechecks only repeat cheap prototype refusals.
 import type {Booking,Approval,Command,State} from '../../services/mock';
-import {totals,addDays} from '../../services/mock';
-import type {GRPState} from '../../domain/streams/groups';
+import {totals,addDays,cxSlice,grpAccountOf} from '../../services/mock';
+import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,type GRPState} from '../../domain/streams/groups';
 import {HccClientError} from '../errors';
 import type {SrvAvailability} from '../server';
 import type {SyncArea,LoaderCtx,CommandCtx,SliceKey,SyncMe} from './types';
 import {serverId,protoId} from './map';
 import {BOOKING_STATUS} from './frontdesk/shared';
 import {folioIntoBooking,approvalFromServer,creditNoteRequestFromServer,cashDifferenceApproval,CNR_PREFIX,deskTill,deskShiftOpen,deskOpeningCash,
-  deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,companyFromServer,limitRequestFromServer,type SrvCompanyBook,
+  deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,companyFromServer,companyPaymentFromServer,limitRequestFromServer,type SrvCompanyBook,
   type SrvReservationFolio,type SrvInvoice,type SrvCreditNoteRequest,type SrvCashDesk,type SrvCashBookRange,type SrvGroupSummary,type SrvGroupStatement} from './money/wire';
 
 /** A booking as the money patch leaves it: the folio's approvals travel with it to the approvals loader (same batch). */
@@ -44,10 +48,12 @@ export const CASH_NEEDS_OWN_SHIFT='Cash needs your own open cashier shift — us
 /** Why this user cannot take a CASH tender (undefined = allowed as far as the client can tell). The owner of an open shift is not
  *  on the wire, so a user with only own-shift (S) payment scope needs an open shift AND the cashier permission to open one; the
  *  server remains the judge (and its refusal reads the same way). Users with property scope (Owner, Manager) are not limited. */
-export function cashBlockedReason(me:SyncMe|null|undefined,shiftOpen:boolean):string|undefined{
+export function cashBlockedReason(me:SyncMe|null|undefined,shiftOpen:boolean,openerUid?:string):string|undefined{
   if(!me)return undefined;
   const g=me.grants.filter(x=>x.permissionId===PAY_PERM);
   if(!g.length||g.some(x=>x.scope!=='S'))return undefined;
+  // DEC-078 (Wave B1): the desk read carries the shift's opener, so "own shift" is checked exactly when it is known.
+  if(openerUid)return shiftOpen&&openerUid===me.uid?undefined:CASH_NEEDS_OWN_SHIFT;
   return shiftOpen&&me.permIds.includes(SHIFT_PERM)?undefined:CASH_NEEDS_OWN_SHIFT;
 }
 const wire=(e:unknown)=>e instanceof HccClientError?e.wireCode:undefined;
@@ -123,7 +129,7 @@ async function patchApprovals(c:LoaderCtx):Promise<Approval[]>{
 /** One desk read per cash slice (four small GETs; each slice owns its whole value). Learns the till and the active shift. */
 async function desk(c:LoaderCtx):Promise<SrvCashDesk>{
   const d=await c.api.get<SrvCashDesk>('/cashier/desk');
-  const t=deskTill(d);
+  const t=deskTill(d,c.me.userId);
   if(t){c.ids.learn('till','desk',t.till.tillId);
     const a=t.active;
     // 'current' = the till with the open shift: what accounting (W4-7) passes for cash expense approve / reverse.
@@ -154,7 +160,8 @@ async function loadGroups(c:LoaderCtx):Promise<GRPState>{
   const book=c.mayRead('GET /groups/companies')?await optional(c.api.get<SrvCompanyBook>('/groups/companies')):null;
   const companies=(book?.companies??[]).map(x=>{c.ids.learn('company',protoId(x.companyId),x.companyId);c.ids.setVersion('company',protoId(x.companyId),x.version);return companyFromServer(x);});
   const requests=(book?.requests??[]).map(r=>{c.ids.learn('limitRequest',protoId(r.requestId),r.requestId);return limitRequestFromServer(r);});
-  return {companies,blocks:blocks.filter((b):b is NonNullable<typeof b>=>!!b),requests,overrides:[]};
+  const payments=(book?.payments??[]).map(companyPaymentFromServer);
+  return {companies,blocks:blocks.filter((b):b is NonNullable<typeof b>=>!!b),requests,overrides:[],payments};
 }
 
 // ── command helpers ──
@@ -198,7 +205,7 @@ function paymentPrecheck(cmd:Command,s:State,me?:SyncMe){
     if(!positive(t.amount))return 'Enter an amount greater than zero.';
     if(!['Cash','UPI','Card','Bank transfer'].includes(t.method))return 'Select a payment method.';
     if(t.method!=='Cash'&&!t.reference)return 'Enter the transaction reference.';
-    if(t.method==='Cash'){const b=cashBlockedReason(me,s.shiftOpen);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
+    if(t.method==='Cash'){const b=cashBlockedReason(me,s.shiftOpen,cxSlice(s).opener?.by);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
   }
   if(tenders.reduce((a,t)=>a+t.amount,0)!==cmd.amount)return 'Tender rows must add up to the payment amount.';
   return undefined;
@@ -251,7 +258,7 @@ export function invoiceStepWarning(e:unknown):string{
     +'Once that is fixed, open the departed stay and choose “Issue invoice”.';
 }
 /** Slices another area reloads after it moves cash (POS settle/void, expenses): the cash desk and the cash book. Folio changes: FOLIO_SLICES. */
-export const CASH_SLICES:SliceKey[]=['shiftOpen','openingCash','shift','shiftClose','cashbookX'];
+export const CASH_SLICES:SliceKey[]=['shiftOpen','openingCash','shift','shiftClose','cashbookX','cashOutX'];
 export const FOLIO_SLICES:SliceKey[]=['bookings','approvals'];
 
 export const money:SyncArea={
@@ -259,10 +266,10 @@ export const money:SyncArea={
   loaders:[
     {slice:'bookings',kind:'patch',requires:FOLIO_READERS,load:patchBookings},
     {slice:'approvals',kind:'patch',needs:['bookings','shift'],load:patchApprovals},
-    {slice:'shiftOpen',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftOpen(await desk(c));}},
-    {slice:'openingCash',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskOpeningCash(await desk(c));}},
-    {slice:'shift',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftRecord(await desk(c));}},
-    {slice:'shiftClose',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftClose(await desk(c));}},
+    {slice:'shiftOpen',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftOpen(await desk(c),c.me.userId);}},
+    {slice:'openingCash',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskOpeningCash(await desk(c),c.me.userId);}},
+    {slice:'shift',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftRecord(await desk(c),c.me.userId);}},
+    {slice:'shiftClose',requires:CASH_READERS,reads:['GET /cashier/desk'],async load(c){return deskShiftClose(await desk(c),c.me.userId);}},
     {slice:'cashbookX',requires:'reports',reads:['GET /cashbook'],needs:['date'],load:loadCashbook},
     {slice:'groupsX',requires:'reservations',reads:['GET /groups'],load:loadGroups},
   ],
@@ -284,7 +291,9 @@ export const money:SyncArea={
     {type:'CHARGE',reload:FOLIO,
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':!text(cmd.label)?'Describe the service.':undefined,
       async send(c){const b=bookingOf(c,c.cmd.id),f=folioOf(c,b.id);
-        await c.api.command('PostCharge',{folioId:f.folioId,label:text(c.cmd.label),amountPaise:c.cmd.amount,gstCategory:c.cmd.gst??null});}},
+        // DEC-077: a missed charge on the reopened business day names that day (the server refuses any other earlier date).
+        const on=typeof c.cmd.date==='string'&&c.cmd.date!==c.state.date?{serviceDate:c.cmd.date}:{};
+        await c.api.command('PostCharge',{folioId:f.folioId,label:text(c.cmd.label),amountPaise:c.cmd.amount,gstCategory:c.cmd.gst??null,...on});}},
     {type:'DISCOUNT',reload:FOLIO,
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':!text(cmd.reason)?'A reason is required.':undefined,
       async send(c){const b=bookingOf(c,c.cmd.id);return {result:await requestAdjustment(c,'discount',b,c.cmd.amount,text(c.cmd.reason),null)};}},
@@ -294,11 +303,13 @@ export const money:SyncArea={
         return {result:await requestAdjustment(c,'refund',b,c.cmd.amount,text(c.cmd.reason),serverId(c.cmd.receiptId,'Receipt'))};}},
     {type:'COMPANY_CREDIT_REQUEST',reload:FOLIO,
       precheck:(cmd,s)=>{const b=s.bookings.find(x=>x.id===cmd.id);if(!b)return undefined;
-        if(b.status!=='In house')return 'This stay is not in house.';if(!b.company?.name?.trim())return 'Add a company to this booking before requesting company credit.';
+        if(b.status!=='In house')return 'This stay is not in house.';if(!b.company?.name?.trim()&&!grpAccountOf(s,b))return 'Add a company to this booking before requesting company credit.';
         if(totals(b).balance<=0)return 'There is no outstanding balance to place on company credit.';return undefined;},
       async send(c){const b=bookingOf(c,c.cmd.id);
         // Server rule: the credit equals the current balance — the folio's own figures, which the loader reconciled paise-exact with the server.
-        return {result:await requestAdjustment(c,'credit',b,totals(b).balance,text(c.cmd.reason)||('Company credit · '+(b.company?.name??'')),null)};}},
+        // DEC-076: the server also needs the booking billed to a company account and checks that account's credit limit.
+        const company=b.company?.name||grpAccountOf(c.state,b)?.name||'';
+        return {result:await requestAdjustment(c,'credit',b,totals(b).balance,text(c.cmd.reason)||('Company credit · '+company),null)};}},
     {type:'CORRECTION_REQUEST',reload:FOLIO,
       precheck:cmd=>!text(cmd.reason)?'A reason is required.':!cmd.lineId?'Select the posted line to correct.':undefined,
       async send(c){const b=bookingOf(c,c.cmd.id),l=b.lines.find(x=>x.id===c.cmd.lineId);
@@ -355,6 +366,8 @@ export const money:SyncArea={
     {type:'GRP_BLOCK_CREATE',reload:['groupsX'],
       precheck:cmd=>text(cmd.name).length<2?'Enter the group name.':!Object.values(cmd.allot??{}).some(n=>Number(n)>0)?'Hold at least one room.':undefined,
       async send(c){
+        // DEC-080 / A02b-04: refused before any request (same title and sentence as the server's own NOT_AVAILABLE answer, option Hcc:GroupBlocks:Enabled).
+        if(!grpBlocksOnServer())throw new HccClientError('NOT_AVAILABLE',GRP_BLOCKS_REFUSAL,{reason:'GROUP_BLOCKS_OFF'});
         const cmd=c.cmd,allot=Object.entries(cmd.allot??{}).filter(([,n])=>Number(n)>0) as [string,number][];
         const ids=await roomTypeIds(c,allot.map(([t])=>t),cmd.arrival,cmd.departure);
         const block=await c.api.command<{groupBlockId:number}>('CreateGroupBlock',{code:blockCode(cmd.name,cmd.arrival),name:text(cmd.name),arrival:cmd.arrival,departure:cmd.departure,cutoff:cmd.cutoff,
@@ -362,7 +375,9 @@ export const money:SyncArea={
         const contact=text(cmd.contact)||text(cmd.name);
         const co=cmd.billTo==='company'&&cmd.company?c.state.groupsX?.companies.find(x=>x.id===String(cmd.company)):undefined;
         const rules=cmd.billTo==='guest'?[{category:'room',target:'guest'},{category:'extras',target:'guest'},{category:'tax',target:'follow'}]:null;
-        const group=await c.api.command('CreateGroup',{name:text(cmd.name),groupBlockId:block.groupBlockId,organiser:contact,billingName:co?.name??text(cmd.name),billingContact:co?.contact||contact,gstin:co?.gstin||null,rules},{step:'group'});
+        // DEC-076: a bill-to-company block's master is billed to the company account (routing to it is credit-checked on the server).
+        const group=await c.api.command('CreateGroup',{name:text(cmd.name),groupBlockId:block.groupBlockId,organiser:contact,billingName:co?.name??text(cmd.name),billingContact:co?.contact||contact,gstin:co?.gstin||null,rules,
+          companyId:co?serverId(co.id,'Company'):null},{step:'group'});
         return {result:{block,group}};
       }},
     {type:'GRP_COMPANY_SAVE',reload:['groupsX'],
@@ -383,6 +398,12 @@ export const money:SyncArea={
     {type:'GRP_LIMIT_DECIDE',reload:['groupsX'],
       async send(c){const m=c.cmd;
         return {result:await c.api.command('DecideCompanyLimit',{requestId:serverId(m.id,'Limit request'),approve:!!m.approve,note:text(m.note)||null})};}},
+    // DEC-076: money received from a company (PERM-GRP-005; UPI, card or bank transfer; at most what it owes on company credit — the server checks).
+    {type:'GRP_COMPANY_PAYMENT',reload:['groupsX'],
+      precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':cmd.method==='Cash'?'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.'
+        :!text(cmd.reference)?'Enter the transaction reference for a non-cash payment.':undefined,
+      async send(c){const m=c.cmd;
+        return {result:await c.api.command('RecordCompanyPayment',{companyId:serverId(m.company,'Company'),tender:m.method,amountPaise:m.amount,reference:text(m.reference),invoiceNo:text(m.invoice)||null})};}},
   ],
   unmapped:{
     GRP_BLOCK_ALLOT:'no server command changes a block’s allotment (inventory backlog)',

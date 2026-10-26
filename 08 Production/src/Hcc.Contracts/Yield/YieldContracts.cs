@@ -1,16 +1,16 @@
 namespace Hcc.Contracts.Yield;
 
 /// <summary>
-/// PERM ids used by yield &amp; tariffs (no new ids; RBAC matrix v1 + DEC-063). View = report.operations (Owner, Manager, Accountant);
-/// Propose = approval.decide (Owner, Manager: the prototype's "approve"); Manage and Decide = admin.configuration (Owner only;
-/// the Technical administrator's view-only cell does not satisfy this ACTION permission).
+/// PERM ids of yield &amp; tariffs: the module's own set from role matrix v2 (DEC-079, migration 3700; the whole module is money, so there is
+/// no separate reveal). View = Owner, Manager, Accountant (view); Propose a tariff publish = Owner, Manager; Manage (seasons, plans, rules,
+/// guardrails, overrides, publish) and Decide a proposal = Owner only (C3: the same result as before, now independent of PERM-ADM-003).
 /// </summary>
 public static class YieldPermissions
 {
-    public const string View = "PERM-RPT-001";
-    public const string Propose = "PERM-APR-001";
-    public const string Manage = "PERM-ADM-003";
-    public const string Decide = "PERM-ADM-003";
+    public const string View = "PERM-YLD-001";
+    public const string Propose = "PERM-YLD-002";
+    public const string Manage = "PERM-YLD-003";
+    public const string Decide = "PERM-YLD-003";
 }
 
 /// <summary>Domain events written to the outbox.</summary>

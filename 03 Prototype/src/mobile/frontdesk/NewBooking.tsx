@@ -4,7 +4,7 @@ import {useStepBack} from '../../app/native';
 import React,{useState} from 'react';
 import {ArrowRight,ArrowLeft,Hourglass,Check,TriangleAlert,DoorOpen,Printer,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,nights,addDays,RES_CAPACITY,RES_OTA_CHANNELS,fdmSourceChoices,fdmOtaChannelNames} from '../../services/mock';
+import {money,nights,addDays,grpCompany,grpStayValue,RES_CAPACITY,RES_OTA_CHANNELS,fdmSourceChoices,fdmOtaChannelNames} from '../../services/mock';
 import {useReservations,useAvailability,useBooking} from '../../clients/react';
 import {quoteAndCreate,createRequestFromBook} from '../../clients/view';
 import {Stepper,NumberStepper,ChipFilter} from '../../app/mobile/components';
@@ -12,6 +12,7 @@ import {shortDate,dateLabel,Empty} from '../../components/ui';
 import {mfDraft,mfPick,mfWizardErrors,mfWizardSteps,mfBookCommand,mfRestriction,MfBookingDraft} from './logic';
 import {RestrictionNotice} from '../../features/reservations/RestrictionNotice';
 import {MfRows} from './shared';
+import {CompanyAccountPicker} from '../../features/groups/credit';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const Err=({m}:{m?:string})=>m?<small className="mf-err" role="alert">{m}</small>:null;
@@ -89,8 +90,9 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
         <label>Fictional email (optional)<input type="email" inputMode="email" value={d.email} enterKeyHint="next" placeholder="guest@example.test" onChange={e=>set('email',e.target.value)}/></label>
         <label>Booking source *<select value={d.source} onChange={e=>set('source',e.target.value)}>{fdmSourceChoices(s,d.source).map(x=><option key={x}>{x}</option>)}</select></label>
         {d.source==='OTA'&&<label>OTA channel name *<input list="mf-ota" value={d.otaChannel} maxLength={60} enterKeyHint="next" aria-invalid={!!shown.otaChannel} onChange={e=>set('otaChannel',e.target.value)}/><datalist id="mf-ota">{fdmOtaChannelNames(s,RES_OTA_CHANNELS).map(x=><option key={x} value={x}/>)}</datalist><Err m={shown.otaChannel}/></label>}
-        <label>Company (optional)<input value={d.company} maxLength={80} enterKeyHint="next" aria-invalid={!!shown.company} onChange={e=>set('company',e.target.value)}/><Err m={shown.company}/></label>
-        <label>GSTIN (optional, fictional)<input value={d.gstin} maxLength={15} autoCapitalize="characters" enterKeyHint="next" placeholder="27AAAAA0000A1Z5" aria-invalid={!!shown.gstin} onChange={e=>set('gstin',e.target.value.toUpperCase())}/><Err m={shown.gstin}/></label>
+        <CompanyAccountPicker mobile value={d.account||''} onChange={v=>set('account',v)} stay={p.chosen&&p.valid?grpStayValue(s,chosenRate,d.arrival,d.departure):0}/>
+        {!d.account&&<><label>Company (optional)<input value={d.company} maxLength={80} enterKeyHint="next" aria-invalid={!!shown.company} onChange={e=>set('company',e.target.value)}/><Err m={shown.company}/></label>
+        <label>GSTIN (optional, fictional)<input value={d.gstin} maxLength={15} autoCapitalize="characters" enterKeyHint="next" placeholder="27AAAAA0000A1Z5" aria-invalid={!!shown.gstin} onChange={e=>set('gstin',e.target.value.toUpperCase())}/><Err m={shown.gstin}/></label></>}
         <label>Notes<textarea rows={2} value={d.notes} maxLength={300} enterKeyHint="done" onChange={e=>set('notes',e.target.value)}/></label>
       </>}
       {step===3&&<>
@@ -98,7 +100,8 @@ export function MfNewBooking({room,id}:{room?:string;id?:string}){
           ['Party',`${d.people} adult${d.people===1?'':'s'}${d.children?` · ${d.children} child${d.children===1?'':'ren'}`:''}`],
           ['Room',p.chosen?`${p.chosen.id} · ${p.chosen.type}${d.room?'':' (auto-assigned)'}`:'—'],
           ['Tariff',p.chosen?`${money(chosenRate)} / night`:'—'],['Room charges',p.chosen?`${money(chosenRate*n)} + GST`:'—'],
-          ['Source',d.source+(d.source==='OTA'&&d.otaChannel?' · '+d.otaChannel:'')],...(d.company?[['Company',d.company+(d.gstin?' · '+d.gstin:'')]] as [string,string][]:[]),
+          ['Source',d.source+(d.source==='OTA'&&d.otaChannel?' · '+d.otaChannel:'')],
+          ...(d.account&&grpCompany(s,d.account)?[['Billed to',grpCompany(s,d.account)!.name+' (company account)']] as [string,string][]:d.company?[['Company',d.company+(d.gstin?' · '+d.gstin:'')]] as [string,string][]:[]),
           ...(rst.overridden?[['Restriction',`Overridden: ${rst.restrictionOverride}`]] as [string,string][]:[])]}/>
         {Object.values(shown).map(m=><Err key={m} m={m}/>)}
         <div className="info-note"><Info size={16}/>A hold reserves the room for 2 hours of simulated time, then releases it. Availability is rechecked when you save. No message is sent (simulated).</div>

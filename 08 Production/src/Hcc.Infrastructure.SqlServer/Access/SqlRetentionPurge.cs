@@ -5,7 +5,7 @@ using Hcc.Infrastructure.SqlServer.Connection;
 namespace Hcc.Infrastructure.SqlServer.Access;
 
 /// <summary>What one retention pass removed.</summary>
-public sealed record RetentionPurgeResult(int IdempotencyRecords, int Sessions, int OutboxEvents = 0);
+public sealed record RetentionPurgeResult(int IdempotencyRecords, int Sessions, int OutboxEvents = 0, int BankingSlips = 0);
 
 /// <summary>
 /// F-L03 retention: idempotency records (stored command results, which can hold guest names and phones) older than
@@ -14,7 +14,9 @@ public sealed record RetentionPurgeResult(int IdempotencyRecords, int Sessions, 
 /// which every command already treats as a new request. A08-01: delivered outbox events older than
 /// <see cref="AccessOptions.OutboxRetention"/> (30 days) that every subscribed consumer (<c>plat.outbox_subscription</c>) has processed,
 /// with their dedup and failure rows. Never an unprocessed or parked event, and never one an accounting source (<c>acc.source</c>,
-/// append-only) points to. One audit row per pass that removed something.
+/// append-only) points to. DEC-073: bank-deposit slip photos (<c>pay.banking_slip</c>) recorded more than
+/// <see cref="AccessOptions.BankingSlipRetention"/> (600 days) ago; the banking record stays and is stamped <c>slip_purged_utc</c>.
+/// One audit row per pass that removed something.
 /// </summary>
 public sealed class SqlRetentionPurge(SqlConnectionFactory connections, AccessOptions options, TimeProvider clock)
 {
@@ -41,6 +43,21 @@ public sealed class SqlRetentionPurge(SqlConnectionFactory connections, AccessOp
         SELECT @deleted;
         """;
 
+    /// <summary>One batch of slip photos past retention: the photo row is deleted, the banking record is stamped. Returns the count.</summary>
+    private const string SlipPurgeSql = """
+        SET NOCOUNT ON;
+        DECLARE @ids TABLE(transfer_id BIGINT PRIMARY KEY);
+        BEGIN TRANSACTION;
+        INSERT @ids(transfer_id)
+        SELECT TOP (@n) t.transfer_id FROM pay.cash_transfer t WITH (UPDLOCK)
+         WHERE t.kind = 'banking' AND t.slip_purged_utc IS NULL AND t.recorded_utc < @cut ORDER BY t.transfer_id;
+        DELETE b FROM pay.banking_slip b JOIN @ids i ON i.transfer_id = b.transfer_id;
+        UPDATE t SET slip_purged_utc = @now FROM pay.cash_transfer t JOIN @ids i ON i.transfer_id = t.transfer_id;
+        DECLARE @done INT = @@ROWCOUNT;
+        COMMIT;
+        SELECT @done;
+        """;
+
     public async Task<RetentionPurgeResult> RunOnceAsync(CancellationToken ct = default)
     {
         var now = SqlSessionService.Truncate(clock.GetUtcNow().UtcDateTime);
@@ -50,6 +67,15 @@ public sealed class SqlRetentionPurge(SqlConnectionFactory connections, AccessOp
              WHERE (revoked_utc IS NOT NULL AND revoked_utc < @cut) OR (revoked_utc IS NULL AND absolute_expires_utc < @cut);
             """, now - options.SessionRetention, ct).ConfigureAwait(false);
         var outbox = await PurgeOutboxAsync(now - options.OutboxRetention, ct).ConfigureAwait(false);
+        var slips = await PurgeSlipsAsync(now - options.BankingSlipRetention, now, ct).ConfigureAwait(false);
+        if (slips > 0)
+        {
+            await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+            await AccessAudit.WriteAsync(connections, conn, null, 0, 0, "RETENTION_PURGE", "banking-slip",
+                $"Deleted {slips} bank-deposit slip photo(s) recorded more than {options.BankingSlipRetention.TotalDays:0} days ago; the deposit records are kept (DEC-073).",
+                "RetentionPurge", ct).ConfigureAwait(false);
+        }
+
         if (idem + sessions + outbox > 0)
         {
             await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
@@ -58,7 +84,23 @@ public sealed class SqlRetentionPurge(SqlConnectionFactory connections, AccessOp
                 "RetentionPurge", ct).ConfigureAwait(false);
         }
 
-        return new RetentionPurgeResult(idem, sessions, outbox);
+        return new RetentionPurgeResult(idem, sessions, outbox, slips);
+    }
+
+    private async Task<int> PurgeSlipsAsync(DateTime cutoff, DateTime now, CancellationToken ct)
+    {
+        var total = 0;
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        while (true)
+        {
+            await using var cmd = connections.Command(SlipPurgeSql, conn);
+            cmd.Parameters.Add("@n", SqlDbType.Int).Value = Batch;
+            cmd.Parameters.Add("@cut", SqlDbType.DateTime2).Value = cutoff;
+            cmd.Parameters.Add("@now", SqlDbType.DateTime2).Value = now;
+            var n = (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+            total += n;
+            if (n < Batch) return total;
+        }
     }
 
     private async Task<int> DeleteAsync(string sql, DateTime cutoff, CancellationToken ct)

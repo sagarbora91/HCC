@@ -1,6 +1,6 @@
 // Closing area helpers (W4-4): server DTOs (08 Production/src/Hcc.Contracts/Closing + Reporting) and their mapping to the
 // prototype's ClosingRecord (state.closings[date]) and, for the Reports screen, to a figure-level ReportPack.
-import type {ClosingRecord} from '../../../domain/streams/closing';
+import type {ClosingRecord,ClosingReopen} from '../../../domain/streams/closing';
 import type {ReportPack,ReportTab,ReportMetric} from '../../../domain/streams/closing';
 import {money} from '../../../domain/money';
 import {utcToClock,protoUserId} from '../map';
@@ -18,9 +18,25 @@ export type SrvDaily={from:string;to:string;
   days:SrvDay[]};
 export type SrvClosingRecord={businessDate:string;closedBy:number;closedUtc:string;runId:number;attempts:number;nightAuditResumed:boolean;nightAuditStays:number;
   depositsHeldAtClosePaise:number;exceptions:string[];figures:SrvDaily};
-export type SrvSnapshot={snapshotId:number;sha256:string;record:SrvClosingRecord};
-export type SrvRecords={from:string;to:string;items:SrvSnapshot[]};
-export type SrvBusinessDate={businessDate:string;closed:boolean};
+export type SrvSnapshot={snapshotId:number;sha256:string;record:SrvClosingRecord;reopenId?:number|null;supersededUtc?:string|null};
+/** DEC-077 DayReopenView. */
+export type SrvReopen={reopenId:number;businessDate:string;status:string;reopenedBy:number;reopenedUtc:string;reason:string;priorSnapshotId:number;
+  cashBookLocked:boolean;tallyReexport:boolean;reclosedBy:number|null;reclosedUtc:string|null;snapshotId:number|null};
+export type SrvRecords={from:string;to:string;items:SrvSnapshot[];replaced?:SrvSnapshot[]|null;reopens?:SrvReopen[]|null};
+export type SrvBusinessDate={businessDate:string;closed:boolean;reopenedDate?:string|null};
+/** DEC-077: a server reopen as the prototype ClosingReopen. */
+export function reopenFromServer(r:SrvReopen):ClosingReopen{
+  return {id:String(r.reopenId),date:r.businessDate,by:protoUserId(r.reopenedBy),at:utcToClock(r.reopenedUtc),reason:r.reason,cashBookLocked:r.cashBookLocked,
+    tallyReexport:r.tallyReexport,...(r.reclosedUtc?{reclosedBy:protoUserId(r.reclosedBy??0),reclosedAt:utcToClock(r.reclosedUtc)}:{})};
+}
+/** The closing records of a records view keyed by date, with DEC-077 reopens and replaced (earlier) records attached to their date. */
+export function closingsFromServer(v:SrvRecords):Record<string,ClosingRecord>{
+  const out:Record<string,ClosingRecord>={};
+  for(const x of v.items)out[x.record.businessDate]=closingFromServer(x.record);
+  for(const x of v.replaced??[]){const c=out[x.record.businessDate];if(c)c.replaced=[...(c.replaced??[]),closingFromServer(x.record)];}
+  for(const r of v.reopens??[]){const c=out[r.businessDate];if(c)c.reopens=[...(c.reopens??[]),reopenFromServer(r)];}
+  return out;
+}
 export type SrvDailyView={report:SrvDaily;dayStatus:{date:string;status:string;matchesSnapshot:boolean|null}[];businessDate:string;note:string};
 
 const ratio=(p:number|null)=>p===null||p===undefined?'—':money(p);

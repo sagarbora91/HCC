@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Hcc.Application.Access;
 using Hcc.Application.Commands;
 using Hcc.Application.Configuration;
 using Hcc.Application.Documents;
@@ -290,7 +291,9 @@ public class DocumentsSqlTests : IAsyncLifetime
         await _w.ScalarAsync("UPDATE inv.property SET business_date = '2027-01-21' WHERE property_id = " + _w.PropertyId); // day 89
         Assert.Equal(0, (await _w.Svc.PurgeAsync(_w.Ctx("OWN"), new PurgeIdCapturesRequest("retention run"), Ct)).Value.Purged);
         await _w.ScalarAsync("UPDATE inv.property SET business_date = '2027-01-22' WHERE property_id = " + _w.PropertyId); // day 90
-        var p = (await _w.Svc.PurgeAsync(_w.Ctx("MGR"), new PurgeIdCapturesRequest("retention run"), Ct)).Value;
+        // DEC-079 (v2 DOC-005): retention / archive is the Owner's; the Manager no longer runs the purge.
+        await Fails(HccErrorCode.FORBIDDEN, () => _w.Svc.PurgeAsync(_w.Ctx("MGR"), new PurgeIdCapturesRequest("retention run"), Ct));
+        var p = (await _w.Svc.PurgeAsync(_w.Ctx("OWN"), new PurgeIdCapturesRequest("retention run"), Ct)).Value;
         Assert.Equal((1, 90, new DateOnly(2026, 10, 24)), (p.Purged, p.RetentionDays, p.CutoffDate));
         Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture_image;"));
         Assert.Equal(1, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture WHERE status = 'Purged' AND ocr_sealed IS NULL AND purged_utc IS NOT NULL;"));
@@ -298,6 +301,30 @@ public class DocumentsSqlTests : IAsyncLifetime
         await Fails(HccErrorCode.NOT_FOUND, () => _w.Svc.ViewImageAsync(_w.Ctx("REC"), new ViewIdCaptureImageRequest(old.CaptureId), Ct));
         Assert.Equal("Purged", (await _w.Svc.GetAsync(_w.PropertyId, _w.Users["REC"], old.CaptureId, Ct)).Status);
         Assert.Equal(1, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'ID_CAPTURE_PURGE' AND detail LIKE '1 ID captures purged%';"));
+    }
+
+    /// <summary>A clock stuck at one instant (the scheduled retention pass judges ages from it).</summary>
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    [Fact]
+    public async Task The_scheduled_retention_pass_never_purges_ID_captures()
+    {
+        // DEC-071: guest ID data is kept indefinitely. Ten years on, the background retention pass (idempotency records, sessions, outbox) still
+        // leaves the capture, its sealed image and its OCR text alone; only the manual PurgeIdCaptures command deletes captures.
+        var v = (await Capture()).Value;
+        await _w.ScalarAsync("UPDATE inv.property SET business_date = '2036-10-24' WHERE property_id = " + _w.PropertyId);
+        var pass = new SqlRetentionPurge(_w.Platform.Connections, new AccessOptions(), new FixedClock(new DateTimeOffset(2036, 10, 24, 0, 0, 0, TimeSpan.Zero)));
+        await pass.RunOnceAsync(Ct);
+        Assert.Equal(1, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture_image;"));
+        Assert.Equal(1, await _w.LongAsync("SELECT COUNT(*) FROM doc.id_capture WHERE status = 'Captured' AND ocr_sealed IS NOT NULL AND purged_utc IS NULL;"));
+        Assert.Equal("Captured", (await _w.Svc.GetAsync(_w.PropertyId, _w.Users["REC"], v.CaptureId, Ct)).Status);
+        Assert.Equal(0, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'ID_CAPTURE_PURGE';"));
+
+        // The manual command still works on demand (it is the only way ID data is deleted).
+        Assert.Equal(1, (await _w.Svc.PurgeAsync(_w.Ctx("OWN"), new PurgeIdCapturesRequest("guest asked for erasure"), Ct)).Value.Purged);
     }
 
     [Fact]

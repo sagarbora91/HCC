@@ -138,7 +138,8 @@ export async function register({test,assert,M}){
 
   // ── masking (DEC-063 G12): a Maintenance technician gets no money, no vendors / plans / AMCs ──
   const tech=fakeServer({
-    'GET /me/capabilities':()=>capabilities({userId:5,roles:['MNT'],grants:[['PERM-HK-001','A']]}),
+    // Role matrix v2 (3700): the technician's maintenance view and work; no money (MNT-004) and no AMC (MNT-005).
+    'GET /me/capabilities':()=>capabilities({userId:5,roles:['MNT'],grants:[['PERM-HK-001','A'],['PERM-MNT-001','A'],['PERM-MNT-002','A']]}),
     'GET /maintenance/registers':()=>({assets:D.registers.assets,vendors:[],plans:[],spares:D.registers.spares.map(s=>({...s,costPaise:null}))}),
     'GET /maintenance/work-orders':({query})=>page(D.orders.filter(o=>o.assigneeId===5).map(o=>({...o,parts:o.parts.map(p=>({...p,unitCostPaise:null}))})),query),
     'GET /maintenance/work-orders/:id':()=>({history:[]}),

@@ -120,6 +120,7 @@ export async function register({test,assert,M}){
   });
   srv.reset();await rt.run({type:'PAYMENT',id:'1201',amount:100000,kind:'deposit',method:'Cash',key:'pay:3'});const cashBody=srv.commands('RecordReceipt')[0];
   const charge=await run({type:'CHARGE',id:'1201',amount:30000,label:'Dinner',gst:'food',key:'chg:1'});const chargeCmd=srv.commands('PostCharge')[0];
+  const chargeOn=await run({type:'CHARGE',id:'1201',amount:30000,label:'Missed laundry',gst:'laundry',date:'2026-10-23',key:'chg:2'});const chargeOnCmd=srv.commands('PostCharge')[0];
   const disc=await run({type:'DISCOUNT',id:'1201',amount:20000,reason:'Goodwill',key:'disc:1'});const discCmd=srv.commands('RequestAdjustment')[0];
   const rr=await run({type:'REFUND_REQUEST',id:'1201',receiptId:'7001',amount:10000,reason:'Overpaid',key:'rr:1'});const rrCmd=srv.commands('RequestAdjustment')[0];
   const cc=await run({type:'COMPANY_CREDIT_REQUEST',id:'1201',key:'cc:1201:1'});const ccCmd=srv.commands('RequestAdjustment')[0];
@@ -128,6 +129,9 @@ export async function register({test,assert,M}){
     assert.deepEqual(cashBody.body,{folioId:5001,kind:'deposit',tender:'Cash',amountPaise:100000,reference:null,tillId:3});
     for(const x of [charge,disc,rr,cc,cor])assert.ok(x.r.ok,x.r.text);
     assert.deepEqual([chargeCmd.key,chargeCmd.body],['chg:1',{folioId:5001,label:'Dinner',amountPaise:30000,gstCategory:'food'}]);
+    // DEC-077: a missed charge on the reopened day names it as the service date (the server decides whether that day is reopened).
+    assert.ok(chargeOn.r.ok,chargeOn.r.text);
+    assert.deepEqual(chargeOnCmd.body,{folioId:5001,label:'Missed laundry',amountPaise:30000,gstCategory:'laundry',serviceDate:'2026-10-23'});
     assert.deepEqual(discCmd.body,{action:'discount',folioId:5001,targetId:null,amountPaise:20000,reason:'Goodwill',expectedVersion:'FOLv1'});
     assert.deepEqual(rrCmd.body,{action:'refund',folioId:5001,targetId:7001,amountPaise:10000,reason:'Overpaid',expectedVersion:'FOLv1'});
     assert.deepEqual(ccCmd.body,{action:'credit',folioId:5001,targetId:null,amountPaise:326500,reason:'Company credit · Fictional Travels',expectedVersion:'FOLv1'},'credit = the server balance');
@@ -203,8 +207,22 @@ export async function register({test,assert,M}){
     assert.deepEqual([lockCmd.body,reoCmd.body],[{businessDate:'2026-10-23'},{businessDate:'2026-10-22',reason:'Missed expense'}]);
     assert.deepEqual(lock.calls,['POST /commands/LockCashBookDay','GET /cashbook']);
   });
-  const grp=await run({type:'GRP_BLOCK_CREATE',name:'Iyer conference',billTo:'guest',arrival:'2026-12-20',departure:'2026-12-22',cutoff:'2026-12-10',allot:{Deluxe:3,Suite:0},rates:{Deluxe:190000},contact:'A. Iyer',key:'grp:1'});
+  // DEC-080 (A02b-04): production refuses a group block until the server option is on — a written reason, no request at all.
+  const blockCmd={type:'GRP_BLOCK_CREATE',name:'Iyer conference',billTo:'guest',arrival:'2026-12-20',departure:'2026-12-22',cutoff:'2026-12-10',allot:{Deluxe:3,Suite:0},rates:{Deluxe:190000},contact:'A. Iyer'};
+  const grpOff=await run({...blockCmd,key:'grp:0'});
+  const grpOffSent=srv.calls.length;
+  S.grpSetBlocksOnServer(true);   // the day Hcc:GroupBlocks:Enabled is switched on, the same mapping sends again
+  const grp=await run({...blockCmd,key:'grp:1'});
+  S.grpSetBlocksOnServer(false);
   const gb=srv.commands('CreateGroupBlock')[0],gg=srv.commands('CreateGroup')[0];
+  test('[DEC-080] GRP_BLOCK_CREATE is refused in production with the written reason (same sentence and title as the server) and sends nothing; the default is off',()=>{
+    assert.equal(S.grpBlocksOnServer(),false);
+    assert.equal(S.GRP_BLOCKS_REFUSAL,'Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.');
+    assert.equal(grpOff.r.ok,false);assert.equal(grpOff.r.reason,'server');
+    assert.equal(grpOff.r.text,'Not available: Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.');
+    assert.equal(grpOff.r.error.wireCode,'NOT_AVAILABLE');assert.equal(grpOff.r.error.details.reason,'GROUP_BLOCKS_OFF');
+    assert.deepEqual([grpOff.calls,grpOffSent],[[],0],'no availability read, no CreateGroupBlock, no CreateGroup');
+  });
   test('[W4-3 money] GRP_BLOCK_CREATE → [GET /availability for room-type ids] → CreateGroupBlock → CreateGroup (guest-paid routing), groups reload',()=>{
     assert.ok(grp.r.ok,grp.r.text);
     assert.deepEqual(grp.calls.slice(0,3),['GET /availability','POST /commands/CreateGroupBlock','POST /commands/CreateGroup']);

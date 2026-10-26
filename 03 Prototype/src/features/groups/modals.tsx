@@ -2,8 +2,8 @@
 // 'grp-allot' / 'grp-release' / 'grp-cancel' / 'grp-rooming' (id = block), 'grp-print' (id = 'pickup' | 'folio:<block>').
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
-import {Check,Plus,Trash2,AlertTriangle,Info,Printer} from 'lucide-react';
-import {money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
+import {Check,Plus,Trash2,AlertTriangle,Info,Printer,Banknote} from 'lucide-react';
+import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,grpCreditRefusal,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
@@ -32,18 +32,22 @@ export function CompanyModal({id}:{id?:string}){
       <label>E-mail<input name="email" type="email" inputMode="email" maxLength={80} defaultValue={c?.email} placeholder="travel@company.example.test"/></label>
       <fieldset className="grp-fieldset"><legend>Negotiated nightly rate (₹, blank = rack rate)</legend><div className="form-row">{types.map(t=><label key={t}>{t}<input name={'rate-'+t} inputMode="decimal" defaultValue={grpRupees(c?.rates[t]||0)} placeholder={String(s.rooms.find(r=>r.type===t)!.rate/100)}/></label>)}</div></fieldset>
       {!c&&<label>Opening credit limit (₹, optional)<input name="limit" inputMode="decimal" placeholder="0"/><small>{rbacMoneyAdmin(s,uid)?'You can set this directly.':'Without the Owner’s access this is sent as a request for approval.'}</small></label>}
-      {c&&<div className="info-note"><Info size={16}/>Change the credit limit with “Credit limit” (administrator, or a request that an approver decides).</div>}
+      {c&&<div className="info-note"><Info size={16}/>Change the credit limit with “Credit limit” (the Owner directly, anyone else as a request the Owner decides — DEC-076).</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>{c?'Save changes':'Create account'} <Check size={16}/></button></div>
     </form></>;
 }
 
 export function LimitModal({id}:{id?:string}){
-  const {s,uid,run,modal,closeModal,busy,permission}=useHcc();const c=grpCompany(s,id);
+  const {s,uid,run,open,modal,closeModal,busy,permission}=useHcc();const c=grpCompany(s,id);
   if(!c)return <Empty title="This company is unavailable"/>;
   const k=grpCredit(s,c),admin=rbacMoneyAdmin(s,uid),pending=grpSlice(s).requests.find(r=>r.company===c.id&&r.status==='Pending');
-  return <><Head eyebrow={'CREDIT · '+c.id} title={c.name} sub={admin?'As Owner you set the limit directly; the change is audited.':'Your change is sent as a request; an Owner or Manager (not you) decides it.'}/>
-    <div className="summary-list grp-summary"><div><span>Current limit</span><strong>{money(c.creditLimit)}</strong></div><div><span>Exposure (estimate)</span><strong>{money(k.exposure)}</strong></div>
-      <div><span>Opening outstanding (simulated AR)</span><strong>{money(c.openingOutstanding)}</strong></div><div><span>Status</span><strong><GrpCreditPill level={k.level}/> {k.limit?k.pct+'% used':''}</strong></div></div>
+  return <><Head eyebrow={'CREDIT · '+c.id} title={c.name} sub={admin?'As Owner you set the limit directly; the change is audited.':'Your change is sent as a request; the Owner decides it (DEC-076).'}/>
+    <div className="summary-list grp-summary"><div><span>Current limit</span><strong>{money(c.creditLimit)}{c.creditLimit===0?' (no credit)':''}</strong></div>
+      <div><span>Used</span><strong>{money(k.exposure)}</strong></div><div><span>Remaining</span><strong>{money(k.available)}</strong></div>
+      <div><span>Owed on company credit{c.openingOutstanding?' (incl. simulated opening AR)':''}</span><strong>{money(k.receivable)}</strong></div>
+      <div><span>Stays billed to the company (estimate)</span><strong>{money(k.stays)}</strong></div>
+      <div><span>Status</span><strong><GrpCreditPill level={k.level}/> {k.limit?k.pct+'% used':''}</strong></div></div>
+    {permission('payments')&&k.receivable>0&&<button type="button" className="btn grp-pay-btn" onClick={()=>open({type:'grp-payment',id:c.id})}><Banknote size={16}/> Record a payment from the company</button>}
     {pending&&<div className="info-note"><Info size={16}/>{pending.id} pending: {money(pending.from)} → {money(pending.to)} by {grpUserName(s,pending.actor)}{pending.actor===uid?' (yours)':''}.</div>}
     {(c.limitHistory||[]).length>0&&<details className="grp-hist"><summary>Limit history ({c.limitHistory!.length})</summary><ul>{c.limitHistory!.map((h,i)=><li key={i}>{money(h.from)} → {money(h.to)} · {grpUserName(s,h.actor)} · {shortDate(h.at.slice(0,10))} · {h.reason}</li>)}</ul></details>}
     {(admin||(permission('reservations')&&!pending))?<form className="form" onSubmit={e=>submit(e,f=>run({type:'GRP_LIMIT_SET',company:c.id,limit:grpPaise(f.get('limit'))??-1,reason:field(f,'reason'),key:modal!.key},admin?'Credit limit updated':'Credit-limit request sent',{close:true}))}>
@@ -61,7 +65,10 @@ export function BlockModal(){
   const dep=d||(a?new Date(Date.parse(a+'T12:00:00Z')+86400000).toISOString().slice(0,10):'');
   const company=grpCompany(s,co);
   const valid=a>=s.date&&dep>a&&nights(a,dep)<=30;
+  // DEC-080: the production server refuses blocks until pickup / release / cancel / re-allot exist; say so up front (the demo build is unchanged).
+  const refused=process.env.HCC_BUILD==='production'&&!grpBlocksOnServer();
   return <><Head eyebrow="GROUP BLOCK" title="New group block" sub="Hold rooms by type for a group. Unpicked rooms are released automatically when the business date passes the cut-off."/>
+    {refused&&<div className="gs-deny" role="alert"><AlertTriangle size={18}/><div>{GRP_BLOCKS_REFUSAL}</div></div>}
     <form className="form" onSubmit={e=>submit(e,f=>{
       const rates:Record<string,number>={};types.forEach(t=>{const v=grpPaise(f.get('rate-'+t));if(v!==undefined&&allot[t])rates[t]=v;});
       run({type:'GRP_BLOCK_CREATE',name:field(f,'name'),company:co||undefined,billTo:bill,arrival:a,departure:dep,cutoff:field(f,'cutoff'),allot,rates,contact:field(f,'contact'),notes:field(f,'notes'),key:modal!.key},'Group block created',{close:true});})}>
@@ -77,7 +84,7 @@ export function BlockModal(){
             <small>{valid?`${cap} can be held (${free} free${held?`, ${held} held by other blocks`:''})`:'Choose valid dates'}</small></div>;})}
       </fieldset>
       <div className="form-row"><label>Group contact<input name="contact" maxLength={60}/></label><label>Notes<input name="notes" maxLength={200}/></label></div>
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!valid||!Object.values(allot).some(n=>n>0)}>Create block <Check size={16}/></button></div>
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||refused||!valid||!Object.values(allot).some(n=>n>0)}>Create block <Check size={16}/></button></div>
     </form></>;
 }
 
@@ -119,10 +126,9 @@ export function CancelBlockModal({id}:{id?:string}){
 type Row={guest:string;phone:string;type:string;room:string;people:number};
 /** Rooming list → bookings. Desktop: grid rows; phone (mobile=true): one card per guest, larger controls. */
 export function RoomingForm({id,mobile}:{id?:string;mobile?:boolean}){
-  const {s,uid,run,modal,closeModal,busy,permission}=useHcc();const blk=grpBlock(s,id);
+  const {s,uid,run,modal,closeModal,busy}=useHcc();const blk=grpBlock(s,id);
   const types=blk?Object.keys(blk.allot).filter(t=>grpRemaining(s,blk,t)>0):[];
   const [rows,setRows]=useState<Row[]>(()=>[{guest:'',phone:'',type:types[0]||'',room:'',people:1}]);
-  const [override,setOverride]=useState(false),[reason,setReason]=useState('');
   const [rstOn,setRstOn]=useState(false),[rstReason,setRstReason]=useState('');
   if(!blk)return <Empty title="This block is unavailable"/>;
   const a=blk.arrival<s.date?s.date:blk.arrival;
@@ -132,11 +138,12 @@ export function RoomingForm({id,mobile}:{id?:string;mobile?:boolean}){
   const c=grpCompany(s,blk.company),bill=blk.billTo==='company'&&c;
   const added=rows.reduce((n,r)=>n+(r.type?grpStayValue(s,blk.rates[r.type]||0,a,blk.departure):0),0);
   const k=bill?grpCredit(s,c!):undefined,after=k?k.exposure+added:0,level=k?grpCreditLevel(c!.creditLimit,after):'ok';
-  const needOverride=!!bill&&after>c!.creditLimit,canOverride=permission('approve');
+  // DEC-076: beyond the remaining credit the list is refused (no override); the Owner raises the limit.
+  const refusal=bill?grpCreditRefusal(c!,k!.exposure,added,'rooming list'):undefined;
   // Stay restrictions (DEC-053) for the block dates and the room types on this list; one override covers the whole list.
   const rst=rstState(s,uid,rows.map(r=>r.type),a,blk.departure,rstOn?rstReason:null);
-  const ok=rows.every(r=>r.guest.trim().length>=2&&r.type)&&!over.length&&(!needOverride||(canOverride&&override&&reason.trim().length>=3))&&rst.canSubmit;
-  const send=()=>run({type:'GRP_ROOMING',block:blk.id,rows:rows.map(r=>({guest:r.guest.trim(),phone:r.phone.trim()||undefined,type:r.type,room:r.room||undefined,people:r.people})),override:needOverride&&override||undefined,overrideReason:needOverride?reason.trim():undefined,restrictionOverride:rst.restrictionOverride,key:modal!.key},`${rows.length} booking${rows.length>1?'s':''} created`,{close:true});
+  const ok=rows.every(r=>r.guest.trim().length>=2&&r.type)&&!over.length&&!refusal&&rst.canSubmit;
+  const send=()=>run({type:'GRP_ROOMING',block:blk.id,rows:rows.map(r=>({guest:r.guest.trim(),phone:r.phone.trim()||undefined,type:r.type,room:r.room||undefined,people:r.people})),restrictionOverride:rst.restrictionOverride,key:modal!.key},`${rows.length} booking${rows.length>1?'s':''} created`,{close:true});
   return <><Head eyebrow={'ROOMING LIST · '+blk.id} title={blk.name} sub={`${dateLabel(a)} → ${dateLabel(blk.departure)} · each guest becomes a confirmed booking at the block rate${bill?', billed to '+c!.name:''}.`}/>
     <div className={mobile?"grp-remaining grp-remaining-m":"grp-remaining"}>{Object.keys(blk.allot).map(t=><span key={t} className={'pill '+(used(t)>grpRemaining(s,blk,t)?'grp-red':'neutral')}>{t}: {used(t)} / {grpRemaining(s,blk,t)} left</span>)}</div>
     <form className="form" onSubmit={e=>{e.preventDefault();if(ok)send();}}>
@@ -153,10 +160,8 @@ export function RoomingForm({id,mobile}:{id?:string;mobile?:boolean}){
       <button type="button" className="btn grp-add" disabled={rows.length>=50} onClick={()=>setRows([...rows,{guest:'',phone:'',type:rows.slice(-1)[0]?.type||types[0]||'',room:'',people:1}])}><Plus size={16}/> Add guest</button>
       {over.length>0&&<div className="info-note grp-warn" role="alert"><AlertTriangle size={16}/>More {over.join(', ')} guests than unpicked rooms. Increase the allotment first.</div>}
       <RestrictionNotice st={rst} on={rstOn} reason={rstReason} onToggle={setRstOn} onReason={setRstReason} subject={`this block (${dateLabel(a)} → ${dateLabel(blk.departure)})`}/>
-      {bill&&<div className={'grp-credit-box '+level} aria-live="polite"><div><b>Credit check · {c!.name}</b><span>Exposure {money(k!.exposure)} + this list {money(added)} = <b>{money(after)}</b> of {money(c!.creditLimit)} limit</span></div><GrpCreditPill level={level}/></div>}
-      {needOverride&&(canOverride?<><label className="checkbox-line"><input type="checkbox" checked={override} onChange={e=>setOverride(e.target.checked)}/>Override the credit limit (audited)</label>
-        {override&&<label>Override reason<input value={reason} minLength={3} maxLength={200} onChange={e=>setReason(e.target.value)} placeholder="e.g. Advance cheque received" enterKeyHint="send"/></label>}</>
-        :<div className="info-note grp-warn" role="alert"><AlertTriangle size={16}/>{GRP_CREDIT_LABEL.over}: only an Owner or Manager can override. Reduce the list, ask for a higher limit, or switch user.</div>)}
+      {bill&&<div className={'grp-credit-box '+level} aria-live="polite"><div><b>Credit check · {c!.name}</b><span>Used {money(k!.exposure)} + this list {money(added)} = <b>{money(after)}</b> of {money(c!.creditLimit)} limit</span></div><GrpCreditPill level={level}/></div>}
+      {refusal&&<div className="info-note grp-warn" role="alert"><AlertTriangle size={16}/>{refusal} Reduce the list, or ask the Owner for a higher limit (Credit limit → request).</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!ok}>Create {rows.length} booking{rows.length>1?'s':''} <Check size={16}/></button></div>
     </form></>;
 }

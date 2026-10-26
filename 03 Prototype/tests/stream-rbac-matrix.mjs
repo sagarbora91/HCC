@@ -56,7 +56,7 @@ const PAGES={
   closing:['OWN MGR ACC','CLS-001/002 (DEC-063 G4: Accountant read-only; G8: not REC/CSH)'],
   reports:['OWN MGR CSH ACC','RPT-001/002 (DEC-063 G8: not REC/SUP)'],
   'plans-extras':['OWN MGR CSH ACC','MA-2 Plans & extras report = reports (catalogue vs free text, plans, discount reasons)'],
-  accounting:['OWN MGR CSH ACC','Module 20 §8 (Cashier view, no lock; DEC-063 G13: Tally tab Owner + Accountant only)'],
+  accounting:['OWN MGR ACC','Module 20 §8 (DEC-063 G13: Tally tab Owner + Accountant only); DEC-079: the books are not the Cashier\'s — the Cashier keeps the daily collections report'],
   assistant:['OWN MGR CSH ACC','Module 26 (reports)'],
   compliance:['OWN ACC','DEC-055: Owner and Accountant only'],
   yield:['OWN MGR CSH ACC','Module 13 roles table'],
@@ -91,10 +91,13 @@ const CMDS={
   CORRECTION_REQUEST:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),CREDIT_NOTE:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),
   PAYMENT:C('OWN MGR REC CSH','PAY-001/002'),REFUND_REQUEST:C('OWN MGR REC CSH','PAY-003'),REFUND_EXECUTE:C('OWN MGR REC CSH','PAY-004 (DEC-063 G2: REC own shift, never own request)'),
   APPROVAL:C('OWN MGR','APR-001'),
-  SHIFT_SUBMIT:C('OWN MGR REC CSH','SHF-001'),SHIFT_CLOSE:C('OWN MGR','legacy direct close = CLS-002 (counting goes through SHIFT_SUBMIT)'),SHIFT_DIFFERENCE_DECIDE:C('OWN MGR ACC','SHF-002'),
+  SHIFT_SUBMIT:C('OWN MGR REC CSH','SHF-001'),SHIFT_OPEN:C('OWN MGR REC CSH','SHF-001 (DEC-078: own shift, handover count)'),
+  CASH_BANK:C('MGR CSH','DRW-001 (DEC-073: from your own open shift)'),CASH_BANK_DECIDE:C('OWN MGR','DRW-002 (DEC-073: never the recorder)'),
+  TILL_TRANSFER:C('OWN MGR REC CSH','DRW-004 (own shift)'),TILL_TRANSFER_DECIDE:C('OWN MGR REC CSH','DRW-004 receiver / DRW-002 send back'),OWNER_DRAWING:C('OWN','DRW-005'),SHIFT_CLOSE:C('OWN MGR','legacy direct close = CLS-002 (counting goes through SHIFT_SUBMIT)'),SHIFT_DIFFERENCE_DECIDE:C('OWN MGR ACC','SHF-002'),
   EXPENSE:C('OWN MGR REC CSH ACC','EXP-001 (DEC-063 G6: SUP/MNT via REC/CSH)'),EXPENSE_SUBMIT:C('OWN MGR REC CSH ACC','EXP-001'),EXPENSE_APPROVE:C('OWN MGR ACC','EXP-002'),EXPENSE_REVERSE:C('OWN MGR ACC','EXP-003 (DEC-063 G5: not the Cashier)'),
   NIGHT_POST:C('OWN MGR','CLS-002'),CLOSE_RUN:C('OWN MGR','CLS-002'),DAY_CLOSE:C('OWN MGR','CLS-002'),NEXT_DAY:C('OWN MGR','CLS-002'),
   CORRECTION_ADJUST:C('OWN MGR ACC','CLS-003'),CORRECTION_ADJUST_DECIDE:C('OWN','CLS-004'),
+  DAY_REOPEN:C('OWN','DEC-077: the Owner reopens a closed day (CLS-004)'),DAY_RECLOSE:C('OWN MGR','DEC-077: close the reopened day again (CLS-002)'),
   TASK:C('OWN MGR SUP HKP MNT','HK-003 (+ MNT on its own assigned repair tasks, HK-001 A·A)'),STAYOVER_GENERATE:C('OWN MGR SUP','HK-002'),
   BLOCK:C('OWN MGR SUP','ROOM-002'),UNBLOCK:C('OWN MGR SUP','ROOM-002'),REPAIR_REQUEST:C('OWN MGR REC SUP HKP MNT','ROOM-001'),
   USER:C('OWN TAD','ADM-001'),USER_CREATE:C('OWN TAD','ADM-001'),USER_UPDATE:C('OWN TAD','ADM-001'),
@@ -102,7 +105,7 @@ const CMDS={
   SETTINGS:C('OWN','ADM-003 + DEC-058 (tax, limits)'),TARIFF_SCHEDULE:C('OWN','DEC-058 money'),TAX_SCHEDULE:C('OWN','DEC-058 money'),
   SETTING_SET:C('OWN TAD','DEC-058 (TAD non-money groups); DEC-063 G9: no Manager requests'),CFG_IMPORT:C('OWN TAD','DEC-058'),CFG_REVERT:C('OWN TAD','DEC-058'),CFG_WITHDRAW:C('OWN TAD','DEC-058'),
   CFG_DECIDE:C('OWN MGR','DEC-058 + §7 (Manager decides Manager-approver requests)'),BACKUP_SIMULATE:C('OWN TAD','ADM-005'),
-  ACC_LOCK:C('OWN MGR ACC','Module 20 §8'),ACC_UNLOCK:C('OWN','Module 20 §8'),ACC_MAP_SET:C('OWN','Module 20 §8 + matrix note: TAD holds no financial actions'),ACC_MAP_RESET:C('OWN','as ACC_MAP_SET'),
+  ACC_TALLY_EXPORT:C('OWN ACC','DEC-063 G13 Tally tab; DEC-077 export log'),ACC_LOCK:C('OWN MGR ACC','Module 20 §8'),ACC_UNLOCK:C('OWN','Module 20 §8'),ACC_MAP_SET:C('OWN','Module 20 §8 + matrix note: TAD holds no financial actions'),ACC_MAP_RESET:C('OWN','as ACC_MAP_SET'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),
   CMP_FILE:C('OWN ACC','DEC-055'),CMP_NA:C('OWN ACC','DEC-055'),CMP_CA_PACK:C('OWN ACC','DEC-055'),
@@ -111,10 +114,13 @@ const CMDS={
   HR_PAYROLL_UNLOCK:C('OWN','DEC-058 payroll Owner-only'),HR_RATES_SET:C('OWN','DEC-058'),HR_STAT_RATES_SET:C('OWN','DEC-058'),HR_LEAVE_POLICY_SET:C('OWN','DEC-058'),
   HR_LEAVE_DECIDE:C('OWN MGR','Placement: managers approve'),HR_STAFF_ACTIVE:C('OWN MGR','Module 17'),HR_ROSTER_SET:C('OWN MGR','Module 17'),HR_ROSTER_COPY:C('OWN MGR','Module 17'),HR_STAFF_SAVE:C('OWN MGR ACC','Module 17 §3'),
   HR_ATT_MARK:C(ALL,'Module 17 self check-in'),HR_LEAVE_REQUEST:C(ALL,'Placement: every staff member applies'),HR_LEAVE_CANCEL:C(ALL,'Module 17 own request'),
+  HR_ATT_CORRECT:C('OWN MGR','DEC-075: managers correct past days (raising pay waits for the Owner)'),HR_REQUEST_DECIDE:C('OWN','DEC-075 / DEC-084: the Owner decides'),
+  HR_REQUEST_WITHDRAW:C('OWN MGR ACC','DEC-075 / DEC-084: the requester withdraws (managers and payroll roles make requests)'),HR_HOLIDAY_SAVE:C('OWN','DEC-083 holiday calendar (Owner)'),HR_HOLIDAY_REMOVE:C('OWN','DEC-083 holiday calendar (Owner)'),
   YLD_PROPOSE:C('OWN MGR','Module 13'),YLD_DECIDE:C('OWN','Module 13'),
   ...Object.fromEntries(['YLD_DOW_SET','YLD_GUARD_SET','YLD_OCC_SAVE','YLD_OVERRIDE','YLD_PLAN_SAVE','YLD_PUBLISH','YLD_RESTRICTION_SAVE','YLD_SEASON_SAVE'].map(c=>[c,C('OWN','Module 13 (admin + reports)')])),
   ...Object.fromEntries(['GRP_BLOCK_ALLOT','GRP_BLOCK_CANCEL','GRP_BLOCK_CREATE','GRP_COMPANY_SAVE','GRP_RELEASE','GRP_ROOMING','GRP_SWEEP'].map(c=>[c,C('OWN MGR REC','Module 14')])),
-  GRP_LIMIT_SET:C('OWN MGR REC','Module 14 (Owner sets; reservations holders request; DEC-063 G11: not the Tech admin)'),GRP_LIMIT_DECIDE:C('OWN MGR','Module 14'),
+  GRP_LIMIT_SET:C('OWN MGR REC','Module 14 (Owner sets; reservations holders request; DEC-063 G11: not the Tech admin)'),GRP_LIMIT_DECIDE:C('OWN','DEC-076: the Owner decides limit requests'),
+  GRP_COMPANY_PAYMENT:C('OWN MGR REC CSH','DEC-076 company payment (PERM-GRP-005)'),BOOKING_COMPANY:C('OWN MGR REC','DEC-076 bill a booking to a company account (RES-003)'),
   ...Object.fromEntries(['CHN_ACCEPT','CHN_PULL','CHN_PUSH','CHN_REJECT','CHN_STOP_SELL','CHN_WEB_CONFIRM','CHN_WEB_DECLINE','CHN_WEB_REQUEST'].map(c=>[c,C('OWN MGR REC','Module 21/22')])),
   CHN_CHANNEL_SAVE:C('OWN MGR','Module 21 (reception cannot change commission)'),CHN_CHANNEL_STATUS:C('OWN MGR','Module 21'),
   ...Object.fromEntries(['GSV_REQUEST_CREATE','GSV_REQUEST_CANCEL','GSV_REQUEST_ASSIGN','GSV_COMPLAINT_LOG','GSV_COMPLAINT_UPDATE','GSV_COMPLAINT_RESOLVE','GSV_COMPLAINT_FOLLOWUP','GSV_COMPLAINT_RECOVERY','GSV_LF_CLAIM','GSV_LF_HANDOVER','GSV_LF_DISPOSE'].map(c=>[c,C('OWN MGR REC','Module 18 §2')])),
@@ -131,6 +137,7 @@ const CMDS={
   ...Object.fromEntries(['MSG_CONSENT','MSG_DOC_CONFIRM','MSG_DOC_DISCARD','MSG_DOC_EXTRACT','MSG_RETRY','MSG_RUN_RULES','MSG_SEND','MSG_SIMULATE'].map(c=>[c,C('OWN MGR REC','Module 24/25 §5')])),
   MSG_RULE:C('OWN MGR','Module 24 §7 (approve)'),MSG_TEMPLATE:C('OWN MGR','Module 24 §7 (approve)'),
   ...Object.fromEntries(['POS_ITEM_ADD','POS_ITEM_QTY','POS_KOT_SEND','POS_KOT_STATUS','POS_MENU_TOGGLE','POS_ORDER_OPEN','POS_SETTLE','POS_VOID_BILL','POS_VOID_ITEM'].map(c=>[c,C('OWN MGR REC CSH','Module 23 §2')])),
+  POS_INVOICE_ISSUE:C('OWN MGR REC CSH','DEC-072: tax invoice of a settled outlet bill = the settle permission (payments)'),
   POS_VOID_DECIDE:C('OWN MGR','Module 23 §2 (approve)'),
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
@@ -215,15 +222,27 @@ export function register({test,M,assert}){
     for(const u of ['manager','cashier']){const v=surfaces(M,s,u);
       assert.ok(!v.drawer.has('compliance'),u+' drawer lists Compliance');assert.ok(!v.home.has('compliance'),u+' Modules Home tile');
       assert.ok(!X.searchEntries(v.entries,'gst due date').some(h=>h.entry.page==='compliance'),u+' search finds Compliance');}});
-  test('[RBAC] G13 · Accounting › Tally export tab: Owner + Accountant only; Manager and Cashier keep Accounting without it (Wave 0.5, DEC-055)',()=>{
+  test('[RBAC] G13 · Accounting › Tally export tab: Owner + Accountant only; the Manager keeps Accounting without it (Wave 0.5, DEC-055)',()=>{
     for(const u of USERS){assert.equal(M.rbacCanTally(s,u),['owner','accountant'].includes(u),u);
-      if(['manager','cashier'].includes(u))assert.ok(surfaces(M,s,u).allowed.has('accounting'),u+' lost Accounting');}});
+      if(u==='manager')assert.ok(surfaces(M,s,u).allowed.has('accounting'),u+' lost Accounting');}});
   test('[RBAC] G13 · Reports Excel/CSV export (RPT-003): Owner, Manager, Accountant; the Cashier still opens Reports and prints',()=>{
     for(const u of USERS)assert.equal(M.rbacCanExportReports(s,u),['owner','manager','accountant'].includes(u),u);
     assert.ok(surfaces(M,s,'cashier').allowed.has('reports'));});
-  test('[RBAC] G13 · Accounting voucher CSV/Excel export: Owner, Manager, Accountant; the Cashier keeps Accounting without it (hidden and refused)',()=>{
+  test('[RBAC] G13 · Accounting voucher CSV/Excel export: Owner, Manager, Accountant; DEC-079: the Cashier no longer opens the books at all',()=>{
     for(const u of USERS)assert.equal(M.rbacCanExportVouchers(s,u),['owner','manager','accountant'].includes(u),u);
-    assert.ok(surfaces(M,s,'cashier').allowed.has('accounting'));});
+    const v=surfaces(M,s,'cashier');assert.ok(!v.allowed.has('accounting'));assert.ok(!v.drawer.has('accounting'));assert.ok(!v.search.has('accounting'));
+    assert.ok(v.allowed.has('reports'),'the Cashier keeps Reports (production: the daily collections report)');});
+  test('[RBAC] DEC-079 D1 · Restaurant role: POS and own shifts & pay only; operates checks, never settles or sees day sales',()=>{
+    // Production-only role: the demo has no Restaurant user or grants, so the test gives it what the server maps (PERM-POS-002 → billing).
+    const w=structuredClone(s);w.users.push({id:'waiter',name:'Waiter · Restaurant',role:'Restaurant',enabled:true});w.grants.Restaurant=['billing'];
+    const v=surfaces(M,w,'waiter');
+    assert.deepEqual([...v.allowed].sort(),['my-hr','pos']);assert.deepEqual([...v.drawer].sort(),['my-hr','pos']);
+    assert.equal(M.rbacPosCanSettle(w,'waiter'),false);assert.equal(M.rbacPosSeesDaySales(w,'waiter'),false);
+    assert.equal(M.rbacPosCanSettle(w,'cashier'),true);assert.equal(M.rbacPosSeesDaySales(w,'cashier'),true);
+    let x=M.execute(w,'waiter',{type:'POS_ORDER_OPEN',outlet:'restaurant',table:'T8',covers:2});const id=M.posSlice(x).orders.at(-1).id;
+    x=M.execute(x,'waiter',{type:'POS_ITEM_ADD',id,item:'m-dal',qty:1});x=M.execute(x,'waiter',{type:'POS_KOT_SEND',id});
+    assert.throws(()=>M.execute(x,'waiter',{type:'POS_SETTLE',id,mode:'folio',booking:'HCC-1041'}),forbidden());
+    assert.equal(outcome(()=>M.execute(x,'cashier',{type:'POS_SETTLE',id,mode:'outlet',method:'Cash'})),'ok');});
   test('[RBAC] G4 · Day pack (printed day summary) follows the Day closing view: Owner, Manager, Accountant',()=>{
     for(const u of USERS)assert.equal(M.rbacCanDayPack(s,u),['owner','manager','accountant'].includes(u),u);});
 

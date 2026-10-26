@@ -84,4 +84,32 @@ public sealed class GroupsHttpTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Forbidden, (await _http.SendAsync(Req(HttpMethod.Get, $"/groups/{id}/statement", "housekeeper"), Ct)).StatusCode);
         Assert.Contains("GRP-", await (await _http.SendAsync(Req(HttpMethod.Get, "/groups", "cashier"), Ct)).Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task Company_credit_is_wired_by_the_module_refusal_book_figures_and_payment_route()
+    {
+        // DEC-076 through the production DI line: a Rs 1,000 limit; routing the two 23 Oct nights (2 × Rs 2,100) to the company master is refused.
+        var co = await _http.SendAsync(Req(HttpMethod.Post, "/commands/SaveCompany", "owner", new SaveCompanyRequest(null, null, "Deccan Pharma Distributors (fictional)",
+            CreditLimitPaise: 100_000), "c1"), Ct);
+        Assert.True(co.IsSuccessStatusCode, await co.Content.ReadAsStringAsync(Ct));
+        long companyId;
+        using (var doc = JsonDocument.Parse(await co.Content.ReadAsStringAsync(Ct))) companyId = doc.RootElement.GetProperty("companyId").GetInt64();
+        var create = new CreateGroupRequest("Deccan Pharma regional review", _w.Gb1, "Rahul Joshi", "Deccan Pharma Distributors (fictional)", "Rahul Joshi", CompanyId: companyId);
+        long groupId;
+        using (var doc = JsonDocument.Parse(await (await _http.SendAsync(Req(HttpMethod.Post, "/commands/CreateGroup", "reception", create, "c2"), Ct)).Content.ReadAsStringAsync(Ct)))
+            groupId = doc.RootElement.GetProperty("groupId").GetInt64();
+        var refused = await _http.SendAsync(Req(HttpMethod.Post, "/commands/ApplyGroupRouting", "reception", new ApplyGroupRoutingRequest(groupId), "c3"), Ct);
+        var body = await refused.Content.ReadAsStringAsync(Ct);
+        Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        Assert.Contains("\"code\":\"INVALID_TRANSITION\"", body, StringComparison.Ordinal);
+        Assert.Contains("CREDIT_LIMIT", body, StringComparison.Ordinal);
+        Assert.Contains("\"remainingPaise\":100000", body, StringComparison.Ordinal);
+        Assert.Contains("\"neededPaise\":420000", body, StringComparison.Ordinal);
+        var book = await (await _http.SendAsync(Req(HttpMethod.Get, "/groups/companies", "accountant"), Ct)).Content.ReadAsStringAsync(Ct);
+        Assert.Contains("\"exposurePaise\":0", book, StringComparison.Ordinal);
+        Assert.Contains("\"remainingPaise\":100000", book, StringComparison.Ordinal);
+        var pay = await _http.SendAsync(Req(HttpMethod.Post, "/commands/RecordCompanyPayment", "cashier", new RecordCompanyPaymentRequest(companyId, "UPI", 10_000, "UPI-1"), "c4"), Ct);
+        Assert.Equal(HttpStatusCode.Conflict, pay.StatusCode); // owes nothing yet
+        Assert.Contains("owes nothing on company credit", await pay.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+    }
 }

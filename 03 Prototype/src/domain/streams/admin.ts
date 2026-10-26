@@ -19,6 +19,8 @@ export type AuthDecision={decision:'allow'|'deny'|'approval';reason:string;rule:
 export type AuthContext={amount?:number;ownerId?:string;shiftUser?:string;assignee?:string;act?:boolean};
 
 export type AdminPerm={id:string;action:string;group:string;financial:boolean;module?:Permission;limit?:{unit:'paise'|'percent';label:string}};
+// The prototype policy baseline stays matrix v1 with nine roles (DEC-079 D6); the production-only Restaurant role (D1) gets its template
+// and grants from the server (sync/admin.ts policyFromServer, capabilities.ts overlayMe).
 const ROLE_ORDER:Role[]=['Owner','Manager','Reception','Cashier','Accountant','Supervisor','Housekeeper','Maintenance','Tech admin'];
 // Columns: OWN MGR REC CSH ACC SUP HKP MNT TAD (RBAC matrix §5, verbatim).
 const MATRIX:[string,string,string,boolean,Permission|undefined,string][]=[

@@ -44,6 +44,7 @@ public static partial class ChartOfAccounts
         new("2320", "ESIC payable", AccountGroup.Liability, "Employee + employer ESIC (illustrative — CA to confirm)"),
         new("2330", "Professional tax payable", AccountGroup.Liability),
         new("2340", "Other payroll deductions", AccountGroup.Liability),
+        new("3000", "Owner's drawings", AccountGroup.Liability, "Capital account (contra): cash the Owner takes from the drawer (DEC-073) — CA to confirm"),
         new("4000", "Room revenue", AccountGroup.Income),
         new("4100", "Other revenue", AccountGroup.Income, "Services and extras"),
         new("4900", "Discounts allowed", AccountGroup.Income, "Contra revenue"),
@@ -87,10 +88,15 @@ public static partial class ChartOfAccounts
         ["funding:Cash"] = "1000", ["funding:UPI"] = "1010", ["funding:Card"] = "1020", ["funding:Bank transfer"] = "1030",
         ["funding:Vendor credit"] = "2200",
         ["closing:cash-difference"] = "5900",
+        ["closing:bank-deposit"] = "1030", ["closing:owner-drawing"] = "3000", // Wave B1 (DEC-073): drawer cash banked / drawn by the Owner
         ["pos:sales"] = "4100", ["pos:cgst"] = "2110", ["pos:sgst"] = "2120",
         ["payroll:salaries"] = "5100", ["payroll:employer-pf"] = "5110", ["payroll:employer-esic"] = "5110",
         ["payroll:net-payable"] = "2300", ["payroll:pf-payable"] = "2310", ["payroll:esic-payable"] = "2320",
         ["payroll:pt-payable"] = "2330", ["payroll:other-deductions"] = "2340", ["payroll:advances"] = "1200",
+
+        // DEC-074 (wave B3): group attrition and deposits; full-and-final additions, deductions and an amount the leaver owes (illustrative — CA to confirm).
+        ["line:attrition"] = "4000", ["receipt:group-deposit"] = "2000",
+        ["payroll:fnf-additions"] = "5100", ["payroll:fnf-deductions"] = "2340", ["payroll:fnf-recoverable"] = "1200",
     };
 
     private static readonly (string Prefix, string Label)[] KeyGroups =

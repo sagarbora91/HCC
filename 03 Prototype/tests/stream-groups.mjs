@@ -13,7 +13,7 @@ export function register({test,M,assert}){
     return execute(s,'owner',{type:'NEXT_DAY'});
   }
 
-  test('[GRP] module slice defaults to empty',()=>{const s=seed();delete s.groupsX;assert.deepEqual(M.grpSlice(s),{companies:[],blocks:[],requests:[],overrides:[]});});
+  test('[GRP] module slice defaults to empty',()=>{const s=seed();delete s.groupsX;assert.deepEqual(M.grpSlice(s),{companies:[],blocks:[],requests:[],overrides:[],payments:[]});});
   test('[GRP] fixture: fictional companies, 4 blocks, core figures unchanged',()=>{
     const s=seed(),x=M.grpSlice(s);
     assert.equal(x.companies.length,3);assert.equal(x.blocks.length,4);
@@ -67,21 +67,19 @@ export function register({test,M,assert}){
     const n=execute(s,'owner',{type:'GRP_ROOMING',block:'GB-3',rows:[{guest:'Kulkarni Family',type:'Suite',people:2}]});
     assert.equal(n.bookings.at(-1).company,undefined);assert.equal(n.bookings.at(-1).rate,420000);
   });
-  test('[GRP] credit limit: refusal, approver override with reason, reception cannot override',()=>{
+  test('[GRP] credit limit: refusal for every role, no override (DEC-076; was: an approver could override with a reason)',()=>{
     const s=seed();
     assert.ok(execute(s,'reception',{type:'GRP_ROOMING',block:'GB-2',rows:rows(3)}));
     assert.throws(()=>execute(s,'reception',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4)}),/Credit limit exceeded/);
-    assert.throws(()=>execute(s,'reception',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true,overrideReason:'Known client'}),e=>e.code==='FORBIDDEN');
-    assert.throws(()=>execute(s,'manager',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true}),/reason/);
-    const n=execute(s,'manager',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true,overrideReason:'Advance cheque received (simulated)'});
-    assert.equal(M.grpSlice(n).overrides.length,1);assert.equal(M.grpCredit(n,co(n,'CO-2')).level,'over');assert.match(n.audit[0].detail,/overridden/);
+    for(const u of ['reception','manager','owner'])
+      assert.throws(()=>execute(s,u,{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true,overrideReason:'Advance cheque received (simulated)'}),e=>e.code==='INVALID_TRANSITION'&&/Only the Owner can raise the limit/.test(e.message));
   });
   test('[GRP] credit-limit change: admin sets, reception requests, no self-approval',()=>{
     let s=seed();
     assert.throws(()=>execute(s,'manager',{type:'GRP_LIMIT_SET',company:'CO-3',limit:25000000}),/reason/);
     s=execute(s,'manager',{type:'GRP_LIMIT_SET',company:'CO-3',limit:25000000,reason:'Annual contract renewal'});
     const r=M.grpSlice(s).requests.at(-1);assert.equal(r.status,'Pending');assert.equal(co(s,'CO-3').creditLimit,20000000);
-    assert.throws(()=>execute(s,'manager',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true}),/own request/);
+    assert.throws(()=>execute(s,'manager',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true}),e=>e.code==='FORBIDDEN'&&/Only the Owner/.test(e.message)); // DEC-076 (own request too)
     assert.throws(()=>execute(s,'reception',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true}),e=>e.code==='FORBIDDEN');
     s=execute(s,'owner',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:true});assert.equal(co(s,'CO-3').creditLimit,25000000);
     assert.throws(()=>execute(s,'owner',{type:'GRP_LIMIT_DECIDE',id:r.id,approve:false}),/no longer pending/);
@@ -135,5 +133,22 @@ export function register({test,M,assert}){
   test('[GRP] day-closed rule blocks group writes',()=>{
     const s=seed();s.closedDates.push(s.date);
     assert.throws(()=>execute(s,'owner',{type:'GRP_BLOCK_CREATE',name:'Late group',billTo:'guest',arrival:'2026-11-10',departure:'2026-11-11',cutoff:'2026-11-01',allot:{Classic:1}}),e=>e.code==='DAY_CLOSED');
+  });
+  test('[GRP DEC-074 A03a-06] attrition GST slab comes from the contracted block rate (₹9,000 at 50 % → 18 %, not 5 %)',()=>{
+    const s=seed();
+    // ₹9,000 block, 2 of 4 unpicked, 50 %, 23–26 Oct: per night 2 × ₹4,500 = ₹9,000 at the ₹9,000 night's 18 % = ₹1,620 (CGST ₹810 + SGST ₹810).
+    const lines=M.grpAttritionLines([{type:'Suite',contracted:4,picked:2,rate:900000}],'2026-10-23','2026-10-26',0,5000);
+    assert.deepEqual(lines.map(l=>l.night),['2026-10-23','2026-10-24','2026-10-25']);
+    for(const l of lines){
+      assert.deepEqual([l.rooms,l.perRoomNight,l.amount,l.blockRate,M.grpAttritionSlabBasis(l)],[2,450000,900000,900000,900000]);
+      const g=M.grpAttritionGst(s,l);assert.deepEqual([g.bps,g.tax,g.cgst,g.sgst,g.category],[1800,162000,81000,81000,'room']);
+      assert.equal(M.gstForRoomNight(s,l.night,l.perRoomNight).bps,500,'the retention price alone would take the 5 % slab (the A03a-06 bug)');
+    }
+    // GB-1 (₹1,750 block at 50 % → ₹875): both bases ≤ ₹7,500 → 5 %, ₹87.50 per 2-room line — the server's golden attrition.
+    const gb1=M.grpAttritionLines([{type:'Classic',contracted:4,picked:2,rate:175000}],'2026-10-23','2026-10-26',0,5000);
+    assert.deepEqual(gb1.map(l=>[l.amount,M.grpAttritionGst(s,l).bps,M.grpAttritionGst(s,l).tax]),[[175000,500,8750],[175000,500,8750],[175000,500,8750]]);
+    // Allowance rounds down per type; 25 % of ₹1,999.99 = ₹500.00 (half away from zero) — same lines as the server rule.
+    const l=M.grpAttritionLines([{type:'Deluxe',contracted:10,picked:3,rate:199999},{type:'Suite',contracted:2,picked:2,rate:420000}],'2026-11-06','2026-11-07',2000,2500);
+    assert.deepEqual(l.map(x=>[x.type,x.rooms,x.perRoomNight,x.amount]),[['Deluxe',5,50000,250000]]);
   });
 }

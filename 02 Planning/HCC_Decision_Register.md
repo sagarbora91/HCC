@@ -142,4 +142,4 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | Old | New | Date | Impact |
 |---|---|---|---|
 | DEC-05 NestJS + TypeScript backend | DEC-054 .NET 10 + ETP platform reuse | 24 Oct 2026 | Production server in C#; prototype business rules are ported with the prototype tests as golden figures; Node SQL-driver spike no longer needed (Microsoft.Data.SqlClient, as ETP); T-SQL spike results unchanged |
-| DEC-028 closed-date corrections "needs owner decision" (production) | DEC-077 controlled reopen by the Owner | 26 Oct 2026 | Production gets a Reopen-day command (Owner, reason, audited) with the build rules in DEC-077; the prototype keeps adjustment-only |
+| DEC-028 closed-date corrections "needs owner decision" (production) | DEC-077 controlled reopen by the Owner | 26 Oct 2026 | Production gets a Reopen-day command (Owner, reason, audited) with the build rules in DEC-077; the demo build mirrors it (Wave B, B6); the older prototype-only closed-date adjustments stay as a demo extra |

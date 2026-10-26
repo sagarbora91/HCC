@@ -21,7 +21,7 @@ export function Corrections(){
     run({type:'CORRECTION_ADJUST',id:bid||stays[0].id,date:date||dates[0],amount:dir==='-'?-paise:paise,reason:reason.trim()},'Correction requested — Owner approval required',{after:()=>{setAmt('');setReason('');}});}
   return <section className="card"><div className="section-title"><h2>Closed-date corrections</h2><span className="muted">Closed records never change</span></div>
     <div className="padded">
-      <div className="info-note"><Info size={16}/>A correction for a closed date posts as a dated adjustment in today’s open business day, referencing the closed date. Requested by a manager or the accountant; approved by an Owner (not the requester).</div>
+      <div className="info-note"><Info size={16}/>A correction for a closed date posts as a dated adjustment in today’s open business day, referencing the closed date. Requested by a manager or the accountant; approved by an Owner (not the requester). To post corrections on the closed date itself, the Owner reopens that day instead (DEC-077, “Reopen a closed day”).</div>
       <CashLockNote/>
       <form className="form" onSubmit={submit} aria-label="Request a closed-date correction">
         <div className="form-row"><label>Folio<select value={bid||stays[0]?.id||''} onChange={e=>setBid(e.target.value)} disabled={!stays.length}>{stays.map(b=><option key={b.id} value={b.id}>{b.id} · {b.guest} · room {b.room} · {b.status}</option>)}</select></label>

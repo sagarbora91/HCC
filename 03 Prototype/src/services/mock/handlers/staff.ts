@@ -4,14 +4,16 @@
 // W05-B rule sources (SCC, read-only): payroll\index.html (lockRun, unlockRun, createAdvance, fnfGenerate, waEmpMessage, saveSettings)
 // and leave\index.html (submitLeave: weekly offs skipped, duplicate/half-day overlap, capacity per day; decideLeave).
 import type {Handler,Kit} from '../commands';
+import {mstSpec,mstNextSort,type MasterRow} from '../../../domain/streams/masters';
 import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrLeaveAvailable,hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_TRACKED,
-  type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
+  hrEntitled,hrLeaveAvailable,hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrDayOff,hrParseEntry,hrPlanCorrection,hrCorrectionDateRefusal,hrEntryLabel,hrSameEntry,hrPendingRequests,
+  type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRDayEntry,type HRRequest,type HRBank,
 } from '../../../domain/streams/staff';
-import {hrHolidayPaid,hrShiftPattern,hrLeaveTypeRow,hrLeaveQuota,hrLeaveTypeRows,hrTrackedTypes,hrDesignationOf,hrShiftChoices,HRM_DESIGNATIONS,HRM_LEAVE_TYPES,type HRDesignation} from '../../../domain/streams/people-masters';
+import {hrHolidayPaid,hrShiftPattern,hrLeaveTypeRow,hrLeaveQuota,hrLeaveTypeRows,hrTrackedTypes,hrDesignationOf,hrShiftChoices,HRM_DESIGNATIONS,HRM_LEAVE_TYPES,HRM_HOLIDAYS,type HRDesignation} from '../../../domain/streams/people-masters';
 import {mstRows,mstStored,mstByCode} from '../../../domain/streams/masters';
 import {addDays} from '../../../domain/money';
 import {clone} from '../../../domain/clone';
@@ -45,6 +47,20 @@ function ratesFrom(k:Kit):{r:HRRates;base:HRRates}{
   rateRules(k,r);
   return {r,base};
 }
+/** DEC-075: writes the corrected day (mark, removed mark or one-day approved leave; a replaced one-day leave is cancelled) and recalculates the
+ *  month's DRAFT pay-run (the preparer stays the maker; the lock still compares a fresh computation). Returns the recalculation note or ''. */
+function applyCorrection(k:Kit,st:HRStaff,date:string,day:{oneDayLeave?:{id:string}},target:HRDayEntry,reqId:string,reason:string,requestedBy:string,decidedBy:string){
+  const {s}=k,x=hrEnsure(s),key=hrKey(date,st.id);
+  if(day.oneDayLeave){const l=x.leaves.find(q=>q.id===day.oneDayLeave!.id)!;l.status='Cancelled';l.decidedBy=decidedBy;l.decidedAt=s.clock;l.note=`Replaced by attendance correction ${reqId}`;}
+  if(target.kind==='mark')x.att[key]={status:target.status,at:s.clock,otMin:target.otMin,by:requestedBy,note:`Correction ${reqId}`};
+  else{delete x.att[key];
+    if(target.kind==='leave')x.leaves.push({id:k.id('HR-LV'),staffId:st.id,type:target.type,from:date,to:date,days:1,reason,status:'Approved',requestedBy,requestedAt:s.clock,
+      decidedBy,decidedAt:s.clock,note:`Back-dated by attendance correction ${reqId}`,correctionId:reqId});}
+  const ym=date.slice(0,7),run=x.runs.find(r=>r.month===ym);if(!run||run.status!=='Draft')return '';
+  const rates=hrRatesFor(s,ym),{lines,warnings}=hrComputeRun(s,ym,rates);if(!lines.length)return '';
+  Object.assign(run,{lines,warnings,rates:{...rates}});return `${hrMonthLabel(ym)} draft pay-run recalculated`;
+}
+const bankText=(b:HRBank)=>b.bankName||b.accountNo||b.ifsc?`${b.bankName||'(none)'} ${hrMaskAccount(b.accountNo||undefined)} ${b.ifsc}`.trim():'(none)';
 function rateRules(k:Kit,r:HRRates,where=''){
   k.assert(r.otBps>=10000,'Overtime multiplier must be at least 1×.'+where);
   k.assert(r.basicBps*(10000+r.hraBps+r.washBps)<=10000*10000,'Basic + HRA + washing cannot exceed the earned pay.'+where);
@@ -60,6 +76,15 @@ function writeQuotas(k:Kit,ent:{CL:number;SL:number;EL:number}){
     r.yearlyQuota=ent[code];changed.push(code);}
   if(!changed.length)return;
   (k.s.mastersX!.rows??={})[HRM_LEAVE_TYPES]=rows;
+}
+
+/** Masters integration: the Holiday calendar rows (MA-6 master) for writing — the stored list, or the seed on the first change. */
+function holidayRows(k:Kit):MasterRow[]{return mstRows(k.s,HRM_HOLIDAYS).map(r=>({...r}));}
+/** Stores the calendar and one history line per change ("Master Holiday calendar: name old → new"), like the generic master commands. */
+function holidayWrite(k:Kit,rows:MasterRow[],after:MasterRow|undefined,before:MasterRow|undefined){
+  const x=k.s.mastersX??(k.s.mastersX={rows:{},history:[]});x.rows={...(x.rows??{}),[HRM_HOLIDAYS]:rows};x.history=[...(x.history??[])];
+  const row=after??before!,was=before&&before.active&&before.kind==='paid'?before.name:'—',now=after?after.name:'—';
+  if(was!==now)x.history.unshift({id:k.id('MSTH'),master:HRM_HOLIDAYS,rowId:row.id,code:row.code,field:'name',old:was,new:now,by:k.uid,at:k.s.clock});
 }
 
 export const handlers:Record<string,Handler>={
@@ -118,6 +143,19 @@ export const handlers:Record<string,Handler>={
       if(cmd.ifsc)assert(/^[A-Z]{4}0[A-Z0-9]{6}$/.test(String(cmd.ifsc)),'IFSC is 11 characters, e.g. DEMO0000001.');
       if(cmd.accountNo)assert(/^\d{6,18}$/.test(String(cmd.accountNo)),'Account number: 6–18 digits.');
     }
+    // DEC-084: only the Owner's bank-detail change applies at once (audited); anyone else's — also a new record's first details — waits for the
+    // Owner as a request; payments (lock snapshots, bank files) keep the stored details until it is approved.
+    const BANK=['bankName','accountNo','ifsc'] as const;
+    const bankSet=pay&&(existing?bankChanged:BANK.some(f=>norm(cmd[f])!==undefined)),bankRequest=bankSet&&!hrCanRates(s,k.uid);
+    if(bankSet&&existing&&hrPendingRequests(s,'bank').some(r=>r.staffId===existing.id))
+      fail('INVALID_TRANSITION',`A bank-detail change for ${existing.name} is already waiting for the Owner. Withdraw or decide it first.`);
+    assert(String(cmd.bankReason??'').trim().length<=200,'Reason for the bank change: up to 200 characters.');
+    const bankBefore:HRBank={bankName:existing?.bankName??'',accountNo:existing?.accountNo??'',ifsc:existing?.ifsc??''};
+    const bankAfter:HRBank=Object.fromEntries(BANK.map(f=>[f,cmd[f]!==undefined?norm(cmd[f])??'':bankBefore[f]])) as HRBank;
+    const bankWaits=(staffId:string)=>{if(!bankRequest)return '';const id=k.id('HR-REQ');
+      x.requests=[...(x.requests??[]),{id,kind:'bank',staffId,bankBefore,bankAfter,reason:String(cmd.bankReason??'').trim()||'Bank details changed in the staff master',
+        status:'Pending',requestedBy:k.uid,requestedAt:s.clock}];
+      return ` · bank ${bankText(bankBefore)} → ${bankText(bankAfter)} sent to the Owner for approval (${id}; payments keep the current details until approved)`;};
     // F-11: the PT slab (gender) and the payslip WhatsApp number of an existing record are payroll fields (Owner / Accountant).
     const phone=cmd.phone===undefined?existing?.phone??'':String(cmd.phone).trim();
     const genderChanged=!!existing&&cmd.gender!==undefined&&cmd.gender!==hrGenderOf(existing),phoneChanged=!!existing&&phone!==existing.phone;
@@ -126,7 +164,7 @@ export const handlers:Record<string,Handler>={
       defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,phone,...(cmd.gender?{gender:cmd.gender as 'M'|'F'}:{})};
     const stat=(st:HRStaff)=>{if(!pay)return;
       if(cmd.structure!==undefined)st.structure=cmd.structure;if(cmd.pfApplicable!==undefined)st.pfApplicable=!!cmd.pfApplicable;if(cmd.esicApplicable!==undefined)st.esicApplicable=!!cmd.esicApplicable;
-      for(const f of ['bankName','accountNo','ifsc'] as const)if(cmd[f]!==undefined){const v=String(cmd[f]).trim();if(v)st[f]=v;else delete st[f];}};
+      if(!bankRequest)for(const f of BANK)if(cmd[f]!==undefined){const v=String(cmd[f]).trim();if(v)st[f]=v;else delete st[f];}};
     if(existing){const notes:string[]=[],was={...existing};
       if(!cmd.userId)delete existing.userId;Object.assign(existing,base);if(pay&&salaryGiven){existing.payType=cmd.payType??existing.payType;existing.monthly=cmd.monthly??existing.monthly;existing.daily=cmd.daily??existing.daily;}
       stat(existing);
@@ -136,11 +174,11 @@ export const handlers:Record<string,Handler>={
       if(linkChanged)notes.push(`login ${was.userId??'(none)'} → ${existing.userId??'(none)'}`);
       if(genderChanged)notes.push(`PT slab ${hrGenderOf(was)==='F'?'women':'men'} → ${hrGenderOf(existing)==='F'?'women':'men'}`);
       if(phoneChanged)notes.push(`payslip mobile ${was.phone?'••••'+was.phone.replace(/\D/g,'').slice(-4):'(none)'} → ${existing.phone?'••••'+existing.phone.replace(/\D/g,'').slice(-4):'(none)'}`);
-      // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock.
-      if(bankChanged)notes.push(`bank ${was.bankName??'(none)'} ${hrMaskAccount(was.accountNo)} ${was.ifsc??''} → ${existing.bankName??'(none)'} ${hrMaskAccount(existing.accountNo)} ${existing.ifsc??''} (future runs only; locked runs keep their frozen details)`);
-      return `${existing.id} · ${existing.name} updated${notes.length?' · '+notes.join(' · '):''}`;}
+      // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock. DEC-084: the Owner's change applies here.
+      if(bankChanged&&!bankRequest)notes.push(`bank ${was.bankName??'(none)'} ${hrMaskAccount(was.accountNo)} ${was.ifsc??''} → ${existing.bankName??'(none)'} ${hrMaskAccount(existing.accountNo)} ${existing.ifsc??''} (Owner; future runs only; locked runs keep their frozen details)`);
+      return `${existing.id} · ${existing.name} updated${notes.length?' · '+notes.join(' · '):''}${bankWaits(existing.id)}`;}
     const st:HRStaff={id:k.id('HR-S'),...base,payType:pay&&cmd.payType?cmd.payType:'monthly',monthly:pay?cmd.monthly??0:0,daily:pay?cmd.daily??0:0,joined:s.date,active:true};
-    stat(st);x.staff.push(st);return `${st.id} · ${st.name} added${st.userId?` · login ${st.userId}`:''}${pay?'':' (salary to be set by payroll)'}`;
+    stat(st);x.staff.push(st);return `${st.id} · ${st.name} added${st.userId?` · login ${st.userId}`:''}${pay?'':' (salary to be set by payroll)'}${bankWaits(st.id)}`;
   },
   /** Deactivate (exit) or reactivate a staff record. */
   HR_STAFF_ACTIVE:k=>{
@@ -194,6 +232,89 @@ export const handlers:Record<string,Handler>={
     const note=String(cmd.note??'').trim();x.att[key]={status:cmd.status as HRAttStatus,at:s.clock,otMin:ot,by:k.uid,...(note?{note}:{})};
     return `${st.name} · ${s.date} · ${HR_ATT_LABEL[cmd.status as HRAttStatus]}${ot?` · OT ${ot} min`:''}${prev?' (corrected)':''}`;
   },
+  /** DEC-075 (audit A04-02): correct a PAST day of the open pay month — mark (P/L/H/A/OFF + overtime), a full-day leave (back-dated leave) or
+   *  'none'. A correction that raises the month's gross pay waits for the Owner (HR_REQUEST_DECIDE); one that lowers or keeps pay — or any by
+   *  the Owner — applies at once and recalculates the month's draft pay-run. Never your own record; a locked month never changes. */
+  HR_ATT_CORRECT:k=>{
+    manage(k);const {s,cmd,assert,fail}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);
+    assert(DATE.test(String(cmd.date??'')),'Choose the day to correct.');
+    const target=hrParseEntry(cmd.mark,cmd.otMin);if(typeof target==='string')fail('VALIDATION',target);
+    const reason=String(cmd.reason??'').trim();assert(reason.length>=3&&reason.length<=200,'Give the reason for the correction (3–200 characters).');
+    const when=hrCorrectionDateRefusal(s,cmd.date);if(when)fail(when.code,when.msg);
+    notSelf(k,st,'correct attendance');
+    if(hrPendingRequests(s,'attendance').some(r=>r.staffId===st.id&&r.date===cmd.date))
+      fail('NOT_AVAILABLE',`A correction of ${st.name} on ${dm(cmd.date)} is already waiting for the Owner. Withdraw or decide it first.`);
+    const entry=target as HRDayEntry,p=hrPlanCorrection(s,st,cmd.date,entry);if('refusal' in p)fail(p.refusal.code,p.refusal.msg);
+    const {day,effect}=p as Exclude<typeof p,{refusal:unknown}>,direct=effect<=0||hrCanRates(s,k.uid),id=k.id('HR-REQ');
+    const what=`${st.name} · ${cmd.date} · ${hrEntryLabel(day.entry)} → ${hrEntryLabel(entry)}`;
+    const req:HRRequest={id,kind:'attendance',staffId:st.id,date:cmd.date,before:day.entry,after:entry,payEffect:effect,reason,status:direct?'Approved':'Pending',
+      ...(direct?{direct:true,decidedBy:k.uid,decidedAt:s.clock}:{}),requestedBy:k.uid,requestedAt:s.clock};
+    x.requests=[...(x.requests??[]),req];
+    if(!direct)return `${id} · ${what} · raises gross pay by ${money(effect)} — waiting for the Owner · reason: ${reason}`;
+    const redo=applyCorrection(k,st,cmd.date,day,entry,id,reason,k.uid,k.uid);
+    return `${id} · ${what} · ${effect<0?'lowers gross pay by '+money(-effect):effect===0?'gross pay unchanged':'raises gross pay by '+money(effect)+' (Owner, applied directly)'} · reason: ${reason}${redo?' · '+redo:''}`;
+  },
+  /** The Owner approves or rejects a pending request (attendance correction or bank-detail change). Never the requester; never your own record. */
+  HR_REQUEST_DECIDE:k=>{
+    owner(k,'decide payroll requests');const {s,cmd,assert,fail}=k,x=hrEnsure(s),r=(x.requests??[]).find(q=>q.id===cmd.id);
+    assert(r,'Request not found.','NOT_FOUND');
+    const note=String(cmd.note??'').trim();if(!cmd.approve)assert(note.length>=3,'Give the reason for rejecting (at least 3 characters).');
+    assert(note.length<=200,'Note: up to 200 characters.');
+    assert(r!.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
+    if(r!.requestedBy===k.uid)fail('FORBIDDEN','You cannot decide your own request (no self-approval).');
+    const st=staffOf(k,r!.staffId);if(isOwn(k,st))fail('FORBIDDEN','You cannot decide a request about your own staff record.');
+    const what=r!.kind==='bank'?`${st.name} · bank ${bankText(r!.bankBefore!)} → ${bankText(r!.bankAfter!)}`:`${st.name} · ${r!.date} · ${hrEntryLabel(r!.before!)} → ${hrEntryLabel(r!.after!)}`;
+    const close=(status:'Approved'|'Rejected')=>{r!.status=status;r!.decidedBy=k.uid;r!.decidedAt=s.clock;if(note)r!.note=note;};
+    if(!cmd.approve){close('Rejected');return `${r!.id} · ${what} · rejected · ${note}`;}
+    let redo='';
+    if(r!.kind==='bank'){
+      const now:HRBank={bankName:st.bankName??'',accountNo:st.accountNo??'',ifsc:st.ifsc??''},b=r!.bankBefore!;
+      assert(now.bankName===b.bankName&&now.accountNo===b.accountNo&&now.ifsc===b.ifsc,`${st.name}’s bank details changed after this request. Reject it and enter the change again.`,'STALE_VERSION');
+      for(const f of ['bankName','accountNo','ifsc'] as const){const v=r!.bankAfter![f];if(v)st[f]=v;else delete st[f];}
+    }else{
+      const when=hrCorrectionDateRefusal(s,r!.date!);if(when)fail(when.code,when.msg);
+      const p=hrPlanCorrection(s,st,r!.date!,r!.after!);if('refusal' in p)fail(p.refusal.code,p.refusal.msg);
+      const {day}=p as Exclude<typeof p,{refusal:unknown}>;
+      assert(hrSameEntry(day.entry,r!.before!),`${st.name}’s ${dm(r!.date!)} changed after this request (now ${hrEntryLabel(day.entry).toLowerCase()}). Reject it; the day can be corrected again.`,'STALE_VERSION');
+      redo=applyCorrection(k,st,r!.date!,day,r!.after!,r!.id,r!.reason,r!.requestedBy,k.uid);
+    }
+    close('Approved');
+    return `${r!.id} · ${what} · approved${r!.kind==='bank'?' (future runs only; locked runs keep their frozen details)':` · raises gross pay by ${money(r!.payEffect??0)}`}${note?' · '+note:''}${redo?' · '+redo:''}`;
+  },
+  /** The requester withdraws their own pending request. */
+  HR_REQUEST_WITHDRAW:k=>{
+    const {s,cmd,assert,fail}=k,x=hrEnsure(s);
+    if(!hrCanManage(s,k.uid)&&!hrCanPay(s,k.uid))fail('FORBIDDEN','Access denied: only managers or payroll roles make and withdraw payroll requests.');
+    const r=(x.requests??[]).find(q=>q.id===cmd.id);assert(r,'Request not found.','NOT_FOUND');
+    assert(r!.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
+    if(r!.requestedBy!==k.uid)fail('FORBIDDEN','Only the person who made the request can withdraw it.');
+    r!.status='Withdrawn';r!.decidedBy=k.uid;r!.decidedAt=s.clock;
+    return `${r!.id} · ${staffOf(k,r!.staffId).name} · ${r!.kind==='bank'?'bank-detail change':'attendance correction '+r!.date} · withdrawn`;
+  },
+  /** DEC-083 (audit A04-05): add or rename a paid holiday (Owner). Paid like a weekly off; a locked pay month keeps its holidays. */
+  // DEC-083 paid holidays, written to MA-6's Holiday calendar master (masters integration: one holidays concept). SAVE makes the date an
+  // active paid holiday (a restricted or retired row of that date becomes paid); REMOVE deletes the paid row. A locked pay month never changes.
+  HR_HOLIDAY_SAVE:k=>{
+    owner(k,'keep the paid-holiday calendar');const {s,cmd,assert}=k,x=hrEnsure(s);
+    assert(DATE.test(String(cmd.date??'')),'Choose the holiday’s date.');
+    const name=String(cmd.name??'').trim();assert(name.length>=2&&name.length<=60,'Name the holiday (2–60 characters).');
+    const ym=String(cmd.date).slice(0,7),run=x.runs.find(r=>r.month===ym);
+    assert(run?.status!=='Locked',`${hrMonthLabel(ym)} payroll is locked — its holidays cannot change.`,'INVALID_TRANSITION');
+    const rows=holidayRows(k),i=rows.findIndex(r=>r.code===cmd.date),cur=i>=0?rows[i]:undefined;
+    const old=cur&&cur.active&&cur.kind==='paid'?cur:undefined;
+    const next:MasterRow={...(cur??{id:k.id(mstSpec(HRM_HOLIDAYS)?.prefix??'HOL'),code:String(cmd.date),sortOrder:mstNextSort(rows)}),name,kind:'paid',active:true};
+    delete next.retiredOn;
+    holidayWrite(k,i>=0?rows.map((r,j)=>j===i?next:r):[...rows,next],next,cur);
+    return `Paid holiday ${cmd.date} · ${name}${!old?' added':old.name===name?' (unchanged)':` (was ${old.name})`} · paid like a weekly off${run?` · ${hrMonthLabel(ym)} draft pay-run must be recalculated`:''}`;
+  },
+  HR_HOLIDAY_REMOVE:k=>{
+    owner(k,'keep the paid-holiday calendar');const {s,cmd,assert}=k,x=hrEnsure(s);
+    const ym=String(cmd.date??'').slice(0,7),run=x.runs.find(r=>r.month===ym);
+    assert(run?.status!=='Locked',`${hrMonthLabel(ym)} payroll is locked — its holidays cannot change.`,'INVALID_TRANSITION');
+    const rows=holidayRows(k),old=rows.find(r=>r.code===cmd.date&&r.active&&r.kind==='paid');assert(old,'No paid holiday on that date.','NOT_FOUND');
+    holidayWrite(k,rows.filter(r=>r!==old),undefined,old);
+    return `Paid holiday ${cmd.date} · ${old!.name} removed${run?` · ${hrMonthLabel(ym)} draft pay-run must be recalculated`:''}`;
+  },
   HR_LEAVE_REQUEST:k=>{
     const {s,cmd,assert,fail}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);
     if(!isOwn(k,st)&&!hrCanManage(s,k.uid))fail('FORBIDDEN','You can request leave only for yourself.');
@@ -204,7 +325,7 @@ export const handlers:Record<string,Handler>={
     const half=cmd.half as 'AM'|'PM'|undefined;if(half!==undefined)assert(half==='AM'||half==='PM','Choose the first or second half.');
     const to=half?cmd.from:cmd.to;
     assert(DATE.test(cmd.from)&&DATE.test(to)&&to>=cmd.from,'The end date must be on or after the start date.');
-    assert(cmd.from>=s.date,'Leave cannot start before the business date.');
+    assert(cmd.from>=s.date,'Leave cannot start before the business date. A past day of the open pay month is corrected on Attendance › Past days (DEC-075).');
     assert(addDays(cmd.from,14)>=to,'Maximum 15 days per request in this demo.');
     assert(hrFy(cmd.from).to>=to,'A request cannot cross 31 March — split it per financial year.');
     assert(String(cmd.reason??'').trim().length>=3,'Give a short reason.');
@@ -215,7 +336,7 @@ export const handlers:Record<string,Handler>={
       assert(days<=left,`Not enough ${type} balance: ${left} day${left===1?'':'s'} left in ${hrFy(cmd.from).label}.`);}
     // SCC capacity: max staff off per day — here per department; pending and approved requests hold a slot.
     const cap=hrDeptCap(s,st.dept);
-    for(let d=cmd.from;d<=to;d=addDays(d,1)){if(hrShiftFor(s,st,d)==='OFF'||hrHolidayPaid(s,d))continue;
+    for(let d=cmd.from;d<=to;d=addDays(d,1)){if(hrDayOff(s,st,d))continue;// weekly off or paid holiday (DEC-083): no leave day, no slot
       const off=hrDeptOff(s,st.dept,d,st.id).length;
       assert(off<cap,`${hrDeptName(s,st.dept)} already has ${off} staff off on ${dm(d)} (maximum ${cap} per day).`,'NOT_AVAILABLE');}
     const id=k.id('HR-LV');
@@ -297,6 +418,9 @@ export const handlers:Record<string,Handler>={
     assert(run,'Payroll run not found.','NOT_FOUND');assert(run!.status==='Draft','This payroll is already locked.','INVALID_TRANSITION');
     if(run!.preparedBy===k.uid)fail('FORBIDDEN','The person who prepared the payroll cannot lock it. Switch to the other payroll user (Owner / Accountant).');
     const errs=hrRunErrors(run!);assert(!errs.length,'Fix before locking: '+errs.join('; ')+'.');
+    // DEC-075: a correction of this month waiting for the Owner is decided before the month is locked (a locked month never changes).
+    const waiting=hrPendingRequests(s,'attendance').filter(r=>r.date?.startsWith(run!.month)).length;
+    assert(!waiting,`${waiting} attendance correction${waiting===1?'':'s'} for ${hrMonthLabel(run!.month)} ${waiting===1?'waits':'wait'} for the Owner — approve or reject ${waiting===1?'it':'them'} before locking.`,'INVALID_TRANSITION');
     const fresh=hrComputeRun(s,run!.month);
     assert(JSON.stringify(fresh.lines)===JSON.stringify(run!.lines)&&JSON.stringify(hrRatesFor(s,run!.month))===JSON.stringify(run!.rates),'Attendance, leave, advances or rates changed after this draft. Recalculate before locking.','STALE_VERSION');
     run!.status='Locked';run!.lockedBy=k.uid;run!.lockedAt=s.clock;hrApplyRecoveries(x,run!);hrBankSnapshot(x,run!);
@@ -354,7 +478,7 @@ export const handlers:Record<string,Handler>={
     const c=hrFnfCompute(s,st,clean),id=k.id('HR-FNF'),adds=clean.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0);
     x.fnf=[...(x.fnf??[]),{id,staffId:st.id,name:st.name,lastDay:c.lastDay,month:c.month,salaryIncluded:c.salaryIncluded,...(c.line?{line:c.line}:{}),rates:{...c.rates},
       advanceOutstanding:c.advanceOutstanding,adjustments:clean,earnings:c.earnings,recoveries:c.recoveries,net:c.net,by:k.uid,at:s.clock,status:'Draft'}];
-    return `${id} · ${st.name} · full and final DRAFT · ${c.net<0?'recoverable from employee '+money(-c.net):'net payable '+money(c.net)} · to be confirmed by ${adds>HR_FNF_OWNER_ABOVE?'the Owner (additions above '+money(HR_FNF_OWNER_ABOVE)+')':'the other payroll user'}`;
+    return `${id} · ${st.name} · full and final DRAFT · ${c.net<0?'recoverable from employee '+money(-c.net):'net payable '+money(c.net)}${c.advanceLeftOpen>0?` · advance ${money(c.advanceLeftOpen)} not covered, stays open`:''} · to be confirmed by ${adds>HR_FNF_OWNER_ABOVE?'the Owner (additions above '+money(HR_FNF_OWNER_ABOVE)+')':'the other payroll user'}`;
   },
   /** F-12 checker: another payroll user (never the maker, never your own account) confirms; the figures must still match a fresh computation. */
   HR_FNF_CONFIRM:k=>{
@@ -367,9 +491,12 @@ export const handlers:Record<string,Handler>={
     const c=hrFnfCompute(s,st,f!.adjustments);
     assert(c.net===f!.net&&c.earnings===f!.earnings&&c.recoveries===f!.recoveries&&c.advanceOutstanding===f!.advanceOutstanding&&JSON.stringify(c.line)===JSON.stringify(f!.line),
       'Attendance, advances or rates changed after this draft. Discard it and prepare the settlement again.','STALE_VERSION');
-    for(const a of x.advances.filter(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0)){const b=hrAdvanceBalance(a);a.recovered+=b;a.recoveries.push({runId:f!.id,amount:b});}
+    // DEC-074 / A04-06: only the part of the advance the settlement covers is recovered (oldest advance first); the rest stays open.
+    let left=c.advanceRecovered;
+    for(const a of x.advances.filter(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0)){const b=Math.min(left,hrAdvanceBalance(a));if(b<=0)break;a.recovered+=b;a.recoveries.push({runId:f!.id,amount:b});left-=b;}
     f!.status='Settled';f!.confirmedBy=k.uid;f!.confirmedAt=s.clock;
-    return `${f!.id} · ${f!.name} · full and final confirmed · ${f!.net<0?'recoverable from employee '+money(-f!.net):'net payable '+money(f!.net)} (simulated transfer)`;
+    return `${f!.id} · ${f!.name} · full and final confirmed · ${f!.net<0?'recoverable from employee '+money(-f!.net):'net payable '+money(f!.net)} (simulated transfer)`
+      +(c.advanceOutstanding>0?` · advance ${money(c.advanceRecovered)} recovered${c.advanceLeftOpen>0?`, ${money(c.advanceLeftOpen)} left open (still owed)`:''}`:'');
   },
   /** F-12: discard a draft settlement (payroll roles). */
   HR_FNF_DISCARD:k=>{

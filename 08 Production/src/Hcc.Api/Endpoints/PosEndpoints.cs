@@ -10,8 +10,8 @@ namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Restaurant POS endpoints: <c>POST /api/v1/commands/{CreateOutlet|SaveMenuItem|SetMenuItemAvailability|OpenCheck|AddCheckItem|SetCheckItemQty|SendKot|
-/// AdvanceKot|SettleCheck|VoidCheckItem|VoidBill|DecideVoid}</c> (Idempotency-Key required) and GETs for checks, kitchen, menu, outlets, day summary and the
-/// day-close blockers. All require a session; the actor is the session principal.
+/// AdvanceKot|SettleCheck|VoidCheckItem|VoidBill|DecideVoid|DecideMenuChange}</c> (Idempotency-Key required) and GETs for checks, kitchen, menu, outlets, day summary,
+/// menu change requests and the day-close blockers. All require a session; the actor is the session principal.
 /// </summary>
 public static class PosEndpoints
 {
@@ -36,6 +36,7 @@ public static class PosEndpoints
         Command<CreateOutletRequest, OutletResult>(g, "CreateOutlet", (s, c, k, r, ct) => s.CreateOutletAsync(c, k, r, ct));
         Command<SaveMenuItemRequest, MenuItemResult>(g, "SaveMenuItem", (s, c, k, r, ct) => s.SaveMenuItemAsync(c, k, r, ct));
         MapMasters(g);
+        Command<DecideMenuChangeRequest, DecideMenuChangeResult>(g, "DecideMenuChange", (s, c, k, r, ct) => s.DecideMenuChangeAsync(c, k, r, ct));
         Command<SetMenuItemAvailabilityRequest, MenuItemResult>(g, "SetMenuItemAvailability", (s, c, k, r, ct) => s.SetMenuItemAvailabilityAsync(c, k, r, ct));
         Command<OpenCheckRequest, CheckResult>(g, "OpenCheck", (s, c, k, r, ct) => s.OpenCheckAsync(c, k, r, ct));
         Command<AddCheckItemRequest, CheckResult>(g, "AddCheckItem", (s, c, k, r, ct) => s.AddItemAsync(c, k, r, ct));
@@ -64,6 +65,8 @@ public static class PosEndpoints
             => Results.Ok(await q.ClosedChecksAsync(http.PosCaller(), date, ct).ConfigureAwait(false)));
         g.MapGet("/pos/void-requests", async (HttpContext http, PosQueries q, CancellationToken ct)
             => Results.Ok(await q.PendingVoidsAsync(http.PosCaller(), ct).ConfigureAwait(false)));
+        g.MapGet("/pos/menu-requests", async (HttpContext http, PosQueries q, CancellationToken ct)
+            => Results.Ok(await q.PendingMenuRequestsAsync(http.PosCaller(), ct).ConfigureAwait(false)));
         g.MapGet("/pos/in-house", async (HttpContext http, PosQueries q, CancellationToken ct)
             => Results.Ok(await q.InHouseAsync(http.PosCaller(), ct).ConfigureAwait(false)));
         g.MapGet("/pos/till", async (HttpContext http, PosQueries q, CancellationToken ct)

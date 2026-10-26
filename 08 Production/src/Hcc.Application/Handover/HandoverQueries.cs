@@ -14,19 +14,16 @@ public sealed class HandoverQueries(IAccessPolicy policy, IHandoverReadStore rea
 
     private async Task<(IReadOnlyList<string> Roles, bool Manager, bool SeesCash)> CallerAsync(int propertyId, int principalId, CancellationToken ct)
     {
-        var has = false;
-        foreach (var perm in HandoverPermissions.AnyAccess)
-            if (await policy.HasAsync(propertyId, principalId, perm, AccessScopes.Any, ct).ConfigureAwait(false)) { has = true; break; }
-        if (!has) throw new HccException(HccErrorCode.FORBIDDEN, "Access denied: checklists need the housekeeping, payments or approve permission.");
-        var manager = await policy.HasAsync(propertyId, principalId, HandoverPermissions.Approve, AccessScopes.Any, ct).ConfigureAwait(false);
-        var cash = await policy.HasAsync(propertyId, principalId, HandoverPermissions.Payments, AccessScopes.Any, ct).ConfigureAwait(false)
-            || await policy.HasAsync(propertyId, principalId, HandoverPermissions.FinanceReport, AccessScopes.Any, ct).ConfigureAwait(false);
+        if (!await policy.HasAsync(propertyId, principalId, HandoverPermissions.View, AccessScopes.Any, ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, $"Access denied: handover needs {HandoverPermissions.View}.");
+        var manager = await policy.HasAsync(propertyId, principalId, HandoverPermissions.Decide, AccessScopes.Any, ct).ConfigureAwait(false);
+        var cash = await policy.HasAsync(propertyId, principalId, HandoverPermissions.Money, AccessScopes.Any, ct).ConfigureAwait(false);
         return (await principals.RoleCodesAsync(propertyId, principalId, UtcNow, ct).ConfigureAwait(false), manager, cash);
     }
 
     private async Task<(IReadOnlyList<string> Roles, bool Manager, bool SeesCash)> ManagerAsync(int propertyId, int principalId, CancellationToken ct)
     {
-        await policy.RequireAsync(propertyId, principalId, HandoverPermissions.Approve, null, 0L, ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, HandoverPermissions.Decide, null, null, ct).ConfigureAwait(false);
         return await CallerAsync(propertyId, principalId, ct).ConfigureAwait(false);
     }
 

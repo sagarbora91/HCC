@@ -305,8 +305,11 @@ public class PosCommandTests(PosDb db) : IClassFixture<PosDb>
     {
         await Fails(HccErrorCode.FORBIDDEN, () => db.Pos.OpenCheckAsync(db.As(Who.Housekeeper), PosDb.Key(), new OpenCheckRequest(db.Restaurant, "T1", null, 1, null)));
         await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.OpenChecksAsync(db.As(Who.Housekeeper)));
-        await Fails(HccErrorCode.FORBIDDEN, () => db.Pos.SaveMenuItemAsync(db.As(Who.Manager), PosDb.Key(), new SaveMenuItemRequest(null, "X1", "Test", "Misc", 1000, true, [db.Restaurant], null)));
+        // DEC-079 D5: the Manager's menu save becomes a request (PosRbacV2Tests); everyone else below the Owner is refused.
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Pos.SaveMenuItemAsync(db.As(Who.Cashier), PosDb.Key(), new SaveMenuItemRequest(null, "X1", "Test", "Misc", 1000, true, [db.Restaurant], null)));
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Pos.SaveMenuItemAsync(db.As(Who.Waiter), PosDb.Key(), new SaveMenuItemRequest(null, "X1", "Test", "Misc", 1000, true, [db.Restaurant], null)));
         await Fails(HccErrorCode.FORBIDDEN, () => db.Pos.CreateOutletAsync(db.As(Who.Cashier), PosDb.Key(), new CreateOutletRequest("BAR", "Bar", "table", ["B1"])));
+        await Fails(HccErrorCode.APPROVAL_REQUIRED, () => db.Pos.CreateOutletAsync(db.As(Who.Manager), PosDb.Key(), new CreateOutletRequest("BAR", "Bar", "table", ["B1"])));
     }
 
     [Fact]

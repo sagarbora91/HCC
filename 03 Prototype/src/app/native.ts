@@ -80,6 +80,14 @@ export async function clearExports():Promise<void>{
   const fs=nativePlugin('Filesystem');if(!fs)return;
   try{await fs.rmdir({path:EXPORT_DIR,directory:EXPORT_STORE,recursive:true});}catch{/* nothing to delete, or already gone */}
 }
+/** Wave B1 (DEC-073): the camera app writes a slip photo taken through <input capture> to the app's external files folder `Pictures/`
+ *  (Capacitor 8 BridgeWebChromeClient, shared through the FileProvider entry hcc_slip_capture). Once the photo is compressed and kept in
+ *  memory the original is deleted, so no full-size slip photo stays on the device. Native only; a missing folder is not an error; never throws. */
+export const CAPTURE_DIR='Pictures';
+export async function clearCapturedPhotos():Promise<void>{
+  const fs=nativePlugin('Filesystem');if(!fs)return;
+  try{await fs.rmdir({path:CAPTURE_DIR,directory:'EXTERNAL',recursive:true});}catch{/* nothing to delete, or already gone */}
+}
 /** Saves text to the app cache (`exports/<name>`) and opens the share sheet (native), or downloads it (browser). */
 export async function saveTextFile(name:string,text:string,mime:string,bom=false):Promise<SaveResult>{
   const fs=nativePlugin('Filesystem'),share=nativePlugin('Share');

@@ -6,12 +6,15 @@ using Hcc.Domain.Errors;
 
 namespace Hcc.Application.Pos;
 
-/// <summary>POS reads: check, open checks, menu, kitchen board, day summary, close blockers. All need the operate permission (PERM-FOL-002).</summary>
+/// <summary>
+/// POS reads: check, open checks, menu, kitchen board, day summary, close blockers. All need the POS view permission (PERM-POS-001); the day sales
+/// summary and the closed-bills list are money (PERM-POS-004, or PERM-POS-005 for the settling desk), which the Restaurant role does not hold (DEC-079 D1).
+/// </summary>
 public sealed class PosQueries(IPosStore store, IAccessPolicy policy, IPosTaxRates taxRates)
 {
     private async Task<DateOnly> TodayAsync(PosCaller c, CancellationToken ct)
     {
-        await policy.RequireAsync(c.PropertyId, c.PrincipalId, PosPermissions.Operate, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(c.PropertyId, c.PrincipalId, PosPermissions.View, ct: ct).ConfigureAwait(false);
         return await store.PropertyBusinessDateAsync(c.PropertyId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
     }
 
@@ -24,10 +27,11 @@ public sealed class PosQueries(IPosStore store, IAccessPolicy policy, IPosTaxRat
             ?? throw new HccException(HccErrorCode.NOT_FOUND, "Check not found.");
     }
 
-    /// <summary>MA-4: outlets, menu and categories are also read by Master configuration — PERM-FOL-002 (operate) or PERM-MST-001 (masters).</summary>
+    /// <summary>MA-4: outlets, menu and categories are also read by Master configuration — the POS view right (PERM-POS-001 in role matrix v2,
+    /// DEC-079; any mode) or PERM-MST-001 (masters).</summary>
     private async Task ListsAsync(PosCaller c, CancellationToken ct)
     {
-        if (await policy.HasAsync(c.PropertyId, c.PrincipalId, PosPermissions.Operate, ct: ct).ConfigureAwait(false)) return;
+        if (await policy.HasAsync(c.PropertyId, c.PrincipalId, PosPermissions.View, ct: ct).ConfigureAwait(false)) return;
         await policy.RequireAsync(c.PropertyId, c.PrincipalId, Hcc.Application.Masters.MastersPermissions.Manage, ct: ct).ConfigureAwait(false);
     }
 
@@ -73,6 +77,8 @@ public sealed class PosQueries(IPosStore store, IAccessPolicy policy, IPosTaxRat
     {
         ArgumentNullException.ThrowIfNull(c);
         var today = await TodayAsync(c, ct).ConfigureAwait(false);
+        // Day sales are money: PERM-POS-004 at any scope (the Cashier's own-shift cell covers the shared till's day, DEC-052).
+        await policy.RequireAsync(c.PropertyId, c.PrincipalId, PosPermissions.Money, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         return await store.DaySummaryAsync(c.PropertyId, date ?? today, (await taxRates.FoodAsync(null, c.PropertyId, today, ct).ConfigureAwait(false)).Bps, ct).ConfigureAwait(false);
     }
 
@@ -88,6 +94,9 @@ public sealed class PosQueries(IPosStore store, IAccessPolicy policy, IPosTaxRat
     {
         ArgumentNullException.ThrowIfNull(c);
         var today = await TodayAsync(c, ct).ConfigureAwait(false);
+        // Settled bills of the day add up to the day's sales: the money view, or the settling desk that reprints them (PERM-POS-005).
+        if (!await policy.HasAsync(c.PropertyId, c.PrincipalId, PosPermissions.Money, AccessScopes.Any, ct).ConfigureAwait(false))
+            await policy.RequireAsync(c.PropertyId, c.PrincipalId, PosPermissions.Settle, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         var bps = (await taxRates.FoodAsync(null, c.PropertyId, today, ct).ConfigureAwait(false)).Bps;
         var list = new List<CheckView>();
         foreach (var id in await store.ClosedCheckIdsAsync(c.PropertyId, date ?? today, 50, ct).ConfigureAwait(false))
@@ -101,6 +110,15 @@ public sealed class PosQueries(IPosStore store, IAccessPolicy policy, IPosTaxRat
         ArgumentNullException.ThrowIfNull(c);
         await TodayAsync(c, ct).ConfigureAwait(false);
         return await store.PendingVoidsAsync(c.PropertyId, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Pending menu and price changes a Manager asked for (D5): the Owner decides them; the Manager sees what is waiting (PERM-POS-006, A or R).</summary>
+    public async Task<IReadOnlyList<MenuRequestView>> PendingMenuRequestsAsync(PosCaller c, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        if (!await policy.HasAsync(c.PropertyId, c.PrincipalId, PosPermissions.Setup, ct: ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, $"Access denied: {PosPermissions.Setup} permission is required.");
+        return await store.PendingMenuRequestsAsync(c.PropertyId, ct).ConfigureAwait(false);
     }
 
     /// <summary>In-house guests (stay, folio, reservation, room) the outlet can charge: room-service targets and "post to room".</summary>

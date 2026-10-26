@@ -51,6 +51,23 @@ export const rbacCanDecideCash=(s:State,uid:string)=>can(s,uid,'approve')||rbacI
 /** Request a closed-date correction (CLS-003); the Owner decides (CLS-004). */
 export const rbacCanRequestClosedCorrection=(s:State,uid:string)=>can(s,uid,'close')||rbacIsAccountant(s,uid);
 
+// ── DEC-079 (role matrix v2 D1) · Restaurant: POS operate only — open checks, add items, KOT, kitchen status, a void request;
+//    never settle (cash, card, UPI or charge to a room), decide a void or see the day sales. The server enforces the same (PERM-POS-*). ──
+export const rbacIsRestaurant=(s:State,uid:string)=>rbacIsRole(s,uid,'Restaurant');
+/** Pages of the Restaurant role: the POS and the own shifts & pay (DEC-061). */
+export const RBAC_RESTAURANT_PAGES:readonly string[]=['pos','my-hr'];
+/** Settle a POS check (outlet tender or room folio). */
+export const rbacPosCanSettle=(s:State,uid:string)=>!rbacIsRestaurant(s,uid)&&can(s,uid,['payments','billing']);
+/** The outlet day summary (sales, tenders, top items) and today's closed bills. */
+export const rbacPosSeesDaySales=(s:State,uid:string)=>!rbacIsRestaurant(s,uid);
+/** DEC-079 D4 (DEC-058): the Tech admin edits message templates and trigger rules (PERM-MSG-003) — production only: the demo keeps the
+ *  prototype's matrix v1 baseline (D6), where templates need the approve permission. */
+export const rbacTechAdminTemplates=(s:State,uid:string)=>process.env.HCC_BUILD==='production'&&rbacIsRole(s,uid,'Tech admin');
+/** Edit message templates and trigger rules. */
+export const rbacCanEditTemplates=(s:State,uid:string)=>can(s,uid,'approve')||rbacTechAdminTemplates(s,uid);
+/** DEC-079: the books (vouchers, trial balance, ledger mapping) are not the Cashier's; the Cashier keeps the daily collections report. */
+export const rbacSeesBooks=(s:State,uid:string)=>!rbacIsRole(s,uid,'Cashier');
+
 // ── G9 · Manager: no Access control / setting requests, but a last-backup warning (Owner + Manager) ──
 export const rbacSeesBackupStatus=(s:State,uid:string)=>rbacIsRole(s,uid,'Owner','Manager');
 

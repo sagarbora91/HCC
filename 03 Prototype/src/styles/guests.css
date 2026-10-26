@@ -79,3 +79,13 @@
   .gs-list-item{flex-wrap:wrap}.gs-list-tags{flex-direction:row;width:100%;justify-content:flex-start;padding-left:46px}
 }
 @media print{.gs-regcard:after{color:#2b1d16}.gs-regcard{color:#2b1d16}}
+/* Printed in-house / arrivals list (DEC-081): cards on a phone sheet, the table everywhere else and always on paper. */
+.fd-list .fd-cards{display:none;list-style:none;margin:0;padding:0}
+.fd-list .fd-table table{width:100%}
+.fd-list .fd-table th,.fd-list .fd-table td{font-size:12px}
+.fd-list .fd-notes{min-width:110px;border-bottom:1px solid #cbbb99}
+.fd-cards li{display:flex;gap:12px;align-items:flex-start;border:1px solid #e6d9c8;border-radius:8px;padding:10px 12px}
+.fd-card-main{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.fd-card-main strong{font-size:16px}.fd-card-main small{font-size:14px;color:#5c4636}
+.m-sheet .fd-list .fd-cards{display:flex;flex-direction:column;gap:8px}
+.m-sheet .fd-list .fd-table{display:none}
+@media print{.fd-list .fd-cards{display:none!important}.fd-list .fd-table{display:block!important}}

@@ -7,6 +7,7 @@ import {Cashier} from './Cashier';
 import {ClosingReportModal} from './ClosingReport';
 import {ExpenseReasonModal} from '../expenses/ExpenseModal';
 import {ReportPrintModal} from '../reports/Reports';
+import {CashBankModal,TillTransferModal,OwnerDrawingModal,CashDecideModal} from './CashOut';
 export const registration:FeatureRegistration={
   pages:{cashier:Cashier},
   // PERM-SHF-001 shift.open/count/submit (coarse: payments)
@@ -15,6 +16,9 @@ export const registration:FeatureRegistration={
     'closing-report':ClosingReportModal, // id = business date
     'report-print':ReportPrintModal,     // id = report tab, room = 'from|to'
     'expense-reason':ExpenseReasonModal, // id = expense ID, room = 'reject' | 'reverse'
+    // Wave B1 (DEC-073): cash leaving the drawer (desktop and phone use the same dialogs; phone layout via display.isMobile)
+    'cash-bank':CashBankModal,'till-transfer':TillTransferModal,'owner-drawing':OwnerDrawingModal,
+    'cash-decide':p=><CashDecideModal id={p.id}/>,       // id = cash-out record
   },
   wideModals:['closing-report','report-print'],
 };

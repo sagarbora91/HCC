@@ -6,7 +6,7 @@ import type {Booking,Line,Receipt,Approval} from '../../../services/mock';
 import {totals,lineTax} from '../../../services/mock';
 import type {ShiftRecord} from '../../../domain/streams/closing';
 import type {CBState,CBLogEntry} from '../../../domain/streams/cashbook';
-import type {GRPBlock,GRPCompany,GRPLimitRequest} from '../../../domain/streams/groups';
+import type {GRPBlock,GRPCompany,GRPLimitRequest,GRPCompanyPayment} from '../../../domain/streams/groups';
 import {HccClientError} from '../../errors';
 import {protoId,protoUserId,utcToClock,paise,isoDate} from '../map';
 
@@ -22,7 +22,9 @@ export type SrvFolio={folioId:number;reservationId:number;reservationStatus:stri
 export type SrvReservationFolio={reservationId:number;stayId:number|null;stayVersion:string|null;folio:SrvFolio|null};
 export type SrvShift={shiftId:number;tillId:number;businessDate:string;status:'Open'|'Submitted'|'Closed';openingFloatPaise:number;expectedPaise:number|null;
   countedPaise:number|null;approvalId:number|null;version:string};
-export type SrvDeskShift={shift:SrvShift;submittedBy:number|null;differenceReason:string|null;closedBy:number|null;approval:SrvApproval|null};
+export type SrvDeskShift={shift:SrvShift;submittedBy:number|null;differenceReason:string|null;closedBy:number|null;approval:SrvApproval|null;
+  /** DEC-078 (Wave B1): the shift's owner and the opener's handover count (null / absent from older servers). */
+  openedBy?:number|null;handoverCountPaise?:number|null;handoverDifferencePaise?:number|null;handoverReason?:string|null};
 export type SrvDeskTill={till:{tillId:number;code:string;name:string;version:string};active:SrvDeskShift|null;expected:{expectedPaise:number}|null;lastClosed:SrvDeskShift|null};
 /** GET /cashier/desk (W4-3). */
 export type SrvCashDesk={businessDate:string;tills:SrvDeskTill[]};
@@ -107,20 +109,22 @@ export function folioIntoBooking(b:Booking,f:SrvFolio|null,inv:SrvInvoice|null):
   return next;
 }
 
-/** Cash-desk till the cashier screens show (DEC-052 one shared till): the till with an active shift, else the first till. */
-export const deskTill=(d:SrvCashDesk):SrvDeskTill|undefined=>d.tills.find(t=>t.active)??d.tills[0];
+/** Cash-desk till the cashier screens show (DEC-052 one shared till): DEC-078 the till whose active shift `userId` opened, else the till with an
+ *  active shift, else the first till. */
+export const deskTill=(d:SrvCashDesk,userId?:number):SrvDeskTill|undefined=>
+  (userId!==undefined?d.tills.find(t=>t.active&&t.active.openedBy===userId):undefined)??d.tills.find(t=>t.active)??d.tills[0];
 /** shiftOpen: an Open shift of the current business date on the desk till (a Submitted count pauses cash, as in the prototype). */
-export function deskShiftOpen(d:SrvCashDesk){const a=deskTill(d)?.active?.shift;return !!a&&a.status==='Open'&&a.businessDate===d.businessDate;}
+export function deskShiftOpen(d:SrvCashDesk,userId?:number){const a=deskTill(d,userId)?.active?.shift;return !!a&&a.status==='Open'&&a.businessDate===d.businessDate;}
 /** openingCash: the active shift's float; after a close on this business date, that shift's float; otherwise the next float (last count). */
-export function deskOpeningCash(d:SrvCashDesk){
-  const t=deskTill(d);if(!t)return 0;
+export function deskOpeningCash(d:SrvCashDesk,userId?:number){
+  const t=deskTill(d,userId);if(!t)return 0;
   if(t.active)return paise(t.active.shift.openingFloatPaise,'openingFloatPaise');
   const c=t.lastClosed?.shift;if(!c)return 0;
   return c.businessDate===d.businessDate?paise(c.openingFloatPaise,'openingFloatPaise'):paise(c.countedPaise??0,'countedPaise');
 }
 /** shift: the submitted count awaiting a difference decision, or the count that closed today's shift; undefined while counting is open. */
-export function deskShiftRecord(d:SrvCashDesk):ShiftRecord|undefined{
-  const t=deskTill(d);if(!t)return undefined;
+export function deskShiftRecord(d:SrvCashDesk,userId?:number):ShiftRecord|undefined{
+  const t=deskTill(d,userId);if(!t)return undefined;
   const a=t.active;
   if(a&&a.shift.status==='Submitted'){
     const r:ShiftRecord={date:a.shift.businessDate,status:'Submitted',expected:paise(a.shift.expectedPaise??0,'expectedPaise'),counted:paise(a.shift.countedPaise??0,'countedPaise'),
@@ -140,8 +144,8 @@ export function deskShiftRecord(d:SrvCashDesk):ShiftRecord|undefined{
   return undefined;
 }
 /** shiftClose: the count that closed today's shift (next float = counted). */
-export function deskShiftClose(d:SrvCashDesk){
-  const t=deskTill(d),c=t?.lastClosed;
+export function deskShiftClose(d:SrvCashDesk,userId?:number){
+  const t=deskTill(d,userId),c=t?.lastClosed;
   if(!t||t.active||!c||c.shift.businessDate!==d.businessDate)return undefined;
   return {expected:paise(c.shift.expectedPaise??0,'expectedPaise'),counted:paise(c.shift.countedPaise??0,'countedPaise'),countedBy:c.submittedBy!=null?protoUserId(c.submittedBy):undefined};
 }
@@ -167,13 +171,27 @@ export function cashbookFromServer(r:SrvCashBookRange):CBState{
 }
 
 /** A server group with a block → the prototype's block card (read-only figures; member room types come from the reservation reads). */
-export type SrvCompany={companyId:number;name:string;gstin:string|null;contact:string|null;phone:string|null;email:string|null;city:string|null;rates:Record<string,number>;creditLimitPaise:number;version:string};
+/** DEC-076 credit picture (PERM-GRP-004 holders only; null otherwise): exposure = receivable + open stays + group masters, remaining = limit − exposure. */
+export type SrvCompanyCredit={companyId:number;creditLimitPaise:number;exposurePaise:number;receivablePaise:number;openStaysPaise:number;groupMastersPaise:number;
+  remainingPaise:number;items:{kind:string;id:number;reference:string;amountPaise:number}[]};
+export type SrvCompany={companyId:number;name:string;gstin:string|null;contact:string|null;phone:string|null;email:string|null;city:string|null;rates:Record<string,number>;creditLimitPaise:number;version:string;
+  credit?:SrvCompanyCredit|null};
 export type SrvCompanyRequest={requestId:number;companyId:number;fromPaise:number;toPaise:number;reason:string;status:string;requestedBy:number;requestedUtc:string;decidedBy:number|null;note:string|null};
-export type SrvCompanyBook={companies:SrvCompany[];requests:SrvCompanyRequest[]};
+export type SrvCompanyPayment={paymentId:number;companyId:number;businessDate:string;tender:string;reference:string;invoiceNo:string|null;amountPaise:number;recordedBy:number;recordedUtc:string};
+export type SrvCompanyBook={companies:SrvCompany[];requests:SrvCompanyRequest[];payments?:SrvCompanyPayment[]|null};
 export function companyFromServer(c:SrvCompany):GRPCompany{
   const rates:Record<string,number>={};for(const [t,v] of Object.entries(c.rates??{}))rates[t]=paise(v,'rate');
-  return {id:protoId(c.companyId),name:c.name,gstin:c.gstin??'',contact:c.contact??'',phone:c.phone??'',email:c.email??'',city:c.city??'',rates,
+  const out:GRPCompany={id:protoId(c.companyId),name:c.name,gstin:c.gstin??'',contact:c.contact??'',phone:c.phone??'',email:c.email??'',city:c.city??'',rates,
     creditLimit:paise(c.creditLimitPaise,'creditLimitPaise'),openingOutstanding:0,limitHistory:[]};
+  // The server's figures replace the local estimate (the client does not hold every folio, group master or payment the server counts).
+  if(c.credit)out.credit={exposure:paise(c.credit.exposurePaise,'exposurePaise'),receivable:paise(c.credit.receivablePaise,'receivablePaise'),
+    openStays:paise(c.credit.openStaysPaise,'openStaysPaise'),groupMasters:paise(c.credit.groupMastersPaise,'groupMastersPaise'),remaining:paise(c.credit.remainingPaise,'remainingPaise'),
+    items:c.credit.items.map(i=>({kind:i.kind,id:protoId(i.id),reference:i.reference,amount:i.amountPaise}))};
+  return out;
+}
+export function companyPaymentFromServer(p:SrvCompanyPayment):GRPCompanyPayment{
+  return {id:protoId(p.paymentId),company:protoId(p.companyId),amount:paise(p.amountPaise,'amountPaise'),method:p.tender,reference:p.reference,...(p.invoiceNo?{invoice:p.invoiceNo}:{}),
+    date:isoDate(p.businessDate,'businessDate'),actor:protoUserId(p.recordedBy),at:utcToClock(p.recordedUtc)};
 }
 export function limitRequestFromServer(r:SrvCompanyRequest):GRPLimitRequest{
   const status=r.status==='Approved'||r.status==='Rejected'?r.status:'Pending';

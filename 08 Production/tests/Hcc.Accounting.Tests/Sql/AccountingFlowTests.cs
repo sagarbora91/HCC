@@ -85,6 +85,9 @@ public sealed class AccountingFlowTests(AccountingDb db) : IClassFixture<Account
         var tb = await db.Queries.TrialBalanceAsync(db.As("MGR"), D, cumulative: true, Ct);
         Assert.True(tb.Balanced);
         Assert.Equal(0, tb.Rows.Sum(r => r.BalancePaise));
+        // DEC-079: the Cashier sees the daily collections report, not the full trial balance or the day's vouchers.
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.TrialBalanceAsync(db.As("CSH"), D, cumulative: true, Ct));
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.DayAsync(db.As("CSH"), D, Ct));
 
         // ── lock rules ──
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Accounting.LockAsync(db.As("ACC"), Key(), new LockPeriodRequest(D), Ct)); // day open

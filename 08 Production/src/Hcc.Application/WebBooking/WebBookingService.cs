@@ -90,7 +90,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
 
     public async Task<WebRequestList> ListAsync(int propertyId, int principalId, string? status, CancellationToken ct = default)
     {
-        await access.RequireAsync(propertyId, principalId, WebBookingPermissions.Review, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(propertyId, principalId, WebBookingPermissions.View, ct: ct).ConfigureAwait(false);
         if (status is not null and not (WebRequestStatuses.Pending or WebRequestStatuses.Confirming or WebRequestStatuses.Confirmed or WebRequestStatuses.Declined))
             throw HccException.Validation("Status must be Pending, Confirming, Confirmed or Declined.");
         var rows = await store.ListAsync(propertyId, status, 200, ct).ConfigureAwait(false);
@@ -101,7 +101,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
 
     public async Task<WebRequestDetail> GetAsync(int propertyId, int principalId, long requestId, CancellationToken ct = default)
     {
-        await access.RequireAsync(propertyId, principalId, WebBookingPermissions.Review, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(propertyId, principalId, WebBookingPermissions.View, ct: ct).ConfigureAwait(false);
         var r = await store.GetAsync(propertyId, requestId, ct).ConfigureAwait(false) ?? throw InventoryErrors.NotFound("Web request");
         var now = clock.GetUtcNow().UtcDateTime;
         var nights = JsonSerializer.Deserialize<List<PublicQuoteNight>>(r.QuoteNightsJson, Json) ?? [];
@@ -118,7 +118,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
-        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Review, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Handle, ct: ct).ConfigureAwait(false);
         var key = context.IdempotencyKey;
         var claim = await runner.RunAsync(context with { Operation = "WebClaim", IdempotencyKey = WebBookingRules.StepKey(key, "c") }, request, async (tx, c) =>
         {
@@ -176,7 +176,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
-        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Review, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Handle, ct: ct).ConfigureAwait(false);
         var reason = WebBookingRules.Reason(request.Reason);
         return await runner.RunAsync(context, request, async (tx, c) =>
         {
@@ -197,7 +197,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
-        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Review, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Handle, ct: ct).ConfigureAwait(false);
         // F-L03: the plaintext token is made outside the command and never enters its stored (idempotency) result; only its hash is kept.
         var token = WebBookingRules.NewToken();
         var made = await runner.RunAsync(context, request, async (tx, c) =>
@@ -236,7 +236,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
-        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Review, ct: ct).ConfigureAwait(false);
+        await access.RequireAsync(context.PropertyId, context.PrincipalId, WebBookingPermissions.Handle, ct: ct).ConfigureAwait(false);
         await access.RequireAsync(context.PropertyId, context.PrincipalId, BillingPermissions.DepositRecord, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         var hash = WebBookingRules.TokenHash(request.Token);
         var gatewayRef = WebBookingRules.Clean(request.GatewayRef, 60);

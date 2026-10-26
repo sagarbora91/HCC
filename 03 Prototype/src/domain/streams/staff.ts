@@ -16,7 +16,7 @@
 import type {State,Role} from '../types';
 import {addDays} from '../money';
 import {can} from '../selectors';
-import {hrShiftPattern,hrWeeklyOffAuto,hrHolidayPaid,hrLeavePaid,hrLeaveQuota,hrLeaveCarryCap,hrLeaveEncash,hrTrackedTypes,HR_SHIFT_SEED,hrLeaveTypeRows} from './people-masters';
+import {hrShiftPattern,hrWeeklyOffAuto,hrHolidayPaid,hrHolidayOn,hrHolidays,hrLeavePaid,hrLeaveQuota,hrLeaveCarryCap,hrLeaveEncash,hrTrackedTypes,HR_SHIFT_SEED,hrLeaveTypeRows} from './people-masters';
 import {mstStored} from './masters';
 
 /** Shift pattern code (master list Shift patterns, MA-6; M E N G are the seed) or 'OFF' for the weekly off. */
@@ -49,7 +49,8 @@ export type HRStaff={id:string;name:string;dept:string;designation:string;
 export type HRAtt={status:HRAttStatus;at:string;otMin:number;by:string;note?:string};
 export type HRLeave={id:string;staffId:string;type:HRLeaveType;from:string;to:string;days:number;reason:string;
   /** Half-day leave (from = to, days = 0.5). */ half?:HRHalf;
-  status:'Pending'|'Approved'|'Rejected'|'Cancelled';requestedBy:string;requestedAt:string;decidedBy?:string;decidedAt?:string;note?:string};
+  status:'Pending'|'Approved'|'Rejected'|'Cancelled';requestedBy:string;requestedAt:string;decidedBy?:string;decidedAt?:string;note?:string;
+  /** DEC-075: a back-dated one-day leave created by this attendance correction (request id). */ correctionId?:string};
 export type HRAdvance={id:string;staffId:string;amount:number;
   /** Monthly recovery; 0 = recover the full balance in the first month (SCC emi 0). */ installment:number;
   recovered:number;date:string;reason:string;by:string;recoveries:{runId:string;amount:number}[];
@@ -71,7 +72,19 @@ export type HRLeavePolicy={ent:{CL:number;SL:number;EL:number};
 export type HRCounts={ym:string;days:number;P:number;L:number;H:number;
   /** Half-day worked with the other half on approved half-day leave. */ HL:number;
   A:number;OFFW:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
-  /** MA-6: paid-holiday days (Holiday calendar) on days with no attendance, leave or weekly off. Absent when 0. */hol?:number};
+  /** DEC-083 / MA-6: paid holidays (Holiday calendar) not worked — on days with no attendance, leave or weekly off; present only when > 0
+   *  (paid like weekly offs: monthly pay keeps them; daily wage pays neither, CA A04-04 open). */hol?:number};
+/** DEC-083 paid holiday in the Wave B shape (date + name) — a view of an active "paid" row of MA-6's Holiday calendar master (one holidays concept). */
+export type HRPaidHoliday={date:string;name:string};
+/** DEC-075: what a past day holds for pay — nothing (unmarked = absent), an attendance mark, or a one-day approved leave. */
+export type HRDayEntry={kind:'none'}|{kind:'mark';status:HRAttStatus;otMin:number}|{kind:'leave';type:HRLeaveType};
+/** DEC-075 attendance correction / DEC-084 bank-detail change (server hr.change_request). Pending until the Owner decides; `direct` = applied at
+ *  once (a correction that lowers or keeps pay, or the Owner's own). `payEffect` = gross pay change of the month (paise; payroll roles only). */
+export type HRRequest={id:string;kind:'attendance'|'bank';staffId:string;
+  /** Attendance: the corrected day, and the entry before → after. */ date?:string;before?:HRDayEntry;after?:HRDayEntry;
+  /** Bank: the staff master's details at request time → the requested ones (production: account numbers masked). */ bankBefore?:HRBank;bankAfter?:HRBank;
+  payEffect?:number;reason:string;status:'Pending'|'Approved'|'Rejected'|'Withdrawn';direct?:boolean;
+  requestedBy:string;requestedAt:string;decidedBy?:string;decidedAt?:string;note?:string};
 export type HRLine={staffId:string;name:string;dept:string;designation:string;payType:'monthly'|'daily';structure:HRStructure;gender:HRGender;base:number;
   counts:HRCounts;latePenaltyHalf:number;payableDays:number;
   /** Earned (pro-rated) pay = SCC grossPayable. */ earned:number;basic:number;hra:number;washing:number;special:number;ot:number;
@@ -112,7 +125,11 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
   /** Attendance keyed "YYYY-MM-DD|staffId". */ att:Record<string,HRAtt>;
   leaves:HRLeave[];advances:HRAdvance[];
   /** Dated statutory rate versions, sorted by `from`. */ rateVersions:HRRates[];
-  leavePolicy?:HRLeavePolicy;runs:HRRun[];fnf?:HRFnf[]};
+  leavePolicy?:HRLeavePolicy;runs:HRRun[];fnf?:HRFnf[];
+  /** LEGACY (Wave B, before the masters merge): its paid-holiday list. A SCHEMA 8 save is migrated into MA-6's Holiday calendar master on load
+   *  (services/mock/persistence.ts); nothing reads it otherwise. */ holidays?:HRPaidHoliday[];
+  /** DEC-075 / DEC-084 requests, oldest first (absent = none). */ requests?:HRRequest[];
+  /** Production only: the server's open correction window (hrCorrectionWindow computes it in the prototype). */ correctWindow?:{from:string;to:string}};
 
 /** F-08: shown on the leave-policy and statutory-rates screens. */
 export const HR_NOT_PORTED='Not ported from SCC: the extra-days rule (4 or 2 paid days added by total deductions, none above 7; 5.5-day monthly leave cap) and day-based overtime. HCC pays rostered weekly offs from the roster and overtime per minute. Owner decision pending (CA item 9).';
@@ -273,17 +290,27 @@ export function hrShiftFor(s:State,st:HRStaff,date:string):HRShiftCode{
   const o=hrSlice(s).roster[hrKey(date,st.id)];if(o)return o;
   return hrWeekday(date)===st.weeklyOff&&hrWeeklyOffAuto(s,st.defaultShift)?'OFF':st.defaultShift;
 }
+// ── DEC-083 paid holidays = the active "paid" rows of MA-6's Holiday calendar master (masters integration: one holidays concept) ──
+/** The paid holidays (date order) as {date, name}; restricted and retired rows of the calendar are not paid holidays. */
+export const hrPaidHolidays=(s:State):HRPaidHoliday[]=>hrHolidays(s,{active:true}).filter(h=>h.kind==='paid').map(h=>({date:h.code,name:h.name}))
+  .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+/** The paid holiday on a date, if any. */
+export const hrPaidHolidayOn=(s:State,date:string):HRPaidHoliday|undefined=>{const h=hrHolidayOn(s,date);return h&&h.kind==='paid'?{date:h.code,name:h.name}:undefined;};
+/** A day without duty for leave: a rostered weekly off or a paid holiday (leave days skip both; nobody is "off" on them). */
+export const hrDayOff=(s:State,st:HRStaff,date:string)=>hrShiftFor(s,st,date)==='OFF'||hrHolidayPaid(s,date);
+/** DEC-075: the unmarked-days warning points to the correction action (server PayrollRules.UnmarkedHint). */
+export const HR_UNMARKED_HINT='a manager can correct them on Staff & payroll › Attendance › Past days before the lock.';
 const covers=(l:HRLeave,date:string)=>l.from<=date&&l.to>=date;
 export const hrApprovedLeavesOn=(s:State,staffId:string,date:string)=>hrSlice(s).leaves.filter(l=>l.staffId===staffId&&l.status==='Approved'&&covers(l,date));
 /** A full-day approved leave on the date, else the first half-day one. */
 export const hrApprovedLeaveOn=(s:State,staffId:string,date:string)=>{const ls=hrApprovedLeavesOn(s,staffId,date);return ls.find(l=>!l.half)??ls[0];};
-/** Day view for one staff member: explicit attendance → rostered off → approved leave → unmarked. Half-day leave can sit beside attendance. */
-export function hrDayStatus(s:State,st:HRStaff,date:string):{kind:'att'|'leave'|'off'|'holiday'|'unmarked'|'na';att?:HRAtt;leave?:HRLeave}{
+/** Day view for one staff member: explicit attendance → rostered off → paid holiday → approved leave → unmarked. Half-day leave can sit beside attendance. */
+export function hrDayStatus(s:State,st:HRStaff,date:string):{kind:'att'|'leave'|'off'|'holiday'|'unmarked'|'na';att?:HRAtt;leave?:HRLeave;holiday?:HRPaidHoliday}{
   if(date<st.joined||(st.exitedOn&&date>st.exitedOn))return {kind:'na'};
   const att=hrSlice(s).att[hrKey(date,st.id)],leave=hrApprovedLeaveOn(s,st.id,date);
   if(att)return leave?.half?{kind:'att',att,leave}:{kind:'att',att};
   if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};// F-01: weekly off inside a leave span stays a weekly off
-  if(hrHolidayPaid(s,date))return {kind:'holiday'};// MA-6: a paid holiday is neither leave nor unmarked
+  const holiday=hrPaidHolidayOn(s,date);if(holiday)return {kind:'holiday',holiday};// DEC-083 / MA-6: an unmarked paid holiday is paid like a weekly off
   if(leave)return {kind:'leave',leave};
   return {kind:'unmarked'};
 }
@@ -309,7 +336,7 @@ export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
       }else if(att.status==='OFF')c.OFFW++;else c[att.status]++;
     }
     // F-01: a rostered weekly off inside a leave span is a weekly off, never a leave day (SCC isWeekOffDate; matches the stored `days`).
-    // MA-6: a paid holiday (Holiday calendar) without attendance is a paid day, never leave or unmarked; a weekly off on the same day stays a weekly off.
+    // DEC-083 / MA-6: a paid holiday (Holiday calendar) without attendance is a paid day, never leave or unmarked; a weekly off on the same day stays a weekly off.
     else if(hrShiftFor(s,st,d)==='OFF')c.off++;
     else if(hrHolidayPaid(s,d))c.hol=(c.hol??0)+1;
     else if(full)addLeave(full,1);
@@ -320,12 +347,10 @@ export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
 }
 
 // ── Leave ──
-/** Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate); a half-day leave is 0.5. */
+/** Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (DEC-083); a half-day leave is 0.5. */
 export function hrLeaveDays(s:State,st:HRStaff,from:string,to:string,half?:HRHalf){
-  // MA-6: paid holidays are not leave days (like weekly offs).
-  const works=(d:string)=>hrShiftFor(s,st,d)!=='OFF'&&!hrHolidayPaid(s,d);
-  if(half)return works(from)?0.5:0;
-  let n=0;for(let d=from;d<=to;d=addDays(d,1))if(works(d))n++;return n;
+  if(half)return hrDayOff(s,st,from)?0:0.5;
+  let n=0;for(let d=from;d<=to;d=addDays(d,1))if(!hrDayOff(s,st,d))n++;return n;
 }
 /** Leave used (approved + pending) in the financial year containing a date (or starting in April of a 4-digit year), per type. */
 export function hrLeaveUsed(s:State,staffId:string,dateOrYear:string,type:HRLeaveType,except=''){
@@ -357,16 +382,17 @@ export function hrLeaveOverCount(s:State,ent:{CL:number;SL:number;EL:number},dat
 export function hrDeptOff(s:State,dept:string,date:string,exceptStaff=''){
   const x=hrSlice(s);
   return x.leaves.filter(l=>(l.status==='Pending'||l.status==='Approved')&&covers(l,date)&&l.staffId!==exceptStaff).filter(l=>{
-    const st=x.staff.find(t=>t.id===l.staffId);return !!st&&st.dept===dept&&hrShiftFor(s,st,date)!=='OFF';});
+    const st=x.staff.find(t=>t.id===l.staffId);return !!st&&st.dept===dept&&!hrDayOff(s,st,date);});
 }
 /** Leave calendar for a month: per date, the leaves (pending + approved) and per-department counts against the cap. */
 export function hrLeaveCalendar(s:State,ym:string){
   const x=hrSlice(s);
   return hrMonthDates(ym).map(date=>{
     const items=x.leaves.filter(l=>(l.status==='Pending'||l.status==='Approved')&&covers(l,date)).map(l=>({leave:l,staff:x.staff.find(t=>t.id===l.staffId)!}))
-      .filter(i=>i.staff&&hrShiftFor(s,i.staff,date)!=='OFF');
+      .filter(i=>i.staff&&!hrDayOff(s,i.staff,date));
     const depts=x.depts.map(d=>({dept:d.id,name:d.name,count:items.filter(i=>i.staff.dept===d.id).length,cap:hrDeptCap(s,d.id)})).filter(d=>d.count>0);
-    return {date,items,depts,full:depts.some(d=>d.count>=d.cap)};
+    const holiday=hrPaidHolidayOn(s,date);
+    return {date,items,depts,full:depts.some(d=>d.count>=d.cap),...(holiday?{holiday}:{})};
   });
 }
 
@@ -410,7 +436,8 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
     payHalf=2*D-lop;earned=hrMulDiv(st.monthly,payHalf,1,2*D);
     ot=hrMulDiv(st.monthly,c.otMin,r.otBps,D*8*60*10000);
   }else{
-    payHalf=Math.max(0,Math.round(2*(c.P+c.L+c.OFFW+(c.hol??0)))+c.H+c.HL-late);earned=hrMulDiv(st.daily,payHalf,1,2);
+    // DEC-083 (owner decision, binding over MA-6's draft): an unworked holiday is not paid to daily-wage staff — like a weekly off (CA A04-04 open).
+    payHalf=Math.max(0,Math.round(2*(c.P+c.L+c.OFFW))+c.H+c.HL-late);earned=hrMulDiv(st.daily,payHalf,1,2);
     ot=hrMulDiv(st.daily,c.otMin,r.otBps,8*60*10000);
   }
   let basic=earned,hra=0,washing=0;
@@ -436,7 +463,7 @@ export function hrComputeRun(s:State,ym:string,rates=hrRatesFor(s,ym)):{lines:HR
   const x=hrSlice(s),warnings:string[]=[];
   const lines=x.staff.filter(st=>hrInMonth(st,ym)&&!settledFor(x,st.id,ym)).map(st=>{
     const c=hrCounts(s,st,ym);
-    if(c.unmarked)warnings.push(`${st.name}: ${c.unmarked} unmarked day${c.unmarked===1?'':'s'} counted as absent.`);
+    if(c.unmarked)warnings.push(`${st.name}: ${c.unmarked} unmarked day${c.unmarked===1?'':'s'} counted as absent — ${HR_UNMARKED_HINT}`);
     if((st.payType==='monthly'?st.monthly:st.daily)<=0)warnings.push(`${st.name}: salary not set — pays ₹0.`);
     const a=hrAdvanceFor(x,st.id,ym);
     return hrComputeLine(st,c,rates,a?{installment:a.installment,balance:hrAdvanceBalance(a)}:undefined,hrEsicCovered(s,st,ym,rates));
@@ -524,6 +551,84 @@ export function hrStatutoryCsv(s:State,run:HRRun):string{
   const note=fnf.length?csvCell(`F&F — exit month's salary settled in full and final (not in the pay run): ${fnf.map((f,i)=>`Sr ${run.lines.length+i+1} ${f.line!.name} (last day ${f.lastDay})`).join('; ')}`)+'\n':'';
   return csv(rows)+note+csvCell(`${hrMonthLabel(run.month)} · ${run.status==='Locked'?'Locked run':'DRAFT — NOT FINAL, do not file'} · rates from ${run.rates?.from??'—'}${run.legacy?' · legacy run (before SCC rules; employer share not recorded)':''} · ${HR_DISCLAIMER}`)+'\n';
 }
+// ── DEC-075 corrections of past attendance (server Hcc.Domain/Payroll/Corrections.cs + PayrollService.Corrections.cs) ──
+/** The open pay month: from the 1st of the month after the latest LOCKED pay-run — at the earliest the 1st of the month before the business
+ *  date's month — to yesterday (today is marked on the Today view). Empty when to < from. Production: the server's window. */
+export function hrCorrectionWindow(s:State):{from:string;to:string}{
+  const w=hrSlice(s).correctWindow;if(w)return w;
+  const floor=hrPrevMonth(s.date.slice(0,7))+'-01',last=hrLastLockedMonth(s),next=last?hrNextMonth(last)+'-01':floor;
+  return {from:next>floor?next:floor,to:addDays(s.date,-1)};
+}
+export const hrEntryLabel=(e:HRDayEntry)=>e.kind==='mark'?HR_ATT_LABEL[e.status]+(e.otMin?` · OT ${e.otMin} min`:''):e.kind==='leave'?HR_LEAVE_LABEL[e.type]:'Not marked';
+export const hrEntryCode=(e:HRDayEntry)=>e.kind==='mark'?e.status:e.kind==='leave'?e.type:'none';
+export const hrSameEntry=(a:HRDayEntry,b:HRDayEntry)=>hrEntryCode(a)===hrEntryCode(b)&&(a.kind!=='mark'||b.kind!=='mark'||a.otMin===b.otMin);
+/** Correction targets the dialog offers (server DayEntry.Parse): attendance marks, full-day leave types, or 'none' (clear the day). */
+export const HR_CORRECTION_MARKS=['P','L','H','A','OFF','CL','SL','EL','CO','ML','LOP','none'] as const;
+/** Parses a correction target (mark code + overtime minutes); a string = the refusal (VALIDATION). */
+export function hrParseEntry(mark:unknown,ot:unknown):HRDayEntry|string{
+  const m=Number(ot??0);
+  if(!Number.isInteger(m))return 'Overtime must be 0–480 minutes.';
+  if(mark==='none')return m?'A cleared day carries no overtime.':{kind:'none'};
+  if(['P','L','H','A','OFF'].includes(String(mark))){if(m<0||m>480)return 'Overtime must be 0–480 minutes.';if(mark==='A'&&m>0)return 'An absent day cannot carry overtime.';
+    return {kind:'mark',status:mark as HRAttStatus,otMin:m};}
+  if((HR_LEAVE_TYPES as string[]).includes(String(mark)))return m?'A leave day carries no overtime.':{kind:'leave',type:mark as HRLeaveType};
+  return 'Choose what the day should be: an attendance mark, a leave type or "none".';
+}
+/** What a past day holds, in the order the month counts read it (attendance mark first, then a full-day approved leave). */
+export function hrDayEntry(s:State,st:HRStaff,date:string):{entry:HRDayEntry;oneDayLeave?:HRLeave;multiDayLeave?:HRLeave;halfDayLeave:boolean;pendingLeave:boolean}{
+  const x=hrSlice(s),att=x.att[hrKey(date,st.id)],mine=x.leaves.filter(l=>l.staffId===st.id&&covers(l,date));
+  const approved=mine.filter(l=>l.status==='Approved'),full=approved.find(l=>!l.half),halfDayLeave=approved.some(l=>!!l.half),pendingLeave=mine.some(l=>l.status==='Pending');
+  if(att)return {entry:{kind:'mark',status:att.status,otMin:att.otMin||0},halfDayLeave,pendingLeave};
+  if(!full)return {entry:{kind:'none'},halfDayLeave,pendingLeave};
+  return full.from===full.to?{entry:{kind:'leave',type:full.type},oneDayLeave:full,halfDayLeave:false,pendingLeave}
+    :{entry:{kind:'leave',type:full.type},multiDayLeave:full,halfDayLeave:false,pendingLeave};
+}
+/** Gross pay (earned + overtime) of a staff member's month line on a state's days. */
+const hrMonthGross=(s:State,st:HRStaff,ym:string)=>hrComputeLine(st,hrCounts(s,st,ym),hrRatesFor(s,ym)).gross;
+/** A read-only view of the state with the day holding `entry` (the day's mark replaced or removed, a replaced one-day leave cancelled, a leave
+ *  entry a new one-day approved leave). Pure: builds new objects and reads only the staff slice (safe on a command's copy-on-write draft). */
+function hrWithEntry(s:State,st:HRStaff,date:string,e:HRDayEntry,replaced?:string):State{
+  const x=hrSlice(s),key=hrKey(date,st.id),att={...x.att};delete att[key];
+  const leaves=x.leaves.map(l=>l.id===replaced?{...l,status:'Cancelled' as const}:l);
+  if(e.kind==='mark')att[key]={status:e.status,at:'',otMin:e.otMin,by:''};
+  else if(e.kind==='leave')leaves.push({id:'(correction)',staffId:st.id,type:e.type,from:date,to:date,days:1,reason:'',status:'Approved',requestedBy:'',requestedAt:''});
+  return {date:s.date,staffX:{...x,att,leaves}} as unknown as State;
+}
+type HRCorrectionRefusal={code:'VALIDATION'|'INVALID_TRANSITION';msg:string};
+const dmy=(d:string)=>new Date(d+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+/** The date must lie in the open pay month: never a locked month, today or the future. Undefined = allowed. */
+export function hrCorrectionDateRefusal(s:State,date:string):HRCorrectionRefusal|undefined{
+  const ym=date.slice(0,7),w=hrCorrectionWindow(s);
+  if(hrRunFor(s,ym)?.status==='Locked')return {code:'INVALID_TRANSITION',msg:`${hrMonthLabel(ym)} payroll is locked — a locked month is never changed (DEC-075).`};
+  if(date>s.date)return {code:'INVALID_TRANSITION',msg:'A future day cannot be corrected.'};
+  if(date===s.date)return {code:'INVALID_TRANSITION',msg:'Today’s attendance is marked on the Today view; corrections are for past days.'};
+  if(date<w.from)return {code:'INVALID_TRANSITION',msg:`Only the open pay month can be corrected: ${dmy(w.from)} – ${dmy(w.to)}.`};
+  return undefined;
+}
+/** Validates a correction of `date` to `entry` and works out its effect on the month's gross pay (> 0 = raises pay = the Owner approves).
+ *  Shared by the HR_ATT_CORRECT / HR_REQUEST_DECIDE handlers and the correction dialog's preview. */
+export function hrPlanCorrection(s:State,st:HRStaff,date:string,entry:HRDayEntry):{refusal:HRCorrectionRefusal}|{day:ReturnType<typeof hrDayEntry>;effect:number}{
+  const no=(code:HRCorrectionRefusal['code'],msg:string)=>({refusal:{code,msg}});
+  if(date<st.joined||(st.exitedOn&&date>st.exitedOn))return no('INVALID_TRANSITION',`${st.name} was not in service on ${dmy(date)}.`);
+  const day=hrDayEntry(s,st,date);
+  if(day.pendingLeave)return no('INVALID_TRANSITION','A pending leave request covers this day — decide it first.');
+  if(day.multiDayLeave)return no('INVALID_TRANSITION',`Approved ${HR_LEAVE_LABEL[day.multiDayLeave.type].toLowerCase()} ${day.multiDayLeave.from} – ${day.multiDayLeave.to} covers this day; a leave of several days is not corrected day by day.`);
+  if(hrSameEntry(day.entry,entry))return no('VALIDATION',`${dmy(date)} already holds ${hrEntryLabel(entry).toLowerCase()} — nothing to correct.`);
+  if(entry.kind==='leave'){
+    if(day.halfDayLeave)return no('INVALID_TRANSITION','A half-day leave covers this day; correct the attendance mark beside it instead.');
+    if(st.payType==='daily'&&entry.type!=='LOP')return no('VALIDATION','Daily-wage staff can take leave without pay only (illustrative policy).');
+    if(hrDayOff(s,st,date))return no('VALIDATION','That day is a weekly off or a paid holiday — no leave is needed.');
+    if((HR_TRACKED as string[]).includes(entry.type)){const t=entry.type as 'CL'|'SL'|'EL',left=hrEntitled(s,t)-hrLeaveUsed(s,st.id,date,t,day.oneDayLeave?.id??'');
+      if(left<1)return no('VALIDATION',`Not enough ${t} balance: ${Math.max(0,left)} day${left===1?'':'s'} left in ${hrFy(date).label}.`);}
+  }
+  const ym=date.slice(0,7);
+  return {day,effect:hrMonthGross(hrWithEntry(s,st,date,entry,day.oneDayLeave?.id),st,ym)-hrMonthGross(s,st,ym)};
+}
+/** Requests waiting for the Owner (optionally one kind). */
+export const hrPendingRequests=(s:State,kind?:HRRequest['kind'])=>(hrSlice(s).requests??[]).filter(r=>r.status==='Pending'&&(!kind||r.kind===kind));
+/** The unmarked past days of a month for one staff member (what the pay-run warning counts as absent) — the correction dialog opens on the first. */
+export const hrUnmarkedDates=(s:State,st:HRStaff,ym:string)=>hrMonthDates(ym).filter(d=>d<s.date&&hrDayStatus(s,st,d).kind==='unmarked');
+
 /** Pending leave queue a user may decide (excludes own requests and own leave). */
 export function hrDecidable(s:State,uid:string){
   if(!hrCanManage(s,uid))return [];
@@ -551,16 +656,26 @@ export function hrAmountWords(paise:number){
 }
 
 // ── Full and final settlement (SCC fnfAssemble / fnfCompose) ──
-/** Final-month salary (unless already paid in a locked run) − statutory deductions − the FULL outstanding advance ± manual adjustments. */
+/** Final-month salary (unless already paid in a locked run) + additions − statutory deductions − deductions − the outstanding advance, the
+ *  advance only up to what the settlement covers (DEC-074 / A04-06, server FnfRules.Compute): recovered = earnings − statutory − deductions,
+ *  clamped to 0…outstanding; the rest stays an open advance owed by the leaver. A negative net (deductions beyond the earnings) recovers no advance. */
 export function hrFnfCompute(s:State,st:HRStaff,adjustments:HRFnfAdj[]){
   const x=hrSlice(s),lastDay=st.exitedOn??s.date,month=lastDay.slice(0,7),rates=hrRatesFor(s,month);
   const paid=x.runs.some(r=>r.month===month&&r.status==='Locked'&&r.lines.some(l=>l.staffId===st.id));
   const line=paid?undefined:hrComputeLine(st,hrCounts(s,st,month),rates,undefined,hrEsicCovered(s,st,month,rates));
   const advanceOutstanding=x.advances.filter(a=>a.staffId===st.id).reduce((n,a)=>n+hrAdvanceBalance(a),0);
   const add=adjustments.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0),ded=adjustments.filter(a=>a.kind==='ded').reduce((n,a)=>n+a.amount,0);
-  const earnings=(line?line.gross:0)+add,recoveries=(line?line.pf+line.esic+line.pt:0)+advanceOutstanding+ded;
-  return {lastDay,month,salaryIncluded:!paid,line,rates,advanceOutstanding,earnings,recoveries,net:earnings-recoveries};
+  const earnings=(line?line.gross:0)+add,statutory=line?line.pf+line.esic+line.pt:0;
+  const advanceRecovered=Math.min(Math.max(0,earnings-statutory-ded),Math.max(0,advanceOutstanding)),recoveries=statutory+advanceRecovered+ded;
+  return {lastDay,month,salaryIncluded:!paid,line,rates,advanceOutstanding,advanceRecovered,advanceLeftOpen:advanceOutstanding-advanceRecovered,earnings,recoveries,net:earnings-recoveries};
 }
+/** DEC-074: the part of the advance a stored settlement recovered (recoveries − statutory − deductions; settlements made before the rule recovered all of it). */
+export function hrFnfAdvanceRecovered(f:HRFnf){
+  const ded=f.adjustments.filter(a=>a.kind==='ded').reduce((n,a)=>n+a.amount,0),statutory=f.line?f.line.pf+f.line.esic+f.line.pt:0;
+  return f.recoveries-statutory-ded;
+}
+/** DEC-074: the advance a settlement did not cover — still open and owed by the leaver. */
+export const hrFnfAdvanceLeftOpen=(f:HRFnf)=>Math.max(0,f.advanceOutstanding-hrFnfAdvanceRecovered(f));
 /** Suggested earned-leave encashment: EL balance × (monthly ÷ days in the exit month). Manual adjustment in SCC; offered as a prefill here. */
 export function hrElEncashment(s:State,st:HRStaff){
   if(st.payType!=='monthly')return 0;
@@ -594,6 +709,9 @@ export function hrSettingDefs():HRSettingDef[]{
     leave('hr.leave.cap','Maximum staff off per department per day','integer','staff (pending + approved)',['defaultCap','deptCap'],'SCC MAX_DAY capacity, applied per department.'),
     leave('hr.leave.half','Half-day leave','fixed','first half / second half = 0.5 day',[],'Always on (SCC leaveDaysOf).',false),
     leave('hr.leave.weeklyoff','Weekly offs','fixed','one day per staff member',[],'Weekly offs inside leave dates are skipped (SCC isWeekOffDate).',false),
+    // DEC-083: the dated paid-holiday calendar is kept in Staff & payroll › Leave › Holidays (Owner); shown read-only here.
+    {...leave('hr.leave.holidays','Paid holidays','fixed','dated list per property',[],'Paid like weekly offs: monthly staff keep their pay; daily-wage staff as for weekly offs (CA to confirm, A04-04). Skipped inside leave dates. The owner supplies the list.',false),
+      approval:'Owner — Staff & payroll › Leave › Holidays',effective:'From the holiday’s date; a locked pay month keeps its holidays',dated:true},
   ];
 }
 const pctOf=(bps:number)=>`${bps/100}%`;
@@ -612,6 +730,7 @@ export function hrSettingValue(s:State,key:string,ym=s.date.slice(0,7)):string{
     case 'hr.leave.ent':return `CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL} days / FY`;
     case 'hr.leave.cap':return `${p.defaultCap} per department per day${Object.keys(p.deptCap).length?` · ${Object.keys(p.deptCap).length} department override${Object.keys(p.deptCap).length===1?'':'s'}`:''}`;
     case 'hr.leave.half':return 'On';case 'hr.leave.weeklyoff':return 'Per staff member';
+    case 'hr.leave.holidays':{const fy=hrFy(s.date),n=hrPaidHolidays(s).filter(h=>h.date>=fy.from&&h.date<=fy.to).length;return n?`${n} in ${fy.label}`:'None yet — the Owner adds them';}
     default:return '—';
   }
 }

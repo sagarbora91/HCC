@@ -250,6 +250,22 @@ public class MessagingSqlTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Tech_admin_edits_templates_and_rules_without_the_message_log_or_sending_D4()
+    {
+        // DEC-079 D4 (DEC-058): templates are non-money configuration, so the Tech admin reads and edits them (PERM-MSG-003) but never sees
+        // the message log or sends to a guest (PERM-MSG-001 / 002 stay with the front office).
+        var t = await _w.Queries.TemplatesAsync(_w.PropertyId, Users.TechAdmin, Ct);
+        var welcome = t.Templates.Single(x => x.Code == "checkin-welcome");
+        var ok = await _w.Commands.UpdateTemplateAsync(_w.Ctx(Users.TechAdmin, "d4-1"), new UpdateMessageTemplateRequest("checkin-welcome", "Welcome {firstName}, your room {room} is ready.", welcome.Version), Ct);
+        Assert.NotEqual(welcome.Version, ok.Value.Template.Version);
+        var r1 = (await _w.Queries.RulesAsync(_w.PropertyId, Users.TechAdmin, Ct)).Single(x => x.RuleId == "R1");
+        await _w.Commands.UpdateRuleAsync(_w.Ctx(Users.TechAdmin, "d4-2"), new UpdateMessageRuleRequest("R1", r1.Version, Enabled: r1.Enabled), Ct);
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.MessagesAsync(_w.PropertyId, Users.TechAdmin, null, 1, 50, Ct)));
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Commands.RunTriggersAsync(_w.Ctx(Users.TechAdmin, "d4-3"), new RunMessagingTriggersRequest(), Ct)));
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.TemplatesAsync(_w.PropertyId, Users.Cashier, Ct)));
+    }
+
+    [Fact]
     public async Task No_id_number_reaches_a_message_a_recipient_or_the_audit_trail()
     {
         var (res, guest, no) = await InHouseAsync();

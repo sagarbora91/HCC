@@ -109,10 +109,14 @@ public sealed class MaintenanceQueries(IAccessPolicy policy, IMaintenanceReadSto
         return new RegistersView(assets, vendors, spares, plans, !money);
     }
 
-    /// <summary>AMC contracts: supervisor level and above; the contract value only with finance rights (Owner, Manager, Accountant).</summary>
+    /// <summary>
+    /// AMC contracts (DEC-063 G12, role matrix v2): Owner and Manager (PERM-MNT-005) and the Accountant through the module's money view
+    /// (PERM-MNT-004 V, the same readers as the Accountant's AMC view cell); the value only with the money view.
+    /// </summary>
     public async Task<AmcPage> AmcsAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
-        await policy.RequireAsync(propertyId, principalId, MaintenancePermissions.Manage, null, null, ct).ConfigureAwait(false);
+        if (!await policy.HasAsync(propertyId, principalId, MaintenancePermissions.Amc, AccessScopes.Property(propertyId), ct).ConfigureAwait(false))
+            await policy.RequireAsync(propertyId, principalId, MaintenancePermissions.Money, null, null, ct).ConfigureAwait(false);
         var money = await MoneyAsync(propertyId, principalId, ct).ConfigureAwait(false);
         var snap = await reads.LoadAsync(propertyId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
         return new AmcPage(snap.Amcs.Select(a => new AmcView(a.Id, a.VendorId, a.Scope, StayDates.ToWire(a.From), StayDates.ToWire(a.To), a.Visits,

@@ -93,3 +93,9 @@ li.blocked .ma-dot{border-color:#b5541e;color:#7a4b0c}
 @media print{.ma-page{display:none!important}}
 /* Keep toasts above the closing page sticky primary button (mobile plan §2: toasts never cover the primary button). */
 body:has(.ma-closing .m-sticky-footer) .m-toast.toast{bottom:calc(64px + env(safe-area-inset-bottom) + 88px)}
+/* DEC-077 reopen of a closed day (phone panel; the list style is shared with desktop) */
+.ma-reopen-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.ma-reopen-text{margin:0;font-size:16px;line-height:1.5}
+.ma-reopen-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ma-reopen-close{display:flex;flex-direction:column;gap:6px}
+.ma-reopen h3.ma-h2{font-size:17px;margin:4px 0 0}

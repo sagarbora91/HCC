@@ -57,8 +57,8 @@ public static class ConfigCatalog
         new(ConfigGroupIds.Compliance, "Compliance obligations", "Operations and people", true, "GST, TDS, PF, ESIC and PT list, due rules, CA contact"),
         new(ConfigGroupIds.Modules, "Modules on/off", "Software and security", false, "Switch optional modules off; their data is kept"),
         new(ConfigGroupIds.Users, "Users, roles and PINs", "Software and security", false, "Users and roles live in Access control; PIN lock options"),
-        new(ConfigGroupIds.Messages, "Messages and documents", "Software and security", false, "Sender name, consent, gateway key, document retention"),
-        new(ConfigGroupIds.Data, "Data and system", "Software and security", false, "Backup schedule, restore drill, storage, diagnostics, about"),
+        new(ConfigGroupIds.Messages, "Messages and documents", "Software and security", false, "Sender name, consent, gateway key"),
+        new(ConfigGroupIds.Data, "Data and system", "Software and security", false, "Backup schedule, restore drill, ID image retention, storage, diagnostics, about"),
     ];
 
     public static IReadOnlyList<ConfigModule> Modules { get; } =

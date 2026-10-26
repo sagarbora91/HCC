@@ -1,16 +1,21 @@
 // Module 23 · Restaurant POS & room service — command handlers. Command types MUST start with 'POS_'. Return value = audit/summary text.
 // Rules: 02 Planning/modules/HCC_Module_23_POS_Spec.md §4. Money = integer paise; GST via the GST master (domain/gst.ts); simulated clock only.
+// DEC-072: a settled OUTLET bill is a GST tax invoice in the RST series (RST/<FY>/<7 digits>, gap-free per FY), B2B with a buyer GSTIN; voiding
+// it issues a credit note in the credit-note series (the folio's CN counter); a room-folio bill gets none (it is on the room invoice).
 import type {Handler,Kit} from '../commands';
 import type {Approval} from '../../../domain/types';
 import {money,addMinutes} from '../../../domain/money';
-import {gstLineTax} from '../../../domain/gst';
-import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,
-  POS_VOID_LIMIT,POS_APPROVAL_TTL_MINUTES} from '../../../domain/streams/pos';
+import {gstLineTax,gstSplit} from '../../../domain/gst';
+import {rbacIsRestaurant} from '../../../domain/streams/rbac';
+import {cfgValueOn} from '../../../domain/streams/config';
+import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
+import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,posFyCode,posRstNo,posBuyerOf,
+  POS_VOID_LIMIT,POS_APPROVAL_TTL_MINUTES,POS_RST_SAC} from '../../../domain/streams/pos';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyNames} from '../../../domain/streams/money-master';
 import {mstFail} from '../../../domain/streams/masters';
 /** "Cash, UPI or Card" — the active POS methods (money masters, MA-3). */
 const orList=(xs:string[])=>xs.length>1?xs.slice(0,-1).join(', ')+' or '+xs[xs.length-1]:xs[0]??'a payment method';
-import type {POSOrder,POSState,POSKotStatus,POSKot} from '../../../domain/streams/pos';
+import type {POSOrder,POSState,POSKotStatus,POSKot,POSSettlement} from '../../../domain/streams/pos';
 // MA-4 POS masters (outlets, tables, categories, items): registering them here makes them part of every bundle that has the POS handlers.
 import {posOutletActive,posTablesOf,posItemBlock,posItemPrice,posItemClass,posCheckClass,posCheckRate,posStationOf,posSoldOut,POS_GST_CLASSES,POS_DEFAULT_STATION} from '../../../domain/streams/pos-master';
 
@@ -23,6 +28,15 @@ const editable=(k:Kit,o:POSOrder)=>{
 };
 const reasonOf=(k:Kit)=>{const r=String(k.cmd.reason??'').trim();k.assert(r.length>=3,'Enter a reason for the void (at least 3 characters).');return r;};
 const outletName=(k:Kit,o:POSOrder)=>slice(k).outlets.find(x=>x.id===o.outlet)?.name??o.outlet;
+/** DEC-072: numbers the bill's tax invoice in the RST series of the business date's FY (the next number, never reused) with the bill's own
+ *  CGST / SGST, SAC 996331 and the hotel GSTIN on documents (Master configuration brand.gstin; fictional in the demo). */
+function issueRst(k:Kit,st:POSSettlement,supply:'B2C'|'B2B',buyer?:POSSettlement['buyer']){
+  const p=slice(k),fy=posFyCode(k.s.date),seq=((p.rstSeq??={})[fy]??0)+1,invoiceNo=posRstNo(fy,seq);p.rstSeq[fy]=seq;
+  const x=gstSplit(st.tax),gstin=String(cfgValueOn(k.s,'brand.gstin')??'').trim();
+  Object.assign(st,{invoiceNo,supply,...(buyer?{buyer}:{}),cgst:x.cgst,sgst:x.sgst,sac:POS_RST_SAC,...(gstin?{hotelGstin:gstin}:{})});
+  return invoiceNo;
+}
+const hasBuyer=(cmd:Record<string,unknown>)=>['buyerGstin','buyerName','buyerAddress'].some(f=>String(cmd[f]??'').trim()!=='');
 
 const POS_ORDER_OPEN:Handler=k=>{
   const {s,cmd,req,open,assert,id,uid}=k;req('billing');open();
@@ -102,6 +116,7 @@ const POS_KOT_STATUS:Handler=k=>{
 const POS_SETTLE:Handler=k=>{
   const {s,cmd,req,open,assert,id,uid,financial}=k;
   req(cmd.mode==='folio'?'billing':'payments');
+  assert(!rbacIsRestaurant(s,uid),'The Restaurant role takes orders; Reception or the Cashier settles the bill (DEC-079).','FORBIDDEN');
   const o=order(k);
   if(o.status==='Settled')assert(false,'This check is already settled.','INVALID_TRANSITION');
   editable(k,o);open();
@@ -112,6 +127,7 @@ const POS_SETTLE:Handler=k=>{
   assert(net>0,'This check has no value to settle.');
   const billNo=`POS/${s.date.slice(2,4)}${s.date.slice(5,7)}/${String(p.billSeq+1).padStart(4,'0')}`;
   if(cmd.mode==='folio'){
+    assert(!hasBuyer(cmd),'A bill charged to a room folio is invoiced to the guest after checkout; give the business GSTIN on the room invoice.');
     const bid=cmd.booking||o.booking;const x=s.bookings.find(b=>b.id===bid);assert(x,'Choose the in-house guest to charge.','NOT_FOUND');
     financial(x!);assert(x!.status==='In house','Only an in-house guest’s folio can take a room charge.','INVALID_TRANSITION');
     const lid='posline:'+o.id;assert(!x!.lines.some(l=>l.id===lid),'This check is already on the folio.','INVALID_TRANSITION');
@@ -124,6 +140,7 @@ const POS_SETTLE:Handler=k=>{
     return `${o.id} · bill ${billNo} · ${money(total)} (net ${money(net)} + tax ${money(tax)}) posted to folio ${x!.id} · room ${x!.room}`;
   }
   assert(cmd.mode==='outlet','Choose how the bill is settled.');
+  const bo=posBuyerOf(cmd,total);if('error' in bo)assert(false,bo.error);
   // MA-3: an active payment method usable at the POS (money masters; seed = the old POS_TENDERS Cash / UPI / Card).
   {const row=typeof cmd.method==='string'?mnyMethod(s,cmd.method):undefined;
     if(row&&!row.active&&(row.usableAt??[]).includes('pos'))mstFail('MASTER_RETIRED',`${row.name} is retired — choose an active payment method.`);}
@@ -139,8 +156,9 @@ const POS_SETTLE:Handler=k=>{
   p.receipts.push({id:rid,order:o.id,outlet:o.outlet,method:method,amount:total,net,tax,taxBps,reference:reference||(cash?'Outlet cash':method),date:s.date,actor:uid,kind:'sale'});
   o.settlement={mode:'outlet',billNo,method:method,reference:reference||undefined,net,taxBps,tax,total,date:s.date,at:s.clock,by:uid,receiptId:rid};
   if(o.settlement.reference===undefined)delete o.settlement.reference;
+  const b=bo as Exclude<typeof bo,{error:string}>,invoiceNo=issueRst(k,o.settlement,b.supply,b.buyer);
   p.billSeq++;o.status='Settled';o.version++;
-  return `${o.id} · bill ${billNo} · ${money(total)} ${method} at ${outletName(k,o)} (outlet receipt ${rid}${cash?' · counted in the front-desk drawer':''})`;
+  return `${o.id} · bill ${billNo} · ${money(total)} ${method} at ${outletName(k,o)} (outlet receipt ${rid}${cash?' · counted in the front-desk drawer':''}) · tax invoice ${invoiceNo}${b.supply==='B2B'?' (B2B '+b.buyer!.gstin+')':''}`;
 };
 
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
@@ -154,10 +172,13 @@ function applyVoid(k:Kit,o:POSOrder,scope:'item'|'bill',lineId:string|undefined,
     assert(st.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
     if(mnyIsDrawer(s,st.method!))assert(s.shiftOpen,'The cash shift is closed. A cash bill cannot be reversed now.','INVALID_TRANSITION');
     slice(k).receipts.push({id:id('POSR'),order:o.id,outlet:o.outlet,method:st.method!,amount:-st.total,net:-st.net,tax:-st.tax,taxBps:st.taxBps,reference:'Void of '+st.billNo,date:s.date,actor:by,kind:'void'});
+    // DEC-072: the bill's tax invoice is reversed in full by a credit note dated today (the invoice itself never changes).
+    // Masters integration: one credit-note series (MA-5 numbering master; the seeded CRN series continues s.creditNoteSeqC in FY 2026-27).
+    if(st.invoiceNo&&!st.creditNoteNo){st.creditNoteNo=fdmAllocate(s,'CRN');st.creditNoteDate=s.date;}
   }
   posActiveLines(o).forEach(mark);
   o.status='Void';o.voidReason=reason;o.voidedBy=by;o.voidedAt=s.clock;o.version++;
-  return `${o.id} · bill void${o.settlement?' '+o.settlement.billNo:''} · ${reason}`;
+  return `${o.id} · bill void${o.settlement?' '+o.settlement.billNo:''}${o.settlement?.creditNoteNo?' · credit note '+o.settlement.creditNoteNo+' against '+o.settlement.invoiceNo:''} · ${reason}`;
 }
 /** Void value, or a pending approval when above POS_VOID_LIMIT. */
 function voidOrRequest(k:Kit,o:POSOrder,scope:'item'|'bill',value:number,lineId?:string){
@@ -208,6 +229,16 @@ const POS_VOID_DECIDE:Handler=k=>{
   return `${a!.id} · approved · ${detail}`;
 };
 
+/** DEC-072: the tax invoice of a settled outlet bill that has none yet (settled before the RST series, or — on the server — before the hotel
+ *  GSTIN was recorded). Idempotent: an issued number is returned, never a second one. */
+const POS_INVOICE_ISSUE:Handler=k=>{
+  const {req,open,assert}=k;req('payments');open();const o=order(k);const st=o.settlement;
+  assert(st&&o.status==='Settled',o.status==='Void'?'This POS bill was voided; there is nothing to invoice.':'Settle the bill first.','INVALID_TRANSITION');
+  assert(st!.mode==='outlet',"This bill was charged to a room folio: it is on the guest's room tax invoice after checkout, not in the restaurant series.",'INVALID_TRANSITION');
+  if(st!.invoiceNo)return `${o.id} · bill ${st!.billNo} · tax invoice ${st!.invoiceNo} (already issued)`;
+  return `${o.id} · bill ${st!.billNo} · tax invoice ${issueRst(k,st!,'B2C')}`;
+};
+
 /** "Sold out today" switch on the POS page (MA-4: the menu master's soldOutToday; lapses at the next business date). */
 const POS_MENU_TOGGLE:Handler=k=>{
   const {s,cmd,req,open,assert}=k;req('billing');open();
@@ -216,4 +247,4 @@ const POS_MENU_TOGGLE:Handler=k=>{
   m!.available=false;m!.soldOutOn=s.date;return `${m!.name} · sold out today (86)`;
 };
 
-export const handlers:Record<string,Handler>={POS_ORDER_OPEN,POS_ITEM_ADD,POS_ITEM_QTY,POS_KOT_SEND,POS_KOT_STATUS,POS_SETTLE,POS_VOID_ITEM,POS_VOID_BILL,POS_VOID_DECIDE,POS_MENU_TOGGLE};
+export const handlers:Record<string,Handler>={POS_ORDER_OPEN,POS_ITEM_ADD,POS_ITEM_QTY,POS_KOT_SEND,POS_KOT_STATUS,POS_SETTLE,POS_VOID_ITEM,POS_VOID_BILL,POS_VOID_DECIDE,POS_INVOICE_ISSUE,POS_MENU_TOGGLE};

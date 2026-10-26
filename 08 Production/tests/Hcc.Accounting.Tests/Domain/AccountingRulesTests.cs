@@ -57,6 +57,29 @@ public sealed class AccountingRulesTests
     }
 
     [Fact]
+    public void Wave_B1_bank_deposit_rejection_and_owner_drawing_vouchers_balance_on_1030_3000_and_1000()
+    {
+        // DEC-073: ₹6,000 banked = Dr 1030 Bank account 6,000 / Cr 1000 Cash in hand 6,000 (Journal); its rejection is the exact reverse; a ₹1,500
+        // Owner drawing = Dr 3000 Owner's drawings / Cr 1000 (Payment). Net on 1000: −6,000 + 6,000 − 1,500 = −₹1,500.
+        var bank = new CashBankingEvent(11, 3, 42, D, 600_000, "SBI current ••4321", "DS-1001");
+        var vs = VoucherBuilder.Build(D, [AccountingEventMapper.Banking(bank, rejected: false), AccountingEventMapper.Banking(bank with { Reason = "Wrong slip" }, rejected: true),
+            AccountingEventMapper.OwnerDrawing(new OwnerDrawingEvent(12, 3, 42, D, 150_000, "Household"))], Map);
+        Assert.All(vs, v => Assert.True(v.Balanced, v.Number));
+        var dep = vs.Single(v => v.SourceKey == "banking:11");
+        Assert.Equal((VoucherType.Journal, "closing", "bank-deposit"), (dep.Type, dep.SourceKind, dep.Sub));
+        Assert.Equal([("1030", 600_000L, 0L), ("1000", 0L, 600_000L)], dep.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal([("1000", 600_000L, 0L), ("1030", 0L, 600_000L)], vs.Single(v => v.SourceKey == "banking:11/rejected").Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        var drawing = vs.Single(v => v.SourceKey == "drawing:12");
+        Assert.Equal(VoucherType.Payment, drawing.Type);
+        Assert.Equal([("3000", 150_000L, 0L), ("1000", 0L, 150_000L)], drawing.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal(-150_000, vs.SelectMany(v => v.Entries).Where(x => x.Account == "1000").Sum(x => x.DebitPaise - x.CreditPaise));
+        Assert.Equal("Owner's drawings", ChartOfAccounts.NameOf("3000"));
+        Assert.Contains(AccountingEvents.CashBanked, AccountingEvents.Consumed);
+        Assert.Contains(AccountingEvents.CashBankingRejected, AccountingEvents.Consumed);
+        Assert.Contains(AccountingEvents.OwnerDrawingRecorded, AccountingEvents.Consumed);
+    }
+
+    [Fact]
     public void Outlet_bill_void_swaps_sides_and_vendor_credit_expense_is_a_journal()
     {
         var sale = new PosBillSettledEvent(11, "sale", D, "restaurant", "UPI", 105_000, 100_000, 2_500, 2_500, "DEMO-UPI");
@@ -99,6 +122,28 @@ public sealed class AccountingRulesTests
         Assert.NotNull(VoucherExport.TallyRangeError(D, D.AddDays(31)));
         Assert.NotNull(VoucherExport.TallyRangeError(D, D.AddDays(-1)));
         Assert.Equal("a&amp;b &lt;c&gt; &quot;", VoucherExport.XmlEscape("a&b <c> \"\u0001"));
+    }
+
+    [Fact]
+    public void Company_payment_is_a_receipt_against_company_receivables_and_leaves_the_company_credit_check_alone()
+    {
+        // DEC-076: checkout put Rs 6,300 on company credit (Journal Dr 1110 company receivables · Cr 1100 guest ledger); the company pays
+        // Rs 6,300 by bank transfer → Receipt Dr 1030 bank · Cr 1110, so 1110 nets to 0 and the guest ledger is untouched.
+        Assert.Contains(AccountingEvents.CompanyPaymentRecorded, AccountingEvents.Consumed);
+        var vs = VoucherBuilder.Build(D,
+        [
+            SourceRules.FolioReceipt("receipt:9", "company-credit", "Company credit", D, 630_000, "n"),
+            AccountingEventMapper.CompanyPayment(new CompanyPaymentRecordedEvent(4, 12, D, "Bank transfer", 630_000, "NEFT-DEMO-12", "Demo Industries (fictional)")),
+        ], Map);
+        var pay = vs.Single(v => v.SourceKey == "company-payment:12");
+        Assert.Equal((VoucherType.Receipt, "company-payment", true), (pay.Type, pay.Sub, pay.Balanced));
+        Assert.Equal([("1030", 630_000L, 0L), ("1110", 0L, 630_000L)], pay.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Contains("Demo Industries (fictional)", pay.Narration, StringComparison.Ordinal);
+        Assert.Equal(0, vs.SelectMany(v => v.Entries).Where(e => e.Account == "1110").Sum(e => e.DebitPaise - e.CreditPaise));
+        // The daily company-credit reconciliation still compares only the checkout's company credit (Sub company-credit): Rs 6,300.
+        var check = Reconciliation.Check(vs, Map, new OperationalFigures(0, 0, 0, 0, 0, 0, 0, 630_000)).Single(c => c.Id == "company-credit");
+        Assert.True(check.Ok);
+        Assert.Equal(630_000, check.LedgerPaise);
     }
 
     [Fact]

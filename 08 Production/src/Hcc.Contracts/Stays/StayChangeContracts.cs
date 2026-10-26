@@ -26,7 +26,7 @@ public sealed record ExtendStayRequest(long StayId, string ExpectedVersion, stri
 /// <summary>ShortenStay K V (PERM-STY-002): an earlier departure after tonight; nights already posted cannot be released.</summary>
 public sealed record ShortenStayRequest(long StayId, string ExpectedVersion, string NewDeparture, string Reason);
 
-/// <summary>EarlyDeparture K V (PERM-STY-002): the guest leaves today; the remaining nights are released. CheckoutStay follows.</summary>
+/// <summary>EarlyDeparture K V (PERM-STY-002): the guest leaves today; the remaining nights are released. CheckoutStay follows. DEC-082: no early-departure fee.</summary>
 public sealed record EarlyDepartureRequest(long StayId, string ExpectedVersion, string Reason);
 
 /// <summary>Result of ExtendStay / ShortenStay / EarlyDeparture. <c>NightsChanged</c> = nights added (extend) or released (shorten, early).</summary>

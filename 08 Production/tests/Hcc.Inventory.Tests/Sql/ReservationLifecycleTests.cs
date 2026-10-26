@@ -312,6 +312,37 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
         Assert.Equal(0, await S.DriftAsync());
     }
 
+    /// <summary>The production wiring: no GroupBlockOptions (or Enabled=false) = DEC-080 refusal.</summary>
+    private InventoryService ProductionDefaultInventory(GroupBlockOptions? options = null)
+        => new(S.Store, S.Runner, S.Access, new Hcc.Application.Tax.FixedGstRateResolver(f.Golden.Raw.TaxBps), S.Clock, S.BlockHistory, options);
+
+    [Fact]
+    public async Task Group_block_creation_is_refused_with_a_written_reason_unless_the_switch_is_on()
+    {
+        // DEC-080 / A02b-04: pickup, release, cancel and re-allot do not exist yet, so a block would only lock rooms away.
+        var request = new CreateGroupBlockRequest("GB-OFF1", "Refused group", "2027-02-10", "2027-02-12", "2027-02-05", [new GroupBlockAllotment(f.TypeIds["Deluxe"], 1)]);
+        foreach (var off in new[] { ProductionDefaultInventory(), ProductionDefaultInventory(new GroupBlockOptions()), ProductionDefaultInventory(new GroupBlockOptions { Enabled = false }) })
+        {
+            var refused = await Assert.ThrowsAsync<HccException>(() => off.CreateGroupBlockAsync(P2Services.Ctx(3, "CreateGroupBlock"), request, Ct));
+            Assert.Equal(HccErrorCode.NOT_AVAILABLE, refused.Code);
+            Assert.Equal("Group blocks are not available yet: pickup and release are still being built. Book the rooms as separate reservations.", refused.Message);
+            Assert.Equal("GROUP_BLOCKS_OFF", refused.Details!["reason"].GetString());
+        }
+
+        Assert.Equal(0, await f.Db.CountAsync("SELECT COUNT(*) FROM inv.group_block WHERE code = 'GB-OFF1';", Ct));
+        Assert.Equal(0, await f.Db.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CreateGroupBlock' AND target = 'GB-OFF1';", Ct));
+
+        // Permission is judged first: a housekeeper is told FORBIDDEN, not the group-block reason.
+        Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => ProductionDefaultInventory().CreateGroupBlockAsync(P2Services.Ctx(4, "CreateGroupBlock"), request, Ct)));
+
+        // Switched on, the same request creates the block. It can then be released while the switch is off again (release stays available).
+        var made = (await ProductionDefaultInventory(new GroupBlockOptions { Enabled = true }).CreateGroupBlockAsync(P2Services.Ctx(3, "CreateGroupBlock"), request, Ct)).Value;
+        Assert.Equal(("GB-OFF1", "Open"), (made.Code, made.Status));
+        var released = (await ProductionDefaultInventory().ReleaseGroupBlockAsync(P2Services.Ctx(3, "ReleaseGroupBlock"), new ReleaseGroupBlockRequest(made.GroupBlockId, made.Version), Ct)).Value;
+        Assert.Equal("Released", released.Status);
+        Assert.Equal(0, await S.DriftAsync());
+    }
+
     [Fact]
     public async Task Room_blocks_reduce_sellable_and_cannot_cover_booked_nights()
     {
@@ -348,13 +379,14 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
     [Fact]
     public async Task Every_handler_checks_its_permission_first()
     {
+        var from = S.Access.Checks.Count;   // the log is shared by the class: read only this test's checks (other tests also run as Housekeeper)
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Inventory.GetAvailabilityAsync(1, FakeAccessPolicy.Housekeeper, new AvailabilityQuery("2026-12-01", "2026-12-02", 1), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Inventory.QuoteStayAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "QuoteStay"), new QuoteStayRequest("2026-12-01", "2026-12-02", 1, 0, f.RoomIds["105"]), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.CreateAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "CreateReservation"), new CreateReservationRequest(1, "AAAAAAAAAAA=", new GuestInput("X Y"), 1), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.AmendAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "AmendReservation"), new AmendReservationRequest(1, "AAAAAAAAAAA=", "2026-12-01", "2026-12-02", 1), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.CancelAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "CancelReservation"), new CancelReservationRequest(1, "AAAAAAAAAAA="), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.GetAsync(1, FakeAccessPolicy.Housekeeper, 1, Ct)));
-        var perms = S.Access.Checks.Where(c => c.Principal == FakeAccessPolicy.Housekeeper).Select(c => c.Permission).ToList();
+        var perms = S.Access.Checks.Skip(from).Where(c => c.Principal == FakeAccessPolicy.Housekeeper).Select(c => c.Permission).ToList();
         Assert.Equal(["PERM-RES-001", "PERM-RES-002", "PERM-RES-002", "PERM-RES-003", "PERM-RES-004", "PERM-RES-001"], perms);
         Assert.Equal("NOT_FOUND", await Outcome.CodeAsync(() => S.Booking.GetAsync(1, FakeAccessPolicy.Reception, 999999, Ct)));
     }

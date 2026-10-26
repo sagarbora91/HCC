@@ -1,7 +1,7 @@
 // MB-05 front desk (phone) — pure helpers: agenda grouping, booking-wizard validation, attention list, check-in step state.
 // No React here, so tests/stream-mobile-frontdesk.mjs can bundle and test it directly. Names start with `mf`.
 import {State,Booking,Room,Permission,addDays,nights,resStatus,resSearch,resCalendarShows,resHoldActive,blockedDuring,roomHold,
-  stayArrivals,stayRoomEligibility,guestForBooking,guestComplete,RES_PHONE,RES_GSTIN,RES_CAPACITY} from '../../services/mock';
+  stayArrivals,stayRoomEligibility,guestForBooking,guestComplete,grpCompany,RES_PHONE,RES_GSTIN,RES_CAPACITY} from '../../services/mock';
 import {rstState} from '../../features/reservations/restriction';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
@@ -40,7 +40,9 @@ export function mfAgendaStrip(s:State,start:string,type:string,days=7){
 export type MfBookingDraft={arrival:string;departure:string;people:number;children:number;type:string;room:string;
   guest:string;phone:string;email:string;source:string;otaChannel:string;company:string;gstin:string;notes:string;
   /** Stay-restriction override (DEC-053): ticked + reason; only approvers see the controls. */
-  rstOverride?:boolean;rstReason?:string};
+  rstOverride?:boolean;rstReason?:string;
+  /** DEC-076: bill the stay to this company account (its name and GSTIN; credit-checked). Empty = the company above is invoice details only. */
+  account?:string};
 export const mfWizardSteps=['Dates & party','Pick room','Guest details','Review'];
 export function mfDraft(s:State,room?:string,arrival?:string):MfBookingDraft{
   const pre=s.rooms.find(r=>r.id===room);const start=arrival&&DATE.test(arrival)&&arrival>=s.date?arrival:s.date;
@@ -68,8 +70,8 @@ export function mfGuestErrors(d:MfBookingDraft){
   if(!t(d.phone))e.phone='Phone is required.';else if(!RES_PHONE.test(t(d.phone)))e.phone='Enter 7–16 digits (fictional number).';
   if(d.source==='OTA'&&t(d.otaChannel).length<2)e.otaChannel='Name the OTA channel.';
   const gstin=t(d.gstin).toUpperCase();
-  if(gstin&&!t(d.company))e.company='Enter the company name for the GSTIN.';
-  if(gstin&&!RES_GSTIN.test(gstin))e.gstin='Use the 15-character format, e.g. 27AAAAA0000A1Z5.';
+  if(!d.account&&gstin&&!t(d.company))e.company='Enter the company name for the GSTIN.';
+  if(!d.account&&gstin&&!RES_GSTIN.test(gstin))e.gstin='Use the 15-character format, e.g. 27AAAAA0000A1Z5.';
   return e;
 }
 /** Stay restrictions for the room the wizard would book (picked or auto-assigned). `uid` decides who may override. */
@@ -95,8 +97,10 @@ export function mfWizardErrors(s:State,step:number,d:MfBookingDraft,uid?:string,
 export function mfBookCommand(s:State,d:MfBookingDraft,hold:boolean,key?:string,search?:MfSearch){
   const room=mfPick(s,d,search).chosen;const reason=String(d.rstReason||'').trim();
   const restricted=!!room&&!mfDateError(s,d)&&rstState(s,undefined,room.type,d.arrival,d.departure).violations.length>0;const t=(v:string)=>String(v||'').trim();const company=t(d.company),gstin=t(d.gstin).toUpperCase();
+  const co=d.account?grpCompany(s,d.account):undefined;
   return {type:'BOOK' as const,guest:t(d.guest),phone:t(d.phone),email:t(d.email),people:d.people,children:d.children,room:room?.id||'',arrival:d.arrival,departure:d.departure,
-    source:d.source,otaChannel:d.source==='OTA'?t(d.otaChannel):undefined,company:company?{name:company,gstin:gstin||undefined}:undefined,notes:t(d.notes),hold,restrictionOverride:restricted&&d.rstOverride&&reason?reason:undefined,key};
+    source:d.source,otaChannel:d.source==='OTA'?t(d.otaChannel):undefined,
+    company:co?{name:co.name,gstin:co.gstin||undefined,account:co.id}:company?{name:company,gstin:gstin||undefined}:undefined,notes:t(d.notes),hold,restrictionOverride:restricted&&d.rstOverride&&reason?reason:undefined,key};
 }
 
 // ── M04 Reservations ──

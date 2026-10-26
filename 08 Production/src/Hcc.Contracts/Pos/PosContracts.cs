@@ -7,15 +7,23 @@ public sealed record CreateOutletRequest(string Code, string Name, string Kind, 
 
 /// <summary>POST /api/v1/commands/SaveMenuItem (K). <c>ItemId</c> null creates; otherwise updates (then <c>ExpectedVersion</c> is required).</summary>
 /// <remarks>MA-4 master fields (optional; a W2-6 client sends none): <c>CategoryId</c> (else the category is found / created by name),
-/// <c>Prices</c> (dated; else <c>PricePaise</c> applies from the business date), <c>GstClass</c> and prices need PERM-MST-002 to change.</remarks>
+/// <c>Prices</c> (dated; else <c>PricePaise</c> applies from the business date), <c>GstClass</c> and prices need PERM-MST-002 to change.
+/// DEC-079 D5 (Wave B): a Manager's save (PERM-POS-006 R) becomes a request the Owner decides; <c>Reason</c> is optional and kept on the request.</remarks>
 public sealed record SaveMenuItemRequest(int? ItemId, string Code, string Name, string Category, long PricePaise, bool Veg, IReadOnlyList<int> OutletIds,
     string? ExpectedVersion, int? CategoryId = null, string? ShortCode = null, string? GstClass = null, string? Station = null, int? SortOrder = null,
-    IReadOnlyList<MenuPriceView>? Prices = null, bool? SoldOutToday = null);
+    IReadOnlyList<MenuPriceView>? Prices = null, bool? SoldOutToday = null, string? Reason = null);
 
 /// <summary>POST /api/v1/commands/SetMenuItemAvailability (K). false = "86" (unavailable).</summary>
 public sealed record SetMenuItemAvailabilityRequest(int ItemId, bool Available);
 
-public sealed record MenuItemResult(int ItemId, bool Available, string Version);
+/// <summary><c>Status</c> <c>saved</c> (applied) or <c>requested</c> (D5: waiting for the Owner; then <c>RequestId</c> is set and <c>ItemId</c> is 0 for a new item).</summary>
+public sealed record MenuItemResult(int ItemId, bool Available, string Version, string Status = "saved", long? RequestId = null);
+
+/// <summary>POST /api/v1/commands/DecideMenuChange (K). The Owner (PERM-POS-006, never the requester) approves or rejects a Manager's menu change.</summary>
+public sealed record DecideMenuChangeRequest(long RequestId, bool Approve, string? Reason);
+
+/// <summary><c>Status</c> <c>Executed</c> (the change is applied; <c>ItemId</c>/<c>Version</c> of the item) or <c>Rejected</c>.</summary>
+public sealed record DecideMenuChangeResult(long RequestId, string Status, int? ItemId, string? Version);
 
 public sealed record OutletResult(int OutletId, string Code, string Version);
 
@@ -37,8 +45,12 @@ public sealed record AdvanceKotRequest(long OrderId, long KotId, string Status);
 /// <summary>
 /// POST /api/v1/commands/SettleCheck (K V). Mode <c>outlet</c> (Tender Cash/UPI/Card; UPI/Card need a reference; Cash needs <c>TillId</c> with an
 /// open shift, DEC-052) or <c>folio</c> (one service line on the in-house guest's folio; <c>StayId</c> defaults to the check's stay).
+/// DEC-072: an outlet bill is issued as a GST tax invoice (RST series) in the same command. <c>BuyerGstin</c> (+ <c>BuyerName</c>, the legal
+/// name) makes it B2B; otherwise B2C to the check's guest, with <c>BuyerName</c> + <c>BuyerAddress</c> required for a bill of ₹50,000 or more.
+/// Buyer fields are refused for a folio bill (the room invoice takes the GSTIN at checkout).
 /// </summary>
-public sealed record SettleCheckRequest(long OrderId, string Mode, string? Tender, string? Reference, int? TillId, long? StayId, string ExpectedVersion);
+public sealed record SettleCheckRequest(long OrderId, string Mode, string? Tender, string? Reference, int? TillId, long? StayId, string ExpectedVersion,
+    string? BuyerGstin = null, string? BuyerName = null, string? BuyerAddress = null);
 
 /// <summary>POST /api/v1/commands/VoidCheckItem (K). Only items already sent to the kitchen. Above the limit this raises a request.</summary>
 public sealed record VoidCheckItemRequest(long OrderId, long LineId, string Reason, string? ExpectedVersion);
@@ -56,11 +68,14 @@ public sealed record KotResult(long OrderId, long KotId, int KotNo, string Statu
 
 public sealed record KotRef(long KotId, int KotNo, string? Station);
 
+/// <summary>DEC-072: <c>InvoiceNo</c> = the outlet bill's RST tax invoice; null for a folio bill, or with <c>InvoiceNote</c> saying why none was
+/// issued (the hotel GSTIN is not recorded — IssueInvoice {sourceKind: pos, sourceId: BillId} issues it later).</summary>
 public sealed record SettleResult(long OrderId, long BillId, string BillNo, string Mode, long NetPaise, int TaxBps, long TaxPaise, long TotalPaise,
-    long? ReceiptId, long? ChargeId, long? CashMovementId, string Version);
+    long? ReceiptId, long? ChargeId, long? CashMovementId, string Version, long? InvoiceId = null, string? InvoiceNo = null, string? InvoiceNote = null);
 
-/// <summary>Outcome <c>Voided</c> or <c>PendingApproval</c> (then <c>VoidRequestId</c> is set and the check is locked).</summary>
-public sealed record VoidResult(long OrderId, string Outcome, long? VoidRequestId, string Version);
+/// <summary>Outcome <c>Voided</c> or <c>PendingApproval</c> (then <c>VoidRequestId</c> is set and the check is locked). <c>CreditNoteNo</c>: the credit
+/// note that reversed the voided bill's RST tax invoice (DEC-072).</summary>
+public sealed record VoidResult(long OrderId, string Outcome, long? VoidRequestId, string Version, string? CreditNoteNo = null);
 
 public sealed record DecideVoidResult(long VoidRequestId, string Status, long OrderId, string OrderVersion);
 
@@ -73,7 +88,15 @@ public sealed record KotView(long KotId, int KotNo, string Label, string Status,
     string? Station = null);
 
 public sealed record BillView(long BillId, string BillNo, string Mode, string? Tender, string? Reference, long NetPaise, int TaxBps, long TaxPaise,
-    long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null, long? ReservationId = null);
+    long TotalPaise, DateOnly BusinessDate, string Status, DateTime? SettledUtc = null, int? SettledBy = null, long? ReservationId = null,
+    PosBillInvoiceView? Invoice = null);
+
+/// <summary>
+/// DEC-072: the GST tax invoice of an outlet bill as the bill print shows it — number (RST series, or BOS for a nil-rated bill), B2C / B2B,
+/// buyer, the hotel GSTIN and SAC on the invoice, the CGST / SGST split, and the credit note that reversed it when the bill was voided.
+/// </summary>
+public sealed record PosBillInvoiceView(long InvoiceId, string InvoiceNo, string DocType, DateOnly InvoiceDate, string SupplyType, string? BuyerName,
+    string? BuyerGstin, string SupplierGstin, string Sac, long CgstPaise, long SgstPaise, string? CreditNoteNo);
 
 public sealed record CheckView(long OrderId, int OutletId, string Outlet, string Spot, string? Guest, int Covers, DateOnly BusinessDate, string Status,
     string Version, long? PendingVoidId, IReadOnlyList<LineView> Lines, IReadOnlyList<KotView> Kots, long NetPaise, int TaxBps, long TaxPaise,
@@ -115,6 +138,10 @@ public sealed record PosCloseBlockers(int OpenChecks, int PendingVoids)
 /// <summary>A pending void request (check locked until decided): the approvals queue and the check panel read this. <c>RequestedBy</c> is the user id.</summary>
 public sealed record VoidRequestView(long VoidRequestId, long OrderId, string Spot, string Scope, long? LineId, long AmountPaise, string Reason, int RequestedBy,
     DateTime ExpiresUtc, string OrderVersion);
+
+/// <summary>A pending menu change (D5): what the Manager asked for, the price before (null for a new item) and who asked.</summary>
+public sealed record MenuRequestView(long RequestId, int? ItemId, string Code, string Name, string Category, long PricePaise, long? PriceBeforePaise, bool Veg,
+    IReadOnlyList<int> OutletIds, string? Reason, int RequestedBy, DateTime RequestedUtc, string Version);
 
 /// <summary>An in-house guest the outlet can charge to (room service targets, "post to room"): stay, folio, reservation (= the web client's booking id), room.</summary>
 public sealed record PosStayView(long StayId, long FolioId, long ReservationId, string RoomNo, string Guest);

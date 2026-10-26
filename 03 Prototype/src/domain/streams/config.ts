@@ -50,8 +50,8 @@ export const CFG_GROUPS:CfgGroup[]=[
   {id:'compliance',label:'Compliance obligations',section:'Operations and people',money:true,blurb:'GST, TDS, PF, ESIC and PT list, due rules, CA contact'},
   {id:'modules',label:'Modules on/off',section:'Software and security',money:false,blurb:'Switch optional modules off; their data is kept'},
   {id:'users',label:'Users, roles and PINs',section:'Software and security',money:false,blurb:'Users and roles live in Access control; PIN lock options',link:{page:'access',label:'Open Access control'}},
-  {id:'messages',label:'Messages and documents',section:'Software and security',money:false,blurb:'Sender name, consent, gateway key, document retention',link:{page:'messages',label:'Open Messages'}},
-  {id:'data',label:'Data and system',section:'Software and security',money:false,blurb:'Backup schedule, restore drill, storage, diagnostics, about'},
+  {id:'messages',label:'Messages and documents',section:'Software and security',money:false,blurb:'Sender name, consent, gateway key',link:{page:'messages',label:'Open Messages'}},
+  {id:'data',label:'Data and system',section:'Software and security',money:false,blurb:'Backup schedule, restore drill, ID image retention, storage, diagnostics, about'},
 ];
 export const cfgGroup=(id:string)=>CFG_GROUPS.find(g=>g.id===id);
 
@@ -501,12 +501,15 @@ function builtins(){
     {key:'msg.senderName',label:'Sender name',type:'text',maxLength:40,default:'HCC Demo Residency',unit:'text, ≤ 40 chars',help:'Shown on simulated WhatsApp, SMS and e-mail messages.'},
     {key:'msg.marketing',label:'Marketing messages',type:'choice',options:['Only with guest consent','Never'],default:'Only with guest consent',unit:'choice',help:'Service messages are not affected.'},
     {key:'msg.gatewayKey',label:'Messaging gateway key (simulated)',type:'text',maxLength:64,allowEmpty:true,default:'',secret:true,approver:'Owner',unit:'secret',help:'Never shown in full and never exported.',affects:'Simulated sends only.'},
-    {key:'doc.retentionDays',label:'Captured document retention',type:'integer',min:30,max:3650,default:365,suffix:'days',unit:'days',help:'Captured images are discarded after this (metadata stays).'},
   ]});
   registerSettingsGroup({id:'data',group:'data',defs:[
     {key:'data.backupTime',label:'Daily backup time (simulated)',type:'time',default:'02:00',unit:'HH:mm (IST)',help:'Local backup schedule.'},
     {key:'data.backupKeep',label:'Backups kept',type:'integer',min:1,max:90,default:14,suffix:'days',unit:'days'},
     {key:'data.restoreDrillDays',label:'Restore drill every',type:'integer',min:7,max:180,default:30,suffix:'days',unit:'days',help:'Reminder to test a restore.'},
+    // DEC-071 (A11-02): the one ID-image rule (same key as the server's Documents module; the duplicate 'doc.retentionDays' is gone). Nothing is purged automatically.
+    {key:'documents.retentionDays',label:'ID image retention',type:'integer',min:1,max:3650,default:90,suffix:'days',unit:'days after capture',dated:true,
+      help:'Used only by the manual purge (Purge ID captures): it deletes captured ID images and their extracted text older than this. Nothing is deleted automatically; ID data is kept until someone runs the purge (DEC-071). The confirmed ID number on the guest profile is not touched.',
+      affects:'The next manual purge (older captures are judged by the value in force on the purge date).'},
     {key:'about.version',label:'Version',type:'fixed',read:()=>`Prototype 0.1 · data schema ${SCHEMA}`,fixedReason:'Set by the build'},
   ]});
 }

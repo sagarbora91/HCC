@@ -1,10 +1,13 @@
 namespace Hcc.Contracts.WebBooking;
 
-/// <summary>PERM ids of the booking-website module (migration 2001).</summary>
+/// <summary>PERM ids of the booking-website module (role matrix v2, DEC-079 D7, migration 3700 redefines the 2001 id).</summary>
 public static class WebBookingPermissions
 {
-    /// <summary>webbooking.review — queue, confirm, decline, deposit link (Owner, Manager, Reception).</summary>
-    public const string Review = "PERM-WEB-001";
+    /// <summary>webbooking.view — the web request queue and a request (Owner, Manager, Reception; the Accountant reads).</summary>
+    public const string View = "PERM-WEB-001";
+
+    /// <summary>webbooking.handle — confirm, decline, deposit link, mark the deposit paid (Owner, Manager, Reception: day-to-day, D7).</summary>
+    public const string Handle = "PERM-WEB-002";
 }
 
 /// <summary>Web request status on the wire. <c>Confirming</c> = a staff member has claimed it and is creating the reservation.</summary>

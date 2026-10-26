@@ -2,7 +2,7 @@
 // closing; day view lists every entry with a running balance. All figures come from domain/streams/cashbook.ts (→ shiftMovements + closing records).
 import React,{useMemo,useState} from 'react';
 import {Lock,Unlock,Download,ChevronLeft,ArrowRight,FileSpreadsheet} from 'lucide-react';
-import {money,cbDay,cbRange,cbDates,cbCsv,cbCanLock,cbCanReopen,cbSlice,addDays,CB_DIFF_LABEL} from '../../services/mock';
+import {money,cbDay,cbRange,cbDates,cbCsv,cbCanLock,cbCanReopen,cbSlice,addDays,CB_DIFF_LABEL,cxSlice,cxTillName} from '../../services/mock';
 import type {CBDay} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
@@ -33,7 +33,8 @@ export function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}
       <div><span>Cash paid out</span><strong>{money(d.payments)}</strong></div>
       <div><span>Closing balance</span><strong>{money(d.closing)}</strong></div>
       {diff!==0&&<div><span>Cash over/short at count</span><strong>{money(diff)}</strong></div>}
-      {d.counted!==undefined&&<div><span>Carried to next day</span><strong>{money(d.carried)}</strong></div>}</div>
+      {d.counted!==undefined&&<div><span>Carried to next day</span><strong>{money(d.carried)}</strong></div>}
+      {!!d.deposited&&<div><span>Banked during the day</span><strong>{money(d.deposited)}</strong></div>}</div>
     {d.expected!==undefined&&<div className={'cb-recon '+(d.reconciles?'ok':'bad')}>
       Cashier count: expected {money(d.expected)} · counted {money(d.counted!)} · {d.difference?`difference ${money(d.difference)}`:'no difference'}
       {d.banked>0&&<> · banked {money(d.banked)}</>} · carried to next day {money(d.carried)}
@@ -54,6 +55,7 @@ export function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}
           {d.counted!==undefined&&<tr className="cb-open"><td colSpan={5}>Carried forward to next day</td><td className="number">{money(d.carried)}</td></tr>}
         </tbody></table></div>}
       <ShowMore p={pg}/></section>
+    <CashOutDay date={d.date} phone={phone}/>
     <section className="card"><div className="section-title"><h2>Day lock</h2></div>
       {d.locked&&<CashLockNote date={d.date}/>}
       {d.locked?<p>Locked by <strong>{who(s.users,d.locked.lockedBy)}</strong> at {d.locked.lockedAt.replace('T',' ')}. No cash change dated this day can be posted until the Owner reopens it.</p>:<p className="muted">{d.status==='Closed'?'Not locked yet. A different person from the one who counted checks and locks the day.':'The day can be locked after it is closed.'}</p>}
@@ -65,6 +67,19 @@ export function DayCard({d,phone,onBack}:{d:CBDay;phone:boolean;onBack:()=>void}
         <button className="btn" onClick={()=>go('closing')}>Day closing <ArrowRight size={14}/></button></div>
       {!!hist.length&&<ul className="cb-hist">{hist.map((h,i)=><li key={i}><strong>{h.action==='lock'?'Locked':'Reopened'}</strong> by {who(s.users,h.by)} · {h.at.replace('T',' ')}{h.reason?` · ${h.reason}`:''}</li>)}</ul>}
     </section></>;
+}
+
+/** Wave B1 (DEC-073): the day's bank deposits, till transfers and Owner drawings (the slip photo opens for the Manager, Owner, Accountant). */
+function CashOutDay({date,phone}:{date:string;phone:boolean}){
+  const {s,open}=useHcc();
+  const list=cxSlice(s).records.filter(r=>r.date===date||r.decidedDate===date);
+  if(!list.length)return null;
+  const kind=(k:string)=>k==='banking'?'Bank deposit':k==='till'?'Till transfer':'Owner drawing';
+  return <section className="card" aria-label="Banking, transfers and drawings"><div className="section-title"><h2>Banking, transfers and drawings</h2><span className="muted">{list.length} record{list.length===1?'':'s'}</span></div>
+    <div className="cb-cards">{list.map(r=><button type="button" key={r.id} className="cb-card cb-tap" onClick={()=>open({type:'cash-decide',id:r.id})}>
+      <div><strong>{kind(r.kind)} · {money(r.amount)}</strong><small>{r.kind==='banking'?`${r.bank??''} · slip ${r.slip??''}`:r.kind==='till'?`${cxTillName(s,r.fromTill)} → ${cxTillName(s,r.toTill)}`:r.reason}</small>
+        <small>{r.id} · {who(s.users,r.actor)} · {r.status}{r.slipNote?` · ${r.slipNote}`:''}</small></div>
+      {!phone&&<div className="cb-amt"><b>{r.status==='Pending'?'Pending':'View'}</b></div>}</button>)}</div></section>;
 }
 
 /** CSV + Excel buttons for a date range (W05-8: Excel through the W05-E xlsx helper; a failed save shows an error, F11). */

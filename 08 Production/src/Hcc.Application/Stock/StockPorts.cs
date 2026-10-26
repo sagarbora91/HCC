@@ -3,21 +3,26 @@ using Hcc.Application.Commands;
 namespace Hcc.Application.Stock;
 
 /// <summary>
-/// PERM ids (RBAC matrix v1 §5) used by Linen &amp; stock. The matrix has no stock PERM yet and the Access seed is pinned at 45
-/// permissions (DEC-063), so the module maps onto the housekeeping and finance PERMs the prototype used:
-/// <c>housekeeping</c> → PERM-HK-003 (Housekeeper A, Supervisor, Manager, Owner), <c>inspect</c> → PERM-HK-004 (Supervisor, Manager, Owner),
-/// money roles → PERM-RPT-002 (Manager, Owner, Accountant). A dedicated PERM-STK-* set is a decision for the owner.
+/// PERM ids of Linen &amp; stock: the module's own set from role matrix v2 (DEC-079, migration 3700) instead of the borrowed housekeeping
+/// and finance-report ids. Money (unit cost, value, laundry rate and charge, loss value) rides only on <see cref="Money"/>, which the Cashier,
+/// Supervisor and Housekeeper do not hold (D3, DEC-061).
 /// </summary>
 public static class StockPermissions
 {
+    /// <summary>Read the module without money (levels, laundry, counts): Owner, Manager, Supervisor, Accountant (view), Housekeeper (assigned).</summary>
+    public const string View = "PERM-STK-001";
+
     /// <summary>Work with stock: issue, use, room change, laundry, losses, counts (assigned-scope housekeepers included).</summary>
-    public const string Work = "PERM-HK-003";
+    public const string Work = "PERM-STK-002";
 
-    /// <summary>Supervise: receive goods, decide counts, set levels and items.</summary>
-    public const string Supervise = "PERM-HK-004";
+    /// <summary>Supervise: receive goods, decide counts (never your own), create items.</summary>
+    public const string Supervise = "PERM-STK-003";
 
-    /// <summary>See and enter money (unit cost, stock value, laundry rates and charges).</summary>
-    public const string Money = "PERM-RPT-002";
+    /// <summary>See and enter money (unit cost, stock value, laundry rates and charges): Owner, Manager, Accountant.</summary>
+    public const string Money = "PERM-STK-004";
+
+    /// <summary>Configure item levels, par sets and the laundry vendor (rates also need <see cref="Money"/>).</summary>
+    public const string Configure = "PERM-STK-005";
 }
 
 public sealed record StockItemRecord(

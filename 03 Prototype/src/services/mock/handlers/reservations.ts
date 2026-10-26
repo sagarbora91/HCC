@@ -4,15 +4,30 @@
 //   CONFIRM       (new) Held → Confirmed while the hold is running.
 //   CANCEL        (replaces built-in) — also cancels Held bookings; optional reason.
 //   CHANGE_DATES  (new) non-drag "Move / change dates" for Held/Confirmed reservations: room + arrival + departure, full-interval revalidation.
+//   BOOKING_COMPANY (new, DEC-076) bill a Held / Confirmed / In-house booking to a company account ({id, account}; account '' = invoice details only).
+//   A booking billed to a company account is a credit guarantee: BOOK, CHANGE_DATES and BOOKING_COMPANY refuse it beyond the company's credit limit.
 // Intended PERM IDs (RBAC matrix): BOOK/CONFIRM PERM-RES-002, CHANGE_DATES PERM-RES-003, CANCEL PERM-RES-004 — coarse 'reservations' for now.
 import type {Handler,Kit} from '../commands';
 import type {Booking} from '../../../domain/types';
 import {available,rateFor,totals} from '../../../domain/selectors';
-import {nights,addMinutes} from '../../../domain/money';
+import {nights,addMinutes,money} from '../../../domain/money';
 import {resCapacity,resHoldActive,resSweepHolds,RES_HOLD_MINUTES,RES_GSTIN,RES_PHONE} from '../../../domain/streams/reservations';
 import {rmsCapacity} from '../../../domain/streams/roommasters';
 import {yldStayViolations} from '../../../domain/streams/yield';
 import {catCheckPlan} from '../../../domain/streams/catalogue';
+import {grpCompany,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
+import type {GRPCompany} from '../../../domain/streams/groups';
+
+/**
+ * DEC-076: after a booking billed to company account `c` was created or changed, refuse (the whole command is discarded) when it raised the
+ * company's exposure above `before` and the stay no longer fits beside everything else billed to the company.
+ */
+function creditCheck(k:Kit,c:GRPCompany,x:Booking,before:number){
+  const after=grpExposure(k.s,c);if(after<=before)return;
+  const subject=grpBookingExposure(k.s,x),refusal=grpCreditRefusal(c,after-subject,subject,'booking');
+  if(refusal)k.fail('INVALID_TRANSITION',refusal);
+}
+function accountOf(k:Kit,id:unknown):GRPCompany{const c=grpCompany(k.s,String(id??''));k.assert(c,'Company account not found.','NOT_FOUND');return c!;}
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 /** Shared stay validation for BOOK and CHANGE_DATES. Message texts match the M1 BOOK command. */
@@ -50,7 +65,8 @@ export const handlers:Record<string,Handler>={
     const source=String(cmd.source||'Direct');
     const ota=String(cmd.otaChannel??'').trim();
     assert(source!=='OTA'||ota.length>=2,'Name the OTA channel for an OTA booking.');
-    const companyName=String(cmd.company?.name??cmd.companyName??'').trim(),gstin=String(cmd.company?.gstin??cmd.gstin??'').trim().toUpperCase();
+    const account=cmd.company?.account?accountOf(k,cmd.company.account):undefined;
+    const companyName=account?account.name:String(cmd.company?.name??cmd.companyName??'').trim(),gstin=account?account.gstin:String(cmd.company?.gstin??cmd.gstin??'').trim().toUpperCase();
     assert(!gstin||companyName,'Enter the company name for the GSTIN.');
     assert(!gstin||RES_GSTIN.test(gstin),'Enter the GSTIN in the 15-character format, e.g. 27AAAAA0000A1Z5 (fictional).');
     const r=s.rooms.find(r=>r.id===cmd.room);assert(r,'Choose a room.');
@@ -66,7 +82,10 @@ export const handlers:Record<string,Handler>={
     if(ota&&source.startsWith('OTA'))x.otaChannel=ota;
     if(companyName)x.company=gstin?{name:companyName,gstin}:{name:companyName};
     if(plan)x.plan=plan.code;
+    const before=account?grpExposure(s,account):0;
+    if(account)x.company={...x.company!,account:account.id};
     s.bookings.push(x);
+    if(account)creditCheck(k,account,x,before);
     return `${bid} · ${cmd.guest} · room ${cmd.room}${hold?' · held until '+x.holdUntil!.slice(11,16):''}${overridden}`;
   },
   CONFIRM:({s,cmd,req,open,assert,b})=>{
@@ -109,8 +128,29 @@ export const handlers:Record<string,Handler>={
     resSweepHolds(s);
     const detail=`${x.id} · room ${x.room} → ${r!.id}; ${x.arrival}–${x.departure} → ${cmd.arrival}–${cmd.departure}; agreed tariff preserved${overridden}`;
     if(overridden)x.notes=[x.notes,overridden.slice(3)].filter(Boolean).join(' · ');
+    const account=x.company?.account?grpCompany(s,x.company.account):undefined,before=account?grpExposure(s,account):0;
     // Agreed nightly rate is kept (WF-BOOK-001). A hold keeps its original expiry: changing dates never extends it.
     x.room=r!.id;x.arrival=cmd.arrival;x.departure=cmd.departure;x.version++;
+    if(account)creditCheck(k,account,x,before);
     return detail;
+  },
+  BOOKING_COMPANY:k=>{
+    // DEC-076 (server SetReservationCompany, PERM-RES-003): bill a booking to a company account — checked against the account's credit limit —
+    // or back to the guest (account '' keeps the company name and GSTIN as invoice details only).
+    const {s,cmd,req,open,assert,b}=k;
+    req('reservations');open();const x=b();
+    const held=x.status==='Held'&&resHoldActive(s,x);
+    assert(x.status==='Confirmed'||x.status==='In house'||held,'Only a held, confirmed or in-house booking can be billed to a company account.','INVALID_TRANSITION');
+    if(!cmd.account){
+      assert(x.company?.account,'This booking is not billed to a company account.','INVALID_TRANSITION');
+      const was=grpCompany(s,x.company!.account!)?.name??x.company!.account;delete x.company!.account;x.version++;
+      return `${x.id} · no longer billed to ${was} (invoice details kept)`;
+    }
+    const c=accountOf(k,cmd.account);
+    assert(x.company?.account!==c.id,`This booking is already billed to ${c.name}.`,'INVALID_TRANSITION');
+    const before=grpExposure(s,c);
+    x.company=c.gstin?{name:c.name,gstin:c.gstin,account:c.id}:{name:c.name,account:c.id};x.version++;
+    creditCheck(k,c,x,before);
+    return `${x.id} · billed to ${c.name} · credit used ${money(grpExposure(s,c))} of ${money(c.creditLimit)}`;
   },
 };

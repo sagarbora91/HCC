@@ -10,7 +10,7 @@ import {HistorySummary} from './HistorySummary';
 import {reportPackMemo} from '../../domain/memo';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,dateLabel,shortDate} from '../../components/ui';
-import {useServerReport,ServerReportStrip,ServerDetailNote,ServerHistorySummary,fyMonths,SERVER_DETAIL_NOTE} from './serverBits';
+import {useServerReport,ServerReportStrip,ServerDetailNote,ServerHistorySummary,ServerReportsGate,fyMonths,SERVER_DETAIL_NOTE} from './serverBits';
 import {asOfText,NO_FETCH} from './asOf';
 import {FdmSourceReport} from '../reservations/masters';
 import {REPORT_MAX_DAYS} from '../../clients/sync/reports';
@@ -26,7 +26,10 @@ function scoped(pack:ReportPack,mask:boolean):ReportPack{
 const fmt=(v:string|number,u:string)=>typeof v==='number'?(u==='money'?money(v):String(v)):v;
 const TABS=[['daily','Daily operations'],['revenue','Revenue & tax'],['receipts','Receipts & deposits'],['expenses','Expenses & cash'],['occupancy','Occupancy'],['dictionary','Report dictionary']];
 
-export function Reports(){
+/** Production: a role that may read only the daily collections (the Cashier, DEC-079) gets that report instead of the full page. */
+export function Reports(){return process.env.HCC_BUILD==='production'?<ServerReportsGate><ReportsPage/></ServerReportsGate>:<ReportsPage/>;}
+
+function ReportsPage(){
   const {s,uid,permission,toast,open}=useHcc();
   const canExport=rbacCanExportReports(s,uid); // DEC-063 G13: RPT-003 export = Owner, Manager, Accountant (not the Cashier)
   const [tab,setTab]=useState('daily');const [from,setFrom]=useState(s.date);const [to,setTo]=useState(s.date);const [drill,setDrill]=useState<string|null>(null);

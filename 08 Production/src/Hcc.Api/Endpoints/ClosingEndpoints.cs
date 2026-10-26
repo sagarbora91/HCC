@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
-/// Closing + reporting (P6): POST /commands/{RunBusinessDayClose|PostRoomNights|LockCashBookDay|ReopenCashBookDay}; GET /closing/business-date (any session), /closing/records?from=&amp;to=, /closing/preflight?date=,
+/// Closing + reporting (P6): POST /commands/{RunBusinessDayClose|PostRoomNights|LockCashBookDay|ReopenCashBookDay|ReopenBusinessDay (DEC-077)}; GET /closing/business-date (any session), /closing/records?from=&amp;to=, /closing/preflight?date=,
 /// /closing/runs/{date}, /closing/snapshots/{date}, /cashbook/{date}, /cashbook?from=&amp;to= (range), /cashbook/{date}/book (day with entries), /reports/daily?from=&amp;to=. All require a session.
 /// </summary>
 public static class ClosingEndpoints
@@ -33,7 +33,8 @@ public static class ClosingEndpoints
         services.AddSingleton(sp => new ClosingService(sp.GetRequiredService<SqlPlatform>().Commands, sp.GetRequiredService<IClosingStore>(),
             sp.GetRequiredService<IReportSource>(), sp.GetRequiredService<IAccessPolicy>(), sp.GetRequiredService<BillingService>(),
             sp.GetRequiredService<ICloseStepObserver>(), sp.GetRequiredService<TimeProvider>(),
-            sp.GetService<Hcc.Application.Pos.IPosCloseGate>())); // POS open checks / pending voids block the close
+            sp.GetService<Hcc.Application.Pos.IPosCloseGate>(), // POS open checks / pending voids block the close
+            sp.GetService<Hcc.Application.Accounting.IAccountingDayHooks>())); // DEC-077 reopen: accounting period lock, Tally re-export flag
         services.AddSingleton<ReportingQueries>();
         services.AddSingleton<ICashBookSource>(sp => new SqlCashBookSource(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<CashBookQueries>();
@@ -48,6 +49,7 @@ public static class ClosingEndpoints
         BillingEndpoints.Command<PostRoomNightsRequest, PostRoomNightsResult>(g, ClosingService.OpPostNights, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().PostRoomNightsAsync(c, k, r, ct));
         BillingEndpoints.Command<LockCashBookDayRequest, CashBookDayResult>(g, ClosingService.OpLockCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().LockCashBookDayAsync(c, k, r, ct));
         BillingEndpoints.Command<ReopenCashBookDayRequest, CashBookDayResult>(g, ClosingService.OpReopenCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().ReopenCashBookDayAsync(c, k, r, ct));
+        BillingEndpoints.Command<ReopenBusinessDayRequest, ReopenBusinessDayResult>(g, ClosingService.OpReopenDay, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().ReopenBusinessDayAsync(c, k, r, ct));
         g.MapGet("/closing/preflight", async (HttpContext http, ClosingService s, DateOnly? date, CancellationToken ct) =>
             Results.Ok(await s.GetPreflightAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
         g.MapGet("/closing/business-date", async (HttpContext http, ClosingService s, CancellationToken ct) =>

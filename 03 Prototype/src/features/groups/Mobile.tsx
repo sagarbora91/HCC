@@ -1,7 +1,7 @@
 // Module 14 · phone page (M-groups): chips Blocks / Companies / Pickup / Requests, cards instead of tables, one primary action (Fab).
 import React,{useState} from 'react';
 import {Plus,ListPlus,SlidersHorizontal,Undo2,Printer,CreditCard,Pencil,Ban,AlertTriangle,Check,X} from 'lucide-react';
-import {money,grpSlice,grpKpis,grpBlockTotals,grpLines,grpStatus,grpCompany,grpCredit,grpMasterFolio,grpPickupReport,GRP_CREDIT_LABEL} from '../../services/mock';
+import {money,grpSlice,grpKpis,grpBlockTotals,grpLines,grpStatus,grpCompany,grpCredit,grpMasterFolio,grpPickupReport,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,Fab} from '../../app/mobile/components';
@@ -20,7 +20,8 @@ export function GroupsMobile(){
       return <ListCard key={b.id} title={b.name} sub={`${c?c.name:'Private group'} · ${shortDate(b.arrival)}→${shortDate(b.departure)}`} meta={`${t.picked}/${t.allot} picked · ${grpCutoffText(s,b)}`}
         right={<span className="grp-m-right"><GrpStatusPill s={s} blk={b}/>{t.atRisk&&<span className="pill grp-red">At risk</span>}</span>} onClick={()=>open({type:'grp-detail',id:b.id})}/>;}):<Empty title="No group blocks"/>)}
     {chip==='companies'&&x.companies.map(c=>{const cr=grpCredit(s,c);
-      return <ListCard key={c.id} title={c.name} sub={`Exposure ${money(cr.exposure)} of ${money(cr.limit)}`} meta={<><GrpCreditBar s={s} c={c}/>{c.gstin} · fictional</>} right={<GrpCreditPill level={cr.level}/>} onClick={()=>open({type:'grp-limit',id:c.id})}/>;})}
+      return <ListCard key={c.id} title={c.name} sub={`Used ${money(cr.exposure)} of ${money(cr.limit)} · ${money(cr.available)} left`} meta={<><GrpCreditBar s={s} c={c}/>Owed {money(cr.receivable)} · {c.gstin} · fictional</>} right={<GrpCreditPill level={cr.level}/>} onClick={()=>open({type:'grp-limit',id:c.id})}/>;})}
+    {chip==='companies'&&<p className="grp-m-note">Limits are enforced: bookings, company credit and rooming lists beyond the remaining credit are refused. Only the Owner sets a limit; a payment from the company frees credit (DEC-076).</p>}
     {chip==='pickup'&&<>{grpPickupReport(s).map(r=><ListCard key={r.block.id+r.type} title={`${r.block.name} · ${r.type}`} sub={`${r.picked} of ${r.allot} picked (${r.pct}%) · ${r.released} released · ${r.remaining} left`} meta={`${shortDate(r.block.arrival)}→${shortDate(r.block.departure)} · cut-off ${shortDate(r.block.cutoff)}`} right={<span className="pill neutral">{r.status}</span>}/>)}
       <button className="btn full grp-m-btn" onClick={()=>open({type:'grp-print',id:'pickup'})}><Printer size={18}/> Print pickup report</button></>}
     {chip==='requests'&&<Requests/>}
@@ -28,11 +29,11 @@ export function GroupsMobile(){
   </div>;
 }
 function Requests(){
-  const {s,uid,run,busy,permission}=useHcc();const list=grpSlice(s).requests.slice().reverse();
+  const {s,uid,run,busy}=useHcc();const list=grpSlice(s).requests.slice().reverse();
   if(!list.length)return <Empty title="No credit-limit requests"/>;
   return <>{list.map(r=>{const own=r.actor===uid;return <div key={r.id} className="m-list-card grp-m-req"><div className="m-lc-main"><strong>{grpCompany(s,r.company)?.name}</strong><span>{money(r.from)} → {money(r.to)} · {r.status}</span><small>{r.reason} · by {grpUserName(s,r.actor)}</small>
-    {r.status==='Pending'&&(permission('approve')&&!own?<div className="grp-m-actions"><button className="btn" disabled={busy} onClick={()=>run({type:'GRP_LIMIT_DECIDE',id:r.id,approve:false,key:'grplr:'+r.id},'Request rejected')}><X size={16}/> Reject</button><button className="btn primary" disabled={busy} onClick={()=>run({type:'GRP_LIMIT_DECIDE',id:r.id,approve:true,key:'grplr:'+r.id},'Credit limit approved')}><Check size={16}/> Approve</button></div>
-      :<small>{own?'Your request — another approver decides.':'An Owner or Manager decides.'}</small>)}</div></div>;})}</>;
+    {r.status==='Pending'&&(rbacMoneyAdmin(s,uid)&&!own?<div className="grp-m-actions"><button className="btn" disabled={busy} onClick={()=>run({type:'GRP_LIMIT_DECIDE',id:r.id,approve:false,key:'grplr:'+r.id},'Request rejected')}><X size={16}/> Reject</button><button className="btn primary" disabled={busy} onClick={()=>run({type:'GRP_LIMIT_DECIDE',id:r.id,approve:true,key:'grplr:'+r.id},'Credit limit approved')}><Check size={16}/> Approve</button></div>
+      :<small>{own?'Your request — the Owner decides.':'The Owner decides (DEC-076).'}</small>)}</div></div>;})}</>;
 }
 /** Block detail sheet (phone; also usable on desktop). */
 export function BlockDetail({id}:{id?:string}){

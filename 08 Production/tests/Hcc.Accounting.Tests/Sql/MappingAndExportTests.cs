@@ -60,7 +60,9 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
 
         var blocked = await Fails(HccErrorCode.VALIDATION, () => db.Accounting.LockAsync(db.As("OWN"), Key(), new LockPeriodRequest(S1), Ct));
         Assert.Contains("exception", blocked.Message, StringComparison.Ordinal);
-        Assert.Contains(await db.Queries.MappingAsync(db.As("CSH"), Ct), r => r.MapKey == "expense:Kitchen gas" && !r.Mapped && r.Uses == 1);
+        Assert.Contains(await db.Queries.MappingAsync(db.As("MGR"), Ct), r => r.MapKey == "expense:Kitchen gas" && !r.Mapped && r.Uses == 1);
+        // DEC-079 (A05-03): the Cashier no longer reads the books (mapping, trial balance); the daily collections report stays (Billing).
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.MappingAsync(db.As("CSH"), Ct));
 
         // Mapping rules: Owner only (G11), no Suspense, known or discovered key, no no-op.
         foreach (var role in new[] { "MGR", "ACC", "TAD", "CSH" })
@@ -119,9 +121,10 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         Assert.Contains("&quot;East&quot;", t.Xml, StringComparison.Ordinal);
         Assert.Equal(16, (await db.Queries.TallyAsync(db.As("OWN"), S2, S2, Ct)).Xml.Split('\n').Length);
 
-        // Views: housekeeping / maintenance / reception / tech admin never see accounting.
-        foreach (var role in new[] { "HKP", "MNT", "REC", "TAD", "SUP" })
+        // Views: housekeeping / maintenance / reception / tech admin never see accounting; DEC-079: nor the Cashier (collections report only).
+        foreach (var role in new[] { "HKP", "MNT", "REC", "TAD", "SUP", "CSH", "RST" })
             await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.DayAsync(db.As(role), S2, Ct));
-        Assert.Contains(await db.Queries.ChartAsync(db.As("CSH"), Ct), a => a.Code == "2110" && a.Name == "Output CGST");
+        await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.ChartAsync(db.As("CSH"), Ct));
+        Assert.Contains(await db.Queries.ChartAsync(db.As("MGR"), Ct), a => a.Code == "2110" && a.Name == "Output CGST");
     }
 }

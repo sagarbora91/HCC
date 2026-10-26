@@ -103,7 +103,8 @@ export const handlers:Record<string,Handler>={
     x.room=cmd.room;x.departure=cmd.departure;x.version++;return detail;
   },
   /** Early departure (A02b-02, server EarlyDeparture): the in-house guest leaves today; nights [business date, departure) are released so checkout can follow.
-   *  Same rules as the server: a reason, at least one night already stayed, nothing posted on or after today. Intended PERM-STY-002. {id, reason}. */
+   *  Same rules as the server: a reason, at least one night already stayed, nothing posted on or after today. Intended PERM-STY-002. {id, reason}.
+   *  DEC-082: no early-departure fee, only the nights stayed are charged (a Manager may add a charge by hand). */
   STAY_EARLY_DEPARTURE:k=>{
     const {s,cmd}=k;k.req('reservations');k.open();const x=k.b();
     k.assert(x.status==='In house','This stay is not in house.','INVALID_TRANSITION');

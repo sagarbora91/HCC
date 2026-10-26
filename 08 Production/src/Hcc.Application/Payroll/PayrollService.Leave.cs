@@ -42,7 +42,8 @@ public sealed partial class PayrollService
             var policy = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
             if (!policy.IsKnown(type)) throw HccException.Validation("Choose a leave type.");
             if (st.Profile.PayType == PayType.Daily && policy.IsPaid(type)) throw HccException.Validation("Daily-wage staff can take leave without pay only (illustrative policy).");
-            if (req.From < clockInfo.BusinessDate) throw HccException.Validation("Leave cannot start before the business date.");
+            if (req.From < clockInfo.BusinessDate)
+                throw HccException.Validation("Leave cannot start before the business date. A past day of the open pay month is corrected on Attendance › Past days (DEC-075).");
 
             var days = (await db.DaysAsync(ctx.PropertyId, [st.StaffId], req.From, to, c2).ConfigureAwait(false)).GetValueOrDefault(st.StaffId) ?? new StaffDays();
             // SCC duplicate rule: a full day conflicts with anything; first and second half of the same day can coexist.
@@ -63,7 +64,7 @@ public sealed partial class PayrollService
             var otherDays = await db.DaysAsync(ctx.PropertyId, others.Select(o => o.Staff.StaffId).Distinct().ToList(), req.From, to, c2).ConfigureAwait(false);
             for (var d = req.From; d <= to; d = d.AddDays(1))
             {
-                if (PayrollRules.ShiftFor(st.Profile, days, d) == ShiftCode.OFF || days.PaidHolidays.Contains(d)) continue;
+                if (PayrollRules.DayOff(st.Profile, days, d)) continue;   // weekly off or paid holiday (DEC-083): no leave day, no slot
                 var off = others.Count(o => o.Leave.Covers(d)
                     && PayrollRules.ShiftFor(o.Staff, otherDays.GetValueOrDefault(o.Staff.StaffId) ?? new StaffDays(), d) != ShiftCode.OFF);
                 if (off >= cap)

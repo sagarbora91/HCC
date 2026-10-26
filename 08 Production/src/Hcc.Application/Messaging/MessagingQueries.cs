@@ -32,6 +32,13 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
             m.RuleId, m.RetryOf, m.RetriedBy, m.Channel == MsgChannel.Sms ? MessagingRules.SmsSegments(m.Body) : null, true, m.Outcome, m.BoostMinutes, m.GuestId);
     }
 
+    /// <summary>Templates and rules: the message-log readers or the template editors (the Tech admin edits them without the log, D4).</summary>
+    private async Task RequireTemplateReadAsync(int propertyId, int principalId, CancellationToken ct)
+    {
+        if (await policy.HasAsync(propertyId, principalId, MessagingPermissions.EditTemplates, null, ct).ConfigureAwait(false)) return;
+        await policy.RequireAsync(propertyId, principalId, MessagingPermissions.View, null, null, ct).ConfigureAwait(false);
+    }
+
     public async Task<MessageListResult> MessagesAsync(int propertyId, int principalId, string? status, int page, int pageSize, CancellationToken ct = default)
     {
         await policy.RequireAsync(propertyId, principalId, MessagingPermissions.View, null, null, ct).ConfigureAwait(false);
@@ -72,7 +79,7 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
 
     public async Task<TemplatesResult> TemplatesAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
-        await policy.RequireAsync(propertyId, principalId, MessagingPermissions.View, null, null, ct).ConfigureAwait(false);
+        await RequireTemplateReadAsync(propertyId, principalId, ct).ConfigureAwait(false);
         var list = await data.ReadAsync(async (d, c) =>
         {
             await d.EnsureDefaultsAsync(propertyId, clock.GetUtcNow().UtcDateTime, c).ConfigureAwait(false);
@@ -83,7 +90,7 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
 
     public async Task<IReadOnlyList<RuleView>> RulesAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
-        await policy.RequireAsync(propertyId, principalId, MessagingPermissions.View, null, null, ct).ConfigureAwait(false);
+        await RequireTemplateReadAsync(propertyId, principalId, ct).ConfigureAwait(false);
         var list = await data.ReadAsync(async (d, c) =>
         {
             await d.EnsureDefaultsAsync(propertyId, clock.GetUtcNow().UtcDateTime, c).ConfigureAwait(false);

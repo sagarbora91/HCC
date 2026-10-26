@@ -44,11 +44,14 @@ const consentOf=(c:SrvConsent):MSGConsent=>({whatsapp:c.whatsApp,sms:c.sms,email
 async function loadMessaging(c:LoaderCtx):Promise<MSGState>{
   const api=c.api;
   const msgs:SrvMessage[]=[];
-  for(let page=1;page<=MAX_PAGES;page++){
+  // DEC-079 D4: the Tech admin reads templates and rules (PERM-MSG-003) without the message log or the consent roster.
+  const log=c.mayRead('GET /messaging/messages'),consents=c.mayRead('GET /messaging/consents');
+  for(let page=1;log&&page<=MAX_PAGES;page++){
     const r=await api.get<{items:SrvMessage[];total:number}>('/messaging/messages',{page,pageSize:PAGE});
     msgs.push(...r.items);if(msgs.length>=r.total||!r.items.length)break;
   }
-  const [tpl,rules,roster]=await Promise.all([api.get<{templates:SrvTemplate[]}>('/messaging/templates'),api.get<SrvRule[]>('/messaging/rules'),api.get<SrvRoster>('/messaging/consents')]);
+  const [tpl,rules,roster]=await Promise.all([api.get<{templates:SrvTemplate[]}>('/messaging/templates'),api.get<SrvRule[]>('/messaging/rules'),
+    consents?api.get<SrvRoster>('/messaging/consents'):Promise.resolve<SrvRoster>({consents:[],guests:[]})]);
   const outbox=msgs.map(m=>{c.ids.learn('message',m.id,m.messageId);return messageFromServer(m);}).reverse();
   const consent:Record<string,MSGConsent>={};
   for(const x of roster.consents){c.ids.setVersion('msgConsent',String(x.guestId),x.version??'');consent[String(x.guestId)]=consentOf(x);}
@@ -76,7 +79,7 @@ type Cmd=CommandCtx['cmd'];
 
 export const messaging:SyncArea={
   id:'messaging',
-  loaders:[{slice:'messagingX',requires:['reservations','checkin'],reads:['GET /messaging/messages','GET /messaging/templates','GET /messaging/rules','GET /messaging/consents'],load:loadMessaging}],
+  loaders:[{slice:'messagingX',requires:['reservations','checkin','admin'],reads:['GET /messaging/templates','GET /messaging/rules'],load:loadMessaging}],
   commands:[
     {type:'MSG_SEND',reload:['messagingX'],
       precheck:(cmd:Cmd)=>!cmd.booking?'Choose an in-house guest.':String(cmd.body??'').trim().length<1||String(cmd.body).trim().length>600?'Write a message of 1–600 characters.':undefined,

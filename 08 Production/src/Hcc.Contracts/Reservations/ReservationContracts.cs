@@ -17,11 +17,14 @@ public sealed record GuestInput(string Name, string? Phone = null);
 /// <summary>
 /// The company a booking is made for (company credit, B2B invoice). <c>Gstin</c> is optional, 15-character format. On
 /// AmendReservation a company with an empty name clears it; a missing company leaves it as it is.
+/// <c>CompanyId</c> (DEC-076) = the booking is billed to that company account: the account's name and GSTIN are used, the stay counts in the
+/// company's credit exposure (refused beyond its credit limit) and company credit at checkout becomes possible. Without it the company is
+/// invoice details only (the guest pays).
 /// </summary>
-public sealed record CompanyInput(string Name, string? Gstin = null);
+public sealed record CompanyInput(string Name, string? Gstin = null, long? CompanyId = null);
 
-/// <summary>Company stored on the reservation (GET /reservations, /reservations/{id}).</summary>
-public sealed record ReservationCompany(string Name, string? Gstin);
+/// <summary>Company stored on the reservation (GET /reservations, /reservations/{id}); <c>CompanyId</c> = billed to that company account.</summary>
+public sealed record ReservationCompany(string Name, string? Gstin, long? CompanyId = null);
 
 /// <summary>
 /// POST /api/v1/commands/CreateReservation (Idempotency-Key). <c>GroupBlockId</c> is the explicit block context for a
@@ -43,6 +46,13 @@ public static class PriceDecisions
 public sealed record AmendReservationRequest(long ReservationId, string ExpectedVersion, string Arrival, string Departure, int RoomId,
     string PriceDecision = PriceDecisions.Keep, long? QuoteId = null, string? QuoteVersion = null, string? RestrictionOverride = null,
     CompanyInput? Company = null);
+
+/// <summary>
+/// POST /api/v1/commands/SetReservationCompany (Idempotency-Key, expectedVersion; DEC-076): bill a Held, Confirmed or InHouse booking to a company
+/// account (<c>Company.CompanyId</c>, credit-checked like a new booking), change it to invoice details only (a name without CompanyId), or clear it
+/// (null or an empty name). Room and dates stay as they are; an in-house stay can be linked before its company credit at checkout.
+/// </summary>
+public sealed record SetReservationCompanyRequest(long ReservationId, string ExpectedVersion, CompanyInput? Company);
 
 /// <summary>POST /api/v1/commands/CancelReservation or /MarkNoShow (Idempotency-Key, expectedVersion).</summary>
 public sealed record CancelReservationRequest(long ReservationId, string ExpectedVersion, string? Reason = null);

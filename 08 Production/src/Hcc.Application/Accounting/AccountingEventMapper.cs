@@ -47,6 +47,16 @@ public static class AccountingEventMapper
         return SourceRules.FolioReceipt(ReceiptKey(receiptId), kind, tender, businessDate, amountPaise, narration);
     }
 
+    public static string CompanyPaymentKey(long paymentId) => "company-payment:" + N(paymentId);
+
+    /// <summary>DEC-076: a company's payment against its company-credit receivable (Dr tender · Cr company receivables).</summary>
+    public static AccountingSource CompanyPayment(CompanyPaymentRecordedEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.CompanyPayment(CompanyPaymentKey(e.PaymentId), e.Tender, e.BusinessDate, e.AmountPaise,
+            $"Company payment received · {e.Company} · {e.Tender} · {e.Reference} · payment {N(e.PaymentId)}");
+    }
+
     public static AccountingSource CashDifference(long shiftId, int tillId, DateOnly businessDate, long expectedPaise, long countedPaise)
     {
         var diff = checked(countedPaise - expectedPaise);
@@ -69,6 +79,28 @@ public static class AccountingEventMapper
         return SourceRules.Expense("expense:" + N(e.ExpenseId), reversal, e.Category, e.Funding, e.BusinessDate, e.AmountPaise,
             $"{(reversal ? $"Reversal of {N(e.ReversalOf!.Value)} · " : "")}{e.Vendor} · {e.Category} · {e.Funding}");
     }
+
+    // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer. Keys banking:{id}, banking:{id}/rejected, drawing:{id} (one source per record). ──
+
+    public static string BankingKey(long transferId, bool rejected) => "banking:" + N(transferId) + (rejected ? "/rejected" : "");
+
+    public static string DrawingKey(long transferId) => "drawing:" + N(transferId);
+
+    public static AccountingSource Banking(CashBankingEvent e, bool rejected)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.CashBanking(BankingKey(e.TransferId, rejected), rejected, e.BusinessDate, e.AmountPaise,
+            $"{(rejected ? "Bank deposit rejected · cash back in the drawer" : "Cash deposited in bank")} · {e.Bank} · slip {e.SlipNo} · till {e.TillId.ToString(CultureInfo.InvariantCulture)} · deposit {N(e.TransferId)}");
+    }
+
+    public static AccountingSource OwnerDrawing(OwnerDrawingEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.OwnerDrawing(DrawingKey(e.TransferId), e.BusinessDate, e.AmountPaise,
+            $"Owner drawing · {e.Reason} · till {e.TillId.ToString(CultureInfo.InvariantCulture)} · drawing {N(e.TransferId)}");
+    }
+
+    // ── end Wave B1 ──
 
     /// <summary>Pay-run voucher of one lock: lock 1 keeps the Wave 2 key <c>payroll:{run}</c>; a re-lock is <c>payroll:{run}/lock{n}</c>.</summary>
     public static string PayRunKey(long runId, int lockSeq) => "payroll:" + N(runId) + LockSuffix(lockSeq);
@@ -110,4 +142,89 @@ public static class AccountingEventMapper
         return SourceRules.PayRunReversal(PayRunReversalKey(e.RunId, e.LockSeq), date, original,
             $"Reversal of pay run {e.Month} · run {N(e.RunId)} · lock {lockText} unlocked · reverses {originalVoucherKey}{flag}");
     }
+
+    // ── DEC-074 (wave B3) · group master folio, staff advances, full and final ─────────────────────────────────────────────────────
+    // One source per operational record (keys below). Figures a pre-DEC-074 payload lacks are supplied by the consumer (read from the
+    // source tables) or, for an old full and final, booked unsplit with a flag in the narration.
+
+    public static string GroupReceiptKey(long entryId) => "group-receipt:" + N(entryId);
+
+    public static string GroupAttritionKey(long attritionId) => "group-attrition:" + N(attritionId);
+
+    public static string GroupSettlementKey(long groupId) => "group-settle:" + N(groupId);
+
+    public static string AdvanceKey(long advanceId) => "advance:" + N(advanceId);
+
+    public static string FnfKey(long fnfId) => "fnf:" + N(fnfId);
+
+    public static string FnfPaidKey(long fnfId) => "fnf-paid:" + N(fnfId);
+
+    /// <summary>Master-folio receipt; <paramref name="refundOfKind"/> = the kind of the refunded receipt (payload, else read by the consumer).</summary>
+    public static AccountingSource GroupReceipt(GroupReceiptRecordedEvent e, string? refundOfKind)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var label = e.Kind switch
+        {
+            "payment" => "Group master payment",
+            "deposit" => "Group master deposit",
+            "refund" => "Group master refund" + (refundOfKind == "deposit" ? " of deposit" : ""),
+            _ => e.Kind,
+        };
+        return SourceRules.GroupReceipt(GroupReceiptKey(e.EntryId), e.Kind, refundOfKind, e.Tender, e.BusinessDate, e.AmountPaise,
+            $"{label} · {e.Tender} · group {N(e.GroupId)} · entry {N(e.EntryId)}");
+    }
+
+    public static AccountingSource GroupAttrition(GroupAttritionPostedEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (e.CgstPaise + e.SgstPaise != e.TaxPaise)
+            throw new InvalidOperationException($"Attrition {e.AttritionId}: CGST + SGST ({e.CgstPaise} + {e.SgstPaise}) differs from the tax {e.TaxPaise}.");
+        return SourceRules.GroupAttrition(GroupAttritionKey(e.AttritionId), e.BusinessDate, e.NetPaise, e.CgstPaise, e.SgstPaise,
+            $"Group attrition · {(e.EntryIds?.Count ?? 0).ToString(CultureInfo.InvariantCulture)} line(s) · group {N(e.GroupId)} · attrition {N(e.AttritionId)}");
+    }
+
+    /// <summary>Group settled: the deposits still held (payload, else read by the consumer) applied to the receivable on <paramref name="date"/>.</summary>
+    public static AccountingSource GroupSettlement(GroupSettledEvent e, long depositsHeldPaise, DateOnly date)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.GroupSettlement(GroupSettlementKey(e.GroupId), date, depositsHeldPaise,
+            $"Group settled · deposits applied to the company receivable · group {N(e.GroupId)} · charges {SourceRules.Rupees(e.ChargesPaise)} · received {SourceRules.Rupees(e.ReceivedPaise)}");
+    }
+
+    public static AccountingSource Advance(AdvanceGivenEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var funding = string.IsNullOrEmpty(e.Funding) ? "Bank transfer" : e.Funding;   // W2 payloads carry no funding: HCC advances are bank transfers
+        return SourceRules.AdvanceGiven(AdvanceKey(e.AdvanceId), funding, e.Date, e.AmountPaise,
+            $"Salary advance given · {funding} · advance {N(e.AdvanceId)} · staff {N(e.StaffId)}");
+    }
+
+    /// <summary>
+    /// Full and final: the salary journal (<c>fnf:{id}</c>) and, when net pay is due, its payment (<c>fnf-paid:{id}</c>), dated
+    /// <paramref name="date"/> (the payload's business date, else the consumer's). A pre-DEC-074 payload has no split: earnings go to
+    /// salaries, recoveries other than the advance to F&amp;F deductions, and the narration says so.
+    /// </summary>
+    public static IReadOnlyList<AccountingSource> Fnf(FnfSettledEvent e, DateOnly date)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var split = e.GrossPaise is not null;
+        var advance = e.AdvanceRecoveredPaise ?? e.AdvanceWrittenOffPaise;
+        var f = split
+            ? new FnfBookFigures(e.GrossPaise ?? 0, e.AdditionsPaise ?? 0, e.EmployerPfPaise ?? 0, e.EmployerEsicPaise ?? 0, e.EmployeePfPaise ?? 0, e.EmployeeEsicPaise ?? 0,
+                e.ProfessionalTaxPaise ?? 0, advance, e.DeductionsPaise ?? 0, e.NetPaise)
+            : new FnfBookFigures(e.EarningsPaise, 0, 0, 0, 0, 0, 0, advance, checked(e.RecoveriesPaise - advance), e.NetPaise);
+        var funding = string.IsNullOrEmpty(e.Funding) ? "Bank transfer" : e.Funding;
+        var open = e.AdvanceLeftOpenPaise is > 0 ? $" · advance {SourceRules.Rupees(e.AdvanceLeftOpenPaise.Value)} left open" : "";
+        var list = new List<AccountingSource>
+        {
+            SourceRules.Fnf(FnfKey(e.FnfId), date, f,
+                $"Full and final {e.Month} · staff {N(e.StaffId)} · settlement {N(e.FnfId)}{(e.NetPaise < 0 ? $" · recoverable from the leaver {SourceRules.Rupees(-e.NetPaise)}" : "")}{open}"
+                + (split ? "" : " · published before DEC-074: PF / ESIC / PT not split — check against the settlement")),
+        };
+        if (e.NetPaise > 0)
+            list.Add(SourceRules.FnfPaid(FnfPaidKey(e.FnfId), funding, date, e.NetPaise, $"Full and final net pay paid · {funding} · settlement {N(e.FnfId)}"));
+        return list;
+    }
+
+    // ── end DEC-074 (wave B3) ──
 }

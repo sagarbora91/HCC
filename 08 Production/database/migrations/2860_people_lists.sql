@@ -6,7 +6,7 @@
 --   hr.designation   job titles: department, grade, default pay rule (pay field, Owner). hr.staff gets designation_code (the printed name stays in designation).
 --   hr.shift_pattern duty times, unpaid break, night flag, weekly-off rule (fixed | roster). hr.staff.default_shift and hr.roster.shift_code take any pattern code (1–3 characters, or OFF).
 --   hr.leave_type    paid, yearly quota (null = not tracked), carry-forward days, encashment. hr.leave_request.leave_type takes any code (1–6 characters).
---   hr.holiday       one holiday per date (code = YYYY-MM-DD), kind paid | restricted.
+--   hr.holiday       one holiday per date (code = YYYY-MM-DD), kind paid | restricted — created in 3800 (after Wave B 3400, masters integration).
 --   hr.people_list_seed  a property is seeded once (shift patterns M E N G, the six leave types with the stored policy's CL / SL / EL days, one designation per staff title);
 --                        a property with no rows keeps working with the built-in defaults.
 CREATE TABLE hr.people_list_seed(
@@ -83,24 +83,7 @@ CREATE TABLE hr.leave_type(
   CONSTRAINT CK_leave_type_retired CHECK ((active = 1 AND retired_on IS NULL) OR (active = 0 AND retired_on IS NOT NULL)));
 CREATE INDEX IX_leave_type_order ON hr.leave_type(property_id, sort_order);
 
-CREATE TABLE hr.holiday(
-  holiday_id INT IDENTITY CONSTRAINT PK_holiday PRIMARY KEY,
-  property_id INT NOT NULL CONSTRAINT FK_holiday_property REFERENCES inv.property,
-  code VARCHAR(10) NOT NULL,   -- the date, YYYY-MM-DD (one holiday per date, retired rows keep theirs)
-  name NVARCHAR(60) NOT NULL,
-  kind VARCHAR(10) NOT NULL CONSTRAINT CK_holiday_kind CHECK (kind IN ('paid', 'restricted')),
-  sort_order INT NOT NULL,
-  active BIT NOT NULL CONSTRAINT DF_holiday_active DEFAULT 1,
-  retired_on DATE NULL,
-  updated_by INT NOT NULL,
-  updated_utc DATETIME2(3) NOT NULL,
-  row_ver ROWVERSION,
-  CONSTRAINT UQ_holiday_code UNIQUE (property_id, code),
-  CONSTRAINT CK_holiday_code CHECK (code LIKE '[0-9][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]' AND TRY_CONVERT(DATE, code, 23) IS NOT NULL),
-  CONSTRAINT CK_holiday_name CHECK (LEN(name) BETWEEN 1 AND 60),
-  CONSTRAINT CK_holiday_sort CHECK (sort_order BETWEEN 0 AND 1000000),
-  CONSTRAINT CK_holiday_retired CHECK ((active = 1 AND retired_on IS NULL) OR (active = 0 AND retired_on IS NOT NULL)));
-CREATE INDEX IX_holiday_order ON hr.holiday(property_id, sort_order);
+-- hr.holiday (the Holiday calendar) is created by 3800_holiday_calendar.sql, after Wave B's 3400 (masters integration: one holidays table).
 GO
 -- Staff, roster and leave take the list codes: widen the old fixed sets (M E N G / CL SL EL CO ML LOP) to any code of the lists.
 ALTER TABLE hr.staff DROP CONSTRAINT CK_staff_shift;

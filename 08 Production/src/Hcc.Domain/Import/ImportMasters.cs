@@ -130,7 +130,7 @@ public static class ImportMasters
             new("phone", false, "Phone number, 7 to 16 digits (+91 and spaces allowed).", "9890011223"),
             new("email", false, "E-mail address.", "accounts@example.com"),
             new("city", false, "City, up to 80 characters.", "Mumbai"),
-            new("creditLimit", false, "Credit limit in rupees (blank or 0 = no credit). Stored only; it is not checked at checkout yet.", "50000"),
+            new("creditLimit", false, "Credit limit in rupees (blank or 0 = no credit). Enforced (DEC-076): bookings, company credit and group routing billed to the company stop at it.", "50000"),
             new("negotiatedRates", false, "Negotiated nightly rates before GST: room type code=rupees, separated by ; (blank = none).", "DLX=3800;STD=2600"),
         ]),
         new(ImportMaster.Suppliers, "suppliers", "Suppliers and service vendors", false, false, "—",

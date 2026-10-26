@@ -21,7 +21,7 @@ namespace Hcc.Infrastructure.SqlServer.Billing;
 public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBillingStore
 {
     private const string FolioColumns = """
-        f.folio_id, r.property_id, r.reservation_id, r.status, r.arrival, r.departure, p.business_date, f.row_ver
+        f.folio_id, r.property_id, r.reservation_id, r.status, r.arrival, r.departure, p.business_date, f.row_ver, r.company_id
         """;
     private const string LineColumns = "charge_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id";
     private const string ReceiptColumns = "receipt_id, kind, method, amount_paise, business_date, refund_of, reference";
@@ -158,8 +158,8 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
     {
         ArgumentNullException.ThrowIfNull(r);
         await using var cmd = Cmd(tx, """
-            INSERT pay.receipt(folio_id, kind, method, amount_paise, refund_of, business_date, till_id, shift_id, reference, principal_id, recorded_utc, approval_id)
-            OUTPUT INSERTED.receipt_id VALUES (@f, @k, @m, @a, @ro, @d, @till, @shift, @ref, @p, @u, @apr);
+            INSERT pay.receipt(folio_id, kind, method, amount_paise, refund_of, business_date, till_id, shift_id, reference, principal_id, recorded_utc, approval_id, company_id)
+            OUTPUT INSERTED.receipt_id VALUES (@f, @k, @m, @a, @ro, @d, @till, @shift, @ref, @p, @u, @apr, @co);
             """);
         cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = r.FolioId;
         cmd.Parameters.Add("@k", SqlDbType.VarChar, 16).Value = FolioTotals.KindCode(r.Kind);
@@ -173,6 +173,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = r.PrincipalId;
         Utc(cmd, "@u", r.RecordedUtc);
         cmd.Parameters.Add("@apr", SqlDbType.BigInt).Value = (object?)r.ApprovalId ?? DBNull.Value;
+        cmd.Parameters.Add("@co", SqlDbType.BigInt).Value = (object?)r.CompanyId ?? DBNull.Value;
         return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
     }
 
@@ -368,6 +369,15 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         return (await PeekShiftAsync(tx, shiftId, ct).ConfigureAwait(false))!;
     }
 
+    public async Task SetShiftHandoverAsync(ICommandTransaction tx, long shiftId, Paise handoverCount, string? reason, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "UPDATE pay.shift SET handover_counted_paise = @h, handover_reason = @r WHERE shift_id = @s;");
+        cmd.Parameters.Add("@h", SqlDbType.BigInt).Value = handoverCount.EnsureFieldRange().Value;
+        cmd.Parameters.Add("@r", SqlDbType.NVarChar, 200).Value = string.IsNullOrEmpty(reason) ? DBNull.Value : reason;
+        cmd.Parameters.Add("@s", SqlDbType.BigInt).Value = shiftId;
+        if (await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1) throw new InvalidOperationException("Shift not found.");
+    }
+
     public async Task<long> InsertMovementAsync(ICommandTransaction tx, NewMovement m, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(m);
@@ -558,9 +568,12 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
             ShiftRow? shift;
             string? reason;
             int? closedBy;
+            int openedBy;
+            Paise? handover;
+            string? handoverReason;
             await using (var s = connections.Command($"""
                 SELECT TOP (1) s.shift_id, s.till_id, t.property_id, s.business_date, s.status, s.opening_float_paise, s.expected_paise, s.counted_paise,
-                       s.submitted_by, s.approval_id, s.row_ver, s.difference_reason, s.closed_by
+                       s.submitted_by, s.approval_id, s.row_ver, s.difference_reason, s.closed_by, s.opened_by, s.handover_counted_paise, s.handover_reason
                 FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id
                 WHERE s.till_id = @t AND {where} ORDER BY s.shift_id DESC;
                 """, conn, tx))
@@ -571,6 +584,9 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
                 shift = ReadShift(rd);
                 reason = rd.IsDBNull(11) ? null : rd.GetString(11);
                 closedBy = rd.IsDBNull(12) ? null : rd.GetInt32(12);
+                openedBy = rd.GetInt32(13);
+                handover = rd.IsDBNull(14) ? null : SqlValues.ReadPaise(rd, 14);
+                handoverReason = rd.IsDBNull(15) ? null : rd.GetString(15);
             }
 
             ApprovalRow? approval = null;
@@ -581,7 +597,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
                 approval = (await ReadListAsync(a, ReadApproval, ct).ConfigureAwait(false)).SingleOrDefault();
             }
 
-            return new CashDeskShiftRead(shift, reason, closedBy, approval);
+            return new CashDeskShiftRead(shift, reason, closedBy, approval, openedBy, handover, handoverReason);
         }
 
         var list = new List<CashDeskTillRead>();
@@ -604,7 +620,8 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
 
     private static async Task<FolioHeader?> ReadFolioHeaderAsync(SqlCommand cmd, CancellationToken ct)
         => (await ReadListAsync(cmd, rd => new FolioHeader(rd.GetInt64(0), rd.GetInt32(1), rd.GetInt64(2), rd.GetString(3), rd.GetFieldValue<DateOnly>(4),
-            rd.GetFieldValue<DateOnly>(5), rd.GetFieldValue<DateOnly>(6), SqlValues.RowVersionToWire((byte[])rd[7])), ct).ConfigureAwait(false)).SingleOrDefault();
+            rd.GetFieldValue<DateOnly>(5), rd.GetFieldValue<DateOnly>(6), SqlValues.RowVersionToWire((byte[])rd[7]), rd.IsDBNull(8) ? null : rd.GetInt64(8)), ct)
+            .ConfigureAwait(false)).SingleOrDefault();
 
     private static PostedLine ReadLine(SqlDataReader rd) => new(rd.GetInt64(0), BillingCodes.ParseChargeKind(rd.GetString(1)), rd.GetFieldValue<DateOnly>(2),
         rd.GetString(3), SqlValues.ReadPaise(rd, 4), rd.GetInt32(5), SqlValues.ReadPaise(rd, 6), rd.IsDBNull(7) ? null : rd.GetInt64(7));

@@ -3,7 +3,11 @@ using Hcc.Domain.Money;
 
 namespace Hcc.Domain.Billing;
 
-/// <summary>Folio adjustment actions (contracts §3) plus the cashier's cash-difference approval (PERM-SHF-002).</summary>
+/// <summary>
+/// Folio adjustment actions (contracts §3) plus the cashier's cash-difference approval (PERM-SHF-002) and, DEC-073, the two cash
+/// hand-offs that need a second person: a bank deposit (confirmed by a different Manager or Owner) and a till transfer (accepted by the
+/// receiver on their own open shift).
+/// </summary>
 public enum AdjustmentAction
 {
     Discount,
@@ -11,6 +15,8 @@ public enum AdjustmentAction
     Credit,
     Correction,
     CashDifference,
+    CashBanking,
+    TillTransfer,
 }
 
 /// <summary>Approval states (prototype <c>Approval.status</c>).</summary>
@@ -41,6 +47,8 @@ public static class BillingCodes
         AdjustmentAction.Credit => "credit",
         AdjustmentAction.Correction => "correction",
         AdjustmentAction.CashDifference => "cash-difference",
+        AdjustmentAction.CashBanking => "cash-banking",
+        AdjustmentAction.TillTransfer => "till-transfer",
         _ => throw new ArgumentOutOfRangeException(nameof(a), a, "Unknown action."),
     };
 
@@ -51,6 +59,8 @@ public static class BillingCodes
         "credit" => AdjustmentAction.Credit,
         "correction" => AdjustmentAction.Correction,
         "cash-difference" => AdjustmentAction.CashDifference,
+        "cash-banking" => AdjustmentAction.CashBanking,
+        "till-transfer" => AdjustmentAction.TillTransfer,
         _ => throw HccException.Validation("Action must be discount, refund, credit or correction."),
     };
 
@@ -89,7 +99,16 @@ public static class ApprovalRules
     /// (prototype <c>folioApprovalExpired</c>). Executed, rejected and expired records are final.
     /// </summary>
     public static bool IsExpired(ApprovalStatus status, AdjustmentAction action, DateTime expiresUtc, DateTime nowUtc)
-        => nowUtc > expiresUtc && (status == ApprovalStatus.Pending || (status == ApprovalStatus.Approved && action != AdjustmentAction.Discount));
+        => !NeverLapses(action) && nowUtc > expiresUtc && (status == ApprovalStatus.Pending || (status == ApprovalStatus.Approved && action != AdjustmentAction.Discount));
+
+    /// <summary>
+    /// DEC-073: a bank deposit or a till transfer waits until it is decided. The cash has already left the drawer, so the request never
+    /// lapses (it is stored with a far expiry as well, so SQL checks that read <c>expires_utc</c> keep seeing it).
+    /// </summary>
+    public static bool NeverLapses(AdjustmentAction action) => action is AdjustmentAction.CashBanking or AdjustmentAction.TillTransfer;
+
+    /// <summary>Stored expiry of a request that never lapses (<see cref="NeverLapses"/>).</summary>
+    public static readonly TimeSpan NoLapse = TimeSpan.FromDays(3650);
 
     public static ApprovalStatus Effective(ApprovalStatus status, AdjustmentAction action, DateTime expiresUtc, DateTime nowUtc)
         => IsExpired(status, action, expiresUtc, nowUtc) ? ApprovalStatus.Expired : status;

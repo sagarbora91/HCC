@@ -10,12 +10,18 @@ using Hcc.Domain.GuestIds;
 
 namespace Hcc.Application.Documents;
 
-/// <summary>PERM ids of the Documents module. Viewing the image / number and confirming reuse the existing ID-view permission PERM-GST-003.</summary>
+/// <summary>
+/// PERM ids of the Documents module (role matrix v2, DEC-079, migration 3700 redefines the 2101 ids). View = the masked capture list (no image,
+/// no number); anything that touches a guest ID image or number (capture, confirm, reject, view) also needs <see cref="IdView"/> = PERM-DOC-004,
+/// held exactly by the PERM-GST-003 holders (Owner, Manager, Reception; DEC-068), so the Cashier and Accountant capture bills, never guest IDs.
+/// PERM-DOC-003 (verify a captured bill or form) has no command yet. Retention purge = Owner (PERM-DOC-005).
+/// </summary>
 public static class DocumentPermissions
 {
-    public const string Capture = "PERM-DOC-001";
-    public const string Purge = "PERM-DOC-002";
-    public const string IdView = "PERM-GST-003";
+    public const string View = "PERM-DOC-001";
+    public const string Capture = "PERM-DOC-002";
+    public const string IdView = "PERM-DOC-004";
+    public const string Purge = "PERM-DOC-005";
 }
 
 /// <summary>Master configuration setting of the module (group "Data and system", Owner-only like the rest of the group).</summary>
@@ -29,8 +35,8 @@ public static class DocumentSettings
         {
             Min = DocumentRules.MinRetentionDays, Max = DocumentRules.MaxRetentionDays, Default = ConfigValue.Of(DocumentRules.DefaultRetentionDays),
             Suffix = "days", Unit = "days after capture", Effective = EffectiveMode.Date, Dated = true,
-            Help = "Captured ID images and their extracted text are deleted by the purge once older than this. The confirmed ID number on the guest profile is not touched.",
-            Affects = "The next purge run (older captures are judged by the value in force on the purge date).",
+            Help = "Used only by the manual purge (Purge ID captures): it deletes captured ID images and their extracted text older than this. Nothing is deleted automatically; ID data is kept until someone runs the purge (DEC-071). The confirmed ID number on the guest profile is not touched.",
+            Affects = "The next manual purge (older captures are judged by the value in force on the purge date).",
         },
     ]);
 }

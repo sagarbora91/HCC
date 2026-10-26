@@ -168,8 +168,9 @@ public sealed class DailyPackTests
             [new NightTarget(3, 30, "HCC-1041", "Guest B (fictional)", "101", false), new NightTarget(4, 40, "HCC-1042", "Guest C (fictional)", "102", true)],
             [new PendingApproval(5, "cash-difference", new Paise(30000), "Short")], [new ActiveShift(6, "FD-1", "Open", D1, new Paise(1072500))]);
         var checks = CloseRules.Evaluate(data);
-        Assert.Equal(["arrivals", "departures", "holds", "nights", "approvals", "pos", "posVoids", "shift"], checks.Select(c => c.Id)); // POS checks (W3-a) sit between approvals and the cash shift
-        Assert.Equal([true, false, true, true, true, false, false, true], checks.Select(c => c.Blocking));
+        // DEC-077: a reopened earlier day comes first; POS checks (W3-a) sit between approvals and the cash shift.
+        Assert.Equal(["reopened", "arrivals", "departures", "holds", "nights", "approvals", "pos", "posVoids", "shift"], checks.Select(c => c.Id));
+        Assert.Equal([false, true, false, true, true, true, false, false, true], checks.Select(c => c.Blocking));
         Assert.Single(checks.Single(c => c.Id == "nights").Items); // only the stay without tonight's line
         Assert.Contains("₹10,725", checks.Single(c => c.Id == "shift").Items[0].Label, StringComparison.Ordinal);
         Assert.Equal(["arrivals", "holds", "approvals"], CloseRules.Blockers(checks, CloseRules.PreflightBlocking).Select(b => b.Id));

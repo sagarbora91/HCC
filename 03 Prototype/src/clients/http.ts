@@ -161,7 +161,9 @@ export function createHttpReservationsClient(t:HttpTransport,known:HttpOptions['
       const roomId=rooms.id(r.roomId);need(roomId!==undefined,'Quote the room before booking it.');
       // The company is a real server field (W4 G5). Guest e-mail and OTA channel are not on the server contract yet — kept in notes.
       const extra=[r.guest.email&&`E-mail: ${r.guest.email}`,r.otaChannel&&`OTA: ${r.otaChannel}`].filter(Boolean).join(' · ');
-      const company=r.company&&r.company.name.trim()?{name:r.company.name.trim(),...(r.company.gstin?.trim()?{gstin:r.company.gstin.trim()}:{})}:undefined;
+      // DEC-076: a company account (prototype id = String(server id)) bills the stay to that account; the server fills its name and GSTIN.
+      const company=r.company?.account?{name:r.company.name?.trim()||'',companyId:num(r.company.account,'Company account')}
+        :r.company&&r.company.name.trim()?{name:r.company.name.trim(),...(r.company.gstin?.trim()?{gstin:r.company.gstin.trim()}:{})}:undefined;
       const body:SrvCreateReservation={quoteId:num(r.quoteId,'Quote'),quoteVersion:r.quoteVersion,guest:{name:r.guest.name,phone:r.guest.phone},roomId:roomId!,
         hold:r.hold,restrictionOverride:r.restrictionOverride,source:r.source,notes:[r.notes,extra].filter(Boolean).join(' · ')||undefined,company};
       const res=shape(await t.command<SrvReservationResult>('CreateReservation',body as unknown as Record<string,unknown>,opts),
@@ -175,7 +177,7 @@ export function createHttpReservationsClient(t:HttpTransport,known:HttpOptions['
       return {reservationId:String(b.reservationId),publicNo:b.publicNo,version:b.version,status:(SERVER_STATUS[b.status]??b.status) as BookingStatusDto,
         guest:{name:b.guestName,phone:b.phone??undefined},roomId:b.roomNo,roomTypeId:b.roomType,arrival:b.arrival,departure:b.departure,adults:b.adults,children:b.children,
         source:b.source,nightlyRatePaise:b.nightlyRatePaise??b.nights[0]?.ratePaise??0,holdUntil:b.holdUntil??undefined,
-        ...(b.company?.name?{company:{name:b.company.name,...(b.company.gstin?{gstin:b.company.gstin}:{})}}:{}),
+        ...(b.company?.name?{company:{name:b.company.name,...(b.company.gstin?{gstin:b.company.gstin}:{}),...(b.company.companyId!=null?{account:String(b.company.companyId)}:{})}}:{}),
         totals:{netPaise:b.netPaise,taxPaise:b.taxPaise,totalPaise:b.totalPaise}} satisfies BookingDetails;
     },
   };

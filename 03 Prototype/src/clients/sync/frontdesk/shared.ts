@@ -13,7 +13,7 @@ export const BOOKING_STATUS:Record<string,BookingStatus>={Held:'Held',Expired:'E
 /** GET /reservations item (08 Production/src/Hcc.Contracts/Reservations/ReservationContracts.cs `ReservationListItem`). */
 export type SrvReservationItem={reservationId:number;publicNo:string;version:string;status:string;guestName:string;phone:string|null;roomId:number;roomNo:string;
   roomTypeId:number;roomType:string;arrival:string;departure:string;adults:number;children:number;source:string;nightlyRatePaise:number|null;holdUntil:string|null;
-  groupBlockId:number|null;restrictionOverride:string|null;cancelReason:string|null;notes:string|null;company?:{name:string;gstin?:string|null}|null;guestId:number|null;registered:boolean;stayId:number|null;
+  groupBlockId:number|null;restrictionOverride:string|null;cancelReason:string|null;notes:string|null;company?:{name:string;gstin?:string|null;companyId?:number|null}|null;guestId:number|null;registered:boolean;stayId:number|null;
   stayVersion:string|null;stayStatus:string|null;checkedInDate:string|null;checkedOutDate:string|null;segments:{roomNo:string;from:string;to:string|null}[]};
 export type SrvReservationList={businessDate:string;total:number;page:number;pageSize:number;items:SrvReservationItem[]};
 
@@ -45,10 +45,11 @@ export function parseBookingNotes(raw:string|null|undefined):{notes:string;email
   return {notes:keep.join(' · '),email,otaChannel:ota,company};
 }
 
-/** The real server company (name + GSTIN) of a list item or details; undefined when none. */
-export function companyOf(x:{company?:{name:string;gstin?:string|null}|null}):{name:string;gstin?:string}|undefined{
+/** The real server company (name + GSTIN; `account` = the company account it is billed to, DEC-076) of a list item or details; undefined when none. */
+export function companyOf(x:{company?:{name:string;gstin?:string|null;companyId?:number|null}|null}):{name:string;gstin?:string;account?:string}|undefined{
   const name=x.company?.name?.trim();if(!name)return undefined;
-  const gstin=x.company?.gstin?.trim();return gstin?{name,gstin}:{name};
+  const gstin=x.company?.gstin?.trim(),account=x.company?.companyId!=null?String(x.company.companyId):undefined;
+  return {name,...(gstin?{gstin}:{}),...(account?{account}:{})};
 }
 
 /** Server list item → prototype Booking. Folio lines/receipts are the money area's (patch loader); `version` stays neutral (the server version is in `ids`). */

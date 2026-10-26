@@ -129,7 +129,7 @@ public static partial class BuiltinSettings
             new("msg.senderName", "Sender name", SettingType.Text) { MaxLength = 40, Default = T(string.Empty), Unit = "text, ≤ 40 chars", Help = "Shown on WhatsApp, SMS and e-mail messages." },
             new("msg.marketing", "Marketing messages", SettingType.Choice) { Options = [T("Only with guest consent"), T("Never")], Default = T("Only with guest consent"), Unit = "choice", Help = "Service messages are not affected." },
             new("msg.gatewayKey", "Messaging gateway key", SettingType.Text) { MaxLength = 64, AllowEmpty = true, Default = T(string.Empty), Secret = true, Approver = SettingApprover.Owner, Unit = "secret", Help = "Never shown in full and never exported.", Affects = "Messages sent after the change." },
-            new("doc.retentionDays", "Captured document retention", SettingType.Integer) { Min = 30, Max = 3650, Default = N(365), Suffix = "days", Unit = "days", Help = "Captured images are discarded after this (metadata stays)." },
+            // DEC-071 (A11-02): the duplicate "doc.retentionDays" (365 days, read nowhere) is gone; the one ID-image rule is documents.retentionDays (Documents module provider).
         ]),
         new SettingsProvider("data", ConfigGroupIds.Data,
         [

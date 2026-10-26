@@ -25,14 +25,43 @@ public static class AccountingEvents
     public const string PayrollPaid = "PayrollPaid";
     public const string PayRunUnlocked = "PayRunUnlocked";   // W3-b: reversal of that lock's PayrollPosted voucher
 
+    // ── DEC-074 (wave B3) · books before go-live: group master folio, staff advances, full and final ──
+    public const string GroupReceiptRecorded = "GroupReceiptRecorded";   // Groups: master-folio payment / deposit / refund (UPI, card, bank transfer; never cash)
+    public const string GroupAttritionPosted = "GroupAttritionPosted";   // Groups: approved attrition lines on the master folio (net + stored per-line CGST / SGST)
+    public const string GroupSettled = "GroupSettled";                   // Groups: master folio settled at balance 0 (deposits still held are applied)
+    public const string AdvanceGiven = "AdvanceGiven";                   // Payroll: a salary advance paid out
+    public const string FnfSettled = "FnfSettled";                       // Payroll: full and final confirmed (salary journal + net pay paid)
+    // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer. A till transfer is cash to cash in the one 1000 ledger: no event consumed. ──
+    public const string CashBanked = "CashBanked";                     // {transferId, tillId, shiftId, businessDate, amountPaise, bank, slipNo}: Dr bank / Cr cash
+    public const string CashBankingRejected = "CashBankingRejected";   // {transferId, tillId, shiftId, businessDate (rejection), amountPaise, bank, slipNo, reason}: the reverse
+    public const string OwnerDrawingRecorded = "OwnerDrawingRecorded"; // {transferId, tillId, shiftId, businessDate, amountPaise, reason}: Dr Owner's drawings / Cr cash
+    // ── end Wave B1 ──
+    // DEC-076 company credit: money received from a company against its company-credit receivable (Dr tender · Cr company receivables).
+    public const string CompanyPaymentRecorded = "CompanyPaymentRecorded";
+
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
 
     public const string AccountingPeriodUnlocked = "AccountingPeriodUnlocked";
 
     public static readonly IReadOnlyList<string> Consumed =
-        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked];
+        [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked,
+         GroupReceiptRecorded, GroupAttritionPosted, GroupSettled, AdvanceGiven, FnfSettled,   // DEC-074 (wave B3)
+         CashBanked, CashBankingRejected, OwnerDrawingRecorded,                                  // Wave B1 (DEC-073)
+         CompanyPaymentRecorded];                                                                // DEC-076 (wave B5)
 }
+
+/// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>
+public sealed record CashBankingEvent(long TransferId, int TillId, long ShiftId, DateOnly BusinessDate, long AmountPaise, string Bank, string SlipNo, string? Reason = null);
+
+/// <summary>Wave B1 (DEC-073): cash the Owner took from a drawer.</summary>
+public sealed record OwnerDrawingEvent(long TransferId, int TillId, long ShiftId, DateOnly BusinessDate, long AmountPaise, string Reason);
+
+/// <summary>
+/// DEC-076: a payment received from a company account against its company-credit receivable (Groups <c>RecordCompanyPayment</c>; tender UPI | Card |
+/// Bank transfer). Booked as a Receipt voucher: Dr the tender · Cr company receivables (the <c>receipt:company-credit</c> ledger).
+/// </summary>
+public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company);
 
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
 public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, string Status, DateOnly BusinessDate, long ExpectedPaise, long CountedPaise);
@@ -64,6 +93,39 @@ public sealed record PayrollPaidEvent(long PayRunId, DateOnly BusinessDate, stri
 /// the money may have left the bank — and the reversal's narration says so.
 /// </summary>
 public sealed record PayRunUnlockedEvent(long RunId, string Month, int LockSeq, int BankFilesIssued, DateOnly? BusinessDate = null);
+
+// ── DEC-074 (wave B3) · payloads of the group, advance and full-and-final events (fields added after W3 are optional, so events published
+// before DEC-074 still map: the consumer reads a missing figure from the source tables or uses the property's business date) ──
+
+/// <summary>
+/// Groups (W3-4): a receipt on a group's master folio. <see cref="Kind"/> = payment | deposit | refund (UPI, Card or Bank transfer — the master
+/// folio takes no cash). A refund names the kind of the receipt it refunds (<see cref="RefundOfKind"/>, payment | deposit).
+/// </summary>
+public sealed record GroupReceiptRecordedEvent(long GroupId, long EntryId, string Kind, string Tender, long AmountPaise, DateOnly BusinessDate, string? RefundOfKind = null);
+
+/// <summary>Groups (W3-4): approved attrition posted on the master folio. CGST / SGST = the stored per-line split, summed; tax = CGST + SGST.</summary>
+public sealed record GroupAttritionPostedEvent(long GroupId, long AttritionId, IReadOnlyList<long> EntryIds, long NetPaise, long TaxPaise, long CgstPaise, long SgstPaise,
+    DateOnly BusinessDate);
+
+/// <summary>
+/// Groups (W3-4): the master folio was settled at balance 0. <see cref="DepositsHeldPaise"/> = deposits − refunds of deposits (the advance the
+/// company paid, applied to its receivable at settlement).
+/// </summary>
+public sealed record GroupSettledEvent(long GroupId, long ChargesPaise, long ReceivedPaise, long? DepositsHeldPaise = null, DateOnly? BusinessDate = null);
+
+/// <summary>Payroll (W2-2): a salary advance paid out on <see cref="Date"/> (the business date). Funding as for expenses; HCC advances are bank transfers.</summary>
+public sealed record AdvanceGivenEvent(long AdvanceId, long StaffId, long AmountPaise, long InstallmentPaise, DateOnly Date, string? Funding = null);
+
+/// <summary>
+/// Payroll (W2-2): a full-and-final settlement confirmed (and paid, simulated transfer). Earnings = exit-month gross + additions; recoveries =
+/// employee PF + ESIC + PT + the advance recovered + deductions; net = earnings − recoveries (negative = recoverable from the leaver).
+/// DEC-074 / A04-06: <see cref="AdvanceRecoveredPaise"/> is only the part of the open advance the settlement covers; the rest
+/// (<see cref="AdvanceLeftOpenPaise"/>) stays an open advance. <see cref="AdvanceWrittenOffPaise"/> (W2 name) = the advance cleared by this settlement.
+/// </summary>
+public sealed record FnfSettledEvent(long FnfId, long StaffId, string Month, long EarningsPaise, long RecoveriesPaise, long NetPaise, long AdvanceWrittenOffPaise,
+    DateOnly? BusinessDate = null, long? GrossPaise = null, long? AdditionsPaise = null, long? EmployeePfPaise = null, long? EmployeeEsicPaise = null,
+    long? ProfessionalTaxPaise = null, long? EmployerPfPaise = null, long? EmployerEsicPaise = null, long? DeductionsPaise = null, long? AdvanceRecoveredPaise = null,
+    long? AdvanceLeftOpenPaise = null, string? Funding = null);
 
 // ── API ──
 
@@ -115,4 +177,8 @@ public sealed record MappingChangeView(long ChangeId, DateTime AtUtc, int Actor,
 public sealed record LockEventView(long LockId, DateOnly BusinessDate, string Action, DateTime AtUtc, int Actor, string? Reason);
 
 /// <summary>Simulated Tally XML (never sent anywhere; saving it does not mean it was imported).</summary>
-public sealed record TallyExportView(DateOnly From, DateOnly To, int Dates, int VoucherCount, long DebitPaise, long CreditPaise, bool Simulated, string FileName, string Xml);
+/// <param name="ReexportDates">DEC-077: dates carried again because they changed after an earlier export (their day was reopened); the XML names each.</param>
+/// <param name="ProvisionalDates">DEC-077: the reopened day, when carried (it may still change; it stays flagged).</param>
+/// <param name="ExportId">The export log row (acc.tally_export) this download was recorded as.</param>
+public sealed record TallyExportView(DateOnly From, DateOnly To, int Dates, int VoucherCount, long DebitPaise, long CreditPaise, bool Simulated, string FileName, string Xml,
+    IReadOnlyList<DateOnly>? ReexportDates = null, IReadOnlyList<DateOnly>? ProvisionalDates = null, long? ExportId = null);

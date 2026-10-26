@@ -21,9 +21,12 @@ namespace Hcc.Application.Pos;
 /// <c>03 Prototype/src/services/mock/handlers/pos.ts</c>. Every command runs through <see cref="ICommandRunner"/> (idempotency, audit, outbox).
 /// Tax comes only from <see cref="IPosTaxRates"/> (C's GST master, food) on the business date; every bill stores its CGST / SGST split and a
 /// room-posted bill's folio line gets its per-charge GST record. P6: commands refuse a closed business day (DAY_CLOSED) and cash a locked cash book.
+/// DEC-072: every settled OUTLET bill is issued as a GST tax invoice in the RST series inside the settle (<see cref="IPosInvoicePort"/>; B2B with
+/// a buyer GSTIN), and voiding such a bill issues its full credit note in the CN series inside the void. Room-posted bills get no RST invoice.
 /// </summary>
 public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingStore billing, IAccessPolicy policy, IPosTaxRates taxRates,
-    ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null, Configuration.ISettingsReader? settings = null)
+    ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null, Configuration.ISettingsReader? settings = null,
+    IPosInvoicePort? invoices = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -63,11 +66,113 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>MA-4: SaveMenuItem is the menu master's command (<see cref="PosMastersService.SaveMenuItemAsync"/>: PERM-MST-001, prices and GST
-    /// class PERM-MST-002, dated prices, categories, history); the W2-6 body keeps working through it.</summary>
-    public Task<CommandResult<MenuItemResult>> SaveMenuItemAsync(PosCaller caller, string key, SaveMenuItemRequest req, CancellationToken ct = default)
-        => new PosMastersService(runner, policy, store as IPosMastersStore ?? throw new InvalidOperationException("The POS store has no masters support."), store, clock)
-            .SaveMenuItemAsync(caller, key, req, ct);
+    /// <summary>MA-4 + Wave B: SaveMenuItem is the menu master's command (<see cref="PosMastersService.SaveMenuItemAsync"/>: PERM-MST-001, prices and
+    /// GST class PERM-MST-002, dated prices, categories, history) for everyone except a request-only caller: a Manager (PERM-POS-006 'R', DEC-079 D5)
+    /// sends a request the Owner decides (<see cref="DecideMenuChangeAsync"/>); the W2-6 body keeps working through both.</summary>
+    public async Task<CommandResult<MenuItemResult>> SaveMenuItemAsync(PosCaller caller, string key, SaveMenuItemRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(req);
+        bool direct;
+        try { direct = await SetupDirectAsync(caller, ct).ConfigureAwait(false); }
+        catch (HccException e) when (e.Code == HccErrorCode.FORBIDDEN) { direct = true; }   // no PERM-POS-006 at all: the masters permissions decide
+        if (direct)
+            return await new PosMastersService(runner, policy, store as IPosMastersStore ?? throw new InvalidOperationException("The POS store has no masters support."), store, clock)
+                .SaveMenuItemAsync(caller, key, req, ct).ConfigureAwait(false);
+        var code = BillingText.Required(req.Code, 20, "Enter an item code.").ToUpperInvariant();
+        var name = BillingText.Required(req.Name, 100, "Enter the item name.");
+        var category = BillingText.Required(req.Category, 60, "Enter a category.");
+        var price = Paise.FromWire(req.PricePaise).EnsureFieldRange();
+        if (price < Paise.Zero) throw HccException.Validation("The price cannot be negative.");
+        var outlets = (req.OutletIds ?? []).Distinct().ToList();
+        if (outlets.Count == 0) throw HccException.Validation("Choose at least one outlet for this item.");
+        var reason = BillingText.Optional(req.Reason, 200);
+        byte[]? expected = req.ItemId is null ? null : Hcc.Application.Stays.VersionToken.Parse(req.ExpectedVersion);
+        return await runner.RunAsync(Ctx(caller, "SaveMenuItem", key), req, async (tx, ct2) =>
+        {
+            if (await store.CountOutletsAsync(tx, caller.PropertyId, outlets, ct2).ConfigureAwait(false) != outlets.Count) throw NotFound("Outlet not found.");
+            if (await store.MenuCodeExistsAsync(tx, caller.PropertyId, code, req.ItemId, ct2).ConfigureAwait(false)) throw HccException.Validation($"An item with code {code} already exists.");
+            MenuItemRow? current = null;
+            if (req.ItemId is { } id)
+            {
+                current = await store.MenuItemAsync(tx, caller.PropertyId, id, lockRow: true, ct2).ConfigureAwait(false) ?? throw NotFound("Menu item not found.");
+                if (!direct) EnsureVersion(current.Version, req.ExpectedVersion!, "The menu item");
+            }
+
+            if (!direct)
+            {
+                if (await store.PendingMenuRequestExistsAsync(tx, caller.PropertyId, code, req.ItemId, ct2).ConfigureAwait(false))
+                    throw Invalid("A change to this menu item is already waiting for the Owner.");
+                var requestId = await store.InsertMenuRequestAsync(tx, new NewMenuRequest(caller.PropertyId, req.ItemId, code, name, category, price, req.Veg, outlets,
+                    current?.Price, expected, reason.Length == 0 ? null : reason, caller.PrincipalId, Now), ct2).ConfigureAwait(false);
+                var before = current is null ? "new item" : $"price {current.Price}";
+                await tx.AuditAsync("POS_MENU_REQUESTED", Target("menu-request", requestId), $"{code} · {name} · {before} → {price} · for the Owner", ct2).ConfigureAwait(false);
+                return new MenuItemResult(current?.ItemId ?? 0, current?.Available ?? true, current?.Version ?? string.Empty, "requested", requestId);
+            }
+
+            var item = current is null
+                ? await store.InsertMenuItemAsync(tx, caller.PropertyId, code, name, category, price, req.Veg, outlets, ct2).ConfigureAwait(false)
+                : await store.UpdateMenuItemAsync(tx, current.ItemId, expected!, code, name, category, price, req.Veg, outlets, ct2).ConfigureAwait(false);
+            await tx.AuditAsync("POS_MENU_SAVED", Target("menu", item.ItemId), $"{code} · {name} · {price}", ct2).ConfigureAwait(false);
+            return new MenuItemResult(item.ItemId, item.Available, item.Version);
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>D5: the Owner approves (applies) or rejects a Manager's menu change; never the requester (PERM-SOD-001).</summary>
+    public async Task<CommandResult<DecideMenuChangeResult>> DecideMenuChangeAsync(PosCaller caller, string key, DecideMenuChangeRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(req);
+        if (!await SetupDirectAsync(caller, ct).ConfigureAwait(false))
+            throw Forbidden("Only the Owner decides menu and price changes (PERM-POS-006).");
+        var decisionReason = BillingText.Optional(req.Reason, 200);
+        return await runner.RunAsync(Ctx(caller, "DecideMenuChange", key), req, async (tx, ct2) =>
+        {
+            var r = await store.LockMenuRequestAsync(tx, caller.PropertyId, req.RequestId, ct2).ConfigureAwait(false) ?? throw NotFound("Menu change request not found.");
+            if (r.Status != "Pending") throw Invalid("This request is no longer pending.");
+            if (r.RequestedBy == caller.PrincipalId) throw Forbidden("You cannot approve your own request (PERM-SOD-001).");
+            var now = Now;
+            var note = decisionReason.Length == 0 ? null : decisionReason;
+            if (!req.Approve)
+            {
+                await store.DecideMenuRequestAsync(tx, r.RequestId, "Rejected", caller.PrincipalId, now, note, ct2).ConfigureAwait(false);
+                await tx.AuditAsync("POS_MENU_DECIDED", Target("menu-request", r.RequestId), $"{r.Code} · {r.Name} · {r.Price} rejected", ct2).ConfigureAwait(false);
+                return new DecideMenuChangeResult(r.RequestId, "Rejected", r.ItemId, null);
+            }
+
+            if (await store.CountOutletsAsync(tx, caller.PropertyId, r.OutletIds, ct2).ConfigureAwait(false) != r.OutletIds.Count) throw NotFound("Outlet not found.");
+            if (await store.MenuCodeExistsAsync(tx, caller.PropertyId, r.Code, r.ItemId, ct2).ConfigureAwait(false)) throw HccException.Validation($"An item with code {r.Code} already exists.");
+            MenuItemRow item;
+            if (r.ItemId is { } id)
+            {
+                // Bound to the item as it was when asked: a change since then makes the request stale (reject it and ask again).
+                _ = await store.MenuItemAsync(tx, caller.PropertyId, id, lockRow: true, ct2).ConfigureAwait(false) ?? throw NotFound("Menu item not found.");
+                item = await store.UpdateMenuItemAsync(tx, id, r.ItemVersion!, r.Code, r.Name, r.Category, r.Price, r.Veg, r.OutletIds, ct2).ConfigureAwait(false);
+            }
+            else
+            {
+                item = await store.InsertMenuItemAsync(tx, caller.PropertyId, r.Code, r.Name, r.Category, r.Price, r.Veg, r.OutletIds, ct2).ConfigureAwait(false);
+            }
+
+            await store.DecideMenuRequestAsync(tx, r.RequestId, "Executed", caller.PrincipalId, now, note, ct2).ConfigureAwait(false);
+            await tx.AuditAsync("POS_MENU_DECIDED", Target("menu", item.ItemId), $"{r.Code} · {r.Name} · {r.Price} approved (request {r.RequestId})", ct2).ConfigureAwait(false);
+            return new DecideMenuChangeResult(r.RequestId, "Executed", item.ItemId, item.Version);
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>True for an 'A' cell on PERM-POS-006 (Owner); false for the Manager's 'R' cell (request); FORBIDDEN for everyone else.</summary>
+    private async Task<bool> SetupDirectAsync(PosCaller caller, CancellationToken ct)
+    {
+        try
+        {
+            await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Setup, ct: ct).ConfigureAwait(false);
+            return true;
+        }
+        catch (HccException e) when (e.Code == HccErrorCode.APPROVAL_REQUIRED)
+        {
+            return false;
+        }
+    }
 
     public async Task<CommandResult<MenuItemResult>> SetMenuItemAvailabilityAsync(PosCaller caller, string key, SetMenuItemAvailabilityRequest req, CancellationToken ct = default)
     {
@@ -250,8 +355,9 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             if (tender != PosRules.Cash && reference.Length == 0) throw HccException.Validation("Enter the transaction reference for a non-cash payment.");
         }
 
-        if (folioMode) await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Operate, ct: ct).ConfigureAwait(false);
-        else await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Settle, AccessScopes.Any, ct: ct).ConfigureAwait(false);
+        // DEC-079: settling (outlet tender or charge to a room) is PERM-POS-005; the Restaurant role operates checks but never settles (D1).
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Settle, AccessScopes.Any, ct: ct).ConfigureAwait(false);
+        var buyer = BuyerOf(req, folioMode);
 
         return await runner.RunAsync(Ctx(caller, "SettleCheck", key), req, async (tx, ct2) =>
         {
@@ -327,8 +433,11 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
                 folioId = folioIdOut,
                 chargeId = folioMode ? chargeId : (long?)null, cashMovementId = movementId == 0 ? (long?)null : movementId,
             }, ct2).ConfigureAwait(false);
+            // DEC-072: the outlet bill's GST tax invoice (RST series) in this transaction; a room-posted bill is on the guest's room invoice instead.
+            var invoice = folioMode || invoices is null ? null : await invoices.IssueAsync(tx, billId, buyer, ct2).ConfigureAwait(false);
             return new SettleResult(o.OrderId, billId, billNo, req.Mode, totals.Net.Value, bps, totals.Tax.Value, totals.Total.Value,
-                receiptId == 0 ? null : receiptId, chargeId == 0 ? null : chargeId, movementId == 0 ? null : movementId, version);
+                receiptId == 0 ? null : receiptId, chargeId == 0 ? null : chargeId, movementId == 0 ? null : movementId, version,
+                invoice?.InvoiceId, invoice?.InvoiceNo, invoice?.NotIssuedReason);
         }, ct).ConfigureAwait(false);
     }
 
@@ -393,8 +502,9 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
     {
         ArgumentNullException.ThrowIfNull(caller);
         ArgumentNullException.ThrowIfNull(req);
-        // Holding the approve-void permission is enough to reject; the role's void limit is checked against the amount only when approving.
-        if (!await policy.HasAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.VoidDecide, ct: ct).ConfigureAwait(false))
+        // An A or L cell on the void permission is enough to reject; the role's void limit is checked against the amount only when approving.
+        // R cells (Reception, Cashier, Restaurant) raise requests and never decide them (DEC-079 D1).
+        if (!await DecidesVoidsAsync(caller, ct).ConfigureAwait(false))
             throw new HccException(HccErrorCode.FORBIDDEN, $"Access denied: {PosPermissions.VoidDecide} permission is required.");
         var decisionReason = BillingText.Optional(req.Reason, 200);
         return await runner.RunAsync(Ctx(caller, "DecideVoid", key), req, async (tx, ct2) =>
@@ -428,6 +538,20 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         }, ct).ConfigureAwait(false);
     }
 
+    /// <summary>Holds PERM-POS-003 as an approver (A, or L: zero is within every limit); an R cell only requests.</summary>
+    private async Task<bool> DecidesVoidsAsync(PosCaller caller, CancellationToken ct)
+    {
+        try
+        {
+            await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.VoidDecide, amountPaise: 0, ct: ct).ConfigureAwait(false);
+            return true;
+        }
+        catch (HccException e) when (e.Code is HccErrorCode.FORBIDDEN or HccErrorCode.APPROVAL_REQUIRED)
+        {
+            return false;
+        }
+    }
+
     private async Task<VoidResult> RequestVoidAsync(ICommandTransaction tx, PosCaller caller, OrderRow o, string scope, long? lineId, Paise value, long limitPaise, string reason, CancellationToken ct)
     {
         var now = Now;
@@ -455,6 +579,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             return new VoidResult(o.OrderId, "Voided", voidRequestId, v);
         }
 
+        string? creditNoteNo = null;
         if (o.Status == "Settled")
         {
             var bill = await store.BillForOrderAsync(tx, o.OrderId, ct).ConfigureAwait(false) ?? throw NotFound("Bill not found.");
@@ -485,17 +610,48 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
                 cgstPaise = voidSplit.Cgst.Value, sgstPaise = voidSplit.Sgst.Value, totalPaise = bill.Total.Value, reference = "Void of " + bill.BillNo,
                 reason, cashMovementId = movement,
             }, ct).ConfigureAwait(false);
+            // DEC-072: the bill's RST invoice (when issued) is reversed in full by a credit note (CN series) dated today, in this transaction.
+            // Requested by whoever asked for the void; issued by the principal executing it (the approver for a void above the limit).
+            if (invoices is not null)
+                creditNoteNo = await invoices.CreditVoidAsync(tx, bill.BillId, by, $"Void of {bill.BillNo} · {reason}", ct).ConfigureAwait(false);
         }
 
         var active = (await store.LinesAsync(tx, o.OrderId, ct).ConfigureAwait(false)).Where(l => !l.Voided).Select(l => l.LineId).ToList();
         if (active.Count > 0) await store.VoidLinesAsync(tx, active, reason, by, date, voidRequestId, ct).ConfigureAwait(false);
         await store.SetOrderStatusAsync(tx, o.OrderId, "Void", reason, by, now, null, ct).ConfigureAwait(false);
         var version = await store.TouchOrderAsync(tx, o.OrderId, ct).ConfigureAwait(false);
-        await tx.AuditAsync("POS_BILL_VOIDED", Target("check", o.OrderId), $"{(o.Status == "Settled" ? "settled bill" : "open check")} void · {reason}", ct).ConfigureAwait(false);
-        return new VoidResult(o.OrderId, "Voided", voidRequestId, version);
+        await tx.AuditAsync("POS_BILL_VOIDED", Target("check", o.OrderId),
+            $"{(o.Status == "Settled" ? "settled bill" : "open check")} void · {reason}{(creditNoteNo is null ? "" : " · credit note " + creditNoteNo)}", ct).ConfigureAwait(false);
+        return new VoidResult(o.OrderId, "Voided", voidRequestId, version, creditNoteNo);
     }
 
     // ── helpers ──
+
+    /// <summary>
+    /// DEC-072 buyer of an outlet bill's tax invoice: a GSTIN (checked with the GSTN check character) makes it B2B and needs the legal name;
+    /// a name / address alone stays B2C (needed for a bill of ₹50,000 or more, r.46(e) as read). A room-folio bill takes no buyer: the guest's
+    /// room invoice is issued (B2B with the company GSTIN if given) after checkout.
+    /// </summary>
+    private static PosBuyer BuyerOf(SettleCheckRequest req, bool folioMode)
+    {
+        var gstin = req.BuyerGstin?.Trim() ?? string.Empty;
+        var name = BillingText.Optional(req.BuyerName, 120);
+        var address = BillingText.Optional(req.BuyerAddress, 200);
+        if (folioMode)
+        {
+            if (gstin.Length + name.Length + address.Length > 0)
+                throw HccException.Validation("A bill charged to a room folio is invoiced to the guest after checkout; give the business GSTIN on the room invoice.");
+            return PosBuyer.None;
+        }
+
+        if (gstin.Length > 0)
+        {
+            gstin = Hcc.Domain.Invoices.Gstin.Validate(gstin, "buyer");
+            if (name.Length == 0) throw HccException.Validation("Enter the buyer's legal name for a B2B tax invoice.");
+        }
+
+        return new PosBuyer(gstin.Length == 0 ? null : gstin, name.Length == 0 ? null : name, address.Length == 0 ? null : address);
+    }
 
     private static string ReasonOf(string? reason)
     {

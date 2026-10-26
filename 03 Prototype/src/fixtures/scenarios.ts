@@ -38,7 +38,7 @@ const builders:Record<string,(s:State)=>void>={
   S6:s=>{
     s.users.push({id:'owner2',name:'Anil · Owner (second account)',role:'Owner',enabled:false});
     s.users.find(u=>u.id==='housekeeper2')!.enabled=false;
-    s.grants.Cashier=s.grants.Cashier.filter(p=>p!=='reports');
+    s.grants.Cashier=(s.grants.Cashier??[]).filter(p=>p!=='reports');
   },
 };
 export function loadScenario(id:string):State{

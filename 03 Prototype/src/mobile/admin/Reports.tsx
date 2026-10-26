@@ -14,11 +14,14 @@ import {XLSX_MIME} from '../../app/xlsx';
 import {saveBinaryFile} from '../../app/native';
 import {MA_REPORT_CHIPS,MaReportTabId,maRangeCheck,maMaskReports,maLimit} from './logic';
 import {useMaPack} from './serverPack';
-import {ServerReportStrip,ServerHistorySummary,SERVER_DETAIL_NOTE} from '../../features/reports/serverBits';
+import {ServerReportStrip,ServerHistorySummary,ServerReportsGate,SERVER_DETAIL_NOTE} from '../../features/reports/serverBits';
 import {useMaUi,maRange} from './store';
 import {MaRows} from './parts';
 
-export function MaReports(){
+/** Production: the Cashier's phone Reports page is the daily collections report (DEC-079). */
+export function MaReports(){return process.env.HCC_BUILD==='production'?<ServerReportsGate phone><MaReportsPage/></ServerReportsGate>:<MaReportsPage/>;}
+
+function MaReportsPage(){
   const {s,uid,open,toast}=useHcc();const u=useMaUi();const {from,to}=maRange(u,s.date);
   const [tab,setTab]=useState<MaReportTabId>('daily');
   const chk=maRangeCheck(from,to,s.date,maLimit(s));

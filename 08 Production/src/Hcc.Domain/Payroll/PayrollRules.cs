@@ -95,6 +95,13 @@ public static class PayrollRules
         return (int)date.DayOfWeek == st.WeeklyOff && st.WeeklyOffAuto ? ShiftCode.OFF : st.DefaultShift;
     }
 
+    /// <summary>A day without duty for leave: a rostered weekly off or a DEC-083 paid holiday (leave days skip both; nobody is "off" on them).</summary>
+    public static bool DayOff(StaffProfile st, StaffDays days, DateOnly date)
+    {
+        ArgumentNullException.ThrowIfNull(days);
+        return ShiftFor(st, days, date) == ShiftCode.OFF || days.Holidays.ContainsKey(date);
+    }
+
     public static IEnumerable<LeaveSpan> ApprovedOn(StaffDays days, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(days);
@@ -108,13 +115,12 @@ public static class PayrollRules
         return ls.FirstOrDefault(l => l.Half is null) ?? ls.FirstOrDefault();
     }
 
-    /// <summary>Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (MA-6); a half-day leave is 0.5.</summary>
+    /// <summary>Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (DEC-083 / MA-6 Holiday calendar); a half-day leave is 0.5.</summary>
     public static decimal LeaveDays(StaffProfile st, StaffDays days, DateOnly from, DateOnly to, LeaveHalf? half)
     {
-        bool Works(DateOnly d) => ShiftFor(st, days, d) != ShiftCode.OFF && !days.PaidHolidays.Contains(d);
-        if (half is not null) return Works(from) ? 0.5m : 0m;
+        if (half is not null) return DayOff(st, days, from) ? 0m : 0.5m;
         var n = 0m;
-        for (var d = from; d <= to; d = d.AddDays(1)) if (Works(d)) n++;
+        for (var d = from; d <= to; d = d.AddDays(1)) if (!DayOff(st, days, d)) n++;
         return n;
     }
 
@@ -165,7 +171,7 @@ public static class PayrollRules
                 }
             }
             else if (ShiftFor(st, days, d) == ShiftCode.OFF) off++;   // F-01
-            else if (days.PaidHolidays.Contains(d)) hol++;            // MA-6: a paid holiday without attendance is a paid day, never leave or unmarked
+            else if (days.Holidays.ContainsKey(d)) hol++;              // DEC-083: an unmarked paid holiday counts like a weekly off (a worked one is marked)
             else if (full is not null) AddLeave(full, 1m);
             else if (halves.Count > 0)
             {
@@ -214,7 +220,9 @@ public static class PayrollRules
         }
         else
         {
-            payHalf = Math.Max(0, HalfUnits(2 * (c.P + c.L + c.OFFW + c.Hol)) + (long)c.H + (long)c.HL - late);
+            // DEC-083 (owner decision, binding over MA-6's draft): a daily-wage worker is not paid for an unworked holiday — like a weekly
+            // off (CA A04-04 open); a worked holiday is marked present and paid.
+            payHalf = Math.Max(0, HalfUnits(2 * (c.P + c.L + c.OFFW)) + (long)c.H + (long)c.HL - late);
             earned = PayMath.MulDiv(st.DailyPaise, payHalf, 1, 2);
             ot = PayMath.MulDiv(st.DailyPaise, c.OtMin, r.OtBps, 8L * 60 * 10000);
         }
@@ -261,12 +269,15 @@ public static class PayrollRules
         return prior.Covered ?? st.EsicContractWage <= r.EsicCeiling;
     }
 
+    /// <summary>DEC-075: the unmarked-days warning points to the correction action (prototype HR_UNMARKED_HINT).</summary>
+    public const string UnmarkedHint = "a manager can correct them on Staff & payroll › Attendance › Past days before the lock.";
+
     /// <summary>Run warnings for one line (prototype hrComputeRun).</summary>
     public static IEnumerable<string> Warnings(StaffProfile st, AttendanceCounts c)
     {
         ArgumentNullException.ThrowIfNull(st);
         ArgumentNullException.ThrowIfNull(c);
-        if (c.Unmarked != 0) yield return $"{st.Name}: {Num(c.Unmarked)} unmarked day{(c.Unmarked == 1 ? "" : "s")} counted as absent.";
+        if (c.Unmarked != 0) yield return $"{st.Name}: {Num(c.Unmarked)} unmarked day{(c.Unmarked == 1 ? "" : "s")} counted as absent — {UnmarkedHint}";
         if (st.BasePaise <= 0) yield return $"{st.Name}: salary not set — pays ₹0.";
     }
 

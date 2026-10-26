@@ -4,6 +4,7 @@ import type {FeatureRegistration} from '../../app/registry';
 import {GroupsPage} from './Groups';
 import {GroupsMobile,BlockDetail} from './Mobile';
 import {CompanyModal,LimitModal,BlockModal,AllotModal,ReleaseModal,CancelBlockModal,RoomingModal,RoomingMobile,PrintModal} from './modals';
+import {CompanyPaymentModal} from './credit';
 export const registration:FeatureRegistration={
   pages:{'groups':GroupsPage},
   nav:[
@@ -12,6 +13,7 @@ export const registration:FeatureRegistration={
   modals:{
     'grp-company':CompanyModal,   // id = company ID (omitted = new)
     'grp-limit':LimitModal,       // id = company ID
+    'grp-payment':CompanyPaymentModal, // id = company ID (DEC-076 company payment; same form on the phone)
     'grp-block':BlockModal,       // new block
     'grp-allot':AllotModal,       // id = block ID
     'grp-release':ReleaseModal,   // id = block ID

@@ -37,6 +37,9 @@ public interface IReservationStore
     Task<SavedReservation> SetStatusAsync(ICommandTransaction tx, int propertyId, ReservationRecord current, string status, string? reason,
         DateTime nowUtc, CancellationToken ct = default);
 
+    /// <summary>DEC-076: the company fields only (name, GSTIN, company account); version-checked against <paramref name="current"/>.</summary>
+    Task<SavedReservation> SetCompanyAsync(ICommandTransaction tx, int propertyId, ReservationRecord current, ReservationCompany? company, CancellationToken ct = default);
+
     Task<ReservationDetails?> GetDetailsAsync(int propertyId, long reservationId, DateTime nowUtc, CancellationToken ct = default);
 
     /// <summary>Front-desk list (W4-1): filtered, paged reservations with the stay-side facts; <paramref name="query"/> dates are inclusive/exclusive as documented there.</summary>

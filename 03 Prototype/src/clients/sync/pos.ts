@@ -5,17 +5,23 @@
 //   loaders   posX       ← GET /pos/outlets (+ MA-4 master fields and tableRows) + /pos/menu (+ dated prices, GST class, station, sold out)
 //                          — also for a user holding only `masters` (Tech admin: Master configuration's POS lists) — and, when the
 //                          user may read them, /pos/checks (open) + one GET /pos/checks/{id} per open check
-//                          + GET /pos/checks/closed (today's settled / void checks, at most 50).
+//                          + GET /pos/checks/closed (today's settled / void checks, at most 50; only for the money view or the settling desk:
+//                          the Restaurant role, DEC-079 D1, works from open checks only).
 //                          Outlet receipts (posX.receipts) are derived from today's closed outlet bills (a sale; plus its reversal for a
 //                          voided bill) — the cash ones are what drawerOutletCash() adds to the shared drawer figure.
 //             approvals  ← pending void requests (GET /pos/void-requests) as kind 'pos-void' approvals (id "posv-<id>"), patched
 //                          into the admin-owned (W4-5) slice (kind:'patch'); other kinds are kept.
 //   commands  POS_ORDER_OPEN → OpenCheck · POS_ITEM_ADD → AddCheckItem · POS_ITEM_QTY → SetCheckItemQty · POS_KOT_SEND → SendKot ·
 //             POS_KOT_STATUS → AdvanceKot · POS_SETTLE → SettleCheck (outlet: tender + till for cash; folio: stay of the booking) ·
-//             POS_VOID_ITEM → VoidCheckItem · POS_VOID_BILL → VoidBill · POS_VOID_DECIDE → DecideVoid · POS_MENU_TOGGLE → SetMenuItemAvailability.
+//             POS_VOID_ITEM → VoidCheckItem · POS_VOID_BILL → VoidBill · POS_VOID_DECIDE → DecideVoid · POS_MENU_TOGGLE → SetMenuItemAvailability ·
+//             POS_INVOICE_ISSUE → IssueInvoice {sourceKind: pos, sourceId: bill id} (an outlet bill the server could not number at settle).
+//   DEC-072   the server issues an outlet bill's GST tax invoice (RST series) inside SettleCheck (buyer GSTIN / name / address sent with it)
+//             and its credit note inside the void; the check's bill.invoice (number, B2C/B2B, buyer, hotel GSTIN, SAC, CGST / SGST,
+//             credit note) is shown on the bill as the server sent it.
 //   ids       outlet / menu item / check / line / KOT = String(server id); void approval = "posv-<id>"; users = String(user id).
 //   versions  checks: ids kind 'check' (rowversion) — sent for the state-sensitive commands (KOT, settle, void); menu items: 'menuItem'.
 import type {POSState,POSOrder,POSLine,POSKot,POSReceipt,POSMenuItem,POSOutlet,POSTable,POSKotStatus,Approval,Command} from '../../services/mock';
+import {posBuyerOf,posOrderTotals} from '../../domain/streams/pos';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {protoUserId,serverId,utcToClock,utcToDate} from './map';
@@ -32,8 +38,10 @@ type SrvMenuItem={itemId:number;code:string;name:string;category:string;pricePai
 type SrvOpenCheck={orderId:number};
 type SrvLine={lineId:number;itemId:number;name:string;pricePaise:number;qty:number;kotId:number|null;status:string;voided:boolean;voidReason:string|null;gstClass?:string|null};
 type SrvKot={kotId:number;kotNo:number;status:POSKotStatus;createdUtc:string;readyUtc:string|null;servedUtc:string|null;createdBy?:number|null;station?:string|null};
+type SrvBillInvoice={invoiceId:number;invoiceNo:string;docType:string;invoiceDate:string;supplyType:'B2C'|'B2B';buyerName:string|null;buyerGstin:string|null;
+  supplierGstin:string;sac:string;cgstPaise:number;sgstPaise:number;creditNoteNo:string|null};
 type SrvBill={billId:number;billNo:string;mode:'outlet'|'folio';tender:string|null;reference:string|null;netPaise:number;taxBps:number;taxPaise:number;totalPaise:number;
-  businessDate:string;status:string;settledUtc?:string|null;settledBy?:number|null;reservationId?:number|null};
+  businessDate:string;status:string;settledUtc?:string|null;settledBy?:number|null;reservationId?:number|null;invoice?:SrvBillInvoice|null};
 type SrvCheck={orderId:number;outletId:number;outlet:string;spot:string;guest:string|null;covers:number;businessDate:string;status:'Open'|'Settled'|'Void';version:string;
   pendingVoidId:number|null;lines:SrvLine[];kots:SrvKot[];netPaise:number;taxBps:number;taxPaise:number;totalPaise:number;items:number;bill:SrvBill|null;
   openedUtc?:string|null;openedBy?:number|null;voidReason?:string|null;voidedUtc?:string|null;reservationId?:number|null};
@@ -83,7 +91,11 @@ export function orderFromServer(c:SrvCheck,fallbackDate?:string):POSOrder{
   if(c.bill){const b=c.bill;
     o.settlement={mode:b.mode,billNo:b.billNo,...(b.tender?{method:b.tender}:{}),...(b.reference?{reference:b.reference}:{}),net:b.netPaise,taxBps:b.taxBps,tax:b.taxPaise,total:b.totalPaise,
       date:b.businessDate,at:utcToClock(b.settledUtc),by:protoUserId(b.settledBy??0),
-      ...(b.mode==='outlet'?{receiptId:'posr-'+b.billId}:{...(b.reservationId?{booking:String(b.reservationId)}:{}),folioLineId:'posline:'+c.orderId})};
+      ...(b.mode==='outlet'?{receiptId:'posr-'+b.billId,billId:String(b.billId)}:{...(b.reservationId?{booking:String(b.reservationId)}:{}),folioLineId:'posline:'+c.orderId})};
+    const i=b.invoice;
+    if(i){const buyer={...(i.buyerName?{name:i.buyerName}:{}),...(i.buyerGstin?{gstin:i.buyerGstin}:{})};
+      Object.assign(o.settlement,{invoiceNo:i.invoiceNo,supply:i.supplyType,...(Object.keys(buyer).length?{buyer}:{}),cgst:i.cgstPaise,sgst:i.sgstPaise,
+        hotelGstin:i.supplierGstin,sac:i.sac,...(i.creditNoteNo?{creditNoteNo:i.creditNoteNo,...(c.voidedUtc?{creditNoteDate:utcToDate(c.voidedUtc)}:{})}:{})});}
     if(b.mode==='folio'&&b.reservationId&&!o.booking)o.booking=String(b.reservationId);
   }
   if(c.status==='Void'){o.voidReason=c.voidReason??'';if(c.voidedUtc)o.voidedAt=utcToClock(c.voidedUtc);}
@@ -103,11 +115,12 @@ export const approvalFromServer=(v:SrvVoidRequest):Approval=>({id:approvalId(v.v
 
 // ── Loaders ──
 async function loadPos(c:LoaderCtx):Promise<POSState>{
-  // MA-4: a user with `masters` but no POS operate right (Tech admin) gets the outlets and the menu only (Master configuration lists).
-  const operate=c.mayRead('GET /pos/checks','GET /pos/checks/closed','GET /pos/checks/:id');
+  // MA-4: a user with `masters` but no POS operate right (Tech admin) gets the outlets and the menu only (Master configuration lists);
+  // Wave B (DEC-079 D1): the Restaurant role reads open checks but not the closed ones.
+  const operate=c.mayRead('GET /pos/checks','GET /pos/checks/:id');
   const [outlets,menu,open,closed]=await Promise.all([
     c.api.get<SrvOutlet[]>('/pos/outlets'),c.api.get<SrvMenuItem[]>('/pos/menu'),operate?c.api.get<SrvOpenCheck[]>('/pos/checks'):Promise.resolve([] as SrvOpenCheck[]),
-    operate?c.api.get<SrvCheck[]>('/pos/checks/closed',{date:c.current('date')||undefined}):Promise.resolve([] as SrvCheck[])]);
+    operate&&c.mayRead('GET /pos/checks/closed')?c.api.get<SrvCheck[]>('/pos/checks/closed',{date:c.current('date')||undefined}):Promise.resolve<SrvCheck[]>([])]);
   for(const m of menu)c.ids.setVersion('menuItem',String(m.itemId),m.version);
   for(const o of outlets){if(o.version)c.ids.setVersion('outlet',String(o.outletId),o.version);for(const t of o.tableRows??[])c.ids.setVersion('outletTable',String(t.tableId),t.version);}
   const checks:SrvCheck[]=[];
@@ -134,6 +147,9 @@ const checkId=(cmd:Command)=>serverId(cmd.id,'Check');
 const checkVersion=(c:CommandCtx)=>c.ids.version('check',String(c.cmd.id));
 const reasonCheck=(cmd:Command)=>String(cmd.reason??'').trim().length>=3?undefined:'Enter a reason for the void (at least 3 characters).';
 const posOrderOf=(c:CommandCtx)=>c.state.posX?.orders.find(o=>o.id===String(c.cmd.id));
+/** DEC-072 buyer of the outlet bill's tax invoice, sent with SettleCheck (the server validates the GSTIN checksum and the B2B legal name). */
+const buyerOf=(cmd:Command)=>{const g=String(cmd.buyerGstin??'').trim(),n=String(cmd.buyerName??'').trim(),a=String(cmd.buyerAddress??'').trim();
+  return {...(g?{buyerGstin:g}:{}),...(n?{buyerName:n}:{}),...(a?{buyerAddress:a}:{})};};
 
 /** Folio mode: the stay of the chosen in-house guest (booking = reservation id). */
 async function stayOf(c:CommandCtx):Promise<number|undefined>{
@@ -169,8 +185,13 @@ export const pos:SyncArea={id:'pos',
     {type:'POS_KOT_STATUS',reload:['posX'],
       async send(c){await c.api.command('AdvanceKot',{orderId:checkId(c.cmd),kotId:serverId(c.cmd.kot,'KOT'),status:String(c.cmd.status)});}},
     {type:'POS_SETTLE',reload:['posX'],
-      precheck:cmd=>cmd.mode==='folio'?undefined:cmd.mode!=='outlet'?'Choose how the bill is settled.':!['Cash','UPI','Card'].includes(cmd.method)?'Select Cash, UPI or Card.':
-        cmd.method!=='Cash'&&!String(cmd.reference??'').trim()?'Enter the transaction reference.':undefined,
+      precheck:(cmd,s)=>{
+        if(cmd.mode==='folio')return Object.keys(buyerOf(cmd)).length?'A bill charged to a room folio is invoiced to the guest after checkout; give the business GSTIN on the room invoice.':undefined;
+        if(cmd.mode!=='outlet')return 'Choose how the bill is settled.';
+        if(!['Cash','UPI','Card'].includes(cmd.method))return 'Select Cash, UPI or Card.';
+        if(cmd.method!=='Cash'&&!String(cmd.reference??'').trim())return 'Enter the transaction reference.';
+        const o=s.posX?.orders.find(x=>x.id===String(cmd.id)),b=o?posBuyerOf(cmd,posOrderTotals(s,o).total):undefined;
+        return b&&'error' in b?b.error:undefined;},
       async send(c){
         const cmd=c.cmd,v=checkVersion(c);
         if(!v)throw new HccClientError('STALE_VERSION','This check was not loaded from the server. Refresh and try again.');
@@ -185,7 +206,7 @@ export const pos:SyncArea={id:'pos',
           if(till.tillId===null||!till.shiftOpen)throw new HccClientError('INVALID_TRANSITION','The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.');
           tillId=till.tillId;}
         const reference=String(cmd.reference??'').trim();
-        await c.api.command('SettleCheck',{orderId:checkId(cmd),mode:'outlet',tender:String(cmd.method),...(reference?{reference}:{}),...(tillId!==undefined?{tillId}:{})},{expectedVersion:v});
+        await c.api.command('SettleCheck',{orderId:checkId(cmd),mode:'outlet',tender:String(cmd.method),...(reference?{reference}:{}),...(tillId!==undefined?{tillId}:{}),...buyerOf(cmd)},{expectedVersion:v});
         // Cash went into the shared drawer: the money area's cash desk and cash book reload too.
         return tillId!==undefined?{reload:CASH_SLICES}:undefined;}},
     {type:'POS_VOID_ITEM',reload:['posX','approvals'],precheck:reasonCheck,
@@ -200,6 +221,13 @@ export const pos:SyncArea={id:'pos',
       async send(c){const reason=String(c.cmd.reason??'').trim();
         await c.api.command('DecideVoid',{voidRequestId:voidRequestIdOf(c.cmd.id),approve:!!c.cmd.approve,...(reason?{reason}:{})});
         return c.cmd.approve?{reload:CASH_SLICES}:undefined;}}, // an approved void of a cash bill takes the cash back out of the drawer
+    {type:'POS_INVOICE_ISSUE',reload:['posX'],
+      precheck:(cmd,s)=>{const o=s.posX?.orders.find(x=>x.id===String(cmd.id));
+        return !o?.settlement||o.status!=='Settled'?'Settle the bill first.':o.settlement.mode!=='outlet'?"This bill was charged to a room folio: it is on the guest's room tax invoice after checkout, not in the restaurant series.":undefined;},
+      async send(c){const st=posOrderOf(c)?.settlement;
+        if(!st?.billId)throw new HccClientError('STALE_VERSION','This bill was not loaded from the server. Refresh and try again.');
+        const r=await c.api.command<{invoiceNo:string;created:boolean}>('IssueInvoice',{sourceKind:'pos',sourceId:serverId(st.billId,'Bill')});
+        return {result:r};}},
     {type:'POS_MENU_TOGGLE',reload:['posX'],
       async send(c){const m=c.state.posX?.menu.find(x=>x.id===String(c.cmd.item));
         if(!m)throw new HccClientError('NOT_FOUND','Menu item not found.');

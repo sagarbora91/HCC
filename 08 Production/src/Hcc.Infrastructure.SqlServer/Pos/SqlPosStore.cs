@@ -29,7 +29,8 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
         """;
 
     private const string BillColumns = """
-        bill_id, order_id, bill_no, mode, tender, reference, net_paise, tax_bps, tax_paise, total_paise, business_date, till_id, shift_id, folio_id, charge_id, status
+        bill_id, order_id, bill_no, mode, tender, reference, net_paise, tax_bps, tax_paise, total_paise, business_date, till_id, shift_id, folio_id, charge_id, status,
+        cgst_paise, sgst_paise
         """;
 
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
@@ -563,12 +564,21 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
 
     private static BillRow ReadBill(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt64(1), rd.GetString(2), rd.GetString(3), Str(rd, 4), Str(rd, 5), SqlValues.ReadPaise(rd, 6),
         rd.GetInt32(7), SqlValues.ReadPaise(rd, 8), SqlValues.ReadPaise(rd, 9), rd.GetFieldValue<DateOnly>(10), rd.IsDBNull(11) ? null : rd.GetInt32(11),
-        rd.IsDBNull(12) ? null : rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt64(13), rd.IsDBNull(14) ? null : rd.GetInt64(14), rd.GetString(15));
+        rd.IsDBNull(12) ? null : rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt64(13), rd.IsDBNull(14) ? null : rd.GetInt64(14), rd.GetString(15),
+        rd.IsDBNull(16) ? null : SqlValues.ReadPaise(rd, 16), rd.IsDBNull(17) ? null : SqlValues.ReadPaise(rd, 17));
 
     public async Task<BillRow?> BillForOrderAsync(ICommandTransaction tx, long orderId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, $"SELECT {BillColumns} FROM pos.bill WHERE order_id = @o;");
         P(cmd, "@o", SqlDbType.BigInt, orderId);
+        return (await ReadAsync(cmd, ReadBill, ct).ConfigureAwait(false)).SingleOrDefault();
+    }
+
+    public async Task<BillRow?> BillByIdAsync(ICommandTransaction tx, int propertyId, long billId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, $"SELECT {BillColumns} FROM pos.bill WHERE bill_id = @b AND property_id = @p;");
+        P(cmd, "@b", SqlDbType.BigInt, billId);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
         return (await ReadAsync(cmd, ReadBill, ct).ConfigureAwait(false)).SingleOrDefault();
     }
 
@@ -667,6 +677,86 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
         return SqlValues.RowVersionToWire(v!);
     }
 
+    // ── menu change requests (D5, migration 3701) ──
+    private const string MenuRequestColumns = """
+        request_id, property_id, item_id, code, name, category, price_paise, veg, outlet_ids, price_before_paise, item_version, reason, status, requested_by, requested_utc, row_ver
+        """;
+
+    private static IReadOnlyList<int> OutletList(string csv) =>
+        csv.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+
+    private static MenuRequestRow ReadMenuRequest(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), rd.IsDBNull(2) ? null : rd.GetInt32(2), rd.GetString(3),
+        rd.GetString(4), rd.GetString(5), SqlValues.ReadPaise(rd, 6), rd.GetBoolean(7), OutletList(rd.GetString(8)), rd.IsDBNull(9) ? null : SqlValues.ReadPaise(rd, 9),
+        rd.IsDBNull(10) ? null : (byte[])rd[10], rd.IsDBNull(11) ? null : rd.GetString(11), rd.GetString(12), rd.GetInt32(13), Dt(rd, 14)!.Value, Ver(rd, 15));
+
+    public async Task<bool> PendingMenuRequestExistsAsync(ICommandTransaction tx, int propertyId, string code, int? itemId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, """
+            SELECT COUNT(*) FROM pos.menu_change_request WITH (UPDLOCK, HOLDLOCK)
+            WHERE property_id = @p AND status = 'Pending' AND (code = @c OR (@i IS NOT NULL AND item_id = @i));
+            """);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        P(cmd, "@c", SqlDbType.VarChar, code, 20);
+        P(cmd, "@i", SqlDbType.Int, itemId);
+        return (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0;
+    }
+
+    public async Task<long> InsertMenuRequestAsync(ICommandTransaction tx, NewMenuRequest r, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(r);
+        await using var cmd = Cmd(tx, """
+            INSERT pos.menu_change_request(property_id, item_id, code, name, category, price_paise, price_before_paise, veg, outlet_ids, item_version, reason, status,
+                requested_by, requested_utc)
+            OUTPUT INSERTED.request_id VALUES (@p, @i, @c, @n, @g, @a, @b, @v, @o, @iv, @r, 'Pending', @by, @u);
+            """);
+        P(cmd, "@p", SqlDbType.Int, r.PropertyId);
+        P(cmd, "@i", SqlDbType.Int, r.ItemId);
+        P(cmd, "@c", SqlDbType.VarChar, r.Code, 20);
+        P(cmd, "@n", SqlDbType.NVarChar, r.Name, 100);
+        P(cmd, "@g", SqlDbType.NVarChar, r.Category, 60);
+        P(cmd, "@a", SqlDbType.BigInt, r.Price.Value);
+        P(cmd, "@b", SqlDbType.BigInt, r.PriceBefore?.Value);
+        P(cmd, "@v", SqlDbType.Bit, r.Veg);
+        P(cmd, "@o", SqlDbType.VarChar, string.Join(',', r.OutletIds.Select(x => x.ToString(System.Globalization.CultureInfo.InvariantCulture))), 400);
+        P(cmd, "@iv", SqlDbType.Binary, r.ItemVersion, 8);
+        P(cmd, "@r", SqlDbType.NVarChar, r.Reason, 200);
+        P(cmd, "@by", SqlDbType.Int, r.RequestedBy);
+        Utc(cmd, "@u", r.RequestedUtc);
+        return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+    }
+
+    public async Task<MenuRequestRow?> LockMenuRequestAsync(ICommandTransaction tx, int propertyId, long requestId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, $"SELECT {MenuRequestColumns} FROM pos.menu_change_request WITH (UPDLOCK) WHERE request_id = @r AND property_id = @p;");
+        P(cmd, "@r", SqlDbType.BigInt, requestId);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        return (await ReadAsync(cmd, ReadMenuRequest, ct).ConfigureAwait(false)).SingleOrDefault();
+    }
+
+    public async Task DecideMenuRequestAsync(ICommandTransaction tx, long requestId, string status, int decidedBy, DateTime utc, string? reason, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, """
+            UPDATE pos.menu_change_request SET status = @s, decided_by = @b, decided_utc = @u, decision_reason = @r
+            WHERE request_id = @q AND status = 'Pending';
+            """);
+        P(cmd, "@s", SqlDbType.VarChar, status, 8);
+        P(cmd, "@b", SqlDbType.Int, decidedBy);
+        Utc(cmd, "@u", utc);
+        P(cmd, "@r", SqlDbType.NVarChar, reason, 200);
+        P(cmd, "@q", SqlDbType.BigInt, requestId);
+        SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "The menu change request");
+    }
+
+    public async Task<IReadOnlyList<MenuRequestView>> PendingMenuRequestsAsync(int propertyId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command($"SELECT {MenuRequestColumns} FROM pos.menu_change_request WHERE property_id = @p AND status = 'Pending' ORDER BY request_id;", conn);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        var rows = await ReadAsync(cmd, ReadMenuRequest, ct).ConfigureAwait(false);
+        return rows.Select(r => new MenuRequestView(r.RequestId, r.ItemId, r.Code, r.Name, r.Category, r.Price.Value, r.PriceBefore?.Value, r.Veg, r.OutletIds, r.Reason,
+            r.RequestedBy, r.RequestedUtc, r.Version)).ToList();
+    }
+
     // ── queries ──
 
     public async Task<DateOnly?> PropertyBusinessDateAsync(int propertyId, CancellationToken ct)
@@ -736,6 +826,23 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
             head = (await ReadAsync(c, rd => (Dt(rd, 0), rd.GetInt32(1), Str(rd, 2), Dt(rd, 3), rd.IsDBNull(4) ? (long?)null : rd.GetInt64(4)), ct).ConfigureAwait(false)).Single();
         }
 
+        // DEC-072: the outlet bill's GST tax invoice (source kind pos = this bill) and the credit note that reversed it after a void.
+        PosBillInvoiceView? invoice = null;
+        if (bill is not null)
+        {
+            await using var c = connections.Command("""
+                SELECT i.invoice_id, i.invoice_no, i.doc_type, i.invoice_date, i.supply_type, i.buyer_name, i.buyer_gstin, i.supplier_gstin, l.sac, i.cgst_paise, i.sgst_paise,
+                       (SELECT TOP 1 n.credit_note_no FROM ivc.credit_note n WHERE n.invoice_id = i.invoice_id ORDER BY n.credit_note_id)
+                FROM ivc.invoice i LEFT JOIN ivc.invoice_line l ON l.invoice_id = i.invoice_id AND l.line_no = 1
+                WHERE i.property_id = @p AND i.source_kind = 'pos' AND i.source_id = @b;
+                """, conn, tx);
+            P(c, "@p", SqlDbType.Int, propertyId);
+            P(c, "@b", SqlDbType.BigInt, bill.BillId);
+            invoice = (await ReadAsync(c, rd => new PosBillInvoiceView(rd.GetInt64(0), rd.GetString(1), rd.GetString(2).Trim(), rd.GetFieldValue<DateOnly>(3), rd.GetString(4),
+                Str(rd, 5), Str(rd, 6)?.Trim(), rd.GetString(7).Trim(), Str(rd, 8)?.Trim() ?? string.Empty, rd.GetInt64(9), rd.GetInt64(10), Str(rd, 11)), ct).ConfigureAwait(false))
+                .SingleOrDefault();
+        }
+
         await tx.CommitAsync(ct).ConfigureAwait(false);
         var kotStatus = kots.ToDictionary(k => k.KotId, k => k.Status);
         var views = lines.Select(l => new LineView(l.LineId, l.ItemId, l.Name, l.Price.Value, l.Qty, new PosLineAmount(l.Price, l.Qty).Value.Value, l.KotId,
@@ -747,7 +854,7 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
             : PosRules.Totals(active.Select(l => new PosLineAmount(l.Price, l.Qty)), taxBps);
         var spot = o.TableNo is not null ? "Table " + o.TableNo : "Room " + o.RoomNo;
         var billView = bill is null ? null : new BillView(bill.BillId, bill.BillNo, bill.Mode, bill.Tender, bill.Reference, bill.Net.Value, bill.TaxBps, bill.Tax.Value,
-            bill.Total.Value, bill.BusinessDate, bill.Status, settledUtc, settledBy, billReservation);
+            bill.Total.Value, bill.BusinessDate, bill.Status, settledUtc, settledBy, billReservation, invoice);
         return new CheckView(o.OrderId, o.OutletId, o.OutletName, spot, o.Guest, o.Covers, o.BusinessDate, o.Status, o.Version, o.PendingVoidId, views, kots,
             t.Net.Value, t.TaxBps, t.Tax.Value, t.Total.Value, items, billView, head.OpenedUtc, head.OpenedBy, head.Reason, head.VoidedUtc, head.Res);
     }

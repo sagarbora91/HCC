@@ -341,6 +341,11 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
                        ISNULL(SUM(CASE x.kind WHEN 'company-credit' THEN x.amount_paise END), 0)
                 FROM pay.receipt x JOIN bill.folio f ON f.folio_id = x.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
                 WHERE r.property_id = @p AND x.business_date = @d;
+                -- DEC-074 (wave B3): group master folios — attrition net and GST, receipts in − out (posted on that business date).
+                SELECT ISNULL(SUM(CASE WHEN e.kind = 'attrition' THEN e.amount_paise END), 0), ISNULL(SUM(CASE WHEN e.kind = 'attrition' THEN e.tax_paise END), 0),
+                       ISNULL(SUM(CASE e.kind WHEN 'payment' THEN e.amount_paise WHEN 'deposit' THEN e.amount_paise WHEN 'refund' THEN -e.amount_paise END), 0)
+                FROM grp.master_entry e JOIN grp.group_account g ON g.group_id = e.group_id
+                WHERE g.property_id = @p AND e.business_date = @d;
                 """, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
@@ -349,7 +354,10 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
             var (room, service, discount, adjustment, tax) = (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3), rd.GetInt64(4));
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             await rd.ReadAsync(ct).ConfigureAwait(false);
-            return new OperationalFigures(room, service, discount, adjustment, tax, rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2));
+            var (receipts, deposits, credit) = (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            await rd.ReadAsync(ct).ConfigureAwait(false);
+            return new OperationalFigures(room, service, discount, adjustment, tax, receipts, deposits, credit, rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2));
         }, ct);
 
     public Task<IReadOnlyList<DateOnly>> ActivityDatesAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct)
@@ -368,6 +376,110 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(AccSql.Date(rd, 0));
             return list;
         }, ct);
+
+    // ── DEC-077: reopened business day (cls.day_reopen, read only) and the Tally export log (migration 3601) ──
+
+    public Task<DateOnly?> ReopenedDateAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
+        => WithAsync<DateOnly?>(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("SELECT business_date FROM cls.day_reopen WHERE property_id = @p AND reclosed_utc IS NULL;", c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is DateTime d ? DateOnly.FromDateTime(d) : null;
+        }, ct);
+
+    public Task<bool> TallyExportedAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct)
+        => WithAsync(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("SELECT CASE WHEN EXISTS (SELECT 1 FROM acc.tally_export_day WHERE property_id = @p AND business_date = @d) THEN 1 ELSE 0 END;", c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture) == 1;
+        }, ct);
+
+    public Task<bool> FlagTallyReexportAsync(ICommandTransaction tx, int propertyId, DateOnly date, long? reopenId, string reason, DateTime now, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        return WithAsync(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("""
+                DECLARE @exported BIT = CASE WHEN EXISTS (SELECT 1 FROM acc.tally_export_day WHERE property_id = @p AND business_date = @d) THEN 1 ELSE 0 END;
+                IF @exported = 1 AND NOT EXISTS (SELECT 1 FROM acc.tally_reexport WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND business_date = @d AND cleared_export_id IS NULL)
+                  INSERT acc.tally_reexport(property_id, business_date, reopen_id, reason, marked_utc) VALUES (@p, @d, @r, @why, @now);
+                SELECT @exported;
+                """, c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+            cmd.Parameters.Set("@r", SqlDbType.BigInt, reopenId);
+            cmd.Parameters.Set("@why", SqlDbType.NVarChar, reason, 200);
+            cmd.Parameters.Set("@now", SqlDbType.DateTime2, now);
+            return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is true;
+        }, ct);
+    }
+
+    public Task<IReadOnlyList<TallyReexportFlag>> TallyReexportsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
+        => WithAsync<IReadOnlyList<TallyReexportFlag>>(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("""
+                SELECT reexport_id, business_date, reopen_id, reason, marked_utc FROM acc.tally_reexport
+                WHERE property_id = @p AND cleared_export_id IS NULL ORDER BY business_date;
+                """, c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            var list = new List<TallyReexportFlag>();
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                list.Add(new TallyReexportFlag(rd.GetInt64(0), AccSql.Date(rd, 1), rd.IsDBNull(2) ? null : rd.GetInt64(2), rd.GetString(3), DateTime.SpecifyKind(rd.GetDateTime(4), DateTimeKind.Utc)));
+            return list;
+        }, ct);
+
+    public async Task<long> RecordTallyExportAsync(ICommandTransaction tx, NewTallyExport export, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(export);
+        return await WithAsync(tx, async (c, t) =>
+        {
+            long id;
+            await using (var cmd = Cmd("""
+                INSERT acc.tally_export(property_id, from_date, to_date, voucher_count, debit_paise, credit_paise, exported_by, exported_utc)
+                OUTPUT INSERTED.export_id VALUES (@p, @f, @t, @n, @dr, @cr, @u, @now);
+                """, c, t))
+            {
+                cmd.Parameters.Set("@p", SqlDbType.Int, export.PropertyId);
+                cmd.Parameters.Set("@f", SqlDbType.Date, export.From.ToDateTime(TimeOnly.MinValue));
+                cmd.Parameters.Set("@t", SqlDbType.Date, export.To.ToDateTime(TimeOnly.MinValue));
+                cmd.Parameters.Set("@n", SqlDbType.Int, export.VoucherCount);
+                cmd.Parameters.Set("@dr", SqlDbType.BigInt, export.Debit);
+                cmd.Parameters.Set("@cr", SqlDbType.BigInt, export.Credit);
+                cmd.Parameters.Set("@u", SqlDbType.Int, export.ExportedBy);
+                cmd.Parameters.Set("@now", SqlDbType.DateTime2, export.ExportedUtc);
+                id = (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+            }
+
+            foreach (var (date, vouchers, reexport, provisional) in export.Days)
+            {
+                await using var cmd = Cmd("""
+                    INSERT acc.tally_export_day(export_id, property_id, business_date, voucher_count, reexport, provisional) VALUES (@e, @p, @d, @n, @re, @pr);
+                    """, c, t);
+                cmd.Parameters.Set("@e", SqlDbType.BigInt, id);
+                cmd.Parameters.Set("@p", SqlDbType.Int, export.PropertyId);
+                cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+                cmd.Parameters.Set("@n", SqlDbType.Int, vouchers);
+                cmd.Parameters.Set("@re", SqlDbType.Bit, reexport);
+                cmd.Parameters.Set("@pr", SqlDbType.Bit, provisional);
+                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+
+            foreach (var flag in export.ClearFlags)
+            {
+                await using var cmd = Cmd("UPDATE acc.tally_reexport SET cleared_export_id = @e, cleared_utc = @now WHERE reexport_id = @x AND cleared_export_id IS NULL;", c, t);
+                cmd.Parameters.Set("@e", SqlDbType.BigInt, id);
+                cmd.Parameters.Set("@now", SqlDbType.DateTime2, export.ExportedUtc);
+                cmd.Parameters.Set("@x", SqlDbType.BigInt, flag);
+                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+
+            return id;
+        }, ct).ConfigureAwait(false);
+    }
 
     public async Task<string> PropertyNameAsync(int propertyId, CancellationToken ct)
         => await WithAsync<string>(null, async (c, t) =>

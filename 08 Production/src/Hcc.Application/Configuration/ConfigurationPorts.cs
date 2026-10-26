@@ -8,16 +8,19 @@ using Hcc.Domain.Errors;
 namespace Hcc.Application.Configuration;
 
 /// <summary>
-/// PERM ids used by Master configuration (all seeded by 0101). DEC-058 mapping without a new PERM id (the 0101 seed tests pin 45
-/// permissions): <see cref="Configuration"/> allow (Owner) = every group; its view cell (Tech admin, matrix "V") = non-money
-/// groups, with approval where a setting names an approver; <see cref="DecideManagerApproved"/> lets a Manager decide requests whose
-/// approver is "Manager" (prototype: Manager or Owner). Everyone signed in may read the module switches.
+/// PERM ids of Master configuration: the module's own set from role matrix v2 (DEC-079, migration 3700; DEC-057/058, D4) instead of
+/// PERM-ADM-003 and its view cell. <see cref="ConfigurationView"/> = read the hub (Owner, Tech admin); <see cref="NonMoney"/> = change the
+/// non-money groups, with approval where a setting names an approver (Owner, Tech admin); <see cref="Configuration"/> = every group incl.
+/// money, tax, payroll, compliance and approval limits, and deciding requests (Owner only, never their own). The Manager has no configuration
+/// page (DEC-063 G9), so <see cref="DecideManagerApproved"/> is the Owner's permission too: a request naming the Manager is decided by the
+/// Owner. Everyone signed in may read the module switches.
 /// </summary>
 public static partial class ConfigurationPermissions
 {
-    public const string Configuration = "PERM-ADM-003";
-    public const string ConfigurationView = Configuration + ":VIEW";
-    public const string DecideManagerApproved = "PERM-APR-001";
+    public const string ConfigurationView = "PERM-CFG-001";
+    public const string NonMoney = "PERM-CFG-002";
+    public const string Configuration = "PERM-CFG-003";
+    public const string DecideManagerApproved = Configuration;
 
     [GeneratedRegex(@"^[a-z][a-zA-Z0-9._-]{1,79}$")]
     internal static partial Regex KeyPattern();
@@ -223,8 +226,15 @@ public sealed class ConfigAuthorityResolver(IAccessPolicy policy)
         }
         catch (HccException ex) when (ex.Code is HccErrorCode.FORBIDDEN or HccErrorCode.APPROVAL_REQUIRED)
         {
-            return await policy.HasAsync(propertyId, principalId, ConfigurationPermissions.ConfigurationView, null, ct).ConfigureAwait(false)
-                ? ConfigAuthority.Technical : ConfigAuthority.None;
+            try
+            {
+                await policy.RequireAsync(propertyId, principalId, ConfigurationPermissions.NonMoney, null, null, ct).ConfigureAwait(false);
+                return ConfigAuthority.Technical;
+            }
+            catch (HccException inner) when (inner.Code is HccErrorCode.FORBIDDEN or HccErrorCode.APPROVAL_REQUIRED)
+            {
+                return ConfigAuthority.None;
+            }
         }
     }
 

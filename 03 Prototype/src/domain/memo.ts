@@ -13,7 +13,7 @@ export function memoByDeps<R>(size=8){
     const value=compute();store.unshift({deps,key,value});if(store.length>size)store.pop();return value;};
 }
 /** Everything reportPack / cbRange read from the state. */
-const moneyDeps=(s:State)=>[s.bookings,s.expenses,s.rooms,s.posX,s.closings,s.closedDates,s.date,s.openingCash,s.shiftClose,s.cashbookX];
+const moneyDeps=(s:State)=>[s.bookings,s.expenses,s.rooms,s.posX,s.closings,s.closedDates,s.date,s.openingCash,s.shiftClose,s.cashbookX,s.cashOutX];
 const packMemo=memoByDeps<ReportPack>(6),cbMemo=memoByDeps<CBRange>(6);
 /** reportPack for a range, reused while the underlying records are unchanged. Treat the result as read-only. */
 export const reportPackMemo=(s:State,from:string,to:string)=>packMemo(moneyDeps(s),from+'|'+to,()=>reportPack(s,from,to));

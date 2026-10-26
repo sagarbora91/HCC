@@ -8,6 +8,7 @@ import {money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLa
 import {ListCard} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {mfInitials} from './logic';
+import {PrintListButton} from '../../features/guests/FrontDeskList';
 import {MfSearch,MfStatus,useMfTop} from './shared';
 
 export function MfInHouse(){
@@ -18,6 +19,7 @@ export function MfInHouse(){
   return <div className="mf-page">
     <MfSearch value={search} onChange={setSearch} placeholder="Search guest, room or booking"/>
     <p className="mf-count">{all.length} stay{all.length===1?'':'s'} in house · business date {shortDate(s.date)}</p>
+    <PrintListButton kind="inhouse" className="btn full mf-more"/>
     {list.length?list.map(b=>{const due=b.departure<=s.date;
       return <ListCard key={b.id} title={<span className="mf-lc-guest"><span className="mf-room-no">{b.room}</span>{b.guest}</span>}
         sub={`${shortDate(b.arrival)} – ${shortDate(b.departure)}${staySegments(b).length>1?' · '+staySegmentLabel(b):''}`} meta={bookingRef(b)}

@@ -1,5 +1,6 @@
 // Core prototype types. Pure data — no React, no storage.
-export type Role='Owner'|'Manager'|'Reception'|'Cashier'|'Supervisor'|'Housekeeper'|'Accountant'|'Maintenance'|'Tech admin';
+/** 'Restaurant' = role matrix v2 D1 (DEC-079): the PIN-signed waiter role of the production server (RST); the demo fixture has no such user. */
+export type Role='Owner'|'Manager'|'Reception'|'Cashier'|'Supervisor'|'Housekeeper'|'Accountant'|'Maintenance'|'Tech admin'|'Restaurant';
 export type Permission='reservations'|'checkin'|'billing'|'payments'|'checkout'|'housekeeping'|'inspect'|'expenses'|'approve'|'close'|'reports'|'admin'|'masters';
 /** 'masters' (MA-0, DEC-MA-1): change operational lists in Master configuration (floors …); Owner + Tech admin by default, grantable. */
 export const permissions:Permission[]=['reservations','checkin','billing','payments','checkout','housekeeping','inspect','expenses','approve','close','reports','admin','masters'];
@@ -112,7 +113,9 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   segments?:{room:string;from:string;to?:string}[];
 
   // ── Booking · stream C fields (add below this line) ──
-  company?:{name:string;gstin?:string};
+  /** `account` (DEC-076) = the stay is billed to that company account (Groups & corporate › Companies): it counts in the company's credit
+   *  exposure and may go on company credit. Without it the company is invoice details only (the guest pays). */
+  company?:{name:string;gstin?:string;account?:string};
   /** Sample invoice number, allocated once at checkout (DEMO/2026-27/NNNN). */
   invoiceNo?:string;
   /** Sample credit notes issued after departure. */
@@ -223,7 +226,8 @@ export type State={
   /** Simulated hotel clock, local Asia/Kolkata time YYYY-MM-DDTHH:mm. Never the real clock (DEC-030). */
   clock:string;
   rooms:Room[];bookings:Booking[];users:User[];tasks:Task[];expenses:Expense[];approvals:Approval[];audit:Audit[];
-  grants:Record<Role,Permission[]>;settings:Settings;
+  /** Coarse grants per role. Partial: the production-only Restaurant role (DEC-079 D1) has no demo entry; production fills the signed-in role. */
+  grants:Partial<Record<Role,Permission[]>>;settings:Settings;
   openingCash:number;shiftOpen:boolean;shiftClose?:{expected:number;counted:number;/** Who counted the drawer (W05 review F1; absent in old saves). */countedBy?:string};
   closedDates:string[];
   /** Idempotency keys already executed. A repeated key returns the earlier result (no new effect). */
@@ -276,6 +280,8 @@ export type State={
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
   cashbookX?:import('./streams/cashbook').CBState;
+  /** Wave B1 (DEC-073 / DEC-078): bank deposits, till transfers, Owner drawings, the other tills and the desk shift's opener. */
+  cashOutX?:import('./streams/cashout').CXState;
   /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
   configX?:import('./streams/config').CFGState;
   /** MA-0 masters framework: stored master rows per list + change history (absent = fixture seed). */

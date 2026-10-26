@@ -39,7 +39,8 @@ public abstract class OtaSqlTest : IAsyncLifetime
     protected async Task ConnectAsync(string code)
     {
         var c = await ChannelAsync(code);
-        await F.Service.SetStatusAsync(F.Ctx(F.Manager, "SetChannelStatus"), new SetChannelStatusRequest(c.ChannelId, c.Version, ChannelActions.Connect), Ct);
+        // DEC-079 D7 / DEC-057: connecting a channel is a module switch (PERM-OTA-005: Owner and Tech admin).
+        await F.Service.SetStatusAsync(F.Ctx(F.TechAdmin, "SetChannelStatus"), new SetChannelStatusRequest(c.ChannelId, c.Version, ChannelActions.Connect), Ct);
     }
 
     protected async Task<AvailabilityResult> SuiteAvailabilityAsync(string a, string d)

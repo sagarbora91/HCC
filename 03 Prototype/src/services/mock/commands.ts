@@ -177,7 +177,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
     assert(cmd.role!=='Owner','Owner template is protected in this prototype.','FORBIDDEN');
     assert(cmd.role!==user.role,'You cannot change the permissions of your own role.','FORBIDDEN');
     assert(cmd.permission!=='admin','Administrator delegation is outside this prototype.','FORBIDDEN');
-    const arr=s.grants[cmd.role as Role];
+    const arr=s.grants[cmd.role as Role]??[];
     s.grants[cmd.role as Role]=arr.includes(cmd.permission)?arr.filter(p=>p!==cmd.permission):[...arr,cmd.permission];
     detail=`${cmd.role} · ${cmd.permission} ${arr.includes(cmd.permission)?'removed':'granted'}`;break;}
   case 'SETTINGS':{

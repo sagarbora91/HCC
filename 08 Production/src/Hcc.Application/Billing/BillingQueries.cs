@@ -9,7 +9,7 @@ using Hcc.Domain.Payments;
 
 namespace Hcc.Application.Billing;
 
-/// <summary>GetFolio (PERM-FOL-001), GetShift (PERM-SHF-001, own-shift scope), collections (PERM-RPT-002).</summary>
+/// <summary>GetFolio (PERM-FOL-001), GetShift (PERM-SHF-001, own-shift scope), collections (PERM-RPT-002, the Cashier's own-shift cell included).</summary>
 public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, TimeProvider clock)
 {
     // ETP-REUSE: folio / sample invoice / credit note PDF and Excel via ETP exporters (Hcc.Reporting) when V:\ETP is available.
@@ -51,10 +51,15 @@ public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, Ti
     }
 
     // ETP-REUSE: Tally export of receipts / cash book from ETP when V:\ETP is available.
+    /// <summary>
+    /// The daily collections report: receipts of one business date by tender, deposits and deposit returns. DEC-079: the Cashier sees it (the
+    /// matrix's finance-report cell V·S counts here at any scope: one shared till per day, DEC-052), while every other finance report (closing
+    /// records and snapshots, cash book, daily report) and the books (PERM-ACC-001) stay property-wide, so the Cashier is refused those.
+    /// </summary>
     public async Task<CollectionsView> GetCollectionsAsync(Caller caller, DateOnly businessDate, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(caller);
-        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FinanceReport, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FinanceReport, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         var receipts = await store.ReceiptsOnAsync(caller.PropertyId, businessDate, ct).ConfigureAwait(false);
         var byTender = receipts.Where(r => r.Kind is ReceiptKind.Payment or ReceiptKind.Refund)
             .GroupBy(r => r.Tender, StringComparer.Ordinal)
@@ -84,7 +89,8 @@ public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, Ti
         if (desk.BusinessDate is not { } date) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
         var now = clock.GetUtcNow().UtcDateTime;
         CashDeskShiftView? Shift(CashDeskShiftRead? s) => s is null ? null
-            : new CashDeskShiftView(CashierService.ToResult(s.Shift), s.Shift.SubmittedBy, s.Reason, s.ClosedBy, s.Approval is { } a ? ToView(a, now) : null);
+            : new CashDeskShiftView(CashierService.ToResult(s.Shift), s.Shift.SubmittedBy, s.Reason, s.ClosedBy, s.Approval is { } a ? ToView(a, now) : null,
+                s.OpenedBy, s.HandoverCount?.Value, s.HandoverCount is { } h ? (h - s.Shift.OpeningFloat).Value : null, s.HandoverReason); // DEC-078 opener + handover
         var tills = new List<CashDeskTillView>();
         foreach (var t in desk.Tills)
         {

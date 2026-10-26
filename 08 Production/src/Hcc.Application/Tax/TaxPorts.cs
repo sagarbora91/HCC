@@ -4,13 +4,14 @@ using Hcc.Domain.Tax;
 
 namespace Hcc.Application.Tax;
 
-/// <summary>PERM ids of the GST master (DEC-058: money/tax settings are Owner-only; Tech admin read-only).</summary>
+/// <summary>PERM ids of the GST master (DEC-058: money/tax settings are Owner-only; Tech admin read-only; role matrix v2, DEC-079).</summary>
 public static class TaxPermissions
 {
-    /// <summary>admin.configuration — seeded OWN = A (change), TAD = V (read). Reads use the <c>:VIEW</c> variant.</summary>
-    public const string Configuration = "PERM-ADM-003";
+    /// <summary>Change money and tax configuration (PERM-CFG-003): Owner only.</summary>
+    public const string Configuration = "PERM-CFG-003";
 
-    public const string ConfigurationView = "PERM-ADM-003:VIEW";
+    /// <summary>Read the configuration hub (PERM-CFG-001): Owner, Tech admin (view).</summary>
+    public const string ConfigurationView = "PERM-CFG-001";
 }
 
 /// <summary>

@@ -11,6 +11,8 @@ export * from './runtime';
 export * from './registry';
 export {core} from './core';
 export {cashBlockedReason,shiftClosedText,CASH_NEEDS_OWN_SHIFT} from './money';
+export {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,grpSetBlocksOnServer} from '../../domain/streams/groups'; // DEC-080 group-block switch (tests flip it)
+export {cashTransferFromServer,cashDeskFromServer} from './cashier'; // Wave B1 (DEC-073 / DEC-078)
 export {signInText,errorText,HccClientError} from '../errors';
 export {reservations,bookingFromServer} from './reservations';
 export * from './guestid';
@@ -20,3 +22,5 @@ export {createHttpTransport,dispositionFileName} from '../http';
 export {loadServerReport,loadServerHistory,closingFromDailyView,todayFigures,fyMonths,REPORT_MAX_DAYS,SERVER_DETAIL_NOTE} from './reports';
 export * from './reads';
 export {MST_SERVER} from './masters';
+export {orderFromServer} from './pos';
+export {gstr1FromServer,loadServerGstr1} from './gstr1';

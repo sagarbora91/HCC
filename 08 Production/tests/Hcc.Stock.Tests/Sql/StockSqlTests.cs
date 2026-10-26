@@ -50,6 +50,7 @@ public class StockSqlTests : IAsyncLifetime
         Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.ItemsAsync(_w.PropertyId, Users.Reception, ct: Ct)));
         Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.ItemsAsync(_w.PropertyId, Users.Maint, ct: Ct)));
         Assert.NotNull(await _w.Queries.ItemsAsync(_w.PropertyId, Users.Accountant, ct: Ct)); // finance sees stock value
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Queries.ItemsAsync(_w.PropertyId, Users.Cashier, ct: Ct))); // DEC-079 D3: no stock money for the Cashier
     }
 
     [Fact]

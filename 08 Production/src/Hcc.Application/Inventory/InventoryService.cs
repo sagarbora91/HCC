@@ -16,7 +16,7 @@ namespace Hcc.Application.Inventory;
 /// through <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox in one transaction). Times from the injected clock.
 /// </summary>
 public sealed class InventoryService(IInventoryStore store, ICommandRunner runner, IAccessPolicy access, IGstRateResolver gst, TimeProvider clock,
-    IRoomBlockHistoryReader? blockHistory = null)
+    IRoomBlockHistoryReader? blockHistory = null, GroupBlockOptions? groupBlocks = null)
 {
     /// <summary>Quote lifetime. Wave 1 default; a configuration setting later (owner decision listed in the P2 report).</summary>
     public static readonly TimeSpan QuoteLifetime = TimeSpan.FromMinutes(30);
@@ -118,6 +118,8 @@ public sealed class InventoryService(IInventoryStore store, ICommandRunner runne
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         await access.RequireAsync(context.PropertyId, context.PrincipalId, InventoryPermissions.CreateReservation, ct: ct).ConfigureAwait(false);
+        // DEC-080 / A02b-04: no block until pickup, release, cancel and re-allot exist (Hcc:GroupBlocks:Enabled). Nothing is audited or stored.
+        if (groupBlocks is not { Enabled: true }) throw GroupBlockOptions.Refusal();
         await store.SweepAsync(context.PropertyId, context.PrincipalId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
         return await runner.RunAsync(context, request, async (tx, c) =>
         {

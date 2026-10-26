@@ -2,8 +2,10 @@ using Hcc.Domain.Money;
 
 namespace Hcc.Domain.Invoices;
 
-/// <summary>An issued invoice as the GSTR-1 summary needs it.</summary>
-public sealed record Gstr1Invoice(string Number, InvoiceDocType DocType, SupplyType Supply, bool InterState, Paise Total, IReadOnlyList<InvoiceLine> Lines);
+/// <summary>An issued invoice as the GSTR-1 summary needs it. <paramref name="Cancelled"/>: a restaurant (RST) invoice whose POS bill was voided
+/// (DEC-072; reversed in full by its credit note), counted as cancelled in the documents-issued table.</summary>
+public sealed record Gstr1Invoice(string Number, InvoiceDocType DocType, SupplyType Supply, bool InterState, Paise Total, IReadOnlyList<InvoiceLine> Lines,
+    bool Cancelled = false);
 
 /// <summary>An issued credit note with the supply facts of its invoice.</summary>
 public sealed record Gstr1CreditNote(string Number, SupplyType Supply, bool InterState, Paise InvoiceTotal, IReadOnlyList<CreditLine> Lines);
@@ -12,14 +14,17 @@ public sealed record Gstr1Row(string Section, int Bps, Paise Taxable, Paise Cgst
 
 public sealed record Gstr1SacRow(string Sac, int Bps, Paise Taxable, Paise Cgst, Paise Sgst, Paise Igst);
 
-public sealed record Gstr1DocRow(string DocType, string First, string Last, int Count);
+/// <summary>Table 13 row: the series' first and last number in the period, how many were issued and how many of those were cancelled
+/// (net issued = Count − Cancelled).</summary>
+public sealed record Gstr1DocRow(string DocType, string First, string Last, int Count, int Cancelled = 0);
 
 public sealed record Gstr1Result(IReadOnlyList<Gstr1Row> Rates, IReadOnlyList<Gstr1SacRow> Sac, IReadOnlyList<Gstr1DocRow> Documents);
 
 /// <summary>
 /// GSTR-1 style summary for a period (a working aid for the CA, not a return file): outward supplies by section and rate — B2B,
 /// B2CL (unregistered, inter-state, invoice above <see cref="B2clThreshold"/>), B2CS (other unregistered, net of their credit notes),
-/// CDNR / CDNUR (credit notes on B2B / B2CL invoices) — the SAC summary (table 12, net of credit notes) and documents issued (table 13).
+/// CDNR / CDNUR (credit notes on B2B / B2CL invoices) — the SAC summary (table 12, net of credit notes) and documents issued (table 13:
+/// one row per series — INV room / stay invoices, RST restaurant invoices (DEC-072), BOS, CRN — with the cancelled count).
 /// Bill-of-supply lines (0 %) are reported as nil-rated under the same sections at rate 0. Thresholds: CA TO CONFIRM.
 /// </summary>
 public static class Gstr1Summary
@@ -76,8 +81,10 @@ public static class Gstr1Summary
             .Select(kv => new Gstr1Row(kv.Key.Item1, kv.Key.Item2, kv.Value.T, kv.Value.C, kv.Value.S, kv.Value.I, kv.Value.Docs.Count)).ToList();
         var sacRows = sac.OrderBy(kv => kv.Key.Item1, StringComparer.Ordinal).ThenBy(kv => kv.Key.Item2)
             .Select(kv => new Gstr1SacRow(kv.Key.Item1, kv.Key.Item2, kv.Value.T, kv.Value.C, kv.Value.S, kv.Value.I)).ToList();
-        var docs = invoices.GroupBy(i => InvoiceNumbering.Code(i.DocType)).Select(g => Docs(g.Key, g.Select(x => x.Number)))
-            .Concat(notes.Count > 0 ? [Docs("CRN", notes.Select(n => n.Number))] : []).ToList();
+        string[] series = ["INV", "RST", "BOS"];
+        var docs = invoices.GroupBy(i => InvoiceNumbering.Code(i.DocType)).OrderBy(g => Array.IndexOf(series, g.Key))
+            .Select(g => Docs(g.Key, g.Select(x => x.Number), g.Count(x => x.Cancelled)))
+            .Concat(notes.Count > 0 ? [Docs("CRN", notes.Select(n => n.Number), 0)] : []).ToList();
         return new Gstr1Result(rateRows, sacRows, docs);
     }
 
@@ -104,9 +111,9 @@ public static class Gstr1Summary
 
     private static Paise Mul(Paise p, int sign) => sign >= 0 ? p : -p;
 
-    private static Gstr1DocRow Docs(string type, IEnumerable<string> numbers)
+    private static Gstr1DocRow Docs(string type, IEnumerable<string> numbers, int cancelled)
     {
         var list = numbers.OrderBy(n => n, StringComparer.Ordinal).ToList();
-        return new Gstr1DocRow(type, list[0], list[^1], list.Count);
+        return new Gstr1DocRow(type, list[0], list[^1], list.Count, cancelled);
     }
 }

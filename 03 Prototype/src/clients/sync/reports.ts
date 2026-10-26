@@ -13,6 +13,14 @@ export const SERVER_DETAIL_NOTE='Details (source rows) are on the server PC. Thi
 
 export type ServerReport={pack:ReportPack;view:SrvDailyView;asOfUtc:string};
 
+/** GET /cashier/collections (Billing CollectionsView): receipts of one business date by tender, deposits in and out. */
+export type SrvCollections={businessDate:string;collectionsPaise:number;byTenderPaise:Record<string,number>;depositsReceivedPaise:number;depositsReturnedPaise:number};
+export type ServerCollections={view:SrvCollections;asOfUtc:string};
+/** The daily collections report (DEC-079: what the Cashier sees instead of the finance reports and the books). */
+export async function loadCollections(api:SyncApi,date:string,now:()=>Date=()=>new Date()):Promise<ServerCollections>{
+  return {view:await api.get<SrvCollections>('/cashier/collections',{date}),asOfUtc:now().toISOString()};
+}
+
 /** One server report for a range of at most REPORT_MAX_DAYS dates. */
 export async function loadServerReport(api:SyncApi,from:string,to:string,now:()=>Date=()=>new Date()):Promise<ServerReport>{
   const view=await api.get<SrvDailyView>('/reports/daily',{from,to});

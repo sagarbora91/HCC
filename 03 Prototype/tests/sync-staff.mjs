@@ -69,7 +69,8 @@ export async function register({test,assert,M}){
     'GET /payroll/board':()=>srvData.board,
     'POST /commands/SaveStaff':({body})=>({staffId:body.staffId??113,name:body.name,version:'v2',notes:'saved'}),
     ...Object.fromEntries(['SetStaffActive','SetRoster','CopyRosterWeek','MarkAttendance','RequestLeave','DecideLeave','CancelLeave','SetLeavePolicy','SaveDepartment',
-      'GiveAdvance','SetStatutoryRates','PreparePayRun','LockPayRun','UnlockPayRun','IssueBankFile','SendPayslip','PrepareFnf','ConfirmFnf','DiscardFnf'].map(n=>['POST /commands/'+n,ok(n)])),
+      'GiveAdvance','SetStatutoryRates','PreparePayRun','LockPayRun','UnlockPayRun','IssueBankFile','SendPayslip','PrepareFnf','ConfirmFnf','DiscardFnf',
+      'CorrectAttendance','DecidePayrollRequest','WithdrawPayrollRequest','SavePaidHoliday','RemoveHoliday'].map(n=>['POST /commands/'+n,ok(n)])),
   });
   const rt=await startRuntime(S,srv,mine);
   const st=rt.get().state,x=st.staffX;
@@ -144,6 +145,16 @@ export async function register({test,assert,M}){
     [{type:'HR_PAYSLIP_SEND',runId:aug,staffId:ravi},'SendPayslip',{runId:+aug,staffId:+ravi}],
     [{type:'HR_FNF_SETTLE',staffId:ravi,adjustments:[{label:'Earned leave encashment',kind:'add',amount:250000}]},'PrepareFnf',
       {staffId:+ravi,adjustments:[{label:'Earned leave encashment',kind:'add',amountPaise:250000}]}],
+    // Wave B item B4: DEC-075 corrections (overtime only with a mark), DEC-083 holidays, DEC-084 the bank-change reason.
+    [{type:'HR_ATT_CORRECT',staffId:ravi,date:'2026-09-22',mark:'P',otMin:30,reason:' Duty register '},'CorrectAttendance',
+      {staffId:+ravi,date:'2026-09-22',mark:'P',reason:'Duty register',otMinutes:30}],
+    [{type:'HR_ATT_CORRECT',staffId:ravi,date:'2026-09-16',mark:'CL',otMin:0,reason:'Leave form'},'CorrectAttendance',{staffId:+ravi,date:'2026-09-16',mark:'CL',reason:'Leave form'}],
+    [{type:'HR_HOLIDAY_SAVE',date:'2026-11-14',name:' Diwali (fictional) '},'SavePaidHoliday',/* masters integration: old SaveHoliday */{date:'2026-11-14',name:'Diwali (fictional)'}],
+    [{type:'HR_HOLIDAY_REMOVE',date:'2026-11-14'},'RemoveHoliday',{date:'2026-11-14'}],
+    [{type:'HR_STAFF_SAVE',id:ravi,name:rv.name,dept:rv.dept,designation:rv.designation,userId:rv.userId,defaultShift:rv.defaultShift,weeklyOff:rv.weeklyOff,
+      accountNo:'999999999999',bankReason:' New account (fictional) '},'SaveStaff',
+      {staffId:+ravi,name:rv.name,dept:rv.dept,designation:rv.designation,defaultShift:rv.defaultShift,weeklyOff:rv.weeklyOff,linkUserId:6,accountNo:'999999999999',
+        bankReason:'New account (fictional)'},'v-staff-'+ravi],
   ];
   const sent=[];
   for(const [i,[cmd,name,body,ver]] of cases.entries()){srv.reset();const r=await rt.run({...cmd,key:'k-'+i});
@@ -186,6 +197,43 @@ export async function register({test,assert,M}){
     assert.match(noDept.text,/Choose a department/);assert.match(future.text,/cannot be after the business date/);assert.match(badCode.text,/2–10 capital letters or digits/);
     for(const t of ['HR_STAFF_SAVE','HR_STAFF_ACTIVE','HR_ROSTER_SET','HR_ROSTER_COPY','HR_ATT_MARK','HR_LEAVE_REQUEST','HR_LEAVE_DECIDE','HR_LEAVE_CANCEL','HR_LEAVE_POLICY_SET',
       'HR_ADVANCE_ADD','HR_STAT_RATES_SET','HR_RATES_SET','HR_PAYROLL_RUN','HR_PAYROLL_LOCK','HR_PAYROLL_UNLOCK','HR_PAYROLL_BANK_FILE','HR_PAYSLIP_SEND','HR_FNF_SETTLE',
-      'HR_FNF_CONFIRM','HR_FNF_DISCARD','HR_DEPT_SAVE'])assert.ok(rt.mapped(t),t);
+      'HR_FNF_CONFIRM','HR_FNF_DISCARD','HR_DEPT_SAVE','HR_ATT_CORRECT','HR_REQUEST_DECIDE','HR_REQUEST_WITHDRAW','HR_HOLIDAY_SAVE','HR_HOLIDAY_REMOVE'])assert.ok(rt.mapped(t),t);
+  });
+
+  // ── Wave B item B4: holidays, requests, the correction window and a holiday count on a stored line come from the board ──
+  srvData.board.holidays=[{date:'2026-11-14',name:'Diwali (fictional)'}];
+  srvData.board.correctFrom='2026-09-01';srvData.board.correctTo='2026-10-23';
+  const entry=(kind,status,otMinutes,leaveType)=>({kind,status,otMinutes,leaveType});
+  srvData.board.requests=[
+    {requestId:901,kind:'attendance',staffId:+ravi,date:'2026-09-22',before:entry('mark','A',0,null),after:entry('mark','P',30,null),bankBefore:null,bankAfter:null,payEffectPaise:50625,
+      reason:'Duty register',status:'Pending',direct:false,requestedBy:2,requestedUtc:'2026-10-24T03:00:00.000Z',decidedBy:null,decidedUtc:null,note:null,version:'v-req-901'},
+    {requestId:902,kind:'bank',staffId:+ravi,date:null,before:null,after:null,bankBefore:{bankName:'Demo Bank',accountMasked:'••••0001',ifsc:'DEMO0000101'},
+      bankAfter:{bankName:'Demo Bank',accountMasked:'••••9999',ifsc:'DEMO0000999'},payEffectPaise:null,reason:'New account',status:'Pending',direct:false,requestedBy:8,
+      requestedUtc:'2026-10-24T03:05:00.000Z',decidedBy:null,decidedUtc:null,note:null,version:'v-req-902'},
+    {requestId:903,kind:'attendance',staffId:+ravi,date:'2026-09-03',before:entry('mark','P',0,null),after:entry('leave',null,0,'CL'),bankBefore:null,bankAfter:null,payEffectPaise:null,
+      reason:'Form',status:'Approved',direct:true,requestedBy:2,requestedUtc:'2026-10-24T03:10:00.000Z',decidedBy:2,decidedUtc:'2026-10-24T03:10:00.000Z',note:null,version:'v-req-903'}];
+  const sepSrv=srvData.board.runs.find(r=>r.month==='2026-09');sepSrv.lines[0].counts.hol=1;
+  await rt.refresh();const wb=rt.get().state,wx=wb.staffX;
+  const wbShown=[P_.renderPages(wb,'1',false),P_.renderPages(wb,'1',true),P_.renderPages(wb,'2',false),P_.renderPages(wb,'2',true)];
+  srv.reset();const dec=await rt.run({type:'HR_REQUEST_DECIDE',id:'901',approve:false,note:' Not on duty ',key:'k-rd'});
+  const wd=await rt.run({type:'HR_REQUEST_WITHDRAW',id:'902',key:'k-rw'});const ap=await rt.run({type:'HR_REQUEST_DECIDE',id:'902',approve:true,key:'k-ra'});
+  const noReason=await rt.run({type:'HR_ATT_CORRECT',staffId:ravi,date:'2026-09-22',mark:'P',reason:'x',key:'k-nr'});
+  test('[W4-6 staff · B4] holidays, requests (masked bank details, pay effect as the server sends it) and the server correction window load; decide / withdraw send the request version',()=>{
+    assert.deepEqual(wx.holidays,[{date:'2026-11-14',name:'Diwali (fictional)'}]);
+    assert.deepEqual(wx.correctWindow,{from:'2026-09-01',to:'2026-10-23'});assert.deepEqual(M.hrCorrectionWindow(wb),{from:'2026-09-01',to:'2026-10-23'});
+    const [a,b,c]=wx.requests;
+    assert.deepEqual({...a,requestedAt:''},{id:'901',kind:'attendance',staffId:ravi,date:'2026-09-22',before:{kind:'mark',status:'A',otMin:0},after:{kind:'mark',status:'P',otMin:30},
+      payEffect:50625,reason:'Duty register',status:'Pending',requestedBy:'2',requestedAt:''});
+    assert.match(a.requestedAt,/^2026-10-24T/);
+    assert.deepEqual([b.kind,b.bankBefore.accountNo,b.bankAfter.accountNo,b.bankAfter.ifsc,b.payEffect],['bank','••••0001','••••9999','DEMO0000999',undefined]);
+    assert.deepEqual([c.after,c.direct,c.decidedBy,c.status],[{kind:'leave',type:'CL'},true,'2','Approved']);
+    assert.equal(rt.ids.version('hrreq','901'),'v-req-901');
+    assert.equal(wx.runs.find(r=>r.month==='2026-09').lines[0].counts.hol,1);
+    assert.deepEqual(wbShown.map(r=>r.errors),[{},{},{},{}]);
+    assert.ok(dec.ok&&wd.ok&&ap.ok,[dec.text,wd.text,ap.text].join(' | '));
+    assert.deepEqual(srv.commands('DecidePayrollRequest').map(q=>[q.body,q.key]),[[{requestId:901,approve:false,note:'Not on duty',expectedVersion:'v-req-901'},'k-rd'],
+      [{requestId:902,approve:true,expectedVersion:'v-req-902'},'k-ra']]);
+    assert.deepEqual(srv.commands('WithdrawPayrollRequest').map(q=>[q.body,q.key]),[[{requestId:902,expectedVersion:'v-req-902'},'k-rw']]);
+    assert.deepEqual([noReason.ok,noReason.reason],[false,'precheck']);assert.equal(srv.commands('CorrectAttendance').length,0);
   });
 }

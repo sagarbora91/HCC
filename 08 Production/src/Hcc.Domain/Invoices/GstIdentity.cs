@@ -119,6 +119,9 @@ public enum InvoiceDocType
     TaxInvoice,
     BillOfSupply,
     CreditNote,
+
+    /// <summary>DEC-072: tax invoice of a walk-in / paid-at-outlet restaurant bill, in its own series RST/&lt;FY&gt;/&lt;7 digits&gt;.</summary>
+    RestaurantInvoice,
 }
 
 /// <summary>
@@ -140,6 +143,7 @@ public static partial class InvoiceNumbering
         InvoiceDocType.TaxInvoice => "INV",
         InvoiceDocType.BillOfSupply => "BOS",
         InvoiceDocType.CreditNote => "CRN",
+        InvoiceDocType.RestaurantInvoice => "RST",
         _ => throw new ArgumentOutOfRangeException(nameof(t), t, null),
     };
 
@@ -148,23 +152,30 @@ public static partial class InvoiceNumbering
         "INV" => InvoiceDocType.TaxInvoice,
         "BOS" => InvoiceDocType.BillOfSupply,
         "CRN" => InvoiceDocType.CreditNote,
+        "RST" => InvoiceDocType.RestaurantInvoice,
         _ => throw new ArgumentOutOfRangeException(nameof(code), code, null),
     };
 
     public static string Label(InvoiceDocType t) => t switch
     {
-        InvoiceDocType.TaxInvoice => "Tax invoice",
+        InvoiceDocType.TaxInvoice or InvoiceDocType.RestaurantInvoice => "Tax invoice",
         InvoiceDocType.BillOfSupply => "Bill of supply",
         _ => "Credit note",
     };
 
-    /// <summary>Prefix of a new series: the tax-invoice prefix comes from Master configuration (invoicePrefix); the others are fixed.</summary>
+    /// <summary>Prefix of a new series: the tax-invoice prefix comes from Master configuration (invoicePrefix); the others are fixed
+    /// (RST = the restaurant series of DEC-072).</summary>
     public static string DefaultPrefix(InvoiceDocType t) => t switch
     {
         InvoiceDocType.TaxInvoice => "INV",
         InvoiceDocType.BillOfSupply => "BOS",
+        InvoiceDocType.RestaurantInvoice => "RST",
         _ => "CN",
     };
+
+    /// <summary>Prefixes of the fixed series: the configurable tax-invoice prefix may not reuse one, or two series would print the same
+    /// number (e.g. RST/2627/0000001 for a room invoice and a restaurant invoice).</summary>
+    public static readonly IReadOnlyList<string> ReservedPrefixes = ["RST", "BOS", "CN"];
 
     /// <summary>"2627" for FY 2026-27 (1 April 2026 – 31 March 2027).</summary>
     public static string FyCode(DateOnly date)
@@ -178,6 +189,8 @@ public static partial class InvoiceNumbering
         var p = (prefix ?? string.Empty).Trim().ToUpperInvariant();
         if (!PrefixShape().IsMatch(p))
             throw HccException.Validation($"The invoice prefix must be 1–{MaxPrefix} capital letters, digits or hyphens so the number fits the GST limit of {MaxLength} characters. Shorten it in Master configuration (invoicePrefix).");
+        if (ReservedPrefixes.Contains(p, StringComparer.Ordinal))
+            throw HccException.Validation($"The invoice prefix {p} is reserved for another document series (RST restaurant invoices, BOS bills of supply, CN credit notes). Choose another in Master configuration (invoicePrefix).");
         return p;
     }
 

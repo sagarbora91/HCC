@@ -90,9 +90,9 @@ function TemplatesTab(){
         </div>;})}
     </div>)}
     <div className="section-title"><div><h2>Module access</h2><p>The coarse module gate used by every screen and command. A module that is off denies the whole area, whatever the template says.</p></div></div>
-    <div className="permission-grid">{permissions.map(p=>{const tad=role==='Tech admin'&&ADMIN_FINANCIAL_MODULES.includes(p)&&!s.grants[role].includes(p);
+    <div className="permission-grid">{permissions.map(p=>{const tad=role==='Tech admin'&&ADMIN_FINANCIAL_MODULES.includes(p)&&!(s.grants[role]??[]).includes(p);
       return <label key={p} className="permission"><div><strong>{p==='admin'?'Administration':p[0].toUpperCase()+p.slice(1)}</strong><small>{p==='admin'?'Not delegable in this prototype':tad?'Financial — not allowed for Tech admin':p==='housekeeping'?'Assigned-task scope for housekeepers and maintenance':'Module actions in this demo'}</small></div>
-        <input type="checkbox" disabled={!!lock||p==='admin'||tad||busy} checked={s.grants[role].includes(p)} onChange={()=>run({type:'GRANT',role,permission:p},d.decision==='approval'?'Module change sent for Owner approval':'Module access updated')}/></label>;})}</div>
+        <input type="checkbox" disabled={!!lock||p==='admin'||tad||busy} checked={(s.grants[role]??[]).includes(p)} onChange={()=>run({type:'GRANT',role,permission:p},d.decision==='approval'?'Module change sent for Owner approval':'Module access updated')}/></label>;})}</div>
   </div>;
 }
 

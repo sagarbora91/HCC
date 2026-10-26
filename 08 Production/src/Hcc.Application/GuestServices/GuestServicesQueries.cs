@@ -8,9 +8,9 @@ using StaysVersion = Hcc.Application.Stays.VersionToken;
 namespace Hcc.Application.GuestServices;
 
 /// <summary>
-/// Guest-services reads. Front office (guest.edit) sees everything; a supervisor (hk.assign) sees housekeeping and maintenance
-/// requests; housekeeping / maintenance staff see only the requests assigned to them and the lost items they logged (no claimant
-/// data). Reports need report.operations or front-office rights.
+/// Guest-services reads (role matrix v2, DEC-079). The desk (PERM-GSV-001 property-wide: Owner, Manager, Reception, Housekeeping supervisor)
+/// sees everything; housekeeping / maintenance staff (assigned scope) see only the requests assigned to them and the lost items they logged
+/// (no claimant data). Recovery amounts only with PERM-GSV-004. Reports need the desk view or report.operations.
 /// </summary>
 public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesReadStore reads, TimeProvider clock, Hcc.Application.OpsMasters.IGsCategorySource? categories = null)
 {
@@ -36,13 +36,10 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
         (page, pageSize) = Paging(page, pageSize);
         RequestFilter filter;
         bool own;
-        if (await WideAsync(propertyId, principalId, GuestServicePermissions.Manage, ct).ConfigureAwait(false)) (filter, own) = (new RequestFilter(null, null, openOnly), false);
-        else if (await WideAsync(propertyId, principalId, GuestServicePermissions.Supervise, ct).ConfigureAwait(false)) (filter, own) = (new RequestFilter(null, "NotFrontDesk", openOnly), false);
+        if (await WideAsync(propertyId, principalId, GuestServicePermissions.View, ct).ConfigureAwait(false)) (filter, own) = (new RequestFilter(null, null, openOnly), false);
         else
         {
-            if (!await AnyAsync(propertyId, principalId, GuestServicePermissions.HousekeepingWork, ct).ConfigureAwait(false)
-                && !await AnyAsync(propertyId, principalId, GuestServicePermissions.MaintenanceWork, ct).ConfigureAwait(false))
-                await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+            await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.View, AccessScopes.Any, ct: ct).ConfigureAwait(false);
             (filter, own) = (new RequestFilter(principalId, null, openOnly), true);
         }
 
@@ -55,9 +52,9 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
     public async Task<ServiceRequestView> RequestAsync(int propertyId, int principalId, long requestId, CancellationToken ct = default)
     {
         var r = await reads.RequestAsync(propertyId, requestId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Service request not found.");
-        var wide = await WideAsync(propertyId, principalId, GuestServicePermissions.Manage, ct).ConfigureAwait(false);
-        var sup = !wide && r.Dept != GuestServiceVocab.FrontDesk && await WideAsync(propertyId, principalId, GuestServicePermissions.Supervise, ct).ConfigureAwait(false);
-        if (!wide && !sup && r.AssigneeId != principalId) throw new HccException(HccErrorCode.FORBIDDEN, "Only requests assigned to you are accessible.");
+        var wide = await WideAsync(propertyId, principalId, GuestServicePermissions.View, ct).ConfigureAwait(false);
+        if (!wide && (r.AssigneeId != principalId || !await AnyAsync(propertyId, principalId, GuestServicePermissions.View, ct).ConfigureAwait(false)))
+            throw new HccException(HccErrorCode.FORBIDDEN, "Only requests assigned to you are accessible.");
         var props = await reads.PropertyAsync(propertyId, ct).ConfigureAwait(false);
         return ToView(r, Now, props.TimeZone);
     }
@@ -75,24 +72,27 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
     public async Task<GuestServicePage<ComplaintView>> ComplaintsAsync(int propertyId, int principalId, int page = 1, int pageSize = 50, bool openOnly = false, CancellationToken ct = default)
     {
         (page, pageSize) = Paging(page, pageSize);
-        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.View, ct: ct).ConfigureAwait(false);
+        var money = await WideAsync(propertyId, principalId, GuestServicePermissions.Money, ct).ConfigureAwait(false);
         var props = await reads.PropertyAsync(propertyId, ct).ConfigureAwait(false);
         var rows = await reads.ComplaintsAsync(propertyId, openOnly, ct).ConfigureAwait(false);
-        return new GuestServicePage<ComplaintView>(page, pageSize, rows.Count, rows.Skip((page - 1) * pageSize).Take(pageSize).Select(c => ToView(c, props.BusinessDate)).ToList(), false);
+        return new GuestServicePage<ComplaintView>(page, pageSize, rows.Count, rows.Skip((page - 1) * pageSize).Take(pageSize).Select(c => ToView(c, props.BusinessDate, money)).ToList(), false);
     }
 
     public async Task<ComplaintView> ComplaintAsync(int propertyId, int principalId, long complaintId, CancellationToken ct = default)
     {
-        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.View, ct: ct).ConfigureAwait(false);
+        var money = await WideAsync(propertyId, principalId, GuestServicePermissions.Money, ct).ConfigureAwait(false);
         var c = await reads.ComplaintAsync(propertyId, complaintId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Complaint not found.");
-        return ToView(c, (await reads.PropertyAsync(propertyId, ct).ConfigureAwait(false)).BusinessDate);
+        return ToView(c, (await reads.PropertyAsync(propertyId, ct).ConfigureAwait(false)).BusinessDate, money);
     }
 
-    private static ComplaintView ToView(ComplaintRecord c, DateOnly today) => new(c.ComplaintId, c.StayId, c.RoomNo, c.GuestName, c.Category, c.Severity, c.Description, c.OwnerId, c.Status,
+    /// <summary><paramref name="money"/> false (no PERM-GSV-004): the recovery amount is not sent (DEC-079; Supervisor, Housekeeper, Maintenance).</summary>
+    private static ComplaintView ToView(ComplaintRecord c, DateOnly today, bool money) => new(c.ComplaintId, c.StayId, c.RoomNo, c.GuestName, c.Category, c.Severity, c.Description, c.OwnerId, c.Status,
         c.RootCause, c.RecoveryAction, c.FollowUpOn, c.Status == GuestServiceVocab.Resolved && c.FollowUpOn is { } f && f <= today,
         c.FollowUpOutcome is null || c.FollowUpUtc is null ? null : new ComplaintFollowUpView(c.FollowUpOutcome, c.FollowUpSatisfied == true, Iso(c.FollowUpUtc.Value), c.FollowUpBy ?? 0),
         Iso(c.CreatedUtc), c.ResolvedUtc is { } r ? Iso(r) : null, c.ClosedUtc is { } cl ? Iso(cl) : null,
-        c.RecoveryState is null || c.RecoveryAmountPaise is null ? null : new RecoveryView(c.RecoveryAmountPaise.Value, c.RecoveryReason ?? string.Empty, c.RecoveryApprovalId, c.RecoveryChargeId, Iso(c.RecoveryUtc ?? c.CreatedUtc), c.RecoveryBy ?? 0),
+        !money || c.RecoveryState is null || c.RecoveryAmountPaise is null ? null : new RecoveryView(c.RecoveryAmountPaise.Value, c.RecoveryReason ?? string.Empty, c.RecoveryApprovalId, c.RecoveryChargeId, Iso(c.RecoveryUtc ?? c.CreatedUtc), c.RecoveryBy ?? 0),
         c.RecoveryStatus, StaysVersion.ToWire(c.Version), c.CategoryCode);
 
     // ── Lost & found ──
@@ -100,10 +100,8 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
     public async Task<GuestServicePage<LostItemView>> ItemsAsync(int propertyId, int principalId, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         (page, pageSize) = Paging(page, pageSize);
-        var wide = await WideAsync(propertyId, principalId, GuestServicePermissions.Manage, ct).ConfigureAwait(false);
-        if (!wide && !await AnyAsync(propertyId, principalId, GuestServicePermissions.HousekeepingWork, ct).ConfigureAwait(false)
-            && !await AnyAsync(propertyId, principalId, GuestServicePermissions.MaintenanceWork, ct).ConfigureAwait(false))
-            await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        var wide = await WideAsync(propertyId, principalId, GuestServicePermissions.View, ct).ConfigureAwait(false);
+        if (!wide) await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.View, AccessScopes.Any, ct: ct).ConfigureAwait(false);
         var props = await reads.PropertyAsync(propertyId, ct).ConfigureAwait(false);
         var (settings, _) = await reads.SettingsAsync(propertyId, ct).ConfigureAwait(false);
         var rows = await reads.ItemsAsync(propertyId, wide ? null : principalId, ct).ConfigureAwait(false);
@@ -120,40 +118,40 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
 
     public async Task<GuestServiceSettingsView> SettingsAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
-        if (!await WideAsync(propertyId, principalId, GuestServicePermissions.Manage, ct).ConfigureAwait(false))
+        if (!await WideAsync(propertyId, principalId, GuestServicePermissions.View, ct).ConfigureAwait(false))
             await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Approve, ct: ct).ConfigureAwait(false);
         var (s, v) = await reads.SettingsAsync(propertyId, ct).ConfigureAwait(false);
         return new GuestServiceSettingsView(s.Sla, s.RetentionDays, s.ValuableRetentionDays, v is null ? null : StaysVersion.ToWire(v));
     }
 
-    /// <summary>History trail of a request, complaint or item (<paramref name="kind"/> = request | complaint | item); front office only.</summary>
+    /// <summary>History trail of a request, complaint or item (<paramref name="kind"/> = request | complaint | item); the desk only (PERM-GSV-001 property-wide).</summary>
     public async Task<IReadOnlyList<HistoryEntry>> HistoryAsync(int propertyId, int principalId, string kind, long recordId, CancellationToken ct = default)
     {
         if (kind is not ("request" or "complaint" or "item")) throw HccException.Validation("kind is request, complaint or item.");
-        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.View, ct: ct).ConfigureAwait(false);
         return (await reads.HistoryAsync(propertyId, kind, recordId, ct).ConfigureAwait(false)).Select(l => new HistoryEntry(Iso(l.AtUtc), l.By, l.What)).ToList();
     }
 
-    /// <summary>Bulk history of one register (request | complaint | item) so the screens can show every trail without one call per record; front office only.</summary>
+    /// <summary>Bulk history of one register (request | complaint | item) so the screens can show every trail without one call per record; the desk only.</summary>
     public async Task<IReadOnlyList<RecordHistory>> HistoriesAsync(int propertyId, int principalId, string kind, CancellationToken ct = default)
     {
         if (kind is not ("request" or "complaint" or "item")) throw HccException.Validation("kind is request, complaint or item.");
-        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.View, ct: ct).ConfigureAwait(false);
         return (await reads.HistoriesAsync(propertyId, kind, ct).ConfigureAwait(false)).GroupBy(x => x.RecordId)
             .Select(g => new RecordHistory(g.Key, g.Select(x => new HistoryEntry(Iso(x.Entry.AtUtc), x.Entry.By, x.Entry.What)).ToList())).ToList();
     }
 
-    /// <summary>Stays the guest-service screens refer to (in house + referenced by a record): booking id = reservation id; front office only.</summary>
+    /// <summary>Stays the guest-service screens refer to (in house + referenced by a record): booking id = reservation id; the desk only.</summary>
     public async Task<StayLookupList> StaysAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
-        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.View, ct: ct).ConfigureAwait(false);
         return new StayLookupList((await reads.StaysAsync(propertyId, ct).ConfigureAwait(false))
             .Select(s => new StayLookupView(s.StayId, s.ReservationId, s.GuestId, s.RoomNo, s.GuestName, s.Status)).ToList());
     }
 
     private async Task RequireReportAsync(int propertyId, int principalId, CancellationToken ct)
     {
-        if (!await WideAsync(propertyId, principalId, GuestServicePermissions.Manage, ct).ConfigureAwait(false))
+        if (!await WideAsync(propertyId, principalId, GuestServicePermissions.View, ct).ConfigureAwait(false))
             await policy.RequireAsync(propertyId, principalId, GuestServicePermissions.Report, ct: ct).ConfigureAwait(false);
     }
 

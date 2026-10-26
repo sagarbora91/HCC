@@ -101,5 +101,16 @@
     <File Path="database/migrations/2870_ops_masters.sql" />
     <File Path="database/migrations/2871_ops_masters_seed.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
+    <File Path="database/migrations/3100_cash_leaving_drawer.sql" />
+    <File Path="database/migrations/3101_cash_leaving_drawer_rbac_seed.sql" />
+    <File Path="database/migrations/3200_pos_tax_invoices.sql" />
+    <File Path="database/migrations/3400_payroll_corrections_holidays_bank.sql" />
+    <File Path="database/migrations/3500_company_credit.sql" />
+    <File Path="database/migrations/3501_company_credit_rbac_seed.sql" />
+    <File Path="database/migrations/3600_closing_day_reopen.sql" />
+    <File Path="database/migrations/3601_accounting_tally_export_log.sql" />
+    <File Path="database/migrations/3700_access_v2_rbac_seed.sql" />
+    <File Path="database/migrations/3701_pos_menu_change_requests.sql" />
+    <File Path="database/migrations/3800_holiday_calendar.sql" />
   </Folder>
 </Solution>

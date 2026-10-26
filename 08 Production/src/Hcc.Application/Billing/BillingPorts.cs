@@ -23,7 +23,8 @@ public static class BillingPermissions
     public const string ApprovalDecide = "PERM-APR-001";
     public const string Checkout = "PERM-STY-003";
     public const string FinanceReport = "PERM-RPT-002";
-    public const string Configuration = "PERM-ADM-003";
+    /// <summary>Tills and other money setup: Owner only (PERM-CFG-003, role matrix v2; before: PERM-ADM-003 'A').</summary>
+    public const string Configuration = "PERM-CFG-003";
 
     /// <summary>Scope kind for "own cash shift" grants (RBAC legend S).</summary>
     public const string ShiftScope = "shift";
@@ -62,8 +63,9 @@ public interface ICashDrawerPort
 
 // ── Store port (implemented by Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore) ──
 
+/// <summary><see cref="CompanyId"/> = the company account the reservation is billed to (DEC-076; null = the guest pays, or a free-text company).</summary>
 public sealed record FolioHeader(long FolioId, int PropertyId, long ReservationId, string ReservationStatus, DateOnly Arrival, DateOnly Departure,
-    DateOnly BusinessDate, string Version)
+    DateOnly BusinessDate, string Version, long? CompanyId = null)
 {
     public bool IsOpen => ReservationStatus is "Confirmed" or "InHouse";
 }
@@ -71,8 +73,9 @@ public sealed record FolioHeader(long FolioId, int PropertyId, long ReservationI
 public sealed record NewCharge(long FolioId, ChargeKind Kind, DateOnly ServiceDate, string Label, Paise Amount, int TaxBps, Paise Tax,
     long? ReversesChargeId, long? ApprovalId, int PrincipalId, DateTime PostedUtc);
 
+/// <summary><see cref="CompanyId"/>: a company-credit receipt executed for a stay billed to a company account (DEC-076: the company's receivable).</summary>
 public sealed record NewReceipt(long FolioId, ReceiptKind Kind, string Tender, Paise Amount, long? RefundOf, DateOnly BusinessDate, int? TillId,
-    long? ShiftId, string Reference, long? ApprovalId, int PrincipalId, DateTime RecordedUtc);
+    long? ShiftId, string Reference, long? ApprovalId, int PrincipalId, DateTime RecordedUtc, long? CompanyId = null);
 
 public sealed record ReceiptLock(long FolioId, PostedReceipt Receipt);
 
@@ -173,6 +176,9 @@ public interface IBillingStore
 
     Task<ShiftRow> UpdateShiftAsync(ICommandTransaction tx, long shiftId, string expectedVersion, ShiftUpdate update, CancellationToken ct);
 
+    /// <summary>DEC-078: the opener's handover count of the drawer they took over (and the reason when it differs from the carried float).</summary>
+    Task SetShiftHandoverAsync(ICommandTransaction tx, long shiftId, Paise handoverCount, string? reason, CancellationToken ct);
+
     Task<long> InsertMovementAsync(ICommandTransaction tx, NewMovement movement, CancellationToken ct);
 
     Task<IReadOnlyList<MovementRow>> MovementsAsync(ICommandTransaction tx, long shiftId, CancellationToken ct);
@@ -203,7 +209,8 @@ public sealed record DeskFolioRow(long ReservationId, string PublicNo, string St
 
 public sealed record ReservationFolioRef(long ReservationId, long? FolioId, long? StayId, string? StayVersion);
 
-public sealed record CashDeskShiftRead(ShiftRow Shift, string? Reason, int? ClosedBy, ApprovalRow? Approval);
+public sealed record CashDeskShiftRead(ShiftRow Shift, string? Reason, int? ClosedBy, ApprovalRow? Approval, int? OpenedBy = null, Paise? HandoverCount = null,
+    string? HandoverReason = null);
 
 public sealed record CashDeskTillRead(TillRow Till, CashDeskShiftRead? Active, CashDeskShiftRead? LastClosed);
 

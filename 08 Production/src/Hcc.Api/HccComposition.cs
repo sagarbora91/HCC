@@ -25,7 +25,7 @@ public static class HccComposition
         services.AddSingleton(sp => new SchemaGuard(platform.Connections, new EmbeddedMigrationSource(), sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ILogger<SchemaGuard>>()));   // A09-04: refuse to serve while the schema is behind this build
         services.AddHccAccess(configuration, platform);  // P1: sessions, THE IAccessPolicy (scope resolvers from the modules below)
-        services.AddInventoryModule();                   // P2
+        services.AddInventoryModule(configuration);      // P2 (+ Hcc:GroupBlocks:Enabled, DEC-080)
         services.AddReservationsModule();                // P2
         services.AddHccStays();                          // P3
         services.AddHccHousekeeping();                   // P3
@@ -78,7 +78,7 @@ public static class HccComposition
                 .ValidateAsync(token, device.Length > 0 ? device : null, ct);
             var policy = http.RequestServices.GetRequiredService<Application.Access.IAccessPolicy>();
             return await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-005", null, ct)
-                || await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-003", null, ct);
+                || await policy.HasAsync(session.PropertyId, session.UserId, "PERM-CFG-001", null, ct);
         }
         catch (Domain.Errors.HccException)
         {

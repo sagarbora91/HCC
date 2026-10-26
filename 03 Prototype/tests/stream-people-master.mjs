@@ -156,7 +156,7 @@ export function register({test,M,assert}){
     bad({code:'2026-02-30'},'MASTER_INVALID');bad({code:'2026-1-5'},'MASTER_INVALID');bad({code:'2026-11-08',name:'Another'},'MASTER_CODE_TAKEN');
     assert.throws(()=>save(seed(),'owner','holidays',{code:'2026-12-31',name:'New year eve'}),reason('MASTER_INVALID'));
     assert.equal(hrHolidayFy('2027-01-26'),'FY 2026–27');assert.equal(hrHolidayFy('2026-08-15'),'FY 2026–27');assert.equal(hrHolidayFy('2027-04-01'),'FY 2027–28');});
-  test('[PPL] a paid holiday without attendance is a paid day for monthly staff (no loss of pay) and for daily-wage staff (one more day); explicit absence stays absent',()=>{
+  test('[PPL] a paid holiday without attendance is a paid day for monthly staff (no loss of pay), not for daily-wage staff (DEC-083); explicit absence stays absent',()=>{
     let s=seed();// 2026-10-27 is Tuesday: Ravi (off Fri) works; Imran (daily, off Tue) → use Wed 28 for him
     const ravi=staffRow(s,'HR-S05'),imran=staffRow(s,'HR-S10');
     const open=unmarked(unmarked(s,'HR-S05','2026-10-21'),'HR-S10','2026-10-21');// Wed 21 Oct (Dussehra seeded 20th, Tue): use own holiday
@@ -164,7 +164,7 @@ export function register({test,M,assert}){
     const before=hrCounts(open,staffRow(open,'HR-S05'),'2026-10','2026-10-23'),after=hrCounts(h,staffRow(h,'HR-S05'),'2026-10','2026-10-23');
     assert.deepEqual([before.unmarked,before.hol],[1,undefined]);assert.deepEqual([after.unmarked,after.hol],[0,1]);
     const ln=(st,r)=>hrComputeLine(staffRow(st,r),hrCounts(st,staffRow(st,r),'2026-10'),M.hrRatesFor(st,'2026-10'));
-    assert.ok(ln(h,'HR-S05').earned>ln(open,'HR-S05').earned);assert.ok(ln(h,'HR-S10').payableDays>ln(open,'HR-S10').payableDays);assert.equal(ln(h,'HR-S10').payableDays-ln(open,'HR-S10').payableDays,1);
+    assert.ok(ln(h,'HR-S05').earned>ln(open,'HR-S05').earned);/* Masters integration — DEC-083 (owner decision, Wave B) is binding: an unworked holiday is NOT paid to daily-wage staff (like a weekly off, CA A04-04 open). Old: one more payable day. */assert.equal(ln(h,'HR-S10').payableDays-ln(open,'HR-S10').payableDays,0);
     const abs=structuredClone(h);abs.staffX.att['2026-10-21|HR-S05']={status:'A',at:'2026-10-21T09:00',otMin:0,by:'manager'};assert.equal(hrCounts(abs,staffRow(abs,'HR-S05'),'2026-10','2026-10-23').A-hrCounts(h,staffRow(h,'HR-S05'),'2026-10','2026-10-23').A,1);
     assert.equal(hrDayStatus(save(s,'owner','holidays',{code:'2026-10-21',name:'Local holiday',kind:'paid'}),ravi,'2026-10-21').kind,'att');assert.equal(hrDayStatus(h,ravi,'2026-10-21').kind,'holiday');void imran;});
   test('[PPL] a weekly off on a holiday stays a weekly off; a restricted holiday and a retired holiday change nothing',()=>{
@@ -224,7 +224,7 @@ export function register({test,M,assert}){
   test('[PPL] UI: staff form picks designation and default shift from the lists with "Manage list…" links; roster, leave policy and attendance use the lists',()=>{
     const m=src('src/features/staff/modals.tsx'),h=src('src/features/staff/HrDesk.tsx'),my=src('src/features/staff/MyHr.tsx');
     assert.match(m,/hrDesignationChoices\(s,f\.dept,f\.designationCode\)/);assert.match(m,/<MstLink spec="designations"\/>/);assert.match(m,/<MstLink spec="shiftPatterns"\/>/);assert.match(m,/hrShiftChoices\(s,f\.defaultShift\)/);
-    assert.match(m,/hrLeaveChoices\(s,st\.payType\)/);assert.match(h,/<MstLink spec="leaveTypes"\/> <MstLink spec="holidays"\/>/);assert.match(h,/hrHolidayOn\(s,s\.date\)/);
+    assert.match(m,/hrLeaveChoices\(s,st\.payType\)/);assert.match(h,/<MstLink spec="leaveTypes"\/> <MstLink spec="holidays"\/>/);assert.match(h,/dayPill\(x\)/);/* masters integration: today's pill = Wave B dayPill, which names the paid holiday (old: hrHolidayOn(s,s.date)) */
     assert.match(my,/hrCheckinStatus\(s\.clock,shift!,s\)/);assert.match(my,/x\.kind==='holiday'\?'Holiday'/);});
   test('[PPL] production mapping: the four lists are in MST_SERVER with their server routes and commands; capabilities and read gates know the routes',()=>{
     const a=src('src/clients/sync/masters.ts');

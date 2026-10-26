@@ -12,6 +12,20 @@ import {mnyMethod,mnyMethodFor,mnyIsDrawer} from '../../../domain/streams/money-
 import {mstFail} from '../../../domain/streams/masters';
 import {FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable} from '../../../domain/streams/folio';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
+import {closingReopened} from '../../../domain/streams/closing';
+import {grpAccountOf,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
+
+/**
+ * DEC-076 (audit A03a-05): company credit needs a booking billed to a company account, and the balance must fit beside everything else
+ * billed to that company (its exposure without this stay); checked at the request, the approval and the checkout. No override.
+ */
+function companyCreditCheck(k:Kit,x:Booking,amount:number){
+  const c=grpAccountOf(k.s,x);
+  if(!c)k.fail('INVALID_TRANSITION','This booking is not billed to a company account. Link the booking to the company account before requesting company credit.');
+  const refusal=grpCreditRefusal(c!,grpExposure(k.s,c!)-grpBookingExposure(k.s,x),amount,'stay on company credit');
+  if(refusal)k.fail('INVALID_TRANSITION',refusal);
+}
+import {cxCashBlocked} from '../../../domain/streams/cashout';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
 const STALE_MSG='The folio changed after this request. Reject it and request again.';
@@ -32,7 +46,11 @@ const validMethod=(k:Kit,method:unknown,reference:unknown,original?:string):stri
   if(row&&!row.active&&(row.usableAt??[]).includes('frontdesk')&&!(original&&mnyMethod(k.s,original)?.id===row.id))mstFail('MASTER_RETIRED',`${row.name} is retired — choose an active payment method.`);
   const m=mnyMethodFor(k.s,method,'frontdesk')??(original&&row&&mnyMethod(k.s,original)?.id===row.id?row:undefined);
   k.assert(m,'Select a payment method.');
-  if(mnyIsDrawer(k.s,m!.name))k.assert(k.s.shiftOpen,'The cash shift is closed. Open the next business day first.','INVALID_TRANSITION');
+  if(mnyIsDrawer(k.s,m!.name)){
+    // DEC-078 (Wave B1): after the next day opens no shift is open until the cashier opens their own; one counted shift per demo day.
+    k.assert(k.s.shiftOpen,k.s.shiftClose||k.s.closedDates.includes(k.s.date)?'The cash shift is closed. Open the next business day first.':'The cash shift is closed. Open a cashier shift first.','INVALID_TRANSITION');
+    const own=cxCashBlocked(k.s,k.uid);if(own)k.fail('FORBIDDEN',own); // own shift (PERM-PAY-001 scope S for Reception / Cashier)
+  }
   if(m!.needsReference)k.assert(String(reference??'').trim(),'Enter a demonstration transaction reference.');
   return m!.name;
 };
@@ -70,8 +88,18 @@ const CHARGE:Handler=({s,cmd,req,b,financial,positive,assert,id})=>{
   req('billing');const x=b();financial(x);positive(cmd.amount);assert(cmd.label?.trim(),'Describe the service.');
   // DEC-069: GST by supply — an explicit category (food / laundry / banquet / other) or one read from the description.
   assert(cmd.gst===undefined||GST_CHARGE_CATEGORIES.some(c=>c.id===cmd.gst),'Choose a GST category: food, laundry, banquet or other.');
-  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date:s.date,kind:'service',taxBps:gstForCharge(s,s.date,cmd.gst??gstCategoryOfLabel(cmd.label)).bps});x.version++;
-  return x.id+' · '+cmd.label;
+  // DEC-077: `date` may name the business day the Owner reopened (a missed charge posts on it at that day's GST rate); any other earlier
+  // date stays closed (adjustment-only), its cash-book lock (DEC-065) still applies, and the date must fall within the stay.
+  let date=s.date;
+  if(cmd.date!==undefined&&cmd.date!==null&&cmd.date!==s.date){
+    date=String(cmd.date);assert(/^\d{4}-\d{2}-\d{2}$/.test(date),'Choose a valid service date.');
+    assert(date<s.date,'A charge cannot be posted ahead of the business date.');
+    assert(closingReopened(s)?.date===date,`Business day ${date} is closed. Corrections post in the open day.`,'DAY_CLOSED');
+    assert(!cbIsLocked(s,date),cbLockedMessage(date,'a charge on that day'),'DAY_CLOSED');
+    assert(x.arrival<=date&&date<=x.departure,'The service date is outside the stay.','INVALID_TRANSITION');
+  }
+  x.lines.push({id:id('line'),label:cmd.label.trim(),amount:cmd.amount,date,kind:'service',taxBps:gstForCharge(s,date,cmd.gst??gstCategoryOfLabel(cmd.label)).bps});x.version++;
+  return x.id+' · '+cmd.label+(date!==s.date?` · on reopened day ${date}`:'');
 };
 
 const DISCOUNT:Handler=k=>{
@@ -135,12 +163,14 @@ const COMPANY_CREDIT_REQUEST:Handler=k=>{
   const {s,cmd,req,b,open,assert}=k;
   req('checkout');open();const x=b();
   assert(x.status==='In house','This stay is not in house.','INVALID_TRANSITION');
-  assert(x.company?.name?.trim(),'Add a company to this booking before requesting company credit.');
+  const account=grpAccountOf(s,x),company=x.company?.name?.trim()||account?.name;
+  assert(company,'Add a company to this booking before requesting company credit.');
   const bal=totals(x).balance;
   assert(bal>0,'There is no outstanding balance to place on company credit.','INVALID_TRANSITION');
   assert(!pendingOf(k,x.id,'company-credit'),'A company-credit request is already pending.','INVALID_TRANSITION');
-  const a=request(k,x,{amount:bal,reason:String(cmd.reason??'').trim()||('Company credit · '+x.company!.name),kind:'company-credit',meta:{command:'APPROVAL',company:x.company!.name,gstin:x.company!.gstin}});
-  return `${x.id} · company credit ${money(bal)} requested for ${x.company!.name} · ${a.id}`;
+  companyCreditCheck(k,x,bal);
+  const a=request(k,x,{amount:bal,reason:String(cmd.reason??'').trim()||('Company credit · '+company),kind:'company-credit',meta:{command:'APPROVAL',company:company!,gstin:x.company?.gstin??account?.gstin}});
+  return `${x.id} · company credit ${money(bal)} requested for ${company} · ${a.id}`;
 };
 
 const CORRECTION_REQUEST:Handler=k=>{
@@ -199,14 +229,17 @@ const APPROVAL:Handler=k=>{
       financial(x!);stale();
       assert(totals(x!).balance===a!.amount,STALE_MSG,'STALE_VERSION');
       if(user.role!=='Owner')assert(a!.amount<=FOLIO_MANAGER_CREDIT_LIMIT,`Company credit above ${money(FOLIO_MANAGER_CREDIT_LIMIT)} per stay needs an Owner’s approval.`,'FORBIDDEN');
+      companyCreditCheck(k,x!,a!.amount);
       extra=' · apply at checkout';
     }else if(kind==='correction'){
       financial(x!);stale();
       const l=x!.lines.find(l=>l.id===a!.target);assert(l,'The original line no longer exists.','NOT_FOUND');
       assert(!x!.lines.some(r=>r.reversalOf===l!.id),'This line is already reversed.','INVALID_TRANSITION');
       const lid=id('reversal');
-      x!.lines.push({id:lid,label:'Reversal · '+l!.label+' · '+a!.reason,amount:-l!.amount,date:s.date,kind:'adjustment',taxBps:l!.taxBps,reversalOf:l!.id,approvalId:a!.id});
-      x!.version++;a!.status='Executed';extra=' · reversal '+lid+' posted';
+      // DEC-077: the reversal posts on the original line's date while that day is reopened by the Owner, else on the business date.
+      const on=l!.date<s.date&&closingReopened(s)?.date===l!.date?l!.date:s.date;
+      x!.lines.push({id:lid,label:'Reversal · '+l!.label+' · '+a!.reason,amount:-l!.amount,date:on,kind:'adjustment',taxBps:l!.taxBps,reversalOf:l!.id,approvalId:a!.id});
+      x!.version++;a!.status='Executed';extra=' · reversal '+lid+' posted'+(on!==s.date?' on reopened day '+on:'');
     }else if(kind==='credit-note'){
       assert(x&&x.status==='Departed','A credit note applies only to a departed stay.','INVALID_TRANSITION');stale();
       assert(a!.amount<=totals(x!).net,'Credit note cannot exceed the net charges on this folio.');
@@ -240,6 +273,7 @@ const CHECKOUT:Handler=k=>{
     // Approved company credit for exactly this balance and folio version settles the folio to a receivable (AC-008).
     const credit=s.approvals.find(a=>a.booking===x.id&&a.kind==='company-credit'&&a.status==='Approved'&&!folioApprovalExpired(s,a)&&a.amount===bal&&a.version===x.version);
     if(credit){
+      companyCreditCheck(k,x,bal);
       x.receipts.push({id:id('RCPT'),amount:bal,method:'Company credit',date:s.date,kind:'company-credit',reference:`${x.company?.name??'Company'} · ${credit.id}`,actor:uid,approvalId:credit.id});
       credit.status='Executed';credit.meta={...credit.meta,executedBy:uid,executedAt:s.clock};
       detail=` · ${money(bal)} to company credit (${credit.id})`;

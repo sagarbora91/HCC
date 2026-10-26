@@ -54,12 +54,29 @@ public sealed class CashierService(ICommandRunner runner, IBillingStore store, I
                 throw Invalid(active.Status == "Submitted" ? "The last count on this till is awaiting difference approval." : "A shift is already open on this till.");
             var last = await store.LastClosedShiftAsync(tx, till.TillId, ct2).ConfigureAwait(false);
             Paise opening;
+            Paise? handover = null;
+            var handoverReason = "";
             if (last is not null)
             {
                 // DEC-035: the opening float is the cash counted at the previous close.
                 opening = last.Counted!.Value;
                 if (req.OpeningFloatPaise is { } given && given != opening.Value)
                     throw HccException.Validation($"The opening float is carried from the last count ({opening}).");
+                // DEC-078: the shift becomes the opener's. Taking over a drawer someone else counted needs the opener's own handover count; a count
+                // that differs from the carried float is flagged with a reason (audited). The float stays the carried count (DEC-035).
+                var takeover = last.SubmittedBy != caller.PrincipalId;
+                if (req.HandoverCountPaise is { } h)
+                {
+                    handover = Paise.FromWire(h);
+                    if (handover < Paise.Zero) throw HccException.Validation("Enter a valid handover count.");
+                    handoverReason = BillingText.Optional(req.HandoverReason, 200);
+                    if (handover != opening && handoverReason.Length == 0)
+                        throw HccException.Validation($"Your handover count differs from the cash counted at the last close ({opening}). Give a reason.");
+                }
+                else if (takeover)
+                {
+                    throw HccException.Validation($"Count the drawer you are taking over and enter the handover count (the last close counted {opening}).");
+                }
             }
             else
             {
@@ -69,7 +86,20 @@ public sealed class CashierService(ICommandRunner runner, IBillingStore store, I
             }
 
             var s = await store.InsertShiftAsync(tx, till.TillId, date, opening, last?.ShiftId, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("SHIFT_OPENED", Target("shift", s.ShiftId), $"till {till.Code} · {date:yyyy-MM-dd} · float {opening}", ct2).ConfigureAwait(false);
+            var handoverText = "";
+            if (handover is { } hc)
+            {
+                await store.SetShiftHandoverAsync(tx, s.ShiftId, hc, handoverReason.Length == 0 ? null : handoverReason, ct2).ConfigureAwait(false);
+                var diff = CashOutRules.HandoverDifference(hc, opening);
+                handoverText = diff == Paise.Zero ? $" · handover count {hc} (matches)" : $" · handover count {hc}, difference {diff} · {handoverReason}";
+                if (diff != Paise.Zero)
+                {
+                    await tx.AuditAsync("SHIFT_HANDOVER_DIFFERENCE", Target("shift", s.ShiftId), $"till {till.Code} · carried {opening}, counted {hc} ({(diff > Paise.Zero ? "over" : "short")} {(diff < Paise.Zero ? -diff : diff)}) · {handoverReason}", ct2).ConfigureAwait(false);
+                    await tx.PublishAsync("ShiftHandoverDifference", s.ShiftId, new { shiftId = s.ShiftId, tillId = till.TillId, businessDate = date, carriedPaise = opening.Value, handoverPaise = hc.Value, reason = handoverReason }, ct2).ConfigureAwait(false);
+                }
+            }
+
+            await tx.AuditAsync("SHIFT_OPENED", Target("shift", s.ShiftId), $"till {till.Code} · {date:yyyy-MM-dd} · float {opening}{handoverText}", ct2).ConfigureAwait(false);
             return ToResult(s);
         }, ct).ConfigureAwait(false);
     }

@@ -9,6 +9,7 @@ import {drawer,blockedDuring,totals} from '../selectors';
 import {posSlice,posOpenOrders,posOrderTotals,posSpot} from './pos';
 import {lineTax} from '../gst';
 import {mnyIsDrawer,mnyIsCredit,mnySettlesTo,mnyNames} from './money-master';
+import {cxDeskMovements,cxPendingTransfers} from './cashout';
 
 // ── Limits (RBAC Matrix §6, demonstration defaults) ──
 /** Manager may accept a cash difference up to ₹200; above → Owner (PERM-SHF-002). */
@@ -49,7 +50,16 @@ export type ClosingRecord={
   outlet?:{byMethod:Record<string,number>;net:number;roomFolio:number;bills:number};
   nightAudit:{stays:number;resumed:boolean};
   exceptions:string[];
+  /** DEC-077: every Owner reopen of this date, oldest first (the open one has no reclosedAt). */
+  reopens?:ClosingReopen[];
+  /** DEC-077: the earlier closing records of this date that a re-close replaced (kept unchanged as history, oldest first). */
+  replaced?:ClosingRecord[];
 };
+/** DEC-077 (resolves DEC-028): one reopen of a closed business day by the Owner, with a reason; open while reclosedAt is unset. */
+export type ClosingReopen={id:string;date:string;by:string;at:string;reason:string;
+  /** The day's DEC-065 cash-book lock when reopened (a reopen never unlocks it). */cashBookLocked:boolean;
+  /** The day had been exported to Tally: its vouchers were flagged for re-export. */tallyReexport:boolean;
+  reclosedBy?:string;reclosedAt?:string};
 
 // ── Cash shift (SCR-11, WF-SHIFT-001) ──
 export type ShiftStatus='Open'|'Submitted'|'Closed';
@@ -66,7 +76,7 @@ export function shiftMovements(s:State):CashMovement[]{
   const exp=s.expenses.filter(e=>e.date===s.date&&mnyIsDrawer(s,e.method)&&expenseCounts(e)).map(expMovement);
   const p=posSlice(s);
   const pos=p.receipts.filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
-  return [...rec,...pos,...exp];
+  return [...rec,...pos,...exp,...cxDeskMovements(s,s.date)]; // DEC-073: bank deposits, till transfers, Owner drawings
 }
 const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
   label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor});
@@ -87,7 +97,7 @@ export function shiftMovementsByDate(s:State,from:string,to:string):(d:string)=>
   const p=posSlice(s),orders=new Map<string,(typeof p.orders)[number]>();
   for(const o of p.orders)if(!orders.has(o.id))orders.set(o.id,o);
   for(const r of p.receipts)if(mnyIsDrawer(s,r.method)&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
-  return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[])];
+  return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[]),...cxDeskMovements(s,d)];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
 /** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
@@ -97,8 +107,10 @@ export function shiftExpected(s:State){
   const mv=shiftMovements(s),sum=(k:string[])=>mv.filter(m=>k.includes(m.kind)).reduce((a,m)=>a+m.amount,0);
   const neg=(n:number)=>0-n||0; // avoid −0 ("-₹0" on screen)
   const parts={opening:s.openingCash,payments:sum(['payment']),deposits:sum(['deposit']),refunds:neg(sum(['refund'])),returns:neg(sum(['deposit-return'])),
-    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void'])};
-  const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other-parts.refunds-parts.returns-parts.expenses;
+    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void']),
+    /** DEC-073: bank deposits, till transfers and Owner drawings, signed (usually negative: cash out of the drawer). */
+    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing'])};
+  const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other+parts.transfers-parts.refunds-parts.returns-parts.expenses;
   return {...parts,expected,consistent:expected===drawer(s)};
 }
 /** Denomination grid → paise. counts[note]=number of notes; coins = rupee amount. */
@@ -127,8 +139,11 @@ export type PreflightIssue={id:string;title:string;hint:string;page?:string;item
 /** All preflight checks in close order; a check with items is blocking (REQ-CLOSE-002). */
 export function closingPreflight(s:State):PreflightIssue[]{
   const pendingApprovals=s.approvals.filter(a=>a.status==='Pending');
-  const st=shiftStatus(s);
+  const st=shiftStatus(s),reopened=closingReopened(s);
   return [
+    // DEC-077: a reopened earlier day blocks today's close until it is closed again (same check as the server's "reopened").
+    {id:'reopened',title:'Reopened day closed again',hint:'Close the reopened day again (Day closing) before closing today.',page:'closing',
+      items:reopened?[{label:`${reopened.date} reopened by the Owner · close it again`,page:'closing'}]:[]},
     {id:'arrivals',title:'Arrivals resolved',hint:'Check in, or cancel after refunding advances.',page:'reservations',
       items:s.bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=s.date).map(b=>({label:`${b.guest} · room ${b.room} · ${bookingRef(b)}`,booking:b.id}))},
     {id:'departures',title:'Overdue departures resolved',hint:'Settle and check out, or extend the stay.',page:'folios',
@@ -138,7 +153,9 @@ export function closingPreflight(s:State):PreflightIssue[]{
     {id:'nights',title:'Room-night charges posted',hint:'Post tonight’s room line for every in-house stay (step 2).',
       items:s.bookings.filter(b=>b.status==='In house'&&!closingHasNight(b,s.date)).map(b=>({label:`${b.guest} · room ${b.room} · ${money(b.rate)}`,booking:b.id}))},
     {id:'approvals',title:'Approvals resolved',hint:'Approve or reject pending requests.',page:'expenses',
-      items:pendingApprovals.map(a=>({label:`${approvalKindLabel(a.kind)} · ${money(a.amount)} · ${a.id}`,page:a.kind==='cash-difference'?'cashier':'expenses'}))},
+      items:[...pendingApprovals.map(a=>({label:`${approvalKindLabel(a.kind)} · ${money(a.amount)} · ${a.id}`,page:a.kind==='cash-difference'?'cashier':'expenses'})),
+        // DEC-073: a pending till transfer holds up the close (a bank deposit awaiting confirmation does not).
+        ...cxPendingTransfers(s).map(r=>({label:`Till transfer awaiting the receiver · ${money(r.amount)} · ${r.id}`,page:'cashier'}))]},
     {id:'expenses',title:'Expenses resolved',hint:'Approve or reject pending expenses.',page:'expenses',
       items:s.expenses.filter(e=>e.status==='Pending').map(e=>({label:`${e.vendor} · ${money(e.amount)} · ${e.id}`,page:'expenses'}))},
     {id:'pos',title:'Restaurant checks settled',hint:'Settle each open check, charge it to the room, or void it (with approval above the limit).',page:'pos',
@@ -148,32 +165,102 @@ export function closingPreflight(s:State):PreflightIssue[]{
   ];
 }
 export function approvalKindLabel(kind?:string){return !kind?'Discount':kind==='cash-difference'?'Cash difference':kind==='closed-date-correction'?'Closed-date correction':kind[0].toUpperCase()+kind.slice(1);}
+/** The figures of a closing record derived from the source records of date d (shared by the close and the DEC-077 re-close). */
+function closingFigures(s:State,d:string){
+  const p=reportPack(s,d,d),v=(tab:string,id:string)=>p.tabs.find(t=>t.id===tab)!.metrics.find(m=>m.id===id)?.value??0;
+  const byTender:Record<string,number>={};for(const t of reportTenders(s,d,d))byTender[t]=v('receipts','tender:'+t);
+  const occ=reportOccupancyRange(s,d,d);
+  return {
+    revenue:{room:v('revenue','room'),service:v('revenue','service'),discounts:v('revenue','discount'),adjustments:v('revenue','adjustment'),net:v('revenue','net'),tax:v('revenue','tax')},
+    receipts:{byTender,net:v('receipts','net'),companyCredit:v('receipts','company-credit')},
+    received:v('receipts','deposit-in'),returned:0-v('receipts','deposit-out')||0,
+    expenses:{cash:v('expenses','cash'),nonCash:v('expenses','noncash'),vendorCredit:v('expenses','vendor'),total:v('expenses','total')},
+    occupancy:{sellable:occ.sellable,occupied:occ.occupied,occupancy:reportPct(occ.occupied,occ.sellable),roomRevenue:occ.roomRevenue,adr:reportRatioMoney(occ.roomRevenue,occ.occupied),revpar:reportRatioMoney(occ.roomRevenue,occ.sellable)}};
+}
+/** Exceptions of date d that come from its records (closed-date corrections, expense reversals and rejections). */
+function closingRecordExceptions(s:State,d:string,reversals=false):string[]{
+  const out:string[]=[];
+  const corrections=s.bookings.flatMap(b=>b.lines.filter(l=>l.date===d&&l.kind==='adjustment'&&(l as Line&{correctionOf?:string}).correctionOf).map(l=>({b,l})));
+  corrections.forEach(({b,l})=>out.push(`Correction ${money(l.amount)} on ${bookingRef(b)} for closed date ${(l as Line&{correctionOf?:string}).correctionOf}`));
+  // DEC-077 re-close: reversals posted on the reopened day are listed as well (the server lists every correction line of the day).
+  if(reversals)s.bookings.forEach(b=>b.lines.filter(l=>l.date===d&&l.reversalOf).forEach(l=>out.push(`Reversal ${money(l.amount)} on ${bookingRef(b)} · ${l.label}`)));
+  s.expenses.filter(e=>e.reversalOf&&e.date===d).forEach(e=>out.push(`Expense ${e.reversalOf} reversed (${money(e.amount)})`));
+  s.expenses.filter(e=>e.status==='Rejected'&&e.date===d).forEach(e=>out.push(`Expense ${e.id} rejected${e.reason?' · '+e.reason:''}`));
+  return out;
+}
 /** Closing record for the current business date (snapshot taken at DAY_CLOSE). */
 export function closingSummary(s:State,closedBy=''):ClosingRecord{
-  const d=s.date,p=reportPack(s,d,d),v=(tab:string,id:string)=>p.tabs.find(t=>t.id===tab)!.metrics.find(m=>m.id===id)?.value??0;
-  const byTender:Record<string,number>={};for(const t of reportTenders(s,d,d))byTender[t]=v('receipts','tender:'+t);
-  const occ=reportOccupancyRange(s,d,d),ex=shiftExpected(s);
+  const d=s.date,f=closingFigures(s,d),ex=shiftExpected(s);
   const counted=s.shiftClose?.counted??ex.expected,expected=s.shiftClose?.expected??ex.expected;
   const sh=s.shift?.date===d?s.shift:undefined,countedBy=sh?.submittedBy??s.shiftClose?.countedBy;
   const exceptions:string[]=[];
   if(counted!==expected)exceptions.push(`Cash difference ${money(counted-expected)} accepted${sh?.decidedBy?' by '+userName(s,sh.decidedBy):''}${sh?.reason?' · '+sh.reason:''}`);
   if(s.closeProgress?.date===d&&s.closeProgress.runs>1)exceptions.push(`Night audit resumed after an interruption (${s.closeProgress.runs} runs; no night posted twice)`);
-  const corrections=s.bookings.flatMap(b=>b.lines.filter(l=>l.date===d&&l.kind==='adjustment'&&(l as Line&{correctionOf?:string}).correctionOf).map(l=>({b,l})));
-  corrections.forEach(({b,l})=>exceptions.push(`Correction ${money(l.amount)} on ${bookingRef(b)} for closed date ${(l as Line&{correctionOf?:string}).correctionOf}`));
-  s.expenses.filter(e=>e.reversalOf&&e.date===d).forEach(e=>exceptions.push(`Expense ${e.reversalOf} reversed (${money(e.amount)})`));
-  s.expenses.filter(e=>e.status==='Rejected'&&e.date===d).forEach(e=>exceptions.push(`Expense ${e.id} rejected${e.reason?' · '+e.reason:''}`));
+  exceptions.push(...closingRecordExceptions(s,d));
   return {date:d,closedAt:s.clock,closedBy,
-    revenue:{room:v('revenue','room'),service:v('revenue','service'),discounts:v('revenue','discount'),adjustments:v('revenue','adjustment'),net:v('revenue','net'),tax:v('revenue','tax')},
-    receipts:{byTender,net:v('receipts','net'),companyCredit:v('receipts','company-credit')},
-    deposits:{received:v('receipts','deposit-in'),returned:0-v('receipts','deposit-out')||0,heldAtClose:s.bookings.reduce((a,b)=>a+totals(b).deposit,0)},
-    expenses:{cash:v('expenses','cash'),nonCash:v('expenses','noncash'),vendorCredit:v('expenses','vendor'),total:v('expenses','total')},
-    occupancy:{sellable:occ.sellable,occupied:occ.occupied,occupancy:reportPct(occ.occupied,occ.sellable),roomRevenue:occ.roomRevenue,adr:reportRatioMoney(occ.roomRevenue,occ.occupied),revpar:reportRatioMoney(occ.roomRevenue,occ.sellable)},
+    revenue:f.revenue,
+    receipts:f.receipts,
+    deposits:{received:f.received,returned:f.returned,heldAtClose:s.bookings.reduce((a,b)=>a+totals(b).deposit,0)},
+    expenses:f.expenses,
+    occupancy:f.occupancy,
     cash:{opening:s.openingCash,expected,counted,difference:counted-expected,reason:counted!==expected?sh?.reason:undefined,approvedBy:counted!==expected?sh?.decidedBy:undefined,...(countedBy?{countedBy}:{}),restaurant:ex.restaurant},
     outlet:closingOutlet(s,d),
     nightAudit:{stays:closingNightTargets(s).length,resumed:!!(s.closeProgress?.date===d&&s.closeProgress.runs>1)},
     exceptions};
 }
 const userName=(s:State,id:string)=>s.users.find(u=>u.id===id)?.name??id;
+
+// ── DEC-077: the Owner reopens a closed business day (resolves DEC-028; mirrors Hcc.Domain.Closing.ReopenRules) ──
+// Owner only, with a reason; only a closed day before the business date that has a closing record, never one locked in Accounting, one
+// reopened day at a time. While reopened, a correction of a line dated that day and a missed charge post ON it (open folios only: an
+// invoice or credit note never changes); receipts and cash stay on the open day; the DEC-065 cash-book lock is not touched. Today cannot
+// be closed until the reopened day is closed again (preflight 'reopened'); closing it again writes a new record and keeps the old one.
+const reopenedOf=new WeakMap<object,ClosingReopen|null>(); // per closings object (replaced, never edited, when a reopen changes)
+/** The open reopen (the earlier day the Owner reopened and nobody has closed again yet), if any. */
+export function closingReopened(s:State):ClosingReopen|undefined{
+  const all=s.closings;if(!all)return undefined;
+  let found=reopenedOf.get(all);
+  if(found===undefined){found=null;for(const c of Object.values(all))for(const r of c.reopens??[])if(!r.reclosedAt)found=r;reopenedOf.set(all,found);}
+  return found??undefined;
+}
+/** Why `date` cannot be reopened now ('' = it can). `accountingLocked` = the date is locked in Accounting. The role is checked separately. */
+export function closingReopenRefusal(s:State,date:string,accountingLocked:boolean):string{
+  const open=closingReopened(s);
+  if(open?.date===date)return `Business day ${date} is already reopened.`;
+  if(!s.closedDates.includes(date))return `Business day ${date} is not closed: corrections post in the open day as usual.`;
+  if(date>=s.date)return `Finish closing ${date} first: the next business day is not open yet.`;
+  if(open)return `Business day ${open.date} is already reopened. Close it again before reopening another day.`;
+  if(accountingLocked)return `Business day ${date} is locked in Accounting. The Owner unlocks that period first (with a reason).`;
+  if(!s.closings?.[date])return `Business day ${date} has no closing record in this demo (it was closed before records were kept), so it cannot be reopened here.`;
+  return '';
+}
+/** What the reopen tells the Owner: the cash-book lock and the Tally re-export spelled out (server ReopenRules.Message). */
+export function closingReopenMessage(date:string,cashBookLocked:boolean,tallyReexport:boolean):string{
+  return `Business day ${date} reopened. Corrections of lines dated ${date} and missed charges now post on ${date}; issued invoice and credit-note numbers and their GST never change (a checked-out stay is corrected with a credit note). Close ${date} again before closing today.`
+    +(cashBookLocked?` The cash book of ${date} stays locked (DEC-065): reopening the day does not unlock it, so a correction touching ${date} is refused until the Owner reopens that cash-book day.`
+      :` Reopening the day does not change cash-book locks (DEC-065); the cash book of ${date} is not locked.`)
+    +(tallyReexport?` ${date} was exported to Tally: its vouchers are marked changed and the next Tally export carries them again.`:'');
+}
+/** Pending correction requests of lines dated `date` (closing the reopened day again waits for them: an approval would post on that day). */
+export function closingPendingCorrections(s:State,date:string){
+  return s.approvals.filter(a=>a.status==='Pending'&&a.kind==='correction'&&s.bookings.some(b=>b.id===a.booking&&b.lines.some(l=>l.id===a.target&&l.date===date)));
+}
+/** The exception line a closing record carries for one reopen of its day. */
+export function closingReopenNote(s:State,r:ClosingReopen):string{
+  return `Reopened ${r.at.replace('T',' ')} by ${userName(s,r.by)} (DEC-077): ${r.reason}`+(r.reclosedAt?` · closed again ${r.reclosedAt.replace('T',' ')} by ${userName(s,r.reclosedBy??'')}`:'');
+}
+/**
+ * The record a re-close writes for the reopened date d: every figure derived again from the day's source records; the point-in-time values
+ * of the first close stay (cash count, deposits held at close, night audit). `reopens` = all reopens of d, the current one already closed.
+ */
+export function closingResummary(s:State,d:string,closedBy:string,prior:ClosingRecord,reopens:ClosingReopen[]):ClosingRecord{
+  const f=closingFigures(s,d);
+  const keep=prior.exceptions.filter(e=>!/^(Correction |Reversal |Expense |Reopened )/.test(e));
+  return {date:d,closedAt:s.clock,closedBy,revenue:f.revenue,receipts:f.receipts,
+    deposits:{received:f.received,returned:f.returned,heldAtClose:prior.deposits.heldAtClose},expenses:f.expenses,occupancy:f.occupancy,
+    cash:prior.cash,outlet:closingOutlet(s,d),nightAudit:prior.nightAudit,
+    exceptions:[...keep,...closingRecordExceptions(s,d,true),...reopens.map(r=>closingReopenNote(s,r))]};
+}
 /** Outlet receipts of a business date by method (sales − same-day voids) and room-service bills charged to folios. */
 export function closingOutlet(s:State,d:string){
   const p=posSlice(s),byMethod:Record<string,number>=Object.fromEntries(mnyNames(s,'pos').map(m=>[m,0])); // MA-3: POS methods (seed Cash, UPI, Card)
