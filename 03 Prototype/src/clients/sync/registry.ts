@@ -28,7 +28,7 @@ import {staff} from './staff';
 // import {accounting} from './accounting';
 
 // W4-8 POS:
-// import {pos} from './pos';
+import {pos} from './pos';
 
 // W4-9 maintenance, linen & stock:
 import {maintenance} from './maintenance';
@@ -57,7 +57,7 @@ export const AREAS:SyncArea[]=[
 
   // accounting, // W4-7
 
-  // pos, // W4-8
+  pos, // W4-8
 
   maintenance, // W4-9
 

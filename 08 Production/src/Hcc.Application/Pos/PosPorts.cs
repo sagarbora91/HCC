@@ -215,4 +215,16 @@ public interface IPosStore
     Task<DateOnly?> PropertyBusinessDateAsync(int propertyId, CancellationToken ct);
 
     Task<PosCloseBlockers> BlockersAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>Checks that left the open state (settled or void) with a bill on, or opened on, <paramref name="date"/>, newest first (at most <paramref name="take"/>).</summary>
+    Task<IReadOnlyList<long>> ClosedCheckIdsAsync(int propertyId, DateOnly date, int take, CancellationToken ct);
+
+    /// <summary>Pending void requests, oldest first.</summary>
+    Task<IReadOnlyList<VoidRequestView>> PendingVoidsAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>In-house stays with their current room, by room number.</summary>
+    Task<IReadOnlyList<PosStayView>> InHouseStaysAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>The property's shared till and its open shift (null ids when no till exists yet).</summary>
+    Task<PosTillView> TillAsync(int propertyId, CancellationToken ct);
 }

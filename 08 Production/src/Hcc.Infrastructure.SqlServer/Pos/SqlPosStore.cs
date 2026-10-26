@@ -620,10 +620,10 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
         if (o is null) return null;
         List<KotView> kots;
-        await using (var c = connections.Command("SELECT kot_id, kot_no, status, created_utc, ready_utc, served_utc FROM pos.kot WHERE order_id = @o ORDER BY kot_id;", conn, tx))
+        await using (var c = connections.Command("SELECT kot_id, kot_no, status, created_utc, ready_utc, served_utc, created_by FROM pos.kot WHERE order_id = @o ORDER BY kot_id;", conn, tx))
         {
             P(c, "@o", SqlDbType.BigInt, orderId);
-            kots = await ReadAsync(c, rd => new KotView(rd.GetInt64(0), rd.GetInt32(1), PosRules.KotLabel(o.OutletName, rd.GetInt32(1)), rd.GetString(2), Dt(rd, 3)!.Value, Dt(rd, 4), Dt(rd, 5)), ct).ConfigureAwait(false);
+            kots = await ReadAsync(c, rd => new KotView(rd.GetInt64(0), rd.GetInt32(1), PosRules.KotLabel(o.OutletName, rd.GetInt32(1)), rd.GetString(2), Dt(rd, 3)!.Value, Dt(rd, 4), Dt(rd, 5), rd.GetInt32(6)), ct).ConfigureAwait(false);
         }
 
         List<LineRow> lines;
@@ -641,6 +641,29 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
             bill = (await ReadAsync(c, ReadBill, ct).ConfigureAwait(false)).SingleOrDefault();
         }
 
+        DateTime? settledUtc = null;
+        int? settledBy = null;
+        long? billReservation = null;
+        await using (var c = connections.Command("""
+            SELECT b.settled_utc, b.settled_by, st.reservation_id
+            FROM pos.bill b LEFT JOIN gst.stay st ON st.stay_id = b.stay_id WHERE b.order_id = @o;
+            """, conn, tx))
+        {
+            P(c, "@o", SqlDbType.BigInt, orderId);
+            var s = (await ReadAsync(c, rd => (At: Dt(rd, 0), By: rd.GetInt32(1), Res: rd.IsDBNull(2) ? (long?)null : rd.GetInt64(2)), ct).ConfigureAwait(false)).SingleOrDefault();
+            if (s.At is not null) { settledUtc = s.At; settledBy = s.By; billReservation = s.Res; }
+        }
+
+        (DateTime? OpenedUtc, int OpenedBy, string? Reason, DateTime? VoidedUtc, long? Res) head;
+        await using (var c = connections.Command("""
+            SELECT o.opened_utc, o.opened_by, o.void_reason, o.voided_utc, st.reservation_id
+            FROM pos.check_order o LEFT JOIN gst.stay st ON st.stay_id = o.stay_id WHERE o.order_id = @o;
+            """, conn, tx))
+        {
+            P(c, "@o", SqlDbType.BigInt, orderId);
+            head = (await ReadAsync(c, rd => (Dt(rd, 0), rd.GetInt32(1), Str(rd, 2), Dt(rd, 3), rd.IsDBNull(4) ? (long?)null : rd.GetInt64(4)), ct).ConfigureAwait(false)).Single();
+        }
+
         await tx.CommitAsync(ct).ConfigureAwait(false);
         var kotStatus = kots.ToDictionary(k => k.KotId, k => k.Status);
         var views = lines.Select(l => new LineView(l.LineId, l.ItemId, l.Name, l.Price.Value, l.Qty, new PosLineAmount(l.Price, l.Qty).Value.Value, l.KotId,
@@ -652,9 +675,9 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
             : PosRules.Totals(active.Select(l => new PosLineAmount(l.Price, l.Qty)), taxBps);
         var spot = o.TableNo is not null ? "Table " + o.TableNo : "Room " + o.RoomNo;
         var billView = bill is null ? null : new BillView(bill.BillId, bill.BillNo, bill.Mode, bill.Tender, bill.Reference, bill.Net.Value, bill.TaxBps, bill.Tax.Value,
-            bill.Total.Value, bill.BusinessDate, bill.Status);
+            bill.Total.Value, bill.BusinessDate, bill.Status, settledUtc, settledBy, billReservation);
         return new CheckView(o.OrderId, o.OutletId, o.OutletName, spot, o.Guest, o.Covers, o.BusinessDate, o.Status, o.Version, o.PendingVoidId, views, kots,
-            t.Net.Value, t.TaxBps, t.Tax.Value, t.Total.Value, items, billView);
+            t.Net.Value, t.TaxBps, t.Tax.Value, t.Total.Value, items, billView, head.OpenedUtc, head.OpenedBy, head.Reason, head.VoidedUtc, head.Res);
     }
 
     public async Task<IReadOnlyList<OpenCheckSummary>> OpenChecksAsync(int propertyId, CancellationToken ct)
@@ -861,5 +884,65 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await rd.ReadAsync(ct).ConfigureAwait(false);
         return new PosCloseBlockers(rd.GetInt32(0), rd.GetInt32(1));
+    }
+
+    public async Task<IReadOnlyList<long>> ClosedCheckIdsAsync(int propertyId, DateOnly date, int take, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT TOP (@n) o.order_id
+            FROM pos.check_order o LEFT JOIN pos.bill b ON b.order_id = o.order_id
+            WHERE o.property_id = @p AND o.status <> 'Open' AND (b.business_date = @d OR o.business_date = @d)
+            ORDER BY o.order_id DESC;
+            """, conn);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        P(cmd, "@n", SqlDbType.Int, take);
+        P(cmd, "@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+        return await ReadAsync(cmd, rd => rd.GetInt64(0), ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<VoidRequestView>> PendingVoidsAsync(int propertyId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT v.void_id, v.order_id, o.table_no, rm.room_no, v.scope, v.line_id, v.amount_paise, v.reason, v.requested_by, v.expires_utc, o.row_ver
+            FROM pos.void_request v
+            JOIN pos.check_order o ON o.order_id = v.order_id
+            LEFT JOIN inv.room rm ON rm.room_id = o.room_id
+            WHERE v.property_id = @p AND v.status = 'Pending'
+            ORDER BY v.void_id;
+            """, conn);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        return await ReadAsync(cmd, rd => new VoidRequestView(rd.GetInt64(0), rd.GetInt64(1), rd.IsDBNull(2) ? "Room " + rd.GetString(3) : "Table " + rd.GetString(2), rd.GetString(4),
+            rd.IsDBNull(5) ? null : rd.GetInt64(5), rd.GetInt64(6), rd.GetString(7), rd.GetInt32(8), Dt(rd, 9)!.Value, Ver(rd, 10)), ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<PosStayView>> InHouseStaysAsync(int propertyId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT s.stay_id, s.folio_id, rm.room_id, rm.room_no, rs.guest_name, s.reservation_id
+            FROM gst.stay s
+            JOIN inv.reservation rs ON rs.reservation_id = s.reservation_id
+            OUTER APPLY (SELECT TOP 1 sg.room_id FROM gst.stay_segment sg WHERE sg.stay_id = s.stay_id ORDER BY sg.seq DESC) cur
+            JOIN inv.room rm ON rm.room_id = cur.room_id
+            WHERE s.property_id = @p AND s.status = 'InHouse' ORDER BY rm.room_no;
+            """, conn);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        return await ReadAsync(cmd, rd => new PosStayView(rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(5), rd.GetString(3), rd.GetString(4)), ct).ConfigureAwait(false);
+    }
+
+    public async Task<PosTillView> TillAsync(int propertyId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT TOP (1) t.till_id, t.code, s.shift_id
+            FROM pay.till t LEFT JOIN pay.shift s ON s.till_id = t.till_id AND s.status = 'Open'
+            WHERE t.property_id = @p
+            ORDER BY CASE WHEN s.shift_id IS NULL THEN 1 ELSE 0 END, t.till_id;
+            """, conn);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        var rows = await ReadAsync(cmd, rd => (Id: rd.GetInt32(0), Code: rd.GetString(1), Shift: rd.IsDBNull(2) ? (long?)null : rd.GetInt64(2)), ct).ConfigureAwait(false);
+        return rows.Count == 0 ? new PosTillView(null, null, null, false) : new PosTillView(rows[0].Id, rows[0].Code, rows[0].Shift, rows[0].Shift is not null);
     }
 }
