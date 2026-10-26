@@ -2,7 +2,7 @@
 // permissions, atomicity and the header sync with the server import templates (08 Production/deployment/import-templates). Names prefixed [MIO].
 import {readFileSync,readdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-export function register({test,M,assert}){
+export async function register({test,M,assert}){
   const {seed,execute,masterSpecs,mstSpec,mstRows,mstByCode,mstHistory,mstExport,mstSetsFromExport,mstImportPreview,mstToCsv,mstRowsFromCsv,mstParseCsv,mstCsvColumns,mstIoFields,
     mstMoneyOn,mstMergeDated,mstImportOrder,MST_IO_WIRE,MST_IO_SKIP,MST_IO_FORMAT,HccError}=M;
   const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
@@ -174,9 +174,53 @@ export function register({test,M,assert}){
       const sample=readFileSync(`${TPL}/samples/${wire}.csv`,'utf8').split(/\r?\n/)[0].split(',');assert.deepEqual(sample,want,'sample '+wire);}
     const legacy=['room-types','rooms','tariffs','seasons','staff','ledgers','opening-balances','till-cash','guests','departments','companies','suppliers','stock-items'];
     assert.deepEqual(names.map(f=>f.replace(/\.csv$/,'')).filter(w=>!Object.values(MST_IO_WIRE).includes(w)).sort(),legacy.sort(),'every other template is one of the older imports');});
+  await registerUi({test,M,assert});
   test('[MIO] header sync: the server samples parse through the prototype FieldSpecs (columns known, no header problem) for every master',()=>{
     for(const [id,wire] of Object.entries(MST_IO_WIRE)){
       const sp=mstSpec(id),text=readFileSync(`${TPL}/samples/${wire}.csv`,'utf8');
       const res=mstRowsFromCsv(base,sp,text.replace(/,tables\r?\n/,'\n').split(/\r?\n/).map((l,i)=>i===0?l:l).join('\n'));
       assert.deepEqual(res.errors.filter(e=>e.line<=1),[],`${wire} header`);assert.ok(res.rows.length||res.errors.length,wire);}});
+}
+
+// ── UI (server-side render of the sheets and the panel) ──
+export async function registerUi({test,M,assert}){
+  const {build}=await import('esbuild');const {mkdir,writeFile}=await import('node:fs/promises');
+  const dir='tests/.generated';await mkdir(dir,{recursive:true});
+  await writeFile(dir+'/mio-entry.tsx',`
+import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
+import {HccContext} from '../../src/app/context';
+import {can,metrics,roomStatus} from '../../src/services/mock';
+import {MstPasteSheet,MstImportSheet,MstIoPanel} from '../../src/features/masters/MastersIo';
+import {MasterList} from '../../src/features/masters/MasterList';
+import {MasterListPhone} from '../../src/mobile/masters/MasterListPhone';
+import {CfgDataPanel} from '../../src/features/admin/config/panels';
+import {registration} from '../../src/features/masters/register';
+function ctx(s:any,uid:string,mobile:boolean):any{
+  const user=s.users.find((u:any)=>u.id===uid);const noop=()=>{};
+  return {s,uid,user,m:metrics(s),page:'settings',go:noop,modal:{type:'x',key:'k'},open:noop,closeModal:noop,booking:noop,error:'',busy:false,run:async()=>false,toast:noop,permission:(p:any)=>can(s,uid,p),act:()=>null,
+    search:'',setSearch:noop,filter:'All',setFilter:noop,tab:'Arrivals',setTab:noop,arrivals:[],departures:[],pending:0,taskList:[],roomStatus:(r:any)=>roomStatus(s,r),switchUser:noop,fault:'none',setFault:noop,
+    loadScenario:noop,resetScenario:noop,display:{isMobile:mobile,mode:mobile?'mobile':'desktop',setMode:noop},setDirty:noop,openSearch:noop,openMenu:noop,signOut:noop};
+}
+export const html=(s:any,uid:string,what:string,mobile=false)=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid,mobile)}>{
+  what==='paste'?<MstPasteSheet id="floors"/>:what==='pasteVendors'?<MstPasteSheet id="expenseVendors"/>:what==='import'?<MstImportSheet/>:what==='panel'?<MstIoPanel/>:what==='data'?<CfgDataPanel/>:what==='list'?<MasterList spec="floors"/>:
+  what==='listPhone'?<MasterListPhone spec="floors"/>:what==='listRooms'?<MasterList spec="rooms"/>:null}</HccContext.Provider>);
+export const reg=registration;
+`);
+  await build({entryPoints:[dir+'/mio-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:dir+'/mio-entry.mjs',logLevel:'error',jsx:'automatic',
+    define:{'process.env.NODE_ENV':'"production"'},banner:{js:"import {createRequire as __r} from 'node:module';const require=__r(import.meta.url);"}});
+  const U=await import(new URL('./.generated/mio-entry.mjs?'+Date.now(),import.meta.url).href);
+  const base=M.seed();
+  test('[MIO-UI] Data and system shows the masters export / import box with the number of lists; Reception cannot import',()=>{
+    const o=U.html(base,'owner','data');assert.match(o,/Masters export and import/);assert.match(o,/Export masters \(28 lists\)/);assert.match(o,/Import masters/);
+    const r=U.html(base,'reception','panel');assert.match(r,/You may not change any list/);assert.match(r,/disabled/);
+    const t=U.html(base,'techadmin','panel');assert.ok(!/Export masters \(28 lists\)/.test(t),'Tech admin has fewer lists (money lists are the Owner\'s)');assert.match(t,/Export masters \(\d+ lists\)/);});
+  test('[MIO-UI] Paste rows sheet: columns of the list, Copy CSV, textarea; Import sheet explains all-or-nothing and the retire rule',()=>{
+    const p=U.html(base,'owner','paste');assert.match(p,/Paste rows/);assert.match(p,/code, name, sortOrder, active/);assert.match(p,/Copy this list as CSV/);assert.match(p,/<textarea/);
+    const i=U.html(base,'owner','import');assert.match(i,/Import masters/);assert.match(i,/All or nothing/);assert.match(i,/never retires a row/);
+    assert.match(U.html(base,'reception','paste'),/masters permission/);});
+  test('[MIO-UI] MasterList (desktop and phone) offers Paste rows next to Add for lists with a server file, not for rooms; Reception sees neither',()=>{
+    assert.match(U.html(base,'owner','list'),/Paste rows/);assert.match(U.html(base,'owner','listPhone',true),/Paste rows/);
+    assert.ok(!/Paste rows/.test(U.html(base,'owner','listRooms')));assert.ok(!/Paste rows/.test(U.html(base,'reception','list')));});
+  test('[MIO-UI] both modals are registered for desktop and phone (mst-import, mst-paste)',()=>{
+    for(const where of [U.reg.modals,U.reg.mobile.modals]){assert.equal(typeof where['mst-import'],'function');assert.equal(typeof where['mst-paste'],'function');assert.equal(typeof where['mst-row'],'function');}});
 }

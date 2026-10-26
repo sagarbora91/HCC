@@ -222,3 +222,22 @@ export const mstImportCounts=(items:MstImportItem[])=>({create:items.filter(i=>i
   unchanged:items.filter(i=>i.action==='unchanged').length,skipped:items.filter(i=>i.action==='skipped').length,errors:items.filter(i=>i.action==='error').length});
 /** Row keys a file may set, for a spec (everything else is dropped). */
 export const mstIoKeys=(spec:MasterSpec)=>new Set<string>(['code','name','sortOrder','active',...mstIoFields(spec).map(f=>f.key)]);
+
+/** Rows of an import (JSON or pasted) as the server import file: only the columns some row carries (a column left out keeps the stored value on the
+ *  server), code and name always; extra = columns the server file has beyond the FieldSpec keys (pos-outlets: tables). */
+export function mstCsvOfRows(s:State,spec:MasterSpec,rows:MstIoRow[],extra:Record<string,(row:MstIoRow)=>string>={}):string{
+  const present=new Set<string>(['code','name']);
+  for(const r of rows)for(const k of Object.keys(r))if(r[k]!==undefined)present.add(k);
+  const cols=[...mstCsvColumns(spec).filter(c=>present.has(c)),...Object.keys(extra)];
+  const out=[cols.join(',')];
+  for(const r of rows){
+    out.push(cols.map(c=>{
+      if(extra[c])return mstCsvCell(extra[c](r));
+      if(c==='active')return r.active===undefined?'':r.active?'yes':'no';
+      if(c==='sortOrder')return r.sortOrder===undefined||r.sortOrder===''?'':String(r.sortOrder);
+      if(c==='code'||c==='name')return mstCsvCell(String(r[c]??''));
+      const f=spec.fields.find(x=>x.key===c)!;return mstCsvCell(mstCellOf(s,spec,f,r[c]));
+    }).join(','));
+  }
+  return out.join('\r\n')+'\r\n';
+}
