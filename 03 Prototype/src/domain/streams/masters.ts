@@ -207,6 +207,8 @@ export function mstSeesMoney(s:State,uid:string):boolean{
   if(assignedScopeRoles.includes(u.role as Role)||u.role==='Supervisor')return false;
   return can(s,uid,['billing','payments','reports','approve','admin']);
 }
+/** MA-10 (DEC-061): text for a role without money visibility — every rupee amount becomes "₹ ••" (hub values, help texts, summaries). */
+export const mstMaskMoney=(s:State,uid:string,text:string)=>mstSeesMoney(s,uid)?text:text.replace(/₹\s?[\d,]+(\.\d+)?/g,'₹ ••');
 const ownerAllowed=(s:State,uid:string)=>{const u=s.users.find(x=>x.id===uid);return u?.role==='Owner'&&can(s,uid,'admin')&&authorize(s,uid,'PERM-ADM-003',{act:true}).decision==='allow';};
 /** May this user change the list at all? Operational lists: the `masters` permission; money lists ('settings'/money): the Owner. */
 export function mstCanEdit(s:State,uid:string,spec:MasterSpec):{ok:boolean;reason?:string}{

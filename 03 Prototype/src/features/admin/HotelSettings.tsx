@@ -4,12 +4,12 @@
 // BL-027) live in Rooms and rate plans; the dated GST master (DEC-069) in Money and tax. Registry: domain/streams/config.ts.
 import React,{useState} from 'react';
 import {Lock,CalendarClock,Search,ChevronRight} from 'lucide-react';
-import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRATIVE,authorize,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
+import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRATIVE,authorize,mstSeesMoney,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
   type CfgGroupId,type CfgSettingDef,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {GuardedButton} from './parts';
-import {cfgListRows,cfgDetailDefs,cfgNav} from './config/logic';
+import {cfgListRows,cfgDetailDefs,cfgNav,cfgMoneyMask} from './config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from './config/panels';
 import {ServerDevicePanel} from '../../clients/sync/react'; // production build only (W4-12: server address, device registration)
 import {MstListsBlock} from '../masters/MasterList'; // MA-0: "Lists" block (masters of the group)
@@ -49,8 +49,9 @@ export function CfgGroupDetail({g,q}:{g:CfgGroupId;q:string}){
     <div className="cfg-head"><div><h2>{grp.label}</h2><p>{grp.blurb}</p></div><CfgGroupLink g={g}/></div>
     {row.readOnly&&<div className="info-note adm-banner cfg-readonly"><Lock size={16}/><span>Read only — {row.reason}</span></div>}
     <MstListsBlock key={g} g={g} q={q}/>
-    {g==='rooms'&&!q&&<Tariffs block={block}/>}
-    {g==='money'&&!q&&<GstPanel/>}
+    {(g==='rooms'||g==='money')&&!q&&!mstSeesMoney(s,uid)&&<p className="muted padded"><Lock size={13}/> Tariffs and the GST master are hidden — this role does not see hotel money (DEC-061).</p>}
+    {g==='rooms'&&!q&&mstSeesMoney(s,uid)&&<Tariffs block={block}/>}
+    {g==='money'&&!q&&mstSeesMoney(s,uid)&&<GstPanel/>}
     {g==='modules'&&<CfgModulesPanel/>}
     {g!=='modules'&&(defs.length?<ul className="cfg-rows">{defs.map(d=><CfgRow key={d.key} def={d}/>)}</ul>:(!['rooms','money','data'].includes(g)||q)&&!(q&&row.listHits)?<Empty title="No matching settings in this group"/>:null)}
     {g==='people'&&<p className="muted padded">Dated statutory rates, leave policy and weekly offs from the payroll module join this group through the settings provider API.</p>}
@@ -61,8 +62,8 @@ function CfgRow({def}:{def:CfgSettingDef}){
   const {s,uid,open,busy}=useHcc();
   const d=cfgCanChange(s,uid,def);const sched=cfgScheduled(s,def.key);const pend=cfgPendingRequests(s,def.key);const h=cfgHistory(s,def.key);
   return <li className="cfg-row">
-    <div className="cfg-row-main"><strong>{def.label}</strong><small>{def.help}{def.illustrative?' ':''}</small>{def.illustrative&&<Pill tone="orange">Illustrative — CA to confirm</Pill>}</div>
-    <div className="cfg-row-val"><strong>{cfgDisplay(s,uid,def)}</strong>{sched.map(x=><small key={x.id}><CalendarClock size={12}/> {cfgShow(def,x.value)} from {shortDate(x.effectiveFrom)}</small>)}
+    <div className="cfg-row-main"><strong>{def.label}</strong><small>{cfgMoneyMask(s,uid,def.help)}{def.illustrative?' ':''}</small>{def.illustrative&&<Pill tone="orange">Illustrative — CA to confirm</Pill>}</div>
+    <div className="cfg-row-val"><strong>{cfgMoneyMask(s,uid,cfgDisplay(s,uid,def))}</strong>{sched.map(x=><small key={x.id}><CalendarClock size={12}/> {cfgMoneyMask(s,uid,cfgShow(def,x.value))} from {shortDate(x.effectiveFrom)}</small>)}
       {pend.length>0&&<Pill tone="orange">Approval pending</Pill>}</div>
     <div className="cfg-row-meta"><small>{def.effective}</small><small>{def.approval}</small>{h.length>0&&<small>{h.length} change{h.length>1?'s':''} · last {h[0].before} → {h[0].after}</small>}</div>
     <div className="cfg-row-act">{def.editable?<GuardedButton block={d.mode==='deny'?d.reason:undefined} busy={busy} onClick={()=>open({type:'cfg-setting',id:def.key})}>{d.mode==='request'?'Request change…':'Change…'}</GuardedButton>

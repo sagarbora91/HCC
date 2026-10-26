@@ -8,7 +8,7 @@ import {cfgDef,cfgGroup,cfgCanChange,cfgValueOn,cfgShow,cfgDisplay,cfgImpact,cfg
 import {useHcc} from '../../../app/context';
 import {Empty,Pill,shortDate,clockTime} from '../../../components/ui';
 import {Impact} from '../modals';
-import {cfgToInput,cfgFromInput} from './logic';
+import {cfgToInput,cfgFromInput,cfgMoneyMask} from './logic';
 
 const first=(n:string)=>n.split(' · ')[0];
 function Editor({def,v,setV}:{def:CfgSettingDef;v:string;setV:(t:string)=>void}){
@@ -43,12 +43,12 @@ export function CfgSettingSheet({id}:{id?:string}){
   const block=dec.mode==='deny'?dec.reason:pend.length?'A change to this setting is already waiting for approval.':undefined;
   const save=()=>run({type:'SETTING_SET',setting:def.key,value:raw,...(def.effectiveMode==='date'?{effectiveFrom:from}:{}),reason,key:modal!.key},
     dec.mode==='request'?'Change sent for approval':effDate>s.date?'Change scheduled · history recorded':'Setting saved · history recorded',{close:true});
-  return <><div className="modal-heading"><div className="eyebrow">{g.label.toUpperCase()} · {def.key}</div><h2>{def.label}</h2><p>{def.help}</p>
+  return <><div className="modal-heading"><div className="eyebrow">{g.label.toUpperCase()} · {def.key}</div><h2>{def.label}</h2><p>{cfgMoneyMask(s,uid,def.help)}</p>
       {def.illustrative&&<p className="cfg-illus"><Info size={14}/> Illustrative — CA to confirm for a hotel.</p>}</div>
     <form className="form" onSubmit={e=>{e.preventDefault();if(!err&&!reasonErr&&!block&&'date' in eff)save();}}>
       <div className="summary-list">
-        <div><span>Current value</span><strong>{cfgDisplay(s,uid,def)}</strong></div>
-        {sched.map(x=><div key={x.id}><span>From {shortDate(x.effectiveFrom)}</span><strong>{cfgShow(def,x.value)}</strong></div>)}
+        <div><span>Current value</span><strong>{cfgMoneyMask(s,uid,cfgDisplay(s,uid,def))}</strong></div>
+        {sched.map(x=><div key={x.id}><span>From {shortDate(x.effectiveFrom)}</span><strong>{cfgMoneyMask(s,uid,cfgShow(def,x.value))}</strong></div>)}
         <div><span>Type · unit</span><strong>{def.type} · {def.unit||'—'}</strong></div>
         <div><span>Effective</span><strong>{def.effective}</strong></div>
         <div><span>Who can change</span><strong>{def.approval}</strong></div>
