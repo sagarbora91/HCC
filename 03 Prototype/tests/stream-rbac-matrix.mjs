@@ -66,6 +66,7 @@ const PAGES={
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
   roadmap:['OWN MGR CSH ACC','Not in the matrix (informational page); current gate accepted'],
+  prefs:[ALL,'CP-1 Appearance & display: every role, this device only, no hotel data (plan §4, DEC-CP-1)'],
 };
 // Documented cells the app does not honour yet (page keys are 'page:<id>').
 const P=ids=>ids.map(i=>'page:'+i);
@@ -210,7 +211,7 @@ export function register({test,M,assert}){
       assert.equal(app,set(PAGES[n.id][0]).has(role),`${role} · ${n.id}: documents say ${set(PAGES[n.id][0]).has(role)?'visible':'hidden'} (${PAGES[n.id][1]})`);}
     for(const e of v.entries.filter(e=>e.kind==='action'))assert.ok(M.can(s,u,e.needs)&&v.allowed.has(e.page),e.id);});
   test('[RBAC] nav · housekeeping and maintenance reach only the no-money pages',()=>{
-    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','handover','housekeeping','inventory','maintenance','my-hr'],u);});
+    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','handover','housekeeping','inventory','maintenance','my-hr','prefs'],u);});
   test('[RBAC] nav · compliance content is Owner + Accountant only: Due-this-week card, assistant answers, commands (DEC-055)',()=>{
     for(const u of USERS){const ok=['owner','accountant'].includes(u);assert.equal(M.cmpHasAccess(s,u),ok,u);assert.equal(M.aiAccess(s,u).compliance,ok,u);}});
   test('[RBAC] nav · Compliance calendar is not listed for Manager or Cashier: drawer, Modules Home, search (W05-1, DEC-055)',()=>{

@@ -37,6 +37,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   inventory:'stock',
   staff:'people','my-hr':'people',
   closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
+  prefs:'admin', // CP-1 Appearance & display (every role, this device only)
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -71,6 +72,7 @@ export const PAGE_BLURB:Record<string,string>={
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
   closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',roadmap:'What is planned next',
+  prefs:'Text size, motion, start page, lists, messages (this device)',
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -111,6 +113,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],
   roadmap:['roadmap','future','planned','modules','phases'],
+  prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
 };
 
 export type SearchEntry={

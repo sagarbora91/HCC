@@ -6,6 +6,7 @@ import {scenarios} from '../../services/mock';
 import {faultModes,FaultMode} from '../../services/mock/faults';
 import {DisplayToggle} from '../display';
 import {guideSteps,type GuideStep} from '../demo/DemoModals';
+import {PrefsQuickSheet} from '../../features/prefs/MenuPrefs'; // CP-1 text size + Appearance & display link
 function UserSelect(){const {s,uid,switchUser}=useHcc();
   return <label><span>Preview as (demo user)</span><select value={uid} onChange={e=>switchUser(e.target.value)}>{s.users.map(u=><option key={u.id} value={u.id}>{u.name}{!u.enabled?' (disabled)':''}</option>)}</select></label>;}
 export function DemoSheet(){
@@ -33,6 +34,7 @@ export function UserMenuSheet(){
   const {user,display,signOut}=useHcc();
   return <><div className="modal-heading"><Users size={25}/><h2>{user.name.split(' · ')[0]}</h2><p>{user.role}. Sign out returns to the staff picker; Preview as is a demo tool.</p></div>
     <div className="form m-sheet-form"><UserSelect/>
-      <div><span className="m-field-label"><Smartphone size={15}/> Display mode (this device only)</span><DisplayToggle display={display}/></div></div>
+      <div><span className="m-field-label"><Smartphone size={15}/> Display mode (this device only)</span><DisplayToggle display={display}/></div>
+      <PrefsQuickSheet/></div>
     <div className="modal-actions"><button className="btn" onClick={signOut}><LogOut size={18}/>Sign out</button></div></>;
 }

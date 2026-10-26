@@ -119,6 +119,7 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-MA-5 | Invoice numbering | **One tax-invoice series** for the hotel; the numbering-series master exists so outlets/documents can get separate series later if the CA advises. | Agreed (O, 26 Oct 2026) | O | MA-5, Invoices |
 | DEC-MA-6 | Vendors | **Keep maintenance vendors and expense vendors separate**; expenses get their own vendor master; `mnt.vendor` untouched. | Agreed (O, 26 Oct 2026) | O | MA-3, Expenses |
 | DEC-MA-7 | Masters batch order | After MA-0, **MA-1…MA-7 all run in parallel**, then MA-8…MA-11. | Agreed (O, 26 Oct 2026) | O | Masters wave |
+| DEC-CP-1 | Personal preferences (Customisation Part 1, CP-1) | Per-device preferences in localStorage `hcc-prefs-1` (versioned; text size 90/100/115/130 %, honour Android font size, reduce motion, density, start page, list page size, message duration) on the page **Appearance & display** (`prefs`, every role, Admin & Setup); never hotel data, never audited, never sent to the server (DEC-044 extended); start page falls back to Modules Home when the user may not open it; printing ignores personal text size. Assumptions until the owner answers plan §6: APK keeps honouring the Android font size, dark theme second phase, staff may choose their own start page, per device only, no Hindi/Marathi | Proposed (CP-1, 27 Oct 2026) | P | Customisation plan Part 1 |
 
 ## 4. Superseded / changed decisions
 
