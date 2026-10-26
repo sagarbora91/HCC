@@ -51,7 +51,8 @@ export function meFromCapabilities(c:SrvCapabilities):SyncMe{
   const grants=c.permissions??[];
   const role=(c.roles??[]).map(r=>ROLE_MAP[r]).find(Boolean)??UNKNOWN_ROLE;
   return {userId:c.userId,uid:protoUserId(c.userId),displayName:c.displayName,role,roles:[...(c.roles??[])],permIds:[...new Set(grants.map(g=>g.permissionId))],
-    permissions:permissionsFromGrants(grants),grants:grants.map(g=>({...g})),fieldMasks:{...(c.fieldMasks??{})}};
+    permissions:permissionsFromGrants(grants),grants:grants.map(g=>({...g})),fieldMasks:{...(c.fieldMasks??{})},
+    credentialKind:String(c.credentialKind).toUpperCase()==='PIN'?'PIN':'PASSWORD',mustChange:!!c.mustChangeCredential};
 }
 /** Puts the signed-in user into the assembled state so the unchanged can()/ctx.permission/ctx.user work: an enabled user record
  *  with the user's prototype role, and that role's grants = the mapped capabilities (applied last, over any loaded s.grants). */

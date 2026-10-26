@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Hcc.Contracts;
 using Hcc.Domain.Errors;
 
 namespace Hcc.Domain.Access;
@@ -96,6 +98,42 @@ public static class PasswordRules
             throw HccException.Validation("The password must not contain the sign-in name.");
         if (password.Distinct().Count() < 4)
             throw HccException.Validation("The password is too simple.");
+    }
+}
+
+/// <summary>
+/// A06-01 (F-M03 residual): a password or PIN set by an administrator (SetCredential) must be changed by its user before anything
+/// else. While the flag is set the session may only read its own capabilities, change the credential (ChangeOwnCredential) and sign
+/// out; every other request is refused with <see cref="Refusal"/> (403 FORBIDDEN, details.reason <see cref="Reason"/>).
+/// </summary>
+public static class CredentialChangeGate
+{
+    public const string Reason = "MUST_CHANGE_CREDENTIAL";
+
+    public static string Message(CredentialKind kind) => kind == CredentialKind.Pin
+        ? "Change your PIN first. An administrator set it for you, so choose your own PIN before you continue."
+        : "Change your password first. An administrator set it for you, so choose your own password before you continue.";
+
+    public static HccException Refusal(CredentialKind kind) => new(HccErrorCode.FORBIDDEN, Message(kind),
+        new Dictionary<string, JsonElement>(StringComparer.Ordinal) { ["reason"] = JsonSerializer.SerializeToElement(Reason) });
+}
+
+/// <summary>Self-service change (ChangeOwnCredential): the new secret must differ from the current one (an administrator may know it).</summary>
+public static class OwnCredentialRules
+{
+    public static void EnsureNew(string current, string next, CredentialKind kind)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(next);
+        if (string.Equals(current, next, StringComparison.Ordinal))
+            throw HccException.Validation(kind == CredentialKind.Pin ? "Choose a new PIN: it must be different from the current one." : "Choose a new password: it must be different from the current one.");
+    }
+
+    /// <summary>The self-service lockout message, with the minutes left (rounded up, at least 1).</summary>
+    public static string LockedMessage(TimeSpan left)
+    {
+        var minutes = Math.Max(1, (int)Math.Ceiling(left.TotalMinutes));
+        return $"Too many wrong attempts. Try again in {minutes} minute{(minutes == 1 ? string.Empty : "s")}.";
     }
 }
 

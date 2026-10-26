@@ -3,11 +3,22 @@ using Hcc.Application.Access;
 using Hcc.Application.Commands;
 using Hcc.Contracts;
 using Hcc.Contracts.Access;
+using Hcc.Domain.Access;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Access;
 
 namespace Hcc.Api;
+
+/// <summary>Endpoint metadata: reachable by a session that must change its administrator-set credential first (A06-01).</summary>
+public sealed class BeforeCredentialChange
+{
+    public static readonly BeforeCredentialChange Instance = new();
+
+    private BeforeCredentialChange()
+    {
+    }
+}
 
 /// <summary>
 /// P1 access endpoints: sign-in/out, /me/capabilities, user/role/credential/exception/device administration (contracts §1–§2).
@@ -40,15 +51,27 @@ public static class AccessEndpoints
         return services;
     }
 
-    /// <summary>Validates the session (cookie or bearer token) before the handler runs; UNAUTHENTICATED (401, reason SESSION_INVALID) otherwise.</summary>
+    /// <summary>
+    /// Validates the session (cookie or bearer token) before the handler runs; UNAUTHENTICATED (401, reason SESSION_INVALID) otherwise.
+    /// A06-01: a session opened with a password / PIN an administrator set reaches only the endpoints marked
+    /// <see cref="AllowBeforeCredentialChange{TBuilder}"/> (its own capabilities, ChangeOwnCredential); every other one answers
+    /// 403 FORBIDDEN, details.reason MUST_CHANGE_CREDENTIAL ("Change your password first …"). Sign-out needs no session.
+    /// </summary>
     public static TBuilder RequireHccSession<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
         builder.AddEndpointFilter(async (ctx, next) =>
         {
             var http = ctx.HttpContext;
             var sessions = http.RequestServices.GetRequiredService<ISessionService>();
-            http.Items[SessionItem] = await sessions.ValidateAsync(TokenOf(http.Request), DeviceTokenOf(http.Request), http.RequestAborted).ConfigureAwait(false);
+            var session = await sessions.ValidateAsync(TokenOf(http.Request), DeviceTokenOf(http.Request), http.RequestAborted).ConfigureAwait(false);
+            http.Items[SessionItem] = session;
+            if (session.MustChangeCredential && http.GetEndpoint()?.Metadata.GetMetadata<BeforeCredentialChange>() is null)
+                throw CredentialChangeGate.Refusal(session.Kind);
             return await next(ctx).ConfigureAwait(false);
         });
+
+    /// <summary>Lets a session that must change its administrator-set credential (A06-01) reach this endpoint.</summary>
+    public static TBuilder AllowBeforeCredentialChange<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
+        builder.WithMetadata(BeforeCredentialChange.Instance);
 
     public static AuthenticatedSession GetHccSession(this HttpContext http)
     {
@@ -148,7 +171,8 @@ public static class AccessEndpoints
                 IsEssential = true,
             });
             var idle = (int)options.IdleTimeout.TotalSeconds;
-            return Results.Ok(new SignInResult(session.UserId, session.DisplayName, Domain.Access.CredentialPolicy.ToWire(session.Kind), session.ToWire(idle), body.ReturnToken ? token : null));
+            return Results.Ok(new SignInResult(session.UserId, session.DisplayName, Domain.Access.CredentialPolicy.ToWire(session.Kind), session.ToWire(idle), body.ReturnToken ? token : null,
+                session.MustChangeCredential));
         });
 
         api.MapPost("/auth/sign-out", async (HttpContext http, ISessionService sessions, CancellationToken ct) =>
@@ -167,8 +191,9 @@ public static class AccessEndpoints
         });
 
         var me = api.MapGroup("/me").RequireHccSession();
+        // The read of one's own profile stays open while an administrator-set credential must be changed (A06-01).
         me.MapGet("/capabilities", async (HttpContext http, ICapabilitiesQuery query, CancellationToken ct) =>
-            Results.Ok(await query.GetAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
+            Results.Ok(await query.GetAsync(http.GetHccSession(), ct).ConfigureAwait(false))).AllowBeforeCredentialChange();
 
         // Names and ids only (no login names), so every role's screens can show who requested/prepared/decided something.
         me.MapGet("/directory", async (HttpContext http, IAccessAdminQueries q, CancellationToken ct) =>
@@ -193,7 +218,7 @@ public static class AccessEndpoints
         Command<AssignRoleRequest, UserVersionResult>(commands, "AssignRole", (u, s, k, b, ct) => u.AssignRoleAsync(s, k, b, ct));
         Command<RevokeRoleRequest, UserVersionResult>(commands, "RevokeRole", (u, s, k, b, ct) => u.RevokeRoleAsync(s, k, b, ct));
         Command<SetCredentialRequest, UserVersionResult>(commands, "SetCredential", (u, s, k, b, ct) => u.SetCredentialAsync(s, k, b, ct));
-        Command<ChangeOwnCredentialRequest, UserVersionResult>(commands, "ChangeOwnCredential", (u, s, k, b, ct) => u.ChangeOwnCredentialAsync(s, k, b, ct));
+        Command<ChangeOwnCredentialRequest, UserVersionResult>(commands, "ChangeOwnCredential", (u, s, k, b, ct) => u.ChangeOwnCredentialAsync(s, k, b, ct)).AllowBeforeCredentialChange();
         Command<GrantExceptionRequest, ExceptionResult>(commands, "GrantException", (u, s, k, b, ct) => u.GrantExceptionAsync(s, k, b, ct));
         Command<RevokeExceptionRequest, ExceptionResult>(commands, "RevokeException", (u, s, k, b, ct) => u.RevokeExceptionAsync(s, k, b, ct));
         Command<RegisterDeviceRequest, RegisterDeviceResult>(commands, "RegisterDevice", (u, s, k, b, ct) => u.RegisterDeviceAsync(s, k, b, ct));
@@ -201,7 +226,7 @@ public static class AccessEndpoints
         return api;
     }
 
-    private static void Command<TBody, TResult>(RouteGroupBuilder group, string name,
+    private static RouteHandlerBuilder Command<TBody, TResult>(RouteGroupBuilder group, string name,
         Func<IUserAdministration, AuthenticatedSession, string, TBody, CancellationToken, Task<CommandResult<TResult>>> run) =>
         group.MapPost("/" + name, async (TBody body, HttpContext http, IUserAdministration users, CancellationToken ct) =>
         {

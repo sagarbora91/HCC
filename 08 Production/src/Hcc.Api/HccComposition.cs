@@ -70,6 +70,7 @@ public static class HccComposition
             var device = http.Request.Headers[Contracts.Access.AccessConventions.DeviceTokenHeader].ToString();
             var session = await http.RequestServices.GetRequiredService<Application.Access.ISessionService>()
                 .ValidateAsync(token, device.Length > 0 ? device : null, ct);
+            if (session.MustChangeCredential) return false;   // A06-01: nothing but the credential change before it is changed
             var policy = http.RequestServices.GetRequiredService<Application.Access.IAccessPolicy>();
             return await policy.HasAsync(session.PropertyId, session.UserId, "PERM-ADM-005", null, ct)
                 || await policy.HasAsync(session.PropertyId, session.UserId, "PERM-CFG-001", null, ct);

@@ -138,6 +138,7 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
         var roles = new List<string>();
         HashedSecret? stored = null;
         var failed = 0;
+        var mustChange = false;
         if (userId is not null)
         {
             await using (var q = connections.Command("SELECT role_code FROM plat.user_role WHERE user_id = @u;", conn, tx))
@@ -148,7 +149,7 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
             }
 
             await using (var q = connections.Command("""
-                SELECT algorithm, iterations, salt, secret_hash, failed_count FROM plat.credential WITH (UPDLOCK, ROWLOCK)
+                SELECT algorithm, iterations, salt, secret_hash, failed_count, must_change FROM plat.credential WITH (UPDLOCK, ROWLOCK)
                  WHERE user_id = @u AND kind = @k;
                 """, conn, tx))
             {
@@ -159,6 +160,7 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
                 {
                     stored = new HashedSecret(rd.GetString(0), rd.GetInt32(1), (byte[])rd[2], (byte[])rd[3]);
                     failed = rd.GetInt32(4);
+                    mustChange = rd.GetBoolean(5);
                 }
             }
         }
@@ -223,8 +225,8 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
         }
 
         await AccessAudit.WriteAsync(connections, conn, tx, propertyId, uid, "SIGN_IN", $"session:{sessionId}",
-            $"Signed in with {CredentialPolicy.ToWire(kind)}{(deviceId is null ? string.Empty : $" on device {deviceId}")}.", "SignIn", ct).ConfigureAwait(false);
-        var session = new AuthenticatedSession(sessionId, uid, propertyId, displayName, kind, deviceId, Min(now + options.IdleTimeout, absolute), absolute);
+            $"Signed in with {CredentialPolicy.ToWire(kind)}{(deviceId is null ? string.Empty : $" on device {deviceId}")}{(mustChange ? "; set by an administrator, must be changed first (A06-01)" : string.Empty)}.", "SignIn", ct).ConfigureAwait(false);
+        var session = new AuthenticatedSession(sessionId, uid, propertyId, displayName, kind, deviceId, Min(now + options.IdleTimeout, absolute), absolute, mustChange);
         return ((session, token), null);
     }
 
@@ -237,8 +239,10 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var q = connections.Command("""
             SELECT s.session_id, s.user_id, s.property_id, s.credential_kind, s.device_id, s.security_stamp, s.created_utc, s.last_seen_utc,
-                   s.absolute_expires_utc, s.revoked_utc, u.display_name, u.enabled, u.valid_from_utc, u.valid_until_utc, u.security_stamp, d.revoked_utc, d.token_sha256
+                   s.absolute_expires_utc, s.revoked_utc, u.display_name, u.enabled, u.valid_from_utc, u.valid_until_utc, u.security_stamp, d.revoked_utc, d.token_sha256,
+                   CAST(COALESCE(c.must_change, 0) AS BIT)
               FROM plat.session s JOIN plat.app_user u ON u.user_id = s.user_id LEFT JOIN plat.device d ON d.device_id = s.device_id
+                   LEFT JOIN plat.credential c ON c.user_id = s.user_id AND c.kind = s.credential_kind
              WHERE s.token_sha256 = @h;
             """, conn);
         q.Parameters.Add("@h", SqlDbType.Binary, 32).Value = AccessTokens.Sha256(token);
@@ -265,8 +269,9 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
             // without ending the session (a stolen token must not let its holder log the real tablet out).
             if (rd.GetString(3) == CredentialPolicy.ToWire(CredentialKind.Pin) && reason is null && !SameDevice(rd.IsDBNull(16) ? null : (byte[])rd[16], deviceToken))
                 throw Invalid("DEVICE_MISMATCH");
+            // A06-01: the flag is read live from the credential the session was opened with, so ChangeOwnCredential lifts it at once.
             session = new AuthenticatedSession(sessionId, rd.GetInt32(1), rd.GetInt32(2), rd.GetString(10), CredentialPolicy.FromWire(rd.GetString(3)),
-                rd.IsDBNull(4) ? null : rd.GetInt32(4), Min(now + options.IdleTimeout, absolute), absolute);
+                rd.IsDBNull(4) ? null : rd.GetInt32(4), Min(now + options.IdleTimeout, absolute), absolute, rd.GetBoolean(17));
         }
 
         await using var u = connections.Command(reason is null

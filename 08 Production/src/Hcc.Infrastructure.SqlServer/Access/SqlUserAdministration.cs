@@ -40,7 +40,8 @@ public static partial class UserAdminRules
 /// (exceptions: Owner); never self-grant (PERM-SOD-002); roles holding money/admin permissions are assigned and revoked by an
 /// Owner only, as is any change to an Owner account (DEC-058); the last active Owner cannot be disabled or lose the Owner role
 /// (PERM-SOD-003, DEC-033); credential kind per role (DEC-062). Each change bumps the user's security stamp, so the user's open
-/// sessions end on their next request (AS-07).
+/// sessions end on their next request (AS-07). A06-01: a password / PIN set by an administrator is stored must_change = 1 (the user
+/// must replace it before anything else, see <see cref="CredentialChangeGate"/>); the user's own change stores 0.
 /// </summary>
 public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICommandRunner runner, IAccessPolicy policy, ISecretHasher hasher, AccessOptions options, TimeProvider clock) : IUserAdministration
 {
@@ -203,9 +204,10 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             var now = Now();
             var target = await LoadTargetAsync(t, actor, request.UserId, now, c).ConfigureAwait(false);
             await EnsureOwnerForMoneyRoleAccountAsync(t, actor, target, now, c).ConfigureAwait(false);
-            await StoreCredentialAsync(t, target, kind, secret, now, c).ConfigureAwait(false);
+            // A06-01: the administrator knows this secret, so the user must replace it at the next sign-in.
+            await StoreCredentialAsync(t, target, kind, secret, now, mustChange: true, c).ConfigureAwait(false);
             await BumpAsync(t, request.UserId, version, c).ConfigureAwait(false);
-            await t.AuditAsync("CREDENTIAL_SET", $"user:{request.UserId}", $"{CredentialPolicy.ToWire(kind)} set by administrator; lockout cleared.", c).ConfigureAwait(false);
+            await t.AuditAsync("CREDENTIAL_SET", $"user:{request.UserId}", $"{CredentialPolicy.ToWire(kind)} set by administrator; lockout cleared; must be changed at the next sign-in.", c).ConfigureAwait(false);
             return new UserVersionResult(request.UserId, await VersionAsync(t, request.UserId, c).ConfigureAwait(false));
         }, ct).ConfigureAwait(false);
     }
@@ -215,6 +217,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentNullException.ThrowIfNull(request);
         var (kind, secret) = OneSecret(request.NewPassword, request.NewPin);
+        OwnCredentialRules.EnsureNew(request.Current ?? string.Empty, secret, kind);
         await VerifyCurrentSecretAsync(actor, kind, request.Current ?? string.Empty, ct).ConfigureAwait(false);
 
         var payload = new { actor.UserId, Kind = CredentialPolicy.ToWire(kind) };
@@ -223,7 +226,8 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             var t = (SqlCommandTransaction)itx;
             var now = Now();
             var target = await LoadTargetAsync(t, actor, actor.UserId, now, c).ConfigureAwait(false);
-            await StoreCredentialAsync(t, target, kind, secret, now, c).ConfigureAwait(false);
+            // The user's own choice: never flagged, and it lifts an administrator's must-change flag (A06-01).
+            await StoreCredentialAsync(t, target, kind, secret, now, mustChange: false, c).ConfigureAwait(false);
             // Other sessions of this user end; the current one is carried over to the new stamp.
             await using (var u = t.Command("""
                 UPDATE plat.app_user SET security_stamp = security_stamp + 1 WHERE user_id = @u;
@@ -235,7 +239,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
                 await u.ExecuteNonQueryAsync(c).ConfigureAwait(false);
             }
 
-            await t.AuditAsync("CREDENTIAL_CHANGE", $"user:{actor.UserId}", $"Own {CredentialPolicy.ToWire(kind)} changed.", c).ConfigureAwait(false);
+            await t.AuditAsync("CREDENTIAL_CHANGE", $"user:{actor.UserId}", $"Own {CredentialPolicy.ToWire(kind)} changed{(actor.MustChangeCredential ? " (replaces the one an administrator set, A06-01)" : string.Empty)}.", c).ConfigureAwait(false);
             return new UserVersionResult(actor.UserId, await VersionAsync(t, actor.UserId, c).ConfigureAwait(false));
         }, ct).ConfigureAwait(false);
     }
@@ -694,8 +698,11 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
         return SqlValues.RowVersionToWire((byte[])(await q.ExecuteScalarAsync(ct).ConfigureAwait(false))!);
     }
 
-    /// <summary>DEC-062 credential kind per role, PIN/password rules, PIN history (no reuse of the last N), lockout cleared.</summary>
-    private async Task StoreCredentialAsync(SqlCommandTransaction t, Target target, CredentialKind kind, string secret, DateTime now, CancellationToken ct)
+    /// <summary>
+    /// DEC-062 credential kind per role, PIN/password rules, PIN history (no reuse of the last N), lockout cleared;
+    /// <paramref name="mustChange"/> = set by an administrator (A06-01).
+    /// </summary>
+    private async Task StoreCredentialAsync(SqlCommandTransaction t, Target target, CredentialKind kind, string secret, DateTime now, bool mustChange, CancellationToken ct)
     {
         var required = CredentialPolicy.RequiredKind(target.AssignedRoles);
         if (required is not null && required != kind)
@@ -726,10 +733,11 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
 
         var hash = hasher.Hash(secret, kind == CredentialKind.Pin ? options.PinIterations : options.PasswordIterations);
         await using var up = t.Command("""
-            UPDATE plat.credential SET algorithm = @alg, iterations = @it, salt = @salt, secret_hash = @hash, failed_count = 0, locked_until_utc = NULL, changed_utc = @now
+            UPDATE plat.credential SET algorithm = @alg, iterations = @it, salt = @salt, secret_hash = @hash, failed_count = 0, locked_until_utc = NULL, changed_utc = @now,
+                   must_change = @mc
              WHERE user_id = @u AND kind = @k;
             IF @@ROWCOUNT = 0
-              INSERT plat.credential(user_id, kind, algorithm, iterations, salt, secret_hash, changed_utc) VALUES (@u, @k, @alg, @it, @salt, @hash, @now);
+              INSERT plat.credential(user_id, kind, algorithm, iterations, salt, secret_hash, changed_utc, must_change) VALUES (@u, @k, @alg, @it, @salt, @hash, @now, @mc);
             IF @k = 'PIN'
               INSERT plat.pin_history(user_id, algorithm, iterations, salt, secret_hash, changed_utc) VALUES (@u, @alg, @it, @salt, @hash, @now);
             """);
@@ -740,6 +748,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
         up.Parameters.Add("@salt", SqlDbType.VarBinary, 32).Value = hash.Salt;
         up.Parameters.Add("@hash", SqlDbType.VarBinary, 64).Value = hash.Hash;
         up.Parameters.Add("@now", SqlDbType.DateTime2).Value = now;
+        up.Parameters.Add("@mc", SqlDbType.Bit).Value = mustChange;
         await up.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
@@ -770,7 +779,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             }
 
             if (stored is null) failure = HccException.Validation($"Your account does not use a {CredentialPolicy.ToWire(kind)}.");
-            else if (locked is not null && now < locked) failure = new HccException(HccErrorCode.FORBIDDEN, "Too many wrong attempts. Try again later.");
+            else if (locked is not null && now < locked) failure = new HccException(HccErrorCode.FORBIDDEN, OwnCredentialRules.LockedMessage(locked.Value - now));
             else if (!hasher.Verify(current, stored))
             {
                 failed++;
@@ -781,7 +790,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
                 u.Parameters.Add("@u", SqlDbType.Int).Value = actor.UserId;
                 u.Parameters.Add("@k", SqlDbType.VarChar, 8).Value = CredentialPolicy.ToWire(kind);
                 await u.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-                failure = new HccException(HccErrorCode.FORBIDDEN, "The current password or PIN is wrong.");
+                failure = new HccException(HccErrorCode.FORBIDDEN, lockNow ? "The current password or PIN is wrong. " + OwnCredentialRules.LockedMessage(options.LockoutDuration) : "The current password or PIN is wrong.");
             }
         }
 

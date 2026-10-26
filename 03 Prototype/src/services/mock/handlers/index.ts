@@ -21,4 +21,5 @@ import {handlers as compliance} from './compliance';
 import {handlers as cashbook} from './cashbook';
 import {handlers as cashout} from './cashout';
 import {handlers as masters} from './masters';
-export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters};
+import {handlers as credentials} from './credentials'; // A02b-05 self-service password / PIN change
+export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials};

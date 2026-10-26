@@ -50,7 +50,9 @@ export type SyncMe={userId:number;uid:string;displayName:string;role:import('../
   /** Server PERM ids held (any mode). */permIds:string[];
   /** Prototype permissions derived through PERMISSION_MAP. */permissions:Permission[];
   grants:{permissionId:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null}[];
-  /** Field → mask kind (RBAC §9). Masked values arrive masked from the server; never unmask on the client. */fieldMasks:Record<string,string>};
+  /** Field → mask kind (RBAC §9). Masked values arrive masked from the server; never unmask on the client. */fieldMasks:Record<string,string>;
+  /** What this session signed in with (DEC-062): the "Change my password / PIN" sheet asks for that kind. */credentialKind?:'PASSWORD'|'PIN';
+  /** A06-01: an administrator set this password / PIN — nothing but changing it (and signing out) until it is changed. */mustChange?:boolean};
 
 export interface LoaderCtx{
   api:SyncApi;
