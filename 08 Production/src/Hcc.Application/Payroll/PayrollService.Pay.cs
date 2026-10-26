@@ -12,6 +12,9 @@ public sealed partial class PayrollService
 
     private static PayMonth? LastLocked(IReadOnlyList<RunRow> runs) => runs.Where(r => r.Locked).Select(r => (PayMonth?)r.Month).Max();
 
+    /// <summary>Advances and full-and-final net pay are paid by bank transfer (simulated; never drawer cash) — the funding Accounting credits.</summary>
+    public const string AdvanceFunding = "Bank transfer";
+
     // ── Advances ──
 
     public async Task<CommandResult<AdvanceResult>> GiveAdvanceAsync(CommandContext ctx, GiveAdvanceRequest req, CancellationToken ct = default)
@@ -41,8 +44,9 @@ public sealed partial class PayrollService
                 .ConfigureAwait(false);
             var text = $"{st.Profile.Name} · advance {Rs(req.AmountPaise)} · {(req.InstallmentPaise > 0 ? Rs(req.InstallmentPaise) + "/month" : "full recovery")} from {from.Label} (simulated bank transfer, not drawer cash)";
             await tx.AuditAsync("HR_ADVANCE_GIVEN", Target("hr.advance", id), text, c2).ConfigureAwait(false);
-            await tx.PublishAsync("AdvanceGiven", id, new { advanceId = id, staffId = st.StaffId, amountPaise = req.AmountPaise, installmentPaise = req.InstallmentPaise, date = clockInfo.BusinessDate },
-                c2).ConfigureAwait(false);
+            // DEC-074: Accounting books the advance (Dr staff advances · Cr bank) from this, so the pay-run recoveries have something to clear.
+            await tx.PublishAsync(Contracts.Accounting.AccountingEvents.AdvanceGiven, id, new Contracts.Accounting.AdvanceGivenEvent(id, st.StaffId, req.AmountPaise, req.InstallmentPaise,
+                clockInfo.BusinessDate, AdvanceFunding), c2).ConfigureAwait(false);
             return new AdvanceResult(id, st.StaffId, req.AmountPaise, req.InstallmentPaise, from.ToString(), text);
         }, ct).ConfigureAwait(false);
     }
@@ -307,14 +311,18 @@ public sealed partial class PayrollService
             var (world, rates, paid) = await FnfWorldAsync(db, ctx.PropertyId, st, c2).ConfigureAwait(false);
             var f = PayrollCalculator.ComputeFnf(world, st, rates, paid, clean);
             var (id, version) = await db.InsertFnfAsync(new NewFnf(ctx.PropertyId, st.StaffId, f, clean, ctx.PrincipalId, Now), c2).ConfigureAwait(false);
-            var text = $"{st.Profile.Name} · full and final DRAFT · {(f.Net < 0 ? "recoverable from employee " + Rs(-f.Net) : "net payable " + Rs(f.Net))} · to be confirmed by "
+            var text = $"{st.Profile.Name} · full and final DRAFT · {(f.Net < 0 ? "recoverable from employee " + Rs(-f.Net) : "net payable " + Rs(f.Net))}"
+                       + (f.AdvanceLeftOpen > 0 ? $" · advance {Rs(f.AdvanceLeftOpen)} not covered, stays open" : "") + " · to be confirmed by "
                        + (f.Additions > FnfRules.OwnerAbove ? $"the Owner (additions above {Rs(FnfRules.OwnerAbove)})" : "the other payroll user");
             await tx.AuditAsync("HR_FNF_PREPARED", Target("hr.fnf", id), text, c2).ConfigureAwait(false);
             return FnfResultOf(id, st.StaffId, "Draft", f, version, text);
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>F-12 checker: another payroll user (never the maker, never your own account) confirms; figures must match a fresh computation; the advance is written off.</summary>
+    /// <summary>
+    /// F-12 checker: another payroll user (never the maker, never your own account) confirms; figures must match a fresh computation. DEC-074 /
+    /// A04-06: only the part of the advance the settlement covers is recorded as recovered; the rest stays an open advance.
+    /// </summary>
     public async Task<CommandResult<FnfResult>> ConfirmFnfAsync(CommandContext ctx, DecideFnfRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
@@ -337,12 +345,24 @@ public sealed partial class PayrollService
             if (f.Net != row.Net || f.Earnings != row.Earnings || f.Recoveries != row.Recoveries || f.AdvanceOutstanding != row.AdvanceOutstanding || f.Line != row.Line)
                 throw new HccException(Contracts.HccErrorCode.STALE_VERSION, "Attendance, advances or rates changed after this draft. Discard it and prepare the settlement again.");
             var version = await db.DecideFnfAsync(row.FnfId, req.ExpectedVersion, "Settled", ctx.PrincipalId, Now, c2).ConfigureAwait(false);
-            foreach (var a in world.Advances.Where(a => a.StaffId == st.StaffId && a.Balance > 0))
-                await db.RecordRecoveryAsync(a.AdvanceId, null, row.FnfId, a.Balance, Now, c2).ConfigureAwait(false);
-            var text = $"{st.Profile.Name} · full and final confirmed · {(f.Net < 0 ? "recoverable from employee " + Rs(-f.Net) : "net payable " + Rs(f.Net))} (simulated transfer)";
+            var left = f.AdvanceRecovered;   // the covered part only, oldest advance first
+            foreach (var a in world.Advances.Where(a => a.StaffId == st.StaffId && a.Balance > 0).OrderBy(a => a.AdvanceId))
+            {
+                var take = Math.Min(left, a.Balance);
+                if (take <= 0) break;
+                await db.RecordRecoveryAsync(a.AdvanceId, null, row.FnfId, take, Now, c2).ConfigureAwait(false);
+                left -= take;
+            }
+
+            var text = $"{st.Profile.Name} · full and final confirmed · {(f.Net < 0 ? "recoverable from employee " + Rs(-f.Net) : "net payable " + Rs(f.Net))} (simulated transfer)"
+                       + (f.AdvanceOutstanding > 0 ? $" · advance {Rs(f.AdvanceRecovered)} recovered" + (f.AdvanceLeftOpen > 0 ? $", {Rs(f.AdvanceLeftOpen)} left open (still owed)" : "") : "");
             await tx.AuditAsync("HR_FNF_SETTLED", Target("hr.fnf", row.FnfId), text, c2).ConfigureAwait(false);
-            await tx.PublishAsync("FnfSettled", row.FnfId, new { fnfId = row.FnfId, staffId = st.StaffId, month = f.Month.ToString(), earningsPaise = f.Earnings, recoveriesPaise = f.Recoveries, netPaise = f.Net, advanceWrittenOffPaise = f.AdvanceOutstanding },
-                c2).ConfigureAwait(false);
+            // DEC-074: Accounting books the F&F salary journal and the net-pay payment from this (mirrors PayrollPosted / PayrollPaid).
+            var settledOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
+            var l = f.Line;
+            await tx.PublishAsync(Contracts.Accounting.AccountingEvents.FnfSettled, row.FnfId, new Contracts.Accounting.FnfSettledEvent(row.FnfId, st.StaffId, f.Month.ToString(),
+                f.Earnings, f.Recoveries, f.Net, f.AdvanceRecovered, settledOn, l?.Gross ?? 0, f.Additions, l?.Pf ?? 0, l?.Esic ?? 0, l?.Pt ?? 0, l?.PfEr ?? 0, l?.EsicEr ?? 0,
+                f.Deductions, f.AdvanceRecovered, f.AdvanceLeftOpen, AdvanceFunding), c2).ConfigureAwait(false);
             return FnfResultOf(row.FnfId, st.StaffId, "Settled", f, version, text);
         }, ct).ConfigureAwait(false);
     }

@@ -120,4 +120,16 @@ public sealed class GroupLedger
         return new GroupLedger(s, members, figures, attr.Aggregate(Paise.Zero, (a, e) => a + (e.Cgst ?? Paise.Zero)),
             attr.Aggregate(Paise.Zero, (a, e) => a + (e.Sgst ?? Paise.Zero)), rCgst, rSgst);
     }
+
+    /// <summary>
+    /// DEC-074 (wave B3): deposits still held on the master folio = deposits − refunds of deposits (a refund names its receipt). Accounting
+    /// applies them to the company receivable when the group is settled (<c>GroupSettled</c>).
+    /// </summary>
+    public static Paise DepositsHeld(IReadOnlyList<EntryRow> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        var deposits = entries.Where(e => e.Kind == "deposit").ToDictionary(e => e.EntryId);
+        var refunded = entries.Where(e => e.Kind == "refund" && e.RefundOf is { } of && deposits.ContainsKey(of)).Aggregate(Paise.Zero, (a, e) => a + e.Amount);
+        return deposits.Values.Aggregate(Paise.Zero, (a, e) => a + e.Amount) - refunded;
+    }
 }

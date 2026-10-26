@@ -101,7 +101,8 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
             "Room attendant", "M", 5, LinkUserId: h.U("housekeeper"), AccountNo: "999999999999", Ifsc: "EVIL0000001"), Ct);
         Assert.Contains("••••9999", save.Value.Notes, StringComparison.Ordinal);
         Assert.DoesNotContain("999999999999", save.Value.Notes, StringComparison.Ordinal);
-        Assert.DoesNotContain("999999999999", (string)(await db.ScalarAsync("SELECT STRING_AGG(detail, '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
+        // NVARCHAR(MAX): the audit text of the whole class database outgrows STRING_AGG's 8,000-byte limit for NVARCHAR(1000) input.
+        Assert.DoesNotContain("999999999999", (string)(await db.ScalarAsync("SELECT STRING_AGG(CAST(detail AS NVARCHAR(MAX)), '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
 
         var file = await h.Payroll.IssueBankFileAsync(h.As("accountant", PayrollService.OpIssueBankFile), new IssueBankFileRequest(aug.RunId), Ct);
         Assert.Equal((1, aug.NetPaise), (file.Value.IssueNo, file.Value.NetPaise));
@@ -114,7 +115,7 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         Assert.Equal(($"bank-transfer-{new PayMonth(2026, 8)}-1.csv", csv), (latest.FileName, latest.Content));
         await Hotel.FailsAsync(() => h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("manager"), aug.RunId, Ct), HccErrorCode.FORBIDDEN);
         Assert.Equal(2, await db.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'HR_BANK_FILE_DOWNLOADED' AND operation = 'Download' AND principal_id = @u;", ("@u", h.U("accountant"))));
-        Assert.DoesNotContain(old, (string)(await db.ScalarAsync("SELECT STRING_AGG(detail, '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
+        Assert.DoesNotContain(old, (string)(await db.ScalarAsync("SELECT STRING_AGG(CAST(detail AS NVARCHAR(MAX)), '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
         Assert.True((await h.Payroll.IssueBankFileAsync(h.As("accountant", PayrollService.OpIssueBankFile), new IssueBankFileRequest(aug.RunId, ConfirmReissue: true), Ct)).Value.Reissue);
         Assert.EndsWith("-2.csv", (await h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, Ct)).FileName, StringComparison.Ordinal);
         // Accounting's contract: the first bank file of a lock is the one PayrollPaid (net pay); a re-issue is not a second payment.

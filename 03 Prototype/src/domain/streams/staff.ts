@@ -520,16 +520,26 @@ export function hrAmountWords(paise:number){
 }
 
 // ── Full and final settlement (SCC fnfAssemble / fnfCompose) ──
-/** Final-month salary (unless already paid in a locked run) − statutory deductions − the FULL outstanding advance ± manual adjustments. */
+/** Final-month salary (unless already paid in a locked run) + additions − statutory deductions − deductions − the outstanding advance, the
+ *  advance only up to what the settlement covers (DEC-074 / A04-06, server FnfRules.Compute): recovered = earnings − statutory − deductions,
+ *  clamped to 0…outstanding; the rest stays an open advance owed by the leaver. A negative net (deductions beyond the earnings) recovers no advance. */
 export function hrFnfCompute(s:State,st:HRStaff,adjustments:HRFnfAdj[]){
   const x=hrSlice(s),lastDay=st.exitedOn??s.date,month=lastDay.slice(0,7),rates=hrRatesFor(s,month);
   const paid=x.runs.some(r=>r.month===month&&r.status==='Locked'&&r.lines.some(l=>l.staffId===st.id));
   const line=paid?undefined:hrComputeLine(st,hrCounts(s,st,month),rates,undefined,hrEsicCovered(s,st,month,rates));
   const advanceOutstanding=x.advances.filter(a=>a.staffId===st.id).reduce((n,a)=>n+hrAdvanceBalance(a),0);
   const add=adjustments.filter(a=>a.kind==='add').reduce((n,a)=>n+a.amount,0),ded=adjustments.filter(a=>a.kind==='ded').reduce((n,a)=>n+a.amount,0);
-  const earnings=(line?line.gross:0)+add,recoveries=(line?line.pf+line.esic+line.pt:0)+advanceOutstanding+ded;
-  return {lastDay,month,salaryIncluded:!paid,line,rates,advanceOutstanding,earnings,recoveries,net:earnings-recoveries};
+  const earnings=(line?line.gross:0)+add,statutory=line?line.pf+line.esic+line.pt:0;
+  const advanceRecovered=Math.min(Math.max(0,earnings-statutory-ded),Math.max(0,advanceOutstanding)),recoveries=statutory+advanceRecovered+ded;
+  return {lastDay,month,salaryIncluded:!paid,line,rates,advanceOutstanding,advanceRecovered,advanceLeftOpen:advanceOutstanding-advanceRecovered,earnings,recoveries,net:earnings-recoveries};
 }
+/** DEC-074: the part of the advance a stored settlement recovered (recoveries − statutory − deductions; settlements made before the rule recovered all of it). */
+export function hrFnfAdvanceRecovered(f:HRFnf){
+  const ded=f.adjustments.filter(a=>a.kind==='ded').reduce((n,a)=>n+a.amount,0),statutory=f.line?f.line.pf+f.line.esic+f.line.pt:0;
+  return f.recoveries-statutory-ded;
+}
+/** DEC-074: the advance a settlement did not cover — still open and owed by the leaver. */
+export const hrFnfAdvanceLeftOpen=(f:HRFnf)=>Math.max(0,f.advanceOutstanding-hrFnfAdvanceRecovered(f));
 /** Suggested earned-leave encashment: EL balance × (monthly ÷ days in the exit month). Manual adjustment in SCC; offered as a prefill here. */
 export function hrElEncashment(s:State,st:HRStaff){
   if(st.payType!=='monthly')return 0;

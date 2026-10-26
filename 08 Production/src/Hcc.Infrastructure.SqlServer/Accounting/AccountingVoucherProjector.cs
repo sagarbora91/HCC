@@ -102,6 +102,14 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             propertyId = pid;
         }
 
+        // DEC-074 (wave B3): group master folio, advances, full and final (one event may book two vouchers) — see BooksSourcesAsync.
+        if (await BooksSourcesAsync(evt, connection, transaction, propertyId, ct).ConfigureAwait(false) is { } books)
+        {
+            foreach (var b in books.Where(b => !b.IsZero))
+                await InsertSourceAsync(connection, transaction, propertyId, b, evt.EventType, evt.OutboxId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
+            return;
+        }
+
         AccountingSource? source = null;
         switch (evt.EventType)
         {
@@ -229,6 +237,72 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
 
         return AccountingEventMapper.PayRunReversal(e, date, key, entries, paid);
     }
+
+    // ── DEC-074 (wave B3) · group master folio, staff advances, full and final ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The sources of a DEC-074 event, or null for any other event type. A figure a payload published before DEC-074 lacks is read
+    /// back (read-only) from the append-only master folio (<c>grp.master_entry</c>): the kind of a refunded receipt, the deposits held at
+    /// settlement; a missing date is the property's business date (as for <c>PayRunUnlocked</c>).
+    /// </summary>
+    private async Task<IReadOnlyList<AccountingSource>?> BooksSourcesAsync(OutboxEvent evt, SqlConnection c, SqlTransaction t, int propertyId, CancellationToken ct)
+    {
+        switch (evt.EventType)
+        {
+            case AccountingEvents.GroupReceiptRecorded:
+            {
+                var e = Parse<GroupReceiptRecordedEvent>(evt);
+                var of = e.Kind == "refund" ? e.RefundOfKind ?? await RefundedKindAsync(c, t, e.EntryId, ct).ConfigureAwait(false) : null;
+                return [AccountingEventMapper.GroupReceipt(e, of)];
+            }
+
+            case AccountingEvents.GroupAttritionPosted:
+                return [AccountingEventMapper.GroupAttrition(Parse<GroupAttritionPostedEvent>(evt))];
+            case AccountingEvents.GroupSettled:
+            {
+                var e = Parse<GroupSettledEvent>(evt);
+                var held = e.DepositsHeldPaise ?? await DepositsHeldAsync(c, t, e.GroupId, ct).ConfigureAwait(false);
+                return [AccountingEventMapper.GroupSettlement(e, held, e.BusinessDate ?? await BusinessDateAsync(c, t, propertyId, ct).ConfigureAwait(false))];
+            }
+
+            case AccountingEvents.AdvanceGiven:
+                return [AccountingEventMapper.Advance(Parse<AdvanceGivenEvent>(evt))];
+            case AccountingEvents.FnfSettled:
+            {
+                var e = Parse<FnfSettledEvent>(evt);
+                return AccountingEventMapper.Fnf(e, e.BusinessDate ?? await BusinessDateAsync(c, t, propertyId, ct).ConfigureAwait(false));
+            }
+
+            default:
+                return null;
+        }
+    }
+
+    private static async Task<string?> RefundedKindAsync(SqlConnection c, SqlTransaction t, long entryId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("SELECT p.kind FROM grp.master_entry e JOIN grp.master_entry p ON p.entry_id = e.refund_of WHERE e.entry_id = @e;", c, t);
+        cmd.Parameters.Set("@e", SqlDbType.BigInt, entryId);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
+
+    private static async Task<long> DepositsHeldAsync(SqlConnection c, SqlTransaction t, long groupId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("""
+            SELECT ISNULL(SUM(CASE WHEN e.kind = 'deposit' THEN e.amount_paise WHEN e.kind = 'refund' AND p.kind = 'deposit' THEN -e.amount_paise ELSE 0 END), 0)
+            FROM grp.master_entry e LEFT JOIN grp.master_entry p ON p.entry_id = e.refund_of WHERE e.group_id = @g;
+            """, c, t);
+        cmd.Parameters.Set("@g", SqlDbType.BigInt, groupId);
+        return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+    }
+
+    private static async Task<DateOnly> BusinessDateAsync(SqlConnection c, SqlTransaction t, int propertyId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("SELECT business_date FROM inv.property WHERE property_id = @p;", c, t);
+        cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+        return DateOnly.FromDateTime((DateTime)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!);
+    }
+
+    // ── end DEC-074 (wave B3) ──
 
     private static async Task<int> TillOfAsync(SqlConnection c, SqlTransaction t, long shiftId, CancellationToken ct)
     {

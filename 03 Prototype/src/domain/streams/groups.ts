@@ -3,7 +3,7 @@
 // rooming-list pickup, pickup report and a read-only master folio. See 02 Planning/modules/HCC_Module_14_Group_Corporate_Spec.md.
 import type {State,Booking} from '../types';
 import {available,availableRaw,registerRoomHold,totals} from '../selectors';
-import {gstForRoomNight,gstLineTax,gstStayTax} from '../gst';
+import {gstForRoomNight,gstLineTax,gstSplit,gstStayTax} from '../gst';
 import {addDays,nights} from '../money';
 
 export type GRPCompany={id:string;name:string;
@@ -144,6 +144,29 @@ export const GRP_CREDIT_LABEL:Record<GRPCreditLevel,string>={ok:'Within limit',n
 export function grpCredit(s:State,c:GRPCompany){const exposure=grpExposure(s,c);return {exposure,limit:c.creditLimit,pct:c.creditLimit?Math.round(exposure/c.creditLimit*100):0,level:grpCreditLevel(c.creditLimit,exposure),available:Math.max(0,c.creditLimit-exposure)};}
 /** Estimated value of new stays at a block rate: nights × rate + GST. */
 export function grpStayValue(s:State,rate:number,a:string,d:string){let v=0;for(let x=a;x<d;x=addDays(x,1))v+=rate;return v+gstStayTax(s,rate,a,d);}
+
+// ── Attrition (server rule GroupAttrition, DEC-074 / A03a-06) ──
+// The prototype charges no attrition (it only releases unpicked rooms at the cut-off); the production server does. These pure helpers mirror
+// the server rule so the GST basis of an attrition / retention charge has one definition on each side.
+export type GRPAttritionLine={type:string;night:string;rooms:number;
+  /** Retention price per room-night = block rate × attrition % (half away from zero). */ perRoomNight:number;amount:number;
+  /** The contracted per-night block rate the line was taken from. */ blockRate:number};
+/** Server GroupAttrition.Lines: per room type (ordinal order), unpicked rooms beyond ⌊contracted × allowance⌋ are charged every night of the block. */
+export function grpAttritionLines(types:{type:string;contracted:number;picked:number;rate:number}[],arrival:string,departure:string,allowanceBps:number,rateBps:number):GRPAttritionLine[]{
+  const out:GRPAttritionLine[]=[];
+  for(const t of [...types].sort((a,b)=>a.type<b.type?-1:a.type>b.type?1:0)){
+    const free=Math.floor(t.contracted*allowanceBps/10000),rooms=Math.max(0,Math.max(0,t.contracted-t.picked)-free);
+    const per=gstLineTax(t.rate,rateBps); // rate × % with the same half-away-from-zero rounding as the server's MoneyMath.PercentOf
+    if(!rooms||per<=0)continue;
+    for(let n=arrival;n<departure;n=addDays(n,1))out.push({type:t.type,night:n,rooms,perRoomNight:per,amount:per*rooms,blockRate:t.rate});
+  }
+  return out;
+}
+/** DEC-074 / A03a-06: the room slab of an attrition / retention charge comes from the CONTRACTED per-night block rate — a ₹9,000 block at 50 %
+ *  charges ₹4,500 but is taxed at the ₹9,000 night's 18 %, not 5 %. CA G7 to confirm: the one place to change the basis (server GroupAttrition.GstSlabBasis). */
+export const grpAttritionSlabBasis=(l:GRPAttritionLine)=>l.blockRate;
+/** GST of one attrition line: the GST master's room rate for the slab basis on that night; tax on the line, CGST + SGST split as every line. */
+export function grpAttritionGst(s:State,l:GRPAttritionLine){const rate=gstForRoomNight(s,l.night,grpAttritionSlabBasis(l)),tax=gstLineTax(l.amount,rate.bps);return {...rate,tax,...gstSplit(tax)};}
 
 /** Read-only master folio: each member stay with its folio totals, and the group sum. */
 export function grpMasterFolio(s:State,blk:GRPBlock){

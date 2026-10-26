@@ -136,4 +136,21 @@ export function register({test,M,assert}){
     const s=seed();s.closedDates.push(s.date);
     assert.throws(()=>execute(s,'owner',{type:'GRP_BLOCK_CREATE',name:'Late group',billTo:'guest',arrival:'2026-11-10',departure:'2026-11-11',cutoff:'2026-11-01',allot:{Classic:1}}),e=>e.code==='DAY_CLOSED');
   });
+  test('[GRP DEC-074 A03a-06] attrition GST slab comes from the contracted block rate (₹9,000 at 50 % → 18 %, not 5 %)',()=>{
+    const s=seed();
+    // ₹9,000 block, 2 of 4 unpicked, 50 %, 23–26 Oct: per night 2 × ₹4,500 = ₹9,000 at the ₹9,000 night's 18 % = ₹1,620 (CGST ₹810 + SGST ₹810).
+    const lines=M.grpAttritionLines([{type:'Suite',contracted:4,picked:2,rate:900000}],'2026-10-23','2026-10-26',0,5000);
+    assert.deepEqual(lines.map(l=>l.night),['2026-10-23','2026-10-24','2026-10-25']);
+    for(const l of lines){
+      assert.deepEqual([l.rooms,l.perRoomNight,l.amount,l.blockRate,M.grpAttritionSlabBasis(l)],[2,450000,900000,900000,900000]);
+      const g=M.grpAttritionGst(s,l);assert.deepEqual([g.bps,g.tax,g.cgst,g.sgst,g.category],[1800,162000,81000,81000,'room']);
+      assert.equal(M.gstForRoomNight(s,l.night,l.perRoomNight).bps,500,'the retention price alone would take the 5 % slab (the A03a-06 bug)');
+    }
+    // GB-1 (₹1,750 block at 50 % → ₹875): both bases ≤ ₹7,500 → 5 %, ₹87.50 per 2-room line — the server's golden attrition.
+    const gb1=M.grpAttritionLines([{type:'Classic',contracted:4,picked:2,rate:175000}],'2026-10-23','2026-10-26',0,5000);
+    assert.deepEqual(gb1.map(l=>[l.amount,M.grpAttritionGst(s,l).bps,M.grpAttritionGst(s,l).tax]),[[175000,500,8750],[175000,500,8750],[175000,500,8750]]);
+    // Allowance rounds down per type; 25 % of ₹1,999.99 = ₹500.00 (half away from zero) — same lines as the server rule.
+    const l=M.grpAttritionLines([{type:'Deluxe',contracted:10,picked:3,rate:199999},{type:'Suite',contracted:2,picked:2,rate:420000}],'2026-11-06','2026-11-07',2000,2500);
+    assert.deepEqual(l.map(x=>[x.type,x.rooms,x.perRoomNight,x.amount]),[['Deluxe',5,50000,250000]]);
+  });
 }

@@ -352,4 +352,29 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.match(rule(cfg,'.m-shell .cfg-search'),/min-height:48px/);assert.match(rule(cfg,'.m-shell .cfg-search input'),/font-size:16px/);
     assert.match(rule(cfg,'.m-shell .cfg-mod .btn,.m-shell .cfg-mod-act .btn'),/min-height:48px;font-size:16px/);assert.match(rule(cfg,'.m-shell .cfg-link,.m-shell .cfg-hublink'),/min-height:48px/);
   });
+  test('[PAY-FIX DEC-074 A04-06] full and final recovers only the part of the advance it covers; the rest stays an open advance (screens say so)',()=>{
+    // Ravi (HR-S05): ₹3,000 advance, ₹1,000 recovered in August's locked run → ₹2,000 outstanding; exit today with October's salary in the settlement.
+    const s=execute(seed(),'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false});
+    const st=x(s).staff.find(t=>t.id==='HR-S05'),full=M.hrFnfCompute(s,st,[]),line=full.line,stat=line.pf+line.esic+line.pt;
+    assert.deepEqual([full.advanceOutstanding,full.advanceRecovered,full.advanceLeftOpen],[200000,200000,0],'enough to cover: the whole advance, as before');
+    // A deduction leaving exactly ₹1,000 before the advance: ₹1,000 recovered, ₹1,000 still owed, net 0
+    // (before DEC-074: net −₹1,000 and all ₹2,000 marked recovered, so what the leaver owes vanished from the advance register).
+    const ded=line.gross-stat-100000,adj=[{label:'Damage recovery',kind:'ded',amount:ded}];
+    const c=M.hrFnfCompute(s,st,adj);
+    assert.deepEqual([c.advanceRecovered,c.advanceLeftOpen,c.net,c.recoveries],[100000,100000,0,stat+100000+ded]);
+    const d=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:adj});
+    const n=execute(d,'owner',{type:'HR_FNF_CONFIRM',id:x(d).fnf[0].id});
+    assert.equal(x(n).advances[0].recovered,200000);// ₹1,000 (August) + ₹1,000 (this settlement)
+    assert.equal(M.hrAdvanceBalance(x(n).advances[0]),100000);
+    assert.deepEqual([M.hrFnfAdvanceRecovered(x(n).fnf[0]),M.hrFnfAdvanceLeftOpen(x(n).fnf[0])],[100000,100000]);
+    assert.match(UI.renderSection(n,'accountant','Fnf'),/advance ₹1,000 left open/);
+    assert.match(UI.renderSection(n,'accountant','Fnf',true),/advance ₹1,000 left open/);
+    assert.match(UI.renderSection(n,'accountant','Advances'),/up to what the settlement covers/);
+    assert.doesNotMatch(UI.renderModal(s,'accountant','hr-fnf','HR-S05'),/full outstanding advance is recovered/);
+    // Deductions ₹500 beyond the settlement: no advance recovered, the ₹2,000 stays open, net −₹500 recoverable.
+    const negAdj=[{label:'Damage recovery',kind:'ded',amount:line.gross-stat+50000}],neg=M.hrFnfCompute(s,st,negAdj);
+    assert.deepEqual([neg.advanceRecovered,neg.advanceLeftOpen,neg.net],[0,200000,-50000]);
+    const nd=execute(s,'owner',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:negAdj}),nn=execute(nd,'accountant',{type:'HR_FNF_CONFIRM',id:x(nd).fnf[0].id});
+    assert.equal(x(nn).advances[0].recovered,100000,'nothing more recovered');assert.equal(M.hrFnfAdvanceLeftOpen(x(nn).fnf[0]),200000);
+  });
 }

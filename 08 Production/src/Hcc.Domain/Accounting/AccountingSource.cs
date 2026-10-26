@@ -144,6 +144,80 @@ public static class SourceRules
             original.Select(e => new SourceEntry(e.MapKey, e.CreditPaise, e.DebitPaise)).ToList());
     }
 
+    // ── DEC-074 (wave B3) · group master folio, staff advances, full and final ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A group's master-folio receivable: the company-credit key the member transfers already debit (1110 Company receivables), so the
+    /// routed shares, attrition, receipts and settlement of one group net to zero in ONE ledger under any mapping.
+    /// </summary>
+    public const string GroupReceivableKey = "receipt:company-credit";
+
+    /// <summary>Deposits a company paid on a group's master folio, held until settlement (default 2000 Advance deposits, as folio deposits).</summary>
+    public const string GroupDepositKey = "receipt:group-deposit";
+
+    /// <summary>Attrition / retention charges on a group master folio (default 4000 Room revenue — CA G7 to confirm the ledger).</summary>
+    public const string AttritionKey = "line:attrition";
+
+    /// <summary>
+    /// Group attrition (Sales): Dr master receivable net + CGST + SGST · Cr attrition revenue net · Cr CGST · Cr SGST. CGST / SGST are the
+    /// split STORED per attrition line (summed by Groups), never recomputed here.
+    /// </summary>
+    public static AccountingSource GroupAttrition(string sourceKey, DateOnly date, long netPaise, long cgstPaise, long sgstPaise, string narration)
+        => new(sourceKey, SourceKinds.Line, "group-attrition", date, VoucherType.Sales, narration,
+            [Dr(GroupReceivableKey, checked(netPaise + cgstPaise + sgstPaise)), Cr(AttritionKey, netPaise), Cr("folio:cgst", cgstPaise), Cr("folio:sgst", sgstPaise)]);
+
+    /// <summary>
+    /// Group master-folio receipt: payment = Receipt (Dr tender · Cr master receivable); deposit = Receipt (Dr tender · Cr group deposits);
+    /// refund = Payment (Dr the ledger the refunded receipt credited — deposits for a deposit, else the receivable · Cr tender).
+    /// </summary>
+    public static AccountingSource GroupReceipt(string sourceKey, string kind, string? refundOfKind, string tender, DateOnly date, long amountPaise, string narration)
+    {
+        var t = "method:" + tender;
+        var counter = (kind == "refund" ? refundOfKind : kind) == "deposit" ? GroupDepositKey : GroupReceivableKey;
+        return kind == "refund"
+            ? new(sourceKey, SourceKinds.Receipt, "group-refund", date, VoucherType.Payment, narration, [Dr(counter, amountPaise), Cr(t, amountPaise)])
+            : new(sourceKey, SourceKinds.Receipt, "group-" + kind, date, VoucherType.Receipt, narration, [Dr(t, amountPaise), Cr(counter, amountPaise)]);
+    }
+
+    /// <summary>
+    /// Group settled (Journal): the deposits still held (deposits − refunds of deposits) are applied to the master receivable — Dr group
+    /// deposits · Cr master receivable. With the receipts and the transfers this leaves both ledgers at zero for the group.
+    /// </summary>
+    public static AccountingSource GroupSettlement(string sourceKey, DateOnly date, long depositsHeldPaise, string narration)
+        => new(sourceKey, SourceKinds.Receipt, "group-settlement", date, VoucherType.Journal, narration,
+            [Dr(GroupDepositKey, depositsHeldPaise), Cr(GroupReceivableKey, depositsHeldPaise)]);
+
+    /// <summary>Salary advance given (Payment): Dr staff advances (1200, the ledger pay-run recoveries credit) · Cr funding.</summary>
+    public static AccountingSource AdvanceGiven(string sourceKey, string funding, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Payroll, "advance", date, VoucherType.Payment, narration,
+            [Dr("payroll:advances", amountPaise), Cr("funding:" + funding, amountPaise)]);
+
+    /// <summary>
+    /// Full and final settled (Journal, mirrors <see cref="PayRun"/>): Dr salaries (exit-month gross) · Dr F&amp;F additions (e.g. leave
+    /// encashment) · Dr employer PF · Dr employer ESIC · Cr PF payable (employee + employer) · Cr ESIC payable (employee + employer) · Cr PT
+    /// payable · Cr staff advances (only the part recovered) · Cr F&amp;F deductions · Cr salaries payable (net) — or, when the net is
+    /// negative, Dr recoverable from the leaver. Balanced when net = gross + additions − employee PF − ESIC − PT − advance − deductions.
+    /// </summary>
+    public static AccountingSource Fnf(string sourceKey, DateOnly date, FnfBookFigures f, string narration)
+    {
+        ArgumentNullException.ThrowIfNull(f);
+        return new(sourceKey, SourceKinds.Payroll, "fnf", date, VoucherType.Journal, narration,
+        [
+            Dr("payroll:salaries", f.GrossPaise), Dr("payroll:fnf-additions", f.AdditionsPaise), Dr("payroll:employer-pf", f.EmployerPfPaise),
+            Dr("payroll:employer-esic", f.EmployerEsicPaise),
+            Cr("payroll:pf-payable", checked(f.EmployeePfPaise + f.EmployerPfPaise)), Cr("payroll:esic-payable", checked(f.EmployeeEsicPaise + f.EmployerEsicPaise)),
+            Cr("payroll:pt-payable", f.ProfessionalTaxPaise), Cr("payroll:advances", f.AdvanceRecoveredPaise), Cr("payroll:fnf-deductions", f.DeductionsPaise),
+            f.NetPaise >= 0 ? Cr("payroll:net-payable", f.NetPaise) : Dr("payroll:fnf-recoverable", -f.NetPaise),
+        ]);
+    }
+
+    /// <summary>Full-and-final net pay paid out (Payment, mirrors <see cref="PayRunPaid"/>): Dr salaries payable · Cr funding.</summary>
+    public static AccountingSource FnfPaid(string sourceKey, string funding, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Payroll, "fnf-payment", date, VoucherType.Payment, narration,
+            [Dr("payroll:net-payable", amountPaise), Cr("funding:" + funding, amountPaise)]);
+
+    // ── end DEC-074 (wave B3) ──
+
     public static string Rupees(long paise)
     {
         var sign = paise < 0 ? "-" : "";
@@ -155,3 +229,7 @@ public static class SourceRules
 /// <summary>Pay-run figures as published by payroll (all paise, non-negative).</summary>
 public sealed record PayRunFigures(long GrossPaise, long EmployerPfPaise, long EmployerEsicPaise, long EmployeePfPaise, long EmployeeEsicPaise,
     long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise);
+
+/// <summary>DEC-074 (wave B3): full-and-final figures as published by payroll (paise; all non-negative except <see cref="NetPaise"/>).</summary>
+public sealed record FnfBookFigures(long GrossPaise, long AdditionsPaise, long EmployerPfPaise, long EmployerEsicPaise, long EmployeePfPaise, long EmployeeEsicPaise,
+    long ProfessionalTaxPaise, long AdvanceRecoveredPaise, long DeductionsPaise, long NetPaise);

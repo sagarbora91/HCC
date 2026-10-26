@@ -171,19 +171,33 @@ public static class GroupPickup
 
 public sealed record AttritionInput(string RoomType, int Allotted, int Picked, Paise Rate);
 
-/// <summary>One attrition line: chargeable unpicked rooms of a type for one night at the per-room-night attrition price.</summary>
-public sealed record AttritionLine(string RoomType, DateOnly Night, int Rooms, Paise PerRoomNight, Paise Amount);
+/// <summary>
+/// One attrition line: chargeable unpicked rooms of a type for one night at the per-room-night attrition price
+/// (<see cref="PerRoomNight"/>), with the contracted per-night block rate it was taken from (<see cref="BlockRate"/>, DEC-074).
+/// </summary>
+public sealed record AttritionLine(string RoomType, DateOnly Night, int Rooms, Paise PerRoomNight, Paise Amount, Paise BlockRate);
 
 /// <summary>
 /// Attrition (server rule; the prototype only releases unpicked rooms at the cut-off and charges nothing): for every room type,
 /// unpicked = contracted (allotted at contract = allotted + released) − picked; the first ⌊contracted × allowance⌋ rooms are free;
 /// each further room is charged, for every night of the block, the block rate × attrition % (half away from zero). GST is taken
-/// per line from the room rule on the per-room-night price (DEC-069: per unit per night on the price charged; cancellation /
-/// retention charges follow the accommodation supply — CA to confirm).
+/// per line from the room rule; the slab is decided by <see cref="GstSlabBasis"/> (DEC-074: the contracted block rate).
 /// </summary>
 public static class GroupAttrition
 {
     public static int FreeRooms(int contracted, int allowanceBps) => (int)((long)contracted * allowanceBps / MoneyMath.BpsScale);
+
+    /// <summary>
+    /// DEC-074 / A03a-06: the per-unit-per-night value whose room slab (GST master, <c>IGstRateResolver.RoomNightAsync</c>) taxes an
+    /// attrition / retention charge = the CONTRACTED per-night block rate of the room, not the retention price — a retention charge
+    /// compensates that night's accommodation (₹9,000 block at 50 % → ₹4,500 charged, taxed at the ₹9,000 night's 18 %, not 5 %).
+    /// CA G7 still to confirm: this is the one place to change the basis.
+    /// </summary>
+    public static Paise GstSlabBasis(AttritionLine line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        return line.BlockRate;
+    }
 
     public static IReadOnlyList<AttritionLine> Lines(IReadOnlyCollection<AttritionInput> types, DateOnly arrival, DateOnly departure, int allowanceBps, int rateBps)
     {
@@ -196,7 +210,7 @@ public static class GroupAttrition
             var rooms = Math.Max(0, unpicked - FreeRooms(t.Allotted, allowanceBps));
             var per = MoneyMath.PercentOf(t.Rate, rateBps);
             if (rooms == 0 || per <= Paise.Zero) continue;
-            for (var n = arrival; n < departure; n = n.AddDays(1)) lines.Add(new AttritionLine(t.RoomType, n, rooms, per, new Paise(checked(per.Value * rooms))));
+            for (var n = arrival; n < departure; n = n.AddDays(1)) lines.Add(new AttritionLine(t.RoomType, n, rooms, per, new Paise(checked(per.Value * rooms)), t.Rate));
         }
 
         return lines;
