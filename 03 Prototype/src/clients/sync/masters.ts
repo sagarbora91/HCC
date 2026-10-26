@@ -13,6 +13,7 @@ import type {SyncArea,LoaderCtx,CommandCtx,SliceKey} from './types';
 import type {ReadRoute} from './reads';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
 import {RMS_SERVER} from './roommasters'; // MA-1 room types, amenities, occupancy charges, rooms
+import {MNY_MST_SERVER} from './money-master'; // MA-3 money masters (rows loaded by its own patch loader)
 
 /** Server wire shapes (08 Production/src/Hcc.Contracts/Masters/MastersContracts.cs). */
 type SrvFloor={floorId:number;code:string;name:string;sortOrder:number;active:boolean;retiredOn:string|null;roomCount:number;updatedUtc:string;version:string};
@@ -26,11 +27,14 @@ export type MstServerRoute={list:ReadRoute;history:ReadRoute;listPath:string;his
    *  server id of a prototype row id; rows not loaded into mastersX (noList, e.g. rooms = s.rooms); extra reloads; refused operations. */
   fromServer?:(x:unknown)=>MasterRow;body?:(row:Record<string,unknown>,c:CommandCtx)=>Record<string,unknown>;noBase?:boolean;
   serverId?:(c:CommandCtx,protoId:string)=>number;noList?:boolean;reloadAlso?:SliceKey[];
-  refuse?:Partial<Record<'retire'|'reactivate'|'reorder'|'remove',string>>;precheckSave?:(row:Record<string,unknown>)=>string|undefined};
+  refuse?:Partial<Record<'retire'|'reactivate'|'reorder'|'remove',string>>;precheckSave?:(row:Record<string,unknown>)=>string|undefined;
+  /** Extra Save body fields from the prototype row (beyond code, name, sortOrder, id). */toServer?:(row:Record<string,unknown>)=>Record<string,unknown>;
+  /** The rows are loaded by the providing area's own patch loader on mastersX (not by loadMasters). */ownLoader?:boolean};
 export const MST_SERVER:Record<string,MstServerRoute>={
   floors:{list:'GET /masters/floors',history:'GET /masters/floors/history',listPath:'/masters/floors',historyPath:'/masters/floors/history',kind:'floor',idField:'floorId',idsField:'floorIds',
     save:'SaveFloor',retire:'RetireFloor',reactivate:'ReactivateFloor',reorder:'ReorderFloors',remove:'DeleteFloor'},
   ...RMS_SERVER,
+  ...MNY_MST_SERVER, // MA-3: paymentMethods, bankAccounts, expenseCategories, expenseVendors
 };
 const PAGE=200;
 
@@ -50,7 +54,7 @@ async function pages<T>(c:LoaderCtx,path:string):Promise<T[]>{
 async function loadMasters(c:LoaderCtx):Promise<MSTState>{
   const out:MSTState={rows:{},history:[]};
   for(const [master,r] of Object.entries(MST_SERVER)){
-    if(r.noList||!c.mayRead(r.list))continue;
+    if(r.noList||r.ownLoader||!c.mayRead(r.list))continue;
     const rows=await pages<Record<string,unknown>>(c,r.listPath);
     for(const f of rows)c.ids.setVersion(r.kind,protoId(f[r.idField] as number),String(f.version));
     out.rows[master]=rows.map(x=>(r.fromServer??(y=>floorFromServer(y as SrvFloor)))(x));
@@ -77,6 +81,7 @@ function saveBody(c:CommandCtx,r:MstServerRoute,row:Record<string,unknown>):{bod
   const body:Record<string,unknown>=r.noBase?{}:{code:String(row.code??'').trim().toUpperCase(),name:String(row.name??'').trim()};
   if(!r.noBase&&row.sortOrder!==undefined&&row.sortOrder!==null&&row.sortOrder!=='')body.sortOrder=Number(row.sortOrder);
   if(r.body)Object.assign(body,r.body(row,c));
+  if(r.toServer)Object.assign(body,r.toServer(row));
   if(row.id){body[r.idField]=idOf(c,r,row.id);return {body,expectedVersion:version(c,r,String(row.id))};}
   return {body};
 }

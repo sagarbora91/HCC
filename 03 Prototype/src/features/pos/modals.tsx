@@ -5,7 +5,7 @@ import React,{useState} from 'react';
 import {Printer,Wallet,Ban,ShieldCheck,BedDouble} from 'lucide-react';
 import type {ModalProps} from '../../app/registry';
 import {money,posOrder,posOrderTotals,posOutlet,posInHouse,posSpot,posActiveLines,posLineValue,posKotLabel,posDaySummary,posOpenOrders,
-  POS_VOID_LIMIT,POS_TENDERS} from '../../services/mock';
+  POS_VOID_LIMIT,mnyNames,mnyIsDrawer,mnyMethod} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,dateLabel,clockTime} from '../../components/ui';
 import {PosCheck,posUserName} from './parts';
@@ -29,7 +29,9 @@ export function PosSettleModal({id}:ModalProps){
   const {s,run,busy,closeModal,permission}=useHcc();const o=posOrder(s,id);
   const canOutlet=permission('payments'),canFolio=permission('billing');
   const inHouse=posInHouse(s);
-  const [mode,setMode]=useState<string>(o?.booking&&canFolio?'folio':canOutlet?'Cash':'folio');
+  const tenders=mnyNames(s,'pos'); // MA-3: payment methods usable at the POS (seed Cash, UPI, Card)
+  const [mode,setMode]=useState<string>(o?.booking&&canFolio?'folio':canOutlet?(tenders.find(m=>mnyIsDrawer(s,m))??tenders[0]??'folio'):'folio');
+  const cashMode=mode!=='folio'&&mnyIsDrawer(s,mode),refMode=mode!=='folio'&&!!mnyMethod(s,mode)?.needsReference;
   const [ref,setRef]=useState('');const [tendered,setTendered]=useState('');const [booking,setBooking]=useState(o?.booking||inHouse[0]?.id||'');
   if(!o)return <Empty title="This record is unavailable"/>;
   const t=posOrderTotals(s,o),paid=Math.round(Number(tendered||0)*100),change=paid-t.total;
@@ -41,18 +43,18 @@ export function PosSettleModal({id}:ModalProps){
     <p>Net {money(t.net)} + GST {t.taxBps/100}% {money(t.tax)} = <strong>{money(t.total)}</strong>. Tax is snapshotted at settlement.</p></div>
     <form className="form pos-form" onSubmit={submit}>
       <fieldset className="pos-modes"><legend>Settle by</legend>
-        {POS_TENDERS.map(m=><label key={m} className={mode===m?'on':''}><input type="radio" name="mode" value={m} checked={mode===m} disabled={!canOutlet} onChange={()=>setMode(m)}/>{m}</label>)}
+        {tenders.map(m=><label key={m} className={mode===m?'on':''}><input type="radio" name="mode" value={m} checked={mode===m} disabled={!canOutlet} onChange={()=>setMode(m)}/>{m}</label>)}
         <label className={mode==='folio'?'on':''}><input type="radio" name="mode" value="folio" checked={mode==='folio'} disabled={!canFolio||!inHouse.length} onChange={()=>setMode('folio')}/><BedDouble size={15}/> Room folio</label>
       </fieldset>
       {!canOutlet&&<div className="info-note"><ShieldCheck size={16}/>Taking cash, UPI or card needs the payments permission. You can post the bill to an in-house guest’s folio.</div>}
-      {mode==='Cash'&&<><label>Cash received (₹, optional — for change)<input inputMode="decimal" enterKeyHint="done" value={tendered} onChange={e=>setTendered(e.target.value.replace(/[^\d.]/g,''))} placeholder={String(t.total/100)}/></label>
+      {cashMode&&<><label>Cash received (₹, optional — for change)<input inputMode="decimal" enterKeyHint="done" value={tendered} onChange={e=>setTendered(e.target.value.replace(/[^\d.]/g,''))} placeholder={String(t.total/100)}/></label>
         {tendered&&<p className={'pos-change'+(change<0?' short':'')}>{change<0?`Short by ${money(-change)}`:`Change to return: ${money(change)}`}</p>}
         <div className="info-note"><Wallet size={16}/>Cash sales count once in the shared front-desk drawer and appear in the POS day summary. UPI/card payments and charges to a room folio do not add drawer cash.</div></>}
-      {(mode==='UPI'||mode==='Card')&&<label>Demonstration transaction reference<input enterKeyHint="done" required maxLength={40} value={ref} onChange={e=>setRef(e.target.value)} placeholder={mode==='UPI'?'e.g. DEMO-UPI-1234':'e.g. DEMO-CARD-5678'}/><small>Simulated — no terminal or bank is contacted.</small></label>}
+      {refMode&&<label>Demonstration transaction reference<input enterKeyHint="done" required maxLength={40} value={ref} onChange={e=>setRef(e.target.value)} placeholder={mode==='UPI'?'e.g. DEMO-UPI-1234':'e.g. DEMO-CARD-5678'}/><small>Simulated — no terminal or bank is contacted.</small></label>}
       {mode==='folio'&&<label>Charge to in-house guest<select value={booking} onChange={e=>setBooking(e.target.value)}>{inHouse.map(b=><option key={b.id} value={b.id}>Room {b.room} · {b.guest} · {b.id}</option>)}</select>
         <small>One service line “{posOutlet(s,o.outlet)?.name} · bill …” of {money(t.net)} with tax snapshot {t.taxBps/100}% is added to {target?`${target.guest}’s folio`:'the folio'}.</small></label>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button>
-        <button className="btn primary" disabled={busy||(mode==='Cash'&&!!tendered&&change<0)||(mode==='folio'&&!booking)}>{mode==='folio'?'Post to room folio':`Settle ${money(t.total)}`}</button></div>
+        <button className="btn primary" disabled={busy||(cashMode&&!!tendered&&change<0)||(mode==='folio'&&!booking)}>{mode==='folio'?'Post to room folio':`Settle ${money(t.total)}`}</button></div>
     </form></>;
 }
 

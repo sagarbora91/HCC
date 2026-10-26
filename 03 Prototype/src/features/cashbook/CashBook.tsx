@@ -12,6 +12,7 @@ import {XLSX_MIME} from '../../app/xlsx';
 import {CashLockNote} from './LockNote';
 import {cbXlsx} from './exportXlsx';
 import {cbRangeMemo} from '../../domain/memo';
+import {MnySettlesTo} from '../money/masters';
 
 const who=(users:{id:string;name:string}[],id?:string)=>users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
 const tone=(d:CBDay)=>d.locked?'green':d.status==='Closed'?'neutral':'blue';
@@ -108,7 +109,8 @@ export function CashBookView({phone=false}:{phone?:boolean}){
           <td className="number">{money(d.opening)}</td><td className="number">{money(d.receipts)}</td><td className="number">{money(d.payments)}</td><td className="number">{money(d.closing)}</td>
           <td className="number">{d.counted===undefined?'—':money(d.counted)}</td><td className="number">{d.difference?money(d.difference):'—'}</td><td><button className="btn small-btn" aria-label={`Open day ${dateLabel(d.date)}`} onClick={()=>setDay(d.date)}>Open day</button></td></tr>)}
       </tbody></table></div>}
-      <ShowMore p={pg}/></section></div>;
+      <ShowMore p={pg}/></section>
+    <MnySettlesTo from={from} to={to}/></div>; // MA-3: by "settles to" account (till / bank / credit)
 }
 export const CashBook=()=><CashBookView/>;
 export const CashBookMobile=()=><CashBookView phone/>;

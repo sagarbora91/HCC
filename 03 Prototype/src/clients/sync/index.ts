@@ -19,3 +19,4 @@ export {staffFromServer} from './staff';
 export {createHttpTransport,dispositionFileName} from '../http';
 export {loadServerReport,loadServerHistory,closingFromDailyView,todayFigures,fyMonths,REPORT_MAX_DAYS,SERVER_DETAIL_NOTE} from './reports';
 export * from './reads';
+export {MST_SERVER} from './masters';

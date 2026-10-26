@@ -8,6 +8,7 @@ import {money,addDays} from '../money';
 import {drawer,blockedDuring,totals} from '../selectors';
 import {posSlice,posOpenOrders,posOrderTotals,posSpot} from './pos';
 import {lineTax} from '../gst';
+import {mnyIsDrawer,mnyIsCredit,mnySettlesTo,mnyNames} from './money-master';
 
 // ── Limits (RBAC Matrix §6, demonstration defaults) ──
 /** Manager may accept a cash difference up to ₹200; above → Owner (PERM-SHF-002). */
@@ -18,9 +19,12 @@ export const EXPENSE_MANAGER_LIMIT=500000;
 export const closingUnlimitedRoles=['Owner','Accountant'];
 /** Note denominations for the cash count grid, in rupees. Coins are entered as a rupee total. */
 export const SHIFT_DENOMINATIONS=[500,200,100,50,20,10];
-/** Funding sources (REQ-EXP-001). 'Cash' is drawer cash; 'Vendor credit' has no drawer effect. */
+/** LEGACY (MA-3): the funding sources, categories and tenders now come from the money masters (domain/streams/money-master.ts:
+ *  mnyNames(s,'expenses'), mnyCategoryNames(s), mnyNames(s,'frontdesk')). These constants are only the seed values, kept for old imports. */
 export const EXPENSE_METHODS=['Cash','UPI','Bank transfer','Vendor credit'];
+/** LEGACY (MA-3) — seed of the expenseCategories master; read mnyCategoryNames(s). */
 export const EXPENSE_CATEGORIES=['Supplies','Laundry','Maintenance','Utilities','Petty cash'];
+/** LEGACY (MA-3) — seed of the front-desk payment methods; read mnyNames(s,'frontdesk'). */
 export const TENDERS=['Cash','UPI','Card','Bank transfer'];
 
 // ── Records (State · stream F fields refer to these) ──
@@ -58,10 +62,10 @@ export type CashMovement={id:string;kind:string;label:string;booking?:string;gue
 /** Today's cash movements, signed (+ into the drawer, − out). Sum + opening float = drawer(s).
  *  Shared till (DEC-052): POS cash sales and same-day voids count once here; UPI/card bills and room charges to a folio do not. */
 export function shiftMovements(s:State):CashMovement[]{
-  const rec=s.bookings.flatMap(b=>b.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>recMovement(b,r)));
-  const exp=s.expenses.filter(e=>e.date===s.date&&e.method==='Cash'&&expenseCounts(e)).map(expMovement);
+  const rec=s.bookings.flatMap(b=>b.receipts.filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).map(r=>recMovement(b,r)));
+  const exp=s.expenses.filter(e=>e.date===s.date&&mnyIsDrawer(s,e.method)&&expenseCounts(e)).map(expMovement);
   const p=posSlice(s);
-  const pos=p.receipts.filter(r=>r.date===s.date&&r.method==='Cash').map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
+  const pos=p.receipts.filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
   return [...rec,...pos,...exp];
 }
 const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
@@ -78,11 +82,11 @@ export function shiftMovementsByDate(s:State,from:string,to:string):(d:string)=>
   const rec=new Map<string,CashMovement[]>(),exp=new Map<string,CashMovement[]>(),pos=new Map<string,CashMovement[]>();
   const add=(m:Map<string,CashMovement[]>,d:string,x:CashMovement)=>{const l=m.get(d);if(l)l.push(x);else m.set(d,[x]);};
   const inR=(d:string)=>d>=from&&d<=to;
-  for(const b of s.bookings)for(const r of b.receipts)if(r.method==='Cash'&&inR(r.date))add(rec,r.date,recMovement(b,r));
-  for(const e of s.expenses)if(e.method==='Cash'&&inR(e.date)&&expenseCounts(e))add(exp,e.date,expMovement(e));
+  for(const b of s.bookings)for(const r of b.receipts)if(mnyIsDrawer(s,r.method)&&inR(r.date))add(rec,r.date,recMovement(b,r));
+  for(const e of s.expenses)if(mnyIsDrawer(s,e.method)&&inR(e.date)&&expenseCounts(e))add(exp,e.date,expMovement(e));
   const p=posSlice(s),orders=new Map<string,(typeof p.orders)[number]>();
   for(const o of p.orders)if(!orders.has(o.id))orders.set(o.id,o);
-  for(const r of p.receipts)if(r.method==='Cash'&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
+  for(const r of p.receipts)if(mnyIsDrawer(s,r.method)&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
   return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[])];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
@@ -172,7 +176,7 @@ export function closingSummary(s:State,closedBy=''):ClosingRecord{
 const userName=(s:State,id:string)=>s.users.find(u=>u.id===id)?.name??id;
 /** Outlet receipts of a business date by method (sales − same-day voids) and room-service bills charged to folios. */
 export function closingOutlet(s:State,d:string){
-  const p=posSlice(s),byMethod:Record<string,number>={Cash:0,UPI:0,Card:0};
+  const p=posSlice(s),byMethod:Record<string,number>=Object.fromEntries(mnyNames(s,'pos').map(m=>[m,0])); // MA-3: POS methods (seed Cash, UPI, Card)
   for(const r of p.receipts)if(r.date===d)byMethod[r.method]=(byMethod[r.method]??0)+r.amount;
   const folio=p.orders.filter(o=>o.settlement?.mode==='folio'&&o.settlement.date===d);
   return {byMethod,net:Object.values(byMethod).reduce((a,v)=>a+v,0),roomFolio:folio.reduce((a,o)=>a+o.settlement!.total,0),
@@ -214,7 +218,8 @@ export function reportPct(num:number,den:number){if(!den)return '—';const tent
 export function reportRatioMoney(num:number,den:number){if(!den)return '—';return money(Math.round(num/den));}
 export function reportTenders(s:State,from:string,to:string){
   const found=reportReceipts(s,from,to).filter(x=>x.r.kind==='payment'||x.r.kind==='refund').map(x=>x.r.method);
-  return [...TENDERS,...found.filter((m,i)=>!TENDERS.includes(m)&&found.indexOf(m)===i)];
+  const tenders=mnyNames(s,'frontdesk');
+  return [...tenders,...found.filter((m,i)=>!tenders.includes(m)&&found.indexOf(m)===i)];
 }
 const lineRow=(b:Booking,l:Line,amount:number):DrillRow=>({date:l.date,ref:l.id,booking:b.id,guest:b.guest,room:b.room,detail:l.label,kind:l.kind,amount});
 const receiptRow=(b:Booking,r:Receipt):DrillRow=>({date:r.date,ref:r.id,booking:b.id,guest:b.guest,room:b.room,detail:receiptLabel(r.kind)+' · '+r.reference,method:r.method,kind:r.kind,
@@ -236,10 +241,12 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   const taxRows=lines.map(x=>lineRow(x.b,x.l,lineTax(x.l)));
   const Rk=memoRows((key:string)=>{const [kinds,method]=key.split('|');const ks=kinds.split(',');return rec.filter(x=>ks.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));});
   const R=(kinds:string[],method?:string)=>Rk(kinds.join(',')+'|'+(method??''));
+  /** Drawer receipts (methods that settle to a till; seed: Cash), in record order. */
+  const RD=(kinds:string[])=>rec.filter(x=>kinds.includes(x.r.kind)&&mnyIsDrawer(s,x.r.method)).map(x=>receiptRow(x.b,x.r));
   const sumsOf=memoRows((rows:DrillRow[])=>sumsByDate(rows));
   const sumBy=(rows:DrillRow[],d:string)=>sumsOf(rows).get(d)??0;
   // Shared till: POS receipts are separate source records; folio transfers create no receipt here.
-  const posCash:DrillRow[]=posSlice(s).receipts.filter(r=>r.method==='Cash'&&inRange(r.date,from,to)).map(r=>({
+  const posCash:DrillRow[]=posSlice(s).receipts.filter(r=>mnyIsDrawer(s,r.method)&&inRange(r.date,from,to)).map(r=>({
     date:r.date,ref:r.id,detail:`POS ${r.kind} · ${r.order} · ${r.reference}`,method:r.method,kind:'pos-'+r.kind,amount:r.amount}));
   // Occupied room-nights: each stay is spread over its dates once (the old scan visited every booking for every date); order = date, then booking order.
   const stayBy:DrillRow[][]=dates.map(()=>[]);
@@ -253,7 +260,9 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   const arrRows=s.bookings.filter(b=>(b.status==='In house'||b.status==='Departed')&&inRange(b.arrival,from,to)).map(b=>({date:b.arrival,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Arrival · '+b.source,amount:1}));
   const depRows=s.bookings.filter(b=>b.status==='Departed'&&inRange(b.departure,from,to)).map(b=>({date:b.departure,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Departure (checked out)',amount:1}));
   const E=(f:(e:Expense)=>boolean)=>exp.filter(f).map(expenseRow);
-  const cashExp=E(e=>e.method==='Cash');
+  const cashExp=E(e=>mnyIsDrawer(s,e.method));
+  // MA-3: split by "settles to" — till (drawer cash), a bank account (UPI / bank / card), none (credit). Seed: the old Cash / UPI+Bank / Vendor credit split.
+  const bankExp=(e:Expense)=>mnySettlesTo(s,e.method)?.kind==='bank',creditExp=(e:Expense)=>mnyIsCredit(s,e.method);
   const net=metric('net','Net revenue (excl. tax)',L()),pay=metric('net','Net receipts (payments − refunds)',R(['payment','refund']));
   const expTotal=metric('total','Posted expenses (net of reversals)',E(()=>true));
   const occ={sellable:metric('sellable','Sellable room-nights',sellRows,'count'),occupied:metric('occupied','Occupied room-nights',stayRows,'count'),room:metric('room-revenue','Room revenue',L('room'))};
@@ -281,10 +290,10 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
       metric('held','Deposits held now · all open folios',s.bookings.filter(b=>totals(b).deposit!==0).map(b=>({date:s.date,ref:b.id,booking:b.id,guest:b.guest,room:b.room,detail:'Deposit balance · '+b.status,amount:totals(b).deposit})),'money','Point-in-time liability; not filtered by date')],
       table:{columns:['Receipt date',...tenders,'Net receipts','Deposits in','Deposits out'],units:['text',...tenders.map(()=>'money' as const),'money','money','money'],
         rows:dates.map(d=>[d,...tenders.map(t=>sumBy(R(['payment','refund'],t),d)),sumBy(pay.rows,d),sumBy(R(['deposit']),d),sumBy(R(['deposit-return']),d)])}},
-    {id:'expenses',label:'Expenses & cash',ratios:[],metrics:[metric('cash','Drawer-cash expenses',E(e=>e.method==='Cash')),metric('noncash','UPI / bank expenses',E(e=>e.method==='UPI'||e.method==='Bank transfer')),
-      metric('vendor','Vendor-credit expenses (no drawer effect)',E(e=>e.method==='Vendor credit')),metric('reversals','Reversals included above',E(e=>!!e.reversalOf)),expTotal,
-      metric('cash-in','Cash into drawer (payments + deposits + POS sales)',[...R(['payment','deposit'],'Cash'),...posCash.filter(r=>r.kind==='pos-sale')]),
-      metric('cash-out','Cash out of drawer (refunds + returns + POS voids)',[...R(['refund','deposit-return'],'Cash'),...posCash.filter(r=>r.kind==='pos-void')])],
+    {id:'expenses',label:'Expenses & cash',ratios:[],metrics:[metric('cash','Drawer-cash expenses',cashExp),metric('noncash','UPI / bank expenses',E(bankExp)),
+      metric('vendor','Vendor-credit expenses (no drawer effect)',E(creditExp)),metric('reversals','Reversals included above',E(e=>!!e.reversalOf)),expTotal,
+      metric('cash-in','Cash into drawer (payments + deposits + POS sales)',[...RD(['payment','deposit']),...posCash.filter(r=>r.kind==='pos-sale')]),
+      metric('cash-out','Cash out of drawer (refunds + returns + POS voids)',[...RD(['refund','deposit-return']),...posCash.filter(r=>r.kind==='pos-void')])],
       table:{columns:['Business date','Day','Opening float','Expected cash','Counted','Difference','Cash expenses'],units:['text','text','money','money','money','money','money'],
         rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(cashExp,d)];})}},
     {id:'occupancy',label:'Occupancy',ratios,metrics:[occ.sellable,occ.occupied,occ.room],

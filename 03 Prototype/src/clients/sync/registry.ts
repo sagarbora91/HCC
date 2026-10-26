@@ -50,6 +50,8 @@ import {masters} from './masters';
 
 // MA-1 rooms masters (room types / amenities / occupancy charges routes live in roommasters.ts RMS_SERVER; rooms tools here):
 import {roommasters} from './roommasters';
+// MA-3 money masters (patch loader on mastersX; commands through masters.ts MST_SERVER):
+import {moneyMasters} from './money-master';
 
 export const AREAS:SyncArea[]=[
   core,
@@ -84,4 +86,5 @@ export const AREAS:SyncArea[]=[
   masters, // MA-0
 
   roommasters, // MA-1
+  moneyMasters, // MA-3
 ];

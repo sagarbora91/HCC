@@ -5,6 +5,7 @@ import type {Approval,Booking,Line,State} from '../types';
 import {addMinutes} from '../money';
 
 /** Payment tenders accepted by PAYMENT (SCR-09). Company credit is applied only via an approved request at checkout. */
+/** LEGACY (MA-3): seed of the front-desk payment methods; read mnyNames(s,'frontdesk') (money masters). */
 export const FOLIO_TENDERS=['Cash','UPI','Card','Bank transfer'] as const;
 /** A Manager may approve company credit up to ₹10,000 per stay; above that an Owner must approve (RBAC §6). */
 export const FOLIO_MANAGER_CREDIT_LIMIT=1000000;

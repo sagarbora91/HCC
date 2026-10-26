@@ -8,7 +8,9 @@ import {totals} from '../../../domain/selectors';
 import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
-import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
+import {mnyMethod,mnyMethodFor,mnyIsDrawer} from '../../../domain/streams/money-master';
+import {mstFail} from '../../../domain/streams/masters';
+import {FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
 const STALE_MSG='The folio changed after this request. Reject it and request again.';
@@ -22,10 +24,16 @@ function request(k:Kit,x:Booking,fields:Pick<Approval,'amount'|'reason'|'kind'>&
   k.s.approvals.push(a);return a;
 }
 const pendingOf=(k:Kit,bookingId:string,kind:string)=>k.s.approvals.some(a=>a.booking===bookingId&&folioKind(a)===kind&&a.status==='Pending'&&!folioApprovalExpired(k.s,a));
-const validMethod=(k:Kit,method:unknown,reference:unknown)=>{
-  k.assert((FOLIO_TENDERS as readonly string[]).includes(method as string),'Select a payment method.');
-  if(method==='Cash')k.assert(k.s.shiftOpen,'The cash shift is closed. Open the next business day first.','INVALID_TRANSITION');
-  if(method!=='Cash')k.assert(String(reference??'').trim(),'Enter a demonstration transaction reference.');
+/** MA-3: the method must be an active payment method usable at the front desk (money masters; seed = the old FOLIO_TENDERS).
+ *  A refund may go back through the original receipt's method even if it was retired since (`original`). Returns the stored name. */
+const validMethod=(k:Kit,method:unknown,reference:unknown,original?:string):string=>{
+  const row=typeof method==='string'?mnyMethod(k.s,method):undefined;
+  if(row&&!row.active&&(row.usableAt??[]).includes('frontdesk')&&!(original&&mnyMethod(k.s,original)?.id===row.id))mstFail('MASTER_RETIRED',`${row.name} is retired — choose an active payment method.`);
+  const m=mnyMethodFor(k.s,method,'frontdesk')??(original&&row&&mnyMethod(k.s,original)?.id===row.id?row:undefined);
+  k.assert(m,'Select a payment method.');
+  if(mnyIsDrawer(k.s,m!.name))k.assert(k.s.shiftOpen,'The cash shift is closed. Open the next business day first.','INVALID_TRANSITION');
+  if(m!.needsReference)k.assert(String(reference??'').trim(),'Enter a demonstration transaction reference.');
+  return m!.name;
 };
 
 const PAYMENT:Handler=k=>{
@@ -41,7 +49,7 @@ const PAYMENT:Handler=k=>{
     :[{method:cmd.method,amount:cmd.amount,reference:String(cmd.reference??'').trim()}];
   assert(tenders.length<=4,'Use at most four tender rows.');
   if(tenders.length>1)assert(kind!=='deposit-return','Return a deposit with a single tender.');
-  for(const t of tenders){positive(t.amount);validMethod(k,t.method,t.reference);}
+  for(const t of tenders){positive(t.amount);t.method=validMethod(k,t.method,t.reference);}
   const sum=tenders.reduce((a,t)=>a+t.amount,0);
   assert(sum===cmd.amount,`Tender rows total ${money(sum)} but the payment amount is ${money(cmd.amount)}. They must be equal.`);
   if(kind==='deposit-return'){const ld=x.receipts.find(r=>r.kind==='deposit'&&cbIsLocked(s,r.date));assert(!ld,cbLockedMessage(ld?.date??'','returning a deposit taken on that day'),'DAY_CLOSED');} // DEC-065
@@ -113,8 +121,7 @@ const REFUND_EXECUTE:Handler=k=>{
   assert(!cbIsLocked(s,r!.date),cbLockedMessage(r!.date,'executing a refund against receipt '+r!.id),'DAY_CLOSED'); // DEC-065
   assert(a!.amount<=folioRefundable(s,x!,r!.id,a!.id),'Refund cannot exceed the refundable remainder of this receipt.','INVALID_TRANSITION');
   if(x!.status==='Departed')assert(a!.amount<=Math.max(0,-totals(x!).balance)-folioOutstandingRefunds(s,x!.id,a!.id),DEPARTED_REFUND_MSG,'INVALID_TRANSITION');
-  const method=cmd.method||r!.method;
-  validMethod(k,method,cmd.reference??('Refund of '+r!.id));
+  const method=validMethod(k,cmd.method||r!.method,cmd.reference??('Refund of '+r!.id),r!.method);
   const rid=id('RCPT');
   x!.receipts.push({id:rid,amount:a!.amount,method,date:s.date,kind:'refund',reference:String(cmd.reference??'').trim()||('Refund of '+r!.id),actor:uid,refundOf:r!.id,approvalId:a!.id});
   a!.status='Executed';a!.meta={...a!.meta,executedBy:uid,executedAt:s.clock,receipt:rid};

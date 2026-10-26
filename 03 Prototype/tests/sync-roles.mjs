@@ -127,6 +127,16 @@ function routes(role){
     'GET /masters/amenities':({query})=>page([],query,'items'),'GET /masters/amenities/history':({query})=>page([],query,'items'),
     'GET /masters/occupancy-charges':({query})=>page([],query,'items'),'GET /masters/occupancy-charges/history':({query})=>page([],query,'items'),
     'GET /masters/rooms':()=>({items:[{roomId:1,roomNo:'105',floorId:1,floorCode:'F1',roomTypeId:1,roomTypeCode:'Deluxe',features:[],smoking:false,connectingRoomNo:null,extension:null,notes:null,active:true,retiredOn:null,version:'RV1'}]}),
+    // MA-3 money masters (shapes: 08 Production/src/Hcc.Contracts/MoneyMasters/MoneyMastersContracts.cs)
+    'GET /masters/payment-methods':({query})=>page([{paymentMethodId:1,code:'CASH',name:'Cash',sortOrder:10,active:true,retiredOn:null,kind:'cash',settlesTo:'TILL',needsReference:false,usableAt:['frontdesk','pos','expenses'],surchargeBps:0,ledger:'1000',usageCount:0,updatedUtc:'2026-10-24T03:00:00.000Z',version:'PM1'},
+      {paymentMethodId:2,code:'UPI',name:'UPI',sortOrder:20,active:true,retiredOn:null,kind:'upi',settlesTo:'BANK-1',needsReference:true,usableAt:['frontdesk','pos','expenses'],surchargeBps:0,ledger:'1010',usageCount:0,updatedUtc:'2026-10-24T03:00:00.000Z',version:'PM2'}],query,'items'),
+    'GET /masters/payment-methods/history':({query})=>page([],query,'items'),
+    'GET /masters/bank-accounts':({query})=>page([{bankAccountId:1,code:'TILL',name:'Front-desk cash drawer',sortOrder:10,active:true,retiredOn:null,kind:'till',bank:null,accountLast4:null,ifsc:null,openingBalancePaise:null,defaultFor:[],usageCount:1,updatedUtc:'2026-10-24T03:00:00.000Z',version:'BA1'}],query,'items'),
+    'GET /masters/bank-accounts/history':({query})=>page([],query,'items'),
+    'GET /masters/expense-categories':({query})=>page([{expenseCategoryId:1,code:'SUPPLIES',name:'Supplies',sortOrder:10,active:true,retiredOn:null,ledger:'5000',needsBill:false,approvalLimitPaise:null,usageCount:0,updatedUtc:'2026-10-24T03:00:00.000Z',version:'EC1'}],query,'items'),
+    'GET /masters/expense-categories/history':({query})=>page([],query,'items'),
+    'GET /masters/expense-vendors':({query})=>page([],query,'items'),
+    'GET /masters/expense-vendors/history':({query})=>page([],query,'items'),
   };
 }
 

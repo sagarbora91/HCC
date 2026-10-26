@@ -8,6 +8,7 @@ import {money,addDays,nights,addMinutes,OPENING_TIME} from '../../domain/money';
 import {can,available,occupant,totals,drawer,rateFor} from '../../domain/selectors';
 import {gstForRoomNight,gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment} from '../../domain/gst';
 import {cfgBeforeCommand} from '../../domain/streams/config';
+import {mnyMethodFor,mnyIsDrawer} from '../../domain/streams/money-master';
 
 export function execute(input:State,uid:string,cmd:Command):State{
   const fail=(code:ErrorCode,msg:string):never=>{throw new HccError(code,msg);};
@@ -103,9 +104,9 @@ export function execute(input:State,uid:string,cmd:Command):State{
     const kind:Receipt['kind']=cmd.kind||'payment';
     assert(['payment','deposit','deposit-return','refund'].includes(kind),'Invalid receipt type.');
     if(['payment','deposit'].includes(kind))mutable(x);
-    assert(['Cash','UPI','Card','Bank transfer'].includes(cmd.method),'Select a payment method.');
-    if(cmd.method==='Cash')assert(s.shiftOpen,'The cash shift is closed. Open the next business day first.','INVALID_TRANSITION');
-    if(cmd.method!=='Cash')assert(cmd.reference?.trim(),'Enter a demonstration transaction reference.');
+    assert(mnyMethodFor(s,cmd.method,'frontdesk'),'Select a payment method.'); // MA-3 money masters (built-in fallback; handlers/folio.ts replaces it)
+    if(mnyIsDrawer(s,cmd.method))assert(s.shiftOpen,'The cash shift is closed. Open the next business day first.','INVALID_TRANSITION');
+    if(!mnyIsDrawer(s,cmd.method))assert(cmd.reference?.trim(),'Enter a demonstration transaction reference.');
     if(kind==='deposit-return')assert(cmd.amount<=totals(x).deposit,'Return cannot exceed the deposit held.');
     if(kind==='refund'){
       req('approve');assert(cmd.amount<=totals(x).paid,'Refund cannot exceed net receipts.');
@@ -144,7 +145,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
     req('approve');open();const e=s.expenses.find(e=>e.id===cmd.id);
     assert(e&&e.status==='Pending','Expense is no longer pending.','INVALID_TRANSITION');
     assert(e!.actor!==uid,'You cannot approve your own expense.','FORBIDDEN');
-    if(cmd.approve&&e!.method==='Cash')assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
+    if(cmd.approve&&mnyIsDrawer(s,e!.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
     e!.status=cmd.approve?'Posted':'Rejected';e!.date=s.date;detail=e!.id+' · '+e!.status;break;}
   case 'NIGHT_POST':{req('close');open();s.bookings.filter(x=>x.status==='In house'&&x.arrival<=s.date&&x.departure>s.date).forEach(x=>{const len=x.lines.length;addNight(x,s.date);if(x.lines.length!==len)x.version++;});detail='Idempotent room-night posting for '+s.date;break;}
   case 'SHIFT_CLOSE':{

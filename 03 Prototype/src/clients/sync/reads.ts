@@ -133,6 +133,11 @@ export const READS={
   'GET /masters/occupancy-charges':always,
   'GET /masters/occupancy-charges/history':one(wide('PERM-MST-002')),
   'GET /masters/rooms':always,
+  // MA-3 money masters: pick lists for every signed-in user (money / PAN fields null without PERM-MST-002); history = PERM-MST-002 (Owner).
+  'GET /masters/payment-methods':always,'GET /masters/payment-methods/history':one(wide('PERM-MST-002')),
+  'GET /masters/bank-accounts':always,'GET /masters/bank-accounts/history':one(wide('PERM-MST-002')),
+  'GET /masters/expense-categories':always,'GET /masters/expense-categories/history':one(wide('PERM-MST-002')),
+  'GET /masters/expense-vendors':always,'GET /masters/expense-vendors/history':one(wide('PERM-MST-002')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

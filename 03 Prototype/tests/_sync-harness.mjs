@@ -17,12 +17,18 @@ import {readFileSync} from 'node:fs';
 
 const OUT=(process.env.HCC_SYNC_TEST_DIR||'tests/.generated')+'/sync.mjs';
 let loaded;
+/** Masters integration: empty list + history pages for every server-backed master (sync/masters.ts MST_SERVER), so an area test that
+ *  boots the masters area answers the other agents' lists without naming them; a test's own routes override these. */
+const mstDefaults={};
 /** Bundles src/clients/sync/index.ts once per test run and imports it. */
 export function loadSync(){
   return loaded??=(async()=>{
     await mkdir(OUT.replace(/\/[^/]+$/,''),{recursive:true});
     await build({entryPoints:['src/clients/sync/index.ts'],bundle:true,platform:'node',format:'esm',outfile:OUT,logLevel:'error',define:{'process.env.HCC_BUILD':'"production"'}});
-    return import(new URL('../'+OUT,import.meta.url).href);
+    const S=await import(new URL('../'+OUT,import.meta.url).href);
+    const empty=()=>({page:1,pageSize:200,total:0,items:[]});
+    for(const r of Object.values(S.MST_SERVER??{}))for(const p of [r.listPath,r.historyPath])if(p)mstDefaults['GET '+p]??=empty;
+    return S;
   })();
 }
 
@@ -61,7 +67,7 @@ export function fakeServer(routes={}){
     // Empty front-desk lists (W4-1): every runtime with the full registry reloads bookings / guests; area tests override them.
     'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),
     // MA-1: rooms-master fields read with the rooms (empty = no master data; floor from the room number) and the room masters' lists.
-    'GET /masters/rooms':()=>({items:[]}),...Object.fromEntries(['room-types','amenities','occupancy-charges'].map(x=>[`GET /masters/${x}`,()=>({page:1,pageSize:200,total:0,items:[]})])),...routes};
+    ...mstDefaults,'GET /masters/rooms':()=>({items:[]}),...Object.fromEntries(['room-types','amenities','occupancy-charges'].map(x=>[`GET /masters/${x}`,()=>({page:1,pageSize:200,total:0,items:[]})])),...routes};
   const calls=[],unrouted=[];
   const compiled=()=>Object.entries(table).map(([spec,h])=>{const [m,p]=spec.split(' ');const names=[];
     const re=new RegExp('^'+p.replace(/:[A-Za-z]+/g,x=>{names.push(x.slice(1));return '([^/]+)';})+'$');return {m,re,names,h};});
