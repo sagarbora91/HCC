@@ -17,7 +17,9 @@ public sealed record DepartmentResult(string Code, string Name, int? LeaveCap, s
 public sealed record SaveStaffRequest(long? StaffId, string? ExpectedVersion, string Name, string Dept, string Designation, string DefaultShift, int WeeklyOff,
     string? Phone = null, int? LinkUserId = null, bool ConfirmRelink = false, DateOnly? Joined = null,
     string? PayType = null, long? MonthlyPaise = null, long? DailyPaise = null, string? Gender = null, string? Structure = null,
-    bool? PfApplicable = null, bool? EsicApplicable = null, string? BankName = null, string? AccountNo = null, string? Ifsc = null);
+    bool? PfApplicable = null, bool? EsicApplicable = null, string? BankName = null, string? AccountNo = null, string? Ifsc = null,
+    // MA-6: the designation chosen from the Designations list (code); its name is stored in Designation. Null = free text / unchanged link.
+    string? DesignationCode = null);
 
 public sealed record StaffResult(long StaffId, string Name, string Version, string Notes);
 
@@ -100,7 +102,9 @@ public sealed record StaffView(long StaffId, string Name, string Dept, string De
     int? LinkedUserId = null,
     // W4 G2: whether the stored mobile is a usable WhatsApp number (the payslip send resolves it on the server; the number stays masked),
     // and the IFSC for PERM-HR-005 holders (not secret; shown so it can be corrected or cleared). Null IFSC = hidden or none.
-    bool PhoneUsable = false, string? Ifsc = null);
+    bool PhoneUsable = false, string? Ifsc = null,
+    // MA-6: code of the designation list row (null = older record matched by name).
+    string? DesignationCode = null);
 
 public sealed record PayLineView(long StaffId, string Name, string Dept, string Designation, string PayType, decimal PayableDays,
     long EarnedPaise, long BasicPaise, long HraPaise, long WashingPaise, long SpecialPaise, long OtPaise, long GrossPaise, long PfWagesPaise, long PfPaise,
@@ -132,7 +136,7 @@ public sealed record RateVersionView(DateOnly From, int BasicBps, int HraBps, in
     bool EsicPeriod);
 
 public sealed record AttendanceCountsView(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
-    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin);
+    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0);
 
 /// <summary>A stored pay-run line in full (counts, structure, base) as calculated by the server.</summary>
 public sealed record BoardLineView(long StaffId, string Name, string Dept, string Designation, string PayType, string Structure, string Gender, long BasePaise,

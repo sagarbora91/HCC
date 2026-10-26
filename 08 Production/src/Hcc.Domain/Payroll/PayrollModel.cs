@@ -11,11 +11,45 @@ namespace Hcc.Domain.Payroll;
 // NOT PORTED FROM SCC (review F-08, owner decision pending, CA item P10): calcAttendance's "extra days" rule, its 5.5-day monthly
 // cap on leaves applied, and day-based overtime. HCC pays rostered weekly offs from the roster and overtime per minute.
 
-public enum ShiftCode { M, E, N, G, OFF }
+/// <summary>
+/// Shift code: a code of the Shift patterns list (MA-6; M E N G are the seed) or OFF (weekly off). A value type so custom patterns are
+/// possible while the built-in codes keep their <c>ShiftCode.M</c> spelling.
+/// </summary>
+public readonly record struct ShiftCode(string Value)
+{
+    public static readonly ShiftCode M = new("M");
+    public static readonly ShiftCode E = new("E");
+    public static readonly ShiftCode N = new("N");
+    public static readonly ShiftCode G = new("G");
+    public static readonly ShiftCode OFF = new("OFF");
+
+    /// <summary>1–3 capital letters or digits, or OFF.</summary>
+    public static bool IsValid(string? code) => code is { Length: >= 1 and <= 3 } && code.All(c => c is >= 'A' and <= 'Z' or >= '0' and <= '9');
+
+    public static ShiftCode Parse(string? code, string message) => IsValid(code) ? new ShiftCode(code!) : throw HccException.Validation(message);
+
+    public override string ToString() => Value;
+}
 
 public enum AttendanceStatus { P, L, H, A, OFF }
 
-public enum LeaveType { CL, SL, EL, CO, ML, LOP }
+/// <summary>Leave type code of the Leave types list (MA-6; CL SL EL CO ML LOP are the seed); LOP = leave without pay.</summary>
+public readonly record struct LeaveType(string Value)
+{
+    public static readonly LeaveType CL = new("CL");
+    public static readonly LeaveType SL = new("SL");
+    public static readonly LeaveType EL = new("EL");
+    public static readonly LeaveType CO = new("CO");
+    public static readonly LeaveType ML = new("ML");
+    public static readonly LeaveType LOP = new("LOP");
+
+    /// <summary>1–6 capital letters or digits.</summary>
+    public static bool IsValid(string? code) => code is { Length: >= 1 and <= 6 } && code.All(c => c is >= 'A' and <= 'Z' or >= '0' and <= '9');
+
+    public static LeaveType Parse(string? code, string message) => IsValid(code) ? new LeaveType(code!) : throw HccException.Validation(message);
+
+    public override string ToString() => Value;
+}
 
 public enum LeaveHalf { AM, PM }
 
@@ -94,8 +128,9 @@ public sealed record FinancialYear(DateOnly From, DateOnly To)
 /// <summary>The payroll-relevant part of a staff record.</summary>
 public sealed record StaffProfile(long StaffId, string Name, string Dept, string Designation, PayType PayType, long MonthlyPaise, long DailyPaise,
     ShiftCode DefaultShift, int WeeklyOff, DateOnly Joined, DateOnly? ExitedOn, bool Active, Gender? Gender = null, PayStructure? Structure = null,
-    bool? PfApplicable = null, bool? EsicApplicable = null)
+    bool? PfApplicable = null, bool? EsicApplicable = null, bool WeeklyOffAuto = true)
 {
+    // WeeklyOffAuto: false when the default shift's pattern leaves weekly offs to the roster (Shift patterns, MA-6).
     public PayStructure EffectiveStructure => Structure ?? (PayType == PayType.Daily ? PayStructure.B : PayStructure.S);
 
     /// <summary>Default (SCC migration rule): PF only for structured pay (CA item P3).</summary>
@@ -120,8 +155,11 @@ public sealed record StaffProfile(long StaffId, string Name, string Dept, string
 public sealed record AttendanceMark(DateOnly Date, AttendanceStatus Status, int OtMinutes);
 
 /// <summary>A leave request as the rules see it (days in half-day units: 0.5 = a half-day).</summary>
-public sealed record LeaveSpan(long LeaveId, long StaffId, LeaveType Type, DateOnly From, DateOnly To, LeaveHalf? Half, decimal Days, LeaveStatus Status)
+public sealed record LeaveSpan(long LeaveId, long StaffId, LeaveType Type, DateOnly From, DateOnly To, LeaveHalf? Half, decimal Days, LeaveStatus Status, bool? Paid = null)
 {
+    /// <summary>Paid leave (Leave types list; resolved when loaded). Unresolved: everything but LOP is paid.</summary>
+    public bool IsPaid => Paid ?? Type != LeaveType.LOP;
+
     public bool Covers(DateOnly d) => From <= d && To >= d;
 
     public bool Holds => Status is LeaveStatus.Pending or LeaveStatus.Approved;
@@ -131,12 +169,16 @@ public sealed record LeaveSpan(long LeaveId, long StaffId, LeaveType Type, DateO
 public sealed class StaffDays
 {
     public StaffDays(IReadOnlyDictionary<DateOnly, ShiftCode>? roster = null, IReadOnlyDictionary<DateOnly, AttendanceMark>? attendance = null,
-        IReadOnlyList<LeaveSpan>? leaves = null)
+        IReadOnlyList<LeaveSpan>? leaves = null, IReadOnlySet<DateOnly>? paidHolidays = null)
     {
         Roster = roster ?? new Dictionary<DateOnly, ShiftCode>();
         Attendance = attendance ?? new Dictionary<DateOnly, AttendanceMark>();
         Leaves = leaves ?? [];
+        PaidHolidays = paidHolidays ?? new HashSet<DateOnly>();
     }
+
+    /// <summary>Paid holidays of the Holiday calendar in the loaded range (a paid day, never leave or unmarked; MA-6).</summary>
+    public IReadOnlySet<DateOnly> PaidHolidays { get; }
 
     public IReadOnlyDictionary<DateOnly, ShiftCode> Roster { get; }
 
@@ -148,7 +190,7 @@ public sealed class StaffDays
 
 /// <summary>Month counts (prototype HRCounts). Leave and absence can be half days.</summary>
 public sealed record AttendanceCounts(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
-    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin);
+    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0);
 
 /// <summary>Dated statutory rate version (one per effective-from date, the 1st of a month). bps = basis points; money in paise.</summary>
 public sealed record PayrollRates(DateOnly From,
@@ -215,12 +257,32 @@ public sealed record PayTotals(int Staff, long Earned, long Basic, long Hra, lon
     }
 }
 
-/// <summary>Leave policy (SCC ENT_DEFAULTS + MAX_DAY per department). Not dated: applies to new requests.</summary>
-public sealed record LeavePolicy(int Cl, int Sl, int El, int DefaultCap, IReadOnlyDictionary<string, int> DeptCap)
+/// <summary>One leave type of the Leave types list (MA-6): paid or not, yearly quota (null = not tracked), carry-forward limit, encashment flag.</summary>
+public sealed record LeaveTypeDef(string Code, string Name, bool Paid, int? Quota, int CarryForward, bool Encashment, bool Active);
+
+/// <summary>Leave policy (SCC ENT_DEFAULTS + MAX_DAY per department). Not dated: applies to new requests. With <see cref="Types"/> the leave
+/// types decide paid / tracked / quota / carry-forward; without (no list stored yet) CL SL EL are tracked with Cl Sl El days.</summary>
+public sealed record LeavePolicy(int Cl, int Sl, int El, int DefaultCap, IReadOnlyDictionary<string, int> DeptCap, IReadOnlyDictionary<string, LeaveTypeDef>? Types = null)
 {
     public static LeavePolicy Defaults() => new(12, 7, 15, 2, new Dictionary<string, int>());
 
-    public int Entitled(LeaveType t) => t switch { LeaveType.CL => Cl, LeaveType.SL => Sl, LeaveType.EL => El, _ => 0 };
+    public int Entitled(LeaveType t) => Types is not null ? Types.TryGetValue(t.Value, out var d) ? d.Quota ?? 0 : 0
+        : t == LeaveType.CL ? Cl : t == LeaveType.SL ? Sl : t == LeaveType.EL ? El : 0;
+
+    /// <summary>A type with a yearly quota (balance checked per financial year).</summary>
+    public bool IsTracked(LeaveType t) => Types is not null ? Types.TryGetValue(t.Value, out var d) && d.Quota is not null : t == LeaveType.CL || t == LeaveType.SL || t == LeaveType.EL;
+
+    /// <summary>Active, known type (without a stored list: the six built-in types).</summary>
+    public bool IsKnown(LeaveType t) => Types is not null ? Types.TryGetValue(t.Value, out var d) && d.Active
+        : t == LeaveType.CL || t == LeaveType.SL || t == LeaveType.EL || t == LeaveType.CO || t == LeaveType.ML || t == LeaveType.LOP;
+
+    public bool IsPaid(LeaveType t) => Types is not null ? !Types.TryGetValue(t.Value, out var d) || d.Paid : t != LeaveType.LOP;
+
+    public int CarryCap(LeaveType t) => Types is not null && Types.TryGetValue(t.Value, out var d) ? d.CarryForward : 0;
+
+    /// <summary>Tracked types in display order (list order, or CL SL EL).</summary>
+    public IReadOnlyList<LeaveType> TrackedTypes() => Types is not null ? Types.Values.Where(d => d.Active && d.Quota is not null).Select(d => new LeaveType(d.Code)).ToList()
+        : [LeaveType.CL, LeaveType.SL, LeaveType.EL];
 
     public int CapFor(string dept) => DeptCap.TryGetValue(dept, out var c) ? c : DefaultCap;
 }

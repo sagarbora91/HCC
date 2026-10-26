@@ -125,7 +125,15 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
             if (await rd.ReadAsync(ct).ConfigureAwait(false)) settings = new SettingsRecord(rd.GetString(0), rd.GetString(1), rd.GetByte(2), (byte[])rd[3], rd.IsDBNull(4));
         }
 
-        return new ComplianceSnapshot(obligations, filings, settings ?? DefaultSettings());
+        var holidays = new HashSet<DateOnly>();
+        await using (var cmd = make("SELECT code FROM hr.holiday WHERE property_id = @p AND active = 1 AND kind = 'paid';"))
+        {
+            Add(cmd, "@p", SqlDbType.Int, propertyId);
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) holidays.Add(DateOnly.ParseExact(rd.GetString(0), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return new ComplianceSnapshot(obligations, filings, settings ?? DefaultSettings(), holidays);
     }
 
     private static SettingsRecord DefaultSettings() => new(ComplianceRules.DefaultCaName, ComplianceRules.DefaultCaEmail, ComplianceRules.DefaultDueSoonDays, new byte[8], true);
@@ -137,6 +145,9 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         var sql = Sql(tx);
         return await ReadSnapshotAsync(sql.Command, propertyId, ct).ConfigureAwait(false);
     }
+
+    public async Task<IReadOnlySet<DateOnly>> PaidHolidaysAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default)
+        => (await SnapshotAsync(tx, propertyId, ct).ConfigureAwait(false)).Holidays ?? new HashSet<DateOnly>();
 
     public async Task<ComplianceSnapshot> SnapshotAsync(int propertyId, CancellationToken ct = default)
     {

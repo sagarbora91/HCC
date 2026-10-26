@@ -44,9 +44,9 @@ public sealed class PayrollGolden
 
     /// <summary>Golden staff code (HR-S01…) → numeric staff id used in a computation (1…12, or the SQL ids).</summary>
     public static StaffProfile Profile(GStaff g, long id) => new(id, g.Name, g.Dept, g.Designation, g.PayType == "daily" ? PayType.Daily : PayType.Monthly, g.Monthly, g.Daily,
-        Enum.Parse<ShiftCode>(g.DefaultShift), g.WeeklyOff, Date(g.Joined), null, true, Enum.Parse<Gender>(g.Gender));
+        new ShiftCode(g.DefaultShift), g.WeeklyOff, Date(g.Joined), null, true, Enum.Parse<Gender>(g.Gender));
 
-    public static LeaveSpan Span(GLeave l, long leaveId, long staffId) => new(leaveId, staffId, Enum.Parse<LeaveType>(l.Type), Date(l.From), Date(l.To),
+    public static LeaveSpan Span(GLeave l, long leaveId, long staffId) => new(leaveId, staffId, new LeaveType(l.Type), Date(l.From), Date(l.To),
         l.Half is null ? null : Enum.Parse<LeaveHalf>(l.Half), l.Days, Enum.Parse<LeaveStatus>(l.Status));
 
     /// <summary>An in-memory month world over the golden data (staff ids 1…12 in fixture order).</summary>

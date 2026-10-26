@@ -38,12 +38,15 @@ public static class PayrollPermissions
 public sealed record PropertyClock(DateOnly BusinessDate, string TimeZone);
 
 /// <summary>A staff record as stored (profile + identity/contact/bank fields + version).</summary>
-public sealed record StaffRow(StaffProfile Profile, int? UserId, string Phone, string? BankName, string? AccountNo, string? Ifsc, string Version)
+public sealed record StaffRow(StaffProfile Profile, int? UserId, string Phone, string? BankName, string? AccountNo, string? Ifsc, string Version, string? DesignationCode = null)
 {
     public long StaffId => Profile.StaffId;
 }
 
-public sealed record NewStaff(int PropertyId, StaffProfile Profile, int? UserId, string Phone, string? BankName, string? AccountNo, string? Ifsc, int By, DateTime Utc);
+public sealed record NewStaff(int PropertyId, StaffProfile Profile, int? UserId, string Phone, string? BankName, string? AccountNo, string? Ifsc, int By, DateTime Utc, string? DesignationCode = null);
+
+/// <summary>A row of the Designations list (MA-6) as the staff form needs it.</summary>
+public sealed record DesignationRef(string Code, string Name, string? Dept, bool Active);
 
 public sealed record DepartmentRow(string Code, string Name, int? LeaveCap);
 
@@ -141,7 +144,14 @@ public interface IPayrollDb
     /// <summary>Pending/approved leaves of a department's staff overlapping [from, to], with the staff profile (capacity check).</summary>
     Task<IReadOnlyList<(StaffProfile Staff, LeaveSpan Leave)>> DepartmentLeavesAsync(int propertyId, string dept, DateOnly from, DateOnly to, CancellationToken ct);
 
+    /// <summary>The leave policy; with the property's Leave types list in <see cref="LeavePolicy.Types"/> (null = no list stored yet: CL SL EL as before).</summary>
     Task<LeavePolicy> LeavePolicyAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>The property's Shift patterns (the built-in M E N G when none is stored).</summary>
+    Task<ShiftCatalog> ShiftCatalogAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>A Designations list row by code (null = unknown).</summary>
+    Task<DesignationRef?> DesignationAsync(int propertyId, string code, CancellationToken ct);
 
     Task SetLeavePolicyAsync(int propertyId, LeavePolicy policy, int by, DateTime utc, CancellationToken ct);
 

@@ -155,6 +155,24 @@ public static class ComplianceRules
         return (ok.Count > 0 ? ok[^1] : ordered[0]).Rule;
     }
 
+    /// <summary>
+    /// MA-6: the due date, moved to the next working day when it falls on a paid holiday of the Holiday calendar (not on a holiday, not on a Sunday).
+    /// Without holidays the rule date is returned unchanged (prototype <c>cmpDueDate</c> / <c>cmpShiftDue</c>).
+    /// </summary>
+    public static DateOnly DueDate(ObligationSchedule o, string period, IReadOnlySet<DateOnly>? holidays)
+    {
+        var raw = DueDate(o, period);
+        if (holidays is null || !holidays.Contains(raw)) return raw;
+        var d = raw;
+        for (var i = 0; i < 14; i++)
+        {
+            d = d.AddDays(1);
+            if (!holidays.Contains(d) && d.DayOfWeek != DayOfWeek.Sunday) return d;
+        }
+
+        return raw;
+    }
+
     public static DateOnly DueDate(ObligationSchedule o, string period)
     {
         var r = RuleFor(o, period);
@@ -213,10 +231,10 @@ public static class ComplianceRules
 
     public static string StatusOf(int days, int dueSoonDays) => days < 0 ? ComplianceStatus.Overdue : days == 0 ? ComplianceStatus.DueToday : days <= dueSoonDays ? ComplianceStatus.DueSoon : ComplianceStatus.Upcoming;
 
-    public static CalendarRow Row(ObligationSchedule o, string period, DateOnly businessDate, int dueSoonDays, string? filedStatus)
+    public static CalendarRow Row(ObligationSchedule o, string period, DateOnly businessDate, int dueSoonDays, string? filedStatus, IReadOnlySet<DateOnly>? holidays = null)
     {
         ArgumentNullException.ThrowIfNull(o);
-        var due = DueDate(o, period);
+        var due = DueDate(o, period, holidays);
         var days = due.DayNumber - businessDate.DayNumber;
         return new CalendarRow(period, PeriodLabel(o.Frequency, period), due, days, filedStatus ?? StatusOf(days, dueSoonDays));
     }
