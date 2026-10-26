@@ -119,6 +119,9 @@ Version: 1.1 · Updated: 26 October 2026 · Owner: Sagar
 | DEC-MA-5 | Invoice numbering | **One tax-invoice series** for the hotel; the numbering-series master exists so outlets/documents can get separate series later if the CA advises. | Agreed (O, 26 Oct 2026) | O | MA-5, Invoices |
 | DEC-MA-6 | Vendors | **Keep maintenance vendors and expense vendors separate**; expenses get their own vendor master; `mnt.vendor` untouched. | Agreed (O, 26 Oct 2026) | O | MA-3, Expenses |
 | DEC-MA-7 | Masters batch order | After MA-0, **MA-1…MA-7 all run in parallel**, then MA-8…MA-11. | Agreed (O, 26 Oct 2026) | O | Masters wave |
+| DEC-MA-4a | POS outlet GST profile and menu GST class | Each outlet has a GST profile: **hotel status** (default — the GST master's specified-premises status, DEC-069) or fixed **5 %** / **18 % (specified premises)**; each menu item has a GST class (food = the outlet profile; banquet / laundry / other = the GST master's service rate). **One GST class per check** (a hall hire goes on its own check). Owner-only fields (DEC-058). Rates illustrative — CA to confirm. | Proposed (MA-4, 26 Oct 2026) | O | MA-4, POS, GST |
+| DEC-MA-4b | Menu prices and "sold out today" | Menu prices are **dated** (a new price from a date; amounts in effect never change; Owner-only); an item without a price in force cannot be sold. "Sold out today" lapses at the next business date; the in-service switch on the POS page stays with the billing roles, the menu master (active, outlets, sold out) needs `masters`. | Proposed (MA-4, 26 Oct 2026) | O | MA-4, POS |
+| DEC-MA-4c | KOT by kitchen station | A send splits into **one KOT per station** (item station → outlet KOT station → "Kitchen"), each with its own KOT number; with no station configured a send stays one KOT exactly as before. | Proposed (MA-4, 26 Oct 2026) | O | MA-4, POS |
 
 ## 4. Superseded / changed decisions
 
