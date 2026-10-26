@@ -31,7 +31,7 @@ import {rooms} from './rooms';
 // import {pos} from './pos';
 
 // W4-9 maintenance, linen & stock:
-// import {maintenance} from './maintenance';
+import {maintenance} from './maintenance';
 
 // W4-10 guest services, messaging, shift handover:
 // import {services} from './services';
@@ -59,7 +59,7 @@ export const AREAS:SyncArea[]=[
 
   // pos, // W4-8
 
-  // maintenance, // W4-9
+  maintenance, // W4-9
 
   // services, // W4-10
 

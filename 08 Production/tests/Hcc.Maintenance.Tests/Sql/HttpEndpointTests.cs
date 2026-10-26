@@ -104,6 +104,8 @@ public class HttpEndpointTests : IAsyncLifetime
         // Owner sees the part price; the AMC list hides values from the supervisor.
         var owner = await (await _http.SendAsync(Req(HttpMethod.Get, "/maintenance/work-orders/" + _w.Orders["WO-0901"].ToString(CultureInfo.InvariantCulture), "owner"), Ct)).Content.ReadAsStringAsync(Ct);
         Assert.Contains("180000", owner, StringComparison.Ordinal);
+        Assert.Contains("\"doneBy\"", owner, StringComparison.Ordinal); // W4-9: the production client needs who completed / verified
+        Assert.Contains("\"verifiedBy\"", owner, StringComparison.Ordinal);
         var sup = await (await _http.SendAsync(Req(HttpMethod.Get, "/maintenance/amcs", "supervisor"), Ct)).Content.ReadAsStringAsync(Ct);
         Assert.DoesNotContain("9600000", sup, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.Forbidden, (await _http.SendAsync(Req(HttpMethod.Get, "/maintenance/amcs", "reception"), Ct)).StatusCode);

@@ -40,6 +40,14 @@ public sealed class StockQueries(IAccessPolicy policy, IStockReadStore reads)
             views.Count(v => v.BelowMinimum), batches.Sum(b => b.Lines.Sum(l => l.Sent)), await reads.PendingCountsAsync(propertyId, ct).ConfigureAwait(false), totalValue);
     }
 
+    /// <summary>Par sets in circulation and the laundry vendor (W4-9: the production client shows them on the laundry and par screens).</summary>
+    public async Task<StockSettingsResult> SettingsAsync(int propertyId, int principalId, CancellationToken ct = default)
+    {
+        await RequireReadAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        var s = await reads.SettingsAsync(propertyId, ct).ConfigureAwait(false);
+        return new StockSettingsResult(s.ParSets, s.VendorName, s.TurnaroundDays);
+    }
+
     public async Task<IReadOnlyList<StockAlertView>> AlertsAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
         await RequireReadAsync(propertyId, principalId, ct).ConfigureAwait(false);
