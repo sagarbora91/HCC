@@ -32,3 +32,4 @@ Thumbs.db
 
 # graphify knowledge-graph output (regenerate with graphify; vault lives in E:\Projects\HCC\HCC Knowledge Vault)
 graphify-out/
+worktrees/
