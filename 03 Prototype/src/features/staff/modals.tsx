@@ -6,10 +6,11 @@ import React,{useState} from 'react';
 import {Printer,Info,Hotel,MessageCircle,Plus,Trash2,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {dateLabel,shortDate,Empty} from '../../components/ui';
+import {MstLink} from '../masters/MasterList';
 import {
   money,hrSlice,hrRateVersions,hrCanPay,hrCanManage,hrStaffById,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrDeptName,hrLeaveBalance,hrLeaveDays,hrMonthLabel,hrRatesFor,
   hrLastLockedMonth,hrLeaveOverCount,hrNextMonth,hrRatesDefaultFrom,hrRatesPastMonths,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
-  HR_SHIFTS,HR_WEEKDAYS,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,HR_NOT_CALCULATED,hrKey,
+  hrShiftChoices,hrDesignationChoices,hrDesignationOf,hrPayRuleFields,hrLeaveChoices,hrLeaveName,hrHolidayOn,mstByCode,HR_SHIFTS,HR_WEEKDAYS,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,HR_ATT_LABEL,HR_DISCLAIMER,HR_NOT_CALCULATED,hrKey,
   type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,
 } from '../../services/mock';
 
@@ -20,15 +21,20 @@ export const hrUserName=(s:ReturnType<typeof useHcc>['s'],id?:string)=>s.users.f
 /** 'hr-staff': id = staff ID (edit) or undefined (new). Salary, PF / ESIC and bank fields only for payroll roles. */
 export function HRStaffModal({id}:{id?:string}){
   const {s,uid,run,closeModal,busy,open}=useHcc();const x=hrSlice(s),st=id?hrStaffById(s,id):undefined,pay=hrCanPay(s,uid);
-  const [f,setF]=useState({name:st?.name??'',dept:st?.dept??x.depts[0]?.id??'',designation:st?.designation??'',userId:st?.userId??'',
+  const [f,setF]=useState({name:st?.name??'',dept:st?.dept??x.depts[0]?.id??'',designation:st?.designation??'',designationCode:(st?hrDesignationOf(s,st)?.code:undefined)??st?.designationCode??'',userId:st?.userId??'',
     defaultShift:st?.defaultShift??'G',weeklyOff:String(st?.weeklyOff??0),phone:st?.phone??'',gender:st?.gender??'M',payType:st?.payType??'monthly',monthly:toRs(st?.monthly??0),daily:toRs(st?.daily??0),
     joined:s.date,structure:st?.structure??'',pf:st?.pfApplicable===undefined?'':st.pfApplicable?'yes':'no',esic:st?.esicApplicable===false?'no':'yes',bankName:st?.bankName??'',accountNo:st?.accountNo??'',ifsc:st?.ifsc??''});
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   const linked=new Set(x.staff.filter(o=>o.id!==id&&o.userId).map(o=>o.userId));
   // F-03: only the Owner links logins, and never on their own record.
   const canLink=hrCanLink(s,uid)&&st?.userId!==uid;
+  const desigs=hrDesignationChoices(s,f.dept,f.designationCode);
+  /** Choosing a designation fills its name and (for payroll roles, new records) the default pay rule of the list. */
+  const pickDesig=(e:React.ChangeEvent<HTMLSelectElement>)=>{const row=mstByCode(s,'designations',e.target.value) as {name:string;defaultPayRule?:'monthly-structured'|'monthly-basic'|'daily'}|undefined;
+    const rule=!st&&pay&&row?.defaultPayRule?hrPayRuleFields(row.defaultPayRule):undefined;
+    setF({...f,designationCode:e.target.value,designation:row?.name??'',...(rule?{payType:rule.payType,structure:rule.structure}:{})});};
   function save(e:React.FormEvent){e.preventDefault();
-    const cmd:Record<string,unknown>={type:'HR_STAFF_SAVE',id,name:f.name,dept:f.dept,designation:f.designation,userId:f.userId||undefined,defaultShift:f.defaultShift,weeklyOff:Number(f.weeklyOff),phone:f.phone,gender:f.gender};
+    const cmd:Record<string,unknown>={type:'HR_STAFF_SAVE',id,name:f.name,dept:f.dept,designation:f.designation,...(f.designationCode?{designationCode:f.designationCode}:{}),userId:f.userId||undefined,defaultShift:f.defaultShift,weeklyOff:Number(f.weeklyOff),phone:f.phone,gender:f.gender};
     // N3 (production): a new staff member's joining date (server SaveStaff `joined`, not after the business date) — back-dated staff join that month's pay run.
     if(process.env.HCC_BUILD==='production'&&!st&&f.joined)cmd.joined=f.joined;
     const slips=st?hrLockedPayslipCount(s,st.id):0;
@@ -41,10 +47,11 @@ export function HRStaffModal({id}:{id?:string}){
       <label>Full name<input required minLength={2} maxLength={60} value={f.name} onChange={set('name')} enterKeyHint="next"/></label>
       {process.env.HCC_BUILD==='production'&&!x.depts.length&&<div className="info-note hr-warn" role="alert"><Info size={16}/><span>No departments yet. Add one first, then add staff.{' '}
         <button type="button" className="text-btn" onClick={()=>open({type:'hr-dept'})}>Add a department</button></span></div>}
-      <div className="form-row"><label>Department<select required={process.env.HCC_BUILD==='production'} value={f.dept} onChange={set('dept')}>{x.depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
-        <label>Designation<input required maxLength={60} value={f.designation} onChange={set('designation')}/></label></div>
+      <div className="form-row"><label>Department<select required={process.env.HCC_BUILD==='production'} value={f.dept} onChange={e=>setF({...f,dept:e.target.value,...(hrDesignationChoices(s,e.target.value).some(d=>d.code===f.designationCode)?{}:{designationCode:'',designation:f.designationCode?'':f.designation})})}>{x.depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+        <label>Designation{desigs.length?<select required value={f.designationCode} onChange={pickDesig}><option value="">Choose…</option>{!f.designationCode&&f.designation&&<option value="">{f.designation} (not in the list)</option>}{desigs.map(d=><option key={d.code} value={d.code}>{d.name}{d.grade?` · ${d.grade}`:''}{d.active?'':' (retired)'}</option>)}</select>
+          :<input required maxLength={60} value={f.designation} onChange={set('designation')}/>}<small><MstLink spec="designations"/></small></label></div>
       {process.env.HCC_BUILD==='production'&&!st&&<label>Joining date<input type="date" required max={s.date} value={f.joined} onChange={set('joined')}/><small>On or before the business date. Pay counts from this date.</small></label>}
-      <div className="form-row"><label>Default shift<select value={f.defaultShift} onChange={set('defaultShift')}>{HR_SHIFTS.filter(h=>h.code!=='OFF').map(h=><option key={h.code} value={h.code}>{h.label} {h.start}–{h.end}</option>)}</select></label>
+      <div className="form-row"><label>Default shift<select value={f.defaultShift} onChange={set('defaultShift')}>{hrShiftChoices(s,f.defaultShift).map(h=><option key={h.code} value={h.code}>{h.name} {h.start}–{h.end}{h.active?'':' (retired)'}</option>)}</select><small><MstLink spec="shiftPatterns"/></small></label>
         <label>Weekly off<select value={f.weeklyOff} onChange={set('weeklyOff')}>{HR_WEEKDAYS.map((d,i)=><option key={d} value={i}>{d}</option>)}</select></label></div>
       <div className="form-row"><label>Demo login{!canLink&&<small> (Owner only)</small>}<select value={f.userId} disabled={!canLink} onChange={set('userId')}><option value="">No login (non-login staff)</option>{s.users.filter(u=>!linked.has(u.id)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
         <label>Mobile (fictional, for payslips){st&&!pay&&<small> (payroll only)</small>}<input inputMode="tel" maxLength={20} value={f.phone} disabled={!!st&&!pay} onChange={set('phone')}/></label></div>
@@ -89,10 +96,11 @@ export function HRRosterModal({id,room}:{id?:string;room?:string}){
   const {s,run,closeModal,busy}=useHcc();const st=id?hrStaffById(s,id):undefined;
   if(!st||!room)return <Empty title="This roster cell is unavailable"/>;
   const cur=hrShiftFor(s,st,room);
-  const pick=(shift:HRShiftCode)=>run({type:'HR_ROSTER_SET',staffId:st.id,date:room,shift},`${st.name} · ${shortDate(room)} → ${hrShiftInfo(shift).label}`,{close:true});
-  return <><div className="modal-heading"><h2>Set shift</h2><p>{st.name} · {HR_WEEKDAYS[new Date(room+'T12:00:00Z').getUTCDay()]} {dateLabel(room)}. Currently <strong>{hrShiftInfo(cur).label}</strong>.</p></div>
-    <div className="hr-shift-pick">{HR_SHIFTS.map(h=><button key={h.code} type="button" className={'btn'+(h.code===cur?' primary':'')} aria-pressed={h.code===cur} disabled={busy} onClick={()=>pick(h.code)}>
+  const pick=(shift:HRShiftCode)=>run({type:'HR_ROSTER_SET',staffId:st.id,date:room,shift},`${st.name} · ${shortDate(room)} → ${hrShiftInfo(shift,s).label}`,{close:true});
+  return <><div className="modal-heading"><h2>Set shift</h2><p>{st.name} · {HR_WEEKDAYS[new Date(room+'T12:00:00Z').getUTCDay()]} {dateLabel(room)}. Currently <strong>{hrShiftInfo(cur,s).label}</strong>.</p></div>
+    <div className="hr-shift-pick">{[...hrShiftChoices(s,cur).map(p=>({code:p.code,label:p.name,start:p.start,end:p.end})),HR_SHIFTS.find(h=>h.code==='OFF')!].map(h=><button key={h.code} type="button" className={'btn'+(h.code===cur?' primary':'')} aria-pressed={h.code===cur} disabled={busy} onClick={()=>pick(h.code)}>
       <strong>{h.label}</strong><span>{h.start?`${h.start}–${h.end}`:'No duty'}</span></button>)}</div>
+    <p className="footnote"><MstLink spec="shiftPatterns"/></p>
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Close</button></div></>;
 }
 
@@ -102,7 +110,7 @@ export function HRAttModal({id}:{id?:string}){
   const prev=st?hrSlice(s).att[hrKey(s.date,st.id)]:undefined;
   const [status,setStatus]=useState<HRAttStatus>(prev?.status??'P');const [ot,setOt]=useState(String(prev?.otMin??0));const [note,setNote]=useState(prev?.note??'');
   if(!st)return <Empty title="Staff member unavailable"/>;
-  const shift=hrShiftInfo(hrShiftFor(s,st,s.date));
+  const shift=hrShiftInfo(hrShiftFor(s,st,s.date),s);
   return <><div className="modal-heading"><h2>Attendance · {st.name}</h2><p>Business date {dateLabel(s.date)} · rostered {shift.label}{shift.start?` ${shift.start}–${shift.end}`:''}.{prev?` Already recorded as ${HR_ATT_LABEL[prev.status]} — saving corrects it.`:''}</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_ATT_MARK',staffId:st.id,status,otMin:Number(ot)||0,note},`${st.name} · ${HR_ATT_LABEL[status]}`,{close:true});}}>
       <div className="hr-status-pick" role="radiogroup" aria-label="Attendance status">{(['P','L','H','A','OFF'] as HRAttStatus[]).map(k=>
@@ -120,15 +128,15 @@ export function HRLeaveModal({id}:{id?:string}){
   const st=hrStaffById(s,sid);
   const [f,setF]=useState({type:(st?.payType==='daily'?'LOP':'CL') as HRLeaveType,from:s.date,to:s.date,reason:'',part:'full' as 'full'|'AM'|'PM'});
   if(!st)return <Empty title="No staff record linked" body="Your demo user is not linked to a staff record."/>;
-  const types:HRLeaveType[]=st.payType==='daily'?['LOP']:HR_LEAVE_TYPES;
+  const types:HRLeaveType[]=hrLeaveChoices(s,st.payType).map(r=>r.code);
   const type=types.includes(f.type)?f.type:types[0];
   const half=f.part==='full'?undefined:f.part,to=half?f.from:f.to;
   const days=to>=f.from?hrLeaveDays(s,st,f.from,to,half):0;const bal=hrLeaveBalance(s,st.id,f.from);
-  return <><div className="modal-heading"><h2>Request leave</h2><p>Another manager approves — nobody can approve their own request. Weekly offs are not counted. At most {hrLeavePolicy(s).deptCap[st.dept]??hrLeavePolicy(s).defaultCap} {hrDeptName(s,st.dept)} staff can be off on the same day.</p></div>
+  return <><div className="modal-heading"><h2>Request leave</h2><p>Another manager approves — nobody can approve their own request. Weekly offs and paid holidays are not counted. At most {hrLeavePolicy(s).deptCap[st.dept]??hrLeavePolicy(s).defaultCap} {hrDeptName(s,st.dept)} staff can be off on the same day.</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_LEAVE_REQUEST',staffId:st.id,leaveType:type,from:f.from,to,...(half?{half}:{}),reason:f.reason},'Leave request sent for approval',{close:true});}}>
       {mgr&&!id&&<label>Staff member<select value={sid} onChange={e=>setSid(e.target.value)}>{x.staff.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>}
       {(!mgr||id)&&<p className="hr-who"><strong>{st.name}</strong> · {st.designation}</p>}
-      <label>Leave type<select value={type} onChange={e=>setF({...f,type:e.target.value as HRLeaveType})}>{types.map(t=><option key={t} value={t}>{HR_LEAVE_LABEL[t]} ({t}){hrPaidLeave(t)?'':' — unpaid'}</option>)}</select></label>
+      <label>Leave type<select value={type} onChange={e=>setF({...f,type:e.target.value as HRLeaveType})}>{types.map(t=><option key={t} value={t}>{hrLeaveName(s,t)} ({t}){hrPaidLeave(t,s)?'':' — unpaid'}</option>)}</select></label>
       <div className="hr-status-pick" role="radiogroup" aria-label="Full or half day">{([['full','Full day(s)'],['AM','First half'],['PM','Second half']] as const).map(([k,l])=>
         <label key={k} className={f.part===k?'on':''}><input type="radio" name="hr-part" checked={f.part===k} onChange={()=>setF({...f,part:k})}/>{l}</label>)}</div>
       <div className="form-row"><label>{half?'Date':'From'}<input type="date" required min={s.date} value={f.from} onChange={e=>setF({...f,from:e.target.value,to:e.target.value>f.to?e.target.value:f.to})}/></label>
@@ -144,7 +152,7 @@ export function HRLeaveDecideModal({id,room}:{id?:string;room?:string}){
   const {s,run,closeModal,busy}=useHcc();const l=hrSlice(s).leaves.find(x=>x.id===id);const [note,setNote]=useState('');
   if(!l)return <Empty title="Leave request unavailable"/>;
   const approve=room!=='reject',st=hrStaffById(s,l.staffId);
-  return <><div className="modal-heading"><h2>{approve?'Approve leave':'Reject leave'}</h2><p>{l.id} · {st?.name} · {HR_LEAVE_LABEL[l.type]}{l.half?` (${l.half==='AM'?'first':'second'} half)`:''} · {shortDate(l.from)}{l.to!==l.from?` – ${shortDate(l.to)}`:''} · {l.days} day{l.days===1?'':'s'} · “{l.reason}” · requested by {hrUserName(s,l.requestedBy)}</p></div>
+  return <><div className="modal-heading"><h2>{approve?'Approve leave':'Reject leave'}</h2><p>{l.id} · {st?.name} · {hrLeaveName(s,l.type)}{l.half?` (${l.half==='AM'?'first':'second'} half)`:''} · {shortDate(l.from)}{l.to!==l.from?` – ${shortDate(l.to)}`:''} · {l.days} day{l.days===1?'':'s'} · “{l.reason}” · requested by {hrUserName(s,l.requestedBy)}</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_LEAVE_DECIDE',id:l.id,approve,note},approve?'Leave approved':'Leave rejected',{close:true});}}>
       <label>{approve?'Note (optional)':'Reason for rejecting'}<input required={!approve} maxLength={120} value={note} onChange={e=>setNote(e.target.value)} enterKeyHint="done"/></label>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className={'btn '+(approve?'primary':'danger')} disabled={busy}>{approve?'Approve':'Reject'}</button></div>

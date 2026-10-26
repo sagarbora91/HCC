@@ -18,16 +18,17 @@ import {
   money,addDays,isDayClosed,cfgModuleOn,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
   hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrFnfSettled,HR_FNF_OWNER_ABOVE,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
-  HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_CALCULATED,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
+  HR_ATT_LABEL,hrLeaveName,hrHolidayOn,hrLeaveTypeRows,hrHolidays,hrHolidayFy,hrShiftPatterns,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_CALCULATED,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,
 } from '../../services/mock';
 import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
+import {MstLink} from '../masters/MasterList';
 import {hrUserName} from './modals';
 
 type Tab='people'|'roster'|'attendance'|'leave'|'payroll'|'advances'|'fnf'|'settings';
 const TAB_LABEL:Record<Tab,string>={people:'Staff',roster:'Roster',attendance:'Attendance',leave:'Leave',payroll:'Payroll',advances:'Advances',fnf:'Full and final',settings:'Statutory rates'};
 const day=(d:string)=>HR_WEEKDAYS[new Date(d+'T12:00:00Z').getUTCDay()];
 /** "CL · ½ (first half)" style label. */
-export const hrLeaveKind=(l:HRLeave)=>HR_LEAVE_LABEL[l.type]+(l.half?` · ½ day (${l.half==='AM'?'first':'second'} half)`:'');
+export const hrLeaveKind=(l:HRLeave,s:ReturnType<typeof useHcc>['s'])=>hrLeaveName(s,l.type)+(l.half?` · ½ day (${l.half==='AM'?'first':'second'} half)`:'');
 
 export function HrDesk({phone=false}:{phone?:boolean}){
   const {s,uid}=useHcc();const mgr=hrCanManage(s,uid),pay=hrCanPay(s,uid),payOn=cfgModuleOn(s,'payroll');
@@ -57,7 +58,7 @@ function People({phone}:{phone:boolean}){
   if(phone)return <>
     <div className="hr-kpis"><KpiCard label="Active staff" value={active.length}/><KpiCard label="Present today" value={present} sub={`${onLeave} on leave`}/></div>
     <ChipFilter label="Department" value={dept} onChange={setDept} options={deptOpts}/>
-    {list.map(st=><ListCard key={st.id} title={st.name} sub={`${st.designation} · ${hrDeptName(s,st.dept)}`} meta={`${hrShiftInfo(st.defaultShift).label} · off ${HR_WEEKDAYS[st.weeklyOff]}${st.userId?' · login '+hrUserName(s,st.userId):' · no login'}${pay?' · '+payOf(st):''}`}
+    {list.map(st=><ListCard key={st.id} title={st.name} sub={`${st.designation} · ${hrDeptName(s,st.dept)}`} meta={`${hrShiftInfo(st.defaultShift,s).label} · off ${HR_WEEKDAYS[st.weeklyOff]}${st.userId?' · login '+hrUserName(s,st.userId):' · no login'}${pay?' · '+payOf(st):''}`}
       right={st.active?undefined:<Pill>Exited</Pill>} onClick={mgr||pay?()=>open({type:'hr-staff',id:st.id}):undefined}/>)}
     {(mgr||pay)&&<StickyFooter>{process.env.HCC_BUILD==='production'&&<button className="btn" onClick={()=>open({type:'hr-dept'})}><Settings2 size={18}/> Departments</button>}<button className="btn primary" onClick={()=>open({type:'hr-staff'})}><UserPlus size={18}/> Add staff member</button></StickyFooter>}</>;
   return <>
@@ -69,10 +70,10 @@ function People({phone}:{phone:boolean}){
         :<button className="btn primary" onClick={()=>open({type:'hr-staff'})}><UserPlus size={16}/> Add staff member</button>)}</div>
       <div className="table-wrap"><table><thead><tr><th>Staff member</th><th>Department</th><th>Demo login</th><th>Default shift · weekly off</th>{pay&&<th className="number">Pay</th>}<th>Status</th><th></th></tr></thead><tbody>
         {list.map(st=><tr key={st.id}><td><strong>{st.name}</strong><small>{st.id} · {st.designation}</small></td><td>{hrDeptName(s,st.dept)}</td><td>{st.userId?hrUserName(s,st.userId):<span className="muted">No login</span>}</td>
-          <td>{hrShiftInfo(st.defaultShift).label} {hrShiftInfo(st.defaultShift).start}–{hrShiftInfo(st.defaultShift).end} · {HR_WEEKDAYS[st.weeklyOff]}</td>
+          <td>{hrShiftInfo(st.defaultShift,s).label} {hrShiftInfo(st.defaultShift,s).start}–{hrShiftInfo(st.defaultShift,s).end} · {HR_WEEKDAYS[st.weeklyOff]}</td>
           {pay&&<td className="number">{payOf(st)}</td>}<td>{st.active?<Pill tone="green">Active</Pill>:<Pill>Exited {st.exitedOn&&shortDate(st.exitedOn)}</Pill>}</td>
           <td className="hr-actions">{(mgr||pay)&&<button className="text-btn" onClick={()=>open({type:'hr-staff',id:st.id})}>Edit</button>}{mgr&&<button className="text-btn" disabled={busy} onClick={()=>toggle(st)}>{st.active?'Exit':'Reactivate'}</button>}</td></tr>)}
-      </tbody></table></div></section></>;
+      </tbody></table></div><p className="footnote padded"><MstLink spec="designations"/> <MstLink spec="shiftPatterns"/></p></section></>;
 }
 
 // ── Roster ──
@@ -82,27 +83,27 @@ function Roster({phone}:{phone:boolean}){
   const [pick,setPick]=useState(week.includes(s.date)?s.date:week[0]);const pd=week.includes(pick)?pick:week[0];
   const nav=<div className="inline hr-weeknav"><button className="btn" aria-label="Previous week" onClick={()=>setMon(addDays(mon,-7))}><ChevronLeft size={16}/></button><strong>{shortDate(week[0])} – {shortDate(week[6])}</strong><button className="btn" aria-label="Next week" onClick={()=>setMon(addDays(mon,7))}><ChevronRight size={16}/></button></div>;
   const copy=mgr&&addDays(mon,13)>=s.date?<button className="btn" disabled={busy} onClick={()=>run({type:'HR_ROSTER_COPY',from:mon},'Roster copied to the following week')}><Copy size={16}/> Copy to next week</button>:null;
-  const cell=(st:HRStaff,d:string)=>{const c=hrShiftFor(s,st,d),h=hrShiftInfo(c),over=!!hrSlice(s).roster[hrKey(d,st.id)],edit=mgr&&d>=s.date;
+  const cell=(st:HRStaff,d:string)=>{const c=hrShiftFor(s,st,d),h=hrShiftInfo(c,s),over=!!hrSlice(s).roster[hrKey(d,st.id)],edit=mgr&&d>=s.date;
     const label=<><b>{c==='OFF'?'Off':h.label}</b>{c!=='OFF'&&<small>{h.start}</small>}</>;
     return edit?<button className={'hr-cell hr-s-'+c+(over?' hr-over':'')} aria-label={`${st.name} ${day(d)} ${shortDate(d)}: ${h.label}. Change`} onClick={()=>open({type:'hr-roster',id:st.id,room:d})}>{label}</button>
       :<span className={'hr-cell hr-s-'+c+(over?' hr-over':'')}>{label}</span>;};
   if(phone)return <>{nav}
     <ChipFilter label="Day" value={pd} onChange={setPick} options={week.map(d=>({id:d,label:`${day(d)} ${d.slice(8)}`}))}/>
-    {staff.map(st=>{const c=hrShiftFor(s,st,pd),h=hrShiftInfo(c);return <ListCard key={st.id} title={st.name} sub={c==='OFF'?'Weekly off':`${h.label} ${h.start}–${h.end}`} meta={hrDeptName(s,st.dept)}
+    {staff.map(st=>{const c=hrShiftFor(s,st,pd),h=hrShiftInfo(c,s);return <ListCard key={st.id} title={st.name} sub={c==='OFF'?'Weekly off':`${h.label} ${h.start}–${h.end}`} meta={hrDeptName(s,st.dept)}
       right={hrSlice(s).roster[hrKey(pd,st.id)]?<Pill tone="blue">Changed</Pill>:undefined} onClick={mgr&&pd>=s.date?()=>open({type:'hr-roster',id:st.id,room:pd}):undefined}/>;})}
     {copy&&<StickyFooter>{copy}</StickyFooter>}</>;
   return <section className="card"><div className="section-title"><div><h2>Weekly roster</h2><p>{mgr?'Select a cell to change the shift. Past days are history and cannot change.':'Read-only view.'} Outlined cells differ from the default pattern.</p></div><div className="inline">{nav}{copy}</div></div>
     <div className="table-wrap"><table className="hr-roster"><thead><tr><th>Staff</th>{week.map(d=><th key={d} className={d===s.date?'hr-th-today':''}>{day(d)} {d.slice(8)}</th>)}</tr></thead><tbody>
       {staff.map(st=><tr key={st.id}><td><strong>{st.name}</strong><small>{hrDeptName(s,st.dept)}</small></td>{week.map(d=><td key={d}>{cell(st,d)}</td>)}</tr>)}</tbody></table></div>
-    <p className="footnote padded">Shifts: Morning 07:00–15:00 · Evening 15:00–23:00 · Night 23:00–07:00 · General 09:00–18:00. Late = check-in after start + 15 min.</p></section>;
+    <p className="footnote padded">Shifts: {hrShiftPatterns(s,{active:true}).map(p=>`${p.name} ${p.start}–${p.end}`).join(' · ')}. Late = check-in after start + 15 min (night shifts are never late). <MstLink spec="shiftPatterns"/></p></section>;
 }
 
 // ── Attendance ──
 function Attendance({phone}:{phone:boolean}){
   const {s,uid,open}=useHcc();const mgr=hrCanManage(s,uid),closed=isDayClosed(s);const [view,setView]=useState<'today'|'month'>('today');
   const staff=hrSlice(s).staff.filter(t=>t.active),ym=s.date.slice(0,7);
-  const row=(st:HRStaff)=>{const x=hrDayStatus(s,st,s.date),sh=hrShiftInfo(hrShiftFor(s,st,s.date));
-    const status=x.kind==='att'?<Pill tone={hrAttTone(x.att!.status)}>{HR_ATT_LABEL[x.att!.status]}</Pill>:x.kind==='leave'?<Pill tone="blue">On leave · {x.leave!.type}</Pill>:x.kind==='off'?<Pill>Weekly off</Pill>:<Pill tone="orange">Not marked</Pill>;
+  const row=(st:HRStaff)=>{const x=hrDayStatus(s,st,s.date),sh=hrShiftInfo(hrShiftFor(s,st,s.date),s);
+    const status=x.kind==='att'?<Pill tone={hrAttTone(x.att!.status)}>{HR_ATT_LABEL[x.att!.status]}</Pill>:x.kind==='leave'?<Pill tone="blue">On leave · {x.leave!.type}</Pill>:x.kind==='off'?<Pill>Weekly off</Pill>:x.kind==='holiday'?<Pill tone="green">Paid holiday{hrHolidayOn(s,s.date)?` · ${hrHolidayOn(s,s.date)!.name}`:''}</Pill>:<Pill tone="orange">Not marked</Pill>;
     const can=mgr&&!closed&&x.kind!=='leave'&&st.userId!==uid;return {x,sh,status,can};};// F-10: own attendance via self check-in only
   const toggle=<ChipFilter label="Attendance view" value={view} onChange={setView} options={[{id:'today',label:`Today · ${shortDate(s.date)}`},{id:'month',label:`${hrMonthLabel(ym)} to date`}]}/>;
   if(view==='month'){
@@ -137,17 +138,17 @@ function LeaveRequests({phone}:{phone:boolean}){
     {pending.length?pending.map(l=><div key={l.id} className="hr-m-leave"><ListCard title={`${name(l.staffId)} · ${l.type}${l.half?' ½':''} ${l.days}d`} sub={`${dates(l)} · ${l.reason}`} meta={`Requested by ${hrUserName(s,l.requestedBy)}${why(l)?' · '+why(l):''}`}/>
       {decidable.has(l.id)&&<div className="hr-m-actions">{decide(l.id)}</div>}</div>):<p className="hr-m-note">No pending requests.</p>}
     <h2 className="m-group">HISTORY</h2>
-    {history.map(l=><ListCard key={l.id} title={`${name(l.staffId)} · ${hrLeaveKind(l)}`} sub={`${dates(l)} · ${l.days} day${l.days===1?'':'s'}`} meta={l.decidedBy?`${l.status} by ${hrUserName(s,l.decidedBy)}${l.note?' · '+l.note:''}`:undefined} right={<Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill>}
+    {history.map(l=><ListCard key={l.id} title={`${name(l.staffId)} · ${hrLeaveKind(l,s)}`} sub={`${dates(l)} · ${l.days} day${l.days===1?'':'s'}`} meta={l.decidedBy?`${l.status} by ${hrUserName(s,l.decidedBy)}${l.note?' · '+l.note:''}`:undefined} right={<Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill>}
       onClick={cancelable(l)?()=>{if(window.confirm('Cancel this approved leave?'))run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave cancelled');}:undefined}/>)}
     {mgr&&<StickyFooter><button className="btn primary" onClick={()=>open({type:'hr-leave'})}><Plus size={18}/> Leave for a staff member</button></StickyFooter>}</>;
   return <>
     <section className="card"><div className="section-title"><div><h2>Awaiting decision</h2><p>No self-approval: the requester and the person on leave cannot decide.</p></div>{mgr&&<button className="btn primary" onClick={()=>open({type:'hr-leave'})}><Plus size={16}/> Leave for a staff member</button>}</div>
       {pending.length?<div className="table-wrap"><table><thead><tr><th>Staff</th><th>Leave</th><th>Dates</th><th>Requested by</th><th></th></tr></thead><tbody>{pending.map(l=><tr key={l.id}>
-        <td><strong>{name(l.staffId)}</strong><small>{l.id}</small></td><td>{hrLeaveKind(l)}<small>{l.reason}</small></td><td>{dates(l)}<small>{l.days} working day{l.days===1?'':'s'}</small></td><td>{hrUserName(s,l.requestedBy)}<small>{l.requestedAt.slice(0,10)} {l.requestedAt.slice(11)}</small></td>
+        <td><strong>{name(l.staffId)}</strong><small>{l.id}</small></td><td>{hrLeaveKind(l,s)}<small>{l.reason}</small></td><td>{dates(l)}<small>{l.days} working day{l.days===1?'':'s'}</small></td><td>{hrUserName(s,l.requestedBy)}<small>{l.requestedAt.slice(0,10)} {l.requestedAt.slice(11)}</small></td>
         <td className="hr-actions">{decidable.has(l.id)?decide(l.id):<span className="muted">{why(l)}</span>}</td></tr>)}</tbody></table></div>:<Empty title="No pending leave" body="New requests from staff appear here."/>}</section>
     <section className="card"><div className="section-title"><h2>Leave history</h2></div>
       <div className="table-wrap"><table><thead><tr><th>Staff</th><th>Leave</th><th>Dates</th><th>Status</th><th>Decided by</th><th></th></tr></thead><tbody>{history.map(l=><tr key={l.id}>
-        <td><strong>{name(l.staffId)}</strong><small>{l.id}</small></td><td>{hrLeaveKind(l)}<small>{l.reason}</small></td><td>{dates(l)}<small>{l.days} day{l.days===1?'':'s'}</small></td><td><Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill></td>
+        <td><strong>{name(l.staffId)}</strong><small>{l.id}</small></td><td>{hrLeaveKind(l,s)}<small>{l.reason}</small></td><td>{dates(l)}<small>{l.days} day{l.days===1?'':'s'}</small></td><td><Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill></td>
         <td>{l.decidedBy?hrUserName(s,l.decidedBy):'—'}{l.note&&<small>{l.note}</small>}</td><td>{cancelable(l)&&<button className="text-btn" disabled={busy} onClick={()=>run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave cancelled')}>Cancel leave</button>}</td></tr>)}</tbody></table></div></section></>;
 }
 
@@ -163,7 +164,7 @@ function LeaveCalendar({phone}:{phone:boolean}){
   const {s}=useHcc();const [ym,setYm]=useState(s.date.slice(0,7));const cal=hrLeaveCalendar(s,ym);
   const first=(n:string)=>n.split(' ')[0];
   const nav=<div className="inline hr-weeknav"><button className="btn" aria-label="Previous month" onClick={()=>setYm(hrPrevMonth(ym))}><ChevronLeft size={16}/></button><strong>{hrMonthLabel(ym)}</strong><button className="btn" aria-label="Next month" onClick={()=>setYm(hrNextMonth(ym))}><ChevronRight size={16}/></button></div>;
-  const chip=(i:typeof cal[number]['items'][number])=><span key={i.leave.id} className={'hr-cal-chip'+(i.leave.status==='Pending'?' pending':'')} title={`${i.staff.name} · ${hrLeaveKind(i.leave)} · ${i.leave.status}`}>
+  const chip=(i:typeof cal[number]['items'][number])=><span key={i.leave.id} className={'hr-cal-chip'+(i.leave.status==='Pending'?' pending':'')} title={`${i.staff.name} · ${hrLeaveKind(i.leave,s)} · ${i.leave.status}`}>
     {first(i.staff.name)} · {i.leave.type}{i.leave.half?' ½':''}{i.leave.status==='Pending'?' (pending)':''}</span>;
   const days=cal.filter(d=>d.items.length);
   if(phone)return <>{nav}
@@ -180,14 +181,19 @@ function LeaveCalendar({phone}:{phone:boolean}){
 
 function LeavePolicy({phone}:{phone:boolean}){
   const {s,uid,open}=useHcc();const p=hrLeavePolicy(s),edit=hrCanRates(s,uid),depts=hrSlice(s).depts;
-  const rows:[string,string][]=[['Casual leave',`${p.ent.CL} days / financial year`],['Sick leave',`${p.ent.SL} days / financial year`],['Earned leave',`${p.ent.EL} days / financial year`],
-    ['Compensatory off · maternity / paternity','Paid, no yearly balance'],['Leave without pay','Unpaid; daily-wage staff take this type only'],['Half-day leave','First or second half = 0.5 day'],
+  // MA-6: one row per active leave type of the Leave types list (quota, carry-forward, encashment), then the holiday calendar.
+  const typeRow=(r:ReturnType<typeof hrLeaveTypeRows>[number]):[string,string]=>[`${r.name} (${r.code})`,r.paid===false?'Unpaid; daily-wage staff take this type only':
+    `${Number.isFinite(r.yearlyQuota)?`${r.yearlyQuota} days / financial year`:'Paid, no yearly balance'}${r.carryForward?` · carry forward up to ${r.carryForward}`:''}${r.encashment?' · paid out at full and final':''}`];
+  const holidays=hrHolidays(s,{active:true}).filter(h=>h.code>=s.date).slice(0,6);
+  const rows:[string,string][]=[...hrLeaveTypeRows(s,{active:true}).map(typeRow),['Half-day leave','First or second half = 0.5 day'],
+    ...holidays.map(h=>[`${h.kind==='paid'?'Paid holiday':'Restricted holiday'} · ${shortDate(h.code)}`,`${h.name} · ${hrHolidayFy(h.code)}${h.kind==='paid'?' (not counted as leave)':''}`] as [string,string]),
     ['Weekly offs','One per staff member (Staff tab); skipped inside leave dates'],
     ...depts.map(d=>[`Max off per day · ${d.name}`,`${hrDeptCap(s,d.id)}${p.deptCap[d.id]===undefined?' (default)':''}`] as [string,string])];
   const btn=edit?<button className="btn primary" onClick={()=>open({type:'hr-leave-policy'})}><Settings2 size={16}/> Edit leave policy</button>:null;
   return <section className={phone?'':'card'}><div className={phone?'':'section-title'}><div><h2>Leave policy</h2><p>From SCC: entitlements per April–March year, half-days, weekly offs and a daily limit on staff off (per department here).</p></div>{!phone&&btn}</div>
     <div className={'summary-list'+(phone?' hr-m-rates':' padded')}>{rows.map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
     <div className="info-note hr-warn"><AlertTriangle size={16}/><span>{HR_NOT_PORTED}</span></div>
+    <p className="footnote padded"><MstLink spec="leaveTypes"/> <MstLink spec="holidays"/></p>
     {!edit&&<p className="footnote padded">Only the Owner changes the leave policy.</p>}{phone&&btn&&<StickyFooter>{btn}</StickyFooter>}</section>;
 }
 
