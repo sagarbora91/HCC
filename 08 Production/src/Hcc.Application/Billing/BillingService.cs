@@ -30,7 +30,8 @@ namespace Hcc.Application.Billing;
 /// </summary>
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
-    ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null)
+    ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null,
+    IRoomNightBundle? bundles = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -61,7 +62,10 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
 
             var rate = night.Rate.EnsureFieldRange();
             if (rate < Paise.Zero) throw HccException.Validation("The nightly rate cannot be negative.");
-            var g = await gst.RoomNightAsync(tx, caller.PropertyId, req.ServiceDate, rate, ct2).ConfigureAwait(false); // per unit per night, actual price
+            // Per unit per night on the actual price; MA-11: a meal plan bundled with the room takes the slab of room + meals (composite supply,
+            // illustrative - CA to confirm). The tax is still on the room amount; the plan line (PostMealPlanNights) uses the same slab.
+            var bundled = bundles is null ? Paise.Zero : await bundles.BundledAddOnAsync(tx, f.FolioId, req.ServiceDate, ct2).ConfigureAwait(false);
+            var g = await gst.RoomNightAsync(tx, caller.PropertyId, req.ServiceDate, rate + bundled, ct2).ConfigureAwait(false);
             var line = new NewCharge(f.FolioId, ChargeKind.Room, req.ServiceDate, FolioStatement.RoomNightLabel(req.ServiceDate), rate, g.Bps,
                 GstMath.LineTax(rate, g.Bps), null, null, caller.PrincipalId, Now);
             var id = await store.InsertChargeAsync(tx, line, ct2).ConfigureAwait(false);
