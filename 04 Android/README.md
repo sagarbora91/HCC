@@ -41,6 +41,28 @@ APK: `04 Android\android\app\build\outputs\apk\productionDebug\app-productionDeb
 - **Requests** go through Capacitor's built-in `CapacitorHttp` plugin (native, honours the security config, no CORS needed on the server); sign-in uses `returnToken` + `Authorization: Bearer` (`03 Prototype\src\clients\sync\auth.ts`, `apk.ts`).
 - **First start:** server address screen (`https://…`, tested with `/api/v1/system/discovery` + `/system/health`, saved as `hcc-server-url`; later: Master configuration › Server and this device). Then an Owner / Tech admin signs in with the password and registers the device; staff then pick their name and type their PIN (DEC-062).
 - **Session token** is kept in Capacitor Preferences (`@capacitor/preferences`, app-private SharedPreferences) so staff stay signed in after Android closes the app, until the server session expires; it is dropped on sign-out, on a 401 and on a server-address change (which also forgets the device registration). Only if the plugin is missing does it fall back to sessionStorage.
+- **Stored secrets (security review 2026-10-26, F-M07 / F-H01 / F-L09):** the session token, the device token and the read cache's resume key are sealed with AES-256-GCM before they reach Preferences, using a non-extractable WebCrypto key kept in the web view's IndexedDB (`hcc-keys`). The offline read cache is encrypted and shown only to a signed-in user (or after re-entering the PIN / password while the server is unreachable); it is deleted on sign-out and on idle / absolute session expiry. The staff roster on the tablet holds display names and opaque ids only. Limit: script running inside the app can still use the wrapping key; Android Keystore-backed storage (EncryptedSharedPreferences) needs a native plugin and is not added. Hand out only the **release** APK below, which is not debuggable and excluded from backups, so these files cannot be pulled with `adb run-as` / `adb backup`.
+
+## Production release APK — security review F-H02
+Build type `productionRelease` (`./gradlew assembleProductionRelease`): the APK that goes to the hotel's tablets. `productionDebug` stays for development only.
+- app id **`in.hcc.server`** (installs next to the prototype and the debug server build), name "HCC Server", same web build, hotel CA and HTTPS-only network config as `productionDebug` (`src/productionDebug/res`, `assets`);
+- **not debuggable** (no `adb run-as`, no `chrome://inspect`: Capacitor turns WebView debugging off in non-debuggable builds and `MainActivity` enforces it);
+- **`allowBackup="false"`** plus `hcc_data_extraction_rules.xml` / `hcc_full_backup_rules.xml` excluding every domain (no cloud backup, no device-to-device transfer) — `src/productionRelease/`;
+- **release-signed** with the hotel's own keystore. Gradle reads the signing values from environment variables or from `04 Android\android\keystore.properties` (git-ignored); the keystore path must be **absolute and outside the repository** — the build refuses a missing, unsigned or in-repo keystore (`checkHccReleaseSigning`). Never commit a keystore (`*.jks`, `*.keystore`, `*.p12` are git-ignored).
+- R8 / minify is off for now (Capacitor plugins use reflection; turn it on only after a device test with keep rules).
+
+**Owner: create the release keystore (once) and keep it safe** — on the PC that builds the APK, in a folder outside the repo (e.g. `D:\HCC-Keys`), with JDK 21's `keytool`:
+```powershell
+& "C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot\bin\keytool.exe" -genkeypair -keystore D:\HCC-Keys\hcc-release.jks -storetype PKCS12 -alias hcc -keyalg RSA -keysize 3072 -validity 10000 -dname "CN=Hotel Control Centre, O=<hotel name>, C=IN"
+```
+Back up `hcc-release.jks` and its password (e.g. USB in the safe + password with the owner): every later APK update must be signed with the **same** key, or tablets must uninstall (losing local data) before installing. Then build:
+```powershell
+$env:HCC_RELEASE_STORE_FILE="D:\HCC-Keys\hcc-release.jks"; $env:HCC_RELEASE_STORE_PASSWORD="<password>"; $env:HCC_RELEASE_KEY_ALIAS="hcc"   # HCC_RELEASE_KEY_PASSWORD if it differs
+cd "E:\Projects\HCC\Hotel Control Centre\03 Prototype"; npm run build; npm run build:production
+cd "..\04 Android"; node scripts\copy-web.mjs; npx cap sync android
+node scripts\build-production.mjs --release --ca "<path>\HCC-Hotel-CA.cer" --assemble      # checks the config, builds, verifies the APK
+```
+(or put `storeFile=D:/HCC-Keys/hcc-release.jks`, `storePassword=…`, `keyAlias=hcc`, `keyPassword=…` in `android\keystore.properties` instead of the variables). APK: `04 Android\android\app\build\outputs\apk\productionRelease\app-productionRelease.apk`. The script runs `aapt` (ANDROID_HOME) and fails unless the APK is `in.hcc.server`, not debuggable, `allowBackup=false` and cleartext-free; re-check any APK with `node scripts\build-production.mjs --verify <apk>`, and the signer with `apksigner verify --print-certs <apk>`. On a tablet, `adb shell run-as in.hcc.server` must fail. Raise `versionCode` for every APK you hand out.
 
 **Owner: export the hotel CA certificate (once, on the server PC)** — `deployment\windows\New-HccCertificate.ps1` (P7, INSTALL.md §4) creates the CA and the server certificate and writes `deployment\windows\certs\HCC-Hotel-CA.cer` (public part only; the CA key stays in the PC's store, or in the safe as `.pfx` with `-ExportCaPfx` — never give the `.pfx` to the app build). The server certificate must name the address the tablets use (`-IpAddress 192.168.1.20` and/or `-DnsName hcc-server.local`). Hand `HCC-Hotel-CA.cer` (USB/e-mail) to whoever builds the APK, compare the SHA-256 fingerprint the build prints with `certutil -hashfile HCC-Hotel-CA.cer SHA256` on the server PC, and rebuild the APK if the CA is ever replaced. A hotel that buys a certificate from a public CA can pass that CA's root instead.
 
@@ -51,7 +73,7 @@ APK: `04 Android\android\app\build\outputs\apk\productionDebug\app-productionDeb
 - Galaxy Tab S7 (SM-T875, Android 13): Settings → About tablet → tap Build number 7× → Developer options → USB debugging, then `adb install -r …apk`; or copy the APK to the tablet and allow "Install unknown apps" for the file manager.
 
 ## What the app adds over the browser build (`03 Prototype\src\app\native.ts`)
-Android back button (sheet → wizard step → previous page → landing → "Exit?"), maroon status bar, CSV export (saved to `Documents/HCC/…` + share sheet), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
+Android back button (sheet → wizard step → previous page → landing → "Exit?"), maroon status bar, CSV export (saved to `Documents/HCC/…` + share sheet; the FileProvider shares only `Documents/HCC/` and the app cache, F-L10), printing through Android's print service (`@capgo/capacitor-printer`), falling back to sharing the printable page as an HTML file.
 
 ## Known limits
 Debug build only · demo data lives per device (no sync) · no backend · Auto display = desktop on tablet-sized native screens and phone layout on phones; Display toggle allows an explicit choice.

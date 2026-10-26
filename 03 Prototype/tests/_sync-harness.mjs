@@ -92,9 +92,13 @@ export function fakeServer(routes={}){
   return srv;
 }
 
+/** The read cache's resume key lives outside the cache (F-H01): one key store per cache = one device across restarts. */
+const keyStores=new WeakMap();
+export const keyStoreFor=(S,cache)=>{let k=keyStores.get(cache);if(!k){k=S.memoryTokenStore();keyStores.set(cache,k);}return k;};
 /** Creates the runtime on the fake server (registry AREAS unless `areas` is given), boots it and waits for the loads. */
-export async function startRuntime(S,srv,{areas,cache,now,focusRefreshMs,boot=true}={}){
-  const rt=S.createSyncRuntime({areas:areas??S.AREAS,fetch:srv.fetch,cache:cache??S.createMemoryCache(),now,focusRefreshMs,commandRetries:0});
+export async function startRuntime(S,srv,{areas,cache,now,focusRefreshMs,boot=true,keyStore,auth}={}){
+  const c=cache??S.createMemoryCache();
+  const rt=S.createSyncRuntime({areas:areas??S.AREAS,fetch:srv.fetch,cache:c,keyStore:keyStore??keyStoreFor(S,c),cacheIterations:1000,auth,now,focusRefreshMs,commandRetries:0});
   if(boot)await rt.boot();
   return rt;
 }

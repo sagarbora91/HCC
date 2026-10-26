@@ -194,8 +194,10 @@ export async function register({test,assert,M}){
     assert.deepEqual(roCalls,['GET /system/health']);
   });
   test('[W4-0] Read cache: a restart while unreachable shows the cached slices with their "as of" time; nothing is queued; reconnect reloads',()=>{
-    const d=cache.dump();assert.equal(d.meta.format,'hcc-server-cache-1');assert.equal(d.meta.me.userId,1);
-    assert.deepEqual(Object.keys(d.slices).sort(),['clock','date','tasks']);assert.ok(d.slices.tasks.asOf);
+    const d=cache.dump();const l=JSON.parse(d.lock);assert.equal(l.format,'hcc-server-cache-2');assert.equal(l.userId,1);
+    assert.deepEqual(Object.keys(d).sort(),['lock','meta','s:clock','s:date','s:tasks']);
+    for(const [k,v] of Object.entries(d))if(k!=='lock')assert.match(v,/^hccs1\./,k+' is sealed');
+    const {lock:_lock,...sealedOnly}=d;assert.ok(!JSON.stringify(sealedOnly).includes('Test Owner'),'no plaintext slice or user data in the cache');
     assert.equal(offline.status,'ready');assert.equal(offline.readOnly,true);assert.equal(offline.fromCache,true);
     assert.deepEqual(offline.state.tasks.map(x=>x.id),['7','8']);assert.equal(offline.asOf,cachedAsOf);assert.equal(offline.state.users[0].id,'1');
     assert.equal(back.readOnly,false);assert.equal(back.fromCache,false);

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Security review F-H02: production (server) release APK. No app data in Android backups or device-to-device transfer
+     (allowBackup off, plus data-extraction / full-backup rules excluding every domain), HTTPS only with the hotel CA
+     (network_security_config from src/productionDebug/res). Not debuggable (build type productionRelease). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/hcc_full_backup_rules"
+        android:dataExtractionRules="@xml/hcc_data_extraction_rules"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false"
+        tools:replace="android:allowBackup"
+        tools:targetApi="31" />
+</manifest>

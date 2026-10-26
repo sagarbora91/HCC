@@ -2,15 +2,17 @@
 // Imported by app/App.tsx only inside `process.env.HCC_BUILD==='production'` branches (tree-shaken out of the prototype).
 // W4-12 (APK): server address setup before the first boot, token sign-in with staff pick + PIN on a registered device
 // (DEC-062: password for Owner / Accountant / Tech admin), device registration by an admin, idle sign-out, Settings panel.
+// Security review F-H01: server unreachable + encrypted offline copy without a valid local session → OfflineUnlock (PIN /
+// password of the user it belongs to); the copy is wiped on sign-out and on idle / absolute expiry (checkExpiry).
 import React,{useEffect,useState,useSyncExternalStore} from 'react';
-import {Hotel,LogIn,RefreshCw,ShieldCheck,Server,Tablet,UserRound,KeyRound} from 'lucide-react';
+import {Hotel,LogIn,RefreshCw,ShieldCheck,Server,Tablet,UserRound,KeyRound,Lock} from 'lucide-react';
 import type {State,Command} from '../../services/mock';
 import {ReadOnlyBanner} from '../react';
 import {getSyncRuntime,getAuth,tokenMode,authReady,needsServerSetup,serverBaseUrl,probeFetch} from './instance';
 import type {RunResult,SyncSnapshot} from './runtime';
 import {utcToClock} from './map';
 import {isNative} from '../../app/native';
-import {probeServer,saveServerUrl,deviceRegistered,deviceLabel,deviceStaff,rememberStaff,registerThisDevice,refreshDeviceStaff,forgetDevice,type ProbeResult} from './apk';
+import {probeServer,saveServerUrl,deviceRegistered,deviceLabel,deviceStaff,rememberStaff,resolveStaffLogin,registerThisDevice,refreshDeviceStaff,forgetDevice,type ProbeResult} from './apk';
 
 /** What the app shell needs from the server side (App.tsx AppShell `server` prop). */
 export type ServerBinding={state:State;uid:string;run:(cmd:Command)=>Promise<RunResult>;signOut:()=>void};
@@ -40,14 +42,39 @@ function ConnectedApp({render}:{render:(b:ServerBinding)=>React.ReactNode}){
     void authReady().then(()=>{if(dead)return;void rt.boot();detach=typeof window!=='undefined'?rt.attachWindow(window):undefined;});
     return ()=>{dead=true;detach?.();};},[rt]);
   // Idle / absolute expiry (token mode): once this device's requests can no longer keep the server session alive, sign out here too.
-  useEffect(()=>{const a=getAuth();if(!tokenMode(a))return;
-    const id=setInterval(()=>{if(rt.get().status==='ready'&&a.expired()){setNote('You were signed out after a period without activity. Sign in again.');void rt.signOut();}},IDLE_CHECK_MS);
+  // Both modes: the read cache's own expiry (lock record) signs out and wipes the offline copy, also while offline.
+  useEffect(()=>{const a=getAuth();
+    const id=setInterval(()=>{if(rt.checkExpiry())return;
+      if(tokenMode(a)&&rt.get().status==='ready'&&a.expired()){setNote('You were signed out after a period without activity. Sign in again.');void rt.signOut();}},IDLE_CHECK_MS);
     return ()=>clearInterval(id);},[rt]);
   if(snap.status==='booting')return <div className="boot-loading" role="status" aria-live="polite"><Hotel size={28} aria-hidden="true"/><strong>Connecting to the hotel server…</strong></div>;
+  if(snap.status==='locked'&&snap.locked)return <OfflineUnlock who={snap.locked.displayName} kind={snap.locked.credentialKind}/>;
   if(snap.status==='signed-out'||!snap.me)return <ServerSignIn message={snap.signInMessage??note}/>;
   if(isNative()&&!skipOffer&&!deviceRegistered()&&snap.me.permIds.includes(ADMIN_PERM))
     return <DeviceSetup onDone={()=>{try{sessionStorage.setItem(OFFER_SKIPPED,'1');}catch{/* ignore */}setSkipOffer(true);}}/>;
   return <>{render({state:snap.state,uid:snap.me.uid,run:cmd=>rt.run(cmd),signOut:()=>{setNote(undefined);void rt.signOut();}})}</>;
+}
+
+/** Server unreachable, encrypted offline copy, no valid local session: re-authenticate to read it (read-only). */
+export function OfflineUnlock({who,kind}:{who:string;kind:'password'|'pin'}){
+  const rt=getSyncRuntime();const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
+  const label=kind==='pin'?'PIN':'Password';
+  const submit=async(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();if(busy)return;
+    const secret=String(new FormData(e.currentTarget).get('secret')??'');setBusy(true);setErr('');
+    const r=await rt.unlock(secret);setBusy(false);if(!r.ok)setErr(r.text??'Could not open the offline copy.');};
+  const retry=async()=>{setBusy(true);setErr('');await rt.refresh();setBusy(false);};
+  return <main className="signin"><div className="signin-card">
+    <Brand sub="Hotel server unavailable"/>
+    <h1>Offline copy</h1>
+    <p className="signin-help"><Lock size={16} aria-hidden="true"/>The hotel server cannot be reached. This device keeps an encrypted, read-only copy of the data last loaded by <strong>{who||'the last user'}</strong>. Type {kind==='pin'?'your PIN':'your password'} to open it. Nothing can be changed until the server is back.</p>
+    <form className="form server-signin" onSubmit={submit} noValidate>
+      <label>{label}<input name="secret" type="password" required autoComplete="off" inputMode={kind==='pin'?'numeric':undefined}/></label>
+      {err&&<p className="form-error" role="alert">{err}</p>}
+      <button type="submit" className="btn primary" disabled={busy}><KeyRound size={16}/>{busy?'Opening…':'Open the offline copy'}</button>
+      <button type="button" className="btn" disabled={busy} onClick={retry}><RefreshCw size={16}/>Try the server again</button>
+      <button type="button" className="btn" disabled={busy} onClick={()=>{void rt.signOut();}}>Delete the offline copy and sign out</button>
+    </form>
+  </div></main>;
 }
 
 function Brand({sub}:{sub:string}){
@@ -111,13 +138,16 @@ export function ServerSignIn({message}:{message?:string}){
   const [picked,setPicked]=useState<string>('');const [other,setOther]=useState(staff.length===0);
   const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
   const submit=async(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();if(busy)return;
-    const f=new FormData(e.currentTarget);const loginName=mode==='pin'&&!other?picked:String(f.get('loginName')??''),secret=String(f.get('secret')??'');
-    if(mode==='pin'&&!loginName){setErr('Tap your name first.');return;}
+    const f=new FormData(e.currentTarget);const secret=String(f.get('secret')??'');
+    if(mode==='pin'&&!other&&!picked){setErr('Tap your name first.');return;}
     setBusy(true);setErr('');
+    // F-L09: the stored roster holds only an opaque id per name; the login name is unsealed here, for this sign-in only.
+    const loginName=mode==='pin'&&!other?await resolveStaffLogin(picked):String(f.get('loginName')??'');
+    if(loginName===null){setBusy(false);setErr('This name cannot be used on this device any more. Tap "Someone else" and type your login name.');return;}
     const r=await rt.signIn(mode==='password'?{loginName,password:secret}:{loginName,pin:secret});
     setBusy(false);
     if(!r.ok){setErr(r.text??'Sign-in failed.');return;}
-    const me=rt.get().me;if(mode==='pin'&&me)rememberStaff({loginName:loginName.trim(),displayName:me.displayName});};
+    const me=rt.get().me;if(mode==='pin'&&me)void rememberStaff({loginName:loginName.trim(),displayName:me.displayName});};
   const shown=err||message;
   const a=getAuth();const token=tokenMode(a);const sessionOnly=tokenMode(a)&&a.storeKind!=='preferences';
   return <main className="signin">
@@ -130,8 +160,8 @@ export function ServerSignIn({message}:{message?:string}){
       </div>}
       <form className="form server-signin" onSubmit={submit} noValidate key={mode}>
         {mode==='pin'&&!other&&<div className="server-staff" role="radiogroup" aria-label="Your name">
-          {staff.map(x=><button type="button" key={x.loginName} role="radio" aria-checked={picked===x.loginName} className={'btn server-staff-btn'+(picked===x.loginName?' primary':'')}
-            onClick={()=>{setPicked(x.loginName);setErr('');}}><UserRound size={16}/>{x.displayName}</button>)}
+          {staff.map(x=><button type="button" key={x.id} role="radio" aria-checked={picked===x.id} className={'btn server-staff-btn'+(picked===x.id?' primary':'')}
+            onClick={()=>{setPicked(x.id);setErr('');}}><UserRound size={16}/>{x.displayName}</button>)}
           <button type="button" className="btn server-staff-btn" onClick={()=>{setOther(true);setPicked('');}}>Someone else</button>
         </div>}
         {(mode==='password'||other)&&<label>Login name<input name="loginName" autoComplete="username" required autoCapitalize="none" spellCheck={false}/></label>}
@@ -143,7 +173,7 @@ export function ServerSignIn({message}:{message?:string}){
       {!registered&&<p className="signin-help"><Tablet size={16} aria-hidden="true"/>Staff PIN sign-in works only on a registered hotel device. An Owner or Tech admin signs in here with a password to register this device.</p>}
       <p className="signin-help"><ShieldCheck size={16} aria-hidden="true"/>{token
         ?`Your session is kept by the server and ends after a period without activity.${sessionOnly?' You sign in again after the app is closed.':''}`
-        :'Your session is kept by the server. Nothing is stored on this device except a read-only copy of the last loaded data.'}</p>
+        :'Your session is kept by the server. Nothing is stored on this device except an encrypted read-only copy of the last loaded data, deleted when you sign out or the session ends.'}</p>
       {isNative()&&<ChangeServer/>}
     </div>
   </main>;
@@ -153,7 +183,7 @@ export function ServerSignIn({message}:{message?:string}){
 function ChangeServer(){
   const [open,setOpen]=useState(false);const url=serverBaseUrl();
   if(open)return <div className="server-change"><p className="form-error" role="alert">Changing the server signs out and removes this device's registration{deviceRegistered()?' — an Owner or Tech admin must register it again':''}.</p>
-    <ServerSetup initial={url} onCancel={()=>setOpen(false)} onSaved={()=>{void getSyncRuntime().signOut().finally(()=>{forgetDevice();reload();});}}/></div>;
+    <ServerSetup initial={url} onCancel={()=>setOpen(false)} onSaved={()=>{void getSyncRuntime().signOut().finally(()=>forgetDevice().finally(reload));}}/></div>;
   return <p className="signin-help"><Server size={16} aria-hidden="true"/>Server: {url||'this address'} <button type="button" className="btn link" onClick={()=>setOpen(true)}>Change</button></p>;
 }
 
@@ -168,7 +198,7 @@ export function ServerDevicePanel(){
     try{const n=await refreshDeviceStaff(rt.transport);setMsg({text:`Staff list updated: ${n} PIN user${n===1?'':'s'}.`,error:false});}
     catch(e){setMsg({text:String((e as Error)?.message??e),error:true});}
     setBusy(false);};
-  if(change)return <ServerSetup initial={url} onCancel={()=>setChange(false)} onSaved={()=>{void rt.signOut().finally(()=>{forgetDevice();reload();});}}/>;
+  if(change)return <ServerSetup initial={url} onCancel={()=>setChange(false)} onSaved={()=>{void rt.signOut().finally(()=>forgetDevice().finally(reload));}}/>;
   return <section className="cfg-sec server-device" aria-label="Server and this device">
     <h2>Server and this device</h2>
     <ul>
@@ -179,7 +209,7 @@ export function ServerDevicePanel(){
     {admin&&!registered&&<RegisterDeviceForm onDone={()=>bump(n=>n+1)}/>}
     {admin&&registered&&<div className="server-device-actions">
       <button type="button" className="btn" disabled={busy} onClick={updateStaff}><RefreshCw size={14}/>Update staff list</button>
-      <button type="button" className="btn" onClick={()=>{forgetDevice();setMsg({text:'Registration removed from this device. Revoke it on the server in Admin › Devices as well.',error:false});bump(n=>n+1);}}>Remove registration here</button>
+      <button type="button" className="btn" onClick={()=>{void forgetDevice().then(()=>bump(n=>n+1));setMsg({text:'Registration removed from this device. Revoke it on the server in Admin › Devices as well.',error:false});bump(n=>n+1);}}>Remove registration here</button>
     </div>}
     {msg&&<p className={msg.error?'form-error':'server-ok'} role={msg.error?'alert':'status'}>{msg.text}</p>}
     {!admin&&<p className="signin-help">Only the Owner or Tech admin changes the server or registers devices.</p>}
