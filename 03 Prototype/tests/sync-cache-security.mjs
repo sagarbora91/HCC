@@ -127,6 +127,22 @@ export async function register({test,assert}){
   const srv10=server();const c10=S.createMemoryCache();const k10=S.memoryTokenStore();
   const r10=await start(srv10,c10,k10);await r10.signIn({loginName:'owner',password:PASSWORD});
   await r10.signOut();const out10=[c10.dump(),await k10.load()];
+  // A10-01: exported files (APK cache exports/) are deleted whenever the offline copy is wiped — sign-out, 401, idle expiry, a new sign-in.
+  const wipes={n:0};const onWipe=()=>{wipes.n++;};
+  const srvX=server();const cX=S.createMemoryCache();const kX=S.memoryTokenStore();
+  const rX=await start(srvX,cX,kX,{onWipe});await rX.signIn({loginName:'owner',password:PASSWORD});const afterSignIn=wipes.n;
+  await rX.signOut();const afterSignOut=wipes.n;
+  await rX.signIn({loginName:'owner',password:PASSWORD});clock+=31*60_000;const nBeforeIdle=wipes.n;rX.checkExpiry();await new Promise(r=>setTimeout(r,10));const afterIdle=wipes.n;
+  await rX.signIn({loginName:'owner',password:PASSWORD});srvX.signOutHere();const nBefore401=wipes.n;await rX.refresh();await new Promise(r=>setTimeout(r,10));const after401=wipes.n;
+  const rThrow=await start(server(),S.createMemoryCache(),S.memoryTokenStore(),{onWipe:()=>{throw new Error('disk full');}});
+  await rThrow.signIn({loginName:'owner',password:PASSWORD});await rThrow.signOut();
+  test('[SEC A10-01] Exported files are cleared with the offline copy: on sign-out, idle expiry and a lost session (onWipe); a failing hook never blocks sign-out',()=>{
+    assert.ok(afterSignIn>=1,'a new sign-in starts clean');
+    assert.ok(afterSignOut>afterSignIn,'sign-out clears exports');
+    assert.ok(afterIdle>nBeforeIdle,'idle expiry clears exports');
+    assert.ok(after401>nBefore401,'a 401 (session lost) clears exports');
+    assert.equal(rThrow.get().status,'signed-out');
+  });
   const legacy=S.createMemoryCache();await legacy.write({meta:JSON.stringify({format:'hcc-server-cache-1',me:{userId:1}}),tasks:JSON.stringify({value:[{id:'old'}],asOf:'x'})});
   const srvL=server();srvL.down=true;const offL=await start(srvL,legacy,S.memoryTokenStore());const sL=offL.get();
   const srv11=server();const c11=S.createMemoryCache();const k11=S.memoryTokenStore();

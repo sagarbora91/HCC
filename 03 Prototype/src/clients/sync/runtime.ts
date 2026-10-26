@@ -58,6 +58,9 @@ export type SyncRuntimeOptions={
   baseUrl?:string;fetch?:FetchLike;cache?:ReadCache;auth?:AuthAdapter;
   /** Where the read cache's resume key lives — never the cache database itself (APK: sealed Preferences; browser: sessionStorage). */
   keyStore?:TokenStore;
+  /** Called whenever the offline copy is wiped (sign-out, session loss, idle / absolute expiry, user change, too many wrong unlocks):
+   *  the APK uses it to delete exported files from its cache (A10-01). Failures are ignored. */
+  onWipe?:()=>void|Promise<void>;
   /** PBKDF2 iterations for the offline unlock key (tests use a small number). */
   cacheIterations?:number;
   now?:()=>Date;timeoutMs?:number;commandRetries?:number;focusRefreshMs?:number;recoveryMs?:number;
@@ -153,7 +156,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
   /** Drops the data key and deletes the cache and its resume key. The in-memory part is synchronous. */
   async function wipeCache(){
     cacheKey=null;lock=null;
-    await Promise.all([cache.clear().catch(()=>undefined),keyStore.clear().catch(()=>undefined)]);
+    await Promise.all([cache.clear().catch(()=>undefined),keyStore.clear().catch(()=>undefined),Promise.resolve().then(()=>o.onWipe?.()).catch(()=>undefined)]);
   }
   async function resumeKey():Promise<CryptoKey|null>{
     const l=lock;if(!l)return null;

@@ -71,14 +71,23 @@ export function nativeFileName(title:string,ext:string,date=''):string{
 }
 export type SaveResult='downloaded'|'shared'|'failed';
 const toBase64=(text:string)=>{const bytes=new TextEncoder().encode(text);let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(bin);};
-/** Saves text to `Documents/HCC/<name>` and opens the share sheet (native), or downloads it (browser). */
+/** Exports are written to the app's private cache (`exports/<name>`), never to the public Documents folder: the next user of a shared tablet
+ *  cannot browse them, the OS may reclaim them, and clearExports() deletes them on sign-out (audit A10-01). */
+export const EXPORT_DIR='exports';
+const EXPORT_STORE='CACHE';
+/** Deletes every export this app wrote to its cache. Native only (a no-op in a browser); a missing folder is not an error. Never throws. */
+export async function clearExports():Promise<void>{
+  const fs=nativePlugin('Filesystem');if(!fs)return;
+  try{await fs.rmdir({path:EXPORT_DIR,directory:EXPORT_STORE,recursive:true});}catch{/* nothing to delete, or already gone */}
+}
+/** Saves text to the app cache (`exports/<name>`) and opens the share sheet (native), or downloads it (browser). */
 export async function saveTextFile(name:string,text:string,mime:string,bom=false):Promise<SaveResult>{
   const fs=nativePlugin('Filesystem'),share=nativePlugin('Share');
   if(fs&&share){
     try{
-      const path='HCC/'+name;
-      await fs.writeFile({path,data:toBase64((bom?'﻿':'')+text),directory:'DOCUMENTS',recursive:true});
-      const {uri}=await fs.getUri({path,directory:'DOCUMENTS'});
+      const path=EXPORT_DIR+'/'+name;
+      await fs.writeFile({path,data:toBase64((bom?'﻿':'')+text),directory:EXPORT_STORE,recursive:true});
+      const {uri}=await fs.getUri({path,directory:EXPORT_STORE});
       await share.share({title:name,text:name,url:uri,dialogTitle:'Save or share '+name});
       return 'shared';
     }catch{return 'failed';}
@@ -92,16 +101,16 @@ export const saveCsv=(name:string,csv:string)=>saveTextFile(name,csv,'text/csv',
 const bytesToBase64=(bytes:Uint8Array)=>{let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(bin);};
 /** Bytes per native write (a multiple of 3, so each base64 piece is whole). */
 export const NATIVE_CHUNK=3*1024*1024;
-/** Binary twin of saveTextFile (e.g. .xlsx): Documents/HCC/<name> + share sheet (native), or a download (browser). */
+/** Binary twin of saveTextFile (e.g. .xlsx): cache exports/<name> + share sheet (native), or a download (browser). */
 export async function saveBinaryFile(name:string,bytes:Uint8Array,mime:string):Promise<SaveResult>{
   const fs=nativePlugin('Filesystem'),share=nativePlugin('Share');
   if(fs&&share){
     try{
-      const path='HCC/'+name;
+      const path=EXPORT_DIR+'/'+name;
       // W05 review F6: written in base64 chunks (writeFile + appendFile) so a large workbook never becomes one huge string on the bridge.
       for(let i=0;i<Math.max(1,bytes.length);i+=NATIVE_CHUNK){const data=bytesToBase64(bytes.subarray(i,i+NATIVE_CHUNK));
-        if(i===0)await fs.writeFile({path,data,directory:'DOCUMENTS',recursive:true});else await fs.appendFile({path,data,directory:'DOCUMENTS'});}
-      const {uri}=await fs.getUri({path,directory:'DOCUMENTS'});
+        if(i===0)await fs.writeFile({path,data,directory:EXPORT_STORE,recursive:true});else await fs.appendFile({path,data,directory:EXPORT_STORE});}
+      const {uri}=await fs.getUri({path,directory:EXPORT_STORE});
       await share.share({title:name,text:name,url:uri,dialogTitle:'Save or share '+name});
       return 'shared';
     }catch{return 'failed';}

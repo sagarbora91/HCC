@@ -55,8 +55,9 @@ export function checkReleaseConfig(androidDir){
     if(!full.includes(`<exclude domain="${d}" path="." />`))problems.push(`full-backup rules must exclude ${d}`);
   }
   if(/<include/.test(rules+full))problems.push('backup rules must not include anything');
-  if(/external-path[^>]*path="\."/.test(paths)||/root-path/.test(paths))problems.push('FileProvider must not share the whole external storage (F-L10)');
-  if(!/external-path name="hcc_exports" path="Documents\/HCC\/"/.test(paths))problems.push('FileProvider must share Documents/HCC/ (the export folder)');
+  if(/external-path|root-path|external-files-path|external-cache-path/.test(paths))problems.push('FileProvider must not share external or public storage (F-L10, A10-01)');
+  if(/cache-path[^>]*path="\.?\/?"/.test(paths))problems.push('FileProvider must not share the whole app cache (A10-01)');
+  if(!/cache-path name="hcc_exports" path="exports\/"/.test(paths))problems.push('FileProvider must share only the cache exports/ folder (A10-01)');
   if(!/setWebContentsDebuggingEnabled\(false\)/.test(act)||!/FLAG_DEBUGGABLE/.test(act))problems.push('MainActivity must switch WebView debugging off in non-debuggable builds');
   return problems;
 }
