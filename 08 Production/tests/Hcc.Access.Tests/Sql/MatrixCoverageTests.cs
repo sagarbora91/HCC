@@ -70,7 +70,12 @@ public partial class MatrixCoverageTests(AccessDatabase db) : IClassFixture<Acce
             if (!m.Success) continue;
             var values = m.Groups[2].Value.Split('|').Select(v => v.Trim()).ToArray();
             Assert.Equal(Roles.Length, values.Length);
-            for (var i = 0; i < Roles.Length; i++) cells[(m.Groups[1].Value, Roles[i])] = values[i];
+            // Footnote marks (¹ ²) are notes, not modes; "status card" (ADM-005 Manager, DEC-063 G9) is a view grant.
+            for (var i = 0; i < Roles.Length; i++)
+            {
+                var cell = values[i].TrimEnd('¹', '²', '³');
+                cells[(m.Groups[1].Value, Roles[i])] = cell == "status card" ? "V" : cell;
+            }
         }
 
         foreach (var (key, value) in Dec063)
