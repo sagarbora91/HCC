@@ -48,6 +48,9 @@ import {directory} from './directory';
 // MA-0 masters framework (floors; MA-1 … MA-7 add routes in masters.ts MST_SERVER):
 import {masters} from './masters';
 
+// MA-3 money masters (patch loader on mastersX; commands through masters.ts MST_SERVER):
+import {moneyMasters} from './money-master';
+
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -79,4 +82,6 @@ export const AREAS:SyncArea[]=[
   directory, // W4 N3
 
   masters, // MA-0
+
+  moneyMasters, // MA-3
 ];

@@ -1,7 +1,8 @@
 // SCR-13 Expenses: status tabs, draft/submit/approve/reject/reverse, duplicate warning; plus the approval requests list.
 import React,{useState} from 'react';
 import {Paperclip} from 'lucide-react';
-import {money,expenseDuplicates,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanDecideCash,cbIsLocked,cbLockedMessage} from '../../services/mock';
+import {money,expenseDuplicates,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanDecideCash,cbIsLocked,cbLockedMessage,mnyIsDrawer,mnyApprovalLimit,mnyVendor} from '../../services/mock';
+import {MstLink} from '../masters/MasterList';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
@@ -21,12 +22,12 @@ export function Expenses(){
     if(e.status==='Pending'){
       if(!canDecide)return <span className="muted">Awaiting approval</span>;
       if(e.actor===uid)return <span className="f-why">Your request — another approver needed</span>;
-      const over=!closingUnlimitedRoles.includes(user.role)&&e.amount>EXPENSE_MANAGER_LIMIT,noShift=e.method==='Cash'&&!s.shiftOpen;
+      const lim=mnyApprovalLimit(s,e.category,EXPENSE_MANAGER_LIMIT),over=!closingUnlimitedRoles.includes(user.role)&&e.amount>lim,noShift=mnyIsDrawer(s,e.method)&&!s.shiftOpen;
       return <div className="inline"><button className="btn small-btn" disabled={busy||over||noShift} onClick={()=>run({type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id},'Expense approved and posted')}>Approve & post</button>
         <button className="text-btn" disabled={busy} onClick={()=>open({type:'expense-reason',id:e.id,room:'reject'})}>Reject…</button>
-        {(over||noShift)&&<small className="f-why">{over?`Above ${money(EXPENSE_MANAGER_LIMIT)} — Owner approves`:'Cash shift not open'}</small>}</div>;
+        {(over||noShift)&&<small className="f-why">{over?`Above ${money(lim)} — Owner approves`:'Cash shift not open'}</small>}</div>;
     }
-    if(e.status==='Posted'&&!e.reversalOf&&canDecide){const noShift=e.method==='Cash'&&!s.shiftOpen,locked=cbIsLocked(s,e.date); // DEC-065
+    if(e.status==='Posted'&&!e.reversalOf&&canDecide){const noShift=mnyIsDrawer(s,e.method)&&!s.shiftOpen,locked=cbIsLocked(s,e.date); // DEC-065
       return <div className="inline"><button className="text-btn" disabled={busy||noShift||locked} title={locked?cbLockedMessage(e.date,'reversing this expense'):undefined} onClick={()=>open({type:'expense-reason',id:e.id,room:'reverse'})}>Reverse…</button>{locked?<small className="f-why">{cbLockedMessage(e.date,'reversing this expense')}</small>:noShift&&<small className="f-why">Cash shift not open</small>}</div>;}
     return <span className="muted">—</span>;
   }
@@ -34,14 +35,15 @@ export function Expenses(){
   // The Accountant decides cash differences here (no cashier page); the counter never decides their own (SOD-004).
   const cashChecker=!permission('approve')&&rbacCanDecideCash(s,uid);
   return <><PageTitle title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." action={canSubmit?<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>:null}/>
-    <div className="small-stats"><div><span>Posted today (net)</span><strong>{money(today.reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Drawer cash today</span><strong>{money(today.filter(e=>e.method==='Cash').reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Pending approval</span><strong>{s.expenses.filter(e=>e.status==='Pending').length}</strong></div><div><span>Drafts</span><strong>{s.expenses.filter(e=>e.status==='Draft').length}</strong></div></div>
-    <section className="card"><div className="section-title"><h2>Expense register</h2><Pill>Receipt placeholders · no uploads</Pill></div>
+    <div className="small-stats"><div><span>Posted today (net)</span><strong>{money(today.reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Drawer cash today</span><strong>{money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Pending approval</span><strong>{s.expenses.filter(e=>e.status==='Pending').length}</strong></div><div><span>Drafts</span><strong>{s.expenses.filter(e=>e.status==='Draft').length}</strong></div></div>
+    <section className="card"><div className="section-title"><h2>Expense register</h2><Pill>Receipt placeholders · no uploads</Pill>
+        <span className="inline"><MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/></span></div>
       <div className="tabs" role="tablist" aria-label="Expense status">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}<span>{t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length}</span></button>)}</div>
       <div className="table-wrap"><table><thead><tr><th>Vendor / reference</th><th>Category</th><th>Funding</th><th className="number">Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>
         {pg.shown.map(e=>{const dup=!e.reversalOf&&e.status!=='Rejected'&&expenseDuplicates(s,e.vendor,e.amount,e.date,e.id).length>0;
-          return <tr key={e.id}><td><strong>{e.vendor}</strong><small>{e.id} · {shortDate(e.date)} · by {name(e.actor)}{e.reversalOf?` · reverses ${e.reversalOf}`:''}{e.reversedBy?` · reversed by ${e.reversedBy}`:''}</small>
+          return <tr key={e.id}><td><strong>{e.vendor}</strong>{!mnyVendor(s,e.vendor)&&<small>Not in the vendor list</small>}<small>{e.id} · {shortDate(e.date)} · by {name(e.actor)}{e.reversalOf?` · reverses ${e.reversalOf}`:''}{e.reversedBy?` · reversed by ${e.reversedBy}`:''}</small>
             {e.receipt&&<small><Paperclip size={11}/> {e.receipt}</small>}{e.notes&&<small>{e.notes}</small>}{e.reason&&<small>Reason: {e.reason}</small>}{dup&&<Pill tone="orange">Possible duplicate</Pill>}</td>
-            <td>{e.category}</td><td>{e.method==='Cash'?'Drawer cash':e.method}</td><td className="number">{money(e.amount)}</td><td><Pill tone={tone(e.status)}>{e.reversalOf?'Posted · reversal':e.status}</Pill></td><td>{actions(e)}</td></tr>;})}
+            <td>{e.category}</td><td>{mnyIsDrawer(s,e.method)?'Drawer cash':e.method}</td><td className="number">{money(e.amount)}</td><td><Pill tone={tone(e.status)}>{e.reversalOf?'Posted · reversal':e.status}</Pill></td><td>{actions(e)}</td></tr>;})}
       </tbody></table>{!list.length&&<Empty title={tab==='All'?'No expenses recorded':`No ${tab.toLowerCase()} expenses`} body="Submitted expenses appear here for approval."/>}</div><ShowMore p={pg}/></section>
     <section className="card"><div className="section-title"><h2>Approval requests</h2><span className="muted">Requests cannot be self-approved</span></div>
       {!approvals.length?<Empty title="No approval requests" body="Discounts above the limit, cash differences and closed-date corrections appear here."/>:<div className="request-list">{approvals.map(a=>{

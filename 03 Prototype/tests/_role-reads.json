@@ -81,7 +81,15 @@
     "GET /yield/publishes": "/yield/publishes",
     "GET /yield/proposals": "/yield/proposals",
     "GET /masters/floors": "/masters/floors?page=1&pageSize=200",
-    "GET /masters/floors/history": "/masters/floors/history?page=1&pageSize=200"
+    "GET /masters/floors/history": "/masters/floors/history?page=1&pageSize=200",
+    "GET /masters/payment-methods": "/masters/payment-methods?page=1&pageSize=200",
+    "GET /masters/payment-methods/history": "/masters/payment-methods/history?page=1&pageSize=200",
+    "GET /masters/bank-accounts": "/masters/bank-accounts?page=1&pageSize=200",
+    "GET /masters/bank-accounts/history": "/masters/bank-accounts/history?page=1&pageSize=200",
+    "GET /masters/expense-categories": "/masters/expense-categories?page=1&pageSize=200",
+    "GET /masters/expense-categories/history": "/masters/expense-categories/history?page=1&pageSize=200",
+    "GET /masters/expense-vendors": "/masters/expense-vendors?page=1&pageSize=200",
+    "GET /masters/expense-vendors/history": "/masters/expense-vendors/history?page=1&pageSize=200"
   },
   "roles": {
     "OWN": {
@@ -594,7 +602,15 @@
         "GET /yield/publishes": "200",
         "GET /yield/proposals": "200",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "200"
+        "GET /masters/floors/history": "200",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "200",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "200",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "200",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "200"
       }
     },
     "MGR": {
@@ -1007,7 +1023,15 @@
         "GET /yield/publishes": "200",
         "GET /yield/proposals": "200",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     },
     "REC": {
@@ -1280,7 +1304,15 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     },
     "CSH": {
@@ -1478,7 +1510,15 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     },
     "ACC": {
@@ -1716,7 +1756,15 @@
         "GET /yield/publishes": "200",
         "GET /yield/proposals": "200",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     },
     "SUP": {
@@ -1849,7 +1897,15 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     },
     "HKP": {
@@ -1967,7 +2023,15 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     },
     "MNT": {
@@ -2080,7 +2144,15 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "403"
+        "GET /masters/floors/history": "403",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     },
     "TAD": {
@@ -2213,7 +2285,15 @@
         "GET /yield/publishes": "403",
         "GET /yield/proposals": "403",
         "GET /masters/floors": "200",
-        "GET /masters/floors/history": "200"
+        "GET /masters/floors/history": "200",
+        "GET /masters/payment-methods": "200",
+        "GET /masters/payment-methods/history": "403",
+        "GET /masters/bank-accounts": "200",
+        "GET /masters/bank-accounts/history": "403",
+        "GET /masters/expense-categories": "200",
+        "GET /masters/expense-categories/history": "403",
+        "GET /masters/expense-vendors": "200",
+        "GET /masters/expense-vendors/history": "403"
       }
     }
   }
