@@ -42,7 +42,8 @@ test('Room move conflict preserves original allocation',()=>{const [s,id]=inhous
 test('Refund cannot exceed receipts',()=>{assert.throws(()=>execute(seed(),'owner',{type:'REFUND_REQUEST',id:'HCC-1041',receiptId:'seed-pay-0',amount:99999999,reason:'Test'}),e=>e.code==='VALIDATION'&&/cannot exceed/.test(e.message));});
 test('End-to-end close and next day preserve opening cash',()=>{let s=seed();for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});s=execute(s,'owner',{type:'NIGHT_POST'});const expected=drawer(s);s=execute(s,'owner',{type:'SHIFT_CLOSE',counted:expected});s=tillClear(M,s);s=execute(s,'owner',{type:'DAY_CLOSE'});assert.throws(()=>execute(s,'owner',{type:'NIGHT_POST'}),/closed/);s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(s.date,'2026-10-25');assert.equal(s.openingCash,expected);assert.equal(s.shiftOpen,true);});
 await import('./m1.mjs').then(x=>x.register({test,M,assert}));
-// Stream test suites: tests/stream-*.mjs, each exporting register({test,M,assert}).
-for(const f of (await (await import('node:fs/promises')).readdir(new URL('.',import.meta.url))).filter(f=>/^stream-.*\.mjs$/.test(f)).sort())await import('./'+f).then(x=>x.register({test,M,assert}));
+// Stream test suites: tests/stream-*.mjs, then the Wave 4 sync-layer suites tests/sync-*.mjs (harness: _sync-harness.mjs);
+// each exports register({test,M,assert}).
+for(const f of (await (await import('node:fs/promises')).readdir(new URL('.',import.meta.url))).filter(f=>/^(stream|sync)-.*\.mjs$/.test(f)).sort())await import('./'+f).then(x=>x.register({test,M,assert}));
 await mkdir('evidence',{recursive:true});await writeFile('evidence/domain-tests.json',JSON.stringify({runAt:new Date().toISOString(),passed,total:results.length,results},null,2));
 console.log(`${passed}/${results.length} tests passed`);

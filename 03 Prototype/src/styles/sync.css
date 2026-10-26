@@ -1,0 +1,10 @@
+/* W4-0 production sync layer: server sign-in and the "as of · Refresh" strip (production build only uses these). */
+.sync-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 24px 0;padding:6px 12px;border-radius:8px;background:#F3ECE2;color:#6B5547;font-size:13px}
+.sync-status .btn{margin-left:auto;min-height:32px;padding:4px 10px;display:inline-flex;align-items:center;gap:6px}
+.sync-status-error{color:#9B1C1C;font-weight:600}
+.server-signin{display:grid;gap:12px;text-align:left}
+.server-signin label{display:grid;gap:4px}
+.server-signin-mode{display:flex;gap:16px;flex-wrap:wrap}
+.server-signin-mode label{display:flex;align-items:center;gap:6px}
+.server-signin .btn{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+@media (max-width:767px){.sync-status{margin:8px 12px 0}}

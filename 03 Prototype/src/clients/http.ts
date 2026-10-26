@@ -24,8 +24,10 @@ export type HttpOptions={
   timeoutMs?:number;
   /** Rooms the adapter already knows (server id ↔ room number ↔ type code); otherwise learned from availability / booking reads. */
   rooms?:{roomId:number;roomNo:string;roomType:string}[];
+  /** Extra headers on every request (W4-0 auth seam: the APK's bearer token / device token, sync/auth.ts). */
+  headers?:()=>Record<string,string>;
 };
-type Query=Record<string,string|number|undefined>;
+type Query=Record<string,string|number|boolean|undefined>;
 
 export function createHttpTransport(o:HttpOptions={}){
   const doFetch:FetchLike=o.fetch??((input,init)=>(globalThis as unknown as {fetch:FetchLike}).fetch(input,init));
@@ -37,7 +39,7 @@ export function createHttpTransport(o:HttpOptions={}){
     const ctl=typeof AbortController!=='undefined'?new AbortController():undefined;
     const timer=ctl?setTimeout(()=>ctl.abort(),timeoutMs):undefined;
     try{
-      res=await doFetch(base+path,{method,headers:{Accept:'application/json',...(body!==undefined?{'Content-Type':'application/json'}:{}),...headers},
+      res=await doFetch(base+path,{method,headers:{Accept:'application/json',...(body!==undefined?{'Content-Type':'application/json'}:{}),...(o.headers?.()??{}),...headers},
         body:body===undefined?undefined:JSON.stringify(body),credentials:'include',signal:ctl?.signal});
     }catch(e){
       const msg='The hotel server cannot be reached. Check the network; nothing was saved on this device.';
@@ -59,6 +61,8 @@ export function createHttpTransport(o:HttpOptions={}){
   return {
     connection,
     get:<T>(path:string,query:Query={})=>once<T>('GET',path+qs(query),undefined,{}),
+    /** Plain POST without Idempotency-Key — only for non-command routes (POST /auth/sign-in, /auth/sign-out). Never retried. */
+    post:<T>(path:string,body?:unknown)=>once<T>('POST',path,body,{}),
     /** POST /commands/<name> with Idempotency-Key; retried on UNAVAILABLE with the identical key and body. */
     async command<T>(name:string,body:Record<string,unknown>,opts:Partial<CommandOptions>={}):Promise<T>{
       const key=checkIdempotencyKey(opts.idempotencyKey??newIdempotencyKey(name));

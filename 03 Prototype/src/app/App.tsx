@@ -11,7 +11,7 @@ import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage,navFilterModules} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoToolbar} from './demo/DemoToolbar';
-import {ReadOnlyBanner} from '../clients/react'; // production build only (compile-time HCC_BUILD)
+import {ProductionApp,SyncStatus,type ServerBinding} from '../clients/sync/react'; // production build only (W4-0 server sync layer)
 import {extraPages,mobilePages} from './registry';
 import {ModalHost} from './ModalHost';
 import {useDisplayMode,DisplayToggle} from './display';
@@ -37,8 +37,13 @@ const writeSession=(id:string|null)=>{try{if(id)localStorage.setItem(SESSION_KEY
 const newKey=(type:string)=>type+':'+(globalThis.crypto?.randomUUID?.()??Math.random().toString(36).slice(2));
 const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 
-/** Loads the saved (or default) demo state from IndexedDB first, then shows the app (plan H-05, A3). */
+/** Production build (W4-0): server sign-in, then the same shell over the server state (sync layer). Prototype: demo state. */
 export function App(){
+  return process.env.HCC_BUILD==='production'?<ProductionApp render={b=><AppShell initial={{state:b.state,reset:false}} server={b}/>}/>:<PrototypeApp/>;
+}
+
+/** Loads the saved (or default) demo state from IndexedDB first, then shows the app (plan H-05, A3). */
+function PrototypeApp(){
   const [initial,setInitial]=useState<Restored|null>(null);
   const [progress,setProgress]=useState<GenProgress|null>(null);
   useEffect(()=>{let live=true;loadStored(p=>{if(live)setProgress(p);}).then(r=>{if(live)setInitial(r);});return()=>{live=false;};},[]);
@@ -54,11 +59,14 @@ function BootLoading({progress}:{progress:GenProgress|null}){
     {progress&&<progress max={100} value={pct} aria-label="Demo data generation progress" style={{width:'min(320px,80vw)',accentColor:'#7A1F2B'}}/>}</div>;
 }
 
-function AppShell({initial}:{initial:Restored}){
-  const [s,setS]=useState<State>(initial.state);
+function AppShell({initial,server}:{initial:Restored;/** Production only: state, user and command path come from the server sync layer. */server?:ServerBinding}){
+  const [sLocal,setS]=useState<State>(initial.state);
+  const s=process.env.HCC_BUILD==='production'&&server?server.state:sLocal;
   const stateRef=useRef(s);stateRef.current=s;
-  const [uid,setUid]=useState(()=>readSession(initial.state)??'owner');
-  const [signedIn,setSignedIn]=useState(()=>!!readSession(initial.state));
+  const [uidLocal,setUid]=useState(()=>readSession(initial.state)??'owner');
+  const uid=process.env.HCC_BUILD==='production'&&server?server.uid:uidLocal;
+  const [signedInLocal,setSignedIn]=useState(()=>!!readSession(initial.state));
+  const signedIn=process.env.HCC_BUILD==='production'&&server?true:signedInLocal;
   const [page,setPage]=useState(HOME_PAGE);
   const [modal,setModal]=useState<Modal>(null);
   const [notice,setNotice]=useState<{text:string;error?:boolean}|null>(initial.reset?{text:initial.reason!,error:false}:null);
@@ -80,7 +88,8 @@ function AppShell({initial}:{initial:Restored}){
   const modalRef=useRef<Modal>(null);modalRef.current=modal;
   const modalPushed=useRef(false),dirty=useRef(false),skipPop=useRef(false);
   const setDirty=useCallback((v:boolean)=>{dirty.current=v;},[]);
-  useEffect(()=>{onStorageError(()=>setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true}));},[]);
+  useEffect(()=>{if(process.env.HCC_BUILD==='production')return; // production never uses the prototype's demo storage
+    onStorageError(()=>setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true}));},[]);
 
   const user=s.users.find(u=>u.id===uid)??s.users[0];
   const m=metrics(s);
@@ -140,6 +149,15 @@ function AppShell({initial}:{initial:Restored}){
   /** The only path for mutations: idempotency key, fault simulation, typed errors, one toast. */
   async function run(cmd:Command,msg?:string,opts:RunOptions={}):Promise<boolean>{
     if(busyRef.current)return false; // a response is still pending — ignore repeated clicks
+    if(process.env.HCC_BUILD==='production'&&server){
+      // W4-0: mapped → server command(s) + reload of the affected slices; unmapped / read-only → refused. Never a local change.
+      busyRef.current=true;setBusy(true);
+      try{
+        const r=await server.run(cmd);
+        if(!r.ok){setError(r.text);toast(r.text,true);return false;}
+        setError('');dirty.current=false;if(opts.close)setModal(null);opts.after?.();toast(msg||'Updated successfully');return true;
+      }finally{busyRef.current=false;setBusy(false);}
+    }
     const base=stateRef.current;
     const command={...cmd,key:cmd.key??`${cmd.type}:${cmd.id??''}:${cmd.action??''}:${cmd.index??''}:${base.sequence}`};
     const mode=fault;if(mode!=='none')setFault('none'); // a simulated fault applies to one action only
@@ -164,7 +182,7 @@ function AppShell({initial}:{initial:Restored}){
     if(u){writeSession(id);go(HOME_PAGE,{replace:true});}
   }
   function signIn(id:string){setUid(id);setSignedIn(true);writeSession(id);setPage(HOME_PAGE);setModal(null);setError('');setSearch('');setFilter('All');}
-  function signOut(){cancelBackFallback();writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
+  function signOut(){if(process.env.HCC_BUILD==='production'&&server)server.signOut();cancelBackFallback();writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
   // FY26 is built in the scenario worker so a scenario switch or reset does not freeze the page (audit P-01).
   async function loadScenario(id:string){cancelBackFallback();if(busyRef.current)return;
     busyRef.current=true;setBusy(true);
@@ -194,7 +212,7 @@ function AppShell({initial}:{initial:Restored}){
   if(!signedIn)return <HccContext.Provider value={ctx}><SignIn onPick={signIn}/></HccContext.Provider>;
   if(display.isMobile)return <HccContext.Provider value={ctx}>
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
-    {process.env.HCC_BUILD==='production'&&<ReadOnlyBanner/>}{toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
+    {process.env.HCC_BUILD==='production'&&<SyncStatus/>}{toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
   </HccContext.Provider>;
   return <HccContext.Provider value={ctx}>
     <div className="app-shell">
@@ -213,7 +231,7 @@ function AppShell({initial}:{initial:Restored}){
             <DisplayToggle display={display} compact/>
           </div>
         </header>
-        {process.env.HCC_BUILD==='production'?<ReadOnlyBanner/>:<DemoToolbar/>}
+        {process.env.HCC_BUILD==='production'?<SyncStatus/>:<DemoToolbar/>}
         <div className="content">
           {pageBody}
           <footer className="page-footer"><span>Hotel Control Centre <i/> Prototype M1</span><span>Local prototype · Fictional records only · Scenario {s.scenario}</span></footer>

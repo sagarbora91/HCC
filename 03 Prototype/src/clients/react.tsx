@@ -5,7 +5,7 @@ import React,{useEffect,useState,useSyncExternalStore} from 'react';
 import {WifiOff} from 'lucide-react';
 import {useHcc,type Ctx} from '../app/context';
 import {createMockClients} from './mock';
-import {createHttpClients} from './http';
+import {getSyncRuntime} from './sync/instance';
 import {createConnection,type Connection,type ConnectionState} from './connection';
 import {errorText} from './errors';
 import {isIsoDate} from './wire';
@@ -15,10 +15,10 @@ import type {HccClients,ReservationsClient,AvailabilityQuery,BookingDetails} fro
 const ONLINE:ConnectionState={status:'online'};
 const offlineStore=createConnection(); // mock builds: always online
 
-/** Production server origin: '' = same origin (the API host serves the web app). The APK sets `hcc-server-url` (assumption, P1/P6). */
-function serverBaseUrl(){try{return localStorage.getItem('hcc-server-url')||'';}catch{return '';}}
+/** Production: the typed clients share the sync runtime's transport, session and connection state (W4-0, sync/instance.ts;
+ *  server origin from `hcc-server-url`, '' = same origin). */
 let http:(HccClients&{connection:Connection})|undefined;
-function httpClients(){return http??=createHttpClients({baseUrl:serverBaseUrl()});}
+function httpClients(){if(!http){const rt=getSyncRuntime();http={...rt.clients,connection:rt.connection};}return http;}
 
 /** Rejection used when the app's run() already showed the error toast. */
 const REPORTED={reported:true};
@@ -59,7 +59,10 @@ async function commitHttp<R>(ctx:Ctx,pending:boolean,setPending:(v:boolean)=>voi
   try{
     const c=httpClients();
     if(c.connection.readOnly)await c.system.health(); // reconnect check first; throws UNAVAILABLE while still offline
-    const r=await flow(c.reservations);after?.(r);ctx.toast(msg||'Updated successfully');return r;
+    const r=await flow(c.reservations);
+    // The only typed-client flow is a new booking (BOOK): the reservations area remembers the id and reloads its slices (W4-0).
+    await getSyncRuntime().flowDone('BOOK',r);
+    after?.(r);ctx.toast(msg||'Updated successfully');return r;
   }catch(e){ctx.toast(errorText(e),true);return undefined;}
   finally{setPending(false);}
 }
@@ -104,7 +107,7 @@ export function useBooking(id:string):{booking?:BookingDetails;loading:boolean;e
 export function ReadOnlyBanner(){
   const conn=useConnection();const [checking,setChecking]=useState(false);
   if(conn.status!=='unavailable')return null;
-  const retry=()=>{setChecking(true);httpClients().system.health().catch(()=>undefined).finally(()=>setChecking(false));};
+  const retry=()=>{setChecking(true);getSyncRuntime().refresh().catch(()=>undefined).finally(()=>setChecking(false));};
   return <div className="info-note read-only-banner" role="alert"><WifiOff size={16}/>
     <span><strong>Server unavailable — read-only.</strong> Bookings and payments are disabled until the hotel server is back. Nothing is saved on this device.</span>
     <button type="button" className="btn" disabled={checking} onClick={retry}>{checking?'Checking…':'Retry'}</button></div>;
