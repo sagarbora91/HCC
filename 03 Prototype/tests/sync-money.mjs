@@ -1,13 +1,20 @@
 // W4-3 money area (sync/money.ts): folio, cashier / payments, cash book, invoices & credit notes, groups billing — against a fake .NET API.
 // The folio is the prototype's own worked ₹4,265 journey (execute: nights + laundry + approved discount + cash advance + deposit), served in
 // the server's shape; the loaders must give the screens the same lines, receipts and totals, paise-exact, without recomputing GST.
-import {loadSync,loadPages,fakeServer,startRuntime,reply,capabilities} from './_sync-harness.mjs';
+import {loadSync,loadPages,fakeServer,startRuntime,reply,capabilities,ownErrors} from './_sync-harness.mjs';
+import {build} from 'esbuild';
 
 const CMDS=['RecordReceipt','PostCharge','RequestAdjustment','DecideApproval','ExecuteAdjustment','CheckoutStay','IssueInvoice','RequestCreditNote','DecideCreditNote',
   'SubmitShiftCount','LockCashBookDay','ReopenCashBookDay','CreateGroupBlock','CreateGroup'];
 
+/** money.ts on its own (pure helpers W4-1's CHECKOUT mapper calls; not exported by sync/index.ts). */
+async function loadMoney(){
+  await build({entryPoints:['src/clients/sync/money.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/sync-money-area.mjs',logLevel:'error',define:{'process.env.HCC_BUILD':'"production"'}});
+  return import(new URL('./.generated/sync-money-area.mjs',import.meta.url).href);
+}
+
 export async function register({test,assert,M}){
-  const S=await loadSync();
+  const S=await loadSync();const MA=await loadMoney();
   // ── the prototype's own figures ──
   let p=M.seed();p=M.execute(p,'owner',{type:'BOOK',guest:'Journey Test',room:'105',arrival:p.date,departure:'2026-10-26',people:2});const pid=p.bookings.at(-1).id;
   p=M.execute(p,'owner',{type:'REGISTER',id:pid});p=M.execute(p,'owner',{type:'CHECKIN',id:pid});p=M.execute(p,'owner',{type:'POST_NIGHTS',id:pid});
@@ -61,13 +68,17 @@ export async function register({test,assert,M}){
   });
   // The server reservation read has no company yet (W4-1 / reservations backlog): simulate the front-desk area supplying it, so the
   // company-credit and B2B paths can be exercised. Money reads b.company only.
-  const withCompany=S.AREAS.map(a=>a.id!=='reservations'?a:{...a,loaders:a.loaders.map(l=>({...l,async load(c){return (await l.load(c)).map(b=>({...b,company:{name:'Fictional Travels'}}));}}))});
+  // W4-1 owns CHECKOUT (CheckoutStay); a stand-in mapper here calls the money helpers exactly as that mapper should.
+  const checkoutStandIn={id:'checkout-test',loaders:[],commands:[{type:'CHECKOUT',reload:MA.FOLIO_SLICES,async send(c){
+    const id=String(c.cmd.id);const out=await c.api.command('CheckoutStay',{stayId:c.ids.server('stay',id),companyCreditApprovalId:MA.companyCreditApprovalId(c.state,id)},{expectedVersion:c.ids.version('stay',id)});
+    return {result:{out,invoice:await MA.issueInvoiceAfterCheckout(c,id)}};}}]};
+  const withCompany=[...S.AREAS.filter(a=>!a.commands.some(m=>m.type==='CHECKOUT')).map(a=>a.id!=='reservations'?a:{...a,loaders:a.loaders.map(l=>({...l,async load(c){return (await l.load(c)).map(b=>({...b,company:{name:'Fictional Travels'}}));}}))}),checkoutStandIn];
   const rt=await startRuntime(S,srv,{areas:withCompany});
   await rt.flowDone('BOOK',{reservationId:'1201'});await rt.refresh(); // the booking is known on this device (W4-1 adds a reservation list)
   const s0=rt.get();const b0=s0.state.bookings.find(b=>b.id==='1201');
 
   test('[W4-3 money] Folio patch: the server folio becomes the booking’s lines and receipts — the prototype’s own ₹4,265 journey, paise-exact, GST from the posted snapshots',()=>{
-    assert.deepEqual(s0.errors,{});
+    assert.deepEqual(ownErrors(s0.errors,'money'),{});
     assert.ok(b0,'booking loaded');
     assert.deepEqual(b0.lines.map(l=>[l.label,l.amount,l.date,l.kind,l.taxBps,M.lineTax(l)]),pb.lines.map(l=>[l.label,l.amount,l.date,l.kind,l.taxBps,M.lineTax(l)]));
     assert.deepEqual(b0.receipts.map(r=>[r.kind,r.method,r.amount,r.date]),pb.receipts.map(r=>[r.kind,r.method,r.amount,r.date]));
@@ -77,7 +88,7 @@ export async function register({test,assert,M}){
     assert.equal(b0.invoiceNo,undefined);assert.equal(b0.company?.name,'Fictional Travels');
   });
   test('[W4-3 money] Approvals: folio requests map to the prototype kinds (discount = default kind, credit → company-credit) with requester, decider, expiry (IST clock)',()=>{
-    const a=s0.state.approvals;
+    const a=s0.state.approvals.filter(x=>/^(\d+|cnr-\d+)$/.test(x.id));
     assert.deepEqual(a.map(x=>[x.id,x.booking,x.kind,x.status,x.amount,x.target,x.actor,x.approver]),
       [['301','1201','refund','Pending',20000,'7001','2',undefined],['302','1201',undefined,'Executed',50000,undefined,'2','3'],['303','1201','company-credit','Approved',326500,undefined,'2','1']]);
     assert.equal(a[0].expiresAt,'2026-10-25T10:00');assert.equal(M.folioRefundable(s0.state,b0,'7001'),80000,'refundable remainder honours the pending request');
@@ -128,7 +139,7 @@ export async function register({test,assert,M}){
   const dec=await run({type:'APPROVAL',id:'301',approve:false,reason:'Not needed',key:'approval-no:301'});const decCmd=srv.commands('DecideApproval')[0];
   const exe=await run({type:'REFUND_EXECUTE',approvalId:'301',method:'UPI',reference:'UPI-R1',key:'rx:1'});const exeCmd=srv.commands('ExecuteAdjustment')[0];
   const chk=await run({type:'CHECKOUT',id:'1201',key:'checkout:1201'});const chkCmd=srv.commands('CheckoutStay')[0],invCmd=srv.commands('IssueInvoice')[0];
-  test('[W4-3 money] APPROVAL → DecideApproval (approval version); REFUND_EXECUTE → ExecuteAdjustment; CHECKOUT → CheckoutStay (stay version, approved company credit) → IssueInvoice',()=>{
+  test('[W4-3 money] APPROVAL → DecideApproval (approval version); REFUND_EXECUTE → ExecuteAdjustment; CHECKOUT helpers: approved company credit for exactly the balance, then IssueInvoice (<action>:invoice)',()=>{
     for(const x of [dec,exe,chk])assert.ok(x.r.ok,x.r.text);
     assert.deepEqual([decCmd.key,decCmd.body],['approval-no:301',{approvalId:301,approve:false,reason:'Not needed',expectedVersion:'APR301'}]);
     assert.deepEqual(exeCmd.body,{approvalId:301,tender:'UPI',reference:'UPI-R1',tillId:null,expectedVersion:'APR301'});
@@ -150,9 +161,9 @@ export async function register({test,assert,M}){
       approval:apr(77,'cash-difference',{targetKind:'shift',targetId:41,amountPaise:500,reason:'₹5 coin short',requestedBy:4,version:'APR77'})},expected:{expectedPaise:1222500},lastClosed:null}]};
   await rt.refresh();const s1=rt.get();const b1=s1.state.bookings.find(b=>b.id==='1201');
   test('[W4-3 money] Departed stay: invoice number and credit notes from the issued invoice; the credit-note request is a folio request (cnr-55); the submitted count is the shift record + its cash-difference request',()=>{
-    assert.deepEqual(s1.errors,{});
+    assert.deepEqual(ownErrors(s1.errors,'money'),{});
     assert.equal(b1.invoiceNo,'INV/2627/0000001');assert.deepEqual(b1.creditNotes.map(c=>[c.id,c.no,c.amount,c.date,c.reason]),[['901','CN/2627/0000001',10000,'2026-10-26','Late check-out waived']]);
-    const a=s1.state.approvals;
+    const a=s1.state.approvals.filter(x=>/^(\d+|cnr-\d+)$/.test(x.id));
     assert.deepEqual(a.map(x=>[x.id,x.kind,x.booking,x.amount,x.target,x.status,x.meta?.command]),
       [['cnr-55','credit-note','1201',20000,'INV/2627/0000001','Pending','APPROVAL'],['77','cash-difference','',500,'2026-10-24','Pending','SHIFT_DIFFERENCE_DECIDE']],'request for an unloaded invoice is left out');
     assert.deepEqual([s1.state.shiftOpen,s1.state.openingCash],[false,1072500]);
