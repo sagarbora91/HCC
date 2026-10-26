@@ -114,6 +114,6 @@ export const handlers:Record<string,Handler>={
     k.assert(!x.lines.some(l=>l.kind==='room'&&l.date>=s.date),'Room nights are already posted on or after the new departure date. Reverse them before shortening.','INVALID_TRANSITION');
     const was=x.departure;if(!x.segments?.length)x.segments=staySegments(x).map(g=>({...g}));
     x.departure=s.date;x.version++;
-    return ` · early departure  →  ( night(s) released) · `;
+    return `${x.id} · early departure ${was} → ${s.date} (${nights(s.date,was)} night(s) released) · ${reason}`;
   },
 };

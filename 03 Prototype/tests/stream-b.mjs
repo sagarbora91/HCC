@@ -151,6 +151,7 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'housekeeper',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Family emergency'})),'FORBIDDEN');
     let t=execute(s,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Family emergency',key:'ed1'});
     assert.deepEqual([bk(t,b.id).departure,bk(t,b.id).version,bk(t,b.id).status],[s.date,ev+1,'In house']);
+    assert.equal(t.audit[0].detail,`${b.id} · early departure ${b.departure} → ${s.date} (${M.nights(s.date,b.departure)} night(s) released) · Family emergency`);
     assert.equal(execute(t,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Family emergency',key:'ed1'}),t,'same key = same result');
     assert.equal(code(()=>execute(t,'reception',{type:'STAY_EARLY_DEPARTURE',id:b.id,reason:'Again'})),'INVALID_TRANSITION','no nights left to release');
     assert.ok(M.available(t,b.room,s.date,'2026-10-26',b.id),'the released nights are bookable again');
