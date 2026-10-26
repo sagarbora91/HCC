@@ -12,7 +12,19 @@ import {SERVER_REASON,SERVER_STATUS,type SrvAvailability,type SrvQuote,type SrvC
   type SrvCapabilities} from './server';
 
 export const HTTP_ADAPTER_ID='hcc-http-adapter';
-export type FetchLike=(input:string,init?:{method?:string;headers?:Record<string,string>;body?:string;credentials?:'include'|'same-origin'|'omit';signal?:AbortSignal})=>Promise<{status:number;ok:boolean;text():Promise<string>}>;
+export type FetchLike=(input:string,init?:{method?:string;headers?:Record<string,string>;body?:string;credentials?:'include'|'same-origin'|'omit';signal?:AbortSignal})=>Promise<{status:number;ok:boolean;text():Promise<string>;
+  /** Optional (fetch has it; the APK's CapacitorHttp wrapper may not): used only to read a file name from Content-Disposition. */headers?:{get(name:string):string|null}}>;
+/** A text file from the server (CSV): the body as text, the server's file name when the response carried one. */
+export type TextFile={text:string;fileName?:string;contentType?:string};
+/** File name from a Content-Disposition header (filename*=UTF-8''… preferred, then filename="…"); undefined when absent. */
+export function dispositionFileName(h:string|null|undefined):string|undefined{
+  if(!h)return undefined;
+  const star=/filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)/.exec(h);
+  if(star){try{return decodeURIComponent(star[1].trim().replace(/^"|"$/g,''));}catch{/* fall through */}}
+  const plain=/filename\s*=\s*("([^"]*)"|[^;]+)/i.exec(h);
+  const v=plain?(plain[2]??plain[1]).trim():'';
+  return v||undefined;
+}
 export type HttpOptions={
   /** Server origin, e.g. "https://hcc-server.local:8443"; '' = same origin (web app served by the API host). */
   baseUrl?:string;
@@ -34,25 +46,33 @@ export function createHttpTransport(o:HttpOptions={}){
   const base=(o.baseUrl??'').replace(/\/+$/,'')+API_BASE;
   const connection=o.connection??createConnection();
   const retries=Math.max(0,o.commandRetries??1),timeoutMs=o.timeoutMs??15000;
-  async function once<T>(method:'GET'|'POST',path:string,body:unknown,headers:Record<string,string>):Promise<T>{
-    let res:{status:number;ok:boolean;text():Promise<string>};
+  type Res=Awaited<ReturnType<FetchLike>>;
+  async function send(method:'GET'|'POST',path:string,body:unknown,headers:Record<string,string>,accept:string):Promise<{res:Res;text:string}>{
+    let res:Res;
     const ctl=typeof AbortController!=='undefined'?new AbortController():undefined;
     const timer=ctl?setTimeout(()=>ctl.abort(),timeoutMs):undefined;
     try{
-      res=await doFetch(base+path,{method,headers:{Accept:'application/json',...(body!==undefined?{'Content-Type':'application/json'}:{}),...(o.headers?.()??{}),...headers},
+      res=await doFetch(base+path,{method,headers:{Accept:accept,...(body!==undefined?{'Content-Type':'application/json'}:{}),...(o.headers?.()??{}),...headers},
         body:body===undefined?undefined:JSON.stringify(body),credentials:'include',signal:ctl?.signal});
     }catch(e){
       const msg='The hotel server cannot be reached. Check the network; nothing was saved on this device.';
       connection.markUnavailable(msg);throw new HccClientError('UNAVAILABLE',msg,{cause:String((e as Error)?.message??e)},0);
     }finally{if(timer)clearTimeout(timer);}
-    const text=await res.text();
+    return {res,text:await res.text()};
+  }
+  /** A non-2xx response → typed error (the server's JSON error body), keeping the read-only state in step. */
+  function fail(res:Res,text:string):never{
     let json:unknown=undefined;
-    if(text){try{json=JSON.parse(text);}catch{if(res.ok)throw new HccClientError('PROTOCOL','The server sent a response that is not JSON.',undefined,res.status);}}
-    if(!res.ok){
-      const err=errorFromResponse(res.status,json);
-      if(err.wireCode==='UNAVAILABLE')connection.markUnavailable(err.message);else connection.markOnline();
-      throw err;
-    }
+    if(text){try{json=JSON.parse(text);}catch{/* not JSON: generic error for the status */}}
+    const err=errorFromResponse(res.status,json);
+    if(err.wireCode==='UNAVAILABLE')connection.markUnavailable(err.message);else connection.markOnline();
+    throw err;
+  }
+  async function once<T>(method:'GET'|'POST',path:string,body:unknown,headers:Record<string,string>):Promise<T>{
+    const {res,text}=await send(method,path,body,headers,'application/json');
+    if(!res.ok)fail(res,text);
+    let json:unknown=undefined;
+    if(text){try{json=JSON.parse(text);}catch{throw new HccClientError('PROTOCOL','The server sent a response that is not JSON.',undefined,res.status);}}
     connection.markOnline();
     checkWire(json,'response');
     return json as T;
@@ -61,6 +81,15 @@ export function createHttpTransport(o:HttpOptions={}){
   return {
     connection,
     get:<T>(path:string,query:Query={})=>once<T>('GET',path+qs(query),undefined,{}),
+    /** GET of a text file (CSV etc.): the body is returned as text, not parsed; errors are the server's JSON error body as usual.
+     *  Never retried automatically. Used by the production build to download files the server builds (e.g. the payroll bank file). */
+    async getText(path:string,query:Query={}):Promise<TextFile>{
+      const {res,text}=await send('GET',path+qs(query),undefined,{},'text/csv, text/plain;q=0.9, */*;q=0.1');
+      if(!res.ok)fail(res,text);
+      connection.markOnline();
+      const fileName=dispositionFileName(res.headers?.get?.('content-disposition')),contentType=res.headers?.get?.('content-type')??undefined;
+      return {text,...(fileName?{fileName}:{}),...(contentType?{contentType}:{})};
+    },
     /** Plain POST without Idempotency-Key — only for non-command routes (POST /auth/sign-in, /auth/sign-out). Never retried. */
     post:<T>(path:string,body?:unknown)=>once<T>('POST',path,body,{}),
     /** POST /commands/<name> with Idempotency-Key; retried on UNAVAILABLE with the identical key and body. */

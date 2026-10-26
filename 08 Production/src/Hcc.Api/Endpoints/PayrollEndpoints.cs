@@ -87,6 +87,11 @@ public static class PayrollEndpoints
             var (p, u) = http.HccActor();
             return Csv(await q.BankCsvAsync(p, u, runId, issueNo, ct).ConfigureAwait(false));
         });
+        g.MapGet("/payroll/run/{runId:long}/bank-files/latest", async (HttpContext http, long runId, PayrollQueries q, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Csv(await q.LatestBankCsvAsync(p, u, runId, ct).ConfigureAwait(false));
+        });
         g.MapGet("/payroll/payslips/{runId:long}/{staffId:long}", async (HttpContext http, long runId, long staffId, PayrollQueries q, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();

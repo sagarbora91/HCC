@@ -12,3 +12,6 @@ export * from './registry';
 export {core} from './core';
 export {reservations,bookingFromServer} from './reservations';
 export * from './guestid';
+export * from './payfiles';
+export {staffFromServer} from './staff';
+export {createHttpTransport,dispositionFileName} from '../http';

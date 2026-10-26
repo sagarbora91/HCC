@@ -710,6 +710,17 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         return await ReadAsync(c, r => (r.GetInt32(0), r.GetInt32(1), r.GetInt64(2), r.GetDateTime(3)), ct).ConfigureAwait(false);
     }
 
+    public async Task AuditDownloadAsync(int propertyId, int principalId, string action, string target, string detail, CancellationToken ct)
+    {
+        await using var c = Cmd("INSERT plat.audit_event(property_id, principal_id, action, target, detail, operation) VALUES (@p, @u, @a, @t, @d, 'Download');");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@u", SqlDbType.Int, principalId);
+        P(c, "@a", SqlDbType.VarChar, 60, action);
+        P(c, "@t", SqlDbType.VarChar, 60, target);
+        P(c, "@d", SqlDbType.NVarChar, 1000, detail);
+        await c.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task InsertBankFileAsync(long runId, int issueNo, int lockSeq, long net, int by, DateTime utc, CancellationToken ct)
     {
         var c = Cmd("INSERT hr.bank_file(run_id, issue_no, lock_seq, net_paise, issued_by, issued_utc) VALUES (@r, @n, @seq, @net, @by, @at);");

@@ -5,6 +5,9 @@
 // half-day, max staff off per department per day, leave calendar). Payroll run and statutory rates are desktop/tablet tasks:
 // the phone shows a read-only summary (Wave 0.5 placement §2).
 import {saveCsv,saveBinaryFile} from '../../app/native';
+import {getSyncRuntime} from '../../clients/sync/instance'; // production build only (W4 G2: payroll files from the server)
+import {downloadServerPayrollFile} from '../../clients/sync/payfiles'; // production build only
+import {errorText} from '../../clients/errors';
 import {buildXlsx,XLSX_MIME} from '../../app/xlsx';
 import React,{useState} from 'react';
 import {UserPlus,ChevronLeft,ChevronRight,Copy,Download,Lock,Unlock,Calculator,Printer,Plus,Settings2,AlertTriangle,Check,X,Landmark,FileSpreadsheet,Info} from 'lucide-react';
@@ -203,13 +206,19 @@ function Payroll({phone}:{phone:boolean}){
   const stale=r?.status==='Draft'&&(JSON.stringify(hrComputeRun(s,ym).lines)!==JSON.stringify(r.lines)||JSON.stringify(hrRatesFor(s,ym))!==JSON.stringify(r.rates));
   const own=r?.status==='Draft'&&r.preparedBy===uid,errors=r?.status==='Draft'?hrRunErrors(r):[];
   const canUnlock=r?.status==='Locked'&&hrCanRates(s,uid)&&hrLastLockedMonth(s)===ym;
-  const file=(kind:'register'|'bank'|'statutory')=>{const name={register:'payroll-register',bank:'bank-transfer',statutory:'statutory-pf-esic-pt'}[kind]+'-'+ym+'.csv';
+  // W4 G2: production downloads the files the server builds from its run snapshot (the loaded staff master holds MASKED account
+  // numbers, so a browser-built bank file would be wrong); the prototype keeps building them here from its demo data.
+  // (Inline in the branch so the prototype build drops the sync layer.)
+  const file=(kind:'register'|'bank'|'statutory',issueNo?:number)=>{
+    if(process.env.HCC_BUILD==='production'){void downloadServerPayrollFile(getSyncRuntime().transport,kind,r!,saveCsv,issueNo).then(name=>toast(`${name} saved`),
+      e=>toast(`${kind==='bank'?'The bank file is recorded on the server but could not be downloaded':'The file could not be downloaded'}: ${errorText(e)}`,true));return;}
+    const name={register:'payroll-register',bank:'bank-transfer',statutory:'statutory-pf-esic-pt'}[kind]+'-'+ym+'.csv';
     downloadCsv(name,kind==='register'?hrRegisterCsv(s,r!):kind==='bank'?hrBankCsv(s,r!):hrStatutoryCsv(s,r!));toast(`${name} saved (fictional data)`);};
   // F-09: the bank file is recorded; a repeat (also after an unlock) warns about paying twice.
   const issued=r?hrBankFilesIssued(r):[];
   const bankFile=async()=>{const again=issued.length>0;
     if(again&&!window.confirm(`A bank file for ${hrMonthLabel(ym)} was already generated on ${issued[issued.length-1].at} (net ${money(issued[issued.length-1].net)}). Paying a full file again may pay staff twice. Generate it again?`))return;
-    if(await run({type:'HR_PAYROLL_BANK_FILE',id:r!.id,...(again?{confirmReissue:true}:{})},again?'Bank file generated again (reissue recorded)':'Bank file recorded'))file('bank');};
+    if(await run({type:'HR_PAYROLL_BANK_FILE',id:r!.id,...(again?{confirmReissue:true}:{})},again?'Bank file generated again (reissue recorded)':'Bank file recorded'))file('bank',issued.length+1);};
   const xlsx=()=>{void saveBinaryFile(`payroll-register-${ym}.xlsx`,registerXlsx(s,r!),XLSX_MIME);toast('Payroll register Excel saved (fictional data)');};
   const runBtn=<button className={'btn'+(r?'':' primary')} disabled={busy||r?.status==='Locked'} onClick={()=>run({type:'HR_PAYROLL_RUN',month:ym},r?'Payroll recalculated':'Payroll draft prepared')}><Calculator size={16}/> {r?'Recalculate':'Run payroll'}</button>;
   const lockBtn=r?.status==='Draft'&&<button className="btn primary" disabled={busy||own||errors.length>0} title={own?'Prepared by you — the other payroll user locks':undefined} onClick={()=>{if(window.confirm(`Lock ${hrMonthLabel(ym)} payroll? Figures freeze, advance recoveries are posted and payslips are released.`))run({type:'HR_PAYROLL_LOCK',id:r.id},'Payroll locked · payslips released');}}><Lock size={16}/> Lock pay-run</button>;

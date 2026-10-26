@@ -2,7 +2,7 @@
 // Server: Payroll module (08 Production/src/Hcc.Api/Endpoints/PayrollEndpoints.cs, contracts Hcc.Contracts/Payroll).
 //
 //   loaders   staffX ← GET /payroll/staff (master; salaries / bank only for PERM-HR-005, own pay for its owner — DEC-061; phone and
-//             account number arrive MASKED and stay masked) + GET /payroll/board (W4-6 read model: departments, leave policy, roster,
+//             account number arrive MASKED and stay masked; `phoneUsable` enables the WhatsApp payslip send, IFSC comes in clear) + GET /payroll/board (W4-6 read model: departments, leave policy, roster,
 //             attendance with who/when/note, leaves, and — PERM-HR-006 only — rate versions, runs with the STORED lines, payslip sends,
 //             bank files, unlocks, advances, full and final). Other staff get only their own line of each LOCKED run (own pay only).
 //             Payroll figures are the server's stored lines, never recomputed here. Lines and rates are built in the prototype's own
@@ -20,7 +20,8 @@ import {protoId,serverId,utcToClock} from './map';
 // ── Server DTOs (Hcc.Contracts.Payroll) ──
 export type SrvStaffView={staffId:number;name:string;dept:string;designation:string;defaultShift:string;weeklyOff:number;joined:string;exitedOn:string|null;
   active:boolean;linked:boolean;phoneMasked:string;version:string;payType:string|null;monthlyPaise:number|null;dailyPaise:number|null;gender:string|null;
-  structure:string|null;pfApplicable:boolean|null;esicApplicable:boolean|null;bankName:string|null;accountMasked:string|null;linkedUserId?:number|null};
+  structure:string|null;pfApplicable:boolean|null;esicApplicable:boolean|null;bankName:string|null;accountMasked:string|null;linkedUserId?:number|null;
+  /** W4 G2: the stored mobile is a usable WhatsApp number (the number itself stays masked); IFSC for PERM-HR-005 holders. */phoneUsable?:boolean;ifsc?:string|null};
 export type SrvRates={from:string;basicBps:number;hraBps:number;washBps:number;pfEeBps:number;pfErBps:number;pfWageCap:number;esicEeBps:number;esicErBps:number;
   esicCeiling:number;ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;otBps:number;lateBlock:number;
   rounding:string;esicPeriod:boolean};
@@ -77,6 +78,8 @@ export function staffFromServer(x:SrvStaffView):HRStaff{
   if(x.esicApplicable!=null)st.esicApplicable=x.esicApplicable;
   if(x.bankName)st.bankName=x.bankName;
   if(x.accountMasked&&x.accountMasked!=='(none)')st.accountNo=x.accountMasked;   // masked (••••1234): never unmasked here
+  if(x.ifsc)st.ifsc=x.ifsc;                         // not secret: shown so it can be corrected or cleared
+  if(x.phoneUsable)st.phoneUsable=true;             // WhatsApp payslip button without unmasking the number
   return st;
 }
 function runFromServer(r:SrvRun):HRRun{
@@ -135,7 +138,8 @@ const loadedStaff=(c:CommandCtx,id:unknown)=>hr(c)?.staff.find(st=>st.id===Strin
 const text=(v:unknown)=>v===undefined||v===null?undefined:String(v);
 
 /** HR_STAFF_SAVE → SaveStaff. Masked or hidden values the screen shows are never sent back: an unchanged masked phone / account
- *  number, a blank IFSC (not loaded) and a PT slab the caller cannot see are left out (= unchanged on the server). */
+ *  number, an unchanged IFSC and a PT slab the caller cannot see are left out (= unchanged on the server). IFSC is loaded for
+ *  payroll roles (W4 G2), so a cleared IFSC is sent as "" (the server clears it). */
 function saveStaffBody(c:CommandCtx):Record<string,unknown>{
   const cmd=c.cmd,old=cmd.id?loadedStaff(c,cmd.id):undefined;
   const body:Record<string,unknown>={staffId:cmd.id?serverId(cmd.id,'Staff'):null,name:cmd.name,dept:cmd.dept,designation:cmd.designation,
@@ -151,7 +155,7 @@ function saveStaffBody(c:CommandCtx):Record<string,unknown>{
   if(cmd.esicApplicable!==undefined)body.esicApplicable=!!cmd.esicApplicable;
   if(cmd.bankName!==undefined&&String(cmd.bankName).trim()!==(old?.bankName??''))body.bankName=String(cmd.bankName).trim();
   if(cmd.accountNo!==undefined&&String(cmd.accountNo).trim()!==(old?.accountNo??''))body.accountNo=String(cmd.accountNo).trim();
-  if(cmd.ifsc!==undefined&&String(cmd.ifsc).trim())body.ifsc=String(cmd.ifsc).trim().toUpperCase();
+  if(cmd.ifsc!==undefined){const v=String(cmd.ifsc).trim().toUpperCase();if(old?v!==(old.ifsc??'').toUpperCase():!!v)body.ifsc=v;}
   return body;
 }
 

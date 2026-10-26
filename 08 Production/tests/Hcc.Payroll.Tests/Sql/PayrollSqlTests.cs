@@ -108,7 +108,14 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         Assert.Contains("'" + old, csv, StringComparison.Ordinal);
         Assert.DoesNotContain("999999999999", csv, StringComparison.Ordinal);
         await Hotel.FailsAsync(() => h.Payroll.IssueBankFileAsync(h.As("accountant", PayrollService.OpIssueBankFile), new IssueBankFileRequest(aug.RunId), Ct), HccErrorCode.INVALID_TRANSITION);
+        // W4 G2: "latest" = the file just issued (real account numbers frozen at lock); every download is audited without the number.
+        var latest = await h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, Ct);
+        Assert.Equal(($"bank-transfer-{new PayMonth(2026, 8)}-1.csv", csv), (latest.FileName, latest.Content));
+        await Hotel.FailsAsync(() => h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("manager"), aug.RunId, Ct), HccErrorCode.FORBIDDEN);
+        Assert.Equal(2, await db.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'HR_BANK_FILE_DOWNLOADED' AND operation = 'Download' AND principal_id = @u;", ("@u", h.U("accountant"))));
+        Assert.DoesNotContain(old, (string)(await db.ScalarAsync("SELECT STRING_AGG(detail, '|') FROM plat.audit_event;"))!, StringComparison.Ordinal);
         Assert.True((await h.Payroll.IssueBankFileAsync(h.As("accountant", PayrollService.OpIssueBankFile), new IssueBankFileRequest(aug.RunId, ConfirmReissue: true), Ct)).Value.Reissue);
+        Assert.EndsWith("-2.csv", (await h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, Ct)).FileName, StringComparison.Ordinal);
         // Accounting's contract: the first bank file of a lock is the one PayrollPaid (net pay); a re-issue is not a second payment.
         Assert.Equal(1, await db.LongAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'PayrollPaid' AND aggregate_id = @r;", ("@r", aug.RunId)));
 
@@ -126,6 +133,7 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         Assert.Equal(0, await db.LongAsync("SELECT recovered_paise FROM hr.advance WHERE staff_id = @s;", ("@s", ravi)));   // recoveries reversed
         Assert.Equal("superseded", (await h.Queries.GetPayRunAsync(h.PropertyId, h.U("owner"), new PayMonth(2026, 8), Ct)).Lines.Single(l => l.StaffId == ravi).PayslipMark);
         await Hotel.FailsAsync(() => h.Queries.BankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, 1, Ct), HccErrorCode.INVALID_TRANSITION);
+        await Hotel.FailsAsync(() => h.Queries.LatestBankCsvAsync(h.PropertyId, h.U("accountant"), aug.RunId, Ct), HccErrorCode.INVALID_TRANSITION);
         // Relock (lock 2) freezes the NEW bank details; the old file stays superseded.
         var relocked = await h.Payroll.LockPayRunAsync(h.As("owner", PayrollService.OpLockPayRun), new LockPayRunRequest(aug.RunId, unlocked.Value.Version), Ct);
         Assert.Equal("Locked", relocked.Value.Status);
@@ -328,6 +336,13 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         Assert.Equal([ravi], own.Select(s => s.StaffId));
         var pay = await h.Queries.GetStaffAsync(h.PropertyId, h.U("accountant"), Ct);
         Assert.All(pay, s => Assert.StartsWith("••••", s.AccountMasked!, StringComparison.Ordinal));
+        // W4 G2: IFSC only for PERM-HR-005; the WhatsApp flag for everyone who sees the (masked) mobile — it follows the server's own rule.
+        Assert.All(staff, s => Assert.Null(s.Ifsc));
+        Assert.Contains(pay, s => s.Ifsc is { Length: 11 });
+        var usable = PayrollGolden.Data.Staff.Where(g => PayrollFiles.WhatsAppNumber(g.Phone).Length > 0).Select(g => h.S(g.Id)).Order();
+        Assert.Equal(usable, pay.Where(s => s.PhoneUsable).Select(s => s.StaffId).Order());
+        Assert.NotEmpty(usable);
+        Assert.Equal(pay.Select(s => s.PhoneUsable), staff.Select(s => s.PhoneUsable));
     }
 
     [Fact]

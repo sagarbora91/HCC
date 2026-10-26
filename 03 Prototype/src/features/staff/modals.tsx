@@ -275,11 +275,13 @@ export function HRPayslipModal({id}:{id?:string}){
   const run=hrSlice(s).runs.find(r=>r.id===runId),line=run?.lines.find(l=>l.staffId===staffId);
   const me=hrStaffOfUser(s,uid),pay=hrCanPay(s,uid),allowed=pay||(me?.id===staffId&&run?.status==='Locked');
   if(!run||!line||!allowed)return <Empty title="Payslip unavailable" body="Payslips are released when payroll is locked. You can see only your own."/>;
-  const st=hrStaffById(s,staffId),wa=st?hrWaNumber(st.phone):'',sent=(run.sent??[]).filter(x=>x.staffId===staffId);
+  const st=hrStaffById(s,staffId),sent=(run.sent??[]).filter(x=>x.staffId===staffId);
+  // W4 G2: in production the mobile is masked (••••0001); the server's phoneUsable flag enables the send and the server resolves the number.
+  const wa=process.env.HCC_BUILD==='production'?(st?.phoneUsable?st.phone:''):st?hrWaNumber(st.phone):'',to=process.env.HCC_BUILD==='production'?wa:`+${wa}`;
   return <><HRPayslipDoc run={run} line={line}/>
-    {pay&&run.status==='Locked'&&<div className="hr-wa no-print"><div><strong><MessageCircle size={15}/> WhatsApp (simulated)</strong><small>{wa?`To +${wa}`:'No usable mobile number'}{sent.length?` · sent ${sent.length}× · last ${sent[sent.length-1].at.slice(11)} ${shortDate(sent[sent.length-1].at.slice(0,10))}`:''}</small></div>
+    {pay&&run.status==='Locked'&&<div className="hr-wa no-print"><div><strong><MessageCircle size={15}/> WhatsApp (simulated)</strong><small>{wa?`To ${to}`:'No usable mobile number'}{sent.length?` · sent ${sent.length}× · last ${sent[sent.length-1].at.slice(11)} ${shortDate(sent[sent.length-1].at.slice(0,10))}`:''}</small></div>
       <pre>{hrPayslipMessage(s,run,line)}</pre></div>}
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button>
-      {pay&&run.status==='Locked'&&<button className="btn" disabled={busy||!wa} onClick={()=>exec({type:'HR_PAYSLIP_SEND',runId:run.id,staffId},'Payslip sent on WhatsApp (simulated — nothing left this device)')}><MessageCircle size={16}/> Send on WhatsApp{wa?` to +${wa}`:''}</button>}
+      {pay&&run.status==='Locked'&&<button className="btn" disabled={busy||!wa} onClick={()=>exec({type:'HR_PAYSLIP_SEND',runId:run.id,staffId},'Payslip sent on WhatsApp (simulated — nothing left this device)')}><MessageCircle size={16}/> Send on WhatsApp{wa?` to ${to}`:''}</button>}
       <button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Payslip PDF</button></div></>;
 }

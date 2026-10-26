@@ -97,7 +97,10 @@ public sealed record StaffView(long StaffId, string Name, string Dept, string De
     string? PayType = null, long? MonthlyPaise = null, long? DailyPaise = null, string? Gender = null, string? Structure = null, bool? PfApplicable = null,
     bool? EsicApplicable = null, string? BankName = null, string? AccountMasked = null,
     // W4-6: the linked login (null = none), so a manager's edit keeps the link and "my record" is found (DEC-061); not money.
-    int? LinkedUserId = null);
+    int? LinkedUserId = null,
+    // W4 G2: whether the stored mobile is a usable WhatsApp number (the payslip send resolves it on the server; the number stays masked),
+    // and the IFSC for PERM-HR-005 holders (not secret; shown so it can be corrected or cleared). Null IFSC = hidden or none.
+    bool PhoneUsable = false, string? Ifsc = null);
 
 public sealed record PayLineView(long StaffId, string Name, string Dept, string Designation, string PayType, decimal PayableDays,
     long EarnedPaise, long BasicPaise, long HraPaise, long WashingPaise, long SpecialPaise, long OtPaise, long GrossPaise, long PfWagesPaise, long PfPaise,
