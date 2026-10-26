@@ -8,8 +8,10 @@ public sealed record PostRoomNightRequest(long StayId, DateOnly ServiceDate);
 /// <summary>
 /// POST /api/v1/commands/PostCharge (K). Service charge on today's business date at the GST master rate in force (DEC-069).
 /// <c>GstCategory</c> = food | laundry | banquet | other; when omitted it is guessed from the label (prototype gstCategoryOfLabel).
+/// DEC-077: <c>ServiceDate</c> may name the reopened business day (a missed charge posts on it at that day's GST rate); any other earlier
+/// date is DAY_CLOSED, a later one VALIDATION.
 /// </summary>
-public sealed record PostChargeRequest(long FolioId, string Label, long AmountPaise, string? GstCategory = null);
+public sealed record PostChargeRequest(long FolioId, string Label, long AmountPaise, string? GstCategory = null, DateOnly? ServiceDate = null);
 
 public sealed record ChargeResult(long ChargeId, long FolioId, string Kind, DateOnly ServiceDate, string Label, long AmountPaise, int TaxBps,
     long TaxPaise, bool Created, string FolioVersion);

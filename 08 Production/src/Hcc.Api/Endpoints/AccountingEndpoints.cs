@@ -20,7 +20,11 @@ public static class AccountingEndpoints
         services.AddSingleton(sp => new AccountingVoucherProjector(sp.GetRequiredService<SqlPlatform>().Connections, sp.GetRequiredService<SqlPlatform>().Outbox,
             sp.GetRequiredService<IChargeGstReader>(), sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton<AccountingService>();
-        services.AddSingleton<AccountingQueries>();
+        // DEC-077: the Tally export is recorded (log + audit) on the platform runner: it posts on no business date, so the late-write
+        // barrier does not apply.
+        services.AddSingleton(sp => new AccountingQueries(sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(),
+            sp.GetService<Hcc.Application.Import.IOpeningBalanceSource>(), sp.GetRequiredService<SqlPlatform>().Commands, sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IAccountingDayHooks, AccountingDayHooks>(); // DEC-077: Closing's reopen asks for the period lock and flags Tally re-export
         services.AddHostedService<AccountingProjectorWorker>();
         return services;
     }

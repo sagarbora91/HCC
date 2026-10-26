@@ -3,7 +3,7 @@
 import {usePaged,ShowMore} from '../../components/ShowMore';
 import React,{useState,useEffect} from 'react';
 import {BookOpen,Check,Printer,ArrowRight,AlertTriangle,Zap,RotateCcw,ChevronDown} from 'lucide-react';
-import {money,addDays,closingSummary,shiftExpected} from '../../services/mock';
+import {money,addDays,closingSummary,shiftExpected,closingReopened} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {navItems} from '../../app/nav';
 import {ListCard,StickyFooter} from '../../app/mobile/components';
@@ -12,6 +12,7 @@ import {DayPackButton} from '../../features/exports/DayPack';
 import {ClosingSummaryView} from '../../features/closing/ClosingReport';
 import {maClosingModel,MaStep,MaStepId,MaBlocker} from './logic';
 import {CashLockNote} from '../../features/cashbook/LockNote';
+import {ReopenDay} from '../../features/closing/ReopenDay';
 import {MaTag,MaRows} from './parts';
 
 const STATE_TEXT={done:'Complete',current:'To do',blocked:'Blocked',waiting:'Waiting'} as const;
@@ -67,6 +68,7 @@ export function MaClosing(){
     <div className="ma-closing-head"><div><small>Business date</small><strong>{dateLabel(s.date)}</strong></div><MaTag tone={md.closed?'neutral':'ok'}>{md.closed?'Day closed':'Day open'}</MaTag>
       <button type="button" className="btn ma-print" onClick={()=>open({type:'closing-report',id:s.date})} aria-label={md.closed?'Print closing report':'Print preview of closing report'}><Printer size={18}/>Report</button></div>
     {md.resume&&<button type="button" className="ma-resume" onClick={()=>toStep('nights')}><AlertTriangle size={20}/><span><strong>Closing was interrupted — resume here</strong><small>{md.resume.posted} of {md.resume.total} nights posted · {md.resume.remaining} remaining · nothing posts twice</small></span><ArrowRight size={18}/></button>}
+    {closingReopened(s)&&<ReopenDay phone/>}
     {!canClose&&<div className="ma-note"><AlertTriangle size={18}/><span>You can review the preflight. Posting nights, closing and opening the next day need the close permission (Manager or Owner).</span></div>}
     <ol className="ma-vsteps" aria-label={`Day closing, step ${md.focus+1} of 6`}>
       {md.steps.map((st,i)=>{const isOpen=expanded===st.id;return <li key={st.id} id={'ma-step-'+st.id} className={st.state+(i===md.focus?' focus':'')} aria-current={i===md.focus?'step':undefined}>
@@ -78,8 +80,9 @@ export function MaClosing(){
       </li>;})}
     </ol>
     <CashLockNote/>
+    {!closingReopened(s)&&<ReopenDay phone/>}
     <h2 className="ma-h2">Earlier closing records</h2>
-    {pastClosings.length?pgClose.shown.map(d=>{const c=s.closings![d];return <ListCard key={d} title={dateLabel(d)} sub={`Net revenue ${money(c.revenue.net)} · receipts ${money(c.receipts.net)}`} meta={`Counted cash ${money(c.cash.counted)}${c.cash.difference?' · difference '+money(c.cash.difference):''} · tap to view / print`} onClick={()=>open({type:'closing-report',id:d})}/>;})
+    {pastClosings.length?pgClose.shown.map(d=>{const c=s.closings![d];return <ListCard key={d} title={dateLabel(d)} sub={`Net revenue ${money(c.revenue.net)} · receipts ${money(c.receipts.net)}`} meta={`Counted cash ${money(c.cash.counted)}${c.cash.difference?' · difference '+money(c.cash.difference):''}${c.reopens?.some(r=>!r.reclosedAt)?' · reopened':c.replaced?.length?' · closed again':''} · tap to view / print`} onClick={()=>open({type:'closing-report',id:d})}/>;})
       :<Empty title="No earlier closing records" body="Close a business day to create its record."/>}
     <ShowMore p={pgClose}/>
     {primary&&<StickyFooter><div className="ma-primary"><button type="button" className="btn primary" disabled={busy||!!primary.why} onClick={primary.fn}>{primary.label}<ArrowRight size={18}/></button>{primary.why&&<small className="ma-why">{primary.why}</small>}</div></StickyFooter>}

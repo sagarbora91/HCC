@@ -156,4 +156,8 @@ public sealed record MappingChangeView(long ChangeId, DateTime AtUtc, int Actor,
 public sealed record LockEventView(long LockId, DateOnly BusinessDate, string Action, DateTime AtUtc, int Actor, string? Reason);
 
 /// <summary>Simulated Tally XML (never sent anywhere; saving it does not mean it was imported).</summary>
-public sealed record TallyExportView(DateOnly From, DateOnly To, int Dates, int VoucherCount, long DebitPaise, long CreditPaise, bool Simulated, string FileName, string Xml);
+/// <param name="ReexportDates">DEC-077: dates carried again because they changed after an earlier export (their day was reopened); the XML names each.</param>
+/// <param name="ProvisionalDates">DEC-077: the reopened day, when carried (it may still change; it stays flagged).</param>
+/// <param name="ExportId">The export log row (acc.tally_export) this download was recorded as.</param>
+public sealed record TallyExportView(DateOnly From, DateOnly To, int Dates, int VoucherCount, long DebitPaise, long CreditPaise, bool Simulated, string FileName, string Xml,
+    IReadOnlyList<DateOnly>? ReexportDates = null, IReadOnlyList<DateOnly>? ProvisionalDates = null, long? ExportId = null);

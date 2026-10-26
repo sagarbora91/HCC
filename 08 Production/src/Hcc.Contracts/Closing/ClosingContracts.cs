@@ -38,8 +38,11 @@ public sealed record PreflightResult(DateOnly BusinessDate, bool Closed, IReadOn
 public sealed record ClosingRecord(DateOnly BusinessDate, int ClosedBy, DateTime ClosedUtc, long RunId, int Attempts, bool NightAuditResumed,
     int NightAuditStays, long DepositsHeldAtClosePaise, IReadOnlyList<string> Exceptions, DailyReport Figures);
 
-/// <summary>GET /api/v1/closing/snapshots/{date} (PERM-RPT-002). <c>Sha256</c> = hex of the stored canonical JSON.</summary>
-public sealed record ClosingSnapshotView(long SnapshotId, string Sha256, ClosingRecord Record);
+/// <summary>
+/// GET /api/v1/closing/snapshots/{date} (PERM-RPT-002). <c>Sha256</c> = hex of the stored canonical JSON. DEC-077: <c>ReopenId</c> = the
+/// reopen whose re-close wrote this record (null for the first close); <c>SupersededUtc</c> = when a later re-close replaced it (history).
+/// </summary>
+public sealed record ClosingSnapshotView(long SnapshotId, string Sha256, ClosingRecord Record, long? ReopenId = null, DateTime? SupersededUtc = null);
 
 /// <summary>POST /api/v1/commands/LockCashBookDay (K). A checker (not the counter, the difference approver or the closer) locks a closed day.</summary>
 public sealed record LockCashBookDayRequest(DateOnly BusinessDate);
@@ -60,7 +63,32 @@ public sealed record PostRoomNightsRequest(DateOnly BusinessDate);
 public sealed record PostRoomNightsResult(DateOnly BusinessDate, int Stays, int PostedNow, int AlreadyPosted);
 
 /// <summary>GET /api/v1/closing/business-date (any session). The property's current business date (DEC-042) and whether it is already closed (next day not yet opened).</summary>
-public sealed record BusinessDateView(DateOnly BusinessDate, bool Closed);
+/// <param name="ReopenedDate">DEC-077: the earlier business date the Owner has reopened (not yet closed again), if any.</param>
+public sealed record BusinessDateView(DateOnly BusinessDate, bool Closed, DateOnly? ReopenedDate = null);
 
-/// <summary>GET /api/v1/closing/records?from=&amp;to= (PERM-RPT-002): the closing records of the closed dates in the range, oldest first.</summary>
-public sealed record ClosingRecordsView(DateOnly From, DateOnly To, IReadOnlyList<ClosingSnapshotView> Items);
+/// <summary>
+/// GET /api/v1/closing/records?from=&amp;to= (PERM-RPT-002): the current closing records of the closed dates in the range, oldest first.
+/// DEC-077: <c>Replaced</c> = the earlier records of those dates that a re-close replaced (history, oldest first); <c>Reopens</c> = every
+/// reopen of a date in the range, plus the open reopen wherever its date is.
+/// </summary>
+public sealed record ClosingRecordsView(DateOnly From, DateOnly To, IReadOnlyList<ClosingSnapshotView> Items,
+    IReadOnlyList<ClosingSnapshotView>? Replaced = null, IReadOnlyList<DayReopenView>? Reopens = null);
+
+/// <summary>
+/// POST /api/v1/commands/ReopenBusinessDay (K). DEC-077: the Owner (PERM-CLS-004) reopens a closed business day with a reason (audited).
+/// Refused for a day that is not closed or whose close has not finished, while another day is reopened, and for a day locked in Accounting.
+/// Corrections of that day's lines and missed charges then post on it; RunBusinessDayClose for the date closes it again. The day's
+/// cash-book lock (DEC-065) is not changed.
+/// </summary>
+public sealed record ReopenBusinessDayRequest(DateOnly BusinessDate, string Reason);
+
+/// <summary>One reopen of a closed business day (DEC-077).</summary>
+/// <param name="Status">Reopened (corrections post on it) or Closed (closed again; <c>SnapshotId</c> = the closing record it wrote).</param>
+/// <param name="PriorSnapshotId">The closing record in force when it was reopened (kept as history after the re-close).</param>
+/// <param name="CashBookLocked">The day's DEC-065 cash-book lock when reopened (a reopen does not unlock it).</param>
+/// <param name="TallyReexport">The day had been exported to Tally: its vouchers were marked changed for the next export.</param>
+public sealed record DayReopenView(long ReopenId, DateOnly BusinessDate, string Status, int ReopenedBy, DateTime ReopenedUtc, string Reason,
+    long PriorSnapshotId, bool CashBookLocked, bool TallyReexport, int? ReclosedBy, DateTime? ReclosedUtc, long? SnapshotId);
+
+/// <summary>Result of ReopenBusinessDay: the reopen and what it means (cash-book lock, Tally re-export) in words.</summary>
+public sealed record ReopenBusinessDayResult(DayReopenView Reopen, string Message);

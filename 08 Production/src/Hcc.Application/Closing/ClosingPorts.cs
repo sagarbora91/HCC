@@ -23,6 +23,12 @@ public static class ClosingPermissions
     /// <summary>Cash-book reopen (DEC-065: Owner only, with a reason). Mapped to close.correction.approve (Owner only).</summary>
     public const string CashBookReopen = "PERM-CLS-004";
 
+    /// <summary>
+    /// DEC-077 business-day reopen (Owner only, with a reason): close.correction.approve, the matrix's Owner-only closed-date correction
+    /// approval (§7) — the same grant as <see cref="CashBookReopen"/>; a dedicated id can follow with role matrix v2.
+    /// </summary>
+    public const string DayReopen = "PERM-CLS-004";
+
     public const string ReportOperations = "PERM-RPT-001";
     public const string ReportFinance = "PERM-RPT-002";
     public const string ReportExport = "PERM-RPT-003";
@@ -43,6 +49,13 @@ public interface IBusinessDayGuard
 
     /// <summary>DEC-065: DAY_CLOSED while the cash-book day <paramref name="date"/> is locked (corrections or cash entries touching it).</summary>
     Task EnsureCashBookOpenAsync(ICommandTransaction tx, int propertyId, DateOnly date, string what, CancellationToken ct = default);
+
+    /// <summary>
+    /// DEC-077: true when <paramref name="date"/> is the property's reopened business day (Owner reopen, not closed again). Takes a shared
+    /// lock on that day for the rest of the writer's transaction, so the re-close (exclusive) waits for in-flight corrections and every
+    /// later writer sees the day closed again.
+    /// </summary>
+    Task<bool> IsReopenedAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -82,9 +95,17 @@ public sealed record CloseRunRow(long RunId, int PropertyId, DateOnly BusinessDa
 
 public sealed record CloseStepRow(string Step, string Status, int Attempt, string Detail, DateTime UpdatedUtc);
 
-public sealed record SnapshotRow(long SnapshotId, DateOnly BusinessDate, string Json, byte[] Sha256);
+public sealed record SnapshotRow(long SnapshotId, DateOnly BusinessDate, string Json, byte[] Sha256, long? ReopenId = null, DateTime? SupersededUtc = null);
 
-public sealed record NewSnapshot(int PropertyId, DateOnly BusinessDate, long RunId, int ClosedBy, DateTime ClosedUtc, ClosingRecord Record, string Json, byte[] Sha256);
+/// <param name="ReopenId">DEC-077: the reopen whose re-close writes this record (null for a first close).</param>
+public sealed record NewSnapshot(int PropertyId, DateOnly BusinessDate, long RunId, int ClosedBy, DateTime ClosedUtc, ClosingRecord Record, string Json, byte[] Sha256,
+    long? ReopenId = null);
+
+/// <summary>One reopen of a closed business day (DEC-077, migration 3600 <c>cls.day_reopen</c>); open while <see cref="ReclosedUtc"/> is null.</summary>
+public sealed record DayReopenRow(long ReopenId, int PropertyId, DateOnly BusinessDate, int ReopenedBy, DateTime ReopenedUtc, string Reason, long PriorSnapshotId,
+    bool CashBookLocked, bool TallyReexport, int? ReclosedBy, DateTime? ReclosedUtc, long? SnapshotId);
+
+public sealed record NewDayReopen(int PropertyId, DateOnly BusinessDate, int ReopenedBy, DateTime ReopenedUtc, string Reason, long PriorSnapshotId, bool CashBookLocked);
 
 public sealed record CashBookDayRow(DateOnly BusinessDate, bool Locked, int? LockedBy, DateTime? LockedUtc);
 
@@ -140,6 +161,35 @@ public interface IClosingStore
 
     /// <summary>A session-level exclusive lease for running the property's close (released on dispose or when the process/connection dies); null when held elsewhere.</summary>
     Task<IAsyncDisposable?> TryAcquireRunLeaseAsync(int propertyId, CancellationToken ct);
+
+    // ── DEC-077 reopen of a closed business day ──
+
+    /// <summary>The property's open reopen, if any. Inside a command the read holds an update lock (concurrent reopens serialize).</summary>
+    Task<DayReopenRow?> OpenReopenAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
+
+    /// <summary>Inserts the open reopen row (<paramref name="tallyReexport"/> = the day had been exported to Tally).</summary>
+    Task<long> InsertReopenAsync(ICommandTransaction tx, NewDayReopen reopen, bool tallyReexport, CancellationToken ct);
+
+    /// <summary>
+    /// The re-close's barrier: an exclusive lock on the reopened day (writers that post on it hold it shared, see
+    /// <see cref="IBusinessDayGuard.IsReopenedAsync"/>), taken before anything is read; then the open reopen row of that day, or null.
+    /// </summary>
+    Task<DayReopenRow?> LockReopenForCloseAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct);
+
+    /// <summary>Stamps the reopen closed again with the closing record it wrote.</summary>
+    Task MarkReclosedAsync(ICommandTransaction tx, long reopenId, int principalId, DateTime nowUtc, long snapshotId, CancellationToken ct);
+
+    /// <summary>Stamps the current closing record of a reopened day as replaced by that reopen's re-close (the one change migration 3600 allows).</summary>
+    Task SupersedeSnapshotAsync(ICommandTransaction tx, long snapshotId, long reopenId, DateTime nowUtc, CancellationToken ct);
+
+    /// <summary>Reopens of the dates in the inclusive range plus the open reopen wherever its date is, oldest first.</summary>
+    Task<IReadOnlyList<DayReopenRow>> ReopensAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
+    /// <summary>The replaced (superseded) closing records of the dates in the range, oldest first.</summary>
+    Task<IReadOnlyList<SnapshotRow>> ReadReplacedSnapshotsAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
+    /// <summary>Pending, unexpired correction requests whose target line is dated <paramref name="date"/> (the re-close check).</summary>
+    Task<IReadOnlyList<PendingApproval>> PendingCorrectionsAsync(ICommandTransaction tx, int propertyId, DateOnly date, DateTime nowUtc, CancellationToken ct);
 }
 
 /// <summary>Reads the source records of the daily pack for a range (inside the close transaction, or on an own connection for reports).</summary>

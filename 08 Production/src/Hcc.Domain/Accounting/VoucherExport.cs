@@ -68,8 +68,15 @@ public static partial class VoucherExport
         return to.DayNumber - from.DayNumber + 1 > TallyMaxDays ? $"Choose at most {TallyMaxDays} days." : null;
     }
 
-    /// <summary>Vouchers as a Tally "Import Data" envelope (simulated; nothing is sent anywhere).</summary>
-    public static string TallyXml(IEnumerable<Voucher> vouchers, string company)
+    /// <summary>An XML comment line with free text (escaped; "--" cannot end a comment early).</summary>
+    public static string TallyNote(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return "<!-- " + XmlEscape(text).Replace("--", "- -", StringComparison.Ordinal) + " -->";
+    }
+
+    /// <summary>Vouchers as a Tally "Import Data" envelope (simulated; nothing is sent anywhere). <paramref name="notes"/> (DEC-077 re-export / provisional days) follow the SIMULATED comment.</summary>
+    public static string TallyXml(IEnumerable<Voucher> vouchers, string company, IReadOnlyList<string>? notes = null)
     {
         ArgumentNullException.ThrowIfNull(vouchers);
         ArgumentNullException.ThrowIfNull(company);
@@ -84,7 +91,7 @@ public static partial class VoucherExport
             sb.Append("\n   </VOUCHER></TALLYMESSAGE>");
             return sb.ToString();
         }));
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + TallyComment + "\n<ENVELOPE>\n <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>\n <BODY><IMPORTDATA>\n"
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + TallyComment + "\n" + string.Concat((notes ?? []).Select(n => TallyNote(n) + "\n")) + "<ENVELOPE>\n <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>\n <BODY><IMPORTDATA>\n"
             + $"  <REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME><STATICVARIABLES><SVCURRENTCOMPANY>{XmlEscape(company)}</SVCURRENTCOMPANY></STATICVARIABLES></REQUESTDESC>\n"
             + "  <REQUESTDATA>\n" + body + "\n  </REQUESTDATA>\n </IMPORTDATA></BODY>\n</ENVELOPE>\n";
     }

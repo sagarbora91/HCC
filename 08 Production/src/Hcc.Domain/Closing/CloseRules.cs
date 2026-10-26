@@ -59,7 +59,7 @@ public sealed record ActiveShift(long ShiftId, string TillCode, string Status, D
 
 public sealed record PreflightData(DateOnly BusinessDate, IReadOnlyList<PendingArrival> Arrivals, IReadOnlyList<OverdueDeparture> Departures,
     IReadOnlyList<ExpiredHold> Holds, IReadOnlyList<NightTarget> Nights, IReadOnlyList<PendingApproval> Approvals, IReadOnlyList<ActiveShift> Shifts,
-    IReadOnlyList<PreflightItem>? PosChecks = null, IReadOnlyList<PreflightItem>? PosVoids = null);
+    IReadOnlyList<PreflightItem>? PosChecks = null, IReadOnlyList<PreflightItem>? PosVoids = null, IReadOnlyList<DateOnly>? Reopened = null);
 
 /// <summary>
 /// Closing checks ported from the prototype (<c>closingPreflight</c>, <c>DAY_CLOSE</c> in <c>03 Prototype/src/domain/streams/closing.ts</c>
@@ -76,8 +76,11 @@ public static class CloseRules
     public const string PosVoidRequests = "posVoids";
     public const string Shift = "shift";
 
+    /// <summary>DEC-077: a reopened earlier day blocks the current day's close until it is closed again.</summary>
+    public const string Reopened = "reopened";
+
     /// <summary>Checks the preflight step blocks on (before the night posting).</summary>
-    public static readonly IReadOnlySet<string> PreflightBlocking = new HashSet<string>(StringComparer.Ordinal) { Arrivals, Departures, Holds, Approvals, Pos, PosVoidRequests };
+    public static readonly IReadOnlySet<string> PreflightBlocking = new HashSet<string>(StringComparer.Ordinal) { Reopened, Arrivals, Departures, Holds, Approvals, Pos, PosVoidRequests };
 
     /// <summary>Checks the cash step blocks on.</summary>
     public static readonly IReadOnlySet<string> CashBlocking = new HashSet<string>(StringComparer.Ordinal) { Shift };
@@ -97,6 +100,8 @@ public static class CloseRules
 
         return
         [
+            Check(Reopened, "Reopened day closed again", "Close the reopened day again (Day closing) before closing today.",
+                (data.Reopened ?? []).Select(d => new PreflightItem($"{Iso(d)} reopened by the Owner · close it again", "day:" + Iso(d)))),
             Check(Arrivals, "Arrivals resolved", "Check in, or cancel after refunding advances.",
                 data.Arrivals.Select(a => new PreflightItem($"{a.Guest}{Room(a.RoomNo)} · {a.PublicNo}", "reservation:" + a.ReservationId))),
             Check(Departures, "Overdue departures resolved", "Settle and check out, or extend the stay.",

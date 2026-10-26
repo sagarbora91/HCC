@@ -25,6 +25,44 @@ public sealed record MappingChange(long ChangeId, DateTime AtUtc, int Actor, str
 
 public sealed record LockEvent(long LockId, DateOnly BusinessDate, string Action, DateTime AtUtc, int Actor, string? Reason);
 
+/// <summary>An open Tally re-export flag (DEC-077, migration 3601): the date's vouchers changed after they were exported (its day was reopened).</summary>
+public sealed record TallyReexportFlag(long ReexportId, DateOnly BusinessDate, long? ReopenId, string Reason, DateTime MarkedUtc);
+
+/// <summary>One recorded Tally export: the range asked for, what it carried per date, and the flags it clears.</summary>
+public sealed record NewTallyExport(int PropertyId, DateOnly From, DateOnly To, int VoucherCount, long Debit, long Credit, int ExportedBy, DateTime ExportedUtc,
+    IReadOnlyList<(DateOnly Date, int Vouchers, bool Reexport, bool Provisional)> Days, IReadOnlyList<long> ClearFlags);
+
+/// <summary>
+/// DEC-077: what the Closing module asks Accounting inside its ReopenBusinessDay transaction (absent when Accounting is not composed).
+/// </summary>
+public interface IAccountingDayHooks
+{
+    /// <summary>Serialises with LockAccountingPeriod / UnlockAccountingPeriod of the date (same application lock); true when the date has a current period lock.</summary>
+    Task<bool> IsLockedAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct);
+
+    /// <summary>True when an earlier Tally export carried the date.</summary>
+    Task<bool> WasExportedToTallyAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct);
+
+    /// <summary>Flags an exported date changed (its day was reopened) so the next Tally export carries it again (an open flag stays as it is).</summary>
+    Task MarkChangedForTallyAsync(ICommandTransaction tx, int propertyId, DateOnly date, long reopenId, string reason, DateTime nowUtc, CancellationToken ct);
+}
+
+/// <summary>SQL-agnostic <see cref="IAccountingDayHooks"/> over the accounting store.</summary>
+public sealed class AccountingDayHooks(IAccountingStore store) : IAccountingDayHooks
+{
+    public async Task<bool> IsLockedAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct)
+    {
+        await store.SerializeAsync(tx, AccountingDays.PeriodResource(propertyId, date), ct).ConfigureAwait(false);
+        return await store.CurrentLockAsync(tx, propertyId, date, ct).ConfigureAwait(false) is not null;
+    }
+
+    public Task<bool> WasExportedToTallyAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct)
+        => store.TallyExportedAsync(tx, propertyId, date, ct);
+
+    public Task MarkChangedForTallyAsync(ICommandTransaction tx, int propertyId, DateOnly date, long reopenId, string reason, DateTime nowUtc, CancellationToken ct)
+        => store.FlagTallyReexportAsync(tx, propertyId, date, reopenId, reason, nowUtc, ct);
+}
+
 /// <summary>
 /// Accounting persistence. A null transaction reads committed data on its own connection (queries); inside a command the
 /// command's transaction is used. Sources are append-only; locks are never deleted (unlock stamps the row, history kept).
@@ -69,4 +107,21 @@ public interface IAccountingStore
     Task<IReadOnlyList<DateOnly>> ActivityDatesAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
 
     Task<string> PropertyNameAsync(int propertyId, CancellationToken ct);
+
+    // ── DEC-077: reopened business day and the Tally export log (migrations 3600, 3601) ──
+
+    /// <summary>The business date the Owner has reopened (Closing, not closed again), if any: it counts as Open here (not lockable, vouchers live).</summary>
+    Task<DateOnly?> ReopenedDateAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
+
+    /// <summary>True when an earlier Tally export carried <paramref name="date"/>.</summary>
+    Task<bool> TallyExportedAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct);
+
+    /// <summary>Flags <paramref name="date"/> for Tally re-export when an earlier export carried it (once: an open flag stays); true when it had been exported.</summary>
+    Task<bool> FlagTallyReexportAsync(ICommandTransaction tx, int propertyId, DateOnly date, long? reopenId, string reason, DateTime now, CancellationToken ct);
+
+    /// <summary>The property's open re-export flags, oldest date first.</summary>
+    Task<IReadOnlyList<TallyReexportFlag>> TallyReexportsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
+
+    /// <summary>Writes the export log row and its days and clears <see cref="NewTallyExport.ClearFlags"/>; returns the export id.</summary>
+    Task<long> RecordTallyExportAsync(ICommandTransaction tx, NewTallyExport export, CancellationToken ct);
 }

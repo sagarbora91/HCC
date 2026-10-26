@@ -1,8 +1,9 @@
 // Module 20 · Accounting automation — command handlers. Command types MUST start with 'ACC_'. Return value = audit/summary text.
 import type {Handler,Kit} from '../commands';
 import {money} from '../../../domain/money';
-import {rbacMoneyAdmin} from '../../../domain/streams/rbac';
-import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accAccount,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accLedgerName,type ACCState} from '../../../domain/streams/accounting';
+import {rbacMoneyAdmin,rbacCanTally} from '../../../domain/streams/rbac';
+import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accAccount,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accLedgerName,accTallyXml,type ACCState} from '../../../domain/streams/accounting';
+import {closingReopened} from '../../../domain/streams/closing';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 /** Writable slice on the cloned state (creates it for old saves). */
@@ -31,6 +32,19 @@ export const handlers:Record<string,Handler>={
     const x=slice(k),locks={...(x.locks??{})};delete locks[cmd.date];x.locks=locks;
     x.lockHistory=[...(x.lockHistory??[]),{id:id('ACCL'),at:s.clock,actor:uid,date:cmd.date,action:'unlock',reason}];
     return `Accounting period ${cmd.date} unlocked · ${reason}`;
+  },
+  // DEC-077: the Tally "Download XML" records the export (dates carried, re-exports, provisional). A flagged date carried after its day was
+  // closed again is cleared; the reopened day stays flagged. Owner + Accountant (DEC-063 G13). Production: GET /accounting/export/tally.
+  ACC_TALLY_EXPORT:k=>{
+    const {s,cmd,uid,fail,id}=k;
+    if(!rbacCanTally(s,uid))fail('FORBIDDEN','Access denied: the Tally export is for the Owner and the Accountant (DEC-063 G13).');
+    const p=accTallyXml(s,String(cmd.from??''),String(cmd.to??''));
+    if(p.error)fail('VALIDATION',p.error);
+    const x=slice(k),open=closingReopened(s)?.date,flags={...(x.reexport??{})};
+    for(const d of p.reexport)if(d!==open)delete flags[d];
+    x.reexport=flags;
+    x.tallyExports=[...(x.tallyExports??[]),{id:id('TLY'),at:s.clock,by:uid,from:p.from,to:p.to,dates:p.dateList,reexport:p.reexport,provisional:p.provisional,count:p.count}];
+    return `Simulated Tally XML exported · ${p.count} voucher(s) over ${p.dates} date(s)`+(p.reexport.length?` · re-export ${p.reexport.join(', ')}`:'');
   },
   // Change the ledger for one source classification (affects unlocked dates only).
   ACC_MAP_SET:k=>{

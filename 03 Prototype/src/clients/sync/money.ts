@@ -285,7 +285,9 @@ export const money:SyncArea={
     {type:'CHARGE',reload:FOLIO,
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':!text(cmd.label)?'Describe the service.':undefined,
       async send(c){const b=bookingOf(c,c.cmd.id),f=folioOf(c,b.id);
-        await c.api.command('PostCharge',{folioId:f.folioId,label:text(c.cmd.label),amountPaise:c.cmd.amount,gstCategory:c.cmd.gst??null});}},
+        // DEC-077: a missed charge on the reopened business day names that day (the server refuses any other earlier date).
+        const on=typeof c.cmd.date==='string'&&c.cmd.date!==c.state.date?{serviceDate:c.cmd.date}:{};
+        await c.api.command('PostCharge',{folioId:f.folioId,label:text(c.cmd.label),amountPaise:c.cmd.amount,gstCategory:c.cmd.gst??null,...on});}},
     {type:'DISCOUNT',reload:FOLIO,
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':!text(cmd.reason)?'A reason is required.':undefined,
       async send(c){const b=bookingOf(c,c.cmd.id);return {result:await requestAdjustment(c,'discount',b,c.cmd.amount,text(c.cmd.reason),null)};}},
