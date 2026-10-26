@@ -32,8 +32,18 @@ public sealed class SqlStayoverStore : IStayoverStore
         FROM gst.stay s JOIN gst.stay_segment seg ON seg.stay_id = s.stay_id AND seg.to_date IS NULL
         WHERE s.property_id = @p AND s.status = 'InHouse' AND s.arrival <= @bd AND s.departure > @bd;
         SET @occupied = @@ROWCOUNT;
-        INSERT ops.hk_task(property_id, room_id, kind, status, stay_id, causal_key, business_date, created_utc)
-        SELECT @p, r.room_id, 'stayover', 'ToDo', r.stay_id, r.ck, @bd, @utc FROM @rooms r
+        -- MA-7: new stay-over tasks go to the default attendant of the room's active zone (a zone listing the room itself wins over one listing its floor,
+        -- then sort order); no zone, or an attendant who is no longer enabled, leaves the task unassigned as before.
+        INSERT ops.hk_task(property_id, room_id, kind, status, stay_id, causal_key, business_date, created_utc, assignee_id)
+        SELECT @p, r.room_id, 'stayover', 'ToDo', r.stay_id, r.ck, @bd, @utc,
+          (SELECT u.user_id FROM (SELECT TOP 1 z.default_attendant_id AS attendant FROM ops.hk_zone z
+            JOIN inv.room rm ON rm.room_id = r.room_id
+            WHERE z.property_id = @p AND z.active = 1
+              AND (EXISTS (SELECT 1 FROM STRING_SPLIT(z.room_nos, ',') a WHERE a.value = rm.room_no)
+                OR EXISTS (SELECT 1 FROM STRING_SPLIT(z.floor_codes, ',') b WHERE b.value = CONCAT('F', IIF(rm.room_no NOT LIKE '%[^0-9]%' AND LEN(rm.room_no) >= 3, IIF(CAST(rm.room_no AS BIGINT) / 100 < 1, 1, CAST(rm.room_no AS BIGINT) / 100), 1))))
+            ORDER BY CASE WHEN EXISTS (SELECT 1 FROM STRING_SPLIT(z.room_nos, ',') a2 WHERE a2.value = rm.room_no) THEN 0 ELSE 1 END, z.sort_order, z.code) pick
+            JOIN plat.app_user u ON u.user_id = pick.attendant AND u.enabled = 1)
+        FROM @rooms r
         WHERE NOT EXISTS (SELECT 1 FROM ops.hk_task t WITH (UPDLOCK, HOLDLOCK) WHERE t.causal_key = r.ck);
         SET @created = @@ROWCOUNT;
         SELECT @occupied, @created;

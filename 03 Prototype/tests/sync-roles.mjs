@@ -120,6 +120,11 @@ function routes(role){
     'GET /yield/proposals':()=>[],
     'GET /masters/floors':({query})=>page([{floorId:1,code:'F1',name:'Floor 1',sortOrder:10,active:true,retiredOn:null,roomCount:8,updatedUtc:'2026-10-24T03:00:00.000Z',version:'FV1'}],query,'items'), // MA-0
     'GET /masters/floors/history':({query})=>page([],query,'items'),
+    // MA-7 operations masters
+    'GET /housekeeping/task-types':({query})=>page([],query,'items'),'GET /housekeeping/task-types/history':({query})=>page([],query,'items'),
+    'GET /housekeeping/zones':({query})=>page([],query,'items'),'GET /housekeeping/zones/history':({query})=>page([],query,'items'),
+    'GET /guest-services/complaint-categories':({query})=>page([],query,'items'),'GET /guest-services/complaint-categories/history':({query})=>page([],query,'items'),
+    'GET /guest-services/lost-found-categories':({query})=>page([],query,'items'),'GET /guest-services/lost-found-categories/history':({query})=>page([],query,'items'),
   };
 }
 

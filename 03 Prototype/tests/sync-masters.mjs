@@ -11,6 +11,7 @@ export async function register({test,M,assert}){
   const page=items=>({page:1,pageSize:200,total:items.length,items});
   const names=['SaveFloor','RetireFloor','ReactivateFloor','ReorderFloors','DeleteFloor'];
   const routes={'GET /masters/floors':()=>page(floors),'GET /masters/floors/history':()=>page(hist)};
+  for(const p of ['/housekeeping/task-types','/housekeeping/zones','/guest-services/complaint-categories','/guest-services/lost-found-categories']){routes['GET '+p]=()=>page([]);routes['GET '+p+'/history']=()=>page([]);} // MA-7 lists (own tests: sync-ops-masters.mjs)
   for(const n of names)routes['POST /commands/'+n]=()=>(n==='SaveFloor'?floor(4,'F4','Annexe',40,{roomCount:0}):n==='ReorderFloors'?page(floors):{});
   const srv=fakeServer(routes);
   const rt=await startRuntime(S,srv,mine);

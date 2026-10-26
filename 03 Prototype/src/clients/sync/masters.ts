@@ -12,6 +12,7 @@ import type {Command} from '../../services/mock';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import type {ReadRoute} from './reads';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
+import {OPS_MST_SERVER} from './ops-masters'; // MA-7: task types, zones, complaint and lost-and-found categories
 
 /** Server wire shapes (08 Production/src/Hcc.Contracts/Masters/MastersContracts.cs). */
 type SrvFloor={floorId:number;code:string;name:string;sortOrder:number;active:boolean;retiredOn:string|null;roomCount:number;updatedUtc:string;version:string};
@@ -20,10 +21,13 @@ type SrvHistory={historyId:number;rowId:number;code:string|null;field:string;old
 
 /** One server-backed master: list + history routes, command names, id field names and the id-directory kind for versions. */
 export type MstServerRoute={list:ReadRoute;history:ReadRoute;listPath:string;historyPath:string;kind:string;idField:string;idsField:string;
-  save:string;retire:string;reactivate:string;reorder:string;remove:string};
+  save:string;retire:string;reactivate:string;reorder:string;remove:string;
+  /** Wire item → prototype row (default: floors). */fromWire?:(w:any)=>MasterRow;
+  /** Extra fields of the save body beyond code, name, sortOrder (default: none). */toBody?:(row:Record<string,unknown>)=>Record<string,unknown>};
 export const MST_SERVER:Record<string,MstServerRoute>={
   floors:{list:'GET /masters/floors',history:'GET /masters/floors/history',listPath:'/masters/floors',historyPath:'/masters/floors/history',kind:'floor',idField:'floorId',idsField:'floorIds',
     save:'SaveFloor',retire:'RetireFloor',reactivate:'ReactivateFloor',reorder:'ReorderFloors',remove:'DeleteFloor'},
+  ...OPS_MST_SERVER,
 };
 const PAGE=200;
 
@@ -44,9 +48,9 @@ async function loadMasters(c:LoaderCtx):Promise<MSTState>{
   const out:MSTState={rows:{},history:[]};
   for(const [master,r] of Object.entries(MST_SERVER)){
     if(!c.mayRead(r.list))continue;
-    const rows=await pages<SrvFloor>(c,r.listPath);
-    for(const f of rows)c.ids.setVersion(r.kind,protoId(f.floorId),f.version);
-    out.rows[master]=rows.map(floorFromServer);
+    const rows=await pages<Record<string,unknown>>(c,r.listPath);
+    for(const f of rows)c.ids.setVersion(r.kind,protoId(f[r.idField] as number),String(f.version));
+    out.rows[master]=rows.map(f=>r.fromWire?r.fromWire(f):floorFromServer(f as unknown as SrvFloor));
     if(c.mayRead(r.history))out.history.push(...(await pages<SrvHistory>(c,r.historyPath)).map(h=>historyFromServer(master,h)));
   }
   out.history.sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:Number(b.id)-Number(a.id));
@@ -66,6 +70,7 @@ function idOf(c:CommandCtx,r:MstServerRoute,id:unknown){
 function saveBody(c:CommandCtx,r:MstServerRoute,row:Record<string,unknown>):{body:Record<string,unknown>;expectedVersion?:string}{
   const body:Record<string,unknown>={code:String(row.code??'').trim().toUpperCase(),name:String(row.name??'').trim()};
   if(row.sortOrder!==undefined&&row.sortOrder!==null&&row.sortOrder!=='')body.sortOrder=Number(row.sortOrder);
+  if(r.toBody)Object.assign(body,r.toBody(row)); // MA-7: the master's own fields
   if(row.id){body[r.idField]=idOf(c,r,row.id);return {body,expectedVersion:version(c,r,String(row.id))};}
   return {body};
 }
@@ -76,7 +81,7 @@ async function status(c:CommandCtx,name:'retire'|'reactivate'|'remove'){
 
 export const masters:SyncArea={
   id:'masters',
-  loaders:[{slice:'mastersX',reads:['GET /masters/floors'],load:loadMasters}],
+  loaders:[{slice:'mastersX',reads:['GET /masters/floors','GET /housekeeping/task-types','GET /housekeeping/zones','GET /guest-services/complaint-categories','GET /guest-services/lost-found-categories'],load:loadMasters}],
   commands:[
     {type:'MST_MASTER_SAVE',reload:['mastersX'],precheck(cmd){return precheck(cmd)??(cmd.row&&typeof cmd.row==='object'?undefined:'Fill in the row.');},
       async send(c){const r=routeOf(c.cmd.master)!;const {body,expectedVersion}=saveBody(c,r,c.cmd.row as Record<string,unknown>);

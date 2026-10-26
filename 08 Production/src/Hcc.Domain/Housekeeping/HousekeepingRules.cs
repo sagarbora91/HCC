@@ -61,8 +61,9 @@ public static class HkTaskMachine
     public const int ChecklistItems = 3;
     public const int FullChecklist = (1 << ChecklistItems) - 1;
 
-    public static HkTransition Apply(HkTaskState t, string action, bool inspectionRequired, int? assigneeId = null, int? index = null, string? reason = null)
+    public static HkTransition Apply(HkTaskState t, string action, bool inspectionRequired, int? assigneeId = null, int? index = null, string? reason = null, int checklistItems = ChecklistItems)
     {
+        var full = (1 << checklistItems) - 1; // MA-7: the task type's checklist (1–8 items; default the built-in three)
         ArgumentNullException.ThrowIfNull(t);
         var readiness = HkTaskKind.DrivesReadiness(t.Kind);
         static HccException Bad(string m) => new(HccErrorCode.INVALID_TRANSITION, m);
@@ -78,7 +79,7 @@ public static class HkTaskMachine
             case HkAction.Check:
                 if (t.Kind == HkTaskKind.Repair) throw HccException.Validation("Repair tasks have no cleaning checklist.");
                 if (t.Status != HkTaskStatus.InProgress) throw Bad("Start the task before checking items.");
-                if (index is null or < 0 or >= ChecklistItems) throw HccException.Validation("Invalid checklist item.");
+                if (index is null or < 0 || index >= checklistItems) throw HccException.Validation("Invalid checklist item.");
                 return new(t with { ChecklistMask = t.ChecklistMask ^ (1 << index.Value) }, null, false, false, false, false, $"check {index}");
             case HkAction.Complete:
                 if (t.Kind == HkTaskKind.Repair)
@@ -88,7 +89,7 @@ public static class HkTaskMachine
                     return new(t with { Status = HkTaskStatus.Done }, null, false, true, false, false, "complete");
                 }
 
-                if (t.Status != HkTaskStatus.InProgress || t.ChecklistMask != FullChecklist) throw Bad("Finish all checklist items first.");
+                if (t.Status != HkTaskStatus.InProgress || t.ChecklistMask != full) throw Bad("Finish all checklist items first.");
                 if (t.Kind == HkTaskKind.Stayover) return new(t with { Status = HkTaskStatus.Done }, null, false, true, false, false, "complete");
                 return inspectionRequired
                     ? new(t with { Status = HkTaskStatus.Inspection }, RoomHk.Inspection, false, true, false, false, "complete")

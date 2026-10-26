@@ -12,7 +12,7 @@ namespace Hcc.Application.GuestServices;
 /// requests; housekeeping / maintenance staff see only the requests assigned to them and the lost items they logged (no claimant
 /// data). Reports need report.operations or front-office rights.
 /// </summary>
-public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesReadStore reads, TimeProvider clock)
+public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesReadStore reads, TimeProvider clock, Hcc.Application.OpsMasters.IGsCategorySource? categories = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -93,7 +93,7 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
         c.FollowUpOutcome is null || c.FollowUpUtc is null ? null : new ComplaintFollowUpView(c.FollowUpOutcome, c.FollowUpSatisfied == true, Iso(c.FollowUpUtc.Value), c.FollowUpBy ?? 0),
         Iso(c.CreatedUtc), c.ResolvedUtc is { } r ? Iso(r) : null, c.ClosedUtc is { } cl ? Iso(cl) : null,
         c.RecoveryState is null || c.RecoveryAmountPaise is null ? null : new RecoveryView(c.RecoveryAmountPaise.Value, c.RecoveryReason ?? string.Empty, c.RecoveryApprovalId, c.RecoveryChargeId, Iso(c.RecoveryUtc ?? c.CreatedUtc), c.RecoveryBy ?? 0),
-        c.RecoveryStatus, StaysVersion.ToWire(c.Version));
+        c.RecoveryStatus, StaysVersion.ToWire(c.Version), c.CategoryCode);
 
     // ── Lost & found ──
 
@@ -114,7 +114,7 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
         Iso(i.FoundUtc), i.FoundDate, i.FoundBy, i.Storage, i.Status, GuestServiceRules.DisposeOn(i.FoundDate, i.Valuable, s),
         GuestServiceRules.IsDisposable(i.Status, today, i.FoundDate, i.Valuable, s),
         showClaim && i.ClaimName is not null ? new LostItemClaimView(i.ClaimName, i.ClaimPhone ?? string.Empty, i.ClaimIdType ?? string.Empty, i.ClaimIdNote ?? string.Empty, i.ClaimMatchNote ?? string.Empty, Iso(i.ClaimUtc ?? i.FoundUtc), i.ClaimBy ?? 0) : null,
-        showClaim ? i.HandoverTo : null, i.DisposalMethod, StaysVersion.ToWire(i.Version));
+        showClaim ? i.HandoverTo : null, i.DisposalMethod, StaysVersion.ToWire(i.Version), i.CategoryCode);
 
     // ── Settings, history, reports ──
 
@@ -171,7 +171,8 @@ public sealed class GuestServicesQueries(IAccessPolicy policy, IGuestServicesRea
     {
         await RequireReportAsync(propertyId, principalId, ct).ConfigureAwait(false);
         var facts = (await reads.ComplaintsAsync(propertyId, false, ct).ConfigureAwait(false)).Select(c => new ComplaintFact(c.Category, c.Severity, c.Status, c.RecoveryState is not null)).ToList();
-        return GuestServiceRules.ComplaintReport(facts).Select(r => new ComplaintCategoryRow(r.Category, r.Total, r.Open, r.BySeverity, r.Recovery)).ToList();
+        var names = categories is null ? null : await categories.ComplaintNamesAsync(propertyId, ct).ConfigureAwait(false); // MA-7: the complaint-category master lists the rows
+        return GuestServiceRules.ComplaintReport(facts, names).Select(r => new ComplaintCategoryRow(r.Category, r.Total, r.Open, r.BySeverity, r.Recovery)).ToList();
     }
 
     public async Task<LostFoundSummary> LostFoundSummaryAsync(int propertyId, int principalId, CancellationToken ct = default)

@@ -37,6 +37,7 @@
     <Project Path="tests/Hcc.Invoices.Tests/Hcc.Invoices.Tests.csproj" />
     <Project Path="tests/Hcc.Import.Tests/Hcc.Import.Tests.csproj" />
     <Project Path="tests/Hcc.Masters.Tests/Hcc.Masters.Tests.csproj" />
+    <Project Path="tests/Hcc.OpsMasters.Tests/Hcc.OpsMasters.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -85,6 +86,8 @@
     <File Path="database/migrations/2701_import_rbac_seed.sql" />
     <File Path="database/migrations/2801_masters_floors.sql" />
     <File Path="database/migrations/2802_masters_rbac_seed.sql" />
+    <File Path="database/migrations/2870_ops_masters.sql" />
+    <File Path="database/migrations/2871_ops_masters_seed.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
   </Folder>
 </Solution>

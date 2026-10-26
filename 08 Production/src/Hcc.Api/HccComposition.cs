@@ -54,6 +54,7 @@ public static class HccComposition
         services.AddInvoicesModule();                    // W3-6 tax invoices & credit notes (numbering per FY, documents)
         services.AddImportModule();                      // W4-13 masters & opening balances import (CSV validate/preview/commit)
         services.AddMastersModule();                     // MA-0 masters framework + Floors (DEC-MA-1)
+        services.AddOpsMastersModule();                  // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -132,6 +133,7 @@ public static class HccComposition
         api.MapInvoicesEndpoints();      // W3-6 invoices & credit notes
         api.MapImportEndpoints();        // W4-13 masters & opening balances import
         api.MapMastersEndpoints();       // MA-0 masters framework + Floors
+        api.MapOpsMastersEndpoints();    // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

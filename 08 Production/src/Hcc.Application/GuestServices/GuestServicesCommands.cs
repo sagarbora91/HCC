@@ -21,7 +21,8 @@ namespace Hcc.Application.GuestServices;
 /// idempotent phases (claim, Billing call, link) - this module never posts money itself.
 /// </summary>
 public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccessPolicy policy, IGuestServicesStore store,
-    BillingService billing, IBillingStore billingStore, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null)
+    BillingService billing, IBillingStore billingStore, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
+    Hcc.Application.OpsMasters.IGsCategorySource? categories = null)
 {
     public const string OpLogRequest = "LogServiceRequest";
     public const string OpAssignRequest = "AssignServiceRequest";
@@ -293,16 +294,18 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
             }
 
             if (guest.Length < 2) throw HccException.Validation("Enter the guest’s name.");
-            if (!GuestServiceVocab.ComplaintCategories.Contains(req.Category ?? string.Empty)) throw HccException.Validation("Choose a category.");
+            // MA-7: an active row of the complaint-category master (code or name); the fixed list only without the master port.
+            var cat = categories is null ? null : await categories.ComplaintAsync(tx, ctx.PropertyId, req.Category, ct2).ConfigureAwait(false);
+            if (categories is null ? !GuestServiceVocab.ComplaintCategories.Contains(req.Category ?? string.Empty) : cat is null) throw HccException.Validation("Choose a category.");
             if (!GuestServiceVocab.Severities.Contains(req.Severity ?? string.Empty)) throw HccException.Validation("Choose the severity.");
             var description = Text(req.Description, 5, 400, "Describe the complaint.", "Keep the description under 400 characters.");
             var owner = req.OwnerId ?? ctx.PrincipalId;
             await RequireOwnerAsync(ctx, owner, ct2).ConfigureAwait(false);
             var now = Now;
-            var id = await store.InsertComplaintAsync(tx, new NewComplaint(ctx.PropertyId, stay?.StayId, stay?.RoomId, guest, req.Category!, req.Severity!, description, owner, now, ctx.PrincipalId), ct2).ConfigureAwait(false);
+            var id = await store.InsertComplaintAsync(tx, new NewComplaint(ctx.PropertyId, stay?.StayId, stay?.RoomId, guest, cat?.Name ?? req.Category!, req.Severity!, description, owner, now, ctx.PrincipalId, cat?.Code), ct2).ConfigureAwait(false);
             await store.AppendLogAsync(tx, "complaint", id, now, ctx.PrincipalId, $"Logged · owner #{owner}", ct2).ConfigureAwait(false);
-            await tx.AuditAsync("complaint.log", "complaint:" + id.ToString(CultureInfo.InvariantCulture), $"{req.Category} · {req.Severity}", ct2).ConfigureAwait(false);
-            await tx.PublishAsync(GuestServiceEvents.ComplaintLogged, id, new { complaintId = id, category = req.Category, severity = req.Severity }, ct2).ConfigureAwait(false);
+            await tx.AuditAsync("complaint.log", "complaint:" + id.ToString(CultureInfo.InvariantCulture), $"{cat?.Name ?? req.Category} · {req.Severity}", ct2).ConfigureAwait(false);
+            await tx.PublishAsync(GuestServiceEvents.ComplaintLogged, id, new { complaintId = id, category = cat?.Name ?? req.Category, categoryCode = cat?.Code, severity = req.Severity }, ct2).ConfigureAwait(false);
             var rec = (await store.LockComplaintAsync(tx, ctx.PropertyId, id, ct2).ConfigureAwait(false))!;
             return ToResult(rec, rec.Version);
         }, ct).ConfigureAwait(false);
@@ -526,11 +529,12 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
         {
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false); // P6 late-write barrier: DAY_CLOSED once the business date is closed
             var description = Text(req.Description, 3, 160, "Describe the item.", "Keep the description under 160 characters.");
-            if (!GuestServiceVocab.ItemCategories.Contains(req.Category ?? string.Empty)) throw HccException.Validation("Choose a category.");
+            var cat = categories is null ? null : await categories.LostFoundAsync(tx, ctx.PropertyId, req.Category, ct2).ConfigureAwait(false); // MA-7: lost-and-found category master
+            if (categories is null ? !GuestServiceVocab.ItemCategories.Contains(req.Category ?? string.Empty) : cat is null) throw HccException.Validation("Choose a category.");
             var foundWhere = Text(req.FoundWhere, 2, 120, "Enter where the item was found.", "Keep the place under 120 characters.");
             if (!GuestServiceVocab.Storage.Contains(req.Storage ?? string.Empty)) throw HccException.Validation("Choose the storage location.");
-            var valuable = GuestServiceRules.IsValuable(req.Category!);
-            if (valuable && req.Storage != GuestServiceVocab.Safe) throw HccException.Validation($"Valuables ({req.Category}) must be stored in the {GuestServiceVocab.Safe}.");
+            var valuable = cat?.Valuable ?? GuestServiceRules.IsValuable(req.Category!);
+            if (valuable && req.Storage != GuestServiceVocab.Safe) throw HccException.Validation($"Valuables ({cat?.Name ?? req.Category}) must be stored in the {GuestServiceVocab.Safe}.");
             var props = await store.PropertyAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false);
             int? roomId = null;
             long? stayId = null;
@@ -543,9 +547,9 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
 
             var foundBy = wide && req.FoundBy is { } f && f > 0 ? f : ctx.PrincipalId;
             var now = Now;
-            var id = await store.InsertItemAsync(tx, new NewItem(ctx.PropertyId, description, req.Category!, valuable, foundWhere, roomId, stayId, now, props.BusinessDate, foundBy, req.Storage!), ct2).ConfigureAwait(false);
+            var id = await store.InsertItemAsync(tx, new NewItem(ctx.PropertyId, description, cat?.Name ?? req.Category!, valuable, foundWhere, roomId, stayId, now, props.BusinessDate, foundBy, req.Storage!, cat?.Code), ct2).ConfigureAwait(false);
             await store.AppendLogAsync(tx, "item", id, now, ctx.PrincipalId, "Logged · stored in " + req.Storage, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("lost-item.log", "item:" + id.ToString(CultureInfo.InvariantCulture), $"{req.Category} · {req.Storage}", ct2).ConfigureAwait(false);
+            await tx.AuditAsync("lost-item.log", "item:" + id.ToString(CultureInfo.InvariantCulture), $"{cat?.Name ?? req.Category} · {req.Storage}", ct2).ConfigureAwait(false);
             await tx.PublishAsync(GuestServiceEvents.LostItemLogged, id, new { itemId = id, valuable }, ct2).ConfigureAwait(false);
             var rec = (await store.LockItemAsync(tx, ctx.PropertyId, id, ct2).ConfigureAwait(false))!;
             var (settings, _) = await store.LockSettingsAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false);

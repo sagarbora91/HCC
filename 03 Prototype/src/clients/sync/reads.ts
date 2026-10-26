@@ -125,6 +125,15 @@ export const READS={
   // MA-0 masters: floor names label every board (any signed-in user); the change history needs masters.manage (PERM-MST-001).
   'GET /masters/floors':always,
   'GET /masters/floors/history':one(wide('PERM-MST-001')),
+  // MA-7 operations masters: lists readable by any signed-in user (housekeepers need the checklist, reception the categories; no money); histories need masters.manage.
+  'GET /housekeeping/task-types':always,
+  'GET /housekeeping/task-types/history':one(wide('PERM-MST-001')),
+  'GET /housekeeping/zones':always,
+  'GET /housekeeping/zones/history':one(wide('PERM-MST-001')),
+  'GET /guest-services/complaint-categories':always,
+  'GET /guest-services/complaint-categories/history':one(wide('PERM-MST-001')),
+  'GET /guest-services/lost-found-categories':always,
+  'GET /guest-services/lost-found-categories/history':one(wide('PERM-MST-001')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 
