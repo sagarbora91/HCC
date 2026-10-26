@@ -40,7 +40,8 @@ public static class Templates
 
 /// <summary>
 /// Disposable HccTest_* database with an empty fictional hotel in setup (business date 26 Oct 2026, no day closed), the REAL access policy
-/// (RBAC seed incl. 2701) and the real import service over the real module stores (inventory, yield, access, billing, stays).
+/// (RBAC seed incl. 2701) and the real import service over the real module stores (inventory, yield, access, billing, stays, POS, payroll, groups,
+/// maintenance, stock).
 /// </summary>
 public sealed partial class ImportWorld : IAsyncDisposable
 {
@@ -62,7 +63,9 @@ public sealed partial class ImportWorld : IAsyncDisposable
         Yield = new SqlYieldStore(Platform.Connections);
         Rates = new SqlRatePublicationPort(Platform.Connections);
         Store = new SqlImportStore(Platform.Connections);
-        Service = new ImportService(Platform.Commands, Policy, Store, new SqlImportInventoryWriter(), new SqlImportAccessWriter(), Rates, Yield, Billing, new SqlStaysStore(), new Hcc.Infrastructure.SqlServer.Pos.SqlPosStore(Platform.Connections), Clock);
+        Service = new ImportService(Platform.Commands, Policy, Store, new SqlImportInventoryWriter(), new SqlImportAccessWriter(), Rates, Yield, Billing, new SqlStaysStore(), new Hcc.Infrastructure.SqlServer.Pos.SqlPosStore(Platform.Connections),
+            new Hcc.Infrastructure.SqlServer.Payroll.SqlPayrollStore(Platform.Connections), new Hcc.Infrastructure.SqlServer.Groups.SqlCompanyStore(Platform.Connections),
+            new Hcc.Infrastructure.SqlServer.Maintenance.SqlMaintenanceStore(), new Hcc.Infrastructure.SqlServer.Stock.SqlStockStore(), Clock);
     }
 
     public SqlPlatform Platform { get; }

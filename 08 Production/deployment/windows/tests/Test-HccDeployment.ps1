@@ -179,6 +179,83 @@ Check 'runtime SQL grants: read, write, execute; never db_owner' {
     $g -match 'db_datareader' -and $g -match 'db_datawriter' -and $g -match 'GRANT EXECUTE' -and $g -notmatch 'db_owner'
 }
 
+# --- masters import (A02b-01) -----------------------------------------------------------------------------------------------
+Check 'import order: every shipped template, dependencies first (room types, ledgers, outlets before their users)' {
+    $order = Get-HccImportOrder
+    $templates = @(Get-ChildItem -LiteralPath (Join-Path (Split-Path -Parent $root) 'import-templates\templates') -Filter '*.csv' | ForEach-Object { $_.BaseName } | Sort-Object)
+    (($order | Sort-Object) -join ',') -eq ($templates -join ',') -and $order.Count -eq 15 -and
+    $order.IndexOf('room-types') -lt $order.IndexOf('rooms') -and $order.IndexOf('room-types') -lt $order.IndexOf('companies') -and
+    $order.IndexOf('ledgers') -lt $order.IndexOf('opening-balances') -and $order.IndexOf('pos-outlets') -lt $order.IndexOf('pos-menu')
+}
+Check 'import files: picked from a folder in server order, case-insensitive, unknown CSVs reported, -Only filters, bad -Only refused' {
+    $names = @('D:\m\Rooms.CSV', 'D:\m\room-types.csv', 'D:\m\notes.txt', 'D:\m\menu.csv', 'D:\m\pos-menu.csv', 'D:\m\opening-balances.csv', 'D:\m\ledgers.csv')
+    $s = Select-HccImportFiles -FileNames $names
+    $o = Select-HccImportFiles -FileNames $names -Only @('rooms', 'POS-MENU')
+    (($s.Files | ForEach-Object Master) -join ',') -eq 'room-types,rooms,ledgers,opening-balances,pos-menu' -and $s.Files[1].Path -eq 'D:\m\Rooms.CSV' -and
+    (@($s.Unknown) -join ',') -eq 'menu.csv' -and (($o.Files | ForEach-Object Master) -join ',') -eq 'rooms,pos-menu' -and (Throws { Select-HccImportFiles -FileNames $names -Only @('vendors') })
+}
+Check 'import server address: https by default and from hcc-ops.json; plain http only to this PC' {
+    $cfgDir = Join-Path ([IO.Path]::GetTempPath()) ('HccImpCfg_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $cfgDir | Out-Null
+    try {
+        $cfg = Join-Path $cfgDir 'hcc-ops.json'; Set-Content -LiteralPath $cfg -Value '{"ServerUrl":"https://hotelpc:5443"}'
+        (Get-HccImportServerUrl -ConfigPath (Join-Path $cfgDir 'none.json')) -eq 'https://localhost:5443' -and (Get-HccImportServerUrl -ConfigPath $cfg) -eq 'https://hotelpc:5443' -and
+        (Get-HccImportServerUrl -ServerUrl 'https://x:5443' -ConfigPath $cfg) -eq 'https://x:5443' -and
+        (Get-HccImportApiBase 'https://hotelpc:5443/') -eq 'https://hotelpc:5443/api/v1' -and (Get-HccImportApiBase 'http://127.0.0.1:5211') -eq 'http://127.0.0.1:5211/api/v1' -and
+        (Throws { Get-HccImportApiBase 'http://192.168.1.20:5443' }) -and (Throws { Get-HccImportApiBase 'ftp://x' }) -and (Throws { Get-HccImportApiBase 'hotelpc' })
+    }
+    finally { Remove-Item -LiteralPath $cfgDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+Check 'import requests: upload body (asOfDate only for opening balances), commit body, idempotency key' {
+    $u = New-HccImportUploadBody -Master 'rooms' -FileName 'rooms.csv' -CsvText "roomNo,roomType`n101,STD`n" -AsOfDate '2026-10-31'
+    $o = New-HccImportUploadBody -Master 'opening-balances' -FileName 'ob.csv' -CsvText 'x' -AsOfDate '2026-10-31'
+    $c = New-HccImportCommitBody -BatchId 42 -DryRun
+    $k1 = New-HccIdempotencyKey 'import'; $k2 = New-HccIdempotencyKey 'import'
+    ($u | ConvertTo-Json -Compress) -eq '{"master":"rooms","fileName":"rooms.csv","csvText":"roomNo,roomType\n101,STD\n"}' -and $o.asOfDate -eq '2026-10-31' -and
+    ($c | ConvertTo-Json -Compress) -eq '{"batchId":42,"dryRun":true}' -and (New-HccImportCommitBody -BatchId 7).dryRun -eq $false -and
+    $k1 -ne $k2 -and $k1 -match '^import-[0-9a-f]{32}$' -and $k1.Length -le 80
+}
+Check 'import CSV reading: UTF-8 with BOM, plain UTF-8 and Excel ANSI (code page 1252)' {
+    $dir = Join-Path ([IO.Path]::GetTempPath()) ('HccImpCsv_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $dir | Out-Null
+    try {
+        $name = 'Jos' + [char]0xE9
+        [IO.File]::WriteAllBytes("$dir\bom.csv", [byte[]](0xEF, 0xBB, 0xBF) + [Text.Encoding]::UTF8.GetBytes("name`n$name`n"))
+        [IO.File]::WriteAllBytes("$dir\utf8.csv", [Text.Encoding]::UTF8.GetBytes("name`n$name`n"))
+        [IO.File]::WriteAllBytes("$dir\ansi.csv", [byte[]](0x6E, 0x61, 0x6D, 0x65, 0x0A, 0x4A, 0x6F, 0x73, 0xE9, 0x0A))
+        (Read-HccImportCsv "$dir\bom.csv") -eq "name`n$name`n" -and (Read-HccImportCsv "$dir\utf8.csv") -eq "name`n$name`n" -and (Read-HccImportCsv "$dir\ansi.csv") -eq "name`n$name`n"
+    }
+    finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+$importReport = '{"batchId":5,"master":"rooms","fileName":"rooms.csv","rows":3,"errorCount":2,"errors":[{"row":3,"column":"roomType","message":"Room type XL is not in HCC yet. Import the room types file first."},{"row":4,"column":"roomNo","message":"Duplicate of row 2."}],"warnings":[{"row":1,"column":"Floor","message":"Column Floor was ignored."}],"counts":{"create":1,"update":0,"unchanged":0,"remove":0},"plan":[{"row":2,"action":"Create","key":"101","detail":"New room 101 - STD"}],"debitPaise":null,"creditPaise":null,"commitAllowed":false}' | ConvertFrom-Json
+Check 'import report: summary, rejected rows with row/column/fix, warnings and planned changes' {
+    $lines = Format-HccImportReport -Report $importReport
+    $text = $lines -join "`n"
+    $lines[0] -eq 'rooms.csv (rooms): 3 row(s) - 1 new, 0 changed, 0 unchanged - 2 rejected' -and $text -match 'REJECTED row 3 / roomType: Room type XL is not in HCC yet' -and
+    $text -match 'REJECTED row 4 / roomNo: Duplicate of row 2\.' -and $text -match 'warning  row 1 / Floor' -and $text -match 'new    101: New room 101 - STD' -and
+    (Format-HccImportRow ([pscustomobject]@{ row = 0; column = ''; message = 'Totals differ.' })) -eq 'file: Totals differ.'
+}
+Check 'import report: only a dry run marks rows waiting for an earlier file of the same run as expected' {
+    $dry = Split-HccImportErrors -Master 'rooms' -Errors @($importReport.errors) -DryRun -EarlierInRun @('room-types')
+    $real = Split-HccImportErrors -Master 'rooms' -Errors @($importReport.errors) -EarlierInRun @('room-types')
+    $alone = Split-HccImportErrors -Master 'rooms' -Errors @($importReport.errors) -DryRun -EarlierInRun @()
+    $text = (Format-HccImportReport -Report $importReport -Blocking $dry.Blocking -Expected $dry.Expected) -join "`n"
+    $dry.Expected.Count -eq 1 -and $dry.Blocking.Count -eq 1 -and $dry.Needs -eq 'room-types' -and $real.Blocking.Count -eq 2 -and $alone.Blocking.Count -eq 2 -and
+    $text -match '1 rejected' -and $text -match 'expected in a dry run .*row 3 / roomType'
+}
+Check 'import report: rupees in Indian grouping; trial balance totals; commit and new-user lines; server error text' {
+    $ob = '{"fileName":"opening-balances.csv","master":"opening-balances","rows":2,"errors":[],"warnings":[],"counts":{"create":2,"update":0,"unchanged":0,"remove":0},"plan":[],"debitPaise":12500050,"creditPaise":12500050}' | ConvertFrom-Json
+    $commit = '{"batchId":9,"master":"staff","dryRun":false,"committed":true,"counts":{"create":2,"update":0,"unchanged":1,"remove":0},"plan":[],"usersNeedingCredential":[{"userId":7,"loginName":"priya.reception","displayName":"Priya","version":"x","credentialKind":"PIN"}]}' | ConvertFrom-Json
+    $dry = '{"batchId":9,"master":"staff","dryRun":true,"committed":false,"counts":{"create":2,"update":0,"unchanged":1,"remove":0},"plan":[],"usersNeedingCredential":[]}' | ConvertFrom-Json
+    $err = ConvertFrom-HccApiError -Body '{"code":"VALIDATION","message":"The file has 1 error(s).","details":{"errors":[{"row":2,"column":"rate","message":"Not an amount."}]}}' -Fallback 'x'
+    (Format-HccRupees 12500050) -eq 'Rs 1,25,000.50' -and (Format-HccRupees 420000) -eq 'Rs 4,200' -and (Format-HccRupees 5) -eq 'Rs 0.05' -and (Format-HccRupees 1000000000) -eq 'Rs 1,00,00,000' -and
+    ((Format-HccImportReport -Report $ob) -join "`n") -match 'Total debits Rs 1,25,000\.50 = total credits Rs 1,25,000\.50' -and
+    ((Format-HccImportCommit -Result $commit) -join "`n") -match 'committed: 2 new, 0 changed, 0 removed, 1 unchanged' -and ((Format-HccImportCommit -Result $commit) -join "`n") -match 'priya\.reception .*first PIN' -and
+    ((Format-HccImportCommit -Result $dry) -join "`n") -match 'dry run passed: 2 new.*nothing was kept' -and
+    $err -match '^VALIDATION: The file has 1 error' -and $err -match 'REJECTED row 2 / rate: Not an amount\.' -and
+    (ConvertFrom-HccApiError -Body '' -Fallback 'The SSL connection could not be established') -match 'HCC-Hotel-CA\.cer' -and (ConvertFrom-HccApiError -Body 'not json' -Fallback 'timeout') -eq 'timeout'
+}
+
 # --- every script in dry-run mode ---------------------------------------------------------------------------------------
 $psExe = (Get-Process -Id $PID).Path
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('hcc-ps-test-' + [guid]::NewGuid().ToString('N'))
@@ -247,6 +324,26 @@ Check 'Initialize-HccProperty -WhatIf prints the setup request, password hidden,
 }
 Check 'Initialize-HccProperty refuses a server address that is not this PC' {
     (DryRun 'Initialize-HccProperty.ps1' @('-HotelName', 'H', '-Address', 'A', '-OwnerDisplayName', 'S', '-ServerUrl', 'https://192.168.1.20:5443')).Exit -ne 0
+}
+Check 'Import-HccMasters -WhatIf lists the sample files in server order, asks for nothing and sends nothing' {
+    $samples = Join-Path (Split-Path -Parent $root) 'import-templates\samples'
+    $r = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples, '-OpeningBalancesDate', '2026-10-25', '-ServerUrl', 'https://hotelpc:5443')
+    $d = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples, '-OpeningBalancesDate', '2026-10-25', '-DryRun', '-Only', 'rooms')
+    $lines = @($r.Out -split "`r?`n" | Where-Object { $_ -match 'UploadImportBatch' })
+    $r.Exit -eq 0 -and $lines.Count -eq 15 -and $lines[0] -match ' 1\. room-types\.csv' -and $lines[1] -match 'rooms\.csv' -and $lines[14] -match 'stock-items\.csv' -and
+    $r.Out -match 'POST https://hotelpc:5443/api/v1/auth/sign-in' -and $r.Out -match 'opening-balances as at 2026-10-25' -and $r.Out -match '\*{8}' -and
+    $d.Exit -eq 0 -and $d.Out -match 'POST https://localhost:5443/api/v1/commands/UploadImportBatch \(master rooms\)' -and $d.Out -match 'dryRun=true' -and @($d.Out -split "`r?`n" | Where-Object { $_ -match 'UploadImportBatch' }).Count -eq 1
+}
+Check 'Import-HccMasters refuses plain http to another PC, a missing opening-balances date and an empty folder' {
+    $samples = Join-Path (Split-Path -Parent $root) 'import-templates\samples'
+    New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+    try {
+        $http = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples, '-OpeningBalancesDate', '2026-10-25', '-ServerUrl', 'http://192.168.1.20:5443')
+        $date = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples)
+        $empty = DryRun 'Import-HccMasters.ps1' @('-Folder', $tmp)
+        $http.Exit -ne 0 -and $http.Out -match 'only over HTTPS' -and $date.Exit -ne 0 -and $date.Out -match 'OpeningBalancesDate' -and $empty.Exit -ne 0 -and $empty.Out -match 'No import files'
+    }
+    finally { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 }
 Check 'New-HccGuestIdKey -WhatIf prints the plan and writes nothing' {
     $s = Join-Path $tmp 'server\appsettings.Production.json'; $off = Join-Path $tmp 'usb\key.txt'

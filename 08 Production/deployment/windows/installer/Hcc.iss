@@ -41,6 +41,8 @@ Source: "{#OpsDir}\hcc-ops.sample.json"; DestDir: "{app}\Operations"; Flags: ign
 Source: "{#OpsDir}\appsettings.Production.sample.json"; DestDir: "{app}\Server"; Flags: ignoreversion
 Source: "{#OpsDir}\INSTALL.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "{#OpsDir}\ANDROID_SERVER_ADDRESS.md"; DestDir: "{app}"; Flags: ignoreversion
+; Masters import templates, fictional samples and their README (INSTALL.md step 6d, Import-HccMasters.ps1).
+Source: "{#OpsDir}\..\import-templates\*"; DestDir: "{app}\ImportTemplates"; Flags: recursesubdirs ignoreversion
 ; Settings are created once from the samples and never overwritten on upgrade.
 Source: "{#OpsDir}\appsettings.Production.sample.json"; DestDir: "{app}\Server"; DestName: "appsettings.Production.json"; Flags: onlyifdoesntexist uninsneveruninstall
 Source: "{#OpsDir}\hcc-ops.sample.json"; DestDir: "{app}\Operations"; DestName: "hcc-ops.json"; Flags: onlyifdoesntexist uninsneveruninstall

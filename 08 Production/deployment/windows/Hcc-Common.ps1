@@ -390,3 +390,191 @@ function Get-HccRuntimeGrantSql {
     param([Parameter(Mandatory)][string]$User)
     return "ALTER ROLE db_datareader ADD MEMBER $User; ALTER ROLE db_datawriter ADD MEMBER $User; GRANT EXECUTE TO $User;"
 }
+
+# --- masters import (A02b-01, Import-HccMasters.ps1) ----------------------------------------------------------------------------
+# Pure helpers (unit-tested without a server): which CSV files to send and in which order, the request bodies, and the report text.
+# The order is the server's dependency order (deployment\import-templates\README.md "The order to import"): a file may only refer
+# to masters imported before it (rooms need room types, opening balances need ledgers, the menu needs outlets).
+$script:HccImportOrder = @('room-types', 'rooms', 'tariffs', 'seasons', 'staff', 'ledgers', 'opening-balances', 'till-cash', 'guests', 'pos-outlets', 'pos-menu',
+    'departments', 'companies', 'suppliers', 'stock-items')
+$script:HccImportNeeds = @{ 'rooms' = 'room-types'; 'tariffs' = 'room-types'; 'seasons' = 'room-types'; 'companies' = 'room-types'; 'opening-balances' = 'ledgers'; 'pos-menu' = 'pos-outlets' }
+
+function Get-HccImportOrder { return , @($script:HccImportOrder) }
+
+# The server address: -ServerUrl, else "ServerUrl" in hcc-ops.json, else https://localhost:5443 (the server PC itself after setup).
+function Get-HccImportServerUrl {
+    param([string]$ServerUrl, [string]$ConfigPath)
+    if ($ServerUrl) { return $ServerUrl }
+    if (-not $ConfigPath) { $ConfigPath = Join-Path $PSScriptRoot 'hcc-ops.json' }
+    if (Test-Path -LiteralPath $ConfigPath) {
+        $json = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+        if ($json.PSObject.Properties['ServerUrl'] -and $json.ServerUrl) { return [string]$json.ServerUrl }
+    }
+    return 'https://localhost:5443'
+}
+
+# https://<server>:5443 -> https://<server>:5443/api/v1. A password is never sent over plain HTTP to another PC: http:// is accepted
+# only for this PC itself (127.0.0.1 / localhost, used by the tests).
+function Get-HccImportApiBase {
+    param([Parameter(Mandatory)][string]$ServerUrl)
+    $u = $null
+    if (-not [Uri]::TryCreate($ServerUrl.Trim(), [UriKind]::Absolute, [ref]$u) -or ($u.Scheme -ne 'https' -and $u.Scheme -ne 'http')) {
+        throw "'$ServerUrl' is not a server address. Use https://localhost:5443 on the server PC, or https://<server name>:5443."
+    }
+    if ($u.Scheme -eq 'http' -and -not $u.IsLoopback) { throw "Refusing plain http://$($u.Authority): the sign-in password is sent only over HTTPS. Use https://$($u.Host):5443." }
+    return $u.GetLeftPart([UriPartial]::Authority) + '/api/v1'
+}
+
+# The import files found among $FileNames (paths), in import order; -Only limits the masters. Unknown = .csv files that are not
+# named like a template (warned about and skipped). Returns { Files = @({Master, Path, FileName}); Unknown = @(names) }.
+function Select-HccImportFiles {
+    param([string[]]$FileNames = @(), [string[]]$Only = @())
+    $only = @($Only | Where-Object { $_ } | ForEach-Object { $_.Trim().ToLowerInvariant() })
+    foreach ($o in $only) { if ($script:HccImportOrder -notcontains $o) { throw "-Only '$o' is not an import file. Use: $($script:HccImportOrder -join ', ')." } }
+    $byName = @{}
+    foreach ($f in @($FileNames | Where-Object { $_ })) { $byName[[IO.Path]::GetFileName($f).ToLowerInvariant()] = $f }
+    $files = @()
+    foreach ($m in $script:HccImportOrder) {
+        $key = "$m.csv"
+        if ($byName.ContainsKey($key) -and ($only.Count -eq 0 -or $only -contains $m)) {
+            $files += [pscustomobject]@{ Master = $m; Path = $byName[$key]; FileName = [IO.Path]::GetFileName($byName[$key]) }
+        }
+    }
+    $known = @($script:HccImportOrder | ForEach-Object { "$_.csv" })
+    $unknown = @($byName.Keys | Where-Object { $_.EndsWith('.csv') -and $known -notcontains $_ } | Sort-Object | ForEach-Object { [IO.Path]::GetFileName($byName[$_]) })
+    return [pscustomobject]@{ Files = $files; Unknown = $unknown }
+}
+
+# Reads a CSV as Excel saves it: "CSV UTF-8" (with or without BOM) or plain "CSV (Comma delimited)" (Windows code page 1252).
+function Read-HccImportCsv {
+    param([Parameter(Mandatory)][string]$Path)
+    $bytes = [IO.File]::ReadAllBytes($Path)
+    try { $text = (New-Object Text.UTF8Encoding($false, $true)).GetString($bytes) }
+    catch {
+        $ansi = try { [Text.Encoding]::GetEncoding(1252) } catch { [Text.Encoding]::GetEncoding(28591) }
+        $text = $ansi.GetString($bytes)
+    }
+    if ($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF) { $text = $text.Substring(1) }
+    return $text
+}
+
+function New-HccIdempotencyKey { param([string]$Prefix = 'import') return $Prefix + '-' + [guid]::NewGuid().ToString('N') }
+
+# Body of POST /commands/UploadImportBatch (contract UploadImportBatchRequest); asOfDate only for the opening balances.
+function New-HccImportUploadBody {
+    param([Parameter(Mandatory)][string]$Master, [Parameter(Mandatory)][string]$FileName, [Parameter(Mandatory)][AllowEmptyString()][string]$CsvText, [string]$AsOfDate)
+    $b = [ordered]@{ master = $Master; fileName = $FileName; csvText = $CsvText }
+    if ($Master -eq 'opening-balances' -and $AsOfDate) { $b.asOfDate = $AsOfDate }
+    return $b
+}
+
+# Body of POST /commands/CommitImportBatch (contract CommitImportBatchRequest); dryRun = run everything and roll it back.
+function New-HccImportCommitBody {
+    param([Parameter(Mandatory)][long]$BatchId, [switch]$DryRun)
+    return [ordered]@{ batchId = $BatchId; dryRun = [bool]$DryRun }
+}
+
+# Splits a report's rejected rows. In a dry run, a row that only says "... is not in HCC yet" / "Import the ... file first" for a
+# master that an EARLIER file of the same run creates is expected (that file is not committed in a dry run), not a real rejection.
+function Split-HccImportErrors {
+    param([Parameter(Mandatory)][string]$Master, [object[]]$Errors = @(), [switch]$DryRun, [string[]]$EarlierInRun = @())
+    $blocking = @(); $expected = @()
+    $needs = $script:HccImportNeeds[$Master]
+    foreach ($e in @($Errors | Where-Object { $null -ne $_ })) {
+        if ($DryRun -and $needs -and $EarlierInRun -contains $needs -and [string]$e.message -match 'is not in HCC yet|Import the .+ file first') { $expected += $e }
+        else { $blocking += $e }
+    }
+    return [pscustomobject]@{ Blocking = $blocking; Expected = $expected; Needs = $needs }
+}
+
+# Paise -> "Rs 1,25,000.50" (Indian grouping; whole rupees without decimals). ASCII only: the hotel PC console may lack the rupee sign.
+function Format-HccRupees {
+    param([long]$Paise)
+    $neg = $Paise -lt 0
+    $p = [Math]::Abs($Paise)
+    $whole = [string][Math]::Floor($p / 100)
+    $frac = $p % 100
+    if ($whole.Length -gt 3) {
+        $head = $whole.Substring(0, $whole.Length - 3); $tail = $whole.Substring($whole.Length - 3)
+        $groups = @(); while ($head.Length -gt 2) { $groups = @($head.Substring($head.Length - 2)) + $groups; $head = $head.Substring(0, $head.Length - 2) }
+        $whole = (@($head) + $groups + @($tail)) -join ','
+    }
+    $text = 'Rs ' + $whole + $(if ($frac -ne 0) { '.' + $frac.ToString('00', [Globalization.CultureInfo]::InvariantCulture) } else { '' })
+    if ($neg) { return '-' + $text }
+    return $text
+}
+
+# A property of a JSON reply, or $null when the reply has no such property (the scripts run with Set-StrictMode).
+function Get-HccField {
+    param($Object, [string]$Name)
+    if ($null -eq $Object -or -not $Object.PSObject.Properties[$Name]) { return $null }
+    return $Object.$Name
+}
+
+function Format-HccImportRow {
+    param($Row)
+    if ([int](Get-HccField $Row 'row') -eq 0) { $where = 'file' } else { $where = 'row ' + (Get-HccField $Row 'row') }
+    if (Get-HccField $Row 'column') { $where += ' / ' + $Row.column }
+    return $where + ': ' + (Get-HccField $Row 'message')
+}
+
+# The text printed for one uploaded file (contract ImportBatchReport): summary, rejected rows (with row, column and what to fix),
+# rows expected in a dry run, warnings, then the planned changes (at most -MaxChanges lines; "unchanged" rows are only counted).
+function Format-HccImportReport {
+    param([Parameter(Mandatory)]$Report, [object[]]$Blocking, [object[]]$Expected = @(), [int]$MaxChanges = 50)
+    if ($null -eq $Blocking) { $Blocking = @(Get-HccField $Report 'errors') }
+    $c = $Report.counts
+    $lines = @()
+    $summary = '{0} ({1}): {2} row(s) - {3} new, {4} changed, {5} unchanged' -f $Report.fileName, $Report.master, $Report.rows, $c.create, $c.update, $c.unchanged
+    if ([int]$c.remove -gt 0) { $summary += ", $($c.remove) removed" }
+    $summary += ' - ' + @($Blocking).Count + ' rejected'
+    $lines += $summary
+    if ($null -ne (Get-HccField $Report 'debitPaise')) { $lines += '  Total debits {0} = total credits {1}' -f (Format-HccRupees $Report.debitPaise), (Format-HccRupees $Report.creditPaise) }
+    foreach ($e in @($Blocking)) { $lines += '  REJECTED ' + (Format-HccImportRow $e) }
+    foreach ($e in @($Expected)) { $lines += '  expected in a dry run (an earlier file is not committed yet): ' + (Format-HccImportRow $e) }
+    foreach ($w in @(Get-HccField $Report 'warnings')) { if ($null -ne $w) { $lines += '  warning  ' + (Format-HccImportRow $w) } }
+    $changes = @(@(Get-HccField $Report 'plan') | Where-Object { $null -ne $_ -and $_.action -ne 'Unchanged' })
+    $label = @{ Create = 'new'; Update = 'change'; Remove = 'remove' }
+    foreach ($p in ($changes | Select-Object -First $MaxChanges)) {
+        $a = if ($label.ContainsKey([string]$p.action)) { $label[[string]$p.action] } else { [string]$p.action }
+        $lines += '  {0,-7}{1}: {2}' -f $a, $p.key, $p.detail
+    }
+    if ($changes.Count -gt $MaxChanges) { $lines += '  ... and {0} more change(s)' -f ($changes.Count - $MaxChanges) }
+    return , $lines
+}
+
+# One line after CommitImportBatch (contract ImportCommitResult), plus the users who still need a first password or PIN.
+function Format-HccImportCommit {
+    param([Parameter(Mandatory)]$Result)
+    $c = $Result.counts
+    if (Get-HccField $Result 'dryRun') { $lines = @('  -> dry run passed: {0} new, {1} changed, {2} removed would be saved; nothing was kept' -f $c.create, $c.update, $c.remove) }
+    else { $lines = @('  -> committed: {0} new, {1} changed, {2} removed, {3} unchanged' -f $c.create, $c.update, $c.remove, $c.unchanged) }
+    foreach ($u in @(@(Get-HccField $Result 'usersNeedingCredential') | Where-Object { $null -ne $_ })) {
+        $kind = if ($u.credentialKind -eq 'PASSWORD') { 'password' } else { 'PIN' }
+        $lines += "     $($u.loginName) ($($u.displayName)) cannot sign in yet: set the first $kind in Access control > Set credential."
+    }
+    return , $lines
+}
+
+# Text of a refused API call: the server's {code, message, details.errors} JSON when there is one, else the transport message with a
+# hint for certificate problems (the hotel CA must be trusted on this PC, INSTALL.md section 8).
+function ConvertFrom-HccApiError {
+    param([string]$Body, [string]$Fallback)
+    if ($Body) {
+        try {
+            $j = $Body | ConvertFrom-Json
+            if ($j.PSObject.Properties['message']) {
+                $text = "$($j.code): $($j.message)"
+                if ($j.PSObject.Properties['details'] -and $j.details -and $j.details.PSObject.Properties['errors']) {
+                    foreach ($e in @($j.details.errors)) { $text += [Environment]::NewLine + '  REJECTED ' + (Format-HccImportRow $e) }
+                }
+                return $text
+            }
+        }
+        catch { }
+    }
+    if ($Fallback -match 'SSL|TLS|trust relationship|certificate') {
+        return "$Fallback (HTTPS certificate problem: install HCC-Hotel-CA.cer into Local Machine > Trusted Root Certification Authorities on this PC, INSTALL.md section 8, and use a name that is in the certificate, for example https://localhost:5443.)"
+    }
+    return $Fallback
+}
