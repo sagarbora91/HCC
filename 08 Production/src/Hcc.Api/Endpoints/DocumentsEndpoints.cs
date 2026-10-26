@@ -1,3 +1,4 @@
+using Hcc.Api.Hosting;
 using Hcc.Application.Documents;
 using Hcc.Application.GuestIds;
 using Hcc.Contracts.Documents;
@@ -9,7 +10,9 @@ namespace Hcc.Api.Endpoints;
 /// <summary>
 /// ID document capture (W3-3, DEC-068): <c>POST /api/v1/commands/{CaptureIdDocument|ConfirmIdCapture|RejectIdCapture|ViewIdCaptureImage|RevealIdCaptureNumber|
 /// PurgeIdCaptures}</c> and masked <c>GET /api/v1/documents/id-captures[/{id}]</c>. Needs the guest-ID key (<c>Hcc:GuestIdKeys</c>): without it the module is not
-/// registered and the routes answer UNAVAILABLE. Image and OCR text are sealed with the guest-ID service; the simulated OCR engine is the default.
+/// registered and the routes answer UNAVAILABLE. Image and OCR text are sealed with the guest-ID service. The OCR engine is the simulated one in Development and the
+/// tests; in Production it is the not-configured one (A09-08): CaptureIdDocument is refused (503 UNAVAILABLE, details.reason NOT_CONFIGURED, feature "ocr") and the
+/// ID number is typed by hand.
 /// </summary>
 public static class DocumentsEndpoints
 {
@@ -20,7 +23,7 @@ public static class DocumentsEndpoints
         services.AddSingleton(sp => new SqlDocumentStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IDocumentStore>(sp => sp.GetRequiredService<SqlDocumentStore>());
         services.AddSingleton<IDocumentImageStore>(sp => sp.GetRequiredService<SqlDocumentStore>());
-        services.AddSingleton<IIdOcrEngine, SimulatedIdOcrEngine>();
+        services.AddSingleton(SimulatedAdapters.IdOcrEngine); // A09-08: simulated outside Production, "not configured" in Production
         services.AddSingleton<DocumentService>();
         return services;
     }

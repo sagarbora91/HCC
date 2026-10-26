@@ -11,7 +11,8 @@ namespace Hcc.Application.Messaging;
 
 /// <summary>
 /// Messaging commands (prototype MSG_SEND / MSG_RUN_RULES / MSG_SIMULATE / MSG_RETRY / MSG_CONSENT / MSG_TEMPLATE / MSG_RULE).
-/// ALL SENDING IS SIMULATED. Audit rows name the message id, channel and booking only: never the body, the contact or an ID number (DEC-068).
+/// Sending is simulated in Development and the tests; in Production without a provider it is refused (<see cref="MessagingNotConfigured"/>, A09-08).
+/// Audit rows name the message id, channel and booking only: never the body, the contact or an ID number (DEC-068).
 /// </summary>
 public sealed class MessagingCommands(ICommandRunner runner, IAccessPolicy policy, IMessagingDataFactory data, TriggerEngine triggers, IMessageGateway gateway, MessagingOptions options, TimeProvider clock)
 {
@@ -27,11 +28,18 @@ public sealed class MessagingCommands(ICommandRunner runner, IAccessPolicy polic
 
     private static string Num(long n) => n.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>A09-08: with no gateway configured (Production) a send, simulation or retry is refused with a clear message; nothing is queued.</summary>
+    private void EnsureConfigured()
+    {
+        if (!gateway.IsConfigured) throw MessagingNotConfigured.Refusal();
+    }
+
     public async Task<CommandResult<SendMessageResult>> SendAsync(CommandContext ctx, SendMessageRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MessagingPermissions.Send, null, null, ct).ConfigureAwait(false);
+        EnsureConfigured();
         if (!MsgChannel.IsValid(req.Channel)) throw HccException.Validation("Choose WhatsApp, SMS or Email.");
         var body = (req.Body ?? string.Empty).Trim();
         if (body.Length < 1 || body.Length > MessagingRules.ManualBodyMax) throw HccException.Validation($"Write a message of 1–{MessagingRules.ManualBodyMax} characters.");
@@ -93,7 +101,8 @@ public sealed class MessagingCommands(ICommandRunner runner, IAccessPolicy polic
             }
 
             if (queued + notSent == 0) throw new HccException(HccErrorCode.INVALID_TRANSITION, "There are no pending triggers to queue.");
-            var summary = $"{queued} queued · {notSent} not sent (consent/recipient) · simulated";
+            var summary = gateway.IsConfigured ? $"{queued} queued · {notSent} not sent (consent/recipient) · simulated"
+                : $"{queued} queued · {notSent} not sent ({MessagingNotConfigured.BlockedReason.ToLowerInvariant()})";
             await tx.AuditAsync("MSG_RUN_RULES", "msg-rules", summary, c).ConfigureAwait(false);
             return new RunMessagingTriggersResult(queued, notSent, summary);
         }, ct).ConfigureAwait(false);
@@ -104,6 +113,7 @@ public sealed class MessagingCommands(ICommandRunner runner, IAccessPolicy polic
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MessagingPermissions.Send, null, null, ct).ConfigureAwait(false);
+        EnsureConfigured();
         return await runner.RunAsync(ctx with { Operation = OpSimulate }, req, async (tx, c) =>
         {
             var d = data.For(tx);
@@ -131,6 +141,7 @@ public sealed class MessagingCommands(ICommandRunner runner, IAccessPolicy polic
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, MessagingPermissions.Send, null, null, ct).ConfigureAwait(false);
+        EnsureConfigured();
         return await runner.RunAsync(ctx with { Operation = OpRetry }, req, async (tx, c) =>
         {
             var d = data.For(tx);

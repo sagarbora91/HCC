@@ -33,6 +33,10 @@ export class HccClientError extends HccError{
 
 /** Shown when the server answers that guest-ID encryption has no key yet (install guide, "Guest ID key"). */
 export const GUEST_ID_NOT_SET_UP='ID storage is not set up on the server. Ask the owner to complete the guest ID key step of the install guide (New-HccGuestIdKey.ps1), then try again.';
+/** A09-08: a Production server has no messaging gateway and no OCR engine yet. It refuses with 503 UNAVAILABLE + details.reason NOT_CONFIGURED
+ *  (details.feature 'messaging' | 'ocr') and these exact sentences; errorFromResponse shows the server's own words as they come. */
+export const MESSAGING_NOT_CONFIGURED='Messaging is not configured on this server: no message was sent.';
+export const OCR_NOT_CONFIGURED='ID scanning (OCR) is not configured on this server: enter the details by hand.';
 /** Maps a non-2xx response. Unknown or missing codes fall back to the HTTP status (5xx → UNAVAILABLE, else VALIDATION). */
 export function errorFromResponse(status:number,body:unknown,retryAfter?:string|number|null):HccClientError{
   const b=(body&&typeof body==='object'?body:{}) as {code?:unknown;message?:unknown;details?:unknown};
@@ -46,7 +50,7 @@ export function errorFromResponse(status:number,body:unknown,retryAfter?:string|
       message=details.reason==='TOO_MANY_ATTEMPTS'?`Too many sign-in attempts from this device. Wait ${m} minute${m===1?'':'s'}, then try again.`:`${message} Try again in ${m} minute${m===1?'':'s'}.`;}
     else if(details?.reason==='TOO_MANY_ATTEMPTS'&&!/wait/i.test(message))message='Too many sign-in attempts from this device. Wait a few minutes, then try again.';
   }
-  // A 503 that the server itself answered with details.reason NOT_CONFIGURED (a setup step is missing, e.g. the guest-ID key) is not a
+  // A 503 that the server itself answered with details.reason NOT_CONFIGURED (a setup step is missing, e.g. the guest-ID key, a messaging provider, OCR) is not a
   // lost connection: the server is reachable, so it must not switch the app to read-only nor be retried. Surfaced as NOT_AVAILABLE.
   if(code==='UNAVAILABLE'&&details?.reason==='NOT_CONFIGURED'){
     code='NOT_AVAILABLE';

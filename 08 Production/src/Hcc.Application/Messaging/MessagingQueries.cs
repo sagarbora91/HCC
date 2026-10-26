@@ -9,7 +9,7 @@ using Hcc.Domain.Messaging;
 namespace Hcc.Application.Messaging;
 
 /// <summary>Reads for the messaging screens (outbox, KPI strip, templates, rules, consent). Recipients are masked; there is no ID data to hide.</summary>
-public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory data, TimeProvider clock)
+public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory data, TimeProvider clock, IMessageGateway gateway)
 {
     public const int MaxPageSize = 200;
     private const int Window = 2000;
@@ -24,12 +24,12 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
 
     internal static RuleView ToView(StoredRule r) => new(r.Def.RuleId, r.Def.Event, r.Def.TemplateCode, r.Def.Channel, r.Def.Enabled, VersionToken.ToWire(r.Version));
 
-    private static MessageView ToView(StoredMessage m, DateTime now)  // Outcome/BoostMinutes/GuestId let the screens reproduce the simulated delivery path
+    private MessageView ToView(StoredMessage m, DateTime now)  // Outcome/BoostMinutes/GuestId let the screens reproduce the simulated delivery path
     {
         var timeline = MessagingRules.Timeline(m.QueuedUtc, now, m.BoostMinutes, m.Outcome, m.Blocked);
         return new MessageView(m.MessageId, MessagingRules.WireId(m.MessageId), m.ReservationId, m.BookingNo, m.GuestName, m.TemplateCode, m.Channel, m.RecipientMasked,
             m.Subject, m.Body, timeline[^1].Status, m.BlockedReason, Iso(m.QueuedUtc), timeline.Select(t => new MessageTimelineStep(t.Status, Iso(t.AtUtc))).ToList(),
-            m.RuleId, m.RetryOf, m.RetriedBy, m.Channel == MsgChannel.Sms ? MessagingRules.SmsSegments(m.Body) : null, true, m.Outcome, m.BoostMinutes, m.GuestId);
+            m.RuleId, m.RetryOf, m.RetriedBy, m.Channel == MsgChannel.Sms ? MessagingRules.SmsSegments(m.Body) : null, gateway.IsSimulated, m.Outcome, m.BoostMinutes, m.GuestId);
     }
 
     /// <summary>Templates and rules: the message-log readers or the template editors (the Tech admin edits them without the log, D4).</summary>
@@ -49,7 +49,7 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
         var views = all.Select(m => ToView(m, now));
         if (!string.IsNullOrWhiteSpace(status)) views = views.Where(v => string.Equals(v.Status, status, StringComparison.OrdinalIgnoreCase));
         var list = views.ToList();
-        return new MessageListResult(list.Skip((page - 1) * pageSize).Take(pageSize).ToList(), list.Count, page, pageSize);
+        return new MessageListResult(list.Skip((page - 1) * pageSize).Take(pageSize).ToList(), list.Count, page, pageSize, gateway.IsConfigured ? null : MessagingNotConfigured.Message);
     }
 
     public async Task<MessageView> GetMessageAsync(int propertyId, int principalId, long messageId, CancellationToken ct = default)
@@ -74,7 +74,7 @@ public sealed class MessagingQueries(IAccessPolicy policy, IMessagingDataFactory
         }, ct).ConfigureAwait(false);
         var counts = all.GroupBy(m => MessagingRules.StatusAt(m.QueuedUtc, now, m.BoostMinutes, m.Outcome, m.Blocked)).ToDictionary(g => g.Key, g => g.Count());
         int N(string s) => counts.GetValueOrDefault(s);
-        return new MessagingSummary(N(MsgStatus.Queued), N(MsgStatus.Sent), N(MsgStatus.Delivered), N(MsgStatus.Read), N(MsgStatus.Failed), N(MsgStatus.NotSent), pending, true);
+        return new MessagingSummary(N(MsgStatus.Queued), N(MsgStatus.Sent), N(MsgStatus.Delivered), N(MsgStatus.Read), N(MsgStatus.Failed), N(MsgStatus.NotSent), pending, gateway.IsSimulated, gateway.IsConfigured);
     }
 
     public async Task<TemplatesResult> TemplatesAsync(int propertyId, int principalId, CancellationToken ct = default)

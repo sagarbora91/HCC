@@ -1,3 +1,4 @@
+using Hcc.Api.Hosting;
 using Hcc.Application.Messaging;
 using Hcc.Contracts.Messaging;
 using Hcc.Infrastructure.SqlServer;
@@ -6,7 +7,8 @@ using Hcc.Infrastructure.SqlServer.Messaging;
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
-/// Messaging endpoints (W2-10). ALL SENDING IS SIMULATED. Commands: <c>POST /api/v1/commands/{SendMessage|RunMessagingTriggers|SimulateMessageDelivery|
+/// Messaging endpoints (W2-10). Sending is SIMULATED in Development and the tests; in Production the gateway is the not-configured one (A09-08):
+/// a manual send is refused (503 UNAVAILABLE, details.reason NOT_CONFIGURED, feature "messaging") and event-driven messages are recorded as Not sent. Commands: <c>POST /api/v1/commands/{SendMessage|RunMessagingTriggers|SimulateMessageDelivery|
 /// RetryMessage|SetMessagingConsent|UpdateMessageTemplate|UpdateMessageRule}</c>; reads under <c>/api/v1/messaging/*</c>. Recipients are masked everywhere.
 /// A background worker turns outbox events (confirmed booking, payment, departure) into queued messages.
 /// </summary>
@@ -15,7 +17,7 @@ public static class MessagingEndpoints
     public static IServiceCollection AddHccMessaging(this IServiceCollection services)
     {
         services.AddSingleton(new MessagingOptions());
-        services.AddSingleton<IMessageGateway, FakeMessageGateway>(); // a real WhatsApp/SMS gateway replaces this one registration
+        services.AddSingleton(SimulatedAdapters.MessageGateway); // A09-08: simulated outside Production, "not configured" in Production; a real WhatsApp/SMS gateway replaces this one registration
         services.AddSingleton<IMessagingDataFactory>(sp => new SqlMessagingDataFactory(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<TriggerEngine>();
         services.AddSingleton(sp => new MessagingTriggerProjector(sp.GetRequiredService<SqlPlatform>().Outbox, sp.GetRequiredService<SqlPlatform>().Connections,

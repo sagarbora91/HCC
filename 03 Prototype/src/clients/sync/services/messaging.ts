@@ -1,4 +1,6 @@
-// Messaging area (W4-10): templates, trigger rules, consent, simulated send / outbox. ALL SENDING IS SIMULATED on the server too.
+// Messaging area (W4-10): templates, trigger rules, consent, simulated send / outbox. Sending is simulated on a Development server; a Production server
+// without a messaging provider refuses a send (UNAVAILABLE + details.reason NOT_CONFIGURED, shown as the server's sentence) and records event-driven
+// messages as "Not sent: Messaging not configured" (A09-08); GET /messaging/messages then carries `notConfigured`, which the screens show as a notice.
 // Server: 08 Production/src/Hcc.Api/Endpoints/MessagingEndpoints.cs (+ the W4-10 additive reads: MessageView.outcome/boostMinutes/guestId and
 // GET /messaging/consents).
 //
@@ -44,10 +46,12 @@ const consentOf=(c:SrvConsent):MSGConsent=>({whatsapp:c.whatsApp,sms:c.sms,email
 async function loadMessaging(c:LoaderCtx):Promise<MSGState>{
   const api=c.api;
   const msgs:SrvMessage[]=[];
+  let notConfigured:string|undefined;
   // DEC-079 D4: the Tech admin reads templates and rules (PERM-MSG-003) without the message log or the consent roster.
   const log=c.mayRead('GET /messaging/messages'),consents=c.mayRead('GET /messaging/consents');
   for(let page=1;log&&page<=MAX_PAGES;page++){
-    const r=await api.get<{items:SrvMessage[];total:number}>('/messaging/messages',{page,pageSize:PAGE});
+    const r=await api.get<{items:SrvMessage[];total:number;notConfigured?:string|null}>('/messaging/messages',{page,pageSize:PAGE});
+    if(r.notConfigured)notConfigured=r.notConfigured;   // A09-08: the server's own sentence (Production without a messaging provider)
     msgs.push(...r.items);if(msgs.length>=r.total||!r.items.length)break;
   }
   const [tpl,rules,roster]=await Promise.all([api.get<{templates:SrvTemplate[]}>('/messaging/templates'),api.get<SrvRule[]>('/messaging/rules'),
@@ -61,6 +65,7 @@ async function loadMessaging(c:LoaderCtx):Promise<MSGState>{
     templates:tpl.templates.map(t=>{c.ids.setVersion('msgTemplate',t.code,t.version);return {id:t.code as MSGTemplateId,name:t.name,subject:t.subject,body:t.body,channel:t.channel as MSGChannel} as MSGTemplate;}),
     rules:rules.map(r=>{c.ids.setVersion('msgRule',r.ruleId,r.version);return {id:r.ruleId,event:r.event as MSGEvent,template:r.templateCode as MSGTemplateId,channel:r.channel as MSGChannel,enabled:r.enabled} as MSGRule;}),
     consent,outbox,fired:msgs.filter(m=>m.ruleId).map(m=>`${m.ruleId}:${m.reservationId}`),docs:[],
+    ...(notConfigured?{notConfigured}:{}),
   };
 }
 
