@@ -7,7 +7,7 @@ namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Tax invoices and credit notes (W3-6): <c>POST /api/v1/commands/{IssueInvoice|RequestCreditNote|DecideCreditNote}</c> (Idempotency-Key) and
-/// <c>GET /api/v1/invoices?from=&amp;to=</c> (register), <c>/invoices/gstr1?from=&amp;to=</c>, <c>/invoices/{id}</c>, <c>/invoices/{id}/document?format=html|text</c>,
+/// <c>GET /api/v1/invoices?from=&amp;to=</c> (register), <c>/invoices/gstr1?from=&amp;to=</c>, <c>/invoices/{id}</c>, <c>/invoices/by-source/{kind}/{id}</c>, <c>/invoices/{id}/document?format=html|text</c>,
 /// <c>/credit-notes/{id}</c>, <c>/credit-notes/{id}/document</c>, <c>/credit-note-requests[?status=]</c>. Every route requires a session.
 /// </summary>
 public static class InvoicesEndpoints
@@ -42,6 +42,11 @@ public static class InvoicesEndpoints
         {
             var (p, u) = http.HccActor();
             return Results.Ok(await q.Gstr1Async(p, u, from, to, ct));
+        });
+        g.MapGet("/invoices/by-source/{sourceKind}/{sourceId:long}", async (string sourceKind, long sourceId, HttpContext http, InvoiceQueries q, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await q.GetInvoiceForSourceAsync(p, u, sourceKind, sourceId, ct)); // W4-3 sync layer
         });
         g.MapGet("/invoices/{invoiceId:long}", async (long invoiceId, HttpContext http, InvoiceQueries q, CancellationToken ct) =>
         {

@@ -186,4 +186,18 @@ public interface IBillingStore
     Task<(ShiftRow Shift, IReadOnlyList<MovementRow> Movements)?> ReadShiftAsync(long shiftId, CancellationToken ct);
 
     Task<IReadOnlyList<PostedReceipt>> ReceiptsOnAsync(int propertyId, DateOnly businessDate, CancellationToken ct);
+
+    /// <summary>W4-3: the reservation's folio id and stay (id, version), or null when the reservation is not on the property.</summary>
+    Task<ReservationFolioRef?> FindReservationFolioAsync(int propertyId, long reservationId, CancellationToken ct);
+
+    /// <summary>W4-3: every till of the property with its active shift and last closed shift (cash desk read).</summary>
+    Task<CashDeskRead> ReadCashDeskAsync(int propertyId, CancellationToken ct);
 }
+
+public sealed record ReservationFolioRef(long ReservationId, long? FolioId, long? StayId, string? StayVersion);
+
+public sealed record CashDeskShiftRead(ShiftRow Shift, string? Reason, int? ClosedBy, ApprovalRow? Approval);
+
+public sealed record CashDeskTillRead(TillRow Till, CashDeskShiftRead? Active, CashDeskShiftRead? LastClosed);
+
+public sealed record CashDeskRead(DateOnly? BusinessDate, IReadOnlyList<CashDeskTillRead> Tills);

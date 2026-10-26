@@ -64,6 +64,44 @@ public sealed class BillingQueries(IBillingStore store, IAccessPolicy policy, Ti
             Sum(ReceiptKind.Deposit), Sum(ReceiptKind.DepositReturn));
     }
 
+    /// <summary>W4-3: the reservation's folio (null before check-in) with its stay id/version (PERM-FOL-001).</summary>
+    public async Task<ReservationFolioView> GetReservationFolioAsync(Caller caller, long reservationId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.FolioView, ct: ct).ConfigureAwait(false);
+        var r = await store.FindReservationFolioAsync(caller.PropertyId, reservationId, ct).ConfigureAwait(false)
+            ?? throw new HccException(HccErrorCode.NOT_FOUND, "Reservation not found.");
+        var folio = r.FolioId is { } fid ? await GetFolioAsync(caller, fid, ct).ConfigureAwait(false) : null;
+        return new ReservationFolioView(r.ReservationId, r.StayId, r.StayVersion, folio);
+    }
+
+    /// <summary>W4-3: the cash desk — every till with its active shift (expected cash) and last closed shift (PERM-SHF-001, any shift; DEC-052 shared till).</summary>
+    public async Task<CashDeskView> GetCashDeskAsync(Caller caller, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, BillingPermissions.ShiftCount, AccessScopes.Any, ct: ct).ConfigureAwait(false);
+        var desk = await store.ReadCashDeskAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        if (desk.BusinessDate is not { } date) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        var now = clock.GetUtcNow().UtcDateTime;
+        CashDeskShiftView? Shift(CashDeskShiftRead? s) => s is null ? null
+            : new CashDeskShiftView(CashierService.ToResult(s.Shift), s.Shift.SubmittedBy, s.Reason, s.ClosedBy, s.Approval is { } a ? ToView(a, now) : null);
+        var tills = new List<CashDeskTillView>();
+        foreach (var t in desk.Tills)
+        {
+            ExpectedCashView? expected = null;
+            if (t.Active is { } active && await store.ReadShiftAsync(active.Shift.ShiftId, ct).ConfigureAwait(false) is { } read)
+            {
+                var e = CashDrawer.Expected(read.Shift.OpeningFloat, read.Movements.Select(m => new CashMovement(m.Kind, m.Amount)).ToList());
+                expected = new ExpectedCashView(e.Opening.Value, e.Payments.Value, e.Deposits.Value, e.Refunds.Value, e.Returns.Value, e.Expenses.Value, e.Other.Value,
+                    e.Restaurant.Value, e.Transfers.Value, e.Expected.Value, e.Consistent);
+            }
+
+            tills.Add(new CashDeskTillView(new TillResult(t.Till.TillId, t.Till.Code, t.Till.Name, t.Till.Version), Shift(t.Active), expected, Shift(t.LastClosed)));
+        }
+
+        return new CashDeskView(date, tills);
+    }
+
     internal static ApprovalView ToView(ApprovalRow a, DateTime now) => new(a.ApprovalId, BillingCodes.Code(a.Action), a.TargetKind, a.TargetId, a.Amount.Value,
         ApprovalRules.Effective(a.Status, a.Action, a.ExpiresUtc, now).ToString(), a.Reason, a.RequestedBy, a.DecidedBy, a.ExpiresUtc, a.ResultId, a.Version);
 }
