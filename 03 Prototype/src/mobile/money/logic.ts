@@ -2,10 +2,12 @@
 // The command builders here produce EXACTLY the commands the phone screens send, using the same command types and
 // fields as the desktop dialogs (PaymentModal, CheckoutModal, ShiftCountForm, ExpenseModal). No React imports.
 import type {State,Booking,Command} from '../../services/mock';
-import {totals,folioNights,folioCheckoutBlockers,folioCompanyCreditState,folioApprovalExpired,shiftDenominationTotal,SHIFT_DENOMINATIONS,addDays} from '../../services/mock';
+import {totals,folioNights,folioCheckoutBlockers,folioCompanyCreditState,folioApprovalExpired,shiftDenominationTotal,SHIFT_DENOMINATIONS,addDays,mnyNames,mnyShortLabel,mnyMethod} from '../../services/mock';
 
-/** Phone tender chips → command method values (FOLIO_TENDERS). */
+/** LEGACY (MA-3): the old fixed chips; the screens use mmTenders(s) (payment-methods master, front desk). */
 export const MM_TENDERS:{id:string;label:string}[]=[{id:'Cash',label:'Cash'},{id:'UPI',label:'UPI'},{id:'Card',label:'Card'},{id:'Bank transfer',label:'Bank'}];
+/** Phone tender chips → command method values: active front-desk payment methods (seed = MM_TENDERS, same labels). */
+export const mmTenders=(s:State):{id:string;label:string}[]=>mnyNames(s,'frontdesk').map(m=>({id:m,label:mnyShortLabel(s,m)}));
 export const MM_PAY_KINDS:{id:'payment'|'deposit'|'deposit-return';label:string;long:string}[]=[
   {id:'payment',label:'Payment',long:'Payment / advance against folio'},
   {id:'deposit',label:'Deposit',long:'Receive refundable deposit'},
@@ -26,13 +28,14 @@ export const mmRupeeText=(p:number)=>p>0?String(p/100):'';
 export function mmEffectiveRows(total:string,rows:MmTenderRow[]):MmTenderRow[]{return rows.map(r=>({...r,amount:rows.length===1?total:r.amount}));}
 
 /** Client-side check before the confirm screen; '' when OK. The command re-validates everything. */
-export function mmPaymentProblem(kind:string,total:string,rows:MmTenderRow[],deposit:number):string{
+export function mmPaymentProblem(kind:string,total:string,rows:MmTenderRow[],deposit:number,s?:State):string{
+  const needsRef=(m:string)=>s?!!mnyMethod(s,m)?.needsReference:m!=='Cash'; // MA-3: the method's "needs reference" (without state: the old rule)
   const target=mmPaise(total),eff=mmEffectiveRows(total,rows);
   if(!(target>0))return 'Enter an amount greater than zero.';
   if(eff.some(r=>!(mmPaise(r.amount)>0)))return 'Every tender row needs an amount greater than zero.';
   const sum=eff.reduce((a,r)=>a+mmPaise(r.amount),0);
   if(sum!==target)return `Tender rows total ₹${(sum/100).toLocaleString('en-IN')} but the amount is ₹${(target/100).toLocaleString('en-IN')}. They must be equal.`;
-  if(eff.some(r=>r.method!=='Cash'&&!r.reference.trim()))return 'Enter a demonstration transaction reference for each non-cash tender.';
+  if(eff.some(r=>needsRef(r.method)&&!r.reference.trim()))return 'Enter a demonstration transaction reference for each non-cash tender.';
   if(kind==='deposit-return'&&rows.length>1)return 'Return a deposit with a single tender.';
   if(kind==='deposit-return'&&target>deposit)return 'Return cannot exceed the deposit held.';
   return '';

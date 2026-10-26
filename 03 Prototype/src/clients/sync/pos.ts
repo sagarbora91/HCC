@@ -2,7 +2,9 @@
 // to the folio, cash into the shared drawer. Server: PosEndpoints.cs (commands + GET /pos/*); tax comes ONLY from the server (the check's
 // taxBps / taxPaise / totalPaise are what the screens show; nothing is recomputed here).
 //
-//   loaders   posX       ← GET /pos/outlets + /pos/menu + /pos/checks (open) + one GET /pos/checks/{id} per open check
+//   loaders   posX       ← GET /pos/outlets (+ MA-4 master fields and tableRows) + /pos/menu (+ dated prices, GST class, station, sold out)
+//                          — also for a user holding only `masters` (Tech admin: Master configuration's POS lists) — and, when the
+//                          user may read them, /pos/checks (open) + one GET /pos/checks/{id} per open check
 //                          + GET /pos/checks/closed (today's settled / void checks, at most 50; only for the money view or the settling desk:
 //                          the Restaurant role, DEC-079 D1, works from open checks only).
 //                          Outlet receipts (posX.receipts) are derived from today's closed outlet bills (a sale; plus its reversal for a
@@ -18,7 +20,7 @@
 //             credit note) is shown on the bill as the server sent it.
 //   ids       outlet / menu item / check / line / KOT = String(server id); void approval = "posv-<id>"; users = String(user id).
 //   versions  checks: ids kind 'check' (rowversion) — sent for the state-sensitive commands (KOT, settle, void); menu items: 'menuItem'.
-import type {POSState,POSOrder,POSLine,POSKot,POSReceipt,POSMenuItem,POSOutlet,POSKotStatus,Approval,Command} from '../../services/mock';
+import type {POSState,POSOrder,POSLine,POSKot,POSReceipt,POSMenuItem,POSOutlet,POSTable,POSKotStatus,Approval,Command} from '../../services/mock';
 import {posBuyerOf,posOrderTotals} from '../../domain/streams/pos';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
@@ -26,11 +28,16 @@ import {protoUserId,serverId,utcToClock,utcToDate} from './map';
 import {CASH_SLICES} from './money';
 
 // ── Server DTOs (08 Production/src/Hcc.Contracts/Pos/PosContracts.cs) ──
-type SrvOutlet={outletId:number;code:string;name:string;kind:'table'|'room';tables:string[]};
-type SrvMenuItem={itemId:number;code:string;name:string;category:string;pricePaise:number;veg:boolean;available:boolean;outletIds:number[];version:string};
+type SrvTable={tableId:number;code:string;name:string;tableNo:string;seats:number|null;section:string|null;counter:boolean;sortOrder:number;active:boolean;retiredOn:string|null;version:string};
+/** MA-4 master fields are optional on the wire (a server before migration 2840 sends none). */
+type SrvOutlet={outletId:number;code:string;name:string;kind:'table'|'room';tables:string[];type?:string;opens?:string|null;closes?:string|null;gstProfile?:string;
+  kotStation?:string|null;sortOrder?:number;active?:boolean;retiredOn?:string|null;version?:string|null;tableRows?:SrvTable[]|null};
+type SrvMenuItem={itemId:number;code:string;name:string;category:string;pricePaise:number;veg:boolean;available:boolean;outletIds:number[];version:string;
+  categoryId?:number|null;categoryCode?:string|null;shortCode?:string|null;gstClass?:string;station?:string|null;sortOrder?:number;active?:boolean;retiredOn?:string|null;
+  soldOutOn?:string|null;prices?:{effectiveFrom:string;amountPaise:number}[]|null};
 type SrvOpenCheck={orderId:number};
-type SrvLine={lineId:number;itemId:number;name:string;pricePaise:number;qty:number;kotId:number|null;status:string;voided:boolean;voidReason:string|null};
-type SrvKot={kotId:number;kotNo:number;status:POSKotStatus;createdUtc:string;readyUtc:string|null;servedUtc:string|null;createdBy?:number|null};
+type SrvLine={lineId:number;itemId:number;name:string;pricePaise:number;qty:number;kotId:number|null;status:string;voided:boolean;voidReason:string|null;gstClass?:string|null};
+type SrvKot={kotId:number;kotNo:number;status:POSKotStatus;createdUtc:string;readyUtc:string|null;servedUtc:string|null;createdBy?:number|null;station?:string|null};
 type SrvBillInvoice={invoiceId:number;invoiceNo:string;docType:string;invoiceDate:string;supplyType:'B2C'|'B2B';buyerName:string|null;buyerGstin:string|null;
   supplierGstin:string;sac:string;cgstPaise:number;sgstPaise:number;creditNoteNo:string|null};
 type SrvBill={billId:number;billNo:string;mode:'outlet'|'folio';tender:string|null;reference:string|null;netPaise:number;taxBps:number;taxPaise:number;totalPaise:number;
@@ -50,16 +57,32 @@ export function voidRequestIdOf(id:unknown):number{
 }
 
 // ── Mapping (exported for tests) ──
-export const outletFromServer=(o:SrvOutlet):POSOutlet=>({id:String(o.outletId),name:o.name,kind:o.kind,...(o.kind==='table'?{tables:[...o.tables]}:{})});
-export const menuFromServer=(m:SrvMenuItem):POSMenuItem=>({id:String(m.itemId),name:m.name,category:m.category,price:m.pricePaise,veg:m.veg,outlets:m.outletIds.map(String),available:m.available});
+export const tableFromServer=(t:SrvTable):POSTable=>({id:String(t.tableId),code:t.code,name:t.name,tableNo:t.tableNo,...(t.seats!==null?{seats:t.seats}:{}),
+  ...(t.section?{section:t.section}:{}),...(t.counter?{counter:true}:{}),sortOrder:t.sortOrder,active:t.active,...(t.retiredOn?{retiredOn:t.retiredOn}:{})});
+export function outletFromServer(o:SrvOutlet):POSOutlet{
+  const x:POSOutlet={id:String(o.outletId),name:o.name,kind:o.kind,...(o.kind==='table'?{tables:[...o.tables]}:{})};
+  if(o.sortOrder===undefined)return x; // server before MA-4
+  Object.assign(x,{code:o.code,sortOrder:o.sortOrder,active:o.active!==false,type:o.type??(o.kind==='room'?'room-service':'restaurant'),gstProfile:o.gstProfile??'hotel'},
+    o.retiredOn?{retiredOn:o.retiredOn}:{},o.opens?{opens:o.opens}:{},o.closes?{closes:o.closes}:{},o.kotStation?{kotStation:o.kotStation}:{});
+  if(o.kind==='table'&&o.tableRows)x.tableRows=o.tableRows.map(tableFromServer);
+  return x;
+}
+export function menuFromServer(m:SrvMenuItem):POSMenuItem{
+  const x:POSMenuItem={id:String(m.itemId),name:m.name,category:m.category,price:m.pricePaise,veg:m.veg,outlets:m.outletIds.map(String),available:m.available};
+  if(m.sortOrder===undefined)return x; // server before MA-4
+  Object.assign(x,{code:m.code,sortOrder:m.sortOrder,active:m.active!==false,gstClass:m.gstClass??'food'},
+    m.categoryCode?{categoryCode:m.categoryCode}:{},m.shortCode?{shortCode:m.shortCode}:{},m.station?{station:m.station}:{},m.retiredOn?{retiredOn:m.retiredOn}:{},
+    m.soldOutOn?{soldOutOn:m.soldOutOn}:{},m.prices?{prices:m.prices.map(p=>({amount:p.amountPaise,effectiveFrom:p.effectiveFrom}))}:{});
+  return x;
+}
 
 /** Server check → prototype POSOrder. `fallbackDate`: business date used as the void date of an item void (the server keeps no per-line void date). */
 export function orderFromServer(c:SrvCheck,fallbackDate?:string):POSOrder{
   const room=c.spot.startsWith('Room ')?c.spot.slice(5):undefined,table=c.spot.startsWith('Table ')?c.spot.slice(6):undefined;
   const voidDate=c.status==='Void'&&c.voidedUtc?utcToDate(c.voidedUtc):fallbackDate??c.businessDate;
-  const lines:POSLine[]=c.lines.map(l=>({id:String(l.lineId),item:String(l.itemId),name:l.name,price:l.pricePaise,qty:l.qty,
+  const lines:POSLine[]=c.lines.map(l=>({id:String(l.lineId),item:String(l.itemId),name:l.name,price:l.pricePaise,qty:l.qty,...(l.gstClass&&l.gstClass!=='food'?{gst:l.gstClass}:{}),
     ...(l.kotId!==null?{kot:String(l.kotId)}:{}),...(l.voided?{voided:true,voidReason:l.voidReason??'',voidDate}:{})}));
-  const kots:POSKot[]=c.kots.map(k=>({id:String(k.kotId),no:k.kotNo,at:utcToClock(k.createdUtc),by:protoUserId(k.createdBy??0),status:k.status,
+  const kots:POSKot[]=c.kots.map(k=>({id:String(k.kotId),no:k.kotNo,at:utcToClock(k.createdUtc),by:protoUserId(k.createdBy??0),status:k.status,...(k.station?{station:k.station}:{}),
     ...(k.readyUtc?{readyAt:utcToClock(k.readyUtc)}:{}),...(k.servedUtc?{servedAt:utcToClock(k.servedUtc)}:{})}));
   const o:POSOrder={id:String(c.orderId),outlet:String(c.outletId),...(table!==undefined?{table}:{}),...(room!==undefined?{room}:{}),
     ...(c.reservationId?{booking:String(c.reservationId)}:{}),...(c.guest?{guest:c.guest}:{}),covers:c.covers,date:c.businessDate,openedAt:utcToClock(c.openedUtc),
@@ -92,10 +115,14 @@ export const approvalFromServer=(v:SrvVoidRequest):Approval=>({id:approvalId(v.v
 
 // ── Loaders ──
 async function loadPos(c:LoaderCtx):Promise<POSState>{
+  // MA-4: a user with `masters` but no POS operate right (Tech admin) gets the outlets and the menu only (Master configuration lists);
+  // Wave B (DEC-079 D1): the Restaurant role reads open checks but not the closed ones.
+  const operate=c.mayRead('GET /pos/checks','GET /pos/checks/:id');
   const [outlets,menu,open,closed]=await Promise.all([
-    c.api.get<SrvOutlet[]>('/pos/outlets'),c.api.get<SrvMenuItem[]>('/pos/menu'),c.api.get<SrvOpenCheck[]>('/pos/checks'),
-    c.mayRead('GET /pos/checks/closed')?c.api.get<SrvCheck[]>('/pos/checks/closed',{date:c.current('date')||undefined}):Promise.resolve<SrvCheck[]>([])]);
+    c.api.get<SrvOutlet[]>('/pos/outlets'),c.api.get<SrvMenuItem[]>('/pos/menu'),operate?c.api.get<SrvOpenCheck[]>('/pos/checks'):Promise.resolve([] as SrvOpenCheck[]),
+    operate&&c.mayRead('GET /pos/checks/closed')?c.api.get<SrvCheck[]>('/pos/checks/closed',{date:c.current('date')||undefined}):Promise.resolve<SrvCheck[]>([])]);
   for(const m of menu)c.ids.setVersion('menuItem',String(m.itemId),m.version);
+  for(const o of outlets){if(o.version)c.ids.setVersion('outlet',String(o.outletId),o.version);for(const t of o.tableRows??[])c.ids.setVersion('outletTable',String(t.tableId),t.version);}
   const checks:SrvCheck[]=[];
   for(let i=0;i<open.length;i+=8){
     const part=await Promise.all(open.slice(i,i+8).map(o=>c.api.get<SrvCheck>('/pos/checks/'+o.orderId).catch(e=>{
@@ -136,7 +163,7 @@ async function stayOf(c:CommandCtx):Promise<number|undefined>{
 
 export const pos:SyncArea={id:'pos',
   loaders:[
-    {slice:'posX',requires:'billing',reads:['GET /pos/outlets','GET /pos/menu','GET /pos/checks','GET /pos/checks/:id'],needs:['date'],load:loadPos},
+    {slice:'posX',requires:['billing','masters'],reads:['GET /pos/outlets','GET /pos/menu'],needs:['date'],load:loadPos},
     // approvals is owned by the admin area (W4-5); pending void requests are patched in (kind 'pos-void'), other kinds kept.
     {slice:'approvals',kind:'patch',requires:'billing',reads:['GET /pos/void-requests'],load:patchApprovals},
   ],

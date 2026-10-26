@@ -1,0 +1,18 @@
+/* MA-2 · catalogue dialogs, meal plan picker, Plans & extras page (features/folio/catalogue.tsx). */
+.cat-form small.muted{display:block;margin-top:4px;font-size:.85rem}
+.cat-manage{margin:4px 0 0}
+.cat-plan-btn{display:inline-flex;align-items:center;gap:6px}
+.cat-plans{border:0;padding:0;margin:0;display:grid;gap:8px}
+.cat-plans legend{font-weight:600;margin-bottom:6px}
+.cat-plan-opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line,var(--c-e4d9cc));border-radius:10px;min-height:48px;cursor:pointer}
+.cat-plan-opt input{margin-top:4px}
+.cat-plan-opt span{display:flex;flex-direction:column;gap:2px}
+.cat-plan-opt small{color:var(--muted,var(--muted))}
+.cat-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.cat-sums{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
+.cat-sums div{display:flex;flex-direction:column;padding:10px 12px;border-radius:10px;background:var(--soft,var(--c-f3ece3))}
+.cat-sums strong{font-size:1.2rem}
+.cat-page h3{margin:14px 0 6px;font-size:1rem}
+.cat-cards{display:grid;gap:8px}
+.cat-card{display:flex;flex-direction:column;gap:2px;padding:12px;border:1px solid var(--line,var(--c-e4d9cc));border-radius:10px;font-size:16px}
+.cat-card small{color:var(--muted,var(--muted))}

@@ -38,6 +38,8 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   staff:'people','my-hr':'people',
   closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
   syshealth:'admin',   // Wave C3 (A09-05): parked outbox events, retry, last backup — Owner + Tech admin
+  'plans-extras':'accounts', // MA-2
+  prefs:'admin', // CP-1 Appearance & display (every role, this device only)
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -71,7 +73,9 @@ export const PAGE_BLURB:Record<string,string>={
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
   closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
+  'plans-extras':'Catalogue vs free-text charges, meal plans, discount reasons',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',syshealth:'Stuck background work and the last backups',roadmap:'What is planned next',
+  prefs:'Text size, motion, start page, lists, messages (this device)',
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -105,6 +109,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   closing:['day closing','day close','night audit','close day','end of day','eod','close'],
   reports:['report','reports','revenue','occupancy','adr','revpar','csv','export','print','daily'],
   accounting:['accounting','ledger','voucher','trial balance','tally','lock','period','journal'],
+  'plans-extras':['meal plan','meal plans','ep','cp','map','ap','breakfast','extras','extra bed','catalogue','free text','discount reason','laundry','package'],
   assistant:['assistant','ask','question','ai','management assistant','insight'],
   compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
   access:['access','users','roles','permissions','rbac','login','disable user'],
@@ -113,6 +118,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   backup:['backup','restore','recovery','export data'],
   syshealth:['system health','health','parked','stuck','retry','outbox','event log','alerts','errors','backup failed','last backup','restore drill'],
   roadmap:['roadmap','future','planned','modules','phases'],
+  prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
 };
 
 export type SearchEntry={

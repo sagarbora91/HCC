@@ -54,6 +54,12 @@ public static class HccComposition
         services.AddInvoicesModule();                    // W3-6 tax invoices & credit notes (numbering per FY, documents)
         services.AddImportModule();                      // W4-13 masters & opening balances import (CSV validate/preview/commit)
         services.AddMastersModule();                     // MA-0 masters framework + Floors (DEC-MA-1)
+        services.AddRoomMastersModule();                 // MA-1 room types, rooms, amenities, occupancy charges
+        services.AddMoneyMastersModule();                // MA-3 payment methods, bank accounts, expense categories and vendors (DEC-058)
+        services.AddCatalogueModule();                   // MA-2 meal plans, extras catalogue, discount reasons
+        services.AddFrontDeskMastersModule();            // MA-5 booking sources, ID types, numbering series, policies
+        services.AddPeopleListsModule();                 // MA-6 designations, shift patterns, leave types, holidays
+        services.AddOpsMastersModule();                  // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         services.AddSystemHealthModule();                // Wave C3 (A09-05): parked outbox events, retry, last backup (PERM-SYS-001)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
@@ -134,6 +140,12 @@ public static class HccComposition
         api.MapInvoicesEndpoints();      // W3-6 invoices & credit notes
         api.MapImportEndpoints();        // W4-13 masters & opening balances import
         api.MapMastersEndpoints();       // MA-0 masters framework + Floors
+        api.MapRoomMastersEndpoints();   // MA-1 rooms and room types masters
+        api.MapMoneyMastersEndpoints();  // MA-3 money masters
+        api.MapCatalogueEndpoints();     // MA-2 meal plans, extras catalogue, discount reasons
+        api.MapFrontDeskMastersEndpoints(); // MA-5 front-desk lists
+        api.MapPeopleListsEndpoints();   // MA-6 people lists
+        api.MapOpsMastersEndpoints();    // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         api.MapSystemHealthEndpoints();  // Wave C3 (A09-05): GET /admin/system-health, RetryParkedEvent
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;

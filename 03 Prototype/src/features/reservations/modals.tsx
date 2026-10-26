@@ -2,7 +2,9 @@
 import React,{useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {ArrowRight,Info,Hourglass,TriangleAlert} from 'lucide-react';
-import {money,addDays,nights,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,grpCompany,grpStayValue,RES_CAPACITY,RES_SOURCES,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE} from '../../services/mock';
+import {money,addDays,nights,totals,resSearch,resHoldActive,resHoldLeftLabel,resStatus,grpCompany,grpStayValue,RES_CAPACITY,RES_OTA_CHANNELS,RES_GSTIN,RES_PHONE,fdmSourceChoices,fdmOtaChannelNames,FDM_SOURCES} from '../../services/mock';
+import {FdmCancelNote} from './masters';
+import {MstLink} from '../masters/MasterList';
 import {useHcc} from '../../app/context';
 import {field,submit,shortDate,Empty} from '../../components/ui';
 import {RestrictionNotice} from './RestrictionNotice';
@@ -84,8 +86,8 @@ export function NewReservation({room,id}:{room?:string;id?:string}){
         <div className="form-row"><label>Guest name *<input name="guest" placeholder="e.g. Demo Guest" maxLength={80} aria-invalid={!!errors.guest}/>{err(errors.guest)}</label>
           <label>Phone *<input name="phone" type="tel" inputMode="tel" placeholder="+91 90000 00000" maxLength={16} aria-invalid={!!errors.phone}/>{err(errors.phone)}</label></div>
         <div className="form-row"><label>Fictional email (optional)<input type="email" name="email" placeholder="guest@example.test"/></label>
-          <label>Booking source *<select name="source" value={source} onChange={e=>setSource(e.target.value)}>{RES_SOURCES.map(x=><option key={x}>{x}</option>)}</select></label></div>
-        {source==='OTA'&&<label>OTA channel name *<input name="otaChannel" list="res-ota" placeholder="e.g. Demo Travel Hub" maxLength={60} aria-invalid={!!errors.otaChannel}/><datalist id="res-ota">{RES_OTA_CHANNELS.map(x=><option key={x} value={x}/>)}</datalist>{err(errors.otaChannel)}</label>}
+          <label>Booking source *<select name="source" value={source} onChange={e=>setSource(e.target.value)}>{fdmSourceChoices(s,source).map(x=><option key={x}>{x}</option>)}</select><MstLink spec={FDM_SOURCES} label="Manage sources…"/></label></div>
+        {source==='OTA'&&<label>OTA channel name *<input name="otaChannel" list="res-ota" placeholder="e.g. Demo Travel Hub" maxLength={60} aria-invalid={!!errors.otaChannel}/><datalist id="res-ota">{fdmOtaChannelNames(s,RES_OTA_CHANNELS).map(x=><option key={x} value={x}/>)}</datalist>{err(errors.otaChannel)}</label>}
         <CompanyAccountPicker value={account} onChange={setAccount} stay={chosen&&!dateError?grpStayValue(s,chosenRate,arrival,departure):0}/>
         {!account&&<div className="form-row"><label>Company (optional)<input name="companyName" placeholder="e.g. Demo Industries (fictional)" maxLength={80} aria-invalid={!!errors.companyName}/>{err(errors.companyName)}</label>
           <label>GSTIN (optional, fictional)<input name="gstin" placeholder="27AAAAA0000A1Z5" maxLength={15} style={{textTransform:'uppercase'}} aria-invalid={!!errors.gstin}/>{err(errors.gstin)}</label></div>}
@@ -110,7 +112,7 @@ export function CancelReservation({id}:{id:string}){
     {!open_&&<div className="info-note"><Info size={16}/>This booking is {resStatus(s,b)} and can no longer be cancelled.</div>}
     {money_&&<div className="info-note"><TriangleAlert size={16}/>Money is held on this booking ({money(t.paid)} paid, {money(t.deposit)} deposit). Refund the advance and return any deposit first.</div>}
     <div className="form"><label>Reason (optional)<input value={reason} onChange={e=>setReason(e.target.value)} maxLength={200} placeholder="e.g. Guest changed plans"/></label></div>
-    <div className="info-note"><Info size={16}/>This demo does not calculate cancellation penalties. Cancelling releases the room immediately.</div>
+    <FdmCancelNote b={b}/>
     {noShowWhy&&b.status==='Confirmed'&&<p className="muted">{noShowWhy}</p>}
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Back</button>
       {b.status==='Confirmed'&&<button className="btn" disabled={busy||!!noShowWhy||money_} title={noShowWhy||undefined} onClick={()=>run({type:'CANCEL',id:b.id,noShow:true,reason,key:'noshow:'+b.id},'Marked no-show',{after:()=>booking(b.id)})}>No-show</button>}

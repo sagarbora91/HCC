@@ -37,6 +37,12 @@
     <Project Path="tests/Hcc.Invoices.Tests/Hcc.Invoices.Tests.csproj" />
     <Project Path="tests/Hcc.Import.Tests/Hcc.Import.Tests.csproj" />
     <Project Path="tests/Hcc.Masters.Tests/Hcc.Masters.Tests.csproj" />
+    <Project Path="tests/Hcc.RoomMasters.Tests/Hcc.RoomMasters.Tests.csproj" />
+    <Project Path="tests/Hcc.MoneyMasters.Tests/Hcc.MoneyMasters.Tests.csproj" />
+    <Project Path="tests/Hcc.Catalogue.Tests/Hcc.Catalogue.Tests.csproj" />
+    <Project Path="tests/Hcc.FrontDeskMasters.Tests/Hcc.FrontDeskMasters.Tests.csproj" />
+    <Project Path="tests/Hcc.PeopleLists.Tests/Hcc.PeopleLists.Tests.csproj" />
+    <Project Path="tests/Hcc.OpsMasters.Tests/Hcc.OpsMasters.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations/0001_platform.sql" />
@@ -83,8 +89,17 @@
     <File Path="database/migrations/2401_invoices_rbac_seed.sql" />
     <File Path="database/migrations/2700_import.sql" />
     <File Path="database/migrations/2701_import_rbac_seed.sql" />
+    <File Path="database/migrations/2800_import_more_masters.sql" />
     <File Path="database/migrations/2801_masters_floors.sql" />
     <File Path="database/migrations/2802_masters_rbac_seed.sql" />
+    <File Path="database/migrations/2810_masters_rooms.sql" />
+    <File Path="database/migrations/2820_catalogue.sql" />
+    <File Path="database/migrations/2830_money_masters.sql" />
+    <File Path="database/migrations/2840_pos_masters.sql" />
+    <File Path="database/migrations/2850_frontdesk_masters.sql" />
+    <File Path="database/migrations/2860_people_lists.sql" />
+    <File Path="database/migrations/2870_ops_masters.sql" />
+    <File Path="database/migrations/2871_ops_masters_seed.sql" />
     <File Path="database/migrations/2900_outbox_consumers.sql" />
     <File Path="database/migrations/3100_cash_leaving_drawer.sql" />
     <File Path="database/migrations/3101_cash_leaving_drawer_rbac_seed.sql" />
@@ -96,6 +111,7 @@
     <File Path="database/migrations/3601_accounting_tally_export_log.sql" />
     <File Path="database/migrations/3700_access_v2_rbac_seed.sql" />
     <File Path="database/migrations/3701_pos_menu_change_requests.sql" />
+    <File Path="database/migrations/3800_holiday_calendar.sql" />
     <File Path="database/migrations/3910_access_credential_must_change.sql" />
     <File Path="database/migrations/3920_system_health.sql" />
     <File Path="database/migrations/3921_system_health_rbac_seed.sql" />

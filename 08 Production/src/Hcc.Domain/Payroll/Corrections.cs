@@ -44,14 +44,16 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
         _ => "Worked on off day",
     };
 
-    public static string LeaveLabel(LeaveType t) => t switch
+    /// <summary>Label of a leave type: the six built-in codes by name; a code added in MA-6's Leave types list prints as its code.</summary>
+    public static string LeaveLabel(LeaveType t) => t.Value switch
     {
-        Payroll.LeaveType.CL => "Casual leave",
-        Payroll.LeaveType.SL => "Sick leave",
-        Payroll.LeaveType.EL => "Earned leave",
-        Payroll.LeaveType.CO => "Compensatory off",
-        Payroll.LeaveType.ML => "Maternity / paternity leave",
-        _ => "Leave without pay",
+        "CL" => "Casual leave",
+        "SL" => "Sick leave",
+        "EL" => "Earned leave",
+        "CO" => "Compensatory off",
+        "ML" => "Maternity / paternity leave",
+        "LOP" => "Leave without pay",
+        _ => t.Value,
     };
 
     /// <summary>Parses a correction target: <c>none</c> (clear the day), an attendance status (with 0–480 overtime minutes, none when absent) or a leave type.</summary>
@@ -72,10 +74,11 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
             return Mark(s, ot);
         }
 
-        if (code is "CL" or "SL" or "EL" or "CO" or "ML" or "LOP")
+        // MA-6: any leave-type code (the six built-ins or one from the Leave types list; the service checks it is a known, active type).
+        if (Payroll.LeaveType.IsValid(code))
         {
             if (ot != 0) throw HccException.Validation("A leave day carries no overtime.");
-            return Leave(Enum.Parse<LeaveType>(code));
+            return Leave(new Payroll.LeaveType(code!));
         }
 
         throw HccException.Validation("Choose what the day should be: an attendance mark, a leave type or 'none'.");

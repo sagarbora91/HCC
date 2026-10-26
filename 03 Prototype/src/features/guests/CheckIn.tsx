@@ -3,7 +3,7 @@ import React,{useState,useRef,useEffect} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural} from '../../services/mock';
+import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural,rmsRoomLine} from '../../services/mock';
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestDetails,statusTone} from './GuestProfile';
@@ -88,7 +88,7 @@ export function CheckinModal({id}:{id?:string}){
     body=<>{elig.ok?<div className="gs-ok"><Check size={18}/><div><strong>Room {b.room} · {room?.type} is vacant, ready and unblocked.</strong><p>Free for {shortDate(b.arrival)} — {shortDate(b.departure)}.</p></div></div>
       :<><div className="gs-deny" role="alert"><AlertCircle size={18}/><div><strong>Check-in to room {b.room} is not possible now.</strong><ul>{elig.reasons.map(r=><li key={r}>{r}</li>)}</ul></div></div>
         <h3 className="gs-sub">Eligible {room?.type} rooms for these dates</h3>
-        {alts.length?<ul className="gs-rooms">{alts.map((r:Room)=><li key={r.id}><span className="room-number">{r.id}</span><span>{r.type} · floor {r.floor}<small>Ready · vacant · unblocked</small></span>
+        {alts.length?<ul className="gs-rooms">{alts.map((r:Room)=><li key={r.id}><span className="room-number">{r.id}</span><span>{rmsRoomLine(s,r)}<small>Ready · vacant · unblocked</small></span>
           {permission('reservations')?<button className="btn small-btn" disabled={busy} onClick={()=>run({type:'MOVE',id:b.id,room:r.id,departure:b.departure,key:`${modal!.key}:move:${r.id}`},`Allocation changed to room ${r.id}. Agreed tariff kept.`)}>Switch to {r.id}</button>:<span className="muted">Needs reservations permission</span>}</li>)}</ul>
           :<Empty title={`No eligible ${room?.type||''} rooms`} body="Ask housekeeping to finish and inspect a room, or change the room type from Reservations."/>}
         <p className="footnote">Switching uses the room-move command: availability is rechecked and the agreed tariff ({money(b.rate)}/night) is preserved.</p></>}

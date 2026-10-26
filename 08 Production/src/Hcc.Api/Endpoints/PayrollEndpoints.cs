@@ -59,7 +59,7 @@ public static class PayrollEndpoints
         Command<CorrectAttendanceRequest, CorrectionResult>(g, PayrollService.OpCorrectAttendance, (s, c, r, ct) => s.CorrectAttendanceAsync(c, r, ct));
         Command<DecidePayrollRequestRequest, PayrollRequestResult>(g, PayrollService.OpDecidePayrollRequest, (s, c, r, ct) => s.DecidePayrollRequestAsync(c, r, ct));
         Command<WithdrawPayrollRequestRequest, PayrollRequestResult>(g, PayrollService.OpWithdrawPayrollRequest, (s, c, r, ct) => s.WithdrawPayrollRequestAsync(c, r, ct));
-        Command<SaveHolidayRequest, HolidayResult>(g, PayrollService.OpSaveHoliday, (s, c, r, ct) => s.SaveHolidayAsync(c, r, ct));
+        Command<SavePaidHolidayRequest, HolidayResult>(g, PayrollService.OpSaveHoliday, (s, c, r, ct) => s.SaveHolidayAsync(c, r, ct));
         Command<RemoveHolidayRequest, HolidayResult>(g, PayrollService.OpRemoveHoliday, (s, c, r, ct) => s.RemoveHolidayAsync(c, r, ct));
 
         g.MapGet("/payroll/staff", async (HttpContext http, PayrollQueries q, CancellationToken ct) =>

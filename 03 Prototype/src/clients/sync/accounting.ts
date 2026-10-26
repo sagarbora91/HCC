@@ -22,7 +22,7 @@ import type {Command,Expense,State} from '../../services/mock';
 import type {ACCState,ACCVoucher,ACCServerDay,ACCLock,ACCMapRow,ACCException,ACCCheck,ACCDayStatus,ACCVoucherType,ACCSourceKind,ACCServer,ACCTBGroup} from '../../domain/streams/accounting';
 import {ACC_DEFAULT_MAP,accAccount} from '../../domain/streams/accounting';
 import type {CMPState,CMPObligation,CMPFiling,CMPPack,CMPRule,CMPKind,CMPFreq} from '../../domain/streams/compliance';
-import {EXPENSE_METHODS} from '../../domain/streams/closing';
+import {mnyMethodFor} from '../../domain/streams/money-master';
 import {addDays} from '../../domain/money';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
@@ -201,11 +201,12 @@ const expenseOf=(c:CommandCtx)=>c.state.expenses.find(e=>e.id===String(c.cmd.id)
 const txt=(v:unknown)=>typeof v==='string'?v.trim():'';
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 
-function expensePrecheck(cmd:Command):string|undefined{
+function expensePrecheck(cmd:Command,s?:State):string|undefined{
   if(!Number.isSafeInteger(cmd.amount)||cmd.amount<=0)return 'Amount must be a positive whole number of paise.';
   if(!txt(cmd.vendor))return 'Enter a vendor.';
   if(!txt(cmd.category))return 'Choose a category.';
-  if(!EXPENSE_METHODS.includes(cmd.method))return 'Choose a funding source.';
+  // MA-3: funding source = an active payment method usable for expenses (money masters; seed = the old four).
+  if(!s||!mnyMethodFor(s,cmd.method,'expenses'))return 'Choose a funding source.';
   return undefined;
 }
 const cmpItem=(cmd:Command)=>({obligationId:serverId(cmd.obligation,'Obligation'),period:txt(cmd.period)});

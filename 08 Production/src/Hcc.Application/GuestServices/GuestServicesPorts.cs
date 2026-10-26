@@ -51,21 +51,21 @@ public sealed record ComplaintRecord(long ComplaintId, int PropertyId, long? Sta
     string Description, int OwnerId, string Status, string? RootCause, string? RecoveryAction, DateOnly? FollowUpOn, string? FollowUpOutcome, bool? FollowUpSatisfied,
     DateTime? FollowUpUtc, int? FollowUpBy, DateTime CreatedUtc, DateTime? ResolvedUtc, DateTime? ClosedUtc, int CreatedBy, string? RecoveryState, long? RecoveryAmountPaise,
     string? RecoveryReason, long? RecoveryFolioId, long? RecoveryApprovalId, long? RecoveryChargeId, DateTime? RecoveryUtc, int? RecoveryBy,
-    string? ApprovalStatus, byte[] Version)
+    string? ApprovalStatus, byte[] Version, string? CategoryCode = null)
 {
     public string RecoveryStatus => GuestRecoveryRules.StatusOf(RecoveryState, RecoveryChargeId is not null, RecoveryApprovalId is not null, ApprovalStatus);
 }
 
 public sealed record NewComplaint(int PropertyId, long? StayId, int? RoomId, string GuestName, string Category, string Severity, string Description, int OwnerId,
-    DateTime CreatedUtc, int CreatedBy);
+    DateTime CreatedUtc, int CreatedBy, string? CategoryCode = null);
 
 public sealed record ItemRecord(long ItemId, int PropertyId, string Description, string Category, bool Valuable, string FoundWhere, int? RoomId, string? RoomNo, long? StayId,
     DateTime FoundUtc, DateOnly FoundDate, int FoundBy, string Storage, string Status, string? ClaimName, string? ClaimPhone, string? ClaimIdType, string? ClaimIdNote,
     string? ClaimMatchNote, DateTime? ClaimUtc, int? ClaimBy, string? HandoverTo, string? HandoverNote, DateTime? HandoverUtc, int? HandoverBy, string? DisposalMethod,
-    string? DisposalNote, DateTime? DisposalUtc, int? DisposalBy, byte[] Version);
+    string? DisposalNote, DateTime? DisposalUtc, int? DisposalBy, byte[] Version, string? CategoryCode = null);
 
 public sealed record NewItem(int PropertyId, string Description, string Category, bool Valuable, string FoundWhere, int? RoomId, long? StayId, DateTime FoundUtc,
-    DateOnly FoundDate, int FoundBy, string Storage);
+    DateOnly FoundDate, int FoundBy, string Storage, string? CategoryCode = null);
 
 public sealed record LogEntry(DateTime AtUtc, int By, string What);
 

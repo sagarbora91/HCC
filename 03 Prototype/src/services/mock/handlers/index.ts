@@ -23,4 +23,6 @@ import {handlers as cashout} from './cashout';
 import {handlers as masters} from './masters';
 import {handlers as credentials} from './credentials'; // A02b-05 self-service password / PIN change
 import {handlers as syshealth} from './syshealth';
-export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth};
+import {handlers as roommasters} from './roommasters';
+import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
+export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...catalogue};

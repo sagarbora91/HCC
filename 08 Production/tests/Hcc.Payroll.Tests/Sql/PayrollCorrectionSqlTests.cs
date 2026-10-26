@@ -208,7 +208,7 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
                 rows.Add(string.Create(CultureInfo.InvariantCulture, $"({s}, '{d:yyyy-MM-dd}', 'P', 0, {h.U("manager")}, '2026-10-01')"));
         await db.ScalarAsync(sql.AppendJoin(",", rows).ToString());
         async Task<HolidayResult> Save(string user) => (await h.Payroll.SaveHolidayAsync(h.As(user, PayrollService.OpSaveHoliday),
-            new SaveHolidayRequest(D("2026-09-17"), "Founders’ Day (fictional)"), Ct)).Value;
+            new SavePaidHolidayRequest(D("2026-09-17"), "Founders’ Day (fictional)"), Ct)).Value;
         await Hotel.FailsAsync(() => Save("manager"), HccErrorCode.FORBIDDEN);   // Owner only (PERM-HR-009)
         await Hotel.FailsAsync(() => Save("accountant"), HccErrorCode.FORBIDDEN);
         Assert.Contains("added · paid like a weekly off", (await Save("owner")).Notes, StringComparison.Ordinal);

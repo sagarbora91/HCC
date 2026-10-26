@@ -84,6 +84,7 @@ function routes(role){
     'GET /compliance/ca-packs':()=>[],
     'GET /pos/outlets':()=>[{outletId:1,code:'REST',name:'Restaurant',kind:'table',tables:['T1','T2']}],
     'GET /pos/menu':()=>[{itemId:11,code:'TEA',name:'Masala chai',category:'Beverages',pricePaise:6000,veg:true,available:true,outletIds:[1],version:'M11'}],
+    'GET /pos/menu-categories':()=>({page:1,pageSize:200,total:0,items:[]}), // MA-4
     'GET /pos/checks':()=>[],
     'GET /pos/checks/closed':()=>[],
     'GET /pos/checks/:id':()=>reply(404,{code:'NOT_FOUND',message:'No check.'}),
@@ -124,6 +125,46 @@ function routes(role){
     'GET /yield/proposals':()=>[],
     'GET /masters/floors':({query})=>page([{floorId:1,code:'F1',name:'Floor 1',sortOrder:10,active:true,retiredOn:null,roomCount:8,updatedUtc:'2026-10-24T03:00:00.000Z',version:'FV1'}],query,'items'), // MA-0
     'GET /masters/floors/history':({query})=>page([],query,'items'),
+    // MA-1 rooms masters (one Deluxe type with its rack rate, amenities / charges empty, the rooms' master fields).
+    'GET /masters/room-types':({query})=>page([{roomTypeId:1,code:'Deluxe',name:'Deluxe',maxAdults:2,maxChildren:1,extraBedAllowed:true,bedType:null,sizeSqft:null,amenities:[],description:null,
+      sortOrder:1,active:true,retiredOn:null,roomCount:2,rackRates:[{amountPaise:200000,effectiveFrom:'2000-01-01'}],updatedUtc:'2026-10-24T03:00:00.000Z',version:'TV1'}],query,'items'),
+    'GET /masters/room-types/history':({query})=>page([],query,'items'),
+    'GET /masters/amenities':({query})=>page([],query,'items'),'GET /masters/amenities/history':({query})=>page([],query,'items'),
+    'GET /masters/occupancy-charges':({query})=>page([],query,'items'),'GET /masters/occupancy-charges/history':({query})=>page([],query,'items'),
+    'GET /masters/rooms':()=>({items:[{roomId:1,roomNo:'105',floorId:1,floorCode:'F1',roomTypeId:1,roomTypeCode:'Deluxe',features:[],smoking:false,connectingRoomNo:null,extension:null,notes:null,active:true,retiredOn:null,version:'RV1'}]}),
+    // MA-3 money masters (shapes: 08 Production/src/Hcc.Contracts/MoneyMasters/MoneyMastersContracts.cs)
+    'GET /masters/payment-methods':({query})=>page([{paymentMethodId:1,code:'CASH',name:'Cash',sortOrder:10,active:true,retiredOn:null,kind:'cash',settlesTo:'TILL',needsReference:false,usableAt:['frontdesk','pos','expenses'],surchargeBps:0,ledger:'1000',usageCount:0,updatedUtc:'2026-10-24T03:00:00.000Z',version:'PM1'},
+      {paymentMethodId:2,code:'UPI',name:'UPI',sortOrder:20,active:true,retiredOn:null,kind:'upi',settlesTo:'BANK-1',needsReference:true,usableAt:['frontdesk','pos','expenses'],surchargeBps:0,ledger:'1010',usageCount:0,updatedUtc:'2026-10-24T03:00:00.000Z',version:'PM2'}],query,'items'),
+    'GET /masters/payment-methods/history':({query})=>page([],query,'items'),
+    'GET /masters/bank-accounts':({query})=>page([{bankAccountId:1,code:'TILL',name:'Front-desk cash drawer',sortOrder:10,active:true,retiredOn:null,kind:'till',bank:null,accountLast4:null,ifsc:null,openingBalancePaise:null,defaultFor:[],usageCount:1,updatedUtc:'2026-10-24T03:00:00.000Z',version:'BA1'}],query,'items'),
+    'GET /masters/bank-accounts/history':({query})=>page([],query,'items'),
+    'GET /masters/expense-categories':({query})=>page([{expenseCategoryId:1,code:'SUPPLIES',name:'Supplies',sortOrder:10,active:true,retiredOn:null,ledger:'5000',needsBill:false,approvalLimitPaise:null,usageCount:0,updatedUtc:'2026-10-24T03:00:00.000Z',version:'EC1'}],query,'items'),
+    'GET /masters/expense-categories/history':({query})=>page([],query,'items'),
+    'GET /masters/expense-vendors':({query})=>page([],query,'items'),
+    'GET /masters/expense-vendors/history':({query})=>page([],query,'items'),
+    // MA-2 catalogue (lists for folio viewers, history for the Owner, links of bookings / charges)
+    'GET /catalogue/meal-plans':({query})=>page([],query,'items'),'GET /catalogue/extras':({query})=>page([],query,'items'),
+    'GET /catalogue/discount-reasons':({query})=>page([],query,'items'),'GET /catalogue/meal-plans/history':({query})=>page([],query,'items'),
+    'GET /catalogue/extras/history':({query})=>page([],query,'items'),'GET /catalogue/discount-reasons/history':({query})=>page([],query,'items'),
+    'GET /catalogue/links':()=>({plans:[],charges:[]}),
+    'GET /masters/booking-sources':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/booking-sources/history':({query})=>page([],query,'items'),
+    'GET /masters/id-types':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/id-types/history':({query})=>page([],query,'items'),
+    'GET /masters/number-series':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/number-series/history':({query})=>page([],query,'items'),
+    'GET /masters/policies':({query})=>page([],query,'items'), // MA-5
+    'GET /masters/policies/history':({query})=>page([],query,'items'),
+    // MA-6 people lists
+    'GET /hr/designations':({query})=>page([],query,'items'),'GET /hr/designations/history':({query})=>page([],query,'items'),
+    'GET /hr/shift-patterns':({query})=>page([],query,'items'),'GET /hr/shift-patterns/history':({query})=>page([],query,'items'),
+    'GET /hr/leave-types':({query})=>page([],query,'items'),'GET /hr/leave-types/history':({query})=>page([],query,'items'),
+    'GET /hr/holidays':({query})=>page([],query,'items'),'GET /hr/holidays/history':({query})=>page([],query,'items'),
+    // MA-7 operations masters
+    'GET /housekeeping/task-types':({query})=>page([],query,'items'),'GET /housekeeping/task-types/history':({query})=>page([],query,'items'),
+    'GET /housekeeping/zones':({query})=>page([],query,'items'),'GET /housekeeping/zones/history':({query})=>page([],query,'items'),
+    'GET /guest-services/complaint-categories':({query})=>page([],query,'items'),'GET /guest-services/complaint-categories/history':({query})=>page([],query,'items'),
+    'GET /guest-services/lost-found-categories':({query})=>page([],query,'items'),'GET /guest-services/lost-found-categories/history':({query})=>page([],query,'items'),
   };
 }
 

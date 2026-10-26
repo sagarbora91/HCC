@@ -173,11 +173,13 @@ public static partial class GuestServiceRules
     }
 
     /// <summary>Complaint counts per category with severity split and number carrying a recovery.</summary>
-    public static IReadOnlyList<(string Category, int Total, int Open, IReadOnlyDictionary<string, int> BySeverity, int Recovery)> ComplaintReport(IEnumerable<ComplaintFact> complaints)
+    public static IReadOnlyList<(string Category, int Total, int Open, IReadOnlyDictionary<string, int> BySeverity, int Recovery)> ComplaintReport(IEnumerable<ComplaintFact> complaints, IReadOnlyList<string>? categoryNames = null)
     {
         ArgumentNullException.ThrowIfNull(complaints);
         var cs = complaints.ToList();
-        return GuestServiceVocab.ComplaintCategories.Select(cat =>
+        // MA-7: categories come from the master (retired rows included); a record whose category is not in the list is still reported under its own name.
+        var names = (categoryNames ?? GuestServiceVocab.ComplaintCategories).Concat(cs.Select(c => c.Category)).Distinct(StringComparer.Ordinal).ToList();
+        return names.Select(cat =>
         {
             var xs = cs.Where(c => c.Category == cat).ToList();
             return (cat, xs.Count, xs.Count(c => c.Status != GuestServiceVocab.Closed),

@@ -50,6 +50,12 @@ import {masters} from './masters';
 
 // Wave C3 System health (A09-05: parked outbox events, retry, last backup):
 import {syshealth} from './syshealth';
+// MA-1 rooms masters (room types / amenities / occupancy charges routes live in roommasters.ts RMS_SERVER; rooms tools here):
+import {roommasters} from './roommasters';
+// MA-3 money masters (patch loader on mastersX; commands through masters.ts MST_SERVER):
+import {moneyMasters} from './money-master';
+// MA-2 meal plans, extras catalogue, discount reasons (after money: patches the folio lines it loaded):
+import {catalogue} from './catalogue';
 
 export const AREAS:SyncArea[]=[
   core,
@@ -84,4 +90,7 @@ export const AREAS:SyncArea[]=[
   masters, // MA-0
 
   syshealth, // Wave C3
+  roommasters, // MA-1
+  moneyMasters, // MA-3
+  catalogue, // MA-2
 ];

@@ -138,7 +138,8 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
         if (!manage && !pay) throw Forbidden("Access denied: only managers or payroll roles can edit the staff master.");
         var name = Required(req.Name, 2, 100, "Enter the staff member’s name.");
         var designation = Required(req.Designation, 1, 80, "Enter a designation.");
-        var shift = req.DefaultShift is "M" or "E" or "N" or "G" ? ParseEnum<ShiftCode>(req.DefaultShift, "Choose a default shift.") : throw HccException.Validation("Choose a default shift.");
+        var shift = ShiftCode.Parse(req.DefaultShift, "Choose a default shift.");
+        if (shift == ShiftCode.OFF) throw HccException.Validation("Choose a default shift.");
         if (req.WeeklyOff is < 0 or > 6) throw HccException.Validation("Choose a weekly off day.");
         Gender? gender = req.Gender is null ? null : req.Gender is "M" or "F" ? ParseEnum<Gender>(req.Gender, "") : throw HccException.Validation("Choose M or F for the professional-tax slab.");
         PayStructure? structure = req.Structure is null ? null : req.Structure is "S" or "B" ? ParseEnum<PayStructure>(req.Structure, "") : throw HccException.Validation("Choose a salary structure.");
@@ -166,6 +167,21 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
             if (await db.LockDepartmentAsync(ctx.PropertyId, dept, c2).ConfigureAwait(false) is null) throw HccException.Validation("Choose a department.");
             StaffRow? existing = null;
             if (req.StaffId is { } id) existing = await RequireStaffAsync(db, ctx, id, lockRow: true, c2).ConfigureAwait(false);
+            // MA-6: the default shift is a pattern of the Shift patterns list (a retired one stays valid on a record that already has it).
+            var catalog = await db.ShiftCatalogAsync(ctx.PropertyId, c2).ConfigureAwait(false);
+            if (!catalog.IsActive(shift) && !(existing is not null && existing.Profile.DefaultShift == shift && catalog.Find(shift) is not null)) throw HccException.Validation("Choose a default shift.");
+            // MA-6: a designation chosen from the Designations list supplies the printed name; its department must be the staff member's.
+            var designationName = designation;
+            string? designationCode = existing?.DesignationCode;
+            if (req.DesignationCode is { } dcode)
+            {
+                var dref = await db.DesignationAsync(ctx.PropertyId, dcode, c2).ConfigureAwait(false) ?? throw HccException.Validation("Choose a designation from the list.");
+                if (!dref.Active && existing?.DesignationCode != dcode) throw Invalid($"{dref.Name} is retired — choose an active designation.");
+                if (dref.Dept is not null && dref.Dept != dept) throw HccException.Validation($"{dref.Name} belongs to department {dref.Dept}.");
+                designationName = dref.Name;
+                designationCode = dcode;
+            }
+            else if (existing is not null && !string.Equals(existing.Profile.Designation, designation, StringComparison.Ordinal)) designationCode = null;
             var notes = new List<string>();
 
             // F-03: the login link decides whose payslips a user sees as "own" — Owner only, never your own link, audited old → new.
@@ -223,7 +239,7 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
 
             var joined = existing?.Profile.Joined ?? req.Joined ?? clockInfo.BusinessDate;
             if (existing is null && joined > clockInfo.BusinessDate) throw HccException.Validation("The joining date cannot be after the business date.");
-            var profile = new StaffProfile(existing?.StaffId ?? 0, name, dept, designation,
+            var profile = new StaffProfile(existing?.StaffId ?? 0, name, dept, designationName,
                 pay ? payType ?? old?.PayType ?? PayType.Monthly : old?.PayType ?? PayType.Monthly,
                 pay ? req.MonthlyPaise ?? old?.MonthlyPaise ?? 0 : old?.MonthlyPaise ?? 0,
                 pay ? req.DailyPaise ?? old?.DailyPaise ?? 0 : old?.DailyPaise ?? 0,
@@ -254,7 +270,7 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
             const string BankWaits = "bank details sent to the Owner for approval (payments keep the current details until approved)";
             if (existing is null)
             {
-                var sid = await db.InsertStaffAsync(new NewStaff(ctx.PropertyId, profile, req.LinkUserId, phone, newBank, newAccount, newIfsc, ctx.PrincipalId, Now), c2).ConfigureAwait(false);
+                var sid = await db.InsertStaffAsync(new NewStaff(ctx.PropertyId, profile, req.LinkUserId, phone, newBank, newAccount, newIfsc, ctx.PrincipalId, Now, designationCode), c2).ConfigureAwait(false);
                 var created = await RequireStaffAsync(db, ctx, sid, lockRow: false, c2).ConfigureAwait(false);
                 var bankRow = await BankRequestAsync(sid).ConfigureAwait(false);
                 var detail = $"{name} added{(req.LinkUserId is { } u ? $" · login {u}" : "")}{(pay ? "" : " (salary to be set by payroll)")}{(bankRow is null ? "" : " · " + BankWaits)}";
@@ -269,7 +285,9 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
             // F-02: audit old → new bank details (masked); locked runs keep the details frozen at lock. DEC-084: the Owner's change applies here.
             if (bankChanged && !bankRequest)
                 notes.Add($"bank {existing.BankName ?? "(none)"} {BankDetails.Mask(existing.AccountNo)} {existing.Ifsc} → {newBank ?? "(none)"} {BankDetails.Mask(newAccount)} {newIfsc} (Owner; future runs only; locked runs keep their frozen details)");
-            var row = new StaffRow(profile, req.LinkUserId, phone, newBank, newAccount, newIfsc, existing.Version);
+            if (existing.Profile.Designation != designationName) notes.Add($"designation {existing.Profile.Designation} → {designationName}");
+            if (existing.Profile.DefaultShift != shift) notes.Add($"default shift {existing.Profile.DefaultShift} → {shift}");
+            var row = new StaffRow(profile, req.LinkUserId, phone, newBank, newAccount, newIfsc, existing.Version, designationCode);
             var version = await db.UpdateStaffAsync(row, req.ExpectedVersion!, c2).ConfigureAwait(false);
             var waits = await BankRequestAsync(existing.StaffId).ConfigureAwait(false);
             if (waits is not null) notes.Add(BankWaits + $" · request {Id(waits.RequestId)}");
@@ -325,12 +343,13 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await Require(ctx, PayrollPermissions.StaffManage, ct: ct).ConfigureAwait(false);
-        var shift = ParseEnum<ShiftCode>(req.Shift, "Choose a shift.");
+        var shift = ShiftCode.Parse(req.Shift, "Choose a shift.");
         return await runner.RunAsync(ctx, req, async (tx, c2) =>
         {
             var db = store.In(tx);
             var clockInfo = await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
             var st = await RequireStaffAsync(db, ctx, req.StaffId, lockRow: true, c2).ConfigureAwait(false);
+            if (!(await db.ShiftCatalogAsync(ctx.PropertyId, c2).ConfigureAwait(false)).IsActive(shift)) throw HccException.Validation("Choose a shift.");   // MA-6: a pattern of the Shift patterns list (or OFF)
             if (!st.Profile.Active) throw Invalid("This staff member is inactive.");
             if (req.Date < clockInfo.BusinessDate) throw Invalid("Only today’s or future roster can change; past roster is history.");
             await db.SetRosterAsync(st.StaffId, req.Date, shift, ctx.PrincipalId, Now, c2).ConfigureAwait(false);
@@ -411,7 +430,7 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
                 var shift = PayrollRules.ShiftFor(st.Profile, days, date);
                 if (shift == ShiftCode.OFF) throw Invalid("You are rostered off today — ask a manager to record worked-off attendance.");
                 var local = TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), CalendarDate.AssertTimeZone(clockInfo.TimeZone)).DateTime);
-                var s = leave is not null ? AttendanceStatus.H : Shifts.CheckinStatus(local, shift);
+                var s = leave is not null ? AttendanceStatus.H : Shifts.CheckinStatus(local, shift, await db.ShiftCatalogAsync(ctx.PropertyId, c2).ConfigureAwait(false));
                 mark = new AttendanceMark(date, s, 0);
                 note = leave is not null ? "Self check-in · half-day leave" : "Self check-in";
                 text = $"{st.Profile.Name} · checked in {local:HH\\:mm} · {s}";

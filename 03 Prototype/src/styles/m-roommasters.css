@@ -1,0 +1,20 @@
+/* MA-1 · Rooms master tools (features/roommasters): range add, renumber, out of order above the Rooms list. Classes rms- .
+   Desktop: three compact cards in a wrapping grid; phone (.rms-phone or < 760 px): stacked, 48 px targets, 16 px text, no sideways scroll. */
+.rms-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;min-width:0}
+.rms-tool{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;min-width:0}
+.rms-tool h4{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:14px;color:var(--ink)}
+.rms-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;align-items:end}
+.rms-grid label{min-width:0}
+.rms-grid input,.rms-grid select{width:100%;min-width:0;box-sizing:border-box}
+.rms-grid .btn{min-height:40px}
+.rms-note{font-size:12.5px;margin:6px 0 0}
+.rms-none{margin:0;font-size:13px}
+.rms-ooo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rms-ooo li{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;overflow-wrap:anywhere}
+.rms-kinds{display:flex;gap:14px;flex-wrap:wrap;border:0;padding:0;margin:0 0 8px}
+.rms-kinds legend{font-weight:600;margin-bottom:4px}
+.rms-phone.rms-tools,.rms-phone .rms-grid{grid-template-columns:minmax(0,1fr)}
+.rms-phone .rms-tool h4{font-size:16px}
+.rms-phone input,.rms-phone select,.rms-phone .btn{min-height:48px;font-size:16px}
+.rms-phone .rms-ooo li{font-size:15px}
+@media (max-width:760px){.rms-tools,.rms-grid{grid-template-columns:minmax(0,1fr)}.rms-grid input,.rms-grid select,.rms-grid .btn{min-height:48px;font-size:16px}}

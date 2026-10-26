@@ -38,7 +38,7 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
                 showPay ? PayrollService.PayTypeWire(p.PayType) : null, showPay ? p.MonthlyPaise : null, showPay ? p.DailyPaise : null,
                 pay ? p.EffectiveGender.ToString() : null, pay ? p.EffectiveStructure.ToString() : null, pay ? p.PfOn : null, pay ? p.EsicOn : null,
                 pay ? s.BankName : null, pay ? BankDetails.Mask(s.AccountNo) : null, s.UserId,
-                PayrollFiles.WhatsAppNumber(s.Phone).Length > 0, pay ? s.Ifsc : null);
+                PayrollFiles.WhatsAppNumber(s.Phone).Length > 0, pay ? s.Ifsc : null, s.DesignationCode);
         }).ToList();
     }
 
@@ -51,7 +51,7 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         var date = on ?? (await db.PropertyAsync(propertyId, ct).ConfigureAwait(false)).BusinessDate;
         var days = (await db.DaysAsync(propertyId, [staffId], date, date, ct).ConfigureAwait(false)).GetValueOrDefault(staffId) ?? new StaffDays();
         var policyRow = await db.LeavePolicyAsync(propertyId, ct).ConfigureAwait(false);
-        return LeaveRules.Balance(policyRow, days.Leaves, date).Select(b => new LeaveBalanceView(b.Type.ToString(), b.Entitled, b.Used, b.Left, b.Over)).ToList();
+        return LeaveRules.Balance(policyRow, days.Leaves, date, st.Profile.Joined).Select(b => new LeaveBalanceView(b.Type.ToString(), b.Entitled, b.Used, b.Left, b.Over)).ToList();
     }
 
     /// <summary>The rate version in force for a month (with its effective date) — Owner and Accountant.</summary>

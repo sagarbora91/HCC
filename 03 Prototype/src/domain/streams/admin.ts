@@ -265,7 +265,7 @@ export const ADMIN_SETTINGS:AdminSettingDef[]=[
   {key:'inspection',category:'Housekeeping',label:'Supervisor inspection after cleaning',type:'boolean',unit:'on / off',editable:true,approval:OWNER,effective:'Tasks completed after the change',help:'When off, a completed task makes the room Ready directly.'},
   {key:'openingCash',category:'Shifts',label:'Opening float for the current business day',type:'fixed',unit:'₹',editable:false,approval:'Set by day close → open next day',effective:'—',help:'Carried forward from the reconciled drawer (Financial Rulebook §4).'},
   {key:'shiftModel',category:'Shifts',label:'Cash shift model',type:'fixed',unit:'—',editable:false,approval:'Fixed in this prototype',effective:'—',help:'One cash shift per business day; cash receipts need an open shift.'},
-  {key:'invoicePrefix',category:'Documents',label:'Sample invoice number prefix',type:'text',unit:'2–8 capitals, digits or hyphen',editable:true,approval:OWNER,effective:'Documents generated after the change',help:'Used on demonstration documents only.'},
+  {key:'invoicePrefix',category:'Documents',label:'Sample invoice number prefix',type:'text',unit:'2–8 capitals, digits or hyphen',editable:true,approval:OWNER,effective:'Documents generated after the change',help:'Legacy: document numbers now come from Master configuration › Front-desk policies › Numbering series (MA-5); this prefix is kept for older demonstration documents only.'},
   {key:'watermark',category:'Documents',label:'Demonstration watermark',type:'fixed',unit:'—',editable:false,approval:'Not configurable',effective:'—',help:isProductionBuild()?'Tax invoices are issued and rendered by the hotel server without a demonstration watermark.':'“Demonstration — not a tax invoice / fictional” is always printed.'},
 ];
 export function adminSettingValue(s:State,key:string):string{
@@ -286,7 +286,12 @@ export const adminSettingHistory=(s:State,key:string)=>(s.configHistory||[]).fil
 export function adminTariffOn(s:State,type:string,date:string){
   return (s.tariffs||[]).filter(t=>t.type===type&&t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0];
 }
-export const adminRoomTypes=(s:State)=>[...new Set(s.rooms.map(r=>r.type))];
+/** Room types that have rooms in service, in the room-types master order (MA-1: replaces the plain derivation; retired rooms are left
+ *  out; without stored master rows the order is the fixture's first appearance, as before). */
+export const adminRoomTypes=(s:State)=>{
+  const t=[...new Set(s.rooms.filter(r=>r.status!=='retired').map(r=>r.type))],m=s.mastersX?.rows?.roomTypes;if(!Array.isArray(m))return t;
+  const rank=(k:string)=>{const r=m.find(x=>String(x.key??x.code)===k);return r?r.sortOrder:1e9;};return t.sort((a,b)=>rank(a)-rank(b));
+};
 /** Base (fixture) tariff for a room type: the room rate of the first room of that type. */
 export const adminBaseRate=(s:State,type:string)=>s.rooms.find(r=>r.type===type)?.rate??0;
 

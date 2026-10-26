@@ -4,7 +4,7 @@
 import React,{useState} from 'react';
 import {Lock,ArrowLeft,CalendarClock,Search} from 'lucide-react';
 import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,CFG_SECTIONS,
-  type CfgGroupId} from '../../services/mock';
+  type CfgGroupId,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {useStepBack} from '../../app/native';
 import {ListCard} from '../../app/mobile/components';
@@ -61,7 +61,7 @@ function Tariffs({block}:{block?:string}){
   return <>
     <MaIntro>A booking takes the tariff valid on its arrival date and keeps it; posted room lines are never re-priced.</MaIntro>
     {adminRoomTypes(s).map(t=>{const room=s.rooms.find(r=>r.type===t)!;const sched=(s.tariffs||[]).filter(x=>x.type===t).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1);
-      return <article className="ma-card" key={t} aria-label={t}><div className="ma-card-top"><div><strong>{t}</strong><span>{s.rooms.filter(r=>r.type===t).length} rooms</span></div><strong className="ma-amt number">{money(rateFor(s,room,s.date))}</strong></div>
+      return <article className="ma-card" key={t} aria-label={t}><div className="ma-card-top"><div><strong>{rmsTypeName(s,t)}</strong><span>{s.rooms.filter(r=>r.type===t).length} rooms</span></div><strong className="ma-amt number">{money(rateFor(s,room,s.date))}</strong></div>
         <MaRows rows={[['Base (fixture)',money(adminBaseRate(s,t))],['Today',money(rateFor(s,room,s.date))]]}/>
         {sched.map(x=><div className="ma-sched" key={x.effectiveFrom}><span>{money(x.rate)} from {shortDate(x.effectiveFrom)}</span>{x.effectiveFrom<=s.date?<MaTag tone="ok">In effect</MaTag>:<><MaTag tone="info">Future</MaTag>
           <MaGuard className="btn" block={block} busy={busy} onClick={()=>run({type:'TARIFF_SCHEDULE',roomType:t,effectiveFrom:x.effectiveFrom,remove:true,key:`tariff-rm:${t}:${x.effectiveFrom}:${s.sequence}`},'Future tariff withdrawn')}>Withdraw</MaGuard></>}</div>)}

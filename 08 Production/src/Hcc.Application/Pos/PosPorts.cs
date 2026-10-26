@@ -43,6 +43,13 @@ public interface IPosTaxRates
 {
     /// <summary>The GST rate for restaurant / room-service food on <paramref name="date"/> (the business date); pass the command transaction when there is one.</summary>
     Task<Hcc.Domain.Tax.GstRate> FoodAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct = default);
+
+    /// <summary>
+    /// MA-4: the rate of a check — food at the outlet's GST profile (<c>hotel</c> = the hotel's specified-premises status; <c>standard</c> /
+    /// <c>specified</c> = that food rate of the GST master), any other menu GST class at the GST master's service rate. Illustrative — CA to confirm.
+    /// </summary>
+    Task<Hcc.Domain.Tax.GstRate> ForCheckAsync(ICommandTransaction? tx, int propertyId, DateOnly date, string gstProfile, string gstClass, CancellationToken ct = default)
+        => FoodAsync(tx, propertyId, date, ct);
 }
 
 /// <summary>POS food tax from C's GST master (<see cref="Hcc.Application.Tax.IGstRateResolver"/>, category food incl. specified premises).</summary>
@@ -50,6 +57,18 @@ public sealed class GstMasterPosTaxRates(Hcc.Application.Tax.IGstRateResolver gs
 {
     public Task<Hcc.Domain.Tax.GstRate> FoodAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct = default)
         => gst.ChargeAsync(tx, propertyId, date, Hcc.Domain.Tax.GstCategory.Food, ct);
+
+    public async Task<Hcc.Domain.Tax.GstRate> ForCheckAsync(ICommandTransaction? tx, int propertyId, DateOnly date, string gstProfile, string gstClass, CancellationToken ct = default)
+    {
+        var category = Hcc.Domain.Pos.PosMasterRules.CategoryOf(gstClass);
+        if (category != Hcc.Domain.Tax.GstCategory.Food) return await gst.ChargeAsync(tx, propertyId, date, category, ct).ConfigureAwait(false);
+        if (gstProfile is not ("standard" or "specified") || gst is not Hcc.Application.Tax.GstRateResolver resolver) return await FoodAsync(tx, propertyId, date, ct).ConfigureAwait(false);
+        // A fixed outlet profile: the GST master's food rate for that status, whatever the hotel's derived status is this year.
+        var master = await resolver.MasterAsync(tx, propertyId, ct).ConfigureAwait(false);
+        var sp = await resolver.SpecifiedAsync(tx, master, propertyId, date, ct).ConfigureAwait(false);
+        var rate = master.Food(date, sp with { Specified = gstProfile == "specified" });
+        return rate with { Rule = gstProfile == "specified" ? "Restaurant · outlet fixed at the specified-premises rate" : "Restaurant · outlet fixed at the standard rate" };
+    }
 }
 
 /// <summary>Result of posting a bill to a room folio.</summary>
@@ -106,17 +125,21 @@ public sealed record PosCloseList(IReadOnlyList<PosCloseItem> OpenChecks, IReadO
 
 // ── Store rows ──
 
-public sealed record OutletRow(int OutletId, int PropertyId, string Code, string Name, string Kind, string Version);
+/// <summary>An outlet (MA-4: + type, GST profile, KOT station, active).</summary>
+public sealed record OutletRow(int OutletId, int PropertyId, string Code, string Name, string Kind, string Version, string Type = "restaurant", string GstProfile = "hotel",
+    string? KotStation = null, bool Active = true);
 
+/// <summary>A menu item. <c>Price</c> = the price in force on the business date (MA-4 dated prices; <c>Priced</c> false = no price yet);
+/// <c>SoldOut</c> = "sold out today" on the business date; <c>Available</c> = the stored switch.</summary>
 public sealed record MenuItemRow(int ItemId, int PropertyId, string Code, string Name, string Category, Paise Price, bool Veg, bool Available,
-    IReadOnlyList<int> OutletIds, string Version);
+    IReadOnlyList<int> OutletIds, string Version, string GstClass = "food", string? Station = null, bool Active = true, bool SoldOut = false, bool Priced = true);
 
 public sealed record StayRoomRow(long StayId, long FolioId, int RoomId, string RoomNo, string Guest, string Status);
 
 public sealed record OrderRow(long OrderId, int PropertyId, int OutletId, string OutletName, string OutletKind, string? TableNo, int? RoomId, string? RoomNo,
     long? StayId, string? Guest, int Covers, DateOnly BusinessDate, string Status, long? PendingVoidId, int Rev, string Version);
 
-public sealed record LineRow(long LineId, long OrderId, int ItemId, string Name, Paise Price, int Qty, long? KotId, bool Voided, string? VoidReason);
+public sealed record LineRow(long LineId, long OrderId, int ItemId, string Name, Paise Price, int Qty, long? KotId, bool Voided, string? VoidReason, string? GstClass = null);
 
 public sealed record KotRow(long KotId, long OrderId, int OutletId, int KotNo, string Status, DateTime CreatedUtc, DateTime? ReadyUtc, DateTime? ServedUtc);
 
@@ -219,6 +242,15 @@ public interface IPosStore
 
     // kitchen
     Task<(long KotId, int KotNo)> InsertKotAsync(ICommandTransaction tx, OrderRow order, DateOnly date, int principalId, DateTime utc, CancellationToken ct);
+
+    /// <summary>MA-4: a KOT for one kitchen station (null = no station configured).</summary>
+    Task<(long KotId, int KotNo)> InsertKotAsync(ICommandTransaction tx, OrderRow order, DateOnly date, int principalId, DateTime utc, string? station, CancellationToken ct);
+
+    /// <summary>MA-4: the item station of each line of a check (null = none; the outlet's KOT station applies).</summary>
+    Task<IReadOnlyDictionary<long, string?>> LineStationsAsync(ICommandTransaction tx, long orderId, CancellationToken ct);
+
+    /// <summary>MA-4 (own connection): the outlet GST profile and the GST class of a check (its first active line; food when none).</summary>
+    Task<(string GstProfile, string GstClass)> CheckGstBasisAsync(int propertyId, long orderId, CancellationToken ct);
 
     Task AssignKotAsync(ICommandTransaction tx, long kotId, IReadOnlyList<long> lineIds, CancellationToken ct);
 

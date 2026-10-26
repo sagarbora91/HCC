@@ -8,6 +8,10 @@ import {totals} from '../../../domain/selectors';
 import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
+import {mnyMethod,mnyMethodFor,mnyIsDrawer} from '../../../domain/streams/money-master';
+import {mstFail} from '../../../domain/streams/masters';
+import {FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable} from '../../../domain/streams/folio';
+import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 import {closingReopened} from '../../../domain/streams/closing';
 import {grpAccountOf,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
 
@@ -21,7 +25,6 @@ function companyCreditCheck(k:Kit,x:Booking,amount:number){
   const refusal=grpCreditRefusal(c!,grpExposure(k.s,c!)-grpBookingExposure(k.s,x),amount,'stay on company credit');
   if(refusal)k.fail('INVALID_TRANSITION',refusal);
 }
-import {FOLIO_TENDERS,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable,folioInvoiceNo,folioCreditNoteNo} from '../../../domain/streams/folio';
 import {cxCashBlocked} from '../../../domain/streams/cashout';
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
@@ -36,14 +39,20 @@ function request(k:Kit,x:Booking,fields:Pick<Approval,'amount'|'reason'|'kind'>&
   k.s.approvals.push(a);return a;
 }
 const pendingOf=(k:Kit,bookingId:string,kind:string)=>k.s.approvals.some(a=>a.booking===bookingId&&folioKind(a)===kind&&a.status==='Pending'&&!folioApprovalExpired(k.s,a));
-const validMethod=(k:Kit,method:unknown,reference:unknown)=>{
-  k.assert((FOLIO_TENDERS as readonly string[]).includes(method as string),'Select a payment method.');
-  if(method==='Cash'){
+/** MA-3: the method must be an active payment method usable at the front desk (money masters; seed = the old FOLIO_TENDERS).
+ *  A refund may go back through the original receipt's method even if it was retired since (`original`). Returns the stored name. */
+const validMethod=(k:Kit,method:unknown,reference:unknown,original?:string):string=>{
+  const row=typeof method==='string'?mnyMethod(k.s,method):undefined;
+  if(row&&!row.active&&(row.usableAt??[]).includes('frontdesk')&&!(original&&mnyMethod(k.s,original)?.id===row.id))mstFail('MASTER_RETIRED',`${row.name} is retired — choose an active payment method.`);
+  const m=mnyMethodFor(k.s,method,'frontdesk')??(original&&row&&mnyMethod(k.s,original)?.id===row.id?row:undefined);
+  k.assert(m,'Select a payment method.');
+  if(mnyIsDrawer(k.s,m!.name)){
     // DEC-078 (Wave B1): after the next day opens no shift is open until the cashier opens their own; one counted shift per demo day.
     k.assert(k.s.shiftOpen,k.s.shiftClose||k.s.closedDates.includes(k.s.date)?'The cash shift is closed. Open the next business day first.':'The cash shift is closed. Open a cashier shift first.','INVALID_TRANSITION');
     const own=cxCashBlocked(k.s,k.uid);if(own)k.fail('FORBIDDEN',own); // own shift (PERM-PAY-001 scope S for Reception / Cashier)
   }
-  if(method!=='Cash')k.assert(String(reference??'').trim(),'Enter a demonstration transaction reference.');
+  if(m!.needsReference)k.assert(String(reference??'').trim(),'Enter a demonstration transaction reference.');
+  return m!.name;
 };
 
 const PAYMENT:Handler=k=>{
@@ -59,7 +68,7 @@ const PAYMENT:Handler=k=>{
     :[{method:cmd.method,amount:cmd.amount,reference:String(cmd.reference??'').trim()}];
   assert(tenders.length<=4,'Use at most four tender rows.');
   if(tenders.length>1)assert(kind!=='deposit-return','Return a deposit with a single tender.');
-  for(const t of tenders){positive(t.amount);validMethod(k,t.method,t.reference);}
+  for(const t of tenders){positive(t.amount);t.method=validMethod(k,t.method,t.reference);}
   const sum=tenders.reduce((a,t)=>a+t.amount,0);
   assert(sum===cmd.amount,`Tender rows total ${money(sum)} but the payment amount is ${money(cmd.amount)}. They must be equal.`);
   if(kind==='deposit-return'){const ld=x.receipts.find(r=>r.kind==='deposit'&&cbIsLocked(s,r.date));assert(!ld,cbLockedMessage(ld?.date??'','returning a deposit taken on that day'),'DAY_CLOSED');} // DEC-065
@@ -141,8 +150,7 @@ const REFUND_EXECUTE:Handler=k=>{
   assert(!cbIsLocked(s,r!.date),cbLockedMessage(r!.date,'executing a refund against receipt '+r!.id),'DAY_CLOSED'); // DEC-065
   assert(a!.amount<=folioRefundable(s,x!,r!.id,a!.id),'Refund cannot exceed the refundable remainder of this receipt.','INVALID_TRANSITION');
   if(x!.status==='Departed')assert(a!.amount<=Math.max(0,-totals(x!).balance)-folioOutstandingRefunds(s,x!.id,a!.id),DEPARTED_REFUND_MSG,'INVALID_TRANSITION');
-  const method=cmd.method||r!.method;
-  validMethod(k,method,cmd.reference??('Refund of '+r!.id));
+  const method=validMethod(k,cmd.method||r!.method,cmd.reference??('Refund of '+r!.id),r!.method);
   const rid=id('RCPT');
   x!.receipts.push({id:rid,amount:a!.amount,method,date:s.date,kind:'refund',reference:String(cmd.reference??'').trim()||('Refund of '+r!.id),actor:uid,refundOf:r!.id,approvalId:a!.id});
   a!.status='Executed';a!.meta={...a!.meta,executedBy:uid,executedAt:s.clock,receipt:rid};
@@ -235,7 +243,7 @@ const APPROVAL:Handler=k=>{
     }else if(kind==='credit-note'){
       assert(x&&x.status==='Departed','A credit note applies only to a departed stay.','INVALID_TRANSITION');stale();
       assert(a!.amount<=totals(x!).net,'Credit note cannot exceed the net charges on this folio.');
-      s.creditNoteSeqC=(s.creditNoteSeqC??0)+1;const no=folioCreditNoteNo(s.creditNoteSeqC);
+      const no=fdmAllocate(s,'CRN'); // MA-5: numbering series (seeded CRN series continues s.creditNoteSeqC)
       const lid=id('credit'),bps=gstForFolioAdjustment(s,x!,s.date).bps,t=totals(x!);
       // A03a-04: crediting the folio's whole remaining net, all at the credit's rate, credits exactly the tax still on it (never a paisa
       // more after an earlier credit whose tax was exactly half a paisa): pieces that each follow the per-line rule.
@@ -278,7 +286,7 @@ const CHECKOUT:Handler=k=>{
   assert(!pending.length,'Resolve the pending approval request on this folio before checkout.','INVALID_TRANSITION');
   x.status='Departed';x.version++;s.rooms.find(r=>r.id===x.room)!.hk='Dirty';
   // Sample invoice number allocated once, at checkout (Financial Rulebook §5).
-  if(!x.invoiceNo){s.invoiceSeqC=(s.invoiceSeqC??0)+1;x.invoiceNo=folioInvoiceNo(s.invoiceSeqC);}
+  if(!x.invoiceNo)x.invoiceNo=fdmAllocate(s,'INV'); // MA-5: numbering series (seeded INV series continues s.invoiceSeqC)
   if(!s.tasks.some(t=>t.booking===x.id))s.tasks.push({id:id('task'),room:x.room,booking:x.id,assignee:'housekeeper',status:'To do',checked:[false,false,false]});
   void cmd;
   return x.id+' · departed; room dirty; housekeeping task created; sample invoice '+x.invoiceNo+detail;

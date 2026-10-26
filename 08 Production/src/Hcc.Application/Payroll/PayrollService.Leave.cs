@@ -18,7 +18,7 @@ public sealed partial class PayrollService
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var type = ParseEnum<LeaveType>(req.LeaveType, "Choose a leave type.");
+        var type = LeaveType.Parse(req.LeaveType, "Choose a leave type.");
         LeaveHalf? half = req.Half is null ? null : ParseEnum<LeaveHalf>(req.Half, "Choose the first or second half.");
         var to = half is not null ? req.From : req.To ?? req.From;
         if (to < req.From) throw HccException.Validation("The end date must be on or after the start date.");
@@ -38,7 +38,10 @@ public sealed partial class PayrollService
             var dept = await db.LockDepartmentAsync(ctx.PropertyId, peek.Profile.Dept, c2).ConfigureAwait(false);
             var st = await RequireStaffAsync(db, ctx, req.StaffId, lockRow: true, c2).ConfigureAwait(false);
             if (!st.Profile.Active) throw Invalid("This staff member is inactive.");
-            if (st.Profile.PayType == PayType.Daily && type != LeaveType.LOP) throw HccException.Validation("Daily-wage staff can take leave without pay only (illustrative policy).");
+            // MA-6: the type is a (active) row of the Leave types list; daily-wage staff can take unpaid types only.
+            var policy = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
+            if (!policy.IsKnown(type)) throw HccException.Validation("Choose a leave type.");
+            if (st.Profile.PayType == PayType.Daily && policy.IsPaid(type)) throw HccException.Validation("Daily-wage staff can take leave without pay only (illustrative policy).");
             if (req.From < clockInfo.BusinessDate)
                 throw HccException.Validation("Leave cannot start before the business date. A past day of the open pay month is corrected on Attendance › Past days (DEC-075).");
 
@@ -48,10 +51,9 @@ public sealed partial class PayrollService
                 throw new HccException(HccErrorCode.NOT_AVAILABLE, "These dates overlap another leave request.");
             var n = PayrollRules.LeaveDays(st.Profile, days, req.From, to, half);
             if (n <= 0) throw HccException.Validation(half is not null ? "That day is a weekly off or a paid holiday." : "The chosen dates are all weekly offs or paid holidays.");
-            var policy = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
-            if (PayrollRules.Tracked(type))
+            if (policy.IsTracked(type))
             {
-                var left = policy.Entitled(type) - LeaveRules.Used(days.Leaves, req.From, type);
+                var left = LeaveRules.Available(policy, days.Leaves, req.From, type, st.Profile.Joined);
                 if (n > left) throw HccException.Validation($"Not enough {type} balance: {PayrollRules.Num(left)} day{(left == 1 ? "" : "s")} left in {FinancialYear.Containing(req.From).Label}.");
             }
 
@@ -96,11 +98,11 @@ public sealed partial class PayrollService
             {
                 if (await db.AnyAttendanceAsync(st.StaffId, l.Span.From, l.Span.To, exceptHalfDayMarks: l.Span.Half is not null, c2).ConfigureAwait(false))
                     throw Invalid("Attendance is already recorded inside these dates.");
-                if (PayrollRules.Tracked(l.Span.Type))
+                var policy = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
+                if (policy.IsTracked(l.Span.Type))
                 {
-                    var policy = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
                     var days = (await db.DaysAsync(ctx.PropertyId, [st.StaffId], l.Span.From, l.Span.To, c2).ConfigureAwait(false)).GetValueOrDefault(st.StaffId) ?? new StaffDays();
-                    var left = policy.Entitled(l.Span.Type) - LeaveRules.Used(days.Leaves, l.Span.From, l.Span.Type, l.Span.LeaveId);
+                    var left = LeaveRules.Available(policy, days.Leaves, l.Span.From, l.Span.Type, st.Profile.Joined, l.Span.LeaveId);
                     if (l.Span.Days > left) throw HccException.Validation("Leave balance is no longer sufficient.");
                 }
             }
@@ -160,12 +162,21 @@ public sealed partial class PayrollService
             await db.LockAnchorAsync(ctx.PropertyId, c2).ConfigureAwait(false);
             var clockInfo = await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
             var old = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
-            var p = new LeavePolicy(req.Cl, req.Sl, req.El, req.DefaultCap, old.DeptCap);
+            // MA-6: the CL / SL / EL entitlements are the yearly quotas of the Leave types list; SetLeavePolicy writes through to it (history per type).
+            var p = old with { Cl = req.Cl, Sl = req.Sl, El = req.El, DefaultCap = req.DefaultCap };
+            if (old.Types is not null)
+            {
+                var types = old.Types.ToDictionary(x => x.Key, x => x.Value);
+                foreach (var (code, days) in new[] { ("CL", req.Cl), ("SL", req.Sl), ("EL", req.El) })
+                    if (types.TryGetValue(code, out var d)) types[code] = d with { Quota = days };
+                p = p with { Types = types };
+            }
+
             await db.SetLeavePolicyAsync(ctx.PropertyId, p, ctx.PrincipalId, Now, c2).ConfigureAwait(false);
             var staff = (await db.AllStaffAsync(ctx.PropertyId, c2).ConfigureAwait(false)).Where(s => s.Profile.Active).ToList();
             var fy = FinancialYear.Containing(clockInfo.BusinessDate);
             var leaves = await db.DaysAsync(ctx.PropertyId, staff.Select(s => s.StaffId).ToList(), fy.From, fy.From, c2).ConfigureAwait(false);
-            var over = staff.Count(s => LeaveRules.TrackedTypes.Any(t => LeaveRules.Used((leaves.GetValueOrDefault(s.StaffId) ?? new StaffDays()).Leaves, clockInfo.BusinessDate, t) > p.Entitled(t)));
+            var over = staff.Count(s => p.TrackedTypes().Any(t => LeaveRules.Used((leaves.GetValueOrDefault(s.StaffId) ?? new StaffDays()).Leaves, clockInfo.BusinessDate, t) > p.Entitled(t)));
             var text = $"Leave policy · CL {p.Cl} · SL {p.Sl} · EL {p.El} · max {p.DefaultCap}/department/day · new requests only{(over > 0 ? $" · {over} staff already over the new entitlement" : "")}";
             await tx.AuditAsync("HR_LEAVE_POLICY_SET", "hr.leave-policy:" + ctx.PropertyId.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 $"{text} (was CL {old.Cl} · SL {old.Sl} · EL {old.El} · max {old.DefaultCap})", c2).ConfigureAwait(false);

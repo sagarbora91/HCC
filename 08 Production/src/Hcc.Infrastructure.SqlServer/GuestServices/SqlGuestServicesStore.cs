@@ -274,28 +274,29 @@ public sealed class SqlGuestServicesStore(SqlConnectionFactory connections) : IG
         c.complaint_id, c.property_id, c.stay_id, c.room_id, r.room_no, c.guest_name, c.category, c.severity, c.description, c.owner_id, c.status, c.root_cause,
         c.recovery_action, c.follow_up_on, c.follow_up_outcome, c.follow_up_satisfied, c.follow_up_utc, c.follow_up_by, c.created_utc, c.resolved_utc, c.closed_utc,
         c.created_by, c.recovery_state, c.recovery_amount_paise, c.recovery_reason, c.recovery_folio_id, c.recovery_approval_id, c.recovery_charge_id, c.recovery_utc,
-        c.recovery_by, a.status, c.row_ver
+        c.recovery_by, a.status, c.row_ver, c.category_code
         """;
 
     private const string ComplaintFrom = "ops.guest_complaint c {0} LEFT JOIN inv.room r ON r.room_id = c.room_id LEFT JOIN bill.approval a ON a.approval_id = c.recovery_approval_id";
 
     private static ComplaintRecord ReadComplaint(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), L(rd, 2), I(rd, 3), S(rd, 4), rd.GetString(5), rd.GetString(6), rd.GetString(7),
         rd.GetString(8), rd.GetInt32(9), rd.GetString(10), S(rd, 11), S(rd, 12), D(rd, 13), S(rd, 14), rd.IsDBNull(15) ? null : rd.GetBoolean(15), T(rd, 16), I(rd, 17), U(rd, 18), T(rd, 19), T(rd, 20),
-        rd.GetInt32(21), S(rd, 22), L(rd, 23), S(rd, 24), L(rd, 25), L(rd, 26), L(rd, 27), T(rd, 28), I(rd, 29), S(rd, 30), (byte[])rd[31]);
+        rd.GetInt32(21), S(rd, 22), L(rd, 23), S(rd, 24), L(rd, 25), L(rd, 26), L(rd, 27), T(rd, 28), I(rd, 29), S(rd, 30), (byte[])rd[31], S(rd, 32));
 
     public async Task<long> InsertComplaintAsync(ICommandTransaction tx, NewComplaint c, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(c);
         await using var cmd = Sql(tx).Command("""
-            INSERT ops.guest_complaint(property_id, stay_id, room_id, guest_name, category, severity, description, owner_id, status, created_utc, created_by)
+            INSERT ops.guest_complaint(property_id, stay_id, room_id, guest_name, category, category_code, severity, description, owner_id, status, created_utc, created_by)
             OUTPUT INSERTED.complaint_id
-            VALUES (@p, @s, @r, @g, @cat, @sev, @d, @o, 'Open', @t, @by);
+            VALUES (@p, @s, @r, @g, @cat, @cc, @sev, @d, @o, 'Open', @t, @by);
             """);
         P(cmd, "@p", SqlDbType.Int, c.PropertyId);
         P(cmd, "@s", SqlDbType.BigInt, c.StayId);
         P(cmd, "@r", SqlDbType.Int, c.RoomId);
         P(cmd, "@g", SqlDbType.NVarChar, c.GuestName, 200);
-        P(cmd, "@cat", SqlDbType.VarChar, c.Category, 20);
+        P(cmd, "@cat", SqlDbType.NVarChar, c.Category, 60);
+        P(cmd, "@cc", SqlDbType.VarChar, c.CategoryCode, 20);
         P(cmd, "@sev", SqlDbType.VarChar, c.Severity, 8);
         P(cmd, "@d", SqlDbType.NVarChar, c.Description, 400);
         P(cmd, "@o", SqlDbType.Int, c.OwnerId);
@@ -377,26 +378,27 @@ public sealed class SqlGuestServicesStore(SqlConnectionFactory connections) : IG
     private const string ItemColumns = """
         i.item_id, i.property_id, i.description, i.category, i.valuable, i.found_where, i.room_id, r.room_no, i.stay_id, i.found_utc, i.found_date, i.found_by, i.storage, i.status,
         i.claim_name, i.claim_phone, i.claim_id_type, i.claim_id_note, i.claim_match_note, i.claim_utc, i.claim_by, i.handover_to, i.handover_note, i.handover_utc, i.handover_by,
-        i.disposal_method, i.disposal_note, i.disposal_utc, i.disposal_by, i.row_ver
+        i.disposal_method, i.disposal_note, i.disposal_utc, i.disposal_by, i.row_ver, i.category_code
         """;
 
     private const string ItemFrom = "ops.lost_item i {0} LEFT JOIN inv.room r ON r.room_id = i.room_id";
 
     private static ItemRecord ReadItem(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), rd.GetBoolean(4), rd.GetString(5), I(rd, 6), S(rd, 7), L(rd, 8),
         U(rd, 9), DateOnly.FromDateTime(rd.GetDateTime(10)), rd.GetInt32(11), rd.GetString(12), rd.GetString(13), S(rd, 14), S(rd, 15), S(rd, 16), S(rd, 17), S(rd, 18), T(rd, 19), I(rd, 20),
-        S(rd, 21), S(rd, 22), T(rd, 23), I(rd, 24), S(rd, 25), S(rd, 26), T(rd, 27), I(rd, 28), (byte[])rd[29]);
+        S(rd, 21), S(rd, 22), T(rd, 23), I(rd, 24), S(rd, 25), S(rd, 26), T(rd, 27), I(rd, 28), (byte[])rd[29], S(rd, 30));
 
     public async Task<long> InsertItemAsync(ICommandTransaction tx, NewItem item, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(item);
         await using var cmd = Sql(tx).Command("""
-            INSERT ops.lost_item(property_id, description, category, valuable, found_where, room_id, stay_id, found_utc, found_date, found_by, storage, status)
+            INSERT ops.lost_item(property_id, description, category, category_code, valuable, found_where, room_id, stay_id, found_utc, found_date, found_by, storage, status)
             OUTPUT INSERTED.item_id
-            VALUES (@p, @d, @c, @v, @w, @r, @s, @t, @fd, @fb, @st, 'Stored');
+            VALUES (@p, @d, @c, @cc, @v, @w, @r, @s, @t, @fd, @fb, @st, 'Stored');
             """);
         P(cmd, "@p", SqlDbType.Int, item.PropertyId);
         P(cmd, "@d", SqlDbType.NVarChar, item.Description, 160);
-        P(cmd, "@c", SqlDbType.VarChar, item.Category, 16);
+        P(cmd, "@c", SqlDbType.NVarChar, item.Category, 60);
+        P(cmd, "@cc", SqlDbType.VarChar, item.CategoryCode, 20);
         P(cmd, "@v", SqlDbType.Bit, item.Valuable);
         P(cmd, "@w", SqlDbType.NVarChar, item.FoundWhere, 120);
         P(cmd, "@r", SqlDbType.Int, item.RoomId);

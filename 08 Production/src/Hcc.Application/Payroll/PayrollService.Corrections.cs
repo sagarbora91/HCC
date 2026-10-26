@@ -16,7 +16,7 @@ public sealed partial class PayrollService
     public const string OpCorrectAttendance = "CorrectAttendance";
     public const string OpDecidePayrollRequest = "DecidePayrollRequest";
     public const string OpWithdrawPayrollRequest = "WithdrawPayrollRequest";
-    public const string OpSaveHoliday = "SaveHoliday";
+    public const string OpSaveHoliday = "SavePaidHoliday";   // masters integration: "SaveHoliday" is MA-6's Holiday calendar master command
     public const string OpRemoveHoliday = "RemoveHoliday";
 
     private static string Day(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -58,11 +58,13 @@ public sealed partial class PayrollService
         {
             var type = target.LeaveType!.Value;
             if (state.HalfDayLeave) throw Invalid("A half-day leave covers this day; correct the attendance mark beside it instead.");
-            if (p.PayType == PayType.Daily && type != LeaveType.LOP) throw HccException.Validation("Daily-wage staff can take leave without pay only (illustrative policy).");
+            // MA-6: the type is an active row of the Leave types list (paid / tracked from the list); daily-wage staff take unpaid types only.
+            var policy = await db.LeavePolicyAsync(propertyId, ct).ConfigureAwait(false);
+            if (!policy.IsKnown(type)) throw HccException.Validation("Choose a leave type.");
+            if (p.PayType == PayType.Daily && policy.IsPaid(type)) throw HccException.Validation("Daily-wage staff can take leave without pay only (illustrative policy).");
             if (PayrollRules.DayOff(p, days, date)) throw HccException.Validation("That day is a weekly off or a paid holiday — no leave is needed.");
-            if (PayrollRules.Tracked(type))
+            if (policy.IsTracked(type))
             {
-                var policy = await db.LeavePolicyAsync(propertyId, ct).ConfigureAwait(false);
                 var left = policy.Entitled(type) - LeaveRules.Used(days.Leaves, date, type, state.OneDayLeave?.LeaveId ?? 0);
                 if (left < 1)
                     throw HccException.Validation($"Not enough {type} balance: {PayrollRules.Num(Math.Max(0, left))} day{(left == 1 ? "" : "s")} left in {FinancialYear.Containing(date).Label}.");
@@ -267,7 +269,7 @@ public sealed partial class PayrollService
         return run is not null;
     }
 
-    public async Task<CommandResult<HolidayResult>> SaveHolidayAsync(CommandContext ctx, SaveHolidayRequest req, CancellationToken ct = default)
+    public async Task<CommandResult<HolidayResult>> SaveHolidayAsync(CommandContext ctx, SavePaidHolidayRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);

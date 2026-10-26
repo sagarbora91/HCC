@@ -22,8 +22,27 @@ public sealed class PosQueries(IPosStore store, IAccessPolicy policy, IPosTaxRat
     {
         ArgumentNullException.ThrowIfNull(c);
         var date = await TodayAsync(c, ct).ConfigureAwait(false);
-        return await store.ReadCheckAsync(c.PropertyId, orderId, (await taxRates.FoodAsync(null, c.PropertyId, date, ct).ConfigureAwait(false)).Bps, ct).ConfigureAwait(false)
+        var (profile, cls) = await store.CheckGstBasisAsync(c.PropertyId, orderId, ct).ConfigureAwait(false); // MA-4: outlet GST profile, check GST class
+        return await store.ReadCheckAsync(c.PropertyId, orderId, (await taxRates.ForCheckAsync(null, c.PropertyId, date, profile, cls, ct).ConfigureAwait(false)).Bps, ct).ConfigureAwait(false)
             ?? throw new HccException(HccErrorCode.NOT_FOUND, "Check not found.");
+    }
+
+    /// <summary>MA-4: outlets, menu and categories are also read by Master configuration — the POS view right (PERM-POS-001 in role matrix v2,
+    /// DEC-079; any mode) or PERM-MST-001 (masters).</summary>
+    private async Task ListsAsync(PosCaller c, CancellationToken ct)
+    {
+        if (await policy.HasAsync(c.PropertyId, c.PrincipalId, PosPermissions.View, ct: ct).ConfigureAwait(false)) return;
+        await policy.RequireAsync(c.PropertyId, c.PrincipalId, Hcc.Application.Masters.MastersPermissions.Manage, ct: ct).ConfigureAwait(false);
+    }
+
+    /// <summary>GET /pos/menu-categories (paged like the masters lists): categories in sort order with their item counts.</summary>
+    public async Task<MenuCategoryList> MenuCategoriesAsync(PosCaller c, int? page, int? pageSize, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        var p = Hcc.Domain.Masters.MastersRules.Page(page, pageSize);
+        await ListsAsync(c, ct).ConfigureAwait(false);
+        var all = store is IPosMastersStore m ? await m.CategoriesAsync(c.PropertyId, ct).ConfigureAwait(false) : [];
+        return new MenuCategoryList(p.Page, p.PageSize, all.Count, all.Skip(p.Skip).Take(p.PageSize).ToList());
     }
 
     public async Task<IReadOnlyList<OpenCheckSummary>> OpenChecksAsync(PosCaller c, CancellationToken ct = default)
@@ -36,14 +55,14 @@ public sealed class PosQueries(IPosStore store, IAccessPolicy policy, IPosTaxRat
     public async Task<IReadOnlyList<OutletView>> OutletsAsync(PosCaller c, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(c);
-        await TodayAsync(c, ct).ConfigureAwait(false);
+        await ListsAsync(c, ct).ConfigureAwait(false);
         return await store.OutletsAsync(c.PropertyId, ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<MenuItemView>> MenuAsync(PosCaller c, int? outletId, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(c);
-        await TodayAsync(c, ct).ConfigureAwait(false);
+        await ListsAsync(c, ct).ConfigureAwait(false);
         return await store.MenuAsync(c.PropertyId, outletId, ct).ConfigureAwait(false);
     }
 

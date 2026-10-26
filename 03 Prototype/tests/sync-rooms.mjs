@@ -58,7 +58,7 @@ export async function register({test,assert,M}){
     assert.ok(a1.r.ok);const c=a1.cmds[0];
     assert.equal(c.path,'/commands/TransitionHousekeepingTask');assert.equal(c.key,'task:21:1');
     assert.deepEqual(c.body,{taskId:21,action:'start',expectedVersion:'V21'});
-    assert.deepEqual(a1.calls.slice(1).sort(),['GET /availability','GET /housekeeping/tasks','GET /rooms/board']);
+    assert.deepEqual(a1.calls.slice(1).sort(),['GET /availability','GET /housekeeping/tasks','GET /masters/rooms','GET /rooms/board']); // MA-1 (old → new): + GET /masters/rooms (floor, master fields)
     assert.deepEqual(a2.cmds[0].body,{taskId:21,action:'assign',assigneeId:14,expectedVersion:'V21'});
     assert.deepEqual(a3.cmds[0].body,{taskId:21,action:'check',index:1,expectedVersion:'V21'});
     assert.deepEqual(a4.cmds[0].body,{taskId:22,action:'reject',reason:'Dusty bathroom',expectedVersion:'V22'});

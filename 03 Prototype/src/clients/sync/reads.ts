@@ -33,6 +33,7 @@ const BOARD=one(anyScope('PERM-HK-001',true));
 const FINANCE=one(wide('PERM-RPT-002',true));
 const STOCK=one(wide('PERM-STK-004',true),anyScope('PERM-STK-001',true));
 const POS=one(wide('PERM-POS-001',true));
+const POS_LISTS=one(wide('PERM-POS-001',true),wide('PERM-MST-001')); // MA-4: outlets / menu / categories also for masters.manage (Tech admin); role matrix v2 POS read
 const MNT=one(anyScope('PERM-MNT-001',true));
 const GSV=one(wide('PERM-GSV-001',true));
 const GSV_OWN=one(anyScope('PERM-GSV-001',true));
@@ -96,8 +97,9 @@ export const READS={
   'GET /compliance/obligations':COMPLIANCE,
   'GET /compliance/calendar':COMPLIANCE,
   'GET /compliance/ca-packs':COMPLIANCE,
-  'GET /pos/outlets':POS,
-  'GET /pos/menu':POS,
+  'GET /pos/outlets':POS_LISTS,
+  'GET /pos/menu':POS_LISTS,
+  'GET /pos/menu-categories':POS_LISTS,
   'GET /pos/checks':POS,
   // Today's settled bills add up to the day's sales: the money view (Cashier own shift) or the settling desk (Reception), not the Restaurant role.
   'GET /pos/checks/closed':one(anyScope('PERM-POS-004',true),anyScope('PERM-POS-005')),
@@ -141,6 +143,55 @@ export const READS={
   // MA-0 masters: floor names label every board (any signed-in user); the change history needs masters.manage (PERM-MST-001).
   'GET /masters/floors':always,
   'GET /masters/floors/history':one(wide('PERM-MST-001')),
+  // MA-1 rooms masters: lists for every signed-in user (amounts empty without money visibility); history = masters.manage, money list = Owner.
+  'GET /masters/room-types':always,
+  'GET /masters/room-types/history':one(wide('PERM-MST-001')),
+  'GET /masters/amenities':always,
+  'GET /masters/amenities/history':one(wide('PERM-MST-001')),
+  'GET /masters/occupancy-charges':always,
+  'GET /masters/occupancy-charges/history':one(wide('PERM-MST-002')),
+  'GET /masters/rooms':always,
+  // MA-3 money masters: pick lists for every signed-in user (money / PAN fields null without PERM-MST-002); history = PERM-MST-002 (Owner).
+  'GET /masters/payment-methods':always,'GET /masters/payment-methods/history':one(wide('PERM-MST-002')),
+  'GET /masters/bank-accounts':always,'GET /masters/bank-accounts/history':one(wide('PERM-MST-002')),
+  'GET /masters/expense-categories':always,'GET /masters/expense-categories/history':one(wide('PERM-MST-002')),
+  'GET /masters/expense-vendors':always,'GET /masters/expense-vendors/history':one(wide('PERM-MST-002')),
+  // MA-2 catalogue: prices are hotel money → folio view (PERM-FOL-001; never housekeeping / maintenance, DEC-061); history → PERM-MST-002 (Owner).
+  'GET /catalogue/meal-plans':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/extras':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/discount-reasons':one(wide('PERM-FOL-001',true)),
+  'GET /catalogue/meal-plans/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/extras/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/discount-reasons/history':one(wide('PERM-MST-002')),
+  'GET /catalogue/links':one(wide('PERM-FOL-001',true)),
+  // MA-5 front-desk lists: booking forms, registration, documents and policies read them (any signed-in user; commission masked by the
+  // server for roles without money visibility); the history needs masters.manage (sources, ID types) or masters.manage-money (numbering, policies).
+  'GET /masters/booking-sources':always,
+  'GET /masters/booking-sources/history':one(wide('PERM-MST-001')),
+  'GET /masters/id-types':always,
+  'GET /masters/id-types/history':one(wide('PERM-MST-001')),
+  'GET /masters/number-series':always,
+  'GET /masters/number-series/history':one(wide('PERM-MST-002')),
+  'GET /masters/policies':always,
+  'GET /masters/policies/history':one(wide('PERM-MST-002')),
+  // MA-6 people lists: designations, shift patterns, leave types and holidays label staff, roster and leave screens (any signed-in user); history needs PERM-MST-001.
+  'GET /hr/designations':always,
+  'GET /hr/designations/history':one(wide('PERM-MST-001')),
+  'GET /hr/shift-patterns':always,
+  'GET /hr/shift-patterns/history':one(wide('PERM-MST-001')),
+  'GET /hr/leave-types':always,
+  'GET /hr/leave-types/history':one(wide('PERM-MST-001')),
+  'GET /hr/holidays':always,
+  'GET /hr/holidays/history':one(wide('PERM-MST-001')),
+  // MA-7 operations masters: lists readable by any signed-in user (housekeepers need the checklist, reception the categories; no money); histories need masters.manage.
+  'GET /housekeeping/task-types':always,
+  'GET /housekeeping/task-types/history':one(wide('PERM-MST-001')),
+  'GET /housekeeping/zones':always,
+  'GET /housekeeping/zones/history':one(wide('PERM-MST-001')),
+  'GET /guest-services/complaint-categories':always,
+  'GET /guest-services/complaint-categories/history':one(wide('PERM-MST-001')),
+  'GET /guest-services/lost-found-categories':always,
+  'GET /guest-services/lost-found-categories/history':one(wide('PERM-MST-001')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

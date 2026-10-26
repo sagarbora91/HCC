@@ -3,6 +3,7 @@
 import type {State,Room,Approval} from '../types';
 import {addDays,nights as nightsBetween,money} from '../money';
 import {rateFor,blockedDuring} from '../selectors';
+import {rmsOffline} from './roomoffline';
 
 export type YLDPlan={id:string;code:string;name:string;
   /** Adjustment on the night's suggested BAR, bps (BAR itself = 0). */
@@ -82,7 +83,7 @@ export type YLDOcc={onBooks:number;forecast:number;sellable:number;pct:number;si
 /** Forecast occupancy for a night: max(on the books, simulated forecast) ÷ sellable rooms. */
 export function yldOcc(s:State,date:string):YLDOcc{
   const next=addDays(date,1);
-  const sellable=s.rooms.filter(r=>!blockedDuring(r,date,next)).length;
+  const sellable=s.rooms.filter(r=>!blockedDuring(r,date,next)&&!rmsOffline(r,date,next)).length; // MA-1: retired / out of order
   const onBooks=s.bookings.filter(b=>(b.status==='Confirmed'||b.status==='In house'||(b.status==='Held'&&(!b.holdUntil||s.clock<b.holdUntil)))&&b.arrival<=date&&b.departure>date).length;
   const forecast=yldSlice(s).forecast[date]??0;
   const sold=Math.max(onBooks,forecast);

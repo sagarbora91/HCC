@@ -5,13 +5,19 @@
 import type {Handler,Kit} from '../commands';
 import type {Approval} from '../../../domain/types';
 import {money,addMinutes} from '../../../domain/money';
-import {gstForFood,gstLineTax,gstSplit} from '../../../domain/gst';
+import {gstLineTax,gstSplit} from '../../../domain/gst';
 import {rbacIsRestaurant} from '../../../domain/streams/rbac';
 import {cfgValueOn} from '../../../domain/streams/config';
-import {folioCreditNoteNo} from '../../../domain/streams/folio';
+import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,posFyCode,posRstNo,posBuyerOf,
-  POS_VOID_LIMIT,POS_TENDERS,POS_APPROVAL_TTL_MINUTES,POS_RST_SAC} from '../../../domain/streams/pos';
-import type {POSOrder,POSState,POSKotStatus,POSSettlement} from '../../../domain/streams/pos';
+  POS_VOID_LIMIT,POS_APPROVAL_TTL_MINUTES,POS_RST_SAC} from '../../../domain/streams/pos';
+import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyNames} from '../../../domain/streams/money-master';
+import {mstFail} from '../../../domain/streams/masters';
+/** "Cash, UPI or Card" — the active POS methods (money masters, MA-3). */
+const orList=(xs:string[])=>xs.length>1?xs.slice(0,-1).join(', ')+' or '+xs[xs.length-1]:xs[0]??'a payment method';
+import type {POSOrder,POSState,POSKotStatus,POSKot,POSSettlement} from '../../../domain/streams/pos';
+// MA-4 POS masters (outlets, tables, categories, items): registering them here makes them part of every bundle that has the POS handlers.
+import {posOutletActive,posTablesOf,posItemBlock,posItemPrice,posItemClass,posCheckClass,posCheckRate,posStationOf,posSoldOut,POS_GST_CLASSES,POS_DEFAULT_STATION} from '../../../domain/streams/pos-master';
 
 const slice=(k:Kit):POSState=>{k.s.posX??=posEmpty();return k.s.posX;};
 const order=(k:Kit):POSOrder=>{const o=slice(k).orders.find(o=>o.id===k.cmd.id);k.assert(o,'Check not found.','NOT_FOUND');return o!;};
@@ -35,11 +41,12 @@ const hasBuyer=(cmd:Record<string,unknown>)=>['buyerGstin','buyerName','buyerAdd
 const POS_ORDER_OPEN:Handler=k=>{
   const {s,cmd,req,open,assert,id,uid}=k;req('billing');open();
   const p=slice(k),out=p.outlets.find(o=>o.id===cmd.outlet);assert(out,'Choose an outlet.','NOT_FOUND');
+  assert(posOutletActive(out!),`${out!.name} is retired — choose an active outlet.`,'INVALID_TRANSITION');
   const covers=cmd.covers===undefined?1:Number(cmd.covers);
   assert(Number.isInteger(covers)&&covers>=1&&covers<=20,'Covers must be 1–20.');
   const o:POSOrder={id:id('POS'),outlet:out!.id,covers,date:s.date,openedAt:s.clock,openedBy:uid,status:'Open',version:1,lines:[],kots:[]};
   if(out!.kind==='table'){
-    assert(out!.tables?.includes(cmd.table),'Choose a table.');
+    assert(posTablesOf(s,out!.id).some(t=>t.tableNo===cmd.table),'Choose a table.');
     assert(!p.orders.some(x=>x.outlet===out!.id&&x.status==='Open'&&x.table===cmd.table),`Table ${cmd.table} already has an open check.`,'NOT_AVAILABLE');
     o.table=cmd.table;if(String(cmd.guest??'').trim())o.guest=String(cmd.guest).trim().slice(0,60);
   }else{
@@ -55,12 +62,17 @@ const POS_ORDER_OPEN:Handler=k=>{
 const POS_ITEM_ADD:Handler=k=>{
   const {cmd,req,open,assert,id}=k;req('billing');open();const o=order(k);editable(k,o);
   const m=slice(k).menu.find(m=>m.id===cmd.item);assert(m,'Menu item not found.','NOT_FOUND');
-  assert(m!.outlets.includes(o.outlet),'This item is not on this outlet’s menu.');
-  assert(m!.available,`${m!.name} is unavailable (86) right now.`,'NOT_AVAILABLE');
+  const block=posItemBlock(k.s,m!,o.outlet);
+  if(block)assert(false,block,posSoldOut(k.s,m!)?'NOT_AVAILABLE':block.startsWith('This item is not')?'VALIDATION':'INVALID_TRANSITION');
   const qty=cmd.qty===undefined?1:Number(cmd.qty);assert(Number.isInteger(qty)&&qty>=1&&qty<=50,'Quantity must be 1–50.');
-  const same=o.lines.find(l=>l.item===m!.id&&!l.kot&&!l.voided);
+  // One GST class per check (MA-4): a banquet-hall or other-service item goes on its own check.
+  const cls=posItemClass(m!);
+  if(posActiveLines(o).length&&posCheckClass(o)!==cls){const name=(c:string)=>POS_GST_CLASSES.find(x=>x.value===c)?.label??c;
+    assert(false,`This check is billed as ${name(posCheckClass(o))}; ${m!.name} is ${name(cls)} — open a separate check for it.`,'INVALID_TRANSITION');}
+  const price=posItemPrice(k.s,m!)!;
+  const same=o.lines.find(l=>l.item===m!.id&&!l.kot&&!l.voided&&l.price===price);
   if(same){assert(same.qty+qty<=50,'Quantity must be 1–50.');same.qty+=qty;}
-  else o.lines.push({id:id('POSL'),item:m!.id,name:m!.name,price:m!.price,qty});
+  else o.lines.push({id:id('POSL'),item:m!.id,name:m!.name,price,qty,...(cls!=='food'?{gst:cls}:{})});
   o.version++;return `${o.id} · +${qty} ${m!.name}`;
 };
 
@@ -76,10 +88,19 @@ const POS_ITEM_QTY:Handler=k=>{
 const POS_KOT_SEND:Handler=k=>{
   const {s,req,open,assert,id,uid}=k;req('billing');open();const o=order(k);editable(k,o);
   const lines=posUnsent(o);assert(lines.length,'Add items before sending a KOT.');
-  const p=slice(k),seqKey=o.outlet+':'+s.date,no=(p.kotSeq[seqKey]??0)+1;p.kotSeq[seqKey]=no;
-  const kot={id:id('KOT'),no,at:s.clock,by:uid,status:'Preparing' as POSKotStatus};
-  o.kots.push(kot);lines.forEach(l=>l.kot=kot.id);o.version++;
-  return `${o.id} · KOT ${no} · ${lines.reduce((a,l)=>a+l.qty,0)} item(s) to kitchen · ${posSpot(o)}`;
+  // MA-4: one KOT per kitchen station (item station → outlet KOT station → Kitchen), in order of first appearance.
+  const p=slice(k),seqKey=o.outlet+':'+s.date,menu=p.menu;
+  const groups=new Map<string,typeof lines>();
+  for(const l of lines){const st=posStationOf(s,o.outlet,menu.find(m=>m.id===l.item));(groups.get(st)??groups.set(st,[]).get(st)!).push(l);}
+  const configured=groups.size>1||[...groups.keys()][0]!==POS_DEFAULT_STATION||!!p.outlets.find(x=>x.id===o.outlet)?.kotStation;
+  const sent:string[]=[];
+  for(const [st,ls] of groups){
+    const no=(p.kotSeq[seqKey]??0)+1;p.kotSeq[seqKey]=no;
+    const kot:POSKot={id:id('KOT'),no,at:s.clock,by:uid,status:'Preparing' as POSKotStatus,...(configured?{station:st}:{})};
+    o.kots.push(kot);ls.forEach(l=>l.kot=kot.id);sent.push(`KOT ${no}${configured?' ('+st+')':''}`);
+  }
+  o.version++;
+  return `${o.id} · ${sent.join(', ')} · ${lines.reduce((a,l)=>a+l.qty,0)} item(s) to kitchen · ${posSpot(o)}`;
 };
 
 const POS_KOT_STATUS:Handler=k=>{
@@ -102,7 +123,7 @@ const POS_SETTLE:Handler=k=>{
   assert(posActiveLines(o).length,'This check has no items to settle.');
   assert(!posUnsent(o).length,'Send the remaining items to the kitchen (KOT) or remove them before settling.','INVALID_TRANSITION');
   // DEC-069: restaurant / room service GST from the master (5 %, or 18 % when the hotel is specified premises this FY); one bill = one line.
-  const p=slice(k),taxBps=gstForFood(s,s.date).bps,net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),tax=gstLineTax(net,taxBps),total=net+tax;
+  const p=slice(k),taxBps=posCheckRate(s,o,s.date).bps,net=posActiveLines(o).reduce((a,l)=>a+posLineValue(l),0),tax=gstLineTax(net,taxBps),total=net+tax;
   assert(net>0,'This check has no value to settle.');
   const billNo=`POS/${s.date.slice(2,4)}${s.date.slice(5,7)}/${String(p.billSeq+1).padStart(4,'0')}`;
   if(cmd.mode==='folio'){
@@ -120,18 +141,24 @@ const POS_SETTLE:Handler=k=>{
   }
   assert(cmd.mode==='outlet','Choose how the bill is settled.');
   const bo=posBuyerOf(cmd,total);if('error' in bo)assert(false,bo.error);
-  assert((POS_TENDERS as readonly string[]).includes(cmd.method),'Select Cash, UPI or Card.');
+  // MA-3: an active payment method usable at the POS (money masters; seed = the old POS_TENDERS Cash / UPI / Card).
+  {const row=typeof cmd.method==='string'?mnyMethod(s,cmd.method):undefined;
+    if(row&&!row.active&&(row.usableAt??[]).includes('pos'))mstFail('MASTER_RETIRED',`${row.name} is retired — choose an active payment method.`);}
+  const pm=mnyMethodFor(s,cmd.method,'pos');
+  assert(pm,`Select ${orList(mnyNames(s,'pos'))}.`);
+  const method=pm!.name;
   const reference=String(cmd.reference??'').trim();
+  const cash=mnyIsDrawer(s,pm!.name);
   // Shared till (DEC-052): outlet cash goes into the front-desk drawer, so it needs the open cash shift like folio cash.
-  if(cmd.method==='Cash')assert(s.shiftOpen,'The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.','INVALID_TRANSITION');
-  else assert(reference,'Enter a demonstration transaction reference.');
+  if(cash)assert(s.shiftOpen,'The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.','INVALID_TRANSITION');
+  else if(pm!.needsReference)assert(reference,'Enter a demonstration transaction reference.');
   const rid=id('POSR');
-  p.receipts.push({id:rid,order:o.id,outlet:o.outlet,method:cmd.method,amount:total,net,tax,taxBps,reference:reference||'Outlet cash',date:s.date,actor:uid,kind:'sale'});
-  o.settlement={mode:'outlet',billNo,method:cmd.method,reference:reference||undefined,net,taxBps,tax,total,date:s.date,at:s.clock,by:uid,receiptId:rid};
+  p.receipts.push({id:rid,order:o.id,outlet:o.outlet,method:method,amount:total,net,tax,taxBps,reference:reference||(cash?'Outlet cash':method),date:s.date,actor:uid,kind:'sale'});
+  o.settlement={mode:'outlet',billNo,method:method,reference:reference||undefined,net,taxBps,tax,total,date:s.date,at:s.clock,by:uid,receiptId:rid};
   if(o.settlement.reference===undefined)delete o.settlement.reference;
   const b=bo as Exclude<typeof bo,{error:string}>,invoiceNo=issueRst(k,o.settlement,b.supply,b.buyer);
   p.billSeq++;o.status='Settled';o.version++;
-  return `${o.id} · bill ${billNo} · ${money(total)} ${cmd.method} at ${outletName(k,o)} (outlet receipt ${rid}${cmd.method==='Cash'?' · counted in the front-desk drawer':''}) · tax invoice ${invoiceNo}${b.supply==='B2B'?' (B2B '+b.buyer!.gstin+')':''}`;
+  return `${o.id} · bill ${billNo} · ${money(total)} ${method} at ${outletName(k,o)} (outlet receipt ${rid}${cash?' · counted in the front-desk drawer':''}) · tax invoice ${invoiceNo}${b.supply==='B2B'?' (B2B '+b.buyer!.gstin+')':''}`;
 };
 
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
@@ -143,10 +170,11 @@ function applyVoid(k:Kit,o:POSOrder,scope:'item'|'bill',lineId:string|undefined,
   if(o.status==='Settled'){
     const st=o.settlement!;assert(!cbIsLocked(s,st.date),cbLockedMessage(st.date,'voiding a bill settled that day'),'DAY_CLOSED'); // DEC-065
     assert(st.mode==='outlet','A bill posted to a room folio is corrected on the folio, not voided here.','INVALID_TRANSITION');
-    if(st.method==='Cash')assert(s.shiftOpen,'The cash shift is closed. A cash bill cannot be reversed now.','INVALID_TRANSITION');
+    if(mnyIsDrawer(s,st.method!))assert(s.shiftOpen,'The cash shift is closed. A cash bill cannot be reversed now.','INVALID_TRANSITION');
     slice(k).receipts.push({id:id('POSR'),order:o.id,outlet:o.outlet,method:st.method!,amount:-st.total,net:-st.net,tax:-st.tax,taxBps:st.taxBps,reference:'Void of '+st.billNo,date:s.date,actor:by,kind:'void'});
     // DEC-072: the bill's tax invoice is reversed in full by a credit note dated today (the invoice itself never changes).
-    if(st.invoiceNo&&!st.creditNoteNo){s.creditNoteSeqC=(s.creditNoteSeqC??0)+1;st.creditNoteNo=folioCreditNoteNo(s.creditNoteSeqC);st.creditNoteDate=s.date;}
+    // Masters integration: one credit-note series (MA-5 numbering master; the seeded CRN series continues s.creditNoteSeqC in FY 2026-27).
+    if(st.invoiceNo&&!st.creditNoteNo){st.creditNoteNo=fdmAllocate(s,'CRN');st.creditNoteDate=s.date;}
   }
   posActiveLines(o).forEach(mark);
   o.status='Void';o.voidReason=reason;o.voidedBy=by;o.voidedAt=s.clock;o.version++;
@@ -211,10 +239,12 @@ const POS_INVOICE_ISSUE:Handler=k=>{
   return `${o.id} · bill ${st!.billNo} · tax invoice ${issueRst(k,st!,'B2C')}`;
 };
 
+/** "Sold out today" switch on the POS page (MA-4: the menu master's soldOutToday; lapses at the next business date). */
 const POS_MENU_TOGGLE:Handler=k=>{
-  const {cmd,req,open,assert}=k;req('billing');open();
+  const {s,cmd,req,open,assert}=k;req('billing');open();
   const m=slice(k).menu.find(m=>m.id===cmd.item);assert(m,'Menu item not found.','NOT_FOUND');
-  m!.available=!m!.available;return `${m!.name} · ${m!.available?'available again':'marked unavailable (86)'}`;
+  if(posSoldOut(s,m!)){m!.available=true;delete m!.soldOutOn;return `${m!.name} · available again`;}
+  m!.available=false;m!.soldOutOn=s.date;return `${m!.name} · sold out today (86)`;
 };
 
 export const handlers:Record<string,Handler>={POS_ORDER_OPEN,POS_ITEM_ADD,POS_ITEM_QTY,POS_KOT_SEND,POS_KOT_STATUS,POS_SETTLE,POS_VOID_ITEM,POS_VOID_BILL,POS_VOID_DECIDE,POS_INVOICE_ISSUE,POS_MENU_TOGGLE};

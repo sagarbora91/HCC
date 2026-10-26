@@ -16,10 +16,14 @@
 import type {State,Role} from '../types';
 import {addDays} from '../money';
 import {can} from '../selectors';
+import {hrShiftPattern,hrWeeklyOffAuto,hrHolidayPaid,hrHolidayOn,hrHolidays,hrLeavePaid,hrLeaveQuota,hrLeaveCarryCap,hrLeaveEncash,hrTrackedTypes,HR_SHIFT_SEED,hrLeaveTypeRows} from './people-masters';
+import {mstStored} from './masters';
 
-export type HRShiftCode='M'|'E'|'N'|'G'|'OFF';
+/** Shift pattern code (master list Shift patterns, MA-6; M E N G are the seed) or 'OFF' for the weekly off. */
+export type HRShiftCode=string;
 export type HRAttStatus='P'|'L'|'H'|'A'|'OFF';
-export type HRLeaveType='CL'|'SL'|'EL'|'CO'|'ML'|'LOP';
+/** Leave type code (master list Leave types, MA-6; CL SL EL CO ML LOP are the seed). */
+export type HRLeaveType=string;
 export type HRHalf='AM'|'PM';
 export type HRGender='M'|'F';
 /** S = structured (basic / HRA / washing / special, SCC 'S'); B = basic only (SCC 'B'). */
@@ -28,6 +32,7 @@ export type HRDept={id:string;name:string};
 export type HRStaff={id:string;name:string;dept:string;designation:string;
   /** Linked demo user (login); undefined = non-login staff (cooks, security…). */
   userId?:string;
+  /** MA-6: code of the designation master row chosen on the staff form; `designation` keeps the printed name (older records: matched by name). */designationCode?:string;
   payType:'monthly'|'daily';
   /** Monthly salary (paise) — monthly pay type. */ monthly:number;
   /** Daily wage (paise) — daily pay type. */ daily:number;
@@ -67,10 +72,10 @@ export type HRLeavePolicy={ent:{CL:number;SL:number;EL:number};
 export type HRCounts={ym:string;days:number;P:number;L:number;H:number;
   /** Half-day worked with the other half on approved half-day leave. */ HL:number;
   A:number;OFFW:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
-  /** DEC-083: paid holidays not worked — present only when > 0 (paid like weekly offs: monthly pay keeps them; daily wage pays neither, CA A04-04 open). */
-  hol?:number};
-/** DEC-083: a dated paid holiday of the property (the Owner keeps the list; nothing is seeded). */
-export type HRHoliday={date:string;name:string};
+  /** DEC-083 / MA-6: paid holidays (Holiday calendar) not worked — on days with no attendance, leave or weekly off; present only when > 0
+   *  (paid like weekly offs: monthly pay keeps them; daily wage pays neither, CA A04-04 open). */hol?:number};
+/** DEC-083 paid holiday in the Wave B shape (date + name) — a view of an active "paid" row of MA-6's Holiday calendar master (one holidays concept). */
+export type HRPaidHoliday={date:string;name:string};
 /** DEC-075: what a past day holds for pay — nothing (unmarked = absent), an attendance mark, or a one-day approved leave. */
 export type HRDayEntry={kind:'none'}|{kind:'mark';status:HRAttStatus;otMin:number}|{kind:'leave';type:HRLeaveType};
 /** DEC-075 attendance correction / DEC-084 bank-detail change (server hr.change_request). Pending until the Owner decides; `direct` = applied at
@@ -121,7 +126,8 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
   leaves:HRLeave[];advances:HRAdvance[];
   /** Dated statutory rate versions, sorted by `from`. */ rateVersions:HRRates[];
   leavePolicy?:HRLeavePolicy;runs:HRRun[];fnf?:HRFnf[];
-  /** DEC-083 paid-holiday calendar, by date (absent = none). */ holidays?:HRHoliday[];
+  /** LEGACY (Wave B, before the masters merge): its paid-holiday list. A SCHEMA 8 save is migrated into MA-6's Holiday calendar master on load
+   *  (services/mock/persistence.ts); nothing reads it otherwise. */ holidays?:HRPaidHoliday[];
   /** DEC-075 / DEC-084 requests, oldest first (absent = none). */ requests?:HRRequest[];
   /** Production only: the server's open correction window (hrCorrectionWindow computes it in the prototype). */ correctWindow?:{from:string;to:string}};
 
@@ -184,16 +190,19 @@ export function hrMigrateLegacy(s:State):boolean{
   return changed;
 }
 
-export const HR_SHIFTS:{code:HRShiftCode;label:string;start:string;end:string}[]=[
-  {code:'M',label:'Morning',start:'07:00',end:'15:00'},{code:'E',label:'Evening',start:'15:00',end:'23:00'},
-  {code:'N',label:'Night',start:'23:00',end:'07:00'},{code:'G',label:'General',start:'09:00',end:'18:00'},{code:'OFF',label:'Weekly off',start:'',end:''}];
-export const hrShiftInfo=(c:HRShiftCode)=>HR_SHIFTS.find(x=>x.code===c)!;
+/** Built-in shift table (the seed of the Shift patterns list; fallback when no state is at hand). */
+export const HR_SHIFTS:{code:HRShiftCode;label:string;start:string;end:string}[]=[...HR_SHIFT_SEED.map(x=>({code:x.code,label:x.name,start:x.start,end:x.end})),{code:'OFF',label:'Weekly off',start:'',end:''}];
+/** Label and times of a shift code; with the state, the Shift patterns list decides (retired patterns still resolve). */
+export function hrShiftInfo(c:HRShiftCode,s?:State){
+  const p=s?hrShiftPattern(s,c):undefined;if(p)return {code:c,label:p.name,start:p.start,end:p.end};
+  return HR_SHIFTS.find(x=>x.code===c)??{code:c,label:c,start:'',end:''};
+}
 export const HR_ATT_LABEL:Record<HRAttStatus,string>={P:'Present',L:'Late',H:'Half-day',A:'Absent',OFF:'Worked on off day'};
 export const HR_LEAVE_TYPES:HRLeaveType[]=['CL','SL','EL','CO','ML','LOP'];
 export const HR_LEAVE_LABEL:Record<HRLeaveType,string>={CL:'Casual leave',SL:'Sick leave',EL:'Earned leave',CO:'Compensatory off',ML:'Maternity / paternity leave',LOP:'Leave without pay'};
 /** Leave types with a yearly entitlement (SCC TRACKED_CATS). Comp off and maternity / paternity are paid but not tracked. */
 export const HR_TRACKED:('CL'|'SL'|'EL')[]=['CL','SL','EL'];
-export const hrPaidLeave=(t:HRLeaveType)=>t!=='LOP';
+export const hrPaidLeave=(t:HRLeaveType,s?:State)=>s?hrLeavePaid(s,t):t!=='LOP';
 export const HR_GRACE_MIN=15;
 export const HR_WEEKDAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 export const HR_HALF_LABEL:Record<HRHalf,string>={AM:'first half',PM:'second half'};
@@ -265,7 +274,12 @@ export function hrRatesDefaultFrom(s:State):string{
 export function hrRatesPastMonths(s:State,from:string):string[]{
   const out:string[]=[];for(let m=from.slice(0,7);hrMonthComplete(s,m);m=hrNextMonth(m))if(hrSlice(s).runs.find(r=>r.month===m)?.status!=='Locked')out.push(m);return out;
 }
-export const hrLeavePolicy=(s:State):HRLeavePolicy=>hrSlice(s).leavePolicy??hrDefaultLeavePolicy();
+/** Leave policy; once the Leave types list is saved its yearly quotas are the entitlements (MA-6), before that the stored policy. */
+export function hrLeavePolicy(s:State):HRLeavePolicy{
+  const p=hrSlice(s).leavePolicy??hrDefaultLeavePolicy();
+  if(!mstStored(s,'leaveTypes'))return p;
+  return {...p,ent:{CL:hrLeaveQuota(s,'CL')??0,SL:hrLeaveQuota(s,'SL')??0,EL:hrLeaveQuota(s,'EL')??0}};
+}
 export const hrDeptCap=(s:State,dept:string)=>{const p=hrLeavePolicy(s);return p.deptCap[dept]??p.defaultCap;};
 /** Latest locked pay-run month (rates on or before it can no longer change). */
 export const hrLastLockedMonth=(s:State)=>hrSlice(s).runs.filter(r=>r.status==='Locked').map(r=>r.month).sort().pop();
@@ -274,13 +288,16 @@ export const hrLastLockedMonth=(s:State)=>hrSlice(s).runs.filter(r=>r.status==='
 export const hrKey=(date:string,staffId:string)=>date+'|'+staffId;
 export function hrShiftFor(s:State,st:HRStaff,date:string):HRShiftCode{
   const o=hrSlice(s).roster[hrKey(date,st.id)];if(o)return o;
-  return hrWeekday(date)===st.weeklyOff?'OFF':st.defaultShift;
+  return hrWeekday(date)===st.weeklyOff&&hrWeeklyOffAuto(s,st.defaultShift)?'OFF':st.defaultShift;
 }
-// ── DEC-083 paid holidays ──
-export const hrHolidays=(s:State):HRHoliday[]=>hrSlice(s).holidays??[];
-export const hrHolidayOn=(s:State,date:string)=>hrSlice(s).holidays?.find(h=>h.date===date);
+// ── DEC-083 paid holidays = the active "paid" rows of MA-6's Holiday calendar master (masters integration: one holidays concept) ──
+/** The paid holidays (date order) as {date, name}; restricted and retired rows of the calendar are not paid holidays. */
+export const hrPaidHolidays=(s:State):HRPaidHoliday[]=>hrHolidays(s,{active:true}).filter(h=>h.kind==='paid').map(h=>({date:h.code,name:h.name}))
+  .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+/** The paid holiday on a date, if any. */
+export const hrPaidHolidayOn=(s:State,date:string):HRPaidHoliday|undefined=>{const h=hrHolidayOn(s,date);return h&&h.kind==='paid'?{date:h.code,name:h.name}:undefined;};
 /** A day without duty for leave: a rostered weekly off or a paid holiday (leave days skip both; nobody is "off" on them). */
-export const hrDayOff=(s:State,st:HRStaff,date:string)=>hrShiftFor(s,st,date)==='OFF'||!!hrHolidayOn(s,date);
+export const hrDayOff=(s:State,st:HRStaff,date:string)=>hrShiftFor(s,st,date)==='OFF'||hrHolidayPaid(s,date);
 /** DEC-075: the unmarked-days warning points to the correction action (server PayrollRules.UnmarkedHint). */
 export const HR_UNMARKED_HINT='a manager can correct them on Staff & payroll › Attendance › Past days before the lock.';
 const covers=(l:HRLeave,date:string)=>l.from<=date&&l.to>=date;
@@ -288,25 +305,25 @@ export const hrApprovedLeavesOn=(s:State,staffId:string,date:string)=>hrSlice(s)
 /** A full-day approved leave on the date, else the first half-day one. */
 export const hrApprovedLeaveOn=(s:State,staffId:string,date:string)=>{const ls=hrApprovedLeavesOn(s,staffId,date);return ls.find(l=>!l.half)??ls[0];};
 /** Day view for one staff member: explicit attendance → rostered off → paid holiday → approved leave → unmarked. Half-day leave can sit beside attendance. */
-export function hrDayStatus(s:State,st:HRStaff,date:string):{kind:'att'|'leave'|'off'|'holiday'|'unmarked'|'na';att?:HRAtt;leave?:HRLeave;holiday?:HRHoliday}{
+export function hrDayStatus(s:State,st:HRStaff,date:string):{kind:'att'|'leave'|'off'|'holiday'|'unmarked'|'na';att?:HRAtt;leave?:HRLeave;holiday?:HRPaidHoliday}{
   if(date<st.joined||(st.exitedOn&&date>st.exitedOn))return {kind:'na'};
   const att=hrSlice(s).att[hrKey(date,st.id)],leave=hrApprovedLeaveOn(s,st.id,date);
   if(att)return leave?.half?{kind:'att',att,leave}:{kind:'att',att};
   if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};// F-01: weekly off inside a leave span stays a weekly off
-  const holiday=hrHolidayOn(s,date);if(holiday)return {kind:'holiday',holiday};// DEC-083: an unmarked holiday is paid like a weekly off
+  const holiday=hrPaidHolidayOn(s,date);if(holiday)return {kind:'holiday',holiday};// DEC-083 / MA-6: an unmarked paid holiday is paid like a weekly off
   if(leave)return {kind:'leave',leave};
   return {kind:'unmarked'};
 }
 /** Self check-in status from the simulated clock: Late after shift start + grace. */
-export function hrCheckinStatus(clock:string,shift:HRShiftCode):'P'|'L'{
-  if(shift==='OFF'||shift==='N')return 'P';
-  return toMin(clock.slice(11,16))>toMin(hrShiftInfo(shift).start)+HR_GRACE_MIN?'L':'P';
+export function hrCheckinStatus(clock:string,shift:HRShiftCode,s?:State):'P'|'L'{
+  const p=s?hrShiftPattern(s,shift):undefined;
+  if(shift==='OFF'||(p?p.night:shift==='N'))return 'P';
+  return toMin(clock.slice(11,16))>toMin(hrShiftInfo(shift,s).start)+HR_GRACE_MIN?'L':'P';
 }
 /** Counts for a staff member over a month (optionally up to a date). Leave and absence can be half days (0.5). */
 export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
   const c:HRCounts={ym,days:hrDaysInMonth(ym),P:0,L:0,H:0,HL:0,A:0,OFFW:0,off:0,paidLeave:0,lopLeave:0,unmarked:0,na:0,otMin:0};
-  const addLeave=(l:HRLeave,n:number)=>{if(hrPaidLeave(l.type))c.paidLeave+=n;else c.lopLeave+=n;};
-  const hols=new Set((hrSlice(s).holidays??[]).filter(h=>h.date.startsWith(ym)).map(h=>h.date));
+  const addLeave=(l:HRLeave,n:number)=>{if(hrPaidLeave(l.type,s))c.paidLeave+=n;else c.lopLeave+=n;};
   for(const d of hrMonthDates(ym)){
     if(upTo&&d>upTo)break;
     if(d<st.joined||(st.exitedOn&&d>st.exitedOn)){c.na++;continue;}
@@ -319,9 +336,9 @@ export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
       }else if(att.status==='OFF')c.OFFW++;else c[att.status]++;
     }
     // F-01: a rostered weekly off inside a leave span is a weekly off, never a leave day (SCC isWeekOffDate; matches the stored `days`).
+    // DEC-083 / MA-6: a paid holiday (Holiday calendar) without attendance is a paid day, never leave or unmarked; a weekly off on the same day stays a weekly off.
     else if(hrShiftFor(s,st,d)==='OFF')c.off++;
-    // DEC-083: an unmarked paid holiday counts like a weekly off (a worked holiday is marked); `hol` only when there is one.
-    else if(hols.has(d))c.hol=(c.hol??0)+1;
+    else if(hrHolidayPaid(s,d))c.hol=(c.hol??0)+1;
     else if(full)addLeave(full,1);
     else if(halves.length){halves.forEach(l=>addLeave(l,0.5));c.unmarked+=1-0.5*halves.length;}
     else c.unmarked++;
@@ -340,10 +357,22 @@ export function hrLeaveUsed(s:State,staffId:string,dateOrYear:string,type:HRLeav
   const fy=hrFy(dateOrYear);
   return hrSlice(s).leaves.filter(l=>l.id!==except&&l.staffId===staffId&&l.type===type&&l.from>=fy.from&&l.from<=fy.to&&(l.status==='Approved'||l.status==='Pending')).reduce((n,l)=>n+l.days,0);
 }
-export const hrEntitled=(s:State,type:'CL'|'SL'|'EL')=>hrLeavePolicy(s).ent[type];
+/** Yearly quota of a leave type (Leave types list); 0 when the type has none. */
+export const hrEntitled=(s:State,type:HRLeaveType)=>hrLeaveQuota(s,type)??0;
+/** Days carried into the financial year containing `dateOrYear` from the previous one: unused quota up to the type's carry-forward limit
+ *  (one year back; the previous year's own carry is not carried again). Only for staff who joined before the previous year ended. */
+export function hrLeaveCarried(s:State,staffId:string,type:HRLeaveType,dateOrYear:string){
+  const cap=hrLeaveCarryCap(s,type),q=hrLeaveQuota(s,type);if(!cap||q===undefined)return 0;
+  const fy=hrFy(dateOrYear),prev=hrFy(String(+fy.from.slice(0,4)-1)),st=hrSlice(s).staff.find(x=>x.id===staffId);
+  if(!st||st.joined>prev.to)return 0;
+  return Math.min(cap,Math.max(0,q-hrLeaveUsed(s,staffId,prev.from,type)));
+}
+/** Days still bookable for a tracked type: quota + carried − used (approved + pending), optionally ignoring one request. */
+export const hrLeaveAvailable=(s:State,staffId:string,type:HRLeaveType,dateOrYear:string,except='')=>
+  hrEntitled(s,type)+hrLeaveCarried(s,staffId,type,dateOrYear)-hrLeaveUsed(s,staffId,dateOrYear,type,except);
 export function hrLeaveBalance(s:State,staffId:string,dateOrYear:string){
   // F-15: `left` never goes below 0; `over` = days already taken or requested beyond a reduced entitlement.
-  return HR_TRACKED.map(t=>{const used=hrLeaveUsed(s,staffId,dateOrYear,t),entitled=hrEntitled(s,t);return {type:t,entitled,used,left:Math.max(0,entitled-used),over:Math.max(0,used-entitled)};});
+  return hrTrackedTypes(s).map(t=>{const used=hrLeaveUsed(s,staffId,dateOrYear,t),entitled=hrEntitled(s,t)+hrLeaveCarried(s,staffId,t,dateOrYear);return {type:t,entitled,used,left:Math.max(0,entitled-used),over:Math.max(0,used-entitled)};});
 }
 /** F-15: staff whose used + pending leave already exceeds a proposed entitlement (shown before the Owner saves a cut). */
 export function hrLeaveOverCount(s:State,ent:{CL:number;SL:number;EL:number},dateOrYear=s.date){
@@ -362,7 +391,7 @@ export function hrLeaveCalendar(s:State,ym:string){
     const items=x.leaves.filter(l=>(l.status==='Pending'||l.status==='Approved')&&covers(l,date)).map(l=>({leave:l,staff:x.staff.find(t=>t.id===l.staffId)!}))
       .filter(i=>i.staff&&!hrDayOff(s,i.staff,date));
     const depts=x.depts.map(d=>({dept:d.id,name:d.name,count:items.filter(i=>i.staff.dept===d.id).length,cap:hrDeptCap(s,d.id)})).filter(d=>d.count>0);
-    const holiday=hrHolidayOn(s,date);
+    const holiday=hrPaidHolidayOn(s,date);
     return {date,items,depts,full:depts.some(d=>d.count>=d.cap),...(holiday?{holiday}:{})};
   });
 }
@@ -407,6 +436,7 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
     payHalf=2*D-lop;earned=hrMulDiv(st.monthly,payHalf,1,2*D);
     ot=hrMulDiv(st.monthly,c.otMin,r.otBps,D*8*60*10000);
   }else{
+    // DEC-083 (owner decision, binding over MA-6's draft): an unworked holiday is not paid to daily-wage staff — like a weekly off (CA A04-04 open).
     payHalf=Math.max(0,Math.round(2*(c.P+c.L+c.OFFW))+c.H+c.HL-late);earned=hrMulDiv(st.daily,payHalf,1,2);
     ot=hrMulDiv(st.daily,c.otMin,r.otBps,8*60*10000);
   }
@@ -649,7 +679,8 @@ export const hrFnfAdvanceLeftOpen=(f:HRFnf)=>Math.max(0,f.advanceOutstanding-hrF
 /** Suggested earned-leave encashment: EL balance × (monthly ÷ days in the exit month). Manual adjustment in SCC; offered as a prefill here. */
 export function hrElEncashment(s:State,st:HRStaff){
   if(st.payType!=='monthly')return 0;
-  const last=st.exitedOn??s.date,left=Math.max(0,hrLeaveBalance(s,st.id,last).find(b=>b.type==='EL')!.left);
+  // MA-6: every tracked leave type flagged "paid out at full and final" (seed: earned leave only).
+  const last=st.exitedOn??s.date,left=hrLeaveBalance(s,st.id,last).filter(b=>hrLeaveEncash(s,b.type)).reduce((n,b)=>n+Math.max(0,b.left),0);
   return hrMulDiv(st.monthly,Math.round(left*2),1,2*hrDaysInMonth(last.slice(0,7)));
 }
 
@@ -674,7 +705,7 @@ export function hrSettingDefs():HRSettingDef[]{
     rate('hr.ot','Overtime rate','percent','× ordinary hourly rate',['otBps'],'SCC pays overtime at the ordinary daily rate (1×).'),
     rate('hr.late','Late marks rule','integer','late marks per ½-day loss of pay',['lateBlock'],'SCC: 3 late marks = ½ day.'),
     rate('hr.rounding','Statutory rounding','text','paise / rupee',['rounding'],'SCC rounds to paise; "rupee" rounds PF to the nearest rupee and ESIC up to the next rupee.'),
-    leave('hr.leave.ent','Yearly leave entitlement','integer','days per financial year (CL / SL / EL)',['ent'],'SCC defaults: casual 12, sick 7, earned 15 (April–March).'),
+    leave('hr.leave.ent','Yearly leave entitlement','integer','days per financial year (CL / SL / EL)',['ent'],'SCC defaults: casual 12, sick 7, earned 15 (April–March). Each type also has its own carry-forward, paid / unpaid and encashment setting in Master configuration › People › Leave types.'),
     leave('hr.leave.cap','Maximum staff off per department per day','integer','staff (pending + approved)',['defaultCap','deptCap'],'SCC MAX_DAY capacity, applied per department.'),
     leave('hr.leave.half','Half-day leave','fixed','first half / second half = 0.5 day',[],'Always on (SCC leaveDaysOf).',false),
     leave('hr.leave.weeklyoff','Weekly offs','fixed','one day per staff member',[],'Weekly offs inside leave dates are skipped (SCC isWeekOffDate).',false),
@@ -699,7 +730,7 @@ export function hrSettingValue(s:State,key:string,ym=s.date.slice(0,7)):string{
     case 'hr.leave.ent':return `CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL} days / FY`;
     case 'hr.leave.cap':return `${p.defaultCap} per department per day${Object.keys(p.deptCap).length?` · ${Object.keys(p.deptCap).length} department override${Object.keys(p.deptCap).length===1?'':'s'}`:''}`;
     case 'hr.leave.half':return 'On';case 'hr.leave.weeklyoff':return 'Per staff member';
-    case 'hr.leave.holidays':{const fy=hrFy(s.date),n=hrHolidays(s).filter(h=>h.date>=fy.from&&h.date<=fy.to).length;return n?`${n} in ${fy.label}`:'None yet — the Owner adds them';}
+    case 'hr.leave.holidays':{const fy=hrFy(s.date),n=hrPaidHolidays(s).filter(h=>h.date>=fy.from&&h.date<=fy.to).length;return n?`${n} in ${fy.label}`:'None yet — the Owner adds them';}
     default:return '—';
   }
 }

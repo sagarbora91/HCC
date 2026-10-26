@@ -80,7 +80,7 @@ public class PosRbacV2Tests(PosDb db) : IClassFixture<PosDb>
         Assert.Equal(38_000, paneer.PricePaise);                                               // Rs 380 on the menu
         // D5: the Manager asks for Rs 420; nothing changes until the Owner decides.
         var asked = (await db.Pos.SaveMenuItemAsync(db.As(Who.Manager), PosDb.Key(), new SaveMenuItemRequest(paneer.ItemId, "PANEER", paneer.Name, paneer.Category, 42_000,
-            paneer.Veg, paneer.OutletIds, paneer.Version, "Dairy cost up"))).Value;
+            paneer.Veg, paneer.OutletIds, paneer.Version, Reason: "Dairy cost up"))).Value;
         Assert.Equal("requested", asked.Status);
         Assert.NotNull(asked.RequestId);
         Assert.Equal(38_000, (await db.Queries.MenuAsync(db.As(Who.Owner), db.Restaurant)).Single(m => m.Code == "PANEER").PricePaise);

@@ -14,7 +14,8 @@
 //             with the record (STALE_VERSION when someone changed it meanwhile). Every command reloads staffX.
 //   Wave B item B4: HR_ATT_CORRECT → CorrectAttendance (DEC-075 past days; the server decides applied vs waiting for the Owner),
 //             HR_REQUEST_DECIDE → DecidePayrollRequest, HR_REQUEST_WITHDRAW → WithdrawPayrollRequest (request version), HR_HOLIDAY_SAVE /
-//             HR_HOLIDAY_REMOVE → SaveHoliday / RemoveHoliday (DEC-083); SaveStaff's bank details become a request unless the Owner saves
+//             HR_HOLIDAY_REMOVE → SavePaidHoliday / RemoveHoliday (DEC-083; masters integration: they write MA-6's Holiday calendar,
+//             so mastersX reloads too — SaveHoliday is that master's own command); SaveStaff's bank details become a request unless the Owner saves
 //             them (DEC-084, server rule). The board adds holidays, requests (pay effect for payroll roles only, masked bank details) and
 //             the server's open correction window.
 import type {Command} from '../../services/mock';
@@ -27,12 +28,13 @@ import {protoId,serverId,utcToClock} from './map';
 export type SrvStaffView={staffId:number;name:string;dept:string;designation:string;defaultShift:string;weeklyOff:number;joined:string;exitedOn:string|null;
   active:boolean;linked:boolean;phoneMasked:string;version:string;payType:string|null;monthlyPaise:number|null;dailyPaise:number|null;gender:string|null;
   structure:string|null;pfApplicable:boolean|null;esicApplicable:boolean|null;bankName:string|null;accountMasked:string|null;linkedUserId?:number|null;
-  /** W4 G2: the stored mobile is a usable WhatsApp number (the number itself stays masked); IFSC for PERM-HR-005 holders. */phoneUsable?:boolean;ifsc?:string|null};
+  /** W4 G2: the stored mobile is a usable WhatsApp number (the number itself stays masked); IFSC for PERM-HR-005 holders. */phoneUsable?:boolean;ifsc?:string|null;
+  /** MA-6: code of the Designations list row chosen on the staff form (null = older record, matched by name). */designationCode?:string|null};
 export type SrvRates={from:string;basicBps:number;hraBps:number;washBps:number;pfEeBps:number;pfErBps:number;pfWageCap:number;esicEeBps:number;esicErBps:number;
   esicCeiling:number;ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;otBps:number;lateBlock:number;
   rounding:string;esicPeriod:boolean};
 export type SrvCounts={ym:string;days:number;p:number;l:number;h:number;hl:number;a:number;offw:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
-  /** DEC-083 paid holidays not worked (absent on an older server). */hol?:number};
+  /** DEC-083 / MA-6 paid holidays not worked (absent on an older server). */hol?:number};
 /** DEC-075 day entry: kind none|mark|leave. */
 export type SrvDayEntry={kind:string;status:string|null;otMinutes:number;leaveType:string|null};
 export type SrvRequest={requestId:number;kind:string;staffId:number;date:string|null;before:SrvDayEntry|null;after:SrvDayEntry|null;
@@ -84,9 +86,10 @@ export function staffFromServer(x:SrvStaffView):HRStaff{
   const st:HRStaff={id:protoId(x.staffId),name:x.name,dept:x.dept,designation:x.designation,
     ...(x.linkedUserId!=null?{userId:protoId(x.linkedUserId)}:{}),
     payType:x.payType==='daily'?'daily':'monthly',monthly:x.monthlyPaise??0,daily:x.dailyPaise??0,
-    defaultShift:(['M','E','N','G'].includes(x.defaultShift)?x.defaultShift:'G') as HRStaff['defaultShift'],weeklyOff:x.weeklyOff,joined:x.joined,
+    defaultShift:x.defaultShift||'G',weeklyOff:x.weeklyOff,joined:x.joined,
     phone:x.phoneMasked==='(none)'?'':x.phoneMasked,active:x.active};
   if(x.exitedOn)st.exitedOn=x.exitedOn;
+  if(x.designationCode)st.designationCode=x.designationCode;
   if(x.gender==='M'||x.gender==='F')st.gender=x.gender;
   if(x.structure==='S'||x.structure==='B')st.structure=x.structure;
   if(x.pfApplicable!=null)st.pfApplicable=x.pfApplicable;
@@ -157,6 +160,8 @@ async function loadStaffX(c:Parameters<SyncArea['loaders'][number]['load']>[0]):
 
 // ── Command mapping ──
 const RELOAD:['staffX']=['staffX'];
+/** Masters integration: a paid-holiday change writes MA-6's Holiday calendar, so the masters slice reloads too (when the masters area runs). */
+const HOLIDAY_RELOAD={reload:['mastersX' as const]};
 /** The version of a record as last loaded (required by the server for edits of staff, leave, runs and settlements). */
 function version(c:CommandCtx,kind:string,id:unknown,what:string):string{
   const v=c.ids.version(kind,String(id??''));
@@ -173,7 +178,8 @@ const text=(v:unknown)=>v===undefined||v===null?undefined:String(v);
 function saveStaffBody(c:CommandCtx):Record<string,unknown>{
   const cmd=c.cmd,old=cmd.id?loadedStaff(c,cmd.id):undefined;
   const body:Record<string,unknown>={staffId:cmd.id?serverId(cmd.id,'Staff'):null,name:cmd.name,dept:cmd.dept,designation:cmd.designation,
-    defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,linkUserId:cmd.userId?serverId(cmd.userId,'User'):null};
+    defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,linkUserId:cmd.userId?serverId(cmd.userId,'User'):null,
+    ...(cmd.designationCode?{designationCode:String(cmd.designationCode)}:{})};
   if(cmd.confirmRelink)body.confirmRelink=true;
   if(!cmd.id&&cmd.joined)body.joined=String(cmd.joined);   // N3: joining date of a new staff member (the server keeps it on edits)
   if(cmd.phone!==undefined&&(!old||String(cmd.phone).trim()!==old.phone))body.phone=String(cmd.phone).trim();
@@ -259,8 +265,8 @@ export const staff:SyncArea={
       ...(text(c.cmd.note)?.trim()?{note:String(c.cmd.note).trim()}:{})}),['hrreq',c.cmd.id,'Request'])},
     {type:'HR_REQUEST_WITHDRAW',reload:RELOAD,send:c=>post(c,'WithdrawPayrollRequest',({requestId:serverId(c.cmd.id,'Request')}),['hrreq',c.cmd.id,'Request'])},
     {type:'HR_HOLIDAY_SAVE',reload:RELOAD,precheck:cmd=>String(cmd.name??'').trim().length<2?'Name the holiday (2–60 characters).':undefined,
-      send:c=>post(c,'SaveHoliday',{date:c.cmd.date,name:String(c.cmd.name).trim()})},
-    {type:'HR_HOLIDAY_REMOVE',reload:RELOAD,send:c=>post(c,'RemoveHoliday',{date:c.cmd.date})},
+      send:async c=>{await post(c,'SavePaidHoliday',{date:c.cmd.date,name:String(c.cmd.name).trim()});return HOLIDAY_RELOAD;}},
+    {type:'HR_HOLIDAY_REMOVE',reload:RELOAD,send:async c=>{await post(c,'RemoveHoliday',{date:c.cmd.date});return HOLIDAY_RELOAD;}},
   ],
   unmapped:{},
 };

@@ -3,11 +3,13 @@ import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Info,ShieldCheck,MessageSquareText,Printer} from 'lucide-react';
 import {money,
-  GSV_REQUEST_TYPES,GSV_DEPTS,GSV_COMPLAINT_CATEGORIES,GSV_SEVERITIES,GSV_ITEM_CATEGORIES,GSV_STORAGE,GSV_SAFE,GSV_ID_TYPES,GSV_DISPOSAL,
-  gsvSlice,gsvDefaultDept,gsvAssignable,gsvSlaMinutes,gsvSlaLabel,gsvCanWork,gsvIsOpen,gsvRecoveryStatus,gsvIsValuable,gsvDisposable,gsvDisposeOn,
+  GSV_REQUEST_TYPES,GSV_DEPTS,GSV_SEVERITIES,GSV_STORAGE,GSV_SAFE,GSV_ID_TYPES,GSV_DISPOSAL,
+  gsvSlice,gsvDefaultDept,gsvAssignable,gsvSlaMinutes,gsvSlaLabel,gsvCanWork,gsvIsOpen,gsvRecoveryStatus,gsvDisposable,gsvDisposeOn,
+  gcatRows,lfcRows,gcatLabel,lfcLabel,gcatRowOf,lfcRowOf,gcatSlaLabel,gcatSlaDue,lfcContactBy,gsvItemReport,
   gsvItemAgeDays,gsvRetentionDays,gsvFollowUpDue,gsvResponseReport,gsvResponseTotals,gsvComplaintReport,gsvLostFoundSummary,can,
   type GSVRequestType,type GSVDept,type GSVLog} from '../../services/mock';
 import {useHcc} from '../../app/context';
+import {MstLink} from '../masters/MasterList';
 import type {ModalProps} from '../../app/registry';
 import {Pill,Empty,dateLabel,clockTime,field,amount,submit} from '../../components/ui';
 
@@ -83,11 +85,13 @@ export function GsvComplaintNew({id}:ModalProps){
   const [bid,setBid]=useState(id||'');
   const owners=s.users.filter(u=>u.enabled&&can(s,u.id,'reservations'));
   const b=s.bookings.find(x=>x.id===bid);
+  const cats=gcatRows(s,true),[cat,setCat]=useState(cats[0]?.code??''),catRow=cats.find(x=>x.code===cat);
   return <><div className="modal-heading"><h2>Log a complaint</h2><p>Every complaint gets an owner, a root cause and a recovery action.</p></div>
-    <form className="form gsv-form" onSubmit={e=>submit(e,f=>run({type:'GSV_COMPLAINT_LOG',booking:bid||undefined,guest:field(f,'guest'),category:field(f,'category'),severity:field(f,'severity'),description:field(f,'description'),owner:field(f,'owner'),key:modal!.key},'Complaint logged',{close:true}))}>
+    <form className="form gsv-form" onSubmit={e=>submit(e,f=>run({type:'GSV_COMPLAINT_LOG',booking:bid||undefined,guest:field(f,'guest'),category:cat,severity:field(f,'severity'),description:field(f,'description'),owner:field(f,'owner'),key:modal!.key},'Complaint logged',{close:true}))}>
       <label>Stay (optional)<select value={bid} onChange={e=>setBid(e.target.value)}><option value="">Not linked to a stay</option>{stays.map(b=><option key={b.id} value={b.id}>Room {b.room} · {b.guest} · {b.status}</option>)}</select></label>
       <label>Guest name<input name="guest" key={bid} defaultValue={b?.guest||''} required minLength={2} maxLength={60} autoComplete="off" enterKeyHint="next"/></label>
-      <div className="form-row"><label>Category<select name="category">{GSV_COMPLAINT_CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></label>
+      <div className="form-row"><label>Category<select name="category" value={cat} onChange={e=>setCat(e.target.value)}>{cats.map(c=><option key={c.code} value={c.code}>{c.name}</option>)}</select>
+          {catRow&&<small>{catRow.department} · answer within {catRow.slaHours} h</small>}<MstLink spec="complaintCategories"/></label>
         <label>Severity<select name="severity" defaultValue="Medium">{GSV_SEVERITIES.map(c=><option key={c}>{c}</option>)}</select></label></div>
       <label>What happened<textarea name="description" rows={3} required minLength={5} maxLength={400}/></label>
       <label>Owner<select name="owner" defaultValue={owners.some(u=>u.id===uid)?uid:owners[0]?.id}>{owners.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
@@ -105,10 +109,11 @@ export function GsvComplaintView({id}:ModalProps){
   const paise=Math.round(Number(amt)*100);
   const high=c.severity==='High'||c.severity==='Critical';
   const k=(x:string)=>modal!.key+':'+x+':'+c.log.length;
-  return <><div className="modal-heading"><h2>{c.category} · {c.guest}</h2><p>{c.id}{c.room?' · Room '+c.room:''} · logged {gsvWhen(c.createdAt)}</p></div>
-    <div className="gsv-tags"><Pill tone={gsvStatusTone(c.status)}>{c.status}</Pill><Pill tone={gsvSevTone(c.severity)}>{c.severity}</Pill>{gsvFollowUpDue(s,c)&&<Pill tone="orange">Follow-up due</Pill>}{rec!=='None'&&<Pill tone={rec==='Posted'||rec==='Approved'?'green':rec==='Rejected'?'neutral':'orange'}>Recovery · {rec}</Pill>}</div>
+  return <><div className="modal-heading"><h2>{gcatLabel(s,c)} · {c.guest}</h2><p>{c.id}{c.room?' · Room '+c.room:''} · logged {gsvWhen(c.createdAt)}</p></div>
+    <div className="gsv-tags"><Pill tone={gsvStatusTone(c.status)}>{c.status}</Pill><Pill tone={gsvSevTone(c.severity)}>{c.severity}</Pill>{gsvFollowUpDue(s,c)&&<Pill tone="orange">Follow-up due</Pill>}{(()=>{const l=gcatSlaLabel(s,c);return l?<Pill tone={l.tone}>{l.label}</Pill>:null;})()}{rec!=='None'&&<Pill tone={rec==='Posted'||rec==='Approved'?'green':rec==='Rejected'?'neutral':'orange'}>Recovery · {rec}</Pill>}</div>
     <p className="gsv-desc">{c.description}</p>
     <div className="summary-list gsv-summary">
+      {gcatRowOf(s,c)&&<div><span>Department · SLA</span><strong>{gcatRowOf(s,c)!.department} · {gcatRowOf(s,c)!.slaHours} h{gcatSlaDue(s,c)?` (by ${gsvWhen(gcatSlaDue(s,c)!)})`:''}</strong></div>}
       {!(openC&&permission('reservations'))&&<div><span>Owner</span><strong>{gsvUserName(s,c.owner)}</strong></div>}
       {c.booking&&<div><span>Stay</span><strong>{permission('billing')?<button className="text-btn" onClick={()=>booking(c.booking!)}>{c.booking}</button>:c.booking} · {b?.status}</strong></div>}
       {c.rootCause&&<div><span>Root cause</span><strong>{c.rootCause}</strong></div>}
@@ -141,14 +146,14 @@ export function GsvComplaintView({id}:ModalProps){
 // ── Lost & found ──
 export function GsvItemNew(){
   const {s,uid,run,modal,busy,closeModal,permission}=useHcc();
-  const [cat,setCat]=useState<typeof GSV_ITEM_CATEGORIES[number]>('Clothing');
-  const valuable=gsvIsValuable(cat);
+  const cats=lfcRows(s,true),[cat,setCat]=useState(cats.find(x=>!x.valuable)?.code??cats[0]?.code??''),catRow=cats.find(x=>x.code===cat);
+  const valuable=!!catRow?.valuable;
   const [storage,setStorage]=useState<string>('Housekeeping store');
   const front=permission('reservations');
   return <><div className="modal-heading"><h2>Log a found item</h2><p>Found {gsvWhen(s.clock)} by {gsvUserName(s,uid)}</p></div>
     <form className="form gsv-form" onSubmit={e=>submit(e,f=>run({type:'GSV_LF_LOG',description:field(f,'description'),category:cat,foundWhere:field(f,'foundWhere'),room:field(f,'room'),storage:valuable?GSV_SAFE:storage,foundBy:front?field(f,'foundBy')||uid:uid,key:modal!.key},'Found item logged',{close:true}))}>
       <label>Item<input name="description" required minLength={3} maxLength={160} placeholder="e.g. Black umbrella with wooden handle" enterKeyHint="next"/></label>
-      <div className="form-row"><label>Category<select value={cat} onChange={e=>setCat(e.target.value as typeof cat)}>{GSV_ITEM_CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></label>
+      <div className="form-row"><label>Category<select value={cat} onChange={e=>setCat(e.target.value)}>{cats.map(c=><option key={c.code} value={c.code}>{c.name}{c.valuable?' (valuable)':''}</option>)}</select><MstLink spec="lostFoundCategories"/></label>
         <label>Room (if found in a room)<select name="room" defaultValue=""><option value="">Not in a room</option>{s.rooms.map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</select></label></div>
       <label>Found where<input name="foundWhere" required minLength={2} maxLength={80} placeholder="e.g. Under the bed, lobby sofa" enterKeyHint="next"/></label>
       <label>Storage location<select value={valuable?GSV_SAFE:storage} disabled={valuable} onChange={e=>setStorage(e.target.value)}>{GSV_STORAGE.map(x=><option key={x}>{x}</option>)}</select>
@@ -164,12 +169,13 @@ export function GsvItemView({id}:ModalProps){
   if(!i)return <Missing/>;
   const k=(x:string)=>modal!.key+':'+x+':'+i.log.length;
   const disposable=gsvDisposable(s,i);
-  return <><div className="modal-heading"><h2>{i.description}</h2><p>{i.id} · {i.category}{i.valuable?' · valuable':''}</p></div>
+  return <><div className="modal-heading"><h2>{i.description}</h2><p>{i.id} · {lfcLabel(s,i)}{i.valuable?' · valuable':''}</p></div>
     <div className="gsv-tags"><Pill tone={gsvStatusTone(i.status)}>{i.status}</Pill>{disposable&&<Pill tone="orange">Retention over</Pill>}</div>
     <div className="summary-list gsv-summary">
       <div><span>Found</span><strong>{gsvWhen(i.foundAt)} · {i.foundWhere}{i.room?' (room '+i.room+')':''}</strong></div>
       <div><span>Found by</span><strong>{gsvUserName(s,i.foundBy)}</strong></div>
       <div><span>Stored in</span><strong>{i.storage}</strong></div>
+      {lfcContactBy(s,i)&&<div><span>Trace the owner by</span><strong>{gsvWhen(lfcContactBy(s,i)!)} · {lfcRowOf(s,i)!.department} ({lfcRowOf(s,i)!.slaHours} h)</strong></div>}
       {i.booking&&<div><span>Last stay in room</span><strong>{i.booking} · {s.bookings.find(b=>b.id===i.booking)?.guest}</strong></div>}
       <div><span>Age · retention</span><strong>{gsvItemAgeDays(s,i)} days · {gsvRetentionDays(s,i)} days (from {dateLabel(gsvDisposeOn(s,i))})</strong></div>
       {i.claim&&<div><span>Claim</span><strong>{i.claim.name} · {i.claim.phone} · {i.claim.idType} · {i.claim.idNote}</strong></div>}
@@ -205,7 +211,7 @@ export function GsvItemView({id}:ModalProps){
 // ── Reports (printable) ──
 export function GsvReportBody(){
   const {s}=useHcc();
-  const t=gsvResponseTotals(s),types=gsvResponseReport(s,'type'),depts=gsvResponseReport(s,'dept'),cats=gsvComplaintReport(s),lf=gsvLostFoundSummary(s);
+  const t=gsvResponseTotals(s),types=gsvResponseReport(s,'type'),depts=gsvResponseReport(s,'dept'),cats=gsvComplaintReport(s),lf=gsvLostFoundSummary(s),lfCats=gsvItemReport(s);
   const row=(r:ReturnType<typeof gsvResponseReport>[number])=><tr key={r.key}><td>{r.key}</td><td className="number">{r.count}</td><td className="number">{r.done}</td><td className="number">{r.done?r.avg+' min':'—'}</td><td className="number">{r.done?r.pct+'%':'—'}</td><td className="number">{r.open}</td><td className="number">{r.overdue}</td></tr>;
   const head=<thead><tr><th>Group</th><th className="number">Requests</th><th className="number">Done</th><th className="number">Avg response</th><th className="number">Within SLA</th><th className="number">Open</th><th className="number">Overdue</th></tr></thead>;
   return <div className="gsv-report">
@@ -213,10 +219,12 @@ export function GsvReportBody(){
     <h3>Response times by request type</h3><div className="table-wrap"><table>{head}<tbody>{types.map(row)}</tbody></table></div>
     <h3>Response times by department</h3><div className="table-wrap"><table>{head}<tbody>{depts.map(row)}</tbody></table></div>
     <h3>Complaints by category</h3>
-    {!cats.length?<p>No complaints recorded.</p>:<div className="table-wrap"><table><thead><tr><th>Category</th><th className="number">Total</th><th className="number">Open</th>{GSV_SEVERITIES.map(v=><th key={v} className="number">{v}</th>)}<th className="number">With recovery</th></tr></thead>
-      <tbody>{cats.map(c=><tr key={c.category}><td>{c.category}</td><td className="number">{c.total}</td><td className="number">{c.open}</td>{GSV_SEVERITIES.map(v=><td key={v} className="number">{c.bySeverity[v]}</td>)}<td className="number">{c.recovery}</td></tr>)}</tbody></table></div>}
+    {!cats.length?<p>No complaints recorded.</p>:<div className="table-wrap"><table><thead><tr><th>Category</th><th className="number">Total</th><th className="number">Open</th>{GSV_SEVERITIES.map(v=><th key={v} className="number">{v}</th>)}<th className="number">With recovery</th><th>Department</th><th className="number">SLA h</th><th className="number">Over SLA</th></tr></thead>
+      <tbody>{cats.map(c=><tr key={c.code}><td>{c.category}</td><td className="number">{c.total}</td><td className="number">{c.open}</td>{GSV_SEVERITIES.map(v=><td key={v} className="number">{c.bySeverity[v]}</td>)}<td className="number">{c.recovery}</td><td>{c.dept??'—'}</td><td className="number">{c.slaHours??'—'}</td><td className="number">{c.overSla}</td></tr>)}</tbody></table></div>}
     <h3>Lost & found</h3>
     <div className="small-stats"><div><span>Stored</span><strong>{lf.stored}</strong></div><div><span>Claimed</span><strong>{lf.claimed}</strong></div><div><span>Handed over</span><strong>{lf.handed}</strong></div><div><span>Disposed</span><strong>{lf.disposed}</strong></div><div><span>Due for disposal</span><strong>{lf.dueDisposal}</strong></div></div>
+    {lfCats.length>0&&<div className="table-wrap"><table><thead><tr><th>Found-item category</th><th>Department</th><th className="number">SLA h</th><th className="number">Held now</th><th className="number">Logged</th></tr></thead>
+      <tbody>{lfCats.map(c=><tr key={c.code}><td>{c.category}{c.valuable?' (valuable)':''}</td><td>{c.dept??'—'}</td><td className="number">{c.slaHours??'—'}</td><td className="number">{c.held}</td><td className="number">{c.total}</td></tr>)}</tbody></table></div>}
   </div>;
 }
 export function GsvPrint(){

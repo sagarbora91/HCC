@@ -2,7 +2,7 @@
 import React,{useState} from 'react';
 import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X,Plus} from 'lucide-react';
 import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,CHN_PUSH_DAYS,
-  type CHNMessage,type CHNChannel} from '../../services/mock';
+  type CHNMessage,type CHNChannel,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,shortDate,clockTime} from '../../components/ui';
 import {ChnPill,ChnSimulated,stay,party,firstName} from './shared';
@@ -84,7 +84,7 @@ function ChannelsTab(){
       <div className="summary-list"><div><span>Last sync</span><strong>{c.lastSync?`${shortDate(c.lastSync.slice(0,10))} ${clockTime(c.lastSync)}`:'Never'}</strong></div>
         <div><span>Commission</span><strong>{chnPct(c.commissionBps)}</strong></div><div><span>Rate markup</span><strong>{chnPct(c.markupBps)}</strong></div></div>
       <table className="chn-map"><thead><tr><th>Room type</th><th>Channel code</th><th>Stop-sell</th></tr></thead><tbody>
-        {types.map(t=><tr key={t}><td>{t}</td><td>{c.mapping[t]?<code>{c.mapping[t]}</code>:<span className="chn-muted">Not mapped</span>}</td><td>{c.mapping[t]?<StopSellToggle c={c} type={t}/>:'—'}</td></tr>)}
+        {types.map(t=><tr key={t}><td>{rmsTypeName(s,t)}</td><td>{c.mapping[t]?<code>{c.mapping[t]}</code>:<span className="chn-muted">Not mapped</span>}</td><td>{c.mapping[t]?<StopSellToggle c={c} type={t}/>:'—'}</td></tr>)}
       </tbody></table>
       <footer><ConnectionButtons c={c}/>{permission('approve')&&<button className="btn small-btn" onClick={()=>open({type:'chn-channel',id:c.id})}><Settings2 size={14}/> Terms & mapping</button>}</footer>
     </article>)}</div>
@@ -107,7 +107,7 @@ function PushTab(){
     {c&&c.status!=='Connected'&&<div className="info-note chn-note">{c.name} is {c.status.toLowerCase()} — the preview is shown but nothing can be pushed until it is connected.</div>}
     {p.unmapped.length>0&&<div className="info-note chn-note">Not mapped on {c?.name} (not sold, not pushed): {p.unmapped.join(', ')}.</div>}
     {types.length>0?<div className="table-wrap"><table className="chn-ari"><thead><tr><th>Room type</th>{p.dates.map(d=><th key={d}>{shortDate(d)}</th>)}</tr></thead><tbody>
-      {types.map(t=><tr key={t}><th scope="row">{t}<small>{p.rows.find(r=>r.type===t)!.code}</small></th>{p.rows.filter(r=>r.type===t).map(r=><td key={r.date} className={r.closed?'closed':''}>
+      {types.map(t=><tr key={t}><th scope="row">{rmsTypeName(s,t)}<small>{p.rows.find(r=>r.type===t)!.code}</small></th>{p.rows.filter(r=>r.type===t).map(r=><td key={r.date} className={r.closed?'closed':''}>
         {r.closed?<><b>Closed</b><small>{r.why}</small></>:<><b>{r.avail} left</b><small>{money(r.rate)}</small></>}</td>)}</tr>)}
     </tbody></table></div>:<Empty title="Nothing to push" body="Map at least one room type to this channel."/>}
     <div className="section-title compact"><h3>Push log</h3><span className="chn-muted">Signed in as {firstName(user.name)}</span></div>

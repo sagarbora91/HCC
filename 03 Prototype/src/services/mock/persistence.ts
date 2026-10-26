@@ -3,6 +3,8 @@ import {State,SCHEMA} from '../../domain/types';
 import {loadScenario} from '../../fixtures/scenarios';
 import {hrMigrateLegacy} from '../../domain/streams/staff';
 import {extendBase as cmpSeed} from '../../fixtures/ext/compliance';
+import {mstRows,mstNextSort,type MasterRow} from '../../domain/streams/masters';
+import {HRM_HOLIDAYS} from '../../domain/streams/people-masters';
 /** Oldest saved schema that is migrated instead of reset (W05-B review F-04). */
 export const MIGRATE_FROM_SCHEMA=7;
 /** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. */
@@ -10,6 +12,22 @@ function migrate(s:State&{schema:number}){
   if(s.schema<8){
     hrMigrateLegacy(s);// W05-B payroll: `rates` → `rateVersions`, old run lines filled
     if(!s.complianceX)cmpSeed(s);// W05-C review F14: saves from before the Compliance calendar get the fictional obligations
+  }
+  // 8 → 9 (masters wave MA-1…MA-7): only optional slices and fields were added; every master reads its seed while its rows are
+  // absent (mstRows). One rewrite: a Wave B save kept its DEC-083 paid holidays in staffX.holidays — they become active paid rows of
+  // MA-6's Holiday calendar (one holidays concept), and the legacy list is dropped.
+  if(s.schema<9){
+    const legacy=s.staffX?.holidays;
+    if(legacy?.length){
+      const rows:MasterRow[]=mstRows(s,HRM_HOLIDAYS).map(r=>({...r}));
+      for(const h of legacy){
+        const i=rows.findIndex(r=>r.code===h.date);
+        if(i>=0){const r={...rows[i],name:h.name,kind:'paid',active:true};delete r.retiredOn;rows[i]=r;}
+        else rows.push({id:'HOL-'+h.date,code:h.date,name:h.name,kind:'paid',sortOrder:mstNextSort(rows),active:true});
+      }
+      s.mastersX={rows:{...(s.mastersX?.rows??{}),[HRM_HOLIDAYS]:rows},history:s.mastersX?.history??[]};
+    }
+    if(s.staffX&&'holidays' in s.staffX)delete s.staffX.holidays;
   }
   s.schema=SCHEMA;
 }

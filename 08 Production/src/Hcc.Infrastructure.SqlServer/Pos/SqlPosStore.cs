@@ -18,7 +18,7 @@ namespace Hcc.Infrastructure.SqlServer.Pos;
 /// its lines, KOTs and bill); KOT numbers and the bill sequence are allocated under UPDLOCK + HOLDLOCK in the settling transaction (no
 /// insert-and-catch). Reads of other modules' tables (inv.room, gst.stay) are read-only.
 /// </summary>
-public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
+public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 {
     private const string OrderSelect = """
         SELECT o.order_id, o.property_id, o.outlet_id, ou.name, ou.kind, o.table_no, o.room_id, rm.room_no, o.stay_id, o.guest, o.covers, o.business_date,
@@ -86,7 +86,12 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
     {
         int id;
         string version;
-        await using (var cmd = Cmd(tx, "INSERT pos.outlet(property_id, code, name, kind, created_utc) OUTPUT INSERTED.outlet_id, INSERTED.row_ver VALUES (@p, @c, @n, @k, @u);"))
+        await using (var cmd = Cmd(tx, """
+            INSERT pos.outlet(property_id, code, name, kind, created_utc, outlet_type, sort_order)
+            OUTPUT INSERTED.outlet_id, INSERTED.row_ver
+            VALUES (@p, @c, @n, @k, @u, CASE WHEN @k = 'room' THEN 'room-service' ELSE 'restaurant' END,
+                    (SELECT (ISNULL(MAX(sort_order), 0) / 10 + 1) * 10 FROM pos.outlet WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p));
+            """))
         {
             P(cmd, "@p", SqlDbType.Int, propertyId);
             P(cmd, "@c", SqlDbType.VarChar, code, 20);
@@ -98,11 +103,16 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
             (id, version) = (rd.GetInt32(0), Ver(rd, 1));
         }
 
+        var n = 0;
         foreach (var t in tables)
         {
-            await using var cmd = Cmd(tx, "INSERT pos.outlet_table(outlet_id, table_no) VALUES (@o, @t);");
+            // MA-4 tables master: code "<outlet>-<table>", name "<outlet name> <table>", sort order 10, 20, …
+            await using var cmd = Cmd(tx, "INSERT pos.outlet_table(outlet_id, table_no, code, name, sort_order) VALUES (@o, @t, @tc, @tn, @s);");
             P(cmd, "@o", SqlDbType.Int, id);
             P(cmd, "@t", SqlDbType.VarChar, t, 10);
+            P(cmd, "@tc", SqlDbType.VarChar, Hcc.Domain.Pos.PosMasterRules.CodeOf(code + "-" + t), 20);
+            P(cmd, "@tn", SqlDbType.NVarChar, (name + " " + t) is { Length: > 60 } x ? x[..60] : name + " " + t, 60);
+            P(cmd, "@s", SqlDbType.Int, ++n * 10);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
@@ -111,15 +121,16 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
     public async Task<OutletRow?> OutletAsync(ICommandTransaction tx, int propertyId, int outletId, CancellationToken ct)
     {
-        await using var cmd = Cmd(tx, "SELECT outlet_id, property_id, code, name, kind, row_ver FROM pos.outlet WHERE outlet_id = @o AND property_id = @p;");
+        await using var cmd = Cmd(tx, "SELECT outlet_id, property_id, code, name, kind, row_ver, outlet_type, gst_profile, kot_station, active FROM pos.outlet WHERE outlet_id = @o AND property_id = @p;");
         P(cmd, "@o", SqlDbType.Int, outletId);
         P(cmd, "@p", SqlDbType.Int, propertyId);
-        return (await ReadAsync(cmd, rd => new OutletRow(rd.GetInt32(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), Ver(rd, 5)), ct).ConfigureAwait(false)).SingleOrDefault();
+        return (await ReadAsync(cmd, rd => new OutletRow(rd.GetInt32(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), Ver(rd, 5), rd.GetString(6), rd.GetString(7),
+            Str(rd, 8), rd.GetBoolean(9)), ct).ConfigureAwait(false)).SingleOrDefault();
     }
 
     public async Task<bool> OutletHasTableAsync(ICommandTransaction tx, int outletId, string table, CancellationToken ct)
     {
-        await using var cmd = Cmd(tx, "SELECT COUNT(*) FROM pos.outlet_table WHERE outlet_id = @o AND table_no = @t;");
+        await using var cmd = Cmd(tx, "SELECT COUNT(*) FROM pos.outlet_table WHERE outlet_id = @o AND table_no = @t AND active = 1;");
         P(cmd, "@o", SqlDbType.Int, outletId);
         P(cmd, "@t", SqlDbType.VarChar, table, 10);
         return (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0;
@@ -127,15 +138,25 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
     public async Task<MenuItemRow?> MenuItemAsync(ICommandTransaction tx, int propertyId, int itemId, bool lockRow, CancellationToken ct)
     {
-        await using var cmd = Cmd(tx, $"SELECT item_id, property_id, code, name, category, price_paise, veg, available, row_ver FROM pos.menu_item {(lockRow ? "WITH (UPDLOCK)" : string.Empty)} WHERE item_id = @i AND property_id = @p;");
+        // MA-4: the price in force on the business date (pos.menu_price), "sold out today", GST class, station, active.
+        await using var cmd = Cmd(tx, $"""
+            SELECT m.item_id, m.property_id, m.code, m.name, m.category, pr.price_paise, m.veg, m.available, m.row_ver, m.gst_class, m.station, m.active,
+                   CASE WHEN m.available = 0 AND (m.sold_out_on IS NULL OR m.sold_out_on >= pp.business_date) THEN 1 ELSE 0 END
+            FROM pos.menu_item m {(lockRow ? "WITH (UPDLOCK)" : string.Empty)}
+            JOIN inv.property pp ON pp.property_id = m.property_id
+            OUTER APPLY (SELECT TOP 1 x.price_paise FROM pos.menu_price x WHERE x.item_id = m.item_id AND x.effective_from <= pp.business_date ORDER BY x.effective_from DESC) pr
+            WHERE m.item_id = @i AND m.property_id = @p;
+            """);
         P(cmd, "@i", SqlDbType.Int, itemId);
         P(cmd, "@p", SqlDbType.Int, propertyId);
-        var row = (await ReadAsync(cmd, rd => (rd.GetInt32(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), SqlValues.ReadPaise(rd, 5), rd.GetBoolean(6), rd.GetBoolean(7), Ver(rd, 8)), ct).ConfigureAwait(false)).Cast<(int, int, string, string, string, Paise, bool, bool, string)?>().SingleOrDefault();
-        if (row is not { } r) return null;
+        var rows = await ReadAsync(cmd, rd => new MenuItemRow(rd.GetInt32(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), rd.GetString(4),
+            rd.IsDBNull(5) ? Paise.Zero : SqlValues.ReadPaise(rd, 5), rd.GetBoolean(6), rd.GetBoolean(7), [], Ver(rd, 8), rd.GetString(9), Str(rd, 10), rd.GetBoolean(11),
+            rd.GetInt32(12) == 1, !rd.IsDBNull(5)), ct).ConfigureAwait(false);
+        if (rows.SingleOrDefault() is not { } r) return null;
         await using var oc = Cmd(tx, "SELECT outlet_id FROM pos.menu_item_outlet WHERE item_id = @i ORDER BY outlet_id;");
         P(oc, "@i", SqlDbType.Int, itemId);
         var outlets = await ReadAsync(oc, rd => rd.GetInt32(0), ct).ConfigureAwait(false);
-        return new MenuItemRow(r.Item1, r.Item2, r.Item3, r.Item4, r.Item5, r.Item6, r.Item7, r.Item8, outlets, r.Item9);
+        return r with { OutletIds = outlets };
     }
 
     public async Task<bool> MenuCodeExistsAsync(ICommandTransaction tx, int propertyId, string code, int? exceptItemId, CancellationToken ct)
@@ -183,8 +204,14 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
     {
         int id;
         string version;
-        await using (var cmd = Cmd(tx, "INSERT pos.menu_item(property_id, code, name, category, price_paise, veg) OUTPUT INSERTED.item_id, INSERTED.row_ver VALUES (@p, @c, @n, @g, @a, @v);"))
+        var categoryId = await EnsureCategoryAsync(tx, propertyId, category, ct).ConfigureAwait(false);
+        await using (var cmd = Cmd(tx, """
+            INSERT pos.menu_item(property_id, code, name, category, price_paise, veg, category_id, sort_order)
+            OUTPUT INSERTED.item_id, INSERTED.row_ver
+            VALUES (@p, @c, @n, @g, @a, @v, @cat, (SELECT (ISNULL(MAX(sort_order), 0) / 10 + 1) * 10 FROM pos.menu_item WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p));
+            """))
         {
+            P(cmd, "@cat", SqlDbType.Int, categoryId);
             P(cmd, "@p", SqlDbType.Int, propertyId);
             P(cmd, "@c", SqlDbType.VarChar, code, 20);
             P(cmd, "@n", SqlDbType.NVarChar, name, 100);
@@ -197,6 +224,14 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
         }
 
         await SetItemOutletsAsync(tx, id, outletIds, ct).ConfigureAwait(false);
+        await using (var pc = Cmd(tx, "INSERT pos.menu_price(item_id, effective_from, price_paise, created_utc) VALUES (@i, @f, @a, SYSUTCDATETIME());"))
+        {
+            P(pc, "@i", SqlDbType.Int, id);
+            P(pc, "@f", SqlDbType.Date, Hcc.Domain.Pos.PosMasterRules.PriceSince);
+            P(pc, "@a", SqlDbType.BigInt, price.Value);
+            await pc.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
         return new MenuItemRow(id, propertyId, code, name, category, price, veg, true, outletIds, version);
     }
 
@@ -206,12 +241,37 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
         string version;
         int property;
         bool available;
+        // MA-4: the category row (found or added by name) and a dated price from the business date when the price in force changes.
+        var prop = (int)(await new Func<Task<object?>>(async () =>
+        {
+            await using var q = Cmd(tx, "SELECT property_id FROM pos.menu_item WHERE item_id = @i;");
+            P(q, "@i", SqlDbType.Int, itemId);
+            return await q.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        })().ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Menu item not found."));
+        var categoryId = await EnsureCategoryAsync(tx, prop, category, ct).ConfigureAwait(false);
+        await using (var pc = Cmd(tx, """
+            DECLARE @d DATE = (SELECT business_date FROM inv.property WHERE property_id = @p);
+            DECLARE @cur BIGINT = (SELECT TOP 1 price_paise FROM pos.menu_price WHERE item_id = @i AND effective_from <= @d ORDER BY effective_from DESC);
+            IF @cur IS NULL OR @cur <> @a
+            BEGIN
+              DELETE pos.menu_price WHERE item_id = @i AND effective_from = @d;
+              INSERT pos.menu_price(item_id, effective_from, price_paise, created_utc) VALUES (@i, @d, @a, SYSUTCDATETIME());
+            END
+            """))
+        {
+            P(pc, "@p", SqlDbType.Int, prop);
+            P(pc, "@i", SqlDbType.Int, itemId);
+            P(pc, "@a", SqlDbType.BigInt, price.Value);
+            await pc.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
         await using (var cmd = Cmd(tx, """
-            UPDATE pos.menu_item SET code = @c, name = @n, category = @g, price_paise = @a, veg = @v
+            UPDATE pos.menu_item SET code = @c, name = @n, category = @g, price_paise = @a, veg = @v, category_id = @cat
             OUTPUT INSERTED.row_ver, INSERTED.property_id, INSERTED.available
             WHERE item_id = @i AND row_ver = @rv;
             """))
         {
+            P(cmd, "@cat", SqlDbType.Int, categoryId);
             P(cmd, "@c", SqlDbType.VarChar, code, 20);
             P(cmd, "@n", SqlDbType.NVarChar, name, 100);
             P(cmd, "@g", SqlDbType.NVarChar, category, 60);
@@ -230,7 +290,12 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
     public async Task<string> SetAvailabilityAsync(ICommandTransaction tx, int itemId, bool available, CancellationToken ct)
     {
-        await using var cmd = Cmd(tx, "UPDATE pos.menu_item SET available = @a OUTPUT INSERTED.row_ver WHERE item_id = @i;");
+        // MA-4 "sold out today": the switch remembers its business date and lapses after it.
+        await using var cmd = Cmd(tx, """
+            UPDATE m SET available = @a, sold_out_on = CASE WHEN @a = 0 THEN p.business_date END
+            OUTPUT INSERTED.row_ver
+            FROM pos.menu_item m JOIN inv.property p ON p.property_id = m.property_id WHERE m.item_id = @i;
+            """);
         P(cmd, "@a", SqlDbType.Bit, available);
         P(cmd, "@i", SqlDbType.Int, itemId);
         return SqlValues.RowVersionToWire((byte[])(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!);
@@ -348,15 +413,16 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
     public async Task<IReadOnlyList<LineRow>> LinesAsync(ICommandTransaction tx, long orderId, CancellationToken ct)
     {
-        await using var cmd = Cmd(tx, "SELECT line_id, order_id, item_id, name, price_paise, qty, kot_id, voided, void_reason FROM pos.order_line WHERE order_id = @o ORDER BY line_id;");
+        await using var cmd = Cmd(tx, "SELECT line_id, order_id, item_id, name, price_paise, qty, kot_id, voided, void_reason, gst_class FROM pos.order_line WHERE order_id = @o ORDER BY line_id;");
         P(cmd, "@o", SqlDbType.BigInt, orderId);
         return await ReadAsync(cmd, rd => new LineRow(rd.GetInt64(0), rd.GetInt64(1), rd.GetInt32(2), rd.GetString(3), SqlValues.ReadPaise(rd, 4), rd.GetInt16(5),
-            rd.IsDBNull(6) ? null : rd.GetInt64(6), rd.GetBoolean(7), Str(rd, 8)), ct).ConfigureAwait(false);
+            rd.IsDBNull(6) ? null : rd.GetInt64(6), rd.GetBoolean(7), Str(rd, 8), Str(rd, 9)), ct).ConfigureAwait(false);
     }
 
     public async Task<long> InsertLineAsync(ICommandTransaction tx, long orderId, MenuItemRow item, int qty, CancellationToken ct)
     {
-        await using var cmd = Cmd(tx, "INSERT pos.order_line(order_id, item_id, name, price_paise, qty) OUTPUT INSERTED.line_id VALUES (@o, @i, @n, @p, @q);");
+        await using var cmd = Cmd(tx, "INSERT pos.order_line(order_id, item_id, name, price_paise, qty, gst_class) OUTPUT INSERTED.line_id VALUES (@o, @i, @n, @p, @q, @g);");
+        P(cmd, "@g", SqlDbType.VarChar, item.GstClass == "food" ? null : item.GstClass, 7);
         P(cmd, "@o", SqlDbType.BigInt, orderId);
         P(cmd, "@i", SqlDbType.Int, item.ItemId);
         P(cmd, "@n", SqlDbType.NVarChar, item.Name, 100);
@@ -396,13 +462,18 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
     // ── kitchen ──
 
-    public async Task<(long KotId, int KotNo)> InsertKotAsync(ICommandTransaction tx, OrderRow order, DateOnly date, int principalId, DateTime utc, CancellationToken ct)
+    public Task<(long KotId, int KotNo)> InsertKotAsync(ICommandTransaction tx, OrderRow order, DateOnly date, int principalId, DateTime utc, CancellationToken ct)
+        => InsertKotAsync(tx, order, date, principalId, utc, null, ct);
+
+    public async Task<(long KotId, int KotNo)> InsertKotAsync(ICommandTransaction tx, OrderRow order, DateOnly date, int principalId, DateTime utc, string? station, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(order);
         await using var cmd = Cmd(tx, """
             DECLARE @n INT = (SELECT ISNULL(MAX(kot_no), 0) + 1 FROM pos.kot WITH (UPDLOCK, HOLDLOCK) WHERE outlet_id = @o AND business_date = @d);
-            INSERT pos.kot(order_id, outlet_id, business_date, kot_no, status, created_utc, created_by)
-            OUTPUT INSERTED.kot_id, INSERTED.kot_no VALUES (@ord, @o, @d, @n, 'Preparing', @u, @by);
+            INSERT pos.kot(order_id, outlet_id, business_date, kot_no, status, created_utc, created_by, station)
+            OUTPUT INSERTED.kot_id, INSERTED.kot_no VALUES (@ord, @o, @d, @n, 'Preparing', @u, @by, @st);
             """);
+        P(cmd, "@st", SqlDbType.NVarChar, station, 20);
         P(cmd, "@o", SqlDbType.Int, order.OutletId);
         P(cmd, "@d", SqlDbType.Date, date);
         P(cmd, "@ord", SqlDbType.BigInt, order.OrderId);
@@ -710,18 +781,19 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
 
         if (o is null) return null;
         List<KotView> kots;
-        await using (var c = connections.Command("SELECT kot_id, kot_no, status, created_utc, ready_utc, served_utc, created_by FROM pos.kot WHERE order_id = @o ORDER BY kot_id;", conn, tx))
+        await using (var c = connections.Command("SELECT kot_id, kot_no, status, created_utc, ready_utc, served_utc, created_by, station FROM pos.kot WHERE order_id = @o ORDER BY kot_id;", conn, tx))
         {
             P(c, "@o", SqlDbType.BigInt, orderId);
-            kots = await ReadAsync(c, rd => new KotView(rd.GetInt64(0), rd.GetInt32(1), PosRules.KotLabel(o.OutletName, rd.GetInt32(1)), rd.GetString(2), Dt(rd, 3)!.Value, Dt(rd, 4), Dt(rd, 5), rd.GetInt32(6)), ct).ConfigureAwait(false);
+            kots = await ReadAsync(c, rd => new KotView(rd.GetInt64(0), rd.GetInt32(1), Hcc.Domain.Pos.PosMasterRules.KotLabel(o.OutletName, rd.GetInt32(1), Str(rd, 7)), rd.GetString(2),
+                Dt(rd, 3)!.Value, Dt(rd, 4), Dt(rd, 5), rd.GetInt32(6), Str(rd, 7)), ct).ConfigureAwait(false);
         }
 
         List<LineRow> lines;
-        await using (var c = connections.Command("SELECT line_id, order_id, item_id, name, price_paise, qty, kot_id, voided, void_reason FROM pos.order_line WHERE order_id = @o ORDER BY line_id;", conn, tx))
+        await using (var c = connections.Command("SELECT line_id, order_id, item_id, name, price_paise, qty, kot_id, voided, void_reason, gst_class FROM pos.order_line WHERE order_id = @o ORDER BY line_id;", conn, tx))
         {
             P(c, "@o", SqlDbType.BigInt, orderId);
             lines = await ReadAsync(c, rd => new LineRow(rd.GetInt64(0), rd.GetInt64(1), rd.GetInt32(2), rd.GetString(3), SqlValues.ReadPaise(rd, 4), rd.GetInt16(5),
-                rd.IsDBNull(6) ? null : rd.GetInt64(6), rd.GetBoolean(7), Str(rd, 8)), ct).ConfigureAwait(false);
+                rd.IsDBNull(6) ? null : rd.GetInt64(6), rd.GetBoolean(7), Str(rd, 8), Str(rd, 9)), ct).ConfigureAwait(false);
         }
 
         BillRow? bill;
@@ -774,7 +846,7 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
         await tx.CommitAsync(ct).ConfigureAwait(false);
         var kotStatus = kots.ToDictionary(k => k.KotId, k => k.Status);
         var views = lines.Select(l => new LineView(l.LineId, l.ItemId, l.Name, l.Price.Value, l.Qty, new PosLineAmount(l.Price, l.Qty).Value.Value, l.KotId,
-            l.Voided ? "Void" : l.KotId is null ? "New" : kotStatus[l.KotId.Value], l.Voided, l.VoidReason)).ToList();
+            l.Voided ? "Void" : l.KotId is null ? "New" : kotStatus[l.KotId.Value], l.Voided, l.VoidReason, l.GstClass)).ToList();
         var active = lines.Where(l => !l.Voided).ToList();
         var items = active.Sum(l => l.Qty);
         var t = bill is not null && o.Status == "Settled"
@@ -811,31 +883,78 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
     public async Task<IReadOnlyList<OutletView>> OutletsAsync(int propertyId, CancellationToken ct)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        // MA-4: outlets in master order with their master fields and every table / counter (Tables = the active numbers, as in W2-6).
         await using var cmd = connections.Command("""
-            SELECT ou.outlet_id, ou.code, ou.name, ou.kind, t.table_no
-            FROM pos.outlet ou LEFT JOIN pos.outlet_table t ON t.outlet_id = ou.outlet_id
-            WHERE ou.property_id = @p ORDER BY ou.outlet_id, t.table_no;
+            SELECT outlet_id, code, name, kind, outlet_type, opens_at, closes_at, gst_profile, kot_station, sort_order, active, retired_on, row_ver
+            FROM pos.outlet WHERE property_id = @p ORDER BY sort_order, outlet_id;
+            SELECT t.table_id, t.outlet_id, t.code, t.name, t.table_no, t.seats, t.section, t.is_counter, t.sort_order, t.active, t.retired_on, t.row_ver
+            FROM pos.outlet_table t JOIN pos.outlet o ON o.outlet_id = t.outlet_id WHERE o.property_id = @p ORDER BY t.sort_order, t.table_id;
             """, conn);
         P(cmd, "@p", SqlDbType.Int, propertyId);
-        var rows = await ReadAsync(cmd, rd => (Id: rd.GetInt32(0), Code: rd.GetString(1), Name: rd.GetString(2), Kind: rd.GetString(3), Table: Str(rd, 4)), ct).ConfigureAwait(false);
-        return rows.GroupBy(r => r.Id).Select(g => new OutletView(g.Key, g.First().Code, g.First().Name, g.First().Kind, g.Where(r => r.Table is not null).Select(r => r.Table!).ToList())).ToList();
+        var outlets = new List<(int Id, string Code, string Name, string Kind, string Type, string? Opens, string? Closes, string Gst, string? Station, int Sort, bool Active, DateOnly? Retired, string Ver)>();
+        var tables = new List<(int OutletId, OutletTableView View)>();
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        {
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                outlets.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), Str(rd, 5), Str(rd, 6), rd.GetString(7), Str(rd, 8), rd.GetInt32(9),
+                    rd.GetBoolean(10), rd.IsDBNull(11) ? null : rd.GetFieldValue<DateOnly>(11), Ver(rd, 12)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                tables.Add((rd.GetInt32(1), new OutletTableView(rd.GetInt32(0), rd.GetString(2), rd.GetString(3), rd.GetString(4), rd.IsDBNull(5) ? null : rd.GetByte(5), Str(rd, 6),
+                    rd.GetBoolean(7), rd.GetInt32(8), rd.GetBoolean(9), rd.IsDBNull(10) ? null : WireDate(rd.GetFieldValue<DateOnly>(10)), Ver(rd, 11))));
+        }
+
+        return outlets.Select(o =>
+        {
+            var mine = tables.Where(t => t.OutletId == o.Id).Select(t => t.View).ToList();
+            return new OutletView(o.Id, o.Code, o.Name, o.Kind, mine.Where(t => t.Active).Select(t => t.TableNo).ToList(), o.Type, o.Opens, o.Closes, o.Gst, o.Station, o.Sort,
+                o.Active, o.Retired is { } r ? WireDate(r) : null, o.Ver, mine);
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<MenuItemView>> MenuAsync(int propertyId, int? outletId, CancellationToken ct)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        // MA-4: price = in force on the business date (0 = no price yet), Available = not sold out today; dated prices and master fields included.
         await using var cmd = connections.Command("""
-            SELECT m.item_id, m.code, m.name, m.category, m.price_paise, m.veg, m.available, m.row_ver, mo.outlet_id
-            FROM pos.menu_item m JOIN pos.menu_item_outlet mo ON mo.item_id = m.item_id
+            SELECT m.item_id, m.code, m.name, m.category, ISNULL(pr.price_paise, 0), m.veg,
+                   CASE WHEN m.available = 0 AND (m.sold_out_on IS NULL OR m.sold_out_on >= pp.business_date) THEN 0 ELSE 1 END, m.row_ver, mo.outlet_id,
+                   m.category_id, c.code, m.short_code, m.gst_class, m.station, m.sort_order, m.active, m.retired_on, m.sold_out_on, ISNULL(c.sort_order, 1000000)
+            FROM pos.menu_item m
+            JOIN inv.property pp ON pp.property_id = m.property_id
+            JOIN pos.menu_item_outlet mo ON mo.item_id = m.item_id
+            LEFT JOIN pos.menu_category c ON c.category_id = m.category_id
+            OUTER APPLY (SELECT TOP 1 x.price_paise FROM pos.menu_price x WHERE x.item_id = m.item_id AND x.effective_from <= pp.business_date ORDER BY x.effective_from DESC) pr
             WHERE m.property_id = @p AND (@o IS NULL OR m.item_id IN (SELECT item_id FROM pos.menu_item_outlet WHERE outlet_id = @o))
-            ORDER BY m.category, m.name, m.item_id, mo.outlet_id;
+            ORDER BY ISNULL(c.sort_order, 1000000), m.sort_order, m.item_id, mo.outlet_id;
+            SELECT x.item_id, x.effective_from, x.price_paise FROM pos.menu_price x JOIN pos.menu_item m ON m.item_id = x.item_id WHERE m.property_id = @p ORDER BY x.item_id, x.effective_from;
             """, conn);
         P(cmd, "@p", SqlDbType.Int, propertyId);
         P(cmd, "@o", SqlDbType.Int, outletId);
-        var rows = await ReadAsync(cmd, rd => (Id: rd.GetInt32(0), Code: rd.GetString(1), Name: rd.GetString(2), Cat: rd.GetString(3), Price: rd.GetInt64(4), Veg: rd.GetBoolean(5),
-            Avail: rd.GetBoolean(6), Ver: Ver(rd, 7), Outlet: rd.GetInt32(8)), ct).ConfigureAwait(false);
-        return rows.GroupBy(r => r.Id).Select(g => new MenuItemView(g.Key, g.First().Code, g.First().Name, g.First().Cat, g.First().Price, g.First().Veg, g.First().Avail,
-            g.Select(r => r.Outlet).ToList(), g.First().Ver)).ToList();
+        var rows = new List<(int Id, string Code, string Name, string Cat, long Price, bool Veg, bool Avail, string Ver, int Outlet, int? CatId, string? CatCode, string? Short,
+            string Gst, string? Station, int Sort, bool Active, DateOnly? Retired, DateOnly? SoldOn)>();
+        var prices = new Dictionary<int, List<MenuPriceView>>();
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        {
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                rows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt64(4), rd.GetBoolean(5), rd.GetInt32(6) == 1, Ver(rd, 7), rd.GetInt32(8),
+                    rd.IsDBNull(9) ? null : rd.GetInt32(9), Str(rd, 10), Str(rd, 11), rd.GetString(12), Str(rd, 13), rd.GetInt32(14), rd.GetBoolean(15),
+                    rd.IsDBNull(16) ? null : rd.GetFieldValue<DateOnly>(16), rd.IsDBNull(17) ? null : rd.GetFieldValue<DateOnly>(17)));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            {
+                var id = rd.GetInt32(0);
+                if (!prices.TryGetValue(id, out var l)) prices[id] = l = [];
+                l.Add(new MenuPriceView(WireDate(rd.GetFieldValue<DateOnly>(1)), rd.GetInt64(2)));
+            }
+        }
+
+        return rows.GroupBy(r => r.Id).Select(g =>
+        {
+            var f = g.First();
+            return new MenuItemView(g.Key, f.Code, f.Name, f.Cat, f.Price, f.Veg, f.Avail, g.Select(r => r.Outlet).ToList(), f.Ver, f.CatId, f.CatCode, f.Short, f.Gst, f.Station,
+                f.Sort, f.Active, f.Retired is { } r ? WireDate(r) : null, f.SoldOn is { } s ? WireDate(s) : null, prices.TryGetValue(g.Key, out var p) ? p : []);
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<KitchenItem>> KitchenAsync(int propertyId, CancellationToken ct)
@@ -843,7 +962,7 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command("""
             SELECT k.kot_id, k.kot_no, k.status, k.created_utc, o.order_id, ou.name, o.table_no, rm.room_no,
-                   l.line_id, l.item_id, l.name, l.price_paise, l.qty
+                   l.line_id, l.item_id, l.name, l.price_paise, l.qty, k.station
             FROM pos.kot k
             JOIN pos.check_order o ON o.order_id = k.order_id
             JOIN pos.outlet ou ON ou.outlet_id = k.outlet_id
@@ -855,12 +974,12 @@ public sealed class SqlPosStore(SqlConnectionFactory connections) : IPosStore
             """, conn);
         P(cmd, "@p", SqlDbType.Int, propertyId);
         var rows = await ReadAsync(cmd, rd => (Kot: rd.GetInt64(0), No: rd.GetInt32(1), Status: rd.GetString(2), At: Dt(rd, 3)!.Value, Order: rd.GetInt64(4), Outlet: rd.GetString(5),
-            Table: Str(rd, 6), Room: Str(rd, 7), Line: rd.GetInt64(8), Item: rd.GetInt32(9), Name: rd.GetString(10), Price: rd.GetInt64(11), Qty: (int)rd.GetInt16(12)), ct).ConfigureAwait(false);
+            Table: Str(rd, 6), Room: Str(rd, 7), Line: rd.GetInt64(8), Item: rd.GetInt32(9), Name: rd.GetString(10), Price: rd.GetInt64(11), Qty: (int)rd.GetInt16(12), Station: Str(rd, 13)), ct).ConfigureAwait(false);
         return rows.GroupBy(r => r.Kot).Select(g =>
         {
             var f = g.First();
-            return new KitchenItem(f.Order, f.Kot, f.No, PosRules.KotLabel(f.Outlet, f.No), f.Table is not null ? "Table " + f.Table : "Room " + f.Room, f.Status, f.At,
-                g.Select(r => new LineView(r.Line, r.Item, r.Name, r.Price, r.Qty, r.Price * r.Qty, r.Kot, r.Status, false, null)).ToList());
+            return new KitchenItem(f.Order, f.Kot, f.No, Hcc.Domain.Pos.PosMasterRules.KotLabel(f.Outlet, f.No, f.Station), f.Table is not null ? "Table " + f.Table : "Room " + f.Room, f.Status, f.At,
+                g.Select(r => new LineView(r.Line, r.Item, r.Name, r.Price, r.Qty, r.Price * r.Qty, r.Kot, r.Status, false, null)).ToList(), f.Station);
         }).ToList();
     }
 

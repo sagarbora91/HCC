@@ -30,25 +30,53 @@ public static class PayMath
     }
 }
 
-/// <summary>Shift times (fixed): M 07:00, E 15:00, N 23:00, G 09:00; late grace 15 minutes.</summary>
+/// <summary>One shift pattern of the Shift patterns list (MA-6): duty times, unpaid break, night flag, weekly-off rule ("fixed" | "roster").</summary>
+public sealed record ShiftPatternDef(string Code, string Name, TimeOnly Start, TimeOnly End, int BreakMinutes, bool Night, string WeeklyOffRule, bool Active)
+{
+    /// <summary>The weekly off follows the staff record unless the roster decides.</summary>
+    public bool WeeklyOffAuto => WeeklyOffRule != "roster";
+}
+
+/// <summary>The property's shift patterns by code. Without a stored list the built-in M E N G (07–15, 15–23, 23–07, 09–18; N is a night shift).</summary>
+public sealed class ShiftCatalog
+{
+    private readonly IReadOnlyDictionary<string, ShiftPatternDef> _byCode;
+
+    public ShiftCatalog(IEnumerable<ShiftPatternDef>? patterns = null)
+    {
+        var list = patterns?.ToList() ?? [];
+        Patterns = list.Count > 0 ? list : Defaults;
+        _byCode = Patterns.ToDictionary(p => p.Code);
+    }
+
+    public static readonly IReadOnlyList<ShiftPatternDef> Defaults =
+    [
+        new("M", "Morning", new TimeOnly(7, 0), new TimeOnly(15, 0), 30, false, "fixed", true),
+        new("E", "Evening", new TimeOnly(15, 0), new TimeOnly(23, 0), 30, false, "fixed", true),
+        new("N", "Night", new TimeOnly(23, 0), new TimeOnly(7, 0), 30, true, "fixed", true),
+        new("G", "General", new TimeOnly(9, 0), new TimeOnly(18, 0), 30, false, "fixed", true),
+    ];
+
+    public IReadOnlyList<ShiftPatternDef> Patterns { get; }
+
+    public ShiftPatternDef? Find(ShiftCode c) => _byCode.GetValueOrDefault(c.Value);
+
+    public bool IsActive(ShiftCode c) => c == ShiftCode.OFF || (Find(c)?.Active ?? false);
+}
+
+/// <summary>Shift times come from the Shift patterns list; late grace 15 minutes.</summary>
 public static class Shifts
 {
     public const int GraceMinutes = 15;
 
-    public static TimeOnly? Start(ShiftCode c) => c switch
-    {
-        ShiftCode.M => new TimeOnly(7, 0),
-        ShiftCode.E => new TimeOnly(15, 0),
-        ShiftCode.N => new TimeOnly(23, 0),
-        ShiftCode.G => new TimeOnly(9, 0),
-        _ => null,
-    };
+    public static TimeOnly? Start(ShiftCode c, ShiftCatalog? catalog = null) => (catalog ?? new ShiftCatalog()).Find(c)?.Start;
 
     /// <summary>Self check-in status from the local time of day: Late after shift start + grace (night and off shifts: Present).</summary>
-    public static AttendanceStatus CheckinStatus(TimeOnly local, ShiftCode shift)
+    public static AttendanceStatus CheckinStatus(TimeOnly local, ShiftCode shift, ShiftCatalog? catalog = null)
     {
-        if (shift is ShiftCode.OFF or ShiftCode.N) return AttendanceStatus.P;
-        var start = Start(shift)!.Value;
+        var p = (catalog ?? new ShiftCatalog()).Find(shift);
+        if (shift == ShiftCode.OFF || p is null || p.Night) return AttendanceStatus.P;
+        var start = p.Start;
         return local.Hour * 60 + local.Minute > start.Hour * 60 + start.Minute + GraceMinutes ? AttendanceStatus.L : AttendanceStatus.P;
     }
 }
@@ -58,16 +86,13 @@ public static class PayrollRules
 {
     public static bool PaidLeave(LeaveType t) => t != LeaveType.LOP;
 
-    /// <summary>Leave types with a yearly entitlement (SCC TRACKED_CATS).</summary>
-    public static bool Tracked(LeaveType t) => t is LeaveType.CL or LeaveType.SL or LeaveType.EL;
-
     /// <summary>Effective shift: roster override → weekly off → default shift.</summary>
     public static ShiftCode ShiftFor(StaffProfile st, StaffDays days, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(st);
         ArgumentNullException.ThrowIfNull(days);
         if (days.Roster.TryGetValue(date, out var o)) return o;
-        return (int)date.DayOfWeek == st.WeeklyOff ? ShiftCode.OFF : st.DefaultShift;
+        return (int)date.DayOfWeek == st.WeeklyOff && st.WeeklyOffAuto ? ShiftCode.OFF : st.DefaultShift;
     }
 
     /// <summary>A day without duty for leave: a rostered weekly off or a DEC-083 paid holiday (leave days skip both; nobody is "off" on them).</summary>
@@ -90,7 +115,7 @@ public static class PayrollRules
         return ls.FirstOrDefault(l => l.Half is null) ?? ls.FirstOrDefault();
     }
 
-    /// <summary>Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (DEC-083); a half-day leave is 0.5.</summary>
+    /// <summary>Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (DEC-083 / MA-6 Holiday calendar); a half-day leave is 0.5.</summary>
     public static decimal LeaveDays(StaffProfile st, StaffDays days, DateOnly from, DateOnly to, LeaveHalf? half)
     {
         if (half is not null) return DayOff(st, days, from) ? 0m : 0.5m;
@@ -108,7 +133,7 @@ public static class PayrollRules
         var ot = 0;
         void AddLeave(LeaveSpan x, decimal n)
         {
-            if (PaidLeave(x.Type)) paid += n;
+            if (x.IsPaid) paid += n;
             else lop += n;
         }
 
@@ -195,6 +220,8 @@ public static class PayrollRules
         }
         else
         {
+            // DEC-083 (owner decision, binding over MA-6's draft): a daily-wage worker is not paid for an unworked holiday — like a weekly
+            // off (CA A04-04 open); a worked holiday is marked present and paid.
             payHalf = Math.Max(0, HalfUnits(2 * (c.P + c.L + c.OFFW)) + (long)c.H + (long)c.HL - late);
             earned = PayMath.MulDiv(st.DailyPaise, payHalf, 1, 2);
             ot = PayMath.MulDiv(st.DailyPaise, c.OtMin, r.OtBps, 8L * 60 * 10000);

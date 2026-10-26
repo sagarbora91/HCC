@@ -3,15 +3,16 @@
 import React,{useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Plus,Trash2,ArrowRight,Check,AlertTriangle,RefreshCw,Info} from 'lucide-react';
-import {money,totals} from '../../services/mock';
+import {money,totals,mnyIsDrawer} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty} from '../../components/ui';
 import {useCashBlock} from '../../clients/sync/cashier-ui';
-import {MM_TENDERS,MM_PAY_KINDS,MmTenderRow,mmPaise,mmRupeeText,mmEffectiveRows,mmPaymentProblem,mmPaymentCommand} from './logic';
+import {mmTenders,MM_PAY_KINDS,MmTenderRow,mmPaise,mmRupeeText,mmEffectiveRows,mmPaymentProblem,mmPaymentCommand} from './logic';
 
 function TenderChips({value,onChange,label,only,noCash}:{value:string;onChange:(v:string)=>void;label:string;only?:string[];noCash?:boolean}){
-  return <div className="mm-chips" role="radiogroup" aria-label={label}>{MM_TENDERS.filter(t=>!only||only.includes(t.id)).map(t=>
-    <button key={t.id} type="button" role="radio" aria-checked={value===t.id} className={value===t.id?'on':''} disabled={noCash&&t.id==='Cash'} onClick={()=>onChange(t.id)}>{t.label}</button>)}</div>;
+  const {s}=useHcc();
+  return <div className="mm-chips" role="radiogroup" aria-label={label}>{mmTenders(s).filter(t=>!only||only.includes(t.id)).map(t=>
+    <button key={t.id} type="button" role="radio" aria-checked={value===t.id} className={value===t.id?'on':''} disabled={noCash&&mnyIsDrawer(s,t.id)} onClick={()=>onChange(t.id)}>{t.label}</button>)}</div>;
 }
 
 export function MmPayment({id}:{id?:string}){
@@ -21,7 +22,8 @@ export function MmPayment({id}:{id?:string}){
   const [kind,setKind]=useState<string>('payment');
   const [total,setTotal]=useState(t&&t.balance>0?mmRupeeText(t.balance):'');
   const cashBlock=useCashBlock(); // APK12-3: production, no own cashier shift → cash tender disabled with a hint
-  const [rows,setRows]=useState<MmTenderRow[]>([{method:cashBlock?'UPI':'Cash',amount:'',reference:''}]);
+  const tenders=mmTenders(s).map(x=>x.id),firstCash=tenders.find(m=>mnyIsDrawer(s,m)),firstOther=tenders.find(m=>!mnyIsDrawer(s,m))??tenders[0]??'';
+  const [rows,setRows]=useState<MmTenderRow[]>([{method:cashBlock||!firstCash?firstOther:firstCash,amount:'',reference:''}]);
   const [step,setStep]=useState<'form'|'confirm'>('form');
   const [problem,setProblem]=useState('');
   const [failed,setFailed]=useState(false);
@@ -33,8 +35,8 @@ export function MmPayment({id}:{id?:string}){
     if(k==='deposit-return'){setRows([{...rows[0],method:rows[0].method,amount:''}]);setTotal(mmRupeeText(t.deposit));}
     else if(k==='payment')setTotal(t.balance>0?mmRupeeText(t.balance):'');else setTotal('');};
   const addSplit=()=>{const first=single?[{...rows[0],amount:total}]:rows;const used=first.reduce((a,r)=>a+(mmPaise(r.amount)||0),0);
-    setRows([...first,{method:first.some(r=>r.method==='UPI')?'Card':'UPI',amount:mmRupeeText((target||0)-used),reference:''}]);};
-  const review=(e:React.FormEvent)=>{e.preventDefault();const p=mmPaymentProblem(kind,total,rows,t.deposit);setProblem(p);if(!p)setStep('confirm');};
+    setRows([...first,{method:tenders.filter(m=>!mnyIsDrawer(s,m)).find(m=>!first.some(r=>r.method===m))??firstOther,amount:mmRupeeText((target||0)-used),reference:''}]);};
+  const review=(e:React.FormEvent)=>{e.preventDefault();const p=mmPaymentProblem(kind,total,rows,t.deposit,s);setProblem(p);if(!p)setStep('confirm');};
   const key=modal!.key;
   const saved=s.processed.includes(key); // lost-response recovery: the receipt exists even though the answer was lost
   const post=async()=>{const ok=await run(mmPaymentCommand(b.id,kind,total,rows,key),single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});setFailed(!ok);};
@@ -62,7 +64,7 @@ export function MmPayment({id}:{id?:string}){
           {!single&&<div className="mm-tender-head"><strong>Tender {i+1}</strong><button type="button" className="m-icon mm-del" aria-label={`Remove tender ${i+1}`} onClick={()=>setRows(rows.filter((_,j)=>j!==i))}><Trash2 size={18}/></button></div>}
           <TenderChips label={`Tender ${i+1} method`} value={r.method} noCash={!!cashBlock} onChange={m=>setRow(i,{method:m})}/>
           {!single&&<label>Amount (₹)<input inputMode="decimal" enterKeyHint="next" value={r.amount} onChange={e=>setRow(i,{amount:e.target.value})} aria-label={`Tender ${i+1} amount`}/></label>}
-          {r.method!=='Cash'?<label>Reference<input enterKeyHint="next" maxLength={100} value={r.reference} placeholder="Demo transaction reference, e.g. DEMO-UPI-0002" onChange={e=>setRow(i,{reference:e.target.value})} aria-label={`Tender ${i+1} reference`}/></label>
+          {!mnyIsDrawer(s,r.method)?<label>Reference<input enterKeyHint="next" maxLength={100} value={r.reference} placeholder="Demo transaction reference, e.g. DEMO-UPI-0002" onChange={e=>setRow(i,{reference:e.target.value})} aria-label={`Tender ${i+1} reference`}/></label>
             :<small className="mm-help">Cash goes into the drawer. Reference optional.</small>}
         </div>)}
         {kind!=='deposit-return'&&rows.length<4&&<button type="button" className="btn mm-split" onClick={addSplit}><Plus size={18}/> Split</button>}

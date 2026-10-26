@@ -82,7 +82,7 @@ export function register({test,assert}){
   test('[A11Y-05] focus ring has a :focus fallback (Chrome 83) and sign-in / tile / drawer / search fields keep a visible ring',()=>{
     const a=read('src/styles/y-a11y.css');
     assert.match(a,/button:focus,a:focus,input:focus,select:focus,textarea:focus/);
-    assert.match(a,/outline:3px solid #7a1f2b/);
+    assert.match(a,/outline:3px solid (#7a1f2b|var\(--primary\))/); // CP-3a: tokenised
     for(const s of ['.signin-user:focus','.tile:focus','.drawer-item:focus','.yld-cell:focus'])assert.ok(a.includes(s),s);
     assert.match(a,/\.search:focus-within/);assert.match(a,/\.search-field:focus-within/);assert.match(a,/\.cfg-search:focus-within/);
     assert.ok(a.indexOf('button:focus,a:focus')<a.indexOf(':focus:not(:focus-visible)'));
@@ -103,7 +103,8 @@ export function register({test,assert}){
     assert.ok(ratio('#bd8f95','#7a1f2b')<4.5,'old disabled label');
     assert.ok(ratio('#5c4a3e','#efe4d6')>=4.5,'disabled label');
     const a=read('src/styles/y-a11y.css');
-    assert.ok(a.includes('#8c7766')&&a.includes('background:#efe4d6;color:#5c4a3e')&&a.includes('1px dashed'));
+    const ar=a.replace(/var\(--c-([0-9a-f]{6})\)/g,'#$1'); // CP-3a: colour tokens resolved back to hex
+    assert.ok(ar.includes('#8c7766')&&ar.includes('background:#efe4d6;color:#5c4a3e')&&ar.includes('1px dashed'));
   });
   test('[A11Y-08] every icon-only button in src/**/*.tsx has an accessible name (scan)',()=>{
     const bad=[];for(const f of walk('src'))for(const l of unnamedIconButtons(read(f)))bad.push(f+':'+l);

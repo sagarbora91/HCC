@@ -120,6 +120,13 @@ public sealed class SqlPropertySetup(SqlConnectionFactory connections, ISecretHa
                 $"Hotel '{plan.Name}' ({plan.Code}) set up · {plan.State}{(plan.Gstin is null ? "" : " · GSTIN " + plan.Gstin)} · business date {plan.BusinessDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {plan.TimeZone}", ct).ConfigureAwait(false);
             await scope.AuditAsync("OWNER_BOOTSTRAP", "user:" + userId.ToString(CultureInfo.InvariantCulture), $"First Owner '{login}' created by first-time setup.", ct).ConfigureAwait(false);
 
+            // MA-7: the housekeeping task types and the complaint / found-item categories of a new hotel (identical to migration 2871).
+            await using (var ops = connections.Command(OpsMasters.OpsMastersSeed.Sql, conn, tx))
+            {
+                ops.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+                await ops.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+
             var seed = new List<KeyValuePair<string, ConfigValue>>
             {
                 new("hotel", ConfigValue.Of(plan.Name)),

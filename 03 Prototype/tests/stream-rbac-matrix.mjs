@@ -55,6 +55,7 @@ const PAGES={
   staff:['OWN MGR CSH ACC','Module 17 §2'],
   closing:['OWN MGR ACC','CLS-001/002 (DEC-063 G4: Accountant read-only; G8: not REC/CSH)'],
   reports:['OWN MGR CSH ACC','RPT-001/002 (DEC-063 G8: not REC/SUP)'],
+  'plans-extras':['OWN MGR CSH ACC','MA-2 Plans & extras report = reports (catalogue vs free text, plans, discount reasons)'],
   accounting:['OWN MGR ACC','Module 20 §8 (DEC-063 G13: Tally tab Owner + Accountant only); DEC-079: the books are not the Cashier\'s — the Cashier keeps the daily collections report'],
   assistant:['OWN MGR CSH ACC','Module 26 (reports)'],
   compliance:['OWN ACC','DEC-055: Owner and Accountant only'],
@@ -67,6 +68,7 @@ const PAGES={
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
   roadmap:['OWN MGR CSH ACC','Not in the matrix (informational page); current gate accepted'],
+  prefs:[ALL,'CP-1 Appearance & display: every role, this device only, no hotel data (plan §4, DEC-CP-1)'],
 };
 // Documented cells the app does not honour yet (page keys are 'page:<id>').
 const P=ids=>ids.map(i=>'page:'+i);
@@ -143,6 +145,10 @@ const CMDS={
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
   SYS_RETRY_PARKED:C('OWN TAD','PERM-SYS-001 (Wave C3, A09-05: RetryParkedEvent)'),
+  // MA-1 rooms master tools (range add, renumber, out of order): the rooms master's `masters` permission (old → new: 199 → 203 commands).
+  ...Object.fromEntries(['RMS_ROOMS_ADD','RMS_ROOM_RENUMBER','RMS_ROOM_OOO','RMS_ROOM_OOO_CLEAR'].map(c=>[c,C('OWN TAD','MA-1 rooms master (DEC-MA-1)')])),
+  // MA-2 catalogue: catalogue charge = CHARGE (FOL-002), reasoned discount = DISCOUNT (FOL-003, DEC-063), meal plan = reservations or billing.
+  CAT_CHARGE:C('OWN MGR REC CSH','FOL-002'),CAT_DISCOUNT:C('OWN MGR REC','FOL-003'),CAT_PLAN_SET:C('OWN MGR REC CSH','RES-002 / FOL-002'),
 };
 const K=k=>'cmd:'+k;
 
@@ -213,7 +219,7 @@ export function register({test,M,assert}){
       assert.equal(app,set(PAGES[n.id][0]).has(role),`${role} · ${n.id}: documents say ${set(PAGES[n.id][0]).has(role)?'visible':'hidden'} (${PAGES[n.id][1]})`);}
     for(const e of v.entries.filter(e=>e.kind==='action'))assert.ok(M.can(s,u,e.needs)&&v.allowed.has(e.page),e.id);});
   test('[RBAC] nav · housekeeping and maintenance reach only the no-money pages',()=>{
-    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','handover','housekeeping','inventory','maintenance','my-hr'],u);});
+    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','handover','housekeeping','inventory','maintenance','my-hr','prefs'],u);});
   test('[RBAC] nav · compliance content is Owner + Accountant only: Due-this-week card, assistant answers, commands (DEC-055)',()=>{
     for(const u of USERS){const ok=['owner','accountant'].includes(u);assert.equal(M.cmpHasAccess(s,u),ok,u);assert.equal(M.aiAccess(s,u).compliance,ok,u);}});
   test('[RBAC] nav · Compliance calendar is not listed for Manager or Cashier: drawer, Modules Home, search (W05-1, DEC-055)',()=>{

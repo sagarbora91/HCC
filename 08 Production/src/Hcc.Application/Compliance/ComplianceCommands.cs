@@ -51,7 +51,7 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
             var reference = ComplianceRules.CleanReference(req.Reference);
             var now = UtcNow;
             await store.InsertFilingAsync(tx, new FilingRecord(o.ObligationId, period, ComplianceStatus.Filed, ctx.PrincipalId, now, reference, null), c).ConfigureAwait(false);
-            var due = ComplianceRules.DueDate(o.Schedule, period);
+            var due = ComplianceRules.DueDate(o.Schedule, period, await store.PaidHolidaysAsync(tx, ctx.PropertyId, c).ConfigureAwait(false));
             var late = Math.Max(0, today.DayNumber - due.DayNumber);
             await tx.AuditAsync("COMPLIANCE_FILE", Target(o.ObligationId, period),
                 $"{o.Name} · {ComplianceRules.PeriodLabel(o.Frequency, period)} filed · ref {reference}{(late > 0 ? $" · {N(late)} day(s) late" : string.Empty)}", c).ConfigureAwait(false);
@@ -73,7 +73,7 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
             var now = UtcNow;
             await store.InsertFilingAsync(tx, new FilingRecord(o.ObligationId, period, ComplianceStatus.NotApplicable, ctx.PrincipalId, now, null, reason), c).ConfigureAwait(false);
             await tx.AuditAsync("COMPLIANCE_NA", Target(o.ObligationId, period), $"{o.Name} · {ComplianceRules.PeriodLabel(o.Frequency, period)} not applicable · {reason}", c).ConfigureAwait(false);
-            var due = ComplianceRules.DueDate(o.Schedule, period);
+            var due = ComplianceRules.DueDate(o.Schedule, period, await store.PaidHolidaysAsync(tx, ctx.PropertyId, c).ConfigureAwait(false));
             return new FilingResult(o.ObligationId, period, ComplianceStatus.NotApplicable, D(due), Math.Max(0, today.DayNumber - due.DayNumber), ComplianceWire.Utc(now));
         }, ct).ConfigureAwait(false);
     }

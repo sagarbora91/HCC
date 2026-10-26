@@ -38,6 +38,19 @@ export type Room={id:string;floor:number;type:string;rate:number;hk:'Ready'|'Dir
   // ── Room · stream E fields (add below this line) ──
 
   // ── Room · stream F fields (add below this line) ──
+
+  // ── Room · MA-1 rooms master fields (domain/streams/roommasters.ts; all optional, absent in BASE) ──
+  /** Amenity codes (amenities master) this room has on top of its room type. */
+  features?:string[];
+  /** Smoking room (default no). */ smoking?:boolean;
+  /** Number of the connecting room, if any. */ connecting?:string;
+  /** Phone extension. */ extension?:string;
+  /** Free notes for staff. */ notes?:string;
+  /** Master status: absent = in service; 'out-of-order' while `ooo` is set; 'retired' = no longer sold (kept for history). */
+  status?:'out-of-order'|'retired';
+  /** Out-of-order window: nights [from, to) (to absent = until cleared) and the reason. A room hold (registerRoomHold), not a block. */
+  ooo?:{from:string;to?:string;reason:string};
+  /** Business date the room was retired. */ retiredOn?:string;
 };
 export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'service'|'discount'|'adjustment';taxBps:number;
   // ── Line · stream C fields (add below this line) ──
@@ -49,6 +62,14 @@ export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'
   // ── Line · stream F fields (add below this line) ──
   /** Closed business date this adjustment corrects (DEC-028). */
   correctionOf?:string;
+
+  // ── Line · MA-2 catalogue fields (add below this line) ──
+  /** Extras catalogue row id (CAT_CHARGE); absent on a free-text charge (DEC-MA-4: reports show catalogue vs free text). */
+  extraId?:string;
+  /** Meal plan code of a plan line posted with the room night (MA-2). */
+  planCode?:string;
+  /** Discount reason code (CAT_DISCOUNT); absent on a free-text reason. */
+  discountReason?:string;
 };
 export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit';reference:string;actor:string;
   // ── Receipt · stream A fields (add below this line) ──
@@ -105,6 +126,10 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   // ── Booking · stream E fields (add below this line) ──
 
   // ── Booking · stream F fields (add below this line) ──
+
+  // ── Booking · MA-2 catalogue fields (add below this line) ──
+  /** Meal plan code (master mealPlans: EP / CP / MAP / AP / custom); absent = no plan. Plan lines post with each room night. */
+  plan?:string;
 };
 export type Task={id:string;room:string;booking?:string;assignee:string;status:'To do'|'In progress'|'Inspection'|'Done';checked:boolean[];
   // ── Task · stream A fields (add below this line) ──
@@ -265,6 +290,8 @@ export type State={
   mastersX?:import('./streams/masters').MSTState;
   /** Wave C3 System health (A09-05): the server's parked outbox events and backup results, or the demo's remaining parked events (absent = demo seed). */
   sysHealthX?:import('./streams/syshealth').SYSState;
+  /** MA-5 front-desk lists: numbering-series allocation counters (absent until a non-seeded series issues a number). */
+  frontdeskMasterX?:import('./streams/frontdesk-master').FDMState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;
@@ -278,4 +305,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=8;
+export const SCHEMA=9; // 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)

@@ -22,14 +22,16 @@ public sealed class SqlHousekeepingStore : IHousekeepingStore
 {
     internal const string TaskColumns = """
         t.task_id, t.room_id, r.room_no, t.kind, t.status, t.assignee_id, t.checklist_mask, t.note, t.reject_reason,
-        t.business_date, t.started_utc, t.completed_utc, t.row_ver
-        """;
+        t.business_date, t.started_utc, t.completed_utc, t.row_ver,
+        ISNULL(NULLIF((SELECT COUNT(*) FROM OPENJSON((SELECT TOP 1 tt.checklist_json FROM ops.hk_task_type tt WHERE tt.property_id = t.property_id AND t.kind <> 'repair'
+          AND EXISTS (SELECT 1 FROM STRING_SPLIT(tt.applies_to, ',') x WHERE x.value = t.kind) ORDER BY tt.active DESC, tt.sort_order, tt.code))), 0), 3) AS checklist_items
+        """; // MA-7: items of the task type (built-in 3 without one)
 
     internal static HousekeepingTaskView ReadTaskView(SqlDataReader rd)
     {
         var mask = (int)rd.GetByte(6);
         return new HousekeepingTaskView(rd.GetInt64(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), P3Sql.IntOrNull(rd, 5),
-            Enumerable.Range(0, HkTaskMachine.ChecklistItems).Select(i => (mask & (1 << i)) != 0).ToList(),
+            Enumerable.Range(0, rd.GetInt32(13)).Select(i => (mask & (1 << i)) != 0).ToList(),
             P3Sql.StrOrNull(rd, 7), P3Sql.StrOrNull(rd, 8), StayDates.ToWire(P3Sql.Date(rd, 9)),
             Utc(rd, 10), Utc(rd, 11), VersionToken.ToWire((byte[])rd[12]));
     }

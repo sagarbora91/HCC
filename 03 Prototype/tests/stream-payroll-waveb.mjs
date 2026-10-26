@@ -121,10 +121,15 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     // Leave skips a holiday: Ravi CL Tue 3 – Thu 5 Nov with a holiday on Wed 4 Nov = 2 days.
     s=execute(s,'owner',{type:'HR_HOLIDAY_SAVE',date:'2026-11-04',name:'Test holiday (fictional)'});
     assert.equal(M.hrLeaveDays(s,st(s,'HR-S05'),'2026-11-03','2026-11-05'),2);
-    assert.match(M.hrSettingValue(s,'hr.leave.holidays'),/^2 in FY 2026–27$/);assert.match(M.hrSettingValue(seed(),'hr.leave.holidays'),/None yet/);
+    // Masters integration: the paid holidays are MA-6's Holiday calendar, whose demo fixture seeds an illustrative calendar (6 paid in FY 2026–27),
+    // so the count is the seeded ones + the 2 added here (old: "2 in FY 2026–27" and "None yet" for the plain fixture).
+    const seededPaid=M.hrPaidHolidays(seed()).filter(h=>h.date>='2026-04-01'&&h.date<='2027-03-31').length;
+    assert.equal(M.hrSettingValue(s,'hr.leave.holidays'),`${seededPaid+2} in FY 2026–27`);
+    assert.equal(M.hrSettingValue(seed(),'hr.leave.holidays'),seededPaid?`${seededPaid} in FY 2026–27`:'None yet — the Owner adds them');
     // Locked month: August's holidays cannot change.
     assert.throws(()=>execute(s,'owner',{type:'HR_HOLIDAY_SAVE',date:'2026-08-15',name:'Test (fictional)'}),code('INVALID_TRANSITION'));
-    assert.throws(()=>execute(s,'owner',{type:'HR_HOLIDAY_REMOVE',date:'2026-10-02'}),code('NOT_FOUND'));
+    // Masters integration: 2 Oct is a seeded paid holiday of MA-6's demo calendar, so a date without one stands in (old: 2026-10-02).
+    assert.throws(()=>execute(s,'owner',{type:'HR_HOLIDAY_REMOVE',date:'2026-10-03'}),code('NOT_FOUND'));
   });
 
   test('[PAY-WB DEC-084] bank change waits for the Owner; the bank file uses the old details meanwhile; the Owner’s own change applies at once',()=>{

@@ -12,9 +12,11 @@ import {posOpenOrders} from '../../../domain/streams/pos';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {cxPendingTransfers,cxSlice} from '../../../domain/streams/cashout';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
-  closingUnlimitedRoles,EXPENSE_METHODS,closingReopened,closingReopenRefusal,closingReopenMessage,closingPendingCorrections,closingResummary,
+  closingUnlimitedRoles,closingReopened,closingReopenRefusal,closingReopenMessage,closingPendingCorrections,closingResummary,
   type ClosingReopen} from '../../../domain/streams/closing';
 import {accSlice,accLockOf} from '../../../domain/streams/accounting';
+import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyCategory,mnyVendor,mnyApprovalLimit} from '../../../domain/streams/money-master';
+import {mstFail} from '../../../domain/streams/masters';
 import {rbacCanDecideCash,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanRequestClosedCorrection} from '../../../domain/streams/rbac';
 
 /** Resumable room-night posting for the business date (WF-DAY-001, REQ-CLOSE-003/005). Returns [newly posted, done, total, interrupted]. */
@@ -108,8 +110,19 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,open,assert,positive,id,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();positive(cmd.amount);
     assert(cmd.vendor?.trim(),'Enter a vendor.');
     assert(cmd.category?.trim(),'Choose a category.');
-    assert(EXPENSE_METHODS.includes(cmd.method),'Choose a funding source.');
-    const e:Expense={id:id('EXP'),vendor:cmd.vendor.trim(),category:cmd.category,amount:cmd.amount,method:cmd.method,date:s.date,status:cmd.draft?'Draft':'Pending',actor:uid};
+    // MA-3 money masters: funding source = an active payment method usable for expenses; category from the expense categories;
+    // vendor from the expense vendors (DEC-MA-6) or free text (a name not in the list is kept as typed); retired rows are refused.
+    const pmRow=typeof cmd.method==='string'?mnyMethod(s,cmd.method):undefined;
+    if(pmRow&&!pmRow.active&&(pmRow.usableAt??[]).includes('expenses'))mstFail('MASTER_RETIRED',`${pmRow.name} is retired — choose an active funding source.`);
+    const pm=mnyMethodFor(s,cmd.method,'expenses');
+    assert(pm,'Choose a funding source.');
+    const cat=mnyCategory(s,String(cmd.category));
+    if(cat&&!cat.active)mstFail('MASTER_RETIRED',`Category ${cat.name} is retired — choose an active category.`,'category');
+    assert(cat,'Choose a category from the list (Master configuration › Money and tax › Expense categories).');
+    const ven=mnyVendor(s,String(cmd.vendor).trim());
+    if(ven&&!ven.active)mstFail('MASTER_RETIRED',`Vendor ${ven.name} is retired — choose an active vendor.`,'vendor');
+    if(!cmd.draft&&cat!.needsBill)assert(String(cmd.receipt??'').trim(),`${cat!.name} expenses need the bill / receipt number.`);
+    const e:Expense={id:id('EXP'),vendor:ven?.name??cmd.vendor.trim(),category:cat!.name,amount:cmd.amount,method:pm!.name,date:s.date,status:cmd.draft?'Draft':'Pending',actor:uid};
     if(cmd.notes?.trim())e.notes=String(cmd.notes).trim().slice(0,300);
     if(cmd.receipt?.trim())e.receipt=String(cmd.receipt).trim().slice(0,120);
     s.expenses.push(e);
@@ -120,6 +133,7 @@ export const handlers:Record<string,Handler>={
     const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
     assert(e!.status==='Draft','Only a draft can be submitted.','INVALID_TRANSITION');
     assert(e!.actor===uid,'You can submit only your own drafts.','FORBIDDEN');
+    {const cat=mnyCategory(s,e!.category);if(cat?.needsBill)k.assert(String(e!.receipt??'').trim(),`${cat.name} expenses need the bill / receipt number.`);}
     e!.status='Pending';e!.date=s.date;return e!.id+' · submitted for approval';
   },
   // PERM-EXP-002 expense.approve / reject (manager ≤ ₹5,000) + PERM-EXP-003 post
@@ -129,8 +143,9 @@ export const handlers:Record<string,Handler>={
     assert(e&&e.status==='Pending','Expense is no longer pending.','INVALID_TRANSITION');
     assert(!cbIsLocked(s,e!.date),cbLockedMessage(e!.date,'deciding this expense'),'DAY_CLOSED'); // DEC-065
     assert(e!.actor!==uid,'You cannot approve your own expense.','FORBIDDEN');
-    if(cmd.approve&&limited(user.role)&&e!.amount>EXPENSE_MANAGER_LIMIT)fail('FORBIDDEN',`Expenses above ${money(EXPENSE_MANAGER_LIMIT)} need Owner approval.`);
-    if(cmd.approve&&e!.method==='Cash')assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
+    const lim=mnyApprovalLimit(s,e!.category,EXPENSE_MANAGER_LIMIT); // MA-3: category override, else the hotel limit
+    if(cmd.approve&&limited(user.role)&&e!.amount>lim)fail('FORBIDDEN',`Expenses above ${money(lim)} need Owner approval.`);
+    if(cmd.approve&&mnyIsDrawer(s,e!.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
     e!.status=cmd.approve?'Posted':'Rejected';e!.date=s.date;e!.approver=uid;e!.decidedAt=s.clock;
     if(!cmd.approve&&cmd.reason?.trim())e!.reason=String(cmd.reason).trim();
     return e!.id+' · '+e!.status;
@@ -142,7 +157,7 @@ export const handlers:Record<string,Handler>={
     assert(e!.status==='Posted'&&!e!.reversalOf,'Only a posted expense can be reversed.','INVALID_TRANSITION');
     assert(!cbIsLocked(s,e!.date),cbLockedMessage(e!.date,'reversing this expense'),'DAY_CLOSED'); // DEC-065
     assert(cmd.reason?.trim(),'A reason is required to reverse an expense.');
-    if(e!.method==='Cash')assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
+    if(mnyIsDrawer(s,e!.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
     const rid=id('EXP');
     s.expenses.push({id:rid,vendor:e!.vendor,category:e!.category,amount:-e!.amount,method:e!.method,date:s.date,status:'Posted',actor:uid,reversalOf:e!.id,reason:cmd.reason.trim(),approver:uid,decidedAt:s.clock});
     e!.status='Reversed';e!.reversedBy=rid;e!.reason=cmd.reason.trim();

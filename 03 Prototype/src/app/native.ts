@@ -56,10 +56,15 @@ export function listenBackButton(onBack:()=>void):()=>void{
   return ()=>{dead=true;handle?.remove?.();};
 }
 export function exitApp(){try{void nativePlugin('App')?.exitApp?.();}catch{/* ignore */}}
-/** Maroon status bar with light icons (native only). */
-export function styleStatusBar(){
+/** CP-5: status bar colour per theme = the phone app-bar fill (--primary-fill in src/styles/themes.css); light icons in every theme. */
+export const STATUS_BAR_COLOURS:Readonly<Record<'light'|'dark'|'hc',string>>=Object.freeze({light:'#7a1f2b',dark:'#ae4155',hc:'#5e1620'});
+/** The theme <html data-theme> shows now (light when unknown). */
+const currentTheme=():'light'|'dark'|'hc'=>{try{const t=(globalThis as {document?:{documentElement?:{getAttribute:(k:string)=>string|null}}}).document?.documentElement?.getAttribute('data-theme');return t==='dark'||t==='hc'?t:'light';}catch{return 'light';}};
+/** Status bar in the theme's app-bar colour with light icons (native only; no-op in a browser). Without an argument: the theme on screen. */
+export function styleStatusBar(theme:'light'|'dark'|'hc'=currentTheme()){
   const sb=nativePlugin('StatusBar');if(!sb)return;
-  try{void sb.setOverlaysWebView?.({overlay:false});void sb.setBackgroundColor?.({color:'#7a1f2b'});void sb.setStyle?.({style:'DARK'});}catch{/* ignore */}
+  const color=STATUS_BAR_COLOURS[theme]??STATUS_BAR_COLOURS.light;
+  try{void sb.setOverlaysWebView?.({overlay:false});void sb.setBackgroundColor?.({color});void sb.setStyle?.({style:'DARK'});}catch{/* ignore */}
 }
 
 // ── Files: CSV export and printing ──
@@ -165,4 +170,23 @@ export async function printDocument():Promise<SaveResult|'printed'>{
   const {title,html}=printTarget();
   const css=Array.from(document.querySelectorAll('style')).map(s=>s.textContent??'').join('\n');
   return printPage(title,printablePage(title,html,css));
+}
+
+// ── Android system font size switch (CP-4) ──
+// The APK's TextZoom plugin (04 Android … TextZoomPlugin.java) decides whether the web view follows Android's own "Font size" setting.
+// Everything below is a no-op / undefined outside the APK, or in an older APK that has no TextZoom plugin. Never throws.
+/** The native TextZoom plugin (`getTextZoom()` → {zoom, systemScale, honour}; `setHonourSystem({honour})`), or undefined in a browser / an APK without it. */
+export function textZoomPlugin():Plugin|undefined{
+  if(!isNative()||!nativePluginAvailable('TextZoom'))return undefined;
+  return nativePlugin('TextZoom');
+}
+/** Switches "follow the Android font size" on or off (stored on the device and applied at every start). Resolves true when the APK applied it. */
+export async function setHonourSystemFont(flag:boolean):Promise<boolean>{
+  const p=textZoomPlugin();if(!p?.setHonourSystem)return false;
+  try{await p.setHonourSystem({honour:!!flag});return true;}catch{return false;}
+}
+/** The Android font-size setting as a multiplier (1 = normal, 1.3 ≈ "Largest"), or undefined when not running in the APK / the value is unusable. */
+export async function readSystemFontScale():Promise<number|undefined>{
+  const p=textZoomPlugin();if(!p?.getTextZoom)return undefined;
+  try{const r=await p.getTextZoom();const s=Number(r?.systemScale);return Number.isFinite(s)&&s>0?s:undefined;}catch{return undefined;}
 }

@@ -1,8 +1,9 @@
 // SCR-12 Housekeeping: supervisor board (filters by floor/assignee, reassign, inspect/reject with reason, stayover
 // generation) and the housekeeper/maintenance "My tasks" view (own tasks first, large controls, no financial data).
 import React,{useState} from 'react';
-import {Brush,ArrowRight,Check,CheckCheck,Wrench,BedDouble,CalendarClock,Info,Sparkles,TriangleAlert,Lock} from 'lucide-react';
-import {Task,assignedScopeRoles,mstFloorGroups,mstFloorLabel,hkTaskKind,hkKindLabel,hkArrivalToday,hkSortTasks,hkStayoverRooms,hkStayoverId} from '../../services/mock';
+import {Clock,Brush,ArrowRight,Check,CheckCheck,Wrench,BedDouble,CalendarClock,Info,Sparkles,TriangleAlert,Lock} from 'lucide-react';
+import {Task,assignedScopeRoles,mstFloorGroups,mstFloorLabel,hkTaskKind,hkKindLabel,hkArrivalToday,hkSortTasks,hkStayoverRooms,hkStayoverId,
+  hkChecklistOf,hkTaskTiming,hkAttendantLoad,hkInspectionQueue,hkFmtMinutes,hkzOf,hkzAttendant,hkzGroups,HKZ,mstRows,type HkTiming} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,shortDate,clockTime} from '../../components/ui';
 import {MstLink} from '../masters/MasterList';
@@ -12,20 +13,25 @@ const dotFor:Record<string,string>={'To do':'dirty','In progress':'cleaning','In
 export const hkChecklist=['Linen & bathroom','Surfaces & amenities','Final room check'];
 const kindTone:Record<string,string>={checkout:'neutral',move:'neutral',stayover:'blue',repair:'orange'};
 const first=(name?:string)=>name?.split(' · ')[0]??'';
+const timingTone:Record<HkTiming['state'],string>={waiting:'neutral',running:'blue',over:'orange',finished:'green'};
 
 export function Housekeeping(){
   const {s,user,run,permission,taskList,busy}=useHcc();
   const scoped=assignedScopeRoles.includes(user.role);
-  const [floor,setFloor]=useState('All'),[assignee,setAssignee]=useState('All');
+  const [floor,setFloor]=useState('All'),[assignee,setAssignee]=useState('All'),[zone,setZone]=useState('All');
   const floors=mstFloorGroups(s); // MA-0: floor names and order from the Floors master (fallback "Floor n")
   const assignees=[...new Set(s.tasks.map(t=>t.assignee))].map(id=>s.users.find(u=>u.id===id)).filter(Boolean) as typeof s.users;
-  const list=taskList.filter(t=>(floor==='All'||String(s.rooms.find(r=>r.id===t.room)?.floor)===floor)&&(assignee==='All'||t.assignee===assignee));
+  const list=taskList.filter(t=>(floor==='All'||String(s.rooms.find(r=>r.id===t.room)?.floor)===floor)&&(assignee==='All'||t.assignee===assignee)&&(zone==='All'||(hkzOf(s,t.room)?.id??'none')===zone));
+  const zones=mstRows(s,HKZ,{active:true});
+  const load=hkAttendantLoad(s),insp=hkInspectionQueue(s);
   const pendingStay=hkStayoverRooms(s).filter(r=>!s.tasks.some(t=>t.id===hkStayoverId(r,s.date))).length;
   const generate=permission('inspect')?<button className="btn" disabled={busy||pendingStay===0} title={pendingStay?'':'Stayover tasks already exist for every in-house room today'} onClick={()=>run({type:'STAYOVER_GENERATE',key:'stayover:'+s.date+':'+s.sequence},'Stayover tasks generated')}><Sparkles size={15}/> Generate stayover tasks{pendingStay?` (${pendingStay})`:' · all created'}</button>:undefined;
 
   if(scoped)return <><PageTitle title="My tasks" sub={user.role==='Maintenance'?'Your assigned repairs. Rooms stay blocked until a supervisor releases them.':'Your assigned rooms. One thoughtful detail at a time.'}/>
     <div className="small-stats">{columns.map(c=><div key={c}><span>{columnLabel[c]}</span><strong>{taskList.filter(x=>x.status===c).length}</strong></div>)}</div>
-    <div className="hk-mine">{hkSortTasks(s,taskList).map(t=><TaskCard key={t.id} t={t} large/>)}
+    <div className="hk-mine">{hkzGroups(s,hkSortTasks(s,taskList)).map((g,_i,all)=><React.Fragment key={g.zone?.id??'none'}>
+      {all.length>1&&<h3 className="hk-zone-head">{g.label}<span>{g.tasks.length}</span></h3>}
+      {g.tasks.map(t=><TaskCard key={t.id} t={t} large/>)}</React.Fragment>)}
       {!taskList.length&&<p className="column-empty">No tasks are assigned to you right now.</p>}</div></>;
 
   return <><PageTitle title="Housekeeping" sub="A well-kept room is the beginning of a good stay." action={generate}/>
@@ -33,9 +39,14 @@ export function Housekeeping(){
     <div className="hk-filters" role="group" aria-label="Filter tasks">
       <label>Floor<select value={floor} onChange={e=>setFloor(e.target.value)}><option value="All">All floors</option>{floors.map(f=><option key={f.floor} value={String(f.floor)}>{f.label}</option>)}</select></label><MstLink spec="floors"/>
       <label>Assignee<select value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="All">Everyone</option>{s.tasks.some(t=>!t.assignee)&&<option value="">Unassigned</option>}{assignees.map(u=><option key={u.id} value={u.id}>{first(u.name)} · {u.role}</option>)}</select></label>
-      {(floor!=='All'||assignee!=='All')&&<button className="text-btn" onClick={()=>{setFloor('All');setAssignee('All');}}>Clear filters</button>}
+      <label>Zone<select value={zone} onChange={e=>setZone(e.target.value)}><option value="All">All zones</option>{zones.map(z=><option key={z.id} value={z.id}>{z.name}</option>)}<option value="none">No zone</option></select></label><MstLink spec="hkZones"/>
+      {(floor!=='All'||assignee!=='All'||zone!=='All')&&<button className="text-btn" onClick={()=>{setFloor('All');setAssignee('All');setZone('All');}}>Clear filters</button>}
       <span className="muted">{list.length} of {taskList.length} tasks</span>
     </div>
+    <section className="hk-load card" aria-label="Attendant load"><div className="flex-between"><h3><Clock size={15}/> Attendant load</h3><MstLink spec="hkTaskTypes" label="Manage list… · task types and standard minutes"/></div>
+      <ul>{load.map(l=><li key={l.user}><strong>{l.name}</strong><span>{l.rooms} room{l.rooms===1?'':'s'} · {hkFmtMinutes(l.minutes)} planned{l.running?` · ${l.running} running`:''}</span>{l.over&&<Pill tone="orange">Over guide of {l.guide} rooms</Pill>}</li>)}
+        <li><strong>Supervisor</strong><span>{insp.rooms} awaiting inspection · {hkFmtMinutes(insp.minutes)}</span></li></ul>
+      <small className="muted">Standard minutes come from the task types (Housekeeping and maintenance). Guide: rooms per attendant in Master configuration.</small></section>
     <div className="kanban">{columns.map(status=><section className="kanban-col" key={status} aria-label={columnLabel[status]}>
       <h3><i className={'dot '+dotFor[status]}/>{columnLabel[status]}<span>{list.filter(t=>t.status===status).length}</span></h3>
       {hkSortTasks(s,list.filter(t=>t.status===status)).map(t=><TaskCard key={t.id} t={t}/>)}
@@ -58,22 +69,23 @@ export function TaskCard({t,large}:{t:Task;large?:boolean}){
   const Icon=kind==='repair'?Wrench:kind==='stayover'?BedDouble:Brush;
   const verb=kind==='repair'?'repair':kind==='stayover'?'service':'cleaning';
   const canReport=permission('housekeeping')||permission('reservations')||permission('inspect');
+  const items=hkChecklistOf(s,t),timing=hkTaskTiming(s,t),zone=hkzOf(s,t.room),zoneAtt=hkzAttendant(s,t.room);
   const openRepair=s.tasks.some(x=>x.room===t.room&&x.kind==='repair'&&x.status!=='Done');
   return <article className={'task-card hk-card '+(large?'hk-large':'')} aria-label={`Room ${t.room} · ${hkKindLabel[kind]} · ${t.status}`}>
     <div className="flex-between"><h2>Room {t.room}</h2><Icon size={19} aria-hidden/></div>
-    <div className="hk-tags"><Pill tone={kindTone[kind]}>{hkKindLabel[kind]}</Pill>{arrival&&t.status!=='Done'&&<Pill tone="orange"><CalendarClock size={12}/> Priority · Arrival today</Pill>}{large&&<Pill>{columnLabel[t.status]}</Pill>}</div>
+    <div className="hk-tags"><Pill tone={kindTone[kind]}>{hkKindLabel[kind]}</Pill>{arrival&&t.status!=='Done'&&<Pill tone="orange"><CalendarClock size={12}/> Priority · Arrival today</Pill>}{large&&<Pill>{columnLabel[t.status]}</Pill>}{zone&&<Pill tone="neutral">Zone · {zone.name}</Pill>}{timing&&t.status!=='Done'&&<Pill tone={timingTone[timing.state]}><Clock size={12}/> {timing.label}</Pill>}{timing&&t.status==='Done'&&timing.state==='finished'&&<Pill tone={timing.over?'orange':'green'}>{timing.label}</Pill>}</div>
     <p>{room?.type} · {room?mstFloorLabel(s,room):''}{t.createdAt?` · created ${clockTime(t.createdAt)} (${age(t.createdAt,s.clock)} ago)`:''}</p>
     {room?.blocked&&<div className="hk-note warn"><Lock size={13}/> Blocked · {room.blockReason||'Out of service'}{room.blockFrom||room.blockTo?` · ${room.blockFrom?shortDate(room.blockFrom):'now'} → ${room.blockTo?shortDate(room.blockTo):'open-ended'}`:''}</div>}
     {t.note&&<div className="hk-note"><Wrench size={13}/> {t.note}</div>}
     {t.rejectReason&&t.status!=='Done'&&<div className="hk-note warn"><TriangleAlert size={13}/> Returned: {t.rejectReason}</div>}
     <div className="assignee"><span className="avatar small">{who?.name[0]??'?'}</span>{first(who?.name)||(t.assignee||'Unassigned')}{who&&!who.enabled?' (disabled)':''}</div>
-    {!t.assignee&&t.status!=='Done'&&<div className="hk-note warn"><TriangleAlert size={13}/> {permission('inspect')?'Unassigned. Choose a housekeeper below so the task appears on their list.':'Unassigned. A supervisor assigns this task.'}</div>}
+    {!t.assignee&&t.status!=='Done'&&<div className="hk-note warn"><TriangleAlert size={13}/> {permission('inspect')?'Unassigned. Choose a housekeeper below so the task appears on their list.':'Unassigned. A supervisor assigns this task.'}{permission('inspect')&&zoneAtt&&zone&&<> Zone default: <button className="text-btn" disabled={busy} onClick={()=>run({type:'TASK',id:t.id,action:'assign',assignee:zoneAtt},'Task assigned to the zone attendant')}>Assign {first(s.users.find(u=>u.id===zoneAtt)?.name)}</button></>}</div>}
     {permission('inspect')&&t.status!=='Done'&&!large&&<select aria-label={'Assign room '+t.room} value={t.assignee} disabled={busy} onChange={e=>run({type:'TASK',id:t.id,action:'assign',assignee:e.target.value},'Task reassigned')}>
       {!pool.some(h=>h.id===t.assignee)&&<option value={t.assignee}>{first(who?.name)||t.assignee||'Assign to…'}</option>}
       {pool.map(h=><option key={h.id} value={h.id}>{first(h.name)}</option>)}</select>}
-    {t.status==='In progress'&&kind!=='repair'&&<div className={'checklist'+(large?' hk-big-check':'')}>{hkChecklist.map((l,i)=><label key={l}><input type="checkbox" checked={!!t.checked[i]} disabled={busy} onChange={()=>run({type:'TASK',id:t.id,action:'check',index:i},'Checklist updated')}/>{l}</label>)}</div>}
+    {t.status==='In progress'&&kind!=='repair'&&<div className={'checklist'+(large?' hk-big-check':'')}>{items.map((l,i)=><label key={l}><input type="checkbox" checked={!!t.checked[i]} disabled={busy} onChange={()=>run({type:'TASK',id:t.id,action:'check',index:i},'Checklist updated')}/>{l}</label>)}</div>}
     {t.status==='To do'&&<button className={btn} disabled={busy} onClick={()=>run({type:'TASK',id:t.id,action:'start'},`Started ${verb}`)}>Start {verb} <ArrowRight size={15}/></button>}
-    {t.status==='In progress'&&(()=>{const ready=kind==='repair'||t.checked.every(Boolean);
+    {t.status==='In progress'&&(()=>{const ready=kind==='repair'||items.every((_,i)=>!!t.checked[i]);
       return <><button className={btn+' primary'} disabled={busy||!ready} onClick={()=>run({type:'TASK',id:t.id,action:'complete'},kind==='repair'?'Repair marked done. A supervisor will unblock the room.':kind==='stayover'?'Stayover service completed':'Cleaning completed')}>{kind==='repair'?'Mark repair done':`Complete ${verb}`}</button>
         {!ready&&<small className="hk-reason">Tick all checklist items to complete.</small>}</>;})()}
     {t.status==='Inspection'&&(permission('inspect')

@@ -12,7 +12,9 @@ import type {Booking} from '../../../domain/types';
 import {available,rateFor,totals} from '../../../domain/selectors';
 import {nights,addMinutes,money} from '../../../domain/money';
 import {resCapacity,resHoldActive,resSweepHolds,RES_HOLD_MINUTES,RES_GSTIN,RES_PHONE} from '../../../domain/streams/reservations';
+import {rmsCapacity} from '../../../domain/streams/roommasters';
 import {yldStayViolations} from '../../../domain/streams/yield';
+import {catCheckPlan} from '../../../domain/streams/catalogue';
 import {grpCompany,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
 import type {GRPCompany} from '../../../domain/streams/groups';
 
@@ -33,8 +35,8 @@ function stay({s,assert}:Kit,arrival:string,departure:string){
   assert(DATE.test(arrival)&&DATE.test(departure)&&nights(arrival,departure)>0&&nights(arrival,departure)<=30,'Departure must follow arrival (maximum 30 nights in this demo).');
   assert(arrival>=s.date,'Arrival cannot be before the current business date.');
 }
-function capacity({assert}:Kit,room:{id:string;type:string},people:number,children:number){
-  const max=resCapacity(room as never);
+function capacity({s,assert}:Kit,room:{id:string;type:string},people:number,children:number){
+  const max=rmsCapacity(s,room.type)??resCapacity(room as never); // MA-1: room-types master (max adults + children; seeded = RES_CAPACITY)
   assert(people+children<=max,`Room ${room.id} (${room.type}) accommodates at most ${max} guests including children.`);
 }
 /** Yield stay restrictions (A2.1). A user with the approve permission may override with cmd.restrictionOverride (reason);
@@ -71,6 +73,7 @@ export const handlers:Record<string,Handler>={
     capacity(k,r!,cmd.people,children);
     assert(available(s,cmd.room,cmd.arrival,cmd.departure),'This room is not available for those dates.','NOT_AVAILABLE');
     const overridden=restrictions(k,r!.type,cmd.arrival,cmd.departure);
+    const plan=catCheckPlan(s,cmd.plan,r!.type); // MA-2 meal plan (optional; active, allowed for the room type)
     const bid=id('HCC'),hold=!!cmd.hold;
     const x:Booking={id:bid,guest:cmd.guest.trim(),email:cmd.email||'',people:cmd.people,room:r!.id,arrival:cmd.arrival,departure:cmd.departure,rate:rateFor(s,r!,cmd.arrival),source,status:hold?'Held':'Confirmed',registered:false,lines:[],receipts:[],version:1,notes:[cmd.notes||'',overridden.slice(3)].filter(Boolean).join(' · ')};
     if(hold)x.holdUntil=addMinutes(s.clock,RES_HOLD_MINUTES);
@@ -78,6 +81,7 @@ export const handlers:Record<string,Handler>={
     if(children)x.children=children;
     if(ota&&source.startsWith('OTA'))x.otaChannel=ota;
     if(companyName)x.company=gstin?{name:companyName,gstin}:{name:companyName};
+    if(plan)x.plan=plan.code;
     const before=account?grpExposure(s,account):0;
     if(account)x.company={...x.company!,account:account.id};
     s.bookings.push(x);

@@ -70,7 +70,7 @@ export async function register({test,assert,M}){
     'POST /commands/SaveStaff':({body})=>({staffId:body.staffId??113,name:body.name,version:'v2',notes:'saved'}),
     ...Object.fromEntries(['SetStaffActive','SetRoster','CopyRosterWeek','MarkAttendance','RequestLeave','DecideLeave','CancelLeave','SetLeavePolicy','SaveDepartment',
       'GiveAdvance','SetStatutoryRates','PreparePayRun','LockPayRun','UnlockPayRun','IssueBankFile','SendPayslip','PrepareFnf','ConfirmFnf','DiscardFnf',
-      'CorrectAttendance','DecidePayrollRequest','WithdrawPayrollRequest','SaveHoliday','RemoveHoliday'].map(n=>['POST /commands/'+n,ok(n)])),
+      'CorrectAttendance','DecidePayrollRequest','WithdrawPayrollRequest','SavePaidHoliday','RemoveHoliday'].map(n=>['POST /commands/'+n,ok(n)])),
   });
   const rt=await startRuntime(S,srv,mine);
   const st=rt.get().state,x=st.staffX;
@@ -149,7 +149,7 @@ export async function register({test,assert,M}){
     [{type:'HR_ATT_CORRECT',staffId:ravi,date:'2026-09-22',mark:'P',otMin:30,reason:' Duty register '},'CorrectAttendance',
       {staffId:+ravi,date:'2026-09-22',mark:'P',reason:'Duty register',otMinutes:30}],
     [{type:'HR_ATT_CORRECT',staffId:ravi,date:'2026-09-16',mark:'CL',otMin:0,reason:'Leave form'},'CorrectAttendance',{staffId:+ravi,date:'2026-09-16',mark:'CL',reason:'Leave form'}],
-    [{type:'HR_HOLIDAY_SAVE',date:'2026-11-14',name:' Diwali (fictional) '},'SaveHoliday',{date:'2026-11-14',name:'Diwali (fictional)'}],
+    [{type:'HR_HOLIDAY_SAVE',date:'2026-11-14',name:' Diwali (fictional) '},'SavePaidHoliday',/* masters integration: old SaveHoliday */{date:'2026-11-14',name:'Diwali (fictional)'}],
     [{type:'HR_HOLIDAY_REMOVE',date:'2026-11-14'},'RemoveHoliday',{date:'2026-11-14'}],
     [{type:'HR_STAFF_SAVE',id:ravi,name:rv.name,dept:rv.dept,designation:rv.designation,userId:rv.userId,defaultShift:rv.defaultShift,weeklyOff:rv.weeklyOff,
       accountNo:'999999999999',bankReason:' New account (fictional) '},'SaveStaff',

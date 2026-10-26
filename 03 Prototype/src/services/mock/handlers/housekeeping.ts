@@ -5,6 +5,7 @@ import type {Room,Permission} from '../../../domain/types';
 import {assignedScopeRoles} from '../../../domain/types';
 import {can} from '../../../domain/selectors';
 import {hkTaskKind,hkStayoverId,hkStayoverRooms,hkAllocationsOverlapping,HK_REPAIR_ASSIGNEE} from '../../../domain/streams/housekeeping';
+import {hkChecklistOf,hkNeedsInspection,hkzAttendant} from '../../../domain/streams/hkmasters'; // MA-7: task types + zones
 
 const ISO=/^\d{4}-\d{2}-\d{2}$/;
 const room=(k:Kit,id:unknown)=>{const r=k.s.rooms.find(r=>r.id===id);k.assert(r,'Room not found.','NOT_FOUND');return r!;};
@@ -36,7 +37,9 @@ export const handlers:Record<string,Handler>={
     else if(cmd.action==='check'){
       assert(kind!=='repair','Repair tasks have no cleaning checklist.');
       assert(task.status==='In progress','Start the task before checking items.','INVALID_TRANSITION');
-      assert([0,1,2].includes(cmd.index),'Invalid checklist item.');task.checked[cmd.index]=!task.checked[cmd.index];
+      const items=hkChecklistOf(s,task); // MA-7: the task type's checklist (default: the built-in three items)
+      assert(Number.isInteger(cmd.index)&&cmd.index>=0&&cmd.index<items.length,'Invalid checklist item.');
+      while(task.checked.length<items.length)task.checked.push(false);task.checked[cmd.index]=!task.checked[cmd.index];
     }
     else if(cmd.action==='complete'){
       if(kind==='repair'){
@@ -44,9 +47,9 @@ export const handlers:Record<string,Handler>={
         assert(task.status==='In progress','Start the repair before completing it.','INVALID_TRANSITION');
         task.status='Done';extra=r.blocked?' · room stays blocked until a supervisor unblocks it':'';
       }else{
-        assert(task.status==='In progress'&&task.checked.every(Boolean),'Finish all checklist items first.','INVALID_TRANSITION');
+        assert(task.status==='In progress'&&hkChecklistOf(s,task).every((_,i)=>!!task.checked[i]),'Finish all checklist items first.','INVALID_TRANSITION');
         if(kind==='stayover')task.status='Done'; // stayover: no inspection, room readiness unchanged
-        else{task.status=s.settings.inspection?'Inspection':'Done';r.hk=s.settings.inspection?'Inspection':'Ready';}
+        else{const insp=s.settings.inspection&&hkNeedsInspection(s,task);task.status=insp?'Inspection':'Done';r.hk=insp?'Inspection':'Ready';} // MA-7: also needs the task type's “needs inspection”
       }
       task.completedAt=s.clock;
     }
@@ -61,7 +64,7 @@ export const handlers:Record<string,Handler>={
       assert(task.status==='Inspection','Task is not awaiting inspection.','INVALID_TRANSITION');
       const reason=String(cmd.reason??'').trim();
       assert(reason.length>=3,'Enter a reason for returning the room for cleaning.');
-      task.status='In progress';r.hk='Cleaning';task.checked=[false,false,false];task.rejectReason=reason;task.completedAt=undefined;extra=' · '+reason;
+      task.status='In progress';r.hk='Cleaning';task.checked=hkChecklistOf(s,task).map(()=>false);task.rejectReason=reason;task.completedAt=undefined;extra=' · '+reason;
     }
     else fail('VALIDATION','Unknown task action.');
     return task.room+' · '+cmd.action+extra;
@@ -122,7 +125,8 @@ export const handlers:Record<string,Handler>={
       const tid=hkStayoverId(roomId,s.date);
       if(s.tasks.some(t=>t.id===tid)){existing++;continue;}
       const floor=s.rooms.find(r=>r.id===roomId)?.floor??1;
-      s.tasks.push({id:tid,room:roomId,assignee:hks[(floor-1)%hks.length],status:'To do',checked:[false,false,false],kind:'stayover',date:s.date,createdAt:s.clock});
+      // MA-7: the room's zone attendant first (seeded zones = the old per-floor round robin), then the old rule; checklist length from the task type.
+      s.tasks.push({id:tid,room:roomId,assignee:hkzAttendant(s,roomId)??hks[(floor-1)%hks.length],status:'To do',checked:hkChecklistOf(s,{kind:'stayover'}).map(()=>false),kind:'stayover',date:s.date,createdAt:s.clock});
       created++;
     }
     return `${created} stayover task(s) created for ${s.date}${existing?`; ${existing} already existed`:''}`;

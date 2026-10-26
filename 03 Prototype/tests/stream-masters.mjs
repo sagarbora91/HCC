@@ -30,8 +30,8 @@ export function register({test,M,assert}){
   test('[MST] fixture figures unchanged (occupancy 8, collections ₹21,500, drawer ₹10,725)',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);});
   test('[MST] BASE and FY26 history hashes unchanged (grants aside: DEC-MA-1 adds "masters" to Owner and Tech admin)',()=>{
-    assert.equal(sha(strip(seed())),'d885a20a6501f44885b795184ffdd0e4e0ca3c3280e6b3ff87208c3db0635324');
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'ba4a1d4e69100d674327cf593def1519e73cd1501e7489671b6787a04fdd229f');
+    assert.equal(sha(strip(seed())),'add626d3e76aa9a5f2475049c8592c3b40207624c92cb44942e7215d08761d52') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'35e6308217fd38e9c5e3bc9137aa974eefee0930d3f49c8037853b8f76ad8319') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;
     assert.equal(sha(M.loadScenario('FY26').bookings),'66e8195233df0bb433ef76dfe58c83e215f93473a90b5bbf8b2c08613d5dbfce');});
   test('[MST] permission list and grants: "masters" added; Owner + Tech admin hold it, Manager does not (DEC-MA-1)',()=>{
     // old → new: permissions 12 → 13 ('masters'); Tech admin ['admin'] → ['admin','masters']; Manager unchanged (all but admin, masters).

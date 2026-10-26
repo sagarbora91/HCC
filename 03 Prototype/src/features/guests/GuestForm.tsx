@@ -2,7 +2,8 @@
 import React,{useState} from 'react';
 import {AlertTriangle,Plus,Trash2,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {GuestDraft,Guest,guestValidate,guestDuplicates,guestIdTypes,guestAgeBands,guestView,guestIdKind,guestIdMask} from '../../services/mock';
+import {GuestDraft,Guest,guestValidate,guestDuplicates,guestAgeBands,guestView,guestIdKind,guestIdMask,fdmIdTypeChoices} from '../../services/mock';
+import {FdmIdTypeNote} from '../reservations/masters';
 
 export const emptyDraft=(over:GuestDraft={}):GuestDraft=>({name:'',phone:'',email:'',address:'',nationality:'Indian',idType:'',idLast4:'',idNumber:'',company:'',gstin:'',preferences:'',notes:'',party:[],...over});
 export const draftOf=(g:Guest):GuestDraft=>emptyDraft({name:g.name,phone:g.phone,email:g.email,address:g.address,nationality:g.nationality,idType:g.idType,idLast4:g.idLast4,company:g.company||'',gstin:g.gstin||'',preferences:g.preferences,notes:g.notes,party:g.party.map(p=>({...p}))});
@@ -34,7 +35,7 @@ export function GuestForm({initial,guestId,registration,submitLabel,onSubmit,onU
     <div className="form-row">{f('phone','Phone (fictional)',{type:'tel',maxLength:20,placeholder:'+91 98200 0xxxx'},true)}{f('email','Email (optional)',{type:'email',maxLength:80,placeholder:'guest@example.test'})}</div>
     {f('address','Address',{maxLength:160,placeholder:'Street, city (fictional)'},registration)}
     <div className="form-row">
-      <label><span>ID type{registration&&<span className="gs-req" aria-hidden> *</span>}</span><select name="idType" value={d.idType} onChange={set('idType')} aria-invalid={!!shown.idType} disabled={disabled}><option value="">Choose…</option>{guestIdTypes.map(x=><option key={x}>{x}</option>)}{d.idType&&!guestIdTypes.includes(d.idType)&&<option>{d.idType}</option>}</select>{shown.idType&&<span className="gs-field-error">{shown.idType}</span>}</label>
+      <label><span>ID type{registration&&<span className="gs-req" aria-hidden> *</span>}</span><select name="idType" value={d.idType} onChange={set('idType')} aria-invalid={!!shown.idType} disabled={disabled}><option value="">Choose…</option>{fdmIdTypeChoices(s,d.nationality,d.idType).map(x=><option key={x}>{x}</option>)}</select>{shown.idType?<span className="gs-field-error">{shown.idType}</span>:<FdmIdTypeNote type={d.idType} nationality={d.nationality}/>}</label>
       {f('idNumber',idLabel,{maxLength:24,placeholder:idHint[guestIdKind(d.idType)],autoComplete:'off',inputMode:guestIdKind(d.idType)==='aadhaar'?'numeric':undefined},registration&&!d.idLast4)}
     </div>
     {onFile!==undefined&&<p className="muted gs-idcur">Current ID on file: {onFile?guestIdMask(stored?.idLast4)+' (full number stored — leave the field blank to keep it)':stored?.idLast4?guestIdMask(stored.idLast4)+' — full number not on file':'none'}</p>}
