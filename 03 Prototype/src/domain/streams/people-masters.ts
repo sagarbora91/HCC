@@ -199,6 +199,9 @@ const LEAVE_SPEC:MasterSpec<HRLeaveTypeRow>={
 };
 const ISO=/^\d{4}-\d{2}-\d{2}$/;
 const validDate=(d:string)=>ISO.test(d)&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
+const holidayMonthLocked=(s:State,date:string)=>(s.staffX?.runs??[]).some(r=>r.status==='Locked'&&r.month===String(date).slice(0,7));
+// Same words as staff.ts HR_HOLIDAY_SAVE (hrMonthLabel; not imported: staff.ts imports this module).
+const holidayLockedText=(date:string)=>`${new Date(String(date).slice(0,7)+'-15T12:00:00Z').toLocaleDateString('en-IN',{month:'long',year:'numeric',timeZone:'UTC'})} payroll is locked — its holidays cannot change.`;
 const HOLIDAY_SPEC:MasterSpec<HRHoliday>={
   id:HRM_HOLIDAYS,label:'Holiday calendar',singular:'holiday',group:'people',prefix:'HOL',money:true,permission:'settings',
   help:'Public holidays by date (Owner only — they change pay and statutory due dates). A paid holiday is a paid day for staff and is not counted as leave; compliance due dates falling on one move to the next working day. Restricted holidays are information only.',
@@ -211,7 +214,12 @@ const HOLIDAY_SPEC:MasterSpec<HRHoliday>={
   ],
   inUse:(s,row)=>{const months=(s.staffX?.runs??[]).filter(r=>r.status==='Locked'&&r.month===row.code.slice(0,7));
     return {count:months.length,where:months.length?[`Locked pay-run ${months[0].month}`]:[]};},
-  validate:(s,row)=>{if(!validDate(row.code))return 'Date: a real calendar date like 2026-11-08.';return undefined;},
+  // MA-11: a PAID holiday of a locked pay month cannot be added, changed or retired — the rule of Wave B's HR_HOLIDAY_SAVE / _REMOVE (DEC-083).
+  validate:(s,row,rows)=>{if(!validDate(row.code))return 'Date: a real calendar date like 2026-11-08.';
+    const old=rows.find(r=>r.id===row.id);
+    for(const r of [old,row])if(r&&r.kind==='paid'&&holidayMonthLocked(s,r.code))return holidayLockedText(r.code);
+    return undefined;},
+  canRetire:(s,row)=>row.kind==='paid'&&holidayMonthLocked(s,row.code)?holidayLockedText(row.code):undefined,
   seed:()=>HR_HOLIDAY_SEED.map((x,i)=>({id:'hol-'+x.code,code:x.code,name:x.name,sortOrder:(i+1)*10,active:true,kind:x.kind})),
 };
 registerMaster(DESIGNATION_SPEC);registerMaster(SHIFT_SPEC);registerMaster(LEAVE_SPEC);registerMaster(HOLIDAY_SPEC);

@@ -66,6 +66,8 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
         }, ct).ConfigureAwait(false);
     }
 
+    private const string MenuRequestFields = "A menu request carries the name, category, price, veg and outlets only. The GST class (Owner) and the kitchen station are changed in Master configuration › Restaurant.";
+
     /// <summary>MA-4 + Wave B: SaveMenuItem is the menu master's command (<see cref="PosMastersService.SaveMenuItemAsync"/>: PERM-MST-001, prices and
     /// GST class PERM-MST-002, dated prices, categories, history) for everyone except a request-only caller: a Manager (PERM-POS-006 'R', DEC-079 D5)
     /// sends a request the Owner decides (<see cref="DecideMenuChangeAsync"/>); the W2-6 body keeps working through both.</summary>
@@ -101,6 +103,13 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
 
             if (!direct)
             {
+                // MA-11 (DEC-MA-11b): a Manager's request carries name, category, price, veg and outlets only (Wave B D5). The GST class is a money
+                // field (Owner, DEC-058) and the kitchen station a masters field (Owner / Tech admin, DEC-MA-1): a different value is refused here
+                // instead of being dropped silently; the current values (as the screens send them) pass.
+                if (req.GstClass is { Length: > 0 } g && !string.Equals(g.Trim(), current?.GstClass ?? "food", StringComparison.OrdinalIgnoreCase))
+                    throw HccException.Validation(MenuRequestFields);
+                if (req.Station is { } st && !string.Equals(st.Trim(), current?.Station ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+                    throw HccException.Validation(MenuRequestFields);
                 if (await store.PendingMenuRequestExistsAsync(tx, caller.PropertyId, code, req.ItemId, ct2).ConfigureAwait(false))
                     throw Invalid("A change to this menu item is already waiting for the Owner.");
                 var requestId = await store.InsertMenuRequestAsync(tx, new NewMenuRequest(caller.PropertyId, req.ItemId, code, name, category, price, req.Veg, outlets,
