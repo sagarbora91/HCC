@@ -200,11 +200,14 @@ export const ROOM_SPEC:MasterSpec<RmsRoomRow>={
   canRetire:(s,row)=>{const l=rmsLiveBookings(s,row.id);return l.length?`Room ${row.id} has bookings ${rmsLockText(l)} — move them before retiring the room.`:undefined;},
   validate:(s,row)=>{
     if(!RMS_ROOM_NO.test(String(row.code)))return 'Room number: 1–10 capital letters, digits or “-”.';
+    // V14-7: a new room (Paste rows / import) passes the same number check as range add (rooms incl. retired, numbers on past stays).
+    if(!s.rooms.some(r=>r.id===row.id)){const why=rmsNumberTaken(s,String(row.code));if(why)return why;}
     if(mstFloorNumber(String(row.floor))===undefined)return `Floor ${row.floor}: rooms can be placed on floors coded F<number> (F0 = ground).`;
     if(row.connecting&&(row.connecting===row.code||!s.rooms.some(r=>r.id===row.connecting)))return `Connecting room ${row.connecting}: choose another existing room.`;
     if(row.extension&&!/^\d{2,6}$/.test(String(row.extension)))return 'Phone extension: 2–6 digits.';
     return undefined;},
   store:{read:readRooms,write:writeRooms},
+  autoName:code=>'Room '+code,
 };
 /** Room numbers already used: rooms (incl. retired) and numbers on past stays (renumbered rooms keep their old stays). */
 export function rmsNumberTaken(s:State,no:string):string|undefined{

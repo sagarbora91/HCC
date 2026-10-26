@@ -4,6 +4,7 @@
 import type React from 'react';
 
 export type MstToolsProps={specId:string;phone?:boolean};
-export type MstToolsEntry={Tools?:React.ComponentType<MstToolsProps>;hideAdd?:boolean;noReorder?:boolean};
+/** noReorderNote (V14-7): the visible reason shown instead of the arrows when noReorder is set. */
+export type MstToolsEntry={Tools?:React.ComponentType<MstToolsProps>;hideAdd?:boolean;noReorder?:boolean;noReorderNote?:string};
 export const mstTools:Record<string,MstToolsEntry>={};
 export function registerMasterTools(specId:string,entry:MstToolsEntry){mstTools[specId]=entry;}

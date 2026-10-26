@@ -11,6 +11,7 @@
 import type {State} from '../types';
 import {SCHEMA} from '../types';
 import {masterSpecs,mstSpec,mstRows,mstMoneyOn,mstCanEdit,mstVisibleRow,type MasterSpec,type MasterRow,type FieldSpec,type MstDatedAmount} from './masters';
+import {isProductionBuild} from '../build';
 
 export const MST_IO_FORMAT='hcc-masters';
 export const MST_IO_BASE=['code','name','sortOrder','active'] as const;
@@ -23,6 +24,11 @@ export const MST_IO_WIRE:Record<string,string>={
   outlets:'pos-outlets',posTables:'pos-tables',menuCategories:'menu-categories',menuItems:'pos-menu',bookingSources:'booking-sources',idTypes:'id-types',
   numberSeries:'number-series',policies:'policies',designations:'designations',shiftPatterns:'shift-patterns',leaveTypes:'leave-types',holidays:'holidays',
   hkTaskTypes:'hk-task-types',hkZones:'hk-zones',complaintCategories:'complaint-categories',lostFoundCategories:'lost-found-categories'};
+/** V14-7: lists with no server file of these columns (the server keeps its older room-types / rooms import, deployment/import-templates) take
+ *  "Paste rows" in the demo build only, through the same MST_IMPORT checks as their own forms and tools (rooms: the range-add number rule). */
+export const MST_IO_LOCAL=['roomTypes','rooms'];
+/** Whether a list offers "Paste rows" (desktop and phone MasterList). */
+export const mstCanPaste=(id:string)=>MST_IO_WIRE[id]!==undefined||(MST_IO_LOCAL.includes(id)&&!isProductionBuild());
 /** A blank toggle cell: the default of the field (everything else is off). */
 export const MST_IO_TOGGLE_DEFAULT:Record<string,boolean>={showOnWebsite:true,accepted:true};
 const TOGGLE_DEFAULT=MST_IO_TOGGLE_DEFAULT;
@@ -195,7 +201,7 @@ export function mstRowsFromCsv(s:State,spec:MasterSpec,text:string):MstCsvResult
     cols.push(k);
   });
   res.columns=cols.filter(Boolean) as string[];
-  for(const need of ['code','name',...fields.filter(f=>f.required&&!['code','name'].includes(f.key)).map(f=>f.key)])
+  for(const need of ['code',...(spec.autoName?[]:['name']),...fields.filter(f=>f.required&&!['code','name'].includes(f.key)).map(f=>f.key)])
     if(!cols.includes(need))res.errors.push({line:1,column:need,message:`Required column “${need}” is missing. Use the headers of Copy CSV.`});
   if(res.errors.length)return res;
   if(!p.rows.length){res.errors.push({line:0,column:'',message:'The text has a header line but no rows.'});return res;}
@@ -210,6 +216,7 @@ export function mstRowsFromCsv(s:State,spec:MasterSpec,text:string):MstCsvResult
       else if(k==='active'){const t=cell.trim().toLowerCase();if(t){if(['yes','y','true','1'].includes(t))row.active=true;else if(['no','n','false','0'].includes(t))row.active=false;else issue(k)('Active: enter yes or no.');}}
       else{const f=fields.find(x=>x.key===k)!;const v=valueOf(s,f,cell,issue(k));if(v!==undefined)row[k]=v;}
     });
+    if(spec.autoName&&!row.name&&row.code)row.name=spec.autoName(String(row.code)); // V14-7: rooms are named after their number
     if(!bad)res.rows.push({line:r.line,row});
   }
   return res;

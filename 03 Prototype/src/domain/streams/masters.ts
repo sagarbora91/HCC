@@ -51,7 +51,8 @@ export type MasterSpec<T extends MasterRow=MasterRow>={
   /** Refuse retiring (MASTER_IN_USE), e.g. an outlet with open checks. */canRetire?:(s:State,row:T)=>string|undefined;
   /** Rows before the first saved change (fixture values; old saves). */seed?:(s:State)=>T[];
   /** Rows stored outside s.mastersX (MA-1 rooms read/write s.rooms). */store?:{read:(s:State)=>T[];write:(s:State,rows:T[])=>void};
-  /** One line under the title in the list. */help?:string};
+  /** One line under the title in the list. */help?:string;
+  /** V14-7: the name follows from the code (rooms: "Room 401"); a pasted or imported row may leave the name out. */autoName?:(code:string)=>string};
 export type MSTHistory={id:string;master:string;rowId:string;code:string;field:string;old:string;new:string;by:string;at:string};
 export type MSTState={rows:Record<string,MasterRow[]>;history:MSTHistory[]};
 

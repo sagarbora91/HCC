@@ -222,7 +222,7 @@ export async function register({test,M,assert}){
       assert.doesNotMatch(src(f),/floor \{r\.floor\}|Floor \{r\.floor\}/,f);
     const s=save(seed(),'owner','floors',{id:'flr-1',code:'F1',name:'Ground'});assert.equal(M.rmsRoomLine(s,room(s,'101')),'Classic · Ground');});
   test('[RMS] registration: Rooms tools (Add hidden, no reorder), modal rms-extra desktop + phone, booking-dialog slot; no new page; sync mapping',()=>{
-    const reg=src('src/features/roommasters/register.tsx');assert.match(reg,/registerMasterTools\('rooms',\{Tools:RoomTools,hideAdd:true,noReorder:true\}\)/);
+    const reg=src('src/features/roommasters/register.tsx');assert.match(reg,/registerMasterTools\('rooms',\{Tools:RoomTools,hideAdd:true,noReorder:true,noReorderNote:'Rooms are listed by floor and room number[^']*'\}\)/); /* V14-7 old → new: noReorderNote added (visible reason) */
     assert.match(reg,/modals:\{'rms-extra':ExtraModal\}/);assert.match(reg,/mobile:\{modals:\{'rms-extra':ExtraModal\}\}/);assert.match(reg,/bookingActions:RmsBookingActions/);
     assert.match(src('src/app/registry.ts'),/m_admin,(\w+,)*roommasters[,\]]/);assert.doesNotMatch(src('src/app/navmap.ts'),/roommasters|rms-/);
     assert.match(src('src/features/masters/MasterList.tsx'),/ext\?\.Tools&&<ext\.Tools/);assert.match(src('src/mobile/masters/MasterListPhone.tsx'),/ext\?\.Tools&&<ext\.Tools specId=\{specId\} phone\/>/);});
