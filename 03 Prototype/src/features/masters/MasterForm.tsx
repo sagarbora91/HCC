@@ -82,6 +82,8 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
   </div>;
 }
 
+/** optionsFrom choices plus values already on the row that dropped out (shown as "(no longer available)"). */
+const withCurrent=(opts:{value:string;label:string}[],cur:string[])=>[...opts,...cur.filter(c=>!opts.some(o=>o.value===c)).map(c=>({value:c,label:`${c} (no longer available)`}))];
 function Field({f,spec,v,err,set,disabled,note}:{f:FieldSpec;spec:MasterSpec;v:unknown;err?:string;set:(v:unknown)=>void;disabled:boolean;note?:string}){
   const {s}=useHcc();
   const id=`mst-${spec.id}-${f.key}`;
@@ -89,14 +91,15 @@ function Field({f,spec,v,err,set,disabled,note}:{f:FieldSpec;spec:MasterSpec;v:u
   const help=<>{f.help&&<small className="mst-help">{f.help}</small>}{note&&<small className="mst-help"><Lock size={12}/> {note}</small>}{err&&<small className="mst-err" role="alert">{err}</small>}</>;
   const aria={'aria-invalid':err?true:undefined,'aria-describedby':err?id+'-err':undefined};
   if(f.type==='toggle')return <label className="mst-toggle"><input type="checkbox" checked={!!v} disabled={disabled} onChange={e=>set(e.target.checked)}/> <span>{label}</span>{help}</label>;
-  if(f.type==='select'){const opts=f.master?mstOptions(s,f.master,v as string):(f.options??[]);
+  if(f.type==='select'){const opts=f.master?mstOptions(s,f.master,v as string):f.optionsFrom?withCurrent(f.optionsFrom(s),v?[String(v)]:[]):(f.options??[]);
     return <label>{label}<select value={String(v??'')} disabled={disabled} onChange={e=>set(e.target.value||undefined)} {...aria}><option value="">{f.required?'Choose…':'— none —'}</option>{opts.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>{help}</label>;}
-  if(f.type==='multiselect'){const cur=Array.isArray(v)?v.map(String):[];const opts=f.master?mstOptions(s,f.master,cur):(f.options??[]);
+  if(f.type==='multiselect'){const cur=Array.isArray(v)?v.map(String):[];const opts=f.master?mstOptions(s,f.master,cur):f.optionsFrom?withCurrent(f.optionsFrom(s),cur):(f.options??[]);
     return <fieldset className="mst-multi" disabled={disabled}><legend>{label}</legend>{opts.map(o=><label key={o.value} className="mst-toggle"><input type="checkbox" checked={cur.includes(o.value)}
       onChange={e=>set(e.target.checked?[...cur,o.value]:cur.filter(x=>x!==o.value))}/> <span>{o.label}</span></label>)}{help}</fieldset>;}
   if(f.type==='datedMoney')return <DatedMoney f={f} v={Array.isArray(v)?v as MstDatedAmount[]:[]} set={set} disabled={disabled} label={label} help={help}/>;
   const num=f.type==='number'||f.type==='money'||f.type==='percent';
   const text=toText(f,v);
+  if(f.type==='text'&&f.multiline)return <label>{label}<textarea id={id} rows={5} value={text} disabled={disabled} maxLength={f.maxLength??200} placeholder={f.placeholder} onChange={e=>set(e.target.value)} {...aria}/>{help}</label>;
   return <label>{label}<input id={id} value={text} disabled={disabled} type={num?'number':'text'} inputMode={f.type==='money'||f.type==='percent'?'decimal':num?'numeric':undefined}
     step={f.type==='money'||f.type==='percent'?0.01:num?1:undefined} maxLength={f.type==='text'?f.maxLength??200:undefined} placeholder={f.placeholder} enterKeyHint="done" autoComplete="off"
     autoCapitalize={f.key==='code'?'characters':undefined} onChange={e=>set(fromText(f,e.target.value))} {...aria}/>{help}</label>;

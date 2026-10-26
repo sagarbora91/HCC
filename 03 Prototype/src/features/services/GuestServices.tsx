@@ -1,7 +1,7 @@
 // Module 18 · Guest services — desktop page (requests, complaints, lost & found, reports) and "My guest requests" (assigned staff).
 import React,{useState} from 'react';
 import {Plus,MessageSquareWarning,PackageSearch,Printer,Play,CheckCircle2,Info} from 'lucide-react';
-import {gsvSlice,gsvSlaLabel,gsvIsOpen,gsvOverdue,gsvRecoveryStatus,gsvFollowUpDue,gsvDisposable,gsvItemAgeDays,gsvResponseTotals,gsvComplaintOpen,gsvVisibleOps,gsvCanWork,
+import {gcatLabel,lfcLabel,gcatSlaLabel,gsvSlice,gsvSlaLabel,gsvIsOpen,gsvOverdue,gsvRecoveryStatus,gsvFollowUpDue,gsvDisposable,gsvItemAgeDays,gsvResponseTotals,gsvComplaintOpen,gsvVisibleOps,gsvCanWork,
   type GSVRequest} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty} from '../../components/ui';
@@ -64,7 +64,7 @@ function ComplaintsTable(){
   return <><div className="toolbar gsv-toolbar"><div className="filters">{(['Open','Follow-up due','Closed','All'] as const).map(x=><button key={x} className={x===f?'active':''} aria-pressed={x===f} onClick={()=>setF(x)}>{x} ({pick(x).length})</button>)}</div></div>
     {!list.length?<Empty title="No complaints here"/>:<div className="table-wrap"><table><thead><tr><th>Guest</th><th>Category</th><th>Severity</th><th>Owner</th><th>Status</th><th>Recovery</th><th>Follow-up</th><th>Action</th></tr></thead>
     <tbody>{list.map(c=>{const rec=gsvRecoveryStatus(s,c);return <tr key={c.id}>
-      <td><strong>{c.guest}</strong><br/><small>{c.id}{c.room?' · Room '+c.room:''}</small></td><td>{c.category}</td><td><Pill tone={gsvSevTone(c.severity)}>{c.severity}</Pill></td>
+      <td><strong>{c.guest}</strong><br/><small>{c.id}{c.room?' · Room '+c.room:''}</small></td><td>{gcatLabel(s,c)}{(()=>{const l=gcatSlaLabel(s,c);return l&&(c.status==='Open'||c.status==='Investigating')?<><br/><Pill tone={l.tone}>{l.label}</Pill></>:null;})()}</td><td><Pill tone={gsvSevTone(c.severity)}>{c.severity}</Pill></td>
       <td>{gsvUserName(s,c.owner)}</td><td><Pill tone={gsvStatusTone(c.status)}>{c.status}</Pill></td>
       <td>{rec==='None'?(c.recoveryAction?'Action recorded':'—'):'Discount · '+rec}</td>
       <td>{c.followUp?(c.followUp.satisfied?'Satisfied':'Not satisfied'):c.followUpOn?(gsvFollowUpDue(s,c)?<Pill tone="orange">Due</Pill>:c.followUpOn):'—'}</td>
@@ -79,7 +79,7 @@ function ItemsTable(){
   return <><div className="toolbar gsv-toolbar"><div className="filters">{(['Held','Past retention','Closed','All'] as const).map(x=><button key={x} className={x===f?'active':''} aria-pressed={x===f} onClick={()=>setF(x)}>{x} ({pick(x).length})</button>)}</div></div>
     {!list.length?<Empty title="No items here"/>:<div className="table-wrap"><table><thead><tr><th>Item</th><th>Found</th><th>Found by</th><th>Storage</th><th>Age</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>{list.map(i=><tr key={i.id}>
-      <td><strong>{i.description}</strong><br/><small>{i.id} · {i.category}{i.valuable?' · valuable':''}</small></td><td>{gsvWhen(i.foundAt)}<br/><small>{i.foundWhere}</small></td>
+      <td><strong>{i.description}</strong><br/><small>{i.id} · {lfcLabel(s,i)}{i.valuable?' · valuable':''}</small></td><td>{gsvWhen(i.foundAt)}<br/><small>{i.foundWhere}</small></td>
       <td>{gsvUserName(s,i.foundBy)}</td><td>{i.storage}</td><td>{gsvItemAgeDays(s,i)} d</td>
       <td><Pill tone={gsvStatusTone(i.status)}>{i.status}</Pill>{gsvDisposable(s,i)&&<> <Pill tone="orange">Retention over</Pill></>}</td>
       <td><button className="text-btn" onClick={()=>open({type:'gsv-item',id:i.id})}>Open</button></td></tr>)}</tbody></table></div>}</>;

@@ -1,7 +1,7 @@
 // Module 18 · Guest services — phone pages (cards instead of tables, one FAB per section).
 import React,{useState} from 'react';
 import {Plus,MessageSquareWarning,PackageSearch,Printer} from 'lucide-react';
-import {gsvSlice,gsvSlaLabel,gsvIsOpen,gsvRecoveryStatus,gsvFollowUpDue,gsvDisposable,gsvItemAgeDays,gsvResponseTotals,gsvComplaintOpen,gsvVisibleOps} from '../../services/mock';
+import {gcatLabel,gsvSlice,gsvSlaLabel,gsvIsOpen,gsvRecoveryStatus,gsvFollowUpDue,gsvDisposable,gsvItemAgeDays,gsvResponseTotals,gsvComplaintOpen,gsvVisibleOps} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ListCard,KpiCard,ChipFilter,Fab} from '../../app/mobile/components';
 import {Pill,Empty} from '../../components/ui';
@@ -26,7 +26,7 @@ export function GuestServicesMobile(){
       <Fab label="New request" icon={Plus} onClick={()=>open({type:'gsv-request-new'})}/></>}
     {tab==='Complaints'&&<>
       {x.complaints.slice().sort((a,b)=>(gsvComplaintOpen(a)===gsvComplaintOpen(b)?(a.createdAt<b.createdAt?1:-1):gsvComplaintOpen(a)?-1:1)).map(c=>{const rec=gsvRecoveryStatus(s,c);return <ListCard key={c.id} onClick={()=>open({type:'gsv-complaint',id:c.id})}
-        title={<>{c.guest}{c.room?' · Room '+c.room:''}</>} sub={`${c.category} · owner ${gsvUserName(s,c.owner)}`} meta={gsvFollowUpDue(s,c)?'Follow-up due today':rec!=='None'?'Recovery discount · '+rec:c.id}
+        title={<>{c.guest}{c.room?' · Room '+c.room:''}</>} sub={`${gcatLabel(s,c)} · owner ${gsvUserName(s,c.owner)}`} meta={gsvFollowUpDue(s,c)?'Follow-up due today':rec!=='None'?'Recovery discount · '+rec:c.id}
         right={<span className="gsv-m-right"><Pill tone={gsvSevTone(c.severity)}>{c.severity}</Pill><Pill tone={gsvStatusTone(c.status)}>{c.status}</Pill></span>}/>;})}
       {!x.complaints.length&&<Empty title="No complaints recorded"/>}
       <Fab label="Log complaint" icon={MessageSquareWarning} onClick={()=>open({type:'gsv-complaint-new'})}/></>}

@@ -3,11 +3,12 @@
 // No financial data is rendered anywhere on this page (AC-M07). Touch targets ≥ 48 px; main buttons 56 px.
 import React,{useEffect,useState} from 'react';
 import {Brush,BedDouble,Wrench,ArrowRight,Check,CheckCheck,CalendarClock,Lock,TriangleAlert,Sparkles,UserRound,Hammer,ListChecks,Info,X} from 'lucide-react';
-import {Task,mstFloorLabel,hkTaskKind,hkKindLabel,hkArrivalToday,hkStayoverRooms,hkStayoverId} from '../../services/mock';
+import {Task,mstFloorLabel,hkTaskKind,hkKindLabel,hkArrivalToday,hkStayoverRooms,hkStayoverId,hkChecklistOf,hkTaskTiming,hkAttendantLoad,hkInspectionQueue,hkFmtMinutes,hkzOf,hkzGroups} from '../../services/mock';
+import {MstLink} from '../../features/masters/MasterList';
 import {useHcc} from '../../app/context';
 import {MOBILE_TAB_EVENT,takeTabFocus} from '../../app/mobile/tabs';
 import {Pill,shortDate,clockTime} from '../../components/ui';
-import {moViewFor,moFocusFrom,moMyTasks,moSegments,moSegmentTasks,moSegmentCounts,moRepairRooms,MO_HK_CHECKLIST,MoSegment} from './logic';
+import {moViewFor,moFocusFrom,moMyTasks,moSegments,moSegmentTasks,moSegmentCounts,moRepairRooms,MoSegment} from './logic';
 
 const first=(name?:string)=>name?.split(' · ')[0]??'';
 const statusLabel:Record<Task['status'],string>={'To do':'To do','In progress':'In progress','Inspection':'Awaiting inspection','Done':'Done'};
@@ -39,7 +40,7 @@ function MoHousekeepingView(){
     </div>;
     return <div className="mo-page">
       <div className="mo-head"><h2>My tasks</h2><p>{open.length?`${open.length} open · your rooms only`:'Nothing open right now'}. Room prices and bills are never shown here.</p></div>
-      {mine.map(t=><MoTaskCard key={t.id} t={t} mode="mine"/>)}
+      {hkzGroups(s,mine).map((g,_i,all)=><React.Fragment key={g.zone?.id??'none'}>{all.length>1&&<h3 className="mo-zone-head">{g.label} · {g.tasks.length}</h3>}{g.tasks.map(t=><MoTaskCard key={t.id} t={t} mode="mine"/>)}</React.Fragment>)}
       {!mine.length&&<p className="mo-empty">No tasks are assigned to you right now.</p>}
     </div>;
   }
@@ -56,6 +57,9 @@ function MoHousekeepingView(){
   return <div className="mo-page">
     <div className="mo-head"><h2>{seg==='inspect'?'Inspect rooms':'Housekeeping board'}</h2><p>{taskList.filter(t=>t.status!=='Done').length} open tasks · arrival-today rooms first.</p></div>
     <div className="mo-seg" role="group" aria-label="Task status">{moSegments.map(x=><button type="button" key={x.id} aria-pressed={seg===x.id} className={seg===x.id?'on':''} onClick={()=>setSeg(x.id)}><span>{x.label}</span><b>{counts[x.id]}</b></button>)}</div>
+    <section className="mo-card mo-load" aria-label="Attendant load"><h3>Attendant load</h3><ul>{hkAttendantLoad(s).map(l=><li key={l.user}><strong>{l.name}</strong><span>{l.rooms} room{l.rooms===1?'':'s'} · {hkFmtMinutes(l.minutes)}{l.over?' · over guide':''}</span></li>)}
+      <li><strong>Inspection</strong><span>{hkInspectionQueue(s).rooms} rooms · {hkFmtMinutes(hkInspectionQueue(s).minutes)}</span></li></ul>
+      <MstLink spec="hkTaskTypes" label="Manage list… · task types"/> <MstLink spec="hkZones" label="Manage list… · zones"/></section>
     {list.map(t=><MoTaskCard key={t.id} t={t} mode="board"/>)}
     {!list.length&&<p className="mo-empty">{seg==='inspect'?'No rooms are waiting for inspection.':'No rooms here.'}</p>}
     {permission('inspect')&&<button type="button" className="btn full mo-btn" disabled={busy||pendingStay===0} onClick={()=>run({type:'STAYOVER_GENERATE',key:'stayover:'+s.date+':'+s.sequence},'Stayover tasks generated')}>
@@ -74,13 +78,15 @@ export function MoTaskCard({t,mode}:{t:Task;mode:'mine'|'board'}){
   const kind=hkTaskKind(t),arrival=hkArrivalToday(s,t.room);
   const Icon=kind==='repair'?Wrench:kind==='stayover'?BedDouble:Brush;
   const verb=kind==='repair'?'repair':kind==='stayover'?'service':'cleaning';
-  const ready=kind==='repair'||t.checked.every(Boolean);
+  const items=hkChecklistOf(s,t),timing=hkTaskTiming(s,t),zone=hkzOf(s,t.room);
+  const ready=kind==='repair'||items.every((_,i)=>!!t.checked[i]);
   const openRepair=s.tasks.some(x=>x.room===t.room&&x.kind==='repair'&&x.status!=='Done');
   const inspector=permission('inspect');
   return <article className={'mo-card mo-task '+t.status.replace(/\s/g,'-').toLowerCase()} aria-label={`Room ${t.room} · ${hkKindLabel[kind]} · ${statusLabel[t.status]}`}>
     <div className="mo-task-top"><span className="mo-room"><Icon size={22} aria-hidden/>Room {t.room}</span><Pill tone={statusTone[t.status]}>{statusLabel[t.status]}</Pill></div>
     <div className="mo-tags"><Pill tone={kind==='repair'?'orange':kind==='stayover'?'blue':'neutral'}>{hkKindLabel[kind]}</Pill>
-      {arrival&&t.status!=='Done'&&<Pill tone="orange"><CalendarClock size={13}/> Priority · arrival today</Pill>}</div>
+      {arrival&&t.status!=='Done'&&<Pill tone="orange"><CalendarClock size={13}/> Priority · arrival today</Pill>}
+      {zone&&<Pill tone="neutral">Zone · {zone.name}</Pill>}{timing&&timing.state!=='finished'&&t.status!=='Done'&&<Pill tone={timing.state==='over'?'orange':timing.state==='running'?'blue':'neutral'}>{timing.label}</Pill>}{timing?.state==='finished'&&<Pill tone={timing.over?'orange':'green'}>{timing.label}</Pill>}</div>
     <p className="mo-sub">{room?.type} · {room?mstFloorLabel(s,room):''}{t.createdAt?` · since ${clockTime(t.createdAt)}`:''}</p>
     {room?.blocked&&<div className="mo-note warn"><Lock size={16}/><span>Room blocked · {room.blockReason||'Out of service'}{room.blockFrom||room.blockTo?` · ${room.blockFrom?shortDate(room.blockFrom):'now'} → ${room.blockTo?shortDate(room.blockTo):'open-ended'}`:''}</span></div>}
     {kind==='repair'&&!room?.blocked&&<div className="mo-note"><Info size={16}/><span>Room is not blocked — it stays sellable while you work.</span></div>}
@@ -88,12 +94,12 @@ export function MoTaskCard({t,mode}:{t:Task;mode:'mine'|'board'}){
     {t.rejectReason&&t.status!=='Done'&&<div className="mo-note warn"><TriangleAlert size={16}/><span>Returned: {t.rejectReason}</span></div>}
     {mode==='board'&&<div className="mo-assignee"><UserRound size={18}/><span>{first(who?.name)||t.assignee}{who&&!who.enabled?' (disabled)':''}</span>
       {inspector&&t.status!=='Done'&&<button type="button" className="btn mo-btn-sm" disabled={busy} onClick={()=>open({type:'mo-assign',id:t.id})}>Assign</button>}</div>}
-    {t.status==='In progress'&&kind!=='repair'&&<div className="mo-checklist" role="group" aria-label={`Checklist room ${t.room}`}>{MO_HK_CHECKLIST.map((l,i)=>
+    {t.status==='In progress'&&kind!=='repair'&&<div className="mo-checklist" role="group" aria-label={`Checklist room ${t.room}`}>{items.map((l,i)=>
       <label key={l} className={t.checked[i]?'on':''}><input type="checkbox" checked={!!t.checked[i]} disabled={busy} onChange={()=>run({type:'TASK',id:t.id,action:'check',index:i},'Checklist updated')}/><span className="mo-box" aria-hidden>{t.checked[i]&&<Check size={20}/>}</span>{l}</label>)}</div>}
     <div className="mo-actions">
       {t.status==='To do'&&<button type="button" className="btn primary mo-big" disabled={busy} onClick={()=>run({type:'TASK',id:t.id,action:'start'},`Started ${verb} · Room ${t.room}`)}>Start {verb}<ArrowRight size={19}/></button>}
       {t.status==='In progress'&&<button type="button" className="btn primary mo-big" disabled={busy||!ready} onClick={()=>run({type:'TASK',id:t.id,action:'complete'},kind==='repair'?'Repair marked done. A supervisor will unblock the room.':kind==='stayover'?'Stayover service completed':`Cleaning completed · Room ${t.room}`)}><Check size={19}/>{kind==='repair'?'Mark repair done':`Complete ${verb}`}</button>}
-      {t.status==='In progress'&&!ready&&<small className="mo-hint">Tick all {MO_HK_CHECKLIST.length} checklist items to complete.</small>}
+      {t.status==='In progress'&&!ready&&<small className="mo-hint">Tick all {items.length} checklist items to complete.</small>}
       {t.status==='Inspection'&&(inspector?<div className="mo-pair">
           <button type="button" className="btn mo-big mo-reject" disabled={busy} onClick={()=>open({type:'hk-reject',id:t.id})}><X size={19}/>Reject</button>
           <button type="button" className="btn primary mo-big" disabled={busy} onClick={()=>run({type:'TASK',id:t.id,action:'inspect'},room?.blocked?'Inspection passed. Room is clean but stays blocked.':`Inspection passed · Room ${t.room} ready`)}><Check size={19}/>Pass</button></div>

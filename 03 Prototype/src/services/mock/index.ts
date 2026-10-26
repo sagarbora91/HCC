@@ -36,3 +36,5 @@ export * from '../../domain/gst';
 export {buildHistory,HISTORY_DEFAULTS,setHistoryProgress} from '../../fixtures/history/generate';
 export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
+export * from '../../domain/streams/hkmasters';
+export * from '../../domain/streams/gsvmasters';
