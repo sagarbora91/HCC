@@ -48,7 +48,7 @@ export type FeatureRegistration={
 };
 export const registrations:FeatureRegistration[]=[reservations,guests,customers,folio,housekeeping,admin,closing,
   yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,compliance,
-  cashbook,masters,roommasters,m_frontdesk,m_money,m_ops,m_admin];
+  cashbook,masters,m_frontdesk,m_money,m_ops,m_admin,roommasters];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;
 export const mobileModals=Object.assign({},...registrations.map(r=>r.mobile?.modals||{})) as Record<string,React.ComponentType<ModalProps>>;
 export const extraPages=Object.assign({},...registrations.map(r=>r.pages||{})) as Record<string,React.ComponentType>;
