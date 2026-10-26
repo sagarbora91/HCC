@@ -140,3 +140,6 @@
 .pos-m .pos-sum-grid th,.pos-m .pos-sum-grid td{font-size:14px}
 .m-sheet .pos-form .info-note,.m-sheet .pos-note,.pos-m .info-note{font-size:14px}.m-sheet .pos-form small{font-size:14px}.m-sheet .pos-check .eyebrow{font-size:13px}
 .m-sheet .pos-doc td,.m-sheet .pos-doc th,.pos-m .pos-sum-grid td,.pos-m .pos-sum-grid th{font-size:14px}.m-sheet .pos-doc .footnote{font-size:13px}
+/* MA-4 · "Manage list…" links to the POS masters (outlets, tables, categories, menu). */
+.pos-mst-links{display:flex;flex-wrap:wrap;gap:4px 14px;margin:10px 0 0}
+.pos-mst-links:empty{display:none}

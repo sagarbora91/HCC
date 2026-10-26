@@ -11,6 +11,7 @@ export async function register({test,M,assert}){
   const page=items=>({page:1,pageSize:200,total:items.length,items});
   const names=['SaveFloor','RetireFloor','ReactivateFloor','ReorderFloors','DeleteFloor'];
   const routes={'GET /masters/floors':()=>page(floors),'GET /masters/floors/history':()=>page(hist)};
+  routes['GET /pos/menu-categories']=()=>page([]); // MA-4: the masters loader also reads the POS menu categories (sync/pos-masters.ts)
   for(const n of names)routes['POST /commands/'+n]=()=>(n==='SaveFloor'?floor(4,'F4','Annexe',40,{roomCount:0}):n==='ReorderFloors'?page(floors):{});
   const srv=fakeServer(routes);
   const rt=await startRuntime(S,srv,mine);

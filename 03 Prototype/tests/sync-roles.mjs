@@ -80,6 +80,7 @@ function routes(role){
     'GET /compliance/ca-packs':()=>[],
     'GET /pos/outlets':()=>[],
     'GET /pos/menu':()=>[],
+    'GET /pos/menu-categories':()=>({page:1,pageSize:200,total:0,items:[]}), // MA-4
     'GET /pos/checks':()=>[],
     'GET /pos/checks/closed':()=>[],
     'GET /pos/checks/:id':()=>reply(404,{code:'NOT_FOUND',message:'No check.'}),
