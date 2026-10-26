@@ -40,6 +40,9 @@ export async function register({test,assert,M}){
     counts:{},settings:{...C.settings,version:'AAAAAAAAE1='},note:''};
   const srv=fakeServer({
     'GET /me/capabilities':()=>ownerCaps(),
+    // Masters integration (MA-6): the server's holiday calendar = the prototype seed, so compliance due dates roll past the same holidays.
+    'GET /hr/holidays':()=>{const items=M.hrHolidays(P).map((h,i)=>({holidayId:i+1,code:h.code,name:h.name,sortOrder:h.sortOrder,active:h.active,retiredOn:null,kind:h.kind,version:'H'+(i+1)}));
+      return {page:1,pageSize:200,total:items.length,items};},
     'GET /accounting/days':({query})=>M.accDates(P).filter(d=>d>=query.from&&d<=query.to).sort().map(day),
     'GET /accounting/trial-balance':()=>({date:'2026-08-23',cumulative:true,debitPaise:0,creditPaise:0,balanced:true,rows:opening,...tbExtra}),
     'GET /accounting/mapping':()=>mapRows,

@@ -16,6 +16,7 @@ export async function register({test,M,assert}){
   routes['GET /pos/menu-categories']=()=>page([]); // MA-4: the masters loader also reads the POS menu categories (sync/pos-masters.ts)
   for(const x of ['booking-sources','id-types','number-series','policies'])routes['GET /masters/'+x]=routes['GET /masters/'+x+'/history']=()=>page([]); // MA-5 lists (own tests: sync-frontdesk-master.mjs)
   for(const n of names)routes['POST /commands/'+n]=()=>(n==='SaveFloor'?floor(4,'F4','Annexe',40,{roomCount:0}):n==='ReorderFloors'?page(floors):{});
+  for(const p of ['/hr/designations','/hr/shift-patterns','/hr/leave-types','/hr/holidays']){routes['GET '+p]=()=>page([]);routes['GET '+p+'/history']=()=>page([]);} // MA-6 lists (empty here; tests/sync-people-master.mjs)
   const srv=fakeServer(routes);
   const rt=await startRuntime(S,srv,mine);
   const st=rt.get().state,bootErrors=rt.get().errors,bootGets=srv.gets().map(c=>c.path);

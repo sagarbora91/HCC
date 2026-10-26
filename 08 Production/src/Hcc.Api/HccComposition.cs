@@ -58,6 +58,7 @@ public static class HccComposition
         services.AddMoneyMastersModule();                // MA-3 payment methods, bank accounts, expense categories and vendors (DEC-058)
         services.AddCatalogueModule();                   // MA-2 meal plans, extras catalogue, discount reasons
         services.AddFrontDeskMastersModule();            // MA-5 booking sources, ID types, numbering series, policies
+        services.AddPeopleListsModule();                 // MA-6 designations, shift patterns, leave types, holidays
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
         return services;
     }
@@ -140,6 +141,7 @@ public static class HccComposition
         api.MapMoneyMastersEndpoints();  // MA-3 money masters
         api.MapCatalogueEndpoints();     // MA-2 meal plans, extras catalogue, discount reasons
         api.MapFrontDeskMastersEndpoints(); // MA-5 front-desk lists
+        api.MapPeopleListsEndpoints();   // MA-6 people lists
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

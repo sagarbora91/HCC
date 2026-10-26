@@ -112,7 +112,15 @@
     "GET /masters/number-series": "/masters/number-series?page=1&pageSize=200",
     "GET /masters/number-series/history": "/masters/number-series/history?page=1&pageSize=200",
     "GET /masters/policies": "/masters/policies?page=1&pageSize=200",
-    "GET /masters/policies/history": "/masters/policies/history?page=1&pageSize=200"
+    "GET /masters/policies/history": "/masters/policies/history?page=1&pageSize=200",
+    "GET /hr/designations": "/hr/designations?page=1&pageSize=200",
+    "GET /hr/designations/history": "/hr/designations/history?page=1&pageSize=200",
+    "GET /hr/shift-patterns": "/hr/shift-patterns?page=1&pageSize=200",
+    "GET /hr/shift-patterns/history": "/hr/shift-patterns/history?page=1&pageSize=200",
+    "GET /hr/leave-types": "/hr/leave-types?page=1&pageSize=200",
+    "GET /hr/leave-types/history": "/hr/leave-types/history?page=1&pageSize=200",
+    "GET /hr/holidays": "/hr/holidays?page=1&pageSize=200",
+    "GET /hr/holidays/history": "/hr/holidays/history?page=1&pageSize=200"
   },
   "roles": {
     "OWN": {
@@ -656,7 +664,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "200",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "200"
+        "GET /masters/policies/history": "200",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "200",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "200",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "200",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "200"
       }
     },
     "MGR": {
@@ -1100,7 +1116,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "403",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "403",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "403",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "403"
       }
     },
     "REC": {
@@ -1404,7 +1428,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "403",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "403",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "403",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "403"
       }
     },
     "CSH": {
@@ -1633,7 +1665,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "403",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "403",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "403",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "403"
       }
     },
     "ACC": {
@@ -1902,7 +1942,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "403",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "403",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "403",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "403"
       }
     },
     "SUP": {
@@ -2066,7 +2114,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "403",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "403",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "403",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "403"
       }
     },
     "HKP": {
@@ -2215,7 +2271,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "403",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "403",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "403",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "403"
       }
     },
     "MNT": {
@@ -2359,7 +2423,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "403",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "403",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "403",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "403"
       }
     },
     "TAD": {
@@ -2523,7 +2595,15 @@
         "GET /masters/number-series": "200",
         "GET /masters/number-series/history": "403",
         "GET /masters/policies": "200",
-        "GET /masters/policies/history": "403"
+        "GET /masters/policies/history": "403",
+        "GET /hr/designations": "200",
+        "GET /hr/designations/history": "200",
+        "GET /hr/shift-patterns": "200",
+        "GET /hr/shift-patterns/history": "200",
+        "GET /hr/leave-types": "200",
+        "GET /hr/leave-types/history": "200",
+        "GET /hr/holidays": "200",
+        "GET /hr/holidays/history": "200"
       }
     }
   }

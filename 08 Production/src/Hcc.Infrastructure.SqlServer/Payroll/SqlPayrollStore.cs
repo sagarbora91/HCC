@@ -34,7 +34,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
 {
     private const string StaffColumns = """
         staff_id, property_id, name, dept_code, designation, user_id, pay_type, monthly_paise, daily_paise, default_shift, weekly_off, joined, exited_on,
-        active, phone, gender, structure, pf_applicable, esic_applicable, bank_name, account_no, ifsc, row_ver
+        active, phone, gender, structure, pf_applicable, esic_applicable, bank_name, account_no, ifsc, row_ver, designation_code
         """;
     private const string LeaveColumns = "leave_id, staff_id, leave_type, from_date, to_date, half, days_x2, status, property_id, reason, requested_by, requested_utc, decided_by, note, row_ver";
     private const string RunColumns = "run_id, property_id, pay_month, status, rates_json, warnings_json, lock_seq, prepared_by, locked_by, row_ver";
@@ -149,17 +149,28 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
     {
         static T? E<T>(SqlDataReader r, int i) where T : struct, Enum => r.IsDBNull(i) ? null : Enum.Parse<T>(r.GetString(i));
         var profile = new StaffProfile(r.GetInt64(0), r.GetString(2), r.GetString(3), r.GetString(4), r.GetString(6) == "daily" ? PayType.Daily : PayType.Monthly,
-            r.GetInt64(7), r.GetInt64(8), Enum.Parse<ShiftCode>(r.GetString(9)), r.GetByte(10), D(r, 11), r.IsDBNull(12) ? null : D(r, 12), r.GetBoolean(13),
+            r.GetInt64(7), r.GetInt64(8), new ShiftCode(r.GetString(9)), r.GetByte(10), D(r, 11), r.IsDBNull(12) ? null : D(r, 12), r.GetBoolean(13),
             E<Gender>(r, 15), E<PayStructure>(r, 16), r.IsDBNull(17) ? null : r.GetBoolean(17), r.IsDBNull(18) ? null : r.GetBoolean(18));
-        return new StaffRow(profile, r.IsDBNull(5) ? null : r.GetInt32(5), r.GetString(14), S(r, 19), S(r, 20), S(r, 21), V(r, 22));
+        return new StaffRow(profile, r.IsDBNull(5) ? null : r.GetInt32(5), r.GetString(14), S(r, 19), S(r, 20), S(r, 21), V(r, 22), S(r, 23));
     }
+
+    /// <summary>MA-6: shift patterns whose weekly-off rule is "roster" (no automatic weekly off for staff on that default shift).</summary>
+    private async Task<HashSet<string>> RosterRuleShiftsAsync(int propertyId, CancellationToken ct)
+    {
+        var c = Cmd("SELECT code FROM hr.shift_pattern WHERE property_id = @p AND weekly_off_rule = 'roster';");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        return (await ReadAsync(c, r => r.GetString(0), ct).ConfigureAwait(false)).ToHashSet();
+    }
+
+    private static StaffRow WithRule(StaffRow s, HashSet<string> roster) => roster.Contains(s.Profile.DefaultShift.Value) ? s with { Profile = s.Profile with { WeeklyOffAuto = false } } : s;
 
     public async Task<StaffRow?> StaffAsync(int propertyId, long staffId, bool lockRow, CancellationToken ct)
     {
         var c = Cmd($"SELECT {StaffColumns} FROM hr.staff {(lockRow ? "WITH (UPDLOCK)" : "")} WHERE staff_id = @s AND property_id = @p;");
         P(c, "@s", SqlDbType.BigInt, staffId);
         P(c, "@p", SqlDbType.Int, propertyId);
-        return (await ReadAsync(c, MapStaff, ct).ConfigureAwait(false)).FirstOrDefault();
+        var row = (await ReadAsync(c, MapStaff, ct).ConfigureAwait(false)).FirstOrDefault();
+        return row is null ? null : WithRule(row, await RosterRuleShiftsAsync(propertyId, ct).ConfigureAwait(false));
     }
 
     public async Task<StaffRow?> StaffOfUserAsync(int propertyId, int userId, CancellationToken ct)
@@ -167,17 +178,20 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         var c = Cmd($"SELECT {StaffColumns} FROM hr.staff WHERE user_id = @u AND property_id = @p;");
         P(c, "@u", SqlDbType.Int, userId);
         P(c, "@p", SqlDbType.Int, propertyId);
-        return (await ReadAsync(c, MapStaff, ct).ConfigureAwait(false)).FirstOrDefault();
+        var row = (await ReadAsync(c, MapStaff, ct).ConfigureAwait(false)).FirstOrDefault();
+        return row is null ? null : WithRule(row, await RosterRuleShiftsAsync(propertyId, ct).ConfigureAwait(false));
     }
 
     public async Task<IReadOnlyList<StaffRow>> AllStaffAsync(int propertyId, CancellationToken ct)
     {
         var c = Cmd($"SELECT {StaffColumns} FROM hr.staff WHERE property_id = @p ORDER BY staff_id;");
         P(c, "@p", SqlDbType.Int, propertyId);
-        return await ReadAsync(c, MapStaff, ct).ConfigureAwait(false);
+        var rows = await ReadAsync(c, MapStaff, ct).ConfigureAwait(false);
+        var roster = await RosterRuleShiftsAsync(propertyId, ct).ConfigureAwait(false);
+        return roster.Count == 0 ? rows : rows.Select(r => WithRule(r, roster)).ToList();
     }
 
-    private static void StaffParams(SqlCommand c, StaffProfile p, int? userId, string phone, string? bank, string? account, string? ifsc)
+    private static void StaffParams(SqlCommand c, StaffProfile p, int? userId, string phone, string? bank, string? account, string? ifsc, string? designationCode)
     {
         P(c, "@n", SqlDbType.NVarChar, 100, p.Name);
         P(c, "@d", SqlDbType.VarChar, 10, p.Dept);
@@ -186,7 +200,8 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c, "@pt", SqlDbType.VarChar, 7, p.PayType == PayType.Daily ? "daily" : "monthly");
         P(c, "@m", SqlDbType.BigInt, p.MonthlyPaise);
         P(c, "@dw", SqlDbType.BigInt, p.DailyPaise);
-        P(c, "@sh", SqlDbType.Char, 1, p.DefaultShift.ToString());
+        P(c, "@sh", SqlDbType.VarChar, 3, p.DefaultShift.ToString());
+        P(c, "@dc", SqlDbType.VarChar, 20, designationCode);
         P(c, "@wo", SqlDbType.TinyInt, (byte)p.WeeklyOff);
         P(c, "@j", SqlDbType.Date, p.Joined.ToDateTime(TimeOnly.MinValue));
         P(c, "@x", SqlDbType.Date, p.ExitedOn?.ToDateTime(TimeOnly.MinValue));
@@ -206,12 +221,12 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         ArgumentNullException.ThrowIfNull(staff);
         var c = Cmd("""
             INSERT hr.staff(property_id, name, dept_code, designation, user_id, pay_type, monthly_paise, daily_paise, default_shift, weekly_off, joined, exited_on,
-                            active, phone, gender, structure, pf_applicable, esic_applicable, bank_name, account_no, ifsc, created_by, created_utc)
+                            active, phone, gender, structure, pf_applicable, esic_applicable, bank_name, account_no, ifsc, designation_code, created_by, created_utc)
             OUTPUT INSERTED.staff_id
-            VALUES (@p, @n, @d, @g, @u, @pt, @m, @dw, @sh, @wo, @j, @x, @a, @ph, @ge, @st, @pf, @es, @bn, @ac, @if, @by, @at);
+            VALUES (@p, @n, @d, @g, @u, @pt, @m, @dw, @sh, @wo, @j, @x, @a, @ph, @ge, @st, @pf, @es, @bn, @ac, @if, @dc, @by, @at);
             """);
         P(c, "@p", SqlDbType.Int, staff.PropertyId);
-        StaffParams(c, staff.Profile, staff.UserId, staff.Phone, staff.BankName, staff.AccountNo, staff.Ifsc);
+        StaffParams(c, staff.Profile, staff.UserId, staff.Phone, staff.BankName, staff.AccountNo, staff.Ifsc, staff.DesignationCode);
         P(c, "@by", SqlDbType.Int, staff.By);
         P(c, "@at", SqlDbType.DateTime2, staff.Utc);
         return Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
@@ -223,11 +238,11 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         var c = Cmd("""
             UPDATE hr.staff SET name = @n, dept_code = @d, designation = @g, user_id = @u, pay_type = @pt, monthly_paise = @m, daily_paise = @dw, default_shift = @sh,
                    weekly_off = @wo, joined = @j, exited_on = @x, active = @a, phone = @ph, gender = @ge, structure = @st, pf_applicable = @pf, esic_applicable = @es,
-                   bank_name = @bn, account_no = @ac, ifsc = @if
+                   bank_name = @bn, account_no = @ac, ifsc = @if, designation_code = @dc
             OUTPUT INSERTED.row_ver
             WHERE staff_id = @id AND row_ver = @v;
             """);
-        StaffParams(c, row.Profile, row.UserId, row.Phone, row.BankName, row.AccountNo, row.Ifsc);
+        StaffParams(c, row.Profile, row.UserId, row.Phone, row.BankName, row.AccountNo, row.Ifsc, row.DesignationCode);
         P(c, "@id", SqlDbType.BigInt, row.StaffId);
         P(c, "@v", SqlDbType.Binary, 8, SqlValues.RowVersionFromWire(expectedVersion));
         var v = await ScalarAsync(c, ct).ConfigureAwait(false) as byte[];
@@ -244,7 +259,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
 
     // ── roster / attendance / leave ──
 
-    private static LeaveSpan MapSpan(SqlDataReader r) => new(r.GetInt64(0), r.GetInt64(1), Enum.Parse<LeaveType>(r.GetString(2)), D(r, 3), D(r, 4),
+    private static LeaveSpan MapSpan(SqlDataReader r) => new(r.GetInt64(0), r.GetInt64(1), new LeaveType(r.GetString(2)), D(r, 3), D(r, 4),
         r.IsDBNull(5) ? null : Enum.Parse<LeaveHalf>(r.GetString(5)), r.GetInt16(6) / 2m, Enum.Parse<LeaveStatus>(r.GetString(7)));
 
     private static LeaveRow MapLeave(SqlDataReader r) => new(MapSpan(r), r.GetInt32(8), r.GetString(9), r.GetInt32(10), r.GetDateTime(11),
@@ -263,7 +278,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c1, "@ids", SqlDbType.VarChar, -1, ids);
         P(c1, "@f", SqlDbType.Date, from.ToDateTime(TimeOnly.MinValue));
         P(c1, "@t", SqlDbType.Date, to.ToDateTime(TimeOnly.MinValue));
-        var roster = await ReadAsync(c1, r => (r.GetInt64(0), D(r, 1), Enum.Parse<ShiftCode>(r.GetString(2))), ct).ConfigureAwait(false);
+        var roster = await ReadAsync(c1, r => (r.GetInt64(0), D(r, 1), new ShiftCode(r.GetString(2))), ct).ConfigureAwait(false);
         var c2 = Cmd("""
             SELECT a.staff_id, a.work_date, a.status, a.ot_minutes FROM hr.attendance a JOIN STRING_SPLIT(@ids, ',') s ON a.staff_id = CAST(s.value AS BIGINT)
             WHERE a.work_date BETWEEN @f AND @t;
@@ -280,9 +295,19 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c3, "@ids", SqlDbType.VarChar, -1, ids);
         P(c3, "@p", SqlDbType.Int, propertyId);
         var leaves = await ReadAsync(c3, MapSpan, ct).ConfigureAwait(false);
+        // MA-6: paid / unpaid from the Leave types list, and the paid holidays of the Holiday calendar in [from, to].
+        var c4 = Cmd("SELECT code, paid FROM hr.leave_type WHERE property_id = @p;");
+        P(c4, "@p", SqlDbType.Int, propertyId);
+        var paid = (await ReadAsync(c4, r => (r.GetString(0), r.GetBoolean(1)), ct).ConfigureAwait(false)).ToDictionary(x => x.Item1, x => x.Item2);
+        if (paid.Count > 0) leaves = leaves.Select(l => l with { Paid = paid.TryGetValue(l.Type.Value, out var pd) ? pd : null }).ToList();
+        var c5 = Cmd("SELECT code FROM hr.holiday WHERE property_id = @p AND active = 1 AND kind = 'paid' AND code BETWEEN @f AND @t;");
+        P(c5, "@p", SqlDbType.Int, propertyId);
+        P(c5, "@f", SqlDbType.VarChar, 10, Wire(from));
+        P(c5, "@t", SqlDbType.VarChar, 10, Wire(to));
+        var holidays = (await ReadAsync(c5, r => DateOnly.ParseExact(r.GetString(0), "yyyy-MM-dd", CultureInfo.InvariantCulture), ct).ConfigureAwait(false)).ToHashSet();
         foreach (var id in staffIds)
             result[id] = new StaffDays(roster.Where(x => x.Item1 == id).ToDictionary(x => x.Item2, x => x.Item3),
-                att.Where(x => x.Item1 == id).ToDictionary(x => x.m.Date, x => x.m), leaves.Where(l => l.StaffId == id).ToList());
+                att.Where(x => x.Item1 == id).ToDictionary(x => x.m.Date, x => x.m), leaves.Where(l => l.StaffId == id).ToList(), holidays);
         return result;
     }
 
@@ -343,7 +368,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
             """);
         P(c, "@p", SqlDbType.Int, propertyId);
         P(c, "@s", SqlDbType.BigInt, span.StaffId);
-        P(c, "@ty", SqlDbType.VarChar, 3, span.Type.ToString());
+        P(c, "@ty", SqlDbType.VarChar, 6, span.Type.ToString());
         P(c, "@f", SqlDbType.Date, span.From.ToDateTime(TimeOnly.MinValue));
         P(c, "@t", SqlDbType.Date, span.To.ToDateTime(TimeOnly.MinValue));
         P(c, "@h", SqlDbType.Char, 2, span.Half?.ToString());
@@ -392,14 +417,16 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c, "@d", SqlDbType.VarChar, 10, dept);
         P(c, "@f", SqlDbType.Date, from.ToDateTime(TimeOnly.MinValue));
         P(c, "@t", SqlDbType.Date, to.ToDateTime(TimeOnly.MinValue));
-        return await ReadAsync(c, r => (MapStaffAt(r, 15), MapSpan(r)), ct).ConfigureAwait(false);
+        var rows = await ReadAsync(c, r => (MapStaffAt(r, 15), MapSpan(r)), ct).ConfigureAwait(false);
+        var roster = await RosterRuleShiftsAsync(propertyId, ct).ConfigureAwait(false);
+        return roster.Count == 0 ? rows : rows.Select(x => roster.Contains(x.Item1.DefaultShift.Value) ? (x.Item1 with { WeeklyOffAuto = false }, x.Item2) : x).ToList();
     }
 
     private static StaffProfile MapStaffAt(SqlDataReader r, int o)
     {
         static T? E<T>(SqlDataReader r, int i) where T : struct, Enum => r.IsDBNull(i) ? null : Enum.Parse<T>(r.GetString(i));
         return new StaffProfile(r.GetInt64(o), r.GetString(o + 2), r.GetString(o + 3), r.GetString(o + 4), r.GetString(o + 6) == "daily" ? PayType.Daily : PayType.Monthly,
-            r.GetInt64(o + 7), r.GetInt64(o + 8), Enum.Parse<ShiftCode>(r.GetString(o + 9)), r.GetByte(o + 10), D(r, o + 11), r.IsDBNull(o + 12) ? null : D(r, o + 12),
+            r.GetInt64(o + 7), r.GetInt64(o + 8), new ShiftCode(r.GetString(o + 9)), r.GetByte(o + 10), D(r, o + 11), r.IsDBNull(o + 12) ? null : D(r, o + 12),
             r.GetBoolean(o + 13), E<Gender>(r, o + 15), E<PayStructure>(r, o + 16), r.IsDBNull(o + 17) ? null : r.GetBoolean(o + 17), r.IsDBNull(o + 18) ? null : r.GetBoolean(o + 18));
     }
 
@@ -410,7 +437,32 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         var row = (await ReadAsync(c, r => (r.GetByte(0), r.GetByte(1), r.GetByte(2), r.GetByte(3)), ct).ConfigureAwait(false)).FirstOrDefault();
         var caps = (await DepartmentsAsync(propertyId, ct).ConfigureAwait(false)).Where(d => d.LeaveCap is not null).ToDictionary(d => d.Code, d => d.LeaveCap!.Value);
         var d = LeavePolicy.Defaults();
-        return row == default ? d with { DeptCap = caps } : new LeavePolicy(row.Item1, row.Item2, row.Item3, row.Item4, caps);
+        var policy = row == default ? d with { DeptCap = caps } : new LeavePolicy(row.Item1, row.Item2, row.Item3, row.Item4, caps);
+        // MA-6: the property's Leave types list (paid, yearly quota, carry-forward, encashment per type) decides the entitlements once it exists.
+        var ct2 = Cmd("SELECT code, name, paid, yearly_quota, carry_forward, encashment, active FROM hr.leave_type WHERE property_id = @p ORDER BY sort_order, code;");
+        P(ct2, "@p", SqlDbType.Int, propertyId);
+        var types = await ReadAsync(ct2, r => new LeaveTypeDef(r.GetString(0), r.GetString(1), r.GetBoolean(2), r.IsDBNull(3) ? null : r.GetByte(3), r.GetByte(4), r.GetBoolean(5), r.GetBoolean(6)), ct)
+            .ConfigureAwait(false);
+        if (types.Count == 0) return policy;
+        int Quota(string code, int fallback) => types.FirstOrDefault(x => x.Code == code)?.Quota ?? fallback;
+        return policy with { Cl = Quota("CL", 0), Sl = Quota("SL", 0), El = Quota("EL", 0), Types = types.ToDictionary(x => x.Code) };
+    }
+
+    public async Task<ShiftCatalog> ShiftCatalogAsync(int propertyId, CancellationToken ct)
+    {
+        var c = Cmd("SELECT code, name, start_time, end_time, break_minutes, night, weekly_off_rule, active FROM hr.shift_pattern WHERE property_id = @p ORDER BY sort_order, code;");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        var rows = await ReadAsync(c, r => new ShiftPatternDef(r.GetString(0), r.GetString(1), TimeOnly.FromTimeSpan((TimeSpan)r.GetValue(2)), TimeOnly.FromTimeSpan((TimeSpan)r.GetValue(3)),
+            r.GetInt16(4), r.GetBoolean(5), r.GetString(6), r.GetBoolean(7)), ct).ConfigureAwait(false);
+        return new ShiftCatalog(rows);
+    }
+
+    public async Task<DesignationRef?> DesignationAsync(int propertyId, string code, CancellationToken ct)
+    {
+        var c = Cmd("SELECT code, name, dept_code, active FROM hr.designation WHERE property_id = @p AND code = @c;");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@c", SqlDbType.VarChar, 20, code);
+        return (await ReadAsync(c, r => new DesignationRef(r.GetString(0), r.GetString(1), S(r, 2), r.GetBoolean(3)), ct).ConfigureAwait(false)).FirstOrDefault();
     }
 
     public async Task SetLeavePolicyAsync(int propertyId, LeavePolicy policy, int by, DateTime utc, CancellationToken ct)
@@ -428,6 +480,21 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c, "@by", SqlDbType.Int, by);
         P(c, "@at", SqlDbType.DateTime2, utc);
         await ExecAsync(c, ct).ConfigureAwait(false);
+        // MA-6: the CL / SL / EL entitlements are the yearly quotas of the Leave types list — write through, one history row per changed type.
+        foreach (var (code, days) in new[] { ("CL", policy.Cl), ("SL", policy.Sl), ("EL", policy.El) })
+        {
+            var q = Cmd(@"
+                INSERT mst.master_history(property_id, master, row_id, code, field, old_value, new_value, changed_by, changed_utc)
+                SELECT property_id, 'leaveTypes', leave_type_id, code, 'yearlyQuota', CAST(yearly_quota AS NVARCHAR(10)), CAST(@q AS NVARCHAR(10)), @by, @at
+                  FROM hr.leave_type WHERE property_id = @p AND code = @c AND ISNULL(yearly_quota, -1) <> @q;
+                UPDATE hr.leave_type SET yearly_quota = @q, updated_by = @by, updated_utc = @at WHERE property_id = @p AND code = @c AND ISNULL(yearly_quota, -1) <> @q;");
+            P(q, "@p", SqlDbType.Int, propertyId);
+            P(q, "@c", SqlDbType.VarChar, 6, code);
+            P(q, "@q", SqlDbType.Int, days);
+            P(q, "@by", SqlDbType.Int, by);
+            P(q, "@at", SqlDbType.DateTime2, utc);
+            await ExecAsync(q, ct).ConfigureAwait(false);
+        }
     }
 
     // ── rates ──
@@ -852,7 +919,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         var roster = await ReadAsync(Q("""
             SELECT r.staff_id, r.work_date, r.shift_code FROM hr.roster r JOIN hr.staff s ON s.staff_id = r.staff_id
             WHERE s.property_id = @p AND r.work_date BETWEEN @f AND @t ORDER BY r.work_date, r.staff_id;
-            """, true), r => new RosterCell(r.GetInt64(0), D(r, 1), Enum.Parse<ShiftCode>(r.GetString(2))), ct).ConfigureAwait(false);
+            """, true), r => new RosterCell(r.GetInt64(0), D(r, 1), new ShiftCode(r.GetString(2))), ct).ConfigureAwait(false);
         var att = await ReadAsync(Q("""
             SELECT a.staff_id, a.work_date, a.status, a.ot_minutes, a.marked_by, a.marked_utc, a.note FROM hr.attendance a JOIN hr.staff s ON s.staff_id = a.staff_id
             WHERE s.property_id = @p AND a.work_date BETWEEN @f AND @t ORDER BY a.work_date, a.staff_id;

@@ -5,6 +5,7 @@
 import type {State} from '../types';
 import {can} from '../selectors';
 import {nights} from '../money';
+import {hrHolidayDates} from './people-masters';
 
 export type CMPKind='TDS'|'GSTR-1'|'GSTR-3B'|'GSTR-9'|'EPF'|'ESIC'|'PT';
 export const CMP_KINDS:CMPKind[]=['TDS','GSTR-1','GSTR-3B','GSTR-9','EPF','ESIC','PT'];
@@ -59,7 +60,15 @@ export function cmpPeriods(o:Pick<CMPObligation,'freq'|'from'>,today:string):str
 export function cmpRuleFor(o:Pick<CMPObligation,'freq'|'rules'>,p:string):CMPRule{
   const start=cmpPeriodStart(o,p),ok=o.rules.filter(r=>r.from<=start).sort((a,b)=>a.from.localeCompare(b.from));
   return (ok.length?ok[ok.length-1]:[...o.rules].sort((a,b)=>a.from.localeCompare(b.from))[0]).rule;}
-export function cmpDueDate(o:Pick<CMPObligation,'freq'|'rules'>,p:string):string{
+/** MA-6: a due date that falls on a paid holiday of the Holiday calendar moves to the next working day (not a holiday, not a Sunday). */
+export function cmpShiftDue(due:string,holidays:ReadonlySet<string>):string{
+  if(!holidays.has(due))return due;
+  let d=due;for(let i=0;i<14;i++){d=addDaysIso(d,1);if(!holidays.has(d)&&new Date(d+'T12:00:00Z').getUTCDay()!==0)return d;}
+  return due;}
+const addDaysIso=(d:string,n:number)=>new Date(new Date(d+'T12:00:00Z').getTime()+n*86400000).toISOString().slice(0,10);
+export function cmpDueDate(o:Pick<CMPObligation,'freq'|'rules'>,p:string,holidays?:ReadonlySet<string>):string{
+  const raw=cmpDueRaw(o,p);return holidays?cmpShiftDue(raw,holidays):raw;}
+function cmpDueRaw(o:Pick<CMPObligation,'freq'|'rules'>,p:string):string{
   const r=cmpRuleFor(o,p);
   // F5: 'after the financial year' — Apr–Dec fall in the calendar year the FY ends; Jan–Mar in the year after (never before the FY has ended).
   if(r.type==='fixed'){const y=cmpFyStartYear(p)+(r.month<=3?2:1);return `${y}-${pad(r.month)}-${pad(Math.min(r.day,lastDayOf(y,r.month)))}`;}
@@ -79,11 +88,11 @@ export const cmpKey=(obligation:string,period:string)=>`${obligation}:${period}`
 /** Every tracked period of every active obligation, soonest due date first. */
 export function cmpItems(s:State,includeInactive=false):CMPItem[]{
   const x=cmpSlice(s),byKey=new Map(x.filings.map(f=>[cmpKey(f.obligation,f.period),f]));
-  const out:CMPItem[]=[];
+  const out:CMPItem[]=[],hol=hrHolidayDates(s);
   for(const o of x.obligations){
     if(!o.active&&!includeInactive)continue;
     for(const p of cmpPeriods(o,s.date)){
-      const key=cmpKey(o.id,p),filing=byKey.get(key),due=cmpDueDate(o,p),days=nights(s.date,due);
+      const key=cmpKey(o.id,p),filing=byKey.get(key),due=cmpDueDate(o,p,hol),days=nights(s.date,due);
       const status:CMPStatus=filing?filing.status:days<0?'Overdue':days===0?'Due today':days<=x.settings.dueSoonDays?'Due soon':'Upcoming';
       out.push({key,obligation:o,period:p,periodLabel:cmpPeriodLabel(o,p),due,days,status,filing});
     }}

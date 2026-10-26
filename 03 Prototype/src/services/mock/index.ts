@@ -41,3 +41,4 @@ export * from '../../domain/streams/money-master'; export * from '../../domain/s
 export * from '../../domain/streams/catalogue'; // MA-2 meal plans, extras, discount reasons
 export * from '../../domain/streams/pos-master';
 export * from '../../domain/streams/frontdesk-master';
+export * from '../../domain/streams/people-masters'; // MA-6

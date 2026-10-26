@@ -22,11 +22,13 @@ import {protoId,serverId,utcToClock} from './map';
 export type SrvStaffView={staffId:number;name:string;dept:string;designation:string;defaultShift:string;weeklyOff:number;joined:string;exitedOn:string|null;
   active:boolean;linked:boolean;phoneMasked:string;version:string;payType:string|null;monthlyPaise:number|null;dailyPaise:number|null;gender:string|null;
   structure:string|null;pfApplicable:boolean|null;esicApplicable:boolean|null;bankName:string|null;accountMasked:string|null;linkedUserId?:number|null;
-  /** W4 G2: the stored mobile is a usable WhatsApp number (the number itself stays masked); IFSC for PERM-HR-005 holders. */phoneUsable?:boolean;ifsc?:string|null};
+  /** W4 G2: the stored mobile is a usable WhatsApp number (the number itself stays masked); IFSC for PERM-HR-005 holders. */phoneUsable?:boolean;ifsc?:string|null;
+  /** MA-6: code of the Designations list row chosen on the staff form (null = older record, matched by name). */designationCode?:string|null};
 export type SrvRates={from:string;basicBps:number;hraBps:number;washBps:number;pfEeBps:number;pfErBps:number;pfWageCap:number;esicEeBps:number;esicErBps:number;
   esicCeiling:number;ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;otBps:number;lateBlock:number;
   rounding:string;esicPeriod:boolean};
-export type SrvCounts={ym:string;days:number;p:number;l:number;h:number;hl:number;a:number;offw:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number};
+export type SrvCounts={ym:string;days:number;p:number;l:number;h:number;hl:number;a:number;offw:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
+  /** MA-6: paid-holiday days (absent / 0 on older lines). */hol?:number};
 export type SrvLine={staffId:number;name:string;dept:string;designation:string;payType:string;structure:string;gender:string;basePaise:number;counts:SrvCounts;
   latePenaltyHalf:number;payableDays:number;earnedPaise:number;basicPaise:number;hraPaise:number;washingPaise:number;specialPaise:number;otPaise:number;grossPaise:number;
   pfWagesPaise:number;pfPaise:number;pfErPaise:number;esicWagesPaise:number;esicPaise:number;esicErPaise:number;ptPaise:number;advancePaise:number;
@@ -56,7 +58,7 @@ export function ratesFromServer(r:SrvRates):HRRates{
     ptFemaleExempt:r.ptFemaleExempt,otBps:r.otBps,lateBlock:r.lateBlock,rounding:r.rounding==='rupee'?'rupee':'paise',esicPeriod:r.esicPeriod};
 }
 function countsFromServer(c:SrvCounts):HRCounts{
-  return {ym:c.ym,days:c.days,P:c.p,L:c.l,H:c.h,HL:c.hl,A:c.a,OFFW:c.offw,off:c.off,paidLeave:c.paidLeave,lopLeave:c.lopLeave,unmarked:c.unmarked,na:c.na,otMin:c.otMin};
+  return {ym:c.ym,days:c.days,P:c.p,L:c.l,H:c.h,HL:c.hl,A:c.a,OFFW:c.offw,off:c.off,paidLeave:c.paidLeave,lopLeave:c.lopLeave,unmarked:c.unmarked,na:c.na,otMin:c.otMin,...(c.hol?{hol:c.hol}:{})};
 }
 /** A stored server line → prototype HRLine (hrComputeLine key order); the figures are the server's, unchanged. */
 export function lineFromServer(l:SrvLine):HRLine{
@@ -70,9 +72,10 @@ export function staffFromServer(x:SrvStaffView):HRStaff{
   const st:HRStaff={id:protoId(x.staffId),name:x.name,dept:x.dept,designation:x.designation,
     ...(x.linkedUserId!=null?{userId:protoId(x.linkedUserId)}:{}),
     payType:x.payType==='daily'?'daily':'monthly',monthly:x.monthlyPaise??0,daily:x.dailyPaise??0,
-    defaultShift:(['M','E','N','G'].includes(x.defaultShift)?x.defaultShift:'G') as HRStaff['defaultShift'],weeklyOff:x.weeklyOff,joined:x.joined,
+    defaultShift:x.defaultShift||'G',weeklyOff:x.weeklyOff,joined:x.joined,
     phone:x.phoneMasked==='(none)'?'':x.phoneMasked,active:x.active};
   if(x.exitedOn)st.exitedOn=x.exitedOn;
+  if(x.designationCode)st.designationCode=x.designationCode;
   if(x.gender==='M'||x.gender==='F')st.gender=x.gender;
   if(x.structure==='S'||x.structure==='B')st.structure=x.structure;
   if(x.pfApplicable!=null)st.pfApplicable=x.pfApplicable;
@@ -144,7 +147,8 @@ const text=(v:unknown)=>v===undefined||v===null?undefined:String(v);
 function saveStaffBody(c:CommandCtx):Record<string,unknown>{
   const cmd=c.cmd,old=cmd.id?loadedStaff(c,cmd.id):undefined;
   const body:Record<string,unknown>={staffId:cmd.id?serverId(cmd.id,'Staff'):null,name:cmd.name,dept:cmd.dept,designation:cmd.designation,
-    defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,linkUserId:cmd.userId?serverId(cmd.userId,'User'):null};
+    defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,linkUserId:cmd.userId?serverId(cmd.userId,'User'):null,
+    ...(cmd.designationCode?{designationCode:String(cmd.designationCode)}:{})};
   if(cmd.confirmRelink)body.confirmRelink=true;
   if(!cmd.id&&cmd.joined)body.joined=String(cmd.joined);   // N3: joining date of a new staff member (the server keeps it on edits)
   if(cmd.phone!==undefined&&(!old||String(cmd.phone).trim()!==old.phone))body.phone=String(cmd.phone).trim();

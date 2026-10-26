@@ -2,6 +2,8 @@
 //
 //   server   GET /masters/floors (every signed-in user: floor names label the boards), GET /masters/floors/history (PERM-MST-001),
 //            POST /commands/{SaveFloor,RetireFloor,ReactivateFloor,ReorderFloors,DeleteFloor} (PERM-MST-001; expectedVersion on edits).
+//            MA-6: the same for designations, shift patterns, leave types and holidays on /hr/{designations,shift-patterns,leave-types,holidays} (any signed-in user reads;
+//            holidays and the pay fields need PERM-MST-002).
 //   loaders  mastersX ← rows of every master in MST_SERVER (+ their history when the user may read it). Prototype row id = String(server id).
 //   commands MST_MASTER_SAVE / _RETIRE / _REACTIVATE / _REORDER / _DELETE {master,…} → the master's server commands. A master that is
 //            not in MST_SERVER is refused before any network call ("Not available on the server yet: <list>").
@@ -37,7 +39,8 @@ export type MstServerRoute={list:ReadRoute;history?:ReadRoute;listPath:string;hi
   /** Store-backed master whose rows another area loads (MA-4: outlets / tables / menu items live in posX): the loader skips its list. */
   loadedElsewhere?:boolean;
   /** Slices reloaded after a command besides mastersX. */reload?:SliceKey[];
-  /** MA-5: server id of a prototype row id; undefined = a row the server does not hold yet (Save creates it). */rowId?:(id:string)=>number|undefined};
+  /** MA-5: server id of a prototype row id; undefined = a row the server does not hold yet (Save creates it). */rowId?:(id:string)=>number|undefined;
+  /** MA-6: extra Save fields of the people lists. */saveFields?:(row:Record<string,unknown>)=>Record<string,unknown>};
 export const MST_SERVER:Record<string,MstServerRoute>={
   floors:{list:'GET /masters/floors',history:'GET /masters/floors/history',listPath:'/masters/floors',historyPath:'/masters/floors/history',kind:'floor',idField:'floorId',idsField:'floorIds',
     save:'SaveFloor',retire:'RetireFloor',reactivate:'ReactivateFloor',reorder:'ReorderFloors',remove:'DeleteFloor'},
@@ -45,7 +48,30 @@ export const MST_SERVER:Record<string,MstServerRoute>={
   ...MNY_MST_SERVER, // MA-3: paymentMethods, bankAccounts, expenseCategories, expenseVendors
   ...POS_MST_SERVER, // MA-4
   ...FDM_SERVER, // MA-5: bookingSources, idTypes, numberSeries, policies
+  // MA-6 people lists (server module PeopleLists: hr.designation, hr.shift_pattern, hr.leave_type, hr.holiday).
+  designations:{list:'GET /hr/designations',history:'GET /hr/designations/history',listPath:'/hr/designations',historyPath:'/hr/designations/history',kind:'designation',idField:'designationId',idsField:'designationIds',
+    save:'SaveDesignation',retire:'RetireDesignation',reactivate:'ReactivateDesignation',reorder:'ReorderDesignations',remove:'DeleteDesignation',
+    fromServer:r=>({...listBase(r,'designationId'),...optional(r,['dept','grade','defaultPayRule'])}),
+    // The pay rule is hidden from roles without PERM-MST-002 / PERM-HR-005: absent = unchanged on the server, "" = cleared.
+    saveFields:r=>({dept:r.dept??null,grade:r.grade??null,...(r.defaultPayRule!==undefined?{defaultPayRule:r.defaultPayRule}:{})})},
+  shiftPatterns:{list:'GET /hr/shift-patterns',history:'GET /hr/shift-patterns/history',listPath:'/hr/shift-patterns',historyPath:'/hr/shift-patterns/history',kind:'shiftPattern',idField:'shiftPatternId',idsField:'shiftPatternIds',
+    save:'SaveShiftPattern',retire:'RetireShiftPattern',reactivate:'ReactivateShiftPattern',reorder:'ReorderShiftPatterns',remove:'DeleteShiftPattern',
+    fromServer:r=>({...listBase(r,'shiftPatternId'),start:r.start,end:r.end,breakMinutes:r.breakMinutes,night:!!r.night,weeklyOffRule:r.weeklyOffRule}),
+    saveFields:r=>({start:r.start,end:r.end,breakMinutes:r.breakMinutes??0,night:!!r.night,weeklyOffRule:r.weeklyOffRule??'fixed'})},
+  leaveTypes:{list:'GET /hr/leave-types',history:'GET /hr/leave-types/history',listPath:'/hr/leave-types',historyPath:'/hr/leave-types/history',kind:'leaveType',idField:'leaveTypeId',idsField:'leaveTypeIds',
+    save:'SaveLeaveType',retire:'RetireLeaveType',reactivate:'ReactivateLeaveType',reorder:'ReorderLeaveTypes',remove:'DeleteLeaveType',
+    fromServer:r=>({...listBase(r,'leaveTypeId'),paid:!!r.paid,...optional(r,['yearlyQuota']),carryForward:r.carryForward,encashment:!!r.encashment}),
+    saveFields:r=>({paid:r.paid!==false,yearlyQuota:r.yearlyQuota??null,carryForward:r.carryForward??0,encashment:!!r.encashment})},
+  holidays:{list:'GET /hr/holidays',history:'GET /hr/holidays/history',listPath:'/hr/holidays',historyPath:'/hr/holidays/history',kind:'holiday',idField:'holidayId',idsField:'holidayIds',
+    save:'SaveHoliday',retire:'RetireHoliday',reactivate:'ReactivateHoliday',reorder:'ReorderHolidays',remove:'DeleteHoliday',
+    fromServer:r=>({...listBase(r,'holidayId'),kind:r.kind}),
+    saveFields:r=>({kind:r.kind})},
 };
+/** Framework columns of any server list row → prototype MasterRow base (id = String(server id)). */
+const listBase=(r:Record<string,unknown>,idField:string):MasterRow=>({id:protoId(r[idField] as number),code:String(r.code),name:String(r.name),sortOrder:Number(r.sortOrder),active:!!r.active,
+  ...(r.retiredOn?{retiredOn:String(r.retiredOn)}:{})});
+/** Only the keys the server sent with a value (null = hidden or empty). */
+const optional=(r:Record<string,unknown>,keys:string[])=>Object.fromEntries(keys.filter(k=>r[k]!==null&&r[k]!==undefined).map(k=>[k,r[k]]));
 const PAGE=200;
 /** MA-2 …: a master whose rows another area loads (a kind:'patch' loader on mastersX) and whose server commands that area sends —
  *  for masters with fields beyond code / name / sort order (dated money, selects). The MST_MASTER_* mappers below hand them over. */
@@ -103,6 +129,7 @@ function saveBody(c:CommandCtx,r:MstServerRoute,row:Record<string,unknown>):{bod
   if(r.body)Object.assign(body,r.body(row,c));
   if(r.toServer)Object.assign(body,r.toServer(row));
   if(r.toBody)Object.assign(body,r.toBody(row,c));
+  if(r.saveFields)Object.assign(body,r.saveFields(row));
   if(row.id&&(!r.rowId||r.rowId(String(row.id))!==undefined)){body[r.idField]=idOf(c,r,row.id);return {body,expectedVersion:version(c,r,String(row.id))};}
   return {body};
 }

@@ -26,7 +26,8 @@ public sealed record SettingsRecord(string CaName, string CaEmail, int DueSoonDa
 
 public sealed record PackRecord(long PackId, DateTime AtUtc, int By, string To, string ToName, int Overdue, int Due, int Filed, int NotApplicable, IReadOnlyList<string> Lines);
 
-public sealed record ComplianceSnapshot(IReadOnlyList<ObligationRecord> Obligations, IReadOnlyList<FilingRecord> Filings, SettingsRecord Settings);
+/// <summary><paramref name="Holidays"/> = the paid holidays of the Holiday calendar (MA-6): due dates falling on one move to the next working day.</summary>
+public sealed record ComplianceSnapshot(IReadOnlyList<ObligationRecord> Obligations, IReadOnlyList<FilingRecord> Filings, SettingsRecord Settings, IReadOnlySet<DateOnly>? Holidays = null);
 
 /// <summary>Persistence port of the compliance commands (SQL adapter in Infrastructure/Compliance). Lock* methods take UPDLOCK row locks.</summary>
 public interface IComplianceStore
@@ -67,6 +68,9 @@ public interface IComplianceStore
 
     Task<ComplianceSnapshot> SnapshotAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
 
+    /// <summary>The active paid holidays of the property (MA-6).</summary>
+    Task<IReadOnlySet<DateOnly>> PaidHolidaysAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
+
     /// <summary>Stores the pack and keeps the newest <see cref="ComplianceRules.MaxPacks"/>.</summary>
     Task<long> InsertPackAsync(ICommandTransaction tx, int propertyId, PackRecord pack, CancellationToken ct = default);
 }
@@ -100,7 +104,7 @@ public static class ComplianceCalendar
             foreach (var p in ComplianceRules.Periods(o.Frequency, o.FromPeriod, businessDate))
             {
                 byKey.TryGetValue((o.ObligationId, p), out var filing);
-                rows.Add(new CalendarEntry(o, ComplianceRules.Row(o.Schedule, p, businessDate, s.Settings.DueSoonDays, filing?.Status), filing));
+                rows.Add(new CalendarEntry(o, ComplianceRules.Row(o.Schedule, p, businessDate, s.Settings.DueSoonDays, filing?.Status, s.Holidays), filing));
             }
         }
 

@@ -6,6 +6,7 @@ public sealed record LeaveBalance(LeaveType Type, int Entitled, decimal Used, de
 /// <summary>Leave rules (SCC leave\index.html via the prototype): FY entitlements, used = approved + pending, capacity per department.</summary>
 public static class LeaveRules
 {
+    /// <summary>The seed tracked types (CL SL EL); <see cref="LeavePolicy.TrackedTypes"/> is the live list.</summary>
     public static readonly LeaveType[] TrackedTypes = [LeaveType.CL, LeaveType.SL, LeaveType.EL];
 
     /// <summary>Maximum calendar span of one request (prototype demo rule: 15 days).</summary>
@@ -19,14 +20,30 @@ public static class LeaveRules
         return leaves.Where(l => l.LeaveId != exceptLeaveId && l.Type == type && l.From >= fy.From && l.From <= fy.To && l.Holds).Sum(l => l.Days);
     }
 
-    public static IReadOnlyList<LeaveBalance> Balance(LeavePolicy policy, IEnumerable<LeaveSpan> leaves, DateOnly date)
+    /// <summary>Days carried into the financial year of <paramref name="date"/> from the previous one: unused quota up to the type's carry-forward limit
+    /// (one year back; the previous year's own carry is not carried again); none for staff who joined after the previous year ended.</summary>
+    public static int Carried(LeavePolicy policy, IReadOnlyList<LeaveSpan> leaves, DateOnly date, LeaveType type, DateOnly? joined)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        var cap = policy.CarryCap(type);
+        if (cap <= 0 || !policy.IsTracked(type)) return 0;
+        var prev = FinancialYear.Containing(FinancialYear.Containing(date).From.AddDays(-1));
+        if (joined is { } j && j > prev.To) return 0;
+        return (int)Math.Min(cap, Math.Max(0m, policy.Entitled(type) - Used(leaves, prev.From, type)));
+    }
+
+    /// <summary>Days still bookable for a tracked type: quota + carried − used (approved + pending), optionally ignoring one request.</summary>
+    public static decimal Available(LeavePolicy policy, IReadOnlyList<LeaveSpan> leaves, DateOnly date, LeaveType type, DateOnly? joined, long exceptLeaveId = 0)
+        => policy.Entitled(type) + Carried(policy, leaves, date, type, joined) - Used(leaves, date, type, exceptLeaveId);
+
+    public static IReadOnlyList<LeaveBalance> Balance(LeavePolicy policy, IEnumerable<LeaveSpan> leaves, DateOnly date, DateOnly? joined = null)
     {
         ArgumentNullException.ThrowIfNull(policy);
         var all = leaves.ToList();
-        return TrackedTypes.Select(t =>
+        return policy.TrackedTypes().Select(t =>
         {
             var used = Used(all, date, t);
-            var ent = policy.Entitled(t);
+            var ent = policy.Entitled(t) + Carried(policy, all, date, t, joined);
             return new LeaveBalance(t, ent, used, Math.Max(0, ent - used), Math.Max(0, used - ent));
         }).ToList();
     }

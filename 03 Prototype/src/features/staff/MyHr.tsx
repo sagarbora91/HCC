@@ -8,13 +8,13 @@ import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {ListCard,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {
   money,isDayClosed,hrSlice,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,hrLeaveBalance,hrVisiblePayslips,
-  hrMonthLabel,hrApprovedLeaveOn,hrCheckinStatus,hrFy,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_WEEKDAYS,type HRStaff,type HRRun,type HRLine,type HRLeave,
+  hrMonthLabel,hrApprovedLeaveOn,hrCheckinStatus,hrFy,HR_ATT_LABEL,hrLeaveName,hrHolidayOn,HR_WEEKDAYS,type HRStaff,type HRRun,type HRLine,type HRLeave,
 } from '../../services/mock';
 
 export const hrLeaveTone=(st:string)=>st==='Approved'?'green':st==='Pending'?'orange':'neutral';
 export const hrAttTone=(st:string)=>st==='P'?'green':st==='L'||st==='H'?'orange':st==='A'?'hr-red':'blue';
 
-const kind=(l:HRLeave)=>HR_LEAVE_LABEL[l.type]+(l.half?` · ½ (${l.half==='AM'?'first':'second'} half)`:'');
+const kind=(l:HRLeave,s:ReturnType<typeof useHcc>['s'])=>hrLeaveName(s,l.type)+(l.half?` · ½ (${l.half==='AM'?'first':'second'} half)`:'');
 /** Latest payslip with the deduction breakdown (own payslip only). */
 function PayslipCard({run,line,phone,onOpen}:{run:HRRun;line:HRLine;phone:boolean;onOpen:()=>void}){
   const rows:[string,number][]=[['Gross earnings',line.gross],['Provident Fund',-line.pf],['ESIC',-line.esic],['Professional tax',-line.pt],...(line.advance?[['Advance recovery',-line.advance] as [string,number]]:[])];
@@ -32,21 +32,21 @@ function useMine(){
   return {ctx,me,att,shift,leave,canCheckin};
 }
 function todayText(me:HRStaff,s:ReturnType<typeof useHcc>['s']){
-  const sh=hrShiftInfo(hrShiftFor(s,me,s.date));return sh.code==='OFF'?'Weekly off today':`${sh.label} shift ${sh.start}–${sh.end}`;
+  const sh=hrShiftInfo(hrShiftFor(s,me,s.date),s);return sh.code==='OFF'?'Weekly off today':`${sh.label} shift ${sh.start}–${sh.end}`;
 }
 
 export function MyHr({phone=false}:{phone?:boolean}){
   const {ctx,me,att,shift,leave,canCheckin}=useMine();const {s,uid,run,open,busy}=ctx;
   if(!me)return <>{!phone&&<PageTitle title="My shifts & pay" sub="Self-service for staff with a demo login"/>}
     <Empty title="No staff record linked" body="Your demo user is not linked to a staff record. Switch to a staff member such as Ravi (Housekeeper) or Meera (Manager)."/></>;
-  const checkin=()=>run({type:'HR_ATT_MARK',staffId:me.id},`Checked in at ${s.clock.slice(11)} · ${HR_ATT_LABEL[hrCheckinStatus(s.clock,shift!)]}`);
+  const checkin=()=>run({type:'HR_ATT_MARK',staffId:me.id},`Checked in at ${s.clock.slice(11)} · ${HR_ATT_LABEL[hrCheckinStatus(s.clock,shift!,s)]}`);
   const week=hrWeek(hrMonday(s.date)),ym=s.date.slice(0,7),c=hrCounts(s,me,ym,s.date);
   const myLeaves=hrSlice(s).leaves.filter(l=>l.staffId===me.id).sort((a,b)=>b.from.localeCompare(a.from));
   const slips=hrVisiblePayslips(s,uid).filter(p=>p.line.staffId===me.id);
   const bal=hrLeaveBalance(s,me.id,s.date),fy=hrFy(s.date).label,latest=slips[0];
-  const todayStatus=att?<Pill tone={hrAttTone(att.status)}>{HR_ATT_LABEL[att.status]} · {att.at.slice(11)}</Pill>:leave?<Pill tone="blue">On leave</Pill>:shift==='OFF'?<Pill>Off</Pill>:<Pill tone="orange">Not checked in</Pill>;
-  const dayCell=(d:string)=>{const x=hrDayStatus(s,me,d),sh=hrShiftInfo(hrShiftFor(s,me,d));
-    const st=x.kind==='att'?HR_ATT_LABEL[x.att!.status]:x.kind==='leave'?'Leave':x.kind==='off'?'Off':d<s.date?'Unmarked':d===s.date?'Today':'';
+  const todayStatus=att?<Pill tone={hrAttTone(att.status)}>{HR_ATT_LABEL[att.status]} · {att.at.slice(11)}</Pill>:leave?<Pill tone="blue">On leave</Pill>:shift==='OFF'?<Pill>Off</Pill>:hrHolidayOn(s,s.date)?<Pill tone="green">{hrHolidayOn(s,s.date)!.kind==='paid'?'Paid holiday':'Restricted holiday'} · {hrHolidayOn(s,s.date)!.name}</Pill>:<Pill tone="orange">Not checked in</Pill>;
+  const dayCell=(d:string)=>{const x=hrDayStatus(s,me,d),sh=hrShiftInfo(hrShiftFor(s,me,d),s);
+    const st=x.kind==='att'?HR_ATT_LABEL[x.att!.status]:x.kind==='leave'?'Leave':x.kind==='off'?'Off':x.kind==='holiday'?'Holiday':d<s.date?'Unmarked':d===s.date?'Today':'';
     return {sh,st};};
 
   if(phone)return <div className="hr-m">
@@ -57,8 +57,8 @@ export function MyHr({phone=false}:{phone?:boolean}){
     <div className="hr-kpis"><KpiCard label="Present" value={c.P+c.L} sub={`${c.L} late`}/><KpiCard label="Half / absent" value={`${c.H} / ${c.A}`}/><KpiCard label="Leave" value={c.paidLeave+c.lopLeave}/><KpiCard label="Overtime" value={`${Math.round(c.otMin/6)/10} h`}/></div>
     {latest&&<><h2 className="m-group">LATEST PAYSLIP</h2><PayslipCard phone run={latest.run} line={latest.line} onOpen={()=>open({type:'hr-payslip',id:latest.run.id+'|'+me.id})}/></>}
     <h2 className="m-group">MY LEAVE · {fy}</h2>
-    {me.payType==='monthly'?<div className="hr-kpis">{bal.map(b=><KpiCard key={b.type} label={HR_LEAVE_LABEL[b.type]} value={`${b.left} left`} sub={`of ${b.entitled} · used ${b.used}${b.over?` · over by ${b.over}`:''}`}/>)}</div>:<p className="hr-m-note">Daily-wage staff: leave without pay only.</p>}
-    {myLeaves.length?myLeaves.map(l=><ListCard key={l.id} title={`${kind(l)} · ${l.days} day${l.days===1?'':'s'}`} sub={`${shortDate(l.from)}${l.to!==l.from?' – '+shortDate(l.to):''} · ${l.reason}`}
+    {me.payType==='monthly'?<div className="hr-kpis">{bal.map(b=><KpiCard key={b.type} label={hrLeaveName(s,b.type)} value={`${b.left} left`} sub={`of ${b.entitled} · used ${b.used}${b.over?` · over by ${b.over}`:''}`}/>)}</div>:<p className="hr-m-note">Daily-wage staff: leave without pay only.</p>}
+    {myLeaves.length?myLeaves.map(l=><ListCard key={l.id} title={`${kind(l,s)} · ${l.days} day${l.days===1?'':'s'}`} sub={`${shortDate(l.from)}${l.to!==l.from?' – '+shortDate(l.to):''} · ${l.reason}`}
       right={<Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill>} onClick={l.status==='Pending'?()=>{if(window.confirm('Cancel this leave request?'))run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave request cancelled');}:undefined}/>)
       :<p className="hr-m-note">No leave requests yet.</p>}
     <h2 className="m-group">MY PAYSLIPS</h2>

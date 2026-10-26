@@ -151,6 +151,11 @@ function routes(role){
     'GET /masters/number-series/history':({query})=>page([],query,'items'),
     'GET /masters/policies':({query})=>page([],query,'items'), // MA-5
     'GET /masters/policies/history':({query})=>page([],query,'items'),
+    // MA-6 people lists
+    'GET /hr/designations':({query})=>page([],query,'items'),'GET /hr/designations/history':({query})=>page([],query,'items'),
+    'GET /hr/shift-patterns':({query})=>page([],query,'items'),'GET /hr/shift-patterns/history':({query})=>page([],query,'items'),
+    'GET /hr/leave-types':({query})=>page([],query,'items'),'GET /hr/leave-types/history':({query})=>page([],query,'items'),
+    'GET /hr/holidays':({query})=>page([],query,'items'),'GET /hr/holidays/history':({query})=>page([],query,'items'),
   };
 }
 

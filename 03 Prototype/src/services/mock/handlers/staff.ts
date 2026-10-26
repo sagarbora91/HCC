@@ -8,13 +8,14 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
   hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrEntitled,hrLeaveAvailable,hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_TRACKED,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,
 } from '../../../domain/streams/staff';
+import {hrHolidayPaid,hrShiftPattern,hrLeaveTypeRow,hrLeaveQuota,hrLeaveTypeRows,hrTrackedTypes,hrDesignationOf,hrShiftChoices,HRM_DESIGNATIONS,HRM_LEAVE_TYPES,type HRDesignation} from '../../../domain/streams/people-masters';
+import {mstRows,mstStored,mstByCode} from '../../../domain/streams/masters';
 import {addDays} from '../../../domain/money';
 import {clone} from '../../../domain/clone';
 
-const SHIFTS:HRShiftCode[]=['M','E','N','G','OFF'];
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 function staffOf(k:Kit,id:string):HRStaff{const st=hrEnsure(k.s).staff.find(x=>x.id===id);k.assert(st,'Staff member not found.','NOT_FOUND');return st!;}
 function manage(k:Kit){if(!hrCanManage(k.s,k.uid))k.fail('FORBIDDEN','Access denied: approve permission is required to manage staff.');}
@@ -50,6 +51,17 @@ function rateRules(k:Kit,r:HRRates,where=''){
   k.assert(r.ptMaleExempt<r.ptMaleMid,'The PT nil slab must end below the middle slab.'+where);
 }
 
+/** MA-6: the yearly entitlements of CL / SL / EL live on the Leave types list; the leave-policy command writes through to it (history per type). */
+function writeQuotas(k:Kit,ent:{CL:number;SL:number;EL:number}){
+  const rows=mstRows(k.s,HRM_LEAVE_TYPES).map(r=>({...r})),changed:string[]=[];
+  for(const code of HR_TRACKED){const r=rows.find(x=>x.code===code);if(!r||r.yearlyQuota===ent[code])continue;
+    k.s.mastersX??={rows:{},history:[]};k.s.mastersX.history??=[];
+    k.s.mastersX.history.unshift({id:k.id('MSTH'),master:HRM_LEAVE_TYPES,rowId:r.id,code,field:'yearlyQuota',old:r.yearlyQuota===undefined?'—':String(r.yearlyQuota),new:String(ent[code]),by:k.uid,at:k.s.clock});
+    r.yearlyQuota=ent[code];changed.push(code);}
+  if(!changed.length)return;
+  (k.s.mastersX!.rows??={})[HRM_LEAVE_TYPES]=rows;
+}
+
 export const handlers:Record<string,Handler>={
   /** Create / edit a staff record. Salary, statutory flags and bank details: payroll roles only. */
   HR_STAFF_SAVE:k=>{
@@ -57,8 +69,19 @@ export const handlers:Record<string,Handler>={
     if(!hrCanManage(s,k.uid)&&!pay)fail('FORBIDDEN','Access denied: only managers or payroll roles can edit the staff master.');
     assert(String(cmd.name??'').trim().length>=2,'Enter the staff member’s name.');
     assert(x.depts.some(d=>d.id===cmd.dept),'Choose a department.');
-    assert(String(cmd.designation??'').trim(),'Enter a designation.');
-    assert(['M','E','N','G'].includes(cmd.defaultShift),'Choose a default shift.');
+    // MA-6: a designation chosen from the Designations list (code) supplies the printed name; a free-text designation still works (older callers).
+    let desig=String(cmd.designation??'').trim(),desigCode:string|undefined;
+    if(cmd.designationCode){
+      const row=mstByCode(s,HRM_DESIGNATIONS,String(cmd.designationCode)) as HRDesignation|undefined;
+      assert(row,'Choose a designation from the list.');
+      assert(row!.active||cmd.designationCode===x.staff.find(st=>st.id===cmd.id)?.designationCode,`${row!.name} is retired — choose an active designation.`,'INVALID_TRANSITION');
+      assert(!row!.dept||row!.dept===cmd.dept,`${row!.name} belongs to department ${row!.dept}.`);
+      desig=row!.name;desigCode=row!.code;
+    }
+    assert(desig,'Enter a designation.');
+    const existing0=cmd.id?x.staff.find(st=>st.id===cmd.id):undefined;
+    // MA-6: the default shift is a pattern of the Shift patterns list (a retired one stays valid on a record that already has it).
+    assert(typeof cmd.defaultShift==='string'&&cmd.defaultShift!=='OFF'&&hrShiftChoices(s,existing0?.defaultShift).some(p=>p.code===cmd.defaultShift),'Choose a default shift.');
     assert(Number.isInteger(cmd.weeklyOff)&&cmd.weeklyOff>=0&&cmd.weeklyOff<=6,'Choose a weekly off day.');
     if(cmd.gender!==undefined)assert(cmd.gender==='M'||cmd.gender==='F','Choose M or F for the professional-tax slab.');
     const existing=cmd.id?x.staff.find(st=>st.id===cmd.id):undefined;
@@ -99,7 +122,7 @@ export const handlers:Record<string,Handler>={
     const phone=cmd.phone===undefined?existing?.phone??'':String(cmd.phone).trim();
     const genderChanged=!!existing&&cmd.gender!==undefined&&cmd.gender!==hrGenderOf(existing),phoneChanged=!!existing&&phone!==existing.phone;
     if((genderChanged||phoneChanged)&&!pay)fail('FORBIDDEN',`Only the Owner or Accountant can change the ${genderChanged?'professional-tax slab':'payslip mobile number'} of a staff record.`);
-    const base={name:String(cmd.name).trim(),dept:cmd.dept,designation:String(cmd.designation).trim(),...(cmd.userId?{userId:cmd.userId as string}:{}),
+    const base={name:String(cmd.name).trim(),dept:cmd.dept,designation:desig,...(desigCode?{designationCode:desigCode}:{}),...(cmd.userId?{userId:cmd.userId as string}:{}),
       defaultShift:cmd.defaultShift,weeklyOff:cmd.weeklyOff,phone,...(cmd.gender?{gender:cmd.gender as 'M'|'F'}:{})};
     const stat=(st:HRStaff)=>{if(!pay)return;
       if(cmd.structure!==undefined)st.structure=cmd.structure;if(cmd.pfApplicable!==undefined)st.pfApplicable=!!cmd.pfApplicable;if(cmd.esicApplicable!==undefined)st.esicApplicable=!!cmd.esicApplicable;
@@ -107,6 +130,9 @@ export const handlers:Record<string,Handler>={
     if(existing){const notes:string[]=[],was={...existing};
       if(!cmd.userId)delete existing.userId;Object.assign(existing,base);if(pay&&salaryGiven){existing.payType=cmd.payType??existing.payType;existing.monthly=cmd.monthly??existing.monthly;existing.daily=cmd.daily??existing.daily;}
       stat(existing);
+      if(!desigCode&&was.designation!==existing.designation)delete existing.designationCode;
+      if(was.designation!==existing.designation)notes.push(`designation ${was.designation} → ${existing.designation}`);
+      if(was.defaultShift!==existing.defaultShift)notes.push(`default shift ${was.defaultShift} → ${existing.defaultShift}`);
       if(linkChanged)notes.push(`login ${was.userId??'(none)'} → ${existing.userId??'(none)'}`);
       if(genderChanged)notes.push(`PT slab ${hrGenderOf(was)==='F'?'women':'men'} → ${hrGenderOf(existing)==='F'?'women':'men'}`);
       if(phoneChanged)notes.push(`payslip mobile ${was.phone?'••••'+was.phone.replace(/\D/g,'').slice(-4):'(none)'} → ${existing.phone?'••••'+existing.phone.replace(/\D/g,'').slice(-4):'(none)'}`);
@@ -132,7 +158,7 @@ export const handlers:Record<string,Handler>={
     manage(k);const {s,cmd,assert}=k,st=staffOf(k,cmd.staffId);
     assert(st.active,'This staff member is inactive.','INVALID_TRANSITION');
     assert(DATE.test(cmd.date)&&cmd.date>=s.date,'Only today’s or future roster can change; past roster is history.','INVALID_TRANSITION');
-    assert(SHIFTS.includes(cmd.shift),'Choose a shift.');
+    assert(cmd.shift==='OFF'||hrShiftChoices(s,hrShiftFor(s,st,cmd.date)).some(p=>p.code===cmd.shift),'Choose a shift.');
     hrEnsure(s).roster[hrKey(cmd.date,st.id)]=cmd.shift;return `${st.name} · ${cmd.date} → ${cmd.shift}`;
   },
   /** Copy a week's effective roster onto the following week (dates ≥ business date only). */
@@ -155,7 +181,7 @@ export const handlers:Record<string,Handler>={
       assert(!x.att[key],'Attendance is already recorded for today.','INVALID_TRANSITION');
       const shift=hrShiftFor(s,st,s.date);
       assert(shift!=='OFF','You are rostered off today — ask a manager to record worked-off attendance.','INVALID_TRANSITION');
-      const status:HRAttStatus=leave?'H':hrCheckinStatus(s.clock,shift);
+      const status:HRAttStatus=leave?'H':hrCheckinStatus(s.clock,shift,s);
       x.att[key]={status,at:s.clock,otMin:0,by:k.uid,note:leave?'Self check-in · half-day leave':'Self check-in'};
       return `${st.name} · checked in ${s.clock.slice(11)} · ${HR_ATT_LABEL[status]}`;
     }
@@ -172,8 +198,9 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,assert,fail}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);
     if(!isOwn(k,st)&&!hrCanManage(s,k.uid))fail('FORBIDDEN','You can request leave only for yourself.');
     assert(st.active,'This staff member is inactive.','INVALID_TRANSITION');
-    const type=cmd.leaveType as HRLeaveType;assert(HR_LEAVE_TYPES.includes(type),'Choose a leave type.');
-    if(st.payType==='daily')assert(type==='LOP','Daily-wage staff can take leave without pay only (illustrative policy).');
+    const type=cmd.leaveType as HRLeaveType;const lt=typeof type==='string'?hrLeaveTypeRow(s,type):undefined;
+    assert(lt&&lt.active,'Choose a leave type.');
+    if(st.payType==='daily')assert(lt!.paid===false,'Daily-wage staff can take leave without pay only (illustrative policy).');
     const half=cmd.half as 'AM'|'PM'|undefined;if(half!==undefined)assert(half==='AM'||half==='PM','Choose the first or second half.');
     const to=half?cmd.from:cmd.to;
     assert(DATE.test(cmd.from)&&DATE.test(to)&&to>=cmd.from,'The end date must be on or after the start date.');
@@ -183,12 +210,12 @@ export const handlers:Record<string,Handler>={
     assert(String(cmd.reason??'').trim().length>=3,'Give a short reason.');
     // SCC duplicate rule: a full day conflicts with anything; first and second half of the same day can coexist.
     assert(!x.leaves.some(l=>l.staffId===st.id&&(l.status==='Pending'||l.status==='Approved')&&l.from<=to&&l.to>=cmd.from&&!(half&&l.half&&l.half!==half)),'These dates overlap another leave request.','NOT_AVAILABLE');
-    const days=hrLeaveDays(s,st,cmd.from,to,half);assert(days>0,half?'That day is a weekly off.':'The chosen dates are all weekly offs.');
-    if((HR_TRACKED as string[]).includes(type)){const t=type as 'CL'|'SL'|'EL',left=hrEntitled(s,t)-hrLeaveUsed(s,st.id,cmd.from,t);
+    const days=hrLeaveDays(s,st,cmd.from,to,half);assert(days>0,half?'That day is a weekly off or a paid holiday.':'The chosen dates are all weekly offs or paid holidays.');
+    if(hrLeaveQuota(s,type)!==undefined){const left=hrLeaveAvailable(s,st.id,type,cmd.from);
       assert(days<=left,`Not enough ${type} balance: ${left} day${left===1?'':'s'} left in ${hrFy(cmd.from).label}.`);}
     // SCC capacity: max staff off per day — here per department; pending and approved requests hold a slot.
     const cap=hrDeptCap(s,st.dept);
-    for(let d=cmd.from;d<=to;d=addDays(d,1)){if(hrShiftFor(s,st,d)==='OFF')continue;
+    for(let d=cmd.from;d<=to;d=addDays(d,1)){if(hrShiftFor(s,st,d)==='OFF'||hrHolidayPaid(s,d))continue;
       const off=hrDeptOff(s,st.dept,d,st.id).length;
       assert(off<cap,`${hrDeptName(s,st.dept)} already has ${off} staff off on ${dm(d)} (maximum ${cap} per day).`,'NOT_AVAILABLE');}
     const id=k.id('HR-LV');
@@ -202,7 +229,7 @@ export const handlers:Record<string,Handler>={
     if(!cmd.approve)assert(String(cmd.note??'').trim(),'Give a reason for rejecting.');
     if(cmd.approve){
       assert(!Object.keys(x.att).some(key=>{const [d,sid]=key.split('|');return sid===l!.staffId&&d>=l!.from&&d<=l!.to&&!(l!.half&&(x.att[key].status==='H'||x.att[key].status==='A'));}),'Attendance is already recorded inside these dates.','INVALID_TRANSITION');
-      if((HR_TRACKED as string[]).includes(l!.type)){const left=hrEntitled(s,l!.type as 'CL')-hrLeaveUsed(s,l!.staffId,l!.from,l!.type,l!.id);assert(l!.days<=left,'Leave balance is no longer sufficient.');}
+      if(hrLeaveQuota(s,l!.type)!==undefined){const left=hrLeaveAvailable(s,l!.staffId,l!.type,l!.from,l!.id);assert(l!.days<=left,'Leave balance is no longer sufficient.');}
     }
     l!.status=cmd.approve?'Approved':'Rejected';l!.decidedBy=k.uid;l!.decidedAt=s.clock;const note=String(cmd.note??'').trim();if(note)l!.note=note;
     return `${l!.id} · ${l!.status}`;
@@ -222,6 +249,7 @@ export const handlers:Record<string,Handler>={
     if(cmd.deptCap!==undefined){assert(cmd.deptCap&&typeof cmd.deptCap==='object','Department limits are missing.');p.deptCap={};
       for(const [d,v] of Object.entries(cmd.deptCap as Record<string,unknown>)){assert(x.depts.some(q=>q.id===d),'Unknown department.');
         if(v===null||v===undefined||v==='')continue;assert(Number.isInteger(v)&&(v as number)>=1&&(v as number)<=20,'Department limit: 1–20.');p.deptCap[d]=v as number;}}
+    if(cmd.ent!==undefined)writeQuotas(k,p.ent);
     x.leavePolicy=p;return `Leave policy updated · CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL} · max ${p.defaultCap}/department/day · new requests only`;
   },
   HR_ADVANCE_ADD:k=>{
