@@ -144,6 +144,11 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
               FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id
              WHERE t.property_id = @p AND s.status IN ('Open', 'Submitted') ORDER BY s.shift_id;
             SELECT business_date FROM cls.day_reopen WHERE property_id = @p AND reclosed_utc IS NULL;
+            -- A03b-09 (prototype gate list): an expense submitted for approval, and a credit-note request awaiting the Owner, block the close.
+            SELECT expense_id, vendor, amount_paise FROM ops.expense WHERE property_id = @p AND status = 'Pending' ORDER BY expense_id;
+            SELECT q.request_id, i.invoice_no, CASE q.mode WHEN 'amount' THEN q.amount_paise WHEN 'full' THEN i.taxable_paise END
+              FROM ivc.credit_note_request q JOIN ivc.invoice i ON i.invoice_id = q.invoice_id
+             WHERE q.property_id = @p AND q.status = 'Pending' AND q.expires_utc >= @now ORDER BY q.request_id;
             """, async c =>
         {
             await using var rd = await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -173,7 +178,14 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
             var reopened = new List<DateOnly>();
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) reopened.Add(ClosingSql.Date(rd, 0));
-            return new PreflightData(date, arrivals, departures, holds, nights, approvals, shifts, Reopened: reopened);
+            var expenses = new List<PendingExpense>();
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) expenses.Add(new PendingExpense(rd.GetInt64(0), rd.GetString(1), new Paise(rd.GetInt64(2))));
+            var creditNotes = new List<PendingCreditNote>();
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                creditNotes.Add(new PendingCreditNote(rd.GetInt64(0), rd.GetString(1), rd.IsDBNull(2) ? null : new Paise(rd.GetInt64(2))));
+            return new PreflightData(date, arrivals, departures, holds, nights, approvals, shifts, Reopened: reopened, Expenses: expenses, CreditNotes: creditNotes);
         }, ct, P(propertyId), D(date), ("@now", SqlDbType.DateTime2, nowUtc));
 
     public Task<bool> IsClosedAsync(ICommandTransaction? tx, int propertyId, DateOnly date, CancellationToken ct) =>

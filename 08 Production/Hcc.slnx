@@ -45,6 +45,7 @@
     <Project Path="tests/Hcc.OpsMasters.Tests/Hcc.OpsMasters.Tests.csproj" />
   </Folder>
   <Folder Name="/database/">
+    <File Path="database/migrations.lock.json" />
     <File Path="database/migrations/0001_platform.sql" />
     <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
     <File Path="database/migrations/0100_access_identity.sql" />
@@ -85,10 +86,12 @@
     <File Path="database/migrations/2501_ota_rbac_seed.sql" />
     <File Path="database/migrations/2200_groups_billing.sql" />
     <File Path="database/migrations/2201_groups_rbac_seed.sql" />
+    <File Path="database/migrations/2202_groups_company.sql" />
     <File Path="database/migrations/2400_invoices.sql" />
     <File Path="database/migrations/2401_invoices_rbac_seed.sql" />
     <File Path="database/migrations/2700_import.sql" />
     <File Path="database/migrations/2701_import_rbac_seed.sql" />
+    <File Path="database/migrations/2702_import_pos.sql" />
     <File Path="database/migrations/2800_import_more_masters.sql" />
     <File Path="database/migrations/2801_masters_floors.sql" />
     <File Path="database/migrations/2802_masters_rbac_seed.sql" />
@@ -118,5 +121,6 @@
     <File Path="database/migrations/3930_room_board_indexes.sql" />
     <File Path="database/migrations/3950_accounting_tally_voucher_ids.sql" />
     <File Path="database/migrations/3951_gst_specified_premises_indexes.sql" />
+    <File Path="database/migrations/4000_ota_inventory_push.sql" />
   </Folder>
 </Solution>
