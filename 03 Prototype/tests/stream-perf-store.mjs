@@ -16,7 +16,8 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 // new folio totals), so FY26 changed on purpose again: old 26889bd0…1f7f2e7c → new 3521729b…ec6e46b4; worker, main and direct must still match.
 // MA-0 (DEC-MA-1): the new `masters` permission is granted to Owner and Tech admin in s.grants, so the whole-state hash changed on purpose:
 // old 3521729b…ec6e46b4 → new 260433ce…1e009df941. The generated history itself is unchanged (stream-masters.mjs pins the hash without grants).
-const FY26_SHA_BEFORE='260433ce3e60b9d4a00fd0ea5248eb176f54f4e56736ffb4d2f167e1009df941';
+// old → new: 260433ce… → 07f6681c… = SCHEMA 8 → 9 only (masters wave); the generated FY26 data is unchanged.
+const FY26_SHA_BEFORE='07f6681c52f418d4e21c3620c10e34632600523d3903d39eaba612dd14bd98d8';
 
 // ── fake IndexedDB with real transaction semantics: writes are staged and applied only on commit; `failPut` aborts the
 // transaction when a put for that key is issued (nothing of that transaction is applied) ──

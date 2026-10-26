@@ -35,8 +35,8 @@ export function register({test,M,assert}){
     assert.deepEqual(M.GSV_ITEM_CATEGORIES,mstRows(s,'lostFoundCategories').map(r=>r.name));});
   test('[OPSM] fixture figures unchanged (occupancy 8, collections ₹21,500, drawer ₹10,725); BASE and FY26 history hashes unchanged',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);
-    assert.equal(sha(strip(seed())),'d885a20a6501f44885b795184ffdd0e4e0ca3c3280e6b3ff87208c3db0635324');
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'ba4a1d4e69100d674327cf593def1519e73cd1501e7489671b6787a04fdd229f');});
+    assert.equal(sha(strip(seed())),'add626d3e76aa9a5f2475049c8592c3b40207624c92cb44942e7215d08761d52') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'35e6308217fd38e9c5e3bc9137aa974eefee0930d3f49c8037853b8f76ad8319') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
   test('[OPSM] permissions: Tech admin and Owner may change the four lists; Manager, Reception, Supervisor, Housekeeper, Maintenance may not (DEC-MA-1)',()=>{
     for(const i of ids){const sp=mstSpec(i);
       for(const u of ['owner','techadmin'])assert.equal(mstCanEdit(seed(),u,sp).ok,true,i+u);

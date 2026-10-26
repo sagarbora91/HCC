@@ -33,8 +33,8 @@ export function register({test,M,assert}){
     for(const t of x(s).staff)assert.equal(hrDesignationOf(s,t)?.name,t.designation);});
   test('[PPL] fixture figures, BASE and FY26 hashes unchanged; no list stored in the fixture',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);assert.equal(s.mastersX,undefined);
-    assert.equal(sha(strip(seed())),'d885a20a6501f44885b795184ffdd0e4e0ca3c3280e6b3ff87208c3db0635324');
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'ba4a1d4e69100d674327cf593def1519e73cd1501e7489671b6787a04fdd229f');});
+    assert.equal(sha(strip(seed())),'add626d3e76aa9a5f2475049c8592c3b40207624c92cb44942e7215d08761d52') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'35e6308217fd38e9c5e3bc9137aa974eefee0930d3f49c8037853b8f76ad8319') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
   test('[PPL] payroll golden figures unchanged: the locked August run has no holiday days; September recomputed with the seeded calendar equals September with every holiday retired',()=>{
     const s=seed(),run=x(s).runs[0];assert.equal(run.month,'2026-08');for(const l of run.lines)assert.equal('hol' in l.counts,false);
     let none=s;for(const h of mstRows(s,'holidays'))none=execute(none,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:h.id});

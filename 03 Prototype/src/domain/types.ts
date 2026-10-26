@@ -295,4 +295,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=8;
+export const SCHEMA=9; // 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)

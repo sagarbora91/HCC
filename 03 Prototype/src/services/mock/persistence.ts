@@ -11,6 +11,8 @@ function migrate(s:State&{schema:number}){
     hrMigrateLegacy(s);// W05-B payroll: `rates` → `rateVersions`, old run lines filled
     if(!s.complianceX)cmpSeed(s);// W05-C review F14: saves from before the Compliance calendar get the fictional obligations
   }
+  // 8 → 9 (masters wave MA-1…MA-7): only optional slices and fields were added; every master reads its seed while its rows are
+  // absent (mstRows), so a v8 save needs no rewrite — the bump only marks the new state shape.
   s.schema=SCHEMA;
 }
 export const STORAGE_KEY='hcc-prototype-v2';
