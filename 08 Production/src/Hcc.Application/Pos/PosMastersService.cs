@@ -395,7 +395,7 @@ public sealed class PosMastersService(ICommandRunner runner, IAccessPolicy polic
             VersionToken.EnsureMatches(row.RowVer, expected, $"This {d.Singular}");
             if (row.Active == active) throw new HccException(HccErrorCode.INVALID_TRANSITION, active ? $"{row.Name} is already active." : $"{row.Name} is already retired.");
             var used = await store.UsageAsync(tx, table, id, c).ConfigureAwait(false);
-            if (!active && used.Open > 0)
+            if (!active && used.Open > 0 && table is PosMasterTable.Outlet or PosMasterTable.Table) // outlets and tables: not while a check is open
                 throw MastersRules.Fail(MasterReasons.InUse, table == PosMasterTable.Outlet
                     ? $"{row.Name} has {used.Open} open check{(used.Open == 1 ? string.Empty : "s")} — settle or void {(used.Open == 1 ? "it" : "them")} before retiring the outlet."
                     : $"{row.Name} has an open check — settle or void it first.");

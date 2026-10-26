@@ -98,6 +98,7 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false); // P6 late-write barrier (DAY_CLOSED)
             var date = await store.BusinessDateAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
             var outlet = await store.OutletAsync(tx, caller.PropertyId, req.OutletId, ct2).ConfigureAwait(false) ?? throw NotFound("Choose an outlet.");
+            if (!outlet.Active) throw Invalid($"{outlet.Name} is retired — choose an active outlet."); // MA-4 outlets master
             string? table = null;
             int? roomId = null;
             long? stayId = null;
