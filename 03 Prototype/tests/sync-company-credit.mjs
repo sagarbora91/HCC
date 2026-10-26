@@ -93,8 +93,10 @@ export async function register({test,assert,M}){
   });
 
   srv.reset();
+  S.grpSetBlocksOnServer(true);   // DEC-080 refuses group blocks until Hcc:GroupBlocks:Enabled is on; this checks the mapping for that day
   const blk=await rt.run({type:'GRP_BLOCK_CREATE',name:'Kale dealers meet',billTo:'company',company:'5',arrival:'2026-12-20',departure:'2026-12-22',cutoff:'2026-12-10',allot:{Deluxe:2},
     rates:{Deluxe:250000},contact:'S. Kale',key:'grp:dec076'});
+  S.grpSetBlocksOnServer(false);
   const grp=srv.commands('CreateGroup')[0];
   test('[DEC-076 sync] GRP_BLOCK_CREATE billed to a company account → CreateGroup with its companyId (routing to the master is credit-checked)',()=>{
     assert.ok(blk.ok,blk.text);assert.equal(grp.body.companyId,5);assert.equal(grp.body.billingName,'Kale Textiles (fictional)');

@@ -379,13 +379,14 @@ public sealed class ReservationLifecycleTests(GoldenDatabaseFixture f) : IClassF
     [Fact]
     public async Task Every_handler_checks_its_permission_first()
     {
+        var from = S.Access.Checks.Count;   // the log is shared by the class: read only this test's checks (other tests also run as Housekeeper)
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Inventory.GetAvailabilityAsync(1, FakeAccessPolicy.Housekeeper, new AvailabilityQuery("2026-12-01", "2026-12-02", 1), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Inventory.QuoteStayAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "QuoteStay"), new QuoteStayRequest("2026-12-01", "2026-12-02", 1, 0, f.RoomIds["105"]), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.CreateAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "CreateReservation"), new CreateReservationRequest(1, "AAAAAAAAAAA=", new GuestInput("X Y"), 1), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.AmendAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "AmendReservation"), new AmendReservationRequest(1, "AAAAAAAAAAA=", "2026-12-01", "2026-12-02", 1), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.CancelAsync(P2Services.Ctx(FakeAccessPolicy.Housekeeper, "CancelReservation"), new CancelReservationRequest(1, "AAAAAAAAAAA="), Ct)));
         Assert.Equal("FORBIDDEN", await Outcome.CodeAsync(() => S.Booking.GetAsync(1, FakeAccessPolicy.Housekeeper, 1, Ct)));
-        var perms = S.Access.Checks.Where(c => c.Principal == FakeAccessPolicy.Housekeeper).Select(c => c.Permission).ToList();
+        var perms = S.Access.Checks.Skip(from).Where(c => c.Principal == FakeAccessPolicy.Housekeeper).Select(c => c.Permission).ToList();
         Assert.Equal(["PERM-RES-001", "PERM-RES-002", "PERM-RES-002", "PERM-RES-003", "PERM-RES-004", "PERM-RES-001"], perms);
         Assert.Equal("NOT_FOUND", await Outcome.CodeAsync(() => S.Booking.GetAsync(1, FakeAccessPolicy.Reception, 999999, Ct)));
     }
