@@ -47,6 +47,15 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
             i.IssuedBy, i.IssuedUtc);
     }
 
+    /// <summary>W4-3: the invoice issued for a source (folio | group), NOT_FOUND when none is issued yet.</summary>
+    public async Task<InvoiceView> GetInvoiceForSourceAsync(int propertyId, int principalId, string sourceKind, long sourceId, CancellationToken ct = default)
+    {
+        await ViewAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        var id = await store.FindInvoiceForSourceAsync(propertyId, (sourceKind ?? "").Trim().ToLowerInvariant(), sourceId, ct).ConfigureAwait(false)
+            ?? throw new HccException(HccErrorCode.NOT_FOUND, "No invoice has been issued for this record yet.");
+        return await GetInvoiceAsync(propertyId, principalId, id, ct).ConfigureAwait(false);
+    }
+
     public async Task<CreditNoteView> GetCreditNoteAsync(int propertyId, int principalId, long creditNoteId, CancellationToken ct = default)
     {
         await ViewAsync(propertyId, principalId, ct).ConfigureAwait(false);

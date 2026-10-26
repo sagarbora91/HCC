@@ -21,6 +21,7 @@ import {isIsoDate} from '../wire';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {serverId} from './map';
 import {allPages,bookingOf,roomIdOf,versionOf,type SrvGuestPage} from './frontdesk/shared';
+import {companyCreditApprovalId,issueInvoiceAfterCheckout,FOLIO_SLICES} from './money';
 
 type Guest=NonNullable<State['guests']>[number];
 
@@ -103,9 +104,13 @@ export const frontdesk:SyncArea={
     type:'CHECKOUT',reload:['bookings'],
     async send(c){
       const id=String(c.cmd.id);bookingOf(c,id);
-      const approval=c.cmd.companyCreditApprovalId;
-      await c.api.command('CheckoutStay',{stayId:stayIdOf(c,id),...(approval?{companyCreditApprovalId:serverId(approval,'Approval')}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});
-      return {reload:['rooms','tasks']};
+      // Money (W4-3): the approved company credit for exactly the balance (DEC-041) unless the dialog names one; after the checkout the
+      // tax invoice is issued (key <action>:invoice) and the folio slices reload.
+      const given=c.cmd.companyCreditApprovalId;
+      const approval=given?serverId(given,'Approval'):companyCreditApprovalId(c.state,id);
+      await c.api.command('CheckoutStay',{stayId:stayIdOf(c,id),...(approval?{companyCreditApprovalId:approval}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});
+      const invoice=await issueInvoiceAfterCheckout(c,id);
+      return {reload:['rooms','tasks',...FOLIO_SLICES],...(invoice!==undefined?{result:{invoice}}:{})};
     },
   },{
     type:'MOVE',reload:['bookings'],

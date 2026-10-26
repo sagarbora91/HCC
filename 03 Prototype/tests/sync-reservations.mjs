@@ -30,7 +30,7 @@ export async function register({test,assert,M}){
   const bootGets=srv.calls.filter(c=>c.path==='/reservations').length;const bootQuery=srv.gets('/reservations')[0]?.query;
   srv.reset();
   const cmd={type:'BOOK',guest:'Journey Test',phone:'+91 90000 11111',email:'',people:2,children:0,room:'105',arrival:'2026-10-24',departure:'2026-10-26',source:'Direct',key:'new:sync-1'};
-  const r=await rt.run(cmd);const after=rt.get();const seq=srv.calls.map(c=>`${c.method} ${c.path}`);
+  const r=await rt.run(cmd);const after=rt.get();const seq=srv.calls.filter(c=>!c.path.startsWith('/folios/')).map(c=>`${c.method} ${c.path}`); // W4-3: the money patch reads each booking's folio after the reload
   const q=srv.commands('QuoteStay')[0],c=srv.commands('CreateReservation')[0];
   const proto=M.execute(M.seed(),'reception',{...cmd,key:undefined});const pb=proto.bookings.at(-1);
   test('[W4-0 reservations] BOOK → GET /availability (room id) → QuoteStay → CreateReservation, keys <action>:quote / <action>, then the GET /reservations list',()=>{

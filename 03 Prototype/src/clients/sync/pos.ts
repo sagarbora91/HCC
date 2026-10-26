@@ -17,6 +17,7 @@ import type {POSState,POSOrder,POSLine,POSKot,POSReceipt,POSMenuItem,POSOutlet,P
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {protoUserId,serverId,utcToClock,utcToDate} from './map';
+import {CASH_SLICES} from './money';
 
 // ── Server DTOs (08 Production/src/Hcc.Contracts/Pos/PosContracts.cs) ──
 type SrvOutlet={outletId:number;code:string;name:string;kind:'table'|'room';tables:string[]};
@@ -159,7 +160,8 @@ export const pos:SyncArea={id:'pos',
           tillId=till.tillId;}
         const reference=String(cmd.reference??'').trim();
         await c.api.command('SettleCheck',{orderId:checkId(cmd),mode:'outlet',tender:String(cmd.method),...(reference?{reference}:{}),...(tillId!==undefined?{tillId}:{})},{expectedVersion:v});
-        return undefined;}},
+        // Cash went into the shared drawer: the money area's cash desk and cash book reload too.
+        return tillId!==undefined?{reload:CASH_SLICES}:undefined;}},
     {type:'POS_VOID_ITEM',reload:['posX','approvals'],precheck:reasonCheck,
       async send(c){const v=checkVersion(c);
         const r=await c.api.command<{outcome:string;voidRequestId:number|null}>('VoidCheckItem',{orderId:checkId(c.cmd),lineId:serverId(c.cmd.line,'Line'),reason:String(c.cmd.reason).trim()},v?{expectedVersion:v}:undefined);
@@ -170,7 +172,8 @@ export const pos:SyncArea={id:'pos',
         return {result:r};}},
     {type:'POS_VOID_DECIDE',reload:['posX','approvals'],
       async send(c){const reason=String(c.cmd.reason??'').trim();
-        await c.api.command('DecideVoid',{voidRequestId:voidRequestIdOf(c.cmd.id),approve:!!c.cmd.approve,...(reason?{reason}:{})});}},
+        await c.api.command('DecideVoid',{voidRequestId:voidRequestIdOf(c.cmd.id),approve:!!c.cmd.approve,...(reason?{reason}:{})});
+        return c.cmd.approve?{reload:CASH_SLICES}:undefined;}}, // an approved void of a cash bill takes the cash back out of the drawer
     {type:'POS_MENU_TOGGLE',reload:['posX'],
       async send(c){const m=c.state.posX?.menu.find(x=>x.id===String(c.cmd.item));
         if(!m)throw new HccClientError('NOT_FOUND','Menu item not found.');

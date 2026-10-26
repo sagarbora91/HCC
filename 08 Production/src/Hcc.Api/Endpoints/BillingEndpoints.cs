@@ -38,6 +38,8 @@ public static class BillingEndpoints
         Command<ExecuteAdjustmentRequest, ApprovalResult>(g, "ExecuteAdjustment", (sp, c, k, r, ct) => sp.GetRequiredService<BillingService>().ExecuteAdjustmentAsync(c, k, r, ct));
         g.MapGet("/folios/{folioId:long}", async (long folioId, HttpContext http, BillingQueries q, CancellationToken ct)
             => Results.Ok(await q.GetFolioAsync(http.HccCaller(), folioId, ct).ConfigureAwait(false)));
+        g.MapGet("/folios/by-reservation/{reservationId:long}", async (long reservationId, HttpContext http, BillingQueries q, CancellationToken ct)
+            => Results.Ok(await q.GetReservationFolioAsync(http.HccCaller(), reservationId, ct).ConfigureAwait(false))); // W4-3 sync layer
         return api;
     }
 

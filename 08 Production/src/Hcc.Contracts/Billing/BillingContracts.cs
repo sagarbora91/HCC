@@ -83,3 +83,20 @@ public sealed record ShiftView(ShiftResult Shift, ExpectedCashView Expected, IRe
 /// <summary>GET /api/v1/cashier/collections?date= (PERM-RPT-002): payments − refunds by receipt date; deposits shown separately.</summary>
 public sealed record CollectionsView(DateOnly BusinessDate, long CollectionsPaise, IReadOnlyDictionary<string, long> ByTenderPaise,
     long DepositsReceivedPaise, long DepositsReturnedPaise);
+
+// ── W4-3 (sync layer) reads ──
+
+/// <summary>
+/// GET /api/v1/folios/by-reservation/{reservationId} (PERM-FOL-001): the reservation's folio (null until check-in opens one) and its stay
+/// (id + version for CheckoutStay; null before check-in). NOT_FOUND when the reservation is not on this property.
+/// </summary>
+public sealed record ReservationFolioView(long ReservationId, long? StayId, string? StayVersion, FolioView? Folio);
+
+/// <summary>One shift on the cash desk with the count reason, who closed it and its cash-difference approval (if any).</summary>
+public sealed record CashDeskShiftView(ShiftResult Shift, int? SubmittedBy, string? DifferenceReason, int? ClosedBy, ApprovalView? Approval);
+
+/// <summary>A till with its active (Open / Submitted) shift and expected cash, and its last closed shift.</summary>
+public sealed record CashDeskTillView(TillResult Till, CashDeskShiftView? Active, ExpectedCashView? Expected, CashDeskShiftView? LastClosed);
+
+/// <summary>GET /api/v1/cashier/desk (PERM-SHF-001, any shift): every till of the property (DEC-052: normally one shared till), by till id.</summary>
+public sealed record CashDeskView(DateOnly BusinessDate, IReadOnlyList<CashDeskTillView> Tills);

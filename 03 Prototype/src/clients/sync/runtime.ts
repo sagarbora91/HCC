@@ -122,7 +122,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     if(!batch.length)return;
     loading++;emit();
     const fresh:Partial<Record<SliceKey,unknown>>={},done=new Set<typeof batch[number]>(),stamp=now().toISOString();
-    const loadedOk=new Set<SliceKey>();let sessionLost=false;
+    const loadedOk=new Set<SliceKey>(),patchFailed=new Set<SliceKey>();let sessionLost=false;
     const sliceDone=(k:SliceKey)=>batch.filter(x=>x.l.slice===k).every(x=>done.has(x));
     const ctx:LoaderCtx={
       api:apiFor(undefined),
@@ -137,6 +137,9 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
         const w=e instanceof HccClientError?e.wireCode:undefined;
         if(w==='UNAUTHENTICATED'){sessionLost=true;return;}
         if(w==='FORBIDDEN'&&own){fresh[k]=skeleton[k];loadedOk.add(k);delete errors[k];return;}
+        // A failed patch (not a 403: the user may simply not see those fields) must not commit the owner's unpatched value,
+        // e.g. bookings without their folio would show ₹0 balances; the previous value stays (see the commit below).
+        if(!own&&w!=='FORBIDDEN')patchFailed.add(k);
         if(w!=='UNAVAILABLE')errors[k]=`${x.area}: ${errorText(e)}`;
       }
     };
@@ -154,6 +157,8 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
     loading--;
     if(sessionLost){endSession('Your session has ended. Sign in again.');return;}
     const cached:Record<string,CachedSlice>={};
+    // Keep the previous value of a slice whose patch failed (its error stays listed); without one, the owner's value is shown.
+    for(const k of patchFailed)if(k in values)loadedOk.delete(k);
     for(const k of loadedOk){values[k]=fresh[k];asOf[k]=stamp;cached[k]={value:fresh[k],asOf:stamp};}
     if(loadedOk.size)fromCache=false;
     emit();

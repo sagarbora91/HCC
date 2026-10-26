@@ -143,6 +143,23 @@ export async function register({test,assert,M}){
     assert.equal(sst.readOnly,false);assert.equal(sst.state.users[0].role,'Housekeeper');
   });
 
+  // ── A failed patch keeps the slice's previous (patched) value instead of the owner's unpatched one ──
+  let patchMode='ok';
+  const patchy={id:'patchy',loaders:[
+    {slice:'tasks',async load(){return [{id:'o',amount:0}];}},
+    {slice:'tasks',kind:'patch',async load(c){if(patchMode==='broken')await c.api.get('/broken-patch');if(patchMode==='forbidden')await c.api.get('/forbidden-patch');
+      return c.current('tasks').map(t=>({...t,amount:500}));}},
+  ],commands:[]};
+  const ps2=fakeServer({'GET /broken-patch':()=>'{"tasks":1','GET /forbidden-patch':()=>reply(403,{code:'FORBIDDEN',message:'no'})});
+  const prt2=await startRuntime(S,ps2,{areas:[S.core,patchy]});const patched=prt2.get().state.tasks;
+  patchMode='broken';await prt2.refresh();const kept=prt2.get();
+  patchMode='forbidden';await prt2.refresh();const unpatched=prt2.get();
+  test('[W4-0] A failing patch loader keeps the slice’s previous value (error listed); a 403 on a patch shows the owner’s value',()=>{
+    assert.deepEqual(patched,[{id:'o',amount:500}]);
+    assert.deepEqual(kept.state.tasks,[{id:'o',amount:500}],'not the owner’s unpatched ₹0');assert.match(kept.errors.tasks,/^patchy: /);
+    assert.deepEqual(unpatched.state.tasks,[{id:'o',amount:0}]);
+  });
+
   // ── Focus refresh throttle and manual refresh ──
   let t=Date.parse('2026-10-24T04:30:00Z');const clock=()=>new Date(t);
   const fs2=fakeServer();const frt=await startRuntime(S,fs2,{areas:[S.core],now:clock,focusRefreshMs:30_000});

@@ -75,7 +75,7 @@ export async function register({test,assert,M}){
   const noshow=await rt.run({type:'CANCEL',id:'1301',noShow:true,key:'noshow:1301'});const noshowCall=srv.commands('MarkNoShow')[0];
   test('[W4-1 commands] CONFIRM → ConfirmHold, CANCEL → CancelReservation (reason), CANCEL noShow → MarkNoShow; versions from the load; bookings reload',()=>{
     assert.ok(confirm.ok,confirm.text);assert.deepEqual(confirmBody.body,{reservationId:1302,expectedVersion:'V1302a'});assert.equal(confirmBody.key,'confirm:1302');
-    assert.deepEqual(confirmCalls.filter(x=>x.startsWith('GET')),['GET /reservations']);
+    assert.deepEqual(confirmCalls.filter(x=>x.startsWith('GET')&&!x.startsWith('GET /folios/')),['GET /reservations']);
     assert.equal(rt.get().state.bookings.find(b=>b.id==='1302').status,'Confirmed');assert.equal(rt.get().state.bookings.find(b=>b.id==='1302').holdUntil,undefined);
     assert.ok(cancel.ok,cancel.text);assert.deepEqual(cancelCall.body,{reservationId:1301,reason:'Guest asked',expectedVersion:'V1301a'});assert.equal(cancelCall.key,'cancel:1301');
     // the second action uses the version the reload brought (V1301b)

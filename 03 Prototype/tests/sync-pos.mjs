@@ -67,7 +67,9 @@ export async function register({test,assert,M}){
       if(body.approve){const l=c.lines.find(x=>x.lineId===v.lineId);l.voided=true;l.voidReason=v.reason;}bump(c);return {voidRequestId:v.voidRequestId,status:body.approve?'Executed':'Rejected',orderId:c.orderId};},
     'POST /commands/SetMenuItemAvailability':({body})=>{const m=srvMenu.find(x=>x.itemId===body.itemId);m.available=body.available;return {itemId:m.itemId,available:m.available,version:m.version};},
   });
-  const rt=await startRuntime(S,srv);
+  // Without the yield area: its approvals patch (GET /yield/*) is not served here, and a failing patch keeps the previous approvals (runtime rule).
+  const noYield={areas:S.AREAS.filter(a=>a.id!=='channels')};
+  const rt=await startRuntime(S,srv,noYield);
   const st0=rt.get().state,p0=st0.posX;
   const P=await loadPages();
   const pages=[P.renderPages(st0,'1',false),P.renderPages(st0,'1',true)];
@@ -157,7 +159,7 @@ export async function register({test,assert,M}){
     assert.deepEqual([closedShift.r.ok,closedShift.r.reason],[false,'server']);assert.match(closedShift.r.text,/cash shift is closed/);assert.equal(noPost,0);
     assert.deepEqual([noRef.r.ok,noRef.r.reason],[false,'precheck']);assert.match(noRef.r.text,/transaction reference/);assert.equal(noRef.calls.length,0);
     assert.ok(cash.r.ok,cash.r.text);assert.deepEqual(cashCall.body,{orderId:Number(cashChk),mode:'outlet',tender:'Cash',tillId:3,expectedVersion:vBefore});assert.equal(cashCall.key,'settle-1');
-    assert.ok(cash.calls.includes('GET /pos/till'));
+    assert.ok(cash.calls.includes('GET /pos/till'));assert.ok(cash.calls.includes('GET /cashier/desk'),'cash into the drawer: money’s cash desk reloads (CASH_SLICES)');
     const o=rt.get().state.posX.orders.find(x=>x.id===cashChk);
     assert.deepEqual([o.status,o.settlement.method,o.settlement.taxBps],['Settled','Cash',bps]);
     assert.equal(o.settlement.total,o.settlement.net+o.settlement.tax);

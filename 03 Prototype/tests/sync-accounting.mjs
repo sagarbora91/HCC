@@ -130,7 +130,10 @@ export async function register({test,assert,M}){
   await seq('expBad',{type:'EXPENSE',vendor:'X',category:'Supplies',method:'Cheque',amount:100});
   await seq('submit',{type:'EXPENSE_SUBMIT',id:'99',key:'expsubmit:99'});
   await seq('approveNoTill',{type:'EXPENSE_APPROVE',id:'103',approve:true,key:'expense:103'});
-  rt.ids.learn('till','current',1);
+  // Till handshake: the money area's cash-desk read learns the till with the open shift as ids 'till','current'.
+  srv.on('GET /cashier/desk',()=>({businessDate:'2026-10-24',tills:[{till:{tillId:1,code:'FRONT',name:'Front desk',version:'T1'},active:{shift:{shiftId:9,tillId:1,businessDate:'2026-10-24',
+    status:'Open',openingFloatPaise:500000,expectedPaise:null,countedPaise:null,approvalId:null,version:'S9'},submittedBy:null,differenceReason:null,closedBy:null,approval:null},expected:null,lastClosed:null}]}));
+  await rt.refresh();const tillLearned=rt.ids.server('till','current');
   await seq('approve',{type:'EXPENSE_APPROVE',id:'103',approve:true,key:'expense:103'});
   await seq('reject',{type:'EXPENSE_APPROVE',id:'102',approve:false,reason:'Duplicate bill',key:'m:9'});
   await seq('reverse',{type:'EXPENSE_REVERSE',id:'103',reason:'Wrong vendor',key:'m:10'});
@@ -166,6 +169,9 @@ export async function register({test,assert,M}){
     assert.deepEqual(cmds('DecideExpense')[0].body,{expenseId:103,expectedVersion:'AAAAAAAAC103=',approve:true,tillId:1});assert.equal(cmds('DecideExpense')[0].key,'expense:103');
     assert.deepEqual(cmds('DecideExpense')[1].body,{expenseId:102,expectedVersion:'AAAAAAAAC102=',approve:false,reason:'Duplicate bill'},'UPI: no till');
     assert.deepEqual(cmds('ReverseExpense')[0].body,{expenseId:103,expectedVersion:'AAAAAAAAC103=',reason:'Wrong vendor',tillId:1});
+    assert.equal(tillLearned,1,'till from the money area’s GET /cashier/desk (open shift)');
+    assert.ok(res.approve.calls.includes('GET /cashier/desk')&&res.reverse.calls.includes('GET /cashier/desk'),'cash approve / reverse reload the cash desk (CASH_SLICES)');
+    assert.ok(!res.reject.calls.includes('GET /cashier/desk'),'a rejection moves no cash');
     const o=afterReverse.find(e=>e.id==='103'),r=afterReverse.find(e=>e.reversalOf==='103');
     assert.deepEqual([o.status,o.reversedBy,r.amount,r.status],['Reversed',r.id,-42000,'Posted']);
   });

@@ -86,6 +86,9 @@ public interface IInvoiceStore
     /// <summary>The invoice already issued for the source, or null (callers hold the source lock, which serializes issues of one source).</summary>
     Task<long?> InvoiceIdForSourceAsync(ICommandTransaction tx, int propertyId, string sourceKind, long sourceId, CancellationToken ct);
 
+    /// <summary>W4-3 read (own connection): the invoice issued for the source, or null.</summary>
+    Task<long?> FindInvoiceForSourceAsync(int propertyId, string sourceKind, long sourceId, CancellationToken ct);
+
     /// <summary>
     /// Next number of the (property, FY, type) series in this transaction: the row is created on first use with <paramref name="prefixIfNew"/>
     /// (locked check-then-insert), else advanced by one under an update lock; a rollback releases the number (gap-free).

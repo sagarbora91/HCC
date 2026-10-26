@@ -480,6 +480,83 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         return await ReadListAsync(cmd, rd => ReadReceipt(rd, 0), ct).ConfigureAwait(false);
     }
 
+    // ── W4-3 sync reads ──
+
+    public async Task<ReservationFolioRef?> FindReservationFolioAsync(int propertyId, long reservationId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT r.reservation_id, f.folio_id, s.stay_id, s.row_ver
+            FROM inv.reservation r
+            LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+            LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
+            WHERE r.reservation_id = @r AND r.property_id = @p;
+            """, conn);
+        cmd.Parameters.Add("@r", SqlDbType.BigInt).Value = reservationId;
+        cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
+        return new ReservationFolioRef(rd.GetInt64(0), rd.IsDBNull(1) ? null : rd.GetInt64(1), rd.IsDBNull(2) ? null : rd.GetInt64(2),
+            rd.IsDBNull(3) ? null : SqlValues.RowVersionToWire((byte[])rd[3]));
+    }
+
+    public async Task<CashDeskRead> ReadCashDeskAsync(int propertyId, CancellationToken ct)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var tx = (SqlTransaction)await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct).ConfigureAwait(false);
+        DateOnly? date;
+        await using (var d = connections.Command("SELECT business_date FROM inv.property WHERE property_id = @p;", conn, tx))
+        {
+            d.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+            date = await d.ExecuteScalarAsync(ct).ConfigureAwait(false) is DateTime dt ? DateOnly.FromDateTime(dt) : null;
+        }
+
+        IReadOnlyList<TillRow> tills;
+        await using (var t = connections.Command("SELECT till_id, property_id, code, name, row_ver FROM pay.till WHERE property_id = @p ORDER BY till_id;", conn, tx))
+        {
+            t.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+            tills = await ReadListAsync(t, ReadTill, ct).ConfigureAwait(false);
+        }
+
+        async Task<CashDeskShiftRead?> ShiftAsync(int tillId, string where)
+        {
+            ShiftRow? shift;
+            string? reason;
+            int? closedBy;
+            await using (var s = connections.Command($"""
+                SELECT TOP (1) s.shift_id, s.till_id, t.property_id, s.business_date, s.status, s.opening_float_paise, s.expected_paise, s.counted_paise,
+                       s.submitted_by, s.approval_id, s.row_ver, s.difference_reason, s.closed_by
+                FROM pay.shift s JOIN pay.till t ON t.till_id = s.till_id
+                WHERE s.till_id = @t AND {where} ORDER BY s.shift_id DESC;
+                """, conn, tx))
+            {
+                s.Parameters.Add("@t", SqlDbType.Int).Value = tillId;
+                await using var rd = await s.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
+                shift = ReadShift(rd);
+                reason = rd.IsDBNull(11) ? null : rd.GetString(11);
+                closedBy = rd.IsDBNull(12) ? null : rd.GetInt32(12);
+            }
+
+            ApprovalRow? approval = null;
+            if (shift.ApprovalId is { } aid)
+            {
+                await using var a = connections.Command($"SELECT {ApprovalColumns} FROM bill.approval WHERE approval_id = @a;", conn, tx);
+                a.Parameters.Add("@a", SqlDbType.BigInt).Value = aid;
+                approval = (await ReadListAsync(a, ReadApproval, ct).ConfigureAwait(false)).SingleOrDefault();
+            }
+
+            return new CashDeskShiftRead(shift, reason, closedBy, approval);
+        }
+
+        var list = new List<CashDeskTillRead>();
+        foreach (var till in tills)
+            list.Add(new CashDeskTillRead(till, await ShiftAsync(till.TillId, "s.status IN ('Open','Submitted')").ConfigureAwait(false),
+                await ShiftAsync(till.TillId, "s.status = 'Closed'").ConfigureAwait(false)));
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+        return new CashDeskRead(date, list);
+    }
+
     // ── readers ──
 
     private static async Task<IReadOnlyList<T>> ReadListAsync<T>(SqlCommand cmd, Func<SqlDataReader, T> read, CancellationToken ct)

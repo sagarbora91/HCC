@@ -110,6 +110,28 @@ export async function register({test,assert}){
     assert.deepEqual(tab('occupancy').ratios.map(r=>r.display),['80.0%','₹2,000','₹1,600']);
     assert.deepEqual(tab('daily').table.rows[0],['2026-10-23','Closed',2,1,8,1630000,450000,180000]);
   });
+  // Next day's cashier shift (DEC-035): after a Completed run the desk till (learned by the money area) gets OpenShift, float carried by the server.
+  let deskOpen=false;
+  const tillSrv=fakeServer({'GET /closing/business-date':()=>({businessDate:'2026-10-24',closed:false}),'GET /closing/records':()=>({items:[]}),
+    'GET /cashier/desk':()=>({businessDate:deskOpen?'2026-10-25':'2026-10-24',tills:[{till:{tillId:3,code:'FRONT',name:'Front desk',version:'T1'},active:deskOpen?{shift:{shiftId:42,tillId:3,businessDate:'2026-10-25',
+      status:'Open',openingFloatPaise:522000,expectedPaise:null,countedPaise:null,approvalId:null,version:'S42'},submittedBy:null,differenceReason:null,closedBy:null,approval:null}:null,expected:null,lastClosed:null}]}),
+    'POST /commands/RunBusinessDayClose':({body})=>({runId:4,runRef:body.runId,businessDate:body.businessDate,status:'Completed',currentStep:'done',attempts:1,nextBusinessDate:'2026-10-25',snapshotId:4,steps:[]}),
+    'POST /commands/OpenShift':({body})=>{deskOpen=true;return {shiftId:42,tillId:body.tillId,businessDate:'2026-10-25',status:'Open',openingFloatPaise:522000,expectedPaise:null,countedPaise:null,approvalId:null,version:'S42'};}});
+  const trt=await startRuntime(S,tillSrv);tillSrv.reset();const opened=await trt.run({type:'DAY_CLOSE',key:'dayclose:t'});
+  const os=tillSrv.commands('OpenShift');const tillCalls=tillSrv.calls.map(c=>`${c.method} ${c.path}`);
+  const noPerm=fakeServer({'GET /me/capabilities':()=>capabilities({grants:capabilities().permissions.map(g=>[g.permissionId,'A']).filter(([p])=>p!=='PERM-SHF-001')}),
+    'GET /cashier/desk':()=>({businessDate:'2026-10-24',tills:[{till:{tillId:3,code:'FRONT',name:'Front desk',version:'T1'},active:null,expected:null,lastClosed:null}]}),
+    'POST /commands/RunBusinessDayClose':({body})=>({runId:5,runRef:body.runId,businessDate:body.businessDate,status:'Completed',currentStep:'done',attempts:1,nextBusinessDate:'2026-10-25',snapshotId:5,steps:[]}),
+    'GET /closing/business-date':()=>({businessDate:'2026-10-24',closed:false})});
+  const nrt=await startRuntime(S,noPerm);const np=await nrt.run({type:'DAY_CLOSE',key:'dayclose:n'});
+  test('[W4-4 closing] A Completed close opens the next cashier shift: OpenShift {desk till, float carried} key <action>:shift, cash desk reloads; not without PERM-SHF-001 or a known till',()=>{
+    assert.ok(opened.ok,opened.text);
+    assert.deepEqual(os.map(c=>[c.key,c.body]),[['dayclose:t:shift',{tillId:3,openingFloatPaise:null}]]);
+    assert.ok(tillCalls.indexOf('GET /cashier/desk')>tillCalls.indexOf('POST /commands/OpenShift'),tillCalls.join(','));
+    assert.equal(trt.get().state.shiftOpen,true,'the reloaded desk shows the new open shift');
+    assert.ok(np.ok,np.text);assert.equal(noPerm.commands('OpenShift').length,0);
+    assert.equal(srv.commands('OpenShift').length,0,'first fake: no desk till learned → no OpenShift');
+  });
   srv.down=true;const off=await startRuntime(S,srv,{cache:S.createMemoryCache()});void off;
   test('[W4-4 closing] The area declares what stays unmapped (corrections, POST_NIGHTS) with reasons',()=>{
     const u=S.AREAS.find(a=>a.id==='closing').unmapped;

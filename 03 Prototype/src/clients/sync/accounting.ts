@@ -25,6 +25,7 @@ import {addDays} from '../../domain/money';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {serverId,protoUserId,utcToClock,paise,isoDate} from './map';
+import {CASH_SLICES} from './money';
 
 // ── Server DTOs (Hcc.Contracts.Accounting / Expenses / Compliance, camelCase) ──
 type SrvEntry={account:string;ledger:string;debitPaise:number;creditPaise:number};
@@ -212,11 +213,13 @@ export const accounting:SyncArea={
     {type:'EXPENSE_APPROVE',reload:['expenses'],
       async send(c){const id=String(c.cmd.id),approve=!!c.cmd.approve,e=expenseOf(c);
         await c.api.command('DecideExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),approve,
-          ...(!approve&&txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{}),...(approve&&e?.method==='Cash'?{tillId:currentTill(c)}:{})});}},
+          ...(!approve&&txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{}),...(approve&&e?.method==='Cash'?{tillId:currentTill(c)}:{})});
+        return approve&&e?.method==='Cash'?{reload:CASH_SLICES}:undefined;}}, // cash left the drawer: money's cash desk + cash book
     {type:'EXPENSE_REVERSE',reload:['expenses'],precheck:cmd=>txt(cmd.reason)?undefined:'A reason is required to reverse an expense.',
       async send(c){const id=String(c.cmd.id),e=expenseOf(c);
         await c.api.command('ReverseExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),reason:txt(c.cmd.reason),
-          ...(e?.method==='Cash'?{tillId:currentTill(c)}:{})});}},
+          ...(e?.method==='Cash'?{tillId:currentTill(c)}:{})});
+        return e?.method==='Cash'?{reload:CASH_SLICES}:undefined;}},
     // ── Compliance calendar (Owner + Accountant, DEC-055) ──
     {type:'CMP_FILE',reload:['complianceX'],
       precheck:cmd=>{const r=txt(cmd.reference);return r.length>=4&&r.length<=40&&/^[\w\-/. ]+$/.test(r)?undefined:'Enter the acknowledgement / challan reference (4–40 characters: letters, digits and - / .).';},

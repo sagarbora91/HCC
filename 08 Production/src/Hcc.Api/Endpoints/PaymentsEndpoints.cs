@@ -4,7 +4,7 @@ using Hcc.Contracts.Billing;
 
 namespace Hcc.Api.Endpoints;
 
-/// <summary>Cashier endpoints: CreateTill, OpenShift, SubmitShiftCount, GetShift, daily collections (DEC-052 shared till). All require a session.</summary>
+/// <summary>Cashier endpoints: CreateTill, OpenShift, SubmitShiftCount, GetShift, cash desk, daily collections (DEC-052 shared till). All require a session.</summary>
 public static class PaymentsEndpoints
 {
     public static RouteGroupBuilder MapPaymentsEndpoints(this RouteGroupBuilder api)
@@ -18,6 +18,8 @@ public static class PaymentsEndpoints
             => Results.Ok(await q.GetShiftAsync(http.HccCaller(), shiftId, ct).ConfigureAwait(false)));
         g.MapGet("/cashier/collections", async (DateOnly date, HttpContext http, BillingQueries q, CancellationToken ct)
             => Results.Ok(await q.GetCollectionsAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
+        g.MapGet("/cashier/desk", async (HttpContext http, BillingQueries q, CancellationToken ct)
+            => Results.Ok(await q.GetCashDeskAsync(http.HccCaller(), ct).ConfigureAwait(false))); // W4-3 sync layer
         return api;
     }
 }
