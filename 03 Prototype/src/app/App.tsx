@@ -22,7 +22,7 @@ import {NavDrawer} from './NavDrawer';
 import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,exitApp,clearExports} from './native';
 import {MobileShell} from './mobile/MobileShell';
 import {announceTab,type MobileTab} from './mobile/tabs';
-import {Empty,ExitAsk,dateLabel,clockTime} from '../components/ui';
+import {Empty,ExitAsk,DiscardAsk,dateLabel,clockTime} from '../components/ui';
 import {Overview} from '../features/overview/Overview';
 import {RoomBoard} from '../features/rooms/RoomBoard';
 import {Reservations} from '../features/reservations/Reservations';
@@ -114,7 +114,11 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     cancelBackFallback();setError('');dirty.current=false;
     if(!modalPushed.current){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');modalPushed.current=true;}catch{/* history unavailable */}}
     setModal({...x,key:newKey(x.type)});};
-  const closeModal=()=>{if(dirty.current&&!window.confirm('Discard the details you entered?'))return;dirty.current=false;setModal(null);setError('');};
+  // V14-1: unsaved sheet text asks through the app's own themed DiscardAsk dialog (never the browser's confirm()); Android Back while it is open = Keep editing.
+  const [discardAsk,setDiscardAsk]=useState(false);
+  const discardSheet=()=>{setDiscardAsk(false);dirty.current=false;setModal(null);setError('');};
+  const closeModal=()=>{if(dirty.current){setDiscardAsk(true);return;}discardSheet();};
+  useEffect(()=>{if(!modal)setDiscardAsk(false);},[modal]);
   const booking=(id:string)=>open({type:'booking',id});
   function go(p:string,opts:{tab?:string;replace?:boolean}={}){
     cancelBackFallback();
@@ -129,7 +133,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       popSeen.current=true;cancelBackFallback();
       if(skipPop.current){skipPop.current=false;return;}
       if(modalRef.current){
-        if(dirty.current&&!window.confirm('Discard the details you entered?')){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');}catch{/* ignore */}return;}
+        if(dirty.current){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');}catch{/* ignore */}setDiscardAsk(true);return;}
         modalPushed.current=false;dirty.current=false;setModal(null);setError('');return;}
       const st=e.state as {hcc?:string;page?:string}|null;
       if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey('');setDepth(histIdx());}
@@ -142,6 +146,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const nativeBack=useRef<()=>void>(()=>{});
   nativeBack.current=()=>{
     cancelBackFallback();
+    if(discardAsk){setDiscardAsk(false);return;}
     if(exitAsk){setExitAsk(false);return;}
     if(searchOpen){setSearchOpen(false);return;}
     if(menuOpen){setMenuOpen(false);return;}
@@ -224,7 +229,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const MobilePage=display.isMobile?mobilePages[current]:undefined;
   const pageBody=current===HOME_PAGE?<ModulesHome/>:parseCatPage(current)?<CategoryPage page={current}/>:MobilePage?<MobilePage/>:pages[current]?.()??(current==='more'?null:<Empty title="This user has no active access" body="Switch to an enabled user with the demo controls to continue."/>);
   const toastEl=notice&&<div className={'toast '+(notice.error?'error':'')+(display.isMobile?' m-toast':'')} role="status" aria-live="polite">{notice.error?<AlertCircle size={19}/>:<CheckCircle2 size={19}/>}<span>{notice.text}</span><button aria-label="Dismiss message" onClick={()=>setNotice(null)}><X size={16}/></button></div>;
-  const exitEl=exitAsk?<ExitAsk onStay={()=>setExitAsk(false)} onExit={exitApp}/>:null;
+  const exitEl=<>{discardAsk&&modal&&<DiscardAsk onKeep={()=>setDiscardAsk(false)} onDiscard={discardSheet}/>}{exitAsk?<ExitAsk onStay={()=>setExitAsk(false)} onExit={exitApp}/>:null}</>;
   if(!signedIn)return <HccContext.Provider value={ctx}><SignIn onPick={signIn}/></HccContext.Provider>;
   if(display.isMobile)return <HccContext.Provider value={ctx}>
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>

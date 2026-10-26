@@ -37,7 +37,8 @@ export function register({test,M,assert}){
     assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'35e6308217fd38e9c5e3bc9137aa974eefee0930d3f49c8037853b8f76ad8319') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
   test('[PPL] payroll golden figures unchanged: the locked August run has no holiday days; September recomputed with the seeded calendar equals September with every holiday retired',()=>{
     const s=seed(),run=x(s).runs[0];assert.equal(run.month,'2026-08');for(const l of run.lines)assert.equal('hol' in l.counts,false);
-    let none=s;for(const h of mstRows(s,'holidays'))none=execute(none,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:h.id});
+    // MA-11 old → new: holidays of the locked August month cannot be retired any more (Wave B's lock rule) — retire every other one.
+    let none=s;for(const h of mstRows(s,'holidays').filter(r=>!r.code.startsWith('2026-08')))none=execute(none,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:h.id});
     assert.deepEqual(hrComputeRun(s,'2026-09'),hrComputeRun(none,'2026-09'));assert.deepEqual(hrComputeRun(s,'2026-10'),hrComputeRun(none,'2026-10'));});
   test('[PPL] hub search finds the lists by label',()=>{
     for(const q of ['shift patterns','leave types','holiday calendar','designations'])assert.ok(mstSearch(q).length,q);});
@@ -181,18 +182,23 @@ export function register({test,M,assert}){
     const st=execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-07',to:'2026-11-09',reason:'Festival'});assert.equal(x(st).leaves.at(-1).days,2);
     assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-08',to:'2026-11-08',reason:'Festival'}),/weekly offs or paid holidays/);
     assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-08',to:'2026-11-08',half:'AM',reason:'Festival'}),/weekly off or a paid holiday/);});
-  test('[PPL] holidays used by locked pay-runs: the date cannot change, the holiday cannot be deleted (retire allowed)',()=>{
+  test('[PPL] holidays used by locked pay-runs: the date cannot change, the holiday cannot be deleted or retired (MA-11: Wave B lock rule)',()=>{
     const s=seed(),row=mstByCode(s,'holidays','2026-08-15'),u=mstSpec('holidays').inUse(s,row);assert.equal(u.count,1);
     assert.throws(()=>save(s,'owner','holidays',{id:row.id,code:'2026-08-16',name:'Independence Day',kind:'paid'}),reason('MASTER_IN_USE'));
     assert.throws(()=>execute(s,'owner',{type:'MST_MASTER_DELETE',master:'holidays',id:row.id}),reason('MASTER_IN_USE'));
-    assert.ok(execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:row.id}));
+    // MA-11 old → new: retire allowed → refused while August 2026 is locked (same rule and words as HR_HOLIDAY_SAVE / _REMOVE).
+    assert.throws(()=>execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:row.id}),e=>/August 2026 payroll is locked — its holidays cannot change\./.test(e.message));
+    assert.throws(()=>save(s,'owner','holidays',{id:row.id,code:row.code,name:'Renamed',kind:'paid'}),e=>/payroll is locked/.test(e.message));
+    assert.throws(()=>save(s,'owner','holidays',{code:'2026-08-20',name:'New paid day',kind:'paid'}),e=>/payroll is locked/.test(e.message));
+    assert.ok(mstByCode(save(s,'owner','holidays',{code:'2026-08-21',name:'Optional day',kind:'restricted'}),'holidays','2026-08-21'));
     const fresh=mstByCode(s,'holidays','2026-12-25');assert.equal(mstSpec('holidays').inUse(s,fresh).count,0);assert.ok(execute(s,'owner',{type:'MST_MASTER_DELETE',master:'holidays',id:fresh.id}));});
   test('[PPL] compliance due dates roll past paid holidays (not past Sundays or restricted days); the raw rule date is unchanged',()=>{
     const s=seed(),it=cmpItems(s,true).find(i=>i.key==='CMPO-EPF:2026-07');
     assert.equal(it.due,'2026-08-17');// 15 Aug is a paid holiday, 16 Aug a Sunday
     assert.equal(cmpDueDate(it.obligation,'2026-07'),'2026-08-15');assert.equal(cmpDueDate(it.obligation,'2026-07',hrHolidayDates(s)),'2026-08-17');
     assert.equal(cmpShiftDue('2026-10-11',new Set(['2026-10-11'])),'2026-10-12');assert.equal(cmpShiftDue('2026-10-11',new Set()),'2026-10-11');
-    const off=execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:mstByCode(s,'holidays','2026-08-15').id});
+    const open=structuredClone(s);open.staffX.runs.find(r=>r.month==='2026-08').status='Draft'; // MA-11: a locked month's holidays cannot be retired
+    const off=execute(open,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:mstByCode(s,'holidays','2026-08-15').id});
     assert.equal(cmpItems(off,true).find(i=>i.key==='CMPO-EPF:2026-07').due,'2026-08-15');});
 
   // ── Designations ──

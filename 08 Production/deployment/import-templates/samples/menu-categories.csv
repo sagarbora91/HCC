@@ -1,0 +1,4 @@
+code,name,sortOrder,active
+STARTERS,Starters,100,yes
+DESSERTS,Desserts,110,yes
+SIDES,Sides,120,yes

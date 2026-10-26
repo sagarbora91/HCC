@@ -163,7 +163,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
             """);
         cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = r.FolioId;
         cmd.Parameters.Add("@k", SqlDbType.VarChar, 16).Value = FolioTotals.KindCode(r.Kind);
-        cmd.Parameters.Add("@m", SqlDbType.VarChar, 16).Value = r.Tender;
+        cmd.Parameters.Add("@m", SqlDbType.NVarChar, 60).Value = r.Tender;
         cmd.Parameters.Add("@a", SqlDbType.BigInt).Value = r.Amount.EnsureReceiptAmount().Value;
         cmd.Parameters.Add("@ro", SqlDbType.BigInt).Value = (object?)r.RefundOf ?? DBNull.Value;
         cmd.Parameters.Add("@d", SqlDbType.Date).Value = r.BusinessDate;

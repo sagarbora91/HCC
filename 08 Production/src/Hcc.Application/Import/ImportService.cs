@@ -47,6 +47,7 @@ public sealed class ImportService(
     ICompanyStore companies,
     IMaintenanceStore maintenance,
     IStockStore stock,
+    IImportListWriter lists,
     TimeProvider clock) : IOpeningBalanceSource
 {
     public const string OpUpload = "UploadImportBatch";
@@ -159,6 +160,50 @@ public sealed class ImportService(
         return new ImportLedgersView(snap.Ledgers.Select(l => new ImportLedgerView(l.Code, l.Name, l.Group, l.HccAccount)).ToList());
     }
 
+    /// <summary>The master's rows as an import file (template headers; re-importing it changes nothing). Money masters need the Owner commit right.</summary>
+    public async Task<ImportExportView> ExportAsync(int propertyId, int principalId, string? master, CancellationToken ct = default)
+    {
+        await policy.RequireAsync(propertyId, principalId, ImportPermissions.Prepare, ct: ct).ConfigureAwait(false);
+        var spec = Spec(master);
+        if (spec.OwnerOnlyCommit) await policy.RequireAsync(propertyId, principalId, ImportPermissions.CommitOwner, ct: ct).ConfigureAwait(false);
+        var snap = await store.SnapshotAsync(null, propertyId, ct).ConfigureAwait(false);
+        var file = spec.Wire + ".csv";
+        if (ImportLists.Find(spec.Master) is { } def)
+        {
+            var rows = snap.Lists is { } l && l.TryGetValue(def.Wire, out var r) ? r : [];
+            return new ImportExportView(spec.Wire, file, ImportLists.ToCsv(def, rows), rows.Count);
+        }
+
+        switch (spec.Master)
+        {
+            case ImportMaster.PosOutlets:
+            {
+                var outlets = snap.PosOutlets ?? [];
+                var text = ImportLists.ToCsv(spec.Columns.Select(c => c.Name), outlets.OrderBy(o => o.SortOrder).ThenBy(o => o.Code, StringComparer.Ordinal).Select(o => (IReadOnlyList<string>)
+                [
+                    o.Code, o.Name, o.Type, o.Opens ?? "", o.Closes ?? "", o.GstProfile, o.KotStation ?? "", o.SortOrder.ToString(CultureInfo.InvariantCulture), o.Active ? "yes" : "no", string.Join(';', o.Tables),
+                ]));
+                return new ImportExportView(spec.Wire, file, text, outlets.Count);
+            }
+
+            case ImportMaster.PosMenu:
+            {
+                var items = snap.PosMenu ?? [];
+                var codes = (snap.PosOutlets ?? []).ToDictionary(o => o.Id, o => o.Code);
+                var text = ImportLists.ToCsv(spec.Columns.Select(c => c.Name), items.OrderBy(m => m.SortOrder).ThenBy(m => m.Code, StringComparer.Ordinal).Select(m => (IReadOnlyList<string>)
+                [
+                    m.Code, m.Name, m.Category, m.ShortCode ?? "", ImportLists.RupeesText(m.PricePaise), m.GstClass, m.Veg ? "yes" : "no",
+                    string.Join(';', m.OutletIds.Select(id => codes.GetValueOrDefault(id, id.ToString(CultureInfo.InvariantCulture))).Order(StringComparer.Ordinal)), m.Station ?? "",
+                    m.SortOrder.ToString(CultureInfo.InvariantCulture), m.Active ? "yes" : "no",
+                ]));
+                return new ImportExportView(spec.Wire, file, text, items.Count);
+            }
+
+            default:
+                throw HccException.Validation("Export is available for the list masters and the POS outlets and menu.");
+        }
+    }
+
     private sealed class DryRunRollback(ImportCommitResult result) : Exception("Dry run: rolled back.")
     {
         public ImportCommitResult Result { get; } = result;
@@ -179,6 +224,7 @@ public sealed class ImportService(
                 await store.LockImportsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
                 var b = (await store.GetBatchAsync(tx, ctx.PropertyId, req.BatchId, true, c).ConfigureAwait(false))!;
                 if (b.Status == "Committed") throw new HccException(HccErrorCode.INVALID_TRANSITION, "This batch was committed already. Upload the file again to import it again.");
+                if (ImportLists.Find(spec.Master) is not null) await lists.EnsureSeededAsync(tx, ctx.PropertyId, spec.Wire, c).ConfigureAwait(false);
                 var snap = await store.SnapshotAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
                 if (spec.SetupStateOnly && snap.AnyDayClosed)
                     throw new HccException(HccErrorCode.DAY_CLOSED, $"{spec.Title} can be imported only while HCC is being set up; the first business day is already closed.");
@@ -322,8 +368,16 @@ public sealed class ImportService(
                 foreach (var i in plan.Changes)
                 {
                     var d = (OutletData)i.Data!;
-                    var o = await pos.InsertOutletAsync(tx, p, d.Code, d.Name, d.Kind, d.Tables, now, ct).ConfigureAwait(false);
-                    await tx.AuditAsync("POS_OUTLET_CREATED", $"outlet:{o.OutletId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {d.Kind} · by import ({tag})", ct).ConfigureAwait(false);
+                    int outletId;
+                    if (d.ExistingId is { } existingOutlet) outletId = existingOutlet;
+                    else
+                    {
+                        var o = await pos.InsertOutletAsync(tx, p, d.Code, d.Name, d.Kind, d.Tables, now, ct).ConfigureAwait(false);
+                        outletId = o.OutletId;
+                        await tx.AuditAsync("POS_OUTLET_CREATED", $"outlet:{o.OutletId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {d.Kind} · by import ({tag})", ct).ConfigureAwait(false);
+                    }
+
+                    await lists.ApplyOutletAsync(tx, p, outletId, d, snap.BusinessDate, actor, now, ct).ConfigureAwait(false);
                     await AuditRow("IMPORT_POS_OUTLET", "outlet:" + d.Code, i).ConfigureAwait(false);
                 }
 
@@ -344,6 +398,7 @@ public sealed class ImportService(
                         item = await pos.InsertMenuItemAsync(tx, p, d.Code, d.Name, d.Category, price, d.Veg, d.OutletIds, ct).ConfigureAwait(false);
                     }
 
+                    await lists.ApplyMenuItemAsync(tx, p, item.ItemId, d, snap.BusinessDate, actor, now, ct).ConfigureAwait(false);
                     await tx.AuditAsync("POS_MENU_SAVED", $"menu:{item.ItemId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {price} · by import ({tag})", ct).ConfigureAwait(false);
                     await AuditRow("IMPORT_POS_MENU", "menu:" + d.Code, i).ConfigureAwait(false);
                 }
@@ -447,7 +502,17 @@ public sealed class ImportService(
 
                 break;
             default:
-                throw new InvalidOperationException("Unknown master.");
+            {
+                var def = ImportLists.Find(spec.Master) ?? throw new InvalidOperationException("Unknown master.");
+                foreach (var i in plan.Changes)
+                {
+                    var d = (ListRowData)i.Data!;
+                    await lists.UpsertAsync(tx, p, def, d, snap.BusinessDate, actor, now, ct).ConfigureAwait(false);
+                    await AuditRow("IMPORT_MASTER_ROW", $"{def.Wire}:{d.Code}", i).ConfigureAwait(false);
+                }
+
+                break;
+            }
         }
 
         return users;

@@ -15,6 +15,8 @@ import {resCapacity,resHoldActive,resSweepHolds,RES_HOLD_MINUTES,RES_GSTIN,RES_P
 import {rmsCapacity} from '../../../domain/streams/roommasters';
 import {yldStayViolations} from '../../../domain/streams/yield';
 import {catCheckPlan} from '../../../domain/streams/catalogue';
+import {fdmSourceOf} from '../../../domain/streams/frontdesk-master';
+import {mstFail} from '../../../domain/streams/masters';
 import {grpCompany,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
 import type {GRPCompany} from '../../../domain/streams/groups';
 
@@ -65,6 +67,8 @@ export const handlers:Record<string,Handler>={
     const source=String(cmd.source||'Direct');
     const ota=String(cmd.otaChannel??'').trim();
     assert(source!=='OTA'||ota.length>=2,'Name the OTA channel for an OTA booking.');
+    const srcRow=fdmSourceOf(s,{source,otaChannel:ota&&source.startsWith('OTA')?ota:undefined}); // MA-11: no new booking on a retired source
+    if(srcRow&&!srcRow.active)mstFail('MASTER_RETIRED',`${srcRow.name} is retired — choose an active booking source.`,'source');
     const account=cmd.company?.account?accountOf(k,cmd.company.account):undefined;
     const companyName=account?account.name:String(cmd.company?.name??cmd.companyName??'').trim(),gstin=account?account.gstin:String(cmd.company?.gstin??cmd.gstin??'').trim().toUpperCase();
     assert(!gstin||companyName,'Enter the company name for the GSTIN.');

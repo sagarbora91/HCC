@@ -57,7 +57,7 @@ export async function register({test,M,assert}){
   test('[MST-SYNC] A master without a server route is refused before any network call; the area maps the five MST commands',()=>{
     assert.deepEqual([other.r.ok,other.r.reason,other.cmds.length],[false,'precheck',0]);assert.match(other.r.text,/Not available on the server yet: the __noServer list/);
     const area=S.AREAS.find(a=>a.id==='masters');assert.deepEqual(area.loaders.map(l=>l.slice),['mastersX']);
-    assert.deepEqual(area.commands.map(c=>c.type).sort(),['MST_MASTER_DELETE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_RETIRE','MST_MASTER_SAVE']);});
+    assert.deepEqual(area.commands.map(c=>c.type).sort(),['MST_IMPORT','MST_MASTER_DELETE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_RETIRE','MST_MASTER_SAVE']);});
 
   // Server master errors keep their reason (details.reason) for the screens.
   srv.on('POST /commands/SaveFloor',()=>reply(422,{code:'VALIDATION',message:'Code F1 is already used in Floors.',details:{reason:'MASTER_CODE_TAKEN',field:'code'}}));

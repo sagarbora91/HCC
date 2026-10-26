@@ -22,7 +22,10 @@
     {"version": 3800, "file": "3800_holiday_calendar.sql", "reason": "Masters holiday calendar (26 Oct 2026): added on main, merged into Wave C (270c818) after 3951"},
     {"version": 3910, "file": "3910_access_credential_must_change.sql", "reason": "A06-01 must-change credential (71c1f61, 26 Oct 2026): merged after 3930"},
     {"version": 3920, "file": "3920_system_health.sql", "reason": "A09-05 system health (0d1ac65, 26 Oct 2026): merged after 3930"},
-    {"version": 3921, "file": "3921_system_health_rbac_seed.sql", "reason": "A09-05 system health (0d1ac65, 26 Oct 2026): merged after 3930"}
+    {"version": 3921, "file": "3921_system_health_rbac_seed.sql", "reason": "A09-05 system health (0d1ac65, 26 Oct 2026): merged after 3930"},
+    {"version": 2880, "file": "2880_import_all_masters.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
+    {"version": 2890, "file": "2890_payment_method_records.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
+    {"version": 2891, "file": "2891_number_series_rst.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -101,6 +104,9 @@
     {"version": 3950, "file": "3950_accounting_tally_voucher_ids.sql", "sha256": "770120222703375C777DA483C09B563491BAD71C93E6DA6444160A7CC12C1FFE"},
     {"version": 3951, "file": "3951_gst_specified_premises_indexes.sql", "sha256": "DC66AFE92955FE0F56E1351553A4A02978C6FC75F7E628B43DD10CE1921E7667"},
     {"version": 4000, "file": "4000_ota_inventory_push.sql", "sha256": "9E24046CCE5E6F47DD3BCEFC873CCEC0D85FB32F16509FE02DFFC2248920286B"},
-    {"version": 4030, "file": "4030_desk_list_indexes.sql", "sha256": "E2BD9182F09E0886936C9CD1CB0EA3E9F4EC1E276FF2EA20B16DE0CCA30249F6"}
+    {"version": 4030, "file": "4030_desk_list_indexes.sql", "sha256": "E2BD9182F09E0886936C9CD1CB0EA3E9F4EC1E276FF2EA20B16DE0CCA30249F6"},
+    {"version": 2880, "file": "2880_import_all_masters.sql", "sha256": "93106E639A9C6708ABD36CF743274E817EE83CCF58B181843B28B43BF070933F"},
+    {"version": 2890, "file": "2890_payment_method_records.sql", "sha256": "0B289BBDC9A081EF9E4DA12C0455C1D409AC3B1113DACC6B4D53838B00CF04F6"},
+    {"version": 2891, "file": "2891_number_series_rst.sql", "sha256": "B4163B61DC7DF01E7E5ED8651FF70A86CB1071DECBE93DCACF19874691C49CC1"}
   ]
 }

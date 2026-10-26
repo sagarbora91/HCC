@@ -74,3 +74,6 @@ public sealed record ImportColumnView(string Name, bool Required, string Meaning
 public sealed record ImportMasterView(string Master, string Title, bool OwnerOnlyCommit, bool SetupStateOnly, string DependsOn, IReadOnlyList<ImportColumnView> Columns);
 
 public sealed record ImportMastersView(bool SetupState, DateOnly BusinessDate, IReadOnlyList<ImportMasterView> Masters);
+
+/// <summary>A master's rows as the import file reads them (headers = the template; blank = no rows yet): a re-import plans every row as Unchanged.</summary>
+public sealed record ImportExportView(string Master, string FileName, string CsvText, int Rows);

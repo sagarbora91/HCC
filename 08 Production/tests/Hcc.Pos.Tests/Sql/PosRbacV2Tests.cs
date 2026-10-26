@@ -88,6 +88,11 @@ public class PosRbacV2Tests(PosDb db) : IClassFixture<PosDb>
         Assert.Equal((42_000L, 38_000L, Who.Manager), (pending.PricePaise, pending.PriceBeforePaise!.Value, pending.RequestedBy));
         Assert.Contains(await db.Queries.PendingMenuRequestsAsync(db.As(Who.Manager)), r => r.RequestId == asked.RequestId);
         await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.PendingMenuRequestsAsync(db.As(Who.Cashier)));
+        // MA-11: GST class and kitchen station are not part of a request — a different value is refused (was silently dropped).
+        foreach (var bad in new[] { new SaveMenuItemRequest(paneer.ItemId, "PANEER", paneer.Name, paneer.Category, 42_000, paneer.Veg, paneer.OutletIds, paneer.Version, GstClass: "banquet"),
+                     new SaveMenuItemRequest(paneer.ItemId, "PANEER", paneer.Name, paneer.Category, 42_000, paneer.Veg, paneer.OutletIds, paneer.Version, Station: "Tandoor") })
+            Assert.StartsWith("A menu request carries the name, category, price, veg and outlets only.",
+                (await Fails(HccErrorCode.VALIDATION, () => db.Pos.SaveMenuItemAsync(db.As(Who.Manager), PosDb.Key(), bad))).Message, StringComparison.Ordinal);
         // One pending change per item; only the Owner decides (the Manager holds R, not A).
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Pos.SaveMenuItemAsync(db.As(Who.Manager), PosDb.Key(), new SaveMenuItemRequest(paneer.ItemId, "PANEER", paneer.Name,
             paneer.Category, 45_000, paneer.Veg, paneer.OutletIds, paneer.Version)));

@@ -3,8 +3,8 @@
 // MstListsBlock = the "Lists" block a Master configuration group shows for the masters registered in it (HotelSettings.tsx);
 // MstLink = the "Manage list…" button module pages show instead of their own add forms.
 import React,{useState} from 'react';
-import {ArrowUp,ArrowDown,Plus,Search,ListChecks,ExternalLink,ChevronRight} from 'lucide-react';
-import {mstSpec,mstRows,mstUsage,mstMove,mstCanEdit,mstSpecsOfGroup,mstSummary,mstSearch,type MasterRow,type CfgGroupId} from '../../services/mock';
+import {ArrowUp,ArrowDown,Plus,Search,ListChecks,ExternalLink,ChevronRight,ClipboardPaste} from 'lucide-react';
+import {mstCanPaste,mstSpec,mstRows,mstUsage,mstMove,mstCanEdit,mstSpecsOfGroup,mstSummary,mstSearch,type MasterRow,type CfgGroupId} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty} from '../../components/ui';
 import {cfgNav} from '../admin/config/logic';
@@ -21,7 +21,7 @@ export function mstFilterRows(rows:MasterRow[],q:string,f:MstFilter){
 /** Props of MasterList: spec = master id (registerMaster id); select = row to open first. */
 export type MasterListProps={spec:string;select?:string};
 export function MasterList({spec:specId,select}:MasterListProps){
-  const {s,uid,run,busy}=useHcc();
+  const {s,uid,run,busy,open}=useHcc();
   const spec=mstSpec(specId);
   const [q,setQ]=useState('');const [f,setF]=useState<MstFilter>('active');
   const [sel,setSel]=useState<string|undefined>(select);const [adding,setAdding]=useState(false);
@@ -33,9 +33,11 @@ export function MasterList({spec:specId,select}:MasterListProps){
   const counts={active:all.filter(r=>r.active).length,retired:all.filter(r=>!r.active).length,all:all.length};
   return <div className="mst-list" aria-label={spec.label}>
     <div className="mst-list-head"><div><h3>{spec.label}</h3>{spec.help&&<p className="muted">{spec.help}</p>}</div>
-      {can.ok&&!ext?.hideAdd&&<button type="button" className="btn primary" onClick={()=>{setAdding(true);setSel(undefined);}}><Plus size={16}/> Add {spec.singular}</button>}</div>
+      <div className="mst-head-actions">{can.ok&&mstCanPaste(specId)&&<button type="button" className="btn" onClick={()=>open({type:'mst-paste',id:specId})}><ClipboardPaste size={16}/> Paste rows</button>}
+        {can.ok&&!ext?.hideAdd&&<button type="button" className="btn primary" onClick={()=>{setAdding(true);setSel(undefined);}}><Plus size={16}/> Add {spec.singular}</button>}</div></div>
     {!can.ok&&<p className="mst-lock" role="note">{can.reason}</p>}
     {ext?.Tools&&<ext.Tools specId={specId}/>}
+    {can.ok&&ext?.noReorder&&ext.noReorderNote&&<p className="muted mst-order-note" role="note">{ext.noReorderNote}</p>}
     <div className="mst-tools">
       <label className="cfg-search mst-search"><Search size={16}/><input type="search" aria-label={`Search ${spec.label.toLowerCase()}`} placeholder="Search code or name" value={q} onChange={e=>setQ(e.target.value)}/></label>
       <div className="filters" role="group" aria-label="Status">{(['active','retired','all'] as const).map(x=><button type="button" key={x} className={f===x?'active':''} aria-pressed={f===x} onClick={()=>setF(x)}>{x==='active'?'Active':x==='retired'?'Retired':'All'} ({counts[x]})</button>)}</div>

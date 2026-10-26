@@ -10,7 +10,8 @@ import type {Booking} from '../../services/mock';
 /** Booking dialog slot: "Extra person / bed" for open stays (billing holders; desktop dialog and phone sheet). */
 function RmsBookingActions({b}:{b:Booking}){return b.status==='In house'||b.status==='Confirmed'?<RmsExtraButton id={b.id} className="btn"/>:null;}
 
-registerMasterTools('rooms',{Tools:RoomTools,hideAdd:true,noReorder:true});
+// V14-7: rooms keep the floor / number order (read from s.rooms), so there are no arrows; the list says why. Paste rows: mstCanPaste (MST_IO_LOCAL).
+registerMasterTools('rooms',{Tools:RoomTools,hideAdd:true,noReorder:true,noReorderNote:'Rooms are listed by floor and room number, so they have no manual order (no move arrows).'});
 
 export const registration:FeatureRegistration={
   modals:{'rms-extra':ExtraModal},

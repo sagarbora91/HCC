@@ -3,6 +3,7 @@ import type {State,Role,User} from '../types';
 import {addMinutes,addDays,nights} from '../money';
 import {can} from '../selectors';
 import {mstRows,mstByCode,type MasterRow} from './masters';
+import {SEED_COMPLAINT_CATEGORIES,SEED_LF_CATEGORIES} from '../../fixtures/ext/masters-seed';
 
 export type GSVLog={at:string;by:string;what:string};
 export const GSV_REQUEST_TYPES=['Extra towels','Drinking water','Iron & board','Wake-up call','Taxi','Toiletries & amenities','Minor repair','Other'] as const;
@@ -139,11 +140,9 @@ export const GCC='complaintCategories',LFC='lostFoundCategories';
 export type GcatRow=MasterRow&{department:string;slaHours:number};
 export type LfcRow=GcatRow&{valuable:boolean};
 /** Fixture seed: today's eight complaint categories (code, name, department, SLA hours — illustrative targets). */
-export const GCC_SEED:[string,string,GSVDept,number][]=[['CLEAN','Room cleanliness','Housekeeping',4],['MAINT','Maintenance','Maintenance',8],['NOISE','Noise','Front desk',2],
-  ['STAFF','Staff behaviour','Front desk',24],['FNB','Food & beverage','Front desk',8],['BILLING','Billing','Front desk',24],['AMEN','Amenities','Housekeeping',8],['OTHER','Other','Front desk',24]];
+export const GCC_SEED:[string,string,GSVDept,number][]=SEED_COMPLAINT_CATEGORIES;
 /** Fixture seed: today's seven found-item categories (valuables are held in the safe; SLA = hours to trace and inform the owner). */
-export const LFC_SEED:[string,string,GSVDept,number,boolean][]=[['JEWEL','Jewellery','Front desk',4,true],['ELEC','Electronics','Front desk',4,true],['CASH','Cash / wallet','Front desk',4,true],
-  ['DOCS','Documents','Front desk',4,true],['CLOTH','Clothing','Housekeeping',24,false],['CARE','Personal care','Housekeeping',24,false],['OTHER','Other','Housekeeping',48,false]];
+export const LFC_SEED:[string,string,GSVDept,number,boolean][]=SEED_LF_CATEGORIES;
 export const gcatRows=(s:State,active?:boolean)=>mstRows(s,GCC,active===undefined?{}:{active}) as GcatRow[];
 export const lfcRows=(s:State,active?:boolean)=>mstRows(s,LFC,active===undefined?{}:{active}) as LfcRow[];
 const norm=(x:unknown)=>String(x??'').trim().toLowerCase();

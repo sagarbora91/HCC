@@ -40,6 +40,7 @@ export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
 export * from '../../domain/credentials';
 export * from '../../domain/streams/syshealth';
+export * from '../../domain/streams/mastersio'; export {mstImportPreview} from './mastersio'; // MA-8 masters import / export
 export * from '../../domain/streams/roommasters';
 export * from '../../domain/streams/money-master'; export * from '../../domain/streams/money-master-specs'; // MA-3 money masters
 export * from '../../domain/streams/catalogue'; // MA-2 meal plans, extras, discount reasons
@@ -48,3 +49,4 @@ export * from '../../domain/streams/frontdesk-master';
 export * from '../../domain/streams/people-masters'; // MA-6
 export * from '../../domain/streams/hkmasters';
 export * from '../../domain/streams/gsvmasters';
+export * from '../../fixtures/ext/masters-seed'; // MA-9 one masters seed

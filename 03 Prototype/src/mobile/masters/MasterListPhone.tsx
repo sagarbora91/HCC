@@ -1,8 +1,8 @@
 // MA-0 · Phone masters (mobile Master configuration group page): "Lists" cards → one master's rows as cards (search, status chips,
 // reorder by arrow buttons, Add) → the 'mst-row' sheet (MasterSheet). Cards, not tables; 48 px targets; no sideways scroll at 360 px.
 import React,{useState} from 'react';
-import {ArrowUp,ArrowDown,Plus,Search,ListChecks,ChevronDown,ChevronUp} from 'lucide-react';
-import {mstSpec,mstRows,mstUsage,mstMove,mstCanEdit,mstSpecsOfGroup,mstSummary,mstSearch,type CfgGroupId} from '../../services/mock';
+import {ArrowUp,ArrowDown,Plus,Search,ListChecks,ChevronDown,ChevronUp,ClipboardPaste} from 'lucide-react';
+import {mstCanPaste,mstSpec,mstRows,mstUsage,mstMove,mstCanEdit,mstSpecsOfGroup,mstSummary,mstSearch,type CfgGroupId} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {ChipFilter,ListCard} from '../../app/mobile/components';
 import {mstFilterRows,type MstFilter} from '../../features/masters/MasterList';
@@ -21,7 +21,9 @@ export function MasterListPhone({spec:specId}:{spec:string}){
     {!can.ok&&<p className="mst-lock" role="note">{can.reason}</p>}
     {ext?.Tools&&<ext.Tools specId={specId} phone/>}
     {can.ok&&!ext?.hideAdd&&<button type="button" className="btn primary mst-m-add" onClick={()=>open({type:'mst-row',id:specId+':'})}><Plus size={18}/> Add {spec.singular}</button>}
+    {can.ok&&mstCanPaste(specId)&&<button type="button" className="btn mst-m-add" onClick={()=>open({type:'mst-paste',id:specId})}><ClipboardPaste size={18}/> Paste rows</button>}
     <label className="cfg-search cfg-m-search"><Search size={18}/><input type="search" aria-label={`Search ${spec.label.toLowerCase()}`} placeholder="Search code or name" value={q} onChange={e=>setQ(e.target.value)} enterKeyHint="search"/></label>
+    {can.ok&&ext?.noReorder&&ext.noReorderNote&&<p className="muted mst-order-note" role="note">{ext.noReorderNote}</p>}
     <ChipFilter label="Status" value={f} onChange={setF} options={[{id:'active',label:'Active',count:all.filter(r=>r.active).length},{id:'retired',label:'Retired',count:all.filter(r=>!r.active).length},{id:'all',label:'All',count:all.length}]}/>
     {rows.length?rows.map(r=>{const i=all.indexOf(r);const u=mstUsage(s,spec,r);
       return <div key={r.id} className={'mst-m-row'+(r.active?'':' retired')}>

@@ -58,7 +58,19 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
         if (r < 0) throw new HccException(HccErrorCode.UNAVAILABLE, "Another import is running. Try again in a moment.");
     }
 
-    public Task<ImportSnapshot> SnapshotAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default)
+    public async Task<ImportSnapshot> SnapshotAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default)
+    {
+        var core = await CoreSnapshotAsync(tx, propertyId, ct).ConfigureAwait(false);
+        var lists = await WithCommandAsync(tx, ImportListSql.SnapshotSql(), async cmd =>
+        {
+            cmd.P("@p", SqlDbType.Int, propertyId);
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            return await ImportListSql.ReadAsync(rd, ct).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+        return core with { Lists = lists };
+    }
+
+    private Task<ImportSnapshot> CoreSnapshotAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
     {
         var hold = tx is null ? string.Empty : " WITH (HOLDLOCK)";
         var sql = $"""
@@ -82,9 +94,9 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
                        AND NOT EXISTS (SELECT 1 FROM pay.cash_movement m WHERE m.shift_id = s.shift_id))
               FROM pay.till t WHERE t.property_id = @p;
             SELECT full_name, phone FROM gst.guest WHERE property_id = @p;
-            SELECT outlet_id, code, name, kind FROM pos.outlet WHERE property_id = @p ORDER BY code;
-            SELECT t.outlet_id, t.table_no FROM pos.outlet_table t JOIN pos.outlet o ON o.outlet_id = t.outlet_id WHERE o.property_id = @p;
-            SELECT item_id, code, name, category, price_paise, veg FROM pos.menu_item WHERE property_id = @p ORDER BY code;
+            SELECT outlet_id, code, name, kind, outlet_type, opens_at, closes_at, gst_profile, kot_station, sort_order, active FROM pos.outlet WHERE property_id = @p ORDER BY code;
+            SELECT t.outlet_id, t.table_no FROM pos.outlet_table t JOIN pos.outlet o ON o.outlet_id = t.outlet_id WHERE o.property_id = @p AND t.active = 1;
+            SELECT item_id, code, name, category, price_paise, veg, short_code, gst_class, station, sort_order, active FROM pos.menu_item WHERE property_id = @p ORDER BY code;
             SELECT mo.item_id, mo.outlet_id FROM pos.menu_item_outlet mo JOIN pos.menu_item m ON m.item_id = mo.item_id WHERE m.property_id = @p;
             SELECT dept_code, name, leave_cap FROM hr.department WHERE property_id = @p ORDER BY dept_code;
             SELECT company_id, name, gstin, contact, phone, email, city, rates_json, credit_limit_paise FROM grp.company_account WHERE property_id = @p ORDER BY name;
@@ -148,14 +160,16 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
             var guests = new HashSet<string>(StringComparer.Ordinal);
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) guests.Add(ImportPlanner.GuestKey(rd.GetString(1), rd.GetString(0)));
             await rd.NextResultAsync(ct).ConfigureAwait(false);
-            var outletRows = new List<(int Id, string Code, string Name, string Kind)>();
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) outletRows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3)));
+            var outletRows = new List<(int Id, string Code, string Name, string Kind, string Type, string? Opens, string? Closes, string Profile, string? Station, int Sort, bool Active)>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                outletRows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), ImportSql.Text(rd, 5)?.Trim(), ImportSql.Text(rd, 6)?.Trim(), rd.GetString(7), ImportSql.Text(rd, 8), rd.GetInt32(9), rd.GetBoolean(10)));
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             var tableRows = new List<(int Outlet, string Table)>();
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) tableRows.Add((rd.GetInt32(0), rd.GetString(1)));
             await rd.NextResultAsync(ct).ConfigureAwait(false);
-            var itemRows = new List<(int Id, string Code, string Name, string Category, long Price, bool Veg)>();
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) itemRows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt64(4), rd.GetBoolean(5)));
+            var itemRows = new List<(int Id, string Code, string Name, string Category, long Price, bool Veg, string? Short, string Gst, string? Station, int Sort, bool Active)>();
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                itemRows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt64(4), rd.GetBoolean(5), ImportSql.Text(rd, 6), rd.GetString(7), ImportSql.Text(rd, 8), rd.GetInt32(9), rd.GetBoolean(10)));
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             var itemOutlets = new List<(int Item, int Outlet)>();
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) itemOutlets.Add((rd.GetInt32(0), rd.GetInt32(1)));
@@ -181,8 +195,8 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
                 roles,
                 users.Select(u => new SnapUser(u.Login, u.Name, userRoles.Where(r => r.User == u.Id).Select(r => r.Role).ToList())).ToList(),
                 ledgers, asOf, opening, tills, guests,
-                outletRows.Select(o => new SnapOutlet(o.Id, o.Code, o.Name, o.Kind, tableRows.Where(t => t.Outlet == o.Id).Select(t => t.Table).ToList())).ToList(),
-                itemRows.Select(m => new SnapMenuItem(m.Id, m.Code, m.Name, m.Category, m.Price, m.Veg, itemOutlets.Where(x => x.Item == m.Id).Select(x => x.Outlet).Order().ToList())).ToList(),
+                outletRows.Select(o => new SnapOutlet(o.Id, o.Code, o.Name, o.Kind, tableRows.Where(t => t.Outlet == o.Id).Select(t => t.Table).ToList(), o.Type, o.Opens, o.Closes, o.Profile, o.Station, o.Sort, o.Active)).ToList(),
+                itemRows.Select(m => new SnapMenuItem(m.Id, m.Code, m.Name, m.Category, m.Price, m.Veg, itemOutlets.Where(x => x.Item == m.Id).Select(x => x.Outlet).Order().ToList(), m.Short, m.Gst, m.Station, m.Sort, m.Active)).ToList(),
                 departments, companies, suppliers, stock);
         }, ct);
     }
@@ -195,7 +209,7 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
             OUTPUT INSERTED.batch_id VALUES (@p, @m, @f, @h, @t, @d, @r, @e, 'Uploaded', @u, @now);
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@m", SqlDbType.VarChar, master, 20);
+        cmd.P("@m", SqlDbType.VarChar, master, 30);
         cmd.P("@f", SqlDbType.NVarChar, fileName, 200);
         cmd.P("@h", SqlDbType.Binary, sha256, 32);
         cmd.P("@t", SqlDbType.NVarChar, csvText, -1);

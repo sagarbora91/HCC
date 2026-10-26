@@ -20,6 +20,7 @@ import {
   registerMaster,mstRows,mstByCode,mstFloorCode,mstFloorNumber,mstMoneyOn,mstFail,MST_FLOORS,
   type MasterRow,type MasterSpec,type MstDatedAmount,type MSTState,
 } from './masters';
+import {seedRoomTypes,mastersSeed} from '../../fixtures/ext/masters-seed';
 import {rmsRetiredDuring,rmsOooDuring,rmsListed} from './roomoffline';
 export {rmsOffline,rmsListed,rmsRetiredDuring,rmsOooDuring} from './roomoffline';
 
@@ -52,26 +53,14 @@ export function rmsLockText(list:Booking[]){
   return `${list.slice(0,4).map(b=>b.id).join(', ')}${list.length>4?` +${list.length-4}`:''} (booked until ${last})`;
 }
 
-// ───────────────────────────── Fixture seed values (BASE / FY26 figures never read them) ─────────────────────────────
-const TYPE_SEED:Record<string,{maxAdults:number;maxChildren:number;extraBed:boolean;bed:string;size:number;amenities:string[];desc:string}>={
-  Classic:{maxAdults:2,maxChildren:0,extraBed:false,bed:'Queen',size:180,amenities:['WIFI','TEA'],desc:'Cosy room with a queen bed, ideal for solo travellers and couples.'},
-  Deluxe:{maxAdults:2,maxChildren:1,extraBed:true,bed:'King',size:240,amenities:['VIEW','DESK'],desc:'Spacious room with a king bed and a sitting corner.'},
-  Suite:{maxAdults:2,maxChildren:2,extraBed:true,bed:'King',size:420,amenities:['LIVING','BATH','BFAST'],desc:'Separate living area, ideal for families of up to four.'},
-};
-const TYPE_ORDER=['Classic','Deluxe','Suite'];
+// ───────────────────────────── Choices (the seed rows themselves: fixtures/ext/masters-seed.ts) ─────────────────────────────
 export const RMS_AMENITY_ICONS=['wifi','snowflake','tv','coffee','briefcase','building','sofa','bath','utensils','bed','car','dumbbell','waves','cigarette-off','accessibility','baby'] as const;
-const AMENITY_SEED:[string,string,string][]=[['WIFI','Wi-Fi','wifi'],['TEA','Tea & coffee','coffee'],['AC','Air conditioning','snowflake'],['TV','Television','tv'],
-  ['DESK','Work desk','briefcase'],['VIEW','City view','building'],['LIVING','Living room','sofa'],['BATH','Bathtub','bath'],['BFAST','Breakfast for 2','utensils']];
 export const RMS_BED_TYPES=['Single','Twin','Double','Queen','King'];
-const codeOf=(k:string)=>k.toUpperCase().replace(/[^A-Z0-9-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,20)||'TYPE';
 
 // ───────────────────────────── Room types (M2) ─────────────────────────────
 export const rmsTypeKey=(r:MasterRow)=>String(r.key??r.code);
-function seedTypes(s:State,keys?:string[]):RmsTypeRow[]{
-  const list=keys??[...new Set(s.rooms.map(r=>r.type))].sort((a,b)=>(TYPE_ORDER.indexOf(a)+1||99)-(TYPE_ORDER.indexOf(b)+1||99)||a.localeCompare(b));
-  return list.map((k,i)=>{const d=TYPE_SEED[k];return {id:'rty-'+codeOf(k).toLowerCase(),code:codeOf(k),name:k,key:k,sortOrder:(i+1)*10,active:true,
-    maxAdults:d?.maxAdults??2,maxChildren:d?.maxChildren??0,extraBedAllowed:d?.extraBed??false,...(d?{bedType:d.bed,sizeSqft:d.size,description:d.desc}:{}),amenities:d?.amenities??[]};});
-}
+/** Seed rows of the room types (fixtures/ext/masters-seed.ts); `keys` = only these types. */
+const seedTypes=(s:State,keys?:string[]):RmsTypeRow[]=>seedRoomTypes(s.rooms,keys);
 /** Dated rack rate of a type: the base (first room's rate) from RMS_BASE_FROM, then every dated tariff of the type. */
 export function rmsDerivedRack(s:State,key:string):MstDatedAmount[]{
   const base=s.rooms.find(r=>r.type===key)?.rate;
@@ -174,7 +163,7 @@ function writeRooms(s:State,rows:RmsRoomRow[]){
     if(n===undefined)mstFail('MASTER_INVALID',`Floor ${row.floor}: rooms can be placed on floors coded F<number> (F0 = ground).`,'floor');
     const key=rmsTypeKeyOfCode(s,String(row.type));
     const next:Room=prev?{...prev}:{id:String(row.code),floor:n!,type:key,rate:0,hk:'Ready',blocked:false};
-    if(!prev){const rate=rmsRackOn(s,key,s.date);if(!rate)mstFail('MASTER_INVALID',`Set the rack rate of ${row.type} before adding rooms of that type.`,'type');next.rate=rate!;}
+    if(!prev){const rate=rmsRackOn(s,key,s.date);if(!rate)mstFail('MASTER_INVALID',`Set the rack rate of ${row.type} before adding rooms of that type.`,'type');next.rate=rate!;next.addedOn=s.date;}
     if(prev&&row.code!==prev.id){next.id=String(row.code);tasks=tasks.map(t=>t.room===prev.id?{...t,room:next.id}:t);}
     if(prev&&key!==prev.type){const l=rmsLiveBookings(s,prev.id);
       if(l.length)mstFail('MASTER_LOCKED_BY_BOOKINGS',`Room ${prev.id} has bookings ${rmsLockText(l)} — change its type from a date with no booking (move them first).`,'type');
@@ -211,11 +200,14 @@ export const ROOM_SPEC:MasterSpec<RmsRoomRow>={
   canRetire:(s,row)=>{const l=rmsLiveBookings(s,row.id);return l.length?`Room ${row.id} has bookings ${rmsLockText(l)} — move them before retiring the room.`:undefined;},
   validate:(s,row)=>{
     if(!RMS_ROOM_NO.test(String(row.code)))return 'Room number: 1–10 capital letters, digits or “-”.';
+    // V14-7: a new room (Paste rows / import) passes the same number check as range add (rooms incl. retired, numbers on past stays).
+    if(!s.rooms.some(r=>r.id===row.id)){const why=rmsNumberTaken(s,String(row.code));if(why)return why;}
     if(mstFloorNumber(String(row.floor))===undefined)return `Floor ${row.floor}: rooms can be placed on floors coded F<number> (F0 = ground).`;
     if(row.connecting&&(row.connecting===row.code||!s.rooms.some(r=>r.id===row.connecting)))return `Connecting room ${row.connecting}: choose another existing room.`;
     if(row.extension&&!/^\d{2,6}$/.test(String(row.extension)))return 'Phone extension: 2–6 digits.';
     return undefined;},
   store:{read:readRooms,write:writeRooms},
+  autoName:code=>'Room '+code,
 };
 /** Room numbers already used: rooms (incl. retired) and numbers on past stays (renumbered rooms keep their old stays). */
 export function rmsNumberTaken(s:State,no:string):string|undefined{
@@ -273,14 +265,13 @@ export const AMENITY_SPEC:MasterSpec={
   inUse:(s,row)=>{const types=(mstRows(s,MST_ROOM_TYPES) as RmsTypeRow[]).filter(t=>(t.amenities??[]).includes(row.code)),rooms=s.rooms.filter(r=>(r.features??[]).includes(row.code));
     const where:string[]=[];if(types.length)where.push(`Room types ${types.map(t=>t.name).join(', ')}`);if(rooms.length)where.push(`Rooms ${rooms.map(r=>r.id).join(', ')}`);
     return {count:types.length+rooms.length,where};},
-  seed:()=>AMENITY_SEED.map(([code,name,icon],i)=>({id:'amn-'+code.toLowerCase(),code,name,icon,showOnWebsite:true,sortOrder:(i+1)*10,active:true})),
+  seed:s=>mastersSeed(MST_AMENITIES,s) as MasterRow[],
 };
 
 // ───────────────────────────── Occupancy and extra charges (M5) ─────────────────────────────
 export type RmsExtraKind='adult'|'child'|'bed';
 export const RMS_EXTRA_LABEL:Record<RmsExtraKind,string>={adult:'Extra adult',child:'Extra child',bed:'Extra bed'};
 const OCC_FIELD:Record<RmsExtraKind,'extraAdult'|'extraChild'|'extraBed'>={adult:'extraAdult',child:'extraChild',bed:'extraBed'};
-const OCC_FROM='2025-04-01';
 export const OCC_CHARGE_SPEC:MasterSpec<RmsOccRow>={
   id:MST_OCC_CHARGES,label:'Occupancy and extra charges',singular:'occupancy charge',group:'rooms',prefix:'OCC',money:true,permission:'settings',
   help:'Per room type: extra adult, extra child and extra bed per night (dated amounts) and the child age band. Posted on the folio as a service line (GST other services). Owner only.',
@@ -302,9 +293,7 @@ export const OCC_CHARGE_SPEC:MasterSpec<RmsOccRow>={
     const t=mstByCode(s,MST_ROOM_TYPES,String(row.roomType)) as RmsTypeRow|undefined;
     if(t&&!t.extraBedAllowed&&(row.extraBed??[]).length)return `${t.name} does not allow an extra bed (room types master).`;
     return undefined;},
-  seed:s=>seedTypes(s).map((t,i)=>({id:'occ-'+t.code.toLowerCase(),code:'X-'+t.code,name:`${t.name} extras`,roomType:t.code,sortOrder:(i+1)*10,active:true,
-    extraAdult:[{amount:80000,effectiveFrom:OCC_FROM}],extraChild:[{amount:40000,effectiveFrom:OCC_FROM}],
-    ...(t.extraBedAllowed?{extraBed:[{amount:100000,effectiveFrom:OCC_FROM}]}:{}),childAgeFrom:6,childAgeTo:12})),
+  seed:s=>mastersSeed(MST_OCC_CHARGES,s) as RmsOccRow[],
 };
 /** Active occupancy-charge row of a room type key. */
 export function rmsOccFor(s:State,key:string):RmsOccRow|undefined{

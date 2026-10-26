@@ -8,12 +8,13 @@
 // per floor with the same round-robin attendant), so no fixture figure moves.
 import type {State,Task} from '../types';
 import {mstRows,mstFloorCode,mstFloorLabel,registerMaster,type MasterRow,type MasterSpec} from './masters';
+import {mastersSeed,seedHkZones,SEED_HK_CHECKLIST} from '../../fixtures/ext/masters-seed';
 import {hkTaskKind,type HkTaskKind} from './housekeeping';
 import {cfgValueOn} from './config';
 
 export const HKT='hkTaskTypes';
 export const HKZ='hkZones';
-export const HKT_DEFAULT_CHECKLIST=['Linen & bathroom','Surfaces & amenities','Final room check'];
+export const HKT_DEFAULT_CHECKLIST=SEED_HK_CHECKLIST;
 export const HKT_MAX_ITEMS=8;
 export const HKT_ITEM_MAX=60;
 /** What a task type is for. checkout/move/stayover are the task kinds; inspection = the supervisor's check of a finished clean; deep = catalogue only. */
@@ -112,13 +113,7 @@ export const HKT_SPEC:MasterSpec<HktRow>={
     for(const k of row.appliesTo??[]){const other=rows.find(r=>r.id!==row.id&&r.active&&(r.appliesTo??[]).includes(k));
       if(other&&row.active)return `${HKT_APPLIES.find(a=>a.value===k)?.label.split(' (')[0]??k} is already handled by “${other.name}” — each kind belongs to one active type.`;}
     return undefined;},
-  seed:()=>[
-    {id:'hkt-dep',code:'DEP',name:'Departure clean',sortOrder:10,active:true,appliesTo:['checkout','move'],standardMinutes:40,needsInspection:true,checklist:HKT_DEFAULT_CHECKLIST.join('\n')},
-    {id:'hkt-stay',code:'STAY',name:'Stayover service',sortOrder:20,active:true,appliesTo:['stayover'],standardMinutes:20,needsInspection:false,checklist:HKT_DEFAULT_CHECKLIST.join('\n')},
-    {id:'hkt-deep',code:'DEEP',name:'Deep clean',sortOrder:30,active:true,appliesTo:['deep'],standardMinutes:90,needsInspection:true,
-      checklist:['Mattress, linen and curtains','Bathroom descale and grout','Furniture, vents and fittings','Final room check'].join('\n')},
-    {id:'hkt-insp',code:'INSP',name:'Inspection',sortOrder:40,active:true,appliesTo:['inspection'],standardMinutes:10,needsInspection:false,checklist:['Bathroom and linen','Surfaces and amenities','Fittings and lights'].join('\n')},
-  ],
+  seed:s=>mastersSeed(HKT,s) as HktRow[],
 };
 
 // ───────────────────────────── Zones ─────────────────────────────
@@ -147,10 +142,8 @@ export function hkzGroups<T extends Pick<Task,'room'>>(s:State,tasks:T[]):{zone?
 }
 export const hkzAttendantOptions=(s:State)=>hkHousekeepers(s).map(u=>({value:u.id,label:first(u.name)}));
 export const hkzRoomOptions=(s:State)=>s.rooms.map(r=>({value:r.id,label:`Room ${r.id} · ${mstFloorLabel(s,r)}`}));
-export function hkzSeed(s:State):HkzRow[]{
-  const hks=hkHousekeepers(s),floors=[...new Set(s.rooms.map(r=>r.floor))].sort((a,b)=>a-b);
-  return floors.map(n=>({id:'hkz-'+n,code:'Z'+n,name:`${mstFloorLabel(s,n)} section`,sortOrder:n*10,active:true,floors:[mstFloorCode(n)],rooms:[],...(hks.length?{defaultAttendant:hks[(n-1)%hks.length].id}:{})}));
-}
+/** One zone per floor, named from the floors master (rows: fixtures/ext/masters-seed.ts). */
+export const hkzSeed=(s:State):HkzRow[]=>seedHkZones(s,n=>mstFloorLabel(s,n));
 export const HKZ_SPEC:MasterSpec<HkzRow>={
   id:HKZ,label:'Housekeeping zones',singular:'zone',group:'hkm',prefix:'HKZ',money:false,permission:'masters',
   help:'A zone is a set of floors and/or rooms with a default attendant. New stayover tasks go to the zone attendant; the board and “My tasks” group rooms by zone.',

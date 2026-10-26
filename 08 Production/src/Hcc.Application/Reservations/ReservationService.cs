@@ -23,7 +23,8 @@ namespace Hcc.Application.Reservations;
 /// rolled back (an amendment only when it raises the exposure).
 /// </summary>
 public sealed class ReservationService(IReservationStore reservations, IInventoryStore inventory, InventoryService inventoryService,
-    ICommandRunner runner, IAccessPolicy access, IReservationMoneyCheck money, TimeProvider clock, ICompanyCreditGuard? credit = null)
+    ICommandRunner runner, IAccessPolicy access, IReservationMoneyCheck money, TimeProvider clock, ICompanyCreditGuard? credit = null,
+    IBookingSourceCheck? sources = null)
 {
     public async Task<CommandResult<ReservationResult>> CreateAsync(CommandContext context, CreateReservationRequest request, CancellationToken ct = default)
     {
@@ -40,6 +41,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
             var phone = StayRules.PhoneNumber(request.Guest?.Phone);
             var source = string.IsNullOrWhiteSpace(request.Source) ? "Direct" : request.Source.Trim();
             if (source.Length > 40) throw HccException.Validation("Booking source is too long.");
+            if (sources is not null) await sources.EnsureUsableAsync(tx, context.PropertyId, source, c).ConfigureAwait(false); // MA-11: no retired source
             var notes = TrimNotes(request.Notes);
             var company = ToCompany(request.Company);
             var account = await AccountAsync(tx, context.PropertyId, request.Company, c).ConfigureAwait(false);

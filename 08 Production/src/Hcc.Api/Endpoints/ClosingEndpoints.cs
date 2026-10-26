@@ -34,7 +34,8 @@ public static class ClosingEndpoints
             sp.GetRequiredService<IReportSource>(), sp.GetRequiredService<IAccessPolicy>(), sp.GetRequiredService<BillingService>(),
             sp.GetRequiredService<ICloseStepObserver>(), sp.GetRequiredService<TimeProvider>(),
             sp.GetService<Hcc.Application.Pos.IPosCloseGate>(), // POS open checks / pending voids block the close
-            sp.GetService<Hcc.Application.Accounting.IAccountingDayHooks>())); // DEC-077 reopen: accounting period lock, Tally re-export flag
+            sp.GetService<Hcc.Application.Accounting.IAccountingDayHooks>(), // DEC-077 reopen: accounting period lock, Tally re-export flag
+            sp.GetService<IMealPlanNightPoster>())); // MA-11: meal-plan lines after the room nights (Catalogue module)
         services.AddSingleton<ReportingQueries>();
         services.AddSingleton<ICashBookSource>(sp => new SqlCashBookSource(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<CashBookQueries>();

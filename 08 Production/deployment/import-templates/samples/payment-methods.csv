@@ -1,0 +1,4 @@
+code,name,kind,settlesTo,needsReference,usableAt,surchargePct,ledger,sortOrder,active
+WALLET,Wallet (Paytm / PhonePe),wallet,HDFC,yes,frontdesk;pos,0,1010,100,yes
+CHEQUE,Cheque,bank,HDFC,yes,frontdesk;expenses,0,1030,110,yes
+RESTCASH,Restaurant cash,cash,POS-TILL,no,pos,0,1000,120,yes

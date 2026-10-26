@@ -39,6 +39,14 @@ export function ExitAsk({onStay,onExit}:{onStay:()=>void;onExit:()=>void}){
   React.useEffect(()=>{ref.current?.querySelector<HTMLElement>('button')?.focus();},[]);
   return <div className="exit-ask" role="alertdialog" aria-modal="true" aria-labelledby="exit-ask-title" aria-describedby="exit-ask-body" ref={ref} onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();onStay();}else if(ref.current)trapTab(e,ref.current);}}><div className="exit-card"><h2 id="exit-ask-title">Exit Hotel Control Centre?</h2><p id="exit-ask-body">Your demo data stays saved on this device.</p><div className="exit-actions"><button type="button" className="btn" onClick={onStay}>Stay</button><button type="button" className="btn primary" onClick={onExit}>Exit</button></div></div></div>;
 }
+/** V14-1: "Discard changes?" for a sheet with unsaved input (replaces the browser's confirm()). Same pattern and look as ExitAsk: focus moves to
+ *  "Keep editing", Tab is trapped, Escape or Android Back = keep editing, focus returns on close. Themed through the exit-card tokens. */
+export function DiscardAsk({onKeep,onDiscard}:{onKeep:()=>void;onDiscard:()=>void}){
+  useReturnFocus();
+  const ref=React.useRef<HTMLDivElement>(null);
+  React.useEffect(()=>{ref.current?.querySelector<HTMLElement>('button')?.focus();},[]);
+  return <div className="exit-ask" role="alertdialog" aria-modal="true" aria-labelledby="discard-ask-title" aria-describedby="discard-ask-body" ref={ref} onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();onKeep();}else if(ref.current)trapTab(e,ref.current);}}><div className="exit-card"><h2 id="discard-ask-title">Discard changes?</h2><p id="discard-ask-body">The details you entered will be lost.</p><div className="exit-actions"><button type="button" className="btn" onClick={onKeep}>Keep editing</button><button type="button" className="btn danger" onClick={onDiscard}>Discard</button></div></div></div>;
+}
 /**
  * Decorative lucide icons and table header scopes, applied once to the live DOM (A-14, A-15):
  * every `svg.lucide` without its own name is hidden from assistive technology, every `<th>` in a `<thead>` gets `scope="col"`.

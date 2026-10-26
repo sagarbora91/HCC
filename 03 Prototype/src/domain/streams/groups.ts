@@ -5,6 +5,7 @@ import type {State,Booking} from '../types';
 import {available,availableRaw,registerRoomHold,totals} from '../selectors';
 import {gstForRoomNight,gstLineTax,gstSplit,gstStayTax} from '../gst';
 import {addDays,nights,money} from '../money';
+import {rmsOffline} from './roomoffline';
 
 export type GRPCompany={id:string;name:string;
   /** GSTIN-format placeholder — always fictional in this prototype. */
@@ -74,14 +75,15 @@ export function grpStatus(s:State,blk:GRPBlock):GRPBlockStatus{return blk.status
 export const grpReleaseDue=(s:State,blk:GRPBlock)=>blk.status==='Open'&&s.date>blk.cutoff;
 export function grpRemaining(s:State,blk:GRPBlock,type:string){return grpStatus(s,blk)==='Open'?Math.max(0,(blk.allot[type]||0)-grpPicked(s,blk,type)):0;}
 /** Rooms of a type free for every night of [a, d) under the shared availability check. */
-export function grpFreeRooms(s:State,type:string,a:string,d:string){return s.rooms.filter(r=>r.type===type&&availableRaw(s,r.id,a,d)).map(r=>r.id);}
+export function grpFreeRooms(s:State,type:string,a:string,d:string){return s.rooms.filter(r=>r.type===type&&!rmsOffline(r,a,d)&&availableRaw(s,r.id,a,d)).map(r=>r.id);}
 /** Rooms free for a block's own pickup: not booked/blocked and not held by ANOTHER block (its own held rooms first). */
 export function grpPickupRooms(s:State,blk:GRPBlock,type:string,a:string,d:string){
   const own=grpHolds(s).filter(h=>h.block===blk.id&&h.type===type).map(h=>h.room);
   const free=grpFreeRooms(s,type,a,d).filter(r=>!grpHolds(s).some(h=>h.room===r&&h.block!==blk.id&&a<h.d&&d>h.a));
   return [...own.filter(r=>free.includes(r)),...free.filter(r=>!own.includes(r))];
 }
-/** Specific rooms held for open blocks' unpicked allotment (deterministic: blocks by arrival, rooms highest number first).
+/** Specific rooms held for open blocks' unpicked allotment (deterministic: blocks by arrival; rooms in service only, original rooms
+ *  before rooms added later (Room.addedOn), highest number first).
  *  These rooms show as Blocked on the room board/calendar and are not bookable except through the block's rooming list. */
 export type GRPHold={room:string;block:string;type:string;a:string;d:string;label:string};
 const grpHoldMemo=new WeakMap<State,{fp:string;holds:GRPHold[]}>();
@@ -89,13 +91,16 @@ export function grpHolds(s:State):GRPHold[]{
   const blocks=grpSlice(s).blocks;if(!blocks.length)return [];
   // Only bookings that can matter to a hold (live ones, and block members for pickup counts) enter the fingerprint — history stays (Departed, Cancelled) do not.
   const members=new Set(blocks.flatMap(b=>b.members.map(m=>m.booking)));
-  const fp=s.date+'|'+s.clock+'|'+s.bookings.filter(b=>b.status==='Held'||b.status==='Confirmed'||b.status==='In house'||members.has(b.id)).map(b=>b.id+b.status+b.room+b.arrival+b.departure+(b.holdUntil||'')).join(',')+'|'+JSON.stringify(blocks)+'|'+s.rooms.map(r=>r.id+(r.blocked?1:0)+(r.blockFrom||'')+(r.blockTo||'')).join(',');
+  const fp=s.date+'|'+s.clock+'|'+s.bookings.filter(b=>b.status==='Held'||b.status==='Confirmed'||b.status==='In house'||members.has(b.id)).map(b=>b.id+b.status+b.room+b.arrival+b.departure+(b.holdUntil||'')).join(',')+'|'+JSON.stringify(blocks)+'|'+s.rooms.map(r=>r.id+(r.blocked?1:0)+(r.blockFrom||'')+(r.blockTo||'')+(r.status||'')+(r.retiredOn||'')+(r.ooo?JSON.stringify(r.ooo):'')+(r.addedOn||'')).join(',');
   const m=grpHoldMemo.get(s);if(m&&m.fp===fp)return m.holds;
   const holds:GRPHold[]=[];
   const open=blocks.filter(b=>grpStatus(s,b)==='Open'&&b.departure>s.date).sort((x,y)=>x.arrival.localeCompare(y.arrival)||x.id.localeCompare(y.id));
   for(const blk of open){const a=blk.arrival<s.date?s.date:blk.arrival,d=blk.departure;
     for(const type of Object.keys(blk.allot)){let n=grpRemaining(s,blk,type);if(n<=0)continue;
-      const cands=s.rooms.filter(r=>r.type===type).map(r=>r.id).sort((x,y)=>y.localeCompare(x,undefined,{numeric:true}))
+      // V14-5: retired / out-of-order rooms cannot carry an allotment; rooms added through the rooms master (addedOn) come after the
+      // rooms that were there before (oldest first), so a room added today stays bookable while older free rooms can hold the block.
+      const cands=s.rooms.filter(r=>r.type===type&&!rmsOffline(r,a,d))
+        .sort((x,y)=>(x.addedOn??'').localeCompare(y.addedOn??'')||y.id.localeCompare(x.id,undefined,{numeric:true})).map(r=>r.id)
         .filter(r=>availableRaw(s,r,a,d)&&!holds.some(h=>h.room===r&&a<h.d&&d>h.a));
       for(const room of cands){if(n--<=0)break;holds.push({room,block:blk.id,type,a,d,label:`Group hold · ${blk.id} ${blk.name}`});}
     }}

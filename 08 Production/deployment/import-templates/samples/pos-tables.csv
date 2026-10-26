@@ -1,0 +1,4 @@
+code,name,outlet,tableNo,seats,section,counter,sortOrder,active
+REST-T1,Restaurant T1,REST,T1,4,Hall,no,10,yes
+REST-T7,Restaurant T7,REST,T7,6,Terrace,no,70,yes
+REST-BAR1,Restaurant bar seat 1,REST,BAR1,1,Bar,yes,80,yes

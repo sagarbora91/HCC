@@ -8,6 +8,7 @@ import {DisplaySection} from '../../../app/display';
 import {saveTextFile,nativeFileName} from '../../../app/native';
 import {Pill} from '../../../components/ui';
 import {CFG_INVARIANTS,cfgNav} from './logic';
+import {MstIoPanel} from '../../masters/MastersIo'; // MA-8
 
 export function CfgModulesPanel(){
   const {s,uid,run,busy}=useHcc();
@@ -36,6 +37,7 @@ export function CfgDataPanel(){
       <p className="muted">JSON file for backup or for setting up a second property. Secrets (gateway keys), users, access policy and guest data are never included.</p>
       <div className="cfg-actions"><button type="button" className="btn" onClick={()=>void doExport()}><Download size={16}/> Export configuration</button>
         <button type="button" className="btn" disabled={role!=='Owner'&&role!=='Tech admin'} onClick={()=>open({type:'cfg-import'})}><Upload size={16}/> Import…</button></div></section>
+    <MstIoPanel/>
     <DisplaySection display={display}/>
     <section className="cfg-box"><h3>Appearance &amp; display (this device only)</h3>
       <p className="muted">Text size, reduce motion, density, start page, list size and alert timing — personal, saved on this device, never hotel data (CP-1).</p>
