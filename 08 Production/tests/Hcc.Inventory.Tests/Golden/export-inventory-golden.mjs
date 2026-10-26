@@ -7,6 +7,7 @@
 // GST master (DEC-069, gstForRoomNight on the agreed nightly price); the server reproduces it with its own master (migration 0600).
 // Usage (Node 25): node "08 Production/tests/Hcc.Inventory.Tests/Golden/export-inventory-golden.mjs" [--check] [--proto <path>]
 import path from 'node:path';import {fileURLToPath} from 'node:url';
+const SERVER_REASON={'Group hold':'GroupHold'}; // V14-5 renamed the group-hold reason; the golden keeps the code the server test compares
 import {CHECK,bundleMock,writeGolden} from '../../../tools/golden/golden-lib.mjs';
 const DIR=path.dirname(fileURLToPath(import.meta.url));
 const M=await bundleMock('mock-inventory');
@@ -38,7 +39,8 @@ const queries=[
 const searches=queries.map(q=>{const res=resSearch(s,q);const rows=[...res.available,...res.excluded].sort((a,b)=>a.room.id.localeCompare(b.room.id));
   return {query:{arrival:q.arrival,departure:q.departure,adults:q.people,children:0,type:q.type??null},
     rooms:rows.map(x=>{const held=!!roomHold(s,x.room.id,q.arrival,q.departure);
-      const reasons=x.reasons.map(rr=>rr==='Booked'&&held&&!x.conflict?'GroupHold':rr);
+      // V14-5: the prototype says "Group hold"; the golden keeps "GroupHold" (src/clients/mock.ts REASON maps it the same way).
+      const reasons=x.reasons.map(rr=>rr==='Booked'&&held&&!x.conflict?'GroupHold':(SERVER_REASON[rr]??rr));
       return {roomNo:x.room.id,available:x.ok,reasons,availableRaw:availableRaw(s,x.room.id,q.arrival,q.departure),bookable:available(s,x.room.id,q.arrival,q.departure)};})};});
 
 const holds=grpHolds(s).map(h=>({roomNo:h.room,block:h.block,type:h.type,from:h.a,to:h.d}));
