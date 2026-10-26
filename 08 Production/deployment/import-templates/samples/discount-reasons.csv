@@ -1,0 +1,4 @@
+code,name,maxPct,approvalAbovePct,roles,sortOrder,active
+SERVICE,Service recovery,25,10,,10,yes
+CORP,Corporate rate,20,,,20,yes
+MGMT,Management courtesy,100,,Owner;Manager,30,yes

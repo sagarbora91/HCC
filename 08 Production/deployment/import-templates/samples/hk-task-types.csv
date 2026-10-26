@@ -1,0 +1,3 @@
+code,name,appliesTo,standardMinutes,needsInspection,checklist,sortOrder,active
+DEP,Departure clean,checkout;move,45,yes,Linen & bathroom;Surfaces & amenities;Final room check;Minibar check,10,yes
+STAY,Stayover service,stayover,20,no,Linen & bathroom;Surfaces & amenities;Final room check,20,yes

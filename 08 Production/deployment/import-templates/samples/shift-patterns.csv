@@ -1,0 +1,3 @@
+code,name,start,end,breakMinutes,night,weeklyOffRule,sortOrder,active
+S,Split day,10:30,19:30,30,no,fixed,100,yes
+H,Half day,12:00,16:00,0,no,roster,110,yes
