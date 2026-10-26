@@ -19,7 +19,7 @@ import {ModalHost} from './ModalHost';
 import {useDisplayMode,DisplayToggle} from './display';
 import {SearchPalette} from './SearchPalette';
 import {NavDrawer} from './NavDrawer';
-import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,exitApp} from './native';
+import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,exitApp,clearExports} from './native';
 import {MobileShell} from './mobile/MobileShell';
 import {announceTab,type MobileTab} from './mobile/tabs';
 import {Empty,ExitAsk,dateLabel,clockTime} from '../components/ui';
@@ -192,7 +192,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     if(u){writeSession(id);go(HOME_PAGE,{replace:true});}
   }
   function signIn(id:string){setUid(id);setSignedIn(true);writeSession(id);setPage(HOME_PAGE);setModal(null);setError('');setSearch('');setFilter('All');}
-  function signOut(){if(process.env.HCC_BUILD==='production'&&server)server.signOut();cancelBackFallback();writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
+  function signOut(){void clearExports();if(process.env.HCC_BUILD==='production'&&server)server.signOut();cancelBackFallback();writeSession(null);setSignedIn(false);setMenuOpen(false);setModal(null);setSearchOpen(false);setError('');setPage(HOME_PAGE);setDepth(0);}
   // FY26 is built in the scenario worker so a scenario switch or reset does not freeze the page (audit P-01).
   async function loadScenario(id:string){cancelBackFallback();if(busyRef.current)return;
     busyRef.current=true;setBusy(true);

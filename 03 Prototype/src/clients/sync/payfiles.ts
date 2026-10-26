@@ -6,7 +6,7 @@
 //   statutory  GET /payroll/runs/{month}/statutory.csv           PERM-HR-006, audited (HR_STATUTORY_DOWNLOADED)
 //   bank       GET /payroll/run/{runId}/bank-files/latest        PERM-HR-006, locked run, after IssueBankFile (the latest file of the
 //                                                                current lock, account numbers frozen at lock), audited (HR_BANK_FILE_DOWNLOADED)
-// The text is saved through the native hook (saveCsv: Documents/HCC + share sheet in the APK, a download in a browser).
+// The text is saved through the native hook (saveCsv: app cache exports/ + share sheet in the APK, a download in a browser).
 import type {HttpTransport} from '../http';
 import {serverId} from './map';
 

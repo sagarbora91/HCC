@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Security review F-L10: the FileProvider shares only the app's own export folder (Documents/HCC, written by saveTextFile /
-     saveBinaryFile in 03 Prototype/src/app/native.ts) and the app's private cache — not the whole external storage. -->
+<!-- Security review F-L10 / audit A10-01: the FileProvider shares only the app's private export folder (cache/exports, written by
+     saveTextFile / saveBinaryFile in 03 Prototype/src/app/native.ts and deleted on sign-out by clearExports) — not the whole cache,
+     and nothing in public storage (the old Documents/HCC folder is no longer used). -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="hcc_exports" path="Documents/HCC/" />
-    <cache-path name="my_cache_images" path="." />
+    <cache-path name="hcc_exports" path="exports/" />
 </paths>
