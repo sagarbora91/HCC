@@ -57,7 +57,7 @@ type ACCLedger = {
 
 | code | name | group | control |
 |---|---|---|---|
-| 1000 | Cash in hand | cash | yes (one party per till; the seeded till is `1000/<till code>`) |
+| 1000 | Cash in hand | cash | yes (one party per till; the seeded till is `1000/TILL`, the seeded row's code — amended 27 Oct, ruling 4) |
 | 1005 | Petty cash float | cash | |
 | 1010 | UPI clearing | bank | |
 | 1020 | Card clearing | bank | |
@@ -128,7 +128,7 @@ type ACCLedger = {
 | 5900 | Cash short | indirect-expenses | |
 | 9999 | Suspense (unmapped) | suspense | |
 
-**Mapping key re-points in ACC-1** (defaults; the Owner override table keeps working): `pos:sales` → 4200; `line:attrition` → 4300; `closing:cash-difference` splits — a short posts Dr 5900, an over posts Cr **4950**; `tax:gst-input` → **1310** for the CGST half and a new key `tax:gst-input-sgst` → 1320 (the expense ITC amount is split half / half as output GST is; IGST bills come with ACC-2); `receipt:udhaar` stays 1120 (party-resolved, §3). Everything else unchanged. Locked snapshots are never re-pointed.
+**Mapping key re-points in ACC-1** (defaults; the Owner override table keeps working): `pos:sales` → 4200; `line:attrition` → 4300; `closing:cash-difference` splits — a short posts Dr 5900 (`closing:cash-difference`), an over posts Cr **4950** under the key **`closing:cash-over`** (amended 27 Oct, coordinator ruling 1; `accCashDiffKey` / `ChartOfAccounts.CashDiffKey`); `tax:gst-input` → **1310** for the CGST half and a new key `tax:gst-input-sgst` → 1320 (the expense ITC amount is split half / half as output GST is; IGST bills come with ACC-2); `receipt:udhaar` stays 1120 (party-resolved, §3). Everything else unchanged. Locked snapshots are never re-pointed.
 
 ## 3. Party sub-ledgers
 
@@ -156,7 +156,7 @@ Rules: parties are **derived from the masters, never stored twice**; `accPartyLe
 | Udhaar settlement (desk) and Udhaar credit raised (A17) | `receipt:udhaar` | the Udhaar customer id |
 | expense funded by `Vendor credit` | `funding:Vendor credit` | the expense's vendor (by code / name) |
 | receipt or expense by a method that settles to a **bank** account | `method:<name>` / `funding:<name>` | the settles-to account code |
-| cash methods | `method:Cash` etc. | the till the shift is on (`1000/<till>`); one seeded till → `1000/TILL-MAIN` |
+| cash methods | `method:Cash` etc. | the till the shift is on (`1000/<till>`); one seeded till → `1000/TILL` (amended 27 Oct, ruling 4: the seeded row's code is `TILL`) |
 | staff advance given / recovered | `payroll:advances` | staff id |
 | OTA receivable (ACC-2 posts it; ACC-1 only defines it) | `receipt:ota` | channel id |
 
@@ -164,7 +164,7 @@ Rules: parties are **derived from the masters, never stored twice**; `accPartyLe
 
 ## 4. Udhaar credit raised (A17, DEC-144)
 
-Raising an Udhaar credit posts a **Sales** voucher the same day: Dr `1120/<customer>` (gross) · Cr 4200 or 4000 (`kind: 'restaurant' | 'room'` chosen on the screen; `'other'` → 4100) · Cr 2110 · Cr 2120 (GST at the rate of the thing sold, half / half, rounding as `gstLineTax`). Source key `udhaar:<receivable id>`, sub `udhaar-credit`. The settlement (`udhaar-payment`) is unchanged except that it credits the party ledger. Prototype: `ExpUdReceivable` gains optional `kind` and `gstBps` (old rows: `kind` absent → 'other', `gstBps` 0 → no GST lines; CA note in the DONE file). Server: `exp.udhaar_receivable` gains `kind`, `gst_bps` (migration 4215) and the outbox event `UdhaarCreditRaised` feeds a new `SourceRules.UdhaarCredit(...)`.
+Raising an Udhaar credit posts a **Sales** voucher the same day: Dr `1120/<customer>` (gross) · Cr 4200 or 4000 (`kind: 'restaurant' | 'room'` chosen on the screen; `'other'` → 4100) · Cr 2110 · Cr 2120 (GST at the rate of the thing sold, half / half, rounding as `gstLineTax`). Source key `udhaar:<receivable id>`, sub `udhaar-credit`. The settlement (`udhaar-payment`) is unchanged except that it credits the party ledger. Prototype: `ExpUdReceivable` gains optional `kind` and `gstBps` (old rows: `kind` absent → 'other', `gstBps` 0 → no GST lines; CA note in the DONE file). Server: `ops.udhaar_receivable` (amended 27 Oct, ruling 4: the table is in schema `ops`, migration 4150) gains `kind`, `gst_bps` (migration 4215) and the outbox event `UdhaarCreditRaised` feeds a new `SourceRules.UdhaarCredit(...)`.
 
 ## 5. Opening balances (DEC-139 / DEC-148)
 
@@ -174,7 +174,7 @@ type ACCOpening = {asOf: string;                                             // 
   lines: ACCOpeningLine[]; status: 'draft'|'approved'; by: string; at: string; approvedBy?: string; approvedAt?: string; note?: string};
 ```
 
-- One opening entry per property. Saving replaces the draft; a `draft` can be saved unbalanced: the module **adds** the balancing line on **1400 Opening-balance difference** and shows it. Approval (Owner, `PERM-ACC-009`) requires the entry to balance **after** the 1400 line, i.e. 1400 may be non-zero at approval but the first **period lock** of any date ≥ `asOf` is refused while 1400 ≠ 0 or no approved opening exists ("opening balances pending").
+- One opening entry per property. Saving replaces the draft; a `draft` can be saved unbalanced: the module **adds** the balancing line on **1400 Opening-balance difference** and shows it. Approval (Owner, `PERM-ACC-009`) requires the entry to balance **after** the 1400 line, i.e. 1400 may be non-zero at approval but, **once an entry exists** (draft, or approved with 1400 ≠ 0), the **period lock** of any date ≥ `asOf` is refused ("opening balances pending"). **With no opening entry at all, locks are not gated** and the "opening balances pending" flag stays visible (amended 27 Oct, coordinator ruling 5; rulebook §G2 amended the same way).
 - Posted as one Journal `JRN/<asOf yyyymmdd>/000`, source `{kind: 'opening', id: 'opening', sub: 'opening-entry'}`, dated `asOf`, included by `accVouchersUpTo` and the cumulative trial balance exactly like the server's imported opening (`opening-import`, which stays for the CSV path and is superseded when an approved entry exists).
 - Enter: Manager or Accountant (`PERM-ACC-008`; prototype `permission('reports')` and role in Owner / Manager / Accountant). Approve: Owner only. After approval the entry is read-only until the Owner reopens it (`status` back to `draft`, reason, audited) — only possible while no lock exists on or after `asOf`.
 - Commands (prototype): `ACC_OPENING_SAVE {asOf, lines, note?}`, `ACC_OPENING_APPROVE {}`, `ACC_OPENING_REOPEN {reason}`. Server: `SaveOpeningBalances`, `ApproveOpeningBalances`, `ReopenOpeningBalances`, tables `acc.opening_entry` + `acc.opening_line` (migration 4220).
@@ -192,8 +192,9 @@ type ACCTB6 = {from: string; to: string; detail: boolean; rows: ACCTB6Row[];
   totals: Omit<ACCTB6Row, 'account'|'name'|'group'|'control'>; balanced: boolean; openingPending: boolean};
 ```
 
-- Opening of a statement / TB = every voucher dated **before** `from` (the opening entry included, locked snapshots as locked, live derivation elsewhere). Closing = opening + period. Dr balances show as Dr, Cr as Cr; never negative numbers on screen.
-- Day book = every voucher in the range in `date, no` order, one row per entry.
+- Opening of a statement / TB = every voucher dated **before** `from`, **plus an opening voucher (the opening entry, the imported opening) dated ON `from`** (rulebook §7.2 "incl. opening journal" wins — amended 27 Oct, ruling 6); locked snapshots as locked, live derivation elsewhere. Closing = opening + period. Dr balances show as Dr, Cr as Cr; never negative numbers on screen.
+- Day book = every voucher in the range in `date`, then voucher-number order (amended 27 Oct, ruling 6), one row per entry.
+- `openingPending` = no opening entry, or not approved, **or approved with 1400 ≠ 0** (amended 27 Oct, ruling 6).
 - Server: `GET /accounting/statement?account=&from=&to=`, `GET /accounting/trial-balance?from=&to=&detail=`, `GET /accounting/day-book?from=&to=`; prototype selectors `accStatement(s, account, from, to)`, `accTrialBalance6(s, from, to, detail)`, `accDayBook(s, from, to)` in a new file `src/domain/streams/accounting-reports.ts`.
 
 ## 7. Permissions
@@ -217,9 +218,9 @@ Prototype equivalents: chart edit = `permission('admin')` and role Owner; openin
 
 | lane | numbers |
 |---|---|
-| acc1-chart | 4200–4209 (`4200_acc_ledger_groups.sql`, `4201_acc_ledger.sql`, `4202_acc_rbac_chart.sql`, …) |
+| acc1-chart | 4200–4209 (`4200_acc_ledger_groups.sql`, `4201_acc_ledger.sql`, `4202_acc_chart_rbac_seed.sql` — RBAC seeds end `_rbac_seed.sql`, ruling 3) |
 | acc1-parties | 4210–4219 (`4210_acc_source_entry_party.sql`, `4215_exp_udhaar_kind_gst.sql`, …) |
-| acc1-opening | 4220–4224 (`4220_acc_opening_entry.sql`, `4221_acc_rbac_opening.sql`) |
+| acc1-opening | 4220–4224 (`4220_acc_opening_entry.sql`, `4221_acc_opening_rbac_seed.sql` — renamed at integration, ruling 3) |
 | acc1-statements | 4225–4229 (views, if any) |
 
 Every migration: `node "08 Production/tools/migrations-lock.mjs" --add` and a line in `Hcc.slnx`; never edit an applied one.
