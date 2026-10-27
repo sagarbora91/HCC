@@ -193,4 +193,51 @@ public sealed class AccountingRulesTests
         var bad = Reconciliation.Check(vs, Map, new OperationalFigures(200_000, 0, 0, -10_000, 9_500, 96_000, 50_000, 0));
         Assert.False(bad.Single(c => c.Id == "collections").Ok);
     }
+
+    [Fact]
+    public void Dec135_itc_allowed_expense_books_its_GST_to_the_input_credit_ledger_and_the_reversal_mirrors_it()
+    {
+        // Rs 590 bulbs with Rs 90 GST, ITC allowed: Dr Repairs 500 · Dr GST input credit 90 · Cr UPI 590; the reversal record (−590, −90) swaps
+        // every side. Disallowed (or an event published before DEC-135, no fields) keeps the whole bill in the category.
+        Assert.Equal(("GST input credit", AccountGroup.Asset), (ChartOfAccounts.NameOf("1300"), ChartOfAccounts.Find("1300")!.Group));
+        Assert.Equal("1300", ChartOfAccounts.DefaultMapping["tax:gst-input"]);
+        Assert.True(ChartOfAccounts.IsValidKey("tax:gst-input"));
+        Assert.Equal("GST input credit (ITC)", ChartOfAccounts.KeyGroup("tax:gst-input"));
+        var vs = VoucherBuilder.Build(D,
+        [
+            AccountingEventMapper.Expense(new ExpensePostedEvent(51, D, "Maintenance", "UPI", 59_000, "Demo Electricals", null, 9_000, "allowed")),
+            AccountingEventMapper.Expense(new ExpensePostedEvent(52, D, "Maintenance", "UPI", -59_000, "Demo Electricals", 51, -9_000, "allowed")),
+            AccountingEventMapper.Expense(new ExpensePostedEvent(53, D, "Supplies", "Cash", 118_000, "Demo Soap", null, 18_000, "disallowed")),
+            AccountingEventMapper.Expense(new ExpensePostedEvent(54, D, "Supplies", "Cash", 11_800, "Old bill", null)),
+        ], Map);
+        Assert.All(vs, v => Assert.True(v.Balanced, v.Number));
+        static (string, long, long)[] E(Voucher v) => v.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)).ToArray();
+        Assert.Equal([("5020", 50_000L, 0L), ("1300", 9_000L, 0L), ("1010", 0L, 59_000L)], E(vs.Single(v => v.SourceKey == "expense:51")));
+        Assert.Equal([("5020", 0L, 50_000L), ("1300", 0L, 9_000L), ("1010", 59_000L, 0L)], E(vs.Single(v => v.SourceKey == "expense:52")));
+        Assert.Equal([("5000", 118_000L, 0L), ("1000", 0L, 118_000L)], E(vs.Single(v => v.SourceKey == "expense:53")));
+        Assert.Equal([("5000", 11_800L, 0L), ("1000", 0L, 11_800L)], E(vs.Single(v => v.SourceKey == "expense:54")));
+        Assert.Equal(0, vs.SelectMany(v => v.Entries).Where(e => e.Account == "1300").Sum(e => e.DebitPaise - e.CreditPaise));
+        var xml = VoucherExport.TallyXml(vs, "HCC Demo Residency", "DEMO");
+        Assert.Contains("<LEDGERNAME>GST input credit</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-90.00</AMOUNT>", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Dec130_udhaar_payment_is_a_receipt_against_Udhaar_receivables_and_never_income_nor_the_collections_check()
+    {
+        Assert.Contains(AccountingEvents.UdhaarPaymentRecorded, AccountingEvents.Consumed);
+        Assert.Equal("Udhaar receivables (customer credit)", ChartOfAccounts.NameOf("1120"));
+        var vs = VoucherBuilder.Build(D,
+        [
+            AccountingEventMapper.UdhaarPayment(new UdhaarPaymentRecordedEvent(21, 31, D, "Cash", 100_000, "Ramesh (fictional)")),
+            AccountingEventMapper.UdhaarPayment(new UdhaarPaymentRecordedEvent(21, 32, D, "UPI", 50_050, "Ramesh (fictional)", "UPI-77")),
+        ], Map);
+        Assert.Equal(["udhaar-payment:31", "udhaar-payment:32"], vs.Select(v => v.SourceKey));
+        Assert.All(vs, v => Assert.Equal((VoucherType.Receipt, "udhaar-payment", true), (v.Type, v.Sub, v.Balanced)));
+        Assert.Equal([("1000", 100_000L, 0L), ("1120", 0L, 100_000L)], vs[0].Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal([("1010", 50_050L, 0L), ("1120", 0L, 50_050L)], vs[1].Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal("Udhaar received · Ramesh (fictional) · UPI · UPI-77 · payment 32", vs[1].Narration);
+        Assert.DoesNotContain(vs.SelectMany(v => v.Entries), e => e.Account.StartsWith('4'));   // never income
+        // The daily collections check compares folio receipts only (Sub payment / refund): an Udhaar receipt leaves it alone.
+        Assert.True(Reconciliation.Check(vs, Map, new OperationalFigures(0, 0, 0, 0, 0, 0, 0, 0)).Single(c => c.Id == "collections").Ok);
+    }
 }

@@ -20,6 +20,8 @@
 //             EXP_REC_SAVE/TOGGLE/DELETE/POST → Save/Toggle/Delete/PostRecurringExpense; EXP_PETTY_FLOAT/_DECIDE/EXP_PETTY_OUT → RequestPettyFloat,
 //             DecidePettyFloat, RecordPettyDisbursement; EXP_UD_ADD/PAY/VOID → AddUdhaar, PayUdhaar, VoidUdhaar; EXP_MONTH_LOCK → LockExpenseMonth;
 //             EXP_CSV → GET /expenses/export/ledger | /expenses/export/month (the server's SCC CSV is saved);
+//             SCC decisions wave: EXP_MONTH_UNLOCK → UnlockExpenseMonth (DEC-131, Owner + reason); EXP_UD_PAY in cash carries the till with the
+//             open shift and reloads the cash desk (DEC-130: a desk receipt into the drawer); EXPENSE / EXP_EDIT carry the ITC flag (DEC-135);
 //             CMP_* → MarkComplianceDone, MarkComplianceNotApplicable, ReopenComplianceItem, SetComplianceFy, SaveComplianceProfile,
 //             ToggleComplianceArchive, ToggleComplianceCategoryArchive, SaveCustomObligation, DeleteCustomObligation,
 //             AddComplianceEvidence, DeleteComplianceEvidence, SaveComplianceSettings, GenerateCaPack.
@@ -33,12 +35,13 @@ import type {ACCState,ACCVoucher,ACCServerDay,ACCLock,ACCMapRow,ACCException,ACC
 import {ACC_DEFAULT_MAP,accAccount} from '../../domain/streams/accounting';
 import type {CMPState,CMPPack,CMPRecord,CMPCustom,CMPFile,CMPReopened,CMPProfile,CMPCat} from '../../domain/streams/compliance';
 import {cmpEmpty,CMP_DEFAULT_SETTINGS} from '../../domain/streams/compliance';
-import {mnyMethodFor} from '../../domain/streams/money-master';
+import {mnyMethodFor,mnyIsDrawer,mnyMethod} from '../../domain/streams/money-master';
+import {cxSlice} from '../../domain/streams/cashout';
 import {addDays} from '../../domain/money';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {serverId,protoUserId,utcToClock,paise,isoDate} from './map';
-import {CASH_SLICES} from './money';
+import {CASH_SLICES,cashBlockedReason} from './money';
 import {saveTextFile,saveCsv} from '../../app/native';
 
 /** GET /accounting/export/tally (TallyExportView; DEC-077 re-export / provisional dates and the export log id; A03b-05 pending accounting
@@ -73,15 +76,20 @@ export type SrvExpense={expenseId:number;ref:string;vendor:string;category:strin
   notes?:string|null;receipt?:string|null;reason?:string|null;decidedBy?:number|null;decidedUtc?:string|null;reversalOf?:number|null;reversedBy?:number|null;version:string;
   /** DEC-120 SCC features (ExpenseView). */
   description?:string|null;gstRateBps?:number|null;gstPaise?:number|null;source?:string|null;sourceRef?:string|null;voidReason?:string|null;voidedBy?:number|null;
-  voidedUtc?:string|null;hasBillPhoto?:boolean;createdUtc?:string|null;edits?:SrvExpenseEdit[]|null};
+  voidedUtc?:string|null;hasBillPhoto?:boolean;createdUtc?:string|null;edits?:SrvExpenseEdit[]|null;
+  /** DEC-135: 'allowed' | 'disallowed' when the bill has GST. */
+  itc?:string|null};
 type SrvExpenseEdit={editId:number;by:number;atUtc:string;reason:string;old:Record<string,string|number>;new:Record<string,string|number>};
 /** GET /expenses/registers (ExpenseRegistersView). */
 type SrvRegisters={businessDate:string;budgets:{month:string;category:string;amountPaise:number}[];
   recurring:{templateId:number;name:string;amountPaise:number;dueDay:number;category:string;method:string;vendor:string;active:boolean;createdBy:number;createdUtc:string}[];
   petty:{entryId:number;amountPaise:number;businessDate:string;status:string;note?:string|null;recordedBy:number;recordedUtc:string;decidedBy?:number|null;decidedUtc?:string|null;reason?:string|null}[];
   udhaar:{receivableId:number;name:string;mobile?:string|null;amountPaise:number;creditDate:string;dueDate?:string|null;note?:string|null;createdBy:number;createdUtc:string;void:boolean;
-    voidReason?:string|null;voidedBy?:number|null;voidedDate?:string|null;settlements:{settlementId:number;amountPaise:number;date:string;mode:string;recordedBy:number;recordedUtc:string}[]}[];
-  months:{month:string;expensePaise:number;count:number;gstPaidPaise:number;byCategory:Record<string,number>;generatedBy:number;generatedUtc:string;stale:boolean;staleUtc?:string|null}[]};
+    voidReason?:string|null;voidedBy?:number|null;voidedDate?:string|null;settlements:{settlementId:number;amountPaise:number;date:string;mode:string;recordedBy:number;recordedUtc:string;
+      /** DEC-130: taken as a desk receipt (cash into the drawer, booked in Accounting). */desk?:boolean|null;reference?:string|null}[]}[];
+  months:{month:string;expensePaise:number;count:number;gstPaidPaise:number;byCategory:Record<string,number>;generatedBy:number;generatedUtc:string;stale:boolean;staleUtc?:string|null;
+    /** DEC-135 / DEC-131 */gstItcPaise?:number|null;unlocked?:boolean|null;unlockedBy?:number|null;unlockedUtc?:string|null;unlockReason?:string|null;
+    unlocks?:{by:number;atUtc:string;reason:string}[]|null}[]};
 type SrvExport={fileName:string;csv:string;rows:number};
 type SrvExpensePage={items:SrvExpense[];page:number;pageSize:number;total:number;ownOnly:boolean};
 type SrvSettings={caName:string;caEmail:string;dueSoonDays:number;version:string};
@@ -175,6 +183,7 @@ export function expenseFromServer(e:SrvExpense):Expense{
   if(e.source==='petty'||e.source==='recurring')x.source=e.source;if(e.sourceRef)x.sourceRef=e.sourceRef;
   if(e.voidReason)x.voidReason=e.voidReason;if(e.voidedBy!=null)x.voidedBy=protoUserId(e.voidedBy);if(e.voidedUtc)x.voidedAt=clock(e.voidedUtc);
   if(e.hasBillPhoto)x.hasBillPhoto=true;if(e.createdUtc)x.createdAt=clock(e.createdUtc);
+  if(e.gstPaise)x.itc=e.itc==='allowed'?'allowed':'disallowed'; // DEC-135 (a bill without the flag = disallowed)
   if(e.edits?.length){
     x.editLog=e.edits.map((d):ExpEditLog=>({at:clock(d.atUtc),by:protoUserId(d.by),old:{...d.old},new:{...d.new},reason:d.reason}));
     const editors=[...new Set(e.edits.map(d=>protoUserId(d.by)))].filter(u=>u!==x.actor);if(editors.length)x.editors=editors;
@@ -193,9 +202,12 @@ export function registersFromServer(r:SrvRegisters):EXPState{
       ...(p.decidedBy!=null?{decidedBy:protoUserId(p.decidedBy)}:{}),...(p.decidedUtc?{decidedAt:clock(p.decidedUtc)}:{}),...(p.reason?{reason:p.reason}:{})})),
     udhaar:r.udhaar.map(u=>({id:String(u.receivableId),name:u.name,mobile:u.mobile??'',amount:paise(u.amountPaise,'amountPaise'),date:isoDate(u.creditDate,'creditDate'),dueDate:u.dueDate??'',
       note:u.note??'',by:protoUserId(u.createdBy),at:clock(u.createdUtc),settlements:u.settlements.map(x=>({id:String(x.settlementId),amount:paise(x.amountPaise,'amountPaise'),date:x.date,mode:x.mode,
-        by:protoUserId(x.recordedBy),at:clock(x.recordedUtc)})),...(u.void?{void:true,voidReason:u.voidReason??'',voidAt:u.voidedDate??'',...(u.voidedBy!=null?{voidBy:protoUserId(u.voidedBy)}:{})}:{})})),
+        by:protoUserId(x.recordedBy),at:clock(x.recordedUtc),...(x.desk?{desk:true as const}:{}),...(x.reference?{reference:x.reference}:{})})),...(u.void?{void:true,voidReason:u.voidReason??'',voidAt:u.voidedDate??'',...(u.voidedBy!=null?{voidBy:protoUserId(u.voidedBy)}:{})}:{})})),
     months:Object.fromEntries(r.months.map(m=>[m.month,{month:m.month,expense:m.expensePaise,count:m.count,byCategory:{...m.byCategory},gstPaid:m.gstPaidPaise,generatedAt:clock(m.generatedUtc),
-      by:protoUserId(m.generatedBy),...(m.stale?{stale:true,staleAt:m.staleUtc?clock(m.staleUtc):clock(m.generatedUtc)}:{})}]))};
+      by:protoUserId(m.generatedBy),...(m.stale?{stale:true,staleAt:m.staleUtc?clock(m.staleUtc):clock(m.generatedUtc)}:{}),
+      ...(m.gstItcPaise!=null?{gstItc:paise(m.gstItcPaise,'gstItcPaise')}:{}),
+      ...(m.unlocked?{unlockedAt:clock(m.unlockedUtc),...(m.unlockedBy!=null?{unlockedBy:protoUserId(m.unlockedBy)}:{}),unlockReason:m.unlockReason??''}:{}),
+      ...(m.unlocks?.length?{unlocks:m.unlocks.map(u=>({at:clock(u.atUtc),by:protoUserId(u.by),reason:u.reason}))}:{})}]))};
 }
 async function loadExpenseRegisters(c:LoaderCtx):Promise<EXPState>{
   if(!holds(c,'PERM-EXP-001','PERM-EXP-002','PERM-EXP-003'))return {};
@@ -281,6 +293,16 @@ function expensePrecheck(cmd:Command,s?:State):string|undefined{
 }
 /** GST on the bill (rate basis points, amount paise) as sent; only the fields the command carries. */
 const gstWire=(m:Command)=>({...(Number.isSafeInteger(m.gstRateBps)?{gstRateBps:m.gstRateBps}:{}),...(Number.isSafeInteger(m.gstPaise)?{gstPaise:m.gstPaise}:{})});
+/** DEC-135: the ITC flag of the bill's GST, when the command carries one. */
+const itcWire=(m:Command)=>m.itc==='allowed'||m.itc==='disallowed'?{itc:m.itc}:{};
+/** DEC-130: why an Udhaar payment cannot be taken in this mode from this device (cash = the drawer rules of a desk receipt). */
+function udPayPrecheck(cmd:Command,s?:State,me?:Parameters<typeof cashBlockedReason>[0]):string|undefined{
+  if(!s)return undefined;const mode=txt(cmd.mode);
+  if(mnyIsDrawer(s,mode)){const b=cashBlockedReason(me,s.shiftOpen,cxSlice(s).opener?.by);if(b)return b;
+    if(!s.shiftOpen)return 'Open cash shift required: Udhaar cash goes into the open shift’s drawer. Open a cashier shift first, or take it by UPI / card / bank.';}
+  else if(mnyMethod(s,mode)?.needsReference&&!txt(cmd.reference))return `Enter the ${mode} transaction reference.`;
+  return undefined;
+}
 /** The Owner's locked-month override reason (SCC), when the command carries one. */
 const override=(m:Command)=>txt(m.override)?{overrideReason:txt(m.override)}:{};
 /** The card a compliance command is about: FY start (the selected FY when the command carries none) + item id. */
@@ -324,7 +346,7 @@ export const accounting:SyncArea={
       async send(c){const m=c.cmd,gst=gstWire(m);
         const r=await c.api.command<{expense:SrvExpense;duplicateOf:number[];budgetAlert?:string|null}>('SubmitExpense',{vendor:txt(m.vendor)||null,category:txt(m.category),amountPaise:m.amount,
           method:m.method,draft:!!m.draft,...(txt(m.notes)?{notes:txt(m.notes).slice(0,300)}:{}),...(txt(m.receipt)?{receipt:txt(m.receipt).slice(0,120)}:{}),
-          ...(txt(m.description)?{description:txt(m.description)}:{}),...(DATE.test(String(m.date??''))?{expenseDate:m.date}:{}),...gst,...billPhotoWire(m.billPhoto),
+          ...(txt(m.description)?{description:txt(m.description)}:{}),...(DATE.test(String(m.date??''))?{expenseDate:m.date}:{}),...gst,...itcWire(m),...billPhotoWire(m.billPhoto),
           ...(m.confirmDuplicate?{confirmDuplicate:true}:{}),...(m.confirmGst?{confirmGst:true}:{}),...override(m)});
         return {result:{id:String(r?.expense?.expenseId??''),duplicateOf:(r?.duplicateOf??[]).map(String)},...(r?.budgetAlert?{warning:r.budgetAlert}:{})};}},
     {type:'EXPENSE_SUBMIT',reload:['expenses'],
@@ -344,7 +366,7 @@ export const accounting:SyncArea={
     {type:'EXP_EDIT',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason)?undefined:'Reason required',
       async send(c){const m=c.cmd,id=String(m.id);
         const r=await c.api.command<{budgetAlert?:string|null}>('EditExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),amountPaise:m.amount,
-          category:txt(m.category),method:m.method,description:txt(m.description)||null,reason:txt(m.reason),...gstWire(m),...(m.receipt!==undefined?{receipt:txt(m.receipt)||null}:{}),
+          category:txt(m.category),method:m.method,description:txt(m.description)||null,reason:txt(m.reason),...gstWire(m),...itcWire(m),...(m.receipt!==undefined?{receipt:txt(m.receipt)||null}:{}),
           ...billPhotoWire(m.billPhoto),...(m.confirmGst?{confirmGst:true}:{})});
         return r?.budgetAlert?{warning:r.budgetAlert}:undefined;}},
     {type:'EXP_VOID',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason)?undefined:'Choose a reason.',
@@ -374,12 +396,20 @@ export const accounting:SyncArea={
     {type:'EXP_UD_ADD',reload:['expensesX'],precheck:cmd=>txt(cmd.name)?undefined:'Customer name is required',
       async send(c){const m=c.cmd;await c.api.command('AddUdhaar',{name:txt(m.name),amountPaise:m.amount,...(txt(m.mobile)?{mobile:txt(m.mobile)}:{}),
         ...(DATE.test(String(m.dueDate??''))?{dueDate:m.dueDate}:{}),...(txt(m.note)?{note:txt(m.note)}:{})});}},
-    {type:'EXP_UD_PAY',reload:['expensesX'],
-      async send(c){await c.api.command('PayUdhaar',{receivableId:serverId(c.cmd.id,'Credit'),amountPaise:c.cmd.amount,mode:txt(c.cmd.mode)});}},
+    // DEC-130: a desk receipt — cash needs the till with the open shift (and reloads the cash desk + cash book), other modes their reference.
+    {type:'EXP_UD_PAY',reload:['expensesX'],precheck:(cmd,s,me)=>udPayPrecheck(cmd,s,me),
+      async send(c){const mode=txt(c.cmd.mode),cash=mnyIsDrawer(c.state,mode);
+        await c.api.command('PayUdhaar',{receivableId:serverId(c.cmd.id,'Credit'),amountPaise:c.cmd.amount,mode,...(txt(c.cmd.reference)?{reference:txt(c.cmd.reference)}:{}),
+          ...(cash?{tillId:currentTill(c)}:{})});
+        return cash?{reload:CASH_SLICES}:undefined;}},
     {type:'EXP_UD_VOID',reload:['expensesX'],
       async send(c){await c.api.command('VoidUdhaar',{receivableId:serverId(c.cmd.id,'Credit'),...(txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{})});}},
     {type:'EXP_MONTH_LOCK',reload:['expensesX'],precheck:cmd=>/^\d{4}-\d{2}$/.test(String(cmd.month??''))?undefined:'Choose a month.',
       async send(c){await c.api.command('LockExpenseMonth',{month:String(c.cmd.month)});}},
+    // DEC-131: the Owner unlocks a locked month with a reason (audited on the server).
+    {type:'EXP_MONTH_UNLOCK',reload:['expensesX'],
+      precheck:cmd=>!/^\d{4}-\d{2}$/.test(String(cmd.month??''))?'Choose a month.':txt(cmd.reason).length<3?'A reason is required to unlock a month.':undefined,
+      async send(c){await c.api.command('UnlockExpenseMonth',{month:String(c.cmd.month),reason:txt(c.cmd.reason)});}},
     // SCC ledger / month CSV: built by the server (SCC columns + HCC Ref, Status) and saved on this device.
     {type:'EXP_CSV',reload:[],precheck:cmd=>cmd.kind==='ledger'||cmd.kind==='month'&&/^\d{4}-\d{2}$/.test(String(cmd.month??''))?undefined:'Choose what to export.',
       async send(c){const r=c.cmd.kind==='ledger'?await c.api.get<SrvExport>('/expenses/export/ledger'):await c.api.get<SrvExport>('/expenses/export/month',{month:String(c.cmd.month)});

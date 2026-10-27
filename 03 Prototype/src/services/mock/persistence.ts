@@ -6,6 +6,7 @@ import {extendBase as cmpSeed} from '../../fixtures/ext/compliance';
 import {mstRows,mstNextSort,type MasterRow} from '../../domain/streams/masters';
 import {HRM_HOLIDAYS,HRM_LEAVE_TYPES} from '../../domain/streams/people-masters';
 import {cmpIsLegacy,cmpFromLegacy} from '../../domain/streams/compliance';
+import {expMigrateItc} from '../../domain/streams/expenses-scc';
 /** Oldest saved schema that is migrated instead of reset (W05-B review F-04). */
 export const MIGRATE_FROM_SCHEMA=7;
 /** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. Returns true when a shape-detected
@@ -41,6 +42,9 @@ function migrate(s:State&{schema:number}):boolean{
   if(hrMigrateLeaveDays(s))changed=true;
   const lt=s.mastersX?.rows?.[HRM_LEAVE_TYPES];
   if(lt&&!lt.some(r=>r.code==='OTH')){s.mastersX!.rows[HRM_LEAVE_TYPES]=[...lt,{id:'lvt-OTH',code:'OTH',name:'Other',sortOrder:mstNextSort(lt),active:true,paid:true}];changed=true;}
+  // SCC decisions wave (DEC-135; SCHEMA stays 10 — the shape is detected, so this is idempotent): an expense saved with GST on the bill before
+  // the ITC flag existed is ITC disallowed (nothing is claimed unless someone marks it).
+  if(expMigrateItc(s))changed=true;
   s.schema=SCHEMA;
   return changed;
 }

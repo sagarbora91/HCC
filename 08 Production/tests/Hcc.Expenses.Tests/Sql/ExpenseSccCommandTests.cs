@@ -201,9 +201,10 @@ public class ExpenseSccCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
     [Fact]
     public async Task Budgets_recurring_templates_and_the_budget_alert()
     {
+        // DEC-129 (SCC decisions wave): budgets and templates are the Owner's now (were Manager / Accountant / Owner) — refusals in ExpenseSccDecisionTests.
         await Fails(HccErrorCode.FORBIDDEN, () => db.Registers.SetBudgetAsync(db.Ctx(Who.Cashier), new SetExpenseBudgetRequest("Supplies", 100), Ct));
         var cat = await CategoryAsync();
-        await db.Registers.SetBudgetAsync(db.Ctx(Who.Manager), new SetExpenseBudgetRequest(cat, 100_000), Ct);
+        await db.Registers.SetBudgetAsync(db.Ctx(Who.Owner), new SetExpenseBudgetRequest(cat, 100_000), Ct);
         var alert = await Submit(Who.Reception, Req("Soap " + Tag(), 95_000, category: cat));
         Assert.Equal($"{cat} would be 95% of Oct budget once approved", alert.BudgetAlert);
         var approved = (await db.Commands.DecideAsync(db.Ctx(Who.Owner), new DecideExpenseRequest(alert.Expense.ExpenseId, alert.Expense.Version, true), Ct)).Value;
@@ -212,17 +213,17 @@ public class ExpenseSccCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         // Copy last month: the heads with a budget in September and none in October.
         await db.ExecAsync("INSERT ops.expense_budget(property_id, budget_month, category, amount_paise, updated_by, updated_utc) VALUES (@p, '2026-09', N'Laundry', 70000, 1, SYSUTCDATETIME()), (@p, '2026-09', @c, 5, 1, SYSUTCDATETIME())",
             ("@p", SqlDbType.Int, db.PropertyId), ("@c", SqlDbType.NVarChar, cat));
-        Assert.Equal("2026-09 → 2026-10 · 1 head", (await db.Registers.CopyBudgetsAsync(db.Ctx(Who.Accountant), new CopyExpenseBudgetsRequest(), Ct)).Value.Message);
-        Assert.Equal("Every head already has a budget for 2026-10", (await Fails(HccErrorCode.VALIDATION, () => db.Registers.CopyBudgetsAsync(db.Ctx(Who.Accountant), new CopyExpenseBudgetsRequest(), Ct))).Message);
+        Assert.Equal("2026-09 → 2026-10 · 1 head", (await db.Registers.CopyBudgetsAsync(db.Ctx(Who.Owner), new CopyExpenseBudgetsRequest(), Ct)).Value.Message);
+        Assert.Equal("Every head already has a budget for 2026-10", (await Fails(HccErrorCode.VALIDATION, () => db.Registers.CopyBudgetsAsync(db.Ctx(Who.Owner), new CopyExpenseBudgetsRequest(), Ct))).Message);
         var reg = await db.RegisterQueries.RegistersAsync(db.PropertyId, Who.Cashier, Ct);
         Assert.Contains(reg.Budgets, b => b.Month == "2026-10" && b.Category == "Laundry" && b.AmountPaise == 70_000);
 
-        // Recurring: Manager / Accountant / Owner keep templates; posting raises a DRAFT for approval; a second post needs "Again".
+        // Recurring: the Owner keeps templates (DEC-129); posting raises a DRAFT for approval; a second post needs "Again".
         await Fails(HccErrorCode.FORBIDDEN, () => db.Registers.SaveRecurringAsync(db.Ctx(Who.Cashier), new SaveRecurringExpenseRequest(null, "Rent", 100, 1, "Utilities", "Bank transfer"), Ct));
-        await Fails(HccErrorCode.VALIDATION, () => db.Registers.SaveRecurringAsync(db.Ctx(Who.Manager), new SaveRecurringExpenseRequest(null, "Rent", 100, 32, "Utilities", "Bank transfer"), Ct));
+        await Fails(HccErrorCode.VALIDATION, () => db.Registers.SaveRecurringAsync(db.Ctx(Who.Owner), new SaveRecurringExpenseRequest(null, "Rent", 100, 32, "Utilities", "Bank transfer"), Ct));
         var name = "Shop rent " + Tag();
-        var t = (await db.Registers.SaveRecurringAsync(db.Ctx(Who.Manager), new SaveRecurringExpenseRequest(null, name, 2_500_000, 31, "Utilities", "Bank transfer", "Landlord " + Tag()), Ct)).Value;
-        Assert.Contains("already exists. Add another?", (await Fails(HccErrorCode.VALIDATION, () => db.Registers.SaveRecurringAsync(db.Ctx(Who.Manager),
+        var t = (await db.Registers.SaveRecurringAsync(db.Ctx(Who.Owner), new SaveRecurringExpenseRequest(null, name, 2_500_000, 31, "Utilities", "Bank transfer", "Landlord " + Tag()), Ct)).Value;
+        Assert.Contains("already exists. Add another?", (await Fails(HccErrorCode.VALIDATION, () => db.Registers.SaveRecurringAsync(db.Ctx(Who.Owner),
             new SaveRecurringExpenseRequest(null, name.ToUpperInvariant(), 1, 1, "Utilities", "UPI"), Ct))).Message);
         var post = (await db.Registers.PostRecurringAsync(db.Ctx(Who.Cashier), new PostRecurringExpenseRequest((int)t.Id!.Value, 2_400_000), Ct)).Value;
         var draft = await db.Queries.GetAsync(db.PropertyId, Who.Cashier, post.Id!.Value, Ct);
@@ -230,7 +231,7 @@ public class ExpenseSccCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         Assert.Equal("Already posted for 2026-10 (1 entry · ₹24,000). Confirming will post ANOTHER entry for this month.",
             (await Fails(HccErrorCode.VALIDATION, () => db.Registers.PostRecurringAsync(db.Ctx(Who.Cashier), new PostRecurringExpenseRequest((int)t.Id!.Value, 2_400_000), Ct))).Message);
         await db.Registers.PostRecurringAsync(db.Ctx(Who.Cashier), new PostRecurringExpenseRequest((int)t.Id!.Value, 100, Again: true), Ct);
-        await db.Registers.ToggleRecurringAsync(db.Ctx(Who.Accountant), new RecurringExpenseRequest((int)t.Id!.Value), Ct);
+        await db.Registers.ToggleRecurringAsync(db.Ctx(Who.Owner), new RecurringExpenseRequest((int)t.Id!.Value), Ct);
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Registers.PostRecurringAsync(db.Ctx(Who.Cashier), new PostRecurringExpenseRequest((int)t.Id!.Value, 100, Again: true), Ct));
         await db.Registers.DeleteRecurringAsync(db.Ctx(Who.Owner), new RecurringExpenseRequest((int)t.Id!.Value), Ct);
         Assert.DoesNotContain((await db.RegisterQueries.RegistersAsync(db.PropertyId, Who.Owner, Ct)).Recurring, r => r.TemplateId == t.Id);
@@ -238,15 +239,17 @@ public class ExpenseSccCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
     }
 
     [Fact]
-    public async Task Udhaar_never_touches_cash_caps_overpayment_above_fifty_paise_and_only_a_decider_writes_off()
+    public async Task Udhaar_credit_never_touches_cash_caps_overpayment_above_fifty_paise_and_only_a_decider_writes_off()
     {
-        var (_, shift) = await db.OpenTillAsync(10_000);
+        // DEC-130 (SCC decisions wave): recording a credit still adds nothing; a CASH payment is now a desk receipt into the drawer (was: never).
+        var (till, shift) = await db.OpenTillAsync(10_000);
         var add = (await db.Registers.AddUdhaarAsync(db.Ctx(Who.Cashier), new AddUdhaarRequest("Ramesh (fictional)", 250_000, "+91 98765 43210", null, "Banquet snacks"), Ct)).Value;
-        await db.Registers.PayUdhaarAsync(db.Ctx(Who.Cashier), new PayUdhaarRequest(add.Id!.Value, 100_000, "Cash"), Ct);
-        await db.Registers.PayUdhaarAsync(db.Ctx(Who.Cashier), new PayUdhaarRequest(add.Id!.Value, 150_050, "UPI"), Ct);   // ₹0.50 over: taken as typed
-        await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Registers.PayUdhaarAsync(db.Ctx(Who.Cashier), new PayUdhaarRequest(add.Id!.Value, 100, "Cash"), Ct));
+        Assert.Equal(10_000, await db.ExpectedCashAsync(shift.ShiftId));
+        await db.Registers.PayUdhaarAsync(db.Ctx(Who.Cashier), new PayUdhaarRequest(add.Id!.Value, 100_000, "Cash", TillId: till), Ct);
+        await db.Registers.PayUdhaarAsync(db.Ctx(Who.Cashier), new PayUdhaarRequest(add.Id!.Value, 150_050, "UPI", "UPI-DEMO-1"), Ct);   // ₹0.50 over: taken as typed
+        await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Registers.PayUdhaarAsync(db.Ctx(Who.Cashier), new PayUdhaarRequest(add.Id!.Value, 100, "Cash", TillId: till), Ct));
         var two = (await db.Registers.AddUdhaarAsync(db.Ctx(Who.Reception), new AddUdhaarRequest("Suresh (fictional)", 100_000), Ct)).Value;
-        Assert.Contains("capped", (await db.Registers.PayUdhaarAsync(db.Ctx(Who.Reception), new PayUdhaarRequest(two.Id!.Value, 100_051, "Cash"), Ct)).Value.Message);
+        Assert.Contains("capped", (await db.Registers.PayUdhaarAsync(db.Ctx(Who.Reception), new PayUdhaarRequest(two.Id!.Value, 100_051, "Cash", TillId: till), Ct)).Value.Message);
         await Fails(HccErrorCode.VALIDATION, () => db.Registers.AddUdhaarAsync(db.Ctx(Who.Cashier), new AddUdhaarRequest(" ", 100), Ct));
         var three = (await db.Registers.AddUdhaarAsync(db.Ctx(Who.Cashier), new AddUdhaarRequest("Mohan (fictional)", 50_000), Ct)).Value;
         await Fails(HccErrorCode.FORBIDDEN, () => db.Registers.VoidUdhaarAsync(db.Ctx(Who.Cashier), new VoidUdhaarRequest(three.Id!.Value), Ct));
@@ -256,7 +259,7 @@ public class ExpenseSccCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         Assert.Equal(("9876543210", "2026-10-24", "2026-11-23", 250_050L), (r.Mobile, r.CreditDate, r.DueDate, r.Settlements.Sum(s => s.AmountPaise)));
         Assert.Equal(100_000, Assert.Single(reg.Udhaar, u => u.ReceivableId == two.Id).Settlements.Sum(s => s.AmountPaise));
         Assert.True(Assert.Single(reg.Udhaar, u => u.ReceivableId == three.Id).Void);
-        Assert.Equal(10_000, await db.ExpectedCashAsync(shift.ShiftId));                       // never posts to cash or income
+        Assert.Equal(10_000 + 100_000 + 100_000, await db.ExpectedCashAsync(shift.ShiftId));   // DEC-130: the two cash payments are in the drawer, the UPI one is not
     }
 
     [Fact]
@@ -268,13 +271,13 @@ public class ExpenseSccCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         var l = await db.RegisterQueries.LedgerCsvAsync(db.PropertyId, Who.Manager, Ct);
         Assert.Equal("ledger_2026-10-24.csv", l.FileName);
         var lines = l.Csv.Split('\n');
-        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,Void,VoidReason,CreatedBy,Store,GSTAmt,GSTRate%,Ref,Status", lines[0]);
+        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,Void,VoidReason,CreatedBy,Store,GSTAmt,GSTRate%,Ref,Status,ITC", lines[0]); // DEC-135: + ITC
         Assert.Contains(lines, x => x.StartsWith("2026-10-24,HCC Demo Residency,expense,Maintenance,UPI,'=Hardware,\"Cement, \"\"grade 53\"\" ", StringComparison.Ordinal)
-                                    && x.EndsWith($",1180.5,manual,,,user {Who.Reception},Unassigned,180.08,18,EXP-{e.ExpenseId},Posted", StringComparison.Ordinal));
+                                    && x.EndsWith($",1180.5,manual,,,user {Who.Reception},Unassigned,180.08,18,EXP-{e.ExpenseId},Posted,disallowed", StringComparison.Ordinal));
         var m = await db.RegisterQueries.MonthCsvAsync(db.PropertyId, Who.Accountant, "2026-10", Ct);
         Assert.Equal("expense_month_2026-10.csv", m.FileName);
-        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,GSTAmt,GSTRate%,Ref,Status", m.Csv.Split('\n')[0]);
-        Assert.DoesNotContain(m.Csv.Split('\n').Skip(1), x => x.EndsWith(",Pending", StringComparison.Ordinal) || x.EndsWith(",Void", StringComparison.Ordinal));
+        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,GSTAmt,GSTRate%,Ref,Status,ITC", m.Csv.Split('\n')[0]);
+        Assert.DoesNotContain(m.Csv.Split('\n').Skip(1), x => x.Contains(",Pending,", StringComparison.Ordinal) || x.Contains(",Void,", StringComparison.Ordinal));
     }
 }
 

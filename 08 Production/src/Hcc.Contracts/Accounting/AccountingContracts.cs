@@ -39,6 +39,9 @@ public static class AccountingEvents
     // DEC-076 company credit: money received from a company against its company-credit receivable (Dr tender · Cr company receivables).
     public const string CompanyPaymentRecorded = "CompanyPaymentRecorded";
 
+    // DEC-130 (SCC decisions wave): an Udhaar (customer credit) payment taken as a desk receipt (Dr tender · Cr Udhaar receivables).
+    public const string UdhaarPaymentRecorded = "UdhaarPaymentRecorded";
+
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
 
@@ -48,7 +51,8 @@ public static class AccountingEvents
         [ChargePosted, ReceiptRecorded, ApprovalDecided, ShiftDifferenceDecided, PosBillSettled, PosBillVoided, ExpensePosted, ExpenseReversed, PayrollPosted, PayrollPaid, PayRunUnlocked,
          GroupReceiptRecorded, GroupAttritionPosted, GroupSettled, AdvanceGiven, FnfSettled,   // DEC-074 (wave B3)
          CashBanked, CashBankingRejected, OwnerDrawingRecorded,                                  // Wave B1 (DEC-073)
-         CompanyPaymentRecorded];                                                                // DEC-076 (wave B5)
+         CompanyPaymentRecorded,                                                                 // DEC-076 (wave B5)
+         UdhaarPaymentRecorded];                                                                 // DEC-130 (SCC decisions wave)
 }
 
 /// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>
@@ -63,6 +67,13 @@ public sealed record OwnerDrawingEvent(long TransferId, int TillId, long ShiftId
 /// </summary>
 public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company);
 
+/// <summary>
+/// DEC-130: an Udhaar (customer credit) payment taken as a desk receipt (Expenses <c>PayUdhaar</c>; any front-desk tender, cash into the drawer).
+/// Booked as a Receipt voucher: Dr the tender · Cr Udhaar receivables (<c>receipt:udhaar</c>) — it settles the credit, never income.
+/// </summary>
+public sealed record UdhaarPaymentRecordedEvent(long ReceivableId, long SettlementId, DateOnly BusinessDate, string Tender, long AmountPaise, string Customer, string? Reference = null,
+    long? CashMovementId = null);
+
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
 public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, string Status, DateOnly BusinessDate, long ExpectedPaise, long CountedPaise);
 
@@ -74,8 +85,13 @@ public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, 
 public sealed record PosBillSettledEvent(long BillId, string Kind, DateOnly BusinessDate, string Outlet, string Tender, long TotalPaise, long NetPaise,
     long CgstPaise, long SgstPaise, string Reference, string? Mode = null);
 
-/// <summary>W2-4 Expenses: a posted expense (or its reversal record, negative amount, <c>ReversalOf</c> = original id). Funding = Cash | UPI | Card | Bank transfer | Vendor credit.</summary>
-public sealed record ExpensePostedEvent(long ExpenseId, DateOnly BusinessDate, string Category, string Funding, long AmountPaise, string Vendor, long? ReversalOf);
+/// <summary>
+/// W2-4 Expenses: a posted expense (or its reversal record, negative amount, <c>ReversalOf</c> = original id). Funding = Cash | UPI | Card | Bank transfer | Vendor credit.
+/// DEC-135: <c>GstPaise</c> (the bill's GST, negative on a reversal record) and <c>Itc</c> = "allowed" books that GST to the GST input-credit
+/// ledger; absent (events published before) or "disallowed" = the whole amount to the category.
+/// </summary>
+public sealed record ExpensePostedEvent(long ExpenseId, DateOnly BusinessDate, string Category, string Funding, long AmountPaise, string Vendor, long? ReversalOf,
+    long? GstPaise = null, string? Itc = null);
 
 /// <summary>
 /// W2-2 Payroll: a locked pay run. Gross = net + employee PF + employee ESIC + PT + advance recovery + other deductions.

@@ -10,6 +10,7 @@ import {posSlice,posOpenOrders,posOrderTotals,posSpot} from './pos';
 import {lineTax} from '../gst';
 import {mnyIsDrawer,mnyIsCredit,mnySettlesTo,mnyNames} from './money-master';
 import {cxDeskMovements,cxPendingTransfers} from './cashout';
+import {expUdDeskMovements} from './udhaar-desk';
 
 // ── Limits (RBAC Matrix §6, demonstration defaults) ──
 /** Manager may accept a cash difference up to ₹200; above → Owner (PERM-SHF-002). */
@@ -76,7 +77,7 @@ export function shiftMovements(s:State):CashMovement[]{
   const exp=s.expenses.filter(e=>e.date===s.date&&mnyIsDrawer(s,e.method)&&expenseCounts(e)).map(expMovement);
   const p=posSlice(s);
   const pos=p.receipts.filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
-  return [...rec,...pos,...exp,...cxDeskMovements(s,s.date)]; // DEC-073: bank deposits, till transfers, Owner drawings
+  return [...rec,...expUdDeskMovements(s,s.date),...pos,...exp,...cxDeskMovements(s,s.date)]; // DEC-073: bank deposits, till transfers, Owner drawings; DEC-130: Udhaar cash
 }
 const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
   label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor});
@@ -98,7 +99,7 @@ export function shiftMovementsByDate(s:State,from:string,to:string):(d:string)=>
   const p=posSlice(s),orders=new Map<string,(typeof p.orders)[number]>();
   for(const o of p.orders)if(!orders.has(o.id))orders.set(o.id,o);
   for(const r of p.receipts)if(mnyIsDrawer(s,r.method)&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
-  return d=>[...(rec.get(d)??[]),...(pos.get(d)??[]),...(exp.get(d)??[]),...cxDeskMovements(s,d)];
+  return d=>[...(rec.get(d)??[]),...expUdDeskMovements(s,d),...(pos.get(d)??[]),...(exp.get(d)??[]),...cxDeskMovements(s,d)];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
 /** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
@@ -341,6 +342,8 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   // Shared till: POS receipts are separate source records; folio transfers create no receipt here.
   const posCash:DrillRow[]=posSlice(s).receipts.filter(r=>mnyIsDrawer(s,r.method)&&inRange(r.date,from,to)).map(r=>({
     date:r.date,ref:r.id,detail:`POS ${r.kind} · ${r.order} · ${r.reference}`,method:r.method,kind:'pos-'+r.kind,amount:r.amount}));
+  // DEC-130: Udhaar payments taken in cash are desk receipts into the drawer (payments).
+  const udCash:DrillRow[]=dates.flatMap(d=>expUdDeskMovements(s,d).map(m=>({date:d,ref:m.id,guest:m.guest,detail:m.label+' · '+m.reference,method:'Cash',kind:'udhaar-payment',amount:m.amount})));
   // Occupied room-nights: each stay is spread over its dates once (the old scan visited every booking for every date); order = date, then booking order.
   const stayBy:DrillRow[][]=dates.map(()=>[]);
   for(const b of s.bookings){
@@ -385,7 +388,7 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
         rows:dates.map(d=>[d,...tenders.map(t=>sumBy(R(['payment','refund'],t),d)),sumBy(pay.rows,d),sumBy(R(['deposit']),d),sumBy(R(['deposit-return']),d)])}},
     {id:'expenses',label:'Expenses & cash',ratios:[],metrics:[metric('cash','Drawer-cash expenses',cashExp),metric('noncash','UPI / bank expenses',E(bankExp)),
       metric('vendor','Vendor-credit expenses (no drawer effect)',E(creditExp)),metric('reversals','Reversals included above',E(e=>!!e.reversalOf)),expTotal,
-      metric('cash-in','Cash into drawer (payments + deposits + POS sales)',[...RD(['payment','deposit']),...posCash.filter(r=>r.kind==='pos-sale')]),
+      metric('cash-in','Cash into drawer (payments + deposits + POS sales)',[...RD(['payment','deposit']),...udCash,...posCash.filter(r=>r.kind==='pos-sale')]),
       metric('cash-out','Cash out of drawer (refunds + returns + POS voids)',[...RD(['refund','deposit-return']),...posCash.filter(r=>r.kind==='pos-void')])],
       table:{columns:['Business date','Day','Opening float','Expected cash','Counted','Difference','Cash expenses'],units:['text','text','money','money','money','money','money'],
         rows:dates.map(d=>{const c=closingCash(d);return [d,c[4],c[0],c[1],c[2],c[3],sumBy(cashExp,d)];})}},

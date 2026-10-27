@@ -57,7 +57,7 @@ export async function register({test,assert,M}){
   await seq('float',{type:'EXP_PETTY_FLOAT',amount:100000,note:'Top-up'});await seq('decide',{type:'EXP_PETTY_FLOAT_DECIDE',id:'12',approve:false,reason:'Not needed'});
   await seq('out',{type:'EXP_PETTY_OUT',amount:5000,category:'Petty cash',for:'Tea'});
   await seq('ud',{type:'EXP_UD_ADD',name:'Mohan',mobile:'98765 43210',amount:50000,dueDate:'2026-11-20',note:''});
-  await seq('pay',{type:'EXP_UD_PAY',id:'21',amount:150000,mode:'UPI'});await seq('wo',{type:'EXP_UD_VOID',id:'21',reason:'Written off'});
+  await seq('pay',{type:'EXP_UD_PAY',id:'21',amount:150000,mode:'UPI',reference:'UPI-REF-1'});await seq('wo',{type:'EXP_UD_VOID',id:'21',reason:'Written off'});
   await seq('lock',{type:'EXP_MONTH_LOCK',month:'2026-10'});
   await seq('csvLedger',{type:'EXP_CSV',kind:'ledger'});await seq('csvMonth',{type:'EXP_CSV',kind:'month',month:'2026-09'});
 
@@ -102,7 +102,7 @@ export async function register({test,assert,M}){
     assert.deepEqual([res.float.body,res.decide.body],[{amountPaise:100000,note:'Top-up'},{entryId:12,approve:false,reason:'Not needed'}]);
     assert.deepEqual(res.out.body,{amountPaise:5000,category:'Petty cash',for:'Tea'});
     assert.deepEqual(res.ud.body,{name:'Mohan',amountPaise:50000,mobile:'98765 43210',dueDate:'2026-11-20'});
-    assert.deepEqual([res.pay.body,res.wo.body],[{receivableId:21,amountPaise:150000,mode:'UPI'},{receivableId:21,reason:'Written off'}]);
+    assert.deepEqual([res.pay.body,res.wo.body],[{receivableId:21,amountPaise:150000,mode:'UPI',reference:'UPI-REF-1'},{receivableId:21,reason:'Written off'}]);
     assert.deepEqual(res.lock.body,{month:'2026-10'});
     assert.ok(res.csvLedger.r.ok&&res.csvLedger.calls.includes('GET /expenses/export/ledger'),res.csvLedger.r.text);
     assert.ok(res.csvMonth.calls.includes('GET /expenses/export/month'));

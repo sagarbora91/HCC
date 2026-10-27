@@ -35,7 +35,8 @@ public static class Who
 /// <summary>
 /// Stand-in for P1's policy with the RBAC matrix v1 grants for the expense PERM ids (same as 0101 seed): EXP-001 Owner/Manager property-wide,
 /// Reception/Cashier/Accountant own submissions; EXP-002 Owner and Accountant unlimited, Manager limit 500000 paise (APPROVAL_REQUIRED
-/// above it); EXP-003 Owner/Manager/Accountant. Own-submission scope runs through the real <see cref="SqlExpenseScopeResolver"/>.
+/// above it); EXP-003 Owner/Manager/Accountant. Own-submission scope runs through the real <see cref="SqlExpenseScopeResolver"/>. DEC-130: the
+/// desk receipt permission PERM-PAY-001 for the desk roles (Owner, Manager, Reception, Cashier — not the Accountant; shift scope as 'P' here).
 /// </summary>
 public sealed class FakeAccessPolicy(IEnumerable<IAccessScopeResolver> resolvers) : IAccessPolicy
 {
@@ -46,11 +47,12 @@ public sealed class FakeAccessPolicy(IEnumerable<IAccessScopeResolver> resolvers
         [Who.Owner] = new()
         {
             ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-ADM-003"] = new('P'), ["PERM-CFG-003"] = new('P'),
-            ["PERM-MST-002"] = new('P'), // DEC-120: the month lock and its override are the Owner's
+            ["PERM-MST-002"] = new('P'), // DEC-120: the month lock and its override are the Owner's; DEC-129 budgets / templates, DEC-131 unlock
+            ["PERM-PAY-001"] = new('P'),
         },
-        [Who.Manager] = new() { ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P', 500_000), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P') },
-        [Who.Reception] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P') },
-        [Who.Cashier] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P') },
+        [Who.Manager] = new() { ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P', 500_000), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
+        [Who.Reception] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
+        [Who.Cashier] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
         [Who.Accountant] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P') },
         [Who.Housekeeper] = [],
     };
@@ -162,7 +164,7 @@ public sealed partial class ExpensesDb : IAsyncLifetime
         var guard = new Hcc.Infrastructure.SqlServer.Closing.SqlBusinessDayGuard();
         Commands = new ExpenseCommands(Platform.Commands, Policy, expenses, Cashier, Clock, guard, null, masters, registers);
         Queries = new ExpenseQueries(Policy, expenses, null, masters);
-        Registers = new ExpenseRegisterCommands(Platform.Commands, Policy, expenses, registers, Clock, guard, null, masters);
+        Registers = new ExpenseRegisterCommands(Platform.Commands, Policy, expenses, registers, Clock, guard, null, masters, Cashier); // DEC-130: Udhaar cash → drawer
         RegisterQueries = new ExpenseRegisterQueries(Policy, expenses, registers, Queries);
     }
 

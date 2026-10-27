@@ -197,14 +197,15 @@ public class ExpenseSccRulesTests
         var l = ExpenseScc.LedgerCsv("HCC Demo Residency", D, rows);
         var lines = l.Csv.Split('\n');
         Assert.Equal(("ledger_2026-10-24.csv", 3), (l.FileName, l.Rows));
-        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,Void,VoidReason,CreatedBy,Store,GSTAmt,GSTRate%,Ref,Status", lines[0]);
-        Assert.Equal("2026-09-24,HCC Demo Residency,expense,Petty cash,Cash,,Petty: sundry,50,petty,,,Asha,Unassigned,,,EXP-9,Posted", lines[1]);
-        Assert.Equal("2026-10-24,HCC Demo Residency,expense,Supplies,UPI,Morning Supplies,Morning Supplies,850,manual,Y,Duplicate entry — entered twice,Riya,Unassigned,,,EXP-5,Void", lines[2]);
-        Assert.Equal("2026-10-24,HCC Demo Residency,expense,Maintenance,UPI,'=Hardware,\"Cement, \"\"grade 53\"\"\",1180.5,manual,,,Riya,Unassigned,180.08,18,EXP-7,Posted", lines[3]);
+        // DEC-135: HCC's ITC column after Status (allowed / disallowed for a bill with GST, empty without).
+        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,Void,VoidReason,CreatedBy,Store,GSTAmt,GSTRate%,Ref,Status,ITC", lines[0]);
+        Assert.Equal("2026-09-24,HCC Demo Residency,expense,Petty cash,Cash,,Petty: sundry,50,petty,,,Asha,Unassigned,,,EXP-9,Posted,", lines[1]);
+        Assert.Equal("2026-10-24,HCC Demo Residency,expense,Supplies,UPI,Morning Supplies,Morning Supplies,850,manual,Y,Duplicate entry — entered twice,Riya,Unassigned,,,EXP-5,Void,", lines[2]);
+        Assert.Equal("2026-10-24,HCC Demo Residency,expense,Maintenance,UPI,'=Hardware,\"Cement, \"\"grade 53\"\"\",1180.5,manual,,,Riya,Unassigned,180.08,18,EXP-7,Posted,disallowed", lines[3]);
         var m = ExpenseScc.MonthCsv("HCC Demo Residency", "2026-10", rows);
         Assert.Equal(("expense_month_2026-10.csv", 1), (m.FileName, m.Rows));
-        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,GSTAmt,GSTRate%,Ref,Status", m.Csv.Split('\n')[0]);
-        Assert.Equal("2026-10-24,HCC Demo Residency,expense,Maintenance,UPI,'=Hardware,\"Cement, \"\"grade 53\"\"\",1180.5,manual,180.08,18,EXP-7,Posted", m.Csv.Split('\n')[1]);
+        Assert.Equal("Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,GSTAmt,GSTRate%,Ref,Status,ITC", m.Csv.Split('\n')[0]);
+        Assert.Equal("2026-10-24,HCC Demo Residency,expense,Maintenance,UPI,'=Hardware,\"Cement, \"\"grade 53\"\"\",1180.5,manual,180.08,18,EXP-7,Posted,disallowed", m.Csv.Split('\n')[1]);
         var s = ExpenseScc.Summary(rows, "2026-10");
         Assert.Equal((118_050L, 1, 18_008L), (s.ExpensePaise, s.Count, s.GstPaidPaise));
     }

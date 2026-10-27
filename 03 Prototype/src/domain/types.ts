@@ -183,6 +183,9 @@ export type Expense={id:string;vendor:string;category:string;amount:number;metho
   description?:string;
   /** GST on the bill (SCC P1-17): rate in basis points (1800 = 18 %) and amount in paise, kept only when > 0. A reversal record carries −GST. */
   gstRateBps?:number;gstPaise?:number;
+  /** DEC-135: input tax credit of the bill's GST — 'allowed' books the GST to the GST input-credit ledger, 'disallowed' leaves it in the
+   *  expense cost. Kept only with GST on the bill; absent on older records = disallowed (restore migration sets it). A reversal copies it. */
+  itc?:'allowed'|'disallowed';
   /** Bill photo (SCC: picked file ≤ 4 MB, scaled to 1000 px wide, JPEG 0.7): a data URL in the demo build; production keeps it on the server. */
   billPhoto?:string;
   /** Production: the server holds a bill photo for this expense (fetched on demand). */

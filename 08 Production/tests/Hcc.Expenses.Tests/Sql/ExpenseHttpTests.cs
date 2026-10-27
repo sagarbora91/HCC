@@ -123,12 +123,20 @@ public class ExpenseHttpTests : IAsyncLifetime
         var voided = await Send<ExpenseResult>(Req(HttpMethod.Post, "/commands/VoidExpense", Who.Accountant,
             new VoidExpenseRequest(e.Expense.ExpenseId, edited.Expense.Version, "Duplicate entry"), "k-scc-3"));
         Assert.Equal("Void", voided.Expense.Status);
-        await Send<ExpenseRegisterResult>(Req(HttpMethod.Post, "/commands/SetExpenseBudget", Who.Manager, new SetExpenseBudgetRequest("Supplies", 100_000), "k-scc-4"));
+        // DEC-129: budgets are the Owner's (the Manager is refused); DEC-131: lock + unlock over HTTP.
+        using (var mgr = await _http.SendAsync(Req(HttpMethod.Post, "/commands/SetExpenseBudget", Who.Manager, new SetExpenseBudgetRequest("Supplies", 100_000), "k-scc-4m"), Ct))
+            Assert.Equal(HttpStatusCode.Forbidden, mgr.StatusCode);
+        await Send<ExpenseRegisterResult>(Req(HttpMethod.Post, "/commands/SetExpenseBudget", Who.Owner, new SetExpenseBudgetRequest("Supplies", 100_000), "k-scc-4"));
+        await Send<ExpenseRegisterResult>(Req(HttpMethod.Post, "/commands/LockExpenseMonth", Who.Owner, new LockExpenseMonthRequest("2026-09"), "k-scc-4l"));
+        var unlocked = await Send<ExpenseRegisterResult>(Req(HttpMethod.Post, "/commands/UnlockExpenseMonth", Who.Owner, new UnlockExpenseMonthRequest("2026-09", "CA found a missed bill"), "k-scc-4u"));
+        Assert.StartsWith("2026-09 unlocked · CA found a missed bill", unlocked.Message, StringComparison.Ordinal);
         await Send<ExpenseRegisterResult>(Req(HttpMethod.Post, "/commands/AddUdhaar", Who.Cashier, new AddUdhaarRequest("Mohan (fictional)", 5_000), "k-scc-5"));
         var reg = await Send<ExpenseRegistersView>(Req(HttpMethod.Get, "/expenses/registers", Who.Reception));
         Assert.Equal("2026-10-24", reg.BusinessDate);
         Assert.Contains(reg.Budgets, b => b.Category == "Supplies" && b.AmountPaise == 100_000);
         Assert.Single(reg.Udhaar);
+        var sep = Assert.Single(reg.Months, x => x.Month == "2026-09");
+        Assert.Equal((true, true, "CA found a missed bill", 1), (sep.Unlocked, sep.Stale, sep.UnlockReason, sep.Unlocks!.Count));
         var csv = await Send<ExpenseExportView>(Req(HttpMethod.Get, "/expenses/export/month?month=2026-10", Who.Accountant));
         Assert.Equal("expense_month_2026-10.csv", csv.FileName);
         using (var cashier = await _http.SendAsync(Req(HttpMethod.Get, "/expenses/export/ledger", Who.Cashier), Ct)) Assert.Equal(HttpStatusCode.Forbidden, cashier.StatusCode);

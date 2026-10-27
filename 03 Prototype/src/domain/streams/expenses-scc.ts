@@ -11,6 +11,7 @@ import {csvMinimal} from '../csv';
 import {expenseCounts,closingReopened} from './closing';
 import {cbIsLocked,cbLockedMessage} from './cashbook';
 import {mnyIsDrawer} from './money-master';
+import {mstCanEditMoney} from './masters';
 
 // ── Constants (SCC expense.js) ──
 /** SCC REASONS (line 33): the fixed void / correction reasons. */
@@ -39,12 +40,21 @@ export const EXP_DESC_MAX=300;
 export type ExpEditLog={at:string;by:string;old:Record<string,string|number>;new:Record<string,string|number>;reason:string};
 export type ExpRecTpl={id:string;name:string;amount:number;dueDay:number;category:string;method:string;vendor:string;active:boolean;createdAt:string;createdBy:string};
 export type ExpPettyEntry={id:string;amount:number;date:string;by:string;at:string;status:'Pending'|'Approved'|'Rejected';note?:string;decidedBy?:string;decidedAt?:string;reason?:string};
-export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:string;at:string};
+/** `desk` (DEC-130): taken as a desk receipt — cash into the open shift's drawer, other modes to their own ledgers — and booked in Accounting
+ *  (Dr the tender · Cr Udhaar receivables). Settlements recorded before DEC-130 have no `desk`: they never reached the drawer or the books. */
+export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:string;at:string;desk?:true;reference?:string};
 export type ExpUdReceivable={id:string;name:string;mobile:string;amount:number;date:string;dueDate:string;note:string;settlements:ExpUdSettlement[];by:string;at:string;
   void?:boolean;voidReason?:string;voidAt?:string;voidBy?:string};
 /** SCC gm_tax_feed[month] (1508): the month's figures when the Owner generated the feed and locked the month. HCC keeps the expense side
  *  (HCC has no manual income ledger) and SCC's "GST paid on purchases". `stale` is set by a write into the locked month (Owner override). */
-export type ExpMonthFeed={month:string;expense:number;count:number;byCategory:Record<string,number>;gstPaid:number;generatedAt:string;by:string;stale?:boolean;staleAt?:string};
+export type ExpMonthFeed={month:string;expense:number;count:number;byCategory:Record<string,number>;gstPaid:number;generatedAt:string;by:string;stale?:boolean;staleAt?:string;
+  /** DEC-135: the part of gstPaid marked ITC allowed (absent on feeds generated before). */
+  gstItc?:number;
+  /** DEC-131: the Owner unlocked the month (with a reason); writes no longer need the override and the figures are stale until locked again. */
+  unlockedAt?:string;unlockedBy?:string;unlockReason?:string;
+  /** DEC-131: every Owner unlock of this month, oldest first (kept when the month is locked again). */
+  unlocks?:ExpMonthUnlock[]};
+export type ExpMonthUnlock={at:string;by:string;reason:string};
 export type EXPState={
   /** SCC gm_budgets: month (YYYY-MM) → category → cap in paise (0 / absent = no budget). */
   budgets?:Record<string,Record<string,number>>;
@@ -112,17 +122,63 @@ export function expGstPaid(s:State,month:string):number{
   let t=0;for(const e of s.expenses)if(counts(e)&&expYm(e.date)===month)t+=e.gstPaise??0;return t;
 }
 
+// ── Input tax credit on the bill's GST (DEC-135, owner 27 Oct 2026: "an input-credit ledger … with an option ITC allowed or ITC disallowed") ──
+/** ITC allowed: the bill's GST goes to the GST input-credit ledger; disallowed (the default) leaves it in the expense cost. */
+export const EXP_ITC=['disallowed','allowed'] as const;
+export const EXP_ITC_LABEL:Record<'allowed'|'disallowed',string>={allowed:'ITC allowed',disallowed:'ITC disallowed'};
+/** The ITC flag an expense keeps: only with GST on the bill; anything but 'allowed' is 'disallowed' (nothing is claimed unless marked). */
+export function expItcOf(v:unknown,gstPaise:number|undefined):'allowed'|'disallowed'|undefined{
+  if(!gstPaise)return undefined;return v==='allowed'?'allowed':'disallowed';
+}
+/** Why ITC cannot be allowed on this bill ('' = it can): the credit can never be more than the bill (GST above the amount). */
+export function expItcRefusal(itc:'allowed'|'disallowed'|undefined,gstPaise:number,amount:number):string{
+  return itc==='allowed'&&Math.abs(gstPaise)>Math.abs(amount)?'ITC cannot be allowed on more GST than the bill amount — correct the GST or mark ITC disallowed.':'';
+}
+/** GST of a counted record booked to the input-credit ledger (0 when disallowed or none; a reversal record carries −GST). */
+export const expItcPaise=(e:Expense)=>e.itc==='allowed'?e.gstPaise??0:0;
+/** "GST paid on purchases" of a month split into ITC allowed and disallowed (counted records only; reversals net off). */
+export function expGstSplit(s:State,month:string):{total:number;allowed:number;disallowed:number}{
+  let total=0,allowed=0;for(const e of s.expenses)if(counts(e)&&expYm(e.date)===month){total+=e.gstPaise??0;allowed+=expItcPaise(e);}
+  return {total,allowed,disallowed:total-allowed};
+}
+/** Restore migration (DEC-135): an expense saved with GST before the flag existed is ITC disallowed. Idempotent; true when it changed. */
+export function expMigrateItc(s:State):boolean{
+  let changed=false;
+  for(const e of s.expenses??[])if(e.gstPaise&&e.itc!=='allowed'&&e.itc!=='disallowed'){e.itc='disallowed';changed=true;}
+  return changed;
+}
+
+// ── Who changes the expense money settings (DEC-129: budgets and recurring templates are Owner-only, DEC-058) ──
+/** Setting / copying budgets and saving / switching / deleting recurring templates: the Owner (the masters money permission, PERM-MST-002). */
+export const expCanSetMoney=(s:State,uid:string)=>mstCanEditMoney(s,uid);
+export const EXP_OWNER_ONLY_BUDGETS='Only the Owner sets and copies the monthly budgets (money settings, DEC-058).';
+export const EXP_OWNER_ONLY_RECURRING='Only the Owner keeps the recurring templates (money settings, DEC-058). Anyone who enters expenses can post a due template.';
+
 // ── Duplicates (SCC addEntry 526): the key lives in closing.ts expenseDuplicates (date + amount + description) ──
 export const expDuplicateMessage=(date:string,amount:number,description:string)=>`A similar entry already exists for ${date} (${money(amount)} — ${description}). Save anyway?`;
 
 // ── Month lock (SCC P1-18 isMonthLocked / markFeedStale / genTaxFeed; fitted to HCC's accounting day locks) ──
-export const expMonthLocked=(s:State,date:string)=>!!expSlice(s).months?.[expYm(date)];
+/** A month is locked while its feed exists and the Owner has not unlocked it (DEC-131). */
+export const expMonthLocked=(s:State,date:string)=>{const f=expSlice(s).months?.[expYm(date)];return !!f&&!f.unlockedAt;};
 export const expMonthLockedMessage=(month:string)=>`Month ${month} is tax-locked — its tax feed was already generated. Owner override required.`;
-/** The month's counted figures (SCC genTaxFeed 1492-1504, expense side). */
-export function expMonthSummary(s:State,month:string):{expense:number;count:number;byCategory:Record<string,number>;gstPaid:number}{
-  let expense=0,count=0,gstPaid=0;const byCategory:Record<string,number>={};
-  for(const e of s.expenses)if(counts(e)&&expYm(e.date)===month){expense+=e.amount;count++;gstPaid+=e.gstPaise??0;byCategory[e.category]=(byCategory[e.category]??0)+e.amount;}
-  return {expense,count,byCategory,gstPaid};
+/** DEC-131: why the Owner cannot unlock `month` now (null = can; like Accounting's period unlock: a reason of 3–200 characters). The role is
+ *  checked separately. */
+export function expMonthUnlockRefusal(s:State,month:string,reason:string):{code:'INVALID_TRANSITION'|'VALIDATION';message:string}|null{
+  const f=expSlice(s).months?.[String(month??'')];
+  if(!f)return {code:'INVALID_TRANSITION',message:`Month ${month} is not locked.`};
+  if(f.unlockedAt)return {code:'INVALID_TRANSITION',message:`Month ${month} is already unlocked — lock it again after the changes.`};
+  const r=String(reason??'').trim();
+  if(r.length<3)return {code:'VALIDATION',message:'A reason is required to unlock a month.'};
+  if(r.length>200)return {code:'VALIDATION',message:'Keep the reason to 200 characters.'};
+  return null;
+}
+/** DEC-131: the banner / section text of an unlocked month. */
+export const expMonthUnlockedMessage=(f:ExpMonthFeed)=>`Month ${f.month} was unlocked by the Owner ${String(f.unlockedAt??'').replace('T',' ')} (${f.unlockReason??''}). Entries dated in it need no override; its feed is stale until the month is locked again.`;
+/** The month's counted figures (SCC genTaxFeed 1492-1504, expense side); DEC-135: gstItc = the GST marked ITC allowed. */
+export function expMonthSummary(s:State,month:string):{expense:number;count:number;byCategory:Record<string,number>;gstPaid:number;gstItc:number}{
+  let expense=0,count=0,gstPaid=0,gstItc=0;const byCategory:Record<string,number>={};
+  for(const e of s.expenses)if(counts(e)&&expYm(e.date)===month){expense+=e.amount;count++;gstPaid+=e.gstPaise??0;gstItc+=expItcPaise(e);byCategory[e.category]=(byCategory[e.category]??0)+e.amount;}
+  return {expense,count,byCategory,gstPaid,gstItc};
 }
 /** SCC: a future month cannot be locked (1491). HCC's "today" is the business date. */
 export function expMonthLockRefusal(s:State,month:string):string{
@@ -245,15 +301,17 @@ export function expUdReminder(hotel:string,r:ExpUdReceivable):string{
 // ── CSV (SCC exportLedgerCSV 657-663, exportMonthCSV 1517-1522, dlCSV 664-665) ──
 export const EXP_LEDGER_COLUMNS=['Date','Firm','Type','Category','Mode','Vendor','Description','Amount','Source','Void','VoidReason','CreatedBy','Store','GSTAmt','GSTRate%'];
 export const EXP_MONTH_COLUMNS=['Date','Firm','Type','Category','Mode','Vendor','Description','Amount','Source','GSTAmt','GSTRate%'];
-/** HCC columns after SCC's (the HCC record id and status — SCC has no approval status in its file). */
-export const EXP_HCC_COLUMNS=['Ref','Status'];
+/** HCC columns after SCC's (the HCC record id and status — SCC has no approval status in its file; DEC-135: ITC allowed / disallowed of the bill's GST). */
+export const EXP_HCC_COLUMNS=['Ref','Status','ITC'];
+/** The ITC cell: allowed / disallowed for a bill with GST, empty without GST. */
+const itcCell=(e:Expense)=>e.gstPaise?(e.itc==='allowed'?'allowed':'disallowed'):'';
 const csvLine=(r:(string|number)[])=>r.map(v=>csvMinimal(v)).join(',');
 const byDate=(a:Expense,b:Expense)=>a.date<b.date?-1:a.date>b.date?1:0;
 /** Firm = the hotel (one legal entity); CreatedBy = the user's name; Store = Unassigned (HCC has one shared drawer, DEC-052). */
 function sccRow(s:State,e:Expense,who:(id:string)=>string,full:boolean):(string|number)[]{
   const base:(string|number)[]=[e.date,s.settings.hotel||'Unassigned','expense',e.category,e.method,e.vendor??'',expDescription(e),expRupees(e.amount),e.source??'manual'];
   const tail=[e.gstPaise?expRupees(e.gstPaise):'',e.gstRateBps?expPct(e.gstRateBps):''];
-  return full?[...base,e.status==='Void'?'Y':'',e.voidReason??'',who(e.actor),'Unassigned',...tail,e.id,e.status]:[...base,...tail,e.id,e.status];
+  return full?[...base,e.status==='Void'?'Y':'',e.voidReason??'',who(e.actor),'Unassigned',...tail,e.id,e.status,itcCell(e)]:[...base,...tail,e.id,e.status,itcCell(e)];
 }
 /** SCC ledger CSV: every record (void ones too), date ascending, file ledger_<business date>.csv. */
 export function expLedgerCsv(s:State,who:(id:string)=>string=id=>s.users.find(u=>u.id===id)?.name??id):{name:string;csv:string;rows:number}{

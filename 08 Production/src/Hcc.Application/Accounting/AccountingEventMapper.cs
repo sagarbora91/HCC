@@ -76,8 +76,20 @@ public static class AccountingEventMapper
     {
         ArgumentNullException.ThrowIfNull(e);
         var reversal = e.ReversalOf is not null;
+        // DEC-135: the GST of a bill marked ITC allowed goes to the GST input-credit ledger (an event without the fields books as before).
+        var itc = string.Equals(e.Itc, "allowed", StringComparison.Ordinal) ? e.GstPaise ?? 0 : 0;
         return SourceRules.Expense("expense:" + N(e.ExpenseId), reversal, e.Category, e.Funding, e.BusinessDate, e.AmountPaise,
-            $"{(reversal ? $"Reversal of {N(e.ReversalOf!.Value)} · " : "")}{e.Vendor} · {e.Category} · {e.Funding}");
+            $"{(reversal ? $"Reversal of {N(e.ReversalOf!.Value)} · " : "")}{e.Vendor} · {e.Category} · {e.Funding}", itc);
+    }
+
+    public static string UdhaarPaymentKey(long settlementId) => "udhaar-payment:" + N(settlementId);
+
+    /// <summary>DEC-130: an Udhaar payment taken as a desk receipt (Dr tender · Cr Udhaar receivables; narration as the prototype's).</summary>
+    public static AccountingSource UdhaarPayment(UdhaarPaymentRecordedEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.UdhaarPayment(UdhaarPaymentKey(e.SettlementId), e.Tender, e.BusinessDate, e.AmountPaise,
+            $"Udhaar received · {e.Customer} · {e.Tender}{(string.IsNullOrWhiteSpace(e.Reference) ? "" : " · " + e.Reference)} · payment {N(e.SettlementId)}");
     }
 
     // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer. Keys banking:{id}, banking:{id}/rejected, drawing:{id} (one source per record). ──

@@ -127,4 +127,31 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.ChartAsync(db.As("CSH"), Ct));
         Assert.Contains(await db.Queries.ChartAsync(db.As("MGR"), Ct), a => a.Code == "2110" && a.Name == "Output CGST");
     }
+
+    [Fact]
+    public async Task Dec135_and_Dec130_input_credit_and_Udhaar_receipts_reach_the_vouchers_mapping_screen_Tally_and_a_balanced_trial_balance()
+    {
+        var d = new DateOnly(2026, 9, 20); // a closed date no other test of this fixture uses
+        await db.PublishAsync(AccountingEvents.ExpensePosted, 61, new ExpensePostedEvent(61, d, "Maintenance", "UPI", 59_000, "Demo Electricals", null, 9_000, "allowed"));
+        await db.PublishAsync(AccountingEvents.ExpenseReversed, 62, new ExpensePostedEvent(62, d, "Maintenance", "UPI", -59_000, "Demo Electricals", 61, -9_000, "allowed"));
+        await db.PublishAsync(AccountingEvents.ExpensePosted, 63, new ExpensePostedEvent(63, d, "Supplies", "Cash", 118_000, "Demo Soap", null, 18_000, "disallowed"));
+        await db.PublishAsync(AccountingEvents.UdhaarPaymentRecorded, 21, new UdhaarPaymentRecordedEvent(21, 71, d, "Cash", 100_000, "Ramesh (fictional)", null, 501));
+        await db.ProjectAsync();
+        var day = await db.Queries.DayAsync(db.As("ACC"), d, Ct);
+        Assert.All(day.Vouchers, v => Assert.True(v.Balanced, v.Number));
+        Assert.Equal([("5020", 50_000L, 0L), ("1300", 9_000L, 0L), ("1010", 0L, 59_000L)], day.Vouchers.Single(v => v.SourceKey == "expense:61").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("1000", 100_000L, 0L), ("1120", 0L, 100_000L)], day.Vouchers.Single(v => v.SourceKey == "udhaar-payment:71").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal(0, day.Errors);
+        var map = await db.Queries.MappingAsync(db.As("OWN"), Ct);
+        Assert.Contains(map, r => r.MapKey == "tax:gst-input" && r.Account == "1300" && r.DefaultAccount == "1300" && r.Group == "GST input credit (ITC)" && r.Uses == 2);
+        Assert.Contains(map, r => r.MapKey == "receipt:udhaar" && r.Account == "1120" && r.Uses == 1);
+        var tally = await db.Queries.TallyAsync(db.As("OWN"), d, d, Ct);
+        Assert.Contains("<LEDGERNAME>GST input credit</LEDGERNAME>", tally.Xml, StringComparison.Ordinal);
+        Assert.Contains("<LEDGERNAME>Udhaar receivables (customer credit)</LEDGERNAME>", tally.Xml, StringComparison.Ordinal);
+        Assert.Equal(tally.DebitPaise, tally.CreditPaise);
+        var tb = await db.Queries.TrialBalanceAsync(db.As("ACC"), d, false, Ct);
+        Assert.True(tb.Balanced);
+        Assert.Equal(0, tb.Rows.Where(r => r.Account == "1300").Sum(r => r.BalancePaise));               // the reversal netted the input credit
+        Assert.Equal(-100_000, tb.Rows.Single(r => r.Account == "1120").BalancePaise);                  // Cr: the receipt settled Udhaar receivables
+    }
 }

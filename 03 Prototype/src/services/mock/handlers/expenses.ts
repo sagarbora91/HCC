@@ -7,18 +7,25 @@
 // budgets (+ copy last month), recurring templates (posting raises a Draft for approval), the Udhaar credit register and the month lock
 // (Owner override with a reason; the month's feed turns stale). Commands: EXPENSE, EXPENSE_SUBMIT, EXPENSE_APPROVE, EXPENSE_REVERSE,
 // EXP_EDIT, EXP_VOID, EXP_BUDGET_SET, EXP_BUDGET_COPY, EXP_REC_SAVE, EXP_REC_TOGGLE, EXP_REC_DELETE, EXP_REC_POST, EXP_PETTY_FLOAT,
-// EXP_PETTY_FLOAT_DECIDE, EXP_PETTY_OUT, EXP_UD_ADD, EXP_UD_PAY, EXP_UD_VOID, EXP_MONTH_LOCK.
+// EXP_PETTY_FLOAT_DECIDE, EXP_PETTY_OUT, EXP_UD_ADD, EXP_UD_PAY, EXP_UD_VOID, EXP_MONTH_LOCK, EXP_MONTH_UNLOCK.
+// SCC decisions wave (owner, 27 Oct 2026): DEC-129 budgets and recurring templates are Owner-only (posting a due template stays with the
+// expense users); DEC-130 an Udhaar payment is a desk receipt (cash into the open shift's drawer, other modes to their ledgers; booked as
+// Dr tender · Cr Udhaar receivables); DEC-131 the Owner unlocks a locked month with a reason (figures stale until locked again); DEC-135
+// GST on a bill carries ITC allowed / disallowed (default disallowed; allowed GST goes to the GST input-credit ledger).
 import type {Handler,Kit} from '../commands';
 import type {Expense} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
+import {cxCashBlocked} from '../../../domain/streams/cashout';
+import {can} from '../../../domain/selectors';
 import {EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,expenseDuplicates} from '../../../domain/streams/closing';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyCategory,mnyVendor,mnyApprovalLimit,mnyNames,mnyVendorCode,mnyVendorTypeOf,MNY_EV} from '../../../domain/streams/money-master';
 import {mstFail,mstStored,mstNextSort,type MasterRow} from '../../../domain/streams/masters';
 import {rbacCanSubmitExpense,rbacCanDecideExpense} from '../../../domain/streams/rbac';
 import {EXP_VOID_REASONS,EXP_MAX_PAISE,EXP_PHOTO_MAX_BYTES,EXP_DESC_MAX,EXP_UD_DUE_DAYS,expSlice,expYm,expDateCheck,expGstOverMessage,expDuplicateMessage,
   expMonthLocked,expMonthLockedMessage,expMonthSummary,expMonthLockRefusal,expBudgetAlert,expBudgetCopyPlan,expRecPosted,expRecRef,expPettyDescription,
-  expUdOut,expUdPayment,expUdMobile,expDueDay,expLedgerCsv,expMonthCsv,type EXPState,type ExpRecTpl,type ExpEditLog} from '../../../domain/streams/expenses-scc';
+  expUdOut,expUdPayment,expUdMobile,expDueDay,expLedgerCsv,expMonthCsv,expItcOf,expItcRefusal,expCanSetMoney,EXP_OWNER_ONLY_BUDGETS,EXP_OWNER_ONLY_RECURRING,
+  expMonthUnlockRefusal,type EXPState,type ExpRecTpl,type ExpEditLog} from '../../../domain/streams/expenses-scc';
 
 const limited=(role:string)=>!closingUnlimitedRoles.includes(role);
 /** Coarse gate of edit / void: an expense user (the record decides the rest: own draft / pending, or a decider). */
@@ -63,6 +70,14 @@ function gst(k:Kit,amount:number):{gstRateBps?:number;gstPaise?:number}{
   if(paise>amount&&!k.cmd.confirmGst)k.fail('VALIDATION',expGstOverMessage(paise,amount));
   return {...(rate>0?{gstRateBps:rate}:{}),...(paise>0?{gstPaise:paise}:{})};
 }
+/** DEC-135: the ITC flag of the bill's GST — 'allowed' or 'disallowed' (the default); none without GST; never allowed above the amount. */
+function itcFlag(k:Kit,v:unknown,gstPaise:number|undefined,amount:number){
+  if(v!==undefined&&v!==null&&v!==''&&v!=='allowed'&&v!=='disallowed')k.fail('VALIDATION','Choose ITC allowed or ITC disallowed.');
+  const itc=expItcOf(v,gstPaise),why=expItcRefusal(itc,gstPaise??0,amount);if(why)k.fail('VALIDATION',why);
+  return itc;
+}
+/** DEC-129: budgets and recurring templates are the Owner's (money settings, DEC-058). */
+const ownerMoney=(k:Kit,msg:string)=>{if(!expCanSetMoney(k.s,k.uid))k.fail('FORBIDDEN',msg);};
 /** An active category of the Expense categories master (retired / unknown refused); `keep` lets an unchanged retired value stay. */
 function category(k:Kit,v:unknown,keep?:string){
   const name=txt(v);if(!name)k.fail('VALIDATION','Choose a category.');
@@ -110,12 +125,12 @@ export const handlers:Record<string,Handler>={
     assert(description.length<=EXP_DESC_MAX,`Keep the description to ${EXP_DESC_MAX} characters.`);
     const cat=category(k,cmd.category),pm=method(k,cmd.method),ven=vendor(k,cmd.vendor);
     const date=cmd.date===undefined||cmd.date===null||cmd.date===''?s.date:String(cmd.date);dateGate(k,date,pm.name);
-    const g=gst(k,amount);
+    const g=gst(k,amount),itc=itcFlag(k,cmd.itc,g.gstPaise,amount);
     if(description){const d=expenseDuplicates(s,description,amount,date);if(d.length&&!cmd.confirmDuplicate)k.fail('VALIDATION',expDuplicateMessage(date,amount,description));}
     if(!draft&&cat.needsBill)assert(txt(cmd.receipt),`${cat.name} expenses need the bill / receipt number.`);
     const photo=billPhoto(k,cmd.billPhoto);
     const over=monthGate(k,date,cmd.override);
-    const e:Expense={id:id('EXP'),vendor:ven.name,category:cat.name,amount,method:pm.name,date,status:draft?'Draft':'Pending',actor:uid,createdAt:s.clock,...g};
+    const e:Expense={id:id('EXP'),vendor:ven.name,category:cat.name,amount,method:pm.name,date,status:draft?'Draft':'Pending',actor:uid,createdAt:s.clock,...g,...(itc?{itc}:{})};
     if(description)e.description=description;
     if(txt(cmd.notes))e.notes=txt(cmd.notes).slice(0,300);
     if(txt(cmd.receipt))e.receipt=txt(cmd.receipt).slice(0,120);
@@ -162,6 +177,7 @@ export const handlers:Record<string,Handler>={
     const rid=id('EXP');
     const r:Expense={id:rid,vendor:e.vendor,category:e.category,amount:-e.amount,method:e.method,date:s.date,status:'Posted',actor:uid,reversalOf:e.id,reason:cmd.reason.trim(),approver:uid,decidedAt:s.clock,createdAt:s.clock};
     if(e.description)r.description=e.description;if(e.gstPaise)r.gstPaise=-e.gstPaise;if(e.gstRateBps)r.gstRateBps=e.gstRateBps;if(e.source)r.source=e.source;
+    if(e.gstPaise)r.itc=e.itc==='allowed'?'allowed':'disallowed'; // DEC-135: the reversal mirrors the original's ITC split
     s.expenses.push(r);
     e.status='Reversed';e.reversedBy=rid;e.reason=cmd.reason.trim();
     return `${e.id} reversed by ${rid} · ${money(e.amount)}`+over;
@@ -183,6 +199,7 @@ export const handlers:Record<string,Handler>={
     const description=txt(cmd.description);assert(description.length<=EXP_DESC_MAX,`Keep the description to ${EXP_DESC_MAX} characters.`);
     if(e.status==='Pending')assert(description,'Description is required');
     const g=gst(k,amount),receipt=cmd.receipt===undefined?e.receipt:txt(cmd.receipt).slice(0,120)||undefined;
+    const itc=itcFlag(k,cmd.itc===undefined?e.itc:cmd.itc,g.gstPaise,amount); // DEC-135: kept while not sent
     if(e.status==='Pending'&&cat.needsBill)assert(txt(receipt),`${cat.name} expenses need the bill / receipt number.`);
     const photo=billPhoto(k,cmd.billPhoto);
     const over=monthGate(k,e.date,reason); // SCC: the edit reason doubles as the override reason
@@ -190,10 +207,12 @@ export const handlers:Record<string,Handler>={
     const nu:ExpEditLog['new']={amount,category:cat.name,method:pm.name,description};
     old.gstPaise=e.gstPaise??0;old.gstRateBps=e.gstRateBps??0;nu.gstPaise=g.gstPaise??0;nu.gstRateBps=g.gstRateBps??0;
     if((e.receipt??'')!==(receipt??'')){old.receipt=e.receipt??'';nu.receipt=receipt??'';}
+    // DEC-135: the ITC flag is logged when 'allowed' is set or cleared (adding / removing GST alone changes only the GST fields).
+    {const was=e.gstPaise?e.itc==='allowed'?'allowed':'disallowed':'',now=itc??'';if(was!==now&&(was==='allowed'||now==='allowed')){old.itc=was;nu.itc=now;}}
     if(photo){old.billPhoto=e.billPhoto||e.hasBillPhoto?'(present)':'(none)';nu.billPhoto='(changed)';}
     e.amount=amount;e.category=cat.name;e.method=pm.name;
     if(description)e.description=description;else delete e.description;
-    delete e.gstPaise;delete e.gstRateBps;Object.assign(e,g);
+    delete e.gstPaise;delete e.gstRateBps;delete e.itc;Object.assign(e,g);if(itc)e.itc=itc;
     if(receipt)e.receipt=receipt;else delete e.receipt;
     if(photo)e.billPhoto=photo;
     e.editLog=[...(e.editLog??[]),{at:s.clock,by:uid,old,new:nu,reason}];
@@ -216,9 +235,9 @@ export const handlers:Record<string,Handler>={
     e.status='Void';e.voidReason=reason+(note?' — '+note:'');e.voidedBy=uid;e.voidedAt=s.clock;
     return `${e.id} · void · ${e.voidReason}`+over;
   },
-  // SCC setBudget (1291): one cap per category for the current (business) month; empty / 0 = no budget. Manager, Accountant or Owner.
+  // SCC setBudget (1291): one cap per category for the current (business) month; empty / 0 = no budget. DEC-129: the Owner (money setting).
   EXP_BUDGET_SET:k=>{
-    const {s,cmd,assert}=k;need(k,rbacCanDecideExpense,'budgets are set by a Manager, Accountant or Owner');
+    const {s,cmd,assert}=k;ownerMoney(k,EXP_OWNER_ONLY_BUDGETS);
     const cat=txt(cmd.category);assert(cat&&mnyCategory(s,cat),'Choose a category from the list.');
     const amount=cmd.amount===''||cmd.amount===null||cmd.amount===undefined?0:cmd.amount;
     assert(Number.isSafeInteger(amount)&&amount>=0&&amount<=EXP_MAX_PAISE,'Enter the budget in rupees (0 = no budget).');
@@ -228,15 +247,15 @@ export const handlers:Record<string,Handler>={
   },
   // SCC copyBudgets (1327-1340): heads with a budget last month and none this month.
   EXP_BUDGET_COPY:k=>{
-    const {s}=k;need(k,rbacCanDecideExpense,'budgets are set by a Manager, Accountant or Owner');
+    const {s}=k;ownerMoney(k,EXP_OWNER_ONLY_BUDGETS);
     const m=expYm(s.date),plan=expBudgetCopyPlan(s,m);if(plan.message)k.fail('VALIDATION',plan.message);
     const x=slice(k),src=x.budgets![plan.prev],bm={...(x.budgets?.[m]??{})};for(const c of plan.heads)bm[c]=Number(src[c]);
     x.budgets={...x.budgets,[m]:bm};
     return `${plan.prev} → ${m} · ${plan.heads.length} head${plan.heads.length>1?'s':''}`;
   },
-  // SCC addRecTpl / editRecTpl (770-812): Manager, Accountant or Owner (SCC Accounts / Owner).
+  // SCC addRecTpl / editRecTpl (770-812): DEC-129 the Owner (money setting; SCC Accounts / Owner).
   EXP_REC_SAVE:k=>{
-    const {s,cmd,assert,id,uid}=k;need(k,rbacCanDecideExpense,'recurring templates are kept by a Manager, Accountant or Owner');
+    const {s,cmd,assert,id,uid}=k;ownerMoney(k,EXP_OWNER_ONLY_RECURRING);
     const name=txt(cmd.name);assert(name,'Template name is required');assert(name.length<=60,'Keep the name to 60 characters.');
     const amount=amountOk(k,cmd.amount,'Enter a typical amount greater than 0');
     const day=Math.floor(Number(cmd.dueDay));assert(day>=1&&day<=31,'Due day must be between 1 and 31');
@@ -253,14 +272,14 @@ export const handlers:Record<string,Handler>={
     return `Template ${t.id} · ${name} · ${money(amount)} · day ${day}`;
   },
   EXP_REC_TOGGLE:k=>{
-    need(k,rbacCanDecideExpense,'recurring templates are kept by a Manager, Accountant or Owner');
+    ownerMoney(k,EXP_OWNER_ONLY_RECURRING);
     const x=slice(k),t=(x.recurring??[]).find(t=>t.id===k.cmd.id);if(!t)k.fail('NOT_FOUND','Template not found.');
     x.recurring=x.recurring!.map(r=>r.id===t!.id?{...r,active:!r.active}:r);
     return `${t!.name} → ${t!.active?'inactive':'active'}`;
   },
   // SCC delRecTpl (821-828): "Ledger entries already posted from it are kept."
   EXP_REC_DELETE:k=>{
-    need(k,rbacCanDecideExpense,'recurring templates are kept by a Manager, Accountant or Owner');
+    ownerMoney(k,EXP_OWNER_ONLY_RECURRING);
     const x=slice(k),t=(x.recurring??[]).find(t=>t.id===k.cmd.id);if(!t)k.fail('NOT_FOUND','Template not found.');
     x.recurring=x.recurring!.filter(r=>r.id!==t!.id);
     return `Template ${t!.name} deleted · entries already posted from it are kept`;
@@ -326,17 +345,28 @@ export const handlers:Record<string,Handler>={
     x.udhaar=[...(x.udhaar??[]),r];
     return `${r.id} · credit ${name} ${money(amount)} · due ${due}`;
   },
-  // SCC payReceivable (1576-1591): more than outstanding + ₹0.50 is capped to the outstanding.
+  // SCC payReceivable (1576-1591): more than outstanding + ₹0.50 is capped to the outstanding. DEC-130: the payment is a DESK RECEIPT — a
+  // front-desk payment method; cash goes into the open shift's drawer under the same rules as other drawer cash (the payments permission,
+  // an open shift — the Reception / Cashier's own — and an open cash-book day), other modes need their reference like other receipts.
+  // In the books: Dr the tender · Cr Udhaar receivables (it settles the credit; never income twice).
   EXP_UD_PAY:k=>{
     const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();
     const x=slice(k),r=(x.udhaar??[]).find(u=>u.id===cmd.id);if(!r)k.fail('NOT_FOUND','Credit not found.');
     assert(!r!.void,'This credit was written off.','INVALID_TRANSITION');
     assert(expUdOut(r!)>0,'Nothing is outstanding on this credit.','INVALID_TRANSITION');
     const typed=amountOk(k,cmd.amount,'Enter an amount');
-    const pm=mnyMethodFor(s,cmd.mode,'frontdesk')??mnyMethodFor(s,cmd.mode,'expenses');assert(pm,'Choose how it was paid.');
+    const pm=mnyMethodFor(s,cmd.mode,'frontdesk');assert(pm,'Choose how it was paid.');
+    const reference=txt(cmd.reference);assert(reference.length<=120,'Keep the reference to 120 characters.');
+    const cash=mnyIsDrawer(s,pm!.name);
+    if(cash){
+      if(!can(s,uid,'payments'))k.fail('FORBIDDEN','Udhaar cash goes into the drawer: the cashier (or a desk user with an open shift) takes it — or record it by UPI / card / bank.');
+      assert(s.shiftOpen,'Open cash shift required: Udhaar cash goes into the open shift’s drawer. Open a cashier shift first, or take it by UPI / card / bank.','INVALID_TRANSITION');
+      const own=cxCashBlocked(s,uid);if(own)k.fail('FORBIDDEN',own);
+      assert(!cbIsLocked(s,s.date),cbLockedMessage(s.date,'cash into the drawer'),'DAY_CLOSED');
+    }else if(pm!.needsReference)assert(reference,`Enter the ${pm!.name} transaction reference.`);
     const p=expUdPayment(r!,typed);
-    x.udhaar=x.udhaar!.map(u=>u.id===r!.id?{...u,settlements:[...u.settlements,{id:id('UDP'),amount:p.amount,date:s.date,mode:pm!.name,by:uid,at:s.clock}]}:u);
-    return `${r!.id} · ${r!.name} paid ${money(p.amount)}${p.capped?' (more than outstanding — capped)':''}`;
+    x.udhaar=x.udhaar!.map(u=>u.id===r!.id?{...u,settlements:[...u.settlements,{id:id('UDP'),amount:p.amount,date:s.date,mode:pm!.name,by:uid,at:s.clock,desk:true as const,...(reference?{reference}:{})}]}:u);
+    return `${r!.id} · ${r!.name} paid ${money(p.amount)}${p.capped?' (more than outstanding — capped)':''} · ${cash?'cash into the drawer (desk receipt)':pm!.name+' desk receipt'}`;
   },
   // SCC voidReceivable (1592-1600): write off / remove, reason optional, kept for audit. HCC: a Manager, Accountant or Owner.
   EXP_UD_VOID:k=>{
@@ -352,9 +382,19 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,fail,uid,user}=k;
     if(user.role!=='Owner')fail('FORBIDDEN','Only the Owner can lock the month / generate the tax feed.');
     const m=txt(cmd.month),why=expMonthLockRefusal(s,m);if(why)fail('VALIDATION',why);
-    const sum=expMonthSummary(s,m),x=slice(k);
-    x.months={...(x.months??{}),[m]:{month:m,...sum,generatedAt:s.clock,by:uid}};
-    return `${m} tax feed generated; expense ${money(sum.expense)} · GST paid on purchases ${money(sum.gstPaid)} · month locked`;
+    const sum=expMonthSummary(s,m),x=slice(k),prev=x.months?.[m];
+    x.months={...(x.months??{}),[m]:{month:m,...sum,generatedAt:s.clock,by:uid,...(prev?.unlocks?.length?{unlocks:prev.unlocks}:{})}};
+    return `${m} tax feed generated; expense ${money(sum.expense)} · GST paid on purchases ${money(sum.gstPaid)} (ITC allowed ${money(sum.gstItc)}) · month locked`;
+  },
+  // DEC-131 (owner): the Owner unlocks a locked month with a reason (audited, like Accounting's period unlock). Entries dated in it then need no
+  // override; the month's figures are marked stale and it can be locked again (EXP_MONTH_LOCK regenerates the feed and clears the flag).
+  EXP_MONTH_UNLOCK:k=>{
+    const {s,cmd,fail,uid,user}=k;
+    if(user.role!=='Owner')fail('FORBIDDEN','Only the Owner can unlock a tax-locked month.');
+    const m=txt(cmd.month),reason=txt(cmd.reason),why=expMonthUnlockRefusal(s,m,reason);if(why)fail(why.code,why.message);
+    const x=slice(k),f=x.months![m];
+    x.months={...x.months,[m]:{...f,stale:true,staleAt:s.clock,unlockedAt:s.clock,unlockedBy:uid,unlockReason:reason,unlocks:[...(f.unlocks??[]),{at:s.clock,by:uid,reason}]}};
+    return `${m} unlocked · ${reason} · entries dated in ${m} need no override now; its feed is stale until the month is locked again`;
   },
   // SCC exportLedgerCSV / exportMonthCSV: recorded in the audit; the demo screen saves the file built on the device (production: the server
   // builds it, GET /expenses/export/*). The Owner, Manager or Accountant (DEC-063 G13: the Cashier does not export reports).

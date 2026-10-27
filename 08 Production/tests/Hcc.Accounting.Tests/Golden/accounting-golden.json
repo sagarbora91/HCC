@@ -34,7 +34,9 @@
   "closing:owner-drawing": "3000",
   "pos:sales": "4100",
   "pos:cgst": "2110",
-  "pos:sgst": "2120"
+  "pos:sgst": "2120",
+  "receipt:udhaar": "1120",
+  "tax:gst-input": "1300"
  },
  "days": [
   {

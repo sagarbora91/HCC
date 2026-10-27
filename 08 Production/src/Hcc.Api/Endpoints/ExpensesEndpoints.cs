@@ -71,6 +71,9 @@ public static class ExpensesEndpoints
             http.HccReply(await c.VoidUdhaarAsync(http.HccCommand(ExpenseRegisterCommands.OpVoidUdhaar), body, ct)));
         g.MapPost("/commands/" + ExpenseRegisterCommands.OpLockMonth, async (HttpContext http, LockExpenseMonthRequest body, ExpenseRegisterCommands c, CancellationToken ct) =>
             http.HccReply(await c.LockMonthAsync(http.HccCommand(ExpenseRegisterCommands.OpLockMonth), body, ct)));
+        // DEC-131 (SCC decisions wave): the Owner's unlock of a locked month, with a reason.
+        g.MapPost("/commands/" + ExpenseRegisterCommands.OpUnlockMonth, async (HttpContext http, UnlockExpenseMonthRequest body, ExpenseRegisterCommands c, CancellationToken ct) =>
+            http.HccReply(await c.UnlockMonthAsync(http.HccCommand(ExpenseRegisterCommands.OpUnlockMonth), body, ct)));
 
         g.MapGet("/expenses", async (HttpContext http, ExpenseQueries q, CancellationToken ct, string? status = null, string? from = null, string? to = null, int page = 1, int pageSize = 50) =>
         {

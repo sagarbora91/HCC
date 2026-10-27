@@ -119,6 +119,29 @@ public static class ExpenseScc
         return (rateBps is > 0 ? rateBps : null, paise > 0 ? paise : null);
     }
 
+    // ── DEC-135 · input tax credit on the bill's GST (owner, 27 Oct 2026) ──
+
+    public const string ItcAllowed = "allowed";
+    public const string ItcDisallowed = "disallowed";
+
+    /// <summary>
+    /// The ITC flag an expense keeps (prototype <c>expItcOf</c> + <c>expItcRefusal</c>): only with GST on the bill; anything but "allowed" is
+    /// disallowed (nothing is claimed unless marked); an unknown value is refused; ITC is never allowed on more GST than the bill amount.
+    /// </summary>
+    public static bool Itc(string? value, long? gstPaise, long amountPaise)
+    {
+        var v = (value ?? string.Empty).Trim();
+        if (v.Length > 0 && v is not (ItcAllowed or ItcDisallowed)) throw HccException.Validation("Choose ITC allowed or ITC disallowed.");
+        if (gstPaise is not { } g || g == 0) return false;
+        var allowed = v == ItcAllowed;
+        if (allowed && Math.Abs(g) > Math.Abs(amountPaise))
+            throw HccException.Validation("ITC cannot be allowed on more GST than the bill amount — correct the GST or mark ITC disallowed.");
+        return allowed;
+    }
+
+    /// <summary>The wire / CSV text of the flag: allowed / disallowed with GST on the bill, null without.</summary>
+    public static string? ItcText(long? gstPaise, bool allowed) => gstPaise is null or 0 ? null : allowed ? ItcAllowed : ItcDisallowed;
+
     /// <summary>SCC confirm (528, 573).</summary>
     public static string GstOverMessage(long gstPaise, long amountPaise) =>
         $"GST amount ({new Paise(gstPaise)}) is more than the entry amount ({new Paise(amountPaise)}). Save anyway?";
@@ -143,6 +166,15 @@ public static class ExpenseScc
 
     public static string MonthLockedMessage(string month) => $"Month {month} is tax-locked — its tax feed was already generated. Owner override required.";
 
+    /// <summary>DEC-131: the Owner's unlock reason, 3–200 characters (as Accounting's period unlock asks for one).</summary>
+    public static string UnlockReason(string? reason)
+    {
+        var r = (reason ?? string.Empty).Trim();
+        if (r.Length < 3) throw HccException.Validation("A reason is required to unlock a month.");
+        if (r.Length > NoteMax) throw HccException.Validation($"Keep the reason to {NoteMax} characters.");
+        return r;
+    }
+
     /// <summary>SCC genTaxFeed (1491): a future month cannot be locked; HCC's "today" is the business date.</summary>
     public static string LockableMonth(string? month, DateOnly businessDate)
     {
@@ -157,18 +189,19 @@ public static class ExpenseScc
     public static MonthSummary Summary(IEnumerable<LedgerRow> rows, string month)
     {
         ArgumentNullException.ThrowIfNull(rows);
-        long expense = 0, gst = 0;
+        long expense = 0, gst = 0, itc = 0;
         var count = 0;
         var byCat = new SortedDictionary<string, long>(StringComparer.Ordinal);
         foreach (var r in rows.Where(r => r.Counts && Ym(r.Date) == month))
         {
             expense += r.Amount;
             gst += r.GstPaise ?? 0;
+            if (r.ItcAllowed) itc += r.GstPaise ?? 0;
             count++;
             byCat[r.Category] = (byCat.TryGetValue(r.Category, out var v) ? v : 0) + r.Amount;
         }
 
-        return new MonthSummary(expense, count, gst, byCat);
+        return new MonthSummary(expense, count, gst, byCat, itc);
     }
 
     /// <summary>SCC stale banner (1459-1470): the stored flag, or a counted record of the month posted (or created) after the feed.</summary>
@@ -284,11 +317,12 @@ public static class ExpenseScc
 
     // ── CSV (SCC exportLedgerCSV 657-663, exportMonthCSV 1517-1522, dlCSV 664-665) ──
 
+    /// <summary>SCC's columns, then HCC's Ref and Status and (DEC-135) ITC — allowed / disallowed for a bill with GST, empty without.</summary>
     public static readonly IReadOnlyList<string> LedgerColumns =
-        ["Date", "Firm", "Type", "Category", "Mode", "Vendor", "Description", "Amount", "Source", "Void", "VoidReason", "CreatedBy", "Store", "GSTAmt", "GSTRate%", "Ref", "Status"];
+        ["Date", "Firm", "Type", "Category", "Mode", "Vendor", "Description", "Amount", "Source", "Void", "VoidReason", "CreatedBy", "Store", "GSTAmt", "GSTRate%", "Ref", "Status", "ITC"];
 
     public static readonly IReadOnlyList<string> MonthColumns =
-        ["Date", "Firm", "Type", "Category", "Mode", "Vendor", "Description", "Amount", "Source", "GSTAmt", "GSTRate%", "Ref", "Status"];
+        ["Date", "Firm", "Type", "Category", "Mode", "Vendor", "Description", "Amount", "Source", "GSTAmt", "GSTRate%", "Ref", "Status", "ITC"];
 
     /// <summary>SCC writes the JS number of rupees (1180, 1180.5, -850); the same text from paise.</summary>
     public static string Rupees(long paise) => (paise / 100m).ToString("0.##", CultureInfo.InvariantCulture);
@@ -304,7 +338,7 @@ public static class ExpenseScc
         foreach (var r in list)
             sb.Append('\n').Append(Line([Wire(r.Date), Firm(hotel), "expense", r.Category, r.Method, r.Vendor, r.DescriptionOrVendor, Rupees(r.Amount), r.Source ?? "manual",
                 r.Status == ExpenseState.Void ? "Y" : string.Empty, r.VoidReason ?? string.Empty, r.CreatedBy, "Unassigned",
-                r.GstPaise is { } g ? Rupees(g) : string.Empty, r.GstRateBps is { } b ? Percent(b) : string.Empty, Ref(r.ExpenseId), r.Status]));
+                r.GstPaise is { } g ? Rupees(g) : string.Empty, r.GstRateBps is { } b ? Percent(b) : string.Empty, Ref(r.ExpenseId), r.Status, ItcText(r.GstPaise, r.ItcAllowed) ?? string.Empty]));
         return ("ledger_" + Wire(businessDate) + ".csv", sb.ToString(), list.Count);
     }
 
@@ -316,7 +350,7 @@ public static class ExpenseScc
         var sb = new StringBuilder(Line(MonthColumns));
         foreach (var r in list)
             sb.Append('\n').Append(Line([Wire(r.Date), Firm(hotel), "expense", r.Category, r.Method, r.Vendor, r.DescriptionOrVendor, Rupees(r.Amount), r.Source ?? "manual",
-                r.GstPaise is { } g ? Rupees(g) : string.Empty, r.GstRateBps is { } b ? Percent(b) : string.Empty, Ref(r.ExpenseId), r.Status]));
+                r.GstPaise is { } g ? Rupees(g) : string.Empty, r.GstRateBps is { } b ? Percent(b) : string.Empty, Ref(r.ExpenseId), r.Status, ItcText(r.GstPaise, r.ItcAllowed) ?? string.Empty]));
         return ("expense_month_" + month + ".csv", sb.ToString(), list.Count);
     }
 
@@ -336,7 +370,8 @@ public static class ExpenseScc
 
 /// <summary>One expense record as the SCC registers read it (ledger CSV, month summary, budgets, stale rule).</summary>
 public sealed record LedgerRow(long ExpenseId, DateOnly Date, string Category, string Method, string Vendor, string? Description, long Amount, string? Source,
-    string? SourceRef, string Status, string? VoidReason, string CreatedBy, long? GstPaise, int? GstRateBps, bool IsReversal, DateTime CreatedUtc, DateTime? PostedUtc)
+    string? SourceRef, string Status, string? VoidReason, string CreatedBy, long? GstPaise, int? GstRateBps, bool IsReversal, DateTime CreatedUtc, DateTime? PostedUtc,
+    bool ItcAllowed = false)
 {
     /// <summary>Posted / Reversed originals and reversal records (prototype <c>expenseCounts</c>).</summary>
     public bool Counts => ExpenseRules.Counts(Status);
@@ -344,6 +379,7 @@ public sealed record LedgerRow(long ExpenseId, DateOnly Date, string Category, s
     public string DescriptionOrVendor => Description ?? Vendor;
 }
 
-public sealed record MonthSummary(long ExpensePaise, int Count, long GstPaidPaise, IReadOnlyDictionary<string, long> ByCategory);
+/// <summary>The month's counted figures; <c>GstItcPaise</c> (DEC-135) = the part of the GST paid marked ITC allowed.</summary>
+public sealed record MonthSummary(long ExpensePaise, int Count, long GstPaidPaise, IReadOnlyDictionary<string, long> ByCategory, long GstItcPaise = 0);
 
 public sealed record BudgetAlert(string Message, string Style, int Pct);

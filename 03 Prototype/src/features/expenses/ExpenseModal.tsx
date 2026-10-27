@@ -2,28 +2,30 @@
 // optional vendor (a new name joins the vendor list), a chosen date (the business date or the Owner-reopened day; never later), GST on the
 // bill with SCC's prefill, a bill photo (SCC: ≤ 4 MB, 1000 px wide, JPEG 0.7), SCC's duplicate and "GST more than amount" confirms, and
 // the Owner override reason for a tax-locked month. HCC's approval rules stay: another authorised person approves before it counts.
+// DEC-135: GST on the bill carries ITC allowed / disallowed (default disallowed).
 import React,{useState,useRef} from 'react';
 import {AlertTriangle,Info} from 'lucide-react';
-import {money,expenseDuplicates,mnyCategoryNames,mnyIsDrawer,expOpenDates,expGstOverMessage,expDuplicateMessage,expBudgetAlert,EXP_MAX_PAISE} from '../../services/mock';
+import {money,expenseDuplicates,mnyCategoryNames,mnyIsDrawer,expOpenDates,expGstOverMessage,expDuplicateMessage,expBudgetAlert,expItcRefusal,EXP_MAX_PAISE} from '../../services/mock';
 import {ExpCategorySelect,ExpVendorInput,ExpCreditNote,mnyExpenseSources,mnyFirstSource} from '../money/masters';
 import {useHcc} from '../../app/context';
 import {dateLabel} from '../../components/ui';
-import {GstFields,BillPhotoPicker,useOverride,expPaise,expBps} from './Scc';
+import {GstFields,ItcField,BillPhotoPicker,useOverride,expPaise,expBps} from './Scc';
 
 /** The add-expense form state shared by the desktop dialog and the phone sheet. */
 export function useExpenseForm(){
   const {s}=useHcc();
   const [f,setF]=useState(()=>({vendor:'',description:'',category:mnyCategoryNames(s)[0]??'',method:mnyFirstSource(s),amount:'',receipt:'',notes:'',date:s.date,rate:'',gst:'',photo:'',
-    confirmDuplicate:false,confirmGst:false}));
+    confirmDuplicate:false,confirmGst:false,itc:'disallowed' as 'allowed'|'disallowed'}));
   const ov=useOverride(f.date);
   const paise=expPaise(f.amount),rate=expBps(f.rate),gst=f.gst.trim()?expPaise(f.gst):0;
   const dups=paise>0&&f.description.trim()?expenseDuplicates(s,f.description,paise,f.date):[];
   const dates=expOpenDates(s);
   const problem=(draft:boolean)=>!(paise>0)?'Enter an amount greater than zero.':paise>EXP_MAX_PAISE?'Amount is too large (maximum ₹10,00,00,000).'
     :!draft&&!f.description.trim()?'Description is required':Number.isNaN(rate)?'Enter a GST rate between 0 and 100 %.':Number.isNaN(gst)?'Enter the GST on the bill in rupees.'
-    :gst>paise&&!f.confirmGst?expGstOverMessage(gst,paise):dups.length&&!f.confirmDuplicate?expDuplicateMessage(f.date,paise,f.description.trim()):ov.blocked;
+    :gst>paise&&!f.confirmGst?expGstOverMessage(gst,paise):gst>0&&expItcRefusal(f.itc,gst,paise)?expItcRefusal(f.itc,gst,paise)
+    :dups.length&&!f.confirmDuplicate?expDuplicateMessage(f.date,paise,f.description.trim()):ov.blocked;
   const command=(draft:boolean,key:string)=>({type:'EXPENSE',vendor:f.vendor,description:f.description.trim(),category:f.category,method:f.method,amount:paise,receipt:f.receipt,notes:f.notes,draft,
-    ...(f.date!==s.date?{date:f.date}:{}),...(rate?{gstRateBps:rate}:{}),...(gst?{gstPaise:gst}:{}),...(f.photo?{billPhoto:f.photo}:{}),
+    ...(f.date!==s.date?{date:f.date}:{}),...(rate?{gstRateBps:rate}:{}),...(gst?{gstPaise:gst,itc:f.itc}:{}),...(f.photo?{billPhoto:f.photo}:{}),
     ...(f.confirmDuplicate?{confirmDuplicate:true}:{}),...(f.confirmGst?{confirmGst:true}:{}),...(ov.override?{override:ov.override}:{}),key:key+(draft?':draft':':submit')});
   const alert=paise>0?expBudgetAlert(s,f.category,f.date,paise):null;
   return {f,setF,ov,paise,gst,dups,dates,problem,command,alert};
@@ -38,6 +40,7 @@ export function ExpenseSccFields({x}:{x:ReturnType<typeof useExpenseForm>}){
       :<p className="muted">Dated {dateLabel(f.date)} (the business date). A closed day takes entries only while the Owner has it reopened.</p>}
     <GstFields amount={paise} rate={f.rate} gst={f.gst} onRate={v=>setF({...f,rate:v})} onGst={v=>setF({...f,gst:v,confirmGst:false})}/>
     {gst>paise&&paise>0&&<label className="checkbox-line"><input type="checkbox" checked={f.confirmGst} onChange={e=>setF({...f,confirmGst:e.target.checked})}/> {expGstOverMessage(gst,paise)}</label>}
+    <ItcField gst={Number.isNaN(gst)?0:gst} amount={paise} value={f.itc} onChange={v=>setF({...f,itc:v})}/>
     {!!dups.length&&<div className="info-note f-warn" role="alert"><AlertTriangle size={16}/><span>{expDuplicateMessage(f.date,paise,f.description.trim())} ({dups.map(d=>`${d.id} ${d.status}`).join(', ')})
       <label className="checkbox-line"><input type="checkbox" checked={f.confirmDuplicate} onChange={e=>setF({...f,confirmDuplicate:e.target.checked})}/> Save anyway</label></span></div>}
     <BillPhotoPicker value={f.photo} onChange={v=>setF({...f,photo:v})}/>

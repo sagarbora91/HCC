@@ -10,6 +10,8 @@ import {lineTax,gstSplit} from '../gst';
 import {mnyLedgerDefaults,mnyIsCredit} from './money-master';
 import {cxSlice} from './cashout';
 import {sysParkedAccounting,SYS_STUCK_TITLE,sysStuckDetail} from './syshealth';
+import {expItcPaise} from './expenses-scc';
+import {expUdDeskReceipts,expUdDeskDates} from './udhaar-desk';
 
 // ── Chart of accounts (synthetic) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
@@ -22,7 +24,9 @@ export const ACC_CHART:ACCAccount[]=[
   {code:'1030',name:'Bank account',group:'Asset',note:'Bank transfers'},
   {code:'1100',name:'Guest ledger',group:'Asset',note:'Open folio balances'},
   {code:'1110',name:'Company receivables (city ledger)',group:'Asset',note:'Authorised company credit'},
+  {code:'1120',name:'Udhaar receivables (customer credit)',group:'Asset',note:'DEC-130: Udhaar payments settle it; the credit itself is kept in the expense register (CA to confirm)'},
   {code:'1200',name:'Staff advances',group:'Asset',note:'Salary advances recovered through payroll'},
+  {code:'1300',name:'GST input credit',group:'Asset',note:'DEC-135: GST on expense bills marked ITC allowed (one ledger; a CGST / SGST / IGST split on CA request)'},
   {code:'2000',name:'Advance deposits',group:'Liability',note:'Refundable deposits held'},
   {code:'2100',name:'Synthetic tax payable (legacy)',group:'Liability',note:'Before DEC-069 only — kept for locked snapshots'},
   {code:'2110',name:'Output CGST',group:'Liability',note:'GST master, intra-state half (illustrative — CA to confirm)'},
@@ -64,11 +68,13 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   'closing:bank-deposit':'1030','closing:owner-drawing':'3000',
   // Restaurant / room-service bills settled at the outlet (shared till, DEC-052). Bills charged to a folio stay in the folio flow.
   'pos:sales':'4100','pos:cgst':'2110','pos:sgst':'2120',
+  // DEC-130: an Udhaar payment settles the customer's credit (Dr tender · Cr Udhaar receivables); DEC-135: GST of an expense bill marked ITC allowed.
+  'receipt:udhaar':'1120','tax:gst-input':'1300',
 };
-const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill'};
+const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
 export const accKeyValue=(key:string)=>key.slice(key.indexOf(':')+1);
-export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos):.+$/;
+export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos|tax):.+$/;
 
 // ── State slice ──
 export type ACCEntry={account:string;debit:number;credit:number};
@@ -143,9 +149,17 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
       [dr(map('method:'+r.method,miss),r.amount),cr(map('pos:sales',miss),r.net),cr(map('pos:cgst',miss),g.cgst),cr(map('pos:sgst',miss),g.sgst)]);
   }
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0)){
-    const miss:string[]=[],head=map('expense:'+e.category,miss),fund=map('funding:'+e.method,miss);
+    // DEC-135: ITC allowed → the bill's GST goes to the GST input-credit ledger and the category takes the rest; disallowed → the whole bill
+    // to the category (as before). A reversal record carries −amount and −GST, so it mirrors the split.
+    const miss:string[]=[],head=map('expense:'+e.category,miss),itc=expItcPaise(e),fund=map('funding:'+e.method,miss);
     push({date,type:mnyIsCredit(s,e.method)?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor||e.description||'—'} · ${e.category} · ${e.method}`, // DEC-120: the vendor is optional
-      source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount),cr(fund,e.amount)]);
+      source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount-itc),...(itc?[dr(map('tax:gst-input',miss),itc)]:[]),cr(fund,e.amount)]);
+  }
+  // DEC-130: an Udhaar payment taken as a desk receipt settles the customer's credit — Receipt, Dr the tender · Cr Udhaar receivables (never income).
+  for(const {r,p} of expUdDeskReceipts(s,date)){
+    if(!p.amount)continue;const miss:string[]=[];
+    push({date,type:'Receipt',narration:`Udhaar received · ${r.name} · ${p.mode}${p.reference?' · '+p.reference:''} · payment ${p.id}`,source:{kind:'receipt',id:'udhaar-payment:'+p.id,sub:'udhaar-payment'}},miss,
+      [dr(map('method:'+p.mode,miss),p.amount),cr(map('receipt:udhaar',miss),p.amount)]);
   }
   // ── Wave B1 (DEC-073): cash leaving the drawer — same vouchers as the server projector (keys banking:{id}, banking:{id}/rejected, drawing:{id}) ──
   for(const r of cxSlice(s).records){
@@ -198,6 +212,7 @@ export function accDates(s:State):string[]{
   s.bookings.forEach(b=>{b.lines.forEach(l=>d.add(l.date));b.receipts.forEach(r=>d.add(r.date));});
   posSlice(s).receipts.forEach(r=>d.add(r.date));
   s.expenses.filter(expenseCounts).forEach(e=>d.add(e.date));
+  expUdDeskDates(s).forEach(x=>d.add(x)); // DEC-130
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
@@ -247,8 +262,9 @@ export function accReconcile(s:State,date:string):ACCCheck[]{
   const net=(code:string,f:(x:ACCVoucher)=>boolean=()=>true)=>vs.filter(f).reduce((a,x)=>a+x.entries.filter(e=>e.account===code).reduce((b,e)=>b+e.credit-e.debit,0),0);
   const lines=(k:string)=>(x:ACCVoucher)=>x.source.kind==='line'&&x.source.sub===k;
   const tenderMove=(kinds:string[])=>vs.filter(x=>x.source.kind==='receipt'&&kinds.includes(x.source.sub)).reduce((a,x)=>a+x.entries.filter(e=>isTender(e.account,map)).reduce((b,e)=>b+e.debit-e.credit,0),0);
-  // Expense vouchers: entry 0 is the expense head (Dr for an expense, Cr for a reversal record).
-  const expenseMove=vs.filter(x=>x.source.kind==='expense').reduce((a,x)=>a+x.entries[0].debit-x.entries[0].credit,0);
+  // Expense vouchers: the last entry is the funding side (Cr for an expense, Dr for a reversal record) = the whole bill, also when DEC-135 splits
+  // the debit into the category and the GST input-credit ledger.
+  const expenseMove=vs.filter(x=>x.source.kind==='expense').reduce((a,x)=>{const f=x.entries[x.entries.length-1];return a+f.credit-f.debit;},0);
   const c=(id:string,label:string,report:number,ledger:number,note:string):ACCCheck=>({id,label,report,ledger,ok:report===ledger,note});
   const checks=[
     c('room','Room revenue',v('revenue','room'),net(map['line:room'],lines('room')),'Reports › Revenue · room lines'),
@@ -275,7 +291,8 @@ export function accMapRows(s:State):ACCMapRow[]{
   const map=accMapping(s),uses:Record<string,number>={};
   const add=(k:string)=>{uses[k]=(uses[k]??0)+1;};
   s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
-  s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);});
+  s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);if(expItcPaise(e))add('tax:gst-input');});
+  for(const r of s.expensesX?.udhaar??[])for(const p of r.settlements??[])if(p.desk){add('receipt:udhaar');add('method:'+p.mode);} // DEC-130
   posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax){add('pos:cgst');add('pos:sgst');}add('method:'+r.method);});
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
@@ -304,7 +321,7 @@ export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;r
   if(v.source.kind==='expense')return {expense:s.expenses.find(e=>e.id===v.source.id||'expense:'+e.id===v.source.id)};
   if(accSlice(s).server)return {}; // server source keys (charge:…, receipt:…, pos:…) are not prototype record ids
   if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
-  if(v.source.kind==='closing')return {};
+  if(v.source.kind==='closing'||v.source.sub==='udhaar-payment')return {}; // DEC-130: an Udhaar payment is not a folio receipt
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
   return v.source.kind==='line'?{booking,line:booking?.lines.find(l=>l.id===rid)}:{booking,receipt:booking?.receipts.find(r=>r.id===rid)};
 }

@@ -17,9 +17,14 @@ namespace Hcc.Application.Expenses;
 /// (RequestPettyFloat, DecidePettyFloat — a second person approves) and disbursements (RecordPettyDisbursement — a drawer-cash expense for
 /// approval), the Udhaar credit register (AddUdhaar, PayUdhaar, VoidUdhaar — never touches cash or income) and the month lock
 /// (LockExpenseMonth — SCC "Generate &amp; lock tax feed", Owner). Every command runs through <see cref="ICommandRunner"/> (audit + idempotency).
+/// SCC decisions wave (owner, 27 Oct 2026): DEC-129 budgets and recurring templates are the Owner's (PERM-MST-002; posting a due template stays
+/// PERM-EXP-001); DEC-130 an Udhaar payment is a desk receipt — cash into the drawer of the open shift (<see cref="ICashDrawerPort"/>, movement
+/// kind payment / source type udhaar), every mode booked in Accounting (UdhaarPaymentRecorded: Dr tender · Cr Udhaar receivables); DEC-131
+/// UnlockExpenseMonth (Owner + reason, audited; the feed turns stale until LockExpenseMonth locks the month again).
 /// </summary>
 public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, IExpenseRegisterStore registers, TimeProvider clock,
-    Hcc.Application.Closing.IBusinessDayGuard? days = null, MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null)
+    Hcc.Application.Closing.IBusinessDayGuard? days = null, MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null,
+    Billing.ICashDrawerPort? drawer = null)
 {
     public const string OpSetBudget = "SetExpenseBudget";
     public const string OpCopyBudgets = "CopyExpenseBudgets";
@@ -34,10 +39,15 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
     public const string OpPayUdhaar = "PayUdhaar";
     public const string OpVoidUdhaar = "VoidUdhaar";
     public const string OpLockMonth = "LockExpenseMonth";
+    public const string OpUnlockMonth = "UnlockExpenseMonth";
 
     public static readonly IReadOnlyList<string> Operations =
         [OpSetBudget, OpCopyBudgets, OpSaveRecurring, OpToggleRecurring, OpDeleteRecurring, OpPostRecurring, OpRequestPettyFloat, OpDecidePettyFloat, OpPettyDisbursement,
-         OpAddUdhaar, OpPayUdhaar, OpVoidUdhaar, OpLockMonth];
+         OpAddUdhaar, OpPayUdhaar, OpVoidUdhaar, OpLockMonth, OpUnlockMonth];
+
+    /// <summary>DEC-129 refusals (prototype EXP_OWNER_ONLY_BUDGETS / EXP_OWNER_ONLY_RECURRING).</summary>
+    public const string OwnerOnlyBudgets = "Only the Owner sets and copies the monthly budgets (money settings, DEC-058).";
+    public const string OwnerOnlyRecurring = "Only the Owner keeps the recurring templates (money settings, DEC-058). Anyone who enters expenses can post a due template.";
 
     private DateTime UtcNow => clock.GetUtcNow().UtcDateTime;
 
@@ -45,6 +55,13 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
 
     private Task Need(CommandContext ctx, string perm, CancellationToken ct, long? amount = null, AccessScope? scope = null) =>
         policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, perm, scope, perm == ExpensePermissions.Decide ? amount ?? 0 : amount, ct);
+
+    /// <summary>DEC-129: budgets and recurring templates are Owner-only money settings (DEC-058) = PERM-MST-002 (no new permission id).</summary>
+    private async Task OwnerMoneyAsync(CommandContext ctx, string message, CancellationToken ct)
+    {
+        if (!await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Owner, null, ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, message);
+    }
 
     private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
         methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
@@ -61,7 +78,7 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        await OwnerMoneyAsync(ctx, OwnerOnlyBudgets, ct).ConfigureAwait(false); // DEC-129
         if (req.AmountPaise < 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter the budget in rupees (0 = no budget).");
         return await runner.RunAsync(ctx with { Operation = OpSetBudget }, req, async (tx, c) =>
         {
@@ -79,7 +96,7 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        await OwnerMoneyAsync(ctx, OwnerOnlyBudgets, ct).ConfigureAwait(false); // DEC-129
         return await runner.RunAsync(ctx with { Operation = OpCopyBudgets }, req, async (tx, c) =>
         {
             var month = ExpenseScc.Ym(await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false));
@@ -99,7 +116,7 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        await OwnerMoneyAsync(ctx, OwnerOnlyRecurring, ct).ConfigureAwait(false); // DEC-129
         var (name, day) = ExpenseScc.Template(req.Name, req.AmountPaise, req.DueDay);
         var method = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false), req.Method,
             Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses, null, requireReference: false).Name;
@@ -132,7 +149,7 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        await OwnerMoneyAsync(ctx, OwnerOnlyRecurring, ct).ConfigureAwait(false); // DEC-129
         return await runner.RunAsync(ctx with { Operation = OpToggleRecurring }, req, async (tx, c) =>
         {
             var t = await registers.LockRecurringAsync(tx, ctx.PropertyId, req.TemplateId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Template not found.");
@@ -147,7 +164,7 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        await OwnerMoneyAsync(ctx, OwnerOnlyRecurring, ct).ConfigureAwait(false); // DEC-129
         return await runner.RunAsync(ctx with { Operation = OpDeleteRecurring }, req, async (tx, c) =>
         {
             var t = await registers.LockRecurringAsync(tx, ctx.PropertyId, req.TemplateId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Template not found.");
@@ -286,26 +303,62 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
         }, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// SCC payReceivable (more than outstanding + ₹0.50 is capped). DEC-130: a DESK RECEIPT — a front-desk payment method (Payment methods master;
+    /// a non-cash method needs its reference, like other receipts); cash goes into the drawer of <c>TillId</c> under the rules of every cash
+    /// receipt: the open business day and cash-book day, the till's open shift on the business date and PERM-PAY-001 on that shift (the
+    /// Reception / Cashier's own); the movement is kind payment, source type udhaar (expected cash, the count, the day close and the cash
+    /// book include it). Every mode publishes UdhaarPaymentRecorded (Dr tender · Cr Udhaar receivables): it settles the credit, never income.
+    /// </summary>
     public async Task<CommandResult<ExpenseRegisterResult>> PayUdhaarAsync(CommandContext ctx, PayUdhaarRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         await Need(ctx, ExpensePermissions.Submit, ct, null, AccessScopes.Any).ConfigureAwait(false);
         if (req.AmountPaise <= 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter an amount");
+        var reference = ExpenseScc.Optional(req.Reference, 120, "reference");
         var list = await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false);
-        var mode = (req.Mode ?? string.Empty).Trim();
-        var known = Hcc.Domain.MoneyMasters.PaymentMethodBook.NamesAt(list, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk)
-            .Concat(Hcc.Domain.MoneyMasters.PaymentMethodBook.NamesAt(list, Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses))
-            .FirstOrDefault(m => string.Equals(m, mode, StringComparison.OrdinalIgnoreCase)) ?? throw HccException.Validation("Choose how it was paid.");
+        var method = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(list, req.Mode, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk, reference);
+        var cash = method.SettlesToTill;
+        if (cash && req.TillId is null) throw HccException.Validation("Choose the till that receives the cash (Udhaar cash goes into the open shift's drawer).");
+        if (cash && drawer is null) throw new InvalidOperationException("Udhaar cash needs the cash drawer port.");
         return await runner.RunAsync(ctx with { Operation = OpPayUdhaar }, req, async (tx, c) =>
         {
             var r = await registers.LockUdhaarAsync(tx, ctx.PropertyId, req.ReceivableId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Credit not found.");
             if (r.Void) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This credit was written off.");
             if (r.Outstanding <= 0) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Nothing is outstanding on this credit.");
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // a closed day cannot be changed
+            int? till = null;
+            if (cash)
+            {
+                if (days is not null) await days.EnsureCashBookOpenAsync(tx, ctx.PropertyId, bd, "cash into the drawer", c).ConfigureAwait(false);
+                long shiftId;
+                try
+                {
+                    shiftId = await drawer!.OpenShiftIdAsync(tx, req.TillId!.Value, c).ConfigureAwait(false);
+                }
+                catch (HccException e) when (e.Code == HccErrorCode.INVALID_TRANSITION)
+                {
+                    throw new HccException(HccErrorCode.INVALID_TRANSITION, "Open cash shift required: Udhaar cash goes into the open shift's drawer. " + e.Message);
+                }
+
+                await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.DeskReceipt, new AccessScope(Billing.BillingPermissions.ShiftScope, shiftId), null, c)
+                    .ConfigureAwait(false);
+                till = req.TillId;
+            }
+
             var p = ExpenseScc.UdhaarPayment(r.Outstanding, req.AmountPaise);
-            var id = await registers.InsertSettlementAsync(tx, new UdhaarSettlementRecord(0, r.ReceivableId, p.Amount, bd, known, ctx.PrincipalId, UtcNow), c).ConfigureAwait(false);
-            var msg = $"UD-{Id(r.ReceivableId)} · {r.Name} paid {new Paise(p.Amount)}{(p.Capped ? " (more than outstanding — capped)" : string.Empty)}";
+            var id = await registers.InsertSettlementAsync(tx, new UdhaarSettlementRecord(0, r.ReceivableId, p.Amount, bd, method.Name, ctx.PrincipalId, UtcNow, true, reference, till), c)
+                .ConfigureAwait(false);
+            long? movementId = null;
+            if (cash)
+                movementId = await drawer!.RecordMovementAsync(tx, till!.Value, Hcc.Domain.Payments.CashMovementKind.Payment, Payments.CashierService.UdhaarSource, id, new Paise(p.Amount),
+                    "Udhaar received · " + r.Name, reference ?? "Udhaar UD-" + Id(r.ReceivableId), c).ConfigureAwait(false);
+            await tx.PublishAsync(Contracts.Accounting.AccountingEvents.UdhaarPaymentRecorded, r.ReceivableId,
+                new Contracts.Accounting.UdhaarPaymentRecordedEvent(r.ReceivableId, id, bd, method.Name, p.Amount, r.Name, reference, movementId), c).ConfigureAwait(false);
+            var msg = $"UD-{Id(r.ReceivableId)} · {r.Name} paid {new Paise(p.Amount)}{(p.Capped ? " (more than outstanding — capped)" : string.Empty)} · "
+                      + (cash ? "cash into the drawer (desk receipt)" : method.Name + " desk receipt");
             await tx.AuditAsync("UDHAAR_PAID", "udhaar:" + Id(r.ReceivableId), msg, c).ConfigureAwait(false);
             return new ExpenseRegisterResult(msg, id);
         }, ct).ConfigureAwait(false);
@@ -345,9 +398,33 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
             await registers.MonthLockAsync(tx, ctx.PropertyId, month, c).ConfigureAwait(false); // key-range lock: writers of the month wait
             var sum = ExpenseScc.Summary(await store.LedgerAsync(tx, ctx.PropertyId, first, first.AddMonths(1).AddDays(-1), c).ConfigureAwait(false), month);
             await registers.SaveMonthLockAsync(tx, ctx.PropertyId, new MonthLockRecord(month, sum.ExpensePaise, sum.Count, sum.GstPaidPaise, JsonSerializer.Serialize(sum.ByCategory),
-                ctx.PrincipalId, UtcNow, false, null), c).ConfigureAwait(false);
-            var msg = $"{month} tax feed generated; expense {new Paise(sum.ExpensePaise)} · GST paid on purchases {new Paise(sum.GstPaidPaise)} · month locked";
+                ctx.PrincipalId, UtcNow, false, null, sum.GstItcPaise), c).ConfigureAwait(false);
+            var msg = $"{month} tax feed generated; expense {new Paise(sum.ExpensePaise)} · GST paid on purchases {new Paise(sum.GstPaidPaise)} (ITC allowed {new Paise(sum.GstItcPaise)}) · month locked";
             await tx.AuditAsync("EXPENSE_MONTH_LOCK", "expense-month:" + month, msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg);
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// DEC-131 (owner): the Owner unlocks a locked month with a reason (3–200 characters; audited EXPENSE_MONTH_UNLOCK, like Accounting's period
+    /// unlock). Entries dated in it then need no override; the feed is marked stale and LockExpenseMonth locks it again (regenerating the feed).
+    /// </summary>
+    public async Task<CommandResult<ExpenseRegisterResult>> UnlockMonthAsync(CommandContext ctx, UnlockExpenseMonthRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        if (!await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Owner, null, ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, "Only the Owner can unlock a tax-locked month.");
+        var month = (req.Month ?? string.Empty).Trim();
+        var reason = ExpenseScc.UnlockReason(req.Reason);
+        return await runner.RunAsync(ctx with { Operation = OpUnlockMonth }, req, async (tx, c) =>
+        {
+            var f = await registers.MonthLockAsync(tx, ctx.PropertyId, month, c).ConfigureAwait(false)
+                    ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, $"Month {month} is not locked.");
+            if (f.Unlocked) throw new HccException(HccErrorCode.INVALID_TRANSITION, $"Month {month} is already unlocked — lock it again after the changes.");
+            await registers.UnlockMonthAsync(tx, ctx.PropertyId, month, ctx.PrincipalId, UtcNow, reason, c).ConfigureAwait(false);
+            var msg = $"{month} unlocked · {reason} · entries dated in {month} need no override now; its feed is stale until the month is locked again";
+            await tx.AuditAsync("EXPENSE_MONTH_UNLOCK", "expense-month:" + month, msg, c).ConfigureAwait(false);
             return new ExpenseRegisterResult(msg);
         }, ct).ConfigureAwait(false);
     }
@@ -368,6 +445,7 @@ public sealed class ExpenseRegisterQueries(IAccessPolicy policy, IExpenseStore s
         var petty = await registers.PettyAsync(propertyId, ct).ConfigureAwait(false);
         var ud = await registers.UdhaarAsync(propertyId, ct).ConfigureAwait(false);
         var locks = await registers.MonthLocksAsync(null, propertyId, ct).ConfigureAwait(false);
+        var unlocks = locks.Count == 0 ? [] : await registers.MonthUnlocksAsync(propertyId, ct).ConfigureAwait(false);
         var ledger = locks.Count == 0 ? [] : await store.LedgerAsync(null, propertyId, null, null, ct).ConfigureAwait(false);
         var bd = await BusinessDateAsync(propertyId, ct).ConfigureAwait(false);
         return new ExpenseRegistersView(bd,
@@ -377,10 +455,12 @@ public sealed class ExpenseRegisterQueries(IAccessPolicy policy, IExpenseStore s
                 Wire(p.DecidedUtc), p.Reason)).ToList(),
             ud.Select(r => new UdhaarView(r.ReceivableId, r.Name, r.Mobile, r.Amount, StayDates.ToWire(r.CreditDate), r.DueDate is { } d ? StayDates.ToWire(d) : null, r.Note,
                 r.CreatedBy, Wire(r.CreatedUtc), r.Void, r.VoidReason, r.VoidedBy, r.VoidedDate is { } v ? StayDates.ToWire(v) : null,
-                r.Settlements.Select(s => new UdhaarSettlementView(s.SettlementId, s.Amount, StayDates.ToWire(s.Date), s.Mode, s.RecordedBy, Wire(s.RecordedUtc))).ToList())).ToList(),
+                r.Settlements.Select(s => new UdhaarSettlementView(s.SettlementId, s.Amount, StayDates.ToWire(s.Date), s.Mode, s.RecordedBy, Wire(s.RecordedUtc), s.Desk, s.Reference, s.TillId))
+                    .ToList())).ToList(),
             locks.Select(m => new ExpenseMonthLockView(m.Month, m.Expense, m.Count, m.GstPaid,
                 JsonSerializer.Deserialize<Dictionary<string, long>>(m.ByCategoryJson) ?? [], m.GeneratedBy, Wire(m.GeneratedUtc),
-                ExpenseScc.Stale(m.Stale, m.GeneratedUtc, ledger, m.Month), Wire(m.StaleUtc))).ToList());
+                m.Unlocked || ExpenseScc.Stale(m.Stale, m.GeneratedUtc, ledger, m.Month), Wire(m.StaleUtc), m.GstItc, m.Unlocked, m.UnlockedBy, Wire(m.UnlockedUtc), m.UnlockReason,
+                unlocks.Where(u => u.Month == m.Month).Select(u => new ExpenseMonthUnlockView(u.By, Wire(u.AtUtc), u.Reason)).ToList())).ToList());
     }
 
     private async Task<string> BusinessDateAsync(int propertyId, CancellationToken ct) =>

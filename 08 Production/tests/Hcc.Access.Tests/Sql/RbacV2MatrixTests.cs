@@ -213,6 +213,9 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
         ("Configuration view", ["PERM-ADM-003:VIEW"], ["PERM-CFG-001"], true, "", ""),
         ("Configuration money / tax / tills / re-key", ["PERM-ADM-003"], ["PERM-CFG-003"], true, "", ""),
         ("Configuration requests decided", ["PERM-APR-001"], ["PERM-CFG-003"], true, "", "MGR"),   // grid CFG-003: the Manager has no configuration page
+        // SCC decisions wave DEC-129 (owner, 27 Oct 2026): expense budgets and recurring templates are Owner-only money settings (DEC-058) —
+        // the gate moved from expense.approve to the Owner's masters.manage-money (no new PERM id); posting a due template stays PERM-EXP-001.
+        ("Expense budgets and recurring templates", ["PERM-EXP-002"], ["PERM-MST-002"], true, "", "ACC MGR"),
     ];
 
     [Fact]

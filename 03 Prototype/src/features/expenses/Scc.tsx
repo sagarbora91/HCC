@@ -1,12 +1,16 @@
 // DEC-120 · SCC expense features on the Expenses page (desktop) and the phone page, with HCC's approval rules kept. Shared sections
 // (recurring templates, petty cash, budgets, the Udhaar register, month & tax) and dialogs (edit, void, bill photo, entry text,
-// recurring template / post, Udhaar payment / write-off / reminder, month lock, Owner override). Phone: `phone` = cards and mm-form.
+// recurring template / post, Udhaar payment / write-off / reminder, month lock / unlock, Owner override). Phone: `phone` = cards and mm-form.
+// SCC decisions wave (27 Oct 2026): DEC-129 budgets and templates are kept by the Owner only (others read them; posting stays with expense
+// users); DEC-130 an Udhaar payment is a desk receipt (cash into the open shift's drawer); DEC-131 Owner unlock of a locked month with a
+// reason; DEC-135 ITC allowed / disallowed on a bill's GST.
 import React,{useState} from 'react';
-import {AlertTriangle,Camera,Copy,Download,Eye,Lock,Repeat} from 'lucide-react';
-import {money,mnyCategoryNames,mnyNames,mnyIsDrawer,rbacCanSubmitExpense,rbacCanDecideExpense,closingUnlimitedRoles,EXPENSE_MANAGER_LIMIT,
+import {AlertTriangle,Camera,Copy,Download,Eye,Lock,Repeat,Unlock} from 'lucide-react';
+import {money,mnyCategoryNames,mnyNames,mnyIsDrawer,mnyMethod,rbacCanSubmitExpense,rbacCanDecideExpense,closingUnlimitedRoles,EXPENSE_MANAGER_LIMIT,can,cxCashBlocked,
   EXP_VOID_REASONS,EXP_MAX_PAISE,expSlice,expYm,expDescription,expGstPrefill,expGstOverMessage,expMonthLocked,expMonthLockedMessage,expFeedStale,expMonthSummary,
   expBudgetRows,expBudgetCopyPlan,expRecurringDue,expRecStatus,expRecPosted,expRecRef,expPetty,expUdOpen,expUdOut,expUdPaid,expUdOverdue,expUdBucket,expUdReminder,
-  expEntryText,expLedgerCsv,expMonthCsv,expMonthLockRefusal,type Expense} from '../../services/mock';
+  expEntryText,expLedgerCsv,expMonthCsv,expMonthLockRefusal,expCanSetMoney,EXP_OWNER_ONLY_BUDGETS,EXP_OWNER_ONLY_RECURRING,expMonthUnlockRefusal,expMonthUnlockedMessage,
+  expItcRefusal,EXP_ITC_LABEL,expGstSplit,type Expense} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {saveCsv,saveAndReport,clearCapturedPhotos} from '../../app/native';
 import {compressBillPhoto} from '../../app/slipPhoto';
@@ -59,12 +63,23 @@ export function GstFields({amount,rate,gst,onRate,onGst}:{amount:number;rate:str
     <label>GST on bill (₹)<input inputMode="decimal" value={gst} placeholder="optional — copy from the bill" onChange={e=>onGst(e.target.value)}/></label></div>;
 }
 
+/** DEC-135: input tax credit of the bill's GST (shown once there is GST): disallowed (the default — stays in the cost) or allowed (to the GST
+ *  input-credit ledger). */
+export function ItcField({gst,amount,value,onChange}:{gst:number;amount:number;value:'allowed'|'disallowed';onChange:(v:'allowed'|'disallowed')=>void}){
+  if(!(gst>0))return null;const why=expItcRefusal(value,gst,amount);
+  return <><label>Input tax credit (ITC) on this GST<select value={value} onChange={e=>onChange(e.target.value==='allowed'?'allowed':'disallowed')}>
+      <option value="disallowed">ITC disallowed — GST stays in the expense cost</option><option value="allowed">ITC allowed — GST to the GST input-credit ledger</option></select>
+    <small className="muted">Nothing is claimed unless marked allowed. Your CA decides which bills qualify.</small></label>
+    {why&&<p className="f-why" role="alert">{why}</p>}</>;
+}
+
 /** Banners on top of the Expenses page: recurring nudge (SCC recurringNudge) and the business month's lock / stale state. */
 export function ExpBanners({onSection}:{onSection:(s:ExpSection)=>void}){
   const {s}=useHcc();const due=expRecurringDue(s),m=expYm(s.date),f=expSlice(s).months?.[m];
   return <>{due.length>0&&<div className="info-note f-warn exp-banner" role="status"><Repeat size={16}/><span><strong>{due.length}</strong> recurring expense{due.length===1?'':'s'} not yet posted this month: {due.slice(0,4).map(t=>t.name).join(', ')}{due.length>4?'…':''}{' '}
       <button type="button" className="text-btn" onClick={()=>onSection('recurring')}>Post now</button></span></div>}
-    {f&&<div className={'info-note exp-banner'+(expFeedStale(s,m)?' f-warn':'')} role="status"><Lock size={16}/><span>Month {m} is tax-locked (feed generated {f.generatedAt.replace('T',' ')}). Entries dated in it need the Owner and a reason.
+    {f&&f.unlockedAt&&<div className="info-note exp-banner f-warn" role="status"><Unlock size={16}/><span>{expMonthUnlockedMessage(f)}</span></div>}
+    {f&&!f.unlockedAt&&<div className={'info-note exp-banner'+(expFeedStale(s,m)?' f-warn':'')} role="status"><Lock size={16}/><span>Month {m} is tax-locked (feed generated {f.generatedAt.replace('T',' ')}). Entries dated in it need the Owner and a reason.
       {expFeedStale(s,m)?' The ledger changed after the feed was generated — regenerate it before sharing with your CA.':''}</span></div>}</>;
 }
 
@@ -92,13 +107,15 @@ export function ExpTextModal({id,room}:{id?:string;room?:string}){
 export function ExpEditModal({id}:{id?:string}){
   const {s,run,busy,closeModal,modal,display}=useHcc();const e=s.expenses.find(x=>x.id===id);
   const [f,setF]=useState(()=>({amount:e?rupees(e.amount):'',category:e?.category??'',method:e?.method??'',description:e?.description??'',rate:e?.gstRateBps?String(e.gstRateBps/100):'',
-    gst:e?.gstPaise?rupees(e.gstPaise):'',receipt:e?.receipt??'',photo:'',reason:'',confirmGst:false}));
+    gst:e?.gstPaise?rupees(e.gstPaise):'',receipt:e?.receipt??'',photo:'',reason:'',confirmGst:false,itc:(e?.itc==='allowed'?'allowed':'disallowed') as 'allowed'|'disallowed'}));
   const ov=useOverride(e?.date??'');
   if(!e)return <><Empty title="Expense not found"/><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
   const amount=expPaise(f.amount),rate=expBps(f.rate),gst=f.gst.trim()?expPaise(f.gst):0;
   const why=!(amount>0&&amount<=EXP_MAX_PAISE)?'Enter an amount greater than 0':Number.isNaN(rate)?'Enter a GST rate between 0 and 100 %.':Number.isNaN(gst)?'Enter the GST on the bill in rupees.'
-    :e.status==='Pending'&&!f.description.trim()?'Description is required':!f.reason.trim()?'Reason required':gst>amount&&!f.confirmGst?expGstOverMessage(gst,amount):ov.blocked;
+    :e.status==='Pending'&&!f.description.trim()?'Description is required':!f.reason.trim()?'Reason required':gst>amount&&!f.confirmGst?expGstOverMessage(gst,amount)
+    :gst>0&&expItcRefusal(f.itc,gst,amount)||ov.blocked;
   const save=()=>void run({type:'EXP_EDIT',id:e.id,amount,category:f.category,method:f.method,description:f.description.trim(),gstRateBps:rate||0,gstPaise:gst||0,receipt:f.receipt,
+    ...(gst>0?{itc:f.itc}:{}),
     ...(f.photo?{billPhoto:f.photo}:{}),reason:f.reason.trim(),...(f.confirmGst?{confirmGst:true}:{}),key:'exp-edit:'+modal!.key},'Expense updated — the change is logged',{close:true});
   return <form className={formCls(display.isMobile)} onSubmit={ev=>{ev.preventDefault();if(!why)save();}}>
     <div className="modal-heading"><h2>Change {e.id}</h2><p>{e.status} · dated {dateLabel(e.date)} · every change is logged with its reason. An approved expense changes only by a reversal and a new entry.</p></div>
@@ -107,6 +124,7 @@ export function ExpEditModal({id}:{id?:string}){
       <label>Funding source<select value={f.method} onChange={x=>setF({...f,method:x.target.value})}>{mnyExpenseSources(s).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label></div>
     <label>Description{e.status==='Pending'?'':' (required to submit)'}<input maxLength={300} value={f.description} onChange={x=>setF({...f,description:x.target.value})}/></label>
     <GstFields amount={amount} rate={f.rate} gst={f.gst} onRate={v=>setF({...f,rate:v})} onGst={v=>setF({...f,gst:v})}/>
+    <ItcField gst={Number.isNaN(gst)?0:gst} amount={amount} value={f.itc} onChange={v=>setF({...f,itc:v})}/>
     <label>Bill / receipt number<input maxLength={120} value={f.receipt} onChange={x=>setF({...f,receipt:x.target.value})}/></label>
     {(e.billPhoto||e.hasBillPhoto)&&<small className="muted">A photo is already attached — choosing a new one replaces it.</small>}
     <BillPhotoPicker value={f.photo} onChange={v=>setF({...f,photo:v})}/>
@@ -193,7 +211,7 @@ export function ExpRecPostModal({id}:{id?:string}){
   </form>;
 }
 export function ExpRecurring({phone=false}:{phone?:boolean}){
-  const {s,uid,open,run,busy}=useHcc();const list=expSlice(s).recurring??[],manage=rbacCanDecideExpense(s,uid),post=rbacCanSubmitExpense(s,uid);
+  const {s,uid,open,run,busy}=useHcc();const list=expSlice(s).recurring??[],manage=expCanSetMoney(s,uid),post=rbacCanSubmitExpense(s,uid); // DEC-129
   const pill=(k:string,n:number,day:number)=>k==='inactive'?<Pill>inactive</Pill>:k==='posted'?<Pill tone="green">posted{n>1?` ×${n}`:''}</Pill>:k==='due'?<Pill tone="orange">due — not posted</Pill>:<span className="muted">upcoming · day {day}</span>;
   return <section className={phone?'mm-card':'card'} aria-label="Recurring expenses">
     <div className={phone?undefined:'section-title'}><h2 className={phone?'mm-h':undefined}>Recurring expenses</h2>{manage&&<button type="button" className="btn small-btn" onClick={()=>open({type:'exp-rec'})}>+ Template</button>}</div>
@@ -208,7 +226,7 @@ export function ExpRecurring({phone=false}:{phone?:boolean}){
               <button type="button" className="text-btn danger-text" disabled={busy} onClick={()=>{if(globalThis.confirm?.(`Delete template "${t.name}"? Ledger entries already posted from it are kept.`)!==false)
                 void run({type:'EXP_REC_DELETE',id:t.id,key:`exp-rec-del:${t.id}`},'Template deleted');}}>Delete</button></>}
           </div></article>;})}</div>}
-    {!manage&&<p className="muted padded">A Manager, Accountant or Owner keeps the templates. Anyone who enters expenses can post them.</p>}
+    {!manage&&<p className="muted padded">{EXP_OWNER_ONLY_RECURRING}</p>}
   </section>;
 }
 
@@ -252,7 +270,7 @@ export function ExpPetty({phone=false}:{phone?:boolean}){
 
 // ── Budgets (SCC renderBudget / setBudget / copyBudgets) ──
 export function ExpBudgets({phone=false}:{phone?:boolean}){
-  const {s,uid,run,busy}=useHcc();const m=expYm(s.date),rows=expBudgetRows(s,m,mnyCategoryNames(s)),edit=rbacCanDecideExpense(s,uid);
+  const {s,uid,run,busy}=useHcc();const m=expYm(s.date),rows=expBudgetRows(s,m,mnyCategoryNames(s)),edit=expCanSetMoney(s,uid); // DEC-129
   const [draft,setDraft]=useState<Record<string,string>>({});const plan=expBudgetCopyPlan(s,m);
   const set=(c:string)=>{const v=draft[c];if(v===undefined)return;const p=v.trim()?expPaise(v):0;if(Number.isNaN(p))return;
     void run({type:'EXP_BUDGET_SET',category:c,amount:p,key:`exp-budget:${m}:${c}:${s.sequence}`},`${c} budget for ${m} = ${money(p)}`);const d={...draft};delete d[c];setDraft(d);};
@@ -272,23 +290,35 @@ export function ExpBudgets({phone=false}:{phone?:boolean}){
             onChange={e=>setDraft({...draft,[r.category]:e.target.value})} onBlur={()=>set(r.category)} onKeyDown={e=>{if(e.key==='Enter')set(r.category);}}/>:money(r.budget)}</td>
           <td className="number">{money(r.actual)}</td><td className="number">{r.budget?`${r.pct}%`:'—'}<div className="exp-gauge" aria-hidden><span className={r.pct>100?'over':''} style={{width:Math.min(r.pct,100)+'%'}}/></div></td>
           <td><Pill tone={tone(r.status)}>{label(r)}</Pill></td></tr>)}</tbody></table></div>}
-    {!edit&&<p className="muted padded">A Manager, Accountant or Owner sets the budgets.</p>}
+    {!edit&&<p className="muted padded">{EXP_OWNER_ONLY_BUDGETS}</p>}
   </section>;
 }
 
 // ── Udhaar credit register (SCC Wave 3) ──
+/** DEC-130: why this user cannot take an Udhaar payment in `mode` now ('' = can): cash follows the drawer rules of every desk receipt. */
+export function expUdCashBlock(s:ReturnType<typeof useHcc>['s'],uid:string,mode:string):string{
+  if(!mnyIsDrawer(s,mode))return '';
+  if(!can(s,uid,'payments'))return 'Udhaar cash goes into the drawer: the cashier (or a desk user with an open shift) takes it — or record it by UPI / card / bank.';
+  if(!s.shiftOpen)return 'Open cash shift required: Udhaar cash goes into the open shift’s drawer. Open a cashier shift first, or take it by UPI / card / bank.';
+  return cxCashBlocked(s,uid)??'';
+}
 export function ExpUdPayModal({id}:{id?:string}){
-  const {s,run,busy,closeModal,modal,display}=useHcc();const r=(expSlice(s).udhaar??[]).find(x=>x.id===id);
-  const [amount,setAmount]=useState(r?rupees(expUdOut(r)):'');const [mode,setMode]=useState(mnyNames(s,'frontdesk')[0]??'Cash');
+  const {s,uid,run,busy,closeModal,modal,display}=useHcc();const r=(expSlice(s).udhaar??[]).find(x=>x.id===id);
+  const [amount,setAmount]=useState(r?rupees(expUdOut(r)):'');const [mode,setMode]=useState(mnyNames(s,'frontdesk')[0]??'Cash');const [ref,setRef]=useState('');
   if(!r)return <><Empty title="Credit not found"/><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>;
-  const p=expPaise(amount),out=expUdOut(r);
-  return <form className={formCls(display.isMobile)} onSubmit={e=>{e.preventDefault();if(!(p>0))return;
-    void run({type:'EXP_UD_PAY',id:r.id,amount:p,mode,key:'exp-ud-pay:'+modal!.key},p>out+50?'More than outstanding — capped':'Payment recorded',{close:true});}}>
-    <div className="modal-heading"><h2>Record payment — {r.name}</h2><p>Outstanding {money(out)}. Recorded against this credit only — it is not added to the drawer or to income.</p></div>
+  const p=expPaise(amount),out=expUdOut(r),cash=mnyIsDrawer(s,mode),needsRef=!cash&&!!mnyMethod(s,mode)?.needsReference;
+  const why=expUdCashBlock(s,uid,mode)||(needsRef&&!ref.trim()?`Enter the ${mode} transaction reference.`:'');
+  return <form className={formCls(display.isMobile)} onSubmit={e=>{e.preventDefault();if(!(p>0)||why)return;
+    void run({type:'EXP_UD_PAY',id:r.id,amount:p,mode,...(ref.trim()?{reference:ref.trim()}:{}),key:'exp-ud-pay:'+modal!.key},
+      (p>out+50?'More than outstanding — capped · ':'Payment recorded · ')+(cash?'cash added to the drawer':`${mode} desk receipt`),{close:true});}}>
+    <div className="modal-heading"><h2>Record payment — {r.name}</h2><p>Outstanding {money(out)}. Taken as a desk receipt: cash goes into the open shift’s drawer, UPI / card / bank to their own ledgers. In the books it settles this credit — it is not counted as income again.</p></div>
     <label>Amount received (₹)<input inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)}/></label>
     <label>Mode<select value={mode} onChange={e=>setMode(e.target.value)}>{mnyNames(s,'frontdesk').map(m=><option key={m}>{m}</option>)}</select></label>
+    {cash&&!why&&<p className="info-note exp-ud-drawer" role="status">This cash goes into your drawer: it is in the expected cash you count at shift close, the day close and the cash book.</p>}
+    {!cash&&<label>Transaction reference{needsRef?' (required)':' (optional)'}<input maxLength={120} value={ref} onChange={e=>setRef(e.target.value)} placeholder="e.g. UPI ref no."/></label>}
     {p>out+50&&<p className="f-why">More than outstanding — it will be capped to {money(out)}.</p>}
-    <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!(p>0)}>Record payment</button></div>
+    {why&&<p className="f-why" role="alert">{why}</p>}
+    <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!(p>0)||!!why}>Record payment</button></div>
   </form>;
 }
 export function ExpUdVoidModal({id}:{id?:string}){
@@ -305,7 +335,7 @@ export function ExpUdhaar({phone=false}:{phone?:boolean}){
   const [f,setF]=useState({name:'',mobile:'',amount:'',due:'',note:''});const p=expPaise(f.amount);const k=modal?.key??'page';
   return <section className={phone?'mm-card':'card'} aria-label="Udhaar credit register">
     <div className={phone?undefined:'section-title'}><h2 className={phone?'mm-h':undefined}>Udhaar / credit</h2><span className="muted">Outstanding {money(total)}</span></div>
-    <p className="muted padded">Goods or services given on trust. Tracked here only — never added to the drawer or to income until you receive the money and enter it at the desk.</p>
+    <p className="muted padded">Goods or services given on trust. Recording a credit adds nothing to the drawer or to income; a payment is taken as a desk receipt — cash into the open shift’s drawer, other modes to their ledgers — and settles the credit in the books.</p>
     <div className="exp-buckets padded"><Pill>0–30 days · {money(buckets['0–30'])}</Pill><Pill tone="orange">31–60 · {money(buckets['31–60'])}</Pill><Pill tone={buckets['60+']>0?'red':'neutral'}>60+ · {money(buckets['60+'])}</Pill></div>
     {enter&&<form className={phone?'mm-form':'form padded exp-ud-form'} onSubmit={e=>{e.preventDefault();if(!f.name.trim()||!(p>0))return;
       void run({type:'EXP_UD_ADD',name:f.name.trim(),mobile:f.mobile,amount:p,dueDate:f.due||undefined,note:f.note.trim(),key:'exp-ud-add:'+k+':'+s.sequence},'Credit recorded');setF({name:'',mobile:'',amount:'',due:'',note:''});}}>
@@ -332,9 +362,21 @@ export function ExpMonthLockModal({room}:{room?:string}){
   const {s,run,busy,closeModal,modal,display}=useHcc();const m=room??expYm(s.date),why=expMonthLockRefusal(s,m),sum=expMonthSummary(s,m),f=expSlice(s).months?.[m];
   return <form className={formCls(display.isMobile)} onSubmit={e=>{e.preventDefault();if(why)return;void run({type:'EXP_MONTH_LOCK',month:m,key:'exp-month-lock:'+modal!.key},'Tax feed generated & month locked',{close:true});}}>
     <div className="modal-heading"><h2>{f?'Regenerate':'Generate & lock'} the {m} feed</h2><p>Expense {money(sum.expense)} · {sum.count} entries · GST paid on purchases {money(sum.gstPaid)}.</p></div>
-    <p className="muted">After this, any entry dated in {m} needs the Owner and a reason, and marks the feed stale. There is no unlock (as in SCC); regenerate the feed after late changes.</p>
+    <p className="muted">After this, any entry dated in {m} needs the Owner and a reason, and marks the feed stale. The Owner can unlock the month with a reason (DEC-131) and lock it again after the changes.</p>
     {why&&<p className="f-why">{why}</p>}
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!!why}><Lock size={16}/> {f?'Regenerate feed':'Generate & lock'}</button></div>
+  </form>;
+}
+/** DEC-131: the Owner unlocks a tax-locked month with a reason (audited); the figures turn stale until the month is locked again. */
+export function ExpMonthUnlockModal({room}:{room?:string}){
+  const {s,user,run,busy,closeModal,modal,display}=useHcc();const m=room??expYm(s.date);const [reason,setReason]=useState('');
+  const refusal=user.role!=='Owner'?{message:'Only the Owner can unlock a tax-locked month.'}:expMonthUnlockRefusal(s,m,reason),why=refusal?.message??'';
+  return <form className={formCls(display.isMobile)} onSubmit={e=>{e.preventDefault();if(why)return;
+    void run({type:'EXP_MONTH_UNLOCK',month:m,reason:reason.trim(),key:'exp-month-unlock:'+modal!.key},`Month ${m} unlocked — lock it again after the changes`,{close:true});}}>
+    <div className="modal-heading"><h2>Unlock {m}</h2><p>Entries dated in {m} will no longer need the Owner override. The month’s figures are marked stale; lock it again (regenerating the feed) when the changes are done.</p></div>
+    <label>Reason (required, kept in the audit trail)<input maxLength={200} value={reason} onChange={e=>setReason(e.target.value)} placeholder="e.g. CA found a missed bill"/></label>
+    {why&&<p className="f-why" aria-live="polite">{why}</p>}
+    <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn danger" disabled={busy||!!why}><Unlock size={16}/> Unlock month</button></div>
   </form>;
 }
 /** CSV export (SCC ledger / month CSV): recorded (EXP_CSV); the demo saves the file built here, production saves the server's file. */
@@ -348,19 +390,22 @@ export function useExpCsv(){
 }
 export function ExpMonth({phone=false}:{phone?:boolean}){
   const {s,uid,user,open}=useHcc();const [m,setM]=useState(expYm(s.date));const sum=expMonthSummary(s,m),f=expSlice(s).months?.[m],stale=expFeedStale(s,m),csv=useExpCsv();
-  const exportOk=rbacCanDecideExpense(s,uid);
+  const exportOk=rbacCanDecideExpense(s,uid),split=expGstSplit(s,m);
   return <section className={phone?'mm-card':'card'} aria-label="Month and tax">
     <div className={phone?undefined:'section-title'}><h2 className={phone?'mm-h':undefined}>Month close &amp; tax feed</h2>
       <label className="exp-inline">Month<input type="month" value={m} max={expYm(s.date)} onChange={e=>setM(e.target.value||expYm(s.date))}/></label></div>
     <div className="small-stats exp-kpis"><div><span>Expense (approved)</span><strong>{money(sum.expense)}</strong></div><div><span>Entries</span><strong>{sum.count}</strong></div>
-      <div><span>GST paid on purchases</span><strong>{money(sum.gstPaid)}</strong></div></div>
-    <p className="muted padded">GST paid on purchases is an input-credit hint from the bills — not tax advice; check with your CA. Income and its GST come from folios and the restaurant (Accounting), not from this register.</p>
+      <div><span>GST paid on purchases</span><strong>{money(sum.gstPaid)}</strong></div>
+      <div><span>ITC allowed</span><strong>{money(split.allowed)}</strong></div><div><span>ITC disallowed (in the cost)</span><strong>{money(split.disallowed)}</strong></div></div>
+    <p className="muted padded">GST paid on purchases is from the bills; the part marked ITC allowed goes to the GST input-credit ledger in Accounting, the rest stays in the expense cost — your CA decides what can be claimed. Income and its GST come from folios and the restaurant (Accounting), not from this register.</p>
     {!!Object.keys(sum.byCategory).length&&(phone?<div className="exp-cards">{Object.keys(sum.byCategory).sort().map(c=><article key={c} className="exp-item"><span>− {c}</span><strong>{money(sum.byCategory[c])}</strong></article>)}</div>
       :<div className="table-wrap"><table><thead><tr><th>Head</th><th className="number">Amount</th></tr></thead><tbody>{Object.keys(sum.byCategory).sort().map(c=><tr key={c}><td>− {c}</td><td className="number">{money(sum.byCategory[c])}</td></tr>)}</tbody></table></div>)}
-    {f&&<div className={'info-note padded'+(stale?' f-warn':'')}><Lock size={16}/><span>Feed generated {f.generatedAt.replace('T',' ')} by {name(s,f.by)} — expense {money(f.expense)}, GST paid {money(f.gstPaid)}.
-      {stale?` Ledger changed after the tax feed was generated — regenerate the feed for ${m} before sharing with your CA.`:''}</span></div>}
-    <div className="padded exp-item-actions">{user.role==='Owner'?<button type="button" className="btn" onClick={()=>open({type:'exp-month-lock',room:m})}><Lock size={16}/> {f?'Regenerate tax feed':`Generate & lock tax feed for ${m}`}</button>
-      :<span className="muted">Only the Owner can lock the month / generate the tax feed.</span>}
+    {f&&<div className={'info-note padded'+(stale?' f-warn':'')}>{f.unlockedAt?<Unlock size={16}/>:<Lock size={16}/>}<span>Feed generated {f.generatedAt.replace('T',' ')} by {name(s,f.by)} — expense {money(f.expense)}, GST paid {money(f.gstPaid)}{f.gstItc!==undefined?` (ITC allowed ${money(f.gstItc)})`:''}.
+      {f.unlockedAt?' '+expMonthUnlockedMessage(f):stale?` Ledger changed after the tax feed was generated — regenerate the feed for ${m} before sharing with your CA.`:''}</span></div>}
+    {!!f?.unlocks?.length&&<p className="muted padded">Unlocked {f.unlocks.length}×: {f.unlocks.map(u=>`${u.at.replace('T',' ')} by ${name(s,u.by)} — ${u.reason}`).join(' · ')}</p>}
+    <div className="padded exp-item-actions">{user.role==='Owner'?<><button type="button" className="btn" onClick={()=>open({type:'exp-month-lock',room:m})}><Lock size={16}/> {f&&!f.unlockedAt?'Regenerate tax feed':`${f?'Lock again':'Generate & lock tax feed'} for ${m}`}</button>
+        {f&&!f.unlockedAt&&<button type="button" className="btn" onClick={()=>open({type:'exp-month-unlock',room:m})}><Unlock size={16}/> Unlock month…</button>}</>
+      :<span className="muted">Only the Owner can lock or unlock the month / generate the tax feed.</span>}
       {exportOk&&<button type="button" className="btn" onClick={()=>csv('month',m)}><Download size={16}/> Month CSV</button>}</div>
   </section>;
 }
@@ -369,7 +414,7 @@ export function ExpMonth({phone=false}:{phone?:boolean}){
 export function ExpRowExtras({e}:{e:Expense}){
   const {open}=useHcc();
   return <>{e.description&&e.vendor&&<small>{e.vendor}</small>}
-    {(e.gstPaise||e.gstRateBps)&&<small>GST {e.gstRateBps?e.gstRateBps/100+' % · ':''}{money(e.gstPaise??0)}</small>}
+    {(e.gstPaise||e.gstRateBps)&&<small>GST {e.gstRateBps?e.gstRateBps/100+' % · ':''}{money(e.gstPaise??0)}{e.gstPaise?' · '+EXP_ITC_LABEL[e.itc==='allowed'?'allowed':'disallowed']:''}</small>}
     {e.source&&<small><Pill>{e.source==='petty'?'petty cash':'recurring'}</Pill></small>}
     {e.status==='Void'&&<small>Void · {e.voidReason}</small>}
     {(e.billPhoto||e.hasBillPhoto)&&<button type="button" className="text-btn" onClick={()=>open({type:'exp-photo',id:e.id})}><Eye size={13}/> Bill photo</button>}

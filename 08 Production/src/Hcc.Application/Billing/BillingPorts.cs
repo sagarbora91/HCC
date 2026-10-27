@@ -59,6 +59,10 @@ public interface ICashDrawerPort
 {
     Task<long> RecordMovementAsync(ICommandTransaction tx, int tillId, CashMovementKind kind, string sourceType, long sourceId, Paise amount,
         string label, string reference, CancellationToken ct = default);
+
+    /// <summary>The open shift on the till for the business date (INVALID_TRANSITION when none) — DEC-130: an Udhaar cash receipt checks the
+    /// receiver's PERM-PAY-001 on that shift (own shift for Reception / Cashier) before the movement.</summary>
+    Task<long> OpenShiftIdAsync(ICommandTransaction tx, int tillId, CancellationToken ct = default);
 }
 
 // ── Store port (implemented by Hcc.Infrastructure.SqlServer.Billing.SqlBillingStore) ──
