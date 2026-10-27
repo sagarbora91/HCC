@@ -26,7 +26,7 @@ pwsh -NoProfile -File "E:\Projects\HCC\worktrees\acc1\tools\Invoke-Serialized.ps
 | File | Meaning |
 |---|---|
 | `E:\Projects\HCC\worktrees\_tools\heavy-jobs.log` | One `START` and one `END` line per heavy job: UTC time, `[label]`, working directory and command, exit code, seconds. Read it to see who holds the lock and how long the queue is. |
-| `E:\Projects\HCC\worktrees\_tools\PAUSE-LANE-BUILDS` | Exists only while a priority job (the wave gate, an emulator run) is running. Each line is a label allowed through; every other label waits (then exits 75) so the priority job gets the lock next. `Start-Gate.ps1` writes `gate-<wave>` and removes the file in a `finally`. If a session died and the file is stale, the coordinator deletes it by hand (a lane must not). |
+| `E:\Projects\HCC\worktrees\_tools\PAUSE-LANE-BUILDS` | Exists only while a priority job (the wave gate, an emulator run) is running. Each line is a label allowed through; every other label waits (then exits 75) so the priority job gets the lock next. `Start-Gate.ps1` writes `gate-<wave>` and removes the file in a `finally`. The `finally` runs on errors and Ctrl+C but not when the PC restarts or the process is killed: after such a crash check that the file is gone (`Test-Path E:\Projects\HCC\worktrees\_tools\PAUSE-LANE-BUILDS`), and if a stale one is left the coordinator deletes it by hand (a lane must not). A new `Start-Gate.ps1` for the same wave simply reuses a stale file of its own label; for another label it refuses. |
 
 A lane build that gets exit 75 during a gate simply retries later; nobody is stopped.
 
