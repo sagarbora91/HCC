@@ -258,7 +258,7 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
     {
         ArgumentNullException.ThrowIfNull(v);
         return new VoucherView(v.Number, v.Date, v.Type.ToString(), v.Narration, v.SourceKey, v.SourceKind, v.Sub, v.Debit, v.Credit, v.Balanced,
-            v.Entries.Select(e => new VoucherEntryView(e.Account, ChartOfAccounts.NameOf(e.Account), e.DebitPaise, e.CreditPaise)).ToList(), v.Unmapped);
+            v.Entries.Select(e => new VoucherEntryView(e.Account, PartyLedgers.DisplayName(e.Account), e.DebitPaise, e.CreditPaise)).ToList(), v.Unmapped); // ACC-1: party ids
     }
 
     private static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);

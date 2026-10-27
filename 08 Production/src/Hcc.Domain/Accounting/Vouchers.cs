@@ -15,7 +15,8 @@ public sealed record Voucher(string Number, DateOnly Date, VoucherType Type, str
     public bool Balanced => Debit == Credit;
 }
 
-public sealed record TrialBalanceRow(string Account, string Name, AccountGroup Group, long DebitPaise, long CreditPaise, long BalancePaise);
+/// <summary>A trial-balance row. ACC-1: <paramref name="Control"/> is set on a party row (detail trial balance) — the control it sums into.</summary>
+public sealed record TrialBalanceRow(string Account, string Name, AccountGroup Group, long DebitPaise, long CreditPaise, long BalancePaise, string? Control = null);
 
 public enum DayStatus
 {
@@ -62,7 +63,8 @@ public static class VoucherBuilder
                     account = ChartOfAccounts.Suspense;
                 }
 
-                if (e.DebitPaise != 0 || e.CreditPaise != 0) entries.Add(new VoucherEntry(account, e.DebitPaise, e.CreditPaise));
+                // ACC-1 (contract §3): the mapping resolves the key, then the party suffix is appended when the ledger is a control ledger.
+                if (e.DebitPaise != 0 || e.CreditPaise != 0) entries.Add(new VoucherEntry(PartyLedgers.Compose(account, e.Party), e.DebitPaise, e.CreditPaise));
             }
 
             if (entries.Count > 0) built.Add(new Voucher("", date, s.Type, s.Narration, s.SourceKey, s.Kind, s.Sub, entries, miss));
@@ -93,22 +95,48 @@ public static class VoucherBuilder
         return (d, c);
     }
 
-    /// <summary>Trial balance over vouchers; balance = debit − credit; chart order, unknown codes last.</summary>
-    public static IReadOnlyList<TrialBalanceRow> TrialBalance(IEnumerable<Voucher> vouchers)
+    /// <summary>
+    /// Trial balance over vouchers; balance = debit − credit; chart order, unknown codes last. ACC-1 (contract §3, prototype
+    /// <c>accTrialBalance</c>): <paramref name="detail"/> false = one row per control ledger (its parties summed into it); true = a row per
+    /// party (<see cref="TrialBalanceRow.Control"/> set, name "control name · party id") right after its control's own row (present only when
+    /// something posted to the control itself). Both tie.
+    /// </summary>
+    public static IReadOnlyList<TrialBalanceRow> TrialBalance(IEnumerable<Voucher> vouchers, bool detail = false)
     {
         ArgumentNullException.ThrowIfNull(vouchers);
         var m = new Dictionary<string, (long D, long C)>(StringComparer.Ordinal);
         foreach (var v in vouchers)
             foreach (var e in v.Entries)
             {
-                var x = m.GetValueOrDefault(e.Account);
-                m[e.Account] = (checked(x.D + e.DebitPaise), checked(x.C + e.CreditPaise));
+                var key = detail ? e.Account : PartyLedgers.ControlOf(e.Account);
+                var x = m.GetValueOrDefault(key);
+                m[key] = (checked(x.D + e.DebitPaise), checked(x.C + e.CreditPaise));
             }
 
-        return m.OrderBy(kv => ChartOfAccounts.OrderOf(kv.Key)).ThenBy(kv => kv.Key, StringComparer.Ordinal)
-            .Select(kv => new TrialBalanceRow(kv.Key, ChartOfAccounts.NameOf(kv.Key), ChartOfAccounts.Find(kv.Key)?.Group ?? AccountGroup.Suspense,
-                kv.Value.D, kv.Value.C, kv.Value.D - kv.Value.C))
+        return m.OrderBy(kv => ChartOfAccounts.OrderOf(PartyLedgers.ControlOf(kv.Key))).ThenBy(kv => PartyLedgers.ControlOf(kv.Key), StringComparer.Ordinal)
+            .ThenBy(kv => PartyLedgers.IsParty(kv.Key) ? 1 : 0).ThenBy(kv => kv.Key, StringComparer.Ordinal)
+            .Select(kv =>
+            {
+                var control = PartyLedgers.ControlOf(kv.Key);
+                var party = PartyLedgers.IsParty(kv.Key);
+                return new TrialBalanceRow(kv.Key, party ? ChartOfAccounts.NameOf(control) + " · " + PartyLedgers.PartyOf(kv.Key) : ChartOfAccounts.NameOf(kv.Key),
+                    ChartOfAccounts.Find(control)?.Group ?? AccountGroup.Suspense, kv.Value.D, kv.Value.C, kv.Value.D - kv.Value.C, party ? control : null);
+            })
             .ToList();
+    }
+
+    /// <summary>
+    /// ACC-1 (contract §3): <c>no-party</c> warnings — an entry on a control ledger itself (the source did not name the party: an event
+    /// published before ACC-1, a method with no settles-to account). One per voucher and control; never blocks a lock.
+    /// </summary>
+    public static IEnumerable<AccountingIssue> NoPartyWarnings(IEnumerable<Voucher> vouchers)
+    {
+        ArgumentNullException.ThrowIfNull(vouchers);
+        foreach (var v in vouchers)
+            foreach (var c in v.Entries.Select(e => e.Account).Where(PartyLedgers.IsControl).Distinct(StringComparer.Ordinal))
+                yield return new("noparty:" + v.Number + ":" + c, "warning", "no-party", $"{v.Number} posts to the control ledger {c} {ChartOfAccounts.NameOf(c)}",
+                    "The source does not name the party (an old record, or a method with no settles-to account), so the amount sits on the control ledger, not on a party sub-ledger. It does not block the lock.",
+                    v.Number, v.SourceKey);
     }
 
     /// <summary>Source ids with their debit totals (prototype fingerprint): differs when a locked day's sources changed, not when only the mapping did.</summary>
@@ -137,6 +165,7 @@ public static class VoucherBuilder
                     $"{ChartOfAccounts.KeyGroup(k)} → posted to Suspense in {v.Number}. Map it in Mapping, then lock.", v.Number, v.SourceKey, k));
         }
 
+        if (!locked) out_.AddRange(NoPartyWarnings(shown)); // ACC-1: not on a locked snapshot (frozen as locked)
         var (d, c) = Totals(shown);
         if (d != c) out_.Add(new("unbal:day", "error", "unbalanced", "Trial balance does not agree", $"Debits ₹{SourceRules.Rupees(d)} ≠ credits ₹{SourceRules.Rupees(c)}"));
         if (locked && live is not null && Fingerprint(shown) != Fingerprint(live))

@@ -20,14 +20,14 @@ public static class Reconciliation
         ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(report);
         var tenders = mapping.Where(kv => kv.Key.StartsWith("method:", StringComparison.Ordinal)).Select(kv => kv.Value).ToHashSet(StringComparer.Ordinal);
-        long Net(string? code, Func<Voucher, bool> f) => code is null ? 0 : vouchers.Where(f).Sum(v => v.Entries.Where(e => e.Account == code).Sum(e => e.CreditPaise - e.DebitPaise));
+        long Net(string? code, Func<Voucher, bool> f) => code is null ? 0 : vouchers.Where(f).Sum(v => v.Entries.Where(e => PartyLedgers.ControlOf(e.Account) == code).Sum(e => e.CreditPaise - e.DebitPaise));
         Func<Voucher, bool> Line(string sub) => v => v.SourceKind == SourceKinds.Line && v.Sub == sub;
         long TenderMove(params string[] kinds) => vouchers.Where(v => v.SourceKind == SourceKinds.Receipt && kinds.Contains(v.Sub))
-            .Sum(v => v.Entries.Where(e => tenders.Contains(e.Account)).Sum(e => e.DebitPaise - e.CreditPaise));
+            .Sum(v => v.Entries.Where(e => tenders.Contains(PartyLedgers.ControlOf(e.Account))).Sum(e => e.DebitPaise - e.CreditPaise));
         string? M(string key) => mapping.GetValueOrDefault(key);
         var taxCodes = new[] { M("folio:cgst"), M("folio:sgst") }.Where(x => x is not null).Distinct(StringComparer.Ordinal);
         var credit = vouchers.Where(v => v.SourceKind == SourceKinds.Receipt && v.Sub == "company-credit")
-            .Sum(v => v.Entries.Where(e => e.Account == M("receipt:company-credit")).Sum(e => e.DebitPaise - e.CreditPaise));
+            .Sum(v => v.Entries.Where(e => PartyLedgers.ControlOf(e.Account) == M("receipt:company-credit")).Sum(e => e.DebitPaise - e.CreditPaise));
         static ReconciliationCheck C(string id, string label, long report, long ledger, string note) => new(id, label, report, ledger, report == ledger, note);
         return
         [

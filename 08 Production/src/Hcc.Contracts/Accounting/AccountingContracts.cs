@@ -42,6 +42,9 @@ public static class AccountingEvents
     // DEC-130 (SCC decisions wave): an Udhaar (customer credit) payment taken as a desk receipt (Dr tender · Cr Udhaar receivables).
     public const string UdhaarPaymentRecorded = "UdhaarPaymentRecorded";
 
+    // ACC-1 (contract §4, rulebook A17, DEC-144): an Udhaar credit raised is a sale booked the same day (Dr 1120/<customer> · Cr revenue · Cr CGST · Cr SGST).
+    public const string UdhaarCreditRaised = "UdhaarCreditRaised";
+
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
 
@@ -52,7 +55,8 @@ public static class AccountingEvents
          GroupReceiptRecorded, GroupAttritionPosted, GroupSettled, AdvanceGiven, FnfSettled,   // DEC-074 (wave B3)
          CashBanked, CashBankingRejected, OwnerDrawingRecorded,                                  // Wave B1 (DEC-073)
          CompanyPaymentRecorded,                                                                 // DEC-076 (wave B5)
-         UdhaarPaymentRecorded];                                                                 // DEC-130 (SCC decisions wave)
+         UdhaarPaymentRecorded,                                                                  // DEC-130 (SCC decisions wave)
+         UdhaarCreditRaised];                                                                    // ACC-1 (acc1-parties, DEC-144)
 }
 
 /// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>
@@ -73,6 +77,13 @@ public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId,
 /// </summary>
 public sealed record UdhaarPaymentRecordedEvent(long ReceivableId, long SettlementId, DateOnly BusinessDate, string Tender, long AmountPaise, string Customer, string? Reference = null,
     long? CashMovementId = null);
+
+/// <summary>
+/// ACC-1 (contract §4, rulebook A17, DEC-144): an Udhaar credit raised (Expenses <c>AddUdhaar</c>). <see cref="Kind"/> = restaurant | room | other
+/// (null on a request without it = other), <see cref="GstBps"/> = the GST rate of what was sold (0 = no GST lines). Booked as a Sales voucher:
+/// Dr Udhaar receivables (party <c>UD-&lt;mobile&gt;</c> or <c>UD-&lt;slug of name&gt;</c>) gross · Cr F&amp;B / room / other revenue · Cr CGST · Cr SGST.
+/// </summary>
+public sealed record UdhaarCreditRaisedEvent(long ReceivableId, DateOnly BusinessDate, string Customer, string? Mobile, long AmountPaise, string? Kind = null, int GstBps = 0);
 
 /// <summary>P4 Payments (requested): a counted cash difference was accepted or rejected. Only <c>Approved</c> posts a voucher.</summary>
 public sealed record ShiftDifferenceDecidedEvent(long ShiftId, long ApprovalId, string Status, DateOnly BusinessDate, long ExpectedPaise, long CountedPaise);

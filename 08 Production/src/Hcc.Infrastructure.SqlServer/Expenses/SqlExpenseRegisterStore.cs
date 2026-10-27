@@ -167,11 +167,11 @@ public sealed class SqlExpenseRegisterStore(SqlConnectionFactory connections) : 
 
     // ── Udhaar ──
 
-    private const string UdCols = "receivable_id, property_id, customer_name, mobile, amount_paise, credit_date, due_date, note, created_by, created_utc, is_void, void_reason, voided_by, voided_date";
+    private const string UdCols = "receivable_id, property_id, customer_name, mobile, amount_paise, credit_date, due_date, note, created_by, created_utc, is_void, void_reason, voided_by, voided_date, kind, gst_bps";
 
     private static UdhaarRecord ReadUd(SqlDataReader r) => new(r.GetInt64(0), r.GetInt32(1), r.GetString(2), Str(r, 3), r.GetInt64(4), Date(r, 5),
         r.IsDBNull(6) ? null : Date(r, 6), Str(r, 7), r.GetInt32(8), Utc(r, 9), r.GetBoolean(10), Str(r, 11), r.IsDBNull(12) ? null : r.GetInt32(12),
-        r.IsDBNull(13) ? null : Date(r, 13), []);
+        r.IsDBNull(13) ? null : Date(r, 13), [], Str(r, 14), r.GetInt32(15)); // ACC-1: kind, gst_bps (migration 4215)
 
     private static UdhaarSettlementRecord ReadSettle(SqlDataReader r) => new(r.GetInt64(0), r.GetInt64(1), r.GetInt64(2), Date(r, 3), r.GetString(4), r.GetInt32(5), Utc(r, 6),
         r.GetBoolean(7), Str(r, 8), r.IsDBNull(9) ? null : r.GetInt32(9));
@@ -194,13 +194,14 @@ public sealed class SqlExpenseRegisterStore(SqlConnectionFactory connections) : 
     {
         ArgumentNullException.ThrowIfNull(r);
         return InsertIdAsync(tx, """
-            INSERT ops.udhaar_receivable(property_id, customer_name, mobile, amount_paise, credit_date, due_date, note, created_by, created_utc)
-            OUTPUT INSERTED.receivable_id VALUES (@p, @n, @mob, @a, @d, @due, @note, @by, @now);
+            INSERT ops.udhaar_receivable(property_id, customer_name, mobile, amount_paise, credit_date, due_date, note, created_by, created_utc, kind, gst_bps)
+            OUTPUT INSERTED.receivable_id VALUES (@p, @n, @mob, @a, @d, @due, @note, @by, @now, @kind, @gst);
             """, c =>
         {
             Add(c, "@p", SqlDbType.Int, r.PropertyId); Add(c, "@n", SqlDbType.NVarChar, r.Name, 80); Add(c, "@mob", SqlDbType.Char, r.Mobile, 10);
             Add(c, "@a", SqlDbType.BigInt, r.Amount); Add(c, "@d", SqlDbType.Date, D(r.CreditDate)); Add(c, "@due", SqlDbType.Date, r.DueDate is { } d ? D(d) : null);
             Add(c, "@note", SqlDbType.NVarChar, r.Note, 200); Add(c, "@by", SqlDbType.Int, r.CreatedBy); Add(c, "@now", SqlDbType.DateTime2, r.CreatedUtc);
+            Add(c, "@kind", SqlDbType.VarChar, r.Kind, 10); Add(c, "@gst", SqlDbType.Int, r.GstBps); // ACC-1 (migration 4215)
         }, ct);
     }
 

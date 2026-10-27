@@ -68,8 +68,13 @@ public sealed record DecidePettyFloatRequest(long EntryId, bool Approve, string?
 /// <summary>RecordPettyDisbursement K (PERM-EXP-001, SCC pettyOut): a drawer-cash expense "Petty: &lt;for&gt;" for approval.</summary>
 public sealed record RecordPettyDisbursementRequest(long AmountPaise, string Category, string? For = null, string? Receipt = null, string? OverrideReason = null);
 
-/// <summary>AddUdhaar K (PERM-EXP-001, SCC addReceivable): a credit sale on trust; never posts to cash or income.</summary>
-public sealed record AddUdhaarRequest(string Name, long AmountPaise, string? Mobile = null, string? DueDate = null, string? Note = null);
+/// <summary>
+/// AddUdhaar K (PERM-EXP-001, SCC addReceivable): a credit sale on trust; never posts to cash. ACC-1 (contract §4, rulebook A17, DEC-144):
+/// <c>Kind</c> = restaurant | room | other (what was sold on credit — the screen asks) and <c>GstBps</c> = its GST rate (0–2800; absent with
+/// a kind = 0). The credit is booked as a sale the same day (UdhaarCreditRaised: Dr Udhaar receivables · Cr revenue · Cr CGST · Cr SGST).
+/// Without a kind the credit books as "other" without GST (as the credits raised before ACC-1).
+/// </summary>
+public sealed record AddUdhaarRequest(string Name, long AmountPaise, string? Mobile = null, string? DueDate = null, string? Note = null, string? Kind = null, int? GstBps = null);
 
 /// <summary>
 /// PayUdhaar K (PERM-EXP-001, SCC payReceivable): more than outstanding + ₹0.50 is capped to the outstanding. DEC-130: a desk receipt — a

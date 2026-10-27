@@ -37,7 +37,7 @@ public sealed class GoldenAccountingTests
         foreach (var s in day.GetProperty("sources").EnumerateArray())
         {
             var (id, n) = (S(s, "id"), S(s, "narration"));
-            list.Add(S(s, "kind") switch
+            list.Add(SourceRules.WithParties(S(s, "kind") switch
             {
                 "line" => Line(s, id, date, n),
                 "receipt" => SourceRules.FolioReceipt(id, S(s, "sub"), S(s, "tender"), date, L(s, "amountPaise"), n),
@@ -45,10 +45,18 @@ public sealed class GoldenAccountingTests
                 "expense" => SourceRules.Expense(id, S(s, "sub") == "reversal", S(s, "category"), S(s, "funding"), date, L(s, "amountPaise"), n),
                 "closing" => SourceRules.CashDifference(id, date, L(s, "amountPaise"), n),
                 var k => throw new InvalidOperationException("Unknown source kind " + k),
-            });
+            }, Parties(s)));
         }
 
         return list;
+    }
+
+    /// <summary>ACC-1 (contract §3): the parties the prototype source names (tender's settles-to account, company, vendor), as the consumer resolves them.</summary>
+    private static PartyContext? Parties(JsonElement s)
+    {
+        if (!s.TryGetProperty("parties", out var p)) return null;
+        string? P(string k) => p.TryGetProperty(k, out var v) ? v.GetString() : null;
+        return new PartyContext(Tender: P("tender"), Company: P("company"), Vendor: P("vendor"));
     }
 
     private static AccountingSource Line(JsonElement s, string id, DateOnly date, string n)

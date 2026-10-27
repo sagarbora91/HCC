@@ -129,7 +129,9 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.ReceiptRecorded:
             {
                 var e = Parse<ReceiptRecordedPayload>(evt);
-                source = AccountingEventMapper.Receipt(e.FolioId, e.ReceiptId, e.Kind, e.Tender, e.BusinessDate, e.AmountPaise);
+                var company = e.Kind == "company-credit" ? await ReceiptCompanyAsync(connection, transaction, e.ReceiptId, ct).ConfigureAwait(false) : null;
+                source = AccountingEventMapper.Receipt(e.FolioId, e.ReceiptId, e.Kind, e.Tender, e.BusinessDate, e.AmountPaise,
+                    new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false), Company: company));
                 break;
             }
 
@@ -144,7 +146,8 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             {
                 var e = Parse<ShiftDifferenceDecidedEvent>(evt);
                 if (e.Status == "Approved" && e.CountedPaise != e.ExpectedPaise)
-                    source = AccountingEventMapper.CashDifference(e.ShiftId, await TillOfAsync(connection, transaction, e.ShiftId, ct).ConfigureAwait(false), e.BusinessDate, e.ExpectedPaise, e.CountedPaise);
+                    source = AccountingEventMapper.CashDifference(e.ShiftId, await TillOfAsync(connection, transaction, e.ShiftId, ct).ConfigureAwait(false), e.BusinessDate, e.ExpectedPaise, e.CountedPaise,
+                        await CashPartiesAsync(connection, transaction, propertyId, ct).ConfigureAwait(false));
                 break;
             }
 
@@ -152,7 +155,7 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             {
                 // A room-posted bill is one folio service line: booked once from its ChargePosted (guest ledger), never here as well.
                 var e = Parse<PosBillSettledEvent>(evt);
-                if (e.Mode != "folio") source = AccountingEventMapper.PosBill(e);
+                if (e.Mode != "folio") source = AccountingEventMapper.PosBill(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false)));
                 break;
             }
 
@@ -162,39 +165,62 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
                 source = AccountingEventMapper.PosBill(e with
                 {
                     Kind = "void", TotalPaise = -Math.Abs(e.TotalPaise), NetPaise = -Math.Abs(e.NetPaise), CgstPaise = -Math.Abs(e.CgstPaise), SgstPaise = -Math.Abs(e.SgstPaise),
-                });
+                }, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false)));
                 break;
             }
             case AccountingEvents.ExpensePosted:
             case AccountingEvents.ExpenseReversed:
-                source = AccountingEventMapper.Expense(Parse<ExpensePostedEvent>(evt));
+            {
+                var e = Parse<ExpensePostedEvent>(evt);
+                source = AccountingEventMapper.Expense(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Funding, ct).ConfigureAwait(false),
+                    Vendor: await VendorPartyAsync(connection, transaction, propertyId, e.Vendor, ct).ConfigureAwait(false)));
                 break;
+            }
             case AccountingEvents.PayrollPosted:
                 source = AccountingEventMapper.PayRun(Parse<PayrollPostedEvent>(evt));
                 break;
             case AccountingEvents.PayrollPaid:
-                source = AccountingEventMapper.PayRunPaid(Parse<PayrollPaidEvent>(evt));
+            {
+                var e = Parse<PayrollPaidEvent>(evt);
+                source = AccountingEventMapper.PayRunPaid(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Funding, ct).ConfigureAwait(false)));
                 break;
+            }
             case AccountingEvents.PayRunUnlocked:
                 source = await PayRunReversalAsync(connection, transaction, propertyId, Parse<PayRunUnlockedEvent>(evt), ct).ConfigureAwait(false);
                 break;
 
             // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer (a till transfer books nothing: cash to cash) ──
             case AccountingEvents.CashBanked:
-                source = AccountingEventMapper.Banking(Parse<CashBankingEvent>(evt), rejected: false);
-                break;
             case AccountingEvents.CashBankingRejected:
-                source = AccountingEventMapper.Banking(Parse<CashBankingEvent>(evt), rejected: true);
+            {
+                var e = Parse<CashBankingEvent>(evt);
+                var cash = await CashPartiesAsync(connection, transaction, propertyId, ct).ConfigureAwait(false);
+                source = AccountingEventMapper.Banking(e, rejected: evt.EventType == AccountingEvents.CashBankingRejected,
+                    cash with { Bank = await BankPartyAsync(connection, transaction, propertyId, e.Bank, ct).ConfigureAwait(false) });
                 break;
+            }
+
             case AccountingEvents.OwnerDrawingRecorded:
-                source = AccountingEventMapper.OwnerDrawing(Parse<OwnerDrawingEvent>(evt));
+                source = AccountingEventMapper.OwnerDrawing(Parse<OwnerDrawingEvent>(evt), await CashPartiesAsync(connection, transaction, propertyId, ct).ConfigureAwait(false));
                 break;
             // ── end Wave B1 ──
             case AccountingEvents.CompanyPaymentRecorded:
-                source = AccountingEventMapper.CompanyPayment(Parse<CompanyPaymentRecordedEvent>(evt));
+            {
+                var e = Parse<CompanyPaymentRecordedEvent>(evt);
+                source = AccountingEventMapper.CompanyPayment(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false)));
                 break;
+            }
+
             case AccountingEvents.UdhaarPaymentRecorded: // DEC-130
-                source = AccountingEventMapper.UdhaarPayment(Parse<UdhaarPaymentRecordedEvent>(evt));
+            {
+                var e = Parse<UdhaarPaymentRecordedEvent>(evt);
+                source = AccountingEventMapper.UdhaarPayment(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false),
+                    Udhaar: await UdhaarPartyAsync(connection, transaction, e.ReceivableId, e.Customer, ct).ConfigureAwait(false)));
+                break;
+            }
+
+            case AccountingEvents.UdhaarCreditRaised: // ACC-1 (contract §4, A17)
+                source = AccountingEventMapper.UdhaarCredit(Parse<UdhaarCreditRaisedEvent>(evt));
                 break;
         }
 
@@ -227,14 +253,14 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
         var key = AccountingEventMapper.PayRunKey(e.RunId, e.LockSeq);
         var entries = new List<SourceEntry>();
         await using (var cmd = new SqlCommand("""
-            SELECT se.map_key, se.debit_paise, se.credit_paise FROM acc.source s JOIN acc.source_entry se ON se.source_id = s.source_id
+            SELECT se.map_key, se.debit_paise, se.credit_paise, se.party_id FROM acc.source s JOIN acc.source_entry se ON se.source_id = s.source_id
             WHERE s.property_id = @p AND s.source_key = @k ORDER BY se.line_no;
             """, c, t))
         {
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             cmd.Parameters.Set("@k", SqlDbType.VarChar, key, 80);
             await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) entries.Add(new SourceEntry(rd.GetString(0), rd.GetInt64(1), rd.GetInt64(2)));
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) entries.Add(new SourceEntry(rd.GetString(0), rd.GetInt64(1), rd.GetInt64(2), rd.IsDBNull(3) ? null : rd.GetString(3)));
         }
 
         if (entries.Count == 0) return null;
@@ -276,24 +302,35 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             {
                 var e = Parse<GroupReceiptRecordedEvent>(evt);
                 var of = e.Kind == "refund" ? e.RefundOfKind ?? await RefundedKindAsync(c, t, e.EntryId, ct).ConfigureAwait(false) : null;
-                return [AccountingEventMapper.GroupReceipt(e, of)];
+                return [AccountingEventMapper.GroupReceipt(e, of, new PartyContext(Tender: await TenderPartyAsync(c, t, propertyId, e.Tender, ct).ConfigureAwait(false),
+                    Company: await GroupCompanyAsync(c, t, e.GroupId, ct).ConfigureAwait(false)))];
             }
 
             case AccountingEvents.GroupAttritionPosted:
-                return [AccountingEventMapper.GroupAttrition(Parse<GroupAttritionPostedEvent>(evt))];
+            {
+                var e = Parse<GroupAttritionPostedEvent>(evt);
+                return [AccountingEventMapper.GroupAttrition(e, new PartyContext(Company: await GroupCompanyAsync(c, t, e.GroupId, ct).ConfigureAwait(false)))];
+            }
+
             case AccountingEvents.GroupSettled:
             {
                 var e = Parse<GroupSettledEvent>(evt);
                 var held = e.DepositsHeldPaise ?? await DepositsHeldAsync(c, t, e.GroupId, ct).ConfigureAwait(false);
-                return [AccountingEventMapper.GroupSettlement(e, held, e.BusinessDate ?? await BusinessDateAsync(c, t, propertyId, ct).ConfigureAwait(false))];
+                return [AccountingEventMapper.GroupSettlement(e, held, e.BusinessDate ?? await BusinessDateAsync(c, t, propertyId, ct).ConfigureAwait(false),
+                    new PartyContext(Company: await GroupCompanyAsync(c, t, e.GroupId, ct).ConfigureAwait(false)))];
             }
 
             case AccountingEvents.AdvanceGiven:
-                return [AccountingEventMapper.Advance(Parse<AdvanceGivenEvent>(evt))];
+            {
+                var e = Parse<AdvanceGivenEvent>(evt);
+                return [AccountingEventMapper.Advance(e, new PartyContext(Tender: await TenderPartyAsync(c, t, propertyId, string.IsNullOrEmpty(e.Funding) ? "Bank transfer" : e.Funding, ct).ConfigureAwait(false)))];
+            }
+
             case AccountingEvents.FnfSettled:
             {
                 var e = Parse<FnfSettledEvent>(evt);
-                return AccountingEventMapper.Fnf(e, e.BusinessDate ?? await BusinessDateAsync(c, t, propertyId, ct).ConfigureAwait(false));
+                return AccountingEventMapper.Fnf(e, e.BusinessDate ?? await BusinessDateAsync(c, t, propertyId, ct).ConfigureAwait(false),
+                    new PartyContext(Tender: await TenderPartyAsync(c, t, propertyId, string.IsNullOrEmpty(e.Funding) ? "Bank transfer" : e.Funding, ct).ConfigureAwait(false)));
             }
 
             default:
@@ -326,6 +363,89 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
     }
 
     // ── end DEC-074 (wave B3) ──
+
+    // ── ACC-1 (acc1-parties, contract §3) · the parties an event names, read when it is consumed (read-only; null = not named) ──
+
+    /// <summary>The bank account / till code a payment method settles to (mst.payment_method by name or code → mst.bank_account).</summary>
+    private static async Task<string?> TenderPartyAsync(SqlConnection c, SqlTransaction t, int propertyId, string? method, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(method)) return null;
+        await using var cmd = new SqlCommand("""
+            SELECT TOP (1) b.code FROM mst.payment_method m JOIN mst.bank_account b ON b.bank_account_id = m.settles_to_id
+            WHERE m.property_id = @p AND (m.name = @n OR m.code = @n) ORDER BY CASE WHEN m.name = @n THEN 0 ELSE 1 END, m.payment_method_id;
+            """, c, t);
+        cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+        cmd.Parameters.Set("@n", SqlDbType.NVarChar, method.Trim(), 60);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
+
+    /// <summary>Cash leaving / entering a drawer: the till the Cash method settles to.</summary>
+    private static async Task<PartyContext> CashPartiesAsync(SqlConnection c, SqlTransaction t, int propertyId, CancellationToken ct)
+        => new(Tender: await TenderPartyAsync(c, t, propertyId, "Cash", ct).ConfigureAwait(false));
+
+    /// <summary>DEC-132: the vendor list row of an expense's vendor text (ops.expense_vendor by name or code).</summary>
+    private static async Task<string?> VendorPartyAsync(SqlConnection c, SqlTransaction t, int propertyId, string? vendor, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(vendor)) return null;
+        await using var cmd = new SqlCommand("""
+            SELECT TOP (1) code FROM ops.expense_vendor WHERE property_id = @p AND (name = @n OR code = @n)
+            ORDER BY CASE WHEN name = @n THEN 0 ELSE 1 END, expense_vendor_id;
+            """, c, t);
+        cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+        cmd.Parameters.Set("@n", SqlDbType.NVarChar, vendor.Trim(), 60);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
+
+    /// <summary>The bank account a deposit slip names (code, name or bank, case-insensitive), else the property's only bank account.</summary>
+    private static async Task<string?> BankPartyAsync(SqlConnection c, SqlTransaction t, int propertyId, string? text, CancellationToken ct)
+    {
+        var rows = new List<(string Code, string Name, string? Bank, bool Active)>();
+        await using (var cmd = new SqlCommand("SELECT code, name, bank, active FROM mst.bank_account WHERE property_id = @p AND kind = 'bank' ORDER BY sort_order, bank_account_id;", c, t))
+        {
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) rows.Add((rd.GetString(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetString(2), rd.GetBoolean(3)));
+        }
+
+        var x = (text ?? "").Trim();
+        if (x.Length > 0)
+        {
+            var hit = rows.FirstOrDefault(r => string.Equals(r.Code, x, StringComparison.OrdinalIgnoreCase) || string.Equals(r.Name, x, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(r.Bank, x, StringComparison.OrdinalIgnoreCase));
+            hit = hit.Code is not null ? hit : rows.FirstOrDefault(r => x.Contains(r.Name, StringComparison.OrdinalIgnoreCase) || x.Contains(r.Code, StringComparison.OrdinalIgnoreCase));
+            if (hit.Code is not null) return hit.Code;
+        }
+
+        var active = rows.Where(r => r.Active).ToList();
+        return active.Count == 1 ? active[0].Code : rows.Count == 1 ? rows[0].Code : null;
+    }
+
+    /// <summary>The company a company-credit receipt is owed by (pay.receipt.company_id, migration 3500).</summary>
+    private static async Task<string?> ReceiptCompanyAsync(SqlConnection c, SqlTransaction t, long receiptId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("SELECT company_id FROM pay.receipt WHERE receipt_id = @r;", c, t);
+        cmd.Parameters.Set("@r", SqlDbType.BigInt, receiptId);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is long id ? PartyLedgers.Company(id) : null;
+    }
+
+    /// <summary>The company a group master folio is billed to (grp.group_account.company_id; none → the control).</summary>
+    private static async Task<string?> GroupCompanyAsync(SqlConnection c, SqlTransaction t, long groupId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("SELECT company_id FROM grp.group_account WHERE group_id = @g;", c, t);
+        cmd.Parameters.Set("@g", SqlDbType.BigInt, groupId);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is long id ? PartyLedgers.Company(id) : null;
+    }
+
+    /// <summary>The Udhaar customer of a credit (ops.udhaar_receivable name + mobile; the event's name when the row is not found).</summary>
+    private static async Task<string> UdhaarPartyAsync(SqlConnection c, SqlTransaction t, long receivableId, string customer, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("SELECT customer_name, mobile FROM ops.udhaar_receivable WHERE receivable_id = @r;", c, t);
+        cmd.Parameters.Set("@r", SqlDbType.BigInt, receivableId);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await rd.ReadAsync(ct).ConfigureAwait(false) ? PartyLedgers.Udhaar(rd.GetString(0), rd.IsDBNull(1) ? null : rd.GetString(1)) : PartyLedgers.Udhaar(customer, null);
+    }
+
+    // ── end ACC-1 ──
 
     private static async Task<int> TillOfAsync(SqlConnection c, SqlTransaction t, long shiftId, CancellationToken ct)
     {
@@ -397,12 +517,13 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
         for (var i = 0; i < s.Entries.Count; i++)
         {
             var e = s.Entries[i];
-            await using var ins = new SqlCommand("INSERT acc.source_entry(source_id, line_no, map_key, debit_paise, credit_paise) VALUES (@s, @i, @k, @d, @c);", c, t);
+            await using var ins = new SqlCommand("INSERT acc.source_entry(source_id, line_no, map_key, debit_paise, credit_paise, party_id) VALUES (@s, @i, @k, @d, @c, @pa);", c, t);
             ins.Parameters.Set("@s", SqlDbType.BigInt, id);
             ins.Parameters.Set("@i", SqlDbType.TinyInt, (byte)i);
             ins.Parameters.Set("@k", SqlDbType.VarChar, e.MapKey.Length <= 80 ? e.MapKey : e.MapKey[..80], 80);
             ins.Parameters.Set("@d", SqlDbType.BigInt, e.DebitPaise);
             ins.Parameters.Set("@c", SqlDbType.BigInt, e.CreditPaise);
+            ins.Parameters.Set("@pa", SqlDbType.VarChar, PartyLedgers.Clip(e.Party), PartyLedgers.MaxPartyLength); // ACC-1 (migration 4210)
             await ins.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 

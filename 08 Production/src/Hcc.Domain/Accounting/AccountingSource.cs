@@ -11,8 +11,12 @@ public enum VoucherType
     Journal,
 }
 
-/// <summary>One side of a source record, still keyed by classification (resolved to a ledger through the mapping at read time).</summary>
-public sealed record SourceEntry(string MapKey, long DebitPaise, long CreditPaise);
+/// <summary>
+/// One side of a source record, still keyed by classification (resolved to a ledger through the mapping at read time). ACC-1 (contract §3):
+/// <paramref name="Party"/> = the party the source names for this side (null = none: a control ledger then takes it on the control itself);
+/// appended to the resolved code only when that code is a control ledger (<see cref="PartyLedgers.Compose"/>).
+/// </summary>
+public sealed record SourceEntry(string MapKey, long DebitPaise, long CreditPaise, string? Party = null);
 
 /// <summary>
 /// A source record for accounting (one per operational record: folio line, receipt, outlet bill, expense, cash difference, pay
@@ -131,6 +135,57 @@ public static class SourceRules
     /// </summary>
     public static AccountingSource UdhaarPayment(string sourceKey, string tender, DateOnly date, long amountPaise, string narration)
         => new(sourceKey, SourceKinds.Receipt, "udhaar-payment", date, VoucherType.Receipt, narration, [Dr("method:" + tender, amountPaise), Cr(UdhaarKey, amountPaise)]);
+
+    // ── ACC-1 (acc1-parties) · party sub-ledgers and the Udhaar credit raised ──
+
+    /// <summary>
+    /// The source with each entry's party set from <paramref name="parties"/> by map key (<see cref="PartyContext.For"/>); an entry that
+    /// already names a party keeps it. Null / <see cref="PartyContext.None"/> = unchanged.
+    /// </summary>
+    public static AccountingSource WithParties(AccountingSource source, PartyContext? parties)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (parties is null || parties == PartyContext.None) return source;
+        return source with { Entries = source.Entries.Select(e => e.Party is null ? e with { Party = PartyLedgers.Clip(parties.For(e.MapKey)) } : e).ToList() };
+    }
+
+    /// <summary>Revenue key of an Udhaar credit's kind (prototype <c>expUdRevenueKey</c>): restaurant → F&amp;B (pos:sales), room → line:room, other → line:service.</summary>
+    public static string UdhaarRevenueKey(string? kind) => kind switch
+    {
+        "restaurant" => "pos:sales",
+        "room" => "line:room",
+        _ => "line:service",
+    };
+
+    /// <summary>
+    /// The GST inside an Udhaar credit's gross amount (prototype <c>expUdGst</c>): taxable = gross × 10000 ÷ (10000 + bps) rounded half away
+    /// from zero, tax = gross − taxable, split by <see cref="GstSplit"/>. bps 0 = no GST.
+    /// </summary>
+    public static (long Taxable, long Cgst, long Sgst) UdhaarGst(long grossPaise, int gstBps)
+    {
+        if (gstBps <= 0) return (grossPaise, 0, 0);
+        var n = checked(Math.Abs(grossPaise) * 10000);
+        var d = 10000L + gstBps;
+        var q = n / d;
+        var t = q + ((n - q * d) * 2 >= d ? 1 : 0);
+        var taxable = grossPaise < 0 ? -t : t;
+        var (cgst, sgst) = GstSplit.Of(grossPaise - taxable);
+        return (taxable, cgst, sgst);
+    }
+
+    /// <summary>
+    /// ACC-1 (contract §4, rulebook A17, DEC-144): an Udhaar credit raised = Sales the same day — Dr Udhaar receivables (party = the customer,
+    /// gross) · Cr the kind's revenue (taxable) · Cr CGST · Cr SGST. Kind <c>receipt</c> (like the Udhaar payment, so the folio-line
+    /// reconciliation is unchanged), sub <c>udhaar-credit</c>.
+    /// </summary>
+    public static AccountingSource UdhaarCredit(string sourceKey, DateOnly date, string? kind, long grossPaise, int gstBps, string customerParty, string narration)
+    {
+        var (taxable, cgst, sgst) = UdhaarGst(grossPaise, gstBps);
+        return new(sourceKey, SourceKinds.Receipt, "udhaar-credit", date, VoucherType.Sales, narration,
+            [Dr(UdhaarKey, grossPaise) with { Party = PartyLedgers.Clip(customerParty) }, Cr(UdhaarRevenueKey(kind), taxable), Cr("folio:cgst", cgst), Cr("folio:sgst", sgst)]);
+    }
+
+    // ── end ACC-1 ──
 
     /// <summary>Accepted cash difference (counted − expected): short = Dr over/short · Cr cash; over = Dr cash · Cr over/short (Journal).</summary>
     public static AccountingSource CashDifference(string sourceKey, DateOnly date, long differencePaise, string narration)
