@@ -8,8 +8,12 @@ namespace Hcc.Domain.Payroll;
 // rounding half-up on non-negative amounts (= half away from zero). Statutory values are DATED settings marked
 // "Illustrative — CA to confirm" (CA question pack 25 Oct 2026, P1–P17). Fictional staff only.
 //
-// NOT PORTED FROM SCC (review F-08, owner decision pending, CA item P10): calcAttendance's "extra days" rule, its 5.5-day monthly
-// cap on leaves applied, and day-based overtime. HCC pays rostered weekly offs from the roster and overtime per minute.
+// DEC-115 (owner, 27 Oct 2026: "import the entire payroll rules from SCC"; replaces DEC-099): pay days follow SCC calcAttendance exactly
+// (PayrollRules.SccDays) — total days = calendar days (or the rate version's override) − paid holidays (SCC "Mgmt holidays"); absent =
+// total − present − paid leave − half days (SCC's DSR/Leave feed), so a weekly off taken is an absent day; deduction = absent + ½ per half
+// day + ½ per 3 late marks; +4 extra days (2 when the deduction is 6–6.5, none from 7); salary days = min(total, total − deduction + leave
+// + extra); the surplus = OT days paid at gross ÷ total days (no per-minute overtime). ESIC month by month on earned pay by default.
+// Daily-wage staff: gross = daily rate × total days. Leave above 5.5 days or a deduction ≥ total days blocks the lock (SCC risk).
 
 /// <summary>
 /// Shift code: a code of the Shift patterns list (MA-6; M E N G are the seed) or OFF (weekly off). A value type so custom patterns are
@@ -31,7 +35,8 @@ public readonly record struct ShiftCode(string Value)
     public override string ToString() => Value;
 }
 
-public enum AttendanceStatus { P, L, H, A, OFF }
+/// <summary>Attendance mark; OFF = worked on the weekly off; NT = present without a thumb punch (SCC "No Thumb": ½ day deduction, DEC-115).</summary>
+public enum AttendanceStatus { P, L, H, A, OFF, NT }
 
 /// <summary>Leave type code of the Leave types list (MA-6; CL SL EL CO ML LOP are the seed); LOP = leave without pay.</summary>
 public readonly record struct LeaveType(string Value)
@@ -194,10 +199,16 @@ public sealed class StaffDays
     public IReadOnlyList<LeaveSpan> Leaves { get; }
 }
 
-/// <summary>Month counts (prototype HRCounts). Leave and absence can be half days. <see cref="Hol"/> = DEC-083 paid holidays not worked
-/// (paid like weekly offs: monthly pay keeps them; daily wage pays neither, as today — CA item A04-04 still open).</summary>
+/// <summary>Month counts (prototype HRCounts). Leave and absence can be half days. <see cref="Hol"/> = DEC-083 paid holidays not worked;
+/// <see cref="MgmtHol"/> = DEC-115 paid holidays of the month (SCC "Mgmt holidays": they shorten the total days); <see cref="Elapsed"/> = days
+/// read when the month was counted only up to a date (SCC caps the in-progress month by elapsed days).</summary>
 public sealed record AttendanceCounts(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
-    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0);
+    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0, int MgmtHol = 0, int? Elapsed = null, decimal NT = 0);
+
+/// <summary>DEC-115: SCC calcAttendance for one staff member's month (days; halves allowed) — prototype HRSccDays.</summary>
+public sealed record SccDays(decimal Total, decimal Present, decimal Half, decimal Leave, decimal Absent, decimal Late, decimal LateDed,
+    decimal AbsentDed, decimal HalfDed, decimal Deduction, decimal Extra, decimal FinalPresent, decimal SalaryDays, decimal OtDays, decimal NoThumb = 0,
+    decimal NoThumbDed = 0);
 
 /// <summary>Dated statutory rate version (one per effective-from date, the 1st of a month). bps = basis points; money in paise.</summary>
 public sealed record PayrollRates(DateOnly From,
@@ -205,11 +216,12 @@ public sealed record PayrollRates(DateOnly From,
     int PfEeBps, int PfErBps, long PfWageCap,
     int EsicEeBps, int EsicErBps, long EsicCeiling,
     long PtMaleExempt, long PtMaleMid, long PtMaleMidAmt, long PtStd, long PtFeb, long PtFemaleExempt,
-    int OtBps, int LateBlock, StatutoryRounding Rounding, bool EsicPeriod)
+    int OtBps, int LateBlock, StatutoryRounding Rounding, bool EsicPeriod, int DaysOverride = 0)
 {
-    /// <summary>SCC defaults from 1 Apr 2025 (illustrative — CA to confirm), with the F-07 contribution-period rule on.</summary>
+    /// <summary>SCC defaults from 1 Apr 2025 (illustrative — CA to confirm): ESIC month by month on earned pay (DEC-115), calendar days.
+    /// <see cref="OtBps"/> = the OT-day rate (10000 = gross ÷ total days); <see cref="DaysOverride"/> = SCC "Days Override" (0 = calendar days).</summary>
     public static PayrollRates Defaults() => new(new DateOnly(2025, 4, 1), 5000, 8000, 1000, 1200, 1300, 1_500_000, 75, 325, 2_100_000,
-        750_000, 1_000_000, 17_500, 20_000, 30_000, 2_500_000, 10_000, 3, StatutoryRounding.Paise, true);
+        750_000, 1_000_000, 17_500, 20_000, 30_000, 2_500_000, 10_000, 3, StatutoryRounding.Paise, false);
 
     public const string Disclaimer = "Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff.";
 
@@ -234,6 +246,7 @@ public sealed record PayrollRates(DateOnly From,
         Range(EsicErBps, 0, 1000, "ESIC employer rate", where);
         Range(OtBps, 0, 30000, "overtime multiplier", where);
         Range(LateBlock, 0, 10, "late rule", where);
+        Range(DaysOverride, 0, 31, "total days of a month", where);
         foreach (var (v, n) in new[] { (PfWageCap, "PF wage cap"), (EsicCeiling, "ESIC ceiling"), (PtMaleExempt, "PT nil slab"), (PtMaleMid, "PT middle slab"),
                      (PtMaleMidAmt, "PT middle amount"), (PtStd, "PT standard amount"), (PtFeb, "PT February amount"), (PtFemaleExempt, "PT women's exemption") })
             Range(v, 0, 100_000_000, n, where);
@@ -248,7 +261,7 @@ public sealed record PayLine(long StaffId, string Name, string Dept, string Desi
     AttendanceCounts Counts, int LatePenaltyHalf, decimal PayableDays,
     long Earned, long Basic, long Hra, long Washing, long Special, long Ot, long Gross,
     long PfWages, long Pf, long PfEr, long EsicWages, long Esic, long EsicEr, long Pt, long Advance, long Deductions, long Net,
-    long Ctc, bool? EsicCovered);
+    long Ctc, bool? EsicCovered, SccDays? Days = null);
 
 /// <summary>Totals of a run's lines.</summary>
 public sealed record PayTotals(int Staff, long Earned, long Basic, long Hra, long Washing, long Special, long Ot, long Gross, long PfWages, long Pf, long PfEr,

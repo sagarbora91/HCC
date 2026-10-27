@@ -9,9 +9,13 @@
 //   SCC leave — ...\reference-inputs\SCC-modules\leave\index.html
 //     ENT_DEFAULTS (CL 12 · SL 7 · EL 15 per Indian FY, fyRangeOf) · leaveDaysOf (half-day = 0.5) · isWeekOffDate (weekly offs skipped) ·
 //     getCapacity / MAX_DAY (max staff off per day — per department here; pending + approved hold a slot, rejected frees it) · decideLeave.
-// NOT PORTED FROM SCC (review F-08, Owner decision pending): calcAttendance's "extra days" rule (+4 paid days when total deductions ≤ 5.5,
-//   +2 when < 7, none above — i.e. paid days forfeited when absence is high), its 5.5-day monthly cap on leaves applied, and day-based overtime
-//   (surplus days paid at gross ÷ days). HCC instead pays rostered weekly offs (roster) and overtime per minute; see HR_NOT_PORTED.
+// DEC-115 (owner, 27 Oct 2026: "import the entire payroll rules from SCC"; replaces DEC-099): pay days follow SCC calcAttendance exactly
+//   (hrSccDays) — total days = calendar days (or the rate version's override) − paid holidays of the Holiday calendar (SCC "Mgmt holidays");
+//   absent = total − present − approved paid leave − half days (SCC's DSR/Leave feed; a day worked on the weekly off is present), so a weekly
+//   off taken is an absent day; deduction =
+//   absent + ½ per half day + ½ per 3 late marks; +4 extra days (2 when the deduction is 6–6.5, none from 7); salary days = min(total,
+//   total − deduction + leave + extra), the surplus = OT days paid at gross ÷ total days (no per-minute overtime). ESIC month by month on
+//   earned pay. Daily-wage staff: gross = daily rate × total days. Leaves above 5.5 days or a deduction ≥ total days block the lock (SCC risk).
 // Statutory values are DATED settings (effective-from) and marked "Illustrative — CA to confirm for a hotel". Fictional staff only.
 import type {State,Role} from '../types';
 import {addDays} from '../money';
@@ -21,7 +25,8 @@ import {mstStored} from './masters';
 
 /** Shift pattern code (master list Shift patterns, MA-6; M E N G are the seed) or 'OFF' for the weekly off. */
 export type HRShiftCode=string;
-export type HRAttStatus='P'|'L'|'H'|'A'|'OFF';
+/** NT = present without a thumb punch (SCC "No Thumb": ½ day deduction, DEC-115). */
+export type HRAttStatus='P'|'L'|'H'|'A'|'OFF'|'NT';
 /** Leave type code (master list Leave types, MA-6; CL SL EL CO ML LOP are the seed). */
 export type HRLeaveType=string;
 export type HRHalf='AM'|'PM';
@@ -62,18 +67,26 @@ export type HRRates={from:string;
   pfEeBps:number;pfErBps:number;pfWageCap:number;
   esicEeBps:number;esicErBps:number;esicCeiling:number;
   ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;
-  otBps:number;lateBlock:number;
+  /** OT-day rate as bps of a day's pay (SCC: 10000 = gross ÷ total days). */ otBps:number;
+  /** Late marks per ½-day deduction (SCC: 3; 0 = off). */ lateBlock:number;
   /** paise = SCC (round to 0.01); rupee = PF nearest rupee, ESIC next higher rupee. */ rounding:HRRounding;
   /** F-07 ESIC contribution-period rule (Apr–Sep / Oct–Mar): coverage is decided once per period from the contractual wage and then
-   *  continues to the period end even if pay crosses the ceiling. Absent/false = SCC month-by-month test on earned pay. Illustrative — CA to confirm. */
-  esicPeriod?:boolean};
+   *  continues to the period end even if pay crosses the ceiling. Absent/false = SCC month-by-month test on earned pay (the default, DEC-115). */
+  esicPeriod?:boolean;
+  /** SCC "Days Override": total days of every month from this version on (half days allowed); absent/0 = calendar days. */ daysOverride?:number};
 export type HRLeavePolicy={ent:{CL:number;SL:number;EL:number};
   /** Max staff off per department per day (pending + approved). */ defaultCap:number;deptCap:Record<string,number>};
 export type HRCounts={ym:string;days:number;P:number;L:number;H:number;
   /** Half-day worked with the other half on approved half-day leave. */ HL:number;
   A:number;OFFW:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
-  /** DEC-083 / MA-6: paid holidays (Holiday calendar) not worked — on days with no attendance, leave or weekly off; present only when > 0
-   *  (paid like weekly offs: monthly pay keeps them; daily wage pays neither, CA A04-04 open). */hol?:number};
+  /** DEC-083 / MA-6: paid holidays (Holiday calendar) not worked — on days with no attendance, leave or weekly off; present only when > 0. */hol?:number;
+  /** DEC-115: paid holidays of the Holiday calendar in the month = SCC "Mgmt holidays" (they shorten the total days); present only when > 0. */mgmtHol?:number;
+  /** Days counted when the month was read only up to a date (SCC caps the in-progress month by elapsed days); absent = the whole month. */elapsed?:number;
+  /** DEC-115: present days without a thumb punch (SCC No Thumb); present only when > 0. */NT?:number};
+/** DEC-115: SCC calcAttendance for one staff member's month (days; halves allowed). */
+export type HRSccDays={total:number;present:number;half:number;leave:number;absent:number;late:number;
+  lateDed:number;absentDed:number;halfDed:number;deduction:number;extra:number;finalPresent:number;salaryDays:number;otDays:number;
+  /** No-thumb marks and their deduction (½ each); absent on lines saved before they were counted. */noThumb?:number;noThumbDed?:number};
 /** DEC-083 paid holiday in the Wave B shape (date + name) — a view of an active "paid" row of MA-6's Holiday calendar master (one holidays concept). */
 export type HRPaidHoliday={date:string;name:string};
 /** DEC-075: what a past day holds for pay — nothing (unmarked = absent), an attendance mark, or a one-day approved leave. */
@@ -87,6 +100,7 @@ export type HRRequest={id:string;kind:'attendance'|'bank';staffId:string;
   requestedBy:string;requestedAt:string;decidedBy?:string;decidedAt?:string;note?:string};
 export type HRLine={staffId:string;name:string;dept:string;designation:string;payType:'monthly'|'daily';structure:HRStructure;gender:HRGender;base:number;
   counts:HRCounts;latePenaltyHalf:number;payableDays:number;
+  /** DEC-115: the SCC day sheet behind payableDays (= salaryDays) and the OT days; absent on lines saved before the SCC port. */ days?:HRSccDays;
   /** Earned (pro-rated) pay = SCC grossPayable. */ earned:number;basic:number;hra:number;washing:number;special:number;ot:number;
   /** earned + overtime. */ gross:number;
   pfWages:number;pf:number;pfEr:number;esicWages:number;esic:number;esicEr:number;pt:number;advance:number;deductions:number;net:number;
@@ -131,14 +145,14 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
   /** DEC-075 / DEC-084 requests, oldest first (absent = none). */ requests?:HRRequest[];
   /** Production only: the server's open correction window (hrCorrectionWindow computes it in the prototype). */ correctWindow?:{from:string;to:string}};
 
-/** F-08: shown on the leave-policy and statutory-rates screens. */
-export const HR_NOT_PORTED='Not ported from SCC: the extra-days rule (4 or 2 paid days added by total deductions, none above 7; 5.5-day monthly leave cap) and day-based overtime. HCC pays rostered weekly offs from the roster and overtime per minute. Owner decision pending (CA item 9).';
+/** DEC-115: shown on the leave-policy and statutory-rates screens (the SCC pay-day rule, in place of F-08's "not ported" note). */
+export const HR_SCC_DAYS='Pay days as in SCC: total days (calendar days, or the override, less paid holidays) − deductions (absent days, ½ per half day, ½ per no-thumb mark, ½ per 3 late marks) + approved leave + 4 extra days (2 when the deduction is 6–6.5 days, none from 7). Salary days stop at the total days; the rest are OT days paid at gross ÷ total days. A weekly off taken counts as an absent day — the extra days pay for it. More than 5.5 leave days in a month, or a deduction of all the days, blocks the lock.';
 export const HR_DISCLAIMER='Illustrative — CA to confirm for a hotel. PF, ESIC and Maharashtra PT rules ported from SCC as dated rates; not statutory advice. Fictional staff.';
 /** A04-11: shown on payslips and full-and-final documents (server PayrollRates.NotCalculated). */
 export const HR_NOT_CALCULATED='Not calculated: gratuity, notice pay, bonus, TDS on salary.';
 export const hrDefaultRates=():HRRates=>({from:'2025-04-01',basicBps:5000,hraBps:8000,washBps:1000,pfEeBps:1200,pfErBps:1300,pfWageCap:1500000,
   esicEeBps:75,esicErBps:325,esicCeiling:2100000,ptMaleExempt:750000,ptMaleMid:1000000,ptMaleMidAmt:17500,ptStd:20000,ptFeb:30000,ptFemaleExempt:2500000,
-  otBps:10000,lateBlock:3,rounding:'paise',esicPeriod:true});
+  otBps:10000,lateBlock:3,rounding:'paise',esicPeriod:false});
 export const hrDefaultLeavePolicy=():HRLeavePolicy=>({ent:{CL:12,SL:7,EL:15},defaultCap:2,deptCap:{}});
 export const hrEmpty=():HRState=>({depts:[],staff:[],roster:{},att:{},leaves:[],advances:[],rateVersions:[hrDefaultRates()],runs:[]});
 export const hrSlice=(s:State):HRState=>s.staffX??hrEmpty();
@@ -197,7 +211,9 @@ export function hrShiftInfo(c:HRShiftCode,s?:State){
   const p=s?hrShiftPattern(s,c):undefined;if(p)return {code:c,label:p.name,start:p.start,end:p.end};
   return HR_SHIFTS.find(x=>x.code===c)??{code:c,label:c,start:'',end:''};
 }
-export const HR_ATT_LABEL:Record<HRAttStatus,string>={P:'Present',L:'Late',H:'Half-day',A:'Absent',OFF:'Worked on off day'};
+export const HR_ATT_LABEL:Record<HRAttStatus,string>={P:'Present',L:'Late',H:'Half-day',A:'Absent',OFF:'Worked on off day',NT:'No thumb punch'};
+/** Every attendance mark a manager can record, in screen order. */
+export const HR_ATT_MARKS:HRAttStatus[]=['P','L','H','A','OFF','NT'];
 export const HR_LEAVE_TYPES:HRLeaveType[]=['CL','SL','EL','CO','ML','LOP'];
 export const HR_LEAVE_LABEL:Record<HRLeaveType,string>={CL:'Casual leave',SL:'Sick leave',EL:'Earned leave',CO:'Compensatory off',ML:'Maternity / paternity leave',LOP:'Leave without pay'};
 /** Leave types with a yearly entitlement (SCC TRACKED_CATS). Comp off and maternity / paternity are paid but not tracked. */
@@ -324,8 +340,12 @@ export function hrCheckinStatus(clock:string,shift:HRShiftCode,s?:State):'P'|'L'
 export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
   const c:HRCounts={ym,days:hrDaysInMonth(ym),P:0,L:0,H:0,HL:0,A:0,OFFW:0,off:0,paidLeave:0,lopLeave:0,unmarked:0,na:0,otMin:0};
   const addLeave=(l:HRLeave,n:number)=>{if(hrPaidLeave(l.type,s))c.paidLeave+=n;else c.lopLeave+=n;};
+  const mgmt=hrMonthDates(ym).filter(d=>hrHolidayPaid(s,d)).length;if(mgmt)c.mgmtHol=mgmt;
+  // The optional counts are set after the loop in one fixed key order (mgmtHol, hol, NT, elapsed), as the production client rebuilds them.
+  let seen=0,hol=0,nt=0,elapsed:number|undefined;
   for(const d of hrMonthDates(ym)){
-    if(upTo&&d>upTo)break;
+    if(upTo&&d>upTo){elapsed=seen;break;}
+    seen++;
     if(d<st.joined||(st.exitedOn&&d>st.exitedOn)){c.na++;continue;}
     const att=hrSlice(s).att[hrKey(d,st.id)],ls=hrApprovedLeavesOn(s,st.id,d),full=ls.find(l=>!l.half),halves=ls.filter(l=>l.half).slice(0,2);
     if(att){
@@ -333,16 +353,17 @@ export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
       if(!full&&halves.length&&(att.status==='H'||att.status==='A')){
         addLeave(halves[0],0.5);
         if(att.status==='H')c.HL++;else c.A+=0.5;
-      }else if(att.status==='OFF')c.OFFW++;else c[att.status]++;
+      }else if(att.status==='OFF')c.OFFW++;else if(att.status==='NT')nt++;else c[att.status]++;
     }
     // F-01: a rostered weekly off inside a leave span is a weekly off, never a leave day (SCC isWeekOffDate; matches the stored `days`).
     // DEC-083 / MA-6: a paid holiday (Holiday calendar) without attendance is a paid day, never leave or unmarked; a weekly off on the same day stays a weekly off.
     else if(hrShiftFor(s,st,d)==='OFF')c.off++;
-    else if(hrHolidayPaid(s,d))c.hol=(c.hol??0)+1;
+    else if(hrHolidayPaid(s,d))hol++;
     else if(full)addLeave(full,1);
     else if(halves.length){halves.forEach(l=>addLeave(l,0.5));c.unmarked+=1-0.5*halves.length;}
     else c.unmarked++;
   }
+  if(hol)c.hol=hol;if(nt)c.NT=nt;if(elapsed!==undefined)c.elapsed=elapsed;
   return c;
 }
 
@@ -426,20 +447,32 @@ export function hrEsicCovered(s:State,st:HRStaff,ym:string,r:HRRates):boolean|un
     .map(x=>x.lines.find(l=>l.staffId===st.id)).find(l=>typeof l?.esicCovered==='boolean');
   return prior?prior.esicCovered:hrEsicContractWage(st)<=r.esicCeiling;
 }
-/** One payroll line. Pure: staff + counts + rate version + advance → figures (rounded to paise, half-up, in this order).
- *  `esicCovered` = contribution-period coverage from hrEsicCovered (defaults to the contractual-wage test). */
+/** SCC roundHalf: to the nearest half day (SCC adds EPSILON; the inputs here are exact halves or day counts). */
+export const hrRoundHalf=(n:number)=>Math.round(n*2)/2;
+/** SCC extra days: 4 when the deduction is at most 5.5 days, 2 below 7, none from 7. */
+export const hrSccExtra=(deduction:number)=>deduction<=5.5?4:deduction<7?2:0;
+/** SCC total days of a month: calendar days (or the rate version's override) less the paid holidays (SCC "Mgmt holidays"), never below 0. */
+export const hrSccTotalDays=(c:HRCounts,r:HRRates)=>Math.max(0,hrRoundHalf((r.daysOverride&&r.daysOverride>0?r.daysOverride:c.days)-(c.mgmtHol??0)));
+/** DEC-115 — SCC calcAttendance on HCC's daily marks, read the way SCC's DSR/Leave feed fills the sheet: present = P + L + days worked on the
+ *  weekly off (OFF mark) + the worked half of a half-day leave; half days = H; leave = approved paid leave; absent = total − present − leave − half (weekly offs, A, unmarked days,
+ *  leave without pay and days out of service). A month read up to a date counts its elapsed share of the total days only (SCC feed). */
+export function hrSccDays(c:HRCounts,r:HRRates):HRSccDays{
+  const total=hrSccTotalDays(c,r),base=c.elapsed!==undefined&&c.elapsed<c.days?Math.min(total,hrRoundHalf(total*c.elapsed/c.days)):total;
+  const noThumb=c.NT??0,present=c.P+c.L+c.OFFW+noThumb+c.HL*0.5,half=c.H,leave=hrRoundHalf(c.paidLeave),late=c.L;
+  const absent=Math.max(0,hrRoundHalf(base-present-leave-half));
+  const lateDed=r.lateBlock>0?hrRoundHalf(Math.floor(late/r.lateBlock)*0.5):0,absentDed=absent,halfDed=hrRoundHalf(half*0.5),noThumbDed=hrRoundHalf(noThumb*0.5);
+  const deduction=hrRoundHalf(lateDed+absentDed+halfDed+noThumbDed),extra=hrSccExtra(deduction);
+  const finalPresent=Math.max(0,hrRoundHalf(total-deduction)),raw=hrRoundHalf(finalPresent+leave+extra);
+  return {total,present,half,leave,absent,late,lateDed,absentDed,halfDed,deduction,extra,finalPresent,salaryDays:Math.min(total,Math.max(0,raw)),otDays:Math.max(0,hrRoundHalf(raw-total)),
+    noThumb,noThumbDed};
+}
+/** One payroll line (SCC calcGM). Pure: staff + counts + rate version + advance → figures (rounded to paise, half-up, in this order).
+ *  `esicCovered` = contribution-period coverage from hrEsicCovered (only when the rate version uses that rule). */
 export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:number;balance:number},esicCovered?:boolean):HRLine{
-  const D=c.days,late=r.lateBlock>0?Math.floor(c.L/r.lateBlock):0,structure=hrStructureOf(st),gender=hrGenderOf(st);
-  let payHalf:number,earned:number,ot:number;
-  if(st.payType==='monthly'){
-    const lop=Math.min(2*D,Math.round(2*(c.A+c.unmarked+c.lopLeave+c.na))+c.H+late);
-    payHalf=2*D-lop;earned=hrMulDiv(st.monthly,payHalf,1,2*D);
-    ot=hrMulDiv(st.monthly,c.otMin,r.otBps,D*8*60*10000);
-  }else{
-    // DEC-083 (owner decision, binding over MA-6's draft): an unworked holiday is not paid to daily-wage staff — like a weekly off (CA A04-04 open).
-    payHalf=Math.max(0,Math.round(2*(c.P+c.L+c.OFFW))+c.H+c.HL-late);earned=hrMulDiv(st.daily,payHalf,1,2);
-    ot=hrMulDiv(st.daily,c.otMin,r.otBps,8*60*10000);
-  }
+  const structure=hrStructureOf(st),gender=hrGenderOf(st),days=hrSccDays(c,r),T2=Math.round(days.total*2);
+  // SCC: grossPayable = gross × salary days ÷ total days; OT = gross ÷ total days × OT days. A daily-wage worker's gross = daily rate × total days.
+  const dayPay=(d:number,bps:number)=>T2<=0?0:st.payType==='monthly'?hrMulDiv(st.monthly,Math.round(d*2),bps,T2*10000):hrMulDiv(st.daily,Math.round(d*2),bps,2*10000);
+  const earned=dayPay(days.salaryDays,10000),ot=dayPay(days.otDays,r.otBps),late=Math.round(days.lateDed*2);
   let basic=earned,hra=0,washing=0;
   if(structure==='S'){basic=hrMulDiv(earned,r.basicBps,1,10000);hra=hrMulDiv(basic,r.hraBps,1,10000);washing=hrMulDiv(basic,r.washBps,1,10000);}
   const special=earned-basic-hra-washing,gross=earned+ot;
@@ -453,7 +486,7 @@ export function hrComputeLine(st:HRStaff,c:HRCounts,r:HRRates,adv?:{installment:
   const advance=Math.max(0,Math.min(due,gross-pf-esic-pt));
   const deductions=pf+esic+pt+advance;
   return {staffId:st.id,name:st.name,dept:st.dept,designation:st.designation,payType:st.payType,structure,gender,base:st.payType==='monthly'?st.monthly:st.daily,
-    counts:c,latePenaltyHalf:late,payableDays:payHalf/2,earned,basic,hra,washing,special,ot,gross,pfWages,pf,pfEr,esicWages,esic,esicEr,pt,advance,deductions,
+    counts:c,latePenaltyHalf:late,payableDays:days.salaryDays,days,earned,basic,hra,washing,special,ot,gross,pfWages,pf,pfEr,esicWages,esic,esicEr,pt,advance,deductions,
     net:gross-deductions,ctc:gross+pfEr+esicEr,...(period?{esicCovered:hrEsicOn(st)&&covered}:{})};
 }
 /** Staff settled full-and-final with the exit month's salary inside the settlement. */
@@ -466,12 +499,27 @@ export function hrComputeRun(s:State,ym:string,rates=hrRatesFor(s,ym)):{lines:HR
     if(c.unmarked)warnings.push(`${st.name}: ${c.unmarked} unmarked day${c.unmarked===1?'':'s'} counted as absent — ${HR_UNMARKED_HINT}`);
     if((st.payType==='monthly'?st.monthly:st.daily)<=0)warnings.push(`${st.name}: salary not set — pays ₹0.`);
     const a=hrAdvanceFor(x,st.id,ym);
-    return hrComputeLine(st,c,rates,a?{installment:a.installment,balance:hrAdvanceBalance(a)}:undefined,hrEsicCovered(s,st,ym,rates));
+    const line=hrComputeLine(st,c,rates,a?{installment:a.installment,balance:hrAdvanceBalance(a)}:undefined,hrEsicCovered(s,st,ym,rates));
+    warnings.push(...hrSccIssues(st.name,line.days!).map(i=>i.text));
+    return line;
   });
   return {lines,warnings};
 }
-/** Errors that block locking (SCC runBlockingErrors). */
-export const hrRunErrors=(run:{lines:HRLine[]})=>run.lines.filter(l=>l.base<=0).map(l=>`${l.name}: salary not set`);
+const fmtDays=(n:number)=>String(n);
+/** DEC-115 — SCC calcAttendance issues, in SCC's words: 'risk' blocks the lock (SCC runBlockingErrors), 'warn' is shown only. */
+export function hrSccIssues(name:string,d:HRSccDays):{type:'risk'|'warn';text:string}[]{
+  const out:{type:'risk'|'warn';text:string}[]=[];
+  if(d.leave>5.5)out.push({type:'risk',text:`${name}: Leaves applied (${fmtDays(d.leave)}) exceed 5.5-day limit.`});
+  if(d.deduction>=d.total)out.push({type:'risk',text:`${name}: Total deduction (${fmtDays(d.deduction)}) ≥ total days (${fmtDays(d.total)}) — zero salary days.`});
+  else if(d.deduction>5.5)out.push({type:'warn',text:`${name}: High total deduction — ${fmtDays(d.deduction)} days.`});
+  if(d.otDays>0)out.push({type:'warn',text:`${name}: ${fmtDays(d.otDays)} OT day(s) — salary capped at ${fmtDays(d.total)}, OT tracked separately.`});
+  if(d.late>=3)out.push({type:'warn',text:`${name}: ${d.late} late mark(s).`});
+  if((d.noThumb??0)>0)out.push({type:'warn',text:`${name}: ${d.noThumb} no-thumb entry/entries.`});
+  return out;
+}
+/** Errors that block locking (SCC runBlockingErrors): salary not set, and the SCC 'risk' issues of the day sheet. */
+export const hrRunErrors=(run:{lines:HRLine[]})=>run.lines.flatMap(l=>[...(l.base<=0?[`${l.name}: salary not set`]:[]),
+  ...(l.days?hrSccIssues(l.name,l.days).filter(i=>i.type==='risk').map(i=>i.text):[])]);
 export const hrRunFor=(s:State,ym:string)=>hrSlice(s).runs.find(r=>r.month===ym);
 export function hrRunTotals(run:{lines:HRLine[]}){
   const t={staff:run.lines.length,earned:0,basic:0,ot:0,gross:0,pf:0,pfEr:0,esic:0,esicEr:0,pt:0,advance:0,deductions:0,net:0,ctc:0};
@@ -564,13 +612,13 @@ export const hrEntryLabel=(e:HRDayEntry)=>e.kind==='mark'?HR_ATT_LABEL[e.status]
 export const hrEntryCode=(e:HRDayEntry)=>e.kind==='mark'?e.status:e.kind==='leave'?e.type:'none';
 export const hrSameEntry=(a:HRDayEntry,b:HRDayEntry)=>hrEntryCode(a)===hrEntryCode(b)&&(a.kind!=='mark'||b.kind!=='mark'||a.otMin===b.otMin);
 /** Correction targets the dialog offers (server DayEntry.Parse): attendance marks, full-day leave types, or 'none' (clear the day). */
-export const HR_CORRECTION_MARKS=['P','L','H','A','OFF','CL','SL','EL','CO','ML','LOP','none'] as const;
+export const HR_CORRECTION_MARKS=['P','L','H','A','OFF','NT','CL','SL','EL','CO','ML','LOP','none'] as const;
 /** Parses a correction target (mark code + overtime minutes); a string = the refusal (VALIDATION). */
 export function hrParseEntry(mark:unknown,ot:unknown):HRDayEntry|string{
   const m=Number(ot??0);
   if(!Number.isInteger(m))return 'Overtime must be 0–480 minutes.';
   if(mark==='none')return m?'A cleared day carries no overtime.':{kind:'none'};
-  if(['P','L','H','A','OFF'].includes(String(mark))){if(m<0||m>480)return 'Overtime must be 0–480 minutes.';if(mark==='A'&&m>0)return 'An absent day cannot carry overtime.';
+  if((HR_ATT_MARKS as string[]).includes(String(mark))){if(m<0||m>480)return 'Overtime must be 0–480 minutes.';if(mark==='A'&&m>0)return 'An absent day cannot carry overtime.';
     return {kind:'mark',status:mark as HRAttStatus,otMin:m};}
   if((HR_LEAVE_TYPES as string[]).includes(String(mark)))return m?'A leave day carries no overtime.':{kind:'leave',type:mark as HRLeaveType};
   return 'Choose what the day should be: an attendance mark, a leave type or "none".';
@@ -701,17 +749,18 @@ export function hrSettingDefs():HRSettingDef[]{
   return [
     rate('hr.structure','Salary structure (structured pay)','percent','% basic of earned · HRA and washing % of basic',['basicBps','hraBps','washBps'],'SCC: basic 50%, HRA 80% of basic, washing 10% of basic, special = rest.'),
     rate('hr.pf','Provident Fund','percent','% of PF wages · wage cap ₹',['pfEeBps','pfErBps','pfWageCap'],'Employee 12%, employer 13% on basic capped at ₹15,000 (SCC).'),
-    rate('hr.esic','ESIC','percent','% of earned − washing · ceiling ₹',['esicEeBps','esicErBps','esicCeiling','esicPeriod'],'Employee 0.75%, employer 3.25% on earned − washing. Coverage: contribution-period rule (decided at the start of Apr–Sep / Oct–Mar from the contractual wage ≤ ₹21,000, kept to the period end); off = SCC month-by-month test on earned pay.'),
+    rate('hr.esic','ESIC','percent','% of earned − washing · ceiling ₹',['esicEeBps','esicErBps','esicCeiling','esicPeriod'],'Employee 0.75%, employer 3.25% on earned − washing. Coverage: SCC month by month (earned ≤ ₹21,000) by default (DEC-115); optional contribution-period rule (decided at the start of Apr–Sep / Oct–Mar from the contractual wage ≤ ₹21,000, kept to the period end); off = SCC month-by-month test on earned pay.'),
     rate('hr.pt','Professional tax (Maharashtra)','money','₹ per month by slab',['ptMaleExempt','ptMaleMid','ptMaleMidAmt','ptStd','ptFeb','ptFemaleExempt'],'Men nil ≤ ₹7,500, ₹175 to ₹10,000, then ₹200 (₹300 in February); women nil ≤ ₹25,000 (SCC ptFor).'),
-    rate('hr.ot','Overtime rate','percent','× ordinary hourly rate',['otBps'],'SCC pays overtime at the ordinary daily rate (1×).'),
+    rate('hr.days','Total days of a month','integer','days (0 = calendar days)',['daysOverride'],'SCC "Days Override": the month counts this many total days instead of its calendar days; paid holidays of the Holiday calendar are taken off either way (SCC "Mgmt holidays").'),
+    rate('hr.ot','OT day rate','percent','× a day’s pay (gross ÷ total days)',['otBps'],'SCC pays each OT day — salary days beyond the total days — at gross ÷ total days (1×). No per-minute overtime (DEC-115).'),
     rate('hr.late','Late marks rule','integer','late marks per ½-day loss of pay',['lateBlock'],'SCC: 3 late marks = ½ day.'),
     rate('hr.rounding','Statutory rounding','text','paise / rupee',['rounding'],'SCC rounds to paise; "rupee" rounds PF to the nearest rupee and ESIC up to the next rupee.'),
     leave('hr.leave.ent','Yearly leave entitlement','integer','days per financial year (CL / SL / EL)',['ent'],'SCC defaults: casual 12, sick 7, earned 15 (April–March). Each type also has its own carry-forward, paid / unpaid and encashment setting in Master configuration › People › Leave types.'),
     leave('hr.leave.cap','Maximum staff off per department per day','integer','staff (pending + approved)',['defaultCap','deptCap'],'SCC MAX_DAY capacity, applied per department.'),
     leave('hr.leave.half','Half-day leave','fixed','first half / second half = 0.5 day',[],'Always on (SCC leaveDaysOf).',false),
-    leave('hr.leave.weeklyoff','Weekly offs','fixed','one day per staff member',[],'Weekly offs inside leave dates are skipped (SCC isWeekOffDate).',false),
+    leave('hr.leave.weeklyoff','Weekly offs','fixed','one day per staff member',[],'Weekly offs inside leave dates are skipped (SCC isWeekOffDate). For pay a weekly off taken is an absent day; SCC’s 4 extra days pay for it (DEC-115).',false),
     // DEC-083: the dated paid-holiday calendar is kept in Staff & payroll › Leave › Holidays (Owner); shown read-only here.
-    {...leave('hr.leave.holidays','Paid holidays','fixed','dated list per property',[],'Paid like weekly offs: monthly staff keep their pay; daily-wage staff as for weekly offs (CA to confirm, A04-04). Skipped inside leave dates. The owner supplies the list.',false),
+    {...leave('hr.leave.holidays','Paid holidays','fixed','dated list per property',[],'Each paid holiday shortens its month’s total days (SCC "Mgmt holidays"); nobody loses pay for it. Skipped inside leave dates. The hotel has none (DEC-114).',false),
       approval:'Owner — Staff & payroll › Leave › Holidays',effective:'From the holiday’s date; a locked pay month keeps its holidays',dated:true},
   ];
 }
@@ -725,7 +774,8 @@ export function hrSettingValue(s:State,key:string,ym=s.date.slice(0,7)):string{
     case 'hr.pf':return `${pctOf(r.pfEeBps)} + ${pctOf(r.pfErBps)} on wages up to ${rs(r.pfWageCap)}`;
     case 'hr.esic':return `${pctOf(r.esicEeBps)} + ${pctOf(r.esicErBps)} · ${r.esicPeriod?`covered for the contribution period when the contractual wage ≤ ${rs(r.esicCeiling)}`:`while earned ≤ ${rs(r.esicCeiling)} (month by month)`}`;
     case 'hr.pt':return `Men ${rs(r.ptMaleMidAmt)} / ${rs(r.ptStd)} (Feb ${rs(r.ptFeb)}) · women exempt ≤ ${rs(r.ptFemaleExempt)}`;
-    case 'hr.ot':return `${r.otBps/10000}× ordinary rate`;
+    case 'hr.days':return r.daysOverride?`${r.daysOverride} days a month`:'Calendar days (SCC auto)';
+    case 'hr.ot':return `${r.otBps/10000}× a day’s pay per OT day`;
     case 'hr.late':return r.lateBlock?`${r.lateBlock} late = ½ day`:'Off';
     case 'hr.rounding':return r.rounding==='paise'?'To paise (SCC)':'PF nearest ₹ · ESIC next ₹';
     case 'hr.leave.ent':return `CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL} days / FY`;

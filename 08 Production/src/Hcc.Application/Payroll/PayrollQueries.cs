@@ -74,7 +74,7 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
 
     internal static PayLineView View(PayLine l, string mark) => new(l.StaffId, l.Name, l.Dept, l.Designation, PayrollService.PayTypeWire(l.PayType), l.PayableDays,
         l.Earned, l.Basic, l.Hra, l.Washing, l.Special, l.Ot, l.Gross, l.PfWages, l.Pf, l.PfEr, l.EsicWages, l.Esic, l.EsicEr, l.Pt, l.Advance, l.Deductions, l.Net, l.Ctc,
-        l.EsicCovered, mark);
+        l.EsicCovered, mark, DaysView(l.Days));
 
     private static async Task<RunRow> RunOfMonthAsync(IPayrollDb db, int propertyId, PayMonth month, CancellationToken ct)
         => (await db.RunsAsync(propertyId, ct).ConfigureAwait(false)).FirstOrDefault(r => r.Month == month) ?? throw new HccException(HccErrorCode.NOT_FOUND, "No payroll run for this month.");
@@ -212,15 +212,19 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
 
     internal static RateVersionView RatesView(PayrollRates r) => new(r.From, r.BasicBps, r.HraBps, r.WashBps, r.PfEeBps, r.PfErBps, r.PfWageCap, r.EsicEeBps, r.EsicErBps,
         r.EsicCeiling, r.PtMaleExempt, r.PtMaleMid, r.PtMaleMidAmt, r.PtStd, r.PtFeb, r.PtFemaleExempt, r.OtBps, r.LateBlock,
-        r.Rounding == StatutoryRounding.Rupee ? "rupee" : "paise", r.EsicPeriod);
+        r.Rounding == StatutoryRounding.Rupee ? "rupee" : "paise", r.EsicPeriod, r.DaysOverride);
+
+    internal static SccDaysView? DaysView(SccDays? d) => d is null ? null
+        : new SccDaysView(d.Total, d.Present, d.Half, d.Leave, d.Absent, d.Late, d.LateDed, d.AbsentDed, d.HalfDed, d.Deduction, d.Extra, d.FinalPresent,
+            d.SalaryDays, d.OtDays, d.NoThumb, d.NoThumbDed);
 
     internal static BoardLineView LineView(PayLine l)
     {
         var c = l.Counts;
         return new BoardLineView(l.StaffId, l.Name, l.Dept, l.Designation, PayrollService.PayTypeWire(l.PayType), l.Structure.ToString(), l.Gender.ToString(), l.Base,
-            new AttendanceCountsView(c.Ym, c.Days, c.P, c.L, c.H, c.HL, c.A, c.OFFW, c.Off, c.PaidLeave, c.LopLeave, c.Unmarked, c.Na, c.OtMin, c.Hol),
+            new AttendanceCountsView(c.Ym, c.Days, c.P, c.L, c.H, c.HL, c.A, c.OFFW, c.Off, c.PaidLeave, c.LopLeave, c.Unmarked, c.Na, c.OtMin, c.Hol, c.MgmtHol, c.Elapsed, c.NT),
             l.LatePenaltyHalf, l.PayableDays, l.Earned, l.Basic, l.Hra, l.Washing, l.Special, l.Ot, l.Gross, l.PfWages, l.Pf, l.PfEr, l.EsicWages, l.Esic, l.EsicEr, l.Pt,
-            l.Advance, l.Deductions, l.Net, l.Ctc, l.EsicCovered);
+            l.Advance, l.Deductions, l.Net, l.Ctc, l.EsicCovered, DaysView(l.Days));
     }
 
     private static string MaskTo(string to) => to.Length <= 4 ? "••••" : "••••" + to[^4..];

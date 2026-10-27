@@ -131,6 +131,10 @@ public static class PayrollRules
         ArgumentNullException.ThrowIfNull(days);
         decimal p = 0, l = 0, h = 0, hl = 0, a = 0, offw = 0, off = 0, paid = 0, lop = 0, unmarked = 0, na = 0, hol = 0;
         var ot = 0;
+        var mgmt = ym.Dates().Count(d => days.Holidays.ContainsKey(d));   // DEC-115: SCC "Mgmt holidays"
+        int? elapsed = null;
+        decimal nt = 0;
+        var seen = 0;
         void AddLeave(LeaveSpan x, decimal n)
         {
             if (x.IsPaid) paid += n;
@@ -139,7 +143,13 @@ public static class PayrollRules
 
         foreach (var d in ym.Dates())
         {
-            if (upTo is { } u && d > u) break;
+            if (upTo is { } u && d > u)
+            {
+                elapsed = seen;
+                break;
+            }
+
+            seen++;
             if (!st.InService(d))
             {
                 na++;
@@ -163,6 +173,7 @@ public static class PayrollRules
                     switch (att.Status)
                     {
                         case AttendanceStatus.OFF: offw++; break;
+                        case AttendanceStatus.NT: nt++; break;
                         case AttendanceStatus.P: p++; break;
                         case AttendanceStatus.L: l++; break;
                         case AttendanceStatus.H: h++; break;
@@ -181,7 +192,7 @@ public static class PayrollRules
             else unmarked++;
         }
 
-        return new AttendanceCounts(ym.ToString(), ym.Days, p, l, h, hl, a, offw, off, paid, lop, unmarked, na, ot, hol);
+        return new AttendanceCounts(ym.ToString(), ym.Days, p, l, h, hl, a, offw, off, paid, lop, unmarked, na, ot, hol, mgmt, elapsed, nt);
     }
 
     /// <summary>Maharashtra professional tax for a month (SCC ptFor): women exempt up to the female limit; men nil / mid slab / standard; February top slab.</summary>
@@ -197,35 +208,78 @@ public static class PayrollRules
 
     private static long HalfUnits(decimal twice) => (long)Math.Round(twice, MidpointRounding.AwayFromZero);
 
+    /// <summary>SCC roundHalf: to the nearest half day (prototype hrRoundHalf; negatives are clamped to 0 by every caller).</summary>
+    public static decimal RoundHalf(decimal n) => Math.Round(n * 2, MidpointRounding.AwayFromZero) / 2;
+
+    /// <summary>SCC extra days: 4 when the deduction is at most 5.5 days, 2 below 7, none from 7.</summary>
+    public static decimal SccExtra(decimal deduction) => deduction <= 5.5m ? 4 : deduction < 7 ? 2 : 0;
+
+    /// <summary>SCC total days: calendar days (or the rate version's override) less the paid holidays (SCC "Mgmt holidays"), never below 0.</summary>
+    public static decimal SccTotalDays(AttendanceCounts c, PayrollRates r)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        ArgumentNullException.ThrowIfNull(r);
+        return Math.Max(0, RoundHalf((r.DaysOverride > 0 ? r.DaysOverride : c.Days) - c.MgmtHol));
+    }
+
     /// <summary>
-    /// One payroll line (prototype hrComputeLine): staff + counts + rate version + open advance → figures, rounded to paise half-up
-    /// in this order. <paramref name="esicCovered"/> = contribution-period coverage from <see cref="EsicCovered"/> (default: contractual wage test).
+    /// DEC-115 — SCC calcAttendance on HCC's daily marks, read the way SCC's DSR/Leave feed fills the sheet (prototype hrSccDays): present =
+    /// P + L + days worked on the weekly off (OFF mark) + no-thumb days (NT) + the worked half of a half-day leave; half days = H; leave = approved paid leave; absent = total − present − leave − half (weekly
+    /// offs, A, unmarked days, leave without pay and days out of service). A month read up to a date counts its elapsed share of the total.
+    /// </summary>
+    public static SccDays SccDays(AttendanceCounts c, PayrollRates r)
+    {
+        var total = SccTotalDays(c, r);
+        var bas = c.Elapsed is { } e && e < c.Days ? Math.Min(total, RoundHalf(total * e / c.Days)) : total;
+        var noThumb = c.NT;
+        var present = c.P + c.L + c.OFFW + noThumb + c.HL * 0.5m;
+        var half = c.H;
+        var leave = RoundHalf(c.PaidLeave);
+        var absent = Math.Max(0, RoundHalf(bas - present - leave - half));
+        var lateDed = r.LateBlock > 0 ? RoundHalf(Math.Floor(c.L / r.LateBlock) * 0.5m) : 0;
+        var halfDed = RoundHalf(half * 0.5m);
+        var noThumbDed = RoundHalf(noThumb * 0.5m);
+        var deduction = RoundHalf(lateDed + absent + halfDed + noThumbDed);
+        var extra = SccExtra(deduction);
+        var finalPresent = Math.Max(0, RoundHalf(total - deduction));
+        var raw = RoundHalf(finalPresent + leave + extra);
+        return new SccDays(total, present, half, leave, absent, c.L, lateDed, absent, halfDed, deduction, extra, finalPresent,
+            Math.Min(total, Math.Max(0, raw)), Math.Max(0, RoundHalf(raw - total)), noThumb, noThumbDed);
+    }
+
+    /// <summary>DEC-115 — SCC calcAttendance issues in SCC's words: Risk blocks the lock (SCC runBlockingErrors), otherwise shown only.</summary>
+    public static IEnumerable<(bool Risk, string Text)> SccIssues(string name, SccDays d)
+    {
+        ArgumentNullException.ThrowIfNull(d);
+        if (d.Leave > 5.5m) yield return (true, $"{name}: Leaves applied ({Num(d.Leave)}) exceed 5.5-day limit.");
+        if (d.Deduction >= d.Total) yield return (true, $"{name}: Total deduction ({Num(d.Deduction)}) ≥ total days ({Num(d.Total)}) — zero salary days.");
+        else if (d.Deduction > 5.5m) yield return (false, $"{name}: High total deduction — {Num(d.Deduction)} days.");
+        if (d.OtDays > 0) yield return (false, $"{name}: {Num(d.OtDays)} OT day(s) — salary capped at {Num(d.Total)}, OT tracked separately.");
+        if (d.Late >= 3) yield return (false, $"{name}: {Num(d.Late)} late mark(s).");
+        if (d.NoThumb > 0) yield return (false, $"{name}: {Num(d.NoThumb)} no-thumb entry/entries.");
+    }
+
+    /// <summary>
+    /// One payroll line (SCC calcGM, prototype hrComputeLine): staff + counts + rate version + open advance → figures, rounded to paise
+    /// half-up in this order. <paramref name="esicCovered"/> = contribution-period coverage from <see cref="EsicCovered"/> (only when the
+    /// rate version uses that rule).
     /// </summary>
     public static PayLine ComputeLine(StaffProfile st, AttendanceCounts c, PayrollRates r, (long Installment, long Balance)? advance = null, bool? esicCovered = null)
     {
         ArgumentNullException.ThrowIfNull(st);
         ArgumentNullException.ThrowIfNull(c);
         ArgumentNullException.ThrowIfNull(r);
-        var d = c.Days;
-        var late = r.LateBlock > 0 ? (int)Math.Floor(c.L / r.LateBlock) : 0;
         var structure = st.EffectiveStructure;
         var gender = st.EffectiveGender;
-        long payHalf, earned, ot;
-        if (st.PayType == PayType.Monthly)
-        {
-            var lopHalf = Math.Min(2L * d, HalfUnits(2 * (c.A + c.Unmarked + c.LopLeave + c.Na)) + (long)c.H + late);
-            payHalf = 2L * d - lopHalf;
-            earned = PayMath.MulDiv(st.MonthlyPaise, payHalf, 1, 2L * d);
-            ot = PayMath.MulDiv(st.MonthlyPaise, c.OtMin, r.OtBps, d * 8L * 60 * 10000);
-        }
-        else
-        {
-            // DEC-083 (owner decision, binding over MA-6's draft): a daily-wage worker is not paid for an unworked holiday — like a weekly
-            // off (CA A04-04 open); a worked holiday is marked present and paid.
-            payHalf = Math.Max(0, HalfUnits(2 * (c.P + c.L + c.OFFW)) + (long)c.H + (long)c.HL - late);
-            earned = PayMath.MulDiv(st.DailyPaise, payHalf, 1, 2);
-            ot = PayMath.MulDiv(st.DailyPaise, c.OtMin, r.OtBps, 8L * 60 * 10000);
-        }
+        var days = SccDays(c, r);
+        var t2 = HalfUnits(days.Total * 2);
+        // SCC: grossPayable = gross × salary days ÷ total days; OT = gross ÷ total days × OT days. A daily-wage worker's gross = daily rate × total days.
+        long DayPay(decimal n, int bps) => t2 <= 0 ? 0 : st.PayType == PayType.Monthly
+            ? PayMath.MulDiv(st.MonthlyPaise, HalfUnits(n * 2), bps, t2 * 10000)
+            : PayMath.MulDiv(st.DailyPaise, HalfUnits(n * 2), bps, 2L * 10000);
+        var earned = DayPay(days.SalaryDays, 10000);
+        var ot = DayPay(days.OtDays, r.OtBps);
+        var late = (int)HalfUnits(days.LateDed * 2);
 
         long basic = earned, hra = 0, washing = 0;
         if (structure == PayStructure.S)
@@ -248,9 +302,9 @@ public static class PayrollRules
         var due = advance is { } adv ? (adv.Installment > 0 ? Math.Min(adv.Installment, adv.Balance) : adv.Balance) : 0;
         var advanceRecovery = Math.Max(0, Math.Min(due, gross - pf - esic - pt));
         var deductions = pf + esic + pt + advanceRecovery;
-        return new PayLine(st.StaffId, st.Name, st.Dept, st.Designation, st.PayType, structure, gender, st.BasePaise, c, late, payHalf / 2m,
+        return new PayLine(st.StaffId, st.Name, st.Dept, st.Designation, st.PayType, structure, gender, st.BasePaise, c, late, days.SalaryDays,
             earned, basic, hra, washing, special, ot, gross, pfWages, pf, pfEr, esicWages, esic, esicEr, pt, advanceRecovery, deductions,
-            gross - deductions, gross + pfEr + esicEr, r.EsicPeriod ? st.EsicOn && covered : null);
+            gross - deductions, gross + pfEr + esicEr, r.EsicPeriod ? st.EsicOn && covered : null, days);
     }
 
     /// <summary>
@@ -281,8 +335,10 @@ public static class PayrollRules
         if (st.BasePaise <= 0) yield return $"{st.Name}: salary not set — pays ₹0.";
     }
 
-    /// <summary>Errors that block locking (SCC runBlockingErrors).</summary>
-    public static IEnumerable<string> LockErrors(IEnumerable<PayLine> lines) => lines.Where(l => l.Base <= 0).Select(l => $"{l.Name}: salary not set");
+    /// <summary>Errors that block locking (SCC runBlockingErrors): salary not set, and the SCC risk issues of the day sheet (DEC-115).</summary>
+    public static IEnumerable<string> LockErrors(IEnumerable<PayLine> lines) => lines.SelectMany(l =>
+        (l.Base <= 0 ? [$"{l.Name}: salary not set"] : Array.Empty<string>())
+            .Concat(l.Days is { } d ? SccIssues(l.Name, d).Where(i => i.Risk).Select(i => i.Text) : []));
 
     /// <summary>A decimal count as the prototype prints it (0.5, 3).</summary>
     public static string Num(decimal v) => v.ToString("0.##", CultureInfo.InvariantCulture);

@@ -12,7 +12,7 @@ import {
 } from '../../services/mock';
 
 export const hrLeaveTone=(st:string)=>st==='Approved'?'green':st==='Pending'?'orange':'neutral';
-export const hrAttTone=(st:string)=>st==='P'?'green':st==='L'||st==='H'?'orange':st==='A'?'hr-red':'blue';
+export const hrAttTone=(st:string)=>st==='P'?'green':st==='L'||st==='H'||st==='NT'?'orange':st==='A'?'hr-red':'blue';
 
 const kind=(l:HRLeave,s:ReturnType<typeof useHcc>['s'])=>hrLeaveName(s,l.type)+(l.half?` · ½ (${l.half==='AM'?'first':'second'} half)`:'');
 /** Latest payslip with the deduction breakdown (own payslip only). */

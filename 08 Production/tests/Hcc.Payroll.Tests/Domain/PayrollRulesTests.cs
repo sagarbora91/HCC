@@ -12,7 +12,7 @@ public sealed class PayrollRulesTests
     private static readonly PayrollRates R = PayrollRates.Defaults();
 
     private static AttendanceCounts Full(string ym = "2026-09", int days = 30, decimal? p = null, decimal l = 0, decimal h = 0, decimal a = 0, decimal unmarked = 0,
-        decimal lop = 0, int ot = 0) => new(ym, days, p ?? days, l, h, 0, a, 0, 0, 0, lop, unmarked, 0, ot);
+        decimal lop = 0, int ot = 0, decimal off = 0, decimal paid = 0, decimal hl = 0) => new(ym, days, p ?? days, l, h, hl, a, 0, off, paid, lop, unmarked, 0, ot);
 
     private static StaffProfile Mon(long monthly, PayStructure? structure = null, bool? pf = null, bool? esic = null, Gender? g = null) =>
         new(1, "Test Person", "FO", "x", PayType.Monthly, monthly, 0, ShiftCode.M, 2, new DateOnly(2025, 4, 1), null, true, g, structure, pf, esic);
@@ -21,8 +21,9 @@ public sealed class PayrollRulesTests
     public void Default_rate_version_is_SCC_dated_1_Apr_2025_and_marked_illustrative()
     {
         Assert.Equal((new DateOnly(2025, 4, 1), 5000, 8000, 1000, 1200, 1300, 1_500_000L, 75, 325, 2_100_000L), (R.From, R.BasicBps, R.HraBps, R.WashBps, R.PfEeBps, R.PfErBps, R.PfWageCap, R.EsicEeBps, R.EsicErBps, R.EsicCeiling));
-        Assert.Equal((750_000L, 1_000_000L, 17_500L, 20_000L, 30_000L, 2_500_000L, 10_000, 3, StatutoryRounding.Paise, true),
-            (R.PtMaleExempt, R.PtMaleMid, R.PtMaleMidAmt, R.PtStd, R.PtFeb, R.PtFemaleExempt, R.OtBps, R.LateBlock, R.Rounding, R.EsicPeriod));
+        // DEC-115: SCC defaults — ESIC month by month on earned pay, OT day at 1×, calendar days (no override).
+        Assert.Equal((750_000L, 1_000_000L, 17_500L, 20_000L, 30_000L, 2_500_000L, 10_000, 3, StatutoryRounding.Paise, false, 0),
+            (R.PtMaleExempt, R.PtMaleMid, R.PtMaleMidAmt, R.PtStd, R.PtFeb, R.PtFemaleExempt, R.OtBps, R.LateBlock, R.Rounding, R.EsicPeriod, R.DaysOverride));
         Assert.Contains("CA to confirm for a hotel", PayrollRates.Disclaimer, StringComparison.Ordinal);
     }
 
@@ -49,26 +50,30 @@ public sealed class PayrollRulesTests
         var above = PayrollRules.ComputeLine(Mon(2_100_001), Full(), R);
         Assert.Equal((0L, 0L, 0L), (above.Esic, above.EsicEr, above.EsicWages));
         Assert.Equal(0, PayrollRules.ComputeLine(Mon(1_500_000, esic: false), Full(), R).Esic);
-        // SCC month-by-month (rule off): ₹25,000 with 6 days LOP earns ₹20,000 → covered that month.
-        var lop = PayrollRules.ComputeLine(Mon(2_500_000), Full(p: 24, a: 6), R with { EsicPeriod = false });
-        Assert.Equal(2_000_000, lop.Earned);
+        // SCC month by month (the default, DEC-115): ₹25,000 with 7 days absent → deduction 7, no extra days → 23 salary days → ₹19,166.67 → covered.
+        var lop = PayrollRules.ComputeLine(Mon(2_500_000), Full(p: 23, a: 7), R);
+        Assert.Equal(1_916_667, lop.Earned);
         Assert.True(lop.Esic > 0);
     }
 
     [Fact]
-    public void F07_contribution_period_keeps_22000_with_2_LOP_days_uncovered_and_a_covered_staff_covered_to_period_end()
+    public void F07_contribution_period_keeps_22000_with_7_absent_days_uncovered_and_a_covered_staff_covered_to_period_end()
     {
-        var lop = PayrollRules.ComputeLine(Mon(2_200_000), Full(p: 28, a: 2), R);
-        Assert.Equal((2_053_333L, 0L, 0L, (bool?)false), (lop.Earned, lop.Esic, lop.EsicEr, lop.EsicCovered));
-        var scc = PayrollRules.ComputeLine(Mon(2_200_000), Full(p: 28, a: 2), R with { EsicPeriod = false });
-        Assert.Equal((14_630L, 63_397L), (scc.Esic, scc.EsicEr));
+        // The contribution-period rule is optional since DEC-115. ₹22,000, 7 days absent → SCC 23 salary days → ₹16,866.67: uncovered under the period rule
+        // (contract ₹22,000 > ₹21,000); month by month ESIC on 16,866.67 − washing 843.33 = 16,023.34 → ₹120.18 / ₹520.76.
+        var rp = R with { EsicPeriod = true };
+        var lop = PayrollRules.ComputeLine(Mon(2_200_000), Full(p: 23, a: 7), rp);
+        Assert.Equal((1_686_667L, 0L, 0L, (bool?)false), (lop.Earned, lop.Esic, lop.EsicEr, lop.EsicCovered));
+        var scc = PayrollRules.ComputeLine(Mon(2_200_000), Full(p: 23, a: 7), R);
+        Assert.Equal((1_602_334L, 12_018L, 52_076L), (scc.EsicWages, scc.Esic, scc.EsicEr));
         // Covered at the start of Oct–Mar (October locked as covered), raised to ₹23,000 in December: covered to March, not from April.
         var raised = Mon(2_300_000);
         var prior = new[] { (new PayMonth(2026, 10), (bool?)true) };
-        Assert.True(PayrollRules.EsicCovered(raised, new PayMonth(2026, 12), R, prior));
-        Assert.True(PayrollRules.EsicCovered(raised, new PayMonth(2027, 3), R, prior));
-        Assert.False(PayrollRules.EsicCovered(raised, new PayMonth(2027, 4), R, prior));
-        Assert.True(PayrollRules.ComputeLine(raised, Full("2026-12", 31), R, null, true).Esic > 0);
+        Assert.True(PayrollRules.EsicCovered(raised, new PayMonth(2026, 12), rp, prior));
+        Assert.True(PayrollRules.EsicCovered(raised, new PayMonth(2027, 3), rp, prior));
+        Assert.False(PayrollRules.EsicCovered(raised, new PayMonth(2027, 4), rp, prior));
+        Assert.Null(PayrollRules.EsicCovered(raised, new PayMonth(2026, 12), R, prior));   // month by month: no period coverage
+        Assert.True(PayrollRules.ComputeLine(raised, Full("2026-12", 31), rp, null, true).Esic > 0);
         Assert.Null(PayrollRules.EsicCovered(raised, new PayMonth(2026, 12), R with { EsicPeriod = false }, prior));
         Assert.Equal(["2026-04", "2026-04", "2026-10", "2026-10"],
             new[] { new PayMonth(2026, 4), new PayMonth(2026, 9), new PayMonth(2026, 10), new PayMonth(2027, 3) }.Select(m => m.EsicPeriodStart.ToString()));
@@ -106,23 +111,30 @@ public sealed class PayrollRulesTests
     }
 
     [Fact]
-    public void Overtime_at_the_ordinary_rate_is_outside_the_statutory_base()
+    public void OT_days_at_gross_over_total_days_are_outside_the_statutory_base_and_overtime_minutes_are_not_paid()
     {
+        // DEC-115 (SCC): worked all 30 days, no weekly off → deduction 0, +4 extra → 34 → 30 salary days + 4 OT days; the 600 minutes add nothing.
         var l = PayrollRules.ComputeLine(Mon(1_000_000), Full(ot: 600), R);
-        Assert.Equal(41_667, l.Ot);   // 1,000,000 × 600 / (30 × 8 × 60) = 41,666.67
+        Assert.Equal((30m, 4m), (l.PayableDays, l.Days!.OtDays));
+        Assert.Equal(133_333, l.Ot);   // 1,000,000 × 4 / 30 = 133,333.33
         Assert.Equal((17_500L, 60_000L, 950_000L, 7_125L, 30_875L), (l.Pt, l.Pf, l.EsicWages, l.Esic, l.EsicEr));
-        Assert.Equal((1_041_667L, 84_625L, 957_042L), (l.Gross, l.Deductions, l.Net));
-        Assert.Equal(83_333, PayrollRules.ComputeLine(Mon(1_000_000), Full(ot: 600), R with { OtBps = 20_000 }).Ot);
+        Assert.Equal((1_133_333L, 84_625L, 1_048_708L), (l.Gross, l.Deductions, l.Net));
+        Assert.Equal(266_667, PayrollRules.ComputeLine(Mon(1_000_000), Full(ot: 600), R with { OtBps = 20_000 }).Ot);
+        Assert.Equal(0, PayrollRules.ComputeLine(Mon(1_000_000), Full(p: 26, off: 4, ot: 600), R).Ot);   // 4 weekly offs taken: no OT days
         var big = PayMath.MulDiv(100_000_000, 14_880, 30_000, 8L * 60 * 10000 * 31);
         Assert.Equal((long)(((System.Numerics.BigInteger)100_000_000 * 14_880 * 30_000 * 2 + 8L * 60 * 10000 * 31) / (2 * (System.Numerics.BigInteger)(8L * 60 * 10000 * 31))), big);
     }
 
     [Fact]
-    public void Three_late_marks_are_half_a_day_and_the_structured_split_sums_to_earned()
+    public void SCC_sheet_weekly_offs_are_absent_days_paid_back_by_the_extra_days_and_three_late_marks_are_half_a_day()
     {
+        // DEC-115: each sheet keeps 4 weekly offs and swaps present days for the mark being tested (prototype stream-payroll-scc.mjs, same figures).
         decimal Pd(AttendanceCounts c) => PayrollRules.ComputeLine(Mon(3_000_000), c, R).PayableDays;
-        Assert.Equal([30m, 29.5m, 29.5m, 29m, 29.5m, 29m, 29m, 29.5m],
-            new[] { Pd(Full(l: 2)), Pd(Full(l: 3)), Pd(Full(l: 5)), Pd(Full(l: 6)), Pd(Full(h: 1)), Pd(Full(a: 1)), Pd(Full(unmarked: 1)), Pd(Full(lop: 0.5m)) });
+        Assert.Equal([30m, 30m, 29.5m, 29.5m, 29m, 29.5m, 29m, 29m, 29.5m],
+            new[] { Pd(Full(p: 26, off: 4)), Pd(Full(p: 24, l: 2, off: 4)), Pd(Full(p: 23, l: 3, off: 4)), Pd(Full(p: 21, l: 5, off: 4)), Pd(Full(p: 20, l: 6, off: 4)),
+                Pd(Full(p: 25, h: 1, off: 4)), Pd(Full(p: 25, a: 1, off: 4)), Pd(Full(p: 25, unmarked: 1, off: 4)), Pd(Full(p: 25, hl: 1, lop: 0.5m, off: 4)) });
+        // Deduction 6 → 2 extra days; 7 → none; a paid leave day keeps full pay.
+        Assert.Equal([26m, 23m, 30m], new[] { Pd(Full(p: 24, a: 2, off: 4)), Pd(Full(p: 23, a: 3, off: 4)), Pd(Full(p: 25, paid: 1, off: 4)) });
         foreach (var m in new long[] { 1_234_567, 1_350_000, 999_999 })
         {
             var l = PayrollRules.ComputeLine(Mon(m), Full(h: 3, l: 4), R);
@@ -130,13 +142,13 @@ public sealed class PayrollRulesTests
             Assert.True(l.Special >= 0);
         }
 
-        Assert.Equal(30m, PayrollRules.ComputeLine(Mon(3_000_000), Full(l: 3), R with { LateBlock = 0 }).PayableDays);
+        Assert.Equal(30m, PayrollRules.ComputeLine(Mon(3_000_000), Full(p: 23, l: 3, off: 4), R with { LateBlock = 0 }).PayableDays);
     }
 
     [Fact]
     public void F01_LOP_leave_over_a_weekly_off_deducts_only_the_stored_days()
     {
-        // Aarav (₹18,000, weekly off Tuesday); LOP Mon 9 – Wed 11 Nov 2026 → 2 days, payable 28 of 30.
+        // Aarav (₹18,000, weekly off Tuesday); LOP Mon 9 – Wed 11 Nov 2026 → 2 days (the Tuesday off is not leave).
         var st = new StaffProfile(2, "Aarav Joshi", "FO", "x", PayType.Monthly, 1_800_000, 0, ShiftCode.M, 2, new DateOnly(2025, 4, 1), null, true);
         var leave = new LeaveSpan(1, 2, LeaveType.LOP, new DateOnly(2026, 11, 9), new DateOnly(2026, 11, 11), null, 0, LeaveStatus.Approved);
         var days = new StaffDays(leaves: [leave]);
@@ -144,9 +156,9 @@ public sealed class PayrollRulesTests
         var nov = new PayMonth(2026, 11);
         var c = PayrollRules.Counts(st, days, nov);
         Assert.Equal(2m, c.LopLeave);
-        var line = PayrollRules.ComputeLine(st, c with { Unmarked = 0 }, R);
-        Assert.Equal(28m, line.PayableDays);
-        Assert.Equal(PayMath.MulDiv(1_800_000, 56, 1, 60), line.Earned);
+        // DEC-115 (SCC sheet): leave without pay is not "Leaves" — its days fall into absent with every other day not worked or on paid leave.
+        var d = PayrollRules.SccDays(c, R);
+        Assert.Equal((c.PaidLeave, d.Total - d.Present - d.Leave - d.Half), (d.Leave, d.Absent));
         Assert.Equal(0m, PayrollRules.LeaveDays(st, days, new DateOnly(2026, 11, 10), new DateOnly(2026, 11, 10), LeaveHalf.AM));   // a weekly off
     }
 
@@ -344,7 +356,7 @@ public sealed class PayrollRulesTests
         Assert.Equal(g.August.Lines.Count, aug.Lines.Count);
         foreach (var (gl, l) in g.August.Lines.Zip(aug.Lines)) PayrollGolden.AssertLine(gl, l);
         Assert.Equal(g.August.Warnings, aug.Warnings);
-        Assert.Equal(21_210_166, PayTotals.Of(aug.Lines).Net);   // ₹2,12,101.66
+        Assert.Equal(21_081_040, PayTotals.Of(aug.Lines).Net);   // ₹2,10,810.40 (DEC-115 SCC sheet; was ₹2,12,101.66)
 
         var recovered = aug.Lines.Single(l => l.StaffId == advance.StaffId).Advance;
         var coverage = aug.Lines.Select(l => new LockedCoverage(l.StaffId, new PayMonth(2026, 8), l.EsicCovered)).ToList();
@@ -352,8 +364,48 @@ public sealed class PayrollRulesTests
         foreach (var (gl, l) in g.September.Lines.Zip(sep.Lines)) PayrollGolden.AssertLine(gl, l);
         Assert.Equal(g.September.Warnings, sep.Warnings);
         var t = PayTotals.Of(sep.Lines);
-        Assert.Equal(20_888_900, t.Net);   // ₹2,08,889.00 (review F-07: was ₹2,08,745.31 before the contribution-period rule)
+        Assert.Equal(19_943_941, t.Net);   // ₹1,99,439.41 (DEC-115 SCC sheet, ESIC month by month; was ₹2,08,889.00)
         Assert.Equal((g.September.Totals.Gross, g.September.Totals.Pf, g.September.Totals.PfEr, g.September.Totals.Esic, g.September.Totals.EsicEr, g.September.Totals.Pt, g.September.Totals.Ctc),
             (t.Gross, t.Pf, t.PfEr, t.Esic, t.EsicEr, t.Pt, t.Ctc));
+    }
+
+    /// <summary>SCC calcAttendance (payroll\index.html), transcribed: SCC's own rounding to half days, bands and cap — the oracle for <see cref="PayrollRules.SccDays"/>.</summary>
+    private static (decimal Late, decimal Absent, decimal Half, decimal NoThumb, decimal Total, decimal Extra, decimal Final, decimal Salary, decimal Ot) SccCalcAttendance(
+        decimal totalDays, decimal absent, decimal halfDay, decimal late, decimal leaves, decimal noThumb)
+    {
+        static decimal RoundHalf(decimal n) => Math.Round(n * 2, MidpointRounding.AwayFromZero) / 2;
+        var lateDeduction = RoundHalf(Math.Floor(late / 3) * 0.5m);
+        var absentDeduction = RoundHalf(absent);
+        var halfDayDeduction = RoundHalf(halfDay * 0.5m);
+        var noThumbDeduction = RoundHalf(noThumb * 0.5m);
+        var totalDeduction = RoundHalf(lateDeduction + absentDeduction + halfDayDeduction + noThumbDeduction);
+        var extraDays = totalDeduction <= 5.5m ? 4 : totalDeduction < 7 ? 2 : 0;
+        var finalPresent = Math.Max(0, RoundHalf(totalDays - totalDeduction));
+        var raw = RoundHalf(finalPresent + leaves + extraDays);
+        return (lateDeduction, absentDeduction, halfDayDeduction, noThumbDeduction, totalDeduction, extraDays, finalPresent, Math.Min(totalDays, Math.Max(0, raw)), Math.Max(0, RoundHalf(raw - totalDays)));
+    }
+
+    [Fact]
+    public void DEC115_the_day_sheet_equals_SCC_calcAttendance_on_every_grid_point()
+    {
+        var n = 0;
+        foreach (var days in new[] { 28, 30, 31 })
+        foreach (var mgmt in new[] { 0, 1 })
+        foreach (var absent in new[] { 0m, 2, 4, 5, 5.5m, 6, 6.5m, 7, 9 })
+        foreach (var half in new[] { 0m, 1, 3 })
+        foreach (var late in new[] { 0m, 2, 3, 6, 7 })
+        foreach (var leave in new[] { 0m, 1, 2.5m, 5.5m, 6 })
+        foreach (var noThumb in new[] { 0m, 1, 3 })
+        {
+            var p = days - mgmt - absent - half - late - leave - noThumb;
+            if (p < 0) continue;
+            var c = new AttendanceCounts("2026-09", days, p, late, half, 0, 0, 0, absent, leave, 0, 0, 0, 0, 0, mgmt, null, noThumb);
+            var d = PayrollRules.SccDays(c, R);
+            Assert.Equal(SccCalcAttendance(days - mgmt, absent, half, late, leave, noThumb),
+                (d.LateDed, d.AbsentDed, d.HalfDed, d.NoThumbDed, d.Deduction, d.Extra, d.FinalPresent, d.SalaryDays, d.OtDays));
+            n++;
+        }
+
+        Assert.True(n > 9000, $"grid points {n}");
     }
 }

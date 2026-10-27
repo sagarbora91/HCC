@@ -1,6 +1,6 @@
 // Regenerates payroll-base.golden.json from the prototype BASE fixture (read-only; shared helper ../../../tools/golden/golden-lib.mjs):
 // 12 fictional staff, attendance for Aug + Sep 2026, leave, the open advance, the locked August run and the September run
-// computed after it (ESIC contribution-period rule F-07, weekly off inside leave F-01).
+// computed after it (weekly off inside leave F-01; DEC-115: SCC day sheet `days`, paid holidays = SCC Mgmt holidays, ESIC month by month).
 // Golden source = the 03 Prototype of the same checkout (was the MAIN checkout; a worktree now compares with its own prototype).
 // Usage (Node 25): node "08 Production/tests/Hcc.Payroll.Tests/Golden/export-payroll-golden.mjs" [--check] [--proto <path>]
 import path from 'node:path';import {fileURLToPath} from 'node:url';
@@ -21,7 +21,7 @@ x.staff.forEach((st,i)=>M.hrMonthDates('2026-08').forEach(d=>{
 const att=[];
 for(const [k,v] of [...Object.entries(aug),...Object.entries(x.att)]){const [date,staffId]=k.split('|');if(date<'2026-10-01')att.push({date,staffId,status:v.status,otMin:v.otMin||0});}
 att.sort((a,b)=>a.date.localeCompare(b.date)||a.staffId.localeCompare(b.staffId));
-const line=l=>({staffId:l.staffId,counts:l.counts,latePenaltyHalf:l.latePenaltyHalf,payableDays:l.payableDays,earned:l.earned,basic:l.basic,hra:l.hra,washing:l.washing,special:l.special,
+const line=l=>({staffId:l.staffId,counts:l.counts,latePenaltyHalf:l.latePenaltyHalf,payableDays:l.payableDays,days:l.days,earned:l.earned,basic:l.basic,hra:l.hra,washing:l.washing,special:l.special,
   ot:l.ot,gross:l.gross,pfWages:l.pfWages,pf:l.pf,pfEr:l.pfEr,esicWages:l.esicWages,esic:l.esic,esicEr:l.esicEr,pt:l.pt,advance:l.advance,deductions:l.deductions,net:l.net,ctc:l.ctc,esicCovered:l.esicCovered??null});
 const augRun=x.runs.find(r=>r.month==='2026-08');
 // Recompute August from the regenerated marks: must equal the fixture's locked run.
@@ -40,6 +40,7 @@ const golden={
     defaultShift:st.defaultShift,weeklyOff:st.weeklyOff,joined:st.joined,phone:st.phone,gender:st.gender??'M',bankName:st.bankName,accountNo:st.accountNo,ifsc:st.ifsc})),
   leaves:x.leaves.map(l=>({id:l.id,staffId:l.staffId,type:l.type,from:l.from,to:l.to,half:l.half??null,days:l.days,status:l.status})),
   advances:x.advances.map(a=>({id:a.id,staffId:a.staffId,amount:a.amount,installment:a.installment,date:a.date,fromMonth:a.fromMonth??null})),
+  holidays:M.hrPaidHolidays(s).filter(h=>h.date>='2026-08-01'&&h.date<='2026-09-30'),
   attendance:att,
   august:{lines:augRun.lines.map(line),totals:tot(augRun),warnings:augRun.warnings},
   september:{lines:sep.lines.map(line),totals:tot({lines:sep.lines}),warnings:sep.warnings},

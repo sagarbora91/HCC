@@ -66,7 +66,8 @@ public sealed partial class PayrollService
             _ => throw HccException.Validation("Rounding is paise or rupee."),
         };
         var change = new RateChange(req.BasicBps, req.HraBps, req.WashBps, req.PfEeBps, req.PfErBps, req.PfWageCap, req.EsicEeBps, req.EsicErBps, req.EsicCeiling,
-            req.PtMaleExempt, req.PtMaleMid, req.PtMaleMidAmt, req.PtStd, req.PtFeb, req.PtFemaleExempt, req.OtBps, req.LateBlock, rounding, req.EsicPeriod);
+            req.PtMaleExempt, req.PtMaleMid, req.PtMaleMidAmt, req.PtStd, req.PtFeb, req.PtFemaleExempt, req.OtBps, req.LateBlock, rounding, req.EsicPeriod,
+            req.DaysOverride);
         return await runner.RunAsync(ctx, req, async (tx, c2) =>
         {
             var db = store.In(tx);

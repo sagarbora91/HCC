@@ -47,9 +47,9 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.deepEqual([at.basic,at.washing,at.esicWages],[1050000,105000,1995000]);assert.equal(at.esic,14963);assert.equal(at.esicEr,64838);// 14,962.5 → 14,963 · 64,837.5 → 64,838
     const above=M.hrComputeLine(mon(2100001),full(),R);assert.equal(above.esic,0);assert.equal(above.esicEr,0);assert.equal(above.esicWages,0);
     const off=M.hrComputeLine(mon(1500000,{esicApplicable:false}),full(),R);assert.equal(off.esic,0);
-    // SCC month-by-month rule (esicPeriod off): earned (not contractual) pay decides — ₹25,000 salary with 6 days LOP earns ₹20,000 → covered.
-    // The default version uses the contribution-period rule instead (review F-07, tests/stream-payroll-fixes.mjs).
-    const lop=M.hrComputeLine(mon(2500000),full('2026-09',30,{P:24,A:6}),{...R,esicPeriod:false});assert.equal(lop.earned,2000000);assert.ok(lop.esic>0);
+    // SCC month-by-month rule (the default, DEC-115): earned (not contractual) pay decides — ₹25,000 salary, 7 days absent → deduction 7, no extra
+    // days → 23 salary days → earned 25,000 × 23 / 30 = ₹19,166.67 → covered. The contribution-period rule is optional (stream-payroll-fixes F-07).
+    const lop=M.hrComputeLine(mon(2500000),full('2026-09',30,{P:23,A:7}),R);assert.equal(lop.earned,1916667);assert.ok(lop.esic>0);
   });
   test('[PAY-SCC] rupee rounding option: PF to the nearest rupee, ESIC up to the next rupee',()=>{
     const rr={...R,rounding:'rupee'};
@@ -69,20 +69,25 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const woman=M.hrComputeLine(mon(2200000,{gender:'F'}),full(),R);assert.equal(woman.pt,0);
     const zero=M.hrComputeLine(mon(2000000),full('2026-09',30,{P:0,A:30}),R);assert.equal(zero.earned,0);assert.equal(zero.pt,0);
   });
-  test('[PAY-SCC] overtime at the ordinary rate (SCC) is outside the PF / ESIC / PT base; exact figures',()=>{
+  test('[PAY-SCC] OT days (salary days beyond the total) at gross ÷ total days, outside the PF / ESIC / PT base; overtime minutes are not paid (DEC-115)',()=>{
+    // Worked all 30 days, no weekly off: deduction 0 → +4 extra days → 34 → salary days capped at 30, 4 OT days.
     const l=M.hrComputeLine(mon(1000000),full('2026-09',30,{otMin:600}),R);
-    assert.equal(l.ot,41667);// 1,000,000 × 600 / (30 × 8 × 60) = 41,666.67 → 41,667
-    assert.equal(l.pt,17500,'PT on earned ₹10,000, not ₹10,416.67');assert.equal(l.pf,60000);assert.equal(l.esicWages,950000);assert.equal(l.esic,7125);assert.equal(l.esicEr,30875);
-    assert.equal(l.gross,1041667);assert.equal(l.deductions,84625);assert.equal(l.net,957042);
-    const two=M.hrComputeLine(mon(1000000),full('2026-09',30,{otMin:600}),{...R,otBps:20000});assert.equal(two.ot,83333);
+    assert.deepEqual([l.payableDays,l.days.otDays],[30,4]);assert.equal(l.ot,133333);// 1,000,000 × 4 / 30 = 133,333.33 → 133,333; the 600 minutes add nothing
+    assert.equal(l.pt,17500,'PT on earned ₹10,000, not ₹11,333.33');assert.equal(l.pf,60000);assert.equal(l.esicWages,950000);assert.equal(l.esic,7125);assert.equal(l.esicEr,30875);
+    assert.equal(l.gross,1133333);assert.equal(l.deductions,84625);assert.equal(l.net,1048708);
+    const two=M.hrComputeLine(mon(1000000),full('2026-09',30,{otMin:600}),{...R,otBps:20000});assert.equal(two.ot,266667);
+    assert.equal(M.hrComputeLine(mon(1000000),full('2026-09',30,{P:26,off:4,otMin:600}),R).ot,0,'4 weekly offs taken: no OT days');
     const big=M.hrMulDiv(100000000,14880,30000,8*60*10000*31);
     assert.equal(big,Number((100000000n*14880n*30000n*2n+BigInt(8*60*10000*31))/(2n*BigInt(8*60*10000*31))));
   });
-  test('[PAY-SCC] attendance: 3 late marks = ½ day, half-day = ½ day, absent / unmarked = 1 day, structured split sums to earned',()=>{
-    const pd=c=>M.hrComputeLine(mon(3000000),full('2026-09',30,c),R).payableDays;
-    assert.deepEqual([pd({L:2}),pd({L:3}),pd({L:5}),pd({L:6}),pd({H:1}),pd({A:1}),pd({unmarked:1}),pd({lopLeave:0.5})],[30,29.5,29.5,29,29.5,29,29,29.5]);
+  test('[PAY-SCC] attendance (SCC): weekly offs are absent days paid back by the 4 extra days; 3 late marks = ½ day, half day = ½ day; 6 days → 2 extra, 7 → none',()=>{
+    // Each sheet keeps 4 weekly offs (off:4) and swaps present days for the mark being tested.
+    const pd=c=>M.hrComputeLine(mon(3000000),full('2026-09',30,{P:26,off:4,...c}),R).payableDays;
+    assert.deepEqual([pd({}),pd({P:24,L:2}),pd({P:23,L:3}),pd({P:21,L:5}),pd({P:20,L:6}),pd({P:25,H:1}),pd({P:25,A:1}),pd({P:25,unmarked:1}),pd({P:25,HL:1,lopLeave:0.5})],
+      [30,30,29.5,29.5,29,29.5,29,29,29.5]);
+    assert.deepEqual([pd({P:24,A:2}),pd({P:23,A:3}),pd({P:25,paidLeave:1})],[26,23,30]);// deduction 6 → 2 extra; 7 → none; paid leave keeps full pay
     for(const m of [1234567,1350000,999999]){const l=M.hrComputeLine(mon(m),full('2026-09',30,{H:3,L:4}),R);assert.equal(l.basic+l.hra+l.washing+l.special,l.earned);assert.ok(l.special>=0);}
-    assert.equal(M.hrComputeLine(mon(3000000),full('2026-09',30,{L:3}),{...R,lateBlock:0}).payableDays,30);
+    assert.equal(M.hrComputeLine(mon(3000000),full('2026-09',30,{P:23,L:3,off:4}),{...R,lateBlock:0}).payableDays,30);
   });
   test('[PAY-SCC] half-day leave: request rules, 0.5 day, AM + PM coexist, same half conflicts, weekly off refused',()=>{
     let s=seed();
@@ -97,19 +102,21 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.equal(x(s).leaves.at(-1).days,0.5);
     assert.ok(x(seed()).leaves.some(l=>l.id==='HR-LV-5'&&l.half==='PM'&&l.days===0.5),'fixture has a pending half-day');
   });
-  test('[PAY-SCC] half-day leave in payroll: worked half + paid half = full day; LOP half or no other half = ½ day lost',()=>{
+  test('[PAY-SCC] half-day leave in payroll (SCC sheet): paid half = leave ½, LOP half or no other half = absent ½, plain half day = ½ deduction',()=>{
     const base=structuredClone(seed()),st=x(base).staff.find(t=>t.id==='HR-S09'),d='2026-09-10',k=d+'|HR-S09';
     base.staffX.att[k]={status:'P',at:d+'T07:00',otMin:0,by:'manager'};
     const fullDay=M.hrComputeRun(base,'2026-09').lines.find(l=>l.staffId==='HR-S09');
     const leave=(type)=>({id:'T-LV',staffId:'HR-S09',type,from:d,to:d,days:0.5,half:'AM',reason:'x',status:'Approved',requestedBy:'manager',requestedAt:d+'T09:00'});
     const run=(att,type)=>{const c=structuredClone(base);if(att)c.staffX.att[k]={status:att,at:d+'T07:00',otMin:0,by:'manager'};else delete c.staffX.att[k];if(type)c.staffX.leaves.push(leave(type));
       return {line:M.hrComputeRun(c,'2026-09').lines.find(l=>l.staffId==='HR-S09'),c:M.hrCounts(c,st,'2026-09')};};
-    const half=M.hrMulDiv(st.monthly,1,1,60);
-    const paid=run('H','CL');assert.equal(paid.c.HL,1);assert.equal(paid.c.paidLeave,fullDay.counts.paidLeave+0.5);assert.equal(paid.line.earned,fullDay.earned);
-    const lop=run('H','LOP');assert.equal(lop.c.lopLeave,0.5);assert.equal(lop.line.payableDays,fullDay.payableDays-0.5);
-    const noAtt=run(undefined,'CL');assert.equal(noAtt.c.unmarked,0.5);assert.equal(noAtt.line.payableDays,fullDay.payableDays-0.5);
-    const plainH=run('H');assert.equal(plainH.line.payableDays,fullDay.payableDays-0.5);
-    assert.equal(plainH.line.earned,M.hrMulDiv(st.monthly,2*fullDay.payableDays-1,1,60));assert.ok(half>0);
+    const f=fullDay.days,sd=r=>r.line.days;
+    // SCC feed: absent = total − present − leave − half. Worked half + paid half: leave +½, absent unchanged (SCC then adds the leave on top).
+    const paid=run('H','CL');assert.equal(paid.c.HL,1);assert.equal(paid.c.paidLeave,fullDay.counts.paidLeave+0.5);
+    assert.deepEqual([sd(paid).leave,sd(paid).absent,sd(paid).deduction],[f.leave+0.5,f.absent,f.deduction]);
+    const lop=run('H','LOP');assert.equal(lop.c.lopLeave,0.5);assert.deepEqual([sd(lop).absent,sd(lop).deduction],[f.absent+0.5,f.deduction+0.5]);
+    const noAtt=run(undefined,'CL');assert.equal(noAtt.c.unmarked,0.5);assert.deepEqual([sd(noAtt).leave,sd(noAtt).absent],[f.leave+0.5,f.absent+0.5]);
+    const plainH=run('H');assert.deepEqual([sd(plainH).half,sd(plainH).absent,sd(plainH).deduction],[f.half+1,f.absent,f.deduction+0.5]);
+    assert.equal(plainH.line.earned,M.hrMulDiv(st.monthly,2*plainH.line.payableDays,1,2*sd(plainH).total));
     // self check-in on a half-day leave day records a half-day
     const t=structuredClone(seed());t.staffX.leaves.push({id:'T-LV2',staffId:'HR-S06',type:'CL',from:t.date,to:t.date,days:0.5,half:'PM',reason:'x',status:'Approved',requestedBy:'housekeeper2',requestedAt:t.date+'T07:00'});
     const n=execute(t,'housekeeper2',{type:'HR_ATT_MARK',staffId:'HR-S06'});assert.equal(x(n).att[t.date+'|HR-S06'].status,'H');

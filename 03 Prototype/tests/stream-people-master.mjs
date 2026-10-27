@@ -33,13 +33,15 @@ export function register({test,M,assert}){
     for(const t of x(s).staff)assert.equal(hrDesignationOf(s,t)?.name,t.designation);});
   test('[PPL] fixture figures, BASE and FY26 hashes unchanged; no list stored in the fixture',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);assert.equal(s.mastersX,undefined);
-    assert.equal(sha(strip(seed())),'add626d3e76aa9a5f2475049c8592c3b40207624c92cb44942e7215d08761d52') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'35e6308217fd38e9c5e3bc9137aa974eefee0930d3f49c8037853b8f76ad8319') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
-  test('[PPL] payroll golden figures unchanged: the locked August run has no holiday days; September recomputed with the seeded calendar equals September with every holiday retired',()=>{
+    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+  test('[PPL] payroll and the holiday calendar (DEC-115, SCC Mgmt holidays): August has no unworked holiday; September (no paid holiday) is unchanged with every holiday retired; October loses 2 total days',()=>{
     const s=seed(),run=x(s).runs[0];assert.equal(run.month,'2026-08');for(const l of run.lines)assert.equal('hol' in l.counts,false);
     // MA-11 old → new: holidays of the locked August month cannot be retired any more (Wave B's lock rule) — retire every other one.
     let none=s;for(const h of mstRows(s,'holidays').filter(r=>!r.code.startsWith('2026-08')))none=execute(none,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:h.id});
-    assert.deepEqual(hrComputeRun(s,'2026-09'),hrComputeRun(none,'2026-09'));assert.deepEqual(hrComputeRun(s,'2026-10'),hrComputeRun(none,'2026-10'));});
+    assert.deepEqual(hrComputeRun(s,'2026-09'),hrComputeRun(none,'2026-09'));
+    // October: 2 and 20 Oct are seeded paid holidays → SCC total days 31 − 2 = 29 (31 once they are retired).
+    assert.ok(hrComputeRun(s,'2026-10').lines.every(l=>l.days.total===29&&l.counts.mgmtHol===2));assert.ok(hrComputeRun(none,'2026-10').lines.every(l=>l.days.total===31&&!l.counts.mgmtHol));});
   test('[PPL] hub search finds the lists by label',()=>{
     for(const q of ['shift patterns','leave types','holiday calendar','designations'])assert.ok(mstSearch(q).length,q);});
 

@@ -102,20 +102,21 @@ public sealed class AdvanceFnfAccountingTests(PayrollDb db) : IClassFixture<Payr
     [Fact]
     public async Task Fnf_with_full_recovery_books_the_salary_journal_and_the_payment_and_clears_1200()
     {
-        // 12,111.04 covers the ₹3,000 advance: net 9,111.04 paid. Journal: Dr 5100 13,173.38 · Dr 5110 1,231.68 | Cr 2310 1,605.85 · Cr 2320 488.17 ·
-        // Cr 2330 200 · Cr 1200 3,000 · Cr 2300 9,111.04 (14,405.06 each side). Payment: Dr 2300 · Cr 1030 9,111.04.
+        // Ravi's August salary (SCC sheet, DEC-115): 31 days − 15 Aug = 30 total, deduction 4.5 → +4 → 29.5 days → ₹13,275.00; PF 796.50 / 862.88,
+        // ESIC 94.58 / 409.87, PT 200 → 12,183.92 covers the ₹3,000 advance: net 9,183.92 paid. Journal: Dr 5100 13,275.00 · Dr 5110 1,272.75 |
+        // Cr 2310 1,659.38 · Cr 2320 504.45 · Cr 2330 200 · Cr 1200 3,000 · Cr 2300 9,183.92 (14,547.75 each side). Payment: Dr 2300 · Cr 1030 9,183.92.
         var (h, ravi, f) = await LeaverAsync(0);
-        Assert.Equal((911_104L, 1_317_338L, 406_234L), (f.NetPaise, f.EarningsPaise, f.RecoveriesPaise));
+        Assert.Equal((918_392L, 1_327_500L, 409_108L), (f.NetPaise, f.EarningsPaise, f.RecoveriesPaise));
         var day = await Books.DayAsync(new Caller(h.PropertyId, h.U("owner")), new DateOnly(2026, 8, 31), Ct);
         var j = day.Vouchers.Single(v => v.SourceKey == "fnf:" + f.FnfId);
-        Assert.Equal(("Journal", "fnf", 1_440_506L, true), (j.Type, j.Sub, j.DebitPaise, j.Balanced));
+        Assert.Equal(("Journal", "fnf", 1_454_775L, true), (j.Type, j.Sub, j.DebitPaise, j.Balanced));
         var paid = day.Vouchers.Single(v => v.SourceKey == "fnf-paid:" + f.FnfId);
-        Assert.Equal(("Payment", 911_104L), (paid.Type, paid.CreditPaise));
-        Assert.Equal([("2300", 911_104L, 0L), ("1030", 0L, 911_104L)], paid.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal(("Payment", 918_392L), (paid.Type, paid.CreditPaise));
+        Assert.Equal([("2300", 918_392L, 0L), ("1030", 0L, 918_392L)], paid.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
 
         var tb = await BalancesAsync(h, new DateOnly(2026, 8, 31));
-        Assert.Equal((0L, 0L, -1_211_104L), (B(tb, "1200"), B(tb, "2300"), B(tb, "1030")));   // bank: advance 3,000 + net pay 9,111.04
-        Assert.Equal((1_317_338L, 123_168L, -160_585L, -48_817L, -20_000L), (B(tb, "5100"), B(tb, "5110"), B(tb, "2310"), B(tb, "2320"), B(tb, "2330")));
+        Assert.Equal((0L, 0L, -1_218_392L), (B(tb, "1200"), B(tb, "2300"), B(tb, "1030")));   // bank: advance 3,000 + net pay 9,183.92
+        Assert.Equal((1_327_500L, 127_275L, -165_938L, -50_445L, -20_000L), (B(tb, "5100"), B(tb, "5110"), B(tb, "2310"), B(tb, "2320"), B(tb, "2330")));
         Assert.Equal(0, await RegisterBalanceAsync(h, ravi));
 
         var tally = await Books.TallyAsync(new Caller(h.PropertyId, h.U("owner")), new DateOnly(2026, 8, 10), new DateOnly(2026, 8, 31), Ct);
@@ -128,28 +129,28 @@ public sealed class AdvanceFnfAccountingTests(PayrollDb db) : IClassFixture<Payr
     [Fact]
     public async Task Fnf_with_partial_recovery_records_only_the_covered_part_and_the_rest_stays_an_open_advance()
     {
-        // ₹11,000 damage: 12,111.04 − 11,000 = 1,111.04 covers part of the ₹3,000 → net 0, ₹1,888.96 still owed. Before DEC-074 this was
-        // net −1,888.96 with the whole advance marked recovered (A04-06). Journal only: Cr 1200 1,111.04 · Cr 2340 11,000; no payment.
+        // ₹11,000 damage: 12,183.92 − 11,000 = 1,183.92 covers part of the ₹3,000 → net 0, ₹1,816.08 still owed. Before DEC-074 the whole
+        // advance was marked recovered (A04-06). Journal only: Cr 1200 1,183.92 · Cr 2340 11,000; no payment.
         var (h, ravi, f) = await LeaverAsync(1_100_000);
-        Assert.Equal((0L, 106_234L + 111_104L + 1_100_000L), (f.NetPaise, f.RecoveriesPaise));
-        Assert.Equal(188_896, await RegisterBalanceAsync(h, ravi));
-        Assert.Equal(111_104, await db.LongAsync("SELECT SUM(amount_paise) FROM hr.advance_recovery WHERE fnf_id = @f;", ("@f", f.FnfId)));
-        Assert.Contains("advance ₹1,111.04 recovered, ₹1,888.96 left open", (string)(await db.ScalarAsync("SELECT detail FROM plat.audit_event WHERE action = 'HR_FNF_SETTLED' AND target = @t;", ("@t", "hr.fnf:" + f.FnfId)))!,
+        Assert.Equal((0L, 109_108L + 118_392L + 1_100_000L), (f.NetPaise, f.RecoveriesPaise));
+        Assert.Equal(181_608, await RegisterBalanceAsync(h, ravi));
+        Assert.Equal(118_392, await db.LongAsync("SELECT SUM(amount_paise) FROM hr.advance_recovery WHERE fnf_id = @f;", ("@f", f.FnfId)));
+        Assert.Contains("advance ₹1,183.92 recovered, ₹1,816.08 left open", (string)(await db.ScalarAsync("SELECT detail FROM plat.audit_event WHERE action = 'HR_FNF_SETTLED' AND target = @t;", ("@t", "hr.fnf:" + f.FnfId)))!,
             StringComparison.Ordinal);
         var day = await Books.DayAsync(new Caller(h.PropertyId, h.U("owner")), new DateOnly(2026, 8, 31), Ct);
         var j = Assert.Single(day.Vouchers);
         Assert.Equal(("fnf", true), (j.Sub, j.Balanced));
-        Assert.Contains("advance 1888.96 left open", j.Narration, StringComparison.Ordinal);
+        Assert.Contains("advance 1816.08 left open", j.Narration, StringComparison.Ordinal);
         var tb = await BalancesAsync(h, new DateOnly(2026, 8, 31));
-        Assert.Equal((188_896L, 0L, -1_100_000L, -Advance), (B(tb, "1200"), B(tb, "2300"), B(tb, "2340"), B(tb, "1030")));   // 1200 = the register balance
+        Assert.Equal((181_608L, 0L, -1_100_000L, -Advance), (B(tb, "1200"), B(tb, "2300"), B(tb, "2340"), B(tb, "1030")));   // 1200 = the register balance
 
-        // A negative settlement (₹13,000 damage, 888.96 beyond the settlement): no advance recovered, ₹3,000 stays open, the ₹888.96 the leaver owes
-        // is Dr 1200 (recoverable): 1200 = 3,000 + 888.96.
+        // A negative settlement (₹13,000 damage, 816.08 beyond the settlement): no advance recovered, ₹3,000 stays open, the ₹816.08 the leaver owes
+        // is Dr 1200 (recoverable): 1200 = 3,000 + 816.08.
         var (h2, ravi2, neg) = await LeaverAsync(1_300_000);
-        Assert.Equal(-88_896, neg.NetPaise);
+        Assert.Equal(-81_608, neg.NetPaise);
         Assert.Equal(Advance, await RegisterBalanceAsync(h2, ravi2));
         Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM hr.advance_recovery WHERE fnf_id = @f;", ("@f", neg.FnfId)));
         var tb2 = await BalancesAsync(h2, new DateOnly(2026, 8, 31));
-        Assert.Equal((Advance + 88_896, -1_300_000L), (B(tb2, "1200"), B(tb2, "2340")));
+        Assert.Equal((Advance + 81_608, -1_300_000L), (B(tb2, "1200"), B(tb2, "2340")));
     }
 }

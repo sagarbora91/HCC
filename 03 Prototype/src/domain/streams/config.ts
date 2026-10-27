@@ -524,7 +524,7 @@ const HR_FIELDS:Record<string,HRField>={
   esicEeBps:{label:'employee rate',type:'percent',min:0,max:1000},esicErBps:{label:'employer rate',type:'percent',min:0,max:1000},esicCeiling:{label:'earned-pay ceiling',type:'money',min:0,max:100000000},
   ptMaleExempt:{label:'men nil slab up to',type:'money',min:0,max:100000000},ptMaleMid:{label:'men middle slab up to',type:'money',min:0,max:100000000},ptMaleMidAmt:{label:'men middle slab amount',type:'money',min:0,max:100000000},
   ptStd:{label:'standard amount',type:'money',min:0,max:100000000},ptFeb:{label:'February amount',type:'money',min:0,max:100000000},ptFemaleExempt:{label:'women nil slab up to',type:'money',min:0,max:100000000},
-  otBps:{label:'multiplier (% of ordinary rate)',type:'percent',min:10000,max:30000,show:v=>(Number(v)/10000)+'×'},lateBlock:{label:'late marks per ½ day (0 = off)',type:'integer',min:0,max:10},
+  otBps:{label:'OT day rate (% of a day’s pay)',type:'percent',min:10000,max:30000,show:v=>(Number(v)/10000)+'×'},daysOverride:{label:'total days (0 = calendar days)',type:'integer',min:0,max:31,show:v=>Number(v)?`${v} days`:'Calendar days'},lateBlock:{label:'late marks per ½ day (0 = off)',type:'integer',min:0,max:10},
   rounding:{label:'rounding',type:'choice',options:['paise','rupee'],show:v=>v==='paise'?'To paise (SCC)':'PF nearest ₹ · ESIC next ₹'},
   esicPeriod:{label:'contribution-period rule',type:'boolean',show:v=>v?'Apr–Sep / Oct–Mar (coverage kept to period end)':'Month by month on earned pay (SCC)'},
 };
@@ -542,7 +542,7 @@ export function hrStatutoryDefs():CfgProviderDef[]{
         out.push({...base,key:`${d.key}.${String(f)}`,label:`${d.label} · ${m.label}`,type:m.type,min:m.min,max:m.max,options:m.options,show:m.show,
           effectiveText:'From the 1st of the month after the last completed pay period (new dated rate version); locked runs keep theirs',
           help:i===0?d.help:'Part of the same dated rate version. Illustrative — CA to confirm for a hotel.',
-          read:s=>hrRatesFor(s,hrRatesDefaultFrom(s).slice(0,7))[f],command:(s,v)=>({type:'HR_STAT_RATES_SET',from:hrRatesDefaultFrom(s),[f]:v}),
+          read:s=>hrRatesFor(s,hrRatesDefaultFrom(s).slice(0,7))[f]??(f==='daysOverride'?0:undefined),command:(s,v)=>({type:'HR_STAT_RATES_SET',from:hrRatesDefaultFrom(s),[f]:v}),
           impact:s=>[`Effective from 1 ${hrMonthLabel(hrRatesDefaultFrom(s).slice(0,7))} (new rate version); earlier months and locked pay-runs keep their rates.`]});});
     }else if(d.key==='hr.leave.ent'){
       for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:60,unit:'days per financial year',

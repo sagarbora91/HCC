@@ -126,5 +126,6 @@
     <File Path="database/migrations/3951_gst_specified_premises_indexes.sql" />
     <File Path="database/migrations/4000_ota_inventory_push.sql" />
     <File Path="database/migrations/4030_desk_list_indexes.sql" />
+    <File Path="database/migrations/4100_attendance_no_thumb.sql" />
   </Folder>
 </Solution>

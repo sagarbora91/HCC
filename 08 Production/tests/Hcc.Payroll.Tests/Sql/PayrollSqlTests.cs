@@ -35,7 +35,7 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         var g = PayrollGolden.Data;
 
         var aug = await PrepareAsync(h, "2026-08");
-        Assert.Equal((12, 21_210_166L), (aug.Staff, aug.NetPaise));
+        Assert.Equal((12, 21_081_040L), (aug.Staff, aug.NetPaise));
         foreach (var (gl, l) in g.August.Lines.Zip(await LinesAsync(h, aug.RunId))) PayrollGolden.AssertLine(gl, l);
         Assert.Equal(g.August.Warnings, aug.Warnings);
         var locked = await LockAsync(h, aug);
@@ -51,8 +51,8 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         var lines = await LinesAsync(h, sep.RunId);
         foreach (var (gl, l) in g.September.Lines.Zip(lines)) PayrollGolden.AssertLine(gl, l);
         Assert.Equal(g.September.Warnings, sep.Warnings);
-        Assert.Equal(20_888_900, sep.NetPaise);   // ₹2,08,889.00
-        Assert.False(lines.Single(l => l.StaffId == h.S("HR-S04")).EsicCovered);   // Neha ₹22,000: not covered for Apr–Sep (F-07)
+        Assert.Equal(19_943_941, sep.NetPaise);   // ₹1,99,439.41 (DEC-115 SCC sheet)
+        Assert.Null(lines.Single(l => l.StaffId == h.S("HR-S04")).EsicCovered);   // DEC-115: ESIC month by month — no contribution-period coverage recorded
 
         var csv = await h.Queries.StatutoryCsvAsync(h.PropertyId, h.U("accountant"), new PayMonth(2026, 9), Ct);
         Assert.Contains("DRAFT — NOT FINAL", csv.Content, StringComparison.Ordinal);
@@ -260,11 +260,11 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
 
         var csv = (await h.Queries.StatutoryCsvAsync(h.PropertyId, h.U("accountant"), new PayMonth(2026, 8), Ct)).Content;
         var rows = csv.Split('\n');
-        // Ravi's August F&F line by hand: ₹13,500/month, 31 days, 1 absent + 1 half-day = 3 half-days LOP (2 late marks < 3, no late loss) →
-        // earned 13,500 × 59/62 = 12,846.77; basic 50 % = 6,423.39 (PF wages, under the ₹15,000 cap) → PF 12 % 770.81, employer 13 % 835.04;
-        // washing 10 % of basic = 642.34 → ESIC wages 12,846.77 − 642.34 = 12,204.43 (covered: contract ₹13,500 ≤ ₹21,000) → 0.75 % 91.53, 3.25 % 396.64;
-        // PT Maharashtra, man, earned above ₹10,000, not February → ₹200.
-        Assert.Contains($"{lines.Count + 1},{ravi},Ravi Shinde,12846.77,6423.39,770.81,835.04,12204.43,91.53,396.64,200.00", rows);
+        // Ravi's August F&F line by hand (SCC sheet, DEC-115): ₹13,500/month; 31 days − 15 Aug = 30 total days; present 25, 1 half day, absent 4
+        // (4 weekly offs) + ½ (half day) = deduction 4.5 (2 late marks < 3) → +4 extra → 29.5 salary days → earned 13,500 × 29.5 / 30 = 13,275.00;
+        // basic 50 % = 6,637.50 (PF wages) → PF 12 % 796.50, employer 13 % 862.88; washing 10 % of basic = 663.75 → ESIC wages 12,611.25
+        // (month by month: earned ≤ ₹21,000) → 0.75 % 94.58, 3.25 % 409.87; PT Maharashtra, man, earned above ₹10,000, not February → ₹200.
+        Assert.Contains($"{lines.Count + 1},{ravi},Ravi Shinde,13275.00,6637.50,796.50,862.88,12611.25,94.58,409.87,200.00", rows);
         Assert.Contains(rows, r => r.StartsWith("F&F — exit month's salary settled in full and final", StringComparison.Ordinal)
             && r.Contains($"Sr {lines.Count + 1} Ravi Shinde (last day 2026-08-31)", StringComparison.Ordinal));
         // The statement totals = all 12 staff of the golden August run (advance recovery does not touch PF / ESIC / PT).
