@@ -34,7 +34,7 @@ export function AccountingPage(){
   const errors=ex.filter(x=>x.severity==='error').length,reconOk=recon.every(c=>c.ok);
   const tabs:[Tab,string,(number|string)?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['statements','Statements'],['daybook','Day book'],['chart','Chart of accounts'],['parties','Parties'],['opening','Opening balances',accOpeningPending(s)?'pending':undefined],
     ['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
-  if(!rbacSeesBooks(s,uid))return <div className="acc-page"><PageTitle title="Accounting" sub="The books"/><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant. The Cashier’s collections are in Reports."/></div>;
+  if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-page"><PageTitle title="Accounting" sub="The books"/><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant. The Cashier’s collections are in Reports."/></div>;
   return <div className="acc-page">
     <PageTitle title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · GST (CGST + SGST)"
       action={<div className="inline"><AccDatePicker date={date} setDate={setDate} dates={dates}/><AccExportButton date={date}/><AccLockButton date={date}/></div>}/>

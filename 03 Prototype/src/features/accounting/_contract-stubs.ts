@@ -9,11 +9,15 @@ import {csvMinimal} from '../../domain/csv';
 
 // ── Contract §2 / §1: chart and groups ──
 const GROUP_OF_LEGACY:Record<string,string>={Asset:'current-assets',Liability:'current-liabilities',Income:'sales',Expense:'indirect-expenses',Suspense:'suspense'};
+/** Group of each existing built-in ledger, from the contract §2 table (the chart lane owns the real mapping). */
+const CODE_GROUP:Record<string,string>={'1000':'cash','1010':'bank','1020':'bank','1030':'bank','1100':'debtors','1110':'debtors','1120':'debtors','1200':'loans-advances','1300':'duties-taxes','2000':'current-liabilities','2100':'duties-taxes','2110':'duties-taxes','2120':'duties-taxes',
+  '2200':'creditors','2300':'current-liabilities','2310':'duties-taxes','2320':'duties-taxes','2330':'duties-taxes','2340':'current-liabilities','3000':'capital','4000':'sales','4100':'sales','4900':'sales','4910':'sales',
+  '5000':'direct-expenses','5010':'direct-expenses','5020':'indirect-expenses','5030':'direct-expenses','5040':'indirect-expenses','5050':'indirect-expenses','5100':'indirect-expenses','5110':'indirect-expenses','5900':'indirect-expenses','9999':'suspense'};
 const CONTROLS=new Set(['1000','1030','1110','1115','1120','1200','2200','2400']);
 /** Contract name `accChart(s)`: built-ins + Owner overrides + Owner-added ledgers. */
 export function accChart(s:State):ACCLedger[]{
   const stored=accSlice(s).chart?.ledgers??[];const over=new Map(stored.map(l=>[l.code,l]));
-  const base:ACCLedger[]=ACC_CHART.map(a=>over.get(a.code)??{code:a.code,name:a.name,group:GROUP_OF_LEGACY[a.group],system:true,control:CONTROLS.has(a.code)||undefined,active:true,note:a.note});
+  const base:ACCLedger[]=ACC_CHART.map(a=>over.get(a.code)??{code:a.code,name:a.name,group:CODE_GROUP[a.code]??GROUP_OF_LEGACY[a.group],system:true,control:CONTROLS.has(a.code)||undefined,active:true,note:a.note});
   return [...base,...stored.filter(l=>!ACC_CHART.some(a=>a.code===l.code))].sort((a,b)=>a.code<b.code?-1:a.code>b.code?1:0);
 }
 /** Contract name `accGroups(s)`: the 28 Tally groups + the Owner's custom sub-groups. */

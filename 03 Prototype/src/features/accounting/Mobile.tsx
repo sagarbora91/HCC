@@ -33,7 +33,7 @@ export function AccountingMobile(){
   const goStatement=(a:string)=>{setStmtAcc(a);setView('statements');};
   const head=<><div className="page-title"><div><h1>Accounting</h1><p>Vouchers derived from folios, receipts, expenses and closing · fictional data</p></div></div>
     <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
-  if(!rbacSeesBooks(s,uid))return <div className="acc-m"><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant."/></div>;
+  if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-m"><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant."/></div>;
   if(view==='tb')return <div className="acc-m">{head}<TrialBalanceView range={range} setRange={setRange} phone onStatement={goStatement}/></div>;
   if(view==='statements')return <div className="acc-m">{head}<StatementView range={range} setRange={setRange} account={stmtAcc} setAccount={setStmtAcc} phone/></div>;
   if(view==='daybook')return <div className="acc-m">{head}<DayBookView range={range} setRange={setRange} phone/></div>;

@@ -47,7 +47,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
     assert.equal(X.PAGE_CATEGORY.accounting,'accounts');
     for(const w of ['trial balance','statement','day book','chart of accounts','parties','opening balances'])assert.ok(X.PAGE_KEYWORDS.accounting.includes(w),w);
     const s=M.seed();
-    for(const u of Object.keys(USERS))assert.equal(X.navRoleOk(s,u,'accounting'),BOOKS.includes(u)&&true,u);
+    for(const u of Object.keys(USERS))assert.equal(M.can(s,u,'reports')&&X.navRoleOk(s,u,'accounting'),BOOKS.includes(u),u); // the nav item needs 'reports' and the Cashier is excluded
   });
   test('[ACC1-UI] desktop page: Owner sees every tab; Cashier / housekeeping / maintenance get no books',()=>{
     const s=M.seed(),h=text(render('AccountingPage',{},s,'owner'));
@@ -72,7 +72,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
   test('[ACC1-UI] statements: picker with search, running balance in Dr / Cr, counter ledger, CSV; phone uses cards',()=>{
     const s=M.seed();
     const empty=text(render('StatementView',{range,setRange:()=>{},account:'',setAccount:()=>{}},s,'owner'));
-    assert.match(empty,/Choose a ledger or party/);assert.match(empty,/Search ledger or party/i);
+    assert.match(empty,/Choose a ledger or party/);assert.match(render('StatementView',{range,setRange:()=>{},account:'',setAccount:()=>{}},s,'owner'),/aria-label="Search ledger or party"/);
     const h=render('StatementView',{range,setRange:()=>{},account:'1000',setAccount:()=>{}},s,'owner'),t=text(h);
     assert.match(t,/Opening balance/);assert.match(t,/Closing balance/);assert.match(t,/Counter ledger/);assert.match(t,/Export CSV/);assert.doesNotMatch(t,/-₹/);
     const m=render('StatementView',{range,setRange:()=>{},account:'1000',setAccount:()=>{},phone:true},s,'owner',true);
@@ -141,7 +141,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
     for(const f of files){const src=await readFile(dir+f,'utf8');
       assert.ok(!/from '\.\.\/\.\.\/domain\/streams\/accounting-/.test(src),f+' imports a lane file directly');
       assert.ok(!/\b(accChart|accGroups|accPartyLedgers|accOpening|accOpeningPending|accStatement|accTrialBalance6|accDayBook)\b[^'\n]*from '\.\.\/\.\.\/services\/mock'/.test(src),f);}
-    const css=await readFile('src/styles/m-accounting.css','utf8');assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/var\(--[^)]*\)/g,'')),'hex colour in m-accounting.css');
+    const css=await readFile('src/styles/m-accounting2.css','utf8');assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/var\(--[^)]*\)/g,'')),'hex colour in m-accounting.css');
     assert.match(css,/\.acc-m \.acc-range input\[type=date\]\{min-height:48px;font-size:16px/);
     const stubs=await readFile(dir+'_contract-stubs.ts','utf8');
     for(const n of ['accChart','accGroups','accPartyLedgers','accOpening','accOpeningPending','accStatement','accTrialBalance6','accDayBook','ACC_LEDGER_UPSERT','ACC_LEDGER_RETIRE','ACC_GROUP_UPSERT','ACC_OPENING_SAVE','ACC_OPENING_APPROVE','ACC_OPENING_REOPEN'])assert.ok(stubs.includes(n),n);
