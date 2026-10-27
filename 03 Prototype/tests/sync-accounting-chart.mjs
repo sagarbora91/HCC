@@ -9,9 +9,18 @@ export async function register({test,assert}){
   const mapper=t=>area.commands.find(c=>c.type===t);
   const sent=async(type,cmd)=>{const calls=[];await mapper(type).send({cmd:{type,...cmd},api:{command:async(name,body)=>{calls.push([name,body]);return {};}}});return calls;};
 
-  test('[ACC1-CHART sync] the area maps ACC_LEDGER_UPSERT / ACC_LEDGER_RETIRE / ACC_GROUP_UPSERT, reloads accountingX and has no loader until READS is wired',()=>{
+  // ACC-1 integration: the chart loader is registered (READS + tests/_role-reads.json); it patches accountingX.chart from the master + history.
+  const ldr=area.loaders[0];
+  const patched=ldr?await ldr.load({api:{get:async p=>p==='/accounting/chart/master'?{groups:[{id:'g-banquet',name:'Banquet income',parent:'sales',nature:'Cr',side:'PL',custom:true,legacyGroup:'Income',path:[]}],
+    ledgers:[{code:'5130',name:'Guest amenities',groupId:'indirect-expenses',group:'Expense',nature:'Dr',system:false,control:false,gst:'none',tallyName:null,active:true,note:null,overridden:false,mappedBy:[]},
+      {code:'1000',name:'Cash in hand',groupId:'cash',group:'Asset',nature:'Dr',system:true,control:true,gst:'none',tallyName:null,active:true,note:null,overridden:false,mappedBy:[]}],problems:[],canEdit:true}:[]},
+    current:()=>({mapping:{}})}):undefined;
+  test('[ACC1-CHART sync] the area maps ACC_LEDGER_UPSERT / ACC_LEDGER_RETIRE / ACC_GROUP_UPSERT, reloads accountingX and loads the chart (integration: loader registered)',()=>{
     assert.ok(area,'registered in AREAS');assert.deepEqual(area.commands.map(c=>c.type).sort(),['ACC_GROUP_UPSERT','ACC_LEDGER_RETIRE','ACC_LEDGER_UPSERT']);
-    assert.ok(area.commands.every(c=>c.reload.length===1&&c.reload[0]==='accountingX'));assert.deepEqual(area.loaders,[]);
+    assert.ok(area.commands.every(c=>c.reload.length===1&&c.reload[0]==='accountingX'));
+    assert.equal(area.loaders.length,1);assert.equal(ldr.kind,'patch');assert.deepEqual([...ldr.reads],['GET /accounting/chart/master','GET /accounting/chart/history']);
+    assert.deepEqual(patched.mapping,{},'the patch keeps the rest of accountingX');assert.deepEqual(patched.chart.ledgers.map(l=>l.code),['5130'],'built-ins without an override are not stored');
+    assert.deepEqual(patched.chart.groups.map(g=>g.id),['g-banquet']);
     assert.deepEqual(S.validateAreas(S.AREAS),[]);
   });
   test('[ACC1-CHART sync] prechecks: Owner only (PERM-ACC-007), a 4-digit code, a group name',()=>{

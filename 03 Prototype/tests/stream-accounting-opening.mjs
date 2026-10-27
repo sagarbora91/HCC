@@ -27,7 +27,7 @@ export function register({test,M,assert}){
     s=M.execute(s,'owner',{type:'NIGHT_POST'});s=M.execute(s,'owner',{type:'SHIFT_CLOSE',counted:M.drawer(s)});
     s=tillClear(M,s);return M.execute(s,'owner',{type:'DAY_CLOSE'});
   }
-  const tb=vs=>Object.fromEntries(M.accTrialBalance(vs).map(r=>[r.account,r]));
+  const tb=vs=>Object.fromEntries(M.accTrialBalance(vs,undefined,true).map(r=>[r.account,r])); // ACC-1 integration: detail rows (party ids such as 2400/LN-HDFC), parties lane folds them otherwise
 
   test('[ACC1-OPENING] no entry: nothing posted, pending, FY start of the business date, lock not gated (ledgers run from zero, DEC-148)',()=>{
     const s=M.seed();

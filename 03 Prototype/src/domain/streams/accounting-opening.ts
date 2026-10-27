@@ -6,7 +6,7 @@
 // Exported names start with 'acc' / 'ACC' (shared mock namespace). Money = integer paise. Pure helpers only.
 import type {State} from '../types';
 import {money} from '../money';
-import {accSlice,accAccount,ACC_SUSPENSE,type ACCOpening,type ACCOpeningLine,type ACCVoucher,type ACCSourceKind} from './accounting';
+import {accSlice,accAccount,ACC_SUSPENSE,type ACCOpening,type ACCOpeningLine,type ACCVoucher} from './accounting';
 
 /** The ledger that carries the difference of an unbalanced opening entry (contract §2, group `suspense`). */
 export const ACC_OPENING_DIFF='1400';
@@ -55,7 +55,7 @@ export function accOpeningVoucher(s:State):ACCVoucher|undefined{
   const o=accOpening(s);if(!o||!o.lines.length)return undefined;
   return {no:`JRN/${o.asOf.split('-').join('')}/000`,date:o.asOf,type:'Journal',
     narration:`Opening balances as of ${o.asOf}`+(o.status==='approved'?'':' (draft, not approved)'),
-    source:{kind:ACC_OPENING_SOURCE.kind as ACCSourceKind,id:ACC_OPENING_SOURCE.id,sub:ACC_OPENING_SOURCE.sub},
+    source:{kind:ACC_OPENING_SOURCE.kind,id:ACC_OPENING_SOURCE.id,sub:ACC_OPENING_SOURCE.sub},
     entries:o.lines.filter(l=>l.debit||l.credit).map(l=>({account:l.account,debit:l.debit,credit:l.credit})),unmapped:[]};
 }
 /** The opening journal as it counts in the books: only an APPROVED entry posts (a draft never does), as a 0- or 1-element list.

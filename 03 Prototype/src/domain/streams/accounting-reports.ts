@@ -12,6 +12,7 @@
 import {csvMinimal} from '../csv';
 import type {State} from '../types';
 import {ACC_CHART,accAccount,accSlice,accVouchersUpTo,type ACCVoucher,type ACCVoucherType} from './accounting';
+import {accPartyName} from './accounting-parties'; // ACC-1 integration (parties lane resolver)
 
 // ── Contract §6 shapes (copied exactly) ──
 export type ACCStatementRow={date:string;no:string;type:ACCVoucherType;narration:string;counter:string;  // counter = the other side's ledger name(s)
@@ -33,15 +34,15 @@ export const accRptControl=(account:string)=>{const i=account.indexOf('/');retur
 export const accRptParty=(account:string)=>{const i=account.indexOf('/');return i<0?undefined:account.slice(i+1);};
 const ownLedger=(s:State,code:string)=>accSlice(s).chart?.ledgers.find(l=>l.code===code);
 const codeName=(s:State,code:string)=>ownLedger(s,code)?.name??accAccount(code)?.name??accSlice(s).server?.accounts?.[code]?.name??code;
-/** Party display name. INTEGRATION (acc1-parties): replace the fallback with `accPartyName(s, account)` from accounting-parties.ts. */
-const partyName=(_s:State,account:string)=>accRptParty(account)??account;
+/** Party display name: the master row's name (accounting-parties.ts), else the party id. */
+const partyName=(s:State,account:string)=>accPartyName(s,account)??accRptParty(account)??account;
 /** Ledger display name: the chart's name for a code (Owner override / Owner-added ledger first), `<control name> · <party name>` for a party ledger. */
 export function accRptLedgerName(s:State,account:string):string{
   const p=accRptParty(account);return p===undefined?codeName(s,account):`${codeName(s,accRptControl(account))} · ${partyName(s,account)}`;
 }
 /** Group of a ledger (a party ledger takes its control's group): the chart's group id when the chart master carries one, else the legacy group. */
 export function accRptLedgerGroup(s:State,account:string):string{
-  const c=accRptControl(account);return ownLedger(s,c)?.group??accAccount(c)?.group??accSlice(s).server?.accounts?.[c]?.group??'Suspense';
+  const c=accRptControl(account);return ownLedger(s,c)?.group??accAccount(c)?.groupId??accSlice(s).server?.accounts?.[c]?.group??'Suspense'; // ACC-1 integration: the Tally group id of a built-in
 }
 const chartOrder=(code:string)=>{const i=ACC_CHART.findIndex(a=>a.code===code);return i<0?ACC_CHART.length:i;};
 const byChart=(a:string,b:string)=>chartOrder(a)-chartOrder(b)||(a<b?-1:a>b?1:0);

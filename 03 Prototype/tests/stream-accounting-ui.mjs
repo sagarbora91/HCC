@@ -1,4 +1,4 @@
-// ACC-1 · acc1-ui — the accounting screens (desktop and phone), rendered server-side over the mock state with the contract stubs:
+// ACC-1 · acc1-ui — the accounting screens (desktop and phone), rendered server-side over the mock state (real selectors since the integration):
 // registration of pages and modals, permission gating per role (Cashier never sees the books, DEC-079; housekeeping / maintenance never),
 // the books (six-column trial balance, statements, day book), chart of accounts (Owner-only editing), parties, opening balances
 // (Save for Owner / Manager / Accountant, Approve / Reopen for the Owner, the automatic 1400 line). Names prefixed [ACC1-UI].
@@ -136,14 +136,17 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
     const a=text(render('AccOpeningLineModal',{id:'3100'},draft({status:'approved'}),'owner'));assert.match(a,/The opening entry is approved/);assert.doesNotMatch(a,/Remove line/);
     assert.match(text(render('AccOpeningLineModal',{id:'nope'},d,'owner')),/Line not found/);
   });
-  test('[ACC1-UI] source discipline: contract names come from _contract-stubs only; no hex colours in the accounting styles; phone targets 48 px',async()=>{
-    const dir='src/features/accounting/';const files=(await readdir(dir)).filter(f=>/\.tsx?$/.test(f)&&f!=='_contract-stubs.ts');
+  test('[ACC1-UI] source discipline: the contract stubs are gone (integration) — contract names come from the mock barrel, command shapes from commands.ts; no hex colours in the accounting styles; phone targets 48 px',async()=>{
+    const dir='src/features/accounting/';const all=await readdir(dir);assert.ok(!all.includes('_contract-stubs.ts'),'the stubs file is deleted at integration');
+    const files=all.filter(f=>/\.tsx?$/.test(f));
     for(const f of files){const src=await readFile(dir+f,'utf8');
       assert.ok(!/from '\.\.\/\.\.\/domain\/streams\/accounting-/.test(src),f+' imports a lane file directly');
-      assert.ok(!/\b(accChart|accGroups|accPartyLedgers|accOpening|accOpeningPending|accStatement|accTrialBalance6|accDayBook)\b[^'\n]*from '\.\.\/\.\.\/services\/mock'/.test(src),f);}
+      assert.ok(!/_contract-stubs/.test(src),f+' still imports the stubs');}
+    for(const n of ['accChart','accGroups','accChartHistory','accPartyLedgers','accOpening','accOpeningPending','accStatement','accTrialBalance6','accDayBook','accStatementCsv','accTrialBalance6Csv','accDayBookCsv'])
+      assert.equal(typeof M[n],'function',n+' is exported by the mock barrel');
+    const cmds=await readFile(dir+'commands.ts','utf8');
+    for(const n of ['ACC_LEDGER_UPSERT','ACC_LEDGER_RETIRE','ACC_GROUP_UPSERT','ACC_OPENING_SAVE','ACC_OPENING_APPROVE','ACC_OPENING_REOPEN'])assert.ok(cmds.includes(`'${n}'`),n);
     const css=await readFile('src/styles/m-accounting2.css','utf8');assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/var\(--[^)]*\)/g,'')),'hex colour in m-accounting.css');
     assert.match(css,/\.acc-m \.acc-range input\[type=date\]\{min-height:48px;font-size:16px/);
-    const stubs=await readFile(dir+'_contract-stubs.ts','utf8');
-    for(const n of ['accChart','accGroups','accPartyLedgers','accOpening','accOpeningPending','accStatement','accTrialBalance6','accDayBook','ACC_LEDGER_UPSERT','ACC_LEDGER_RETIRE','ACC_GROUP_UPSERT','ACC_OPENING_SAVE','ACC_OPENING_APPROVE','ACC_OPENING_REOPEN'])assert.ok(stubs.includes(n),n);
   });
 }

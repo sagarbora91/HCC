@@ -1,9 +1,8 @@
 // ACC-1 · acc1-ui — pieces shared by the desktop tabs, the phone views and the dialogs: Dr / Cr display, date range bar, ledger / party picker.
-// Display helpers only; the figures come from the contract selectors (see _contract-stubs.ts).
+// Display helpers only; the figures come from the contract selectors (chart, parties, opening, statements lanes).
 import React,{useMemo,useState} from 'react';
 import {Search} from 'lucide-react';
-import {money,addDays,type State} from '../../services/mock';
-import {accChart,accPartyLedgers} from './_contract-stubs';
+import {money,addDays,accChart,accPartyLedgers,type State} from '../../services/mock';
 import {ChipFilter} from '../../app/mobile/components';
 
 /** Dr / Cr display: never a negative number (rulebook §7.2). Positive = Dr, negative = Cr. Zero → a dash. */

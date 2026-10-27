@@ -5,7 +5,7 @@ import {useHcc} from '../../app/context';
 import {money,accDates,accVouchers,accExceptions,accReconcile,accLockOf,accDayStatus,accTotals,accLockBlocker,accMapRows,rbacCanTally,rbacCanExportVouchers,rbacSeesBooks} from '../../services/mock';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {Empty,shortDate,clockTime} from '../../components/ui';
-import {accOpeningPending} from './_contract-stubs';
+import {accOpeningPending} from '../../services/mock';
 import {TrialBalanceView,StatementView,DayBookView} from './books';
 import {ChartView,PartiesView} from './chart';
 import {OpeningView} from './opening';

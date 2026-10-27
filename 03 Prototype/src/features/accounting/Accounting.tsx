@@ -7,7 +7,7 @@ import {money,accDates,accVouchers,accExceptions,accReconcile,accMapRows,accLock
   rbacCanTally,rbacSeesBooks} from '../../services/mock';
 import {PageTitle,Empty,Stat,shortDate,clockTime} from '../../components/ui';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
-import {accOpeningPending} from './_contract-stubs';
+import {accOpeningPending} from '../../services/mock';
 import {TrialBalanceView,StatementView,DayBookView} from './books';
 import {ChartView,PartiesView} from './chart';
 import {OpeningView} from './opening';

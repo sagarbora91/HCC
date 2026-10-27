@@ -75,8 +75,17 @@ function mergeBuiltin(b:ACCLedger,o:ACCLedger):ACCLedger{
 export const accBuiltinLedger=(code:string)=>ACC_LEDGERS.find(l=>l.code===code);
 /** A ledger of the effective chart; a party ledger id `<control>/<party>` resolves to its control (contract §3). */
 export function accLedger(s:State,code:string):ACCLedger|undefined{
-  const all=accChart(s),l=all.find(x=>x.code===code);if(l)return l;
-  const i=code.indexOf('/');if(i<1)return undefined;const c=all.find(x=>x.code===code.slice(0,i));return c?.control?c:undefined;
+  const all=accChartIndex(s),l=all.get(code);if(l)return l;
+  const i=code.indexOf('/');if(i<1)return undefined;const c=all.get(code.slice(0,i));return c?.control?c:undefined;
+}
+/** ACC-1 integration: the effective chart by code, cached per stored chart (copy-on-write slices: a chart edit is a new object), so the
+ *  voucher derivation, CSV / Tally names and the trial balance can look a ledger up per entry. */
+const CHART_INDEX=new WeakMap<object,Map<string,ACCLedger>>();
+const NO_CHART={};
+export function accChartIndex(s:State):Map<string,ACCLedger>{
+  const key=accSlice(s).chart??NO_CHART;let m=CHART_INDEX.get(key);
+  if(!m){m=new Map(accChart(s).map(l=>[l.code,l]));CHART_INDEX.set(key,m);}
+  return m;
 }
 export const accLedgerNameOf=(s:State,code:string)=>accLedger(s,code)?.name??code;
 /** Name used in the Tally XML masters (contract §2: default = name). */

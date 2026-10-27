@@ -5,7 +5,8 @@ import React,{useMemo,useState} from 'react';
 import {Plus,Trash2,CheckCircle2,AlertTriangle,Info,Save,Lock,LockOpen} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {money,type ACCOpening,type ACCOpeningLine} from '../../services/mock';
-import {accOpening,accOpeningPending,accChart,accPartyLedgers,type AccOpeningSave,type AccOpeningApprove,type AccOpeningReopen} from './_contract-stubs';
+import {accOpening,accOpeningPending,accChart,accPartyLedgers} from '../../services/mock';
+import type {AccOpeningSave,AccOpeningApprove,AccOpeningReopen} from './commands';
 import {ListCard,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate,clockTime} from '../../components/ui';
 import {useAccPerms,accUserName} from './parts';
@@ -26,7 +27,8 @@ export function useOpeningNames(){
 export function OpeningStatus({o,pending}:{o?:ACCOpening;pending:boolean}){
   return <span className="acc-open-pills">
     {!o?<span className="pill acc-sev-warning">Not entered</span>:o.status==='approved'?<span className="pill green"><Lock size={12} aria-hidden/>Approved</span>:<span className="pill blue">Draft</span>}
-    {pending&&<span className="pill acc-sev-error"><AlertTriangle size={12} aria-hidden/>Pending — first period lock refused</span>}</span>;
+    {pending&&(o?<span className="pill acc-sev-error"><AlertTriangle size={12} aria-hidden/>Pending — period locks from {shortDate(o.asOf)} refused</span>
+      :<span className="pill acc-sev-warning"><AlertTriangle size={12} aria-hidden/>Pending — locks not gated until an entry exists</span>)}</span>;
 }
 
 type Row={k:number;account:string;debit:string;credit:string};
@@ -39,7 +41,7 @@ export function OpeningView({phone}:{phone?:boolean}){
   const name=useOpeningNames();
   const head=<div className="acc-open-head"><OpeningStatus o={o} pending={pending}/>
     <small className="muted">{o?`As of ${dateLabel(o.asOf)} · saved by ${accUserName(s,o.by)} ${shortDate(o.at.slice(0,10))} ${clockTime(o.at)}${o.status==='approved'&&o.approvedBy?` · approved by ${accUserName(s,o.approvedBy)}`:''}`:`Dated ${dateLabel(fyStart(s.date))} (start of the business year) when saved.`}</small></div>;
-  const info=<div className="info-note acc-note" role="note"><Info size={16}/>Enter one line per ledger and per party, one side only. A difference is parked on 1400 Opening-balance difference automatically. The Owner approves; the first period lock is refused while the entry is not approved or 1400 is not zero.</div>;
+  const info=<div className="info-note acc-note" role="note"><Info size={16}/>Enter one line per ledger and per party, one side only. A difference is parked on 1400 Opening-balance difference automatically. The Owner approves. Once an entry exists, a period lock on or after its date is refused while it is not approved or 1400 is not zero (with no entry at all, days still lock — DEC-148).</div>;
   return phone?<OpeningPhone o={o} pending={pending} head={head} info={info} name={name} canEnter={canOpeningEnter} canApprove={canOpeningApprove}/>
     :<div className="padded acc-opening">{head}{info}<OpeningGrid key={(o?.at??'new')+(o?.status??'')} o={o} canEnter={canOpeningEnter} canApprove={canOpeningApprove}/></div>;
 }

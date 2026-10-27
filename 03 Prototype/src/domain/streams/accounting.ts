@@ -15,6 +15,7 @@ import {accPost,accIsControl,accControlOf,accIsParty,accPartyIdOf,accPartyName,a
 import {grpSlice} from './groups';
 import {expUdDeskReceipts,expUdDeskDates} from './udhaar-desk';
 import {accOpeningLockBlocker,accOpeningPosted} from './accounting-opening'; // ACC-1 opening (contract §5)
+import {accChartIndex,accLedger,accLedgerLegacyGroup,accLedgerTallyName} from './accounting-chart'; // ACC-1 integration: Owner renames / Owner-added ledgers reach postings and names
 
 // ── Mapping (source classification → ledger) ──
 export const ACC_DEFAULT_MAP:Record<string,string>={
@@ -49,7 +50,7 @@ export const accItcSplit=(itc:number):[string,number][]=>{const g=gstSplit(itc);
 // ── State slice ──
 export type ACCEntry={account:string;debit:number;credit:number};
 export type ACCVoucherType='Sales'|'Receipt'|'Payment'|'Journal';
-export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos';
+export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos'|'opening'; // ACC-1: 'opening' = the hand-entered opening entry (contract §5)
 export type ACCVoucher={no:string;date:string;type:ACCVoucherType;narration:string;
   source:{kind:ACCSourceKind;id:string;sub:string;booking?:string};entries:ACCEntry[];unmapped:string[]};
 export type ACCLock={date:string;lockedAt:string;lockedBy:string;vouchers:ACCVoucher[];debit:number;credit:number;count:number};
@@ -213,7 +214,9 @@ const PREFIX:Record<ACCVoucherType,string>={Sales:'SAL',Receipt:'RCT',Payment:'P
 /** All vouchers for a business date, derived live from the source records with the current mapping (pure). */
 export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVoucher[]{
   const out:Omit<ACCVoucher,'no'>[]=[];
-  const map=(key:string,miss:string[])=>{const a=mapping[key];if(a&&accAccount(a)&&a!==ACC_SUSPENSE)return a;miss.push(key);return ACC_SUSPENSE;};
+  // ACC-1 (chart lane, integration): a mapping target must be an ACTIVE ledger of the effective chart (Owner-added ledgers count, retired ones do not).
+  const known=accChartIndex(s);
+  const map=(key:string,miss:string[])=>{const a=mapping[key];if(a&&known.get(a)?.active&&a!==ACC_SUSPENSE)return a;miss.push(key);return ACC_SUSPENSE;};
   // ACC-1 (contract §3): a control ledger (1000, 1030, 1110, 1115, 1120, 1200, 2200) posts to `<code>/<party>` when the source names the party.
   const pt=(code:string,ctx:ACCPartyCtx)=>accPost(s,code,ctx);
   const push=(v:Omit<ACCVoucher,'no'|'entries'|'unmapped'>,miss:string[],entries:ACCEntry[])=>{
@@ -247,7 +250,7 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
     // to the category (as before). A reversal record carries −amount and −GST, so it mirrors the split.
     const miss:string[]=[],head=map('expense:'+e.category,miss),itc=expItcPaise(e),fund=pt(map('funding:'+e.method,miss),{method:e.method,vendor:e.vendor}); // ACC-1: vendor credit → 2200/<vendor>
     push({date,type:mnyIsCredit(s,e.method)?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor||e.description||'—'} · ${e.category} · ${e.method}`, // DEC-120: the vendor is optional
-      source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount-itc),...(itc?[dr(map('tax:gst-input',miss),itc)]:[]),cr(fund,e.amount)]);
+      source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount-itc),...(itc?accItcSplit(itc).map(([k,p])=>dr(map(k,miss),p)):[]),cr(fund,e.amount)]);
   }
   // ACC-1 (contract §4, rulebook A17, DEC-144): raising an Udhaar credit is a SALE booked the same day — Dr 1120/<customer> (gross) · Cr F&B,
   // room or other revenue (the credit's kind) · Cr CGST · Cr SGST (the GST inside the gross, expUdGst). Rows raised before ACC-1: other, no GST.
@@ -284,7 +287,7 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   }
   // ── end Wave B1 ──
   const diff=accCashDifference(s,date);
-  if(diff){const miss:string[]=[],cash=pt(map('method:Cash',miss),{method:'Cash'}),acct=map('closing:cash-difference',miss);
+  if(diff){const miss:string[]=[],cash=pt(map('method:Cash',miss),{method:'Cash'}),acct=map(accCashDiffKey(diff),miss); // ACC-1: an over → closing:cash-over (4950), a short → 5900
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,
       diff>0?[dr(cash,diff),cr(acct,diff)]:[dr(acct,-diff),cr(cash,-diff)]);}
   const n:Record<string,number>={};
@@ -316,7 +319,9 @@ export function accTrialBalance(vs:ACCVoucher[],accounts?:ACCServer['accounts'],
   const m=new Map<string,{debit:number;credit:number}>();
   for(const v of vs)for(const e of v.entries){const k=detail?e.account:accControlOf(e.account);const x=m.get(k)??{debit:0,credit:0};x.debit+=e.debit;x.credit+=e.credit;m.set(k,x);}
   const order=(c:string)=>{const i=ACC_CHART.findIndex(a=>a.code===c);return i<0?999:i;};
-  const name=(a:string)=>accAccount(a)?.name??accounts?.[a]?.name??a,group=(a:string)=>accAccount(a)?.group??accounts?.[a]?.group??'Suspense';
+  // ACC-1 integration: with `s`, the effective chart names / groups (Owner renames and Owner-added ledgers).
+  const own=(a:string)=>s?accLedger(s,a):undefined;
+  const name=(a:string)=>own(a)?.name??accAccount(a)?.name??accounts?.[a]?.name??a,group=(a:string):ACCTBGroup=>(s&&own(a)?accLedgerLegacyGroup(s,a):undefined)??accAccount(a)?.group??accounts?.[a]?.group??'Suspense';
   const key=(a:string)=>[order(accControlOf(a)),accControlOf(a),accIsParty(a)?1:0,a] as const;
   const cmp=(a:string,b:string)=>{const x=key(a),y=key(b);return x[0]-y[0]||(x[1]<y[1]?-1:x[1]>y[1]?1:0)||x[2]-y[2]||(x[3]<y[3]?-1:x[3]>y[3]?1:0);};
   return [...m.entries()].sort((a,b)=>cmp(a[0],b[0])).map(([account,x])=>{const c=accControlOf(account),party=accIsParty(account);
@@ -324,8 +329,9 @@ export function accTrialBalance(vs:ACCVoucher[],accounts?:ACCServer['accounts'],
 }
 /** ACC-1: display name of a voucher entry's ledger — a party ledger shows "<control name> · <party name>" (party id when the master row is gone). */
 export function accEntryName(s:State|undefined,account:string):string{
-  if(!accIsParty(account))return accLedgerName(account);
-  return `${accLedgerName(accControlOf(account))} · ${(s&&accPartyName(s,account))||accPartyIdOf(account)}`;
+  const nm=(code:string)=>(s&&accLedger(s,code)?.name)||accLedgerName(code); // ACC-1 integration: Owner renames / Owner-added ledgers
+  if(!accIsParty(account))return nm(account);
+  return `${nm(accControlOf(account))} · ${(s&&accPartyName(s,account))||accPartyIdOf(account)}`;
 }
 /** ACC-1 (contract §3, retire guard): closing balance (debit − credit, paise) of every ledger id up to and including `date` (default the
  *  business date) — party ids and plain codes as posted. */
@@ -441,7 +447,7 @@ export function accMapRows(s:State):ACCMapRow[]{
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
   return keys.sort((a,b)=>order.indexOf(a.split(':')[0])-order.indexOf(b.split(':')[0])).map(key=>{const account=map[key]??'';
-    return {key,group:accKeyGroup(key),value:accKeyValue(key),account,defaultAccount:ACC_DEFAULT_MAP[key],changed:!!account&&account!==ACC_DEFAULT_MAP[key],uses:uses[key]??0,mapped:!!account&&!!accAccount(account)&&account!==ACC_SUSPENSE};});
+    return {key,group:accKeyGroup(key),value:accKeyValue(key),account,defaultAccount:ACC_DEFAULT_MAP[key],changed:!!account&&account!==ACC_DEFAULT_MAP[key],uses:uses[key]??0,mapped:!!account&&!!accLedger(s,account)?.active&&account!==ACC_SUSPENSE};});
 }
 
 // ── Export (generic voucher import format) ──
@@ -532,7 +538,7 @@ export function accTallyXml(s:State,from:string,to:string,company?:string,identi
   if(new Set(ids).size!==ids.length)throw new Error('Two vouchers in one Tally export share a source key; every REMOTEID must be unique.');
   const body=vs.map((v,i)=>`   <TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER REMOTEID="${xmlEsc(ids[i])}" VCHTYPE="${v.type}" ACTION="Create" OBJVIEW="Accounting Voucher View">
     <DATE>${tallyDate(v.date)}</DATE><GUID>${xmlEsc(ids[i])}</GUID><VOUCHERTYPENAME>${v.type}</VOUCHERTYPENAME><VOUCHERNUMBER>${xmlEsc(v.no)}</VOUCHERNUMBER><NARRATION>${xmlEsc(v.narration)}</NARRATION><EFFECTIVEDATE>${tallyDate(v.date)}</EFFECTIVEDATE>
-${v.entries.map(e=>`    <ALLLEDGERENTRIES.LIST><LEDGERNAME>${xmlEsc(accLedgerName(accControlOf(e.account)))}</LEDGERNAME><ISDEEMEDPOSITIVE>${e.debit?'Yes':'No'}</ISDEEMEDPOSITIVE><AMOUNT>${e.debit?'-'+rupees(e.debit):rupees(e.credit)}</AMOUNT></ALLLEDGERENTRIES.LIST>`).join('\n')}
+${v.entries.map(e=>`    <ALLLEDGERENTRIES.LIST><LEDGERNAME>${xmlEsc(accLedgerTallyName(s,accControlOf(e.account)))}</LEDGERNAME><ISDEEMEDPOSITIVE>${e.debit?'Yes':'No'}</ISDEEMEDPOSITIVE><AMOUNT>${e.debit?'-'+rupees(e.debit):rupees(e.credit)}</AMOUNT></ALLLEDGERENTRIES.LIST>`).join('\n')}
    </VOUCHER></TALLYMESSAGE>`).join('\n');
   const t=accTotals(vs);
   const xml=`<?xml version="1.0" encoding="UTF-8"?>

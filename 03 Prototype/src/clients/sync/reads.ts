@@ -93,6 +93,10 @@ export const READS={
   'GET /accounting/mapping':ACCOUNTING,
   'GET /accounting/mapping/history':ACCOUNTING,
   'GET /accounting/locks/history':ACCOUNTING,
+  // ACC-1 (integration): the chart of accounts master + history and the opening entry — PERM-ACC-001 view, as the trial balance.
+  'GET /accounting/chart/master':ACCOUNTING,
+  'GET /accounting/chart/history':ACCOUNTING,
+  'GET /accounting/opening':ACCOUNTING,
   'GET /expenses':one(anyScope('PERM-EXP-001'),anyScope('PERM-EXP-002'),anyScope('PERM-EXP-003')),
   'GET /expenses/registers':one(anyScope('PERM-EXP-001'),anyScope('PERM-EXP-002'),anyScope('PERM-EXP-003')), // DEC-120 SCC registers
   'GET /compliance/state':COMPLIANCE,

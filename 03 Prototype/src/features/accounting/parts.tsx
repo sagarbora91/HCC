@@ -6,7 +6,8 @@ import {money,accVouchers,accVoucherTotals,accLedgerName,accSourceOf,accLockBloc
   ACC_CHART,ACC_SUSPENSE,ACC_LOCK_ROLES,type ACCVoucher,type ACCDayStatus,type ACCException} from '../../services/mock';
 import {Empty,dateLabel,shortDate,clockTime} from '../../components/ui';
 import {downloadCsv} from '../reports/Reports';
-import {accChart,accGroups,accOpening,type AccLedgerUpsert,type AccLedgerRetire,type AccGroupUpsert,type AccOpeningSave} from './_contract-stubs';
+import {accChart,accGroups,accGroupLegacy,accOpening} from '../../services/mock';
+import type {AccLedgerUpsert,AccLedgerRetire,AccGroupUpsert,AccOpeningSave} from './commands';
 import {LedgerPicker,ledgerOptions,toPaise,fromPaise,fyStart} from './shared';
 
 export const accMoney=(n:number)=>n?money(n):'—';
@@ -127,11 +128,12 @@ export function AccLedgerModal({id}:{id?:string}){
   const [group,setGroup]=useState(cur?.group??(id?.startsWith('new:')?id.slice(4):''));
   const [gst,setGst]=useState<'none'|'input'|'output'>(cur?.gst??'none');const [tally,setTally]=useState(cur?.tallyName??'');const [note,setNote]=useState(cur?.note??'');
   if(!isNew&&!cur)return <Empty title="Ledger not found"/>;
-  const curNature=groups.find(g=>g.id===(cur?.group??group))?.nature;
-  const choices=cur?.system?groups.filter(g=>g.nature===curNature):groups.filter(g=>g.id!=='suspense');
+  // Same Tally nature (Asset / Liability / Income / Expense / Suspense of the primary group, coordinator ruling 2) for a built-in.
+  const curNature=cur?accGroupLegacy(s,cur.group):undefined;
+  const choices=cur?.system?groups.filter(g=>accGroupLegacy(s,g.id)===curNature):groups.filter(g=>g.id!=='suspense');
   const codeBad=isNew?(!/^\d{4}$/.test(code)?'Use a 4-digit code.':chart.some(l=>l.code===code)?'This code is already used.':''):'';
   const ok=canChart&&!codeBad&&name.trim().length>=2&&!!group;
-  return <form className="form" onSubmit={e=>{e.preventDefault();void run({type:'ACC_LEDGER_UPSERT',code,name:name.trim(),group,gst,tallyName:tally.trim()||undefined,note:note.trim()||undefined} satisfies AccLedgerUpsert,'Ledger saved',{close:true});}}>
+  return <form className="form" onSubmit={e=>{e.preventDefault();void run({type:'ACC_LEDGER_UPSERT',...(isNew?{create:true as const}:{}),code,name:name.trim(),group,gst,tallyName:tally.trim(),note:note.trim()} satisfies AccLedgerUpsert,'Ledger saved',{close:true});}}>
     <div className="modal-heading"><p className="eyebrow">CHART OF ACCOUNTS{cur?.system?' · BUILT-IN':''}</p><h2>{cur?`${cur.code} · ${cur.name}`:'Add ledger'}</h2>
       {cur?.control&&<p>Control ledger: it holds party sub-ledgers and is never posted to directly.</p>}{cur&&!cur.active&&<p><span className="pill acc-st-closed">Retired</span></p>}</div>
     <label>Code<input value={code} disabled={!isNew||!canChart} inputMode="numeric" maxLength={4} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} placeholder="4 digits, unused"/></label>
@@ -144,8 +146,8 @@ export function AccLedgerModal({id}:{id?:string}){
     <label>Note (optional)<input value={note} disabled={!canChart} onChange={e=>setNote(e.target.value)}/></label>
     {!canChart&&<p className="f-why">Only the Owner can change the chart of accounts.</p>}
     <div className="modal-actions">
-      {cur&&canChart&&(cur.active?<button type="button" className="btn" disabled={busy} onClick={()=>void run({type:'ACC_LEDGER_RETIRE',code:cur.code,active:false} satisfies AccLedgerRetire,'Ledger retired',{close:true})}>Retire ledger</button>
-        :<button type="button" className="btn" disabled={busy} onClick={()=>void run({type:'ACC_LEDGER_RETIRE',code:cur.code,active:true} satisfies AccLedgerRetire,'Ledger reactivated',{close:true})}>Reactivate</button>)}
+      {cur&&canChart&&(cur.active?<button type="button" className="btn" disabled={busy} onClick={()=>void run({type:'ACC_LEDGER_RETIRE',code:cur.code} satisfies AccLedgerRetire,'Ledger retired',{close:true})}>Retire ledger</button>
+        :<button type="button" className="btn" disabled={busy} onClick={()=>void run({type:'ACC_LEDGER_UPSERT',code:cur.code,active:true} satisfies AccLedgerUpsert,'Ledger reactivated',{close:true})}>Reactivate</button>)}
       <button type="button" className="btn" onClick={closeModal}>{canChart?'Cancel':'Close'}</button>
       {canChart&&<button className="btn primary" type="submit" disabled={busy||!ok}>Save ledger</button>}</div>
     {cur&&canChart&&cur.active&&<p className="muted">Retiring is refused while the ledger (or any of its parties) has a balance, or a mapping points at it.</p>}</form>;

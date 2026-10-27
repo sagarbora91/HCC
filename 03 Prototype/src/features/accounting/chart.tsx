@@ -4,7 +4,7 @@ import React,{useMemo,useState} from 'react';
 import {Plus,Pencil,Search,ChevronRight,Users} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {clockTime,Empty} from '../../components/ui';
-import {accChart,accGroups,accChartHistory,accPartyLedgers,accTrialBalance6} from './_contract-stubs';
+import {accChart,accGroups,accChartHistory,accPartyLedgers,accTrialBalance6} from '../../services/mock';
 import type {ACCGroupDef,ACCLedger} from '../../services/mock';
 import {ListCard,ChipFilter} from '../../app/mobile/components';
 import {useAccPerms,accUserName} from './parts';

@@ -6,9 +6,8 @@
 //   POST /commands/UpsertLedgerGroup {id, name, parent}                                        ← ACC_GROUP_UPSERT
 //   GET  /accounting/chart/master  (PERM-ACC-001) → groups, ledgers (overridden flag), problems, canEdit
 //   GET  /accounting/chart/history (PERM-ACC-001) → the field-level history
-// accountingX.chart (patch after the W4-7 owner): ACC_CHART_LOADER below. It is NOT in the area's loaders yet: its reads need a line in
-// sync/reads.ts READS ('GET /accounting/chart/master' and '/history' : ACCOUNTING) and the fake servers of the sync tests a route —
-// the ACC-1 integrator adds both, then `loaders:[ACC_CHART_LOADER]` (DONE file "Integration needed").
+// accountingX.chart (patch after the W4-7 owner): ACC_CHART_LOADER below, registered at the ACC-1 integration (READS lines in sync/reads.ts,
+// routes in tests/_role-reads.json, default fake routes in tests/_sync-harness.mjs).
 import type {ACCGroupDef,ACCLedger,ACCChartChange,ACCState} from '../../domain/streams/accounting';
 import type {SyncArea,SliceLoader,LoaderCtx} from './types';
 import {protoUserId,utcToClock} from './map';
@@ -34,8 +33,8 @@ export function accChartFromServer(m:SrvChartMaster,history:SrvChartChange[],uid
   return {ledgers,groups,history:history.map((h):ACCChartChange=>({id:'ACCC-'+h.changeId,at:utcToClock(h.atUtc),actor:uidOf(h.actor),kind:h.kind,code:h.code,field:h.field,before:h.before,after:h.after}))};
 }
 
-/** Patch loader for accountingX.chart (register it once the READS lines exist, see the header). */
-export const ACC_CHART_LOADER:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',
+/** Patch loader for accountingX.chart. */
+export const ACC_CHART_LOADER:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/chart/master','GET /accounting/chart/history'],
   async load(c:LoaderCtx){
     const [m,h]=await Promise.all([c.api.get<SrvChartMaster>('/accounting/chart/master'),c.api.get<SrvChartChange[]>('/accounting/chart/history')]);
     const cur=c.current('accountingX')??{};
@@ -45,7 +44,7 @@ export const ACC_CHART_LOADER:SliceLoader={slice:'accountingX',kind:'patch',requ
 const owner=(me:{permIds:string[]})=>me.permIds.includes('PERM-ACC-007')?undefined:'Only the Owner changes the chart of accounts.';
 
 export const accountingChart:SyncArea={id:'accountingChart',
-  loaders:[],
+  loaders:[ACC_CHART_LOADER],
   commands:[
     {type:'ACC_LEDGER_UPSERT',reload:['accountingX'],
       precheck:(cmd,_s,me)=>owner(me)??(/^\d{4}$/.test(txt(cmd.code))?undefined:'A ledger code is 4 digits, e.g. 5130.'),

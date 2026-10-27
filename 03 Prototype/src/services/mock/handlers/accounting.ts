@@ -2,7 +2,8 @@
 import type {Handler,Kit} from '../commands';
 import {money} from '../../../domain/money';
 import {rbacMoneyAdmin,rbacCanTally} from '../../../domain/streams/rbac';
-import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accAccount,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accLedgerName,accTallyXml,accTallyPendingReason,type ACCState} from '../../../domain/streams/accounting';
+import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accTallyXml,accTallyPendingReason,type ACCState} from '../../../domain/streams/accounting';
+import {accLedger,accLedgerNameOf} from '../../../domain/streams/accounting-chart'; // ACC-1 integration: the effective chart (Owner renames / Owner-added / retired)
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 /** Writable slice on the cloned state (creates it for old saves). */
@@ -53,13 +54,13 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,assert,uid,id,fail}=k;if(!rbacMoneyAdmin(s,uid))fail('FORBIDDEN','Access denied: only the Owner changes the ledger mapping (DEC-063).');
     const key=String(cmd.source??'');
     assert(ACC_KEY_PATTERN.test(key)&&(key in ACC_DEFAULT_MAP||accMapRows(s).some(r=>r.key===key)),'Unknown source classification.','NOT_FOUND');
-    const acct=accAccount(String(cmd.account??''));
-    assert(acct&&acct.code!==ACC_SUSPENSE,'Choose a ledger from the chart of accounts (not Suspense).');
+    const acct=accLedger(s,String(cmd.account??''));
+    assert(acct&&acct.active&&acct.code!==ACC_SUSPENSE,'Choose an active ledger from the chart of accounts (not Suspense).');
     const before=accMapping(s)[key]??'';
     assert(before!==acct!.code,'This classification already maps to that ledger.','INVALID_TRANSITION');
     const x=slice(k);x.mapping={...(x.mapping??{}),[key]:acct!.code};
     x.mapHistory=[...(x.mapHistory??[]),{id:id('ACCM'),at:s.clock,actor:uid,key,before,after:acct!.code}];
-    return `Mapping ${key} → ${acct!.code} ${acct!.name}${before?' (was '+before+' '+accLedgerName(before)+')':''} · locked periods unchanged`;
+    return `Mapping ${key} → ${acct!.code} ${acct!.name}${before?' (was '+before+' '+accLedgerNameOf(s,before)+')':''} · locked periods unchanged`;
   },
   ACC_MAP_RESET:k=>{
     const {s,cmd,assert,uid,id,fail}=k;if(!rbacMoneyAdmin(s,uid))fail('FORBIDDEN','Access denied: only the Owner changes the ledger mapping (DEC-063).');
@@ -68,6 +69,6 @@ export const handlers:Record<string,Handler>={
     const before=x.mapping![key],w=slice(k),m={...(w.mapping??{})};delete m[key];w.mapping=m;
     const after=ACC_DEFAULT_MAP[key]??'';
     w.mapHistory=[...(w.mapHistory??[]),{id:id('ACCM'),at:s.clock,actor:uid,key,before,after}];
-    return `Mapping ${key} reset to default${after?' '+after+' '+accLedgerName(after):' (unmapped)'}`;
+    return `Mapping ${key} reset to default${after?' '+after+' '+accLedgerNameOf(s,after):' (unmapped)'}`;
   },
 };

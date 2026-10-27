@@ -41,5 +41,6 @@ export async function register({test,assert}){
     assert.equal(srv.commands('SaveOpeningBalances').length,0);
     const area=S.AREAS.find(a=>a.id==='accounting-opening');
     assert.deepEqual(area.commands.map(c=>c.type),['ACC_OPENING_SAVE','ACC_OPENING_APPROVE','ACC_OPENING_REOPEN']);
-    assert.deepEqual(area.loaders,[],'the GET /accounting/opening loader waits for READS + _role-reads.json (DONE file, Integration needed)');});
+    // ACC-1 integration: the loader is registered (READS + tests/_role-reads.json).
+    assert.equal(area.loaders.length,1);assert.deepEqual([...area.loaders[0].reads],['GET /accounting/opening']);assert.equal(area.loaders[0].kind,'patch');});
 }

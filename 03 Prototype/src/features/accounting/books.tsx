@@ -4,7 +4,7 @@ import React,{useMemo,useState} from 'react';
 import {CheckCircle2,AlertTriangle,Download,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {money,rbacCanExportVouchers} from '../../services/mock';
-import {accTrialBalance6,accStatement,accDayBook,accTrialBalance6Csv,accStatementCsv,accDayBookCsv,accGroups,type ACCDayBookRow} from './_contract-stubs';
+import {accTrialBalance6,accStatement,accDayBook,accTrialBalance6Csv,accStatementCsv,accDayBookCsv,accGroups,type ACCDayBookRow} from '../../services/mock';
 import {ListCard,KpiCard} from '../../app/mobile/components';
 import {Empty,Stat,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
@@ -78,12 +78,12 @@ export function StatementView({range,setRange,account,setAccount,phone}:{range:A
 // ── Day book ──
 type DbVoucher={date:string;no:string;type:string;narration:string;rows:ACCDayBookRow[];debit:number};
 export function DayBookView({range,setRange,phone}:{range:AccRange;setRange:(r:AccRange)=>void;phone?:boolean}){
-  const {s,open}=useHcc();const rows=useMemo(()=>accDayBook(s,range.from,range.to),[s,range]);
+  const {s,open}=useHcc();const db=useMemo(()=>accDayBook(s,range.from,range.to),[s,range]),rows=db.rows;
   const vs=useMemo(()=>{const m=new Map<string,DbVoucher>();rows.forEach(r=>{const k=r.date+'|'+r.no;let v=m.get(k);if(!v){v={date:r.date,no:r.no,type:r.type,narration:r.narration,rows:[],debit:0};m.set(k,v);}v.rows.push(r);v.debit+=r.debit;});return [...m.values()];},[rows]);
   const pg=usePaged(vs,phone?PHONE_PAGE:DESKTOP_PAGE);
-  const tot=rows.reduce((a,r)=>({debit:a.debit+r.debit,credit:a.credit+r.credit}),{debit:0,credit:0});
+  const tot={debit:db.debit,credit:db.credit};
   const voucher=(v:DbVoucher)=>open({type:'acc-voucher',id:v.date+'|'+v.no});
-  const csv=<CsvButton name={`HCC-Demo-day-book-${range.from}_${range.to}.csv`} csv={()=>accDayBookCsv(rows)} disabled={!rows.length}/>;
+  const csv=<CsvButton name={`HCC-Demo-day-book-${range.from}_${range.to}.csv`} csv={()=>accDayBookCsv(db)} disabled={!rows.length}/>;
   return <>
     <RangeBar s={s} range={range} setRange={setRange} phone={phone}/>
     <div className="acc-subbar"><span className="muted">{vs.length} voucher{vs.length===1?'':'s'} · debits {money(tot.debit)} · credits {money(tot.credit)}</span>{!phone&&csv}</div>
@@ -91,6 +91,6 @@ export function DayBookView({range,setRange,phone}:{range:AccRange;setRange:(r:A
       :<><div className="table-wrap"><table className="acc-table"><thead><tr><th>Date</th><th>Voucher</th><th>Type</th><th>Narration</th><th>Ledger</th><th className="acc-num">Debit</th><th className="acc-num">Credit</th></tr></thead>
         <tbody>{pg.shown.flatMap(v=>v.rows.map((r,i)=><tr key={v.date+v.no+i} className={i===0?'acc-vstart':''}>
           <td>{i===0?shortDate(v.date):''}</td><td>{i===0&&<button type="button" className="text-btn acc-link number" onClick={()=>voucher(v)}>{v.no}</button>}</td><td>{i===0?v.type:''}</td><td className="acc-wrap">{i===0?v.narration:''}</td>
-          <td><span className={r.credit&&!r.debit?'acc-indent':''}>{r.name}</span> <small className="number">{r.account}</small></td><td className="acc-num number">{accAmt(r.debit)}</td><td className="acc-num number">{accAmt(r.credit)}</td></tr>))}</tbody></table></div><ShowMore p={pg}/></>
+          <td><span className={r.credit&&!r.debit?'acc-indent':''}>{r.ledger}</span> <small className="number">{r.account}</small></td><td className="acc-num number">{accAmt(r.debit)}</td><td className="acc-num number">{accAmt(r.credit)}</td></tr>))}</tbody></table></div><ShowMore p={pg}/></>
       :<Empty title="No vouchers in this range" body="Nothing was posted, received or spent on these business dates."/>}</>;
 }

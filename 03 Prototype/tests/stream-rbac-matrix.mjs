@@ -102,7 +102,7 @@ const CMDS={
   // DEC-129: budgets and recurring templates are Owner-only money settings (DEC-058) = MST-002, the Owner's money-master permission (no new PERM id).
   EXP_BUDGET_SET:C('OWN','MST-002 Owner (DEC-129)'),EXP_BUDGET_COPY:C('OWN','MST-002 Owner (DEC-129)'),EXP_REC_SAVE:C('OWN','MST-002 Owner (DEC-129)'),EXP_REC_TOGGLE:C('OWN','MST-002 Owner (DEC-129)'),EXP_REC_DELETE:C('OWN','MST-002 Owner (DEC-129)'),
   EXP_REC_POST:C('OWN MGR REC CSH ACC','EXP-001 (raises a draft)'),EXP_PETTY_FLOAT:C('OWN MGR REC CSH ACC','EXP-001 (top-up request)'),EXP_PETTY_FLOAT_DECIDE:C('OWN MGR ACC','EXP-002 (never your own)'),
-  EXP_PETTY_OUT:C('OWN MGR REC CSH ACC','EXP-001 (a drawer-cash expense for approval)'),EXP_UD_ADD:C('OWN MGR REC CSH ACC','EXP-001'),EXP_UD_PAY:C('OWN MGR REC CSH ACC','EXP-001 (DEC-130: cash = a desk receipt, PAY-001 on the open shift)'),
+  EXP_PETTY_OUT:C('OWN MGR REC CSH ACC','EXP-001 (a drawer-cash expense for approval)'),EXP_UD_ADD:C('OWN MGR REC CSH ACC','EXP-001; ACC-1 contract §4: optional kind (restaurant | room | other) + gstBps book the A17 sale'),EXP_UD_PAY:C('OWN MGR REC CSH ACC','EXP-001 (DEC-130: cash = a desk receipt, PAY-001 on the open shift)'),
   EXP_UD_VOID:C('OWN MGR ACC','EXP-003 (write-off)'),EXP_MONTH_LOCK:C('OWN','MST-002 Owner (SCC month lock)'),EXP_MONTH_UNLOCK:C('OWN','MST-002 Owner (DEC-131 unlock with a reason)'),EXP_CSV:C('OWN MGR ACC','EXP-002 (DEC-063 G13: the Cashier does not export)'),
   NIGHT_POST:C('OWN MGR','CLS-002'),CLOSE_RUN:C('OWN MGR','CLS-002'),DAY_CLOSE:C('OWN MGR','CLS-002'),NEXT_DAY:C('OWN MGR','CLS-002'),
   CORRECTION_ADJUST:C('OWN MGR ACC','CLS-003'),CORRECTION_ADJUST_DECIDE:C('OWN','CLS-004'),

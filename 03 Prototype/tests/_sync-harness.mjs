@@ -67,7 +67,10 @@ export function fakeServer(routes={}){
     // Empty front-desk lists (W4-1): every runtime with the full registry reloads bookings / guests; area tests override them.
     'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),
     // MA-1: rooms-master fields read with the rooms (empty = no master data; floor from the room number) and the room masters' lists.
-    ...mstDefaults,'GET /masters/rooms':()=>({items:[]}),...Object.fromEntries(['room-types','amenities','occupancy-charges'].map(x=>[`GET /masters/${x}`,()=>({page:1,pageSize:200,total:0,items:[]})])),...routes};
+    ...mstDefaults,'GET /masters/rooms':()=>({items:[]}),
+    // ACC-1 (integration): the chart master / history and the opening entry are patch loaders of accountingX (empty = built-ins, no entry).
+    'GET /accounting/chart/master':()=>({groups:[],ledgers:[],problems:[],canEdit:false}),'GET /accounting/chart/history':()=>[],
+    'GET /accounting/opening':()=>({fyStart:'2026-04-01',pending:true,entry:null,lockedFrom:null}),...Object.fromEntries(['room-types','amenities','occupancy-charges'].map(x=>[`GET /masters/${x}`,()=>({page:1,pageSize:200,total:0,items:[]})])),...routes};
   const calls=[],unrouted=[];
   const compiled=()=>Object.entries(table).map(([spec,h])=>{const [m,p]=spec.split(' ');const names=[];
     const re=new RegExp('^'+p.replace(/:[A-Za-z]+/g,x=>{names.push(x.slice(1));return '([^/]+)';})+'$');return {m,re,names,h};});

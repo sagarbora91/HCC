@@ -6,9 +6,7 @@
 //             each reloads accountingX (the server's cumulative trial balance then carries the approved entry as the opening that
 //             supersedes an imported one: `server.opening`, sub 'opening-import').
 //   loader    accountingOpeningLoader (patch on accountingX ← GET /accounting/opening, PERM-ACC-001) fills `accountingX.opening` for the
-//             entry grid and the pending banner. It is NOT in `loaders` yet: a new GET must first be listed in sync/reads.ts READS and in
-//             tests/_role-reads.json (regenerated from the real server), which this lane does not own — see
-//             05 Delivery Evidence/Accounting/ACC1-OPENING-DONE.md "Integration needed". Until then the production screen shows no draft.
+//             entry grid and the pending banner (registered at the ACC-1 integration: READS + tests/_role-reads.json).
 import type {ACCState,ACCOpening,ACCOpeningLine} from '../../domain/streams/accounting';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx,SliceLoader} from './types';
@@ -50,12 +48,12 @@ async function loadOpening(c:LoaderCtx):Promise<ACCState>{
   if(r.entry){c.ids.setVersion('accOpening','opening',r.entry.version);cur.opening=openingFromServer(r.entry);}else delete cur.opening;
   return cur;
 }
-/** Patch loader for accountingX (register it in `accountingOpening.loaders` once GET /accounting/opening is in READS). */
-export const accountingOpeningLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',needs:['accountingX'],load:loadOpening};
+/** Patch loader for accountingX (registered at the ACC-1 integration: GET /accounting/opening in READS and tests/_role-reads.json). */
+export const accountingOpeningLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/opening'],needs:['accountingX'],load:loadOpening};
 
 export const accountingOpening:SyncArea={
   id:'accounting-opening',
-  loaders:[],
+  loaders:[accountingOpeningLoader],
   commands:[
     {type:'ACC_OPENING_SAVE',reload:['accountingX'],
       async send(c){await c.api.command('SaveOpeningBalances',openingSaveBody(c.cmd));}},
