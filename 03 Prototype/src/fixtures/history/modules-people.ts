@@ -1,7 +1,7 @@
 // FY history Phase C (part 2): module 17 staff & payroll (W05-B: runs recomputed with the SCC rules, half-day leave), 18 guest services, 19 checklists & handover.
 import type {State} from '../../domain/types';
 import {addDays,nights} from '../../domain/money';
-import {hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrBankSnapshot,hrLeaveDays,hrMonthEnd,type HRStaff,type HRRun,type HRLeave} from '../../domain/streams/staff';
+import {hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrBankSnapshot,hrLegacySpanDates,hrMonthEnd,type HRStaff,type HRRun,type HRLeave} from '../../domain/streams/staff';
 import {gsvSlaMinutes,gsvDefaultDept,gsvAssignable,GSV_REQUEST_TYPES,type GSVRequest,type GSVComplaint,type GSVItem,type GSVComplaintCategory,type GSVSeverity} from '../../domain/streams/services';
 import {hovNewRun,hovAt,type HOVNote,type HOVRun,type HOVTemplate} from '../../domain/streams/handover';
 import type {Rng} from './prng';
@@ -19,19 +19,22 @@ function staffHistory(s:State,rng:Rng,o:HistoryWindow){
   const x=s.staffX;if(!x)return;
   const people=x.staff;
   // Approved leave in Apr–Sep (entered before attendance so those days are not marked present).
-  const leaves:HRLeave[]=[];let ln=0;
+  const leaves:HRLeave[]=[],spans:{staffId:string;from:string;to:string}[]=[];let ln=0;
   const leaveMonths=['2026-04','2026-05','2026-06','2026-07','2026-08'];
   for(const ym of leaveMonths)for(let k=0;k<3;k++){
     const st=rng.pick(people.filter(p=>p.joined<=ym+'-01'));
     const from=ym+'-'+pad(rng.int(3,24),2),len=rng.int(1,2),to=addDays(from,len-1);
-    if(leaves.some(l=>l.staffId===st.id&&l.from<=to&&l.to>=from))continue;
+    if(spans.some(l=>l.staffId===st.id&&l.from<=to&&l.to>=from))continue;
+    spans.push({staffId:st.id,from,to});
     const drawn=rng.weighted([['CL',50],['SL',35],['EL',15]] as const);
     // Review F-16: daily-wage staff take leave without pay only (live rule); the draw is still made so the seeded history is unchanged otherwise.
     const type:HRLeave['type']=st.payType==='daily'?'LOP':drawn;
-    leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:st.id,type,from,to,days:hrLeaveDays(s,st,from,to),reason:drawn==='SL'?'Unwell (fictional)':drawn==='CL'?'Personal work (fictional)':'Family visit (fictional)',
-      status:'Approved',requestedBy:st.userId??'manager',requestedAt:addDays(from,-3)+'T10:00',decidedBy:'manager',decidedAt:addDays(from,-2)+'T12:00'});
+    // SCC leave port: one record per counted date (a request with no counted day leaves none, as before); records keep the request range.
+    const id='HR-LV-H'+pad(++ln,2);
+    hrLegacySpanDates(s,st,from,to).forEach((date,i)=>leaves.push({id:i?`${id}-${i+1}`:id,staffId:st.id,date,type,from,to,days:1,reason:drawn==='SL'?'Unwell (fictional)':drawn==='CL'?'Personal work (fictional)':'Family visit (fictional)',
+      approver:'manager',status:'Approved',requestedBy:st.userId??'manager',requestedAt:addDays(from,-3)+'T10:00',decidedBy:'manager',decidedAt:addDays(from,-2)+'T12:00'}));
   }
-  x.leaves=[...leaves.filter(l=>l.days>0),...x.leaves];
+  x.leaves=[...leaves,...x.leaves];
   // An earlier salary advance, fully recovered over two runs (before the August advance of the base fixture).
   x.advances=[{id:'HR-ADV-H1',staffId:people[3].id,amount:200000,installment:100000,recovered:0,date:'2026-04-12',reason:'Medical advance (fictional)',by:'owner',recoveries:[]},...x.advances];
 
@@ -49,7 +52,7 @@ function staffHistory(s:State,rng:Rng,o:HistoryWindow){
   const halfLeaves=(ym:string)=>{let n=0;
     for(const k of Object.keys(x.att).filter(k=>k.startsWith(ym)).sort()){
       const [d,sid]=k.split('|'),st=people.find(p=>p.id===sid);if(n>=2||!st||st.payType!=='monthly'||x.att[k].status!=='H')continue;
-      x.leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:sid,type:'CL',from:d,to:d,days:0.5,half:'AM',reason:'Half day — personal work (fictional)',status:'Approved',
+      x.leaves.push({id:'HR-LV-H'+pad(++ln,2),staffId:sid,date:d,type:'CL',from:d,to:d,days:0.5,half:'AM',reason:'Half day — personal work (fictional)',approver:'manager',status:'Approved',
         requestedBy:st.userId??'manager',requestedAt:addDays(d,-2)+'T10:00',decidedBy:'manager',decidedAt:addDays(d,-1)+'T12:00'});n++;}
   };
   for(const ym of ['2026-04','2026-05','2026-06','2026-07','2026-09']){

@@ -61,13 +61,14 @@ public sealed record ReorderShiftPatternsRequest(IReadOnlyList<int> ShiftPattern
 
 // ── Leave types (M21) ──
 
-/// <summary><c>YearlyQuota</c> null = not tracked (no balance). <c>Used</c> = leave requests of this type.</summary>
-public sealed record LeaveTypeView(int LeaveTypeId, string Code, string Name, int SortOrder, bool Active, string? RetiredOn, bool Paid, int? YearlyQuota, int CarryForward,
-    bool Encashment, int Used, string UpdatedUtc, string Version);
+/// <summary>SCC's fixed leave categories + LOP (DEC-116). <c>YearlyQuota</c> = CL / SL / EL days per financial year (decimal; null = not tracked).
+/// <c>Used</c> = leave records of this category.</summary>
+public sealed record LeaveTypeView(int LeaveTypeId, string Code, string Name, int SortOrder, bool Active, string? RetiredOn, bool Paid, decimal? YearlyQuota,
+    int Used, string UpdatedUtc, string Version);
 
-/// <summary>SaveLeaveType K [V]. Paid, quota, carry-forward and encashment are pay rules: every create and any change of them needs PERM-MST-002 (Owner).</summary>
-public sealed record SaveLeaveTypeRequest(int? LeaveTypeId, string Code, string Name, bool Paid = true, int? YearlyQuota = null, int CarryForward = 0, bool Encashment = false,
-    int? SortOrder = null, string? ExpectedVersion = null);
+/// <summary>SaveLeaveType K [V]. Paid (fixed: only LOP unpaid) and the quota are pay rules: every create and any change of them needs PERM-MST-002 (Owner).</summary>
+public sealed record SaveLeaveTypeRequest(int? LeaveTypeId, string Code, string Name, bool Paid = true, decimal? YearlyQuota = null, int? SortOrder = null,
+    string? ExpectedVersion = null);
 
 public sealed record RetireLeaveTypeRequest(int LeaveTypeId, string ExpectedVersion);
 

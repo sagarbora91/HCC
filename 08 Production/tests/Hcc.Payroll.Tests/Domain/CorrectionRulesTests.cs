@@ -132,9 +132,9 @@ public sealed class CorrectionRulesTests
         var worked = PayrollRules.ComputeLine(daily, PayrollRules.Counts(daily, September(daily, holidays), Sep), R);
         Assert.Equal((2_320_000L, 80_000L), (worked.Earned, worked.Ot));
         Assert.Equal(3_000_000, PayrollRules.ComputeLine(monthly, PayrollRules.Counts(monthly, September(monthly, holidays), Sep), R).Earned);
-        // Leave skips the holiday as it skips weekly offs: CL Wed 16 – Fri 18 Sep = 2 days; a half day on the holiday = 0.
-        Assert.Equal(2m, PayrollRules.LeaveDays(monthly, mDays, D(16), D(18), null));
-        Assert.Equal(0m, PayrollRules.LeaveDays(monthly, mDays, D(17), D(17), LeaveHalf.PM));
+        // SCC leave port: leave days do not skip a holiday (SCC store holidays are blackout markers): CL Wed 16 – Fri 18 Sep = 3 days; a half day = 0.5.
+        Assert.Equal(3m, SccLeave.RequestedDays(0, D(16), D(18), null));
+        Assert.Equal(0.5m, SccLeave.RequestedDays(0, D(17), D(17), LeaveHalf.PM));
         Assert.True(PayrollRules.DayOff(monthly, mDays, D(17)) && PayrollRules.DayOff(monthly, mDays, D(20)) && !PayrollRules.DayOff(monthly, mDays, D(18)));
     }
 }

@@ -41,10 +41,18 @@ public static class PayrollEndpoints
         Command<SetRosterRequest, RosterResult>(g, PayrollService.OpSetRoster, (s, c, r, ct) => s.SetRosterAsync(c, r, ct));
         Command<CopyRosterWeekRequest, RosterResult>(g, PayrollService.OpCopyRosterWeek, (s, c, r, ct) => s.CopyRosterWeekAsync(c, r, ct));
         Command<MarkAttendanceRequest, AttendanceResult>(g, PayrollService.OpMarkAttendance, (s, c, r, ct) => s.MarkAttendanceAsync(c, r, ct));
-        Command<RequestLeaveRequest, LeaveResult>(g, PayrollService.OpRequestLeave, (s, c, r, ct) => s.RequestLeaveAsync(c, r, ct));
+        Command<RequestLeaveRequest, LeaveRequestResult>(g, PayrollService.OpRequestLeave, (s, c, r, ct) => s.RequestLeaveAsync(c, r, ct));
         Command<DecideLeaveRequest, LeaveResult>(g, PayrollService.OpDecideLeave, (s, c, r, ct) => s.DecideLeaveAsync(c, r, ct));
         Command<CancelLeaveRequest, LeaveResult>(g, PayrollService.OpCancelLeave, (s, c, r, ct) => s.CancelLeaveAsync(c, r, ct));
         Command<SetLeavePolicyRequest, LeavePolicyResult>(g, PayrollService.OpSetLeavePolicy, (s, c, r, ct) => s.SetLeavePolicyAsync(c, r, ct));
+        // SCC leave port (DEC-116 / DEC-119): per-staff entitlement override, blackouts, agenda, JSON import and Clear All (leave stays on with Payroll off).
+        Command<SetLeaveEntOverrideRequest, LeaveEntOverrideResult>(g, PayrollService.OpSetLeaveEntOverride, (s, c, r, ct) => s.SetLeaveEntOverrideAsync(c, r, ct));
+        Command<AddLeaveBlackoutRequest, LeaveBlackoutResult>(g, PayrollService.OpAddLeaveBlackout, (s, c, r, ct) => s.AddLeaveBlackoutAsync(c, r, ct));
+        Command<RemoveLeaveBlackoutRequest, LeaveBlackoutResult>(g, PayrollService.OpRemoveLeaveBlackout, (s, c, r, ct) => s.RemoveLeaveBlackoutAsync(c, r, ct));
+        Command<AddLeaveAgendaRequest, LeaveAgendaResult>(g, PayrollService.OpAddLeaveAgenda, (s, c, r, ct) => s.AddLeaveAgendaAsync(c, r, ct));
+        Command<RemoveLeaveAgendaRequest, LeaveAgendaResult>(g, PayrollService.OpRemoveLeaveAgenda, (s, c, r, ct) => s.RemoveLeaveAgendaAsync(c, r, ct));
+        Command<ImportLeaveRequest, ImportLeaveResult>(g, PayrollService.OpImportLeave, (s, c, r, ct) => s.ImportLeaveAsync(c, r, ct));
+        Command<ClearLeaveRequest, ClearLeaveResult>(g, PayrollService.OpClearLeave, (s, c, r, ct) => s.ClearLeaveAsync(c, r, ct));
         Command<GiveAdvanceRequest, AdvanceResult>(pay, PayrollService.OpGiveAdvance, (s, c, r, ct) => s.GiveAdvanceAsync(c, r, ct));
         Command<SetStatutoryRatesRequest, RatesResult>(pay, PayrollService.OpSetStatutoryRates, (s, c, r, ct) => s.SetStatutoryRatesAsync(c, r, ct));
         Command<PreparePayRunRequest, PayRunResult>(pay, PayrollService.OpPreparePayRun, (s, c, r, ct) => s.PreparePayRunAsync(c, r, ct));

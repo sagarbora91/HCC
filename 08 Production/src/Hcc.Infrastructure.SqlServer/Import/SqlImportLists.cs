@@ -32,6 +32,9 @@ internal enum Cv
     Json,
     Meals,
     Roles,
+
+    /// <summary>DECIMAL days (SCC leave quota): stored 12.50 ↔ cell 12.5.</summary>
+    Dec,
 }
 
 /// <summary>
@@ -54,6 +57,8 @@ internal static class ImportListMaps
     private static Col T(string key, string column, bool notNull = false) => new(key, "t." + column, Cv.Text, column, null, notNull);
 
     private static Col N(string key, string column, bool notNull = false) => new(key, "t." + column, Cv.Int, column, null, notNull);
+
+    private static Col Dec(string key, string column) => new(key, "t." + column, Cv.Dec, column, null, false);
 
     private static Col B(string key, string column) => new(key, "t." + column, Cv.Bool, column, null, true);
 
@@ -104,7 +109,7 @@ internal static class ImportListMaps
         M("designations", "hr.designation", "designation_id", T("dept", "dept_code"), T("grade", "grade"), T("defaultPayRule", "default_pay_rule")),
         M("shift-patterns", "hr.shift_pattern", "shift_pattern_id", new Col("start", "CONVERT(VARCHAR(5), t.start_time, 108)", Cv.Time, "start_time", "CAST(@v_start AS TIME(0))", true),
             new Col("end", "CONVERT(VARCHAR(5), t.end_time, 108)", Cv.Time, "end_time", "CAST(@v_end AS TIME(0))", true), N("breakMinutes", "break_minutes", true), B("night", "night"), T("weeklyOffRule", "weekly_off_rule", true)),
-        M("leave-types", "hr.leave_type", "leave_type_id", B("paid", "paid"), N("yearlyQuota", "yearly_quota"), N("carryForward", "carry_forward", true), B("encashment", "encashment")),
+        M("leave-types", "hr.leave_type", "leave_type_id", B("paid", "paid"), Dec("yearlyQuota", "yearly_quota")),
         M("holidays", "hr.holiday", "holiday_id", T("kind", "kind", true)),
         M("hk-task-types", "ops.hk_task_type", "task_type_id", new Col("appliesTo", "t.applies_to", Cv.Csv, "applies_to", null, true), N("standardMinutes", "standard_minutes", true), B("needsInspection", "needs_inspection"),
             new Col("checklist", "t.checklist_json", Cv.Json, "checklist_json", null, true)),
@@ -188,6 +193,8 @@ internal static class ImportListSql
                 return raw ?? string.Empty;
             case Cv.Bool:
                 return raw is "1" or "True" or "true" ? "yes" : "no";
+            case Cv.Dec:
+                return raw is null ? string.Empty : ImportLists.DaysText(decimal.Parse(raw, CultureInfo.InvariantCulture));
             case Cv.Bps:
                 return raw is null ? string.Empty : ImportLists.PctText(int.Parse(raw, CultureInfo.InvariantCulture));
             case Cv.Paise:
@@ -233,6 +240,10 @@ internal static class ImportListSql
                 type = SqlDbType.Bit;
                 value = canonical == "yes";
                 break;
+            case Cv.Dec:
+                type = SqlDbType.Decimal;
+                value = empty ? null : decimal.Parse(canonical, CultureInfo.InvariantCulture);
+                break;
             case Cv.Bps:
                 type = SqlDbType.Int;
                 value = empty ? (c.NotNull ? 0 : null) : ImportLists.BpsOf(canonical);
@@ -268,6 +279,12 @@ internal static class ImportListSql
         }
 
         var p = type == SqlDbType.NVarChar ? cmd.Parameters.Add(name, type, 4000) : cmd.Parameters.Add(name, type);
+        if (type == SqlDbType.Decimal)
+        {
+            p.Precision = 9;
+            p.Scale = 2;
+        }
+
         p.Value = value ?? DBNull.Value;
     }
 

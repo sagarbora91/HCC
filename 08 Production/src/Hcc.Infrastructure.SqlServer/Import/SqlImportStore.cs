@@ -175,7 +175,7 @@ public sealed class SqlImportStore(SqlConnectionFactory connections) : IImportSt
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) itemOutlets.Add((rd.GetInt32(0), rd.GetInt32(1)));
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             var departments = new List<SnapDepartment>();
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) departments.Add(new SnapDepartment(rd.GetString(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetByte(2)));
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) departments.Add(new SnapDepartment(rd.GetString(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetInt32(2)));   // INT since migration 4110 (SCC advisory caps)
             await rd.NextResultAsync(ct).ConfigureAwait(false);
             var companies = new List<SnapCompany>();
             while (await rd.ReadAsync(ct).ConfigureAwait(false))

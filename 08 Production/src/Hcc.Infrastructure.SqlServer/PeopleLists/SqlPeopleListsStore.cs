@@ -40,8 +40,7 @@ internal sealed record ListTable(string Table, string IdColumn, IReadOnlyList<Li
         + " WHERE s.property_id = x.property_id AND r.shift_code = x.code AND r.work_date >= p.business_date))");
 
     public static readonly ListTable Leaves = new("hr.leave_type", "leave_type_id",
-        [new("paid", "paid", SqlDbType.Bit, 0), new("yearlyQuota", "yearly_quota", SqlDbType.TinyInt, 0), new("carryForward", "carry_forward", SqlDbType.TinyInt, 0),
-         new("encashment", "encashment", SqlDbType.Bit, 0)],
+        [new("paid", "paid", SqlDbType.Bit, 0), new("yearlyQuota", "yearly_quota", SqlDbType.Decimal, 0)],
         "(SELECT COUNT(*) FROM hr.leave_request l WHERE l.property_id = x.property_id AND l.leave_type = x.code)");
 
     public static readonly ListTable Holidays = new("hr.holiday", "holiday_id",
@@ -59,6 +58,12 @@ internal static class PlSql
     public static void P(this SqlCommand cmd, string name, SqlDbType type, object? value, int size = 0)
     {
         var p = size > 0 ? cmd.Parameters.Add(name, type, size) : cmd.Parameters.Add(name, type);
+        if (type == SqlDbType.Decimal)
+        {
+            p.Precision = 9;
+            p.Scale = 2;
+        }
+
         p.Value = value ?? DBNull.Value;
     }
 
@@ -70,6 +75,7 @@ internal static class PlSql
         string s => s,
         int i when f.Type == SqlDbType.TinyInt => (byte)i,
         int i when f.Type == SqlDbType.SmallInt => (short)i,
+        int i when f.Type == SqlDbType.Decimal => (decimal)i,
         _ => v,
     };
 
@@ -95,6 +101,7 @@ internal static class PlSql
                 SqlDbType.TinyInt => (int)rd.GetByte(o),
                 SqlDbType.SmallInt => (int)rd.GetInt16(o),
                 SqlDbType.Bit => rd.GetBoolean(o),
+                SqlDbType.Decimal => rd.GetDecimal(o),
                 _ => rd.GetString(o),
             };
         }
@@ -112,18 +119,18 @@ internal static class PlSql
             if (Convert.ToInt32(await chk.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture) > 0) return;
         }
 
-        var cl = 12;
-        var sl = 7;
-        var el = 15;
+        var cl = 12m;
+        var sl = 7m;
+        var el = 15m;
         await using (var pol = make("SELECT cl_days, sl_days, el_days FROM hr.leave_policy WHERE property_id = @p;"))
         {
             pol.P("@p", SqlDbType.Int, propertyId);
             await using var rd = await pol.ExecuteReaderAsync(ct).ConfigureAwait(false);
             if (await rd.ReadAsync(ct).ConfigureAwait(false))
             {
-                cl = rd.GetByte(0);
-                sl = rd.GetByte(1);
-                el = rd.GetByte(2);
+                cl = rd.GetDecimal(0);
+                sl = rd.GetDecimal(1);
+                el = rd.GetDecimal(2);
             }
         }
 
@@ -266,16 +273,16 @@ public sealed class SqlPeopleListsStore : IPeopleListsStore
         return names;
     }
 
-    public async Task MirrorLeavePolicyAsync(ICommandTransaction tx, int propertyId, string code, int quota, int principalId, DateTime utc, CancellationToken ct = default)
+    public async Task MirrorLeavePolicyAsync(ICommandTransaction tx, int propertyId, string code, decimal quota, int principalId, DateTime utc, CancellationToken ct = default)
     {
         var column = code switch { "CL" => "cl_days", "SL" => "sl_days", "EL" => "el_days", _ => throw new ArgumentException("Only CL, SL and EL mirror the leave policy.", nameof(code)) };
         await using var cmd = PlSql.Sql(tx).Command($"""
             UPDATE hr.leave_policy SET {column} = @q, updated_by = @u, updated_utc = @utc WHERE property_id = @p;
             IF @@ROWCOUNT = 0 INSERT hr.leave_policy(property_id, cl_days, sl_days, el_days, default_cap, updated_by, updated_utc)
-              VALUES (@p, IIF('{column}' = 'cl_days', @q, 12), IIF('{column}' = 'sl_days', @q, 7), IIF('{column}' = 'el_days', @q, 15), 2, @u, @utc);
+              VALUES (@p, IIF('{column}' = 'cl_days', @q, 12), IIF('{column}' = 'sl_days', @q, 7), IIF('{column}' = 'el_days', @q, 15), 3, @u, @utc);
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@q", SqlDbType.TinyInt, (byte)quota);
+        cmd.P("@q", SqlDbType.Decimal, quota);
         cmd.P("@u", SqlDbType.Int, principalId);
         cmd.P("@utc", SqlDbType.DateTime2, utc);
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);

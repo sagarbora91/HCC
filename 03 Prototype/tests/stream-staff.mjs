@@ -104,28 +104,29 @@ export function register({test,M,assert}){
     assert.equal(M.hrShiftFor(s,st(s,'HR-S05'),'2026-10-30'),'OFF');// Friday weekly off
     s=execute(s,'manager',{type:'HR_ROSTER_COPY',from:'2026-10-26'});assert.equal(M.hrShiftFor(s,st(s,'HR-S05'),'2026-11-02'),'N');
   });
-  // W05-B: SCC entitlement per Indian FY (CL 8 → 12 per year): Ravi's CL left 6 → 10; the over-balance request is now 11 working days.
-  test('[HR] leave: balance per FY, overlap, daily-wage LOP only, no backdating, weekly offs excluded',()=>{
-    const s=seed();
+  // SCC leave port (DEC-116): the balance is approved days only (Ravi: 2 CL approved in September → 10 left); going over WARNS (needs
+  // confirmOverBalance); one record per date; the rest of the old refusals are SCC's per-date skips.
+  test('[HR] leave: balance per FY (approved only), over-quota warning, per-date skips, no backdating (DEC-075), own leave or a manager',()=>{
+    const s=seed(),rq=(uid,cmd)=>execute(s,uid,{type:'HR_LEAVE_REQUEST',approver:'manager',...cmd});
     assert.equal(M.hrLeaveBalance(s,'HR-S05','2026').find(b=>b.type==='CL').left,10);assert.equal(M.hrLeaveBalance(s,'HR-S05','2026-10-24').find(b=>b.type==='CL').left,10);
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-16',reason:'Long trip'}),/balance/);// MA-6 old → new: to 11-14 → 11-16 (the seeded paid holiday Diwali, Sun 8 Nov, is no leave day: 2–14 Nov now needs 10 days = fits; 2–16 Nov needs 12 > 10 left)
-    assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S10',leaveType:'CL',from:'2026-11-02',to:'2026-11-02',reason:'Trip'}),/without pay/);
-    assert.throws(()=>execute(s,'housekeeper2',{type:'HR_LEAVE_REQUEST',staffId:'HR-S06',leaveType:'SL',from:'2026-10-29',to:'2026-10-30',reason:'Unwell'}),code('NOT_AVAILABLE'));
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-10-20',to:'2026-10-20',reason:'Late'}),code('VALIDATION'));
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S06',leaveType:'CL',from:'2026-11-02',to:'2026-11-02',reason:'Not mine'}),code('FORBIDDEN'));
-    const n=execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-10-29',to:'2026-10-31',reason:'Family visit',key:'lv-1'});
-    assert.equal(x(n).leaves.at(-1).days,2);// Fri 30 Oct is Ravi's weekly off
-    assert.deepEqual(execute(n,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-10-29',to:'2026-10-31',reason:'Family visit',key:'lv-1'}),n);
+    assert.throws(()=>rq('housekeeper',{staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-12',reason:'Long trip'}),/EXCEEDS the balance/);// 11 days > 10 left
+    assert.equal(x(rq('housekeeper',{staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-12',reason:'Long trip',confirmOverBalance:true})).leaves.filter(l=>l.staffId==='HR-S05'&&l.date>='2026-11-02').length,11);
+    assert.ok(rq('manager',{staffId:'HR-S10',leaveType:'CL',from:'2026-11-02',to:'2026-11-02',reason:'Trip'}));// SCC: any category for any staff
+    assert.throws(()=>rq('housekeeper2',{staffId:'HR-S06',leaveType:'SL',from:'2026-10-28',to:'2026-10-29',reason:'Unwell'}),e=>e.code==='NOT_AVAILABLE'&&e.message==='2 skipped — duplicate');
+    assert.throws(()=>rq('housekeeper',{staffId:'HR-S05',leaveType:'CL',from:'2026-10-20',to:'2026-10-20',reason:'Late'}),code('VALIDATION'));
+    assert.throws(()=>rq('housekeeper',{staffId:'HR-S06',leaveType:'CL',from:'2026-11-02',to:'2026-11-02',reason:'Not mine'}),code('FORBIDDEN'));
+    const n=rq('housekeeper',{staffId:'HR-S05',leaveType:'CL',from:'2026-10-29',to:'2026-10-31',reason:'Family visit',key:'lv-1'});
+    assert.deepEqual(x(n).leaves.filter(l=>l.staffId==='HR-S05'&&l.status==='Pending').map(l=>[l.date,l.days]),[['2026-10-29',1],['2026-10-30',1],['2026-10-31',1]]);// Fri 30 Oct (Ravi's roster off) is a leave day: one hotel-wide week-off set (none)
+    assert.deepEqual(execute(n,'housekeeper',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S05',leaveType:'CL',from:'2026-10-29',to:'2026-10-31',reason:'Family visit',key:'lv-1'}),n);
   });
-  test('[HR] leave approval: no self-approval (requester or person on leave), rejection needs a reason',()=>{
+  test('[HR] leave approval: no self-approval (requester or person on leave, DEC-119), per date, no reason needed to reject',()=>{
     let s=seed();
     assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:'HR-LV-4',approve:true}),code('FORBIDDEN'));
     assert.throws(()=>execute(s,'housekeeper2',{type:'HR_LEAVE_DECIDE',id:'HR-LV-3',approve:true}),code('FORBIDDEN'));
-    assert.throws(()=>execute(s,'owner',{type:'HR_LEAVE_DECIDE',id:'HR-LV-4',approve:false}),code('VALIDATION'));
     s=execute(s,'owner',{type:'HR_LEAVE_DECIDE',id:'HR-LV-4',approve:true});
-    s=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:'HR-LV-3',approve:false,note:'Short-staffed that week'});
-    assert.deepEqual(['HR-LV-3','HR-LV-4'].map(id=>x(s).leaves.find(l=>l.id===id).status),['Rejected','Approved']);
-    s=execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S01',leaveType:'CL',from:'2026-11-05',to:'2026-11-05',reason:'Own leave'});
+    s=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:'HR-LV-3',approve:false});
+    assert.deepEqual(['HR-LV-3','HR-LV-3-2','HR-LV-4'].map(id=>x(s).leaves.find(l=>l.id===id).status),['Rejected','Pending','Approved']);
+    s=execute(s,'manager',{type:'HR_LEAVE_REQUEST',approver:'owner',staffId:'HR-S01',leaveType:'CL',from:'2026-11-05',to:'2026-11-05',reason:'Own leave'});
     const own=x(s).leaves.at(-1).id;
     assert.equal(M.hrDecidable(s,'manager').some(l=>l.id===own),false);
     assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:own,approve:true}),code('FORBIDDEN'));

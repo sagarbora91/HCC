@@ -127,5 +127,6 @@
     <File Path="database/migrations/4000_ota_inventory_push.sql" />
     <File Path="database/migrations/4030_desk_list_indexes.sql" />
     <File Path="database/migrations/4100_attendance_no_thumb.sql" />
+    <File Path="database/migrations/4110_leave_scc_port.sql" />
   </Folder>
 </Solution>

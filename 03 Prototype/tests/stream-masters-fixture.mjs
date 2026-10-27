@@ -138,12 +138,12 @@ export function register({test,M,assert}){
     const s=seed(),before=sha(s);
     for(const id of mastersSeedIds())mastersSeed(id,s);for(const sp of masterSpecs()){for(const r of mstRows(s,sp.id))sp.inUse(s,r);}
     assert.equal(sha(s),before);assert.equal(s.mastersX,undefined);
-    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c');
-    assert.equal(sha(strip(buildHistory(baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f');
+    assert.equal(sha(strip(seed())),'a2cbb5cf1a5240c5e12d58f77d566ba20ffbdd2353d1955e7ab4bf3a29be503c');
+    assert.equal(sha(strip(buildHistory(baseFixture()))),'1b16471e6ebf47ab0e4661bb3b4f46adaa24888514a89e79cbeca510200dd2ad');
     assert.equal(sha(loadScenario('FY26').bookings),'66e8195233df0bb433ef76dfe58c83e215f93473a90b5bbf8b2c08613d5dbfce');});
   test('[MFX] FY26 = BASE + history: same FY26 whole-state hash as tests/stream-perf-store.mjs; no stored masters slice; BASE rooms / users identical inside FY26',()=>{
     const f=loadScenario('FY26');
-    assert.equal(sha(f),'d0babd3b6f7e1ad443e08d9ec4416e2f99faca6ed4ab9ec2786c11e1133a1211');
+    assert.equal(sha(f),'0e29ff52e666358f297c83782f44f7b337496dfa64c2ff70be3cb91085186b9c');
     assert.equal(f.mastersX,undefined);assert.equal(sha(f.rooms),sha(seed().rooms));assert.equal(sha(f.users),sha(seed().users));});
   test('[MFX] FY26 history is deterministic (two builds identical) and the seed reads do not depend on it being built first',()=>{
     assert.equal(sha(buildHistory(baseFixture())),sha(buildHistory(baseFixture())));
@@ -170,7 +170,7 @@ export function register({test,M,assert}){
     assert.deepEqual(codes('expenseCategories'),['SUPPLIES','LAUNDRY','MAINT','UTIL','PETTY']);
     assert.deepEqual(codes('numberSeries'),['INV','BOS','CRN','RCP','KOT','REG','RST']); // MA-11 (DEC-MA-11d): old list without RST → RST is a seeded row on both sides
     assert.deepEqual(codes('hkTaskTypes'),['DEP','STAY','DEEP','INSP']);
-    assert.deepEqual(codes('leaveTypes'),['CL','SL','EL','CO','ML','LOP']);
+    assert.deepEqual(codes('leaveTypes'),['CL','SL','EL','ML','CO','OTH','LOP']); // SCC leave port (DEC-116): SCC's six in SCC's order + LOP, the same list as the server's SeedLeaveTypes
     assert.deepEqual(codes('shiftPatterns'),['M','E','N','G']);
     assert.deepEqual(codes('floors'),['F1','F2','F3']);});
 }

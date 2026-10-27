@@ -86,7 +86,7 @@ public static partial class PeopleListsRules
     {
         PeopleList.Designations => ["dept", "grade", "defaultPayRule"],
         PeopleList.ShiftPatterns => ["start", "end", "breakMinutes", "night", "weeklyOffRule"],
-        PeopleList.LeaveTypes => ["paid", "yearlyQuota", "carryForward", "encashment"],
+        PeopleList.LeaveTypes => ["paid", "yearlyQuota"],
         _ => ["kind"],
     };
 
@@ -94,7 +94,7 @@ public static partial class PeopleListsRules
     public static IReadOnlyList<string> PayFieldKeys(PeopleList l) => l switch
     {
         PeopleList.Designations => ["defaultPayRule"],
-        PeopleList.LeaveTypes => ["paid", "yearlyQuota", "carryForward", "encashment"],
+        PeopleList.LeaveTypes => ["paid", "yearlyQuota"],
         PeopleList.Holidays => ["kind"],
         _ => [],
     };
@@ -108,6 +108,7 @@ public static partial class PeopleListsRules
         null => null,
         bool b => b ? "yes" : "no",
         int i => i.ToString(CultureInfo.InvariantCulture),
+        decimal m => m.ToString("0.##", CultureInfo.InvariantCulture),
         _ => v.ToString(),
     };
 
@@ -156,16 +157,28 @@ public static partial class PeopleListsRules
             { ["start"] = s, ["end"] = e, ["breakMinutes"] = br, ["night"] = night, ["weeklyOffRule"] = rule });
     }
 
-    public static CleanListRow LeaveType(string? code, string? name, int? sortOrder, bool paid, int? yearlyQuota, int carryForward, bool encashment)
+    /// <summary>SCC's fixed leave categories (SCC VALID_CATEGORIES, SCC order) + HCC's LOP — the only codes of the list (DEC-116).</summary>
+    public static readonly IReadOnlyList<string> FixedLeaveCodes = ["CL", "SL", "EL", "ML", "CO", "OTH", "LOP"];
+
+    /// <summary>SCC TRACKED_CATS: the categories with a yearly quota.</summary>
+    public static readonly IReadOnlyList<string> TrackedLeaveCodes = ["CL", "SL", "EL"];
+
+    public const string FixedLeave = "SCC’s leave categories are fixed — they cannot be retired.";
+
+    /// <summary>SCC leave port (DEC-116): SCC's fixed categories + LOP; paid is fixed (only LOP unpaid); a quota only for CL / SL / EL (any number ≥ 0,
+    /// halves allowed, no maximum). No carry-forward or encashment (SCC has neither).</summary>
+    public static CleanListRow LeaveType(string? code, string? name, int? sortOrder, bool paid, decimal? yearlyQuota)
     {
         var c = MastersRules.Validate(code, name, sortOrder);
-        if (!LeaveCodePattern().IsMatch(c.Code)) throw MastersRules.Fail(MasterReasons.Invalid, "Code: 1–6 capital letters or digits.", "code");
-        if (yearlyQuota is < 0 or > 60) throw MastersRules.Fail(MasterReasons.Invalid, "Yearly quota: 0–60 days.", "yearlyQuota");
-        if (carryForward is < 0 or > 60) throw MastersRules.Fail(MasterReasons.Invalid, "Carry forward: 0–60 days.", "carryForward");
-        if (carryForward > 0 && yearlyQuota is null) throw MastersRules.Fail(MasterReasons.Invalid, "Carry forward needs a yearly quota (an untracked type has no balance).", "carryForward");
-        if (!paid && (yearlyQuota is > 0 || carryForward > 0 || encashment)) throw MastersRules.Fail(MasterReasons.Invalid, "Unpaid leave has no quota, carry-forward or encashment.", "paid");
+        if (!LeaveCodePattern().IsMatch(c.Code) || !FixedLeaveCodes.Contains(c.Code))
+            throw MastersRules.Fail(MasterReasons.Invalid, "SCC’s leave categories are fixed: CL, SL, EL, ML, CO, OTH and LOP (leave without pay). No other category can be added.", "code");
+        if (paid != (c.Code != "LOP"))
+            throw MastersRules.Fail(MasterReasons.Invalid, c.Code == "LOP" ? "Leave without pay is always unpaid." : "Every SCC leave category is paid leave (only Leave without pay is unpaid).", "paid");
+        if (yearlyQuota is not null && !TrackedLeaveCodes.Contains(c.Code))
+            throw MastersRules.Fail(MasterReasons.Invalid, "Only Casual, Sick and Earned leave have a yearly quota (SCC TRACKED_CATS).", "yearlyQuota");
+        if (yearlyQuota is < 0 or > 9_999_999) throw MastersRules.Fail(MasterReasons.Invalid, "Yearly quota: a number of days, 0 or more.", "yearlyQuota");
         return new CleanListRow(c.Code, c.Name, c.SortOrder, new Dictionary<string, object?>
-            { ["paid"] = paid, ["yearlyQuota"] = yearlyQuota, ["carryForward"] = carryForward, ["encashment"] = encashment });
+            { ["paid"] = paid, ["yearlyQuota"] = yearlyQuota is { } q ? Math.Round(q, 2, MidpointRounding.AwayFromZero) : null });
     }
 
     public static bool ValidDate(string? code) =>
@@ -194,9 +207,6 @@ public static partial class PeopleListsRules
 
     /// <summary>Two active shift patterns must not have the same times.</summary>
     public static bool SameTimes(string start, string end, string otherStart, string otherEnd) => start == otherStart && end == otherEnd;
-
-    /// <summary>At least one active unpaid leave type must remain (daily-wage staff can take unpaid leave only).</summary>
-    public const string KeepUnpaid = "Keep at least one active unpaid leave type — daily-wage staff can take unpaid leave only.";
 
     // ── Changes (history and audit) ──
 
@@ -227,19 +237,20 @@ public static partial class PeopleListsRules
     public static IReadOnlyList<SeedRow> SeedShiftPatterns() => ShiftCatalog.Defaults.Select((p, i) => new SeedRow(p.Code, p.Name, (i + 1) * 10, new Dictionary<string, object?>
         { ["start"] = MinutesText(p.Start), ["end"] = MinutesText(p.End), ["breakMinutes"] = p.BreakMinutes, ["night"] = p.Night, ["weeklyOffRule"] = p.WeeklyOffRule })).ToList();
 
-    /// <summary>The six built-in leave types; CL / SL / EL get the property's current entitlement (the stored leave policy, else 12 / 7 / 15).</summary>
-    public static IReadOnlyList<SeedRow> SeedLeaveTypes(int cl, int sl, int el)
+    /// <summary>SCC's six leave categories in SCC's order + LOP; CL / SL / EL get the property's current entitlement (the stored settings, else 12 / 7 / 15).</summary>
+    public static IReadOnlyList<SeedRow> SeedLeaveTypes(decimal cl, decimal sl, decimal el)
     {
-        SeedRow Row(string code, string name, int i, bool paid, int? quota, bool encashment) => new(code, name, i * 10, new Dictionary<string, object?>
-            { ["paid"] = paid, ["yearlyQuota"] = quota, ["carryForward"] = 0, ["encashment"] = encashment });
+        SeedRow Row(string code, string name, int i, bool paid, decimal? quota) => new(code, name, i * 10, new Dictionary<string, object?>
+            { ["paid"] = paid, ["yearlyQuota"] = quota });
         return
         [
-            Row("CL", "Casual leave", 1, true, cl, false),
-            Row("SL", "Sick leave", 2, true, sl, false),
-            Row("EL", "Earned leave", 3, true, el, true),
-            Row("CO", "Compensatory off", 4, true, null, false),
-            Row("ML", "Maternity / paternity leave", 5, true, null, false),
-            Row("LOP", "Leave without pay", 6, false, null, false),
+            Row("CL", "Casual leave", 1, true, cl),
+            Row("SL", "Sick leave", 2, true, sl),
+            Row("EL", "Earned leave", 3, true, el),
+            Row("ML", "Maternity / paternity leave", 4, true, null),
+            Row("CO", "Compensatory off", 5, true, null),
+            Row("OTH", "Other", 6, true, null),
+            Row("LOP", "Leave without pay", 7, false, null),
         ];
     }
 

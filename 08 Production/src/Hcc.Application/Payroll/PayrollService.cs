@@ -104,16 +104,16 @@ public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore 
         var code = Required(req.Code, 2, 10, "Department code: 2–10 capital letters or digits.");
         if (!DeptCode().IsMatch(code)) throw HccException.Validation("Department code: 2–10 capital letters or digits.");
         var name = Required(req.Name, 2, 60, "Enter the department name.");
-        if (req.LeaveCap is { } cap && cap is < 1 or > 20) throw HccException.Validation("Department limit: 1–20.");
+        if (req.LeaveCap is { } cap && cap < 0) throw HccException.Validation("Department leave cap: a whole number, 0 or more (SCC per-store cap, advisory).");
         return await runner.RunAsync(ctx, req, async (tx, c2) =>
         {
             var db = store.In(tx);
             var existing = await db.LockDepartmentAsync(ctx.PropertyId, code, c2).ConfigureAwait(false);
             if (existing?.LeaveCap != req.LeaveCap && !(existing is null && req.LeaveCap is null))
-                await Require(ctx, PayrollPermissions.OwnerPayroll, ct: c2).ConfigureAwait(false);   // leave capacity = leave policy (Owner)
+                await Require(ctx, PayrollPermissions.OwnerPayroll, ct: c2).ConfigureAwait(false);   // the advisory leave cap = leave settings (Owner)
             await db.UpsertDepartmentAsync(ctx.PropertyId, new DepartmentRow(code, name, req.LeaveCap), c2).ConfigureAwait(false);
             var notes = existing is null ? "added" : "updated";
-            await tx.AuditAsync("HR_DEPT_SAVED", "hr.dept:" + code, $"{code} · {name} {notes}{(req.LeaveCap is { } x ? $" · max {x} off per day" : "")}", c2).ConfigureAwait(false);
+            await tx.AuditAsync("HR_DEPT_SAVED", "hr.dept:" + code, $"{code} · {name} {notes}{(req.LeaveCap is { } x ? $" · advisory leave cap {x} a day" : "")}", c2).ConfigureAwait(false);
             return new DepartmentResult(code, name, req.LeaveCap, notes);
         }, ct).ConfigureAwait(false);
     }

@@ -40,6 +40,9 @@ public enum ListKind
 
     /// <summary>One code of another list (<see cref="ListField.Ref"/>).</summary>
     Ref,
+
+    /// <summary>A number of days ≥ <see cref="ListField.Min"/>, halves (up to 2 decimals) allowed — SCC leave entitlements (DEC-116).</summary>
+    Days,
 }
 
 /// <summary>One column of a list master (after code and name). <see cref="Key"/> = the prototype FieldSpec key (the CSV header).</summary>
@@ -443,16 +446,13 @@ public static partial class ImportLists
         },
         new(ImportMaster.LeaveTypes, "leave-types", "leaveTypes", "Leave types", "leave type", true, "—",
         [
-            new ListField("paid", ListKind.Bool, false, "yes for paid leave, no for unpaid (blank = no). Owner-only (pay).", "yes") { Default = "no", Money = true },
-            new ListField("yearlyQuota", ListKind.Int, false, "Days per year, 0 to 60 (blank = not tracked).", "12") { Min = 0, Hi = 60, Money = true },
-            new ListField("carryForward", ListKind.Int, false, "Days carried to the next year, 0 to 60 (needs a yearly quota; blank = 0).", "0") { Min = 0, Hi = 60, Money = true, Default = "0" },
-            new ListField("encashment", ListKind.Bool, false, "yes when unused days are paid out.", "no") { Default = "no", Money = true },
+            new ListField("paid", ListKind.Bool, false, "yes for paid leave, no for unpaid (blank = no). Fixed: only LOP (leave without pay) is unpaid. Owner-only (pay).", "yes") { Default = "no", Money = true },
+            new ListField("yearlyQuota", ListKind.Days, false, "Days per financial year for CL, SL and EL only, 0 or more, halves allowed (blank = not tracked).", "12") { Min = 0, Money = true },
         ])
         {
-            CodeMeaning = "Leave code, 1 to 6 capital letters or digits (CL, SL, EL …). Leave requests and attendance use it.", CodeExample = "CL", NameExample = "Casual leave",
+            CodeMeaning = "SCC’s fixed leave categories: CL, SL, EL, ML, CO, OTH and LOP (leave without pay). No other code.", CodeExample = "CL", NameExample = "Casual leave",
             CodeMax = 6,
-            Check = c => c.Rule("paid", () => PeopleLists.PeopleListsRules.LeaveType(c.Code, c.Name, null, c["paid"] == "yes", IntOrNull(c["yearlyQuota"]),
-                IntOrNull(c["carryForward"]) ?? 0, c["encashment"] == "yes")),
+            Check = c => c.Rule("paid", () => PeopleLists.PeopleListsRules.LeaveType(c.Code, c.Name, null, c["paid"] == "yes", DaysOrNull(c["yearlyQuota"]))),
         },
         new(ImportMaster.Holidays, "holidays", "holidays", "Holiday calendar", "holiday", true, "—",
         [
@@ -539,6 +539,11 @@ public static partial class ImportLists
     // ── helpers shared by the row checks ──
 
     public static int? IntOrNull(string? s) => int.TryParse(s, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var v) ? v : null;
+
+    public static decimal? DaysOrNull(string? s) => decimal.TryParse(s, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var v) ? v : null;
+
+    /// <summary>Canonical text of a number of days (12, 12.5, 10.25).</summary>
+    public static string DaysText(decimal v) => v.ToString("0.##", CultureInfo.InvariantCulture);
 
     /// <summary>Canonical percent text ("12.5") → basis points.</summary>
     public static int? BpsOf(string? percent) => string.IsNullOrEmpty(percent) ? null : (int)decimal.Round(decimal.Parse(percent, CultureInfo.InvariantCulture) * 100m, 0, MidpointRounding.AwayFromZero);

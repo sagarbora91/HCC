@@ -283,54 +283,74 @@ public sealed class PayrollSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
     }
 
     [Fact]
-    public async Task Leave_requests_weekly_offs_capacity_overlap_and_no_self_approval()
+    public async Task Leave_SCC_one_record_per_date_capacity_duplicates_and_no_self_approval()
     {
         var h = await db.NewHotelAsync();
         await h.SeedGoldenAsync();
-        Task<Hcc.Application.Commands.CommandResult<LeaveResult>> Req(string user, string staff, string type, string from, string? to = null, string? half = null)
-            => h.Payroll.RequestLeaveAsync(h.As(user, PayrollService.OpRequestLeave), new RequestLeaveRequest(h.S(staff), type, PayrollGolden.Date(from), to is null ? null : PayrollGolden.Date(to), half, "Fictional reason"), Ct);
-        // F-01 on the server: Aarav LOP Mon 9 – Wed 11 Nov (Tuesday off) = 2 days.
-        Assert.Equal(2m, (await Req("reception", "HR-S02", "LOP", "2026-11-09", "2026-11-11")).Value.Days);
+        var manager = h.U("manager");
+        Task<Hcc.Application.Commands.CommandResult<LeaveRequestResult>> Req(string user, string staff, string type, string from, string? to = null, string? half = null,
+            int? approver = -1, bool confirm = false)
+            => h.Payroll.RequestLeaveAsync(h.As(user, PayrollService.OpRequestLeave), new RequestLeaveRequest(h.S(staff), type, PayrollGolden.Date(from),
+                to is null ? null : PayrollGolden.Date(to), half, "Fictional reason", approver == -1 ? manager : approver, confirm), Ct);
+        // SCC: one record per date; Aarav's roster weekly off (Tuesday) is a leave day (the hotel's leave week-off set is empty).
+        var lop = (await Req("reception", "HR-S02", "LOP", "2026-11-09", "2026-11-11")).Value;
+        Assert.Equal([new DateOnly(2026, 11, 9), new DateOnly(2026, 11, 10), new DateOnly(2026, 11, 11)], lop.Added.Select(x => x.From));
+        Assert.Equal("3 day(s) submitted — pending approval", lop.Notes);
+        Assert.All(lop.Added, x => Assert.Equal((1m, "Pending"), (x.Days, x.Status)));
         await Hotel.FailsAsync(() => Req("housekeeper", "HR-S06", "CL", "2026-11-12"), HccErrorCode.FORBIDDEN);          // only for yourself
-        await Hotel.FailsAsync(() => Req("manager", "HR-S10", "CL", "2026-11-12"), HccErrorCode.VALIDATION);             // daily wage: LOP only
-        await Hotel.FailsAsync(() => Req("manager", "HR-S05", "CL", "2026-10-20"), HccErrorCode.VALIDATION);             // before the business date
-        await Hotel.FailsAsync(() => Req("housekeeper", "HR-S05", "CL", "2026-10-30", half: "AM"), HccErrorCode.VALIDATION);   // Friday = Ravi's weekly off
-        await Hotel.FailsAsync(() => Req("manager", "HR-S05", "CL", "2027-03-30", "2027-04-02"), HccErrorCode.VALIDATION);    // crosses 31 March
-        // Capacity: Housekeeping max 2 off per day (Ravi + Kavya hold Wed 4 Nov → Neha refused).
-        var r1 = (await Req("housekeeper", "HR-S05", "CL", "2026-11-04")).Value;
+        Assert.Single((await Req("manager", "HR-S10", "CL", "2026-11-12")).Value.Added);                                // SCC: any category, any pay type
+        await Hotel.FailsAsync(() => Req("manager", "HR-S05", "CL", "2026-10-20"), HccErrorCode.VALIDATION);             // before the business date (DEC-075)
+        await Hotel.FailsAsync(() => Req("manager", "HR-S05", "CL", "2026-11-20", approver: null), HccErrorCode.VALIDATION);   // approver required
+        await Hotel.FailsAsync(() => Req("manager", "HR-S05", "CL", "2026-11-20", approver: h.U("housekeeper")), HccErrorCode.VALIDATION);   // not Owner / Manager
+        await Hotel.FailsAsync(() => Req("owner", "HR-S01", "CL", "2026-11-20", approver: manager), HccErrorCode.VALIDATION);   // not the person on leave
+        await Hotel.FailsAsync(() => Req("manager", "HR-S05", "BL", "2026-11-20"), HccErrorCode.VALIDATION);             // SCC's fixed categories
+        Assert.Equal(4, (await Req("manager", "HR-S05", "OTH", "2027-03-30", "2027-04-02")).Value.Added.Count);      // may cross 31 March (SCC)
+        // SCC MAX_DAY: 3 records a date for the whole property — the 4th date record is skipped, other dates of the request are still recorded.
+        var r1 = (await Req("housekeeper", "HR-S05", "CL", "2026-11-04")).Value.Added.Single();
         await Req("housekeeper2", "HR-S06", "SL", "2026-11-04");
+        await Req("reception", "HR-S02", "CL", "2026-11-04");
         var full = await Hotel.FailsAsync(() => Req("supervisor", "HR-S04", "CL", "2026-11-04"), HccErrorCode.NOT_AVAILABLE);
-        Assert.Contains("Housekeeping already has 2 staff off", full.Message, StringComparison.Ordinal);
-        await Hotel.FailsAsync(() => Req("housekeeper", "HR-S05", "SL", "2026-11-04"), HccErrorCode.NOT_AVAILABLE);      // overlap
-        // Half days: AM and PM coexist; same half conflicts.
-        Assert.Equal(0.5m, (await Req("housekeeper", "HR-S05", "CL", "2026-11-09", half: "AM")).Value.Days);
+        Assert.Equal("1 skipped — day/shift full (max 3/day)", full.Message);
+        var partial = (await Req("supervisor", "HR-S04", "CL", "2026-11-03", "2026-11-05")).Value;
+        Assert.Equal(("2 day(s) submitted — pending approval, 1 skipped — day/shift full (max 3/day)", 1), (partial.Notes, partial.Blocked));
+        var dup = await Hotel.FailsAsync(() => Req("housekeeper", "HR-S05", "SL", "2026-11-04"), HccErrorCode.NOT_AVAILABLE);
+        Assert.Equal("1 skipped — duplicate", dup.Message);
+        // Half days: AM and PM coexist; the same half or a full day is a duplicate; a half day may cover a range.
+        Assert.Equal(0.5m, (await Req("housekeeper", "HR-S05", "CL", "2026-11-09", half: "AM")).Value.Added.Single().Days);
         await Req("housekeeper", "HR-S05", "SL", "2026-11-09", half: "PM");
         await Hotel.FailsAsync(() => Req("housekeeper", "HR-S05", "CL", "2026-11-09", half: "AM"), HccErrorCode.NOT_AVAILABLE);
+        Assert.Equal(3, (await Req("housekeeper", "HR-S05", "CL", "2026-11-23", "2026-11-25", half: "PM")).Value.Added.Count);
 
-        // Decisions: never your own (the Manager's own leave goes to the Owner); reject needs a reason.
-        var mine = (await Req("manager", "HR-S01", "CL", "2026-11-16")).Value;
+        // Decisions: one date record at a time; never your own leave or request (DEC-119); no reason needed to reject (SCC).
+        var mine = (await Req("manager", "HR-S01", "CL", "2026-11-16", approver: h.U("owner"))).Value.Added.Single();
         await Hotel.FailsAsync(() => h.Payroll.DecideLeaveAsync(h.As("manager", PayrollService.OpDecideLeave), new DecideLeaveRequest(mine.LeaveId, mine.Version, true), Ct), HccErrorCode.FORBIDDEN);
         await Hotel.FailsAsync(() => h.Payroll.DecideLeaveAsync(h.As("housekeeper", PayrollService.OpDecideLeave), new DecideLeaveRequest(r1.LeaveId, r1.Version, true), Ct), HccErrorCode.FORBIDDEN);
-        await Hotel.FailsAsync(() => h.Payroll.DecideLeaveAsync(h.As("owner", PayrollService.OpDecideLeave), new DecideLeaveRequest(mine.LeaveId, mine.Version, false), Ct), HccErrorCode.VALIDATION);
         var approved = await h.Payroll.DecideLeaveAsync(h.As("owner", PayrollService.OpDecideLeave), new DecideLeaveRequest(mine.LeaveId, mine.Version, true), Ct);
         Assert.Equal("Approved", approved.Value.Status);
-        await Hotel.FailsAsync(() => h.Payroll.DecideLeaveAsync(h.As("owner", PayrollService.OpDecideLeave), new DecideLeaveRequest(mine.LeaveId, approved.Value.Version, true), Ct), HccErrorCode.INVALID_TRANSITION);
+        var again = await Hotel.FailsAsync(() => h.Payroll.DecideLeaveAsync(h.As("owner", PayrollService.OpDecideLeave), new DecideLeaveRequest(mine.LeaveId, approved.Value.Version, true), Ct), HccErrorCode.INVALID_TRANSITION);
+        Assert.Equal("This leave is already approved", again.Message);
         await Hotel.FailsAsync(() => h.Payroll.DecideLeaveAsync(h.As("manager", PayrollService.OpDecideLeave), new DecideLeaveRequest(r1.LeaveId, "AAAAAAAAAAA=", true), Ct), HccErrorCode.STALE_VERSION);
-        // Cancel: the requester while pending; approved leave only by a manager.
+        var rej = await h.Payroll.DecideLeaveAsync(h.As("owner", PayrollService.OpDecideLeave), new DecideLeaveRequest(lop.Added[0].LeaveId, lop.Added[0].Version, false), Ct);
+        Assert.Equal("Rejected", rej.Value.Status);
+        Assert.Equal("Pending", (string)(await db.ScalarAsync("SELECT status FROM hr.leave_request WHERE leave_id = @l;", ("@l", lop.Added[1].LeaveId)))!);   // its own record
+        // Remove = cancel with an audit record (DEC-119): the requester while pending; approved leave only by a manager; the row stays.
         Assert.Equal("Cancelled", (await h.Payroll.CancelLeaveAsync(h.As("housekeeper", PayrollService.OpCancelLeave), new CancelLeaveRequest(r1.LeaveId, r1.Version), Ct)).Value.Status);
+        Assert.Equal(h.U("housekeeper"), (int)(await db.ScalarAsync("SELECT cancelled_by FROM hr.leave_request WHERE leave_id = @l;", ("@l", r1.LeaveId)))!);
         await Hotel.FailsAsync(() => h.Payroll.CancelLeaveAsync(h.As("reception", PayrollService.OpCancelLeave), new CancelLeaveRequest(mine.LeaveId, approved.Value.Version), Ct), HccErrorCode.FORBIDDEN);
         Assert.Equal("Cancelled", (await h.Payroll.CancelLeaveAsync(h.As("owner", PayrollService.OpCancelLeave), new CancelLeaveRequest(mine.LeaveId, approved.Value.Version), Ct)).Value.Status);
+        Assert.Equal(h.U("owner"), (int)(await db.ScalarAsync("SELECT decided_by FROM hr.leave_request WHERE leave_id = @l;", ("@l", mine.LeaveId)))!);   // the approval is kept
 
-        // Balance: CL 12 per FY; Ravi used CL 2 (Sep) + pending ½ → 9.5 left; the housekeeper reads only his own balance.
+        // Balance: SCC fyUsage = approved days only; Ravi used CL 2 (Sep) → 10 left (pending leave is not used); own balance only.
         var bal = await h.Queries.GetLeaveBalanceAsync(h.PropertyId, h.U("housekeeper"), h.S("HR-S05"), null, Ct);
-        Assert.Equal(9.5m, bal.Single(b => b.LeaveType == "CL").Left);
+        Assert.Equal((12m, 2m, 10m), (bal.Single(b => b.LeaveType == "CL").Entitled, bal.Single(b => b.LeaveType == "CL").Used, bal.Single(b => b.LeaveType == "CL").Left));
         await Hotel.FailsAsync(() => h.Queries.GetLeaveBalanceAsync(h.PropertyId, h.U("housekeeper"), h.S("HR-S06"), null, Ct), HccErrorCode.NOT_FOUND);
-        // Leave policy and department caps are Owner-only (DEC-058); F-15 counts staff over a cut.
-        await Hotel.FailsAsync(() => h.Payroll.SetLeavePolicyAsync(h.As("manager", PayrollService.OpSetLeavePolicy), new SetLeavePolicyRequest(12, 7, 15, 3), Ct), HccErrorCode.FORBIDDEN);
-        var cut = await h.Payroll.SetLeavePolicyAsync(h.As("owner", PayrollService.OpSetLeavePolicy), new SetLeavePolicyRequest(1, 7, 15, 2), Ct);
+        // Leave settings and department caps are Owner-only (DEC-058); fractions allowed (SCC); F-15 counts staff over a cut.
+        await Hotel.FailsAsync(() => h.Payroll.SetLeavePolicyAsync(h.As("manager", PayrollService.OpSetLeavePolicy), new SetLeavePolicyRequest(12, 7, 15), Ct), HccErrorCode.FORBIDDEN);
+        var cut = await h.Payroll.SetLeavePolicyAsync(h.As("owner", PayrollService.OpSetLeavePolicy), new SetLeavePolicyRequest(1.5m, 7, 15), Ct);
         Assert.True(cut.Value.StaffOverEntitlement >= 1);
+        Assert.Equal(1.5m, cut.Value.Cl);
         await Hotel.FailsAsync(() => h.Payroll.SaveDepartmentAsync(h.As("manager", PayrollService.OpSaveDepartment), new SaveDepartmentRequest("HK", "Housekeeping", 3), Ct), HccErrorCode.FORBIDDEN);
-        Assert.Equal(3, (await h.Payroll.SaveDepartmentAsync(h.As("owner", PayrollService.OpSaveDepartment), new SaveDepartmentRequest("HK", "Housekeeping", 3), Ct)).Value.LeaveCap);
+        Assert.Equal(0, (await h.Payroll.SaveDepartmentAsync(h.As("owner", PayrollService.OpSaveDepartment), new SaveDepartmentRequest("HK", "Housekeeping", 0), Ct)).Value.LeaveCap);
     }
 
     [Fact]

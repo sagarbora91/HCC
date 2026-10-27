@@ -71,6 +71,7 @@ public sealed class ModuleGateHttpTests(ConfigDatabase db) : IClassFixture<Confi
         "SetSetting", "DecideSettingRequest", "CreateReservation", "CheckIn", "CheckoutStay", "PostCharge", "RecordReceipt", "OpenShift", "RunBusinessDayClose",
         "CreateUser", "QuoteStay", "TransitionHousekeepingTask", "RequestRepair", "SetReservationCompany", "IssueInvoice",
         "SaveDepartment", "SaveStaff", "SetRoster", "MarkAttendance", "RequestLeave", "DecideLeave", "CorrectAttendance", "DecidePayrollRequest", "SaveHoliday",
+        "CancelLeave", "SetLeavePolicy", "SetLeaveEntOverride", "AddLeaveBlackout", "RemoveLeaveBlackout", "AddLeaveAgenda", "RemoveLeaveAgenda", "ImportLeave", "ClearLeave",   // SCC LeaveDesk (DEC-116)
         "ViewIdCaptureImage", "RevealIdCaptureNumber", "PurgeIdCaptures", "RevealGuestId",
     ];
 

@@ -133,11 +133,16 @@ public class ImportListsKernelTests
     [Fact]
     public void Row_rules_of_the_owning_modules_apply_to_leave_types_shifts_zones_and_task_types()
     {
-        var leave = Plan("leave-types", "code,name,paid,yearlyQuota,carryForward,encashment\nCL,Casual,yes,12,3,no\nCF,Carry no quota,yes,,5,no\nUN,Unpaid quota,no,5,0,no\nTOOLONGX,Long code,yes,1,0,no\n");
+        // SCC leave port (DEC-116): SCC's fixed categories; a quota (halves, up to 2 decimals) only on CL / SL / EL; only LOP unpaid.
+        var leave = Plan("leave-types", "code,name,paid,yearlyQuota\nCL,Casual,yes,12.5\nML,Quota on an untracked category,yes,5\nLOP,Paid without pay,yes,\n"
+            + "BL,Not an SCC category,yes,\nSL,Three decimals,yes,7.125\nTOOLONGX,Long code,yes,1\n");
         Assert.Equal(ImportAction.Create, leave.Items[0].Action);
-        Assert.Contains(leave.Errors, e => e is { Row: 3 } && e.Message.Contains("quota", StringComparison.Ordinal));
-        Assert.Contains(leave.Errors, e => e is { Row: 4 } && e.Message.Contains("Unpaid", StringComparison.Ordinal));
-        Assert.Contains(leave.Errors, e => e is { Row: 5, Column: "code" });
+        Assert.Equal("12.5", ((ListRowData)leave.Items[0].Data!).Values["yearlyQuota"]);
+        Assert.Contains(leave.Errors, e => e is { Row: 3, Column: "yearlyQuota" } && e.Message.Contains("quota", StringComparison.Ordinal));
+        Assert.Contains(leave.Errors, e => e is { Row: 4, Column: "paid" } && e.Message.Contains("unpaid", StringComparison.Ordinal));
+        Assert.Contains(leave.Errors, e => e is { Row: 5, Column: "code" } && e.Message.Contains("fixed", StringComparison.Ordinal));
+        Assert.Contains(leave.Errors, e => e is { Row: 6, Column: "yearlyQuota" } && e.Message.Contains("2 decimals", StringComparison.Ordinal));
+        Assert.Contains(leave.Errors, e => e is { Row: 7, Column: "code" });
 
         var zones = Plan("hk-zones", "code,name,floors,rooms,defaultAttendant\nA,Zone A,F1;F2,301,Sunil Shinde\nB,No members,,,\nC,Unknown floor,F9,,\nD,Unknown user,F1,,nobody\n",
             Snap(new Dictionary<string, IReadOnlyList<ListSnapRow>> { ["floors"] = [R("F1", "G"), R("F2", "First")] }));

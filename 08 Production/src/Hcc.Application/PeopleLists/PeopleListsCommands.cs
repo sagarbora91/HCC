@@ -151,7 +151,7 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
             foreach (var (field, o, n) in changes)
                 await history.AddHistoryAsync(tx, ctx.PropertyId, PeopleListsRules.Id(l), rowId, clean.Code, field, o, n, ctx.PrincipalId, now, c).ConfigureAwait(false);
             if (l == PeopleList.LeaveTypes && clean.Code is "CL" or "SL" or "EL" && (old is null || changes.Any(x => x.Field == "yearlyQuota")))
-                await store.MirrorLeavePolicyAsync(tx, ctx.PropertyId, clean.Code, clean.Fields["yearlyQuota"] as int? ?? 0, ctx.PrincipalId, now, c).ConfigureAwait(false);
+                await store.MirrorLeavePolicyAsync(tx, ctx.PropertyId, clean.Code, clean.Fields["yearlyQuota"] as decimal? ?? 0m, ctx.PrincipalId, now, c).ConfigureAwait(false);
             return await FinishAsync(tx, l, ctx, rowId, old is null ? "created" : "changed", detail, view, c).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
@@ -172,9 +172,7 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
                     throw MastersRules.Fail(MasterReasons.Invalid, "Another active pattern already has these times.");
                 break;
             case PeopleList.LeaveTypes:
-                // Daily-wage staff can take unpaid leave only: the last active unpaid type cannot become paid.
-                if (clean.Fields["paid"] is true && old is { Active: true } && !old.Flag("paid") && !rows.Any(r => r.Id != old.Id && r.Active && !r.Flag("paid")))
-                    throw MastersRules.Fail(MasterReasons.Invalid, PeopleListsRules.KeepUnpaid, "paid");
+                // SCC leave port: the category list is fixed (PeopleListsRules.LeaveType); nothing depends on the other rows any more.
                 break;
         }
     }
@@ -218,8 +216,8 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
             var staff = await store.ActiveStaffOnShiftAsync(tx, propertyId, r.Code, ct).ConfigureAwait(false);
             if (staff.Count > 0) throw MastersRules.Fail(MasterReasons.InUse, $"{r.Name} is the default shift of {string.Join(", ", staff)} — change their default shift first.");
         }
-        else if (l == PeopleList.LeaveTypes && !r.Flag("paid") && !rows.Any(x => x.Id != r.Id && x.Active && !x.Flag("paid")))
-            throw MastersRules.Fail(MasterReasons.InUse, PeopleListsRules.KeepUnpaid);
+        else if (l == PeopleList.LeaveTypes && PeopleListsRules.FixedLeaveCodes.Contains(r.Code))
+            throw MastersRules.Fail(MasterReasons.InUse, PeopleListsRules.FixedLeave);
     }
 
     // ── Delete ──
@@ -239,8 +237,8 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
             var used = await UsageAsync(tx, ctx.PropertyId, l, r.Id, c).ConfigureAwait(false);
             MastersRules.EnsureDeletable(r.Name, used.Count, UsedBy(l));
             if (l == PeopleList.Holidays) await EnsureHolidayMonthsOpenAsync(tx, ctx.PropertyId, [(r.Code, r.Text("kind"))], c).ConfigureAwait(false);
-            if (l == PeopleList.LeaveTypes && !r.Flag("paid") && r.Active && !rows.Any(x => x.Id != r.Id && x.Active && !x.Flag("paid")))
-                throw MastersRules.Fail(MasterReasons.InUse, PeopleListsRules.KeepUnpaid);
+            if (l == PeopleList.LeaveTypes && PeopleListsRules.FixedLeaveCodes.Contains(r.Code))
+                throw MastersRules.Fail(MasterReasons.InUse, "SCC’s leave categories are fixed — they cannot be deleted.");
             await store.DeleteAsync(tx, l, r.Id, expected, c).ConfigureAwait(false);
             await history.AddHistoryAsync(tx, ctx.PropertyId, PeopleListsRules.Id(l), r.Id, r.Code, "deleted", r.Name, null, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync(PeopleListsRules.AuditAction(l), Target(l, r.Id), $"Master {label}: {r.Code} · {r.Name} deleted (never used)", c).ConfigureAwait(false);
@@ -303,8 +301,8 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
     internal static ShiftPatternView ToShift(ListRec r, int used) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, Retired(r), r.Text("start")!, r.Text("end")!, r.Int("breakMinutes") ?? 0,
         r.Flag("night"), r.Text("weeklyOffRule") ?? "fixed", used, Iso(r.UpdatedUtc), VersionToken.ToWire(r.RowVer));
 
-    internal static LeaveTypeView ToLeave(ListRec r, int used) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, Retired(r), r.Flag("paid"), r.Int("yearlyQuota"), r.Int("carryForward") ?? 0,
-        r.Flag("encashment"), used, Iso(r.UpdatedUtc), VersionToken.ToWire(r.RowVer));
+    internal static LeaveTypeView ToLeave(ListRec r, int used) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, Retired(r), r.Flag("paid"), r.Dec("yearlyQuota"),
+        used, Iso(r.UpdatedUtc), VersionToken.ToWire(r.RowVer));
 
     internal static HolidayView ToHoliday(ListRec r, int used) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, Retired(r), r.Text("kind") ?? "paid", PeopleListsRules.Fy(r.Code), used, Iso(r.UpdatedUtc),
         VersionToken.ToWire(r.RowVer));
@@ -382,7 +380,7 @@ public sealed class PeopleListsCommands(ICommandRunner runner, IAccessPolicy pol
     {
         ArgumentNullException.ThrowIfNull(req);
         return SaveAsync(PeopleList.LeaveTypes, ctx, req, req.LeaveTypeId, req.ExpectedVersion,
-            PeopleListsRules.LeaveType(req.Code, req.Name, req.SortOrder, req.Paid, req.YearlyQuota, req.CarryForward, req.Encashment), ToLeave, ct);
+            PeopleListsRules.LeaveType(req.Code, req.Name, req.SortOrder, req.Paid, req.YearlyQuota), ToLeave, ct);
     }
 
     public Task<CommandResult<LeaveTypeView>> RetireLeaveTypeAsync(CommandContext ctx, RetireLeaveTypeRequest req, CancellationToken ct = default)

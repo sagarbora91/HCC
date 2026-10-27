@@ -1,8 +1,8 @@
 // Module 17 · HR desk (page 'staff'): staff master, roster, attendance, leave (requests, calendar, policy), payroll, advances, full and final, statutory rates.
 // Tabs by role: managers (approve) see people/roster/attendance/leave without salaries; Owner/Accountant see payroll.
 // Anyone else who opens the page sees their own "My HR" view. Desktop renders tables; the phone renders cards (phone=true).
-// W05-B: SCC payroll rules (PF / ESIC / MH PT, lock + Owner unlock, bank and statutory files) and SCC leave rules (FY entitlements,
-// half-day, max staff off per department per day, leave calendar). Payroll run and statutory rates are desktop/tablet tasks:
+// W05-B: SCC payroll rules (PF / ESIC / MH PT, lock + Owner unlock, bank and statutory files). SCC LeaveDesk in full (DEC-116 / DEC-119):
+// the Leave tab = Leave.tsx (desk, approvals, report, settings) + the DEC-083 Holidays list. Payroll run and statutory rates are desktop/tablet tasks:
 // the phone shows a read-only summary (Wave 0.5 placement §2).
 import {saveCsv,saveBinaryFile} from '../../app/native';
 import {getSyncRuntime} from '../../clients/sync/instance'; // production build only (W4 G2: payroll files from the server)
@@ -16,20 +16,21 @@ import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {
   money,addDays,isDayClosed,cfgModuleOn,hrSlice,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,
-  hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
-  hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrFnfSettled,hrFnfAdvanceLeftOpen,HR_FNF_OWNER_ABOVE,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
+  hrDeptName,hrPendingLeaves,hrLeaveClampYm,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
+  hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrRunErrors,hrFnfSettled,hrFnfAdvanceLeftOpen,HR_FNF_OWNER_ABOVE,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
   hrCorrectionWindow,hrPendingRequests,hrPaidHolidays,hrPaidHolidayOn,hrUnmarkedDates,hrEntryLabel,hrFy,
-  HR_ATT_LABEL,HR_LEAVE_LABEL,hrLeaveName,hrLeaveTypeRows,hrHolidays,hrHolidayFy,hrShiftPatterns,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_CALCULATED,HR_SCC_DAYS,type HRStaff,type HRRun,type HRLeave,type HRRequest,
+  HR_ATT_LABEL,hrLeaveName,hrShiftPatterns,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_CALCULATED,HR_SCC_DAYS,type HRStaff,type HRRun,type HRLeave,type HRRequest,
 } from '../../services/mock';
-import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
+import {MyHr,hrAttTone} from './MyHr';
+import {LeaveDeskView,LeaveApprovalsView,LeaveReportView,LeaveSettingsView} from './Leave';
 import {MstLink} from '../masters/MasterList';
 import {hrUserName,hrBankText} from './modals';
 
 type Tab='people'|'roster'|'attendance'|'leave'|'payroll'|'advances'|'fnf'|'settings';
 const TAB_LABEL:Record<Tab,string>={people:'Staff',roster:'Roster',attendance:'Attendance',leave:'Leave',payroll:'Payroll',advances:'Advances',fnf:'Full and final',settings:'Statutory rates'};
 const day=(d:string)=>HR_WEEKDAYS[new Date(d+'T12:00:00Z').getUTCDay()];
-/** "CL · ½ (first half)" style label. */
-export const hrLeaveKind=(l:HRLeave,s:ReturnType<typeof useHcc>['s'])=>hrLeaveName(s,l.type)+(l.half?` · ½ day (${l.half==='AM'?'first':'second'} half)`:'');
+/** "Casual leave · Half Day AM" style label (one record per date, SCC). */
+export const hrLeaveKind=(l:HRLeave,s:ReturnType<typeof useHcc>['s'])=>hrLeaveName(s,l.type)+(l.half?` · ½ day (${l.half==='AM'?'morning':'afternoon'})`:'');
 
 export function HrDesk({phone=false}:{phone?:boolean}){
   const {s,uid}=useHcc();const mgr=hrCanManage(s,uid),pay=hrCanPay(s,uid),payOn=cfgModuleOn(s,'payroll');
@@ -37,7 +38,7 @@ export function HrDesk({phone=false}:{phone?:boolean}){
   const tabs:Tab[]=[...(mgr||pay?['people','roster','attendance','leave'] as Tab[]:[]),...(pay&&payOn?['payroll','advances','fnf','settings'] as Tab[]:[])];
   const [pick,setTab]=useState<Tab>(tabs[0]??'people');const tab=tabs.includes(pick)?pick:tabs[0]??'people';
   if(!tabs.length)return phone?<MyHr phone/>:<MyHr/>;
-  const pending=hrDecidable(s,uid).length;
+  const pending=hrPendingLeaves(s).length;// SCC approvals badge: every pending date record
   const body={people:<People phone={phone}/>,roster:<Roster phone={phone}/>,attendance:<Attendance phone={phone}/>,leave:<Leave phone={phone}/>,payroll:<Payroll phone={phone}/>,advances:<Advances phone={phone}/>,fnf:<Fnf phone={phone}/>,settings:<Rates phone={phone}/>}[tab];
   if(phone)return <div className="hr-m"><ChipFilter label="HR section" value={tab} onChange={setTab} options={tabs.map(t=>({id:t,label:TAB_LABEL[t],count:t==='leave'&&pending?pending:undefined}))}/>{body}</div>;
   return <><PageTitle title="Staff & payroll" sub={`Fictional staff · business date ${dateLabel(s.date)} · ${pay&&!payOn?'Payroll is switched off in Master configuration (attendance and leave stay on)':pay?'PF / ESIC / PT from SCC — illustrative, CA to confirm for a hotel':'salary figures are visible to the Owner and Accountant only'}`}/>
@@ -189,41 +190,22 @@ function Requests({kind,phone}:{kind:HRRequest['kind'];phone:boolean}){
         <td className="hr-actions">{r.status==='Pending'&&actions(r)}</td></tr>)}</tbody></table></div></section>;
 }
 
-// ── Leave ──
-function LeaveRequests({phone}:{phone:boolean}){
-  const {s,uid,open,run,busy}=useHcc();const x=hrSlice(s),mgr=hrCanManage(s,uid),me=hrStaffOfUser(s,uid);
-  const decidable=new Set(hrDecidable(s,uid).map(l=>l.id));
-  const pending=x.leaves.filter(l=>l.status==='Pending'),history=x.leaves.filter(l=>l.status!=='Pending').sort((a,b)=>b.from.localeCompare(a.from));
-  const name=(id:string)=>x.staff.find(t=>t.id===id)?.name??id;
-  const dates=(l:{from:string;to:string})=>shortDate(l.from)+(l.to!==l.from?' – '+shortDate(l.to):'');
-  const why=(l:typeof pending[number])=>decidable.has(l.id)?'':!mgr?'Managers decide':l.requestedBy===uid?'Your own request — another manager decides':l.staffId===me?.id?'Your own leave — another manager decides':'';
-  const decide=(id:string)=><><button className="btn small-btn primary" disabled={busy} onClick={()=>open({type:'hr-leave-decide',id,room:'approve'})}><Check size={14}/> Approve</button><button className="btn small-btn" disabled={busy} onClick={()=>open({type:'hr-leave-decide',id,room:'reject'})}><X size={14}/> Reject</button></>;
-  const cancelable=(l:typeof history[number])=>mgr&&l.status==='Approved'&&l.from>=s.date;
-  if(phone)return <>
-    <h2 className="m-group">AWAITING DECISION</h2>
-    {pending.length?pending.map(l=><div key={l.id} className="hr-m-leave"><ListCard title={`${name(l.staffId)} · ${l.type}${l.half?' ½':''} ${l.days}d`} sub={`${dates(l)} · ${l.reason}`} meta={`Requested by ${hrUserName(s,l.requestedBy)}${why(l)?' · '+why(l):''}`}/>
-      {decidable.has(l.id)&&<div className="hr-m-actions">{decide(l.id)}</div>}</div>):<p className="hr-m-note">No pending requests.</p>}
-    <h2 className="m-group">HISTORY</h2>
-    {history.map(l=><ListCard key={l.id} title={`${name(l.staffId)} · ${hrLeaveKind(l,s)}`} sub={`${dates(l)} · ${l.days} day${l.days===1?'':'s'}`} meta={l.decidedBy?`${l.status} by ${hrUserName(s,l.decidedBy)}${l.note?' · '+l.note:''}`:undefined} right={<Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill>}
-      onClick={cancelable(l)?()=>{if(window.confirm('Cancel this approved leave?'))run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave cancelled');}:undefined}/>)}
-    {mgr&&<StickyFooter><button className="btn primary" onClick={()=>open({type:'hr-leave'})}><Plus size={18}/> Leave for a staff member</button></StickyFooter>}</>;
-  return <>
-    <section className="card"><div className="section-title"><div><h2>Awaiting decision</h2><p>No self-approval: the requester and the person on leave cannot decide.</p></div>{mgr&&<button className="btn primary" onClick={()=>open({type:'hr-leave'})}><Plus size={16}/> Leave for a staff member</button>}</div>
-      {pending.length?<div className="table-wrap"><table><thead><tr><th>Staff</th><th>Leave</th><th>Dates</th><th>Requested by</th><th></th></tr></thead><tbody>{pending.map(l=><tr key={l.id}>
-        <td><strong>{name(l.staffId)}</strong><small>{l.id}</small></td><td>{hrLeaveKind(l,s)}<small>{l.reason}</small></td><td>{dates(l)}<small>{l.days} working day{l.days===1?'':'s'}</small></td><td>{hrUserName(s,l.requestedBy)}<small>{l.requestedAt.slice(0,10)} {l.requestedAt.slice(11)}</small></td>
-        <td className="hr-actions">{decidable.has(l.id)?decide(l.id):<span className="muted">{why(l)}</span>}</td></tr>)}</tbody></table></div>:<Empty title="No pending leave" body="New requests from staff appear here."/>}</section>
-    <section className="card"><div className="section-title"><h2>Leave history</h2></div>
-      <div className="table-wrap"><table><thead><tr><th>Staff</th><th>Leave</th><th>Dates</th><th>Status</th><th>Decided by</th><th></th></tr></thead><tbody>{history.map(l=><tr key={l.id}>
-        <td><strong>{name(l.staffId)}</strong><small>{l.id}</small></td><td>{hrLeaveKind(l,s)}<small>{l.reason}</small></td><td>{dates(l)}<small>{l.days} day{l.days===1?'':'s'}</small></td><td><Pill tone={hrLeaveTone(l.status)}>{l.status}</Pill></td>
-        <td>{l.decidedBy?hrUserName(s,l.decidedBy):'—'}{l.note&&<small>{l.note}</small>}</td><td>{cancelable(l)&&<button className="text-btn" disabled={busy} onClick={()=>run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave cancelled')}>Cancel leave</button>}</td></tr>)}</tbody></table></div></section></>;
-}
-
-
+// ── Leave (SCC LeaveDesk in full — Leave.tsx) ──
+type LeaveView='desk'|'approvals'|'report'|'settings'|'holidays';
+/** Shared month / as-of date (SCC currentMonth + getAsOf) for the desk and the report. */
+function useLeaveDates(){const {s}=useHcc();const [ym,setYm]=useState(hrLeaveClampYm(s.date.slice(0,7)));const [asOf,setAsOf]=useState(s.date);return {ym,setYm,asOf,setAsOf};}
 function Leave({phone}:{phone:boolean}){
-  const [view,setView]=useState<'requests'|'calendar'|'policy'|'holidays'>('requests');
-  return <><ChipFilter label="Leave view" value={view} onChange={setView} options={[{id:'requests',label:'Requests'},{id:'calendar',label:'Leave calendar'},{id:'policy',label:'Policy'},{id:'holidays',label:'Holidays'}]}/>
-    {view==='requests'?<LeaveRequests phone={phone}/>:view==='calendar'?<LeaveCalendar phone={phone}/>:view==='policy'?<LeavePolicy phone={phone}/>:<Holidays phone={phone}/>}</>;
+  const {s,uid}=useHcc();const [view,setView]=useState<LeaveView>('desk');const d=useLeaveDates(),mgr=hrCanManage(s,uid),pending=hrPendingLeaves(s).length;
+  const opts:{id:LeaveView;label:string;count?:number}[]=[{id:'desk',label:'Leave calendar'},...(mgr?[{id:'approvals' as LeaveView,label:'Approvals',count:pending||undefined}]:[]),
+    {id:'report',label:'Monthly report'},{id:'settings',label:'Settings'},{id:'holidays',label:'Holidays'}];
+  return <><ChipFilter label="Leave view" value={view} onChange={setView} options={opts}/>
+    {view==='desk'?<LeaveDeskView phone={phone} {...d}/>:view==='approvals'?<LeaveApprovalsView phone={phone} asOf={d.asOf}/>:view==='report'?<LeaveReportView phone={phone} ym={d.ym} setYm={d.setYm}/>
+      :view==='settings'?<LeaveSettingsView phone={phone} asOf={d.asOf}/>:<Holidays phone={phone}/>}</>;
 }
+/** Section names kept for the render tests: the approvals list, the SCC desk and the settings view. */
+function LeaveRequests({phone}:{phone:boolean}){const {s}=useHcc();return <LeaveApprovalsView phone={phone} asOf={s.date}/>;}
+function LeaveCalendar({phone}:{phone:boolean}){const d=useLeaveDates();return <LeaveDeskView phone={phone} {...d}/>;}
+function LeavePolicy({phone}:{phone:boolean}){const {s}=useHcc();return <LeaveSettingsView phone={phone} asOf={s.date}/>;}
 
 // ── DEC-083 paid-holiday calendar (the Owner keeps it; everyone with the HR desk sees it) ──
 function Holidays({phone}:{phone:boolean}){
@@ -231,7 +213,7 @@ function Holidays({phone}:{phone:boolean}){
   const locked=(d:string)=>hrRunFor(s,d.slice(0,7))?.status==='Locked';
   const remove=(d:string,name:string)=>{if(window.confirm(`Remove ${name} (${shortDate(d)}) from the paid-holiday calendar?`))run({type:'HR_HOLIDAY_REMOVE',date:d},'Paid holiday removed');};
   const add=edit?<button className="btn primary" onClick={()=>open({type:'hr-holiday'})}><Plus size={phone?18:16}/> Add holiday</button>:null;
-  const intro='Dated paid holidays (DEC-083): paid like a weekly off — monthly staff keep their pay; daily-wage staff as for weekly offs (CA to confirm). Leave dates skip them; staff who work that day are marked present. None are seeded: the Owner adds the hotel’s list.';
+  const intro='Dated paid holidays (DEC-083): paid like a weekly off — monthly staff keep their pay; daily-wage staff as for weekly offs (CA to confirm). Not skipped inside leave dates (SCC: store holidays are blackout markers); staff who work that day are marked present. None are seeded: the Owner adds the hotel’s list (DEC-114: none).';
   const inFy=list.filter(h=>h.date>=fy.from&&h.date<=fy.to).length;
   if(phone)return <><p className="hr-m-note">{intro}</p>
     {list.length?list.map(h=><ListCard key={h.date} title={h.name} sub={`${day(h.date)} ${dateLabel(h.date)}`} right={locked(h.date)?<Pill>Locked month</Pill>:undefined}
@@ -245,45 +227,6 @@ function Holidays({phone}:{phone:boolean}){
           <button className="text-btn" disabled={busy} onClick={()=>remove(h.date,h.name)}>Remove</button></>}</td></tr>)}</tbody></table></div>
       :<Empty title="No paid holidays yet" body={edit?'Add the hotel’s holiday list for the year.':'The Owner adds the hotel’s holiday list.'}/>}
     <p className="footnote padded">{inFy} in {fy.label}.{edit?'':' Only the Owner changes the holiday calendar.'} The paid rows of the Holiday calendar (restricted holidays are listed there too): <MstLink spec="holidays"/></p></section>;
-}
-
-// ── Leave calendar (SCC renderCalendar: who is off each day, capacity per day — per department here) ──
-function LeaveCalendar({phone}:{phone:boolean}){
-  const {s}=useHcc();const [ym,setYm]=useState(s.date.slice(0,7));const cal=hrLeaveCalendar(s,ym);
-  const first=(n:string)=>n.split(' ')[0];
-  const nav=<div className="inline hr-weeknav"><button className="btn" aria-label="Previous month" onClick={()=>setYm(hrPrevMonth(ym))}><ChevronLeft size={16}/></button><strong>{hrMonthLabel(ym)}</strong><button className="btn" aria-label="Next month" onClick={()=>setYm(hrNextMonth(ym))}><ChevronRight size={16}/></button></div>;
-  const chip=(i:typeof cal[number]['items'][number])=><span key={i.leave.id} className={'hr-cal-chip'+(i.leave.status==='Pending'?' pending':'')} title={`${i.staff.name} · ${hrLeaveKind(i.leave,s)} · ${i.leave.status}`}>
-    {first(i.staff.name)} · {i.leave.type}{i.leave.half?' ½':''}{i.leave.status==='Pending'?' (pending)':''}</span>;
-  const days=cal.filter(d=>d.items.length||d.holiday);
-  if(phone)return <>{nav}
-    {days.length?days.map(d=><ListCard key={d.date} tone={d.date===s.date?'hr-today':''} title={`${day(d.date)} ${shortDate(d.date)}${d.holiday?` · ${d.holiday.name}`:''}`} sub={d.items.map(i=>`${first(i.staff.name)} ${i.leave.type}${i.leave.half?' ½':''}${i.leave.status==='Pending'?' (pending)':''}`).join(' · ')||'Paid holiday'}
-      meta={d.depts.map(q=>`${q.name} ${q.count}/${q.cap}`).join(' · ')} right={d.full?<Pill tone="orange">Limit reached</Pill>:undefined}/>):<p className="hr-m-note">No leave in {hrMonthLabel(ym)}.</p>}</>;
-  const lead=(hrWeekday(ym+'-01')+6)%7;
-  return <section className="card"><div className="section-title"><div><h2>Leave calendar</h2><p>Pending requests hold a place (outlined). Weekly offs are not shown; paid holidays are named. A day reaches its limit when a department has its maximum staff off.</p></div>{nav}</div>
-    <div className="hr-cal" role="grid" aria-label={`Leave calendar ${hrMonthLabel(ym)}`}>
-      {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=><div key={w} className="hr-cal-head" role="columnheader">{w}</div>)}
-      {Array.from({length:lead},(_,i)=><div key={'b'+i} className="hr-cal-cell blank"/>)}
-      {cal.map(d=><div key={d.date} role="gridcell" className={'hr-cal-cell'+(d.date===s.date?' today':'')+(d.full?' full':'')}><div className="hr-cal-date"><b>{+d.date.slice(8)}</b>{d.full&&<Pill tone="orange">Limit</Pill>}</div>
-        {d.holiday&&<span className="hr-cal-chip hr-cal-hol" title={`Paid holiday · ${d.holiday.name}`}>{d.holiday.name}</span>}{d.items.map(chip)}</div>)}
-    </div></section>;
-}
-
-function LeavePolicy({phone}:{phone:boolean}){
-  const {s,uid,open}=useHcc();const p=hrLeavePolicy(s),edit=hrCanRates(s,uid),depts=hrSlice(s).depts;
-  // MA-6: one row per active leave type of the Leave types list (quota, carry-forward, encashment), then the holiday calendar.
-  const typeRow=(r:ReturnType<typeof hrLeaveTypeRows>[number]):[string,string]=>[`${r.name} (${r.code})`,r.paid===false?'Unpaid; daily-wage staff take this type only':
-    `${Number.isFinite(r.yearlyQuota)?`${r.yearlyQuota} days / financial year`:'Paid, no yearly balance'}${r.carryForward?` · carry forward up to ${r.carryForward}`:''}${r.encashment?' · paid out at full and final':''}`];
-  const holidays=hrHolidays(s,{active:true}).filter(h=>h.code>=s.date).slice(0,6);
-  const rows:[string,string][]=[...hrLeaveTypeRows(s,{active:true}).map(typeRow),['Half-day leave','First or second half = 0.5 day'],
-    ...holidays.map(h=>[`${h.kind==='paid'?'Paid holiday':'Restricted holiday'} · ${shortDate(h.code)}`,`${h.name} · ${hrHolidayFy(h.code)}${h.kind==='paid'?' (not counted as leave)':''}`] as [string,string]),
-    ['Weekly offs','One per staff member (Staff tab); skipped inside leave dates; for pay an absent day (the 4 extra days pay for it)'],
-    ...depts.map(d=>[`Max off per day · ${d.name}`,`${hrDeptCap(s,d.id)}${p.deptCap[d.id]===undefined?' (default)':''}`] as [string,string])];
-  const btn=edit?<button className="btn primary" onClick={()=>open({type:'hr-leave-policy'})}><Settings2 size={16}/> Edit leave policy</button>:null;
-  return <section className={phone?'':'card'}><div className={phone?'':'section-title'}><div><h2>Leave policy</h2><p>From SCC: entitlements per April–March year, half-days, weekly offs and a daily limit on staff off (per department here).</p></div>{!phone&&btn}</div>
-    <div className={'summary-list'+(phone?' hr-m-rates':' padded')}>{rows.map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
-    <div className="info-note"><Info size={16}/><span>{HR_SCC_DAYS}</span></div>
-    <p className="footnote padded"><MstLink spec="leaveTypes"/> <MstLink spec="holidays"/></p>
-    {!edit&&<p className="footnote padded">Only the Owner changes the leave policy.</p>}{phone&&btn&&<StickyFooter>{btn}</StickyFooter>}</section>;
 }
 
 // ── Payroll ──

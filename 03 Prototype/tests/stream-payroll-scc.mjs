@@ -89,16 +89,19 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     for(const m of [1234567,1350000,999999]){const l=M.hrComputeLine(mon(m),full('2026-09',30,{H:3,L:4}),R);assert.equal(l.basic+l.hra+l.washing+l.special,l.earned);assert.ok(l.special>=0);}
     assert.equal(M.hrComputeLine(mon(3000000),full('2026-09',30,{P:23,L:3,off:4}),{...R,lateBlock:0}).payableDays,30);
   });
-  test('[PAY-SCC] half-day leave: request rules, 0.5 day, AM + PM coexist, same half conflicts, weekly off refused',()=>{
-    let s=seed();
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-10-30',half:'AM',reason:'Bank'}),/weekly off/);
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',half:'X',reason:'Bank'}),code('VALIDATION'));
-    s=execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-05',half:'AM',reason:'Bank work'});
-    const l=x(s).leaves.at(-1);assert.deepEqual([l.from,l.to,l.days,l.half],['2026-11-02','2026-11-02',0.5,'AM']);
-    assert.equal(M.hrLeaveBalance(s,'HR-S05','2026-11-02').find(b=>b.type==='CL').left,9.5);
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',half:'AM',reason:'Again'}),code('NOT_AVAILABLE'));
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'SL',from:'2026-11-02',to:'2026-11-02',reason:'Full'}),code('NOT_AVAILABLE'));
-    s=execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'SL',from:'2026-11-02',half:'PM',reason:'Doctor'});
+  // SCC leave port (DEC-116): a half day may cover a date range (one 0.5 record per date); the hotel's week-off set (none by default) is skipped,
+  // not the staff member's roster off; the balance counts approved days only.
+  test('[PAY-SCC] half-day leave: SCC half days over a range, 0.5 a date, AM + PM coexist, the same half or a full day conflicts',()=>{
+    let s=seed();const rq=(cmd)=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',approver:'manager',...cmd});
+    assert.ok(rq({staffId:'HR-S05',leaveType:'CL',from:'2026-10-30',half:'AM',reason:'Bank'}));// Fri 30 Oct: Ravi's roster off is not a leave week-off
+    assert.throws(()=>rq({staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',half:'X',reason:'Bank'}),code('VALIDATION'));
+    s=rq({staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',to:'2026-11-05',half:'AM',reason:'Bank work'});
+    assert.deepEqual(x(s).leaves.filter(l=>l.staffId==='HR-S05'&&l.status==='Pending').map(l=>[l.date,l.from,l.to,l.days,l.half]),
+      ['02','03','04','05'].map(d=>['2026-11-'+d,'2026-11-02','2026-11-05',0.5,'AM']));
+    assert.equal(M.hrLeaveBalance(s,'HR-S05','2026-11-02').find(b=>b.type==='CL').left,10);// pending is not used (SCC)
+    assert.throws(()=>rq({staffId:'HR-S05',leaveType:'CL',from:'2026-11-02',half:'AM',reason:'Again'}),code('NOT_AVAILABLE'));
+    assert.throws(()=>rq({staffId:'HR-S05',leaveType:'SL',from:'2026-11-02',to:'2026-11-02',reason:'Full'}),code('NOT_AVAILABLE'));
+    s=rq({staffId:'HR-S05',leaveType:'SL',from:'2026-11-02',half:'PM',reason:'Doctor'});
     assert.equal(x(s).leaves.at(-1).days,0.5);
     assert.ok(x(seed()).leaves.some(l=>l.id==='HR-LV-5'&&l.half==='PM'&&l.days===0.5),'fixture has a pending half-day');
   });
@@ -106,7 +109,7 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const base=structuredClone(seed()),st=x(base).staff.find(t=>t.id==='HR-S09'),d='2026-09-10',k=d+'|HR-S09';
     base.staffX.att[k]={status:'P',at:d+'T07:00',otMin:0,by:'manager'};
     const fullDay=M.hrComputeRun(base,'2026-09').lines.find(l=>l.staffId==='HR-S09');
-    const leave=(type)=>({id:'T-LV',staffId:'HR-S09',type,from:d,to:d,days:0.5,half:'AM',reason:'x',status:'Approved',requestedBy:'manager',requestedAt:d+'T09:00'});
+    const leave=(type)=>({id:'T-LV',staffId:'HR-S09',date:d,type,from:d,to:d,days:0.5,half:'AM',reason:'x',status:'Approved',requestedBy:'manager',requestedAt:d+'T09:00'});
     const run=(att,type)=>{const c=structuredClone(base);if(att)c.staffX.att[k]={status:att,at:d+'T07:00',otMin:0,by:'manager'};else delete c.staffX.att[k];if(type)c.staffX.leaves.push(leave(type));
       return {line:M.hrComputeRun(c,'2026-09').lines.find(l=>l.staffId==='HR-S09'),c:M.hrCounts(c,st,'2026-09')};};
     const f=fullDay.days,sd=r=>r.line.days;
@@ -118,29 +121,32 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const plainH=run('H');assert.deepEqual([sd(plainH).half,sd(plainH).absent,sd(plainH).deduction],[f.half+1,f.absent,f.deduction+0.5]);
     assert.equal(plainH.line.earned,M.hrMulDiv(st.monthly,2*plainH.line.payableDays,1,2*sd(plainH).total));
     // self check-in on a half-day leave day records a half-day
-    const t=structuredClone(seed());t.staffX.leaves.push({id:'T-LV2',staffId:'HR-S06',type:'CL',from:t.date,to:t.date,days:0.5,half:'PM',reason:'x',status:'Approved',requestedBy:'housekeeper2',requestedAt:t.date+'T07:00'});
+    const t=structuredClone(seed());t.staffX.leaves.push({id:'T-LV2',staffId:'HR-S06',date:t.date,type:'CL',from:t.date,to:t.date,days:0.5,half:'PM',reason:'x',status:'Approved',requestedBy:'housekeeper2',requestedAt:t.date+'T07:00'});
     const n=execute(t,'housekeeper2',{type:'HR_ATT_MARK',staffId:'HR-S06'});assert.equal(x(n).att[t.date+'|HR-S06'].status,'H');
   });
-  test('[PAY-SCC] max staff off per department per day: pending and approved hold a slot, rejected frees it, policy is Owner-only',()=>{
-    let s=seed();// Housekeeping: Kavya pending 28 Oct; cap 2
-    s=execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Family'});
-    const ravi=x(s).leaves.at(-1).id;
-    assert.throws(()=>execute(s,'supervisor',{type:'HR_LEAVE_REQUEST',staffId:'HR-S04',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Travel'}),e=>e.code==='NOT_AVAILABLE'&&/Housekeeping already has 2 staff off/.test(e.message));
-    const cal=M.hrLeaveCalendar(s,'2026-10').find(d=>d.date==='2026-10-28');assert.equal(cal.depts.find(d=>d.dept==='HK').count,2);assert.equal(cal.full,true);
-    const r=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:ravi,approve:false,note:'Short-staffed'});
-    assert.ok(execute(r,'supervisor',{type:'HR_LEAVE_REQUEST',staffId:'HR-S04',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Travel'}));
+  // SCC MAX_DAY: 3 leave records a date for the whole hotel (the department caps are advisory only, SCC per-store caps).
+  test('[PAY-SCC] SCC capacity: 3 records a date for the hotel (pending + approved hold a slot, rejected frees it); department caps advisory; settings Owner-only',()=>{
+    let s=seed();// 28 Oct: Kavya (HK) pending
+    const rq=(uid,cmd)=>execute(s,uid,{type:'HR_LEAVE_REQUEST',approver:'manager',...cmd});
+    s=rq('housekeeper',{staffId:'HR-S05',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Family'});const ravi=x(s).leaves.at(-1).id;
+    s=rq('supervisor',{staffId:'HR-S04',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Travel'});// 3rd record: the date is full (HK now 3 > its advisory cap? no: cap 3)
+    assert.throws(()=>rq('reception',{staffId:'HR-S02',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Trip'}),e=>e.code==='NOT_AVAILABLE'&&e.message==='1 skipped — day/shift full (max 3/day)');
+    assert.deepEqual([M.hrCapacity(s,'2026-10-28').dayUsed,M.hrDeptTally(s,'2026-10-28').depts.find(d=>d.dept==='HK').over],[3,false]);
+    const r=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:ravi,approve:false});
+    assert.ok(execute(r,'reception',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S02',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Trip'}));
     assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_POLICY_SET',deptCap:{HK:3}}),code('FORBIDDEN'));
-    assert.throws(()=>execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',defaultCap:0}),code('VALIDATION'));
-    const p=execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',deptCap:{HK:3},ent:{CL:12,SL:7,EL:15}});assert.equal(M.hrDeptCap(p,'HK'),3);assert.equal(M.hrDeptCap(p,'FO'),2);
-    assert.ok(execute(p,'supervisor',{type:'HR_LEAVE_REQUEST',staffId:'HR-S04',leaveType:'CL',from:'2026-10-28',to:'2026-10-28',reason:'Travel'}));
+    assert.throws(()=>execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',deptCap:{HK:-1}}),code('VALIDATION'));
+    const p=execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',deptCap:{HK:2},ent:{CL:12,SL:7,EL:15}});assert.deepEqual([M.hrDeptCap(p,'HK'),M.hrDeptCap(p,'FO')],[2,3]);
+    assert.equal(M.hrDeptTally(p,'2026-10-28').depts.find(d=>d.dept==='HK').over,true);// 3 HK records > 2: flagged, nothing refused
     const e=execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',ent:{CL:1,SL:7,EL:15}});
-    assert.throws(()=>execute(e,'reception',{type:'HR_LEAVE_REQUEST',staffId:'HR-S02',leaveType:'CL',from:'2026-11-11',to:'2026-11-12',reason:'Trip'}),/balance/);
+    assert.throws(()=>execute(e,'reception',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S02',leaveType:'CL',from:'2026-11-11',to:'2026-11-12',reason:'Trip'}),/EXCEEDS the balance/);
   });
-  test('[PAY-SCC] SCC entitlements per Indian FY (CL 12 · SL 7 · EL 15); a request cannot cross 31 March',()=>{
+  test('[PAY-SCC] SCC entitlements per Indian FY (CL 12 · SL 7 · EL 15); a request may cross 31 March (SCC: balance judged on the start date’s FY)',()=>{
     const s=seed();assert.deepEqual(M.hrLeaveBalance(s,'HR-S02','2026-10-24').map(b=>[b.type,b.entitled]),[['CL',12],['SL',7],['EL',15]]);
     assert.equal(M.hrFy('2026-03-31').label,'FY 2025–26');assert.equal(M.hrFy('2026-04-01').from,'2026-04-01');assert.equal(M.hrFy('2026').to,'2027-03-31');
-    assert.throws(()=>execute(s,'reception',{type:'HR_LEAVE_REQUEST',staffId:'HR-S02',leaveType:'CL',from:'2027-03-30',to:'2027-04-02',reason:'Trip'}),/31 March/);
-    const n=execute(s,'reception',{type:'HR_LEAVE_REQUEST',staffId:'HR-S02',leaveType:'CO',from:'2026-11-11',to:'2026-11-11',reason:'Worked Diwali'});
+    const x3=execute(s,'reception',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S02',leaveType:'CL',from:'2027-03-30',to:'2027-04-02',reason:'Trip'});
+    assert.deepEqual(x(x3).leaves.filter(l=>l.staffId==='HR-S02'&&l.date>='2027-03-30').map(l=>l.date),['2027-03-30','2027-03-31','2027-04-01','2027-04-02']);
+    const n=execute(s,'reception',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S02',leaveType:'CO',from:'2026-11-11',to:'2026-11-11',reason:'Worked Diwali'});
     assert.equal(x(n).leaves.at(-1).type,'CO');assert.equal(M.hrPaidLeave('CO'),true);assert.equal(M.hrPaidLeave('LOP'),false);
   });
   test('[PAY-SCC] lock blocks on unset salary; Owner unlock reverses recoveries, needs a reason, latest month only, not for archived attendance',()=>{
@@ -201,7 +207,7 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.throws(()=>execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05'}),code('INVALID_TRANSITION'));// still active
     s=execute(s,'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false});
     const st=x(s).staff.find(t=>t.id==='HR-S05');
-    assert.equal(M.hrElEncashment(s,st),M.hrMulDiv(1350000,30,1,62));
+    assert.equal(M.hrElEncashment,undefined,'SCC port: no encashment rule (a manual adjustment, as in SCC payroll)');assert.ok(st);
     assert.throws(()=>execute(s,'manager',{type:'HR_FNF_SETTLE',staffId:'HR-S05'}),code('FORBIDDEN'));
     const adj=[{label:'Leave encashment (EL 15 days)',kind:'add',amount:653226},{label:'Uniform not returned',kind:'ded',amount:50000}];
     const d=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05',adjustments:adj});
@@ -235,7 +241,7 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const s=seed(),defs=M.hrSettingDefs();
     assert.equal(new Set(defs.map(d=>d.key)).size,defs.length);assert.ok(defs.every(d=>d.group==='People, payroll and leave'));
     const stat=defs.filter(d=>d.category==='Statutory rates');assert.ok(stat.length>=6&&stat.every(d=>d.dated&&d.approver==='Owner'&&/CA to confirm/.test(d.help)&&d.command==='HR_STAT_RATES_SET'));
-    assert.ok(defs.some(d=>d.key==='hr.leave.cap'&&d.command==='HR_LEAVE_POLICY_SET'));
+    assert.ok(defs.some(d=>d.key==='hr.leave.cap'&&!d.editable&&/MAX_DAY = 3/.test(d.help)));assert.ok(defs.some(d=>d.key==='hr.leave.ent'&&d.command==='HR_LEAVE_POLICY_SET'));
     for(const d of defs)assert.notEqual(M.hrSettingValue(s,d.key),'—',d.key);
     assert.match(M.hrSettingValue(s,'hr.pf'),/12% \+ 13%/);assert.match(M.hrSettingValue(s,'hr.leave.ent'),/CL 12 · SL 7 · EL 15/);
   });
@@ -247,9 +253,9 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const pay=UI.renderSection(fy,'accountant','Payroll',false);assert.match(pay,/Bank transfer file/);assert.match(pay,/PF \/ ESIC \/ PT statement/);assert.match(pay,/Register Excel/);
     assert.match(UI.renderSection(fy,'owner','Payroll',false),/Unlock/);assert.doesNotMatch(UI.renderSection(fy,'accountant','Payroll',false),/Unlock/);
     assert.match(UI.renderSection(seed(),'owner','Rates',false),/Illustrative — CA to confirm for a hotel/);assert.match(UI.renderSection(seed(),'owner','Rates',true),/tablet or desktop/);
-    assert.match(UI.renderSection(seed(),'owner','LeaveCalendar',false),/Kavya · CL \(pending\)/);
+    assert.match(UI.renderSection(seed(),'owner','LeaveCalendar',false),/\? Kavya Patil/);
     const mine=UI.renderMine(seed(),'housekeeper',true);assert.match(mine,/LATEST PAYSLIP/);assert.match(mine,/Payslip PDF/);assert.match(mine,/Provident Fund/);assert.match(mine,/Casual leave/);
-    assert.doesNotMatch(UI.renderMine(seed(),'housekeeper',false),/Meera/);
+    assert.doesNotMatch(UI.renderMine(seed(),'housekeeper',false),/Kavya|Aarav|Neha/);// own record only (the approver of one's own leave is shown — SCC approvedBy)
     assert.match(UI.renderDesk(seed(),'housekeeper',true),/LATEST PAYSLIP/,'non-HR roles fall back to My shifts & pay');
     const slip=UI.renderModal(seed(),'accountant','hr-payslip','HR-PAY-1|HR-S05');assert.match(slip,/Send on WhatsApp/);assert.match(slip,/Rupees /);assert.match(slip,/Payslip PDF/);
     assert.doesNotMatch(UI.renderModal(seed(),'housekeeper','hr-payslip','HR-PAY-1|HR-S05'),/Send on WhatsApp/);assert.match(UI.renderModal(seed(),'housekeeper','hr-payslip','HR-PAY-1|HR-S04'),/Payslip unavailable/);

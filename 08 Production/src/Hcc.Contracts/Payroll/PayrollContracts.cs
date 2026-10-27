@@ -2,9 +2,12 @@ namespace Hcc.Contracts.Payroll;
 
 // Wire contracts for payroll and leave (W2-2). Commands: POST /api/v1/commands/<Name> with Idempotency-Key; money = integer paise;
 // dates YYYY-MM-DD; months YYYY-MM; versions = base64 rowversion (expectedVersion → STALE_VERSION). Enumerations travel as strings:
-// shifts M|E|N|G|OFF, attendance P|L|H|A|OFF, leave CL|SL|EL|CO|ML|LOP, half AM|PM, gender M|F, structure S|B, payType monthly|daily,
-// rounding paise|rupee. Every result is a JSON object.
+// shifts M|E|N|G|OFF, attendance P|L|H|A|OFF|NT, leave CL|SL|EL|ML|CO|OTH|LOP (SCC's six + LOP), half AM|PM, gender M|F, structure S|B,
+// payType monthly|daily, rounding paise|rupee. Every result is a JSON object.
+// SCC leave port (DEC-116 / DEC-119, migration 4110): a leave is ONE RECORD PER DATE; RequestLeave records every date of the range SCC's way
+// (week-off → duplicate → 3 a day / 4 a shift) and returns SCC's counts; DecideLeave / CancelLeave act on one date record.
 
+/// <summary>A department; <see cref="LeaveCap"/> = the SCC per-store leave cap, ADVISORY (whole number ≥ 0; null = SCC MAX_DAY 3).</summary>
 public sealed record SaveDepartmentRequest(string Code, string Name, int? LeaveCap = null);
 
 public sealed record DepartmentResult(string Code, string Name, int? LeaveCap, string Notes);
@@ -40,7 +43,13 @@ public sealed record MarkAttendanceRequest(long StaffId, string? Status = null, 
 
 public sealed record AttendanceResult(long StaffId, DateOnly Date, string Status, int OtMinutes, bool Corrected, string Notes);
 
-public sealed record RequestLeaveRequest(long StaffId, string LeaveType, DateOnly From, DateOnly? To, string? Half, string Reason);
+/// <summary>SCC Add Leave: <see cref="ApproverId"/> required (the Owner or a Manager, never the person on leave); <see cref="Reason"/> optional (≤ 500);
+/// a half day may cover a range. <see cref="ConfirmOverBalance"/> / <see cref="ConfirmBlackout"/> = SCC's confirm dialogs answered OK.</summary>
+public sealed record RequestLeaveRequest(long StaffId, string LeaveType, DateOnly From, DateOnly? To, string? Half, string? Reason, int? ApproverId = null,
+    bool ConfirmOverBalance = false, bool ConfirmBlackout = false);
+
+/// <summary>SCC submitLeave's outcome: the records added (one per date) and the dates skipped as full / duplicate / week-off, with SCC's toast.</summary>
+public sealed record LeaveRequestResult(IReadOnlyList<LeaveResult> Added, int Blocked, int Duplicates, int WeekOff, string Notes);
 
 public sealed record LeaveResult(long LeaveId, long StaffId, string LeaveType, DateOnly From, DateOnly To, string? Half, decimal Days, string Status, string Version);
 
@@ -48,9 +57,51 @@ public sealed record DecideLeaveRequest(long LeaveId, string ExpectedVersion, bo
 
 public sealed record CancelLeaveRequest(long LeaveId, string ExpectedVersion);
 
-public sealed record SetLeavePolicyRequest(int Cl, int Sl, int El, int DefaultCap);
+/// <summary>SCC leave settings (Owner): entitlement defaults (any number ≥ 0, no maximum) and the hotel's leave week-off set (bit 0 = Sunday;
+/// null = unchanged). <see cref="DefaultCap"/> is no longer used (SCC: 3 a day for the property, department caps advisory).</summary>
+public sealed record SetLeavePolicyRequest(decimal Cl, decimal Sl, decimal El, int? WeekOffMask = null, int? DefaultCap = null);
 
-public sealed record LeavePolicyResult(int Cl, int Sl, int El, int DefaultCap, int StaffOverEntitlement, string Notes);
+public sealed record LeavePolicyResult(decimal Cl, decimal Sl, decimal El, int WeekOffMask, int StaffOverEntitlement, string Notes);
+
+/// <summary>SCC ⚙ per-staff entitlement override; a null category uses the default; all null = override removed.</summary>
+public sealed record SetLeaveEntOverrideRequest(long StaffId, decimal? Cl, decimal? Sl, decimal? El);
+
+public sealed record LeaveEntOverrideResult(long StaffId, decimal? Cl, decimal? Sl, decimal? El, string Notes);
+
+/// <summary>SCC blackout / store holiday: Dept '' = every department; Kind blackout|holiday; Hard (blackouts only) refuses leave; Label ≤ 80.</summary>
+public sealed record AddLeaveBlackoutRequest(DateOnly From, DateOnly To, string? Dept, string? Kind, bool Hard, string? Label);
+
+public sealed record RemoveLeaveBlackoutRequest(long BlackoutId);
+
+public sealed record LeaveBlackoutResult(long BlackoutId, DateOnly From, DateOnly To, string Dept, string Kind, bool Hard, string Label, string Notes);
+
+/// <summary>SCC agenda item: Title ≤ 200, Time HH:MM or blank, Type meeting|agenda|reminder, Description ≤ 1000.</summary>
+public sealed record AddLeaveAgendaRequest(DateOnly Date, string Title, string? Time, string? Type, string? Description);
+
+public sealed record RemoveLeaveAgendaRequest(long AgendaId);
+
+public sealed record LeaveAgendaResult(long AgendaId, string Notes);
+
+/// <summary>One record of an SCC LeaveDesk backup, validated by the client with SCC's import rules (names → staff / users).</summary>
+public sealed record ImportLeaveDay(string? SccId, long StaffId, DateOnly Date, string? Half, string LeaveType, string? Reason, int? ApproverId, string? ApproverName,
+    DateOnly From, DateOnly To, string Status, bool Legacy, string? DecidedByName, string? DecidedAt);
+
+public sealed record ImportLeaveAgenda(string? SccId, DateOnly Date, string Title, string Type, string? Time, string? Description);
+
+public sealed record ImportLeaveDefaults(decimal? Cl, decimal? Sl, decimal? El);
+
+public sealed record ImportLeaveOverride(long StaffId, decimal? Cl, decimal? Sl, decimal? El);
+
+/// <summary>SCC importJSON merge (Owner). <see cref="Skipped"/> = what the client's validation already skipped (added to SCC's count).</summary>
+public sealed record ImportLeaveRequest(int Skipped, IReadOnlyList<ImportLeaveDay> Leaves, IReadOnlyList<ImportLeaveAgenda> Agendas, ImportLeaveDefaults? Defaults = null,
+    IReadOnlyList<ImportLeaveOverride>? Overrides = null, int? WeekOffMask = null);
+
+public sealed record ImportLeaveResult(int Added, int Agendas, int Skipped, string Notes);
+
+/// <summary>SCC Clear All (Owner): <see cref="Confirm"/> must be DELETE. Leave is cancelled and kept for audit (DEC-119), never deleted.</summary>
+public sealed record ClearLeaveRequest(string Confirm);
+
+public sealed record ClearLeaveResult(int Cancelled, int Kept, int Agendas, string Notes);
 
 public sealed record GiveAdvanceRequest(long StaffId, long AmountPaise, long InstallmentPaise, string Reason, string? FromMonth = null);
 
@@ -152,7 +203,7 @@ public sealed record PayRunView(long RunId, string Month, string Status, DateOnl
 /// <summary>A payslip (own locked payslip for every staff member, DEC-061; any payslip for payroll roles). Rate labels come from the run's snapshot (F-14).</summary>
 public sealed record PayslipView(long RunId, string Month, string Status, PayLineView Line, string PfLabel, string EsicLabel, string NetInWords, string Disclaimer);
 
-public sealed record LeaveBalanceView(string LeaveType, int Entitled, decimal Used, decimal Left, decimal Over);
+public sealed record LeaveBalanceView(string LeaveType, decimal Entitled, decimal Used, decimal Left, decimal Over);
 
 public sealed record CsvFile(string FileName, string Content);
 
@@ -164,7 +215,18 @@ public sealed record CsvFile(string FileName, string Content);
 
 public sealed record DepartmentView(string Code, string Name, int? LeaveCap);
 
-public sealed record LeavePolicyView(int Cl, int Sl, int El, int DefaultCap);
+/// <summary>SCC leave settings on the board: entitlement defaults, the week-off mask (bit 0 = Sunday), per-staff overrides and blackouts.</summary>
+public sealed record LeavePolicyView(decimal Cl, decimal Sl, decimal El, int DefaultCap, int WeekOffMask, IReadOnlyList<LeaveOverrideView> Overrides,
+    IReadOnlyList<LeaveBlackoutView> Blackouts);
+
+public sealed record LeaveOverrideView(long StaffId, decimal? Cl, decimal? Sl, decimal? El);
+
+public sealed record LeaveBlackoutView(long BlackoutId, DateOnly From, DateOnly To, string Dept, string Kind, bool Hard, string Label);
+
+public sealed record LeaveAgendaView(long AgendaId, DateOnly Date, string Title, string Time, string Type, string Description, int CreatedBy, string CreatedUtc);
+
+/// <summary>An approver choice: the Owner and Manager users (SCC: Owner + Store Managers).</summary>
+public sealed record ApproverView(int UserId, string Name, string Role);
 
 public sealed record RateVersionView(DateOnly From, int BasicBps, int HraBps, int WashBps, int PfEeBps, int PfErBps, long PfWageCap, int EsicEeBps, int EsicErBps,
     long EsicCeiling, long PtMaleExempt, long PtMaleMid, long PtMaleMidAmt, long PtStd, long PtFeb, long PtFemaleExempt, int OtBps, int LateBlock, string Rounding,
@@ -194,8 +256,10 @@ public sealed record BoardRosterView(long StaffId, DateOnly Date, string Shift);
 
 public sealed record BoardAttendanceView(long StaffId, DateOnly Date, string Status, int OtMinutes, int MarkedBy, string MarkedUtc, string? Note);
 
-public sealed record BoardLeaveView(long LeaveId, long StaffId, string LeaveType, DateOnly From, DateOnly To, string? Half, decimal Days, string Reason, string Status,
-    int RequestedBy, string RequestedUtc, int? DecidedBy, string? DecidedUtc, string? Note, string Version);
+/// <summary>One SCC leave record (one <see cref="Date"/>); <see cref="From"/> / <see cref="To"/> = the range it was requested with.</summary>
+public sealed record BoardLeaveView(long LeaveId, long StaffId, DateOnly Date, string LeaveType, DateOnly From, DateOnly To, string? Half, decimal Days, string? Reason,
+    int? ApproverId, string? ApproverName, string Status, int RequestedBy, string RequestedUtc, int? DecidedBy, string? DecidedUtc, string? Note, int? CancelledBy,
+    string? CancelledUtc, bool Legacy, string? SccId, string? DecidedByName, string Version);
 
 public sealed record BoardRecoveryView(long? RunId, long? FnfId, long AmountPaise);
 
@@ -227,4 +291,5 @@ public sealed record PayrollRequestView(long RequestId, string Kind, long StaffI
 public sealed record PayrollBoardView(DateOnly BusinessDate, DateOnly From, DateOnly To, bool AllStaff, bool Payroll, IReadOnlyList<DepartmentView> Departments,
     LeavePolicyView LeavePolicy, IReadOnlyList<BoardRosterView> Roster, IReadOnlyList<BoardAttendanceView> Attendance, IReadOnlyList<BoardLeaveView> Leaves,
     IReadOnlyList<RateVersionView> RateVersions, IReadOnlyList<BoardRunView> Runs, IReadOnlyList<BoardAdvanceView> Advances, IReadOnlyList<BoardFnfView> Fnf,
-    IReadOnlyList<HolidayView> Holidays, IReadOnlyList<PayrollRequestView> Requests, DateOnly? CorrectFrom, DateOnly? CorrectTo);
+    IReadOnlyList<HolidayView> Holidays, IReadOnlyList<PayrollRequestView> Requests, DateOnly? CorrectFrom, DateOnly? CorrectTo,
+    IReadOnlyList<LeaveAgendaView> Agendas, IReadOnlyList<ApproverView> Approvers);

@@ -29,6 +29,7 @@ export * from '../../domain/streams/services';
 export * from '../../domain/streams/messaging';
 export * from '../../domain/streams/pos';
 export * from '../../domain/streams/staff';
+export * from '../../domain/streams/staff-leave'; // SCC leave port (DEC-116 / DEC-119)
 export * from '../../domain/streams/accounting';
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';

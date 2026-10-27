@@ -17,7 +17,9 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 // MA-0 (DEC-MA-1): the new `masters` permission is granted to Owner and Tech admin in s.grants, so the whole-state hash changed on purpose:
 // old 3521729b…ec6e46b4 → new 260433ce…1e009df941. The generated history itself is unchanged (stream-masters.mjs pins the hash without grants).
 // old → new: 260433ce… → 07f6681c… = SCHEMA 8 → 9 only (masters wave); the generated FY26 data is unchanged.
-const FY26_SHA_BEFORE='d0babd3b6f7e1ad443e08d9ec4416e2f99faca6ed4ab9ec2786c11e1133a1211';
+// SCC leave port (DEC-116): leave is one record per date (BASE spans → 8 date records; FY26 history leave split by the dates it counted) and the
+// Leave types list is SCC's fixed one: d0babd3b… → 0e29ff52…. Every stored and computed pay run of BASE and FY26 is unchanged.
+const FY26_SHA_BEFORE='0e29ff52e666358f297c83782f44f7b337496dfa64c2ff70be3cb91085186b9c';
 
 // ── fake IndexedDB with real transaction semantics: writes are staged and applied only on commit; `failPut` aborts the
 // transaction when a put for that key is issued (nothing of that transaction is applied) ──

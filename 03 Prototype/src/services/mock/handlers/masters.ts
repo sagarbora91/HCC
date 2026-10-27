@@ -99,6 +99,7 @@ function remove(k:Kit):string{
   const sp=specFor(k),rows=rowsFor(k,sp),row=findRow(k,sp,rows,k.cmd.id);
   const u=mstUsage(k.s,sp,row);
   if(u.count>0)mstFail('MASTER_IN_USE',`${row.name} is used (${u.count} · ${u.where.join('; ')}) — retire it instead of deleting.`);
+  const why=sp.canDelete?.(k.s,row);if(why)mstFail('MASTER_IN_USE',why);
   slice(k.s).history.unshift({id:k.id('MSTH'),master:sp.id,rowId:row.id,code:row.code,field:'deleted',old:row.name,new:'—',by:k.uid,at:k.s.clock});
   writeRows(k,sp,rows.filter(r=>r.id!==row.id));
   return `Master ${sp.label}: ${row.code} · ${row.name} deleted (never used)`;

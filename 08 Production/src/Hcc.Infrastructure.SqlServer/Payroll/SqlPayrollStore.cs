@@ -36,7 +36,9 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         staff_id, property_id, name, dept_code, designation, user_id, pay_type, monthly_paise, daily_paise, default_shift, weekly_off, joined, exited_on,
         active, phone, gender, structure, pf_applicable, esic_applicable, bank_name, account_no, ifsc, row_ver, designation_code
         """;
-    private const string LeaveColumns = "leave_id, staff_id, leave_type, from_date, to_date, half, days_x2, status, property_id, reason, requested_by, requested_utc, decided_by, note, row_ver";
+    // SCC leave port (migration 4110): one row per date; 15–23 = request range, approver, who removed it, imported-SCC fields.
+    private const string LeaveColumns = "leave_id, staff_id, leave_type, from_date, to_date, half, days_x2, status, property_id, reason, requested_by, requested_utc, decided_by, note, row_ver, "
+        + "request_from, request_to, approver_id, approver_name, cancelled_by, cancelled_utc, legacy, scc_id, decided_by_name, decided_at_text";
     private const string RunColumns = "run_id, property_id, pay_month, status, rates_json, warnings_json, lock_seq, prepared_by, locked_by, row_ver";
     private const string FnfColumns = """
         fnf_id, property_id, staff_id, pay_month, salary_included, line_json, advance_outstanding_paise, adjustments_json, additions_paise, earnings_paise,
@@ -110,7 +112,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
     {
         var c = Cmd("SELECT dept_code, name, leave_cap FROM hr.department WHERE property_id = @p ORDER BY dept_code;");
         P(c, "@p", SqlDbType.Int, propertyId);
-        return await ReadAsync(c, r => new DepartmentRow(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetByte(2)), ct).ConfigureAwait(false);
+        return await ReadAsync(c, r => new DepartmentRow(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetInt32(2)), ct).ConfigureAwait(false);
     }
 
     public async Task<DepartmentRow?> LockDepartmentAsync(int propertyId, string code, CancellationToken ct)
@@ -118,7 +120,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         var c = Cmd("SELECT dept_code, name, leave_cap FROM hr.department WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND dept_code = @d;");
         P(c, "@p", SqlDbType.Int, propertyId);
         P(c, "@d", SqlDbType.VarChar, 10, code);
-        return (await ReadAsync(c, r => new DepartmentRow(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetByte(2)), ct).ConfigureAwait(false)).FirstOrDefault();
+        return (await ReadAsync(c, r => new DepartmentRow(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetInt32(2)), ct).ConfigureAwait(false)).FirstOrDefault();
     }
 
     public async Task UpsertDepartmentAsync(int propertyId, DepartmentRow dept, CancellationToken ct)
@@ -131,7 +133,7 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c, "@p", SqlDbType.Int, propertyId);
         P(c, "@d", SqlDbType.VarChar, 10, dept.Code);
         P(c, "@n", SqlDbType.NVarChar, 60, dept.Name);
-        P(c, "@c", SqlDbType.TinyInt, dept.LeaveCap is { } x ? (byte)x : null);
+        P(c, "@c", SqlDbType.Int, dept.LeaveCap);
         await ExecAsync(c, ct).ConfigureAwait(false);
     }
 
@@ -262,8 +264,9 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
     private static LeaveSpan MapSpan(SqlDataReader r) => new(r.GetInt64(0), r.GetInt64(1), new LeaveType(r.GetString(2)), D(r, 3), D(r, 4),
         r.IsDBNull(5) ? null : Enum.Parse<LeaveHalf>(r.GetString(5)), r.GetInt16(6) / 2m, Enum.Parse<LeaveStatus>(r.GetString(7)));
 
-    private static LeaveRow MapLeave(SqlDataReader r) => new(MapSpan(r), r.GetInt32(8), r.GetString(9), r.GetInt32(10), r.GetDateTime(11),
-        r.IsDBNull(12) ? null : r.GetInt32(12), S(r, 13), V(r, 14));
+    private static LeaveRow MapLeave(SqlDataReader r) => new(MapSpan(r), r.GetInt32(8), S(r, 9) ?? "", r.GetInt32(10), r.GetDateTime(11),
+        r.IsDBNull(12) ? null : r.GetInt32(12), S(r, 13), V(r, 14), D(r, 15), D(r, 16), r.IsDBNull(17) ? null : r.GetInt32(17), S(r, 18),
+        r.IsDBNull(19) ? null : r.GetInt32(19), r.IsDBNull(20) ? null : DateTime.SpecifyKind(r.GetDateTime(20), DateTimeKind.Utc), r.GetBoolean(21), S(r, 22), S(r, 23), S(r, 24));
 
     public async Task<IReadOnlyDictionary<long, StaffDays>> DaysAsync(int propertyId, IReadOnlyCollection<long> staffIds, DateOnly from, DateOnly to, CancellationToken ct)
     {
@@ -295,12 +298,8 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         P(c3, "@ids", SqlDbType.VarChar, -1, ids);
         P(c3, "@p", SqlDbType.Int, propertyId);
         var leaves = await ReadAsync(c3, MapSpan, ct).ConfigureAwait(false);
-        // MA-6: paid / unpaid from the Leave types list. Masters integration: the paid holidays (DEC-083) are the active "paid" rows of
-        // MA-6's Holiday calendar (hr.holiday, code = YYYY-MM-DD) in [from, to] — one holidays concept, date → name.
-        var c4 = Cmd("SELECT code, paid FROM hr.leave_type WHERE property_id = @p;");
-        P(c4, "@p", SqlDbType.Int, propertyId);
-        var paid = (await ReadAsync(c4, r => (r.GetString(0), r.GetBoolean(1)), ct).ConfigureAwait(false)).ToDictionary(x => x.Item1, x => x.Item2);
-        if (paid.Count > 0) leaves = leaves.Select(l => l with { Paid = paid.TryGetValue(l.Type.Value, out var pd) ? pd : null }).ToList();
+        // SCC leave port: every category is paid leave, only LOP is unpaid (LeaveSpan.IsPaid). Masters integration: the paid holidays (DEC-083) are the
+        // active "paid" rows of MA-6's Holiday calendar (hr.holiday, code = YYYY-MM-DD) in [from, to] — one holidays concept, date → name.
         var c5 = Cmd("SELECT code, name FROM hr.holiday WHERE property_id = @p AND active = 1 AND kind = 'paid' AND code BETWEEN @f AND @t;");
         P(c5, "@p", SqlDbType.Int, propertyId);
         P(c5, "@f", SqlDbType.VarChar, 10, Wire(from));
@@ -411,17 +410,17 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         ArgumentNullException.ThrowIfNull(span);
         var c = Cmd("""
             INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, half, days_x2, reason, status, requested_by, requested_utc, decided_by, decided_utc,
-                                    note, correction_id)
+                                    note, correction_id, request_from, request_to, approver_id)
             OUTPUT INSERTED.leave_id
-            VALUES (@p, @s, @ty, @f, @t, NULL, @dx, @r, 'Approved', @rb, @at, @db, @at, @n, @c);
+            VALUES (@p, @s, @ty, @f, @t, NULL, @dx, @r, 'Approved', @rb, @at, @db, @at, @n, @c, @f, @t, @db);
             """);
         P(c, "@p", SqlDbType.Int, propertyId);
         P(c, "@s", SqlDbType.BigInt, span.StaffId);
-        P(c, "@ty", SqlDbType.VarChar, 3, span.Type.ToString());
+        P(c, "@ty", SqlDbType.VarChar, 6, span.Type.ToString());
         P(c, "@f", SqlDbType.Date, span.From.ToDateTime(TimeOnly.MinValue));
         P(c, "@t", SqlDbType.Date, span.To.ToDateTime(TimeOnly.MinValue));
         P(c, "@dx", SqlDbType.SmallInt, (short)(span.Days * 2));
-        P(c, "@r", SqlDbType.NVarChar, 200, reason);
+        P(c, "@r", SqlDbType.NVarChar, 500, reason);
         P(c, "@rb", SqlDbType.Int, requestedBy);
         P(c, "@db", SqlDbType.Int, decidedBy);
         P(c, "@at", SqlDbType.DateTime2, utc);
@@ -538,26 +537,34 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         return Convert.ToInt32(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture) > 0;
     }
 
-    public async Task<LeaveRow> InsertLeaveAsync(int propertyId, LeaveSpan span, string reason, int by, DateTime utc, CancellationToken ct)
+    public async Task<long> InsertLeaveDayAsync(NewLeaveDay day, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(span);
+        ArgumentNullException.ThrowIfNull(day);
         var c = Cmd("""
-            INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, half, days_x2, reason, status, requested_by, requested_utc)
+            INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, half, days_x2, reason, status, requested_by, requested_utc,
+                                    request_from, request_to, approver_id, approver_name, legacy, scc_id, decided_by_name, decided_at_text)
             OUTPUT INSERTED.leave_id
-            VALUES (@p, @s, @ty, @f, @t, @h, @dx, @r, 'Pending', @by, @at);
+            VALUES (@p, @s, @ty, @d, @d, @h, @dx, @r, @st, @by, @at, @rf, @rt, @ap, @an, @lg, @sc, @dn, @da);
             """);
-        P(c, "@p", SqlDbType.Int, propertyId);
-        P(c, "@s", SqlDbType.BigInt, span.StaffId);
-        P(c, "@ty", SqlDbType.VarChar, 6, span.Type.ToString());
-        P(c, "@f", SqlDbType.Date, span.From.ToDateTime(TimeOnly.MinValue));
-        P(c, "@t", SqlDbType.Date, span.To.ToDateTime(TimeOnly.MinValue));
-        P(c, "@h", SqlDbType.Char, 2, span.Half?.ToString());
-        P(c, "@dx", SqlDbType.SmallInt, (short)(span.Days * 2));
-        P(c, "@r", SqlDbType.NVarChar, 200, reason);
-        P(c, "@by", SqlDbType.Int, by);
-        P(c, "@at", SqlDbType.DateTime2, utc);
-        var id = Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
-        return (await LockLeaveAsync(propertyId, id, ct).ConfigureAwait(false))!;
+        P(c, "@p", SqlDbType.Int, day.PropertyId);
+        P(c, "@s", SqlDbType.BigInt, day.StaffId);
+        P(c, "@ty", SqlDbType.VarChar, 6, day.Type.ToString());
+        P(c, "@d", SqlDbType.Date, day.Date.ToDateTime(TimeOnly.MinValue));
+        P(c, "@h", SqlDbType.Char, 2, day.Half?.ToString());
+        P(c, "@dx", SqlDbType.SmallInt, (short)(day.Half is null ? 2 : 1));
+        P(c, "@r", SqlDbType.NVarChar, 500, day.Reason);
+        P(c, "@st", SqlDbType.VarChar, 9, day.Status.ToString());
+        P(c, "@by", SqlDbType.Int, day.RequestedBy);
+        P(c, "@at", SqlDbType.DateTime2, day.RequestedUtc);
+        P(c, "@rf", SqlDbType.Date, day.RequestFrom.ToDateTime(TimeOnly.MinValue));
+        P(c, "@rt", SqlDbType.Date, day.RequestTo.ToDateTime(TimeOnly.MinValue));
+        P(c, "@ap", SqlDbType.Int, day.ApproverId);
+        P(c, "@an", SqlDbType.NVarChar, 100, day.ApproverName);
+        P(c, "@lg", SqlDbType.Bit, day.Legacy);
+        P(c, "@sc", SqlDbType.NVarChar, 30, day.SccId);
+        P(c, "@dn", SqlDbType.NVarChar, 100, day.DecidedByName);
+        P(c, "@da", SqlDbType.NVarChar, 30, day.DecidedAtText);
+        return Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
     }
 
     public async Task<LeaveRow?> LockLeaveAsync(int propertyId, long leaveId, CancellationToken ct)
@@ -585,21 +592,29 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         return SqlValues.RowVersionToWire(v!);
     }
 
-    public async Task<IReadOnlyList<(StaffProfile Staff, LeaveSpan Leave)>> DepartmentLeavesAsync(int propertyId, string dept, DateOnly from, DateOnly to, CancellationToken ct)
+    public async Task<string> CancelLeaveAsync(long leaveId, string? expectedVersion, int by, DateTime utc, string? note, CancellationToken ct)
     {
-        var c = Cmd($"""
-            SELECT {string.Join(", ", LeaveColumns.Split(", ").Select(x => "l." + x))}, {string.Join(", ", StaffColumns.Split(',').Select(x => "s." + x.Trim()))}
-            FROM hr.leave_request l JOIN hr.staff s ON s.staff_id = l.staff_id
-            WHERE s.property_id = @p AND s.dept_code = @d AND l.status IN ('Pending','Approved') AND l.from_date <= @t AND l.to_date >= @f
-            ORDER BY l.leave_id;
+        var c = Cmd("""
+            UPDATE hr.leave_request SET status = 'Cancelled', cancelled_by = @by, cancelled_utc = @at, note = COALESCE(@n, note)
+            OUTPUT INSERTED.row_ver WHERE leave_id = @l AND status <> 'Cancelled' AND (@v IS NULL OR row_ver = @v);
             """);
+        P(c, "@l", SqlDbType.BigInt, leaveId);
+        P(c, "@by", SqlDbType.Int, by);
+        P(c, "@at", SqlDbType.DateTime2, utc);
+        P(c, "@n", SqlDbType.NVarChar, 200, note);
+        P(c, "@v", SqlDbType.Binary, 8, expectedVersion is null ? null : SqlValues.RowVersionFromWire(expectedVersion));
+        var v = await ScalarAsync(c, ct).ConfigureAwait(false) as byte[];
+        SqlValues.EnsureVersionMatched(v is null ? 0 : 1, "The leave record");
+        return SqlValues.RowVersionToWire(v!);
+    }
+
+    public async Task<IReadOnlyList<LeaveRow>> LeavesBetweenAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var c = Cmd($"SELECT {LeaveColumns} FROM hr.leave_request WHERE property_id = @p AND from_date BETWEEN @f AND @t ORDER BY leave_id;");
         P(c, "@p", SqlDbType.Int, propertyId);
-        P(c, "@d", SqlDbType.VarChar, 10, dept);
         P(c, "@f", SqlDbType.Date, from.ToDateTime(TimeOnly.MinValue));
         P(c, "@t", SqlDbType.Date, to.ToDateTime(TimeOnly.MinValue));
-        var rows = await ReadAsync(c, r => (MapStaffAt(r, 15), MapSpan(r)), ct).ConfigureAwait(false);
-        var roster = await RosterRuleShiftsAsync(propertyId, ct).ConfigureAwait(false);
-        return roster.Count == 0 ? rows : rows.Select(x => roster.Contains(x.Item1.DefaultShift.Value) ? (x.Item1 with { WeeklyOffAuto = false }, x.Item2) : x).ToList();
+        return await ReadAsync(c, MapLeave, ct).ConfigureAwait(false);
     }
 
     private static StaffProfile MapStaffAt(SqlDataReader r, int o)
@@ -612,20 +627,30 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
 
     public async Task<LeavePolicy> LeavePolicyAsync(int propertyId, CancellationToken ct)
     {
-        var c = Cmd("SELECT cl_days, sl_days, el_days, default_cap FROM hr.leave_policy WHERE property_id = @p;");
+        var c = Cmd("SELECT cl_days, sl_days, el_days, default_cap, weekoff_mask FROM hr.leave_policy WHERE property_id = @p;");
         P(c, "@p", SqlDbType.Int, propertyId);
-        var row = (await ReadAsync(c, r => (r.GetByte(0), r.GetByte(1), r.GetByte(2), r.GetByte(3)), ct).ConfigureAwait(false)).FirstOrDefault();
+        var row = (await ReadAsync(c, r => (r.GetDecimal(0), r.GetDecimal(1), r.GetDecimal(2), (int)r.GetByte(3), (int)r.GetByte(4)), ct).ConfigureAwait(false)).FirstOrDefault();
         var caps = (await DepartmentsAsync(propertyId, ct).ConfigureAwait(false)).Where(d => d.LeaveCap is not null).ToDictionary(d => d.Code, d => d.LeaveCap!.Value);
         var d = LeavePolicy.Defaults();
-        var policy = row == default ? d with { DeptCap = caps } : new LeavePolicy(row.Item1, row.Item2, row.Item3, row.Item4, caps);
-        // MA-6: the property's Leave types list (paid, yearly quota, carry-forward, encashment per type) decides the entitlements once it exists.
-        var ct2 = Cmd("SELECT code, name, paid, yearly_quota, carry_forward, encashment, active FROM hr.leave_type WHERE property_id = @p ORDER BY sort_order, code;");
-        P(ct2, "@p", SqlDbType.Int, propertyId);
-        var types = await ReadAsync(ct2, r => new LeaveTypeDef(r.GetString(0), r.GetString(1), r.GetBoolean(2), r.IsDBNull(3) ? null : r.GetByte(3), r.GetByte(4), r.GetBoolean(5), r.GetBoolean(6)), ct)
+        var policy = row == default ? d with { DeptCap = caps } : new LeavePolicy(row.Item1, row.Item2, row.Item3, row.Item4, caps, null, row.Item5);
+        // SCC per-staff overrides and blackouts.
+        var co = Cmd("SELECT staff_id, cl_days, sl_days, el_days FROM hr.leave_ent_override WHERE property_id = @p ORDER BY staff_id;");
+        P(co, "@p", SqlDbType.Int, propertyId);
+        static decimal? Dec(SqlDataReader r, int i) => r.IsDBNull(i) ? null : r.GetDecimal(i);
+        var overrides = (await ReadAsync(co, r => (r.GetInt64(0), new LeaveEntOverride(Dec(r, 1), Dec(r, 2), Dec(r, 3))), ct).ConfigureAwait(false))
+            .ToDictionary(x => x.Item1, x => x.Item2);
+        var cb = Cmd("SELECT blackout_id, from_date, to_date, dept_code, kind, hard, label FROM hr.leave_blackout WHERE property_id = @p ORDER BY blackout_id;");
+        P(cb, "@p", SqlDbType.Int, propertyId);
+        var blackouts = await ReadAsync(cb, r => new LeaveBlackout(r.GetInt64(0), D(r, 1), D(r, 2), r.GetString(3), r.GetString(4), r.GetBoolean(5), r.GetString(6)), ct)
             .ConfigureAwait(false);
+        policy = policy with { Overrides = overrides, Blackouts = blackouts };
+        // MA-6: the property's Leave types list (SCC's fixed categories; CL / SL / EL quota) decides the entitlement defaults once it exists.
+        var ct2 = Cmd("SELECT code, name, paid, yearly_quota, active FROM hr.leave_type WHERE property_id = @p ORDER BY sort_order, code;");
+        P(ct2, "@p", SqlDbType.Int, propertyId);
+        var types = await ReadAsync(ct2, r => new LeaveTypeDef(r.GetString(0), r.GetString(1), r.GetBoolean(2), Dec(r, 3), r.GetBoolean(4)), ct).ConfigureAwait(false);
         if (types.Count == 0) return policy;
-        int Quota(string code, int fallback) => types.FirstOrDefault(x => x.Code == code)?.Quota ?? fallback;
-        return policy with { Cl = Quota("CL", 0), Sl = Quota("SL", 0), El = Quota("EL", 0), Types = types.ToDictionary(x => x.Code) };
+        decimal Quota(string code) => types.FirstOrDefault(x => x.Code == code)?.Quota ?? 0m;
+        return policy with { Cl = Quota("CL"), Sl = Quota("SL"), El = Quota("EL"), Types = types.ToDictionary(x => x.Code) };
     }
 
     public async Task<ShiftCatalog> ShiftCatalogAsync(int propertyId, CancellationToken ct)
@@ -649,14 +674,16 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
     {
         ArgumentNullException.ThrowIfNull(policy);
         var c = Cmd("""
-            UPDATE hr.leave_policy SET cl_days = @cl, sl_days = @sl, el_days = @el, default_cap = @cap, updated_by = @by, updated_utc = @at WHERE property_id = @p;
-            IF @@ROWCOUNT = 0 INSERT hr.leave_policy(property_id, cl_days, sl_days, el_days, default_cap, updated_by, updated_utc) VALUES (@p, @cl, @sl, @el, @cap, @by, @at);
+            UPDATE hr.leave_policy SET cl_days = @cl, sl_days = @sl, el_days = @el, weekoff_mask = @wo, updated_by = @by, updated_utc = @at WHERE property_id = @p;
+            IF @@ROWCOUNT = 0 INSERT hr.leave_policy(property_id, cl_days, sl_days, el_days, default_cap, weekoff_mask, updated_by, updated_utc)
+              VALUES (@p, @cl, @sl, @el, @cap, @wo, @by, @at);
             """);
         P(c, "@p", SqlDbType.Int, propertyId);
-        P(c, "@cl", SqlDbType.TinyInt, (byte)policy.Cl);
-        P(c, "@sl", SqlDbType.TinyInt, (byte)policy.Sl);
-        P(c, "@el", SqlDbType.TinyInt, (byte)policy.El);
-        P(c, "@cap", SqlDbType.TinyInt, (byte)policy.DefaultCap);
+        Dec(c, "@cl", policy.Cl);
+        Dec(c, "@sl", policy.Sl);
+        Dec(c, "@el", policy.El);
+        P(c, "@cap", SqlDbType.TinyInt, (byte)Math.Clamp(policy.DefaultCap, 1, 20));
+        P(c, "@wo", SqlDbType.TinyInt, (byte)policy.WeekOffMask);
         P(c, "@by", SqlDbType.Int, by);
         P(c, "@at", SqlDbType.DateTime2, utc);
         await ExecAsync(c, ct).ConfigureAwait(false);
@@ -665,16 +692,155 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         {
             var q = Cmd(@"
                 INSERT mst.master_history(property_id, master, row_id, code, field, old_value, new_value, changed_by, changed_utc)
-                SELECT property_id, 'leaveTypes', leave_type_id, code, 'yearlyQuota', CAST(yearly_quota AS NVARCHAR(10)), CAST(@q AS NVARCHAR(10)), @by, @at
+                SELECT property_id, 'leaveTypes', leave_type_id, code, 'yearlyQuota', CAST(CAST(yearly_quota AS FLOAT) AS NVARCHAR(20)), @qt, @by, @at
                   FROM hr.leave_type WHERE property_id = @p AND code = @c AND ISNULL(yearly_quota, -1) <> @q;
                 UPDATE hr.leave_type SET yearly_quota = @q, updated_by = @by, updated_utc = @at WHERE property_id = @p AND code = @c AND ISNULL(yearly_quota, -1) <> @q;");
             P(q, "@p", SqlDbType.Int, propertyId);
             P(q, "@c", SqlDbType.VarChar, 6, code);
-            P(q, "@q", SqlDbType.Int, days);
+            Dec(q, "@q", days);
+            P(q, "@qt", SqlDbType.NVarChar, 20, SccLeave.Num(days));
             P(q, "@by", SqlDbType.Int, by);
             P(q, "@at", SqlDbType.DateTime2, utc);
             await ExecAsync(q, ct).ConfigureAwait(false);
         }
+    }
+
+    private static void Dec(SqlCommand c, string name, decimal? value)
+    {
+        var p = c.Parameters.Add(name, SqlDbType.Decimal);
+        p.Precision = 9;
+        p.Scale = 2;
+        p.Value = value is { } v ? v : DBNull.Value;
+    }
+
+    // ── SCC leave settings, blackouts, agenda, clear, approvers (migration 4110) ──
+
+    public async Task SetLeaveOverrideAsync(int propertyId, long staffId, LeaveEntOverride? ov, int by, DateTime utc, CancellationToken ct)
+    {
+        var c = Cmd(ov is null
+            ? "DELETE hr.leave_ent_override WHERE property_id = @p AND staff_id = @s;"
+            : """
+              UPDATE hr.leave_ent_override SET cl_days = @cl, sl_days = @sl, el_days = @el, updated_by = @by, updated_utc = @at WHERE property_id = @p AND staff_id = @s;
+              IF @@ROWCOUNT = 0 INSERT hr.leave_ent_override(property_id, staff_id, cl_days, sl_days, el_days, updated_by, updated_utc) VALUES (@p, @s, @cl, @sl, @el, @by, @at);
+              """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@s", SqlDbType.BigInt, staffId);
+        if (ov is not null)
+        {
+            Dec(c, "@cl", ov.Cl);
+            Dec(c, "@sl", ov.Sl);
+            Dec(c, "@el", ov.El);
+            P(c, "@by", SqlDbType.Int, by);
+            P(c, "@at", SqlDbType.DateTime2, utc);
+        }
+
+        await ExecAsync(c, ct).ConfigureAwait(false);
+    }
+
+    public async Task<long> InsertBlackoutAsync(int propertyId, LeaveBlackout b, int by, DateTime utc, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(b);
+        var c = Cmd("""
+            INSERT hr.leave_blackout(property_id, from_date, to_date, dept_code, kind, hard, label, created_by, created_utc)
+            OUTPUT INSERTED.blackout_id VALUES (@p, @f, @t, @d, @k, @h, @l, @by, @at);
+            """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@f", SqlDbType.Date, b.From.ToDateTime(TimeOnly.MinValue));
+        P(c, "@t", SqlDbType.Date, b.To.ToDateTime(TimeOnly.MinValue));
+        P(c, "@d", SqlDbType.VarChar, 10, b.Dept);
+        P(c, "@k", SqlDbType.VarChar, 8, b.Kind);
+        P(c, "@h", SqlDbType.Bit, b.Hard);
+        P(c, "@l", SqlDbType.NVarChar, 80, b.Label);
+        P(c, "@by", SqlDbType.Int, by);
+        P(c, "@at", SqlDbType.DateTime2, utc);
+        return Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
+    }
+
+    public async Task<LeaveBlackout?> DeleteBlackoutAsync(int propertyId, long blackoutId, CancellationToken ct)
+    {
+        var c = Cmd("""
+            DELETE hr.leave_blackout OUTPUT DELETED.blackout_id, DELETED.from_date, DELETED.to_date, DELETED.dept_code, DELETED.kind, DELETED.hard, DELETED.label
+            WHERE property_id = @p AND blackout_id = @b;
+            """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@b", SqlDbType.BigInt, blackoutId);
+        return (await ReadAsync(c, r => new LeaveBlackout(r.GetInt64(0), D(r, 1), D(r, 2), r.GetString(3), r.GetString(4), r.GetBoolean(5), r.GetString(6)), ct)
+            .ConfigureAwait(false)).FirstOrDefault();
+    }
+
+    private static LeaveAgendaRow MapAgenda(SqlDataReader r) => new(r.GetInt64(0), D(r, 1), r.GetString(2), r.GetString(3), r.GetString(4), r.GetString(5), S(r, 6),
+        r.GetInt32(7), DateTime.SpecifyKind(r.GetDateTime(8), DateTimeKind.Utc));
+
+    /// <summary>SCC order: by date, then by time with blank times last ('99:99'), then as added.</summary>
+    private const string AgendaColumns = "agenda_id, agenda_date, title, time_text, kind, description, scc_id, created_by, created_utc";
+
+    public async Task<IReadOnlyList<LeaveAgendaRow>> AgendasAsync(int propertyId, CancellationToken ct)
+    {
+        var c = Cmd($"SELECT {AgendaColumns} FROM hr.leave_agenda WHERE property_id = @p ORDER BY agenda_date, CASE WHEN time_text = '' THEN '99:99' ELSE time_text END, agenda_id;");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        return await ReadAsync(c, MapAgenda, ct).ConfigureAwait(false);
+    }
+
+    public async Task<long> InsertAgendaAsync(int propertyId, LeaveAgendaRow a, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(a);
+        var c = Cmd("""
+            INSERT hr.leave_agenda(property_id, agenda_date, title, time_text, kind, description, scc_id, created_by, created_utc)
+            OUTPUT INSERTED.agenda_id VALUES (@p, @d, @t, @tm, @k, @ds, @sc, @by, @at);
+            """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@d", SqlDbType.Date, a.Date.ToDateTime(TimeOnly.MinValue));
+        P(c, "@t", SqlDbType.NVarChar, 200, a.Title);
+        P(c, "@tm", SqlDbType.VarChar, 5, a.Time);
+        P(c, "@k", SqlDbType.VarChar, 8, a.Kind);
+        P(c, "@ds", SqlDbType.NVarChar, 1000, a.Description);
+        P(c, "@sc", SqlDbType.NVarChar, 30, a.SccId);
+        P(c, "@by", SqlDbType.Int, a.CreatedBy);
+        P(c, "@at", SqlDbType.DateTime2, a.CreatedUtc);
+        return Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
+    }
+
+    public async Task<LeaveAgendaRow?> DeleteAgendaAsync(int propertyId, long agendaId, CancellationToken ct)
+    {
+        var c = Cmd($"DELETE hr.leave_agenda OUTPUT {string.Join(", ", AgendaColumns.Split(", ").Select(x => "DELETED." + x))} WHERE property_id = @p AND agenda_id = @a;");
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@a", SqlDbType.BigInt, agendaId);
+        return (await ReadAsync(c, MapAgenda, ct).ConfigureAwait(false)).FirstOrDefault();
+    }
+
+    public async Task<(int Cancelled, int Kept, int Agendas)> ClearLeaveAsync(int propertyId, int by, DateTime utc, CancellationToken ct)
+    {
+        var c = Cmd("""
+            DECLARE @kept INT = (SELECT COUNT(*) FROM hr.leave_request l WHERE l.property_id = @p AND l.status <> 'Cancelled'
+              AND EXISTS (SELECT 1 FROM hr.pay_run r WHERE r.property_id = @p AND r.status = 'Locked' AND r.pay_month = DATEFROMPARTS(YEAR(l.from_date), MONTH(l.from_date), 1)));
+            UPDATE l SET status = 'Cancelled', cancelled_by = @by, cancelled_utc = @at, note = N'Clear All'
+              FROM hr.leave_request l WHERE l.property_id = @p AND l.status <> 'Cancelled'
+              AND NOT EXISTS (SELECT 1 FROM hr.pay_run r WHERE r.property_id = @p AND r.status = 'Locked' AND r.pay_month = DATEFROMPARTS(YEAR(l.from_date), MONTH(l.from_date), 1));
+            DECLARE @n INT = @@ROWCOUNT;
+            DELETE hr.leave_agenda WHERE property_id = @p;
+            SELECT @n, @kept, @@ROWCOUNT;
+            """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@by", SqlDbType.Int, by);
+        P(c, "@at", SqlDbType.DateTime2, utc);
+        return (await ReadAsync(c, r => (r.GetInt32(0), r.GetInt32(1), r.GetInt32(2)), ct).ConfigureAwait(false)).Single();
+    }
+
+    public async Task<IReadOnlyList<ApproverRow>> ApproversAsync(int propertyId, DateTime? nowUtc, CancellationToken ct)
+    {
+        var c = Cmd("""
+            DECLARE @now DATETIME2(3) = COALESCE(@n, SYSUTCDATETIME());
+            SELECT u.user_id, u.display_name, MIN(CASE r.role_code WHEN 'OWN' THEN 0 ELSE 1 END) AS rk
+              FROM plat.app_user u JOIN plat.user_role r ON r.user_id = u.user_id
+             WHERE u.property_id = @p AND u.enabled = 1 AND r.role_code IN ('OWN', 'MGR')
+               AND r.valid_from_utc <= @now AND (r.valid_until_utc IS NULL OR r.valid_until_utc > @now)
+               AND (u.valid_from_utc IS NULL OR u.valid_from_utc <= @now) AND (u.valid_until_utc IS NULL OR u.valid_until_utc > @now)
+             GROUP BY u.user_id, u.display_name
+             ORDER BY rk, u.display_name, u.user_id;
+            """);
+        P(c, "@p", SqlDbType.Int, propertyId);
+        P(c, "@n", SqlDbType.DateTime2, nowUtc);
+        return await ReadAsync(c, r => new ApproverRow(r.GetInt32(0), r.GetString(1), r.GetInt32(2) == 0 ? "Owner" : "Manager"), ct).ConfigureAwait(false);
     }
 
     // ── rates ──
@@ -1106,7 +1272,8 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
             """, true), r => new AttendanceDetail(r.GetInt64(0), D(r, 1), Enum.Parse<AttendanceStatus>(r.GetString(2)), r.GetInt16(3), r.GetInt32(4), Utc(r, 5), S(r, 6)), ct)
             .ConfigureAwait(false);
         var leaves = await ReadAsync(Q($"SELECT {LeaveColumns}, decided_utc FROM hr.leave_request WHERE property_id = @p ORDER BY leave_id;"),
-            r => (Row: MapLeave(r), Decided: UtcOrNull(r, 15)), ct).ConfigureAwait(false);
+            r => (Row: MapLeave(r), Decided: UtcOrNull(r, 25)), ct).ConfigureAwait(false);
+        var agendas = await AgendasAsync(propertyId, ct).ConfigureAwait(false);
         var runs = await ReadAsync(Q("SELECT run_id, prepared_utc, locked_utc FROM hr.pay_run WHERE property_id = @p ORDER BY pay_month;"),
             r => new RunDetail(r.GetInt64(0), Utc(r, 1), UtcOrNull(r, 2)), ct).ConfigureAwait(false);
         var advances = await ReadAsync(Q("SELECT advance_id, reason, given_by FROM hr.advance WHERE property_id = @p ORDER BY advance_id;"),
@@ -1132,6 +1299,6 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
             r => new FnfDetail(r.GetInt64(0), D(r, 1), PayrollJson.Read<PayrollRates>(r.GetString(2)), Utc(r, 3), r.IsDBNull(4) ? null : r.GetInt32(4), UtcOrNull(r, 5)), ct)
             .ConfigureAwait(false);
         return new PayrollBoardDetail(roster, att, leaves.Select(l => l.Row).ToList(),
-            leaves.Where(l => l.Decided is not null).ToDictionary(l => l.Row.Span.LeaveId, l => l.Decided!.Value), runs, advances, recoveries, files, sends, unlocks, fnfs);
+            leaves.Where(l => l.Decided is not null).ToDictionary(l => l.Row.Span.LeaveId, l => l.Decided!.Value), runs, advances, recoveries, files, sends, unlocks, fnfs, agendas);
     }
 }

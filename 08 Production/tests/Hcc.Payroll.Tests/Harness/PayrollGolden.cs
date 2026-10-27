@@ -13,7 +13,8 @@ public sealed class PayrollGolden
     public sealed record GStaff(string Id, string Name, string Dept, string Designation, string? UserId, string PayType, long Monthly, long Daily, string DefaultShift,
         int WeeklyOff, string Joined, string Phone, string Gender, string BankName, string AccountNo, string Ifsc);
 
-    public sealed record GLeave(string Id, string StaffId, string Type, string From, string To, string? Half, decimal Days, string Status);
+    /// <summary>SCC leave port (DEC-116): one leave record per <paramref name="Date"/>; From / To = the range it was requested with.</summary>
+    public sealed record GLeave(string Id, string StaffId, string Type, string Date, string From, string To, string? Half, decimal Days, string Status, string? Approver = null);
 
     public sealed record GAdvance(string Id, string StaffId, long Amount, long Installment, string Date, string? FromMonth);
 
@@ -54,7 +55,7 @@ public sealed class PayrollGolden
     public static StaffProfile Profile(GStaff g, long id) => new(id, g.Name, g.Dept, g.Designation, g.PayType == "daily" ? PayType.Daily : PayType.Monthly, g.Monthly, g.Daily,
         new ShiftCode(g.DefaultShift), g.WeeklyOff, Date(g.Joined), null, true, Enum.Parse<Gender>(g.Gender));
 
-    public static LeaveSpan Span(GLeave l, long leaveId, long staffId) => new(leaveId, staffId, new LeaveType(l.Type), Date(l.From), Date(l.To),
+    public static LeaveSpan Span(GLeave l, long leaveId, long staffId) => new(leaveId, staffId, new LeaveType(l.Type), Date(l.Date), Date(l.Date),
         l.Half is null ? null : Enum.Parse<LeaveHalf>(l.Half), l.Days, Enum.Parse<LeaveStatus>(l.Status));
 
     /// <summary>An in-memory month world over the golden data (staff ids 1…12 in fixture order).</summary>

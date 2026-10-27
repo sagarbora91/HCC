@@ -142,8 +142,10 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
         await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S02", "2026-09-03", "A", reason: "x"), HccErrorCode.VALIDATION); // reason required
         await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S02", "2026-09-03", "A", ot: 30), HccErrorCode.VALIDATION);     // absent + overtime
         await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S02", "2026-09-03", "P"), HccErrorCode.VALIDATION);             // already present
-        await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S05", "2026-09-14", "P"), HccErrorCode.INVALID_TRANSITION);   // inside a 2-day approved CL
         Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM hr.change_request WHERE property_id = @p;", ("@p", h.PropertyId)));
+        // SCC leave port (DEC-116): leave is one record per date, so a day of Ravi's 14–15 Sep casual leave is corrected like any one-day leave.
+        Assert.Equal("Applied", (await CorrectAsync(h, "manager", "HR-S05", "2026-09-14", "P")).Value.Status);
+        Assert.Equal("Approved", (string)(await db.ScalarAsync("SELECT status FROM hr.leave_request WHERE staff_id = @s AND from_date = '2026-09-15';", ("@s", h.S("HR-S05"))))!);
     }
 
     [Fact]
@@ -158,8 +160,8 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
         await DecideAsync(h, "owner", cl.RequestId, true);
         Assert.Null(await MarkAsync(h, "HR-S06", "2026-09-16"));   // the absent mark is replaced by the leave
         Assert.Equal(("CL", "Approved", h.U("manager"), h.U("owner"), cl.RequestId, 2L), await LeaveOfAsync(h, "HR-S06", "2026-09-16"));
-        // Balance: CL 12 a year − 2 pending (28–29 Oct) − this day = 9 left.
-        Assert.Equal(9m, (await h.Queries.GetLeaveBalanceAsync(h.PropertyId, h.U("owner"), h.S("HR-S06"), D("2026-10-24"), Ct)).Single(b => b.LeaveType == "CL").Left);
+        // Balance (SCC fyUsage): CL 12 a year − this approved day = 11 left (the pending 28–29 Oct records are not used).
+        Assert.Equal(11m, (await h.Queries.GetLeaveBalanceAsync(h.PropertyId, h.U("owner"), h.S("HR-S06"), D("2026-10-24"), Ct)).Single(b => b.LeaveType == "CL").Left);
         // Mon 28 Sep, Neha absent → leave without pay: both lose the day → no pay change → applies at once; the manager is maker and decider of a
         // direct correction (CK_leave_not_self allows it through correction_id).
         var lop = (await CorrectAsync(h, "manager", "HR-S04", "2026-09-28", "LOP")).Value;
@@ -169,11 +171,13 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
         Assert.Equal("Applied", (await CorrectAsync(h, "manager", "HR-S04", "2026-09-28", "A")).Value.Status);
         Assert.Equal("Cancelled", (string)(await db.ScalarAsync("SELECT status FROM hr.leave_request WHERE correction_id = @c;", ("@c", lop.RequestId)))!);
         Assert.Equal("A", await MarkAsync(h, "HR-S04", "2026-09-28"));
-        // Rules: daily-wage staff take leave without pay only; no leave on a weekly off; a pending leave covering the day is decided first.
-        await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S10", "2026-09-14", "CL"), HccErrorCode.VALIDATION);
-        await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S06", "2026-09-21", "SL"), HccErrorCode.VALIDATION);   // Monday = Kavya's weekly off
+        // Rules (SCC leave port, DEC-116): any category for any pay type; no leave on a day of the hotel's leave week-off set (none by default — SCC
+        // isWeekOffDate; the roster's weekly off is not a leave rule); a pending leave covering the day is decided first.
+        Assert.Equal("PendingApproval", (await CorrectAsync(h, "manager", "HR-S10", "2026-09-14", "CL")).Value.Status);   // daily wage, casual leave
+        await h.Payroll.SetLeavePolicyAsync(h.As("owner", PayrollService.OpSetLeavePolicy), new SetLeavePolicyRequest(12, 7, 15, SccLeave.Mask([1])), Ct);   // Mondays
+        await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S06", "2026-09-21", "SL"), HccErrorCode.VALIDATION);   // Monday = in the leave week-off set
         await Hotel.FailsAsync(() => h.Payroll.RequestLeaveAsync(h.As("manager", PayrollService.OpRequestLeave),
-            new RequestLeaveRequest(h.S("HR-S06"), "CL", D("2026-09-30"), null, null, "Back-dated by request"), Ct), HccErrorCode.VALIDATION);   // RequestLeave stays forward-only
+            new RequestLeaveRequest(h.S("HR-S06"), "CL", D("2026-09-30"), null, null, "Back-dated by request", h.U("owner")), Ct), HccErrorCode.VALIDATION);   // RequestLeave stays forward-only
         // The requester may withdraw a pending request; nobody else.
         // DEC-115: overtime minutes are not paid — present → worked on the weekly off with 60 minutes is still a present day: no change, applies at once.
         Assert.Equal("Applied", (await CorrectAsync(h, "manager", "HR-S06", "2026-09-30", "OFF", ot: 60)).Value.Status);

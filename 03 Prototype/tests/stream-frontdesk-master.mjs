@@ -40,8 +40,8 @@ export function register({test,M,assert}){
     assert.deepEqual(mstRows(s,'policies').map(r=>[r.code,r.name,r.cancelChargeBps,r.noShowChargeBps,r.depositBps,r.sources.length]),[['DEFAULT','Default',0,0,0,0]]);});
   test('[FDM] Fixture figures, BASE and FY26 history hashes unchanged',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);
-    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+    assert.equal(sha(strip(seed())),'a2cbb5cf1a5240c5e12d58f77d566ba20ffbdd2353d1955e7ab4bf3a29be503c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'1b16471e6ebf47ab0e4661bb3b4f46adaa24888514a89e79cbeca510200dd2ad') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
 
   // ── M9 booking sources ──
   test('[FDM] OTA channels and company accounts register their own source rows (auto, in use → retire not delete)',()=>{
