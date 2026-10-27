@@ -17,6 +17,8 @@ import {handlers as messaging} from './messaging';
 import {handlers as pos} from './pos';
 import {handlers as staff} from './staff';
 import {handlers as accounting} from './accounting';
+// ACC-1 lanes: add ONE import line for your handler file below this comment and spread it in the ACC1 object (append only).
+// ACC-1 end
 import {handlers as assistant} from './assistant';
 import {handlers as compliance} from './compliance';
 import {handlers as cashbook} from './cashbook';
@@ -26,4 +28,5 @@ import {handlers as credentials} from './credentials'; // A02b-05 self-service p
 import {handlers as syshealth} from './syshealth';
 import {handlers as roommasters} from './roommasters';
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
-export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...catalogue};
+const ACC1:Record<string,Handler>={}; // ACC-1 lanes: spread your handlers here, e.g. {...accountingChart}
+export const registry:Record<string,Handler>={...ACC1,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...catalogue};

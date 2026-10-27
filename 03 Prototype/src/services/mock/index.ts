@@ -33,6 +33,8 @@ export * from '../../domain/streams/pos';
 export * from '../../domain/streams/staff';
 export * from '../../domain/streams/staff-leave'; // SCC leave port (DEC-116 / DEC-119)
 export * from '../../domain/streams/accounting';
+// ACC-1 lanes: add ONE `export * from '../../domain/streams/accounting-<lane>'` line below (append only).
+// ACC-1 end
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';
 export * from '../../domain/streams/rbac';

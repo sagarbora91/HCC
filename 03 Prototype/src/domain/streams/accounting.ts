@@ -85,6 +85,34 @@ export type ACCVoucher={no:string;date:string;type:ACCVoucherType;narration:stri
 export type ACCLock={date:string;lockedAt:string;lockedBy:string;vouchers:ACCVoucher[];debit:number;credit:number;count:number};
 export type ACCMapChange={id:string;at:string;actor:string;key:string;before:string;after:string};
 export type ACCLockEvent={id:string;at:string;actor:string;date:string;action:'lock'|'unlock';reason?:string};
+// ── ACC-1 contract (02 Planning/agents/ACC1-POSTING-CONTRACT.md §1, §2, §5, §8) — shared by every ACC-1 lane; the coordinator owns this block ──
+/** Tally's 28 predefined groups (contract §1). side: BS = balance sheet, PL = profit & loss; nature = normal balance. Custom sub-groups: id `g-<slug>`. */
+export type ACCGroupDef={id:string;name:string;parent?:string;nature:'Dr'|'Cr';side:'BS'|'PL';custom?:boolean};
+export const ACC_GROUPS:ACCGroupDef[]=[
+  {id:'capital',name:'Capital Account',nature:'Cr',side:'BS'},{id:'reserves',name:'Reserves & Surplus',parent:'capital',nature:'Cr',side:'BS'},
+  {id:'current-assets',name:'Current Assets',nature:'Dr',side:'BS'},{id:'bank',name:'Bank Accounts',parent:'current-assets',nature:'Dr',side:'BS'},
+  {id:'cash',name:'Cash-in-Hand',parent:'current-assets',nature:'Dr',side:'BS'},{id:'deposits-asset',name:'Deposits (Asset)',parent:'current-assets',nature:'Dr',side:'BS'},
+  {id:'loans-advances',name:'Loans & Advances (Asset)',parent:'current-assets',nature:'Dr',side:'BS'},{id:'stock',name:'Stock-in-Hand',parent:'current-assets',nature:'Dr',side:'BS'},
+  {id:'debtors',name:'Sundry Debtors',parent:'current-assets',nature:'Dr',side:'BS'},
+  {id:'current-liabilities',name:'Current Liabilities',nature:'Cr',side:'BS'},{id:'duties-taxes',name:'Duties & Taxes',parent:'current-liabilities',nature:'Cr',side:'BS'},
+  {id:'provisions',name:'Provisions',parent:'current-liabilities',nature:'Cr',side:'BS'},{id:'creditors',name:'Sundry Creditors',parent:'current-liabilities',nature:'Cr',side:'BS'},
+  {id:'fixed-assets',name:'Fixed Assets',nature:'Dr',side:'BS'},{id:'investments',name:'Investments',nature:'Dr',side:'BS'},
+  {id:'loans',name:'Loans (Liability)',nature:'Cr',side:'BS'},{id:'bank-od',name:'Bank OD A/c',parent:'loans',nature:'Cr',side:'BS'},
+  {id:'secured-loans',name:'Secured Loans',parent:'loans',nature:'Cr',side:'BS'},{id:'unsecured-loans',name:'Unsecured Loans',parent:'loans',nature:'Cr',side:'BS'},
+  {id:'suspense',name:'Suspense A/c',nature:'Dr',side:'BS'},{id:'misc-expenses-asset',name:'Misc. Expenses (Asset)',nature:'Dr',side:'BS'},{id:'branches',name:'Branch / Divisions',nature:'Dr',side:'BS'},
+  {id:'sales',name:'Sales Accounts',nature:'Cr',side:'PL'},{id:'purchases',name:'Purchase Accounts',nature:'Dr',side:'PL'},
+  {id:'direct-income',name:'Direct Incomes',nature:'Cr',side:'PL'},{id:'direct-expenses',name:'Direct Expenses',nature:'Dr',side:'PL'},
+  {id:'indirect-income',name:'Indirect Incomes',nature:'Cr',side:'PL'},{id:'indirect-expenses',name:'Indirect Expenses',nature:'Dr',side:'PL'},
+];
+/** Legacy group of a Tally group (contract §1): BS+Dr = Asset, BS+Cr = Liability, PL+Cr = Income, PL+Dr = Expense, suspense = Suspense. */
+export const accLegacyGroup=(g:ACCGroupDef):ACCGroup=>g.id==='suspense'?'Suspense':g.side==='PL'?(g.nature==='Cr'?'Income':'Expense'):(g.nature==='Dr'?'Asset':'Liability');
+/** A ledger of the chart as a master (contract §2). Built-ins are `system`; `control` ledgers hold party sub-ledgers `<code>/<partyId>` (contract §3). */
+export type ACCLedger={code:string;name:string;group:string;system:boolean;control?:boolean;gst?:'none'|'input'|'output';tallyName?:string;active:boolean;note?:string};
+export type ACCChartChange={id:string;at:string;actor:string;kind:'ledger'|'group';code:string;field:string;before:string;after:string};
+/** Opening balances entered by hand (contract §5; DEC-139 / DEC-148). account = ledger code or party ledger id; paise, one side only. */
+export type ACCOpeningLine={account:string;debit:number;credit:number};
+export type ACCOpening={asOf:string;lines:ACCOpeningLine[];status:'draft'|'approved';by:string;at:string;approvedBy?:string;approvedAt?:string;note?:string};
+// ── end ACC-1 contract block ──
 /** State slice for this module, stored at s.accountingX (optional; absent in old saves → treat as empty). */
 /** Production build only (W4-7, clients/sync/accounting.ts): the server's own evaluation of each business date in a window
  *  (GET /accounting/days). When present, the selectors below read it instead of deriving vouchers on the device — the server is
@@ -100,6 +128,8 @@ export type ACCTallyExport={id:string;at:string;by:string;from:string;to:string;
  *  while accounting events were pending (no `reopen`). The next export carries it again. */
 export type ACCReexport={at:string;reason:string;reopen?:string};
 export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer;
+  /** ACC-1 (SCHEMA 11): the chart as a master (Owner overrides of built-ins, Owner-added ledgers, custom sub-groups, history) and the hand-entered opening balances. */
+  chart?:{ledgers:ACCLedger[];groups:ACCGroupDef[];history:ACCChartChange[]};opening?:ACCOpening;
   tallyExports?:ACCTallyExport[];reexport?:Record<string,ACCReexport>};
 export const accEmpty=():ACCState=>({});
 export const accSlice=(s:State):ACCState=>s.accountingX??accEmpty();

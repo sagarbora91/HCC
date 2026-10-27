@@ -333,4 +333,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=10; // 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=11; // 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
