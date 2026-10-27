@@ -175,7 +175,7 @@ public class ComplianceSqlTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task FY_is_kept_until_changed_and_records_are_per_FY()
+    public async Task FY_pick_and_records_are_per_FY_DEC125_the_business_date_FY_after_1_April()
     {
         Assert.Equal("VALIDATION", await Code(() => _w.Commands.SetFyAsync(_w.Ctx(Users.Owner, "f0"), new SetFyRequest(2025), Ct)));
         await _w.Commands.SetFyAsync(_w.Ctx(Users.Accountant, "f1"), new SetFyRequest(2027), Ct);

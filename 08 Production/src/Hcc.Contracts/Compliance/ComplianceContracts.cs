@@ -16,9 +16,10 @@ public sealed record ReopenItemRequest(int FyStart, string ItemId, string Reason
 
 public sealed record SetFyRequest(int FyStart);
 
-/// <summary>SCC saveFirm: one profile per property (Owner). <c>ExpectedVersion</c> null when none is stored yet.</summary>
+/// <summary>SCC saveFirm: one profile per property (Owner). <c>ExpectedVersion</c> null when none is stored yet. DEC-133: licence numbers (free text)
+/// and expiry dates (YYYY-MM-DD), all optional — null keeps the stored value, "" clears it.</summary>
 public sealed record SaveProfileRequest(string Name, string? Pan, string? Gstin, string? Entity, string? GstType, bool HasEmployees, bool Qrmp, string? Notes,
-    string? ExpectedVersion = null);
+    string? ExpectedVersion = null, string? FssaiNo = null, string? FssaiExpiry = null, string? LodgingNo = null, string? LodgingExpiry = null);
 
 public sealed record ToggleArchiveRequest(string Key);
 
@@ -66,7 +67,7 @@ public sealed record CaPackResult(long PackId, string To, string ToName, int Ove
 // ── Reads ──
 
 public sealed record ProfileDto(string Name, string Pan, string Gstin, string Entity, string GstType, bool HasEmployees, bool Qrmp, string Notes, int? UpdatedBy,
-    string? UpdatedUtc, string Version);
+    string? UpdatedUtc, string Version, string? FssaiNo = null, string? FssaiExpiry = null, string? LodgingNo = null, string? LodgingExpiry = null);
 
 public sealed record RecordDto(int FyStart, string ItemId, bool Done, bool Na, string? FiledOn, string? Notes, string? EvidenceRef, string? ReviewerNote, string? DueDate,
     int? DoneBy, string? DoneUtc, int? NaBy, string? NaUtc, string? Legacy);
@@ -80,9 +81,11 @@ public sealed record EvidenceDto(long EvidenceId, int FyStart, string ItemId, st
 public sealed record ReopenedDto(int FyStart, string ItemId, string Part, bool WasDone, bool WasNa, string? FiledOn, string? Notes, string? EvidenceRef, string? ReviewerNote,
     string? DueDate, int? RecordedBy, string? RecordedUtc, int ReopenedBy, string ReopenedUtc, string Reason);
 
-/// <summary>GET /compliance/state: everything the SCC calendar needs; the client computes cards with the same SCC rules.</summary>
+/// <summary>GET /compliance/state: everything the SCC calendar needs; the client computes cards with the same SCC rules. DEC-125: <c>FyStart</c> is the
+/// EFFECTIVE FY on the business date <c>AsOf</c>; <c>FyChosenIn</c> the business date's FY while a pick holds, else null.</summary>
 public sealed record ComplianceStateView(string AsOf, ProfileDto? Profile, int FyStart, IReadOnlyList<RecordDto> Records, IReadOnlyList<CustomObligationDto> Custom,
-    IReadOnlyList<string> Archived, IReadOnlyList<string> ArchivedCats, IReadOnlyList<EvidenceDto> Evidence, IReadOnlyList<ReopenedDto> Reopened, SettingsDto Settings);
+    IReadOnlyList<string> Archived, IReadOnlyList<string> ArchivedCats, IReadOnlyList<EvidenceDto> Evidence, IReadOnlyList<ReopenedDto> Reopened, SettingsDto Settings,
+    int? FyChosenIn = null);
 
 public sealed record CardDto(string ItemId, string Month, string Cat, string Name, string Form, string Due, string? DueDate, bool Urgent, string Freq, bool Custom,
     bool Done, bool Na, int? Days, string? DaysTag, bool Overdue, string Risk, string CashFlow, string Responsible, string Reviewer, int Buffer, string? InternalDate,

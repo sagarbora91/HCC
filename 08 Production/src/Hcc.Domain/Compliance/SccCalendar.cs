@@ -6,8 +6,9 @@ namespace Hcc.Domain.Compliance;
 // expandCustom, getVisibleItems, the month page with its 7 stats, overdue dots, the quarterly dashboard, the 30-day Action Center,
 // evidence completeness, the 13-column CSV register, the evidence ZIP plan and the ≈₹ payable figures. One property = one SCC firm.
 
-/// <summary>The property's firm profile (SCC saveFirm L1187–1216).</summary>
-public sealed record CmpProfile(string Name, string Pan, string Gstin, string Entity, string GstType, bool HasEmployees, bool Qrmp, string Notes);
+/// <summary>The property's firm profile (SCC saveFirm L1187–1216). DEC-133: optional licence numbers and expiry dates (an expiry adds the renewal card).</summary>
+public sealed record CmpProfile(string Name, string Pan, string Gstin, string Entity, string GstType, bool HasEmployees, bool Qrmp, string Notes,
+    string? FssaiNo = null, DateOnly? FssaiExpiry = null, string? LodgingNo = null, DateOnly? LodgingExpiry = null);
 
 /// <summary>One record per FY and card (SCC compliance[firm][fy][itemId]); done and NA are independent flags, NA wins on screen.</summary>
 public sealed record CmpRecord(int FyStart, string ItemId, bool Done, bool Na, DateOnly? FiledOn, string? Notes, string? EvidenceRef, string? ReviewerNote,
@@ -94,8 +95,9 @@ public sealed class SccCalendar
         return list;
     }
 
-    /// <summary>SCC getMonthItems (L1710).</summary>
-    public IReadOnlyList<SccCard> MonthItems(string month) => [.. SccTaxCatalogue.BuiltIn(month), .. ExpandCustom(month)];
+    /// <summary>SCC getMonthItems (L1710); with the FY, also the DEC-133 licence cards of that FY.</summary>
+    public IReadOnlyList<SccCard> MonthItems(string month, int? fy = null) =>
+        [.. SccTaxCatalogue.BuiltIn(month), .. ExpandCustom(month), .. (fy is { } y ? LicenceCards.Cards(Profile, month, y) : [])];
 
     /// <summary>SCC getVisibleItems (L1613–1628); no profile = SCC "no firm selected" = type 'both'.</summary>
     public IReadOnlyList<SccCard> Visible(IEnumerable<SccCard> items)
@@ -118,12 +120,18 @@ public sealed class SccCalendar
         }).ToList();
     }
 
-    public IReadOnlyList<SccCard> MonthCards(string month) => Visible(MonthItems(month));
+    public IReadOnlyList<SccCard> MonthCards(string month, int? fy = null) => Visible(MonthItems(month, fy));
 
-    /// <summary>SCC findItemMonth (L269–274).</summary>
-    public string? ItemMonth(string itemId) => SccTaxCatalogue.BuiltInMonth(itemId) ?? SccTaxCatalogue.Months.FirstOrDefault(m => ExpandCustom(m).Any(c => c.Id == itemId));
+    /// <summary>SCC findItemMonth (L269–274); DEC-133: a licence card's page = the month of its expiry date.</summary>
+    public string? ItemMonth(string itemId) => SccTaxCatalogue.BuiltInMonth(itemId) ?? LicenceCards.ById(Profile, itemId)?.Month
+        ?? SccTaxCatalogue.Months.FirstOrDefault(m => ExpandCustom(m).Any(c => c.Id == itemId));
 
-    public SccCard? FindCard(string itemId) => ItemMonth(itemId) is { } m ? MonthItems(m).FirstOrDefault(c => c.Id == itemId) : null;
+    /// <summary>The card of an item id, visible or not. DEC-133: a licence card while its expiry is set — with the FY, only in the FY of its expiry.</summary>
+    public SccCard? FindCard(string itemId, int? fy = null)
+    {
+        if (LicenceCards.ById(Profile, itemId) is { } l) return fy is null || l.Fy == fy ? l.Card : null;
+        return ItemMonth(itemId) is { } m ? MonthItems(m).FirstOrDefault(c => c.Id == itemId) : null;
+    }
 
     // ── Records ──
 
@@ -150,7 +158,7 @@ public sealed class SccCalendar
     /// <summary>SCC renderMonth (L2427–2451): the visible cards and the 7 stats over the non-NA ones.</summary>
     public (IReadOnlyList<CmpCardView> Cards, CmpMonthStats Stats) MonthPage(string month, int fy, DateOnly today)
     {
-        var all = MonthCards(month).Select(c => View(c, month, fy, today)).ToList();
+        var all = MonthCards(month, fy).Select(c => View(c, month, fy, today)).ToList();
         var active = all.Where(v => !v.IsNa).ToList();
         var ev = EvidenceStatus(month, fy);
         return (all, new CmpMonthStats(active.Count, active.Count(v => IsDone(fy, v.Card.Id)), active.Count(v => !IsDone(fy, v.Card.Id)),
@@ -160,7 +168,7 @@ public sealed class SccCalendar
 
     /// <summary>SCC hasOverdueInMonth (L2120–2128).</summary>
     public bool HasOverdueInMonth(string month, int fy, DateOnly today) =>
-        MonthCards(month).Any(i => !IsNa(fy, i.Id) && !IsDone(fy, i.Id) && SccTaxRules.DaysLeft(i.Due, fy, today) is < 0);
+        MonthCards(month, fy).Any(i => !IsNa(fy, i.Id) && !IsDone(fy, i.Id) && SccTaxRules.DaysLeft(i.Due, fy, today) is < 0);
 
     // ── Dashboard (SCC renderDashboard L2478–2511) ──
 
@@ -168,7 +176,7 @@ public sealed class SccCalendar
     {
         var data = SccTaxRules.Quarters.Select(q =>
         {
-            var items = q.Months.SelectMany(m => MonthCards(m).Where(c => !IsNa(fy, c.Id))
+            var items = q.Months.SelectMany(m => MonthCards(m, fy).Where(c => !IsNa(fy, c.Id))
                 .Select(c => new CmpQuarterItem(c, m, SccTaxRules.ControlProfile(c, fy, today), SccTaxRules.DaysLeft(c.Due, fy, today)))).ToList();
             var done = items.Count(i => IsDone(fy, i.Card.Id));
             var overdue = items.Count(i => !IsDone(fy, i.Card.Id) && (i.Days ?? 999) < 0);
@@ -192,7 +200,7 @@ public sealed class SccCalendar
 
         var monthly = cq.Q.Months.Select(m =>
         {
-            var items = MonthCards(m).Where(c => !IsNa(fy, c.Id)).ToList();
+            var items = MonthCards(m, fy).Where(c => !IsNa(fy, c.Id)).ToList();
             var done = items.Count(c => IsDone(fy, c.Id));
             var overdue = items.Count(c => !IsDone(fy, c.Id) && (SccTaxRules.DaysLeft(c.Due, fy, today) ?? 999) < 0);
             return new CmpQuarterRow(m, items.Count, done, overdue, items.Count > 0 ? JsRound((double)done / items.Count * 100) : 0);
@@ -211,7 +219,7 @@ public sealed class SccCalendar
         if (Profile is null) return [];
         var rows = new List<(CmpAction A, int N)>();
         foreach (var m in SccTaxCatalogue.Months)
-            foreach (var it in MonthCards(m))
+            foreach (var it in MonthCards(m, fy))
             {
                 if (IsNa(fy, it.Id) || IsDone(fy, it.Id)) continue;
                 var days = SccTaxRules.DaysLeft(it.Due, fy, today);
@@ -232,7 +240,7 @@ public sealed class SccCalendar
         int applicable = 0, done = 0, ok = 0;
         var missing = new List<(string, string, string, string)>();
         foreach (var m in months)
-            foreach (var i in MonthCards(m))
+            foreach (var i in MonthCards(m, fy))
             {
                 if (IsNa(fy, i.Id)) continue;
                 applicable++;
@@ -254,7 +262,7 @@ public sealed class SccCalendar
         var rows = new List<IReadOnlyList<string>> { CsvHeader };
         var label = SccTaxRules.FyLabel(fy);
         foreach (var m in SccTaxCatalogue.Months)
-            foreach (var it in MonthCards(m))
+            foreach (var it in MonthCards(m, fy))
             {
                 var na = IsNa(fy, it.Id);
                 var done = !na && IsDone(fy, it.Id);
@@ -285,7 +293,7 @@ public sealed class SccCalendar
     {
         var meta = new Dictionary<string, (string Name, string Cat, string Month)>(StringComparer.Ordinal);
         foreach (var m in SccTaxCatalogue.Months)
-            foreach (var it in MonthItems(m))
+            foreach (var it in MonthItems(m, fy))
                 meta.TryAdd(it.Id, (SccTaxRules.StripHtml(SccTaxRules.RenderFyText(it.Name, fy)), SccTaxRules.CatLabel(it.Cat), m));
         var seen = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         var entries = new List<(long, string)>();

@@ -65,8 +65,9 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
     // ── Snapshot (SCC STATE of the property's firm) ──
 
     private static readonly string SnapshotSql = $"""
-        SELECT firm_name, pan, gstin, entity, gst_type, has_employees, qrmp, notes, updated_by, updated_utc, row_ver FROM cmp.profile WHERE property_id = @p;
-        SELECT ca_name, ca_email, due_soon_days, fy_start, row_ver, updated_by FROM cmp.setting WHERE property_id = @p;
+        SELECT firm_name, pan, gstin, entity, gst_type, has_employees, qrmp, notes, updated_by, updated_utc, row_ver, fssai_no, fssai_expiry, lodging_no, lodging_expiry
+          FROM cmp.profile WHERE property_id = @p;
+        SELECT ca_name, ca_email, due_soon_days, fy_start, row_ver, updated_by, fy_chosen_in FROM cmp.setting WHERE property_id = @p;
         SELECT fy_start, item_id, done, na, filed_on, notes, evidence_ref, reviewer_note, due_date, done_by, done_utc, na_by, na_utc, legacy
           FROM cmp.record WHERE property_id = @p ORDER BY fy_start, item_id;
         SELECT custom_id, cat, name, freq, due_day, months_json, form, who, what, why, penalty, responsible, reviewer, risk, buffer_days, checklist_json, workflow_json,
@@ -84,11 +85,11 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         ProfileRecord? profile = null;
         if (await rd.ReadAsync(ct).ConfigureAwait(false))
-            profile = new ProfileRecord(new CmpProfile(rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), rd.GetBoolean(5), rd.GetBoolean(6), rd.GetString(7)),
-                IntN(rd, 8), Utc(rd, 9), (byte[])rd[10]);
+            profile = new ProfileRecord(new CmpProfile(rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), rd.GetBoolean(5), rd.GetBoolean(6), rd.GetString(7),
+                Str(rd, 11), DateN(rd, 12), Str(rd, 13), DateN(rd, 14)), IntN(rd, 8), Utc(rd, 9), (byte[])rd[10]);
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var settings = DefaultSettings();
-        if (await rd.ReadAsync(ct).ConfigureAwait(false)) settings = new SettingsRecord(rd.GetString(0), rd.GetString(1), rd.GetByte(2), rd.GetInt16(3), (byte[])rd[4], rd.IsDBNull(5));
+        if (await rd.ReadAsync(ct).ConfigureAwait(false)) settings = ReadSettings(rd);
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var records = new List<CmpRecord>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
@@ -153,7 +154,7 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         await using var cmd = Sql(tx).Command("""
             MERGE cmp.setting WITH (HOLDLOCK) AS t USING (SELECT @p AS property_id) AS s ON t.property_id = s.property_id
             WHEN NOT MATCHED THEN INSERT(property_id, ca_name, ca_email, due_soon_days) VALUES (@p, @name, @email, @days);
-            SELECT ca_name, ca_email, due_soon_days, fy_start, row_ver, updated_by FROM cmp.setting WITH (UPDLOCK, ROWLOCK) WHERE property_id = @p;
+            SELECT ca_name, ca_email, due_soon_days, fy_start, row_ver, updated_by, fy_chosen_in FROM cmp.setting WITH (UPDLOCK, ROWLOCK) WHERE property_id = @p;
             """);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
         Add(cmd, "@name", SqlDbType.NVarChar, ComplianceRules.DefaultCaName, 60);
@@ -161,8 +162,12 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         Add(cmd, "@days", SqlDbType.TinyInt, (byte)ComplianceRules.DefaultDueSoonDays);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await rd.ReadAsync(ct).ConfigureAwait(false);
-        return new SettingsRecord(rd.GetString(0), rd.GetString(1), rd.GetByte(2), rd.GetInt16(3), (byte[])rd[4], rd.IsDBNull(5));
+        return ReadSettings(rd);
     }
+
+    /// <summary>ca_name, ca_email, due_soon_days, fy_start, row_ver, updated_by, fy_chosen_in (DEC-125).</summary>
+    private static SettingsRecord ReadSettings(SqlDataReader rd) =>
+        new(rd.GetString(0), rd.GetString(1), rd.GetByte(2), rd.GetInt16(3), (byte[])rd[4], rd.IsDBNull(5), rd.IsDBNull(6) ? null : rd.GetInt16(6));
 
     public async Task UpdateSettingsAsync(ICommandTransaction tx, int propertyId, byte[] expectedVersion, string caName, string caEmail, int dueSoonDays, int by, DateTime utc, CancellationToken ct = default)
     {
@@ -180,11 +185,12 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "The compliance settings");
     }
 
-    public async Task SetFyAsync(ICommandTransaction tx, int propertyId, int fyStart, int by, DateTime utc, CancellationToken ct = default)
+    public async Task SetFyAsync(ICommandTransaction tx, int propertyId, int fyStart, int chosenIn, int by, DateTime utc, CancellationToken ct = default)
     {
-        await using var cmd = Sql(tx).Command("UPDATE cmp.setting SET fy_start = @fy, updated_by = @by, updated_utc = @utc WHERE property_id = @p;");
+        await using var cmd = Sql(tx).Command("UPDATE cmp.setting SET fy_start = @fy, fy_chosen_in = @chosen, updated_by = @by, updated_utc = @utc WHERE property_id = @p;");
         Add(cmd, "@p", SqlDbType.Int, propertyId);
         Add(cmd, "@fy", SqlDbType.SmallInt, (short)fyStart);
+        Add(cmd, "@chosen", SqlDbType.SmallInt, (short)chosenIn);
         Add(cmd, "@by", SqlDbType.Int, by);
         Add(cmd, "@utc", SqlDbType.DateTime2, utc);
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
@@ -197,12 +203,12 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         ArgumentNullException.ThrowIfNull(profile);
         await using var cmd = Sql(tx).Command(expectedVersion is null
             ? """
-              INSERT cmp.profile(property_id, firm_name, pan, gstin, entity, gst_type, has_employees, qrmp, notes, updated_by, updated_utc)
-              OUTPUT INSERTED.row_ver VALUES (@p, @name, @pan, @gstin, @entity, @type, @emp, @qrmp, @notes, @by, @utc);
+              INSERT cmp.profile(property_id, firm_name, pan, gstin, entity, gst_type, has_employees, qrmp, notes, fssai_no, fssai_expiry, lodging_no, lodging_expiry, updated_by, updated_utc)
+              OUTPUT INSERTED.row_ver VALUES (@p, @name, @pan, @gstin, @entity, @type, @emp, @qrmp, @notes, @fno, @fexp, @lno, @lexp, @by, @utc);
               """
             : """
               UPDATE cmp.profile SET firm_name = @name, pan = @pan, gstin = @gstin, entity = @entity, gst_type = @type, has_employees = @emp, qrmp = @qrmp, notes = @notes,
-                updated_by = @by, updated_utc = @utc
+                fssai_no = @fno, fssai_expiry = @fexp, lodging_no = @lno, lodging_expiry = @lexp, updated_by = @by, updated_utc = @utc
               OUTPUT INSERTED.row_ver WHERE property_id = @p AND row_ver = @v;
               """);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
@@ -215,6 +221,10 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         Add(cmd, "@emp", SqlDbType.Bit, profile.HasEmployees);
         Add(cmd, "@qrmp", SqlDbType.Bit, profile.Qrmp);
         Add(cmd, "@notes", SqlDbType.NVarChar, profile.Notes, ComplianceRules.MaxNotes);
+        Add(cmd, "@fno", SqlDbType.NVarChar, profile.FssaiNo, ComplianceRules.MaxLicenceNo);
+        Add(cmd, "@fexp", SqlDbType.Date, Day(profile.FssaiExpiry));
+        Add(cmd, "@lno", SqlDbType.NVarChar, profile.LodgingNo, ComplianceRules.MaxLicenceNo);
+        Add(cmd, "@lexp", SqlDbType.Date, Day(profile.LodgingExpiry));
         Add(cmd, "@by", SqlDbType.Int, by);
         Add(cmd, "@utc", SqlDbType.DateTime2, utc);
         var v = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);

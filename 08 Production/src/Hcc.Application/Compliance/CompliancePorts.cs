@@ -20,8 +20,14 @@ public sealed record CustomRecord(CmpCustom Custom, int? UpdatedBy, DateTime? Up
 /// <summary>What an Owner reopen removed (HCC safeguard): <paramref name="Part"/> "done" or "na" and the record as it was.</summary>
 public sealed record ReopenedRecord(int FyStart, string ItemId, string Part, CmpRecord Was, int ReopenedBy, DateTime ReopenedUtc, string Reason);
 
-/// <summary><paramref name="IsDefault"/> = never saved (the defaults); a client holding the all-zero version token may then save without a prior read.</summary>
-public sealed record SettingsRecord(string CaName, string CaEmail, int DueSoonDays, int FyStart, byte[] Version, bool IsDefault = false);
+/// <summary><paramref name="IsDefault"/> = never saved (the defaults); a client holding the all-zero version token may then save without a prior read.
+/// DEC-125: <paramref name="FyStart"/> is the stored pick; <paramref name="FyChosenIn"/> the business date's FY when it was picked (null = no pick);
+/// readers use <see cref="Effective"/>.</summary>
+public sealed record SettingsRecord(string CaName, string CaEmail, int DueSoonDays, int FyStart, byte[] Version, bool IsDefault = false, int? FyChosenIn = null)
+{
+    /// <summary>DEC-125: the FY every view and command reads on this business date.</summary>
+    public int Effective(DateOnly businessDate) => SccTaxRules.EffectiveFy(FyStart, FyChosenIn, businessDate);
+}
 
 public sealed record PackRecord(long PackId, DateTime AtUtc, int By, string To, string ToName, int Overdue, int Due, int Filed, int NotApplicable, IReadOnlyList<string> Lines);
 
@@ -45,7 +51,8 @@ public interface IComplianceStore
 
     Task UpdateSettingsAsync(ICommandTransaction tx, int propertyId, byte[] expectedVersion, string caName, string caEmail, int dueSoonDays, int by, DateTime utc, CancellationToken ct = default);
 
-    Task SetFyAsync(ICommandTransaction tx, int propertyId, int fyStart, int by, DateTime utc, CancellationToken ct = default);
+    /// <summary>DEC-125: stores the pick and the business date's FY it was made in (<paramref name="chosenIn"/>).</summary>
+    Task SetFyAsync(ICommandTransaction tx, int propertyId, int fyStart, int chosenIn, int by, DateTime utc, CancellationToken ct = default);
 
     /// <summary>Insert (expected null) or update (row version must match) the property's profile; returns the new version.</summary>
     Task<byte[]> SaveProfileAsync(ICommandTransaction tx, int propertyId, byte[]? expectedVersion, CmpProfile profile, int by, DateTime utc, CancellationToken ct = default);

@@ -60,9 +60,10 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         if (s.Profile is null) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Set the compliance firm profile first (Owner: Compliance calendar › Firm profile).");
     }
 
-    /// <summary>SCC findItemMonth: the card must exist (built-in, or a custom obligation's month instance).</summary>
-    private static SccCard Card(SccCalendar cal, string? itemId) =>
-        cal.FindCard(Txt(itemId)) ?? throw new HccException(HccErrorCode.NOT_FOUND, "That compliance item is not in the calendar.");
+    /// <summary>SCC findItemMonth: the card must exist (built-in, or a custom obligation's month instance). DEC-133: a licence card only in the FY
+    /// of its expiry date.</summary>
+    private static SccCard Card(SccCalendar cal, string? itemId, int fy) =>
+        cal.FindCard(Txt(itemId), fy) ?? throw new HccException(HccErrorCode.NOT_FOUND, "That compliance item is not in the calendar.");
 
     private async Task<(ComplianceSnapshot Snap, SccCalendar Cal, DateOnly Today)> LoadAsync(ICommandTransaction tx, int propertyId, CancellationToken ct)
     {
@@ -94,7 +95,7 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         {
             var (snap, cal, today) = await LoadAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             RequireProfile(snap);
-            var card = Card(cal, req.ItemId);
+            var card = Card(cal, req.ItemId, fy);
             var cur = cal.Record(fy, card.Id);
             if (cur?.Na == true)
                 throw new HccException(HccErrorCode.INVALID_TRANSITION, "This item is marked Not Applicable (NA) and is read-only. Remove NA first to record a filing (Owner: Reopen).");
@@ -124,7 +125,7 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         {
             var (snap, cal, _) = await LoadAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             RequireProfile(snap);
-            var card = Card(cal, req.ItemId);
+            var card = Card(cal, req.ItemId, fy);
             var cur = cal.Record(fy, card.Id);
             if (cur?.Na == true) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Already marked not applicable. The Owner can reopen it.");
             var rec = (cur ?? new CmpRecord(fy, card.Id, false, false, null, null, null, null, null, null, null, null, null, null)) with { Na = true, NaBy = ctx.PrincipalId, NaUtc = UtcNow };
@@ -161,7 +162,8 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>SCC switchFY (L234–239): kept until changed — it never follows the date (owner question).</summary>
+    /// <summary>SCC switchFY (L234–239). DEC-125: the pick holds until the next 1 April of the business date (stored with the business date's FY);
+    /// after that every read shows the business date's FY again (<see cref="SccTaxRules.EffectiveFy"/>).</summary>
     public async Task<CommandResult<FyResult>> SetFyAsync(CommandContext ctx, SetFyRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
@@ -171,7 +173,8 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         return await runner.RunAsync(ctx with { Operation = OpSetFy }, req, async (tx, c) =>
         {
             await store.LockSettingsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
-            await store.SetFyAsync(tx, ctx.PropertyId, fy, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            var today = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            await store.SetFyAsync(tx, ctx.PropertyId, fy, SccTaxRules.FyOfDate(today), ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("COMPLIANCE_FY", "compliance", $"Compliance calendar · {SccTaxRules.FyLabel(fy)}", c).ConfigureAwait(false);
             return new FyResult(fy);
         }, ct).ConfigureAwait(false);
@@ -189,8 +192,16 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         if (!SccTaxRules.GstTypes.Contains(gstType)) throw HccException.Validation("Choose the GST registration type.");
         var entity = string.IsNullOrWhiteSpace(req.Entity) ? "proprietorship" : req.Entity.Trim();
         if (!SccTaxRules.Entities.Contains(entity)) throw HccException.Validation("Choose the entity type.");
-        var profile = new CmpProfile(name, Limit(Txt(req.Pan).ToUpperInvariant(), ComplianceRules.MaxPan, "PAN"), Limit(Txt(req.Gstin).ToUpperInvariant(), ComplianceRules.MaxGstin, "GSTIN"),
+        var draft = new CmpProfile(name, Limit(Txt(req.Pan).ToUpperInvariant(), ComplianceRules.MaxPan, "PAN"), Limit(Txt(req.Gstin).ToUpperInvariant(), ComplianceRules.MaxGstin, "GSTIN"),
             entity, gstType, req.HasEmployees, gstType is "regular" or "both" && req.Qrmp, Limit(Txt(req.Notes), ComplianceRules.MaxNotes, "Notes"));
+        // DEC-133: licence numbers / expiry dates — null keeps the stored value, "" clears it.
+        string? No(string? v, string what) => v is null ? null : Limit(v.Trim(), ComplianceRules.MaxLicenceNo, what);
+        DateOnly? Exp(string? v, string what) => string.IsNullOrWhiteSpace(v) ? null
+            : DateOnly.TryParseExact(v.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : throw HccException.Validation($"{what} must be a valid date.");
+        var fssaiNo = No(req.FssaiNo, "FSSAI licence number");
+        var fssaiExp = Exp(req.FssaiExpiry, "FSSAI licence expiry");
+        var lodgingNo = No(req.LodgingNo, "Lodging licence number");
+        var lodgingExp = Exp(req.LodgingExpiry, "Lodging licence expiry");
         var expected = string.IsNullOrWhiteSpace(req.ExpectedVersion) ? null : VersionToken.Parse(req.ExpectedVersion);
         return await runner.RunAsync(ctx with { Operation = OpSaveProfile }, req, async (tx, c) =>
         {
@@ -201,9 +212,17 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
                 VersionToken.EnsureMatches(cur.Version, expected, "The compliance firm profile");
             }
 
+            var was = snap.Profile?.Profile;
+            static string? Keep(string? v, string? old) => v is null ? (string.IsNullOrEmpty(old) ? null : old) : v.Length == 0 ? null : v;
+            var profile = draft with
+            {
+                FssaiNo = Keep(fssaiNo, was?.FssaiNo), FssaiExpiry = req.FssaiExpiry is null ? was?.FssaiExpiry : fssaiExp,
+                LodgingNo = Keep(lodgingNo, was?.LodgingNo), LodgingExpiry = req.LodgingExpiry is null ? was?.LodgingExpiry : lodgingExp,
+            };
+
             var v = await store.SaveProfileAsync(tx, ctx.PropertyId, snap.Profile is null ? null : expected, profile, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("COMPLIANCE_PROFILE", "compliance",
-                $"Compliance firm profile · {profile.Name} · {SccTaxRules.TypeLabel(profile.GstType)}{(profile.Qrmp ? " · QRMP" : string.Empty)}{(profile.HasEmployees ? string.Empty : " · no employees")}", c)
+                $"Compliance firm profile · {profile.Name} · {SccTaxRules.TypeLabel(profile.GstType)}{(profile.Qrmp ? " · QRMP" : string.Empty)}{(profile.HasEmployees ? string.Empty : " · no employees")}{ComplianceRules.LicenceAudit(profile)}", c)
                 .ConfigureAwait(false);
             return new VersionResult(VersionToken.ToWire(v));
         }, ct).ConfigureAwait(false);
@@ -220,7 +239,8 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         {
             var (snap, _, _) = await LoadAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var custom = snap.Custom.FirstOrDefault(x => x.Custom.Id == key);
-            if (key.Length == 0 || (custom is null && !SccTaxCatalogue.BuiltInObligations().Any(o => o.Key == key))) throw new HccException(HccErrorCode.NOT_FOUND, "Unknown obligation.");
+            if (key.Length == 0 || (custom is null && !SccTaxCatalogue.BuiltInObligations().Any(o => o.Key == key) && !LicenceCards.Obligations().Any(o => o.Key == key)))
+                throw new HccException(HccErrorCode.NOT_FOUND, "Unknown obligation.");
             var archived = await store.ToggleArchiveAsync(tx, ctx.PropertyId, key, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("COMPLIANCE_ARCHIVE", "compliance:archive", $"{custom?.Custom.Name ?? key} · {(archived ? "archived" : "restored")}", c).ConfigureAwait(false);
             return new ArchiveResult(key, archived);
@@ -344,7 +364,7 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         {
             var (snap, cal, _) = await LoadAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             RequireProfile(snap);
-            var card = Card(cal, req.ItemId);
+            var card = Card(cal, req.ItemId, fy);
             var id = await store.InsertEvidenceAsync(tx, ctx.PropertyId, fy, card.Id, fileName, type, content, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("COMPLIANCE_EVIDENCE", Target(fy, card.Id), $"{Label(card, fy)} · {SccTaxRules.FyLabel(fy)} · evidence attached · {fileName} ({N(content.Length)} bytes)", c)
                 .ConfigureAwait(false);
@@ -404,7 +424,7 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         {
             var (snap, cal, today) = await LoadAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(snap.Settings.CaEmail)) throw HccException.Validation("Set the CA e-mail in Manage compliance first.");
-            var p = ComplianceRules.PackLines(cal, snap.Settings.FyStart, today);
+            var p = ComplianceRules.PackLines(cal, snap.Settings.Effective(today), today);
             var now = UtcNow;
             var pack = new PackRecord(0, now, ctx.PrincipalId, snap.Settings.CaEmail, snap.Settings.CaName, p.Overdue, p.DueSoon, p.Done, p.NotApplicable, p.Lines);
             var id = await store.InsertPackAsync(tx, ctx.PropertyId, pack, c).ConfigureAwait(false);

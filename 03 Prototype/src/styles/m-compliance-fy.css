@@ -1,0 +1,5 @@
+/* DEC-125 (compliance FY follows the business date on 1 April): the hint beside the FY selector while a picked year differs from it. */
+.cmp-fy-hint{font-size:12px;color:var(--muted);line-height:1.4}
+.cmp-fy-m .cmp-fy-hint{font-size:14px}
+/* DEC-133: licence fields in the firm profile and their "card on <month> of FY …" note. */
+.cmp-lic-note{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}

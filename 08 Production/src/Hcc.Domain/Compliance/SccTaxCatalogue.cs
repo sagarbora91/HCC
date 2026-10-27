@@ -32,6 +32,9 @@ public sealed record SccCard(string Id, string Cat, string Name, string Due, boo
     public IReadOnlyList<string> Workflow { get; init; } = [];
 
     public IReadOnlyList<string> Evidence { get; init; } = [];
+
+    /// <summary>DEC-133: "fssai" / "lodging" for a licence-renewal card built from the firm profile's expiry date; null otherwise.</summary>
+    public string? Licence { get; init; }
 }
 
 public sealed record SccMonth(string Note, IReadOnlyList<SccCard> Items);

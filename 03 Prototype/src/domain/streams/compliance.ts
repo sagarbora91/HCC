@@ -11,6 +11,8 @@
 // reopen that keeps the reopened record (SCC deletes it). HCC-only business rules removed (brief): the paid-holiday / Sunday due-date shift,
 // the "1–28 of the next month" custom rule and dated rule versions, the mandatory 4–40 reference and 5–120 not-applicable reason, the 30-obligation
 // cap and unique names. Kept as HCC extras (owner questions): the "Due this week" dashboard card (dueSoonDays) and the simulated CA pack.
+// SCC decisions wave (27 Oct 2026): DEC-125 — the FY follows the business date on 1 April (a pick holds until the next 1 April; cmpSlice
+// returns the effective FY); DEC-133 — FSSAI and lodging house licence renewal cards from the firm profile's expiry dates (compliance-licences.ts).
 // Exported names start with 'cmp' / 'CMP' (shared mock namespace).
 import type {State} from '../types';
 import {can} from '../selectors';
@@ -21,14 +23,18 @@ import {
   CMP_MONTHS,CMP_QUARTERS,CMP_FY_MIN,CMP_AC_SOON_DAYS,type CMPMonth,type CMPCat,type CMPCard,type CMPGstType,type CMPEntity,type CMPControl,type CMPDaysTag,
   type CMPQuarterKey,cmpBuiltInCards,cmpParseDue,cmpDaysLeft,cmpDaysTag,cmpRenderFYText,cmpObligationKey,cmpIsPayrollItem,cmpControlProfile,cmpQrmpAdvisory,
   cmpTaxPayableField,cmpPayableYm,cmpCatLabel,cmpTypeLabel,cmpFyLabel,cmpFyShortLabel,cmpStripHtml,cmpCsvCell,cmpFileBase,cmpCalendarYearForMonth,
-  cmpFyOfDate,cmpClampFy,cmpBuiltInMonth,cmpYmLabel,
+  cmpFyOfDate,cmpClampFy,cmpBuiltInMonth,cmpYmLabel,cmpBusinessFy,cmpEffectiveFy,cmpFyInList,cmpFyPickEnds,
 } from './compliance-catalogue';
 import {CMP_SCC_D} from './compliance-catalogue-data';
+import {CMP_LICENCE_DEFS,type CMPLicenceKind} from './compliance-licences';
 
 export * from './compliance-catalogue';
+export * from './compliance-licences';
 
 // ── State ──
 export type CMPProfile={name:string;pan:string;gstin:string;entity:CMPEntity;gstType:CMPGstType;hasEmployees:boolean;qrmp:boolean;notes:string;
+  /** DEC-133 (optional, Owner): licence numbers (free text) and expiry dates (YYYY-MM-DD). An expiry date puts the renewal card on its month. */
+  fssaiNo?:string;fssaiExpiry?:string;lodgingNo?:string;lodgingExpiry?:string;
   updatedBy?:string;updatedAt?:string};
 /** SCC record (L2421, L2190) + HCC audit fields (who / when). Done and NA are independent flags; NA wins on screen (SCC). */
 export type CMPRecord={done?:boolean;na?:boolean;filedOn?:string;notes?:string;evidenceRef?:string;reviewerNote?:string;dueDate?:string;
@@ -47,13 +53,16 @@ export type CMPPack={id:string;at:string;by:string;to:string;toName:string;count
 export type CMPSettings={caName:string;caEmail:string;/** HCC extra: the "Due this week" dashboard card window. */dueSoonDays:number};
 /** State slice, stored at s.complianceX (optional; absent → empty). Records are bucketed per FY start year, as SCC (L9, L241–246). */
 export type CMPState={profile?:CMPProfile;fyStart:number;records:Record<string,Record<string,CMPRecord>>;custom:CMPCustom[];archived:string[];
-  archivedCats:CMPCat[];files:CMPFile[];packs:CMPPack[];settings:CMPSettings;reopened?:CMPReopened[]};
+  archivedCats:CMPCat[];files:CMPFile[];packs:CMPPack[];settings:CMPSettings;reopened?:CMPReopened[];
+  /** DEC-125: the FY of the business date (cmpFyOfDate) when the FY was picked; null / absent = no pick in force → the business date's FY.
+   *  cmpSlice returns fyStart = the EFFECTIVE FY (cmpEffectiveFy) and keeps fyChosenIn only while the pick holds. */
+  fyChosenIn?:number|null};
 export const CMP_MAX_REOPENED=200;
 export const CMP_MAX_PACKS=20;
 /** HCC safeguard (SCC has no limit): an evidence file up to 5 MB. */
 export const CMP_FILE_MAX_BYTES=5*1024*1024;
 /** HCC column limits for SCC's free texts (SCC has none). */
-export const CMP_LIMITS={name:200,pan:20,gstin:20,firmName:120,notes:500,evidenceRef:200,reviewer:200,text:2000,short:200,list:40,fileName:200};
+export const CMP_LIMITS={name:200,pan:20,gstin:20,firmName:120,notes:500,evidenceRef:200,reviewer:200,text:2000,short:200,list:40,fileName:200,/** DEC-133 */licenceNo:60};
 export const CMP_DEFAULT_SETTINGS:CMPSettings={caName:'Rao & Associates (fictional)',caEmail:'ca.desk@example.test',dueSoonDays:7};
 export const CMP_ILLUSTRATIVE='SCC compliance catalogue — due dates and texts as SCC ships them (Maharashtra); CA to confirm for a hotel.';
 export const cmpEmpty=():CMPState=>({fyStart:CMP_FY_MIN,records:{},custom:[],archived:[],archivedCats:[],files:[],packs:[],settings:{...CMP_DEFAULT_SETTINGS}});
@@ -132,12 +141,30 @@ export function cmpFromLegacy(old:LegacyState,s:Pick<State,'date'|'settings'>):C
   return x;
 }
 
+/** The slice as every view and command reads it. DEC-125: fyStart is the EFFECTIVE FY (the pick while it holds, else the business date's FY,
+ *  clamped to SCC's list); fyChosenIn stays only while the pick holds (null otherwise), so writing the slice back changes nothing. */
 export function cmpSlice(s:State):CMPState{
   const raw=s.complianceX as unknown;
-  if(!raw)return cmpEmpty();
+  if(!raw)return {...cmpEmpty(),fyStart:cmpBusinessFy(s.date),fyChosenIn:null};
   const x=(cmpIsLegacy(raw)?cmpFromLegacy(raw as LegacyState,s):raw) as Partial<CMPState>;
-  return {...(x.profile?{profile:x.profile}:{}),fyStart:cmpClampFy(x.fyStart??CMP_FY_MIN),records:x.records??{},custom:x.custom??[],archived:x.archived??[],
-    archivedCats:x.archivedCats??[],files:x.files??[],packs:x.packs??[],settings:{...CMP_DEFAULT_SETTINGS,...(x.settings??{})},...(x.reopened?{reopened:x.reopened}:{})};
+  const chosen=typeof x.fyChosenIn==='number'&&x.fyChosenIn===cmpFyOfDate(s.date)?x.fyChosenIn:null;
+  return {...(x.profile?{profile:x.profile}:{}),fyStart:cmpEffectiveFy(cmpClampFy(x.fyStart??CMP_FY_MIN),chosen,s.date),fyChosenIn:chosen,records:x.records??{},custom:x.custom??[],
+    archived:x.archived??[],archivedCats:x.archivedCats??[],files:x.files??[],packs:x.packs??[],settings:{...CMP_DEFAULT_SETTINGS,...(x.settings??{})},...(x.reopened?{reopened:x.reopened}:{})};
+}
+/** DEC-125 restore of a save from before DEC-125 (shape-detected, idempotent; SCHEMA unchanged): the slice has no fyChosenIn. When its audit
+ *  shows an FY was picked (CMP FY SET), the pick counts as made in the current business-date FY — no jump on restore; it holds until the next
+ *  1 April. Without a recorded pick the calendar simply follows the business date (nothing to store). Same rule as server migration 4180. */
+export function cmpStampFyChoice(s:State):boolean{
+  const x=s.complianceX as unknown;
+  if(!x||typeof x!=='object'||cmpIsLegacy(x)||'fyChosenIn' in (x as object))return false;
+  if(!(s.audit??[]).some(a=>a.action==='CMP FY SET'))return false;
+  s.complianceX={...(x as CMPState),fyChosenIn:cmpFyOfDate(s.date)};return true;
+}
+/** DEC-125, for the FY selector: the effective FY, the business date's FY and — while a pick of another FY holds — its last day (31 March)
+ *  and the FY the calendar moves to on the next 1 April. */
+export function cmpFyStatus(s:State):{fy:number;businessFy:number;pickEnds:string|null;next:number|null}{
+  const x=cmpSlice(s),businessFy=cmpBusinessFy(s.date),held=x.fyChosenIn!=null&&x.fyStart!==businessFy;
+  return {fy:x.fyStart,businessFy,pickEnds:held?cmpFyPickEnds(x.fyChosenIn!):null,next:held?cmpFyInList(x.fyChosenIn!+1):null};
 }
 
 // ── Access: Owner and Accountant only (DEC-055). Managing (profile, archive, custom, reopen, settings) needs 'approve' (Owner, DEC-058). ──
@@ -162,8 +189,37 @@ export function cmpExpandCustom(x:Pick<CMPState,'custom'>,month:string):CMPCard[
   }
   return out;
 }
-/** SCC getMonthItems (L1710): built-in cards of the page + expanded custom obligations. */
-export const cmpMonthItems=(x:Pick<CMPState,'custom'>,month:string):CMPCard[]=>[...cmpBuiltInCards(month),...cmpExpandCustom(x,month)];
+// ── DEC-133: licence-renewal cards (FSSAI, lodging house) from the firm profile's expiry dates ──
+const LICENCE_FIELDS:Record<CMPLicenceKind,{no:'fssaiNo'|'lodgingNo';expiry:'fssaiExpiry'|'lodgingExpiry'}>={
+  fssai:{no:'fssaiNo',expiry:'fssaiExpiry'},lodging:{no:'lodgingNo',expiry:'lodgingExpiry'}};
+const SHORT_MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const isIso=(d:unknown):d is string=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
+/** The profile fields of a licence kind. */
+export const cmpLicenceFields=(kind:CMPLicenceKind)=>LICENCE_FIELDS[kind];
+/** DEC-133: the licence obligations (archive keys = the name up to the en dash, as SCC's keys), in the Labour Law category like SCC's
+ *  Shops & Establishment renewal. */
+export const cmpLicenceObligations=():{key:string;cat:CMPCat;name:string}[]=>CMP_LICENCE_DEFS.map(d=>({key:cmpObligationKey(d),cat:d.cat,name:d.name}));
+/** DEC-133: a licence card — only while its expiry date is set; it belongs to the FY and month of the expiry date and is due on it
+ *  ("D Mon" as SCC's due strings, so SCC's engine gives back the expiry date). Risk High; the SCC control layer does the rest. */
+export function cmpLicenceCard(x:Pick<CMPState,'profile'>,kind:CMPLicenceKind):{card:CMPCard;month:CMPMonth;fy:number;expiry:string}|undefined{
+  const d=CMP_LICENCE_DEFS.find(l=>l.kind===kind),f=LICENCE_FIELDS[kind],exp=x.profile?.[f.expiry];
+  if(!d||!isIso(exp))return undefined;
+  const mi=+exp.slice(5,7)-1,no=String(x.profile?.[f.no]??'').trim();
+  const card:CMPCard={id:d.id,cat:d.cat,name:d.name,due:`${+exp.slice(8,10)} ${SHORT_MON[mi]}`,urgent:false,freq:d.freq,form:d.form+(no?` · Licence no. ${no}`:''),
+    who:d.who,what:d.what,why:d.why,penalty:d.penalty,risk:d.risk,responsible:d.responsible,reviewer:d.reviewer,buffer:null,
+    checklist:[...d.checklist],workflow:[...d.workflow],evidence:[...d.evidence],_licence:kind};
+  return {card,month:MONTH_NAMES[mi] as CMPMonth,fy:cmpFyOfDate(exp),expiry:exp};
+}
+/** DEC-133: the licence cards on one page of FY `fy`. */
+export function cmpLicenceCards(x:Pick<CMPState,'profile'>,month:string,fy:number):CMPCard[]{
+  const out:CMPCard[]=[];
+  for(const d of CMP_LICENCE_DEFS){const l=cmpLicenceCard(x,d.kind);if(l&&l.fy===fy&&l.month===month)out.push(l.card);}
+  return out;
+}
+const licenceById=(x:Pick<CMPState,'profile'>,itemId:string)=>{const d=CMP_LICENCE_DEFS.find(l=>l.id===itemId);return d?cmpLicenceCard(x,d.kind):undefined;};
+/** SCC getMonthItems (L1710): built-in cards of the page + expanded custom obligations; with the FY, also the DEC-133 licence cards of that FY. */
+export const cmpMonthItems=(x:Pick<CMPState,'custom'|'profile'>,month:string,fy?:number):CMPCard[]=>
+  [...cmpBuiltInCards(month),...cmpExpandCustom(x,month),...(fy===undefined?[]:cmpLicenceCards(x,month,fy))];
 /** SCC getVisibleItems (L1613–1628): archived categories and keys vanish; no employees hides payroll cards; GST cards only for regular / both,
  *  composition cards only for composition / both; no profile = SCC "no firm selected" = 'both' (everything). */
 export function cmpVisibleItems(x:Pick<CMPState,'profile'|'archived'|'archivedCats'>,items:CMPCard[]):CMPCard[]{
@@ -179,13 +235,16 @@ export function cmpVisibleItems(x:Pick<CMPState,'profile'|'archived'|'archivedCa
     return true;
   });
 }
-export const cmpMonthCards=(x:CMPState,month:string)=>cmpVisibleItems(x,cmpMonthItems(x,month));
-/** The card of an item id (built-in, or a custom obligation's month instance), visible or not. */
-export function cmpFindCard(x:Pick<CMPState,'custom'>,itemId:string):CMPCard|undefined{
+export const cmpMonthCards=(x:CMPState,month:string,fy?:number)=>cmpVisibleItems(x,cmpMonthItems(x,month,fy));
+/** The card of an item id (built-in, or a custom obligation's month instance), visible or not. DEC-133: a licence card while its expiry is set
+ *  — with `fy`, only in the FY of its expiry date. */
+export function cmpFindCard(x:Pick<CMPState,'custom'|'profile'>,itemId:string,fy?:number):CMPCard|undefined{
+  const l=licenceById(x,itemId);if(l)return fy===undefined||l.fy===fy?l.card:undefined;
   const m=cmpItemMonth(x,itemId);return m?cmpMonthItems(x,m).find(c=>c.id===itemId):undefined;}
-/** SCC findItemMonth (L269–274). */
-export function cmpItemMonth(x:Pick<CMPState,'custom'>,itemId:string):CMPMonth|undefined{
+/** SCC findItemMonth (L269–274); DEC-133: a licence card's page = the month of its expiry date. */
+export function cmpItemMonth(x:Pick<CMPState,'custom'|'profile'>,itemId:string):CMPMonth|undefined{
   const b=cmpBuiltInMonth(itemId);if(b)return b;
+  const l=licenceById(x,itemId);if(l)return l.month;
   return CMP_MONTHS.find(m=>cmpExpandCustom(x,m).some(c=>c.id===itemId));}
 
 // ── Records ──
@@ -208,7 +267,7 @@ export type CMPCatFilter='all'|'na'|CMPCat;
 /** SCC renderMonth (L2427–2451): the page's cards (filtered) and its 7 stats over the non-NA cards. */
 export function cmpMonthPage(s:State,month:CMPMonth,filter:CMPCatFilter='all',fy?:number){
   const x=cmpSlice(s),y=fy??x.fyStart,today=s.date;
-  const all=cmpMonthCards(x,month).map(c=>cmpView(x,c,month,y,today));
+  const all=cmpMonthCards(x,month,y).map(c=>cmpView(x,c,month,y,today));
   const na=all.filter(v=>v.isNA),active=all.filter(v=>!v.isNA);
   const list=filter==='all'?all:filter==='na'?na:all.filter(v=>v.card.cat===filter);
   const ev=cmpEvidenceCompleteness(s,month,y);
@@ -221,7 +280,7 @@ export const cmpBuiltInNote=(month:string)=>CMP_SCC_D[month]?.note??'';
 /** SCC hasOverdueInMonth (L2120–2128): the month tab's overdue dot. */
 export function cmpHasOverdueInMonth(s:State,month:CMPMonth,fy?:number):boolean{
   const x=cmpSlice(s),y=fy??x.fyStart;
-  return cmpMonthCards(x,month).some(item=>{
+  return cmpMonthCards(x,month,y).some(item=>{
     if(cmpIsNA(x,y,item.id))return false;if(cmpIsDone(x,y,item.id))return false;
     const days=cmpDaysLeft(item.due,y,s.date);return days!==null&&days<0;});
 }
@@ -234,7 +293,7 @@ export function cmpQuarter(s:State,key:CMPQuarterKey,fy?:number){
   const x=cmpSlice(s),y=fy??x.fyStart,today=s.date;
   const data=CMP_QUARTERS.map(q=>{
     const items:CMPQuarterItem[]=[];
-    for(const m of q.months)for(const c of cmpMonthCards(x,m))if(!cmpIsNA(x,y,c.id))
+    for(const m of q.months)for(const c of cmpMonthCards(x,m,y))if(!cmpIsNA(x,y,c.id))
       items.push({card:c,month:m as CMPMonth,control:cmpControlProfile(c,y,today),days:cmpDaysLeft(c.due,y,today),name:cmpRenderFYText(c.name,y)});
     const done=items.filter(i=>cmpIsDone(x,y,i.card.id)).length;
     const overdue=items.filter(i=>!cmpIsDone(x,y,i.card.id)&&(i.days??999)<0).length;
@@ -245,7 +304,7 @@ export function cmpQuarter(s:State,key:CMPQuarterKey,fy?:number){
   const cq=data.find(q=>q.key===key)??data[0]!;
   const ownerLoad:[string,number][]=[],cash={High:0,Medium:0,Low:0};
   for(const i of cq.items){const r=ownerLoad.find(o=>o[0]===i.control.responsible);if(r)r[1]++;else ownerLoad.push([i.control.responsible,1]);cash[i.control.cashFlow]+=1;}
-  const monthly=cq.months.map(m=>{const items=cmpMonthCards(x,m).filter(i=>!cmpIsNA(x,y,i.id));const total=items.length,done=items.filter(i=>cmpIsDone(x,y,i.id)).length;
+  const monthly=cq.months.map(m=>{const items=cmpMonthCards(x,m,y).filter(i=>!cmpIsNA(x,y,i.id));const total=items.length,done=items.filter(i=>cmpIsDone(x,y,i.id)).length;
     const overdue=items.filter(i=>!cmpIsDone(x,y,i.id)&&(cmpDaysLeft(i.due,y,today)??999)<0).length;return {month:m as CMPMonth,total,done,overdue,score:total?Math.round((done/total)*100):0};});
   const rank={High:0,Medium:1,Low:2};
   const focus=cq.items.filter(i=>!cmpIsDone(x,y,i.card.id)).sort((a,b)=>rank[a.control.risk]-rank[b.control.risk]||(a.days??999)-(b.days??999)).slice(0,8);
@@ -257,7 +316,7 @@ export type CMPAction={itemId:string;month:CMPMonth;name:string;form:string;due:
 export function cmpActionCenter(s:State,fy?:number):CMPAction[]{
   const x=cmpSlice(s);if(!x.profile)return [];// SCC: no firm → nothing (L1941)
   const y=fy??x.fyStart,out:CMPAction[]=[];
-  for(const m of CMP_MONTHS)for(const it of cmpMonthCards(x,m)){
+  for(const m of CMP_MONTHS)for(const it of cmpMonthCards(x,m,y)){
     if(cmpIsNA(x,y,it.id)||cmpIsDone(x,y,it.id))continue;
     const days=cmpDaysLeft(it.due,y,s.date);
     if(days===null||days>CMP_AC_SOON_DAYS)continue;
@@ -280,7 +339,7 @@ export function cmpEvidenceCompleteness(s:State,scope:'fy'|CMPMonth,fy?:number){
   if(!x.profile)return {applicableTotal:0,doneTotal:0,doneSatisfied:0,pct:0,missing:[] as {id:string;name:string;month:CMPMonth;cat:CMPCat}[],noFirm:true};
   const months=scope==='fy'?[...CMP_MONTHS]:[scope];
   const rows:{id:string;name:string;month:CMPMonth;cat:CMPCat;done:boolean;ref:string}[]=[];
-  for(const m of months)for(const i of cmpMonthCards(x,m)){if(cmpIsNA(x,y,i.id))continue;const rec=cmpRecord(x,y,i.id);
+  for(const m of months)for(const i of cmpMonthCards(x,m,y)){if(cmpIsNA(x,y,i.id))continue;const rec=cmpRecord(x,y,i.id);
     rows.push({id:i.id,name:i.name,month:m,cat:i.cat,done:cmpIsDone(x,y,i.id),ref:String(rec?.evidenceRef||'').trim()});}
   const doneRows=rows.filter(r=>r.done),missing:{id:string;name:string;month:CMPMonth;cat:CMPCat}[]=[];let doneSatisfied=0;
   for(const r of doneRows){if(r.ref||cmpFileCount(x,y,r.id)>0)doneSatisfied++;else missing.push({id:r.id,name:r.name,month:r.month,cat:r.cat});}
@@ -291,7 +350,7 @@ export function cmpEvidenceCompleteness(s:State,scope:'fy'|CMPMonth,fy?:number){
 export const CMP_CSV_HEADER=['Firm','FY','Month','Due','Obligation','Form/Portal','Category','Frequency','Responsible','Risk','Status','Filed On','Days Left'];
 export function cmpCsvRows(s:State,fy?:number):string[][]{
   const x=cmpSlice(s),y=fy??x.fyStart,fyLabel=cmpFyLabel(y),rows:string[][]=[CMP_CSV_HEADER];
-  for(const m of CMP_MONTHS)for(const it of cmpMonthCards(x,m)){
+  for(const m of CMP_MONTHS)for(const it of cmpMonthCards(x,m,y)){
     const na=cmpIsNA(x,y,it.id),done=!na&&cmpIsDone(x,y,it.id),rec=cmpRecord(x,y,it.id),prof=cmpControlProfile(it,y,s.date),days=cmpDaysLeft(it.due,y,s.date);
     rows.push([x.profile?.name||'',fyLabel,m,it.due,cmpStripHtml(cmpRenderFYText(it.name,y)),cmpStripHtml(cmpRenderFYText(it.form||'',y)),cmpCatLabel(it.cat),it.freq||'',
       prof.responsible||'',prof.risk||'',na?'N/A':(done?'Done':'Pending'),(rec&&(rec.filedOn||(rec as {filedRef?:string}).filedRef))||'',days===null?'':String(days)]);
@@ -308,7 +367,7 @@ export function cmpCsv(s:State,fy?:number):{fileName:string;csv:string;rows:numb
 // ── Month print (SCC printCompliance L59–136): A4 landscape, the page's visible cards. ──
 export function cmpPrintModel(s:State,month:CMPMonth,fy?:number){
   const x=cmpSlice(s),y=fy??x.fyStart,f=x.profile,firmName=f?f.name:'All Firms',calYear=cmpCalendarYearForMonth(month,y);
-  const items=cmpMonthCards(x,month);
+  const items=cmpMonthCards(x,month,y);
   const doneCount=items.filter(i=>!cmpIsNA(x,y,i.id)&&cmpIsDone(x,y,i.id)).length,naCount=items.filter(i=>cmpIsNA(x,y,i.id)).length,obCount=items.length;
   return {title:'Compliance — '+month+' — '+firmName,fileBase:'Compliance-'+month+'-'+firmName.replace(/[\\/:*?"<>|]/g,'-'),month,calYear,firmName,
     firmType:f?cmpTypeLabel(f.gstType):'',fyLabel:cmpFyLabel(y),obCount,doneCount,naCount,
@@ -325,7 +384,7 @@ export const cmpZipCell=(v:unknown)=>{const s=String(v==null?'':v).replace(/"/g,
 export function cmpEvidenceZipPlan(s:State,fy?:number){
   const x=cmpSlice(s),y=fy??x.fyStart;
   const meta:Record<string,{name:string;cat:string;month:string}>={};
-  for(const m of CMP_MONTHS)for(const it of cmpMonthItems(x,m))if(it&&it.id&&!meta[it.id])meta[it.id]={name:cmpStripHtml(cmpRenderFYText(it.name||'',y)),cat:cmpCatLabel(it.cat),month:m};
+  for(const m of CMP_MONTHS)for(const it of cmpMonthItems(x,m,y))if(it&&it.id&&!meta[it.id])meta[it.id]={name:cmpStripHtml(cmpRenderFYText(it.name||'',y)),cat:cmpCatLabel(it.cat),month:m};
   const seen:Record<string,Record<string,true>>={},entries:{fileId:string;path:string}[]=[],manifest:string[][]=[['Obligation','Original filename','Stored path','Added-on']];
   for(const e of x.files.filter(f=>f.fy===y)){
     const m=meta[e.itemId];
@@ -398,7 +457,7 @@ export const cmpInr=(rupees:number)=>'₹'+Math.round(Number(rupees)||0).toLocal
 // ── CA pack (HCC's simulated pack; SCC sends its own WhatsApp "ca_pack" template, not supplied — owner question 10) ──
 export function cmpPackCounts(s:State){
   const x=cmpSlice(s),y=x.fyStart;let done=0,na=0,open=0,overdue=0;
-  for(const m of CMP_MONTHS)for(const c of cmpMonthCards(x,m)){if(cmpIsNA(x,y,c.id)){na++;continue;}if(cmpIsDone(x,y,c.id)){done++;continue;}open++;
+  for(const m of CMP_MONTHS)for(const c of cmpMonthCards(x,m,y)){if(cmpIsNA(x,y,c.id)){na++;continue;}if(cmpIsDone(x,y,c.id)){done++;continue;}open++;
     const d=cmpDaysLeft(c.due,y,s.date);if(d!==null&&d<0)overdue++;}
   const ac=cmpActionCenter(s);return {overdue,due:ac.filter(r=>r.days>=0).length,filed:done,na,open};
 }
@@ -406,7 +465,7 @@ export function cmpPackLines(s:State):string[]{
   const x=cmpSlice(s),y=x.fyStart,c=cmpPackCounts(s),lines:string[]=[];
   lines.push(`Position as on ${s.date} (${cmpFyLabel(y)}): ${c.filed} done, ${c.open} pending (${c.overdue} overdue), ${c.na} not applicable.`);
   for(const r of cmpActionCenter(s))lines.push(`OPEN · ${cmpStripHtml(cmpRenderFYText(r.name,y))} · ${r.month} · due ${r.dueIso??r.due} · ${cmpWhen(r.days)}`);
-  for(const m of CMP_MONTHS)for(const it of cmpMonthCards(x,m)){const rec=cmpRecord(x,y,it.id);
+  for(const m of CMP_MONTHS)for(const it of cmpMonthCards(x,m,y)){const rec=cmpRecord(x,y,it.id);
     if(rec?.done&&!rec.na&&rec.filedOn&&nights(rec.filedOn,s.date)>=0&&nights(rec.filedOn,s.date)<=35)
       lines.push(`FILED · ${cmpStripHtml(cmpRenderFYText(it.name,y))} · filed ${rec.filedOn}${rec.evidenceRef?' · ref '+rec.evidenceRef:''}`);}
   return lines.slice(0,60);

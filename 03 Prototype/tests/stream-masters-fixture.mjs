@@ -138,12 +138,12 @@ export function register({test,M,assert}){
     const s=seed(),before=sha(s);
     for(const id of mastersSeedIds())mastersSeed(id,s);for(const sp of masterSpecs()){for(const r of mstRows(s,sp.id))sp.inUse(s,r);}
     assert.equal(sha(s),before);assert.equal(s.mastersX,undefined);
-    assert.equal(sha(strip(seed())),'4a8aad03ae04d1c840c05ed22afabdd6fcf89b3e36cd93a68232a0bba9fb8616') /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */;
-    assert.equal(sha(strip(buildHistory(baseFixture()))),'197643a1f6faf1044d5fc0bc1a1482a27cbf5e019365b9e5bfac6409c8ccad1c') /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */;
+    assert.equal(sha(strip(seed())),'aecae3b2a71894626f970b40b4766521c22018d2fc2291eeb5d51f6f5ea40d3b') /* SCC decisions wave (DEC-133): 4a8aad03… → aecae3b2… = the demo firm profile's fictional licence numbers / expiry dates only */ /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */;
+    assert.equal(sha(strip(buildHistory(baseFixture()))),'5dc19a447a8388b272639b35da3dbe65e8ec703060b30687bac3c5b04e9b0fc1') /* SCC decisions wave (DEC-133): 197643a1… → 5dc19a44… = the demo firm profile's fictional licence fields only */ /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */;
     assert.equal(sha(loadScenario('FY26').bookings),'66e8195233df0bb433ef76dfe58c83e215f93473a90b5bbf8b2c08613d5dbfce');});
   test('[MFX] FY26 = BASE + history: same FY26 whole-state hash as tests/stream-perf-store.mjs; no stored masters slice; BASE rooms / users identical inside FY26',()=>{
     const f=loadScenario('FY26');
-    assert.equal(sha(f),'8ba459414eb1c855b086225cac83bc07db65bf45cc2da6bbccb067b0a26729dc' /* SCC port wave (DEC-116, tax + leave): d0babd3b… → 8ba45941… = compliance + leave slices, SCHEMA 9 → 10 */);
+    assert.equal(sha(f),'3b33a7c669489e237a16232fdb119f82675099541ce2e7c915abc7d60d68e5e8' /* SCC decisions wave (DEC-133): 8ba45941… → 3b33a7c6… = the demo firm profile's fictional licence fields only */ /* SCC port wave (DEC-116, tax + leave): d0babd3b… → 8ba45941… = compliance + leave slices, SCHEMA 9 → 10 */);
     assert.equal(f.mastersX,undefined);assert.equal(sha(f.rooms),sha(seed().rooms));assert.equal(sha(f.users),sha(seed().users));});
   test('[MFX] FY26 history is deterministic (two builds identical) and the seed reads do not depend on it being built first',()=>{
     assert.equal(sha(buildHistory(baseFixture())),sha(buildHistory(baseFixture())));

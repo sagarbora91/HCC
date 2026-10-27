@@ -76,6 +76,23 @@ public static partial class SccTaxRules
 
     public static int ClampFy(int fy) => Math.Max(FyMin, fy);
 
+    /// <summary>DEC-125: an FY inside SCC's list (2026–27 … 2032–33): before it → 2026–27, after it → the last FY.</summary>
+    public static int FyInList(int fy) => Math.Clamp(fy, FyMin, FyMax);
+
+    /// <summary>DEC-125: the FY of the business date, kept inside SCC's list.</summary>
+    public static int BusinessFy(DateOnly businessDate) => FyInList(FyOfDate(businessDate));
+
+    /// <summary>
+    /// DEC-125 (owner, 27 Oct 2026): the compliance FY follows the business date on 1 April. A pick holds while the business date is still in the
+    /// FY it was picked in (<paramref name="chosenIn"/> = <see cref="FyOfDate"/> of the business date at the pick); after the next 1 April — and
+    /// without a pick (null) — the business date's FY. Never the device clock. Prototype twin: cmpEffectiveFy.
+    /// </summary>
+    public static int EffectiveFy(int selected, int? chosenIn, DateOnly businessDate) =>
+        chosenIn is { } c && c == FyOfDate(businessDate) ? FyInList(selected) : BusinessFy(businessDate);
+
+    /// <summary>DEC-125: the pick in force (the business date's FY it was made in), or null once it lapsed / when there is none.</summary>
+    public static int? PickInForce(int? chosenIn, DateOnly businessDate) => chosenIn is { } c && c == FyOfDate(businessDate) ? c : null;
+
     /// <summary>JavaScript <c>new Date(y, mi, day)</c>: day 0 = last day of the month before, 31 Apr = 1 May.</summary>
     private static DateOnly JsDate(int y, int mi, int day) => new DateOnly(y, 1, 1).AddMonths(mi).AddDays(day - 1);
 
@@ -216,8 +233,8 @@ public static partial class SccTaxRules
         return (cut < 0 ? name : name[..cut]).Trim();
     }
 
-    /// <summary>SCC isPayrollItem (L1609–1611).</summary>
-    public static bool IsPayrollItem(SccCard? item) => item is not null && item.Cat == "lab" && !item.IsCustom && !BusinessLabIds.Contains(item.Id);
+    /// <summary>SCC isPayrollItem (L1609–1611). DEC-133: the licence cards are business-level too (like SCC's Shops &amp; Establishment renewal).</summary>
+    public static bool IsPayrollItem(SccCard? item) => item is not null && item.Cat == "lab" && !item.IsCustom && item.Licence is null && !BusinessLabIds.Contains(item.Id);
 
     /// <summary>SCC gstFilingMode (L1804–1810).</summary>
     public static string? GstFilingMode(SccCard? item)

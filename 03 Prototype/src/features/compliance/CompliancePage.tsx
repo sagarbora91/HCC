@@ -4,9 +4,9 @@
 import React,{useEffect} from 'react';
 import {Bell,Settings2,Building2,FileSpreadsheet,Printer,Download,Archive,Send,LayoutDashboard,CalendarDays,ShieldAlert} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {cmpHasAccess,cmpCanManage,cmpSlice,cmpMonthPage,cmpHasOverdueInMonth,cmpActionCenter,cmpBadgeText,cmpCsv,cmpTypeLabel,cmpFyLabel,cmpPayableStrip,cmpInr,
+import {cmpHasAccess,cmpCanManage,cmpSlice,cmpMonthPage,cmpHasOverdueInMonth,cmpActionCenter,cmpBadgeText,cmpCsv,cmpTypeLabel,cmpFyLabel,cmpPayableStrip,cmpInr,cmpFyStatus,
   CMP_MONTHS,CMP_FY_MIN,CMP_FY_MAX,CMP_ILLUSTRATIVE,type CMPCatFilter} from '../../services/mock';
-import {PageTitle,Empty} from '../../components/ui';
+import {PageTitle,Empty,dateLabel} from '../../components/ui';
 import {saveCsv,saveAndReport} from '../../app/native';
 import {CmpCard} from './Card';
 import {CmpDashboard} from './Dashboard';
@@ -22,11 +22,14 @@ function useCompliance(){
 }
 type C=ReturnType<typeof useCompliance>;
 
+/** DEC-125: the calendar follows the business date on 1 April; a picked FY holds until the next 1 April (shown while it differs). */
+const FY_RULE='On 1 April (business date) the calendar moves to the new financial year by itself. A year you pick here holds until the next 1 April.';
 function FySelect({c,phone}:{c:C;phone?:boolean}){
-  const {run,busy}=useHcc();const years:number[]=[];for(let y=CMP_FY_MIN;y<=CMP_FY_MAX;y++)years.push(y);
-  return <label className={'cmp-fy'+(phone?' cmp-fy-m':'')}>Financial year<select value={c.x.fyStart} disabled={busy}
+  const {run,busy}=useHcc();const years:number[]=[];for(let y=CMP_FY_MIN;y<=CMP_FY_MAX;y++)years.push(y);const st=cmpFyStatus(c.s);
+  return <label className={'cmp-fy'+(phone?' cmp-fy-m':'')} title={FY_RULE}>Financial year<select value={c.x.fyStart} disabled={busy}
     onChange={e=>{void run({type:'CMP_FY_SET',fy:Number(e.target.value),key:cmpActionKey(c.s,'fy',e.target.value)},'Financial year changed');}}>
-    {years.map(y=><option key={y} value={y}>{cmpFyLabel(y)}</option>)}</select></label>;
+    {years.map(y=><option key={y} value={y}>{cmpFyLabel(y)}</option>)}</select>
+    {st.pickEnds&&st.next!==null&&<small className="cmp-fy-hint">Your pick · holds until {dateLabel(st.pickEnds)}{st.next!==st.fy?`, then ${cmpFyLabel(st.next)}`:''}</small>}</label>;
 }
 function FirmLine({c}:{c:C}){
   const f=c.x.profile;

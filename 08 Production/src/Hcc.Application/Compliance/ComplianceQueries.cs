@@ -28,9 +28,12 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
         return (snap, snap.Calendar(), await reads.BusinessDateAsync(propertyId, ct).ConfigureAwait(false));
     }
 
-    private static int FyOr(int? fy, ComplianceSnapshot s) => fy is { } f
+    /// <summary>The asked FY, else the EFFECTIVE FY on the business date (DEC-125: the pick while it holds, else the business date's FY).</summary>
+    private static int FyOr(int? fy, ComplianceSnapshot s, DateOnly today) => fy is { } f
         ? f is >= SccTaxRules.FyMin and <= SccTaxRules.FyMax ? f : throw HccException.Validation("Choose a financial year from FY 2026–27 to FY 2032–33.")
-        : s.Settings.FyStart;
+        : s.Settings.Effective(today);
+
+    private static string? Dn(DateOnly? d) => d?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static RecordDto Rec(CmpRecord r) => new(r.FyStart, r.ItemId, r.Done, r.Na, ComplianceWire.Date(r.FiledOn), r.Notes, r.EvidenceRef, r.ReviewerNote,
         ComplianceWire.Date(r.DueDate), r.DoneBy, ComplianceWire.Utc(r.DoneUtc), r.NaBy, ComplianceWire.Utc(r.NaUtc), r.Legacy);
@@ -41,8 +44,8 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
         var p = s.Profile;
         return new ComplianceStateView(D(today),
             p is null ? null : new ProfileDto(p.Profile.Name, p.Profile.Pan, p.Profile.Gstin, p.Profile.Entity, p.Profile.GstType, p.Profile.HasEmployees, p.Profile.Qrmp, p.Profile.Notes,
-                p.UpdatedBy, ComplianceWire.Utc(p.UpdatedUtc), VersionToken.ToWire(p.Version)),
-            s.Settings.FyStart, s.Records.Select(Rec).ToList(),
+                p.UpdatedBy, ComplianceWire.Utc(p.UpdatedUtc), VersionToken.ToWire(p.Version), p.Profile.FssaiNo, Dn(p.Profile.FssaiExpiry), p.Profile.LodgingNo, Dn(p.Profile.LodgingExpiry)),
+            s.Settings.Effective(today), s.Records.Select(Rec).ToList(),
             s.Custom.Select(c => new CustomObligationDto(c.Custom.CustomId, c.Custom.Id, c.Custom.Cat, c.Custom.Name, c.Custom.Freq, c.Custom.DueDay, c.Custom.Months, c.Custom.Form,
                 c.Custom.Who, c.Custom.What, c.Custom.Why, c.Custom.Penalty, c.Custom.Responsible, c.Custom.Reviewer, c.Custom.Risk, c.Custom.Buffer, c.Custom.Checklist,
                 c.Custom.Workflow, c.Custom.Evidence, c.UpdatedBy, ComplianceWire.Utc(c.UpdatedUtc), VersionToken.ToWire(c.Version))).ToList(),
@@ -51,7 +54,7 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
             s.Reopened.Select(r => new ReopenedDto(r.FyStart, r.ItemId, r.Part, r.Was.Done, r.Was.Na, ComplianceWire.Date(r.Was.FiledOn), r.Was.Notes, r.Was.EvidenceRef,
                 r.Was.ReviewerNote, ComplianceWire.Date(r.Was.DueDate), r.Was.Done ? r.Was.DoneBy : r.Was.NaBy, ComplianceWire.Utc(r.Was.Done ? r.Was.DoneUtc : r.Was.NaUtc),
                 r.ReopenedBy, ComplianceWire.Utc(r.ReopenedUtc), r.Reason)).ToList(),
-            Settings(s.Settings));
+            Settings(s.Settings), SccTaxRules.PickInForce(s.Settings.FyChosenIn, today));
     }
 
     /// <summary>The ≈₹ feed for the FY's chips (March of the FY … February after) and the panel (the business month), as SCC reads its bridge feed.</summary>
@@ -70,7 +73,7 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
     public async Task<PayableView> GetPayableAsync(int propertyId, int principalId, int? fy, CancellationToken ct = default)
     {
         var (s, _, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var feed = await FeedAsync(propertyId, FyOr(fy, s), today, ct).ConfigureAwait(false);
+        var feed = await FeedAsync(propertyId, FyOr(fy, s, today), today, ct).ConfigureAwait(false);
         return new PayableView(feed.ToDictionary(kv => kv.Key, kv => new PayableMonthDto(kv.Value.Pf, kv.Value.Esic, kv.Value.Pt, kv.Value.Gst, kv.Value.Sources, D(today)), StringComparer.Ordinal),
             ComplianceRules.PayableNote, ComplianceRules.PayableBasis);
     }
@@ -78,7 +81,7 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
     public async Task<MonthView> GetMonthAsync(int propertyId, int principalId, int? fy, string? month, CancellationToken ct = default)
     {
         var (s, cal, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var y = FyOr(fy, s);
+        var y = FyOr(fy, s, today);
         var m = string.IsNullOrWhiteSpace(month) ? CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(today.Month) : month.Trim();
         if (!SccTaxCatalogue.Months.Contains(m)) throw HccException.Validation("Choose a month from April to March.");
         var feed = await FeedAsync(propertyId, y, today, ct).ConfigureAwait(false);
@@ -95,7 +98,7 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
     public async Task<DashboardView> GetDashboardAsync(int propertyId, int principalId, int? fy, string? quarter, CancellationToken ct = default)
     {
         var (s, cal, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var y = FyOr(fy, s);
+        var y = FyOr(fy, s, today);
         var q = cal.Quarter(string.IsNullOrWhiteSpace(quarter) ? "Q1" : quarter.Trim(), y, today);
         var ev = cal.EvidenceStatus("fy", y);
         return new DashboardView(D(today), y, q.Key, q.Total, q.Done, q.Pending, q.Overdue, q.HighRisk, q.Score,
@@ -109,7 +112,7 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
     public async Task<ActionCenterView> GetActionCenterAsync(int propertyId, int principalId, int? fy, CancellationToken ct = default)
     {
         var (s, cal, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var y = FyOr(fy, s);
+        var y = FyOr(fy, s, today);
         var feed = await FeedAsync(propertyId, y, today, ct).ConfigureAwait(false);
         var rows = cal.ActionCenter(y, today);
         return new ActionCenterView(D(today), y, rows.Count(r => r.Days < 0), rows.Count(r => r.Days >= 0),
@@ -121,26 +124,26 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
     public async Task<ActionCenterView> GetDueThisWeekAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
         var (s, cal, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var y = s.Settings.FyStart;
+        var y = s.Settings.Effective(today);
         var rows = cal.ActionCenter(y, today).Where(r => r.Days <= s.Settings.DueSoonDays).ToList();
         return new ActionCenterView(D(today), y, rows.Count(r => r.Days < 0), rows.Count(r => r.Days >= 0),
             rows.Select(r => new ActionRowDto(r.ItemId, r.Month, SccTaxRules.RenderFyText(r.Name, y), SccTaxRules.RenderFyText(r.Form, y), r.Due, ComplianceWire.Date(r.DueDate), r.Cat, r.Days,
                 ComplianceRules.When(r.Days), null)).ToList());
     }
 
-    /// <summary>SCC updateActionBadge: the Action Center count of the selected FY.</summary>
+    /// <summary>SCC updateActionBadge: the Action Center count of the effective FY (DEC-125).</summary>
     public async Task<BadgeResult> GetBadgeAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
         if (!await policy.HasAsync(propertyId, principalId, CompliancePermissions.Use, null, ct).ConfigureAwait(false)) return new BadgeResult(0);
         var snap = await reads.SnapshotAsync(propertyId, ct).ConfigureAwait(false);
         var today = await reads.BusinessDateAsync(propertyId, ct).ConfigureAwait(false);
-        return new BadgeResult(snap.Calendar().ActionCenter(snap.Settings.FyStart, today).Count);
+        return new BadgeResult(snap.Calendar().ActionCenter(snap.Settings.Effective(today), today).Count);
     }
 
     public async Task<RegisterCsvView> GetRegisterCsvAsync(int propertyId, int principalId, int? fy, CancellationToken ct = default)
     {
         var (s, cal, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var csv = cal.Csv(FyOr(fy, s), today) ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "Set the firm profile first to export its compliance register.");
+        var csv = cal.Csv(FyOr(fy, s, today), today) ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "Set the firm profile first to export its compliance register.");
         return new RegisterCsvView(csv.FileName, csv.Csv, csv.Rows);
     }
 
@@ -148,10 +151,10 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
     public async Task<PrintView> GetPrintAsync(int propertyId, int principalId, int? fy, string month, CancellationToken ct = default)
     {
         var (s, cal, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var y = FyOr(fy, s);
+        var y = FyOr(fy, s, today);
         var m = (month ?? string.Empty).Trim();
         if (!SccTaxCatalogue.Months.Contains(m)) throw HccException.Validation("Choose a month from April to March.");
-        var items = cal.MonthCards(m);
+        var items = cal.MonthCards(m, y);
         var done = items.Count(i => !cal.IsNa(y, i.Id) && cal.IsDone(y, i.Id));
         var na = items.Count(i => cal.IsNa(y, i.Id));
         var f = s.Profile?.Profile;
@@ -179,9 +182,9 @@ public sealed class ComplianceQueries(IAccessPolicy policy, IComplianceReadStore
     /// <summary>SCC exportEvidenceZip (L2045–2098): folders &lt;Month&gt;_&lt;Category&gt;_&lt;Name&gt;__&lt;itemId&gt;, de-duplicated names, index.csv.</summary>
     public async Task<EvidenceZipView> GetEvidenceZipAsync(int propertyId, int principalId, int? fy, CancellationToken ct = default)
     {
-        var (s, cal, _) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        var (s, cal, today) = await LoadAsync(propertyId, principalId, ct).ConfigureAwait(false);
         if (s.Profile is null) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Set the firm profile first to export its evidence pack.");
-        var y = FyOr(fy, s);
+        var y = FyOr(fy, s, today);
         var plan = cal.ZipPlan(y);
         var files = (await reads.EvidenceFilesAsync(propertyId, y, ct).ConfigureAwait(false)).ToDictionary(f => f.Meta.EvidenceId);
         using var ms = new MemoryStream();
