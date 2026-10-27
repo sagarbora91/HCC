@@ -2,12 +2,18 @@
 import React,{useMemo,useState} from 'react';
 import {CheckCircle2,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,accDates,accVouchers,accExceptions,accReconcile,accLockOf,accDayStatus,accTotals,accLockBlocker,accMapRows,rbacCanTally,rbacCanExportVouchers} from '../../services/mock';
+import {money,accDates,accVouchers,accExceptions,accReconcile,accLockOf,accDayStatus,accTotals,accLockBlocker,accMapRows,rbacCanTally,rbacCanExportVouchers,rbacSeesBooks} from '../../services/mock';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {Empty,shortDate,clockTime} from '../../components/ui';
+import {accOpeningPending} from './_contract-stubs';
+import {TrialBalanceView,StatementView,DayBookView} from './books';
+import {ChartView,PartiesView} from './chart';
+import {OpeningView} from './opening';
+import {useAccRange} from './shared';
 import {TallyExport} from './Accounting';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
 
+type View='ledger'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'tally';
 type Filter='all'|'Sales'|'Receipt'|'Payment'|'Journal';
 export function AccountingMobile(){
   const {s,uid,open,go,permission}=useHcc();const {canLock,canMap}=useAccPerms();
@@ -22,9 +28,18 @@ export function AccountingMobile(){
   const bad=recon.filter(c=>!c.ok),unmapped=accMapRows(s).filter(r=>!r.mapped&&r.uses>0);
   const lockable=canLock&&!lock&&!why;
   const tally=rbacCanTally(s,uid); // DEC-063 G13: Owner + Accountant only
-  const [view,setView]=useState<'ledger'|'tally'>('ledger'); // W05-3: Tally export (Simulated) reachable on the phone
+  const [view,setView]=useState<View>('ledger'); // W05-3: Tally export (Simulated) reachable on the phone; ACC-1: books, chart, parties, opening balances
+  const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');
+  const goStatement=(a:string)=>{setStmtAcc(a);setView('statements');};
   const head=<><div className="page-title"><div><h1>Accounting</h1><p>Vouchers derived from folios, receipts, expenses and closing · fictional data</p></div></div>
-    {tally&&<ChipFilter<'ledger'|'tally'> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Ledger'},{id:'tally',label:'Tally export (Simulated)'}]}/>}</>;
+    <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
+  if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-m"><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant."/></div>;
+  if(view==='tb')return <div className="acc-m">{head}<TrialBalanceView range={range} setRange={setRange} phone onStatement={goStatement}/></div>;
+  if(view==='statements')return <div className="acc-m">{head}<StatementView range={range} setRange={setRange} account={stmtAcc} setAccount={setStmtAcc} phone/></div>;
+  if(view==='daybook')return <div className="acc-m">{head}<DayBookView range={range} setRange={setRange} phone/></div>;
+  if(view==='chart')return <div className="acc-m">{head}<ChartView phone/></div>;
+  if(view==='parties')return <div className="acc-m">{head}<PartiesView phone onStatement={goStatement}/></div>;
+  if(view==='opening')return <div className="acc-m">{head}<OpeningView phone/></div>;
   if(view==='tally'&&tally)return <div className="acc-m">{head}<div className="acc-m-tally"><TallyExport/></div></div>;
   return <div className="acc-m">
     {head}

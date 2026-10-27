@@ -1,14 +1,20 @@
 // Module 20 · Accounting automation — desktop page (CLOSING & REPORTS › Accounting).
 import React,{useMemo,useState} from 'react';
-import {Info,CheckCircle2,AlertTriangle,Download} from 'lucide-react';
+import {Info,AlertTriangle,CheckCircle2,Download} from 'lucide-react';
 import {saveTextFile,saveAndReport} from '../../app/native';
 import {useHcc} from '../../app/context';
-import {money,accDates,accVouchers,accTrialBalance,accVouchersUpTo,accExceptions,accReconcile,accMapRows,accLockOf,accDayStatus,accTotals,accLockBlocker,accLedgerName,accTallyXml,TALLY_MAX_DAYS,addDays,
-  ACC_CHART,ACC_SUSPENSE,rbacCanTally} from '../../services/mock';
+import {money,accDates,accVouchers,accExceptions,accReconcile,accMapRows,accLockOf,accDayStatus,accTotals,accLockBlocker,accLedgerName,accTallyXml,TALLY_MAX_DAYS,addDays,
+  rbacCanTally,rbacSeesBooks} from '../../services/mock';
 import {PageTitle,Empty,Stat,shortDate,clockTime} from '../../components/ui';
-import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accMoney,accUserName,useAccPerms,accVoucherDebit} from './parts';
+import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
+import {accOpeningPending} from './_contract-stubs';
+import {TrialBalanceView,StatementView,DayBookView} from './books';
+import {ChartView,PartiesView} from './chart';
+import {OpeningView} from './opening';
+import {useAccRange} from './shared';
 
-type Tab='vouchers'|'tb'|'exceptions'|'recon'|'mapping'|'chart'|'tally';
+export type AccTab='vouchers'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally';
+type Tab=AccTab;
 export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:string)=>void;dates:string[]}){
   return <label className="acc-date">Business date<select value={date} onChange={e=>setDate(e.target.value)}>
     {dates.map(d=><option key={d} value={d}>{shortDate(d)} {d.slice(0,4)}</option>)}</select></label>;
@@ -18,15 +24,17 @@ export function AccountingPage(){
   const tally=rbacCanTally(s,uid); // DEC-063 G13: Tally export tab = Owner + Accountant (Manager/Cashier keep Accounting without it)
   const dates=useMemo(()=>accDates(s),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
-  const [tab,setTab]=useState<Tab>('vouchers');const [cum,setCum]=useState(false);
+  const [tab,setTab]=useState<Tab>('vouchers');
+  const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');
+  const goStatement=(a:string)=>{setStmtAcc(a);setTab('statements');};
   const vs=useMemo(()=>accVouchers(s,date),[s,date]);
   const ex=useMemo(()=>accExceptions(s,date),[s,date]);
   const recon=useMemo(()=>accReconcile(s,date),[s,date]);
-  const tb=useMemo(()=>accTrialBalance(cum?accVouchersUpTo(s,date):vs,s.accountingX?.server?.accounts),[s,date,vs,cum]);
   const t=accTotals(vs),status=accDayStatus(s,date),lock=accLockOf(s,date),why=accLockBlocker(s,date);
   const errors=ex.filter(x=>x.severity==='error').length,reconOk=recon.every(c=>c.ok);
-  const tabs:[Tab,string,number?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],['chart','Chart of accounts'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
-  const tbT=tb.reduce((a,r)=>({debit:a.debit+r.debit,credit:a.credit+r.credit}),{debit:0,credit:0});
+  const tabs:[Tab,string,(number|string)?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['statements','Statements'],['daybook','Day book'],['chart','Chart of accounts'],['parties','Parties'],['opening','Opening balances',accOpeningPending(s)?'pending':undefined],
+    ['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
+  if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-page"><PageTitle title="Accounting" sub="The books"/><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant. The Cashier’s collections are in Reports."/></div>;
   return <div className="acc-page">
     <PageTitle title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · GST (CGST + SGST)"
       action={<div className="inline"><AccDatePicker date={date} setDate={setDate} dates={dates}/><AccExportButton date={date}/><AccLockButton date={date}/></div>}/>
@@ -47,14 +55,12 @@ export function AccountingPage(){
           <td className="acc-wrap">{v.narration}</td><td className="number"><small>{v.source.id}</small></td><td className="acc-num number"><strong>{money(accVoucherDebit(v))}</strong></td>
           <td>{v.unmapped.length?<span className="pill acc-sev-error">Suspense</span>:<span className="pill green">Balanced</span>}</td></tr>)}</tbody></table></div>
         :<Empty title="No vouchers for this date" body="Nothing was posted, received or spent on this business date."/>)}
-      {tab==='tb'&&<>
-        <div className="acc-subbar"><div className="filters" role="group" aria-label="Trial balance scope"><button className={!cum?'active':''} aria-pressed={!cum} onClick={()=>setCum(false)}>Day movement</button><button className={cum?'active':''} aria-pressed={cum} onClick={()=>setCum(true)}>Cumulative to {shortDate(date)}</button></div>
-          {tbT.debit===tbT.credit?<span className="pill green"><CheckCircle2 size={12}/>Debits = credits</span>:<span className="pill acc-sev-error"><AlertTriangle size={12}/>Out of balance</span>}</div>
-        {tb.length?<div className="table-wrap"><table className="acc-table"><thead><tr><th>Code</th><th>Ledger</th><th>Group</th><th className="acc-num">Debit</th><th className="acc-num">Credit</th><th className="acc-num">Balance</th></tr></thead>
-          <tbody>{tb.map(r=><tr key={r.account} className={r.account===ACC_SUSPENSE?'acc-suspense':''}><td className="number">{r.account}</td><td><strong>{r.name}</strong></td><td>{r.group}</td><td className="acc-num number">{accMoney(r.debit)}</td><td className="acc-num number">{accMoney(r.credit)}</td>
-            <td className="acc-num number">{r.balance===0?'—':money(Math.abs(r.balance))+(r.balance>0?' Dr':' Cr')}</td></tr>)}
-            <tr className="acc-total"><td/><td><strong>Total</strong></td><td/><td className="acc-num number"><strong>{money(tbT.debit)}</strong></td><td className="acc-num number"><strong>{money(tbT.credit)}</strong></td><td/></tr></tbody></table></div>
-          :<Empty title="No ledger movement" body="No vouchers for this scope."/>}</>}
+      {tab==='tb'&&<TrialBalanceView range={range} setRange={setRange} onStatement={goStatement}/>}
+      {tab==='statements'&&<StatementView range={range} setRange={setRange} account={stmtAcc} setAccount={setStmtAcc}/>}
+      {tab==='daybook'&&<DayBookView range={range} setRange={setRange}/>}
+      {tab==='chart'&&<ChartView/>}
+      {tab==='parties'&&<PartiesView onStatement={goStatement}/>}
+      {tab==='opening'&&<OpeningView/>}
       {tab==='exceptions'&&(ex.length?<div className="acc-exlist">{ex.map(x=><div key={x.id} className={'acc-ex acc-ex-'+x.severity}><AccSeverity x={x}/><div><strong>{x.title}</strong><p>{x.detail}</p>
           <div className="inline">{x.voucher&&<button className="text-btn" onClick={()=>open({type:'acc-voucher',id:date+'|'+x.voucher})}>View {x.voucher}</button>}{x.key&&canMap&&<button className="text-btn" onClick={()=>open({type:'acc-map',id:x.key})}>Map now</button>}{x.kind==='stuck'&&permission('admin')&&<button className="text-btn" onClick={()=>go('syshealth')}>Open System health</button>}</div></div></div>)}</div>
         :<Empty title="No exceptions" body="Every voucher is balanced and mapped."/>)}
@@ -63,8 +69,6 @@ export function AccountingPage(){
           <td>{c.ok?<span className="pill green"><CheckCircle2 size={12}/>Agrees</span>:<span className="pill acc-sev-error"><AlertTriangle size={12}/>Differs {money(c.ledger-c.report)}</span>}</td><td><small>{c.note}</small></td></tr>)}</tbody></table></div>}
       {tab==='mapping'&&<MappingTable/>}
       {tab==='tally'&&tally&&<TallyExport/>}
-      {tab==='chart'&&<div className="table-wrap"><table className="acc-table"><thead><tr><th>Code</th><th>Ledger</th><th>Group</th><th>Note</th></tr></thead>
-        <tbody>{ACC_CHART.map(a=><tr key={a.code}><td className="number">{a.code}</td><td><strong>{a.name}</strong></td><td>{a.group}</td><td><small>{a.note??''}</small></td></tr>)}</tbody></table></div>}
     </section>
     <p className="footnote">Vouchers are re-derived from source records until a closed day is locked; voucher numbers are provisional until then. Synthetic chart of accounts; GST split CGST + SGST from the GST master (illustrative — CA to confirm) — not a statutory book of account.</p>
   </div>;
