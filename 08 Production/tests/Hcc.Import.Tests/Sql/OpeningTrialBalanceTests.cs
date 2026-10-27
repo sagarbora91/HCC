@@ -44,7 +44,7 @@ public class OpeningTrialBalanceTests : IAsyncLifetime
         var cash = tb.Rows.Single(r => r.Account == "1000");
         Assert.Equal(("Cash in hand", "Asset", 2500000L, 0L, 2500000L), (cash.Name, cash.Group, cash.DebitPaise, cash.CreditPaise, cash.BalancePaise));
         var bank = tb.Rows.Single(r => r.Account == "1030");   // SBI01 is mapped to the HCC bank account
-        Assert.Equal(("Bank account", 35000000L), (bank.Name, bank.DebitPaise));
+        Assert.Equal(("Bank accounts", 35000000L), (bank.Name, bank.DebitPaise)); // ACC-1: 1030 carries the contract §2 name
         var cap = tb.Rows.Single(r => r.Account == "CAP01");
         Assert.Equal(("Owner's capital", "Equity", -105800000L), (cap.Name, cap.Group, cap.BalancePaise));
         var loan = tb.Rows.Single(r => r.Account == "LOAN01");
