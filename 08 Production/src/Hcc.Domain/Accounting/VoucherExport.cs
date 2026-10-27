@@ -57,8 +57,12 @@ public static partial class VoucherExport
 
     private static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
+    /// <summary>ACC-1 (integration): an entry's ledger name in the property's chart (Owner renames); a party shows "&lt;control&gt; · &lt;party id&gt;".</summary>
+    private static string EntryName(EffectiveChart chart, string account)
+        => PartyLedgers.IsParty(account) ? chart.NameOf(PartyLedgers.ControlOf(account)) + " · " + PartyLedgers.PartyOf(account) : chart.NameOf(account);
+
     /// <summary>One row per voucher entry; rupees with 2 decimals; CRLF (spec §9).</summary>
-    public static string Csv(IEnumerable<Voucher> vouchers)
+    public static string Csv(IEnumerable<Voucher> vouchers, EffectiveChart? chart = null)
     {
         ArgumentNullException.ThrowIfNull(vouchers);
         var rows = new List<string> { CsvHeader };
@@ -66,7 +70,7 @@ public static partial class VoucherExport
             foreach (var e in v.Entries)
                 rows.Add(string.Join(",", new[]
                 {
-                    Iso(v.Date), v.Number, v.Type.ToString(), PartyLedgers.DisplayName(e.Account),
+                    Iso(v.Date), v.Number, v.Type.ToString(), chart is null ? PartyLedgers.DisplayName(e.Account) : EntryName(chart, e.Account),
                     e.DebitPaise != 0 ? SourceRules.Rupees(e.DebitPaise) : "", e.CreditPaise != 0 ? SourceRules.Rupees(e.CreditPaise) : "", v.Narration, v.SourceKey,
                 }.Select(CsvCell)));
         return string.Join("\r\n", rows);
@@ -120,7 +124,7 @@ public static partial class VoucherExport
     /// identity for <see cref="RemoteId"/> (A03b-05); <paramref name="notes"/> (DEC-077 re-export / provisional days) follow the SIMULATED
     /// comment and <see cref="TallyIdNote"/>. Two vouchers with the same source key cannot be in one file (each REMOTEID is unique).
     /// </summary>
-    public static string TallyXml(IEnumerable<Voucher> vouchers, string company, string identity, IReadOnlyList<string>? notes = null)
+    public static string TallyXml(IEnumerable<Voucher> vouchers, string company, string identity, IReadOnlyList<string>? notes = null, EffectiveChart? chart = null)
     {
         ArgumentNullException.ThrowIfNull(vouchers);
         ArgumentNullException.ThrowIfNull(company);
@@ -136,7 +140,7 @@ public static partial class VoucherExport
             sb.Append(CultureInfo.InvariantCulture, $"   <TALLYMESSAGE xmlns:UDF=\"TallyUDF\"><VOUCHER REMOTEID=\"{id}\" VCHTYPE=\"{v.Type}\" ACTION=\"Create\" OBJVIEW=\"Accounting Voucher View\">\n");
             sb.Append(CultureInfo.InvariantCulture, $"    <DATE>{Td(v.Date)}</DATE><GUID>{id}</GUID><VOUCHERTYPENAME>{v.Type}</VOUCHERTYPENAME><VOUCHERNUMBER>{XmlEscape(v.Number)}</VOUCHERNUMBER><NARRATION>{XmlEscape(v.Narration)}</NARRATION><EFFECTIVEDATE>{Td(v.Date)}</EFFECTIVEDATE>\n");
             sb.Append(string.Join("\n", v.Entries.Select(e =>
-                $"    <ALLLEDGERENTRIES.LIST><LEDGERNAME>{XmlEscape(ChartOfAccounts.NameOf(PartyLedgers.ControlOf(e.Account)))}</LEDGERNAME><ISDEEMEDPOSITIVE>{(e.DebitPaise != 0 ? "Yes" : "No")}</ISDEEMEDPOSITIVE><AMOUNT>{(e.DebitPaise != 0 ? "-" + SourceRules.Rupees(e.DebitPaise) : SourceRules.Rupees(e.CreditPaise))}</AMOUNT></ALLLEDGERENTRIES.LIST>")));
+                $"    <ALLLEDGERENTRIES.LIST><LEDGERNAME>{XmlEscape((chart ?? ChartOfAccounts.Builtin).TallyNameOf(PartyLedgers.ControlOf(e.Account)))}</LEDGERNAME><ISDEEMEDPOSITIVE>{(e.DebitPaise != 0 ? "Yes" : "No")}</ISDEEMEDPOSITIVE><AMOUNT>{(e.DebitPaise != 0 ? "-" + SourceRules.Rupees(e.DebitPaise) : SourceRules.Rupees(e.CreditPaise))}</AMOUNT></ALLLEDGERENTRIES.LIST>")));
             sb.Append("\n   </VOUCHER></TALLYMESSAGE>");
             return sb.ToString();
         }));

@@ -36,6 +36,7 @@ public static class HccComposition
         services.AddHccConfiguration();                  // W2-1 Master configuration (settings registry, reader, module gate)
         services.AddExpensesModule();                   // W2-4 expenses and petty cash
         services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
+        services.AddAccountingOpeningModule();           // ACC-1 opening balances (IOpeningEntryStore: lock guard, cumulative TB, report opening)
         services.AddHccCompliance();                     // W2-5 compliance calendar
         services.AddPosModule();                         // W2-6 restaurant POS
         services.AddHccMaintenance();                    // W2-7

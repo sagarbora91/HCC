@@ -124,7 +124,8 @@ public static class SourceRules
         => new(sourceKey, SourceKinds.Expense, reversal ? "reversal" : "expense", date, funding == "Vendor credit" ? VoucherType.Journal : VoucherType.Payment, narration,
             itcPaise == 0
                 ? [Dr("expense:" + category, amountPaise), Cr("funding:" + funding, amountPaise)]
-                : [Dr("expense:" + category, checked(amountPaise - itcPaise)), Dr(GstInputKey, itcPaise), Cr("funding:" + funding, amountPaise)]);
+                : [Dr("expense:" + category, checked(amountPaise - itcPaise)), Dr(GstInputKey, ChartOfAccounts.ItcSplit(itcPaise).Cgst),
+                    Dr(ChartOfAccounts.GstInputSgstKey, ChartOfAccounts.ItcSplit(itcPaise).Sgst), Cr("funding:" + funding, amountPaise)]); // ACC-1: ITC CGST half 1310 · SGST half 1320
 
     /// <summary>DEC-130: the Udhaar receivables ledger key (customer credit settled by a desk receipt).</summary>
     public const string UdhaarKey = "receipt:udhaar";
@@ -191,7 +192,7 @@ public static class SourceRules
     public static AccountingSource CashDifference(string sourceKey, DateOnly date, long differencePaise, string narration)
         => new(sourceKey, SourceKinds.Closing, "cash-difference", date, VoucherType.Journal, narration,
             differencePaise > 0
-                ? [Dr("method:Cash", differencePaise), Cr("closing:cash-difference", differencePaise)]
+                ? [Dr("method:Cash", differencePaise), Cr(ChartOfAccounts.CashDiffKey(differencePaise), differencePaise)] // ACC-1: an over → closing:cash-over (4950)
                 : [Dr("closing:cash-difference", -differencePaise), Cr("method:Cash", -differencePaise)]);
 
     // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer ──

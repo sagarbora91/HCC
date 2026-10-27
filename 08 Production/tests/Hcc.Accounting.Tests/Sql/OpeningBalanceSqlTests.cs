@@ -97,8 +97,10 @@ public sealed class OpeningBalanceSqlTests(AccountingDb db) : IClassFixture<Acco
         Assert.Equal((Fy, true, true), (tb.OpeningAsOf, tb.OpeningIncluded, tb.Balanced));
         Assert.Equal(R(77_40_000), tb.DebitPaise);
         Assert.Equal(R(60_00_000), tb.Rows.Single(r => r.Account == "1500").DebitPaise);
-        Assert.Equal(R(40_000), tb.Rows.Single(r => r.Account == "1110/CMP-DECCAN").DebitPaise);
-        Assert.Equal(R(20_00_000), tb.Rows.Single(r => r.Account == "2400/LN-HDFC").CreditPaise);
+        // ACC-1 integration: the (non-detail) cumulative trial balance folds party opening rows into their control (contract §3).
+        Assert.Equal(R(40_000), tb.Rows.Single(r => r.Account == "1110").DebitPaise);
+        Assert.Equal(R(20_00_000), tb.Rows.Single(r => r.Account == "2400").CreditPaise);
+        Assert.DoesNotContain(tb.Rows, r => r.Account.Contains('/', StringComparison.Ordinal));
         Assert.Equal(R(20_000), tb.Rows.Single(r => r.Account == "1000").DebitPaise);
         var before = await queries.TrialBalanceAsync(db.As("ACC"), Fy.AddDays(-1), cumulative: true, Ct);
         Assert.False(before.OpeningIncluded);

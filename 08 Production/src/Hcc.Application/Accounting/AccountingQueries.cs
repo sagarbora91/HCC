@@ -176,7 +176,8 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
         if (from > to) throw HccException.Validation("Choose a valid range: \"from\" on or before \"to\".");
         if (to.DayNumber - from.DayNumber + 1 > CsvMaxDays) throw HccException.Validation($"Choose at most {CsvMaxDays} days.");
         var days = await AccountingDays.RangeAsync(store, caller.PropertyId, from, to, ct).ConfigureAwait(false);
-        return ($"HCC-vouchers-{Iso(from)}_{Iso(to)}.csv", VoucherExport.Csv(days.SelectMany(d => d.Vouchers)));
+        var chart = await store.ChartAsync(null, caller.PropertyId, ct).ConfigureAwait(false); // ACC-1: Owner renames reach the CSV
+        return ($"HCC-vouchers-{Iso(from)}_{Iso(to)}.csv", VoucherExport.Csv(days.SelectMany(d => d.Vouchers), chart));
     }
 
     /// <summary>
@@ -249,7 +250,8 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
         }
 
         return new TallyExportView(from, to, days.Count, vouchers.Count, d, c, true, $"HCC-tally-SIMULATED-{Iso(from)}_{Iso(to)}.xml",
-            VoucherExport.TallyXml(vouchers, company, identity, notes), reexport, provisional, exportId, pending, legacy);
+            VoucherExport.TallyXml(vouchers, company, identity, notes, await store.ChartAsync(null, caller.PropertyId, ct).ConfigureAwait(false)), // ACC-1: Tally names of the chart
+            reexport, provisional, exportId, pending, legacy);
     }
 
     /// <summary>The re-export flag reason of a date exported while accounting events were pending (A03b-05; ≤ 200 characters).</summary>

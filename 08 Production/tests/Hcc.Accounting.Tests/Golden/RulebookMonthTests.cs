@@ -219,31 +219,145 @@ public sealed class RulebookMonthTests
         Assert.Equal([4_000_000L, 10_300_000L, 6_300_000L], trace);   // 40,000 → 1,03,000 (T5b) → 63,000 (T7a)
     }
 
-    // ───────── lanes that are not merged yet: written down, skipped with the reason ─────────
+    // ───────── ACC-1 integration: the lanes' tests, un-skipped once chart, parties, opening and statements were merged ─────────
 
-    [Fact(Skip = "Waits for lane acc1-parties (contract §3): SourceEntry.Party / VoucherEntry.Account = <control>/<party>. Expected party balances are in rulebook-month.json " +
-                 "(expected.closing.party): 1110/<Deccan> 63,000 Dr, 2200/EV-MORNING 84,000 Cr, 2200/EV-KAVERI 42,000 Cr, 1030/BA-HDFC 4,45,000 Dr (before T13c) — fill in when the party resolver is merged.")]
+    /// <summary>The month's parties as the projector resolves them on the server (contract §3): the json's party ids → server party ids. The
+    /// company's id is the event's <c>companyId</c> (7 → <c>CMP-7</c>; the json writes it <c>CMP-0007</c>), staff 7 → <c>STF-7</c>.</summary>
+    internal static string ServerLedger(string ledger) => ledger
+        .Replace("CMP-0007", PartyLedgers.Company(7), StringComparison.Ordinal)
+        .Replace("STF-007", PartyLedgers.Staff(7), StringComparison.Ordinal);
+
+    private static string? Tender(string tender) => tender switch { "Cash" => "TILL", "Bank transfer" => "BA-HDFC", _ => null };
+
+    private static string? Vendor(string vendor) => vendor switch { "Morning Supplies" => "EV-MORNING", "Kaveri Textiles" => "EV-KAVERI", _ => null };
+
+    /// <summary>The month's sources with the parties the projector reads from the masters (tender settles-to account, vendor code, company of a
+    /// company-credit receipt, bank of a deposit).</summary>
+    internal static IReadOnlyList<AccountingSource> PartySources()
+    {
+        var list = new List<AccountingSource>();
+        foreach (var ev in Root.GetProperty("events").EnumerateArray())
+        {
+            var (type, p) = (S(ev, "type"), ev.GetProperty("payload"));
+            list.Add(type switch
+            {
+                AccountingEvents.ChargePosted => ChargeOf(p),
+                AccountingEvents.ReceiptRecorded => AccountingEventMapper.Receipt(L(p, "folioId"), L(p, "receiptId"), S(p, "kind"), S(p, "tender"), Date(S(p, "businessDate")), L(p, "amountPaise"),
+                    new PartyContext(Tender: Tender(S(p, "tender")), Company: S(p, "kind") == "company-credit" ? PartyLedgers.Company(7) : null)),
+                AccountingEvents.PosBillSettled => AccountingEventMapper.PosBill(p.Deserialize<PosBillSettledEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "tender")))),
+                AccountingEvents.CompanyPaymentRecorded => AccountingEventMapper.CompanyPayment(p.Deserialize<CompanyPaymentRecordedEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "tender")))),
+                AccountingEvents.ExpensePosted => AccountingEventMapper.Expense(p.Deserialize<ExpensePostedEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "funding")), Vendor: Vendor(S(p, "vendor")))),
+                AccountingEvents.AdvanceGiven => AccountingEventMapper.Advance(p.Deserialize<AdvanceGivenEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "funding")))),
+                AccountingEvents.PayrollPosted => AccountingEventMapper.PayRun(p.Deserialize<PayrollPostedEvent>(Web)!),
+                AccountingEvents.PayrollPaid => AccountingEventMapper.PayRunPaid(p.Deserialize<PayrollPaidEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "funding")))),
+                AccountingEvents.CashBanked => AccountingEventMapper.Banking(p.Deserialize<CashBankingEvent>(Web)!, rejected: false, new PartyContext(Tender: "TILL", Bank: "BA-HDFC")),
+                AccountingEvents.ShiftDifferenceDecided => AccountingEventMapper.CashDifference(L(p, "shiftId"), 1, Date(S(p, "businessDate")), L(p, "expectedPaise"), L(p, "countedPaise"),
+                    new PartyContext(Tender: "TILL")),
+                _ => throw new InvalidOperationException("Unknown event type " + type),
+            });
+        }
+
+        return list;
+    }
+
+    /// <summary>The opening journal of §8.1 on the party ledgers (<c>ledger</c>: <c>1030/BA-HDFC</c>, <c>1110/CMP-…</c>, <c>2200/EV-MORNING</c>).</summary>
+    internal static Voucher PartyOpeningVoucher()
+    {
+        var entries = Root.GetProperty("opening").EnumerateArray().Select(x => new VoucherEntry(ServerLedger(S(x, "ledger")), L(x, "debitPaise"), L(x, "creditPaise"))).ToList();
+        return OpeningVoucher() with { Entries = entries };
+    }
+
+    internal static IReadOnlyList<Voucher> PartyVouchers()
+    {
+        var mapping = ChartOfAccounts.Effective(MappingOverrides());
+        var sources = PartySources();
+        var vouchers = new List<Voucher> { PartyOpeningVoucher() };
+        foreach (var d in sources.Select(s => s.BusinessDate).Distinct().Order())
+            vouchers.AddRange(VoucherBuilder.Build(d, sources, mapping));
+        return vouchers;
+    }
+
+    [Fact]
     [Trait("Lane", "acc1-parties")]
     public void Party_ledgers_hold_the_party_balances()
     {
-        // Intended: build the vouchers with the party-aware VoucherBuilder (parties resolved from the month's masters), sum entries by full ledger id,
-        // and compare with Expected("closing", "party"); a control ledger keeps no balance of its own (no 'no-party' warning on any day).
-        Assert.NotEmpty(Expected("closing", "party"));
+        var vouchers = PartyVouchers();
+        var by = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var e in vouchers.SelectMany(v => v.Entries)) by[e.Account] = by.GetValueOrDefault(e.Account) + e.DebitPaise - e.CreditPaise;
+        foreach (var (ledger, want) in Expected("closing", "party"))
+            Assert.True(want == by.GetValueOrDefault(ServerLedger(ledger)), $"{ServerLedger(ledger)}: {by.GetValueOrDefault(ServerLedger(ledger))} ≠ {want}");
+        // Deccan 63,000 Dr; Morning 84,000 Cr; Kaveri 42,000 Cr; HDFC 2,31,500 Dr (3,00,000 + 40,000 − 45,000 + 1,50,000 − 2,13,500 T13c).
+        Assert.Equal(6_300_000, by[PartyLedgers.Compose("1110", PartyLedgers.Company(7))]);
+        // Staff 7's advance sits on the party; the server's pay run recovers it on the 1200 CONTROL (one total, no party:
+        // per-staff recovery is ACC-2, coordinator ruling 10), so the two cancel only at control level.
+        Assert.Equal(500_000, by[PartyLedgers.Compose("1200", PartyLedgers.Staff(7))]);
+        Assert.Equal(-500_000, by["1200"]);
+        // The control-level totals are unchanged by the parties (same figures as the control test).
+        Assert.Equal(Expected("closing", "control"), Balances(vouchers));
     }
 
-    [Fact(Skip = "Waits for lane acc1-opening (contract §5): the opening endpoint (SaveOpeningBalances / ApproveOpeningBalances). Intended: save the 11 opening lines of rulebook-month.json " +
-                 "as the Manager, approve as the Owner, then the cumulative trial balance at 30 April equals expected.closing (opening included); pending/draft opening refuses the first lock.")]
+    [Fact]
     [Trait("Lane", "acc1-opening")]
-    public void Opening_entry_through_the_endpoint_is_in_the_cumulative_trial_balance_and_gates_the_first_lock()
+    public void Opening_entry_through_the_rules_is_in_the_cumulative_trial_balance_and_gates_the_first_lock()
     {
-        Assert.Equal(11, Root.GetProperty("opening").GetArrayLength());
+        // The 11 lines of §8.1 as the Manager saves them (party ids as entered); balanced, so no 1400 line is added.
+        var lines = Root.GetProperty("opening").EnumerateArray().Select(x => new OpeningLineRequest(ServerLedger(S(x, "ledger")), L(x, "debitPaise"), L(x, "creditPaise"))).ToList();
+        Assert.Equal(11, lines.Count);
+        Assert.Empty(OpeningBalanceRules.Errors(lines));
+        var withBalance = OpeningBalanceRules.WithBalance(lines);
+        Assert.DoesNotContain(withBalance, l => l.Account == OpeningBalanceRules.DifferenceAccount);
+        var asOf = Date(S(Root, "asOf"));
+        var draft = new OpeningEntry(1, asOf, OpeningBalanceRules.Draft, withBalance, 2, new DateTime(2026, 10, 24, 5, 0, 0, DateTimeKind.Utc), null, null, null, "AAAAAAAAB9E=");
+        var approved = draft with { Status = OpeningBalanceRules.Approved, ApprovedBy = 1, ApprovedUtc = new DateTime(2026, 10, 24, 6, 0, 0, DateTimeKind.Utc) };
+        // Coordinator ruling 5: with no entry at all, locks are not gated (DEC-148: the trial period still locks days); a draft gates every date ≥ asOf.
+        var end = new DateOnly(2026, 4, 30);
+        Assert.Null(OpeningBalanceRules.LockBlocker(null, end));
+        Assert.True(OpeningBalanceRules.Pending(null));
+        Assert.StartsWith("Opening balances pending", OpeningBalanceRules.LockBlocker(draft, end), StringComparison.Ordinal);
+        Assert.Null(OpeningBalanceRules.LockBlocker(draft, asOf.AddDays(-1)));
+        Assert.Null(OpeningBalanceRules.LockBlocker(approved, end));
+        Assert.False(OpeningBalanceRules.Pending(approved));
+        // The approved journal JRN/20260401/000 + the month = the rulebook closing (control ledgers).
+        var journal = OpeningBalanceRules.Voucher(approved);
+        Assert.Equal(("JRN/20260401/000", asOf, 774_000_000L, 774_000_000L), (journal.Number, journal.Date, journal.Entries.Sum(e => e.DebitPaise), journal.Entries.Sum(e => e.CreditPaise)));
+        Assert.Equal(Expected("closing", "control"), Balances(PartyVouchers().Skip(1).Prepend(journal)));
     }
 
-    [Fact(Skip = "Waits for lane acc1-statements (contract §6): GET /accounting/trial-balance (six columns, detail), /statement, /day-book. Intended: six-column TB 1–30 April balanced in " +
-                 "all three column pairs; statement of 1110/<Deccan> from 2 April: opening 40,000 Dr, T5b +63,000 → 1,03,000, T7a −40,000 → 63,000 Dr.")]
+    [Fact]
     [Trait("Lane", "acc1-statements")]
     public void Six_column_trial_balance_and_the_party_statement_follow_the_month()
     {
-        Assert.NotEmpty(Expected("closing", "control"));
+        var all = PartyVouchers();
+        var (from, to) = (new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
+        var (opening, period) = AccountingReports.Split(all, from, to);
+        Assert.Single(opening);                                   // the opening journal dated ON 1 April counts as opening (ruling 6)
+        foreach (var detail in new[] { false, true })
+        {
+            var tb = AccountingReports.TrialBalance6(from, to, detail, opening, period, openingPending: false);
+            Assert.True(tb.Balanced, "detail " + detail);
+            Assert.Equal((774_000_000L, 774_000_000L), (tb.Totals.OpeningDebitPaise, tb.Totals.OpeningCreditPaise));
+            Assert.Equal(tb.Totals.DebitPaise, tb.Totals.CreditPaise);
+            Assert.Equal(tb.Totals.ClosingDebitPaise, tb.Totals.ClosingCreditPaise);
+            Assert.DoesNotContain(tb.Rows, r => r.Account == ChartOfAccounts.Suspense);
+        }
+
+        var summary = AccountingReports.TrialBalance6(from, to, false, opening, period, openingPending: false);
+        foreach (var (code, want) in Expected("closing", "control"))
+        {
+            var r = summary.Rows.Single(x => x.Account == code);
+            Assert.Equal(want, r.ClosingDebitPaise - r.ClosingCreditPaise);
+        }
+
+        // Statement of the company party from 2 April: opening 40,000 Dr, T5b +63,000 → 1,03,000 Dr, T7a −40,000 → 63,000 Dr.
+        var deccan = PartyLedgers.Compose("1110", PartyLedgers.Company(7));
+        var (o2, p2) = AccountingReports.Split(all, new DateOnly(2026, 4, 2), to);
+        var st = AccountingReports.Statement(deccan, new DateOnly(2026, 4, 2), to, o2, p2);
+        Assert.Equal(4_000_000, st.OpeningPaise);
+        Assert.Equal([10_300_000L, 6_300_000L], st.Rows.Select(r => r.RunningPaise));
+        Assert.Equal((6_300_000L, 4_000_000L, 6_300_000L), (st.DebitPaise, st.CreditPaise, st.ClosingPaise));
+        // Day book: every period voucher, date then number order, balanced.
+        var book = AccountingReports.DayBook(from, to, period);
+        Assert.True(book.Balanced);
+        Assert.Equal(period.Count, book.Vouchers);
     }
 }

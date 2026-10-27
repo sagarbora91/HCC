@@ -83,17 +83,22 @@ public sealed class AccountingReportQueries(IAccountingStore store, IAccessPolic
         else if (imported is not null && AccountingReports.ImportedVoucher(await imported.GetAsync(caller.PropertyId, ct).ConfigureAwait(false), extra) is { } iv) all.Add(iv);
         var parties = partyNames is null ? null : await partyNames.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var (opening, period) = AccountingReports.Split(all, from, to);
-        return new Loaded(opening, period, new LedgerNames(parties, extra), entry);
+        var chart = await store.ChartAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
+        return new Loaded(opening, period, new LedgerNames(parties, extra, chart), entry);
     }
 }
 
 /// <summary>Ledger display names and groups: chart names for codes, "&lt;control name&gt; · &lt;party name&gt;" for party ledgers, imported
 /// ledgers outside the chart by their own name and group.</summary>
-public sealed class LedgerNames(IReadOnlyDictionary<string, string>? parties = null, IReadOnlyDictionary<string, (string Name, string Group)>? extra = null)
+public sealed class LedgerNames(IReadOnlyDictionary<string, string>? parties = null, IReadOnlyDictionary<string, (string Name, string Group)>? extra = null,
+    EffectiveChart? chart = null)
 {
     public static readonly LedgerNames Chart = new();
 
-    private string CodeName(string code) => ChartOfAccounts.Find(code)?.Name ?? (extra is not null && extra.TryGetValue(code, out var x) ? x.Name : code);
+    // ACC-1 (integration): the property's chart (Owner renames / Owner-added ledgers); null = the built-ins.
+    private LedgerAccount? Ledger(string code) => (chart ?? ChartOfAccounts.Builtin).Find(code);
+
+    private string CodeName(string code) => Ledger(code)?.Name ?? (extra is not null && extra.TryGetValue(code, out var x) ? x.Name : code);
 
     public string Name(string account)
     {
@@ -107,7 +112,8 @@ public sealed class LedgerNames(IReadOnlyDictionary<string, string>? parties = n
     public string Group(string account)
     {
         var code = AccountingReports.ControlOf(account);
-        return ChartOfAccounts.Find(code)?.Group.ToString() ?? (extra is not null && extra.TryGetValue(code, out var x) ? x.Group : nameof(AccountGroup.Suspense));
+        // ACC-1 (integration): the Tally group id of the chart (contract §1), as the prototype's accRptLedgerGroup.
+        return Ledger(code)?.GroupId ?? (extra is not null && extra.TryGetValue(code, out var x) ? x.Group : nameof(AccountGroup.Suspense));
     }
 
     /// <summary>Party name alone (detail ordering).</summary>

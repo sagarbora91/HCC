@@ -139,7 +139,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         await db.ProjectAsync();
         var day = await db.Queries.DayAsync(db.As("ACC"), d, Ct);
         Assert.All(day.Vouchers, v => Assert.True(v.Balanced, v.Number));
-        Assert.Equal([("5020", 50_000L, 0L), ("1310", 9_000L, 0L), ("1010", 0L, 59_000L)], day.Vouchers.Single(v => v.SourceKey == "expense:61").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("5020", 50_000L, 0L), ("1310", 4_500L, 0L), ("1320", 4_500L, 0L), ("1010", 0L, 59_000L)], day.Vouchers.Single(v => v.SourceKey == "expense:61").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.Equal([("1000", 100_000L, 0L), ("1120/UD-RAMESH-FICTIONAL", 0L, 100_000L)], day.Vouchers.Single(v => v.SourceKey == "udhaar-payment:71").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.Equal(0, day.Errors);
         var map = await db.Queries.MappingAsync(db.As("OWN"), Ct);
@@ -151,7 +151,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         Assert.Equal(tally.DebitPaise, tally.CreditPaise);
         var tb = await db.Queries.TrialBalanceAsync(db.As("ACC"), d, false, Ct);
         Assert.True(tb.Balanced);
-        Assert.Equal(0, tb.Rows.Where(r => r.Account == "1310").Sum(r => r.BalancePaise));               // the reversal netted the input credit
+        Assert.Equal(0, tb.Rows.Where(r => r.Account is "1310" or "1320").Sum(r => r.BalancePaise));               // the reversal netted the input credit
         Assert.Equal(-100_000, tb.Rows.Single(r => r.Account == "1120").BalancePaise);                  // Cr: the receipt settled Udhaar receivables
     }
 }

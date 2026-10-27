@@ -23,6 +23,7 @@ public static class AccountingOpeningEndpoints
             sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton(sp => new OpeningBalanceQueries(sp.GetRequiredService<IOpeningEntryStore>(), sp.GetRequiredService<IAccountingStore>(),
             sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>()));
+        services.AddSingleton<IReportOpeningSource>(sp => new OpeningReportSource(sp.GetRequiredService<IOpeningEntryStore>())); // ACC-1 integration: report opening
         return services;
     }
 

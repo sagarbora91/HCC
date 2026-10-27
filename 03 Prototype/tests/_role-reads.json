@@ -174,6 +174,21 @@
           "P"
         ],
         [
+          "PERM-ACC-007",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-008",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-009",
+          "A",
+          "P"
+        ],
+        [
           "PERM-ADM-001",
           "A",
           "P"
@@ -872,6 +887,9 @@
         "GET /accounting/mapping": "200",
         "GET /accounting/mapping/history": "200",
         "GET /accounting/locks/history": "200",
+        "GET /accounting/chart/master": "200",
+        "GET /accounting/chart/history": "200",
+        "GET /accounting/opening": "200",
         "GET /expenses": "200",
         "GET /expenses/registers": "200",
         "GET /compliance/state": "200",
@@ -984,6 +1002,11 @@
         ],
         [
           "PERM-ACC-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-008",
           "A",
           "P"
         ],
@@ -1561,6 +1584,9 @@
         "GET /accounting/mapping": "200",
         "GET /accounting/mapping/history": "200",
         "GET /accounting/locks/history": "200",
+        "GET /accounting/chart/master": "200",
+        "GET /accounting/chart/history": "200",
+        "GET /accounting/opening": "200",
         "GET /expenses": "200",
         "GET /expenses/registers": "200",
         "GET /compliance/state": "403",
@@ -1990,6 +2016,9 @@
         "GET /accounting/mapping": "403",
         "GET /accounting/mapping/history": "403",
         "GET /accounting/locks/history": "403",
+        "GET /accounting/chart/master": "403",
+        "GET /accounting/chart/history": "403",
+        "GET /accounting/opening": "403",
         "GET /expenses": "200",
         "GET /expenses/registers": "200",
         "GET /compliance/state": "403",
@@ -2299,6 +2328,9 @@
         "GET /accounting/mapping": "403",
         "GET /accounting/mapping/history": "403",
         "GET /accounting/locks/history": "403",
+        "GET /accounting/chart/master": "403",
+        "GET /accounting/chart/history": "403",
+        "GET /accounting/opening": "403",
         "GET /expenses": "200",
         "GET /expenses/registers": "200",
         "GET /compliance/state": "403",
@@ -2416,6 +2448,11 @@
         ],
         [
           "PERM-ACC-006",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-008",
           "A",
           "P"
         ],
@@ -2668,6 +2705,9 @@
         "GET /accounting/mapping": "200",
         "GET /accounting/mapping/history": "200",
         "GET /accounting/locks/history": "200",
+        "GET /accounting/chart/master": "200",
+        "GET /accounting/chart/history": "200",
+        "GET /accounting/opening": "200",
         "GET /expenses": "200",
         "GET /expenses/registers": "200",
         "GET /compliance/state": "200",
@@ -2912,6 +2952,9 @@
         "GET /accounting/mapping": "403",
         "GET /accounting/mapping/history": "403",
         "GET /accounting/locks/history": "403",
+        "GET /accounting/chart/master": "403",
+        "GET /accounting/chart/history": "403",
+        "GET /accounting/opening": "403",
         "GET /expenses": "403",
         "GET /expenses/registers": "403",
         "GET /compliance/state": "403",
@@ -3121,6 +3164,9 @@
         "GET /accounting/mapping": "403",
         "GET /accounting/mapping/history": "403",
         "GET /accounting/locks/history": "403",
+        "GET /accounting/chart/master": "403",
+        "GET /accounting/chart/history": "403",
+        "GET /accounting/opening": "403",
         "GET /expenses": "403",
         "GET /expenses/registers": "403",
         "GET /compliance/state": "403",
@@ -3315,6 +3361,9 @@
         "GET /accounting/mapping": "403",
         "GET /accounting/mapping/history": "403",
         "GET /accounting/locks/history": "403",
+        "GET /accounting/chart/master": "403",
+        "GET /accounting/chart/history": "403",
+        "GET /accounting/opening": "403",
         "GET /expenses": "403",
         "GET /expenses/registers": "403",
         "GET /compliance/state": "403",
@@ -3534,6 +3583,9 @@
         "GET /accounting/mapping": "403",
         "GET /accounting/mapping/history": "403",
         "GET /accounting/locks/history": "403",
+        "GET /accounting/chart/master": "403",
+        "GET /accounting/chart/history": "403",
+        "GET /accounting/opening": "403",
         "GET /expenses": "403",
         "GET /expenses/registers": "403",
         "GET /compliance/state": "403",
@@ -3703,6 +3755,9 @@
         "GET /accounting/mapping": "403",
         "GET /accounting/mapping/history": "403",
         "GET /accounting/locks/history": "403",
+        "GET /accounting/chart/master": "403",
+        "GET /accounting/chart/history": "403",
+        "GET /accounting/opening": "403",
         "GET /expenses": "403",
         "GET /expenses/registers": "403",
         "GET /compliance/state": "403",

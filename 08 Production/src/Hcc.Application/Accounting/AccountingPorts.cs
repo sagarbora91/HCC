@@ -89,10 +89,18 @@ public interface IAccountingStore
     Task<IReadOnlyDictionary<string, string>> MasterLedgersAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
 
-    /// <summary>The effective ledger mapping of the property (defaults → master ledgers → overrides).</summary>
+    /// <summary>ACC-1 (integration): the property's effective chart — built-ins with the Owner's overrides + Owner-added ledgers
+    /// (<see cref="ChartOfAccounts.Merge"/> over <c>acc.ledger</c> / <c>acc.ledger_group</c>). Default: the built-ins (stores without the chart).</summary>
+    Task<EffectiveChart> ChartAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) => Task.FromResult(ChartOfAccounts.Builtin);
+
+    /// <summary>The effective ledger mapping of the property (defaults → master ledgers → overrides), validated against its chart.</summary>
     async Task<Dictionary<string, string>> EffectiveMappingAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
-        Hcc.Domain.Accounting.ChartOfAccounts.Effective(await MappingOverridesAsync(tx, propertyId, ct).ConfigureAwait(false),
-            await MasterLedgersAsync(tx, propertyId, ct).ConfigureAwait(false));
+        await EffectiveMappingAsync(tx, propertyId, await ChartAsync(tx, propertyId, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+
+    /// <summary><see cref="EffectiveMappingAsync(ICommandTransaction?, int, CancellationToken)"/> against a chart already read.</summary>
+    async Task<Dictionary<string, string>> EffectiveMappingAsync(ICommandTransaction? tx, int propertyId, EffectiveChart chart, CancellationToken ct) =>
+        ChartOfAccounts.Effective(await MappingOverridesAsync(tx, propertyId, ct).ConfigureAwait(false),
+            await MasterLedgersAsync(tx, propertyId, ct).ConfigureAwait(false), chart);
 
     /// <summary>Classification keys found in the property's sources with how many source records use each.</summary>
     Task<IReadOnlyDictionary<string, int>> KeyUsesAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);

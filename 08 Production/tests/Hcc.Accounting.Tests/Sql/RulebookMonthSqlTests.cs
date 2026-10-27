@@ -1,16 +1,19 @@
 using System.Text.Json;
 using Hcc.Accounting.Tests.Golden;
 using Hcc.Accounting.Tests.Harness;
+using Hcc.Application.Accounting;
 using Hcc.Contracts.Accounting;
+using Hcc.Infrastructure.SqlServer.Access;
+using Hcc.Infrastructure.SqlServer.Accounting;
+using Hcc.Infrastructure.SqlServer.Billing;
 
 namespace Hcc.Accounting.Tests.Sql;
 
 /// <summary>
 /// ACC-1 (lane acc1-tests): the rulebook golden month through the real outbox → accounting consumer → vouchers → cumulative trial balance
 /// (PERM-ACC-001), on a disposable database with the real P1 policy. The events and the expectation are those of
-/// <c>Golden/rulebook-month.json</c> (rulebook §8, April 2026, fictional); the opening balances are NOT loaded here — they arrive through the
-/// opening endpoint of lane acc1-opening (see the skipped test in <see cref="RulebookMonthTests"/>), so the expectation is the month's flow
-/// (<c>expected.flow</c>). Not driven: T16 (an Owner drawing from the bank, rulebook B6 — ACC-2) and T4 T6 T7b T11 T14 T17 T18 T19.
+/// <c>Golden/rulebook-month.json</c> (rulebook §8, April 2026, fictional); the month's flow is checked first (<c>expected.flow</c>), then
+/// (ACC-1 integration) the §8.1 opening goes through the opening service and the cumulative trial balance equals <c>expected.closing</c>. Not driven: T16 (an Owner drawing from the bank, rulebook B6 — ACC-2) and T4 T6 T7b T11 T14 T17 T18 T19.
 /// </summary>
 [Trait("Category", "Sql")]
 public sealed class RulebookMonthSqlTests(AccountingDb db) : IClassFixture<AccountingDb>
@@ -65,5 +68,54 @@ public sealed class RulebookMonthSqlTests(AccountingDb db) : IClassFixture<Accou
         foreach (var p in root.GetProperty("expected").GetProperty("flow").GetProperty("control").EnumerateObject()) want[p.Name] = p.Value.GetInt64();
         Assert.False(got.ContainsKey("9999"), "something posted to 9999 Suspense");
         Assert.Equal(want, got);
+
+        // ── ACC-1 integration (lanes acc1-opening / acc1-statements / acc1-parties): the §8.1 opening through the opening service, the lock
+        //    gate of coordinator ruling 5, and the cumulative / six-column trial balance with the opening ──
+        var policy = new SqlAccessPolicy(db.Platform.Connections, db.Clock, [new SqlShiftScopeResolver(db.Platform.Connections)]);
+        var openingStore = new SqlOpeningStore(db.Platform.Connections);
+        var opening = new OpeningBalanceService(db.Platform.Commands, openingStore, db.Store, policy, db.Clock);
+        var gated = new AccountingService(db.Platform.Commands, db.Store, policy, db.Clock, openingStore);
+        var queries = new AccountingQueries(db.Store, policy, null, null, db.Clock, openingStore);
+        var reports = new AccountingReportQueries(db.Store, policy, null, new OpeningReportSource(openingStore), new SqlReportPartyNames(db.Platform.Connections));
+
+        // no entry at all: days still lock (DEC-148, ruling 5) and the six-column trial balance says "opening balances pending"
+        Assert.Equal("Locked", (await gated.LockAsync(db.As("ACC"), Key(), new LockPeriodRequest(new DateOnly(2026, 4, 2)), Ct)).Value.Status);
+        Assert.True((await reports.TrialBalanceAsync(db.As("ACC"), new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30), false, Ct)).OpeningPending);
+
+        var asOf = DateOnly.Parse(root.GetProperty("asOf").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+        var lines = root.GetProperty("opening").EnumerateArray()
+            .Select(x => new OpeningLineRequest(RulebookMonthTests.ServerLedger(x.GetProperty("ledger").GetString()!), x.GetProperty("debitPaise").GetInt64(), x.GetProperty("creditPaise").GetInt64()))
+            .ToList();
+        var saved = (await opening.SaveAsync(db.As("MGR"), Key(), new SaveOpeningBalancesRequest(asOf, lines, "Rulebook §8.1 (fictional)"), Ct)).Value;
+        Assert.Equal(("draft", 0L, 774_000_000L), (saved.Status, saved.DifferencePaise, saved.DebitPaise));
+
+        // a draft gates every lock on or after asOf
+        var refused = await Assert.ThrowsAsync<Hcc.Domain.Errors.HccException>(() => gated.LockAsync(db.As("ACC"), Key(), new LockPeriodRequest(new DateOnly(2026, 4, 3)), Ct));
+        Assert.StartsWith("Opening balances pending", refused.Message, StringComparison.Ordinal);
+        await opening.ApproveAsync(db.As("OWN"), Key(), new ApproveOpeningBalancesRequest(null), Ct);
+        Assert.Equal("Locked", (await gated.LockAsync(db.As("ACC"), Key(), new LockPeriodRequest(new DateOnly(2026, 4, 3)), Ct)).Value.Status);
+
+        // cumulative trial balance at 30 April = the rulebook closing (opening included), control level
+        var cum = await queries.TrialBalanceAsync(db.As("OWN"), new DateOnly(2026, 4, 30), cumulative: true, Ct);
+        Assert.True(cum.Balanced);
+        var closing = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var r in cum.Rows) closing[RulebookMonthTests.Control(r.Account)] = closing.GetValueOrDefault(RulebookMonthTests.Control(r.Account)) + r.BalancePaise;
+        foreach (var k in closing.Where(x => x.Value == 0).Select(x => x.Key).ToList()) closing.Remove(k);
+        var wantClosing = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var p in root.GetProperty("expected").GetProperty("closing").GetProperty("control").EnumerateObject()) wantClosing[p.Name] = p.Value.GetInt64();
+        Assert.Equal(wantClosing, closing);
+
+        // the six-column trial balance of April (the opening journal dated 1 April is the opening): balanced in every column pair, no longer pending
+        foreach (var detail in new[] { false, true })
+        {
+            var tb6 = await reports.TrialBalanceAsync(db.As("ACC"), new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30), detail, Ct);
+            Assert.True(tb6.Balanced, "detail " + detail);
+            Assert.False(tb6.OpeningPending);
+            Assert.Equal((774_000_000L, 774_000_000L), (tb6.Totals.OpeningDebitPaise, tb6.Totals.OpeningCreditPaise));
+        }
+
+        // a party row of the opening (2200/EV-MORNING) sits under its control in the detail view
+        var detailTb = await reports.TrialBalanceAsync(db.As("ACC"), new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30), true, Ct);
+        Assert.Contains(detailTb.Rows, r => r.Account == "2200/EV-MORNING" && r.Control == "2200");
     }
 }

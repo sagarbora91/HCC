@@ -346,11 +346,12 @@ public static partial class ChartOfAccounts
         return m;
     }
 
-    /// <summary>A key resolves when it maps to an existing, non-suspense ledger of <paramref name="chart"/> (null = built-ins).</summary>
+    /// <summary>A key resolves when it maps to an existing, ACTIVE, non-suspense ledger of <paramref name="chart"/> (null = built-ins;
+    /// ACC-1 integration: a retired ledger posts to Suspense, as the prototype's accLiveVouchers).</summary>
     public static string? Resolve(IReadOnlyDictionary<string, string> mapping, string key, EffectiveChart? chart = null)
     {
         ArgumentNullException.ThrowIfNull(mapping);
-        return mapping.TryGetValue(key, out var a) && (chart ?? Builtin).Find(a) is not null && a != Suspense ? a : null;
+        return mapping.TryGetValue(key, out var a) && (chart ?? Builtin).Find(a) is { Active: true } && a != Suspense ? a : null;
     }
 }
 

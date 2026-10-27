@@ -45,7 +45,8 @@ public static class VoucherBuilder
     /// Suspense; zero entries are dropped and an all-zero source yields no voucher; numbering is per type in source order
     /// (<c>SAL|RCT|PMT|JRN/yyyymmdd/nnn</c>), types in the order Sales, Receipt, Payment, Journal.
     /// </summary>
-    public static IReadOnlyList<Voucher> Build(DateOnly date, IEnumerable<AccountingSource> sources, IReadOnlyDictionary<string, string> mapping)
+    public static IReadOnlyList<Voucher> Build(DateOnly date, IEnumerable<AccountingSource> sources, IReadOnlyDictionary<string, string> mapping,
+        EffectiveChart? chart = null)
     {
         ArgumentNullException.ThrowIfNull(sources);
         ArgumentNullException.ThrowIfNull(mapping);
@@ -56,7 +57,7 @@ public static class VoucherBuilder
             var entries = new List<VoucherEntry>();
             foreach (var e in s.Entries)
             {
-                var account = ChartOfAccounts.Resolve(mapping, e.MapKey);
+                var account = ChartOfAccounts.Resolve(mapping, e.MapKey, chart); // ACC-1: the property's chart (null = built-ins)
                 if (account is null)
                 {
                     if (!miss.Contains(e.MapKey, StringComparer.Ordinal)) miss.Add(e.MapKey);

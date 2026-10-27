@@ -24,9 +24,10 @@ public static class AccountingDays
         ArgumentNullException.ThrowIfNull(store);
         var businessDate = await store.BusinessDateAsync(tx, propertyId, ct).ConfigureAwait(false)
             ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
-        var mapping = await store.EffectiveMappingAsync(tx, propertyId, ct).ConfigureAwait(false);
+        var chart = await store.ChartAsync(tx, propertyId, ct).ConfigureAwait(false); // ACC-1: Owner renames / Owner-added ledgers
+        var mapping = await store.EffectiveMappingAsync(tx, propertyId, chart, ct).ConfigureAwait(false);
         var sources = await store.SourcesAsync(tx, propertyId, date, date, ct).ConfigureAwait(false);
-        var live = VoucherBuilder.Build(date, sources, mapping);
+        var live = VoucherBuilder.Build(date, sources, mapping, chart);
         var lk = await store.CurrentLockAsync(tx, propertyId, date, ct).ConfigureAwait(false);
         var reopened = lk is null ? await store.ReopenedDateAsync(tx, propertyId, ct).ConfigureAwait(false) : null;
         var status = Status(lk is not null, date, businessDate, reopened);
@@ -56,11 +57,12 @@ public static class AccountingDays
         DateOnly from, DateOnly to, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(store);
-        var mapping = await store.EffectiveMappingAsync(null, propertyId, ct).ConfigureAwait(false);
+        var chart = await store.ChartAsync(null, propertyId, ct).ConfigureAwait(false); // ACC-1: Owner renames / Owner-added ledgers
+        var mapping = await store.EffectiveMappingAsync(null, propertyId, chart, ct).ConfigureAwait(false);
         var sources = await store.SourcesAsync(null, propertyId, from, to, ct).ConfigureAwait(false);
         var locks = (await store.LocksAsync(null, propertyId, from, to, ct).ConfigureAwait(false)).ToDictionary(l => l.BusinessDate);
         var dates = sources.Select(s => s.BusinessDate).Concat(locks.Keys).Distinct().Order().ToList();
-        return dates.Select(d => locks.TryGetValue(d, out var l) ? (d, l.Vouchers, true) : (d, VoucherBuilder.Build(d, sources, mapping), false)).ToList();
+        return dates.Select(d => locks.TryGetValue(d, out var l) ? (d, l.Vouchers, true) : (d, VoucherBuilder.Build(d, sources, mapping, chart), false)).ToList();
     }
 }
 
@@ -136,8 +138,11 @@ public sealed class AccountingService(ICommandRunner runner, IAccountingStore st
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, AccountingPermissions.Mapping, ct: ct).ConfigureAwait(false);
         var key = req.MapKey ?? "";
         if (!ChartOfAccounts.IsValidKey(key)) throw new HccException(HccErrorCode.NOT_FOUND, "Unknown source classification.");
-        var account = ChartOfAccounts.Find(req.AccountCode);
-        if (account is null || account.Code == ChartOfAccounts.Suspense) throw HccException.Validation("Choose a ledger from the chart of accounts (not Suspense).");
+        // ACC-1 (integration): the property's chart — an Owner-added ledger is a valid target, a retired one is not.
+        var chart = await store.ChartAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
+        var account = chart.Find(req.AccountCode);
+        if (account is null || !account.Active || account.Code == ChartOfAccounts.Suspense)
+            throw HccException.Validation("Choose an active ledger from the chart of accounts (not Suspense).");
         return await runner.RunAsync(Ctx(caller, OpMapSet, idempotencyKey), req, async (tx, ct2) =>
         {
             await store.SerializeAsync(tx, $"acc:mapping:{caller.PropertyId}", ct2).ConfigureAwait(false);
@@ -147,7 +152,7 @@ public sealed class AccountingService(ICommandRunner runner, IAccountingStore st
             if (before == account.Code) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This classification already maps to that ledger.");
             await store.WriteMappingAsync(tx, caller.PropertyId, key, account.Code, before, Now, ct2).ConfigureAwait(false);
             await tx.AuditAsync("ACC_MAPPING_SET", "acc-map:" + Clip(key), $"{key} → {account.Code} {account.Name}"
-                + (before is null ? "" : $" (was {before} {ChartOfAccounts.NameOf(before)})") + " · locked periods unchanged", ct2).ConfigureAwait(false);
+                + (before is null ? "" : $" (was {before} {chart.NameOf(before)})") + " · locked periods unchanged", ct2).ConfigureAwait(false);
             return new LedgerMappingResult(key, before, account.Code, ChartOfAccounts.DefaultMapping.GetValueOrDefault(key) == account.Code);
         }, ct).ConfigureAwait(false);
     }

@@ -80,7 +80,8 @@ public sealed class GroupBooksSqlTests : IAsyncLifetime
         static IEnumerable<(string, long, long)> E(VoucherView v) => v.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise));
         var attrition = V("group-attrition:" + a.AttritionId);
         Assert.Equal(("Sales", "group-attrition"), (attrition.Type, attrition.Sub));
-        Assert.Equal([("1110", 3_186_000L, 0L), ("4000", 0L, 2_700_000L), ("2110", 0L, 243_000L), ("2120", 0L, 243_000L)], E(attrition));
+        // ACC-1: attrition re-pointed 4000 → 4300 (contract §2); 2000 named as the chart (Tally name in the XML below).
+        Assert.Equal([("1110", 3_186_000L, 0L), ("4300", 0L, 2_700_000L), ("2110", 0L, 243_000L), ("2120", 0L, 243_000L)], E(attrition));
         Assert.Equal([("1030", 500_000L, 0L), ("2000", 0L, 500_000L)], E(V("group-receipt:" + dep.EntryId)));
         var refundVoucher = V("group-receipt:" + refund.EntryId);
         Assert.Equal(("Payment", "group-refund"), (refundVoucher.Type, refundVoucher.Sub));
@@ -100,7 +101,7 @@ public sealed class GroupBooksSqlTests : IAsyncLifetime
         Assert.True(tb.Balanced);
         long B(string acc) => tb.Rows.SingleOrDefault(r => r.Account == acc)?.BalancePaise ?? 0;
         Assert.Equal((0L, 0L), (B("1110"), B("2000")));
-        Assert.Equal((-2_700_000L, -243_000L, -243_000L, 3_186_000L, 420_000L, -420_000L), (B("4000"), B("2110"), B("2120"), B("1010"), B("1030"), B("1100")));
+        Assert.Equal((-2_700_000L, -243_000L, -243_000L, 3_186_000L, 420_000L, -420_000L), (B("4300"), B("2110"), B("2120"), B("1010"), B("1030"), B("1100")));
 
         // Tally (simulated) carries the vouchers with their Tally voucher types.
         var tally = await Books.TallyAsync(_w.Caller("owner"), Today, Today, Ct);
@@ -109,7 +110,7 @@ public sealed class GroupBooksSqlTests : IAsyncLifetime
         Assert.Matches("<VOUCHER REMOTEID=\"HCC-[0-9a-f]{32}-group-attrition:[0-9]+\" VCHTYPE=\"Sales\"", tally.Xml); // A03b-05: stable voucher id
         Assert.Contains("<NARRATION>Group attrition · 3 line(s)", tally.Xml, StringComparison.Ordinal);
         Assert.Contains("<NARRATION>Group settled · deposits applied to the company receivable", tally.Xml, StringComparison.Ordinal);
-        Assert.Contains("<LEDGERNAME>Advance deposits</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-4200.00</AMOUNT>", tally.Xml, StringComparison.Ordinal);
+        Assert.Contains("<LEDGERNAME>Advance deposits (guest and group)</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-4200.00</AMOUNT>", tally.Xml, StringComparison.Ordinal);
     }
 
     private async Task<string> PayloadAsync(string eventType, long? entryId)

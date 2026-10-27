@@ -33,6 +33,10 @@ internal static class AccSql
 /// </summary>
 public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAccountingStore
 {
+    /// <summary>ACC-1 (integration): the property's effective chart (Owner renames / Owner-added ledgers reach the postings and exports).</summary>
+    public Task<EffectiveChart> ChartAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        ((IChartStore)new SqlChartStore(connections)).ChartAsync(tx, propertyId, ct);
+
     private async Task<T> WithAsync<T>(ICommandTransaction? tx, Func<SqlConnection, SqlTransaction?, Task<T>> f, CancellationToken ct)
     {
         if (tx is not null)

@@ -23,7 +23,9 @@ public static class AccountingEndpoints
         // DEC-077: the Tally export is recorded (log + audit) on the platform runner: it posts on no business date, so the late-write
         // barrier does not apply.
         services.AddSingleton(sp => new AccountingQueries(sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(),
-            sp.GetService<Hcc.Application.Import.IOpeningBalanceSource>(), sp.GetRequiredService<SqlPlatform>().Commands, sp.GetRequiredService<TimeProvider>()));
+            sp.GetService<Hcc.Application.Import.IOpeningBalanceSource>(), sp.GetRequiredService<SqlPlatform>().Commands, sp.GetRequiredService<TimeProvider>(),
+            sp.GetService<IOpeningEntryStore>())); // ACC-1: the approved opening entry supersedes the imported opening in the cumulative TB
+        services.AddSingleton<IReportPartyNames>(sp => new SqlReportPartyNames(sp.GetRequiredService<SqlPlatform>().Connections)); // ACC-1 party names (reports)
         services.AddSingleton<IAccountingDayHooks, AccountingDayHooks>(); // DEC-077: Closing's reopen asks for the period lock and flags Tally re-export
         services.AddHostedService<AccountingProjectorWorker>();
         return services;
@@ -41,8 +43,12 @@ public static class AccountingEndpoints
             => Results.Ok(await q.DayAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
         g.MapGet("/accounting/days", async (DateOnly from, DateOnly to, HttpContext http, AccountingQueries q, CancellationToken ct)
             => Results.Ok(await q.DaysAsync(http.HccCaller(), from, to, ct).ConfigureAwait(false)));
-        g.MapGet("/accounting/trial-balance", async (DateOnly date, HttpContext http, AccountingQueries q, CancellationToken ct, bool cumulative = false)
-            => Results.Ok(await q.TrialBalanceAsync(http.HccCaller(), date, cumulative, ct).ConfigureAwait(false)));
+        // ACC-1 (statements lane): ?from&to&detail = the six-column trial balance (contract §6); ?date&cumulative unchanged.
+        g.MapGet("/accounting/trial-balance", async (HttpContext http, AccountingQueries q, CancellationToken ct, DateOnly? date = null, bool cumulative = false,
+            DateOnly? from = null, DateOnly? to = null, bool detail = false) =>
+            from is { } f ? await AccountingReportEndpoints.TrialBalanceAsync(http, f, to ?? f, detail, ct).ConfigureAwait(false)
+            : date is { } d ? Results.Ok(await q.TrialBalanceAsync(http.HccCaller(), d, cumulative, ct).ConfigureAwait(false))
+            : throw Hcc.Domain.Errors.HccException.Validation("Give \"date\" (day / cumulative) or \"from\" and \"to\" (six columns)."));
         g.MapGet("/accounting/mapping", async (HttpContext http, AccountingQueries q, CancellationToken ct)
             => Results.Ok(await q.MappingAsync(http.HccCaller(), ct).ConfigureAwait(false)));
         g.MapGet("/accounting/mapping/history", async (HttpContext http, AccountingQueries q, CancellationToken ct)

@@ -65,7 +65,7 @@ public sealed class ReportQueriesTests
         var rows = det.Rows.Where(r => r.Account == "1110" || r.Control == "1110").ToList();
         Assert.Equal(["1110", "1110/CMP-A", "1110/CMP-B"], rows.Select(r => r.Account));
         Assert.Equal([(250_000L, 0L), (1_000_000L, 0L), (0L, 400_000L)], rows.Select(r => (r.ClosingDebitPaise, r.ClosingCreditPaise)));
-        Assert.All(rows, r => Assert.Equal(ChartOfAccounts.Find("1110")!.Group.ToString(), r.Group));
+        Assert.All(rows, r => Assert.Equal(ChartOfAccounts.Find("1110")!.GroupId, r.Group)); // ACC-1 integration: Tally group id
         Assert.Equal(850_000, rows.Sum(r => r.ClosingDebitPaise - r.ClosingCreditPaise));
         Assert.Equal((sum.Totals.DebitPaise, sum.Totals.CreditPaise), (det.Totals.DebitPaise, det.Totals.CreditPaise));
 

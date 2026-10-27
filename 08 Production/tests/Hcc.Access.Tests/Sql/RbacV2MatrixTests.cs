@@ -29,6 +29,11 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
     {
         // Wave C3 (audit A09-05, migration 3921): System health — parked outbox events, retry, last backup. Administration: Owner, Tech admin.
         ["PERM-SYS-001"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "A"],
+        // ACC-1 (contract §7, migrations 4202 / 4221): chart of accounts edit = Owner; opening balances enter = Owner, Manager, Accountant;
+        // opening balances approve / reopen = Owner.
+        ["PERM-ACC-007"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
+        ["PERM-ACC-008"] = ["A", "A", "A", "—", "—", "—", "—", "—", "—", "—"],
+        ["PERM-ACC-009"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
     };
 
     /// <summary>L cells: the Manager's limit in paise (DEC-063 G1 Rs 1,000; GRP-003 Rs 10,000 as seeded by 2201).</summary>
