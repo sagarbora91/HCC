@@ -29,6 +29,14 @@
         </provider>
     </application>
 
+    <!-- V16-1: package visibility (Android 11+) hides camera apps from the Camera plugin's IMAGE_CAPTURE intent unless the app declares it;
+         without this the slip-photo field logged "Media capture intent could not be launched" and fell back to the photo picker. -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
