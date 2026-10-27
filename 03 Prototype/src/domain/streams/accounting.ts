@@ -12,6 +12,7 @@ import {cxSlice} from './cashout';
 import {sysParkedAccounting,SYS_STUCK_TITLE,sysStuckDetail} from './syshealth';
 import {expItcPaise} from './expenses-scc';
 import {expUdDeskReceipts,expUdDeskDates} from './udhaar-desk';
+import {accOpeningLockBlocker,accOpeningPosted} from './accounting-opening'; // ACC-1 opening (contract §5)
 
 // ── Chart of accounts (synthetic) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
@@ -246,7 +247,7 @@ export function accDates(s:State):string[]{
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
-export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;return [...(sv?sv.opening.filter(v=>v.date<date||(v.source.sub==='opening-import'&&v.date<=date)):[]),...accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d))];}
+export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;return [...(sv?sv.opening.filter(v=>v.date<date||(v.source.sub==='opening-import'&&v.date<=date)):[]),...accOpeningPosted(s).filter(v=>v.date<=date),...accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d))];}
 
 // ── Status & exceptions ──
 export type ACCDayStatus='Open'|'Closed'|'Locked';
@@ -277,6 +278,7 @@ export const accBlocking=(xs:ACCException[])=>xs.filter(x=>x.severity==='error')
 export function accLockBlocker(s:State,date:string):string{
   if(accLockOf(s,date))return 'This date is already locked.';
   if(accDayStatus(s,date)==='Open')return 'Close the business day before locking it.';
+  const ob=accOpeningLockBlocker(s,date);if(ob)return ob; // ACC-1 contract §5: "opening balances pending"
   const e=accBlocking(accExceptions(s,date));
   if(e.length)return `Resolve ${e.length} exception${e.length===1?'':'s'} first (${e[0].title}).`;
   return '';
