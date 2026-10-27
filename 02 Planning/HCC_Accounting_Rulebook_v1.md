@@ -2,7 +2,7 @@
 
 Written 27 Oct 2026 for the owner, the CA and the agents who will build the accounting module. Nothing in this document is built yet. The module is built **to this document**, and the worked month in §8 becomes its golden test.
 
-**Status of this version:** draft for the owner's reading. Owner rulings already taken: DEC-135 (ITC allowed / disallowed per expense), DEC-137 (consumables expensed on purchase), DEC-138 (depreciation per the Income-tax Act), DEC-139 (opening balances entered by hand), **DEC-140 (HCC feeds Tally: ledgers, trial balance and P&L here; balance sheet, year-end close and GST returns in Tally at the CA)**. Open points are numbered OP-1… in §9; nothing is built on an open point.
+**Status of this version:** draft for the owner's reading. Owner rulings already taken: DEC-135 (ITC allowed / disallowed per expense), DEC-137 (consumables expensed on purchase), DEC-138 (depreciation per the Income-tax Act), DEC-139 (opening balances entered by hand), **DEC-140 (HCC feeds Tally: ledgers, trial balance and P&L here; balance sheet, year-end close and GST returns in Tally at the CA)**, **DEC-141…150 (the open points OP-2…OP-12, answered 27 Oct 2026 evening; only OP-10 stays with the CA)**. **The owner has answered every open point that was theirs; the build may start on the owner's word.** Open points are numbered OP-1… in §9; nothing is built on an open point.
 
 ## 0. How to read the Source column
 
@@ -33,7 +33,7 @@ Principles kept from the existing module 20 (`02 Planning/modules/HCC_Module_20_
 
 | # | Rule | Source |
 |---|---|---|
-| 2.1 | The hotel is a **sole proprietorship** (the compliance firm profile defaults to `proprietorship`, GST type `regular`). A partnership would add partners' capital, remuneration and interest ledgers — OP-2. | PRACTICE (profile); OP-2 |
+| 2.1 | The firm profile carries an **entity-type drop-down** (proprietorship, partnership firm, LLP, private limited company, HUF, trust / society); the capital section of the chart follows it (one capital + drawings for a proprietorship; capital, current and drawings per partner plus remuneration and interest for a partnership / LLP; share capital and reserves for a company). GST and TDS rules do not change with the type. The demo hotel is a proprietorship. | OWNER DEC-141 |
 | 2.2 | **Financial year 1 April – 31 March**, the same FY the compliance calendar follows on the business date (DEC-125). Books are kept on the **mercantile (accrual) basis**: revenue when the night is consumed / the bill is issued, expense when the bill is received. | LAW S-20 (IT Act 2025 s.62 books; method of accounting — VERIFY section); OWNER DEC-125 |
 | 2.3 | The hotel is a **Level IV non-company entity** for ICAI Accounting Standards (turnover ≤ ₹10 crore and borrowings ≤ ₹2 crore in the preceding year), so AS 3 (cash flow), AS 17, AS 18, AS 24, AS 28 and the actuarial parts of AS 15 do not apply. | LAW S-21 (ICAI announcement, March 2021, Annexure 2) |
 | 2.4 | Financial statements follow ICAI's **Guidance Note on Financial Statements of Non-Corporate Entities** (vertical balance sheet with current / non-current split, "Owner's funds" instead of shareholders' funds). Phase II makes it apply to **all** such entities for periods beginning on or after **1 April 2026** — the hotel's first HCC year. | LAW S-22 (ICAI Council 451st meeting, 31 Mar 2026 — VERIFY the turnover-test wording on icai.org) |
@@ -159,9 +159,9 @@ Codes stay four digits so every existing mapping key keeps working. **Existing**
 | 4.1 | **Room accommodation (SAC 996311):** value of supply per unit per day ≤ ₹7,500 → **5 % without ITC**; above ₹7,500 → **18 % with ITC**. Effective **22 Sep 2025** (before: 12 % with ITC up to ₹7,500; the ₹1,000 exemption ended 18 Jul 2022). Tested on the **actual price charged**, per unit per night. Already in the dated GST master (DEC-069). | LAW S-1, S-2 (Notification 11/2017-CT(R) as amended by 15/2025-CT(R)) |
 | 4.2 | **Restaurant and room service (SAC 996331):** 5 % without ITC; **18 % with ITC** only when the hotel is **"specified premises"** for the FY — any unit above ₹7,500 per day in the **preceding** FY, or an opt-in declaration filed in the window (15 Jan – 31 Mar). Already derived in `gst.ts`. | LAW S-3 (Notification 05/2025-CT(R), from 1 Apr 2025) |
 | 4.3 | **Place of supply** of accommodation and restaurant service is where the property is: **CGST + SGST always**, whatever the guest's state or GSTIN. | LAW S-4 (IGST Act s.12(3)(b), s.12(4)); OWNER DEC-136 |
-| 4.4 | **The 5 % condition blocks the hotel's own ITC** on goods and services used to supply those 5 % rooms and meals. While every room is ≤ ₹7,500 and the restaurant is 5 %, **no ITC is available on anything**, and DEC-135's "ITC allowed" switch is correctly **off by default**. ITC becomes available only for inputs used for 18 % supplies (rooms above ₹7,500, banquet, laundry, other services at 18 %); common inputs are then apportioned under **Rule 42** — see OP-4 for the policy. | LAW S-1 (condition in the rate entry), S-5 (CGST s.17(2), Rule 42) |
+| 4.4 | **The 5 % condition blocks the hotel's own ITC** on goods and services used to supply 5 % rooms and meals. The hotel **has 18 % supplies** (DEC-143), so ITC exists for inputs used for them. Policy: the per-expense switch (DEC-135) is marked **allowed only on a bill directly for an 18 % supply**; bills for 5 % rooms / restaurant and **shared inputs** (electricity, housekeeping, repairs) stay **disallowed**. Rule 42 apportionment of common credit, if the CA wants it, is done in Tally from HCC's bill-wise ITC report. | LAW S-1 (condition in the rate entry), S-5 (CGST s.17(2), Rule 42); OWNER DEC-143 |
 | 4.5 | **Blocked credits (s.17(5))** never become ITC whatever the output rate: food and beverages, outdoor catering, health services, club / fitness membership, **motor vehicles ≤ 13 seats**, works contract and construction of immovable property (except plant and machinery), goods or services for personal consumption, goods lost / stolen / gifted / free samples. The expense-category master carries a "blocked under 17(5)" flag so the ITC switch cannot be turned on for them. | LAW S-5 |
-| 4.6 | **Advances for services are taxed when received.** Notification 66/2017-CT spared only **goods**; a hotel booking advance is a service advance: a **receipt voucher** (s.31(3)(d), Rule 50) is issued and GST paid in that month at the rate of the booked room (5 % / 18 %), adjusted when the invoice is raised; a refund of an unused advance needs a **refund voucher** (s.31(3)(e), Rule 51). Reported in GSTR-1 Table 11A (received) and 11B (adjusted). **HCC books no GST on deposits today — this is new** (§5 A6, OP-3). | LAW S-6 (CGST s.13(2), s.31(3)(d)/(e), Rules 50–51; Not. 66/2017-CT) |
+| 4.6 | **Advances for services are taxed when received.** Notification 66/2017-CT spared only **goods**; a hotel booking advance is a service advance: a **receipt voucher** (s.31(3)(d), Rule 50) is issued and GST paid in that month at the rate of the booked room (5 % / 18 %), adjusted when the invoice is raised; a refund of an unused advance needs a **refund voucher** (s.31(3)(e), Rule 51). Reported in GSTR-1 Table 11A (received) and 11B (adjusted). **Owner ruling DEC-142: HCC posts no GST on booking advances** (risk recorded in the register; CA to confirm). The lawful entry stays in the rulebook (A6 *(switch)*) behind a firm-profile switch "GST on advances", default **off**, so it can be turned on without a rebuild. | LAW S-6 (CGST s.13(2), s.31(3)(d)/(e), Rules 50–51; Not. 66/2017-CT); OWNER DEC-142 (against advice) |
 | 4.7 | **Discounts:** a discount shown on the invoice at the time of supply reduces the taxable value (s.15(3)(a)); a post-supply discount reduces GST only through a **credit note** under s.34 and only if agreed before supply. A goodwill reduction after the invoice is a credit note **without** GST reduction when the recipient has kept the ITC. | LAW S-7 (CGST s.15(3), s.34) |
 | 4.8 | **Credit notes** (s.34): issued against a specific invoice; GST reduced only by declaring the note in a return not later than **30 November following the FY** of the supply (or the annual return, if earlier). Numbered in their own series, never a negative invoice. Existing rule DEC-077 (issued numbers never altered). | LAW S-12 |
 | 4.9 | **Cancellation, no-show and retention charges** are consideration for the booking: taxable at the **rate of the principal supply** (the room), not 18 %; exempt only if the room would have been. Posted to 4300. | LAW S-8 (Circular 178/10/2022-GST) |
@@ -185,20 +185,20 @@ Dr / Cr lines name the ledger codes of §3.2; `[party]` means the party's sub-le
 | A3 | Restaurant / room-service bill charged to a folio | Sales | Dr 1100 · Cr **4200** F&B revenue · Cr 2110 · Cr 2120 | 5 % / 18 % per §4.2 | exists, ledger moves to 4200 | existing |
 | A4 | Discount on the invoice (before supply) | Sales (same voucher) | Dr 4900 Discounts allowed · Cr 1100 | Reduces taxable value, §4.7; GST computed on the net line | exists | LAW S-7 |
 | A5 | Credit note / correction after invoice | Sales (negative) | Dr 4910 Refunds, reversals & credit notes · Dr 2110 · Dr 2120 (only when GST is reduced) · Cr 1100 or Cr [party] | §4.8: own series, by 30 Nov next FY; otherwise no GST lines | exists (adjustment lines) | LAW S-12 |
-| A6 | **Advance deposit received** for a future stay | Receipt + Journal | Dr tender (1000 / 1010 / 1020 / 1030[bank]) · Cr 2000 Advance deposits (gross) **and** Dr 1350 GST paid on advances · Cr 2110 · Cr 2120 (GST at the booked room's rate, cum-tax on the amount received) | §4.6: receipt voucher issued; GSTR-1 11A | **new** (today: no GST on deposits) | LAW S-6; OP-3 |
-| A6a | Advance applied to the folio at check-out | Journal | Dr 2000 · Cr 1100 **and** Dr 2110 · Dr 2120 · Cr 1350 (the advance GST reversed; the invoice in A1 carries the full output GST) | GSTR-1 11B | new | LAW S-6 |
-| A6b | Advance refunded, no stay | Payment | Dr 2000 · Cr tender **and** Dr 2110 · Dr 2120 · Cr 1350 | Refund voucher §4.6 | new | LAW S-6 |
+| A6 | **Advance deposit received** for a future stay | Receipt | Dr tender (1000 / 1010 / 1020 / 1030[bank]) · Cr 2000 Advance deposits. **Switch off (DEC-142): no GST line.** With the switch on: **and** Dr 1350 GST paid on advances · Cr 2110 · Cr 2120 (GST at the booked room's rate, cum-tax on the amount received; receipt voucher; GSTR-1 11A) | §4.6 | exists (switch *new*, off) | OWNER DEC-142; LAW S-6 |
+| A6a | Advance applied to the folio at check-out | Journal | Dr 2000 · Cr 1100. *(Switch on: **and** Dr 2110 · Dr 2120 · Cr 1350, the advance GST reversed; GSTR-1 11B)* | | exists | OWNER DEC-142; LAW S-6 |
+| A6b | Advance refunded, no stay | Payment | Dr 2000 · Cr tender. *(Switch on: **and** Dr 2110 · Dr 2120 · Cr 1350; refund voucher)* | | exists | OWNER DEC-142; LAW S-6 |
 | A7 | Guest pays at check-out (cash / UPI / card / bank) | Receipt | Dr tender · Cr 1100 | — | exists | existing |
 | A8 | Folio settled by **company credit** | Journal | Dr 1110/[company] · Cr 1100 | Invoice to the company with its GSTIN (B2B in GSTR-1) | exists (control) → party | existing; DEC-076 |
 | A9 | **Company pays**, often net of TDS | Receipt | Dr 1030/[bank] (net) · Dr 1360 TDS receivable (TDS) · Cr 1110/[company] (gross) | Company deducts under IT Act 2025 s.393 (old 194-I) at 10 % on the **taxable value excluding GST** when it has a regular arrangement / rate contract and pays the hotel above **₹50,000 in a month**; catering may be 2 % (old 194C). The hotel records whatever was deducted and reconciles to Form 168 at year end | **new** (TDS line) | LAW S-13, S-17 (Circular 715/1995 Q20, 5/2002; Circular 23/2017 GST excluded) — VERIFY threshold wording |
 | A10 | Refund to a guest | Payment | Dr 1100 (or 4910 if revenue is reversed) · Cr tender | Credit note if an invoice was issued | exists | existing |
 | A11 | **No-show / cancellation / retention charge** kept | Sales | Dr 1100 or 1110/[party] · Cr **4300** · Cr 2110 · Cr 2120 | Rate of the room, §4.9 | partly (attrition exists → 4000) | LAW S-8 |
 | A12 | Complimentary room (no consideration, unrelated person) | — | No voucher; the night is recorded at ₹0 with the reason | No GST without consideration (Schedule I only for related persons) | exists (₹0 lines skipped) | LAW CGST s.7, Sch. I |
-| A13 | **OTA booking** — stay invoiced to the guest, money comes from the OTA | Sales; then Receipt | Dr 1115/[OTA] (gross) · Cr 4000 · Cr 2110 · Cr 2120. Payout: Dr 1030/[bank] (net) · Dr 5070 OTA commission (commission + its GST, ITC per §4.4) · Dr 1340 GST cash ledger (TCS) · Cr 1115/[OTA] (gross) | §4.14 | **new** | LAW S-16; PRACTICE |
+| A13 | **OTA booking** — stay invoiced to the guest, money comes from the OTA | Sales; then Receipt | Dr 1115/[OTA] (gross) · Cr 4000 · Cr 2110 · Cr 2120. Payout **from the OTA's statement** (every OTA pays net, DEC-150): Dr 1030/[bank] (net) · Dr 5070 OTA commission (commission + its 18 % GST, ITC per §4.4) · Dr 1340 GST cash ledger (TCS) · Cr 1115/[OTA] (gross) | §4.14 | **new** | OWNER DEC-150; LAW S-16 |
 | A14 | Walk-in restaurant bill settled at the outlet | Sales | Dr tender · Cr 4200 · Cr 2110 · Cr 2120 | RST series, §4.11 | exists (→ 4200) | OWNER DEC-072 |
 | A15 | POS bill void | Sales (negative) | Reverse of A14 | Same day only; otherwise a credit note | exists | existing |
 | A16 | Group master folio: shares, attrition, deposits, settlement | Sales / Receipt / Journal | As built (B3 wave): master receivable = 1110/[company]; attrition → **4300** | | exists | OWNER DEC-074 |
-| A17 | **Udhaar credit raised** (a sale on credit to a local customer) | Sales | Dr 1120/[customer] (gross) · Cr 4200 / 4000 / 4100 · Cr 2110 · Cr 2120 | A tax invoice is issued at the time of the credit; due date = date + 30 days (SCC) | **new** — answers the 13j question: the credit **is** booked when raised | PRACTICE; closes HANDOFF 13j item |
+| A17 | **Udhaar credit raised** (a sale on credit to a local customer, restaurant bill **or** room folio — the screen asks, DEC-144) | Sales | Dr 1120/[customer] (gross) · Cr 4200 or 4000 (· 4100) · Cr 2110 · Cr 2120 | A tax invoice is issued at the time of the credit; due date = date + 30 days (SCC) | **new** — answers the 13j question: the credit **is** booked when raised | OWNER DEC-144; PRACTICE |
 | A17a | Udhaar paid (desk receipt into the open shift) | Receipt | Dr tender · Cr 1120/[customer] | ₹0.50 overpay tolerance (SCC) | exists → party | OWNER DEC-130 |
 | A17b | Mistaken Udhaar payment reversed | Receipt (negative) | Reverse of A17a, same day, Owner approval, reason | | **new** — answers the 13j question | PRACTICE |
 | A18 | **Bad debt** (company / Udhaar balance given up) | Journal (manual, Owner-approved) | Dr 5300 Bad debts · Cr 1120/[customer] or 1110/[company] | No GST relief (a bad debt is not a credit note) | new | LAW S-12; PRACTICE |
@@ -231,10 +231,10 @@ Dr / Cr lines name the ledger codes of §3.2; `[party]` means the party's sub-le
 | C5 | Goods returned / vendor credit note | Purchase (negative) | Dr 2200/[vendor] · Cr expense ledger (· Cr 1310/1320 if ITC had been taken → ITC reversed) | | new | LAW S-12 |
 | C6 | Recurring template posts a bill | Purchase | As C1 | Owner-only templates | exists | OWNER DEC-129 |
 | C7 | Expense edited / voided with reason | reversal | Exact negative of the original, same keys | | exists | existing |
-| C8 | **Reverse-charge bill** (GTA, security, advocate, vehicle hire — §4.13) | Purchase + Journal | Dr expense · Cr 2200/[vendor] (bill, no GST); **and** Dr expense (or 1310 / 1320 if ITC allowed) · Cr 2140 RCM payable (GST at the service's rate) | 2140 is paid by challan, never set off | **new** | LAW S-15; OP-6 |
-| C9 | **Hotel deducts TDS** on its own payments (rent of premises, contractors, professional fees) | Payment | Dr expense · Cr 2150 TDS payable · Cr 2200/[vendor] / bank (net) | Applies only if the hotel is a deductor (a proprietor deducts under old 194C / 194J / 194-I only when the previous year's turnover exceeded ₹1 crore — VERIFY the s.393 wording); deposited by the 7th | new | LAW S-13 — VERIFY; OP-7 |
+| C8 | **Reverse-charge bill** — any expense category the Owner flags "reverse charge" in the category master (DEC-145; GTA, security, advocate, vehicle hire — §4.13) | Purchase + Journal | Dr expense · Cr 2200/[vendor] (bill, no GST); **and** Dr expense (or 1310 / 1320 if ITC allowed) · Cr 2140 RCM payable (GST at the service's rate) | 2140 is paid by challan, never set off | **new** | OWNER DEC-145; LAW S-15 |
+| C9 | **Hotel deducts TDS** on its own payments (rent of premises, contractors, professional fees) — **switch on (DEC-146)** | Payment | Dr expense · Cr 2150 TDS payable · Cr 2200/[vendor] / bank (net) | A dated **TDS-rate table** (section row of s.393, threshold, rate; Owner-editable, seeded "CA to confirm": rent 10 %, contractor 1 % individual / 2 % others, professional 10 %, commission 2 %); HCC holds the amount in 2150 and gives the CA a deductee-wise report; **the CA deposits and files** | **new** | OWNER DEC-146; LAW S-13 — VERIFY rows |
 | C10 | **Fixed asset bought** (furniture, AC, kitchen machine, computer, vehicle, building work) | Purchase | Dr 15x0 asset block · (Dr 1310 / 1320 only if ITC is allowed **and** the asset is not blocked: vehicles ≤ 13 seats and construction are blocked) · Cr 2200/[vendor] / bank | Added to the fixed-asset register with date put to use (§F) | **new** | LAW S-5; OWNER DEC-138 |
-| C11 | Insurance / AMC / licence paid for more than 12 months | Payment | Dr expense when paid (simplest, Level IV). Optional: Dr 1370 Prepaid · monthly Dr expense · Cr 1370 | OP-8 | new | PRACTICE |
+| C11 | Insurance / AMC / licence paid for more than 12 months | Payment | **Dr expense when paid** (DEC-147); no prepaid ledger (1370 kept in the chart, unused, for the CA's year-end journal in Tally) | | exists | OWNER DEC-147 |
 | C12 | Stock received (GRN) | — | **No entry** — quantities only | | exists (nothing posted) | OWNER DEC-137 |
 
 ### D. Payroll (SCC rules in full, DEC-115)
@@ -245,7 +245,7 @@ Dr / Cr lines name the ledger codes of §3.2; `[party]` means the party's sub-le
 | D2 | Net pay paid | Payment | Dr 2300 · Cr 1030/[bank] / 1000 | exists | existing |
 | D3 | Salary advance given | Payment | Dr 1200/[staff] · Cr tender | exists → party | OWNER DEC-074 |
 | D4 | F&F settled and paid | Journal + Payment | As built (mirrors D1 / D2); negative net → 1210 | exists | OWNER DEC-066, DEC-074 |
-| D5 | **Statutory remittance** (PF by the 15th, ESIC by the 15th, PT by the end of month) | Payment (manual or from the compliance card) | Dr 2310 / 2320 / 2330 · Cr 1030/[bank] | **new** | LAW (EPF Act s.6, ESI Act, Maharashtra PT Act — rates as ported from SCC: PF 12 % + 12 % on wages ≤ ₹15,000, ESIC 0.75 % + 3.25 % on wages ≤ ₹21,000, PT ₹200 / ₹300 Feb — VERIFY the women's exemption slab) |
+| D5 | **Statutory remittance** (PF by the 15th, ESIC by the 15th, PT by the end of month) | Payment (manual or from the compliance card) | Dr 2310 / 2320 / 2330 · Cr 1030/[bank] | **new** | LAW (EPF Act s.6, ESI Act, Maharashtra PT Act — rates as ported from SCC: PF 12 % + 12 % on wages ≤ ₹15,000, ESIC 0.75 % + 3.25 % on wages ≤ ₹21,000, PT ₹200 / ₹300 Feb; women up to ₹25,000 a month exempt, DEC-149) |
 | D6 | Employer's own PT enrolment (₹2,500 / year) | Payment | Dr 5060 · Cr bank | new | PRACTICE |
 | D7 | Staff meals, uniforms | Purchase | Dr 5120 Staff welfare (GST included; ITC blocked) · Cr vendor / cash | new ledger | LAW S-5 (s.17(5)(b)) |
 
@@ -274,7 +274,7 @@ Dr / Cr lines name the ledger codes of §3.2; `[party]` means the party's sub-le
 | # | Rule | Source |
 |---|---|---|
 | G1 | **Day lock** as today (closed day, no exceptions, Owner / Manager / Accountant). **Month lock** (new, Accountant proposes, Owner locks) after the GST set-off E1 is confirmed and the statutory payables D5 are posted; the expense month lock of the SCC port becomes part of it. | existing module 20; OWNER DEC-131 |
-| G2 | **Opening balances** (DEC-139): one Journal dated the FY start, one line per ledger and per party, entered by hand or imported; any difference parks in 1400 and the entry can be saved unbalanced only with 1400 carrying the gap; the first period lock refuses while 1400 ≠ 0. Editable until that lock; afterwards only by an Owner-approved journal. | OWNER DEC-139 |
+| G2 | **Opening balances** (DEC-139 / DEC-148): one Journal dated the FY start, one line per ledger and per party, **entered by hand by the Manager once the whole software is functional** (or imported), **approved by the Owner**; any difference parks in 1400 and the entry can be saved unbalanced only with 1400 carrying the gap; the first period lock refuses while 1400 ≠ 0 or no opening entry exists (the trial balance says "opening balances pending" until then). Editable until that lock; afterwards only by an Owner-approved journal. | OWNER DEC-139, DEC-148 |
 | G3 | **Year-end close** (31 March) — *(Tally)*, HCC only locks the year and carries balance-sheet ledgers forward as next year's opening (step 5): (1) depreciation F3; (2) GST set-off for March; (3) TDS reconciliation E6; (4) **closing entry**: every Sales / Direct / Indirect income and expense ledger is closed to **Profit & Loss**, whose balance goes to **3100 Owner's capital**; 3000 Drawings is closed to 3100; (5) the balance-sheet ledgers' closing balances become **next year's opening** (generated, not typed); (6) the year is locked. | PRACTICE (standard close); ICAI formats S-22 |
 | G4 | After the year lock, a correction is a journal in the **new** year referring to the old one; the Owner may reopen a year with a reason, which marks every later export as provisional (DEC-077 extended). | OWNER DEC-077 |
 | G5 | **Correcting a locked day** never alters an issued invoice or credit note; it adds a dated reversing voucher (as DEC-077). | OWNER DEC-077 |
@@ -286,7 +286,8 @@ Dr / Cr lines name the ledger codes of §3.2; `[party]` means the party's sub-le
 | View ledgers, statements, reports | yes | yes | yes (no payroll detail) | collections report only (DEC-079) | no |
 | Enter a manual voucher | yes | yes (pending) | request only | no | no |
 | Approve a manual voucher | yes | no | no | no | no |
-| Chart of accounts, mapping, opening balances | yes | propose | no | no | no |
+| Chart of accounts, mapping | yes | propose | no | no | no |
+| Opening balances (DEC-148) | approve | enter | enter | no | no |
 | Day / month lock | yes | yes | yes (day only) | no | no |
 | Year close, reopen | yes | no | no | no | no |
 | Export (CSV / Excel / Tally) | yes | yes | no | no | no |
@@ -313,7 +314,7 @@ All reports read one posting table (voucher → entries → ledger, date, amount
 
 ## 8. The worked month — April 2026 (fictional figures, the golden test)
 
-Every figure below is a test expectation. The build is wrong if any ledger, the trial balance, the P&L or the balance sheet differs by a paisa. GST at 5 % throughout (no unit above ₹7,500, not specified premises), so **no ITC is allowed on anything** (§4.4).
+Every figure below is a test expectation. The build is wrong if any ledger, the trial balance, the P&L or the balance sheet differs by a paisa. In this month every supply is at 5 % (no unit above ₹7,500, no banquet or laundry, not specified premises) and no bill is for an 18 % supply, so **no ITC is allowed on any bill** (§4.4); the advance carries no GST (DEC-142).
 
 ### 8.1 Opening balances, 1 April 2026 (DEC-139 journal)
 
@@ -343,7 +344,7 @@ Every figure below is a test expectation. The build is wrong if any ledger, the 
 | T5a | check-outs | Opening advance ₹10,000 applied (booked before HCC: no advance-GST line) | Dr 2000 10,000 · Cr 1100 10,000 |
 | T5b | check-outs | Deccan Agro company credit: taxable ₹60,000 + GST ₹3,000 | Dr 1110/Deccan 63,000 · Cr 1100 63,000 |
 | T5c | check-outs | Guests pay the rest ₹4,52,000: cash 1,52,000, UPI 1,50,000, card 1,50,000 | Dr 1000 1,52,000 · Dr 1010 1,50,000 · Dr 1020 1,50,000 · Cr 1100 4,52,000 |
-| T6 | 20 Apr | Advance by UPI for a May stay ₹31,500 (cum-tax: ₹30,000 + 5 %); receipt voucher | Dr 1010 31,500 · Cr 2000 31,500 **and** Dr 1350 1,500 · Cr 2110 750 · Cr 2120 750 |
+| T6 | 20 Apr | Advance by UPI for a May stay ₹31,500 (no GST, DEC-142) | Dr 1010 31,500 · Cr 2000 31,500 |
 | T7a | 10 Apr | Deccan Agro pays the opening ₹40,000 (below the ₹50,000 month threshold: no TDS) | Dr 1030/HDFC 40,000 · Cr 1110/Deccan 40,000 |
 | T7b | 30 Apr | Deccan Agro pays the April bill net of TDS 10 % on ₹60,000 = ₹6,000 | Dr 1030/HDFC 57,000 · Dr 1360 6,000 · Cr 1110/Deccan 63,000 |
 | T8 | 5 Apr | Morning Supplies bill: consumables ₹50,000 + GST 18 % ₹9,000; ITC disallowed | Dr 5000 59,000 · Cr 2200/Morning 59,000 |
@@ -371,7 +372,6 @@ Every figure below is a test expectation. The build is wrong if any ledger, the 
 | 1030/HDFC Bank | 5,01,500 | |
 | 1010 UPI clearing · 1020 Card clearing · 1100 Guest ledger · 1110/Deccan · 1115/Goibibo · 1200/Staff-07 · 2300 Net pay | 0 | 0 |
 | 1360 TDS receivable | 6,000 | |
-| 1350 GST paid on advances | 1,500 | |
 | 1340 GST electronic cash ledger | 100 | |
 | 1500–1530 Fixed assets | 73,80,000 | |
 | 3000 Owner's drawings | 50,000 | |
@@ -380,8 +380,8 @@ Every figure below is a test expectation. The build is wrong if any ledger, the 
 | 2200/Morning Supplies | | 24,000 |
 | 2200/Kaveri Textiles | | 42,000 |
 | 2000 Advance deposits | | 31,500 |
-| 2110 Output CGST | | 15,250 |
-| 2120 Output SGST | | 15,250 |
+| 2110 Output CGST | | 14,500 |
+| 2120 Output SGST | | 14,500 |
 | 2310 PF payable | | 36,000 |
 | 2320 ESIC payable | | 8,000 |
 | 2330 PT payable | | 2,000 |
@@ -389,7 +389,7 @@ Every figure below is a test expectation. The build is wrong if any ledger, the 
 | 3100 Owner's capital | | 57,05,000 |
 | 4000 Room revenue | | 4,30,000 |
 | 4200 F&B revenue | | 1,60,000 |
-| **Total** | **84,29,000** | **84,29,000** |
+| **Total** | **84,27,500** | **84,27,500** |
 
 ### 8.4 Profit & loss, April 2026
 
@@ -409,36 +409,36 @@ Every figure below is a test expectation. The build is wrong if any ledger, the 
 | Owner's capital 57,05,000 + profit 1,40,400 − drawings 50,000 | 57,95,400 | Fixed assets (WDV; depreciation at year end) | 73,80,000 |
 | Secured loan | 19,60,000 | Cash in hand | 40,300 |
 | Sundry creditors (Morning 24,000 + Kaveri 42,000) | 66,000 | Bank | 5,01,500 |
-| Duties & taxes: output GST 30,500 + PF / ESIC / PT 46,000 | 76,500 | TDS receivable | 6,000 |
-| Advance deposits | 31,500 | GST paid on advances 1,500 + GST cash ledger 100 | 1,600 |
-| **Total** | **79,29,400** | **Total** | **79,29,400** |
+| Duties & taxes: output GST 29,000 + PF / ESIC / PT 46,000 | 75,000 | TDS receivable | 6,000 |
+| Advance deposits | 31,500 | GST electronic cash ledger (TCS credit) | 100 |
+| **Total** | **79,27,900** | **Total** | **79,27,900** |
 
 ### 8.6 GST for April (E1, paid 20 May)
 
-Output CGST 15,250 + SGST 15,250 = 30,500 (incl. ₹1,500 on the May advance, GSTR-1 Table 11A ₹30,000 taxable). ITC nil (§4.4). TCS credit ₹100 already in the cash ledger → challan **₹30,400**. Entries in May: Dr 2110 15,250 · Dr 2120 15,250 · Cr 1340 30,500; Dr 1340 30,400 · Cr 1030/HDFC 30,400. GSTR-1: B2B Deccan Agro ₹60,000 taxable; B2CS the rest; the May advance in 11A, adjusted in 11B when invoiced.
+Output CGST 14,500 + SGST 14,500 = 29,000. ITC nil (§4.4). TCS credit ₹100 already in the cash ledger → challan **₹28,900**. Entries in May: Dr 2110 14,500 · Dr 2120 14,500 · Cr 1340 29,000; Dr 1340 28,900 · Cr 1030/HDFC 28,900. GSTR-1: B2B Deccan Agro ₹60,000 taxable; B2CS the rest; the May advance is not reported (DEC-142).
 
 ### 8.7 Year-end preview (31 March 2027, same assets, nothing bought)
 
 Depreciation F2: buildings 10 % × 60,00,000 = 6,00,000; furniture 10 % × 8,00,000 = 80,000; plant 15 % × 5,00,000 = 75,000; computers 40 % × 80,000 = 32,000 → **₹7,87,000** (Dr 5200 · Cr each block). Then the closing entry G3.
 
-## 9. Open points (nothing is built on these)
+## 9. Open points — all the owner's points are answered (APR-018); OP-10 stays with the CA and blocks nothing
 
 | # | Point | Recommendation | Who |
 |---|---|---|---|
 | OP-1 | HCC as the book of record, Tally a copy | **Answered — DEC-140:** Tally is the final book; HCC prepares ledgers, TB and P&L and feeds Tally | Owner |
-| OP-2 | Entity type: proprietorship (as the firm profile) or partnership | Proprietorship; the module adds partner ledgers only if told | Owner |
-| OP-3 | **GST on advances** (§4.6, A6): the law taxes a service advance when received. Does the hotel's current GSTR-3B pay GST on advances? If not, the CA must know this is a change in practice | Build to the law; advances stay small, so the cash effect is small | Owner + CA |
-| OP-4 | **ITC policy** while every output is 5 %: all ITC blocked (§4.4). If the hotel ever has 18 % output (rooms above ₹7,500, banquet, laundry), allow ITC only on inputs **directly** attributable to those supplies and treat common inputs as disallowed (conservative, no Rule 42 apportionment). | As stated; revisit if 18 % output becomes material | Owner + CA |
-| OP-5 | **Udhaar**: what is sold on credit (restaurant bills, rooms, both) — decides which revenue ledger A17 credits | Both; the Udhaar screen asks | Owner |
-| OP-6 | **Reverse charge**: which notified services the hotel buys (security agency, GTA, advocate, vehicle hire) | Mark those categories "RCM" in the expense-category master | Owner |
-| OP-7 | **Hotel as TDS deductor**: was last year's turnover above ₹1 crore? If so the hotel must deduct on rent, contractors, professionals (C9) | Build C9 with a firm-profile switch "hotel deducts TDS" | Owner + CA |
-| OP-8 | Prepaid expenses (C11): expense when paid, or spread | Expense when paid | Owner |
-| OP-9 | **Opening balances as of 1 April 2026**: from the CA's FY 2025-26 figures, party by party (debtors, creditors, loans, asset blocks at WDV) | Enter in the DEC-139 screen before the first month lock | CA |
+| OP-2 | Entity type | **Answered — DEC-141:** drop-down of entity types; the capital section follows it | Owner |
+| OP-3 | **GST on advances** | **Answered — DEC-142:** no GST on booking advances (owner's ruling against the lead's advice; risk recorded; switch kept, default off); CA to confirm | Owner + CA |
+| OP-4 | **ITC policy** | **Answered — DEC-143:** the hotel has 18 % supplies; ITC allowed only on bills directly for them, shared inputs disallowed; Rule 42 in Tally if the CA wants | Owner + CA |
+| OP-5 | **Udhaar** scope | **Answered — DEC-144:** both; the screen asks | Owner |
+| OP-6 | **Reverse charge** | **Answered — DEC-145:** a reverse-charge flag on the expense-category master; the Owner marks the categories | Owner |
+| OP-7 | **Hotel as TDS deductor** | **Answered — DEC-146:** HCC holds back TDS at a dated rate table, the CA deposits and files | Owner + CA |
+| OP-8 | Prepaid expenses | **Answered — DEC-147:** expense when paid | Owner |
+| OP-9 | **Opening balances** | **Answered — DEC-148:** the option stays open; the Manager enters them by hand once the whole software is functional, the Owner approves; the first period lock waits for them | Owner |
 | OP-10 | Section numbers under the **Income-tax Act 2025** marked VERIFY (cash limits s.186 / s.36 or 41 / s.185 / s.188; depreciation s.33–34, Rule 25; TDS rows in s.393) and the final text of the **Income-tax Rules 2026** Appendix I | Confirm once; the build stores them as text in the guard messages, not as logic | CA |
-| OP-11 | Women's PT exemption slab in Maharashtra (₹10,000 or ₹25,000) | Keep SCC's ported value; CA confirms | CA |
-| OP-12 | OTA flows (A13): do all OTAs remit net of commission with TCS, or does any invoice commission separately | Per-channel setting | Owner |
+| OP-11 | Women's PT exemption slab | **Answered — DEC-149:** ₹25,000 a month | Owner (CA confirms) |
+| OP-12 | OTA flows | **Answered — DEC-150:** every OTA pays net of commission and TCS with a statement | Owner |
 
-## 10. Build plan — waves after the owner signs §1–§7
+## 10. Build plan — waves (the owner's go starts ACC-1)
 
 Each wave is prototype **and** server, with the §8 figures as golden tests (`tests/stream-accounting-rulebook.mjs`, `Hcc.Accounting.Tests/RulebookMonthTests.cs`), an independent oracle (the same month posted in **ERPNext** or **GNUKhata**, statements compared), both full suites green, a report in `05 Delivery Evidence/Accounting/`, Opus agents (money / statutory), one heavy job at a time under a lock file.
 
