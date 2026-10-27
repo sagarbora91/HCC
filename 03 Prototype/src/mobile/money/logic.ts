@@ -93,9 +93,19 @@ export function mmShiftSubmitCommand(counted:number,reason:string,denominations?
 /** Difference label: "None · exact" / "Over ₹x" / "Short ₹x" (sign only, money formatted by caller). */
 export const mmDiffKind=(diff:number)=>diff===0?'exact':diff>0?'over':'short';
 
-/** EXPENSE command as sent by the phone Add-expense sheet (same fields as the desktop ExpenseModal). */
-export function mmExpenseCommand(f:{vendor:string;category:string;method:string;amount:string;receipt:string;notes:string},draft:boolean,key?:string):Command{
+/** EXPENSE command as sent by the phone Add-expense sheet (same fields as the desktop ExpenseModal; DEC-120: description, date, GST on the
+ *  bill, bill photo and SCC's "Save anyway?" confirms). */
+export function mmExpenseCommand(f:{vendor:string;category:string;method:string;amount:string;receipt:string;notes:string;description?:string;date?:string;
+  gstRate?:string;gst?:string;billPhoto?:string;confirmDuplicate?:boolean;confirmGst?:boolean;override?:string},draft:boolean,key?:string):Command{
   const cmd:Command={type:'EXPENSE',vendor:f.vendor,category:f.category,method:f.method,amount:mmPaise(f.amount),receipt:f.receipt,notes:f.notes,draft};
+  if(f.description!==undefined)cmd.description=f.description;
+  if(f.date)cmd.date=f.date;
+  if(f.gstRate&&f.gstRate.trim())cmd.gstRateBps=Math.round(Number(f.gstRate)*100);
+  if(f.gst&&f.gst.trim())cmd.gstPaise=mmPaise(f.gst);
+  if(f.billPhoto)cmd.billPhoto=f.billPhoto;
+  if(f.confirmDuplicate)cmd.confirmDuplicate=true;
+  if(f.confirmGst)cmd.confirmGst=true;
+  if(f.override&&f.override.trim())cmd.override=f.override.trim();
   if(key)cmd.key=key+(draft?':draft':':submit');
   return cmd;
 }

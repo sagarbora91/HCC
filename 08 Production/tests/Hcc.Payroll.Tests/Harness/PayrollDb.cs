@@ -196,13 +196,15 @@ public sealed class Hotel(PayrollDb db, int propertyId)
             await Db.ScalarAsync(sql.ToString());
         }
 
-        // The fixture holds one 0-day request (HR-LV-4: LOP on Imran's weekly off); the server refuses such a request, so it is not seeded.
-        foreach (var l in g.Leaves.Where(l => l.Days > 0))
+        // SCC leave port (DEC-116, migration 4110): one record per date (from_date = to_date); request_from / request_to = the range it was requested with.
+        foreach (var l in g.Leaves)
             await Db.ScalarAsync("""
-                INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, half, days_x2, reason, status, requested_by, requested_utc, decided_by, decided_utc)
-                VALUES (@p, @s, @t, @f, @to, @h, @dx, N'Fictional', @st, @rb, '2026-09-08', @db, @du);
-                """, ("@p", PropertyId), ("@s", Staff[l.StaffId]), ("@t", l.Type), ("@f", l.From), ("@to", l.To), ("@h", l.Half), ("@dx", (int)(l.Days * 2)), ("@st", l.Status),
-                ("@rb", U("owner")), ("@db", l.Status == "Approved" ? U("manager") : null), ("@du", l.Status == "Approved" ? "2026-09-08" : null));
+                INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, half, days_x2, reason, status, requested_by, requested_utc, decided_by, decided_utc,
+                                        request_from, request_to, approver_id)
+                VALUES (@p, @s, @t, @d, @d, @h, @dx, N'Fictional', @st, @rb, '2026-09-08', @db, @du, @f, @to, @ap);
+                """, ("@p", PropertyId), ("@s", Staff[l.StaffId]), ("@t", l.Type), ("@d", l.Date), ("@f", l.From), ("@to", l.To), ("@h", l.Half), ("@dx", (int)(l.Days * 2)),
+                ("@st", l.Status), ("@rb", U("owner")), ("@db", l.Status == "Approved" ? U("manager") : null), ("@du", l.Status == "Approved" ? "2026-09-08" : null),
+                ("@ap", l.Approver is null ? null : U(l.Approver)));
         foreach (var a in advances ? g.Advances : [])
             await Db.ScalarAsync("""
                 INSERT hr.advance(property_id, staff_id, amount_paise, installment_paise, advance_date, from_month, reason, given_by, given_utc)

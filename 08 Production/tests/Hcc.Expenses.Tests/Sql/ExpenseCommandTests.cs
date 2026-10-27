@@ -23,7 +23,7 @@ public class ExpenseCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         var d0 = await db.ExpectedCashAsync(shift.ShiftId);
         Assert.Equal(320_000, d0);
 
-        var draft = (await db.Commands.SubmitAsync(db.Ctx(Who.Cashier), new SubmitExpenseRequest("Aqua Water Cans", "Supplies", 30_000, "Cash", true, "20 cans", "aqua-0001.jpg"), Ct)).Value.Expense;
+        var draft = (await db.Commands.SubmitAsync(db.Ctx(Who.Cashier), new SubmitExpenseRequest("Aqua Water Cans", "Supplies", 30_000, "Cash", true, "20 cans", "aqua-0001.jpg", Description: "Water cans " + ExpensesDb.Key()[..6]), Ct)).Value.Expense;
         Assert.Equal(("Draft", "aqua-0001.jpg", "20 cans"), (draft.Status, draft.Receipt, draft.Notes));
         Assert.Equal(d0, await db.ExpectedCashAsync(shift.ShiftId));
         await Fails(HccErrorCode.FORBIDDEN, () => db.Commands.SubmitDraftAsync(db.Ctx(Who.Reception), new SubmitExpenseDraftRequest(draft.ExpenseId, draft.Version), Ct)); // not own draft
@@ -80,12 +80,15 @@ public class ExpenseCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         Assert.Equal(("Rejected", "Not on the budget"), (rejected.Status, rejected.Reason));   // rejecting is not limited
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Commands.DecideAsync(db.Ctx(Who.Owner), new DecideExpenseRequest(rejected.ExpenseId, rejected.Version, true), Ct));
 
-        // Duplicate warning (never a block): same vendor, amount and date, rejected items excluded.
-        var dup = (await db.Commands.SubmitAsync(db.Ctx(Who.Cashier), new SubmitExpenseRequest("morning supplies", "Supplies", 85_000, "UPI"), Ct)).Value;
+        // DEC-120: SCC's duplicate key = same date + amount + description (any case), rejected / void excluded; SCC asks "Save anyway?".
+        var desc = small.Description!;
+        var ask = await Fails(HccErrorCode.VALIDATION, () => db.Commands.SubmitAsync(db.Ctx(Who.Cashier), new SubmitExpenseRequest("Other vendor", "Supplies", 85_000, "UPI", Description: desc.ToUpperInvariant()), Ct));
+        Assert.Equal($"A similar entry already exists for 2026-10-24 (₹850 — {desc.ToUpperInvariant()}). Save anyway?", ask.Message);
+        var dup = (await db.Commands.SubmitAsync(db.Ctx(Who.Cashier), new SubmitExpenseRequest("Other vendor", "Supplies", 85_000, "UPI", Description: desc.ToUpperInvariant(), ConfirmDuplicate: true), Ct)).Value;
         Assert.Equal([small.ExpenseId], dup.DuplicateOf);
-        var none = (await db.Commands.SubmitAsync(db.Ctx(Who.Cashier), new SubmitExpenseRequest("Late Vendor", "Supplies", 700_000, "UPI"), Ct)).Value;
-        Assert.Empty(none.DuplicateOf);
-        await Fails(HccErrorCode.VALIDATION, () => db.Commands.SubmitAsync(db.Ctx(Who.Reception), new SubmitExpenseRequest("X", "Supplies", 100, "Bitcoin"), Ct));
+        var none = (await db.Commands.SubmitAsync(db.Ctx(Who.Cashier), new SubmitExpenseRequest("Late Vendor", "Supplies", 700_000, "UPI", Description: other.Description), Ct)).Value;
+        Assert.Empty(none.DuplicateOf);                                                       // the rejected one does not count
+        await Fails(HccErrorCode.VALIDATION, () => db.Commands.SubmitAsync(db.Ctx(Who.Reception), new SubmitExpenseRequest("X", "Supplies", 100, "Bitcoin", Description: "x"), Ct));
     }
 
     [Fact]

@@ -60,7 +60,7 @@ export async function register({test,M,assert}){
     X('reception',L.mmCheckoutCommand(id));assert.equal(bk().status,'Departed');assert.ok(bk().invoiceNo);
     assert.deepEqual(execute(s,'reception',L.mmCheckoutCommand(id)),s);
     // M16: Aqua Water Cans ₹300 cash; manager approves → drawer ₹12,425 (₹11,900 + ₹525 restaurant cash carried in the float; DEC-069: was ₹12,450)
-    X('cashier',L.mmExpenseCommand({vendor:'Aqua Water Cans',category:'Supplies',method:'Cash',amount:'300',receipt:'aqua-water-0026.jpg',notes:''},false,'expense:mm'));
+    X('cashier',L.mmExpenseCommand({vendor:'Aqua Water Cans',description:'Water cans',category:'Supplies',method:'Cash',amount:'300',receipt:'aqua-water-0026.jpg',notes:''},false,'expense:mm'));
     const e=s.expenses.at(-1);assert.equal(e.status,'Pending');assert.equal(e.amount,30000);assert.equal(e.receipt,'aqua-water-0026.jpg');
     X('manager',{type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id});assert.equal(drawer(s),1242500); // DEC-069 GST: 1245000 → 1242500
     // M15: denomination count 24×₹500 + 2×₹200 + 1×₹20 + ₹5 coins = ₹12,425 → exact → shift closes on the phone (DEC-069: was 24×500 + 2×200 + 1×50 = ₹12,450)
@@ -124,11 +124,13 @@ export async function register({test,M,assert}){
   });
 
   test('[MM] Expense sheet: draft vs submit keys, duplicate detected for the inline warning',()=>{
-    let s=loadScenario('S0');const f={vendor:'Shree Ganesh Supplies (fictional)',category:'Supplies',method:'UPI',amount:'450',receipt:'',notes:''};
+    let s=loadScenario('S0');const f={vendor:'Shree Ganesh Supplies (fictional)',description:'Kitchen supplies',category:'Supplies',method:'UPI',amount:'450',receipt:'',notes:''};
     const d=L.mmExpenseCommand(f,true,'expense:k');assert.equal(d.key,'expense:k:draft');assert.equal(d.draft,true);
     s=execute(s,'cashier',L.mmExpenseCommand(f,false,'expense:k'));
-    assert.equal(M.expenseDuplicates(s,' shree ganesh supplies (fictional) ',L.mmPaise(f.amount),s.date).length,1);
-    s=execute(s,'cashier',d);assert.equal(s.expenses.at(-1).status,'Draft');
+    // DEC-120: SCC's duplicate key is date + amount + description; SCC asks "Save anyway?" (confirmDuplicate).
+    assert.equal(M.expenseDuplicates(s,' kitchen SUPPLIES ',L.mmPaise(f.amount),s.date).length,1);
+    assert.throws(()=>execute(s,'cashier',d),/similar entry already exists/);
+    s=execute(s,'cashier',L.mmExpenseCommand({...f,confirmDuplicate:true},true,'expense:k2'));assert.equal(s.expenses.at(-1).status,'Draft');
     assert.equal(code(()=>execute(s,'housekeeper',L.mmExpenseCommand(f,false))),'FORBIDDEN');
   });
 }

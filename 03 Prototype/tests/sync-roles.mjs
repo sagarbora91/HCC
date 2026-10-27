@@ -77,10 +77,10 @@ function routes(role){
     'GET /accounting/mapping':()=>[],
     'GET /accounting/mapping/history':()=>[],
     'GET /accounting/locks/history':()=>[],
+    'GET /expenses/registers':()=>({businessDate:BD,budgets:[],recurring:[],petty:[],udhaar:[],months:[]}), // DEC-120 SCC registers
     'GET /expenses':({query})=>page(query.status==='Pending'?[{expenseId:71,ref:'EXP-71',vendor:'Fictional Stores',category:'Supplies',amountPaise:45000,method:'Cash',businessDate:BD,status:'Pending',
       submittedBy:uid,notes:null,receipt:null,reason:null,decidedBy:null,decidedUtc:null,reversalOf:null,reversedBy:null,version:'E71'}]:[],query,'items'),
-    'GET /compliance/obligations':()=>[],
-    'GET /compliance/calendar':()=>({asOf:BD,items:[],counts:{},settings:{reminderDays:7,version:'C1'},note:''}),
+    'GET /compliance/state':()=>({asOf:BD,profile:null,fyStart:2026,records:[],custom:[],archived:[],archivedCats:[],evidence:[],reopened:[],settings:{caName:'',caEmail:'',dueSoonDays:7,version:'C1'}}),
     'GET /compliance/ca-packs':()=>[],
     'GET /pos/outlets':()=>[{outletId:1,code:'REST',name:'Restaurant',kind:'table',tables:['T1','T2']}],
     'GET /pos/menu':()=>[{itemId:11,code:'TEA',name:'Masala chai',category:'Beverages',pricePaise:6000,veg:true,available:true,outletIds:[1],version:'M11'}],

@@ -5,6 +5,7 @@ import {handlers as folio} from './folio';
 import {handlers as housekeeping} from './housekeeping';
 import {handlers as admin} from './admin';
 import {handlers as closing} from './closing';
+import {handlers as expenses} from './expenses'; // DEC-120: expenses with the SCC features
 import {handlers as yieldMod} from './yield';
 import {handlers as groups} from './groups';
 import {handlers as channels} from './channels';
@@ -25,4 +26,4 @@ import {handlers as credentials} from './credentials'; // A02b-05 self-service p
 import {handlers as syshealth} from './syshealth';
 import {handlers as roommasters} from './roommasters';
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
-export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...catalogue};
+export const registry:Record<string,Handler>={...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...catalogue};

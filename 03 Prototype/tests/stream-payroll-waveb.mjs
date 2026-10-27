@@ -71,13 +71,18 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     assert.throws(()=>execute(s,'owner',{type:'HR_REQUEST_DECIDE',id:r.id,approve:true}),code('INVALID_TRANSITION'));
   });
 
-  test('[PAY-WB DEC-075] refused: locked month, future, today, before the open month, own record, no right, no reason, absent with overtime, no change, inside a multi-day leave',()=>{
+  test('[PAY-WB DEC-075] refused: locked month, future, today, before the open month, own record, no right, no reason, absent with overtime, no change; one date of a multi-day request is its own record (SCC)',()=>{
     const s=seed();
     for(const [u,id,d,m,c,extra] of [['manager','HR-S02','2026-08-12','P','INVALID_TRANSITION'],['manager','HR-S02','2026-10-25','P','INVALID_TRANSITION'],
       ['manager','HR-S02','2026-10-24','P','INVALID_TRANSITION'],['manager','HR-S02','2026-07-15','P','INVALID_TRANSITION'],['manager','HR-S01','2026-09-03','A','FORBIDDEN'],
       ['accountant','HR-S02','2026-09-03','A','FORBIDDEN'],['housekeeper','HR-S02','2026-09-03','A','FORBIDDEN'],['manager','HR-S02','2026-09-03','A','VALIDATION',{reason:'x'}],
-      ['manager','HR-S02','2026-09-03','A','VALIDATION',{otMin:30}],['manager','HR-S02','2026-09-03','P','VALIDATION'],['manager','HR-S05','2026-09-14','P','INVALID_TRANSITION']])
+      ['manager','HR-S02','2026-09-03','A','VALIDATION',{otMin:30}],['manager','HR-S02','2026-09-03','P','VALIDATION']])
       assert.throws(()=>fix(u,id,d,m,extra)(s),code(c),`${u} ${id} ${d} ${m}`);
+    // SCC leave port: HR-LV-1 (CL 14–15 Sep) is one record per date, so 14 Sep alone can be corrected; 15 Sep keeps its leave.
+    const one=fix('manager','HR-S05','2026-09-14','P')(s),q=x(one).requests.at(-1);
+    if(q.status==='Pending')assert.equal(x(execute(one,'owner',{type:'HR_REQUEST_DECIDE',id:q.id,approve:true})).leaves.find(l=>l.id==='HR-LV-1').status,'Cancelled');
+    else assert.equal(x(one).leaves.find(l=>l.id==='HR-LV-1').status,'Cancelled');
+    assert.equal(x(one).leaves.find(l=>l.id==='HR-LV-1-2').status,'Approved');
   });
 
   test('[PAY-WB DEC-075] back-dated leave: paid leave waits for the Owner, leave without pay applies, a one-day leave can be replaced, leave rules hold',()=>{
@@ -88,15 +93,17 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     s=execute(s,'owner',{type:'HR_REQUEST_DECIDE',id:cl.id,approve:true});
     assert.equal(x(s).att['2026-09-16|HR-S06'],undefined,'the absent mark is replaced by the leave');
     const lv=x(s).leaves.find(l=>l.correctionId===cl.id);assert.deepEqual([lv.type,lv.status,lv.from,lv.to,lv.days,lv.requestedBy,lv.decidedBy],['CL','Approved','2026-09-16','2026-09-16',1,'manager','owner']);
-    assert.equal(M.hrLeaveBalance(s,'HR-S06','2026-10-24').find(b=>b.type==='CL').left,9);   // 12 − 2 pending (28–29 Oct) − 1
+    assert.equal(M.hrLeaveBalance(s,'HR-S06','2026-10-24').find(b=>b.type==='CL').left,11);   // 12 − 1 approved (SCC: the pending 28–29 Oct are not used)
     s=fix('manager','HR-S04','2026-09-28','LOP')(s);   // absent → leave without pay: no pay change → applies at once
     const lop=x(s).requests.at(-1);assert.deepEqual([lop.status,lop.direct,lop.payEffect],['Approved',true,0]);
     assert.equal(x(s).leaves.find(l=>l.correctionId===lop.id).decidedBy,'manager');
     s=fix('manager','HR-S04','2026-09-28','A')(s);   // back to a mark: the one-day leave is cancelled
     assert.equal(x(s).leaves.find(l=>l.correctionId===lop.id).status,'Cancelled');assert.equal(x(s).att['2026-09-28|HR-S04'].status,'A');
-    assert.throws(()=>fix('manager','HR-S10','2026-09-14','CL')(s),code('VALIDATION'));   // daily wage: leave without pay only
-    assert.throws(()=>fix('manager','HR-S06','2026-09-21','SL')(s),code('VALIDATION'));   // Monday = Kavya's weekly off
-    assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S06',leaveType:'CL',from:'2026-09-30',to:'2026-09-30',reason:'Back-dated'}),e=>e.code==='VALIDATION'&&/Past days/.test(e.message));
+    assert.ok(x(fix('manager','HR-S10','2026-09-14','CL')(s)).requests.at(-1));   // SCC: any category for daily-wage staff too
+    assert.ok(x(fix('manager','HR-S06','2026-09-21','SL')(s)).requests.at(-1));   // Monday = Kavya's roster off: not a leave week-off (hotel set: none)
+    const mon=execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',weekOff:[1]});
+    assert.throws(()=>fix('manager','HR-S06','2026-09-21','SL')(mon),code('VALIDATION'));   // the hotel's leave week-off set refuses it
+    assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_REQUEST',approver:'owner',staffId:'HR-S06',leaveType:'CL',from:'2026-09-30',to:'2026-09-30',reason:'Back-dated'}),e=>e.code==='VALIDATION'&&/Past days/.test(e.message));
     // DEC-115: overtime minutes are not paid (SCC pays OT days) — present → worked on the weekly off with 60 minutes is still a present day: no change.
     const off=x(fix('manager','HR-S06','2026-09-30','OFF',{otMin:60})(s)).requests.at(-1);assert.deepEqual([off.status,off.direct,off.payEffect],['Approved',true,0]);
     const w=fix('manager','HR-S05','2026-09-22','P')(s),wr=x(w).requests.at(-1);assert.equal(wr.status,'Pending');   // absent → present raises pay
@@ -104,7 +111,7 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     assert.equal(x(execute(w,'manager',{type:'HR_REQUEST_WITHDRAW',id:wr.id})).requests.at(-1).status,'Withdrawn');
   });
 
-  test('[PAY-WB DEC-083 / DEC-115] paid holiday = SCC "Mgmt holiday": the month has one total day fewer and nobody loses pay (figures by hand); leave skips it; locked month keeps it',()=>{
+  test('[PAY-WB DEC-083 / DEC-115] paid holiday = SCC "Mgmt holiday": the month has one total day fewer and nobody loses pay (figures by hand); leave counts it (SCC); locked month keeps it',()=>{
     let s=seed();const sx=x(s);
     // Two fictional staff (weekly off Sunday): present on every September working day except Thu 17 Sep (6, 13, 20, 27 Sep are Sundays).
     for(const [id,payType,monthly,daily] of [['HR-T1','monthly',3000000,0],['HR-T2','daily',0,80000]]){
@@ -125,9 +132,9 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     assert.equal(noHol.lines.find(l=>l.staffId==='HR-T1').earned,2900000);   // 30 total days, 5 absent (4 offs + the unmarked day) → 25 + 4 = 29 → 30,000 × 29 / 30
     assert.ok(noHol.warnings.includes(`Holiday Monthly: 1 unmarked day counted as absent — ${M.HR_UNMARKED_HINT}`));
     assert.equal(M.hrComputeRun(seed(),'2026-09').lines.every(l=>l.counts.hol===undefined),true,'no holiday: counts keep their old shape');
-    // Leave skips a holiday: Ravi CL Tue 3 – Thu 5 Nov with a holiday on Wed 4 Nov = 2 days.
+    // SCC leave port: leave does NOT skip a holiday (SCC store holidays are blackout markers): CL Tue 3 – Thu 5 Nov with a holiday on Wed 4 Nov = 3 days.
     s=execute(s,'owner',{type:'HR_HOLIDAY_SAVE',date:'2026-11-04',name:'Test holiday (fictional)'});
-    assert.equal(M.hrLeaveDays(s,st(s,'HR-S05'),'2026-11-03','2026-11-05'),2);
+    assert.equal(M.hrLeaveDays(s,'2026-11-03','2026-11-05'),3);
     // Masters integration: the paid holidays are MA-6's Holiday calendar, whose demo fixture seeds an illustrative calendar (6 paid in FY 2026–27),
     // so the count is the seeded ones + the 2 added here (old: "2 in FY 2026–27" and "None yet" for the plain fixture).
     const seededPaid=M.hrPaidHolidays(seed()).filter(h=>h.date>='2026-04-01'&&h.date<='2027-03-31').length;

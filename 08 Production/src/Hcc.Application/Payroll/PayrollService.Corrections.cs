@@ -58,14 +58,14 @@ public sealed partial class PayrollService
         {
             var type = target.LeaveType!.Value;
             if (state.HalfDayLeave) throw Invalid("A half-day leave covers this day; correct the attendance mark beside it instead.");
-            // MA-6: the type is an active row of the Leave types list (paid / tracked from the list); daily-wage staff take unpaid types only.
+            // SCC leave port (DEC-116): SCC's fixed categories for every staff member (no pay-type rule); the hotel's leave week-off set decides
+            // where leave can be (SCC isWeekOffDate); the balance = the staff member's entitlement − approved use.
             var policy = await db.LeavePolicyAsync(propertyId, ct).ConfigureAwait(false);
             if (!policy.IsKnown(type)) throw HccException.Validation("Choose a leave type.");
-            if (p.PayType == PayType.Daily && policy.IsPaid(type)) throw HccException.Validation("Daily-wage staff can take leave without pay only (illustrative policy).");
-            if (PayrollRules.DayOff(p, days, date)) throw HccException.Validation("That day is a weekly off or a paid holiday — no leave is needed.");
+            if (policy.IsWeekOff(date)) throw HccException.Validation("That day is in the hotel’s leave week-off set — no leave is recorded on it.");
             if (policy.IsTracked(type))
             {
-                var left = policy.Entitled(type) - LeaveRules.Used(days.Leaves, date, type, state.OneDayLeave?.LeaveId ?? 0);
+                var left = LeaveRules.Available(policy, st.StaffId, days.Leaves, date, type, state.OneDayLeave?.LeaveId ?? 0);
                 if (left < 1)
                     throw HccException.Validation($"Not enough {type} balance: {PayrollRules.Num(Math.Max(0, left))} day{(left == 1 ? "" : "s")} left in {FinancialYear.Containing(date).Label}.");
             }
@@ -84,7 +84,7 @@ public sealed partial class PayrollService
         if (plan.State.OneDayLeave is { } one)
         {
             var l = await db.LockLeaveAsync(propertyId, one.LeaveId, ct).ConfigureAwait(false) ?? throw NotFound("Leave request not found.");
-            await db.UpdateLeaveStatusAsync(one.LeaveId, l.Version, LeaveStatus.Cancelled, decidedBy, Now, "Replaced by attendance correction " + Id(requestId), ct).ConfigureAwait(false);
+            await db.CancelLeaveAsync(one.LeaveId, l.Version, decidedBy, Now, "Replaced by attendance correction " + Id(requestId), ct).ConfigureAwait(false);
         }
 
         switch (target.Kind)

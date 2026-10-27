@@ -29,12 +29,17 @@ public sealed class PayrollBoardTests(PayrollDb db) : IClassFixture<PayrollDb>
         await h.Payroll.SetRosterAsync(h.As("manager", PayrollService.OpSetRoster), new SetRosterRequest(ravi, new DateOnly(2026, 10, 27), "E"), Ct);
         await h.Payroll.MarkAttendanceAsync(h.As("manager", PayrollService.OpMarkAttendance), new MarkAttendanceRequest(ravi, "P", 30, "Stayed late"), Ct);
         var leave = await h.Payroll.RequestLeaveAsync(h.As("housekeeper", PayrollService.OpRequestLeave),
-            new RequestLeaveRequest(ravi, "CL", new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3), null, "Family function"), Ct);
+            new RequestLeaveRequest(ravi, "CL", new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3), null, "Family function", h.U("manager")), Ct);
 
         var acc = await h.Queries.GetBoardAsync(h.PropertyId, h.U("accountant"), null, null, Ct);
         Assert.Equal((new DateOnly(2026, 4, 1), new DateOnly(2026, 12, 19), true, true), (acc.From, acc.To, acc.AllStaff, acc.Payroll));
         Assert.Equal(7, acc.Departments.Count);
-        Assert.Equal((12, 7, 15, 2), (acc.LeavePolicy.Cl, acc.LeavePolicy.Sl, acc.LeavePolicy.El, acc.LeavePolicy.DefaultCap));
+        // SCC leave port: CL / SL / EL 12 / 7 / 15, advisory department default = SCC MAX_DAY 3, no week-off day ticked (HCC default), no overrides or blackouts.
+        Assert.Equal((12m, 7m, 15m, 3, 0), (acc.LeavePolicy.Cl, acc.LeavePolicy.Sl, acc.LeavePolicy.El, acc.LeavePolicy.DefaultCap, acc.LeavePolicy.WeekOffMask));
+        Assert.Empty(acc.LeavePolicy.Overrides);
+        Assert.Empty(acc.LeavePolicy.Blackouts);
+        Assert.Empty(acc.Agendas);
+        Assert.Equal([(h.U("owner"), "Owner"), (h.U("manager"), "Manager")], acc.Approvers.Select(a => (a.UserId, a.Role)));
         Assert.Equal(["2026-08", "2026-09"], acc.Runs.Select(r => r.Month));
         var a = acc.Runs[0];
         Assert.Equal(("Locked", 1, 12, aug.NetPaise), (a.Status, a.LockSeq, a.Lines.Count, a.Lines.Sum(l => l.NetPaise)));
@@ -56,8 +61,11 @@ public sealed class PayrollBoardTests(PayrollDb db) : IClassFixture<PayrollDb>
         var att = acc.Attendance.Single(x => x.StaffId == ravi && x.Date == new DateOnly(2026, 10, 24));
         Assert.Equal(("P", 30, h.U("manager"), "Stayed late"), (att.Status, att.OtMinutes, att.MarkedBy, att.Note));
         Assert.Contains(acc.Roster, x => x.StaffId == ravi && x.Date == new DateOnly(2026, 10, 27) && x.Shift == "E");
-        var lv = acc.Leaves.Single(x => x.LeaveId == leave.Value.LeaveId);
-        Assert.Equal(("Pending", 2m, h.U("housekeeper"), "Family function"), (lv.Status, lv.Days, lv.RequestedBy, lv.Reason));
+        // One record per date (SCC), each with the range it was requested with and the chosen approver.
+        var lvs = acc.Leaves.Where(x => leave.Value.Added.Any(a => a.LeaveId == x.LeaveId)).OrderBy(x => x.Date).ToList();
+        Assert.Equal([new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3)], lvs.Select(x => x.Date));
+        Assert.All(lvs, lv => Assert.Equal(("Pending", 1m, h.U("housekeeper"), "Family function", new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3), h.U("manager")),
+            (lv.Status, lv.Days, lv.RequestedBy, lv.Reason, lv.From, lv.To, lv.ApproverId)));
 
         var mgr = await h.Queries.GetBoardAsync(h.PropertyId, h.U("manager"), null, null, Ct);
         Assert.Equal((true, false), (mgr.AllStaff, mgr.Payroll));

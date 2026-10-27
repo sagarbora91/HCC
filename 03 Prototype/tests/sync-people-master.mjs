@@ -10,8 +10,9 @@ export async function register({test,M,assert}){
   const desig=[base(1,'designationId','COOK','Cook',10,{dept:'KIT',grade:null,defaultPayRule:'monthly-structured'}),base(2,'designationId','HELPER','Helper',20,{dept:'KIT',grade:'G1',defaultPayRule:null})];
   const shifts=[base(1,'shiftPatternId','M','Morning',10,{start:'07:00',end:'15:00',breakMinutes:30,night:false,weeklyOffRule:'fixed'}),
     base(2,'shiftPatternId','N','Night',20,{start:'23:00',end:'07:00',breakMinutes:30,night:true,weeklyOffRule:'roster',active:false,retiredOn:'2026-10-20'})];
-  const leave=[base(1,'leaveTypeId','CL','Casual leave',10,{paid:true,yearlyQuota:12,carryForward:3,encashment:false}),base(2,'leaveTypeId','CO','Compensatory off',20,{paid:true,yearlyQuota:null,carryForward:0,encashment:false}),
-    base(3,'leaveTypeId','LOP','Leave without pay',30,{paid:false,yearlyQuota:null,carryForward:0,encashment:false})];
+  // SCC leave port (migration 4110): the server rows carry paid and a decimal quota only.
+  const leave=[base(1,'leaveTypeId','CL','Casual leave',10,{paid:true,yearlyQuota:12.5}),base(2,'leaveTypeId','CO','Compensatory off',20,{paid:true,yearlyQuota:null}),
+    base(3,'leaveTypeId','LOP','Leave without pay',30,{paid:false,yearlyQuota:null})];
   const hol=[base(1,'holidayId','2026-11-08','Diwali',10,{kind:'paid',fy:'FY 2026–27'}),base(2,'holidayId','2026-09-14','Ganesh Chaturthi',20,{kind:'restricted',fy:'FY 2026–27'})];
   const page=items=>({page:1,pageSize:200,total:items.length,items});
   const hist=(id,code,field,o,n)=>({historyId:id,rowId:1,code,field,oldValue:o,newValue:n,changedBy:1,changedByName:'owner',changedUtc:'2026-10-24T03:30:00.000Z'});
@@ -31,7 +32,7 @@ export async function register({test,M,assert}){
     assert.deepEqual(st.mastersX.rows.designations,[{id:'1',code:'COOK',name:'Cook',sortOrder:10,active:true,dept:'KIT',defaultPayRule:'monthly-structured'},{id:'2',code:'HELPER',name:'Helper',sortOrder:20,active:true,dept:'KIT',grade:'G1'}]);
     assert.deepEqual(st.mastersX.rows.shiftPatterns,[{id:'1',code:'M',name:'Morning',sortOrder:10,active:true,start:'07:00',end:'15:00',breakMinutes:30,night:false,weeklyOffRule:'fixed'},
       {id:'2',code:'N',name:'Night',sortOrder:20,active:false,retiredOn:'2026-10-20',start:'23:00',end:'07:00',breakMinutes:30,night:true,weeklyOffRule:'roster'}]);
-    assert.deepEqual(st.mastersX.rows.leaveTypes.map(r=>[r.code,r.paid,r.yearlyQuota,r.carryForward,r.encashment]),[['CL',true,12,3,false],['CO',true,undefined,0,false],['LOP',false,undefined,0,false]]);
+    assert.deepEqual(st.mastersX.rows.leaveTypes.map(r=>[r.code,r.paid,r.yearlyQuota,'carryForward' in r,'encashment' in r]),[['CL',true,12.5,false,false],['CO',true,undefined,false,false],['LOP',false,undefined,false,false]]);
     assert.deepEqual(st.mastersX.rows.holidays.map(r=>[r.code,r.name,r.kind]),[['2026-11-08','Diwali','paid'],['2026-09-14','Ganesh Chaturthi','restricted']]);
     assert.equal(rt.ids.version('designation','2'),'V2');assert.equal(rt.ids.version('shiftPattern','1'),'V1');assert.equal(rt.ids.version('leaveType','3'),'V3');assert.equal(rt.ids.version('holiday','2'),'V2');});
   test('[PPL-SYNC] The change history of every list loads into mastersX.history (field old → new, IST clock)',()=>{
@@ -39,7 +40,7 @@ export async function register({test,M,assert}){
     assert.equal(st.mastersX.history[0].at.length,16);});
   test('[PPL-SYNC] The prototype selectors read the server rows: shift times, leave quotas and paid flags, holiday dates, designation names',()=>{
     assert.equal(M.hrShiftInfo('M',st).start,'07:00');assert.equal(M.hrShiftInfo('N',st).label,'Night');assert.equal(M.hrWeeklyOffAuto(st,'N'),false);assert.equal(M.hrWeeklyOffAuto(st,'M'),true);
-    assert.equal(M.hrLeaveQuota(st,'CL'),12);assert.equal(M.hrLeaveCarryCap(st,'CL'),3);assert.equal(M.hrLeavePaid(st,'LOP'),false);assert.deepEqual(M.hrTrackedTypes(st),['CL']);
+    assert.equal(M.hrLeaveQuota(st,'CL'),12.5);assert.equal(M.hrLeaveCarryCap,undefined);assert.equal(M.hrLeavePaid(st,'LOP'),false);assert.deepEqual(M.hrTrackedTypes(st),['CL','SL','EL']);// SCC TRACKED_CATS
     assert.equal(M.hrHolidayPaid(st,'2026-11-08'),true);assert.equal(M.hrHolidayPaid(st,'2026-09-14'),false);assert.deepEqual([...M.hrHolidayDates(st)],['2026-11-08']);
     assert.deepEqual(M.mstOptions(st,'designations').map(o=>o.value),['COOK','HELPER']);assert.equal(M.mstLabel(st,'designations','COOK'),'Cook');});
 
@@ -49,7 +50,7 @@ export async function register({test,M,assert}){
   const dEdit=await go({type:'MST_MASTER_SAVE',master:'designations',row:{id:'1',code:'COOK',name:'Senior cook',dept:'KIT'}});     // pay rule hidden from this role: not sent
   const sAdd=await go({type:'MST_MASTER_SAVE',master:'shiftPatterns',row:{code:'s',name:'Split',start:'10:00',end:'20:00',breakMinutes:60,night:false,weeklyOffRule:'roster'},key:'s-add'});
   const sEdit=await go({type:'MST_MASTER_SAVE',master:'shiftPatterns',row:{id:'1',code:'M',name:'Morning',start:'08:00',end:'16:00',breakMinutes:30,night:false,weeklyOffRule:'fixed'}});
-  const lAdd=await go({type:'MST_MASTER_SAVE',master:'leaveTypes',row:{code:'bl',name:'Bereavement',paid:true,yearlyQuota:3,carryForward:0,encashment:false}});
+  const lAdd=await go({type:'MST_MASTER_SAVE',master:'leaveTypes',row:{code:'oth',name:'Other',paid:true,yearlyQuota:null}});
   const lEdit=await go({type:'MST_MASTER_SAVE',master:'leaveTypes',row:{id:'3',code:'LOP',name:'Unpaid',paid:false}});
   const hAdd=await go({type:'MST_MASTER_SAVE',master:'holidays',row:{code:'2026-12-25',name:'Christmas',kind:'paid'}});
   const ret=await go({type:'MST_MASTER_RETIRE',master:'shiftPatterns',id:'1'});
@@ -60,12 +61,12 @@ export async function register({test,M,assert}){
     assert.ok(dAdd.r.ok);assert.deepEqual([dAdd.cmds[0].path,dAdd.cmds[0].key],['/commands/SaveDesignation','d-add']);
     assert.deepEqual(dAdd.cmds[0].body,{code:'CHEF',name:'Chef',dept:'KIT',grade:'G3',defaultPayRule:'monthly-basic'});assert.ok(dAdd.gets.includes('/hr/designations'));
     assert.deepEqual(sAdd.cmds[0].body,{code:'S',name:'Split',start:'10:00',end:'20:00',breakMinutes:60,night:false,weeklyOffRule:'roster'});assert.equal(sAdd.cmds[0].path,'/commands/SaveShiftPattern');
-    assert.deepEqual(lAdd.cmds[0].body,{code:'BL',name:'Bereavement',paid:true,yearlyQuota:3,carryForward:0,encashment:false});assert.equal(lAdd.cmds[0].path,'/commands/SaveLeaveType');
+    assert.deepEqual(lAdd.cmds[0].body,{code:'OTH',name:'Other',paid:true,yearlyQuota:null});assert.equal(lAdd.cmds[0].path,'/commands/SaveLeaveType');
     assert.deepEqual([hAdd.cmds[0].path,hAdd.cmds[0].body],['/commands/SaveHoliday',{code:'2026-12-25',name:'Christmas',kind:'paid'}]);});
   test('[PPL-SYNC] Edits send the id field and the loaded version; a designation edit without the (hidden) pay rule leaves it out; empty quota is sent as null',()=>{
     assert.deepEqual(dEdit.cmds[0].body,{code:'COOK',name:'Senior cook',designationId:1,expectedVersion:'V1',dept:'KIT',grade:null});
     assert.deepEqual(sEdit.cmds[0].body,{code:'M',name:'Morning',shiftPatternId:1,expectedVersion:'V1',start:'08:00',end:'16:00',breakMinutes:30,night:false,weeklyOffRule:'fixed'});
-    assert.deepEqual(lEdit.cmds[0].body,{code:'LOP',name:'Unpaid',leaveTypeId:3,expectedVersion:'V3',paid:false,yearlyQuota:null,carryForward:0,encashment:false});});
+    assert.deepEqual(lEdit.cmds[0].body,{code:'LOP',name:'Unpaid',leaveTypeId:3,expectedVersion:'V3',paid:false,yearlyQuota:null});});
   test('[PPL-SYNC] Retire / reactivate / delete / reorder map to the list commands with the right id field',()=>{
     assert.deepEqual([ret.cmds[0].path,ret.cmds[0].body],['/commands/RetireShiftPattern',{shiftPatternId:1,expectedVersion:'V1'}]);
     assert.deepEqual([back.cmds[0].path,back.cmds[0].body],['/commands/ReactivateLeaveType',{leaveTypeId:2,expectedVersion:'V2'}]);

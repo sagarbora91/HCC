@@ -1,4 +1,4 @@
-// Stream F · Cashier, closing & reports (owns NIGHT_POST, POST_NIGHTS, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, EXPENSE, EXPENSE_APPROVE).
+// Stream F · Cashier, closing & reports (owns NIGHT_POST, POST_NIGHTS, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY; the expense commands are in handlers/expenses.ts).
 // Register new or replacement command handlers here. A handler with the same name as a built-in command replaces it.
 // Kept built-in: POST_NIGHTS (M1 compatibility, no UI button). SHIFT_CLOSE (exact-count close by close-permission users) is re-registered here
 // with the same rules so the counter is recorded (W05 review F1: the person who counted may not lock the cash book day).
@@ -105,64 +105,7 @@ export const handlers:Record<string,Handler>={
     s.shift=undefined;s.shiftOpen=true;
     return `${a!.id} · difference rejected · shift reopened for recount`;
   },
-  // PERM-EXP-001 expense.submit. draft:true saves a Draft (own); otherwise submits for approval.
-  EXPENSE:k=>{
-    const {s,cmd,open,assert,positive,id,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();positive(cmd.amount);
-    assert(cmd.vendor?.trim(),'Enter a vendor.');
-    assert(cmd.category?.trim(),'Choose a category.');
-    // MA-3 money masters: funding source = an active payment method usable for expenses; category from the expense categories;
-    // vendor from the expense vendors (DEC-MA-6) or free text (a name not in the list is kept as typed); retired rows are refused.
-    const pmRow=typeof cmd.method==='string'?mnyMethod(s,cmd.method):undefined;
-    if(pmRow&&!pmRow.active&&(pmRow.usableAt??[]).includes('expenses'))mstFail('MASTER_RETIRED',`${pmRow.name} is retired — choose an active funding source.`);
-    const pm=mnyMethodFor(s,cmd.method,'expenses');
-    assert(pm,'Choose a funding source.');
-    const cat=mnyCategory(s,String(cmd.category));
-    if(cat&&!cat.active)mstFail('MASTER_RETIRED',`Category ${cat.name} is retired — choose an active category.`,'category');
-    assert(cat,'Choose a category from the list (Master configuration › Money and tax › Expense categories).');
-    const ven=mnyVendor(s,String(cmd.vendor).trim());
-    if(ven&&!ven.active)mstFail('MASTER_RETIRED',`Vendor ${ven.name} is retired — choose an active vendor.`,'vendor');
-    if(!cmd.draft&&cat!.needsBill)assert(String(cmd.receipt??'').trim(),`${cat!.name} expenses need the bill / receipt number.`);
-    const e:Expense={id:id('EXP'),vendor:ven?.name??cmd.vendor.trim(),category:cat!.name,amount:cmd.amount,method:pm!.name,date:s.date,status:cmd.draft?'Draft':'Pending',actor:uid};
-    if(cmd.notes?.trim())e.notes=String(cmd.notes).trim().slice(0,300);
-    if(cmd.receipt?.trim())e.receipt=String(cmd.receipt).trim().slice(0,120);
-    s.expenses.push(e);
-    return (cmd.draft?'Expense draft saved · ':'Expense submitted · ')+e.vendor;
-  },
-  EXPENSE_SUBMIT:k=>{
-    const {s,cmd,open,assert,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();
-    const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
-    assert(e!.status==='Draft','Only a draft can be submitted.','INVALID_TRANSITION');
-    assert(e!.actor===uid,'You can submit only your own drafts.','FORBIDDEN');
-    {const cat=mnyCategory(s,e!.category);if(cat?.needsBill)k.assert(String(e!.receipt??'').trim(),`${cat.name} expenses need the bill / receipt number.`);}
-    e!.status='Pending';e!.date=s.date;return e!.id+' · submitted for approval';
-  },
-  // PERM-EXP-002 expense.approve / reject (manager ≤ ₹5,000) + PERM-EXP-003 post
-  EXPENSE_APPROVE:k=>{
-    const {s,cmd,open,assert,fail,uid,user}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required');open();
-    const e=s.expenses.find(e=>e.id===cmd.id);
-    assert(e&&e.status==='Pending','Expense is no longer pending.','INVALID_TRANSITION');
-    assert(!cbIsLocked(s,e!.date),cbLockedMessage(e!.date,'deciding this expense'),'DAY_CLOSED'); // DEC-065
-    assert(e!.actor!==uid,'You cannot approve your own expense.','FORBIDDEN');
-    const lim=mnyApprovalLimit(s,e!.category,EXPENSE_MANAGER_LIMIT); // MA-3: category override, else the hotel limit
-    if(cmd.approve&&limited(user.role)&&e!.amount>lim)fail('FORBIDDEN',`Expenses above ${money(lim)} need Owner approval.`);
-    if(cmd.approve&&mnyIsDrawer(s,e!.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
-    e!.status=cmd.approve?'Posted':'Rejected';e!.date=s.date;e!.approver=uid;e!.decidedAt=s.clock;
-    if(!cmd.approve&&cmd.reason?.trim())e!.reason=String(cmd.reason).trim();
-    return e!.id+' · '+e!.status;
-  },
-  // PERM-EXP-003 expense.reverse: Posted → Reversed + negative Posted record on today's business date
-  EXPENSE_REVERSE:k=>{
-    const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required (not the Cashier, DEC-063)');open();
-    const e=s.expenses.find(e=>e.id===cmd.id);assert(e,'Expense not found.','NOT_FOUND');
-    assert(e!.status==='Posted'&&!e!.reversalOf,'Only a posted expense can be reversed.','INVALID_TRANSITION');
-    assert(!cbIsLocked(s,e!.date),cbLockedMessage(e!.date,'reversing this expense'),'DAY_CLOSED'); // DEC-065
-    assert(cmd.reason?.trim(),'A reason is required to reverse an expense.');
-    if(mnyIsDrawer(s,e!.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
-    const rid=id('EXP');
-    s.expenses.push({id:rid,vendor:e!.vendor,category:e!.category,amount:-e!.amount,method:e!.method,date:s.date,status:'Posted',actor:uid,reversalOf:e!.id,reason:cmd.reason.trim(),approver:uid,decidedAt:s.clock});
-    e!.status='Reversed';e!.reversedBy=rid;e!.reason=cmd.reason.trim();
-    return `${e!.id} reversed by ${rid} · ${money(e!.amount)}`;
-  },
+  // EXPENSE, EXPENSE_SUBMIT, EXPENSE_APPROVE, EXPENSE_REVERSE moved to handlers/expenses.ts with the SCC expense features (DEC-120).
   // PERM-CLS-002 close.closeDay
   DAY_CLOSE:k=>{
     const {s,req,open,assert,uid}=k;req('close');open();

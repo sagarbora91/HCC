@@ -38,7 +38,8 @@ public readonly record struct ShiftCode(string Value)
 /// <summary>Attendance mark; OFF = worked on the weekly off; NT = present without a thumb punch (SCC "No Thumb": ½ day deduction, DEC-115).</summary>
 public enum AttendanceStatus { P, L, H, A, OFF, NT }
 
-/// <summary>Leave type code of the Leave types list (MA-6; CL SL EL CO ML LOP are the seed); LOP = leave without pay.</summary>
+/// <summary>Leave category: SCC's six (CL Casual, SL Sick, EL Earned, ML Maternity / Paternity, CO Compensatory Off, OTH Other — a fixed list since the
+/// SCC leave port, DEC-116) + HCC's LOP (leave without pay: payroll counts it as absent, DEC-115). Codes of older stored lists still parse.</summary>
 public readonly record struct LeaveType(string Value)
 {
     public static readonly LeaveType CL = new("CL");
@@ -46,7 +47,14 @@ public readonly record struct LeaveType(string Value)
     public static readonly LeaveType EL = new("EL");
     public static readonly LeaveType CO = new("CO");
     public static readonly LeaveType ML = new("ML");
+    public static readonly LeaveType OTH = new("OTH");
     public static readonly LeaveType LOP = new("LOP");
+
+    /// <summary>SCC's categories in SCC's order + LOP (the fixed list).</summary>
+    public static readonly LeaveType[] Fixed = [CL, SL, EL, ML, CO, OTH, LOP];
+
+    /// <summary>SCC TRACKED_CATS (quota and balance warning).</summary>
+    public static readonly LeaveType[] Tracked = [CL, SL, EL];
 
     /// <summary>1–6 capital letters or digits.</summary>
     public static bool IsValid(string? code) => code is { Length: >= 1 and <= 6 } && code.All(c => c is >= 'A' and <= 'Z' or >= '0' and <= '9');
@@ -159,11 +167,18 @@ public sealed record StaffProfile(long StaffId, string Name, string Dept, string
 
 public sealed record AttendanceMark(DateOnly Date, AttendanceStatus Status, int OtMinutes);
 
-/// <summary>A leave request as the rules see it (days in half-day units: 0.5 = a half-day).</summary>
+/// <summary>A leave record as the rules see it. Since the SCC leave port (migration 4110) every record is ONE DATE: <see cref="From"/> =
+/// <see cref="To"/> = the leave date; <see cref="Days"/> = 1 (full day) or 0.5 (half day, SCC leaveDaysOf).</summary>
 public sealed record LeaveSpan(long LeaveId, long StaffId, LeaveType Type, DateOnly From, DateOnly To, LeaveHalf? Half, decimal Days, LeaveStatus Status, bool? Paid = null)
 {
-    /// <summary>Paid leave (Leave types list; resolved when loaded). Unresolved: everything but LOP is paid.</summary>
+    /// <summary>SCC: every category is a leave day in pay; only HCC's LOP (leave without pay) is unpaid.</summary>
     public bool IsPaid => Paid ?? Type != LeaveType.LOP;
+
+    /// <summary>The leave date (SCC data.leaves key).</summary>
+    public DateOnly Date => From;
+
+    /// <summary>SCC isActiveLeave: pending + approved hold a slot (rejected frees it; a cancelled record is SCC's removed one).</summary>
+    public bool Active => Status is LeaveStatus.Pending or LeaveStatus.Approved;
 
     public bool Covers(DateOnly d) => From <= d && To >= d;
 
@@ -277,32 +292,64 @@ public sealed record PayTotals(int Staff, long Earned, long Basic, long Hra, lon
     }
 }
 
-/// <summary>One leave type of the Leave types list (MA-6): paid or not, yearly quota (null = not tracked), carry-forward limit, encashment flag.</summary>
-public sealed record LeaveTypeDef(string Code, string Name, bool Paid, int? Quota, int CarryForward, bool Encashment, bool Active);
+/// <summary>One category of the Leave types list (MA-6; SCC's fixed list since migration 4110): its name, paid flag (only LOP unpaid) and yearly
+/// quota (CL / SL / EL; any number ≥ 0). Carry-forward and encashment are gone (SCC has neither).</summary>
+public sealed record LeaveTypeDef(string Code, string Name, bool Paid, decimal? Quota, bool Active);
 
-/// <summary>Leave policy (SCC ENT_DEFAULTS + MAX_DAY per department). Not dated: applies to new requests. With <see cref="Types"/> the leave
-/// types decide paid / tracked / quota / carry-forward; without (no list stored yet) CL SL EL are tracked with Cl Sl El days.</summary>
-public sealed record LeavePolicy(int Cl, int Sl, int El, int DefaultCap, IReadOnlyDictionary<string, int> DeptCap, IReadOnlyDictionary<string, LeaveTypeDef>? Types = null)
+/// <summary>SCC perEmployee entitlement override of one staff member: a null category uses the default.</summary>
+public sealed record LeaveEntOverride(decimal? Cl, decimal? Sl, decimal? El);
+
+/// <summary>SCC blackout / store holiday: <see cref="Dept"/> '' = every department (SCC "All stores"); <see cref="Hard"/> refuses (blackouts only).</summary>
+public sealed record LeaveBlackout(long BlackoutId, DateOnly From, DateOnly To, string Dept, string Kind, bool Hard, string Label)
 {
-    public static LeavePolicy Defaults() => new(12, 7, 15, 2, new Dictionary<string, int>());
+    public bool Covers(DateOnly d) => From <= d && To >= d;
 
-    public int Entitled(LeaveType t) => Types is not null ? Types.TryGetValue(t.Value, out var d) ? d.Quota ?? 0 : 0
-        : t == LeaveType.CL ? Cl : t == LeaveType.SL ? Sl : t == LeaveType.EL ? El : 0;
+    public string Text => Label.Length > 0 ? Label : Kind == "holiday" ? "Store holiday" : "Blackout";
+}
 
-    /// <summary>A type with a yearly quota (balance checked per financial year).</summary>
-    public bool IsTracked(LeaveType t) => Types is not null ? Types.TryGetValue(t.Value, out var d) && d.Quota is not null : t == LeaveType.CL || t == LeaveType.SL || t == LeaveType.EL;
+/// <summary>An SCC entitlement set (days per financial year).</summary>
+public sealed record LeaveEnt(decimal Cl, decimal Sl, decimal El)
+{
+    public decimal Of(LeaveType t) => t == LeaveType.CL ? Cl : t == LeaveType.SL ? Sl : t == LeaveType.EL ? El : 0m;
+}
 
-    /// <summary>Active, known type (without a stored list: the six built-in types).</summary>
-    public bool IsKnown(LeaveType t) => Types is not null ? Types.TryGetValue(t.Value, out var d) && d.Active
-        : t == LeaveType.CL || t == LeaveType.SL || t == LeaveType.EL || t == LeaveType.CO || t == LeaveType.ML || t == LeaveType.LOP;
+/// <summary>
+/// SCC leave settings (leave\index.html): ENT_DEFAULTS as saved (<see cref="Cl"/> / <see cref="Sl"/> / <see cref="El"/>; the Leave types list's quotas
+/// once stored, MA-6), per-staff overrides (SCC perEmployee), the hotel's leave week-off set (<see cref="WeekOffMask"/>: bit 0 = Sunday; 0 = none),
+/// advisory department caps (SCC per-store caps; absent = <see cref="SccLeave.MaxDay"/>) and the blackouts. <see cref="DefaultCap"/> is no longer read.
+/// </summary>
+public sealed record LeavePolicy(decimal Cl, decimal Sl, decimal El, int DefaultCap, IReadOnlyDictionary<string, int> DeptCap, IReadOnlyDictionary<string, LeaveTypeDef>? Types = null,
+    int WeekOffMask = 0, IReadOnlyDictionary<long, LeaveEntOverride>? Overrides = null, IReadOnlyList<LeaveBlackout>? Blackouts = null)
+{
+    /// <summary>SCC ENT_DEFAULTS 12 / 7 / 15; no week-off day (HCC default — SCC's is Saturday + Sunday).</summary>
+    public static LeavePolicy Defaults() => new(12, 7, 15, SccLeave.MaxDay, new Dictionary<string, int>());
 
-    public bool IsPaid(LeaveType t) => Types is not null ? !Types.TryGetValue(t.Value, out var d) || d.Paid : t != LeaveType.LOP;
+    /// <summary>The saved default of a tracked category (0 for the others — SCC: not quota-tracked).</summary>
+    public decimal Entitled(LeaveType t) => t == LeaveType.CL ? Cl : t == LeaveType.SL ? Sl : t == LeaveType.EL ? El : 0m;
 
-    public int CarryCap(LeaveType t) => Types is not null && Types.TryGetValue(t.Value, out var d) ? d.CarryForward : 0;
+    /// <summary>SCC entFor: the staff member's override, else the saved default (never below 0).</summary>
+    public LeaveEnt EntFor(long staffId)
+    {
+        var o = Overrides is not null && Overrides.TryGetValue(staffId, out var x) ? x : null;
+        return new LeaveEnt(Math.Max(0, o?.Cl ?? Cl), Math.Max(0, o?.Sl ?? Sl), Math.Max(0, o?.El ?? El));
+    }
 
-    /// <summary>Tracked types in display order (list order, or CL SL EL).</summary>
-    public IReadOnlyList<LeaveType> TrackedTypes() => Types is not null ? Types.Values.Where(d => d.Active && d.Quota is not null).Select(d => new LeaveType(d.Code)).ToList()
-        : [LeaveType.CL, LeaveType.SL, LeaveType.EL];
+    /// <summary>SCC TRACKED_CATS: Casual, Sick, Earned.</summary>
+    public bool IsTracked(LeaveType t) => t == LeaveType.CL || t == LeaveType.SL || t == LeaveType.EL;
 
-    public int CapFor(string dept) => DeptCap.TryGetValue(dept, out var c) ? c : DefaultCap;
+    /// <summary>SCC's fixed categories + LOP.</summary>
+    public bool IsKnown(LeaveType t) => LeaveType.Fixed.Contains(t);
+
+    /// <summary>SCC: every category is paid leave; only LOP is unpaid.</summary>
+    public bool IsPaid(LeaveType t) => t != LeaveType.LOP;
+
+    public IReadOnlyList<LeaveType> TrackedTypes() => LeaveType.Tracked;
+
+    /// <summary>Advisory cap of a department (SCC per-store cap; default MAX_DAY).</summary>
+    public int CapFor(string dept) => DeptCap.TryGetValue(dept, out var c) ? c : SccLeave.MaxDay;
+
+    /// <summary>SCC isWeekOffDate on the hotel's set.</summary>
+    public bool IsWeekOff(DateOnly d) => SccLeave.IsWeekOff(WeekOffMask, d);
+
+    public IReadOnlyList<LeaveBlackout> BlackoutList => Blackouts ?? [];
 }

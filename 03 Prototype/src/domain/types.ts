@@ -156,7 +156,7 @@ export type Task={id:string;room:string;booking?:string;assignee:string;status:'
 
   // ── Task · stream F fields (add below this line) ──
 };
-export type Expense={id:string;vendor:string;category:string;amount:number;method:string;date:string;status:'Draft'|'Pending'|'Posted'|'Rejected'|'Reversed';actor:string;
+export type Expense={id:string;vendor:string;category:string;amount:number;method:string;date:string;status:'Draft'|'Pending'|'Posted'|'Rejected'|'Reversed'|'Void';actor:string;
   // ── Expense · stream A fields (add below this line) ──
 
   // ── Expense · stream B fields (add below this line) ──
@@ -178,6 +178,25 @@ export type Expense={id:string;vendor:string;category:string;amount:number;metho
   reversalOf?:string;
   /** On a reversed expense: its reversal record. */
   reversedBy?:string;
+  // ── Expense · SCC features (DEC-120; optional — records saved before have none; helpers in domain/streams/expenses-scc.ts) ──
+  /** What the expense is for (SCC: required; HCC: required once submitted for approval). Older records show the vendor. */
+  description?:string;
+  /** GST on the bill (SCC P1-17): rate in basis points (1800 = 18 %) and amount in paise, kept only when > 0. A reversal record carries −GST. */
+  gstRateBps?:number;gstPaise?:number;
+  /** Bill photo (SCC: picked file ≤ 4 MB, scaled to 1000 px wide, JPEG 0.7): a data URL in the demo build; production keeps it on the server. */
+  billPhoto?:string;
+  /** Production: the server holds a bill photo for this expense (fetched on demand). */
+  hasBillPhoto?:boolean;
+  /** Origin: a petty-cash disbursement or a recurring template post (absent = entered by hand). sourceRef 'rec:<template>:<YYYY-MM>' / 'pty-…'. */
+  source?:'petty'|'recurring';sourceRef?:string;
+  /** Void (SCC): one of the six reasons plus an optional note ("reason — note"); the record is kept for audit. */
+  voidReason?:string;voidedBy?:string;voidedAt?:string;
+  /** Edit log (SCC: when, who, old → new, reason). */
+  editLog?:import('./streams/expenses-scc').ExpEditLog[];
+  /** Users other than the submitter who changed it: they may not approve it (nobody approves their own). */
+  editors?:string[];
+  /** Simulated clock when the record was made (SCC createdAt; the month feed's stale rule). */
+  createdAt?:string;
 };
 export type Approval={id:string;booking:string;amount:number;reason:string;status:'Pending'|'Approved'|'Rejected'|'Expired'|'Invalidated'|'Executed';actor:string;version:number;
   /** Request kind; undefined = discount (M1). Streams add e.g. 'refund','company-credit','cash-difference','expense','policy'. */
@@ -283,6 +302,8 @@ export type State={
   accountingX?:import('./streams/accounting').ACCState;
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
+  /** SCC tax port (DEC-116): compliance evidence file contents (data URLs) by file id — its own slice so the calendar never re-saves them. */
+  complianceFilesX?:Record<string,string>;
   cashbookX?:import('./streams/cashbook').CBState;
   /** Wave B1 (DEC-073 / DEC-078): bank deposits, till transfers, Owner drawings, the other tills and the desk shift's opener. */
   cashOutX?:import('./streams/cashout').CXState;
@@ -294,6 +315,8 @@ export type State={
   sysHealthX?:import('./streams/syshealth').SYSState;
   /** MA-5 front-desk lists: numbering-series allocation counters (absent until a non-seeded series issues a number). */
   frontdeskMasterX?:import('./streams/frontdesk-master').FDMState;
+  /** DEC-120 SCC expense features: monthly budgets, recurring templates, petty-cash float top-ups, the Udhaar credit register, month locks. */
+  expensesX?:import('./streams/expenses-scc').EXPState;
 
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;
@@ -307,4 +330,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=9; // 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=10; // 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)

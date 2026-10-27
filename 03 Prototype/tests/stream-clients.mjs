@@ -267,7 +267,8 @@ export async function register({test,M,assert}){
   test('[W4-0] Sync layer only in the production bundle: markers, server paths and command names of every sync file absent from the prototype',()=>{
     for(const m of syncMarkers){assert.ok(prod.includes(m),'production bundle lacks '+m);assert.ok(!proto.includes(m),'prototype bundle contains '+m);}
     assert.ok(syncPaths.includes('/system/health')&&syncPaths.includes('/auth/sign-in'),syncPaths.join(','));
-    for(const p of syncPaths)assert.ok(!proto.includes(p),'prototype bundle contains sync path '+p);
+    // A path counts as a string literal start ("/…, '/…, `/…): SCC's compliance catalogue text (DEC-116) says "income/expenses", which is not a path.
+    for(const p of syncPaths)assert.ok(!['"',"'",'`'].some(q=>proto.includes(q+p)),'prototype bundle contains sync path '+p);
     for(const c of syncCommands)assert.ok(!proto.includes(`"${c}"`),'prototype bundle contains sync command '+c);
     assert.ok(!proto.includes('hcc-session-cache')&&!proto.includes('X-HCC-Device'));
   });

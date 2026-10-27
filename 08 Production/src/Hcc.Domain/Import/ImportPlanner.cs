@@ -944,8 +944,9 @@ public static partial class ImportPlanner
             var capText = s.Cell(r, "leaveCap");
             if (capText.Length > 0)
             {
-                if (ImportValues.TryInt(capText, out var c) && c is >= 1 and <= 20) cap = c;
-                else s.Error(r, "leaveCap", "The leave limit is a whole number from 1 to 20 (leave it blank for the leave policy default).");
+                // SCC leave port (DEC-116): SCC per-store caps are ADVISORY (they flag a day, never block) — any whole number ≥ 0; blank = SCC MAX_DAY 3.
+                if (ImportValues.TryInt(capText, out var c) && c is >= 0 and <= 9999) cap = c;
+                else s.Error(r, "leaveCap", "The leave cap is a whole number, 0 or more (leave it blank for 3, SCC's limit a day).");
             }
 
             if (code is null || Duplicate(s, seen, r, code, "code") || s.Errors.Count > errs) continue;

@@ -35,8 +35,8 @@ export async function register({test,M,assert}){
     assert.deepEqual(r.map(x=>x.code).slice(-2),['307','308']);assert.equal(mstById(seed(),'rooms','306').type,'SUITE');});
   test('[RMS] golden figures unchanged (occupancy 8, collections ₹21,500, drawer ₹10,725; BASE and FY26 hashes)',()=>{
     const s=seed();assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);
-    assert.equal(sha(strip(s)),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+    assert.equal(sha(strip(s)),'4a8aad03ae04d1c840c05ed22afabdd6fcf89b3e36cd93a68232a0bba9fb8616') /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'197643a1f6faf1044d5fc0bc1a1482a27cbf5e019365b9e5bfac6409c8ccad1c') /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
   test('[RMS] amenities and occupancy charges seeded (9 amenities; one charge row per type; Classic has no extra bed)',()=>{
     const s=seed();assert.equal(mstRows(s,'amenities').length,9);assert.equal(mstByCode(s,'amenities','WIFI').icon,'wifi');
     const o=mstRows(s,'occupancyCharges');assert.deepEqual(o.map(x=>[x.code,x.roomType]),[['X-CLASSIC','CLASSIC'],['X-DELUXE','DELUXE'],['X-SUITE','SUITE']]);

@@ -17,7 +17,7 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 // MA-0 (DEC-MA-1): the new `masters` permission is granted to Owner and Tech admin in s.grants, so the whole-state hash changed on purpose:
 // old 3521729b…ec6e46b4 → new 260433ce…1e009df941. The generated history itself is unchanged (stream-masters.mjs pins the hash without grants).
 // old → new: 260433ce… → 07f6681c… = SCHEMA 8 → 9 only (masters wave); the generated FY26 data is unchanged.
-const FY26_SHA_BEFORE='d0babd3b6f7e1ad443e08d9ec4416e2f99faca6ed4ab9ec2786c11e1133a1211';
+const FY26_SHA_BEFORE='8ba459414eb1c855b086225cac83bc07db65bf45cc2da6bbccb067b0a26729dc' /* SCC port wave (DEC-116, tax + leave): d0babd3b… → 8ba45941… = compliance + leave slices, SCHEMA 9 → 10 */;
 
 // ── fake IndexedDB with real transaction semantics: writes are staged and applied only on commit; `failPut` aborts the
 // transaction when a put for that key is issued (nothing of that transaction is applied) ──
@@ -132,7 +132,7 @@ export function register({test,M,assert}){
     assert.equal(P.abortedApplied,false);assert.equal(P.storeAfterAbortSame,true);
     assert.equal(P.afterAbortSave.full,true);assert.equal(P.thirdRoundTrip,true);});
   test('[PERF] old single-blob save (IndexedDB "current", SCHEMA 7) is migrated, then converted to slices atomically',()=>{
-    assert.equal(P.mig.reset,false);assert.equal(P.mig.state.schema,SCHEMA);assert.ok(P.mig.state.complianceX?.obligations?.length>0);
+    assert.equal(P.mig.reset,false);assert.equal(P.mig.state.schema,SCHEMA);assert.ok(Object.keys(P.mig.state.complianceX?.records?.['2026']??{}).length>0);
     assert.deepEqual(P.migKeysBefore,['current'],'nothing rewritten before the first save');
     assert.equal(P.migSave.full,true);assert.ok(!P.migKeysAfter.includes('current'));assert.ok(P.migKeysAfter.includes('manifest'));
     assert.equal(P.migReload.reset,false);assert.deepEqual(P.migReload.state,P.mig.state);});

@@ -16,6 +16,7 @@ export * from '../../domain/streams/housekeeping';
 export * from '../../domain/streams/admin';
 export * from '../../domain/streams/config';
 export * from '../../domain/streams/closing';
+export * from '../../domain/streams/expenses-scc'; // DEC-120 SCC expense features
 export * from '../../domain/streams/yield';
 export * from '../../domain/streams/groups';
 export * from '../../domain/streams/channels';
@@ -29,6 +30,7 @@ export * from '../../domain/streams/services';
 export * from '../../domain/streams/messaging';
 export * from '../../domain/streams/pos';
 export * from '../../domain/streams/staff';
+export * from '../../domain/streams/staff-leave'; // SCC leave port (DEC-116 / DEC-119)
 export * from '../../domain/streams/accounting';
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';

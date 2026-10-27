@@ -1,14 +1,17 @@
 // Versioned browser persistence format (DEC-022). Pure functions; the browser adapter lives in app/storage.ts.
 import {State,SCHEMA} from '../../domain/types';
 import {loadScenario} from '../../fixtures/scenarios';
-import {hrMigrateLegacy} from '../../domain/streams/staff';
+import {hrMigrateLegacy,hrMigrateLeaveDays} from '../../domain/streams/staff';
 import {extendBase as cmpSeed} from '../../fixtures/ext/compliance';
 import {mstRows,mstNextSort,type MasterRow} from '../../domain/streams/masters';
-import {HRM_HOLIDAYS} from '../../domain/streams/people-masters';
+import {HRM_HOLIDAYS,HRM_LEAVE_TYPES} from '../../domain/streams/people-masters';
+import {cmpIsLegacy,cmpFromLegacy} from '../../domain/streams/compliance';
 /** Oldest saved schema that is migrated instead of reset (W05-B review F-04). */
 export const MIGRATE_FROM_SCHEMA=7;
-/** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. */
-function migrate(s:State&{schema:number}){
+/** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. Returns true when a shape-detected
+ *  migration (no schema bump) changed the state, so the first save writes it. */
+function migrate(s:State&{schema:number}):boolean{
+  let changed=false;
   if(s.schema<8){
     hrMigrateLegacy(s);// W05-B payroll: `rates` → `rateVersions`, old run lines filled
     if(!s.complianceX)cmpSeed(s);// W05-C review F14: saves from before the Compliance calendar get the fictional obligations
@@ -29,7 +32,17 @@ function migrate(s:State&{schema:number}){
     }
     if(s.staffX&&'holidays' in s.staffX)delete s.staffX.holidays;
   }
+  // SCC tax port (DEC-116, SCHEMA 10 with the SCC port wave): a compliance slice in the W05-C shape (obligations × periods) becomes SCC's (records per FY and
+  // card); every filing, not-applicable mark, switched-off obligation and reopened filing is carried over. Detects the old shape itself, so it
+  // is idempotent and runs on any schema.
+  if(cmpIsLegacy(s.complianceX)){s.complianceX=cmpFromLegacy(s.complianceX as never,s);changed=true;}
+  // SCC leave port (DEC-116 / DEC-119; SCHEMA 10 — the shape is detected, so this is idempotent): old leave SPANS (no `date`) become one
+  // record per counted date (staff.ts hrMigrateLeaveDays), and a stored Leave types list gets SCC's "Other" category.
+  if(hrMigrateLeaveDays(s))changed=true;
+  const lt=s.mastersX?.rows?.[HRM_LEAVE_TYPES];
+  if(lt&&!lt.some(r=>r.code==='OTH')){s.mastersX!.rows[HRM_LEAVE_TYPES]=[...lt,{id:'lvt-OTH',code:'OTH',name:'Other',sortOrder:mstNextSort(lt),active:true,paid:true}];changed=true;}
   s.schema=SCHEMA;
+  return changed;
 }
 export const STORAGE_KEY='hcc-prototype-v2';
 export const LEGACY_KEYS=['hcc-prototype-v1'];
@@ -45,7 +58,7 @@ export function inspectSaved(raw:string|Record<string,unknown>|null,legacyPresen
     try{
       const s=typeof raw==='string'?JSON.parse(raw):raw;
       if(typeof s?.schema==='number'&&s.schema>=MIGRATE_FROM_SCHEMA&&s.schema<=SCHEMA&&typeof s.clock==='string'&&s.settings&&s.grants&&Array.isArray(s.bookings)){
-        const migrated=s.schema<SCHEMA;migrate(s);return {state:s as State,reset:false,migrated};}
+        const older=s.schema<SCHEMA,changed=migrate(s);return {state:s as State,reset:false,migrated:older||changed};}
       return {reset:true,reason:`Saved demo data used an older format and was reset to the ${name}.`};
     }catch{return {reset:true,reason:`Saved demo data could not be read and was reset to the ${name}.`};}
   }

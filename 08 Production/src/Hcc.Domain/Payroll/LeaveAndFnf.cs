@@ -1,50 +1,41 @@
 namespace Hcc.Domain.Payroll;
 
-/// <summary>Leave balance for one tracked type (F-15: <see cref="Left"/> never goes below 0; <see cref="Over"/> = beyond a reduced entitlement).</summary>
-public sealed record LeaveBalance(LeaveType Type, int Entitled, decimal Used, decimal Left, decimal Over);
+/// <summary>Leave balance for one tracked category (F-15: <see cref="Left"/> never goes below 0; <see cref="Over"/> = approved days beyond the entitlement,
+/// which SCC allows after its warning).</summary>
+public sealed record LeaveBalance(LeaveType Type, decimal Entitled, decimal Used, decimal Left, decimal Over);
 
-/// <summary>Leave rules (SCC leave\index.html via the prototype): FY entitlements, used = approved + pending, capacity per department.</summary>
+/// <summary>Leave balances (SCC leave\index.html, in full since DEC-116): entitlement = SCC entFor (override, else the saved default); used = SCC fyUsage
+/// (APPROVED days, each record by its own date in the financial year). No carry-forward (SCC starts every year at the quota) and no span limit.</summary>
 public static class LeaveRules
 {
-    /// <summary>The seed tracked types (CL SL EL); <see cref="LeavePolicy.TrackedTypes"/> is the live list.</summary>
-    public static readonly LeaveType[] TrackedTypes = [LeaveType.CL, LeaveType.SL, LeaveType.EL];
+    /// <summary>SCC TRACKED_CATS (CL SL EL).</summary>
+    public static readonly LeaveType[] TrackedTypes = LeaveType.Tracked;
 
-    /// <summary>Maximum calendar span of one request (prototype demo rule: 15 days).</summary>
-    public const int MaxSpanDays = 15;
-
-    /// <summary>Leave used (approved + pending) in the financial year containing <paramref name="date"/>, per type.</summary>
+    /// <summary>Approved leave days in the financial year containing <paramref name="date"/> for one category (SCC fyUsage).</summary>
     public static decimal Used(IEnumerable<LeaveSpan> leaves, DateOnly date, LeaveType type, long exceptLeaveId = 0)
     {
         ArgumentNullException.ThrowIfNull(leaves);
         var fy = FinancialYear.Containing(date);
-        return leaves.Where(l => l.LeaveId != exceptLeaveId && l.Type == type && l.From >= fy.From && l.From <= fy.To && l.Holds).Sum(l => l.Days);
+        return leaves.Where(l => l.LeaveId != exceptLeaveId && l.Type == type && l.Status == LeaveStatus.Approved && l.Date >= fy.From && l.Date <= fy.To).Sum(l => l.Days);
     }
 
-    /// <summary>Days carried into the financial year of <paramref name="date"/> from the previous one: unused quota up to the type's carry-forward limit
-    /// (one year back; the previous year's own carry is not carried again); none for staff who joined after the previous year ended.</summary>
-    public static int Carried(LeavePolicy policy, IReadOnlyList<LeaveSpan> leaves, DateOnly date, LeaveType type, DateOnly? joined)
+    /// <summary>Days left for a tracked category: entitlement − approved use.</summary>
+    public static decimal Available(LeavePolicy policy, long staffId, IReadOnlyList<LeaveSpan> leaves, DateOnly date, LeaveType type, long exceptLeaveId = 0)
     {
         ArgumentNullException.ThrowIfNull(policy);
-        var cap = policy.CarryCap(type);
-        if (cap <= 0 || !policy.IsTracked(type)) return 0;
-        var prev = FinancialYear.Containing(FinancialYear.Containing(date).From.AddDays(-1));
-        if (joined is { } j && j > prev.To) return 0;
-        return (int)Math.Min(cap, Math.Max(0m, policy.Entitled(type) - Used(leaves, prev.From, type)));
+        return policy.EntFor(staffId).Of(type) - Used(leaves, date, type, exceptLeaveId);
     }
 
-    /// <summary>Days still bookable for a tracked type: quota + carried − used (approved + pending), optionally ignoring one request.</summary>
-    public static decimal Available(LeavePolicy policy, IReadOnlyList<LeaveSpan> leaves, DateOnly date, LeaveType type, DateOnly? joined, long exceptLeaveId = 0)
-        => policy.Entitled(type) + Carried(policy, leaves, date, type, joined) - Used(leaves, date, type, exceptLeaveId);
-
-    public static IReadOnlyList<LeaveBalance> Balance(LeavePolicy policy, IEnumerable<LeaveSpan> leaves, DateOnly date, DateOnly? joined = null)
+    public static IReadOnlyList<LeaveBalance> Balance(LeavePolicy policy, long staffId, IEnumerable<LeaveSpan> leaves, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(policy);
         var all = leaves.ToList();
+        var ent = policy.EntFor(staffId);
         return policy.TrackedTypes().Select(t =>
         {
             var used = Used(all, date, t);
-            var ent = policy.Entitled(t) + Carried(policy, all, date, t, joined);
-            return new LeaveBalance(t, ent, used, Math.Max(0, ent - used), Math.Max(0, used - ent));
+            var e = ent.Of(t);
+            return new LeaveBalance(t, e, used, Math.Max(0, e - used), Math.Max(0, used - e));
         }).ToList();
     }
 }
@@ -97,13 +88,5 @@ public static class FnfRules
         var recoveries = statutory + advance + ded;
         return new FnfFigures(lastDay, PayMonth.Of(lastDay), unpaidMonthLine is not null, unpaidMonthLine, rates, advanceOutstanding, add, earnings, recoveries,
             earnings - recoveries, advance);
-    }
-
-    /// <summary>Suggested earned-leave encashment: EL left × (monthly ÷ days in the exit month); a prefill only (CA item P13).</summary>
-    public static long ElEncashment(StaffProfile st, decimal elLeft, DateOnly lastDay)
-    {
-        ArgumentNullException.ThrowIfNull(st);
-        if (st.PayType != PayType.Monthly) return 0;
-        return PayMath.MulDiv(st.MonthlyPaise, (long)Math.Round(Math.Max(0, elLeft) * 2, MidpointRounding.AwayFromZero), 1, 2L * PayMonth.Of(lastDay).Days);
     }
 }

@@ -1,0 +1,410 @@
+using System.Globalization;
+using System.Text.Json;
+using Hcc.Application.Access;
+using Hcc.Application.Commands;
+using Hcc.Contracts;
+using Hcc.Contracts.Expenses;
+using Hcc.Domain.Dates;
+using Hcc.Domain.Errors;
+using Hcc.Domain.Expenses;
+using Hcc.Domain.Money;
+
+namespace Hcc.Application.Expenses;
+
+/// <summary>
+/// DEC-120 SCC expense registers (prototype <c>handlers/expenses.ts</c> EXP_*): monthly budgets (SetExpenseBudget, CopyExpenseBudgets),
+/// recurring templates (Save / Toggle / Delete / PostRecurringExpense — a post raises a DRAFT for approval), petty-cash float top-ups
+/// (RequestPettyFloat, DecidePettyFloat — a second person approves) and disbursements (RecordPettyDisbursement — a drawer-cash expense for
+/// approval), the Udhaar credit register (AddUdhaar, PayUdhaar, VoidUdhaar — never touches cash or income) and the month lock
+/// (LockExpenseMonth — SCC "Generate &amp; lock tax feed", Owner). Every command runs through <see cref="ICommandRunner"/> (audit + idempotency).
+/// </summary>
+public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, IExpenseRegisterStore registers, TimeProvider clock,
+    Hcc.Application.Closing.IBusinessDayGuard? days = null, MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null)
+{
+    public const string OpSetBudget = "SetExpenseBudget";
+    public const string OpCopyBudgets = "CopyExpenseBudgets";
+    public const string OpSaveRecurring = "SaveRecurringExpense";
+    public const string OpToggleRecurring = "ToggleRecurringExpense";
+    public const string OpDeleteRecurring = "DeleteRecurringExpense";
+    public const string OpPostRecurring = "PostRecurringExpense";
+    public const string OpRequestPettyFloat = "RequestPettyFloat";
+    public const string OpDecidePettyFloat = "DecidePettyFloat";
+    public const string OpPettyDisbursement = "RecordPettyDisbursement";
+    public const string OpAddUdhaar = "AddUdhaar";
+    public const string OpPayUdhaar = "PayUdhaar";
+    public const string OpVoidUdhaar = "VoidUdhaar";
+    public const string OpLockMonth = "LockExpenseMonth";
+
+    public static readonly IReadOnlyList<string> Operations =
+        [OpSetBudget, OpCopyBudgets, OpSaveRecurring, OpToggleRecurring, OpDeleteRecurring, OpPostRecurring, OpRequestPettyFloat, OpDecidePettyFloat, OpPettyDisbursement,
+         OpAddUdhaar, OpPayUdhaar, OpVoidUdhaar, OpLockMonth];
+
+    private DateTime UtcNow => clock.GetUtcNow().UtcDateTime;
+
+    private static string Id(long id) => id.ToString(CultureInfo.InvariantCulture);
+
+    private Task Need(CommandContext ctx, string perm, CancellationToken ct, long? amount = null, AccessScope? scope = null) =>
+        policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, perm, scope, perm == ExpensePermissions.Decide ? amount ?? 0 : amount, ct);
+
+    private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
+
+    private async Task<ExpenseCategoryRow> CategoryAsync(ICommandTransaction tx, int propertyId, string? value, CancellationToken ct) =>
+        ExpenseMasters.Category(masters is null ? null : await masters.CategoriesAsync(tx, propertyId, ct).ConfigureAwait(false), value);
+
+    private async Task<(string Name, bool IsNew)> VendorAsync(ICommandTransaction tx, int propertyId, string? value, CancellationToken ct) =>
+        masters is null ? ((value ?? string.Empty).Trim(), false) : ExpenseMasters.Vendor(await masters.VendorsAsync(tx, propertyId, ct).ConfigureAwait(false), value);
+
+    // ── Budgets (SCC setBudget / copyBudgets) ──
+
+    public async Task<CommandResult<ExpenseRegisterResult>> SetBudgetAsync(CommandContext ctx, SetExpenseBudgetRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        if (req.AmountPaise < 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter the budget in rupees (0 = no budget).");
+        return await runner.RunAsync(ctx with { Operation = OpSetBudget }, req, async (tx, c) =>
+        {
+            var cat = ExpenseMasters.FindCategory(masters is null ? null : await masters.CategoriesAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), req.Category)
+                      ?? throw HccException.Validation("Choose a category from the list.");
+            var month = ExpenseScc.Ym(await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false));
+            await registers.SetBudgetAsync(tx, ctx.PropertyId, month, cat.Name, req.AmountPaise, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            var msg = $"{month} · {cat.Name} = {new Paise(req.AmountPaise)}";
+            await tx.AuditAsync("EXPENSE_BUDGET_SET", "expense-budget:" + month, msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> CopyBudgetsAsync(CommandContext ctx, CopyExpenseBudgetsRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpCopyBudgets }, req, async (tx, c) =>
+        {
+            var month = ExpenseScc.Ym(await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false));
+            var prev = ExpenseScc.PrevMonth(month);
+            var src = await registers.BudgetsAsync(tx, ctx.PropertyId, prev, c).ConfigureAwait(false);
+            var heads = ExpenseScc.CopyHeads(month, src, await registers.BudgetsAsync(tx, ctx.PropertyId, month, c).ConfigureAwait(false));
+            foreach (var h in heads) await registers.SetBudgetAsync(tx, ctx.PropertyId, month, h, src[h], ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            var msg = $"{prev} → {month} · {heads.Count} head{(heads.Count > 1 ? "s" : string.Empty)}";
+            await tx.AuditAsync("EXPENSE_BUDGET_COPY", "expense-budget:" + month, msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg);
+        }, ct).ConfigureAwait(false);
+    }
+
+    // ── Recurring templates (SCC P1-16) ──
+
+    public async Task<CommandResult<ExpenseRegisterResult>> SaveRecurringAsync(CommandContext ctx, SaveRecurringExpenseRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        var (name, day) = ExpenseScc.Template(req.Name, req.AmountPaise, req.DueDay);
+        var method = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false), req.Method,
+            Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses, null, requireReference: false).Name;
+        return await runner.RunAsync(ctx with { Operation = OpSaveRecurring }, req, async (tx, c) =>
+        {
+            var cat = await CategoryAsync(tx, ctx.PropertyId, req.Category, c).ConfigureAwait(false);
+            var ven = await VendorAsync(tx, ctx.PropertyId, req.Vendor, c).ConfigureAwait(false);
+            var all = await registers.RecurringAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            if (req.TemplateId is { } id)
+            {
+                var t = await registers.LockRecurringAsync(tx, ctx.PropertyId, id, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Template not found.");
+                await registers.UpdateRecurringAsync(tx, t with { Name = name, Amount = req.AmountPaise, DueDay = day, Category = cat.Name, Method = method, Vendor = ven.Name }, c)
+                    .ConfigureAwait(false);
+                var m = $"Template {Id(id)} · {name} · {new Paise(req.AmountPaise)} · day {day}";
+                await tx.AuditAsync("EXPENSE_RECURRING_EDIT", "expense-recurring:" + Id(id), m, c).ConfigureAwait(false);
+                return new ExpenseRegisterResult(m, id);
+            }
+
+            if (all.Any(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase)) && !req.ConfirmDuplicate)
+                throw HccException.Validation($"A template named \"{name}\" already exists. Add another?");
+            var nid = await registers.InsertRecurringAsync(tx, new RecurringRecord(0, ctx.PropertyId, name, req.AmountPaise, day, cat.Name, method, ven.Name, true, ctx.PrincipalId, UtcNow), c)
+                .ConfigureAwait(false);
+            var msg = $"Template {Id(nid)} · {name} · {new Paise(req.AmountPaise)} · day {day}";
+            await tx.AuditAsync("EXPENSE_RECURRING_ADD", "expense-recurring:" + Id(nid), msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, nid);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> ToggleRecurringAsync(CommandContext ctx, RecurringExpenseRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpToggleRecurring }, req, async (tx, c) =>
+        {
+            var t = await registers.LockRecurringAsync(tx, ctx.PropertyId, req.TemplateId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Template not found.");
+            await registers.UpdateRecurringAsync(tx, t with { Active = !t.Active }, c).ConfigureAwait(false);
+            var msg = $"{t.Name} → {(t.Active ? "inactive" : "active")}";
+            await tx.AuditAsync("EXPENSE_RECURRING_TOGGLE", "expense-recurring:" + Id(t.TemplateId), msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, t.TemplateId);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> DeleteRecurringAsync(CommandContext ctx, RecurringExpenseRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Decide, ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpDeleteRecurring }, req, async (tx, c) =>
+        {
+            var t = await registers.LockRecurringAsync(tx, ctx.PropertyId, req.TemplateId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Template not found.");
+            await registers.DeleteRecurringAsync(tx, t.TemplateId, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            var msg = $"Template {t.Name} deleted · entries already posted from it are kept";
+            await tx.AuditAsync("EXPENSE_RECURRING_DELETE", "expense-recurring:" + Id(t.TemplateId), msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, t.TemplateId);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> PostRecurringAsync(CommandContext ctx, PostRecurringExpenseRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Submit, ct, null, AccessScopes.Any).ConfigureAwait(false);
+        if (req.AmountPaise <= 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter an amount greater than 0");
+        var owner = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Owner, null, ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpPostRecurring }, req, async (tx, c) =>
+        {
+            var t = await registers.LockRecurringAsync(tx, ctx.PropertyId, req.TemplateId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Template not found.");
+            if (!t.Active) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Template is inactive — activate it to post");
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            await ExpenseCommands.DateGateAsync(days, tx, ctx.PropertyId, bd, bd, false, c).ConfigureAwait(false);
+            var month = ExpenseScc.Ym(bd);
+            var refText = ExpenseScc.RecRef(t.TemplateId, month);
+            var cat = await CategoryAsync(tx, ctx.PropertyId, t.Category, c).ConfigureAwait(false);
+            var ven = await VendorAsync(tx, ctx.PropertyId, t.Vendor, c).ConfigureAwait(false);
+            var method = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(await MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), t.Method,
+                Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses, null, requireReference: false).Name;
+            var (n, sum) = await store.SourceRefAsync(tx, ctx.PropertyId, refText, c).ConfigureAwait(false);
+            if (n > 0 && !req.Again) throw HccException.Validation(ExpenseScc.AlreadyPostedMessage(month, n, new Paise(sum)));
+            var over = await ExpenseCommands.MonthGateAsync(registers, tx, ctx.PropertyId, bd, owner, req.OverrideReason, UtcNow, c).ConfigureAwait(false);
+            if (ven.IsNew && masters is not null) await masters.AddVendorAsync(tx, ctx.PropertyId, ven.Name, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            var e = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, ven.Name, cat.Name, new Paise(req.AmountPaise), method, bd, ExpenseState.Draft, ctx.PrincipalId,
+                null, null, null, null, null, null, UtcNow, ExpenseScc.RecurringDescription(t.Name, month), null, null, "recurring", refText), c).ConfigureAwait(false);
+            var alert = await ExpenseCommands.BudgetAlertAsync(registers, store, tx, ctx.PropertyId, cat.Name, bd, bd, req.AmountPaise, c).ConfigureAwait(false);
+            var msg = $"Posted {t.Name} {new Paise(req.AmountPaise)} as draft {ExpenseMapping.Ref(e.ExpenseId)} — submit it for approval";
+            await tx.AuditAsync("EXPENSE_RECURRING_POST", ExpenseCommands.Target(e.ExpenseId), msg + (over is null ? string.Empty : " · locked-month override: " + over), c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, e.ExpenseId, alert);
+        }, ct).ConfigureAwait(false);
+    }
+
+    // ── Petty cash (SCC setFloat / pettyOut through HCC's approval and cash rules) ──
+
+    public async Task<CommandResult<ExpenseRegisterResult>> RequestPettyFloatAsync(CommandContext ctx, RequestPettyFloatRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Submit, ct, null, AccessScopes.Any).ConfigureAwait(false);
+        if (req.AmountPaise <= 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter amount");
+        var note = ExpenseScc.Optional(req.Note, ExpenseScc.NoteMax, "note");
+        return await runner.RunAsync(ctx with { Operation = OpRequestPettyFloat }, req, async (tx, c) =>
+        {
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            await ExpenseCommands.DateGateAsync(days, tx, ctx.PropertyId, bd, bd, false, c).ConfigureAwait(false);
+            var id = await registers.InsertPettyAsync(tx, new PettyFloatRecord(0, ctx.PropertyId, req.AmountPaise, bd, "Pending", note, ctx.PrincipalId, UtcNow, null, null, null), c)
+                .ConfigureAwait(false);
+            var msg = $"PTY-{Id(id)} · float top-up {new Paise(req.AmountPaise)} · awaiting approval";
+            await tx.AuditAsync("PETTY_FLOAT_REQUESTED", "petty-float:" + Id(id), msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, id);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> DecidePettyFloatAsync(CommandContext ctx, DecidePettyFloatRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        var reason = ExpenseScc.Optional(req.Reason, ExpenseScc.NoteMax, "reason");
+        var peek = (await registers.PettyAsync(ctx.PropertyId, ct).ConfigureAwait(false)).FirstOrDefault(p => p.EntryId == req.EntryId)
+                   ?? throw new HccException(HccErrorCode.NOT_FOUND, "Top-up not found.");
+        // PERM-EXP-002 with its limit on the amount approved (the Manager's ₹5,000); a rejection is checked at 0 (as DecideExpense).
+        await Need(ctx, ExpensePermissions.Decide, ct, req.Approve ? peek.Amount : 0).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpDecidePettyFloat }, req, async (tx, c) =>
+        {
+            var e = await registers.LockPettyAsync(tx, ctx.PropertyId, req.EntryId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Top-up not found.");
+            if (e.Status != "Pending") throw new HccException(HccErrorCode.INVALID_TRANSITION, "This top-up is no longer pending.");
+            if (e.RecordedBy == ctx.PrincipalId) throw new HccException(HccErrorCode.FORBIDDEN, "You cannot approve your own request.");
+            if (e.Amount != peek.Amount) throw new HccException(HccErrorCode.STALE_VERSION, "This top-up changed. Reload and try again.");
+            await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            await registers.DecidePettyAsync(tx, e.EntryId, req.Approve ? "Approved" : "Rejected", ctx.PrincipalId, UtcNow, reason, c).ConfigureAwait(false);
+            var msg = $"PTY-{Id(e.EntryId)} · float top-up {new Paise(e.Amount)} {(req.Approve ? "approved" : "rejected")}";
+            await tx.AuditAsync(req.Approve ? "PETTY_FLOAT_APPROVED" : "PETTY_FLOAT_REJECTED", "petty-float:" + Id(e.EntryId), msg + (reason is null ? string.Empty : " · " + reason), c)
+                .ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, e.EntryId);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> PettyDisbursementAsync(CommandContext ctx, RecordPettyDisbursementRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Submit, ct, null, AccessScopes.Any).ConfigureAwait(false);
+        if (req.AmountPaise <= 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter amount");
+        var what = ExpenseScc.Optional(req.For, 120, "text");
+        var receipt = ExpenseScc.Optional(req.Receipt, ExpenseRules.ReceiptMax, "bill number");
+        var owner = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Owner, null, ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpPettyDisbursement }, req, async (tx, c) =>
+        {
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            await ExpenseCommands.DateGateAsync(days, tx, ctx.PropertyId, bd, bd, false, c).ConfigureAwait(false);
+            var cat = await CategoryAsync(tx, ctx.PropertyId, req.Category, c).ConfigureAwait(false);
+            ExpenseMasters.EnsureBill(cat, receipt);
+            var list = await MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var cash = Hcc.Domain.MoneyMasters.PaymentMethodBook.NamesAt(list, Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses)
+                           .FirstOrDefault(m => Hcc.Domain.MoneyMasters.PaymentMethodBook.SettlesToTill(list, m))
+                       ?? throw HccException.Validation("No drawer-cash funding source is set up for expenses (Master configuration › Payment methods).");
+            var over = await ExpenseCommands.MonthGateAsync(registers, tx, ctx.PropertyId, bd, owner, req.OverrideReason, UtcNow, c).ConfigureAwait(false);
+            var e = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, string.Empty, cat.Name, new Paise(req.AmountPaise), cash, bd, ExpenseState.Pending, ctx.PrincipalId,
+                null, receipt, null, null, null, null, UtcNow, ExpenseScc.PettyDescription(what), null, null, "petty", null), c).ConfigureAwait(false);
+            var msg = $"{ExpenseMapping.Ref(e.ExpenseId)} · petty {new Paise(req.AmountPaise)} · {ExpenseScc.PettyDescription(what)} · awaiting approval";
+            await tx.AuditAsync("PETTY_DISBURSEMENT", ExpenseCommands.Target(e.ExpenseId), msg + (over is null ? string.Empty : " · locked-month override: " + over), c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, e.ExpenseId);
+        }, ct).ConfigureAwait(false);
+    }
+
+    // ── Udhaar (SCC Wave 3) ──
+
+    public async Task<CommandResult<ExpenseRegisterResult>> AddUdhaarAsync(CommandContext ctx, AddUdhaarRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Submit, ct, null, AccessScopes.Any).ConfigureAwait(false);
+        var name = ExpenseScc.Optional(req.Name, 80, "name") ?? throw HccException.Validation("Customer name is required");
+        if (req.AmountPaise <= 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter a valid amount");
+        var note = ExpenseScc.Optional(req.Note, ExpenseScc.NoteMax, "note");
+        DateOnly? due = string.IsNullOrWhiteSpace(req.DueDate) ? null : StayDates.Parse(req.DueDate, "dueDate");
+        return await runner.RunAsync(ctx with { Operation = OpAddUdhaar }, req, async (tx, c) =>
+        {
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var dueDate = due ?? bd.AddDays(ExpenseScc.UdhaarDueDays);
+            var id = await registers.InsertUdhaarAsync(tx, new UdhaarRecord(0, ctx.PropertyId, name, ExpenseScc.UdhaarMobile(req.Mobile), req.AmountPaise, bd, dueDate, note,
+                ctx.PrincipalId, UtcNow, false, null, null, null, []), c).ConfigureAwait(false);
+            var msg = $"UD-{Id(id)} · credit {name} {new Paise(req.AmountPaise)} · due {StayDates.ToWire(dueDate)}";
+            await tx.AuditAsync("UDHAAR_ADDED", "udhaar:" + Id(id), msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, id);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> PayUdhaarAsync(CommandContext ctx, PayUdhaarRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.Submit, ct, null, AccessScopes.Any).ConfigureAwait(false);
+        if (req.AmountPaise <= 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter an amount");
+        var list = await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false);
+        var mode = (req.Mode ?? string.Empty).Trim();
+        var known = Hcc.Domain.MoneyMasters.PaymentMethodBook.NamesAt(list, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk)
+            .Concat(Hcc.Domain.MoneyMasters.PaymentMethodBook.NamesAt(list, Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses))
+            .FirstOrDefault(m => string.Equals(m, mode, StringComparison.OrdinalIgnoreCase)) ?? throw HccException.Validation("Choose how it was paid.");
+        return await runner.RunAsync(ctx with { Operation = OpPayUdhaar }, req, async (tx, c) =>
+        {
+            var r = await registers.LockUdhaarAsync(tx, ctx.PropertyId, req.ReceivableId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Credit not found.");
+            if (r.Void) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This credit was written off.");
+            if (r.Outstanding <= 0) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Nothing is outstanding on this credit.");
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var p = ExpenseScc.UdhaarPayment(r.Outstanding, req.AmountPaise);
+            var id = await registers.InsertSettlementAsync(tx, new UdhaarSettlementRecord(0, r.ReceivableId, p.Amount, bd, known, ctx.PrincipalId, UtcNow), c).ConfigureAwait(false);
+            var msg = $"UD-{Id(r.ReceivableId)} · {r.Name} paid {new Paise(p.Amount)}{(p.Capped ? " (more than outstanding — capped)" : string.Empty)}";
+            await tx.AuditAsync("UDHAAR_PAID", "udhaar:" + Id(r.ReceivableId), msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, id);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult<ExpenseRegisterResult>> VoidUdhaarAsync(CommandContext ctx, VoidUdhaarRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await Need(ctx, ExpensePermissions.PostReverse, ct).ConfigureAwait(false);
+        var reason = ExpenseScc.Optional(req.Reason, ExpenseScc.NoteMax, "reason");
+        return await runner.RunAsync(ctx with { Operation = OpVoidUdhaar }, req, async (tx, c) =>
+        {
+            var r = await registers.LockUdhaarAsync(tx, ctx.PropertyId, req.ReceivableId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Credit not found.");
+            if (r.Void) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This credit is already written off.");
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            await registers.VoidUdhaarAsync(tx, r.ReceivableId, reason, ctx.PrincipalId, bd, c).ConfigureAwait(false);
+            var msg = $"UD-{Id(r.ReceivableId)} · {r.Name} written off · outstanding {new Paise(r.Outstanding)}{(reason is null ? string.Empty : " · " + reason)}";
+            await tx.AuditAsync("UDHAAR_VOIDED", "udhaar:" + Id(r.ReceivableId), msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg, r.ReceivableId);
+        }, ct).ConfigureAwait(false);
+    }
+
+    // ── Month lock (SCC genTaxFeed) ──
+
+    public async Task<CommandResult<ExpenseRegisterResult>> LockMonthAsync(CommandContext ctx, LockExpenseMonthRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        if (!await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Owner, null, ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, "Only the Owner can lock the month / generate the tax feed.");
+        return await runner.RunAsync(ctx with { Operation = OpLockMonth }, req, async (tx, c) =>
+        {
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var month = ExpenseScc.LockableMonth(req.Month, bd);
+            var first = DateOnly.ParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            await registers.MonthLockAsync(tx, ctx.PropertyId, month, c).ConfigureAwait(false); // key-range lock: writers of the month wait
+            var sum = ExpenseScc.Summary(await store.LedgerAsync(tx, ctx.PropertyId, first, first.AddMonths(1).AddDays(-1), c).ConfigureAwait(false), month);
+            await registers.SaveMonthLockAsync(tx, ctx.PropertyId, new MonthLockRecord(month, sum.ExpensePaise, sum.Count, sum.GstPaidPaise, JsonSerializer.Serialize(sum.ByCategory),
+                ctx.PrincipalId, UtcNow, false, null), c).ConfigureAwait(false);
+            var msg = $"{month} tax feed generated; expense {new Paise(sum.ExpensePaise)} · GST paid on purchases {new Paise(sum.GstPaidPaise)} · month locked";
+            await tx.AuditAsync("EXPENSE_MONTH_LOCK", "expense-month:" + month, msg, c).ConfigureAwait(false);
+            return new ExpenseRegisterResult(msg);
+        }, ct).ConfigureAwait(false);
+    }
+}
+
+/// <summary>DEC-120 reads: GET /expenses/registers and the SCC CSV exports (/expenses/export/ledger, /expenses/export/month).</summary>
+public sealed class ExpenseRegisterQueries(IAccessPolicy policy, IExpenseStore store, IExpenseRegisterStore registers, ExpenseQueries expenses)
+{
+    private static string Wire(DateTime d) => DateTime.SpecifyKind(d, DateTimeKind.Utc).ToString("O", CultureInfo.InvariantCulture);
+
+    private static string? Wire(DateTime? d) => d is { } x ? Wire(x) : null;
+
+    public async Task<ExpenseRegistersView> RegistersAsync(int propertyId, int principalId, CancellationToken ct = default)
+    {
+        await expenses.RequireViewerAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        var budgets = await registers.AllBudgetsAsync(propertyId, ct).ConfigureAwait(false);
+        var rec = await registers.RecurringAsync(null, propertyId, ct).ConfigureAwait(false);
+        var petty = await registers.PettyAsync(propertyId, ct).ConfigureAwait(false);
+        var ud = await registers.UdhaarAsync(propertyId, ct).ConfigureAwait(false);
+        var locks = await registers.MonthLocksAsync(null, propertyId, ct).ConfigureAwait(false);
+        var ledger = locks.Count == 0 ? [] : await store.LedgerAsync(null, propertyId, null, null, ct).ConfigureAwait(false);
+        var bd = await BusinessDateAsync(propertyId, ct).ConfigureAwait(false);
+        return new ExpenseRegistersView(bd,
+            budgets.Select(b => new ExpenseBudgetView(b.Month, b.Category, b.Amount)).ToList(),
+            rec.Select(t => new RecurringExpenseView(t.TemplateId, t.Name, t.Amount, t.DueDay, t.Category, t.Method, t.Vendor, t.Active, t.CreatedBy, Wire(t.CreatedUtc))).ToList(),
+            petty.Select(p => new PettyFloatEntryView(p.EntryId, p.Amount, StayDates.ToWire(p.BusinessDate), p.Status, p.Note, p.RecordedBy, Wire(p.RecordedUtc), p.DecidedBy,
+                Wire(p.DecidedUtc), p.Reason)).ToList(),
+            ud.Select(r => new UdhaarView(r.ReceivableId, r.Name, r.Mobile, r.Amount, StayDates.ToWire(r.CreditDate), r.DueDate is { } d ? StayDates.ToWire(d) : null, r.Note,
+                r.CreatedBy, Wire(r.CreatedUtc), r.Void, r.VoidReason, r.VoidedBy, r.VoidedDate is { } v ? StayDates.ToWire(v) : null,
+                r.Settlements.Select(s => new UdhaarSettlementView(s.SettlementId, s.Amount, StayDates.ToWire(s.Date), s.Mode, s.RecordedBy, Wire(s.RecordedUtc))).ToList())).ToList(),
+            locks.Select(m => new ExpenseMonthLockView(m.Month, m.Expense, m.Count, m.GstPaid,
+                JsonSerializer.Deserialize<Dictionary<string, long>>(m.ByCategoryJson) ?? [], m.GeneratedBy, Wire(m.GeneratedUtc),
+                ExpenseScc.Stale(m.Stale, m.GeneratedUtc, ledger, m.Month), Wire(m.StaleUtc))).ToList());
+    }
+
+    private async Task<string> BusinessDateAsync(int propertyId, CancellationToken ct) =>
+        StayDates.ToWire(await store.ReadBusinessDateAsync(propertyId, ct).ConfigureAwait(false));
+
+    /// <summary>Who may export: an expense decider (Owner, Manager, Accountant — DEC-063 G13: the Cashier does not export reports).</summary>
+    private async Task RequireExporterAsync(int propertyId, int principalId, CancellationToken ct) =>
+        await policy.RequireAsync(propertyId, principalId, ExpensePermissions.Decide, AccessScopes.Any, null, ct).ConfigureAwait(false);
+
+    public async Task<ExpenseExportView> LedgerCsvAsync(int propertyId, int principalId, CancellationToken ct = default)
+    {
+        await RequireExporterAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        var rows = await store.LedgerAsync(null, propertyId, null, null, ct).ConfigureAwait(false);
+        var f = ExpenseScc.LedgerCsv(await store.HotelNameAsync(propertyId, ct).ConfigureAwait(false), await store.ReadBusinessDateAsync(propertyId, ct).ConfigureAwait(false), rows);
+        return new ExpenseExportView(f.FileName, f.Csv, f.Rows);
+    }
+
+    public async Task<ExpenseExportView> MonthCsvAsync(int propertyId, int principalId, string month, CancellationToken ct = default)
+    {
+        await RequireExporterAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        var m = (month ?? string.Empty).Trim();
+        if (!DateOnly.TryParseExact(m + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var first)) throw HccException.Validation("Choose a month (YYYY-MM).");
+        var rows = await store.LedgerAsync(null, propertyId, first, first.AddMonths(1).AddDays(-1), ct).ConfigureAwait(false);
+        var f = ExpenseScc.MonthCsv(await store.HotelNameAsync(propertyId, ct).ConfigureAwait(false), m, rows);
+        return new ExpenseExportView(f.FileName, f.Csv, f.Rows);
+    }
+}

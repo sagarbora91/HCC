@@ -33,13 +33,16 @@ function toServer(M,S,P,{self}={}){
     lockSeq:r.status==='Locked'?1:0,version:'v-run-'+rid.get(r.id),preparedBy:uidNum(r.preparedBy),preparedUtc:utc(r.preparedAt),lockedBy:uidNum(r.lockedBy),
     lockedUtc:r.lockedAt?utc(r.lockedAt):null,lines:r.lines.filter(l=>pay||l.staffId===me?.id).map(line),sends:[],bankFiles:[],unlocks:[]})).filter(r=>r.lines.length);
   const board={businessDate:P.date,from:'2026-04-01',to:'2026-12-19',allStaff:pay,payroll:pay,departments:x.depts.map(d=>({code:d.id,name:d.name,leaveCap:x.leavePolicy?.deptCap?.[d.id]??null})),
-    leavePolicy:{cl:x.leavePolicy.ent.CL,sl:x.leavePolicy.ent.SL,el:x.leavePolicy.ent.EL,defaultCap:x.leavePolicy.defaultCap},
+    // SCC leave port (migration 4110): decimal entitlements, the week-off mask (0 = none), overrides and blackouts; one leave record per date.
+    leavePolicy:{cl:x.leavePolicy.ent.CL,sl:x.leavePolicy.ent.SL,el:x.leavePolicy.ent.EL,weekOffMask:(x.leavePolicy.weekOff??[]).reduce((m,d)=>m|(1<<d),0),overrides:[],blackouts:[]},
+    approvers:[{userId:1,name:'Sagar',role:'Owner'},{userId:2,name:'Meera',role:'Manager'}],agendas:[],
     roster:Object.entries(x.roster).filter(([k])=>visId(k.split('|')[1])).map(([k,v])=>({staffId:sid.get(k.split('|')[1]),date:k.split('|')[0],shift:v})),
     attendance:Object.entries(x.att).filter(([k])=>visId(k.split('|')[1])).map(([k,a])=>({staffId:sid.get(k.split('|')[1]),date:k.split('|')[0],status:a.status,otMinutes:a.otMin,
       markedBy:uidNum(a.by),markedUtc:utc(a.at),note:a.note??null})),
-    leaves:x.leaves.filter(l=>visId(l.staffId)).map(l=>({leaveId:lid.get(l.id),staffId:sid.get(l.staffId),leaveType:l.type,from:l.from,to:l.to,half:l.half??null,days:l.days,reason:l.reason,
-      status:l.status,requestedBy:uidNum(l.requestedBy),requestedUtc:utc(l.requestedAt),decidedBy:uidNum(l.decidedBy),decidedUtc:l.decidedAt?utc(l.decidedAt):null,note:l.note??null,
-      version:'v-leave-'+lid.get(l.id)})),
+    leaves:x.leaves.filter(l=>visId(l.staffId)).map(l=>({leaveId:lid.get(l.id),staffId:sid.get(l.staffId),date:l.date,leaveType:l.type,from:l.from,to:l.to,half:l.half??null,days:l.days,
+      reason:l.reason||null,approverId:uidNum(l.approver),approverName:l.approverName??null,status:l.status,requestedBy:uidNum(l.requestedBy),requestedUtc:utc(l.requestedAt),
+      decidedBy:uidNum(l.decidedBy),decidedUtc:l.decidedAt?utc(l.decidedAt):null,note:l.note??null,cancelledBy:uidNum(l.cancelledBy),cancelledUtc:l.cancelledAt?utc(l.cancelledAt):null,
+      legacy:!!l.legacy,sccId:l.sccId??null,decidedByName:l.decidedByName??null,version:'v-leave-'+lid.get(l.id)})),
     rateVersions:pay?x.rateVersions.map(rates):[],runs,
     advances:pay?x.advances.map((a,i)=>({advanceId:401+i,staffId:sid.get(a.staffId),amountPaise:a.amount,installmentPaise:a.installment,recoveredPaise:a.recovered,date:a.date,
       fromMonth:a.fromMonth??a.date.slice(0,7),reason:a.reason,givenBy:uidNum(a.by),recoveries:a.recoveries.map(q=>({runId:rid.get(q.runId)??null,fnfId:null,amountPaise:q.amount}))})):[],
@@ -52,7 +55,8 @@ function remap(x,{sid,rid,lid}){
   const line=l=>({...l,staffId:s(l.staffId)});
   return {roster:Object.fromEntries(Object.entries(x.roster).map(([a,v])=>[k(a),v])),
     att:Object.fromEntries(Object.entries(x.att).map(([a,v])=>[k(a),{...v,by:String(uidNum(v.by))}])),
-    leaves:x.leaves.map(l=>({...l,id:String(lid.get(l.id)),staffId:s(l.staffId),requestedBy:String(uidNum(l.requestedBy)),...(l.decidedBy?{decidedBy:String(uidNum(l.decidedBy))}:{})})),
+    leaves:x.leaves.map(l=>({...l,id:String(lid.get(l.id)),staffId:s(l.staffId),requestedBy:String(uidNum(l.requestedBy)),...(l.decidedBy?{decidedBy:String(uidNum(l.decidedBy))}:{}),
+      ...(l.approver?{approver:String(uidNum(l.approver))}:{})})),
     runs:x.runs.map(r=>({id:String(rid.get(r.id)),month:r.month,status:r.status,rates:r.rates,lines:r.lines.map(line),warnings:r.warnings,preparedAt:r.preparedAt})),
     advances:x.advances.map((a,i)=>({...a,id:String(401+i),staffId:s(a.staffId),by:String(uidNum(a.by)),fromMonth:a.fromMonth??a.date.slice(0,7),
       recoveries:a.recoveries.map(q=>({runId:String(rid.get(q.runId)),amount:q.amount}))}))};
@@ -70,6 +74,7 @@ export async function register({test,assert,M}){
     'GET /payroll/board':()=>srvData.board,
     'POST /commands/SaveStaff':({body})=>({staffId:body.staffId??113,name:body.name,version:'v2',notes:'saved'}),
     ...Object.fromEntries(['SetStaffActive','SetRoster','CopyRosterWeek','MarkAttendance','RequestLeave','DecideLeave','CancelLeave','SetLeavePolicy','SaveDepartment',
+      'SetLeaveEntOverride','AddLeaveBlackout','RemoveLeaveBlackout','AddLeaveAgenda','RemoveLeaveAgenda','ImportLeave','ClearLeave',
       'GiveAdvance','SetStatutoryRates','PreparePayRun','LockPayRun','UnlockPayRun','IssueBankFile','SendPayslip','PrepareFnf','ConfirmFnf','DiscardFnf',
       'CorrectAttendance','DecidePayrollRequest','WithdrawPayrollRequest','SavePaidHoliday','RemoveHoliday'].map(n=>['POST /commands/'+n,ok(n)])),
   });
@@ -132,10 +137,24 @@ export async function register({test,assert,M}){
     [{type:'HR_ROSTER_SET',staffId:ravi,date:'2026-10-27',shift:'N'},'SetRoster',{staffId:+ravi,date:'2026-10-27',shift:'N'}],
     [{type:'HR_ROSTER_COPY',from:'2026-10-26'},'CopyRosterWeek',{week:'2026-10-26'}],
     [{type:'HR_ATT_MARK',staffId:ravi,status:'P',otMin:45,note:' Late checkout cover '},'MarkAttendance',{staffId:+ravi,status:'P',otMinutes:45,note:'Late checkout cover'}],
-    [{type:'HR_LEAVE_REQUEST',staffId:ravi,leaveType:'CL',from:'2026-11-05',to:'2026-11-05',half:'AM',reason:'Clinic visit'},'RequestLeave',
-      {staffId:+ravi,leaveType:'CL',from:'2026-11-05',to:null,half:'AM',reason:'Clinic visit'}],
+    [{type:'HR_LEAVE_REQUEST',staffId:ravi,approver:'2',leaveType:'CL',from:'2026-11-05',to:'2026-11-07',half:'AM',reason:'Clinic visit',confirmBlackout:true},'RequestLeave',
+      {staffId:+ravi,leaveType:'CL',from:'2026-11-05',to:'2026-11-07',half:'AM',reason:'Clinic visit',approverId:2,confirmOverBalance:false,confirmBlackout:true}],
+    [{type:'HR_LEAVE_REQUEST',staffId:ravi,approver:'1',leaveType:'OTH',from:'2026-11-09',reason:'  '},'RequestLeave',
+      {staffId:+ravi,leaveType:'OTH',from:'2026-11-09',to:'2026-11-09',half:null,reason:null,approverId:1,confirmOverBalance:false,confirmBlackout:false}],
     [{type:'HR_LEAVE_DECIDE',id:leave,approve:false,note:'Peak week'},'DecideLeave',{leaveId:+leave,approve:false,note:'Peak week'},'v-leave-'+leave],
     [{type:'HR_LEAVE_CANCEL',id:leave},'CancelLeave',{leaveId:+leave},'v-leave-'+leave],
+    // SCC leave port: settings, ⚙ override (blank = the default → null), blackouts, agenda, import (validated here, merged on the server), clear.
+    [{type:'HR_LEAVE_ENT_OVERRIDE',staffId:ravi,ent:{CL:'3.5',SL:'',EL:20}},'SetLeaveEntOverride',{staffId:+ravi,cl:3.5,sl:null,el:20}],
+    [{type:'HR_LEAVE_BLACKOUT_ADD',from:'2026-12-20',to:'2026-12-25',dept:'HK',kind:'blackout',hard:true,label:' Christmas rush '},'AddLeaveBlackout',
+      {from:'2026-12-20',to:'2026-12-25',dept:'HK',kind:'blackout',hard:true,label:'Christmas rush'}],
+    [{type:'HR_LEAVE_BLACKOUT_REMOVE',id:'77'},'RemoveLeaveBlackout',{blackoutId:77}],
+    [{type:'HR_AGENDA_ADD',date:'2026-11-02',title:' Briefing ',time:'09:30',agendaType:'meeting',description:''},'AddLeaveAgenda',{date:'2026-11-02',title:'Briefing',time:'09:30',type:'meeting',description:''}],
+    [{type:'HR_AGENDA_REMOVE',id:'88'},'RemoveLeaveAgenda',{agendaId:88}],
+    [{type:'HR_LEAVE_IMPORT',data:{leaves:{'2026-11-30':[{id:'a1',name:'Ravi Shinde',type:'full_day',category:'Casual Leave',approvedBy:'Meera',status:'pending'},
+      {id:'a2',name:'Nobody',type:'full_day',approvedBy:'Meera'}]},agendas:{},weekOff:{days:[0]}}},'ImportLeave',
+      {skipped:1,leaves:[{sccId:'a1',staffId:+ravi,date:'2026-11-30',half:null,leaveType:'CL',reason:null,approverId:2,approverName:null,from:'2026-11-30',to:'2026-11-30',status:'Pending',
+        legacy:false,decidedByName:null,decidedAt:null}],agendas:[],weekOffMask:1}],
+    [{type:'HR_LEAVE_CLEAR',confirm:'DELETE'},'ClearLeave',{confirm:'DELETE'}],
     [{type:'HR_ADVANCE_ADD',staffId:meera,amount:500000,installment:100000,fromMonth:'2026-11',reason:'Medical'},'GiveAdvance',
       {staffId:+meera,amountPaise:500000,installmentPaise:100000,reason:'Medical',fromMonth:'2026-11'}],
     [{type:'HR_STAT_RATES_SET',from:'2026-11-01',pfEeBps:1200,esicPeriod:false,rounding:'rupee'},'SetStatutoryRates',{effectiveFrom:'2026-11-01',pfEeBps:1200,rounding:'rupee',esicPeriod:false}],
@@ -167,7 +186,7 @@ export async function register({test,assert,M}){
   const badCode=await rt.run({type:'HR_DEPT_SAVE',code:'front office',name:'Front office',key:'k-bc'});
   const precheckCalls=srv.commands('SaveStaff').length+srv.commands('SaveDepartment').length;
   // Leave policy: entitlements + the default limit, then one SaveDepartment per department whose own limit changed (step keys).
-  srv.reset();const pol=await rt.run({type:'HR_LEAVE_POLICY_SET',ent:{CL:10,SL:7,EL:15},defaultCap:3,deptCap:{HK:1,FO:''},key:'k-pol'});
+  srv.reset();const pol=await rt.run({type:'HR_LEAVE_POLICY_SET',ent:{CL:10,SL:7,EL:'15.5'},weekOff:[0,6],deptCap:{HK:1,FO:''},key:'k-pol'});
   const polCalls=srv.calls.filter(c=>c.method==='POST').map(c=>[c.path,c.key,c.body]);
   // F&F confirm / discard need a loaded settlement version.
   srvData.board.fnf=[{fnfId:701,staffId:+ravi,lastDay:'2026-10-24',month:'2026-10',salaryIncluded:true,line:null,rates:srvData.board.rateVersions[0],advanceOutstandingPaise:200000,
@@ -187,7 +206,9 @@ export async function register({test,assert,M}){
   test('[W4-6 staff] Masked phone / account number and an unloaded IFSC are never sent back; leave policy saves department limits as separate steps; F&F maker-checker uses the settlement version',()=>{
     const save=sent[0].call.body;assert.ok(!('phone' in save)&&!('accountNo' in save)&&!('ifsc' in save)&&!('bankName' in save),JSON.stringify(save));
     assert.ok(pol.ok,pol.text);
-    assert.deepEqual(polCalls,[['/commands/SetLeavePolicy','k-pol',{cl:10,sl:7,el:15,defaultCap:3}],['/commands/SaveDepartment','k-pol:dept:HK',{code:'HK',name:'Housekeeping',leaveCap:1}]]);
+    // SCC: decimal entitlements, the week-off set as a mask (Sun + Sat = 65); a blank department cap keeps the old one (no call for FO).
+    assert.deepEqual(polCalls,[['/commands/SetLeavePolicy','k-pol',{cl:10,sl:7,el:15.5,weekOffMask:65}],['/commands/SaveDepartment','k-pol:dept:HK',{code:'HK',name:'Housekeeping',leaveCap:1}]]);
+    const noAppr=sent.find(z=>z.name==='RequestLeave');assert.ok(noAppr);
     assert.deepEqual(f.map(z=>[z.id,z.name.split(' ')[0],z.status,z.net,z.by,z.adjustments[0].kind]),[['701','Ravi','Draft',-250000,'8','ded']]);
     assert.ok(conf.ok&&disc.ok);
     assert.deepEqual(srv.commands('ConfirmFnf').map(c=>[c.body,c.key]),[[{fnfId:701,expectedVersion:'v-fnf-701'},'k-fc']]);
@@ -198,7 +219,8 @@ export async function register({test,assert,M}){
     assert.match(noDept.text,/Choose a department/);assert.match(future.text,/cannot be after the business date/);assert.match(badCode.text,/2–10 capital letters or digits/);
     for(const t of ['HR_STAFF_SAVE','HR_STAFF_ACTIVE','HR_ROSTER_SET','HR_ROSTER_COPY','HR_ATT_MARK','HR_LEAVE_REQUEST','HR_LEAVE_DECIDE','HR_LEAVE_CANCEL','HR_LEAVE_POLICY_SET',
       'HR_ADVANCE_ADD','HR_STAT_RATES_SET','HR_RATES_SET','HR_PAYROLL_RUN','HR_PAYROLL_LOCK','HR_PAYROLL_UNLOCK','HR_PAYROLL_BANK_FILE','HR_PAYSLIP_SEND','HR_FNF_SETTLE',
-      'HR_FNF_CONFIRM','HR_FNF_DISCARD','HR_DEPT_SAVE','HR_ATT_CORRECT','HR_REQUEST_DECIDE','HR_REQUEST_WITHDRAW','HR_HOLIDAY_SAVE','HR_HOLIDAY_REMOVE'])assert.ok(rt.mapped(t),t);
+      'HR_FNF_CONFIRM','HR_FNF_DISCARD','HR_DEPT_SAVE','HR_ATT_CORRECT','HR_REQUEST_DECIDE','HR_REQUEST_WITHDRAW','HR_HOLIDAY_SAVE','HR_HOLIDAY_REMOVE',
+      'HR_LEAVE_ENT_OVERRIDE','HR_LEAVE_BLACKOUT_ADD','HR_LEAVE_BLACKOUT_REMOVE','HR_AGENDA_ADD','HR_AGENDA_REMOVE','HR_LEAVE_IMPORT','HR_LEAVE_CLEAR'])assert.ok(rt.mapped(t),t);
   });
 
   // ── Wave B item B4: holidays, requests, the correction window and a holiday count on a stored line come from the board ──

@@ -1,6 +1,7 @@
 // Regenerates payroll-base.golden.json from the prototype BASE fixture (read-only; shared helper ../../../tools/golden/golden-lib.mjs):
 // 12 fictional staff, attendance for Aug + Sep 2026, leave, the open advance, the locked August run and the September run
 // computed after it (weekly off inside leave F-01; DEC-115: SCC day sheet `days`, paid holidays = SCC Mgmt holidays, ESIC month by month).
+// SCC leave port (DEC-116): one leave record per DATE (`date`; from / to = the range it was requested with; `approver` = the chosen approver).
 // Golden source = the 03 Prototype of the same checkout (was the MAIN checkout; a worktree now compares with its own prototype).
 // Usage (Node 25): node "08 Production/tests/Hcc.Payroll.Tests/Golden/export-payroll-golden.mjs" [--check] [--proto <path>]
 import path from 'node:path';import {fileURLToPath} from 'node:url';
@@ -38,7 +39,7 @@ const golden={
   depts:x.depts,
   staff:x.staff.map(st=>({id:st.id,name:st.name,dept:st.dept,designation:st.designation,userId:st.userId??null,payType:st.payType,monthly:st.monthly,daily:st.daily,
     defaultShift:st.defaultShift,weeklyOff:st.weeklyOff,joined:st.joined,phone:st.phone,gender:st.gender??'M',bankName:st.bankName,accountNo:st.accountNo,ifsc:st.ifsc})),
-  leaves:x.leaves.map(l=>({id:l.id,staffId:l.staffId,type:l.type,from:l.from,to:l.to,half:l.half??null,days:l.days,status:l.status})),
+  leaves:x.leaves.map(l=>({id:l.id,staffId:l.staffId,type:l.type,date:l.date,from:l.from,to:l.to,half:l.half??null,days:l.days,status:l.status,approver:l.approver??null})),
   advances:x.advances.map(a=>({id:a.id,staffId:a.staffId,amount:a.amount,installment:a.installment,date:a.date,fromMonth:a.fromMonth??null})),
   holidays:M.hrPaidHolidays(s).filter(h=>h.date>='2026-08-01'&&h.date<='2026-09-30'),
   attendance:att,

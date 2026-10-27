@@ -5,7 +5,7 @@ import {bookingRef} from '../bookingRef';
 import {assignedScopeRoles} from '../types';
 import {money,addDays} from '../money';
 import {can,totals,drawer,metrics,blockedDuring,blockedTonight,occupant,roomStatus} from '../selectors';
-import {cmpHasAccess,cmpDueThisWeek,cmpCounts,cmpItems,cmpStatusText} from './compliance';
+import {cmpHasAccess,cmpDueThisWeek,cmpActionCenter,cmpSlice,cmpStripHtml,cmpRenderFYText,cmpWhen} from './compliance';
 import {closingPreflight,shiftStatus,shiftExpected,approvalKindLabel,expenseCounts,SHIFT_MANAGER_DIFF_LIMIT} from './closing';
 
 export const AI_LABEL='Simulated assistant · rule-based · answers computed from this demo’s data';
@@ -284,7 +284,7 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
     return ans('Pending approvals',pa.length+pe.length?`${plural(pa.length,'approval')} and ${plural(pe.length,'expense')} are waiting for a decision.`:'Nothing is waiting for approval.',
       [{label:'Approvals',value:String(pa.length)},{label:'Expenses',value:String(pe.length)}],
       'Approval requests with status Pending plus expenses submitted and not yet approved or rejected. A request cannot be approved by the person who raised it.',[link('approvals','Approvals & audit'),link('expenses','Expenses')],
-      [...pa.map(x=>`${approvalKindLabel(x.kind)}${a.money?' · '+money(x.amount):''} · ${x.reason} · raised by ${userName(s,x.actor)}`),...pe.map(e=>`Expense · ${e.vendor}${a.money?' · '+money(e.amount):''} · raised by ${userName(s,e.actor)}`)]);}
+      [...pa.map(x=>`${approvalKindLabel(x.kind)}${a.money?' · '+money(x.amount):''} · ${x.reason} · raised by ${userName(s,x.actor)}`),...pe.map(e=>`Expense · ${e.vendor||e.description||'—'}${a.money?' · '+money(e.amount):''} · raised by ${userName(s,e.actor)}`)]);}
   case 'rooms':{const st=s.rooms.map(r=>({r,st:roomStatus(s,r)}));const pick=(k:string)=>st.filter(x=>x.st===k).map(x=>x.r.id);
     const dirty=pick('Dirty'),cleaning=pick('Cleaning'),insp=pick('Inspection'),blocked=pick('Blocked');
     return ans('Dirty and blocked rooms',`${plural(dirty.length,'room')} dirty, ${cleaning.length} being cleaned, ${insp.length} awaiting inspection and ${blocked.length} blocked tonight.`,
@@ -312,11 +312,12 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
       [{label:'Checks clear',value:`${pf.length-blocking.length} of ${pf.length}`},{label:'Blocking items',value:String(blocking.reduce((n,p)=>n+p.items.length,0))}],
       'The same preflight the Day closing screen runs: arrivals, overdue departures, expired holds, room-night charges, approvals, expenses and the cash shift.',[link('closing','Day closing')],
       closed?[]:blocking.map(p=>`${p.title}: ${plural(p.items.length,'item')} — ${p.hint}`));}
-  case 'compliance-due':{const due=cmpDueThisWeek(s),c=cmpCounts(cmpItems(s));
-    return ans('Compliance due',due.length?`${plural(due.length,'filing')} overdue or due this week: ${c.overdue} overdue, ${due.length-c.overdue} due soon.`:`Nothing overdue or due this week. ${c.upcoming} later filing${c.upcoming===1?'':'s'} on the calendar.`,
-      [{label:'Overdue',value:String(c.overdue)},{label:'Due this week',value:String(due.length-c.overdue)},{label:'Filed',value:String(c.filed)}],
-      'Calendar of TDS, GST returns, EPF, ESIC and Professional Tax with due-date rules marked illustrative (CA to confirm). “This week” uses the window set in Compliance calendar.',[link('compliance','Compliance calendar')],
-      due.map(i=>`${i.obligation.name} · ${i.periodLabel} · due ${i.due} · ${cmpStatusText(i)}`));}
+  case 'compliance-due':{// SCC tax port: the Action Center (overdue + due within 30 days); "this week" = the HCC window (dueSoonDays).
+    const ac=cmpActionCenter(s),week=cmpDueThisWeek(s),overdue=ac.filter(r=>r.days<0).length,soon=week.length-overdue,fy=cmpSlice(s).fyStart;
+    return ans('Compliance due',week.length?`${plural(week.length,'filing')} overdue or due this week: ${overdue} overdue, ${soon} due soon.`:`Nothing overdue or due this week. ${ac.length} item${ac.length===1?'':'s'} in the 30-day Action Center.`,
+      [{label:'Overdue',value:String(overdue)},{label:'Due this week',value:String(soon)},{label:'Action Center (30 days)',value:String(ac.length)}],
+      'SCC’s compliance calendar (income tax, GST, composition, labour law) for the selected financial year; due dates and texts as SCC ships them — CA to confirm. “This week” uses the window set in Compliance calendar.',[link('compliance','Compliance calendar')],
+      week.map(r=>`${cmpStripHtml(cmpRenderFYText(r.name,fy))} · ${r.month} · due ${r.dueIso??r.due} · ${cmpWhen(r.days)}`));}
   case 'briefing':{const b=aiBriefing(s,uid);
     return ans('Daily briefing',b.headline,b.lines.map(l=>({label:l.label,value:l.value})),'Each line is computed live from the demo data with the same rules as the matching question. Lines you cannot see are left out.',[link('overview','Overview')],
       b.lines.map(l=>`${l.label}: ${l.value}${l.note?' — '+l.note:''}`));}

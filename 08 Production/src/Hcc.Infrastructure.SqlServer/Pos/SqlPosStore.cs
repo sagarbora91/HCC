@@ -372,6 +372,14 @@ public sealed partial class SqlPosStore(SqlConnectionFactory connections) : IPos
 
     public async Task<bool> OpenCheckExistsAsync(ICommandTransaction tx, int outletId, string? table, int? roomId, CancellationToken ct)
     {
+        // One opener per outlet at a time: two waiters opening the same table both took range locks below and, under load, deadlocked
+        // ("The database was busy") instead of the second one seeing the open check. The transaction-owned app lock orders them.
+        await using (var lk = Cmd(tx, "DECLARE @r int; EXEC @r = sp_getapplock @Resource = @res, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 30000; SELECT @r;"))
+        {
+            P(lk, "@res", SqlDbType.NVarChar, "hcc:pos-open:" + outletId.ToString(System.Globalization.CultureInfo.InvariantCulture), 255);
+            if (Convert.ToInt32(await lk.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture) < 0)
+                throw new HccException(HccErrorCode.UNAVAILABLE, "Another check is being opened at this outlet. Try again.");
+        }
         await using var cmd = Cmd(tx, """
             SELECT COUNT(*) FROM pos.check_order WITH (UPDLOCK, HOLDLOCK)
             WHERE outlet_id = @o AND status = 'Open' AND ((@t IS NOT NULL AND table_no = @t) OR (@r IS NOT NULL AND room_id = @r));

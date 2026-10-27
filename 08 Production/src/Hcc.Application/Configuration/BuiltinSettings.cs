@@ -110,7 +110,7 @@ public static partial class BuiltinSettings
         ]),
         new SettingsProvider("compliance", ConfigGroupIds.Compliance,
         [
-            Pointer("cmp.obligations", "Compliance obligations", "GST, TDS, PF, ESIC and PT due rules come from the Compliance calendar", "Dated rules — edited in the Compliance calendar"),
+            Pointer("cmp.obligations", "Compliance obligations", "SCC's compliance catalogue (113 cards, 30 obligations), firm profile, archive and custom obligations live in the Compliance calendar", "SCC catalogue (DEC-116) — firm profile, archive and custom obligations edited in the Compliance calendar"),
         ]),
         new SettingsProvider("modules", ConfigGroupIds.Modules,
             ConfigCatalog.Modules.Select(m => new SettingDefinition(ConfigModuleIds.SettingKey(m.Id), m.Label, SettingType.Boolean)

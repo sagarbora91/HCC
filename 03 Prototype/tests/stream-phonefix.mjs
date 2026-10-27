@@ -23,8 +23,8 @@ export function register({test,M,assert}){
     await has('src/features/accounting/Mobile.tsx',/<TallyExport\/>/,'W05-3 Tally');
     await has('src/mobile/admin/Closing.tsx',/<DayPackButton date=\{s\.date\}\/>/,'W05-4 day pack');
     await has('src/mobile/admin/Closing.tsx',/go\('cashbook'\)/,'W05-4 cash book link');
-    await has('src/mobile/frontdesk/Home.tsx',/cmpHasAccess\(s,uid\).*DUE THIS WEEK|DUE THIS WEEK/s,'W05-5 due card');
-    const s=M.loadScenario('S1');assert.ok(Array.isArray(M.cmpDueThisWeek(s)));});
+    await has('src/mobile/frontdesk/Home.tsx',/cmpHasAccess\(s,uid\).*COMPLIANCE ACTION CENTER/s,'W05-5 compliance card (SCC Action Center since DEC-116)');
+    const s=M.loadScenario('S1');assert.ok(Array.isArray(M.cmpActionCenter(s)));assert.ok(Array.isArray(M.cmpDueThisWeek(s)));});
   test('[PF] W05-6 phone shell: chips, date inputs and breadcrumb chips are 48 px; labels 16 px',async()=>{
     const css=await readFile('src/styles/z-touch.css','utf8');
     assert.ok(/\.m-shell \.m-chips button[^}]*min-height:var\(--hcc-touch-primary,48px\)/.test(css));

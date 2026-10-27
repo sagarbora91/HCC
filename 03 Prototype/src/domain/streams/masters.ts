@@ -8,7 +8,7 @@
 //             {key:'maxAdults',label:'Max adults',type:'number',min:1,max:8},{key:'rackRate',label:'Rack rate',type:'datedMoney',money:true}],
 //     inUse:(s,row)=>({count:s.rooms.filter(r=>r.type===row.code).length,where:['Rooms']}),
 //     seed:s=>[...]});                       // rows used until the first change is saved (old saves / fresh fixture)
-// Optional hooks: validate(s,row,rows) → message (MASTER_INVALID), canRetire(s,row) → message (MASTER_IN_USE),
+// Optional hooks: validate(s,row,rows) → message (MASTER_INVALID), canRetire(s,row) / canDelete(s,row) → message (MASTER_IN_USE),
 // store {read,write} = the rows live elsewhere (MA-1: s.rooms itself) instead of s.mastersX.rows[id].
 // Commands are generic (MST_MASTER_SAVE / _RETIRE / _REACTIVATE / _REORDER / _DELETE {master,…}); a module may also expose
 // prefixed aliases with mstHandlersFor('<PFX>') (handlers/masters.ts) in its own handler file.
@@ -49,6 +49,7 @@ export type MasterSpec<T extends MasterRow=MasterRow>={
   /** Where the row is used (pure selector). count > 0 → cannot delete, code cannot change. */inUse:(s:State,row:T)=>MasterUsage;
   /** Extra rule → message (MASTER_INVALID). */validate?:(s:State,row:T,rows:T[])=>string|undefined;
   /** Refuse retiring (MASTER_IN_USE), e.g. an outlet with open checks. */canRetire?:(s:State,row:T)=>string|undefined;
+  /** Refuse deleting a never-used row (MASTER_IN_USE), e.g. SCC's fixed leave categories. */canDelete?:(s:State,row:T)=>string|undefined;
   /** Rows before the first saved change (fixture values; old saves). */seed?:(s:State)=>T[];
   /** Rows stored outside s.mastersX (MA-1 rooms read/write s.rooms). */store?:{read:(s:State)=>T[];write:(s:State,rows:T[])=>void};
   /** One line under the title in the list. */help?:string;

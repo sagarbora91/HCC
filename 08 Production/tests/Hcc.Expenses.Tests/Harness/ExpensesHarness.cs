@@ -46,6 +46,7 @@ public sealed class FakeAccessPolicy(IEnumerable<IAccessScopeResolver> resolvers
         [Who.Owner] = new()
         {
             ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-ADM-003"] = new('P'), ["PERM-CFG-003"] = new('P'),
+            ["PERM-MST-002"] = new('P'), // DEC-120: the month lock and its override are the Owner's
         },
         [Who.Manager] = new() { ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P', 500_000), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P') },
         [Who.Reception] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P') },
@@ -112,6 +113,11 @@ public sealed partial class ExpensesDb : IAsyncLifetime
 
     public ExpenseQueries Queries { get; private set; } = null!;
 
+    /// <summary>DEC-120 SCC registers (budgets, recurring, petty cash, Udhaar, month lock) and their reads.</summary>
+    public ExpenseRegisterCommands Registers { get; private set; } = null!;
+
+    public ExpenseRegisterQueries RegisterQueries { get; private set; } = null!;
+
     public CashierService Cashier { get; private set; } = null!;
 
     public BillingQueries Billing { get; private set; } = null!;
@@ -149,8 +155,15 @@ public sealed partial class ExpensesDb : IAsyncLifetime
         Cashier = new CashierService(Platform.Commands, store, Policy, Clock);
         Billing = new BillingQueries(store, Policy, Clock);
         var expenses = new SqlExpenseStore(Platform.Connections);
-        Commands = new ExpenseCommands(Platform.Commands, Policy, expenses, Cashier, Clock);
-        Queries = new ExpenseQueries(Policy, expenses);
+        // DEC-120: the real business-day guard (chosen date, reopened day, cash-book lock), the expense masters (category / vendor checks,
+        // vendor auto-add) and the SCC registers (month lock, budgets).
+        var masters = new SqlExpenseMasterSource(Platform.Connections);
+        var registers = new SqlExpenseRegisterStore(Platform.Connections);
+        var guard = new Hcc.Infrastructure.SqlServer.Closing.SqlBusinessDayGuard();
+        Commands = new ExpenseCommands(Platform.Commands, Policy, expenses, Cashier, Clock, guard, null, masters, registers);
+        Queries = new ExpenseQueries(Policy, expenses, null, masters);
+        Registers = new ExpenseRegisterCommands(Platform.Commands, Policy, expenses, registers, Clock, guard, null, masters);
+        RegisterQueries = new ExpenseRegisterQueries(Policy, expenses, registers, Queries);
     }
 
     public async ValueTask DisposeAsync()
@@ -192,8 +205,9 @@ public sealed partial class ExpensesDb : IAsyncLifetime
 
     public async Task<long> ExpectedCashAsync(long shiftId) => (await Billing.GetShiftAsync(As(Who.Owner), shiftId)).Expected.ExpectedPaise;
 
-    public async Task<ExpenseView> SubmitAsync(int who, string vendor, long amount, string method = "Cash", string category = "Supplies", bool draft = false)
-        => (await Commands.SubmitAsync(Ctx(who), new SubmitExpenseRequest(vendor, category, amount, method, draft))).Value.Expense;
+    /// <summary>DEC-120: a description is required to submit (SCC); each one is unique so SCC's duplicate confirm never trips across tests.</summary>
+    public async Task<ExpenseView> SubmitAsync(int who, string vendor, long amount, string method = "Cash", string category = "Supplies", bool draft = false, string? description = null)
+        => (await Commands.SubmitAsync(Ctx(who), new SubmitExpenseRequest(vendor, category, amount, method, draft, Description: description ?? vendor + " #" + Guid.NewGuid().ToString("N")[..6]))).Value.Expense;
 
     public async Task<ExpenseView> ApproveAsync(int who, ExpenseView e, int? till = null)
         => (await Commands.DecideAsync(Ctx(who), new DecideExpenseRequest(e.ExpenseId, e.Version, true, null, till))).Value.Expense;

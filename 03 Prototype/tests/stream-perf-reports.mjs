@@ -48,7 +48,7 @@ export function register({test,M,assert}){
   });
   test('[PERF-R] the memo is invalidated when a record changes (new state, new figures)',()=>{
     const s=seed(),before=reportPackMemo(s,s.date,s.date);
-    const next=execute(s,'owner',{type:'EXPENSE',vendor:'Memo Test',category:'Supplies',amount:12300,method:'Cash'});
+    const next=execute(s,'owner',{type:'EXPENSE',description:'Test expense stream-perf-reports:51',vendor:'Memo Test',category:'Supplies',amount:12300,method:'Cash'});
     const after=reportPackMemo(next,next.date,next.date);
     assert.notEqual(after,before);assert.deepEqual(after,reportPack(next,next.date,next.date));
     assert.equal(reportPackMemo(s,s.date,s.date),before);

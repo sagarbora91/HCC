@@ -146,20 +146,23 @@ public sealed class PayrollRulesTests
     }
 
     [Fact]
-    public void F01_LOP_leave_over_a_weekly_off_deducts_only_the_stored_days()
+    public void SCC_LOP_records_over_a_roster_weekly_off_are_leave_by_date()
     {
-        // Aarav (₹18,000, weekly off Tuesday); LOP Mon 9 – Wed 11 Nov 2026 → 2 days (the Tuesday off is not leave).
+        // SCC leave port (DEC-116): one record per date; Aarav (₹18,000, weekly off Tuesday) has LOP records for Mon 9, Tue 10 and Wed 11 Nov 2026 (the
+        // hotel's leave week-off set is empty) — SCC's feed counts every approved record by its date, also on the roster's weekly off.
         var st = new StaffProfile(2, "Aarav Joshi", "FO", "x", PayType.Monthly, 1_800_000, 0, ShiftCode.M, 2, new DateOnly(2025, 4, 1), null, true);
-        var leave = new LeaveSpan(1, 2, LeaveType.LOP, new DateOnly(2026, 11, 9), new DateOnly(2026, 11, 11), null, 0, LeaveStatus.Approved);
-        var days = new StaffDays(leaves: [leave]);
-        Assert.Equal(2m, PayrollRules.LeaveDays(st, days, leave.From, leave.To, null));
+        LeaveSpan Rec(long id, int day) => new(id, 2, LeaveType.LOP, new DateOnly(2026, 11, day), new DateOnly(2026, 11, day), null, 1, LeaveStatus.Approved);
+        var days = new StaffDays(leaves: [Rec(1, 9), Rec(2, 10), Rec(3, 11)]);
+        Assert.Equal(3m, SccLeave.RequestedDays(0, new DateOnly(2026, 11, 9), new DateOnly(2026, 11, 11), null));
+        Assert.Equal(2m, SccLeave.RequestedDays(SccLeave.Mask([2]), new DateOnly(2026, 11, 9), new DateOnly(2026, 11, 11), null));
         var nov = new PayMonth(2026, 11);
         var c = PayrollRules.Counts(st, days, nov);
-        Assert.Equal(2m, c.LopLeave);
+        Assert.Equal((3m, 0m), (c.LopLeave, c.PaidLeave));
         // DEC-115 (SCC sheet): leave without pay is not "Leaves" — its days fall into absent with every other day not worked or on paid leave.
         var d = PayrollRules.SccDays(c, R);
         Assert.Equal((c.PaidLeave, d.Total - d.Present - d.Leave - d.Half), (d.Leave, d.Absent));
-        Assert.Equal(0m, PayrollRules.LeaveDays(st, days, new DateOnly(2026, 11, 10), new DateOnly(2026, 11, 10), LeaveHalf.AM));   // a weekly off
+        var paid = PayrollRules.Counts(st, new StaffDays(leaves: [Rec(1, 10) with { Type = LeaveType.OTH }]), nov);
+        Assert.Equal((1m, 0m, 3m), (paid.PaidLeave, paid.LopLeave, paid.Off));   // 10 Nov = leave, the other Tuesdays stay weekly offs
     }
 
     [Fact]
@@ -223,17 +226,22 @@ public sealed class PayrollRulesTests
     [Fact]
     public void Leave_balance_is_per_FY_and_never_negative_F15()
     {
+        // SCC fyUsage: APPROVED records only, by their own date (pending is not used); one record per date.
+        LeaveSpan Rec(long id, int y, int m, int d, LeaveStatus s) => new(id, 1, LeaveType.CL, new DateOnly(y, m, d), new DateOnly(y, m, d), null, 1, s);
         var leaves = new[]
         {
-            new LeaveSpan(1, 1, LeaveType.CL, new DateOnly(2026, 9, 14), new DateOnly(2026, 9, 15), null, 2, LeaveStatus.Approved),
-            new LeaveSpan(2, 1, LeaveType.CL, new DateOnly(2026, 10, 28), new DateOnly(2026, 10, 29), null, 2, LeaveStatus.Pending),
-            new LeaveSpan(3, 1, LeaveType.CL, new DateOnly(2026, 10, 30), new DateOnly(2026, 10, 30), null, 1, LeaveStatus.Rejected),
-            new LeaveSpan(4, 1, LeaveType.CL, new DateOnly(2026, 3, 30), new DateOnly(2026, 3, 30), null, 1, LeaveStatus.Approved),   // previous FY
+            Rec(1, 2026, 9, 14, LeaveStatus.Approved), Rec(2, 2026, 9, 15, LeaveStatus.Approved),
+            Rec(3, 2026, 10, 28, LeaveStatus.Pending), Rec(4, 2026, 10, 29, LeaveStatus.Pending),
+            Rec(5, 2026, 10, 30, LeaveStatus.Rejected), Rec(6, 2026, 10, 31, LeaveStatus.Cancelled),
+            Rec(7, 2026, 3, 30, LeaveStatus.Approved),   // previous FY
         };
-        var b = LeaveRules.Balance(LeavePolicy.Defaults(), leaves, new DateOnly(2026, 10, 24)).Single(x => x.Type == LeaveType.CL);
-        Assert.Equal((12, 4m, 8m, 0m), (b.Entitled, b.Used, b.Left, b.Over));
-        var cut = LeaveRules.Balance(LeavePolicy.Defaults() with { Cl = 2 }, leaves, new DateOnly(2026, 10, 24)).Single(x => x.Type == LeaveType.CL);
-        Assert.Equal((0m, 2m), (cut.Left, cut.Over));
+        var b = LeaveRules.Balance(LeavePolicy.Defaults(), 1, leaves, new DateOnly(2026, 10, 24)).Single(x => x.Type == LeaveType.CL);
+        Assert.Equal((12m, 2m, 10m, 0m), (b.Entitled, b.Used, b.Left, b.Over));
+        var cut = LeaveRules.Balance(LeavePolicy.Defaults() with { Cl = 1.5m }, 1, leaves, new DateOnly(2026, 10, 24)).Single(x => x.Type == LeaveType.CL);
+        Assert.Equal((0m, 0.5m), (cut.Left, cut.Over));
+        var own = LeavePolicy.Defaults() with { Overrides = new Dictionary<long, LeaveEntOverride> { [1] = new(3, null, null) } };
+        Assert.Equal((3m, 7m, 15m), (own.EntFor(1).Cl, own.EntFor(1).Sl, own.EntFor(1).El));
+        Assert.Equal(12m, own.EntFor(2).Cl);
         Assert.Equal("FY 2026–27", FinancialYear.Containing(new DateOnly(2027, 3, 31)).Label);
     }
 
@@ -252,7 +260,6 @@ public sealed class PayrollRulesTests
         var paid = FnfRules.Compute(st, st.ExitedOn!.Value, null, R, 500_000, []);
         Assert.Equal((false, 0L, 0L, 500_000L, 0L), (paid.SalaryIncluded, paid.Net, paid.AdvanceRecovered, paid.AdvanceLeftOpen, paid.Recoveries));
         Assert.Equal((20_000_000L, 10_000_000L), (FnfRules.AdjustmentMax, FnfRules.OwnerAbove));   // DEC-066
-        Assert.Equal(PayMath.MulDiv(1_350_000, 7, 1, 62), FnfRules.ElEncashment(st, 3.5m, st.ExitedOn!.Value));
     }
 
     [Fact]

@@ -60,8 +60,8 @@ export function register({test,assert,M}){
       let s=HCC.loadScenario('FY26');const ds=HCC.cbDates(s),rg=HCC.cbRange(s,ds[0],s.date);
       const csv=HCC.cbCsv(s,'2026-10-01',s.date),lock=HCC.cbCanLock(s,'owner','2026-06-10').ok;
       s=HCC.execute(s,'accountant',{type:'CB_LOCK',date:'2026-06-10'});
-      const items=HCC.cmpItems(s).length,intent=HCC.aiMatchIntent('Is GSTR-3B filed?');
-      s=HCC.execute(s,'owner',{type:'CMP_OBLIGATION_SAVE',id:'CMPO-TDS',name:'TDS deposit',rule:{type:'day',day:7,special:{month:3,day:30}}});
+      const items=HCC.cmpMonthPage(s,'October').all.length+HCC.cmpActionCenter(s).length+HCC.cmpCsvRows(s).length,intent=HCC.aiMatchIntent('Is GSTR-3B filed?');
+      s=HCC.execute(s,'owner',{type:'CMP_CUSTOM_SAVE',name:'Fire NOC',months:['April'],dueDay:31});
       const xl=HCCX.cbXlsx(s,'2026-10-01',s.date).length,rx=HCCX.reportXlsx({hotel:'x',scenario:'FY26',clock:s.clock},HCC.reportPack(s,'2026-10-01','2026-10-23')).length;
       return {days:rg.days.length,foots:rg.opening+rg.receipts-rg.payments+rg.differences+rg.gaps===rg.closing,csv:csv.length>1000,lock,locked:!!s.cashbookX.locks['2026-06-10'],items,intent,xl,rx};
     })()`,context);

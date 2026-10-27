@@ -530,8 +530,8 @@ const HR_FIELDS:Record<string,HRField>={
 };
 const curYm=(s:State)=>s.date.slice(0,7);
 /** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET with an explicit `from` (W05-B review F-06:
- *  the month after the last completed pay period, never a completed month; shown before saving); leave entitlements and the per-department cap
- *  wrap HR_LEAVE_POLICY_SET; the rest is shown read-only. */
+ *  the month after the last completed pay period, never a completed month; shown before saving); leave entitlements wrap HR_LEAVE_POLICY_SET;
+ *  the rest is shown read-only (SCC leave port: the 3-per-day cap is SCC's fixed MAX_DAY; advisory department caps live in Staff and payroll). */
 export function hrStatutoryDefs():CfgProviderDef[]{
   const out:CfgProviderDef[]=[];
   for(const d of hrSettingDefs() as HRSettingDef[]){
@@ -545,25 +545,23 @@ export function hrStatutoryDefs():CfgProviderDef[]{
           read:s=>hrRatesFor(s,hrRatesDefaultFrom(s).slice(0,7))[f]??(f==='daysOverride'?0:undefined),command:(s,v)=>({type:'HR_STAT_RATES_SET',from:hrRatesDefaultFrom(s),[f]:v}),
           impact:s=>[`Effective from 1 ${hrMonthLabel(hrRatesDefaultFrom(s).slice(0,7))} (new rate version); earlier months and locked pay-runs keep their rates.`]});});
     }else if(d.key==='hr.leave.ent'){
-      for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:60,unit:'days per financial year',
+      // SCC leave port: any number of days ≥ 0, no maximum (the hub takes whole days; halves are set in Staff and payroll › Leave › Settings).
+      for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:100000,unit:'days per financial year',
         read:s=>hrLeavePolicy(s).ent[lt],command:(s,v)=>({type:'HR_LEAVE_POLICY_SET',ent:{...hrLeavePolicy(s).ent,[lt]:v}})});
-    }else if(d.key==='hr.leave.cap'){
-      out.push({...base,key:'hr.leave.cap.default',label:d.label,type:'integer',min:1,max:20,unit:'staff per department per day',help:d.help+' Department overrides are set in Staff and payroll.',
-        read:s=>hrLeavePolicy(s).defaultCap,command:(_s,v)=>({type:'HR_LEAVE_POLICY_SET',defaultCap:v})});
     }else out.push({...base,key:d.key,label:d.label,type:'fixed',read:s=>hrSettingValue(s,d.key),fixedReason:d.editable?'Edited in Staff and payroll':d.approval});
   }
   return out;
 }
-/** W05-C cmpSettingDefs(s) → hub settings: CA name, CA e-mail and the due-soon window wrap CMP_SETTINGS_SET; due rules are dated and edited in the calendar. */
+/** cmpSettingDefs(s) → hub settings: CA name, CA e-mail and the due-soon window wrap CMP_SETTINGS_SET; the SCC profile and catalogue are shown read-only (edited in the calendar). */
 export function cmpDefs(s:State):CfgProviderDef[]{
   const field:Record<string,'caName'|'caEmail'|'dueSoonDays'>={'cmp.caName':'caName','cmp.caEmail':'caEmail','cmp.dueSoonDays':'dueSoonDays'};
   const valueOf=(x:State,key:string)=>(cmpSettingDefs(x) as CMPSettingDef[]).find(d=>d.key===key)?.value;
   return (cmpSettingDefs(s) as CMPSettingDef[]).map(d=>{
     const f=field[d.key];
-    if(!f)return {key:d.key,label:d.label,type:'fixed' as const,unit:d.unit,help:d.help,read:(x:State)=>String(valueOf(x,d.key)??'—'),fixedReason:'Dated rule — edit in Compliance calendar › Manage obligations'};
+    if(!f)return {key:d.key,label:d.label,type:'fixed' as const,unit:d.unit,help:d.help,read:(x:State)=>String(valueOf(x,d.key)??'—'),fixedReason:'SCC compliance profile and catalogue — edit in Compliance calendar (Firm profile / Manage compliance)'};
     return {key:d.key,label:d.label,type:d.type==='integer'?'integer' as const:'text' as const,unit:d.unit,help:d.help,
       ...(f==='caName'?{maxLength:60,validate:(v:unknown)=>String(v).trim().length<3?'CA name must be 3–60 characters.':undefined}:f==='caEmail'?{maxLength:80,pattern:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,patternMsg:'Enter a valid e-mail address.'}:{min:1,max:30,suffix:'days'}),
-      affects:f==='dueSoonDays'?'Dashboard “Due this week” card and the Accounts tile badge.':'The simulated CA pack.',
+      affects:f==='dueSoonDays'?'Dashboard “Due this week” card (the Action Center and badges use SCC’s 30 days).':'The simulated CA pack.',
       read:(x:State)=>valueOf(x,d.key),command:(_x:State,v:unknown)=>({type:'CMP_SETTINGS_SET',[f]:v})};
   });
 }

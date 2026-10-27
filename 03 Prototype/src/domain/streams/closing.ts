@@ -80,8 +80,9 @@ export function shiftMovements(s:State):CashMovement[]{
 }
 const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
   label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor});
+/** DEC-120: the vendor is optional — the label then names the description. */
 const expMovement=(e:Expense):CashMovement=>({id:e.id,kind:e.reversalOf?'expense-reversal':'expense',
-  label:e.reversalOf?'Expense reversal · '+e.vendor:'Cash expense · '+e.vendor,reference:e.reversalOf?'Reverses '+e.reversalOf:e.category,amount:-e.amount,actor:e.actor});
+  label:(e.reversalOf?'Expense reversal · ':'Cash expense · ')+(e.vendor||e.description||'—'),reference:e.reversalOf?'Reverses '+e.reversalOf:e.category,amount:-e.amount,actor:e.actor});
 const posMovement=(p:ReturnType<typeof posSlice>,r:ReturnType<typeof posSlice>['receipts'][number],o:ReturnType<typeof posSlice>['orders'][number]|undefined):CashMovement=>{
   const outlet=p.outlets.find(x=>x.id===r.outlet)?.name??r.outlet,bill=o?.settlement?.billNo??r.order;
   return {id:r.id,kind:r.kind==='void'?'pos-void':'pos-sale',label:`${outlet}${r.kind==='void'?' void':''} · ${bill}`,guest:o?.guest,order:r.order,
@@ -121,10 +122,12 @@ export function shiftDenominationTotal(d:Record<string,number>){
 // ── Expenses (SCR-13, WF-EXP-001) ──
 /** Posted and later-reversed expenses both happened on their date; the reversal record (negative) offsets on its own date. */
 export const expenseCounts=(e:Expense)=>e.status==='Posted'||e.status==='Reversed';
-/** Same vendor + amount + date (case-insensitive vendor), excluding rejected items and reversal records. Warning only. */
-export function expenseDuplicates(s:State,vendor:string,amount:number,date:string,except=''):Expense[]{
-  const v=vendor.trim().toLowerCase();if(!v||!amount)return [];
-  return s.expenses.filter(e=>e.id!==except&&!e.reversalOf&&e.status!=='Rejected'&&e.vendor.trim().toLowerCase()===v&&e.amount===amount&&e.date===date);
+/** DEC-120 · SCC duplicate key (expense.js addEntry 526): same date + same amount + same description (case-insensitive), excluding rejected
+ *  and void items and reversal records. SCC asks "Save anyway?" (EXPENSE refuses without confirmDuplicate). Records without a description
+ *  (saved before DEC-120) never match. */
+export function expenseDuplicates(s:State,description:string,amount:number,date:string,except=''):Expense[]{
+  const d=String(description??'').trim().toLowerCase();if(!d||!amount)return [];
+  return s.expenses.filter(e=>e.id!==except&&!e.reversalOf&&e.status!=='Rejected'&&e.status!=='Void'&&String(e.description??'').trim().toLowerCase()===d&&e.amount===amount&&e.date===date);
 }
 
 // ── Day closing (SCR-14, WF-DAY-001) ──
@@ -160,7 +163,7 @@ export function closingPreflight(s:State):PreflightIssue[]{
         // DEC-073: a pending till transfer holds up the close (a bank deposit awaiting confirmation does not).
         ...cxPendingTransfers(s).map(r=>({label:`Till transfer awaiting the receiver · ${money(r.amount)} · ${r.id}`,page:'cashier'}))]},
     {id:'expenses',title:'Expenses resolved',hint:'Approve or reject pending expenses.',page:'expenses',
-      items:s.expenses.filter(e=>e.status==='Pending').map(e=>({label:`${e.vendor} · ${money(e.amount)} · ${e.id}`,page:'expenses'}))},
+      items:s.expenses.filter(e=>e.status==='Pending').map(e=>({label:`${e.vendor||e.description||'—'} · ${money(e.amount)} · ${e.id}`,page:'expenses'}))},
     {id:'pos',title:'Restaurant checks settled',hint:'Settle each open check, charge it to the room, or void it (with approval above the limit).',page:'pos',
       items:posOpenOrders(s).map(o=>({label:`${posSpot(o)} · ${o.id}${o.guest?' · '+o.guest:''} · ${money(posOrderTotals(s,o).total)} open`,page:'pos'}))},
     {id:'shift',title:'Cash shift reconciled',hint:st==='Submitted'?'The count awaits difference approval.':'Count the drawer and submit the shift.',page:'cashier',
@@ -314,7 +317,7 @@ export function reportTenders(s:State,from:string,to:string){
 const lineRow=(b:Booking,l:Line,amount:number):DrillRow=>({date:l.date,ref:l.id,booking:b.id,guest:b.guest,room:b.room,detail:l.label,kind:l.kind,amount});
 const receiptRow=(b:Booking,r:Receipt):DrillRow=>({date:r.date,ref:r.id,booking:b.id,guest:b.guest,room:b.room,detail:receiptLabel(r.kind)+' · '+r.reference,method:r.method,kind:r.kind,
   amount:r.kind==='refund'||r.kind==='deposit-return'?-r.amount:r.amount});
-const expenseRow=(e:Expense):DrillRow=>({date:e.date,ref:e.id,detail:`${e.vendor} · ${e.category}${e.reversalOf?' · reverses '+e.reversalOf:''}${e.status==='Reversed'?' · later reversed':''}`,method:e.method,kind:e.reversalOf?'reversal':'expense',amount:e.amount});
+const expenseRow=(e:Expense):DrillRow=>({date:e.date,ref:e.id,detail:`${e.vendor||e.description||'—'} · ${e.category}${e.reversalOf?' · reverses '+e.reversalOf:''}${e.status==='Reversed'?' · later reversed':''}`,method:e.method,kind:e.reversalOf?'reversal':'expense',amount:e.amount});
 const metric=(id:string,label:string,rows:DrillRow[],unit:'money'|'count'='money',note?:string):ReportMetric=>({id,label,unit,rows,note,value:rows.reduce((a,r)=>a+r.amount,0)});
 /** Per-date totals of drill rows in one pass (same figure as filtering the rows by date and adding them up). */
 const sumsByDate=(rows:DrillRow[])=>{const m=new Map<string,number>();for(const r of rows)m.set(r.date,(m.get(r.date)??0)+r.amount);return m;};

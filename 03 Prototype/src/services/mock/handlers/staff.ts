@@ -1,19 +1,23 @@
 // Module 17 · HR & payroll — command handlers. Command types MUST start with 'HR_'. Return value = audit/summary text.
 // Salaries / payroll: Owner + Accountant only (hrCanPay). Roster, attendance for others, leave decisions: 'approve' holders.
 // Statutory rates, leave policy, pay-run unlock: Owner (hrCanRates, DEC-058).
-// W05-B rule sources (SCC, read-only): payroll\index.html (lockRun, unlockRun, createAdvance, fnfGenerate, waEmpMessage, saveSettings)
-// and leave\index.html (submitLeave: weekly offs skipped, duplicate/half-day overlap, capacity per day; decideLeave).
+// W05-B rule sources (SCC, read-only): payroll\index.html (lockRun, unlockRun, createAdvance, fnfGenerate, waEmpMessage, saveSettings).
+// SCC leave\index.html IN FULL (DEC-116 / DEC-119, 27 Oct 2026): submitLeave per date (week-off → duplicate → capacity 3/day · 4/shift), decideLeave per
+// date, remove = cancel with audit, entitlements + overrides, week-off set, advisory department caps, blackouts, agenda, import / clear. HCC safeguards
+// kept: nobody approves their own leave, no hard delete of leave, role permissions (DEC-058), staff by ID, past days through DEC-075 corrections.
 import type {Handler,Kit} from '../commands';
 import {mstSpec,mstNextSort,type MasterRow} from '../../../domain/streams/masters';
 import {money} from '../../../domain/money';
 import {
-  hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
+  hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,
   HR_ATT_MARKS,hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrEntitled,hrLeaveAvailable,hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
-  hrDayOff,hrParseEntry,hrPlanCorrection,hrCorrectionDateRefusal,hrEntryLabel,hrSameEntry,hrPendingRequests,
-  type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRDayEntry,type HRRequest,type HRBank,
+  hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrParseEntry,hrPlanCorrection,hrCorrectionDateRefusal,hrEntryLabel,hrSameEntry,hrPendingRequests,hrLeaveActive,hrIsDuplicate,hrCanAddLeave,hrIsWeekOff,hrBlackoutHits,
+  hrApproverChoices,hrRunFor,HR_ENT_DEFAULTS,hrKindLabel,
+  type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRDayEntry,type HRRequest,type HRBank,type HRLeave,type HRHalf,type HREnt,
 } from '../../../domain/streams/staff';
-import {hrHolidayPaid,hrShiftPattern,hrLeaveTypeRow,hrLeaveQuota,hrLeaveTypeRows,hrTrackedTypes,hrDesignationOf,hrShiftChoices,HRM_DESIGNATIONS,HRM_LEAVE_TYPES,HRM_HOLIDAYS,type HRDesignation} from '../../../domain/streams/people-masters';
+import {hrLeaveRequestPlan,hrLeaveRequestToast,hrLeaveOverBalance,hrLeaveHardBlackoutText,hrLeaveSoftBlackoutText,hrLeaveCategory,hrLeaveImportParse} from '../../../domain/streams/staff-leave';
+import {hrDesignationOf,hrShiftChoices,hrLeaveName,HRM_DESIGNATIONS,HRM_LEAVE_TYPES,HRM_HOLIDAYS,type HRDesignation} from '../../../domain/streams/people-masters';
 import {mstRows,mstStored,mstByCode} from '../../../domain/streams/masters';
 import {addDays} from '../../../domain/money';
 import {clone} from '../../../domain/clone';
@@ -51,10 +55,10 @@ function ratesFrom(k:Kit):{r:HRRates;base:HRRates}{
  *  month's DRAFT pay-run (the preparer stays the maker; the lock still compares a fresh computation). Returns the recalculation note or ''. */
 function applyCorrection(k:Kit,st:HRStaff,date:string,day:{oneDayLeave?:{id:string}},target:HRDayEntry,reqId:string,reason:string,requestedBy:string,decidedBy:string){
   const {s}=k,x=hrEnsure(s),key=hrKey(date,st.id);
-  if(day.oneDayLeave){const l=x.leaves.find(q=>q.id===day.oneDayLeave!.id)!;l.status='Cancelled';l.decidedBy=decidedBy;l.decidedAt=s.clock;l.note=`Replaced by attendance correction ${reqId}`;}
+  if(day.oneDayLeave){const l=x.leaves.find(q=>q.id===day.oneDayLeave!.id)!;l.status='Cancelled';l.cancelledBy=decidedBy;l.cancelledAt=s.clock;l.note=`Replaced by attendance correction ${reqId}`;}
   if(target.kind==='mark')x.att[key]={status:target.status,at:s.clock,otMin:target.otMin,by:requestedBy,note:`Correction ${reqId}`};
   else{delete x.att[key];
-    if(target.kind==='leave')x.leaves.push({id:k.id('HR-LV'),staffId:st.id,type:target.type,from:date,to:date,days:1,reason,status:'Approved',requestedBy,requestedAt:s.clock,
+    if(target.kind==='leave')x.leaves.push({id:k.id('HR-LV'),staffId:st.id,date,type:target.type,from:date,to:date,days:1,reason,approver:decidedBy,status:'Approved',requestedBy,requestedAt:s.clock,
       decidedBy,decidedAt:s.clock,note:`Back-dated by attendance correction ${reqId}`,correctionId:reqId});}
   const ym=date.slice(0,7),run=x.runs.find(r=>r.month===ym);if(!run||run.status!=='Draft')return '';
   const rates=hrRatesFor(s,ym),{lines,warnings}=hrComputeRun(s,ym,rates);if(!lines.length)return '';
@@ -73,7 +77,7 @@ function writeQuotas(k:Kit,ent:{CL:number;SL:number;EL:number}){
   for(const code of HR_TRACKED){const r=rows.find(x=>x.code===code);if(!r||r.yearlyQuota===ent[code])continue;
     k.s.mastersX??={rows:{},history:[]};k.s.mastersX.history??=[];
     k.s.mastersX.history.unshift({id:k.id('MSTH'),master:HRM_LEAVE_TYPES,rowId:r.id,code,field:'yearlyQuota',old:r.yearlyQuota===undefined?'—':String(r.yearlyQuota),new:String(ent[code]),by:k.uid,at:k.s.clock});
-    r.yearlyQuota=ent[code];changed.push(code);}
+    r.yearlyQuota=ent[code];delete r.carryForward;delete r.encashment;changed.push(code);}
   if(!changed.length)return;
   (k.s.mastersX!.rows??={})[HRM_LEAVE_TYPES]=rows;
 }
@@ -315,63 +319,169 @@ export const handlers:Record<string,Handler>={
     holidayWrite(k,rows.filter(r=>r!==old),undefined,old);
     return `Paid holiday ${cmd.date} · ${old!.name} removed${run?` · ${hrMonthLabel(ym)} draft pay-run must be recalculated`:''}`;
   },
+  /** SCC submitLeave (L1321-1407): one PENDING record per date of from…to — a week-off date is skipped, then a duplicate (same person, not rejected,
+   *  same half or either a full day: AM + PM coexist), then a date that is full (3 records per day for the hotel, 4 per shift); the other dates are
+   *  still recorded. The approver (Owner or a Manager) is required; the reason is optional (≤ 500). A tracked category over its quota needs
+   *  confirmOverBalance (SCC confirm); a hard blackout refuses; a soft one (or a store holiday) needs confirmBlackout. Nothing added = refused with
+   *  SCC's counts. HCC: own leave, or a manager for anyone (DEC-058); not before the business date (past days: DEC-075 corrections). */
   HR_LEAVE_REQUEST:k=>{
     const {s,cmd,assert,fail}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);
     if(!isOwn(k,st)&&!hrCanManage(s,k.uid))fail('FORBIDDEN','You can request leave only for yourself.');
     assert(st.active,'This staff member is inactive.','INVALID_TRANSITION');
-    const type=cmd.leaveType as HRLeaveType;const lt=typeof type==='string'?hrLeaveTypeRow(s,type):undefined;
-    assert(lt&&lt.active,'Choose a leave type.');
-    if(st.payType==='daily')assert(lt!.paid===false,'Daily-wage staff can take leave without pay only (illustrative policy).');
-    const half=cmd.half as 'AM'|'PM'|undefined;if(half!==undefined)assert(half==='AM'||half==='PM','Choose the first or second half.');
-    const to=half?cmd.from:cmd.to;
-    assert(DATE.test(cmd.from)&&DATE.test(to)&&to>=cmd.from,'The end date must be on or after the start date.');
-    assert(cmd.from>=s.date,'Leave cannot start before the business date. A past day of the open pay month is corrected on Attendance › Past days (DEC-075).');
-    assert(addDays(cmd.from,14)>=to,'Maximum 15 days per request in this demo.');
-    assert(hrFy(cmd.from).to>=to,'A request cannot cross 31 March — split it per financial year.');
-    assert(String(cmd.reason??'').trim().length>=3,'Give a short reason.');
-    // SCC duplicate rule: a full day conflicts with anything; first and second half of the same day can coexist.
-    assert(!x.leaves.some(l=>l.staffId===st.id&&(l.status==='Pending'||l.status==='Approved')&&l.from<=to&&l.to>=cmd.from&&!(half&&l.half&&l.half!==half)),'These dates overlap another leave request.','NOT_AVAILABLE');
-    const days=hrLeaveDays(s,st,cmd.from,to,half);assert(days>0,half?'That day is a weekly off or a paid holiday.':'The chosen dates are all weekly offs or paid holidays.');
-    if(hrLeaveQuota(s,type)!==undefined){const left=hrLeaveAvailable(s,st.id,type,cmd.from);
-      assert(days<=left,`Not enough ${type} balance: ${left} day${left===1?'':'s'} left in ${hrFy(cmd.from).label}.`);}
-    // SCC capacity: max staff off per day — here per department; pending and approved requests hold a slot.
-    const cap=hrDeptCap(s,st.dept);
-    for(let d=cmd.from;d<=to;d=addDays(d,1)){if(hrDayOff(s,st,d))continue;// weekly off or paid holiday (DEC-083): no leave day, no slot
-      const off=hrDeptOff(s,st.dept,d,st.id).length;
-      assert(off<cap,`${hrDeptName(s,st.dept)} already has ${off} staff off on ${dm(d)} (maximum ${cap} per day).`,'NOT_AVAILABLE');}
-    const id=k.id('HR-LV');
-    x.leaves.push({id,staffId:st.id,type,from:cmd.from,to,days,reason:String(cmd.reason).trim(),...(half?{half}:{}),status:'Pending',requestedBy:k.uid,requestedAt:s.clock});
-    return `${id} · ${st.name} · ${type} ${days} day${days===1?'':'s'}${half?` (${half==='AM'?'first':'second'} half)`:''} requested`;
+    const approver=String(cmd.approver??'').trim();
+    assert(approver,'Approver name is required');
+    assert(hrApproverChoices(s).some(a=>a.id===approver),'Choose the approver from the list (the Owner or a Manager).');
+    assert(!(st.userId&&st.userId===approver),'The approver cannot be the person on leave — nobody approves their own leave (DEC-119).');
+    const from=String(cmd.from??''),half=cmd.half==='AM'||cmd.half==='PM'?cmd.half as HRHalf:undefined,to=String(cmd.to??'')||from;
+    if(cmd.half!==undefined&&cmd.half!==null)assert(half,'Invalid leave type');
+    assert(DATE.test(from)&&DATE.test(to),'Please select leave dates');
+    assert(from<=to,'Leave From cannot be after Leave To');
+    const type=String(cmd.leaveType??'') as HRLeaveType;assert((HR_LEAVE_TYPES as string[]).includes(type),'Choose a leave category.');
+    assert(from>=s.date,'Leave cannot start before the business date. A past day of the open pay month is corrected on Attendance › Past days (DEC-075).');
+    const reason=String(cmd.reason??'').trim();assert(reason.length<=500,'Reason / notes: up to 500 characters.');
+    const over=hrLeaveOverBalance(s,st,type,from,to,half);
+    if(over&&!cmd.confirmOverBalance)fail('INVALID_TRANSITION',over);
+    const bk=hrBlackoutHits(s,from,to,st.dept);
+    if(bk.hard)fail('NOT_AVAILABLE',hrLeaveHardBlackoutText(bk.labels));
+    if(bk.hits.length&&!cmd.confirmBlackout)fail('INVALID_TRANSITION',hrLeaveSoftBlackoutText(bk.labels,hrLeaveCategory(type)));
+    const plan=hrLeaveRequestPlan(s,st.id,from,to,half,x.leaves),toast=hrLeaveRequestToast(plan);
+    if(!toast.ok)fail('NOT_AVAILABLE',toast.text);
+    const base=k.id('HR-LV');let n=0;
+    for(const d of plan.dates)if(d.result==='added')x.leaves.push({id:n++?`${base}-${n}`:base,staffId:st.id,date:d.date,type,from,to,days:half?0.5:1,reason,...(half?{half}:{}),
+      approver,status:'Pending',requestedBy:k.uid,requestedAt:s.clock});
+    return `${base} · ${st.name} · ${hrLeaveName(s,type)} · ${half?hrKindLabel({half}):'Full Day'} · ${from}${to!==from?' – '+to:''} · ${toast.text}${over?' · over the quota (confirmed)':''}${bk.hits.length?' · blackout '+bk.labels+' (confirmed)':''}`;
   },
+  /** SCC decideLeave (L280-296): one date record; pending only. No balance check again (SCC). HCC keeps: a manager decides (DEC-058), nobody decides
+   *  their own leave or their own request (DEC-119), an approved full day cannot sit on recorded attendance. The deciding user is recorded (audit). */
   HR_LEAVE_DECIDE:k=>{
     manage(k);const {s,cmd,assert,fail}=k,x=hrEnsure(s),l=x.leaves.find(l=>l.id===cmd.id);
-    assert(l,'Leave request not found.','NOT_FOUND');assert(l!.status==='Pending','This request is no longer pending.','INVALID_TRANSITION');
+    assert(l,'Leave record not found.','NOT_FOUND');
+    assert(l!.status==='Pending',`This leave is already ${l!.status.toLowerCase()}`,'INVALID_TRANSITION');
     if(l!.requestedBy===k.uid||hrStaffOfUser(s,k.uid)?.id===l!.staffId)fail('FORBIDDEN','You cannot approve your own request. Switch to another authorized demo user.');
-    if(!cmd.approve)assert(String(cmd.note??'').trim(),'Give a reason for rejecting.');
-    if(cmd.approve){
-      assert(!Object.keys(x.att).some(key=>{const [d,sid]=key.split('|');return sid===l!.staffId&&d>=l!.from&&d<=l!.to&&!(l!.half&&(x.att[key].status==='H'||x.att[key].status==='A'));}),'Attendance is already recorded inside these dates.','INVALID_TRANSITION');
-      if(hrLeaveQuota(s,l!.type)!==undefined){const left=hrLeaveAvailable(s,l!.staffId,l!.type,l!.from,l!.id);assert(l!.days<=left,'Leave balance is no longer sufficient.');}
-    }
-    l!.status=cmd.approve?'Approved':'Rejected';l!.decidedBy=k.uid;l!.decidedAt=s.clock;const note=String(cmd.note??'').trim();if(note)l!.note=note;
-    return `${l!.id} · ${l!.status}`;
+    const note=String(cmd.note??'').trim();assert(note.length<=200,'Note: up to 200 characters.');
+    if(cmd.approve){const a=x.att[hrKey(l!.date,l!.staffId)];
+      assert(!a||(!!l!.half&&(a.status==='H'||a.status==='A')),'Attendance is already recorded on this date.','INVALID_TRANSITION');}
+    l!.status=cmd.approve?'Approved':'Rejected';l!.decidedBy=k.uid;l!.decidedAt=s.clock;if(note)l!.note=note;
+    const st=x.staff.find(t=>t.id===l!.staffId);
+    return `${l!.id} · ${st?.name??l!.staffId} · ${l!.date} · ${hrLeaveName(s,l!.type)} ${hrKindLabel(l!)} · ${cmd.approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit'}${note?' · '+note:''}`;
   },
+  /** SCC removeLeave (L1452) = cancel with an audit record (DEC-119: no hard delete; the record leaves the calendar, counts and files). Pending: the
+   *  requester, the person on leave or a manager; approved or rejected: a manager; an approved day before the business date is changed through a
+   *  DEC-075 correction instead. */
   HR_LEAVE_CANCEL:k=>{
-    const {s,cmd,assert,fail}=k,l=hrEnsure(s).leaves.find(l=>l.id===cmd.id);assert(l,'Leave request not found.','NOT_FOUND');
+    const {s,cmd,assert,fail}=k,l=hrEnsure(s).leaves.find(l=>l.id===cmd.id);assert(l,'Leave record not found.','NOT_FOUND');
+    assert(l!.status!=='Cancelled','This leave record is already removed (kept for audit).','INVALID_TRANSITION');
     const own=l!.requestedBy===k.uid||hrStaffOfUser(s,k.uid)?.id===l!.staffId;
     if(l!.status==='Pending'){if(!own&&!hrCanManage(s,k.uid))fail('FORBIDDEN','Only the requester or a manager can cancel this request.');}
-    else{assert(l!.status==='Approved'&&l!.from>=s.date,'Only pending requests, or approved leave that has not started, can be cancelled.','INVALID_TRANSITION');manage(k);}
-    l!.status='Cancelled';l!.decidedBy=k.uid;l!.decidedAt=s.clock;return `${l!.id} · cancelled`;
+    else{manage(k);
+      if(l!.status==='Approved')assert(l!.date>=s.date,'An approved leave day before the business date is changed with an attendance correction (Attendance › Past days, DEC-075).','INVALID_TRANSITION');}
+    const was=l!.status;l!.status='Cancelled';l!.cancelledBy=k.uid;l!.cancelledAt=s.clock;
+    return `${l!.id} · ${l!.date} · ${was} leave removed (cancelled — kept for audit)`;
   },
-  /** Leave policy (SCC entitlements + daily capacity, per department). Owner. */
+  /** SCC leave settings (Owner, DEC-058): entitlement defaults (any number ≥ 0, fractions, no maximum; SCC: a blank field saves 0), the week-off set,
+   *  advisory department caps (SCC per-store caps: whole number ≥ 0; a blank field keeps the old value). New records only. */
   HR_LEAVE_POLICY_SET:k=>{
-    owner(k,'change the leave policy');const {s,cmd,assert}=k,x=hrEnsure(s),p=clone(hrLeavePolicy(s));
-    if(cmd.ent!==undefined)for(const t of HR_TRACKED){const v=cmd.ent?.[t];assert(Number.isInteger(v)&&v>=0&&v<=60,`Entitlement for ${t}: 0–60 days.`);p.ent[t]=v;}
-    if(cmd.defaultCap!==undefined){assert(Number.isInteger(cmd.defaultCap)&&cmd.defaultCap>=1&&cmd.defaultCap<=20,'Maximum staff off per day: 1–20.');p.defaultCap=cmd.defaultCap;}
-    if(cmd.deptCap!==undefined){assert(cmd.deptCap&&typeof cmd.deptCap==='object','Department limits are missing.');p.deptCap={};
+    owner(k,'change the leave policy');const {s,cmd,assert}=k,x=hrEnsure(s),p=clone(hrLeavePolicy(s));const notes:string[]=[];
+    if(cmd.ent!==undefined){for(const t of HR_TRACKED){const raw=cmd.ent?.[t],v=raw===''||raw===null||raw===undefined?0:Number(raw);
+        assert(Number.isFinite(v)&&v>=0,`Entitlement for ${t}: a number of days, 0 or more.`);p.ent[t]=Math.max(0,Math.round(v*100)/100);}
+      notes.push(`CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL}`);}
+    if(cmd.weekOff!==undefined){assert(Array.isArray(cmd.weekOff),'Week-off days are a list of weekdays.');
+      p.weekOff=[...new Set((cmd.weekOff as unknown[]).map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6))].sort();
+      notes.push(`week-off ${p.weekOff.length?p.weekOff.map(d=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(' + '):'none'}`);}
+    if(cmd.deptCap!==undefined){assert(cmd.deptCap&&typeof cmd.deptCap==='object','Department caps are missing.');
       for(const [d,v] of Object.entries(cmd.deptCap as Record<string,unknown>)){assert(x.depts.some(q=>q.id===d),'Unknown department.');
-        if(v===null||v===undefined||v==='')continue;assert(Number.isInteger(v)&&(v as number)>=1&&(v as number)<=20,'Department limit: 1–20.');p.deptCap[d]=v as number;}}
+        if(v===null||v===undefined||v==='')continue;// SCC: a blank field keeps the cap
+        const n=Math.floor(Number(v));assert(Number.isFinite(n)&&n>=0,'Department cap: a whole number, 0 or more.');p.deptCap[d]=n;}
+      notes.push('department caps (advisory) saved');}
+    delete p.defaultCap;
     if(cmd.ent!==undefined)writeQuotas(k,p.ent);
-    x.leavePolicy=p;return `Leave policy updated · CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL} · max ${p.defaultCap}/department/day · new requests only`;
+    x.leavePolicy=p;return `Leave settings updated · ${notes.join(' · ')||'no change'} · new leave only`;
+  },
+  /** SCC saveEntOverride (L478-493): a staff member's own CL / SL / EL quota; a blank field uses the default; all blank removes the override. Owner. */
+  HR_LEAVE_ENT_OVERRIDE:k=>{
+    owner(k,'change leave entitlements');const {s,cmd,assert}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId),p=clone(hrLeavePolicy(s)),ov:HREnt={};
+    for(const t of HR_TRACKED){const raw=cmd.ent?.[t];if(raw===''||raw===null||raw===undefined)continue;
+      const v=Number(raw);assert(Number.isFinite(v)&&v>=0,`${t}: a number of days, 0 or more.`);ov[t]=Math.max(0,Math.round(v*100)/100);}
+    const any=Object.keys(ov).length>0;p.perStaff={...(p.perStaff??{})};
+    if(any)p.perStaff[st.id]=ov;else delete p.perStaff[st.id];
+    x.leavePolicy=p;
+    return any?`Entitlement override saved for ${st.name} · ${HR_TRACKED.filter(t=>ov[t]!=null).map(t=>`${t} ${ov[t]}`).join(' · ')}`:`${st.name} · Override cleared — using defaults`;
+  },
+  /** SCC addBlackout (L441-462): from / to (swapped when reversed), scope = every department or one, kind blackout / store holiday, hard (blackouts
+   *  only), label ≤ 80. Owner. */
+  HR_LEAVE_BLACKOUT_ADD:k=>{
+    owner(k,'change leave blackouts');const {s,cmd,assert}=k,x=hrEnsure(s),p=clone(hrLeavePolicy(s));
+    let from=String(cmd.from??''),to=String(cmd.to??'');assert(from&&to,'Pick both blackout dates');
+    assert(DATE.test(from)&&DATE.test(to)&&!Number.isNaN(Date.parse(from))&&!Number.isNaN(Date.parse(to)),'Invalid blackout date');
+    if(from>to)[from,to]=[to,from];
+    const dept=String(cmd.dept??'');assert(dept===''||x.depts.some(d=>d.id===dept),'Unknown department.');
+    const kind=cmd.kind==='holiday'?'holiday':'blackout',hard=kind!=='holiday'&&!!cmd.hard,label=String(cmd.label??'').trim().slice(0,80);
+    const id=k.id('HR-BK');p.blackouts=[...(p.blackouts??[]),{id,from,to,dept,kind,hard,label}];x.leavePolicy=p;
+    return `${id} · ${label||(kind==='holiday'?'Store holiday':'Blackout')} · ${from}${to!==from?' – '+to:''} · ${dept||'all departments'} · ${kind==='holiday'?'Store holiday':hard?'Blackout (hard block)':'Blackout (warn)'} · Blackout saved`;
+  },
+  HR_LEAVE_BLACKOUT_REMOVE:k=>{
+    owner(k,'change leave blackouts');const {s,cmd,assert}=k,x=hrEnsure(s),p=clone(hrLeavePolicy(s)),b=(p.blackouts??[]).find(e=>e.id===cmd.id);
+    assert(b,'Blackout not found.','NOT_FOUND');p.blackouts=(p.blackouts??[]).filter(e=>e.id!==cmd.id);x.leavePolicy=p;
+    return `${b!.id} · ${b!.label||(b!.kind==='holiday'?'Store holiday':'Blackout')} ${b!.from}${b!.to!==b!.from?' – '+b!.to:''} · Blackout removed`;
+  },
+  /** SCC submitAgenda (L1427-1447): date and title required (title ≤ 200, description ≤ 1000), time HH:MM or blank, type meeting / agenda /
+   *  reminder; kept sorted by time with blank times last. A manager (DEC-058). */
+  HR_AGENDA_ADD:k=>{
+    manage(k);const {s,cmd,assert}=k,x=hrEnsure(s);
+    const date=String(cmd.date??''),title=String(cmd.title??'').trim(),time=String(cmd.time??'').trim(),type=String(cmd.agendaType??cmd.kind??'meeting');
+    assert(DATE.test(date)&&title,'Date and title are required');
+    assert(['meeting','agenda','reminder'].includes(type),'Invalid type');
+    assert(title.length<=200,'Title: up to 200 characters.');assert(!time||/^([01]\d|2[0-3]):[0-5]\d$/.test(time),'Time: HH:MM (24-hour) or blank.');
+    const description=String(cmd.description??'').trim();assert(description.length<=1000,'Description: up to 1000 characters.');
+    const id=k.id('HR-AG');
+    const all=[...(x.agendas??[]),{id,date,title,time,type:type as 'meeting'|'agenda'|'reminder',description,by:k.uid,at:s.clock}];
+    // SCC: sorted by time within the date, blank times last ('99:99'); dates stay in insertion order of their first item.
+    x.agendas=all.map((a,i)=>({a,i})).sort((p,q)=>p.a.date!==q.a.date?0:((p.a.time||'99:99')>(q.a.time||'99:99')?1:(p.a.time||'99:99')<(q.a.time||'99:99')?-1:p.i-q.i)).map(v=>v.a);
+    return `${id} · ${date}${time?' '+time:''} · ${type} · ${title} · Agenda item added`;
+  },
+  HR_AGENDA_REMOVE:k=>{
+    manage(k);const {cmd,assert}=k,x=hrEnsure(k.s),a=(x.agendas??[]).find(q=>q.id===cmd.id);assert(a,'Agenda item not found.','NOT_FOUND');
+    x.agendas=(x.agendas??[]).filter(q=>q.id!==cmd.id);return `${a!.id} · ${a!.date} · ${a!.title} · Agenda removed`;
+  },
+  /** SCC importJSON merge (L1936-1962) of an SCC LeaveDesk backup (`data` = the parsed file): a record whose id is already on that date is ignored;
+   *  the same staff member with a record not rejected on that date → skipped (any half — stricter than the screen, SCC; owner question); a full
+   *  date → skipped. Entitlements are merged and the week-off set replaced when the file has them. HCC: a record in a locked pay month is skipped
+   *  (a locked month never changes). Owner. */
+  HR_LEAVE_IMPORT:k=>{
+    owner(k,'import leave data');const {s,cmd,fail}=k,x=hrEnsure(s);
+    const plan=hrLeaveImportParse(s,cmd.data);if(typeof plan==='string')fail('VALIDATION','Import failed: '+plan);
+    const pl=plan as Exclude<typeof plan,string>,locked=new Set(x.runs.filter(r=>r.status==='Locked').map(r=>r.month));
+    let lAdded=0,lSkipped=0,aAdded=0;const base=k.id('HR-LV');
+    for(const r of pl.leaves){
+      const day=x.leaves.filter(l=>l.date===r.date);
+      if(r.sccId&&day.some(l=>l.status!=='Cancelled'&&(l.sccId===r.sccId||l.id===r.sccId)))continue;// SCC: same id on that date → ignored (a cancelled record is SCC's removed one)
+      if(locked.has(r.date.slice(0,7))){lSkipped++;continue;}
+      if(day.some(l=>hrLeaveActive(l)&&l.staffId===r.staffId)){lSkipped++;continue;}
+      if(!hrCanAddLeave(s,r.date,r.half,day)){lSkipped++;continue;}
+      x.leaves.push({id:`${base}-${++lAdded}`,staffId:r.staffId,date:r.date,type:r.type,from:r.from,to:r.to,days:r.half?0.5:1,reason:r.reason,...(r.half?{half:r.half}:{}),
+        ...(r.approver?{approver:r.approver}:{approverName:r.approverName}),status:r.status,requestedBy:k.uid,requestedAt:s.clock,...(r.legacy?{legacy:true}:{}),
+        ...(r.sccId?{sccId:r.sccId}:{}),...(r.decidedByName?{decidedByName:r.decidedByName}:{}),...(r.decidedAt?{decidedAt:r.decidedAt}:{})});
+    }
+    for(const a of pl.agendas){const ag=x.agendas??[];if(a.sccId&&ag.some(q=>q.date===a.date&&q.id===a.sccId))continue;
+      x.agendas=[...ag,{id:a.sccId||k.id('HR-AG'),date:a.date,title:a.title,time:a.time,type:a.type,description:a.description,by:k.uid,at:s.clock}];aAdded++;}
+    const p=clone(hrLeavePolicy(s));
+    if(pl.ent){p.ent={...p.ent,...pl.ent.defaults} as typeof p.ent;p.perStaff={...(p.perStaff??{}),...pl.ent.perStaff};writeQuotas(k,p.ent);}
+    if(pl.weekOff)p.weekOff=pl.weekOff;
+    delete p.defaultCap;x.leavePolicy=p;
+    return `Imported: ${lAdded} leaves, ${aAdded} agendas. Skipped: ${pl.skipped+lSkipped}`;
+  },
+  /** SCC executeClearData (L2012-2026): type DELETE. HCC (DEC-119, no hard delete): every leave record not already cancelled is CANCELLED and kept
+   *  for audit — except in a locked pay month, which never changes; agenda items are deleted; entitlement defaults, overrides and the week-off set
+   *  go back to the defaults. Department caps and blackouts survive (SCC; owner question). HCC's staff master is not touched. Owner. */
+  HR_LEAVE_CLEAR:k=>{
+    owner(k,'clear the leave data');const {s,cmd,assert}=k,x=hrEnsure(s);
+    assert(String(cmd.confirm??'').trim()==='DELETE','Type DELETE (uppercase) to confirm');
+    const locked=new Set(x.runs.filter(r=>r.status==='Locked').map(r=>r.month));let n=0,kept=0;
+    for(const l of x.leaves){if(l.status==='Cancelled')continue;if(locked.has(l.date.slice(0,7))){kept++;continue;}
+      l.status='Cancelled';l.cancelledBy=k.uid;l.cancelledAt=s.clock;l.note='Clear All';n++;}
+    const ag=(x.agendas??[]).length;x.agendas=[];
+    const p=clone(hrLeavePolicy(s));p.ent={...HR_ENT_DEFAULTS};delete p.perStaff;delete p.weekOff;delete p.defaultCap;x.leavePolicy=p;writeQuotas(k,p.ent);
+    return `All data cleared · ${n} leave record(s) cancelled (kept for audit)${kept?` · ${kept} in locked pay months kept`:''} · ${ag} agenda item(s) removed · entitlements and week-off back to the defaults`;
   },
   HR_ADVANCE_ADD:k=>{
     payroll(k);const {s,cmd,assert}=k,x=hrEnsure(s),st=staffOf(k,cmd.staffId);notSelf(k,st,'give a salary advance');

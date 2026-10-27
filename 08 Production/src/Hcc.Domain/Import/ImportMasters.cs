@@ -173,7 +173,7 @@ public static class ImportMasters
         [
             new("code", true, "Department code, 2 to 10 capital letters or digits (stored in capitals).", "FO"),
             new("name", true, "Department name, 2 to 60 characters.", "Front office", Text: ImportCellText.Free),
-            new("leaveCap", false, "Most staff of this department on leave on one day, 1 to 20 (blank = the leave policy default).", "2"),
+            new("leaveCap", false, "Advisory cap: staff of this department on leave on one day before the day is flagged, 0 or more (blank = 3, SCC's limit a day; it never blocks — the hotel-wide limit is 3 a day).", "2"),
         ]),
         new(ImportMaster.Companies, "companies", "Company accounts (corporate clients)", true, false, "room-types",
         [

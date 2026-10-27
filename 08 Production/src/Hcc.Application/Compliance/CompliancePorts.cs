@@ -3,73 +3,76 @@ using Hcc.Domain.Compliance;
 
 namespace Hcc.Application.Compliance;
 
-/// <summary>PERM ids for the Compliance calendar (added by migration 1100; RBAC matrix has no row yet — DEC-055: Owner and Accountant only).</summary>
+/// <summary>PERM ids for the Compliance calendar (migration 1101; DEC-055: Owner and Accountant only).</summary>
 public static class CompliancePermissions
 {
-    /// <summary>View the calendar, mark filed / not applicable, generate the CA pack. Owner + Accountant.</summary>
+    /// <summary>View the calendar, mark done / not applicable, evidence files, change the FY, CA pack. Owner + Accountant.</summary>
     public const string Use = "PERM-CMP-001";
 
-    /// <summary>Reopen a filing, manage obligations and due rules, settings, seed defaults. Owner only.</summary>
+    /// <summary>Reopen (undo done / NA), the firm profile, archive, custom obligations, settings. Owner only.</summary>
     public const string Manage = "PERM-CMP-002";
 }
 
-public sealed record ObligationRecord(long ObligationId, int PropertyId, string Kind, string Name, string Form, string Frequency, string Owner,
-    string FromPeriod, bool Active, string? Note, byte[] Version, IReadOnlyList<DatedRule> Rules)
-{
-    public ObligationSchedule Schedule => new(Frequency, FromPeriod, Rules);
-}
+public sealed record ProfileRecord(CmpProfile Profile, int? UpdatedBy, DateTime? UpdatedUtc, byte[] Version);
 
-public sealed record FilingRecord(long ObligationId, string Period, string Status, int By, DateTime AtUtc, string? Reference, string? Reason);
+public sealed record CustomRecord(CmpCustom Custom, int? UpdatedBy, DateTime? UpdatedUtc, byte[] Version);
+
+/// <summary>What an Owner reopen removed (HCC safeguard): <paramref name="Part"/> "done" or "na" and the record as it was.</summary>
+public sealed record ReopenedRecord(int FyStart, string ItemId, string Part, CmpRecord Was, int ReopenedBy, DateTime ReopenedUtc, string Reason);
 
 /// <summary><paramref name="IsDefault"/> = never saved (the defaults); a client holding the all-zero version token may then save without a prior read.</summary>
-public sealed record SettingsRecord(string CaName, string CaEmail, int DueSoonDays, byte[] Version, bool IsDefault = false);
+public sealed record SettingsRecord(string CaName, string CaEmail, int DueSoonDays, int FyStart, byte[] Version, bool IsDefault = false);
 
 public sealed record PackRecord(long PackId, DateTime AtUtc, int By, string To, string ToName, int Overdue, int Due, int Filed, int NotApplicable, IReadOnlyList<string> Lines);
 
-/// <summary><paramref name="Holidays"/> = the paid holidays of the Holiday calendar (MA-6): due dates falling on one move to the next working day.</summary>
-public sealed record ComplianceSnapshot(IReadOnlyList<ObligationRecord> Obligations, IReadOnlyList<FilingRecord> Filings, SettingsRecord Settings, IReadOnlySet<DateOnly>? Holidays = null);
+/// <summary>One property's compliance data (SCC STATE for one firm).</summary>
+public sealed record ComplianceSnapshot(ProfileRecord? Profile, SettingsRecord Settings, IReadOnlyList<CmpRecord> Records, IReadOnlyList<CustomRecord> Custom,
+    IReadOnlyList<string> Archived, IReadOnlyList<string> ArchivedCats, IReadOnlyList<CmpEvidence> Evidence, IReadOnlyList<ReopenedRecord> Reopened)
+{
+    public SccCalendar Calendar() => new(Profile?.Profile, Records, Custom.Select(c => c.Custom), Archived, ArchivedCats, Evidence);
+}
 
-/// <summary>Persistence port of the compliance commands (SQL adapter in Infrastructure/Compliance). Lock* methods take UPDLOCK row locks.</summary>
+/// <summary>Persistence port of the compliance commands (SQL adapter in Infrastructure/Compliance). Every command first takes the property's
+/// settings row with UPDLOCK (<see cref="LockSettingsAsync"/>), so compliance commands of one property run one at a time.</summary>
 public interface IComplianceStore
 {
     Task<DateOnly> BusinessDateAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
 
-    Task<ObligationRecord?> LockObligationAsync(ICommandTransaction tx, int propertyId, long obligationId, CancellationToken ct = default);
-
-    Task<FilingRecord?> GetFilingAsync(ICommandTransaction tx, long obligationId, string period, CancellationToken ct = default);
-
-    Task InsertFilingAsync(ICommandTransaction tx, FilingRecord filing, CancellationToken ct = default);
-
-    Task DeleteFilingAsync(ICommandTransaction tx, long obligationId, string period, CancellationToken ct = default);
-
-    /// <summary>Keeps the reopened filing record (who, when, why); trims to <see cref="ComplianceRules.MaxReopened"/> per property.</summary>
-    Task InsertReopenedAsync(ICommandTransaction tx, int propertyId, FilingRecord filing, int reopenedBy, DateTime reopenedUtc, string reason, CancellationToken ct = default);
-
-    /// <summary>Locks the (property, name) key range so two adds cannot both pass the duplicate check.</summary>
-    Task<bool> NameExistsAsync(ICommandTransaction tx, int propertyId, string name, long? excludeId, CancellationToken ct = default);
-
-    Task<int> CountObligationsAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
-
-    Task<long> InsertObligationAsync(ICommandTransaction tx, int propertyId, string kind, string name, string form, string frequency, string owner,
-        string fromPeriod, string? note, DueRule firstRule, int by, DateTime utc, CancellationToken ct = default);
-
-    Task UpdateObligationAsync(ICommandTransaction tx, long obligationId, byte[] expectedVersion, string name, string form, string owner, string? note, int by, DateTime utc, CancellationToken ct = default);
-
-    Task UpsertRuleAsync(ICommandTransaction tx, long obligationId, DatedRule rule, CancellationToken ct = default);
-
-    Task SetActiveAsync(ICommandTransaction tx, long obligationId, byte[] expectedVersion, bool active, int by, DateTime utc, CancellationToken ct = default);
-
-    Task<byte[]> ObligationVersionAsync(ICommandTransaction tx, long obligationId, CancellationToken ct = default);
-
-    /// <summary>The property's settings, created with the defaults on first use (race-safe).</summary>
+    /// <summary>The property's settings, created with the defaults on first use (race-safe), locked.</summary>
     Task<SettingsRecord> LockSettingsAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
-
-    Task UpdateSettingsAsync(ICommandTransaction tx, int propertyId, byte[] expectedVersion, string caName, string caEmail, int dueSoonDays, int by, DateTime utc, CancellationToken ct = default);
 
     Task<ComplianceSnapshot> SnapshotAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
 
-    /// <summary>The active paid holidays of the property (MA-6).</summary>
-    Task<IReadOnlySet<DateOnly>> PaidHolidaysAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
+    Task UpdateSettingsAsync(ICommandTransaction tx, int propertyId, byte[] expectedVersion, string caName, string caEmail, int dueSoonDays, int by, DateTime utc, CancellationToken ct = default);
+
+    Task SetFyAsync(ICommandTransaction tx, int propertyId, int fyStart, int by, DateTime utc, CancellationToken ct = default);
+
+    /// <summary>Insert (expected null) or update (row version must match) the property's profile; returns the new version.</summary>
+    Task<byte[]> SaveProfileAsync(ICommandTransaction tx, int propertyId, byte[]? expectedVersion, CmpProfile profile, int by, DateTime utc, CancellationToken ct = default);
+
+    Task UpsertRecordAsync(ICommandTransaction tx, int propertyId, CmpRecord record, CancellationToken ct = default);
+
+    Task DeleteRecordAsync(ICommandTransaction tx, int propertyId, int fyStart, string itemId, CancellationToken ct = default);
+
+    /// <summary>Keeps the removed record; trims to <see cref="ComplianceRules.MaxReopened"/> per property.</summary>
+    Task InsertReopenedAsync(ICommandTransaction tx, int propertyId, ReopenedRecord reopened, CancellationToken ct = default);
+
+    /// <summary>Archives the key, or restores it when archived; returns true when it is archived now.</summary>
+    Task<bool> ToggleArchiveAsync(ICommandTransaction tx, int propertyId, string key, int by, DateTime utc, CancellationToken ct = default);
+
+    Task<bool> ToggleArchiveCategoryAsync(ICommandTransaction tx, int propertyId, string cat, int by, DateTime utc, CancellationToken ct = default);
+
+    Task<(long CustomId, byte[] Version)> InsertCustomAsync(ICommandTransaction tx, int propertyId, CmpCustom custom, int by, DateTime utc, CancellationToken ct = default);
+
+    Task<byte[]> UpdateCustomAsync(ICommandTransaction tx, int propertyId, CmpCustom custom, byte[] expectedVersion, int by, DateTime utc, CancellationToken ct = default);
+
+    /// <summary>Soft-deletes the custom obligation and deletes its evidence files of every FY (SCC purges them); returns the files removed.</summary>
+    Task<int> DeleteCustomAsync(ICommandTransaction tx, int propertyId, long customId, int by, DateTime utc, CancellationToken ct = default);
+
+    Task<long> InsertEvidenceAsync(ICommandTransaction tx, int propertyId, int fyStart, string itemId, string fileName, string contentType, byte[] content, int by, DateTime utc, CancellationToken ct = default);
+
+    /// <summary>Deletes the file; returns its metadata, or null when it is not this property's.</summary>
+    Task<CmpEvidence?> DeleteEvidenceAsync(ICommandTransaction tx, int propertyId, long evidenceId, CancellationToken ct = default);
 
     /// <summary>Stores the pack and keeps the newest <see cref="ComplianceRules.MaxPacks"/>.</summary>
     Task<long> InsertPackAsync(ICommandTransaction tx, int propertyId, PackRecord pack, CancellationToken ct = default);
@@ -82,35 +85,16 @@ public interface IComplianceReadStore
     Task<ComplianceSnapshot> SnapshotAsync(int propertyId, CancellationToken ct = default);
 
     Task<IReadOnlyList<PackRecord>> PacksAsync(int propertyId, CancellationToken ct = default);
-}
 
-/// <summary>One calendar row = obligation × period (prototype <c>CMPItem</c>).</summary>
-public sealed record CalendarEntry(ObligationRecord Obligation, CalendarRow Row, FilingRecord? Filing)
-{
-    public bool IsOpen => ComplianceRules.IsOpen(Row.Status);
-}
+    /// <summary>One evidence file of the property (null when unknown).</summary>
+    Task<(CmpEvidence Meta, byte[] Content)?> EvidenceFileAsync(int propertyId, long evidenceId, CancellationToken ct = default);
 
-public static class ComplianceCalendar
-{
-    /// <summary>Every tracked period of every (active) obligation, soonest due date first (prototype <c>cmpItems</c>).</summary>
-    public static IReadOnlyList<CalendarEntry> Build(ComplianceSnapshot s, DateOnly businessDate, bool includeInactive = false)
-    {
-        ArgumentNullException.ThrowIfNull(s);
-        var byKey = s.Filings.ToDictionary(f => (f.ObligationId, f.Period));
-        var rows = new List<CalendarEntry>();
-        foreach (var o in s.Obligations)
-        {
-            if (!o.Active && !includeInactive) continue;
-            foreach (var p in ComplianceRules.Periods(o.Frequency, o.FromPeriod, businessDate))
-            {
-                byKey.TryGetValue((o.ObligationId, p), out var filing);
-                rows.Add(new CalendarEntry(o, ComplianceRules.Row(o.Schedule, p, businessDate, s.Settings.DueSoonDays, filing?.Status, s.Holidays), filing));
-            }
-        }
+    /// <summary>Every evidence file of the property's FY, oldest first.</summary>
+    Task<IReadOnlyList<(CmpEvidence Meta, byte[] Content)>> EvidenceFilesAsync(int propertyId, int fyStart, CancellationToken ct = default);
 
-        return rows.OrderBy(r => r.Row.Due).ThenBy(r => r.Obligation.Name, StringComparer.Ordinal).ToList();
-    }
-
-    public static IReadOnlyList<CalendarEntry> DueThisWeek(ComplianceSnapshot s, DateOnly businessDate) =>
-        Build(s, businessDate).Where(i => i.Row.Status is ComplianceStatus.Overdue or ComplianceStatus.DueToday or ComplianceStatus.DueSoon).ToList();
+    /// <summary>
+    /// Per month from <paramref name="from"/> to <paramref name="to"/> (first days): PF / ESIC (employee + employer) and PT of the month's LOCKED pay run,
+    /// and the output GST of the invoices issued in the month less its credit notes. Months with neither a locked run nor GST are left out.
+    /// </summary>
+    Task<IReadOnlyList<CmpPayableMonth>> PayableAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct = default);
 }

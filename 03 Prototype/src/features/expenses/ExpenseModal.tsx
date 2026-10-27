@@ -1,33 +1,73 @@
-// SCR-13 expense form: save draft or submit; funding source incl. vendor credit; receipt placeholder; duplicate warning (not blocking).
+// SCR-13 expense form: save draft or submit; funding source incl. vendor credit. DEC-120 (SCC features): description (required to submit),
+// optional vendor (a new name joins the vendor list), a chosen date (the business date or the Owner-reopened day; never later), GST on the
+// bill with SCC's prefill, a bill photo (SCC: ≤ 4 MB, 1000 px wide, JPEG 0.7), SCC's duplicate and "GST more than amount" confirms, and
+// the Owner override reason for a tax-locked month. HCC's approval rules stay: another authorised person approves before it counts.
 import React,{useState,useRef} from 'react';
 import {AlertTriangle,Info} from 'lucide-react';
-import {money,expenseDuplicates,mnyCategoryNames,mnyIsDrawer} from '../../services/mock';
+import {money,expenseDuplicates,mnyCategoryNames,mnyIsDrawer,expOpenDates,expGstOverMessage,expDuplicateMessage,expBudgetAlert,EXP_MAX_PAISE} from '../../services/mock';
 import {ExpCategorySelect,ExpVendorInput,ExpCreditNote,mnyExpenseSources,mnyFirstSource} from '../money/masters';
 import {useHcc} from '../../app/context';
 import {dateLabel} from '../../components/ui';
+import {GstFields,BillPhotoPicker,useOverride,expPaise,expBps} from './Scc';
+
+/** The add-expense form state shared by the desktop dialog and the phone sheet. */
+export function useExpenseForm(){
+  const {s}=useHcc();
+  const [f,setF]=useState(()=>({vendor:'',description:'',category:mnyCategoryNames(s)[0]??'',method:mnyFirstSource(s),amount:'',receipt:'',notes:'',date:s.date,rate:'',gst:'',photo:'',
+    confirmDuplicate:false,confirmGst:false}));
+  const ov=useOverride(f.date);
+  const paise=expPaise(f.amount),rate=expBps(f.rate),gst=f.gst.trim()?expPaise(f.gst):0;
+  const dups=paise>0&&f.description.trim()?expenseDuplicates(s,f.description,paise,f.date):[];
+  const dates=expOpenDates(s);
+  const problem=(draft:boolean)=>!(paise>0)?'Enter an amount greater than zero.':paise>EXP_MAX_PAISE?'Amount is too large (maximum ₹10,00,00,000).'
+    :!draft&&!f.description.trim()?'Description is required':Number.isNaN(rate)?'Enter a GST rate between 0 and 100 %.':Number.isNaN(gst)?'Enter the GST on the bill in rupees.'
+    :gst>paise&&!f.confirmGst?expGstOverMessage(gst,paise):dups.length&&!f.confirmDuplicate?expDuplicateMessage(f.date,paise,f.description.trim()):ov.blocked;
+  const command=(draft:boolean,key:string)=>({type:'EXPENSE',vendor:f.vendor,description:f.description.trim(),category:f.category,method:f.method,amount:paise,receipt:f.receipt,notes:f.notes,draft,
+    ...(f.date!==s.date?{date:f.date}:{}),...(rate?{gstRateBps:rate}:{}),...(gst?{gstPaise:gst}:{}),...(f.photo?{billPhoto:f.photo}:{}),
+    ...(f.confirmDuplicate?{confirmDuplicate:true}:{}),...(f.confirmGst?{confirmGst:true}:{}),...(ov.override?{override:ov.override}:{}),key:key+(draft?':draft':':submit')});
+  const alert=paise>0?expBudgetAlert(s,f.category,f.date,paise):null;
+  return {f,setF,ov,paise,gst,dups,dates,problem,command,alert};
+}
+
+/** The DEC-120 fields of the add form (both layouts): description, date, GST, photo, confirms, override. */
+export function ExpenseSccFields({x}:{x:ReturnType<typeof useExpenseForm>}){
+  const {s}=useHcc();const {f,setF,paise,gst,dups,dates}=x;
+  return <>
+    <label>Description (what is this for?)<input maxLength={300} enterKeyHint="next" value={f.description} onChange={e=>setF({...f,description:e.target.value,confirmDuplicate:false})}/></label>
+    {dates.length>1?<label>Expense date<select value={f.date} onChange={e=>setF({...f,date:e.target.value})}>{dates.map(d=><option key={d} value={d}>{dateLabel(d)}{d===s.date?' (business date)':' (reopened day)'}</option>)}</select></label>
+      :<p className="muted">Dated {dateLabel(f.date)} (the business date). A closed day takes entries only while the Owner has it reopened.</p>}
+    <GstFields amount={paise} rate={f.rate} gst={f.gst} onRate={v=>setF({...f,rate:v})} onGst={v=>setF({...f,gst:v,confirmGst:false})}/>
+    {gst>paise&&paise>0&&<label className="checkbox-line"><input type="checkbox" checked={f.confirmGst} onChange={e=>setF({...f,confirmGst:e.target.checked})}/> {expGstOverMessage(gst,paise)}</label>}
+    {!!dups.length&&<div className="info-note f-warn" role="alert"><AlertTriangle size={16}/><span>{expDuplicateMessage(f.date,paise,f.description.trim())} ({dups.map(d=>`${d.id} ${d.status}`).join(', ')})
+      <label className="checkbox-line"><input type="checkbox" checked={f.confirmDuplicate} onChange={e=>setF({...f,confirmDuplicate:e.target.checked})}/> Save anyway</label></span></div>}
+    <BillPhotoPicker value={f.photo} onChange={v=>setF({...f,photo:v})}/>
+    {x.ov.field}
+    {x.alert&&<p className={x.alert.style==='err'?'f-why':'muted'} role="status">{x.alert.msg}</p>}
+  </>;
+}
+
 export function ExpenseModal(){
-  const {s,run,closeModal,modal,busy}=useHcc();
-  // MA-3: category, funding source and vendor from the money masters (expense categories, payment methods, expense vendors).
-  const [f,setF]=useState(()=>({vendor:'',category:mnyCategoryNames(s)[0]??'',method:mnyFirstSource(s),amount:'',receipt:'',notes:''}));
+  const {run,closeModal,modal,busy,s}=useHcc();
+  const x=useExpenseForm(),{f,setF}=x;
   const form=useRef<HTMLFormElement>(null);
+  const [why,setWhy]=useState('');
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>setF({...f,[k]:e.target.value});
-  const paise=Math.round(Number(f.amount)*100);
-  const dups=paise>0?expenseDuplicates(s,f.vendor,paise,s.date):[];
   function save(draft:boolean){
-    if(!form.current?.reportValidity())return;
-    run({type:'EXPENSE',vendor:f.vendor,category:f.category,method:f.method,amount:paise,receipt:f.receipt,notes:f.notes,draft,key:modal!.key+(draft?':draft':':submit')},
-      draft?'Draft saved — submit it when ready':'Expense submitted for approval',{close:true});
+    const p=x.problem(draft);setWhy(p);if(p)return;
+    run(x.command(draft,modal!.key),draft?'Draft saved — submit it when ready':'Expense submitted for approval',{close:true});
   }
-  return <><div className="modal-heading"><h2>Record an expense</h2><p>Dated business date {dateLabel(s.date)}. Another authorised person approves before it is posted; drawer cash is reduced once, on posting.</p></div>
+  return <><div className="modal-heading"><h2>Record an expense</h2><p>Business date {dateLabel(s.date)}. Another authorised person approves before it is posted; drawer cash is reduced once, on posting.</p></div>
     <form ref={form} className="form" onSubmit={e=>{e.preventDefault();save(false);}}>
       <ExpVendorInput value={f.vendor} onChange={v=>setF({...f,vendor:v})}/>
       <div className="form-row"><ExpCategorySelect value={f.category} onChange={v=>setF({...f,category:v})}/>
         <label>Funding source<select value={f.method} onChange={set('method')}>{mnyExpenseSources(s).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label></div>
-      <label>Amount (₹)<input required type="number" min="0.01" max="1000000" step="0.01" value={f.amount} onChange={set('amount')}/></label>
-      <label>Receipt (placeholder — file name only, nothing is uploaded)<input maxLength={120} value={f.receipt} onChange={set('receipt')} placeholder="e.g. aqua-water-0026.jpg"/></label>
+      <label>Amount (₹)<input required inputMode="decimal" value={f.amount} onChange={set('amount')}/></label>
+      <ExpenseSccFields x={x}/>
+      <label>Bill / receipt number<input maxLength={120} value={f.receipt} onChange={set('receipt')} placeholder="e.g. AQ-0026"/></label>
       <label>Notes<textarea maxLength={300} value={f.notes} onChange={set('notes')} placeholder="Optional"/></label>
       <ExpCreditNote method={f.method}/>
-      {!!dups.length&&<div className="info-note f-warn" role="alert"><AlertTriangle size={16}/>Possible duplicate: {dups.map(d=>`${d.id} (${d.status})`).join(', ')} has the same vendor, amount ({money(paise)}) and date. You can still continue.</div>}
+      {mnyIsDrawer(s,f.method)&&f.date!==s.date&&<p className="f-why">Drawer cash leaves today’s drawer: date a cash expense on the business date, or choose another funding source.</p>}
+      {why&&<p className="f-why" role="alert">{why}</p>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button>
         <button type="button" className="btn subtle" disabled={busy} onClick={()=>save(true)}>Save draft</button>
         <button className="btn primary" disabled={busy}>Submit for approval</button></div></form></>;
@@ -36,12 +76,14 @@ export function ExpenseModal(){
 export function ExpenseReasonModal({id,room}:{id?:string;room?:string}){
   const {s,run,closeModal,modal,busy}=useHcc();const [reason,setReason]=useState('');
   const e=s.expenses.find(x=>x.id===id);const reverse=room==='reverse';
+  const ov=useOverride(reverse?s.date:'');
   if(!e)return <p className="padded">This expense is unavailable.</p>;
-  return <><div className="modal-heading"><h2>{reverse?'Reverse a posted expense':'Reject an expense'}</h2><p>{e.id} · {e.vendor} · {money(e.amount)} · {mnyIsDrawer(s,e.method)?'drawer cash':e.method}</p></div>
-    <form className="form" onSubmit={ev=>{ev.preventDefault();if(!reason.trim())return;
-      run(reverse?{type:'EXPENSE_REVERSE',id:e.id,reason:reason.trim(),key:modal!.key}:{type:'EXPENSE_APPROVE',id:e.id,approve:false,reason:reason.trim(),key:modal!.key},reverse?'Expense reversed — a negative record was posted today':'Expense rejected',{close:true});}}>
+  return <><div className="modal-heading"><h2>{reverse?'Reverse a posted expense':'Reject an expense'}</h2><p>{e.id} · {e.description??e.vendor} · {money(e.amount)} · {mnyIsDrawer(s,e.method)?'drawer cash':e.method}</p></div>
+    <form className="form" onSubmit={ev=>{ev.preventDefault();if(!reason.trim()||ov.blocked)return;
+      run(reverse?{type:'EXPENSE_REVERSE',id:e.id,reason:reason.trim(),...(ov.override?{override:ov.override}:{}),key:modal!.key}:{type:'EXPENSE_APPROVE',id:e.id,approve:false,reason:reason.trim(),key:modal!.key},reverse?'Expense reversed — a negative record was posted today':'Expense rejected',{close:true});}}>
       <label>Reason (required)<textarea required maxLength={200} value={reason} onChange={ev=>setReason(ev.target.value)}/></label>
       {reverse&&<div className="info-note"><Info size={16}/>The original stays on its date, marked Reversed. A new posted record of −{money(e.amount)} is dated {dateLabel(s.date)}{mnyIsDrawer(s,e.method)?`, returning ${money(e.amount)} to expected drawer cash`:''}. Reports count each exactly once.</div>}
+      {ov.field}
       {!reason.trim()&&<p className="f-why">Enter a reason to continue.</p>}
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Back</button><button className="btn danger" disabled={busy||!reason.trim()}>{reverse?'Reverse expense':'Reject expense'}</button></div></form></>;
+      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Back</button><button className="btn danger" disabled={busy||!reason.trim()||!!ov.blocked}>{reverse?'Reverse expense':'Reject expense'}</button></div></form></>;
 }

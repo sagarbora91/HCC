@@ -2,14 +2,14 @@
 // Money and tax › Lists (MA-0 MasterList / phone sheet); this file has the pick-list pieces the money screens use:
 //   ExpCategorySelect   expense category from the expenseCategories master ("needs a bill" hint)
 //   ExpFundingOptions   funding sources = payment methods usable for expenses (desktop select options / phone chips)
-//   ExpVendorInput      vendor from the expenseVendors master (datalist; free text kept, DEC-MA-6 separate from maintenance vendors);
-//                       the Owner may add a typed name to the list in one tap without leaving the expense form
+//   ExpVendorInput      vendor from the expenseVendors master (datalist; DEC-MA-6 separate from maintenance vendors); optional, and a new
+//                       name joins the list when the expense is saved (DEC-120, SCC auto-add)
 //   MnySettlesTo        cash book / bank view: money in and out grouped by "settles to" account (till, bank accounts, credit)
 // Phone and desktop share these (inputs and cards: 48 px targets via the form styles, no tables, no sideways scroll at 360 px).
 import React,{useId,useMemo} from 'react';
-import {Landmark,Wallet,CreditCard,Plus} from 'lucide-react';
+import {Landmark,Wallet,CreditCard} from 'lucide-react';
 import {money,mnyNames,mnyShortLabel,mnyIsDrawer,mnyIsCredit,mnyCategoryNames,mnyCategory,mnyVendor,mnyVendorNames,mnySettlement,mnyMasked,
-  mnyAccounts,mstCanEdit,mstSpec,mnyVendorCode,mnyVendors,MNY_EV} from '../../services/mock';
+  mnyAccounts,MNY_EV} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {MstLink} from '../masters/MasterList';
 
@@ -32,20 +32,18 @@ export function ExpCategorySelect({value,onChange}:{value:string;onChange:(v:str
     {cat?.needsBill&&<small className="mst-help">{cat.name}: the bill / receipt number is required.</small>}</label>;
 }
 
-/** Vendor input: active vendors offered (datalist); a name not in the list is kept as typed; a retired vendor is flagged. */
+/** Vendor input: active vendors offered (datalist); optional (DEC-120, SCC "Vendor / payee — optional"); a new name joins the vendor list
+ *  when the expense is saved (SCC auto-add); a retired vendor is flagged (the command refuses it). Shows the vendor's GSTIN (SCC hint). */
 export function ExpVendorInput({value,onChange,phone=false}:{value:string;onChange:(v:string)=>void;phone?:boolean}){
-  const {s,uid,run,busy}=useHcc();
+  const {s}=useHcc();
   const listId=useId();
   const t=value.trim(),row=t?mnyVendor(s,t):undefined;
-  const spec=mstSpec(MNY_EV),canAdd=!!spec&&mstCanEdit(s,uid,spec).ok;
-  const add=()=>{const taken=new Set(mnyVendors(s).map(v=>v.code));
-    void run({type:'MST_MASTER_SAVE',master:MNY_EV,row:{code:mnyVendorCode(t,taken),name:t,type:'supplier',tds:false},key:`mny-vendor-add:${t}:${s.sequence}`},`${t} added to the vendor list`);};
-  return <label>Vendor<input required maxLength={80} list={listId} enterKeyHint="next" autoComplete="off" value={value} onChange={e=>onChange(e.target.value)} placeholder="Choose or type the vendor"
+  return <label>Vendor / payee (optional)<input maxLength={60} list={listId} enterKeyHint="next" autoComplete="off" value={value} onChange={e=>onChange(e.target.value)} placeholder="Choose or type the vendor"
       aria-invalid={row&&!row.active?true:undefined}/>
     <datalist id={listId}>{mnyVendorNames(s).map(n=><option key={n} value={n}/>)}</datalist>
     {row&&!row.active&&<small className="mst-err" role="alert">{row.name} is retired in the vendor list — choose another vendor.</small>}
     {row&&row.active&&<small className="mst-help">In the vendor list{row.gstin?` · GSTIN ${row.gstin}`:''}{row.tds?' · TDS applies':''}</small>}
-    {!row&&t&&<small className="mst-help">Not in the vendor list — kept as typed.{canAdd&&<>{' '}<button type="button" className="text-btn" disabled={busy||t.length>60} onClick={add}><Plus size={13}/> Add “{t.slice(0,40)}” to the list</button></>}</small>}
+    {!row&&t&&<small className="mst-help">Not in the vendor list — it is added to the list when you save.</small>}
     {!phone&&<MstLink spec={MNY_EV} label="Manage vendors…"/>}</label>;
 }
 

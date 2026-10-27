@@ -97,6 +97,12 @@ const CMDS={
   CASH_BANK:C('MGR CSH','DRW-001 (DEC-073: from your own open shift)'),CASH_BANK_DECIDE:C('OWN MGR','DRW-002 (DEC-073: never the recorder)'),
   TILL_TRANSFER:C('OWN MGR REC CSH','DRW-004 (own shift)'),TILL_TRANSFER_DECIDE:C('OWN MGR REC CSH','DRW-004 receiver / DRW-002 send back'),OWNER_DRAWING:C('OWN','DRW-005'),SHIFT_CLOSE:C('OWN MGR','legacy direct close = CLS-002 (counting goes through SHIFT_SUBMIT)'),SHIFT_DIFFERENCE_DECIDE:C('OWN MGR ACC','SHF-002'),
   EXPENSE:C('OWN MGR REC CSH ACC','EXP-001 (DEC-063 G6: SUP/MNT via REC/CSH)'),EXPENSE_SUBMIT:C('OWN MGR REC CSH ACC','EXP-001'),EXPENSE_APPROVE:C('OWN MGR ACC','EXP-002'),EXPENSE_REVERSE:C('OWN MGR ACC','EXP-003 (DEC-063 G5: not the Cashier)'),
+  // DEC-120 SCC expense features (HCC role rules kept; no new PERM ids: EXP-001 submit / EXP-002 decide / EXP-003 reverse + the Owner).
+  EXP_EDIT:C('OWN MGR REC CSH ACC','EXP-001 own draft/pending, EXP-002 any pending'),EXP_VOID:C('OWN MGR REC CSH ACC','EXP-003 pending (DEC-063 G5: not the Cashier); own draft by its maker'),
+  EXP_BUDGET_SET:C('OWN MGR ACC','EXP-002'),EXP_BUDGET_COPY:C('OWN MGR ACC','EXP-002'),EXP_REC_SAVE:C('OWN MGR ACC','EXP-002 (SCC Accounts / Owner)'),EXP_REC_TOGGLE:C('OWN MGR ACC','EXP-002'),EXP_REC_DELETE:C('OWN MGR ACC','EXP-002'),
+  EXP_REC_POST:C('OWN MGR REC CSH ACC','EXP-001 (raises a draft)'),EXP_PETTY_FLOAT:C('OWN MGR REC CSH ACC','EXP-001 (top-up request)'),EXP_PETTY_FLOAT_DECIDE:C('OWN MGR ACC','EXP-002 (never your own)'),
+  EXP_PETTY_OUT:C('OWN MGR REC CSH ACC','EXP-001 (a drawer-cash expense for approval)'),EXP_UD_ADD:C('OWN MGR REC CSH ACC','EXP-001'),EXP_UD_PAY:C('OWN MGR REC CSH ACC','EXP-001'),
+  EXP_UD_VOID:C('OWN MGR ACC','EXP-003 (write-off)'),EXP_MONTH_LOCK:C('OWN','MST-002 Owner (SCC month lock)'),EXP_CSV:C('OWN MGR ACC','EXP-002 (DEC-063 G13: the Cashier does not export)'),
   NIGHT_POST:C('OWN MGR','CLS-002'),CLOSE_RUN:C('OWN MGR','CLS-002'),DAY_CLOSE:C('OWN MGR','CLS-002'),NEXT_DAY:C('OWN MGR','CLS-002'),
   CORRECTION_ADJUST:C('OWN MGR ACC','CLS-003'),CORRECTION_ADJUST_DECIDE:C('OWN','CLS-004'),
   DAY_REOPEN:C('OWN','DEC-077: the Owner reopens a closed day (CLS-004)'),DAY_RECLOSE:C('OWN MGR','DEC-077: close the reopened day again (CLS-002)'),
@@ -111,14 +117,19 @@ const CMDS={
   OWN_CREDENTIAL_CHANGE:C(ALL,'A02b-05: every signed-in user changes their own password / PIN (server ChangeOwnCredential)'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),
-  CMP_FILE:C('OWN ACC','DEC-055'),CMP_NA:C('OWN ACC','DEC-055'),CMP_CA_PACK:C('OWN ACC','DEC-055'),
-  CMP_REOPEN:C('OWN','DEC-055 manage + DEC-058'),CMP_OBLIGATION_SAVE:C('OWN','DEC-055 manage + DEC-058'),CMP_OBLIGATION_TOGGLE:C('OWN','DEC-055 manage + DEC-058'),CMP_SETTINGS_SET:C('OWN','DEC-058 compliance Owner-only'),
+  CMP_DONE:C('OWN ACC','DEC-055 (SCC tax port DEC-116)'),CMP_NA:C('OWN ACC','DEC-055'),CMP_CA_PACK:C('OWN ACC','DEC-055'),CMP_FY_SET:C('OWN ACC','DEC-055'),
+  CMP_EVIDENCE_ADD:C('OWN ACC','DEC-055'),CMP_EVIDENCE_DELETE:C('OWN ACC','DEC-055'),
+  CMP_REOPEN:C('OWN','DEC-055 manage + DEC-058 (reopen keeps the record)'),CMP_PROFILE_SET:C('OWN','DEC-055 manage + DEC-058 (Owner sets the firm profile)'),CMP_ARCHIVE_KEY:C('OWN','DEC-055 manage + DEC-058'),
+  CMP_ARCHIVE_CAT:C('OWN','DEC-055 manage + DEC-058'),CMP_CUSTOM_SAVE:C('OWN','DEC-055 manage + DEC-058'),CMP_CUSTOM_DELETE:C('OWN','DEC-055 manage + DEC-058'),CMP_SETTINGS_SET:C('OWN','DEC-058 compliance Owner-only'),
   HR_PAYROLL_RUN:C('OWN ACC','Placement: hrCanPay'),HR_PAYROLL_LOCK:C('OWN ACC','Placement: hrCanPay (maker-checker)'),HR_PAYSLIP_SEND:C('OWN ACC','DEC-056'),HR_ADVANCE_ADD:C('OWN ACC','Module 17'),HR_FNF_SETTLE:C('OWN ACC','Placement'),HR_FNF_CONFIRM:C('OWN ACC','F&F maker-checker: the other payroll user (Owner / Accountant)'),HR_FNF_DISCARD:C('OWN ACC','F&F draft discard (payroll users)'),HR_PAYROLL_BANK_FILE:C('OWN ACC','Payroll bank file (payroll users, DEC-058 money)'),
   HR_PAYROLL_UNLOCK:C('OWN','DEC-058 payroll Owner-only'),HR_RATES_SET:C('OWN','DEC-058'),HR_STAT_RATES_SET:C('OWN','DEC-058'),HR_LEAVE_POLICY_SET:C('OWN','DEC-058'),
   HR_LEAVE_DECIDE:C('OWN MGR','Placement: managers approve'),HR_STAFF_ACTIVE:C('OWN MGR','Module 17'),HR_ROSTER_SET:C('OWN MGR','Module 17'),HR_ROSTER_COPY:C('OWN MGR','Module 17'),HR_STAFF_SAVE:C('OWN MGR ACC','Module 17 §3'),
   HR_ATT_MARK:C(ALL,'Module 17 self check-in'),HR_LEAVE_REQUEST:C(ALL,'Placement: every staff member applies'),HR_LEAVE_CANCEL:C(ALL,'Module 17 own request'),
   HR_ATT_CORRECT:C('OWN MGR','DEC-075: managers correct past days (raising pay waits for the Owner)'),HR_REQUEST_DECIDE:C('OWN','DEC-075 / DEC-084: the Owner decides'),
   HR_REQUEST_WITHDRAW:C('OWN MGR ACC','DEC-075 / DEC-084: the requester withdraws (managers and payroll roles make requests)'),HR_HOLIDAY_SAVE:C('OWN','DEC-083 holiday calendar (Owner)'),HR_HOLIDAY_REMOVE:C('OWN','DEC-083 holiday calendar (Owner)'),
+  // SCC leave port (DEC-116 / DEC-119): leave settings, import and clear are Owner-only (DEC-058); agenda items are kept by managers.
+  HR_LEAVE_ENT_OVERRIDE:C('OWN','DEC-058 leave settings'),HR_LEAVE_BLACKOUT_ADD:C('OWN','DEC-058 leave settings'),HR_LEAVE_BLACKOUT_REMOVE:C('OWN','DEC-058 leave settings'),
+  HR_LEAVE_IMPORT:C('OWN','DEC-058 leave settings (bulk import)'),HR_LEAVE_CLEAR:C('OWN','DEC-058 leave settings (Clear All)'),HR_AGENDA_ADD:C('OWN MGR','SCC agenda: managers'),HR_AGENDA_REMOVE:C('OWN MGR','SCC agenda: managers'),
   YLD_PROPOSE:C('OWN MGR','Module 13'),YLD_DECIDE:C('OWN','Module 13'),
   ...Object.fromEntries(['YLD_DOW_SET','YLD_GUARD_SET','YLD_OCC_SAVE','YLD_OVERRIDE','YLD_PLAN_SAVE','YLD_PUBLISH','YLD_RESTRICTION_SAVE','YLD_SEASON_SAVE'].map(c=>[c,C('OWN','Module 13 (admin + reports)')])),
   ...Object.fromEntries(['GRP_BLOCK_ALLOT','GRP_BLOCK_CANCEL','GRP_BLOCK_CREATE','GRP_COMPANY_SAVE','GRP_RELEASE','GRP_ROOMING','GRP_SWEEP'].map(c=>[c,C('OWN MGR REC','Module 14')])),
@@ -158,6 +169,9 @@ const K=k=>'cmd:'+k;
  * or the check depends on the record). roles = who passes the guard for this record per the documents. */
 const OTHER=u=>u==='owner'?'manager':'owner';
 const PAYLOADS={
+  // DEC-120: EXP-102 is Reception's pending expense in the seed.
+  EXP_EDIT:{roles:'OWN MGR REC ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'EXP_EDIT',id:'EXP-102',amount:85000,category:'Supplies',method:'UPI',description:'Morning supplies',reason:'Add the description'})},
+  EXP_VOID:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'EXP_VOID',id:'EXP-102',reason:'Duplicate entry'})},
   // A closed day counted by the Cashier and closed by someone other than the user under test (counter/closer never lock).
   CB_LOCK:{roles:'OWN MGR ACC',run:(M,u)=>{const x=closeDayBy(M,'cashier',u==='owner'?'manager':'owner');return M.execute(x,u,{type:'CB_LOCK',date:x.date});}},
   CB_REOPEN:{roles:'OWN',run:(M,u)=>{let x=closeDayBy(M,'cashier','owner');x=M.execute(x,'accountant',{type:'CB_LOCK',date:x.date});return M.execute(x,u,{type:'CB_REOPEN',date:x.date,reason:'Banking slip on the wrong day'});}},
@@ -339,9 +353,9 @@ export function register({test,M,assert}){
     assert.equal(r.approvals.at(-1).kind,'closed-date-correction');assert.throws(()=>M.execute(r,'accountant',{type:'CORRECTION_ADJUST_DECIDE',id:r.approvals.at(-1).id,approve:true}),forbidden());
     assert.equal(M.adminExpenseBlock(s,'accountant','reception'),undefined);assert.match(M.adminExpenseBlock(s,'cashier','reception'),/approve/);});
   test('[RBAC] G4 · Accountant submits own expenses but cannot approve them, and gets no counter or approval power',()=>{
-    let r=M.execute(s,'accountant',{type:'EXPENSE',vendor:'Stationery Mart',category:'Supplies',amount:20000,method:'UPI'});
+    let r=M.execute(s,'accountant',{type:'EXPENSE',description:'Test expense stream-rbac-matrix:342',vendor:'Stationery Mart',category:'Supplies',amount:20000,method:'UPI'});
     assert.throws(()=>M.execute(r,'accountant',{type:'EXPENSE_APPROVE',id:r.expenses.at(-1).id,approve:true}),forbidden());
-    r=M.execute(s,'accountant',{type:'EXPENSE',vendor:'Stationery Mart',category:'Supplies',amount:20000,method:'UPI',draft:true});
+    r=M.execute(s,'accountant',{type:'EXPENSE',description:'Test expense stream-rbac-matrix:344',vendor:'Stationery Mart',category:'Supplies',amount:20000,method:'UPI',draft:true});
     assert.equal(M.execute(r,'accountant',{type:'EXPENSE_SUBMIT',id:r.expenses.at(-1).id}).expenses.at(-1).status,'Pending');
     for(const c of [{type:'DISCOUNT',id:'HCC-1041',amount:100,reason:'x'},{type:'CHARGE',id:'HCC-1041',amount:100,label:'x'},{type:'PAYMENT',id:'HCC-1041',amount:100,method:'Cash'},{type:'DAY_CLOSE'},{type:'NIGHT_POST'}])
       assert.throws(()=>M.execute(s,'accountant',c),forbidden(),c.type);
@@ -352,7 +366,7 @@ export function register({test,M,assert}){
   test('[RBAC] G5/G6 · the Cashier never reverses an expense; supervisor and maintenance enter no expenses (command level)',()=>{
     const r=M.execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});
     assert.throws(()=>M.execute(r,'cashier',{type:'EXPENSE_REVERSE',id:'EXP-102',reason:'Wrong'}),forbidden());
-    for(const u of ['supervisor','maint'])assert.throws(()=>M.execute(s,u,{type:'EXPENSE',vendor:'Hardware Shop',category:'Repairs',amount:5000,method:'Cash'}),forbidden(),u);});
+    for(const u of ['supervisor','maint'])assert.throws(()=>M.execute(s,u,{type:'EXPENSE',description:'Test expense stream-rbac-matrix:355',vendor:'Hardware Shop',category:'Repairs',amount:5000,method:'Cash'}),forbidden(),u);});
   test('[RBAC] G9 · Manager: no Access control, no setting requests (DEC-058), but a last-backup warning card with the Owner',()=>{
     assert.throws(()=>M.execute(s,'manager',{type:'SETTING_SET',setting:'brand.address',value:'X Road'}),forbidden());
     const v=surfaces(M,s,'manager');for(const p of ['access','settings','backup'])assert.ok(!v.allowed.has(p),p);
@@ -410,7 +424,7 @@ export function register({test,M,assert}){
     let r=M.execute(s,'manager',{type:'SHIFT_SUBMIT',counted:M.drawer(s)-100,reason:'Short by one rupee'});refusedSelf(()=>M.execute(r,'manager',{type:'SHIFT_DIFFERENCE_DECIDE',id:r.approvals.at(-1).id,approve:true}),'manager');
     r=M.execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:M.drawer(s)-100,reason:'Short by one rupee'});assert.throws(()=>M.execute(r,'cashier',{type:'SHIFT_DIFFERENCE_DECIDE',id:r.approvals.at(-1).id,approve:true}),forbidden());});
   test('[RBAC] self-approval · expense: the submitter cannot approve their own expense',()=>{
-    const r=M.execute(s,'manager',{type:'EXPENSE',vendor:'Test Vendor',category:'Supplies',amount:10000,method:'Cash'});
+    const r=M.execute(s,'manager',{type:'EXPENSE',description:'Test expense stream-rbac-matrix:413',vendor:'Test Vendor',category:'Supplies',amount:10000,method:'Cash'});
     assert.throws(()=>M.execute(r,'manager',{type:'EXPENSE_APPROVE',id:r.expenses.at(-1).id,approve:true}),forbidden());});
   test('[RBAC] self-approval · pay-run lock: whoever prepared the payroll cannot lock it',()=>{
     for(const [maker,checker] of [['accountant','owner'],['owner','accountant']]){const r=M.execute(s,maker,{type:'HR_PAYROLL_RUN',month:'2026-09'});
