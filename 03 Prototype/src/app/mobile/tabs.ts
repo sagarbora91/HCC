@@ -35,6 +35,10 @@ export const roleTabs:Record<Role,MobileTab[]>={
   Restaurant:[{key:'pos',page:'pos',label:'Orders',icon:UtensilsCrossed},{key:'myhr',page:'my-hr',label:'My shifts',icon:CalendarClock}],
 };
 /** V14-4: text size at which the phone bars switch to their large-text form (two-line app-bar title, short tab labels). */
+/** V15-3: at default text size the phone app bar (back + search + DEMO pill + avatar beside the title) truncated 'Appearance & display' to
+ *  "Appearance & d…" on a 360 px phone; titles with this many characters or more wrap to two smaller lines (class m-longtitle, z-largetext.css). */
+export const LONG_TITLE_CHARS=14;
+export const isLongTitle=(title:string)=>title.trim().length>=LONG_TITLE_CHARS;
 export const LARGE_TEXT_FROM=1.15;
 export const isLargeText=(textScale:number)=>textScale>=LARGE_TEXT_FROM;
 /** Tab label for the current text size. */

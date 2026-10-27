@@ -5,7 +5,7 @@ import {useHcc} from '../context';
 import {navItems} from '../nav';
 import {HOME_PAGE,parseCatPage,categoryOf} from '../navmap';
 import {Breadcrumb} from '../ModulesHome';
-import {tabsFor,MobileTab,isLargeText,tabLabel} from './tabs';
+import {tabsFor,MobileTab,isLargeText,isLongTitle,tabLabel} from './tabs';
 import {usePrefs} from '../prefs';
 import {dateLabel} from '../../components/ui';
 import {isDayClosed} from '../../services/mock';
@@ -20,13 +20,13 @@ export function MobileShell({allowedIds,children,canGoBack,onBack,tabKey,onTab}:
   const closed=isDayClosed(s);
   const badge=(t:MobileTab)=>t.badge==='approvals'?pending:t.badge==='tasks'?taskList.filter(x=>x.status!=='Done').length:t.badge==='arrivals'?arrivals.length:0;
   const active=(t:MobileTab)=>tabKey?tabKey===t.key:page===t.page;
-  return <div className={'m-shell'+(display.framed?' framed':'')+(large?' m-large':'')}>
+  return <div className={'m-shell'+(display.framed?' framed':'')+(large?' m-large':'')+(isLongTitle(title)?' m-longtitle':'')}> {/* V15-3 */}
     <header className="m-appbar">
       {showBack?<button className="m-icon" aria-label="Back" onClick={onBack}><ArrowLeft size={22}/></button>:<span className="m-brand" aria-hidden><Hotel size={20}/></span>}
       <div className="m-titles"><div className="m-title">{title}</div>
         <span className={'m-date '+(closed?'closed':'open')} title="Simulated business date"><CalendarDays size={12}/>Business date {dateLabel(s.date).replace(/ \d{4}$/,'')} · <b>{closed?'Closed':'Open'}</b></span></div>
       <button className="m-search" aria-label="Search pages and actions" onClick={openSearch}><Search size={22}/></button>
-      {process.env.HCC_BUILD==='production'?null:<button className="m-demo-pill" onClick={()=>open({type:'demo'})} aria-label="Open demo controls"><FlaskConical size={14}/>DEMO</button>}
+      {process.env.HCC_BUILD==='production'?null:<button className="m-demo-pill" onClick={()=>open({type:'demo'})} aria-label="Open demo controls"><FlaskConical size={14}/><span className="m-demo-text">DEMO</span></button>}
       <button className="m-avatar" aria-label={`User menu: ${user.name}`} onClick={()=>open({type:'user-menu'})}>{user.name[0]}</button>
     </header>
     <main className="m-content" id="m-content">{page!==HOME_PAGE&&<div className="m-crumbs"><Breadcrumb page={page} label={navItems.find(n=>n.id===page)?.label||''}/></div>}{children}</main>

@@ -3,7 +3,7 @@
 // (mstProblems); money fields hidden for roles without money visibility (DEC-061) and read-only unless Owner (DEC-058); status
 // actions (retire / reactivate / delete when unused), "used in" and the change history. Used inline on desktop (MasterList detail
 // pane) and as the phone sheet (modal 'mst-row', mobile/masters/MasterSheet.tsx). Classes mst- (styles/m-masters.css).
-import React,{useState} from 'react';
+import React,{useState,useEffect} from 'react';
 import {Check,Archive,RotateCcw,Trash2,Plus,X,Lock,History} from 'lucide-react';
 import {mstSpec,mstById,mstRows,mstClean,mstProblems,mstUsage,mstCanEdit,mstCanEditMoney,mstVisibleFields,mstOptions,mstHistory,mstNextSort,mstShow,mstMoneyOn,
   MST_OWNER_ONLY,type FieldSpec,type MasterRow,type MasterSpec,type MstDatedAmount} from '../../services/mock';
@@ -35,6 +35,7 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
   const [d,setD]=useState<Draft>(()=>spec?draftOf(spec,row,rows):{});
   const [touched,setTouched]=useState(false);
   const {open}=useHcc(); // V14-6: Retire asks first (modal 'mst-retire', RetireConfirm.tsx)
+  useEffect(()=>sheet?undefined:()=>setDirty(false),[sheet,setDirty]); // V15-2: the inline form leaving the screen (saved, cancelled, another row picked, page left) clears its flag
   if(!spec)return <p className="muted">This list is not available.</p>;
   if(rowId&&!row)return <p className="muted">This {spec?.singular} no longer exists.</p>;
   const can=mstCanEdit(s,uid,spec),money=mstCanEditMoney(s,uid);
@@ -47,14 +48,14 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
   const errOf=(k:string)=>touched?problems.find(p=>p.field===k)?.message:undefined;
   const general=touched?problems.find(p=>!p.field)?.message:undefined;
   const usage=row?mstUsage(s,spec,row):{count:0,where:[]};
-  const set=(k:string,v:unknown)=>{setD(x=>({...x,[k]:v}));if(sheet)setDirty(true);};
+  const set=(k:string,v:unknown)=>{setD(x=>({...x,[k]:v}));setDirty(true);}; // V15-2: inline (tablet / desktop) edits count too, so Back asks before dropping them
   const key=(what:string)=>sheet&&modal?`${modal.key}:${what}`:`mst-${what}:${specId}:${rowId??'new'}:${s.sequence}`;
   const save=()=>{setTouched(true);if(problems.length||!editable)return;
     const payload:Draft={};for(const k of ['code','name','sortOrder',...spec.fields.map(f=>f.key)])if(k!=='active'&&k in clean)payload[k]=clean[k];
     if(row)payload.id=row.id;
     for(const f of spec.fields)if(isMoney(f)&&!money&&row)payload[f.key]=row[f.key]; // never send a money change without the Owner's right
     void run({type:'MST_MASTER_SAVE',master:specId,row:payload,key:key('save')},row?`${spec.singular[0].toUpperCase()+spec.singular.slice(1)} saved · history recorded`:`${clean.name} added`,
-      {close:!!sheet,after:()=>{if(sheet)setDirty(false);onDone?.(row?.id);}});};
+      {close:!!sheet,after:()=>{setDirty(false);onDone?.(row?.id);}});};
   const status=(type:'MST_MASTER_REACTIVATE'|'MST_MASTER_DELETE',msg:string)=>void run({type,master:specId,id:row!.id,key:key(type)},msg,{close:!!sheet,after:()=>onDone?.(type==='MST_MASTER_DELETE'?undefined:row!.id)});
   const title=row?`${row.name}`:`New ${spec.singular}`;
   return <div className={'mst-form'+(sheet?' mst-sheet':'')}>

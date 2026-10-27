@@ -19,7 +19,7 @@ import {ModalHost} from './ModalHost';
 import {useDisplayMode,DisplayToggle} from './display';
 import {SearchPalette} from './SearchPalette';
 import {NavDrawer} from './NavDrawer';
-import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,exitApp,clearExports} from './native';
+import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,listenStatusBarRestyle,exitApp,clearExports} from './native';
 import {MobileShell} from './mobile/MobileShell';
 import {announceTab,type MobileTab} from './mobile/tabs';
 import {Empty,ExitAsk,DiscardAsk,dateLabel,clockTime} from '../components/ui';
@@ -96,7 +96,10 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   useEffect(()=>()=>window.clearTimeout(backTimer.current),[]);
   const modalRef=useRef<Modal>(null);modalRef.current=modal;
   const modalPushed=useRef(false),dirty=useRef(false),skipPop=useRef(false);
-  const setDirty=useCallback((v:boolean)=>{dirty.current=v;},[]);
+  // V15-2: `dirty` is the open sheet's unsaved input; `pageDirty` is an inline form's (tablet / desktop masters detail pane, no sheet).
+  // setDirty() lands on whichever is on screen when it is called; a sheet's input is never confused with the page behind it.
+  const pageDirty=useRef(false),pendingNav=useRef<(()=>void)|null>(null);
+  const setDirty=useCallback((v:boolean)=>{(modalRef.current?dirty:pageDirty).current=v;},[]);
   useEffect(()=>{if(process.env.HCC_BUILD==='production')return; // production never uses the prototype's demo storage
     onStorageError(()=>setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true}));},[]);
 
@@ -116,12 +119,15 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     setModal({...x,key:newKey(x.type)});};
   // V14-1: unsaved sheet text asks through the app's own themed DiscardAsk dialog (never the browser's confirm()); Android Back while it is open = Keep editing.
   const [discardAsk,setDiscardAsk]=useState(false);
-  const discardSheet=()=>{setDiscardAsk(false);dirty.current=false;setModal(null);setError('');};
+  // Discard = close the sheet, or (V15-2) finish the navigation the dirty inline form held back; Keep editing = stay, forget that navigation.
+  const discardSheet=()=>{setDiscardAsk(false);dirty.current=false;pageDirty.current=false;setModal(null);setError('');const nav=pendingNav.current;pendingNav.current=null;nav?.();};
+  const keepEditing=()=>{setDiscardAsk(false);pendingNav.current=null;};
   const closeModal=()=>{if(dirty.current){setDiscardAsk(true);return;}discardSheet();};
   useEffect(()=>{if(!modal)setDiscardAsk(false);},[modal]);
   const booking=(id:string)=>open({type:'booking',id});
   function go(p:string,opts:{tab?:string;replace?:boolean}={}){
     cancelBackFallback();
+    if(pageDirty.current&&!modalRef.current&&p!==page){pendingNav.current=()=>go(p,opts);setDiscardAsk(true);return;} // V15-2: an unsaved inline form asks first
     if(p!==page&&!opts.replace){try{const idx=histIdx()+1;history.pushState({hcc:'page',page:p,idx},'');setDepth(idx);}catch{/* history unavailable */}}
     else if(p!==page){try{history.replaceState({hcc:'page',page:p,idx:histIdx()},'');}catch{/* ignore */}}
     if(display.isMobile&&p!==page)window.setTimeout(()=>window.scrollTo(0,0),0);
@@ -135,6 +141,9 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       if(modalRef.current){
         if(dirty.current){try{history.pushState({hcc:'modal',page,idx:histIdx()},'');}catch{/* ignore */}setDiscardAsk(true);return;}
         modalPushed.current=false;dirty.current=false;setModal(null);setError('');return;}
+      if(pageDirty.current){ // V15-2: Back on a page with an unsaved inline form: stay on it, ask, and go back only on Discard
+        try{history.pushState({hcc:'page',page,idx:histIdx()+1},'');}catch{/* ignore */}
+        pendingNav.current=()=>{try{history.back();}catch{go(HOME_PAGE,{replace:true});}};setDiscardAsk(true);return;}
       const st=e.state as {hcc?:string;page?:string}|null;
       if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey('');setDepth(histIdx());}
     };window.addEventListener('popstate',onPop);return ()=>window.removeEventListener('popstate',onPop);},[page]);
@@ -146,7 +155,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const nativeBack=useRef<()=>void>(()=>{});
   nativeBack.current=()=>{
     cancelBackFallback();
-    if(discardAsk){setDiscardAsk(false);return;}
+    if(discardAsk){keepEditing();return;}
     if(exitAsk){setExitAsk(false);return;}
     if(searchOpen){setSearchOpen(false);return;}
     if(menuOpen){setMenuOpen(false);return;}
@@ -160,7 +169,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     else if(act==='go-landing')go(HOME_PAGE,{replace:true});
     else setExitAsk(true);
   };
-  useEffect(()=>{if(!isNative())return;styleStatusBar();return listenBackButton(()=>nativeBack.current());},[]);
+  useEffect(()=>{if(!isNative())return;styleStatusBar();const offRestyle=listenStatusBarRestyle();const offBack=listenBackButton(()=>nativeBack.current());return ()=>{offRestyle();offBack();};},[]); // V15-1: colours again after a rotation
   function onTab(t:MobileTab|'more'){if(t==='more'){go('more',{tab:'more'});return;}announceTab(t.key);go(t.page,{tab:t.key});
     if(t.focus)window.setTimeout(()=>{const h=Array.from(document.querySelectorAll('.kanban-col>h3')).find(x=>x.textContent?.includes(t.focus!));h?.scrollIntoView({block:'start',behavior:'smooth'});},120);}
 
@@ -229,7 +238,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const MobilePage=display.isMobile?mobilePages[current]:undefined;
   const pageBody=current===HOME_PAGE?<ModulesHome/>:parseCatPage(current)?<CategoryPage page={current}/>:MobilePage?<MobilePage/>:pages[current]?.()??(current==='more'?null:<Empty title="This user has no active access" body="Switch to an enabled user with the demo controls to continue."/>);
   const toastEl=notice&&<div className={'toast '+(notice.error?'error':'')+(display.isMobile?' m-toast':'')} role="status" aria-live="polite">{notice.error?<AlertCircle size={19}/>:<CheckCircle2 size={19}/>}<span>{notice.text}</span><button aria-label="Dismiss message" onClick={()=>setNotice(null)}><X size={16}/></button></div>;
-  const exitEl=<>{discardAsk&&modal&&<DiscardAsk onKeep={()=>setDiscardAsk(false)} onDiscard={discardSheet}/>}{exitAsk?<ExitAsk onStay={()=>setExitAsk(false)} onExit={exitApp}/>:null}</>;
+  const exitEl=<>{discardAsk&&<DiscardAsk onKeep={keepEditing} onDiscard={discardSheet}/>}{exitAsk?<ExitAsk onStay={()=>setExitAsk(false)} onExit={exitApp}/>:null}</>;
   if(!signedIn)return <HccContext.Provider value={ctx}><SignIn onPick={signIn}/></HccContext.Provider>;
   if(display.isMobile)return <HccContext.Provider value={ctx}>
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
