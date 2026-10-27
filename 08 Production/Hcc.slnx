@@ -133,5 +133,6 @@
     <File Path="database/migrations/4150_expense_scc_features.sql" />
     <File Path="database/migrations/4180_compliance_fy_follows_business_date.sql" />
     <File Path="database/migrations/4181_compliance_licence_fields.sql" />
+    <File Path="database/migrations/4190_expense_scc_decisions.sql" />
   </Folder>
 </Solution>

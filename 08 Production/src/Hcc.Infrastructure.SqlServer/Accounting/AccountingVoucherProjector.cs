@@ -193,6 +193,9 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.CompanyPaymentRecorded:
                 source = AccountingEventMapper.CompanyPayment(Parse<CompanyPaymentRecordedEvent>(evt));
                 break;
+            case AccountingEvents.UdhaarPaymentRecorded: // DEC-130
+                source = AccountingEventMapper.UdhaarPayment(Parse<UdhaarPaymentRecordedEvent>(evt));
+                break;
         }
 
         if (source is not null && !source.IsZero)

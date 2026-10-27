@@ -108,10 +108,29 @@ public static class SourceRules
             [Dr("method:" + tender, totalPaise), Cr("pos:sales", netPaise), Cr("pos:cgst", cgst), Cr("pos:sgst", sgst)]);
     }
 
-    /// <summary>Posted expense (Payment; Journal for vendor credit): Dr category · Cr funding. A reversal record is negative and swaps sides.</summary>
-    public static AccountingSource Expense(string sourceKey, bool reversal, string category, string funding, DateOnly date, long amountPaise, string narration)
+    /// <summary>DEC-135: the GST input-credit ledger key (GST on expense bills marked ITC allowed; one ledger — a CGST / SGST / IGST split on CA request).</summary>
+    public const string GstInputKey = "tax:gst-input";
+
+    /// <summary>
+    /// Posted expense (Payment; Journal for vendor credit): Dr category · Cr funding. A reversal record is negative and swaps sides. DEC-135: with
+    /// <paramref name="itcPaise"/> (the bill's GST marked ITC allowed; negative on a reversal) Dr category (amount − GST) · Dr GST input credit ·
+    /// Cr funding (amount); the ITC line exists only when it is not zero (prototype <c>accLiveVouchers</c>).
+    /// </summary>
+    public static AccountingSource Expense(string sourceKey, bool reversal, string category, string funding, DateOnly date, long amountPaise, string narration, long itcPaise = 0)
         => new(sourceKey, SourceKinds.Expense, reversal ? "reversal" : "expense", date, funding == "Vendor credit" ? VoucherType.Journal : VoucherType.Payment, narration,
-            [Dr("expense:" + category, amountPaise), Cr("funding:" + funding, amountPaise)]);
+            itcPaise == 0
+                ? [Dr("expense:" + category, amountPaise), Cr("funding:" + funding, amountPaise)]
+                : [Dr("expense:" + category, checked(amountPaise - itcPaise)), Dr(GstInputKey, itcPaise), Cr("funding:" + funding, amountPaise)]);
+
+    /// <summary>DEC-130: the Udhaar receivables ledger key (customer credit settled by a desk receipt).</summary>
+    public const string UdhaarKey = "receipt:udhaar";
+
+    /// <summary>
+    /// DEC-130: an Udhaar payment taken as a desk receipt = Receipt (Dr tender · Cr Udhaar receivables). Sub <c>udhaar-payment</c>, so the daily
+    /// collections reconciliation (folio receipts, Sub payment / refund) is unchanged; the cash is in the drawer movements and the cash ledger.
+    /// </summary>
+    public static AccountingSource UdhaarPayment(string sourceKey, string tender, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Receipt, "udhaar-payment", date, VoucherType.Receipt, narration, [Dr("method:" + tender, amountPaise), Cr(UdhaarKey, amountPaise)]);
 
     /// <summary>Accepted cash difference (counted − expected): short = Dr over/short · Cr cash; over = Dr cash · Cr over/short (Journal).</summary>
     public static AccountingSource CashDifference(string sourceKey, DateOnly date, long differencePaise, string narration)

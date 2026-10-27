@@ -19,7 +19,9 @@ namespace Hcc.Application.Expenses;
 /// features (DEC-120) EditExpense and VoidExpense. Ports the prototype handlers in <c>handlers/expenses.ts</c>. Cash expenses move the shared
 /// drawer (DEC-052) through <see cref="ICashDrawerPort"/> inside the same transaction, exactly once; every approved or reversed expense
 /// publishes an outbox event for Accounting. HCC's approval rules stay: counted only once approved, the Manager's limit (or the category's),
-/// nobody approves their own expense nor one they changed, the Cashier never reverses or voids.
+/// nobody approves their own expense nor one they changed, the Cashier never reverses or voids. DEC-135 (SCC decisions wave): the bill's GST
+/// carries ITC allowed / disallowed (default disallowed); the posted / reversed events carry the GST and the flag, so Accounting books allowed
+/// GST to the GST input-credit ledger. DEC-131: a month the Owner unlocked takes writes without the override.
 /// </summary>
 public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
     MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null, IExpenseRegisterStore? registers = null)
@@ -89,7 +91,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
     {
         if (registers is null) return null;
         var m = ExpenseScc.Ym(date);
-        if (await registers.MonthLockAsync(tx, propertyId, m, ct).ConfigureAwait(false) is null) return null;
+        if (await registers.MonthLockAsync(tx, propertyId, m, ct).ConfigureAwait(false) is not { Unlocked: false }) return null; // DEC-131: unlocked = open
         if (!owner) throw new HccException(HccErrorCode.FORBIDDEN, ExpenseScc.MonthLockedMessage(m));
         var r = ExpenseScc.Optional(reason, ExpenseScc.NoteMax, "override reason")
                 ?? throw HccException.Validation($"Month {m} is tax-locked. Give the Owner override reason (why this late change?).");
@@ -128,6 +130,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
         var n = ExpenseRules.NormalizeNew(req.Vendor, req.Category, req.Method, req.AmountPaise, req.Notes, req.Receipt, await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false));
         var description = ExpenseScc.Description(req.Description, !req.Draft);
         var gst = ExpenseScc.Gst(req.GstRateBps, req.GstPaise, n.Amount.Value, req.ConfirmGst);
+        var itc = ExpenseScc.Itc(req.Itc, gst.Paise, n.Amount.Value); // DEC-135
         var photo = BillPhoto(req.BillPhotoBase64, req.BillPhotoContentType);
         DateOnly? chosen = string.IsNullOrWhiteSpace(req.ExpenseDate) ? null : StayDates.Parse(req.ExpenseDate, "expenseDate");
         var owner = await IsOwnerAsync(ctx, ct).ConfigureAwait(false);
@@ -153,13 +156,14 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var status = req.Draft ? ExpenseState.Draft : ExpenseState.Pending;
             if (ven.Item2 && masters is not null) await masters.AddVendorAsync(tx, ctx.PropertyId, ven.Item1, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             var e = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, ven.Item1, cat.Name, n.Amount, n.Method, date, status, ctx.PrincipalId,
-                n.Notes, n.Receipt, null, null, null, null, UtcNow, description, gst.RateBps, gst.Paise), c).ConfigureAwait(false);
+                n.Notes, n.Receipt, null, null, null, null, UtcNow, description, gst.RateBps, gst.Paise, ItcAllowed: itc), c).ConfigureAwait(false);
             if (photo is { } p) await store.PutBillPhotoAsync(tx, e.ExpenseId, p.ContentType, p.Bytes, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             var dupOf = ExpenseScc.Duplicates(await store.FactsOnAsync(tx, ctx.PropertyId, date, c).ConfigureAwait(false), description, n.Amount, date, e.ExpenseId);
             var alert = await BudgetAlertAsync(registers, store, tx, ctx.PropertyId, cat.Name, date, bd, n.Amount.Value, c).ConfigureAwait(false);
             await tx.AuditAsync(req.Draft ? "EXPENSE_DRAFT" : "EXPENSE_SUBMITTED", Target(e.ExpenseId),
                 $"{description ?? ven.Item1} · {cat.Name} · {n.Amount} · {n.Method}{(date != bd ? " · dated " + StayDates.ToWire(date) : string.Empty)}"
-                + (photo is null ? string.Empty : " · bill photo") + (over is null ? string.Empty : " · locked-month override: " + over), c).ConfigureAwait(false);
+                + (photo is null ? string.Empty : " · bill photo") + (gst.Paise is null ? string.Empty : itc ? " · ITC allowed" : " · ITC disallowed")
+                + (over is null ? string.Empty : " · locked-month override: " + over), c).ConfigureAwait(false);
             if (photo is not null) e = (await store.LockAsync(tx, ctx.PropertyId, e.ExpenseId, c).ConfigureAwait(false))!;
             return new ExpenseResult(ExpenseMapping.ToView(e), dupOf, null, alert);
         }, ct).ConfigureAwait(false);
@@ -305,6 +309,8 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                     approvedBy = ctx.PrincipalId,
                     tillId = till,
                     cashMovementId = movementId,
+                    gstPaise = u.GstPaise,                             // DEC-135: Accounting books ITC-allowed GST to the input-credit ledger
+                    itc = ExpenseScc.ItcText(u.GstPaise, u.ItcAllowed),
                 }, c).ConfigureAwait(false);
                 alert = await BudgetAlertAsync(registers, store, tx, ctx.PropertyId, u.Category, u.BusinessDate, bd, 0, c).ConfigureAwait(false);
             }
@@ -342,7 +348,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             // The reversal row first (it points at the original), then the original flips to Reversed (CK_expense_reversed). DEC-120: it carries the
             // description, −GST and the source, so the month's GST paid on purchases and the petty-cash totals net to zero.
             var rev = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, e.Vendor, e.Category, -e.Amount, e.Method, bd, ExpenseState.Posted, ctx.PrincipalId,
-                null, null, reason, ctx.PrincipalId, till, e.ExpenseId, now, e.Description, e.GstRateBps, e.GstPaise is { } g ? -g : null, e.Source), c).ConfigureAwait(false);
+                null, null, reason, ctx.PrincipalId, till, e.ExpenseId, now, e.Description, e.GstRateBps, e.GstPaise is { } g ? -g : null, e.Source, ItcAllowed: e.ItcAllowed), c).ConfigureAwait(false);
             long? movementId = null;
             if (needsDrawer is { } move)
             {
@@ -373,6 +379,8 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 reason,
                 tillId = till,
                 cashMovementId = movementId,
+                gstPaise = rev.GstPaise,                               // DEC-135: −GST, so the reversal mirrors the ITC split
+                itc = ExpenseScc.ItcText(rev.GstPaise, rev.ItcAllowed),
             }, c).ConfigureAwait(false);
             return new ExpenseReversalResult(ExpenseMapping.ToView(orig), ExpenseMapping.ToView(rev), movementId);
         }, ct).ConfigureAwait(false);
@@ -394,6 +402,8 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
         var n = ExpenseRules.NormalizeNew(null, req.Category, req.Method, req.AmountPaise, null, req.Receipt, await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false));
         var description = ExpenseScc.Optional(req.Description, ExpenseScc.DescriptionMax, "description");
         var gst = ExpenseScc.Gst(req.GstRateBps, req.GstPaise, n.Amount.Value, req.ConfirmGst);
+        // DEC-135: the flag is kept while the request does not send it (prototype EXP_EDIT); never allowed above the amount.
+        var itc = ExpenseScc.Itc(req.Itc ?? (peek.ItcAllowed ? ExpenseScc.ItcAllowed : null), gst.Paise, n.Amount.Value);
         var photo = BillPhoto(req.BillPhotoBase64, req.BillPhotoContentType);
         var owner = await IsOwnerAsync(ctx, ct).ConfigureAwait(false);
 
@@ -431,11 +441,15 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             };
             if (!string.Equals(e.Receipt ?? string.Empty, n.Receipt ?? string.Empty, StringComparison.Ordinal)) { oldMap["receipt"] = e.Receipt ?? string.Empty; newMap["receipt"] = n.Receipt ?? string.Empty; }
             if (photo is not null) { oldMap["billPhoto"] = e.HasBillPhoto ? "(present)" : "(none)"; newMap["billPhoto"] = "(changed)"; }
+            // DEC-135: the ITC flag is logged when "allowed" is set or cleared (adding / removing GST alone changes only the GST fields).
+            var itcWas = ExpenseScc.ItcText(e.GstPaise, e.ItcAllowed) ?? string.Empty;
+            var itcNow = ExpenseScc.ItcText(gst.Paise, itc) ?? string.Empty;
+            if (itcWas != itcNow && (itcWas == ExpenseScc.ItcAllowed || itcNow == ExpenseScc.ItcAllowed)) { oldMap["itc"] = itcWas; newMap["itc"] = itcNow; }
             var now = UtcNow;
             var u = await store.UpdateAsync(tx, e with
             {
                 Amount = n.Amount, Category = cat.Name, Method = n.Method, Description = description, GstRateBps = gst.RateBps, GstPaise = gst.Paise, Receipt = n.Receipt,
-                BusinessDate = date,
+                BusinessDate = date, ItcAllowed = itc,
             }, expected, now, c).ConfigureAwait(false);
             if (photo is { } p) await store.PutBillPhotoAsync(tx, e.ExpenseId, p.ContentType, p.Bytes, ctx.PrincipalId, now, c).ConfigureAwait(false);
             await store.InsertEditAsync(tx, e.ExpenseId, ctx.PrincipalId, now, reason, JsonSerializer.Serialize(oldMap), JsonSerializer.Serialize(newMap), c).ConfigureAwait(false);
@@ -473,7 +487,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             await DateGateAsync(days, tx, ctx.PropertyId, bd, e.BusinessDate, false, c).ConfigureAwait(false);
             string? over = null;
-            if (registers is not null && await registers.MonthLockAsync(tx, ctx.PropertyId, ExpenseScc.Ym(e.BusinessDate), c).ConfigureAwait(false) is not null)
+            if (registers is not null && await registers.MonthLockAsync(tx, ctx.PropertyId, ExpenseScc.Ym(e.BusinessDate), c).ConfigureAwait(false) is { Unlocked: false })
             {
                 if (owner && note is null) throw HccException.Validation("Month is tax-locked — add a specific note for the override");
                 over = await MonthGateAsync(registers, tx, ctx.PropertyId, e.BusinessDate, owner, note, UtcNow, c).ConfigureAwait(false);
@@ -507,7 +521,7 @@ public static class ExpenseMapping
         return new ExpenseView(e.ExpenseId, Ref(e.ExpenseId), e.Vendor, e.Category, e.Amount.Value, e.Method, StayDates.ToWire(e.BusinessDate), e.Status,
             e.SubmittedBy, e.Notes, e.Receipt, e.Reason, e.DecidedBy, Wire(e.DecidedUtc), e.ReversalOf, e.ReversedBy, VersionToken.ToWire(e.Version),
             e.Description, e.GstRateBps, e.GstPaise, e.Source, e.SourceRef, e.VoidReason, e.VoidedBy, Wire(e.VoidedUtc), e.HasBillPhoto, Wire(e.CreatedUtc),
-            edits?.Select(ToView).ToList());
+            edits?.Select(ToView).ToList(), ExpenseScc.ItcText(e.GstPaise, e.ItcAllowed));
     }
 
     public static ExpenseEditView ToView(ExpenseEditRecord x)

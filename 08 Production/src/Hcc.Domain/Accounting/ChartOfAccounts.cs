@@ -33,7 +33,9 @@ public static partial class ChartOfAccounts
         new("1030", "Bank account", AccountGroup.Asset, "Bank transfers"),
         new("1100", "Guest ledger", AccountGroup.Asset, "Open folio balances"),
         new("1110", "Company receivables (city ledger)", AccountGroup.Asset, "Authorised company credit"),
+        new("1120", "Udhaar receivables (customer credit)", AccountGroup.Asset, "DEC-130: Udhaar payments settle it; the credit itself is kept in the expense register (CA to confirm)"),
         new("1200", "Staff advances", AccountGroup.Asset, "Salary advances recovered through payroll"),
+        new("1300", "GST input credit", AccountGroup.Asset, "DEC-135: GST on expense bills marked ITC allowed (one ledger; a CGST / SGST / IGST split on CA request)"),
         new("2000", "Advance deposits", AccountGroup.Liability, "Refundable deposits held"),
         new("2100", "Synthetic tax payable (legacy)", AccountGroup.Liability, "Before DEC-069 only — kept for locked snapshots"),
         new("2110", "Output CGST", AccountGroup.Liability, "GST master, intra-state half (illustrative — CA to confirm)"),
@@ -97,16 +99,19 @@ public static partial class ChartOfAccounts
         // DEC-074 (wave B3): group attrition and deposits; full-and-final additions, deductions and an amount the leaver owes (illustrative — CA to confirm).
         ["line:attrition"] = "4000", ["receipt:group-deposit"] = "2000",
         ["payroll:fnf-additions"] = "5100", ["payroll:fnf-deductions"] = "2340", ["payroll:fnf-recoverable"] = "1200",
+
+        // SCC decisions wave: DEC-130 an Udhaar payment settles the customer's credit; DEC-135 GST of an expense bill marked ITC allowed.
+        ["receipt:udhaar"] = "1120", ["tax:gst-input"] = "1300",
     };
 
     private static readonly (string Prefix, string Label)[] KeyGroups =
     [
         ("line", "Folio line kind"), ("folio", "Folio"), ("method", "Receipt method (tender)"), ("receipt", "Receipt kind (counter-ledger)"),
         ("expense", "Expense category"), ("funding", "Expense funding"), ("closing", "Closing record"), ("pos", "Outlet (POS) bill"),
-        ("payroll", "Payroll"),
+        ("payroll", "Payroll"), ("tax", "GST input credit (ITC)"),
     ];
 
-    [GeneratedRegex(@"^(line|folio|method|receipt|expense|funding|closing|pos|payroll):.{1,72}$")]
+    [GeneratedRegex(@"^(line|folio|method|receipt|expense|funding|closing|pos|payroll|tax):.{1,72}$")]
     private static partial Regex KeyPattern();
 
     public static bool IsValidKey(string? key) => key is not null && KeyPattern().IsMatch(key);

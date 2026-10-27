@@ -10,7 +10,8 @@ using Microsoft.Data.SqlClient;
 
 namespace Hcc.Infrastructure.SqlServer.Expenses;
 
-/// <summary>DEC-120 SCC registers (migration 4150): ops.expense_budget, ops.expense_recurring, ops.petty_float_entry, ops.udhaar_*, ops.expense_month_lock.</summary>
+/// <summary>DEC-120 SCC registers (migration 4150): ops.expense_budget, ops.expense_recurring, ops.petty_float_entry, ops.udhaar_*, ops.expense_month_lock;
+/// migration 4190 (SCC decisions wave): Udhaar desk receipts (DEC-130), month unlocks + the ITC part of the feed (DEC-131, DEC-135).</summary>
 public sealed class SqlExpenseRegisterStore(SqlConnectionFactory connections) : IExpenseRegisterStore
 {
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
@@ -172,9 +173,10 @@ public sealed class SqlExpenseRegisterStore(SqlConnectionFactory connections) : 
         r.IsDBNull(6) ? null : Date(r, 6), Str(r, 7), r.GetInt32(8), Utc(r, 9), r.GetBoolean(10), Str(r, 11), r.IsDBNull(12) ? null : r.GetInt32(12),
         r.IsDBNull(13) ? null : Date(r, 13), []);
 
-    private static UdhaarSettlementRecord ReadSettle(SqlDataReader r) => new(r.GetInt64(0), r.GetInt64(1), r.GetInt64(2), Date(r, 3), r.GetString(4), r.GetInt32(5), Utc(r, 6));
+    private static UdhaarSettlementRecord ReadSettle(SqlDataReader r) => new(r.GetInt64(0), r.GetInt64(1), r.GetInt64(2), Date(r, 3), r.GetString(4), r.GetInt32(5), Utc(r, 6),
+        r.GetBoolean(7), Str(r, 8), r.IsDBNull(9) ? null : r.GetInt32(9));
 
-    private const string SettleCols = "s.settlement_id, s.receivable_id, s.amount_paise, s.settle_date, s.mode, s.recorded_by, s.recorded_utc";
+    private const string SettleCols = "s.settlement_id, s.receivable_id, s.amount_paise, s.settle_date, s.mode, s.recorded_by, s.recorded_utc, s.desk, s.reference, s.till_id";
 
     public async Task<IReadOnlyList<UdhaarRecord>> UdhaarAsync(int propertyId, CancellationToken ct = default)
     {
@@ -216,12 +218,13 @@ public sealed class SqlExpenseRegisterStore(SqlConnectionFactory connections) : 
     {
         ArgumentNullException.ThrowIfNull(s);
         return InsertIdAsync(tx, """
-            INSERT ops.udhaar_settlement(receivable_id, amount_paise, settle_date, mode, recorded_by, recorded_utc)
-            OUTPUT INSERTED.settlement_id VALUES (@id, @a, @d, @m, @by, @now);
+            INSERT ops.udhaar_settlement(receivable_id, amount_paise, settle_date, mode, recorded_by, recorded_utc, desk, reference, till_id)
+            OUTPUT INSERTED.settlement_id VALUES (@id, @a, @d, @m, @by, @now, @desk, @ref, @till);
             """, c =>
         {
             Add(c, "@id", SqlDbType.BigInt, s.ReceivableId); Add(c, "@a", SqlDbType.BigInt, s.Amount); Add(c, "@d", SqlDbType.Date, D(s.Date));
             Add(c, "@m", SqlDbType.NVarChar, s.Mode, 60); Add(c, "@by", SqlDbType.Int, s.RecordedBy); Add(c, "@now", SqlDbType.DateTime2, s.RecordedUtc);
+            Add(c, "@desk", SqlDbType.Bit, s.Desk); Add(c, "@ref", SqlDbType.NVarChar, s.Reference, 120); Add(c, "@till", SqlDbType.Int, s.TillId);
         }, ct);
     }
 
@@ -233,10 +236,11 @@ public sealed class SqlExpenseRegisterStore(SqlConnectionFactory connections) : 
 
     // ── Month locks ──
 
-    private const string LockCols = "lock_month, expense_paise, entry_count, gst_paid_paise, by_category, generated_by, generated_utc, stale, stale_utc";
+    private const string LockCols =
+        "lock_month, expense_paise, entry_count, gst_paid_paise, by_category, generated_by, generated_utc, stale, stale_utc, gst_itc_paise, unlocked_by, unlocked_utc, unlock_reason";
 
     private static MonthLockRecord ReadLock(SqlDataReader r) => new(r.GetString(0), r.GetInt64(1), r.GetInt32(2), r.GetInt64(3), r.GetString(4), r.GetInt32(5), Utc(r, 6),
-        r.GetBoolean(7), r.IsDBNull(8) ? null : Utc(r, 8));
+        r.GetBoolean(7), r.IsDBNull(8) ? null : Utc(r, 8), r.IsDBNull(9) ? null : r.GetInt64(9), r.IsDBNull(10) ? null : r.GetInt32(10), r.IsDBNull(11) ? null : Utc(r, 11), Str(r, 12));
 
     public async Task<IReadOnlyList<MonthLockRecord>> MonthLocksAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default) =>
         await QueryAsync(tx, $"SELECT {LockCols} FROM ops.expense_month_lock WHERE property_id = @p ORDER BY lock_month;", c => Add(c, "@p", SqlDbType.Int, propertyId), ReadLock, ct)
@@ -251,21 +255,37 @@ public sealed class SqlExpenseRegisterStore(SqlConnectionFactory connections) : 
         ArgumentNullException.ThrowIfNull(m);
         return ExecAsync(tx, """
             UPDATE ops.expense_month_lock WITH (UPDLOCK, HOLDLOCK) SET expense_paise = @e, entry_count = @n, gst_paid_paise = @g, by_category = @c, generated_by = @by,
-              generated_utc = @now, stale = 0, stale_utc = NULL
+              generated_utc = @now, stale = 0, stale_utc = NULL, gst_itc_paise = @gi, unlocked_by = NULL, unlocked_utc = NULL, unlock_reason = NULL
             WHERE property_id = @p AND lock_month = @m;
-            IF @@ROWCOUNT = 0 INSERT ops.expense_month_lock(property_id, lock_month, expense_paise, entry_count, gst_paid_paise, by_category, generated_by, generated_utc)
-              VALUES (@p, @m, @e, @n, @g, @c, @by, @now);
+            IF @@ROWCOUNT = 0 INSERT ops.expense_month_lock(property_id, lock_month, expense_paise, entry_count, gst_paid_paise, by_category, generated_by, generated_utc, gst_itc_paise)
+              VALUES (@p, @m, @e, @n, @g, @c, @by, @now, @gi);
             """, c =>
         {
             Add(c, "@p", SqlDbType.Int, propertyId); Add(c, "@m", SqlDbType.Char, m.Month, 7); Add(c, "@e", SqlDbType.BigInt, m.Expense); Add(c, "@n", SqlDbType.Int, m.Count);
             Add(c, "@g", SqlDbType.BigInt, m.GstPaid); Add(c, "@c", SqlDbType.NVarChar, m.ByCategoryJson, -1); Add(c, "@by", SqlDbType.Int, m.GeneratedBy);
-            Add(c, "@now", SqlDbType.DateTime2, m.GeneratedUtc);
+            Add(c, "@now", SqlDbType.DateTime2, m.GeneratedUtc); Add(c, "@gi", SqlDbType.BigInt, m.GstItc);
         }, ct);
     }
 
     public Task MarkStaleAsync(ICommandTransaction tx, int propertyId, string month, DateTime nowUtc, CancellationToken ct = default) =>
         ExecAsync(tx, "UPDATE ops.expense_month_lock SET stale = 1, stale_utc = @now WHERE property_id = @p AND lock_month = @m;",
             c => { Add(c, "@p", SqlDbType.Int, propertyId); Add(c, "@m", SqlDbType.Char, month, 7); Add(c, "@now", SqlDbType.DateTime2, nowUtc); }, ct);
+
+    public Task UnlockMonthAsync(ICommandTransaction tx, int propertyId, string month, int by, DateTime nowUtc, string reason, CancellationToken ct = default) =>
+        ExecAsync(tx, """
+            UPDATE ops.expense_month_lock SET unlocked_by = @by, unlocked_utc = @now, unlock_reason = @r, stale = 1, stale_utc = @now
+            WHERE property_id = @p AND lock_month = @m AND unlocked_utc IS NULL;
+            IF @@ROWCOUNT <> 1 THROW 54190, 'The month is not locked.', 1;
+            INSERT ops.expense_month_unlock(property_id, lock_month, unlocked_by, unlocked_utc, reason) VALUES (@p, @m, @by, @now, @r);
+            """, c =>
+        {
+            Add(c, "@p", SqlDbType.Int, propertyId); Add(c, "@m", SqlDbType.Char, month, 7); Add(c, "@by", SqlDbType.Int, by);
+            Add(c, "@now", SqlDbType.DateTime2, nowUtc); Add(c, "@r", SqlDbType.NVarChar, reason, 200);
+        }, ct);
+
+    public async Task<IReadOnlyList<MonthUnlockRecord>> MonthUnlocksAsync(int propertyId, CancellationToken ct = default) =>
+        await QueryAsync(null, "SELECT lock_month, unlocked_by, unlocked_utc, reason FROM ops.expense_month_unlock WHERE property_id = @p ORDER BY unlock_id;",
+            c => Add(c, "@p", SqlDbType.Int, propertyId), r => new MonthUnlockRecord(r.GetString(0), r.GetInt32(1), Utc(r, 2), r.GetString(3)), ct).ConfigureAwait(false);
 }
 
 /// <summary>The expense categories / vendors masters (migration 2830) as the expense commands read them; SCC vendor auto-add writes mst.master_history.</summary>

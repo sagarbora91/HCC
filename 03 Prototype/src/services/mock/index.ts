@@ -17,6 +17,7 @@ export * from '../../domain/streams/admin';
 export * from '../../domain/streams/config';
 export * from '../../domain/streams/closing';
 export * from '../../domain/streams/expenses-scc'; // DEC-120 SCC expense features
+export * from '../../domain/streams/udhaar-desk'; // DEC-130 Udhaar payments as desk receipts
 export * from '../../domain/streams/yield';
 export * from '../../domain/streams/groups';
 export * from '../../domain/streams/channels';

@@ -6,6 +6,7 @@ import {lineTax} from './gst';
 import {rmsOffline} from './streams/roomoffline';
 import {mnyIsDrawer} from './streams/money-master';
 import {cxDeskNet} from './streams/cashout';
+import {expUdDeskCash} from './streams/udhaar-desk';
 
 // ── Cross-stream contract functions (stubs in M1; owners noted). Signatures must not change. ──
 /** Nightly tariff for a room on a date. Owner: stream E (effective-dated tariffs). */
@@ -62,7 +63,8 @@ export function drawer(s:State){
   const receipts=s.bookings.flatMap(b=>b.receipts).filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).reduce((a,r)=>a+(['payment','deposit'].includes(r.kind)?r.amount:-r.amount),0);
   const outlet=drawerOutletCash(s);
   const expenses=s.expenses.filter(e=>e.date===s.date&&(e.status==='Posted'||e.status==='Reversed')&&mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0);
-  return s.openingCash+receipts+outlet-expenses+cxDeskNet(s,s.date);
+  // DEC-130: Udhaar (customer credit) payments taken in cash are desk receipts into the drawer.
+  return s.openingCash+receipts+outlet-expenses+cxDeskNet(s,s.date)+expUdDeskCash(s,s.date);
 }
 /** POS cash settled today (sale receipts +, void receipts −). Room-service bills charged to a folio have no POS receipt. */
 export function drawerOutletCash(s:State){return (s.posX?.receipts??[]).filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).reduce((a,r)=>a+r.amount,0);}

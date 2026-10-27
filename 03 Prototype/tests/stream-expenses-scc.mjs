@@ -244,28 +244,30 @@ export function register({test,M,assert}){
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:e.id,approve:true});
     assert.deepEqual([drawer(s),M.expPetty(s).disbursed,M.expPetty(s).balance,M.expPetty(s).status],[before-860000,860000,140000,'Replenish soon']);
     assert.equal(execute(s,'cashier',{type:'EXP_PETTY_OUT',amount:100,category:'Petty cash'}).expenses.at(-1).description,'Petty: sundry');});
-  test('[EXP-SCC] budgets: Manager / Accountant / Owner set the business month, copy last month; the entry result carries the alert',()=>{
+  // DEC-129 (SCC decisions wave): budgets are set and copied by the Owner only (was Manager / Accountant / Owner).
+  test('[EXP-SCC] budgets: the Owner sets the business month, copies last month; the entry result carries the alert',()=>{
     let s=seed();
     assert.throws(()=>execute(s,'cashier',{type:'EXP_BUDGET_SET',category:'Supplies',amount:100}),code('FORBIDDEN'));
-    assert.throws(()=>execute(s,'manager',{type:'EXP_BUDGET_COPY'}),says('VALIDATION',/No budgets found for 2026-09/));
+    assert.throws(()=>execute(s,'owner',{type:'EXP_BUDGET_COPY'}),says('VALIDATION',/No budgets found for 2026-09/));
     s={...s,expensesX:{budgets:{'2026-09':{Supplies:200000,Laundry:100000}}}};
-    s=execute(s,'manager',{type:'EXP_BUDGET_SET',category:'laundry',amount:50000});
-    s=execute(s,'accountant',{type:'EXP_BUDGET_COPY'});
+    s=execute(s,'owner',{type:'EXP_BUDGET_SET',category:'laundry',amount:50000});
+    s=execute(s,'owner',{type:'EXP_BUDGET_COPY'});
     assert.deepEqual(M.expSlice(s).budgets['2026-10'],{Laundry:50000,Supplies:200000});
-    assert.throws(()=>execute(s,'manager',{type:'EXP_BUDGET_COPY'}),says('VALIDATION',/Every head already has a budget for 2026-10/));
+    assert.throws(()=>execute(s,'owner',{type:'EXP_BUDGET_COPY'}),says('VALIDATION',/Every head already has a budget for 2026-10/));
     const rows=M.expBudgetRows(s,'2026-10',M.mnyCategoryNames(s));
     assert.deepEqual(rows.find(r=>r.category==='Laundry'),{category:'Laundry',budget:50000,actual:180000,pct:360,status:'over'});
     s=execute(s,'reception',{type:'EXPENSE',description:'Soap',category:'Supplies',amount:190000,method:'UPI'});
     assert.match(s.audit[0].detail,/Supplies would be 95% of Oct budget once approved/);
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});
     assert.match(s.audit[0].detail,/Supplies now 95% of Oct budget/);});
-  test('[EXP-SCC] recurring: templates by Manager / Accountant / Owner, same-name confirm, posting raises a DRAFT for approval, "post again" confirm',()=>{
+  // DEC-129: templates are kept by the Owner only (was Manager / Accountant / Owner); posting stays with every expense user.
+  test('[EXP-SCC] recurring: templates by the Owner, same-name confirm, posting raises a DRAFT for approval, "post again" confirm',()=>{
     let s=seed();
     assert.throws(()=>execute(s,'cashier',{type:'EXP_REC_SAVE',name:'Rent',amount:100,dueDay:1,category:'Utilities',method:'Bank transfer'}),code('FORBIDDEN'));
-    assert.throws(()=>execute(s,'manager',{type:'EXP_REC_SAVE',name:'Rent',amount:100,dueDay:32,category:'Utilities',method:'Bank transfer'}),says('VALIDATION',/between 1 and 31/));
-    assert.throws(()=>execute(s,'manager',{type:'EXP_REC_SAVE',name:' ',amount:100,dueDay:3,category:'Utilities',method:'Bank transfer'}),/Template name is required/);
-    s=execute(s,'manager',{type:'EXP_REC_SAVE',name:'Shop rent',amount:2500000,dueDay:31,category:'Utilities',method:'Bank transfer',vendor:'Landlord (fictional)'});
-    assert.throws(()=>execute(s,'manager',{type:'EXP_REC_SAVE',name:'shop RENT',amount:1,dueDay:1,category:'Utilities',method:'UPI'}),/A template named "shop RENT" already exists\. Add another\?/);
+    assert.throws(()=>execute(s,'owner',{type:'EXP_REC_SAVE',name:'Rent',amount:100,dueDay:32,category:'Utilities',method:'Bank transfer'}),says('VALIDATION',/between 1 and 31/));
+    assert.throws(()=>execute(s,'owner',{type:'EXP_REC_SAVE',name:' ',amount:100,dueDay:3,category:'Utilities',method:'Bank transfer'}),/Template name is required/);
+    s=execute(s,'owner',{type:'EXP_REC_SAVE',name:'Shop rent',amount:2500000,dueDay:31,category:'Utilities',method:'Bank transfer',vendor:'Landlord (fictional)'});
+    assert.throws(()=>execute(s,'owner',{type:'EXP_REC_SAVE',name:'shop RENT',amount:1,dueDay:1,category:'Utilities',method:'UPI'}),/A template named "shop RENT" already exists\. Add another\?/);
     const t=M.expSlice(s).recurring[0];
     assert.equal(M.expRecStatus(s,t).kind,'upcoming');assert.equal(M.expRecurringDue({...s,date:'2026-10-31'}).length,1);
     s=execute(s,'cashier',{type:'EXP_REC_POST',id:t.id,amount:2400000});
@@ -275,19 +277,21 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'cashier',{type:'EXP_REC_POST',id:t.id,amount:2400000}),/Already posted for 2026-10 \(1 entry · ₹24,000\)\. Confirming will post ANOTHER entry/);
     s=execute(s,'cashier',{type:'EXP_REC_POST',id:t.id,amount:100,again:true});assert.equal(M.expRecPosted(s,'2026-10')['rec:'+t.id+':2026-10'],2);
     s=execute(s,'cashier',{type:'EXP_VOID',id:s.expenses.at(-1).id,reason:'Duplicate entry'});assert.equal(M.expRecPosted(s,'2026-10')['rec:'+t.id+':2026-10'],1,'a void re-flags');
-    s=execute(s,'accountant',{type:'EXP_REC_TOGGLE',id:t.id});assert.throws(()=>execute(s,'cashier',{type:'EXP_REC_POST',id:t.id,amount:1}),/inactive/);
+    s=execute(s,'owner',{type:'EXP_REC_TOGGLE',id:t.id});assert.throws(()=>execute(s,'cashier',{type:'EXP_REC_POST',id:t.id,amount:1}),/inactive/);
     s=execute(s,'owner',{type:'EXP_REC_DELETE',id:t.id});assert.equal(M.expSlice(s).recurring.length,0);assert.ok(s.expenses.some(x=>x.sourceRef==='rec:'+t.id+':2026-10'),'posted entries are kept');});
-  test('[EXP-SCC] Udhaar: credit never touches cash; payments capped above outstanding + ₹0.50; write-off by Manager / Accountant / Owner; reminder names the hotel',()=>{
+  // DEC-130 (SCC decisions wave): the credit itself never touches cash, but a CASH payment is now a desk receipt into the drawer (was: never).
+  test('[EXP-SCC] Udhaar: recording a credit never touches cash; payments capped above outstanding + ₹0.50; write-off by Manager / Accountant / Owner; reminder names the hotel',()=>{
     let s=seed();const before=drawer(s);
     assert.throws(()=>execute(s,'cashier',{type:'EXP_UD_ADD',name:' ',amount:100}),/Customer name is required/);
     s=execute(s,'cashier',{type:'EXP_UD_ADD',name:'Ramesh (fictional)',mobile:'+91 98765 43210',amount:250000,note:'Banquet snacks'});
+    assert.equal(drawer(s),before,'recording the credit adds nothing to the drawer');
     const r=M.expSlice(s).udhaar[0];assert.deepEqual([r.mobile,r.date,r.dueDate],['9876543210',D,'2026-11-23']);
     s=execute(s,'cashier',{type:'EXP_UD_PAY',id:r.id,amount:100000,mode:'Cash'});
-    s=execute(s,'cashier',{type:'EXP_UD_PAY',id:r.id,amount:150050,mode:'UPI'});
+    s=execute(s,'cashier',{type:'EXP_UD_PAY',id:r.id,amount:150050,mode:'UPI',reference:'UPI-DEMO-1'});
     assert.equal(M.expUdOut(M.expSlice(s).udhaar[0]),0);assert.equal(M.expUdPaid(M.expSlice(s).udhaar[0]),250050,'up to ₹0.50 over is taken as typed');
     let t=execute(seed(),'cashier',{type:'EXP_UD_ADD',name:'Suresh',amount:100000});const id=M.expSlice(t).udhaar[0].id;
     t=execute(t,'cashier',{type:'EXP_UD_PAY',id,amount:100051,mode:'Cash'});assert.equal(M.expUdPaid(M.expSlice(t).udhaar[0]),100000,'capped');
-    assert.equal(drawer(s),before,'never posts to cash');
+    assert.equal(drawer(s),before+100000,'DEC-130: the cash payment went into the drawer, the UPI one did not');
     let u=execute(seed(),'reception',{type:'EXP_UD_ADD',name:'Mohan',amount:50000,dueDate:'2026-10-20'});const uid=M.expSlice(u).udhaar[0].id;
     assert.equal(M.expUdOpen(u).total,50000);
     assert.equal(M.expUdReminder(u.settings.hotel,M.expSlice(u).udhaar[0]),`Namaste Mohan,\nA gentle reminder from ${u.settings.hotel} regarding your pending balance of ₹500 (due 2026-10-20).\nKindly clear it at your convenience. Thank you.`);
@@ -321,14 +325,14 @@ export function register({test,M,assert}){
     s=execute(s,'owner',{type:'EXP_VOID',id:'EXP-102',reason:'Duplicate entry',note:'entered twice'});
     const L=M.expLedgerCsv(s),lines=L.csv.split('\n');
     assert.equal(L.name,'ledger_2026-10-24.csv');
-    assert.equal(lines[0],'Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,Void,VoidReason,CreatedBy,Store,GSTAmt,GSTRate%,Ref,Status');
+    assert.equal(lines[0],'Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,Void,VoidReason,CreatedBy,Store,GSTAmt,GSTRate%,Ref,Status,ITC'); // DEC-135: + ITC
     assert.equal(lines.length,4);
     const h=s.settings.hotel;
-    assert.ok(lines.includes(`2026-10-24,${h},expense,Supplies,UPI,Morning Supplies,Morning Supplies,850,manual,Y,Duplicate entry — entered twice,${s.users.find(u=>u.id==='reception').name},Unassigned,,,EXP-102,Void`),lines.join('\n'));
+    assert.ok(lines.includes(`2026-10-24,${h},expense,Supplies,UPI,Morning Supplies,Morning Supplies,850,manual,Y,Duplicate entry — entered twice,${s.users.find(u=>u.id==='reception').name},Unassigned,,,EXP-102,Void,`),lines.join('\n'));
     const cem=s.expenses.find(e=>e.category==='Maintenance');
-    assert.ok(lines.includes(`2026-10-24,${h},expense,Maintenance,UPI,'=Hardware,"Cement, ""grade 53""",1180.5,manual,,,${s.users.find(u=>u.id==='reception').name},Unassigned,180.08,18,${cem.id},Posted`),lines.join('\n'));
+    assert.ok(lines.includes(`2026-10-24,${h},expense,Maintenance,UPI,'=Hardware,"Cement, ""grade 53""",1180.5,manual,,,${s.users.find(u=>u.id==='reception').name},Unassigned,180.08,18,${cem.id},Posted,disallowed`),lines.join('\n'));
     const Mo=M.expMonthCsv(s,'2026-10'),ml=Mo.csv.split('\n');
     assert.equal(Mo.name,'expense_month_2026-10.csv');
-    assert.equal(ml[0],'Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,GSTAmt,GSTRate%,Ref,Status');
+    assert.equal(ml[0],'Date,Firm,Type,Category,Mode,Vendor,Description,Amount,Source,GSTAmt,GSTRate%,Ref,Status,ITC');
     assert.equal(ml.length,3,'the void and pending records are not in the month file');});
 }

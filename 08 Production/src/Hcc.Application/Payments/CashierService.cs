@@ -160,13 +160,17 @@ public sealed class CashierService(ICommandRunner runner, IBillingStore store, I
     }
 
     /// <inheritdoc />
+    /// <summary>DEC-130: the source type of an Udhaar (customer credit) payment taken in cash — a desk receipt (movement kind <c>payment</c>, cash in).</summary>
+    public const string UdhaarSource = "udhaar";
+
     public async Task<long> RecordMovementAsync(ICommandTransaction tx, int tillId, CashMovementKind kind, string sourceType, long sourceId, Paise amount,
         string label, string reference, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(tx);
-        if (kind is CashMovementKind.Payment or CashMovementKind.Deposit or CashMovementKind.Refund or CashMovementKind.DepositReturn or CashMovementKind.CompanyCredit)
+        var udhaar = kind == CashMovementKind.Payment && string.Equals(sourceType, UdhaarSource, StringComparison.Ordinal);
+        if (!udhaar && kind is CashMovementKind.Payment or CashMovementKind.Deposit or CashMovementKind.Refund or CashMovementKind.DepositReturn or CashMovementKind.CompanyCredit)
             throw new InvalidOperationException("Folio cash moves only through RecordReceipt / ExecuteAdjustment.");
-        var inward = kind is CashMovementKind.PosSale or CashMovementKind.ExpenseReversal or CashMovementKind.TransferIn;
+        var inward = udhaar || kind is CashMovementKind.PosSale or CashMovementKind.ExpenseReversal or CashMovementKind.TransferIn;
         if (amount == Paise.Zero || (inward ? amount < Paise.Zero : amount > Paise.Zero))
             throw HccException.Validation($"A {CashDrawer.Code(kind)} movement must be {(inward ? "positive (into the drawer)" : "negative (out of the drawer)")}.");
         var p = tx.Context.PropertyId;
@@ -174,6 +178,14 @@ public sealed class CashierService(ICommandRunner runner, IBillingStore store, I
         var shift = await CashDesk.RequireOpenShiftAsync(store, tx, p, tillId, date, ct).ConfigureAwait(false);
         return await store.InsertMovementAsync(tx, new NewMovement(shift.ShiftId, shift.TillId, date, kind, sourceType, sourceId, amount.EnsureFieldRange(),
             Clip(label, 200), Clip(reference, 120), tx.Context.PrincipalId, Now), ct).ConfigureAwait(false);
+    }
+
+    public async Task<long> OpenShiftIdAsync(ICommandTransaction tx, int tillId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        var p = tx.Context.PropertyId;
+        var date = await store.BusinessDateAsync(tx, p, ct).ConfigureAwait(false) ?? throw NotFound("Property not found.");
+        return (await CashDesk.RequireOpenShiftAsync(store, tx, p, tillId, date, ct).ConfigureAwait(false)).ShiftId;
     }
 
     internal static ShiftResult ToResult(ShiftRow s) => new(s.ShiftId, s.TillId, s.BusinessDate, s.Status, s.OpeningFloat.Value, s.Expected?.Value,

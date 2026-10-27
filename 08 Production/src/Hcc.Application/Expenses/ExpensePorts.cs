@@ -11,8 +11,15 @@ public static class ExpensePermissions
     public const string Decide = "PERM-EXP-002";
     public const string PostReverse = "PERM-EXP-003";
 
-    /// <summary>DEC-120: the SCC month lock and its override are the Owner's (DEC-058 Owner-only money settings): masters.manage-money.</summary>
+    /// <summary>
+    /// DEC-120: the SCC month lock and its override are the Owner's (DEC-058 Owner-only money settings): masters.manage-money. SCC decisions
+    /// wave: DEC-129 monthly budgets and recurring templates, DEC-131 the month unlock — the same Owner-only permission (no new PERM id).
+    /// </summary>
     public const string Owner = "PERM-MST-002";
+
+    /// <summary>DEC-130: an Udhaar payment taken in cash is a desk receipt into the drawer — payment.record on the open shift (PERM-PAY-001,
+    /// own shift for Reception / Cashier), as every cash receipt.</summary>
+    public const string DeskReceipt = "PERM-PAY-001";
 }
 
 /// <summary>
@@ -28,7 +35,7 @@ public static class ExpenseEvents
 public sealed record ExpenseRecord(long ExpenseId, int PropertyId, string Vendor, string Category, Paise Amount, string Method, DateOnly BusinessDate,
     string Status, int SubmittedBy, string? Notes, string? Receipt, string? Reason, int? DecidedBy, DateTime? DecidedUtc, int? TillId, long? ReversalOf,
     long? ReversedBy, byte[] Version, string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null,
-    string? VoidReason = null, int? VoidedBy = null, DateTime? VoidedUtc = null, DateTime? CreatedUtc = null, bool HasBillPhoto = false)
+    string? VoidReason = null, int? VoidedBy = null, DateTime? VoidedUtc = null, DateTime? CreatedUtc = null, bool HasBillPhoto = false, bool ItcAllowed = false)
 {
     public bool IsReversal => ReversalOf is not null;
 
@@ -37,7 +44,7 @@ public sealed record ExpenseRecord(long ExpenseId, int PropertyId, string Vendor
 
 public sealed record NewExpense(int PropertyId, string Vendor, string Category, Paise Amount, string Method, DateOnly BusinessDate, string Status,
     int SubmittedBy, string? Notes, string? Receipt, string? Reason, int? DecidedBy, int? TillId, long? ReversalOf, DateTime NowUtc,
-    string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null);
+    string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null, bool ItcAllowed = false);
 
 public sealed record ExpenseFilter(string? Status, DateOnly? From, DateOnly? To, int? SubmittedBy);
 
@@ -114,7 +121,9 @@ public sealed record RecurringRecord(int TemplateId, int PropertyId, string Name
 public sealed record PettyFloatRecord(long EntryId, int PropertyId, long Amount, DateOnly BusinessDate, string Status, string? Note, int RecordedBy, DateTime RecordedUtc,
     int? DecidedBy, DateTime? DecidedUtc, string? Reason);
 
-public sealed record UdhaarSettlementRecord(long SettlementId, long ReceivableId, long Amount, DateOnly Date, string Mode, int RecordedBy, DateTime RecordedUtc);
+/// <summary><c>Desk</c> (DEC-130): taken as a desk receipt (cash into the drawer of <c>TillId</c>, booked in Accounting); false = recorded before DEC-130.</summary>
+public sealed record UdhaarSettlementRecord(long SettlementId, long ReceivableId, long Amount, DateOnly Date, string Mode, int RecordedBy, DateTime RecordedUtc,
+    bool Desk = false, string? Reference = null, int? TillId = null);
 
 public sealed record UdhaarRecord(long ReceivableId, int PropertyId, string Name, string? Mobile, long Amount, DateOnly CreditDate, DateOnly? DueDate, string? Note,
     int CreatedBy, DateTime CreatedUtc, bool Void, string? VoidReason, int? VoidedBy, DateOnly? VoidedDate, IReadOnlyList<UdhaarSettlementRecord> Settlements)
@@ -124,7 +133,16 @@ public sealed record UdhaarRecord(long ReceivableId, int PropertyId, string Name
     public long Outstanding => ExpenseScc.UdhaarOut(Amount, Paid);
 }
 
-public sealed record MonthLockRecord(string Month, long Expense, int Count, long GstPaid, string ByCategoryJson, int GeneratedBy, DateTime GeneratedUtc, bool Stale, DateTime? StaleUtc);
+/// <summary>A month's feed; DEC-135 <c>GstItc</c> = the ITC-allowed part of the GST paid; DEC-131 the Owner's unlock (null = locked).</summary>
+public sealed record MonthLockRecord(string Month, long Expense, int Count, long GstPaid, string ByCategoryJson, int GeneratedBy, DateTime GeneratedUtc, bool Stale, DateTime? StaleUtc,
+    long? GstItc = null, int? UnlockedBy = null, DateTime? UnlockedUtc = null, string? UnlockReason = null)
+{
+    /// <summary>DEC-131: the Owner unlocked the month — writes into it need no override until it is locked again.</summary>
+    public bool Unlocked => UnlockedUtc is not null;
+}
+
+/// <summary>DEC-131: one Owner unlock of a month (ops.expense_month_unlock).</summary>
+public sealed record MonthUnlockRecord(string Month, int By, DateTime AtUtc, string Reason);
 
 /// <summary>DEC-120 SCC registers: budgets, recurring templates, petty-cash float, Udhaar, month locks (SQL adapter SqlExpenseRegisterStore).</summary>
 public interface IExpenseRegisterStore
@@ -171,4 +189,10 @@ public interface IExpenseRegisterStore
     Task SaveMonthLockAsync(ICommandTransaction tx, int propertyId, MonthLockRecord m, CancellationToken ct = default);
 
     Task MarkStaleAsync(ICommandTransaction tx, int propertyId, string month, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>DEC-131: marks the month unlocked (and stale) with the reason, and records the unlock in the history.</summary>
+    Task UnlockMonthAsync(ICommandTransaction tx, int propertyId, string month, int by, DateTime nowUtc, string reason, CancellationToken ct = default);
+
+    /// <summary>DEC-131: every unlock of the property's months, oldest first.</summary>
+    Task<IReadOnlyList<MonthUnlockRecord>> MonthUnlocksAsync(int propertyId, CancellationToken ct = default);
 }
