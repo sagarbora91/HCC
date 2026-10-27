@@ -153,11 +153,15 @@ public sealed class PeopleListsHttpTests(PeopleDb db) : IClassFixture<PeopleDb>,
             Assert.Equal(HttpStatusCode.OK, tech.StatusCode);
         }
 
-        using var made = await _http.SendAsync(Req(HttpMethod.Post, "/commands/SaveLeaveType", "owner", new SaveLeaveTypeRequest(null, "BL", "Bereavement leave", true, 3), "x1"), Ct);
-        var bl = (await made.Content.ReadFromJsonAsync<LeaveTypeView>(Web, Ct))!;
-        using var hist = await _http.SendAsync(Req(HttpMethod.Get, $"/hr/leave-types/{bl.LeaveTypeId}/history?page=1&pageSize=3", "owner"), Ct);
+        // SCC leave port (DEC-116): the leave list is fixed, so the history is shown on an edit of CL (name, sort order and a half-day quota).
+        var cl = (await _h.Queries.LeaveTypesAsync(_h.PropertyId, _h.U("owner"), ct: Ct)).Items.Single(x => x.Code == "CL");
+        using var made = await _http.SendAsync(Req(HttpMethod.Post, "/commands/SaveLeaveType", "owner",
+            new SaveLeaveTypeRequest(cl.LeaveTypeId, "CL", "Casual leave (CL)", true, 3.5m, 15, cl.Version), "x1"), Ct);
+        var saved = (await made.Content.ReadFromJsonAsync<LeaveTypeView>(Web, Ct))!;
+        Assert.Equal(3.5m, saved.YearlyQuota);
+        using var hist = await _http.SendAsync(Req(HttpMethod.Get, $"/hr/leave-types/{saved.LeaveTypeId}/history?page=1&pageSize=2", "owner"), Ct);
         var h = (await hist.Content.ReadFromJsonAsync<MasterHistoryList>(Web, Ct))!;
-        Assert.Equal((7, 3), (h.Total, h.Items.Count));   // code, name, sortOrder, paid, yearlyQuota, carryForward, encashment: one row per field of the new type
+        Assert.Equal((3, 2), (h.Total, h.Items.Count));   // name, sortOrder, yearlyQuota: one row per changed field
         Assert.Equal(_h.U("owner"), h.Items[0].ChangedBy);
     }
 }

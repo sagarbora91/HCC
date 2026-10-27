@@ -24,6 +24,10 @@ public sealed partial class MastersMigrationUpgradeTests
     /// <summary>The masters-wave migrations (and MA-11's) that a database from main before the wave does not have.</summary>
     private static readonly int[] MastersWave = [2810, 2820, 2830, 2840, 2850, 2860, 2870, 2871, 2890, 2891, 3800];
 
+    /// <summary>The highest migration main had after Wave B. Later migrations (3910 …) came after the masters wave and may build on its tables
+    /// (4110, SCC leave port: hr.leave_type, hr.shift_pattern, hr.holiday kinds) — they run in the upgrade, in order, not in the old database.</summary>
+    private const int WaveBLast = 3701;
+
     private sealed class FilteredSource(Func<int, bool> keep) : IMigrationSource
     {
         public IReadOnlyList<MigrationScript> Load() => new EmbeddedMigrationSource().Load().Where(s => keep(s.Version)).ToList();
@@ -165,7 +169,7 @@ public sealed partial class MastersMigrationUpgradeTests
 
     [Fact]
     public async Task Upgrade_from_main_after_wave_B_applies_the_masters_wave_below_2900_and_matches_a_fresh_database() =>
-        await UpgradeAndCompareAsync(v => !MastersWave.Contains(v), waveB: true);
+        await UpgradeAndCompareAsync(v => !MastersWave.Contains(v) && v <= WaveBLast, waveB: true);
 
     [Fact]
     public async Task Upgrade_from_the_older_main_up_to_2702_matches_a_fresh_database() =>

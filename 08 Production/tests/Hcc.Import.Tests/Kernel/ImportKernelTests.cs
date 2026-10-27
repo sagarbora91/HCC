@@ -193,11 +193,11 @@ public class ImportKernelTests
     [Fact]
     public void Departments_validate_code_name_and_leave_limit_and_plan_create_update_or_unchanged()
     {
-        var p = ImportPlanner.Plan(ImportMaster.Departments, Csv("code,name,leaveCap\nfo,Front office,2\nHK,Housekeeping,\nX,Bad code,\nF&B,Food,\nMN,M,30\nFO,Duplicate,\n"), Empty());
+        var p = ImportPlanner.Plan(ImportMaster.Departments, Csv("code,name,leaveCap\nfo,Front office,2\nHK,Housekeeping,\nX,Bad code,\nF&B,Food,\nMN,M,-1\nFO,Duplicate,\nGT,Big team,30\n"), Empty());   // SCC advisory caps: any whole number 0 or more (30 is fine)
         var fo = (DepartmentData)p.Items[0].Data!;
         Assert.Equal(("FO", 2), (fo.Code, fo.LeaveCap));
         Assert.Null(((DepartmentData)p.Items[1].Data!).LeaveCap);
-        Assert.Equal(2, p.Items.Count(i => i.Action == ImportAction.Create));
+        Assert.Equal(3, p.Items.Count(i => i.Action == ImportAction.Create));
         Assert.Contains(p.Errors, e => e is { Row: 4, Column: "code" });
         Assert.Contains(p.Errors, e => e is { Row: 5, Column: "code" });
         Assert.Contains(p.Errors, e => e is { Row: 6, Column: "name" });

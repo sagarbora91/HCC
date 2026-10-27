@@ -530,8 +530,8 @@ const HR_FIELDS:Record<string,HRField>={
 };
 const curYm=(s:State)=>s.date.slice(0,7);
 /** W05-B hrSettingDefs() → hub settings. Rate fields are wrappers over HR_STAT_RATES_SET with an explicit `from` (W05-B review F-06:
- *  the month after the last completed pay period, never a completed month; shown before saving); leave entitlements and the per-department cap
- *  wrap HR_LEAVE_POLICY_SET; the rest is shown read-only. */
+ *  the month after the last completed pay period, never a completed month; shown before saving); leave entitlements wrap HR_LEAVE_POLICY_SET;
+ *  the rest is shown read-only (SCC leave port: the 3-per-day cap is SCC's fixed MAX_DAY; advisory department caps live in Staff and payroll). */
 export function hrStatutoryDefs():CfgProviderDef[]{
   const out:CfgProviderDef[]=[];
   for(const d of hrSettingDefs() as HRSettingDef[]){
@@ -545,11 +545,9 @@ export function hrStatutoryDefs():CfgProviderDef[]{
           read:s=>hrRatesFor(s,hrRatesDefaultFrom(s).slice(0,7))[f]??(f==='daysOverride'?0:undefined),command:(s,v)=>({type:'HR_STAT_RATES_SET',from:hrRatesDefaultFrom(s),[f]:v}),
           impact:s=>[`Effective from 1 ${hrMonthLabel(hrRatesDefaultFrom(s).slice(0,7))} (new rate version); earlier months and locked pay-runs keep their rates.`]});});
     }else if(d.key==='hr.leave.ent'){
-      for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:60,unit:'days per financial year',
+      // SCC leave port: any number of days ≥ 0, no maximum (the hub takes whole days; halves are set in Staff and payroll › Leave › Settings).
+      for(const lt of ['CL','SL','EL'] as const)out.push({...base,key:`hr.leave.ent.${lt}`,label:`${d.label} · ${lt==='CL'?'casual':lt==='SL'?'sick':'earned'} leave`,type:'integer',min:0,max:100000,unit:'days per financial year',
         read:s=>hrLeavePolicy(s).ent[lt],command:(s,v)=>({type:'HR_LEAVE_POLICY_SET',ent:{...hrLeavePolicy(s).ent,[lt]:v}})});
-    }else if(d.key==='hr.leave.cap'){
-      out.push({...base,key:'hr.leave.cap.default',label:d.label,type:'integer',min:1,max:20,unit:'staff per department per day',help:d.help+' Department overrides are set in Staff and payroll.',
-        read:s=>hrLeavePolicy(s).defaultCap,command:(_s,v)=>({type:'HR_LEAVE_POLICY_SET',defaultCap:v})});
     }else out.push({...base,key:d.key,label:d.label,type:'fixed',read:s=>hrSettingValue(s,d.key),fixedReason:d.editable?'Edited in Staff and payroll':d.approval});
   }
   return out;

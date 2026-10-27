@@ -276,7 +276,7 @@ An item already in HCC (same code) is **updated** when a column differs, and "un
 |---|---|---|
 | code | yes | Department code, 2 to 10 capital letters or digits (e.g. `FO`). Staff are put in a department by this code. |
 | name | yes | Department name, 2 to 60 characters. |
-| leaveCap | optional | Most staff of this department on leave on one day, 1 to 20. Blank = the leave policy default. |
+| leaveCap | optional | Advisory cap: staff of this department on leave on one day before the day is flagged, 0 or more (blank = 3, SCC's limit a day; it never blocks — the hotel-wide limit is 3 a day). |
 
 A department already in HCC with the same code is **updated** (name, leave limit).
 
@@ -583,16 +583,14 @@ Staff, the roster and attendance use the shift code. A shift that ends after mid
 ### leave-types.csv (Leave types)
 | Column | Required | Meaning |
 |---|---|---|
-| code | yes | Leave code, 1 to 6 capital letters or digits (CL, SL, EL …). Leave requests and attendance use it. |
+| code | yes | SCC’s fixed leave categories: CL, SL, EL, ML, CO, OTH and LOP (leave without pay). No other code. |
 | name | yes | Name shown on screens and documents, 1 to 60 characters. Another active row may not have the same name. |
-| paid | optional | yes for paid leave, no for unpaid (blank = no). Owner-only (pay). |
-| yearlyQuota | optional | Days per year, 0 to 60 (blank = not tracked). |
-| carryForward | optional | Days carried to the next year, 0 to 60 (needs a yearly quota; blank = 0). |
-| encashment | optional | yes when unused days are paid out. |
+| paid | optional | yes for paid leave, no for unpaid (blank = no). Fixed: only LOP (leave without pay) is unpaid. Owner-only (pay). |
+| yearlyQuota | optional | Days per financial year for CL, SL and EL only, 0 or more, halves allowed (blank = not tracked). |
 | sortOrder | optional | Order on screens (10, 20 …). Blank keeps the row's order, or puts a new row last. |
 | active | optional | yes or no (blank keeps the row's state, a new row is active). A file cannot retire an active row — retire it on its list, where its use is checked. |
 
-Leave policy per type: paid, yearly quota (blank = not tracked), carry-forward and encashment. Owner-only. Unpaid leave has no quota, carry-forward or encashment.
+SCC’s leave categories (DEC-116, migration 4110): the list is fixed — names can change; paid is fixed (only LOP unpaid); a yearly quota only for Casual, Sick and Earned leave (SCC TRACKED_CATS, defaults 12 · 7 · 15). No carry-forward or encashment (SCC has neither). Owner-only.
 
 ### holidays.csv (Holiday calendar)
 | Column | Required | Meaning |

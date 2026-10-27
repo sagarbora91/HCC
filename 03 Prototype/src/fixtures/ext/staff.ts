@@ -4,7 +4,8 @@
 // W05-B: gender (Maharashtra PT slab), fictional bank details, SCC statutory rate version (from 1 Apr 2025) and SCC leave policy.
 import type {State} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
-import {hrEmpty,hrDefaultLeavePolicy,hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrBankSnapshot,hrLeaveDays,type HRStaff,type HRState} from '../../domain/streams/staff';
+import {addDays} from '../../domain/money';
+import {hrEmpty,hrDefaultLeavePolicy,hrKey,hrShiftFor,hrMonthDates,hrComputeRun,hrRatesFor,hrApplyRecoveries,hrBankSnapshot,hrIsWeekOff,type HRStaff,type HRState} from '../../domain/streams/staff';
 
 type Row=[string,string,string,string|undefined,'monthly'|'daily',number,HRStaff['defaultShift'],number,string,'M'|'F'];
 // id, name, dept, userId, payType, rupees (monthly or daily), shift, weeklyOff, designation, gender (PT slab)
@@ -53,9 +54,13 @@ export function extendBase(s:State):void{
   x.runs.push(run);hrApplyRecoveries(x,run);hrBankSnapshot(x,run);
   for(const k of Object.keys(x.att))if(k.startsWith('2026-08'))delete x.att[k];
   // Leave: past approved (September), upcoming approved, two pending (one raised by the manager → owner must decide).
-  const leave=(id:string,st:HRStaff,type:'CL'|'SL'|'EL'|'LOP',from:string,to:string,reason:string,status:'Pending'|'Approved',requestedBy:string,decidedBy?:string,half?:'AM'|'PM')=>
-    x.leaves.push({id,staffId:st.id,type,from,to,days:hrLeaveDays(s,st,from,to,half),reason,...(half?{half}:{}),status,requestedBy,requestedAt:from<'2026-10-01'?'2026-09-08T10:00':'2026-10-22T09:30',
-      ...(decidedBy?{decidedBy,decidedAt:from<'2026-10-01'?'2026-09-08T12:00':'2026-10-22T12:15'}:{})});
+  // SCC leave port: one record per date outside the hotel's leave week-off set (none by default; the first record keeps the request id, the next
+  // ones get -2, -3 …). The approver is the Manager, or the Owner for a request the Manager raised.
+  const leave=(id:string,st:HRStaff,type:'CL'|'SL'|'EL'|'LOP',from:string,to:string,reason:string,status:'Pending'|'Approved',requestedBy:string,decidedBy?:string,half?:'AM'|'PM')=>{
+    const dates:string[]=[];for(let d=from;d<=to;d=addDays(d,1))if(!hrIsWeekOff(s,d))dates.push(d);
+    dates.forEach((date,i)=>x.leaves.push({id:i?`${id}-${i+1}`:id,staffId:st.id,date,type,from,to,days:half?0.5:1,reason,...(half?{half}:{}),
+      approver:requestedBy==='manager'?'owner':'manager',status,requestedBy,requestedAt:from<'2026-10-01'?'2026-09-08T10:00':'2026-10-22T09:30',
+      ...(decidedBy?{decidedBy,decidedAt:from<'2026-10-01'?'2026-09-08T12:00':'2026-10-22T12:15'}:{})}));};
   leave('HR-LV-1',ravi,'CL','2026-09-14','2026-09-15','Family function (fictional)','Approved','housekeeper','manager');
   leave('HR-LV-2',x.staff[1],'EL','2026-11-02','2026-11-03','Short trip home (fictional)','Approved','reception','manager');
   leave('HR-LV-3',x.staff[5],'CL','2026-10-28','2026-10-29','Personal work (fictional)','Pending','housekeeper2');

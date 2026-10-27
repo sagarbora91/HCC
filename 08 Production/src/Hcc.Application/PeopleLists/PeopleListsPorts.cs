@@ -10,6 +10,8 @@ public sealed record ListRec(int Id, string Code, string Name, int SortOrder, bo
 
     public int? Int(string key) => Fields.TryGetValue(key, out var v) && v is int i ? i : null;
 
+    public decimal? Dec(string key) => Fields.TryGetValue(key, out var v) ? v switch { decimal m => m, int i => i, _ => null } : null;
+
     public bool Flag(string key) => Fields.TryGetValue(key, out var v) && v is true;
 }
 
@@ -38,7 +40,7 @@ public interface IPeopleListsStore
     Task<IReadOnlyList<string>> ActiveStaffOnShiftAsync(ICommandTransaction tx, int propertyId, string code, CancellationToken ct = default);
 
     /// <summary>Keeps hr.leave_policy (cl / sl / el days) equal to the CL / SL / EL quotas of the Leave types list.</summary>
-    Task MirrorLeavePolicyAsync(ICommandTransaction tx, int propertyId, string code, int quota, int principalId, DateTime utc, CancellationToken ct = default);
+    Task MirrorLeavePolicyAsync(ICommandTransaction tx, int propertyId, string code, decimal quota, int principalId, DateTime utc, CancellationToken ct = default);
 
     Task<DateOnly> BusinessDateAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
 

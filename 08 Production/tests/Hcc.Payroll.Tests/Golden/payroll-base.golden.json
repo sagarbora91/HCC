@@ -29,7 +29,6 @@
    "SL": 7,
    "EL": 15
   },
-  "defaultCap": 2,
   "deptCap": {}
  },
  "depts": [
@@ -285,51 +284,97 @@
    "id": "HR-LV-1",
    "staffId": "HR-S05",
    "type": "CL",
+   "date": "2026-09-14",
    "from": "2026-09-14",
    "to": "2026-09-15",
    "half": null,
-   "days": 2,
-   "status": "Approved"
+   "days": 1,
+   "status": "Approved",
+   "approver": "manager"
+  },
+  {
+   "id": "HR-LV-1-2",
+   "staffId": "HR-S05",
+   "type": "CL",
+   "date": "2026-09-15",
+   "from": "2026-09-14",
+   "to": "2026-09-15",
+   "half": null,
+   "days": 1,
+   "status": "Approved",
+   "approver": "manager"
   },
   {
    "id": "HR-LV-2",
    "staffId": "HR-S02",
    "type": "EL",
+   "date": "2026-11-02",
    "from": "2026-11-02",
    "to": "2026-11-03",
    "half": null,
    "days": 1,
-   "status": "Approved"
+   "status": "Approved",
+   "approver": "manager"
+  },
+  {
+   "id": "HR-LV-2-2",
+   "staffId": "HR-S02",
+   "type": "EL",
+   "date": "2026-11-03",
+   "from": "2026-11-02",
+   "to": "2026-11-03",
+   "half": null,
+   "days": 1,
+   "status": "Approved",
+   "approver": "manager"
   },
   {
    "id": "HR-LV-3",
    "staffId": "HR-S06",
    "type": "CL",
+   "date": "2026-10-28",
    "from": "2026-10-28",
    "to": "2026-10-29",
    "half": null,
-   "days": 2,
-   "status": "Pending"
+   "days": 1,
+   "status": "Pending",
+   "approver": "manager"
+  },
+  {
+   "id": "HR-LV-3-2",
+   "staffId": "HR-S06",
+   "type": "CL",
+   "date": "2026-10-29",
+   "from": "2026-10-28",
+   "to": "2026-10-29",
+   "half": null,
+   "days": 1,
+   "status": "Pending",
+   "approver": "manager"
   },
   {
    "id": "HR-LV-4",
    "staffId": "HR-S10",
    "type": "LOP",
+   "date": "2026-10-27",
    "from": "2026-10-27",
    "to": "2026-10-27",
    "half": null,
-   "days": 0,
-   "status": "Pending"
+   "days": 1,
+   "status": "Pending",
+   "approver": "owner"
   },
   {
    "id": "HR-LV-5",
    "staffId": "HR-S04",
    "type": "CL",
+   "date": "2026-11-06",
    "from": "2026-11-06",
    "to": "2026-11-06",
    "half": "PM",
    "days": 0.5,
-   "status": "Pending"
+   "status": "Pending",
+   "approver": "manager"
   }
  ],
  "advances": [

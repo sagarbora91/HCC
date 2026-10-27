@@ -63,7 +63,7 @@ export function register({test,M,assert}){
     assert.match(cfgGroupAccess(s,'reception','property').reason,/Owner changes this/);});
   test('[CFG] commands enforce DEC-058: Tech admin money → FORBIDDEN, non-money → saved; no admin grant → FORBIDDEN',()=>{
     let s=seed();
-    for(const [k,v] of [['discountLimit',60000],['approvalExpiryHours',12],['invoicePrefix','HCC-25'],['fd.deposit',200000],['yld.floorBps',-1000],['hr.pt.ptStd',25000],['cmp.dueSoonDays',5],['hr.leave.cap.default',3],['pos.menu.'+posSlice(s).menu[0].id,false]])
+    for(const [k,v] of [['discountLimit',60000],['approvalExpiryHours',12],['invoicePrefix','HCC-25'],['fd.deposit',200000],['yld.floorBps',-1000],['hr.pt.ptStd',25000],['cmp.dueSoonDays',5],['hr.leave.ent.CL',3],['pos.menu.'+posSlice(s).menu[0].id,false]])
       assert.equal(code(()=>set(s,'techadmin',k,v)),'FORBIDDEN',k);
     s=set(s,'techadmin','hotel','HCC Demo Residency West');assert.equal(s.settings.hotel,'HCC Demo Residency West');
     s=set(s,'techadmin','brand.printFormat','A5');assert.equal(cfgValueOn(s,'brand.printFormat'),'A5');
@@ -263,9 +263,9 @@ export function register({test,M,assert}){
     const s=seed(),defs=cfgDefs(s);
     const hr=defs.filter(d=>d.source==='hr-statutory'),cmp=defs.filter(d=>d.source==='compliance');
     assert.ok(hr.length>=20);assert.ok(hr.every(d=>d.group==='people'&&d.money));
-    for(const k of ['hr.pf.pfEeBps','hr.pf.pfErBps','hr.pf.pfWageCap','hr.esic.esicEeBps','hr.pt.ptStd','hr.ot.otBps','hr.late.lateBlock','hr.rounding.rounding','hr.leave.ent.EL','hr.leave.cap.default','hr.leave.half'])assert.ok(hr.some(d=>d.key===k),k);
+    for(const k of ['hr.pf.pfEeBps','hr.pf.pfErBps','hr.pf.pfWageCap','hr.esic.esicEeBps','hr.pt.ptStd','hr.ot.otBps','hr.late.lateBlock','hr.rounding.rounding','hr.leave.ent.EL','hr.leave.cap','hr.leave.weeklyoff','hr.leave.half'])assert.ok(hr.some(d=>d.key===k),k);
     assert.ok(hr.filter(d=>d.key.startsWith('hr.pf.')).every(d=>d.illustrative&&/Illustrative — CA to confirm for a hotel/.test(d.help)));
-    assert.equal(cfgDef(s,'hr.leave.half').editable,false);
+    assert.equal(cfgDef(s,'hr.leave.half').editable,false);assert.equal(cfgDef(s,'hr.leave.cap').editable,false);
     for(const k of ['cmp.caName','cmp.caEmail','cmp.dueSoonDays'])assert.ok(cmp.some(d=>d.key===k&&d.editable),k);
     for(const k of ['cmp.profile.gstType','cmp.profile.hasEmployees','cmp.catalogue'])assert.ok(cmp.some(d=>d.key===k&&!d.editable),k);// SCC profile / catalogue: shown, edited in the calendar (DEC-116)
     assert.equal(cfgCanChange(s,'techadmin',cfgDef(s,'cmp.caName')).mode,'deny');assert.equal(cfgCanChange(s,'techadmin',cfgDef(s,'hr.pf.pfEeBps')).mode,'deny');

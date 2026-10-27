@@ -25,18 +25,20 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
   const x=s=>M.hrSlice(s);
   const code=c=>e=>e.code===c;
 
-  test('[PAY-FIX F-01] LOP leave spanning a weekly off: the off day is not deducted (lopLeave = stored days)',()=>{
+  // SCC leave port (DEC-116): leave is one record per date outside the HOTEL's week-off set (none by default) — a staff member's roster off inside
+  // the dates is a leave day too, and payroll counts every approved record by its date (F-01's span rule gave way; old spans were split on restore).
+  test('[PAY-FIX F-01 → SCC] LOP over a roster weekly off: one record per date; payroll counts the approved records (lopLeave = the records, absent in the SCC sheet)',()=>{
     let s=seed();// Aarav (HR-S02), ₹18,000/month, weekly off Tuesday; LOP Mon 9 – Wed 11 Nov 2026
-    s=execute(s,'reception',{type:'HR_LEAVE_REQUEST',staffId:'HR-S02',leaveType:'LOP',from:'2026-11-09',to:'2026-11-11',reason:'Personal'});
-    const lv=x(s).leaves.at(-1);assert.equal(lv.days,2);
-    s=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:lv.id,approve:true});
+    s=execute(s,'reception',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S02',leaveType:'LOP',from:'2026-11-09',to:'2026-11-11',reason:'Personal'});
+    const lv=x(s).leaves.filter(l=>l.staffId==='HR-S02'&&l.status==='Pending');assert.deepEqual(lv.map(l=>[l.date,l.days]),[['2026-11-09',1],['2026-11-10',1],['2026-11-11',1]]);
+    for(const l of lv)s=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:l.id,approve:true});
     const st=x(s).staff.find(t=>t.id==='HR-S02'),c=M.hrCounts(s,st,'2026-11');
-    assert.equal(c.lopLeave,lv.days);
+    assert.equal(c.lopLeave,3);
     // DEC-115 (SCC sheet): leave without pay is not "Leaves" — its days fall into absent with every other day not worked or on paid leave.
     const d=M.hrSccDays(c,M.hrRatesFor(s,'2026-11'));assert.equal(d.leave,c.paidLeave);assert.equal(d.absent,d.total-d.present-d.leave-d.half);
-    assert.equal(M.hrDayStatus(s,st,'2026-11-10').kind,'off');assert.equal(M.hrDayStatus(s,st,'2026-11-09').kind,'leave');
-    // paid leave over an off day: "Paid leave" equals the stored days too (HR-LV-2: EL Mon 2 – Tue 3 Nov, Tuesday off)
-    const el=x(s).leaves.find(l=>l.id==='HR-LV-2');assert.equal(el.days,1);assert.equal(c.paidLeave,el.days);
+    assert.equal(M.hrDayStatus(s,st,'2026-11-10').kind,'leave');assert.equal(M.hrDayStatus(s,st,'2026-11-17').kind,'off');
+    // paid leave over a roster off day: HR-LV-2 = EL Mon 2 + Tue 3 Nov (Tuesday off), two approved records → 2 paid leave days
+    assert.deepEqual(x(s).leaves.filter(l=>l.id.startsWith('HR-LV-2')).map(l=>[l.date,l.days]),[['2026-11-02',1],['2026-11-03',1]]);assert.equal(c.paidLeave,2);
   });
   const staffCmd=(st,extra={})=>({type:'HR_STAFF_SAVE',id:st.id,name:st.name,dept:st.dept,designation:st.designation,defaultShift:st.defaultShift,weeklyOff:st.weeklyOff,phone:st.phone,...(st.userId?{userId:st.userId}:{}),...(st.gender?{gender:st.gender}:{}),...extra});
   const S=(s,id)=>x(s).staff.find(t=>t.id===id);
@@ -261,12 +263,14 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const slip=UI.renderModal(s,'accountant','hr-payslip',id+'|HR-S05');assert.match(slip,/Provident Fund \(10%\)/);assert.match(slip,/ESIC \(1%\)/);assert.doesNotMatch(slip,/\(12%\)|\(0\.75%\)/);
     assert.match(UI.renderModal(seed(),'accountant','hr-payslip','HR-PAY-1|HR-S05'),/Provident Fund \(12%\)/);
   });
-  test('[PAY-FIX F-15] cutting an entitlement never shows a negative balance: 0 left and "over by N"; the policy dialog warns',()=>{
-    let s=execute(seed(),'reception',{type:'HR_LEAVE_REQUEST',staffId:'HR-S02',leaveType:'CL',from:'2026-11-16',to:'2026-11-20',reason:'Trip'});
+  test('[PAY-FIX F-15] cutting an entitlement never shows a negative balance: 0 left and "over by N" (approved days, SCC); the settings dialog warns; approval re-checks nothing (SCC)',()=>{
+    let s=execute(seed(),'reception',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S02',leaveType:'CL',from:'2026-11-16',to:'2026-11-20',reason:'Trip'});
+    const ids=x(s).leaves.filter(l=>l.staffId==='HR-S02'&&l.status==='Pending').map(l=>l.id);
+    for(const id of ids.slice(0,4))s=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id,approve:true});
     s=execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',ent:{CL:2,SL:7,EL:15}});
     const cl=M.hrLeaveBalance(s,'HR-S02','2026-11-16').find(b=>b.type==='CL');assert.equal(cl.left,0);assert.equal(cl.over,2);
     assert.equal(M.hrLeaveOverCount(seed(),{CL:2,SL:7,EL:15}),0);assert.equal(M.hrLeaveOverCount(s,{CL:2,SL:7,EL:15}),1);
-    assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:x(s).leaves.at(-1).id,approve:true}),/no longer sufficient/);
+    const a=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:ids[4],approve:true});assert.equal(M.hrLeaveBalance(a,'HR-S02','2026-11-16').find(b=>b.type==='CL').over,3);
   });
   test('[PAY-FIX F-16] FY26 history gives daily-wage staff leave without pay only (no paid leave on their payslips)',()=>{
     const fy=M.loadScenario('FY26'),daily=x(fy).staff.filter(t=>t.payType==='daily').map(t=>t.id);

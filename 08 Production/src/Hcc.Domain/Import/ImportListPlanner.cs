@@ -199,6 +199,11 @@ internal static partial class ImportListPlanner
                 return null;
             }
 
+            case ListKind.Days:
+                if (decimal.TryParse(cell, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var days) && days >= f.Min && days <= f.Hi && decimal.Round(days, 2) == days)
+                    return ImportLists.DaysText(days);
+                s.Error(r, f.Key, $"The {f.Label} is a number of days, {I(f.Min)} or more (up to 2 decimals).");
+                return null;
             case ListKind.Pct:
                 if (ImportValues.TryPercentBps(cell, out var bps) && bps >= f.Min && bps <= f.Hi) return ImportLists.PctText(bps);
                 s.Error(r, f.Key, $"The {f.Label} is a percentage from {ImportLists.PctText((int)f.Min)} to {ImportLists.PctText((int)f.Hi)}.");

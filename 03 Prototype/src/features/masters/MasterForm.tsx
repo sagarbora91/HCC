@@ -77,8 +77,8 @@ export function MasterForm({specId,rowId,onDone,onCancel,sheet}:{specId:string;r
     {row&&can.ok&&<div className="mst-status-act">
       {row.active?<button type="button" className="btn" disabled={busy} onClick={()=>open({type:'mst-retire',id:`${specId}:${row.id}${sheet?':sheet':''}`})}><Archive size={15}/> Retire…</button>
         :<button type="button" className="btn" disabled={busy} onClick={()=>status('MST_MASTER_REACTIVATE',`${row.name} reactivated`)}><RotateCcw size={15}/> Reactivate</button>}
-      {usage.count===0?<button type="button" className="btn danger" disabled={busy} onClick={()=>status('MST_MASTER_DELETE',`${row.name} deleted`)}><Trash2 size={15}/> Delete (never used)</button>
-        :<small className="muted">In use — it can be retired, not deleted.</small>}
+      {usage.count===0&&!spec.canDelete?.(s,row)?<button type="button" className="btn danger" disabled={busy} onClick={()=>status('MST_MASTER_DELETE',`${row.name} deleted`)}><Trash2 size={15}/> Delete (never used)</button>
+        :<small className="muted">{usage.count===0?spec.canDelete?.(s,row):'In use — it can be retired, not deleted.'}</small>}
     </div>}
     {row&&<MasterHistory spec={spec} row={row}/>}
   </div>;

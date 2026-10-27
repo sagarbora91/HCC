@@ -6,9 +6,12 @@
 //     when earned ≤ ₹21,000; overtime at the ordinary rate) · ptFor (Maharashtra PT slabs by gender, ₹300 in February) · advScheduled
 //     (monthly instalment, 0 = full balance) · lockRun / unlockRun · reportBankCsv / reportStatutoryCsv / statutoryMemberRows ·
 //     waEmpMessage (WhatsApp text) · fnfAssemble / fnfCompose (full and final) · slipWords (amount in words).
-//   SCC leave — ...\reference-inputs\SCC-modules\leave\index.html
-//     ENT_DEFAULTS (CL 12 · SL 7 · EL 15 per Indian FY, fyRangeOf) · leaveDaysOf (half-day = 0.5) · isWeekOffDate (weekly offs skipped) ·
-//     getCapacity / MAX_DAY (max staff off per day — per department here; pending + approved hold a slot, rejected frees it) · decideLeave.
+//   SCC leave — ...\reference-inputs\SCC-modules\leave\index.html — IN FULL since DEC-116 / DEC-119 (27 Oct 2026; report
+//     05 Delivery Evidence\SCC Port\SCC_Leave_Port_2026-10-27.md): one leave record per DATE (full / AM / PM, decided one by one), getCapacity /
+//     canAddLeave (MAX_DAY 3 records per date for the whole hotel, MAX_SHIFT 4), ENT_DEFAULTS CL 12 · SL 7 · EL 15 per FY with per-staff
+//     overrides (entFor), fyUsage (approved only, by date), requestedLeaveDays + isWeekOffDate (one hotel-wide week-off set), blackouts and
+//     store holidays, per-store advisory caps (per department here). HCC safeguards kept (DEC-119): nobody approves their own leave, a
+//     cancelled leave stays as an audit record, role permissions (DEC-058), staff keyed by ID, past days through DEC-075 corrections.
 // DEC-115 (owner, 27 Oct 2026: "import the entire payroll rules from SCC"; replaces DEC-099): pay days follow SCC calcAttendance exactly
 //   (hrSccDays) — total days = calendar days (or the rate version's override) − paid holidays of the Holiday calendar (SCC "Mgmt holidays");
 //   absent = total − present − approved paid leave − half days (SCC's DSR/Leave feed; a day worked on the weekly off is present), so a weekly
@@ -20,7 +23,7 @@
 import type {State,Role} from '../types';
 import {addDays} from '../money';
 import {can} from '../selectors';
-import {hrShiftPattern,hrWeeklyOffAuto,hrHolidayPaid,hrHolidayOn,hrHolidays,hrLeavePaid,hrLeaveQuota,hrLeaveCarryCap,hrLeaveEncash,hrTrackedTypes,HR_SHIFT_SEED,hrLeaveTypeRows} from './people-masters';
+import {hrShiftPattern,hrWeeklyOffAuto,hrHolidayPaid,hrHolidayOn,hrHolidays,hrLeavePaid,hrLeaveQuota,HR_SHIFT_SEED} from './people-masters';
 import {mstStored} from './masters';
 
 /** Shift pattern code (master list Shift patterns, MA-6; M E N G are the seed) or 'OFF' for the weekly off. */
@@ -52,10 +55,27 @@ export type HRStaff={id:string;name:string;dept:string;designation:string;
   /** Production build only (W4 G2): the server says the stored mobile is a usable WhatsApp number while `phone` stays masked.
    *  Never set by the prototype (its `phone` is the real fictional number, checked with hrWaNumber). */ phoneUsable?:boolean};
 export type HRAtt={status:HRAttStatus;at:string;otMin:number;by:string;note?:string};
-export type HRLeave={id:string;staffId:string;type:HRLeaveType;from:string;to:string;days:number;reason:string;
-  /** Half-day leave (from = to, days = 0.5). */ half?:HRHalf;
+/** SCC leave record — ONE PER DATE (SCC data.leaves[date][]), decided on its own. `type` = the category (SCC's six + HCC's LOP). */
+export type HRLeave={id:string;staffId:string;
+  /** The leave date (SCC data.leaves key). */ date:string;
+  type:HRLeaveType;
+  /** SCC leaveFrom / leaveTo: the date range of the request this day came from. */ from:string;to:string;
+  /** SCC leaveDaysOf: 1 = full day, 0.5 = half day. */ days:number;
+  /** SCC: optional, trimmed, up to 500 characters ('' = none). */ reason:string;
+  /** Half day (SCC half_day_am "Morning (till 2 PM)" / half_day_pm "Afternoon (after 5 PM)"); absent = full day. */ half?:HRHalf;
+  /** SCC approvedBy: the nominated approver — user ID of the Owner or a Manager; `approverName` = an imported SCC name that matches no user. */
+  approver?:string;approverName?:string;
   status:'Pending'|'Approved'|'Rejected'|'Cancelled';requestedBy:string;requestedAt:string;decidedBy?:string;decidedAt?:string;note?:string;
-  /** DEC-075: a back-dated one-day leave created by this attendance correction (request id). */ correctionId?:string};
+  /** SCC remove (×) = cancel with an audit record (DEC-119): who and when; the record is hidden from the calendar. */ cancelledBy?:string;cancelledAt?:string;
+  /** DEC-075: a back-dated one-day leave created by this attendance correction (request id). */ correctionId?:string;
+  /** Imported SCC record without a status: SCC counts it as approved ("legacy record"). */ legacy?:boolean;
+  /** Imported SCC record: its id in the file (an import skips a record whose id is already here) and SCC's decidedBy text. */ sccId?:string;decidedByName?:string};
+/** SCC blackout / store-holiday entry (W12 P1-29). `dept` '' = every department (SCC "All stores"), else one department (SCC per-store scope). */
+export type HRBlackout={id:string;from:string;to:string;dept:string;kind:'blackout'|'holiday';
+  /** Refuses the leave (blackouts only; store holidays never block). */ hard:boolean;label:string};
+/** SCC agenda item (meeting / agenda / reminder) on a date. */
+export type HRAgenda={id:string;date:string;title:string;
+  /** HH:MM or '' (SCC sorts blank times last). */ time:string;type:'meeting'|'agenda'|'reminder';description:string;by:string;at:string};
 export type HRAdvance={id:string;staffId:string;amount:number;
   /** Monthly recovery; 0 = recover the full balance in the first month (SCC emi 0). */ installment:number;
   recovered:number;date:string;reason:string;by:string;recoveries:{runId:string;amount:number}[];
@@ -74,8 +94,14 @@ export type HRRates={from:string;
    *  continues to the period end even if pay crosses the ceiling. Absent/false = SCC month-by-month test on earned pay (the default, DEC-115). */
   esicPeriod?:boolean;
   /** SCC "Days Override": total days of every month from this version on (half days allowed); absent/0 = calendar days. */ daysOverride?:number};
+/** SCC leave settings. `ent` = ENT_DEFAULTS as saved (any number ≥ 0, fractions allowed, no maximum). */
 export type HRLeavePolicy={ent:{CL:number;SL:number;EL:number};
-  /** Max staff off per department per day (pending + approved). */ defaultCap:number;deptCap:Record<string,number>};
+  /** SCC perEmployee entitlement overrides, keyed by staff ID (only the categories set; the rest use `ent`). */ perStaff?:Record<string,HREnt>;
+  /** SCC week-off set (0 = Sunday … 6 = Saturday): dates skipped when leave is recorded and counted. Absent = HR_LEAVE_WEEKOFF_DEFAULT. */ weekOff?:number[];
+  /** SCC per-store caps, per department here (whole number ≥ 0; absent = HR_MAX_DAY). ADVISORY: shown as over capacity, never blocks. */ deptCap:Record<string,number>;
+  /** Before the SCC port: the blocking per-department default. No longer read (kept on old saves). */ defaultCap?:number;
+  /** SCC blackouts and store holidays. */ blackouts?:HRBlackout[]};
+export type HREnt={CL?:number;SL?:number;EL?:number};
 export type HRCounts={ym:string;days:number;P:number;L:number;H:number;
   /** Half-day worked with the other half on approved half-day leave. */ HL:number;
   A:number;OFFW:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
@@ -143,6 +169,9 @@ export type HRState={depts:HRDept[];staff:HRStaff[];
   /** LEGACY (Wave B, before the masters merge): its paid-holiday list. A SCHEMA 8 save is migrated into MA-6's Holiday calendar master on load
    *  (services/mock/persistence.ts); nothing reads it otherwise. */ holidays?:HRPaidHoliday[];
   /** DEC-075 / DEC-084 requests, oldest first (absent = none). */ requests?:HRRequest[];
+  /** SCC agenda items (meetings, agenda, reminders) by date (absent = none). */ agendas?:HRAgenda[];
+  /** Production only: the server's approver choices (Owner + Manager users); the prototype reads its demo users (hrApproverChoices). */
+  approvers?:{id:string;name:string;role:string}[];
   /** Production only: the server's open correction window (hrCorrectionWindow computes it in the prototype). */ correctWindow?:{from:string;to:string}};
 
 /** DEC-115: shown on the leave-policy and statutory-rates screens (the SCC pay-day rule, in place of F-08's "not ported" note). */
@@ -153,7 +182,19 @@ export const HR_NOT_CALCULATED='Not calculated: gratuity, notice pay, bonus, TDS
 export const hrDefaultRates=():HRRates=>({from:'2025-04-01',basicBps:5000,hraBps:8000,washBps:1000,pfEeBps:1200,pfErBps:1300,pfWageCap:1500000,
   esicEeBps:75,esicErBps:325,esicCeiling:2100000,ptMaleExempt:750000,ptMaleMid:1000000,ptMaleMidAmt:17500,ptStd:20000,ptFeb:30000,ptFemaleExempt:2500000,
   otBps:10000,lateBlock:3,rounding:'paise',esicPeriod:false});
-export const hrDefaultLeavePolicy=():HRLeavePolicy=>({ent:{CL:12,SL:7,EL:15},defaultCap:2,deptCap:{}});
+export const hrDefaultLeavePolicy=():HRLeavePolicy=>({ent:{...HR_ENT_DEFAULTS},deptCap:{}});
+// ── SCC leave constants (leave\index.html) ──
+/** SCC MAX_DAY: at most 3 leave records (pending + approved) on a date for the WHOLE hotel (SCC: the business); the binding cap. */
+export const HR_MAX_DAY=3;
+/** SCC MAX_SHIFT: at most 4 per shift (AM / PM). Ported as SCC has it, but MAX_DAY (3) always binds first, so it never decides (owner question). */
+export const HR_MAX_SHIFT=4;
+/** SCC ENT_DEFAULTS: Casual 12 · Sick 7 · Earned 15 days per April–March financial year. */
+export const HR_ENT_DEFAULTS={CL:12,SL:7,EL:15};
+/** SCC WEEKOFF_DEFAULT = [0, 6] (Sunday + Saturday). HCC's default is NO day (a 7-day hotel; SCC's own help says to untick both) — owner question. */
+export const HR_SCC_WEEKOFF_DEFAULT=[0,6];
+export const HR_LEAVE_WEEKOFF_DEFAULT:number[]=[];
+/** SCC VALID_CATEGORIES (+ HCC's LOP, leave without pay, which payroll treats as absent — DEC-115). */
+export const HR_SCC_CATEGORY:Record<string,string>={CL:'Casual Leave',SL:'Sick Leave',EL:'Earned Leave',ML:'Maternity / Paternity',CO:'Compensatory Off',OTH:'Other',LOP:'Leave without pay'};
 export const hrEmpty=():HRState=>({depts:[],staff:[],roster:{},att:{},leaves:[],advances:[],rateVersions:[hrDefaultRates()],runs:[]});
 export const hrSlice=(s:State):HRState=>s.staffX??hrEmpty();
 /** For handlers: returns the slice, creating it on the (cloned) state if absent. */
@@ -214,14 +255,19 @@ export function hrShiftInfo(c:HRShiftCode,s?:State){
 export const HR_ATT_LABEL:Record<HRAttStatus,string>={P:'Present',L:'Late',H:'Half-day',A:'Absent',OFF:'Worked on off day',NT:'No thumb punch'};
 /** Every attendance mark a manager can record, in screen order. */
 export const HR_ATT_MARKS:HRAttStatus[]=['P','L','H','A','OFF','NT'];
-export const HR_LEAVE_TYPES:HRLeaveType[]=['CL','SL','EL','CO','ML','LOP'];
-export const HR_LEAVE_LABEL:Record<HRLeaveType,string>={CL:'Casual leave',SL:'Sick leave',EL:'Earned leave',CO:'Compensatory off',ML:'Maternity / paternity leave',LOP:'Leave without pay'};
-/** Leave types with a yearly entitlement (SCC TRACKED_CATS). Comp off and maternity / paternity are paid but not tracked. */
+/** SCC's six leave categories in SCC's order (VALID_CATEGORIES) + HCC's LOP. The list is fixed (SCC: not editable). */
+export const HR_LEAVE_TYPES:HRLeaveType[]=['CL','SL','EL','ML','CO','OTH','LOP'];
+export const HR_LEAVE_LABEL:Record<HRLeaveType,string>={CL:'Casual leave',SL:'Sick leave',EL:'Earned leave',ML:'Maternity / paternity leave',CO:'Compensatory off',OTH:'Other',LOP:'Leave without pay'};
+/** SCC TRACKED_CATS (Casual, Sick, Earned): quota and balance warning. Maternity / Comp-Off / Other (and LOP) are not quota-tracked. */
 export const HR_TRACKED:('CL'|'SL'|'EL')[]=['CL','SL','EL'];
+/** Every category is a leave day in pay (SCC); only HCC's LOP is unpaid (payroll: absent). */
 export const hrPaidLeave=(t:HRLeaveType,s?:State)=>s?hrLeavePaid(s,t):t!=='LOP';
 export const HR_GRACE_MIN=15;
 export const HR_WEEKDAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-export const HR_HALF_LABEL:Record<HRHalf,string>={AM:'first half',PM:'second half'};
+/** SCC leave-type labels (H695-697). */
+export const HR_HALF_LABEL:Record<HRHalf,string>={AM:'Half Day — Morning (till 2 PM)',PM:'Half Day — Afternoon (after 5 PM)'};
+/** SCC short labels: Full Day / Half AM / Half PM. */
+export const hrKindLabel=(l:{half?:HRHalf})=>l.half==='AM'?'Half Day AM':l.half==='PM'?'Half Day PM':'Full Day';
 
 // ── Exact integer arithmetic (half-up; BigInt so large products never lose precision) ──
 const B=(n:number)=>BigInt(n);
@@ -296,7 +342,8 @@ export function hrLeavePolicy(s:State):HRLeavePolicy{
   if(!mstStored(s,'leaveTypes'))return p;
   return {...p,ent:{CL:hrLeaveQuota(s,'CL')??0,SL:hrLeaveQuota(s,'SL')??0,EL:hrLeaveQuota(s,'EL')??0}};
 }
-export const hrDeptCap=(s:State,dept:string)=>{const p=hrLeavePolicy(s);return p.deptCap[dept]??p.defaultCap;};
+/** SCC per-store advisory cap, per department (SCC CAPS_DEFAULT = MAX_DAY). Never blocks a leave. */
+export const hrDeptCap=(s:State,dept:string)=>hrLeavePolicy(s).deptCap[dept]??HR_MAX_DAY;
 /** Latest locked pay-run month (rates on or before it can no longer change). */
 export const hrLastLockedMonth=(s:State)=>hrSlice(s).runs.filter(r=>r.status==='Locked').map(r=>r.month).sort().pop();
 
@@ -316,18 +363,28 @@ export const hrPaidHolidayOn=(s:State,date:string):HRPaidHoliday|undefined=>{con
 export const hrDayOff=(s:State,st:HRStaff,date:string)=>hrShiftFor(s,st,date)==='OFF'||hrHolidayPaid(s,date);
 /** DEC-075: the unmarked-days warning points to the correction action (server PayrollRules.UnmarkedHint). */
 export const HR_UNMARKED_HINT='a manager can correct them on Staff & payroll › Attendance › Past days before the lock.';
-const covers=(l:HRLeave,date:string)=>l.from<=date&&l.to>=date;
-export const hrApprovedLeavesOn=(s:State,staffId:string,date:string)=>hrSlice(s).leaves.filter(l=>l.staffId===staffId&&l.status==='Approved'&&covers(l,date));
+// ── SCC leave records by date (one record per date; a memo per leaves array for the screens — handlers filter directly) ──
+const leaveIdx=new WeakMap<HRLeave[],{n:number;by:Map<string,HRLeave[]>}>();
+/** Every leave record (any status) of a date, in insertion order. */
+export function hrLeavesOn(s:State,date:string):HRLeave[]{
+  const ls=hrSlice(s).leaves;let ix=leaveIdx.get(ls);
+  if(!ix||ix.n!==ls.length){const by=new Map<string,HRLeave[]>();for(const l of ls){const a=by.get(l.date);if(a)a.push(l);else by.set(l.date,[l]);}ix={n:ls.length,by};leaveIdx.set(ls,ix);}
+  return ix.by.get(date)??[];
+}
+/** SCC isActiveLeave: pending + approved hold a slot (rejected frees it; a cancelled record — SCC "removed" — is gone). */
+export const hrLeaveActive=(l:{status:HRLeave['status']})=>l.status==='Pending'||l.status==='Approved';
+export const hrApprovedLeavesOn=(s:State,staffId:string,date:string)=>hrLeavesOn(s,date).filter(l=>l.staffId===staffId&&l.status==='Approved');
 /** A full-day approved leave on the date, else the first half-day one. */
 export const hrApprovedLeaveOn=(s:State,staffId:string,date:string)=>{const ls=hrApprovedLeavesOn(s,staffId,date);return ls.find(l=>!l.half)??ls[0];};
-/** Day view for one staff member: explicit attendance → rostered off → paid holiday → approved leave → unmarked. Half-day leave can sit beside attendance. */
+/** Day view for one staff member: explicit attendance → approved leave (SCC: a leave record of that date) → rostered off → paid holiday → unmarked.
+ *  Half-day leave can sit beside attendance. */
 export function hrDayStatus(s:State,st:HRStaff,date:string):{kind:'att'|'leave'|'off'|'holiday'|'unmarked'|'na';att?:HRAtt;leave?:HRLeave;holiday?:HRPaidHoliday}{
   if(date<st.joined||(st.exitedOn&&date>st.exitedOn))return {kind:'na'};
   const att=hrSlice(s).att[hrKey(date,st.id)],leave=hrApprovedLeaveOn(s,st.id,date);
   if(att)return leave?.half?{kind:'att',att,leave}:{kind:'att',att};
-  if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};// F-01: weekly off inside a leave span stays a weekly off
-  const holiday=hrPaidHolidayOn(s,date);if(holiday)return {kind:'holiday',holiday};// DEC-083 / MA-6: an unmarked paid holiday is paid like a weekly off
   if(leave)return {kind:'leave',leave};
+  if(hrShiftFor(s,st,date)==='OFF')return {kind:'off'};
+  const holiday=hrPaidHolidayOn(s,date);if(holiday)return {kind:'holiday',holiday};// DEC-083 / MA-6: an unmarked paid holiday is paid like a weekly off
   return {kind:'unmarked'};
 }
 /** Self check-in status from the simulated clock: Late after shift start + grace. */
@@ -355,66 +412,112 @@ export function hrCounts(s:State,st:HRStaff,ym:string,upTo?:string):HRCounts{
         if(att.status==='H')c.HL++;else c.A+=0.5;
       }else if(att.status==='OFF')c.OFFW++;else if(att.status==='NT')nt++;else c[att.status]++;
     }
-    // F-01: a rostered weekly off inside a leave span is a weekly off, never a leave day (SCC isWeekOffDate; matches the stored `days`).
-    // DEC-083 / MA-6: a paid holiday (Holiday calendar) without attendance is a paid day, never leave or unmarked; a weekly off on the same day stays a weekly off.
-    else if(hrShiftFor(s,st,d)==='OFF')c.off++;
-    else if(hrHolidayPaid(s,d))hol++;
+    // SCC leave port (DEC-116): leave is one record per date, created only on dates outside the hotel's week-off set, so an approved record IS a
+    // leave day — SCC's payroll feed counts every approved per-day record (paid categories → leave, HCC's LOP → absent), also on a rostered off day.
+    // (Before the port, F-01 read a rostered weekly off inside a leave SPAN as an off day; spans became per-day records of the counted days only.)
+    // DEC-083 / MA-6: an unmarked paid holiday without leave is a paid day; a weekly off on the same day stays a weekly off.
     else if(full)addLeave(full,1);
     else if(halves.length){halves.forEach(l=>addLeave(l,0.5));c.unmarked+=1-0.5*halves.length;}
+    else if(hrShiftFor(s,st,d)==='OFF')c.off++;
+    else if(hrHolidayPaid(s,d))hol++;
     else c.unmarked++;
   }
   if(hol)c.hol=hol;if(nt)c.NT=nt;if(elapsed!==undefined)c.elapsed=elapsed;
   return c;
 }
 
-// ── Leave ──
-/** Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (DEC-083); a half-day leave is 0.5. */
-export function hrLeaveDays(s:State,st:HRStaff,from:string,to:string,half?:HRHalf){
-  if(half)return hrDayOff(s,st,from)?0:0.5;
-  let n=0;for(let d=from;d<=to;d=addDays(d,1))if(!hrDayOff(s,st,d))n++;return n;
+// ── Leave (SCC leave\index.html, in full — DEC-116 / DEC-119) ──
+/** The hotel's week-off set for leave (SCC loadWeekOff): weekdays 0 = Sunday … 6 = Saturday. Per-staff weekly offs stay for the roster only. */
+export const hrLeaveWeekOff=(s:State):number[]=>{const w=hrSlice(s).leavePolicy?.weekOff;return Array.isArray(w)?w:HR_LEAVE_WEEKOFF_DEFAULT;};
+/** SCC isWeekOffDate: the single source for recording, import, requested days, the blackout check, the calendar tint and the staffing strip. */
+export const hrIsWeekOff=(s:State,date:string)=>hrLeaveWeekOff(s).includes(hrWeekday(date));
+/** SCC getCapacity over the active records of a date (`ls` = that date's records; default: the state's). */
+export function hrCapacity(s:State,date:string,ls:HRLeave[]=hrLeavesOn(s,date)){
+  const act=ls.filter(l=>l.date===date&&hrLeaveActive(l));
+  const amUsed=act.filter(l=>!l.half||l.half==='AM').length,pmUsed=act.filter(l=>!l.half||l.half==='PM').length,dayUsed=act.length,dayFull=dayUsed>=HR_MAX_DAY;
+  return {amUsed,pmUsed,dayUsed,dayFull,amFull:amUsed>=HR_MAX_SHIFT||dayFull,pmFull:pmUsed>=HR_MAX_SHIFT||dayFull,
+    bothFull:(amUsed>=HR_MAX_SHIFT&&pmUsed>=HR_MAX_SHIFT)||dayFull,
+    canAddFullDay:amUsed<HR_MAX_SHIFT&&pmUsed<HR_MAX_SHIFT&&!dayFull,canAddAM:amUsed<HR_MAX_SHIFT&&!dayFull,canAddPM:pmUsed<HR_MAX_SHIFT&&!dayFull};
 }
-/** Leave used (approved + pending) in the financial year containing a date (or starting in April of a 4-digit year), per type. */
-export function hrLeaveUsed(s:State,staffId:string,dateOrYear:string,type:HRLeaveType,except=''){
-  const fy=hrFy(dateOrYear);
-  return hrSlice(s).leaves.filter(l=>l.id!==except&&l.staffId===staffId&&l.type===type&&l.from>=fy.from&&l.from<=fy.to&&(l.status==='Approved'||l.status==='Pending')).reduce((n,l)=>n+l.days,0);
+/** SCC canAddLeave(key, type): full day needs both shifts, a half day its own shift, all under the 3-per-day cap. */
+export function hrCanAddLeave(s:State,date:string,half?:HRHalf,ls?:HRLeave[]){
+  const c=hrCapacity(s,date,ls);return half==='AM'?c.canAddAM:half==='PM'?c.canAddPM:c.canAddFullDay;
 }
-/** Yearly quota of a leave type (Leave types list); 0 when the type has none. */
-export const hrEntitled=(s:State,type:HRLeaveType)=>hrLeaveQuota(s,type)??0;
-/** Days carried into the financial year containing `dateOrYear` from the previous one: unused quota up to the type's carry-forward limit
- *  (one year back; the previous year's own carry is not carried again). Only for staff who joined before the previous year ended. */
-export function hrLeaveCarried(s:State,staffId:string,type:HRLeaveType,dateOrYear:string){
-  const cap=hrLeaveCarryCap(s,type),q=hrLeaveQuota(s,type);if(!cap||q===undefined)return 0;
-  const fy=hrFy(dateOrYear),prev=hrFy(String(+fy.from.slice(0,4)-1)),st=hrSlice(s).staff.find(x=>x.id===staffId);
-  if(!st||st.joined>prev.to)return 0;
-  return Math.min(cap,Math.max(0,q-hrLeaveUsed(s,staffId,prev.from,type)));
+/** SCC duplicate rule (submitLeave): same staff member, a record not rejected (nor cancelled), and the same half, or either is a full day. AM + PM coexist. */
+export const hrIsDuplicate=(ls:HRLeave[],staffId:string,date:string,half?:HRHalf)=>
+  ls.some(l=>l.date===date&&l.staffId===staffId&&hrLeaveActive(l)&&(l.half===half||!l.half||!half));
+/** SCC requestedLeaveDays: non-week-off dates from…to (at most 400 looked at, SCC's guard) × 1 (full day) or 0.5 (half day). Dates later skipped
+ *  as duplicate or full still count (SCC; owner question). */
+export function hrLeaveDays(s:State,from:string,to:string,half?:HRHalf){
+  if(!from||!to||from>to)return 0;
+  let n=0,g=0;for(let d=from;d<=to&&g++<400;d=addDays(d,1))if(!hrIsWeekOff(s,d))n++;
+  return n*(half?0.5:1);
 }
-/** Days still bookable for a tracked type: quota + carried − used (approved + pending), optionally ignoring one request. */
-export const hrLeaveAvailable=(s:State,staffId:string,type:HRLeaveType,dateOrYear:string,except='')=>
-  hrEntitled(s,type)+hrLeaveCarried(s,staffId,type,dateOrYear)-hrLeaveUsed(s,staffId,dateOrYear,type,except);
+/** SCC entFor: per category, the staff member's override, else the saved default, else ENT_DEFAULTS (never below 0). */
+export function hrEntFor(s:State,staffId:string):{CL:number;SL:number;EL:number}{
+  const p=hrLeavePolicy(s),ov=p.perStaff?.[staffId]??{},ent=p.ent??HR_ENT_DEFAULTS;
+  const one=(c:'CL'|'SL'|'EL')=>{const v=ov[c]!=null?ov[c]:ent[c]!=null?ent[c]:HR_ENT_DEFAULTS[c];return Math.max(0,Number(v)||0);};
+  return {CL:one('CL'),SL:one('SL'),EL:one('EL')};
+}
+/** SCC fyUsage: APPROVED leave days (SCC isCountedLeave; imported legacy records are approved) per category for one staff member, each record by its
+ *  own date inside the FY. Pending leave is not counted (owner question). `except` = a record to leave out (DEC-075 correction preview). */
+export function hrFyUsage(s:State,staffId:string,fy:{from:string;to:string},except=''):Record<string,number>{
+  const used:Record<string,number>={};
+  for(const l of hrSlice(s).leaves)if(l.staffId===staffId&&l.status==='Approved'&&l.id!==except&&l.date>=fy.from&&l.date<=fy.to)used[l.type]=(used[l.type]??0)+l.days;
+  return used;
+}
+/** Leave used (approved, by date) in the financial year containing a date (or starting in April of a 4-digit year) for one category. */
+export const hrLeaveUsed=(s:State,staffId:string,dateOrYear:string,type:HRLeaveType,except='')=>hrFyUsage(s,staffId,hrFy(dateOrYear),except)[type]??0;
+/** Entitlement of a tracked category for a staff member (SCC entFor); 0 for an untracked one. */
+export const hrEntitled=(s:State,type:HRLeaveType,staffId='')=>(HR_TRACKED as string[]).includes(type)?hrEntFor(s,staffId)[type as 'CL'|'SL'|'EL']:0;
+/** Days left for a tracked category: entitlement − approved use (no carry-forward: SCC starts every FY at the quota). */
+export const hrLeaveAvailable=(s:State,staffId:string,type:HRLeaveType,dateOrYear:string,except='')=>hrEntitled(s,type,staffId)-hrLeaveUsed(s,staffId,dateOrYear,type,except);
 export function hrLeaveBalance(s:State,staffId:string,dateOrYear:string){
-  // F-15: `left` never goes below 0; `over` = days already taken or requested beyond a reduced entitlement.
-  return hrTrackedTypes(s).map(t=>{const used=hrLeaveUsed(s,staffId,dateOrYear,t),entitled=hrEntitled(s,t)+hrLeaveCarried(s,staffId,t,dateOrYear);return {type:t,entitled,used,left:Math.max(0,entitled-used),over:Math.max(0,used-entitled)};});
+  // F-15: `left` never goes below 0; `over` = approved days beyond the entitlement (SCC allows it after the warning).
+  const used=hrFyUsage(s,staffId,hrFy(dateOrYear)),ent=hrEntFor(s,staffId);
+  return HR_TRACKED.map(t=>{const u=used[t]??0,e=ent[t];return {type:t,entitled:e,used:u,left:Math.max(0,e-u),over:Math.max(0,u-e)};});
 }
-/** F-15: staff whose used + pending leave already exceeds a proposed entitlement (shown before the Owner saves a cut). */
+/** F-15: staff whose approved leave already exceeds a proposed entitlement (shown before the Owner saves a cut; SCC has no such warning). */
 export function hrLeaveOverCount(s:State,ent:{CL:number;SL:number;EL:number},dateOrYear=s.date){
-  return hrSlice(s).staff.filter(st=>st.active&&HR_TRACKED.some(t=>hrLeaveUsed(s,st.id,dateOrYear,t)>ent[t])).length;
+  const fy=hrFy(dateOrYear),ov=hrLeavePolicy(s).perStaff??{};
+  return hrSlice(s).staff.filter(st=>st.active&&HR_TRACKED.some(t=>(hrFyUsage(s,st.id,fy)[t]??0)>(ov[st.id]?.[t]??ent[t]))).length;
 }
-/** Other staff of a department holding a leave slot (pending or approved) on a date — SCC getCapacity, per department. */
-export function hrDeptOff(s:State,dept:string,date:string,exceptStaff=''){
-  const x=hrSlice(s);
-  return x.leaves.filter(l=>(l.status==='Pending'||l.status==='Approved')&&covers(l,date)&&l.staffId!==exceptStaff).filter(l=>{
-    const st=x.staff.find(t=>t.id===l.staffId);return !!st&&st.dept===dept&&!hrDayOff(s,st,date);});
+/** SCC blackoutsForKey: entries covering a date; with `dept` (the add-leave gate) only hotel-wide ones and those of that department. */
+export function hrBlackoutsFor(s:State,date:string,dept?:string):HRBlackout[]{
+  return (hrLeavePolicy(s).blackouts??[]).filter(b=>date>=b.from&&date<=b.to&&(dept===undefined||b.dept===''||b.dept===dept));
 }
-/** Leave calendar for a month: per date, the leaves (pending + approved) and per-department counts against the cap. */
-export function hrLeaveCalendar(s:State,ym:string){
-  const x=hrSlice(s);
-  return hrMonthDates(ym).map(date=>{
-    const items=x.leaves.filter(l=>(l.status==='Pending'||l.status==='Approved')&&covers(l,date)).map(l=>({leave:l,staff:x.staff.find(t=>t.id===l.staffId)!}))
-      .filter(i=>i.staff&&!hrDayOff(s,i.staff,date));
-    const depts=x.depts.map(d=>({dept:d.id,name:d.name,count:items.filter(i=>i.staff.dept===d.id).length,cap:hrDeptCap(s,d.id)})).filter(d=>d.count>0);
-    const holiday=hrPaidHolidayOn(s,date);
-    return {date,items,depts,full:depts.some(d=>d.count>=d.cap),...(holiday?{holiday}:{})};
-  });
+/** SCC submit gate: blackouts on the non-week-off dates from…to (at most 400 looked at) for a staff member's department; hard = refuse, else confirm. */
+export function hrBlackoutHits(s:State,from:string,to:string,dept:string){
+  const hits:HRBlackout[]=[];if(!from||!to||from>to)return {hits,hard:false,labels:''};
+  let g=0;for(let d=from;d<=to&&g++<400;d=addDays(d,1))if(!hrIsWeekOff(s,d))hits.push(...hrBlackoutsFor(s,d,dept));
+  const labels=[...new Set(hits.map(b=>b.label||(b.kind==='holiday'?'Store holiday':'Blackout')))].join(', ');
+  return {hits,hard:hits.some(b=>b.hard),labels};
+}
+/** SCC getApproverChoices: the Owner, then Managers (SCC: Store Managers) — enabled users; none → every enabled user with their role. */
+export function hrApproverChoices(s:State):{id:string;name:string;role:string}[]{
+  const srv=hrSlice(s).approvers;if(srv)return srv;
+  const nm=(u:{name:string})=>u.name.split(' · ')[0];
+  const pick=s.users.filter(u=>u.enabled&&u.role==='Owner').concat(s.users.filter(u=>u.enabled&&u.role==='Manager'));
+  return (pick.length?pick:s.users.filter(u=>u.enabled)).map(u=>({id:u.id,name:nm(u),role:u.role}));
+}
+/** Before the SCC port a leave was one SPAN (from…to, `days`): the dates it counted — the staff member's rostered working days that were not paid
+ *  holidays (a half day: its one date when that was such a day). Used once to split old spans into per-day records (restore + fixtures). */
+export function hrLegacySpanDates(s:State,st:HRStaff|undefined,from:string,to:string,half?:HRHalf):string[]{
+  const out:string[]=[];if(!from||!to||to<from)return out;
+  for(let d=from;d<=(half?from:to);d=addDays(d,1))if(!st||!hrDayOff(s,st,d))out.push(d);
+  return out;
+}
+/** One-time split of old span-shaped leave (no `date`) into SCC per-day records; idempotent (a no-op when every record has a date).
+ *  The first counted date keeps the request id, the next ones get `<id>-2`, `<id>-3` …; every record keeps the span as its request range. */
+export function hrMigrateLeaveDays(s:State):boolean{
+  const x=s.staffX;if(!x||!Array.isArray(x.leaves)||x.leaves.every(l=>typeof (l as Partial<HRLeave>).date==='string'))return false;
+  const out:HRLeave[]=[];
+  for(const l of x.leaves){
+    if(typeof (l as Partial<HRLeave>).date==='string'){out.push(l);continue;}
+    const st=x.staff.find(t=>t.id===l.staffId),counted=hrLegacySpanDates(s,st,l.from,l.to,l.half),dates=counted.length?counted:[l.from];// never drop a record
+    dates.forEach((d,i)=>out.push({...l,id:i?`${l.id}-${i+1}`:l.id,date:d,days:l.half?0.5:1,reason:l.reason??''}));
+  }
+  x.leaves=out;return true;
 }
 
 // ── Payroll ──
@@ -612,7 +715,7 @@ export const hrEntryLabel=(e:HRDayEntry)=>e.kind==='mark'?HR_ATT_LABEL[e.status]
 export const hrEntryCode=(e:HRDayEntry)=>e.kind==='mark'?e.status:e.kind==='leave'?e.type:'none';
 export const hrSameEntry=(a:HRDayEntry,b:HRDayEntry)=>hrEntryCode(a)===hrEntryCode(b)&&(a.kind!=='mark'||b.kind!=='mark'||a.otMin===b.otMin);
 /** Correction targets the dialog offers (server DayEntry.Parse): attendance marks, full-day leave types, or 'none' (clear the day). */
-export const HR_CORRECTION_MARKS=['P','L','H','A','OFF','NT','CL','SL','EL','CO','ML','LOP','none'] as const;
+export const HR_CORRECTION_MARKS=['P','L','H','A','OFF','NT','CL','SL','EL','ML','CO','OTH','LOP','none'] as const;
 /** Parses a correction target (mark code + overtime minutes); a string = the refusal (VALIDATION). */
 export function hrParseEntry(mark:unknown,ot:unknown):HRDayEntry|string{
   const m=Number(ot??0);
@@ -623,14 +726,14 @@ export function hrParseEntry(mark:unknown,ot:unknown):HRDayEntry|string{
   if((HR_LEAVE_TYPES as string[]).includes(String(mark)))return m?'A leave day carries no overtime.':{kind:'leave',type:mark as HRLeaveType};
   return 'Choose what the day should be: an attendance mark, a leave type or "none".';
 }
-/** What a past day holds, in the order the month counts read it (attendance mark first, then a full-day approved leave). */
-export function hrDayEntry(s:State,st:HRStaff,date:string):{entry:HRDayEntry;oneDayLeave?:HRLeave;multiDayLeave?:HRLeave;halfDayLeave:boolean;pendingLeave:boolean}{
-  const x=hrSlice(s),att=x.att[hrKey(date,st.id)],mine=x.leaves.filter(l=>l.staffId===st.id&&covers(l,date));
+/** What a past day holds, in the order the month counts read it (attendance mark first, then a full-day approved leave). Leave is one record per
+ *  date (SCC), so an approved full-day record is always the day's own record (`oneDayLeave`), whatever range it was requested with. */
+export function hrDayEntry(s:State,st:HRStaff,date:string):{entry:HRDayEntry;oneDayLeave?:HRLeave;halfDayLeave:boolean;pendingLeave:boolean}{
+  const x=hrSlice(s),att=x.att[hrKey(date,st.id)],mine=x.leaves.filter(l=>l.staffId===st.id&&l.date===date);
   const approved=mine.filter(l=>l.status==='Approved'),full=approved.find(l=>!l.half),halfDayLeave=approved.some(l=>!!l.half),pendingLeave=mine.some(l=>l.status==='Pending');
   if(att)return {entry:{kind:'mark',status:att.status,otMin:att.otMin||0},halfDayLeave,pendingLeave};
   if(!full)return {entry:{kind:'none'},halfDayLeave,pendingLeave};
-  return full.from===full.to?{entry:{kind:'leave',type:full.type},oneDayLeave:full,halfDayLeave:false,pendingLeave}
-    :{entry:{kind:'leave',type:full.type},multiDayLeave:full,halfDayLeave:false,pendingLeave};
+  return {entry:{kind:'leave',type:full.type},oneDayLeave:full,halfDayLeave:false,pendingLeave};
 }
 /** Gross pay (earned + overtime) of a staff member's month line on a state's days. */
 const hrMonthGross=(s:State,st:HRStaff,ym:string)=>hrComputeLine(st,hrCounts(s,st,ym),hrRatesFor(s,ym)).gross;
@@ -640,7 +743,7 @@ function hrWithEntry(s:State,st:HRStaff,date:string,e:HRDayEntry,replaced?:strin
   const x=hrSlice(s),key=hrKey(date,st.id),att={...x.att};delete att[key];
   const leaves=x.leaves.map(l=>l.id===replaced?{...l,status:'Cancelled' as const}:l);
   if(e.kind==='mark')att[key]={status:e.status,at:'',otMin:e.otMin,by:''};
-  else if(e.kind==='leave')leaves.push({id:'(correction)',staffId:st.id,type:e.type,from:date,to:date,days:1,reason:'',status:'Approved',requestedBy:'',requestedAt:''});
+  else if(e.kind==='leave')leaves.push({id:'(correction)',staffId:st.id,date,type:e.type,from:date,to:date,days:1,reason:'',status:'Approved',requestedBy:'',requestedAt:''});
   return {date:s.date,staffX:{...x,att,leaves}} as unknown as State;
 }
 type HRCorrectionRefusal={code:'VALIDATION'|'INVALID_TRANSITION';msg:string};
@@ -661,13 +764,12 @@ export function hrPlanCorrection(s:State,st:HRStaff,date:string,entry:HRDayEntry
   if(date<st.joined||(st.exitedOn&&date>st.exitedOn))return no('INVALID_TRANSITION',`${st.name} was not in service on ${dmy(date)}.`);
   const day=hrDayEntry(s,st,date);
   if(day.pendingLeave)return no('INVALID_TRANSITION','A pending leave request covers this day — decide it first.');
-  if(day.multiDayLeave)return no('INVALID_TRANSITION',`Approved ${HR_LEAVE_LABEL[day.multiDayLeave.type].toLowerCase()} ${day.multiDayLeave.from} – ${day.multiDayLeave.to} covers this day; a leave of several days is not corrected day by day.`);
   if(hrSameEntry(day.entry,entry))return no('VALIDATION',`${dmy(date)} already holds ${hrEntryLabel(entry).toLowerCase()} — nothing to correct.`);
   if(entry.kind==='leave'){
     if(day.halfDayLeave)return no('INVALID_TRANSITION','A half-day leave covers this day; correct the attendance mark beside it instead.');
-    if(st.payType==='daily'&&entry.type!=='LOP')return no('VALIDATION','Daily-wage staff can take leave without pay only (illustrative policy).');
-    if(hrDayOff(s,st,date))return no('VALIDATION','That day is a weekly off or a paid holiday — no leave is needed.');
-    if((HR_TRACKED as string[]).includes(entry.type)){const t=entry.type as 'CL'|'SL'|'EL',left=hrEntitled(s,t)-hrLeaveUsed(s,st.id,date,t,day.oneDayLeave?.id??'');
+    // SCC leave port: the hotel's week-off set decides where leave can be (SCC isWeekOffDate); every category, any pay type (SCC has no unpaid-only rule).
+    if(hrIsWeekOff(s,date))return no('VALIDATION','That day is in the hotel’s leave week-off set — no leave is recorded on it.');
+    if((HR_TRACKED as string[]).includes(entry.type)){const t=entry.type as 'CL'|'SL'|'EL',left=hrEntitled(s,t,st.id)-hrLeaveUsed(s,st.id,date,t,day.oneDayLeave?.id??'');
       if(left<1)return no('VALIDATION',`Not enough ${t} balance: ${Math.max(0,left)} day${left===1?'':'s'} left in ${hrFy(date).label}.`);}
   }
   const ym=date.slice(0,7);
@@ -678,12 +780,14 @@ export const hrPendingRequests=(s:State,kind?:HRRequest['kind'])=>(hrSlice(s).re
 /** The unmarked past days of a month for one staff member (what the pay-run warning counts as absent) — the correction dialog opens on the first. */
 export const hrUnmarkedDates=(s:State,st:HRStaff,ym:string)=>hrMonthDates(ym).filter(d=>d<s.date&&hrDayStatus(s,st,d).kind==='unmarked');
 
-/** Pending leave queue a user may decide (excludes own requests and own leave). */
+/** Pending leave records (one per date) a user may decide (excludes own requests and own leave — DEC-119). */
 export function hrDecidable(s:State,uid:string){
   if(!hrCanManage(s,uid))return [];
   const me=hrStaffOfUser(s,uid);
   return hrSlice(s).leaves.filter(l=>l.status==='Pending'&&l.requestedBy!==uid&&l.staffId!==me?.id);
 }
+/** SCC allPendingLeaves: every pending date record, by date (the Approvals list and its badge). */
+export const hrPendingLeaves=(s:State)=>hrSlice(s).leaves.filter(l=>l.status==='Pending').sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
 
 // ── Payslip delivery (DEC-056): PDF via the share sheet + simulated WhatsApp ──
 /** WhatsApp number: digits only, 10 digits → +91 (SCC waEmpMessage). Empty when unusable. */
@@ -725,13 +829,6 @@ export function hrFnfAdvanceRecovered(f:HRFnf){
 }
 /** DEC-074: the advance a settlement did not cover — still open and owed by the leaver. */
 export const hrFnfAdvanceLeftOpen=(f:HRFnf)=>Math.max(0,f.advanceOutstanding-hrFnfAdvanceRecovered(f));
-/** Suggested earned-leave encashment: EL balance × (monthly ÷ days in the exit month). Manual adjustment in SCC; offered as a prefill here. */
-export function hrElEncashment(s:State,st:HRStaff){
-  if(st.payType!=='monthly')return 0;
-  // MA-6: every tracked leave type flagged "paid out at full and final" (seed: earned leave only).
-  const last=st.exitedOn??s.date,left=hrLeaveBalance(s,st.id,last).filter(b=>hrLeaveEncash(s,b.type)).reduce((n,b)=>n+Math.max(0,b.left),0);
-  return hrMulDiv(st.monthly,Math.round(left*2),1,2*hrDaysInMonth(last.slice(0,7)));
-}
 
 // ── Settings for the Master configuration hub (W05-A wires them; group "People, payroll and leave") ──
 export type HRSettingDef={key:string;group:'People, payroll and leave';category:'Statutory rates'|'Leave policy';label:string;
@@ -755,12 +852,12 @@ export function hrSettingDefs():HRSettingDef[]{
     rate('hr.ot','OT day rate','percent','× a day’s pay (gross ÷ total days)',['otBps'],'SCC pays each OT day — salary days beyond the total days — at gross ÷ total days (1×). No per-minute overtime (DEC-115).'),
     rate('hr.late','Late marks rule','integer','late marks per ½-day loss of pay',['lateBlock'],'SCC: 3 late marks = ½ day.'),
     rate('hr.rounding','Statutory rounding','text','paise / rupee',['rounding'],'SCC rounds to paise; "rupee" rounds PF to the nearest rupee and ESIC up to the next rupee.'),
-    leave('hr.leave.ent','Yearly leave entitlement','integer','days per financial year (CL / SL / EL)',['ent'],'SCC defaults: casual 12, sick 7, earned 15 (April–March). Each type also has its own carry-forward, paid / unpaid and encashment setting in Master configuration › People › Leave types.'),
-    leave('hr.leave.cap','Maximum staff off per department per day','integer','staff (pending + approved)',['defaultCap','deptCap'],'SCC MAX_DAY capacity, applied per department.'),
-    leave('hr.leave.half','Half-day leave','fixed','first half / second half = 0.5 day',[],'Always on (SCC leaveDaysOf).',false),
-    leave('hr.leave.weeklyoff','Weekly offs','fixed','one day per staff member',[],'Weekly offs inside leave dates are skipped (SCC isWeekOffDate). For pay a weekly off taken is an absent day; SCC’s 4 extra days pay for it (DEC-115).',false),
+    leave('hr.leave.ent','Yearly leave entitlement','integer','days per financial year (CL / SL / EL)',['ent'],'SCC ENT_DEFAULTS: casual 12, sick 7, earned 15 per April–March year; any number of days ≥ 0 (halves allowed, no maximum). A staff member can have an override (Staff and payroll › Leave › Settings). Going over the quota warns; the person recording can still record it (SCC).'),
+    leave('hr.leave.cap','Leave records per day','fixed','3 per date for the whole hotel (pending + approved)',[],`SCC MAX_DAY = ${HR_MAX_DAY} (fixed): a full date is skipped, the other dates of the request are still recorded. SCC MAX_SHIFT = ${HR_MAX_SHIFT} per shift is ported too (MAX_DAY binds first). Department caps are advisory only (SCC per-store caps; Staff and payroll › Leave › Settings).`,false),
+    leave('hr.leave.half','Half-day leave','fixed','morning (till 2 PM) / afternoon (after 5 PM) = 0.5 day',[],'Always on (SCC leaveDaysOf); a half-day request may cover several dates (one half per date).',false),
+    leave('hr.leave.weeklyoff','Leave week-off days','fixed','one set for the hotel',[],'Dates on these weekdays are skipped when leave is recorded and counted (SCC isWeekOffDate). HCC default: none (a 7-day hotel); SCC’s default is Saturday + Sunday. Staff weekly offs stay for the roster only. Edited in Staff and payroll › Leave › Settings.',false),
     // DEC-083: the dated paid-holiday calendar is kept in Staff & payroll › Leave › Holidays (Owner); shown read-only here.
-    {...leave('hr.leave.holidays','Paid holidays','fixed','dated list per property',[],'Each paid holiday shortens its month’s total days (SCC "Mgmt holidays"); nobody loses pay for it. Skipped inside leave dates. The hotel has none (DEC-114).',false),
+    {...leave('hr.leave.holidays','Paid holidays','fixed','dated list per property',[],'Each paid holiday shortens its month’s total days (SCC "Mgmt holidays"); nobody loses pay for it. Not skipped inside leave dates (SCC: store holidays are blackout markers). The hotel has none (DEC-114).',false),
       approval:'Owner — Staff & payroll › Leave › Holidays',effective:'From the holiday’s date; a locked pay month keeps its holidays',dated:true},
   ];
 }
@@ -779,8 +876,9 @@ export function hrSettingValue(s:State,key:string,ym=s.date.slice(0,7)):string{
     case 'hr.late':return r.lateBlock?`${r.lateBlock} late = ½ day`:'Off';
     case 'hr.rounding':return r.rounding==='paise'?'To paise (SCC)':'PF nearest ₹ · ESIC next ₹';
     case 'hr.leave.ent':return `CL ${p.ent.CL} · SL ${p.ent.SL} · EL ${p.ent.EL} days / FY`;
-    case 'hr.leave.cap':return `${p.defaultCap} per department per day${Object.keys(p.deptCap).length?` · ${Object.keys(p.deptCap).length} department override${Object.keys(p.deptCap).length===1?'':'s'}`:''}`;
-    case 'hr.leave.half':return 'On';case 'hr.leave.weeklyoff':return 'Per staff member';
+    case 'hr.leave.cap':return `${HR_MAX_DAY} per day for the hotel (SCC)${Object.keys(p.deptCap).length?` · ${Object.keys(p.deptCap).length} advisory department cap${Object.keys(p.deptCap).length===1?'':'s'}`:''}`;
+    case 'hr.leave.half':return 'On';
+    case 'hr.leave.weeklyoff':{const w=hrLeaveWeekOff(s);return w.length?w.map(d=>HR_WEEKDAYS[d]).join(' + '):'None (every day can be leave)';}
     case 'hr.leave.holidays':{const fy=hrFy(s.date),n=hrPaidHolidays(s).filter(h=>h.date>=fy.from&&h.date<=fy.to).length;return n?`${n} in ${fy.label}`:'None yet — the Owner adds them';}
     default:return '—';
   }

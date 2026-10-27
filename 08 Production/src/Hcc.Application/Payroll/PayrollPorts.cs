@@ -50,7 +50,22 @@ public sealed record DesignationRef(string Code, string Name, string? Dept, bool
 
 public sealed record DepartmentRow(string Code, string Name, int? LeaveCap);
 
-public sealed record LeaveRow(LeaveSpan Span, int PropertyId, string Reason, int RequestedBy, DateTime RequestedUtc, int? DecidedBy, string? Note, string Version);
+/// <summary>A leave record as stored — ONE DATE since the SCC leave port (migration 4110): the request range (SCC leaveFrom / leaveTo), the nominated
+/// approver (SCC approvedBy: a user, or an imported SCC name), who removed it (SCC remove = cancel with an audit record) and the imported-SCC fields.</summary>
+public sealed record LeaveRow(LeaveSpan Span, int PropertyId, string Reason, int RequestedBy, DateTime RequestedUtc, int? DecidedBy, string? Note, string Version,
+    DateOnly? RequestFrom = null, DateOnly? RequestTo = null, int? ApproverId = null, string? ApproverName = null, int? CancelledBy = null, DateTime? CancelledUtc = null,
+    bool Legacy = false, string? SccId = null, string? DecidedByName = null, string? DecidedAtText = null);
+
+/// <summary>A new SCC leave record (one date).</summary>
+public sealed record NewLeaveDay(int PropertyId, long StaffId, LeaveType Type, DateOnly Date, LeaveHalf? Half, string? Reason, int? ApproverId, string? ApproverName,
+    DateOnly RequestFrom, DateOnly RequestTo, LeaveStatus Status, int RequestedBy, DateTime RequestedUtc, bool Legacy = false, string? SccId = null,
+    string? DecidedByName = null, string? DecidedAtText = null);
+
+/// <summary>An SCC agenda item (meeting / agenda / reminder).</summary>
+public sealed record LeaveAgendaRow(long AgendaId, DateOnly Date, string Title, string Time, string Kind, string Description, string? SccId, int CreatedBy, DateTime CreatedUtc);
+
+/// <summary>An approver choice (SCC getApproverChoices: the Owner, then Store Managers — HCC: Owner and Manager users).</summary>
+public sealed record ApproverRow(int UserId, string Name, string Role);
 
 public sealed record AdvanceRow(long AdvanceId, long StaffId, long AmountPaise, long InstallmentPaise, long RecoveredPaise, DateOnly Date, PayMonth FromMonth)
 {
@@ -88,7 +103,8 @@ public sealed record FnfDetail(long FnfId, DateOnly LastDay, PayrollRates Rates,
 /// <summary>Everything the board needs beyond the existing reads, for one property: roster and attendance in [from, to], every leave with its decision time.</summary>
 public sealed record PayrollBoardDetail(IReadOnlyList<RosterCell> Roster, IReadOnlyList<AttendanceDetail> Attendance, IReadOnlyList<LeaveRow> Leaves,
     IReadOnlyDictionary<long, DateTime> LeaveDecidedUtc, IReadOnlyList<RunDetail> Runs, IReadOnlyList<AdvanceDetail> Advances, IReadOnlyList<RecoveryDetail> Recoveries,
-    IReadOnlyList<BankFileDetail> BankFiles, IReadOnlyList<PayslipSendDetail> Sends, IReadOnlyList<UnlockDetail> Unlocks, IReadOnlyList<FnfDetail> Fnfs);
+    IReadOnlyList<BankFileDetail> BankFiles, IReadOnlyList<PayslipSendDetail> Sends, IReadOnlyList<UnlockDetail> Unlocks, IReadOnlyList<FnfDetail> Fnfs,
+    IReadOnlyList<LeaveAgendaRow>? Agendas = null);
 
 /// <summary>ESIC coverage recorded on a locked run line (F-07 contribution period).</summary>
 public sealed record LockedCoverage(long StaffId, PayMonth Month, bool? Covered);
@@ -168,7 +184,7 @@ public interface IPayrollDb
     /// <summary>DEC-075: removes a day's attendance mark (the correction's request row keeps it as "before").</summary>
     Task DeleteAttendanceAsync(long staffId, DateOnly date, CancellationToken ct);
 
-    /// <summary>DEC-075: a one-day approved leave created by an attendance correction (linked to its request; decided by the approver).</summary>
+    /// <summary>DEC-075: a one-day approved leave created by an attendance correction (linked to its request; decided — and nominated — by the approver).</summary>
     Task<long> InsertCorrectionLeaveAsync(int propertyId, LeaveSpan span, string reason, int requestedBy, int decidedBy, long requestId, DateTime utc,
         CancellationToken ct);
 
@@ -189,17 +205,44 @@ public interface IPayrollDb
 
     Task<bool> AnyAttendanceAsync(long staffId, DateOnly from, DateOnly to, bool exceptHalfDayMarks, CancellationToken ct);
 
-    Task<LeaveRow> InsertLeaveAsync(int propertyId, LeaveSpan span, string reason, int by, DateTime utc, CancellationToken ct);
+    /// <summary>SCC leave port: one record per date (any status); returns its id.</summary>
+    Task<long> InsertLeaveDayAsync(NewLeaveDay day, CancellationToken ct);
 
     Task<LeaveRow?> LockLeaveAsync(int propertyId, long leaveId, CancellationToken ct);
 
+    /// <summary>Pending → Approved / Rejected, versioned (STALE_VERSION when the record changed).</summary>
     Task<string> UpdateLeaveStatusAsync(long leaveId, string expectedVersion, LeaveStatus status, int by, DateTime utc, string? note, CancellationToken ct);
 
-    /// <summary>Pending/approved leaves of a department's staff overlapping [from, to], with the staff profile (capacity check).</summary>
-    Task<IReadOnlyList<(StaffProfile Staff, LeaveSpan Leave)>> DepartmentLeavesAsync(int propertyId, string dept, DateOnly from, DateOnly to, CancellationToken ct);
+    /// <summary>SCC remove = Cancelled with who / when (the row stays for audit), versioned; <paramref name="expectedVersion"/> null = no version check.</summary>
+    Task<string> CancelLeaveAsync(long leaveId, string? expectedVersion, int by, DateTime utc, string? note, CancellationToken ct);
 
-    /// <summary>The leave policy; with the property's Leave types list in <see cref="LeavePolicy.Types"/> (null = no list stored yet: CL SL EL as before).</summary>
+    /// <summary>Every leave record of the property dated in [from, to] (any status), oldest id first — SCC capacity, duplicates and imports.</summary>
+    Task<IReadOnlyList<LeaveRow>> LeavesBetweenAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
+    /// <summary>The leave settings: entitlements (the Leave types list's quotas once stored), week-off mask, overrides, blackouts, department caps.</summary>
     Task<LeavePolicy> LeavePolicyAsync(int propertyId, CancellationToken ct);
+
+    /// <summary>SCC perEmployee override of one staff member (null = removed).</summary>
+    Task SetLeaveOverrideAsync(int propertyId, long staffId, LeaveEntOverride? ov, int by, DateTime utc, CancellationToken ct);
+
+    Task<long> InsertBlackoutAsync(int propertyId, LeaveBlackout b, int by, DateTime utc, CancellationToken ct);
+
+    /// <summary>Deletes a blackout; returns it (null when there was none).</summary>
+    Task<LeaveBlackout?> DeleteBlackoutAsync(int propertyId, long blackoutId, CancellationToken ct);
+
+    Task<IReadOnlyList<LeaveAgendaRow>> AgendasAsync(int propertyId, CancellationToken ct);
+
+    Task<long> InsertAgendaAsync(int propertyId, LeaveAgendaRow a, CancellationToken ct);
+
+    /// <summary>Deletes an agenda item; returns it (null when there was none).</summary>
+    Task<LeaveAgendaRow?> DeleteAgendaAsync(int propertyId, long agendaId, CancellationToken ct);
+
+    /// <summary>SCC Clear All (HCC: cancel, never delete): every record not cancelled and not in a LOCKED pay month → Cancelled; agendas deleted.
+    /// Returns (cancelled, kept in locked months, agendas removed).</summary>
+    Task<(int Cancelled, int Kept, int Agendas)> ClearLeaveAsync(int propertyId, int by, DateTime utc, CancellationToken ct);
+
+    /// <summary>The approver choices: enabled users holding the Owner role, then the Manager role, valid at <paramref name="nowUtc"/> (null = the database clock).</summary>
+    Task<IReadOnlyList<ApproverRow>> ApproversAsync(int propertyId, DateTime? nowUtc, CancellationToken ct);
 
     /// <summary>The property's Shift patterns (the built-in M E N G when none is stored).</summary>
     Task<ShiftCatalog> ShiftCatalogAsync(int propertyId, CancellationToken ct);

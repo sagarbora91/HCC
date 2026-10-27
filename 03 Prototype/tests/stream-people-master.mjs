@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 export function register({test,M,assert}){
   const {seed,execute,mstRows,mstByCode,mstSpec,mstSpecsOfGroup,mstHistory,mstReasonOf,MstError,mstSearch,
-    hrShiftInfo,hrShiftFor,hrCheckinStatus,hrShiftPatterns,hrShiftPattern,hrCounts,hrComputeLine,hrComputeRun,hrLeaveDays,hrLeaveBalance,hrLeaveQuota,hrLeavePolicy,hrElEncashment,
+    hrShiftInfo,hrShiftFor,hrCheckinStatus,hrShiftPatterns,hrShiftPattern,hrCounts,hrComputeLine,hrComputeRun,hrLeaveDays,hrLeaveBalance,hrLeaveQuota,hrLeavePolicy,
     hrLeaveName,hrLeavePaid,hrLeaveChoices,hrTrackedTypes,hrHolidayPaid,hrHolidayOn,hrHolidayDates,hrHolidayFy,hrDesignationOf,hrDesignationChoices,hrSeedDesignations,
     hrWeeklyOffAuto,hrShiftMinutes,hrPayRuleFields,cmpSlice,cmpView,cmpFindCard,cmpParseDue,hrDayStatus,HR_SHIFTS}=M;
   const code=c=>e=>e.code===c;
@@ -22,12 +22,12 @@ export function register({test,M,assert}){
     for(const id of ['designations','shiftPatterns','leaveTypes'])assert.deepEqual([mstSpec(id).permission,mstSpec(id).money],['masters',false],id);
     assert.deepEqual([mstSpec('holidays').permission,mstSpec('holidays').money],['settings',true]);
     const money=id=>mstSpec(id).fields.filter(f=>f.money).map(f=>f.key);
-    assert.deepEqual(money('designations'),['defaultPayRule']);assert.deepEqual(money('leaveTypes'),['paid','yearlyQuota','carryForward','encashment']);assert.deepEqual(money('shiftPatterns'),[]);});
-  test('[PPL] seeds: shift patterns M E N G (today\'s times, 30 min break, N is night), leave types CL 12 · SL 7 · EL 15 + CO ML LOP, 8 holidays, one designation per staff title',()=>{
+    assert.deepEqual(money('designations'),['defaultPayRule']);assert.deepEqual(money('leaveTypes'),['paid','yearlyQuota']);assert.deepEqual(money('shiftPatterns'),[]);});
+  test('[PPL] seeds: shift patterns M E N G (today\'s times, 30 min break, N is night), leave types = SCC’s six (CL 12 · SL 7 · EL 15, ML, CO, Other) + LOP, 8 holidays, one designation per staff title',()=>{
     const s=seed();
     assert.deepEqual(mstRows(s,'shiftPatterns').map(r=>[r.code,r.start,r.end,!!r.night,r.breakMinutes,r.weeklyOffRule]),
       [['M','07:00','15:00',false,30,'fixed'],['E','15:00','23:00',false,30,'fixed'],['N','23:00','07:00',true,30,'fixed'],['G','09:00','18:00',false,30,'fixed']]);
-    assert.deepEqual(mstRows(s,'leaveTypes').map(r=>[r.code,r.paid,r.yearlyQuota,r.encashment]),[['CL',true,12,false],['SL',true,7,false],['EL',true,15,true],['CO',true,undefined,false],['ML',true,undefined,false],['LOP',false,undefined,false]]);
+    assert.deepEqual(mstRows(s,'leaveTypes').map(r=>[r.code,r.paid,r.yearlyQuota]),[['CL',true,12],['SL',true,7],['EL',true,15],['ML',true,undefined],['CO',true,undefined],['OTH',true,undefined],['LOP',false,undefined]]);
     assert.deepEqual(hrTrackedTypes(s),['CL','SL','EL']);assert.equal(mstRows(s,'holidays').length,8);
     const titles=new Set(x(s).staff.map(t=>t.designation));assert.equal(mstRows(s,'designations').length,titles.size);
     for(const t of x(s).staff)assert.equal(hrDesignationOf(s,t)?.name,t.designation);});
@@ -52,11 +52,12 @@ export function register({test,M,assert}){
     for(const u of ['owner','techadmin'])assert.ok(mstByCode(save(seed(),u,'shiftPatterns',row),'shiftPatterns','S'),u);
     assert.throws(()=>save(seed(),'techadmin','holidays',{code:'2026-12-31',name:'New year eve',kind:'paid'}),code('FORBIDDEN'));
     assert.ok(mstByCode(save(seed(),'owner','holidays',{code:'2026-12-31',name:'New year eve',kind:'paid'}),'holidays','2026-12-31'));
-    assert.throws(()=>save(seed(),'techadmin','leaveTypes',{code:'BL',name:'Bereavement leave',paid:true,yearlyQuota:3}),code('FORBIDDEN'));
+    const clId=mstByCode(seed(),'leaveTypes','CL').id;
+    assert.throws(()=>save(seed(),'techadmin','leaveTypes',{id:clId,code:'CL',name:'Casual leave',paid:true,yearlyQuota:3}),code('FORBIDDEN'));// the quota is a pay rule: Owner
     assert.throws(()=>save(seed(),'techadmin','designations',{code:'CHEF',name:'Chef',dept:'KIT',defaultPayRule:'monthly-basic'}),code('FORBIDDEN'));
     assert.ok(mstByCode(save(seed(),'techadmin','designations',{code:'CHEF',name:'Chef',dept:'KIT'}),'designations','CHEF'));
-    const s=save(seed(),'owner','leaveTypes',{code:'BL',name:'Bereavement leave',paid:true,yearlyQuota:3});
-    const ren=save(s,'techadmin','leaveTypes',{id:mstByCode(s,'leaveTypes','BL').id,code:'BL',name:'Bereavement',paid:true,yearlyQuota:3});assert.equal(hrLeaveName(ren,'BL'),'Bereavement');});
+    const s=save(seed(),'owner','leaveTypes',{id:clId,code:'CL',name:'Casual leave',paid:true,yearlyQuota:3});
+    const ren=save(s,'techadmin','leaveTypes',{id:clId,code:'CL',name:'Casual',paid:true,yearlyQuota:3});assert.equal(hrLeaveName(ren,'CL'),'Casual');});
 
   // ── Shift patterns ──
   test('[PPL] shift pattern validation: code 1–3 not OFF, HH:MM times, overnight needs night, break shorter than the shift, duplicate times',()=>{
@@ -102,7 +103,8 @@ export function register({test,M,assert}){
     s=save(s,'owner','shiftPatterns',{id,code:'M',name:'Morning',start:'07:00',end:'15:00',breakMinutes:30,night:false,weeklyOffRule:'roster'});
     assert.equal(hrWeeklyOffAuto(s,'M'),false);assert.equal(hrShiftFor(s,ravi,'2026-10-30'),'M');
     s=execute(s,'manager',{type:'HR_ROSTER_SET',staffId:'HR-S05',date:'2026-10-30',shift:'OFF'});assert.equal(hrShiftFor(s,staffRow(s,'HR-S05'),'2026-10-30'),'OFF');
-    assert.equal(hrLeaveDays(seed(),ravi,'2026-10-29','2026-10-31'),2);assert.equal(hrLeaveDays(save(seed(),'owner','shiftPatterns',{id,code:'M',name:'Morning',start:'07:00',end:'15:00',weeklyOffRule:'roster'}),ravi,'2026-10-29','2026-10-31'),3);});
+    // SCC leave port: leave days follow the hotel's week-off set, not the roster (3 days either way).
+    assert.equal(hrLeaveDays(seed(),'2026-10-29','2026-10-31'),3);assert.equal(hrLeaveDays(save(seed(),'owner','shiftPatterns',{id,code:'M',name:'Morning',start:'07:00',end:'15:00',weeklyOffRule:'roster'}),'2026-10-29','2026-10-31'),3);});
   test('[PPL] audit and history: "Master Shift patterns: start 07:00 → 08:00"; reorder; idempotent repeat; a later read sees the saved row (cache follows the write)',()=>{
     let s=seed();const id=mstByCode(s,'shiftPatterns','M').id;
     s=save(s,'owner','shiftPatterns',{id,code:'M',name:'Morning',start:'08:00',end:'15:00',breakMinutes:30,night:false,weeklyOffRule:'fixed'},'k-shift');
@@ -112,45 +114,48 @@ export function register({test,M,assert}){
     const ids=['G','E','N','M'].map(c=>mstByCode(s,'shiftPatterns',c).id);s=execute(s,'owner',{type:'MST_MASTER_REORDER',master:'shiftPatterns',ids});assert.deepEqual(hrShiftPatterns(s).map(p=>p.code),['G','E','N','M']);});
 
   // ── Leave types ──
-  test('[PPL] leave type validation: code, paid/quota/carry rules, at least one unpaid type stays',()=>{
+  // SCC leave port (DEC-116): the list is SCC's six categories + LOP — fixed; only LOP is unpaid; only CL / SL / EL carry a quota (any number ≥ 0,
+  // fractions allowed, no maximum); no carry-forward and no encashment.
+  test('[PPL] leave type validation (SCC fixed list): no other code, paid fixed (LOP unpaid), quota on CL / SL / EL only, fractions allowed, no retiring',()=>{
     const bad=row=>assert.throws(()=>save(seed(),'owner','leaveTypes',{name:'X',paid:true,...row}),reason('MASTER_INVALID'));
-    bad({code:'toolong1'});bad({code:'X1',carryForward:2});bad({code:'X1',paid:false,yearlyQuota:2});bad({code:'X1',paid:false,encashment:true});bad({code:'X1',yearlyQuota:1.5});
-    const lop=mstByCode(seed(),'leaveTypes','LOP');assert.throws(()=>execute(seed(),'owner',{type:'MST_MASTER_RETIRE',master:'leaveTypes',id:lop.id}),reason('MASTER_IN_USE'));
-    assert.throws(()=>save(seed(),'owner','leaveTypes',{id:lop.id,code:'LOP',name:'Leave without pay',paid:true}),reason('MASTER_INVALID'));
-    const s=save(seed(),'owner','leaveTypes',{code:'UL',name:'Unpaid study leave',paid:false});assert.deepEqual(hrLeaveChoices(s,'daily').map(r=>r.code),['LOP','UL']);
-    assert.ok(execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'leaveTypes',id:lop.id}));});
-  test('[PPL] leave requests use the list: a custom paid type without quota needs no balance; an unknown or retired type is refused; the quota decides the balance',()=>{
-    let s=save(seed(),'owner','leaveTypes',{code:'BL',name:'Bereavement leave',paid:true});
-    const req=(st,sid,type,from,to)=>execute(st,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:sid,leaveType:type,from,to,reason:'Family matter'});
-    const n=req(s,'HR-S05','BL','2026-11-02','2026-11-03');assert.equal(x(n).leaves.at(-1).type,'BL');assert.equal(hrLeaveBalance(n,'HR-S05','2026-11-02').length,3);
+    bad({code:'BL'});bad({code:'UL',paid:false});
+    const id=c=>mstByCode(seed(),'leaveTypes',c).id;
+    assert.throws(()=>save(seed(),'owner','leaveTypes',{id:id('LOP'),code:'LOP',name:'Leave without pay',paid:true}),reason('MASTER_INVALID'));
+    assert.throws(()=>save(seed(),'owner','leaveTypes',{id:id('ML'),code:'ML',name:'Maternity',paid:true,yearlyQuota:5}),reason('MASTER_INVALID'));
+    assert.throws(()=>save(seed(),'owner','leaveTypes',{id:id('CL'),code:'CL',name:'Casual leave',paid:true,yearlyQuota:-1}),reason('MASTER_INVALID'));
+    assert.equal(hrLeaveQuota(save(seed(),'owner','leaveTypes',{id:id('CL'),code:'CL',name:'Casual leave',paid:true,yearlyQuota:12.5}),'CL'),12.5);
+    assert.equal(hrLeaveQuota(save(seed(),'owner','leaveTypes',{id:id('CL'),code:'CL',name:'Casual leave',paid:true,yearlyQuota:90}),'CL'),90);
+    for(const c of ['LOP','CL','OTH'])assert.throws(()=>execute(seed(),'owner',{type:'MST_MASTER_RETIRE',master:'leaveTypes',id:id(c)}),e=>/fixed/.test(e.message),c);
+    // Never deleted either, even when no record uses it (the server refuses DeleteLeaveType for SCC's codes too).
+    for(const c of ['ML','CO','OTH'])assert.throws(()=>execute(seed(),'owner',{type:'MST_MASTER_DELETE',master:'leaveTypes',id:id(c)}),e=>/cannot be deleted/.test(e.message),c);
+    assert.deepEqual(hrLeaveChoices(seed(),'daily').map(r=>r.code),['CL','SL','EL','ML','CO','OTH','LOP']);});
+  test('[PPL] leave records use the list: names from the list, an unknown category refused, the quota decides the balance warning',()=>{
+    const id=c=>mstByCode(seed(),'leaveTypes',c).id;
+    let s=save(seed(),'owner','leaveTypes',{id:id('OTH'),code:'OTH',name:'Bereavement / other',paid:true});
+    const req=(st,sid,type,from,to,extra={})=>execute(st,'housekeeper',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:sid,leaveType:type,from,to,reason:'Family matter',...extra});
+    const n=req(s,'HR-S05','OTH','2026-11-02','2026-11-03');assert.equal(x(n).leaves.at(-1).type,'OTH');assert.equal(hrLeaveName(n,'OTH'),'Bereavement / other');assert.equal(hrLeaveBalance(n,'HR-S05','2026-11-02').length,3);
     assert.throws(()=>req(s,'HR-S05','XX','2026-11-02','2026-11-03'),code('VALIDATION'));
-    const id=mstByCode(s,'leaveTypes','BL').id;const r=execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'leaveTypes',id});assert.throws(()=>req(r,'HR-S05','BL','2026-11-02','2026-11-03'),code('VALIDATION'));
-    s=save(s,'owner','leaveTypes',{id:mstByCode(s,'leaveTypes','CL').id,code:'CL',name:'Casual leave',paid:true,yearlyQuota:1,carryForward:0,encashment:false});
-    assert.throws(()=>req(s,'HR-S05','CL','2026-11-02','2026-11-03'),/balance/);assert.equal(hrLeaveBalance(s,'HR-S05','2026-10-24').find(b=>b.type==='CL').entitled,1);});
-  test('[PPL] a custom unpaid type counts as loss of pay in payroll day counts; daily-wage staff may take it, not paid types',()=>{
-    let s=save(seed(),'owner','leaveTypes',{code:'UL',name:'Unpaid study leave',paid:false});
-    const lv=execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S10',leaveType:'UL',from:'2026-11-04',to:'2026-11-04',reason:'Course'});assert.equal(x(lv).leaves.at(-1).type,'UL');
-    assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S10',leaveType:'CL',from:'2026-11-04',to:'2026-11-04',reason:'Trip'}),/without pay/);
-    let t=structuredClone(s);const l={id:'T-1',staffId:'HR-S05',type:'UL',from:'2026-10-27',to:'2026-10-27',days:1,reason:'x',status:'Approved',requestedBy:'manager',requestedAt:'2026-10-24T08:00'};
+    s=save(s,'owner','leaveTypes',{id:id('CL'),code:'CL',name:'Casual leave',paid:true,yearlyQuota:1});
+    assert.throws(()=>req(s,'HR-S05','CL','2026-11-02','2026-11-03'),/EXCEEDS the balance/);assert.ok(req(s,'HR-S05','CL','2026-11-02','2026-11-03',{confirmOverBalance:true}));
+    assert.equal(hrLeaveBalance(s,'HR-S05','2026-10-24').find(b=>b.type==='CL').entitled,1);});
+  test('[PPL] leave without pay counts as loss of pay in payroll day counts (absent); every other category is paid leave; any staff member may take any category (SCC)',()=>{
+    const s=seed();
+    const lv=execute(s,'manager',{type:'HR_LEAVE_REQUEST',approver:'owner',staffId:'HR-S10',leaveType:'CL',from:'2026-11-04',to:'2026-11-04',reason:'Trip'});assert.equal(x(lv).leaves.at(-1).type,'CL');
+    let t=structuredClone(s);const l={id:'T-1',staffId:'HR-S05',date:'2026-10-27',type:'LOP',from:'2026-10-27',to:'2026-10-27',days:1,reason:'x',status:'Approved',requestedBy:'manager',requestedAt:'2026-10-24T08:00'};
     t.staffX.leaves.push(l);delete t.staffX.att['2026-10-27|HR-S05'];
     const c=hrCounts(t,staffRow(t,'HR-S05'),'2026-10',undefined);assert.equal(c.lopLeave,1);assert.equal(c.paidLeave,0);
-    const paid=structuredClone(t);paid.staffX.leaves.at(-1).type='CL';assert.equal(hrCounts(paid,staffRow(paid,'HR-S05'),'2026-10').paidLeave,1);});
-  test('[PPL] carry-forward: unused quota up to the limit counts in the next financial year (CL 12, 2 used in FY26-27, carry limit 3 → 15 in FY27-28)',()=>{
-    let s=seed();assert.equal(hrLeaveBalance(s,'HR-S05','2027-05-10').find(b=>b.type==='CL').entitled,12);// seed: no carry-forward
-    s=save(s,'owner','leaveTypes',{id:mstByCode(s,'leaveTypes','CL').id,code:'CL',name:'Casual leave',paid:true,yearlyQuota:12,carryForward:3,encashment:false});
-    const b=hrLeaveBalance(s,'HR-S05','2027-05-10').find(t=>t.type==='CL');assert.deepEqual([b.entitled,b.used,b.left],[15,0,15]);
-    assert.equal(hrLeaveBalance(s,'HR-S05','2026-10-24').find(t=>t.type==='CL').entitled,15);// FY26-27 also gets 3 carried from FY25-26 (joined Apr 2025, nothing used)
-  });
+    for(const type of ['CL','OTH','ML','CO']){const paid=structuredClone(t);paid.staffX.leaves.at(-1).type=type;assert.equal(hrCounts(paid,staffRow(paid,'HR-S05'),'2026-10').paidLeave,1,type);}});
+  test('[PPL] no carry-forward (SCC: every financial year starts at the quota) and no encashment rule',()=>{
+    const s=seed();assert.equal(hrLeaveBalance(s,'HR-S05','2027-05-10').find(b=>b.type==='CL').entitled,12);
+    assert.ok(!mstSpec('leaveTypes').fields.some(f=>f.key==='carryForward'||f.key==='encashment'));assert.equal(M.hrElEncashment,undefined);
+    const old=structuredClone(s);old.mastersX={rows:{leaveTypes:mstRows(s,'leaveTypes').map(r=>r.code==='CL'?{...r,carryForward:3,encashment:true}:r)},history:[]};
+    assert.equal(hrLeaveBalance(old,'HR-S05','2027-05-10').find(b=>b.type==='CL').entitled,12,'an old list’s carry-forward is ignored');});
   test('[PPL] HR_LEAVE_POLICY_SET writes the CL / SL / EL entitlements through to the Leave types list (history per type); the policy then reads the list',()=>{
-    let s=execute(seed(),'owner',{type:'HR_LEAVE_POLICY_SET',ent:{CL:10,SL:7,EL:20}});
-    assert.deepEqual([hrLeaveQuota(s,'CL'),hrLeaveQuota(s,'SL'),hrLeaveQuota(s,'EL')],[10,7,20]);assert.deepEqual(hrLeavePolicy(s).ent,{CL:10,SL:7,EL:20});
-    assert.deepEqual(mstHistory(s,'leaveTypes').map(h=>[h.code,h.field,h.old,h.new]).sort(),[['CL','yearlyQuota','12','10'],['EL','yearlyQuota','15','20']]);
-    s=save(s,'owner','leaveTypes',{id:mstByCode(s,'leaveTypes','SL').id,code:'SL',name:'Sick leave',paid:true,yearlyQuota:9,carryForward:0,encashment:false});assert.equal(hrLeavePolicy(s).ent.SL,9);
+    let s=execute(seed(),'owner',{type:'HR_LEAVE_POLICY_SET',ent:{CL:10,SL:7,EL:20.5}});
+    assert.deepEqual([hrLeaveQuota(s,'CL'),hrLeaveQuota(s,'SL'),hrLeaveQuota(s,'EL')],[10,7,20.5]);assert.deepEqual(hrLeavePolicy(s).ent,{CL:10,SL:7,EL:20.5});
+    assert.deepEqual(mstHistory(s,'leaveTypes').map(h=>[h.code,h.field,h.old,h.new]).sort(),[['CL','yearlyQuota','12','10'],['EL','yearlyQuota','15','20.5']]);
+    s=save(s,'owner','leaveTypes',{id:mstByCode(s,'leaveTypes','SL').id,code:'SL',name:'Sick leave',paid:true,yearlyQuota:9});assert.equal(hrLeavePolicy(s).ent.SL,9);
     assert.throws(()=>execute(seed(),'techadmin',{type:'HR_LEAVE_POLICY_SET',ent:{CL:10,SL:7,EL:20}}),code('FORBIDDEN'));});
-  test('[PPL] encashment flag decides the suggested full-and-final payout (seed: earned leave only); balance unchanged at the seed',()=>{
-    const s=seed(),st=staffRow(s,'HR-S05'),base=hrElEncashment(s,st);assert.ok(base>0);
-    const off=save(s,'owner','leaveTypes',{id:mstByCode(s,'leaveTypes','EL').id,code:'EL',name:'Earned leave',paid:true,yearlyQuota:15,carryForward:0,encashment:false});assert.equal(hrElEncashment(off,st),0);
-    const both=save(s,'owner','leaveTypes',{id:mstByCode(s,'leaveTypes','CL').id,code:'CL',name:'Casual leave',paid:true,yearlyQuota:12,carryForward:0,encashment:true});assert.ok(hrElEncashment(both,st)>base);});
 
   // ── Holidays ──
   const unmarked=(s,sid,date)=>{const t=structuredClone(s);delete t.staffX.att[date+'|'+sid];return t;};
@@ -179,11 +184,11 @@ export function register({test,M,assert}){
     const ret=execute(p,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:mstByCode(p,'holidays','2026-10-21').id});
     assert.equal(hrHolidayPaid(p,'2026-10-21'),true);assert.equal(hrHolidayPaid(ret,'2026-10-21'),false);assert.equal(hrCounts(ret,staffRow(ret,'HR-S05'),'2026-10','2026-10-23').unmarked,1);
     assert.equal(hrHolidayOn(seed(),'2026-09-14').kind,'restricted');assert.equal(hrHolidayPaid(seed(),'2026-09-14'),false);assert.ok(hrHolidayDates(seed()).has('2026-11-08'));});
-  test('[PPL] leave days skip paid holidays (a holiday inside leave dates is not leave); leave on a holiday only → "weekly offs or paid holidays"',()=>{
-    const s=seed(),ravi=staffRow(s,'HR-S05');assert.equal(hrLeaveDays(s,ravi,'2026-11-07','2026-11-09'),2);// 8 Nov Diwali
-    const st=execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-07',to:'2026-11-09',reason:'Festival'});assert.equal(x(st).leaves.at(-1).days,2);
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-08',to:'2026-11-08',reason:'Festival'}),/weekly offs or paid holidays/);
-    assert.throws(()=>execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',staffId:'HR-S05',leaveType:'CL',from:'2026-11-08',to:'2026-11-08',half:'AM',reason:'Festival'}),/weekly off or a paid holiday/);});
+  test('[PPL] SCC leave port: leave days do NOT skip paid holidays (SCC store holidays are blackout markers); leave on a holiday is recorded',()=>{
+    const s=seed();assert.equal(hrLeaveDays(s,'2026-11-07','2026-11-09'),3);// 8 Nov Diwali (demo holiday) counts
+    const st=execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S05',leaveType:'CL',from:'2026-11-07',to:'2026-11-09',reason:'Festival'});
+    assert.deepEqual(x(st).leaves.filter(l=>l.staffId==='HR-S05'&&l.status==='Pending').map(l=>l.date),['2026-11-07','2026-11-08','2026-11-09']);
+    assert.ok(execute(s,'housekeeper',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S05',leaveType:'CL',from:'2026-11-08',to:'2026-11-08',half:'AM',reason:'Festival'}));});
   test('[PPL] holidays used by locked pay-runs: the date cannot change, the holiday cannot be deleted or retired (MA-11: Wave B lock rule)',()=>{
     const s=seed(),row=mstByCode(s,'holidays','2026-08-15'),u=mstSpec('holidays').inUse(s,row);assert.equal(u.count,1);
     assert.throws(()=>save(s,'owner','holidays',{id:row.id,code:'2026-08-16',name:'Independence Day',kind:'paid'}),reason('MASTER_IN_USE'));
@@ -226,9 +231,9 @@ export function register({test,M,assert}){
 
   // ── UI wiring, production mapping, sources ──
   test('[PPL] UI: staff form picks designation and default shift from the lists with "Manage list…" links; roster, leave policy and attendance use the lists',()=>{
-    const m=src('src/features/staff/modals.tsx'),h=src('src/features/staff/HrDesk.tsx'),my=src('src/features/staff/MyHr.tsx');
+    const m=src('src/features/staff/modals.tsx'),h=src('src/features/staff/HrDesk.tsx'),my=src('src/features/staff/MyHr.tsx'),lv=src('src/features/staff/Leave.tsx'),lm=src('src/features/staff/leaveModals.tsx');
     assert.match(m,/hrDesignationChoices\(s,f\.dept,f\.designationCode\)/);assert.match(m,/<MstLink spec="designations"\/>/);assert.match(m,/<MstLink spec="shiftPatterns"\/>/);assert.match(m,/hrShiftChoices\(s,f\.defaultShift\)/);
-    assert.match(m,/hrLeaveChoices\(s,st\.payType\)/);assert.match(h,/<MstLink spec="leaveTypes"\/> <MstLink spec="holidays"\/>/);assert.match(h,/dayPill\(x\)/);/* masters integration: today's pill = Wave B dayPill, which names the paid holiday (old: hrHolidayOn(s,s.date)) */
+    assert.match(lm,/hrLeaveChoices\(s\)/);assert.match(lv,/<MstLink spec="leaveTypes"\/> <MstLink spec="holidays"\/>/);assert.match(h,/dayPill\(x\)/);/* masters integration: today's pill = Wave B dayPill, which names the paid holiday (old: hrHolidayOn(s,s.date)) */
     assert.match(my,/hrCheckinStatus\(s\.clock,shift!,s\)/);assert.match(my,/x\.kind==='holiday'\?'Holiday'/);});
   test('[PPL] production mapping: the four lists are in MST_SERVER with their server routes and commands; capabilities and read gates know the routes',()=>{
     const a=src('src/clients/sync/masters.ts');

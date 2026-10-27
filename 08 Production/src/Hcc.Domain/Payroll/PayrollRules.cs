@@ -95,7 +95,8 @@ public static class PayrollRules
         return (int)date.DayOfWeek == st.WeeklyOff && st.WeeklyOffAuto ? ShiftCode.OFF : st.DefaultShift;
     }
 
-    /// <summary>A day without duty for leave: a rostered weekly off or a DEC-083 paid holiday (leave days skip both; nobody is "off" on them).</summary>
+    /// <summary>A rostered weekly off or a DEC-083 paid holiday (before the SCC leave port this was the leave-day rule; leave now follows the hotel's
+    /// leave week-off set — <see cref="SccLeave.IsWeekOff"/>).</summary>
     public static bool DayOff(StaffProfile st, StaffDays days, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(days);
@@ -115,16 +116,9 @@ public static class PayrollRules
         return ls.FirstOrDefault(l => l.Half is null) ?? ls.FirstOrDefault();
     }
 
-    /// <summary>Leave days in [from,to], excluding rostered weekly offs (SCC isWeekOffDate) and paid holidays (DEC-083 / MA-6 Holiday calendar); a half-day leave is 0.5.</summary>
-    public static decimal LeaveDays(StaffProfile st, StaffDays days, DateOnly from, DateOnly to, LeaveHalf? half)
-    {
-        if (half is not null) return DayOff(st, days, from) ? 0m : 0.5m;
-        var n = 0m;
-        for (var d = from; d <= to; d = d.AddDays(1)) if (!DayOff(st, days, d)) n++;
-        return n;
-    }
-
-    /// <summary>Counts for a staff member over a month (prototype hrCounts, review F-01: a rostered weekly off inside a leave span is a weekly off).</summary>
+    /// <summary>Counts for a staff member over a month (prototype hrCounts). SCC leave port (DEC-116): leave is one record per date, created only outside
+    /// the hotel's leave week-off set, so an approved record IS a leave day — SCC's payroll feed counts every approved per-day record (paid categories →
+    /// leave, LOP → absent), also on a rostered off day; F-01's span rule gave way (old spans were split into the days they counted, migration 4110).</summary>
     public static AttendanceCounts Counts(StaffProfile st, StaffDays days, PayMonth ym, DateOnly? upTo = null)
     {
         ArgumentNullException.ThrowIfNull(st);
@@ -181,14 +175,14 @@ public static class PayrollRules
                     }
                 }
             }
-            else if (ShiftFor(st, days, d) == ShiftCode.OFF) off++;   // F-01
-            else if (days.Holidays.ContainsKey(d)) hol++;              // DEC-083: an unmarked paid holiday counts like a weekly off (a worked one is marked)
             else if (full is not null) AddLeave(full, 1m);
             else if (halves.Count > 0)
             {
                 foreach (var x in halves) AddLeave(x, 0.5m);
                 unmarked += 1m - 0.5m * halves.Count;
             }
+            else if (ShiftFor(st, days, d) == ShiftCode.OFF) off++;
+            else if (days.Holidays.ContainsKey(d)) hol++;              // DEC-083: an unmarked paid holiday counts like a weekly off (a worked one is marked)
             else unmarked++;
         }
 

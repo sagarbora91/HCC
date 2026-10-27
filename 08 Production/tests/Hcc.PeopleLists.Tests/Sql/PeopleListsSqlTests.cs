@@ -38,8 +38,8 @@ public sealed class PeopleListsSqlTests(PeopleDb db) : IClassFixture<PeopleDb>
             """, ("@p", h.PropertyId), ("@by", h.U("owner")));
         await db.ScalarAsync("INSERT hr.roster(staff_id, work_date, shift_code, set_by, set_utc) VALUES (@s, '2026-10-26', 'OFF', @by, '2026-10-24');", ("@s", sid), ("@by", h.U("owner")));
         await db.ScalarAsync("""
-            INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, days_x2, reason, status, requested_by, requested_utc)
-            VALUES (@p, @s, 'BL', '2026-10-27', '2026-10-27', 2, N'Family', 'Pending', @by, '2026-10-24');
+            INSERT hr.leave_request(property_id, staff_id, leave_type, from_date, to_date, days_x2, reason, status, requested_by, requested_utc, request_from, request_to)
+            VALUES (@p, @s, 'BL', '2026-10-27', '2026-10-27', 2, N'Family', 'Pending', @by, '2026-10-24', '2026-10-27', '2026-10-27');
             """, ("@p", h.PropertyId), ("@s", sid), ("@by", h.U("owner")));
         await Assert.ThrowsAnyAsync<Exception>(() => db.ScalarAsync("UPDATE hr.staff SET default_shift = 'OFF' WHERE staff_id = @s;", ("@s", sid)));
         await Assert.ThrowsAnyAsync<Exception>(() => db.ScalarAsync("UPDATE hr.staff SET default_shift = 'm' WHERE staff_id = @s;", ("@s", sid)));
@@ -62,9 +62,10 @@ public sealed class PeopleListsSqlTests(PeopleDb db) : IClassFixture<PeopleDb>
         Assert.Equal(("07:00", "15:00", 30, false, "fixed"), (shifts.Items[0].Start, shifts.Items[0].End, shifts.Items[0].BreakMinutes, shifts.Items[0].Night, shifts.Items[0].WeeklyOffRule));
         Assert.True(shifts.Items[2].Night);
         var leave = await h.Queries.LeaveTypesAsync(h.PropertyId, h.U("housekeeper"), ct: Ct);
-        Assert.Equal(["CL", "SL", "EL", "CO", "ML", "LOP"], leave.Items.Select(x => x.Code));
-        Assert.Equal([10, 5, 20], leave.Items.Take(3).Select(x => x.YearlyQuota!.Value));
-        Assert.Equal((true, false, true), (leave.Items[2].Encashment, leave.Items[5].Paid, leave.Items[3].YearlyQuota is null));
+        // SCC leave port (DEC-116): SCC's six categories in SCC's order + LOP; CL / SL / EL take the stored policy.
+        Assert.Equal(["CL", "SL", "EL", "ML", "CO", "OTH", "LOP"], leave.Items.Select(x => x.Code));
+        Assert.Equal([10m, 5m, 20m], leave.Items.Take(3).Select(x => x.YearlyQuota!.Value));
+        Assert.Equal((false, true, true), (leave.Items[6].Paid, leave.Items[5].Paid, leave.Items[3].YearlyQuota is null));
         var desig = await h.Queries.DesignationsAsync(h.PropertyId, h.U("owner"), ct: Ct);
         Assert.Equal(["COOK", "KITCHEN-HELPER-DAILY"], desig.Items.Select(x => x.Code));
         Assert.Equal(["monthly-structured", "daily"], desig.Items.Select(x => x.DefaultPayRule));
@@ -197,10 +198,11 @@ public sealed class PeopleListsSqlTests(PeopleDb db) : IClassFixture<PeopleDb>
         Assert.Equal("CHEF", (await h.Lists.SaveDesignationAsync(h.As("techadmin", "SaveDesignation", "t2"), new SaveDesignationRequest(null, "CHEF", "Chef", null, "KIT", "G3"), Ct)).Value.Code);
         await Hotel.FailsAsync(() => h.Lists.SaveDesignationAsync(h.As("techadmin", "SaveDesignation", "t3"), new SaveDesignationRequest(null, "COOK", "Cook", null, "KIT", null, "daily"), Ct), HccErrorCode.FORBIDDEN);
         await Hotel.FailsAsync(() => h.Lists.SaveHolidayAsync(h.As("techadmin", "SaveHoliday", "t4"), new SaveHolidayRequest(null, "2026-11-08", "Diwali", "paid"), Ct), HccErrorCode.FORBIDDEN);
-        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("techadmin", "SaveLeaveType", "t5"), new SaveLeaveTypeRequest(null, "BL", "Bereavement", true, 3), Ct), HccErrorCode.FORBIDDEN);
+        // SCC leave port (DEC-116): nobody adds a leave type — SCC's categories are fixed (refused as invalid before any permission question).
+        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("techadmin", "SaveLeaveType", "t5"), new SaveLeaveTypeRequest(null, "BL", "Bereavement", true, 3), Ct), HccErrorCode.VALIDATION);
         var cl = await LeaveOf(h, "CL");
-        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("techadmin", "SaveLeaveType", "t6"), new SaveLeaveTypeRequest(cl.LeaveTypeId, "CL", "Casual leave", true, 20, 0, false, null, cl.Version), Ct), HccErrorCode.FORBIDDEN);
-        var renamed = (await h.Lists.SaveLeaveTypeAsync(h.As("techadmin", "SaveLeaveType", "t7"), new SaveLeaveTypeRequest(cl.LeaveTypeId, "CL", "Casual days", true, 12, 0, false, null, cl.Version), Ct)).Value;
+        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("techadmin", "SaveLeaveType", "t6"), new SaveLeaveTypeRequest(cl.LeaveTypeId, "CL", "Casual leave", true, 20, null, cl.Version), Ct), HccErrorCode.FORBIDDEN);
+        var renamed = (await h.Lists.SaveLeaveTypeAsync(h.As("techadmin", "SaveLeaveType", "t7"), new SaveLeaveTypeRequest(cl.LeaveTypeId, "CL", "Casual days", true, 12, null, cl.Version), Ct)).Value;
         Assert.Equal("Casual days", renamed.Name);   // the name alone is not a pay field
         // Owner: everything; the Manager can be granted the lists later (DEC-MA-1).
         Assert.Equal("2026-11-08", (await h.Lists.SaveHolidayAsync(h.As("owner", "SaveHoliday", "t8"), new SaveHolidayRequest(null, "2026-11-08", "Diwali", "paid"), Ct)).Value.Code);
@@ -237,33 +239,35 @@ public sealed class PeopleListsSqlTests(PeopleDb db) : IClassFixture<PeopleDb>
     }
 
     [Fact]
-    public async Task Leave_types_keep_one_unpaid_type_mirror_CL_SL_EL_quotas_to_the_policy_and_are_retired_when_used()
+    public async Task Leave_types_are_SCC_fixed_categories_mirror_CL_SL_EL_quotas_to_the_policy_and_are_never_retired()
     {
         var h = await db.NewHotelAsync();
         var lop = await LeaveOf(h, "LOP");   // first read seeds
+        // SCC leave port (DEC-116): the list is SCC's six categories + LOP — none retired or deleted, no other code, paid fixed, a quota on CL / SL / EL only.
         await Hotel.FailsAsync(() => h.Lists.RetireLeaveTypeAsync(h.As("owner", "RetireLeaveType", "l1"), new RetireLeaveTypeRequest(lop.LeaveTypeId, lop.Version), Ct), HccErrorCode.INVALID_TRANSITION, MasterReasons.InUse);
-        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l2"), new SaveLeaveTypeRequest(lop.LeaveTypeId, "LOP", "Leave without pay", true, null, 0, false, null, lop.Version), Ct), HccErrorCode.VALIDATION, MasterReasons.Invalid);
+        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l2"), new SaveLeaveTypeRequest(lop.LeaveTypeId, "LOP", "Leave without pay", true, null, null, lop.Version), Ct), HccErrorCode.VALIDATION, MasterReasons.Invalid);
         await Hotel.FailsAsync(() => h.Lists.DeleteLeaveTypeAsync(h.As("owner", "DeleteLeaveType", "l3"), new DeleteLeaveTypeRequest(lop.LeaveTypeId, lop.Version), Ct), HccErrorCode.INVALID_TRANSITION, MasterReasons.InUse);
-        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l4"), new SaveLeaveTypeRequest(null, "BL", "Bereavement", true, null, 2), Ct), HccErrorCode.VALIDATION, MasterReasons.Invalid);   // carry needs a quota
-        var ul = (await h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l5"), new SaveLeaveTypeRequest(null, "UL", "Unpaid study leave", false), Ct)).Value;
-        Assert.Equal((false, null), (ul.Paid, ul.YearlyQuota));
-        Assert.True((await h.Lists.RetireLeaveTypeAsync(h.As("owner", "RetireLeaveType", "l6"), new RetireLeaveTypeRequest(lop.LeaveTypeId, lop.Version), Ct)).Value is { Active: false });   // UL remains unpaid
+        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l4"), new SaveLeaveTypeRequest(null, "BL", "Bereavement", true), Ct), HccErrorCode.VALIDATION, MasterReasons.Invalid);
+        var ml = await LeaveOf(h, "ML");
+        await Hotel.FailsAsync(() => h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l5"), new SaveLeaveTypeRequest(ml.LeaveTypeId, "ML", ml.Name, true, 5, null, ml.Version), Ct), HccErrorCode.VALIDATION, MasterReasons.Invalid);
+        await Hotel.FailsAsync(() => h.Lists.RetireLeaveTypeAsync(h.As("owner", "RetireLeaveType", "l6"), new RetireLeaveTypeRequest(ml.LeaveTypeId, ml.Version), Ct), HccErrorCode.INVALID_TRANSITION, MasterReasons.InUse);
 
         var cl = await LeaveOf(h, "CL");
-        var ten = (await h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l7"), new SaveLeaveTypeRequest(cl.LeaveTypeId, "CL", "Casual leave", true, 10, 4, false, null, cl.Version), Ct)).Value;
-        Assert.Equal((10, 4), (ten.YearlyQuota, ten.CarryForward));
-        Assert.Equal(10, await db.LongAsync("SELECT cl_days FROM hr.leave_policy WHERE property_id = @p;", ("@p", h.PropertyId)));   // mirrored (the policy row did not exist: created with the default SL / EL)
-        Assert.Equal((7, 15), (await db.LongAsync("SELECT sl_days FROM hr.leave_policy WHERE property_id = @p;", ("@p", h.PropertyId)), await db.LongAsync("SELECT el_days FROM hr.leave_policy WHERE property_id = @p;", ("@p", h.PropertyId))));
-        Assert.Equal(2, await db.LongAsync("SELECT COUNT(*) FROM mst.master_history WHERE property_id = @p AND master = 'leaveTypes' AND row_id = @r AND field IN ('yearlyQuota', 'carryForward');", ("@p", h.PropertyId), ("@r", cl.LeaveTypeId)));
+        var ten = (await h.Lists.SaveLeaveTypeAsync(h.As("owner", "SaveLeaveType", "l7"), new SaveLeaveTypeRequest(cl.LeaveTypeId, "CL", "Casual leave", true, 10.5m, null, cl.Version), Ct)).Value;
+        Assert.Equal(10.5m, ten.YearlyQuota);   // SCC: halves allowed
+        async Task<decimal> Policy(string col) => Convert.ToDecimal(await db.ScalarAsync($"SELECT {col} FROM hr.leave_policy WHERE property_id = @p;", ("@p", h.PropertyId)), System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(10.5m, await Policy("cl_days"));   // mirrored (the policy row did not exist: created with the default SL / EL)
+        Assert.Equal((7m, 15m), (await Policy("sl_days"), await Policy("el_days")));
+        Assert.Equal(1, await db.LongAsync("SELECT COUNT(*) FROM mst.master_history WHERE property_id = @p AND master = 'leaveTypes' AND row_id = @r AND field = 'yearlyQuota' AND new_value = '10.5';", ("@p", h.PropertyId), ("@r", cl.LeaveTypeId)));
 
         // SetLeavePolicy writes through to the list, with history per changed type.
         var owner = h.As("owner", "SetLeavePolicy", "l8");
-        await h.Db.Payroll.SetLeavePolicyAsync(owner, new Contracts.Payroll.SetLeavePolicyRequest(10, 7, 21, 2), Ct);
-        Assert.Equal(21, (await LeaveOf(h, "EL")).YearlyQuota);
+        await h.Db.Payroll.SetLeavePolicyAsync(owner, new Contracts.Payroll.SetLeavePolicyRequest(10.5m, 7, 21), Ct);
+        Assert.Equal(21m, (await LeaveOf(h, "EL")).YearlyQuota);
         Assert.Equal(1, await db.LongAsync("SELECT COUNT(*) FROM mst.master_history WHERE property_id = @p AND master = 'leaveTypes' AND code = 'EL' AND field = 'yearlyQuota' AND old_value = '15' AND new_value = '21';", ("@p", h.PropertyId)));
-        Assert.Equal(10, (await LeaveOf(h, "CL")).YearlyQuota);   // unchanged types are not touched
+        Assert.Equal(10.5m, (await LeaveOf(h, "CL")).YearlyQuota);   // unchanged types are not touched
         var board = await h.Db.PayrollQueries.GetBoardAsync(h.PropertyId, h.U("owner"), null, null, Ct);
-        Assert.Equal((10, 7, 21), (board.LeavePolicy.Cl, board.LeavePolicy.Sl, board.LeavePolicy.El));
+        Assert.Equal((10.5m, 7m, 21m), (board.LeavePolicy.Cl, board.LeavePolicy.Sl, board.LeavePolicy.El));
     }
 
     [Fact]

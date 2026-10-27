@@ -48,16 +48,21 @@ public class PeopleListsRulesTests
     }
 
     [Fact]
-    public void Leave_type_quota_carry_forward_encashment_and_unpaid_rules()
+    public void Leave_types_are_SCCs_fixed_categories_quota_on_CL_SL_EL_only_paid_fixed()
     {
-        var cl = PeopleListsRules.LeaveType("cl", "Casual leave", null, true, 12, 3, false);
-        Assert.Equal(("CL", 12, 3), (cl.Code, (int?)cl.Fields["yearlyQuota"], (int?)cl.Fields["carryForward"]));
-        Assert.Equal("carryForward", Field(Bad(() => PeopleListsRules.LeaveType("BL", "Bereavement", null, true, null, 2, false))));
-        Assert.Equal("paid", Field(Bad(() => PeopleListsRules.LeaveType("UL", "Unpaid", null, false, 2, 0, false))));
-        Assert.Equal("paid", Field(Bad(() => PeopleListsRules.LeaveType("UL", "Unpaid", null, false, null, 0, true))));
-        Assert.Equal("yearlyQuota", Field(Bad(() => PeopleListsRules.LeaveType("BL", "Bereavement", null, true, 61, 0, false))));
-        Assert.Equal("code", Field(Bad(() => PeopleListsRules.LeaveType("TOOLONG1", "x", null, true, null, 0, false))));
-        Assert.Null(PeopleListsRules.LeaveType("UL", "Unpaid", null, false, null, 0, false).Fields["yearlyQuota"]);
+        // SCC leave port (DEC-116): SCC's six + LOP; any quota ≥ 0 (halves, no maximum) on CL / SL / EL only; only LOP unpaid; no carry / encashment.
+        var cl = PeopleListsRules.LeaveType("cl", "Casual leave", null, true, 12.5m);
+        Assert.Equal(("CL", 12.5m), (cl.Code, (decimal?)cl.Fields["yearlyQuota"]));
+        Assert.Equal(["paid", "yearlyQuota"], cl.Fields.Keys);
+        Assert.Equal(90m, (decimal?)PeopleListsRules.LeaveType("EL", "Earned leave", null, true, 90).Fields["yearlyQuota"]);
+        Assert.Equal("code", Field(Bad(() => PeopleListsRules.LeaveType("BL", "Bereavement", null, true, null))));
+        Assert.Equal("code", Field(Bad(() => PeopleListsRules.LeaveType("TOOLONG1", "x", null, true, null))));
+        Assert.Equal("paid", Field(Bad(() => PeopleListsRules.LeaveType("LOP", "Leave without pay", null, true, null))));
+        Assert.Equal("paid", Field(Bad(() => PeopleListsRules.LeaveType("CO", "Comp off", null, false, null))));
+        Assert.Equal("yearlyQuota", Field(Bad(() => PeopleListsRules.LeaveType("ML", "Maternity", null, true, 5))));
+        Assert.Equal("yearlyQuota", Field(Bad(() => PeopleListsRules.LeaveType("CL", "Casual", null, true, -1))));
+        Assert.Null(PeopleListsRules.LeaveType("OTH", "Other", null, true, null).Fields["yearlyQuota"]);
+        Assert.Equal(["CL", "SL", "EL", "ML", "CO", "OTH", "LOP"], PeopleListsRules.FixedLeaveCodes);
     }
 
     [Fact]
@@ -77,11 +82,11 @@ public class PeopleListsRulesTests
     {
         Assert.Equal(["M 07:00-15:00", "E 15:00-23:00", "N 23:00-07:00", "G 09:00-18:00"], PeopleListsRules.SeedShiftPatterns().Select(r => $"{r.Code} {r.Fields["start"]}-{r.Fields["end"]}"));
         Assert.True((bool)PeopleListsRules.SeedShiftPatterns().Single(r => r.Code == "N").Fields["night"]!);
-        var leave = PeopleListsRules.SeedLeaveTypes(10, 5, 20);
-        Assert.Equal([10, 5, 20], leave.Take(3).Select(r => (int)r.Fields["yearlyQuota"]!));
-        Assert.Equal(["CL", "SL", "EL", "CO", "ML", "LOP"], leave.Select(r => r.Code));
-        Assert.Equal([true, true, true, true, true, false], leave.Select(r => (bool)r.Fields["paid"]!));
-        Assert.True((bool)leave.Single(r => r.Code == "EL").Fields["encashment"]!);
+        var leave = PeopleListsRules.SeedLeaveTypes(10, 5.5m, 20);
+        Assert.Equal([10m, 5.5m, 20m], leave.Take(3).Select(r => (decimal)r.Fields["yearlyQuota"]!));
+        Assert.Equal(["CL", "SL", "EL", "ML", "CO", "OTH", "LOP"], leave.Select(r => r.Code));   // SCC's order + LOP
+        Assert.Equal([true, true, true, true, true, true, false], leave.Select(r => (bool)r.Fields["paid"]!));
+        Assert.All(leave, r => Assert.False(r.Fields.ContainsKey("encashment") || r.Fields.ContainsKey("carryForward")));
         var d = PeopleListsRules.SeedDesignations([("Cook", "KIT", false, null), ("cook", "KIT", false, null), ("Kitchen helper (daily wage)", "KIT", true, "B"), ("Security guard (day)", "SEC", false, "B"), ("Hotel manager", "MGT", false, "S")]);
         Assert.Equal(["COOK", "KITCHEN-HELPER-DAILY", "SECURITY-GUARD-DAY", "HOTEL-MANAGER"], d.Select(r => r.Code));
         Assert.Equal(["monthly-structured", "daily", "monthly-basic", "monthly-structured"], d.Select(r => (string?)r.Fields["defaultPayRule"]));
@@ -98,10 +103,10 @@ public class PeopleListsRulesTests
     [Fact]
     public void Diff_lists_changed_fields_in_fixed_order_with_people_readable_values()
     {
-        var before = new Dictionary<string, object?> { ["paid"] = true, ["yearlyQuota"] = 12, ["carryForward"] = 0, ["encashment"] = false };
-        var after = PeopleListsRules.LeaveType("CL", "Casual leave", 10, true, 10, 3, false);
+        var before = new Dictionary<string, object?> { ["paid"] = true, ["yearlyQuota"] = 12m };
+        var after = PeopleListsRules.LeaveType("CL", "Casual leave", 10, true, 10.5m);
         var diff = PeopleListsRules.Diff(PeopleList.LeaveTypes, "CL", "Casual leave", 10, before, after, 10);
-        Assert.Equal([("yearlyQuota", "12", "10"), ("carryForward", "0", "3")], diff);
+        Assert.Equal([("yearlyQuota", "12", "10.5")], diff);
         var added = PeopleListsRules.Diff(PeopleList.Holidays, null, null, null, null, PeopleListsRules.Holiday("2026-11-08", "Diwali", null, "paid"), 10);
         Assert.Equal(["code", "name", "sortOrder", "kind"], added.Select(x => x.Field));
         Assert.All(added, x => Assert.Null(x.Old));
@@ -126,12 +131,12 @@ public class PeopleListsRulesTests
     }
 
     [Fact]
-    public void Paid_holidays_are_not_leave_days_and_count_as_paid_days_without_attendance()
+    public void Paid_holidays_count_as_paid_days_without_attendance_and_leave_days_do_not_skip_them_SCC()
     {
         var holiday = new DateOnly(2026, 11, 8);   // a Sunday; staff off day is Tuesday
         var days = new StaffDays(paidHolidays: new HashSet<DateOnly> { holiday });
-        Assert.Equal(2m, PayrollRules.LeaveDays(Staff(), days, new DateOnly(2026, 11, 7), new DateOnly(2026, 11, 9), null));
-        Assert.Equal(0m, PayrollRules.LeaveDays(Staff(), days, holiday, holiday, LeaveHalf.AM));
+        Assert.Equal(3m, SccLeave.RequestedDays(0, new DateOnly(2026, 11, 7), new DateOnly(2026, 11, 9), null));   // SCC: a store holiday is a blackout marker
+        Assert.Equal(0.5m, SccLeave.RequestedDays(0, holiday, holiday, LeaveHalf.AM));
         var month = new PayMonth(2026, 11);
         var c = PayrollRules.Counts(Staff(), days, month, new DateOnly(2026, 11, 8));
         Assert.Equal((1m, 6m), (c.Hol, c.Unmarked));   // 1–8 Nov: one Tuesday off (3 Nov), 8 Nov holiday, the other six unmarked
@@ -160,59 +165,48 @@ public class PeopleListsRulesTests
     }
 
     [Fact]
-    public void Unpaid_spans_count_as_loss_of_pay_whatever_their_code()
+    public void Only_LOP_is_loss_of_pay_every_other_category_is_paid_leave_SCC()
     {
         var d = new DateOnly(2026, 11, 4);
-        var unpaid = new LeaveSpan(1, 1, new LeaveType("UL"), d, d, null, 1m, LeaveStatus.Approved, Paid: false);
-        var paid = unpaid with { Paid = true };
         var month = new PayMonth(2026, 11);
-        Assert.Equal((1m, 0m), (PayrollRules.Counts(Staff(), new StaffDays(leaves: [unpaid]), month, d).LopLeave, PayrollRules.Counts(Staff(), new StaffDays(leaves: [unpaid]), month, d).PaidLeave));
-        Assert.Equal((0m, 1m), (PayrollRules.Counts(Staff(), new StaffDays(leaves: [paid]), month, d).LopLeave, PayrollRules.Counts(Staff(), new StaffDays(leaves: [paid]), month, d).PaidLeave));
-        Assert.False(new LeaveSpan(1, 1, LeaveType.LOP, d, d, null, 1m, LeaveStatus.Approved).IsPaid);
-        Assert.True(new LeaveSpan(1, 1, LeaveType.CL, d, d, null, 1m, LeaveStatus.Approved).IsPaid);
+        foreach (var t in new[] { LeaveType.CL, LeaveType.SL, LeaveType.EL, LeaveType.ML, LeaveType.CO, LeaveType.OTH })
+            Assert.Equal((0m, 1m), (PayrollRules.Counts(Staff(), new StaffDays(leaves: [new LeaveSpan(1, 1, t, d, d, null, 1m, LeaveStatus.Approved)]), month, d).LopLeave,
+                PayrollRules.Counts(Staff(), new StaffDays(leaves: [new LeaveSpan(1, 1, t, d, d, null, 1m, LeaveStatus.Approved)]), month, d).PaidLeave));
+        var lop = new LeaveSpan(1, 1, LeaveType.LOP, d, d, null, 1m, LeaveStatus.Approved);
+        Assert.Equal((1m, 0m), (PayrollRules.Counts(Staff(), new StaffDays(leaves: [lop]), month, d).LopLeave, PayrollRules.Counts(Staff(), new StaffDays(leaves: [lop]), month, d).PaidLeave));
+        Assert.False(lop.IsPaid);
     }
 
-    private static LeavePolicy Policy(int cl = 12, int carry = 0) => new(cl, 7, 15, 2, new Dictionary<string, int>(), new Dictionary<string, LeaveTypeDef>
+    private static LeavePolicy Policy(decimal cl = 12) => new(cl, 7, 15, 3, new Dictionary<string, int>(), new Dictionary<string, LeaveTypeDef>
     {
-        ["CL"] = new("CL", "Casual leave", true, cl, carry, false, true),
-        ["BL"] = new("BL", "Bereavement", true, null, 0, false, true),
-        ["UL"] = new("UL", "Unpaid", false, null, 0, false, true),
-        ["XX"] = new("XX", "Retired", true, null, 0, false, false),
+        ["CL"] = new("CL", "Casual leave", true, cl, true),
+        ["OTH"] = new("OTH", "Other", true, null, true),
+        ["LOP"] = new("LOP", "Leave without pay", false, null, true),
     });
 
     [Fact]
-    public void Leave_policy_per_type_decides_known_paid_tracked_and_carry()
+    public void Leave_policy_is_SCCs_fixed_list_tracked_CL_SL_EL_paid_but_LOP()
     {
-        var p = Policy(carry: 3);
-        Assert.Equal([LeaveType.CL], p.TrackedTypes());
-        Assert.Equal((true, false, true), (p.IsTracked(LeaveType.CL), p.IsTracked(new LeaveType("BL")), p.IsKnown(new LeaveType("BL"))));
-        Assert.False(p.IsKnown(new LeaveType("XX")));
-        Assert.False(p.IsKnown(new LeaveType("ZZ")));
-        Assert.False(p.IsPaid(new LeaveType("UL")));
-        Assert.True(p.IsPaid(LeaveType.CL));
-        Assert.Equal((12, 3, 0), (p.Entitled(LeaveType.CL), p.CarryCap(LeaveType.CL), p.Entitled(new LeaveType("BL"))));
-        // Without a stored list the six built-in types and CL SL EL tracked with Cl Sl El (as before MA-6).
-        var legacy = LeavePolicy.Defaults();
-        Assert.Equal([LeaveType.CL, LeaveType.SL, LeaveType.EL], legacy.TrackedTypes());
-        Assert.True(legacy.IsKnown(LeaveType.CO));
-        Assert.False(legacy.IsKnown(new LeaveType("BL")));
-        Assert.False(legacy.IsPaid(LeaveType.LOP));
-        Assert.Equal(15, legacy.Entitled(LeaveType.EL));
+        var p = Policy(10.5m);
+        Assert.Equal([LeaveType.CL, LeaveType.SL, LeaveType.EL], p.TrackedTypes());
+        Assert.Equal((true, false, true), (p.IsTracked(LeaveType.CL), p.IsTracked(LeaveType.OTH), p.IsKnown(LeaveType.OTH)));
+        Assert.False(p.IsKnown(new LeaveType("BL")));
+        Assert.False(p.IsPaid(LeaveType.LOP));
+        Assert.True(p.IsPaid(LeaveType.ML));
+        Assert.Equal((10.5m, 0m), (p.Entitled(LeaveType.CL), p.Entitled(LeaveType.OTH)));
+        Assert.Equal((12m, 7m, 15m), (LeavePolicy.Defaults().Cl, LeavePolicy.Defaults().Sl, LeavePolicy.Defaults().El));   // SCC ENT_DEFAULTS
+        Assert.Equal(SccLeave.MaxDay, p.CapFor("HK"));
     }
 
     [Fact]
-    public void Carry_forward_is_unused_quota_up_to_the_limit_for_staff_who_were_there()
+    public void No_carry_forward_every_financial_year_starts_at_the_quota_SCC()
     {
-        var p = Policy(carry: 3);
-        var used = new LeaveSpan(1, 1, LeaveType.CL, new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 10), null, 10m, LeaveStatus.Approved);   // FY 2026–27: 10 of 12 used
+        var p = Policy();
+        var used = new LeaveSpan(1, 1, LeaveType.CL, new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 1), null, 1m, LeaveStatus.Approved);
         var fy27 = new DateOnly(2027, 5, 10);
-        Assert.Equal(2, LeaveRules.Carried(p, [used], fy27, LeaveType.CL, new DateOnly(2025, 4, 1)));          // only 2 unused (limit 3)
-        Assert.Equal(3, LeaveRules.Carried(p, [], fy27, LeaveType.CL, new DateOnly(2025, 4, 1)));              // 12 unused, limit 3
-        Assert.Equal(0, LeaveRules.Carried(p, [], fy27, LeaveType.CL, new DateOnly(2027, 4, 15)));             // joined after the previous year
-        Assert.Equal(0, LeaveRules.Carried(Policy(), [], fy27, LeaveType.CL, null));                          // no carry-forward set
-        var b = LeaveRules.Balance(p, [used], fy27, new DateOnly(2025, 4, 1)).Single();
-        Assert.Equal((14, 0m, 14m), (b.Entitled, b.Used, b.Left));   // 12 + 2 carried
-        Assert.Equal(14m, LeaveRules.Available(p, [used], fy27, LeaveType.CL, new DateOnly(2025, 4, 1)));
+        var b = LeaveRules.Balance(p, 1, [used], fy27).Single(x => x.Type == LeaveType.CL);
+        Assert.Equal((12m, 0m, 12m), (b.Entitled, b.Used, b.Left));
+        Assert.Equal(11m, LeaveRules.Available(p, 1, [used], new DateOnly(2026, 10, 1), LeaveType.CL));
     }
 
     [Fact]

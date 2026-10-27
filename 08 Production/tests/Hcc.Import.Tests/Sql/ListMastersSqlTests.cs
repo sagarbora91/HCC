@@ -101,12 +101,13 @@ public class ListMastersSqlTests : IAsyncLifetime
         Assert.Equal(3, await Count("SELECT COUNT(*) FROM inv.policy"));
         Assert.Equal("[\"OTA-BKG\"]", (string?)await _w.ScalarAsync("SELECT sources FROM inv.policy WHERE code = 'NONREF'"));
 
-        // people lists (seeded shift patterns M E N G and the six leave types are kept)
+        // people lists (seeded shift patterns M E N G and SCC's fixed leave categories are kept — the sample edits CL and OTH)
         Assert.Equal(3, await Count("SELECT COUNT(*) FROM hr.designation"));
         Assert.Equal(1, await Count("SELECT COUNT(*) FROM hr.designation WHERE code = 'ATTENDANT' AND dept_code = 'HK' AND default_pay_rule = 'daily'"));
         Assert.Equal(1, await Count("SELECT COUNT(*) FROM hr.shift_pattern WHERE code = 'S' AND CONVERT(VARCHAR(5), start_time, 108) = '10:30' AND break_minutes = 30"));
-        Assert.Equal(8, await Count("SELECT COUNT(*) FROM hr.leave_type"));
-        Assert.Equal(3, await Count("SELECT yearly_quota FROM hr.leave_type WHERE code = 'BL'"));
+        Assert.Equal(7, await Count("SELECT COUNT(*) FROM hr.leave_type"));
+        Assert.Equal(12, await Count("SELECT yearly_quota FROM hr.leave_type WHERE code = 'CL'"));
+        Assert.Equal("Other leave", (string?)await _w.ScalarAsync("SELECT name FROM hr.leave_type WHERE code = 'OTH'"));
         Assert.Equal(3, await Count("SELECT COUNT(*) FROM hr.holiday"));
         Assert.Equal("restricted", (string?)await _w.ScalarAsync("SELECT kind FROM hr.holiday WHERE code = '2026-12-25'"));
 
@@ -286,13 +287,13 @@ public class ListMastersSqlTests : IAsyncLifetime
     {
         var dry = await _w.UploadAsync("owner", "leave-types", Templates.Sample("leave-types"));
         var result = await _w.CommitAsync("owner", dry.BatchId, dryRun: true);
-        Assert.Equal(new ImportCounts(2, 0, 0, 0), result.Counts);
+        Assert.Equal(new ImportCounts(0, 1, 1, 0), result.Counts);   // SCC's fixed categories: the sample keeps CL and renames OTH
         Assert.Equal(0, await Count("SELECT COUNT(*) FROM hr.leave_type"));   // rolled back, seed included
         Assert.Equal(0, await Count("SELECT COUNT(*) FROM hr.people_list_seed"));
 
         var real = await _w.UploadAsync("owner", "leave-types", Templates.Sample("leave-types"));
         await _w.CommitAsync("owner", real.BatchId);
-        Assert.Equal(8, await Count("SELECT COUNT(*) FROM hr.leave_type"));
+        Assert.Equal(7, await Count("SELECT COUNT(*) FROM hr.leave_type"));
         Assert.Equal(1, await Count("SELECT COUNT(*) FROM hr.leave_type WHERE code = 'CL' AND yearly_quota = 12"));
 
         await _w.ImportSampleAsync("booking-sources");

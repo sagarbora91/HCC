@@ -18,8 +18,17 @@
 //             so mastersX reloads too — SaveHoliday is that master's own command); SaveStaff's bank details become a request unless the Owner saves
 //             them (DEC-084, server rule). The board adds holidays, requests (pay effect for payroll roles only, masked bank details) and
 //             the server's open correction window.
+//   SCC leave port (DEC-116 / DEC-119, migration 4110): leave arrives ONE RECORD PER DATE (date, request range, approver, legacy / imported
+//             fields, who removed it); the leave policy carries the SCC settings (decimal entitlements, week-off mask, per-staff overrides,
+//             blackouts); agendas and the approver choices come with the board. HR_LEAVE_REQUEST → RequestLeave (approverId, confirm flags; the
+//             server records per date and returns SCC's counts), HR_LEAVE_DECIDE / HR_LEAVE_CANCEL per record (record version), HR_LEAVE_POLICY_SET
+//             → SetLeavePolicy (+ SaveDepartment per changed advisory cap), HR_LEAVE_ENT_OVERRIDE → SetLeaveEntOverride, HR_LEAVE_BLACKOUT_ADD /
+//             _REMOVE → AddLeaveBlackout / RemoveLeaveBlackout, HR_AGENDA_ADD / _REMOVE → AddLeaveAgenda / RemoveLeaveAgenda, HR_LEAVE_IMPORT →
+//             ImportLeave (the file is validated here with SCC's rules — staff-leave.ts hrLeaveImportParse — and the server merges the records with
+//             SCC's merge rules), HR_LEAVE_CLEAR → ClearLeave.
 import type {Command} from '../../services/mock';
-import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRSccDays,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile,HRRequest,HRDayEntry,HRBank} from '../../domain/streams/staff';
+import {hrLeaveImportParse} from '../../domain/streams/staff-leave';
+import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRSccDays,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile,HRRequest,HRDayEntry,HRBank,HREnt,HRAgenda,HRLeavePolicy} from '../../domain/streams/staff';
 import {HccClientError} from '../errors';
 import type {SyncArea,CommandCtx} from './types';
 import {protoId,serverId,utcToClock} from './map';
@@ -53,11 +62,21 @@ export type SrvRun={runId:number;month:string;status:'Draft'|'Locked';rates:SrvR
   lockedBy:number|null;lockedUtc:string|null;lines:SrvLine[];sends:{staffId:number;lockSeq:number;toMasked:string;sentBy:number;sentUtc:string}[];
   bankFiles:{issueNo:number;lockSeq:number;netPaise:number;issuedBy:number;issuedUtc:string}[];
   unlocks:{lockSeq:number;reason:string;nets:Record<string,number>;bankFiles:number;unlockedBy:number;unlockedUtc:string}[]};
+/** SCC leave record (one per date; migration 4110). */
+export type SrvLeave={leaveId:number;staffId:number;date:string;leaveType:string;from:string;to:string;half:string|null;days:number;reason:string|null;
+  approverId:number|null;approverName:string|null;status:string;requestedBy:number;requestedUtc:string;decidedBy:number|null;decidedUtc:string|null;note:string|null;
+  cancelledBy:number|null;cancelledUtc:string|null;legacy:boolean;sccId:string|null;decidedByName:string|null;version:string};
+/** SCC leave settings: entitlement defaults (decimals), week-off mask (bit 0 = Sunday … bit 6 = Saturday), per-staff overrides, blackouts. */
+export type SrvLeavePolicy={cl:number;sl:number;el:number;defaultCap?:number;weekOffMask?:number;
+  overrides?:{staffId:number;cl:number|null;sl:number|null;el:number|null}[];
+  blackouts?:{blackoutId:number;from:string;to:string;dept:string;kind:string;hard:boolean;label:string}[]};
 export type SrvBoard={businessDate:string;from:string;to:string;allStaff:boolean;payroll:boolean;departments:{code:string;name:string;leaveCap:number|null}[];
-  leavePolicy:{cl:number;sl:number;el:number;defaultCap:number};roster:{staffId:number;date:string;shift:string}[];
+  leavePolicy:SrvLeavePolicy;roster:{staffId:number;date:string;shift:string}[];
   attendance:{staffId:number;date:string;status:string;otMinutes:number;markedBy:number;markedUtc:string;note:string|null}[];
-  leaves:{leaveId:number;staffId:number;leaveType:string;from:string;to:string;half:string|null;days:number;reason:string;status:string;requestedBy:number;
-    requestedUtc:string;decidedBy:number|null;decidedUtc:string|null;note:string|null;version:string}[];
+  leaves:SrvLeave[];
+  /** SCC agenda items and the approver choices (Owner + Manager users). */
+  agendas?:{agendaId:number;date:string;title:string;time:string;type:string;description:string;createdBy:number;createdUtc:string}[];
+  approvers?:{userId:number;name:string;role:string}[];
   rateVersions:SrvRates[];runs:SrvRun[];
   advances:{advanceId:number;staffId:number;amountPaise:number;installmentPaise:number;recoveredPaise:number;date:string;fromMonth:string;reason:string;givenBy:number;
     recoveries:{runId:number|null;fnfId:number|null;amountPaise:number}[]}[];
@@ -125,6 +144,26 @@ function runFromServer(r:SrvRun):HRRun{
   return run;
 }
 
+/** A server leave record (one per date) → HRLeave. */
+export function leaveFromServer(l:SrvLeave):HRLeave{
+  return {id:protoId(l.leaveId),staffId:protoId(l.staffId),date:l.date,type:l.leaveType as HRLeave['type'],from:l.from,to:l.to,days:l.days,reason:l.reason??'',
+    ...(l.half==='AM'||l.half==='PM'?{half:l.half}:{}),...(l.approverId!=null?{approver:protoId(l.approverId)}:l.approverName?{approverName:l.approverName}:{}),
+    status:(['Pending','Approved','Rejected','Cancelled'].includes(l.status)?l.status:'Pending') as HRLeave['status'],requestedBy:protoId(l.requestedBy),requestedAt:utcToClock(l.requestedUtc),
+    ...(l.decidedBy!=null?{decidedBy:protoId(l.decidedBy)}:{}),...(l.decidedUtc?{decidedAt:utcToClock(l.decidedUtc)}:{}),...(l.note?{note:l.note}:{}),
+    ...(l.cancelledBy!=null?{cancelledBy:protoId(l.cancelledBy)}:{}),...(l.cancelledUtc?{cancelledAt:utcToClock(l.cancelledUtc)}:{}),
+    ...(l.legacy?{legacy:true}:{}),...(l.sccId?{sccId:l.sccId}:{}),...(l.decidedByName?{decidedByName:l.decidedByName}:{})};
+}
+/** Week-off mask (bit d = weekday d, 0 = Sunday) ↔ the prototype's weekday list. */
+export const weekOffFromMask=(m:number)=>[0,1,2,3,4,5,6].filter(d=>(m>>d)&1);
+export const weekOffToMask=(days:number[])=>days.reduce((m,d)=>m|(1<<d),0);
+/** Server leave settings → HRLeavePolicy (department caps come from the departments). */
+export function policyFromServer(p:SrvLeavePolicy,deptCap:Record<string,number>):HRLeavePolicy{
+  const perStaff:Record<string,HREnt>={};
+  for(const o of p.overrides??[]){const e:HREnt={};if(o.cl!=null)e.CL=o.cl;if(o.sl!=null)e.SL=o.sl;if(o.el!=null)e.EL=o.el;if(Object.keys(e).length)perStaff[protoId(o.staffId)]=e;}
+  return {ent:{CL:p.cl,SL:p.sl,EL:p.el},deptCap,...(Object.keys(perStaff).length?{perStaff}:{}),...(p.weekOffMask?{weekOff:weekOffFromMask(p.weekOffMask)}:{}),// 0 = none = HCC's default (left out)
+    ...(p.blackouts?.length?{blackouts:p.blackouts.map(x=>({id:protoId(x.blackoutId),from:x.from,to:x.to,dept:x.dept,kind:x.kind==='holiday'?'holiday':'blackout',hard:x.hard,label:x.label}))}:{})};
+}
+const num=(v:unknown)=>v===''||v===null||v===undefined?null:Number(v);
 const entryFromServer=(e:SrvDayEntry|null):HRDayEntry|undefined=>!e?undefined:e.kind==='mark'?{kind:'mark',status:(e.status??'P') as HRAtt['status'],otMin:e.otMinutes}
   :e.kind==='leave'?{kind:'leave',type:(e.leaveType??'LOP') as HRLeave['type']}:{kind:'none'};
 const bankFromServer=(b:SrvRequest['bankBefore']):HRBank|undefined=>b?{bankName:b.bankName??'',accountNo:b.accountMasked??'',ifsc:b.ifsc??''}:undefined;   // masked: never unmasked here
@@ -146,10 +185,7 @@ async function loadStaffX(c:Parameters<SyncArea['loaders'][number]['load']>[0]):
   for(const x of b.roster)roster[x.date+'|'+protoId(x.staffId)]=x.shift as HRShiftCode;
   const att:Record<string,HRAtt>={};
   for(const x of b.attendance)att[x.date+'|'+protoId(x.staffId)]={status:x.status as HRAtt['status'],at:utcToClock(x.markedUtc),otMin:x.otMinutes,by:protoId(x.markedBy),...(x.note?{note:x.note}:{})};
-  const leaves:HRLeave[]=b.leaves.map(l=>{c.ids.setVersion('leave',protoId(l.leaveId),l.version);
-    return {id:protoId(l.leaveId),staffId:protoId(l.staffId),type:l.leaveType as HRLeave['type'],from:l.from,to:l.to,days:l.days,reason:l.reason,
-      ...(l.half==='AM'||l.half==='PM'?{half:l.half}:{}),status:l.status as HRLeave['status'],requestedBy:protoId(l.requestedBy),requestedAt:utcToClock(l.requestedUtc),
-      ...(l.decidedBy!=null?{decidedBy:protoId(l.decidedBy)}:{}),...(l.decidedUtc?{decidedAt:utcToClock(l.decidedUtc)}:{}),...(l.note?{note:l.note}:{})};});
+  const leaves:HRLeave[]=b.leaves.map(l=>{c.ids.setVersion('leave',protoId(l.leaveId),l.version);return leaveFromServer(l);});
   const runs=b.runs.map(r=>{c.ids.setVersion('run',protoId(r.runId),r.version);return runFromServer(r);});
   const advances:HRAdvance[]=b.advances.map(a=>({id:protoId(a.advanceId),staffId:protoId(a.staffId),amount:a.amountPaise,installment:a.installmentPaise,
     recovered:a.recoveredPaise,date:a.date,reason:a.reason,by:protoId(a.givenBy),
@@ -162,9 +198,12 @@ async function loadStaffX(c:Parameters<SyncArea['loaders'][number]['load']>[0]):
       net:f.netPaise,by:protoId(f.preparedBy),at:utcToClock(f.preparedUtc),status:f.status==='Draft'?'Draft':'Settled',
       ...(f.decidedBy!=null&&f.status!=='Draft'?{confirmedBy:protoId(f.decidedBy)}:{}),...(f.decidedUtc&&f.status!=='Draft'?{confirmedAt:utcToClock(f.decidedUtc)}:{})};});
   const deptCap:Record<string,number>={};for(const d of b.departments)if(d.leaveCap!=null)deptCap[d.code]=d.leaveCap;
+  const agendas:HRAgenda[]=(b.agendas??[]).map(a=>({id:protoId(a.agendaId),date:a.date,title:a.title,time:a.time,type:(['meeting','agenda','reminder'].includes(a.type)?a.type:'meeting') as HRAgenda['type'],
+    description:a.description,by:protoId(a.createdBy),at:utcToClock(a.createdUtc)}));
   const requests=(b.requests??[]).map(r=>{c.ids.setVersion('hrreq',protoId(r.requestId),r.version);return requestFromServer(r);});
   return {depts:b.departments.map(d=>({id:d.code,name:d.name})),staff,roster,att,leaves,advances,rateVersions:b.rateVersions.map(ratesFromServer),
-    leavePolicy:{ent:{CL:b.leavePolicy.cl,SL:b.leavePolicy.sl,EL:b.leavePolicy.el},defaultCap:b.leavePolicy.defaultCap,deptCap},runs,fnf,
+    leavePolicy:policyFromServer(b.leavePolicy,deptCap),runs,fnf,...(agendas.length?{agendas}:{}),
+    ...(b.approvers?{approvers:b.approvers.map(a=>({id:protoId(a.userId),name:a.name,role:a.role}))}:{}),
     holidays:(b.holidays??[]).map(h=>({date:h.date,name:h.name})),requests,...(b.correctFrom&&b.correctTo?{correctWindow:{from:b.correctFrom,to:b.correctTo}}:{})};
 }
 
@@ -229,7 +268,7 @@ export const staff:SyncArea={
     {type:'HR_DEPT_SAVE',reload:RELOAD,
       precheck:cmd=>!/^[A-Z0-9]{2,10}$/.test(String(cmd.code??'').trim().toUpperCase())?'Department code: 2–10 capital letters or digits.'
         :String(cmd.name??'').trim().length<2?'Enter the department name.':undefined,
-      // Add or rename. The leave limit belongs to the leave policy (Owner): the loaded value is sent back unchanged.
+      // Add or rename. The advisory leave cap belongs to the leave settings (Owner): the loaded value is sent back unchanged.
       send:c=>{const code=String(c.cmd.code).trim().toUpperCase();
         return post(c,'SaveDepartment',{code,name:String(c.cmd.name).trim(),leaveCap:hr(c)?.leavePolicy?.deptCap?.[code]??null});}},
     {type:'HR_STAFF_ACTIVE',reload:RELOAD,send:c=>post(c,'SetStaffActive',({staffId:serverId(c.cmd.id,'Staff'),active:!!c.cmd.active}),['staff',c.cmd.id,'Staff member'])},
@@ -239,19 +278,46 @@ export const staff:SyncArea={
       // No status = self check-in (server clock decides Present / Late); with a status = a manager's mark (+ overtime, note).
       send:c=>post(c,'MarkAttendance',c.cmd.status?{staffId:serverId(c.cmd.staffId,'Staff'),status:c.cmd.status,otMinutes:Number(c.cmd.otMin??0),
         ...(String(c.cmd.note??'').trim()?{note:String(c.cmd.note).trim()}:{})}:{staffId:serverId(c.cmd.staffId,'Staff')})},
-    {type:'HR_LEAVE_REQUEST',reload:RELOAD,send:c=>post(c,'RequestLeave',({staffId:serverId(c.cmd.staffId,'Staff'),leaveType:c.cmd.leaveType,from:c.cmd.from,
-      to:c.cmd.half?null:c.cmd.to,half:c.cmd.half??null,reason:String(c.cmd.reason??'').trim()}))},
-    {type:'HR_LEAVE_DECIDE',reload:RELOAD,send:c=>post(c,'DecideLeave',({leaveId:serverId(c.cmd.id,'Leave request'),approve:!!c.cmd.approve,...(text(c.cmd.note)?.trim()?{note:String(c.cmd.note).trim()}:{})}),['leave',c.cmd.id,'Leave request'])},
-    {type:'HR_LEAVE_CANCEL',reload:RELOAD,send:c=>post(c,'CancelLeave',({leaveId:serverId(c.cmd.id,'Leave request')}),['leave',c.cmd.id,'Leave request'])},
+    // SCC leave port: one record per date — the server applies SCC's per-date loop and refuses only what SCC refuses (approver, dates, a hard
+    // blackout, an unconfirmed over-quota or soft blackout, nothing added).
+    {type:'HR_LEAVE_REQUEST',reload:RELOAD,precheck:cmd=>!String(cmd.approver??'').trim()?'Approver name is required':undefined,
+      send:c=>post(c,'RequestLeave',({staffId:serverId(c.cmd.staffId,'Staff'),leaveType:c.cmd.leaveType,from:c.cmd.from,to:c.cmd.to??c.cmd.from,half:c.cmd.half??null,
+        reason:String(c.cmd.reason??'').trim()||null,approverId:serverId(c.cmd.approver,'User'),confirmOverBalance:!!c.cmd.confirmOverBalance,confirmBlackout:!!c.cmd.confirmBlackout}))},
+    {type:'HR_LEAVE_DECIDE',reload:RELOAD,send:c=>post(c,'DecideLeave',({leaveId:serverId(c.cmd.id,'Leave record'),approve:!!c.cmd.approve,...(text(c.cmd.note)?.trim()?{note:String(c.cmd.note).trim()}:{})}),['leave',c.cmd.id,'Leave record'])},
+    {type:'HR_LEAVE_CANCEL',reload:RELOAD,send:c=>post(c,'CancelLeave',({leaveId:serverId(c.cmd.id,'Leave record')}),['leave',c.cmd.id,'Leave record'])},
     {type:'HR_LEAVE_POLICY_SET',reload:RELOAD,
-      // SetLeavePolicy (entitlements + default limit), then SaveDepartment for each department whose own limit changed (step keys dept:<code>).
-      async send(c){const cmd=c.cmd,x=hr(c),p=x?.leavePolicy??{ent:{CL:12,SL:7,EL:15},defaultCap:2,deptCap:{}};
-        const ent=cmd.ent??p.ent;
-        await c.api.command('SetLeavePolicy',{cl:ent.CL,sl:ent.SL,el:ent.EL,defaultCap:cmd.defaultCap??p.defaultCap});
+      // SetLeavePolicy (SCC entitlement defaults — a blank field saves 0 — and the week-off set), then SaveDepartment for each department whose
+      // advisory cap changed (a blank field keeps it, SCC; step keys dept:<code>).
+      async send(c){const cmd=c.cmd,x=hr(c),p=x?.leavePolicy??{ent:{CL:12,SL:7,EL:15},deptCap:{}};
+        const ent=cmd.ent??p.ent,wo=Array.isArray(cmd.weekOff)?(cmd.weekOff as number[]):p.weekOff;
+        await c.api.command('SetLeavePolicy',{cl:num(ent.CL)??0,sl:num(ent.SL)??0,el:num(ent.EL)??0,...(wo!==undefined?{weekOffMask:weekOffToMask(wo)}:{})});
         if(cmd.deptCap&&typeof cmd.deptCap==='object')for(const d of x?.depts??[]){
-          const v=(cmd.deptCap as Record<string,unknown>)[d.id],next=v===undefined||v===null||v===''?null:Number(v),was=p.deptCap[d.id]??null;
+          const v=(cmd.deptCap as Record<string,unknown>)[d.id];if(v===undefined||v===null||v==='')continue;
+          const next=Math.floor(Number(v)),was=p.deptCap[d.id]??null;
           if(next!==was)await c.api.command('SaveDepartment',{code:d.id,name:d.name,leaveCap:next},{step:'dept:'+d.id});
         }}},
+    {type:'HR_LEAVE_ENT_OVERRIDE',reload:RELOAD,send:c=>{const e=(c.cmd.ent??{}) as Record<string,unknown>;
+      return post(c,'SetLeaveEntOverride',{staffId:serverId(c.cmd.staffId,'Staff'),cl:num(e.CL),sl:num(e.SL),el:num(e.EL)});}},
+    {type:'HR_LEAVE_BLACKOUT_ADD',reload:RELOAD,send:c=>post(c,'AddLeaveBlackout',{from:c.cmd.from,to:c.cmd.to,dept:String(c.cmd.dept??''),kind:c.cmd.kind==='holiday'?'holiday':'blackout',
+      hard:!!c.cmd.hard,label:String(c.cmd.label??'').trim()})},
+    {type:'HR_LEAVE_BLACKOUT_REMOVE',reload:RELOAD,send:c=>post(c,'RemoveLeaveBlackout',{blackoutId:serverId(c.cmd.id,'Blackout')})},
+    {type:'HR_AGENDA_ADD',reload:RELOAD,send:c=>post(c,'AddLeaveAgenda',{date:c.cmd.date,title:String(c.cmd.title??'').trim(),time:String(c.cmd.time??''),
+      type:String(c.cmd.agendaType??c.cmd.kind??'meeting'),description:String(c.cmd.description??'').trim()})},
+    {type:'HR_AGENDA_REMOVE',reload:RELOAD,send:c=>post(c,'RemoveLeaveAgenda',{agendaId:serverId(c.cmd.id,'Agenda item')})},
+    {type:'HR_LEAVE_IMPORT',reload:RELOAD,
+      // SCC importJSON: validated here (names → staff / users, week-off dates, categories), merged on the server (same id ignored, same person
+      // or a full date skipped, a locked pay month skipped).
+      async send(c){const plan=hrLeaveImportParse(c.state,c.cmd.data);if(typeof plan==='string')throw new HccClientError('VALIDATION','Import failed: '+plan);
+        await c.api.command('ImportLeave',{skipped:plan.skipped,
+          leaves:plan.leaves.map(r=>({sccId:r.sccId||null,staffId:serverId(r.staffId,'Staff'),date:r.date,half:r.half??null,leaveType:r.type,reason:r.reason||null,
+            approverId:r.approver?serverId(r.approver,'User'):null,approverName:r.approverName??null,from:r.from,to:r.to,status:r.status,legacy:r.legacy,
+            decidedByName:r.decidedByName??null,decidedAt:r.decidedAt??null})),
+          agendas:plan.agendas.map(a=>({sccId:a.sccId||null,date:a.date,title:a.title,type:a.type,time:a.time,description:a.description})),
+          ...(plan.ent?{defaults:{cl:plan.ent.defaults.CL??null,sl:plan.ent.defaults.SL??null,el:plan.ent.defaults.EL??null},
+            overrides:Object.entries(plan.ent.perStaff).map(([id,e])=>({staffId:serverId(id,'Staff'),cl:e.CL??null,sl:e.SL??null,el:e.EL??null}))}:{}),
+          ...(plan.weekOff?{weekOffMask:weekOffToMask(plan.weekOff)}:{})});}},
+    {type:'HR_LEAVE_CLEAR',reload:RELOAD,precheck:cmd=>String(cmd.confirm??'').trim()!=='DELETE'?'Type DELETE (uppercase) to confirm':undefined,
+      send:c=>post(c,'ClearLeave',{confirm:'DELETE'})},
     {type:'HR_ADVANCE_ADD',reload:RELOAD,send:c=>post(c,'GiveAdvance',({staffId:serverId(c.cmd.staffId,'Staff'),amountPaise:c.cmd.amount,installmentPaise:c.cmd.installment??0,
       reason:String(c.cmd.reason??'').trim(),fromMonth:c.cmd.fromMonth||null}))},
     {type:'HR_STAT_RATES_SET',reload:RELOAD,send:c=>post(c,'SetStatutoryRates',ratesBody(c.cmd))},

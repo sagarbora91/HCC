@@ -45,7 +45,7 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
         _ => "Worked on off day",
     };
 
-    /// <summary>Label of a leave type: the six built-in codes by name; a code added in MA-6's Leave types list prints as its code.</summary>
+    /// <summary>Label of a leave category: SCC's six + LOP by name; an older code prints as its code.</summary>
     public static string LeaveLabel(LeaveType t) => t.Value switch
     {
         "CL" => "Casual leave",
@@ -53,6 +53,7 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
         "EL" => "Earned leave",
         "CO" => "Compensatory off",
         "ML" => "Maternity / paternity leave",
+        "OTH" => "Other",
         "LOP" => "Leave without pay",
         _ => t.Value,
     };
@@ -87,7 +88,8 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
 }
 
 /// <summary>A day as a correction finds it: the entry, the one-day approved leave holding it (replaced by the correction), whether an approved
-/// half-day leave sits beside a mark, a multi-day approved leave covering it (cannot be corrected day by day) and whether a pending leave covers it.</summary>
+/// half-day leave sits beside a mark, a multi-day approved leave covering it (none since the SCC leave port: every record is one date, migration 4110)
+/// and whether a pending leave covers it.</summary>
 public sealed record DayState(DayEntry Entry, LeaveSpan? OneDayLeave, bool HalfDayLeave, LeaveSpan? MultiDayLeave, bool PendingLeave);
 
 public static class PayrollCorrections

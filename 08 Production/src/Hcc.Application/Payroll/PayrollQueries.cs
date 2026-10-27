@@ -51,7 +51,7 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         var date = on ?? (await db.PropertyAsync(propertyId, ct).ConfigureAwait(false)).BusinessDate;
         var days = (await db.DaysAsync(propertyId, [staffId], date, date, ct).ConfigureAwait(false)).GetValueOrDefault(staffId) ?? new StaffDays();
         var policyRow = await db.LeavePolicyAsync(propertyId, ct).ConfigureAwait(false);
-        return LeaveRules.Balance(policyRow, days.Leaves, date, st.Profile.Joined).Select(b => new LeaveBalanceView(b.Type.ToString(), b.Entitled, b.Used, b.Left, b.Over)).ToList();
+        return LeaveRules.Balance(policyRow, st.StaffId, days.Leaves, date).Select(b => new LeaveBalanceView(b.Type.ToString(), b.Entitled, b.Used, b.Left, b.Over)).ToList();
     }
 
     /// <summary>The rate version in force for a month (with its effective date) — Owner and Accountant.</summary>
@@ -282,9 +282,11 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         var roster = d.Roster.Where(x => visible.Contains(x.StaffId)).Select(x => new BoardRosterView(x.StaffId, x.Date, x.Shift.ToString())).ToList();
         var att = d.Attendance.Where(x => visible.Contains(x.StaffId))
             .Select(x => new BoardAttendanceView(x.StaffId, x.Date, x.Status.ToString(), x.OtMinutes, x.MarkedBy, Iso(x.MarkedUtc), x.Note)).ToList();
-        var leaves = d.Leaves.Where(x => visible.Contains(x.Span.StaffId)).Select(x => new BoardLeaveView(x.Span.LeaveId, x.Span.StaffId, x.Span.Type.ToString(),
-            x.Span.From, x.Span.To, x.Span.Half?.ToString(), x.Span.Days, x.Reason, x.Span.Status.ToString(), x.RequestedBy, Iso(x.RequestedUtc), x.DecidedBy,
-            d.LeaveDecidedUtc.TryGetValue(x.Span.LeaveId, out var du) ? Iso(du) : null, x.Note, x.Version)).ToList();
+        // SCC leave port: one record per date, with its request range, nominated approver, who removed it and the imported-SCC fields.
+        var leaves = d.Leaves.Where(x => visible.Contains(x.Span.StaffId)).Select(x => new BoardLeaveView(x.Span.LeaveId, x.Span.StaffId, x.Span.Date, x.Span.Type.ToString(),
+            x.RequestFrom ?? x.Span.From, x.RequestTo ?? x.Span.To, x.Span.Half?.ToString(), x.Span.Days, x.Reason.Length > 0 ? x.Reason : null, x.ApproverId, x.ApproverName,
+            x.Span.Status.ToString(), x.RequestedBy, Iso(x.RequestedUtc), x.DecidedBy, d.LeaveDecidedUtc.TryGetValue(x.Span.LeaveId, out var du) ? Iso(du) : null, x.Note,
+            x.CancelledBy, x.CancelledUtc is { } cu ? Iso(cu) : null, x.Legacy, x.SccId, x.DecidedByName, x.Version)).ToList();
 
         var runs = new List<BoardRunView>();
         var runRows = await db.RunsAsync(propertyId, ct).ConfigureAwait(false);
@@ -330,8 +332,14 @@ public sealed class PayrollQueries(IPayrollStore store, IAccessPolicy policy)
         var salary = await Has(propertyId, principalId, PayrollPermissions.Salary, ct: ct).ConfigureAwait(false);
         var requests = all ? RequestViews(await db.RequestsAsync(propertyId, null, ct).ConfigureAwait(false), f, t, salary, salary || payroll) : [];
         var window = PayrollCorrections.Window(clock.BusinessDate, runRows.Where(r => r.Locked).Select(r => (PayMonth?)r.Month).Max());
+        // SCC leave settings, agenda items and the approver choices (every caller: a staff member picks an approver for their own leave).
+        var policyView = new LeavePolicyView(leavePolicy.Cl, leavePolicy.Sl, leavePolicy.El, leavePolicy.DefaultCap, leavePolicy.WeekOffMask,
+            (leavePolicy.Overrides ?? new Dictionary<long, LeaveEntOverride>()).Where(o => visible.Contains(o.Key)).OrderBy(o => o.Key)
+                .Select(o => new LeaveOverrideView(o.Key, o.Value.Cl, o.Value.Sl, o.Value.El)).ToList(),
+            leavePolicy.BlackoutList.Select(b => new LeaveBlackoutView(b.BlackoutId, b.From, b.To, b.Dept, b.Kind, b.Hard, b.Label)).ToList());
+        var agendas = (d.Agendas ?? []).Select(a => new LeaveAgendaView(a.AgendaId, a.Date, a.Title, a.Time, a.Kind, a.Description, a.CreatedBy, Iso(a.CreatedUtc))).ToList();
+        var approvers = (await db.ApproversAsync(propertyId, null, ct).ConfigureAwait(false)).Select(a => new ApproverView(a.UserId, a.Name, a.Role)).ToList();
         return new PayrollBoardView(clock.BusinessDate, f, t, all, payroll, depts.Select(x => new DepartmentView(x.Code, x.Name, x.LeaveCap)).ToList(),
-            new LeavePolicyView(leavePolicy.Cl, leavePolicy.Sl, leavePolicy.El, leavePolicy.DefaultCap), roster, att, leaves, rates, runs, advances, fnf,
-            holidays, requests, all ? window.From : null, all ? window.To : null);
+            policyView, roster, att, leaves, rates, runs, advances, fnf, holidays, requests, all ? window.From : null, all ? window.To : null, agendas, approvers);
     }
 }

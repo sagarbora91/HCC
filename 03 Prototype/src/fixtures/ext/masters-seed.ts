@@ -207,13 +207,15 @@ export const SEED_SHIFTS:{code:string;name:string;start:string;end:string;night?
   {code:'M',name:'Morning',start:'07:00',end:'15:00'},{code:'E',name:'Evening',start:'15:00',end:'23:00'},
   {code:'N',name:'Night',start:'23:00',end:'07:00',night:true},{code:'G',name:'General',start:'09:00',end:'18:00'}];
 export const seedShiftPatterns=():MasterRow[]=>SEED_SHIFTS.map((x,i)=>({id:'shp-'+x.code,code:x.code,name:x.name,sortOrder:step(i),active:true,start:x.start,end:x.end,breakMinutes:30,night:!!x.night,weeklyOffRule:'fixed' as const}));
-export const SEED_LEAVES:{code:string;name:string;paid:boolean;tracked?:'CL'|'SL'|'EL';encashment?:boolean}[]=[
-  {code:'CL',name:'Casual leave',paid:true,tracked:'CL'},{code:'SL',name:'Sick leave',paid:true,tracked:'SL'},{code:'EL',name:'Earned leave',paid:true,tracked:'EL',encashment:true},
-  {code:'CO',name:'Compensatory off',paid:true},{code:'ML',name:'Maternity / paternity leave',paid:true},{code:'LOP',name:'Leave without pay',paid:false}];
+/** SCC's six leave categories in SCC's order (VALID_CATEGORIES: Casual, Sick, Earned, Maternity / Paternity, Compensatory Off, Other) + HCC's LOP
+ *  (leave without pay — payroll treats it as absent). Fixed list (DEC-116); no carry-forward or encashment (SCC has neither). */
+export const SEED_LEAVES:{code:string;name:string;paid:boolean;tracked?:'CL'|'SL'|'EL'}[]=[
+  {code:'CL',name:'Casual leave',paid:true,tracked:'CL'},{code:'SL',name:'Sick leave',paid:true,tracked:'SL'},{code:'EL',name:'Earned leave',paid:true,tracked:'EL'},
+  {code:'ML',name:'Maternity / paternity leave',paid:true},{code:'CO',name:'Compensatory off',paid:true},{code:'OTH',name:'Other',paid:true},{code:'LOP',name:'Leave without pay',paid:false}];
 /** Quotas = the staff leave policy of the state (CL 12 · SL 7 · EL 15 in the fixture). */
 export function seedLeaveTypes(s:Pick<State,'staffX'>):MasterRow[]{
   const ent=s.staffX?.leavePolicy?.ent??{CL:12,SL:7,EL:15};
-  return SEED_LEAVES.map((x,i)=>({id:'lvt-'+x.code,code:x.code,name:x.name,sortOrder:step(i),active:true,paid:x.paid,...(x.tracked?{yearlyQuota:ent[x.tracked]}:{}),carryForward:0,encashment:!!x.encashment}));
+  return SEED_LEAVES.map((x,i)=>({id:'lvt-'+x.code,code:x.code,name:x.name,sortOrder:step(i),active:true,paid:x.paid,...(x.tracked?{yearlyQuota:ent[x.tracked]}:{})}));
 }
 /** DEMO DATA — illustrative holiday calendar (owner / CA to confirm each year). Paid = national and major public holidays; restricted = optional.
  *  Seeded only while MASTERS_SEED_OPTIONS.demoHolidays is on; every row carries `demo:true`. DEC-083 and both servers seed none. */

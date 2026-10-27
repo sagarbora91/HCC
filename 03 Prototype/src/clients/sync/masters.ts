@@ -68,8 +68,9 @@ export const MST_SERVER:Record<string,MstServerRoute>={
     toBody:r=>({start:r.start,end:r.end,breakMinutes:r.breakMinutes??0,night:!!r.night,weeklyOffRule:r.weeklyOffRule??'fixed'})},
   leaveTypes:{list:'GET /hr/leave-types',history:'GET /hr/leave-types/history',listPath:'/hr/leave-types',historyPath:'/hr/leave-types/history',kind:'leaveType',idField:'leaveTypeId',idsField:'leaveTypeIds',
     save:'SaveLeaveType',retire:'RetireLeaveType',reactivate:'ReactivateLeaveType',reorder:'ReorderLeaveTypes',remove:'DeleteLeaveType',
-    fromServer:r=>({...listBase(r,'leaveTypeId'),paid:!!r.paid,...optional(r,['yearlyQuota']),carryForward:r.carryForward,encashment:!!r.encashment}),
-    toBody:r=>({paid:r.paid!==false,yearlyQuota:r.yearlyQuota??null,carryForward:r.carryForward??0,encashment:!!r.encashment})},
+    // SCC leave port (DEC-116): SCC's fixed categories — paid flag and a (decimal) quota only; no carry-forward or encashment.
+    fromServer:r=>({...listBase(r,'leaveTypeId'),paid:!!r.paid,...optional(r,['yearlyQuota'])}),
+    toBody:r=>({paid:r.paid!==false,yearlyQuota:r.yearlyQuota??null})},
   holidays:{list:'GET /hr/holidays',history:'GET /hr/holidays/history',listPath:'/hr/holidays',historyPath:'/hr/holidays/history',kind:'holiday',idField:'holidayId',idsField:'holidayIds',
     save:'SaveHoliday',retire:'RetireHoliday',reactivate:'ReactivateHoliday',reorder:'ReorderHolidays',remove:'DeleteHoliday',
     fromServer:r=>({...listBase(r,'holidayId'),kind:r.kind}),

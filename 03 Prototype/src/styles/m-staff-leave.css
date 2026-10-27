@@ -1,0 +1,123 @@
+/* Module 17 · Leave tab — SCC LeaveDesk screens (DEC-116 / DEC-119): desk, calendar, stats, 7-day strip, day view, settings, print. Prefix lv-.
+   Colours are the theme's role tokens only (themes.css re-points them for dark / high contrast). */
+.lv-readonly{margin:0 0 12px}
+.lv-amber{color:var(--warn-text)}.lv-mid{color:var(--ink-2)}.lv-red{color:var(--danger-text)}.lv-blue{color:var(--info-text)}
+.lv-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding-top:0}
+.lv-nav{flex-wrap:wrap;gap:6px}
+.lv-month{min-width:140px;text-align:center;font-size:16px}
+.lv-jump select{min-height:36px}
+.lv-asof{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.lv-asof input{min-height:36px}
+.lv-actions{flex-wrap:wrap;gap:6px}
+.lv-badge{display:inline-block;min-width:20px;margin-left:6px;padding:0 6px;border-radius:10px;background:var(--primary-fill);color:var(--on-primary);font-size:12px;text-align:center}
+.lv-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.lv-stat{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+.lv-stat span{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.lv-stat strong{font-size:22px;color:var(--ink)}
+.lv-stat small{font-size:11px;color:var(--muted)}
+.lv-strip-card{margin-bottom:14px}
+.lv-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:0 23px 16px}
+.lv-strip-m .lv-strip{padding:0;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.lv-sday{display:flex;flex-direction:column;align-items:center;gap:1px;min-height:48px;min-width:0;padding:6px 2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:11px;cursor:pointer;text-align:center}
+.lv-sday b{font-size:16px}
+.lv-sday small,.lv-sday em{font-size:10px;color:var(--muted);font-style:normal}
+.lv-sdow{font-weight:700;color:var(--muted)}
+.lv-sday.today{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.lv-sday.nontrading{background:var(--sand-2)}
+.lv-sday.blackout{background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 6px,var(--warn-bg) 6px,var(--warn-bg) 12px)}
+.lv-sday.understaffed{border-color:var(--danger-border);background:var(--danger-bg)}
+.lv-sday .lv-short{color:var(--danger-text);font-weight:700}
+.lv-strip-m .lv-sday span:not(.lv-sdow),.lv-strip-m .lv-sday small,.lv-strip-m .lv-sday em{font-size:9px;line-height:1.15;word-break:break-word}
+.lv-legend{color:var(--muted)}
+.lv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:16px 23px 8px}
+.lv-head{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
+.lv-cell{min-height:92px;min-width:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:4px 5px;display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.lv-cell:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.lv-cell.other{background:transparent;border-color:transparent;cursor:default}
+.lv-cell.weekend{background:var(--sand-2)}
+.lv-cell.past{opacity:.78}
+.lv-cell.today{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.lv-cell.at-limit{background:var(--warn-bg);border-color:var(--warn-border)}
+.lv-cell.blackout,.lv-mcell.blackout{background-image:repeating-linear-gradient(135deg,transparent,transparent 6px,var(--warn-bg) 6px,var(--warn-bg) 12px)}
+.lv-cell.blackout-hard,.lv-mcell.blackout-hard{background-image:repeating-linear-gradient(135deg,transparent,transparent 6px,var(--danger-bg) 6px,var(--danger-bg) 12px)}
+.lv-date{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--ink)}
+.lv-dot-limit,.lv-dot-agenda,.lv-dot-bk{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
+.lv-dot-limit{background:var(--danger-fill)}.lv-dot-agenda{background:var(--info-fill)}.lv-dot-bk{background:var(--warn-fill)}
+.lv-chip{display:block;font-size:10px;line-height:1.3;border-radius:4px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:3px solid var(--primary);background:var(--primary-tint);color:var(--primary-dark)}
+.lv-chip.half-am{border-left-color:var(--warn-fill);background:var(--warn-bg);color:var(--warn-text)}
+.lv-chip.half-pm{border-left-color:var(--info-fill);background:var(--info-bg);color:var(--info-text)}
+.lv-chip.chip-pending{border-style:dashed;border-width:1px 1px 1px 3px;background:var(--surface)}
+.lv-more{font-size:10px;color:var(--muted)}
+.lv-agenda-mini{font-size:10px;color:var(--info-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lv-report tfoot td{font-weight:700;border-top:2px solid var(--line-strong)}
+/* phone: compact month grid (day targets ≥ 44 px, fits 360 px) */
+.lv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lv-grid-m{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin:12px 0 4px}
+.lv-mcell{position:relative;min-height:48px;min-width:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;padding:3px 2px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer}
+.lv-mcell.blank{background:transparent;border-color:transparent;cursor:default}
+.lv-mcell b{font-size:14px}
+.lv-mcell small{font-size:10px;font-weight:700;color:var(--primary-dark);background:var(--primary-tint);border-radius:8px;padding:0 5px}
+.lv-mcell.weekend{background-color:var(--sand-2)}
+.lv-mcell.past{opacity:.78}
+.lv-mcell.today{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.lv-mcell.at-limit{background-color:var(--warn-bg);border-color:var(--warn-border)}
+.lv-dots{display:flex;gap:2px;min-height:8px}
+.lv-dots i{width:6px;height:6px}
+.lv-appr-m{width:100%;min-height:48px;margin:8px 0}
+.lv-actions-m .lv-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lv-actions-m .btn{min-height:48px}
+/* dialogs */
+.lv-kind{flex-wrap:wrap}
+.info-note.lv-hard{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger-text)}
+.info-note.lv-exceed{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger-text)}
+.info-note.lv-ok{background:var(--success-bg);border-color:var(--success-border);color:var(--success-text)}
+.lv-day{display:flex;flex-direction:column;gap:14px;padding:0 4px}
+.lv-day h4{margin:0 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.lv-day-actions{gap:8px;flex-wrap:wrap}
+.lv-capgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.lv-slot{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface-2);display:flex;flex-direction:column;gap:4px;min-width:0}
+.lv-slot-label{font-size:12px;color:var(--muted)}
+.lv-slot-count{font-size:18px;font-weight:700}
+.lv-slot-count.ok{color:var(--success-text)}.lv-slot-count.warn{color:var(--warn-text)}.lv-slot-count.full{color:var(--danger-text)}
+.lv-bar{height:6px;border-radius:3px;background:var(--sand-3);overflow:hidden}
+.lv-fill{height:100%;background:var(--success-fill)}
+.lv-fill.full{background:var(--danger-fill)}
+.lv-slot-note{font-size:12px;color:var(--muted)}
+.lv-daynote{grid-column:1/-1;font-weight:600}
+.lv-daynote.lv-red{color:var(--danger-text)}
+.lv-rows{display:flex;flex-direction:column;gap:6px}
+.lv-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);min-width:0}
+.lv-row-rejected{opacity:.6}
+.lv-row-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:none;border:0;padding:4px 0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:40px}
+.lv-row-main small{color:var(--muted);font-size:12px}
+.lv-row-static{cursor:default}
+.lv-badge-kind,.lv-badge-st{font-size:11px;font-weight:700;border-radius:10px;padding:2px 8px;white-space:nowrap}
+.lv-badge-kind.full{background:var(--primary-tint);color:var(--primary-dark)}
+.lv-badge-kind.half-am{background:var(--warn-bg);color:var(--warn-text)}
+.lv-badge-kind.half-pm{background:var(--info-bg);color:var(--info-text)}
+.lv-badge-st.pending{background:var(--warn-bg);color:var(--warn-text)}
+.lv-badge-st.rejected{background:var(--danger-bg);color:var(--danger-text)}
+.lv-icon{min-width:40px;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.lv-icon.ok{color:var(--success-text);border-color:var(--success-border);background:var(--success-bg)}
+.lv-icon.no{color:var(--danger-text);border-color:var(--danger-border);background:var(--danger-bg)}
+.lv-agenda-time{font-weight:700;min-width:48px;color:var(--info-text)}
+.lv-agenda-type{font-size:10px;font-weight:700;border-radius:8px;padding:1px 6px;background:var(--info-bg);color:var(--info-text);text-transform:uppercase}
+.lv-agenda-type.reminder{background:var(--warn-bg);color:var(--warn-text)}
+.lv-agenda-type.agenda{background:var(--success-bg);color:var(--success-text)}
+.lv-detail .lv-reason{font-weight:400;white-space:pre-wrap}
+.lv-wo{display:flex;flex-wrap:wrap;gap:8px}
+.lv-wo-day{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:8px}
+.lv-pre{white-space:pre-wrap}
+.lv-clear{margin:0 24px 8px;padding-left:18px;color:var(--ink)}
+.lv-print{padding:8px 4px}
+.lv-print-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--line-strong);padding-bottom:6px;margin-bottom:6px}
+.lv-print-head small{display:block;color:var(--muted);font-size:11px}
+.lv-print-title{font-size:18px;font-weight:700;text-align:right}
+.lv-print-meta{font-size:12px;color:var(--muted)}
+.lv-print table{width:100%;border-collapse:collapse;font-size:12px}
+.lv-print th,.lv-print td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+.lv-print tfoot td{font-weight:700}
+@media (max-width:1100px){.lv-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* SCC prints the leave calendar landscape: a named page, so other documents keep their own orientation. */
+@page lv-landscape{size:A4 landscape}
+.lv-print{page:lv-landscape}

@@ -2,7 +2,8 @@
 // framework (domain/streams/masters.ts) under the "People, payroll and leave" group. Pure domain: specs, seeds, cached selectors.
 //   designations   name · department · grade · default pay rule (pay rule: Owner-only) — the staff form picks from it (HRStaff.designationCode).
 //   shiftPatterns  name · start · end · break · night · weekly-off rule — roster, attendance (late check-in), staff default shift.
-//   leaveTypes     name · paid · yearly quota · carry-forward · encashment — leave policy per type (CL 12 · SL 7 · EL 15 stay the seed). Pay fields: Owner-only.
+//   leaveTypes     SCC's six leave categories (fixed list, SCC VALID_CATEGORIES) + HCC's LOP: name · paid (fixed: only LOP unpaid) · yearly quota
+//                  (Casual / Sick / Earned only — SCC TRACKED_CATS, ENT_DEFAULTS 12 · 7 · 15). No carry-forward or encashment (SCC port, DEC-116).
 //   holidays       date (the code) · name · paid / restricted — paid holidays count in payroll day counts and leave days; the calendar shifts
 //                  statutory due dates (Compliance). FY is derived from the date (Owner-only list, DEC-058).
 // Exported names start with 'hr' / 'HR' (shared mock namespace). Seeds reproduce today's constants, so no fixture figure moves: BASE and FY26
@@ -16,7 +17,11 @@ export type HRPayRule='monthly-structured'|'monthly-basic'|'daily';
 export type HRDesignation=MasterRow&{dept?:string;grade?:string;defaultPayRule?:HRPayRule};
 export type HRWeeklyOffRule='fixed'|'roster';
 export type HRShiftPattern=MasterRow&{start:string;end:string;breakMinutes?:number;night?:boolean;weeklyOffRule?:HRWeeklyOffRule};
-export type HRLeaveTypeRow=MasterRow&{paid?:boolean;yearlyQuota?:number;carryForward?:number;encashment?:boolean};
+export type HRLeaveTypeRow=MasterRow&{paid?:boolean;yearlyQuota?:number;
+  /** Before the SCC port (removed rules, ignored if an old list still holds them). */carryForward?:number;encashment?:boolean};
+/** SCC's leave categories in SCC's order + HCC's LOP — the fixed list (SCC: not editable). Same codes as staff.ts HR_LEAVE_TYPES. */
+export const HR_FIXED_LEAVE_CODES=['CL','SL','EL','ML','CO','OTH','LOP'];
+const TRACKED_CODES=['CL','SL','EL'];
 export type HRHolidayKind='paid'|'restricted';
 export type HRHoliday=MasterRow&{kind:HRHolidayKind};
 
@@ -65,19 +70,17 @@ export const hrWeeklyOffAuto=(s:State,defaultShift:string)=>hrShiftPattern(s,def
 const leaveMemo=memoOn(s=>storedRows(s,HRM_LEAVE_TYPES)??(s.staffX?.leavePolicy as object|undefined),s=>{const rows=mstRows(s,HRM_LEAVE_TYPES) as HRLeaveTypeRow[];return {rows,byCode:new Map(rows.map(r=>[r.code,r]))};});
 export const hrLeaveTypeRows=(s:State,opts:{active?:boolean}={}):HRLeaveTypeRow[]=>leaveMemo(s).rows.filter(r=>opts.active===undefined||r.active===opts.active);
 export const hrLeaveTypeRow=(s:State,code:string):HRLeaveTypeRow|undefined=>leaveMemo(s).byCode.get(code);
-/** Name of a leave type (retired and unknown codes still print). */
-export const hrLeaveName=(s:State,code:string)=>hrLeaveTypeRow(s,code)?.name??code;
-/** Paid leave? Unknown codes count as paid, except the built-in unpaid LOP. */
-export const hrLeavePaid=(s:State,code:string)=>{const r=hrLeaveTypeRow(s,code);return r?r.paid!==false:code!=='LOP';};
-/** Yearly quota in days; undefined = not tracked (no balance check). */
-export const hrLeaveQuota=(s:State,code:string):number|undefined=>{const q=hrLeaveTypeRow(s,code)?.yearlyQuota;return Number.isFinite(q)?q:undefined;};
-/** Most days that may be carried into the next financial year (0 = none). */
-export const hrLeaveCarryCap=(s:State,code:string)=>Number(hrLeaveTypeRow(s,code)?.carryForward)||0;
-export const hrLeaveEncash=(s:State,code:string)=>!!hrLeaveTypeRow(s,code)?.encashment;
-/** Active types with a yearly quota (balances shown and enforced). */
-export const hrTrackedTypes=(s:State):string[]=>hrLeaveTypeRows(s,{active:true}).filter(r=>Number.isFinite(r.yearlyQuota)).map(r=>r.code);
-/** Leave types a staff member may request: active; daily-wage staff only unpaid types. */
-export const hrLeaveChoices=(s:State,payType:'monthly'|'daily'):HRLeaveTypeRow[]=>hrLeaveTypeRows(s,{active:true}).filter(r=>payType==='monthly'||r.paid===false);
+const LEAVE_NAMES:Record<string,string>={CL:'Casual leave',SL:'Sick leave',EL:'Earned leave',ML:'Maternity / paternity leave',CO:'Compensatory off',OTH:'Other',LOP:'Leave without pay'};
+/** Name of a leave category (the list's name; retired and unknown codes still print). */
+export const hrLeaveName=(s:State,code:string)=>hrLeaveTypeRow(s,code)?.name??LEAVE_NAMES[code]??code;
+/** Paid leave? SCC: every category is a leave day in pay; only HCC's LOP (leave without pay) is unpaid. */
+export const hrLeavePaid=(_s:State,code:string)=>code!=='LOP';
+/** Yearly quota in days of a tracked category (Casual / Sick / Earned); undefined for the others (SCC: not quota-tracked). */
+export const hrLeaveQuota=(s:State,code:string):number|undefined=>{if(!TRACKED_CODES.includes(code))return undefined;const q=hrLeaveTypeRow(s,code)?.yearlyQuota;return Number.isFinite(q)?q:undefined;};
+/** SCC TRACKED_CATS: Casual, Sick, Earned. */
+export const hrTrackedTypes=(_s?:State):string[]=>[...TRACKED_CODES];
+/** The leave categories offered when recording leave: SCC's six + LOP, in SCC's order, for every staff member (SCC has no pay-type rule). */
+export const hrLeaveChoices=(s:State,_payType?:'monthly'|'daily'):{code:string;name:string}[]=>HR_FIXED_LEAVE_CODES.map(code=>({code,name:hrLeaveName(s,code)}));
 
 // ───────────────────────────── Holidays ─────────────────────────────
 const holMemo=memoOn(s=>storedRows(s,HRM_HOLIDAYS),s=>{const rows=mstRows(s,HRM_HOLIDAYS) as HRHoliday[];
@@ -156,27 +159,25 @@ const SHIFT_SPEC:MasterSpec<HRShiftPattern>={
 };
 const LEAVE_SPEC:MasterSpec<HRLeaveTypeRow>={
   id:HRM_LEAVE_TYPES,label:'Leave types',singular:'leave type',group:'people',prefix:'LVT',money:false,permission:'masters',
-  help:'Leave policy per type. A yearly quota makes the type tracked (balance checked per financial year, April–March). Paid, quota, carry-forward and encashment are pay rules: Owner only.',
+  help:'SCC’s leave categories (fixed list): Casual, Sick and Earned leave carry a yearly quota per financial year (April–March; SCC defaults 12 · 7 · 15); Maternity / paternity, Compensatory off and Other are not quota-tracked; Leave without pay (HCC) is the only unpaid one. Names can change; the list cannot. Quota: Owner only.',
   fields:[
-    {key:'code',label:'Code',type:'text',required:true,maxLength:6,placeholder:'CL',help:'1–6 capital letters or digits. Cannot change once leave uses it.'},
+    {key:'code',label:'Code',type:'text',required:true,maxLength:6,placeholder:'CL',help:'One of CL, SL, EL, ML, CO, OTH, LOP (SCC’s fixed categories + leave without pay).'},
     {key:'name',label:'Name',type:'text',required:true,maxLength:60,placeholder:'Casual leave'},
-    {key:'paid',label:'Paid leave',type:'toggle',money:true,help:'Unpaid leave is loss of pay in payroll. Daily-wage staff can take unpaid types only.'},
-    {key:'yearlyQuota',label:'Yearly quota (days)',type:'number',min:0,max:60,money:true,help:'Empty = not tracked (no balance, no limit).'},
-    {key:'carryForward',label:'Carry forward (days)',type:'number',min:0,max:60,money:true,help:'Most unused days carried into the next financial year; 0 = none.'},
-    {key:'encashment',label:'Paid out at full and final',type:'toggle',money:true,help:'Unused balance is offered as an encashment in full and final settlement.'},
+    {key:'paid',label:'Paid leave',type:'toggle',money:true,help:'Fixed: every category is paid leave in payroll except Leave without pay (SCC).'},
+    {key:'yearlyQuota',label:'Yearly quota (days)',type:'number',min:0,money:true,help:'Casual, Sick and Earned leave only (SCC TRACKED_CATS): any number of days ≥ 0, halves allowed, no maximum; empty = 0. Going over warns; it never blocks (SCC).'},
     {key:'sortOrder',label:'Sort order',type:'number',min:0,max:1_000_000},
     {key:'active',label:'Active',type:'toggle'},
   ],
-  inUse:(s,row)=>{const n=(s.staffX?.leaves??[]).filter(l=>l.type===row.code).length;return {count:n,where:n?[`${n} leave request${n===1?'':'s'}`]:[]};},
-  canRetire:(s,row)=>{if(row.paid===false&&!(mstRows(s,HRM_LEAVE_TYPES) as HRLeaveTypeRow[]).some(r=>r.id!==row.id&&r.active&&r.paid===false))return 'Keep at least one active unpaid leave type — daily-wage staff can take unpaid leave only.';return undefined;},
-  validate:(s,row,rows)=>{
-    if(!/^[A-Z0-9]{1,6}$/.test(row.code))return 'Code: 1–6 capital letters or digits.';
-    if(row.yearlyQuota!==undefined&&!Number.isInteger(row.yearlyQuota))return 'Yearly quota: whole days.';
-    if(row.carryForward!==undefined&&!Number.isInteger(row.carryForward))return 'Carry forward: whole days.';
-    if((row.carryForward??0)>0&&row.yearlyQuota===undefined)return 'Carry forward needs a yearly quota (an untracked type has no balance).';
-    if(row.paid===false&&((row.yearlyQuota??0)>0||(row.carryForward??0)>0||row.encashment))return 'Unpaid leave has no quota, carry-forward or encashment.';
-    const others=rows.filter(r=>r.id!==row.id&&r.active&&(r as HRLeaveTypeRow).paid===false);
-    if(row.paid!==false&&row.active!==false&&!others.length)return 'Keep at least one active unpaid leave type — daily-wage staff can take unpaid leave only.';
+  inUse:(s,row)=>{const n=(s.staffX?.leaves??[]).filter(l=>l.type===row.code).length;return {count:n,where:n?[`${n} leave record${n===1?'':'s'}`]:[]};},
+  canRetire:()=>'SCC’s leave categories are fixed — they cannot be retired.',
+  canDelete:()=>'SCC’s leave categories are fixed — they cannot be deleted.',
+  validate:(_s,row)=>{
+    if(!HR_FIXED_LEAVE_CODES.includes(row.code))return 'SCC’s leave categories are fixed: CL, SL, EL, ML, CO, OTH and LOP (leave without pay). No other category can be added.';
+    if(row.paid!==undefined&&row.paid!==(row.code!=='LOP'))return row.code==='LOP'?'Leave without pay is always unpaid.':'Every SCC leave category is paid leave (only Leave without pay is unpaid).';
+    const q=row.yearlyQuota as number|null|undefined;
+    if(q!==undefined&&q!==null&&!TRACKED_CODES.includes(row.code))return 'Only Casual, Sick and Earned leave have a yearly quota (SCC TRACKED_CATS).';
+    if(q!==undefined&&q!==null&&!(Number.isFinite(q)&&q>=0))return 'Yearly quota: a number of days, 0 or more.';
+    if(row.active===false)return 'SCC’s leave categories are fixed — they cannot be retired.';
     return undefined;},
   seed:s=>mastersSeed(HRM_LEAVE_TYPES,s) as HRLeaveTypeRow[],
 };
