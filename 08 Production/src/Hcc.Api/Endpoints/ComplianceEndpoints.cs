@@ -6,9 +6,11 @@ using Hcc.Infrastructure.SqlServer.Compliance;
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
-/// Compliance calendar endpoints (W2-5): <c>POST /api/v1/commands/{MarkComplianceFiled|MarkComplianceNotApplicable|ReopenComplianceFiling|
-/// SaveComplianceObligation|ToggleComplianceObligation|SaveComplianceSettings|GenerateCaPack|SeedComplianceDefaults}</c> with an
-/// <c>Idempotency-Key</c> header and <c>GET /api/v1/compliance/{calendar|due-this-week|badge|obligations|ca-packs}</c>. Owner + Accountant (DEC-055).
+/// Compliance calendar = SCC's tax module in full (DEC-116): <c>POST /api/v1/commands/{MarkComplianceDone|MarkComplianceNotApplicable|
+/// ReopenComplianceItem|SetComplianceFy|SaveComplianceProfile|ToggleComplianceArchive|ToggleComplianceCategoryArchive|SaveCustomObligation|
+/// DeleteCustomObligation|AddComplianceEvidence|DeleteComplianceEvidence|SaveComplianceSettings|GenerateCaPack}</c> with an <c>Idempotency-Key</c>
+/// header and <c>GET /api/v1/compliance/{state|month|dashboard|action-center|due-this-week|badge|register|print|payable|evidence/{id}|evidence-zip|
+/// ca-packs}</c>. Owner + Accountant (DEC-055); the Owner manages.
 /// </summary>
 public static class ComplianceEndpoints
 {
@@ -26,27 +28,52 @@ public static class ComplianceEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + ComplianceCommands.OpMarkFiled, async (HttpContext http, MarkFiledRequest body, ComplianceCommands c, CancellationToken ct) =>
-            http.HccReply(await c.MarkFiledAsync(http.HccCommand(ComplianceCommands.OpMarkFiled), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpMarkDone, async (HttpContext http, MarkDoneRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.MarkDoneAsync(http.HccCommand(ComplianceCommands.OpMarkDone), body, ct)));
         g.MapPost("/commands/" + ComplianceCommands.OpMarkNotApplicable, async (HttpContext http, MarkNotApplicableRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.MarkNotApplicableAsync(http.HccCommand(ComplianceCommands.OpMarkNotApplicable), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpReopen, async (HttpContext http, ReopenFilingRequest body, ComplianceCommands c, CancellationToken ct) =>
+        g.MapPost("/commands/" + ComplianceCommands.OpReopen, async (HttpContext http, ReopenItemRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReopenAsync(http.HccCommand(ComplianceCommands.OpReopen), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpSaveObligation, async (HttpContext http, SaveObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
-            http.HccReply(await c.SaveObligationAsync(http.HccCommand(ComplianceCommands.OpSaveObligation), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpToggleObligation, async (HttpContext http, ToggleObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
-            http.HccReply(await c.ToggleObligationAsync(http.HccCommand(ComplianceCommands.OpToggleObligation), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpSetFy, async (HttpContext http, SetFyRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.SetFyAsync(http.HccCommand(ComplianceCommands.OpSetFy), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpSaveProfile, async (HttpContext http, SaveProfileRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.SaveProfileAsync(http.HccCommand(ComplianceCommands.OpSaveProfile), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpToggleArchive, async (HttpContext http, ToggleArchiveRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.ToggleArchiveAsync(http.HccCommand(ComplianceCommands.OpToggleArchive), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpToggleCategory, async (HttpContext http, ToggleCategoryArchiveRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.ToggleCategoryAsync(http.HccCommand(ComplianceCommands.OpToggleCategory), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpSaveCustom, async (HttpContext http, SaveCustomObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.SaveCustomAsync(http.HccCommand(ComplianceCommands.OpSaveCustom), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpDeleteCustom, async (HttpContext http, DeleteCustomObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.DeleteCustomAsync(http.HccCommand(ComplianceCommands.OpDeleteCustom), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpAddEvidence, async (HttpContext http, AddEvidenceRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.AddEvidenceAsync(http.HccCommand(ComplianceCommands.OpAddEvidence), body, ct)));
+        g.MapPost("/commands/" + ComplianceCommands.OpDeleteEvidence, async (HttpContext http, DeleteEvidenceRequest body, ComplianceCommands c, CancellationToken ct) =>
+            http.HccReply(await c.DeleteEvidenceAsync(http.HccCommand(ComplianceCommands.OpDeleteEvidence), body, ct)));
         g.MapPost("/commands/" + ComplianceCommands.OpSaveSettings, async (HttpContext http, SaveSettingsRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveSettingsAsync(http.HccCommand(ComplianceCommands.OpSaveSettings), body, ct)));
         g.MapPost("/commands/" + ComplianceCommands.OpGenerateCaPack, async (HttpContext http, GenerateCaPackRequest? body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.GenerateCaPackAsync(http.HccCommand(ComplianceCommands.OpGenerateCaPack), body ?? new GenerateCaPackRequest(), ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpSeedDefaults, async (HttpContext http, SeedDefaultsRequest? body, ComplianceCommands c, CancellationToken ct) =>
-            http.HccReply(await c.SeedDefaultsAsync(http.HccCommand(ComplianceCommands.OpSeedDefaults), body ?? new SeedDefaultsRequest(), ct)));
 
-        g.MapGet("/compliance/calendar", async (HttpContext http, ComplianceQueries q, CancellationToken ct, bool includeInactive = false) =>
+        g.MapGet("/compliance/state", async (HttpContext http, ComplianceQueries q, CancellationToken ct) =>
         {
             var (property, principal) = http.HccActor();
-            return Results.Ok(await q.GetCalendarAsync(property, principal, includeInactive, ct));
+            return Results.Ok(await q.GetStateAsync(property, principal, ct));
+        });
+        g.MapGet("/compliance/month", async (HttpContext http, ComplianceQueries q, CancellationToken ct, int? fy = null, string? month = null) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await q.GetMonthAsync(property, principal, fy, month, ct));
+        });
+        g.MapGet("/compliance/dashboard", async (HttpContext http, ComplianceQueries queries, CancellationToken ct, int? fy = null, string? q = null) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await queries.GetDashboardAsync(property, principal, fy, q, ct));
+        });
+        g.MapGet("/compliance/action-center", async (HttpContext http, ComplianceQueries q, CancellationToken ct, int? fy = null) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await q.GetActionCenterAsync(property, principal, fy, ct));
         });
         g.MapGet("/compliance/due-this-week", async (HttpContext http, ComplianceQueries q, CancellationToken ct) =>
         {
@@ -58,10 +85,30 @@ public static class ComplianceEndpoints
             var (property, principal) = http.HccActor();
             return Results.Ok(await q.GetBadgeAsync(property, principal, ct));
         });
-        g.MapGet("/compliance/obligations", async (HttpContext http, ComplianceQueries q, CancellationToken ct) =>
+        g.MapGet("/compliance/register", async (HttpContext http, ComplianceQueries q, CancellationToken ct, int? fy = null) =>
         {
             var (property, principal) = http.HccActor();
-            return Results.Ok(await q.GetObligationsAsync(property, principal, ct));
+            return Results.Ok(await q.GetRegisterCsvAsync(property, principal, fy, ct));
+        });
+        g.MapGet("/compliance/print", async (HttpContext http, ComplianceQueries q, CancellationToken ct, int? fy = null, string? month = null) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await q.GetPrintAsync(property, principal, fy, month ?? string.Empty, ct));
+        });
+        g.MapGet("/compliance/payable", async (HttpContext http, ComplianceQueries q, CancellationToken ct, int? fy = null) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await q.GetPayableAsync(property, principal, fy, ct));
+        });
+        g.MapGet("/compliance/evidence/{id:long}", async (HttpContext http, ComplianceQueries q, long id, CancellationToken ct) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await q.GetEvidenceFileAsync(property, principal, id, ct));
+        });
+        g.MapGet("/compliance/evidence-zip", async (HttpContext http, ComplianceQueries q, CancellationToken ct, int? fy = null) =>
+        {
+            var (property, principal) = http.HccActor();
+            return Results.Ok(await q.GetEvidenceZipAsync(property, principal, fy, ct));
         });
         g.MapGet("/compliance/ca-packs", async (HttpContext http, ComplianceQueries q, CancellationToken ct) =>
         {

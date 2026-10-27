@@ -4,8 +4,8 @@ import {bookingRef} from '../../domain/bookingRef';
 import {Plus,AlertTriangle,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {backupStatusText} from '../../features/housekeeping/BackupStatus';
-import {money,totals,cmpHasAccess,cmpDueThisWeek,cmpSlice,rbacSeesBackupStatus} from '../../services/mock';
-import {CmpStatusPill} from '../../features/compliance/shared';
+import {money,totals,cmpHasAccess,cmpActionCenter,cmpSlice,cmpStripHtml,cmpRenderFYText,cmpWhen,rbacSeesBackupStatus} from '../../services/mock';
+import {cmpUiSet} from '../../features/compliance/shared';
 import {KpiCard,ListCard,ChipFilter,Fab} from '../../app/mobile/components';
 import {shortDate,dateLabel} from '../../components/ui';
 import {asOfText} from '../../features/reports/asOf';
@@ -32,10 +32,11 @@ export function MfHome(){
     <h2 className="m-group">NEEDS ATTENTION</h2>
     {att.length?att.map(a=><ListCard key={a.id} tone={'mf-att mf-att-'+a.tone} title={<span className="mf-att-title">{a.tone==='orange'?<AlertTriangle size={18}/>:<Info size={18}/>}{a.title}</span>} sub={a.detail} onClick={goto(a.page,a.filter)}/>)
       :<p className="mf-empty">Nothing needs your attention right now.</p>}
-    {cmpHasAccess(s,uid)&&<><h2 className="m-group">DUE THIS WEEK</h2>{/* W05-5: compliance reminders, Owner + Accountant */}
-      {(()=>{const due=cmpDueThisWeek(s);return due.length?<>{due.slice(0,5).map(i=><ListCard key={i.key} tone="mf-due" title={i.obligation.name} sub={`${i.periodLabel} · due ${dateLabel(i.due)}`} right={<CmpStatusPill item={i}/>} onClick={goto('compliance')}/>)}
-        {due.length>5&&<p className="mf-empty">+ {due.length-5} more in the calendar</p>}</>
-        :<p className="mf-empty">Nothing is overdue or due within {cmpSlice(s).settings.dueSoonDays} days.</p>;})()}</>}
+    {cmpHasAccess(s,uid)&&<><h2 className="m-group">COMPLIANCE ACTION CENTER</h2>{/* SCC tax port: the Action Center (overdue + due within 30 days), Owner + Accountant */}
+      {(()=>{const ac=cmpActionCenter(s),fy=cmpSlice(s).fyStart;return ac.length?<>{ac.slice(0,5).map(r=><ListCard key={r.itemId} tone="mf-due" title={cmpStripHtml(cmpRenderFYText(r.name,fy))} sub={`${r.month} · due ${r.due}`}
+          right={<span className={'cmp-days '+(r.days<0?'cmp-days-overdue':'cmp-days-urgent-days')}>{r.days<0?'⚠ ':''}{cmpWhen(r.days)}</span>} onClick={()=>{cmpUiSet({view:'calendar',month:r.month,focus:r.itemId});go('compliance');}}/>)}
+        {ac.length>5&&<p className="mf-empty">+ {ac.length-5} more in the Action Center</p>}</>
+        :<p className="mf-empty">Nothing overdue or due within 30 days.</p>;})()}</>}
     {rbacSeesBackupStatus(s,uid)&&(()=>{const {b,title,sub}=backupStatusText(s);return <><h2 className="m-group">BACKUP</h2>{/* DEC-063 G9: Owner + Manager */}
       <ListCard tone={b.warn?'mf-att mf-att-orange':'mf-att'} title={<span className="mf-att-title">{b.warn?<AlertTriangle size={18}/>:<Info size={18}/>}{title}</span>} sub={sub} onClick={permission('admin')?()=>go('backup'):undefined}/></>;})()}
     <h2 className="m-group">FRONT DESK TODAY</h2>

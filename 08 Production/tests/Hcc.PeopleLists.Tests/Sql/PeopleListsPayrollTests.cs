@@ -1,4 +1,3 @@
-using Hcc.Application.Compliance;
 using Hcc.Application.Payroll;
 using Hcc.Contracts;
 using Hcc.Contracts.Payroll;
@@ -233,19 +232,15 @@ public sealed class PeopleListsPayrollTests(PeopleDb db) : IClassFixture<PeopleD
     }
 
     [Fact]
-    public async Task Compliance_calendar_shifts_due_dates_past_paid_holidays_of_the_calendar()
+    public async Task Compliance_calendar_keeps_SCC_due_dates_on_paid_holidays_of_the_calendar()
     {
+        // SCC tax port (DEC-116): SCC never moves a due date, so a paid holiday of the Holiday calendar no longer shifts the compliance calendar.
         var h = await db.NewHotelAsync();
         await SaveHoliday(h, "2026-08-15");
         await SaveHoliday(h, "2026-08-18", "restricted");
         var store = new SqlComplianceStore(h.Db.Platform.Connections);
-        var snap = await store.SnapshotAsync(h.PropertyId, Ct);
-        Assert.Equal([new DateOnly(2026, 8, 15)], snap.Holidays!.ToList());   // paid and active only
-        var epf = new ObligationRecord(1, h.PropertyId, "EPF", "EPF", "ECR", ComplianceFrequency.Monthly, "Owner", "2026-07", true, null, new byte[8],
-            [new DatedRule(new DateOnly(2025, 4, 1), new DueRule(DueRuleType.Day, 15))]);
-        var rows = ComplianceCalendar.Build(snap with { Obligations = [epf] }, new DateOnly(2026, 8, 14));
-        Assert.Equal(new DateOnly(2026, 8, 17), rows.Single(r => r.Row.Period == "2026-07").Row.Due);   // Sat holiday, Sun 16 skipped
-        var plain = ComplianceCalendar.Build(snap with { Obligations = [epf], Holidays = null }, new DateOnly(2026, 8, 14));
-        Assert.Equal(new DateOnly(2026, 8, 15), plain.Single(r => r.Row.Period == "2026-07").Row.Due);
+        var cal = (await store.SnapshotAsync(h.PropertyId, Ct)).Calendar();
+        var (cards, _) = cal.MonthPage("August", 2026, new DateOnly(2026, 8, 14));
+        Assert.Equal(new DateOnly(2026, 8, 15), cards.Single(v => v.Card.Id == "ag5").Due);   // EPF July wages, Sat 15 Aug (paid holiday): unchanged
     }
 }

@@ -40,8 +40,8 @@ export function register({test,M,assert}){
     assert.deepEqual(mstRows(s,'policies').map(r=>[r.code,r.name,r.cancelChargeBps,r.noShowChargeBps,r.depositBps,r.sources.length]),[['DEFAULT','Default',0,0,0,0]]);});
   test('[FDM] Fixture figures, BASE and FY26 history hashes unchanged',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);
-    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+    assert.equal(sha(strip(seed())),'f421d366580e5b0225f663e19ccbfb42cfb5ffbe7d07fb5ded2f1463cef85bc1') /* SCC tax port (DEC-116): 2c1782df… → f421d366… = the compliance slice only */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'e733a0d475bdf0fe3756ef4660ff650b722c946438494bc8c9b9441829c010f8') /* SCC tax port (DEC-116): bf689538… → e733a0d4… = the compliance slice only */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
 
   // ── M9 booking sources ──
   test('[FDM] OTA channels and company accounts register their own source rows (auto, in use → retire not delete)',()=>{

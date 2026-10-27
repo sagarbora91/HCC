@@ -554,16 +554,16 @@ export function hrStatutoryDefs():CfgProviderDef[]{
   }
   return out;
 }
-/** W05-C cmpSettingDefs(s) → hub settings: CA name, CA e-mail and the due-soon window wrap CMP_SETTINGS_SET; due rules are dated and edited in the calendar. */
+/** cmpSettingDefs(s) → hub settings: CA name, CA e-mail and the due-soon window wrap CMP_SETTINGS_SET; the SCC profile and catalogue are shown read-only (edited in the calendar). */
 export function cmpDefs(s:State):CfgProviderDef[]{
   const field:Record<string,'caName'|'caEmail'|'dueSoonDays'>={'cmp.caName':'caName','cmp.caEmail':'caEmail','cmp.dueSoonDays':'dueSoonDays'};
   const valueOf=(x:State,key:string)=>(cmpSettingDefs(x) as CMPSettingDef[]).find(d=>d.key===key)?.value;
   return (cmpSettingDefs(s) as CMPSettingDef[]).map(d=>{
     const f=field[d.key];
-    if(!f)return {key:d.key,label:d.label,type:'fixed' as const,unit:d.unit,help:d.help,read:(x:State)=>String(valueOf(x,d.key)??'—'),fixedReason:'Dated rule — edit in Compliance calendar › Manage obligations'};
+    if(!f)return {key:d.key,label:d.label,type:'fixed' as const,unit:d.unit,help:d.help,read:(x:State)=>String(valueOf(x,d.key)??'—'),fixedReason:'SCC compliance profile and catalogue — edit in Compliance calendar (Firm profile / Manage compliance)'};
     return {key:d.key,label:d.label,type:d.type==='integer'?'integer' as const:'text' as const,unit:d.unit,help:d.help,
       ...(f==='caName'?{maxLength:60,validate:(v:unknown)=>String(v).trim().length<3?'CA name must be 3–60 characters.':undefined}:f==='caEmail'?{maxLength:80,pattern:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,patternMsg:'Enter a valid e-mail address.'}:{min:1,max:30,suffix:'days'}),
-      affects:f==='dueSoonDays'?'Dashboard “Due this week” card and the Accounts tile badge.':'The simulated CA pack.',
+      affects:f==='dueSoonDays'?'Dashboard “Due this week” card (the Action Center and badges use SCC’s 30 days).':'The simulated CA pack.',
       read:(x:State)=>valueOf(x,d.key),command:(_x:State,v:unknown)=>({type:'CMP_SETTINGS_SET',[f]:v})};
   });
 }

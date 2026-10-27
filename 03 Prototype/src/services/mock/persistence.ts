@@ -5,6 +5,7 @@ import {hrMigrateLegacy} from '../../domain/streams/staff';
 import {extendBase as cmpSeed} from '../../fixtures/ext/compliance';
 import {mstRows,mstNextSort,type MasterRow} from '../../domain/streams/masters';
 import {HRM_HOLIDAYS} from '../../domain/streams/people-masters';
+import {cmpIsLegacy,cmpFromLegacy} from '../../domain/streams/compliance';
 /** Oldest saved schema that is migrated instead of reset (W05-B review F-04). */
 export const MIGRATE_FROM_SCHEMA=7;
 /** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. */
@@ -29,6 +30,10 @@ function migrate(s:State&{schema:number}){
     }
     if(s.staffX&&'holidays' in s.staffX)delete s.staffX.holidays;
   }
+  // SCC tax port (DEC-116, no SCHEMA bump): a compliance slice in the W05-C shape (obligations × periods) becomes SCC's (records per FY and
+  // card); every filing, not-applicable mark, switched-off obligation and reopened filing is carried over. Detects the old shape itself, so it
+  // is idempotent and runs on any schema.
+  if(cmpIsLegacy(s.complianceX))s.complianceX=cmpFromLegacy(s.complianceX as never,s);
   s.schema=SCHEMA;
 }
 export const STORAGE_KEY='hcc-prototype-v2';

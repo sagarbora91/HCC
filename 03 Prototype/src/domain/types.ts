@@ -302,6 +302,8 @@ export type State={
   accountingX?:import('./streams/accounting').ACCState;
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
+  /** SCC tax port (DEC-116): compliance evidence file contents (data URLs) by file id — its own slice so the calendar never re-saves them. */
+  complianceFilesX?:Record<string,string>;
   cashbookX?:import('./streams/cashbook').CBState;
   /** Wave B1 (DEC-073 / DEC-078): bank deposits, till transfers, Owner drawings, the other tills and the desk shift's opener. */
   cashOutX?:import('./streams/cashout').CXState;

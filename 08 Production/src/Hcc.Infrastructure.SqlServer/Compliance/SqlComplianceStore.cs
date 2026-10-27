@@ -11,8 +11,9 @@ using Microsoft.Data.SqlClient;
 namespace Hcc.Infrastructure.SqlServer.Compliance;
 
 /// <summary>
-/// SQL adapter of the compliance ports (migration 1100, schema cmp). Command side uses the command transaction (row locks UPDLOCK,
-/// check-then-insert under the lock); read side opens its own connection.
+/// SQL adapter of the compliance ports = SCC's tax module in full (migrations 1100 + 4130 / 4131, schema cmp). Command side uses the command
+/// transaction (the settings row is the per-property lock, taken with UPDLOCK); read side opens its own connection. The ≈₹ payable feed reads
+/// the locked pay runs (hr.pay_run / pay_run_line) and the issued invoices and credit notes (ivc.*).
 /// </summary>
 public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComplianceStore, IComplianceReadStore
 {
@@ -21,15 +22,21 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
 
     private static void Add(SqlCommand cmd, string name, SqlDbType type, object? value, int size = 0)
     {
-        var p = size > 0 ? cmd.Parameters.Add(name, type, size) : cmd.Parameters.Add(name, type);
+        var p = size != 0 ? cmd.Parameters.Add(name, type, size) : cmd.Parameters.Add(name, type);
         p.Value = value ?? DBNull.Value;
     }
 
-    private static DateOnly Date(SqlDataReader rd, int i) => DateOnly.FromDateTime(rd.GetDateTime(i));
+    private static DateOnly? DateN(SqlDataReader rd, int i) => rd.IsDBNull(i) ? null : DateOnly.FromDateTime(rd.GetDateTime(i));
 
     private static string? Str(SqlDataReader rd, int i) => rd.IsDBNull(i) ? null : rd.GetString(i);
 
-    private static byte? Tiny(SqlDataReader rd, int i) => rd.IsDBNull(i) ? null : rd.GetByte(i);
+    private static int? IntN(SqlDataReader rd, int i) => rd.IsDBNull(i) ? null : rd.GetInt32(i);
+
+    private static DateTime? Utc(SqlDataReader rd, int i) => rd.IsDBNull(i) ? null : rd.GetDateTime(i);
+
+    private static object? Day(DateOnly? d) => d?.ToDateTime(TimeOnly.MinValue);
+
+    private static IReadOnlyList<string> Json(string json) => JsonSerializer.Deserialize<List<string>>(json) ?? [];
 
     // ── Business date ──
 
@@ -55,287 +62,98 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         return await ReadBusinessDateAsync(cmd, propertyId, ct).ConfigureAwait(false);
     }
 
-    // ── Reading obligations (rules attached) ──
+    // ── Snapshot (SCC STATE of the property's firm) ──
 
-    private const string ObligationCols = "o.obligation_id, o.property_id, o.kind, o.name, o.form, o.frequency, o.owner_role, o.from_period, o.active, o.note, o.row_ver";
+    private static readonly string SnapshotSql = $"""
+        SELECT firm_name, pan, gstin, entity, gst_type, has_employees, qrmp, notes, updated_by, updated_utc, row_ver FROM cmp.profile WHERE property_id = @p;
+        SELECT ca_name, ca_email, due_soon_days, fy_start, row_ver, updated_by FROM cmp.setting WHERE property_id = @p;
+        SELECT fy_start, item_id, done, na, filed_on, notes, evidence_ref, reviewer_note, due_date, done_by, done_utc, na_by, na_utc, legacy
+          FROM cmp.record WHERE property_id = @p ORDER BY fy_start, item_id;
+        SELECT custom_id, cat, name, freq, due_day, months_json, form, who, what, why, penalty, responsible, reviewer, risk, buffer_days, checklist_json, workflow_json,
+          evidence_json, updated_by, updated_utc, row_ver FROM cmp.custom_obligation WHERE property_id = @p AND deleted_utc IS NULL ORDER BY custom_id;
+        SELECT archive_key FROM cmp.archive WHERE property_id = @p ORDER BY archived_utc, archive_key;
+        SELECT cat FROM cmp.archive_category WHERE property_id = @p ORDER BY archived_utc, cat;
+        SELECT evidence_id, fy_start, item_id, file_name, content_type, size_bytes, added_by, added_utc FROM cmp.evidence WHERE property_id = @p ORDER BY evidence_id;
+        SELECT TOP ({ComplianceRules.MaxReopened}) fy_start, item_id, part, was_done, was_na, filed_on, notes, evidence_ref, reviewer_note, due_date, recorded_by, recorded_utc,
+          reopened_by, reopened_utc, reopen_reason FROM cmp.record_reopened WHERE property_id = @p ORDER BY reopen_id DESC;
+        """;
 
-    private static async Task<List<ObligationRecord>> ReadObligationsAsync(SqlCommand cmd, CancellationToken ct)
+    private static async Task<ComplianceSnapshot> ReadSnapshotAsync(SqlCommand cmd, int propertyId, CancellationToken ct)
     {
-        // Result 1: obligations; result 2: their rules.
-        var heads = new List<(long Id, int Prop, string Kind, string Name, string Form, string Freq, string Owner, string From, bool Active, string? Note, byte[] Ver)>();
-        var rules = new Dictionary<long, List<DatedRule>>();
-        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            heads.Add((rd.GetInt64(0), rd.GetInt32(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), rd.GetString(5), rd.GetString(6), rd.GetString(7), rd.GetBoolean(8), Str(rd, 9), (byte[])rd[10]));
-        await rd.NextResultAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false))
-        {
-            var id = rd.GetInt64(0);
-            var type = rd.GetString(2) switch { "month-end" => DueRuleType.MonthEnd, "fixed" => DueRuleType.Fixed, _ => DueRuleType.Day };
-            var special = Tiny(rd, 5) is { } sm && Tiny(rd, 6) is { } sd ? new SpecialDate(sm, sd) : null;
-            if (!rules.TryGetValue(id, out var list)) rules[id] = list = [];
-            list.Add(new DatedRule(Date(rd, 1), new DueRule(type, Tiny(rd, 3) ?? 0, Tiny(rd, 4) ?? 0, special)));
-        }
-
-        return heads.Select(h => new ObligationRecord(h.Id, h.Prop, h.Kind, h.Name, h.Form, h.Freq, h.Owner, h.From, h.Active, h.Note, h.Ver,
-            rules.TryGetValue(h.Id, out var r) ? r.OrderBy(x => x.From).ToList() : [])).ToList();
-    }
-
-    private const string RulesSql = "SELECT r.obligation_id, r.effective_from, r.rule_type, r.due_day, r.due_month, r.special_month, r.special_day";
-
-    public async Task<ObligationRecord?> LockObligationAsync(ICommandTransaction tx, int propertyId, long obligationId, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command($"""
-            SELECT {ObligationCols} FROM cmp.obligation o WITH (UPDLOCK, ROWLOCK) WHERE o.obligation_id = @id AND o.property_id = @p;
-            {RulesSql} FROM cmp.obligation_rule r WHERE r.obligation_id = @id;
-            """);
-        Add(cmd, "@id", SqlDbType.BigInt, obligationId);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
-        return (await ReadObligationsAsync(cmd, ct).ConfigureAwait(false)).FirstOrDefault();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        ProfileRecord? profile = null;
+        if (await rd.ReadAsync(ct).ConfigureAwait(false))
+            profile = new ProfileRecord(new CmpProfile(rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), rd.GetBoolean(5), rd.GetBoolean(6), rd.GetString(7)),
+                IntN(rd, 8), Utc(rd, 9), (byte[])rd[10]);
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var settings = DefaultSettings();
+        if (await rd.ReadAsync(ct).ConfigureAwait(false)) settings = new SettingsRecord(rd.GetString(0), rd.GetString(1), rd.GetByte(2), rd.GetInt16(3), (byte[])rd[4], rd.IsDBNull(5));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var records = new List<CmpRecord>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            records.Add(new CmpRecord(rd.GetInt16(0), rd.GetString(1), rd.GetBoolean(2), rd.GetBoolean(3), DateN(rd, 4), Str(rd, 5), Str(rd, 6), Str(rd, 7), DateN(rd, 8),
+                IntN(rd, 9), Utc(rd, 10), IntN(rd, 11), Utc(rd, 12), Str(rd, 13)));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var custom = new List<CustomRecord>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            custom.Add(new CustomRecord(new CmpCustom(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetByte(4), Json(rd.GetString(5)), rd.GetString(6), rd.GetString(7),
+                rd.GetString(8), rd.GetString(9), rd.GetString(10), rd.GetString(11), rd.GetString(12), Str(rd, 13), rd.IsDBNull(14) ? null : rd.GetByte(14), Json(rd.GetString(15)),
+                Json(rd.GetString(16)), Json(rd.GetString(17))), IntN(rd, 18), Utc(rd, 19), (byte[])rd[20]));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var archived = new List<string>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) archived.Add(rd.GetString(0));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var cats = new List<string>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) cats.Add(rd.GetString(0));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var evidence = new List<CmpEvidence>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) evidence.Add(ReadEvidence(rd));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var reopened = new List<ReopenedRecord>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var fy = rd.GetInt16(0);
+            var item = rd.GetString(1);
+            var wasDone = rd.GetBoolean(3);
+            var wasNa = rd.GetBoolean(4);
+            var by = IntN(rd, 10);
+            var at = Utc(rd, 11);
+            var was = new CmpRecord(fy, item, wasDone, wasNa, DateN(rd, 5), Str(rd, 6), Str(rd, 7), Str(rd, 8), DateN(rd, 9), wasDone ? by : null, wasDone ? at : null,
+                wasNa && !wasDone ? by : null, wasNa && !wasDone ? at : null, null);
+            reopened.Add(new ReopenedRecord(fy, item, rd.GetString(2), was, rd.GetInt32(12), rd.GetDateTime(13), rd.GetString(14)));
+        }
+
+        return new ComplianceSnapshot(profile, settings, records, custom, archived, cats, evidence, reopened);
     }
 
-    private static async Task<ComplianceSnapshot> ReadSnapshotAsync(Func<string, SqlCommand> make, int propertyId, CancellationToken ct)
-    {
-        List<ObligationRecord> obligations;
-        await using (var cmd = make($"""
-            SELECT {ObligationCols} FROM cmp.obligation o WHERE o.property_id = @p ORDER BY o.obligation_id;
-            {RulesSql} FROM cmp.obligation_rule r JOIN cmp.obligation o ON o.obligation_id = r.obligation_id WHERE o.property_id = @p;
-            """))
-        {
-            Add(cmd, "@p", SqlDbType.Int, propertyId);
-            obligations = await ReadObligationsAsync(cmd, ct).ConfigureAwait(false);
-        }
+    private static CmpEvidence ReadEvidence(SqlDataReader rd) =>
+        new(rd.GetInt64(0), rd.GetInt16(1), rd.GetString(2), rd.GetString(3), rd.GetString(4), rd.GetInt32(5), rd.GetInt32(6), rd.GetDateTime(7));
 
-        var filings = new List<FilingRecord>();
-        await using (var cmd = make("""
-            SELECT f.obligation_id, f.period, f.status, f.filed_by, f.filed_utc, f.reference, f.reason
-            FROM cmp.filing f JOIN cmp.obligation o ON o.obligation_id = f.obligation_id WHERE o.property_id = @p;
-            """))
-        {
-            Add(cmd, "@p", SqlDbType.Int, propertyId);
-            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) filings.Add(ReadFiling(rd));
-        }
-
-        SettingsRecord? settings = null;
-        await using (var cmd = make("SELECT ca_name, ca_email, due_soon_days, row_ver, updated_by FROM cmp.setting WHERE property_id = @p;"))
-        {
-            Add(cmd, "@p", SqlDbType.Int, propertyId);
-            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            if (await rd.ReadAsync(ct).ConfigureAwait(false)) settings = new SettingsRecord(rd.GetString(0), rd.GetString(1), rd.GetByte(2), (byte[])rd[3], rd.IsDBNull(4));
-        }
-
-        var holidays = new HashSet<DateOnly>();
-        await using (var cmd = make("SELECT code FROM hr.holiday WHERE property_id = @p AND active = 1 AND kind = 'paid';"))
-        {
-            Add(cmd, "@p", SqlDbType.Int, propertyId);
-            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) holidays.Add(DateOnly.ParseExact(rd.GetString(0), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        return new ComplianceSnapshot(obligations, filings, settings ?? DefaultSettings(), holidays);
-    }
-
-    private static SettingsRecord DefaultSettings() => new(ComplianceRules.DefaultCaName, ComplianceRules.DefaultCaEmail, ComplianceRules.DefaultDueSoonDays, new byte[8], true);
-
-    private static FilingRecord ReadFiling(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.GetInt32(3), rd.GetDateTime(4), Str(rd, 5), Str(rd, 6));
+    private static SettingsRecord DefaultSettings() =>
+        new(ComplianceRules.DefaultCaName, ComplianceRules.DefaultCaEmail, ComplianceRules.DefaultDueSoonDays, SccTaxRules.FyMin, new byte[8], true);
 
     public async Task<ComplianceSnapshot> SnapshotAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default)
     {
-        var sql = Sql(tx);
-        return await ReadSnapshotAsync(sql.Command, propertyId, ct).ConfigureAwait(false);
+        await using var cmd = Sql(tx).Command(SnapshotSql);
+        return await ReadSnapshotAsync(cmd, propertyId, ct).ConfigureAwait(false);
     }
-
-    public async Task<IReadOnlySet<DateOnly>> PaidHolidaysAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default)
-        => (await SnapshotAsync(tx, propertyId, ct).ConfigureAwait(false)).Holidays ?? new HashSet<DateOnly>();
 
     public async Task<ComplianceSnapshot> SnapshotAsync(int propertyId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        return await ReadSnapshotAsync(s => connections.Command(s, conn), propertyId, ct).ConfigureAwait(false);
+        await using var cmd = connections.Command(SnapshotSql, conn);
+        return await ReadSnapshotAsync(cmd, propertyId, ct).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<PackRecord>> PacksAsync(int propertyId, CancellationToken ct = default)
-    {
-        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command($"""
-            SELECT TOP ({ComplianceRules.MaxPacks}) pack_id, created_utc, created_by, to_email, to_name, overdue_count, due_count, filed_count, na_count, lines_json
-            FROM cmp.ca_pack WHERE property_id = @p ORDER BY pack_id DESC;
-            """, conn);
-        Add(cmd, "@p", SqlDbType.Int, propertyId);
-        var packs = new List<PackRecord>();
-        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            packs.Add(new PackRecord(rd.GetInt64(0), rd.GetDateTime(1), rd.GetInt32(2), rd.GetString(3), rd.GetString(4), rd.GetInt32(5), rd.GetInt32(6), rd.GetInt32(7), rd.GetInt32(8),
-                JsonSerializer.Deserialize<List<string>>(rd.GetString(9)) ?? []));
-        return packs;
-    }
-
-    // ── Filings ──
-
-    public async Task<FilingRecord?> GetFilingAsync(ICommandTransaction tx, long obligationId, string period, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command("SELECT obligation_id, period, status, filed_by, filed_utc, reference, reason FROM cmp.filing WHERE obligation_id = @o AND period = @period;");
-        Add(cmd, "@o", SqlDbType.BigInt, obligationId);
-        Add(cmd, "@period", SqlDbType.VarChar, period, 7);
-        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await rd.ReadAsync(ct).ConfigureAwait(false) ? ReadFiling(rd) : null;
-    }
-
-    public async Task InsertFilingAsync(ICommandTransaction tx, FilingRecord filing, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(filing);
-        await using var cmd = Sql(tx).Command("INSERT cmp.filing(obligation_id, period, status, filed_by, filed_utc, reference, reason) VALUES (@o, @period, @status, @by, @utc, @ref, @reason);");
-        Add(cmd, "@o", SqlDbType.BigInt, filing.ObligationId);
-        Add(cmd, "@period", SqlDbType.VarChar, filing.Period, 7);
-        Add(cmd, "@status", SqlDbType.VarChar, filing.Status, 14);
-        Add(cmd, "@by", SqlDbType.Int, filing.By);
-        Add(cmd, "@utc", SqlDbType.DateTime2, filing.AtUtc);
-        Add(cmd, "@ref", SqlDbType.NVarChar, filing.Reference, 40);
-        Add(cmd, "@reason", SqlDbType.NVarChar, filing.Reason, 120);
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-    }
-
-    public async Task DeleteFilingAsync(ICommandTransaction tx, long obligationId, string period, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command("DELETE cmp.filing WHERE obligation_id = @o AND period = @period;");
-        Add(cmd, "@o", SqlDbType.BigInt, obligationId);
-        Add(cmd, "@period", SqlDbType.VarChar, period, 7);
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-    }
-
-    public async Task InsertReopenedAsync(ICommandTransaction tx, int propertyId, FilingRecord filing, int reopenedBy, DateTime reopenedUtc, string reason, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(filing);
-        await using var cmd = Sql(tx).Command($"""
-            INSERT cmp.filing_reopened(property_id, obligation_id, period, status, filed_by, filed_utc, reference, reason, reopened_by, reopened_utc, reopen_reason)
-            VALUES (@p, @o, @period, @status, @by, @utc, @ref, @reason, @rby, @rutc, @rreason);
-            DELETE FROM cmp.filing_reopened WHERE property_id = @p AND reopen_id NOT IN
-              (SELECT TOP ({ComplianceRules.MaxReopened}) reopen_id FROM cmp.filing_reopened WHERE property_id = @p ORDER BY reopen_id DESC);
-            """);
-        Add(cmd, "@p", SqlDbType.Int, propertyId);
-        Add(cmd, "@o", SqlDbType.BigInt, filing.ObligationId);
-        Add(cmd, "@period", SqlDbType.VarChar, filing.Period, 7);
-        Add(cmd, "@status", SqlDbType.VarChar, filing.Status, 14);
-        Add(cmd, "@by", SqlDbType.Int, filing.By);
-        Add(cmd, "@utc", SqlDbType.DateTime2, filing.AtUtc);
-        Add(cmd, "@ref", SqlDbType.NVarChar, filing.Reference, 40);
-        Add(cmd, "@reason", SqlDbType.NVarChar, filing.Reason, 120);
-        Add(cmd, "@rby", SqlDbType.Int, reopenedBy);
-        Add(cmd, "@rutc", SqlDbType.DateTime2, reopenedUtc);
-        Add(cmd, "@rreason", SqlDbType.NVarChar, reason, 120);
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-    }
-
-    // ── Obligations ──
-
-    public async Task<bool> NameExistsAsync(ICommandTransaction tx, int propertyId, string name, long? excludeId, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command("SELECT TOP 1 1 FROM cmp.obligation WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND name = @n AND (@x IS NULL OR obligation_id <> @x);");
-        Add(cmd, "@p", SqlDbType.Int, propertyId);
-        Add(cmd, "@n", SqlDbType.NVarChar, name, 60);
-        Add(cmd, "@x", SqlDbType.BigInt, excludeId);
-        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is not null;
-    }
-
-    public async Task<int> CountObligationsAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command("SELECT COUNT(*) FROM cmp.obligation WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p;");
-        Add(cmd, "@p", SqlDbType.Int, propertyId);
-        return (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
-    }
-
-    public async Task<long> InsertObligationAsync(ICommandTransaction tx, int propertyId, string kind, string name, string form, string frequency, string owner,
-        string fromPeriod, string? note, DueRule firstRule, int by, DateTime utc, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(firstRule);
-        var sql = Sql(tx);
-        long id;
-        await using (var cmd = sql.Command("""
-            INSERT cmp.obligation(property_id, kind, name, form, frequency, owner_role, from_period, active, note, updated_by, updated_utc)
-            OUTPUT INSERTED.obligation_id
-            VALUES (@p, @kind, @name, @form, @freq, @owner, @from, 1, @note, @by, @utc);
-            """))
-        {
-            Add(cmd, "@p", SqlDbType.Int, propertyId);
-            Add(cmd, "@kind", SqlDbType.VarChar, kind, 10);
-            Add(cmd, "@name", SqlDbType.NVarChar, name, 60);
-            Add(cmd, "@form", SqlDbType.NVarChar, form, 60);
-            Add(cmd, "@freq", SqlDbType.VarChar, frequency, 7);
-            Add(cmd, "@owner", SqlDbType.NVarChar, owner, 30);
-            Add(cmd, "@from", SqlDbType.VarChar, fromPeriod, 7);
-            Add(cmd, "@note", SqlDbType.NVarChar, note, 300);
-            Add(cmd, "@by", SqlDbType.Int, by);
-            Add(cmd, "@utc", SqlDbType.DateTime2, utc);
-            id = (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
-        }
-
-        await UpsertRuleAsync(tx, id, new DatedRule(ComplianceRules.RuleOrigin, firstRule), ct).ConfigureAwait(false);
-        return id;
-    }
-
-    public async Task UpdateObligationAsync(ICommandTransaction tx, long obligationId, byte[] expectedVersion, string name, string form, string owner, string? note, int by, DateTime utc, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command("""
-            UPDATE cmp.obligation SET name = @name, form = @form, owner_role = @owner, note = @note, updated_by = @by, updated_utc = @utc
-            WHERE obligation_id = @id AND row_ver = @v;
-            """);
-        Add(cmd, "@id", SqlDbType.BigInt, obligationId);
-        Add(cmd, "@v", SqlDbType.Binary, expectedVersion, 8);
-        Add(cmd, "@name", SqlDbType.NVarChar, name, 60);
-        Add(cmd, "@form", SqlDbType.NVarChar, form, 60);
-        Add(cmd, "@owner", SqlDbType.NVarChar, owner, 30);
-        Add(cmd, "@note", SqlDbType.NVarChar, note, 300);
-        Add(cmd, "@by", SqlDbType.Int, by);
-        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
-        SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "This obligation");
-    }
-
-    public async Task UpsertRuleAsync(ICommandTransaction tx, long obligationId, DatedRule rule, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(rule);
-        var r = rule.Rule;
-        await using var cmd = Sql(tx).Command("""
-            DELETE cmp.obligation_rule WHERE obligation_id = @o AND effective_from = @from;
-            INSERT cmp.obligation_rule(obligation_id, effective_from, rule_type, due_day, due_month, special_month, special_day)
-            VALUES (@o, @from, @type, @day, @month, @sm, @sd);
-            """);
-        Add(cmd, "@o", SqlDbType.BigInt, obligationId);
-        Add(cmd, "@from", SqlDbType.Date, rule.From.ToDateTime(TimeOnly.MinValue));
-        Add(cmd, "@type", SqlDbType.VarChar, r.Type switch { DueRuleType.MonthEnd => "month-end", DueRuleType.Fixed => "fixed", _ => "day" }, 9);
-        Add(cmd, "@day", SqlDbType.TinyInt, r.Type == DueRuleType.MonthEnd ? null : (byte)r.Day);
-        Add(cmd, "@month", SqlDbType.TinyInt, r.Type == DueRuleType.Fixed ? (byte)r.Month : null);
-        Add(cmd, "@sm", SqlDbType.TinyInt, r.Special is null ? null : (byte)r.Special.Month);
-        Add(cmd, "@sd", SqlDbType.TinyInt, r.Special is null ? null : (byte)r.Special.Day);
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-    }
-
-    public async Task SetActiveAsync(ICommandTransaction tx, long obligationId, byte[] expectedVersion, bool active, int by, DateTime utc, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command("UPDATE cmp.obligation SET active = @a, updated_by = @by, updated_utc = @utc WHERE obligation_id = @id AND row_ver = @v;");
-        Add(cmd, "@id", SqlDbType.BigInt, obligationId);
-        Add(cmd, "@v", SqlDbType.Binary, expectedVersion, 8);
-        Add(cmd, "@a", SqlDbType.Bit, active);
-        Add(cmd, "@by", SqlDbType.Int, by);
-        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
-        SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "This obligation");
-    }
-
-    public async Task<byte[]> ObligationVersionAsync(ICommandTransaction tx, long obligationId, CancellationToken ct = default)
-    {
-        await using var cmd = Sql(tx).Command("SELECT row_ver FROM cmp.obligation WHERE obligation_id = @id;");
-        Add(cmd, "@id", SqlDbType.BigInt, obligationId);
-        return (byte[])(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
-    }
-
-    // ── Settings ──
+    // ── Settings (the per-property lock) ──
 
     public async Task<SettingsRecord> LockSettingsAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default)
     {
         await using var cmd = Sql(tx).Command("""
             MERGE cmp.setting WITH (HOLDLOCK) AS t USING (SELECT @p AS property_id) AS s ON t.property_id = s.property_id
             WHEN NOT MATCHED THEN INSERT(property_id, ca_name, ca_email, due_soon_days) VALUES (@p, @name, @email, @days);
-            SELECT ca_name, ca_email, due_soon_days, row_ver, updated_by FROM cmp.setting WITH (UPDLOCK, ROWLOCK) WHERE property_id = @p;
+            SELECT ca_name, ca_email, due_soon_days, fy_start, row_ver, updated_by FROM cmp.setting WITH (UPDLOCK, ROWLOCK) WHERE property_id = @p;
             """);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
         Add(cmd, "@name", SqlDbType.NVarChar, ComplianceRules.DefaultCaName, 60);
@@ -343,7 +161,7 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         Add(cmd, "@days", SqlDbType.TinyInt, (byte)ComplianceRules.DefaultDueSoonDays);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await rd.ReadAsync(ct).ConfigureAwait(false);
-        return new SettingsRecord(rd.GetString(0), rd.GetString(1), rd.GetByte(2), (byte[])rd[3], rd.IsDBNull(4));
+        return new SettingsRecord(rd.GetString(0), rd.GetString(1), rd.GetByte(2), rd.GetInt16(3), (byte[])rd[4], rd.IsDBNull(5));
     }
 
     public async Task UpdateSettingsAsync(ICommandTransaction tx, int propertyId, byte[] expectedVersion, string caName, string caEmail, int dueSoonDays, int by, DateTime utc, CancellationToken ct = default)
@@ -362,7 +180,359 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "The compliance settings");
     }
 
+    public async Task SetFyAsync(ICommandTransaction tx, int propertyId, int fyStart, int by, DateTime utc, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("UPDATE cmp.setting SET fy_start = @fy, updated_by = @by, updated_utc = @utc WHERE property_id = @p;");
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@fy", SqlDbType.SmallInt, (short)fyStart);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    // ── Profile ──
+
+    public async Task<byte[]> SaveProfileAsync(ICommandTransaction tx, int propertyId, byte[]? expectedVersion, CmpProfile profile, int by, DateTime utc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        await using var cmd = Sql(tx).Command(expectedVersion is null
+            ? """
+              INSERT cmp.profile(property_id, firm_name, pan, gstin, entity, gst_type, has_employees, qrmp, notes, updated_by, updated_utc)
+              OUTPUT INSERTED.row_ver VALUES (@p, @name, @pan, @gstin, @entity, @type, @emp, @qrmp, @notes, @by, @utc);
+              """
+            : """
+              UPDATE cmp.profile SET firm_name = @name, pan = @pan, gstin = @gstin, entity = @entity, gst_type = @type, has_employees = @emp, qrmp = @qrmp, notes = @notes,
+                updated_by = @by, updated_utc = @utc
+              OUTPUT INSERTED.row_ver WHERE property_id = @p AND row_ver = @v;
+              """);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@v", SqlDbType.Binary, expectedVersion, 8);
+        Add(cmd, "@name", SqlDbType.NVarChar, profile.Name, ComplianceRules.MaxFirmName);
+        Add(cmd, "@pan", SqlDbType.NVarChar, profile.Pan, ComplianceRules.MaxPan);
+        Add(cmd, "@gstin", SqlDbType.NVarChar, profile.Gstin, ComplianceRules.MaxGstin);
+        Add(cmd, "@entity", SqlDbType.VarChar, profile.Entity, 14);
+        Add(cmd, "@type", SqlDbType.VarChar, profile.GstType, 12);
+        Add(cmd, "@emp", SqlDbType.Bit, profile.HasEmployees);
+        Add(cmd, "@qrmp", SqlDbType.Bit, profile.Qrmp);
+        Add(cmd, "@notes", SqlDbType.NVarChar, profile.Notes, ComplianceRules.MaxNotes);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
+        var v = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        if (v is not byte[] ver) { SqlValues.EnsureVersionMatched(0, "The compliance firm profile"); return []; }
+        return ver;
+    }
+
+    // ── Records ──
+
+    public async Task UpsertRecordAsync(ICommandTransaction tx, int propertyId, CmpRecord record, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        await using var cmd = Sql(tx).Command("""
+            MERGE cmp.record WITH (HOLDLOCK) AS t
+            USING (SELECT @p AS property_id, @fy AS fy_start, @item AS item_id) AS s
+              ON t.property_id = s.property_id AND t.fy_start = s.fy_start AND t.item_id = s.item_id
+            WHEN MATCHED THEN UPDATE SET done = @done, na = @na, filed_on = @filed, notes = @notes, evidence_ref = @ev, reviewer_note = @rev, due_date = @due,
+              done_by = @dby, done_utc = @dutc, na_by = @nby, na_utc = @nutc, legacy = @legacy
+            WHEN NOT MATCHED THEN INSERT(property_id, fy_start, item_id, done, na, filed_on, notes, evidence_ref, reviewer_note, due_date, done_by, done_utc, na_by, na_utc, legacy)
+              VALUES (@p, @fy, @item, @done, @na, @filed, @notes, @ev, @rev, @due, @dby, @dutc, @nby, @nutc, @legacy);
+            """);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@fy", SqlDbType.SmallInt, (short)record.FyStart);
+        Add(cmd, "@item", SqlDbType.VarChar, record.ItemId, 48);
+        Add(cmd, "@done", SqlDbType.Bit, record.Done);
+        Add(cmd, "@na", SqlDbType.Bit, record.Na);
+        Add(cmd, "@filed", SqlDbType.Date, Day(record.FiledOn));
+        Add(cmd, "@notes", SqlDbType.NVarChar, record.Notes, ComplianceRules.MaxNotes);
+        Add(cmd, "@ev", SqlDbType.NVarChar, record.EvidenceRef, ComplianceRules.MaxEvidenceRef);
+        Add(cmd, "@rev", SqlDbType.NVarChar, record.ReviewerNote, ComplianceRules.MaxReviewer);
+        Add(cmd, "@due", SqlDbType.Date, Day(record.DueDate));
+        Add(cmd, "@dby", SqlDbType.Int, record.DoneBy);
+        Add(cmd, "@dutc", SqlDbType.DateTime2, record.DoneUtc);
+        Add(cmd, "@nby", SqlDbType.Int, record.NaBy);
+        Add(cmd, "@nutc", SqlDbType.DateTime2, record.NaUtc);
+        Add(cmd, "@legacy", SqlDbType.VarChar, record.Legacy, 40);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteRecordAsync(ICommandTransaction tx, int propertyId, int fyStart, string itemId, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("DELETE cmp.record WHERE property_id = @p AND fy_start = @fy AND item_id = @item;");
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@fy", SqlDbType.SmallInt, (short)fyStart);
+        Add(cmd, "@item", SqlDbType.VarChar, itemId, 48);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task InsertReopenedAsync(ICommandTransaction tx, int propertyId, ReopenedRecord reopened, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(reopened);
+        var w = reopened.Was;
+        await using var cmd = Sql(tx).Command($"""
+            INSERT cmp.record_reopened(property_id, fy_start, item_id, part, was_done, was_na, filed_on, notes, evidence_ref, reviewer_note, due_date, recorded_by, recorded_utc,
+              reopened_by, reopened_utc, reopen_reason)
+            VALUES (@p, @fy, @item, @part, @wd, @wn, @filed, @notes, @ev, @rev, @due, @rby, @rutc, @by, @utc, @reason);
+            DELETE FROM cmp.record_reopened WHERE property_id = @p AND reopen_id NOT IN
+              (SELECT TOP ({ComplianceRules.MaxReopened}) reopen_id FROM cmp.record_reopened WHERE property_id = @p ORDER BY reopen_id DESC);
+            """);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@fy", SqlDbType.SmallInt, (short)reopened.FyStart);
+        Add(cmd, "@item", SqlDbType.VarChar, reopened.ItemId, 48);
+        Add(cmd, "@part", SqlDbType.VarChar, reopened.Part, 4);
+        Add(cmd, "@wd", SqlDbType.Bit, w.Done);
+        Add(cmd, "@wn", SqlDbType.Bit, w.Na);
+        Add(cmd, "@filed", SqlDbType.Date, Day(w.FiledOn));
+        Add(cmd, "@notes", SqlDbType.NVarChar, w.Notes, ComplianceRules.MaxNotes);
+        Add(cmd, "@ev", SqlDbType.NVarChar, w.EvidenceRef, ComplianceRules.MaxEvidenceRef);
+        Add(cmd, "@rev", SqlDbType.NVarChar, w.ReviewerNote, ComplianceRules.MaxReviewer);
+        Add(cmd, "@due", SqlDbType.Date, Day(w.DueDate));
+        Add(cmd, "@rby", SqlDbType.Int, reopened.Part == "na" ? w.NaBy : w.DoneBy);
+        Add(cmd, "@rutc", SqlDbType.DateTime2, reopened.Part == "na" ? w.NaUtc : w.DoneUtc);
+        Add(cmd, "@by", SqlDbType.Int, reopened.ReopenedBy);
+        Add(cmd, "@utc", SqlDbType.DateTime2, reopened.ReopenedUtc);
+        Add(cmd, "@reason", SqlDbType.NVarChar, reopened.Reason, 120);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    // ── Archive ──
+
+    private static async Task<bool> ToggleAsync(SqlCommandTransaction sql, string table, string column, SqlDbType type, int size, int propertyId, string value, int by, DateTime utc, CancellationToken ct)
+    {
+        await using var cmd = sql.Command($"""
+            IF EXISTS (SELECT 1 FROM cmp.{table} WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND {column} = @k)
+              BEGIN DELETE cmp.{table} WHERE property_id = @p AND {column} = @k; SELECT CAST(0 AS BIT); END
+            ELSE
+              BEGIN INSERT cmp.{table}(property_id, {column}, archived_by, archived_utc) VALUES (@p, @k, @by, @utc); SELECT CAST(1 AS BIT); END
+            """);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@k", type, value, size);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
+        return (bool)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+    }
+
+    public Task<bool> ToggleArchiveAsync(ICommandTransaction tx, int propertyId, string key, int by, DateTime utc, CancellationToken ct = default) =>
+        ToggleAsync(Sql(tx), "archive", "archive_key", SqlDbType.NVarChar, 200, propertyId, key, by, utc, ct);
+
+    public Task<bool> ToggleArchiveCategoryAsync(ICommandTransaction tx, int propertyId, string cat, int by, DateTime utc, CancellationToken ct = default) =>
+        ToggleAsync(Sql(tx), "archive_category", "cat", SqlDbType.VarChar, 4, propertyId, cat, by, utc, ct);
+
+    // ── Custom obligations ──
+
+    private static void CustomParams(SqlCommand cmd, CmpCustom c)
+    {
+        Add(cmd, "@cat", SqlDbType.VarChar, c.Cat, 4);
+        Add(cmd, "@name", SqlDbType.NVarChar, c.Name, ComplianceRules.MaxName);
+        Add(cmd, "@freq", SqlDbType.VarChar, c.Freq, 10);
+        Add(cmd, "@due", SqlDbType.TinyInt, (byte)c.DueDay);
+        Add(cmd, "@months", SqlDbType.NVarChar, JsonSerializer.Serialize(c.Months), 400);
+        Add(cmd, "@form", SqlDbType.NVarChar, c.Form, ComplianceRules.MaxShort);
+        Add(cmd, "@who", SqlDbType.NVarChar, c.Who, ComplianceRules.MaxText);
+        Add(cmd, "@what", SqlDbType.NVarChar, c.What, ComplianceRules.MaxText);
+        Add(cmd, "@why", SqlDbType.NVarChar, c.Why, ComplianceRules.MaxText);
+        Add(cmd, "@penalty", SqlDbType.NVarChar, c.Penalty, ComplianceRules.MaxText);
+        Add(cmd, "@resp", SqlDbType.NVarChar, c.Responsible, ComplianceRules.MaxShort);
+        Add(cmd, "@rev", SqlDbType.NVarChar, c.Reviewer, ComplianceRules.MaxShort);
+        Add(cmd, "@risk", SqlDbType.VarChar, c.Risk, 6);
+        Add(cmd, "@buffer", SqlDbType.TinyInt, c.Buffer is { } b ? (byte)b : null);
+        Add(cmd, "@check", SqlDbType.NVarChar, JsonSerializer.Serialize(c.Checklist), -1);
+        Add(cmd, "@flow", SqlDbType.NVarChar, JsonSerializer.Serialize(c.Workflow), -1);
+        Add(cmd, "@evid", SqlDbType.NVarChar, JsonSerializer.Serialize(c.Evidence), -1);
+    }
+
+    public async Task<(long CustomId, byte[] Version)> InsertCustomAsync(ICommandTransaction tx, int propertyId, CmpCustom custom, int by, DateTime utc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(custom);
+        await using var cmd = Sql(tx).Command("""
+            INSERT cmp.custom_obligation(property_id, cat, name, freq, due_day, months_json, form, who, what, why, penalty, responsible, reviewer, risk, buffer_days,
+              checklist_json, workflow_json, evidence_json, updated_by, updated_utc)
+            OUTPUT INSERTED.custom_id, INSERTED.row_ver
+            VALUES (@p, @cat, @name, @freq, @due, @months, @form, @who, @what, @why, @penalty, @resp, @rev, @risk, @buffer, @check, @flow, @evid, @by, @utc);
+            """);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        CustomParams(cmd, custom);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await rd.ReadAsync(ct).ConfigureAwait(false);
+        return (rd.GetInt64(0), (byte[])rd[1]);
+    }
+
+    public async Task<byte[]> UpdateCustomAsync(ICommandTransaction tx, int propertyId, CmpCustom custom, byte[] expectedVersion, int by, DateTime utc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(custom);
+        await using var cmd = Sql(tx).Command("""
+            UPDATE cmp.custom_obligation SET cat = @cat, name = @name, freq = @freq, due_day = @due, months_json = @months, form = @form, who = @who, what = @what, why = @why,
+              penalty = @penalty, responsible = @resp, reviewer = @rev, risk = @risk, buffer_days = @buffer, checklist_json = @check, workflow_json = @flow, evidence_json = @evid,
+              updated_by = @by, updated_utc = @utc
+            OUTPUT INSERTED.row_ver
+            WHERE custom_id = @id AND property_id = @p AND row_ver = @v AND deleted_utc IS NULL;
+            """);
+        Add(cmd, "@id", SqlDbType.BigInt, custom.CustomId);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@v", SqlDbType.Binary, expectedVersion, 8);
+        CustomParams(cmd, custom);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
+        var v = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        if (v is not byte[] ver) { SqlValues.EnsureVersionMatched(0, "This custom obligation"); return []; }
+        return ver;
+    }
+
+    public async Task<int> DeleteCustomAsync(ICommandTransaction tx, int propertyId, long customId, int by, DateTime utc, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("""
+            UPDATE cmp.custom_obligation SET deleted_by = @by, deleted_utc = @utc WHERE custom_id = @id AND property_id = @p AND deleted_utc IS NULL;
+            DELETE cmp.evidence WHERE property_id = @p AND item_id LIKE @prefix;
+            SELECT @@ROWCOUNT;
+            """);
+        Add(cmd, "@id", SqlDbType.BigInt, customId);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
+        Add(cmd, "@prefix", SqlDbType.VarChar, "cust-" + customId.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-%", 48);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    // ── Evidence ──
+
+    public async Task<long> InsertEvidenceAsync(ICommandTransaction tx, int propertyId, int fyStart, string itemId, string fileName, string contentType, byte[] content, int by, DateTime utc,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        await using var cmd = Sql(tx).Command("""
+            DECLARE @id TABLE(evidence_id BIGINT);
+            INSERT cmp.evidence(property_id, fy_start, item_id, file_name, content_type, size_bytes, added_by, added_utc)
+            OUTPUT INSERTED.evidence_id INTO @id VALUES (@p, @fy, @item, @name, @type, @size, @by, @utc);
+            INSERT cmp.evidence_content(evidence_id, content) SELECT evidence_id, @content FROM @id;
+            SELECT evidence_id FROM @id;
+            """);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@fy", SqlDbType.SmallInt, (short)fyStart);
+        Add(cmd, "@item", SqlDbType.VarChar, itemId, 48);
+        Add(cmd, "@name", SqlDbType.NVarChar, fileName, ComplianceRules.MaxFileName);
+        Add(cmd, "@type", SqlDbType.VarChar, contentType, 100);
+        Add(cmd, "@size", SqlDbType.Int, content.Length);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@utc", SqlDbType.DateTime2, utc);
+        Add(cmd, "@content", SqlDbType.VarBinary, content, -1);
+        return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+    }
+
+    private const string EvidenceCols = "e.evidence_id, e.fy_start, e.item_id, e.file_name, e.content_type, e.size_bytes, e.added_by, e.added_utc";
+
+    public async Task<CmpEvidence?> DeleteEvidenceAsync(ICommandTransaction tx, int propertyId, long evidenceId, CancellationToken ct = default)
+    {
+        CmpEvidence? meta = null;
+        var sql = Sql(tx);
+        await using (var cmd = sql.Command($"SELECT {EvidenceCols} FROM cmp.evidence e WITH (UPDLOCK) WHERE e.evidence_id = @id AND e.property_id = @p;"))
+        {
+            Add(cmd, "@id", SqlDbType.BigInt, evidenceId);
+            Add(cmd, "@p", SqlDbType.Int, propertyId);
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            if (await rd.ReadAsync(ct).ConfigureAwait(false)) meta = ReadEvidence(rd);
+        }
+
+        if (meta is null) return null;
+        await using (var del = sql.Command("DELETE cmp.evidence WHERE evidence_id = @id AND property_id = @p;"))
+        {
+            Add(del, "@id", SqlDbType.BigInt, evidenceId);
+            Add(del, "@p", SqlDbType.Int, propertyId);
+            await del.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        return meta;
+    }
+
+    public async Task<(CmpEvidence Meta, byte[] Content)?> EvidenceFileAsync(int propertyId, long evidenceId, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command($"SELECT {EvidenceCols}, c.content FROM cmp.evidence e JOIN cmp.evidence_content c ON c.evidence_id = e.evidence_id WHERE e.evidence_id = @id AND e.property_id = @p;", conn);
+        Add(cmd, "@id", SqlDbType.BigInt, evidenceId);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await rd.ReadAsync(ct).ConfigureAwait(false) ? (ReadEvidence(rd), (byte[])rd[8]) : null;
+    }
+
+    public async Task<IReadOnlyList<(CmpEvidence Meta, byte[] Content)>> EvidenceFilesAsync(int propertyId, int fyStart, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command($"SELECT {EvidenceCols}, c.content FROM cmp.evidence e JOIN cmp.evidence_content c ON c.evidence_id = e.evidence_id WHERE e.property_id = @p AND e.fy_start = @fy ORDER BY e.evidence_id;", conn);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@fy", SqlDbType.SmallInt, (short)fyStart);
+        var list = new List<(CmpEvidence, byte[])>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add((ReadEvidence(rd), (byte[])rd[8]));
+        return list;
+    }
+
+    // ── ≈₹ payable from HCC's own data ──
+
+    public async Task<IReadOnlyList<CmpPayableMonth>> PayableAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var payroll = new Dictionary<DateOnly, (long Pf, long Esic, long Pt)>();
+        var gst = new Dictionary<DateOnly, long>();
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT r.pay_month, SUM(ISNULL(l.pf_paise, 0) + ISNULL(l.pf_er_paise, 0)), SUM(ISNULL(l.esic_paise, 0) + ISNULL(l.esic_er_paise, 0)), SUM(ISNULL(l.pt_paise, 0))
+              FROM hr.pay_run r LEFT JOIN hr.pay_run_line l ON l.run_id = r.run_id
+             WHERE r.property_id = @p AND r.status = 'Locked' AND r.pay_month BETWEEN @f AND @t GROUP BY r.pay_month;
+            SELECT DATEFROMPARTS(YEAR(i.invoice_date), MONTH(i.invoice_date), 1), SUM(l.tax_paise)
+              FROM ivc.invoice i JOIN ivc.invoice_line l ON l.invoice_id = i.invoice_id
+             WHERE i.property_id = @p AND i.invoice_date >= @f AND i.invoice_date < DATEADD(MONTH, 1, @t)
+             GROUP BY DATEFROMPARTS(YEAR(i.invoice_date), MONTH(i.invoice_date), 1);
+            SELECT DATEFROMPARTS(YEAR(n.note_date), MONTH(n.note_date), 1), SUM(l.tax_paise)
+              FROM ivc.credit_note n JOIN ivc.credit_note_line l ON l.credit_note_id = n.credit_note_id
+             WHERE n.property_id = @p AND n.note_date >= @f AND n.note_date < DATEADD(MONTH, 1, @t)
+             GROUP BY DATEFROMPARTS(YEAR(n.note_date), MONTH(n.note_date), 1);
+            """, conn);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        Add(cmd, "@f", SqlDbType.Date, from.ToDateTime(TimeOnly.MinValue));
+        Add(cmd, "@t", SqlDbType.Date, to.ToDateTime(TimeOnly.MinValue));
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        {
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) payroll[DateOnly.FromDateTime(rd.GetDateTime(0))] = (rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3));
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) gst[DateOnly.FromDateTime(rd.GetDateTime(0))] = rd.GetInt64(1);
+            await rd.NextResultAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            {
+                var m = DateOnly.FromDateTime(rd.GetDateTime(0));
+                gst[m] = (gst.TryGetValue(m, out var g) ? g : 0) - rd.GetInt64(1);
+            }
+        }
+
+        var list = new List<CmpPayableMonth>();
+        foreach (var m in payroll.Keys.Concat(gst.Where(kv => kv.Value != 0).Select(kv => kv.Key)).Distinct().Order())
+        {
+            var ym = m.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+            var sources = new List<string>();
+            var hasRun = payroll.TryGetValue(m, out var p);
+            var g = gst.TryGetValue(m, out var gv) ? gv : 0;
+            if (hasRun) sources.Add($"Payroll {SccTaxRules.YmLabel(ym)} (locked run)");
+            if (g != 0) sources.Add($"GST on invoices issued {SccTaxRules.YmLabel(ym)} (net of credit notes)");
+            list.Add(new CmpPayableMonth(ym, p.Pf, p.Esic, p.Pt, g, sources));
+        }
+
+        return list;
+    }
+
     // ── CA pack ──
+
+    public async Task<IReadOnlyList<PackRecord>> PacksAsync(int propertyId, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command($"""
+            SELECT TOP ({ComplianceRules.MaxPacks}) pack_id, created_utc, created_by, to_email, to_name, overdue_count, due_count, filed_count, na_count, lines_json
+            FROM cmp.ca_pack WHERE property_id = @p ORDER BY pack_id DESC;
+            """, conn);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        var packs = new List<PackRecord>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            packs.Add(new PackRecord(rd.GetInt64(0), rd.GetDateTime(1), rd.GetInt32(2), rd.GetString(3), rd.GetString(4), rd.GetInt32(5), rd.GetInt32(6), rd.GetInt32(7), rd.GetInt32(8),
+                JsonSerializer.Deserialize<List<string>>(rd.GetString(9)) ?? []));
+        return packs;
+    }
 
     public async Task<long> InsertPackAsync(ICommandTransaction tx, int propertyId, PackRecord pack, CancellationToken ct = default)
     {

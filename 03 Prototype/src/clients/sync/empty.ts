@@ -4,7 +4,7 @@
 // hotel name is blank until the configuration area loads it. Settings-like objects inside module slices keep the fixture's
 // defaults (thresholds, flags); an area that owns a slice replaces the WHOLE slice, so those defaults only show for areas not
 // connected yet. Scalars `date`/`clock` come from the core loader (sync/core.ts).
-import {seed,roles,type State} from '../../services/mock';
+import {seed,roles,cmpEmpty,type State} from '../../services/mock';
 
 export const SERVER_SCENARIO='SERVER';
 const emptyLists=(o:Record<string,unknown>)=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,Array.isArray(v)?[]:v]));
@@ -22,5 +22,8 @@ export function emptyState():State{
   st.grants=Object.fromEntries(roles.map(r=>[r,[]])) as unknown as State['grants'];
   st.settings={...st.settings,hotel:''};
   if(st.closings)st.closings={};
+  // SCC tax port (DEC-116): the compliance slice holds maps (records per FY, the firm profile) and the evidence contents — never demo data.
+  st.complianceX=cmpEmpty();
+  st.complianceFilesX={};
   return st;
 }

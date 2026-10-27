@@ -38,8 +38,8 @@ export function register({test,M,assert}){
     assert.deepEqual(tea.outlets,['RESTAURANT','ROOM-SERVICE']);assert.equal(tea.gstClass,'food');assert.equal(row(s,'menuItems','BIRYANI').soldOutToday,true);
     assert.equal(s.mastersX,undefined);assert.equal(P(s).outlets[0].code,undefined);});
   test('[POS-MST] BASE and FY26 hashes unchanged; fixture POS figures unchanged (drawer ₹10,725, day summary, open check preview at 5 %)',()=>{
-    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;
+    assert.equal(sha(strip(seed())),'f421d366580e5b0225f663e19ccbfb42cfb5ffbe7d07fb5ded2f1463cef85bc1') /* SCC tax port (DEC-116): 2c1782df… → f421d366… = the compliance slice only */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'e733a0d475bdf0fe3756ef4660ff650b722c946438494bc8c9b9441829c010f8') /* SCC tax port (DEC-116): bf689538… → e733a0d4… = the compliance slice only */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;
     const s=seed();assert.equal(M.drawer(s),1072500);const d=M.posDaySummary(s);assert.deepEqual([d.checks,d.net,d.tax,d.gross,d.outletCash],[2,118000,5900,123900,52500]);
     const t=M.posOrderTotals(s,ord(s,'POS-F03'));assert.equal(t.taxBps,500);assert.equal(t.net,2*42000+38000+4*7000+2*12000);});
 

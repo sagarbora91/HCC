@@ -244,24 +244,14 @@ public class PeopleListsRulesTests
         Assert.Throws<HccException>(() => LeaveType.Parse("", "Choose a leave type."));
     }
 
-    // ── Compliance due dates ──
-
-    private static ObligationSchedule Epf() => new(ComplianceFrequency.Monthly, "2026-01", [new DatedRule(new DateOnly(2025, 4, 1), new DueRule(DueRuleType.Day, 15))]);
+    // ── Compliance due dates (SCC tax port, DEC-116: SCC never moves a due date — the MA-6 paid-holiday / Sunday shift is gone) ──
 
     [Fact]
-    public void Compliance_due_date_moves_past_paid_holidays_and_sundays_only_when_it_falls_on_a_holiday()
+    public void Compliance_due_dates_do_not_move_off_paid_holidays_or_sundays()
     {
-        var epf = Epf();
-        Assert.Equal(new DateOnly(2026, 8, 15), ComplianceRules.DueDate(epf, "2026-07"));
-        var hol = new HashSet<DateOnly> { new(2026, 8, 15) };
-        Assert.Equal(new DateOnly(2026, 8, 17), ComplianceRules.DueDate(epf, "2026-07", hol));   // Sat holiday, Sun 16 skipped → Mon 17
-        Assert.Equal(new DateOnly(2026, 8, 15), ComplianceRules.DueDate(epf, "2026-07", new HashSet<DateOnly>()));
-        Assert.Equal(new DateOnly(2026, 8, 15), ComplianceRules.DueDate(epf, "2026-07", null));
-        Assert.Equal(new DateOnly(2026, 10, 15), ComplianceRules.DueDate(epf, "2026-09", hol));   // not on a holiday: unchanged
-        var chain = new HashSet<DateOnly> { new(2026, 8, 15), new(2026, 8, 17), new(2026, 8, 18) };
-        Assert.Equal(new DateOnly(2026, 8, 19), ComplianceRules.DueDate(epf, "2026-07", chain));
-        Assert.Equal(new DateOnly(2026, 10, 11), ComplianceRules.DueDate(new ObligationSchedule(ComplianceFrequency.Monthly, "2026-01", [new DatedRule(new DateOnly(2025, 4, 1), new DueRule(DueRuleType.Day, 11))]), "2026-09"));   // a Sunday is not shifted by itself
-        var row = ComplianceRules.Row(epf, "2026-07", new DateOnly(2026, 8, 14), 7, null, hol);
-        Assert.Equal((new DateOnly(2026, 8, 17), 3), (row.Due, row.Days));
+        var epfJuly = SccTaxCatalogue.BuiltIn("August").Single(c => c.Id == "ag5");
+        Assert.Equal(new DateOnly(2026, 8, 15), SccTaxRules.ParseDue(epfJuly.Due, 2026));            // 15 Aug: a paid holiday in the demo, a Saturday — unchanged
+        Assert.Equal(new DateOnly(2026, 10, 11), SccTaxRules.ParseDue("11 Oct", 2026));                // a Sunday — unchanged
+        Assert.Equal(-70, SccTaxRules.DaysLeft(epfJuly.Due, 2026, new DateOnly(2026, 10, 24)));
     }
 }
