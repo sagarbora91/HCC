@@ -136,9 +136,12 @@ export function closingNightTargets(s:State):Booking[]{
 export const closingHasNight=(b:Booking,date:string)=>b.lines.some(l=>l.kind==='room'&&l.date===date);
 export type PreflightItem={label:string;booking?:string;page?:string};
 export type PreflightIssue={id:string;title:string;hint:string;page?:string;items:PreflightItem[]};
+/** Pending approvals that hold up the day close. Role-template (policy) and Master configuration requests do not (DEC-113, as on the
+ *  server): they change no money of the day and wait for the Owner on their own. Used by the preflight and by DAY_CLOSE. */
+export const closingBlockingApprovals=(s:State)=>s.approvals.filter(a=>a.status==='Pending'&&a.kind!=='policy'&&a.kind!=='config');
 /** All preflight checks in close order; a check with items is blocking (REQ-CLOSE-002). */
 export function closingPreflight(s:State):PreflightIssue[]{
-  const pendingApprovals=s.approvals.filter(a=>a.status==='Pending');
+  const pendingApprovals=closingBlockingApprovals(s);
   const st=shiftStatus(s),reopened=closingReopened(s);
   return [
     // DEC-077: a reopened earlier day blocks today's close until it is closed again (same check as the server's "reopened").

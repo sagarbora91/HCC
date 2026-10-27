@@ -409,3 +409,10 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - **New rule:** every new migration needs `node tools/migrations-lock.mjs --add` (from `08 Production`); a test fails otherwise. Out-of-order merges need `--accept-out-of-order "<reason>"`.
 - **Waiting on the owner:** OTA commission visible to the Accountant (holds PERM-OTA-004) — mask?; pending Master configuration request vs day close (prototype blocks, server not — suggest neither); installer choices (lock install folder, merge settings on upgrade, auto-clean a plain .bak); passphrase for the offline key copy (A07-06); "hotel CA only" network config.
 - **Device checks for the next APK (v16):** Show ID screenshot block + recent-apps thumbnail, CSP page in the WebView, slip-photo camera path, must-change sign-in, System health page.
+
+## Session 13g (27 Oct 2026, morning) — owner answers after Wave D (APR-014; branch `claude/wave-d`, merged into main, not pushed)
+- **DEC-112:** the Accountant keeps seeing the OTA commission rate (as built).
+- **DEC-113:** a pending Master configuration request does not block the day close; the demo build's preflight and `DAY_CLOSE` now share `closingBlockingApprovals` (role-template and configuration requests never block; the server never did). Prototype **1771/1771**; server unchanged.
+- **DEC-114:** no public holidays and no double wage at the hotel; the Holiday calendar stays empty, so A04-04 (daily-wage holiday pay) does not arise.
+- **Next (owner, 27 Oct):** "Import the entire payroll rules from SCC" — replace HCC's weekly-off roster pay, per-minute overtime and contribution-period ESIC with SCC's calcAttendance / calcGM (`E:\Projects\HCC\Migration data on 25 oct\HCC-Migration-2026-10-25\reference-inputs\SCC-modules\payroll\index.html`).
+- **Still waiting on the owner:** installer choices (lock install folder, merge settings on upgrade, auto-clean a plain .bak); passphrase for the offline key copy (A07-06); "hotel CA only" network config; Decision Register §3b (DEC-091…110); push to GitHub (secret scan first). **CA:** G9 (out-of-state company guests: CGST + SGST vs IGST); Tally re-import by GUID.

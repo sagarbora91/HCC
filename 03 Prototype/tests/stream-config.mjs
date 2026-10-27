@@ -94,6 +94,11 @@ export function register({test,M,assert}){
     s=execute(s,'owner',{type:'CFG_DECIDE',id:a.id,approve:true});
     assert.equal(cfgValueOn(s,'sec.pinLock'),true);assert.equal(s.approvals.find(x=>x.id===a.id).status,'Executed');
     const h=s.configHistory[0];assert.equal(h.key,'sec.pinLock');assert.match(h.reason,/Approved request .* from Lata/);});
+  test('[CFG DEC-113] a pending Master configuration request does not block the day close; it stays pending for the Owner',()=>{
+    let s=set(seed(),'techadmin','sec.pinLock',true,{reason:'Shared tablet at reception'});const a=lastApr(s),d=s.date;
+    assert.ok(!M.closingPreflight(s).find(x=>x.id==='approvals').items.some(i=>i.label.endsWith(a.id)),'not listed as a close blocker');
+    s=rollDay(s);
+    assert.ok(s.closedDates.includes(d));assert.equal(s.approvals.find(x=>x.id===a.id).status,'Pending');});
   test('[CFG] Manager-approver request: Manager decides (no admin grant needed); rejection keeps the value; stale and expired refused',()=>{
     let s=seed();
     s=set(s,'techadmin','inspection',false);const a=lastApr(s);assert.equal(a.meta.approver,'Manager');assert.equal(s.settings.inspection,true);

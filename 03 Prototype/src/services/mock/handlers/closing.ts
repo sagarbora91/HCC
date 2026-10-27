@@ -12,7 +12,7 @@ import {posOpenOrders} from '../../../domain/streams/pos';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {cxPendingTransfers,cxSlice} from '../../../domain/streams/cashout';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
-  closingUnlimitedRoles,closingReopened,closingReopenRefusal,closingReopenMessage,closingPendingCorrections,closingResummary,
+  closingUnlimitedRoles,closingReopened,closingReopenRefusal,closingReopenMessage,closingPendingCorrections,closingResummary,closingBlockingApprovals,
   type ClosingReopen} from '../../../domain/streams/closing';
 import {accSlice,accLockOf} from '../../../domain/streams/accounting';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyCategory,mnyVendor,mnyApprovalLimit} from '../../../domain/streams/money-master';
@@ -172,7 +172,7 @@ export const handlers:Record<string,Handler>={
     assert(!s.bookings.some(b=>b.status==='In house'&&b.departure<=s.date),'Resolve overdue departures.','INVALID_TRANSITION');
     assert(!s.bookings.some(b=>{const h=(b as {holdUntil?:string}).holdUntil;return b.status==='Held'&&!!h&&h<s.clock;}),'Release expired holds before closing.','INVALID_TRANSITION');
     assert(!s.bookings.some(b=>b.status==='In house'&&!closingHasNight(b,s.date)),'Post room nights before closing.','INVALID_TRANSITION');
-    assert(!s.approvals.some(a=>a.status==='Pending'&&a.kind!=='policy')&&!s.expenses.some(e=>e.status==='Pending'),'Resolve pending approvals and expenses.','INVALID_TRANSITION');
+    assert(!closingBlockingApprovals(s).length&&!s.expenses.some(e=>e.status==='Pending'),'Resolve pending approvals and expenses.','INVALID_TRANSITION');
     const openChecks=posOpenOrders(s);
     assert(!openChecks.length,`Settle, charge to the room or void ${openChecks.length} open restaurant / room-service check${openChecks.length===1?'':'s'} first (${openChecks.map(o=>o.id).join(', ')}).`,'INVALID_TRANSITION');
     // DEC-073: a till transfer must be accepted or sent back first (a bank deposit awaiting confirmation does not hold up the close).
