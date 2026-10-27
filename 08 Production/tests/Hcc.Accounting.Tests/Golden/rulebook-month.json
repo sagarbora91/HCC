@@ -1,5 +1,5 @@
 {
- "generatedBy": "08 Production/tests/Hcc.Accounting.Tests/Golden/export-rulebook-month.mjs (lane acc1-tests); expectations are worked out from rulebook §8, never exported from the code under test",
+ "generatedBy": "08 Production/tests/Hcc.Accounting.Tests/Golden/build-rulebook-month.mjs (lane acc1-tests); expectations are worked out from rulebook §8, never exported from the code under test",
  "source": "02 Planning/HCC_Accounting_Rulebook_v1.md §8 (April 2026)",
  "fictionalDataOnly": true,
  "asOf": "2026-04-01",

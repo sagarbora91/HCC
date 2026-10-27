@@ -1,6 +1,6 @@
 // ACC-1 acc1-tests · the rulebook golden month (02 Planning/HCC_Accounting_Rulebook_v1.md §8, April 2026, fictional) as DATA.
 // One source for both suites: tests/stream-accounting-rulebook.mjs (prototype) and the generator of the server's
-// Golden/rulebook-month.json (08 Production/tests/Hcc.Accounting.Tests/Golden/export-rulebook-month.mjs). Not a test file (leading underscore).
+// Golden/rulebook-month.json (08 Production/tests/Hcc.Accounting.Tests/Golden/build-rulebook-month.mjs). Not a test file (leading underscore).
 // Amounts in paise. Accounts: a ledger code, or `code/Party` with the party named as the rulebook names it
 // (HDFC = the bank account, Deccan = Deccan Agro Ltd, Morning / Kaveri = the vendors, Goibibo = the OTA, Staff-07 = the staff member).
 export const R=r=>Math.round(r*100);

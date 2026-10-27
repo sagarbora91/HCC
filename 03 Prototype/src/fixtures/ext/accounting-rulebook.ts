@@ -9,12 +9,12 @@
 // the expectation table and the list of gaps. The month is the ACC-2 target once the rest is built.
 // The command engine is injected (accRulebookBind, bound once in services/mock/rulebook-bind.ts): a fixture must not import the command
 // registry, or the scenario worker would carry every handler.
-import type {State,Booking} from '../../domain/types';
+import type {State,Booking,Command} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
 import {totals,drawer} from '../../domain/selectors';
 import {mnyAccounts,mnyMethods} from '../../domain/streams/money-master';
 
-type Exec=(s:State,uid:string,cmd:Record<string,any>)=>State;
+type Exec=(s:State,uid:string,cmd:Command)=>State;
 let engine:Exec|undefined;
 /** Called once by services/mock/rulebook-bind.ts with the real `execute`. */
 export function accRulebookBind(execute:Exec):void{engine=execute;}
@@ -80,7 +80,7 @@ function need(f:Exec|undefined):Exec{if(!f)throw new Error('ACC-RULEBOOK needs t
  */
 export function accRulebookMonth(s0:State,exec:Exec=need(engine)):State{
   let s=clearOperations(s0);
-  const run=(uid:string,cmd:Record<string,any>)=>{s=exec(s,uid,cmd);return s;};
+  const run=(uid:string,cmd:Command)=>{s=exec(s,uid,cmd);return s;};
   // ── master data: bank account, payment method for the applied advance, vendors, company, OTA channel ──
   const till=mnyAccounts(s).find(a=>a.kind==='till')!.code;
   run(OWNER,{type:'MST_MASTER_SAVE',master:'bankAccounts',row:{code:ACC_RB.bank.code,name:ACC_RB.bank.name,kind:'bank',bank:'HDFC Bank (fictional)',accountLast4:'4321',ifsc:'DEMO0001234'}});
@@ -132,7 +132,7 @@ export function accRulebookMonth(s0:State,exec:Exec=need(engine)):State{
     run(MANAGER,{type:'CASH_BANK',amount,bank:ACC_RB.bank.name,slip:'SLIP-'+s.date.replace(/-/g,''),photo});
     run(OWNER,{type:'CASH_BANK_DECIDE',id:s.cashOutX!.records.at(-1)!.id,confirm:true});
   };
-  const expense=(e:Record<string,any>)=>{run(MANAGER,{type:'EXPENSE',...e});run(OWNER,{type:'EXPENSE_APPROVE',id:s.expenses.at(-1)!.id,approve:true});};
+  const expense=(e:Record<string,any>)=>{run(MANAGER,{...e,type:'EXPENSE'});run(OWNER,{type:'EXPENSE_APPROVE',id:s.expenses.at(-1)!.id,approve:true});};
 
   // guest folios are settled at check-out: advance applied first (T5a), then cash, UPI, card up to the month's totals (T5c)
   const pools:{method:string;left:number}[]=[{method:ACC_RB.advanceMethod,left:P(10000)},{method:'Cash',left:P(152000)},{method:'UPI',left:P(150000)},{method:'Card',left:P(150000)}];

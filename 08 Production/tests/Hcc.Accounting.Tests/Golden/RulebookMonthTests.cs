@@ -7,7 +7,7 @@ namespace Hcc.Accounting.Tests.Golden;
 
 /// <summary>
 /// ACC-1 (lane acc1-tests): the rulebook golden month, ACC-1 subset — 02 Planning/HCC_Accounting_Rulebook_v1.md §8, April 2026, fictional.
-/// <c>rulebook-month.json</c> (written by <c>export-rulebook-month.mjs</c> from 03 Prototype/tests/_rulebook-month.mjs, the same data the prototype's
+/// <c>rulebook-month.json</c> (written by <c>build-rulebook-month.mjs</c> from 03 Prototype/tests/_rulebook-month.mjs, the same data the prototype's
 /// tests/stream-accounting-rulebook.mjs uses) holds the opening balances (§8.1), the 26 entries of §8.2, the server events for the steps ACC-1
 /// books (T1 T2 T3 T5a T5b T5c T7a T8 T9 T10 T12 T13a T13b T13c T15a T15b), and the expectation worked out from the rulebook: the closing trial
 /// balance by control ledger and by party. Events go through the production <see cref="AccountingEventMapper"/> and <see cref="VoucherBuilder"/>.
