@@ -55,18 +55,20 @@ const FOLIO_CHECK=[['m-curry',6],['m-paneer',4],['m-tikka',2]] as const;
 /** Walk-in outlet check: net ₹6,000 = thali ×7 + curry ×5 + paneer butter masala ×2. */
 const OUTLET_CHECK=[['m-thali',7],['m-curry',5],['m-paneer',2]] as const;
 
-/** What happens on which April day (T-numbers are the rulebook's). */
+/** What happens on which April day (T-numbers are the rulebook's). Every day also runs the night audit, the exact cash count, the day close and the next day. */
 export const ACC_RB_PLAN:Record<string,string>={
-  '2026-04-01':'T1/T5/T2: Deccan Agro (6 rooms) and 13 guest stays arrive; the opening entry is approved',
+  '2026-04-01':'Opening entry saved by the Manager and approved by the Owner; Deccan Agro (6 rooms × 5 nights) and 13 guest stays check in',
+  '2026-04-02…10':'T2 room-service checks charged to folios (20 × ₹5,000 over days 1–9), T3 walk-in outlet checks (10 × ₹6,000 net, every second day, cash and UPI alternately)',
   '2026-04-05':'T8 Morning Supplies bill ₹59,000 on vendor credit (ITC disallowed)',
-  '2026-04-06':'T5b Deccan Agro checks out on company credit ₹63,000; room 308 checks out',
-  '2026-04-08':'T13a salary advance to HR-S07 ₹5,000',
+  '2026-04-06':'T5b Deccan Agro checks out on company credit ₹63,000; T5a/T5c room 308 checks out (advance applied first)',
+  '2026-04-08':'T13a salary advance to HR-S07 ₹5,000 (a bank transfer in HCC; no voucher in ACC-1)',
   '2026-04-10':'T7a Deccan Agro pays ₹40,000 by bank transfer',
-  '2026-04-11':'T1 discount, T5a/T5c guests check out and pay',
+  '2026-04-11':'T1 discount ₹10,000 (Owner); T5a/T5c the other 12 guests check out and pay: advance, cash, UPI, card',
   '2026-04-12':'T9 Kaveri Textiles bill ₹42,000 on vendor credit (ITC disallowed)',
+  '2026-04-14,18':'T12 sundry cash expenses 2 × ₹4,000',
   '2026-04-15':'T10 electricity ₹45,000 paid by bank',
-  '2026-04-25':'T15a cash banked ₹1,50,000',
-  '2026-04-26':'T15b cash short ₹200 accepted',
+  '2026-04-25':'T15a cash banked ₹1,50,000 (slip, photo, confirmed by the Owner)',
+  '2026-04-26':'T15b cash short ₹200 accepted by the Owner',
 };
 
 function need(f:Exec|undefined):Exec{if(!f)throw new Error('ACC-RULEBOOK needs the command engine (services/mock/rulebook-bind.ts binds it).');return f;}
@@ -110,10 +112,8 @@ export function accRulebookMonth(s0:State,exec:Exec=need(engine)):State{
   };
   DECCAN.forEach((room,i)=>book(room,5,`Deccan Agro delegate ${i+1} (fictional)`,true));
   GUESTS.forEach((g,i)=>book(g.room,g.nights,`Guest ${String.fromCharCode(65+i)} (fictional)`,false));
-  const rate=(room:string)=>s.bookings.find(b=>b.room===room)!.rate;
   const expectRate:Record<string,number>={Classic:200000,Deluxe:300000,Suite:450000};
   for(const b of s.bookings){const type=s.rooms.find(r=>r.id===b.room)!.type;if(b.rate!==expectRate[type])throw new Error(`ACC-RULEBOOK: ${b.room} rate ${b.rate} is not the ${type} base rate ${expectRate[type]}`);}
-  void rate;
 
   // restaurant checks charged to folios (T2): 20 × ₹5,000 over the stay, spread over four rooms
   const folioRooms=['103','104','106','206'],checks:{day:number;room:string}[]=[];

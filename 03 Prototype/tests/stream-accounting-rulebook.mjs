@@ -116,7 +116,7 @@ export function register({test,M,assert}){
     assert.deepEqual(diff(got,want),[]);
     // spot checks written out: the ledgers the brief names
     assert.equal(got['1000'],R(45300));assert.equal(got['1030'],R(445000));assert.equal(got['1010'],R(181500));assert.equal(got['1020'],R(150000));
-    assert.equal(got['1100']??0,0);assert.equal(got['2000'],-R(10000));assert.equal(got['2110'],-R(14000));assert.equal(got['2120'],-R(14000));
+    assert.equal(got['1100']??0,0);assert.equal(got['2000']??0,0,'the ₹10,000 advance held since before HCC is applied (T5a); the May advance T6 is ACC-2');assert.equal(got['2110'],-R(14000));assert.equal(got['2120'],-R(14000));
     assert.equal(got['4000'],-R(410000));assert.equal(got['4200'],-R(160000));assert.equal(got['4900'],R(10000));assert.equal(got['5900'],R(200));
     assert.equal(got['9999']??0,0,'nothing in Suspense');assert.equal(got['1400']??0,0,'nothing in the opening difference');
   });
@@ -176,15 +176,17 @@ export function register({test,M,assert}){
     // from 2 April: the opening entry (1 April) is the opening balance, ₹40,000 Dr
     const st=M.accStatement(s,acct,'2026-04-02',TO);
     assert.equal(st.account,acct);assert.ok(st.name.includes('Deccan Agro'),'the statement is named after the party: '+st.name);assert.equal(st.opening,R(40000));
-    assert.deepEqual(st.rows.map(r=>[r.date,r.debit,r.credit,r.running]),[['2026-04-06',R(63000),0,R(103000)],['2026-04-10',0,R(40000),R(63000)]]);
+    // T5b is six company-credit checkouts of ₹10,500 on 6 April (six rooms × five nights), T7a one bank receipt of ₹40,000 on 10 April
+    const credits=[1,2,3,4,5,6].map(k=>['2026-04-06',R(10500),0,R(40000)+k*R(10500)]);
+    assert.deepEqual(st.rows.map(r=>[r.date,r.debit,r.credit,r.running]),[...credits,['2026-04-10',0,R(40000),R(63000)]]);
     assert.equal(st.debit,R(63000));assert.equal(st.credit,R(40000));assert.equal(st.closing,R(63000));
-    assert.equal(st.rows[0].type,'Journal');assert.equal(st.rows[1].type,'Receipt');
-    assert.ok(/HDFC|Bank/i.test(st.rows[1].counter),'T7a counter-ledger is the bank: '+st.rows[1].counter);
+    assert.ok(st.rows.slice(0,6).every(r=>r.type==='Journal'));assert.equal(st.rows[6].type,'Receipt');
+    assert.ok(/HDFC|Bank/i.test(st.rows[6].counter),'T7a counter-ledger is the bank: '+st.rows[6].counter);
     assert.ok(/Guest ledger/i.test(st.rows[0].counter),'T5b counter-ledger is the guest ledger: '+st.rows[0].counter);
     // from 1 April: the opening journal is dated 1 April — it is the opening balance (rulebook §7.2) or the first row; either way the figures tie
     const full=M.accStatement(s,acct,FROM,TO);
     assert.equal(full.closing,R(63000));assert.equal(full.rows.at(-1).running,R(63000));assert.equal(full.opening+full.debit-full.credit,full.closing);
-    assert.deepEqual(full.rows.filter(r=>r.no!=='JRN/20260401/000').map(r=>r.running),[R(103000),R(63000)]);
+    assert.deepEqual(full.rows.filter(r=>r.no!=='JRN/20260401/000').map(r=>r.running),[...credits.map(c=>c[3]),R(63000)]);
     // the same party after T5b only: 1,03,000; the control ledger statement ties to its parties
     const upTo9=M.accStatement(s,acct,'2026-04-02','2026-04-09');assert.equal(upTo9.closing,R(103000));
     const ctl=M.accStatement(s,'1110','2026-04-02',TO);assert.equal(ctl.closing,R(63000),'control statement = sum of its parties');
