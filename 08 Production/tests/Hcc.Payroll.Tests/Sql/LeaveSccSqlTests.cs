@@ -63,6 +63,46 @@ public sealed class LeaveSccSqlTests(PayrollDb db) : IClassFixture<PayrollDb>
         Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM hr.leave_ent_override WHERE property_id = @p;", ("@p", h.PropertyId)));
     }
 
+    [Fact]
+    public async Task Approval_rechecks_the_balance_two_pending_requests_over_the_quota_the_first_approves_the_second_needs_a_confirmation()
+    {
+        // DEC-122 (owner, 27 Oct 2026): SCC re-checks nothing at approval; HCC re-checks each date — approved days of its FY + this date over the quota.
+        var h = await db.NewHotelAsync();
+        await h.SeedGoldenAsync();
+        await h.Payroll.SetLeaveEntOverrideAsync(h.As("owner", PayrollService.OpSetLeaveEntOverride), new SetLeaveEntOverrideRequest(h.S("HR-S05"), 3, null, null), Ct);
+        Task<CommandResult<LeaveResult>> Decide(LeaveResult l, bool approve, bool confirm = false) =>
+            h.Payroll.DecideLeaveAsync(h.As("owner", PayrollService.OpDecideLeave), new DecideLeaveRequest(l.LeaveId, l.Version, approve, null, confirm), Ct);
+        async Task<string> StatusAsync(LeaveResult l) => (string)(await db.ScalarAsync("SELECT status FROM hr.leave_request WHERE leave_id = @l;", ("@l", l.LeaveId)))!;
+        async Task<string> AuditAsync(LeaveResult l, string action) => (string)(await db.ScalarAsync(
+            "SELECT detail FROM plat.audit_event WHERE property_id = @p AND action = @a AND target = @t;", ("@p", h.PropertyId), ("@a", action), ("@t", "hr.leave:" + l.LeaveId)))!;
+
+        // Ravi: CL 3, 2 used (September). Two pending 1-day CL requests — each within the quota when recorded (pending is not used, SCC): no warning.
+        var a = (await Req(h, "housekeeper", "HR-S05", "2026-12-01")).Value.Added.Single();
+        var b = (await Req(h, "housekeeper", "HR-S05", "2026-12-08")).Value.Added.Single();
+        Assert.Equal("Approved", (await Decide(a, true)).Value.Status);   // 2 + 1 = 3: approved silently
+        Assert.DoesNotContain("over the quota", await AuditAsync(a, "HR_LEAVE_APPROVED"), StringComparison.Ordinal);
+        const string Want = "Ravi Shinde has used 3 of 3 Casual Leave day(s) this FY 2026–27.\nThis request adds 1 more and EXCEEDS the balance.\n\nApprove it anyway?";
+        Assert.Equal(Want, (await Hotel.FailsAsync(() => Decide(b, true), HccErrorCode.INVALID_TRANSITION)).Message);   // 3 + 1 > 3
+        Assert.Equal("Pending", await StatusAsync(b));
+        Assert.Equal("Approved", (await Decide(b, true, confirm: true)).Value.Status);   // confirmed: approved, over by 1
+        Assert.EndsWith("Leave approved — now live for floor gate & payroll · over the quota (confirmed)", await AuditAsync(b, "HR_LEAVE_APPROVED"), StringComparison.Ordinal);
+        var cl = await ClAsync(h, "HR-S05");
+        Assert.Equal((3m, 4m, 0m, 1m), (cl.Entitled, cl.Used, cl.Left, cl.Over));
+
+        // A half day adds 0.5; rejecting is never checked; the next FY starts again at the quota; LOP has no quota.
+        var am = (await Req(h, "housekeeper", "HR-S05", "2026-12-15", half: "AM", confirm: true)).Value.Added.Single();
+        Assert.Equal("Ravi Shinde has used 4 of 3 Casual Leave day(s) this FY 2026–27.\nThis request adds 0.5 more and EXCEEDS the balance.\n\nApprove it anyway?",
+            (await Hotel.FailsAsync(() => Decide(am, true), HccErrorCode.INVALID_TRANSITION)).Message);
+        Assert.Equal("Rejected", (await Decide(am, false)).Value.Status);
+        var next = (await Req(h, "housekeeper", "HR-S05", "2027-04-05")).Value.Added.Single();
+        Assert.Equal("Approved", (await Decide(next, true)).Value.Status);   // FY 2027–28: 0 + 1 ≤ 3
+        var lop = (await Req(h, "housekeeper", "HR-S05", "2026-12-22", type: "LOP")).Value.Added.Single();
+        Assert.Equal("Approved", (await Decide(lop, true)).Value.Status);
+        // Another staff member keeps the default (CL 12): no warning.
+        var other = (await Req(h, "reception", "HR-S02", "2026-12-08")).Value.Added.Single();
+        Assert.Equal("Approved", (await Decide(other, true)).Value.Status);
+    }
+
     private async Task<object?> SccNoteAsync(Hotel h, string staff) =>
         await db.ScalarAsync("SELECT cl_days FROM hr.leave_ent_override WHERE property_id = @p AND staff_id = @s;", ("@p", h.PropertyId), ("@s", h.S(staff)));
 

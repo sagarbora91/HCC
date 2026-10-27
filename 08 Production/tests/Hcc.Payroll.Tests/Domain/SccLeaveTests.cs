@@ -144,6 +144,19 @@ public sealed class SccLeaveTests
             return $"{name} has used {Fmt(used)} of {Js(quotaCat.Value)} {category} day(s) this {fy.Label}.\nThis request adds {Fmt(req)} more and EXCEEDS the balance.\n\nRecord it anyway (it will still need approval)?";
         }
 
+        /// <summary>DEC-122 (HCC — SCC re-checks nothing at approval): SCC's fyUsage of the person + leaveDaysOf(this record) against the quota, with the
+        /// balance confirm's text asking "Approve it anyway?"; null when nothing is confirmed.</summary>
+        public static string? ApproveConfirm(Dictionary<string, List<L>> data, decimal? quotaCat, string name, string category, string date, string type)
+        {
+            if (quotaCat is null) return null;
+            var p = Day(date);
+            var fy = FyRangeOf(p.Year, p.Month - 1);
+            var used = FyUsage(data, name, (fy.From, fy.To)).GetValueOrDefault(category);
+            var add = LeaveDaysOf(new L(name, type, "pending", category));
+            if (used + add <= quotaCat) return null;
+            return $"{name} has used {Fmt(used)} of {Js(quotaCat.Value)} {category} day(s) this {fy.Label}.\nThis request adds {Fmt(add)} more and EXCEEDS the balance.\n\nApprove it anyway?";
+        }
+
         public sealed record B(string From, string To, string Store, string Kind, bool Hard, string Label);
 
         /// <summary>The blackout gate (L1357-1373): (hard toast | soft confirm | null).</summary>
@@ -291,6 +304,41 @@ public sealed class SccLeaveTests
             Assert.Equal(Scc.BalanceConfirm(scc, tracked ? quota : null, name, category, SccLeave.Days(policy.WeekOffMask).ToArray(), Key(on), Key(to), kind),
                 SccLeave.OverBalanceText(policy, hcc, staff, name, type, on, to, Half(kind)));
         }
+    }
+
+    [Fact]
+    public void Approval_recheck_is_SCC_fyUsage_plus_this_date_over_the_quota_for_every_pending_record_of_random_histories()
+    {
+        // DEC-122: each pending record approved on its own — approved (and legacy) days of its FY by date + this date (1 / 0.5) over the quota.
+        var r = new Random(4122);
+        int warned = 0, silent = 0;
+        for (var i = 0; i < 1500; i++)
+        {
+            var (scc, hcc) = World(r, new DateOnly(2027, 3, 20), 25, 3, cancelledInto: "x");   // across 31 March 2027
+            var quota = r.Next(0, 9) / 2m;
+            var staff = r.Next(1, 7);
+            var policy = LeavePolicy.Defaults() with { Cl = r.Next(0, 9) / 2m, Sl = r.Next(0, 9) / 2m, El = r.Next(0, 9) / 2m, Overrides = new Dictionary<long, LeaveEntOverride> { [staff] = new(null, quota, quota) } };
+            foreach (var l in hcc.Where(x => x.Status == LeaveStatus.Pending))
+            {
+                var name = "S" + l.StaffId.ToString(CultureInfo.InvariantCulture);
+                var category = Cats.First(c => c.Type == l.Type).Category;
+                var tracked = policy.IsTracked(l.Type);
+                var want = Scc.ApproveConfirm(scc, tracked ? policy.EntFor(l.StaffId).Of(l.Type) : null, name, category, Key(l.Date),
+                    l.Half switch { LeaveHalf.AM => "half_day_am", LeaveHalf.PM => "half_day_pm", _ => "full_day" });
+                var got = SccLeave.ApproveOverBalanceText(policy, hcc, name, l);
+                Assert.Equal(want, got);
+                if (got is null) silent++;
+                else warned++;
+            }
+        }
+
+        Assert.True(warned > 1000 && silent > 1000, $"warned {warned} · silent {silent}");
+        // An approved record never counts against itself (the check leaves the record out).
+        var self = new LeaveSpan(9, 1, LeaveType.CL, new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 1), null, 1, LeaveStatus.Approved);
+        Assert.Null(SccLeave.ApproveOverBalanceText(LeavePolicy.Defaults() with { Cl = 1 }, [self], "S1", self));
+        Assert.Equal("S1 has used 1 of 1 Casual Leave day(s) this FY 2026–27.\nThis request adds 0.5 more and EXCEEDS the balance.\n\nApprove it anyway?",
+            SccLeave.ApproveOverBalanceText(LeavePolicy.Defaults() with { Cl = 1 }, [self], "S1", self with { LeaveId = 10, Half = LeaveHalf.PM, Days = 0.5m, Status = LeaveStatus.Pending }));
+        Assert.Null(SccLeave.ApproveOverBalanceText(LeavePolicy.Defaults() with { Cl = 0 }, [self], "S1", self with { LeaveId = 11, Type = LeaveType.LOP, Status = LeaveStatus.Pending }));
     }
 
     [Fact]

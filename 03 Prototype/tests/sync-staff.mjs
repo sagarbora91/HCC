@@ -142,6 +142,9 @@ export async function register({test,assert,M}){
     [{type:'HR_LEAVE_REQUEST',staffId:ravi,approver:'1',leaveType:'OTH',from:'2026-11-09',reason:'  '},'RequestLeave',
       {staffId:+ravi,leaveType:'OTH',from:'2026-11-09',to:'2026-11-09',half:null,reason:null,approverId:1,confirmOverBalance:false,confirmBlackout:false}],
     [{type:'HR_LEAVE_DECIDE',id:leave,approve:false,note:'Peak week'},'DecideLeave',{leaveId:+leave,approve:false,note:'Peak week'},'v-leave-'+leave],
+    // DEC-122: an approval over the quota carries the confirmation (the screen asked SCC's warning); a rejection never does
+    [{type:'HR_LEAVE_DECIDE',id:leave,approve:true,confirmOverBalance:true},'DecideLeave',{leaveId:+leave,approve:true,confirmOverBalance:true},'v-leave-'+leave],
+    [{type:'HR_LEAVE_DECIDE',id:leave,approve:false,confirmOverBalance:true},'DecideLeave',{leaveId:+leave,approve:false},'v-leave-'+leave],
     [{type:'HR_LEAVE_CANCEL',id:leave},'CancelLeave',{leaveId:+leave},'v-leave-'+leave],
     // SCC leave port: settings, ⚙ override (blank = the default → null), blackouts, agenda, import (validated here, merged on the server), clear.
     [{type:'HR_LEAVE_ENT_OVERRIDE',staffId:ravi,ent:{CL:'3.5',SL:'',EL:20}},'SetLeaveEntOverride',{staffId:+ravi,cl:3.5,sl:null,el:20}],

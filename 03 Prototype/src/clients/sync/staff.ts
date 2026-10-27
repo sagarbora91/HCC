@@ -26,6 +26,8 @@
 //             _REMOVE → AddLeaveBlackout / RemoveLeaveBlackout, HR_AGENDA_ADD / _REMOVE → AddLeaveAgenda / RemoveLeaveAgenda, HR_LEAVE_IMPORT →
 //             ImportLeave (the file is validated here with SCC's rules — staff-leave.ts hrLeaveImportParse — and the server merges the records with
 //             SCC's merge rules), HR_LEAVE_CLEAR → ClearLeave.
+//   SCC decisions (DEC-122): an approval over the person's quota carries confirmOverBalance (the screen asked SCC's warning first; the server
+//             re-checks the balance at approval and refuses an unconfirmed one with the same text).
 import type {Command} from '../../services/mock';
 import {hrLeaveImportParse} from '../../domain/streams/staff-leave';
 import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRSccDays,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile,HRRequest,HRDayEntry,HRBank,HREnt,HRAgenda,HRLeavePolicy} from '../../domain/streams/staff';
@@ -283,7 +285,8 @@ export const staff:SyncArea={
     {type:'HR_LEAVE_REQUEST',reload:RELOAD,precheck:cmd=>!String(cmd.approver??'').trim()?'Approver name is required':undefined,
       send:c=>post(c,'RequestLeave',({staffId:serverId(c.cmd.staffId,'Staff'),leaveType:c.cmd.leaveType,from:c.cmd.from,to:c.cmd.to??c.cmd.from,half:c.cmd.half??null,
         reason:String(c.cmd.reason??'').trim()||null,approverId:serverId(c.cmd.approver,'User'),confirmOverBalance:!!c.cmd.confirmOverBalance,confirmBlackout:!!c.cmd.confirmBlackout}))},
-    {type:'HR_LEAVE_DECIDE',reload:RELOAD,send:c=>post(c,'DecideLeave',({leaveId:serverId(c.cmd.id,'Leave record'),approve:!!c.cmd.approve,...(text(c.cmd.note)?.trim()?{note:String(c.cmd.note).trim()}:{})}),['leave',c.cmd.id,'Leave record'])},
+    {type:'HR_LEAVE_DECIDE',reload:RELOAD,send:c=>post(c,'DecideLeave',({leaveId:serverId(c.cmd.id,'Leave record'),approve:!!c.cmd.approve,...(text(c.cmd.note)?.trim()?{note:String(c.cmd.note).trim()}:{}),
+      ...(c.cmd.approve&&c.cmd.confirmOverBalance?{confirmOverBalance:true}:{})}),['leave',c.cmd.id,'Leave record'])},
     {type:'HR_LEAVE_CANCEL',reload:RELOAD,send:c=>post(c,'CancelLeave',({leaveId:serverId(c.cmd.id,'Leave record')}),['leave',c.cmd.id,'Leave record'])},
     {type:'HR_LEAVE_POLICY_SET',reload:RELOAD,
       // SetLeavePolicy (SCC entitlement defaults — a blank field saves 0 — and the week-off set), then SaveDepartment for each department whose

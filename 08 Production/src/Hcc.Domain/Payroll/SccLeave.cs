@@ -173,6 +173,24 @@ public static class SccLeave
             + "Record it anyway (it will still need approval)?";
     }
 
+    /// <summary>DEC-122 (owner, 27 Oct 2026 — SCC re-checks nothing at approval): approving one date record of a tracked category re-checks the
+    /// balance of that date's financial year — approved days by date (this record left out) + this date (SCC leaveDaysOf: full day 1, half 0.5)
+    /// over the staff member's quota (override, else the default) → SCC's over-quota text asking "Approve it anyway?"; null = no warning. LOP and
+    /// the untracked categories have no quota.</summary>
+    public static string? ApproveOverBalanceText(LeavePolicy policy, IEnumerable<LeaveSpan> staffLeaves, string staffName, LeaveSpan leave)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        ArgumentNullException.ThrowIfNull(leave);
+        if (!policy.IsTracked(leave.Type)) return null;
+        var fy = FinancialYear.Containing(leave.Date);
+        var used = FyUsage(staffLeaves, leave.StaffId, fy, leave.LeaveId).GetValueOrDefault(leave.Type);
+        var quota = policy.EntFor(leave.StaffId).Of(leave.Type);
+        var add = leave.Half is null ? 1m : 0.5m;
+        if (used + add <= quota) return null;
+        return $"{staffName} has used {Fmt(used)} of {Num(quota)} {Category(leave.Type)} day(s) this {fy.Label}.\nThis request adds {Fmt(add)} more and EXCEEDS the balance.\n\n"
+            + "Approve it anyway?";
+    }
+
     /// <summary>SCC blackoutsForKey with a scope: entries covering a date that apply to every department or to <paramref name="dept"/>.</summary>
     public static IEnumerable<LeaveBlackout> BlackoutsFor(IEnumerable<LeaveBlackout> all, DateOnly d, string? dept)
     {

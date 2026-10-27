@@ -14,6 +14,7 @@ namespace Hcc.Application.Payroll;
 // payroll anchor lock (3 records a date for the whole property, 4 a shift); balance and blackout warnings refuse only until confirmed (SCC confirm);
 // a hard blackout refuses. Kept from HCC: own leave or PERM-HR-002 for anyone, PERM-HR-003 decides, nobody decides their own leave or request,
 // removing = cancel with an audit record, settings / import / clear Owner-only (PERM-HR-009, DEC-058), no leave before the business date (DEC-075).
+// SCC decisions (DEC-122): approving a date re-checks the balance (SCC re-checks nothing) and refuses an over-quota approval until confirmed.
 public sealed partial class PayrollService
 {
     public const string OpSetLeaveEntOverride = "SetLeaveEntOverride";
@@ -99,7 +100,7 @@ public sealed partial class PayrollService
         }, ct).ConfigureAwait(false);
     }
 
-    // ── DecideLeave (SCC decideLeave: one date record) ──
+    // ── DecideLeave (SCC decideLeave: one date record; DEC-122 re-checks the balance on approval) ──
 
     public async Task<CommandResult<LeaveResult>> DecideLeaveAsync(CommandContext ctx, DecideLeaveRequest req, CancellationToken ct = default)
     {
@@ -117,12 +118,23 @@ public sealed partial class PayrollService
             if (l.RequestedBy == ctx.PrincipalId || IsOwn(ctx, st)) throw Forbidden("You cannot approve your own request. Another authorised user decides it.");
             if (req.Approve && await db.AnyAttendanceAsync(st.StaffId, l.Span.Date, l.Span.Date, exceptHalfDayMarks: l.Span.Half is not null, c2).ConfigureAwait(false))
                 throw Invalid("Attendance is already recorded on this date.");
+            // DEC-122: approved days of the date's FY (by date) + this date over the quota → SCC's warning until confirmed. The staff row is locked
+            // above, so two approvals for the same person run one after the other and the second sees the first. Rejecting is never checked.
+            string? over = null;
+            if (req.Approve)
+            {
+                var policy = await db.LeavePolicyAsync(ctx.PropertyId, c2).ConfigureAwait(false);
+                var mine = (await db.DaysAsync(ctx.PropertyId, [st.StaffId], l.Span.Date, l.Span.Date, c2).ConfigureAwait(false)).GetValueOrDefault(st.StaffId) ?? new StaffDays();
+                over = SccLeave.ApproveOverBalanceText(policy, mine.Leaves, st.Profile.Name, l.Span);
+                if (over is not null && !req.ConfirmOverBalance) throw Invalid(over);
+            }
 
             var status = req.Approve ? LeaveStatus.Approved : LeaveStatus.Rejected;
             var version = await db.UpdateLeaveStatusAsync(l.Span.LeaveId, req.ExpectedVersion, status, ctx.PrincipalId, Now, note.Length > 0 ? note : null, c2).ConfigureAwait(false);
             await tx.AuditAsync(req.Approve ? "HR_LEAVE_APPROVED" : "HR_LEAVE_REJECTED", Target("hr.leave", l.Span.LeaveId),
                 $"{st.Profile.Name} · {Day(l.Span.Date)} · {DayEntry.LeaveLabel(l.Span.Type)} {SccLeave.KindLabel(l.Span.Half)} · "
-                + (req.Approve ? "Leave approved — now live for floor gate & payroll" : "Leave rejected — kept for audit") + (note.Length > 0 ? " · " + Clip(note, 200) : ""), c2)
+                + (req.Approve ? "Leave approved — now live for floor gate & payroll" : "Leave rejected — kept for audit") + (over is not null ? " · over the quota (confirmed)" : "")
+                + (note.Length > 0 ? " · " + Clip(note, 200) : ""), c2)
                 .ConfigureAwait(false);
             await tx.PublishAsync("LeaveDecided", l.Span.LeaveId, new { leaveId = l.Span.LeaveId, staffId = st.StaffId, status = status.ToString(), from = l.Span.From, to = l.Span.To },
                 c2).ConfigureAwait(false);

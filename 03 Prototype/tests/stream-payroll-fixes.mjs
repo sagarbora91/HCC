@@ -263,14 +263,16 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const slip=UI.renderModal(s,'accountant','hr-payslip',id+'|HR-S05');assert.match(slip,/Provident Fund \(10%\)/);assert.match(slip,/ESIC \(1%\)/);assert.doesNotMatch(slip,/\(12%\)|\(0\.75%\)/);
     assert.match(UI.renderModal(seed(),'accountant','hr-payslip','HR-PAY-1|HR-S05'),/Provident Fund \(12%\)/);
   });
-  test('[PAY-FIX F-15] cutting an entitlement never shows a negative balance: 0 left and "over by N" (approved days, SCC); the settings dialog warns; approval re-checks nothing (SCC)',()=>{
+  test('[PAY-FIX F-15] cutting an entitlement never shows a negative balance: 0 left and "over by N" (approved days, SCC); the settings dialog warns; approving over the quota needs a confirmation (DEC-122)',()=>{
     let s=execute(seed(),'reception',{type:'HR_LEAVE_REQUEST',approver:'manager',staffId:'HR-S02',leaveType:'CL',from:'2026-11-16',to:'2026-11-20',reason:'Trip'});
     const ids=x(s).leaves.filter(l=>l.staffId==='HR-S02'&&l.status==='Pending').map(l=>l.id);
     for(const id of ids.slice(0,4))s=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id,approve:true});
     s=execute(s,'owner',{type:'HR_LEAVE_POLICY_SET',ent:{CL:2,SL:7,EL:15}});
     const cl=M.hrLeaveBalance(s,'HR-S02','2026-11-16').find(b=>b.type==='CL');assert.equal(cl.left,0);assert.equal(cl.over,2);
     assert.equal(M.hrLeaveOverCount(seed(),{CL:2,SL:7,EL:15}),0);assert.equal(M.hrLeaveOverCount(s,{CL:2,SL:7,EL:15}),1);
-    const a=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:ids[4],approve:true});assert.equal(M.hrLeaveBalance(a,'HR-S02','2026-11-16').find(b=>b.type==='CL').over,3);
+    // DEC-122 (was: SCC re-checks nothing at approval): the 5th date is over the cut quota → SCC's warning until confirmed, then "over by 3"
+    assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:ids[4],approve:true}),e=>e.code==='INVALID_TRANSITION'&&/has used 4 of 2 Casual Leave day\(s\)[^]*Approve it anyway\?/.test(e.message));
+    const a=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:ids[4],approve:true,confirmOverBalance:true});assert.equal(M.hrLeaveBalance(a,'HR-S02','2026-11-16').find(b=>b.type==='CL').over,3);
   });
   test('[PAY-FIX F-16] FY26 history gives daily-wage staff leave without pay only (no paid leave on their payslips)',()=>{
     const fy=M.loadScenario('FY26'),daily=x(fy).staff.filter(t=>t.payType==='daily').map(t=>t.id);
