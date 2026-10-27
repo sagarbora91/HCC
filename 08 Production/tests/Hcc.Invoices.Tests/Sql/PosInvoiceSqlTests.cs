@@ -155,7 +155,7 @@ public class PosInvoiceSqlTests
         Assert.Equal(("B2C", "Mr. Patil (fictional)", "4 Ganj Golai, Latur (fictional)"), (nv.SupplyType, nv.Recipient.Name, nv.Recipient.Address));
 
         // B2B: 2 thali ₹840; 5 % = ₹42 (2,100 + 2,100). Restaurant service is supplied where the hotel is: place of supply 27, CGST + SGST
-        // even for a Karnataka (29) buyer (IGST Act s.12 as read — CA question G9).
+        // even for a Karnataka (29) buyer (IGST Act s.12; DEC-136, G9 answered).
         var company = await r.SettleUpiAsync(await r.CheckAsync("T2", ("THALI", 2)), gstin: " 29aagcb7383j1z4 ", name: "Demo Industries Pvt Ltd (fictional)");
         Assert.Equal("RST/2627/0000002", company.InvoiceNo);
         var cv = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Owner, company.InvoiceId!.Value, Ct);

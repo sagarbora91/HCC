@@ -31,7 +31,7 @@ public sealed record Recipient(SupplyType Type, string? Name, string? Gstin, str
 /// <summary>
 /// Invoice rules (port of the prototype sample invoice, <c>03 Prototype/src/features/folio/modals.tsx InvoiceModal</c>, with the GST
 /// document rules production needs). Tax is never recomputed: every line keeps the rate and tax stored when it was posted (DEC-069); the
-/// CGST / SGST halves are the stored per-charge split (odd paisa to CGST, CA question G9). Inter-state supply puts the whole line tax in IGST.
+/// CGST / SGST halves are the stored per-charge split (odd paisa to CGST; DEC-136, G9 answered). Inter-state supply would put the whole line tax in IGST.
 /// </summary>
 public static class InvoiceRules
 {
@@ -95,23 +95,21 @@ public static class InvoiceRules
     public static string Words(Paise amount) => PayrollFiles.AmountInWords(amount.Value);
 
     /// <summary>
-    /// A03a-03 — THE switch for inter-state supplies (CA question G9). While false, a place of supply other than the hotel's own state is
-    /// refused on every path that issues an invoice (IssueInvoice for a folio or an outlet bill, the checkout invoice, the RST invoice of
-    /// a settled outlet bill): an inter-state invoice would put the whole tax, room nights included, into IGST while the vouchers and
-    /// ledgers book CGST + SGST from the stored per-charge split. Set it to true only once the CA has answered G9 and IGST is booked.
-    /// A B2B buyer registered in another state is NOT inter-state here: hotel accommodation and restaurant service are supplied where the
-    /// hotel is (IGST Act s.12(3)/(4), as read), so such an invoice stays CGST + SGST.
+    /// A03a-03 / DEC-136 — inter-state supplies. G9 is answered (owner, 27 Oct 2026: "CGST plus SGST is right regardless of the guest's
+    /// state — because it is the place of supply which decides it"): hotel accommodation and restaurant service are supplied where the
+    /// hotel is (IGST Act s.12(3)/(4)), so every invoice is intra-state and this stays false for good. A place of supply other than the
+    /// hotel's own state is refused on every path that issues an invoice (IssueInvoice for a folio or an outlet bill, the checkout invoice,
+    /// the RST invoice of a settled outlet bill). A B2B buyer registered in another state is NOT inter-state: such an invoice is CGST + SGST.
     /// </summary>
     public const bool InterStateSupplySupported = false;
 
-    /// <summary>The refusal of an inter-state place of supply while <see cref="InterStateSupplySupported"/> is off.</summary>
-    public const string InterStateRefusal = "Inter-state place of supply is not supported yet (CA question G9).";
+    /// <summary>The refusal of an inter-state place of supply (DEC-136).</summary>
+    public const string InterStateRefusal = "The place of supply for the hotel's rooms and food is the hotel's own state, so the invoice is always CGST + SGST.";
 
     /// <summary>
     /// Validates the recipient. Place of supply defaults to the supplier's state: for hotel accommodation and restaurant service it is
-    /// the location of the hotel (IGST Act s.12(3)/(4), as read — CA question G9). A different place of supply makes the supply
-    /// inter-state (IGST) — CA TO CONFIRM; the prototype had no IGST. A03a-03: refused while <paramref name="interStateSupported"/>
-    /// (default <see cref="InterStateSupplySupported"/>) is off.
+    /// the location of the hotel (IGST Act s.12(3)/(4); DEC-136). A different place of supply would make the supply inter-state (IGST);
+    /// A03a-03 / DEC-136: refused while <paramref name="interStateSupported"/> (default <see cref="InterStateSupplySupported"/>) is off.
     /// </summary>
     public static Recipient Recipient(string? supplyType, string? name, string? gstin, string? address, string? placeOfSupply, string supplierState, Paise total,
         bool interStateSupported = InterStateSupplySupported)

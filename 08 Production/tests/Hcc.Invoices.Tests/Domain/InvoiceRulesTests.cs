@@ -99,14 +99,14 @@ public class InvoiceRulesTests
     }
 
     [Fact]
-    public void A03a_03_an_inter_state_place_of_supply_is_refused_until_CA_G9_while_the_hotels_own_state_and_an_out_of_state_buyer_stay_intra_state()
+    public void A03a_03_DEC136_an_inter_state_place_of_supply_is_refused_while_the_hotels_own_state_and_an_out_of_state_buyer_stay_intra_state()
     {
-        Assert.False(InvoiceRules.InterStateSupplySupported); // the one switch: lifted only once the CA has answered G9
+        Assert.False(InvoiceRules.InterStateSupplySupported); // DEC-136: the place of supply is the hotel, so it stays off
         foreach (var (type, name, gstin) in new[] { ("B2B", "Karnataka Co (fictional)", "29AAGCB7383J1Z4"), ("B2C", "Guest", (string?)null) })
         {
             var e = Assert.Throws<HccException>(() => InvoiceRules.Recipient(type, name, gstin, null, "29", "27", P(426500)));
             Assert.Equal(HccErrorCode.VALIDATION, e.Code);
-            Assert.StartsWith("Inter-state place of supply is not supported yet (CA question G9).", e.Message, StringComparison.Ordinal);
+            Assert.StartsWith("The place of supply for the hotel's rooms and food is the hotel's own state, so the invoice is always CGST + SGST.", e.Message, StringComparison.Ordinal);
             Assert.Contains("Maharashtra, 27", e.Message, StringComparison.Ordinal);
             var own = InvoiceRules.Recipient(type, name, gstin, null, " 27 ", "27", P(426500));
             Assert.Equal(("27", false), (own.PlaceOfSupply, own.InterState));

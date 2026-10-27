@@ -6,9 +6,9 @@ namespace Hcc.Contracts.Invoices;
 /// POST /api/v1/commands/IssueInvoice (K, PERM-INV-002). <c>SourceKind</c> = folio (a settled, checked-out folio; group master folios
 /// plug in later through the same port) or pos (<c>SourceId</c> = a settled outlet POS bill, RST series, DEC-072: normally issued by the
 /// settle itself; this issues it later, e.g. after the hotel GSTIN was recorded). <c>SupplyType</c> = B2C (default) | B2B (needs <c>BuyerGstin</c> + <c>BuyerName</c>).
-/// <c>PlaceOfSupply</c> = 2-digit state code, default the hotel's state; A03a-03: any other state is refused (VALIDATION, "Inter-state place
-/// of supply is not supported yet (CA question G9).") until <c>InvoiceRules.InterStateSupplySupported</c> is switched on. A B2B buyer from
-/// another state is still invoiced at the hotel's state (CGST + SGST). A repeat for the same folio returns the issued invoice.
+/// <c>PlaceOfSupply</c> = 2-digit state code, default the hotel's state; A03a-03 / DEC-136: any other state is refused (VALIDATION,
+/// <c>InvoiceRules.InterStateRefusal</c>) — the place of supply for hotel rooms and food is the hotel. A B2B buyer from another state is
+/// invoiced at the hotel's state (CGST + SGST). A repeat for the same folio returns the issued invoice.
 /// </summary>
 public sealed record IssueInvoiceRequest(string SourceKind, long SourceId, string? SupplyType = null, string? BuyerName = null, string? BuyerGstin = null,
     string? BuyerAddress = null, string? PlaceOfSupply = null);
