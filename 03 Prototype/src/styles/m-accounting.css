@@ -54,3 +54,58 @@
 .acc-m-entries>div:last-child{border-bottom:0}
 .acc-m-entries span{display:flex;flex-direction:column;min-width:0}.acc-m-entries small{font-size:13px;color:var(--muted)}
 .acc-m-entries b{font-weight:600;text-align:right;color:var(--ink)}
+/* ACC-1 · books, chart, parties, opening balances. Tokens only. */
+.acc-rangebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 23px 0}
+.acc-range{display:flex;gap:12px;flex-wrap:wrap}
+.acc-range label{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.acc-range input[type=date]{border:1px solid var(--c-cdb9a3);border-radius:7px;background:var(--c-ffffff);color:var(--ink);min-height:38px;padding:6px 10px;font-size:12px}
+.acc-search{display:flex;align-items:center;gap:8px;border:1px solid var(--c-cdb9a3);border-radius:7px;background:var(--c-ffffff);padding:0 10px;min-height:38px;color:var(--muted)}
+.acc-search input{border:0;background:transparent;color:var(--ink);font-size:12px;min-height:34px;min-width:160px;outline-offset:2px}
+.acc-check{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
+.acc-picker{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;width:100%}
+.acc-picker>label:not(.acc-search){display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);flex:1 1 280px}
+.acc-picker select{border:1px solid var(--c-cdb9a3);border-radius:7px;background:var(--c-ffffff);color:var(--ink);min-height:38px;padding:6px 10px;font-size:12px;min-width:0;max-width:100%}
+.acc-stmt-pick{padding-bottom:0}
+.acc-tb6 th.acc-colgroup{text-align:center;border-bottom:1px solid var(--line)}
+.acc-party-row td:first-child,.acc-party-row td:nth-child(2){padding-left:22px}
+.acc-vstart td{border-top:1px solid var(--line)}
+.acc-indent{padding-left:18px}
+.acc-sub{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.acc-grp-row td{background:var(--c-fffcf8);border-top:1px solid var(--c-cdb9a3)}
+.acc-grp-name{display:inline-flex;align-items:center;gap:4px}
+.acc-retired td{color:var(--muted)}
+.acc-chart-tools{gap:10px}
+.acc-chart-note{margin:8px 0;font-size:12px}
+.acc-hist-box{margin:16px 0 0;font-size:12px}
+.acc-hist-box summary{cursor:pointer;min-height:32px;color:var(--ink);font-weight:600}
+.acc-nat{font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0}
+.acc-open-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.acc-open-pills{display:inline-flex;gap:8px;flex-wrap:wrap}
+.acc-open-grid select,.acc-open-grid input{border:1px solid var(--c-cdb9a3);border-radius:7px;background:var(--c-ffffff);color:var(--ink);min-height:38px;padding:6px 10px;font-size:12px;width:100%;min-width:0}
+.acc-open-grid input{text-align:right;max-width:160px}
+.acc-gap-row td{background:var(--c-faf3e6)}
+.acc-open-note{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);margin-top:12px;max-width:520px}
+.acc-open-note input{border:1px solid var(--c-cdb9a3);border-radius:7px;background:var(--c-ffffff);color:var(--ink);min-height:38px;padding:6px 10px;font-size:12px}
+.acc-open-actions{justify-content:flex-start;margin-top:14px}
+.acc-reopen{max-width:520px}
+/* Phone */
+.acc-m .acc-search{width:100%;min-height:48px;margin:6px 0}
+.acc-m .acc-search input{font-size:16px;min-height:44px;width:100%;min-width:0}
+.acc-m .acc-check{min-height:48px;font-size:16px}
+.acc-m .acc-check input{width:24px;height:24px}
+.acc-m .acc-rangebar{padding:0;gap:6px}
+.acc-m .acc-range{width:100%}
+.acc-m .acc-range label{flex:1 1 140px;flex-direction:column;align-items:stretch;font-size:14px;gap:4px}
+.acc-m .acc-range input[type=date]{min-height:48px;font-size:16px;width:100%}
+.acc-m .acc-subbar{padding:8px 0;gap:8px}
+.acc-m .acc-picker{flex-direction:column;align-items:stretch}
+.acc-m .acc-picker>label:not(.acc-search){font-size:14px;flex-basis:auto}
+.acc-m .acc-picker select{min-height:48px;font-size:16px;width:100%}
+.acc-m .info-note{margin:8px 0;font-size:14px}
+.acc-m .acc-m-group{margin-bottom:8px}
+.acc-m .acc-hist-box summary{min-height:48px;display:flex;align-items:center;font-size:16px}
+.acc-m .acc-hist{font-size:14px}
+.acc-m .btn.full{min-height:48px}
+.acc-m .m-list-card .m-lc-right small{font-size:13px;color:var(--muted)}
+.m-sheet .acc-picker select,.m-sheet .form input,.m-sheet .form select{min-height:48px;font-size:16px}
+@media print{.acc-rangebar,.acc-open-actions{display:none}}

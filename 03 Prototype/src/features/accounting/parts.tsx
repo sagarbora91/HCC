@@ -6,6 +6,8 @@ import {money,accVouchers,accVoucherTotals,accLedgerName,accSourceOf,accLockBloc
   ACC_CHART,ACC_SUSPENSE,ACC_LOCK_ROLES,type ACCVoucher,type ACCDayStatus,type ACCException} from '../../services/mock';
 import {Empty,dateLabel,shortDate,clockTime} from '../../components/ui';
 import {downloadCsv} from '../reports/Reports';
+import {accChart,accGroups,accOpening,type AccLedgerUpsert,type AccLedgerRetire,type AccGroupUpsert,type AccOpeningSave} from './_contract-stubs';
+import {LedgerPicker,ledgerOptions,toPaise,fromPaise,fyStart} from './shared';
 
 export const accMoney=(n:number)=>n?money(n):'—';
 export function AccStatusPill({status}:{status:ACCDayStatus}){
@@ -19,7 +21,10 @@ export const accUserName=(s:ReturnType<typeof useHcc>['s'],id:string)=>s.users.f
 /** Permission helpers for the page (coarse permissions + lock roles). */
 export function useAccPerms(){
   const {s,uid,user,permission}=useHcc();
-  return {canLock:permission('reports')&&ACC_LOCK_ROLES.includes(user.role),canUnlock:permission('reports')&&permission('admin'),canMap:permission('admin'),s,uid};
+  return {canLock:permission('reports')&&ACC_LOCK_ROLES.includes(user.role),canUnlock:permission('reports')&&permission('admin'),canMap:permission('admin'),s,uid,
+    canChart:permission('admin')&&user.role==='Owner', // contract §7 PERM-ACC-007: chart of accounts = Owner
+    canOpeningEnter:permission('reports')&&ACC_LOCK_ROLES.includes(user.role), // PERM-ACC-008: Owner, Manager, Accountant
+    canOpeningApprove:user.role==='Owner'}; // PERM-ACC-009
 }
 export function accExport(s:ReturnType<typeof useHcc>['s'],date:string,toast:(t:string)=>void,uid:string){
   if(!rbacCanExportVouchers(s,uid)){toast('Your role cannot export vouchers.');return;} // DEC-063 G13
@@ -111,3 +116,76 @@ export function AccMapModal({id}:{id?:string}){
       <button className="btn primary" type="submit" disabled={!canMap||!account||account===accMapping(s)[row.key]}>Save mapping</button></div></form>;
 }
 export function accVoucherDebit(v:ACCVoucher){return accVoucherTotals(v).debit;}
+
+// ── ACC-1 dialogs: chart of accounts (Owner) and opening-balance lines (contract §2, §5, §7) ──
+const isNewId=(id?:string)=>!id||id==='new'||id.startsWith('new:');
+/** 'acc-ledger' · id = ledger code, 'new' or 'new:<group id>' (Owner edits; everyone else reads) */
+export function AccLedgerModal({id}:{id?:string}){
+  const {s,run,closeModal,busy}=useHcc();const {canChart}=useAccPerms();
+  const chart=accChart(s),groups=accGroups(s),isNew=isNewId(id),cur=isNew?undefined:chart.find(l=>l.code===id);
+  const [code,setCode]=useState(cur?.code??'');const [name,setName]=useState(cur?.name??'');
+  const [group,setGroup]=useState(cur?.group??(id?.startsWith('new:')?id.slice(4):''));
+  const [gst,setGst]=useState<'none'|'input'|'output'>(cur?.gst??'none');const [tally,setTally]=useState(cur?.tallyName??'');const [note,setNote]=useState(cur?.note??'');
+  if(!isNew&&!cur)return <Empty title="Ledger not found"/>;
+  const curNature=groups.find(g=>g.id===(cur?.group??group))?.nature;
+  const choices=cur?.system?groups.filter(g=>g.nature===curNature):groups.filter(g=>g.id!=='suspense');
+  const codeBad=isNew?(!/^\d{4}$/.test(code)?'Use a 4-digit code.':chart.some(l=>l.code===code)?'This code is already used.':''):'';
+  const ok=canChart&&!codeBad&&name.trim().length>=2&&!!group;
+  return <form className="form" onSubmit={e=>{e.preventDefault();void run({type:'ACC_LEDGER_UPSERT',code,name:name.trim(),group,gst,tallyName:tally.trim()||undefined,note:note.trim()||undefined} satisfies AccLedgerUpsert,'Ledger saved',{close:true});}}>
+    <div className="modal-heading"><p className="eyebrow">CHART OF ACCOUNTS{cur?.system?' · BUILT-IN':''}</p><h2>{cur?`${cur.code} · ${cur.name}`:'Add ledger'}</h2>
+      {cur?.control&&<p>Control ledger: it holds party sub-ledgers and is never posted to directly.</p>}{cur&&!cur.active&&<p><span className="pill acc-st-closed">Retired</span></p>}</div>
+    <label>Code<input value={code} disabled={!isNew||!canChart} inputMode="numeric" maxLength={4} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} placeholder="4 digits, unused"/></label>
+    {codeBad&&code&&<p className="f-why" role="alert">{codeBad}</p>}
+    <label>Name<input value={name} disabled={!canChart} onChange={e=>setName(e.target.value)}/></label>
+    <label>Group<select value={group} disabled={!canChart} onChange={e=>setGroup(e.target.value)}><option value="">Choose a group…</option>{choices.map(g=><option key={g.id} value={g.id}>{g.name} ({g.nature})</option>)}</select></label>
+    {cur?.system&&<p className="muted">A built-in ledger keeps its nature ({curNature}); only groups of the same nature are offered.</p>}
+    <label>GST role<select value={gst} disabled={!canChart} onChange={e=>setGst(e.target.value as typeof gst)}><option value="none">None</option><option value="input">Input credit</option><option value="output">Output tax</option></select></label>
+    <label>Name in Tally (optional)<input value={tally} disabled={!canChart} onChange={e=>setTally(e.target.value)} placeholder={name||'Same as the name'}/></label>
+    <label>Note (optional)<input value={note} disabled={!canChart} onChange={e=>setNote(e.target.value)}/></label>
+    {!canChart&&<p className="f-why">Only the Owner can change the chart of accounts.</p>}
+    <div className="modal-actions">
+      {cur&&canChart&&(cur.active?<button type="button" className="btn" disabled={busy} onClick={()=>void run({type:'ACC_LEDGER_RETIRE',code:cur.code,active:false} satisfies AccLedgerRetire,'Ledger retired',{close:true})}>Retire ledger</button>
+        :<button type="button" className="btn" disabled={busy} onClick={()=>void run({type:'ACC_LEDGER_RETIRE',code:cur.code,active:true} satisfies AccLedgerRetire,'Ledger reactivated',{close:true})}>Reactivate</button>)}
+      <button type="button" className="btn" onClick={closeModal}>{canChart?'Cancel':'Close'}</button>
+      {canChart&&<button className="btn primary" type="submit" disabled={busy||!ok}>Save ledger</button>}</div>
+    {cur&&canChart&&cur.active&&<p className="muted">Retiring is refused while the ledger (or any of its parties) has a balance, or a mapping points at it.</p>}</form>;
+}
+/** 'acc-group' · id = custom group id, 'new' or 'new:<parent group id>' (Owner) */
+export function AccGroupModal({id}:{id?:string}){
+  const {s,run,closeModal,busy}=useHcc();const {canChart}=useAccPerms();
+  const groups=accGroups(s),isNew=isNewId(id),cur=isNew?undefined:groups.find(g=>g.id===id);
+  const [name,setName]=useState(cur?.name??'');const [parent,setParent]=useState(cur?.parent??(id?.startsWith('new:')?id.slice(4):''));
+  if(!isNew&&!cur)return <Empty title="Group not found"/>;
+  const locked=!!cur&&!cur.custom,par=groups.find(g=>g.id===parent);
+  return <form className="form" onSubmit={e=>{e.preventDefault();void run({type:'ACC_GROUP_UPSERT',id:cur?.id,name:name.trim(),parent} satisfies AccGroupUpsert,'Sub-group saved',{close:true});}}>
+    <div className="modal-heading"><p className="eyebrow">CHART OF ACCOUNTS</p><h2>{cur?cur.name:'Add sub-group'}</h2>
+      <p>{locked?'This is one of Tally’s 28 primary groups: it is never deleted or moved.':'A custom sub-group sits under any group and takes its nature.'}</p></div>
+    <label>Name<input value={name} disabled={!canChart||locked} onChange={e=>setName(e.target.value)}/></label>
+    <label>Under group<select value={parent} disabled={!canChart||locked} onChange={e=>setParent(e.target.value)}><option value="">Choose a group…</option>{groups.filter(g=>g.id!==cur?.id).map(g=><option key={g.id} value={g.id}>{g.name} ({g.nature})</option>)}</select></label>
+    {par&&<p className="muted">Nature {par.nature} · {par.side==='BS'?'Balance sheet':'Profit & loss'}</p>}
+    {!canChart&&<p className="f-why">Only the Owner can change the chart of accounts.</p>}
+    <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>{canChart&&!locked?'Cancel':'Close'}</button>
+      {canChart&&!locked&&<button className="btn primary" type="submit" disabled={busy||name.trim().length<2||!parent}>Save sub-group</button>}</div></form>;
+}
+/** 'acc-opening-line' · id = ledger / party id of the line, or 'new' (Owner / Manager / Accountant, while the entry is a draft) */
+export function AccOpeningLineModal({id}:{id?:string}){
+  const {s,run,closeModal,busy}=useHcc();const {canOpeningEnter}=useAccPerms();
+  const o=accOpening(s),lines=(o?.lines??[]).filter(l=>l.account!=='1400'),isNew=isNewId(id),cur=isNew?undefined:lines.find(l=>l.account===id);
+  const [account,setAccount]=useState(cur?.account??'');const [dr,setDr]=useState(fromPaise(cur?.debit??0));const [cr,setCr]=useState(fromPaise(cur?.credit??0));
+  const opts=ledgerOptions(s,true);
+  if(!isNew&&!cur)return <Empty title="Line not found" body="The opening entry changed since the list was opened."/>;
+  const locked=o?.status==='approved'||!canOpeningEnter,debit=toPaise(dr),credit=toPaise(cr);
+  const dup=!cur&&lines.some(l=>l.account===account);
+  const save=(next:typeof lines)=>run({type:'ACC_OPENING_SAVE',asOf:o?.asOf??fyStart(s.date),lines:next,note:o?.note} satisfies AccOpeningSave,'Opening line saved',{close:true});
+  return <form className="form" onSubmit={e=>{e.preventDefault();void save([...lines.filter(l=>l.account!==cur?.account),{account,debit,credit}]);}}>
+    <div className="modal-heading"><p className="eyebrow">OPENING BALANCES</p><h2>{cur?'Edit opening line':'Add opening line'}</h2><p>One side only. The difference is parked on 1400 automatically.</p></div>
+    <LedgerPicker options={opts} value={account} onChange={setAccount} disabled={locked||!!cur}/>
+    <label>Debit (₹)<input inputMode="decimal" value={dr} disabled={locked} onChange={e=>{setDr(e.target.value);if(e.target.value)setCr('');}}/></label>
+    <label>Credit (₹)<input inputMode="decimal" value={cr} disabled={locked} onChange={e=>{setCr(e.target.value);if(e.target.value)setDr('');}}/></label>
+    {dup&&<p className="f-why" role="alert">This ledger or party already has a line — edit that one.</p>}
+    {locked&&<p className="f-why">{o?.status==='approved'?'The opening entry is approved. The Owner can reopen it.':'Your role cannot enter opening balances.'}</p>}
+    <div className="modal-actions">
+      {cur&&!locked&&<button type="button" className="btn" disabled={busy} onClick={()=>void save(lines.filter(l=>l.account!==cur.account))}>Remove line</button>}
+      <button type="button" className="btn" onClick={closeModal}>Cancel</button>
+      <button className="btn primary" type="submit" disabled={busy||locked||!account||dup||(!debit&&!credit)}>Save line</button></div></form>;
+}

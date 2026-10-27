@@ -108,7 +108,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'my-hr':['my shifts','my pay','my leave','payslip','attendance','roster'],
   closing:['day closing','day close','night audit','close day','end of day','eod','close'],
   reports:['report','reports','revenue','occupancy','adr','revpar','csv','export','print','daily'],
-  accounting:['accounting','ledger','voucher','trial balance','tally','lock','period','journal'],
+  accounting:['accounting','ledger','voucher','trial balance','tally','lock','period','journal','statement','day book','chart of accounts','party','parties','opening balance','opening balances','sub-ledger','debtors','creditors'],
   'plans-extras':['meal plan','meal plans','ep','cp','map','ap','breakfast','extras','extra bed','catalogue','free text','discount reason','laundry','package'],
   assistant:['assistant','ask','question','ai','management assistant','insight'],
   compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
