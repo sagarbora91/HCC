@@ -9,7 +9,9 @@ Branch `claude/acc1-tests` (worktree `E:\Projects\HCC\worktrees\acc1-tests`), ba
 | 38b16ea1 | Scenario `ACC-RULEBOOK` (fixture + binder + registration) and `tests/stream-accounting-rulebook.mjs` |
 | 3785804c | Rulebook month as shared data (`tests/_rulebook-month.mjs`), server `Golden/rulebook-month.json` + generator, `RulebookMonthTests`, `RulebookMonthSqlTests` |
 | 68d4737f | WIP after the PC restart: statement rows per checkout, 2000 spot check, plan text |
-| (last) | this DONE file and the final tweaks — see the last commit hash in the hand-back |
+| ab7a1c1a | Command-typed fixture executor (tsc clean), generator renamed `build-rulebook-month.mjs` (the `[GOLDEN]` drift check owns every `export-*.mjs` in a Golden folder), DONE file |
+| 9dde52ed | merge of `claude/acc1` @ 83be423d (test pins only) |
+| (last) | DONE file final |
 
 ## Files
 
@@ -88,13 +90,12 @@ Party balances (rulebook name → contract id): Deccan Agro `1110/<company id>` 
 ## Tests — what runs today, what waits
 
 Prototype `tests/stream-accounting-rulebook.mjs` (17 tests):
-- **Pass today on this branch alone (5):** the four self-checks of the encoded rulebook (opening ₹77,40,000; 26 entries balance and close to the §8.3 ₹84,27,500; subset arithmetic; Deccan statement in the model) and the scenario-loads test, once `ACC_OPENING_*` exists… *(see below: that test needs acc1-opening)*.
-- **Wait for lanes (they fail with `waits for lane <x>: <name> is not exported…` until `claude/acc1` is merged):** `acc1-opening` (scenario load, opening entry, lock refusal / allowance, Manager-enters-Owner-approves), `acc1-parties` (party sub-ledgers, party balances, step-by-step vouchers, every entry resolves), `acc1-statements` (six-column TB, statement, day book), `acc1-chart` (4200 in the closing ledgers).
+- **Pass today on this branch alone (4):** the four self-checks of the encoded rulebook (opening ₹77,40,000; the 26 entries balance and close to the §8.3 ₹84,27,500; subset arithmetic and the ACC-2 split; the Deccan Agro statement in the model).
+- **Wait for lanes — the other 13 fail today (they fail with `waits for lane <x>: <name> is not exported…` until `claude/acc1` is merged):** `acc1-opening` (scenario load, opening entry, lock refusal / allowance, Manager-enters-Owner-approves), `acc1-parties` (party sub-ledgers, party balances, step-by-step vouchers, every entry resolves), `acc1-statements` (six-column TB, statement, day book), `acc1-chart` (4200 in the closing ledgers). Because the scenario cannot load without `ACC_OPENING_*`, the existing m1 test "Scenarios: every available scenario loads with its own ID and schema" also fails until acc1-opening is merged.
 - **Checked against the lanes' committed work** (scratch overlay of the four lanes' committed prototype states on this branch, outside the repository, conflicts in the append-only files resolved by keeping every line): **16 of 17 pass**. The one failure is the statement title: `accStatement(...).name` reads "Company receivables (city ledger) · CO-xxxx" because acc1-statements has the marked INTEGRATION item "replace `partyName` with `accPartyName` from accounting-parties.ts" — **the integrator wires it**; the test asserts the party's name ("Deccan Agro").
-- Full-suite effect on this branch alone: counts in "Test counts" below. The scenario ACC-RULEBOOK also passes the existing "every available scenario loads with its own ID and schema" test once the opening commands exist.
 
 Server `Hcc.Accounting.Tests` (run: `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1 --logger trx`):
-- **Pass today:** `The_json_encodes_the_rulebook…` (opening, 26 balanced steps, §8.3), `Every_driven_step_has_events…`, `Voucher_dates_and_numbers_follow_the_rulebook_calendar` (T8 5 Apr JRN/20260405/001, T7a Receipt 10 Apr, T15a/T15b dates, Deccan 40,000 → 1,03,000 → 63,000), and every `Closing_balance…(account)` row except 4200 (26 of 27 ledgers).
+- **Pass today (86 of 94 project-wide, 5 failures, 3 skipped):** `The_json_encodes_the_rulebook…` (opening, 26 balanced steps, §8.3), `Every_driven_step_has_events…`, `Voucher_dates_and_numbers_follow_the_rulebook_calendar` (T8 5 Apr JRN/20260405/001, T7a Receipt 10 Apr, T15a/T15b dates, Deccan 40,000 → 1,03,000 → 63,000), and every `Closing_balance…(account)` row except 4200 (26 of 27 ledgers).
 - **Fail until acc1-chart merges (4200 is not in the server chart):** `Closing_balance…(4200)`, `Each_driven_step_posts…` (T2, T3), `Trial_balance_agrees_nothing_in_suspense…`, and the Sql test (`SetMapping line:service → 4200` refuses). Marked `[Trait("Lane","acc1-chart")]`.
 - **Skipped with a reason (3):** party balances (acc1-parties: `SourceEntry.Party` is not in this branch), the opening endpoint (acc1-opening: `SaveOpeningBalances` / `ApproveOpeningBalances`), six-column TB / statement / day book (acc1-statements). Each carries the intended assertions in its reason and the figures in `rulebook-month.json`.
 - The Sql test publishes the month's 20 events through the real outbox, runs the consumer once (exactly once per event), sets the Owner's mapping, checks every day view (balanced, no error, closed), the bank deposit / cash difference / company payment on their dates, then the cumulative trial balance at 30 April equals `expected.flow` (the month without the opening, which comes through the opening endpoint).
@@ -102,7 +103,10 @@ Server `Hcc.Accounting.Tests` (run: `dotnet test tests/Hcc.Accounting.Tests -max
 
 ## Test counts
 
-TEST_COUNTS_PLACEHOLDER
+Prototype baseline 1867 (claude/acc1 @ 83be423d, 1867/1867).
+- This branch after `git merge claude/acc1` (9dde52ed): `npx tsc --noEmit` exit 0; `npm test` **1870 / 1884** (1867 base + 17 new; the 14 red are: 13 `[ACC1-RULEBOOK]` tests and the m1 "every available scenario loads" test, all failing with `Unknown action` (ACC_OPENING_SAVE) or `waits for lane …`; no pin or BASE / FY26 hash test fails — the scenario is separate from BASE and FY26). Before the merge the same run had 12 further red pins (SCHEMA 10→11), fixed by the coordinator's re-pin.
+- Same prototype tests against a scratch overlay of the four lanes' committed prototype work (outside the repository): `stream-accounting-rulebook.mjs` **16 / 17** (the 17th is the statement title, see Integration needed 2).
+- Server `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1 --logger trx`: **94 tests — 86 passed, 5 failed, 3 skipped** (before my files: 83 → +11 new methods/rows). `dotnet build Hcc.slnx` exit 0, 0 warnings. The 5 red: 4 mine, waiting for acc1-chart (`Closing_balance…(4200)`, `Each_driven_step_posts…`, `Trial_balance_agrees…`, `RulebookMonthSqlTests`) and 1 not mine (`MappingAndExportTests.Exports_follow_DEC063_G13…`, order-dependent shared-database count, see above). Logs: `.scratch\` (uncommitted).
 
 ## Integration needed (for the coordinator / integrator)
 
