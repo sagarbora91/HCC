@@ -13,49 +13,6 @@ import {sysParkedAccounting,SYS_STUCK_TITLE,sysStuckDetail} from './syshealth';
 import {expItcPaise} from './expenses-scc';
 import {expUdDeskReceipts,expUdDeskDates} from './udhaar-desk';
 
-// ── Chart of accounts (synthetic) ──
-export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
-export type ACCAccount={code:string;name:string;group:ACCGroup;note?:string};
-export const ACC_SUSPENSE='9999';
-export const ACC_CHART:ACCAccount[]=[
-  {code:'1000',name:'Cash in hand',group:'Asset',note:'Front-desk drawer'},
-  {code:'1010',name:'UPI clearing',group:'Asset',note:'Settles to bank (simulated)'},
-  {code:'1020',name:'Card clearing',group:'Asset',note:'Settles to bank (simulated)'},
-  {code:'1030',name:'Bank account',group:'Asset',note:'Bank transfers'},
-  {code:'1100',name:'Guest ledger',group:'Asset',note:'Open folio balances'},
-  {code:'1110',name:'Company receivables (city ledger)',group:'Asset',note:'Authorised company credit'},
-  {code:'1120',name:'Udhaar receivables (customer credit)',group:'Asset',note:'DEC-130: Udhaar payments settle it; the credit itself is kept in the expense register (CA to confirm)'},
-  {code:'1200',name:'Staff advances',group:'Asset',note:'Salary advances recovered through payroll'},
-  {code:'1300',name:'GST input credit',group:'Asset',note:'DEC-135: GST on expense bills marked ITC allowed (one ledger; a CGST / SGST / IGST split on CA request)'},
-  {code:'2000',name:'Advance deposits',group:'Liability',note:'Refundable deposits held'},
-  {code:'2100',name:'Synthetic tax payable (legacy)',group:'Liability',note:'Before DEC-069 only — kept for locked snapshots'},
-  {code:'2110',name:'Output CGST',group:'Liability',note:'GST master, intra-state half (illustrative — CA to confirm)'},
-  {code:'2120',name:'Output SGST',group:'Liability',note:'GST master, intra-state half (illustrative — CA to confirm)'},
-  {code:'2200',name:'Vendor payables',group:'Liability',note:'Vendor-credit expenses'},
-  {code:'2300',name:'Salaries payable',group:'Liability',note:'Net pay due to staff'},
-  {code:'2310',name:'PF payable',group:'Liability',note:'Employee + employer PF (illustrative — CA to confirm)'},
-  {code:'2320',name:'ESIC payable',group:'Liability',note:'Employee + employer ESIC (illustrative — CA to confirm)'},
-  {code:'2330',name:'Professional tax payable',group:'Liability'},
-  {code:'2340',name:'Other payroll deductions',group:'Liability'},
-  {code:'3000',name:"Owner's drawings",group:'Liability',note:'Capital account (contra): cash the Owner takes from the drawer (DEC-073) — CA to confirm'},
-  {code:'4000',name:'Room revenue',group:'Income'},
-  {code:'4100',name:'Other revenue',group:'Income',note:'Services and extras'},
-  {code:'4900',name:'Discounts allowed',group:'Income',note:'Contra revenue'},
-  {code:'4910',name:'Refunds, reversals & credit notes',group:'Income',note:'Contra revenue (folio adjustments)'},
-  {code:'5000',name:'Supplies',group:'Expense'},
-  {code:'5010',name:'Laundry',group:'Expense'},
-  {code:'5020',name:'Repairs & maintenance',group:'Expense'},
-  {code:'5030',name:'Utilities',group:'Expense'},
-  {code:'5040',name:'Petty cash & sundry',group:'Expense'},
-  {code:'5050',name:'General expenses',group:'Expense'},
-  {code:'5100',name:'Salaries & wages',group:'Expense'},
-  {code:'5110',name:'Employer PF & ESIC',group:'Expense'},
-  {code:'5900',name:'Cash over / short',group:'Expense',note:'Accepted drawer differences'},
-  {code:ACC_SUSPENSE,name:'Suspense (unmapped)',group:'Suspense',note:'Never a mapping target'},
-];
-export const accAccount=(code:string)=>ACC_CHART.find(a=>a.code===code);
-export const accLedgerName=(code:string)=>accAccount(code)?.name??code;
-
 // ── Mapping (source classification → ledger) ──
 export const ACC_DEFAULT_MAP:Record<string,string>={
   'line:room':'4000','line:service':'4100','line:discount':'4900','line:adjustment':'4910','folio:guest':'1100','folio:cgst':'2110','folio:sgst':'2120',
@@ -63,18 +20,28 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   'receipt:payment':'1100','receipt:refund':'1100','receipt:deposit':'2000','receipt:deposit-return':'2000','receipt:company-credit':'1110',
   'expense:Supplies':'5000','expense:Laundry':'5010','expense:Maintenance':'5020','expense:Utilities':'5030','expense:Petty cash':'5040',
   'funding:Cash':'1000','funding:UPI':'1010','funding:Card':'1020','funding:Bank transfer':'1030','funding:Vendor credit':'2200',
-  'closing:cash-difference':'5900',
+  // ACC-1 (contract §2): an accepted short posts Dr 5900 Cash short; an over posts Cr 4950 Cash over (key closing:cash-over).
+  'closing:cash-difference':'5900','closing:cash-over':'4950',
   // Wave B1 (DEC-073): drawer cash banked (Dr bank / Cr cash) and taken by the Owner (Dr drawings / Cr cash); a till transfer books nothing.
   'closing:bank-deposit':'1030','closing:owner-drawing':'3000',
   // Restaurant / room-service bills settled at the outlet (shared till, DEC-052). Bills charged to a folio stay in the folio flow.
-  'pos:sales':'4100','pos:cgst':'2110','pos:sgst':'2120',
+  // ACC-1 (contract §2): outlet sales move to 4200 Food & beverage revenue; attrition / retention charges to 4300 (server line kind).
+  'pos:sales':'4200','pos:cgst':'2110','pos:sgst':'2120','line:attrition':'4300',
   // DEC-130: an Udhaar payment settles the customer's credit (Dr tender · Cr Udhaar receivables); DEC-135: GST of an expense bill marked ITC allowed.
-  'receipt:udhaar':'1120','tax:gst-input':'1300',
+  // ACC-1 (contract §2): the ITC splits half / half like output GST — CGST half to 1310 (tax:gst-input), SGST half to 1320 (tax:gst-input-sgst);
+  // 1300 stays for locked snapshots only.
+  'receipt:udhaar':'1120','tax:gst-input':'1310','tax:gst-input-sgst':'1320',
 };
 const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
 export const accKeyValue=(key:string)=>key.slice(key.indexOf(':')+1);
 export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos|tax):.+$/;
+/** ACC-1 (contract §2): the mapping key of an accepted cash difference (counted − expected) — a short (< 0) → closing:cash-difference (5900),
+ *  an over (> 0) → closing:cash-over (4950). */
+export const accCashDiffKey=(diff:number)=>diff>0?'closing:cash-over':'closing:cash-difference';
+/** ACC-1 (contract §2): an expense bill's ITC split half / half exactly as output GST (gstSplit; a reversal's negative ITC mirrors it):
+ *  [key, paise] for the CGST half (tax:gst-input → 1310) and the SGST half (tax:gst-input-sgst → 1320). */
+export const accItcSplit=(itc:number):[string,number][]=>{const g=gstSplit(itc);return [['tax:gst-input',g.cgst],['tax:gst-input-sgst',g.sgst]];};
 
 // ── State slice ──
 export type ACCEntry={account:string;debit:number;credit:number};
@@ -113,8 +80,100 @@ export type ACCChartChange={id:string;at:string;actor:string;kind:'ledger'|'grou
 export type ACCOpeningLine={account:string;debit:number;credit:number};
 export type ACCOpening={asOf:string;lines:ACCOpeningLine[];status:'draft'|'approved';by:string;at:string;approvedBy?:string;approvedAt?:string;note?:string};
 // ── end ACC-1 contract block ──
-/** State slice for this module, stored at s.accountingX (optional; absent in old saves → treat as empty). */
-/** Production build only (W4-7, clients/sync/accounting.ts): the server's own evaluation of each business date in a window
+// ── Chart of accounts (ACC-1: rulebook §3.2, posting contract §2; the chart as a master lives in accounting-chart.ts) ──
+export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
+/** A built-in ledger as the existing selectors read it. `group` = the legacy group, derived from `groupId` (contract §1), so every existing
+ *  selector keeps working; `groupId` = the Tally group of ACC_GROUPS; `system` = built-in; `control` = holds party sub-ledgers
+ *  `<code>/<partyId>` (contract §3). Owner overrides and Owner-added ledgers: accLedger(s, code) / accChart(s) in accounting-chart.ts. */
+export type ACCAccount={code:string;name:string;group:ACCGroup;groupId:string;system:boolean;control?:boolean;gst?:'none'|'input'|'output';note?:string};
+export const ACC_SUSPENSE='9999';
+const BL=(code:string,name:string,group:string,x:{control?:true;gst?:'input'|'output';note?:string}={}):ACCLedger=>
+  ({code,name,group,system:true,...(x.control?{control:true}:{}),gst:x.gst??'none',active:true,...(x.note?{note:x.note}:{})});
+/** The built-in (system) ledgers of contract §2 in code order. Existing codes keep their meaning; names follow the rulebook §3.2 table. */
+export const ACC_LEDGERS:ACCLedger[]=[
+  BL('1000','Cash in hand','cash',{control:true,note:'Front-desk drawer; one party per till (1000/<till code>)'}),
+  BL('1005','Petty cash float','cash',{note:'SCC petty-cash float (expenses wave)'}),
+  BL('1010','UPI clearing','bank',{note:'Settles to bank (simulated)'}),
+  BL('1020','Card clearing','bank',{note:'Settles to bank net of MDR (simulated)'}),
+  BL('1030','Bank accounts','bank',{control:true,note:'One party per row of the Bank accounts master (kind bank)'}),
+  BL('1100','Guest ledger (in-house folios)','debtors',{note:'Open folio balances; zero after check-out'}),
+  BL('1110','Company receivables (city ledger)','debtors',{control:true,note:'Authorised company credit; one party per company account'}),
+  BL('1115','OTA receivables','debtors',{control:true,note:'One party per OTA channel (ACC-2 posts it)'}),
+  BL('1120','Udhaar receivables (customer credit)','debtors',{control:true,note:'DEC-130 / DEC-144: one party per Udhaar customer'}),
+  BL('1200','Staff advances','loans-advances',{control:true,note:'Salary advances recovered through payroll; one party per staff member'}),
+  BL('1210','Recoverable from leavers (F&F)','loans-advances'),
+  BL('1300','GST input credit (legacy, locked snapshots only)','duties-taxes',{gst:'input',note:'DEC-135 one-ledger ITC before ACC-1; new ITC goes to 1310 / 1320'}),
+  BL('1310','Input CGST','duties-taxes',{gst:'input',note:'ITC marked allowed, CGST half'}),
+  BL('1320','Input SGST','duties-taxes',{gst:'input',note:'ITC marked allowed, SGST half'}),
+  BL('1330','Input IGST','duties-taxes',{gst:'input',note:'Bills from vendors outside Maharashtra (ACC-2)'}),
+  BL('1340','GST electronic cash ledger','duties-taxes',{note:'Challan deposits with the government'}),
+  BL('1350','GST paid on advances (adjustable)','duties-taxes'),
+  BL('1360','TDS receivable','loans-advances',{note:'TDS deducted by companies / OTAs'}),
+  BL('1370','Prepaid expenses','loans-advances'),
+  BL('1400','Opening-balance difference','suspense',{note:'DEC-139: parks an unbalanced opening entry; must be zero before the first period lock'}),
+  BL('1500','Buildings','fixed-assets'),
+  BL('1510','Furniture, fittings & electrical fittings','fixed-assets'),
+  BL('1520','Plant & machinery','fixed-assets'),
+  BL('1530','Computers, software & POS hardware','fixed-assets'),
+  BL('1540','Vehicles','fixed-assets'),
+  BL('2000','Advance deposits (guest and group)','current-liabilities',{note:'Refundable deposits held; never income'}),
+  BL('2100','Synthetic tax payable (legacy)','duties-taxes',{gst:'output',note:'Before DEC-069 only — kept for locked snapshots'}),
+  BL('2110','Output CGST','duties-taxes',{gst:'output',note:'GST master, intra-state half (illustrative — CA to confirm)'}),
+  BL('2120','Output SGST','duties-taxes',{gst:'output',note:'GST master, intra-state half (illustrative — CA to confirm)'}),
+  BL('2130','Output IGST','duties-taxes',{gst:'output',note:'Normally zero (DEC-136 refuses inter-state supply)'}),
+  BL('2140','GST payable under reverse charge','duties-taxes',{gst:'output'}),
+  BL('2150','TDS payable','duties-taxes'),
+  BL('2200','Vendor payables','creditors',{control:true,note:'Vendor-credit expenses; one party per expense vendor'}),
+  BL('2300','Salaries payable (net)','current-liabilities',{note:'Net pay due to staff'}),
+  BL('2310','PF payable','duties-taxes',{note:'Employee + employer PF (illustrative — CA to confirm)'}),
+  BL('2320','ESIC payable','duties-taxes',{note:'Employee + employer ESIC (illustrative — CA to confirm)'}),
+  BL('2330','Professional tax payable','duties-taxes'),
+  BL('2340','Other payroll deductions','current-liabilities'),
+  BL('2400','Bank loans (secured)','secured-loans',{control:true,note:'One party per loan (Owner-added loan rows, ACC-2)'}),
+  BL('2410','Unsecured loans','unsecured-loans'),
+  BL('3000',"Owner's drawings",'capital',{note:'Capital account (contra): cash the Owner takes from the drawer (DEC-073) — CA to confirm'}),
+  BL('3100',"Owner's capital",'capital',{note:'Opening capital + profit − drawings'}),
+  BL('4000','Room revenue','sales'),
+  BL('4100','Other services revenue','sales',{note:'Laundry, extras and other services'}),
+  BL('4200','Food & beverage revenue','sales',{note:'Outlet (POS) bills'}),
+  BL('4300','Cancellation, no-show & attrition charges','sales'),
+  BL('4400','Banquet & events revenue','sales'),
+  BL('4900','Discounts allowed','sales',{note:'Contra revenue'}),
+  BL('4910','Refunds, reversals & credit notes','sales',{note:'Contra revenue (folio adjustments)'}),
+  BL('4950','Cash over','indirect-income',{note:'Accepted drawer overs (shorts go to 5900)'}),
+  BL('4960','Interest & other income','indirect-income'),
+  BL('5000','Housekeeping & guest supplies','direct-expenses'),
+  BL('5010','Linen & laundry','direct-expenses'),
+  BL('5015','Kitchen provisions & beverages','direct-expenses'),
+  BL('5020','Repairs & maintenance','indirect-expenses'),
+  BL('5030','Electricity, water & fuel','direct-expenses'),
+  BL('5040','Petty cash & sundry','indirect-expenses'),
+  BL('5050','General & administrative expenses','indirect-expenses'),
+  BL('5060','Rent & licence fees','indirect-expenses'),
+  BL('5070','OTA commission','indirect-expenses'),
+  BL('5080','Bank & card charges','indirect-expenses'),
+  BL('5090','Interest on loans','indirect-expenses'),
+  BL('5100','Salaries & wages','indirect-expenses'),
+  BL('5110','Employer PF & ESIC','indirect-expenses'),
+  BL('5120','Staff welfare','indirect-expenses'),
+  BL('5200','Depreciation','indirect-expenses'),
+  BL('5300','Bad debts written off','indirect-expenses'),
+  BL('5400','GST / TDS interest & late fees','indirect-expenses'),
+  BL('5900','Cash short','indirect-expenses',{note:'Accepted drawer shorts (overs go to 4950)'}),
+  BL(ACC_SUSPENSE,'Suspense (unmapped)','suspense',{note:'Never a mapping target'}),
+];
+/** A built-in group by id (ACC_GROUPS). Custom sub-groups: accGroupOf(s, id) in accounting-chart.ts. */
+export const accGroupDef=(id:string)=>ACC_GROUPS.find(g=>g.id===id);
+/** The built-in chart as ACCAccount rows (legacy group derived from the Tally group, contract §1). */
+export const ACC_CHART:ACCAccount[]=ACC_LEDGERS.map(l=>({code:l.code,name:l.name,group:accLegacyGroup(accGroupDef(l.group)!),groupId:l.group,system:true,
+  ...(l.control?{control:true}:{}),gst:l.gst,...(l.note?{note:l.note}:{})}));
+/** A built-in ledger by code. A party ledger id `<control>/<party>` resolves to its control ledger (contract §3; the party's own name comes
+ *  from accounting-parties.ts). Owner overrides and Owner-added ledgers: accLedger(s, code) in accounting-chart.ts. */
+export const accAccount=(code:string):ACCAccount|undefined=>{const a=ACC_CHART.find(a=>a.code===code);if(a)return a;
+  const i=code.indexOf('/');if(i<1)return undefined;const c=ACC_CHART.find(a=>a.code===code.slice(0,i));return c?.control?c:undefined;};
+export const accLedgerName=(code:string)=>accAccount(code)?.name??code;
+/** State slice for this module, stored at s.accountingX (optional; absent in old saves → treat as empty).
+ *  Production build only (W4-7, clients/sync/accounting.ts): the server's own evaluation of each business date in a window
  *  (GET /accounting/days). When present, the selectors below read it instead of deriving vouchers on the device — the server is
  *  the truth. `opening` = balances before `from` (cumulative trial balance) and, dated on its own "as of" date, the imported opening
  *  trial balance when that date falls inside the window (N5). `accounts` = name and group of ledger codes outside ACC_CHART (imported
@@ -321,7 +380,7 @@ export function accMapRows(s:State):ACCMapRow[]{
   const map=accMapping(s),uses:Record<string,number>={};
   const add=(k:string)=>{uses[k]=(uses[k]??0)+1;};
   s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
-  s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);if(expItcPaise(e))add('tax:gst-input');});
+  s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);if(expItcPaise(e)){add('tax:gst-input');add('tax:gst-input-sgst');}});
   for(const r of s.expensesX?.udhaar??[])for(const p of r.settlements??[])if(p.desk){add('receipt:udhaar');add('method:'+p.mode);} // DEC-130
   posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax){add('pos:cgst');add('pos:sgst');}add('method:'+r.method);});
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
