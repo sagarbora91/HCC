@@ -17,7 +17,7 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 // MA-0 (DEC-MA-1): the new `masters` permission is granted to Owner and Tech admin in s.grants, so the whole-state hash changed on purpose:
 // old 3521729b…ec6e46b4 → new 260433ce…1e009df941. The generated history itself is unchanged (stream-masters.mjs pins the hash without grants).
 // old → new: 260433ce… → 07f6681c… = SCHEMA 8 → 9 only (masters wave); the generated FY26 data is unchanged.
-const FY26_SHA_BEFORE='3b33a7c669489e237a16232fdb119f82675099541ce2e7c915abc7d60d68e5e8' /* SCC decisions wave (DEC-133): 8ba45941… → 3b33a7c6… = the demo firm profile's fictional licence fields only */ /* SCC port wave (DEC-116, tax + leave): d0babd3b… → 8ba45941… = compliance + leave slices, SCHEMA 9 → 10 */;
+const FY26_SHA_BEFORE='f9eb386f3c914b0d7c8f9dcf46bc193cf7f81b9468e9c77cf78826c70a8cc409' /* ACC-1: SCHEMA 10 → 11 only (accounting chart / opening fields are optional and absent in the seed) */ /* SCC decisions wave (DEC-133): 8ba45941… → 3b33a7c6… = the demo firm profile's fictional licence fields only */ /* SCC port wave (DEC-116, tax + leave): d0babd3b… → 8ba45941… = compliance + leave slices, SCHEMA 9 → 10 */;
 
 // ── fake IndexedDB with real transaction semantics: writes are staged and applied only on commit; `failPut` aborts the
 // transaction when a put for that key is issued (nothing of that transaction is applied) ──
