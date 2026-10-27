@@ -1,5 +1,7 @@
 # HCC — Session handoff (updated 24 Oct 2026, session 2: MB-00…04)
 
+> **Current status (27 Oct 2026, 16:00): read Session 13j (the SCC decisions wave) and the knowledge-graph note at the very end of this file.** Everything earlier is history: the "Next", "Waiting on the owner", "running" and "launched" lines in Session 13 and 13e–13i were all carried out or superseded by later sessions, and are left unmarked on purpose. The open owner/CA points are only the ones listed in 13j.
+
 ## Status
 - **M0** planning package: done (`02 Planning/`), approved (APR-003).
 - **M1** foundation: done (`05 Delivery Evidence/M1/M1_Delivery_Summary.md`).
