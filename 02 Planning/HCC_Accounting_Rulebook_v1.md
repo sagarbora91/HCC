@@ -2,7 +2,7 @@
 
 Written 27 Oct 2026 for the owner, the CA and the agents who will build the accounting module. Nothing in this document is built yet. The module is built **to this document**, and the worked month in §8 becomes its golden test.
 
-**Status of this version:** draft for the owner's reading. Owner rulings already taken: DEC-135 (ITC allowed / disallowed per expense), DEC-137 (consumables expensed on purchase), DEC-138 (depreciation per the Income-tax Act), DEC-139 (opening balances entered by hand). Open points are numbered OP-1… in §9; nothing is built on an open point.
+**Status of this version:** draft for the owner's reading. Owner rulings already taken: DEC-135 (ITC allowed / disallowed per expense), DEC-137 (consumables expensed on purchase), DEC-138 (depreciation per the Income-tax Act), DEC-139 (opening balances entered by hand), **DEC-140 (HCC feeds Tally: ledgers, trial balance and P&L here; balance sheet, year-end close and GST returns in Tally at the CA)**. Open points are numbered OP-1… in §9; nothing is built on an open point.
 
 ## 0. How to read the Source column
 
@@ -19,7 +19,7 @@ Money is integer paise throughout; every rule below is written in rupees for rea
 
 ## 1. What the module is
 
-HCC becomes the hotel's **book of record**: every rupee that moves is a balanced voucher in HCC, the trial balance, P&L and balance sheet come from HCC, and Tally receives a copy by export. (OP-1 asks the owner to confirm this; everything below assumes it.)
+**Tally is the final book (DEC-140).** HCC produces what Tally needs and what the owner wants to see without waiting for the CA: every rupee that moves is a balanced voucher in HCC, every party has a ledger, the **ledgers, trial balance and profit & loss** are HCC reports, and Tally imports HCC's vouchers and ledger masters. The **balance sheet, depreciation entries, year-end close and the GST returns are prepared in Tally at the CA's office**; HCC keeps a GST summary only so the CA can reconcile. Sections marked *(Tally)* below describe entries HCC does not post itself; they stay in the rulebook so the export and the CA's work line up.
 
 Principles kept from the existing module 20 (`02 Planning/modules/HCC_Module_20_Accounting_Spec.md`):
 
@@ -260,7 +260,7 @@ Dr / Cr lines name the ledger codes of §3.2; `[party]` means the party's sub-le
 | E5 | TDS deposited (C9) | Payment | Dr 2150 · Cr 1030/[bank] by the 7th (30 April for March) | new | LAW S-13 |
 | E6 | **TDS receivable reconciled** to Form 168 at year end; shortfall chased with the company, excess written to 3000 Drawings (the proprietor's tax credit) | Journal (manual) | Dr 3000 · Cr 1360 at year end (credit belongs to the proprietor's return) | new | PRACTICE |
 
-### F. Fixed assets and depreciation (DEC-138)
+### F. Fixed assets and depreciation (DEC-138) — *(Tally)*: the depreciation entry is normally passed by the CA in Tally; HCC keeps the register and the rate table, and posts F3 only if the owner wants the P&L after depreciation in HCC
 
 | # | Rule | Source |
 |---|---|---|
@@ -275,7 +275,7 @@ Dr / Cr lines name the ledger codes of §3.2; `[party]` means the party's sub-le
 |---|---|---|
 | G1 | **Day lock** as today (closed day, no exceptions, Owner / Manager / Accountant). **Month lock** (new, Accountant proposes, Owner locks) after the GST set-off E1 is confirmed and the statutory payables D5 are posted; the expense month lock of the SCC port becomes part of it. | existing module 20; OWNER DEC-131 |
 | G2 | **Opening balances** (DEC-139): one Journal dated the FY start, one line per ledger and per party, entered by hand or imported; any difference parks in 1400 and the entry can be saved unbalanced only with 1400 carrying the gap; the first period lock refuses while 1400 ≠ 0. Editable until that lock; afterwards only by an Owner-approved journal. | OWNER DEC-139 |
-| G3 | **Year-end close** (31 March): (1) depreciation F3; (2) GST set-off for March; (3) TDS reconciliation E6; (4) **closing entry**: every Sales / Direct / Indirect income and expense ledger is closed to **Profit & Loss**, whose balance goes to **3100 Owner's capital**; 3000 Drawings is closed to 3100; (5) the balance-sheet ledgers' closing balances become **next year's opening** (generated, not typed); (6) the year is locked. | PRACTICE (standard close); ICAI formats S-22 |
+| G3 | **Year-end close** (31 March) — *(Tally)*, HCC only locks the year and carries balance-sheet ledgers forward as next year's opening (step 5): (1) depreciation F3; (2) GST set-off for March; (3) TDS reconciliation E6; (4) **closing entry**: every Sales / Direct / Indirect income and expense ledger is closed to **Profit & Loss**, whose balance goes to **3100 Owner's capital**; 3000 Drawings is closed to 3100; (5) the balance-sheet ledgers' closing balances become **next year's opening** (generated, not typed); (6) the year is locked. | PRACTICE (standard close); ICAI formats S-22 |
 | G4 | After the year lock, a correction is a journal in the **new** year referring to the old one; the Owner may reopen a year with a reason, which marks every later export as provisional (DEC-077 extended). | OWNER DEC-077 |
 | G5 | **Correcting a locked day** never alters an issued invoice or credit note; it adds a dated reversing voucher (as DEC-077). | OWNER DEC-077 |
 
@@ -303,7 +303,7 @@ All reports read one posting table (voucher → entries → ledger, date, amount
 | 7.2 | **Ledger / party statement** | Opening balance (sum of entries before the range, incl. opening journal) → each entry with running balance → closing. Dr balance shown as "Dr", Cr as "Cr"; never negative numbers | PRACTICE |
 | 7.3 | **Trial balance (six columns)** | Per ledger: opening Dr/Cr, period Dr, period Cr, closing Dr/Cr; control ledgers summarise or expand parties; Σ Dr = Σ Cr in every column pair or the report is red | existing `accTrialBalance` extended |
 | 7.4 | **Profit & loss** (ICAI NCE vertical format) | **Revenue from operations**: 4000 Rooms + 4200 F&B + 4100 Other services + 4300 Cancellation charges − 4900 Discounts − 4910 Credit notes. **Other income**: 4950, 4960. **Expenses**: consumption (5000, 5010, 5015), employee benefits (5100, 5110, 5120), finance costs (5090, 5080), depreciation (5200), other expenses (5020–5070, 5300, 5400, 5900). **Profit before tax** = revenue + other income − expenses. No tax line (proprietor). Sub-totals by Tally group as the second view | LAW S-22 |
-| 7.5 | **Balance sheet** (ICAI NCE vertical) | **Owner's funds** = 3100 + current-year profit − 3000. **Non-current liabilities** = 2400 / 2410. **Current liabilities** = Sundry Creditors (2200 parties) + Duties & Taxes (2110–2150, 2310–2330 net of 1310–1350 shown as net payable or as a current asset when net Dr) + 2000 Advance deposits + 2300 / 2340. **Non-current assets** = fixed-asset blocks at WDV. **Current assets** = Cash-in-Hand (1000, 1005) + Bank Accounts (1030 parties, 1010, 1020) + Sundry Debtors (1100, 1110, 1115, 1120 parties) + Loans & Advances (1200, 1210, 1360, 1370). Must equal; 1400 and 9999 must be zero or the sheet is marked provisional | LAW S-22 |
+| 7.5 | **Balance sheet** (ICAI NCE vertical) — *(Tally)*; an optional HCC view, not the statutory statement | **Owner's funds** = 3100 + current-year profit − 3000. **Non-current liabilities** = 2400 / 2410. **Current liabilities** = Sundry Creditors (2200 parties) + Duties & Taxes (2110–2150, 2310–2330 net of 1310–1350 shown as net payable or as a current asset when net Dr) + 2000 Advance deposits + 2300 / 2340. **Non-current assets** = fixed-asset blocks at WDV. **Current assets** = Cash-in-Hand (1000, 1005) + Bank Accounts (1030 parties, 1010, 1020) + Sundry Debtors (1100, 1110, 1115, 1120 parties) + Loans & Advances (1200, 1210, 1360, 1370). Must equal; 1400 and 9999 must be zero or the sheet is marked provisional | LAW S-22 |
 | 7.6 | **Outstanding — receivables / payables with ageing** | Per party: open balance split 0–30 / 31–60 / 61–90 / 90+ days from invoice date (bills allocated oldest-first by payments) | PRACTICE |
 | 7.7 | **GST summary** (ties to the GSTR-1 working summary that exists and to GSTR-3B) | Output by rate (5 %, 18 %) and section (B2B, B2CS, advances 11A / 11B, credit notes), ITC by head, RCM, set-off per §4.12, cash paid, TCS credit, balance in 1340 | LAW S-14; existing `gstr1Summary` |
 | 7.8 | **Cash book / bank book** | 7.2 for 1000 / 1005 and for each bank sub-ledger; bank book shows the reconciliation columns (cleared date, statement balance) | existing cash book + new |
@@ -425,7 +425,7 @@ Depreciation F2: buildings 10 % × 60,00,000 = 6,00,000; furniture 10 % × 8,00,
 
 | # | Point | Recommendation | Who |
 |---|---|---|---|
-| OP-1 | HCC as the book of record, Tally a copy | Yes | Owner |
+| OP-1 | HCC as the book of record, Tally a copy | **Answered — DEC-140:** Tally is the final book; HCC prepares ledgers, TB and P&L and feeds Tally | Owner |
 | OP-2 | Entity type: proprietorship (as the firm profile) or partnership | Proprietorship; the module adds partner ledgers only if told | Owner |
 | OP-3 | **GST on advances** (§4.6, A6): the law taxes a service advance when received. Does the hotel's current GSTR-3B pay GST on advances? If not, the CA must know this is a change in practice | Build to the law; advances stay small, so the cash effect is small | Owner + CA |
 | OP-4 | **ITC policy** while every output is 5 %: all ITC blocked (§4.4). If the hotel ever has 18 % output (rooms above ₹7,500, banquet, laundry), allow ITC only on inputs **directly** attributable to those supplies and treat common inputs as disallowed (conservative, no Rule 42 apportionment). | As stated; revisit if 18 % output becomes material | Owner + CA |
@@ -446,8 +446,8 @@ Each wave is prototype **and** server, with the §8 figures as golden tests (`te
 |---|---|---|
 | **ACC-1 Chart and parties** | Group master (Tally tree), chart as a master with system ledgers, party sub-ledgers created from masters, posting table, ledger / party statement, six-column trial balance, opening-balance screen (DEC-139), migration of existing vouchers to sub-ledgers, Udhaar credit raised (A17), control-vs-detail Tally export | — |
 | **ACC-2 Purchases, manual vouchers, GST** | Purchase voucher with ITC split (C1, C3–C5, C8, C10), manual Journal / Contra / Payment / Receipt with maker-checker, GST on advances (A6), OTA flow (A13), TDS receivable (A9), cash guards (B9–B11), month-end set-off (E1–E5), month lock | ACC-1 |
-| **ACC-3 Statements and exports** | P&L, balance sheet (ICAI NCE format), ageing, GST summary tied to GSTR-1 / 3B, day book, cash-ratio report, bulk exports (CSV / Excel per party, zip, Tally XML masters + vouchers) | ACC-2 |
-| **ACC-4 Assets and year end** | Fixed-asset register, depreciation schedule and journal (F), year-end close and opening carry-forward (G3), bank reconciliation with statement import (B8), reopen rules (G4) | ACC-3 |
+| **ACC-3 Statements and Tally export** | P&L (ICAI NCE format), ageing, GST summary tied to GSTR-1 / 3B as a reconciliation aid, day book, cash-ratio report, bulk exports (CSV / Excel per ledger and per party, zip), **Tally XML with ledger masters + groups + vouchers that imports cleanly into a fresh Tally company** (the DEC-140 deliverable; ETP's exporter at `E:\ETP\Code` as the base), optional balance-sheet view | ACC-2 |
+| **ACC-4 Year lock and bank** (reduced by DEC-140) | Year lock with opening carry-forward (G3 step 5), bank reconciliation with statement import (B8), reopen rules (G4); fixed-asset register and depreciation journal only if the owner asks | ACC-3 |
 
 Reference material for the agents (design only, never code — GPL / AGPL licences and a different stack): ERPNext's Indian chart of accounts and GST reports; GNUKhata's Tally-style groups and statements; Tally's group tree (S-24); ETP's Tally export at `E:\ETP\Code` for the XML.
 
