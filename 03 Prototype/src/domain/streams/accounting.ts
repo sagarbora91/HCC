@@ -329,11 +329,11 @@ export function accEntryName(s:State|undefined,account:string):string{
 }
 /** ACC-1 (contract §3, retire guard): closing balance (debit − credit, paise) of every ledger id up to and including `date` (default the
  *  business date) — party ids and plain codes as posted. */
-export function accLedgerBalances(s:State,date=s.date):Map<string,number>{
+export function accLedgerBalanceMap(s:State,date=s.date):Map<string,number>{
   const m=new Map<string,number>();for(const v of accVouchersUpTo(s,date))for(const e of v.entries)m.set(e.account,(m.get(e.account)??0)+e.debit-e.credit);return m;
 }
 /** Balance of one party ledger id (0 when nothing posted to it). */
-export const accPartyBalance=(s:State,id:string,date=s.date)=>accLedgerBalances(s,date).get(id)??0;
+export const accPartyBalance=(s:State,id:string,date=s.date)=>accLedgerBalanceMap(s,date).get(id)??0;
 /** Why a master row whose party ledger has a balance cannot be retired ('' = it can; contract §3, MASTER_IN_USE). */
 export function accPartyRetireBlocker(s:State,control:string,partyId:string):string{
   const id=`${control}/${partyId}`,b=accPartyBalance(s,id);if(!b)return '';
