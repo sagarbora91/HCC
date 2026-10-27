@@ -10,7 +10,9 @@ Branch `claude/acc1-statements` (base `39930edc`), worktree `E:\Projects\HCC\wor
 | `b45308d8` | prototype: `accounting-reports.ts` (statement, six-column TB, day book, CSV builders), mock barrel line, `tests/stream-accounting-reports.mjs` |
 | `27dd5a78` | server: `AccountingReportQueries.cs`, `AccountingReportContracts.cs`, `AccountingReportEndpoints.cs`, `HccComposition.cs` ACC-1 line, `Domain/ReportQueriesTests.cs`, `Sql/ReportQueriesSqlTests.cs`; prototype test names made chart-rename-proof (WIP commit after the PC restart) |
 | `4c448714` | line endings restored to LF: a Windows text-mode rewrite had turned `HccComposition.cs` (and three lane files) to CRLF in `27dd5a78`; against the base the net change to `HccComposition.cs` is again the one appended line |
-| (this file) | DONE file |
+| `13d7e444` | DONE file (draft) |
+| `2379e39f` | merge of `claude/acc1` (`83be423d`, SCHEMA-11 test re-pins only) |
+| (last) | DONE file with the final counts |
 
 ## Files
 
@@ -48,17 +50,17 @@ Not touched: `accounting.ts` (only imported), `SqlAccountingStore.cs`, the UI, t
 
 | suite | before (base `39930edc`) | after (this branch) |
 |---|---|---|
-| prototype `npm test` | 1867 (13 of them fail on the wave base: SCHEMA 11 bump, see below) | __PROTO__ |
-| server `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1` | 58 | __SERVER__ |
-| `npx tsc --noEmit` | — | __TSC__ |
-| `npm run build` | — | __BUILD__ |
-| `dotnet build Hcc.slnx` | — | __DBUILD__ |
+| prototype `npm test` | 1867 (1854 passing on `39930edc`: 13 SCHEMA-11 pin failures; 1867/1867 after the coordinator's `83be423d`) | **1877 / 1877** after merging `claude/acc1` (`83be423d`) — +10 `[ACC1-STATEMENTS]`; before that merge 1864 / 1877 with the same 13 base failures |
+| server `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1` | 58 | **66 / 66** (+6 Domain `ReportQueriesTests`, +2 Sql `ReportQueriesSqlTests`) |
+| `npx tsc --noEmit` | — | exit 0 |
+| `npm run build` | — | exit 0 |
+| `dotnet build Hcc.slnx` | — | 0 warnings, 0 errors |
 
-**The 13 prototype failures are not this lane's.** They are the coordinator's `SCHEMA` 10 → 11 bump in `39930edc`: `[S8] SCHEMA is 10` and `[EXP-DEC] … SCHEMA unchanged` (`11 !== 10`), plus the pinned BASE / FY26 hashes in `[CAT] [FDM] [HIST-A] [MFX]×2 [MST] [OPSM] [PPL] [PERF] [POS-MST] [RMS]`. The integrator updates those pins on `claude/acc1`. The lane's 10 tests all pass.
+**The 13 failures seen before the merge were not this lane's** (now re-pinned on the wave branch by `83be423d` and merged here). They were the coordinator's `SCHEMA` 10 → 11 bump in `39930edc`: `[S8] SCHEMA is 10` and `[EXP-DEC] … SCHEMA unchanged` (`11 !== 10`), plus the pinned BASE / FY26 hashes in `[CAT] [FDM] [HIST-A] [MFX]×2 [MST] [OPSM] [PPL] [PERF] [POS-MST] [RMS]`. The lane's 10 tests pass in every run.
 
 The prototype test `[ACC1-STATEMENTS] with the acc1-opening lane merged …` **returns early until `M.accOpeningVoucher` exists**. On `claude/acc1` after the opening lane it drives `ACC_OPENING_SAVE {asOf:'2026-04-01', lines}` (as `manager`) and `ACC_OPENING_APPROVE {}` (as `owner`), per contract §5. The other tests inject party ledgers and an `opening-entry` voucher as a locked snapshot, so they do not depend on other lanes.
 
-Logs (uncommitted): `E:\Projects\HCC\worktrees\acc1-statements\.scratch\` (`npm-test-2.log`, `tsc-2.log`, `npm-build-2.log`, `dotnet-build-2.log`, `dotnet-test-2.log`, the `.trx`).
+Logs (uncommitted): `E:\Projects\HCC\worktrees\acc1-statements\.scratch\` (`npm-test-2.log` (before the merge), `npm-test-3.log` (after it), `tsc-2.log`, `npm-build-2.log`, `dotnet-build-2.log`, `dotnet-test-2.log`, the `.trx`).
 
 ## Integration needed (files this lane does not own)
 
