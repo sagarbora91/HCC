@@ -128,7 +128,7 @@ export function register({test,M,assert}){
     const lv=vs.find(v=>v.source.id===`${id}/${bk(s,id).lines.at(-1).id}`);
     assert.deepEqual(lv.entries.map(e=>[e.account,e.debit,e.credit]),[['1100',14567,0],['4100',0,12345],['2110',0,1111],['2120',0,1111]]);
     const pv=vs.find(v=>v.source.kind==='pos'&&v.narration.includes('POS-F03'));
-    assert.deepEqual(pv.entries.map(e=>[e.account,e.debit,e.credit]),[['1000',182700,0],['4100',0,174000],['2110',0,4350],['2120',0,4350]]);
+    assert.deepEqual(pv.entries.map(e=>[e.account,e.debit,e.credit]),[['1000/TILL',182700,0],['4100',0,174000],['2110',0,4350],['2120',0,4350]]);
     const c=M.accReconcile(s,s.date).find(x=>x.id==='tax');assert.ok(c.ok,JSON.stringify(c));
     const x=M.accTallyXml(s,s.date,s.date).xml;assert.match(x,/<LEDGERNAME>Output CGST<\/LEDGERNAME>/);assert.match(x,/<LEDGERNAME>Output SGST<\/LEDGERNAME>/);
     assert.doesNotMatch(x,/Synthetic tax payable/);

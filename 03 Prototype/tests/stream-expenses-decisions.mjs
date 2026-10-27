@@ -83,13 +83,13 @@ export function register({test,M,assert}){
     s=execute(s,'cashier',{type:'EXP_UD_PAY',id,amount:100000,mode:'Cash'});s=execute(s,'cashier',{type:'EXP_UD_PAY',id,amount:50000,mode:'UPI',reference:'UPI-9'});
     const vs=M.accLiveVouchers(s,D),ud=vs.filter(v=>v.source.sub==='udhaar-payment');
     assert.equal(vs.length,base.length+2);
-    assert.deepEqual(ud.map(v=>[v.type,v.entries.map(e=>[e.account,e.debit,e.credit])]),[['Receipt',[['1000',100000,0],['1120',0,100000]]],['Receipt',[['1010',50000,0],['1120',0,50000]]]]);
+    assert.deepEqual(ud.map(v=>[v.type,v.entries.map(e=>[e.account,e.debit,e.credit])]),[['Receipt',[['1000/TILL',100000,0],['1120/UD-RAMESH-FICTIONAL',0,100000]]],['Receipt',[['1010',50000,0],['1120/UD-RAMESH-FICTIONAL',0,50000]]]]); // ACC-1: party ledgers 1000/<till>, 1120/<customer>
     assert.match(ud[0].narration,/^Udhaar received · Ramesh \(fictional\) · Cash · payment /);
     assert.equal(M.accLedgerName('1120'),'Udhaar receivables (customer credit)');
     for(const code of ['4000','4100'])assert.equal(net(vs,code),net(base,code),'no income from the receipt: '+code);
     assert.ok(balanced(vs));
     const checks=M.accReconcile(s,D);assert.ok(checks.every(c=>c.ok),JSON.stringify(checks.filter(c=>!c.ok)));
-    assert.ok(M.accMapRows(s).some(r=>r.key==='receipt:udhaar'&&r.account==='1120'&&r.uses===2));
+    assert.ok(M.accMapRows(s).some(r=>r.key==='receipt:udhaar'&&r.account==='1120'&&r.uses===3)); // ACC-1: two payments + the credit raised (A17)
     const x=M.accTallyXml(s,D,D);assert.match(x.xml,/<LEDGERNAME>Udhaar receivables \(customer credit\)<\/LEDGERNAME><ISDEEMEDPOSITIVE>No<\/ISDEEMEDPOSITIVE><AMOUNT>1000\.00<\/AMOUNT>/);
     assert.equal(x.debit,x.credit);});
 
@@ -134,7 +134,7 @@ export function register({test,M,assert}){
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:a,approve:true});s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:d,approve:true});
     let vs=M.accLiveVouchers(s,D);const va=vs.find(v=>v.source.id===a),vd=vs.find(v=>v.source.id===d);
     assert.deepEqual(va.entries.map(e=>[e.account,e.debit,e.credit]),[['5020',50000,0],['1300',9000,0],['1010',0,59000]]);
-    assert.deepEqual(vd.entries.map(e=>[e.account,e.debit,e.credit]),[['5000',118000,0],['1000',0,118000]],'disallowed: the whole bill to the category');
+    assert.deepEqual(vd.entries.map(e=>[e.account,e.debit,e.credit]),[['5000',118000,0],['1000/TILL',0,118000]],'disallowed: the whole bill to the category');
     assert.equal(M.accLedgerName('1300'),'GST input credit');
     s=execute(s,'owner',{type:'EXPENSE_REVERSE',id:a,reason:'Wrong vendor'});
     const r=s.expenses.find(e=>e.reversalOf===a);assert.deepEqual([r.amount,r.gstPaise,r.itc],[-59000,-9000,'allowed']);

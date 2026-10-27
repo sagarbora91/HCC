@@ -138,9 +138,9 @@ export function register({test,M,assert}){
     assert.equal(M.cbDay(seed(),seed().date).deposited,undefined,'no deposits: the field is absent (golden cash-book data unchanged)');
     const vs=M.accLiveVouchers(s,s.date),by=id=>vs.find(v=>v.source.id===id);
     const ent=v=>v.entries.map(e=>[e.account,e.debit,e.credit]);
-    assert.deepEqual(ent(by('banking:'+d1)),[['1030',600000,0],['1000',0,600000]]);
-    assert.deepEqual(ent(by('banking:'+d2+'/rejected')),[['1000',100000,0],['1030',0,100000]]);
-    assert.deepEqual(ent(by('drawing:'+dr)),[['3000',150000,0],['1000',0,150000]]);assert.equal(by('drawing:'+dr).type,'Payment');
+    assert.deepEqual(ent(by('banking:'+d1)),[['1030/BANK-1',600000,0],['1000/TILL',0,600000]]);
+    assert.deepEqual(ent(by('banking:'+d2+'/rejected')),[['1000/TILL',100000,0],['1030/BANK-1',0,100000]]);
+    assert.deepEqual(ent(by('drawing:'+dr)),[['3000',150000,0],['1000/TILL',0,150000]]);assert.equal(by('drawing:'+dr).type,'Payment');
     assert.ok(vs.every(M.accBalanced));assert.ok(!vs.some(v=>/transfer/.test(v.source.id)));
     assert.equal(M.accAccount('3000').name,"Owner's drawings");assert.equal(M.ACC_DEFAULT_MAP['closing:bank-deposit'],'1030');
   });

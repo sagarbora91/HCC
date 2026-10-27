@@ -10,7 +10,9 @@ import {lineTax,gstSplit} from '../gst';
 import {mnyLedgerDefaults,mnyIsCredit} from './money-master';
 import {cxSlice} from './cashout';
 import {sysParkedAccounting,SYS_STUCK_TITLE,sysStuckDetail} from './syshealth';
-import {expItcPaise} from './expenses-scc';
+import {expItcPaise,expUdGst,expUdRevenueKey,expUdKind} from './expenses-scc';
+import {accPost,accIsControl,accControlOf,accIsParty,accPartyIdOf,accPartyName,accUdhaarPartyId,type ACCPartyCtx} from './accounting-parties';
+import {grpSlice} from './groups';
 import {expUdDeskReceipts,expUdDeskDates} from './udhaar-desk';
 
 // ── Chart of accounts (synthetic) ──
@@ -152,6 +154,8 @@ const PREFIX:Record<ACCVoucherType,string>={Sales:'SAL',Receipt:'RCT',Payment:'P
 export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVoucher[]{
   const out:Omit<ACCVoucher,'no'>[]=[];
   const map=(key:string,miss:string[])=>{const a=mapping[key];if(a&&accAccount(a)&&a!==ACC_SUSPENSE)return a;miss.push(key);return ACC_SUSPENSE;};
+  // ACC-1 (contract §3): a control ledger (1000, 1030, 1110, 1115, 1120, 1200, 2200) posts to `<code>/<party>` when the source names the party.
+  const pt=(code:string,ctx:ACCPartyCtx)=>accPost(s,code,ctx);
   const push=(v:Omit<ACCVoucher,'no'|'entries'|'unmapped'>,miss:string[],entries:ACCEntry[])=>{
     const e=entries.filter(x=>x.debit||x.credit);if(e.length)out.push({...v,entries:e,unmapped:[...new Set(miss)]});};
   for(const b of s.bookings){
@@ -163,10 +167,10 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   }
   for(const b of s.bookings){
     for(const r of b.receipts.filter(r=>r.date===date&&r.amount!==0)){
-      const miss:string[]=[],src={kind:'receipt' as const,id:`${b.id}/${r.id}`,sub:r.kind,booking:b.id};
-      const counter=map('receipt:'+r.kind,miss);
+      const miss:string[]=[],src={kind:'receipt' as const,id:`${b.id}/${r.id}`,sub:r.kind,booking:b.id},ctx:ACCPartyCtx={method:r.method,company:b.company?.account};
+      const counter=pt(map('receipt:'+r.kind,miss),ctx);
       if(r.kind==='company-credit'){push({date,type:'Journal',narration:`Company credit · ${r.reference} · ${b.guest}`,source:src},miss,[dr(counter,r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
-      const tender=map('method:'+r.method,miss),inflow=RECEIPT_IN.includes(r.kind);
+      const tender=pt(map('method:'+r.method,miss),ctx),inflow=RECEIPT_IN.includes(r.kind);
       const label=r.kind==='payment'?'Payment received':r.kind==='deposit'?'Deposit received':r.kind==='refund'?'Payment refunded':r.kind==='deposit-return'?'Deposit returned':r.kind;
       push({date,type:inflow?'Receipt':'Payment',narration:`${label} · ${r.method} · ${r.reference} · ${b.guest}`,source:src},miss,
         inflow?[dr(tender,r.amount),cr(counter,r.amount)]:[dr(counter,r.amount),cr(tender,r.amount)]);
@@ -176,35 +180,51 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   for(const r of posSlice(s).receipts.filter(r=>r.date===date&&r.amount!==0)){
     const miss:string[]=[],g=gstSplit(r.tax);
     push({date,type:'Sales',narration:`${r.kind==='void'?'Outlet bill void':'Outlet bill'} · ${r.outlet} · ${r.method} · ${r.reference} · ${r.order}`,source:{kind:'pos',id:r.id,sub:r.kind}},miss,
-      [dr(map('method:'+r.method,miss),r.amount),cr(map('pos:sales',miss),r.net),cr(map('pos:cgst',miss),g.cgst),cr(map('pos:sgst',miss),g.sgst)]);
+      [dr(pt(map('method:'+r.method,miss),{method:r.method}),r.amount),cr(map('pos:sales',miss),r.net),cr(map('pos:cgst',miss),g.cgst),cr(map('pos:sgst',miss),g.sgst)]);
   }
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0)){
     // DEC-135: ITC allowed → the bill's GST goes to the GST input-credit ledger and the category takes the rest; disallowed → the whole bill
     // to the category (as before). A reversal record carries −amount and −GST, so it mirrors the split.
-    const miss:string[]=[],head=map('expense:'+e.category,miss),itc=expItcPaise(e),fund=map('funding:'+e.method,miss);
+    const miss:string[]=[],head=map('expense:'+e.category,miss),itc=expItcPaise(e),fund=pt(map('funding:'+e.method,miss),{method:e.method,vendor:e.vendor}); // ACC-1: vendor credit → 2200/<vendor>
     push({date,type:mnyIsCredit(s,e.method)?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor||e.description||'—'} · ${e.category} · ${e.method}`, // DEC-120: the vendor is optional
       source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount-itc),...(itc?[dr(map('tax:gst-input',miss),itc)]:[]),cr(fund,e.amount)]);
   }
+  // ACC-1 (contract §4, rulebook A17, DEC-144): raising an Udhaar credit is a SALE booked the same day — Dr 1120/<customer> (gross) · Cr F&B,
+  // room or other revenue (the credit's kind) · Cr CGST · Cr SGST (the GST inside the gross, expUdGst). Rows raised before ACC-1: other, no GST.
+  // A credit later written off keeps this voucher (the write-off is the bad-debt journal A18, a later wave).
+  for(const r of s.expensesX?.udhaar??[]){
+    if(r.date!==date||!r.amount)continue;const miss:string[]=[],g=expUdGst(r),ctx={udhaar:accUdhaarPartyId(r)};
+    push({date,type:'Sales',narration:`Udhaar credit · ${r.name} · ${expUdKind(r)}${r.gstBps?' · GST '+(r.gstBps/100)+' %':''} · credit ${r.id}`,source:{kind:'receipt',id:'udhaar:'+r.id,sub:'udhaar-credit'}},miss,
+      [dr(pt(map('receipt:udhaar',miss),ctx),r.amount),cr(map(expUdRevenueKey(r),miss),g.taxable),cr(map('folio:cgst',miss),g.cgst),cr(map('folio:sgst',miss),g.sgst)]);
+  }
   // DEC-130: an Udhaar payment taken as a desk receipt settles the customer's credit — Receipt, Dr the tender · Cr Udhaar receivables (never income).
   for(const {r,p} of expUdDeskReceipts(s,date)){
-    if(!p.amount)continue;const miss:string[]=[];
+    if(!p.amount)continue;const miss:string[]=[],ctx={method:p.mode,udhaar:accUdhaarPartyId(r)};
     push({date,type:'Receipt',narration:`Udhaar received · ${r.name} · ${p.mode}${p.reference?' · '+p.reference:''} · payment ${p.id}`,source:{kind:'receipt',id:'udhaar-payment:'+p.id,sub:'udhaar-payment'}},miss,
-      [dr(map('method:'+p.mode,miss),p.amount),cr(map('receipt:udhaar',miss),p.amount)]);
+      [dr(pt(map('method:'+p.mode,miss),ctx),p.amount),cr(pt(map('receipt:udhaar',miss),ctx),p.amount)]);
+  }
+  // ACC-1 (DEC-076, server SourceRules.CompanyPayment): money received from a company against its company-credit receivable — Receipt,
+  // Dr the tender · Cr 1110/<company>. Sub company-payment, so the daily company-credit and collections checks are unchanged.
+  for(const p of grpSlice(s).payments??[]){
+    if(p.date!==date||!p.amount)continue;const miss:string[]=[],ctx={method:p.method,company:p.company};
+    const name=grpSlice(s).companies.find(c=>c.id===p.company)?.name??p.company;
+    push({date,type:'Receipt',narration:`Company payment received · ${name} · ${p.method} · ${p.reference} · payment ${p.id}`,source:{kind:'receipt',id:'company-payment:'+p.id,sub:'company-payment'}},miss,
+      [dr(pt(map('method:'+p.method,miss),ctx),p.amount),cr(pt(map('receipt:company-credit',miss),ctx),p.amount)]);
   }
   // ── Wave B1 (DEC-073): cash leaving the drawer — same vouchers as the server projector (keys banking:{id}, banking:{id}/rejected, drawing:{id}) ──
   for(const r of cxSlice(s).records){
-    const cash=(m:string[])=>map('method:Cash',m);
+    const cash=(m:string[])=>pt(map('method:Cash',m),{method:'Cash',till:r.fromTill});
     if(r.kind==='banking'){
       if(r.date===date){const miss:string[]=[];push({date,type:'Journal',narration:`Cash deposited in bank · ${r.bank??''} · slip ${r.slip??''} · deposit ${r.id}`,source:{kind:'closing',id:'banking:'+r.id,sub:'bank-deposit'}},miss,
-        [dr(map('closing:bank-deposit',miss),r.amount),cr(cash(miss),r.amount)]);}
+        [dr(pt(map('closing:bank-deposit',miss),{bank:r.bank??''}),r.amount),cr(cash(miss),r.amount)]);}
       if(r.status==='Rejected'&&r.decidedDate===date){const miss:string[]=[];push({date,type:'Journal',narration:`Bank deposit rejected · cash back in the drawer · ${r.bank??''} · slip ${r.slip??''} · deposit ${r.id}`,
-        source:{kind:'closing',id:'banking:'+r.id+'/rejected',sub:'bank-deposit-rejected'}},miss,[dr(cash(miss),r.amount),cr(map('closing:bank-deposit',miss),r.amount)]);}
+        source:{kind:'closing',id:'banking:'+r.id+'/rejected',sub:'bank-deposit-rejected'}},miss,[dr(cash(miss),r.amount),cr(pt(map('closing:bank-deposit',miss),{bank:r.bank??''}),r.amount)]);}
     }else if(r.kind==='drawing'&&r.date===date){const miss:string[]=[];push({date,type:'Payment',narration:`Owner drawing · ${r.reason??''} · drawing ${r.id}`,source:{kind:'closing',id:'drawing:'+r.id,sub:'owner-drawing'}},miss,
       [dr(map('closing:owner-drawing',miss),r.amount),cr(cash(miss),r.amount)]);}
   }
   // ── end Wave B1 ──
   const diff=accCashDifference(s,date);
-  if(diff){const miss:string[]=[],cash=map('method:Cash',miss),acct=map('closing:cash-difference',miss);
+  if(diff){const miss:string[]=[],cash=pt(map('method:Cash',miss),{method:'Cash'}),acct=map('closing:cash-difference',miss);
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,
       diff>0?[dr(cash,diff),cr(acct,diff)]:[dr(acct,-diff),cr(cash,-diff)]);}
   const n:Record<string,number>={};
@@ -226,14 +246,38 @@ export function accTotals(vs:ACCVoucher[]){return vs.reduce((a,v)=>{const t=accV
 // ── Trial balance ──
 /** Trial-balance group: the chart's groups, plus Equity for imported ledgers (production only). */
 export type ACCTBGroup=ACCGroup|'Equity';
-export type ACCTBRow={account:string;name:string;group:ACCTBGroup;debit:number;credit:number;balance:number};
+/** `control` (ACC-1, detail trial balance only): set on a party row `<control>/<party>` — the control ledger it sums into. */
+export type ACCTBRow={account:string;name:string;group:ACCTBGroup;debit:number;credit:number;balance:number;control?:string};
 /** Trial balance over a set of vouchers. balance = debit − credit (positive = debit balance). Chart order. `accounts` names codes
- *  outside the chart (production: imported ledgers, ACCServer.accounts). */
-export function accTrialBalance(vs:ACCVoucher[],accounts?:ACCServer['accounts']):ACCTBRow[]{
+ *  outside the chart (production: imported ledgers, ACCServer.accounts). ACC-1 (contract §3): `detail` false (default) = one row per
+ *  control ledger, its parties summed into it; true = a row per party (`control` set) right after its control's own row (the control row
+ *  appears only when something posted to the control itself). Both tie. `s` names the parties (else the party id is the name). */
+export function accTrialBalance(vs:ACCVoucher[],accounts?:ACCServer['accounts'],detail=false,s?:State):ACCTBRow[]{
   const m=new Map<string,{debit:number;credit:number}>();
-  for(const v of vs)for(const e of v.entries){const x=m.get(e.account)??{debit:0,credit:0};x.debit+=e.debit;x.credit+=e.credit;m.set(e.account,x);}
+  for(const v of vs)for(const e of v.entries){const k=detail?e.account:accControlOf(e.account);const x=m.get(k)??{debit:0,credit:0};x.debit+=e.debit;x.credit+=e.credit;m.set(k,x);}
   const order=(c:string)=>{const i=ACC_CHART.findIndex(a=>a.code===c);return i<0?999:i;};
-  return [...m.entries()].sort((a,b)=>order(a[0])-order(b[0])||(a[0]<b[0]?-1:1)).map(([account,x])=>({account,name:accAccount(account)?.name??accounts?.[account]?.name??account,group:accAccount(account)?.group??accounts?.[account]?.group??'Suspense',debit:x.debit,credit:x.credit,balance:x.debit-x.credit}));
+  const name=(a:string)=>accAccount(a)?.name??accounts?.[a]?.name??a,group=(a:string)=>accAccount(a)?.group??accounts?.[a]?.group??'Suspense';
+  const key=(a:string)=>[order(accControlOf(a)),accControlOf(a),accIsParty(a)?1:0,a] as const;
+  const cmp=(a:string,b:string)=>{const x=key(a),y=key(b);return x[0]-y[0]||(x[1]<y[1]?-1:x[1]>y[1]?1:0)||x[2]-y[2]||(x[3]<y[3]?-1:x[3]>y[3]?1:0);};
+  return [...m.entries()].sort((a,b)=>cmp(a[0],b[0])).map(([account,x])=>{const c=accControlOf(account),party=accIsParty(account);
+    return {account,name:party?(s&&accPartyName(s,account))||accPartyIdOf(account):name(account),group:group(c),debit:x.debit,credit:x.credit,balance:x.debit-x.credit,...(party?{control:c}:{})};});
+}
+/** ACC-1: display name of a voucher entry's ledger — a party ledger shows "<control name> · <party name>" (party id when the master row is gone). */
+export function accEntryName(s:State|undefined,account:string):string{
+  if(!accIsParty(account))return accLedgerName(account);
+  return `${accLedgerName(accControlOf(account))} · ${(s&&accPartyName(s,account))||accPartyIdOf(account)}`;
+}
+/** ACC-1 (contract §3, retire guard): closing balance (debit − credit, paise) of every ledger id up to and including `date` (default the
+ *  business date) — party ids and plain codes as posted. */
+export function accLedgerBalances(s:State,date=s.date):Map<string,number>{
+  const m=new Map<string,number>();for(const v of accVouchersUpTo(s,date))for(const e of v.entries)m.set(e.account,(m.get(e.account)??0)+e.debit-e.credit);return m;
+}
+/** Balance of one party ledger id (0 when nothing posted to it). */
+export const accPartyBalance=(s:State,id:string,date=s.date)=>accLedgerBalances(s,date).get(id)??0;
+/** Why a master row whose party ledger has a balance cannot be retired ('' = it can; contract §3, MASTER_IN_USE). */
+export function accPartyRetireBlocker(s:State,control:string,partyId:string):string{
+  const id=`${control}/${partyId}`,b=accPartyBalance(s,id);if(!b)return '';
+  return `${accEntryName(s,id)} has a ledger balance of ₹${(Math.abs(b)/100).toFixed(2)} ${b>0?'Dr':'Cr'} — settle it to zero before retiring it (rulebook §3.3.1).`;
 }
 /** Dates with any accounting activity, closed dates, locks and the business date — newest first. */
 export function accDates(s:State):string[]{
@@ -243,6 +287,8 @@ export function accDates(s:State):string[]{
   posSlice(s).receipts.forEach(r=>d.add(r.date));
   s.expenses.filter(expenseCounts).forEach(e=>d.add(e.date));
   expUdDeskDates(s).forEach(x=>d.add(x)); // DEC-130
+  (s.expensesX?.udhaar??[]).forEach(r=>d.add(r.date)); // ACC-1: Udhaar credit raised (A17)
+  (grpSlice(s).payments??[]).forEach(p=>d.add(p.date)); // ACC-1: company payments (DEC-076)
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
@@ -254,7 +300,7 @@ export function accDayStatus(s:State,date:string):ACCDayStatus{const sv=accSlice
   // DEC-077: the day the Owner reopened counts as Open (live vouchers, not lockable) until it is closed again.
   return accLockOf(s,date)?'Locked':closingReopened(s)?.date===date?'Open':s.closedDates.includes(date)?'Closed':'Open';}
 /** kind 'stuck' / 'pending' come from the server (parked / unprocessed outbox events); the demo raises 'stuck' for a parked accounting event (Wave C3). */
-export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'stuck'|'pending'|'open-day';title:string;detail:string;voucher?:string;source?:string;key?:string};
+export type ACCException={id:string;severity:'error'|'warning'|'info';kind:'unbalanced'|'unmapped'|'drift'|'stuck'|'pending'|'open-day'|'no-party';title:string;detail:string;voucher?:string;source?:string;key?:string};
 const fingerprint=(vs:ACCVoucher[])=>vs.map(v=>v.source.id+'='+accVoucherTotals(v).debit).sort().join('|');
 export function accExceptions(s:State,date:string):ACCException[]{
   const sv=accSlice(s).server;if(sv)return sv.days[date]?.exceptions??[];
@@ -262,6 +308,11 @@ export function accExceptions(s:State,date:string):ACCException[]{
   for(const v of vs){const t=accVoucherTotals(v);
     if(t.debit!==t.credit)out.push({id:'unbal:'+v.no,severity:'error',kind:'unbalanced',title:`Voucher ${v.no} is unbalanced`,detail:`Debits ₹${(t.debit/100).toFixed(2)} ≠ credits ₹${(t.credit/100).toFixed(2)}`,voucher:v.no,source:v.source.id});
     for(const k of v.unmapped)out.push({id:'unmap:'+v.no+':'+k,severity:'error',kind:'unmapped',title:`No ledger mapped for “${accKeyValue(k)}”`,detail:`${accKeyGroup(k)} → posted to Suspense in ${v.no}. Map it in Mapping, then lock.`,voucher:v.no,source:v.source.id,key:k});}
+  // ACC-1 (contract §3): an entry on a control ledger itself — the source did not name the party (old record, method without a settles-to
+  // account). A warning: never blocks the lock. Not raised on a locked snapshot (frozen as locked).
+  if(!accLockOf(s,date))for(const v of vs)for(const c of [...new Set(v.entries.map(e=>e.account).filter(accIsControl))])
+    out.push({id:'noparty:'+v.no+':'+c,severity:'warning',kind:'no-party',title:`${v.no} posts to the control ledger ${c} ${accLedgerName(c)}`,
+      detail:'The source does not name the party (an old record, or a method with no settles-to account), so the amount sits on the control ledger, not on a party sub-ledger. It does not block the lock.',voucher:v.no,source:v.source.id});
   const t=accTotals(vs);
   if(t.debit!==t.credit)out.push({id:'unbal:day',severity:'error',kind:'unbalanced',title:'Trial balance does not agree',detail:`Debits ₹${(t.debit/100).toFixed(2)} ≠ credits ₹${(t.credit/100).toFixed(2)}`});
   const lock=accLockOf(s,date);
@@ -284,12 +335,12 @@ export function accLockBlocker(s:State,date:string):string{
 
 // ── Reconciliation with existing reports ──
 export type ACCCheck={id:string;label:string;report:number;ledger:number;ok:boolean;note:string};
-const isTender=(a:string,mapping:Record<string,string>)=>Object.entries(mapping).some(([k,v])=>k.startsWith('method:')&&v===a);
+const isTender=(id:string,mapping:Record<string,string>)=>{const a=accControlOf(id);return Object.entries(mapping).some(([k,v])=>k.startsWith('method:')&&v===a);}; // ACC-1: party ids sum into their control
 export function accReconcile(s:State,date:string):ACCCheck[]{
   const sv=accSlice(s).server;if(sv)return sv.days[date]?.checks??[];
   const vs=accVouchers(s,date),map=accMapping(s),p=reportPack(s,date,date);
   const v=(tab:string,id:string)=>p.tabs.find(t=>t.id===tab)!.metrics.find(m=>m.id===id)?.value??0;
-  const net=(code:string,f:(x:ACCVoucher)=>boolean=()=>true)=>vs.filter(f).reduce((a,x)=>a+x.entries.filter(e=>e.account===code).reduce((b,e)=>b+e.credit-e.debit,0),0);
+  const net=(code:string,f:(x:ACCVoucher)=>boolean=()=>true)=>vs.filter(f).reduce((a,x)=>a+x.entries.filter(e=>accControlOf(e.account)===code).reduce((b,e)=>b+e.credit-e.debit,0),0);
   const lines=(k:string)=>(x:ACCVoucher)=>x.source.kind==='line'&&x.source.sub===k;
   const tenderMove=(kinds:string[])=>vs.filter(x=>x.source.kind==='receipt'&&kinds.includes(x.source.sub)).reduce((a,x)=>a+x.entries.filter(e=>isTender(e.account,map)).reduce((b,e)=>b+e.debit-e.credit,0),0);
   // Expense vouchers: the last entry is the funding side (Cr for an expense, Dr for a reversal record) = the whole bill, also when DEC-135 splits
@@ -323,6 +374,8 @@ export function accMapRows(s:State):ACCMapRow[]{
   s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
   s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);if(expItcPaise(e))add('tax:gst-input');});
   for(const r of s.expensesX?.udhaar??[])for(const p of r.settlements??[])if(p.desk){add('receipt:udhaar');add('method:'+p.mode);} // DEC-130
+  for(const r of s.expensesX?.udhaar??[]){add('receipt:udhaar');add(expUdRevenueKey(r));if(expUdGst(r).tax){add('folio:cgst');add('folio:sgst');}} // ACC-1: credit raised
+  for(const p of grpSlice(s).payments??[]){add('receipt:company-credit');add('method:'+p.method);} // ACC-1: company payments
   posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax){add('pos:cgst');add('pos:sgst');}add('method:'+r.method);});
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
@@ -335,9 +388,9 @@ const csvCell=csvMinimal;
 const rupees=(p:number)=>(p/100).toFixed(2);
 export const ACC_CSV_HEADER=['Date','Voucher No','Voucher Type','Ledger','Debit','Credit','Narration','Source ID'];
 /** One row per voucher entry. Generic import format (not Tally-specific); amounts in rupees, 2 decimals; CRLF. */
-export function accCsv(vs:ACCVoucher[]):string{
+export function accCsv(vs:ACCVoucher[],s?:State):string{
   const rows:(string|number)[][]=[ACC_CSV_HEADER];
-  for(const v of vs)for(const e of v.entries)rows.push([v.date,v.no,v.type,accLedgerName(e.account),e.debit?rupees(e.debit):'',e.credit?rupees(e.credit):'',v.narration,v.source.id]);
+  for(const v of vs)for(const e of v.entries)rows.push([v.date,v.no,v.type,accEntryName(s,e.account),e.debit?rupees(e.debit):'',e.credit?rupees(e.credit):'',v.narration,v.source.id]);
   return rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
 }
 /** Summary figures for a date (cards / stats). */
@@ -351,7 +404,7 @@ export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;r
   if(v.source.kind==='expense')return {expense:s.expenses.find(e=>e.id===v.source.id||'expense:'+e.id===v.source.id)};
   if(accSlice(s).server)return {}; // server source keys (charge:…, receipt:…, pos:…) are not prototype record ids
   if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
-  if(v.source.kind==='closing'||v.source.sub==='udhaar-payment')return {}; // DEC-130: an Udhaar payment is not a folio receipt
+  if(v.source.kind==='closing'||v.source.sub==='udhaar-payment'||v.source.sub==='udhaar-credit'||v.source.sub==='company-payment')return {}; // DEC-130 / ACC-1: not folio records
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
   return v.source.kind==='line'?{booking,line:booking?.lines.find(l=>l.id===rid)}:{booking,receipt:booking?.receipts.find(r=>r.id===rid)};
 }
@@ -418,7 +471,7 @@ export function accTallyXml(s:State,from:string,to:string,company?:string,identi
   if(new Set(ids).size!==ids.length)throw new Error('Two vouchers in one Tally export share a source key; every REMOTEID must be unique.');
   const body=vs.map((v,i)=>`   <TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER REMOTEID="${xmlEsc(ids[i])}" VCHTYPE="${v.type}" ACTION="Create" OBJVIEW="Accounting Voucher View">
     <DATE>${tallyDate(v.date)}</DATE><GUID>${xmlEsc(ids[i])}</GUID><VOUCHERTYPENAME>${v.type}</VOUCHERTYPENAME><VOUCHERNUMBER>${xmlEsc(v.no)}</VOUCHERNUMBER><NARRATION>${xmlEsc(v.narration)}</NARRATION><EFFECTIVEDATE>${tallyDate(v.date)}</EFFECTIVEDATE>
-${v.entries.map(e=>`    <ALLLEDGERENTRIES.LIST><LEDGERNAME>${xmlEsc(accLedgerName(e.account))}</LEDGERNAME><ISDEEMEDPOSITIVE>${e.debit?'Yes':'No'}</ISDEEMEDPOSITIVE><AMOUNT>${e.debit?'-'+rupees(e.debit):rupees(e.credit)}</AMOUNT></ALLLEDGERENTRIES.LIST>`).join('\n')}
+${v.entries.map(e=>`    <ALLLEDGERENTRIES.LIST><LEDGERNAME>${xmlEsc(accLedgerName(accControlOf(e.account)))}</LEDGERNAME><ISDEEMEDPOSITIVE>${e.debit?'Yes':'No'}</ISDEEMEDPOSITIVE><AMOUNT>${e.debit?'-'+rupees(e.debit):rupees(e.credit)}</AMOUNT></ALLLEDGERENTRIES.LIST>`).join('\n')}
    </VOUCHER></TALLYMESSAGE>`).join('\n');
   const t=accTotals(vs);
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
